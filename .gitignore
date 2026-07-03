@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript/Vite generated files
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# User-local settings
+.claude/settings.local.json
+.claude/launch.json
+
+# Study data exported from the app lives here and IS meant to be committed.
+# Keep it out of the ignore list on purpose - see README.
