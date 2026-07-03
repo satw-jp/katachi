@@ -29,19 +29,27 @@ const cloudRenderer = new CloudRenderer(viewport);
 // (an empty field is a legitimate but uninteresting state).
 record(history, state, "grow", { params: { ...DEFAULT_FIELD_PARAMS } });
 
+function regrowCurrentField(): void {
+  record(history, state, "grow", { params: { ...state.params } });
+  selectedBallId = null;
+  ui.setHistoryCount(history.length);
+  updateSelectionLabel();
+  render();
+}
+
 // --- UI ------------------------------------------------------------------
 const ui = buildUi(app, state.params, manifest.version, manifest.updatedAt, {
   onParamChange: (key, value) => {
     record(history, state, "setParam", { key, value });
+    if (key !== "k") {
+      regrowCurrentField();
+      return;
+    }
     ui.setHistoryCount(history.length);
     render();
   },
   onGrow: () => {
-    record(history, state, "grow", { params: { ...state.params } });
-    selectedBallId = null;
-    ui.setHistoryCount(history.length);
-    updateSelectionLabel();
-    render();
+    regrowCurrentField();
   },
   onReroll: () => {
     const seed = Math.random().toString(36).slice(2, 8);
@@ -63,6 +71,7 @@ const ui = buildUi(app, state.params, manifest.version, manifest.updatedAt, {
   onExport: () => exportHistory(),
   onImportFile: (file) => importHistory(file),
 });
+cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 
 // --- Pointer interaction ---------------------------------------------------
@@ -223,21 +232,34 @@ function exportHistory(): void {
   URL.revokeObjectURL(url);
 }
 
+function applyRecipeText(text: string): void {
+  const entries = parseRecipe(text);
+  history = entries;
+  state = replay(entries);
+  selectedBallId = null;
+  ui.syncParams(state.params);
+  ui.setHistoryCount(history.length);
+  updateSelectionLabel();
+  render();
+}
+
 async function importHistory(file: File): Promise<void> {
   try {
-    const text = await file.text();
-    const entries = parseRecipe(text);
-    history = entries;
-    state = replay(entries);
-    selectedBallId = null;
-    ui.syncParams(state.params);
-    ui.setHistoryCount(history.length);
-    updateSelectionLabel();
-    render();
+    applyRecipeText(await file.text());
   } catch (err) {
     alert(`履歴の読み込みに失敗しました: ${(err as Error).message}`);
   }
 }
+
+// Debug / verification handle (used by automated checks and the "same shape
+// after import" test in the README). Read state, or feed a recipe directly.
+(window as unknown as Record<string, unknown>).__cloudSculpt = {
+  getBalls: () => state.balls.map((b) => ({ ...b })),
+  getParams: () => ({ ...state.params }),
+  getHistory: () => history.map((e) => ({ ...e })),
+  exportJson: () => serializeRecipe(history),
+  importJson: (text: string) => applyRecipeText(text),
+};
 
 // --- Render loop ------------------------------------------------------
 

@@ -41,23 +41,16 @@ export const fragmentShader = /* glsl */ `
     return length(p - c) - r;
   }
 
-  // Returns distance; writes the index of the nearest-dominant ball (for
-  // selection highlight) into hitIndex.
-  float mapScene(vec3 p, out int hitIndex) {
+  // Whole-field SDF: all balls smooth-min'd together.
+  // Must stay in lockstep with fieldSdf() in field.ts (CPU picking).
+  float map(vec3 p) {
     float d = 1e5;
-    hitIndex = -1;
     for (int i = 0; i < ${MAX_BALLS}; i++) {
       if (i >= uBallCount) break;
       float bd = sdBall(p, uBallPos[i], uBallRadius[i]);
-      if (bd < d) { d = bd; }
-      d = i == 0 ? bd : smoothMin(d, bd, uK);
+      d = (i == 0) ? bd : smoothMin(d, bd, uK);
     }
     return d;
-  }
-
-  float map(vec3 p) {
-    int dummy;
-    return mapScene(p, dummy);
   }
 
   vec3 estimateNormal(vec3 p) {

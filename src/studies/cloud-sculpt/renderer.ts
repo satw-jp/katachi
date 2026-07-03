@@ -90,6 +90,9 @@ export class CloudRenderer {
 
   /** Build a world-space ray (origin, direction) from a normalized device (-1..1) pointer position. */
   screenToRay(ndcX: number, ndcY: number): { origin: THREE.Vector3; dir: THREE.Vector3 } {
+    // Ensure the camera matrix is current even if no frame has rendered yet
+    // (picking must not depend on the render loop having run).
+    this.camera.updateMatrixWorld();
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
     return { origin: raycaster.ray.origin.clone(), dir: raycaster.ray.direction.clone() };

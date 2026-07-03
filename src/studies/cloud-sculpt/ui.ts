@@ -85,7 +85,7 @@ export function buildUi(
   const seedInput = document.createElement("input");
   seedInput.type = "text";
   seedInput.value = params.seed;
-  seedInput.oninput = () => callbacks.onParamChange("seed", seedInput.value);
+  seedInput.onchange = () => callbacks.onParamChange("seed", seedInput.value);
   seedRow.appendChild(seedLabel);
   seedRow.appendChild(seedInput);
   root.appendChild(seedRow);

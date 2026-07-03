@@ -7,7 +7,7 @@ SDF・構造力学・材料を学びながら造形するための研究プラ�
 MorphogenesisLab（`active/MorphogenesisLab`）の姉妹プロジェクト — 散歩という同じ地層から生えた二本目の幹。
 道具そのものが作品であり、道具から作品が生まれる。
 
-状態: **v0（2026-07-03 起草）**。思想文書のみ。実装は未着手（docs/tasks/ の指示書から始める）。
+状態: **v0.1.0（2026-07-03）**。T1 Study「雲をこねる」を実装済み。
 
 ## 文書の地図（読む順）
 
@@ -23,6 +23,28 @@ MorphogenesisLab（`active/MorphogenesisLab`）の姉妹プロジェクト — �
 - **Study**（`src/studies/<name>/`）— 試行錯誤の場所。自己完結（コード＋研究ノート＋manifest＋記録）
 - **Library**（`src/library/`）— Study から昇格した安定な操作
 - **Instrument** — Library を束ねた造形の場。**道具は研究の堆積物**（初日は Study だけでよい）
+
+## 起動・ビルド
+
+```bash
+npm install
+npm run dev
+```
+
+開発サーバーは通常 `http://localhost:5173` で起動する。
+
+ビルド確認:
+
+```bash
+npm run build
+```
+
+現在の実装:
+
+- `src/studies/cloud-sculpt/` — S1「雲をこねる」
+- vite + three.js + TypeScript
+- metaball SDF の raymarch 表示
+- つまみ操作、直接操作、操作履歴 JSON export/import
 
 ## 経緯
 
