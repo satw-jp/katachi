@@ -1,0 +1,22 @@
+{
+  "id": "cloud-sculpt",
+  "title": "雲をこねる (Cloud Sculpt)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-07-03",
+  "updatedAt": "2026-07-03",
+  "params": [
+    "count",
+    "radiusBase",
+    "radiusSpread",
+    "k",
+    "seed"
+  ],
+  "related": [],
+  "revisits": [
+    {
+      "date": "2026-07-03",
+      "note": "T1 initial implementation: raymarched metaball SDF (vite + three.js), smooth-min blend, grow/reroll knobs, click-to-add/select/delete + drag-to-move, full operation history with JSON export/import, verified export->reload->import reproduces the same shape."
+    }
+  ]
+}
