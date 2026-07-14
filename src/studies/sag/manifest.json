@@ -1,0 +1,27 @@
+{
+  "id": "sag",
+  "title": "たわむ (Sag)",
+  "status": "active",
+  "version": "0.2.0",
+  "createdAt": "2026-07-09",
+  "updatedAt": "2026-07-10",
+  "params": [
+    "count",
+    "radiusBase",
+    "radiusSpread",
+    "k",
+    "seed",
+    "softness"
+  ],
+  "related": ["cloud-sculpt", "gravity"],
+  "revisits": [
+    {
+      "date": "2026-07-09",
+      "note": "T2b initial implementation: softness knob (SagParams = FieldParams + softness, recorded via setParam like S1). Sag solved by deform.ts — a pure function of (rest balls, softness): overlap graph as a mass-spring network (stiffness ∝ (1-softness) × overlapArea, both imported from gravity/physics.ts, not copied), gravity ∝ volume, hard ground constraint (y>=r), damped semi-implicit-Euler relaxation for 240 fixed iterations, softness<=0 is an exact bypass (guarantees zero sag, not just near-zero). Deformed shape is never recorded in history — recomputed on every rest-shape or softness change. Two-scene renderer: opaque deformed cloud+ground (strain-colored, same S2 blue/red palette) plus an optional translucent rest-shape ghost pass (autoClear=false). Picking hit-tests the deformed display, edits the rest ball by matching id. Permanent approximation banner. Verified in isolated Chrome (port 5185) via window.__sag — see README Observation for the six completion-condition checks and measured response time."
+    },
+    {
+      "date": "2026-07-10",
+      "note": "T2c (v0.1.0 → v0.2.0): Y5 相の造形, liquid end + freeze. deform.ts's computeDeform now blends two independent solves by softness: the T2b spring solve (solveSpring, byte-for-byte unchanged, used alone below softness=0.65) and a new solveLiquid (no persistent edge topology — neighbor pair forces are rebuilt from CURRENT positions every iteration; repel below / cohere above an overlap-target distance = 0.6×(r_i+r_j), within a 1.05× cohesion cutoff; two-phase damping schedule — 300 energetic iterations then 500 settling iterations — was needed to actually flatten a pile instead of leaving a lumpy remainder; a shallow ground-embed constant (0.35×r, liquid solve only) gives grounded balls real contact area so computeStrain doesn't read every tangent-point contact as maximally strained). Crossfades via smoothstep(0.65,1,softness) on positions only, reaching pure liquid at softness=1. New history op `freeze` (no args): bakes computeDeform(state.balls, state.params.softness) into state.balls and zeroes softness — replay-deterministic because it's the same pure function re-evaluated from deterministically-replayed state, not a stored snapshot. UI: 凍らせる (Freeze) button under the softness knob; banner extended with a liquid-honesty line; softness label unchanged (deferred to T2d per instructions). Verified in isolated Chrome (port 5185) via window.__sag: all 6 T2b regression conditions hold (exact bypass at softness=0, mid-range softness=0.4 numerically identical to pre-T2c code, ghost/body divergence, pointer add/select/drag/radius, export→import equality, banner present) plus T2c's own conditions — see README Observation for the measured pool height/spread/strain numbers and the freeze verification."
+    }
+  ]
+}

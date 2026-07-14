@@ -1,0 +1,22 @@
+{
+  "id": "gravity",
+  "title": "重力を入れる (Gravity)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-07-09",
+  "updatedAt": "2026-07-09",
+  "params": [
+    "count",
+    "radiusBase",
+    "radiusSpread",
+    "k",
+    "seed"
+  ],
+  "related": ["cloud-sculpt"],
+  "revisits": [
+    {
+      "date": "2026-07-09",
+      "note": "T2 initial implementation: ground plane (y=0) unioned into the raymarch SDF, snapToGround op, crude strain approximation (physics.ts — overlap graph + Dijkstra shortest-path-to-ground tree + subtree volume / neck area), blue->red strain color replacing S1's flat base color, permanent approximation banner, unreachable islands forced to max strain. Verified in isolated Chrome on port 5185 via DOM/eval (screenshot tool was unreliable this session, see README Observation): snap-to-ground shifts all balls by the correct delta, moderate radius-thinning of a supported ball reddens it (0.396->0.630), island balls report island:true/normalized:1, export->import round-trip is byte-identical. Found and recorded a real limitation: thinning a ball enough to fully detach its dependents can non-monotonically lower its own strain as load reroutes — documented in README Hypothesis, not fixed yet."
+    }
+  ]
+}

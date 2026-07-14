@@ -1,0 +1,32 @@
+{
+  "id": "rings",
+  "title": "輪の手 (Ring Hand)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-07-11",
+  "updatedAt": "2026-07-11",
+  "params": [
+    "R",
+    "n",
+    "r",
+    "wobbleR",
+    "wobblePos",
+    "seed",
+    "axis",
+    "k"
+  ],
+  "related": [
+    "cloud-sculpt",
+    "foam"
+  ],
+  "revisits": [
+    {
+      "date": "2026-07-11",
+      "note": "T8 initial implementation: field.ts's Ball/fieldSdf shared with S1 (imported, not copied), a new 'unit' layer above it (ring.ts: deterministic generateRingBalls from a recipe with radial/axial/radius wobble, seeded) and a ring-level history (addRing/moveRing/rotateRing/duplicateRing/removeRing/setK/clear, all with deterministic replayable args, mirroring cloud-sculpt/history.ts and foam/history.ts's own-recipe pattern). Click-to-select-whole-ring, drag-to-move or drag-to-rotate (mode toggle) plus 15-degree numeric nudge buttons, duplicate and delete. Linking-number instrument (linking.ts): discrete Gauss linking integral via midpoint-rule segment-pair summation over each ring's center-line (ball centers in generation order), computed for every ring pair on every state change, plus a deep-overlap (fusion) warning heuristic. S1 recipe export (balls only, groups dropped) and direct STL/OBJ export reusing cloud-sculpt/meshExport.ts's buildCloudMesh unmodified."
+    },
+    {
+      "date": "2026-07-11",
+      "note": "Fixed runaway ring drag found by the author: the drag plane was rebuilt through the ring's moving center every frame (previous frame's motion fed back into the next intersection, compounding exponentially) and the drag anchor sat on the ball surface off the plane (initial projection jump). Plane is now fixed at pointerdown and the anchor projected onto it. Verified with real pointer-event sequences: round-trip drift exactly 0, one-way drag proportional."
+    }
+  ]
+}

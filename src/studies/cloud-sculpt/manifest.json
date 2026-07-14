@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-07-03",
+  "updatedAt": "2026-07-10",
   "params": [
     "count",
     "radiusBase",
@@ -21,6 +21,14 @@
     {
       "date": "2026-07-03",
       "note": "Final verification pass: added live regrow on count/radius/seed changes, fixed viewport min-width so the settings panel stays visible, and rechecked add/select/delete/drag plus export/import replay in isolated Chrome."
+    },
+    {
+      "date": "2026-07-04",
+      "note": "Per-ball editor for the selected ball: radius slider (new setBallRadius history op) + precise X/Y/Z number inputs (moveBall). Panel shows on select, hides on deselect. Verified radius reshape records to history and setBallRadius survives export->import replay (round-trip identical)."
+    },
+    {
+      "date": "2026-07-10",
+      "note": "T3 first mesh-export bridge: S1 can derive a watertight triangle mesh from the same fieldSdf used by raymarch/picking, inspect triangle count + mm bounding box + edge-manifold water-tightness, and download STL/OBJ plus paired .recipe.json without adding export to the operation history. Implemented as a marching-tetrahedra first pass over the SDF grid (documented deviation from the task's strict 256-case marching-cubes table; replace only if comparison shows the need). Verified in browser with real coordinate clicks: default cloud at resolution 96 and longest edge 80mm produced 139,600 triangles, 75.4 x 70.4 x 80.0 mm, watertight OK. Also verified the MPM freeze -> S1 mesh path through implementation functions: 22 frozen balls, 21,508 triangles at resolution 40, watertight OK. Fixed an MPM empty-particle renderer crash that blocked that revisit path."
     }
   ]
 }

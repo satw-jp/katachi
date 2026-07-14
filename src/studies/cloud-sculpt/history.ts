@@ -14,6 +14,7 @@ export type Op =
   | { op: "addBall"; args: { id: number; x: number; y: number; z: number; r: number } }
   | { op: "removeBall"; args: { id: number } }
   | { op: "moveBall"; args: { id: number; x: number; y: number; z: number } }
+  | { op: "setBallRadius"; args: { id: number; r: number } }
   | { op: "clear"; args: Record<string, never> };
 
 export interface HistoryEntry {
@@ -83,6 +84,12 @@ export function applyEntry(state: SculptState, entry: HistoryEntry): void {
         ball.y = y;
         ball.z = z;
       }
+      break;
+    }
+    case "setBallRadius": {
+      const { id, r } = op.args;
+      const ball = state.balls.find((b) => b.id === id);
+      if (ball) ball.r = Math.max(0.05, r);
       break;
     }
     case "clear": {

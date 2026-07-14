@@ -1,0 +1,297 @@
+:root {
+  color-scheme: dark;
+  --bg: #101114;
+  --panel-bg: #181a1f;
+  --text: #e6e6e9;
+  --muted: #9a9ca3;
+  --accent: #6fb1ff;
+  --danger: #ff6b6b;
+  --link: #7fe3a3;
+  font-family: -apple-system, "Hiragino Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  cursor: grab;
+}
+#viewport.dragging-ball {
+  cursor: grabbing;
+}
+#viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 1px solid #2a2d34;
+}
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.nav-link {
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.version-row {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider-row label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.value-out {
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+input[type="text"],
+select {
+  flex: 1;
+  background: #0d0e11;
+  border: 1px solid #33363d;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+input[type="number"] {
+  background: #0d0e11;
+  border: 1px solid #33363d;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  background: #24272e;
+  color: var(--text);
+  border: 1px solid #383c45;
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+button:hover {
+  background: #2c3038;
+  border-color: var(--accent);
+}
+button.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+button.mode-active {
+  border-color: var(--accent);
+  background: #223146;
+}
+
+.mode-row {
+  gap: 6px;
+}
+.mode-row button {
+  flex: 1;
+}
+
+.nudge-row {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.nudge-row button {
+  flex: 1 1 30%;
+  padding: 5px 4px;
+  font-size: 11px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.ring-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ring-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #14161b;
+  border: 1px solid #2a2d34;
+  border-radius: 5px;
+}
+.ring-row.selected {
+  border-color: var(--accent);
+  background: #1a2432;
+}
+.ring-row button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.ring-label {
+  flex: 1;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.link-table {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.link-row {
+  padding: 4px 6px;
+  background: #14161b;
+  border-radius: 4px;
+}
+.link-row.linked {
+  color: var(--link);
+  background: #123322;
+}
+
+.overlap-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.overlap-warning {
+  font-size: 11px;
+  color: #ffb066;
+  background: #33220f;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.mesh-export {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #14161b;
+  border: 1px solid #2a2d34;
+  border-radius: 6px;
+}
+
+.mesh-export-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mesh-row {
+  display: grid;
+  grid-template-columns: 74px 1fr 38px;
+  align-items: center;
+}
+
+.mesh-row label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mesh-row input[type="number"] {
+  width: 100%;
+}
+
+.mesh-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.mesh-status[data-ok="true"] {
+  color: #8fd694;
+}
+
+.mesh-status[data-ok="false"] {
+  color: #ff9a9a;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #2a2d34;
+  width: 100%;
+}
+
+.history-count,
+.fps {
+  font-size: 11px;
+  color: var(--muted);
+}

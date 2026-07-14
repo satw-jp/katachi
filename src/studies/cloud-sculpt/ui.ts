@@ -4,7 +4,7 @@
 // required by ~/Projects/AGENTS.md UI rules.
 // ---------------------------------------------------------------------------
 
-import type { FieldParams } from "./field.ts";
+import type { Ball, FieldParams } from "./field.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -12,8 +12,14 @@ export interface UiCallbacks {
   onReroll: () => void;
   onClear: () => void;
   onDeleteSelected: () => void;
+  /** Per-ball radius edit for the currently selected ball. */
+  onBallRadiusChange: (r: number) => void;
+  /** Per-ball position edit (one axis) for the currently selected ball. */
+  onBallPositionChange: (axis: "x" | "y" | "z", value: number) => void;
   onExport: () => void;
   onImportFile: (file: File) => void;
+  onMeshInspect: (options: MeshExportUiOptions) => void;
+  onMeshExport: (options: MeshExportUiOptions) => void;
 }
 
 export interface UiHandles {
@@ -21,8 +27,20 @@ export interface UiHandles {
   setSelectionInfo: (text: string) => void;
   setHistoryCount: (n: number) => void;
   setFps: (fps: number) => void;
+  /**
+   * Show/populate the per-ball editor for `ball`, or hide it when null.
+   * Fields currently focused by the user are left untouched so live typing
+   * / dragging is not clobbered by an unrelated refresh.
+   */
+  setBallEditor: (ball: Ball | null) => void;
   /** Push current param values back into the sliders/seed input (after import / reroll). */
   syncParams: (params: FieldParams) => void;
+  setMeshStatus: (text: string, ok?: boolean) => void;
+}
+
+export interface MeshExportUiOptions {
+  resolution: number;
+  targetLongestMm: number;
 }
 
 const PARAM_SPECS: {
@@ -52,6 +70,48 @@ export function buildUi(
   title.className = "panel-title";
   title.textContent = "雲をこねる — Cloud Sculpt";
   root.appendChild(title);
+
+  const nav = document.createElement("a");
+  nav.className = "nav-link";
+  nav.href = "./gravity.html";
+  nav.textContent = "S2 重力を入れる →";
+  root.appendChild(nav);
+
+  const navSag = document.createElement("a");
+  navSag.className = "nav-link";
+  navSag.href = "./sag.html";
+  navSag.textContent = "S2b たわむ →";
+  root.appendChild(navSag);
+
+  const navMpm = document.createElement("a");
+  navMpm.className = "nav-link";
+  navMpm.href = "./mpm.html";
+  navMpm.textContent = "S2c 本物を混ぜる (MPM) →";
+  root.appendChild(navMpm);
+
+  const navFoam = document.createElement("a");
+  navFoam.className = "nav-link";
+  navFoam.href = "./foam.html";
+  navFoam.textContent = "S-foam 泡のセル →";
+  root.appendChild(navFoam);
+
+  const navRings = document.createElement("a");
+  navRings.className = "nav-link";
+  navRings.href = "./rings.html";
+  navRings.textContent = "S-rings 輪の手 →";
+  root.appendChild(navRings);
+
+  const navPack = document.createElement("a");
+  navPack.className = "nav-link";
+  navPack.href = "./pack.html";
+  navPack.textContent = "S-pack 虚を詰める →";
+  root.appendChild(navPack);
+
+  const navSkin = document.createElement("a");
+  navSkin.className = "nav-link";
+  navSkin.href = "./skin.html";
+  navSkin.textContent = "S-skin 表面に詰める →";
+  root.appendChild(navSkin);
 
   const versionRow = document.createElement("div");
   versionRow.className = "version-row";
@@ -106,6 +166,57 @@ export function buildUi(
   selectionInfo.textContent = "選択なし";
   root.appendChild(selectionInfo);
 
+  // --- Per-ball editor (shown only while a ball is selected) ----------------
+  const ballEditor = document.createElement("div");
+  ballEditor.className = "ball-editor";
+  ballEditor.hidden = true;
+
+  const ballEditorTitle = document.createElement("div");
+  ballEditorTitle.className = "ball-editor-title";
+  ballEditorTitle.textContent = "選択中の球";
+  ballEditor.appendChild(ballEditorTitle);
+
+  // radius slider for this ball
+  const rRow = document.createElement("div");
+  rRow.className = "row slider-row";
+  const rLabel = document.createElement("label");
+  rLabel.textContent = "この球の半径";
+  const rSlider = document.createElement("input");
+  rSlider.type = "range";
+  rSlider.min = "0.05";
+  rSlider.max = "2";
+  rSlider.step = "0.01";
+  const rOut = document.createElement("span");
+  rOut.className = "value-out";
+  rSlider.oninput = () => {
+    const v = Number(rSlider.value);
+    rOut.textContent = v.toFixed(2);
+    callbacks.onBallRadiusChange(v);
+  };
+  rRow.appendChild(rLabel);
+  rRow.appendChild(rSlider);
+  rRow.appendChild(rOut);
+  ballEditor.appendChild(rRow);
+
+  // precise x/y/z numeric inputs (drag is coarse; these are exact)
+  const posRow = document.createElement("div");
+  posRow.className = "row pos-row";
+  const posInputs: Record<"x" | "y" | "z", HTMLInputElement> = {} as never;
+  for (const axis of ["x", "y", "z"] as const) {
+    const field = document.createElement("label");
+    field.className = "pos-field";
+    field.textContent = axis.toUpperCase();
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = "0.05";
+    input.oninput = () => callbacks.onBallPositionChange(axis, Number(input.value));
+    field.appendChild(input);
+    posRow.appendChild(field);
+    posInputs[axis] = input;
+  }
+  ballEditor.appendChild(posRow);
+  root.appendChild(ballEditor);
+
   const sep = document.createElement("hr");
   root.appendChild(sep);
 
@@ -129,6 +240,67 @@ export function buildUi(
   };
   importRow.appendChild(importInput);
   root.appendChild(importRow);
+
+  const meshPanel = document.createElement("div");
+  meshPanel.className = "mesh-export";
+
+  const meshTitle = document.createElement("div");
+  meshTitle.className = "mesh-export-title";
+  meshTitle.textContent = "3Dデータ";
+  meshPanel.appendChild(meshTitle);
+
+  const sizeRow = document.createElement("div");
+  sizeRow.className = "row mesh-row";
+  const sizeLabel = document.createElement("label");
+  sizeLabel.textContent = "最長辺 mm";
+  const sizeInput = document.createElement("input");
+  sizeInput.type = "number";
+  sizeInput.min = "10";
+  sizeInput.max = "240";
+  sizeInput.step = "1";
+  sizeInput.value = "80";
+  sizeRow.appendChild(sizeLabel);
+  sizeRow.appendChild(sizeInput);
+  meshPanel.appendChild(sizeRow);
+
+  const resolutionRow = document.createElement("div");
+  resolutionRow.className = "row mesh-row";
+  const resolutionLabel = document.createElement("label");
+  resolutionLabel.textContent = "解像度";
+  const resolutionInput = document.createElement("input");
+  resolutionInput.type = "range";
+  resolutionInput.min = "32";
+  resolutionInput.max = "192";
+  resolutionInput.step = "16";
+  resolutionInput.value = "96";
+  const resolutionOut = document.createElement("span");
+  resolutionOut.className = "value-out";
+  resolutionOut.textContent = resolutionInput.value;
+  resolutionInput.oninput = () => {
+    resolutionOut.textContent = resolutionInput.value;
+  };
+  resolutionRow.appendChild(resolutionLabel);
+  resolutionRow.appendChild(resolutionInput);
+  resolutionRow.appendChild(resolutionOut);
+  meshPanel.appendChild(resolutionRow);
+
+  const meshButtonRow = document.createElement("div");
+  meshButtonRow.className = "row";
+  const inspectMeshBtn = document.createElement("button");
+  inspectMeshBtn.textContent = "メッシュを検査";
+  inspectMeshBtn.onclick = () => callbacks.onMeshInspect(readMeshOptions());
+  const exportMeshBtn = document.createElement("button");
+  exportMeshBtn.textContent = "3Dデータで書き出す";
+  exportMeshBtn.onclick = () => callbacks.onMeshExport(readMeshOptions());
+  meshButtonRow.appendChild(inspectMeshBtn);
+  meshButtonRow.appendChild(exportMeshBtn);
+  meshPanel.appendChild(meshButtonRow);
+
+  const meshStatus = document.createElement("div");
+  meshStatus.className = "mesh-status";
+  meshStatus.textContent = "未検査";
+  meshPanel.appendChild(meshStatus);
+  root.appendChild(meshPanel);
 
   const clearBtn = document.createElement("button");
   clearBtn.className = "danger";
@@ -157,11 +329,38 @@ export function buildUi(
     setFps: (f) => {
       fps.textContent = `~${f.toFixed(0)} fps`;
     },
+    setBallEditor: (ball) => {
+      if (!ball) {
+        ballEditor.hidden = true;
+        return;
+      }
+      ballEditor.hidden = false;
+      // Don't clobber a control the user is actively holding/typing in.
+      if (document.activeElement !== rSlider) {
+        rSlider.value = String(ball.r);
+        rOut.textContent = ball.r.toFixed(2);
+      }
+      for (const axis of ["x", "y", "z"] as const) {
+        const input = posInputs[axis];
+        if (document.activeElement !== input) input.value = ball[axis].toFixed(2);
+      }
+    },
     syncParams: (p) => {
       for (const { spec, set } of sliders) set(Number(p[spec.key]));
       seedInput.value = p.seed;
     },
+    setMeshStatus: (text, ok) => {
+      meshStatus.textContent = text;
+      meshStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
   };
+
+  function readMeshOptions(): MeshExportUiOptions {
+    return {
+      resolution: Number(resolutionInput.value),
+      targetLongestMm: Number(sizeInput.value),
+    };
+  }
 }
 
 function buildSlider(

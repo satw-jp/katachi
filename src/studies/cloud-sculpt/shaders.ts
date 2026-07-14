@@ -4,7 +4,10 @@
 // marching cubes for this Study.
 // ---------------------------------------------------------------------------
 
-export const MAX_BALLS = 64;
+// 256: MPM の凍結レシピ（実測136〜153球）が全球映る余裕を持たせた値。
+// 64 のとき「画面は最初の64球・STL は全球」という不一致が作者実機で起きた（2026-07-10）。
+// ループは uBallCount で早期 break するので、少球時の描画コストは変わらない。
+export const MAX_BALLS = 256;
 
 export const vertexShader = /* glsl */ `
   varying vec2 vUv;

@@ -1,0 +1,24 @@
+{
+  "id": "foam",
+  "title": "泡のセル (Foam Cells)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-07-11",
+  "updatedAt": "2026-07-11",
+  "params": [
+    "opening",
+    "thickness",
+    "count",
+    "radiusBase",
+    "radiusSpread",
+    "k",
+    "seed"
+  ],
+  "related": ["cloud-sculpt"],
+  "revisits": [
+    {
+      "date": "2026-07-11",
+      "note": "T7 initial implementation: new Study S-foam. Cells decomposed from the shared field.ts ball list via nearest/second/third-nearest ballSdf (a radius-following distance without the extra power-distance tuning constant). foamSdf (cell.ts) unions a Voronoi wall + outer shell inside the cloud, then carves an opening via a Plateau-border-preserving 'edge distance' so the opening knob sweeps 0=closed cell shells -> 1=thread-only Plateau network continuously. Raymarch shader (shaders.ts) mirrors cell.ts exactly with a damped step (non-exact SDF near holes). meshExport reuses cloud-sculpt's marching-tetrahedra core via a new buildMeshFromField() extraction (S1's buildCloudMesh behavior unchanged, verified by re-reading the refactor). Own history/recipe format (studyId 'foam'), S1 recipe import via cloud-sculpt's own replay() read-only. Added nav links to/from S1/S2/S2b/S2c (existing Study files touched only for nav-link + vite entry, per task instruction)."
+    }
+  ]
+}

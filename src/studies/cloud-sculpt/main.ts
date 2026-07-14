@@ -9,8 +9,11 @@ import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS, freshBallId } from "./field.ts";
 import type { HistoryEntry } from "./history.ts";
 import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "./history.ts";
+import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { raymarchField } from "./picking.ts";
+import { MAX_BALLS } from "./shaders.ts";
+import type { MeshExportUiOptions } from "./ui.ts";
 import { buildUi } from "./ui.ts";
 
 const app = document.getElementById("app")!;
@@ -68,8 +71,26 @@ const ui = buildUi(app, state.params, manifest.version, manifest.updatedAt, {
     render();
   },
   onDeleteSelected: () => deleteSelected(),
+  onBallRadiusChange: (r) => {
+    if (selectedBallId === null) return;
+    record(history, state, "setBallRadius", { id: selectedBallId, r });
+    ui.setHistoryCount(history.length);
+    updateSelectionLabel();
+    render();
+  },
+  onBallPositionChange: (axis, value) => {
+    if (selectedBallId === null) return;
+    const ball = state.balls.find((b) => b.id === selectedBallId);
+    if (!ball) return;
+    const next = { x: ball.x, y: ball.y, z: ball.z, [axis]: value };
+    record(history, state, "moveBall", { id: ball.id, ...next });
+    ui.setHistoryCount(history.length);
+    render();
+  },
   onExport: () => exportHistory(),
   onImportFile: (file) => importHistory(file),
+  onMeshInspect: (options) => inspectMesh(options),
+  onMeshExport: (options) => exportMesh(options),
 });
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
@@ -124,6 +145,7 @@ viewport.addEventListener("pointermove", (e) => {
   if (raycaster.ray.intersectPlane(plane, target)) {
     record(history, state, "moveBall", { id: ball.id, x: target.x, y: target.y, z: target.z });
     ui.setHistoryCount(history.length);
+    updateSelectionLabel(); // keep the X/Y/Z fields in sync while dragging
     render();
   }
 });
@@ -206,16 +228,14 @@ function deleteSelected(): void {
 }
 
 function updateSelectionLabel(): void {
-  if (selectedBallId === null) {
-    ui.setSelectionInfo("選択なし");
-  } else {
-    const ball = state.balls.find((b) => b.id === selectedBallId);
-    ui.setSelectionInfo(
-      ball
-        ? `選択中: 球 #${ball.id} (r=${ball.r.toFixed(2)})`
-        : "選択なし",
-    );
-  }
+  const ball =
+    selectedBallId === null ? null : state.balls.find((b) => b.id === selectedBallId) ?? null;
+  const capNote =
+    state.balls.length > MAX_BALLS
+      ? ` ⚠ 画面は最初の${MAX_BALLS}球のみ表示（全${state.balls.length}球はSTL/検査には含まれる）`
+      : "";
+  ui.setSelectionInfo((ball ? `選択中: 球 #${ball.id} (r=${ball.r.toFixed(2)})` : "選択なし") + capNote);
+  ui.setBallEditor(ball);
 }
 
 // --- History export / import ----------------------------------------------
@@ -251,6 +271,27 @@ async function importHistory(file: File): Promise<void> {
   }
 }
 
+function inspectMesh(options: MeshExportUiOptions): void {
+  try {
+    ui.setMeshStatus("検査中...");
+    const result = buildCloudMesh(state.balls, state.params.k, options);
+    ui.setMeshStatus(meshSummary(result), result.watertight.ok);
+  } catch (err) {
+    ui.setMeshStatus(`検査失敗: ${(err as Error).message}`, false);
+  }
+}
+
+function exportMesh(options: MeshExportUiOptions): void {
+  try {
+    ui.setMeshStatus("書き出し準備中...");
+    const result = buildCloudMesh(state.balls, state.params.k, options);
+    ui.setMeshStatus(meshSummary(result), result.watertight.ok);
+    downloadMeshBundle(result, history);
+  } catch (err) {
+    ui.setMeshStatus(`書き出し失敗: ${(err as Error).message}`, false);
+  }
+}
+
 // Debug / verification handle (used by automated checks and the "same shape
 // after import" test in the README). Read state, or feed a recipe directly.
 (window as unknown as Record<string, unknown>).__cloudSculpt = {
@@ -259,6 +300,7 @@ async function importHistory(file: File): Promise<void> {
   getHistory: () => history.map((e) => ({ ...e })),
   exportJson: () => serializeRecipe(history),
   importJson: (text: string) => applyRecipeText(text),
+  inspectMesh: (options: MeshExportUiOptions) => buildCloudMesh(state.balls, state.params.k, options),
 };
 
 // --- Render loop ------------------------------------------------------
