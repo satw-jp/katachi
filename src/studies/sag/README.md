@@ -161,6 +161,8 @@ npm run build    # 型チェック + dist/ に index.html / gravity.html / sag.h
 
 ## Observation
 
+- **2026-07-17（T16 CSS 共通化）**: 完全一致する基礎規則を `src/styles/base.css` へ移し、Sag 固有の ghost・softness・破断表示は Study 側に残した。ビルド後CSSは抽出前と同じ2.95 kB。
+
 - **2026-07-17（T16 slider 共通化）**: 数値 slider の DOM 構造を共通部品へ移し、Sag 固有の初期・操作中・同期時の桁数規則を保持した。verify port 5185 で表示値と slider の実座標ヒット領域を確認した。
 
 - **2026-07-17（T16 UI部品移行）**: Version / UpdatedAt 行を共通部品へ移し、要素・class・文言・挿入位置が従来と同一であることを確認した。
