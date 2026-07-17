@@ -61,6 +61,8 @@ npm run build    # 型チェック + dist/ 生成
 
 ## Observation
 
+- **2026-07-17（T16 recipe/history 共通化・S1）**: recipe の外箱 serialize / wrapped・bare parse と、timestamp付き record の骨格を `src/lib/` へ移した。S1 の op・apply・replay・Ball ID 再同期は Study 側に残し、旧 bare 配列を受理する契約も維持した。
+
 - **2026-07-17（T16 CSS 共通化）**: 完全一致する基礎規則を `src/styles/base.css` へ移し、S1 固有の球編集・メッシュ表示は Study 側に残した。ビルド後CSSは抽出前と同じ2.85 kB。
 
 - **2026-07-17（T16 slider 共通化）**: 数値 slider の DOM 構造を共通部品へ移し、S1 固有の表示桁数と操作の意味を保持した。verify port 5185 で表示値と実座標ヒット領域を確認した。

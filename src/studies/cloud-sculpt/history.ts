@@ -7,6 +7,12 @@
 
 import type { Ball, FieldParams } from "./field.ts";
 import { DEFAULT_FIELD_PARAMS, growBalls, resetBallIdCounter } from "./field.ts";
+import { recordHistoryEntry } from "../../lib/history.ts";
+import {
+  parseRecipeEntries,
+  serializeRecipeEnvelope,
+  type RecipeEnvelope,
+} from "../../lib/recipe.ts";
 
 export type Op =
   | { op: "grow"; args: { params: FieldParams } }
@@ -23,12 +29,7 @@ export interface HistoryEntry {
   args: Op["args"];
 }
 
-export interface Recipe {
-  formatVersion: 1;
-  studyId: "cloud-sculpt";
-  exportedAt: string;
-  entries: HistoryEntry[];
-}
+export type Recipe = RecipeEnvelope<"cloud-sculpt", HistoryEntry>;
 
 /** In-memory state derived by replaying (or live-applying) the history. */
 export interface SculptState {
@@ -47,10 +48,12 @@ export function record(
   op: Op["op"],
   args: Op["args"],
 ): HistoryEntry {
-  const entry: HistoryEntry = { t: Date.now(), op, args } as HistoryEntry;
-  history.push(entry);
-  applyEntry(state, entry);
-  return entry;
+  return recordHistoryEntry(
+    history,
+    state,
+    (t) => ({ t, op, args }) as HistoryEntry,
+    applyEntry,
+  );
 }
 
 /** Apply a single history entry to a mutable state (used live and on replay). */
@@ -117,20 +120,9 @@ export function replay(entries: HistoryEntry[]): SculptState {
 }
 
 export function serializeRecipe(entries: HistoryEntry[]): string {
-  const recipe: Recipe = {
-    formatVersion: 1,
-    studyId: "cloud-sculpt",
-    exportedAt: new Date().toISOString(),
-    entries,
-  };
-  return JSON.stringify(recipe, null, 2);
+  return serializeRecipeEnvelope("cloud-sculpt", entries);
 }
 
 export function parseRecipe(text: string): HistoryEntry[] {
-  const data = JSON.parse(text) as Partial<Recipe> | HistoryEntry[];
-  // Accept either the wrapped {formatVersion, entries} object, or a bare
-  // array of entries (the "素朴でよい" [{t, op, args}] form from the task doc).
-  if (Array.isArray(data)) return data as HistoryEntry[];
-  if (data && Array.isArray(data.entries)) return data.entries;
-  throw new Error("認識できないレシピ形式です（entries 配列が見つかりません）");
+  return parseRecipeEntries<HistoryEntry>(text);
 }
