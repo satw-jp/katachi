@@ -1,25 +1,4 @@
-:root {
-  color-scheme: dark;
-  --bg: #101114;
-  --panel-bg: #181a1f;
-  --text: #e6e6e9;
-  --muted: #9a9ca3;
-  --accent: #6fb1ff;
-  --danger: #ff6b6b;
-  font-family: -apple-system, "Hiragino Sans", "Segoe UI", sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
+@import "../../styles/base.css";
 
 #app {
   display: flex;
@@ -29,20 +8,8 @@ body {
   position: relative;
 }
 
-#viewport {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-  cursor: grab;
-}
 #viewport.dragging-ball {
   cursor: grabbing;
-}
-#viewport canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 /* Permanent approximation-honesty banner — never scrolls away, always
@@ -80,32 +47,6 @@ body {
   justify-content: space-between;
 }
 
-.nav-link {
-  font-size: 11px;
-  color: var(--accent);
-  text-decoration: none;
-}
-.nav-link:hover {
-  text-decoration: underline;
-}
-
-.panel-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.version-row {
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .slider-row {
   display: grid;
   grid-template-columns: 100px 1fr 48px;
@@ -118,16 +59,6 @@ body {
   color: var(--muted);
 }
 
-.value-out {
-  font-size: 12px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-input[type="range"] {
-  width: 100%;
-}
-
 input[type="text"] {
   flex: 1;
   background: #0d0e11;
@@ -136,30 +67,6 @@ input[type="text"] {
   padding: 4px 6px;
   border-radius: 4px;
   font-size: 12px;
-}
-
-button {
-  background: #24272e;
-  color: var(--text);
-  border: 1px solid #383c45;
-  border-radius: 5px;
-  padding: 7px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-button:hover {
-  background: #2c3038;
-  border-color: var(--accent);
-}
-button.danger:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.hint {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.5;
 }
 
 .selection-info {
@@ -205,16 +112,4 @@ button.danger:hover {
   border-radius: 4px;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #2a2d34;
-  width: 100%;
-}
-
-.history-count,
-.fps {
-  font-size: 11px;
-  color: var(--muted);
 }

@@ -59,6 +59,8 @@ npm run build    # 型チェック + dist/ に index.html と gravity.html の�
 
 ## Observation
 
+- **2026-07-17（T16 CSS 共通化）**: 全 Study で完全一致する基礎規則を `src/styles/base.css` へ移し、Gravity 固有の近似バナー・球編集 UI は Study 側に残した。ビルド後CSSは抽出前と同じ2.66 kBで、見た目を変えず重複だけを減らした。
+
 - **2026-07-17（T16 slider 共通化）**: 数値 slider の DOM 構造を `src/lib/ui/slider.ts` へ移した。初期表示・操作中・外部同期時で異なる既存の桁数規則をそのまま保ち、verify port 5185 で全4本の表示値、実座標クリックによる球 #4 の選択、`document.elementFromPoint` による slider のヒット領域を確認した。
 
 - **2026-07-17（T16 UI部品移行）**: Version / UpdatedAt 行を共通部品へ移した。生成要素・class・文言・タイトル直後の挿入位置は従来と同一で、見た目を変えない境界をコードで確認した。
