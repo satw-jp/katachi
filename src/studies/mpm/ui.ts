@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import type { MpmParams } from "./params.ts";
+import { createSlider } from "../../lib/ui/slider.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
 import type { BackendKind } from "./gpu/capabilities.ts";
 
@@ -414,37 +415,14 @@ function buildSlider(
   params: MpmParams,
   onChange: UiCallbacks["onParamChange"],
 ): { row: HTMLElement; set: (v: number) => void } {
-  const row = document.createElement("div");
-  row.className = "row slider-row";
-
-  const label = document.createElement("label");
-  label.textContent = spec.label;
-
-  const slider = document.createElement("input");
-  slider.type = "range";
-  slider.min = String(spec.min);
-  slider.max = String(spec.max);
-  slider.step = String(spec.step);
-  slider.value = String(params[spec.key]);
-
-  const valueOut = document.createElement("span");
-  valueOut.className = "value-out";
   const fmt = (v: number) => (spec.decimals !== undefined ? v.toFixed(spec.decimals) : String(v));
-  valueOut.textContent = fmt(Number(params[spec.key]));
-
-  slider.oninput = () => {
-    const value = Number(slider.value);
-    valueOut.textContent = fmt(value);
-    onChange(spec.key, value);
-  };
-
-  row.appendChild(label);
-  row.appendChild(slider);
-  row.appendChild(valueOut);
-
-  const set = (v: number) => {
-    slider.value = String(v);
-    valueOut.textContent = fmt(v);
-  };
-  return { row, set };
+  return createSlider({
+    label: spec.label,
+    min: spec.min,
+    max: spec.max,
+    step: spec.step,
+    initial: Number(params[spec.key]),
+    format: fmt,
+    onChange: (value) => onChange(spec.key, value),
+  });
 }

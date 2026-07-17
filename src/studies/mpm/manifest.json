@@ -22,6 +22,7 @@
     "sag"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: migrated MPM physical-quantity sliders to shared src/lib/ui/slider.ts while preserving per-spec decimal formatting; build and real-coordinate hit testing passed on verify port 5185." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed; gpu/ unchanged." },
     { "date": "2026-07-17", "note": "T16 loop consolidation, migrated last as the WebGPU-special Study without touching gpu/. Build passed; real-coordinate Run advanced 3307 particles from 0 to 40 substeps and history 1 to 2 on WebGPU at about 60fps." },
     {
