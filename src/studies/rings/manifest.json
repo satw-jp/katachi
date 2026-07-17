@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.1.0",
   "createdAt": "2026-07-11",
-  "updatedAt": "2026-07-11",
+  "updatedAt": "2026-07-17",
   "params": [
     "R",
     "n",
@@ -20,6 +20,7 @@
     "foam"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 input/loop consolidation. Build passed; real-coordinate click selected a whole ring and a real-coordinate drag updated linking measurement and history at about 60fps." },
     {
       "date": "2026-07-11",
       "note": "T8 initial implementation: field.ts's Ball/fieldSdf shared with S1 (imported, not copied), a new 'unit' layer above it (ring.ts: deterministic generateRingBalls from a recipe with radial/axial/radius wobble, seeded) and a ring-level history (addRing/moveRing/rotateRing/duplicateRing/removeRing/setK/clear, all with deterministic replayable args, mirroring cloud-sculpt/history.ts and foam/history.ts's own-recipe pattern). Click-to-select-whole-ring, drag-to-move or drag-to-rotate (mode toggle) plus 15-degree numeric nudge buttons, duplicate and delete. Linking-number instrument (linking.ts): discrete Gauss linking integral via midpoint-rule segment-pair summation over each ring's center-line (ball centers in generation order), computed for every ring pair on every state change, plus a deep-overlap (fusion) warning heuristic. S1 recipe export (balls only, groups dropped) and direct STL/OBJ export reusing cloud-sculpt/meshExport.ts's buildCloudMesh unmodified."

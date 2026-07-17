@@ -7,6 +7,8 @@
 
 import "./style.css";
 import * as THREE from "three";
+import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
+import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { raymarchField } from "../cloud-sculpt/picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
@@ -161,13 +163,6 @@ let dragLastNdcX = 0;
 const DRAG_THRESHOLD = 4;
 const ROTATE_PIXELS_PER_RADIAN = 220;
 
-function ndcFromEvent(e: PointerEvent): { x: number; y: number } {
-  const rect = viewport.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  return { x, y };
-}
-
 function ownerRingId(ballId: number): number | null {
   const g = state.groups.find((grp) => grp.ballIds.includes(ballId));
   return g ? g.id : null;
@@ -175,7 +170,7 @@ function ownerRingId(ballId: number): number | null {
 
 viewport.addEventListener("pointerdown", (e) => {
   pointerDownPos = { x: e.clientX, y: e.clientY };
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = ringsRenderer.screenToRay(x, y);
   const hit = raymarchField(state.balls, state.k, ray.origin, ray.dir);
   if (hit && hit.ballIndex >= 0) {
@@ -212,7 +207,7 @@ viewport.addEventListener("pointermove", (e) => {
   if (draggingRingId === null) return;
   const group = state.groups.find((g) => g.id === draggingRingId);
   if (!group) return;
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = ringsRenderer.screenToRay(x, y);
 
   if (dragMode === "move") {
@@ -272,16 +267,12 @@ window.addEventListener("pointerup", (e) => {
   pointerDownPos = null;
   if (Math.hypot(dx, dy) > DRAG_THRESHOLD) return; // was an orbit drag, not a click
 
-  if (!isEventOnViewport(e)) return;
+  if (!eventTargetsViewport(e, viewport)) return;
   handleClick(e);
 });
 
-function isEventOnViewport(e: PointerEvent): boolean {
-  return (e.target as HTMLElement)?.closest?.("#viewport") != null;
-}
-
 function handleClick(e: PointerEvent): void {
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = ringsRenderer.screenToRay(x, y);
   const hit = raymarchField(state.balls, state.k, ray.origin, ray.dir);
 
@@ -421,9 +412,7 @@ let lastFrame = performance.now();
 let frameCount = 0;
 let fpsAccum = 0;
 
-function tick(): void {
-  requestAnimationFrame(tick);
-  const now = performance.now();
+function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;
@@ -437,4 +426,4 @@ function tick(): void {
 }
 
 render();
-tick();
+startFrameLoop(renderFrame);
