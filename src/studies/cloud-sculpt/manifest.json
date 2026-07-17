@@ -14,6 +14,7 @@
   ],
   "related": [],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: migrated Cloud Sculpt numeric sliders to shared src/lib/ui/slider.ts while preserving existing formatting; build and real-coordinate hit testing passed on verify port 5185." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     {
       "date": "2026-07-17",
