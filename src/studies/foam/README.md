@@ -122,6 +122,8 @@ npm run build    # 型チェック + dist/ 生成
 
 ## Observation
 
+- **2026-07-17（T16 CSS 共通化）**: 完全一致する基礎規則を `src/styles/base.css` へ移し、Foam 固有のセル・メッシュ表示は Study 側に残した。ビルド後CSSは抽出前と同じ2.75 kB。
+
 - **2026-07-17（T16 slider 共通化）**: 数値 slider の共通 DOM 部品へ移行し、整数／小数3桁の既存表記を保持した。verify port 5185 で表示値と実座標ヒット領域を確認した。
 
 - **2026-07-17（T16 UI部品移行）**: Version / UpdatedAt 行を共通部品へ移し、DOM・文言・配置を維持した。
