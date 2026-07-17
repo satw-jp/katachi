@@ -1,15 +1,15 @@
 #!/bin/bash
-# Yohaku をダブルクリックで開くランチャー。
+# Katachi をダブルクリックで開くランチャー。
 # ターミナルの知識は不要 — このファイルを Finder でダブルクリックするだけ。
 # 見終わったら、開いた黒い窓を閉じれば止まります。
 #
 # ★ポート番号は docs/launcher-spec.md の「ポート台帳」で一意に決めています。
 #   ここを勝手に変えると別のアプリと衝突します。台帳を見て直してください。
 
-APP_NAME="Yohaku"
+APP_NAME="Katachi"
 PORT=5174
-TITLE_MARKER="Yohaku"   # このアプリだけが持つ <title> の目印
-PROJECT_DIR="/Users/atsushisato/Projects/active/Yohaku"
+TITLE_MARKER="Katachi"   # このアプリだけが持つ <title> の目印
+PROJECT_DIR="/Users/atsushisato/Projects/active/Katachi"
 
 cd "$PROJECT_DIR" || { echo "プロジェクトが見つかりません: $PROJECT_DIR"; read -r; exit 1; }
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"

@@ -5,7 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # ポートは docs/launcher-spec.md のポート台帳で一意に固定（Yohaku=5174）。
 PORT=5174
 
-echo "Project: Yohaku"
+echo "Project: Katachi"
 echo "Directory: ${PROJECT_DIR}"
 echo
 echo "Starting Vite dev server (http://localhost:${PORT})..."

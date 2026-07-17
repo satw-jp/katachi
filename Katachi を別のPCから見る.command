@@ -1,16 +1,16 @@
 #!/bin/bash
-# Yohaku を「同じ Wi-Fi にいる別の PC（Windows など）」から見るためのランチャー。
+# Katachi を「同じ Wi-Fi にいる別の PC（Windows など）」から見るためのランチャー。
 # この Mac でダブルクリック → 表示された URL を Windows の Chrome に打ち込むだけ。
 # Windows 側には何もインストールしない。計算は Windows のブラウザの中で走る。
 #
-# ★ポート番号は docs/launcher-spec.md の「ポート台帳」で一意に決めています（Yohaku = 5174）。
-# ★普段の「Yohaku を見る.command」と同時には使えません（同じポートのため）。
+# ★ポート番号は docs/launcher-spec.md の「ポート台帳」で一意に決めています（Katachi = 5174）。
+# ★普段の「Katachi を見る.command」と同時には使えません（同じポートのため）。
 #   先にそちらの黒い窓を閉じてから、これを開いてください。
 
-APP_NAME="Yohaku"
+APP_NAME="Katachi"
 PORT=5174
-TITLE_MARKER="Yohaku"
-PROJECT_DIR="/Users/atsushisato/Projects/active/Yohaku"
+TITLE_MARKER="Katachi"
+PROJECT_DIR="/Users/atsushisato/Projects/active/Katachi"
 
 cd "$PROJECT_DIR" || { echo "プロジェクトが見つかりません: $PROJECT_DIR"; read -r; exit 1; }
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -45,7 +45,7 @@ echo "────────────────────────�
 existing="$(curl -sk --max-time 2 "$URL_LOCAL" 2>/dev/null || curl -s --max-time 2 "http://localhost:${PORT}" 2>/dev/null || true)"
 if [ -n "$existing" ]; then
   echo "⚠️  ポート ${PORT} はすでに使われています。"
-  echo "    普段用の「Yohaku を見る.command」の黒い窓を閉じてから、もう一度開いてください。"
+  echo "    普段用の「Katachi を見る.command」の黒い窓を閉じてから、もう一度開いてください。"
   read -r; exit 1
 fi
 
