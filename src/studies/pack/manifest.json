@@ -38,6 +38,7 @@
   ],
   "related": ["cloud-sculpt", "foam", "rings", "skin"],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     { "date": "2026-07-17", "note": "T16 input/loop consolidation. Build passed; real-coordinate click on the raymarched final surface added and selected unit #64, increasing units 63 to 64 and history 2 to 3. Existing bead/composite picking distinction preserved." },
     {
       "date": "2026-07-14",

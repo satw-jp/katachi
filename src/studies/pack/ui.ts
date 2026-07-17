@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import type { FieldParams } from "../cloud-sculpt/field.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { PackMode, PackParams, ThinnestWallReport, FillReport, UnitKind } from "./field.ts";
 import type { PackResult } from "./field.ts";
 import type { PackViewMode } from "./renderer.ts";
@@ -178,9 +179,7 @@ export function buildUi(
     "実体（ホスト）に単位（球または雲）を貪欲に詰め、host − void を滑らかに合成します。積む単位は虚。残った肉が骨組みです。単位どうしの衝突は外接球で粗く取ります（近似）。";
   root.appendChild(banner);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   const counts = document.createElement("div");
