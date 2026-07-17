@@ -9,6 +9,8 @@
 // ---------------------------------------------------------------------------
 
 import "./style.css";
+import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
+import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS } from "../cloud-sculpt/field.ts";
 import { computeSamplingBounds } from "../cloud-sculpt/meshExport.ts";
@@ -146,13 +148,6 @@ afterMutation();
 let pointerDownPos: { x: number; y: number } | null = null;
 const DRAG_THRESHOLD = 4;
 
-function ndcFromEvent(e: PointerEvent): { x: number; y: number } {
-  const rect = viewport.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  return { x, y };
-}
-
 viewport.addEventListener("pointerdown", (e) => {
   pointerDownPos = { x: e.clientX, y: e.clientY };
 });
@@ -163,16 +158,12 @@ window.addEventListener("pointerup", (e) => {
   const dy = e.clientY - pointerDownPos.y;
   pointerDownPos = null;
   if (Math.hypot(dx, dy) > DRAG_THRESHOLD) return; // was an orbit drag, not a click
-  if (!isEventOnViewport(e)) return;
+  if (!eventTargetsViewport(e, viewport)) return;
   handleClick(e);
 });
 
-function isEventOnViewport(e: PointerEvent): boolean {
-  return (e.target as HTMLElement)?.closest?.("#viewport") != null;
-}
-
 function handleClick(e: PointerEvent): void {
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = skinRenderer.screenToRay(x, y);
 
   if (addPatchMode) {
@@ -523,9 +514,7 @@ let lastFrame = performance.now();
 let frameCount = 0;
 let fpsAccum = 0;
 
-function tick(): void {
-  requestAnimationFrame(tick);
-  const now = performance.now();
+function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;
@@ -539,4 +528,4 @@ function tick(): void {
 }
 
 render();
-tick();
+startFrameLoop(renderFrame);
