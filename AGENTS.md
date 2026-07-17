@@ -1,4 +1,4 @@
-# Yohaku — 運用憲章（AGENTS.md）
+# Katachi — 運用憲章（AGENTS.md）
 
 このプロジェクトで作業するすべての AI・人間が従う。モデル非依存。
 `~/Projects/AGENTS.md`（ルート共通ルール）が上位にあり、矛盾する場合はルートが優先。

@@ -8,12 +8,12 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 // 理由: WebGPU はセキュアコンテキスト（localhost か HTTPS）必須。別 PC から
 // http://192.168.x.x で開くと navigator.gpu が存在せず MPM が CPU に落ちる
 // （2026-07-10 作者の Windows/RTX3080 で実害。ブラウザフラグ回避は不安定だった）。
-// 「Yohaku を別のPCから見る.command」が `--mode https` を渡す。普段の localhost は素の HTTP のまま。
+// 「Katachi を別のPCから見る.command」が `--mode https` を渡す。普段の localhost は素の HTTP のまま。
 export default defineConfig(({ mode }) => ({
   base: "./",
   plugins: mode === "https" ? [basicSsl()] : [],
   server: {
-    // Yohaku は常に 5174。docs/launcher-spec.md のポート台帳で一意に固定。
+    // Katachi は常に 5174。docs/launcher-spec.md のポート台帳で一意に固定。
     // Morpho(5173)・Yomu(5175) と衝突させない。strictPort で別ポートに逃げない。
     port: 5174,
     strictPort: true,
