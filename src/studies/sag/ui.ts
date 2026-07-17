@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Ball } from "../cloud-sculpt/field.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { SagParams } from "./params.ts";
 
 export interface UiCallbacks {
@@ -107,9 +108,7 @@ export function buildUi(
   title.textContent = "たわむ — Sag";
   root.appendChild(title);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   // --- Softness: the one new knob, given its own visually distinct row ---

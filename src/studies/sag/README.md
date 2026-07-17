@@ -161,6 +161,8 @@ npm run build    # 型チェック + dist/ に index.html / gravity.html / sag.h
 
 ## Observation
 
+- **2026-07-17（T16 UI部品移行）**: Version / UpdatedAt 行を共通部品へ移し、要素・class・文言・挿入位置が従来と同一であることを確認した。
+
 - **2026-07-17（T16 共通基盤移行）**: 入力座標変換と描画ループの骨格を共有化した後、verify port 5185 の実座標クリックで球 #11 を選択し、実座標ドラッグで休み形の座標・たわみ後の苦しさ・履歴が一緒に更新されることを確認した。ゴースト表示も維持され、約43–44fps。たわみ計算と履歴の意味は変更していない。
 
 - **2026-07-09**: isolated Chrome（隔離サーバ port 5185、`.claude/launch.json` に

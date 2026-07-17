@@ -15,6 +15,7 @@
   ],
   "related": ["cloud-sculpt", "gravity"],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     {
       "date": "2026-07-17",
       "note": "T16 input/loop consolidation: moved viewport coordinate conversion, hit testing, and the requestAnimationFrame shell to src/lib while preserving deformed-display picking and rest-state edits. Build passed; real-coordinate click selected ball #11 and a real-coordinate drag updated rest position, derived strain, and history with ghost display enabled at about 43-44fps."
