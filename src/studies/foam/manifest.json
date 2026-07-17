@@ -16,6 +16,7 @@
   ],
   "related": ["cloud-sculpt"],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     {
       "date": "2026-07-17",
       "note": "T16 loop consolidation: migrated the requestAnimationFrame shell to src/lib without changing foam field or history semantics. Build passed; a real-coordinate click on Grow increased history from 3 to 4 and rendering continued at the known heavy roughly 1fps on verify port 5185."

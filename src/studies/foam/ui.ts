@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { FieldParams } from "../cloud-sculpt/field.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { FoamParams } from "./cell.ts";
 
 export interface FoamUiCallbacks {
@@ -95,9 +96,7 @@ export function buildFoamUi(
     "同じ雲(球のリスト)をセルに分解し、開口一本で 体積→穴あき殻→糸 を掃引します。糸=泡のPlateau境界。";
   root.appendChild(banner);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   const ballCount = document.createElement("div");
