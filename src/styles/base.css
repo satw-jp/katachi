@@ -1,12 +1,22 @@
+/* Design source: Katachi docs/tasks/T18-design-alignment.md Part A. */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --paper: #fbfbf9;
+  --ink: #1c1c1a;
+  --mist: #8e8c84;
+  --faint: #c9c7bf;
+  --hairline: rgba(28, 28, 26, 0.12);
+  /* The 3D viewport remains a dark window by author decision (2026-07-17). */
   --bg: #101114;
-  --panel-bg: #181a1f;
-  --text: #e6e6e9;
-  --muted: #9a9ca3;
-  --accent: #6fb1ff;
-  --danger: #ff6b6b;
-  font-family: -apple-system, "Hiragino Sans", "Segoe UI", sans-serif;
+  --panel-bg: var(--paper);
+  --text: var(--ink);
+  --muted: var(--mist);
+  --accent: var(--ink);
+  --danger: #7a2e2e;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
 }
 
 * {
@@ -37,11 +47,15 @@ body {
 
 .panel-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 400;
+  letter-spacing: 0.06em;
 }
 
 .nav-link {
+  /* Compact cross-Study switcher: retain its footprint (T18 scope keeps layout). */
   font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
   color: var(--accent);
   text-decoration: none;
 }
@@ -70,21 +84,22 @@ body {
 
 input[type="range"] {
   width: 100%;
+  accent-color: var(--ink);
 }
 
 button {
-  background: #24272e;
+  background: var(--paper);
   color: var(--text);
-  border: 1px solid #383c45;
-  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
   padding: 7px 10px;
   font-size: 12px;
   cursor: pointer;
 }
 
 button:hover {
-  background: #2c3038;
-  border-color: var(--accent);
+  background: var(--paper);
+  border-color: rgba(28, 28, 26, 0.55);
 }
 
 button.danger:hover {
@@ -100,7 +115,7 @@ button.danger:hover {
 
 hr {
   border: none;
-  border-top: 1px solid #2a2d34;
+  border-top: 1px solid var(--hairline);
   width: 100%;
 }
 

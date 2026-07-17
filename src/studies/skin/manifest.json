@@ -33,6 +33,7 @@
     "pack"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T18 design alignment: unified UI chrome with satw.jp paper/ink/hairline tokens and Helvetica Neue while preserving the dark 3D viewport and skin instrument colors. Awaiting author visual approval before deploy." },
     { "date": "2026-07-17", "note": "T16 style consolidation: moved byte-equivalent shared chrome rules to src/styles/base.css while keeping Skin-specific coverage instruments, patch controls, and mesh styles local. Build output CSS size remained 3.88 kB." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: migrated Skin numeric sliders to shared src/lib/ui/slider.ts while preserving integer/three-decimal formatting; build and real-coordinate hit testing passed on verify port 5185." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
