@@ -87,3 +87,34 @@
 2. Study の統廃合（rings と skin、pack と foam の関係など）
 3. 見た目の変更を伴う UI 刷新
 4. 休止中の Morphogenesis Lab（archive/）の T6 を再開するか
+
+---
+
+## T16-4 事前監査 — recipe スキーマ差分（2026-07-17）
+
+全 Study の現行 `history.ts` を比較した。外箱はすでに共通で、
+`{ formatVersion: 1, studyId, exportedAt, entries }`。全パーサーがこの外箱と旧来の
+bare `[{ t, op, args }]` の両方を受理し、現状は `studyId` / `formatVersion` の値を
+拒否していない。この寛容さも既存 recipe の後方互換として維持する。
+
+| Study | `studyId` | 主な op | replay で特に守るもの | Study 間の読込 |
+|---|---|---|---|---|
+| Cloud Sculpt | `cloud-sculpt` | grow / setParam / add・remove・move・resize ball / clear | Ball ID counter の reset・再同期 | — |
+| Gravity | `gravity` | S1 共通 op + snapToGround | snap は引数なしで、現在形から決定的に再計算 | — |
+| Sag | `sag` | S1 共通 op + freeze | freeze は現時点の deform を再計算して正本化、softness=0 | — |
+| Foam | `foam` | grow / field・foam param / loadBalls / clear | host Ball ID counter の reset・再同期 | S1 recipe を replay 後、`loadBalls` へ畳む |
+| Rings | `rings` | add・move・rotate・duplicate・remove ring / setK / clear | Ball と Ring の両 ID counter、recipe から球群を再生成 | S1 形式への書出しあり |
+| Pack | `pack` | host 操作 / pack・add・remove unit / prototype / mode / clear | host・void ball・unit の3 counter。pack結果は `PackUnit[]` を明示保存 | S1 を host / cloud prototype として読込 |
+| Skin | `skin` | host 操作 / pack・add・remove patch / mode / clear | host・patch の2 counter。旧 patch の shape 欠落は `coin` に補完 | S1 を host として読込 |
+| MPM | `mpm` | seed / seedMesh / setParam / run / freeze / clear | freeze・mesh seed は非決定性を避け結果座標を明示保存。run はCPUで再実行 | freeze 結果を S1 形式で書出し |
+
+### 共通化の境界
+
+- `src/lib/recipe.ts`: 外箱型、`formatVersion: 1` を必須にした serialize、
+  wrapped / bare 両形式を受ける parse を共通化する
+- `src/lib/history.ts`: timestamp 付き entry の append + apply だけを共通化する
+- 各 Study に残す: op union、state、`applyEntry`、初期状態、ID counter の reset / 再同期、
+  Study 間変換。これらは意味が分岐しており、無理に抽象化しない
+- 移行時は旧形式（bare 配列を含む）を Study ごとに parse → replay し、移行前後の state を
+  JSON 比較する。Skin は shape 欠落 recipe、Pack は旧来の明示結果、MPM は freeze / seedMesh を
+  必須の互換ケースに含める
