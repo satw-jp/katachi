@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { FieldParams } from "../cloud-sculpt/field.ts";
+import { createSlider } from "../../lib/ui/slider.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
 import type { CoverageReport, MortarReport, PatchShape, SkinMode, SkinParams } from "./field.ts";
 import type { PackPatchesResult } from "./field.ts";
@@ -751,36 +752,13 @@ function buildSlider(
   initial: number,
   onChange: (v: number) => void,
 ): { row: HTMLElement; set: (v: number) => void } {
-  const row = document.createElement("div");
-  row.className = "row slider-row";
-
-  const labelEl = document.createElement("label");
-  labelEl.textContent = label;
-
-  const slider = document.createElement("input");
-  slider.type = "range";
-  slider.min = String(min);
-  slider.max = String(max);
-  slider.step = String(step);
-  slider.value = String(initial);
-
-  const valueOut = document.createElement("span");
-  valueOut.className = "value-out";
-  valueOut.textContent = step >= 1 ? String(initial) : initial.toFixed(3);
-
-  slider.oninput = () => {
-    const value = Number(slider.value);
-    valueOut.textContent = step >= 1 ? String(value) : value.toFixed(3);
-    onChange(value);
-  };
-
-  row.appendChild(labelEl);
-  row.appendChild(slider);
-  row.appendChild(valueOut);
-
-  const set = (v: number) => {
-    slider.value = String(v);
-    valueOut.textContent = step >= 1 ? String(v) : v.toFixed(3);
-  };
-  return { row, set };
+  return createSlider({
+    label,
+    min,
+    max,
+    step,
+    initial,
+    format: (value) => (step >= 1 ? String(value) : value.toFixed(3)),
+    onChange,
+  });
 }

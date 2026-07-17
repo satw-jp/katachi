@@ -33,6 +33,7 @@
     "pack"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: migrated Skin numeric sliders to shared src/lib/ui/slider.ts while preserving integer/three-decimal formatting; build and real-coordinate hit testing passed on verify port 5185." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     { "date": "2026-07-17", "note": "T16 input/loop consolidation. Build passed; real-coordinate surface click added and selected patch #52, increasing patches 51 to 52 and history 2 to 3. Existing capacity auto-switch to beads preserved." },
     {
