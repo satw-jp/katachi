@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.2.0",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-07-10",
+  "updatedAt": "2026-07-17",
   "params": [
     "count",
     "radiusBase",
@@ -14,6 +14,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-07-17",
+      "note": "T16 input/loop consolidation: migrated viewport coordinate conversion, viewport hit testing, and the requestAnimationFrame shell to src/lib without changing SDF picking or history semantics. Build passed; a real-coordinate click selected ball #4 and a real-coordinate drag updated XYZ and history at about 60fps on verify port 5185."
+    },
     {
       "date": "2026-07-03",
       "note": "T1 initial implementation: raymarched metaball SDF (vite + three.js), smooth-min blend, grow/reroll knobs, click-to-add/select/delete + drag-to-move, full operation history with JSON export/import, verified export->reload->import reproduces the same shape."

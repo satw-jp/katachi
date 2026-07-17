@@ -5,6 +5,8 @@
 
 import "./style.css";
 import * as THREE from "three";
+import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
+import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS, freshBallId } from "./field.ts";
 import type { HistoryEntry } from "./history.ts";
@@ -104,16 +106,9 @@ let pointerDownPos: { x: number; y: number } | null = null;
 let draggingBallId: number | null = null;
 const DRAG_THRESHOLD = 4;
 
-function ndcFromEvent(e: PointerEvent): { x: number; y: number } {
-  const rect = viewport.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  return { x, y };
-}
-
 viewport.addEventListener("pointerdown", (e) => {
   pointerDownPos = { x: e.clientX, y: e.clientY };
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
   const hit = raymarchField(state.balls, state.params.k, ray.origin, ray.dir);
   if (hit && hit.ballIndex >= 0) {
@@ -128,7 +123,7 @@ viewport.addEventListener("pointerdown", (e) => {
 
 viewport.addEventListener("pointermove", (e) => {
   if (draggingBallId === null) return;
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
   const ball = state.balls.find((b) => b.id === draggingBallId);
   if (!ball) return;
@@ -167,16 +162,12 @@ window.addEventListener("pointerup", (e) => {
   pointerDownPos = null;
   if (Math.hypot(dx, dy) > DRAG_THRESHOLD) return; // was an orbit drag, not a click
 
-  if (!isEventOnViewport(e)) return;
+  if (!eventTargetsViewport(e, viewport)) return;
   handleClick(e);
 });
 
-function isEventOnViewport(e: PointerEvent): boolean {
-  return (e.target as HTMLElement)?.closest?.("#viewport") != null;
-}
-
 function handleClick(e: PointerEvent): void {
-  const { x, y } = ndcFromEvent(e);
+  const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
   const hit = raymarchField(state.balls, state.params.k, ray.origin, ray.dir);
 
@@ -313,9 +304,7 @@ let lastFrame = performance.now();
 let frameCount = 0;
 let fpsAccum = 0;
 
-function tick(): void {
-  requestAnimationFrame(tick);
-  const now = performance.now();
+function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;
@@ -330,4 +319,4 @@ function tick(): void {
 
 render();
 updateSelectionLabel();
-tick();
+startFrameLoop(renderFrame);
