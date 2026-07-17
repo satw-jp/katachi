@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Ball, FieldParams } from "./field.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -113,9 +114,7 @@ export function buildUi(
   navSkin.textContent = "S-skin 表面に詰める →";
   root.appendChild(navSkin);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   const growRow = document.createElement("div");
