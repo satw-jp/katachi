@@ -20,6 +20,7 @@
     "foam"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 style consolidation: moved byte-equivalent shared chrome rules to src/styles/base.css while keeping Rings-specific link token, ring editor, and topology instrument styles local. Build output CSS size remained 3.42 kB." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: migrated Rings recipe sliders to shared src/lib/ui/slider.ts while preserving initial and three-decimal formatting; build and real-coordinate hit testing passed on verify port 5185." },
     { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     { "date": "2026-07-17", "note": "T16 input/loop consolidation. Build passed; real-coordinate click selected a whole ring and a real-coordinate drag updated linking measurement and history at about 60fps." },

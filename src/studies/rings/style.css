@@ -1,25 +1,7 @@
+@import "../../styles/base.css";
+
 :root {
-  color-scheme: dark;
-  --bg: #101114;
-  --panel-bg: #181a1f;
-  --text: #e6e6e9;
-  --muted: #9a9ca3;
-  --accent: #6fb1ff;
-  --danger: #ff6b6b;
   --link: #7fe3a3;
-  font-family: -apple-system, "Hiragino Sans", "Segoe UI", sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
 }
 
 #app {
@@ -29,20 +11,8 @@ body {
   overflow: hidden;
 }
 
-#viewport {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-  cursor: grab;
-}
 #viewport.dragging-ball {
   cursor: grabbing;
-}
-#viewport canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 .panel {
@@ -57,37 +27,11 @@ body {
   border-left: 1px solid #2a2d34;
 }
 
-.panel-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-
 .section-title {
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   margin-top: 4px;
-}
-
-.nav-link {
-  font-size: 11px;
-  color: var(--accent);
-  text-decoration: none;
-}
-.nav-link:hover {
-  text-decoration: underline;
-}
-
-.version-row {
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .slider-row {
@@ -100,16 +44,6 @@ body {
 .slider-row label {
   font-size: 12px;
   color: var(--muted);
-}
-
-.value-out {
-  font-size: 12px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-input[type="range"] {
-  width: 100%;
 }
 
 input[type="text"],
@@ -133,23 +67,6 @@ input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 
-button {
-  background: #24272e;
-  color: var(--text);
-  border: 1px solid #383c45;
-  border-radius: 5px;
-  padding: 7px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-button:hover {
-  background: #2c3038;
-  border-color: var(--accent);
-}
-button.danger:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
 button.mode-active {
   border-color: var(--accent);
   background: #223146;
@@ -170,12 +87,6 @@ button.mode-active {
   flex: 1 1 30%;
   padding: 5px 4px;
   font-size: 11px;
-}
-
-.hint {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.5;
 }
 
 .ring-list {
@@ -282,16 +193,4 @@ button.mode-active {
 
 .mesh-status[data-ok="false"] {
   color: #ff9a9a;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #2a2d34;
-  width: 100%;
-}
-
-.history-count,
-.fps {
-  font-size: 11px;
-  color: var(--muted);
 }
