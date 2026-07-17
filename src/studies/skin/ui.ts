@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { FieldParams } from "../cloud-sculpt/field.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { CoverageReport, MortarReport, PatchShape, SkinMode, SkinParams } from "./field.ts";
 import type { PackPatchesResult } from "./field.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
@@ -146,9 +147,7 @@ export function buildUi(
     "実体（ホスト）の表面に不定形の閉パッチを目地つきで貪欲に詰めます。同じパッキングから、プレートが実（形態は暗示）と、殻に窓が開く版が出ます。";
   root.appendChild(banner);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   const counts = document.createElement("div");
