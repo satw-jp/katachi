@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import type { LinkingRow, OverlapWarning } from "./linking.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { RingGroup, RingRecipe } from "./ring.ts";
 
 export type DragMode = "move" | "rotate";
@@ -92,9 +93,7 @@ export function buildRingsUi(
     root.appendChild(a);
   }
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   // --- Add ring ------------------------------------------------------------

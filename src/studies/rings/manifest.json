@@ -20,6 +20,7 @@
     "foam"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: shared Version/UpdatedAt row with identical DOM and placement; build passed." },
     { "date": "2026-07-17", "note": "T16 input/loop consolidation. Build passed; real-coordinate click selected a whole ring and a real-coordinate drag updated linking measurement and history at about 60fps." },
     {
       "date": "2026-07-11",
