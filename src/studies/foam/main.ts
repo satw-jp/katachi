@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import "./style.css";
+import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS } from "../cloud-sculpt/field.ts";
 import { DEFAULT_FOAM_PARAMS } from "./cell.ts";
@@ -182,9 +183,7 @@ let lastFrame = performance.now();
 let frameCount = 0;
 let fpsAccum = 0;
 
-function tick(): void {
-  requestAnimationFrame(tick);
-  const now = performance.now();
+function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;
@@ -198,4 +197,4 @@ function tick(): void {
 }
 
 render();
-tick();
+startFrameLoop(renderFrame);
