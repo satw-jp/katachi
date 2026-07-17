@@ -14,6 +14,7 @@
   ],
   "related": ["cloud-sculpt"],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 UI consolidation: migrated the Version/UpdatedAt row to shared src/lib/ui with identical element, class, text, and insertion position; build passed." },
     {
       "date": "2026-07-17",
       "note": "T16 input/loop consolidation: migrated viewport coordinate conversion, viewport hit testing, and the requestAnimationFrame shell to shared src/lib helpers without changing gravity-specific picking, physics, or history. Build passed; real-coordinate click selected ball #11 and a real-coordinate drag updated position, strain, and history at about 60fps on verify port 5185."

@@ -59,6 +59,8 @@ npm run build    # 型チェック + dist/ に index.html と gravity.html の�
 
 ## Observation
 
+- **2026-07-17（T16 UI部品移行）**: Version / UpdatedAt 行を共通部品へ移した。生成要素・class・文言・タイトル直後の挿入位置は従来と同一で、見た目を変えない境界をコードで確認した。
+
 - **2026-07-17（T16 共通基盤移行）**: 入力座標変換と描画ループの骨格を `src/lib/` へ移した後も、verify port 5185 の実座標クリックで球 #11 を選択し、実座標ドラッグで X/Y/Z・苦しさ・履歴が連続して更新されることを確認した（約60fps）。Study 固有のレイマーチ・重力計算・操作履歴は変更していない。
 
 - **2026-07-09**: isolated Chrome（隔離サーバ port 5185）で `gravity.html` を開くと、
