@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.3.0",
   "createdAt": "2026-07-10",
-  "updatedAt": "2026-07-11",
+  "updatedAt": "2026-07-17",
   "params": [
     "phase",
     "youngsModulusPa",
@@ -22,6 +22,7 @@
     "sag"
   ],
   "revisits": [
+    { "date": "2026-07-17", "note": "T16 loop consolidation, migrated last as the WebGPU-special Study without touching gpu/. Build passed; real-coordinate Run advanced 3307 particles from 0 to 40 substeps and history 1 to 2 on WebGPU at about 60fps." },
     {
       "date": "2026-07-10",
       "note": "T2d initial implementation (Y6 発注): MLS-MPM (P2G -> grid update -> G2P, quadratic B-spline kernel, APIC/MLS-MPM affine transfer, Hu et al. 2018 structure) implemented in CPU TypeScript rather than WebGPU compute (T2d-mpm.md's explicitly-permitted fallback; see README Setup for why). New self-contained state representation for this Study: MpmParticle[] (position/velocity/deformation-gradient F/affine-velocity C/mass/volume0), seeded from S1 balls by per-ball rejection sampling (seeding.ts). Constitutive law is the phase knob (T2d-mpm.md core requirement): Cauchy stress blends a real compressible Neo-Hookean solid (mu/lambda from Young's modulus E and Poisson's ratio nu) with a real weakly-compressible viscous fluid (linear EOS pressure from bulk modulus K, viscous term from the APIC C matrix as a velocity-gradient proxy) -- both SVD-free by design (see README for the SVD-based alternative considered and rejected). F itself is separately blended toward its isotropic (volume-only) form by phase, so the fluid end loses shape memory. History ops: seed/setParam/run/freeze/clear; freeze carries the frozen Ball[] result explicitly in its args (T2d-mpm.md's confirmed design, unlike sag.ts's implicit-recompute freeze) so replay never depends on whether a future revisit swaps CPU for GPU. Freeze bins particles into a coarse spatial grid and turns each populated bin into one equal-volume ball (seeding.ts's freezeParticlesToBalls), exportable as an S1-format recipe (serializeFrozenAsS1Recipe) -- verified round-tripping into S1's own importJson with byte-identical ball data. Autorun (continuous simulation) advances physics every animation frame directly but only appends ONE consolidated `run` history entry when toggled off, to avoid flooding history (main.ts's flushAutoRun) -- verified this doesn't double-apply physics and that export/import after a flush reproduces the exact same particle state. Point-cloud renderer (THREE.Points, phase-tinted color, not a calibrated 余白 instrument per Y6's role separation). Verified in isolated Chrome (port 5185) via window.__mpm: all 6 completion conditions hold, including a genuine elastic bounce (solid end: height fell to a minimum then rebounded across several run() batches) that sag.ts's fixed-240-iteration damped relaxation solver cannot produce by construction -- used as completion condition 2's 'behavior the spring sketch couldn't show'. Measured performance: gridN=48 (110,592 cells), DT=1/6000s, ~9.3ms/substep at 3,307 particles and ~3.5ms/substep at 1,321 particles in the isolated headless environment; autorun ran at ~8-10fps at 3,307 particles (chunk=8 substeps/frame) -- see README Observation for the full numbers and the honest 'about 56x slower than real time' framing (60fps was explicitly out of scope per T2d-mpm.md)."

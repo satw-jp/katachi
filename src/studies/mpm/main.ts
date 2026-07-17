@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import "./style.css";
+import { startFrameLoop } from "../../lib/loop.ts";
 import * as THREE from "three";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS, growBalls } from "../cloud-sculpt/field.ts";
@@ -652,9 +653,7 @@ let fpsAccum = 0;
 // gridN^3 array every rAF tick).
 let liveGrid = makeGrid(state.params.gridN);
 
-function tick(): void {
-  requestAnimationFrame(tick);
-  const now = performance.now();
+function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;
@@ -724,4 +723,4 @@ function tick(): void {
 }
 
 refreshStatus();
-tick();
+startFrameLoop(renderFrame);
