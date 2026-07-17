@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.2.0",
   "createdAt": "2026-07-09",
-  "updatedAt": "2026-07-10",
+  "updatedAt": "2026-07-17",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,10 @@
   ],
   "related": ["cloud-sculpt", "gravity"],
   "revisits": [
+    {
+      "date": "2026-07-17",
+      "note": "T16 input/loop consolidation: moved viewport coordinate conversion, hit testing, and the requestAnimationFrame shell to src/lib while preserving deformed-display picking and rest-state edits. Build passed; real-coordinate click selected ball #11 and a real-coordinate drag updated rest position, derived strain, and history with ghost display enabled at about 43-44fps."
+    },
     {
       "date": "2026-07-09",
       "note": "T2b initial implementation: softness knob (SagParams = FieldParams + softness, recorded via setParam like S1). Sag solved by deform.ts — a pure function of (rest balls, softness): overlap graph as a mass-spring network (stiffness ∝ (1-softness) × overlapArea, both imported from gravity/physics.ts, not copied), gravity ∝ volume, hard ground constraint (y>=r), damped semi-implicit-Euler relaxation for 240 fixed iterations, softness<=0 is an exact bypass (guarantees zero sag, not just near-zero). Deformed shape is never recorded in history — recomputed on every rest-shape or softness change. Two-scene renderer: opaque deformed cloud+ground (strain-colored, same S2 blue/red palette) plus an optional translucent rest-shape ghost pass (autoClear=false). Picking hit-tests the deformed display, edits the rest ball by matching id. Permanent approximation banner. Verified in isolated Chrome (port 5185) via window.__sag — see README Observation for the six completion-condition checks and measured response time."
