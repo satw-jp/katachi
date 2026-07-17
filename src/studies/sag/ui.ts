@@ -9,6 +9,7 @@
 
 import type { Ball } from "../cloud-sculpt/field.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
+import { createSlider } from "../../lib/ui/slider.ts";
 import type { SagParams } from "./params.ts";
 
 export interface UiCallbacks {
@@ -337,36 +338,16 @@ function buildSlider(
   params: SagParams,
   onChange: UiCallbacks["onParamChange"],
 ): { row: HTMLElement; set: (v: number) => void } {
-  const row = document.createElement("div");
-  row.className = "row slider-row";
-
-  const label = document.createElement("label");
-  label.textContent = spec.label;
-
-  const slider = document.createElement("input");
-  slider.type = "range";
-  slider.min = String(spec.min);
-  slider.max = String(spec.max);
-  slider.step = String(spec.step);
-  slider.value = String(params[spec.key]);
-
-  const valueOut = document.createElement("span");
-  valueOut.className = "value-out";
-  valueOut.textContent = String(params[spec.key]);
-
-  slider.oninput = () => {
-    const value = Number(slider.value);
-    valueOut.textContent = value.toFixed(2);
-    onChange(spec.key, value);
-  };
-
-  row.appendChild(label);
-  row.appendChild(slider);
-  row.appendChild(valueOut);
-
-  const set = (v: number) => {
-    slider.value = String(v);
-    valueOut.textContent = spec.step >= 1 ? String(v) : v.toFixed(2);
-  };
-  return { row, set };
+  const initial = Number(params[spec.key]);
+  return createSlider({
+    label: spec.label,
+    min: spec.min,
+    max: spec.max,
+    step: spec.step,
+    initial,
+    formatInitial: String,
+    formatInput: (value) => value.toFixed(2),
+    format: (value) => (spec.step >= 1 ? String(value) : value.toFixed(2)),
+    onChange: (value) => onChange(spec.key, value),
+  });
 }
