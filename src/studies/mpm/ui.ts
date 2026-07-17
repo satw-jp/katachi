@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import type { MpmParams } from "./params.ts";
+import { createVersionRow } from "../../lib/ui/version.ts";
 import type { BackendKind } from "./gpu/capabilities.ts";
 
 export interface UiCallbacks {
@@ -148,9 +149,7 @@ export function buildUi(container: HTMLElement, params: MpmParams, version: stri
   title.textContent = "本物を混ぜる — MPM";
   root.appendChild(title);
 
-  const versionRow = document.createElement("div");
-  versionRow.className = "version-row";
-  versionRow.textContent = `v${version} · updated ${updatedAt}`;
+  const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
 
   // --- Backend (T2e 手動切替) ------------------------------------------------
