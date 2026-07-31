@@ -18,6 +18,23 @@ Subagents add their own model and tool usage. Parallelism is valuable only when 
 
 Do not use a subagent when the coordination cost is greater than the task, when two agents would edit the same optical contract, or when the result is primarily an author judgment.
 
+## Usage-minimizing execution protocol
+
+When the author can select Luna directly in Codex, prefer a top-level Luna task for a frozen, narrow package instead of asking a more expensive primary thread to spawn Luna. A spawned workflow repeats parent orchestration and child model work; direct Luna avoids that layer while keeping the design documents and Git commit as shared context.
+
+Use this sequence:
+
+1. Primary freezes one contract, acceptance test, owned-file list, and explicit exclusions in Git.
+2. The author starts one direct Luna task in a dedicated worktree for one coherent outcome—not one task per tiny function.
+3. Luna reads only the named design section and owned files, implements, tests, commits, and returns a short result. It does not re-read the full project history or reinterpret optical meaning.
+4. Write-heavy packages run sequentially. Parallel Luna tasks are reserved for read-only inventory, independent fixtures, comparison records, or tests on non-overlapping files.
+5. If a task exposes an ambiguous optical rule or crosses CPU/shader/WebGPU semantics, Luna stops with a minimal reproduction instead of iterating speculatively. Terra resolves that bounded integration; Primary resolves only the product or physics decision.
+6. Primary reviews milestone evidence once, not every mechanical commit. Failed acceptance returns to the smallest responsible package.
+
+Default effort is `low` for formatting, manifests, schemas from a fixed contract, migrations, and deterministic fixtures; use `medium` for focused code with several edge cases. Do not raise Luna effort to compensate for an unfrozen task—freeze or escalate the task instead.
+
+Keep recurring context small: a nested `AGENTS.md` for `docs/hikari` or the future hikari implementation subtree, one package prompt, relevant files only, minimal MCP servers, and compact test output. Stable repeated prefixes improve cached-input use, while a new chat per coherent outcome avoids carrying old logs indefinitely.
+
 ## Work packages
 
 | ID | Package | Default owner | Depends on | Main output | Completion gate |
@@ -40,7 +57,7 @@ Do not use a subagent when the coordination cost is greater than the task, when 
 | P | Physical scale and spatial context | Primary material/context semantics; Terra unit/transport implementation; Luna fixtures/presets/UI after contract | material/receiver contract, then M/N | physical scale, same/matched material modes, object/furniture/spatial/roof contexts | scale changes optical depth honestly and saved cases restore units and compensation mode |
 | Q | Printed translucent shade study — deferred | Primary study boundary/material honesty; Terra shell/optical core; Luna case/profile/schema/tests after contract | explicitly deferred by author | design note only until resumed | no current implementation work |
 | R | Geometry-derived light drawing | Primary visual acceptance; Terra CPU/geometry/transport and GPU port; Luna deterministic fixtures/comparison records after contract | C–F, H, O, S; before optical quality gate | shared surface trace, fixed HDR receiver field, finite-source blur, progressive stable result | one authored trace moves one real light line; no receiver pattern is invented |
-| S | Tokyo daylight and simple rooms | Primary experience/environment semantics; Terra solar/portal/transport integration; Luna deterministic fixtures, UI, and case records after contract | C–H, PhysicalScale; before optical quality gate | Tokyo clock, open air, room dimensions/ceiling height, window geometry, time playback, body/no-body probes | direct light enters only through recorded openings; same instant is reproducible; redistribution is reported without invented energy |
+| S | Tokyo daylight and simple rooms | Primary experience/environment semantics; Terra solar/portal/transport integration; Luna deterministic fixtures, UI, and case records after contract | C–H, PhysicalScale; before optical quality gate | Tokyo clock, open air, room dimensions/ceiling height, multi-window geometry and layouts, time playback, body/no-body probes | direct light enters only through recorded openings; count/proportion/spacing remain causal; same instant is reproducible; redistribution is reported without invented energy |
 
 ## Conflict-minimizing sequence
 
@@ -63,7 +80,7 @@ Primary: A → approve C
 - P reserves `PhysicalScale` during C and material work, but context UI follows placement. Do not treat camera framing as physical scaling.
 - Q is deferred and receives no implementation or intake work until the author resumes it.
 - R is a core optical requirement. The CPU reference removes decorative deposits and adaptive normalization before the WebGPU port or visual tuning.
-- S begins with a pure Tokyo solar fixture, then open air, one rectangular portal, room dimensions and ceiling height, four wall openings, time playback, and finally the paired small-unlit-room study. Artificial lighting, measured weather, glazing, and indirect room bounce do not enter this package.
+- S begins with a pure Tokyo solar fixture, then open air, one rectangular portal, multiple windows on one wall, room dimensions and ceiling height, all four wall faces, time playback, and finally the paired small-unlit-room study. Artificial lighting, measured weather, glazing, and indirect room bounce do not enter this package.
 
 ## File ownership for the first milestone
 

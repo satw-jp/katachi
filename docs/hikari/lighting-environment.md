@@ -85,7 +85,9 @@ type NaturalLightStudy = {
 
 `instantUtc` is the saved source of truth; the interface displays it in Tokyo time and never depends on the browser's time zone. A deterministic solar-position calculation produces the directional light. The first sky is a documented clear-sky approximation, not live weather.
 
-Window size, position, and height are geometry. `widthMm`, `heightMm`, `sillHeightMm`, and `horizontalOffsetMm` determine whether a ray can enter; they are not brightness sliders. The nearest distance between the body and an opening is derived from `objectPose` and the opening plane, so it cannot disagree with the saved scene.
+Window count, proportion, size, position, and height are geometry. `openings` is an unrestricted array: one wall may contain no window, one window, or several independently positioned windows. `widthMm`, `heightMm`, `sillHeightMm`, and `horizontalOffsetMm` determine whether a ray can enter; they are not brightness sliders. Aspect ratio is derived from the recorded width and height, while spacing is derived from neighboring offsets. The nearest distance between the body and an opening is derived from `objectPose` and the opening plane, so it cannot disagree with the saved scene.
+
+Friendly layout starters such as Single, Pair, Row, and Grid may create several `Opening` records, but they are never the saved source of truth. After creation, each window remains independently editable. A wall-wide opening uses `kind: "open-face"`; it is not represented as an arbitrarily bright window.
 
 The rectangular area light in the [first Blender study](blender-study-01.md) remains useful for controlled validation of source size. It does not become a primary hikari environment. Stage, spot, point, and general artificial-light rigs are deferred.
 
@@ -134,7 +136,8 @@ Tokyo    [date] [time ─────────] [play / pause]
 Room only
 Openings [north] [east] [south] [west]
 Room     [width] [depth] [ceiling height]
-Window   [width] [height] [sill height] [horizontal position]
+Windows  [single] [pair] [row] [grid] [+ add]
+Selected [width] [height] [sill height] [horizontal position]
 Body     [near window ↔ deep in room]
 
 Surface  [Pale] [Dry] [Deep] [Living] [Warm]
@@ -152,16 +155,18 @@ Technical solar angles, coordinates, units, and approximation notes remain in An
 4. Migrate the current outdoor view into Tokyo open air without changing its established appearance unexpectedly.
 5. Add one simple room and one rectangular opening. Clip direct-sun and focused-light paths against real opening geometry.
 6. Add explicit room width, depth, ceiling height, window width/height/sill/offset, and body pose; derive body-to-window distance.
-7. Add four wall openings and time playback. Recompute the Natural view interactively and refine the receiver field after pause.
-8. Add the opaque abstract receiver model and its starting families.
-9. Add paired body/no-body daylight distribution and saved comparison probes for the small unlit room.
-10. Validate finite source size with the Blender area-light study; defer artificial-light authoring, measured weather, glazing, and indirect room bounce.
+7. Support multiple independently editable windows on one wall, including proportion and spacing changes, then extend the same array across all four wall faces.
+8. Add time playback. Recompute the Natural view interactively and refine the receiver field after pause.
+9. Add the opaque abstract receiver model and its starting families.
+10. Add paired body/no-body daylight distribution and saved comparison probes for the small unlit room.
+11. Validate finite source size with the Blender area-light study; defer artificial-light authoring, measured weather, glazing, and indirect room bounce.
 
 ## Quality gate
 
 - The same Tokyo instant always restores the same solar direction, regardless of the computer time zone.
 - Date and time move the body light, shadow, and focused-light field continuously; a sun below the horizon does not leave unexplained direct light.
 - Openings admit direct light only when the sun path intersects their recorded size and position.
+- One wall can contain multiple windows; changing count, aspect ratio, and spacing changes the admitted-light pattern without changing source intensity.
 - Room width, depth, ceiling height, window geometry, and body-to-window relation are stored in physical units and survive save/reopen.
 - One-, opposite-, and four-sided opening cases remain geometrically explainable.
 - The body/no-body comparison uses the same exposure and reports redistribution, including losses and darker regions, rather than only attractive bright patches.

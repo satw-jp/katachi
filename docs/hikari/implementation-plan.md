@@ -133,7 +133,7 @@ In the same phase, establish the reference path in [light drawing from the autho
 
 Make the visible surroundings, simple room geometry, openings, and receiving surfaces part of the optical scene before declaring the transparent body complete. Follow [natural-light environments and receiver materials](lighting-environment.md).
 
-First migrate the existing outdoor view to a deterministic Tokyo date/time and shared sun direction. Then add a simple room with one real rectangular opening before expanding to any combination of the four wall faces. Room width, depth, ceiling height, window width/height/sill/offset, body pose, and the derived body-to-window distance use the same `PhysicalScale` contract as optical absorption. Before the quality gate, the only author-facing whole-body motion is nearer to or farther from the opening; general height/orientation and grounded/floating placement remain Phase 8 work.
+First migrate the existing outdoor view to a deterministic Tokyo date/time and shared sun direction. Then add a simple room with one real rectangular opening, multiple independent windows on the same wall, and finally any combination across the four wall faces. Window count, width/height proportion, sill height, horizontal position, and spacing must change real portal geometry. Room width, depth, ceiling height, opening records, body pose, and the derived body-to-window distance use the same `PhysicalScale` contract as optical absorption. Before the quality gate, the only author-facing whole-body motion is nearer to or farther from the opening; general height/orientation and grounded/floating placement remain Phase 8 work.
 
 Time playback lowers receiver samples while moving and refines after pause. It never blends focused-light accumulation from different moments. The first room transports direct sun through openings and uses a documented sky approximation; it does not claim indirect room bounce, real weather, glazing, or calibrated illuminance.
 
@@ -152,7 +152,7 @@ End the phase with a paired small-unlit-room case: identical exposure and enviro
 - colored transparent shadow and focused light as distinct phenomena;
 - one authored surface/thickness trace producing a stable line or arc on the receiver, with source size controlling clarity;
 - continuous Tokyo date/time motion in open air and through one recorded room opening;
-- explicit room width, depth, ceiling height, window size/position/height, and object-to-window relation;
+- explicit room width, depth, ceiling height, window count/proportion/size/position/height/spacing, and object-to-window relation;
 - a same-exposure body/no-body room comparison that reports redistribution and loss as well as concentration;
 - stable interaction without holes, flicker, invalid normals, or plausible-looking output from an invalid scene;
 - CPU reference, real-time shader, and WebGPU behavior within documented tolerances, with a safe fallback;
