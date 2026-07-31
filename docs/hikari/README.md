@@ -90,6 +90,12 @@ An independent `Projects/active/hikari` repository becomes appropriate when:
 
 Until then, GitHub remains the source of truth through the Katachi repository, with hikari documents and implementation committed together.
 
+Related documents:
+
+- [Next implementation plan](implementation-plan.md)
+- [Blender validation protocol](blender-validation.md)
+- [Web publishing procedure](publishing.md)
+
 ## Success criteria for the next milestone
 
 The milestone is complete when one frozen shape, camera, receiver, and light setup demonstrates all of the following in both hikari and Blender:
