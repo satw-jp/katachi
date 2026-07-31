@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MAX_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball } from "./field.ts";
+import type { CausticField, OpticalSettings } from "./optics.ts";
 
 export class CloudRenderer {
   readonly scene = new THREE.Scene();
@@ -15,12 +16,20 @@ export class CloudRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly controls: OrbitControls;
   private material: THREE.ShaderMaterial;
+  private quad: THREE.Mesh;
   private container: HTMLElement;
+  private causticTexture: THREE.DataTexture;
 
-  constructor(container: HTMLElement) {
+  constructor(
+    container: HTMLElement,
+    options: { compatibilityMode?: boolean } = {},
+  ) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const compatibilityMode = options.compatibilityMode === true;
+    this.renderer.setPixelRatio(
+      compatibilityMode ? 1 : Math.min(window.devicePixelRatio, 2),
+    );
     container.appendChild(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
@@ -31,9 +40,20 @@ export class CloudRenderer {
     this.controls.dampingFactor = 0.08;
     this.controls.target.set(0, 0, 0);
 
+    this.causticTexture = new THREE.DataTexture(
+      new Uint8Array([0, 0, 0, 255]),
+      1,
+      1,
+      THREE.RGBAFormat,
+      THREE.UnsignedByteType,
+    );
+    this.causticTexture.needsUpdate = true;
+
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
+      depthTest: false,
+      depthWrite: false,
       uniforms: {
         uBallPos: { value: Array.from({ length: MAX_BALLS }, () => new THREE.Vector3()) },
         uBallRadius: { value: new Float32Array(MAX_BALLS) },
@@ -45,15 +65,117 @@ export class CloudRenderer {
         uResolution: { value: new THREE.Vector2(1, 1) },
         uSelectedIndex: { value: -1 },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
+        uRenderMode: { value: 0 },
+        uIor: { value: 1.5 },
+        uAbsorption: { value: 0.55 },
+        uOpticalTint: { value: new THREE.Color(0.34, 0.78, 0.92) },
+        uNaturalView: { value: 1 },
+        uSkyIntensity: { value: 0.85 },
+        uSunIntensity: { value: 1.25 },
+        uSunSize: { value: 0.53 },
+        uGroundReflectance: { value: 0.7 },
+        uOpticalExposure: { value: 1 },
+        uSurfaceRoughness: { value: 0.08 },
+        uSurfaceVariation: { value: 0.04 },
+        uMaterialVariation: { value: 0.18 },
+        uMaterialScale: { value: 1 },
+        uEnvironmentContrast: { value: 1 },
+        uEnvironmentRotation: { value: 0 },
+        uEnvironmentMist: { value: 0.72 },
+        uMonochrome: { value: 0 },
+        uDispersion: { value: 0.32 },
+        uDispersionMode: { value: 1 },
+        uRainbowModel: { value: 0 },
+        uStressAmount: { value: 0.55 },
+        uPolarization: { value: 0.45 },
+        uCausticMap: { value: this.causticTexture },
+        uCausticBounds: { value: new THREE.Vector4(0, 0, 1, 1) },
+        uCausticAvailable: { value: 0 },
+        uCausticStrength: { value: 1.2 },
+        uCompatibilityMode: { value: compatibilityMode ? 1 : 0 },
       },
     });
 
-    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
-    quad.frustumCulled = false;
-    this.scene.add(quad);
+    this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
+    this.quad.frustumCulled = false;
+    this.quad.renderOrder = -100;
+    this.scene.add(this.quad);
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
+  }
+
+  setVisualMode(mode: "katachi" | "flow" | "optics"): void {
+    this.quad.visible = mode !== "flow";
+    this.material.uniforms.uRenderMode.value = mode === "optics" ? 1 : 0;
+    this.renderer.setClearColor(mode === "katachi" ? 0x101114 : 0x071014, 1);
+  }
+
+  setOptics(settings: OpticalSettings): void {
+    this.material.uniforms.uIor.value = settings.ior;
+    this.material.uniforms.uAbsorption.value = settings.absorption;
+    this.material.uniforms.uNaturalView.value = settings.opticalView === "natural" ? 1 : 0;
+    this.material.uniforms.uSkyIntensity.value = settings.skyIntensity;
+    this.material.uniforms.uSunIntensity.value = settings.sunIntensity;
+    this.material.uniforms.uSunSize.value = settings.sunSize;
+    this.material.uniforms.uGroundReflectance.value = settings.groundReflectance;
+    this.material.uniforms.uOpticalExposure.value = settings.opticalExposure;
+    this.material.uniforms.uSurfaceRoughness.value = settings.surfaceRoughness;
+    this.material.uniforms.uSurfaceVariation.value = settings.surfaceVariation;
+    this.material.uniforms.uMaterialVariation.value = settings.materialVariation;
+    this.material.uniforms.uMaterialScale.value = settings.materialScale;
+    this.material.uniforms.uEnvironmentContrast.value = settings.environmentContrast;
+    this.material.uniforms.uEnvironmentRotation.value = THREE.MathUtils.degToRad(
+      settings.environmentRotation,
+    );
+    this.material.uniforms.uEnvironmentMist.value = settings.environmentMist;
+    this.material.uniforms.uMonochrome.value =
+      settings.opticalColorMode === "mono" ? 1 : 0;
+    this.material.uniforms.uDispersion.value = settings.dispersion;
+    this.material.uniforms.uDispersionMode.value =
+      settings.dispersionMode === "local" ? 1 : 0;
+    this.material.uniforms.uRainbowModel.value =
+      settings.rainbowModel === "stress"
+        ? 1
+        : settings.rainbowModel === "both"
+          ? 2
+          : 0;
+    this.material.uniforms.uStressAmount.value = settings.stressAmount;
+    this.material.uniforms.uPolarization.value = settings.polarization;
+    this.material.uniforms.uCausticStrength.value = settings.causticStrength;
+    this.material.uniforms.uOpticalTint.value.set(
+      settings.opticalMaterial === "water" ? 0x2396ad : 0x5fc8e3,
+    );
+    const angle = THREE.MathUtils.degToRad(settings.lightAngle);
+    this.material.uniforms.uLightDir.value
+      .set(-Math.sin(angle) * 0.72, 1, -Math.cos(angle) * 0.28)
+      .normalize();
+  }
+
+  setCausticField(field: CausticField): void {
+    this.causticTexture.dispose();
+    this.causticTexture = new THREE.DataTexture(
+      field.data,
+      field.width,
+      field.height,
+      THREE.RGBAFormat,
+      THREE.UnsignedByteType,
+    );
+    this.causticTexture.wrapS = THREE.ClampToEdgeWrapping;
+    this.causticTexture.wrapT = THREE.ClampToEdgeWrapping;
+    this.causticTexture.minFilter = THREE.LinearFilter;
+    this.causticTexture.magFilter = THREE.LinearFilter;
+    this.causticTexture.generateMipmaps = false;
+    this.causticTexture.needsUpdate = true;
+    this.material.uniforms.uCausticMap.value = this.causticTexture;
+    this.material.uniforms.uCausticBounds.value.set(
+      field.minX,
+      field.minZ,
+      Math.max(0.001, field.sizeX),
+      Math.max(0.001, field.sizeZ),
+    );
+    this.material.uniforms.uCausticAvailable.value =
+      field.data.some((value, index) => index % 4 !== 3 && value > 0) ? 1 : 0;
   }
 
   resize(): void {

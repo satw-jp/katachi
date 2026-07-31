@@ -2,18 +2,95 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.2.0",
+  "version": "0.17.0",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-07-17",
+  "updatedAt": "2026-07-30",
   "params": [
     "count",
     "radiusBase",
     "radiusSpread",
     "k",
-    "seed"
+    "seed",
+    "hikari"
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-07-30",
+      "note": "Separated the receiver's transparent shadow from its focused caustic after the author observed that the shadow disappeared and the light pool exposed a rectangular texture domain. The finite caustic field now has generous empty margins, CPU and shader edge feathering, a rounded outer support, and wider low-sample reconstruction for the Windows-safe 56-ray path. Natural-floor ambient light now retains a thickness-dependent translucent shadow under the caustic, while peak compression prevents the focused contribution from bleaching it away. Verified an irregular soft light pool inside a readable projected shadow in full WebGPU 16,384-ray and Windows-safe CPU 56-ray views with no rendering errors."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Added Both alongside Prism and Stress. Both evaluates the five-band prism refraction first, then applies stress-dependent wavelength phase and polarization on the same transmitted color; the receiver keeps the prism caustic while stress remains localized inside the form. Both exposes Prism Local/Global plus Cure Stress and Polarization together. Verified that Polarization 0 removes only the Stress contribution and leaves Local Prism visible, restoring polarization adds the junction/thickness interference bands, and the Windows-safe CPU 56-ray path renders the combined view without a black screen. Full WebGPU 16,384-ray and safe paths both passed visual checks."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Reworked prism color from three isolated RGB channels into a five-band red/amber/green/cyan/blue spectrum. Secondary wavelengths use lightweight environment samples, are normalized to remain neutral under uniform illumination, and amplify only inter-band environment differences; the floor field now deposits five overlapping spectral bands, producing a broader low-saturation gradient instead of thin digital red/blue fringes. Added an independent Stress rainbow model with Cure Stress and Polarization controls. Stress estimates shell competition at metaball junctions, internal path thickness, and material variation, then evaluates five wavelength-dependent phase delays to form localized photoelastic-like bands. Polarization 0 removes the stress color while preserving refraction. Prism-only and Stress-only controls now hide correctly. Verified Prism Global/Local, Stress at polarization 0 and 0.62, full WebGPU 16,384-ray, and Windows-safe CPU 56-ray paths with no black screen. This Stress mode is an exploratory proxy field, not a solved cure mechanics tensor."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Split resin rainbows into Local and Global modes after the author observed that real resin showed only occasional partial color. Global preserves the previous expressive whole-object visualizer. Local gates shape dispersion by outgoing bend, entry/exit normal change, and grazing incidence, and gates receiver RGB separation by refracted-ray deviation; most light therefore remains neutral while strongly redirected paths can form isolated fringes. The caustic rebuild signature now includes dispersion value and mode, fixing an earlier omission where slider changes updated the shader but did not rebuild RGB receiver positions. Verified Local/Global at Prism 1, Local mono, full WebGPU 16,384-ray, and Windows-safe CPU 56-ray paths with no rendering errors. Local is an optical-path approximation, not yet a cure-stress birefringence model."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Added the first wavelength-dispersion model for resin prism rainbows. A new Prism control offsets red and blue refractive indices around the central green path, so the infinite environment is sampled along three slightly different outgoing directions rather than receiving a screen-space color fringe. CPU/WebGPU receiver hits now become RGB-separated floor samples along each ray's bend direction, are accumulated into a shared-normalization RGB irradiance texture, and are sampled through the resin together with the floor. Low values stay subtle; the upper range deliberately exaggerates separation for observation. Color Prism 0/1, mono Prism 1, full WebGPU 16,384-ray, and Windows-safe CPU 56-ray paths were visually compared; the production build passed. This is a performant three-channel approximation with one shared exit point and central GPU trace, not a full spectral path tracer, thin-film interference, or stress birefringence."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Promoted caustics from a foreground point overlay into a 128x128 receiver irradiance field. CPU/WebGPU floor hits are bilinearly accumulated, lightly blurred, density-thresholded, and uploaded as a floor-space texture. Natural mode samples that field inside the same floor shader used by direct and refracted view rays, so a caustic seen through the resin is refracted again with the floor instead of being drawn on top; the old point layer remains Analysis-only. Added distance fog that converges the finite receiver toward the infinite sky, a 0-1 environment mist control that suppresses scenic detail near the horizon, and color/mono optical output. Verified full WebGPU 16,384-ray and Windows-safe 56-ray paths, mist 0.72/0.90, real mono click, and a lower camera view. Production build passed. Next optical phenomenon recorded from author observation: RGB wavelength dispersion for resin prism rainbows, kept distinct from thin-film interference and stress birefringence."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Restored receiver light in the full WebGPU path after the author observed that `?safe=0` no longer showed a caustic. The five oriented micro-deposits per refracted floor hit had been normalized by their expanded vertex count, making Natural exposure nearly vanish. Normalization now uses the number of rays that actually reach the receiver, and the Natural core/halo exposure was raised without changing the refraction positions. Verified in full-quality mode on M4: 16,384 rays with 4,107 shape hits again produce a concentrated, stretched, irregular light pool inside the transparent shadow. Production build passed."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Corrected the optical scene after the author annotated two artifacts: the finite nearby backdrop produced an impossible triangular boundary, and the Windows-safe 56-ray regular grid appeared as undistorted circular light dots. Removed the nearby plane/cylinder lookup and restored the backdrop as a strictly infinite directional environment; only the shape and receiver floor remain finite. Added broad non-grid floor illumination so refracted floor lookups are legible. CPU ray origins now use a low-discrepancy 2D sequence instead of rows, and each refracted floor hit becomes five oriented, stretched micro-deposits based on outgoing deviation. In forced safe mode, real UI comparison at IOR 1.10 and 1.65 changed both the environment bending and receiver light distribution. Production build passed."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Added an automatic Windows safe startup path after the author's entire page remained black, indicating a likely GPU-process stall rather than a local fragment-only error. Windows now uses pixel ratio 1, center-only rough reflection/refraction and transparent-shadow sampling, and temporarily keeps the raw WebGPU optical compute engine off in favor of the 56-ray CPU preview. The RTX path remains available for staged re-enablement. `?safe=1` forces the path on any OS and `?safe=0` explicitly bypasses it on Windows. Forced-safe rendering was visually verified on M4 with the full UI, transparent body, nearby-scene distortion, and central transmitted shadow visible; production build passed."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Compatibility patch after the author observed a black viewport on Windows. The v0.9 shader evaluated procedural material noise during every transparent-shadow march step and recomputed finite-source shadows for each rough environment offset. Material density is now evaluated at seven positions across the completed inside segment, while only the central reflection/refraction sample performs the expensive transparent-shadow query. Nearby-environment distortion, heterogeneous absorption, and the central soft transparent shadow remain. Reverified visible output on M4 and a successful production build; Windows hard-refresh confirmation is pending."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Made refraction spatially legible by replacing the direction-only distant backdrop with origin-aware nearby geometry: a z=-6 scenic plane and radius-8 cylindrical surroundings. Rays now leave the SDF exit point and intersect that environment, so its trunks and value boundaries visibly shift and bend through the shape; IOR 1.10 versus 1.65 and environment rotation 0 versus 70 degrees were compared through real UI input. Added GGX-like rough highlights, adaptive 3/5-sample rough reflection and transmission, procedural surface-normal variation, and a separated 3D material field that modulates both body absorption and transparent shadows. A rough heterogeneous resin setting ran around 19–21 fps on M4. Production build passed. Remaining limits are explicit: no HDRI/path tracing, multiple internal bounce, editable volume field, or progressive GPU accumulation; high roughness may reveal the small directional sample set."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Replaced Natural's binary single-direction ground shadow with finite-source transparent shadow sampling. Depending on source spread, 3/5/9 directions estimate partial visibility; each ray integrates approximate distance inside the shared SDF and applies Beer-Lambert spectral attenuation plus two-interface Fresnel transmission. Added an interactive 0.1–30 degree source-spread control with 0.53 degrees documented as clear-sun scale and larger values explicitly treated as a cloud/window/diffuser proxy rather than exact sky lighting. Verified by real UI input: 0.5 degrees retained a tighter shadow, 30 degrees produced a broad penumbra, and absorption 0.55→2.5 deepened thickness-dependent gradients. M4 measured about 23–26 fps for the 3-sample clear-sun case and about 13 fps for the 9-sample widest source; no shader errors."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Added the first WebGPU compute path for Hikari Optics while preserving the WebGL renderer and CPU fallback. SDF entry/exit intersection and refraction now process 4,096–131,072 optical samples on a high-performance adapter; computed samples are independent from the 8–120 visible diagnostic rays. The UI reports the actual backend, browser-exposed adapter identity, sample/hit counts, readback-complete time, and throughput. On M4/metal-3, 16,384 samples produced 1,841 shape hits in about 2.0 ms; 65,536 produced 7,554 hits in about 118–170 ms after warm-up. Density and caustic alpha are normalized by visualized sample count to avoid sample-count-driven whiteout. Verified Analysis/Natural and ray OFF with real UI interactions."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Added Natural / Analysis optics views. Natural combines hemispherical sky light, directional sun, a matte receiver with nonzero ambient fill, approximate SDF sun occlusion, ground reflectance, exposure, and reduced caustic overlay so shadow and concentration read as deviations inside an already lit environment. Analysis preserves the dark optical-density view. Verified real-coordinate switching, ray overlay OFF, and interactive sky/sun values with no shader errors."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Changed optical ray visualization from the mutually exclusive Rays/Density/Both selector to an independent ray overlay toggle. Density and caustic computation now remain visible while the sampled ray lines turn OFF/ON. Legacy 'rays' and 'both' values migrate to ON; 'density' and old 'surface' migrate to OFF. Verified both toggle states with real-coordinate clicks."
+    },
+    {
+      "date": "2026-07-30",
+      "note": "Author feedback rejected the Sun wavefront planes and studio grid as visually attached explanatory scaffolding. Replaced Surface with a Flow-Density-like additive optical deposition: soft particles accumulate along incident, internal, and outgoing paths, while the matte environment no longer draws a grid. The old saved 'surface' value migrates to 'density'. Rays/Density/Both and the denser overlapping result were visually verified."
+    },
+    {
+      "date": "2026-07-29",
+      "note": "Hikari Optics v0.3 makes the directional Sun source visible as moving wavefront surfaces instead of only sampled rays. Added Rays/Surface/Both display modes and interactive light-field width; the same finite source plane still seeds the refraction and receiver-plane accumulation. Verified all display modes and width 1.00→1.55 in the browser with no rendering errors."
+    },
+    {
+      "date": "2026-07-29",
+      "note": "Added Hikari Optics v0.2 beside Flow. The same Cloud Sculpt SDF now drives a realtime water/glass view shader plus CPU-traced parallel rays through entry and exit refraction, with additive deposits on a receiver plane. Water/glass, IOR, light angle, ray count, absorption, and caustic strength are interactive and browser-persisted. Visually verified that rerolling Katachi immediately rebuilds the optical paths and light deposits without file transfer."
+    },
+    {
+      "date": "2026-07-29",
+      "note": "Added the first Hikari observation view directly inside Cloud Sculpt. KATACHI and HIKARI read the same in-memory ball field and camera without export/import. Hikari provides deterministic surface/inside particle sampling, Points/Trails/Density views, and interactive controls persisted by the browser. Build passed and all three views plus both spawn modes were visually verified in the local browser."
+    },
     { "date": "2026-07-17", "note": "T18 design alignment: unified UI chrome with satw.jp paper/ink/hairline tokens and Helvetica Neue while preserving the dark 3D viewport and scene colors. Awaiting author visual approval before deploy." },
     { "date": "2026-07-17", "note": "T16 recipe/history consolidation: migrated the shared v1 envelope serializer, wrapped/bare parser, and timestamped record shell to src/lib while keeping S1 operations, replay semantics, and Ball ID resync local." },
     { "date": "2026-07-17", "note": "T16 style consolidation: moved byte-equivalent shared chrome rules to src/styles/base.css while keeping Cloud Sculpt ball-editor and mesh styles local. Build output CSS size remained 2.85 kB." },

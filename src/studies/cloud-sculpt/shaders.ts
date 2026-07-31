@@ -30,6 +30,34 @@ export const fragmentShader = /* glsl */ `
   uniform vec2 uResolution;
   uniform int uSelectedIndex;
   uniform vec3 uLightDir;
+  uniform int uRenderMode;
+  uniform float uIor;
+  uniform float uDispersion;
+  uniform int uDispersionMode;
+  uniform int uRainbowModel;
+  uniform float uStressAmount;
+  uniform float uPolarization;
+  uniform float uAbsorption;
+  uniform vec3 uOpticalTint;
+  uniform int uNaturalView;
+  uniform float uSkyIntensity;
+  uniform float uSunIntensity;
+  uniform float uSunSize;
+  uniform float uGroundReflectance;
+  uniform float uOpticalExposure;
+  uniform float uSurfaceRoughness;
+  uniform float uSurfaceVariation;
+  uniform float uMaterialVariation;
+  uniform float uMaterialScale;
+  uniform float uEnvironmentContrast;
+  uniform float uEnvironmentRotation;
+  uniform float uEnvironmentMist;
+  uniform int uMonochrome;
+  uniform sampler2D uCausticMap;
+  uniform vec4 uCausticBounds;
+  uniform float uCausticAvailable;
+  uniform float uCausticStrength;
+  uniform int uCompatibilityMode;
 
   varying vec2 vUv;
 
@@ -65,6 +93,544 @@ export const fragmentShader = /* glsl */ `
     ));
   }
 
+  float materialPattern(vec3 p) {
+    vec3 q = p * max(0.1, uMaterialScale);
+    float broad = sin(q.x * 1.37 + sin(q.z * 0.73))
+      + sin(q.y * 1.11 - q.x * 0.47)
+      + sin(q.z * 1.53 + q.y * 0.39);
+    float fine = sin(dot(q, vec3(2.31, -1.73, 1.19)) + sin(q.y * 1.9));
+    float separated = smoothstep(-0.28, 0.32, broad * 0.42 + fine * 0.25);
+    return mix(1.0, mix(0.38, 1.82, separated), uMaterialVariation);
+  }
+
+  vec3 perturbSurfaceNormal(vec3 normal, vec3 p) {
+    vec3 q = p * (3.7 + uMaterialScale * 0.8);
+    vec3 variation = vec3(
+      sin(q.y * 1.17 + q.z * 0.83),
+      sin(q.z * 1.31 - q.x * 0.71),
+      sin(q.x * 1.07 + q.y * 0.97)
+    );
+    variation -= normal * dot(variation, normal);
+    return normalize(normal + variation * uSurfaceVariation * 0.34);
+  }
+
+  float segmentMaterialDensity(vec3 startPoint, vec3 endPoint) {
+    float density = 0.0;
+    for (int i = 0; i < 7; i++) {
+      float t = (float(i) + 0.5) / 7.0;
+      density += materialPattern(mix(startPoint, endPoint, t));
+    }
+    return density / 7.0;
+  }
+
+  float junctionStress(vec3 p) {
+    float nearest = 1e5;
+    float second = 1e5;
+    for (int i = 0; i < ${MAX_BALLS}; i++) {
+      if (i >= uBallCount) break;
+      float distanceToShell = abs(sdBall(p, uBallPos[i], uBallRadius[i]));
+      if (distanceToShell < nearest) {
+        second = nearest;
+        nearest = distanceToShell;
+      } else if (distanceToShell < second) {
+        second = distanceToShell;
+      }
+    }
+    float shellCompetition = max(0.0, second - nearest);
+    return 1.0 - smoothstep(0.06, 0.52, shellCompetition);
+  }
+
+  vec3 rotateEnvironment(vec3 direction) {
+    float cosine = cos(uEnvironmentRotation);
+    float sine = sin(uEnvironmentRotation);
+    return vec3(
+      direction.x * cosine - direction.z * sine,
+      direction.y,
+      direction.x * sine + direction.z * cosine
+    );
+  }
+
+  float ggxSpecular(vec3 normal, vec3 viewDirection, vec3 lightDirection) {
+    float nDotV = max(dot(normal, viewDirection), 0.001);
+    float nDotL = max(dot(normal, lightDirection), 0.0);
+    if (nDotL <= 0.0) return 0.0;
+    vec3 halfDirection = normalize(viewDirection + lightDirection);
+    float nDotH = max(dot(normal, halfDirection), 0.0);
+    float vDotH = max(dot(viewDirection, halfDirection), 0.0);
+    float alpha = max(0.025, uSurfaceRoughness * uSurfaceRoughness);
+    float alphaSquared = alpha * alpha;
+    float denominator = nDotH * nDotH * (alphaSquared - 1.0) + 1.0;
+    float distribution = alphaSquared / max(0.001, 3.14159265 * denominator * denominator);
+    float geometryK = (alpha + 1.0) * (alpha + 1.0) * 0.125;
+    float geometryV = nDotV / mix(nDotV, 1.0, geometryK);
+    float geometryL = nDotL / mix(nDotL, 1.0, geometryK);
+    float f0 = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
+    float fresnel = f0 + (1.0 - f0) * pow(1.0 - vDotH, 5.0);
+    return distribution * geometryV * geometryL * fresnel
+      / max(0.001, 4.0 * nDotV * nDotL) * nDotL;
+  }
+
+  vec3 sunTransmission(vec3 origin, vec3 direction) {
+    float travelled = 0.035;
+    float insideDistance = 0.0;
+    bool entered = false;
+    bool exited = false;
+    vec3 entryPoint = origin;
+    vec3 exitPoint = origin;
+    vec3 rayDirection = normalize(direction);
+    for (int i = 0; i < 72; i++) {
+      vec3 samplePoint = origin + rayDirection * travelled;
+      float distance = map(samplePoint);
+      if (!entered) {
+        if (distance < 0.0035) {
+          entered = true;
+          entryPoint = samplePoint;
+          travelled += 0.014;
+          insideDistance += 0.014;
+          continue;
+        }
+        travelled += max(0.025, distance * 0.72);
+      } else {
+        if (distance >= -0.002 && insideDistance > 0.025) {
+          exited = true;
+          exitPoint = samplePoint;
+          break;
+        }
+        float stepDistance = max(0.012, abs(distance) * 0.58);
+        travelled += stepDistance;
+        insideDistance += stepDistance;
+      }
+      if (travelled > 14.0) break;
+    }
+    if (!entered) return vec3(1.0);
+    if (!exited) return vec3(0.035, 0.045, 0.055);
+
+    // Sampling the material field on every ray-march step made the fragment
+    // shader too costly on some ANGLE/Windows drivers. Seven samples across
+    // the completed inside segment preserve the heterogeneous optical depth
+    // while keeping the loop's SDF work independent from procedural noise.
+    float opticalDepth = insideDistance * segmentMaterialDensity(entryPoint, exitPoint);
+    vec3 spectralAbsorption =
+      (vec3(1.0) - uOpticalTint) * uAbsorption * 0.9
+      + vec3(uAbsorption * 0.055);
+    float fresnelBase = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
+    float interfaceTransmission = (1.0 - fresnelBase) * (1.0 - fresnelBase);
+    return exp(-spectralAbsorption * opticalDepth) * interfaceTransmission;
+  }
+
+  vec3 finiteSunTransmission(vec3 origin) {
+    vec3 lightDirection = normalize(uLightDir);
+    vec3 helper = abs(lightDirection.y) < 0.92
+      ? vec3(0.0, 1.0, 0.0)
+      : vec3(1.0, 0.0, 0.0);
+    vec3 basisU = normalize(cross(lightDirection, helper));
+    vec3 basisV = normalize(cross(basisU, lightDirection));
+    float diskRadius = tan(radians(max(0.1, uSunSize) * 0.5));
+
+    vec3 centerTransmission = sunTransmission(origin, lightDirection);
+    if (uCompatibilityMode == 1) {
+      return centerTransmission;
+    }
+    vec3 horizontalTransmission = sunTransmission(
+      origin,
+      normalize(lightDirection + basisU * diskRadius)
+    );
+    horizontalTransmission += sunTransmission(
+      origin,
+      normalize(lightDirection - basisU * diskRadius)
+    );
+    if (uSunSize < 1.0) {
+      return centerTransmission * 0.50 + horizontalTransmission * 0.25;
+    }
+
+    vec3 verticalTransmission = sunTransmission(
+      origin,
+      normalize(lightDirection + basisV * diskRadius)
+    );
+    verticalTransmission += sunTransmission(
+      origin,
+      normalize(lightDirection - basisV * diskRadius)
+    );
+    if (uSunSize < 4.0) {
+      return centerTransmission * 0.28
+        + (horizontalTransmission + verticalTransmission) * 0.18;
+    }
+
+    vec3 transmission = centerTransmission * 0.20
+      + (horizontalTransmission + verticalTransmission) * 0.10;
+    float diagonalRadius = diskRadius * 0.70710678;
+    transmission += sunTransmission(
+      origin,
+      normalize(lightDirection + basisU * diagonalRadius + basisV * diagonalRadius)
+    ) * 0.10;
+    transmission += sunTransmission(
+      origin,
+      normalize(lightDirection + basisU * diagonalRadius - basisV * diagonalRadius)
+    ) * 0.10;
+    transmission += sunTransmission(
+      origin,
+      normalize(lightDirection - basisU * diagonalRadius + basisV * diagonalRadius)
+    ) * 0.10;
+    transmission += sunTransmission(
+      origin,
+      normalize(lightDirection - basisU * diagonalRadius - basisV * diagonalRadius)
+    ) * 0.10;
+    return transmission;
+  }
+
+  vec3 analysisEnvironment(vec3 origin, vec3 direction) {
+    float horizon = smoothstep(-0.35, 0.45, direction.y);
+    vec3 sky = mix(vec3(0.012, 0.025, 0.035), vec3(0.075, 0.16, 0.2), horizon);
+    float lightBand = pow(max(dot(direction, normalize(uLightDir)), 0.0), 48.0);
+    sky += vec3(0.72, 0.9, 1.0) * lightBand;
+
+    float floorY = -2.35;
+    if (direction.y < -0.001) {
+      float floorDistance = (floorY - origin.y) / direction.y;
+      if (floorDistance > 0.0) {
+        vec3 floorPoint = origin + direction * floorDistance;
+        float radial = exp(-0.055 * dot(floorPoint.xz, floorPoint.xz));
+        float horizonGlow = pow(clamp(1.0 + direction.y, 0.0, 1.0), 3.0);
+        vec3 floorColor = mix(vec3(0.01, 0.022, 0.028), vec3(0.025, 0.068, 0.078), radial);
+        floorColor += vec3(0.018, 0.055, 0.064) * horizonGlow;
+        return floorColor;
+      }
+    }
+    return sky;
+  }
+
+  vec3 naturalEnvironment(vec3 origin, vec3 direction, bool includeSunShadow) {
+    float skyHeight = smoothstep(-0.22, 0.72, direction.y);
+    vec3 horizonColor = vec3(0.62, 0.78, 0.92);
+    vec3 zenithColor = vec3(0.2, 0.48, 0.78);
+    vec3 sky = mix(horizonColor, zenithColor, skyHeight) * uSkyIntensity;
+    vec3 environmentDirection = rotateEnvironment(direction);
+    float detailVisibility = 1.0 - uEnvironmentMist * 0.94;
+    // The background is an infinite directional environment. Refraction
+    // changes the lookup direction, never the apparent distance or horizon.
+    float azimuth = atan(environmentDirection.z, environmentDirection.x);
+    float environmentHeight = environmentDirection.y;
+    float cloudField =
+      sin(azimuth * 2.7 + environmentDirection.y * 8.0)
+      + sin(azimuth * 5.3 - environmentDirection.y * 5.0) * 0.55
+      + sin(azimuth * 11.0 + environmentDirection.y * 13.0) * 0.22;
+    float cloudMask = smoothstep(
+      0.52,
+      1.22,
+      cloudField + environmentDirection.y * 0.35
+    ) * smoothstep(-0.02, 0.42, environmentDirection.y);
+    vec3 cloudColor = mix(vec3(0.78, 0.84, 0.88), vec3(1.0, 0.97, 0.9), skyHeight);
+    sky = mix(
+      sky,
+      cloudColor * uSkyIntensity,
+      cloudMask * 0.42 * uEnvironmentContrast * detailVisibility
+    );
+
+    float treeHeight = 0.015
+      + sin(azimuth * 4.0) * 0.022
+      + sin(azimuth * 9.0 + 1.7) * 0.012
+      + sin(azimuth * 21.0) * 0.006;
+    float treeMask = smoothstep(-0.12, -0.025, environmentHeight)
+      * (1.0 - smoothstep(treeHeight, treeHeight + 0.035, environmentHeight));
+    vec3 treeColor = vec3(0.055, 0.095, 0.075) * (0.65 + 0.35 * uSkyIntensity);
+    sky = mix(
+      sky,
+      treeColor,
+      treeMask * min(1.0, uEnvironmentContrast * 0.78) * detailVisibility
+    );
+
+    float trunkField = sin(azimuth * 23.0 + sin(azimuth * 7.0) * 1.4)
+      + sin(azimuth * 41.0 + 0.9) * 0.44;
+    float trunkMask = smoothstep(1.12, 1.38, trunkField)
+      * smoothstep(-0.09, -0.015, environmentHeight)
+      * (1.0 - smoothstep(0.16, 0.31, environmentHeight));
+    sky = mix(
+      sky,
+      vec3(0.032, 0.05, 0.038),
+      trunkMask * min(1.0, uEnvironmentContrast * 0.92) * detailVisibility
+    );
+
+    float openingField = sin(azimuth * 6.0 - 0.7) + sin(azimuth * 13.0) * 0.28;
+    float openingMask = smoothstep(0.88, 1.16, openingField)
+      * smoothstep(-0.015, 0.035, environmentHeight)
+      * (1.0 - smoothstep(0.035, 0.16, environmentHeight));
+    sky += vec3(0.34, 0.24, 0.12)
+      * openingMask
+      * uSunIntensity
+      * 0.28
+      * uEnvironmentContrast
+      * detailVisibility;
+
+    float skyHaze = exp(-abs(direction.y) * 7.5) * uEnvironmentMist;
+    vec3 hazeColor = vec3(0.69, 0.74, 0.76) * uSkyIntensity;
+    sky = mix(sky, hazeColor, skyHaze * 0.74);
+
+    float sunDisc = pow(max(dot(direction, normalize(uLightDir)), 0.0), 420.0);
+    sky += vec3(1.0, 0.88, 0.66) * sunDisc * uSunIntensity * 1.8;
+
+    float floorY = -2.35;
+    float floorDistance = 1e5;
+    if (direction.y < -0.001) {
+      floorDistance = (floorY - origin.y) / direction.y;
+      if (floorDistance <= 0.0) floorDistance = 1e5;
+    }
+    if (direction.y < -0.001) {
+      if (floorDistance < 1e4) {
+        vec3 floorPoint = origin + direction * floorDistance;
+        vec3 transmission = includeSunShadow
+          ? finiteSunTransmission(floorPoint + vec3(0.0, 0.015, 0.0))
+          : vec3(0.72);
+        float distanceFade = exp(-0.018 * dot(floorPoint.xz, floorPoint.xz));
+        float groundField =
+          sin(floorPoint.x * 0.58 + sin(floorPoint.z * 0.31))
+          + sin(floorPoint.z * 0.77 - floorPoint.x * 0.19) * 0.48;
+        float groundVariation = smoothstep(-1.15, 1.35, groundField);
+        vec3 ground = mix(
+          vec3(0.69, 0.68, 0.64),
+          vec3(0.91, 0.87, 0.78),
+          groundVariation
+        ) * uGroundReflectance;
+        float transmissionLuma = dot(
+          transmission,
+          vec3(0.2126, 0.7152, 0.0722)
+        );
+        // A clear resin still removes part of the direct and hemispherical
+        // light through its two interfaces. Keeping that broad loss separate
+        // from the focused caustic makes a translucent shadow remain readable
+        // underneath the bright pool instead of letting the pool erase it.
+        float shadowPresence = smoothstep(
+          0.015,
+          0.30,
+          1.0 - transmissionLuma
+        );
+        vec3 ambient = ground
+          * (0.68 + 0.24 * uSkyIntensity)
+          * (1.0 - shadowPresence * 0.24);
+        vec3 direct = ground * uSunIntensity * transmission * 0.42;
+        vec3 horizonFill = vec3(0.08, 0.14, 0.18) * uSkyIntensity * (1.0 - distanceFade);
+        vec2 causticUv = (floorPoint.xz - uCausticBounds.xy) / uCausticBounds.zw;
+        float causticEdgeDistance = min(
+          min(causticUv.x, 1.0 - causticUv.x),
+          min(causticUv.y, 1.0 - causticUv.y)
+        );
+        float causticDomainRadius = length((causticUv - 0.5) * 2.0);
+        // The receiver texture is finite, but its domain is not a light
+        // source. Feather it to zero before the boundary so its rectangular
+        // extent can never appear as a projected patch on the floor.
+        float causticWindow = smoothstep(0.0, 0.10, causticEdgeDistance)
+          * (1.0 - smoothstep(0.82, 1.05, causticDomainRadius));
+        vec3 causticDensity = texture2D(
+          uCausticMap,
+          clamp(causticUv, vec2(0.0), vec2(1.0))
+        ).rgb * causticWindow * uCausticAvailable;
+        vec3 warmCaustic = vec3(1.0, 0.91, 0.62)
+          * dot(causticDensity, vec3(0.333333));
+        float commonCaustic = min(
+          causticDensity.r,
+          min(causticDensity.g, causticDensity.b)
+        );
+        float chromaGain = uDispersionMode == 1 ? 0.38 : 2.8;
+        vec3 spectralCaustic = causticDensity
+          + max(causticDensity - vec3(commonCaustic), vec3(0.0))
+            * uDispersion
+            * chromaGain;
+        vec3 causticLight = mix(
+          warmCaustic,
+          spectralCaustic,
+          uRainbowModel == 1
+            ? 0.0
+            : clamp(uDispersion * 1.35, 0.0, 1.0)
+        )
+          * uCausticStrength
+          * uSunIntensity
+          * 0.82;
+        // Preserve local color and shape while compressing only the brightest
+        // peaks, which otherwise bleach the transparent shadow to a white box.
+        causticLight /= vec3(1.0) + causticLight * 0.38;
+        vec3 floorColor = ambient + direct + horizonFill + causticLight;
+        float fogDensity = mix(0.012, 0.085, uEnvironmentMist);
+        float distanceFog = 1.0 - exp(-floorDistance * fogDensity);
+        return mix(floorColor, sky, clamp(distanceFog, 0.0, 1.0));
+      }
+    }
+    return sky;
+  }
+
+  vec3 opticalEnvironment(vec3 origin, vec3 direction) {
+    return uNaturalView == 1
+      ? naturalEnvironment(origin, direction, true)
+      : analysisEnvironment(origin, direction);
+  }
+
+  vec3 roughEnvironmentSample(vec3 origin, vec3 direction) {
+    return uNaturalView == 1
+      ? naturalEnvironment(origin, direction, false)
+      : analysisEnvironment(origin, direction);
+  }
+
+  vec3 roughOpticalEnvironment(vec3 origin, vec3 direction) {
+    vec3 center = opticalEnvironment(origin, direction);
+    if (uCompatibilityMode == 1) return center;
+    if (uSurfaceRoughness < 0.015) return center;
+    vec3 helper = abs(direction.y) < 0.92
+      ? vec3(0.0, 1.0, 0.0)
+      : vec3(1.0, 0.0, 0.0);
+    vec3 basisU = normalize(cross(direction, helper));
+    vec3 basisV = normalize(cross(basisU, direction));
+    float spread = max(0.004, uSurfaceRoughness * uSurfaceRoughness * 0.82);
+    vec3 horizontal = roughEnvironmentSample(
+      origin,
+      normalize(direction + basisU * spread)
+    );
+    horizontal += roughEnvironmentSample(
+      origin,
+      normalize(direction - basisU * spread)
+    );
+    if (uSurfaceRoughness < 0.18) {
+      vec3 blurred = horizontal * 0.5;
+      return mix(center, blurred, clamp(uSurfaceRoughness * 2.2, 0.0, 0.52));
+    }
+    vec3 vertical = roughEnvironmentSample(
+      origin,
+      normalize(direction + basisV * spread)
+    );
+    vertical += roughEnvironmentSample(
+      origin,
+      normalize(direction - basisV * spread)
+    );
+    vec3 blurred = (horizontal + vertical) * 0.25;
+    return mix(center, blurred, clamp(uSurfaceRoughness * 1.75, 0.0, 0.9));
+  }
+
+  vec3 outgoingAtIor(
+    vec3 incoming,
+    vec3 entryNormal,
+    vec3 exitNormal,
+    float ior,
+    vec3 fallback
+  ) {
+    vec3 inside = refract(incoming, entryNormal, 1.0 / max(1.001, ior));
+    if (length(inside) < 0.01) return fallback;
+    vec3 outgoing = refract(inside, -exitNormal, ior);
+    return length(outgoing) < 0.01 ? fallback : outgoing;
+  }
+
+  float spectralLuminance(vec3 color) {
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
+  }
+
+  vec3 fiveBandSpectrum(
+    vec3 origin,
+    vec3 incoming,
+    vec3 entryNormal,
+    vec3 exitNormal,
+    vec3 centerDirection,
+    vec3 centerColor,
+    float spread
+  ) {
+    vec3 redDirection = outgoingAtIor(
+      incoming,
+      entryNormal,
+      exitNormal,
+      max(1.001, uIor - spread * 0.5),
+      centerDirection
+    );
+    vec3 amberDirection = outgoingAtIor(
+      incoming,
+      entryNormal,
+      exitNormal,
+      max(1.001, uIor - spread * 0.24),
+      centerDirection
+    );
+    vec3 cyanDirection = outgoingAtIor(
+      incoming,
+      entryNormal,
+      exitNormal,
+      uIor + spread * 0.25,
+      centerDirection
+    );
+    vec3 blueDirection = outgoingAtIor(
+      incoming,
+      entryNormal,
+      exitNormal,
+      uIor + spread * 0.54,
+      centerDirection
+    );
+    float red = spectralLuminance(roughEnvironmentSample(origin, redDirection));
+    float amber = spectralLuminance(roughEnvironmentSample(origin, amberDirection));
+    float green = spectralLuminance(centerColor);
+    float cyan = spectralLuminance(roughEnvironmentSample(origin, cyanDirection));
+    float blue = spectralLuminance(roughEnvironmentSample(origin, blueDirection));
+    float meanBand = (red + amber + green + cyan + blue) * 0.2;
+    float bandContrast = uDispersionMode == 1 ? 2.1 : 3.2;
+    red = max(0.0, meanBand + (red - meanBand) * bandContrast);
+    amber = max(0.0, meanBand + (amber - meanBand) * bandContrast);
+    green = max(0.0, meanBand + (green - meanBand) * bandContrast);
+    cyan = max(0.0, meanBand + (cyan - meanBand) * bandContrast);
+    blue = max(0.0, meanBand + (blue - meanBand) * bandContrast);
+
+    vec3 spectrum =
+      red * vec3(1.0, 0.04, 0.0)
+      + amber * vec3(1.0, 0.5, 0.01)
+      + green * vec3(0.08, 1.0, 0.05)
+      + cyan * vec3(0.0, 0.55, 1.0)
+      + blue * vec3(0.05, 0.03, 1.0);
+    vec3 normalization = vec3(2.13, 2.12, 2.06);
+    return spectrum / normalization;
+  }
+
+  vec3 stressInterferenceColor(float retardance) {
+    float violet = pow(sin(3.14159265 * retardance / 0.44), 2.0);
+    float cyan = pow(sin(3.14159265 * retardance / 0.49), 2.0);
+    float green = pow(sin(3.14159265 * retardance / 0.55), 2.0);
+    float amber = pow(sin(3.14159265 * retardance / 0.59), 2.0);
+    float red = pow(sin(3.14159265 * retardance / 0.65), 2.0);
+    vec3 spectrum =
+      violet * vec3(0.13, 0.08, 1.0)
+      + cyan * vec3(0.0, 0.72, 1.0)
+      + green * vec3(0.12, 1.0, 0.06)
+      + amber * vec3(1.0, 0.58, 0.02)
+      + red * vec3(1.0, 0.05, 0.01);
+    return spectrum / 2.25;
+  }
+
+  vec3 opticalToneMap(vec3 color) {
+    return vec3(1.0) - exp(-max(color, vec3(0.0)) * uOpticalExposure);
+  }
+
+  vec3 opticalOutput(vec3 color) {
+    vec3 outputColor = uNaturalView == 1 ? opticalToneMap(color) : color;
+    if (uMonochrome == 1) {
+      float luminance = dot(outputColor, vec3(0.2126, 0.7152, 0.0722));
+      outputColor = vec3(luminance);
+    }
+    return outputColor;
+  }
+
+  bool marchInside(vec3 entry, vec3 direction, out vec3 exitPoint, out float travelled) {
+    travelled = 0.018;
+    vec3 previousPoint = entry;
+    for (int i = 0; i < 144; i++) {
+      exitPoint = entry + direction * travelled;
+      float d = map(exitPoint);
+      if (d >= -0.0015 && travelled > 0.04) {
+        vec3 insidePoint = previousPoint;
+        vec3 outsidePoint = exitPoint;
+        for (int refinement = 0; refinement < 6; refinement++) {
+          vec3 middle = mix(insidePoint, outsidePoint, 0.5);
+          if (map(middle) < 0.0) insidePoint = middle;
+          else outsidePoint = middle;
+        }
+        exitPoint = mix(insidePoint, outsidePoint, 0.5);
+        return true;
+      }
+      previousPoint = exitPoint;
+      travelled += max(0.012, abs(d) * 0.72);
+      if (travelled > 16.0) break;
+    }
+    return false;
+  }
+
   // Nearest ball index to a surface point, used only for the selection ring.
   int nearestBall(vec3 p) {
     float best = 1e5;
@@ -97,6 +663,11 @@ export const fragmentShader = /* glsl */ `
     }
 
     if (!hit || uBallCount == 0) {
+      if (uRenderMode == 1) {
+        vec3 environment = opticalEnvironment(ro, rd);
+        gl_FragColor = vec4(opticalOutput(environment), 1.0);
+        return;
+      }
       // Soft vertical gradient background, not pure black — makes a
       // hollow ("no balls yet") state readable at a glance.
       float g = 0.5 + 0.5 * vUv.y;
@@ -105,6 +676,100 @@ export const fragmentShader = /* glsl */ `
     }
 
     vec3 n = estimateNormal(p);
+    if (uRenderMode == 1) {
+      n = perturbSurfaceNormal(n, p);
+      float eta = 1.0 / max(1.001, uIor);
+      vec3 insideDirection = refract(rd, n, eta);
+      if (length(insideDirection) < 0.01) insideDirection = reflect(rd, n);
+      vec3 exitPoint = p;
+      float travelled = 0.0;
+      bool hasExit = marchInside(p, insideDirection, exitPoint, travelled);
+      vec3 outgoing = insideDirection;
+      vec3 exitNormal = -n;
+      if (hasExit) {
+        exitNormal = perturbSurfaceNormal(estimateNormal(exitPoint), exitPoint);
+        vec3 refractedOut = refract(insideDirection, -exitNormal, uIor);
+        outgoing = length(refractedOut) < 0.01 ? reflect(insideDirection, -exitNormal) : refractedOut;
+      }
+
+      float facing = clamp(dot(-rd, n), 0.0, 1.0);
+      float fresnelBase = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
+      float fresnel = fresnelBase + (1.0 - fresnelBase) * pow(1.0 - facing, 5.0);
+      vec3 refractedColor = roughOpticalEnvironment(hasExit ? exitPoint : p, outgoing);
+      if (hasExit && uRainbowModel != 1 && uDispersion > 0.001) {
+        float locality = 1.0;
+        if (uDispersionMode == 1) {
+          float bend = clamp(length(outgoing - rd) / 1.15, 0.0, 1.0);
+          float normalTurn = 1.0 - abs(dot(n, exitNormal));
+          float grazing = pow(1.0 - facing, 2.0);
+          float localScore = bend * 0.56 + normalTurn * 0.68 + grazing * 0.16;
+          locality = smoothstep(0.28, 0.66, localScore);
+        }
+        float spectralScale = uDispersionMode == 1 ? 0.046 : 0.060;
+        float spectralSpread = uDispersion * spectralScale * locality;
+        if (spectralSpread > 0.0002) {
+          vec3 spectralColor = fiveBandSpectrum(
+            exitPoint,
+            rd,
+            n,
+            exitNormal,
+            outgoing,
+            refractedColor,
+            spectralSpread
+          );
+          float spectralVisibility = clamp(
+            spectralSpread / max(0.001, spectralScale) * 0.9,
+            0.0,
+            0.9
+          );
+          refractedColor = mix(refractedColor, spectralColor, spectralVisibility);
+        }
+      }
+      if (hasExit && uRainbowModel != 0 && uStressAmount > 0.001) {
+        vec3 middle = mix(p, exitPoint, 0.5);
+        float junction = max(junctionStress(p), junctionStress(exitPoint));
+        float thicknessStress = smoothstep(0.35, 3.2, travelled);
+        float cureContrast = clamp(abs(materialPattern(middle) - 1.0), 0.0, 1.0);
+        float stressField = clamp(
+          junction * 0.72 + thicknessStress * 0.22 + cureContrast * 0.3,
+          0.0,
+          1.0
+        );
+        float retardance = uStressAmount
+          * (0.12 + stressField * 1.65)
+          * (0.55 + travelled * 0.24);
+        vec3 interference = stressInterferenceColor(retardance);
+        float stressVisibility = uPolarization
+          * smoothstep(0.14, 0.78, stressField)
+          * 0.82;
+        vec3 stressedLight = refractedColor * 0.5 + interference * 0.92;
+        refractedColor = mix(refractedColor, stressedLight, stressVisibility);
+      }
+      float absorptionScale = uNaturalView == 1 ? 0.34 : 1.0;
+      float density = hasExit ? segmentMaterialDensity(p, exitPoint) : materialPattern(p);
+      float opticalDepth = travelled * density;
+      vec3 transmission = exp(
+        -uAbsorption
+        * absorptionScale
+        * opticalDepth
+        * (vec3(1.0) - uOpticalTint * 0.92)
+      );
+      vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
+      float edgeGlow = pow(1.0 - facing, 2.2);
+      vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
+      color += uOpticalTint * edgeGlow * 0.22;
+      float internalHaze = (1.0 - exp(-uAbsorption * opticalDepth * 0.22))
+        * uMaterialVariation;
+      color += uOpticalTint * internalHaze * 0.11;
+      float highlight = min(
+        6.0,
+        ggxSpecular(n, normalize(-rd), normalize(uLightDir))
+      );
+      color += vec3(1.0, 0.94, 0.82) * highlight * uSunIntensity * 0.22;
+      gl_FragColor = vec4(opticalOutput(color), 1.0);
+      return;
+    }
+
     float diff = max(dot(n, normalize(uLightDir)), 0.0);
     float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.0);
     vec3 base = vec3(0.86, 0.87, 0.9);

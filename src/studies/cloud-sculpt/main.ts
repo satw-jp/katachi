@@ -9,6 +9,13 @@ import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
 import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS, freshBallId } from "./field.ts";
+import {
+  DEFAULT_HIKARI_SETTINGS,
+  HikariLayer,
+  normalizeHikariSettings,
+  type HikariSettings,
+  type WorkspaceView,
+} from "./hikari.ts";
 import type { HistoryEntry } from "./history.ts";
 import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "./history.ts";
 import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
@@ -27,8 +34,23 @@ app.appendChild(viewport);
 let history: HistoryEntry[] = [];
 let state = createEmptyState();
 let selectedBallId: number | null = null;
+const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
+const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
+let workspaceView: WorkspaceView =
+  localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
+let hikariSettings = loadHikariSettings();
+const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
+const windowsCompatibilityMode =
+  safeModeQuery === "1"
+  || (safeModeQuery !== "0" && /Windows/i.test(navigator.userAgent));
 
-const cloudRenderer = new CloudRenderer(viewport);
+const cloudRenderer = new CloudRenderer(viewport, {
+  compatibilityMode: windowsCompatibilityMode,
+});
+const hikariLayer = new HikariLayer(cloudRenderer.scene, {
+  disableWebGpu: windowsCompatibilityMode,
+  onCausticField: (field) => cloudRenderer.setCausticField(field),
+});
 
 // Seed the initial cloud so the app opens with something to look at
 // (an empty field is a legitimate but uninteresting state).
@@ -43,7 +65,14 @@ function regrowCurrentField(): void {
 }
 
 // --- UI ------------------------------------------------------------------
-const ui = buildUi(app, state.params, manifest.version, manifest.updatedAt, {
+const ui = buildUi(
+  app,
+  state.params,
+  manifest.version,
+  manifest.updatedAt,
+  workspaceView,
+  hikariSettings,
+  {
   onParamChange: (key, value) => {
     record(history, state, "setParam", { key, value });
     if (key !== "k") {
@@ -93,9 +122,21 @@ const ui = buildUi(app, state.params, manifest.version, manifest.updatedAt, {
   onImportFile: (file) => importHistory(file),
   onMeshInspect: (options) => inspectMesh(options),
   onMeshExport: (options) => exportMesh(options),
-});
+  onViewChange: (view) => {
+    workspaceView = view;
+    localStorage.setItem(WORKSPACE_VIEW_KEY, view);
+    applyWorkspaceView();
+  },
+  onHikariChange: (settings) => {
+    hikariSettings = normalizeHikariSettings(settings);
+    localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+    render();
+  },
+  },
+);
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
+applyWorkspaceView();
 
 // --- Pointer interaction ---------------------------------------------------
 // Click (no drag) on empty space -> add a ball at the surface hit point.
@@ -107,6 +148,7 @@ let draggingBallId: number | null = null;
 const DRAG_THRESHOLD = 4;
 
 viewport.addEventListener("pointerdown", (e) => {
+  if (workspaceView !== "katachi") return;
   pointerDownPos = { x: e.clientX, y: e.clientY };
   const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
@@ -122,6 +164,7 @@ viewport.addEventListener("pointerdown", (e) => {
 });
 
 viewport.addEventListener("pointermove", (e) => {
+  if (workspaceView !== "katachi") return;
   if (draggingBallId === null) return;
   const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
@@ -146,6 +189,11 @@ viewport.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("pointerup", (e) => {
+  if (workspaceView !== "katachi") {
+    pointerDownPos = null;
+    draggingBallId = null;
+    return;
+  }
   const wasDragging = draggingBallId !== null;
   draggingBallId = null;
   cloudRenderer.controls.enabled = true;
@@ -203,6 +251,7 @@ function approxCloudDistance(): number {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (workspaceView !== "katachi") return;
   if (e.key === "Delete" || e.key === "Backspace") {
     if (document.activeElement?.tagName === "INPUT") return; // don't eat text-field edits
     deleteSelected();
@@ -292,12 +341,21 @@ function exportMesh(options: MeshExportUiOptions): void {
   exportJson: () => serializeRecipe(history),
   importJson: (text: string) => applyRecipeText(text),
   inspectMesh: (options: MeshExportUiOptions) => buildCloudMesh(state.balls, state.params.k, options),
+  getWorkspaceView: () => workspaceView,
+  getHikariSettings: () => ({ ...hikariSettings }),
+  getOpticsComputeStatus: () => hikariLayer.getOpticsComputeStatus(),
 };
 
 // --- Render loop ------------------------------------------------------
 
 function render(): void {
   cloudRenderer.update(state.balls, state.params.k, selectedBallId);
+  cloudRenderer.setOptics(hikariSettings);
+  cloudRenderer.setVisualMode(
+    workspaceView === "katachi" ? "katachi" : hikariSettings.phenomenon,
+  );
+  hikariLayer.update(state.balls, state.params.k, hikariSettings);
+  ui.setHikariSource(`同じ場を観察中 — ${state.balls.length}球 / k ${state.params.k.toFixed(2)}`);
 }
 
 let lastFrame = performance.now();
@@ -311,12 +369,31 @@ function renderFrame(now: number): void {
   fpsAccum += dt;
   if (fpsAccum >= 500) {
     ui.setFps(1000 / (fpsAccum / frameCount));
+    ui.setOpticsComputeStatus(hikariLayer.getOpticsComputeStatus());
     fpsAccum = 0;
     frameCount = 0;
   }
+  hikariLayer.animate(now);
   cloudRenderer.render();
 }
 
 render();
 updateSelectionLabel();
 startFrameLoop(renderFrame);
+
+function applyWorkspaceView(): void {
+  const hikariVisible = workspaceView === "hikari";
+  hikariLayer.setVisible(hikariVisible);
+  ui.setView(workspaceView);
+  render();
+}
+
+function loadHikariSettings(): HikariSettings {
+  const stored = localStorage.getItem(HIKARI_SETTINGS_KEY);
+  if (!stored) return { ...DEFAULT_HIKARI_SETTINGS };
+  try {
+    return normalizeHikariSettings(JSON.parse(stored) as Partial<HikariSettings>);
+  } catch {
+    return { ...DEFAULT_HIKARI_SETTINGS };
+  }
+}
