@@ -35,6 +35,12 @@ Do not use a subagent when the coordination cost is greater than the task, when 
 | K | Build, browser smoke, release note | Luna for execution; Primary for release | F–J as applicable | build log; real-click checklist; GPU/safe results; release record | Primary reviews visuals and approves deployment |
 | L | Reference-corpus intake | Luna | Primary selects inputs and writes preference notes | manifest entries, hashes, metadata extraction, thumbnails, missing-field report | originals remain untouched; rights and unknown fields are explicit |
 | M | Whole-object placement study | Primary design; Terra core; Luna UI/tests after contract freeze | transparent-material quality gate | world pose, ground reference, height/orientation UI, persistence/export, visual tests | grounded and free studies preserve host/inclusion optics and update receiver effects |
+| N | Living-shape and freeze workflow | Primary experience; Terra driver/MPM integration; Luna schema/tests/UI after freeze contract | transparent-material quality gate | frozen MPM bridge, shared Sculpt controls, Cloud driver, Sag preview, exact capture | author can pause at a visible moment and reopen the same chosen shape |
+| O | Abstract receivers | Primary semantics; Terra optical wiring; Luna family catalog/UI/tests after contract | C–H before optical quality gate | receiver response/irradiance split, abstract parameters/families, saved expanded values | CPU/shader/GPU share receiver endpoints; surface character never invents a caustic |
+| P | Physical scale and spatial context | Primary material/context semantics; Terra unit/transport implementation; Luna fixtures/presets/UI after contract | material/receiver contract, then M/N | physical scale, same/matched material modes, object/furniture/spatial/roof contexts | scale changes optical depth honestly and saved cases restore units and compensation mode |
+| Q | Printed translucent shade study — deferred | Primary study boundary/material honesty; Terra shell/optical core; Luna case/profile/schema/tests after contract | explicitly deferred by author | design note only until resumed | no current implementation work |
+| R | Geometry-derived light drawing | Primary visual acceptance; Terra CPU/geometry/transport and GPU port; Luna deterministic fixtures/comparison records after contract | C–F, H, O, S; before optical quality gate | shared surface trace, fixed HDR receiver field, finite-source blur, progressive stable result | one authored trace moves one real light line; no receiver pattern is invented |
+| S | Tokyo daylight and simple rooms | Primary experience/environment semantics; Terra solar/portal/transport integration; Luna deterministic fixtures, UI, and case records after contract | C–H, PhysicalScale; before optical quality gate | Tokyo clock, open air, room dimensions/ceiling height, window geometry, time playback, body/no-body probes | direct light enters only through recorded openings; same instant is reproducible; redistribution is reported without invented energy |
 
 ## Conflict-minimizing sequence
 
@@ -51,7 +57,13 @@ Primary: A → approve C
 - H follows the CPU reference. I follows H; WebGPU is never the first implementation of a new optical rule.
 - J starts after the case schema and visible host/inclusion behavior are stable.
 - L may begin immediately, but Luna organizes and checks the material; the author and Primary decide why a work matters and what it means for hikari.
-- M begins only after the transparent-material quality gate. Reserve `objectPose` in C, but do not spend implementation time on placement controls before then.
+- O and S are part of the transparent-material quality gate, not decoration after it. Receiver families wait for the response contract; room work waits for shared `Light`, `Receiver`, and `PhysicalScale` semantics.
+- N begins after that gate. Use the frozen MPM bridge before attempting a live refractive particle surface.
+- M follows a chosen `FrozenShape`. Reserve `objectPose` in C, but do not spend implementation time on placement controls before then.
+- P reserves `PhysicalScale` during C and material work, but context UI follows placement. Do not treat camera framing as physical scaling.
+- Q is deferred and receives no implementation or intake work until the author resumes it.
+- R is a core optical requirement. The CPU reference removes decorative deposits and adaptive normalization before the WebGPU port or visual tuning.
+- S begins with a pure Tokyo solar fixture, then open air, one rectangular portal, room dimensions and ceiling height, four wall openings, time playback, and finally the paired small-unlit-room study. Artificial lighting, measured weather, glazing, and indirect room bounce do not enter this package.
 
 ## File ownership for the first milestone
 

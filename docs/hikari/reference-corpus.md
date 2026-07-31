@@ -3,6 +3,8 @@
 Status: active collection guide
 UpdatedAt: 2026-08-01
 
+First intake: [2026-08-01 selected-image observations](reference-intake-2026-08-01.md)
+
 ## Why collect it
 
 The author's favorite Blender work and physical resin work are useful inputs because they make visual preference and material observations discussable. They are not treated as images for hikari to copy. They show which viewpoint-dependent changes, interior relationships, shadows, distortions, and degrees of finish are worth pursuing.
@@ -35,7 +37,7 @@ Every collected item receives:
 - stable case ID and title;
 - role: `preference`, `phenomenon`, or `validation`;
 - one or two sentences answering **what do I like or want to understand?**;
-- phenomenon tags such as `view-change`, `colored-host`, `clear-inclusion`, `absorption`, `shadow`, `focused-light`, `distortion`, `surface-finish`, or `shape-change`;
+- phenomenon tags such as `view-change`, `colored-host`, `clear-inclusion`, `absorption`, `shadow`, `focused-light`, `distortion`, `surface-finish`, `shape-change`, `west-light`, `stage-light`, `haze`, `receiver-material`, `printed-shell`, `internal-light`, or `wall-thickness`;
 - source type and original filename;
 - creator/source, usage permission, and whether it may be committed or published;
 - capture or render date when known;

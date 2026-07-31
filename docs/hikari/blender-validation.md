@@ -71,6 +71,14 @@ Generated `.blend` files and images are not committed by default. Commit case sp
 | M6 | Does a different-IOR clear inclusion become a refractive object? | same as M5 | inner IOR low/high | boundary, distortion, apparent void/light |
 | M7 | Are roughness and material variation directionally comparable? | selected M6 case | low/high roughness/variation | highlight spread, interior haze; qualitative only |
 | M8 | What is exploratory only? | selected case | prism/stress modes | record hikari-only behavior; no equivalence claim |
+| M9 | Does Tokyo time move natural light correctly? | shape/camera/material/location | equinox/solstice × morning/noon/evening | solar direction, continuity, shadow and focused-light movement |
+| M10 | Does a room opening clip the same direct daylight? | date/time/room/body | opening face, width/height, sill height, horizontal position | direct-light boundary, shadow, focused-light footprint |
+| M11 | Can the form redirect daylight in a small unlit room? | same exposure, room, openings, probes | body absent/present; near/far from window | concentrated and darkened regions, color shift, relative received energy |
+| M12 | Does room geometry change the reading honestly? | date/time/body/window | room width/depth/ceiling height; one/two/four open sides | reach to floor/walls, occlusion, path length, direct-only limitations |
+| M13 | How does the receiver change the reading? | selected M4–M6 light setup | pale / dry / deep / living / warm receiver | shadow chroma, focused-light contrast, reflected field; transport unchanged |
+| M14 | What changes with physical size? | normalized shape/material/environment | 0.1× / 1× / 10×, same material | log transmission vs path length, shadow density, interior visibility |
+| M15 | What material change preserves the look? | selected M14 case | same material / match appearance | recorded concentration compensation, comparable optical depth |
+| M16 | What light environment forms below a transparent roof? | one roof form/simple room | Tokyo date/time, scale, same/matched material | transmitted color, shadow, focused-light distribution on interior receiver |
 
 ## Comparison record
 

@@ -36,7 +36,7 @@ Replace the water/glass display choice as the material definition with an explic
 type OpticalMaterial = {
   id: string;
   ior: number;
-  absorptionRgb: [number, number, number];
+  absorptionPerMm: [number, number, number];
   roughness: number;
 };
 ```
@@ -49,6 +49,8 @@ Acceptance:
 - zero absorption is visually neutral;
 - doubling path length increases attenuation consistently;
 - transparent shadow color uses the same absorption coefficients as the body.
+
+Add one authoritative `PhysicalScale.mmPerShapeUnit`. Every backend integrates `absorptionPerMm * segmentLengthShapeUnits * mmPerShapeUnit`. Keep world/SDF coordinates numerically normalized; do not enlarge the raymarch domain to architectural metre values.
 
 ## Phase 2 — one host plus one inclusion
 
@@ -63,7 +65,8 @@ type Medium = {
 };
 
 type OpticalScene = {
-  objectPose: Transform;
+  physicalScale: PhysicalScale;
+  objectPose: RigidPose;
   host: Medium;
   inclusions: Medium[];
   receiver: Receiver;
@@ -73,7 +76,7 @@ type OpticalScene = {
 
 The first implementation is deliberately limited to one outer host and one transformed inclusion.
 
-`ShapeSource` and every medium transform are local to the object. `objectPose` moves the complete host/inclusion assembly in world space and begins as identity. It is serialized now but has no placement UI before the optical quality gate. Rotation is stored as a quaternion and scale remains uniform so SDF distance and normal behavior stay well-defined.
+`ShapeSource` and every medium transform are local to the object. `physicalScale` gives the one shape-unit-to-millimetre conversion. `objectPose` moves and rotates the complete host/inclusion assembly in world space and begins as identity; it does not provide a second hidden scale. It is serialized now but has no placement UI before the optical quality gate. Rotation is stored as a quaternion.
 
 Ray state must track the current medium. At each boundary it must determine the incident and transmitted IOR, apply Fresnel transmission, and integrate RGB absorption only across segments inside the relevant medium.
 
@@ -124,7 +127,21 @@ Acceptance:
 - CPU reference cases numerically cover air→host→inclusion→host→air;
 - shader and WebGPU results stay within documented qualitative tolerances.
 
-## Phase 4 — transparent-material quality gate
+In the same phase, establish the reference path in [light drawing from the author's trace](light-drawing.md). The first gate is one controlled real surface bulge moving one receiver line. Remove decorative deposit/normalization behavior from the validation mode before increasing caustic spectacle.
+
+## Phase 4 — Tokyo natural light, rooms, and receiver materials
+
+Make the visible surroundings, simple room geometry, openings, and receiving surfaces part of the optical scene before declaring the transparent body complete. Follow [natural-light environments and receiver materials](lighting-environment.md).
+
+First migrate the existing outdoor view to a deterministic Tokyo date/time and shared sun direction. Then add a simple room with one real rectangular opening before expanding to any combination of the four wall faces. Room width, depth, ceiling height, window width/height/sill/offset, body pose, and the derived body-to-window distance use the same `PhysicalScale` contract as optical absorption. Before the quality gate, the only author-facing whole-body motion is nearer to or farther from the opening; general height/orientation and grounded/floating placement remain Phase 8 work.
+
+Time playback lowers receiver samples while moving and refines after pause. It never blends focused-light accumulation from different moments. The first room transports direct sun through openings and uses a documented sky approximation; it does not claim indirect room bounce, real weather, glazing, or calibrated illuminance.
+
+Add the [abstract receiver surface](receiver-surface.md) without changing optical ray endpoints. The author's area-light Blender scene remains a controlled source-size validation, not the primary hikari lighting model. General artificial-light authoring is deferred.
+
+End the phase with a paired small-unlit-room case: identical exposure and environment, first without and then with the transparent body. Compare floor/wall light distribution, concentrated and darkened regions, chromatic change, and relative received energy. This determines whether the form acts as a useful daylight-redirecting device without pretending that it generates light.
+
+## Phase 5 — transparent-material quality gate
 
 “Complete” is an author-approved experience threshold, not a claim of physically perfect rendering. The gate passes only when all of these remain coherent while the camera moves:
 
@@ -133,13 +150,17 @@ Acceptance:
 - equal-IOR and different-IOR host/inclusion relationships;
 - surface roughness and highlights without hiding the interior;
 - colored transparent shadow and focused light as distinct phenomena;
+- one authored surface/thickness trace producing a stable line or arc on the receiver, with source size controlling clarity;
+- continuous Tokyo date/time motion in open air and through one recorded room opening;
+- explicit room width, depth, ceiling height, window size/position/height, and object-to-window relation;
+- a same-exposure body/no-body room comparison that reports redistribution and loss as well as concentration;
 - stable interaction without holes, flicker, invalid normals, or plausible-looking output from an invalid scene;
 - CPU reference, real-time shader, and WebGPU behavior within documented tolerances, with a safe fallback;
-- accepted M4–M6 Blender comparisons and selected physical reference observations.
+- accepted M4–M6 and M9–M12 Blender comparisons and selected physical reference observations.
 
 The Primary and author review the Natural view first. Numeric tests and Analysis views can explain a failure but cannot pass a visually unconvincing result.
 
-## Phase 5 — capture an interesting state, then compare
+## Phase 6 — capture an interesting state, then compare
 
 Case export/import begins as `save this view`, not as a general preset manager. The primary action captures a promising observation; comparison and evidence fields expand when that state is selected for Blender or physical validation.
 
@@ -147,7 +168,7 @@ Add a case export/import surface containing:
 
 - shape recipe and mesh references;
 - optical scene and all material values;
-- light, receiver, and camera;
+- geographic place, UTC instant, playback state, room/opening geometry, body pose, light, receiver, and camera;
 - application version and Git commit;
 - backend/sample count;
 - hashes and mesh measurements;
@@ -155,9 +176,15 @@ Add a case export/import surface containing:
 
 Then add side-by-side or saved-state A/B comparison. Do not begin with a general preset manager.
 
-## Phase 6 — whole-object placement study
+## Phase 7 — living shape and freeze
 
-Begin only after Phase 4 passes. Keep four coordinate concerns separate:
+After the transparent-material quality gate, follow the staged plan in [living shape and freeze workflow](living-shape.md): frozen MPM bridge, shared S1-scale Sculpt controls, live Cloud, live Sag preview, and only then a continuous MPM surface if the proxy is insufficient.
+
+The central gate is not that simulation runs. It is that the author can watch optical appearance change, pause immediately, and save the exact visible form as a reproducible `FrozenShape`.
+
+## Phase 8 — whole-object placement study
+
+Begin only after Phase 5 passes and a selected form can be frozen. Keep four coordinate concerns separate:
 
 1. source shape in object-local coordinates;
 2. host and inclusion transforms local to the object;
@@ -185,6 +212,25 @@ Acceptance:
 
 Room layout, collision, structural support, non-uniform scale, parent hierarchies, and multiple-object placement remain outside this phase.
 
+## Phase 9 — physical scale and spatial context
+
+Follow [physical scale and spatial context](scale-context.md). Begin with a single selected form and one authoritative physical dimension. Compare hand/object, furniture/sofa, and spatial/roof scales without changing normalized SDF coordinates.
+
+Offer two explicitly different studies:
+
+- **same material:** keep `absorptionPerMm` and IOR fixed, so a larger body naturally becomes denser and darker;
+- **match appearance:** reduce effective absorption as scale grows to preserve optical depth, while stating that this is a different material concentration.
+
+Start with a simple context card for each scale. The architectural case is one transparent roof or canopy above a minimal room receiver, used to study the light environment below. It is not a general building modeller.
+
+Acceptance:
+
+- numeric cases prove that log-transmission scales with physical path length in same-material mode;
+- match-appearance mode preserves transmission while recording its concentration adjustment;
+- camera framing changes independently from physical dimensions;
+- a sofa-size body and roof-size body restore exact units, material mode, environment, and receiver;
+- the roof case shows transmitted color, shadow, and focused-light distribution inside the simple context.
+
 ## Deferred
 
 - arbitrary nesting depth;
@@ -206,3 +252,7 @@ Room layout, collision, structural support, non-uniform scale, parent hierarchie
 - The current GPU payload stores only balls and one global IOR. Nested media require a new scene buffer, not an extra uniform patched into the old format.
 - Browser GPU timings are observational and device-dependent; they are not acceptance thresholds.
 - Blender comparisons validate phenomena and trends, not pixel equality.
+
+## Adjacent study, not on the core critical path
+
+The [printed translucent light-shade study](printed-translucent-shell.md) reuses the selected shape, physical scale, evidence cases, and mesh export, but keeps shell thickness, internal light, print profiles, and fabrication diagnostics outside the first hikari milestone. It may begin with physical coupons and uniform-shell geometry without delaying transparent-solid optics.

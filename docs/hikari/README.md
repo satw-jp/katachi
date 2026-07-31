@@ -13,7 +13,9 @@ Its primary value is the immediate, continuous relationship between:
 
 - viewpoint and the apparent interior, distortion, shadow, and focused light;
 - small changes to the source shape and the resulting optical behavior;
-- a colored transparent host and a clear or differently colored inclusion within it.
+- a colored transparent host and a clear or differently colored inclusion within it;
+- the author's irregular surface/thickness traces and the lines of focused light they draw onto a floor or wall;
+- natural light changing with place, date, time, openings, room dimensions, ceiling height, and the form's position relative to a window.
 
 The initial physical reference is cast resin, but the design must also admit glass, acrylic, liquids, voids, and other transparent or translucent media.
 
@@ -22,6 +24,12 @@ The first representative scene is:
 > A clear inclusion sits inside a dark or colored transparent host. Oblique light makes the inclusion appear as a void, light, or another space, while a transmitted colored shadow and a focused light region remain visible on the receiver.
 
 This is not one shot to optimize. It is a small space to move through: circle it, make one small change, and immediately ask what changed and how that discovery might affect a physical work.
+
+A second core question gives the optical work a spatial purpose:
+
+> In a small room with no artificial lighting, can a transparent body near an opening collect and redirect daylight so it behaves like a daylighting instrument?
+
+hikari does not assume the answer is yes. It compares the same room with and without the body and shows where light is redistributed, including darker regions and losses as well as bright concentrations.
 
 ## Product boundary
 
@@ -53,14 +61,19 @@ hikari does not currently own:
 3. **Natural leads; Analysis explains.** Natural is the default place to look. Boundary, ray, and throughput views answer questions but are not required to enjoy the change.
 4. **The source shape remains live.** hikari observes Katachi's current field. Small shape changes are part of the optical instrument rather than separate render setup.
 5. **Interesting states can become evidence.** Saving is lightweight during exploration. Once a state is chosen for Blender or physical work, its shape, viewpoint, light, materials, and approximations become reproducible.
+6. **The light drawing belongs to the form.** A caustic line or arc is not floor decoration. It must arise from the author's actual geometry and become sharper or softer for a reason when the light environment changes.
+7. **Natural light is the primary light.** Tokyo is the first geographic clock. Open air and simple rooms expose how date, time, opening direction, room size, ceiling height, and distance from a window change the same body.
+8. **A daylighting device redirects; it does not generate.** A brighter patch must be accompanied by an explainable light path. Compare body/no-body states and preserve relative energy before calling the form useful for daylight.
 
 ## Roadmap order
 
-1. Bring the transparent body, nested material relationship, transmitted shadow, and focused light to the agreed visual quality gate.
-2. Only after that gate, expose whole-object height, orientation, and placement relative to a ground reference.
-3. Use grounded placement for object studies and free/floating placement for furniture or spatial-object studies.
+1. Bring the transparent body, nested material relationship, transmitted shadow, focused light, and a deterministic Tokyo natural-light study in open air and simple rooms to the agreed visual quality gate.
+2. After that gate, let a simple shape slowly grow, drift, or sag while its optical appearance changes; pause at an interesting moment and make that state reproducible.
+3. Expose whole-object height, orientation, and placement relative to a ground reference for the chosen frozen form.
+4. Use grounded placement for object studies and free/floating placement for furniture or spatial-object studies.
+5. Study the chosen form from hand scale through furniture and architecture, preserving either the same physical material or an explicitly appearance-matched material.
 
-Placement is postponed as an interaction feature, not ignored in the architecture. Shape-local coordinates, whole-object pose, inclusion-local pose, optical receiver, and future ground reference remain distinct so the optics do not need to be rewritten later.
+General placement is postponed as an interaction feature, not ignored in the architecture. Phase 4 may move the body only nearer to or farther from an opening as an environment relation; height, free orientation, grounded/floating intent, and spatial arrangement wait until a form is frozen. Shape-local coordinates, whole-object pose, inclusion-local pose, optical receiver, and future ground reference remain distinct so the optics do not need to be rewritten later.
 
 ## Current implementation
 
@@ -123,6 +136,13 @@ Related documents:
 - [Next implementation plan](implementation-plan.md)
 - [Blender validation protocol](blender-validation.md)
 - [Reference corpus](reference-corpus.md)
+- [Natural-light environments and receiver materials](lighting-environment.md)
+- [Light drawing from the author's trace](light-drawing.md)
+- [Abstract receiver surface](receiver-surface.md)
+- [Living-shape and freeze workflow](living-shape.md)
+- [Physical scale and spatial context](scale-context.md)
+- [Blender study 01 reading](blender-study-01.md)
+- [Adjacent study: printed translucent light shade](printed-translucent-shell.md)
 - [Web publishing procedure](publishing.md)
 - [Model and subagent delegation plan](delegation-plan.md)
 
@@ -136,6 +156,9 @@ The milestone is complete when one frozen shape, camera, receiver, and light set
 - a clear inclusion whose boundary disappears when host/inclusion IORs match;
 - the same inclusion becoming visible through distortion when IORs differ;
 - a focused-light region that remains distinct from the shadow;
+- a Tokyo date/time change that moves direct light, shadow, and focused light continuously;
+- one unlit-room case with explicit width, depth, ceiling height, openings, and object-to-window relation;
+- a body/no-body comparison that shows where daylight is redistributed without inventing energy;
 - orbiting the Natural view reveals a view-dependent change without requiring a numeric readout;
 - a small source-shape change and a small inclusion transform change both affect the body and receiver in the same interaction cycle;
 - a saved interesting view restores the camera and optical scene and can be sent to Blender without manual reconstruction;
