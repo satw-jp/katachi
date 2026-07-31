@@ -33,6 +33,14 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
-## Current observation
+## Release record — 2026-08-01
 
-On 2026-08-01, production still showed Cloud Sculpt v0.2.0, updated 2026-07-17, and did not contain the `HIKARI` button. The local committed Hikari branch built successfully and passed normal WebGPU plus forced CPU-safe interaction checks. Production remains pending until Cloudflare authentication is restored and a clean commit is deployed.
+- Git commit deployed: `fe85e7f1de545c0dbadd5c525042febc64f4afe1`
+- Cloudflare Version ID: `9170f015-5a76-4412-9382-1b0865b7b188`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Previous observation: v0.2.0, updated 2026-07-17, no `HIKARI` control
+- Deployed observation: v0.17.0, updated 2026-07-30, `HIKARI` → `optics` operational
+- Normal production check: WebGPU, 16,384 rays, 4,107 shape hits, no browser warnings or errors
+- Forced compatibility check: `?safe=1`, CPU preview, 56 rays, no browser warnings or errors
+
+The release was built from a detached clean worktree at the pushed commit. Uncommitted Katachi studies and unrelated working-tree changes were not included.
