@@ -7,6 +7,10 @@ UpdatedAt: 2026-08-01
 
 Blender is a reference environment and a place for higher-quality experiments. It is not the destination of hikari and is not assumed to be ground truth without a recorded scene setup.
 
+The two tools have different jobs in the same making loop. Use hikari to find a viewpoint, small shape change, or host/inclusion relationship worth pursuing. Use Blender to craft and assess a selected still or moving image. A Blender result does not replace the live exploration that led to the choice.
+
+Favorite Blender data and physical resin photographs enter first through the [reference corpus](reference-corpus.md). They become validation baselines only when the relevant source and conditions are sufficiently recorded.
+
 Every comparison asks one phenomenon-level question. Shape, camera, receiver, and light are held fixed while one material variable changes.
 
 ## Case bundle
