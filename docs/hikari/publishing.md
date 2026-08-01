@@ -41,6 +41,18 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.29.2
+
+- Git commit deployed: `0539f86`; exported comparison case records implementation commit `b8f7b50`.
+- Cloudflare Version ID: `49022fdd-11b4-4930-be9d-90447646209f`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Replaced the rejected v0.29.1 broad-sun hypothesis with the active Blender setup: gray World plus one finite rectangular Emission plane. Area and Point lamp objects in the source `.blend` are render-disabled.
+- Corrected BODY display color management by applying Three's linear-to-output transform at Realtime canvas presentation and Progressive presentation while preserving linear HDR accumulation.
+- Equal-IOR inclusion BODY paths now collapse the inner optical boundary and integrate the Blender-style smooth absorption-density void. No constant inclusion glow or emission was added.
+- Added saved `backlightEnabled`, intensity, width, height, and distance controls under `背面発光面（Blender比較）`. This emitter affects BODY environment lookup only; receiver, floor shadow, and focused-light transport are explicitly unchanged. The author's physical west-sun-through-window study remains a separate room/opening milestone.
+- Revised `docs/hikari/cases/hikari-blender-backlight-study.hkr` to IOR 1.45, roughness 0.05, zero inclusion absorption, calibrated host absorption/color, no direct sun, and a finite backlight. Local and production WebGPU showed a bright absorption pocket against the darker purple host; Realtime and 64-spp Progressive matched without double encoding.
+- Verification: `npm run test:hikari` passed 63/63 tests, production build and `git diff --check` passed, local and production browser warnings/errors were empty, and production reported `v0.29.2`.
+
 ## Release record — 2026-08-01 — v0.29.1
 
 - Git commit deployed: `93e45f5` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
