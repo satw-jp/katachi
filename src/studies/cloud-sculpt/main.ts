@@ -29,6 +29,7 @@ import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
 import {
   createHikariDocument,
+  hikariDocumentFilename,
   parseHikariDocument,
   serializeHikariDocument,
   type HikariDocumentView,
@@ -578,7 +579,7 @@ function exportHikariDocument(documentId: string, observation: string): void {
     views: savedHikariViews,
     createdAt: hikariDocumentCreatedAt,
   });
-  const filename = `${safeCaseId(documentId)}.hkr`;
+  const filename = hikariDocumentFilename(documentId, document.updatedAt);
   downloadFile(
     new Blob([serializeHikariDocument(document)], { type: "application/json" }),
     filename,

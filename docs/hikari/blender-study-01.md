@@ -50,4 +50,16 @@ Several `ClearRegion*` empties and alternate resin materials remain in the file 
 
 The current PNG and `.blend` help define a visual question, not a calibrated truth image. The receiver, area-source power, scene scale, clear-region dimension, and intended material concentration still need author confirmation before quantitative comparison.
 
+## Supplied Hikari comparison case — 2026-08-01
+
+The private document `hikari-2026-08-01 (1).hkr` and its 256-spp PNG provide the first exact author-selected Hikari state for this comparison. Do not copy the source document or image into Git without publication approval. The saved v0.28.1 view records:
+
+- equal outer/inclusion IOR `1.246`;
+- outer custom transmitted color `#692a93` at absorption `27.3`;
+- neutral inclusion absorption `0` and radius `0.48`;
+- Tokyo 2026-08-01 11:50, sun intensity `2.95`, and authored sun size `27.3°`;
+- environment contrast `0`, mist `1`, roughness `0.18`, and optical exposure `1.35`.
+
+The equal IOR and zero inclusion absorption already match the Blender study's intended absorption-void relationship. The remaining difference is therefore not explained by an accidental IOR boundary. The very broad source and almost featureless misted environment reduce the visible background cue inside the clear region, while Progressive Phase 1 still accumulates the bounded realtime BODY path rather than adding nested path depth. The next fixed comparison should test the same saved camera/material with (a) a small physical sun, (b) a recorded area source matching Blender, and (c) a unified visible-emitter/direct-light model before changing inclusion geometry.
+
 The author also confirms that the current CG has not reproduced the physical works' geometry-derived “light drawing.” Do not tune the existing render into a false baseline by adding a floor pattern. The next Blender comparison should introduce one controlled real surface irregularity and vary only area-source size.

@@ -7,6 +7,7 @@ import {
 } from "../../src/studies/cloud-sculpt/hikariCase.ts";
 import {
   createHikariDocument,
+  hikariDocumentFilename,
   parseHikariDocument,
   serializeHikariDocument,
 } from "../../src/studies/cloud-sculpt/hikariDocument.ts";
@@ -40,6 +41,17 @@ test(".hkr round-trips multiple named views", () => {
     ],
   });
   assert.deepEqual(parseHikariDocument(serializeHikariDocument(document)), document);
+});
+
+test(".hkr download names include the save time without repeating the date", () => {
+  assert.equal(
+    hikariDocumentFilename("hikari-2026-08-01", "2026-08-01T08:15:57.783Z"),
+    "hikari-2026-08-01T08-15-57-783Z.hkr",
+  );
+  assert.equal(
+    hikariDocumentFilename("purple study", "2026-08-01T08:15:57.783Z"),
+    "purple-study-2026-08-01T08-15-57-783Z.hkr",
+  );
 });
 
 test(".hkr preserves custom transmitted host and inclusion colors", () => {

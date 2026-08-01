@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.28.1",
+  "version": "0.28.2",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added the exact UTC save time, including milliseconds, to every downloaded .hkr filename while keeping the internal documentId stable. Repeated saves now remain identifiable revisions without relying on browser-added suffixes such as (1); the convention matches Progressive PNG timestamps. Recorded the author's supplied v0.28.1 case as an equal-IOR, zero-absorption inclusion setup whose muted background and large finite source help separate lighting conditions from the still-bounded nested BODY path."
+    },
     {
       "date": "2026-08-01",
       "note": "Added a one-action inclusion control that copies only the outer host IOR, leaving inclusion hue, absorption, position, and size untouched. Extended both host and inclusion absorption authoring from 0–2.5 to 0–40 after reviewing the author's dark-purple and smoke-black Ref photographs: thick regions can now approach black while short illuminated paths retain transmitted color. Existing values and defaults are unchanged; the expanded range remains relative until physical scale and measured material coefficients are connected."

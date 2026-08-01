@@ -21,6 +21,8 @@ The first version is UTF-8 JSON with the `.hkr` suffix. It is deliberately not a
 
 The top-bar Save action writes `.hkr`; top-bar Image writes PNG; Export continues to create the Blender handoff. Legacy `.hikari-case.json` files still open and are migrated in memory to a one-view document.
 
+From v0.28.2, each downloaded document filename includes the UTC save time down to milliseconds, for example `hikari-2026-08-01T08-15-57-783Z.hkr`. The internal `documentId` remains stable, so repeated saves are revisions of the same editable study even though their download names no longer collide or acquire browser suffixes such as `(1)`.
+
 ## Progressive Render state
 
 Progressive Render Phase 1 does not change the `.hkr` v1 schema. The document already preserves the reproducible author inputs—the shape recipe, Hikari settings, camera, backend snapshot, application version, and commit—but not a rendered result. The 16/64/256 spp choice, current/target spp, elapsed time, running or stopped state, half-float accumulation targets, GPU resources, and PNG pixels are derived runtime data and are not serialized. Opening a document always begins in Realtime Observation and never resumes an old accumulation automatically.

@@ -56,6 +56,24 @@ export function serializeHikariDocument(value: HikariDocument): string {
   return JSON.stringify(value, null, 2);
 }
 
+/**
+ * Give every downloaded revision a collision-resistant timestamp while keeping
+ * a human document id. ISO/UTC matches the existing Progressive PNG names.
+ */
+export function hikariDocumentFilename(documentId: string, updatedAt: string): string {
+  const safeDocumentId = documentId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari";
+  const parsed = new Date(updatedAt);
+  const isoTimestamp = Number.isFinite(parsed.getTime())
+    ? parsed.toISOString()
+    : new Date().toISOString();
+  const isoDate = isoTimestamp.slice(0, 10);
+  const timestamp = isoTimestamp.replace(/[:.]/g, "-");
+  const stem = safeDocumentId.endsWith(isoDate)
+    ? safeDocumentId.slice(0, -isoDate.length)
+    : `${safeDocumentId}-`;
+  return `${stem}${timestamp}.hkr`;
+}
+
 export function parseHikariDocument(text: string): HikariDocument {
   const value: unknown = JSON.parse(text);
   validateHikariDocument(value);
