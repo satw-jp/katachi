@@ -41,6 +41,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.28.3
+
+- Git commit deployed: `2db2dbf` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `99ca0b8c-8337-4dbd-afd6-16bb603a49b5`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Source unification: Natural and Analysis visible emitter discs now use the same `sunSize` angular diameter as finite-source receiver transport. The previous background used a fixed exponent equivalent to a separate emitter size.
+- Fixed author-case comparison: the supplied equal-IOR v0.28.1 `.hkr` at Tokyo 11:50 showed a broad white background emitter and substantially brighter purple/clear-region response at `27.3°`; changing only the diameter to `0.5°` removed the broad emitter and returned the body to a much darker reading.
+- Scope control: this release changes emitter diameter only. Direction, authored intensity, material absorption, nested path depth, Progressive accumulation behavior, and receiver energy accounting remain unchanged.
+- Local browser verification: the supplied case compiled and rendered under `GPU · WebGPU`; `?safe=1` reported `SAFE · CPU`; neither mode emitted browser warnings or errors.
+- Production asset verification: cache-busted production resolved to `assets/main-BKAHg-pa.js` and `assets/shaders-DUlf1jTA.js`, reported `v0.28.3`, and emitted no browser warnings or errors. The immediately preceding cached HTML briefly served v0.28.2 until a fresh query reached the new deployment.
+- Verification: `npm run test:hikari` passed 55/55 tests and `VITE_GIT_COMMIT=2db2dbf npm run build` passed.
+- Known remaining work: freeze `0.53°` and `27.3°` images from the same saved case, then implement deeper Progressive host/inclusion paths with unresolved/convergence diagnostics; the visible-disc radiance remains an appearance proxy rather than calibrated solar radiance.
+
 ## Release record — 2026-08-01 — v0.28.2
 
 - Git commit deployed: `45e9d64` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
