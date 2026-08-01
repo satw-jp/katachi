@@ -37,6 +37,18 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.25.2
+
+- Git commit deployed: `4ffdb80` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `9d2c07e7-2ec9-4e8a-8393-fea02d03b59f`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Body-view correction: entry and exit refraction use unperturbed geometric normals; cosmetic variation remains on reflection, Fresnel appearance, spectrum/stress, edge, and highlight only
+- Unresolved view behavior: known front reflection is retained with bounded, host-attenuated ambient instead of discarding the non-Fresnel component as opaque black. This is view-only and does not create receiver energy
+- Receiver isolation: CPU/WebGPU deposits, support, losses, and energy-ledger behavior are unchanged from v0.25.1
+- Browser verification: the same fixed camera showed no large black body islands in local WebGPU and `SAFE · CPU`; cache-busted production v0.25.2 reported `GPU · WebGPU`, rendered the corrected body, and emitted no warnings or errors
+- Verification: `npm run test:hikari` passed 35/35 tests, including two shader contracts; `VITE_GIT_COMMIT=4ffdb80 npm run build` passed
+- Known remaining work: replace the bounded unresolved-view ambient with complete recursive inner reflection/refraction, and add a fixed-camera image regression rather than relying only on shader source contracts plus browser visual QA
+
 ## Release record — 2026-08-01 — v0.25.1
 
 - Git commit deployed: `9308213` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
