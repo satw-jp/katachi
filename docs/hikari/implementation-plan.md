@@ -106,6 +106,14 @@ Acceptance:
 - changing viewpoint, host color, or inclusion position produces a visually attributable change rather than only a changed number;
 - returning to a saved view restores its camera and optical scene.
 
+### Phase 2b — one or many generated inclusions
+
+After the one-sphere boundary sequence passes, follow [one or many transparent inclusions](inclusion-family.md). Generalize the scene from one clear region to a deterministic, seed-based set whose count, shape family, size variation, and placement can change without losing reproducibility.
+
+Begin with several non-overlapping analytic spheres, then soft-union clusters and frozen Katachi-derived inclusion shapes. Enforce minimum host wall and inclusion gap in physical units. A requested random arrangement that cannot fit reports the failed count; it never makes the host wall thinner or leaves an invalid medium scene.
+
+This remains ahead of arbitrary whole-object arrangement: several inclusions inside one host and several independent bodies separated by air are different optical problems and different authoring actions.
+
 ## Phase 3 — shared transparent-shadow throughput
 
 The shadow query and forward optical tracer must use the same medium-transition semantics.

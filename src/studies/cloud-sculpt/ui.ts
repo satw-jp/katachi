@@ -12,6 +12,7 @@ import type {
   HikariSpawn,
   OpticalColorMode,
   OpticalDispersionMode,
+  OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
   OpticalView,
@@ -569,6 +570,75 @@ export function buildUi(
   opticsControls.appendChild(dispersionModeGroup);
   hikariControlSyncers.push((settings) => dispersionModeControl.set(settings.dispersionMode));
 
+  const hostPresetTitle = document.createElement("div");
+  hostPresetTitle.className = "hikari-section-title";
+  hostPresetTitle.textContent = "外側の色";
+  opticsControls.appendChild(hostPresetTitle);
+  const hostPresetControl = createSegmentedControl<OpticalHostPreset>(
+    ["clear", "amber", "dark"],
+    hikariState.hostPreset,
+    (hostPreset) => updateHikari({ hostPreset }),
+    { clear: "透明", amber: "琥珀", dark: "濃色" },
+  );
+  opticsControls.appendChild(hostPresetControl.root);
+  hikariControlSyncers.push((settings) => hostPresetControl.set(settings.hostPreset));
+
+  const inclusionControls = document.createElement("div");
+  const inclusionToggle = document.createElement("button");
+  inclusionToggle.type = "button";
+  inclusionToggle.className = "optical-ray-toggle";
+  const applyInclusionVisibility = (enabled: boolean): void => {
+    inclusionToggle.classList.toggle("active", enabled);
+    inclusionToggle.textContent = `無色の内包 ${enabled ? "ON" : "OFF"}`;
+    inclusionToggle.setAttribute("aria-pressed", String(enabled));
+    inclusionControls.style.display = enabled ? "" : "none";
+  };
+  applyInclusionVisibility(hikariState.inclusionEnabled);
+  inclusionToggle.onclick = () => {
+    const enabled = !hikariState.inclusionEnabled;
+    applyInclusionVisibility(enabled);
+    updateHikari({ inclusionEnabled: enabled });
+  };
+  opticsControls.appendChild(inclusionToggle);
+
+  const inclusionSliders: Array<{
+    key: keyof Pick<
+      HikariSettings,
+      | "inclusionIor"
+      | "inclusionAbsorption"
+      | "inclusionOffsetX"
+      | "inclusionOffsetY"
+      | "inclusionOffsetZ"
+      | "inclusionRadius"
+    >;
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+  }> = [
+    { key: "inclusionIor", label: "内包の屈折率", min: 1, max: 1.8, step: 0.001 },
+    { key: "inclusionAbsorption", label: "内包の吸収", min: 0, max: 2.5, step: 0.01 },
+    { key: "inclusionOffsetX", label: "内包 X", min: -1.5, max: 1.5, step: 0.01 },
+    { key: "inclusionOffsetY", label: "内包 Y", min: -1.5, max: 1.5, step: 0.01 },
+    { key: "inclusionOffsetZ", label: "内包 Z", min: -1.5, max: 1.5, step: 0.01 },
+    { key: "inclusionRadius", label: "内包の大きさ", min: 0.12, max: 1.2, step: 0.01 },
+  ];
+  for (const spec of inclusionSliders) {
+    const built = createSlider({
+      label: spec.label,
+      min: spec.min,
+      max: spec.max,
+      step: spec.step,
+      initial: hikariState[spec.key],
+      format: (value) => (spec.key === "inclusionIor" ? value.toFixed(3) : value.toFixed(2)),
+      onChange: (value) => updateHikari({ [spec.key]: value }),
+    });
+    inclusionControls.appendChild(built.row);
+    hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
+  }
+  opticsControls.appendChild(inclusionControls);
+  hikariControlSyncers.push((settings) => applyInclusionVisibility(settings.inclusionEnabled));
+
   const materialTitle = document.createElement("div");
   materialTitle.className = "hikari-section-title";
   materialTitle.textContent = "物質";
@@ -709,7 +779,7 @@ export function buildUi(
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
   opticsNote.textContent =
-    "v0.15: bothは5帯域prismへstressを重ねます。床では透明影を残したまま、形から生じる丸みのある集光を重ねます。偏光0ではstressだけが消えてprismが残ります。";
+    "v0.18: 内包はまず一つの球で境界を検証しています。外側に収まらない配置は描画しません。内包中の集光はCPU/WebGPU対応まで外側のみです。";
   opticsControls.appendChild(opticsNote);
   hikariControls.appendChild(opticsControls);
 
@@ -819,6 +889,7 @@ function createSegmentedControl<T extends string>(
   values: readonly T[],
   initial: T,
   onChange: (value: T) => void,
+  labels: Partial<Record<T, string>> = {},
 ): { root: HTMLElement; set: (value: T) => void } {
   const root = document.createElement("div");
   root.className = "segmented-control";
@@ -831,7 +902,7 @@ function createSegmentedControl<T extends string>(
   for (const value of values) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = value;
+    button.textContent = labels[value] ?? value;
     button.onclick = () => {
       set(value);
       onChange(value);

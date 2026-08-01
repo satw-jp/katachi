@@ -8,6 +8,7 @@ import {
 
 export type HikariPhenomenon = "flow" | "optics";
 export type OpticalMaterial = "water" | "glass";
+export type OpticalHostPreset = "clear" | "amber" | "dark";
 export type OpticalDisplay = "density" | "both";
 export type OpticalView = "natural" | "analysis";
 export type OpticalColorMode = "color" | "mono";
@@ -34,6 +35,14 @@ interface CausticSample {
 export interface OpticalSettings {
   phenomenon: HikariPhenomenon;
   opticalMaterial: OpticalMaterial;
+  hostPreset: OpticalHostPreset;
+  inclusionEnabled: boolean;
+  inclusionIor: number;
+  inclusionAbsorption: number;
+  inclusionOffsetX: number;
+  inclusionOffsetY: number;
+  inclusionOffsetZ: number;
+  inclusionRadius: number;
   opticalDisplay: OpticalDisplay;
   opticalView: OpticalView;
   ior: number;

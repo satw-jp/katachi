@@ -9,6 +9,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MAX_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
+import type { CloudOpticalSceneAdapter } from "./opticalSceneAdapter.ts";
 
 export interface CameraSnapshot {
   position: [number, number, number];
@@ -25,6 +26,8 @@ export class CloudRenderer {
   private quad: THREE.Mesh;
   private container: HTMLElement;
   private causticTexture: THREE.DataTexture;
+  private causticTextureHasData = false;
+  private suppressCausticForInclusion = false;
 
   constructor(
     container: HTMLElement,
@@ -73,8 +76,14 @@ export class CloudRenderer {
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
         uRenderMode: { value: 0 },
         uIor: { value: 1.5 },
-        uAbsorption: { value: 0.55 },
+        uHostAbsorptionRgb: { value: new THREE.Vector3(0.0275, 0.209, 0.506) },
         uOpticalTint: { value: new THREE.Color(0.34, 0.78, 0.92) },
+        uInclusionEnabled: { value: 0 },
+        uInclusionStatus: { value: 0 },
+        uInclusionCenter: { value: new THREE.Vector3() },
+        uInclusionRadius: { value: 0.48 },
+        uInclusionIor: { value: 1.5 },
+        uInclusionAbsorptionRgb: { value: new THREE.Vector3(0.02, 0.02, 0.02) },
         uNaturalView: { value: 1 },
         uSkyIntensity: { value: 0.85 },
         uSunIntensity: { value: 1.25 },
@@ -119,7 +128,6 @@ export class CloudRenderer {
 
   setOptics(settings: OpticalSettings): void {
     this.material.uniforms.uIor.value = settings.ior;
-    this.material.uniforms.uAbsorption.value = settings.absorption;
     this.material.uniforms.uNaturalView.value = settings.opticalView === "natural" ? 1 : 0;
     this.material.uniforms.uSkyIntensity.value = settings.skyIntensity;
     this.material.uniforms.uSunIntensity.value = settings.sunIntensity;
@@ -150,12 +158,51 @@ export class CloudRenderer {
     this.material.uniforms.uPolarization.value = settings.polarization;
     this.material.uniforms.uCausticStrength.value = settings.causticStrength;
     this.material.uniforms.uOpticalTint.value.set(
-      settings.opticalMaterial === "water" ? 0x2396ad : 0x5fc8e3,
+      settings.hostPreset === "amber"
+        ? 0xf0a85b
+        : settings.hostPreset === "dark"
+          ? 0x6a3157
+          : settings.opticalMaterial === "water"
+            ? 0x2396ad
+            : 0x5fc8e3,
     );
     const angle = THREE.MathUtils.degToRad(settings.lightAngle);
     this.material.uniforms.uLightDir.value
       .set(-Math.sin(angle) * 0.72, 1, -Math.cos(angle) * 0.28)
       .normalize();
+  }
+
+  setOpticalScene(adapter: CloudOpticalSceneAdapter): void {
+    const inclusion = adapter.scene.inclusions[0];
+    const requested = inclusion !== undefined;
+    this.material.uniforms.uHostAbsorptionRgb.value.set(
+      adapter.hostAbsorptionPerShapeUnit.r,
+      adapter.hostAbsorptionPerShapeUnit.g,
+      adapter.hostAbsorptionPerShapeUnit.b,
+    );
+    this.material.uniforms.uInclusionStatus.value = requested
+      ? adapter.inclusionValid ? 1 : 2
+      : 0;
+    this.material.uniforms.uInclusionEnabled.value = requested && adapter.inclusionValid ? 1 : 0;
+    if (inclusion) {
+      this.material.uniforms.uInclusionCenter.value.set(
+        inclusion.pose.position.x,
+        inclusion.pose.position.y,
+        inclusion.pose.position.z,
+      );
+      this.material.uniforms.uInclusionRadius.value = inclusion.pose.uniformScale;
+      this.material.uniforms.uInclusionIor.value = inclusion.material.ior;
+      this.material.uniforms.uInclusionAbsorptionRgb.value.set(
+        adapter.inclusionAbsorptionPerShapeUnit.r,
+        adapter.inclusionAbsorptionPerShapeUnit.g,
+        adapter.inclusionAbsorptionPerShapeUnit.b,
+      );
+    }
+    // The current CPU/WebGPU caustic layer still traces the host only. Hide it
+    // while a valid inclusion is active instead of presenting a mismatched field.
+    this.suppressCausticForInclusion = requested && adapter.inclusionValid;
+    this.material.uniforms.uCausticAvailable.value =
+      this.causticTextureHasData && !this.suppressCausticForInclusion ? 1 : 0;
   }
 
   setCausticField(field: CausticField): void {
@@ -180,8 +227,11 @@ export class CloudRenderer {
       Math.max(0.001, field.sizeX),
       Math.max(0.001, field.sizeZ),
     );
+    this.causticTextureHasData = field.data.some(
+      (value, index) => index % 4 !== 3 && value > 0,
+    );
     this.material.uniforms.uCausticAvailable.value =
-      field.data.some((value, index) => index % 4 !== 3 && value > 0) ? 1 : 0;
+      this.causticTextureHasData && !this.suppressCausticForInclusion ? 1 : 0;
   }
 
   resize(): void {

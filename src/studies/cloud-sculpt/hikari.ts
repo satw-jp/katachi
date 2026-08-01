@@ -7,6 +7,7 @@ import {
   type OpticalColorMode,
   type OpticalDispersionMode,
   type OpticalDisplay,
+  type OpticalHostPreset,
   type OpticalMaterial,
   type OpticalRainbowModel,
   type OpticalSettings,
@@ -22,6 +23,7 @@ export type {
   OpticalColorMode,
   OpticalDispersionMode,
   OpticalDisplay,
+  OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
   OpticalView,
@@ -43,6 +45,14 @@ export interface HikariSettings extends OpticalSettings {
 export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   phenomenon: "flow",
   opticalMaterial: "glass",
+  hostPreset: "amber",
+  inclusionEnabled: true,
+  inclusionIor: 1.5,
+  inclusionAbsorption: 0.02,
+  inclusionOffsetX: 0,
+  inclusionOffsetY: 0,
+  inclusionOffsetZ: 0,
+  inclusionRadius: 0.48,
   opticalDisplay: "density",
   opticalView: "natural",
   ior: 1.5,
@@ -326,6 +336,45 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
   return {
     phenomenon: value.phenomenon === "optics" ? "optics" : "flow",
     opticalMaterial: value.opticalMaterial === "water" ? "water" : "glass",
+    hostPreset:
+      value.hostPreset === "clear" || value.hostPreset === "amber" || value.hostPreset === "dark"
+        ? value.hostPreset
+        : DEFAULT_HIKARI_SETTINGS.hostPreset,
+    inclusionEnabled:
+      typeof value.inclusionEnabled === "boolean"
+        ? value.inclusionEnabled
+        : DEFAULT_HIKARI_SETTINGS.inclusionEnabled,
+    inclusionIor: clampNumber(value.inclusionIor, 1, 1.8, DEFAULT_HIKARI_SETTINGS.inclusionIor),
+    inclusionAbsorption: clampNumber(
+      value.inclusionAbsorption,
+      0,
+      2.5,
+      DEFAULT_HIKARI_SETTINGS.inclusionAbsorption,
+    ),
+    inclusionOffsetX: clampNumber(
+      value.inclusionOffsetX,
+      -1.5,
+      1.5,
+      DEFAULT_HIKARI_SETTINGS.inclusionOffsetX,
+    ),
+    inclusionOffsetY: clampNumber(
+      value.inclusionOffsetY,
+      -1.5,
+      1.5,
+      DEFAULT_HIKARI_SETTINGS.inclusionOffsetY,
+    ),
+    inclusionOffsetZ: clampNumber(
+      value.inclusionOffsetZ,
+      -1.5,
+      1.5,
+      DEFAULT_HIKARI_SETTINGS.inclusionOffsetZ,
+    ),
+    inclusionRadius: clampNumber(
+      value.inclusionRadius,
+      0.12,
+      1.2,
+      DEFAULT_HIKARI_SETTINGS.inclusionRadius,
+    ),
     opticalDisplay:
       value.opticalDisplay === "both" ||
       (value.opticalDisplay as unknown as string) === "rays"

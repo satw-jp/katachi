@@ -60,6 +60,12 @@
 - **Scene / geometry contract v0.17.3**: Phase 2では同ファイルへ、uniform scaleだけを許す姿勢、既存球SDFの
   host/inclusion媒質、受光平面、平行光を追加し、`opticalGeometry.ts`でTHREE非依存の逆変換・SDF評価・媒質判定・
   内包検査を定義した。境界は明示的epsilonでairに分類し、同じ屈折率でも媒質IDと吸収は区別する。実行時描画は未接続。
+- **Colored host + first clear inclusion v0.18.0**: `opticalTrace.ts`に直進する透明影用のCPU基準を追加し、
+  `air → host → inclusion → host → air` の境界列、媒質別RGB吸収、同IORでも失われない媒質ID、界面Fresnelを
+  数値で追えるようにした。Hikari画面には透明／琥珀／濃色の外側と、一つの球状無色内包のIOR・吸収・位置・大きさを
+  追加した。WebGLの視線と透明影は解析的な球交差で内包を扱い、内包が外側に収まらない場合はhostだけへ戻して警告する。
+  現在のCPU/WebGPU集光はhost-onlyのため、内包が有効な間は床への集光テクスチャを隠して不一致を表示しない。
+  これは最終的な造形制限ではない。次はseed付きの複数・不均一サイズ・soft-cluster内包へ一般化する。
 - **Hikari Optics v0.2**: Hikari内の `Flow / Optics` で光学観察へ切り替える。透明表面は画面と同じSDFを
   レイマーチし、入射面から内部、出射面までを屈折率に従って追跡する。別のCPU層が平行光線を同じ`fieldSdf`へ
   当て、入射／内部／出射の区間と受光面への到達点を加算表示する。Water / Glass、屈折率、光の角度、光線数、

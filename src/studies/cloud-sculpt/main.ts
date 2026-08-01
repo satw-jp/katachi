@@ -21,6 +21,8 @@ import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "
 import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
+import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
+import { traceStraightRay, type StraightRay, type TraceOptions } from "./opticalTrace.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
@@ -40,6 +42,8 @@ const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
 let workspaceView: WorkspaceView =
   localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
 let hikariSettings = loadHikariSettings();
+let opticalSceneIssues: string[] = [];
+let opticalInclusionValid = false;
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
   safeModeQuery === "1"
@@ -402,6 +406,18 @@ function exportMesh(options: MeshExportUiOptions): void {
   getHikariSettings: () => ({ ...hikariSettings }),
   getCameraSnapshot: () => cloudRenderer.captureCamera(),
   getOpticsComputeStatus: () => hikariLayer.getOpticsComputeStatus(),
+  getOpticalSceneValidation: () => {
+    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    return {
+      issues: [...adapter.issues],
+      inclusionValid: adapter.inclusionValid,
+      containmentWitness: adapter.containmentWitness,
+    };
+  },
+  traceOpticalRay: (ray: StraightRay, options?: TraceOptions) => {
+    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    return traceStraightRay(adapter.scene, ray, options);
+  },
   exportHikariCaseJson: (caseId = "debug-case", observation = "") => {
     const backend = hikariLayer.getOpticsComputeStatus();
     return serializeHikariCase(createHikariCase({
@@ -430,8 +446,12 @@ function exportMesh(options: MeshExportUiOptions): void {
 // --- Render loop ------------------------------------------------------
 
 function render(): void {
+  const opticalScene = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+  opticalSceneIssues = opticalScene.issues;
+  opticalInclusionValid = opticalScene.inclusionValid;
   cloudRenderer.update(state.balls, state.params.k, selectedBallId);
   cloudRenderer.setOptics(hikariSettings);
+  cloudRenderer.setOpticalScene(opticalScene);
   cloudRenderer.setVisualMode(
     workspaceView === "katachi" ? "katachi" : hikariSettings.phenomenon,
   );
@@ -450,12 +470,35 @@ function renderFrame(now: number): void {
   fpsAccum += dt;
   if (fpsAccum >= 500) {
     ui.setFps(1000 / (fpsAccum / frameCount));
-    ui.setOpticsComputeStatus(hikariLayer.getOpticsComputeStatus());
+    const computeStatus = hikariLayer.getOpticsComputeStatus();
+    if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
+      ui.setOpticsComputeStatus({
+        kind: "error",
+        text: opticalSceneIssueText(opticalSceneIssues),
+      });
+    } else if (hikariSettings.inclusionEnabled) {
+      ui.setOpticsComputeStatus({
+        ...computeStatus,
+        text: `${computeStatus.text} · 内包1 · 集光は外側のみ`,
+      });
+    } else {
+      ui.setOpticsComputeStatus(computeStatus);
+    }
     fpsAccum = 0;
     frameCount = 0;
   }
   hikariLayer.animate(now);
   cloudRenderer.render();
+}
+
+function opticalSceneIssueText(issues: readonly string[]): string {
+  if (issues.some((issue) => issue.includes("not contained"))) {
+    return "内包を表示できません — 外側の透明体に収まっていません";
+  }
+  if (issues.some((issue) => issue.includes("Host shape"))) {
+    return "内包を表示できません — 先に外側のかたちを作ってください";
+  }
+  return "内包を表示できません — 位置と大きさを確認してください";
 }
 
 render();
