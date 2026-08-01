@@ -1371,7 +1371,7 @@ export function buildUi(
     computeModeButton.setAttribute("aria-live", "polite");
     computeModeButton.onclick = () => {
       callbacks.onComputeModeChange(
-        computeModeButton.dataset.backend === "safe" ? "gpu" : "safe",
+        computeModeButton.dataset.backend === "gpu" ? "safe" : "gpu",
       );
     };
     topbar.appendChild(computeModeButton);
