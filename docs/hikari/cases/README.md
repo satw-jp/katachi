@@ -17,6 +17,7 @@ CPU/WebGPU のbackend記録は変わり得る。
 | `P0-colored-shadow` | 上記と同一shape・cameraで `absorption=2.50`, `causticStrength=1.20` | 現行の単一吸収値と固定tintが作る濃い透明影を保存する。RGB材料が接続済みとは扱わない。 |
 | `P0-ior-caustic-low` / `P0-ior-caustic-high` | 同一shape・camera・light、`absorption=0.55`, `dispersion=0` で `ior=1.10` / `ior=1.65` | 屈折率だけで背景歪みと集光の位置・広がりがどう変わるかを見る。 |
 | `P0-safe-fallback` | `P0-colored-shadow` と同じ設定を `?safe=1` で開く。`opticalRayCount=56`; `opticalSampleCount` は要求値としてのみ記録 | Windows-safe CPU経路が黒画面にならず、粗い標本数でも透明影を保持するかを見る。 |
+| `hikari-blender-backlight-study.hkr` | 作者の濃色／無色内包ケース、カメラ中心を太陽へ整列、`sunSize=27.3°` | Blender面光源比較に近い広い背景光で無色内包が明るく抜けるかを見る。実太陽とは呼ばず、同じ形の`0.53–0.8°`ケースと対にする。 |
 
 共通値は `opticalSeed=sun-01`, `skyIntensity=0.85`, `sunIntensity=1.25`,
 `groundReflectance=0.70`, `opticalExposure=1`, `surfaceRoughness=0.08`,

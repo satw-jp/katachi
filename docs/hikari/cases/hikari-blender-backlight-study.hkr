@@ -1,0 +1,118 @@
+{
+  "format": "hikari-document",
+  "formatVersion": 1,
+  "documentId": "hikari-blender-backlight-study",
+  "createdAt": "2026-08-01T10:00:00.000Z",
+  "updatedAt": "2026-08-01T10:00:00.000Z",
+  "appVersion": "0.29.1",
+  "commit": "4207e1c",
+  "activeViewId": "blender-backlight-view-01",
+  "views": [
+    {
+      "viewId": "blender-backlight-view-01",
+      "name": "Blender比較 · 太陽背面 27.3°",
+      "createdAt": "2026-08-01T10:00:00.000Z",
+      "case": {
+        "caseId": "blender-backlight-view-01",
+        "observation": "太陽中心へカメラを合わせ、Blender面光源比較に近い27.3°の広い光源で、濃色host内の無色・等IOR内包を観察する。0.8°の物理太陽との比較用であり、27.3°を実太陽とは呼ばない。",
+        "appVersion": "0.29.1",
+        "commit": "4207e1c",
+        "shape": {
+          "studyId": "cloud-sculpt",
+          "recipeEntries": [
+            {
+              "t": 1785573374622,
+              "op": "grow",
+              "args": {
+                "params": {
+                  "k": 0.6,
+                  "count": 12,
+                  "radiusBase": 0.7,
+                  "radiusSpread": 0.5,
+                  "seed": "yohaku"
+                }
+              }
+            }
+          ]
+        },
+        "hikariSettings": {
+          "phenomenon": "optics",
+          "opticalMaterial": "water",
+          "hostPreset": "custom",
+          "hostTransmissionColor": "#692a93",
+          "inclusionEnabled": true,
+          "inclusionIor": 1.246,
+          "inclusionTransmissionColor": "#ffffff",
+          "inclusionAbsorption": 0,
+          "inclusionOffsetX": 0,
+          "inclusionOffsetY": 0,
+          "inclusionOffsetZ": 0,
+          "inclusionRadius": 0.48,
+          "opticalDisplay": "density",
+          "opticalView": "natural",
+          "receiverDisplayMode": "composite",
+          "ior": 1.246,
+          "daylightMode": "tokyo",
+          "daylightDate": "2026-08-01",
+          "daylightMinutes": 710,
+          "lightAngle": -19,
+          "lightWidth": 1,
+          "opticalRayCount": 56,
+          "opticalSampleCount": 102400,
+          "opticalSeed": "sun-01",
+          "absorption": 27.3,
+          "causticStrength": 1.2,
+          "skyIntensity": 0.1,
+          "sunIntensity": 2.95,
+          "sunSize": 27.3,
+          "groundReflectance": 1.05,
+          "opticalExposure": 1.35,
+          "surfaceRoughness": 0.18,
+          "surfaceVariation": 0.08,
+          "materialVariation": 0.35,
+          "materialScale": 3,
+          "environmentContrast": 0,
+          "environmentRotation": -7,
+          "environmentMist": 1,
+          "opticalColorMode": "color",
+          "rainbowModel": "both",
+          "dispersionMode": "local",
+          "dispersion": 0.41,
+          "stressAmount": 0.1,
+          "polarization": 0.23,
+          "seed": "hikari-01",
+          "particleCount": 5000,
+          "speed": 0.8,
+          "curl": 0.7,
+          "trailLength": 12,
+          "particleSize": 2,
+          "exposure": 1,
+          "blur": 1.5,
+          "mode": "points",
+          "spawn": "surface"
+        },
+        "camera": {
+          "position": [
+            0.07259892644834198,
+            -6.560301560928699,
+            -2.0511393969096177
+          ],
+          "target": [0, 0, 0],
+          "fov": 45,
+          "aspect": 1.5716272600834493
+        },
+        "compatibility": {
+          "safeModeQuery": "disabled",
+          "compatibilityMode": false
+        },
+        "backend": {
+          "kind": "webgpu",
+          "text": "Authored comparison case; recompute on open",
+          "requestedSampleCount": 102400
+        },
+        "formatVersion": 1,
+        "createdAt": "2026-08-01T10:00:00.000Z"
+      }
+    }
+  ]
+}
