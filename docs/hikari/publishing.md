@@ -41,6 +41,18 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.29.1
+
+- Git commit deployed: `93e45f5` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `9f1bafd3-b489-40e4-9d65-ff9f52dd9bb9`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Root-cause evidence: the supplied dense-host case placed the camera centre `1.114°` from a `0.8°` sun centre, outside its `0.4°` radius. Exact camera alignment still moves the centre BODY ray roughly `5–7°` through the irregular outer refraction, so a physical-size sun can remain dark without an exposure or equal-IOR failure.
+- Added `太陽をカメラ中心へ合わせる`, preserving target and distance and explicitly warning that body refraction moves the sun image again. This is a reproducible direct-background diagnostic, not a brightness guarantee.
+- Added `docs/hikari/cases/hikari-blender-backlight-study.hkr`: the same dense colored host and clear equal-IOR inclusion under a `27.3°` broad source. Real-browser WebGPU verification showed the large bright source and brighter blue/purple clear region; the file is labeled as a Blender area-source comparison, not a physical sun.
+- Corrected the remaining realtime BODY outer-TIR fallback so an unresolved bounded bounce uses the first internal-reflection direction rather than sampling the outside environment with the pre-TIR incident direction. Receiver CPU/WebGPU transport is unchanged.
+- Recorded later MPM centre-lock, fixed-frame sequence, and MPM-plus-orbit work as deferred authored/offline constraints; no MPM runtime behavior changed in this release.
+- Verification: `npm run test:hikari` passed 59/59 tests, production build and `git diff --check` passed, local and production browser warnings/errors were empty. Production reported `v0.29.1` and exposed the new alignment control.
+
 ## Release record — 2026-08-01 — v0.29.0
 
 - Git commit deployed: `8446de7` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
