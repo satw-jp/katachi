@@ -37,6 +37,20 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.25.1
+
+- Git commit deployed: `9308213` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `cc2b980b-d5e5-4aff-915d-d35201bd04a3`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Windows SAFE correction: the receiver reconstruction radius follows emitted sample spacing—3 texels at 16,384 samples, 8 at 2,048, and 12 at 1,024—while edge-normalized blur preserves integrated flux
+- Backend control: the top bar reports `GPU · WebGPU`, `SAFE · CPU`, `CPU · FALLBACK`, or backend error; one tap changes mode
+- Switch handoff: current recipe/history, Hikari settings, camera, observation, document metadata, and saved views survive GPU/SAFE reload through a validated one-use local handoff
+- Reconstructed-field parity: Tokyo 17:00 at the same 2,048 rays passed all current gates—maximum RGB flux error `0.46%`, centroid `0.27` texel, 95% envelope `0` texel, support IoU `100%`, deposit L1 `0.87%`, and negligible coverage L1. Raw-hit/fixed-kernel auxiliary parity remains open because radius-8 reconstruction can hide sub-kernel boundary differences
+- Production normal check: cache-busted v0.25.1 reported `GPU · WebGPU`
+- Production safe check: one tap changed to `SAFE · CPU` and preserved a named current document, observation text, and one saved view
+- Verification: `npm run test:hikari` passed 33/33 deterministic tests; `VITE_GIT_COMMIT=9308213 npm run build` passed; local and production mode switching passed with real pointer interaction
+- Known remaining work: run raw-hit or fixed-radius parity across the frozen morning/noon/evening and material case family; validate the adaptive kernel against actual affected-hit density rather than emitted sample count alone
+
 ## Release record — 2026-08-01 — v0.24.0
 
 - Git commit deployed: `9206be2` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
