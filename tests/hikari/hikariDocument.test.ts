@@ -42,6 +42,27 @@ test(".hkr round-trips multiple named views", () => {
   assert.deepEqual(parseHikariDocument(serializeHikariDocument(document)), document);
 });
 
+test(".hkr preserves a custom transmitted host color", () => {
+  const customCase = fixedCase("custom-color");
+  customCase.hikariSettings.hostPreset = "custom";
+  customCase.hikariSettings.hostTransmissionColor = "#3f8ad1";
+  const document = createHikariDocument({
+    documentId: "custom-color-study",
+    appVersion: "test",
+    commit: "abc",
+    activeViewId: "view-custom",
+    views: [{
+      viewId: "view-custom",
+      name: "Blue",
+      createdAt: "2026-08-01T00:00:00.000Z",
+      case: customCase,
+    }],
+  });
+  const restored = parseHikariDocument(serializeHikariDocument(document));
+  assert.equal(restored.views[0].case.hikariSettings.hostPreset, "custom");
+  assert.equal(restored.views[0].case.hikariSettings.hostTransmissionColor, "#3f8ad1");
+});
+
 test(".hkr rejects duplicate view ids and an unknown active view", () => {
   const duplicate = {
     ...createHikariDocument({

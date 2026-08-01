@@ -304,14 +304,18 @@ export class CloudRenderer {
           : settings.receiverDisplayMode === "loss"
             ? 3
             : 0;
+    // Appearance-only edge/haze tint. OpticalScene RGB absorption remains the
+    // authority for body thickness, shadow, receiver transport, and Blender.
     this.material.uniforms.uOpticalTint.value.set(
-      settings.hostPreset === "amber"
-        ? 0xf0a85b
-        : settings.hostPreset === "dark"
-          ? 0x6a3157
-          : settings.opticalMaterial === "water"
-            ? 0x2396ad
-            : 0x5fc8e3,
+      settings.hostPreset === "custom"
+        ? settings.hostTransmissionColor
+        : settings.hostPreset === "amber"
+          ? 0xf0a85b
+          : settings.hostPreset === "dark"
+            ? 0x6a3157
+            : settings.opticalMaterial === "water"
+              ? 0x2396ad
+              : 0x5fc8e3,
     );
     this.material.uniforms.uLightDir.value
       .set(daylight.directionToSun.x, daylight.directionToSun.y, daylight.directionToSun.z)

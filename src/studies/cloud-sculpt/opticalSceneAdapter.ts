@@ -35,7 +35,11 @@ export function buildCloudOpticalScene(
     mmPerShapeUnit: CURRENT_ASSUMED_MM_PER_SHAPE_UNIT,
     source: "assumed" as const,
   };
-  const hostAbsorptionPerShapeUnit = hostAbsorption(settings.hostPreset, settings.absorption);
+  const hostAbsorptionPerShapeUnit = hostAbsorption(
+    settings.hostPreset,
+    settings.hostTransmissionColor,
+    settings.absorption,
+  );
   const inclusionAbsorptionPerShapeUnit = greyAbsorption(settings.inclusionAbsorption);
   const hostMaterial: OpticalMaterial = {
     id: `host-${settings.hostPreset}`,
@@ -114,11 +118,55 @@ export function buildCloudOpticalScene(
   };
 }
 
-function hostAbsorption(preset: OpticalSettings["hostPreset"], amount: number): Rgb {
+function hostAbsorption(
+  preset: OpticalSettings["hostPreset"],
+  customColor: string,
+  amount: number,
+): Rgb {
   const safe = Number.isFinite(amount) ? Math.max(0, amount) : 0;
   if (preset === "amber") return { r: safe * 0.05, g: safe * 0.38, b: safe * 0.92 };
   if (preset === "dark") return { r: safe * 0.72, g: safe * 1.45, b: safe * 0.42 };
+  if (preset === "custom") return absorptionFromDisplayColor(customColor, safe);
   return { r: safe * 0.06, g: safe * 0.04, b: safe * 0.025 };
+}
+
+/**
+ * Convert the author's desired transmitted appearance into relative absorption.
+ * Concentration remains separate, so brightness in the picker does not secretly
+ * change density. The dominant transmitted channel receives only a small neutral
+ * baseline while complementary channels absorb more strongly.
+ */
+export function absorptionFromDisplayColor(color: string, concentration: number): Rgb {
+  const match = /^#([0-9a-f]{6})$/i.exec(color);
+  const safeConcentration = Number.isFinite(concentration)
+    ? Math.max(0, concentration)
+    : 0;
+  if (!match || safeConcentration === 0) return { r: 0, g: 0, b: 0 };
+  const encoded = Number.parseInt(match[1], 16);
+  const srgb = [
+    ((encoded >> 16) & 0xff) / 255,
+    ((encoded >> 8) & 0xff) / 255,
+    (encoded & 0xff) / 255,
+  ].map(srgbToLinear);
+  const brightest = Math.max(...srgb);
+  if (brightest <= 1e-6) {
+    const neutral = safeConcentration * 0.04;
+    return { r: neutral, g: neutral, b: neutral };
+  }
+  const minimumRelativeTransmission = 0.02;
+  const maximumChromaDepth = -Math.log(minimumRelativeTransmission);
+  const depths = srgb.map((channel) =>
+    -Math.log(Math.max(minimumRelativeTransmission, channel / brightest))
+  );
+  const coefficient = (depth: number): number =>
+    safeConcentration * (0.04 + Math.min(depth, maximumChromaDepth) / maximumChromaDepth);
+  return { r: coefficient(depths[0]), g: coefficient(depths[1]), b: coefficient(depths[2]) };
+}
+
+function srgbToLinear(value: number): number {
+  return value <= 0.04045
+    ? value / 12.92
+    : Math.pow((value + 0.055) / 1.055, 2.4);
 }
 
 function greyAbsorption(value: number): Rgb {

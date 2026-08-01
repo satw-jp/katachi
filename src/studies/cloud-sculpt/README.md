@@ -102,6 +102,11 @@
   別集計する。画面は到達／未到達／範囲外／残差を常時表示する。再計算中は旧受光場とAnalysis geometryを隠し、
   GPU失敗時はCPU結果へ状態ごと復帰する。内部境界TIRや不完全経路は内包を無視した光へ戻さず未解決へ分類する。
   純粋なCPU／WebGPU受光場比較器はRGB総量、重心、95%範囲、support IoU、正規化空間差を判定する。
+- **外側透明体の自由な吸収色 v0.27.0**: `自由色`で透明体を通して見せたいsRGB hueを選び、既存の`吸収`は
+  独立した濃度として保つ。adapterは選択色をlinearへ変換し、よく透過させたいchannelの吸収を弱く、補色側を
+  強くするBeer–Lambert RGB係数を作る。同じ係数をRealtime／Progressive BODY、透明影、受光面CPU／WebGPU、
+  `.hkr`、Blender sidecarが使う。色変更はProgressive蓄積を破棄する。現段階は外側のみで、内包の自由色と
+  位置による色むらはまだ実装していない。
 - **Progressive Render Phase 1 v0.26.0**: 操作中のRealtime Observationはそのまま保ち、静止後に作者が
   `RENDER`を押したときだけBODYを16／64／256 sppで蓄積する。WebGL2のhalf-float線形HDR targetへ決定論的な
   sub-pixel jitterと粗さ標本を平均し、表示時に露出とmonoを適用する。`STOP`は最後まで完了した標本を画面とPNGへ
@@ -209,6 +214,12 @@ npm run build    # 型チェック + dist/ 生成
 
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
+
+- **2026-08-01（外側透明体の自由な吸収色 v0.27.0）**: 外側の色へ`自由色`を追加し、pickerの明るさで
+  密度が暗黙に変わらないよう、hueと既存の吸収濃度を分離した。希望する透過色を補色関係のlinear RGB吸収係数へ
+  変換し、BODY／影／CPU・WebGPU受光面／Blenderへ同じOpticalSceneから渡す。旧`.hkr`／caseは既定の琥珀色へ
+  正規化する。白から淡色・鮮色まで連続的に変わる回帰を固定し、色変更時にProgressiveがRealtimeへ戻ることを契約化した。48/48 testsとbuildが通過した。
+  内包の自由色とobject-localな濃度むらは次段階に残す。
 
 - **2026-08-01（Progressive Render Phase 1 v0.26.0）**: 上部バーへ`RENDER`／`STOP`を置き、Naturalの
   BODYだけを16／64／256 sppで段階蓄積できるようにした。計算状態は`BODY · WebGL2`と標本数・経過時間を示し、

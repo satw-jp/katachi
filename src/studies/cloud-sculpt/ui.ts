@@ -863,14 +863,41 @@ export function buildUi(
   hostPresetTitle.className = "hikari-section-title";
   hostPresetTitle.textContent = "外側の色";
   opticsControls.appendChild(hostPresetTitle);
+  const customHostColorRow = document.createElement("label");
+  customHostColorRow.className = "custom-host-color-row";
+  const customHostColorLabel = document.createElement("span");
+  customHostColorLabel.textContent = "透過色";
+  const customHostColorInput = document.createElement("input");
+  customHostColorInput.type = "color";
+  customHostColorInput.value = hikariState.hostTransmissionColor;
+  customHostColorInput.title = "透明体を通して見せたい色。濃さは吸収で調整します";
+  customHostColorInput.onchange = () => {
+    updateHikari({
+      hostPreset: "custom",
+      hostTransmissionColor: customHostColorInput.value,
+    });
+  };
+  customHostColorRow.append(customHostColorLabel, customHostColorInput);
+  const applyHostPresetVisibility = (hostPreset: OpticalHostPreset): void => {
+    customHostColorRow.hidden = hostPreset !== "custom";
+  };
   const hostPresetControl = createSegmentedControl<OpticalHostPreset>(
-    ["clear", "amber", "dark"],
+    ["clear", "amber", "dark", "custom"],
     hikariState.hostPreset,
-    (hostPreset) => updateHikari({ hostPreset }),
-    { clear: "透明", amber: "琥珀", dark: "濃色" },
+    (hostPreset) => {
+      applyHostPresetVisibility(hostPreset);
+      updateHikari({ hostPreset });
+    },
+    { clear: "透明", amber: "琥珀", dark: "濃色", custom: "自由色" },
   );
   opticsControls.appendChild(hostPresetControl.root);
-  hikariControlSyncers.push((settings) => hostPresetControl.set(settings.hostPreset));
+  customHostColorRow.hidden = hikariState.hostPreset !== "custom";
+  opticsControls.appendChild(customHostColorRow);
+  hikariControlSyncers.push((settings) => {
+    hostPresetControl.set(settings.hostPreset);
+    customHostColorInput.value = settings.hostTransmissionColor;
+    applyHostPresetVisibility(settings.hostPreset);
+  });
 
   const inclusionControls = document.createElement("div");
   const inclusionToggle = document.createElement("button");
@@ -1352,6 +1379,7 @@ export function buildUi(
     ], true);
     const bodyGroup = createPropertyGroup("外側の透明体", [
       hostPresetControl.root,
+      customHostColorRow,
       materialControl.root,
       row("ior"),
       row("surfaceRoughness"),

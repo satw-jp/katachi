@@ -49,7 +49,7 @@ evidence cases
 
 The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
 
-v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger. v0.26.0 adds the first separate BODY Progressive Render: author-triggered 16/64/256-spp WebGL2 accumulation, STOP retention, edit invalidation, and progressive PNG capture without changing receiver transport or claiming deeper paths.
+v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger. v0.26.0 adds the first separate BODY Progressive Render: author-triggered 16/64/256-spp WebGL2 accumulation, STOP retention, edit invalidation, and progressive PNG capture without changing receiver transport or claiming deeper paths. v0.27.0 adds a custom outer-host transmitted hue while keeping absorption concentration separate and routes the resulting shared RGB coefficients through BODY, receiver transport, saved settings, and Blender.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -88,18 +88,20 @@ Acceptance:
 - doubling path length increases attenuation consistently;
 - transparent shadow color uses the same absorption coefficients as the body.
 
-### Material follow-up — custom absorption color and concentration
+### Custom absorption color and concentration
 
-The next material control is not a surface paint or display tint. Both the outer host and every internal transparent medium receive an explicit **absorption color** and **concentration** whose effect grows with travelled distance. Presets remain useful starting points, but the saved source of truth is RGB absorption per physical length plus a scalar concentration multiplier.
+**Outer host implemented in v0.27.0; inclusion color and spatial variation remain next.** This control is not surface paint or a display tint. The author chooses the desired transmitted sRGB hue, while the existing Absorption slider remains an independent concentration. The adapter normalizes the hue, converts it to linear light, and derives complementary Beer–Lambert RGB coefficients: channels that should transmit remain weakly absorbed while the others absorb more strongly. Picker brightness therefore does not secretly change concentration.
 
-Author controls begin with:
+The outer-host setting is saved as `hostPreset: "custom"` plus `hostTransmissionColor`. Realtime and Progressive BODY rendering, transparent shadow, CPU/WebGPU receiver transport, and Blender export consume the same adapter coefficients. Old cases and `.hkr` views with no color field normalize to the existing amber default. A hue or concentration edit changes the optical scene revision, discards any retained Progressive accumulation, and returns to Realtime Observation.
 
-- separate outer-host and inclusion absorption colors;
-- separate concentration/density controls, including zero for a clear region;
-- a small set of reproducible uneven-concentration modes before free painting;
-- an explicit distinction between absorption variation, surface roughness, geometric thickness, haze/scattering, and a true refractive boundary.
+Next material slices:
 
-The same object-local concentration field must drive Realtime body appearance, Progressive BODY accumulation, transparent shadow, CPU/WebGPU receiver transport, saved `.hkr` views, and Blender reconstruction. A color, concentration, or variation edit changes the optical scene revision, discards any retained Progressive accumulation, and returns to Realtime Observation. Do not implement this as `uOpticalTint` alone: a thin path must remain lighter than a thick path, and equal-IOR clear inclusions must be able to behave as absorption voids without acquiring a painted surface boundary. The procedural field and later authored hand trace follow [internal color variation](color-variation.md).
+- give each inclusion its own absorption hue and concentration, including zero concentration for a clear region;
+- add a small set of reproducible object-local uneven-concentration modes before free painting;
+- keep absorption variation, surface roughness, geometric thickness, haze/scattering, and a true refractive boundary explicitly separate;
+- connect the same versioned concentration field to Realtime, Progressive BODY, transparent shadow, CPU/WebGPU receiver transport, saved `.hkr` views, and Blender reconstruction.
+
+Do not collapse the next slices into `uOpticalTint`: a thin path must remain lighter than a thick path, and equal-IOR clear inclusions must be able to behave as absorption voids without acquiring a painted surface boundary. The current hue conversion is an authoring model, not a measured spectral coefficient; physical calibration still requires scale and material measurements. The procedural field and later authored hand trace follow [internal color variation](color-variation.md).
 
 Add one authoritative `PhysicalScale.mmPerShapeUnit`. Every backend integrates `absorptionPerMm * segmentLengthShapeUnits * mmPerShapeUnit`. Keep world/SDF coordinates numerically normalized; do not enlarge the raymarch domain to architectural metre values.
 

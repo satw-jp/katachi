@@ -27,6 +27,10 @@ Progressive Render Phase 1 does not change the `.hkr` v1 schema. The document al
 
 If a Progressive image is retained, Image exports that completed accumulation and includes `progressive-<spp>spp` in its filename. While accumulation is running, export uses the latest sample that has finished; it never reads a partially written target. If camera, shape, material, daylight, receiver, backend, or viewport state changes, the retained image is discarded and Image returns to the current Realtime frame. PNG remains a separate derivative and is not embedded in `.hkr`.
 
+## Custom outer-host absorption
+
+From v0.27.0, each nested Hikari case may store `hostPreset: "custom"` and `hostTransmissionColor: "#rrggbb"` in its Hikari settings. This is the author's desired transmitted sRGB hue, not a painted surface color and not the derived RGB absorption coefficient. The existing Absorption value remains the separate concentration; the OpticalScene adapter reconstructs the complementary linear Beer–Lambert coefficients when the view opens. Documents and legacy cases that omit `hostTransmissionColor` normalize to the existing amber default. Inclusion custom color and spatial concentration fields are not part of the current document contract yet.
+
 ## Version 1 structure
 
 ```ts

@@ -218,6 +218,29 @@
   color: #275c3c;
 }
 
+.custom-host-color-row {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.custom-host-color-row[hidden] {
+  display: none;
+}
+
+.custom-host-color-row input[type="color"] {
+  width: 58px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #c9c7c2;
+  border-radius: 0;
+  background: #fff;
+  cursor: pointer;
+}
+
 .panel-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -40,7 +40,7 @@ import {
 
 export type HikariPhenomenon = "flow" | "optics";
 export type OpticalMaterial = "water" | "glass";
-export type OpticalHostPreset = "clear" | "amber" | "dark";
+export type OpticalHostPreset = "clear" | "amber" | "dark" | "custom";
 export type OpticalDisplay = "density" | "both";
 export type OpticalView = "natural" | "analysis";
 export type ReceiverDisplayMode = "composite" | "coverage" | "deposit" | "loss";
@@ -139,6 +139,8 @@ export interface OpticalSettings {
   phenomenon: HikariPhenomenon;
   opticalMaterial: OpticalMaterial;
   hostPreset: OpticalHostPreset;
+  /** Author-facing transmitted swatch; converted to complementary absorption in OpticalScene. */
+  hostTransmissionColor: string;
   inclusionEnabled: boolean;
   inclusionIor: number;
   inclusionAbsorption: number;
@@ -356,7 +358,7 @@ export class OpticsLayer {
     this.causticMaterial.uniforms.uNatural.value = settings.opticalView === "natural" ? 1 : 0;
     const daylight = resolveDaylight(settings);
     this.sunBelowHorizon = !daylight.aboveHorizon;
-    const signature = `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.absorption.toFixed(3)}:${settings.ior.toFixed(3)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(3)}:${settings.inclusionAbsorption.toFixed(3)}:${settings.inclusionOffsetX.toFixed(3)},${settings.inclusionOffsetY.toFixed(3)},${settings.inclusionOffsetZ.toFixed(3)}:${settings.inclusionRadius.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.daylightMode}:${settings.daylightDate}:${settings.daylightMinutes}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.sunSize.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
+    const signature = `${opticalSceneRevision(balls, k, settings)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.daylightMode}:${settings.daylightDate}:${settings.daylightMinutes}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.sunSize.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
       this.onTransportPending?.(true);
@@ -608,7 +610,7 @@ export class OpticsLayer {
         opticalScene.scene.receiver.id,
         opticalScene.scene.receiver.pose.position.x,
         opticalScene.scene.receiver.pose.position.z,
-        shapeSignature(balls, k),
+        opticalSceneRevision(balls, k, settings),
         daylightRevision(settings),
       ),
       sampleCount,
@@ -960,7 +962,7 @@ export class OpticsLayer {
         opticalScene.scene.receiver.id,
         opticalScene.scene.receiver.pose.position.x,
         opticalScene.scene.receiver.pose.position.z,
-        shapeSignature(balls, k),
+        opticalSceneRevision(balls, k, settings),
         daylightRevision(settings),
       ),
       result.sampleCount,
@@ -1171,7 +1173,7 @@ export class OpticsLayer {
         opticalScene.scene.receiver.id,
         opticalScene.scene.receiver.pose.position.x,
         opticalScene.scene.receiver.pose.position.z,
-        shapeSignature(balls, k),
+        opticalSceneRevision(balls, k, settings),
         daylightRevision(settings),
       ),
       0,
@@ -1703,4 +1705,12 @@ function shapeSignature(balls: Ball[], k: number): string {
   return `${k.toFixed(4)}|${balls
     .map((ball) => `${ball.id}:${ball.x.toFixed(3)},${ball.y.toFixed(3)},${ball.z.toFixed(3)},${ball.r.toFixed(3)}`)
     .join("|")}`;
+}
+
+function opticalSceneRevision(
+  balls: Ball[],
+  k: number,
+  settings: OpticalSettings,
+): string {
+  return `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.hostTransmissionColor}:${settings.absorption.toFixed(4)}:${settings.ior.toFixed(4)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(4)}:${settings.inclusionAbsorption.toFixed(4)}:${settings.inclusionOffsetX.toFixed(4)},${settings.inclusionOffsetY.toFixed(4)},${settings.inclusionOffsetZ.toFixed(4)}:${settings.inclusionRadius.toFixed(4)}`;
 }

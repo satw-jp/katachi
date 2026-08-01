@@ -98,6 +98,7 @@ Implemented today:
 - Windows-safe CPU fallback;
 - persistent top-bar backend status and one-tap `GPU · WebGPU` / `SAFE · CPU` switching;
 - geometric normals for view-ray medium decisions, with cosmetic normal variation restricted to reflection and surface appearance;
+- outer-host custom absorption hue, converted with the existing concentration into shared Beer–Lambert RGB coefficients rather than applied as surface paint;
 - isolated same-count CPU/WebGPU receiver comparison from the Calculation Status panel;
 - a separate Progressive Render Phase 1 for Natural stills: deterministic linear-HDR WebGL2 accumulation at 16, 64, or 256 spp, with STOP retaining the latest completed image;
 - current-renderer-resolution viewport PNG export and editable multi-view `.hkr` documents;
@@ -106,7 +107,7 @@ Implemented today:
 Known limits:
 
 - runtime rendering supports one validated analytic spherical inclusion; the scene and bundle contracts allow arrays, but generic multiple-inclusion meshes are not connected yet;
-- outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
+- outer material offers clear/amber/dark presets plus one custom transmitted hue. Custom inclusion absorption color is not connected yet, and the later versioned pigment concentration field is still needed for reproducible spatial color variation;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
 - unresolved nested view rays retain the already solved outer-host path so bounded realtime work does not appear as black or a flat opaque patch. This is an explicitly view-only continuity approximation; recursive internal reflection/refraction remains open and receiver transport still rejects unresolved energy;

@@ -50,6 +50,7 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   phenomenon: "flow",
   opticalMaterial: "glass",
   hostPreset: "amber",
+  hostTransmissionColor: "#f0a85b",
   inclusionEnabled: true,
   inclusionIor: 1.5,
   inclusionAbsorption: 0.02,
@@ -355,9 +356,16 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
     phenomenon: value.phenomenon === "optics" ? "optics" : "flow",
     opticalMaterial: value.opticalMaterial === "water" ? "water" : "glass",
     hostPreset:
-      value.hostPreset === "clear" || value.hostPreset === "amber" || value.hostPreset === "dark"
+      value.hostPreset === "clear"
+      || value.hostPreset === "amber"
+      || value.hostPreset === "dark"
+      || value.hostPreset === "custom"
         ? value.hostPreset
         : DEFAULT_HIKARI_SETTINGS.hostPreset,
+    hostTransmissionColor: normalizeHexColor(
+      value.hostTransmissionColor,
+      DEFAULT_HIKARI_SETTINGS.hostTransmissionColor,
+    ),
     inclusionEnabled:
       typeof value.inclusionEnabled === "boolean"
         ? value.inclusionEnabled
@@ -663,4 +671,10 @@ function shapeSignature(balls: Ball[], k: number): string {
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function normalizeHexColor(value: unknown, fallback: string): string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+    ? value.toLowerCase()
+    : fallback;
 }

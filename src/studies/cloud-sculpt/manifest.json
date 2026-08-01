@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added a custom outer-host absorption color without treating it as surface paint. The author chooses the desired transmitted sRGB hue with a native color input, while the existing Absorption control remains the independent concentration. The OpticalScene adapter converts that hue continuously from neutral through pastel to saturated complementary linear Beer-Lambert RGB coefficients shared by Realtime and Progressive BODY rendering, transparent-shadow and receiver CPU/WebGPU transport, saved Hikari settings, and Blender export. Material settings are now part of the receiver scene revision, changing color invalidates any Progressive accumulation, and legacy documents normalize to the existing amber default. Custom inclusion absorption color and reproducible spatial color variation remain later material slices. Hikari tests passed 48/48 and the production build passed."
+    },
     {
       "date": "2026-08-01",
       "note": "Added Progressive Render Phase 1 without slowing ordinary exploration. Realtime Observation remains the bounded interactive body view; an author-triggered RENDER action accumulates deterministic sub-pixel and rough-transmission samples into a linear half-float WebGL2 target at 16, 64, or 256 spp, then tone-maps the latest completed accumulation. STOP preserves that image, while camera, shape, material, daylight, receiver, backend, or viewport changes discard it and return immediately to realtime. The top bar owns RENDER/STOP, Calculation Status reports BODY / WebGL2 separately from the GPU / WebGPU or SAFE / CPU receiver backend, and fullscreen retains a STOP control. The BODY status exposes its actual target resolution; three HDR targets are capped to 2,560×1,440 equivalent pixels so a high-DPI or fullscreen display cannot consume unbounded integrated-GPU memory. Inclusion receiver-trust changes also invalidate the average, preventing samples from two scene states from mixing. PNG export captures the retained progressive image and identifies its spp in the filename, or exports realtime when no accumulation remains. Accumulation buffers, elapsed progress, and running state are derived runtime data and are not written into `.hkr`. This first phase improves anti-aliasing and rough optical sampling only; deeper host/inclusion path tracing and progressive receiver transport remain unimplemented. GPU and SAFE browser passes, 42 deterministic tests, the production build, and framebuffer review passed."
