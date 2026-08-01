@@ -41,6 +41,17 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.30.1
+
+- Git commit deployed: `f1b2809` (`VITE_GIT_COMMIT=f1b2809` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `579c8126-731a-4749-b114-7b4b05f8c2c7`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Added deterministic 1–16 body inclusion volume packing with mixed round, soft-cluster, and stretched forms; varied millimetre sizes; scattered, clustered, or layered placement; author seed; minimum host wall; and minimum inclusion gap.
+- The generated inclusion array is shared by BODY display, `.hkr`, OpticalScene validation, Blender sidecar, and Blender metaball reconstruction. Legacy single analytic inclusion mode remains available.
+- Corrected packed equal-IOR receiver transport: the outer refraction still decides the floor arrival point, while merged inclusion-ball intersection intervals replace host absorption with inclusion absorption along the actual finite inside path. Light transmitted through low-absorption inclusions therefore reaches the ground without inventing energy or double-counting overlapping cluster balls.
+- The rejected v0.29.3 shadow-darkening and detached receiver plate remain documented as negative evidence. v0.29.4 Stroke preserves delivered RGB and leaves the Composite shadow unchanged; the author has paused further Stroke work.
+- Verification: all 69 Hikari tests, production build, Python syntax check, `git diff --check`, local WebGPU/SAFE rendering, and production WebGPU rendering passed. Production reported `v0.30.1`, exposed `ひとつ / パッキング`, referenced `assets/main-I08RwAQw.js`, and that asset contains `f1b2809`, `パッキング`, and `内包透過光`.
+
 ## Release record — 2026-08-01 — v0.29.2
 
 - Git commit deployed: `0539f86`; exported comparison case records implementation commit `b8f7b50`.
