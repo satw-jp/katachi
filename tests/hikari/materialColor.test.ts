@@ -39,6 +39,16 @@ test("custom absorption color keeps concentration separate", () => {
   assert.deepEqual(absorptionFromDisplayColor("#f0a85b", 0), { r: 0, g: 0, b: 0 });
 });
 
+test("dense Ref range can suppress a two-unit path while preserving a colored channel", () => {
+  const densePurple = absorptionFromDisplayColor("#4b123f", 40);
+  const leastAbsorbed = Math.min(densePurple.r, densePurple.g, densePurple.b);
+  const twoUnitTransmission = Math.exp(-leastAbsorbed * 2);
+
+  assert.ok(Math.abs(leastAbsorbed - 1.6) < 1e-12);
+  assert.ok(twoUnitTransmission > 0.035 && twoUnitTransmission < 0.045);
+  assert.ok(Math.max(densePurple.r, densePurple.g, densePurple.b) > leastAbsorbed);
+});
+
 test("Hikari settings normalize custom colors and migrate legacy documents", () => {
   const custom = normalizeHikariSettings({
     hostPreset: "custom",
@@ -66,6 +76,12 @@ test("Hikari settings normalize custom colors and migrate legacy documents", () 
       .inclusionTransmissionColor,
     DEFAULT_HIKARI_SETTINGS.inclusionTransmissionColor,
   );
+  const dense = normalizeHikariSettings({ absorption: 40, inclusionAbsorption: 40 });
+  assert.equal(dense.absorption, 40);
+  assert.equal(dense.inclusionAbsorption, 40);
+  const clamped = normalizeHikariSettings({ absorption: 99, inclusionAbsorption: 99 });
+  assert.equal(clamped.absorption, 40);
+  assert.equal(clamped.inclusionAbsorption, 40);
 });
 
 test("inclusion transmitted color preserves legacy neutral concentration and reaches every backend", () => {

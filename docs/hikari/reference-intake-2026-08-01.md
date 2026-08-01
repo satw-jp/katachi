@@ -70,6 +70,17 @@ The first computational question is a non-intersecting pair: side by side on one
 
 The remaining images stay linked as alternate views or context for these cases. They are not deletion candidates; same-object views are valuable evidence of viewpoint dependence.
 
+## Dense transparent-material acceptance anchors
+
+The v0.28.1 absorption-range decision uses the following private originals as visual anchors without copying them into Git:
+
+- `L1003160-1536x1024.jpg`: the thick upper and left purple regions approach black, while a smaller interior/right path still transmits purple;
+- `L1003171-1536x1024.jpg`: most of the purple outline is nearly black against the room, with a narrow saturated magenta region around strong backlight;
+- `L1003177-1536x1024.jpg`: the thick smoke-black side is almost opaque, while the thinner wing remains brown-grey, transparent, and visibly distorting;
+- `empty13_comp.png`: the Blender comparison remains too uniformly bright and purple, so it is a negative baseline rather than the density target.
+
+The first acceptance criterion is therefore relational, not a single sampled color: thick paths can become nearly black; thin or directly backlit paths preserve hue and distortion; white surface reflection stays separable from transmitted color. The `0–40` authoring range makes this study possible but does not by itself claim a calibrated physical match. Exact parity still depends on scale, lighting, exposure, surface finish, and path-length validation.
+
 ## Information to add gradually
 
 For each selected case, the author can provide only what is known:

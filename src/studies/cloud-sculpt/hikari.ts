@@ -379,7 +379,7 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
     inclusionAbsorption: clampNumber(
       value.inclusionAbsorption,
       0,
-      2.5,
+      40,
       DEFAULT_HIKARI_SETTINGS.inclusionAbsorption,
     ),
     inclusionOffsetX: clampNumber(
@@ -445,7 +445,7 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
       typeof value.opticalSeed === "string"
         ? value.opticalSeed
         : DEFAULT_HIKARI_SETTINGS.opticalSeed,
-    absorption: clampNumber(value.absorption, 0, 2.5, DEFAULT_HIKARI_SETTINGS.absorption),
+    absorption: clampNumber(value.absorption, 0, 40, DEFAULT_HIKARI_SETTINGS.absorption),
     causticStrength: clampNumber(
       value.causticStrength,
       0.2,

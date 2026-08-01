@@ -1001,7 +1001,7 @@ export function buildUi(
     step: number;
   }> = [
     { key: "inclusionIor", label: "内包の屈折率", min: 1, max: 1.8, step: 0.001 },
-    { key: "inclusionAbsorption", label: "内包の吸収", min: 0, max: 2.5, step: 0.01 },
+    { key: "inclusionAbsorption", label: "内包の吸収", min: 0, max: 40, step: 0.01 },
     { key: "inclusionOffsetX", label: "内包 X", min: -1.5, max: 1.5, step: 0.01 },
     { key: "inclusionOffsetY", label: "内包 Y", min: -1.5, max: 1.5, step: 0.01 },
     { key: "inclusionOffsetZ", label: "内包 Z", min: -1.5, max: 1.5, step: 0.01 },
@@ -1042,6 +1042,15 @@ export function buildUi(
       inclusionTransmissionColor: "#ffffff",
       inclusionAbsorption,
     });
+  };
+  const matchOuterIorButton = document.createElement("button");
+  matchOuterIorButton.type = "button";
+  matchOuterIorButton.textContent = "屈折率を外側に揃える";
+  matchOuterIorButton.title = "内包の色・吸収・位置・大きさは変えず、屈折率だけを外側と同じ値にします";
+  matchOuterIorButton.onclick = () => {
+    const inclusionIor = hikariState.ior;
+    inclusionSetters.get("inclusionIor")?.(inclusionIor);
+    updateHikari({ inclusionIor });
   };
   const inclusionRelationshipNote = document.createElement("div");
   inclusionRelationshipNote.className = "hint";
@@ -1136,7 +1145,7 @@ export function buildUi(
       max: 131072,
       step: 4096,
     },
-    { key: "absorption", label: "吸収", min: 0, max: 2.5, step: 0.05 },
+    { key: "absorption", label: "吸収", min: 0, max: 40, step: 0.05 },
     { key: "causticStrength", label: "光溜まり", min: 0.2, max: 2.5, step: 0.05 },
     { key: "environmentContrast", label: "環境のコントラスト", min: 0, max: 2, step: 0.05 },
     { key: "environmentRotation", label: "環境の回転 °", min: -180, max: 180, step: 1 },
@@ -1472,6 +1481,7 @@ export function buildUi(
     ]);
     const inclusionGroup = createPropertyGroup("内包 01", [
       inclusionToggle,
+      matchOuterIorButton,
       matchBlenderInclusion,
       inclusionRelationshipNote,
       inclusionControls,

@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added a one-action inclusion control that copies only the outer host IOR, leaving inclusion hue, absorption, position, and size untouched. Extended both host and inclusion absorption authoring from 0–2.5 to 0–40 after reviewing the author's dark-purple and smoke-black Ref photographs: thick regions can now approach black while short illuminated paths retain transmitted color. Existing values and defaults are unchanged; the expanded range remains relative until physical scale and measured material coefficients are connected."
+    },
     {
       "date": "2026-08-01",
       "note": "Reviewed and corrected the active Hikari schedule before continuing. Added a recording-oriented automatic camera orbit with Start/Stop, direction, and 10–180 second lap controls; it preserves OrbitControls target, horizontal radius, elevation, and lens. Orbiting is Realtime Observation only, manual camera input stops it, and Progressive RENDER is disabled until the camera stops. Added an independent inclusion transmitted-color picker while preserving the legacy neutral inclusion concentration exactly. The shared adapter derives complementary RGB Beer–Lambert coefficients consumed by BODY, transparent shadow, CPU/WebGPU receiver transport, saved .hkr settings, and Blender export; inclusion hue now participates in receiver scene revision. Added schedule, migration, camera-math, material propagation, and .hkr regressions."

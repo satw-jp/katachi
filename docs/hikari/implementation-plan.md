@@ -90,6 +90,8 @@ Acceptance:
 - doubling path length increases attenuation consistently;
 - transparent shadow color uses the same absorption coefficients as the body.
 
+The authoring range is `0–40` from v0.28.1. Values above the earlier `2.5` ceiling are deliberately available for the author's Ref photographs in which thick purple/black regions approach opacity while short, directly illuminated paths retain a saturated transmitted hue. For the **outer custom-color host**, the least-absorbed channel has coefficient `0.04 × concentration`; at 40, a two-shape-unit path retains about 4% rather than the roughly 82% retained at 2.5. The inclusion keeps its older density contract for saved `.hkr` compatibility: its authored-color coefficients are divided by `0.04`, so a neutral inclusion uses coefficient `1 × concentration` and can become much denser at the same slider value. Both remain relative concentrations until `PhysicalScale` and measured material coefficients are connected; raising the slider ceiling is not a physical calibration claim.
+
 ### Custom absorption color and concentration
 
 **Outer host implemented in v0.27.0 and the one analytic inclusion in v0.28.0. Spatial variation follows uniform-material parity and deeper Progressive paths.** This control is not surface paint or a display tint. The author chooses the desired transmitted sRGB hue, while the existing Absorption slider remains an independent concentration. The adapter normalizes the hue, converts it to linear light, and derives complementary Beer–Lambert RGB coefficients: channels that should transmit remain weakly absorbed while the others absorb more strongly. Picker brightness therefore does not secretly change concentration.
