@@ -33,6 +33,17 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.20.0
+
+- Git commit deployed: `ce5c526` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `9b88b109-a80e-43e5-b72f-5ba95a4ea500`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Deployed observation: v0.20.0 adds the Hikari-side Blender bundle panel, format-v2 sidecar, camera aspect, explicit Y-up→Z-up mapping, mesh hashes/roles/spaces, and the Blender bootstrap
+- Normal production check: Apple metal-3 WebGPU, 16,384 rays, 4,497 shape hits, Tokyo 17:00, inclusion focused light, Blender panel visible, no production browser errors
+- Forced compatibility check: `?safe=1`, CPU preview, 56 rays, Blender panel visible, no production browser errors
+- Production export check: five files generated; sidecar reported app v0.20.0, commit `ce5c526`, format v2, the expected axis matrix, and captured camera aspect
+- Blender 5.2 end-to-end check from an equivalent browser bundle: OBJ and check STL hashes passed, host reconstructed at 75.505 × 70.477 × 80.000 mm, analytic inclusion at 22.509 mm diameter, receiver at 10,000 mm, camera frame 1470 × 1080, `.blend` saved and reopened successfully
+
 ## Release record — 2026-08-01 — v0.19.0
 
 - Git commit deployed: `dc263a93d474e5e3a8f29a9ed13f65f92a256d3b`
