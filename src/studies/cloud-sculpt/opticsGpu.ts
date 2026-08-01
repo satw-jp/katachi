@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Ball } from "./field.ts";
 import type { OpticalSettings } from "./optics.ts";
+import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
 
 const MAX_GPU_BALLS = 256;
 const RESULT_FLOATS = 20;
@@ -33,6 +34,9 @@ struct Params {
   basisV: vec4f,
   originCenter: vec4f,
   random: vec4f,
+  inclusionConfig: vec4f,
+  inclusionCenterRadius: vec4f,
+  energyInputs: vec4f,
 };
 
 struct RayResult {
@@ -139,6 +143,46 @@ fn floorIntersection(origin: vec3f, direction: vec3f, floorY: f32) -> vec4f {
   return vec4f(origin + direction * distance, 1.0);
 }
 
+fn raySphereInterval(origin: vec3f, direction: vec3f, center: vec3f, radius: f32) -> vec3f {
+  let offset = origin - center;
+  let halfB = dot(offset, direction);
+  let c = dot(offset, offset) - radius * radius;
+  let discriminant = halfB * halfB - c;
+  if (discriminant < 0.0) {
+    return vec3f(0.0);
+  }
+  let root = sqrt(discriminant);
+  let near = -halfB - root;
+  let far = -halfB + root;
+  if (far <= 0.0) {
+    return vec3f(0.0);
+  }
+  return vec3f(near, far, 1.0);
+}
+
+fn interfaceTransmission(iorA: f32, iorB: f32) -> f32 {
+  if (iorA <= 0.0 || iorB <= 0.0) {
+    return 1.0;
+  }
+  let reflection = pow((iorA - iorB) / (iorA + iorB), 2.0);
+  return 1.0 - reflection;
+}
+
+fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> f32 {
+  let hostIor = params.config0.z;
+  let inclusionIor = params.inclusionConfig.z;
+  let transmission = interfaceTransmission(1.0, hostIor);
+  let inclusionTransmission = interfaceTransmission(hostIor, inclusionIor);
+  return clamp(
+    exp(-params.energyInputs.x * max(0.0, hostDistance)
+      - params.inclusionConfig.w * max(0.0, inclusionDistance))
+      * transmission * transmission
+      * inclusionTransmission * inclusionTransmission,
+    0.0,
+    1.0,
+  );
+}
+
 @compute @workgroup_size(${WORKGROUP_SIZE})
 fn trace(@builtin(global_invocation_id) id: vec3u) {
   let index = id.x;
@@ -187,16 +231,75 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
     return;
   }
 
-  let exitPoint = exitHit.xyz;
+  var exitPoint = exitHit.xyz;
+  var finalHostDirection = insideDirection;
+  var energy = -1.0;
+
+  // One validated analytic inclusion only. Every failed inner refraction or
+  // incomplete host remarch leaves the original host-only path intact.
+  if (params.inclusionConfig.x > 0.5
+    && params.inclusionConfig.y > 0.5
+    && insideRefraction.w > 0.5) {
+    let interval = raySphereInterval(
+      entry,
+      insideDirection,
+      params.inclusionCenterRadius.xyz,
+      params.inclusionCenterRadius.w,
+    );
+    if (interval.z > 0.5 && interval.x > 0.012 && interval.y < exitHit.w - 0.012) {
+      let candidateEntry = entry + insideDirection * interval.x;
+      let candidateEntryNormal = normalize(candidateEntry - params.inclusionCenterRadius.xyz);
+      let inclusionRefraction = refractDirection(
+        insideDirection,
+        candidateEntryNormal,
+        params.config0.z / params.inclusionConfig.z,
+      );
+      if (inclusionRefraction.w > 0.5) {
+        let inclusionDirection = inclusionRefraction.xyz;
+        let insideStart = candidateEntry + inclusionDirection * 0.006;
+        let innerInterval = raySphereInterval(
+          insideStart,
+          inclusionDirection,
+          params.inclusionCenterRadius.xyz,
+          params.inclusionCenterRadius.w,
+        );
+        if (innerInterval.z > 0.5 && innerInterval.y > 0.006) {
+          let candidateExit = insideStart + inclusionDirection * innerInterval.y;
+          let candidateExitNormal = normalize(candidateExit - params.inclusionCenterRadius.xyz);
+          let returnRefraction = refractDirection(
+            inclusionDirection,
+            -candidateExitNormal,
+            params.inclusionConfig.z / params.config0.z,
+          );
+          if (returnRefraction.w > 0.5) {
+            let returnedHostDirection = returnRefraction.xyz;
+            let returnedStart = candidateExit + returnedHostDirection * 0.008;
+            let nestedExit = marchInside(returnedStart, returnedHostDirection, maxDistance);
+            if (nestedExit.w > 0.0) {
+              exitPoint = nestedExit.xyz;
+              finalHostDirection = returnedHostDirection;
+              energy = nestedEnergy(
+                interval.x + nestedExit.w + 0.008,
+                distance(candidateEntry, candidateExit),
+              );
+            }
+          }
+        }
+      }
+    }
+  }
   let exitNormal = fieldNormal(exitPoint);
-  let outgoingRefraction = refractDirection(insideDirection, -exitNormal, params.config0.z);
+  let outgoingRefraction = refractDirection(finalHostDirection, -exitNormal, params.config0.z);
   let outgoing = outgoingRefraction.xyz;
   let floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
   let bend = 1.0 - min(1.0, distance(outgoing, lightDirection) / 1.5);
+  if (energy < 0.0) {
+    energy = 0.5 + bend * 0.5;
+  }
 
   result.exitPoint = vec4f(exitPoint, 1.0);
   result.floorPoint = floorPoint;
-  result.resultInfo = vec4f(1.0, 1.0, floorPoint.w, 0.5 + bend * 0.5);
+  result.resultInfo = vec4f(1.0, 1.0, floorPoint.w, energy);
   results[index] = result;
 }
 `;
@@ -274,6 +377,28 @@ export class WebGpuOpticsEngine {
       const basisV = new THREE.Vector3().crossVectors(basisU, lightDirection).normalize();
       const originCenter = bounds.center.clone().addScaledVector(lightDirection, -bounds.radius * 2.6);
       const floorY = bounds.minY - Math.max(0.45, bounds.radius * 0.28);
+      // Keep the GPU path behind the same scene/containment validation as the
+      // CPU tracer. The shader remains intentionally bounded to this one
+      // analytic sphere and does not receive a second shape buffer.
+      const opticalScene = buildCloudOpticalScene(balls, k, settings);
+      const inclusionValid = opticalScene.inclusionValid
+        && Number.isFinite(settings.inclusionOffsetX)
+        && Number.isFinite(settings.inclusionOffsetY)
+        && Number.isFinite(settings.inclusionOffsetZ)
+        && Number.isFinite(settings.inclusionRadius)
+        && settings.inclusionRadius > 0
+        && Number.isFinite(settings.inclusionIor)
+        && settings.inclusionIor > 0;
+      const hostAbsorption = (
+        opticalScene.hostAbsorptionPerShapeUnit.r
+        + opticalScene.hostAbsorptionPerShapeUnit.g
+        + opticalScene.hostAbsorptionPerShapeUnit.b
+      ) / 3;
+      const inclusionAbsorption = (
+        opticalScene.inclusionAbsorptionPerShapeUnit.r
+        + opticalScene.inclusionAbsorptionPerShapeUnit.g
+        + opticalScene.inclusionAbsorptionPerShapeUnit.b
+      ) / 3;
 
       const ballValues = new Float32Array(Math.max(1, Math.min(balls.length, MAX_GPU_BALLS)) * 4);
       for (let index = 0; index < Math.min(balls.length, MAX_GPU_BALLS); index++) {
@@ -285,7 +410,9 @@ export class WebGpuOpticsEngine {
         ballValues[offset + 3] = ball.r;
       }
 
-      const parameterValues = new Float32Array(28);
+      // Params is ten vec4f values in WGSL (160 bytes). Keep this flat payload
+      // vec4-aligned so storage-buffer layout is explicit and portable.
+      const parameterValues = new Float32Array(40);
       parameterValues.set(
         [
           Math.min(balls.length, MAX_GPU_BALLS),
@@ -313,6 +440,18 @@ export class WebGpuOpticsEngine {
           originCenter.z,
           0,
           numericSeed(settings.opticalSeed),
+          0,
+          0,
+          0,
+          settings.inclusionEnabled ? 1 : 0,
+          inclusionValid ? 1 : 0,
+          settings.inclusionIor,
+          inclusionAbsorption,
+          settings.inclusionOffsetX,
+          settings.inclusionOffsetY,
+          settings.inclusionOffsetZ,
+          settings.inclusionRadius,
+          hostAbsorption,
           0,
           0,
           0,

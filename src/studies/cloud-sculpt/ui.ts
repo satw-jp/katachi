@@ -779,7 +779,7 @@ export function buildUi(
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
   opticsNote.textContent =
-    "v0.18.1: 内包はまず一つの球で境界を検証しています。外側に収まらない配置は描画しません。CPUは内包の集光まで追跡し、WebGPUでは対応まで隠します。";
+    "v0.18.2: 内包はまず一つの球で境界を検証しています。外側に収まらない配置は描画しません。CPUとWebGPUの光線は内包を通った最終方向から床の集光を作ります。";
   opticsControls.appendChild(opticsNote);
   hikariControls.appendChild(opticsControls);
 

@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Extended the WebGPU focused-light tracer through the first valid analytic spherical inclusion using the same OpticalScene adapter and containment gate as CPU. Completed rays refract host-to-inclusion-to-host, remarch the host exit, and apply approximate host/inclusion absorption plus interface losses; incomplete or TIR nested paths retain the established host-only result. Verified WGSL compilation and a 65,536-ray run on Apple metal-3. Added pure deterministic foundations for object-local pigment concentration variation and Tokyo solar position; neither is connected to the runtime controls yet."
+    },
     {
       "date": "2026-08-01",
       "note": "Extended the CPU focused-light tracer through the first valid spherical inclusion. Completed paths refract host-to-inclusion-to-host, remarch the host exit, and deposit at the receiver from the final direction; incomplete or TIR paths preserve the established host-only result. CPU caustics are shown for inclusions, while WebGPU inclusion caustics remain suppressed until its path follows the same scene contract. Added a pure deterministic multi-inclusion generator contract for later runtime connection and documented object-local pigment concentration fields for intentional color variation."

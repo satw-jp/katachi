@@ -471,7 +471,7 @@ function renderFrame(now: number): void {
   if (fpsAccum >= 500) {
     ui.setFps(1000 / (fpsAccum / frameCount));
     const computeStatus = hikariLayer.getOpticsComputeStatus();
-    const inclusionCausticReady = computeStatus.kind === "cpu";
+    const inclusionCausticReady = computeStatus.kind === "cpu" || computeStatus.kind === "webgpu";
     cloudRenderer.setInclusionCausticTrustworthy(inclusionCausticReady);
     if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
       ui.setOpticsComputeStatus({
@@ -481,7 +481,7 @@ function renderFrame(now: number): void {
     } else if (hikariSettings.inclusionEnabled) {
       ui.setOpticsComputeStatus({
         ...computeStatus,
-        text: `${computeStatus.text} · 内包1 · ${inclusionCausticReady ? "内包の集光" : "GPU内包集光は待機"}`,
+        text: `${computeStatus.text} · 内包1 · ${inclusionCausticReady ? "内包の集光" : "内包の集光を更新中"}`,
       });
     } else {
       ui.setOpticsComputeStatus(computeStatus);

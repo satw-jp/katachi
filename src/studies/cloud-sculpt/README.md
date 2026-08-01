@@ -70,6 +70,11 @@
   最終方向から床へ集光を作る。途中で全反射または追跡失敗が起きた光線は従来のhost-only結果へ戻る。WebGPUはまだ
   host-onlyなので、その計算時だけ内包の集光を隠す。`inclusionGenerator.ts`にはseedから一個または複数の球／soft-clusterを
   host内へ再現可能に配置し、壁厚・間隔・試行上限を検査する純粋契約を追加したが、画面への複数内包接続はまだ行っていない。
+- **WebGPU inclusion focused light v0.18.2**: WebGPU光線もCPUと同じscene adapterで一個の球状内包を検証し、
+  host→inclusion→hostの屈折後にhost出口を探し直して床へ集光する。内包経路にはhost／inclusion吸収と界面損失の
+  スカラー近似を適用し、途中の全反射・追跡失敗は既存host-only経路へ戻る。Apple metal-3でWGSLコンパイルと
+  65,536光線の完走を確認した。`pigmentField.ts`には物体ローカルな色材濃度むら、`solarPosition.ts`には東京の
+  日時から太陽方位・高度を得る純粋な基礎を追加したが、両者の画面接続は次段階とする。
 - **Hikari Optics v0.2**: Hikari内の `Flow / Optics` で光学観察へ切り替える。透明表面は画面と同じSDFを
   レイマーチし、入射面から内部、出射面までを屈折率に従って追跡する。別のCPU層が平行光線を同じ`fieldSdf`へ
   当て、入射／内部／出射の区間と受光面への到達点を加算表示する。Water / Glass、屈折率、光の角度、光線数、
