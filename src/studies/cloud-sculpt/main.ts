@@ -678,7 +678,7 @@ function persistComputeModeHandoff(): void {
     views: savedHikariViews,
     createdAt: hikariDocumentCreatedAt,
   });
-  sessionStorage.setItem(COMPUTE_MODE_HANDOFF_KEY, JSON.stringify({
+  localStorage.setItem(COMPUTE_MODE_HANDOFF_KEY, JSON.stringify({
     formatVersion: 1,
     currentCase: serializeHikariCase(currentCase),
     document: serializeHikariDocument(document),
@@ -687,9 +687,9 @@ function persistComputeModeHandoff(): void {
 }
 
 function restoreComputeModeHandoff(): void {
-  const text = sessionStorage.getItem(COMPUTE_MODE_HANDOFF_KEY);
+  const text = localStorage.getItem(COMPUTE_MODE_HANDOFF_KEY);
   if (!text) return;
-  sessionStorage.removeItem(COMPUTE_MODE_HANDOFF_KEY);
+  localStorage.removeItem(COMPUTE_MODE_HANDOFF_KEY);
   try {
     const handoff = JSON.parse(text) as {
       formatVersion?: unknown;
