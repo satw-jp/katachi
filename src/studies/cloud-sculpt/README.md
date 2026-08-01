@@ -53,6 +53,10 @@
   カメラ位置と注視点、アプリ版・互換モード・計算バックエンドのスナップショット、任意の観察メモを
   versioned JSON として保存する。「caseを開く」は形式を検証してから同じ観察状態へ戻す。派生メッシュや
   画素は保存しないため、これはレンダー出力ではなく比較・再訪用の基準ケースである。
+- **Optical scene contract v0.17.2**: `opticalScene.ts` に、RGB吸収・neutral/amber/darkの探索用プリセット、
+  実寸換算の出所を明示する `PhysicalScale`、Beer-Lambert の純粋な変換ヘルパーを追加した。既定の
+  `1 mm / shape-unit` は `assumed` であり実物寸法ではない。この契約は次の材料接続の準備で、現行Hikariの
+  scalar吸収、renderer、shader、CPU/WebGPU光線計算には未接続である。
 - **Hikari Optics v0.2**: Hikari内の `Flow / Optics` で光学観察へ切り替える。透明表面は画面と同じSDFを
   レイマーチし、入射面から内部、出射面までを屈折率に従って追跡する。別のCPU層が平行光線を同じ`fieldSdf`へ
   当て、入射／内部／出射の区間と受光面への到達点を加算表示する。Water / Glass、屈折率、光の角度、光線数、

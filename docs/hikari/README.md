@@ -134,6 +134,7 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 Related documents:
 
 - [Next implementation plan](implementation-plan.md)
+- [Reproducible baseline cases](cases/README.md)
 - [Blender validation protocol](blender-validation.md)
 - [Reference corpus](reference-corpus.md)
 - [Natural-light environments and receiver materials](lighting-environment.md)
