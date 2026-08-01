@@ -38,6 +38,11 @@ import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
 import { buildUi } from "./ui.ts";
+import {
+  summarizeReceiverField,
+  type ReceiverFieldSummary,
+} from "./receiverTransport.ts";
+import type { CausticFieldDiagnostics } from "./optics.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -56,6 +61,9 @@ let workspaceView: WorkspaceView =
 let hikariSettings = loadHikariSettings();
 let opticalSceneIssues: string[] = [];
 let opticalInclusionValid = false;
+let receiverFieldSummary: (ReceiverFieldSummary & {
+  transport: CausticFieldDiagnostics;
+}) | null = null;
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
   safeModeQuery === "1"
@@ -66,7 +74,14 @@ const cloudRenderer = new CloudRenderer(viewport, {
 });
 const hikariLayer = new HikariLayer(cloudRenderer.scene, {
   disableWebGpu: windowsCompatibilityMode,
-  onCausticField: (field) => cloudRenderer.setCausticField(field),
+  onCausticField: (field) => {
+    receiverFieldSummary = {
+      ...summarizeReceiverField(field),
+      transport: structuredClone(field.diagnostics),
+    };
+    document.documentElement.dataset.hikariReceiverField = JSON.stringify(receiverFieldSummary);
+    cloudRenderer.setCausticField(field);
+  },
 });
 
 // Seed the initial cloud so the app opens with something to look at
@@ -537,6 +552,9 @@ function downloadFile(blob: Blob, filename: string): void {
   getHikariSettings: () => ({ ...hikariSettings }),
   getCameraSnapshot: () => cloudRenderer.captureCamera(),
   getOpticsComputeStatus: () => hikariLayer.getOpticsComputeStatus(),
+  getReceiverFieldSummary: () => receiverFieldSummary == null
+    ? null
+    : structuredClone(receiverFieldSummary),
   getOpticalSceneValidation: () => {
     const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
     return {

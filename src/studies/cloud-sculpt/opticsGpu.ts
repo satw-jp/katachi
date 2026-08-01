@@ -169,6 +169,16 @@ fn interfaceTransmission(iorA: f32, iorB: f32) -> f32 {
   return 1.0 - reflection;
 }
 
+fn hostEnergy(hostDistance: f32) -> f32 {
+  let hostTransmission = interfaceTransmission(1.0, params.config0.z);
+  return clamp(
+    exp(-params.energyInputs.x * max(0.0, hostDistance))
+      * hostTransmission * hostTransmission,
+    0.0,
+    1.0,
+  );
+}
+
 fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> f32 {
   let hostIor = params.config0.z;
   let inclusionIor = params.inclusionConfig.z;
@@ -194,12 +204,11 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
 
   let u = random01(index, 0.13) * 2.0 - 1.0;
   let v = random01(index, 1.71) * 2.0 - 1.0;
-  let radialJitter = 0.76 + 0.24 * sqrt(random01(index, 4.11));
   let radius = params.config0.w;
   let width = params.config1.y;
   let origin = params.originCenter.xyz
-    + params.basisU.xyz * u * radius * 1.15 * width * radialJitter
-    + params.basisV.xyz * v * radius * 1.05 * width * radialJitter;
+    + params.basisU.xyz * u * radius * 1.15 * width
+    + params.basisV.xyz * v * radius * 1.05 * width;
   let lightDirection = normalize(params.lightDirection.xyz);
   let maxDistance = params.config1.w;
   let entryHit = marchToSurface(origin, lightDirection, maxDistance);
@@ -304,9 +313,8 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   if (outgoingRefraction.w > 0.5) {
     floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
   }
-  let bend = 1.0 - min(1.0, distance(outgoing, lightDirection) / 1.5);
   if (energy < 0.0) {
-    energy = 0.5 + bend * 0.5;
+    energy = hostEnergy(exitHit.w);
   }
 
   result.exitPoint = vec4f(exitPoint, 1.0);

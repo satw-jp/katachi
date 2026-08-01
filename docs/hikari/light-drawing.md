@@ -28,10 +28,10 @@ The current optics tracer can carry broad ball-SDF curvature to receiver hit pos
 
 - `surfaceVariation` perturbs only the body-view shader normal; CPU/WebGPU focused-light tracing does not see it;
 - the smooth ball field has no explicit mid-scale surface/thickness trace comparable to hand forming;
-- receiver hits are reduced to a 128×128 map and blurred twice;
-- the field is reframed from hit percentiles, normalized by each frame's maximum, thresholded, and converted to 8-bit values, so fine lines disappear and comparisons can shift;
-- decorative elliptical deposits and spectral offsets are mixed into the displayed caustic rather than derived from a ray-bundle Jacobian;
-- finite source size currently softens the transparent shadow but is not integrated through the focused-light tracer.
+- v0.22.0 now carries receiver hits as fixed-domain 512×512 Float32 flux; bilinear deposition and edge-normalized reconstruction preserve integrated flux, and display exposure is no longer normalized to each frame's peak;
+- the reconstruction footprint is still a fixed kernel rather than one derived from finite-source geometry or a ray-bundle Jacobian;
+- decorative Analysis ellipses and exploratory spectral position offsets are not yet removed from the validation path;
+- there is no progressive convergence accumulation, and the shared shape still lacks an authored mid-scale surface/thickness trace.
 
 These effects may remain useful as exploratory display modes, but they cannot be the validation path for light drawing.
 
@@ -64,7 +64,7 @@ Transparent shadow and focused light stay separately inspectable diagnostics, bu
 | LD4 receiver distance | LD1 | near/mid/far | position and spread change in fixed world coordinates |
 | LD5 physical references | chosen R04/R06 | photographed light condition | compare arc/cusp presence, direction, and sharp/soft tendency; not pixels |
 
-Begin at 256×256 with 16k–64k deterministic CPU samples. Treat 512×512 progressive accumulation as a GPU quality mode after the reference cases pass. The minimum geometric feature width must remain larger than normal/march epsilon; otherwise aliasing can invent light lines.
+Keep the current fixed 512×512 receiver field for the reference cases. Use 16k–64k deterministic WebGPU samples and the converged CPU-safe cap for cross-checks; progressive accumulation remains a later GPU quality mode. The minimum geometric feature width must remain larger than normal/march epsilon; otherwise aliasing can invent light lines.
 
 ## Natural-view experience
 

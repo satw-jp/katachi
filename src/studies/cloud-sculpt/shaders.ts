@@ -61,12 +61,27 @@ export const fragmentShader = /* glsl */ `
   uniform int uMonochrome;
   uniform sampler2D uCausticMap;
   uniform vec4 uCausticBounds;
+  uniform vec2 uCausticResolution;
   uniform float uCausticAvailable;
   uniform float uCausticStrength;
   uniform float uReceiverY;
   uniform int uCompatibilityMode;
 
   varying vec2 vUv;
+
+  vec3 sampleReceiverIrradiance(vec2 uv) {
+    vec2 resolution = max(uCausticResolution, vec2(1.0));
+    vec2 grid = uv * resolution - 0.5;
+    vec2 base = floor(grid);
+    vec2 fraction = fract(grid);
+    vec2 texel = 1.0 / resolution;
+    vec2 uv00 = (base + 0.5) * texel;
+    vec3 c00 = texture2D(uCausticMap, clamp(uv00, vec2(0.0), vec2(1.0))).rgb;
+    vec3 c10 = texture2D(uCausticMap, clamp(uv00 + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0))).rgb;
+    vec3 c01 = texture2D(uCausticMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0))).rgb;
+    vec3 c11 = texture2D(uCausticMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0))).rgb;
+    return mix(mix(c00, c10, fraction.x), mix(c01, c11, fraction.x), fraction.y);
+  }
 
   // Polynomial smooth-min (Inigo Quilez). k=0 -> hard min (see field.ts).
   float smoothMin(float a, float b, float k) {
@@ -458,20 +473,13 @@ export const fragmentShader = /* glsl */ `
         vec3 direct = ground * uSunIntensity * transmission * 0.42;
         vec3 horizonFill = vec3(0.08, 0.14, 0.18) * uSkyIntensity * (1.0 - distanceFade);
         vec2 causticUv = (floorPoint.xz - uCausticBounds.xy) / uCausticBounds.zw;
-        float causticEdgeDistance = min(
-          min(causticUv.x, 1.0 - causticUv.x),
-          min(causticUv.y, 1.0 - causticUv.y)
-        );
-        float causticDomainRadius = length((causticUv - 0.5) * 2.0);
-        // The receiver texture is finite, but its domain is not a light
-        // source. Feather it to zero before the boundary so its rectangular
-        // extent can never appear as a projected patch on the floor.
-        float causticWindow = smoothstep(0.0, 0.10, causticEdgeDistance)
-          * (1.0 - smoothstep(0.82, 1.05, causticDomainRadius));
-        vec3 causticDensity = texture2D(
-          uCausticMap,
-          clamp(causticUv, vec2(0.0), vec2(1.0))
-        ).rgb * causticWindow * uCausticAvailable;
+        vec2 causticLower = step(vec2(0.0), causticUv);
+        vec2 causticUpper = step(causticUv, vec2(1.0));
+        float causticInside = causticLower.x * causticLower.y
+          * causticUpper.x * causticUpper.y;
+        vec3 causticDensity = sampleReceiverIrradiance(causticUv)
+          * causticInside
+          * uCausticAvailable;
         vec3 warmCaustic = vec3(1.0, 0.91, 0.62)
           * dot(causticDensity, vec3(0.333333));
         float commonCaustic = min(
@@ -492,7 +500,7 @@ export const fragmentShader = /* glsl */ `
         )
           * uCausticStrength
           * uSunIntensity
-          * 0.82;
+          * 0.65;
         // Preserve local color and shape while compressing only the brightest
         // peaks, which otherwise bleach the transparent shadow to a white box.
         causticLight /= vec3(1.0) + causticLight * 0.38;

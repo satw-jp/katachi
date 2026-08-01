@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Replaced the per-frame reframed, peak-normalized 8-bit focused-light texture with a fixed 32×32 receiver study area sampled at 512² Float32 flux. CPU and WebGPU now weight deposits by emitted aperture area/sample count, include the same host absorption and interface loss, preserve flux through bilinear deposition and edge-normalized blur, and normalize the five spectral bands per RGB channel. The forced-safe CPU reference now uses up to 2,048 transport samples while keeping visible diagnostic geometry bounded. Deterministic tests cover flux conservation, sample-count and grid invariance, absorption monotonicity, fixed bounds, support rejection, spectral normalization, and ledger residual. Tokyo 09:00/12:00/17:00 WebGPU and the 17:00 CPU fallback passed locally without a detached bright patch; at 17:00 total CPU/WebGPU flux differed by 0.78% and centroids by 0.18 shape unit. Identical finite-light samples, baseline replacement, runtime energy-ledger closure, and a strict parity gate remain pending."
+    },
     {
       "date": "2026-08-01",
       "note": "Corrected the detached focused-light patch reported in the Tokyo 17:00 Natural view. Natural/Analysis floor intersections, the CPU tracer, and the WebGPU tracer now all take the receiver height from OpticalScene instead of mixing a fixed visible floor with a shape-derived caustic floor; the previous 0.223 shape-unit plane mismatch displaced evening hits by about 0.61 unit. Unresolved outer-interface TIR no longer deposits receiver energy. The author-facing Natural composite temporarily gates focused light with the same finite-source transmission support as the visible transparent shadow. This is the first slice of the shared receiver-transport plan; peak-normalized 8-bit caustic fields still need replacement by fixed-domain HDR flux and an energy ledger. Production build and both WebGPU 65,536-ray and forced-safe CPU 88-ray Natural views passed."

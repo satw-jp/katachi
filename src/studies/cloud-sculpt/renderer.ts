@@ -55,12 +55,14 @@ export class CloudRenderer {
     this.controls.target.set(0, 0, 0);
 
     this.causticTexture = new THREE.DataTexture(
-      new Uint8Array([0, 0, 0, 255]),
+      new Float32Array([0, 0, 0, 0]),
       1,
       1,
       THREE.RGBAFormat,
-      THREE.UnsignedByteType,
+      THREE.FloatType,
     );
+    this.causticTexture.minFilter = THREE.NearestFilter;
+    this.causticTexture.magFilter = THREE.NearestFilter;
     this.causticTexture.needsUpdate = true;
 
     this.material = new THREE.ShaderMaterial({
@@ -110,6 +112,7 @@ export class CloudRenderer {
         uPolarization: { value: 0.45 },
         uCausticMap: { value: this.causticTexture },
         uCausticBounds: { value: new THREE.Vector4(0, 0, 1, 1) },
+        uCausticResolution: { value: new THREE.Vector2(1, 1) },
         uCausticAvailable: { value: 0 },
         uCausticStrength: { value: 1.2 },
         uReceiverY: { value: -2.35 },
@@ -217,30 +220,42 @@ export class CloudRenderer {
   }
 
   setCausticField(field: CausticField): void {
+    const textureData = new Float32Array(field.width * field.height * 4);
+    const inverseTexelArea = 1 / Math.max(1e-9, field.texelArea);
+    for (let index = 0; index < field.width * field.height; index++) {
+      const sourceOffset = index * 3;
+      const targetOffset = index * 4;
+      textureData[targetOffset] = field.depositedFluxRgb[sourceOffset] * inverseTexelArea;
+      textureData[targetOffset + 1] = field.depositedFluxRgb[sourceOffset + 1] * inverseTexelArea;
+      textureData[targetOffset + 2] = field.depositedFluxRgb[sourceOffset + 2] * inverseTexelArea;
+      textureData[targetOffset + 3] = field.geometricCoverage[index];
+    }
     this.causticTexture.dispose();
     this.causticTexture = new THREE.DataTexture(
-      field.data,
+      textureData,
       field.width,
       field.height,
       THREE.RGBAFormat,
-      THREE.UnsignedByteType,
+      THREE.FloatType,
     );
     this.causticTexture.wrapS = THREE.ClampToEdgeWrapping;
     this.causticTexture.wrapT = THREE.ClampToEdgeWrapping;
-    this.causticTexture.minFilter = THREE.LinearFilter;
-    this.causticTexture.magFilter = THREE.LinearFilter;
+    // Float linear filtering is extension-dependent. The shader performs the
+    // same four-tap interpolation explicitly so the Windows-safe path stays
+    // on a sampling capability available in WebGL2.
+    this.causticTexture.minFilter = THREE.NearestFilter;
+    this.causticTexture.magFilter = THREE.NearestFilter;
     this.causticTexture.generateMipmaps = false;
     this.causticTexture.needsUpdate = true;
     this.material.uniforms.uCausticMap.value = this.causticTexture;
     this.material.uniforms.uCausticBounds.value.set(
-      field.minX,
-      field.minZ,
-      Math.max(0.001, field.sizeX),
-      Math.max(0.001, field.sizeZ),
+      field.minU,
+      field.minV,
+      Math.max(0.001, field.sizeU),
+      Math.max(0.001, field.sizeV),
     );
-    this.causticTextureHasData = field.data.some(
-      (value, index) => index % 4 !== 3 && value > 0,
-    );
+    this.material.uniforms.uCausticResolution.value.set(field.width, field.height);
+    this.causticTextureHasData = field.depositedFluxRgb.some((value) => value > 0);
     this.applyCausticAvailability();
   }
 

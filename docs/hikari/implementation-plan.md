@@ -1,6 +1,6 @@
 # hikari — next implementation plan
 
-Status: active — Phase 3A/3B first slice implemented; HDR transport pending
+Status: active — Phase 3A complete; 3B/3C partial; 3D implemented; 3E partial
 UpdatedAt: 2026-08-01
 
 ## Design principle
@@ -15,7 +15,7 @@ The roadmap has one hard order: finish the transparent-material experience first
 
 ## 2026-08-01 plan review — optical coherence is the blocking gate
 
-The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. Investigation found that the Natural floor and straight-through shadow use a fixed receiver at `y = -2.35`, while the CPU and WebGPU focused-light tracers derive another receiver height from the current shape bounds. In the default 17:00 Tokyo case the plane difference is about `0.223` shape unit, which moves the projected hit by about `0.61` shape unit. The current focused-light field also uses per-frame peak normalization, decorative spectral offsets, and unconditional additive compositing, so it cannot yet prove where the energy came from.
+The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. v0.21.1 removed the `0.223` shape-unit receiver-plane disagreement and invalid TIR deposits. v0.22.0 then replaced adaptive bounds and peak-normalized 8-bit display data with a fixed-domain Float32 flux field. Natural still adds that transported field to an independently evaluated direct term and uses a temporary shadow-support gate; the same finite-light samples do not yet produce both the unobstructed baseline and refracted replacement, so runtime energy closure is not yet proven.
 
 This changes the critical path. The following gate blocks room rendering, living shape, whole-object placement, physical scale, multiple bodies, and Ambient Mix:
 
@@ -47,7 +47,7 @@ evidence cases
   -> Ambient Mix
 ```
 
-The first implementation slice after this review is deliberately narrow: remove the receiver-plane disagreement and invalid TIR deposits, expose support diagnostics, and make the disconnected patch impossible. HDR flux conservation replaces the current normalized `CausticField` in the following slice; it must not be hidden inside a cosmetic shader adjustment.
+The first two slices are now implemented: receiver coherence/valid-path correction in v0.21.1, followed by fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0. The next slice is baseline replacement from one finite-light sample set, runtime ledger closure, support diagnostics, and automated CPU/WebGPU tolerance gates.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -198,11 +198,11 @@ Reference composition replaces affected baseline direct light with transported l
 
 Implementation slices:
 
-1. **3A — receiver coherence:** remove shape-derived floor heights and route Natural, CPU, WebGPU, cases, and Blender through `OpticalScene.receiver`; share world-to-receiver coordinates.
-2. **3B — valid paths:** suppress receiver deposits for unresolved TIR and incomplete paths; remove decorative spectral hit offsets from validation mode.
-3. **3C — support contract:** add `shadow-contained` as the author default and a diagnostic overlay that shows any deposited energy outside support.
-4. **3D — HDR reference field:** replace percentile bounds, double edge windows, 8-bit peak normalization, and non-integrating blur with a fixed-domain floating-point field and energy-normalized kernel.
-5. **3E — CPU/WebGPU parity:** use identical deterministic finite-light vectors and weights, then port the passing reference transport.
+1. **3A — receiver coherence — implemented in v0.21.1:** Natural, CPU, and WebGPU use `OpticalScene.receiver`; saved cases and Blender retain the same receiver contract.
+2. **3B — valid paths — partial:** unresolved outer-interface TIR no longer deposits receiver energy. Decorative spectral position offsets still need removal from validation mode.
+3. **3C — support contract — partial:** `shadow-contained` is the author default through a temporary exact-shadow gate. A receiver diagnostic overlay and measured leakage tolerance remain.
+4. **3D — HDR reference field — implemented in v0.22.0:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization.
+5. **3E — CPU/WebGPU parity — partial:** both backends now share rectangular aperture extent, throughput semantics, spectral normalization, flux weighting, and stable receiver coordinates. Identical deterministic source samples, baseline replacement, and automated parity thresholds remain.
 
 Acceptance:
 
