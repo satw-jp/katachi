@@ -42,10 +42,11 @@ test(".hkr round-trips multiple named views", () => {
   assert.deepEqual(parseHikariDocument(serializeHikariDocument(document)), document);
 });
 
-test(".hkr preserves a custom transmitted host color", () => {
+test(".hkr preserves custom transmitted host and inclusion colors", () => {
   const customCase = fixedCase("custom-color");
   customCase.hikariSettings.hostPreset = "custom";
   customCase.hikariSettings.hostTransmissionColor = "#3f8ad1";
+  customCase.hikariSettings.inclusionTransmissionColor = "#d17a3f";
   const document = createHikariDocument({
     documentId: "custom-color-study",
     appVersion: "test",
@@ -61,6 +62,7 @@ test(".hkr preserves a custom transmitted host color", () => {
   const restored = parseHikariDocument(serializeHikariDocument(document));
   assert.equal(restored.views[0].case.hikariSettings.hostPreset, "custom");
   assert.equal(restored.views[0].case.hikariSettings.hostTransmissionColor, "#3f8ad1");
+  assert.equal(restored.views[0].case.hikariSettings.inclusionTransmissionColor, "#d17a3f");
 });
 
 test(".hkr rejects duplicate view ids and an unknown active view", () => {

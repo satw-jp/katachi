@@ -53,6 +53,7 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   hostTransmissionColor: "#f0a85b",
   inclusionEnabled: true,
   inclusionIor: 1.5,
+  inclusionTransmissionColor: "#ffffff",
   inclusionAbsorption: 0.02,
   inclusionOffsetX: 0,
   inclusionOffsetY: 0,
@@ -371,6 +372,10 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
         ? value.inclusionEnabled
         : DEFAULT_HIKARI_SETTINGS.inclusionEnabled,
     inclusionIor: clampNumber(value.inclusionIor, 1, 1.8, DEFAULT_HIKARI_SETTINGS.inclusionIor),
+    inclusionTransmissionColor: normalizeHexColor(
+      value.inclusionTransmissionColor,
+      DEFAULT_HIKARI_SETTINGS.inclusionTransmissionColor,
+    ),
     inclusionAbsorption: clampNumber(
       value.inclusionAbsorption,
       0,

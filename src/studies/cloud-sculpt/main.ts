@@ -49,6 +49,11 @@ import {
   type ReceiverFieldSummary,
 } from "./receiverTransport.ts";
 import type { CausticFieldDiagnostics, ReceiverParityReport } from "./optics.ts";
+import {
+  advanceCameraOrbit,
+  DEFAULT_CAMERA_ORBIT,
+  type CameraOrbitSettings,
+} from "./cameraOrbit.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -78,6 +83,7 @@ let savedHikariViews: HikariDocumentView[] = [];
 let activeHikariViewId: string | null = null;
 let activeHikariDocumentId = `hikari-${new Date().toISOString().slice(0, 10)}`;
 let hikariDocumentCreatedAt = new Date().toISOString();
+let cameraOrbit: CameraOrbitSettings = { ...DEFAULT_CAMERA_ORBIT };
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
   safeModeQuery === "1"
@@ -282,6 +288,20 @@ const ui = buildUi(
     }
     syncProgressiveRenderStatus(true);
   },
+  onCameraOrbitChange: (settings) => {
+    cameraOrbit = {
+      running: settings.running,
+      durationSeconds: Math.min(180, Math.max(10, settings.durationSeconds)),
+      direction: settings.direction,
+    };
+    if (cameraOrbit.running) {
+      cloudRenderer.invalidateProgressiveRender(
+        "自動回転を開始したためリアルタイムへ戻りました",
+      );
+    }
+    ui.setCameraOrbitState(cameraOrbit);
+    syncProgressiveRenderStatus(true);
+  },
   onViewChange: (view) => {
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
@@ -317,6 +337,10 @@ ui.setHistoryCount(history.length);
 applyWorkspaceView();
 restoreComputeModeHandoff();
 cloudRenderer.controls.addEventListener("start", () => {
+  if (cameraOrbit.running) {
+    cameraOrbit = { ...cameraOrbit, running: false };
+    ui.setCameraOrbitState(cameraOrbit);
+  }
   cloudRenderer.invalidateProgressiveRender(
     "視点が変わったためリアルタイムへ戻りました",
   );
@@ -923,6 +947,17 @@ let fpsAccum = 0;
 function renderFrame(now: number): void {
   const dt = now - lastFrame;
   lastFrame = now;
+  if (cameraOrbit.running && workspaceView === "hikari") {
+    const target = cloudRenderer.controls.target;
+    const position = cloudRenderer.camera.position;
+    const next = advanceCameraOrbit(
+      [position.x, position.y, position.z],
+      [target.x, target.y, target.z],
+      dt / 1000,
+      cameraOrbit,
+    );
+    position.set(next[0], next[1], next[2]);
+  }
   frameCount++;
   fpsAccum += dt;
   if (fpsAccum >= 500) {
@@ -991,6 +1026,9 @@ function progressiveRenderAvailability(): {
   }
   if (receiverTransportPending) {
     return { available: false, reason: "受光面の計算完了を待っています" };
+  }
+  if (cameraOrbit.running) {
+    return { available: false, reason: "自動回転を停止すると静止画レンダーを開始できます" };
   }
   const resolution = cloudRenderer.getProgressiveRenderResolution();
   return { available: true, resolution: `${resolution.width}×${resolution.height}` };

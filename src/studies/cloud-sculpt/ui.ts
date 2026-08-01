@@ -28,6 +28,7 @@ import {
   PROGRESSIVE_SAMPLE_OPTIONS,
   type ProgressiveRenderState,
 } from "./progressiveRender.ts";
+import type { CameraOrbitSettings } from "./cameraOrbit.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -60,6 +61,7 @@ export interface UiCallbacks {
     kind: "passed" | "failed" | "unavailable";
   }>;
   onProgressiveRenderToggle: (targetSamples: number) => void;
+  onCameraOrbitChange: (settings: CameraOrbitSettings) => void;
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
 }
 
@@ -98,6 +100,7 @@ export interface UiHandles {
     state: ProgressiveRenderState,
     availability: { available: boolean; reason?: string; resolution?: string },
   ) => void;
+  setCameraOrbitState: (settings: CameraOrbitSettings) => void;
 }
 
 export interface HikariViewSummary {
@@ -482,6 +485,54 @@ export function buildUi(
   };
   hikariControls.appendChild(imageExportButton);
   hikariControls.appendChild(imageExportStatus);
+
+  const cameraOrbitButton = document.createElement("button");
+  cameraOrbitButton.type = "button";
+  cameraOrbitButton.textContent = "自動回転を開始";
+  cameraOrbitButton.setAttribute("aria-pressed", "false");
+  const cameraOrbitRow = document.createElement("div");
+  cameraOrbitRow.className = "row camera-orbit-row";
+  const cameraOrbitDirection = document.createElement("select");
+  cameraOrbitDirection.setAttribute("aria-label", "自動回転の方向");
+  for (const [value, label] of [["clockwise", "右回り"], ["counterclockwise", "左回り"]] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    cameraOrbitDirection.appendChild(option);
+  }
+  const cameraOrbitDuration = document.createElement("input");
+  cameraOrbitDuration.type = "range";
+  cameraOrbitDuration.setAttribute("aria-label", "自動回転の1周時間");
+  cameraOrbitDuration.min = "10";
+  cameraOrbitDuration.max = "180";
+  cameraOrbitDuration.step = "5";
+  cameraOrbitDuration.value = "60";
+  const cameraOrbitDurationOut = document.createElement("span");
+  cameraOrbitDurationOut.className = "value-out";
+  cameraOrbitDurationOut.textContent = "1周 60秒";
+  cameraOrbitRow.append(cameraOrbitDirection, cameraOrbitDuration, cameraOrbitDurationOut);
+  const cameraOrbitHint = document.createElement("div");
+  cameraOrbitHint.className = "hint";
+  cameraOrbitHint.textContent = "中心・距離・高さを保って周回します。停止後にRENDERできます。";
+  const emitCameraOrbit = (running: boolean): void => {
+    callbacks.onCameraOrbitChange({
+      running,
+      durationSeconds: Number(cameraOrbitDuration.value),
+      direction: cameraOrbitDirection.value === "counterclockwise"
+        ? "counterclockwise"
+        : "clockwise",
+    });
+  };
+  cameraOrbitButton.onclick = () => emitCameraOrbit(
+    cameraOrbitButton.getAttribute("aria-pressed") !== "true",
+  );
+  cameraOrbitDirection.onchange = () => emitCameraOrbit(
+    cameraOrbitButton.getAttribute("aria-pressed") === "true",
+  );
+  cameraOrbitDuration.oninput = () => {
+    cameraOrbitDurationOut.textContent = `1周 ${cameraOrbitDuration.value}秒`;
+    emitCameraOrbit(cameraOrbitButton.getAttribute("aria-pressed") === "true");
+  };
 
   const blenderTitle = document.createElement("div");
   blenderTitle.className = "hikari-section-title";
@@ -905,7 +956,7 @@ export function buildUi(
   inclusionToggle.className = "optical-ray-toggle";
   const applyInclusionVisibility = (enabled: boolean): void => {
     inclusionToggle.classList.toggle("active", enabled);
-    inclusionToggle.textContent = `無色の内包 ${enabled ? "ON" : "OFF"}`;
+    inclusionToggle.textContent = `内包 ${enabled ? "ON" : "OFF"}`;
     inclusionToggle.setAttribute("aria-pressed", String(enabled));
     inclusionControls.style.display = enabled ? "" : "none";
   };
@@ -916,6 +967,23 @@ export function buildUi(
     updateHikari({ inclusionEnabled: enabled });
   };
   opticsControls.appendChild(inclusionToggle);
+
+  const inclusionColorRow = document.createElement("label");
+  inclusionColorRow.className = "custom-host-color-row";
+  const inclusionColorLabel = document.createElement("span");
+  inclusionColorLabel.textContent = "内包の透過色";
+  const inclusionColorInput = document.createElement("input");
+  inclusionColorInput.type = "color";
+  inclusionColorInput.value = hikariState.inclusionTransmissionColor;
+  inclusionColorInput.title = "内包を通して見せたい色。濃さは内包の吸収で調整します";
+  inclusionColorInput.onchange = () => updateHikari({
+    inclusionTransmissionColor: inclusionColorInput.value,
+  });
+  inclusionColorRow.append(inclusionColorLabel, inclusionColorInput);
+  inclusionControls.appendChild(inclusionColorRow);
+  hikariControlSyncers.push((settings) => {
+    inclusionColorInput.value = settings.inclusionTransmissionColor;
+  });
 
   const inclusionSliders: Array<{
     key: keyof Pick<
@@ -959,15 +1027,21 @@ export function buildUi(
 
   const matchBlenderInclusion = document.createElement("button");
   matchBlenderInclusion.type = "button";
-  matchBlenderInclusion.textContent = "同じ樹脂（色だけ薄い）";
-  matchBlenderInclusion.title = "外側と内側の屈折率を揃え、RefのBlenderと同じ吸収差の比較へ合わせます";
+  matchBlenderInclusion.textContent = "同じ樹脂（内側はほぼ無色）";
+  matchBlenderInclusion.title = "外側と内側の屈折率を揃え、内側をほぼ無色の吸収領域にします";
   matchBlenderInclusion.onclick = () => {
     const inclusionIor = hikariState.ior;
     const inclusionAbsorption = 0.02;
     inclusionSetters.get("inclusionIor")?.(inclusionIor);
     inclusionSetters.get("inclusionAbsorption")?.(inclusionAbsorption);
     applyInclusionVisibility(true);
-    updateHikari({ inclusionEnabled: true, inclusionIor, inclusionAbsorption });
+    inclusionColorInput.value = "#ffffff";
+    updateHikari({
+      inclusionEnabled: true,
+      inclusionIor,
+      inclusionTransmissionColor: "#ffffff",
+      inclusionAbsorption,
+    });
   };
   const inclusionRelationshipNote = document.createElement("div");
   inclusionRelationshipNote.className = "hint";
@@ -1311,6 +1385,14 @@ export function buildUi(
           ? `BODY · WebGL2${resolution} · ${state.message} · ${state.completedSamples} spp · ${elapsed} · PNGに保持中`
           : `BODY · WebGL2${resolution} · ${availability.available ? state.message : availability.reason ?? state.message}`;
     },
+    setCameraOrbitState: (settings) => {
+      cameraOrbitButton.setAttribute("aria-pressed", String(settings.running));
+      cameraOrbitButton.textContent = settings.running ? "自動回転を停止" : "自動回転を開始";
+      cameraOrbitButton.dataset.running = String(settings.running);
+      cameraOrbitDirection.value = settings.direction;
+      cameraOrbitDuration.value = String(settings.durationSeconds);
+      cameraOrbitDurationOut.textContent = `1周 ${settings.durationSeconds}秒`;
+    },
   };
 
   function updateHikari(patch: Partial<HikariSettings>): void {
@@ -1433,6 +1515,9 @@ export function buildUi(
   function organiseHikariProperties(): void {
     groupDirectSections(flowControls, new Set(["表示"]));
     const recordGroup = createPropertyGroup("記録", [
+      cameraOrbitButton,
+      cameraOrbitRow,
+      cameraOrbitHint,
       caseIdInput,
       observationInput,
       caseSave,

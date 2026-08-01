@@ -29,7 +29,9 @@ If a Progressive image is retained, Image exports that completed accumulation an
 
 ## Custom outer-host absorption
 
-From v0.27.0, each nested Hikari case may store `hostPreset: "custom"` and `hostTransmissionColor: "#rrggbb"` in its Hikari settings. This is the author's desired transmitted sRGB hue, not a painted surface color and not the derived RGB absorption coefficient. The existing Absorption value remains the separate concentration; the OpticalScene adapter reconstructs the complementary linear Beer–Lambert coefficients when the view opens. Documents and legacy cases that omit `hostTransmissionColor` normalize to the existing amber default. Inclusion custom color and spatial concentration fields are not part of the current document contract yet.
+From v0.27.0, each nested Hikari case may store `hostPreset: "custom"` and `hostTransmissionColor: "#rrggbb"` in its Hikari settings. This is the author's desired transmitted sRGB hue, not a painted surface color and not the derived RGB absorption coefficient. The existing Absorption value remains the separate concentration; the OpticalScene adapter reconstructs the complementary linear Beer–Lambert coefficients when the view opens. Documents and legacy cases that omit `hostTransmissionColor` normalize to the existing amber default.
+
+From v0.28.0, `inclusionTransmissionColor: "#rrggbb"` provides the same author-facing separation for the one analytic inclusion. `inclusionAbsorption` remains its independent concentration. A missing inclusion color migrates to white, which preserves the legacy neutral inclusion coefficient exactly. The derived RGB coefficients, rather than the picker value, travel through BODY, receiver transport, and the Blender sidecar. Spatial concentration fields are not part of the current document contract yet.
 
 ## Version 1 structure
 

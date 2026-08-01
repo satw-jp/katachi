@@ -107,7 +107,7 @@ Implemented today:
 Known limits:
 
 - runtime rendering supports one validated analytic spherical inclusion; the scene and bundle contracts allow arrays, but generic multiple-inclusion meshes are not connected yet;
-- outer material offers clear/amber/dark presets plus one custom transmitted hue. Custom inclusion absorption color is not connected yet, and the later versioned pigment concentration field is still needed for reproducible spatial color variation;
+- outer material offers clear/amber/dark presets plus one custom transmitted hue; the analytic inclusion now has an independent transmitted hue and concentration. A later versioned pigment concentration field is still needed for reproducible spatial color variation;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
 - unresolved nested view rays retain the already solved outer-host path so bounded realtime work does not appear as black or a flat opaque patch. This is an explicitly view-only continuity approximation; recursive internal reflection/refraction remains open and receiver transport still rejects unresolved energy;
@@ -150,6 +150,7 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 
 Related documents:
 
+- [Current week execution plan](current-week-plan.md)
 - [Next implementation plan](implementation-plan.md)
 - [Reproducible baseline cases](cases/README.md)
 - [Blender validation protocol](blender-validation.md)

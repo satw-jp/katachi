@@ -1,6 +1,6 @@
 # hikari — next implementation plan
 
-Status: active — Phase 3A complete; 3B/3C partial; 3D implemented; 3E partial
+Status: active — Phase 1/2 partial; 3A–3D implemented; 3E runner implemented with raw/case-family acceptance open; Phase 4 foundations only; Phase 5 pending; capture first slice implemented
 UpdatedAt: 2026-08-01
 
 ## Design principle
@@ -11,9 +11,11 @@ CPU is the reference path for new medium-boundary behavior. The view shader and 
 
 Reproducibility serves exploration. It captures a discovery for Blender or physical work, but ordinary looking, orbiting, and trying variations must not become a case-management task.
 
-The roadmap has one hard order: finish the transparent-material experience first, then add whole-object placement. Placement data is reserved in the scene contract now, but placement controls do not compete with optical work before the quality gate passes.
+The roadmap has one hard order: finish the transparent-material experience, then connect living shape and freeze, then add whole-object placement. Placement data is reserved in the scene contract now, but placement controls do not compete with optical work before the quality gate passes.
 
-## 2026-08-01 plan review — optical coherence is the blocking gate
+The bounded execution schedule for the active branch is [current-week-plan.md](current-week-plan.md).
+
+## 2026-08-01 plan review — receiver transport coherence is the blocking gate
 
 The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. v0.21.1 removed the `0.223` shape-unit receiver-plane disagreement and invalid TIR deposits. v0.22.0 replaced adaptive bounds and peak-normalized 8-bit display data with a fixed-domain Float32 flux field. v0.23.0 completes the first paired composition: one seeded aperture/sun-disk sample records both its unobstructed baseline and refracted RGB deposit, Natural subtracts the former before adding the latter, and support containment is applied to transport data rather than as a second shader effect.
 
@@ -39,15 +41,15 @@ evidence cases
   -> Natural composition
   -> WebGPU parity and safe fallback
   -> Blender / physical comparison
+  -> room and windows / receiver materials
   -> transparent-material quality gate
-  -> room and windows
   -> living shape and freeze
   -> placement
   -> scale and multiple bodies
   -> Ambient Mix
 ```
 
-The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
+Receiver slices 3A–3D are implemented, and the isolated reconstructed-field runner for 3E is implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E acceptance remains open until raw or fixed-radius auxiliary metrics and a representative fixed case family also pass.
 
 v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger. v0.26.0 adds the first separate BODY Progressive Render: author-triggered 16/64/256-spp WebGL2 accumulation, STOP retention, edit invalidation, and progressive PNG capture without changing receiver transport or claiming deeper paths. v0.27.0 adds a custom outer-host transmitted hue while keeping absorption concentration separate and routes the resulting shared RGB coefficients through BODY, receiver transport, saved settings, and Blender.
 
@@ -90,14 +92,15 @@ Acceptance:
 
 ### Custom absorption color and concentration
 
-**Outer host implemented in v0.27.0; inclusion color and spatial variation remain next.** This control is not surface paint or a display tint. The author chooses the desired transmitted sRGB hue, while the existing Absorption slider remains an independent concentration. The adapter normalizes the hue, converts it to linear light, and derives complementary Beer–Lambert RGB coefficients: channels that should transmit remain weakly absorbed while the others absorb more strongly. Picker brightness therefore does not secretly change concentration.
+**Outer host implemented in v0.27.0 and the one analytic inclusion in v0.28.0. Spatial variation follows uniform-material parity and deeper Progressive paths.** This control is not surface paint or a display tint. The author chooses the desired transmitted sRGB hue, while the existing Absorption slider remains an independent concentration. The adapter normalizes the hue, converts it to linear light, and derives complementary Beer–Lambert RGB coefficients: channels that should transmit remain weakly absorbed while the others absorb more strongly. Picker brightness therefore does not secretly change concentration.
 
 The outer-host setting is saved as `hostPreset: "custom"` plus `hostTransmissionColor`. Realtime and Progressive BODY rendering, transparent shadow, CPU/WebGPU receiver transport, and Blender export consume the same adapter coefficients. Old cases and `.hkr` views with no color field normalize to the existing amber default. A hue or concentration edit changes the optical scene revision, discards any retained Progressive accumulation, and returns to Realtime Observation.
 
-Next material slices:
+Next material slices, in dependency order:
 
-- give each inclusion its own absorption hue and concentration, including zero concentration for a clear region;
-- add a small set of reproducible object-local uneven-concentration modes before free painting;
+- close representative uniform-material CPU/WebGPU receiver parity cases;
+- make Progressive BODY consume the same per-medium material through deeper bounded paths;
+- then add a small set of reproducible object-local uneven-concentration modes before free painting;
 - keep absorption variation, surface roughness, geometric thickness, haze/scattering, and a true refractive boundary explicitly separate;
 - connect the same versioned concentration field to Realtime, Progressive BODY, transparent shadow, CPU/WebGPU receiver transport, saved `.hkr` views, and Blender reconstruction.
 

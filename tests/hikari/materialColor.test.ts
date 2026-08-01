@@ -56,6 +56,79 @@ test("Hikari settings normalize custom colors and migrate legacy documents", () 
     normalizeHikariSettings({}).hostTransmissionColor,
     DEFAULT_HIKARI_SETTINGS.hostTransmissionColor,
   );
+  assert.equal(
+    normalizeHikariSettings({ inclusionTransmissionColor: "#35A7d4" })
+      .inclusionTransmissionColor,
+    "#35a7d4",
+  );
+  assert.equal(
+    normalizeHikariSettings({ inclusionTransmissionColor: "invalid" })
+      .inclusionTransmissionColor,
+    DEFAULT_HIKARI_SETTINGS.inclusionTransmissionColor,
+  );
+});
+
+test("inclusion transmitted color preserves legacy neutral concentration and reaches every backend", () => {
+  const neutral = buildCloudOpticalScene(
+    [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],
+    0.6,
+    normalizeHikariSettings({
+      ...DEFAULT_HIKARI_SETTINGS,
+      inclusionTransmissionColor: "#ffffff",
+      inclusionAbsorption: 0.02,
+    }),
+  );
+  assert.deepEqual(neutral.inclusionAbsorptionPerShapeUnit, {
+    r: 0.02,
+    g: 0.02,
+    b: 0.02,
+  });
+
+  const red = buildCloudOpticalScene(
+    [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],
+    0.6,
+    normalizeHikariSettings({
+      ...DEFAULT_HIKARI_SETTINGS,
+      inclusionTransmissionColor: "#ff0000",
+      inclusionAbsorption: 0.5,
+    }),
+  );
+  assert.ok(red.inclusionAbsorptionPerShapeUnit.r < red.inclusionAbsorptionPerShapeUnit.g);
+  assert.equal(
+    red.scene.inclusions[0].material.absorptionPerMm.r,
+    red.inclusionAbsorptionPerShapeUnit.r / 20,
+  );
+  assert.equal(
+    red.scene.inclusions[0].material.absorptionPerMm.g,
+    red.inclusionAbsorptionPerShapeUnit.g / 20,
+  );
+
+  const redHalf = buildCloudOpticalScene(
+    [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],
+    0.6,
+    normalizeHikariSettings({
+      ...DEFAULT_HIKARI_SETTINGS,
+      inclusionTransmissionColor: "#ff0000",
+      inclusionAbsorption: 0.25,
+    }),
+  );
+  assert.deepEqual(red.inclusionAbsorptionPerShapeUnit, {
+    r: redHalf.inclusionAbsorptionPerShapeUnit.r * 2,
+    g: redHalf.inclusionAbsorptionPerShapeUnit.g * 2,
+    b: redHalf.inclusionAbsorptionPerShapeUnit.b * 2,
+  });
+  assert.deepEqual(
+    buildCloudOpticalScene(
+      [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],
+      0.6,
+      normalizeHikariSettings({
+        ...DEFAULT_HIKARI_SETTINGS,
+        inclusionTransmissionColor: "#ff0000",
+        inclusionAbsorption: 0,
+      }),
+    ).inclusionAbsorptionPerShapeUnit,
+    { r: 0, g: 0, b: 0 },
+  );
 });
 
 test("custom color reaches the shared OpticalScene used by body, receiver, and Blender", () => {

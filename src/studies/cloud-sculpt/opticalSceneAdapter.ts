@@ -40,7 +40,10 @@ export function buildCloudOpticalScene(
     settings.hostTransmissionColor,
     settings.absorption,
   );
-  const inclusionAbsorptionPerShapeUnit = greyAbsorption(settings.inclusionAbsorption);
+  const inclusionAbsorptionPerShapeUnit = inclusionAbsorptionFromDisplayColor(
+    settings.inclusionTransmissionColor,
+    settings.inclusionAbsorption,
+  );
   const hostMaterial: OpticalMaterial = {
     id: `host-${settings.hostPreset}`,
     label: `${settings.hostPreset} host (visual baseline)`,
@@ -163,15 +166,28 @@ export function absorptionFromDisplayColor(color: string, concentration: number)
   return { r: coefficient(depths[0]), g: coefficient(depths[1]), b: coefficient(depths[2]) };
 }
 
+/**
+ * Keep the legacy inclusion concentration contract: white at concentration C
+ * remains exactly {C,C,C}. Dividing the shared authored-color coefficients by
+ * its neutral 0.04 floor preserves the same hue ratios without brightening old
+ * `.hkr` scenes that had only `inclusionAbsorption`.
+ */
+export function inclusionAbsorptionFromDisplayColor(
+  color: string,
+  concentration: number,
+): Rgb {
+  const authored = absorptionFromDisplayColor(color, concentration);
+  return {
+    r: authored.r / 0.04,
+    g: authored.g / 0.04,
+    b: authored.b / 0.04,
+  };
+}
+
 function srgbToLinear(value: number): number {
   return value <= 0.04045
     ? value / 12.92
     : Math.pow((value + 0.055) / 1.055, 2.4);
-}
-
-function greyAbsorption(value: number): Rgb {
-  const safe = Number.isFinite(value) ? Math.max(0, value) : 0;
-  return { r: safe, g: safe, b: safe };
 }
 
 function divideRgb(value: Rgb, divisor: number): Rgb {

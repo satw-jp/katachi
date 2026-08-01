@@ -143,6 +143,8 @@ export interface OpticalSettings {
   hostTransmissionColor: string;
   inclusionEnabled: boolean;
   inclusionIor: number;
+  /** Author-facing transmitted swatch for the inclusion. */
+  inclusionTransmissionColor: string;
   inclusionAbsorption: number;
   inclusionOffsetX: number;
   inclusionOffsetY: number;
@@ -1712,5 +1714,5 @@ function opticalSceneRevision(
   k: number,
   settings: OpticalSettings,
 ): string {
-  return `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.hostTransmissionColor}:${settings.absorption.toFixed(4)}:${settings.ior.toFixed(4)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(4)}:${settings.inclusionAbsorption.toFixed(4)}:${settings.inclusionOffsetX.toFixed(4)},${settings.inclusionOffsetY.toFixed(4)},${settings.inclusionOffsetZ.toFixed(4)}:${settings.inclusionRadius.toFixed(4)}`;
+  return `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.hostTransmissionColor}:${settings.absorption.toFixed(4)}:${settings.ior.toFixed(4)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(4)}:${settings.inclusionTransmissionColor}:${settings.inclusionAbsorption.toFixed(4)}:${settings.inclusionOffsetX.toFixed(4)},${settings.inclusionOffsetY.toFixed(4)},${settings.inclusionOffsetZ.toFixed(4)}:${settings.inclusionRadius.toFixed(4)}`;
 }
