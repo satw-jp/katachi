@@ -10,6 +10,12 @@ import { MAX_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
 
+export interface CameraSnapshot {
+  position: [number, number, number];
+  target: [number, number, number];
+  fov: number;
+}
+
 export class CloudRenderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
@@ -208,6 +214,23 @@ export class CloudRenderer {
     this.material.uniforms.uCamInverseProjection.value.copy(this.camera.projectionMatrixInverse);
     this.material.uniforms.uCamInverseView.value.copy(this.camera.matrixWorld);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  captureCamera(): CameraSnapshot {
+    this.controls.update();
+    return {
+      position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
+      target: [this.controls.target.x, this.controls.target.y, this.controls.target.z],
+      fov: this.camera.fov,
+    };
+  }
+
+  restoreCamera(snapshot: CameraSnapshot): void {
+    this.camera.position.set(...snapshot.position);
+    this.controls.target.set(...snapshot.target);
+    this.camera.fov = snapshot.fov;
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
   }
 
   /** Build a world-space ray (origin, direction) from a normalized device (-1..1) pointer position. */

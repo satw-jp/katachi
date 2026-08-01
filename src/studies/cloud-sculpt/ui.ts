@@ -36,6 +36,8 @@ export interface UiCallbacks {
   onMeshExport: (options: MeshExportUiOptions) => void;
   onViewChange: (view: WorkspaceView) => void;
   onHikariChange: (settings: HikariSettings) => void;
+  onHikariCaseSave: (details: { caseId: string; observation: string }) => void;
+  onHikariCaseImportFile: (file: File) => void;
 }
 
 export interface UiHandles {
@@ -54,6 +56,9 @@ export interface UiHandles {
   setMeshStatus: (text: string, ok?: boolean) => void;
   setView: (view: WorkspaceView) => void;
   setHikariSource: (text: string) => void;
+  setHikariCaseStatus: (text: string, ok?: boolean) => void;
+  syncHikariCaseDetails: (details: { caseId: string; observation: string }) => void;
+  syncHikariSettings: (settings: HikariSettings) => void;
   setOpticsComputeStatus: (
     status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
   ) => void;
@@ -368,6 +373,41 @@ export function buildUi(
   sourceInfo.textContent = "同じ場を観察中";
   hikariControls.appendChild(sourceInfo);
 
+  const caseTitle = document.createElement("div");
+  caseTitle.className = "hikari-section-title";
+  caseTitle.textContent = "記録";
+  hikariControls.appendChild(caseTitle);
+  const caseIdInput = document.createElement("input");
+  caseIdInput.type = "text";
+  caseIdInput.value = `hikari-${new Date().toISOString().slice(0, 10)}`;
+  caseIdInput.placeholder = "case ID";
+  hikariControls.appendChild(caseIdInput);
+  const observationInput = document.createElement("textarea");
+  observationInput.placeholder = "観察メモ（任意）";
+  observationInput.rows = 2;
+  hikariControls.appendChild(observationInput);
+  const caseSave = document.createElement("button");
+  caseSave.type = "button";
+  caseSave.textContent = "この景色を保存";
+  caseSave.onclick = () => callbacks.onHikariCaseSave({ caseId: caseIdInput.value.trim() || "hikari-case", observation: observationInput.value });
+  hikariControls.appendChild(caseSave);
+  const caseOpen = document.createElement("button");
+  caseOpen.type = "button";
+  caseOpen.textContent = "caseを開く";
+  const caseFile = document.createElement("input");
+  caseFile.type = "file";
+  caseFile.accept = "application/json,.json";
+  caseFile.hidden = true;
+  caseOpen.onclick = () => caseFile.click();
+  caseFile.onchange = () => { const file = caseFile.files?.[0]; if (file) callbacks.onHikariCaseImportFile(file); caseFile.value = ""; };
+  hikariControls.appendChild(caseOpen);
+  hikariControls.appendChild(caseFile);
+  const caseStatus = document.createElement("div");
+  caseStatus.className = "hint";
+  hikariControls.appendChild(caseStatus);
+
+  const hikariControlSyncers: Array<(settings: HikariSettings) => void> = [];
+
   const phenomenonTitle = document.createElement("div");
   phenomenonTitle.className = "hikari-section-title";
   phenomenonTitle.textContent = "現象";
@@ -381,6 +421,7 @@ export function buildUi(
     },
   );
   hikariControls.appendChild(phenomenonControl.root);
+  hikariControlSyncers.push((settings) => phenomenonControl.set(settings.phenomenon));
 
   const flowControls = document.createElement("div");
   flowControls.className = "hikari-mode-controls";
@@ -395,6 +436,7 @@ export function buildUi(
     (mode) => updateHikari({ mode }),
   );
   flowControls.appendChild(modeControl.root);
+  hikariControlSyncers.push((settings) => modeControl.set(settings.mode));
 
   const spawnTitle = document.createElement("div");
   spawnTitle.className = "hikari-section-title";
@@ -406,6 +448,7 @@ export function buildUi(
     (spawn) => updateHikari({ spawn }),
   );
   flowControls.appendChild(spawnControl.root);
+  hikariControlSyncers.push((settings) => spawnControl.set(settings.spawn));
 
   const hikariSliders: Array<{
     key: keyof Pick<
@@ -436,6 +479,7 @@ export function buildUi(
       onChange: (value) => updateHikari({ [spec.key]: value }),
     });
     flowControls.appendChild(built.row);
+    hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
   }
 
   const hikariSeedRow = document.createElement("div");
@@ -449,6 +493,7 @@ export function buildUi(
   hikariSeedRow.appendChild(hikariSeedLabel);
   hikariSeedRow.appendChild(hikariSeedInput);
   flowControls.appendChild(hikariSeedRow);
+  hikariControlSyncers.push((settings) => { hikariSeedInput.value = settings.seed; });
 
   const approximationNote = document.createElement("div");
   approximationNote.className = "hint";
@@ -480,6 +525,7 @@ export function buildUi(
     (opticalView) => updateHikari({ opticalView }),
   );
   opticsControls.appendChild(opticalViewControl.root);
+  hikariControlSyncers.push((settings) => opticalViewControl.set(settings.opticalView));
 
   const opticalColorTitle = document.createElement("div");
   opticalColorTitle.className = "hikari-section-title";
@@ -491,6 +537,7 @@ export function buildUi(
     (opticalColorMode) => updateHikari({ opticalColorMode }),
   );
   opticsControls.appendChild(opticalColorControl.root);
+  hikariControlSyncers.push((settings) => opticalColorControl.set(settings.opticalColorMode));
 
   let applyRainbowModelVisibility = (_model: OpticalRainbowModel): void => {};
   const rainbowModelTitle = document.createElement("div");
@@ -506,6 +553,7 @@ export function buildUi(
     },
   );
   opticsControls.appendChild(rainbowModelControl.root);
+  hikariControlSyncers.push((settings) => rainbowModelControl.set(settings.rainbowModel));
 
   const dispersionModeGroup = document.createElement("div");
   const dispersionModeTitle = document.createElement("div");
@@ -519,6 +567,7 @@ export function buildUi(
   );
   dispersionModeGroup.appendChild(dispersionModeControl.root);
   opticsControls.appendChild(dispersionModeGroup);
+  hikariControlSyncers.push((settings) => dispersionModeControl.set(settings.dispersionMode));
 
   const materialTitle = document.createElement("div");
   materialTitle.className = "hikari-section-title";
@@ -536,6 +585,7 @@ export function buildUi(
     },
   );
   opticsControls.appendChild(materialControl.root);
+  hikariControlSyncers.push((settings) => materialControl.set(settings.opticalMaterial));
 
   const opticalDisplayTitle = document.createElement("div");
   opticalDisplayTitle.className = "hikari-section-title";
@@ -556,6 +606,7 @@ export function buildUi(
     updateHikari({ opticalDisplay: visible ? "both" : "density" });
   };
   opticsControls.appendChild(rayToggle);
+  hikariControlSyncers.push((settings) => applyRayVisibility(settings.opticalDisplay === "both"));
 
   const opticalSliders: Array<{
     key: keyof Pick<
@@ -640,6 +691,7 @@ export function buildUi(
       stressRows.push(built.row);
     }
     opticsControls.appendChild(built.row);
+    hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
   }
   applyRainbowModelVisibility = (model) => {
     const prismVisible = model !== "stress";
@@ -729,6 +781,20 @@ export function buildUi(
     setView: applyView,
     setHikariSource: (text) => {
       sourceInfo.textContent = text;
+    },
+    setHikariCaseStatus: (text, ok) => {
+      caseStatus.textContent = text;
+      caseStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    syncHikariCaseDetails: (details) => {
+      caseIdInput.value = details.caseId;
+      observationInput.value = details.observation;
+    },
+    syncHikariSettings: (settings) => {
+      hikariState = { ...settings };
+      for (const sync of hikariControlSyncers) sync(hikariState);
+      applyPhenomenon(hikariState.phenomenon);
+      applyRainbowModelVisibility(hikariState.rainbowModel);
     },
     setOpticsComputeStatus: (status) => {
       opticsComputeStatus.textContent = status.text;

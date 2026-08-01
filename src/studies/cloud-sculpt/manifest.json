@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-07-30",
+  "updatedAt": "2026-08-01",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added versioned Hikari case capture. A case records the replayable shape recipe, full Hikari settings, orbit camera target/position, app version, compatibility/backend snapshot, and an optional observation note. Loading validates the schema before restoring the same view; this is a reproducible observation baseline, not a rendered-image export."
+    },
     {
       "date": "2026-07-30",
       "note": "Separated the receiver's transparent shadow from its focused caustic after the author observed that the shadow disappeared and the light pool exposed a rectangular texture domain. The finite caustic field now has generous empty margins, CPU and shader edge feathering, a rounded outer support, and wider low-sample reconstruction for the Windows-safe 56-ray path. Natural-floor ambient light now retains a thickness-dependent translucent shadow under the caustic, while peak compression prevents the focused contribution from bleaching it away. Verified an irregular soft light pool inside a readable projected shadow in full WebGPU 16,384-ray and Windows-safe CPU 56-ray views with no rendering errors."

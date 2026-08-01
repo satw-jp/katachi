@@ -20,6 +20,7 @@ import type { HistoryEntry } from "./history.ts";
 import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "./history.ts";
 import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
+import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
@@ -132,6 +133,8 @@ const ui = buildUi(
     localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
     render();
   },
+  onHikariCaseSave: (details) => exportHikariCase(details.caseId, details.observation),
+  onHikariCaseImportFile: (file) => importHikariCase(file),
   },
 );
 cloudRenderer.resize();
@@ -292,6 +295,60 @@ function exportHistory(): void {
   URL.revokeObjectURL(url);
 }
 
+function exportHikariCase(caseId: string, observation: string): void {
+  const backend = hikariLayer.getOpticsComputeStatus();
+  const json = serializeHikariCase(createHikariCase({
+    caseId,
+    observation,
+    appVersion: manifest.version,
+    commit: "unknown",
+    shape: { studyId: "cloud-sculpt", recipeEntries: history },
+    hikariSettings: { ...hikariSettings },
+    camera: cloudRenderer.captureCamera(),
+    compatibility: {
+      safeModeQuery:
+        safeModeQuery === "1" ? "forced" : safeModeQuery === "0" ? "disabled" : "auto",
+      compatibilityMode: windowsCompatibilityMode,
+    },
+    backend: { kind: backend.kind, text: backend.text, requestedSampleCount: hikariSettings.opticalSampleCount },
+  }));
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${caseId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari-case"}.hikari-case.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  ui.setHikariCaseStatus("この景色を保存しました", true);
+}
+
+function applyHikariCaseText(text: string): void {
+  const value = parseHikariCase(text);
+  history = value.shape.recipeEntries;
+  state = replay(history);
+  selectedBallId = null;
+  hikariSettings = normalizeHikariSettings(value.hikariSettings);
+  localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+  ui.syncParams(state.params);
+  ui.syncHikariSettings(hikariSettings);
+  ui.syncHikariCaseDetails({ caseId: value.caseId, observation: value.observation });
+  ui.setHistoryCount(history.length);
+  cloudRenderer.restoreCamera(value.camera);
+  workspaceView = "hikari";
+  localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
+  updateSelectionLabel();
+  applyWorkspaceView();
+  ui.setHikariCaseStatus(`caseを開きました: ${value.caseId}`, true);
+}
+
+async function importHikariCase(file: File): Promise<void> {
+  try {
+    applyHikariCaseText(await file.text());
+  } catch (err) {
+    ui.setHikariCaseStatus(`caseの読み込みに失敗しました: ${(err as Error).message}`, false);
+  }
+}
+
 function applyRecipeText(text: string): void {
   const entries = parseRecipe(text);
   history = entries;
@@ -343,7 +400,31 @@ function exportMesh(options: MeshExportUiOptions): void {
   inspectMesh: (options: MeshExportUiOptions) => buildCloudMesh(state.balls, state.params.k, options),
   getWorkspaceView: () => workspaceView,
   getHikariSettings: () => ({ ...hikariSettings }),
+  getCameraSnapshot: () => cloudRenderer.captureCamera(),
   getOpticsComputeStatus: () => hikariLayer.getOpticsComputeStatus(),
+  exportHikariCaseJson: (caseId = "debug-case", observation = "") => {
+    const backend = hikariLayer.getOpticsComputeStatus();
+    return serializeHikariCase(createHikariCase({
+      caseId,
+      observation,
+      appVersion: manifest.version,
+      commit: "unknown",
+      shape: { studyId: "cloud-sculpt", recipeEntries: history },
+      hikariSettings: { ...hikariSettings },
+      camera: cloudRenderer.captureCamera(),
+      compatibility: {
+        safeModeQuery:
+          safeModeQuery === "1" ? "forced" : safeModeQuery === "0" ? "disabled" : "auto",
+        compatibilityMode: windowsCompatibilityMode,
+      },
+      backend: {
+        kind: backend.kind,
+        text: backend.text,
+        requestedSampleCount: hikariSettings.opticalSampleCount,
+      },
+    }));
+  },
+  importHikariCaseJson: (text: string) => applyHikariCaseText(text),
 };
 
 // --- Render loop ------------------------------------------------------
