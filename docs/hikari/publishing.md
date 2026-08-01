@@ -41,6 +41,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.29.0
+
+- Git commit deployed: `8446de7` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `6ef5d1d3-3b77-408e-ba54-157f9f4fce1a`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Added the bounded MLS-MPM artwork bridge: start from the live Hikari shape, observe a low-rate BODY-only proxy, stop on a favored instant, and persist it as explicit Cloud history so `.hkr` reopens without rerunning the simulation.
+- Receiver transport, Progressive Render, document mutation, Blender export, Katachi switching, and GPU/SAFE switching are protected during active MPM; adoption or import invalidates and restarts receiver transport explicitly.
+- Mac high-DPI recording mitigation: automatic orbit and MPM playback cap internal realtime resolution at 1x and restore the normal maximum 2x after motion. A 1x Windows/SAFE viewport is unchanged. The supplied Mac captures delivered 5.23 and 20.08 actual fps, while the author reported smooth Windows GPU playback.
+- Local real-browser verification: 12 balls became a moving 61-ball proxy, receiver transport stayed paused, 59 balls were adopted and saved/reopened in a timestamped v0.29.0 `.hkr`; a final regression pass adopted 58 balls, re-enabled compute switching, and resumed receiver status as `ok`. Retina canvas size changed 1880×1344 → 940×672 during orbit → 1880×1344 after stop.
+- Production verification: the deployed page reported `v0.29.0` at the production URL and exposed the published MPM/deformation shell. The in-app production tab used the honest `CPU · FALLBACK`; local verification used `GPU · WebGPU`.
+- Verification: `npm run test:hikari` passed 57/57 tests, production build passed, and `git diff --check` passed. The existing >500 kB chunk warning remains non-blocking.
+- Schedule/design: the August submission schedule keeps the black/white optical artifact gate before the rough artwork take. Offline fixed-FPS PNG sequence rendering and the geometry-derived light-drawing trace remain later slices, not part of this deployment.
+
 ## Release record — 2026-08-01 — v0.28.3
 
 - Git commit deployed: `2db2dbf` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
