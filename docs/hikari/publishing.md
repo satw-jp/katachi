@@ -33,6 +33,21 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.23.0
+
+- Git commit deployed: `04de644` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `3f945525-1bfe-4980-bf3a-822c06bdeb44`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Receiver composition: every affected finite-source ray records the unobstructed baseline and transported RGB deposit; Natural removes that baseline before adding the deposit, replacing the previous independent direct shadow plus additive focused-light overlay
+- Shared finite source: CPU and WebGPU consume the same seeded aperture position and angular sun-disk sample prefix, so `sunSize` changes traced directions as well as invalidating the result
+- Transport safeguards: support containment is applied to the reconstructed HDR field before display; Natural no longer adds five displaced spectral deposits, recolors or amplifies the transported field, compresses its peaks, or applies a second fragment-shader support mask
+- Runtime accounting: material/interface loss, reflection/TIR, receiver escape, out-of-domain flux, support rejection, and unresolved invalid paths are accumulated independently; the ledger residual is no longer filled after tracing
+- GPU ABI correction: the result payload is a shared 28-float layout and the consumer uses the same stride/offset contract; a two-record regression test prevents the previous 20-float decode overlap
+- Production normal check: v0.23.0, Tokyo 17:00, Apple metal-3 WebGPU, 16,384 rays / 3,820 shape hits, finite sun disk, one inclusion, and no production-origin warnings or errors
+- Production safe check: v0.23.0, `?safe=1`, CPU preview, 1,024 transport rays, finite sun disk, one inclusion, and no production-origin warnings or errors
+- Verification: `npm run test:hikari` passed 17/17 deterministic tests; `VITE_GIT_COMMIT=04de644 npm run build` passed from a clean committed tree
+- Known remaining work: add an author-visible receiver/ledger diagnostic overlay and automate full-field CPU/WebGPU device tolerance gates before treating Phase 3E as complete
+
 ## Release record — 2026-08-01 — v0.22.0
 
 - Git commit deployed: `5fa6973` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
