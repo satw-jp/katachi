@@ -41,6 +41,20 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.28.1
+
+- Git commit deployed: `def4320` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `82324e85-603f-4ff0-ba0c-f1026103677c`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Inclusion relationship: `屈折率を外側に揃える` copies only the current outer-host IOR; inclusion color, absorption, transform, size, and ON/OFF state remain unchanged. The existing near-colorless same-resin action remains separate.
+- Dense material authoring: outer-host and inclusion absorption ranges now extend from `0–2.5` to `0–40`, while their defaults and fine steps remain unchanged. Normalization and `.hkr` loading use the same ceiling.
+- Reference basis: private Ref anchors `L1003160`, `L1003171`, and `L1003177` establish the relational target—thick paths near black, thin/backlit paths retaining hue and distortion, and distinct surface reflection. `empty13_comp.png` is recorded as the too-uniformly-bright negative baseline.
+- Material semantics: an outer custom color at concentration 40 leaves about 4% of its least-absorbed channel through a two-shape-unit path. The inclusion retains its legacy 25× density scale for saved-scene compatibility; neither value claims physical calibration yet.
+- Production asset verification: the served root resolved to `assets/main-C9K65qFW.js` and `assets/main-Ccj2NRbW.css`; the live page reported `v0.28.1` and `GPU · WebGPU`.
+- Browser verification: production exposed the new IOR-only action; both absorption sliders reported max 40 with their previous `0.05` outer and `0.01` inclusion steps. Local UI verification also confirmed that pressing the action while the inclusion was OFF left it OFF.
+- Verification: `npm run test:hikari` passed 53/53 tests; `VITE_GIT_COMMIT=def4320 npm run build` passed; independent diff review found no release blocker after the IOR-only state and outer/inclusion density documentation corrections.
+- Known remaining work: exact Ref parity still depends on physical scale, measured absorption, light/exposure, surface finish, and path-length validation; the expanded authoring range only removes the former control ceiling.
+
 ## Release record — 2026-08-01 — v0.28.0
 
 - Git commit deployed: `d3d72d8` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
