@@ -99,6 +99,7 @@ Implemented today:
 - persistent top-bar backend status and one-tap `GPU · WebGPU` / `SAFE · CPU` switching;
 - geometric normals for view-ray medium decisions, with cosmetic normal variation restricted to reflection and surface appearance;
 - isolated same-count CPU/WebGPU receiver comparison from the Calculation Status panel;
+- a separate Progressive Render Phase 1 for Natural stills: deterministic linear-HDR WebGL2 accumulation at 16, 64, or 256 spp, with STOP retaining the latest completed image;
 - current-renderer-resolution viewport PNG export and editable multi-view `.hkr` documents;
 - STL, OBJ, and Katachi recipe export from the same source field.
 
@@ -109,6 +110,7 @@ Known limits:
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
 - unresolved nested view rays retain the already solved outer-host path so bounded realtime work does not appear as black or a flat opaque patch. This is an explicitly view-only continuity approximation; recursive internal reflection/refraction remains open and receiver transport still rejects unresolved energy;
+- Realtime Observation and Progressive Render deliberately have different budgets. Phase 1 progressively refines sub-pixel coverage and rough body-view sampling only; it does not yet add deeper host/inclusion paths or progressively refine the receiver field. Its `BODY · WebGL2` status is distinct from the receiver backend shown as `GPU · WebGPU`, `SAFE · CPU`, or `CPU · FALLBACK`;
 - Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. The same-count Tokyo 17:00 reconstructed field passes every current display-field gate after sample-count-aware reconstruction, but raw-hit parity and a representative case family remain open;
 - SAFE CPU reconstructs its 1,024-sample receiver field with a wider energy-normalized kernel. This removes visible sampling gaps but resolves less spatial detail than the normal 16,384-sample WebGPU field and is not a fidelity match;
 - no multiple internal bounces or physically calibrated HDR environment;

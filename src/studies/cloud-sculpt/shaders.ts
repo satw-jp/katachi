@@ -28,6 +28,9 @@ export const fragmentShader = /* glsl */ `
   uniform mat4 uCamInverseProjection;
   uniform mat4 uCamInverseView;
   uniform vec2 uResolution;
+  uniform vec2 uPixelJitter;
+  uniform int uProgressiveLinearOutput;
+  uniform int uProgressiveSampleIndex;
   uniform int uSelectedIndex;
   uniform vec3 uLightDir;
   uniform int uRenderMode;
@@ -567,7 +570,6 @@ export const fragmentShader = /* glsl */ `
 
   vec3 roughOpticalEnvironment(vec3 origin, vec3 direction) {
     vec3 center = opticalEnvironment(origin, direction);
-    if (uCompatibilityMode == 1) return center;
     if (uSurfaceRoughness < 0.015) return center;
     vec3 helper = abs(direction.y) < 0.92
       ? vec3(0.0, 1.0, 0.0)
@@ -575,6 +577,23 @@ export const fragmentShader = /* glsl */ `
     vec3 basisU = normalize(cross(direction, helper));
     vec3 basisV = normalize(cross(basisU, direction));
     float spread = max(0.004, uSurfaceRoughness * uSurfaceRoughness * 0.82);
+    if (uProgressiveLinearOutput == 1) {
+      float index = float(uProgressiveSampleIndex + 1);
+      float angleNoise = fract(sin(index * 12.9898) * 43758.5453);
+      float radiusNoise = fract(sin(index * 78.233) * 43758.5453);
+      float angle = angleNoise * 6.28318530718;
+      float radius = sqrt(radiusNoise);
+      vec2 disk = vec2(cos(angle), sin(angle)) * radius;
+      vec3 roughSample = roughEnvironmentSample(
+        origin,
+        normalize(direction + (basisU * disk.x + basisV * disk.y) * spread)
+      );
+      float roughMix = uSurfaceRoughness < 0.18
+        ? clamp(uSurfaceRoughness * 2.2, 0.0, 0.52)
+        : clamp(uSurfaceRoughness * 1.75, 0.0, 0.9);
+      return mix(center, roughSample, roughMix);
+    }
+    if (uCompatibilityMode == 1) return center;
     vec3 horizontal = roughEnvironmentSample(
       origin,
       normalize(direction + basisU * spread)
@@ -696,6 +715,7 @@ export const fragmentShader = /* glsl */ `
   }
 
   vec3 opticalOutput(vec3 color) {
+    if (uProgressiveLinearOutput == 1) return max(color, vec3(0.0));
     vec3 outputColor = uNaturalView == 1 ? opticalToneMap(color) : color;
     if (uMonochrome == 1) {
       float luminance = dot(outputColor, vec3(0.2126, 0.7152, 0.0722));
@@ -741,7 +761,7 @@ export const fragmentShader = /* glsl */ `
   }
 
   void main() {
-    vec2 ndc = vUv * 2.0 - 1.0;
+    vec2 ndc = vUv * 2.0 - 1.0 + uPixelJitter * 2.0 / uResolution;
     vec4 clip = vec4(ndc, -1.0, 1.0);
     vec4 viewDir4 = uCamInverseProjection * clip;
     viewDir4 = vec4(viewDir4.xy, -1.0, 0.0);

@@ -11,6 +11,46 @@ import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
 import type { CloudOpticalSceneAdapter } from "./opticalSceneAdapter.ts";
 import { resolveDaylight } from "./daylight.ts";
+import {
+  advanceProgressiveRender,
+  beginProgressiveRender,
+  createRealtimeRenderState,
+  fitProgressiveRenderSize,
+  progressivePixelJitter,
+  progressiveSampleWeight,
+  stopProgressiveRender,
+  type ProgressiveRenderState,
+} from "./progressiveRender.ts";
+
+const accumulationFragmentShader = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uPrevious;
+  uniform sampler2D uCurrent;
+  uniform float uWeight;
+  varying vec2 vUv;
+  void main() {
+    vec3 previous = texture2D(uPrevious, vUv).rgb;
+    vec3 current = texture2D(uCurrent, vUv).rgb;
+    gl_FragColor = vec4(mix(previous, current, uWeight), 1.0);
+  }
+`;
+
+const presentFragmentShader = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uImage;
+  uniform float uExposure;
+  uniform int uMonochrome;
+  varying vec2 vUv;
+  void main() {
+    vec3 color = texture2D(uImage, vUv).rgb;
+    color = vec3(1.0) - exp(-max(color, vec3(0.0)) * uExposure);
+    if (uMonochrome == 1) {
+      float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+      color = vec3(luminance);
+    }
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
 
 export interface CameraSnapshot {
   position: [number, number, number];
@@ -24,6 +64,8 @@ export interface ViewportPng {
   blob: Blob;
   width: number;
   height: number;
+  source: "realtime" | "progressive";
+  samples: number;
 }
 
 export class CloudRenderer {
@@ -33,6 +75,20 @@ export class CloudRenderer {
   readonly controls: OrbitControls;
   private material: THREE.ShaderMaterial;
   private quad: THREE.Mesh;
+  private progressiveScene = new THREE.Scene();
+  private progressiveQuad: THREE.Mesh;
+  private postScene = new THREE.Scene();
+  private postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  private postQuad: THREE.Mesh;
+  private accumulationMaterial: THREE.ShaderMaterial;
+  private presentMaterial: THREE.ShaderMaterial;
+  private sampleTarget: THREE.WebGLRenderTarget;
+  private accumulationTargets: [THREE.WebGLRenderTarget, THREE.WebGLRenderTarget];
+  private accumulationReadIndex = 0;
+  private progressiveState: ProgressiveRenderState = createRealtimeRenderState();
+  private progressiveSupported = false;
+  private drawingBufferSize = new THREE.Vector2(1, 1);
+  private progressiveTargetSize = new THREE.Vector2(1, 1);
   private container: HTMLElement;
   private causticTexture: THREE.DataTexture;
   private receiverLossTexture: THREE.DataTexture;
@@ -97,6 +153,9 @@ export class CloudRenderer {
         uCamInverseProjection: { value: new THREE.Matrix4() },
         uCamInverseView: { value: new THREE.Matrix4() },
         uResolution: { value: new THREE.Vector2(1, 1) },
+        uPixelJitter: { value: new THREE.Vector2(0, 0) },
+        uProgressiveLinearOutput: { value: 0 },
+        uProgressiveSampleIndex: { value: 0 },
         uSelectedIndex: { value: -1 },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
         uRenderMode: { value: 0 },
@@ -140,10 +199,57 @@ export class CloudRenderer {
       },
     });
 
-    this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
+    const fullscreenGeometry = new THREE.PlaneGeometry(2, 2);
+    this.quad = new THREE.Mesh(fullscreenGeometry, this.material);
     this.quad.frustumCulled = false;
     this.quad.renderOrder = -100;
     this.scene.add(this.quad);
+
+    this.progressiveQuad = new THREE.Mesh(fullscreenGeometry, this.material);
+    this.progressiveQuad.frustumCulled = false;
+    this.progressiveScene.add(this.progressiveQuad);
+
+    this.accumulationMaterial = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader: accumulationFragmentShader,
+      depthTest: false,
+      depthWrite: false,
+      uniforms: {
+        uPrevious: { value: null },
+        uCurrent: { value: null },
+        uWeight: { value: 1 },
+      },
+    });
+    this.presentMaterial = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader: presentFragmentShader,
+      depthTest: false,
+      depthWrite: false,
+      uniforms: {
+        uImage: { value: null },
+        uExposure: { value: 1 },
+        uMonochrome: { value: 0 },
+      },
+    });
+    this.postQuad = new THREE.Mesh(fullscreenGeometry, this.presentMaterial);
+    this.postQuad.frustumCulled = false;
+    this.postScene.add(this.postQuad);
+
+    this.progressiveSupported = this.renderer.capabilities.isWebGL2
+      && this.renderer.extensions.has("EXT_color_buffer_float");
+    const targetOptions: THREE.RenderTargetOptions = {
+      format: THREE.RGBAFormat,
+      type: THREE.HalfFloatType,
+      minFilter: THREE.NearestFilter,
+      magFilter: THREE.NearestFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    };
+    this.sampleTarget = new THREE.WebGLRenderTarget(1, 1, targetOptions);
+    this.accumulationTargets = [
+      new THREE.WebGLRenderTarget(1, 1, targetOptions),
+      new THREE.WebGLRenderTarget(1, 1, targetOptions),
+    ];
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -174,6 +280,9 @@ export class CloudRenderer {
     );
     this.material.uniforms.uEnvironmentMist.value = settings.environmentMist;
     this.material.uniforms.uMonochrome.value =
+      settings.opticalColorMode === "mono" ? 1 : 0;
+    this.presentMaterial.uniforms.uExposure.value = settings.opticalExposure;
+    this.presentMaterial.uniforms.uMonochrome.value =
       settings.opticalColorMode === "mono" ? 1 : 0;
     this.material.uniforms.uDispersion.value = settings.dispersion;
     this.material.uniforms.uDispersionMode.value =
@@ -243,8 +352,14 @@ export class CloudRenderer {
   }
 
   setInclusionCausticTrustworthy(trustworthy: boolean): void {
+    const changed = this.inclusionCausticTrustworthy !== trustworthy;
     this.inclusionCausticTrustworthy = trustworthy;
     this.applyCausticAvailability();
+    if (changed && this.inclusionActive) {
+      this.invalidateProgressiveRender(
+        "内包の受光状態が変わったためリアルタイムへ戻りました",
+      );
+    }
   }
 
   setCausticTransportPending(pending: boolean): void {
@@ -331,7 +446,19 @@ export class CloudRenderer {
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.material.uniforms.uResolution.value.set(w, h);
+    this.renderer.getDrawingBufferSize(this.drawingBufferSize);
+    this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
+    const progressiveSize = fitProgressiveRenderSize(
+      this.drawingBufferSize.x,
+      this.drawingBufferSize.y,
+    );
+    this.progressiveTargetSize.set(progressiveSize.width, progressiveSize.height);
+    this.sampleTarget.setSize(progressiveSize.width, progressiveSize.height);
+    this.accumulationTargets[0].setSize(progressiveSize.width, progressiveSize.height);
+    this.accumulationTargets[1].setSize(progressiveSize.width, progressiveSize.height);
+    this.progressiveSupported = this.progressiveSupported
+      && this.validateProgressiveFramebuffer();
+    this.invalidateProgressiveRender("画面サイズが変わったためリアルタイムへ戻りました");
   }
 
   update(balls: Ball[], k: number, selectedId: number | null): void {
@@ -348,13 +475,144 @@ export class CloudRenderer {
       selectedId === null ? -1 : balls.findIndex((b) => b.id === selectedId);
   }
 
-  render(): void {
+  isProgressiveRenderSupported(): boolean {
+    return this.progressiveSupported;
+  }
+
+  getProgressiveRenderState(): ProgressiveRenderState {
+    return { ...this.progressiveState };
+  }
+
+  getProgressiveRenderResolution(): { width: number; height: number } {
+    return {
+      width: this.progressiveTargetSize.x,
+      height: this.progressiveTargetSize.y,
+    };
+  }
+
+  startProgressiveRender(targetSamples: number, now = performance.now()): ProgressiveRenderState {
+    if (!this.progressiveSupported) {
+      this.progressiveState = createRealtimeRenderState(
+        "この端末ではHDR蓄積レンダーを利用できません",
+      );
+      return this.getProgressiveRenderState();
+    }
     this.controls.update();
+    this.syncCameraUniforms();
+    this.clearProgressiveTargets();
+    this.accumulationReadIndex = 0;
+    this.progressiveState = beginProgressiveRender(targetSamples, now);
+    return this.getProgressiveRenderState();
+  }
+
+  stopProgressiveRender(now = performance.now()): ProgressiveRenderState {
+    this.progressiveState = stopProgressiveRender(this.progressiveState, now);
+    this.material.uniforms.uPixelJitter.value.set(0, 0);
+    this.material.uniforms.uProgressiveLinearOutput.value = 0;
+    return this.getProgressiveRenderState();
+  }
+
+  invalidateProgressiveRender(message = "リアルタイム表示"): ProgressiveRenderState {
+    const hadProgressiveImage = this.progressiveState.completedSamples > 0;
+    this.progressiveState = createRealtimeRenderState(
+      hadProgressiveImage ? message : "リアルタイム表示",
+    );
+    this.material.uniforms.uPixelJitter.value.set(0, 0);
+    this.material.uniforms.uProgressiveLinearOutput.value = 0;
+    return this.getProgressiveRenderState();
+  }
+
+  render(now = performance.now()): void {
+    this.controls.update();
+    this.syncCameraUniforms();
+    if (this.progressiveState.kind === "rendering") {
+      this.renderProgressiveSample(now);
+      return;
+    }
+    if (this.progressiveState.kind === "complete" && this.progressiveState.completedSamples > 0) {
+      this.presentProgressiveImage();
+      return;
+    }
+    this.material.uniforms.uPixelJitter.value.set(0, 0);
+    this.material.uniforms.uProgressiveLinearOutput.value = 0;
+    this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private syncCameraUniforms(): void {
     this.camera.updateMatrixWorld();
     this.material.uniforms.uCamPos.value.copy(this.camera.position);
     this.material.uniforms.uCamInverseProjection.value.copy(this.camera.projectionMatrixInverse);
     this.material.uniforms.uCamInverseView.value.copy(this.camera.matrixWorld);
+  }
+
+  private renderProgressiveSample(now: number): void {
+    const completedBefore = this.progressiveState.completedSamples;
+    const [jitterX, jitterY] = progressivePixelJitter(completedBefore);
+    this.material.uniforms.uPixelJitter.value.set(jitterX, jitterY);
+    this.material.uniforms.uProgressiveLinearOutput.value = 1;
+    this.material.uniforms.uProgressiveSampleIndex.value = completedBefore;
+    this.material.uniforms.uResolution.value.copy(this.progressiveTargetSize);
+
+    this.renderer.setRenderTarget(this.sampleTarget);
+    this.renderer.clear();
+    this.renderer.render(this.progressiveScene, this.camera);
+
+    const writeIndex = 1 - this.accumulationReadIndex;
+    this.postQuad.material = this.accumulationMaterial;
+    this.accumulationMaterial.uniforms.uPrevious.value =
+      this.accumulationTargets[this.accumulationReadIndex].texture;
+    this.accumulationMaterial.uniforms.uCurrent.value = this.sampleTarget.texture;
+    this.accumulationMaterial.uniforms.uWeight.value =
+      progressiveSampleWeight(completedBefore);
+    this.renderer.setRenderTarget(this.accumulationTargets[writeIndex]);
+    this.renderer.clear();
+    this.renderer.render(this.postScene, this.postCamera);
+    this.accumulationReadIndex = writeIndex;
+    this.progressiveState = advanceProgressiveRender(this.progressiveState, now);
+
+    this.material.uniforms.uPixelJitter.value.set(0, 0);
+    this.material.uniforms.uProgressiveLinearOutput.value = 0;
+    this.presentProgressiveImage();
+  }
+
+  private presentProgressiveImage(): void {
+    this.postQuad.material = this.presentMaterial;
+    this.presentMaterial.uniforms.uImage.value =
+      this.accumulationTargets[this.accumulationReadIndex].texture;
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.postScene, this.postCamera);
+    // Natural-view ray guides remain a crisp, non-accumulated overlay.
+    const quadWasVisible = this.quad.visible;
+    const autoClear = this.renderer.autoClear;
+    this.quad.visible = false;
+    this.renderer.autoClear = false;
     this.renderer.render(this.scene, this.camera);
+    this.renderer.autoClear = autoClear;
+    this.quad.visible = quadWasVisible;
+  }
+
+  private clearProgressiveTargets(): void {
+    const previousTarget = this.renderer.getRenderTarget();
+    const previousColor = this.renderer.getClearColor(new THREE.Color()).clone();
+    const previousAlpha = this.renderer.getClearAlpha();
+    this.renderer.setClearColor(0x000000, 1);
+    for (const target of [this.sampleTarget, ...this.accumulationTargets]) {
+      this.renderer.setRenderTarget(target);
+      this.renderer.clear(true, false, false);
+    }
+    this.renderer.setClearColor(previousColor, previousAlpha);
+    this.renderer.setRenderTarget(previousTarget);
+  }
+
+  private validateProgressiveFramebuffer(): boolean {
+    const previousTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.sampleTarget);
+    const gl = this.renderer.getContext();
+    const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    this.renderer.setRenderTarget(previousTarget);
+    return complete;
   }
 
   captureCamera(): CameraSnapshot {
@@ -369,7 +627,18 @@ export class CloudRenderer {
 
   /** Capture only the rendered study viewport at its current device-pixel resolution. */
   capturePng(): Promise<ViewportPng> {
-    this.render();
+    const progressiveSamples = this.progressiveState.completedSamples;
+    if (progressiveSamples > 0) {
+      this.presentProgressiveImage();
+    } else {
+      this.controls.update();
+      this.syncCameraUniforms();
+      this.material.uniforms.uPixelJitter.value.set(0, 0);
+      this.material.uniforms.uProgressiveLinearOutput.value = 0;
+      this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
+      this.renderer.setRenderTarget(null);
+      this.renderer.render(this.scene, this.camera);
+    }
     const canvas = this.renderer.domElement;
     const width = canvas.width;
     const height = canvas.height;
@@ -379,7 +648,13 @@ export class CloudRenderer {
           reject(new Error("PNG画像を生成できませんでした"));
           return;
         }
-        resolve({ blob, width, height });
+        resolve({
+          blob,
+          width,
+          height,
+          source: progressiveSamples > 0 ? "progressive" : "realtime",
+          samples: progressiveSamples,
+        });
       }, "image/png");
     });
   }

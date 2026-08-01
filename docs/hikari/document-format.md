@@ -16,9 +16,16 @@ The first version is UTF-8 JSON with the `.hkr` suffix. It is deliberately not a
 3. Continue changing time, camera, material, or shape and add further views.
 4. Select any saved view to restore its shape recipe, settings, and camera.
 5. Choose **Hikari文書 (.hkr) を保存** to write every view as one document.
-6. Choose **画像** to export the currently rendered viewport at the renderer's current pixel resolution without application chrome. Normal mode caps device-pixel ratio at 2; compatibility mode uses 1.
+6. Optionally choose **RENDER**, select 16, 64, or 256 spp, and stop or wait for completion. STOP retains the latest completed accumulation.
+7. Choose **画像** to export the currently displayed Realtime frame or retained Progressive frame at the renderer's current pixel resolution without application chrome. Normal mode caps device-pixel ratio at 2; compatibility mode uses 1.
 
 The top-bar Save action writes `.hkr`; top-bar Image writes PNG; Export continues to create the Blender handoff. Legacy `.hikari-case.json` files still open and are migrated in memory to a one-view document.
+
+## Progressive Render state
+
+Progressive Render Phase 1 does not change the `.hkr` v1 schema. The document already preserves the reproducible author inputs—the shape recipe, Hikari settings, camera, backend snapshot, application version, and commit—but not a rendered result. The 16/64/256 spp choice, current/target spp, elapsed time, running or stopped state, half-float accumulation targets, GPU resources, and PNG pixels are derived runtime data and are not serialized. Opening a document always begins in Realtime Observation and never resumes an old accumulation automatically.
+
+If a Progressive image is retained, Image exports that completed accumulation and includes `progressive-<spp>spp` in its filename. While accumulation is running, export uses the latest sample that has finished; it never reads a partially written target. If camera, shape, material, daylight, receiver, backend, or viewport state changes, the retained image is discarded and Image returns to the current Realtime frame. PNG remains a separate derivative and is not embedded in `.hkr`.
 
 ## Version 1 structure
 

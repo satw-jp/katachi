@@ -14,6 +14,7 @@ The top bar contains only application-wide operations:
 
 - application identity, version, and the KATACHI / HIKARI workspace switch
 - a persistent Hikari execution button: `GPU · WebGPU`, `SAFE · CPU`, or `CPU · FALLBACK`
+- a Hikari `RENDER` action that becomes `STOP · <spp>` while the current Natural still is accumulating
 - open the current workspace file
 - save the current workspace file
 - export the current renderer viewport as a PNG image
@@ -24,6 +25,10 @@ The top bar contains only application-wide operations:
 Open and save are contextual. KATACHI opens/saves the replayable shape recipe. HIKARI Open accepts an editable multi-view `.hkr` document and legacy `.hikari-case.json`; Save writes the views already added to `.hkr`. The current unsaved view must first be added with **現在のビューを追加** until dirty-state/update semantics are implemented. Image exports only the current renderer viewport as PNG. Export produces the Blender bundle for the current state. Derived outputs do not replace the editable `.hkr` source, and Blender continues to receive one materialized case rather than the whole document.
 
 The execution button is both status and switch. `GPU · WebGPU` means the normal WebGPU path is actually running; `SAFE · CPU` means compatibility mode was explicitly or automatically selected; `CPU · FALLBACK` means GPU mode was requested but WebGPU fell back; a backend failure is `GPU · ERROR` or `SAFE · ERROR`. One tap changes only the `safe` URL mode and reloads the renderer. Before navigation, the current recipe, settings, camera, observation, document metadata, and every saved view are written to a one-use local-storage handoff, validated, restored, and removed after reload. Detailed device, ray-count, timing, and failure information remains in Calculation Status.
+
+`RENDER` belongs beside that backend control but reports a different renderer. Phase 1 accumulates the transparent BODY in WebGL2 at an author-selected 16, 64, or 256 spp; the receiver and focused-light field continue to use the separately reported WebGPU or SAFE CPU backend. Calculation Status therefore labels the still renderer explicitly as `BODY · WebGL2`, shows its actual target resolution, completed/target spp, and elapsed time, and never implies that `GPU · WebGPU` is the body accumulator. The HDR target preserves viewport aspect while capping its pixel count at 2,560×1,440 equivalent. RENDER is available only for a valid HIKARI / Optics / Natural view after receiver calculation is ready.
+
+While rendering, the same top-bar action becomes STOP. STOP preserves the latest completed accumulation rather than clearing it. Camera, shape, material, daylight, receiver/backend, or viewport changes discard the derived accumulation and return to Realtime Observation; inspector navigation, observation text, document download, and image download do not. This first phase does not expose convergence or deeper-path controls it cannot actually calculate.
 
 ### Central viewport
 
@@ -46,6 +51,7 @@ The Full screen action enters an unobstructed observation view:
 - hide the inspector and ordinary top-bar controls
 - preserve the exact camera, scene, and calculation state
 - keep a small, discoverable exit control above the viewport
+- while Progressive Render is running, keep a compact `STOP · <spp>` control beside the exit control
 - use the browser Fullscreen API when available and fall back to the same distraction-free layout when it is not
 - leave on Escape or the exit control without losing state
 
@@ -85,3 +91,4 @@ Each future object receives a persistent ID. Blender sidecars use the same IDs a
 - At a narrow viewport, the central observation surface remains usable.
 - Version and updated date remain visible in the ordinary application shell.
 - Hikari's current backend is visible without opening the inspector, and one tap changes GPU/SAFE mode.
+- RENDER/STOP remains in one stable top-bar position, detailed BODY progress remains in Calculation Status, and fullscreen never traps a running render without STOP.

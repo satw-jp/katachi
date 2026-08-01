@@ -23,6 +23,11 @@ import type {
 import { formatMinutes, resolveDaylight } from "./daylight.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
 import { createSlider } from "../../lib/ui/slider.ts";
+import {
+  DEFAULT_PROGRESSIVE_SAMPLES,
+  PROGRESSIVE_SAMPLE_OPTIONS,
+  type ProgressiveRenderState,
+} from "./progressiveRender.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -54,6 +59,7 @@ export interface UiCallbacks {
     text: string;
     kind: "passed" | "failed" | "unavailable";
   }>;
+  onProgressiveRenderToggle: (targetSamples: number) => void;
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
 }
 
@@ -87,6 +93,10 @@ export interface UiHandles {
   ) => void;
   setReceiverEnergySummary: (
     summary: { text: string; kind: "ok" | "warning" | "empty" },
+  ) => void;
+  setProgressiveRenderStatus: (
+    state: ProgressiveRenderState,
+    availability: { available: boolean; reason?: string; resolution?: string },
   ) => void;
 }
 
@@ -455,7 +465,7 @@ export function buildUi(
   imageExportButton.type = "button";
   imageExportButton.textContent = "表示をPNG画像にする";
   const imageExportStatus = document.createElement("div");
-  imageExportStatus.className = "hint";
+  imageExportStatus.className = "hint image-export-status";
   imageExportButton.onclick = async () => {
     imageExportButton.disabled = true;
     imageExportStatus.textContent = "画像を書き出し中";
@@ -644,6 +654,25 @@ export function buildUi(
   receiverEnergySummary.dataset.kind = "empty";
   receiverEnergySummary.textContent = "受光面の変化を計算中";
   opticsControls.appendChild(receiverEnergySummary);
+  const progressiveQualityRow = document.createElement("div");
+  progressiveQualityRow.className = "row progressive-quality-row";
+  const progressiveQualityLabel = document.createElement("label");
+  progressiveQualityLabel.textContent = "静止画サンプル";
+  const progressiveQualitySelect = document.createElement("select");
+  for (const samples of PROGRESSIVE_SAMPLE_OPTIONS) {
+    const option = document.createElement("option");
+    option.value = String(samples);
+    option.textContent = `${samples} spp`;
+    option.selected = samples === DEFAULT_PROGRESSIVE_SAMPLES;
+    progressiveQualitySelect.appendChild(option);
+  }
+  progressiveQualityRow.append(progressiveQualityLabel, progressiveQualitySelect);
+  const progressiveRenderStatus = document.createElement("div");
+  progressiveRenderStatus.className = "progressive-render-status";
+  progressiveRenderStatus.dataset.kind = "realtime";
+  progressiveRenderStatus.setAttribute("aria-live", "polite");
+  progressiveRenderStatus.textContent = "BODY · WebGL2 · リアルタイム表示";
+  opticsControls.append(progressiveQualityRow, progressiveRenderStatus);
   const receiverParityButton = document.createElement("button");
   receiverParityButton.type = "button";
   receiverParityButton.className = "receiver-parity-action";
@@ -1219,6 +1248,42 @@ export function buildUi(
       receiverEnergySummary.textContent = summary.text;
       receiverEnergySummary.dataset.kind = summary.kind;
     },
+    setProgressiveRenderStatus: (state, availability) => {
+      const renderButton = container.querySelector<HTMLButtonElement>(
+        ".progressive-render-button",
+      );
+      const fullscreenRenderButton = container.querySelector<HTMLButtonElement>(
+        ".fullscreen-render-button",
+      );
+      const running = state.kind === "rendering";
+      const elapsed = `${(state.elapsedMs / 1000).toFixed(1)}s`;
+      const samples = `${state.completedSamples}/${state.targetSamples} spp`;
+      if (renderButton) {
+        renderButton.dataset.running = String(running);
+        renderButton.disabled = !running && !availability.available;
+        renderButton.textContent = running
+          ? `STOP · ${state.completedSamples} spp`
+          : "RENDER";
+        renderButton.setAttribute(
+          "aria-label",
+          running ? "静止画レンダーを停止" : "静止画レンダーを開始",
+        );
+        renderButton.title = running
+          ? "最新の完了サンプルを保持して停止する"
+          : availability.reason ?? "現在の静止した見え方をHDRで段階的に蓄積する";
+      }
+      if (fullscreenRenderButton) {
+        fullscreenRenderButton.dataset.running = String(running);
+        fullscreenRenderButton.textContent = `STOP · ${state.completedSamples} spp`;
+      }
+      progressiveRenderStatus.dataset.kind = state.kind;
+      const resolution = availability.resolution ? ` · ${availability.resolution}` : "";
+      progressiveRenderStatus.textContent = state.kind === "rendering"
+        ? `BODY · WebGL2${resolution} · 蓄積中 ${samples} · ${elapsed}`
+        : state.kind === "complete"
+          ? `BODY · WebGL2${resolution} · ${state.message} · ${state.completedSamples} spp · ${elapsed} · PNGに保持中`
+          : `BODY · WebGL2${resolution} · ${availability.available ? state.message : availability.reason ?? state.message}`;
+    },
   };
 
   function updateHikari(patch: Partial<HikariSettings>): void {
@@ -1270,6 +1335,8 @@ export function buildUi(
       opticalSourceInfo,
       opticsComputeStatus,
       receiverEnergySummary,
+      progressiveQualityRow,
+      progressiveRenderStatus,
       receiverParityButton,
       receiverParityStatus,
     ]);
@@ -1392,6 +1459,18 @@ export function buildUi(
     };
     topbar.appendChild(computeModeButton);
 
+    const progressiveRenderButton = makeToolbarButton(
+      "RENDER",
+      "現在の静止した見え方をHDRで段階的に蓄積する",
+    );
+    progressiveRenderButton.classList.add("progressive-render-button");
+    progressiveRenderButton.dataset.running = "false";
+    progressiveRenderButton.setAttribute("aria-label", "静止画レンダーを開始");
+    progressiveRenderButton.onclick = () => {
+      callbacks.onProgressiveRenderToggle(Number(progressiveQualitySelect.value));
+    };
+    topbar.appendChild(progressiveRenderButton);
+
     const fileActions = document.createElement("div");
     fileActions.className = "file-actions";
     const openButton = makeToolbarButton("開く", "ファイルを開く (⌘O)");
@@ -1409,6 +1488,13 @@ export function buildUi(
     const exitFullscreenButton = makeToolbarButton("全画面を終了", "操作画面へ戻る");
     exitFullscreenButton.classList.add("fullscreen-exit");
     container.appendChild(exitFullscreenButton);
+    const fullscreenRenderButton = makeToolbarButton("STOP", "静止画レンダーを停止する");
+    fullscreenRenderButton.classList.add("fullscreen-render-button");
+    fullscreenRenderButton.dataset.running = "false";
+    fullscreenRenderButton.onclick = () => {
+      callbacks.onProgressiveRenderToggle(Number(progressiveQualitySelect.value));
+    };
+    container.appendChild(fullscreenRenderButton);
 
     const panelTabs = document.createElement("div");
     panelTabs.className = "panel-tabs";
@@ -1581,6 +1667,7 @@ export function buildUi(
         exportButton.title = view === "hikari" ? "Blender用一式を書き出す" : "3Dデータを書き出す";
         imageButton.hidden = view !== "hikari";
         computeModeButton.hidden = view !== "hikari";
+        progressiveRenderButton.hidden = view !== "hikari";
       },
     };
   }

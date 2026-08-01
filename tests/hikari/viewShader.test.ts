@@ -24,3 +24,10 @@ test("outer TIR attempts a bounded internal bounce before the view fallback", ()
   assert.match(fragmentShader, /if \(length\(tirRefractedOut\) >= 0\.01\)/);
   assert.match(fragmentShader, /Progressive Render will replace this approximation/);
 });
+
+test("progressive body samples vary rough transmission without changing realtime compatibility", () => {
+  assert.match(fragmentShader, /if \(uProgressiveLinearOutput == 1\) \{/);
+  assert.match(fragmentShader, /float index = float\(uProgressiveSampleIndex \+ 1\)/);
+  assert.match(fragmentShader, /return mix\(center, roughSample, roughMix\)/);
+  assert.match(fragmentShader, /if \(uCompatibilityMode == 1\) return center/);
+});

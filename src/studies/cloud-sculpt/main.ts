@@ -68,6 +68,8 @@ let workspaceView: WorkspaceView =
 let hikariSettings = loadHikariSettings();
 let opticalSceneIssues: string[] = [];
 let opticalInclusionValid = false;
+let receiverTransportPending = true;
+let inclusionCausticReadyState = false;
 let receiverFieldSummary: (ReceiverFieldSummary & {
   transport: CausticFieldDiagnostics;
 }) | null = null;
@@ -87,6 +89,10 @@ const cloudRenderer = new CloudRenderer(viewport, {
 const hikariLayer = new HikariLayer(cloudRenderer.scene, {
   disableWebGpu: windowsCompatibilityMode,
   onCausticField: (field) => {
+    receiverTransportPending = false;
+    cloudRenderer.invalidateProgressiveRender(
+      "受光面が更新されたためリアルタイムへ戻りました",
+    );
     receiverFieldSummary = {
       ...summarizeReceiverField(field),
       transport: structuredClone(field.diagnostics),
@@ -96,6 +102,12 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
     cloudRenderer.setCausticField(field);
   },
   onTransportPending: (pending) => {
+    receiverTransportPending = pending;
+    if (pending) {
+      cloudRenderer.invalidateProgressiveRender(
+        "受光面を再計算するためリアルタイムへ戻りました",
+      );
+    }
     cloudRenderer.setCausticTransportPending(pending);
     if (pending) {
       ui.setReceiverEnergySummary({ text: "受光面の変化を計算中", kind: "empty" });
@@ -256,6 +268,20 @@ const ui = buildUi(
     document.documentElement.dataset.hikariReceiverParity = JSON.stringify(receiverParityReport);
     return summarizeReceiverParity(receiverParityReport);
   },
+  onProgressiveRenderToggle: (targetSamples) => {
+    const current = cloudRenderer.getProgressiveRenderState();
+    if (current.kind === "rendering") {
+      cloudRenderer.stopProgressiveRender();
+    } else {
+      const availability = progressiveRenderAvailability();
+      if (!availability.available) {
+        ui.setProgressiveRenderStatus(current, availability);
+        return;
+      }
+      cloudRenderer.startProgressiveRender(targetSamples);
+    }
+    syncProgressiveRenderStatus(true);
+  },
   onViewChange: (view) => {
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
@@ -290,6 +316,20 @@ cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
 restoreComputeModeHandoff();
+cloudRenderer.controls.addEventListener("start", () => {
+  cloudRenderer.invalidateProgressiveRender(
+    "視点が変わったためリアルタイムへ戻りました",
+  );
+  syncProgressiveRenderStatus(true);
+});
+cloudRenderer.controls.addEventListener("change", () => {
+  const progressive = cloudRenderer.getProgressiveRenderState();
+  if (progressive.kind === "realtime") return;
+  cloudRenderer.invalidateProgressiveRender(
+    "視点が変わったためリアルタイムへ戻りました",
+  );
+  syncProgressiveRenderStatus(true);
+});
 
 // --- Pointer interaction ---------------------------------------------------
 // Click (no drag) on empty space -> add a ball at the surface hit point.
@@ -785,7 +825,10 @@ async function exportViewportPng(): Promise<{
 }> {
   const captured = await cloudRenderer.capturePng();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = `hikari-${hikariSettings.phenomenon}-${timestamp}.png`;
+  const renderLabel = captured.source === "progressive"
+    ? `progressive-${captured.samples}spp`
+    : "realtime";
+  const filename = `hikari-${hikariSettings.phenomenon}-${renderLabel}-${timestamp}.png`;
   downloadFile(captured.blob, filename);
   return { filename, width: captured.width, height: captured.height };
 }
@@ -822,6 +865,13 @@ function downloadFile(blob: Blob, filename: string): void {
   getReceiverParityReport: () => receiverParityReport == null
     ? null
     : structuredClone(receiverParityReport),
+  getProgressiveRenderStatus: () => cloudRenderer.getProgressiveRenderState(),
+  startProgressiveRender: (targetSamples = 64) => {
+    const availability = progressiveRenderAvailability();
+    if (!availability.available) throw new Error(availability.reason);
+    return cloudRenderer.startProgressiveRender(targetSamples);
+  },
+  stopProgressiveRender: () => cloudRenderer.stopProgressiveRender(),
   runReceiverParityCase: (options?: { caseId?: string; sampleCount?: number }) =>
     hikariLayer.runReceiverParityCase(
       state.balls.map((ball) => ({ ...ball })),
@@ -850,6 +900,9 @@ function downloadFile(blob: Blob, filename: string): void {
 // --- Render loop ------------------------------------------------------
 
 function render(): void {
+  cloudRenderer.invalidateProgressiveRender(
+    "設定が変わったためリアルタイムへ戻りました",
+  );
   const opticalScene = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
@@ -879,6 +932,14 @@ function renderFrame(now: number): void {
     const sunBelowHorizon = computeStatus.text.includes("太陽は地平線下");
     const inclusionCausticReady = !sunBelowHorizon
       && (computeStatus.kind === "cpu" || computeStatus.kind === "webgpu");
+    if (inclusionCausticReady !== inclusionCausticReadyState) {
+      inclusionCausticReadyState = inclusionCausticReady;
+      if (hikariSettings.inclusionEnabled) {
+        cloudRenderer.invalidateProgressiveRender(
+          "内包の受光状態が変わったためリアルタイムへ戻りました",
+        );
+      }
+    }
     cloudRenderer.setInclusionCausticTrustworthy(inclusionCausticReady);
     if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
       ui.setOpticsComputeStatus({
@@ -896,8 +957,52 @@ function renderFrame(now: number): void {
     fpsAccum = 0;
     frameCount = 0;
   }
-  hikariLayer.animate(now);
-  cloudRenderer.render();
+  if (cloudRenderer.getProgressiveRenderState().kind === "realtime") {
+    hikariLayer.animate(now);
+  }
+  cloudRenderer.render(now);
+  syncProgressiveRenderStatus();
+}
+
+let lastProgressiveStatusKey = "";
+
+function progressiveRenderAvailability(): {
+  available: boolean;
+  reason?: string;
+  resolution?: string;
+} {
+  if (!cloudRenderer.isProgressiveRenderSupported()) {
+    return { available: false, reason: "この端末はHDR蓄積ターゲットに未対応です" };
+  }
+  if (workspaceView !== "hikari" || hikariSettings.phenomenon !== "optics") {
+    return { available: false, reason: "HIKARI / OPTICSで利用できます" };
+  }
+  if (hikariSettings.opticalView !== "natural") {
+    return { available: false, reason: "第一段階はNatural表示に対応しています" };
+  }
+  if (state.balls.length === 0) {
+    return { available: false, reason: "透明体の形がありません" };
+  }
+  if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
+    return { available: false, reason: opticalSceneIssueText(opticalSceneIssues) };
+  }
+  if (hikariSettings.inclusionEnabled && !inclusionCausticReadyState) {
+    return { available: false, reason: "内包の受光計算完了を待っています" };
+  }
+  if (receiverTransportPending) {
+    return { available: false, reason: "受光面の計算完了を待っています" };
+  }
+  const resolution = cloudRenderer.getProgressiveRenderResolution();
+  return { available: true, resolution: `${resolution.width}×${resolution.height}` };
+}
+
+function syncProgressiveRenderStatus(force = false): void {
+  const progressive = cloudRenderer.getProgressiveRenderState();
+  const availability = progressiveRenderAvailability();
+  const key = JSON.stringify([progressive, availability]);
+  if (!force && key === lastProgressiveStatusKey) return;
+  lastProgressiveStatusKey = key;
+  ui.setProgressiveRenderStatus(progressive, availability);
 }
 
 function opticalSceneIssueText(issues: readonly string[]): string {

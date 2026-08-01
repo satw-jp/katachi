@@ -49,7 +49,7 @@ evidence cases
 
 The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
 
-v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger.
+v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger. v0.26.0 adds the first separate BODY Progressive Render: author-triggered 16/64/256-spp WebGL2 accumulation, STOP retention, edit invalidation, and progressive PNG capture without changing receiver transport or claiming deeper paths.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -87,6 +87,19 @@ Acceptance:
 - zero absorption is visually neutral;
 - doubling path length increases attenuation consistently;
 - transparent shadow color uses the same absorption coefficients as the body.
+
+### Material follow-up — custom absorption color and concentration
+
+The next material control is not a surface paint or display tint. Both the outer host and every internal transparent medium receive an explicit **absorption color** and **concentration** whose effect grows with travelled distance. Presets remain useful starting points, but the saved source of truth is RGB absorption per physical length plus a scalar concentration multiplier.
+
+Author controls begin with:
+
+- separate outer-host and inclusion absorption colors;
+- separate concentration/density controls, including zero for a clear region;
+- a small set of reproducible uneven-concentration modes before free painting;
+- an explicit distinction between absorption variation, surface roughness, geometric thickness, haze/scattering, and a true refractive boundary.
+
+The same object-local concentration field must drive Realtime body appearance, Progressive BODY accumulation, transparent shadow, CPU/WebGPU receiver transport, saved `.hkr` views, and Blender reconstruction. A color, concentration, or variation edit changes the optical scene revision, discards any retained Progressive accumulation, and returns to Realtime Observation. Do not implement this as `uOpticalTint` alone: a thin path must remain lighter than a thick path, and equal-IOR clear inclusions must be able to behave as absorption voids without acquiring a painted surface boundary. The procedural field and later authored hand trace follow [internal color variation](color-variation.md).
 
 Add one authoritative `PhysicalScale.mmPerShapeUnit`. Every backend integrates `absorptionPerMm * segmentLengthShapeUnits * mmPerShapeUnit`. Keep world/SDF coordinates numerically normalized; do not enlarge the raymarch domain to architectural metre values.
 
@@ -266,9 +279,11 @@ The Primary and author review the Natural view first. Numeric tests and Analysis
 Hikari uses two deliberately different accuracy budgets rather than making every camera movement wait for a final render:
 
 1. **Realtime Observation** remains active while the camera, shape, material, light, or environment moves. It uses bounded path depth and documented continuity fallbacks so the author can enjoy and discover changes without interruption.
-2. **Progressive Render** starts only by author action after a view is still. It clears its own accumulation, increases ray samples and internal reflection/refraction depth in stages, and displays elapsed time, samples per pixel, unresolved-path ratio, and a convergence indicator. The author can stop at any moment and export the latest complete accumulation.
+2. **Progressive Render Phase 1 — implemented in v0.26.0** starts only by author action after a valid Natural view is still. It clears its own half-float linear-HDR WebGL2 accumulation, applies a deterministic sub-pixel sequence plus one rough optical-environment sample per pass, and offers 16, 64, or 256 spp. Calculation Status reports `BODY · WebGL2`, actual target resolution, completed/target spp, and elapsed time separately from the receiver's `GPU · WebGPU`, `SAFE · CPU`, or `CPU · FALLBACK` backend. The three half-float targets preserve aspect ratio but cap total target pixels at 2,560×1,440 equivalent to bound memory use on high-DPI and fullscreen displays.
 
-The progressive result must never be blended across a camera, shape, material, light, room, or receiver revision. Any such edit cancels accumulation and returns to Realtime Observation. The initial milestone is a current-viewport still image, not animation: `RENDER` / `STOP`, deterministic seed, 1/4/16/64+ samples per pixel, deeper host–inclusion paths, PNG export, and the exact `.hkr` view plus renderer/version metadata. Denoising may follow only after an undenoised reference can be inspected.
+The progressive result is never blended across a camera, shape, material, light, room, receiver, backend, or viewport revision. Any such edit discards it and returns to Realtime Observation. STOP preserves the latest completed sample, including in fullscreen, and PNG export captures that retained image with its spp in the filename instead of forcing a new Realtime draw. `.hkr` continues to save the exact authoring inputs, version, commit, and backend snapshot; accumulation pixels, spp progress, elapsed time, and running/stopped state remain derived runtime data and are not serialized or resumed after opening.
+
+Phase 1 is deliberately smaller than the full goal. It improves sub-pixel stability and rough reflection/transmission sampling in the existing bounded BODY shader. It does **not** yet increase host/inclusion path depth, report unresolved-path ratio or convergence, progressively accumulate the receiver field, denoise, animate, or replace Blender comparison. The next Progressive slice adds deeper deterministic boundary paths and measurable unresolved/convergence diagnostics; receiver progressive accumulation remains a separate later transport change because it must preserve the shared energy ledger.
 
 This mode is the path toward resolving the pixels that realtime must approximate. Blender remains the final scene and animation comparator; Hikari's advantage is that the same exploratory viewport can be refined without rebuilding it elsewhere.
 

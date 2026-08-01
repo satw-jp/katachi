@@ -101,6 +101,28 @@
   background: rgba(28, 28, 26, 0.07);
 }
 
+.application-bar .progressive-render-button {
+  align-self: center;
+  height: 30px;
+  border: 1px solid var(--ink);
+  padding: 0 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.application-bar .progressive-render-button[data-running="true"] {
+  border-color: #a65a36;
+  color: #7c3518;
+  background: color-mix(in srgb, var(--paper) 82%, #efb28f);
+}
+
+.application-bar .progressive-render-button:disabled {
+  color: var(--muted);
+  border-color: var(--hairline);
+}
+
 .file-actions {
   display: flex;
   align-items: stretch;
@@ -140,6 +162,20 @@
   backdrop-filter: blur(10px);
 }
 
+.fullscreen-render-button {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  top: 14px;
+  right: 140px;
+  padding: 8px 12px;
+  border-color: rgba(255, 205, 174, 0.55);
+  background: rgba(94, 38, 18, 0.76);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  font-variant-numeric: tabular-nums;
+}
+
 #app.focus-mode {
   display: block;
 }
@@ -156,6 +192,30 @@
 
 #app.focus-mode .fullscreen-exit {
   display: block;
+}
+
+#app.focus-mode .fullscreen-render-button[data-running="true"] {
+  display: block;
+}
+
+.progressive-quality-row select {
+  min-width: 92px;
+}
+
+.progressive-render-status {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressive-render-status[data-kind="rendering"] {
+  color: #7c3518;
+}
+
+.progressive-render-status[data-kind="complete"] {
+  color: #275c3c;
 }
 
 .panel-tabs {

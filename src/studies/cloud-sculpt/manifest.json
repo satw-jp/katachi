@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.25.3",
+  "version": "0.26.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added Progressive Render Phase 1 without slowing ordinary exploration. Realtime Observation remains the bounded interactive body view; an author-triggered RENDER action accumulates deterministic sub-pixel and rough-transmission samples into a linear half-float WebGL2 target at 16, 64, or 256 spp, then tone-maps the latest completed accumulation. STOP preserves that image, while camera, shape, material, daylight, receiver, backend, or viewport changes discard it and return immediately to realtime. The top bar owns RENDER/STOP, Calculation Status reports BODY / WebGL2 separately from the GPU / WebGPU or SAFE / CPU receiver backend, and fullscreen retains a STOP control. The BODY status exposes its actual target resolution; three HDR targets are capped to 2,560×1,440 equivalent pixels so a high-DPI or fullscreen display cannot consume unbounded integrated-GPU memory. Inclusion receiver-trust changes also invalidate the average, preventing samples from two scene states from mixing. PNG export captures the retained progressive image and identifies its spp in the filename, or exports realtime when no accumulation remains. Accumulation buffers, elapsed progress, and running state are derived runtime data and are not written into `.hkr`. This first phase improves anti-aliasing and rough optical sampling only; deeper host/inclusion path tracing and progressive receiver transport remain unimplemented. GPU and SAFE browser passes, 42 deterministic tests, the production build, and framebuffer review passed."
+    },
     {
       "date": "2026-08-01",
       "note": "Restored the earlier continuous transparent-body appearance after the v0.25.2 bounded ambient fallback removed black islands but read as broad flat brown surfaces. Geometric normals remain authoritative for entry/exit medium decisions, while cosmetic normals remain limited to appearance. When the realtime view cannot complete a nested inclusion path within its bounded work, it keeps the already solved outer-host path. Outer-interface TIR gets one additional internal bounce; any still-unresolved body-view pixel then uses the earlier smooth host-looking environment approximation instead of black or flat pigment. This is an explicit body-view continuity approximation only: CPU/WebGPU receiver transport still rejects unresolved energy, and the v0.25.1 adaptive receiver reconstruction is unchanged. Added the dual-mode rendering decision to the implementation plan: immediate realtime observation while moving, followed by an author-triggered progressive still render that increases samples and path depth after the view stops. Shader contracts, 36/36 tests, production build, and local WebGPU visual verification passed."
