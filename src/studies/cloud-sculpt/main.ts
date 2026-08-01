@@ -27,6 +27,12 @@ import {
 } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
+import {
+  createHikariDocument,
+  parseHikariDocument,
+  serializeHikariDocument,
+  type HikariDocumentView,
+} from "./hikariDocument.ts";
 import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
 import type { OpticalScene, Rgb } from "./opticalScene.ts";
 import { traceStraightRay, type StraightRay, type TraceOptions } from "./opticalTrace.ts";
@@ -42,7 +48,7 @@ import {
   summarizeReceiverField,
   type ReceiverFieldSummary,
 } from "./receiverTransport.ts";
-import type { CausticFieldDiagnostics } from "./optics.ts";
+import type { CausticFieldDiagnostics, ReceiverParityReport } from "./optics.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -64,6 +70,11 @@ let opticalInclusionValid = false;
 let receiverFieldSummary: (ReceiverFieldSummary & {
   transport: CausticFieldDiagnostics;
 }) | null = null;
+let receiverParityReport: ReceiverParityReport | null = null;
+let savedHikariViews: HikariDocumentView[] = [];
+let activeHikariViewId: string | null = null;
+let activeHikariDocumentId = `hikari-${new Date().toISOString().slice(0, 10)}`;
+let hikariDocumentCreatedAt = new Date().toISOString();
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
   safeModeQuery === "1"
@@ -121,6 +132,43 @@ function summarizeReceiverEnergy(
   return {
     text: `到達 ${percentage(delivered)} · 未到達 ${percentage(nonArrival)} · 範囲外 ${percentage(outside)} · 差 ${percentage(residual)}`,
     kind,
+  };
+}
+
+function summarizeReceiverParity(
+  report: ReceiverParityReport,
+): { text: string; kind: "passed" | "failed" | "unavailable" } {
+  if (!report.metrics) {
+    return {
+      text: report.unavailableReason ?? "比較結果を取得できませんでした",
+      kind: report.status === "failed" ? "failed" : "unavailable",
+    };
+  }
+  const metrics = report.metrics;
+  const maxFlux = Math.max(
+    metrics.relativeFluxErrorRgb.r,
+    metrics.relativeFluxErrorRgb.g,
+    metrics.relativeFluxErrorRgb.b,
+  );
+  const centroid = metrics.centroidDistanceTexels?.toFixed(2) ?? "—";
+  const envelope = metrics.envelopeDistanceTexels?.toFixed(2) ?? "—";
+  const label = report.pass ? "一致" : "差を検出";
+  const gateLabels: Record<keyof typeof metrics.gates, string> = {
+    structure: "構造",
+    flux: "光量",
+    centroid: "重心",
+    envelope: "外形",
+    support: "支持域",
+    depositShape: "到達分布",
+    coverageShape: "影分布",
+  };
+  const failedGates = Object.entries(metrics.gates)
+    .filter(([, passed]) => !passed)
+    .map(([gate]) => gateLabels[gate as keyof typeof metrics.gates]);
+  const failure = failedGates.length > 0 ? ` · 要確認 ${failedGates.join("/")}` : "";
+  return {
+    text: `${label} · 光量差 ${(maxFlux * 100).toFixed(2)}% · 重心 ${centroid}px · 外形 ${envelope}px · 支持域 ${(metrics.supportIou * 100).toFixed(1)}% · 到達L1 ${(metrics.normalizedDepositL1 * 100).toFixed(1)}% · 影L1 ${(metrics.normalizedCoverageL1 * 100).toFixed(1)}%${failure}`,
+    kind: report.pass ? "passed" : "failed",
   };
 }
 
@@ -195,6 +243,17 @@ const ui = buildUi(
   onMeshInspect: (options) => inspectMesh(options),
   onMeshExport: (options) => exportMesh(options),
   onBlenderExport: (details) => void exportBlenderStudy(details),
+  onImageExport: () => exportViewportPng(),
+  onReceiverParityRun: async () => {
+    receiverParityReport = await hikariLayer.runReceiverParityCase(
+      state.balls.map((ball) => ({ ...ball })),
+      state.params.k,
+      { ...hikariSettings },
+      { caseId: "author-current-scene", sampleCount: 2048 },
+    );
+    document.documentElement.dataset.hikariReceiverParity = JSON.stringify(receiverParityReport);
+    return summarizeReceiverParity(receiverParityReport);
+  },
   onViewChange: (view) => {
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
@@ -205,8 +264,13 @@ const ui = buildUi(
     localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
     render();
   },
-  onHikariCaseSave: (details) => exportHikariCase(details.caseId, details.observation),
+  onHikariCaseSave: (details) => addCurrentHikariView(details.caseId, details.observation),
   onHikariCaseImportFile: (file) => importHikariCase(file),
+  onHikariDocumentSave: (details) => exportHikariDocument(
+    details.documentId,
+    details.observation,
+  ),
+  onHikariViewActivate: (viewId) => activateHikariView(viewId),
   },
 );
 cloudRenderer.resize();
@@ -367,35 +431,112 @@ function exportHistory(): void {
   URL.revokeObjectURL(url);
 }
 
-function exportHikariCase(caseId: string, observation: string): void {
-  const json = serializeHikariCase(currentHikariCase(caseId, observation));
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${caseId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari-case"}.hikari-case.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  ui.setHikariCaseStatus("この景色を保存しました", true);
-}
-
-function applyHikariCaseText(text: string): void {
-  const value = parseHikariCase(text);
-  history = value.shape.recipeEntries;
+function applyHikariCaseValue(
+  value: ReturnType<typeof parseHikariCase>,
+  documentId = value.caseId,
+): void {
+  history = structuredClone(value.shape.recipeEntries);
   state = replay(history);
   selectedBallId = null;
   hikariSettings = normalizeHikariSettings(value.hikariSettings);
   localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
   ui.syncParams(state.params);
   ui.syncHikariSettings(hikariSettings);
-  ui.syncHikariCaseDetails({ caseId: value.caseId, observation: value.observation });
+  ui.syncHikariCaseDetails({ caseId: documentId, observation: value.observation });
   ui.setHistoryCount(history.length);
   cloudRenderer.restoreCamera(value.camera);
   workspaceView = "hikari";
   localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
   updateSelectionLabel();
   applyWorkspaceView();
-  ui.setHikariCaseStatus(`caseを開きました: ${value.caseId}`, true);
+}
+
+function addCurrentHikariView(documentId: string, observation: string): void {
+  activeHikariDocumentId = documentId;
+  let sequence = savedHikariViews.length + 1;
+  let viewId = `${safeCaseId(documentId)}-view-${String(sequence).padStart(2, "0")}`;
+  while (savedHikariViews.some((view) => view.viewId === viewId)) {
+    sequence++;
+    viewId = `${safeCaseId(documentId)}-view-${String(sequence).padStart(2, "0")}`;
+  }
+  const minutes = hikariSettings.daylightMinutes;
+  const time = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  const now = new Date().toISOString();
+  savedHikariViews.push({
+    viewId,
+    name: `ビュー ${String(sequence).padStart(2, "0")} · ${time}`,
+    createdAt: now,
+    case: currentHikariCase(viewId, observation),
+  });
+  activeHikariViewId = viewId;
+  syncHikariViewList();
+  ui.setHikariCaseStatus(`現在の見え方を追加しました: ${viewId}`, true);
+}
+
+function activateHikariView(viewId: string): void {
+  const view = savedHikariViews.find((candidate) => candidate.viewId === viewId);
+  if (!view) return;
+  activeHikariViewId = viewId;
+  applyHikariCaseValue(view.case, activeHikariDocumentId);
+  syncHikariViewList();
+  ui.setHikariCaseStatus(`ビューを呼び戻しました: ${view.name}`, true);
+}
+
+function syncHikariViewList(): void {
+  ui.setHikariViews(
+    savedHikariViews.map(({ viewId, name }) => ({ viewId, name })),
+    activeHikariViewId,
+  );
+}
+
+function exportHikariDocument(documentId: string, observation: string): void {
+  activeHikariDocumentId = documentId;
+  if (savedHikariViews.length === 0) addCurrentHikariView(documentId, observation);
+  const document = createHikariDocument({
+    documentId,
+    appVersion: manifest.version,
+    commit: APP_COMMIT,
+    activeViewId: activeHikariViewId,
+    views: savedHikariViews,
+    createdAt: hikariDocumentCreatedAt,
+  });
+  const filename = `${safeCaseId(documentId)}.hkr`;
+  downloadFile(
+    new Blob([serializeHikariDocument(document)], { type: "application/json" }),
+    filename,
+  );
+  ui.setHikariCaseStatus(`${filename} · ${document.views.length}ビューを保存しました`, true);
+}
+
+function applyHikariCaseText(text: string): void {
+  const raw = JSON.parse(text) as { format?: unknown };
+  if (raw?.format === "hikari-document") {
+    const document = parseHikariDocument(text);
+    savedHikariViews = document.views.map((view) => structuredClone(view));
+    activeHikariViewId = document.activeViewId ?? document.views[0]?.viewId ?? null;
+    activeHikariDocumentId = document.documentId;
+    hikariDocumentCreatedAt = document.createdAt;
+    const active = savedHikariViews.find((view) => view.viewId === activeHikariViewId)
+      ?? savedHikariViews[0];
+    if (active) applyHikariCaseValue(active.case, document.documentId);
+    else ui.syncHikariCaseDetails({ caseId: document.documentId, observation: "" });
+    syncHikariViewList();
+    ui.setHikariCaseStatus(`${document.documentId}.hkr · ${document.views.length}ビューを開きました`, true);
+    return;
+  }
+  const value = parseHikariCase(text);
+  savedHikariViews = [{
+    viewId: `${safeCaseId(value.caseId)}-view-01`,
+    name: "読み込んだ旧case",
+    createdAt: value.createdAt,
+    case: value,
+  }];
+  activeHikariViewId = savedHikariViews[0].viewId;
+  activeHikariDocumentId = value.caseId;
+  hikariDocumentCreatedAt = value.createdAt;
+  applyHikariCaseValue(value, value.caseId);
+  syncHikariViewList();
+  ui.setHikariCaseStatus(`旧caseを1ビューのHikari文書として開きました: ${value.caseId}`, true);
 }
 
 async function importHikariCase(file: File): Promise<void> {
@@ -519,7 +660,7 @@ function currentHikariCase(caseId: string, observation: string) {
     observation,
     appVersion: manifest.version,
     commit: APP_COMMIT,
-    shape: { studyId: "cloud-sculpt", recipeEntries: history },
+    shape: { studyId: "cloud-sculpt", recipeEntries: structuredClone(history) },
     hikariSettings: { ...hikariSettings },
     camera: cloudRenderer.captureCamera(),
     compatibility: {
@@ -566,6 +707,18 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
   return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
+async function exportViewportPng(): Promise<{
+  filename: string;
+  width: number;
+  height: number;
+}> {
+  const captured = await cloudRenderer.capturePng();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `hikari-${hikariSettings.phenomenon}-${timestamp}.png`;
+  downloadFile(captured.blob, filename);
+  return { filename, width: captured.width, height: captured.height };
+}
+
 function safeCaseId(caseId: string): string {
   return caseId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari-blender-study";
 }
@@ -595,6 +748,16 @@ function downloadFile(blob: Blob, filename: string): void {
   getReceiverFieldSummary: () => receiverFieldSummary == null
     ? null
     : structuredClone(receiverFieldSummary),
+  getReceiverParityReport: () => receiverParityReport == null
+    ? null
+    : structuredClone(receiverParityReport),
+  runReceiverParityCase: (options?: { caseId?: string; sampleCount?: number }) =>
+    hikariLayer.runReceiverParityCase(
+      state.balls.map((ball) => ({ ...ball })),
+      state.params.k,
+      { ...hikariSettings },
+      options,
+    ),
   getOpticalSceneValidation: () => {
     const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
     return {

@@ -256,6 +256,15 @@ export class HikariLayer {
     return this.optics.getComputeStatus();
   }
 
+  runReceiverParityCase(
+    balls: Ball[],
+    k: number,
+    settings: HikariSettings,
+    options: { caseId?: string; sampleCount?: number } = {},
+  ): ReturnType<OpticsLayer["runReceiverParityCase"]> {
+    return this.optics.runReceiverParityCase(balls, k, settings, options);
+  }
+
   private rebuild(balls: Ball[], k: number, settings: HikariSettings): void {
     if (this.points) {
       this.points.geometry.dispose();

@@ -83,6 +83,8 @@ Ambient Mix is a parallel presentation branch after the same optical quality gat
 
 The current implementation is co-located with Katachi Cloud Sculpt. This is intentional for the present phase: Katachi produces the shape field and hikari reads the same balls, smooth-union value, and camera in memory, without an export/import step.
 
+Editable multi-view persistence is defined in [Hikari document (`.hkr`)](document-format.md); Blender continues to consume one selected materialized case through [the Blender integration contract](blender-integration.md).
+
 Implemented today:
 
 - WebGL SDF rendering of one smooth-union transparent body;
@@ -94,6 +96,8 @@ Implemented today:
 - roughness and procedural material variation;
 - exploratory prism-dispersion and cure-stress/polarization views;
 - Windows-safe CPU fallback;
+- isolated same-count CPU/WebGPU receiver comparison from the Calculation Status panel;
+- current-renderer-resolution viewport PNG export and editable multi-view `.hkr` documents;
 - STL, OBJ, and Katachi recipe export from the same source field.
 
 Known limits:
@@ -102,7 +106,7 @@ Known limits:
 - outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
-- Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views now separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. A pure full-field CPU/WebGPU comparator is implemented, while the same-count device runner remains pending;
+- Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. The same-count device runner is connected, but the current Tokyo 17:00 case still fails the strict 95% envelope gate (five texels versus the two-texel limit), so Phase 3E remains open;
 - no multiple internal bounces or physically calibrated HDR environment;
 - Tokyo open-air direction is active, while room/window geometry is a pure admission contract not yet rendered;
 - Blender bundle v2 includes Hikari settings, camera, hashes, scale, media, receiver, and sun, but `blender-result.json` return import and generic inclusion meshes remain planned.

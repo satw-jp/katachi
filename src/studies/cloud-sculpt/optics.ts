@@ -10,6 +10,7 @@ import {
   createReceiverTransportField,
   finalizeEnergyLedger,
   integrateFluxRgb,
+  summarizeReceiverField,
   splatBilinearCoverageFlux,
   splatBilinearFluxRgb,
   splatBilinearLossFluxRgb,
@@ -17,14 +18,20 @@ import {
   type EnergyLedger,
   type ReceiverFieldSpec,
   type ReceiverTransportField,
+  type ReceiverFieldSummary,
   type FluxRgb,
 } from "./receiverTransport.ts";
+import {
+  compareReceiverFields,
+  type ReceiverFieldParityMetrics,
+} from "./receiverParity.ts";
 import {
   FINITE_LIGHT_SAMPLE_STRIDE,
   generateFiniteLightSamples,
 } from "./finiteLightSamples.ts";
 import {
   GPU_OPTICS_RESULT_OFFSETS,
+  MAX_GPU_OPTICS_BALLS,
   WebGpuOpticsEngine,
   gpuOpticsResultOffset,
   type GpuOpticsResult,
@@ -67,6 +74,27 @@ export type CausticField = ReceiverTransportField & {
 interface ReceiverFluxAccumulator {
   field: ReceiverTransportField;
   diagnostics: CausticFieldDiagnostics;
+}
+
+interface ReceiverBuildOptions {
+  sampleCountOverride?: number;
+  publish?: boolean;
+}
+
+interface ReceiverBuildResult {
+  field: CausticField;
+  sampleCount: number;
+}
+
+export interface ReceiverParityReport {
+  status: "passed" | "failed" | "unavailable" | "stale" | "busy";
+  caseId: string;
+  sampleCount: number;
+  pass: boolean;
+  unavailableReason?: string;
+  cpu?: { summary: ReceiverFieldSummary; diagnostics: CausticFieldDiagnostics };
+  webgpu?: { summary: ReceiverFieldSummary; diagnostics: CausticFieldDiagnostics };
+  metrics?: ReceiverFieldParityMetrics;
 }
 
 // A stable 32 × 32 bounded receiver study area captures most morning/evening
@@ -228,6 +256,9 @@ export class OpticsLayer {
   private latestSettings: OpticalSettings | null = null;
   private sunBelowHorizon = false;
   private gpu: WebGpuOpticsEngine;
+  private parityGpu: WebGpuOpticsEngine | null = null;
+  private parityRunActive = false;
+  private parityGpuEnabled: boolean;
   private onCausticField: ((field: CausticField) => void) | null;
   private onTransportPending: ((pending: boolean) => void) | null;
   private rayMaterial = new THREE.LineBasicMaterial({
@@ -273,7 +304,8 @@ export class OpticsLayer {
       onTransportPending?: (pending: boolean) => void;
     } = {},
   ) {
-    this.gpu = new WebGpuOpticsEngine(options.disableWebGpu !== true);
+    this.parityGpuEnabled = options.disableWebGpu !== true;
+    this.gpu = new WebGpuOpticsEngine(this.parityGpuEnabled);
     this.onCausticField = options.onCausticField ?? null;
     this.onTransportPending = options.onTransportPending ?? null;
     this.group.visible = false;
@@ -314,8 +346,8 @@ export class OpticsLayer {
         if (status.kind === "webgpu" || status.kind === "computing") {
           this.startGpuRebuild(balls, k, settings);
         } else {
-          const cpuSampleCount = this.rebuildCpu(balls, k, settings);
-          this.gpu.setCpuFallback(cpuSampleCount);
+          const cpuResult = this.rebuildCpu(balls, k, settings);
+          this.gpu.setCpuFallback(cpuResult.sampleCount);
         }
       }
     }
@@ -356,6 +388,96 @@ export class OpticsLayer {
     };
   }
 
+  async runReceiverParityCase(
+    balls: Ball[],
+    k: number,
+    settings: OpticalSettings,
+    options: { caseId?: string; sampleCount?: number } = {},
+  ): Promise<ReceiverParityReport> {
+    const caseId = options.caseId?.trim() || "current-scene";
+    const requestedSampleCount = Number.isFinite(options.sampleCount)
+      ? Number(options.sampleCount)
+      : 2048;
+    const sampleCount = Math.max(256, Math.min(4096, Math.round(requestedSampleCount)));
+    if (this.parityRunActive) {
+      return { status: "busy", caseId, sampleCount, pass: false, unavailableReason: "比較計算中です" };
+    }
+    if (balls.length === 0) {
+      return { status: "unavailable", caseId, sampleCount, pass: false, unavailableReason: "形状がありません" };
+    }
+    if (balls.length > MAX_GPU_OPTICS_BALLS) {
+      return {
+        status: "unavailable",
+        caseId,
+        sampleCount,
+        pass: false,
+        unavailableReason: `形状がGPU上限${MAX_GPU_OPTICS_BALLS}球を超えています`,
+      };
+    }
+    if (!resolveDaylight(settings).aboveHorizon) {
+      return { status: "unavailable", caseId, sampleCount, pass: false, unavailableReason: "太陽が地平線下です" };
+    }
+    if (this.gpu.getStatus().kind === "computing") {
+      return { status: "busy", caseId, sampleCount, pass: false, unavailableReason: "通常のGPU計算中です" };
+    }
+    if (!this.parityGpuEnabled) {
+      return { status: "unavailable", caseId, sampleCount, pass: false, unavailableReason: "WebGPUを利用できません" };
+    }
+
+    const startingSignature = this.signature;
+    const parityBalls = balls.map((ball) => ({ ...ball }));
+    const paritySettings = {
+      ...settings,
+      opticalSampleCount: sampleCount,
+      opticalRayCount: Math.min(8, settings.opticalRayCount),
+    };
+    this.parityRunActive = true;
+    try {
+      this.parityGpu ??= new WebGpuOpticsEngine(true);
+      if (!(await this.parityGpu.ready())) {
+        return { status: "unavailable", caseId, sampleCount, pass: false, unavailableReason: "比較用WebGPUを利用できません" };
+      }
+      const cpuResult = this.rebuildCpu(parityBalls, k, paritySettings, {
+        sampleCountOverride: sampleCount,
+        publish: false,
+      });
+      if (this.signature !== startingSignature) {
+        return { status: "stale", caseId, sampleCount, pass: false, unavailableReason: "比較中にシーンが変わりました" };
+      }
+      const gpuPayload = await this.parityGpu.compute(
+        parityBalls,
+        k,
+        paritySettings,
+        { updateStatus: false },
+      );
+      if (!gpuPayload) {
+        return { status: "unavailable", caseId, sampleCount, pass: false, unavailableReason: "WebGPU比較計算に失敗しました" };
+      }
+      if (this.signature !== startingSignature) {
+        return { status: "stale", caseId, sampleCount, pass: false, unavailableReason: "比較中にシーンが変わりました" };
+      }
+      const gpuResult = this.rebuildGpu(gpuPayload, parityBalls, k, paritySettings, { publish: false });
+      const metrics = compareReceiverFields(cpuResult.field, gpuResult.field);
+      return {
+        status: metrics.pass ? "passed" : "failed",
+        caseId,
+        sampleCount,
+        pass: metrics.pass,
+        cpu: {
+          summary: summarizeReceiverField(cpuResult.field),
+          diagnostics: structuredClone(cpuResult.field.diagnostics),
+        },
+        webgpu: {
+          summary: summarizeReceiverField(gpuResult.field),
+          diagnostics: structuredClone(gpuResult.field.diagnostics),
+        },
+        metrics,
+      };
+    } finally {
+      this.parityRunActive = false;
+    }
+  }
+
   private startGpuRebuild(balls: Ball[], k: number, settings: OpticalSettings): void {
     this.onTransportPending?.(true);
     this.clearGeometry();
@@ -363,8 +485,8 @@ export class OpticsLayer {
     void this.gpu.compute(balls, k, settings).then((result) => {
       if (requestId !== this.requestId) return;
       if (!result) {
-        const sampleCount = this.rebuildCpu(balls, k, settings);
-        this.gpu.setCpuFallback(sampleCount, "CPUプレビュー（GPU失敗後）");
+        const cpuResult = this.rebuildCpu(balls, k, settings);
+        this.gpu.setCpuFallback(cpuResult.sampleCount, "CPUプレビュー（GPU失敗後）");
         return;
       }
       this.rebuildGpu(result, balls, k, settings);
@@ -389,17 +511,26 @@ export class OpticsLayer {
     }
   }
 
-  private rebuildCpu(balls: Ball[], k: number, settings: OpticalSettings): number {
-    this.clearGeometry();
-    this.causticMaterial.uniforms.uSampleScale.value = 1;
-    this.densityMaterial.uniforms.uSampleScale.value = 1;
+  private rebuildCpu(
+    balls: Ball[],
+    k: number,
+    settings: OpticalSettings,
+    options: ReceiverBuildOptions = {},
+  ): ReceiverBuildResult {
+    const publish = options.publish !== false;
+    if (publish) {
+      this.clearGeometry();
+      this.causticMaterial.uniforms.uSampleScale.value = 1;
+      this.densityMaterial.uniforms.uSampleScale.value = 1;
+    }
 
     if (balls.length === 0) {
       this.rays = null;
       this.density = null;
       this.caustics = null;
-      this.publishEmptyCausticField(balls, k, settings);
-      return 0;
+      const field = this.createEmptyCausticField(balls, k, settings);
+      if (publish) this.publishCausticField(field, settings);
+      return { field, sampleCount: 0 };
     }
 
     const bounds = fieldBounds(balls);
@@ -442,10 +573,9 @@ export class OpticsLayer {
     const visibleRayCount = Math.max(8, Math.round(settings.opticalRayCount));
     // Safe/CPU mode needs enough transport samples to form a stable field,
     // while visible Analysis geometry remains bounded by opticalRayCount.
-    const sampleCount = Math.min(
-      2048,
-      Math.max(visibleRayCount, Math.round(settings.opticalSampleCount / 16)),
-    );
+    const sampleCount = options.sampleCountOverride === undefined
+      ? Math.min(2048, Math.max(visibleRayCount, Math.round(settings.opticalSampleCount / 16)))
+      : Math.max(1, Math.round(options.sampleCountOverride));
     const sourceSamples = generateFiniteLightSamples(sampleCount, settings.opticalSeed);
     const angularRadius = Math.tan(
       THREE.MathUtils.degToRad(Math.max(0.1, settings.sunSize) * 0.5),
@@ -473,7 +603,7 @@ export class OpticsLayer {
           .addScaledVector(basisU, sourceSamples[sourceOffset + 2] * angularRadius)
           .addScaledVector(basisV, sourceSamples[sourceOffset + 3] * angularRadius)
           .normalize();
-        const showRay = emitted < visibleRayCount;
+        const showRay = publish && emitted < visibleRayCount;
         const origin = originCenter
           .clone()
           .addScaledVector(basisU, u * bounds.radius * 1.15 * settings.lightWidth)
@@ -738,37 +868,40 @@ export class OpticsLayer {
         }
     }
 
-    const rayGeometry = new THREE.BufferGeometry();
-    rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
-    rayGeometry.setAttribute("color", new THREE.Float32BufferAttribute(rayColors, 3));
-    this.rays = new THREE.LineSegments(rayGeometry, this.rayMaterial);
-    this.rays.renderOrder = 20;
-    this.group.add(this.rays);
+    const field = finishReceiverFluxAccumulator(receiverAccumulator);
+    if (publish) {
+      const rayGeometry = new THREE.BufferGeometry();
+      rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
+      rayGeometry.setAttribute("color", new THREE.Float32BufferAttribute(rayColors, 3));
+      this.rays = new THREE.LineSegments(rayGeometry, this.rayMaterial);
+      this.rays.renderOrder = 20;
+      this.group.add(this.rays);
 
-    const densityGeometry = new THREE.BufferGeometry();
-    densityGeometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(densityPositions, 3),
-    );
-    densityGeometry.setAttribute("color", new THREE.Float32BufferAttribute(densityColors, 3));
-    densityGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(densityEnergy, 1));
-    densityGeometry.setAttribute("aPhase", new THREE.Float32BufferAttribute(densityPhases, 1));
-    this.density = new THREE.Points(densityGeometry, this.densityMaterial);
-    this.density.renderOrder = 19;
-    this.group.add(this.density);
+      const densityGeometry = new THREE.BufferGeometry();
+      densityGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(densityPositions, 3),
+      );
+      densityGeometry.setAttribute("color", new THREE.Float32BufferAttribute(densityColors, 3));
+      densityGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(densityEnergy, 1));
+      densityGeometry.setAttribute("aPhase", new THREE.Float32BufferAttribute(densityPhases, 1));
+      this.density = new THREE.Points(densityGeometry, this.densityMaterial);
+      this.density.renderOrder = 19;
+      this.group.add(this.density);
 
-    const causticGeometry = new THREE.BufferGeometry();
-    causticGeometry.setAttribute("position", new THREE.Float32BufferAttribute(causticPositions, 3));
-    causticGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(causticEnergy, 1));
-    causticGeometry.setAttribute("aStretch", new THREE.Float32BufferAttribute(causticStretch, 1));
-    causticGeometry.setAttribute("aAngle", new THREE.Float32BufferAttribute(causticAngle, 1));
-    this.caustics = new THREE.Points(causticGeometry, this.causticMaterial);
-    this.caustics.renderOrder = 21;
-    this.group.add(this.caustics);
-    this.onCausticField?.(finishReceiverFluxAccumulator(receiverAccumulator));
-    this.onTransportPending?.(false);
-    this.applyDisplay(settings.opticalDisplay, settings.opticalView);
-    return sampleCount;
+      const causticGeometry = new THREE.BufferGeometry();
+      causticGeometry.setAttribute("position", new THREE.Float32BufferAttribute(causticPositions, 3));
+      causticGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(causticEnergy, 1));
+      causticGeometry.setAttribute("aStretch", new THREE.Float32BufferAttribute(causticStretch, 1));
+      causticGeometry.setAttribute("aAngle", new THREE.Float32BufferAttribute(causticAngle, 1));
+      this.caustics = new THREE.Points(causticGeometry, this.causticMaterial);
+      this.caustics.renderOrder = 21;
+      this.group.add(this.caustics);
+      this.onCausticField?.(field);
+      this.onTransportPending?.(false);
+      this.applyDisplay(settings.opticalDisplay, settings.opticalView);
+    }
+    return { field, sampleCount };
   }
 
   private rebuildGpu(
@@ -776,8 +909,10 @@ export class OpticsLayer {
     balls: Ball[],
     k: number,
     settings: OpticalSettings,
-  ): void {
-    this.clearGeometry();
+    options: ReceiverBuildOptions = {},
+  ): ReceiverBuildResult {
+    const publish = options.publish !== false;
+    if (publish) this.clearGeometry();
     const rayPositions: number[] = [];
     const rayColors: number[] = [];
     const densityPositions: number[] = [];
@@ -867,7 +1002,7 @@ export class OpticsLayer {
         );
       }
 
-      if (sample % visualStride !== 0 || !entryValid) continue;
+      if (!publish || sample % visualStride !== 0 || !entryValid) continue;
       visualHitCount++;
       const origin = vectorFromResult(
         result.values,
@@ -947,41 +1082,45 @@ export class OpticsLayer {
       }
     }
 
-    const rayGeometry = new THREE.BufferGeometry();
-    rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
-    rayGeometry.setAttribute("color", new THREE.Float32BufferAttribute(rayColors, 3));
-    this.rays = new THREE.LineSegments(rayGeometry, this.rayMaterial);
-    this.rays.renderOrder = 20;
-    this.group.add(this.rays);
+    const field = finishReceiverFluxAccumulator(receiverAccumulator);
+    if (publish) {
+      const rayGeometry = new THREE.BufferGeometry();
+      rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
+      rayGeometry.setAttribute("color", new THREE.Float32BufferAttribute(rayColors, 3));
+      this.rays = new THREE.LineSegments(rayGeometry, this.rayMaterial);
+      this.rays.renderOrder = 20;
+      this.group.add(this.rays);
 
-    const densityGeometry = new THREE.BufferGeometry();
-    densityGeometry.setAttribute("position", new THREE.Float32BufferAttribute(densityPositions, 3));
-    densityGeometry.setAttribute("color", new THREE.Float32BufferAttribute(densityColors, 3));
-    densityGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(densityEnergy, 1));
-    densityGeometry.setAttribute("aPhase", new THREE.Float32BufferAttribute(densityPhases, 1));
-    this.density = new THREE.Points(densityGeometry, this.densityMaterial);
-    this.density.renderOrder = 19;
-    this.group.add(this.density);
+      const densityGeometry = new THREE.BufferGeometry();
+      densityGeometry.setAttribute("position", new THREE.Float32BufferAttribute(densityPositions, 3));
+      densityGeometry.setAttribute("color", new THREE.Float32BufferAttribute(densityColors, 3));
+      densityGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(densityEnergy, 1));
+      densityGeometry.setAttribute("aPhase", new THREE.Float32BufferAttribute(densityPhases, 1));
+      this.density = new THREE.Points(densityGeometry, this.densityMaterial);
+      this.density.renderOrder = 19;
+      this.group.add(this.density);
 
-    const causticGeometry = new THREE.BufferGeometry();
-    causticGeometry.setAttribute("position", new THREE.Float32BufferAttribute(causticPositions, 3));
-    causticGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(causticEnergy, 1));
-    causticGeometry.setAttribute("aStretch", new THREE.Float32BufferAttribute(causticStretch, 1));
-    causticGeometry.setAttribute("aAngle", new THREE.Float32BufferAttribute(causticAngle, 1));
-    this.caustics = new THREE.Points(causticGeometry, this.causticMaterial);
-    this.caustics.renderOrder = 21;
-    this.group.add(this.caustics);
-    this.densityMaterial.uniforms.uSampleScale.value = Math.min(
-      1,
-      2048 / Math.max(1, visualHitCount),
-    );
-    this.causticMaterial.uniforms.uSampleScale.value = Math.min(
-      1,
-      64 / Math.max(1, causticHitCount),
-    );
-    this.onCausticField?.(finishReceiverFluxAccumulator(receiverAccumulator));
-    this.onTransportPending?.(false);
-    this.applyDisplay(settings.opticalDisplay, settings.opticalView);
+      const causticGeometry = new THREE.BufferGeometry();
+      causticGeometry.setAttribute("position", new THREE.Float32BufferAttribute(causticPositions, 3));
+      causticGeometry.setAttribute("aEnergy", new THREE.Float32BufferAttribute(causticEnergy, 1));
+      causticGeometry.setAttribute("aStretch", new THREE.Float32BufferAttribute(causticStretch, 1));
+      causticGeometry.setAttribute("aAngle", new THREE.Float32BufferAttribute(causticAngle, 1));
+      this.caustics = new THREE.Points(causticGeometry, this.causticMaterial);
+      this.caustics.renderOrder = 21;
+      this.group.add(this.caustics);
+      this.densityMaterial.uniforms.uSampleScale.value = Math.min(
+        1,
+        2048 / Math.max(1, visualHitCount),
+      );
+      this.causticMaterial.uniforms.uSampleScale.value = Math.min(
+        1,
+        64 / Math.max(1, causticHitCount),
+      );
+      this.onCausticField?.(field);
+      this.onTransportPending?.(false);
+      this.applyDisplay(settings.opticalDisplay, settings.opticalView);
+    }
+    return { field, sampleCount: result.sampleCount };
   }
 
   private applyDisplay(display: OpticalDisplay, view: OpticalView): void {
@@ -995,6 +1134,14 @@ export class OpticsLayer {
     k: number,
     settings: OpticalSettings,
   ): void {
+    this.publishCausticField(this.createEmptyCausticField(balls, k, settings), settings);
+  }
+
+  private createEmptyCausticField(
+    balls: Ball[],
+    k: number,
+    settings: OpticalSettings,
+  ): CausticField {
     const opticalScene = buildCloudOpticalScene(balls, k, settings);
     const accumulator = createReceiverFluxAccumulator(
       receiverFieldSpec(
@@ -1008,8 +1155,13 @@ export class OpticsLayer {
       0,
       "empty",
     );
-    this.onCausticField?.(finishReceiverFluxAccumulator(accumulator));
+    return finishReceiverFluxAccumulator(accumulator);
+  }
+
+  private publishCausticField(field: CausticField, settings: OpticalSettings): void {
+    this.onCausticField?.(field);
     this.onTransportPending?.(false);
+    this.applyDisplay(settings.opticalDisplay, settings.opticalView);
   }
 }
 

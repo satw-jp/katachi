@@ -42,11 +42,18 @@ export interface UiCallbacks {
   onHikariChange: (settings: HikariSettings) => void;
   onHikariCaseSave: (details: { caseId: string; observation: string }) => void;
   onHikariCaseImportFile: (file: File) => void;
+  onHikariDocumentSave: (details: { documentId: string; observation: string }) => void;
+  onHikariViewActivate: (viewId: string) => void;
   onBlenderExport: (details: {
     caseId: string;
     observation: string;
     options: MeshExportUiOptions;
   }) => void;
+  onReceiverParityRun: () => Promise<{
+    text: string;
+    kind: "passed" | "failed" | "unavailable";
+  }>;
+  onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
 }
 
 export interface UiHandles {
@@ -68,6 +75,7 @@ export interface UiHandles {
   setHikariCaseStatus: (text: string, ok?: boolean) => void;
   setBlenderExportStatus: (text: string, ok?: boolean) => void;
   syncHikariCaseDetails: (details: { caseId: string; observation: string }) => void;
+  setHikariViews: (views: HikariViewSummary[], activeViewId: string | null) => void;
   syncHikariSettings: (settings: HikariSettings) => void;
   setOpticsComputeStatus: (
     status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
@@ -75,6 +83,11 @@ export interface UiHandles {
   setReceiverEnergySummary: (
     summary: { text: string; kind: "ok" | "warning" | "empty" },
   ) => void;
+}
+
+export interface HikariViewSummary {
+  viewId: string;
+  name: string;
 }
 
 export interface MeshExportUiOptions {
@@ -393,7 +406,7 @@ export function buildUi(
   const caseIdInput = document.createElement("input");
   caseIdInput.type = "text";
   caseIdInput.value = `hikari-${new Date().toISOString().slice(0, 10)}`;
-  caseIdInput.placeholder = "case ID";
+  caseIdInput.placeholder = "Hikari文書名";
   hikariControls.appendChild(caseIdInput);
   const observationInput = document.createElement("textarea");
   observationInput.placeholder = "観察メモ（任意）";
@@ -401,23 +414,58 @@ export function buildUi(
   hikariControls.appendChild(observationInput);
   const caseSave = document.createElement("button");
   caseSave.type = "button";
-  caseSave.textContent = "この景色を保存";
+  caseSave.textContent = "現在のビューを追加";
   caseSave.onclick = () => callbacks.onHikariCaseSave({ caseId: caseIdInput.value.trim() || "hikari-case", observation: observationInput.value });
   hikariControls.appendChild(caseSave);
   const caseOpen = document.createElement("button");
   caseOpen.type = "button";
-  caseOpen.textContent = "caseを開く";
+  caseOpen.textContent = "Hikari文書を開く";
   const caseFile = document.createElement("input");
   caseFile.type = "file";
-  caseFile.accept = "application/json,.json";
+  caseFile.accept = ".hkr,application/vnd.hikari+json,application/json,.json";
   caseFile.hidden = true;
   caseOpen.onclick = () => caseFile.click();
   caseFile.onchange = () => { const file = caseFile.files?.[0]; if (file) callbacks.onHikariCaseImportFile(file); caseFile.value = ""; };
   hikariControls.appendChild(caseOpen);
   hikariControls.appendChild(caseFile);
+  const savedViewSelect = document.createElement("select");
+  savedViewSelect.disabled = true;
+  savedViewSelect.onchange = () => {
+    if (savedViewSelect.value) callbacks.onHikariViewActivate(savedViewSelect.value);
+  };
+  hikariControls.appendChild(savedViewSelect);
+  const documentSave = document.createElement("button");
+  documentSave.type = "button";
+  documentSave.textContent = "Hikari文書 (.hkr) を保存";
+  documentSave.onclick = () => callbacks.onHikariDocumentSave({
+    documentId: caseIdInput.value.trim() || "hikari-document",
+    observation: observationInput.value,
+  });
+  hikariControls.appendChild(documentSave);
   const caseStatus = document.createElement("div");
   caseStatus.className = "hint";
   hikariControls.appendChild(caseStatus);
+  const imageExportButton = document.createElement("button");
+  imageExportButton.type = "button";
+  imageExportButton.textContent = "表示をPNG画像にする";
+  const imageExportStatus = document.createElement("div");
+  imageExportStatus.className = "hint";
+  imageExportButton.onclick = async () => {
+    imageExportButton.disabled = true;
+    imageExportStatus.textContent = "画像を書き出し中";
+    try {
+      const result = await callbacks.onImageExport();
+      imageExportStatus.textContent = `${result.filename} · ${result.width}×${result.height}px`;
+    } catch (error) {
+      imageExportStatus.textContent = error instanceof Error
+        ? `画像書き出し失敗: ${error.message}`
+        : "画像書き出しに失敗しました";
+    } finally {
+      imageExportButton.disabled = false;
+    }
+  };
+  hikariControls.appendChild(imageExportButton);
+  hikariControls.appendChild(imageExportStatus);
 
   const blenderTitle = document.createElement("div");
   blenderTitle.className = "hikari-section-title";
@@ -590,6 +638,33 @@ export function buildUi(
   receiverEnergySummary.dataset.kind = "empty";
   receiverEnergySummary.textContent = "受光面の変化を計算中";
   opticsControls.appendChild(receiverEnergySummary);
+  const receiverParityButton = document.createElement("button");
+  receiverParityButton.type = "button";
+  receiverParityButton.className = "receiver-parity-action";
+  receiverParityButton.textContent = "CPU / GPU を比較";
+  const receiverParityStatus = document.createElement("div");
+  receiverParityStatus.className = "receiver-parity-status";
+  receiverParityStatus.dataset.kind = "unavailable";
+  receiverParityStatus.textContent = "同じ2,048光線で未比較";
+  receiverParityButton.onclick = async () => {
+    receiverParityButton.disabled = true;
+    receiverParityStatus.dataset.kind = "computing";
+    receiverParityStatus.textContent = "同じ光線をCPU / GPUで計算中";
+    try {
+      const result = await callbacks.onReceiverParityRun();
+      receiverParityStatus.dataset.kind = result.kind;
+      receiverParityStatus.textContent = result.text;
+    } catch (error) {
+      receiverParityStatus.dataset.kind = "failed";
+      receiverParityStatus.textContent = error instanceof Error
+        ? `比較に失敗: ${error.message}`
+        : "比較に失敗しました";
+    } finally {
+      receiverParityButton.disabled = false;
+    }
+  };
+  opticsControls.appendChild(receiverParityButton);
+  opticsControls.appendChild(receiverParityStatus);
 
   const daylightTitle = document.createElement("div");
   daylightTitle.className = "hikari-section-title";
@@ -1070,6 +1145,27 @@ export function buildUi(
       caseIdInput.value = details.caseId;
       observationInput.value = details.observation;
     },
+    setHikariViews: (views, activeViewId) => {
+      savedViewSelect.replaceChildren();
+      if (views.length === 0) {
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = "保存ビューなし";
+        savedViewSelect.appendChild(empty);
+        savedViewSelect.disabled = true;
+        return;
+      }
+      for (const view of views) {
+        const option = document.createElement("option");
+        option.value = view.viewId;
+        option.textContent = view.name;
+        savedViewSelect.appendChild(option);
+      }
+      savedViewSelect.disabled = false;
+      savedViewSelect.value = activeViewId && views.some((view) => view.viewId === activeViewId)
+        ? activeViewId
+        : views[0].viewId;
+    },
     syncHikariSettings: (settings) => {
       hikariState = { ...settings };
       for (const sync of hikariControlSyncers) sync(hikariState);
@@ -1135,6 +1231,8 @@ export function buildUi(
       opticalSourceInfo,
       opticsComputeStatus,
       receiverEnergySummary,
+      receiverParityButton,
+      receiverParityStatus,
     ]);
     const daylightGroup = createPropertyGroup("自然光", [
       daylightModeControl.root,
@@ -1206,7 +1304,11 @@ export function buildUi(
       caseSave,
       caseOpen,
       caseFile,
+      savedViewSelect,
+      documentSave,
       caseStatus,
+      imageExportButton,
+      imageExportStatus,
     ]);
     const blenderGroup = createPropertyGroup("Blenderへ渡す", [
       blenderSizeRow,
@@ -1241,7 +1343,8 @@ export function buildUi(
     const openButton = makeToolbarButton("開く", "ファイルを開く (⌘O)");
     const saveButton = makeToolbarButton("保存", "現在の状態を保存 (⌘S)");
     const exportButton = makeToolbarButton("書き出し", "3Dデータを書き出す");
-    fileActions.append(openButton, saveButton, exportButton);
+    const imageButton = makeToolbarButton("画像", "表示中のビューポートをPNG画像にする");
+    fileActions.append(openButton, saveButton, imageButton, exportButton);
     topbar.appendChild(fileActions);
 
     const fullscreenButton = makeToolbarButton("全画面", "操作部分を隠して表示を大きくする");
@@ -1352,7 +1455,7 @@ export function buildUi(
       else importInput.click();
     };
     const runSave = (): void => {
-      if (activeView === "hikari") caseSave.click();
+      if (activeView === "hikari") documentSave.click();
       else exportBtn.click();
     };
     const runExport = (): void => {
@@ -1362,6 +1465,7 @@ export function buildUi(
     openButton.onclick = runOpen;
     saveButton.onclick = runSave;
     exportButton.onclick = runExport;
+    imageButton.onclick = () => imageExportButton.click();
 
     let focusMode = false;
     const requestViewportResize = (): void => {
@@ -1419,8 +1523,9 @@ export function buildUi(
         activeView = view;
         renderLayers();
         openButton.title = view === "hikari" ? "景色の記録を開く (⌘O)" : "形の履歴を開く (⌘O)";
-        saveButton.title = view === "hikari" ? "この景色を保存 (⌘S)" : "形の履歴を保存 (⌘S)";
+        saveButton.title = view === "hikari" ? "追加済みビューをHikari文書へ保存 (⌘S)" : "形の履歴を保存 (⌘S)";
         exportButton.title = view === "hikari" ? "Blender用一式を書き出す" : "3Dデータを書き出す";
+        imageButton.hidden = view !== "hikari";
       },
     };
   }

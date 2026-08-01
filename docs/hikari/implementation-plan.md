@@ -47,7 +47,7 @@ evidence cases
   -> Ambient Mix
 ```
 
-The first four slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, and author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0. The next slice is the same-count device runner that feeds real CPU and WebGPU fields into those automated gates.
+The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. The current Tokyo 17:00 author case passes flux, centroid, support, and normalized spatial gates but still fails the two-texel 95% envelope gate at five texels; Phase 3E therefore remains open rather than converting that observation into a looser threshold.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -203,7 +203,7 @@ Implementation slices:
 2. **3B — valid paths — implemented for the reference path in v0.23.0:** unresolved entry/exit paths deposit no receiver energy; TIR, material/interface loss, receiver escape, and invalid paths remain distinct ledger outcomes. Decorative spectral point styling remains Analysis-only and no longer offsets Natural receiver deposits.
 3. **3C — support and diagnosis — implemented in v0.24.0:** the transport field rejects deposits outside the reconstructed baseline-shadow support before rendering. Natural can switch without retracing among Composite, Shadow coverage, Delivered light, and Non-arrival light. The last field is splatted at each affected baseline position and includes material/interface loss, reflection, receiver escape, fixed-domain escape, and unresolved paths; author-imposed support rejection remains a separate numeric bucket.
 4. **3D — HDR reference field — implemented in v0.22.0:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization.
-5. **3E — CPU/WebGPU parity — partial:** both backends now share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. A renderer-independent comparator now gates identity/revisions, RGB flux, centroid, 95% envelope, support IoU, and normalized deposit/coverage shape. The device-level same-count runner remains.
+5. **3E — CPU/WebGPU parity — runner implemented, alignment open in v0.25.0:** both backends share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. A separate comparison GPU prevents error-scope/status races with the displayed field; exact-count CPU and WebGPU builds publish no texture, geometry, status, or callback side effects, abort stale scene revisions, serialize jobs, and return compact summaries rather than typed arrays. The author can run the 2,048-ray gate in Calculation Status. Tokyo 17:00 measured 0.51% maximum RGB-flux error, 0.20-texel centroid distance, support IoU 1.0, deposit L1 2.15%, and coverage L1 below 0.001%, but a five-texel 95% envelope difference exceeds the two-texel contract. Keep the gate failed until the boundary divergence is explained or a case-family study justifies a metric change.
 
 Acceptance:
 
@@ -260,19 +260,17 @@ The Primary and author review the Natural view first. Numeric tests and Analysis
 
 ## Phase 6 — capture an interesting state, then compare
 
-Case export/import begins as `save this view`, not as a general preset manager. The primary action captures a promising observation; comparison and evidence fields expand when that state is selected for Blender or physical validation.
+The first capture slice is implemented in v0.25.0. An editable JSON-based `.hkr` document contains multiple complete replayable views; each view carries the shape recipe, Hikari settings, camera, observation, backend, version, and commit. Legacy single-case JSON opens as a one-view document. The current renderer viewport can be exported separately as PNG and is not embedded in `.hkr`. Blender export still materializes one current case and its checked mesh/sidecar bundle.
 
-Add a case export/import surface containing:
+The remaining capture work is:
 
-- shape recipe and mesh references;
-- optical scene and all material values;
-- geographic place, UTC instant, playback state, room/opening geometry, body pose, light, receiver, and camera;
-- application version and Git commit;
-- backend/sample count;
-- hashes and mesh measurements;
-- selected output images and observation notes.
+- extend each view when the corresponding runtime features arrive: geographic place beyond Tokyo, playback state, room/opening geometry, whole-body pose, and general receiver records;
+- link the selected Blender bundle's mesh hashes and measurements back to its source view;
+- evidence links and selected output-image references without silently embedding unbounded pixels;
+- view rename, duplicate, reorder, delete, update, dirty-state, and autosave recovery;
+- shared-shape deduplication only if real document sizes justify a v2 migration.
 
-Then add side-by-side or saved-state A/B comparison. Do not begin with a general preset manager.
+Then add side-by-side or saved-state A/B comparison. The view list is an observation record, not a general effect-preset manager.
 
 ## Phase 7 — living shape and freeze
 

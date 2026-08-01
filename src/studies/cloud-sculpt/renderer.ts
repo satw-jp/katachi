@@ -20,6 +20,12 @@ export interface CameraSnapshot {
   aspect?: number;
 }
 
+export interface ViewportPng {
+  blob: Blob;
+  width: number;
+  height: number;
+}
+
 export class CloudRenderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
@@ -359,6 +365,23 @@ export class CloudRenderer {
       fov: this.camera.fov,
       aspect: this.camera.aspect,
     };
+  }
+
+  /** Capture only the rendered study viewport at its current device-pixel resolution. */
+  capturePng(): Promise<ViewportPng> {
+    this.render();
+    const canvas = this.renderer.domElement;
+    const width = canvas.width;
+    const height = canvas.height;
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("PNG画像を生成できませんでした"));
+          return;
+        }
+        resolve({ blob, width, height });
+      }, "image/png");
+    });
   }
 
   restoreCamera(snapshot: CameraSnapshot): void {

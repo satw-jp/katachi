@@ -1,6 +1,8 @@
 # Hikari baseline cases
 
-Phase 0 の比較は、同じ `.hikari-case.json` を開き、HIKARI / Optics / Natural で行う。
+Phase 0 の比較は、同じ `.hikari-case.json` を開き、HIKARI / Optics / Natural で行う。この形式は固定baselineと
+Blender bundleの一状態を表す。日常の編集と複数ビュー保存は [`.hkr` Hikari文書](../document-format.md) を使い、
+旧caseを開いた場合は一ビュー文書として扱う。
 case JSON は形状レシピ、全Hikari設定、カメラと注視点、観察メモ、版、互換性・計算バックエンドの記録である。
 画像、派生メッシュ、GPUの実行結果は含まない。読み込み時は形式検証後に再生するため、同じcaseでも実行環境により
 CPU/WebGPU のbackend記録は変わり得る。
@@ -23,7 +25,8 @@ CPU/WebGPU のbackend記録は変わり得る。
 `opticalColorMode=color`, `dispersionMode=local`, `stressAmount=0.55`, `polarization=0.45` とする。
 
 実測との比較では、caseの `compatibility`、`backend`、`appVersion`、`commit` を観察ノートとともに残す。
-安全モードではCPU 56 rayのように品質設定が異なるため、WebGPUの結果と同列の定量比較には使わない。
+安全モードの`opticalRayCount=56`はAnalysisで表示する線の上限で、受光transportは現在最大2,048 samplesを別に計算する。
+安全版と通常版の異なる標本数を同列の定量比較には使わず、定量判定はv0.25のsame-count runnerで行う。
 
 ## Physical scale の扱い
 

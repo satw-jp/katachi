@@ -5,7 +5,7 @@ import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
 import { resolveDaylight } from "./daylight.ts";
 import { generateFiniteLightSamples } from "./finiteLightSamples.ts";
 
-const MAX_GPU_BALLS = 256;
+export const MAX_GPU_OPTICS_BALLS = 256;
 export const GPU_OPTICS_RESULT_FLOATS = 28;
 export const GPU_OPTICS_RESULT_OFFSETS = Object.freeze({
   origin: 0,
@@ -82,9 +82,9 @@ fn smoothMin(a: f32, b: f32, k: f32) -> f32 {
 }
 
 fn mapField(point: vec3f) -> f32 {
-  let ballCount = min(u32(params.config0.x), ${MAX_GPU_BALLS}u);
+  let ballCount = min(u32(params.config0.x), ${MAX_GPU_OPTICS_BALLS}u);
   var distance = 1e5;
-  for (var index = 0u; index < ${MAX_GPU_BALLS}u; index++) {
+  for (var index = 0u; index < ${MAX_GPU_OPTICS_BALLS}u; index++) {
     if (index >= ballCount) {
       break;
     }
@@ -402,6 +402,7 @@ export class WebGpuOpticsEngine {
     balls: Ball[],
     k: number,
     settings: OpticalSettings,
+    options: { updateStatus?: boolean } = {},
   ): Promise<GpuOpticsResult | null> {
     const ready = await this.initializing;
     if (!ready || !this.device || !this.pipeline || balls.length === 0) {
@@ -409,14 +410,17 @@ export class WebGpuOpticsEngine {
     }
 
     const sampleCount = Math.max(1, Math.round(settings.opticalSampleCount));
-    this.status = {
-      ...this.status,
-      kind: "computing",
-      sampleCount,
-      elapsedMs: null,
-      hitCount: 0,
-      message: "GPUで光を追跡中",
-    };
+    const updateStatus = options.updateStatus !== false;
+    if (updateStatus) {
+      this.status = {
+        ...this.status,
+        kind: "computing",
+        sampleCount,
+        elapsedMs: null,
+        hitCount: 0,
+        message: "GPUで光を追跡中",
+      };
+    }
     const startedAt = performance.now();
     const device = this.device;
 
@@ -453,8 +457,8 @@ export class WebGpuOpticsEngine {
       const hostAbsorption = opticalScene.hostAbsorptionPerShapeUnit;
       const inclusionAbsorption = opticalScene.inclusionAbsorptionPerShapeUnit;
 
-      const ballValues = new Float32Array(Math.max(1, Math.min(balls.length, MAX_GPU_BALLS)) * 4);
-      for (let index = 0; index < Math.min(balls.length, MAX_GPU_BALLS); index++) {
+      const ballValues = new Float32Array(Math.max(1, Math.min(balls.length, MAX_GPU_OPTICS_BALLS)) * 4);
+      for (let index = 0; index < Math.min(balls.length, MAX_GPU_OPTICS_BALLS); index++) {
         const ball = balls[index];
         const offset = index * 4;
         ballValues[offset] = ball.x;
@@ -468,7 +472,7 @@ export class WebGpuOpticsEngine {
       const parameterValues = new Float32Array(40);
       parameterValues.set(
         [
-          Math.min(balls.length, MAX_GPU_BALLS),
+          Math.min(balls.length, MAX_GPU_OPTICS_BALLS),
           k,
           settings.ior,
           bounds.radius,
@@ -563,24 +567,28 @@ export class WebGpuOpticsEngine {
       for (let sample = 0; sample < sampleCount; sample++) {
         if (values[sample * RESULT_FLOATS + 16] > 0.5) hitCount++;
       }
-      this.status = {
-        ...this.status,
-        kind: "webgpu",
-        sampleCount,
-        elapsedMs,
-        hitCount,
-        message: "GPU計算",
-      };
+      if (updateStatus) {
+        this.status = {
+          ...this.status,
+          kind: "webgpu",
+          sampleCount,
+          elapsedMs,
+          hitCount,
+          message: "GPU計算",
+        };
+      }
       return { values, sampleCount, hitCount, elapsedMs };
     } catch (error) {
-      this.status = {
-        ...this.status,
-        kind: "error",
-        sampleCount,
-        elapsedMs: performance.now() - startedAt,
-        hitCount: 0,
-        message: `GPU計算失敗: ${(error as Error).message}`,
-      };
+      if (updateStatus) {
+        this.status = {
+          ...this.status,
+          kind: "error",
+          sampleCount,
+          elapsedMs: performance.now() - startedAt,
+          hitCount: 0,
+          message: `GPU計算失敗: ${(error as Error).message}`,
+        };
+      }
       return null;
     }
   }

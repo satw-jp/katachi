@@ -15,11 +15,12 @@ The top bar contains only application-wide operations:
 - application identity, version, and the KATACHI / HIKARI workspace switch
 - open the current workspace file
 - save the current workspace file
+- export the current renderer viewport as a PNG image
 - export derived 3D data
 - send a selected Hikari case to Blender
 - enter the unobstructed observation view
 
-Open and save are contextual. KATACHI opens/saves the replayable shape recipe. HIKARI opens/saves the complete observation case, including the shape recipe, optical settings, and camera. Derived outputs do not replace the editable source.
+Open and save are contextual. KATACHI opens/saves the replayable shape recipe. HIKARI Open accepts an editable multi-view `.hkr` document and legacy `.hikari-case.json`; Save writes the views already added to `.hkr`. The current unsaved view must first be added with **現在のビューを追加** until dirty-state/update semantics are implemented. Image exports only the current renderer viewport as PNG. Export produces the Blender bundle for the current state. Derived outputs do not replace the editable `.hkr` source, and Blender continues to receive one materialized case rather than the whole document.
 
 ### Central viewport
 
@@ -80,4 +81,3 @@ Each future object receives a persistent ID. Blender sidecars use the same IDs a
 - Full screen can be entered and exited with real pointer interaction and retains state.
 - At a narrow viewport, the central observation surface remains usable.
 - Version and updated date remain visible in the ordinary application shell.
-

@@ -362,6 +362,34 @@
   color: #71591e;
 }
 
+.receiver-parity-action {
+  width: 100%;
+}
+
+.receiver-parity-action:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.receiver-parity-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiver-parity-status[data-kind="passed"] {
+  color: #174f5a;
+}
+
+.receiver-parity-status[data-kind="failed"] {
+  color: var(--danger);
+}
+
+.receiver-parity-status[data-kind="computing"] {
+  color: #71591e;
+}
+
 .hikari-section-title {
   margin-top: 3px;
   color: var(--muted);

@@ -777,71 +777,85 @@ export const fragmentShader = /* glsl */ `
       n = perturbSurfaceNormal(n, p);
       float eta = 1.0 / max(1.001, uIor);
       vec3 insideDirection = refract(rd, n, eta);
-      if (length(insideDirection) < 0.01) insideDirection = reflect(rd, n);
+      bool opticalPathUnresolved = length(insideDirection) < 0.01;
+      if (opticalPathUnresolved) insideDirection = reflect(rd, n);
       vec3 exitPoint = p;
       float travelled = 0.0;
-      bool hasExit = marchInside(p, insideDirection, exitPoint, travelled);
+      bool hasExit = !opticalPathUnresolved
+        && marchInside(p, insideDirection, exitPoint, travelled);
+      if (!hasExit) opticalPathUnresolved = true;
       float hostDistance = travelled;
       float inclusionDistance = 0.0;
       float nestedInterfaceTransmission = 1.0;
       bool traversedInclusion = false;
       vec3 finalHostDirection = insideDirection;
 
-      // Phase 2 keeps the authored host SDF and adds one analytic spherical
-      // inclusion. If refraction cannot produce a complete host→inclusion→host
-      // path, retain the established host-only result rather than inventing a
-      // plausible-looking partial path.
+      // A nested interface is only allowed to contribute when the complete
+      // host→inclusion→host→air path resolves. Partial paths are surfaced below
+      // as front-interface reflection; they must not masquerade as host-only
+      // transmission.
       if (hasExit && uInclusionEnabled == 1) {
         float inclusionNear = 0.0;
         float inclusionFar = 0.0;
+        bool intersectsInclusion = rayInclusionInterval(
+          p,
+          insideDirection,
+          inclusionNear,
+          inclusionFar
+        );
         if (
-          rayInclusionInterval(p, insideDirection, inclusionNear, inclusionFar)
+          intersectsInclusion
           && inclusionNear > 0.012
           && inclusionNear < travelled - 0.012
         ) {
-          vec3 inclusionEntry = p + insideDirection * inclusionNear;
-          vec3 inclusionEntryNormal = normalize(inclusionEntry - uInclusionCenter);
-          vec3 inclusionDirection = refract(
-            insideDirection,
-            inclusionEntryNormal,
-            uIor / max(1.0, uInclusionIor)
-          );
-          if (length(inclusionDirection) > 0.01) {
-            vec3 inclusionStart = inclusionEntry + inclusionDirection * 0.006;
-            float innerNear = 0.0;
-            float innerFar = 0.0;
-            if (rayInclusionInterval(inclusionStart, inclusionDirection, innerNear, innerFar)) {
-              vec3 inclusionExit = inclusionStart + inclusionDirection * innerFar;
-              vec3 inclusionExitNormal = normalize(inclusionExit - uInclusionCenter);
-              vec3 returnedHostDirection = refract(
-                inclusionDirection,
-                -inclusionExitNormal,
-                uInclusionIor / max(1.001, uIor)
-              );
-              if (length(returnedHostDirection) > 0.01) {
-                vec3 returnedHostStart = inclusionExit + returnedHostDirection * 0.008;
-                vec3 nestedExitPoint = returnedHostStart;
-                float returnedHostDistance = 0.0;
-                bool hasNestedExit = marchInside(
-                  returnedHostStart,
-                  returnedHostDirection,
-                  nestedExitPoint,
-                  returnedHostDistance
+          if (inclusionFar >= travelled - 0.012) {
+            opticalPathUnresolved = true;
+          } else {
+            vec3 inclusionEntry = p + insideDirection * inclusionNear;
+            vec3 inclusionEntryNormal = normalize(inclusionEntry - uInclusionCenter);
+            vec3 inclusionDirection = refract(
+              insideDirection,
+              inclusionEntryNormal,
+              uIor / max(1.0, uInclusionIor)
+            );
+            if (length(inclusionDirection) > 0.01) {
+              vec3 inclusionStart = inclusionEntry + inclusionDirection * 0.006;
+              float innerNear = 0.0;
+              float innerFar = 0.0;
+              if (rayInclusionInterval(inclusionStart, inclusionDirection, innerNear, innerFar)) {
+                vec3 inclusionExit = inclusionStart + inclusionDirection * innerFar;
+                vec3 inclusionExitNormal = normalize(inclusionExit - uInclusionCenter);
+                vec3 returnedHostDirection = refract(
+                  inclusionDirection,
+                  -inclusionExitNormal,
+                  uInclusionIor / max(1.001, uIor)
                 );
-                if (hasNestedExit) {
-                  traversedInclusion = true;
-                  exitPoint = nestedExitPoint;
-                  finalHostDirection = returnedHostDirection;
-                  inclusionDistance = distance(inclusionEntry, inclusionExit);
-                  hostDistance = inclusionNear + returnedHostDistance + 0.008;
-                  travelled = hostDistance + inclusionDistance;
-                  nestedInterfaceTransmission = pow(
-                    normalInterfaceTransmission(uIor, uInclusionIor),
-                    2.0
+                if (length(returnedHostDirection) > 0.01) {
+                  vec3 returnedHostStart = inclusionExit + returnedHostDirection * 0.008;
+                  vec3 nestedExitPoint = returnedHostStart;
+                  float returnedHostDistance = 0.0;
+                  bool hasNestedExit = marchInside(
+                    returnedHostStart,
+                    returnedHostDirection,
+                    nestedExitPoint,
+                    returnedHostDistance
                   );
+                  if (hasNestedExit) {
+                    traversedInclusion = true;
+                    exitPoint = nestedExitPoint;
+                    finalHostDirection = returnedHostDirection;
+                    inclusionDistance = distance(inclusionEntry, inclusionExit);
+                    hostDistance = inclusionNear + returnedHostDistance + 0.008;
+                    travelled = hostDistance + inclusionDistance;
+                    nestedInterfaceTransmission = pow(
+                      normalInterfaceTransmission(uIor, uInclusionIor),
+                      2.0
+                    );
+                  }
                 }
               }
             }
+            if (!traversedInclusion) opticalPathUnresolved = true;
           }
         }
       }
@@ -851,16 +865,18 @@ export const fragmentShader = /* glsl */ `
       if (hasExit) {
         exitNormal = perturbSurfaceNormal(estimateNormal(exitPoint), exitPoint);
         vec3 refractedOut = refract(finalHostDirection, -exitNormal, uIor);
-        outgoing = length(refractedOut) < 0.01
-          ? reflect(finalHostDirection, -exitNormal)
-          : refractedOut;
+        if (length(refractedOut) < 0.01) {
+          opticalPathUnresolved = true;
+        } else {
+          outgoing = refractedOut;
+        }
       }
 
       float facing = clamp(dot(-rd, n), 0.0, 1.0);
       float fresnelBase = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
       float fresnel = fresnelBase + (1.0 - fresnelBase) * pow(1.0 - facing, 5.0);
       vec3 refractedColor = roughOpticalEnvironment(hasExit ? exitPoint : p, outgoing);
-      if (hasExit && !traversedInclusion && uRainbowModel != 1 && uDispersion > 0.001) {
+      if (!opticalPathUnresolved && hasExit && !traversedInclusion && uRainbowModel != 1 && uDispersion > 0.001) {
         float locality = 1.0;
         if (uDispersionMode == 1) {
           float bend = clamp(length(outgoing - rd) / 1.15, 0.0, 1.0);
@@ -889,7 +905,7 @@ export const fragmentShader = /* glsl */ `
           refractedColor = mix(refractedColor, spectralColor, spectralVisibility);
         }
       }
-      if (hasExit && !traversedInclusion && uRainbowModel != 0 && uStressAmount > 0.001) {
+      if (!opticalPathUnresolved && hasExit && !traversedInclusion && uRainbowModel != 0 && uStressAmount > 0.001) {
         vec3 middle = mix(p, exitPoint, 0.5);
         float junction = max(junctionStress(p), junctionStress(exitPoint));
         float thicknessStress = smoothstep(0.35, 3.2, travelled);
@@ -917,10 +933,14 @@ export const fragmentShader = /* glsl */ `
         * nestedInterfaceTransmission;
       vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
       float edgeGlow = pow(1.0 - facing, 2.2);
-      vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
-      color += uOpticalTint * edgeGlow * 0.22;
+      vec3 color = opticalPathUnresolved
+        ? reflectedColor * fresnel
+        : mix(refractedColor * transmission, reflectedColor, fresnel);
+      color += uOpticalTint * edgeGlow * 0.22
+        * (opticalPathUnresolved ? 0.0 : 1.0);
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));
-      float internalHaze = (1.0 - exp(-opticalDepthLuma * 0.22))
+      float internalHaze = (opticalPathUnresolved ? 0.0 : 1.0)
+        * (1.0 - exp(-opticalDepthLuma * 0.22))
         * uMaterialVariation;
       color += uOpticalTint * internalHaze * 0.11;
       if (uInclusionStatus == 2 && uNaturalView == 0) {

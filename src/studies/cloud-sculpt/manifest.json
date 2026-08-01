@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added an isolated author-triggered 2,048-ray CPU/WebGPU receiver parity runner. Headless exact-count builds do not publish textures, Analysis geometry, callbacks, pending state, or compute status; a dedicated comparison GPU avoids status and error-scope races, concurrent and stale jobs fail locally, and the report contains compact summaries rather than field arrays. The Tokyo 17:00 current scene measured 0.51% maximum RGB flux error, 0.20-texel centroid distance, 100% support IoU, 2.15% normalized deposit L1, and negligible coverage L1, while the 95% envelope remained five texels apart and intentionally fails the two-texel gate. The view shader now treats incomplete nested refraction and outer TIR as unresolved and renders only known front-interface reflection instead of invented host-only transmission. Added current-renderer-resolution viewport PNG export and the first editable multi-view `.hkr` JSON document with schema validation and legacy one-case import. Unit tests, production build, normal WebGPU shader compilation, parity isolation, multi-view recall, PNG generation, and forced-safe unavailability passed locally."
+    },
     {
       "date": "2026-08-01",
       "note": "Added author-facing receiver diagnostics for Composite, Shadow coverage, Delivered light, and Non-arrival light without retracing or per-frame peak normalization. The transport field now stores spatial RGB non-arrival flux at each affected baseline position for material/interface loss, reflection, receiver/domain escape, and unresolved paths; support rejection remains separately identified. A persistent energy summary reports delivered, non-arrival, outside-support, and residual percentages. Recompute immediately suppresses stale Natural textures and Analysis geometry, GPU failure publishes an explicit CPU fallback, outer TIR no longer charges fictitious exit transmission, and unresolved inclusion-boundary paths can no longer fall through as host-only deposits. Added a pure CPU/WebGPU field comparator for revision/structure, RGB flux, centroid, 95% envelope, support IoU, and normalized spatial differences. Unit tests, production build, WebGPU shader compilation, all four modes, and no-retrace mode switching passed locally; the automated same-count device runner remains pending."

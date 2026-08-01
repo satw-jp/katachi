@@ -15,6 +15,7 @@ The handoff is therefore a reproducible case, not only a mesh. A visually pleasi
 - OBJ/STL export records selected physical size, triangle count, bounds, and watertightness.
 - `hikari-blender-study` v2 carries the case identity, mesh hashes, author scale, host/inclusion optical media, receiver, sun vector and angular diameter, camera, environment assumptions, and explicit approximations.
 - The Hikari panel can produce the case, recipe, OBJ, STL, and Blender study sidecar with one action.
+- An editable `.hkr` may hold several views, but Blender export materializes only the current/selected state as one `.hikari-case.json`; the Blender bootstrap does not read the whole `.hkr` document.
 - `tools/blender/import_hikari_study.py` is the deterministic Blender bootstrap. Artistic refinement stays after import.
 
 The runtime still has one analytic spherical inclusion. The sidecar already permits an inclusion array, but generic multiple-inclusion export is not declared complete until every inclusion has either a deterministic analytic reconstruction or an independently watertight primary mesh.
