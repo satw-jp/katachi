@@ -63,6 +63,7 @@ export const fragmentShader = /* glsl */ `
   uniform vec4 uCausticBounds;
   uniform float uCausticAvailable;
   uniform float uCausticStrength;
+  uniform float uReceiverY;
   uniform int uCompatibilityMode;
 
   varying vec2 vUv;
@@ -332,7 +333,7 @@ export const fragmentShader = /* glsl */ `
     float lightBand = pow(max(dot(direction, normalize(uLightDir)), 0.0), 48.0);
     sky += vec3(0.72, 0.9, 1.0) * lightBand;
 
-    float floorY = -2.35;
+    float floorY = uReceiverY;
     if (direction.y < -0.001) {
       float floorDistance = (floorY - origin.y) / direction.y;
       if (floorDistance > 0.0) {
@@ -416,7 +417,7 @@ export const fragmentShader = /* glsl */ `
     float sunDisc = pow(max(dot(direction, normalize(uLightDir)), 0.0), 420.0);
     sky += vec3(1.0, 0.88, 0.66) * sunDisc * uSunIntensity * 1.8;
 
-    float floorY = -2.35;
+    float floorY = uReceiverY;
     float floorDistance = 1e5;
     if (direction.y < -0.001) {
       floorDistance = (floorY - origin.y) / direction.y;
@@ -495,6 +496,16 @@ export const fragmentShader = /* glsl */ `
         // Preserve local color and shape while compressing only the brightest
         // peaks, which otherwise bleach the transparent shadow to a white box.
         causticLight /= vec3(1.0) + causticLight * 0.38;
+        // The author-facing view treats focused light as redistribution inside
+        // the same finite-source shadow, never as an unrelated floor glow.
+        // This support comes from the exact transmission query used above;
+        // the reference HDR transport field will replace this temporary gate.
+        float shadowSupport = smoothstep(
+          0.004,
+          0.035,
+          1.0 - transmissionLuma
+        );
+        causticLight *= shadowSupport;
         vec3 floorColor = ambient + direct + horizonFill + causticLight;
         float fogDensity = mix(0.012, 0.085, uEnvironmentMist);
         float distanceFog = 1.0 - exp(-floorDistance * fogDensity);

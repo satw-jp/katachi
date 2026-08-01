@@ -219,11 +219,19 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   let entry = entryHit.xyz;
   let entryNormal = fieldNormal(entry);
   let insideRefraction = refractDirection(lightDirection, entryNormal, 1.0 / params.config0.z);
+  result.entry = vec4f(entry, 1.0);
+  result.resultInfo.x = 1.0;
+  // Air-to-host TIR is not expected. Reject a numerical/invalid entry instead
+  // of tracing the reflected fallback as if it had entered the material.
+  if (insideRefraction.w <= 0.5) {
+    result.floorPoint = vec4f(0.0);
+    result.resultInfo.z = 0.0;
+    results[index] = result;
+    return;
+  }
   let insideDirection = insideRefraction.xyz;
   let exitHit = marchInside(entry, insideDirection, maxDistance);
 
-  result.entry = vec4f(entry, 1.0);
-  result.resultInfo.x = 1.0;
   if (exitHit.w <= 0.0) {
     result.exitPoint = vec4f(entry + insideDirection * radius * 1.6, 0.0);
     result.floorPoint = vec4f(0.0);
@@ -292,7 +300,10 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   let exitNormal = fieldNormal(exitPoint);
   let outgoingRefraction = refractDirection(finalHostDirection, -exitNormal, params.config0.z);
   let outgoing = outgoingRefraction.xyz;
-  let floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
+  var floorPoint = vec4f(0.0);
+  if (outgoingRefraction.w > 0.5) {
+    floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
+  }
   let bend = 1.0 - min(1.0, distance(outgoing, lightDirection) / 1.5);
   if (energy < 0.0) {
     energy = 0.5 + bend * 0.5;
@@ -382,11 +393,11 @@ export class WebGpuOpticsEngine {
       basisU.normalize();
       const basisV = new THREE.Vector3().crossVectors(basisU, lightDirection).normalize();
       const originCenter = bounds.center.clone().addScaledVector(lightDirection, -bounds.radius * 2.6);
-      const floorY = bounds.minY - Math.max(0.45, bounds.radius * 0.28);
       // Keep the GPU path behind the same scene/containment validation as the
       // CPU tracer. The shader remains intentionally bounded to this one
       // analytic sphere and does not receive a second shape buffer.
       const opticalScene = buildCloudOpticalScene(balls, k, settings);
+      const floorY = opticalScene.scene.receiver.pose.position.y;
       const inclusionValid = opticalScene.inclusionValid
         && Number.isFinite(settings.inclusionOffsetX)
         && Number.isFinite(settings.inclusionOffsetY)

@@ -1,6 +1,6 @@
 # hikari — next implementation plan
 
-Status: planned
+Status: active — Phase 3A/3B first slice implemented; HDR transport pending
 UpdatedAt: 2026-08-01
 
 ## Design principle

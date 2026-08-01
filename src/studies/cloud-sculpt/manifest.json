@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Corrected the detached focused-light patch reported in the Tokyo 17:00 Natural view. Natural/Analysis floor intersections, the CPU tracer, and the WebGPU tracer now all take the receiver height from OpticalScene instead of mixing a fixed visible floor with a shape-derived caustic floor; the previous 0.223 shape-unit plane mismatch displaced evening hits by about 0.61 unit. Unresolved outer-interface TIR no longer deposits receiver energy. The author-facing Natural composite temporarily gates focused light with the same finite-source transmission support as the visible transparent shadow. This is the first slice of the shared receiver-transport plan; peak-normalized 8-bit caustic fields still need replacement by fixed-domain HDR flux and an energy ledger. Production build and both WebGPU 65,536-ray and forced-safe CPU 88-ray Natural views passed."
+    },
     {
       "date": "2026-08-01",
       "note": "Reorganized Cloud Sculpt and Hikari into a conventional application shell. Contextual Open, Save, and Export actions plus the workspace switch and fullscreen mode stay in a non-scrolling top bar. A Rhino-like right dock separates scene Layers from collapsible Properties, while fullscreen hides the chrome but retains an exit control. At 700px and below the dock moves under the viewport without introducing page scroll. Added an explicit same-resin inclusion action after the author observed that a low-IOR separate inclusion did not match the Ref Blender study; it aligns inner/outer IOR and leaves absorption contrast as the variable."

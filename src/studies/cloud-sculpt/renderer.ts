@@ -112,6 +112,7 @@ export class CloudRenderer {
         uCausticBounds: { value: new THREE.Vector4(0, 0, 1, 1) },
         uCausticAvailable: { value: 0 },
         uCausticStrength: { value: 1.2 },
+        uReceiverY: { value: -2.35 },
         uCompatibilityMode: { value: compatibilityMode ? 1 : 0 },
       },
     });
@@ -180,6 +181,7 @@ export class CloudRenderer {
   setOpticalScene(adapter: CloudOpticalSceneAdapter): void {
     const inclusion = adapter.scene.inclusions[0];
     const requested = inclusion !== undefined;
+    this.material.uniforms.uReceiverY.value = adapter.scene.receiver.pose.position.y;
     this.material.uniforms.uHostAbsorptionRgb.value.set(
       adapter.hostAbsorptionPerShapeUnit.r,
       adapter.hostAbsorptionPerShapeUnit.g,

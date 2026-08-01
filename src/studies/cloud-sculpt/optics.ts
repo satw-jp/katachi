@@ -364,7 +364,7 @@ export class OpticsLayer {
     basisU.normalize();
     const basisV = new THREE.Vector3().crossVectors(basisU, lightDirection).normalize();
     const originCenter = bounds.center.clone().addScaledVector(lightDirection, -bounds.radius * 2.6);
-    const floorY = bounds.minY - Math.max(0.45, bounds.radius * 0.28);
+    const floorY = opticalScene.scene.receiver.pose.position.y;
     const rayPositions: number[] = [];
     const rayColors: number[] = [];
     const densityPositions: number[] = [];
@@ -414,8 +414,15 @@ export class OpticsLayer {
 
         const entryNormal = fieldNormal(balls, k, entry);
         const refractedInside = refract(lightDirection, entryNormal, 1 / settings.ior);
-        const insideDirection =
-          refractedInside ?? lightDirection.clone().reflect(entryNormal);
+        // Air-to-host should not produce TIR. If numerical/invalid geometry
+        // does, do not turn the reflected fallback into receiver energy.
+        if (!refractedInside) {
+          if (showRay) {
+            appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
+          }
+          continue;
+        }
+        const insideDirection = refractedInside;
         let exit = marchInside(balls, k, entry, insideDirection, bounds.radius * 4);
         let traversedInclusion = false;
         let inclusionEntry: THREE.Vector3 | null = null;
@@ -531,17 +538,25 @@ export class OpticsLayer {
           );
         }
         const outwardNormal = fieldNormal(balls, k, exit.point);
-        const outgoing =
-          refract(finalHostDirection, outwardNormal.clone().negate(), settings.ior) ??
-          finalHostDirection.clone().reflect(outwardNormal.clone().negate());
+        const outgoing = refract(
+          finalHostDirection,
+          outwardNormal.clone().negate(),
+          settings.ior,
+        );
+        const unresolvedInternalDirection = finalHostDirection
+          .clone()
+          .reflect(outwardNormal.clone().negate());
         // Keep disabled/invalid or rejected-inclusion rays byte-for-byte on
         // the legacy host-only energy path; the approximation belongs only to
         // a completed nested traversal.
         const energy = traversedInclusion
           ? approximateOpticalEnergy(settings, hostDistance, inclusionDistance)
           : 1;
-        const floorHit = intersectFloor(exit.point, outgoing, floorY);
-        const end = floorHit ?? exit.point.clone().addScaledVector(outgoing, bounds.radius * 2.2);
+        const floorHit = outgoing ? intersectFloor(exit.point, outgoing, floorY) : null;
+        const end = floorHit ?? exit.point.clone().addScaledVector(
+          outgoing ?? unresolvedInternalDirection,
+          bounds.radius * 2.2,
+        );
         if (showRay) {
           appendSegment(rayPositions, rayColors, exit.point, end, 0xf2ffff, 0xffd779);
         }
@@ -558,7 +573,7 @@ export class OpticsLayer {
           0.62 * energy,
         );
 
-        if (floorHit) {
+        if (floorHit && outgoing) {
           const deviation = Math.min(1, outgoing.distanceTo(lightDirection) / 1.2);
           appendSpectralCausticSamples(
             causticFieldSamples,
