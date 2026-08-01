@@ -228,7 +228,7 @@ export class CloudRenderer {
       textureData[targetOffset] = field.depositedFluxRgb[sourceOffset] * inverseTexelArea;
       textureData[targetOffset + 1] = field.depositedFluxRgb[sourceOffset + 1] * inverseTexelArea;
       textureData[targetOffset + 2] = field.depositedFluxRgb[sourceOffset + 2] * inverseTexelArea;
-      textureData[targetOffset + 3] = field.geometricCoverage[index];
+      textureData[targetOffset + 3] = field.geometricCoverage[index] * inverseTexelArea;
     }
     this.causticTexture.dispose();
     this.causticTexture = new THREE.DataTexture(
@@ -255,7 +255,9 @@ export class CloudRenderer {
       Math.max(0.001, field.sizeV),
     );
     this.material.uniforms.uCausticResolution.value.set(field.width, field.height);
-    this.causticTextureHasData = field.depositedFluxRgb.some((value) => value > 0);
+    this.causticTextureHasData =
+      field.geometricCoverage.some((value) => value > 0)
+      || field.depositedFluxRgb.some((value) => value > 0);
     this.applyCausticAvailability();
   }
 

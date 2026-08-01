@@ -15,7 +15,7 @@ The roadmap has one hard order: finish the transparent-material experience first
 
 ## 2026-08-01 plan review — optical coherence is the blocking gate
 
-The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. v0.21.1 removed the `0.223` shape-unit receiver-plane disagreement and invalid TIR deposits. v0.22.0 then replaced adaptive bounds and peak-normalized 8-bit display data with a fixed-domain Float32 flux field. Natural still adds that transported field to an independently evaluated direct term and uses a temporary shadow-support gate; the same finite-light samples do not yet produce both the unobstructed baseline and refracted replacement, so runtime energy closure is not yet proven.
+The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. v0.21.1 removed the `0.223` shape-unit receiver-plane disagreement and invalid TIR deposits. v0.22.0 replaced adaptive bounds and peak-normalized 8-bit display data with a fixed-domain Float32 flux field. v0.23.0 completes the first paired composition: one seeded aperture/sun-disk sample records both its unobstructed baseline and refracted RGB deposit, Natural subtracts the former before adding the latter, and support containment is applied to transport data rather than as a second shader effect.
 
 This changes the critical path. The following gate blocks room rendering, living shape, whole-object placement, physical scale, multiple bodies, and Ambient Mix:
 
@@ -47,7 +47,7 @@ evidence cases
   -> Ambient Mix
 ```
 
-The first two slices are now implemented: receiver coherence/valid-path correction in v0.21.1, followed by fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0. The next slice is baseline replacement from one finite-light sample set, runtime ledger closure, support diagnostics, and automated CPU/WebGPU tolerance gates.
+The first three slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, and paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0. The next slice is an author-visible receiver diagnostic overlay and automated CPU/WebGPU full-field tolerance gates.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -199,10 +199,10 @@ Reference composition replaces affected baseline direct light with transported l
 Implementation slices:
 
 1. **3A — receiver coherence — implemented in v0.21.1:** Natural, CPU, and WebGPU use `OpticalScene.receiver`; saved cases and Blender retain the same receiver contract.
-2. **3B — valid paths — partial:** unresolved outer-interface TIR no longer deposits receiver energy. Decorative spectral position offsets still need removal from validation mode.
-3. **3C — support contract — partial:** `shadow-contained` is the author default through a temporary exact-shadow gate. A receiver diagnostic overlay and measured leakage tolerance remain.
+2. **3B — valid paths — implemented for the reference path in v0.23.0:** unresolved entry/exit paths deposit no receiver energy; TIR, material/interface loss, receiver escape, and invalid paths remain distinct ledger outcomes. Decorative spectral point styling remains Analysis-only and no longer offsets Natural receiver deposits.
+3. **3C — support contract — implemented for Natural in v0.23.0:** the transport field rejects deposits outside the reconstructed baseline-shadow support before rendering. The temporary fragment-shader gate is removed; an author-visible receiver diagnostic overlay and automated leakage gate remain.
 4. **3D — HDR reference field — implemented in v0.22.0:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization.
-5. **3E — CPU/WebGPU parity — partial:** both backends now share rectangular aperture extent, throughput semantics, spectral normalization, flux weighting, and stable receiver coordinates. Identical deterministic source samples, baseline replacement, and automated parity thresholds remain.
+5. **3E — CPU/WebGPU parity — partial:** both backends now share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. Automated device-level full-field thresholds remain.
 
 Acceptance:
 

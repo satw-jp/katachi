@@ -3,9 +3,27 @@ import type { Ball } from "./field.ts";
 import type { OpticalSettings } from "./optics.ts";
 import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
 import { resolveDaylight } from "./daylight.ts";
+import { generateFiniteLightSamples } from "./finiteLightSamples.ts";
 
 const MAX_GPU_BALLS = 256;
-const RESULT_FLOATS = 20;
+export const GPU_OPTICS_RESULT_FLOATS = 28;
+export const GPU_OPTICS_RESULT_OFFSETS = Object.freeze({
+  origin: 0,
+  entry: 4,
+  exit: 8,
+  floor: 12,
+  flags: 16,
+  baseline: 20,
+  throughputRgb: 24,
+});
+
+export function gpuOpticsResultOffset(sampleIndex: number): number {
+  if (!Number.isInteger(sampleIndex) || sampleIndex < 0) {
+    throw new RangeError("GPU optics sample index must be a non-negative integer");
+  }
+  return sampleIndex * GPU_OPTICS_RESULT_FLOATS;
+}
+const RESULT_FLOATS = GPU_OPTICS_RESULT_FLOATS;
 const WORKGROUP_SIZE = 64;
 
 export type OpticsComputeKind = "checking" | "computing" | "webgpu" | "cpu" | "error";
@@ -46,11 +64,14 @@ struct RayResult {
   exitPoint: vec4f,
   floorPoint: vec4f,
   resultInfo: vec4f,
+  baselinePoint: vec4f,
+  throughputRgb: vec4f,
 };
 
 @group(0) @binding(0) var<storage, read> balls: array<vec4f>;
 @group(0) @binding(1) var<storage, read> params: Params;
 @group(0) @binding(2) var<storage, read_write> results: array<RayResult>;
+@group(0) @binding(3) var<storage, read> sourceSamples: array<vec4f>;
 
 fn smoothMin(a: f32, b: f32, k: f32) -> f32 {
   if (k <= 0.0) {
@@ -85,11 +106,6 @@ fn fieldNormal(point: vec3f) -> vec3f {
     mapField(point + vec3f(0.0, e, 0.0)) - mapField(point - vec3f(0.0, e, 0.0)),
     mapField(point + vec3f(0.0, 0.0, e)) - mapField(point - vec3f(0.0, 0.0, e))
   ));
-}
-
-fn random01(index: u32, salt: f32) -> f32 {
-  let value = f32(index) * (12.9898 + salt * 3.17) + params.random.x * 78.233 + salt;
-  return fract(sin(value) * 43758.5453);
 }
 
 fn refractDirection(incident: vec3f, normal: vec3f, eta: f32) -> vec4f {
@@ -169,28 +185,28 @@ fn interfaceTransmission(iorA: f32, iorB: f32) -> f32 {
   return 1.0 - reflection;
 }
 
-fn hostEnergy(hostDistance: f32) -> f32 {
+fn hostEnergy(hostDistance: f32) -> vec3f {
   let hostTransmission = interfaceTransmission(1.0, params.config0.z);
   return clamp(
-    exp(-params.energyInputs.x * max(0.0, hostDistance))
+    exp(-params.energyInputs.xyz * max(0.0, hostDistance))
       * hostTransmission * hostTransmission,
-    0.0,
-    1.0,
+    vec3f(0.0),
+    vec3f(1.0),
   );
 }
 
-fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> f32 {
+fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> vec3f {
   let hostIor = params.config0.z;
   let inclusionIor = params.inclusionConfig.z;
   let transmission = interfaceTransmission(1.0, hostIor);
   let inclusionTransmission = interfaceTransmission(hostIor, inclusionIor);
   return clamp(
-    exp(-params.energyInputs.x * max(0.0, hostDistance)
-      - params.inclusionConfig.w * max(0.0, inclusionDistance))
+    exp(-params.energyInputs.xyz * max(0.0, hostDistance)
+      - params.random.yzw * max(0.0, inclusionDistance))
       * transmission * transmission
       * inclusionTransmission * inclusionTransmission,
-    0.0,
-    1.0,
+    vec3f(0.0),
+    vec3f(1.0),
   );
 }
 
@@ -202,14 +218,19 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
     return;
   }
 
-  let u = random01(index, 0.13) * 2.0 - 1.0;
-  let v = random01(index, 1.71) * 2.0 - 1.0;
+  let sourceSample = sourceSamples[index];
+  let u = sourceSample.x;
+  let v = sourceSample.y;
   let radius = params.config0.w;
   let width = params.config1.y;
   let origin = params.originCenter.xyz
     + params.basisU.xyz * u * radius * 1.15 * width
     + params.basisV.xyz * v * radius * 1.05 * width;
-  let lightDirection = normalize(params.lightDirection.xyz);
+  let lightDirection = normalize(
+    params.lightDirection.xyz
+      + params.basisU.xyz * sourceSample.z * params.random.x
+      + params.basisV.xyz * sourceSample.w * params.random.x
+  );
   let maxDistance = params.config1.w;
   let entryHit = marchToSurface(origin, lightDirection, maxDistance);
 
@@ -217,8 +238,10 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   result.origin = vec4f(origin, 1.0);
   result.entry = vec4f(0.0);
   result.exitPoint = vec4f(0.0);
-  result.floorPoint = floorIntersection(origin, lightDirection, params.config1.z);
-  result.resultInfo = vec4f(0.0, 0.0, result.floorPoint.w, 0.0);
+  result.floorPoint = vec4f(0.0);
+  result.resultInfo = vec4f(0.0);
+  result.baselinePoint = floorIntersection(origin, lightDirection, params.config1.z);
+  result.throughputRgb = vec4f(0.0);
 
   if (entryHit.w < 0.5) {
     results[index] = result;
@@ -233,8 +256,6 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   // Air-to-host TIR is not expected. Reject a numerical/invalid entry instead
   // of tracing the reflected fallback as if it had entered the material.
   if (insideRefraction.w <= 0.5) {
-    result.floorPoint = vec4f(0.0);
-    result.resultInfo.z = 0.0;
     results[index] = result;
     return;
   }
@@ -243,15 +264,13 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
 
   if (exitHit.w <= 0.0) {
     result.exitPoint = vec4f(entry + insideDirection * radius * 1.6, 0.0);
-    result.floorPoint = vec4f(0.0);
-    result.resultInfo.z = 0.0;
     results[index] = result;
     return;
   }
 
   var exitPoint = exitHit.xyz;
   var finalHostDirection = insideDirection;
-  var energy = -1.0;
+  var energy = vec3f(-1.0);
 
   // One validated analytic inclusion only. Every failed inner refraction or
   // incomplete host remarch leaves the original host-only path intact.
@@ -313,13 +332,14 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   if (outgoingRefraction.w > 0.5) {
     floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
   }
-  if (energy < 0.0) {
+  if (energy.x < 0.0) {
     energy = hostEnergy(exitHit.w);
   }
 
   result.exitPoint = vec4f(exitPoint, 1.0);
   result.floorPoint = floorPoint;
-  result.resultInfo = vec4f(1.0, 1.0, floorPoint.w, energy);
+  result.resultInfo = vec4f(1.0, 1.0, floorPoint.w, dot(energy, vec3f(0.333333)));
+  result.throughputRgb = vec4f(energy, outgoingRefraction.w);
   results[index] = result;
 }
 `;
@@ -414,16 +434,8 @@ export class WebGpuOpticsEngine {
         && settings.inclusionRadius > 0
         && Number.isFinite(settings.inclusionIor)
         && settings.inclusionIor > 0;
-      const hostAbsorption = (
-        opticalScene.hostAbsorptionPerShapeUnit.r
-        + opticalScene.hostAbsorptionPerShapeUnit.g
-        + opticalScene.hostAbsorptionPerShapeUnit.b
-      ) / 3;
-      const inclusionAbsorption = (
-        opticalScene.inclusionAbsorptionPerShapeUnit.r
-        + opticalScene.inclusionAbsorptionPerShapeUnit.g
-        + opticalScene.inclusionAbsorptionPerShapeUnit.b
-      ) / 3;
+      const hostAbsorption = opticalScene.hostAbsorptionPerShapeUnit;
+      const inclusionAbsorption = opticalScene.inclusionAbsorptionPerShapeUnit;
 
       const ballValues = new Float32Array(Math.max(1, Math.min(balls.length, MAX_GPU_BALLS)) * 4);
       for (let index = 0; index < Math.min(balls.length, MAX_GPU_BALLS); index++) {
@@ -464,21 +476,21 @@ export class WebGpuOpticsEngine {
           originCenter.y,
           originCenter.z,
           0,
-          numericSeed(settings.opticalSeed),
-          0,
-          0,
-          0,
+          Math.tan(THREE.MathUtils.degToRad(Math.max(0.1, settings.sunSize) * 0.5)),
+          inclusionAbsorption.r,
+          inclusionAbsorption.g,
+          inclusionAbsorption.b,
           settings.inclusionEnabled ? 1 : 0,
           inclusionValid ? 1 : 0,
           settings.inclusionIor,
-          inclusionAbsorption,
+          (inclusionAbsorption.r + inclusionAbsorption.g + inclusionAbsorption.b) / 3,
           settings.inclusionOffsetX,
           settings.inclusionOffsetY,
           settings.inclusionOffsetZ,
           settings.inclusionRadius,
-          hostAbsorption,
-          0,
-          0,
+          hostAbsorption.r,
+          hostAbsorption.g,
+          hostAbsorption.b,
           0,
         ],
         0,
@@ -486,6 +498,10 @@ export class WebGpuOpticsEngine {
 
       const ballBuffer = createStorageBuffer(device, ballValues);
       const parameterBuffer = createStorageBuffer(device, parameterValues);
+      const sourceSampleBuffer = createStorageBuffer(
+        device,
+        generateFiniteLightSamples(sampleCount, settings.opticalSeed),
+      );
       const resultSize = sampleCount * RESULT_FLOATS * Float32Array.BYTES_PER_ELEMENT;
       const resultBuffer = device.createBuffer({
         size: resultSize,
@@ -501,6 +517,7 @@ export class WebGpuOpticsEngine {
           { binding: 0, resource: { buffer: ballBuffer } },
           { binding: 1, resource: { buffer: parameterBuffer } },
           { binding: 2, resource: { buffer: resultBuffer } },
+          { binding: 3, resource: { buffer: sourceSampleBuffer } },
         ],
       });
       const encoder = device.createCommandEncoder();
@@ -521,6 +538,7 @@ export class WebGpuOpticsEngine {
 
       ballBuffer.destroy();
       parameterBuffer.destroy();
+      sourceSampleBuffer.destroy();
       resultBuffer.destroy();
       readBuffer.destroy();
 
@@ -653,15 +671,6 @@ function adapterLabel(adapter: GPUAdapter): string {
     .map((value) => value.trim())
     .filter((value, index, all) => value.length > 0 && all.indexOf(value) === index);
   return values.join(" / ") || "high-performance adapter";
-}
-
-function numericSeed(seed: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < seed.length; index++) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) / 4294967295;
 }
 
 function fieldBounds(balls: Ball[]): { center: THREE.Vector3; radius: number; minY: number } {

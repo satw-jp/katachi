@@ -50,6 +50,36 @@ export interface FluxSplatResult {
   escapedRgb: FluxRgb;
 }
 
+export interface ScalarFluxSplatResult {
+  deposited: number;
+  escaped: number;
+}
+
+/**
+ * CPU mirror of the Natural-view receiver composition. Affected unobstructed
+ * irradiance is removed before transported irradiance is deposited, so a
+ * lossless path can only redistribute the baseline instead of adding light.
+ */
+export function composePairedReceiverDirectRgb(
+  unobstructedRgb: FluxRgb,
+  removedBaselineIrradiance: number,
+  depositedIrradianceRgb: FluxRgb,
+  referenceIncidentIrradiance: number,
+): FluxRgb {
+  const baseline = sanitizeRgb(unobstructedRgb);
+  const reference = Math.max(1e-12, finiteNonNegative(referenceIncidentIrradiance));
+  const removed = Math.max(
+    0,
+    Math.min(1, finiteNonNegative(removedBaselineIrradiance) / reference),
+  );
+  const deposited = scaleRgb(sanitizeRgb(depositedIrradianceRgb), 1 / reference);
+  return {
+    r: baseline.r * ((1 - removed) + deposited.r),
+    g: baseline.g * ((1 - removed) + deposited.g),
+    b: baseline.b * ((1 - removed) + deposited.b),
+  };
+}
+
 export interface ShadowContainedResult {
   field: ReceiverTransportField;
   supportMask: Uint8Array;
@@ -69,6 +99,7 @@ export interface EnergyLedgerInput {
   reflectedRgb?: FluxRgb;
   escapedRgb?: FluxRgb;
   supportRejectedRgb?: FluxRgb;
+  unresolvedLossRgb?: FluxRgb;
 }
 
 export interface EnergyLedger {
@@ -78,6 +109,7 @@ export interface EnergyLedger {
   reflectedRgb: FluxRgb;
   escapedRgb: FluxRgb;
   supportRejectedRgb: FluxRgb;
+  unresolvedLossRgb: FluxRgb;
   accountedRgb: FluxRgb;
   residualRgb: FluxRgb;
   relativeResidual: number;
@@ -109,6 +141,41 @@ export function splatBilinearFluxRgb(
   v: number,
   flux: FluxRgb,
   sampleWeight = 1,
+): FluxSplatResult {
+  return splatBilinearRgbArray(
+    field,
+    field.depositedFluxRgb,
+    u,
+    v,
+    flux,
+    sampleWeight,
+  );
+}
+
+export function splatBilinearStraightFluxRgb(
+  field: ReceiverTransportField,
+  u: number,
+  v: number,
+  flux: FluxRgb,
+  sampleWeight = 1,
+): FluxSplatResult {
+  return splatBilinearRgbArray(
+    field,
+    field.straightThroughputRgb,
+    u,
+    v,
+    flux,
+    sampleWeight,
+  );
+}
+
+function splatBilinearRgbArray(
+  field: ReceiverTransportField,
+  target: Float32Array,
+  u: number,
+  v: number,
+  flux: FluxRgb,
+  sampleWeight: number,
 ): FluxSplatResult {
   validateField(field);
   const weighted = scaleRgb(sanitizeRgb(flux), finiteNonNegative(sampleWeight));
@@ -145,11 +212,52 @@ export function splatBilinearFluxRgb(
       || candidate.y < 0 || candidate.y >= field.height) continue;
     const weight = candidate.weight / validWeight;
     const offset = (candidate.y * field.width + candidate.x) * 3;
-    field.depositedFluxRgb[offset] += weighted.r * weight;
-    field.depositedFluxRgb[offset + 1] += weighted.g * weight;
-    field.depositedFluxRgb[offset + 2] += weighted.b * weight;
+    target[offset] += weighted.r * weight;
+    target[offset + 1] += weighted.g * weight;
+    target[offset + 2] += weighted.b * weight;
   }
   return { depositedRgb: weighted, escapedRgb: { ...ZERO_RGB } };
+}
+
+/** Deposits affected baseline flux into the scalar receiver coverage field. */
+export function splatBilinearCoverageFlux(
+  field: ReceiverTransportField,
+  u: number,
+  v: number,
+  flux: number,
+): ScalarFluxSplatResult {
+  validateField(field);
+  const safeFlux = finiteNonNegative(flux);
+  if (!Number.isFinite(u) || !Number.isFinite(v)
+    || u < field.minU || u > field.minU + field.sizeU
+    || v < field.minV || v > field.minV + field.sizeV) {
+    return { deposited: 0, escaped: safeFlux };
+  }
+  const gridX = ((u - field.minU) / field.sizeU) * field.width - 0.5;
+  const gridY = ((v - field.minV) / field.sizeV) * field.height - 0.5;
+  const x0 = Math.floor(gridX);
+  const y0 = Math.floor(gridY);
+  const fx = gridX - x0;
+  const fy = gridY - y0;
+  const candidates = [
+    { x: x0, y: y0, weight: (1 - fx) * (1 - fy) },
+    { x: x0 + 1, y: y0, weight: fx * (1 - fy) },
+    { x: x0, y: y0 + 1, weight: (1 - fx) * fy },
+    { x: x0 + 1, y: y0 + 1, weight: fx * fy },
+  ];
+  let validWeight = 0;
+  for (const candidate of candidates) {
+    if (candidate.x >= 0 && candidate.x < field.width
+      && candidate.y >= 0 && candidate.y < field.height) validWeight += candidate.weight;
+  }
+  if (!(validWeight > 0)) return { deposited: 0, escaped: safeFlux };
+  for (const candidate of candidates) {
+    if (candidate.x < 0 || candidate.x >= field.width
+      || candidate.y < 0 || candidate.y >= field.height) continue;
+    field.geometricCoverage[candidate.y * field.width + candidate.x] +=
+      safeFlux * candidate.weight / validWeight;
+  }
+  return { deposited: safeFlux, escaped: 0 };
 }
 
 /**
@@ -180,6 +288,38 @@ export function blurFluxRgbEnergyNormalized(
     false,
   );
   return output;
+}
+
+export function blurCoverageEnergyNormalized(
+  field: ReceiverTransportField,
+  radius: number,
+): ReceiverTransportField {
+  validateField(field);
+  const safeRadius = Math.max(0, Math.floor(Number.isFinite(radius) ? radius : 0));
+  const output = cloneField(field);
+  if (safeRadius === 0) return output;
+  const horizontal = scatterBlurScalar(
+    field.geometricCoverage,
+    field.width,
+    field.height,
+    safeRadius,
+    true,
+  );
+  output.geometricCoverage = scatterBlurScalar(
+    horizontal,
+    field.width,
+    field.height,
+    safeRadius,
+    false,
+  );
+  return output;
+}
+
+export function integrateCoverageFlux(field: ReceiverTransportField): number {
+  validateField(field);
+  let total = 0;
+  for (const value of field.geometricCoverage) total += value;
+  return total;
 }
 
 export function integrateFluxRgb(field: ReceiverTransportField): FluxRgb {
@@ -322,12 +462,14 @@ export function finalizeEnergyLedger(input: EnergyLedgerInput): EnergyLedger {
   const reflectedRgb = sanitizeRgb(input.reflectedRgb);
   const escapedRgb = sanitizeRgb(input.escapedRgb);
   const supportRejectedRgb = sanitizeRgb(input.supportRejectedRgb);
+  const unresolvedLossRgb = sanitizeRgb(input.unresolvedLossRgb);
   const accountedRgb = addRgb(
     depositedRgb,
     absorbedRgb,
     reflectedRgb,
     escapedRgb,
     supportRejectedRgb,
+    unresolvedLossRgb,
   );
   const residualRgb = {
     r: incidentRgb.r - accountedRgb.r,
@@ -347,10 +489,41 @@ export function finalizeEnergyLedger(input: EnergyLedgerInput): EnergyLedger {
     reflectedRgb,
     escapedRgb,
     supportRejectedRgb,
+    unresolvedLossRgb,
     accountedRgb,
     residualRgb,
     relativeResidual,
   };
+}
+
+function scatterBlurScalar(
+  source: Float32Array,
+  width: number,
+  height: number,
+  radius: number,
+  horizontal: boolean,
+): Float32Array {
+  const output = new Float32Array(source.length);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let validWeight = 0;
+      for (let offset = -radius; offset <= radius; offset++) {
+        const targetX = horizontal ? x + offset : x;
+        const targetY = horizontal ? y : y + offset;
+        if (targetX < 0 || targetX >= width || targetY < 0 || targetY >= height) continue;
+        validWeight += radius + 1 - Math.abs(offset);
+      }
+      const value = source[y * width + x];
+      for (let offset = -radius; offset <= radius; offset++) {
+        const targetX = horizontal ? x + offset : x;
+        const targetY = horizontal ? y : y + offset;
+        if (targetX < 0 || targetX >= width || targetY < 0 || targetY >= height) continue;
+        output[targetY * width + targetX] +=
+          value * (radius + 1 - Math.abs(offset)) / validWeight;
+      }
+    }
+  }
+  return output;
 }
 
 function scatterBlurRgb(

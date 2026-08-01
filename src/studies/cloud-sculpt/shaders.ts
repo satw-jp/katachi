@@ -69,17 +69,17 @@ export const fragmentShader = /* glsl */ `
 
   varying vec2 vUv;
 
-  vec3 sampleReceiverIrradiance(vec2 uv) {
+  vec4 sampleReceiverTransport(vec2 uv) {
     vec2 resolution = max(uCausticResolution, vec2(1.0));
     vec2 grid = uv * resolution - 0.5;
     vec2 base = floor(grid);
     vec2 fraction = fract(grid);
     vec2 texel = 1.0 / resolution;
     vec2 uv00 = (base + 0.5) * texel;
-    vec3 c00 = texture2D(uCausticMap, clamp(uv00, vec2(0.0), vec2(1.0))).rgb;
-    vec3 c10 = texture2D(uCausticMap, clamp(uv00 + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0))).rgb;
-    vec3 c01 = texture2D(uCausticMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0))).rgb;
-    vec3 c11 = texture2D(uCausticMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0))).rgb;
+    vec4 c00 = texture2D(uCausticMap, clamp(uv00, vec2(0.0), vec2(1.0)));
+    vec4 c10 = texture2D(uCausticMap, clamp(uv00 + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
+    vec4 c01 = texture2D(uCausticMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0)));
+    vec4 c11 = texture2D(uCausticMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0)));
     return mix(mix(c00, c10, fraction.x), mix(c01, c11, fraction.x), fraction.y);
   }
 
@@ -441,7 +441,7 @@ export const fragmentShader = /* glsl */ `
     if (direction.y < -0.001) {
       if (floorDistance < 1e4) {
         vec3 floorPoint = origin + direction * floorDistance;
-        vec3 transmission = includeSunShadow
+        vec3 legacyTransmission = includeSunShadow
           ? finiteSunTransmission(floorPoint + vec3(0.0, 0.015, 0.0))
           : vec3(0.72);
         float distanceFade = exp(-0.018 * dot(floorPoint.xz, floorPoint.xz));
@@ -454,8 +454,36 @@ export const fragmentShader = /* glsl */ `
           vec3(0.91, 0.87, 0.78),
           groundVariation
         ) * uGroundReflectance;
+        vec2 receiverUv = (floorPoint.xz - uCausticBounds.xy) / uCausticBounds.zw;
+        vec2 receiverLower = step(vec2(0.0), receiverUv);
+        vec2 receiverUpper = step(receiverUv, vec2(1.0));
+        float receiverInside = receiverLower.x * receiverLower.y
+          * receiverUpper.x * receiverUpper.y;
+        float pairedWeight = receiverInside * uCausticAvailable;
+        vec4 receiverTransport = sampleReceiverTransport(receiverUv);
+        float receiverCosine = max(abs(normalize(uLightDir).y), 0.0001);
+        float removedBaseline = clamp(
+          receiverTransport.a / receiverCosine,
+          0.0,
+          1.0
+        );
+        vec3 addedTransport = max(
+          vec3(0.0),
+          receiverTransport.rgb / receiverCosine
+        );
+        vec3 pairedDirect = vec3(1.0 - removedBaseline) + addedTransport;
+        vec3 directTransport = mix(
+          legacyTransmission,
+          pairedDirect,
+          pairedWeight
+        );
+        vec3 shadowTransmission = mix(
+          legacyTransmission,
+          vec3(1.0 - removedBaseline),
+          pairedWeight
+        );
         float transmissionLuma = dot(
-          transmission,
+          shadowTransmission,
           vec3(0.2126, 0.7152, 0.0722)
         );
         // A clear resin still removes part of the direct and hemispherical
@@ -470,51 +498,11 @@ export const fragmentShader = /* glsl */ `
         vec3 ambient = ground
           * (0.68 + 0.24 * uSkyIntensity)
           * (1.0 - shadowPresence * 0.24);
-        vec3 direct = ground * uSunIntensity * transmission * 0.42;
+        // Reference transport replaces the same unobstructed direct-light
+        // baseline that generated it. It is never an independent floor glow.
+        vec3 direct = ground * uSunIntensity * directTransport * 0.42;
         vec3 horizonFill = vec3(0.08, 0.14, 0.18) * uSkyIntensity * (1.0 - distanceFade);
-        vec2 causticUv = (floorPoint.xz - uCausticBounds.xy) / uCausticBounds.zw;
-        vec2 causticLower = step(vec2(0.0), causticUv);
-        vec2 causticUpper = step(causticUv, vec2(1.0));
-        float causticInside = causticLower.x * causticLower.y
-          * causticUpper.x * causticUpper.y;
-        vec3 causticDensity = sampleReceiverIrradiance(causticUv)
-          * causticInside
-          * uCausticAvailable;
-        vec3 warmCaustic = vec3(1.0, 0.91, 0.62)
-          * dot(causticDensity, vec3(0.333333));
-        float commonCaustic = min(
-          causticDensity.r,
-          min(causticDensity.g, causticDensity.b)
-        );
-        float chromaGain = uDispersionMode == 1 ? 0.38 : 2.8;
-        vec3 spectralCaustic = causticDensity
-          + max(causticDensity - vec3(commonCaustic), vec3(0.0))
-            * uDispersion
-            * chromaGain;
-        vec3 causticLight = mix(
-          warmCaustic,
-          spectralCaustic,
-          uRainbowModel == 1
-            ? 0.0
-            : clamp(uDispersion * 1.35, 0.0, 1.0)
-        )
-          * uCausticStrength
-          * uSunIntensity
-          * 0.65;
-        // Preserve local color and shape while compressing only the brightest
-        // peaks, which otherwise bleach the transparent shadow to a white box.
-        causticLight /= vec3(1.0) + causticLight * 0.38;
-        // The author-facing view treats focused light as redistribution inside
-        // the same finite-source shadow, never as an unrelated floor glow.
-        // This support comes from the exact transmission query used above;
-        // the reference HDR transport field will replace this temporary gate.
-        float shadowSupport = smoothstep(
-          0.004,
-          0.035,
-          1.0 - transmissionLuma
-        );
-        causticLight *= shadowSupport;
-        vec3 floorColor = ambient + direct + horizonFill + causticLight;
+        vec3 floorColor = ambient + direct + horizonFill;
         float fogDensity = mix(0.012, 0.085, uEnvironmentMist);
         float distanceFog = 1.0 - exp(-floorDistance * fogDensity);
         return mix(floorColor, sky, clamp(distanceFog, 0.0, 1.0));

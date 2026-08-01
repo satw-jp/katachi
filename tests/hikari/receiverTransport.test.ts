@@ -3,12 +3,17 @@ import test from "node:test";
 import { transmissionForShapePath } from "../../src/studies/cloud-sculpt/opticalScene.ts";
 import {
   applyShadowContainedSupport,
+  blurCoverageEnergyNormalized,
   blurFluxRgbEnergyNormalized,
+  composePairedReceiverDirectRgb,
   createReceiverTransportField,
   finalizeEnergyLedger,
+  integrateCoverageFlux,
   integrateFluxRgb,
   measureSupportLeakage,
   splatBilinearFluxRgb,
+  splatBilinearCoverageFlux,
+  splatBilinearStraightFluxRgb,
   summarizeReceiverField,
   type FluxRgb,
   type ReceiverFieldSpec,
@@ -36,6 +41,41 @@ test("bilinear splat and normalized blur preserve integrated RGB flux", () => {
 
   const blurred = blurFluxRgbEnergyNormalized(field, 2);
   assertRgbRelative(integrateFluxRgb(blurred), { r: 2, g: 3, b: 5 }, 5e-6);
+});
+
+test("coverage splat and blur preserve scalar flux at center and edge", () => {
+  const field = createReceiverTransportField(BASE_SPEC);
+  splatBilinearCoverageFlux(field, 0.35, -0.65, 2);
+  splatBilinearCoverageFlux(field, BASE_SPEC.minU, BASE_SPEC.minV, 3);
+  assert.ok(Math.abs(integrateCoverageFlux(field) - 5) <= 1e-6);
+  const blurred = blurCoverageEnergyNormalized(field, 2);
+  assert.ok(Math.abs(integrateCoverageFlux(blurred) - 5) <= 5e-6);
+});
+
+test("straight baseline splat stays separate from transported deposits", () => {
+  const field = createReceiverTransportField(BASE_SPEC);
+  splatBilinearStraightFluxRgb(field, 0, 0, { r: 2, g: 3, b: 4 });
+  assertRgbClose(sumRgbArray(field.straightThroughputRgb), { r: 2, g: 3, b: 4 }, 1e-6);
+  assertRgbClose(integrateFluxRgb(field), { r: 0, g: 0, b: 0 }, 0);
+});
+
+test("paired receiver replacement redistributes baseline without additive creation", () => {
+  const baseline = { r: 1, g: 1, b: 1 };
+  const shadowed = composePairedReceiverDirectRgb(baseline, 1, { r: 0, g: 0, b: 0 }, 1);
+  const focused = composePairedReceiverDirectRgb(baseline, 0, { r: 1, g: 1, b: 1 }, 1);
+  const untouched = composePairedReceiverDirectRgb(baseline, 0, { r: 0, g: 0, b: 0 }, 1);
+  assertRgbClose(shadowed, { r: 0, g: 0, b: 0 }, 0);
+  assertRgbClose(focused, { r: 2, g: 2, b: 2 }, 0);
+  assertRgbClose(untouched, baseline, 0);
+  assertRgbClose(
+    {
+      r: shadowed.r + focused.r + untouched.r,
+      g: shadowed.g + focused.g + untouched.g,
+      b: shadowed.b + focused.b + untouched.b,
+    },
+    { r: 3, g: 3, b: 3 },
+    0,
+  );
 });
 
 test("receiver summary reports absolute flux, peak irradiance, and centroid", () => {
@@ -162,6 +202,16 @@ test("shadow-contained support rejects flux beyond one-texel expansion", () => {
   assert.ok(before.ratio > 0.4);
   const contained = applyShadowContainedSupport(field, support, 1);
   assertRgbClose(contained.rejectedFluxRgb, { r: 2, g: 1, b: 0.25 }, 1e-6);
+  const retained = integrateFluxRgb(contained.field);
+  assertRgbClose(
+    {
+      r: retained.r + contained.rejectedFluxRgb.r,
+      g: retained.g + contained.rejectedFluxRgb.g,
+      b: retained.b + contained.rejectedFluxRgb.b,
+    },
+    integrateFluxRgb(field),
+    1e-6,
+  );
   const after = measureSupportLeakage(contained.field, support, 1);
   assert.ok(after.ratio <= 0.005);
   assertRgbClose(after.outsideFluxRgb, { r: 0, g: 0, b: 0 }, 0);
@@ -185,6 +235,22 @@ test("energy ledger exposes a closed balance and a non-zero residual", () => {
   });
   assertRgbClose(open.residualRgb, { r: 0.2, g: 0.3, b: 0.4 }, 1e-12);
   assert.ok(Math.abs(open.relativeResidual - 0.4) <= 1e-12);
+
+  const independentlyUnresolved = finalizeEnergyLedger({
+    incidentRgb: { r: 1, g: 1, b: 1 },
+    unresolvedLossRgb: { r: 0.25, g: 0.2, b: 0.1 },
+  });
+  assertRgbClose(
+    independentlyUnresolved.unresolvedLossRgb,
+    { r: 0.25, g: 0.2, b: 0.1 },
+    0,
+  );
+  assertRgbClose(
+    independentlyUnresolved.residualRgb,
+    { r: 0.75, g: 0.8, b: 0.9 },
+    1e-12,
+  );
+  assert.ok(Math.abs(independentlyUnresolved.relativeResidual - 0.9) <= 1e-12);
 });
 
 function countNonZeroTexels(field: ReceiverTransportField): number {
@@ -250,4 +316,14 @@ function assertRgbRelative(actual: FluxRgb, expected: FluxRgb, relativeTolerance
       `${channel}: ${actual[channel]} != ${expected[channel]}`,
     );
   }
+}
+
+function sumRgbArray(values: Float32Array): FluxRgb {
+  const sum = { r: 0, g: 0, b: 0 };
+  for (let offset = 0; offset < values.length; offset += 3) {
+    sum.r += values[offset];
+    sum.g += values[offset + 1];
+    sum.b += values[offset + 2];
+  }
+  return sum;
 }

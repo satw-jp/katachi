@@ -28,9 +28,10 @@ The current optics tracer can carry broad ball-SDF curvature to receiver hit pos
 
 - `surfaceVariation` perturbs only the body-view shader normal; CPU/WebGPU focused-light tracing does not see it;
 - the smooth ball field has no explicit mid-scale surface/thickness trace comparable to hand forming;
-- v0.22.0 now carries receiver hits as fixed-domain 512×512 Float32 flux; bilinear deposition and edge-normalized reconstruction preserve integrated flux, and display exposure is no longer normalized to each frame's peak;
+- v0.22.0 carries receiver hits as fixed-domain 512×512 Float32 flux; bilinear deposition and edge-normalized reconstruction preserve integrated flux, and display exposure is no longer normalized to each frame's peak;
+- v0.23.0 derives unobstructed baseline coverage and refracted RGB deposits from the same seeded aperture/sun-disk sample, replaces rather than adds direct light in Natural, and enforces shadow support on the transport field before display;
 - the reconstruction footprint is still a fixed kernel rather than one derived from finite-source geometry or a ray-bundle Jacobian;
-- decorative Analysis ellipses and exploratory spectral position offsets are not yet removed from the validation path;
+- decorative ellipses and spectral styling remain available only in Analysis; the Natural validation field uses one undivided RGB deposit per traced path;
 - there is no progressive convergence accumulation, and the shared shape still lacks an authored mid-scale surface/thickness trace.
 
 These effects may remain useful as exploratory display modes, but they cannot be the validation path for light drawing.

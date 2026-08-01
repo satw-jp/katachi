@@ -573,7 +573,7 @@ export function buildUi(
   opticsControls.className = "hikari-mode-controls";
   const opticalSourceInfo = document.createElement("div");
   opticalSourceInfo.className = "hikari-source";
-  opticalSourceInfo.textContent = "LIGHT SOURCE — SUN / 平行光場";
+  opticalSourceInfo.textContent = "LIGHT SOURCE — SUN / 有限太陽円盤";
   opticsControls.appendChild(opticalSourceInfo);
 
   const opticsComputeStatus = document.createElement("div");
@@ -637,8 +637,8 @@ export function buildUi(
     const daylight = resolveDaylight(settings);
     daylightReadout.textContent = daylight.label;
     opticalSourceInfo.textContent = daylight.mode === "tokyo"
-      ? "LIGHT SOURCE — TOKYO SUN / 平行光場"
-      : "LIGHT SOURCE — MANUAL SUN / 平行光場";
+      ? "LIGHT SOURCE — TOKYO SUN / 有限太陽円盤"
+      : "LIGHT SOURCE — MANUAL SUN / 有限太陽円盤";
   }
   function applyDaylightVisibility(settings: HikariSettings): void {
     tokyoDaylightControls.style.display = settings.daylightMode === "tokyo" ? "" : "none";

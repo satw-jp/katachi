@@ -102,7 +102,7 @@ Known limits:
 - outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
-- Natural, CPU, and WebGPU share the `OpticalScene` receiver, and focused light uses a fixed-domain Float32 flux field. Straight-through coverage and refracted deposits are not yet derived from one finite-light sample set or composed by baseline replacement; runtime energy-ledger wiring and strict CPU/WebGPU parity gates remain pending;
+- Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux, while runtime diagnostics keep material/interface loss, reflection, receiver escape, support rejection, and unresolved paths separate. A receiver diagnostic overlay and automated full-field CPU/WebGPU parity gates remain pending;
 - no multiple internal bounces or physically calibrated HDR environment;
 - Tokyo open-air direction is active, while room/window geometry is a pure admission contract not yet rendered;
 - Blender bundle v2 includes Hikari settings, camera, hashes, scale, media, receiver, and sun, but `blender-result.json` return import and generic inclusion meshes remain planned.
