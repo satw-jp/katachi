@@ -905,6 +905,11 @@ export const fragmentShader = /* glsl */ `
           // Resolve one real internal-reflection bounce before giving up. A
           // realtime TIR ray must not sample the outside as if it transmitted.
           vec3 tirDirection = reflect(finalHostDirection, -exitGeometricNormal);
+          // If the bounded bounce cannot find a later exit, the realtime BODY
+          // keeps the first internal reflection as its explicit view-only
+          // approximation. Never sample the outside environment using the
+          // pre-TIR incident direction as if it had transmitted.
+          outgoing = tirDirection;
           vec3 tirStart = exitPoint + tirDirection * 0.008;
           vec3 tirExitPoint = tirStart;
           float tirDistance = 0.0;
@@ -1017,11 +1022,10 @@ export const fragmentShader = /* glsl */ `
         * nestedInterfaceTransmission;
       vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
       float edgeGlow = pow(1.0 - facing, 2.2);
-      // Realtime observation favors the earlier continuous transparent look.
-      // After the bounded TIR bounce, any still-unresolved body-view pixel uses
-      // the same smooth host-looking environment approximation as the original
-      // view. Progressive Render will replace this approximation rather than
-      // feeding it to strict receiver transport as energy.
+      // Realtime observation favors a continuous transparent look. A still
+      // unresolved BODY path uses the explicit internal-reflection direction
+      // above as a view-only approximation; receiver transport never treats it
+      // as transmitted energy. Deeper Progressive paths remain a separate gate.
       vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
       color += uOpticalTint * edgeGlow * 0.22;
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));

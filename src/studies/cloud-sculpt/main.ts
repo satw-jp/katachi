@@ -56,6 +56,8 @@ import {
   DEFAULT_CAMERA_ORBIT,
   type CameraOrbitSettings,
 } from "./cameraOrbit.ts";
+import { resolveDaylight } from "./daylight.ts";
+import { cameraPositionForSunBacklight, cameraSunAngleDeg } from "./sunBacklight.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -323,6 +325,7 @@ const ui = buildUi(
     ui.setCameraOrbitState(cameraOrbit);
     syncProgressiveRenderStatus(true);
   },
+  onCameraAlignToSun: () => alignCameraToSun(),
   onViewChange: (view) => {
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
@@ -889,6 +892,29 @@ async function exportViewportPng(): Promise<{
   const filename = `hikari-${hikariSettings.phenomenon}-${renderLabel}-${timestamp}.png`;
   downloadFile(captured.blob, filename);
   return { filename, width: captured.width, height: captured.height };
+}
+
+function alignCameraToSun(): string {
+  const daylight = resolveDaylight(hikariSettings);
+  if (!daylight.aboveHorizon) return `${daylight.label} — 太陽は地平線下です`;
+  const position = cloudRenderer.camera.position;
+  const target = cloudRenderer.controls.target;
+  const next = cameraPositionForSunBacklight(position, target, daylight.directionToSun);
+  cameraOrbit = { ...cameraOrbit, running: false };
+  cloudRenderer.setRealtimeMotionMode(hikariMpmActive);
+  cloudRenderer.camera.position.set(next.x, next.y, next.z);
+  cloudRenderer.controls.update();
+  ui.setCameraOrbitState(cameraOrbit);
+  cloudRenderer.invalidateProgressiveRender(
+    "太陽をカメラ中心へ合わせたためリアルタイムへ戻りました",
+  );
+  const angle = cameraSunAngleDeg(
+    cloudRenderer.camera.position,
+    target,
+    daylight.directionToSun,
+  );
+  syncProgressiveRenderStatus(true);
+  return `カメラ中心との差 ${angle.toFixed(3)}° · 太陽半径 ${(hikariSettings.sunSize * 0.5).toFixed(3)}° · 外形屈折後の太陽像はさらに移動`;
 }
 
 function startHikariMpmPreview(): void {

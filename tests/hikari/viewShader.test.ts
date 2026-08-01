@@ -21,8 +21,10 @@ test("unresolved nested view paths keep continuous host-only appearance", () => 
 test("outer TIR attempts a bounded internal bounce before the view fallback", () => {
   assert.match(fragmentShader, /vec3 tirDirection = reflect\(finalHostDirection, -exitGeometricNormal\)/);
   assert.match(fragmentShader, /bool hasTirExit = marchInside/);
+  assert.match(fragmentShader, /outgoing = tirDirection/);
   assert.match(fragmentShader, /if \(length\(tirRefractedOut\) >= 0\.01\)/);
-  assert.match(fragmentShader, /Progressive Render will replace this approximation/);
+  assert.match(fragmentShader, /Never sample the outside environment using the/);
+  assert.doesNotMatch(fragmentShader, /Progressive Render will replace this approximation/);
 });
 
 test("progressive body samples vary rough transmission without changing realtime compatibility", () => {

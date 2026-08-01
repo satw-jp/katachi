@@ -84,6 +84,8 @@ Status: the existing coarse bridge is integrated and browser-verified in v0.29.0
 - The first bridge lets one slowly changing shape pause, freeze, reopen, and become the exact static input to Hikari.
 - The preview may run before the complete W4 research slice only to produce the August artwork take. The adopted proxy is fixed as explicit history; no claim is made that continuous MPM optics is physically complete.
 - Preserve author actions such as bend, inflate, pinch, and later slime/growth families as separate layers over the base evolution.
+- Add an optional centre-lock evolution mode by measuring the proxy centre of mass after each step and removing only global drift; label it as an authored constraint rather than unconstrained physics.
+- A later offline MPM renderer advances simulation and camera on independent fixed-frame timelines, writes one deterministic adopted proxy per frame, and supports both deformation-only and deformation-plus-orbit PNG sequences.
 
 Stop rule: until W2–W4 pass their fixed optical cases, W5 stops at this verified coarse start/adopt/save bridge. Continuous surface reconstruction, new deformation families, and MPM renderer work do not expand; implementation time returns to optical blockers and evidence.
 

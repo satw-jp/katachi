@@ -62,6 +62,7 @@ export interface UiCallbacks {
   }>;
   onProgressiveRenderToggle: (targetSamples: number) => void;
   onCameraOrbitChange: (settings: CameraOrbitSettings) => void;
+  onCameraAlignToSun: () => string;
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
   onHikariMpmStart: () => void;
   onHikariMpmAdopt: () => void;
@@ -818,6 +819,19 @@ export function buildUi(
   const daylightReadout = document.createElement("div");
   daylightReadout.className = "hint";
   opticsControls.appendChild(daylightReadout);
+  const sunAlignButton = document.createElement("button");
+  sunAlignButton.type = "button";
+  sunAlignButton.textContent = "太陽をカメラ中心へ合わせる";
+  const sunAlignStatus = document.createElement("div");
+  sunAlignStatus.className = "hint sun-alignment-status";
+  sunAlignStatus.textContent = "カメラ中心だけを合わせます。透明体内では外形の屈折により太陽像がさらに移動します。";
+  sunAlignButton.onclick = () => {
+    sunAlignStatus.textContent = callbacks.onCameraAlignToSun();
+  };
+  opticsControls.append(sunAlignButton, sunAlignStatus);
+  hikariControlSyncers.push((settings) => {
+    sunAlignStatus.textContent = `太陽半径 ${(settings.sunSize * 0.5).toFixed(3)}° · カメラ中心を合わせても外形の屈折で太陽像は移動します。`;
+  });
   let manualLightAngleRow: HTMLElement | null = null;
   function updateDaylightReadout(settings: HikariSettings): void {
     const daylight = resolveDaylight(settings);
@@ -1428,6 +1442,7 @@ export function buildUi(
       savedViewSelect.disabled = running || savedViewSelect.options.length === 0;
       blenderExportButton.disabled = running;
       katachiButton.disabled = running;
+      sunAlignButton.disabled = running;
       if (computeModeButton) computeModeButton.disabled = running;
       hikariMpmStatus.textContent = status;
       hikariMpmStatus.dataset.running = String(running);
@@ -1492,6 +1507,8 @@ export function buildUi(
       daylightModeControl.root,
       tokyoDaylightControls,
       daylightReadout,
+      sunAlignButton,
+      sunAlignStatus,
       row("lightAngle"),
       row("lightWidth"),
       row("skyIntensity"),
