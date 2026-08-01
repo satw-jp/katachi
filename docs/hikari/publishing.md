@@ -33,6 +33,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.21.0
+
+- Git commit deployed: `f078bc1` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `64af92bb-858b-41b4-9f8c-887fe20ea798`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Deployed observation: a non-scrolling application bar now owns contextual Open, Save, Export, workspace switching, and fullscreen; the right dock separates scene Layers from collapsible Properties
+- Desktop check: 1280 × 720 gave a 48 px bar, 940 × 672 viewport, and 340 × 672 inspector; real hit testing and clicks moved from Layers to the requested property group
+- Narrow check: 640 × 800 gave a 44 px bar, 640 × 436 viewport, and 640 × 320 inspector with no document-level scroll
+- Fullscreen check: focus mode hid the application bar and inspector, expanded the renderer, retained a visible exit action, and restored the previous shell dimensions on exit
+- Inclusion comparison: `同じ樹脂（色だけ薄い）` changed the retained low-IOR value from 1.1 to the host IOR 1.5 while preserving low inclusion absorption 0.02; this is the intended first comparison against the Ref Blender absorption-void study
+- Normal production check: Apple metal-3 WebGPU, 16,384 rays / 4,497 hits, Tokyo 17:00, v0.21.0 shell and same-resin action visible
+- Forced compatibility check: `?safe=1`, CPU preview, 56 rays, v0.21.0 shell visible
+
 ## Release record — 2026-08-01 — v0.20.0
 
 - Git commit deployed: `ce5c526` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
