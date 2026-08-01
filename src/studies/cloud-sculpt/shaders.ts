@@ -240,6 +240,19 @@ export const fragmentShader = /* glsl */ `
       / max(0.001, 4.0 * nDotV * nDotL) * nDotL;
   }
 
+  float visibleSunDisc(vec3 direction) {
+    // The visible emitter and the finite receiver light share one authored
+    // angular diameter. A small feather prevents a sub-pixel hard edge while
+    // preserving the difference between a 0.53° sun and a broad area study.
+    float diameterDeg = clamp(uSunSize, 0.1, 30.0);
+    float radius = radians(diameterDeg * 0.5);
+    float feather = radians(clamp(diameterDeg * 0.025, 0.035, 0.35));
+    float alignment = dot(normalize(direction), normalize(uLightDir));
+    float outerCosine = cos(radius + feather);
+    float innerCosine = cos(max(0.0, radius - feather));
+    return smoothstep(outerCosine, innerCosine, alignment);
+  }
+
   vec3 sunTransmission(vec3 origin, vec3 direction) {
     float travelled = 0.035;
     float insideDistance = 0.0;
@@ -364,7 +377,7 @@ export const fragmentShader = /* glsl */ `
   vec3 analysisEnvironment(vec3 origin, vec3 direction) {
     float horizon = smoothstep(-0.35, 0.45, direction.y);
     vec3 sky = mix(vec3(0.012, 0.025, 0.035), vec3(0.075, 0.16, 0.2), horizon);
-    float lightBand = pow(max(dot(direction, normalize(uLightDir)), 0.0), 48.0);
+    float lightBand = visibleSunDisc(direction);
     sky += vec3(0.72, 0.9, 1.0) * lightBand;
 
     float floorY = uReceiverY;
@@ -448,7 +461,7 @@ export const fragmentShader = /* glsl */ `
     vec3 hazeColor = vec3(0.69, 0.74, 0.76) * uSkyIntensity;
     sky = mix(sky, hazeColor, skyHaze * 0.74);
 
-    float sunDisc = pow(max(dot(direction, normalize(uLightDir)), 0.0), 420.0);
+    float sunDisc = visibleSunDisc(direction);
     sky += vec3(1.0, 0.88, 0.66) * sunDisc * uSunIntensity * 1.8;
 
     float floorY = uReceiverY;

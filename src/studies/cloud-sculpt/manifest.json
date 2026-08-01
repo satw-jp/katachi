@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Unified the visible background sun/area disc with the finite light's authored angular diameter. The former background used a fixed exponent and ignored sunSize, so broad-source receiver lighting and body refraction saw different emitter sizes. Natural and Analysis environments now use the same 0.1–30 degree diameter control as receiver light directions, while path depth, material absorption, and receiver energy accounting remain unchanged. Added a shader contract and recorded the supplied equal-IOR case as the fixed 0.53 versus 27.3 degree comparison."
+    },
     {
       "date": "2026-08-01",
       "note": "Added the exact UTC save time, including milliseconds, to every downloaded .hkr filename while keeping the internal documentId stable. Repeated saves now remain identifiable revisions without relying on browser-added suffixes such as (1); the convention matches Progressive PNG timestamps. Recorded the author's supplied v0.28.1 case as an equal-IOR, zero-absorption inclusion setup whose muted background and large finite source help separate lighting conditions from the still-bounded nested BODY path."

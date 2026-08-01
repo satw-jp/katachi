@@ -31,3 +31,12 @@ test("progressive body samples vary rough transmission without changing realtime
   assert.match(fragmentShader, /return mix\(center, roughSample, roughMix\)/);
   assert.match(fragmentShader, /if \(uCompatibilityMode == 1\) return center/);
 });
+
+test("visible sun and finite lighting share the authored angular diameter", () => {
+  assert.match(fragmentShader, /float visibleSunDisc\(vec3 direction\)/);
+  assert.match(fragmentShader, /float diameterDeg = clamp\(uSunSize, 0\.1, 30\.0\)/);
+  assert.match(fragmentShader, /float radius = radians\(diameterDeg \* 0\.5\)/);
+  assert.match(fragmentShader, /float sunDisc = visibleSunDisc\(direction\)/);
+  assert.match(fragmentShader, /float diskRadius = tan\(radians\(max\(0\.1, uSunSize\) \* 0\.5\)\)/);
+  assert.doesNotMatch(fragmentShader, /pow\(max\(dot\(direction, normalize\(uLightDir\)\), 0\.0\), 420\.0\)/);
+});

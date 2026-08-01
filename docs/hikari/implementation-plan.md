@@ -292,6 +292,8 @@ The progressive result is never blended across a camera, shape, material, light,
 
 Phase 1 is deliberately smaller than the full goal. It improves sub-pixel stability and rough reflection/transmission sampling in the existing bounded BODY shader. It does **not** yet increase host/inclusion path depth, report unresolved-path ratio or convergence, progressively accumulate the receiver field, denoise, animate, or replace Blender comparison. The next Progressive slice adds deeper deterministic boundary paths and measurable unresolved/convergence diagnostics; receiver progressive accumulation remains a separate later transport change because it must preserve the shared energy ledger.
 
+From v0.28.3, the visible background emitter uses the same authored angular diameter as finite-source receiver transport. The previous Natural background used a fixed `pow(..., 420)` disc regardless of `sunSize`, so a `27.3°` broad-source study illuminated the receiver with a large source while the body still refracted a much smaller fixed disc. Direction and author-facing intensity were already shared; this slice closes the diameter mismatch without changing path depth, absorption, or receiver energy accounting. The emitted-disc radiance remains an appearance proxy rather than a calibrated solar-radiance model.
+
 This mode is the path toward resolving the pixels that realtime must approximate. Blender remains the final scene and animation comparator; Hikari's advantage is that the same exploratory viewport can be refined without rebuilding it elsewhere.
 
 ## Phase 6 — capture an interesting state, then compare
