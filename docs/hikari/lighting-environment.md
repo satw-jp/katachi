@@ -1,6 +1,6 @@
 # hikari — natural-light environments and receiver materials
 
-Status: planned
+Status: Tokyo open-air runtime active; room/window runtime pending
 UpdatedAt: 2026-08-01
 
 ## Purpose
@@ -15,15 +15,18 @@ The author's [first selected-image intake](reference-intake-2026-08-01.md) makes
 
 ## Current implementation truth
 
-The current Natural view is primarily one procedural outdoor environment:
+The current Natural view is primarily one procedural outdoor environment, now driven by a reproducible Tokyo civil date and time:
 
-- one directional sun-like source with adjustable angle, width, intensity, and apparent disc size;
+- Tokyo date/time resolves to a three-dimensional solar direction through a deterministic NOAA-style approximation;
+- WebGL body/environment, CPU focused light, WebGPU focused light, and the saved optical scene share that direction;
+- scrubbing the time recomputes direct light; below the horizon, direct sun and focused light stop while sky light remains;
+- the earlier adjustable one-axis angle remains only as a labelled manual fallback;
 - procedural sky, cloud, tree, and ground cues;
 - environment rotation, contrast, and a haze-like visual effect;
 - one hard-coded receiver plane whose brightness is scaled by `groundReflectance`;
 - transparent shadow and focused-light textures composed separately.
 
-This is a useful outdoor-sun starting point. It is not yet a room, window light, theatrical spotlight, participating fog volume, or material-aware floor. Those names are used only after the relevant model exists or are explicitly labelled as visual approximations.
+`daylightRoom.ts` now defines and validates a renderer-independent room, ceiling height, object point, and multiple rectangular windows on each of the four walls. It identifies sun-facing apertures and whether a direct ray reaches the object. This geometry is not rendered and does not clip the focused-light field yet. The view is therefore not yet room/window light, theatrical spotlight, participating fog volume, or a material-aware floor. Those names are used only after the relevant runtime model exists or are explicitly labelled as visual approximations.
 
 ## Scene boundary
 

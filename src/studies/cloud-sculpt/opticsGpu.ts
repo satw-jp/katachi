@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Ball } from "./field.ts";
 import type { OpticalSettings } from "./optics.ts";
 import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
+import { resolveDaylight } from "./daylight.ts";
 
 const MAX_GPU_BALLS = 256;
 const RESULT_FLOATS = 20;
@@ -367,7 +368,12 @@ export class WebGpuOpticsEngine {
     try {
       device.pushErrorScope("validation");
       const bounds = fieldBounds(balls);
-      const lightDirection = directionFromAngle(settings.lightAngle);
+      const daylight = resolveDaylight(settings);
+      const lightDirection = new THREE.Vector3(
+        daylight.propagationDirection.x,
+        daylight.propagationDirection.y,
+        daylight.propagationDirection.z,
+      );
       const basisU = new THREE.Vector3().crossVectors(
         lightDirection,
         new THREE.Vector3(0, 1, 0),
@@ -652,9 +658,4 @@ function fieldBounds(balls: Ball[]): { center: THREE.Vector3; radius: number; mi
     radius: Math.max(0.1, center.distanceTo(max)),
     minY: min.y,
   };
-}
-
-function directionFromAngle(angleDegrees: number): THREE.Vector3 {
-  const angle = THREE.MathUtils.degToRad(angleDegrees);
-  return new THREE.Vector3(Math.sin(angle) * 0.72, -1, Math.cos(angle) * 0.28).normalize();
 }

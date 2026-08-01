@@ -10,6 +10,7 @@ import type {
   HikariMode,
   HikariSettings,
   HikariSpawn,
+  DaylightMode,
   OpticalColorMode,
   OpticalDispersionMode,
   OpticalHostPreset,
@@ -18,6 +19,7 @@ import type {
   OpticalView,
   WorkspaceView,
 } from "./hikari.ts";
+import { formatMinutes, resolveDaylight } from "./daylight.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
 import { createSlider } from "../../lib/ui/slider.ts";
 
@@ -516,6 +518,77 @@ export function buildUi(
   opticsComputeStatus.textContent = "GPUを確認中";
   opticsControls.appendChild(opticsComputeStatus);
 
+  const daylightTitle = document.createElement("div");
+  daylightTitle.className = "hikari-section-title";
+  daylightTitle.textContent = "自然光";
+  opticsControls.appendChild(daylightTitle);
+  const daylightModeControl = createSegmentedControl<DaylightMode>(
+    ["tokyo", "manual"],
+    hikariState.daylightMode,
+    (daylightMode) => {
+      const next = { ...hikariState, daylightMode };
+      applyDaylightVisibility(next);
+      updateHikari({ daylightMode });
+    },
+    { tokyo: "東京の日時", manual: "手動" },
+  );
+  opticsControls.appendChild(daylightModeControl.root);
+
+  const tokyoDaylightControls = document.createElement("div");
+  const daylightDateRow = document.createElement("div");
+  daylightDateRow.className = "row";
+  const daylightDateLabel = document.createElement("label");
+  daylightDateLabel.textContent = "東京の日付";
+  const daylightDateInput = document.createElement("input");
+  daylightDateInput.type = "date";
+  daylightDateInput.value = hikariState.daylightDate;
+  daylightDateInput.onchange = () => {
+    const next = { ...hikariState, daylightDate: daylightDateInput.value };
+    updateDaylightReadout(next);
+    updateHikari({ daylightDate: daylightDateInput.value });
+  };
+  daylightDateRow.appendChild(daylightDateLabel);
+  daylightDateRow.appendChild(daylightDateInput);
+  tokyoDaylightControls.appendChild(daylightDateRow);
+  const daylightTime = createSlider({
+    label: "東京の時刻",
+    min: 0,
+    max: 1439,
+    step: 5,
+    initial: hikariState.daylightMinutes,
+    format: formatMinutes,
+    onChange: (daylightMinutes) => {
+      const next = { ...hikariState, daylightMinutes };
+      updateDaylightReadout(next);
+      updateHikari({ daylightMinutes });
+    },
+  });
+  tokyoDaylightControls.appendChild(daylightTime.row);
+  opticsControls.appendChild(tokyoDaylightControls);
+  const daylightReadout = document.createElement("div");
+  daylightReadout.className = "hint";
+  opticsControls.appendChild(daylightReadout);
+  let manualLightAngleRow: HTMLElement | null = null;
+  function updateDaylightReadout(settings: HikariSettings): void {
+    const daylight = resolveDaylight(settings);
+    daylightReadout.textContent = daylight.label;
+    opticalSourceInfo.textContent = daylight.mode === "tokyo"
+      ? "LIGHT SOURCE — TOKYO SUN / 平行光場"
+      : "LIGHT SOURCE — MANUAL SUN / 平行光場";
+  }
+  function applyDaylightVisibility(settings: HikariSettings): void {
+    tokyoDaylightControls.style.display = settings.daylightMode === "tokyo" ? "" : "none";
+    if (manualLightAngleRow) manualLightAngleRow.style.display = settings.daylightMode === "manual" ? "" : "none";
+    updateDaylightReadout(settings);
+  }
+  applyDaylightVisibility(hikariState);
+  hikariControlSyncers.push((settings) => {
+    daylightModeControl.set(settings.daylightMode);
+    daylightDateInput.value = settings.daylightDate;
+    daylightTime.set(settings.daylightMinutes);
+    applyDaylightVisibility(settings);
+  });
+
   const opticalViewTitle = document.createElement("div");
   opticalViewTitle.className = "hikari-section-title";
   opticalViewTitle.textContent = "観察";
@@ -761,8 +834,10 @@ export function buildUi(
       stressRows.push(built.row);
     }
     opticsControls.appendChild(built.row);
+    if (spec.key === "lightAngle") manualLightAngleRow = built.row;
     hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
   }
+  applyDaylightVisibility(hikariState);
   applyRainbowModelVisibility = (model) => {
     const prismVisible = model !== "stress";
     const stressVisible = model !== "prism";
@@ -779,7 +854,7 @@ export function buildUi(
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
   opticsNote.textContent =
-    "v0.18.2: 内包はまず一つの球で境界を検証しています。外側に収まらない配置は描画しません。CPUとWebGPUの光線は内包を通った最終方向から床の集光を作ります。";
+    "v0.19.0: 東京の日付と時刻から太陽の方位・高度を変えられます。内包はまず一つの球で検証中です。CPUとWebGPUは同じ太陽方向と内包経路から床の集光を作ります。";
   opticsControls.appendChild(opticsNote);
   hikariControls.appendChild(opticsControls);
 

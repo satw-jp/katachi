@@ -14,6 +14,7 @@ import {
   type OpticalView,
 } from "./optics.ts";
 import { hashSeed, makeRng } from "./random.ts";
+import type { DaylightMode } from "./daylight.ts";
 
 export type WorkspaceView = "katachi" | "hikari";
 export type HikariMode = "points" | "trails" | "density";
@@ -28,6 +29,7 @@ export type {
   OpticalRainbowModel,
   OpticalView,
 };
+export type { DaylightMode };
 
 export interface HikariSettings extends OpticalSettings {
   seed: string;
@@ -56,6 +58,9 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   opticalDisplay: "density",
   opticalView: "natural",
   ior: 1.5,
+  daylightMode: "tokyo",
+  daylightDate: "2026-08-01",
+  daylightMinutes: 17 * 60,
   lightAngle: -24,
   lightWidth: 1,
   opticalRayCount: 56,
@@ -382,6 +387,14 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
         : "density",
     opticalView: value.opticalView === "analysis" ? "analysis" : "natural",
     ior: clampNumber(value.ior, 1.01, 1.8, DEFAULT_HIKARI_SETTINGS.ior),
+    daylightMode: value.daylightMode === "manual" ? "manual" : "tokyo",
+    daylightDate: normalizeDaylightDate(value.daylightDate),
+    daylightMinutes: clampNumber(
+      value.daylightMinutes,
+      0,
+      1439,
+      DEFAULT_HIKARI_SETTINGS.daylightMinutes,
+    ),
     lightAngle: clampNumber(value.lightAngle, -70, 70, DEFAULT_HIKARI_SETTINGS.lightAngle),
     lightWidth: clampNumber(value.lightWidth, 0.45, 1.8, DEFAULT_HIKARI_SETTINGS.lightWidth),
     opticalRayCount: clampNumber(
@@ -509,6 +522,19 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
     mode: value.mode === "trails" || value.mode === "density" ? value.mode : "points",
     spawn: value.spawn === "inside" ? "inside" : "surface",
   };
+}
+
+function normalizeDaylightDate(value: unknown): string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return DEFAULT_HIKARI_SETTINGS.daylightDate;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  return probe.getUTCFullYear() === year
+    && probe.getUTCMonth() === month - 1
+    && probe.getUTCDate() === day
+    ? value
+    : DEFAULT_HIKARI_SETTINGS.daylightDate;
 }
 
 function sampleParticles(

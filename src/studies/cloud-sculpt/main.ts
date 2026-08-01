@@ -471,14 +471,16 @@ function renderFrame(now: number): void {
   if (fpsAccum >= 500) {
     ui.setFps(1000 / (fpsAccum / frameCount));
     const computeStatus = hikariLayer.getOpticsComputeStatus();
-    const inclusionCausticReady = computeStatus.kind === "cpu" || computeStatus.kind === "webgpu";
+    const sunBelowHorizon = computeStatus.text.includes("太陽は地平線下");
+    const inclusionCausticReady = !sunBelowHorizon
+      && (computeStatus.kind === "cpu" || computeStatus.kind === "webgpu");
     cloudRenderer.setInclusionCausticTrustworthy(inclusionCausticReady);
     if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
       ui.setOpticsComputeStatus({
         kind: "error",
         text: opticalSceneIssueText(opticalSceneIssues),
       });
-    } else if (hikariSettings.inclusionEnabled) {
+    } else if (hikariSettings.inclusionEnabled && !sunBelowHorizon) {
       ui.setOpticsComputeStatus({
         ...computeStatus,
         text: `${computeStatus.text} · 内包1 · ${inclusionCausticReady ? "内包の集光" : "内包の集光を更新中"}`,

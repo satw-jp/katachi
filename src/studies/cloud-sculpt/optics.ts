@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { fieldSdf, type Ball } from "./field.ts";
 import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
+import { resolveDaylight, type DaylightMode } from "./daylight.ts";
 import {
   WebGpuOpticsEngine,
   type GpuOpticsResult,
@@ -47,6 +48,9 @@ export interface OpticalSettings {
   opticalDisplay: OpticalDisplay;
   opticalView: OpticalView;
   ior: number;
+  daylightMode: DaylightMode;
+  daylightDate: string;
+  daylightMinutes: number;
   lightAngle: number;
   lightWidth: number;
   opticalRayCount: number;
@@ -171,6 +175,7 @@ export class OpticsLayer {
   private latestBalls: Ball[] = [];
   private latestK = 0;
   private latestSettings: OpticalSettings | null = null;
+  private sunBelowHorizon = false;
   private gpu: WebGpuOpticsEngine;
   private onCausticField: ((field: CausticField) => void) | null;
   private rayMaterial = new THREE.LineBasicMaterial({
@@ -221,7 +226,7 @@ export class OpticsLayer {
     this.group.renderOrder = 20;
     scene.add(this.group);
     this.gpu.ready().then((available) => {
-      if (available && this.latestSettings) {
+      if (available && this.latestSettings && resolveDaylight(this.latestSettings).aboveHorizon) {
         this.startGpuRebuild(this.latestBalls, this.latestK, this.latestSettings);
       }
     });
@@ -237,15 +242,23 @@ export class OpticsLayer {
     this.latestSettings = { ...settings };
     this.causticMaterial.uniforms.uStrength.value = settings.causticStrength;
     this.causticMaterial.uniforms.uNatural.value = settings.opticalView === "natural" ? 1 : 0;
-    const signature = `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.absorption.toFixed(3)}:${settings.ior.toFixed(3)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(3)}:${settings.inclusionAbsorption.toFixed(3)}:${settings.inclusionOffsetX.toFixed(3)},${settings.inclusionOffsetY.toFixed(3)},${settings.inclusionOffsetZ.toFixed(3)}:${settings.inclusionRadius.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
+    const daylight = resolveDaylight(settings);
+    this.sunBelowHorizon = !daylight.aboveHorizon;
+    const signature = `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.absorption.toFixed(3)}:${settings.ior.toFixed(3)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(3)}:${settings.inclusionAbsorption.toFixed(3)}:${settings.inclusionOffsetX.toFixed(3)},${settings.inclusionOffsetY.toFixed(3)},${settings.inclusionOffsetZ.toFixed(3)}:${settings.inclusionRadius.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.daylightMode}:${settings.daylightDate}:${settings.daylightMinutes}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
-      const status = this.gpu.getStatus();
-      if (status.kind === "webgpu" || status.kind === "computing") {
-        this.startGpuRebuild(balls, k, settings);
+      if (this.sunBelowHorizon) {
+        this.requestId++;
+        this.clearGeometry();
+        this.publishCausticField([]);
       } else {
-        const cpuSampleCount = this.rebuildCpu(balls, k, settings);
-        this.gpu.setCpuFallback(cpuSampleCount);
+        const status = this.gpu.getStatus();
+        if (status.kind === "webgpu" || status.kind === "computing") {
+          this.startGpuRebuild(balls, k, settings);
+        } else {
+          const cpuSampleCount = this.rebuildCpu(balls, k, settings);
+          this.gpu.setCpuFallback(cpuSampleCount);
+        }
       }
     }
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
@@ -256,6 +269,9 @@ export class OpticsLayer {
   }
 
   getComputeStatus(): { text: string; kind: OpticsComputeKind } {
+    if (this.sunBelowHorizon && this.latestSettings) {
+      return { kind: "cpu", text: `${resolveDaylight(this.latestSettings).label} · 太陽は地平線下` };
+    }
     const status = this.gpu.getStatus();
     if (status.kind === "webgpu" && status.sampleCount > 0 && status.elapsedMs !== null) {
       const megaRaysPerSecond = status.sampleCount / Math.max(0.001, status.elapsedMs) / 1000;
@@ -337,7 +353,12 @@ export class OpticsLayer {
           radius: settings.inclusionRadius,
         }
       : null;
-    const lightDirection = directionFromAngle(settings.lightAngle);
+    const daylight = resolveDaylight(settings);
+    const lightDirection = new THREE.Vector3(
+      daylight.propagationDirection.x,
+      daylight.propagationDirection.y,
+      daylight.propagationDirection.z,
+    );
     const basisU = new THREE.Vector3().crossVectors(lightDirection, new THREE.Vector3(0, 1, 0));
     if (basisU.lengthSq() < 0.001) basisU.set(1, 0, 0);
     basisU.normalize();
@@ -610,7 +631,12 @@ export class OpticsLayer {
     const causticEnergy: number[] = [];
     const causticStretch: number[] = [];
     const causticAngle: number[] = [];
-    const lightDirection = directionFromAngle(settings.lightAngle);
+    const daylight = resolveDaylight(settings);
+    const lightDirection = new THREE.Vector3(
+      daylight.propagationDirection.x,
+      daylight.propagationDirection.y,
+      daylight.propagationDirection.z,
+    );
     const causticFieldSamples: CausticSample[] = [];
     const visualStride = Math.max(1, Math.ceil(result.sampleCount / 32768));
     let shownRays = 0;
@@ -1029,11 +1055,6 @@ function fieldBounds(balls: Ball[]): { center: THREE.Vector3; radius: number; mi
     radius: Math.max(0.1, center.distanceTo(max)),
     minY: min.y,
   };
-}
-
-function directionFromAngle(angleDegrees: number): THREE.Vector3 {
-  const angle = THREE.MathUtils.degToRad(angleDegrees);
-  return new THREE.Vector3(Math.sin(angle) * 0.72, -1, Math.cos(angle) * 0.28).normalize();
 }
 
 function marchToSurface(

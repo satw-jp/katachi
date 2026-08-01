@@ -10,6 +10,7 @@ import { MAX_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
 import type { CloudOpticalSceneAdapter } from "./opticalSceneAdapter.ts";
+import { resolveDaylight } from "./daylight.ts";
 
 export interface CameraSnapshot {
   position: [number, number, number];
@@ -129,10 +130,11 @@ export class CloudRenderer {
   }
 
   setOptics(settings: OpticalSettings): void {
+    const daylight = resolveDaylight(settings);
     this.material.uniforms.uIor.value = settings.ior;
     this.material.uniforms.uNaturalView.value = settings.opticalView === "natural" ? 1 : 0;
     this.material.uniforms.uSkyIntensity.value = settings.skyIntensity;
-    this.material.uniforms.uSunIntensity.value = settings.sunIntensity;
+    this.material.uniforms.uSunIntensity.value = daylight.aboveHorizon ? settings.sunIntensity : 0;
     this.material.uniforms.uSunSize.value = settings.sunSize;
     this.material.uniforms.uGroundReflectance.value = settings.groundReflectance;
     this.material.uniforms.uOpticalExposure.value = settings.opticalExposure;
@@ -168,9 +170,8 @@ export class CloudRenderer {
             ? 0x2396ad
             : 0x5fc8e3,
     );
-    const angle = THREE.MathUtils.degToRad(settings.lightAngle);
     this.material.uniforms.uLightDir.value
-      .set(-Math.sin(angle) * 0.72, 1, -Math.cos(angle) * 0.28)
+      .set(daylight.directionToSun.x, daylight.directionToSun.y, daylight.directionToSun.z)
       .normalize();
   }
 

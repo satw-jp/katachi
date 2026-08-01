@@ -7,6 +7,7 @@ import {
   type Rgb,
 } from "./opticalScene.ts";
 import { findInvalidContainment, validateOpticalScene } from "./opticalGeometry.ts";
+import { resolveDaylight } from "./daylight.ts";
 
 /**
  * The current cloud has no authored physical dimension yet. Twenty millimetres
@@ -29,6 +30,7 @@ export function buildCloudOpticalScene(
   smoothness: number,
   settings: OpticalSettings,
 ): CloudOpticalSceneAdapter {
+  const daylight = resolveDaylight(settings);
   const physicalScale = {
     mmPerShapeUnit: CURRENT_ASSUMED_MM_PER_SHAPE_UNIT,
     source: "assumed" as const,
@@ -92,8 +94,10 @@ export function buildCloudOpticalScene(
       normal: { x: 0, y: 1, z: 0 },
     },
     light: {
-      direction: propagationDirection(settings.lightAngle),
-      radiance: { r: settings.sunIntensity, g: settings.sunIntensity * 0.94, b: settings.sunIntensity * 0.82 },
+      direction: daylight.propagationDirection,
+      radiance: daylight.aboveHorizon
+        ? { r: settings.sunIntensity, g: settings.sunIntensity * 0.94, b: settings.sunIntensity * 0.82 }
+        : { r: 0, g: 0, b: 0 },
     },
     physicalScale,
     boundaryEpsilon: 1e-4,
@@ -124,13 +128,4 @@ function greyAbsorption(value: number): Rgb {
 
 function divideRgb(value: Rgb, divisor: number): Rgb {
   return { r: value.r / divisor, g: value.g / divisor, b: value.b / divisor };
-}
-
-function propagationDirection(angleDegrees: number): { x: number; y: number; z: number } {
-  const angle = angleDegrees * Math.PI / 180;
-  const x = Math.sin(angle) * 0.72;
-  const y = -1;
-  const z = Math.cos(angle) * 0.28;
-  const length = Math.hypot(x, y, z);
-  return { x: x / length, y: y / length, z: z / length };
 }
