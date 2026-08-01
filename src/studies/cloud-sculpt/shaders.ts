@@ -861,6 +861,7 @@ export const fragmentShader = /* glsl */ `
       }
 
       vec3 outgoing = finalHostDirection;
+      vec3 exitIncidentDirection = finalHostDirection;
       vec3 exitNormal = -n;
       bool hasTransmittedExit = false;
       if (hasExit) {
@@ -889,6 +890,7 @@ export const fragmentShader = /* glsl */ `
             );
             if (length(tirRefractedOut) >= 0.01) {
               outgoing = tirRefractedOut;
+              exitIncidentDirection = tirDirection;
               exitPoint = tirExitPoint;
               exitNormal = perturbSurfaceNormal(
                 tirExitGeometricNormal,
@@ -908,10 +910,22 @@ export const fragmentShader = /* glsl */ `
       float facing = clamp(dot(-rd, n), 0.0, 1.0);
       float fresnelBase = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
       float fresnel = fresnelBase + (1.0 - fresnelBase) * pow(1.0 - facing, 5.0);
-      bool viewContinuityFallback = !hasTransmittedExit;
+      vec3 displayOutgoing = outgoing;
+      if (hasTransmittedExit) {
+        // Transport remains geometric, but the environment lookup keeps the
+        // soft surface variation that made the earlier body view feel natural.
+        vec3 cosmeticOutgoing = refract(
+          exitIncidentDirection,
+          -exitNormal,
+          uIor
+        );
+        if (length(cosmeticOutgoing) >= 0.01) {
+          displayOutgoing = cosmeticOutgoing;
+        }
+      }
       vec3 refractedColor = roughOpticalEnvironment(
         hasExit ? exitPoint : p,
-        outgoing
+        displayOutgoing
       );
       if (hasTransmittedExit && !traversedInclusion && uRainbowModel != 1 && uDispersion > 0.001) {
         float locality = 1.0;
@@ -973,8 +987,8 @@ export const fragmentShader = /* glsl */ `
       // Realtime observation favors the earlier continuous transparent look.
       // After the bounded TIR bounce, any still-unresolved body-view pixel uses
       // the same smooth host-looking environment approximation as the original
-      // view. The flag makes that limitation explicit for Progressive Render;
-      // strict receiver transport never receives this fallback as energy.
+      // view. Progressive Render will replace this approximation rather than
+      // feeding it to strict receiver transport as energy.
       vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
       color += uOpticalTint * edgeGlow * 0.22;
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));
