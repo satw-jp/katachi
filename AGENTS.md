@@ -10,6 +10,17 @@
 3. この文書
 4. 作業対象のタスク指示書（`docs/tasks/`）と、対象 Study の README + manifest
 
+### Hikari の最新版ゲート
+
+Hikari を読む・編集する・テストする・起動する前に、リポジトリのどのworktreeにいても
+`node scripts/verify-hikari-current.mjs` を実行する。そこで報告された version / branch / commit /
+worktree だけを正本とする。`active/Katachi` というフォルダ名、現在のシェル位置、会話中の記憶、すでに
+動いている5174番を根拠に最新版を決めない。検査が曖昧・不一致・worktreeなしを報告した場合は古い版へ
+フォールバックせず、正本を確定するまでHikari作業を止める。
+
+localhostを最新版として提示する前には `node scripts/verify-hikari-current.mjs --runtime` を実行し、さらに
+実画面のVersion表示が同じであることを確認する。
+
 ## 1. 不変則（どの段階でも変わらないもの）
 
 - **比較 > 装飾**。並べて観察できることが、画面の美しさに優先する

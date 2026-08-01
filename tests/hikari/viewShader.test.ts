@@ -56,7 +56,9 @@ test("Blender comparison backlight is a finite BODY-only environment emitter", (
 test("equal-IOR inclusion is integrated as Blender-style absorption void", () => {
   assert.match(fragmentShader, /bool inclusionIsAbsorptionVoid\(\)/);
   assert.match(fragmentShader, /abs\(uIor - uInclusionIor\) < 0\.0005/);
-  assert.match(fragmentShader, /uInclusionRadius \* 0\.07855/);
+  assert.match(fragmentShader, /uniform vec3 uInclusionBallPos\[64\]/);
+  assert.match(fragmentShader, /radius \* 0\.07855/);
+  assert.match(fragmentShader, /if \(i >= uInclusionBallCount\) break/);
   assert.match(fragmentShader, /vec3 absorptionVoidOpticalDepth\(/);
   assert.match(fragmentShader, /mix\(\s*hostCoefficient,\s*uInclusionAbsorptionRgb,/);
   assert.match(fragmentShader, /&& !inclusionIsAbsorptionVoid\(\)/);
@@ -66,4 +68,16 @@ test("realtime and progressive presentation apply the renderer output colorspace
   const bodyTransforms = fragmentShader.match(/#include <colorspace_fragment>/g) ?? [];
   assert.ok(bodyTransforms.length >= 4);
   assert.match(presentFragmentShader, /#include <colorspace_fragment>/);
+});
+
+test("expressive receiver stroke redistributes only delivered light", () => {
+  assert.match(fragmentShader, /vec3 receiverStrokeLight\(vec2 uv, float receiverCosine\)/);
+  assert.match(fragmentShader, /for \(int y = 0; y < 4; y\+\+\)/);
+  assert.match(fragmentShader, /for \(int x = 0; x < 4; x\+\+\)/);
+  assert.match(fragmentShader, /return blockSum \* \(0\.25 \* strokeActive\)/);
+  assert.match(fragmentShader, /vec3 displayAddedTransport = uReceiverDisplayMode == 1/);
+  assert.match(fragmentShader, /vec3 pairedDirect = vec3\(1\.0 - removedBaseline\)\s*\+ displayAddedTransport/);
+  assert.match(fragmentShader, /if \(uReceiverDisplayMode >= 2 && pairedWeight > 0\.0\)/);
+  assert.doesNotMatch(fragmentShader, /receiverStrokeShadow/);
+  assert.doesNotMatch(fragmentShader, /receiverStrokeBackdrop/);
 });

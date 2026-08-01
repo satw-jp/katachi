@@ -6,7 +6,7 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { MAX_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
+import { MAX_BALLS, MAX_INCLUSION_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
 import type { CloudOpticalSceneAdapter } from "./opticalSceneAdapter.ts";
@@ -170,6 +170,11 @@ export class CloudRenderer {
         uInclusionRadius: { value: 0.48 },
         uInclusionIor: { value: 1.5 },
         uInclusionAbsorptionRgb: { value: new THREE.Vector3(0.02, 0.02, 0.02) },
+        uInclusionBallPos: {
+          value: Array.from({ length: MAX_INCLUSION_BALLS }, () => new THREE.Vector3()),
+        },
+        uInclusionBallRadius: { value: new Float32Array(MAX_INCLUSION_BALLS) },
+        uInclusionBallCount: { value: 0 },
         uNaturalView: { value: 1 },
         uSkyIntensity: { value: 0.85 },
         uSunIntensity: { value: 1.25 },
@@ -310,13 +315,15 @@ export class CloudRenderer {
     this.material.uniforms.uPolarization.value = settings.polarization;
     this.material.uniforms.uCausticStrength.value = settings.causticStrength;
     this.material.uniforms.uReceiverDisplayMode.value =
-      settings.receiverDisplayMode === "coverage"
+      settings.receiverDisplayMode === "stroke"
         ? 1
-        : settings.receiverDisplayMode === "deposit"
+        : settings.receiverDisplayMode === "coverage"
           ? 2
-          : settings.receiverDisplayMode === "loss"
+          : settings.receiverDisplayMode === "deposit"
             ? 3
-            : 0;
+            : settings.receiverDisplayMode === "loss"
+              ? 4
+              : 0;
     // Appearance-only edge/haze tint. OpticalScene RGB absorption remains the
     // authority for body thickness, shadow, receiver transport, and Blender.
     this.material.uniforms.uOpticalTint.value.set(
@@ -348,13 +355,63 @@ export class CloudRenderer {
       ? adapter.inclusionValid ? 1 : 2
       : 0;
     this.material.uniforms.uInclusionEnabled.value = requested && adapter.inclusionValid ? 1 : 0;
+    const packedPositions = this.material.uniforms.uInclusionBallPos.value as THREE.Vector3[];
+    const packedRadii = this.material.uniforms.uInclusionBallRadius.value as Float32Array;
+    let packedBallCount = 0;
+    for (const medium of adapter.scene.inclusions) {
+      const rotation = new THREE.Quaternion(
+        medium.pose.rotation.x,
+        medium.pose.rotation.y,
+        medium.pose.rotation.z,
+        medium.pose.rotation.w,
+      ).normalize();
+      for (const ball of medium.shape.balls) {
+        if (packedBallCount >= MAX_INCLUSION_BALLS) break;
+        packedPositions[packedBallCount]
+          .set(ball.center.x, ball.center.y, ball.center.z)
+          .multiplyScalar(medium.pose.uniformScale)
+          .applyQuaternion(rotation)
+          .add(new THREE.Vector3(
+            medium.pose.position.x,
+            medium.pose.position.y,
+            medium.pose.position.z,
+          ));
+        packedRadii[packedBallCount] = ball.radius * medium.pose.uniformScale;
+        packedBallCount++;
+      }
+    }
+    this.material.uniforms.uInclusionBallCount.value = adapter.inclusionValid
+      ? packedBallCount
+      : 0;
     if (inclusion) {
+      const firstBall = inclusion.shape.balls[0];
+      const firstCenter = firstBall
+        ? new THREE.Vector3(firstBall.center.x, firstBall.center.y, firstBall.center.z)
+            .multiplyScalar(inclusion.pose.uniformScale)
+            .applyQuaternion(new THREE.Quaternion(
+              inclusion.pose.rotation.x,
+              inclusion.pose.rotation.y,
+              inclusion.pose.rotation.z,
+              inclusion.pose.rotation.w,
+            ).normalize())
+            .add(new THREE.Vector3(
+              inclusion.pose.position.x,
+              inclusion.pose.position.y,
+              inclusion.pose.position.z,
+            ))
+        : new THREE.Vector3(
+            inclusion.pose.position.x,
+            inclusion.pose.position.y,
+            inclusion.pose.position.z,
+          );
       this.material.uniforms.uInclusionCenter.value.set(
-        inclusion.pose.position.x,
-        inclusion.pose.position.y,
-        inclusion.pose.position.z,
+        firstCenter.x,
+        firstCenter.y,
+        firstCenter.z,
       );
-      this.material.uniforms.uInclusionRadius.value = inclusion.pose.uniformScale;
+      this.material.uniforms.uInclusionRadius.value = firstBall
+        ? firstBall.radius * inclusion.pose.uniformScale
+        : inclusion.pose.uniformScale;
       this.material.uniforms.uInclusionIor.value = inclusion.material.ior;
       this.material.uniforms.uInclusionAbsorptionRgb.value.set(
         adapter.inclusionAbsorptionPerShapeUnit.r,

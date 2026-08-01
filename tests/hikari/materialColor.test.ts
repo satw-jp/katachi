@@ -82,6 +82,15 @@ test("Hikari settings normalize custom colors and migrate legacy documents", () 
   const clamped = normalizeHikariSettings({ absorption: 99, inclusionAbsorption: 99 });
   assert.equal(clamped.absorption, 40);
   assert.equal(clamped.inclusionAbsorption, 40);
+  assert.equal(
+    normalizeHikariSettings({ receiverDisplayMode: "stroke" }).receiverDisplayMode,
+    "stroke",
+  );
+  assert.equal(
+    normalizeHikariSettings({ receiverDisplayMode: "unknown" as "composite" })
+      .receiverDisplayMode,
+    "composite",
+  );
 });
 
 test("Blender comparison backlight is disabled by default and bounded when restored", () => {

@@ -29,6 +29,18 @@ Every implementation and comparison must preserve this causality. Adding procedu
 
 The two outputs need not match pixel for pixel. They must agree that the mark originates from the same authored curvature/thickness trace, lies in the causally projected shadow region, moves continuously when that trace moves, and becomes less legible as the source broadens.
 
+## Rejected expressive prototype — v0.29.3
+
+The first `筆跡` display detected changes in shadow coverage and delivered light, darkened the extracted shadow edge, and placed a cropped receiver plate below the body. The author rejected it after direct observation: the shadow becoming darker or larger was incorrect, and the plate appeared as a detached blob. This path is retained only as failure evidence and must not return.
+
+## Conserved-light stroke display — v0.29.4
+
+The correction leaves shadow coverage, ambient loss, receiver bounds, and physical transport unchanged. It transforms only delivered RGB light for display. Each deterministic 4 × 4 receiver-texel block gathers its delivered RGB sum, chooses one fixed horizontal, vertical, or diagonal four-texel mark, and divides the exact block sum equally across those four texels. Thus each RGB channel is conserved per block; the hash changes spatial arrangement but not quantity and does not animate between frames.
+
+Same-camera WebGPU and SAFE comparisons show the same gray shadow in Composite and Stroke, while the smooth delivered-light pool becomes many small marks. The detached plate is gone. This is still an explicitly expressive redistribution, not evidence that the current smooth ball geometry physically creates those small strokes. Response to 0.53° / 5° / 20° remains unverified, and long authored arcs still require LD1 real mid-scale geometry.
+
+Evidence: [Composite, same camera](evidence/light-stroke-v0294-composite.png) / [Stroke, same camera](evidence/light-stroke-v0294-stroke.png).
+
 ## Current gap
 
 The current optics tracer can carry broad ball-SDF curvature to receiver hit positions, but several choices prevent it from resolving the author's trace:
@@ -41,7 +53,7 @@ The current optics tracer can carry broad ball-SDF curvature to receiver hit pos
 - decorative ellipses and spectral styling remain available only in Analysis; the Natural validation field uses one undivided RGB deposit per traced path;
 - there is no progressive convergence accumulation, and the shared shape still lacks an authored mid-scale surface/thickness trace.
 
-These effects may remain useful as exploratory display modes, but they cannot be the validation path for light drawing.
+The v0.29.4 `筆跡` display is useful for composition, but it is not the validation path for physical light drawing.
 
 ## Geometry contract
 

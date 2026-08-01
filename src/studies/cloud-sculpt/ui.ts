@@ -16,6 +16,9 @@ import type {
   OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
+  InclusionMode,
+  InclusionShapeFamily,
+  InclusionPlacement,
   ReceiverDisplayMode,
   OpticalView,
   WorkspaceView,
@@ -866,7 +869,7 @@ export function buildUi(
   hikariControlSyncers.push((settings) => opticalViewControl.set(settings.opticalView));
 
   const receiverDisplayControl = createSegmentedControl<ReceiverDisplayMode>(
-    ["composite", "coverage", "deposit", "loss"],
+    ["composite", "stroke", "coverage", "deposit", "loss"],
     hikariState.receiverDisplayMode,
     (receiverDisplayMode) => {
       updateReceiverDisplayHint(receiverDisplayMode);
@@ -874,6 +877,7 @@ export function buildUi(
     },
     {
       composite: "統合",
+      stroke: "筆跡",
       coverage: "影の範囲",
       deposit: "届いた光",
       loss: "届かなかった光",
@@ -884,7 +888,9 @@ export function buildUi(
   receiverDisplayHint.className = "hint";
   opticsControls.appendChild(receiverDisplayHint);
   function updateReceiverDisplayHint(mode: ReceiverDisplayMode): void {
-    receiverDisplayHint.textContent = mode === "coverage"
+    receiverDisplayHint.textContent = mode === "stroke"
+      ? "影は統合表示と同じまま、届いた光のRGB量を小さな範囲ごとに保って、固定された細い筆跡へ並べ替える作品用表示です。"
+      : mode === "coverage"
       ? "透明体が遮った、元の直射光の範囲です。"
       : mode === "deposit"
         ? "透明体を通って受光面へ戻った直射光です。"
@@ -981,6 +987,7 @@ export function buildUi(
   });
 
   const inclusionControls = document.createElement("div");
+  let applyInclusionModeVisibility = (_mode: InclusionMode): void => {};
   const inclusionToggle = document.createElement("button");
   inclusionToggle.type = "button";
   inclusionToggle.className = "optical-ray-toggle";
@@ -997,6 +1004,21 @@ export function buildUi(
     updateHikari({ inclusionEnabled: enabled });
   };
   opticsControls.appendChild(inclusionToggle);
+
+  const inclusionModeTitle = document.createElement("div");
+  inclusionModeTitle.className = "hikari-section-title";
+  inclusionModeTitle.textContent = "内包の構成";
+  inclusionControls.appendChild(inclusionModeTitle);
+  const inclusionModeControl = createSegmentedControl<InclusionMode>(
+    ["single", "packed"],
+    hikariState.inclusionMode,
+    (inclusionMode) => {
+      applyInclusionModeVisibility(inclusionMode);
+      updateHikari({ inclusionMode });
+    },
+    { single: "ひとつ", packed: "パッキング" },
+  );
+  inclusionControls.appendChild(inclusionModeControl.root);
 
   const inclusionColorRow = document.createElement("label");
   inclusionColorRow.className = "custom-host-color-row";
@@ -1038,6 +1060,7 @@ export function buildUi(
     { key: "inclusionRadius", label: "内包の大きさ", min: 0.12, max: 1.2, step: 0.01 },
   ];
   const inclusionSetters = new Map<keyof HikariSettings, (value: number) => void>();
+  const singleInclusionRows: HTMLElement[] = [];
   for (const spec of inclusionSliders) {
     const built = createSlider({
       label: spec.label,
@@ -1050,10 +1073,110 @@ export function buildUi(
     });
     inclusionSetters.set(spec.key, built.set);
     inclusionControls.appendChild(built.row);
+    if (spec.key === "inclusionIor"
+      || spec.key === "inclusionOffsetX"
+      || spec.key === "inclusionOffsetY"
+      || spec.key === "inclusionOffsetZ"
+      || spec.key === "inclusionRadius") {
+      singleInclusionRows.push(built.row);
+    }
     hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
   }
+
+  const packedControls = document.createElement("div");
+  const packedShapeTitle = document.createElement("div");
+  packedShapeTitle.className = "hikari-section-title";
+  packedShapeTitle.textContent = "形のばらつき";
+  packedControls.appendChild(packedShapeTitle);
+  const packedShapeControl = createSegmentedControl<InclusionShapeFamily>(
+    ["round", "soft-cluster", "stretched", "mixed"],
+    hikariState.inclusionShapeFamily,
+    (inclusionShapeFamily) => updateHikari({ inclusionShapeFamily }),
+    { round: "丸", "soft-cluster": "塊", stretched: "伸び", mixed: "混在" },
+  );
+  packedControls.appendChild(packedShapeControl.root);
+
+  const packedPlacementTitle = document.createElement("div");
+  packedPlacementTitle.className = "hikari-section-title";
+  packedPlacementTitle.textContent = "配置";
+  packedControls.appendChild(packedPlacementTitle);
+  const packedPlacementControl = createSegmentedControl<InclusionPlacement>(
+    ["scattered", "clustered", "layered"],
+    hikariState.inclusionPlacement,
+    (inclusionPlacement) => updateHikari({ inclusionPlacement }),
+    { scattered: "散る", clustered: "集まる", layered: "層" },
+  );
+  packedControls.appendChild(packedPlacementControl.root);
+
+  const packedSliderSpecs: Array<{
+    key: keyof Pick<HikariSettings,
+      | "inclusionCount"
+      | "inclusionSizeMinMm"
+      | "inclusionSizeMaxMm"
+      | "inclusionMinimumWallMm"
+      | "inclusionMinimumGapMm"
+    >;
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+  }> = [
+    { key: "inclusionCount", label: "内包の数", min: 1, max: 16, step: 1 },
+    { key: "inclusionSizeMinMm", label: "最小寸法 mm", min: 2, max: 30, step: 1 },
+    { key: "inclusionSizeMaxMm", label: "最大寸法 mm", min: 2, max: 40, step: 1 },
+    { key: "inclusionMinimumWallMm", label: "外形からの厚み mm", min: 0, max: 10, step: 0.5 },
+    { key: "inclusionMinimumGapMm", label: "内包同士の隙間 mm", min: 0, max: 10, step: 0.5 },
+  ];
+  for (const spec of packedSliderSpecs) {
+    const built = createSlider({
+      label: spec.label,
+      min: spec.min,
+      max: spec.max,
+      step: spec.step,
+      initial: hikariState[spec.key],
+      format: (value) => spec.step === 1 ? String(Math.round(value)) : value.toFixed(1),
+      onChange: (value) => updateHikari({ [spec.key]: value }),
+    });
+    packedControls.appendChild(built.row);
+    hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
+  }
+
+  const inclusionSeedRow = document.createElement("label");
+  inclusionSeedRow.className = "custom-host-color-row";
+  const inclusionSeedLabel = document.createElement("span");
+  inclusionSeedLabel.textContent = "並びのseed";
+  const inclusionSeedInput = document.createElement("input");
+  inclusionSeedInput.type = "text";
+  inclusionSeedInput.value = hikariState.inclusionSeed;
+  inclusionSeedInput.onchange = () => updateHikari({ inclusionSeed: inclusionSeedInput.value });
+  inclusionSeedRow.append(inclusionSeedLabel, inclusionSeedInput);
+  const inclusionRerollButton = document.createElement("button");
+  inclusionRerollButton.type = "button";
+  inclusionRerollButton.textContent = "別の詰まり方";
+  inclusionRerollButton.onclick = () => {
+    const inclusionSeed = `inner-${Date.now().toString(36)}`;
+    inclusionSeedInput.value = inclusionSeed;
+    updateHikari({ inclusionSeed });
+  };
+  const packedNote = document.createElement("div");
+  packedNote.className = "hint";
+  packedNote.textContent = "外形の内側に壁厚と隙間を残し、同じ樹脂の低吸収領域を体積充填します。seedが同じなら配置も同じです。";
+  packedControls.append(inclusionSeedRow, inclusionRerollButton, packedNote);
+  inclusionControls.appendChild(packedControls);
+  applyInclusionModeVisibility = (mode) => {
+    packedControls.hidden = mode !== "packed";
+    for (const row of singleInclusionRows) row.style.display = mode === "packed" ? "none" : "";
+  };
+  applyInclusionModeVisibility(hikariState.inclusionMode);
   opticsControls.appendChild(inclusionControls);
-  hikariControlSyncers.push((settings) => applyInclusionVisibility(settings.inclusionEnabled));
+  hikariControlSyncers.push((settings) => {
+    applyInclusionVisibility(settings.inclusionEnabled);
+    inclusionModeControl.set(settings.inclusionMode);
+    packedShapeControl.set(settings.inclusionShapeFamily);
+    packedPlacementControl.set(settings.inclusionPlacement);
+    inclusionSeedInput.value = settings.inclusionSeed;
+    applyInclusionModeVisibility(settings.inclusionMode);
+  });
 
   const matchBlenderInclusion = document.createElement("button");
   matchBlenderInclusion.type = "button";
@@ -1255,7 +1378,7 @@ export function buildUi(
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
   opticsNote.textContent =
-    "v0.19.0: 東京の日付と時刻から太陽の方位・高度を変えられます。内包はまず一つの球で検証中です。CPUとWebGPUは同じ太陽方向と内包経路から床の集光を作ります。";
+    "v0.30.1: 内包を1〜16体で体積充填できます。同じ樹脂の低吸収内包を通った光は、その光路長に応じて地面の受光へ届きます。";
   opticsControls.appendChild(opticsNote);
   organiseOpticsProperties();
   hikariControls.appendChild(opticsControls);
@@ -1550,7 +1673,7 @@ export function buildUi(
       row("materialScale"),
       row("absorption"),
     ]);
-    const inclusionGroup = createPropertyGroup("内包 01", [
+    const inclusionGroup = createPropertyGroup("内包", [
       inclusionToggle,
       matchOuterIorButton,
       matchBlenderInclusion,
@@ -1739,7 +1862,7 @@ export function buildUi(
       hikari: [
         { label: "自然光", target: "自然光" },
         { label: "外側の透明体", target: "外側の透明体" },
-        { label: "内包 01", target: "内包 01" },
+        { label: "内包", target: "内包" },
         { label: "虹と応力", target: "虹と応力" },
         { label: "環境と床", target: "環境と床" },
         { label: "光の表示", target: "光の表示" },

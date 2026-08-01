@@ -124,7 +124,11 @@ export function findInvalidContainment(scene: OpticalScene): ContainmentFailure 
 
 export function validateOpticalScene(scene: OpticalScene): string[] {
   const issues: string[] = [];
-  if (scene.inclusions.length > 1) issues.push("Phase 2 supports at most one inclusion");
+  if (scene.inclusions.length > 16) issues.push("At most 16 inclusions are supported in one study");
+  if (scene.inclusions.length > 1
+    && scene.inclusions.some((inclusion) => Math.abs(inclusion.material.ior - scene.host.material.ior) > 1e-6)) {
+    issues.push("Multiple inclusions must share the host IOR until general nested transport exists");
+  }
   if (!scene.host.id) issues.push("Host medium needs an identity");
   if (!hasValidRigidPose(scene.host.pose)) issues.push("Host pose needs a finite rotation and uniformScale > 0");
   if (scene.inclusions.some((inclusion) => !hasValidRigidPose(inclusion.pose))) issues.push("Every inclusion pose needs a finite rotation and uniformScale > 0");

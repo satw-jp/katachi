@@ -67,6 +67,30 @@ Exit: outer and inner hue/concentration can be changed independently and reopene
 
 Exit: Phase 3E representative cases pass or record a precise failing event and backend.
 
+### W3A — turn the receiver field into an observable artwork study
+
+Status: v0.29.3 was rejected because it enlarged/darkened the shadow; v0.29.4 conserves delivered RGB light and leaves the Composite shadow unchanged. The physical light-drawing gate remains open.
+
+- Keep the Composite shadow as the unmodified reference. The expressive mode may redistribute delivered light only; it may not darken coverage or draw a detached plate.
+- Preserve same-camera Composite/Stroke evidence and per-block RGB conservation tests. Random layout is deterministic and may not flicker.
+- Implement LD1 as a saved mid-scale authored deformation in the shared shape query and Blender export. The present cellular plate is not a substitute for that geometry.
+- Compare the same LD1 case at 0.53°, 5°, and 20°. Record whether the same ridge softens monotonically; do not mark the comparison complete until the control has actually changed and been observed.
+- Check WebGPU and SAFE/CPU qualitatively after LD1, while expecting SAFE's lower sample count to remain coarser.
+
+Exit: one coherent arc or moving ridge can be attributed to the saved geometric trace, and the source-size comparison is recorded without changing the pattern procedurally.
+
+### W3B — connect several real inclusions
+
+Status: the deterministic generator contract exists; runtime, UI, `.hkr`, and Blender connection remain.
+
+- Expose `なし / ひとつ / いくつか`, with a deliberately small first cap such as eight analytic inclusions.
+- Save stable IDs, seed, count, sizes, transforms, material, minimum host wall, and minimum gap; camera movement and reopening never reroll them.
+- Start with several separated spheres, then soft clusters. Reject invalid containment rather than silently shrinking or overlapping bodies.
+- Route the same ordered inclusion list through BODY, CPU receiver, WebGPU receiver, `.hkr`, and Blender. A bounded path must report an event limit instead of continuing through the wrong medium.
+- Fix one three-inclusion equal-IOR case and one varied-material case before adding more controls.
+
+Exit: a saved three-inclusion case reopens identically and shows the same medium relationships in Realtime, receiver diagnostics, and Blender export. This is a core link to the author's existing physical works, not optional scene decoration.
+
 ### W4 — deeper Progressive BODY paths
 
 - Keep Realtime's current continuity approximation unchanged.
@@ -104,6 +128,7 @@ Design and technical decisions stay with the primary thread. Bounded tests, case
 - Automatic orbit can be started/stopped for screen recording without changing the observation geometry.
 - Outer and inclusion transmitted hue/concentration are independent and saved.
 - The representative uniform-material receiver case family has explicit parity evidence.
+- The expressive `筆跡` plate is available for composition, while LD1—not the current cellular pattern—remains the acceptance gate for a physical light drawing.
 - Progressive BODY demonstrates a deeper valid path and reports unresolved work on Mac and Windows.
 - At least one before/after Hikari/Blender comparison is recorded; Blender remains validation, not a second implementation target.
 - The existing evolving-shape bridge freezes into the same reopenable Hikari scene; it enters an artwork take only after the black/white optical artifact gate passes.

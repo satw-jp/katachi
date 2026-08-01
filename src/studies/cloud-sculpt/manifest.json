@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.29.2",
+  "version": "0.30.1",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-08-01",
+  "updatedAt": "2026-08-02",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,22 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-02",
+      "note": "Corrected the packed-inclusion receiver behavior after the author pointed out that light transmitted through inclusions should reach the ground. The v0.30.0 safety stop was unnecessarily broad for equal-IOR low-absorption pockets. CPU and WebGPU receiver paths now preserve the outer-host refraction, measure the union length of every packed inclusion ball along the finite inside segment, replace that portion of host absorption with inclusion absorption, and deposit the resulting RGB throughput at the unchanged floor intersection. Overlapping balls in one soft cluster are interval-merged so light-path length is never counted twice. The receiver now labels this contribution as inclusion-transmitted light; different-IOR multiple-boundary refraction remains outside this equal-IOR contract."
+    },
+    {
+      "date": "2026-08-02",
+      "note": "Added deterministic volume packing for the physically important family of multiple inclusions. The author can keep the legacy single analytic inclusion or request 1–16 packed inclusions with a seed, mixed round/soft-cluster/stretched shapes, varied millimetre sizes, scattered/clustered/layered placement, minimum host wall, and minimum inter-inclusion gap. One shared generated OpticalScene now drives BODY display, .hkr persistence, validation, and Blender sidecar geometry. Packed inclusions are intentionally equal-IOR low-absorption pockets in one resin; the realtime BODY integrates up to 64 constituent balls as absorption voids. General multi-boundary receiver refraction is not approximated: packed mode labels the receiver as host-only and suppresses inclusion-caustic claims. Legacy single-inclusion receiver transport remains unchanged. Added deterministic replay, variation, containment, migration, and shader contracts; all 68 Hikari tests and the production build pass."
+    },
+    {
+      "date": "2026-08-02",
+      "note": "Corrected the expressive Stroke display after the author rejected v0.29.3: making the shadow darker or larger is wrong; the delivered light amount must remain unchanged while that light becomes many small random strokes. Removed the shadow-gradient ink entirely and deleted the detached lower-screen receiver plate. Stroke now leaves the same removed-baseline shadow, ambient loss, receiver domain, and transport endpoints as Composite. It gathers delivered RGB light in deterministic 4-by-4 receiver-texel blocks and redistributes each block's exact RGB sum onto one four-texel horizontal, vertical, or diagonal mark; the fixed block hash prevents temporal flicker. A pure reference test proves per-channel conservation and determinism, while shader contracts prevent shadow/backdrop reintroduction. All 66 Hikari tests and the production build pass. Same-camera WebGPU and SAFE browser comparisons show the same gray shadow with only the smooth delivered light changed into short marks; the detached blob is gone and no new browser warnings or errors appeared. Long authored arcs still require real mid-scale geometry rather than this display redistribution."
+    },
+    {
+      "date": "2026-08-01",
+      "note": "Added the first explicitly expressive receiver display named Stroke. It extracted dark shadow edges and warm delivered-light ridges and placed a cropped receiver plate below the body. The author rejected this v0.29.3 result on 2026-08-02 because it made the shadow darker and larger and produced a detached blob. It is retained only as a failed observation; v0.29.4 replaces it. This revision also added .hkr persistence and a repository/worktree/runtime version gate to prevent launching an older Hikari implementation."
+    },
     {
       "date": "2026-08-01",
       "note": "Corrected the Blender backlight comparison after the author rejected the v0.29.1 broad-sun .hkr as too dark. Headless inspection of study_01_light_size05.blend showed that the rendered scene uses a gray World plus a 0.8-by-0.8 Emission plane at strength 5; its Area and Point lights are hidden. Resin_scatter has IOR 1.45, roughness 0.05, zero Volume Scatter density, and one material-coordinate mask that smoothly changes Volume Absorption density from 0.5 to zero, so the bright region is an equal-IOR absorption void rather than a nested refractive object or emitted glow. Realtime BODY and Progressive presentation now apply the renderer's linear-to-output colorspace transform exactly once, while accumulation targets stay linear. Equal-IOR inclusions bypass their nested interface and integrate a seven-sample smooth absorption mask matching the Blender ramp. Added a saved finite rectangular backlight emitter for this controlled BODY comparison and clearly separated it from the later physical west-sun/window room model; receiver/shadow transport does not yet consume that emitter. The revised .hkr uses Blender-matched IOR/roughness, zero inclusion absorption, calibrated host RGB coefficients, a finite backlight, and no direct sun. All 63 Hikari tests, production build, local WebGPU Realtime and 64-spp Progressive passed without browser warnings or errors."

@@ -447,6 +447,7 @@ export class WebGpuOpticsEngine {
       const opticalScene = buildCloudOpticalScene(balls, k, settings);
       const floorY = opticalScene.scene.receiver.pose.position.y;
       const inclusionValid = opticalScene.inclusionValid
+        && settings.inclusionMode === "single"
         && Number.isFinite(settings.inclusionOffsetX)
         && Number.isFinite(settings.inclusionOffsetY)
         && Number.isFinite(settings.inclusionOffsetZ)
@@ -500,7 +501,7 @@ export class WebGpuOpticsEngine {
           inclusionAbsorption.r,
           inclusionAbsorption.g,
           inclusionAbsorption.b,
-          settings.inclusionEnabled ? 1 : 0,
+          settings.inclusionEnabled && settings.inclusionMode === "single" ? 1 : 0,
           inclusionValid ? 1 : 0,
           settings.inclusionIor,
           (inclusionAbsorption.r + inclusionAbsorption.g + inclusionAbsorption.b) / 3,

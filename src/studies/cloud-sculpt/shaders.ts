@@ -8,6 +8,8 @@
 // 64 のとき「画面は最初の64球・STL は全球」という不一致が作者実機で起きた（2026-07-10）。
 // ループは uBallCount で早期 break するので、少球時の描画コストは変わらない。
 export const MAX_BALLS = 256;
+/** Enough for 16 packed inclusions with up to four constituent balls each. */
+export const MAX_INCLUSION_BALLS = 64;
 
 export const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -48,6 +50,9 @@ export const fragmentShader = /* glsl */ `
   uniform float uInclusionRadius;
   uniform float uInclusionIor;
   uniform vec3 uInclusionAbsorptionRgb;
+  uniform vec3 uInclusionBallPos[${MAX_INCLUSION_BALLS}];
+  uniform float uInclusionBallRadius[${MAX_INCLUSION_BALLS}];
+  uniform int uInclusionBallCount;
   uniform int uNaturalView;
   uniform float uSkyIntensity;
   uniform float uSunIntensity;
@@ -106,6 +111,61 @@ export const fragmentShader = /* glsl */ `
     vec3 c01 = texture2D(uReceiverLossMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0))).rgb;
     vec3 c11 = texture2D(uReceiverLossMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0))).rgb;
     return mix(mix(c00, c10, fraction.x), mix(c01, c11, fraction.x), fraction.y);
+  }
+
+  float receiverStrokeBlockHash(vec2 block) {
+    vec3 p3 = fract(vec3(block.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+
+  vec3 receiverStrokeLight(vec2 uv, float receiverCosine) {
+    // Within every 4 × 4 receiver-texel block, gather all delivered RGB
+    // transport and place that exact sum on one deterministic four-texel
+    // stroke. Four active texels each receive one quarter of the block sum,
+    // so the expressive display redistributes light without creating it.
+    vec2 resolution = max(uCausticResolution, vec2(1.0));
+    vec2 receiverTexel = clamp(
+      floor(uv * resolution),
+      vec2(0.0),
+      resolution - vec2(1.0)
+    );
+    vec2 block = floor(receiverTexel / 4.0);
+    vec2 blockOrigin = block * 4.0;
+    vec3 blockSum = vec3(0.0);
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 4; x++) {
+        vec2 sampleTexel = min(
+          blockOrigin + vec2(float(x), float(y)),
+          resolution - vec2(1.0)
+        );
+        vec2 sampleUv = (sampleTexel + vec2(0.5)) / resolution;
+        blockSum += max(vec3(0.0), texture2D(uCausticMap, sampleUv).rgb)
+          / receiverCosine;
+      }
+    }
+
+    vec2 local = receiverTexel - blockOrigin;
+    float randomValue = receiverStrokeBlockHash(block);
+    float direction = floor(randomValue * 4.0);
+    float offset = floor(fract(randomValue * 17.0 + 0.37) * 4.0);
+    float strokeActive = 0.0;
+    if (direction < 1.0) {
+      strokeActive = 1.0 - step(0.5, abs(local.y - offset));
+    } else if (direction < 2.0) {
+      strokeActive = 1.0 - step(0.5, abs(local.x - offset));
+    } else if (direction < 3.0) {
+      strokeActive = 1.0 - step(
+        0.5,
+        mod(local.y - local.x - offset + 8.0, 4.0)
+      );
+    } else {
+      strokeActive = 1.0 - step(
+        0.5,
+        mod(local.y + local.x - offset + 8.0, 4.0)
+      );
+    }
+    return blockSum * (0.25 * strokeActive);
   }
 
   // Polynomial smooth-min (Inigo Quilez). k=0 -> hard min (see field.ts).
@@ -210,12 +270,18 @@ export const fragmentShader = /* glsl */ `
     // zero density through 92.145% of the pocket radius, then a short linear
     // transition back to the host density. Keep the same causal quantity here
     // instead of drawing a luminous or refractive inner surface.
-    float feather = max(0.01, uInclusionRadius * 0.07855);
-    return 1.0 - smoothstep(
-      uInclusionRadius - feather,
-      uInclusionRadius,
-      length(p - uInclusionCenter)
-    );
+    float weight = 0.0;
+    for (int i = 0; i < ${MAX_INCLUSION_BALLS}; i++) {
+      if (i >= uInclusionBallCount) break;
+      float radius = uInclusionBallRadius[i];
+      float feather = max(0.01, radius * 0.07855);
+      weight = max(weight, 1.0 - smoothstep(
+        radius - feather,
+        radius,
+        length(p - uInclusionBallPos[i])
+      ));
+    }
+    return weight;
   }
 
   vec3 absorptionVoidOpticalDepth(
@@ -549,7 +615,11 @@ export const fragmentShader = /* glsl */ `
           vec3(0.0),
           receiverTransport.rgb / receiverCosine
         );
-        vec3 pairedDirect = vec3(1.0 - removedBaseline) + addedTransport;
+        vec3 displayAddedTransport = uReceiverDisplayMode == 1
+          ? receiverStrokeLight(receiverUv, receiverCosine)
+          : addedTransport;
+        vec3 pairedDirect = vec3(1.0 - removedBaseline)
+          + displayAddedTransport;
         vec3 directTransport = mix(
           legacyTransmission,
           pairedDirect,
@@ -581,19 +651,19 @@ export const fragmentShader = /* glsl */ `
         vec3 direct = ground * uSunIntensity * directTransport * 0.42;
         vec3 horizonFill = vec3(0.08, 0.14, 0.18) * uSkyIntensity * (1.0 - distanceFade);
         vec3 floorColor = ambient + direct + horizonFill;
-        if (uReceiverDisplayMode != 0 && pairedWeight > 0.0) {
+        if (uReceiverDisplayMode >= 2 && pairedWeight > 0.0) {
           // Diagnostic false color belongs to the reconstructed shadow, not
           // to the rectangular receiver texture domain.
           float diagnosticMask = smoothstep(0.001, 0.035, removedBaseline);
           vec3 diagnosticColor = floorColor;
-          if (uReceiverDisplayMode == 1) {
+          if (uReceiverDisplayMode == 2) {
             float coverageTone = removedBaseline / (1.0 + removedBaseline);
             diagnosticColor = mix(
               vec3(0.025, 0.055, 0.075),
               vec3(1.0, 0.58, 0.12),
               coverageTone
             );
-          } else if (uReceiverDisplayMode == 2) {
+          } else if (uReceiverDisplayMode == 3) {
             vec3 depositTone = addedTransport / (vec3(1.0) + addedTransport);
             diagnosticColor = vec3(0.018, 0.035, 0.055) + depositTone * 1.35;
           } else {

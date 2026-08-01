@@ -10,6 +10,9 @@ import {
   type OpticalHostPreset,
   type OpticalMaterial,
   type OpticalRainbowModel,
+  type InclusionMode,
+  type InclusionShapeFamily,
+  type InclusionPlacement,
   type ReceiverDisplayMode,
   type OpticalSettings,
   type OpticalView,
@@ -28,6 +31,9 @@ export type {
   OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
+  InclusionMode,
+  InclusionShapeFamily,
+  InclusionPlacement,
   ReceiverDisplayMode,
   OpticalView,
 };
@@ -52,6 +58,15 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   hostPreset: "amber",
   hostTransmissionColor: "#f0a85b",
   inclusionEnabled: true,
+  inclusionMode: "single",
+  inclusionSeed: "inner-light-01",
+  inclusionCount: 7,
+  inclusionShapeFamily: "mixed",
+  inclusionSizeMinMm: 7,
+  inclusionSizeMaxMm: 18,
+  inclusionPlacement: "scattered",
+  inclusionMinimumWallMm: 2,
+  inclusionMinimumGapMm: 1,
   inclusionIor: 1.5,
   inclusionTransmissionColor: "#ffffff",
   inclusionAbsorption: 0.02,
@@ -362,6 +377,18 @@ export class HikariLayer {
 }
 
 export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariSettings {
+  const inclusionSizeMinMm = clampNumber(
+    value.inclusionSizeMinMm,
+    2,
+    30,
+    DEFAULT_HIKARI_SETTINGS.inclusionSizeMinMm,
+  );
+  const inclusionSizeMaxMm = Math.max(inclusionSizeMinMm, clampNumber(
+    value.inclusionSizeMaxMm,
+    2,
+    40,
+    DEFAULT_HIKARI_SETTINGS.inclusionSizeMaxMm,
+  ));
   return {
     phenomenon: value.phenomenon === "optics" ? "optics" : "flow",
     opticalMaterial: value.opticalMaterial === "water" ? "water" : "glass",
@@ -380,6 +407,42 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
       typeof value.inclusionEnabled === "boolean"
         ? value.inclusionEnabled
         : DEFAULT_HIKARI_SETTINGS.inclusionEnabled,
+    inclusionMode: value.inclusionMode === "packed" ? "packed" : "single",
+    inclusionSeed:
+      typeof value.inclusionSeed === "string" && value.inclusionSeed.trim()
+        ? value.inclusionSeed
+        : DEFAULT_HIKARI_SETTINGS.inclusionSeed,
+    inclusionCount: Math.round(clampNumber(
+      value.inclusionCount,
+      1,
+      16,
+      DEFAULT_HIKARI_SETTINGS.inclusionCount,
+    )),
+    inclusionShapeFamily:
+      value.inclusionShapeFamily === "round"
+      || value.inclusionShapeFamily === "soft-cluster"
+      || value.inclusionShapeFamily === "stretched"
+      || value.inclusionShapeFamily === "mixed"
+        ? value.inclusionShapeFamily
+        : DEFAULT_HIKARI_SETTINGS.inclusionShapeFamily,
+    inclusionSizeMinMm,
+    inclusionSizeMaxMm,
+    inclusionPlacement:
+      value.inclusionPlacement === "clustered" || value.inclusionPlacement === "layered"
+        ? value.inclusionPlacement
+        : "scattered",
+    inclusionMinimumWallMm: clampNumber(
+      value.inclusionMinimumWallMm,
+      0,
+      10,
+      DEFAULT_HIKARI_SETTINGS.inclusionMinimumWallMm,
+    ),
+    inclusionMinimumGapMm: clampNumber(
+      value.inclusionMinimumGapMm,
+      0,
+      10,
+      DEFAULT_HIKARI_SETTINGS.inclusionMinimumGapMm,
+    ),
     inclusionIor: clampNumber(value.inclusionIor, 1, 1.8, DEFAULT_HIKARI_SETTINGS.inclusionIor),
     inclusionTransmissionColor: normalizeHexColor(
       value.inclusionTransmissionColor,
@@ -422,7 +485,8 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
         : "density",
     opticalView: value.opticalView === "analysis" ? "analysis" : "natural",
     receiverDisplayMode:
-      value.receiverDisplayMode === "coverage"
+      value.receiverDisplayMode === "stroke"
+      || value.receiverDisplayMode === "coverage"
       || value.receiverDisplayMode === "deposit"
       || value.receiverDisplayMode === "loss"
         ? value.receiverDisplayMode

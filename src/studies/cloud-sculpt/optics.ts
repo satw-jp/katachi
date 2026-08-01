@@ -37,16 +37,20 @@ import {
   type GpuOpticsResult,
   type OpticsComputeKind,
 } from "./opticsGpu.ts";
+import { segmentLengthInsideInclusions } from "./inclusionTransport.ts";
 
 export type HikariPhenomenon = "flow" | "optics";
 export type OpticalMaterial = "water" | "glass";
 export type OpticalHostPreset = "clear" | "amber" | "dark" | "custom";
 export type OpticalDisplay = "density" | "both";
 export type OpticalView = "natural" | "analysis";
-export type ReceiverDisplayMode = "composite" | "coverage" | "deposit" | "loss";
+export type ReceiverDisplayMode = "composite" | "stroke" | "coverage" | "deposit" | "loss";
 export type OpticalColorMode = "color" | "mono";
 export type OpticalDispersionMode = "global" | "local";
 export type OpticalRainbowModel = "prism" | "stress" | "both";
+export type InclusionMode = "single" | "packed";
+export type InclusionShapeFamily = "round" | "soft-cluster" | "stretched" | "mixed";
+export type InclusionPlacement = "scattered" | "clustered" | "layered";
 
 export interface CausticFieldDiagnostics {
   source: "cpu" | "webgpu" | "empty";
@@ -142,6 +146,15 @@ export interface OpticalSettings {
   /** Author-facing transmitted swatch; converted to complementary absorption in OpticalScene. */
   hostTransmissionColor: string;
   inclusionEnabled: boolean;
+  inclusionMode: InclusionMode;
+  inclusionSeed: string;
+  inclusionCount: number;
+  inclusionShapeFamily: InclusionShapeFamily;
+  inclusionSizeMinMm: number;
+  inclusionSizeMaxMm: number;
+  inclusionPlacement: InclusionPlacement;
+  inclusionMinimumWallMm: number;
+  inclusionMinimumGapMm: number;
   inclusionIor: number;
   /** Author-facing transmitted swatch for the inclusion. */
   inclusionTransmissionColor: string;
@@ -579,7 +592,7 @@ export class OpticsLayer {
     // the analytic CPU inclusion. Invalid/disabled inclusions intentionally
     // leave the established host-only trace untouched.
     const opticalScene = buildCloudOpticalScene(balls, k, settings);
-    const inclusion = opticalScene.inclusionValid
+    const inclusion = opticalScene.inclusionValid && settings.inclusionMode === "single"
       ? {
           center: new THREE.Vector3(
             settings.inclusionOffsetX,
@@ -810,6 +823,16 @@ export class OpticsLayer {
           continue;
         }
 
+        if (settings.inclusionMode === "packed" && opticalScene.inclusionValid) {
+          inclusionDistance = segmentLengthInsideInclusions(
+            { x: entry.x, y: entry.y, z: entry.z },
+            { x: exit.point.x, y: exit.point.y, z: exit.point.z },
+            opticalScene.scene.inclusions,
+          );
+          hostDistance = Math.max(0, exit.distance - inclusionDistance);
+          traversedInclusion = inclusionDistance > 1e-6;
+        }
+
         if (traversedInclusion && inclusionEntry && inclusionExit) {
           if (showRay) {
             appendSegment(rayPositions, rayColors, entry, inclusionEntry, 0x6beaff, 0xa9f7ff);
@@ -845,7 +868,7 @@ export class OpticsLayer {
           opticalScene.hostAbsorptionPerShapeUnit,
           opticalScene.inclusionAbsorptionPerShapeUnit,
           settings.ior,
-          settings.inclusionIor,
+          settings.inclusionMode === "packed" ? settings.ior : settings.inclusionIor,
           hostDistance,
           inclusionDistance,
           traversedInclusion,
@@ -995,7 +1018,7 @@ export class OpticsLayer {
       const entryValid = result.values[flagsOffset] > 0.5;
       const exitValid = result.values[flagsOffset + 1] > 0.5;
       const floorValid = result.values[flagsOffset + 2] > 0.5;
-      const energy = Math.max(0, Math.min(1, result.values[flagsOffset + 3]));
+      let energy = Math.max(0, Math.min(1, result.values[flagsOffset + 3]));
       const baselineOffset = offset + GPU_OPTICS_RESULT_OFFSETS.baseline;
       const baseline = result.values[baselineOffset + 3] > 0.5
         ? vectorFromResult(result.values, baselineOffset)
@@ -1009,6 +1032,33 @@ export class OpticsLayer {
       const exit = exitValid
         ? vectorFromResult(result.values, offset + GPU_OPTICS_RESULT_OFFSETS.exit)
         : null;
+      const entry = entryValid
+        ? vectorFromResult(result.values, offset + GPU_OPTICS_RESULT_OFFSETS.entry)
+        : null;
+      if (settings.inclusionMode === "packed"
+        && opticalScene.inclusionValid
+        && entry
+        && exit) {
+        const totalDistance = entry.distanceTo(exit);
+        const inclusionDistance = segmentLengthInsideInclusions(
+          { x: entry.x, y: entry.y, z: entry.z },
+          { x: exit.x, y: exit.y, z: exit.z },
+          opticalScene.scene.inclusions,
+        );
+        const packedThroughput = approximateOpticalPathThroughput(
+          opticalScene.hostAbsorptionPerShapeUnit,
+          opticalScene.inclusionAbsorptionPerShapeUnit,
+          settings.ior,
+          settings.ior,
+          Math.max(0, totalDistance - inclusionDistance),
+          inclusionDistance,
+          inclusionDistance > 1e-6,
+        );
+        throughputRgb.r = packedThroughput.transmittedRgb.r;
+        throughputRgb.g = packedThroughput.transmittedRgb.g;
+        throughputRgb.b = packedThroughput.transmittedRgb.b;
+        energy = (throughputRgb.r + throughputRgb.g + throughputRgb.b) / 3;
+      }
       const floor = floorValid
         ? vectorFromResult(result.values, offset + GPU_OPTICS_RESULT_OFFSETS.floor)
         : null;
@@ -1049,10 +1099,7 @@ export class OpticsLayer {
         result.values,
         offset + GPU_OPTICS_RESULT_OFFSETS.origin,
       );
-      const entry = vectorFromResult(
-        result.values,
-        offset + GPU_OPTICS_RESULT_OFFSETS.entry,
-      );
+      if (!entry) continue;
 
       if (shownRays < settings.opticalRayCount) {
         appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
@@ -1728,5 +1775,5 @@ function opticalSceneRevision(
   k: number,
   settings: OpticalSettings,
 ): string {
-  return `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.hostTransmissionColor}:${settings.absorption.toFixed(4)}:${settings.ior.toFixed(4)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(4)}:${settings.inclusionTransmissionColor}:${settings.inclusionAbsorption.toFixed(4)}:${settings.inclusionOffsetX.toFixed(4)},${settings.inclusionOffsetY.toFixed(4)},${settings.inclusionOffsetZ.toFixed(4)}:${settings.inclusionRadius.toFixed(4)}`;
+  return `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.hostTransmissionColor}:${settings.absorption.toFixed(4)}:${settings.ior.toFixed(4)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionMode}:${settings.inclusionSeed}:${settings.inclusionCount}:${settings.inclusionShapeFamily}:${settings.inclusionSizeMinMm.toFixed(2)}-${settings.inclusionSizeMaxMm.toFixed(2)}:${settings.inclusionPlacement}:${settings.inclusionMinimumWallMm.toFixed(2)}:${settings.inclusionMinimumGapMm.toFixed(2)}:${settings.inclusionIor.toFixed(4)}:${settings.inclusionTransmissionColor}:${settings.inclusionAbsorption.toFixed(4)}:${settings.inclusionOffsetX.toFixed(4)},${settings.inclusionOffsetY.toFixed(4)},${settings.inclusionOffsetZ.toFixed(4)}:${settings.inclusionRadius.toFixed(4)}`;
 }

@@ -49,7 +49,7 @@ export interface DirectionalLight {
   radiance: Rgb;
 }
 
-/** Phase 2 is deliberately limited to one inclusion before a general medium stack exists. */
+/** Multiple contained media are saved here; individual transports declare their own limits. */
 export interface OpticalScene {
   host: Medium;
   inclusions: readonly Medium[];

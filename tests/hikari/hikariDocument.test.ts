@@ -54,11 +54,16 @@ test(".hkr download names include the save time without repeating the date", () 
   );
 });
 
-test(".hkr preserves custom transmitted host and inclusion colors", () => {
+test(".hkr preserves custom transmitted colors and the expressive receiver display", () => {
   const customCase = fixedCase("custom-color");
   customCase.hikariSettings.hostPreset = "custom";
   customCase.hikariSettings.hostTransmissionColor = "#3f8ad1";
   customCase.hikariSettings.inclusionTransmissionColor = "#d17a3f";
+  customCase.hikariSettings.inclusionMode = "packed";
+  customCase.hikariSettings.inclusionSeed = "saved-packing";
+  customCase.hikariSettings.inclusionCount = 9;
+  customCase.hikariSettings.inclusionShapeFamily = "mixed";
+  customCase.hikariSettings.receiverDisplayMode = "stroke";
   const document = createHikariDocument({
     documentId: "custom-color-study",
     appVersion: "test",
@@ -75,6 +80,11 @@ test(".hkr preserves custom transmitted host and inclusion colors", () => {
   assert.equal(restored.views[0].case.hikariSettings.hostPreset, "custom");
   assert.equal(restored.views[0].case.hikariSettings.hostTransmissionColor, "#3f8ad1");
   assert.equal(restored.views[0].case.hikariSettings.inclusionTransmissionColor, "#d17a3f");
+  assert.equal(restored.views[0].case.hikariSettings.inclusionMode, "packed");
+  assert.equal(restored.views[0].case.hikariSettings.inclusionSeed, "saved-packing");
+  assert.equal(restored.views[0].case.hikariSettings.inclusionCount, 9);
+  assert.equal(restored.views[0].case.hikariSettings.inclusionShapeFamily, "mixed");
+  assert.equal(restored.views[0].case.hikariSettings.receiverDisplayMode, "stroke");
 });
 
 test(".hkr rejects duplicate view ids and an unknown active view", () => {

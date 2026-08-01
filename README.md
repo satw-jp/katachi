@@ -30,10 +30,15 @@ MorphogenesisLab（`active/MorphogenesisLab`）の姉妹プロジェクト — �
 
 ```bash
 npm install
-npm run dev
+scripts/launch-server.command
 ```
 
-開発サーバーは通常 `http://localhost:5173` で起動する。
+Hikariを含む開発サーバーは `http://localhost:5174` で起動する。launcherは全branchのmanifestを比較し、
+最新版ではないworktreeからの起動を停止する。起動中の版と作業場所は次で再確認できる。
+
+```bash
+node /Users/atsushisato/Projects/scripts/verify-hikari-current.mjs --runtime
+```
 
 ビルド確認:
 

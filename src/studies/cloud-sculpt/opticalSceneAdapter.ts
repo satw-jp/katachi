@@ -8,6 +8,7 @@ import {
 } from "./opticalScene.ts";
 import { findInvalidContainment, validateOpticalScene } from "./opticalGeometry.ts";
 import { resolveDaylight } from "./daylight.ts";
+import { generateInclusions } from "./inclusionGenerator.ts";
 
 /**
  * The current cloud has no authored physical dimension yet. Twenty millimetres
@@ -19,7 +20,11 @@ export const CURRENT_ASSUMED_MM_PER_SHAPE_UNIT = 20;
 export interface CloudOpticalSceneAdapter {
   scene: OpticalScene;
   issues: string[];
+  generationIssues: string[];
   inclusionValid: boolean;
+  inclusionRequestedCount: number;
+  inclusionGeneratedCount: number;
+  receiverInclusionSupported: boolean;
   containmentWitness: ReturnType<typeof findInvalidContainment>;
   hostAbsorptionPerShapeUnit: Rgb;
   inclusionAbsorptionPerShapeUnit: Rgb;
@@ -54,12 +59,13 @@ export function buildCloudOpticalScene(
   const inclusionMaterial: OpticalMaterial = {
     id: "inclusion-clear",
     label: "Clear inclusion (visual baseline)",
-    ior: settings.inclusionIor,
+    // Packed inclusions represent low-density pockets in one continuous resin.
+    // General multi-boundary refraction is deliberately not approximated.
+    ior: settings.inclusionMode === "packed" ? settings.ior : settings.inclusionIor,
     absorptionPerMm: divideRgb(inclusionAbsorptionPerShapeUnit, physicalScale.mmPerShapeUnit),
     roughness: settings.surfaceRoughness,
   };
-  const scene: OpticalScene = {
-    host: {
+  const host: OpticalScene["host"] = {
       id: "host",
       material: hostMaterial,
       shape: {
@@ -72,8 +78,28 @@ export function buildCloudOpticalScene(
         rotation: { ...IDENTITY_QUATERNION },
         uniformScale: 1,
       },
-    },
-    inclusions: settings.inclusionEnabled ? [{
+    };
+  const packed = settings.inclusionEnabled && settings.inclusionMode === "packed"
+    ? generateInclusions(host, inclusionMaterial, physicalScale, {
+        seed: settings.inclusionSeed,
+        count: { min: settings.inclusionCount, max: settings.inclusionCount },
+        shapeFamily: settings.inclusionShapeFamily,
+        sizeMm: {
+          min: Math.min(settings.inclusionSizeMinMm, settings.inclusionSizeMaxMm),
+          max: Math.max(settings.inclusionSizeMinMm, settings.inclusionSizeMaxMm),
+          distribution: "varied",
+        },
+        placement: settings.inclusionPlacement,
+        minimumHostWallMm: settings.inclusionMinimumWallMm,
+        minimumGapMm: settings.inclusionMinimumGapMm,
+        allowMerge: false,
+      })
+    : null;
+  const inclusions: OpticalScene["inclusions"] = !settings.inclusionEnabled
+    ? []
+    : packed
+      ? [...packed.inclusions]
+      : [{
       id: "inclusion",
       material: inclusionMaterial,
       shape: {
@@ -90,7 +116,10 @@ export function buildCloudOpticalScene(
         rotation: { ...IDENTITY_QUATERNION },
         uniformScale: settings.inclusionRadius,
       },
-    }] : [],
+    }];
+  const scene: OpticalScene = {
+    host,
+    inclusions,
     receiver: {
       id: "legacy-floor",
       pose: {
@@ -110,11 +139,20 @@ export function buildCloudOpticalScene(
     boundaryEpsilon: 1e-4,
   };
   const issues = validateOpticalScene(scene);
+  if (settings.inclusionEnabled && inclusions.length === 0) {
+    issues.push("No requested inclusions fit inside the host");
+  }
   const containmentWitness = settings.inclusionEnabled ? findInvalidContainment(scene) : null;
   return {
     scene,
     issues,
+    generationIssues: packed ? [...packed.issues] : [],
     inclusionValid: settings.inclusionEnabled && issues.length === 0,
+    inclusionRequestedCount: settings.inclusionEnabled
+      ? settings.inclusionMode === "packed" ? settings.inclusionCount : 1
+      : 0,
+    inclusionGeneratedCount: inclusions.length,
+    receiverInclusionSupported: true,
     containmentWitness,
     hostAbsorptionPerShapeUnit,
     inclusionAbsorptionPerShapeUnit,

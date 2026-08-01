@@ -77,6 +77,9 @@ let workspaceView: WorkspaceView =
 let hikariSettings = loadHikariSettings();
 let opticalSceneIssues: string[] = [];
 let opticalInclusionValid = false;
+let opticalInclusionCount = 0;
+let opticalInclusionRequestedCount = 0;
+let opticalReceiverInclusionSupported = true;
 let receiverTransportPending = true;
 let inclusionCausticReadyState = false;
 let receiverFieldSummary: (ReceiverFieldSummary & {
@@ -754,6 +757,9 @@ async function exportBlenderStudy(details: {
       approximations: [
         "The selected longest edge defines an author scale for this export.",
         "Absorption was converted from Hikari's visual per-shape-unit control at that scale; it is appearance-matched, not a measured resin coefficient.",
+        ...(hikariSettings.inclusionMode === "packed"
+          ? ["Packed balls-smooth-union inclusions are reconstructed as Blender metaball families; the exact source balls and smoothness remain in sidecar metadata."]
+          : []),
       ],
       sunAngularDiameterDeg: hikariSettings.sunSize,
     });
@@ -1013,6 +1019,9 @@ function renderHikariMpmBody(preview: typeof state.balls): void {
   const opticalScene = buildCloudOpticalScene(preview, state.params.k, hikariSettings);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
+  opticalInclusionCount = opticalScene.inclusionGeneratedCount;
+  opticalInclusionRequestedCount = opticalScene.inclusionRequestedCount;
+  opticalReceiverInclusionSupported = opticalScene.receiverInclusionSupported;
   cloudRenderer.setOpticalScene(opticalScene);
   cloudRenderer.setVisualMode("optics");
   ui.setHikariSource(`MPM形態を観察中 — ${preview.length}球 / k ${state.params.k.toFixed(2)}`);
@@ -1068,7 +1077,11 @@ function downloadFile(blob: Blob, filename: string): void {
     const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
     return {
       issues: [...adapter.issues],
+      generationIssues: [...adapter.generationIssues],
       inclusionValid: adapter.inclusionValid,
+      inclusionRequestedCount: adapter.inclusionRequestedCount,
+      inclusionGeneratedCount: adapter.inclusionGeneratedCount,
+      receiverInclusionSupported: adapter.receiverInclusionSupported,
       containmentWitness: adapter.containmentWitness,
     };
   },
@@ -1097,6 +1110,9 @@ function render(): void {
   const opticalScene = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
+  opticalInclusionCount = opticalScene.inclusionGeneratedCount;
+  opticalInclusionRequestedCount = opticalScene.inclusionRequestedCount;
+  opticalReceiverInclusionSupported = opticalScene.receiverInclusionSupported;
   cloudRenderer.update(state.balls, state.params.k, selectedBallId);
   cloudRenderer.setOptics(hikariSettings);
   cloudRenderer.setOpticalScene(opticalScene);
@@ -1147,7 +1163,8 @@ function renderFrame(now: number): void {
     const computeStatus = hikariLayer.getOpticsComputeStatus();
     ui.setComputeBackendStatus(computeStatus);
     const sunBelowHorizon = computeStatus.text.includes("太陽は地平線下");
-    const inclusionCausticReady = !sunBelowHorizon
+    const inclusionCausticReady = opticalReceiverInclusionSupported
+      && !sunBelowHorizon
       && (computeStatus.kind === "cpu" || computeStatus.kind === "webgpu");
     if (inclusionCausticReady !== inclusionCausticReadyState) {
       inclusionCausticReadyState = inclusionCausticReady;
@@ -1163,10 +1180,22 @@ function renderFrame(now: number): void {
         kind: "error",
         text: opticalSceneIssueText(opticalSceneIssues),
       });
+    } else if (hikariSettings.inclusionEnabled && !opticalReceiverInclusionSupported) {
+      ui.setOpticsComputeStatus({
+        ...computeStatus,
+        text: `${computeStatus.text} · 内包 ${opticalInclusionCount}/${opticalInclusionRequestedCount}体 · BODY表示（受光面は外形のみ）`,
+      });
+    } else if (hikariSettings.inclusionEnabled
+      && hikariSettings.inclusionMode === "packed"
+      && !sunBelowHorizon) {
+      ui.setOpticsComputeStatus({
+        ...computeStatus,
+        text: `${computeStatus.text} · 内包 ${opticalInclusionCount}/${opticalInclusionRequestedCount}体 · 内包透過光`,
+      });
     } else if (hikariSettings.inclusionEnabled && !sunBelowHorizon) {
       ui.setOpticsComputeStatus({
         ...computeStatus,
-        text: `${computeStatus.text} · 内包1 · ${inclusionCausticReady ? "内包の集光" : "内包の集光を更新中"}`,
+        text: `${computeStatus.text} · 内包 ${opticalInclusionCount}体 · ${inclusionCausticReady ? "内包の集光" : "内包の集光を更新中"}`,
       });
     } else {
       ui.setOpticsComputeStatus(computeStatus);
@@ -1206,7 +1235,9 @@ function progressiveRenderAvailability(): {
   if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
     return { available: false, reason: opticalSceneIssueText(opticalSceneIssues) };
   }
-  if (hikariSettings.inclusionEnabled && !inclusionCausticReadyState) {
+  if (hikariSettings.inclusionEnabled
+    && opticalReceiverInclusionSupported
+    && !inclusionCausticReadyState) {
     return { available: false, reason: "内包の受光計算完了を待っています" };
   }
   if (receiverTransportPending) {

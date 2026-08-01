@@ -150,6 +150,7 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 
 Related documents:
 
+- [Artwork concept and open-call strategy](artwork-strategy.md)
 - [Current week execution plan](current-week-plan.md)
 - [August Hikari × Ambient artwork schedule](ambient-submission-schedule-2026-08.md)
 - [Next implementation plan](implementation-plan.md)
@@ -165,7 +166,6 @@ Related documents:
 - [Multiple transparent bodies as a light composition](multi-body-composition.md)
 - [One or many transparent inclusions](inclusion-family.md)
 - [Internal color-variation field](color-variation.md)
-- [Artwork, Ambient, and open-call strategy](artwork-strategy.md)
 - [Ambient environmental artwork contract](ambient-integration.md)
 - [Five-voice Hikari × Ambient Mix](ambient-mix.md)
 - [Blender study 01 reading](blender-study-01.md)

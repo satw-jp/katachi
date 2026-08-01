@@ -322,6 +322,37 @@ def create_analytic_inclusion(medium: dict[str, Any], material: Any, mm_per_shap
     return obj
 
 
+def create_smooth_union_inclusion(medium: dict[str, Any], material: Any, mm_per_shape_unit: float, root: Any) -> Any:
+    """Rebuild a packed balls-smooth-union as one Blender metaball object."""
+    shape = medium["shape"]
+    data = bpy.data.metaballs.new(f"Hikari Packed Inclusion {medium['id']}")
+    data.resolution = max(0.15, min(1.0, mm_per_shape_unit * 0.02))
+    data.render_resolution = max(0.08, data.resolution * 0.5)
+    # Hikari's polynomial smooth-min has no exact Blender metaball threshold
+    # equivalent. Keep the authored value as metadata and use a bounded visual
+    # mapping only for the connected surface between constituent balls.
+    mean_radius = sum(float(ball["radius"]) for ball in shape["balls"]) / len(shape["balls"])
+    relative_smoothness = float(shape["smoothness"]) / max(1e-9, mean_radius)
+    data.threshold = max(0.45, min(0.9, 0.6 + relative_smoothness * 0.18))
+    obj = bpy.data.objects.new(f"Hikari Packed Inclusion {medium['id']}", data)
+    bpy.context.scene.collection.objects.link(obj)
+    for index, ball in enumerate(shape["balls"]):
+        element = data.elements.new()
+        element.co = Vector(vec3(ball["center"], f"inclusion {medium['id']} ball {index} center")) * mm_per_shape_unit
+        element.radius = float(ball["radius"]) * mm_per_shape_unit
+        element.stiffness = 2.0
+    data.materials.append(material)
+    obj["hikari_role"] = "inclusion"
+    obj["hikari_medium_id"] = medium["id"]
+    obj["hikari_generated_from"] = "balls-smooth-union approximated with one Blender metaball family"
+    obj["hikari_shape_json"] = json.dumps(shape, sort_keys=True)
+    local_matrix = medium_pose_matrix(medium["pose"], mm_per_shape_unit)
+    obj.parent = root
+    obj.matrix_parent_inverse = Matrix.Identity(4)
+    obj.matrix_basis = local_matrix
+    return obj
+
+
 def set_role_properties(obj: Any, asset: dict[str, Any], medium: dict[str, Any] | None) -> None:
     obj["hikari_role"] = asset["role"]
     obj["hikari_asset_filename"] = asset["filename"]
@@ -469,9 +500,6 @@ def main() -> None:
         if asset["role"] == "inclusion" and asset["mediumId"] not in inclusions_by_id:
             fail(f"asset {asset['filename']} refers to an unknown inclusion mediumId")
     missing_inclusion_meshes = set(inclusions_by_id) - {asset["mediumId"] for asset in inclusion_assets}
-    for medium_id in missing_inclusion_meshes:
-        if not is_analytic_sphere(inclusions_by_id[medium_id]):
-            fail(f"inclusion {medium_id} requires a primary mesh (only one ball with smoothness=0 can be generated)")
 
     root = bpy.data.objects.new("Hikari Source→Blender (Y-up to Z-up)", None)
     bpy.context.scene.collection.objects.link(root)
@@ -529,10 +557,16 @@ def main() -> None:
         imported_count += len(objects)
 
     generated_inclusions = 0
+    generated_inclusion_kinds: dict[str, str] = {}
     for medium_id in sorted(missing_inclusion_meshes):
         medium = inclusions_by_id[medium_id]
         material_index = study["geometry"]["inclusions"].index(medium)
-        create_analytic_inclusion(medium, inclusion_materials[material_index], scale, root)
+        if is_analytic_sphere(medium):
+            create_analytic_inclusion(medium, inclusion_materials[material_index], scale, root)
+            generated_inclusion_kinds[medium_id] = "analytic-sphere"
+        else:
+            create_smooth_union_inclusion(medium, inclusion_materials[material_index], scale, root)
+            generated_inclusion_kinds[medium_id] = "blender-metaball-approximation"
         generated_inclusions += 1
 
     mesh_scale = study["geometry"]["meshes"].get("scaleMmPerUnit")
@@ -551,7 +585,7 @@ def main() -> None:
         "coordinate_contract": study["coordinateSystem"],
         "mesh_scale_verification": scale_status,
         "mesh_space_policy": "medium-local assets receive their declared medium pose once; hikari-world assets do not",
-        "generated_analytic_inclusions": sorted(missing_inclusion_meshes),
+        "generated_inclusions": generated_inclusion_kinds,
         "unsupported": study["unsupported"],
         "approximations": study["approximations"] + [
             "Blender Principled/Volume nodes approximate Hikari transmission and RGB Beer-Lambert absorption.",
