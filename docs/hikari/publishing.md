@@ -1,7 +1,7 @@
 # hikari — web publishing
 
 Status: active
-UpdatedAt: 2026-08-01
+UpdatedAt: 2026-08-02
 
 ## Current surface
 
@@ -40,6 +40,15 @@ The production page must be built and deployed from a committed revision. Do not
 ## Rollback
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
+
+## Release record — 2026-08-02 — v0.31.0
+
+- Git commit deployed: `3b1b0a3`
+- Cloudflare Version ID: `b73a5478-9857-4c0b-844f-61d364f64252`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Added an optional local image/video visualizer under `環境と床`. With no media selected, the existing procedural environment is unchanged. `背景だけ` keeps the media screen-fixed beneath the transparent body and its existing receiver shadow/light composition. `形にも映す` also maps the same media into body reflection and refraction.
+- Media bytes remain in the local browser session and are not embedded in `.hkr`. Static images can enter Progressive Render; a playing video stays in Realtime Observation so temporal accumulation does not average different frames.
+- Verification: all 70 Hikari tests, production build, `git diff --check`, local WebGPU and SAFE rendering, Ref image and 3840-by-2160 MP4 playback, reflection/refraction mode switching, and restoration of the procedural default passed. Production reported `v0.31.0`, `GPU · WebGPU`, exposed `背景だけ / 形にも映す`, and emitted no browser warnings or errors.
 
 ## Release record — 2026-08-02 — v0.30.1
 
