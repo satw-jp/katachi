@@ -33,6 +33,16 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.19.0
+
+- Git commit deployed: `dc263a93d474e5e3a8f29a9ed13f65f92a256d3b`
+- Cloudflare Version ID: `49267b1a-2b88-4d23-a808-9fa24bdf2a2f`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Deployed observation: v0.19.0, Tokyo date/time controls, colored host plus one clear inclusion, CPU/WebGPU inclusion focused light, reproducible case save/open
+- Normal production check: Apple metal-3 WebGPU, 16,384 rays, 4,497 shape hits, Tokyo 2026-08-01 17:00 JST (azimuth 279°, altitude 20°), no production browser errors
+- Forced compatibility check: `?safe=1`, CPU preview, 56 rays, same Tokyo time and inclusion controls, no production browser errors
+- Cache check: a cache-busted navigation and a `Cache-Control: no-cache` fetch both served `assets/main-PXj42ohC.js`; an already-open browser tab initially reused the previous document until a fresh URL was requested.
+
 ## Release record — 2026-08-01
 
 - Git commit deployed: `fe85e7f1de545c0dbadd5c525042febc64f4afe1`
