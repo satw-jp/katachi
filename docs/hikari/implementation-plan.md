@@ -114,6 +114,12 @@ Begin with several non-overlapping analytic spheres, then soft-union clusters an
 
 This remains ahead of arbitrary whole-object arrangement: several inclusions inside one host and several independent bodies separated by air are different optical problems and different authoring actions.
 
+### Phase 2c — intentional color variation inside the host
+
+Follow [internal color-variation field](color-variation.md). Replace the current shader-only `内部のむら` with one versioned, object-local pigment concentration field shared by the body, transparent shadow, CPU focused light, WebGPU, saved cases, and Blender reconstruction.
+
+Begin with uniform, diffused, pooled, and streaked families. A frozen hand-trace follows when it can retain an authored gesture reproducibly. Keep geometry irregularity, pigment concentration, clear inclusions, haze/scattering, and bubbles as separate causes even when their visual results overlap.
+
 ## Phase 3 — shared transparent-shadow throughput
 
 The shadow query and forward optical tracer must use the same medium-transition semantics.

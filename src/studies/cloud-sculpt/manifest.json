@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Extended the CPU focused-light tracer through the first valid spherical inclusion. Completed paths refract host-to-inclusion-to-host, remarch the host exit, and deposit at the receiver from the final direction; incomplete or TIR paths preserve the established host-only result. CPU caustics are shown for inclusions, while WebGPU inclusion caustics remain suppressed until its path follows the same scene contract. Added a pure deterministic multi-inclusion generator contract for later runtime connection and documented object-local pigment concentration fields for intentional color variation."
+    },
     {
       "date": "2026-08-01",
       "note": "Connected the first colored-host and clear-inclusion study to Hikari. Added reproducible host presets and inclusion controls, a runtime OpticalScene adapter, a pure straight-ray CPU reference with ordered medium events/RGB absorption/Fresnel throughput, and an analytic one-sphere inclusion in the WebGL body and transparent-shadow paths. Invalid containment falls back to the host with a visible warning. Existing CPU/WebGPU focused-light output is suppressed while the inclusion is active until it follows the same scene contract. The first runtime inclusion is deliberately one sphere; deterministic multiple random shapes and sizes are designed as the next generalization."

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { fieldSdf, type Ball } from "./field.ts";
+import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
 import {
   WebGpuOpticsEngine,
   type GpuOpticsResult,
@@ -236,7 +237,7 @@ export class OpticsLayer {
     this.latestSettings = { ...settings };
     this.causticMaterial.uniforms.uStrength.value = settings.causticStrength;
     this.causticMaterial.uniforms.uNatural.value = settings.opticalView === "natural" ? 1 : 0;
-    const signature = `${shapeSignature(balls, k)}:${settings.ior.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
+    const signature = `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.absorption.toFixed(3)}:${settings.ior.toFixed(3)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(3)}:${settings.inclusionAbsorption.toFixed(3)}:${settings.inclusionOffsetX.toFixed(3)},${settings.inclusionOffsetY.toFixed(3)},${settings.inclusionOffsetZ.toFixed(3)}:${settings.inclusionRadius.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
       const status = this.gpu.getStatus();
@@ -322,6 +323,20 @@ export class OpticsLayer {
     }
 
     const bounds = fieldBounds(balls);
+    // The adapter is the common validation boundary for the rendered host and
+    // the analytic CPU inclusion. Invalid/disabled inclusions intentionally
+    // leave the established host-only trace untouched.
+    const opticalScene = buildCloudOpticalScene(balls, k, settings);
+    const inclusion = opticalScene.inclusionValid
+      ? {
+          center: new THREE.Vector3(
+            settings.inclusionOffsetX,
+            settings.inclusionOffsetY,
+            settings.inclusionOffsetZ,
+          ),
+          radius: settings.inclusionRadius,
+        }
+      : null;
     const lightDirection = directionFromAngle(settings.lightAngle);
     const basisU = new THREE.Vector3().crossVectors(lightDirection, new THREE.Vector3(0, 1, 0));
     if (basisU.lengthSq() < 0.001) basisU.set(1, 0, 0);
@@ -377,10 +392,69 @@ export class OpticsLayer {
         }
 
         const entryNormal = fieldNormal(balls, k, entry);
+        const refractedInside = refract(lightDirection, entryNormal, 1 / settings.ior);
         const insideDirection =
-          refract(lightDirection, entryNormal, 1 / settings.ior) ??
-          lightDirection.clone().reflect(entryNormal);
-        const exit = marchInside(balls, k, entry, insideDirection, bounds.radius * 4);
+          refractedInside ?? lightDirection.clone().reflect(entryNormal);
+        let exit = marchInside(balls, k, entry, insideDirection, bounds.radius * 4);
+        let traversedInclusion = false;
+        let inclusionEntry: THREE.Vector3 | null = null;
+        let inclusionExit: THREE.Vector3 | null = null;
+        let finalHostDirection = insideDirection;
+        let hostDistance = exit?.distance ?? 0;
+        let inclusionDistance = 0;
+
+        // This deliberately traces only the first supported analytic sphere.
+        // Any TIR or incomplete nested path discards this attempt and retains
+        // the exact host-only exit/direction above.
+        if (inclusion && refractedInside && exit) {
+          const interval = raySphereInterval(entry, insideDirection, inclusion.center, inclusion.radius);
+          if (interval && interval.near > 0.012 && interval.far < exit.distance - 0.012) {
+            const candidateEntry = entry.clone().addScaledVector(insideDirection, interval.near);
+            const candidateEntryNormal = candidateEntry.clone().sub(inclusion.center).normalize();
+            const inclusionDirection = refract(
+              insideDirection,
+              candidateEntryNormal,
+              settings.ior / settings.inclusionIor,
+            );
+            if (inclusionDirection) {
+              const insideStart = candidateEntry.clone().addScaledVector(inclusionDirection, 0.006);
+              const innerInterval = raySphereInterval(
+                insideStart,
+                inclusionDirection,
+                inclusion.center,
+                inclusion.radius,
+              );
+              if (innerInterval && innerInterval.far > 0.006) {
+                const candidateExit = insideStart.clone().addScaledVector(inclusionDirection, innerInterval.far);
+                const candidateExitNormal = candidateExit.clone().sub(inclusion.center).normalize();
+                const returnedHostDirection = refract(
+                  inclusionDirection,
+                  candidateExitNormal.clone().negate(),
+                  settings.inclusionIor / settings.ior,
+                );
+                if (returnedHostDirection) {
+                  const returnedStart = candidateExit.clone().addScaledVector(returnedHostDirection, 0.008);
+                  const nestedExit = marchInside(
+                    balls,
+                    k,
+                    returnedStart,
+                    returnedHostDirection,
+                    bounds.radius * 4,
+                  );
+                  if (nestedExit) {
+                    traversedInclusion = true;
+                    inclusionEntry = candidateEntry;
+                    inclusionExit = candidateExit;
+                    exit = nestedExit;
+                    finalHostDirection = returnedHostDirection;
+                    hostDistance = interval.near + nestedExit.distance + 0.008;
+                    inclusionDistance = candidateEntry.distanceTo(candidateExit);
+                  }
+                }
+              }
+            }
+          }
+        }
         if (showRay) {
           appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
         }
@@ -417,25 +491,34 @@ export class OpticsLayer {
           continue;
         }
 
-        if (showRay) {
-          appendSegment(rayPositions, rayColors, entry, exit.point, 0x6beaff, 0xf6ffff);
+        if (traversedInclusion && inclusionEntry && inclusionExit) {
+          if (showRay) {
+            appendSegment(rayPositions, rayColors, entry, inclusionEntry, 0x6beaff, 0xa9f7ff);
+            appendSegment(rayPositions, rayColors, inclusionEntry, inclusionExit, 0xff70d1, 0xffd0f0);
+            appendSegment(rayPositions, rayColors, inclusionExit, exit.point, 0x9a7cff, 0xf6ffff);
+          }
+          appendDensitySegment(densityPositions, densityColors, densityEnergy, densityPhases, entry, inclusionEntry, 0x5bd3e8, 0xa9f7ff, 28, 0.92);
+          appendDensitySegment(densityPositions, densityColors, densityEnergy, densityPhases, inclusionEntry, inclusionExit, 0xff59c7, 0xffd0f0, 30, 0.82);
+          appendDensitySegment(densityPositions, densityColors, densityEnergy, densityPhases, inclusionExit, exit.point, 0x9a7cff, 0xf4ffff, 28, 0.9);
+        } else {
+          if (showRay) {
+            appendSegment(rayPositions, rayColors, entry, exit.point, 0x6beaff, 0xf6ffff);
+          }
+          appendDensitySegment(
+            densityPositions, densityColors, densityEnergy, densityPhases, entry, exit.point,
+            0x5bd3e8, 0xf4ffff, 52, 1,
+          );
         }
-        appendDensitySegment(
-          densityPositions,
-          densityColors,
-          densityEnergy,
-          densityPhases,
-          entry,
-          exit.point,
-          0x5bd3e8,
-          0xf4ffff,
-          52,
-          1,
-        );
         const outwardNormal = fieldNormal(balls, k, exit.point);
         const outgoing =
-          refract(insideDirection, outwardNormal.clone().negate(), settings.ior) ??
-          insideDirection.clone().reflect(outwardNormal.clone().negate());
+          refract(finalHostDirection, outwardNormal.clone().negate(), settings.ior) ??
+          finalHostDirection.clone().reflect(outwardNormal.clone().negate());
+        // Keep disabled/invalid or rejected-inclusion rays byte-for-byte on
+        // the legacy host-only energy path; the approximation belongs only to
+        // a completed nested traversal.
+        const energy = traversedInclusion
+          ? approximateOpticalEnergy(settings, hostDistance, inclusionDistance)
+          : 1;
         const floorHit = intersectFloor(exit.point, outgoing, floorY);
         const end = floorHit ?? exit.point.clone().addScaledVector(outgoing, bounds.radius * 2.2);
         if (showRay) {
@@ -451,7 +534,7 @@ export class OpticsLayer {
           0xd8ffff,
           0xffcf67,
           36,
-          0.62,
+          0.62 * energy,
         );
 
         if (floorHit) {
@@ -459,7 +542,7 @@ export class OpticsLayer {
           appendSpectralCausticSamples(
             causticFieldSamples,
             floorHit,
-            0.55 + (1 - deviation) * 0.45,
+            (0.55 + (1 - deviation) * 0.45) * energy,
             outgoing,
             lightDirection,
             settings.dispersion,
@@ -472,7 +555,7 @@ export class OpticsLayer {
             causticStretch,
             causticAngle,
             floorHit,
-            0.55 + (1 - deviation) * 0.45,
+            (0.55 + (1 - deviation) * 0.45) * energy,
             deviation,
             Math.atan2(
               outgoing.z - lightDirection.z,
@@ -1029,6 +1112,55 @@ function refract(incident: THREE.Vector3, normal: THREE.Vector3, eta: number): T
     .multiplyScalar(eta)
     .addScaledVector(normal, eta * cosine - Math.sqrt(discriminant))
     .normalize();
+}
+
+function raySphereInterval(
+  origin: THREE.Vector3,
+  direction: THREE.Vector3,
+  center: THREE.Vector3,
+  radius: number,
+): { near: number; far: number } | null {
+  const offset = origin.clone().sub(center);
+  const halfB = offset.dot(direction);
+  const c = offset.lengthSq() - radius * radius;
+  const discriminant = halfB * halfB - c;
+  if (!Number.isFinite(discriminant) || discriminant < 0) return null;
+  const root = Math.sqrt(discriminant);
+  const near = -halfB - root;
+  const far = -halfB + root;
+  return far > 0 ? { near, far } : null;
+}
+
+function approximateOpticalEnergy(
+  settings: OpticalSettings,
+  hostDistance: number,
+  inclusionDistance: number,
+): number {
+  const baseHostAbsorption = Math.max(0, settings.absorption);
+  const hostAbsorption = settings.hostPreset === "amber"
+    ? baseHostAbsorption * (0.05 + 0.38 + 0.92) / 3
+    : settings.hostPreset === "dark"
+      ? baseHostAbsorption * (0.72 + 1.45 + 0.42) / 3
+      : baseHostAbsorption * (0.06 + 0.04 + 0.025) / 3;
+  const hostInterface = normalInterfaceTransmission(1, settings.ior);
+  const inclusionInterface = normalInterfaceTransmission(settings.ior, settings.inclusionIor);
+  // A scalar preview approximation: averaged preset absorption and normal
+  // incidence interface losses. It is intentionally not a calibrated energy model.
+  return Math.max(
+    0,
+    Math.min(
+      1,
+      Math.exp(-hostAbsorption * Math.max(0, hostDistance) - Math.max(0, settings.inclusionAbsorption) * Math.max(0, inclusionDistance))
+        * hostInterface * hostInterface
+        * inclusionInterface * inclusionInterface,
+    ),
+  );
+}
+
+function normalInterfaceTransmission(iorA: number, iorB: number): number {
+  if (!Number.isFinite(iorA) || !Number.isFinite(iorB) || iorA <= 0 || iorB <= 0) return 1;
+  const reflection = Math.pow((iorA - iorB) / (iorA + iorB), 2);
+  return 1 - reflection;
 }
 
 function intersectFloor(

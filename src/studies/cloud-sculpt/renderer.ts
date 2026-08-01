@@ -28,6 +28,8 @@ export class CloudRenderer {
   private causticTexture: THREE.DataTexture;
   private causticTextureHasData = false;
   private suppressCausticForInclusion = false;
+  private inclusionActive = false;
+  private inclusionCausticTrustworthy = false;
 
   constructor(
     container: HTMLElement,
@@ -198,11 +200,15 @@ export class CloudRenderer {
         adapter.inclusionAbsorptionPerShapeUnit.b,
       );
     }
-    // The current CPU/WebGPU caustic layer still traces the host only. Hide it
-    // while a valid inclusion is active instead of presenting a mismatched field.
-    this.suppressCausticForInclusion = requested && adapter.inclusionValid;
-    this.material.uniforms.uCausticAvailable.value =
-      this.causticTextureHasData && !this.suppressCausticForInclusion ? 1 : 0;
+    // The CPU layer can trace the first inclusion; WebGPU cannot yet. The
+    // compute-status handoff decides whether the current texture is trustworthy.
+    this.inclusionActive = requested && adapter.inclusionValid;
+    this.applyCausticAvailability();
+  }
+
+  setInclusionCausticTrustworthy(trustworthy: boolean): void {
+    this.inclusionCausticTrustworthy = trustworthy;
+    this.applyCausticAvailability();
   }
 
   setCausticField(field: CausticField): void {
@@ -230,6 +236,12 @@ export class CloudRenderer {
     this.causticTextureHasData = field.data.some(
       (value, index) => index % 4 !== 3 && value > 0,
     );
+    this.applyCausticAvailability();
+  }
+
+  private applyCausticAvailability(): void {
+    this.suppressCausticForInclusion =
+      this.inclusionActive && !this.inclusionCausticTrustworthy;
     this.material.uniforms.uCausticAvailable.value =
       this.causticTextureHasData && !this.suppressCausticForInclusion ? 1 : 0;
   }
