@@ -143,6 +143,7 @@ Related documents:
 - [Living-shape and freeze workflow](living-shape.md)
 - [Physical scale and spatial context](scale-context.md)
 - [Artwork, Ambient, and open-call strategy](artwork-strategy.md)
+- [Ambient environmental artwork contract](ambient-integration.md)
 - [Blender study 01 reading](blender-study-01.md)
 - [Adjacent study: printed translucent light shade](printed-translucent-shell.md)
 - [Web publishing procedure](publishing.md)
