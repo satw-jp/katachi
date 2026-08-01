@@ -37,6 +37,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.25.3
+
+- Git commit deployed: `7dffa97` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `094ca0e2-cefa-4fe5-9d99-c32bbfcf00d3`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Body-view correction: removed v0.25.2's bounded host-tinted ambient, which eliminated black but appeared as broad flat brown material. Failed nested paths keep the already solved outer-host view; outer TIR receives one bounded internal bounce before the documented realtime continuity approximation
+- Appearance/transport split: geometric normals still decide medium entry, exit, and TIR. Cosmetic normal variation affects the transmitted environment lookup as well as reflection and surface appearance, restoring the earlier soft distortion without deciding whether a physical path exists
+- Receiver isolation: CPU/WebGPU receiver deposits, adaptive reconstruction, shadow support, loss buckets, and energy ledger are unchanged from v0.25.1
+- Rendering decision: the implementation plan now separates immediate Realtime Observation from a future author-triggered Progressive Render that accumulates more samples and path depth only after the scene stops changing
+- Browser verification: local WebGPU and `SAFE · CPU` compiled and rendered v0.25.3; cache-busted production reported `GPU · WebGPU`, displayed the revised body, and retained the continuous receiver shadow
+- Verification: `npm run test:hikari` passed 36/36 tests; `VITE_GIT_COMMIT=7dffa97 npm run build` passed
+- Known remaining work: add the Progressive Render path, expose its unresolved-path/convergence metrics, and freeze a fixed-camera image regression for the author's approved view
+
 ## Release record — 2026-08-01 — v0.25.2
 
 - Git commit deployed: `4ffdb80` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
