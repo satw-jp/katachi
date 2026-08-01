@@ -26,6 +26,8 @@ The production page must be built and deployed from a committed revision. Do not
    - the top-bar button reports `GPU · WebGPU` or `SAFE · CPU`, and one tap switches each direction without losing stored settings;
    - the same-count comparison leaves the displayed receiver/status unchanged and reports every gate; safe mode reports comparison unavailable without disturbing its CPU preview;
    - two saved views can be recalled and written as one `.hkr`, and a legacy single case remains accepted;
+   - Natural view enables RENDER, 16/64/256 spp complete or STOP retains the latest sample, and camera/material/receiver/resize changes return to Realtime;
+   - `BODY · WebGL2` reports the actual capped HDR target resolution separately from the receiver backend;
    - Image produces a non-empty PNG at the current renderer pixel resolution without application chrome;
    - no browser errors are emitted.
 4. Confirm GitHub contains the exact commit.
@@ -36,6 +38,21 @@ The production page must be built and deployed from a committed revision. Do not
 ## Rollback
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
+
+## Release record — 2026-08-01 — v0.26.0
+
+- Git commit deployed: `dc1c1bd` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `9cdaab8b-987a-4b9b-aaed-e3785d42424c`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Dual observation: ordinary orbit/edit work remains Realtime; the author can start a separate 16/64/256-spp Progressive BODY still and stop while retaining the latest completed sample
+- Linear accumulation: deterministic sub-pixel jitter and progressive rough-environment samples accumulate as a running mean in half-float linear HDR; exposure tone mapping and monochrome conversion occur once during presentation
+- Revision safety: camera, shape, material, daylight, receiver, backend, inclusion receiver trust, and viewport changes discard the accumulation instead of mixing incompatible scene samples
+- Memory safety: three HDR targets preserve aspect and cap at 2,560×1,440 equivalent pixels; Calculation Status displays the actual BODY WebGL2 target resolution
+- PNG/document contract: Image captures the retained Progressive result and includes its spp in the filename; `.hkr` preserves author inputs but does not serialize pixels, progress, elapsed time, or GPU resources
+- Local browser verification: GPU WebGPU completed 64 spp at 1880×1344; SAFE CPU completed 64 spp at 940×672; both rendered without a black body or browser warnings/errors
+- Production verification: cache-busted v0.26.0 reported `GPU · WebGPU`, completed 64 spp at 1880×1344 in 1.6 seconds, and exported `hikari-optics-progressive-64spp-...png` at 1880×1344 with no warnings/errors
+- Verification: `npm run test:hikari` passed 42/42 deterministic tests; `VITE_GIT_COMMIT=dc1c1bd npm run build` passed; final diff review found no release blocker
+- Known remaining work: custom host/inclusion absorption color and concentration, deeper host/inclusion Progressive paths, unresolved/convergence metrics, receiver progressive accumulation, and denoising remain later slices
 
 ## Release record — 2026-08-01 — v0.25.3
 
