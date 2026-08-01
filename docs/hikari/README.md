@@ -97,6 +97,7 @@ Implemented today:
 - exploratory prism-dispersion and cure-stress/polarization views;
 - Windows-safe CPU fallback;
 - persistent top-bar backend status and one-tap `GPU · WebGPU` / `SAFE · CPU` switching;
+- geometric normals for view-ray medium decisions, with cosmetic normal variation restricted to reflection and surface appearance;
 - isolated same-count CPU/WebGPU receiver comparison from the Calculation Status panel;
 - current-renderer-resolution viewport PNG export and editable multi-view `.hkr` documents;
 - STL, OBJ, and Katachi recipe export from the same source field.
@@ -107,6 +108,7 @@ Known limits:
 - outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
+- truly unresolved nested view rays use a bounded host-tinted ambient fallback so an implementation limit is not displayed as black absorption. This is an explicitly view-only approximation; recursive internal reflection/refraction remains open and receiver transport still rejects unresolved energy;
 - Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. The same-count Tokyo 17:00 reconstructed field passes every current display-field gate after sample-count-aware reconstruction, but raw-hit parity and a representative case family remain open;
 - SAFE CPU reconstructs its 1,024-sample receiver field with a wider energy-normalized kernel. This removes visible sampling gaps but resolves less spatial detail than the normal 16,384-sample WebGPU field and is not a fidelity match;
 - no multiple internal bounces or physically calibrated HDR environment;

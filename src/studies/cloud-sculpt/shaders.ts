@@ -774,16 +774,21 @@ export const fragmentShader = /* glsl */ `
 
     vec3 n = estimateNormal(p);
     if (uRenderMode == 1) {
+      // Keep cosmetic surface variation out of medium-boundary decisions.
+      // Otherwise the shading noise invents broad TIR/unresolved islands.
+      vec3 geometricNormal = n;
       n = perturbSurfaceNormal(n, p);
       float eta = 1.0 / max(1.001, uIor);
-      vec3 insideDirection = refract(rd, n, eta);
+      vec3 insideDirection = refract(rd, geometricNormal, eta);
       bool opticalPathUnresolved = length(insideDirection) < 0.01;
-      if (opticalPathUnresolved) insideDirection = reflect(rd, n);
+      if (opticalPathUnresolved) insideDirection = reflect(rd, geometricNormal);
       vec3 exitPoint = p;
       float travelled = 0.0;
       bool hasExit = !opticalPathUnresolved
         && marchInside(p, insideDirection, exitPoint, travelled);
       if (!hasExit) opticalPathUnresolved = true;
+      vec3 hostOnlyExitPoint = exitPoint;
+      float hostOnlyDistance = travelled;
       float hostDistance = travelled;
       float inclusionDistance = 0.0;
       float nestedInterfaceTransmission = 1.0;
@@ -863,8 +868,9 @@ export const fragmentShader = /* glsl */ `
       vec3 outgoing = finalHostDirection;
       vec3 exitNormal = -n;
       if (hasExit) {
-        exitNormal = perturbSurfaceNormal(estimateNormal(exitPoint), exitPoint);
-        vec3 refractedOut = refract(finalHostDirection, -exitNormal, uIor);
+        vec3 exitGeometricNormal = estimateNormal(exitPoint);
+        exitNormal = perturbSurfaceNormal(exitGeometricNormal, exitPoint);
+        vec3 refractedOut = refract(finalHostDirection, -exitGeometricNormal, uIor);
         if (length(refractedOut) < 0.01) {
           opticalPathUnresolved = true;
         } else {
@@ -933,11 +939,29 @@ export const fragmentShader = /* glsl */ `
         * nestedInterfaceTransmission;
       vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
       float edgeGlow = pow(1.0 - facing, 2.2);
+      // The receiver transport correctly rejects an unresolved path. The body
+      // view must not present that numerical/feature limit as opaque black,
+      // though. Show known front reflection plus bounded host-tinted ambient;
+      // do not claim a solved inclusion or rear-interface transmission.
+      float unresolvedDistance = hasExit
+        ? min(max(hostOnlyDistance, 0.18), 1.5)
+        : 0.65;
+      float unresolvedDensity = hasExit
+        ? segmentMaterialDensity(p, hostOnlyExitPoint)
+        : materialPattern(p);
+      vec3 unresolvedAttenuation = exp(
+        -uHostAbsorptionRgb * unresolvedDistance * unresolvedDensity * absorptionScale
+      );
+      vec3 unresolvedAmbient = mix(
+        uOpticalTint,
+        roughOpticalEnvironment(p, rd),
+        0.68
+      ) * unresolvedAttenuation * 0.48;
       vec3 color = opticalPathUnresolved
-        ? reflectedColor * fresnel
+        ? reflectedColor * fresnel + unresolvedAmbient * (1.0 - fresnel)
         : mix(refractedColor * transmission, reflectedColor, fresnel);
       color += uOpticalTint * edgeGlow * 0.22
-        * (opticalPathUnresolved ? 0.0 : 1.0);
+        * (opticalPathUnresolved ? 0.32 : 1.0);
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));
       float internalHaze = (opticalPathUnresolved ? 0.0 : 1.0)
         * (1.0 - exp(-opticalDepthLuma * 0.22))

@@ -49,6 +49,8 @@ evidence cases
 
 The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
 
+v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. Unresolved view paths retain bounded host-tinted ambient rather than becoming black, while CPU/WebGPU receiver transport continues to reject unresolved energy. This removes a view regression; it does not complete recursive internal reflection/refraction or relax the receiver ledger.
+
 ## Phase 0 — freeze evidence before changing optics
 
 Deliverables:
