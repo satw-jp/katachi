@@ -47,7 +47,7 @@ evidence cases
   -> Ambient Mix
 ```
 
-The first three slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, and paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0. The next slice is an author-visible receiver diagnostic overlay and automated CPU/WebGPU full-field tolerance gates.
+The first four slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, and author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0. The next slice is the same-count device runner that feeds real CPU and WebGPU fields into those automated gates.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -180,6 +180,7 @@ type ReceiverTransportField = {
   geometricCoverage: Float32Array;
   straightThroughputRgb: Float32Array;
   depositedFluxRgb: Float32Array;
+  lossFluxRgb: Float32Array;
   diagnostics: EnergyLedger;
 };
 ```
@@ -200,9 +201,9 @@ Implementation slices:
 
 1. **3A — receiver coherence — implemented in v0.21.1:** Natural, CPU, and WebGPU use `OpticalScene.receiver`; saved cases and Blender retain the same receiver contract.
 2. **3B — valid paths — implemented for the reference path in v0.23.0:** unresolved entry/exit paths deposit no receiver energy; TIR, material/interface loss, receiver escape, and invalid paths remain distinct ledger outcomes. Decorative spectral point styling remains Analysis-only and no longer offsets Natural receiver deposits.
-3. **3C — support contract — implemented for Natural in v0.23.0:** the transport field rejects deposits outside the reconstructed baseline-shadow support before rendering. The temporary fragment-shader gate is removed; an author-visible receiver diagnostic overlay and automated leakage gate remain.
+3. **3C — support and diagnosis — implemented in v0.24.0:** the transport field rejects deposits outside the reconstructed baseline-shadow support before rendering. Natural can switch without retracing among Composite, Shadow coverage, Delivered light, and Non-arrival light. The last field is splatted at each affected baseline position and includes material/interface loss, reflection, receiver escape, fixed-domain escape, and unresolved paths; author-imposed support rejection remains a separate numeric bucket.
 4. **3D — HDR reference field — implemented in v0.22.0:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization.
-5. **3E — CPU/WebGPU parity — partial:** both backends now share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. Automated device-level full-field thresholds remain.
+5. **3E — CPU/WebGPU parity — partial:** both backends now share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. A renderer-independent comparator now gates identity/revisions, RGB flux, centroid, 95% envelope, support IoU, and normalized deposit/coverage shape. The device-level same-count runner remains.
 
 Acceptance:
 

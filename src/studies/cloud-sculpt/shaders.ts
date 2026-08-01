@@ -60,10 +60,12 @@ export const fragmentShader = /* glsl */ `
   uniform float uEnvironmentMist;
   uniform int uMonochrome;
   uniform sampler2D uCausticMap;
+  uniform sampler2D uReceiverLossMap;
   uniform vec4 uCausticBounds;
   uniform vec2 uCausticResolution;
   uniform float uCausticAvailable;
   uniform float uCausticStrength;
+  uniform int uReceiverDisplayMode;
   uniform float uReceiverY;
   uniform int uCompatibilityMode;
 
@@ -80,6 +82,20 @@ export const fragmentShader = /* glsl */ `
     vec4 c10 = texture2D(uCausticMap, clamp(uv00 + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
     vec4 c01 = texture2D(uCausticMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0)));
     vec4 c11 = texture2D(uCausticMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0)));
+    return mix(mix(c00, c10, fraction.x), mix(c01, c11, fraction.x), fraction.y);
+  }
+
+  vec3 sampleReceiverLoss(vec2 uv) {
+    vec2 resolution = max(uCausticResolution, vec2(1.0));
+    vec2 grid = uv * resolution - 0.5;
+    vec2 base = floor(grid);
+    vec2 fraction = fract(grid);
+    vec2 texel = 1.0 / resolution;
+    vec2 uv00 = (base + 0.5) * texel;
+    vec3 c00 = texture2D(uReceiverLossMap, clamp(uv00, vec2(0.0), vec2(1.0))).rgb;
+    vec3 c10 = texture2D(uReceiverLossMap, clamp(uv00 + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0))).rgb;
+    vec3 c01 = texture2D(uReceiverLossMap, clamp(uv00 + vec2(0.0, texel.y), vec2(0.0), vec2(1.0))).rgb;
+    vec3 c11 = texture2D(uReceiverLossMap, clamp(uv00 + texel, vec2(0.0), vec2(1.0))).rgb;
     return mix(mix(c00, c10, fraction.x), mix(c01, c11, fraction.x), fraction.y);
   }
 
@@ -503,6 +519,32 @@ export const fragmentShader = /* glsl */ `
         vec3 direct = ground * uSunIntensity * directTransport * 0.42;
         vec3 horizonFill = vec3(0.08, 0.14, 0.18) * uSkyIntensity * (1.0 - distanceFade);
         vec3 floorColor = ambient + direct + horizonFill;
+        if (uReceiverDisplayMode != 0 && pairedWeight > 0.0) {
+          // Diagnostic false color belongs to the reconstructed shadow, not
+          // to the rectangular receiver texture domain.
+          float diagnosticMask = smoothstep(0.001, 0.035, removedBaseline);
+          vec3 diagnosticColor = floorColor;
+          if (uReceiverDisplayMode == 1) {
+            float coverageTone = removedBaseline / (1.0 + removedBaseline);
+            diagnosticColor = mix(
+              vec3(0.025, 0.055, 0.075),
+              vec3(1.0, 0.58, 0.12),
+              coverageTone
+            );
+          } else if (uReceiverDisplayMode == 2) {
+            vec3 depositTone = addedTransport / (vec3(1.0) + addedTransport);
+            diagnosticColor = vec3(0.018, 0.035, 0.055) + depositTone * 1.35;
+          } else {
+            vec3 lossIrradiance = max(
+              vec3(0.0),
+              sampleReceiverLoss(receiverUv) / receiverCosine
+            );
+            vec3 lossTone = lossIrradiance / (vec3(1.0) + lossIrradiance);
+            diagnosticColor = vec3(0.035, 0.025, 0.055)
+              + lossTone * vec3(1.25, 0.52, 0.8);
+          }
+          floorColor = mix(floorColor, diagnosticColor, pairedWeight * diagnosticMask);
+        }
         float fogDensity = mix(0.012, 0.085, uEnvironmentMist);
         float distanceFog = 1.0 - exp(-floorDistance * fogDensity);
         return mix(floorColor, sky, clamp(distanceFog, 0.0, 1.0));

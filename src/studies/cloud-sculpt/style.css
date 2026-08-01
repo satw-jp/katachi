@@ -343,6 +343,25 @@
   color: var(--danger);
 }
 
+.receiver-energy-summary {
+  padding: 9px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiver-energy-summary[data-kind="ok"] {
+  border-color: #78b9c7;
+  color: #174f5a;
+}
+
+.receiver-energy-summary[data-kind="warning"] {
+  border-color: #c8aa65;
+  color: #71591e;
+}
+
 .hikari-section-title {
   margin-top: 3px;
   color: var(--muted);

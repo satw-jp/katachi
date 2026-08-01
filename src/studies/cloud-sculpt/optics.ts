@@ -6,11 +6,13 @@ import {
   applyShadowContainedSupport,
   blurCoverageEnergyNormalized,
   blurFluxRgbEnergyNormalized,
+  blurLossFluxRgbEnergyNormalized,
   createReceiverTransportField,
   finalizeEnergyLedger,
   integrateFluxRgb,
   splatBilinearCoverageFlux,
   splatBilinearFluxRgb,
+  splatBilinearLossFluxRgb,
   splatBilinearStraightFluxRgb,
   type EnergyLedger,
   type ReceiverFieldSpec,
@@ -34,6 +36,7 @@ export type OpticalMaterial = "water" | "glass";
 export type OpticalHostPreset = "clear" | "amber" | "dark";
 export type OpticalDisplay = "density" | "both";
 export type OpticalView = "natural" | "analysis";
+export type ReceiverDisplayMode = "composite" | "coverage" | "deposit" | "loss";
 export type OpticalColorMode = "color" | "mono";
 export type OpticalDispersionMode = "global" | "local";
 export type OpticalRainbowModel = "prism" | "stress" | "both";
@@ -94,6 +97,7 @@ export interface OpticalSettings {
   inclusionRadius: number;
   opticalDisplay: OpticalDisplay;
   opticalView: OpticalView;
+  receiverDisplayMode: ReceiverDisplayMode;
   ior: number;
   daylightMode: DaylightMode;
   daylightDate: string;
@@ -225,6 +229,7 @@ export class OpticsLayer {
   private sunBelowHorizon = false;
   private gpu: WebGpuOpticsEngine;
   private onCausticField: ((field: CausticField) => void) | null;
+  private onTransportPending: ((pending: boolean) => void) | null;
   private rayMaterial = new THREE.LineBasicMaterial({
     transparent: true,
     opacity: 0.38,
@@ -265,10 +270,12 @@ export class OpticsLayer {
     options: {
       disableWebGpu?: boolean;
       onCausticField?: (field: CausticField) => void;
+      onTransportPending?: (pending: boolean) => void;
     } = {},
   ) {
     this.gpu = new WebGpuOpticsEngine(options.disableWebGpu !== true);
     this.onCausticField = options.onCausticField ?? null;
+    this.onTransportPending = options.onTransportPending ?? null;
     this.group.visible = false;
     this.group.renderOrder = 20;
     scene.add(this.group);
@@ -297,6 +304,7 @@ export class OpticsLayer {
     const signature = `${shapeSignature(balls, k)}:${settings.hostPreset}:${settings.absorption.toFixed(3)}:${settings.ior.toFixed(3)}:${settings.inclusionEnabled ? 1 : 0}:${settings.inclusionIor.toFixed(3)}:${settings.inclusionAbsorption.toFixed(3)}:${settings.inclusionOffsetX.toFixed(3)},${settings.inclusionOffsetY.toFixed(3)},${settings.inclusionOffsetZ.toFixed(3)}:${settings.inclusionRadius.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.daylightMode}:${settings.daylightDate}:${settings.daylightMinutes}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.sunSize.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
+      this.onTransportPending?.(true);
       if (this.sunBelowHorizon || balls.length === 0) {
         this.requestId++;
         this.clearGeometry();
@@ -349,11 +357,14 @@ export class OpticsLayer {
   }
 
   private startGpuRebuild(balls: Ball[], k: number, settings: OpticalSettings): void {
+    this.onTransportPending?.(true);
+    this.clearGeometry();
     const requestId = ++this.requestId;
     void this.gpu.compute(balls, k, settings).then((result) => {
       if (requestId !== this.requestId) return;
       if (!result) {
-        this.rebuildCpu(balls, k, settings);
+        const sampleCount = this.rebuildCpu(balls, k, settings);
+        this.gpu.setCpuFallback(sampleCount, "CPUプレビュー（GPU失敗後）");
         return;
       }
       this.rebuildGpu(result, balls, k, settings);
@@ -364,14 +375,17 @@ export class OpticsLayer {
     if (this.rays) {
       this.rays.geometry.dispose();
       this.group.remove(this.rays);
+      this.rays = null;
     }
     if (this.caustics) {
       this.caustics.geometry.dispose();
       this.group.remove(this.caustics);
+      this.caustics = null;
     }
     if (this.density) {
       this.density.geometry.dispose();
       this.group.remove(this.density);
+      this.density = null;
     }
   }
 
@@ -498,7 +512,7 @@ export class OpticsLayer {
         // Air-to-host should not produce TIR. If numerical/invalid geometry
         // does, do not turn the reflected fallback into receiver energy.
         if (!refractedInside) {
-          if (baselineTracked) recordUnresolvedPath(receiverAccumulator);
+          if (baselineTracked && baselineHit) recordUnresolvedPath(receiverAccumulator, baselineHit);
           if (showRay) {
             appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
           }
@@ -512,10 +526,12 @@ export class OpticsLayer {
         let finalHostDirection = insideDirection;
         let hostDistance = exit?.distance ?? 0;
         let inclusionDistance = 0;
+        let inclusionPathUnresolved = false;
 
         // This deliberately traces only the first supported analytic sphere.
-        // Any TIR or incomplete nested path discards this attempt and retains
-        // the exact host-only exit/direction above.
+        // A complete nested path replaces the host-only exit. Any TIR or
+        // incomplete nested path is classified below instead of pretending
+        // that the inclusion was absent.
         if (inclusion && refractedInside && exit) {
           const interval = raySphereInterval(entry, insideDirection, inclusion.center, inclusion.radius);
           if (interval && interval.near > 0.012 && interval.far < exit.distance - 0.012) {
@@ -559,11 +575,28 @@ export class OpticsLayer {
                     finalHostDirection = returnedHostDirection;
                     hostDistance = interval.near + nestedExit.distance + 0.008;
                     inclusionDistance = candidateEntry.distanceTo(candidateExit);
+                  } else {
+                    inclusionPathUnresolved = true;
                   }
+                } else {
+                  inclusionPathUnresolved = true;
                 }
+              } else {
+                inclusionPathUnresolved = true;
               }
+            } else {
+              inclusionPathUnresolved = true;
             }
           }
+        }
+        // Never let a ray silently pass through an inclusion whose boundary
+        // path could not be resolved. Until nested reflections are traced,
+        // classify the whole affected baseline as unresolved non-arrival.
+        if (inclusionPathUnresolved) {
+          if (baselineTracked && baselineHit) {
+            recordUnresolvedPath(receiverAccumulator, baselineHit);
+          }
+          continue;
         }
         if (showRay) {
           appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
@@ -584,7 +617,7 @@ export class OpticsLayer {
         }
 
         if (!exit) {
-          if (baselineTracked) recordUnresolvedPath(receiverAccumulator);
+          if (baselineTracked && baselineHit) recordUnresolvedPath(receiverAccumulator, baselineHit);
           const end = entry.clone().addScaledVector(insideDirection, bounds.radius * 1.6);
           if (showRay) {
             appendSegment(rayPositions, rayColors, entry, end, 0x8cf4ff, 0xd5ffff);
@@ -637,7 +670,7 @@ export class OpticsLayer {
         const unresolvedInternalDirection = finalHostDirection
           .clone()
           .reflect(outwardNormal.clone().negate());
-        const throughputRgb = approximateOpticalThroughput(
+        const pathThroughput = approximateOpticalPathThroughput(
           opticalScene.hostAbsorptionPerShapeUnit,
           opticalScene.inclusionAbsorptionPerShapeUnit,
           settings.ior,
@@ -646,8 +679,13 @@ export class OpticsLayer {
           inclusionDistance,
           traversedInclusion,
         );
+        const throughputRgb = outgoing
+          ? pathThroughput.transmittedRgb
+          : pathThroughput.exitIncidentRgb;
         const energy = (throughputRgb.r + throughputRgb.g + throughputRgb.b) / 3;
-        if (baselineTracked) recordMaterialInterfaceLoss(receiverAccumulator, throughputRgb);
+        if (baselineTracked && baselineHit) {
+          recordMaterialInterfaceLoss(receiverAccumulator, throughputRgb, baselineHit);
+        }
         const floorHit = outgoing ? intersectFloor(exit.point, outgoing, floorY) : null;
         const end = floorHit ?? exit.point.clone().addScaledVector(
           outgoing ?? unresolvedInternalDirection,
@@ -674,7 +712,7 @@ export class OpticsLayer {
         if (floorHit && outgoing) {
           const deviation = Math.min(1, outgoing.distanceTo(sampleLightDirection) / 1.2);
           if (baselineTracked) {
-            depositReceiverFluxRgb(receiverAccumulator, floorHit, throughputRgb);
+            depositReceiverFluxRgb(receiverAccumulator, floorHit, throughputRgb, baselineHit);
           }
           if (showRay) {
             appendCausticDeposit(
@@ -693,8 +731,10 @@ export class OpticsLayer {
             );
           }
         } else if (baselineTracked) {
-          if (outgoing) recordEscapedReceiverFlux(receiverAccumulator, throughputRgb);
-          else recordReflectedFlux(receiverAccumulator, throughputRgb);
+          if (outgoing && baselineHit) {
+            recordEscapedReceiverFlux(receiverAccumulator, throughputRgb, baselineHit);
+          }
+          else if (baselineHit) recordReflectedFlux(receiverAccumulator, throughputRgb, baselineHit);
         }
     }
 
@@ -726,6 +766,7 @@ export class OpticsLayer {
     this.caustics.renderOrder = 21;
     this.group.add(this.caustics);
     this.onCausticField?.(finishReceiverFluxAccumulator(receiverAccumulator));
+    this.onTransportPending?.(false);
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
     return sampleCount;
   }
@@ -803,12 +844,14 @@ export class OpticsLayer {
       const outgoingValid = result.values[throughputOffset + 3] > 0.5;
       if (baselineTracked) {
         if (!exitValid) {
-          recordUnresolvedPath(receiverAccumulator);
+          if (baseline) recordUnresolvedPath(receiverAccumulator, baseline);
         } else {
-          recordMaterialInterfaceLoss(receiverAccumulator, throughputRgb);
+          if (baseline) recordMaterialInterfaceLoss(receiverAccumulator, throughputRgb, baseline);
           if (!floorValid) {
-            if (outgoingValid) recordEscapedReceiverFlux(receiverAccumulator, throughputRgb);
-            else recordReflectedFlux(receiverAccumulator, throughputRgb);
+            if (outgoingValid && baseline) {
+              recordEscapedReceiverFlux(receiverAccumulator, throughputRgb, baseline);
+            }
+            else if (baseline) recordReflectedFlux(receiverAccumulator, throughputRgb, baseline);
           }
         }
       }
@@ -820,6 +863,7 @@ export class OpticsLayer {
           receiverAccumulator,
           floor,
           throughputRgb,
+          baseline,
         );
       }
 
@@ -936,6 +980,7 @@ export class OpticsLayer {
       64 / Math.max(1, causticHitCount),
     );
     this.onCausticField?.(finishReceiverFluxAccumulator(receiverAccumulator));
+    this.onTransportPending?.(false);
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
   }
 
@@ -964,6 +1009,7 @@ export class OpticsLayer {
       "empty",
     );
     this.onCausticField?.(finishReceiverFluxAccumulator(accumulator));
+    this.onTransportPending?.(false);
   }
 }
 
@@ -1087,14 +1133,23 @@ function addWeightedFlux(target: FluxRgb, throughput: FluxRgb, sampleFlux: numbe
 function recordMaterialInterfaceLoss(
   accumulator: ReceiverFluxAccumulator,
   throughput: FluxRgb,
+  baseline: THREE.Vector3,
 ): void {
+  const loss = {
+    r: Math.max(0, 1 - throughput.r),
+    g: Math.max(0, 1 - throughput.g),
+    b: Math.max(0, 1 - throughput.b),
+  };
   addWeightedFlux(
     accumulator.diagnostics.materialInterfaceLossRgb,
-    {
-      r: Math.max(0, 1 - throughput.r),
-      g: Math.max(0, 1 - throughput.g),
-      b: Math.max(0, 1 - throughput.b),
-    },
+    loss,
+    accumulator.diagnostics.sampleFlux,
+  );
+  splatBilinearLossFluxRgb(
+    accumulator.field,
+    baseline.x,
+    baseline.z,
+    loss,
     accumulator.diagnostics.sampleFlux,
   );
 }
@@ -1102,9 +1157,17 @@ function recordMaterialInterfaceLoss(
 function recordReflectedFlux(
   accumulator: ReceiverFluxAccumulator,
   throughput: FluxRgb,
+  baseline: THREE.Vector3,
 ): void {
   addWeightedFlux(
     accumulator.diagnostics.reflectedFluxRgb,
+    throughput,
+    accumulator.diagnostics.sampleFlux,
+  );
+  splatBilinearLossFluxRgb(
+    accumulator.field,
+    baseline.x,
+    baseline.z,
     throughput,
     accumulator.diagnostics.sampleFlux,
   );
@@ -1113,25 +1176,44 @@ function recordReflectedFlux(
 function recordEscapedReceiverFlux(
   accumulator: ReceiverFluxAccumulator,
   throughput: FluxRgb,
+  baseline: THREE.Vector3,
 ): void {
   addWeightedFlux(
     accumulator.diagnostics.escapedReceiverFluxRgb,
     throughput,
     accumulator.diagnostics.sampleFlux,
   );
+  splatBilinearLossFluxRgb(
+    accumulator.field,
+    baseline.x,
+    baseline.z,
+    throughput,
+    accumulator.diagnostics.sampleFlux,
+  );
 }
 
-function recordUnresolvedPath(accumulator: ReceiverFluxAccumulator): void {
+function recordUnresolvedPath(
+  accumulator: ReceiverFluxAccumulator,
+  baseline: THREE.Vector3,
+): void {
   const sampleFlux = accumulator.diagnostics.sampleFlux;
   accumulator.diagnostics.unresolvedLossRgb.r += sampleFlux;
   accumulator.diagnostics.unresolvedLossRgb.g += sampleFlux;
   accumulator.diagnostics.unresolvedLossRgb.b += sampleFlux;
+  splatBilinearLossFluxRgb(
+    accumulator.field,
+    baseline.x,
+    baseline.z,
+    { r: 1, g: 1, b: 1 },
+    sampleFlux,
+  );
 }
 
 function depositReceiverFluxRgb(
   accumulator: ReceiverFluxAccumulator,
   point: THREE.Vector3,
   throughputRgb: FluxRgb,
+  baseline: THREE.Vector3 | null,
 ): void {
   accumulator.diagnostics.spectralDepositCount++;
   const result = splatBilinearFluxRgb(
@@ -1146,6 +1228,15 @@ function depositReceiverFluxRgb(
     accumulator.diagnostics.escapedDomainFluxRgb.r += result.escapedRgb.r;
     accumulator.diagnostics.escapedDomainFluxRgb.g += result.escapedRgb.g;
     accumulator.diagnostics.escapedDomainFluxRgb.b += result.escapedRgb.b;
+    if (baseline) {
+      splatBilinearLossFluxRgb(
+        accumulator.field,
+        baseline.x,
+        baseline.z,
+        throughputRgb,
+        accumulator.diagnostics.sampleFlux,
+      );
+    }
   } else if (result.depositedRgb.r + result.depositedRgb.g + result.depositedRgb.b > 0) {
     accumulator.diagnostics.inDomainDepositCount++;
   }
@@ -1168,6 +1259,10 @@ function finishReceiverFluxAccumulator(
     accumulator.field,
     RECEIVER_FIELD_BLUR_RADIUS,
   ).geometricCoverage;
+  contained.field.lossFluxRgb = blurLossFluxRgbEnergyNormalized(
+    accumulator.field,
+    RECEIVER_FIELD_BLUR_RADIUS,
+  ).lossFluxRgb;
   const depositedRgb = integrateFluxRgb(contained.field);
   const incidentRgb = accumulator.diagnostics.incidentAffectedFluxRgb;
   const escapedRgb = {
@@ -1317,7 +1412,7 @@ function raySphereInterval(
   return far > 0 ? { near, far } : null;
 }
 
-function approximateOpticalThroughput(
+export function approximateOpticalPathThroughput(
   hostAbsorption: FluxRgb,
   inclusionAbsorption: FluxRgb,
   hostIor: number,
@@ -1325,28 +1420,35 @@ function approximateOpticalThroughput(
   hostDistance: number,
   inclusionDistance: number,
   traversedInclusion: boolean,
-): FluxRgb {
+): { exitIncidentRgb: FluxRgb; transmittedRgb: FluxRgb } {
   const hostInterface = normalInterfaceTransmission(1, hostIor);
   const inclusionInterface = traversedInclusion
     ? normalInterfaceTransmission(hostIor, inclusionIor)
     : 1;
-  const interfaceFactor = hostInterface * hostInterface
-    * inclusionInterface * inclusionInterface;
+  const entryFactor = hostInterface * inclusionInterface * inclusionInterface;
   const safeHostDistance = Math.max(0, hostDistance);
   const safeInclusionDistance = traversedInclusion ? Math.max(0, inclusionDistance) : 0;
-  return {
+  const exitIncidentRgb = {
     r: Math.max(0, Math.min(1, Math.exp(
       -Math.max(0, hostAbsorption.r) * safeHostDistance
       - Math.max(0, inclusionAbsorption.r) * safeInclusionDistance,
-    ) * interfaceFactor)),
+    ) * entryFactor)),
     g: Math.max(0, Math.min(1, Math.exp(
       -Math.max(0, hostAbsorption.g) * safeHostDistance
       - Math.max(0, inclusionAbsorption.g) * safeInclusionDistance,
-    ) * interfaceFactor)),
+    ) * entryFactor)),
     b: Math.max(0, Math.min(1, Math.exp(
       -Math.max(0, hostAbsorption.b) * safeHostDistance
       - Math.max(0, inclusionAbsorption.b) * safeInclusionDistance,
-    ) * interfaceFactor)),
+    ) * entryFactor)),
+  };
+  return {
+    exitIncidentRgb,
+    transmittedRgb: {
+      r: exitIncidentRgb.r * hostInterface,
+      g: exitIncidentRgb.g * hostInterface,
+      b: exitIncidentRgb.b * hostInterface,
+    },
   };
 }
 

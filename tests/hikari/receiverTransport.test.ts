@@ -5,13 +5,16 @@ import {
   applyShadowContainedSupport,
   blurCoverageEnergyNormalized,
   blurFluxRgbEnergyNormalized,
+  blurLossFluxRgbEnergyNormalized,
   composePairedReceiverDirectRgb,
   createReceiverTransportField,
   finalizeEnergyLedger,
   integrateCoverageFlux,
   integrateFluxRgb,
+  integrateLossFluxRgb,
   measureSupportLeakage,
   splatBilinearFluxRgb,
+  splatBilinearLossFluxRgb,
   splatBilinearCoverageFlux,
   splatBilinearStraightFluxRgb,
   summarizeReceiverField,
@@ -57,6 +60,17 @@ test("straight baseline splat stays separate from transported deposits", () => {
   splatBilinearStraightFluxRgb(field, 0, 0, { r: 2, g: 3, b: 4 });
   assertRgbClose(sumRgbArray(field.straightThroughputRgb), { r: 2, g: 3, b: 4 }, 1e-6);
   assertRgbClose(integrateFluxRgb(field), { r: 0, g: 0, b: 0 }, 0);
+});
+
+test("receiver non-arrival splat stays separate and its blur preserves RGB flux", () => {
+  const field = createReceiverTransportField(BASE_SPEC);
+  splatBilinearLossFluxRgb(field, 0.25, -0.4, { r: 0.2, g: 0.5, b: 0.8 }, 2);
+  assertRgbClose(integrateLossFluxRgb(field), { r: 0.4, g: 1, b: 1.6 }, 1e-6);
+  assertRgbClose(integrateFluxRgb(field), { r: 0, g: 0, b: 0 }, 0);
+
+  const blurred = blurLossFluxRgbEnergyNormalized(field, 3);
+  assertRgbRelative(integrateLossFluxRgb(blurred), { r: 0.4, g: 1, b: 1.6 }, 5e-6);
+  assertRgbClose(integrateFluxRgb(blurred), { r: 0, g: 0, b: 0 }, 0);
 });
 
 test("paired receiver replacement redistributes baseline without additive creation", () => {

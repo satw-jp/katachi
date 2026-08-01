@@ -29,7 +29,9 @@ export class CloudRenderer {
   private quad: THREE.Mesh;
   private container: HTMLElement;
   private causticTexture: THREE.DataTexture;
+  private receiverLossTexture: THREE.DataTexture;
   private causticTextureHasData = false;
+  private causticTransportPending = false;
   private suppressCausticForInclusion = false;
   private inclusionActive = false;
   private inclusionCausticTrustworthy = false;
@@ -64,6 +66,16 @@ export class CloudRenderer {
     this.causticTexture.minFilter = THREE.NearestFilter;
     this.causticTexture.magFilter = THREE.NearestFilter;
     this.causticTexture.needsUpdate = true;
+    this.receiverLossTexture = new THREE.DataTexture(
+      new Float32Array([0, 0, 0, 0]),
+      1,
+      1,
+      THREE.RGBAFormat,
+      THREE.FloatType,
+    );
+    this.receiverLossTexture.minFilter = THREE.NearestFilter;
+    this.receiverLossTexture.magFilter = THREE.NearestFilter;
+    this.receiverLossTexture.needsUpdate = true;
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
@@ -111,10 +123,12 @@ export class CloudRenderer {
         uStressAmount: { value: 0.55 },
         uPolarization: { value: 0.45 },
         uCausticMap: { value: this.causticTexture },
+        uReceiverLossMap: { value: this.receiverLossTexture },
         uCausticBounds: { value: new THREE.Vector4(0, 0, 1, 1) },
         uCausticResolution: { value: new THREE.Vector2(1, 1) },
         uCausticAvailable: { value: 0 },
         uCausticStrength: { value: 1.2 },
+        uReceiverDisplayMode: { value: 0 },
         uReceiverY: { value: -2.35 },
         uCompatibilityMode: { value: compatibilityMode ? 1 : 0 },
       },
@@ -167,6 +181,14 @@ export class CloudRenderer {
     this.material.uniforms.uStressAmount.value = settings.stressAmount;
     this.material.uniforms.uPolarization.value = settings.polarization;
     this.material.uniforms.uCausticStrength.value = settings.causticStrength;
+    this.material.uniforms.uReceiverDisplayMode.value =
+      settings.receiverDisplayMode === "coverage"
+        ? 1
+        : settings.receiverDisplayMode === "deposit"
+          ? 2
+          : settings.receiverDisplayMode === "loss"
+            ? 3
+            : 0;
     this.material.uniforms.uOpticalTint.value.set(
       settings.hostPreset === "amber"
         ? 0xf0a85b
@@ -219,8 +241,14 @@ export class CloudRenderer {
     this.applyCausticAvailability();
   }
 
+  setCausticTransportPending(pending: boolean): void {
+    this.causticTransportPending = pending;
+    this.applyCausticAvailability();
+  }
+
   setCausticField(field: CausticField): void {
     const textureData = new Float32Array(field.width * field.height * 4);
+    const lossTextureData = new Float32Array(field.width * field.height * 4);
     const inverseTexelArea = 1 / Math.max(1e-9, field.texelArea);
     for (let index = 0; index < field.width * field.height; index++) {
       const sourceOffset = index * 3;
@@ -229,6 +257,10 @@ export class CloudRenderer {
       textureData[targetOffset + 1] = field.depositedFluxRgb[sourceOffset + 1] * inverseTexelArea;
       textureData[targetOffset + 2] = field.depositedFluxRgb[sourceOffset + 2] * inverseTexelArea;
       textureData[targetOffset + 3] = field.geometricCoverage[index] * inverseTexelArea;
+      lossTextureData[targetOffset] = field.lossFluxRgb[sourceOffset] * inverseTexelArea;
+      lossTextureData[targetOffset + 1] = field.lossFluxRgb[sourceOffset + 1] * inverseTexelArea;
+      lossTextureData[targetOffset + 2] = field.lossFluxRgb[sourceOffset + 2] * inverseTexelArea;
+      lossTextureData[targetOffset + 3] = 1;
     }
     this.causticTexture.dispose();
     this.causticTexture = new THREE.DataTexture(
@@ -247,7 +279,22 @@ export class CloudRenderer {
     this.causticTexture.magFilter = THREE.NearestFilter;
     this.causticTexture.generateMipmaps = false;
     this.causticTexture.needsUpdate = true;
+    this.receiverLossTexture.dispose();
+    this.receiverLossTexture = new THREE.DataTexture(
+      lossTextureData,
+      field.width,
+      field.height,
+      THREE.RGBAFormat,
+      THREE.FloatType,
+    );
+    this.receiverLossTexture.wrapS = THREE.ClampToEdgeWrapping;
+    this.receiverLossTexture.wrapT = THREE.ClampToEdgeWrapping;
+    this.receiverLossTexture.minFilter = THREE.NearestFilter;
+    this.receiverLossTexture.magFilter = THREE.NearestFilter;
+    this.receiverLossTexture.generateMipmaps = false;
+    this.receiverLossTexture.needsUpdate = true;
     this.material.uniforms.uCausticMap.value = this.causticTexture;
+    this.material.uniforms.uReceiverLossMap.value = this.receiverLossTexture;
     this.material.uniforms.uCausticBounds.value.set(
       field.minU,
       field.minV,
@@ -265,7 +312,11 @@ export class CloudRenderer {
     this.suppressCausticForInclusion =
       this.inclusionActive && !this.inclusionCausticTrustworthy;
     this.material.uniforms.uCausticAvailable.value =
-      this.causticTextureHasData && !this.suppressCausticForInclusion ? 1 : 0;
+      this.causticTextureHasData
+      && !this.suppressCausticForInclusion
+      && !this.causticTransportPending
+        ? 1
+        : 0;
   }
 
   resize(): void {

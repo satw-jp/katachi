@@ -185,17 +185,17 @@ fn interfaceTransmission(iorA: f32, iorB: f32) -> f32 {
   return 1.0 - reflection;
 }
 
-fn hostEnergy(hostDistance: f32) -> vec3f {
+fn hostExitIncidentEnergy(hostDistance: f32) -> vec3f {
   let hostTransmission = interfaceTransmission(1.0, params.config0.z);
   return clamp(
     exp(-params.energyInputs.xyz * max(0.0, hostDistance))
-      * hostTransmission * hostTransmission,
+      * hostTransmission,
     vec3f(0.0),
     vec3f(1.0),
   );
 }
 
-fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> vec3f {
+fn nestedExitIncidentEnergy(hostDistance: f32, inclusionDistance: f32) -> vec3f {
   let hostIor = params.config0.z;
   let inclusionIor = params.inclusionConfig.z;
   let transmission = interfaceTransmission(1.0, hostIor);
@@ -203,7 +203,7 @@ fn nestedEnergy(hostDistance: f32, inclusionDistance: f32) -> vec3f {
   return clamp(
     exp(-params.energyInputs.xyz * max(0.0, hostDistance)
       - params.random.yzw * max(0.0, inclusionDistance))
-      * transmission * transmission
+      * transmission
       * inclusionTransmission * inclusionTransmission,
     vec3f(0.0),
     vec3f(1.0),
@@ -271,9 +271,10 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
   var exitPoint = exitHit.xyz;
   var finalHostDirection = insideDirection;
   var energy = vec3f(-1.0);
+  var inclusionPathUnresolved = false;
 
-  // One validated analytic inclusion only. Every failed inner refraction or
-  // incomplete host remarch leaves the original host-only path intact.
+  // One validated analytic inclusion only. A failed inner refraction or
+  // incomplete host remarch must never turn into a fictitious host-only ray.
   if (params.inclusionConfig.x > 0.5
     && params.inclusionConfig.y > 0.5
     && insideRefraction.w > 0.5) {
@@ -315,15 +316,27 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
             if (nestedExit.w > 0.0) {
               exitPoint = nestedExit.xyz;
               finalHostDirection = returnedHostDirection;
-              energy = nestedEnergy(
+              energy = nestedExitIncidentEnergy(
                 interval.x + nestedExit.w + 0.008,
                 distance(candidateEntry, candidateExit),
               );
+            } else {
+              inclusionPathUnresolved = true;
             }
+          } else {
+            inclusionPathUnresolved = true;
           }
+        } else {
+          inclusionPathUnresolved = true;
         }
+      } else {
+        inclusionPathUnresolved = true;
       }
     }
+  }
+  if (inclusionPathUnresolved) {
+    results[index] = result;
+    return;
   }
   let exitNormal = fieldNormal(exitPoint);
   let outgoingRefraction = refractDirection(finalHostDirection, -exitNormal, params.config0.z);
@@ -333,7 +346,10 @@ fn trace(@builtin(global_invocation_id) id: vec3u) {
     floorPoint = floorIntersection(exitPoint, outgoing, params.config1.z);
   }
   if (energy.x < 0.0) {
-    energy = hostEnergy(exitHit.w);
+    energy = hostExitIncidentEnergy(exitHit.w);
+  }
+  if (outgoingRefraction.w > 0.5) {
+    energy *= interfaceTransmission(params.config0.z, 1.0);
   }
 
   result.exitPoint = vec4f(exitPoint, 1.0);
@@ -570,16 +586,14 @@ export class WebGpuOpticsEngine {
   }
 
   setCpuFallback(sampleCount: number, message = "CPUプレビュー"): void {
-    if (this.status.kind === "checking" || this.status.kind === "cpu") {
-      this.status = {
-        kind: "cpu",
-        device: "",
-        sampleCount,
-        elapsedMs: null,
-        hitCount: 0,
-        message,
-      };
-    }
+    this.status = {
+      kind: "cpu",
+      device: "",
+      sampleCount,
+      elapsedMs: null,
+      hitCount: 0,
+      message,
+    };
   }
 
   private async initialize(): Promise<boolean> {

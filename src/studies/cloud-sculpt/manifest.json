@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added author-facing receiver diagnostics for Composite, Shadow coverage, Delivered light, and Non-arrival light without retracing or per-frame peak normalization. The transport field now stores spatial RGB non-arrival flux at each affected baseline position for material/interface loss, reflection, receiver/domain escape, and unresolved paths; support rejection remains separately identified. A persistent energy summary reports delivered, non-arrival, outside-support, and residual percentages. Recompute immediately suppresses stale Natural textures and Analysis geometry, GPU failure publishes an explicit CPU fallback, outer TIR no longer charges fictitious exit transmission, and unresolved inclusion-boundary paths can no longer fall through as host-only deposits. Added a pure CPU/WebGPU field comparator for revision/structure, RGB flux, centroid, 95% envelope, support IoU, and normalized spatial differences. Unit tests, production build, WebGPU shader compilation, all four modes, and no-retrace mode switching passed locally; the automated same-count device runner remains pending."
+    },
     {
       "date": "2026-08-01",
       "note": "Replaced Natural's independent direct-shadow plus additive focused-light composite with paired receiver transport. CPU and WebGPU now consume the same seeded aperture and angular sun-disk samples; every affected ray records an unobstructed receiver baseline, refracted RGB throughput, and deposited point in a stable 28-float GPU payload. The fixed HDR receiver removes the affected baseline before adding transported irradiance, and transport-stage support containment prevents detached light outside the reconstructed shadow footprint. Runtime diagnostics independently accumulate material/interface loss, reflection, receiver escape, support rejection, and unresolved invalid paths instead of filling the ledger residual after the fact. The author-facing Natural view no longer applies decorative five-band offsets, caustic gain, recoloring, peak compression, or a second shader mask to reference transport; those expressive controls remain Analysis-only. Deterministic tests cover shared source samples, angular distribution, GPU payload stride, scalar/RGB flux conservation, paired replacement, absorption monotonicity, fixed bounds, support rejection, and ledger residual. Normal and forced-safe local browser checks passed without warnings. Automated full-field device parity and a receiver diagnostic overlay remain pending."

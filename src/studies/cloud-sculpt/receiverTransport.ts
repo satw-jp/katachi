@@ -30,6 +30,8 @@ export interface ReceiverTransportField extends ReceiverFieldSpec {
   geometricCoverage: Float32Array;
   straightThroughputRgb: Float32Array;
   depositedFluxRgb: Float32Array;
+  /** Affected baseline flux that did not arrive at a represented receiver deposit. */
+  lossFluxRgb: Float32Array;
 }
 
 export interface ReceiverFieldSummary {
@@ -126,6 +128,7 @@ export function createReceiverTransportField(spec: ReceiverFieldSpec): ReceiverT
     geometricCoverage: new Float32Array(texelCount),
     straightThroughputRgb: new Float32Array(texelCount * 3),
     depositedFluxRgb: new Float32Array(texelCount * 3),
+    lossFluxRgb: new Float32Array(texelCount * 3),
   };
 }
 
@@ -167,6 +170,16 @@ export function splatBilinearStraightFluxRgb(
     flux,
     sampleWeight,
   );
+}
+
+export function splatBilinearLossFluxRgb(
+  field: ReceiverTransportField,
+  u: number,
+  v: number,
+  flux: FluxRgb,
+  sampleWeight = 1,
+): FluxSplatResult {
+  return splatBilinearRgbArray(field, field.lossFluxRgb, u, v, flux, sampleWeight);
 }
 
 function splatBilinearRgbArray(
@@ -290,6 +303,31 @@ export function blurFluxRgbEnergyNormalized(
   return output;
 }
 
+export function blurLossFluxRgbEnergyNormalized(
+  field: ReceiverTransportField,
+  radius: number,
+): ReceiverTransportField {
+  validateField(field);
+  const safeRadius = Math.max(0, Math.floor(Number.isFinite(radius) ? radius : 0));
+  const output = cloneField(field);
+  if (safeRadius === 0) return output;
+  const horizontal = scatterBlurRgb(
+    field.lossFluxRgb,
+    field.width,
+    field.height,
+    safeRadius,
+    true,
+  );
+  output.lossFluxRgb = scatterBlurRgb(
+    horizontal,
+    field.width,
+    field.height,
+    safeRadius,
+    false,
+  );
+  return output;
+}
+
 export function blurCoverageEnergyNormalized(
   field: ReceiverTransportField,
   radius: number,
@@ -325,6 +363,11 @@ export function integrateCoverageFlux(field: ReceiverTransportField): number {
 export function integrateFluxRgb(field: ReceiverTransportField): FluxRgb {
   validateField(field);
   return sumInterleavedRgb(field.depositedFluxRgb);
+}
+
+export function integrateLossFluxRgb(field: ReceiverTransportField): FluxRgb {
+  validateField(field);
+  return sumInterleavedRgb(field.lossFluxRgb);
 }
 
 /** Compact, deterministic diagnostics for runtime CPU/GPU comparisons. */
@@ -574,6 +617,7 @@ function cloneField(field: ReceiverTransportField): ReceiverTransportField {
     geometricCoverage: field.geometricCoverage.slice(),
     straightThroughputRgb: field.straightThroughputRgb.slice(),
     depositedFluxRgb: field.depositedFluxRgb.slice(),
+    lossFluxRgb: field.lossFluxRgb.slice(),
   };
 }
 
@@ -634,6 +678,7 @@ function validateField(field: ReceiverTransportField): void {
   validateRaster(field.geometricCoverage, field.width, field.height, 1);
   validateRaster(field.straightThroughputRgb, field.width, field.height, 3);
   validateRaster(field.depositedFluxRgb, field.width, field.height, 3);
+  validateRaster(field.lossFluxRgb, field.width, field.height, 3);
 }
 
 function validateRaster(

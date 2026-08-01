@@ -10,6 +10,7 @@ import {
   type OpticalHostPreset,
   type OpticalMaterial,
   type OpticalRainbowModel,
+  type ReceiverDisplayMode,
   type OpticalSettings,
   type OpticalView,
 } from "./optics.ts";
@@ -27,6 +28,7 @@ export type {
   OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
+  ReceiverDisplayMode,
   OpticalView,
 };
 export type { DaylightMode };
@@ -57,6 +59,7 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   inclusionRadius: 0.48,
   opticalDisplay: "density",
   opticalView: "natural",
+  receiverDisplayMode: "composite",
   ior: 1.5,
   daylightMode: "tokyo",
   daylightDate: "2026-08-01",
@@ -186,6 +189,7 @@ export class HikariLayer {
     options: {
       disableWebGpu?: boolean;
       onCausticField?: (field: CausticField) => void;
+      onTransportPending?: (pending: boolean) => void;
     } = {},
   ) {
     this.optics = new OpticsLayer(scene, options);
@@ -386,6 +390,12 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
         ? "both"
         : "density",
     opticalView: value.opticalView === "analysis" ? "analysis" : "natural",
+    receiverDisplayMode:
+      value.receiverDisplayMode === "coverage"
+      || value.receiverDisplayMode === "deposit"
+      || value.receiverDisplayMode === "loss"
+        ? value.receiverDisplayMode
+        : "composite",
     ior: clampNumber(value.ior, 1.01, 1.8, DEFAULT_HIKARI_SETTINGS.ior),
     daylightMode: value.daylightMode === "manual" ? "manual" : "tokyo",
     daylightDate: normalizeDaylightDate(value.daylightDate),

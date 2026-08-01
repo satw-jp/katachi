@@ -16,6 +16,7 @@ import type {
   OpticalHostPreset,
   OpticalMaterial,
   OpticalRainbowModel,
+  ReceiverDisplayMode,
   OpticalView,
   WorkspaceView,
 } from "./hikari.ts";
@@ -70,6 +71,9 @@ export interface UiHandles {
   syncHikariSettings: (settings: HikariSettings) => void;
   setOpticsComputeStatus: (
     status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
+  ) => void;
+  setReceiverEnergySummary: (
+    summary: { text: string; kind: "ok" | "warning" | "empty" },
   ) => void;
 }
 
@@ -581,6 +585,11 @@ export function buildUi(
   opticsComputeStatus.dataset.kind = "checking";
   opticsComputeStatus.textContent = "GPUを確認中";
   opticsControls.appendChild(opticsComputeStatus);
+  const receiverEnergySummary = document.createElement("div");
+  receiverEnergySummary.className = "receiver-energy-summary";
+  receiverEnergySummary.dataset.kind = "empty";
+  receiverEnergySummary.textContent = "受光面の変化を計算中";
+  opticsControls.appendChild(receiverEnergySummary);
 
   const daylightTitle = document.createElement("div");
   daylightTitle.className = "hikari-section-title";
@@ -664,6 +673,39 @@ export function buildUi(
   );
   opticsControls.appendChild(opticalViewControl.root);
   hikariControlSyncers.push((settings) => opticalViewControl.set(settings.opticalView));
+
+  const receiverDisplayControl = createSegmentedControl<ReceiverDisplayMode>(
+    ["composite", "coverage", "deposit", "loss"],
+    hikariState.receiverDisplayMode,
+    (receiverDisplayMode) => {
+      updateReceiverDisplayHint(receiverDisplayMode);
+      updateHikari({ receiverDisplayMode });
+    },
+    {
+      composite: "統合",
+      coverage: "影の範囲",
+      deposit: "届いた光",
+      loss: "届かなかった光",
+    },
+  );
+  opticsControls.appendChild(receiverDisplayControl.root);
+  const receiverDisplayHint = document.createElement("div");
+  receiverDisplayHint.className = "hint";
+  opticsControls.appendChild(receiverDisplayHint);
+  function updateReceiverDisplayHint(mode: ReceiverDisplayMode): void {
+    receiverDisplayHint.textContent = mode === "coverage"
+      ? "透明体が遮った、元の直射光の範囲です。"
+      : mode === "deposit"
+        ? "透明体を通って受光面へ戻った直射光です。"
+        : mode === "loss"
+          ? "この直射光のうち、受光面へ届かなかった光です。"
+          : "影と届いた光を、同じ自然光から作った見え方です。";
+  }
+  updateReceiverDisplayHint(hikariState.receiverDisplayMode);
+  hikariControlSyncers.push((settings) => {
+    receiverDisplayControl.set(settings.receiverDisplayMode);
+    updateReceiverDisplayHint(settings.receiverDisplayMode);
+  });
 
   const opticalColorTitle = document.createElement("div");
   opticalColorTitle.className = "hikari-section-title";
@@ -1038,6 +1080,10 @@ export function buildUi(
       opticsComputeStatus.textContent = status.text;
       opticsComputeStatus.dataset.kind = status.kind;
     },
+    setReceiverEnergySummary: (summary) => {
+      receiverEnergySummary.textContent = summary.text;
+      receiverEnergySummary.dataset.kind = summary.kind;
+    },
   };
 
   function updateHikari(patch: Partial<HikariSettings>): void {
@@ -1085,7 +1131,11 @@ export function buildUi(
       if (!element) throw new Error(`Missing Hikari property row: ${String(key)}`);
       return element;
     };
-    const statusGroup = createPropertyGroup("計算状態", [opticalSourceInfo, opticsComputeStatus]);
+    const statusGroup = createPropertyGroup("計算状態", [
+      opticalSourceInfo,
+      opticsComputeStatus,
+      receiverEnergySummary,
+    ]);
     const daylightGroup = createPropertyGroup("自然光", [
       daylightModeControl.root,
       tokyoDaylightControls,
@@ -1127,6 +1177,8 @@ export function buildUi(
     ]);
     const displayGroup = createPropertyGroup("光の表示", [
       opticalViewControl.root,
+      receiverDisplayControl.root,
+      receiverDisplayHint,
       opticalColorControl.root,
       rayToggle,
       row("opticalRayCount"),

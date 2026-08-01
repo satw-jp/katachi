@@ -80,9 +80,49 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
       transport: structuredClone(field.diagnostics),
     };
     document.documentElement.dataset.hikariReceiverField = JSON.stringify(receiverFieldSummary);
+    ui.setReceiverEnergySummary(summarizeReceiverEnergy(field.diagnostics));
     cloudRenderer.setCausticField(field);
   },
+  onTransportPending: (pending) => {
+    cloudRenderer.setCausticTransportPending(pending);
+    if (pending) {
+      ui.setReceiverEnergySummary({ text: "受光面の変化を計算中", kind: "empty" });
+    }
+  },
 });
+
+function summarizeReceiverEnergy(
+  diagnostics: CausticFieldDiagnostics,
+): { text: string; kind: "ok" | "warning" | "empty" } {
+  const ledger = diagnostics.energyLedger;
+  const luminance = (rgb: { r: number; g: number; b: number }): number =>
+    rgb.r * 0.2126 + rgb.g * 0.7152 + rgb.b * 0.0722;
+  const incident = luminance(ledger.incidentRgb);
+  if (!(incident > 1e-12)) {
+    return { text: "受光面の変化なし", kind: "empty" };
+  }
+  const delivered = luminance(ledger.depositedRgb);
+  const nonArrival = luminance(ledger.absorbedRgb)
+    + luminance(ledger.reflectedRgb)
+    + luminance(ledger.escapedRgb)
+    + luminance(ledger.unresolvedLossRgb);
+  const outside = luminance(ledger.supportRejectedRgb);
+  const residual = luminance({
+    r: Math.abs(ledger.residualRgb.r),
+    g: Math.abs(ledger.residualRgb.g),
+    b: Math.abs(ledger.residualRgb.b),
+  });
+  const percentage = (value: number): string => `${(value / incident * 100).toFixed(1)}%`;
+  const tolerance = diagnostics.source === "webgpu" ? 0.05 : 0.01;
+  const unresolvedRatio = luminance(ledger.unresolvedLossRgb) / incident;
+  const kind = ledger.relativeResidual <= tolerance && unresolvedRatio <= tolerance
+    ? "ok"
+    : "warning";
+  return {
+    text: `到達 ${percentage(delivered)} · 未到達 ${percentage(nonArrival)} · 範囲外 ${percentage(outside)} · 差 ${percentage(residual)}`,
+    kind,
+  };
+}
 
 // Seed the initial cloud so the app opens with something to look at
 // (an empty field is a legitimate but uninteresting state).
