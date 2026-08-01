@@ -231,6 +231,21 @@ Acceptance:
 - a sofa-size body and roof-size body restore exact units, material mode, environment, and receiver;
 - the roof case shows transmitted color, shadow, and focused-light distribution inside the simple context.
 
+## Phase 10 — multiple transparent bodies
+
+After one selected body passes the optical, placement, and scale gates, follow [multiple transparent bodies as a light composition](multi-body-composition.md). This is not arbitrary scene layout. It studies how several independent bodies separated by air divide, filter, redirect, and recombine the same natural light.
+
+Begin with two non-intersecting bodies and one shared receiver. Extend the CPU reference to repeated `air → body → air` intervals before connecting the realtime and WebGPU paths. Pair, Row, Arc, and Field may seed arrangements, but saved scenes contain explicit body identities, shape revisions, materials, physical scales, and poses.
+
+Acceptance:
+
+- a two-body ray accumulates both bodies' interfaces and RGB absorption in order;
+- side-by-side receiver drawings can be isolated by body and then read together;
+- reversing a colored/clear sequence has an explainable result;
+- screen-space overlap is distinguishable from a ray that actually traverses both bodies;
+- invalid interpenetration is reported until a general medium stack exists;
+- the arrangement restores exactly in hikari and can be reconstructed in Blender.
+
 ## Deferred
 
 - arbitrary nesting depth;
@@ -241,7 +256,7 @@ Acceptance:
 - automated Blender scene generation before the manual protocol is repeated enough to stabilize;
 - a generic shape editor inside hikari; initial variation comes from the live Katachi field and its existing small edits;
 - shot sequencing, keyframed cameras, and final-render controls;
-- room planning, collision, support analysis, and multiple-object arrangement;
+- general room planning, collision response, and support analysis;
 - non-uniform whole-object scale and transform hierarchies;
 - generic material support outside transparent and translucent media.
 

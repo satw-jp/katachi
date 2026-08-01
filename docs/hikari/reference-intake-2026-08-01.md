@@ -40,6 +40,17 @@ Natural light is the primary lighting study. The author wants to vary open air v
 
 This is not only environment styling around an object. The author has been asking whether a transparent body can collect and redirect daylight into a small room with no artificial lighting and behave as a daylighting device. hikari should therefore support thinking about the form and the environment together, including same-exposure body/no-body comparisons that show concentration, redistribution, and loss.
 
+## Confirmed author intention: multiple bodies compose one light field
+
+The author also wants to study the optical relation created by arranging several independent forms. This is supported especially clearly by:
+
+- `L1003046-768x512.jpg`: several chair-like transparent bodies share one broad receiver; their spacing, material differences, long shadows, and local light drawings read as one room-scale composition;
+- `L1003163-1536x1024.jpg`: many clear and colored bodies on a reflective surface make foreground/background refraction, depth order, reflection, and partial occlusion inseparable;
+- `L1003171-1536x1024.jpg`: a clear foreground body, purple middle body, and dark body form an explicit sequence through which other works and the room are seen;
+- `IMGP7769_1280.jpg`: seat and back already behave as separate transparent bodies, sending light to both floor and wall receivers.
+
+The first computational question is a non-intersecting pair: side by side on one receiver, then ordered along the incoming light. It must distinguish a camera overlap from a ray that actually passes through both bodies. Larger Row, Arc, and Field compositions follow only after that two-body transport is stable; see [multiple transparent bodies as a light composition](multi-body-composition.md).
+
 ## Initial 12 cases
 
 | ID | Source file | Question for hikari |

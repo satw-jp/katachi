@@ -142,6 +142,7 @@ Related documents:
 - [Abstract receiver surface](receiver-surface.md)
 - [Living-shape and freeze workflow](living-shape.md)
 - [Physical scale and spatial context](scale-context.md)
+- [Multiple transparent bodies as a light composition](multi-body-composition.md)
 - [Artwork, Ambient, and open-call strategy](artwork-strategy.md)
 - [Ambient environmental artwork contract](ambient-integration.md)
 - [Blender study 01 reading](blender-study-01.md)
