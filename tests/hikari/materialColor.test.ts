@@ -84,6 +84,25 @@ test("Hikari settings normalize custom colors and migrate legacy documents", () 
   assert.equal(clamped.inclusionAbsorption, 40);
 });
 
+test("Blender comparison backlight is disabled by default and bounded when restored", () => {
+  const defaults = normalizeHikariSettings({});
+  assert.equal(defaults.backlightEnabled, false);
+  assert.equal(defaults.backlightIntensity, DEFAULT_HIKARI_SETTINGS.backlightIntensity);
+
+  const configured = normalizeHikariSettings({
+    backlightEnabled: true,
+    backlightIntensity: 99,
+    backlightWidth: 0,
+    backlightHeight: 99,
+    backlightDistance: -3,
+  });
+  assert.equal(configured.backlightEnabled, true);
+  assert.equal(configured.backlightIntensity, 16);
+  assert.equal(configured.backlightWidth, 0.25);
+  assert.equal(configured.backlightHeight, 20);
+  assert.equal(configured.backlightDistance, 0.5);
+});
+
 test("inclusion transmitted color preserves legacy neutral concentration and reaches every backend", () => {
   const neutral = buildCloudOpticalScene(
     [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],

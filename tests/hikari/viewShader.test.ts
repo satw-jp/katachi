@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { presentFragmentShader } from "../../src/studies/cloud-sculpt/renderer.ts";
 import { fragmentShader } from "../../src/studies/cloud-sculpt/shaders.ts";
 
 test("view transport uses geometric rather than cosmetic surface normals", () => {
@@ -41,4 +42,28 @@ test("visible sun and finite lighting share the authored angular diameter", () =
   assert.match(fragmentShader, /float sunDisc = visibleSunDisc\(direction\)/);
   assert.match(fragmentShader, /float diskRadius = tan\(radians\(max\(0\.1, uSunSize\) \* 0\.5\)\)/);
   assert.doesNotMatch(fragmentShader, /pow\(max\(dot\(direction, normalize\(uLightDir\)\), 0\.0\), 420\.0\)/);
+});
+
+test("Blender comparison backlight is a finite BODY-only environment emitter", () => {
+  assert.match(fragmentShader, /uniform int uBacklightEnabled/);
+  assert.match(fragmentShader, /vec3 backlightEnvironment\(vec3 origin, vec3 direction, vec3 fallback\)/);
+  assert.match(fragmentShader, /vec3 panelNormal = normalize\(uLightDir\)/);
+  assert.match(fragmentShader, /vec3 panelCenter = uShapeCenter \+ panelNormal \* uBacklightDistance/);
+  assert.match(fragmentShader, /return vec3\(1\.0, 0\.95, 0\.90\) \* uBacklightIntensity/);
+  assert.match(fragmentShader, /return backlightEnvironment\(origin, direction, fallback\);/);
+});
+
+test("equal-IOR inclusion is integrated as Blender-style absorption void", () => {
+  assert.match(fragmentShader, /bool inclusionIsAbsorptionVoid\(\)/);
+  assert.match(fragmentShader, /abs\(uIor - uInclusionIor\) < 0\.0005/);
+  assert.match(fragmentShader, /uInclusionRadius \* 0\.07855/);
+  assert.match(fragmentShader, /vec3 absorptionVoidOpticalDepth\(/);
+  assert.match(fragmentShader, /mix\(\s*hostCoefficient,\s*uInclusionAbsorptionRgb,/);
+  assert.match(fragmentShader, /&& !inclusionIsAbsorptionVoid\(\)/);
+});
+
+test("realtime and progressive presentation apply the renderer output colorspace", () => {
+  const bodyTransforms = fragmentShader.match(/#include <colorspace_fragment>/g) ?? [];
+  assert.ok(bodyTransforms.length >= 4);
+  assert.match(presentFragmentShader, /#include <colorspace_fragment>/);
 });

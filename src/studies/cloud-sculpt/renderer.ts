@@ -35,7 +35,7 @@ const accumulationFragmentShader = /* glsl */ `
   }
 `;
 
-const presentFragmentShader = /* glsl */ `
+export const presentFragmentShader = /* glsl */ `
   precision highp float;
   uniform sampler2D uImage;
   uniform float uExposure;
@@ -49,6 +49,7 @@ const presentFragmentShader = /* glsl */ `
       color = vec3(luminance);
     }
     gl_FragColor = vec4(color, 1.0);
+    #include <colorspace_fragment>
   }
 `;
 
@@ -173,6 +174,12 @@ export class CloudRenderer {
         uSkyIntensity: { value: 0.85 },
         uSunIntensity: { value: 1.25 },
         uSunSize: { value: 0.53 },
+        uBacklightEnabled: { value: 0 },
+        uBacklightIntensity: { value: 3 },
+        uBacklightWidth: { value: 3 },
+        uBacklightHeight: { value: 3 },
+        uBacklightDistance: { value: 5 },
+        uShapeCenter: { value: new THREE.Vector3() },
         uGroundReflectance: { value: 0.7 },
         uOpticalExposure: { value: 1 },
         uSurfaceRoughness: { value: 0.08 },
@@ -269,6 +276,11 @@ export class CloudRenderer {
     this.material.uniforms.uSkyIntensity.value = settings.skyIntensity;
     this.material.uniforms.uSunIntensity.value = daylight.aboveHorizon ? settings.sunIntensity : 0;
     this.material.uniforms.uSunSize.value = settings.sunSize;
+    this.material.uniforms.uBacklightEnabled.value = settings.backlightEnabled ? 1 : 0;
+    this.material.uniforms.uBacklightIntensity.value = settings.backlightIntensity;
+    this.material.uniforms.uBacklightWidth.value = settings.backlightWidth;
+    this.material.uniforms.uBacklightHeight.value = settings.backlightHeight;
+    this.material.uniforms.uBacklightDistance.value = settings.backlightDistance;
     this.material.uniforms.uGroundReflectance.value = settings.groundReflectance;
     this.material.uniforms.uOpticalExposure.value = settings.opticalExposure;
     this.material.uniforms.uSurfaceRoughness.value = settings.surfaceRoughness;
@@ -486,6 +498,19 @@ export class CloudRenderer {
     for (let i = 0; i < n; i++) {
       posArr[i].set(balls[i].x, balls[i].y, balls[i].z);
       radArr[i] = balls[i].r;
+    }
+    const shapeCenter = this.material.uniforms.uShapeCenter.value as THREE.Vector3;
+    if (n === 0) {
+      shapeCenter.set(0, 0, 0);
+    } else {
+      const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+      const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+      for (let i = 0; i < n; i++) {
+        const ball = balls[i];
+        min.min(new THREE.Vector3(ball.x - ball.r, ball.y - ball.r, ball.z - ball.r));
+        max.max(new THREE.Vector3(ball.x + ball.r, ball.y + ball.r, ball.z + ball.r));
+      }
+      shapeCenter.addVectors(min, max).multiplyScalar(0.5);
     }
     this.material.uniforms.uBallCount.value = n;
     this.material.uniforms.uK.value = k;

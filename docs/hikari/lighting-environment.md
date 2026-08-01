@@ -26,6 +26,8 @@ The current Natural view is primarily one procedural outdoor environment, now dr
 - one hard-coded receiver plane whose brightness is scaled by `groundReflectance`;
 - transparent shadow and focused-light textures composed separately.
 
+For the controlled Blender comparison only, v0.29.2 adds one finite rectangular backlight emitter to BODY environment lookup. It reproduces the active `World + Emission plane` source in `study_01_light_size05.blend`; it is not a general artificial-light editor, does not enter receiver/shadow transport yet, and is not called a window. The physical reference remains west sun entering through a real window. That condition belongs to the explicit room/opening geometry below, where the solar direction and the vertical aperture remain separate quantities.
+
 `daylightRoom.ts` now defines and validates a renderer-independent room, ceiling height, object point, and multiple rectangular windows on each of the four walls. It identifies sun-facing apertures and whether a direct ray reaches the object. This geometry is not rendered and does not clip the focused-light field yet. The view is therefore not yet room/window light, theatrical spotlight, participating fog volume, or a material-aware floor. Those names are used only after the relevant runtime model exists or are explicitly labelled as visual approximations.
 
 ## Scene boundary

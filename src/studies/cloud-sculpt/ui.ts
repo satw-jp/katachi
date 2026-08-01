@@ -1139,6 +1139,10 @@ export function buildUi(
       | "skyIntensity"
       | "sunIntensity"
       | "sunSize"
+      | "backlightIntensity"
+      | "backlightWidth"
+      | "backlightHeight"
+      | "backlightDistance"
       | "groundReflectance"
       | "opticalExposure"
       | "surfaceRoughness"
@@ -1183,6 +1187,10 @@ export function buildUi(
     { key: "skyIntensity", label: "空の明るさ", min: 0.1, max: 2.5, step: 0.05 },
     { key: "sunIntensity", label: "太陽の強さ", min: 0, max: 3, step: 0.05 },
     { key: "sunSize", label: "光源の広がり °", min: 0.1, max: 30, step: 0.1 },
+    { key: "backlightIntensity", label: "発光面の強さ", min: 0, max: 16, step: 0.1 },
+    { key: "backlightWidth", label: "発光面の幅", min: 0.25, max: 20, step: 0.05 },
+    { key: "backlightHeight", label: "発光面の高さ", min: 0.25, max: 20, step: 0.05 },
+    { key: "backlightDistance", label: "発光面までの距離", min: 0.5, max: 40, step: 0.1 },
     { key: "groundReflectance", label: "地面の反射", min: 0.05, max: 1.5, step: 0.05 },
     { key: "opticalExposure", label: "露出", min: 0.25, max: 2.5, step: 0.05 },
   ];
@@ -1227,6 +1235,22 @@ export function buildUi(
     }
   };
   applyRainbowModelVisibility(hikariState.rainbowModel);
+
+  const backlightToggle = document.createElement("button");
+  backlightToggle.type = "button";
+  const applyBacklightToggle = (enabled: boolean): void => {
+    backlightToggle.classList.toggle("active", enabled);
+    backlightToggle.textContent = `背面発光面 ${enabled ? "ON" : "OFF"}`;
+    backlightToggle.setAttribute("aria-pressed", String(enabled));
+  };
+  applyBacklightToggle(hikariState.backlightEnabled);
+  backlightToggle.onclick = () => {
+    updateHikari({ backlightEnabled: !hikariState.backlightEnabled });
+  };
+  hikariControlSyncers.push((settings) => applyBacklightToggle(settings.backlightEnabled));
+  const backlightNote = document.createElement("div");
+  backlightNote.className = "hint";
+  backlightNote.textContent = "Blender比較用の有限な背面発光面です。BODY表示だけに反映され、床の影・受光・集光にはまだ加算しません。実際の窓・室内の開口は次段階です。";
 
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
@@ -1546,6 +1570,14 @@ export function buildUi(
       row("environmentMist"),
       row("groundReflectance"),
     ]);
+    const backlightGroup = createPropertyGroup("背面発光面（Blender比較）", [
+      backlightToggle,
+      row("backlightIntensity"),
+      row("backlightWidth"),
+      row("backlightHeight"),
+      row("backlightDistance"),
+      backlightNote,
+    ]);
     const displayGroup = createPropertyGroup("光の表示", [
       opticalViewControl.root,
       receiverDisplayControl.root,
@@ -1565,6 +1597,7 @@ export function buildUi(
       inclusionGroup,
       rainbowGroup,
       environmentGroup,
+      backlightGroup,
       displayGroup,
     );
   }

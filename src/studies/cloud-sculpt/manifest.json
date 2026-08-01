@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.29.1",
+  "version": "0.29.2",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Corrected the Blender backlight comparison after the author rejected the v0.29.1 broad-sun .hkr as too dark. Headless inspection of study_01_light_size05.blend showed that the rendered scene uses a gray World plus a 0.8-by-0.8 Emission plane at strength 5; its Area and Point lights are hidden. Resin_scatter has IOR 1.45, roughness 0.05, zero Volume Scatter density, and one material-coordinate mask that smoothly changes Volume Absorption density from 0.5 to zero, so the bright region is an equal-IOR absorption void rather than a nested refractive object or emitted glow. Realtime BODY and Progressive presentation now apply the renderer's linear-to-output colorspace transform exactly once, while accumulation targets stay linear. Equal-IOR inclusions bypass their nested interface and integrate a seven-sample smooth absorption mask matching the Blender ramp. Added a saved finite rectangular backlight emitter for this controlled BODY comparison and clearly separated it from the later physical west-sun/window room model; receiver/shadow transport does not yet consume that emitter. The revised .hkr uses Blender-matched IOR/roughness, zero inclusion absorption, calibrated host RGB coefficients, a finite backlight, and no direct sun. All 63 Hikari tests, production build, local WebGPU Realtime and 64-spp Progressive passed without browser warnings or errors."
+    },
     {
       "date": "2026-08-01",
       "note": "Added a reproducible direct-sun/backlight diagnostic after the supplied dense-host case remained dark. The saved camera centre ray missed the 0.8 degree sun disc (1.114 degree centre separation versus a 0.4 degree radius), and even an exactly centred camera ray is displaced roughly 5–7 degrees by the irregular outer refraction. A one-action control now preserves target and camera distance while centring the direct background sun and explicitly warns that body refraction moves the sun image again. Added a validated 27.3 degree broad-source .hkr comparison that produces the Blender-like bright source and clear equal-IOR inclusion response without calling it a physical sun. Also corrected the unresolved outer-TIR realtime fallback so it never samples the outside environment with the pre-TIR incident direction. All 59 Hikari tests and the production build pass."

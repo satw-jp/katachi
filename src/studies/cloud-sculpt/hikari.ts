@@ -76,6 +76,11 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   skyIntensity: 0.85,
   sunIntensity: 1.25,
   sunSize: 0.53,
+  backlightEnabled: false,
+  backlightIntensity: 3,
+  backlightWidth: 3,
+  backlightHeight: 3,
+  backlightDistance: 5,
   groundReflectance: 0.7,
   opticalExposure: 1,
   surfaceRoughness: 0.08,
@@ -469,6 +474,34 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
       DEFAULT_HIKARI_SETTINGS.sunIntensity,
     ),
     sunSize: clampNumber(value.sunSize, 0.1, 30, DEFAULT_HIKARI_SETTINGS.sunSize),
+    backlightEnabled:
+      typeof value.backlightEnabled === "boolean"
+        ? value.backlightEnabled
+        : DEFAULT_HIKARI_SETTINGS.backlightEnabled,
+    backlightIntensity: clampNumber(
+      value.backlightIntensity,
+      0,
+      16,
+      DEFAULT_HIKARI_SETTINGS.backlightIntensity,
+    ),
+    backlightWidth: clampNumber(
+      value.backlightWidth,
+      0.25,
+      20,
+      DEFAULT_HIKARI_SETTINGS.backlightWidth,
+    ),
+    backlightHeight: clampNumber(
+      value.backlightHeight,
+      0.25,
+      20,
+      DEFAULT_HIKARI_SETTINGS.backlightHeight,
+    ),
+    backlightDistance: clampNumber(
+      value.backlightDistance,
+      0.5,
+      40,
+      DEFAULT_HIKARI_SETTINGS.backlightDistance,
+    ),
     groundReflectance: clampNumber(
       value.groundReflectance,
       0.05,

@@ -52,6 +52,12 @@ export const fragmentShader = /* glsl */ `
   uniform float uSkyIntensity;
   uniform float uSunIntensity;
   uniform float uSunSize;
+  uniform int uBacklightEnabled;
+  uniform float uBacklightIntensity;
+  uniform float uBacklightWidth;
+  uniform float uBacklightHeight;
+  uniform float uBacklightDistance;
+  uniform vec3 uShapeCenter;
   uniform float uGroundReflectance;
   uniform float uOpticalExposure;
   uniform float uSurfaceRoughness;
@@ -193,6 +199,44 @@ export const fragmentShader = /* glsl */ `
     return density / 7.0;
   }
 
+  bool inclusionIsAbsorptionVoid() {
+    return uInclusionEnabled == 1
+      && abs(uIor - uInclusionIor) < 0.0005;
+  }
+
+  float absorptionVoidWeight(vec3 p) {
+    if (!inclusionIsAbsorptionVoid()) return 0.0;
+    // Blender reference Resin_scatter uses an Object-coordinate radius ramp:
+    // zero density through 92.145% of the pocket radius, then a short linear
+    // transition back to the host density. Keep the same causal quantity here
+    // instead of drawing a luminous or refractive inner surface.
+    float feather = max(0.01, uInclusionRadius * 0.07855);
+    return 1.0 - smoothstep(
+      uInclusionRadius - feather,
+      uInclusionRadius,
+      length(p - uInclusionCenter)
+    );
+  }
+
+  vec3 absorptionVoidOpticalDepth(
+    vec3 startPoint,
+    vec3 endPoint,
+    float pathLength
+  ) {
+    vec3 opticalDepth = vec3(0.0);
+    for (int i = 0; i < 7; i++) {
+      float t = (float(i) + 0.5) / 7.0;
+      vec3 samplePoint = mix(startPoint, endPoint, t);
+      vec3 hostCoefficient = uHostAbsorptionRgb * materialPattern(samplePoint);
+      opticalDepth += mix(
+        hostCoefficient,
+        uInclusionAbsorptionRgb,
+        absorptionVoidWeight(samplePoint)
+      );
+    }
+    return opticalDepth * max(0.0, pathLength) / 7.0;
+  }
+
   float junctionStress(vec3 p) {
     float nearest = 1e5;
     float second = 1e5;
@@ -302,8 +346,10 @@ export const fragmentShader = /* glsl */ `
     }
     float hostLength = max(0.0, insideDistance - inclusionLength);
     float hostDensity = segmentMaterialDensity(entryPoint, exitPoint);
-    vec3 opticalDepth = uHostAbsorptionRgb * hostLength * hostDensity
-      + uInclusionAbsorptionRgb * inclusionLength;
+    vec3 opticalDepth = inclusionIsAbsorptionVoid()
+      ? absorptionVoidOpticalDepth(entryPoint, exitPoint, insideDistance)
+      : uHostAbsorptionRgb * hostLength * hostDensity
+        + uInclusionAbsorptionRgb * inclusionLength;
     float interfaceTransmission = pow(normalInterfaceTransmission(1.0, uIor), 2.0);
     if (inclusionLength > 0.0001) {
       interfaceTransmission *= pow(
@@ -569,16 +615,42 @@ export const fragmentShader = /* glsl */ `
     return sky;
   }
 
+  vec3 backlightEnvironment(vec3 origin, vec3 direction, vec3 fallback) {
+    if (uBacklightEnabled == 0) return fallback;
+    vec3 panelNormal = normalize(uLightDir);
+    float denominator = dot(direction, panelNormal);
+    if (denominator <= 0.0001) return fallback;
+    vec3 panelCenter = uShapeCenter + panelNormal * uBacklightDistance;
+    float rayDistance = dot(panelCenter - origin, panelNormal) / denominator;
+    if (rayDistance <= 0.0) return fallback;
+    vec3 hitPoint = origin + direction * rayDistance;
+    vec3 panelReference = abs(panelNormal.y) < 0.95
+      ? vec3(0.0, 1.0, 0.0)
+      : vec3(1.0, 0.0, 0.0);
+    vec3 panelRight = normalize(cross(panelReference, panelNormal));
+    vec3 panelUp = normalize(cross(panelNormal, panelRight));
+    vec3 local = hitPoint - panelCenter;
+    if (
+      abs(dot(local, panelRight)) > uBacklightWidth * 0.5
+      || abs(dot(local, panelUp)) > uBacklightHeight * 0.5
+    ) return fallback;
+    // This is an emitter visible through BODY/view refraction only. It does
+    // not yet add energy to receiver transport or the caustic field.
+    return vec3(1.0, 0.95, 0.90) * uBacklightIntensity;
+  }
+
   vec3 opticalEnvironment(vec3 origin, vec3 direction) {
-    return uNaturalView == 1
+    vec3 fallback = uNaturalView == 1
       ? naturalEnvironment(origin, direction, true)
       : analysisEnvironment(origin, direction);
+    return backlightEnvironment(origin, direction, fallback);
   }
 
   vec3 roughEnvironmentSample(vec3 origin, vec3 direction) {
-    return uNaturalView == 1
+    vec3 fallback = uNaturalView == 1
       ? naturalEnvironment(origin, direction, false)
       : analysisEnvironment(origin, direction);
+    return backlightEnvironment(origin, direction, fallback);
   }
 
   vec3 roughOpticalEnvironment(vec3 origin, vec3 direction) {
@@ -796,12 +868,14 @@ export const fragmentShader = /* glsl */ `
       if (uRenderMode == 1) {
         vec3 environment = opticalEnvironment(ro, rd);
         gl_FragColor = vec4(opticalOutput(environment), 1.0);
+        #include <colorspace_fragment>
         return;
       }
       // Soft vertical gradient background, not pure black — makes a
       // hollow ("no balls yet") state readable at a glance.
       float g = 0.5 + 0.5 * vUv.y;
       gl_FragColor = vec4(mix(vec3(0.055, 0.06, 0.075), vec3(0.09, 0.1, 0.12), g), 1.0);
+      #include <colorspace_fragment>
       return;
     }
 
@@ -828,7 +902,11 @@ export const fragmentShader = /* glsl */ `
       // A nested interface contributes only when its complete path resolves.
       // The body view keeps the previously solved host path when it does not;
       // strict receiver transport still rejects the unresolved path separately.
-      if (hasExit && uInclusionEnabled == 1) {
+      if (
+        hasExit
+        && uInclusionEnabled == 1
+        && !inclusionIsAbsorptionVoid()
+      ) {
         float inclusionNear = 0.0;
         float inclusionFar = 0.0;
         bool intersectsInclusion = rayInclusionInterval(
@@ -1016,8 +1094,10 @@ export const fragmentShader = /* glsl */ `
       }
       float absorptionScale = uNaturalView == 1 ? 0.34 : 1.0;
       float density = hasExit ? segmentMaterialDensity(p, exitPoint) : materialPattern(p);
-      vec3 opticalDepth = uHostAbsorptionRgb * hostDistance * density
-        + uInclusionAbsorptionRgb * inclusionDistance;
+      vec3 opticalDepth = inclusionIsAbsorptionVoid() && hasExit
+        ? absorptionVoidOpticalDepth(p, exitPoint, travelled)
+        : uHostAbsorptionRgb * hostDistance * density
+          + uInclusionAbsorptionRgb * inclusionDistance;
       vec3 transmission = exp(-opticalDepth * absorptionScale)
         * nestedInterfaceTransmission;
       vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
@@ -1041,6 +1121,7 @@ export const fragmentShader = /* glsl */ `
       );
       color += vec3(1.0, 0.94, 0.82) * highlight * uSunIntensity * 0.22;
       gl_FragColor = vec4(opticalOutput(color), 1.0);
+      #include <colorspace_fragment>
       return;
     }
 
@@ -1054,5 +1135,6 @@ export const fragmentShader = /* glsl */ `
     }
 
     gl_FragColor = vec4(color, 1.0);
+    #include <colorspace_fragment>
   }
 `;

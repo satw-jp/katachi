@@ -167,6 +167,16 @@ export interface OpticalSettings {
   skyIntensity: number;
   sunIntensity: number;
   sunSize: number;
+  /**
+   * A finite emitter used to compare a Blender world + emissive-plane
+   * setup. This is BODY/view transport only; it is not yet an input to
+   * receiver transport or the caustic solver.
+   */
+  backlightEnabled: boolean;
+  backlightIntensity: number;
+  backlightWidth: number;
+  backlightHeight: number;
+  backlightDistance: number;
   groundReflectance: number;
   opticalExposure: number;
   surfaceRoughness: number;
