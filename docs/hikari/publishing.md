@@ -33,6 +33,18 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.21.1
+
+- Git commit deployed: `4d70482` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Plan commit: `1c9b506` (shared receiver transport and energy-ledger roadmap, committed before implementation)
+- Cloudflare Version ID: `964c9607-b140-477e-9141-6c7442d89b2b`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Deployed correction: Natural/Analysis, CPU, and WebGPU now use `OpticalScene.receiver` instead of mixing the visible `y=-2.35` floor with a shape-derived focused-light plane; unresolved entry/exit TIR cannot deposit receiver energy
+- Author-facing rule: the focused-light contribution is temporarily gated by the same finite-source transmission support as the visible shadow, so an independently detached bright patch is not composited
+- Normal production check: v0.21.1, Tokyo 17:00, Apple metal-3 WebGPU, 16,384 rays / 4,497 shape hits, Natural active and diagnostic rays off
+- Forced compatibility check: v0.21.1, `?safe=1`, CPU preview, 56 rays, Tokyo 17:00
+- Known remaining work: replace the peak-normalized 8-bit `CausticField` with a fixed-domain HDR receiver transport field, shared light samples, and an energy ledger before room, living-shape, placement, multi-body, or Ambient Mix implementation
+
 ## Release record — 2026-08-01 — v0.21.0
 
 - Git commit deployed: `f078bc1` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
