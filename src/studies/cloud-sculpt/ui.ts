@@ -101,7 +101,7 @@ export function buildUi(
   callbacks: UiCallbacks,
 ): UiHandles {
   const root = document.createElement("div");
-  root.className = "panel";
+  root.className = "panel side-panel";
 
   const title = document.createElement("div");
   title.className = "panel-title";
@@ -760,6 +760,7 @@ export function buildUi(
     { key: "inclusionOffsetZ", label: "内包 Z", min: -1.5, max: 1.5, step: 0.01 },
     { key: "inclusionRadius", label: "内包の大きさ", min: 0.12, max: 1.2, step: 0.01 },
   ];
+  const inclusionSetters = new Map<keyof HikariSettings, (value: number) => void>();
   for (const spec of inclusionSliders) {
     const built = createSlider({
       label: spec.label,
@@ -770,11 +771,29 @@ export function buildUi(
       format: (value) => (spec.key === "inclusionIor" ? value.toFixed(3) : value.toFixed(2)),
       onChange: (value) => updateHikari({ [spec.key]: value }),
     });
+    inclusionSetters.set(spec.key, built.set);
     inclusionControls.appendChild(built.row);
     hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
   }
   opticsControls.appendChild(inclusionControls);
   hikariControlSyncers.push((settings) => applyInclusionVisibility(settings.inclusionEnabled));
+
+  const matchBlenderInclusion = document.createElement("button");
+  matchBlenderInclusion.type = "button";
+  matchBlenderInclusion.textContent = "同じ樹脂（色だけ薄い）";
+  matchBlenderInclusion.title = "外側と内側の屈折率を揃え、RefのBlenderと同じ吸収差の比較へ合わせます";
+  matchBlenderInclusion.onclick = () => {
+    const inclusionIor = hikariState.ior;
+    const inclusionAbsorption = 0.02;
+    inclusionSetters.get("inclusionIor")?.(inclusionIor);
+    inclusionSetters.get("inclusionAbsorption")?.(inclusionAbsorption);
+    applyInclusionVisibility(true);
+    updateHikari({ inclusionEnabled: true, inclusionIor, inclusionAbsorption });
+  };
+  const inclusionRelationshipNote = document.createElement("div");
+  inclusionRelationshipNote.className = "hint";
+  inclusionRelationshipNote.textContent =
+    "Blender基準は境界で強く曲げず、同じ樹脂の中で色材の吸収だけが薄い領域として比べます。";
 
   const materialTitle = document.createElement("div");
   materialTitle.className = "hikari-section-title";
@@ -877,6 +896,7 @@ export function buildUi(
   ];
   const prismRows: HTMLElement[] = [];
   const stressRows: HTMLElement[] = [];
+  const opticalRows = new Map<keyof HikariSettings, HTMLElement>();
   for (const spec of opticalSliders) {
     const built = createSlider({
       label: spec.label,
@@ -897,6 +917,7 @@ export function buildUi(
     if (spec.key === "stressAmount" || spec.key === "polarization") {
       stressRows.push(built.row);
     }
+    opticalRows.set(spec.key, built.row);
     opticsControls.appendChild(built.row);
     if (spec.key === "lightAngle") manualLightAngleRow = built.row;
     hikariControlSyncers.push((settings) => built.set(settings[spec.key]));
@@ -920,6 +941,7 @@ export function buildUi(
   opticsNote.textContent =
     "v0.19.0: 東京の日付と時刻から太陽の方位・高度を変えられます。内包はまず一つの球で検証中です。CPUとWebGPUは同じ太陽方向と内包経路から床の集光を作ります。";
   opticsControls.appendChild(opticsNote);
+  organiseOpticsProperties();
   hikariControls.appendChild(opticsControls);
 
   function applyPhenomenon(phenomenon: HikariPhenomenon): void {
@@ -927,7 +949,9 @@ export function buildUi(
     opticsControls.hidden = phenomenon !== "optics";
   }
   applyPhenomenon(hikariState.phenomenon);
-  root.appendChild(hikariControls);
+  organiseKatachiProperties();
+  organiseHikariProperties();
+  const shell = buildApplicationShell();
 
   let currentView = initialView;
   const applyView = (view: WorkspaceView): void => {
@@ -937,6 +961,7 @@ export function buildUi(
     hikariButton.classList.toggle("active", view === "hikari");
     katachiControls.hidden = view !== "katachi";
     hikariControls.hidden = view !== "hikari";
+    shell.syncView(view);
   };
   katachiButton.onclick = () => {
     if (currentView === "katachi") return;
@@ -1026,6 +1051,370 @@ export function buildUi(
       targetLongestMm: Number(sizeInput.value),
     };
   }
+
+  function organiseKatachiProperties(): void {
+    const formGroup = createPropertyGroup("形をつくる", [
+      growRow,
+      ...sliders.map(({ spec }) => {
+        const label = Array.from(katachiControls.querySelectorAll(".slider-row label"))
+          .find((candidate) => candidate.textContent === spec.label);
+        return label?.closest<HTMLElement>(".slider-row") ?? null;
+      }).filter((node): node is HTMLElement => node !== null),
+      seedRow,
+      hint,
+    ], true);
+    const selectionGroup = createPropertyGroup("選択", [
+      selectionInfo,
+      ballEditor,
+      deleteBtn,
+    ], true);
+    const meshGroup = createPropertyGroup("3Dデータ", [meshPanel]);
+    const historyGroup = createPropertyGroup("履歴と初期化", [
+      historyRow,
+      importRow,
+      clearBtn,
+      historyCount,
+      fps,
+    ]);
+    katachiControls.replaceChildren(formGroup, selectionGroup, meshGroup, historyGroup);
+  }
+
+  function organiseOpticsProperties(): void {
+    const row = (key: keyof HikariSettings): HTMLElement => {
+      const element = opticalRows.get(key);
+      if (!element) throw new Error(`Missing Hikari property row: ${String(key)}`);
+      return element;
+    };
+    const statusGroup = createPropertyGroup("計算状態", [opticalSourceInfo, opticsComputeStatus]);
+    const daylightGroup = createPropertyGroup("自然光", [
+      daylightModeControl.root,
+      tokyoDaylightControls,
+      daylightReadout,
+      row("lightAngle"),
+      row("lightWidth"),
+      row("skyIntensity"),
+      row("sunIntensity"),
+      row("sunSize"),
+    ], true);
+    const bodyGroup = createPropertyGroup("外側の透明体", [
+      hostPresetControl.root,
+      materialControl.root,
+      row("ior"),
+      row("surfaceRoughness"),
+      row("surfaceVariation"),
+      row("materialVariation"),
+      row("materialScale"),
+      row("absorption"),
+    ]);
+    const inclusionGroup = createPropertyGroup("内包 01", [
+      inclusionToggle,
+      matchBlenderInclusion,
+      inclusionRelationshipNote,
+      inclusionControls,
+    ]);
+    const rainbowGroup = createPropertyGroup("虹と応力", [
+      rainbowModelControl.root,
+      dispersionModeGroup,
+      row("dispersion"),
+      row("stressAmount"),
+      row("polarization"),
+    ]);
+    const environmentGroup = createPropertyGroup("環境と床", [
+      row("environmentContrast"),
+      row("environmentRotation"),
+      row("environmentMist"),
+      row("groundReflectance"),
+    ]);
+    const displayGroup = createPropertyGroup("光の表示", [
+      opticalViewControl.root,
+      opticalColorControl.root,
+      rayToggle,
+      row("opticalRayCount"),
+      row("opticalSampleCount"),
+      row("causticStrength"),
+      row("opticalExposure"),
+      opticsNote,
+    ]);
+    opticsControls.replaceChildren(
+      statusGroup,
+      daylightGroup,
+      bodyGroup,
+      inclusionGroup,
+      rainbowGroup,
+      environmentGroup,
+      displayGroup,
+    );
+  }
+
+  function organiseHikariProperties(): void {
+    groupDirectSections(flowControls, new Set(["表示"]));
+    const recordGroup = createPropertyGroup("記録", [
+      caseIdInput,
+      observationInput,
+      caseSave,
+      caseOpen,
+      caseFile,
+      caseStatus,
+    ]);
+    const blenderGroup = createPropertyGroup("Blenderへ渡す", [
+      blenderSizeRow,
+      blenderResolutionRow,
+      blenderExportButton,
+      blenderExportStatus,
+    ]);
+    hikariControls.replaceChildren(
+      sourceInfo,
+      phenomenonTitle,
+      phenomenonControl.root,
+      flowControls,
+      opticsControls,
+      recordGroup,
+      blenderGroup,
+    );
+  }
+
+  function buildApplicationShell(): { syncView: (view: WorkspaceView) => void } {
+    const topbar = document.createElement("header");
+    topbar.className = "application-bar";
+
+    const identity = document.createElement("div");
+    identity.className = "application-identity";
+    identity.appendChild(title);
+    identity.appendChild(versionRow);
+    topbar.appendChild(identity);
+    topbar.appendChild(workspaceSwitch);
+
+    const fileActions = document.createElement("div");
+    fileActions.className = "file-actions";
+    const openButton = makeToolbarButton("開く", "ファイルを開く (⌘O)");
+    const saveButton = makeToolbarButton("保存", "現在の状態を保存 (⌘S)");
+    const exportButton = makeToolbarButton("書き出し", "3Dデータを書き出す");
+    fileActions.append(openButton, saveButton, exportButton);
+    topbar.appendChild(fileActions);
+
+    const fullscreenButton = makeToolbarButton("全画面", "操作部分を隠して表示を大きくする");
+    fullscreenButton.classList.add("fullscreen-button");
+    fullscreenButton.setAttribute("aria-pressed", "false");
+    topbar.appendChild(fullscreenButton);
+
+    const exitFullscreenButton = makeToolbarButton("全画面を終了", "操作画面へ戻る");
+    exitFullscreenButton.classList.add("fullscreen-exit");
+    container.appendChild(exitFullscreenButton);
+
+    const panelTabs = document.createElement("div");
+    panelTabs.className = "panel-tabs";
+    const layersTab = makeToolbarButton("レイヤー", "シーンの構成を見る");
+    const propertiesTab = makeToolbarButton("プロパティ", "選択した項目を調整する");
+    panelTabs.append(layersTab, propertiesTab);
+
+    const layersPane = document.createElement("div");
+    layersPane.className = "panel-pane layers-pane";
+    const propertiesPane = document.createElement("div");
+    propertiesPane.className = "panel-pane properties-pane";
+    propertiesPane.append(katachiControls, hikariControls);
+    root.replaceChildren(panelTabs, layersPane, propertiesPane);
+
+    let activeView = initialView;
+    const setPanel = (panel: "layers" | "properties"): void => {
+      const showLayers = panel === "layers";
+      layersPane.hidden = !showLayers;
+      propertiesPane.hidden = showLayers;
+      layersTab.classList.toggle("active", showLayers);
+      propertiesTab.classList.toggle("active", !showLayers);
+    };
+    layersTab.onclick = () => setPanel("layers");
+    propertiesTab.onclick = () => setPanel("properties");
+
+    const layerDefinitions: Record<WorkspaceView, Array<{ label: string; target: string }>> = {
+      katachi: [
+        { label: "雲の形", target: "形をつくる" },
+        { label: "選択中の部分", target: "選択" },
+        { label: "3Dデータ", target: "3Dデータ" },
+        { label: "操作の履歴", target: "履歴と初期化" },
+      ],
+      hikari: [
+        { label: "自然光", target: "自然光" },
+        { label: "外側の透明体", target: "外側の透明体" },
+        { label: "内包 01", target: "内包 01" },
+        { label: "虹と応力", target: "虹と応力" },
+        { label: "環境と床", target: "環境と床" },
+        { label: "光の表示", target: "光の表示" },
+        { label: "観察の記録", target: "記録" },
+        { label: "Blender", target: "Blenderへ渡す" },
+      ],
+    };
+
+    const navigateToProperty = (target: string): void => {
+      setPanel("properties");
+      const summary = Array.from(propertiesPane.querySelectorAll("summary"))
+        .find((candidate) => candidate.textContent === target);
+      if (!summary) return;
+      const workspace = summary.closest(".workspace-controls");
+      for (const group of workspace?.querySelectorAll(".property-group") ?? []) {
+        (group as HTMLDetailsElement).open = false;
+      }
+      let details = summary.closest("details");
+      while (details) {
+        details.open = true;
+        details = details.parentElement?.closest("details") ?? null;
+      }
+      summary.scrollIntoView({ block: "start", behavior: "smooth" });
+    };
+
+    const renderLayers = (): void => {
+      layersPane.replaceChildren();
+      const sceneTitle = document.createElement("div");
+      sceneTitle.className = "layer-heading";
+      sceneTitle.textContent = activeView === "hikari" ? "HIKARI シーン" : "KATACHI シーン";
+      layersPane.appendChild(sceneTitle);
+      for (const [index, definition] of layerDefinitions[activeView].entries()) {
+        const layer = document.createElement("button");
+        layer.type = "button";
+        layer.className = "layer-item";
+        const marker = document.createElement("span");
+        marker.className = "layer-marker";
+        marker.style.setProperty("--layer-index", String(index));
+        const label = document.createElement("span");
+        label.textContent = definition.label;
+        const disclosure = document.createElement("span");
+        disclosure.className = "layer-disclosure";
+        disclosure.textContent = "›";
+        layer.append(marker, label, disclosure);
+        layer.onclick = () => navigateToProperty(definition.target);
+        layersPane.appendChild(layer);
+      }
+
+      const studies = document.createElement("details");
+      studies.className = "study-links";
+      const studiesSummary = document.createElement("summary");
+      studiesSummary.textContent = "ほかの実験";
+      studies.appendChild(studiesSummary);
+      for (const link of [nav, navSag, navMpm, navFoam, navRings, navPack, navSkin]) {
+        studies.appendChild(link);
+      }
+      layersPane.appendChild(studies);
+    };
+
+    const runOpen = (): void => {
+      if (activeView === "hikari") caseOpen.click();
+      else importInput.click();
+    };
+    const runSave = (): void => {
+      if (activeView === "hikari") caseSave.click();
+      else exportBtn.click();
+    };
+    const runExport = (): void => {
+      if (activeView === "hikari") blenderExportButton.click();
+      else exportMeshBtn.click();
+    };
+    openButton.onclick = runOpen;
+    saveButton.onclick = runSave;
+    exportButton.onclick = runExport;
+
+    let focusMode = false;
+    const requestViewportResize = (): void => {
+      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    };
+    const syncFullscreen = (): void => {
+      focusMode = Boolean(document.fullscreenElement) || container.classList.contains("focus-mode");
+      fullscreenButton.setAttribute("aria-pressed", String(focusMode));
+      fullscreenButton.textContent = focusMode ? "全画面を終了" : "全画面";
+    };
+    const leaveFullscreen = async (): Promise<void> => {
+      container.classList.remove("focus-mode");
+      requestViewportResize();
+      if (document.fullscreenElement) await document.exitFullscreen();
+      syncFullscreen();
+    };
+    const enterFullscreen = async (): Promise<void> => {
+      container.classList.add("focus-mode");
+      syncFullscreen();
+      requestViewportResize();
+      try {
+        if (!document.fullscreenElement && container.requestFullscreen) {
+          await container.requestFullscreen();
+        }
+      } catch {
+        // Focus mode remains useful when the browser denies native fullscreen.
+      }
+      syncFullscreen();
+    };
+    fullscreenButton.onclick = () => void (focusMode ? leaveFullscreen() : enterFullscreen());
+    exitFullscreenButton.onclick = () => void leaveFullscreen();
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) container.classList.remove("focus-mode");
+      syncFullscreen();
+      requestViewportResize();
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      if (event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        runOpen();
+      } else if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        runSave();
+      }
+    });
+
+    container.insertBefore(topbar, container.firstChild);
+    setPanel("properties");
+    renderLayers();
+
+    return {
+      syncView: (view) => {
+        activeView = view;
+        renderLayers();
+        openButton.title = view === "hikari" ? "景色の記録を開く (⌘O)" : "形の履歴を開く (⌘O)";
+        saveButton.title = view === "hikari" ? "この景色を保存 (⌘S)" : "形の履歴を保存 (⌘S)";
+        exportButton.title = view === "hikari" ? "Blender用一式を書き出す" : "3Dデータを書き出す";
+      },
+    };
+  }
+}
+
+function makeToolbarButton(label: string, title: string): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.title = title;
+  return button;
+}
+
+function createPropertyGroup(label: string, nodes: HTMLElement[], open = false): HTMLDetailsElement {
+  const details = document.createElement("details");
+  details.className = "property-group";
+  details.open = open;
+  const summary = document.createElement("summary");
+  summary.textContent = label;
+  const body = document.createElement("div");
+  body.className = "property-group-body";
+  body.append(...nodes);
+  details.append(summary, body);
+  return details;
+}
+
+function groupDirectSections(container: HTMLElement, initiallyOpen: Set<string>): void {
+  const original = Array.from(container.children) as HTMLElement[];
+  const groups: HTMLDetailsElement[] = [];
+  let label = "設定";
+  let nodes: HTMLElement[] = [];
+  const flush = (): void => {
+    if (nodes.length === 0) return;
+    groups.push(createPropertyGroup(label, nodes, initiallyOpen.has(label)));
+    nodes = [];
+  };
+  for (const node of original) {
+    if (node.classList.contains("hikari-section-title")) {
+      flush();
+      label = node.textContent?.trim() || "設定";
+    } else {
+      nodes.push(node);
+    }
+  }
+  flush();
+  container.replaceChildren(...groups);
 }
 
 function createSegmentedControl<T extends string>(

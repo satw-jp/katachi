@@ -1,10 +1,18 @@
 @import "../../styles/base.css";
 
 #app {
-  display: flex;
+  display: grid;
+  grid-template:
+    "bar bar" 48px
+    "viewport panel" minmax(0, 1fr)
+    / minmax(0, 1fr) 340px;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+}
+
+#viewport {
+  grid-area: viewport;
 }
 
 #viewport.dragging-ball {
@@ -12,15 +20,244 @@
 }
 
 .panel {
-  width: 300px;
-  flex-shrink: 0;
+  grid-area: panel;
+  min-width: 0;
+  min-height: 0;
   background: var(--panel-bg);
-  padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   border-left: 1px solid var(--hairline);
+}
+
+.application-bar {
+  grid-area: bar;
+  z-index: 4;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 8px 0 14px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.application-identity {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 220px;
+  padding-right: 8px;
+}
+
+.application-identity .panel-title {
+  font-size: 13px;
+}
+
+.application-identity .version-row {
+  margin: 0;
+  font-size: 9px;
+}
+
+.application-bar .workspace-switch {
+  align-self: center;
+  width: 174px;
+}
+
+.file-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-left: auto;
+}
+
+.application-bar button {
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  padding: 0 13px;
+  background: transparent;
+}
+
+.application-bar button:last-child {
+  border-right: 1px solid var(--hairline);
+}
+
+.application-bar button:hover {
+  background: rgba(28, 28, 26, 0.045);
+}
+
+.fullscreen-button {
+  align-self: stretch;
+}
+
+.fullscreen-exit {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  top: 14px;
+  right: 14px;
+  padding: 8px 12px;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(16, 17, 20, 0.72);
+  color: #fff;
+  backdrop-filter: blur(10px);
+}
+
+#app.focus-mode {
+  display: block;
+}
+
+#app.focus-mode #viewport {
+  width: 100%;
+  height: 100%;
+}
+
+#app.focus-mode .application-bar,
+#app.focus-mode .side-panel {
+  display: none;
+}
+
+#app.focus-mode .fullscreen-exit {
+  display: block;
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 0 0 40px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.panel-tabs button {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.panel-tabs button + button {
+  border-left: 1px solid var(--hairline);
+}
+
+.panel-tabs button.active {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.panel-pane {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.panel-pane[hidden] {
+  display: none;
+}
+
+.properties-pane {
+  padding: 10px;
+}
+
+.layers-pane {
+  padding: 10px 0;
+}
+
+.layer-heading {
+  padding: 2px 14px 8px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.layer-item {
+  width: 100%;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  text-align: left;
+}
+
+.layer-item:last-of-type {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.layer-marker {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: calc(0.82 - var(--layer-index) * 0.1);
+}
+
+.layer-disclosure {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.study-links {
+  margin: 12px 14px 0;
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+
+.study-links summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.study-links .nav-link {
+  display: block;
+  padding: 5px 0 0 14px;
+}
+
+.property-group {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.property-group > summary {
+  position: sticky;
+  top: -10px;
+  z-index: 1;
+  padding: 9px 4px;
+  background: var(--paper);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  list-style-position: outside;
+}
+
+.property-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 2px 3px 12px;
+}
+
+.property-group .property-group {
+  margin-left: 5px;
+  border-left: 1px solid var(--hairline);
+  border-bottom: 0;
+  padding-left: 8px;
+}
+
+.property-group .property-group > summary {
+  position: static;
+  padding: 7px 2px;
+  color: var(--muted);
 }
 
 .workspace-switch,
@@ -56,7 +293,7 @@
 .workspace-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 
 .workspace-controls[hidden] {
@@ -66,7 +303,7 @@
 .hikari-mode-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 
 .hikari-mode-controls[hidden] {
@@ -226,4 +463,96 @@ input[type="number"] {
 
 .mesh-status[data-ok="false"] {
   color: var(--danger);
+}
+
+@media (max-width: 920px) {
+  #app {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .application-identity {
+    min-width: 0;
+  }
+
+  .application-identity .panel-title {
+    max-width: 132px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .application-identity .version-row {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  #app {
+    grid-template:
+      "bar" 44px
+      "viewport" minmax(0, 1fr)
+      "panel" minmax(190px, 40vh)
+      / minmax(0, 1fr);
+  }
+
+  .application-bar {
+    gap: 3px;
+    padding-left: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .application-identity {
+    display: none;
+  }
+
+  .application-bar .workspace-switch {
+    flex: 0 0 132px;
+    width: 132px;
+  }
+
+  .application-bar button {
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .file-actions {
+    margin-left: 0;
+  }
+
+  .side-panel {
+    border-top: 1px solid var(--hairline);
+    border-left: 0;
+  }
+
+  .properties-pane {
+    padding: 6px 10px;
+  }
+
+  .property-group > summary {
+    top: -6px;
+  }
+
+  .fullscreen-exit {
+    top: 9px;
+    right: 9px;
+  }
+}
+
+@media (max-width: 430px) {
+  .application-bar .workspace-switch {
+    flex-basis: 112px;
+  }
+
+  .application-bar button {
+    padding-inline: 8px;
+  }
+
+  .fullscreen-button {
+    font-size: 0 !important;
+  }
+
+  .fullscreen-button::after {
+    content: "⛶";
+    font-size: 16px;
+  }
 }

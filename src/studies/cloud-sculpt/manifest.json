@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Reorganized Cloud Sculpt and Hikari into a conventional application shell. Contextual Open, Save, and Export actions plus the workspace switch and fullscreen mode stay in a non-scrolling top bar. A Rhino-like right dock separates scene Layers from collapsible Properties, while fullscreen hides the chrome but retains an exit control. At 700px and below the dock moves under the viewport without introducing page scroll. Added an explicit same-resin inclusion action after the author observed that a low-IOR separate inclusion did not match the Ref Blender study; it aligns inner/outer IOR and leaves absorption contrast as the variable."
+    },
     {
       "date": "2026-08-01",
       "note": "Added the first one-action Hikari-to-Blender handoff. The Hikari panel exports a watertight author-scaled OBJ, topology-check STL, shape recipe, Hikari case, and strict Blender study sidecar with SHA-256 hashes. Sidecar v2 explicitly maps Hikari right-handed Y-up coordinates to Blender right-handed Z-up as (x,y,z)→(x,-z,y), carries camera aspect/FOV, receiver, host/inclusion media, sun direction/angular diameter, and separates primary from check assets. Added a Blender bootstrap that reconstructs the scene without clearing existing work unless requested; the first analytic spherical inclusion may be generated when no mesh exists."
