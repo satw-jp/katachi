@@ -167,7 +167,7 @@ function summarizeReceiverParity(
     .map(([gate]) => gateLabels[gate as keyof typeof metrics.gates]);
   const failure = failedGates.length > 0 ? ` · 要確認 ${failedGates.join("/")}` : "";
   return {
-    text: `${label} · 光量差 ${(maxFlux * 100).toFixed(2)}% · 重心 ${centroid}px · 外形 ${envelope}px · 支持域 ${(metrics.supportIou * 100).toFixed(1)}% · 到達L1 ${(metrics.normalizedDepositL1 * 100).toFixed(1)}% · 影L1 ${(metrics.normalizedCoverageL1 * 100).toFixed(1)}%${failure}`,
+    text: `${label} · 光量差 ${(maxFlux * 100).toFixed(2)}% · 重心 ${centroid} texel · 外形 ${envelope} texel · 支持域 ${(metrics.supportIou * 100).toFixed(1)}% · 到達L1 ${(metrics.normalizedDepositL1 * 100).toFixed(1)}% · 影L1 ${(metrics.normalizedCoverageL1 * 100).toFixed(1)}%${failure}`,
     kind: report.pass ? "passed" : "failed",
   };
 }
