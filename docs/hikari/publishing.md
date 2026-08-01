@@ -27,6 +27,8 @@ The production page must be built and deployed from a committed revision. Do not
    - the same-count comparison leaves the displayed receiver/status unchanged and reports every gate; safe mode reports comparison unavailable without disturbing its CPU preview;
    - two saved views can be recalled and written as one `.hkr`, and a legacy single case remains accepted;
    - Natural view enables RENDER, 16/64/256 spp complete or STOP retains the latest sample, and camera/material/receiver/resize changes return to Realtime;
+   - automatic orbit starts/stops, changes direction/lap duration, disables RENDER while moving, and restores it after stopping;
+   - the analytic inclusion exposes a transmitted-color picker whose change survives reload and receiver recomputation;
    - `BODY · WebGL2` reports the actual capped HDR target resolution separately from the receiver backend;
    - Image produces a non-empty PNG at the current renderer pixel resolution without application chrome;
    - no browser errors are emitted.
@@ -38,6 +40,21 @@ The production page must be built and deployed from a committed revision. Do not
 ## Rollback
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
+
+## Release record — 2026-08-01 — v0.28.0
+
+- Git commit deployed: `d3d72d8` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `bba85d70-1cff-41ee-8b86-4cef095daa7f`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Schedule: added the active weekly execution plan and corrected the order to uniform inclusion material → representative receiver parity → deeper Progressive BODY → living-shape bridge; spatial pigment variation no longer precedes the uniform optical gates
+- Camera recording: Record now provides automatic orbit Start/Stop, direction, and 10–180 second lap duration while preserving target, horizontal radius, elevation, and lens; manual OrbitControls input stops the orbit
+- Progressive contract: starting automatic orbit discards any retained still, RENDER remains disabled while the camera moves, and becomes available again after stopping
+- Inclusion material: the analytic inclusion now has its own transmitted-color picker and independent absorption concentration; white preserves every legacy neutral coefficient exactly
+- Shared path: the adapter-derived inclusion RGB is consumed by Realtime/Progressive BODY, transparent shadow, CPU/WebGPU receiver transport, `.hkr`, and Blender export; color participates in the receiver scene revision
+- Production asset verification: the served root resolved to `assets/main-DcLBg9F5.js` and `assets/main-Ccj2NRbW.css`; the bundle contains app `0.28.0`, commit `d3d72d8`, `inclusionTransmissionColor`, `内包の透過色`, and `自動回転を開始`
+- Browser verification: production reported `GPU · WebGPU`, exposed both new controls, disabled RENDER during orbit, restored it after STOP, and emitted no browser warning/error
+- Verification: `npm run test:hikari` passed 52/52 tests; `VITE_GIT_COMMIT=d3d72d8 npm run build` passed; independent diff review found no major or medium release blocker
+- Known remaining work: representative raw/fixed-radius CPU/WebGPU parity cases, deeper Progressive host/inclusion paths and unresolved metrics, then the living-shape freeze bridge
 
 ## Release record — 2026-08-01 — v0.27.0
 
