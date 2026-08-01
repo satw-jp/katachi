@@ -41,6 +41,18 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.28.2
+
+- Git commit deployed: `45e9d64` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `e177c3fc-1066-4e17-94f4-08f99b6b56b4`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Document naming: every `.hkr` download now includes its UTC save time down to milliseconds; a current-day default becomes `hikari-2026-08-01T08-22-15-709Z.hkr` rather than relying on browser suffixes such as `(1)`.
+- Revision identity: the stable internal `documentId` is unchanged, so time-stamped downloads remain revisions of one editable study rather than new documents.
+- Supplied-case diagnosis: recorded the private v0.28.1 author case as equal outer/inclusion IOR `1.246`, zero inclusion absorption, host absorption `27.3`, sun size `27.3°`, environment contrast `0`, and mist `1`; this rules out an accidental IOR mismatch and identifies environment/source cues plus bounded nested BODY paths as the next comparison variables.
+- Production asset verification: the served root resolved to `assets/main-DqRx7Smx.js`; the live page reported `v0.28.2` and `GPU · WebGPU`.
+- Browser verification: top-bar Save produced `hikari-2026-08-01T08-22-15-709Z.hkr` on production and reported one saved view.
+- Verification: `npm run test:hikari` passed 54/54 tests and `VITE_GIT_COMMIT=45e9d64 npm run build` passed.
+
 ## Release record — 2026-08-01 — v0.28.1
 
 - Git commit deployed: `def4320` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
