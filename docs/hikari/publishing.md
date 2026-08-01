@@ -33,6 +33,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.22.0
+
+- Git commit deployed: `5fa6973` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `7a97ee9a-a612-4b14-bd1e-69adf94c0867`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Deployed transport: fixed 32×32 shape-unit receiver domain at 512² Float32 flux, aperture/sample weighting, edge-energy-normalized reconstruction, normalized five-band RGB flux, Float32 texture upload with shader-side bilinear sampling, and fixed display exposure
+- Backend alignment: CPU/WebGPU use the same rectangular aperture extents, host absorption/interface throughput, receiver/light revisions, and per-emitted-sample flux; the CPU safe path computes 256–2,048 transport rays independently from its bounded Analysis geometry
+- Local daylight check: Tokyo 2026-08-01 09:00, 12:00, and 17:00 WebGPU Natural views kept focused light within the transparent shadow support with no detached patch; integrated RGB flux was stable and no browser warnings were emitted
+- Local 17:00 parity check: WebGPU 16,384 rays versus forced-safe CPU 1,024 rays differed by 0.78% in total RGB flux and 0.18 shape unit in receiver centroid; peak irradiance remained backend-dependent at about 0.43 versus 0.59
+- Production check: cache-busted v0.22.0 loaded in normal WebGPU and `?safe=1` CPU modes; both published the expected receiver diagnostics, rendered shadow-contained focused light, and emitted no production-origin browser warnings or errors
+- Verification: `npm run test:hikari` passed 9/9 deterministic tests; `VITE_GIT_COMMIT=5fa6973 npm run build` passed
+- Known remaining work: the bounded receiver records about 9% escaped-domain flux in the 17:00 reference; Natural still adds focused transport to an independent direct term behind a temporary support gate. Shared finite-light baseline replacement, runtime energy-ledger closure, validation-mode spectral cleanup, and automated full-field CPU/WebGPU tolerance gates remain Phase 3 work
+
 ## Release record — 2026-08-01 — v0.21.1
 
 - Git commit deployed: `4d70482` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
