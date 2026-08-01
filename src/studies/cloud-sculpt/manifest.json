@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.25.2",
+  "version": "0.25.3",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Restored the earlier continuous transparent-body appearance after the v0.25.2 bounded ambient fallback removed black islands but read as broad flat brown surfaces. Geometric normals remain authoritative for entry/exit medium decisions, while cosmetic normals remain limited to appearance. When the realtime view cannot complete a nested inclusion path within its bounded work, it keeps the already solved outer-host path. Outer-interface TIR gets one additional internal bounce; any still-unresolved body-view pixel then uses the earlier smooth host-looking environment approximation instead of black or flat pigment. This is an explicit body-view continuity approximation only: CPU/WebGPU receiver transport still rejects unresolved energy, and the v0.25.1 adaptive receiver reconstruction is unchanged. Added the dual-mode rendering decision to the implementation plan: immediate realtime observation while moving, followed by an author-triggered progressive still render that increases samples and path depth after the view stops. Shader contracts, 36/36 tests, production build, and local WebGPU visual verification passed."
+    },
     {
       "date": "2026-08-01",
       "note": "Fixed the large black islands on the transparent body reported after v0.25.1. Cosmetic surface-normal variation had been reused for entry/exit refraction decisions, inventing broad unresolved/TIR regions; unresolved pixels then retained only a roughly four-percent Fresnel reflection and suppressed tint/haze, so a dark environment appeared as opaque black. View transport now uses unperturbed geometric normals while reflection, Fresnel appearance, and highlights retain the perturbed shading normal. Truly unresolved view rays keep known front reflection plus bounded host-tinted ambient instead of converting an implementation limit into black absorption. Receiver CPU/WebGPU transport and its energy ledger are unchanged. Added shader contract regressions; 35/35 tests, production build, WebGPU and SAFE body views passed locally without browser warnings."

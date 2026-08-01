@@ -49,7 +49,7 @@ evidence cases
 
 The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
 
-v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. Unresolved view paths retain bounded host-tinted ambient rather than becoming black, while CPU/WebGPU receiver transport continues to reject unresolved energy. This removes a view regression; it does not complete recursive internal reflection/refraction or relax the receiver ledger.
+v0.25.2 separates geometric transport normals from cosmetic surface normals in the realtime body shader. v0.25.3 removes the resulting flat host-tinted ambient patches: an incomplete nested body-view path keeps the already solved outer-host path, and outer TIR receives one additional bounded internal bounce before the earlier smooth view approximation is used. CPU/WebGPU receiver transport continues to reject unresolved energy. This restores realtime visual continuity; it does not complete recursive internal reflection/refraction or relax the receiver ledger.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -260,6 +260,17 @@ End the phase with a paired small-unlit-room case: identical exposure and enviro
 - accepted M4–M6 and M9–M12 Blender comparisons and selected physical reference observations.
 
 The Primary and author review the Natural view first. Numeric tests and Analysis views can explain a failure but cannot pass a visually unconvincing result.
+
+### Realtime observation and Progressive Render
+
+Hikari uses two deliberately different accuracy budgets rather than making every camera movement wait for a final render:
+
+1. **Realtime Observation** remains active while the camera, shape, material, light, or environment moves. It uses bounded path depth and documented continuity fallbacks so the author can enjoy and discover changes without interruption.
+2. **Progressive Render** starts only by author action after a view is still. It clears its own accumulation, increases ray samples and internal reflection/refraction depth in stages, and displays elapsed time, samples per pixel, unresolved-path ratio, and a convergence indicator. The author can stop at any moment and export the latest complete accumulation.
+
+The progressive result must never be blended across a camera, shape, material, light, room, or receiver revision. Any such edit cancels accumulation and returns to Realtime Observation. The initial milestone is a current-viewport still image, not animation: `RENDER` / `STOP`, deterministic seed, 1/4/16/64+ samples per pixel, deeper host–inclusion paths, PNG export, and the exact `.hkr` view plus renderer/version metadata. Denoising may follow only after an undenoised reference can be inspected.
+
+This mode is the path toward resolving the pixels that realtime must approximate. Blender remains the final scene and animation comparator; Hikari's advantage is that the same exploratory viewport can be refined without rebuilding it elsewhere.
 
 ## Phase 6 — capture an interesting state, then compare
 

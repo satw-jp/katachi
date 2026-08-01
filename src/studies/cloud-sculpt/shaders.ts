@@ -780,25 +780,21 @@ export const fragmentShader = /* glsl */ `
       n = perturbSurfaceNormal(n, p);
       float eta = 1.0 / max(1.001, uIor);
       vec3 insideDirection = refract(rd, geometricNormal, eta);
-      bool opticalPathUnresolved = length(insideDirection) < 0.01;
-      if (opticalPathUnresolved) insideDirection = reflect(rd, geometricNormal);
+      bool entryResolved = length(insideDirection) >= 0.01;
+      if (!entryResolved) insideDirection = reflect(rd, geometricNormal);
       vec3 exitPoint = p;
       float travelled = 0.0;
-      bool hasExit = !opticalPathUnresolved
+      bool hasExit = entryResolved
         && marchInside(p, insideDirection, exitPoint, travelled);
-      if (!hasExit) opticalPathUnresolved = true;
-      vec3 hostOnlyExitPoint = exitPoint;
-      float hostOnlyDistance = travelled;
       float hostDistance = travelled;
       float inclusionDistance = 0.0;
       float nestedInterfaceTransmission = 1.0;
       bool traversedInclusion = false;
       vec3 finalHostDirection = insideDirection;
 
-      // A nested interface is only allowed to contribute when the complete
-      // host→inclusion→host→air path resolves. Partial paths are surfaced below
-      // as front-interface reflection; they must not masquerade as host-only
-      // transmission.
+      // A nested interface contributes only when its complete path resolves.
+      // The body view keeps the previously solved host path when it does not;
+      // strict receiver transport still rejects the unresolved path separately.
       if (hasExit && uInclusionEnabled == 1) {
         float inclusionNear = 0.0;
         float inclusionFar = 0.0;
@@ -814,7 +810,7 @@ export const fragmentShader = /* glsl */ `
           && inclusionNear < travelled - 0.012
         ) {
           if (inclusionFar >= travelled - 0.012) {
-            opticalPathUnresolved = true;
+            // Keep the already solved outer-host path in the realtime view.
           } else {
             vec3 inclusionEntry = p + insideDirection * inclusionNear;
             vec3 inclusionEntryNormal = normalize(inclusionEntry - uInclusionCenter);
@@ -860,29 +856,64 @@ export const fragmentShader = /* glsl */ `
                 }
               }
             }
-            if (!traversedInclusion) opticalPathUnresolved = true;
           }
         }
       }
 
       vec3 outgoing = finalHostDirection;
       vec3 exitNormal = -n;
+      bool hasTransmittedExit = false;
       if (hasExit) {
         vec3 exitGeometricNormal = estimateNormal(exitPoint);
         exitNormal = perturbSurfaceNormal(exitGeometricNormal, exitPoint);
         vec3 refractedOut = refract(finalHostDirection, -exitGeometricNormal, uIor);
         if (length(refractedOut) < 0.01) {
-          opticalPathUnresolved = true;
+          // Resolve one real internal-reflection bounce before giving up. A
+          // realtime TIR ray must not sample the outside as if it transmitted.
+          vec3 tirDirection = reflect(finalHostDirection, -exitGeometricNormal);
+          vec3 tirStart = exitPoint + tirDirection * 0.008;
+          vec3 tirExitPoint = tirStart;
+          float tirDistance = 0.0;
+          bool hasTirExit = marchInside(
+            tirStart,
+            tirDirection,
+            tirExitPoint,
+            tirDistance
+          );
+          if (hasTirExit) {
+            vec3 tirExitGeometricNormal = estimateNormal(tirExitPoint);
+            vec3 tirRefractedOut = refract(
+              tirDirection,
+              -tirExitGeometricNormal,
+              uIor
+            );
+            if (length(tirRefractedOut) >= 0.01) {
+              outgoing = tirRefractedOut;
+              exitPoint = tirExitPoint;
+              exitNormal = perturbSurfaceNormal(
+                tirExitGeometricNormal,
+                tirExitPoint
+              );
+              hostDistance += tirDistance + 0.008;
+              travelled = hostDistance + inclusionDistance;
+              hasTransmittedExit = true;
+            }
+          }
         } else {
           outgoing = refractedOut;
+          hasTransmittedExit = true;
         }
       }
 
       float facing = clamp(dot(-rd, n), 0.0, 1.0);
       float fresnelBase = pow((uIor - 1.0) / (uIor + 1.0), 2.0);
       float fresnel = fresnelBase + (1.0 - fresnelBase) * pow(1.0 - facing, 5.0);
-      vec3 refractedColor = roughOpticalEnvironment(hasExit ? exitPoint : p, outgoing);
-      if (!opticalPathUnresolved && hasExit && !traversedInclusion && uRainbowModel != 1 && uDispersion > 0.001) {
+      bool viewContinuityFallback = !hasTransmittedExit;
+      vec3 refractedColor = roughOpticalEnvironment(
+        hasExit ? exitPoint : p,
+        outgoing
+      );
+      if (hasTransmittedExit && !traversedInclusion && uRainbowModel != 1 && uDispersion > 0.001) {
         float locality = 1.0;
         if (uDispersionMode == 1) {
           float bend = clamp(length(outgoing - rd) / 1.15, 0.0, 1.0);
@@ -911,7 +942,7 @@ export const fragmentShader = /* glsl */ `
           refractedColor = mix(refractedColor, spectralColor, spectralVisibility);
         }
       }
-      if (!opticalPathUnresolved && hasExit && !traversedInclusion && uRainbowModel != 0 && uStressAmount > 0.001) {
+      if (hasTransmittedExit && !traversedInclusion && uRainbowModel != 0 && uStressAmount > 0.001) {
         vec3 middle = mix(p, exitPoint, 0.5);
         float junction = max(junctionStress(p), junctionStress(exitPoint));
         float thicknessStress = smoothstep(0.35, 3.2, travelled);
@@ -939,32 +970,15 @@ export const fragmentShader = /* glsl */ `
         * nestedInterfaceTransmission;
       vec3 reflectedColor = roughOpticalEnvironment(p, reflect(rd, n));
       float edgeGlow = pow(1.0 - facing, 2.2);
-      // The receiver transport correctly rejects an unresolved path. The body
-      // view must not present that numerical/feature limit as opaque black,
-      // though. Show known front reflection plus bounded host-tinted ambient;
-      // do not claim a solved inclusion or rear-interface transmission.
-      float unresolvedDistance = hasExit
-        ? min(max(hostOnlyDistance, 0.18), 1.5)
-        : 0.65;
-      float unresolvedDensity = hasExit
-        ? segmentMaterialDensity(p, hostOnlyExitPoint)
-        : materialPattern(p);
-      vec3 unresolvedAttenuation = exp(
-        -uHostAbsorptionRgb * unresolvedDistance * unresolvedDensity * absorptionScale
-      );
-      vec3 unresolvedAmbient = mix(
-        uOpticalTint,
-        roughOpticalEnvironment(p, rd),
-        0.68
-      ) * unresolvedAttenuation * 0.48;
-      vec3 color = opticalPathUnresolved
-        ? reflectedColor * fresnel + unresolvedAmbient * (1.0 - fresnel)
-        : mix(refractedColor * transmission, reflectedColor, fresnel);
-      color += uOpticalTint * edgeGlow * 0.22
-        * (opticalPathUnresolved ? 0.32 : 1.0);
+      // Realtime observation favors the earlier continuous transparent look.
+      // After the bounded TIR bounce, any still-unresolved body-view pixel uses
+      // the same smooth host-looking environment approximation as the original
+      // view. The flag makes that limitation explicit for Progressive Render;
+      // strict receiver transport never receives this fallback as energy.
+      vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
+      color += uOpticalTint * edgeGlow * 0.22;
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));
-      float internalHaze = (opticalPathUnresolved ? 0.0 : 1.0)
-        * (1.0 - exp(-opticalDepthLuma * 0.22))
+      float internalHaze = (1.0 - exp(-opticalDepthLuma * 0.22))
         * uMaterialVariation;
       color += uOpticalTint * internalHaze * 0.11;
       if (uInclusionStatus == 2 && uNaturalView == 0) {

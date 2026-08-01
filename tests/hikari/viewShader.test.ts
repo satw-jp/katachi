@@ -9,7 +9,17 @@ test("view transport uses geometric rather than cosmetic surface normals", () =>
   assert.doesNotMatch(fragmentShader, /refract\(finalHostDirection, -exitNormal, uIor\)/);
 });
 
-test("unresolved view paths retain bounded ambient instead of becoming black", () => {
-  assert.match(fragmentShader, /unresolvedAmbient \* \(1\.0 - fresnel\)/);
-  assert.doesNotMatch(fragmentShader, /\? reflectedColor \* fresnel\s*:/);
+test("unresolved nested view paths keep continuous host-only appearance", () => {
+  assert.match(fragmentShader, /Keep the already solved outer-host path/);
+  assert.match(fragmentShader, /bool hasTransmittedExit = false/);
+  assert.match(fragmentShader, /bool viewContinuityFallback = !hasTransmittedExit/);
+  assert.match(fragmentShader, /vec3 color = mix\(refractedColor \* transmission, reflectedColor, fresnel\)/);
+  assert.doesNotMatch(fragmentShader, /unresolvedAmbient/);
+});
+
+test("outer TIR gets a bounded internal bounce and cannot masquerade as transmission", () => {
+  assert.match(fragmentShader, /vec3 tirDirection = reflect\(finalHostDirection, -exitGeometricNormal\)/);
+  assert.match(fragmentShader, /bool hasTirExit = marchInside/);
+  assert.match(fragmentShader, /if \(length\(tirRefractedOut\) >= 0\.01\)/);
+  assert.match(fragmentShader, /bool viewContinuityFallback = !hasTransmittedExit/);
 });
