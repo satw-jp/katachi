@@ -360,6 +360,19 @@ const ui = buildUi(
     }
     render();
   },
+  onBackgroundMediaFile: async (file) => {
+    const info = await cloudRenderer.setBackgroundMedia(file);
+    syncProgressiveRenderStatus(true);
+    return info;
+  },
+  onBackgroundMediaModeChange: (mode) => {
+    cloudRenderer.setBackgroundMediaMode(mode);
+    syncProgressiveRenderStatus(true);
+  },
+  onBackgroundMediaClear: () => {
+    cloudRenderer.clearBackgroundMedia();
+    syncProgressiveRenderStatus(true);
+  },
   onHikariCaseSave: (details) => addCurrentHikariView(details.caseId, details.observation),
   onHikariCaseImportFile: (file) => importHikariCase(file),
   onHikariDocumentSave: (details) => exportHikariDocument(
@@ -1231,6 +1244,9 @@ function progressiveRenderAvailability(): {
   }
   if (hikariMpmActive) {
     return { available: false, reason: "MPM形態変形を採用してから静止画レンダーを開始できます" };
+  }
+  if (cloudRenderer.hasMovingBackgroundMedia()) {
+    return { available: false, reason: "動画背景は再生中のため静止画レンダーを開始できません" };
   }
   if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
     return { available: false, reason: opticalSceneIssueText(opticalSceneIssues) };

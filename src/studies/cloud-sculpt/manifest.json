@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.30.1",
+  "version": "0.31.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-02",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-02",
+      "note": "Added an optional local image/video background visualizer while preserving the existing procedural environment as the no-media default. Backdrop mode keeps the selected media screen-fixed and composes the existing transparent body, receiver shadow, ambient loss, and delivered-light field over it. Environment mode keeps that same visible backdrop but also maps the media directionally into body reflection and refraction; ordinary footage is accepted with a clear seam warning, while equirectangular footage is the intended seamless source. Media stays local to the browser session and is not embedded in .hkr. Static images remain compatible with Progressive Render; moving video intentionally keeps the view in Realtime Observation. Verified with the author's Ref portrait image and 3840-by-2160 MP4, including live frame changes in the body, removal back to the unchanged procedural scene, and no browser errors."
+    },
     {
       "date": "2026-08-02",
       "note": "Corrected the packed-inclusion receiver behavior after the author pointed out that light transmitted through inclusions should reach the ground. The v0.30.0 safety stop was unnecessarily broad for equal-IOR low-absorption pockets. CPU and WebGPU receiver paths now preserve the outer-host refraction, measure the union length of every packed inclusion ball along the finite inside segment, replace that portion of host absorption with inclusion absorption, and deposit the resulting RGB throughput at the unchanged floor intersection. Overlapping balls in one soft cluster are interval-merged so light-path length is never counted twice. The receiver now labels this contribution as inclusion-transmitted light; different-IOR multiple-boundary refraction remains outside this equal-IOR contract."

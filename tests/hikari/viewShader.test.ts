@@ -44,6 +44,18 @@ test("visible sun and finite lighting share the authored angular diameter", () =
   assert.doesNotMatch(fragmentShader, /pow\(max\(dot\(direction, normalize\(uLightDir\)\), 0\.0\), 420\.0\)/);
 });
 
+test("optional background media preserves screen composition and can enter body optics", () => {
+  assert.match(fragmentShader, /uniform sampler2D uBackgroundMedia/);
+  assert.match(fragmentShader, /uniform int uBackgroundMediaEnabled/);
+  assert.match(fragmentShader, /vec2 backgroundMediaCoverUv\(vec2 uv\)/);
+  assert.match(fragmentShader, /vec3 backgroundMediaDirectional\(vec3 direction\)/);
+  assert.match(fragmentShader, /naturalEnvironment\(origin, direction, true, false\)/);
+  assert.match(fragmentShader, /naturalEnvironment\(origin, direction, true, uBackgroundMediaEnvironment == 1\)/);
+  assert.match(fragmentShader, /backgroundMediaScene\(direction, directionalMedia\) \* uGroundReflectance/);
+  assert.match(fragmentShader, /vec3 pairedDirect = vec3\(1\.0 - removedBaseline\)\s*\+ displayAddedTransport/);
+  assert.match(fragmentShader, /vec3 environment = screenEnvironment\(ro, rd\)/);
+});
+
 test("Blender comparison backlight is a finite BODY-only environment emitter", () => {
   assert.match(fragmentShader, /uniform int uBacklightEnabled/);
   assert.match(fragmentShader, /vec3 backlightEnvironment\(vec3 origin, vec3 direction, vec3 fallback\)/);

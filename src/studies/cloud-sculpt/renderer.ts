@@ -69,6 +69,14 @@ export interface ViewportPng {
   samples: number;
 }
 
+export type BackgroundMediaMode = "backdrop" | "environment";
+export interface BackgroundMediaInfo {
+  kind: "image" | "video";
+  name: string;
+  width: number;
+  height: number;
+}
+
 export class CloudRenderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
@@ -93,6 +101,9 @@ export class CloudRenderer {
   private container: HTMLElement;
   private causticTexture: THREE.DataTexture;
   private receiverLossTexture: THREE.DataTexture;
+  private backgroundMediaTexture: THREE.Texture;
+  private backgroundMediaUrl: string | null = null;
+  private backgroundMediaVideo: HTMLVideoElement | null = null;
   private causticTextureHasData = false;
   private causticTransportPending = false;
   private suppressCausticForInclusion = false;
@@ -140,6 +151,14 @@ export class CloudRenderer {
     this.receiverLossTexture.minFilter = THREE.NearestFilter;
     this.receiverLossTexture.magFilter = THREE.NearestFilter;
     this.receiverLossTexture.needsUpdate = true;
+    this.backgroundMediaTexture = new THREE.DataTexture(
+      new Uint8Array([128, 128, 128, 255]),
+      1,
+      1,
+      THREE.RGBAFormat,
+      THREE.UnsignedByteType,
+    );
+    this.backgroundMediaTexture.needsUpdate = true;
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
@@ -194,6 +213,10 @@ export class CloudRenderer {
         uEnvironmentContrast: { value: 1 },
         uEnvironmentRotation: { value: 0 },
         uEnvironmentMist: { value: 0.72 },
+        uBackgroundMedia: { value: this.backgroundMediaTexture },
+        uBackgroundMediaEnabled: { value: 0 },
+        uBackgroundMediaEnvironment: { value: 0 },
+        uBackgroundMediaAspect: { value: 1 },
         uMonochrome: { value: 0 },
         uDispersion: { value: 0.32 },
         uDispersionMode: { value: 1 },
@@ -272,6 +295,92 @@ export class CloudRenderer {
     this.quad.visible = mode !== "flow";
     this.material.uniforms.uRenderMode.value = mode === "optics" ? 1 : 0;
     this.renderer.setClearColor(mode === "katachi" ? 0x101114 : 0x071014, 1);
+  }
+
+  async setBackgroundMedia(file: File): Promise<BackgroundMediaInfo> {
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    if (!isVideo && !isImage) throw new Error("画像または動画を選んでください");
+    this.material.uniforms.uBackgroundMediaEnabled.value = 0;
+    this.releaseBackgroundMedia();
+    const url = URL.createObjectURL(file);
+    this.backgroundMediaUrl = url;
+    let texture: THREE.Texture;
+    let width = 1;
+    let height = 1;
+    if (isVideo) {
+      const video = document.createElement("video");
+      video.src = url;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      await new Promise<void>((resolve, reject) => {
+        video.onloadedmetadata = () => resolve();
+        video.onerror = () => reject(new Error("動画を読み込めませんでした"));
+      });
+      width = video.videoWidth;
+      height = video.videoHeight;
+      await video.play();
+      this.backgroundMediaVideo = video;
+      texture = new THREE.VideoTexture(video);
+    } else {
+      const image = new Image();
+      image.decoding = "async";
+      image.src = url;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("画像を読み込めませんでした"));
+      });
+      width = image.naturalWidth;
+      height = image.naturalHeight;
+      texture = new THREE.Texture(image);
+      texture.needsUpdate = true;
+    }
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    this.backgroundMediaTexture.dispose();
+    this.backgroundMediaTexture = texture;
+    this.material.uniforms.uBackgroundMedia.value = texture;
+    this.material.uniforms.uBackgroundMediaAspect.value = width / Math.max(1, height);
+    this.material.uniforms.uBackgroundMediaEnabled.value = 1;
+    this.invalidateProgressiveRender("背景メディアが変わったためリアルタイムへ戻りました");
+    return { kind: isVideo ? "video" : "image", name: file.name, width, height };
+  }
+
+  setBackgroundMediaMode(mode: BackgroundMediaMode): void {
+    this.material.uniforms.uBackgroundMediaEnvironment.value = mode === "environment" ? 1 : 0;
+    this.invalidateProgressiveRender("背景の映り込みが変わったためリアルタイムへ戻りました");
+  }
+
+  clearBackgroundMedia(): void {
+    this.releaseBackgroundMedia();
+    this.material.uniforms.uBackgroundMediaEnabled.value = 0;
+    this.invalidateProgressiveRender("背景メディアを外したためリアルタイムへ戻りました");
+  }
+
+  hasMovingBackgroundMedia(): boolean {
+    return this.backgroundMediaVideo !== null;
+  }
+
+  private releaseBackgroundMedia(): void {
+    this.backgroundMediaVideo?.pause();
+    this.backgroundMediaVideo = null;
+    this.backgroundMediaTexture.dispose();
+    if (this.backgroundMediaUrl) URL.revokeObjectURL(this.backgroundMediaUrl);
+    this.backgroundMediaUrl = null;
+    this.backgroundMediaTexture = new THREE.DataTexture(
+      new Uint8Array([128, 128, 128, 255]),
+      1,
+      1,
+      THREE.RGBAFormat,
+      THREE.UnsignedByteType,
+    );
+    this.backgroundMediaTexture.needsUpdate = true;
+    this.material.uniforms.uBackgroundMedia.value = this.backgroundMediaTexture;
   }
 
   setOptics(settings: OpticalSettings): void {

@@ -32,6 +32,7 @@ import {
   type ProgressiveRenderState,
 } from "./progressiveRender.ts";
 import type { CameraOrbitSettings } from "./cameraOrbit.ts";
+import type { BackgroundMediaMode, BackgroundMediaInfo } from "./renderer.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -69,6 +70,9 @@ export interface UiCallbacks {
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
   onHikariMpmStart: () => void;
   onHikariMpmAdopt: () => void;
+  onBackgroundMediaFile: (file: File) => Promise<BackgroundMediaInfo>;
+  onBackgroundMediaModeChange: (mode: BackgroundMediaMode) => void;
+  onBackgroundMediaClear: () => void;
 }
 
 export interface UiHandles {
@@ -1375,10 +1379,57 @@ export function buildUi(
   backlightNote.className = "hint";
   backlightNote.textContent = "Blender比較用の有限な背面発光面です。BODY表示だけに反映され、床の影・受光・集光にはまだ加算しません。実際の窓・室内の開口は次段階です。";
 
+  const backgroundMediaTitle = document.createElement("div");
+  backgroundMediaTitle.className = "hikari-section-title";
+  backgroundMediaTitle.textContent = "背景メディア";
+  const backgroundMediaModeControl = createSegmentedControl<BackgroundMediaMode>(
+    ["backdrop", "environment"],
+    "backdrop",
+    (mode) => callbacks.onBackgroundMediaModeChange(mode),
+    { backdrop: "背景だけ", environment: "形にも映す" },
+  );
+  const backgroundMediaInput = document.createElement("input");
+  backgroundMediaInput.type = "file";
+  backgroundMediaInput.accept = "image/*,video/*";
+  backgroundMediaInput.hidden = true;
+  const backgroundMediaChoose = document.createElement("button");
+  backgroundMediaChoose.type = "button";
+  backgroundMediaChoose.textContent = "画像・動画を選ぶ";
+  backgroundMediaChoose.onclick = () => backgroundMediaInput.click();
+  const backgroundMediaClear = document.createElement("button");
+  backgroundMediaClear.type = "button";
+  backgroundMediaClear.textContent = "背景を外す";
+  backgroundMediaClear.disabled = true;
+  const backgroundMediaStatus = document.createElement("div");
+  backgroundMediaStatus.className = "hint";
+  backgroundMediaStatus.textContent = "未選択 — 現在の環境表示を使います。画像・動画はこの端末内だけで読み込みます。";
+  backgroundMediaInput.onchange = async () => {
+    const file = backgroundMediaInput.files?.[0];
+    if (!file) return;
+    backgroundMediaStatus.textContent = `${file.name} を読み込み中...`;
+    try {
+      const info = await callbacks.onBackgroundMediaFile(file);
+      backgroundMediaClear.disabled = false;
+      backgroundMediaStatus.textContent = `${info.kind === "video" ? "動画" : "画像"} · ${info.name} · ${info.width}×${info.height}`;
+    } catch (error) {
+      backgroundMediaStatus.textContent = `読み込み失敗: ${(error as Error).message}`;
+    } finally {
+      backgroundMediaInput.value = "";
+    }
+  };
+  backgroundMediaClear.onclick = () => {
+    callbacks.onBackgroundMediaClear();
+    backgroundMediaClear.disabled = true;
+    backgroundMediaStatus.textContent = "未選択 — 現在の環境表示を使います。";
+  };
+  const backgroundMediaNote = document.createElement("div");
+  backgroundMediaNote.className = "hint";
+  backgroundMediaNote.textContent = "Natural表示で使います。背景だけは画面に固定して影と光を重ねます。形にも映すは同じ素材を球状の環境として反射・透過へ使います。通常の風景動画も使えますが、全天球素材以外は継ぎ目が出ます。";
+
   const opticsNote = document.createElement("div");
   opticsNote.className = "hint";
   opticsNote.textContent =
-    "v0.30.1: 内包を1〜16体で体積充填できます。同じ樹脂の低吸収内包を通った光は、その光路長に応じて地面の受光へ届きます。";
+    "v0.31.0: 現在の環境を残したまま、写真・動画を背景にし、透明体だけへ同じ風景を反射・透過させる表示を追加しました。";
   opticsControls.appendChild(opticsNote);
   organiseOpticsProperties();
   hikariControls.appendChild(opticsControls);
@@ -1688,6 +1739,13 @@ export function buildUi(
       row("polarization"),
     ]);
     const environmentGroup = createPropertyGroup("環境と床", [
+      backgroundMediaTitle,
+      backgroundMediaModeControl.root,
+      backgroundMediaChoose,
+      backgroundMediaClear,
+      backgroundMediaInput,
+      backgroundMediaStatus,
+      backgroundMediaNote,
       row("environmentContrast"),
       row("environmentRotation"),
       row("environmentMist"),

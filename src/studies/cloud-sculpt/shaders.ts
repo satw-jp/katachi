@@ -72,6 +72,10 @@ export const fragmentShader = /* glsl */ `
   uniform float uEnvironmentContrast;
   uniform float uEnvironmentRotation;
   uniform float uEnvironmentMist;
+  uniform sampler2D uBackgroundMedia;
+  uniform int uBackgroundMediaEnabled;
+  uniform int uBackgroundMediaEnvironment;
+  uniform float uBackgroundMediaAspect;
   uniform int uMonochrome;
   uniform sampler2D uCausticMap;
   uniform sampler2D uReceiverLossMap;
@@ -84,6 +88,41 @@ export const fragmentShader = /* glsl */ `
   uniform int uCompatibilityMode;
 
   varying vec2 vUv;
+
+  vec2 backgroundMediaCoverUv(vec2 uv) {
+    float viewportAspect = uResolution.x / max(1.0, uResolution.y);
+    vec2 fitted = uv;
+    if (uBackgroundMediaAspect > viewportAspect) {
+      fitted.x = (uv.x - 0.5) * viewportAspect / uBackgroundMediaAspect + 0.5;
+    } else {
+      fitted.y = (uv.y - 0.5) * uBackgroundMediaAspect / viewportAspect + 0.5;
+    }
+    return clamp(fitted, vec2(0.0), vec2(1.0));
+  }
+
+  vec3 backgroundMediaBackdrop() {
+    return texture2D(uBackgroundMedia, backgroundMediaCoverUv(vUv)).rgb;
+  }
+
+  vec3 backgroundMediaDirectional(vec3 direction) {
+    vec3 normalizedDirection = normalize(direction);
+    float cosine = cos(uEnvironmentRotation);
+    float sine = sin(uEnvironmentRotation);
+    vec3 rotated = vec3(
+      normalizedDirection.x * cosine - normalizedDirection.z * sine,
+      normalizedDirection.y,
+      normalizedDirection.x * sine + normalizedDirection.z * cosine
+    );
+    vec2 uv = vec2(
+      fract(atan(rotated.z, rotated.x) / 6.28318530718 + 0.5),
+      clamp(asin(clamp(rotated.y, -1.0, 1.0)) / 3.14159265359 + 0.5, 0.0, 1.0)
+    );
+    return texture2D(uBackgroundMedia, uv).rgb;
+  }
+
+  vec3 backgroundMediaScene(vec3 direction, bool directional) {
+    return directional ? backgroundMediaDirectional(direction) : backgroundMediaBackdrop();
+  }
 
   vec4 sampleReceiverTransport(vec2 uv) {
     vec2 resolution = max(uCausticResolution, vec2(1.0));
@@ -507,7 +546,12 @@ export const fragmentShader = /* glsl */ `
     return sky;
   }
 
-  vec3 naturalEnvironment(vec3 origin, vec3 direction, bool includeSunShadow) {
+  vec3 naturalEnvironment(
+    vec3 origin,
+    vec3 direction,
+    bool includeSunShadow,
+    bool directionalMedia
+  ) {
     float skyHeight = smoothstep(-0.22, 0.72, direction.y);
     vec3 horizonColor = vec3(0.62, 0.78, 0.92);
     vec3 zenithColor = vec3(0.2, 0.48, 0.78);
@@ -575,6 +619,9 @@ export const fragmentShader = /* glsl */ `
 
     float sunDisc = visibleSunDisc(direction);
     sky += vec3(1.0, 0.88, 0.66) * sunDisc * uSunIntensity * 1.8;
+    if (uBackgroundMediaEnabled == 1) {
+      sky = backgroundMediaScene(direction, directionalMedia);
+    }
 
     float floorY = uReceiverY;
     float floorDistance = 1e5;
@@ -593,11 +640,13 @@ export const fragmentShader = /* glsl */ `
           sin(floorPoint.x * 0.58 + sin(floorPoint.z * 0.31))
           + sin(floorPoint.z * 0.77 - floorPoint.x * 0.19) * 0.48;
         float groundVariation = smoothstep(-1.15, 1.35, groundField);
-        vec3 ground = mix(
-          vec3(0.69, 0.68, 0.64),
-          vec3(0.91, 0.87, 0.78),
-          groundVariation
-        ) * uGroundReflectance;
+        vec3 ground = uBackgroundMediaEnabled == 1
+          ? backgroundMediaScene(direction, directionalMedia) * uGroundReflectance
+          : mix(
+              vec3(0.69, 0.68, 0.64),
+              vec3(0.91, 0.87, 0.78),
+              groundVariation
+            ) * uGroundReflectance;
         vec2 receiverUv = (floorPoint.xz - uCausticBounds.xy) / uCausticBounds.zw;
         vec2 receiverLower = step(vec2(0.0), receiverUv);
         vec2 receiverUpper = step(receiverUv, vec2(1.0));
@@ -711,14 +760,21 @@ export const fragmentShader = /* glsl */ `
 
   vec3 opticalEnvironment(vec3 origin, vec3 direction) {
     vec3 fallback = uNaturalView == 1
-      ? naturalEnvironment(origin, direction, true)
+      ? naturalEnvironment(origin, direction, true, uBackgroundMediaEnvironment == 1)
+      : analysisEnvironment(origin, direction);
+    return backlightEnvironment(origin, direction, fallback);
+  }
+
+  vec3 screenEnvironment(vec3 origin, vec3 direction) {
+    vec3 fallback = uNaturalView == 1
+      ? naturalEnvironment(origin, direction, true, false)
       : analysisEnvironment(origin, direction);
     return backlightEnvironment(origin, direction, fallback);
   }
 
   vec3 roughEnvironmentSample(vec3 origin, vec3 direction) {
     vec3 fallback = uNaturalView == 1
-      ? naturalEnvironment(origin, direction, false)
+      ? naturalEnvironment(origin, direction, false, uBackgroundMediaEnvironment == 1)
       : analysisEnvironment(origin, direction);
     return backlightEnvironment(origin, direction, fallback);
   }
@@ -936,7 +992,7 @@ export const fragmentShader = /* glsl */ `
 
     if (!hit || uBallCount == 0) {
       if (uRenderMode == 1) {
-        vec3 environment = opticalEnvironment(ro, rd);
+        vec3 environment = screenEnvironment(ro, rd);
         gl_FragColor = vec4(opticalOutput(environment), 1.0);
         #include <colorspace_fragment>
         return;
