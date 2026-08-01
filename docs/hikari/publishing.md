@@ -33,6 +33,22 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.24.0
+
+- Git commit deployed: `9206be2` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `21de4bff-1111-4b06-be77-b629350bf8e6`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Author diagnostics: `統合 / 影の範囲 / 届いた光 / 届かなかった光` switch without retracing; diagnostic false color is limited to reconstructed shadow support and does not use the author-facing caustic gain or per-frame normalization
+- Spatial non-arrival field: material/interface loss, reflection/TIR, receiver/domain escape, and unresolved paths are splatted at each ray's unobstructed baseline; support rejection stays separate
+- Runtime accounting: the status panel reports delivered, non-arrival, outside-support, and residual percentages; Tokyo 17:00 closed at displayed residual `0.0%` on both backends
+- Transport lifecycle: stale Natural textures and Analysis geometry are suppressed while recomputing; a failed GPU computation explicitly publishes a CPU fallback
+- Path correction: outer TIR retains exit-incident energy for reflection instead of applying a fictitious exit transmission; incomplete or TIR inclusion paths no longer fall back to a host-only receiver deposit
+- Parity foundation: the pure comparator gates receiver/revision structure, per-channel RGB flux, centroid, 95% envelope, support IoU, and normalized deposit/coverage shape; the automated same-count device runner remains pending
+- Production normal check: v0.24.0, Tokyo 17:00, Apple metal-3 WebGPU, 16,384 rays / 3,820 shape hits, four diagnostic controls with real hit targets, and no warnings or errors
+- Production safe check: v0.24.0, `?safe=1`, CPU preview, 1,024 transport rays, one inclusion, displayed residual `0.0%`, and no warnings or errors
+- Verification: `npm run test:hikari` passed 27/27 deterministic tests; `VITE_GIT_COMMIT=9206be2 npm run build` passed from a clean committed tree
+- Known remaining work: connect the same-count CPU/WebGPU device runner, add lifecycle and inclusion-TIR regression tests, and align the view shader's nested-TIR approximation with receiver transport
+
 ## Release record — 2026-08-01 — v0.23.0
 
 - Git commit deployed: `04de644` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
