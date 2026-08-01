@@ -39,6 +39,19 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-01 — v0.27.0
+
+- Git commit deployed: `2c5c919` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `ca396f9c-876c-438d-b269-a1033785e3d3`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Author control: the outer transparent body now offers `自由色`; its native picker is labelled `透過色`, while the existing Absorption slider remains the independent concentration control
+- Material semantics: the selected transmitted sRGB hue is linearized and converted continuously from neutral through pastel to saturated complementary Beer–Lambert RGB absorption, rather than being applied only as surface tint
+- Shared path: Realtime and Progressive BODY, transparent shadow, SAFE CPU/WebGPU receiver transport, `.hkr`, and Blender export consume the same OpticalScene coefficients; `uOpticalTint` remains appearance-only edge/haze color
+- Revision/migration: material values participate in the receiver scene revision, a color change invalidates Progressive accumulation, custom color round-trips in `.hkr`, and older documents without the field restore the amber default
+- Production asset verification: the served root resolved to `assets/main-BNkuQRtv.js` and `assets/main-Ccj2NRbW.css`; the bundle contains app `0.27.0`, commit `2c5c919`, `hostTransmissionColor`, `自由色`, and `透過色`
+- Verification: `npm run test:hikari` passed 48/48 tests; `VITE_GIT_COMMIT=2c5c919 npm run build` passed; final review confirmed near-white/pastel continuity and no release blocker
+- Known remaining work: give each inclusion its own transmitted color/concentration, then replace the current shader-only color irregularity with a reproducible object-local concentration field
+
 ## Release record — 2026-08-01 — v0.26.0
 
 - Git commit deployed: `dc1c1bd` (`VITE_GIT_COMMIT` embedded in exported Hikari/Blender cases)
