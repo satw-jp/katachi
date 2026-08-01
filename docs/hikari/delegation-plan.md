@@ -43,10 +43,10 @@ Keep recurring context small: a nested `AGENTS.md` for `docs/hikari` or the futu
 | B | Save/reopen an interesting view | Luna | A record fields | case schema and validation; shape recipe; camera/light/receiver/material/settings/version/backend; import/export UI; observation template | same state reopens without localStorage; existing recipe flow survives |
 | C | Define `OpticalScene` and migration | Primary design, Terra implementation | A | `OpticalMaterial`, `ShapeSource`, `Transform`, `Medium`, `OpticalScene`; old-settings migration; invalid-containment diagnostics | API reviewed; fixtures cover inside/outside/boundary cases |
 | D | Pure optical geometry and transport | Terra, with Luna test expansion | C | transformed SDF query; ordered boundaries; RGB Beer–Lambert; Fresnel/TIR; medium path diagnostics | numeric air→host→inclusion→host→air tests pass |
-| E | CPU reference tracer | Terra | D | one host + one inclusion; shared camera and shadow throughput; focused light remains separate | equal IOR suppresses refractive boundary; absorption void remains visible; invalid scenes fail honestly |
+| E | CPU reference tracer | Terra | D | one host + one inclusion; shared receiver/light samples; HDR transport field and energy ledger | equal IOR suppresses refractive boundary; absorption void remains visible; invalid/TIR paths cannot deposit energy |
 | F | Natural-view body renderer | Terra | C–E | host/inclusion view, RGB absorption, transform updates, debug boundary view | viewpoint and small changes are legible in the body and receiver |
 | G | Exploration controls and migration UI | Luna if contract is frozen; otherwise Terra | C, F | outer-colored/inner-clear presets; transform controls; saved-view action; old localStorage migration | three exploration prompts can be completed without Analysis |
-| H | Transparent-shadow parity | Terra | E, F | same medium transition semantics for finite-source shadow and camera transport | disabling caustics leaves colored transparent shadow intact |
+| H | Receiver transport parity | Terra | E, F | one receiver frame, finite-light sample set, support field, and composition contract for shadow/CPU/WebGPU | disabling focused light leaves the colored shadow intact; author mode has no unsupported bright pixels |
 | I | WebGPU scene-buffer migration | Terra | E, H | host/inclusion buffers, WGSL transitions, CPU/GPU comparison, safe fallback | fixed cases agree within recorded tolerances; CPU fallback remains usable |
 | J | Blender case bundles M0–M6 | Luna | B and stable E/F | case folders, hashes, naming, checklists, comparison notes, selected images | no required Blender input is missing |
 | K | Build, browser smoke, release note | Luna for execution; Primary for release | F–J as applicable | build log; real-click checklist; GPU/safe results; release record | Primary reviews visuals and approves deployment |
@@ -71,7 +71,7 @@ Primary: A → approve C
 - B can begin beside C but must not invent the final `OpticalScene` fields.
 - D and E stay with one owner because medium-transition meaning must not split.
 - F and G may proceed in parallel only after C is frozen and their file ownership is separate.
-- H follows the CPU reference. I follows H; WebGPU is never the first implementation of a new optical rule.
+- H follows the CPU reference. It begins by removing every hidden receiver-plane definition and invalid TIR deposit, then replaces peak-normalized additive caustics with the shared HDR transport field. I follows H; WebGPU is never the first implementation of a new optical rule.
 - J starts after the case schema and visible host/inclusion behavior are stable.
 - L may begin immediately, but Luna organizes and checks the material; the author and Primary decide why a work matters and what it means for hikari.
 - O and S are part of the transparent-material quality gate, not decoration after it. Receiver families wait for the response contract; room work waits for shared `Light`, `Receiver`, and `PhysicalScale` semantics.

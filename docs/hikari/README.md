@@ -67,11 +67,13 @@ hikari does not currently own:
 
 ## Roadmap order
 
-1. Bring the transparent body, nested material relationship, transmitted shadow, focused light, and a deterministic Tokyo natural-light study in open air and simple rooms to the agreed visual quality gate.
-2. After that gate, let a simple shape slowly grow, drift, or sag while its optical appearance changes; pause at an interesting moment and make that state reproducible.
-3. Expose whole-object height, orientation, and placement relative to a ground reference for the chosen frozen form.
-4. Use grounded placement for object studies and free/floating placement for furniture or spatial-object studies.
-5. Study the chosen form from hand scale through furniture and architecture, preserving either the same physical material or an explicitly appearance-matched material.
+1. Make the body, transparent shadow, and focused light use one receiver, one finite-light sample set, and one energy-accounted transport result. The author-facing default never shows focused light detached from the finite-source shadow support.
+2. Complete the colored-host / clear-inclusion relationship and compare the same fixed cases in Hikari, Blender, and selected physical references.
+3. Bring deterministic Tokyo natural light from open air into simple rooms and real window openings without changing that transport contract.
+4. After the transparent-material gate, let a simple shape slowly grow, drift, or sag while its optical appearance changes; pause at an interesting moment and make that state reproducible.
+5. Expose whole-object height, orientation, and placement relative to a ground reference for the chosen frozen form.
+6. Use grounded placement for object studies and free/floating placement for furniture or spatial-object studies.
+7. Study the chosen form from hand scale through furniture and architecture, then add several independent bodies and the five-view Ambient presentation branch.
 
 General placement is postponed as an interaction feature, not ignored in the architecture. Phase 4 may move the body only nearer to or farther from an opening as an environment relation; height, free orientation, grounded/floating intent, and spatial arrangement wait until a form is frozen. Shape-local coordinates, whole-object pose, inclusion-local pose, optical receiver, and future ground reference remain distinct so the optics do not need to be rewritten later.
 
@@ -100,6 +102,7 @@ Known limits:
 - outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
+- the Natural floor/straight shadow and CPU/WebGPU focused-light tracers currently do not share one runtime receiver plane; the focused field is peak-normalized and additively composited, so the optical-coherence gate is not yet passed;
 - no multiple internal bounces or physically calibrated HDR environment;
 - Tokyo open-air direction is active, while room/window geometry is a pure admission contract not yet rendered;
 - Blender bundle v2 includes Hikari settings, camera, hashes, scale, media, receiver, and sun, but `blender-result.json` return import and generic inclusion meshes remain planned.
@@ -167,6 +170,10 @@ The milestone is complete when one frozen shape, camera, receiver, and light set
 - a clear inclusion whose boundary disappears when host/inclusion IORs match;
 - the same inclusion becoming visible through distortion when IORs differ;
 - a focused-light region that remains distinct from the shadow;
+- the focused-light region never appears outside the one-texel-expanded finite-source shadow support in the author-facing mode;
+- CPU, WebGPU, Natural, saved cases, and Blender identify the same receiver frame, with no shape-derived hidden floor;
+- no object, night, unresolved TIR, or an invalid medium path can deposit focused light;
+- receiver flux remains comparable across absorption, sample count, and texture resolution instead of being renormalized to the brightest pixel each frame;
 - a Tokyo date/time change that moves direct light, shadow, and focused light continuously;
 - one unlit-room case with explicit width, depth, ceiling height, openings, and object-to-window relation;
 - a body/no-body comparison that shows where daylight is redistributed without inventing energy;

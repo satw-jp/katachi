@@ -51,7 +51,7 @@ Do not call shader-only normal noise a making trace. Preserve mid-scale irregula
 6. Accumulate progressively while shape, source, and receiver are still; reset accumulation on any relevant change.
 7. Port the passing CPU reference to WebGPU. Natural tone-maps the same HDR field; Analysis can show raw endpoint density, log irradiance, and convergence diagnostics.
 
-Transparent shadow and focused light stay separate outputs. A weak or blurred light drawing never causes the shadow to disappear or become a substitute pattern.
+Transparent shadow and focused light stay separately inspectable diagnostics, but Natural composes them from one receiver transport result and one energy ledger. A weak or blurred light drawing never causes the shadow to disappear, become a substitute pattern, or detach from the author-facing shadow support.
 
 ## First cases
 

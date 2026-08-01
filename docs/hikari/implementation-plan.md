@@ -13,6 +13,42 @@ Reproducibility serves exploration. It captures a discovery for Blender or physi
 
 The roadmap has one hard order: finish the transparent-material experience first, then add whole-object placement. Placement data is reserved in the scene contract now, but placement controls do not compete with optical work before the quality gate passes.
 
+## 2026-08-01 plan review — optical coherence is the blocking gate
+
+The author observed a detached bright region outside the visible transparent shadow. This is not accepted as an artistic approximation. Investigation found that the Natural floor and straight-through shadow use a fixed receiver at `y = -2.35`, while the CPU and WebGPU focused-light tracers derive another receiver height from the current shape bounds. In the default 17:00 Tokyo case the plane difference is about `0.223` shape unit, which moves the projected hit by about `0.61` shape unit. The current focused-light field also uses per-frame peak normalization, decorative spectral offsets, and unconditional additive compositing, so it cannot yet prove where the energy came from.
+
+This changes the critical path. The following gate blocks room rendering, living shape, whole-object placement, physical scale, multiple bodies, and Ambient Mix:
+
+1. one receiver frame is the source of truth for Natural, CPU, WebGPU, saved cases, and Blender;
+2. one finite-light sample set is shared by straight-through coverage and refracted transport;
+3. every affected incident sample records its unobstructed receiver point, medium path, loss, and deposited receiver point;
+4. the reference receiver field is fixed-domain HDR data, not a per-frame normalized display texture;
+5. direct, transmitted, reflected, absorbed, escaped, and deposited energy are accounted for before tone mapping;
+6. the author-facing default is `shadow-contained`: focused light may appear only inside the finite-source shadow support, allowing at most one reconstruction-kernel texel of feathering;
+7. a later physical comparison mode may show traced spill outside that support only when it comes from a valid escaped ray and the energy ledger closes. It may never come from a mask, blur, spectral decoration, or mismatched receiver.
+
+Transparent shadow and focused light remain separable diagnostics, but they are no longer independent images added together. They are two readings of one receiver transport result.
+
+### Revised dependency order
+
+```text
+evidence cases
+  -> explicit material / OpticalScene
+  -> receiver + light sample SSOT
+  -> CPU reference transport and energy ledger
+  -> Natural composition
+  -> WebGPU parity and safe fallback
+  -> Blender / physical comparison
+  -> transparent-material quality gate
+  -> room and windows
+  -> living shape and freeze
+  -> placement
+  -> scale and multiple bodies
+  -> Ambient Mix
+```
+
+The first implementation slice after this review is deliberately narrow: remove the receiver-plane disagreement and invalid TIR deposits, expose support diagnostics, and make the disconnected patch impossible. HDR flux conservation replaces the current normalized `CausticField` in the following slice; it must not be hidden inside a cosmetic shader adjustment.
+
 ## Phase 0 — freeze evidence before changing optics
 
 Deliverables:
@@ -120,32 +156,78 @@ Follow [internal color-variation field](color-variation.md). Replace the current
 
 Begin with uniform, diffused, pooled, and streaked families. A frozen hand-trace follows when it can retain an authored gesture reproducibly. Keep geometry irregularity, pigment concentration, clear inclusions, haze/scattering, and bubbles as separate causes even when their visual results overlap.
 
-## Phase 3 — shared transparent-shadow throughput
+## Phase 3 — shared receiver transport and energy ledger
 
-The shadow query and forward optical tracer must use the same medium-transition semantics.
+The shadow query and forward optical tracer must use the same receiver, finite-light samples, and medium-transition semantics. A receiver is a frame, not a hidden floor constant:
+
+```ts
+type ReceiverFrame = {
+  id: string;
+  origin: [number, number, number];
+  normal: [number, number, number];
+  tangentU: [number, number, number];
+  tangentV: [number, number, number];
+  extent: [number, number];
+};
+
+type ReceiverTransportField = {
+  receiverId: string;
+  sceneRevision: string;
+  lightRevision: string;
+  width: number;
+  height: number;
+  texelArea: number;
+  geometricCoverage: Float32Array;
+  straightThroughputRgb: Float32Array;
+  depositedFluxRgb: Float32Array;
+  diagnostics: EnergyLedger;
+};
+```
 
 For each finite-light sample:
 
-1. traverse ordered medium boundaries;
-2. accumulate path length per medium;
-3. multiply Beer–Lambert RGB throughput;
-4. multiply interface Fresnel transmission;
-5. return RGB throughput and boundary diagnostics.
+1. intersect the unobstructed ray with the shared receiver and record its baseline contribution;
+2. traverse ordered medium boundaries;
+3. accumulate path length per medium;
+4. multiply Beer–Lambert RGB throughput and interface Fresnel transmission;
+5. classify TIR as internal/reflected unless a later valid escape is actually traced;
+6. intersect the escaped ray with the same receiver frame and deposit flux in receiver-space coordinates;
+7. return RGB throughput, coverage, and energy diagnostics.
 
-The focused-light field and transparent shadow remain separate outputs. A caustic must not erase the underlying shadow.
+Reference composition replaces affected baseline direct light with transported light. It does not add a normalized bright texture on top of an independently shaded floor. Natural tone-maps this result; Analysis can separately show coverage, straight throughput, raw receiver hits, deposited HDR flux, and the final composite.
+
+Implementation slices:
+
+1. **3A — receiver coherence:** remove shape-derived floor heights and route Natural, CPU, WebGPU, cases, and Blender through `OpticalScene.receiver`; share world-to-receiver coordinates.
+2. **3B — valid paths:** suppress receiver deposits for unresolved TIR and incomplete paths; remove decorative spectral hit offsets from validation mode.
+3. **3C — support contract:** add `shadow-contained` as the author default and a diagnostic overlay that shows any deposited energy outside support.
+4. **3D — HDR reference field:** replace percentile bounds, double edge windows, 8-bit peak normalization, and non-integrating blur with a fixed-domain floating-point field and energy-normalized kernel.
+5. **3E — CPU/WebGPU parity:** use identical deterministic finite-light vectors and weights, then port the passing reference transport.
 
 Acceptance:
 
+- every receiver hit has plane signed distance at most `1e-4` shape unit;
+- world-to-receiver-to-world round trips stay within `0.25` texel;
+- CPU and WebGPU use the same receiver and light revision IDs;
+- a TIR ray deposits no receiver energy unless a later valid escape is traced;
 - disabling focused light leaves the transmitted shadow intact;
-- enabling focused light adds energy locally without exposing texture-domain edges;
+- enabling focused light changes only the body-affected receiver region in `shadow-contained` mode; energy outside the one-texel-expanded support is at most `0.5%` and no displayed pixel exceeds `1/255` there;
+- no object and sun below the horizon both produce zero focused-light energy;
+- increasing absorption never increases deposited total flux;
+- the reconstruction kernel changes integrated flux by less than `0.5%`;
+- fixed CPU/WebGPU cases keep total flux within `5%`, centroid within one texel, 95th-percentile position within two texels, and support IoU at least `0.9`;
+- the CPU energy-ledger residual is at most `1%`; WebGPU is at most `5%` until its accumulation is upgraded;
 - CPU reference cases numerically cover air→host→inclusion→host→air;
-- shader and WebGPU results stay within documented qualitative tolerances.
+- the default morning, noon, and evening cases show no disconnected bright patch;
+- Blender direct-only comparison keeps the shadow and focused-light relation on the same recorded receiver.
 
 In the same phase, establish the reference path in [light drawing from the author's trace](light-drawing.md). The first gate is one controlled real surface bulge moving one receiver line. Remove decorative deposit/normalization behavior from the validation mode before increasing caustic spectacle.
 
 ## Phase 4 — Tokyo natural light, rooms, and receiver materials
 
 Make the visible surroundings, simple room geometry, openings, and receiving surfaces part of the optical scene before declaring the transparent body complete. Follow [natural-light environments and receiver materials](lighting-environment.md).
+
+Phase 4 cannot begin until Phase 3A–3E pass for the open-air reference case. A room must constrain the same light transport; it cannot conceal a receiver or energy mismatch.
 
 First migrate the existing outdoor view to a deterministic Tokyo date/time and shared sun direction. Then add a simple room with one real rectangular opening, multiple independent windows on the same wall, and finally any combination across the four wall faces. Window count, width/height proportion, sill height, horizontal position, and spacing must change real portal geometry. Room width, depth, ceiling height, opening records, body pose, and the derived body-to-window distance use the same `PhysicalScale` contract as optical absorption. Before the quality gate, the only author-facing whole-body motion is nearer to or farther from the opening; general height/orientation and grounded/floating placement remain Phase 8 work.
 
@@ -164,6 +246,7 @@ End the phase with a paired small-unlit-room case: identical exposure and enviro
 - equal-IOR and different-IOR host/inclusion relationships;
 - surface roughness and highlights without hiding the interior;
 - colored transparent shadow and focused light as distinct phenomena;
+- focused light remains causally inside the author-facing shadow support and cannot survive with no valid incident path;
 - one authored surface/thickness trace producing a stable line or arc on the receiver, with source size controlling clarity;
 - continuous Tokyo date/time motion in open air and through one recorded room opening;
 - explicit room width, depth, ceiling height, window count/proportion/size/position/height/spacing, and object-to-window relation;
