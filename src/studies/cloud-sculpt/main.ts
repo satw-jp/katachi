@@ -61,6 +61,7 @@ let state = createEmptyState();
 let selectedBallId: number | null = null;
 const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
+const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
 let workspaceView: WorkspaceView =
   localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
@@ -261,6 +262,12 @@ const ui = buildUi(
     applyWorkspaceView();
   },
   onComputeModeChange: (mode) => {
+    try {
+      persistComputeModeHandoff();
+    } catch (error) {
+      alert(`実行方式を切り替えられません: ${(error as Error).message}`);
+      return;
+    }
     const url = new URL(window.location.href);
     url.searchParams.set("safe", mode === "safe" ? "1" : "0");
     window.location.assign(url);
@@ -282,6 +289,7 @@ const ui = buildUi(
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
+restoreComputeModeHandoff();
 
 // --- Pointer interaction ---------------------------------------------------
 // Click (no drag) on empty space -> add a ball at the surface hit point.
@@ -659,6 +667,63 @@ async function exportBlenderStudy(details: {
   }
 }
 
+function persistComputeModeHandoff(): void {
+  const details = ui.getHikariCaseDetails();
+  const currentCase = currentHikariCase(details.caseId, details.observation);
+  const document = createHikariDocument({
+    documentId: activeHikariDocumentId,
+    appVersion: manifest.version,
+    commit: APP_COMMIT,
+    activeViewId: activeHikariViewId,
+    views: savedHikariViews,
+    createdAt: hikariDocumentCreatedAt,
+  });
+  sessionStorage.setItem(COMPUTE_MODE_HANDOFF_KEY, JSON.stringify({
+    formatVersion: 1,
+    currentCase: serializeHikariCase(currentCase),
+    document: serializeHikariDocument(document),
+    details,
+  }));
+}
+
+function restoreComputeModeHandoff(): void {
+  const text = sessionStorage.getItem(COMPUTE_MODE_HANDOFF_KEY);
+  if (!text) return;
+  sessionStorage.removeItem(COMPUTE_MODE_HANDOFF_KEY);
+  try {
+    const handoff = JSON.parse(text) as {
+      formatVersion?: unknown;
+      currentCase?: unknown;
+      document?: unknown;
+      details?: { caseId?: unknown; observation?: unknown };
+    };
+    if (
+      handoff.formatVersion !== 1
+      || typeof handoff.currentCase !== "string"
+      || typeof handoff.document !== "string"
+      || typeof handoff.details?.caseId !== "string"
+      || typeof handoff.details.observation !== "string"
+    ) {
+      throw new Error("切替用データの形式が不正です");
+    }
+    const currentCase = parseHikariCase(handoff.currentCase);
+    const document = parseHikariDocument(handoff.document);
+    applyHikariCaseValue(currentCase, document.documentId);
+    savedHikariViews = document.views.map((view) => structuredClone(view));
+    activeHikariViewId = document.activeViewId;
+    activeHikariDocumentId = document.documentId;
+    hikariDocumentCreatedAt = document.createdAt;
+    ui.syncHikariCaseDetails({
+      caseId: handoff.details.caseId,
+      observation: handoff.details.observation,
+    });
+    syncHikariViewList();
+    ui.setHikariCaseStatus("実行方式を切り替え、編集中の状態を復元しました", true);
+  } catch (error) {
+    console.warn("Hikari compute-mode handoff could not be restored", error);
+  }
+}
+
 function currentHikariCase(caseId: string, observation: string) {
   const backend = hikariLayer.getOpticsComputeStatus();
   return createHikariCase({
@@ -810,6 +875,7 @@ function renderFrame(now: number): void {
   if (fpsAccum >= 500) {
     ui.setFps(1000 / (fpsAccum / frameCount));
     const computeStatus = hikariLayer.getOpticsComputeStatus();
+    ui.setComputeBackendStatus(computeStatus);
     const sunBelowHorizon = computeStatus.text.includes("太陽は地平線下");
     const inclusionCausticReady = !sunBelowHorizon
       && (computeStatus.kind === "cpu" || computeStatus.kind === "webgpu");

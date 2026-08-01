@@ -78,6 +78,10 @@ export interface UiHandles {
   syncHikariCaseDetails: (details: { caseId: string; observation: string }) => void;
   setHikariViews: (views: HikariViewSummary[], activeViewId: string | null) => void;
   syncHikariSettings: (settings: HikariSettings) => void;
+  getHikariCaseDetails: () => { caseId: string; observation: string };
+  setComputeBackendStatus: (
+    status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
+  ) => void;
   setOpticsComputeStatus: (
     status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
   ) => void;
@@ -1174,9 +1178,11 @@ export function buildUi(
       applyPhenomenon(hikariState.phenomenon);
       applyRainbowModelVisibility(hikariState.rainbowModel);
     },
-    setOpticsComputeStatus: (status) => {
-      opticsComputeStatus.textContent = status.text;
-      opticsComputeStatus.dataset.kind = status.kind;
+    getHikariCaseDetails: () => ({
+      caseId: caseIdInput.value.trim() || "hikari-document",
+      observation: observationInput.value,
+    }),
+    setComputeBackendStatus: (status) => {
       const computeModeButton = container.querySelector<HTMLButtonElement>(".compute-mode-button");
       if (!computeModeButton) return;
       if (status.kind === "cpu") {
@@ -1187,17 +1193,27 @@ export function buildUi(
         } else {
           computeModeButton.dataset.backend = "fallback";
           computeModeButton.textContent = "CPU · FALLBACK";
-          computeModeButton.title = "WebGPUを利用できないためCPUで表示中。SAFEへ切り替える";
+          computeModeButton.title = "WebGPUを利用できないためCPUで表示中。押すとGPUを再試行します";
         }
       } else if (status.kind === "webgpu") {
         computeModeButton.dataset.backend = "gpu";
         computeModeButton.textContent = "GPU · WebGPU";
         computeModeButton.title = "SAFE（CPU）へ切り替える（ページを再読み込み）";
-      } else if (status.kind === "computing" && computeModeButton.dataset.backend === "gpu") {
+      } else if (status.kind === "computing") {
+        computeModeButton.dataset.backend = "gpu";
         computeModeButton.textContent = "GPU · 計算中";
-      } else if (status.kind === "checking" && computeModeButton.dataset.backend === "gpu") {
+      } else if (status.kind === "checking") {
+        computeModeButton.dataset.backend = "gpu";
         computeModeButton.textContent = "GPU · 確認中";
+      } else {
+        computeModeButton.dataset.backend = "error";
+        computeModeButton.textContent = initialComputeMode === "safe" ? "SAFE · ERROR" : "GPU · ERROR";
+        computeModeButton.title = "計算バックエンドでエラーが発生しました。押すと再試行します";
       }
+    },
+    setOpticsComputeStatus: (status) => {
+      opticsComputeStatus.textContent = status.text;
+      opticsComputeStatus.dataset.kind = status.kind;
     },
     setReceiverEnergySummary: (summary) => {
       receiverEnergySummary.textContent = summary.text;

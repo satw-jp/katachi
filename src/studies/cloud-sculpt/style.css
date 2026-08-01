@@ -91,6 +91,12 @@
   background: color-mix(in srgb, var(--paper) 88%, #f1b7b7);
 }
 
+.application-bar .compute-mode-button[data-backend="error"] {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--paper) 90%, #efb4b4);
+}
+
 .application-bar .compute-mode-button:hover {
   background: rgba(28, 28, 26, 0.07);
 }
