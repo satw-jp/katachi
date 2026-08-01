@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Corrected the disconnected receiver-shadow islands reported from Windows SAFE mode. The energy-normalized receiver reconstruction radius now follows emitted sample spacing: 3 texels at 16,384 samples, 8 at 2,048, and a capped 12 at SAFE's 1,024 samples. Deposited light, shadow coverage, non-arrival light, and support expansion use the same radius, preserving integrated flux while removing visible point-pattern gaps rather than inventing optical detail. The Tokyo 17:00 isolated 2,048-ray CPU/WebGPU comparison now passes all gates: 0.46% maximum RGB flux error, 0.27-texel centroid distance, zero-texel 95% envelope distance, 100% support IoU, 0.87% normalized deposit L1, and negligible coverage L1. Hikari's top bar now persistently labels the actual execution backend as GPU / WebGPU, SAFE / CPU, or CPU / FALLBACK; the label is also a one-tap mode switch that preserves the current URL and saved local state across reload. Unit tests passed 33/33, production build passed, and local normal/safe browser switching passed."
+    },
     {
       "date": "2026-08-01",
       "note": "Added an isolated author-triggered 2,048-ray CPU/WebGPU receiver parity runner. Headless exact-count builds do not publish textures, Analysis geometry, callbacks, pending state, or compute status; a dedicated comparison GPU avoids status and error-scope races, concurrent and stale jobs fail locally, and the report contains compact summaries rather than field arrays. The Tokyo 17:00 current scene measured 0.51% maximum RGB flux error, 0.20-texel centroid distance, 100% support IoU, 2.15% normalized deposit L1, and negligible coverage L1, while the 95% envelope remained five texels apart and intentionally fails the two-texel gate. The view shader now treats incomplete nested refraction and outer TIR as unresolved and renders only known front-interface reflection instead of invented host-only transmission. Added current-renderer-resolution viewport PNG export and the first editable multi-view `.hkr` JSON document with schema validation and legacy one-case import. Unit tests, production build, normal WebGPU shader compilation, parity isolation, multi-view recall, PNG generation, and forced-safe unavailability passed locally."

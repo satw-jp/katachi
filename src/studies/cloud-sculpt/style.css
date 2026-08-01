@@ -65,6 +65,36 @@
   width: 174px;
 }
 
+.application-bar .compute-mode-button {
+  align-self: center;
+  height: 30px;
+  margin-left: 2px;
+  border: 1px solid #77aeba;
+  border-radius: 999px;
+  padding: 0 11px;
+  color: #174f5a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.application-bar .compute-mode-button[data-backend="safe"] {
+  border-color: #c7a85f;
+  color: #6f5618;
+  background: color-mix(in srgb, var(--paper) 86%, #f5e2a8);
+}
+
+.application-bar .compute-mode-button[data-backend="fallback"] {
+  border-color: #ba7777;
+  color: #6f2828;
+  background: color-mix(in srgb, var(--paper) 88%, #f1b7b7);
+}
+
+.application-bar .compute-mode-button:hover {
+  background: rgba(28, 28, 26, 0.07);
+}
+
 .file-actions {
   display: flex;
   align-items: stretch;
@@ -555,6 +585,11 @@ input[type="number"] {
   .application-bar .workspace-switch {
     flex: 0 0 132px;
     width: 132px;
+  }
+
+  .application-bar .compute-mode-button {
+    flex: 0 0 auto;
+    padding-inline: 9px;
   }
 
   .application-bar button {

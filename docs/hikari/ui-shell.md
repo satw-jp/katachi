@@ -13,6 +13,7 @@ Hikari is an observation application, not a long settings page. The viewport is 
 The top bar contains only application-wide operations:
 
 - application identity, version, and the KATACHI / HIKARI workspace switch
+- a persistent Hikari execution button: `GPU · WebGPU`, `SAFE · CPU`, or `CPU · FALLBACK`
 - open the current workspace file
 - save the current workspace file
 - export the current renderer viewport as a PNG image
@@ -21,6 +22,8 @@ The top bar contains only application-wide operations:
 - enter the unobstructed observation view
 
 Open and save are contextual. KATACHI opens/saves the replayable shape recipe. HIKARI Open accepts an editable multi-view `.hkr` document and legacy `.hikari-case.json`; Save writes the views already added to `.hkr`. The current unsaved view must first be added with **現在のビューを追加** until dirty-state/update semantics are implemented. Image exports only the current renderer viewport as PNG. Export produces the Blender bundle for the current state. Derived outputs do not replace the editable `.hkr` source, and Blender continues to receive one materialized case rather than the whole document.
+
+The execution button is both status and switch. `GPU · WebGPU` means the normal WebGPU path is actually running; `SAFE · CPU` means compatibility mode was explicitly or automatically selected; `CPU · FALLBACK` means GPU mode was requested but WebGPU fell back. One tap changes only the `safe` URL mode and reloads the renderer, preserving Hikari settings and saved views in local storage. Detailed device, ray-count, timing, and failure information remains in Calculation Status.
 
 ### Central viewport
 
@@ -81,3 +84,4 @@ Each future object receives a persistent ID. Blender sidecars use the same IDs a
 - Full screen can be entered and exited with real pointer interaction and retains state.
 - At a narrow viewport, the central observation surface remains usable.
 - Version and updated date remain visible in the ordinary application shell.
+- Hikari's current backend is visible without opening the inspector, and one tap changes GPU/SAFE mode.

@@ -103,6 +103,29 @@ export interface ReceiverParityReport {
 const RECEIVER_FIELD_RESOLUTION = 512;
 const RECEIVER_FIELD_HALF_EXTENT = 16;
 const RECEIVER_FIELD_BLUR_RADIUS = 3;
+const RECEIVER_RECONSTRUCTION_REFERENCE_SAMPLES = 16384;
+const RECEIVER_RECONSTRUCTION_MAX_RADIUS = 12;
+
+/**
+ * Keep low-sample CPU fields from exposing the finite-light point pattern as
+ * disconnected shadow islands. KDE bandwidth grows with mean sample spacing
+ * while the scatter blur preserves integrated flux at every radius.
+ */
+export function receiverReconstructionRadius(sampleCount: number): number {
+  const safeCount = Number.isFinite(sampleCount) && sampleCount > 0
+    ? sampleCount
+    : 1;
+  return Math.max(
+    RECEIVER_FIELD_BLUR_RADIUS,
+    Math.min(
+      RECEIVER_RECONSTRUCTION_MAX_RADIUS,
+      Math.round(
+        RECEIVER_FIELD_BLUR_RADIUS
+        * Math.sqrt(RECEIVER_RECONSTRUCTION_REFERENCE_SAMPLES / safeCount),
+      ),
+    ),
+  );
+}
 
 export const SPECTRAL_CAUSTIC_COLORS = [
   [1 / 2.13, 0.04 / 2.12, 0],
@@ -1397,23 +1420,26 @@ function depositReceiverFluxRgb(
 function finishReceiverFluxAccumulator(
   accumulator: ReceiverFluxAccumulator,
 ): CausticField {
+  const reconstructionRadius = receiverReconstructionRadius(
+    accumulator.diagnostics.emittedSampleCount,
+  );
   const rawSupport = accumulator.field.geometricCoverage.slice();
   const blurredDeposits = blurFluxRgbEnergyNormalized(
     accumulator.field,
-    RECEIVER_FIELD_BLUR_RADIUS,
+    reconstructionRadius,
   );
   const contained = applyShadowContainedSupport(
     blurredDeposits,
     rawSupport,
-    RECEIVER_FIELD_BLUR_RADIUS + 1,
+    reconstructionRadius + 1,
   );
   contained.field.geometricCoverage = blurCoverageEnergyNormalized(
     accumulator.field,
-    RECEIVER_FIELD_BLUR_RADIUS,
+    reconstructionRadius,
   ).geometricCoverage;
   contained.field.lossFluxRgb = blurLossFluxRgbEnergyNormalized(
     accumulator.field,
-    RECEIVER_FIELD_BLUR_RADIUS,
+    reconstructionRadius,
   ).lossFluxRgb;
   const depositedRgb = integrateFluxRgb(contained.field);
   const incidentRgb = accumulator.diagnostics.incidentAffectedFluxRgb;

@@ -96,6 +96,7 @@ Implemented today:
 - roughness and procedural material variation;
 - exploratory prism-dispersion and cure-stress/polarization views;
 - Windows-safe CPU fallback;
+- persistent top-bar backend status and one-tap `GPU · WebGPU` / `SAFE · CPU` switching;
 - isolated same-count CPU/WebGPU receiver comparison from the Calculation Status panel;
 - current-renderer-resolution viewport PNG export and editable multi-view `.hkr` documents;
 - STL, OBJ, and Katachi recipe export from the same source field.
@@ -106,7 +107,8 @@ Known limits:
 - outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
 - the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
-- Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. The same-count device runner is connected, but the current Tokyo 17:00 case still fails the strict 95% envelope gate (five texels versus the two-texel limit), so Phase 3E remains open;
+- Natural, CPU, and WebGPU share the `OpticalScene` receiver, seeded aperture/sun-disk samples, and fixed-domain Float32 transport field. Natural removes the affected unobstructed baseline before depositing refracted RGB flux. Four author views separate the composite, shadow coverage, delivered light, and light that did not arrive; the energy summary keeps delivery, non-arrival, containment rejection, and residual visible. The same-count Tokyo 17:00 case passes every current device gate after sample-count-aware reconstruction, but one scene is not yet a representative case family;
+- SAFE CPU reconstructs its 1,024-sample receiver field with a wider energy-normalized kernel. This removes visible sampling gaps but resolves less spatial detail than the normal 16,384-sample WebGPU field and is not a fidelity match;
 - no multiple internal bounces or physically calibrated HDR environment;
 - Tokyo open-air direction is active, while room/window geometry is a pure admission contract not yet rendered;
 - Blender bundle v2 includes Hikari settings, camera, hashes, scale, media, receiver, and sun, but `blender-result.json` return import and generic inclusion meshes remain planned.
@@ -174,7 +176,7 @@ The milestone is complete when one frozen shape, camera, receiver, and light set
 - a clear inclusion whose boundary disappears when host/inclusion IORs match;
 - the same inclusion becoming visible through distortion when IORs differ;
 - a focused-light region that remains distinct from the shadow;
-- the focused-light region never appears outside the one-texel-expanded finite-source shadow support in the author-facing mode;
+- the focused-light region never appears outside the sample-count-aware reconstruction footprint plus one support texel in the author-facing mode;
 - CPU, WebGPU, Natural, saved cases, and Blender identify the same receiver frame, with no shape-derived hidden floor;
 - no object, night, unresolved TIR, or an invalid medium path can deposit focused light;
 - receiver flux remains comparable across absorption, sample count, and texture resolution instead of being renormalized to the brightest pixel each frame;

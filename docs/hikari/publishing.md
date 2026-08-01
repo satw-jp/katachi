@@ -23,6 +23,7 @@ The production page must be built and deployed from a committed revision. Do not
    - `optics` opens;
    - normal mode reports WebGPU where available;
    - `?safe=1` reports CPU preview;
+   - the top-bar button reports `GPU · WebGPU` or `SAFE · CPU`, and one tap switches each direction without losing stored settings;
    - the same-count comparison leaves the displayed receiver/status unchanged and reports every gate; safe mode reports comparison unavailable without disturbing its CPU preview;
    - two saved views can be recalled and written as one `.hkr`, and a legacy single case remains accepted;
    - Image produces a non-empty PNG at the current renderer pixel resolution without application chrome;

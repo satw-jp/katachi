@@ -30,7 +30,7 @@ The current optics tracer can carry broad ball-SDF curvature to receiver hit pos
 - the smooth ball field has no explicit mid-scale surface/thickness trace comparable to hand forming;
 - v0.22.0 carries receiver hits as fixed-domain 512×512 Float32 flux; bilinear deposition and edge-normalized reconstruction preserve integrated flux, and display exposure is no longer normalized to each frame's peak;
 - v0.23.0 derives unobstructed baseline coverage and refracted RGB deposits from the same seeded aperture/sun-disk sample, replaces rather than adds direct light in Natural, and enforces shadow support on the transport field before display;
-- the reconstruction footprint is still a fixed kernel rather than one derived from finite-source geometry or a ray-bundle Jacobian;
+- the reconstruction footprint now adapts only to emitted sample count, from 3 to 12 texels, to suppress low-sample point gaps. It is still not derived from finite-source geometry, local ray density, a ray-bundle Jacobian, or a physical point-spread function;
 - decorative ellipses and spectral styling remain available only in Analysis; the Natural validation field uses one undivided RGB deposit per traced path;
 - there is no progressive convergence accumulation, and the shared shape still lacks an authored mid-scale surface/thickness trace.
 

@@ -24,7 +24,7 @@ This changes the critical path. The following gate blocks room rendering, living
 3. every affected incident sample records its unobstructed receiver point, medium path, loss, and deposited receiver point;
 4. the reference receiver field is fixed-domain HDR data, not a per-frame normalized display texture;
 5. direct, transmitted, reflected, absorbed, escaped, and deposited energy are accounted for before tone mapping;
-6. the author-facing default is `shadow-contained`: focused light may appear only inside the finite-source shadow support, allowing at most one reconstruction-kernel texel of feathering;
+6. the author-facing default is `shadow-contained`: focused light may appear only inside the finite-source shadow support, allowing only the sample-count-aware reconstruction footprint plus one support texel of feathering;
 7. a later physical comparison mode may show traced spill outside that support only when it comes from a valid escaped ray and the energy ledger closes. It may never come from a mask, blur, spectral decoration, or mismatched receiver.
 
 Transparent shadow and focused light remain separable diagnostics, but they are no longer independent images added together. They are two readings of one receiver transport result.
@@ -47,7 +47,7 @@ evidence cases
   -> Ambient Mix
 ```
 
-The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. The current Tokyo 17:00 author case passes flux, centroid, support, and normalized spatial gates but still fails the two-texel 95% envelope gate at five texels; Phase 3E therefore remains open rather than converting that observation into a looser threshold.
+The first five slices are now implemented: receiver coherence/valid-path correction in v0.21.1, fixed-domain HDR flux and CPU/WebGPU sample weighting in v0.22.0, paired baseline replacement plus shared finite-source samples and independent runtime loss buckets in v0.23.0, author-visible receiver diagnostics plus a pure CPU/WebGPU field comparator in v0.24.0, and an isolated same-count device runner in v0.25.0. v0.25.1 makes reconstruction bandwidth follow mean sample spacing while preserving flux: radius 3 at 16,384 samples, 8 at 2,048, and a capped 12 at 1,024. The Tokyo 17:00 same-count case now passes all current gates, but Phase 3E remains open until a representative fixed case family also passes.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -202,8 +202,8 @@ Implementation slices:
 1. **3A — receiver coherence — implemented in v0.21.1:** Natural, CPU, and WebGPU use `OpticalScene.receiver`; saved cases and Blender retain the same receiver contract.
 2. **3B — valid paths — implemented for the reference path in v0.23.0:** unresolved entry/exit paths deposit no receiver energy; TIR, material/interface loss, receiver escape, and invalid paths remain distinct ledger outcomes. Decorative spectral point styling remains Analysis-only and no longer offsets Natural receiver deposits.
 3. **3C — support and diagnosis — implemented in v0.24.0:** the transport field rejects deposits outside the reconstructed baseline-shadow support before rendering. Natural can switch without retracing among Composite, Shadow coverage, Delivered light, and Non-arrival light. The last field is splatted at each affected baseline position and includes material/interface loss, reflection, receiver escape, fixed-domain escape, and unresolved paths; author-imposed support rejection remains a separate numeric bucket.
-4. **3D — HDR reference field — implemented in v0.22.0:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization.
-5. **3E — CPU/WebGPU parity — runner implemented, alignment open in v0.25.0:** both backends share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, and stable receiver coordinates. A separate comparison GPU prevents error-scope/status races with the displayed field; exact-count CPU and WebGPU builds publish no texture, geometry, status, or callback side effects, abort stale scene revisions, serialize jobs, and return compact summaries rather than typed arrays. The author can run the 2,048-ray gate in Calculation Status. Tokyo 17:00 measured 0.51% maximum RGB-flux error, 0.20-texel centroid distance, support IoU 1.0, deposit L1 2.15%, and coverage L1 below 0.001%, but a five-texel 95% envelope difference exceeds the two-texel contract. Keep the gate failed until the boundary divergence is explained or a case-family study justifies a metric change.
+4. **3D — HDR reference field — implemented in v0.22.0, low-sample reconstruction corrected in v0.25.1:** a fixed 32×32 domain, 512² Float32 flux, aperture/sample weighting, and an energy-preserving reconstruction kernel replace adaptive 8-bit peak normalization. The radius is `clamp(round(3 × sqrt(16384 / sampleCount)), 3, 12)` texels. Deposit, coverage, non-arrival, and support expansion share it, so SAFE's sparse point pattern is reconstructed without changing integrated flux.
+5. **3E — CPU/WebGPU parity — runner implemented, case-family alignment open in v0.25.1:** both backends share the exact seeded aperture and angular sun-disk sample prefix, 28-float result ABI, RGB throughput semantics, paired baseline replacement, flux weighting, reconstruction radius, and stable receiver coordinates. A separate comparison GPU prevents error-scope/status races with the displayed field; exact-count CPU and WebGPU builds publish no texture, geometry, status, or callback side effects, abort stale scene revisions, serialize jobs, and return compact summaries rather than typed arrays. The author can run the 2,048-ray gate in Calculation Status. Tokyo 17:00 now measures 0.46% maximum RGB-flux error, 0.27-texel centroid distance, zero-texel 95% envelope distance, support IoU 1.0, deposit L1 0.87%, and negligible coverage L1; every current gate passes. Keep Phase 3E open until the same holds across the fixed morning/noon/evening and material case family.
 
 Acceptance:
 
@@ -212,10 +212,11 @@ Acceptance:
 - CPU and WebGPU use the same receiver and light revision IDs;
 - a TIR ray deposits no receiver energy unless a later valid escape is traced;
 - disabling focused light leaves the transmitted shadow intact;
-- enabling focused light changes only the body-affected receiver region in `shadow-contained` mode; energy outside the one-texel-expanded support is at most `0.5%` and no displayed pixel exceeds `1/255` there;
+- enabling focused light changes only the body-affected receiver region in `shadow-contained` mode; energy outside the reconstruction-radius-plus-one support is at most `0.5%` and no displayed pixel exceeds `1/255` there;
 - no object and sun below the horizon both produce zero focused-light energy;
 - increasing absorption never increases deposited total flux;
 - the reconstruction kernel changes integrated flux by less than `0.5%`;
+- reconstruction radius is monotonic with sample count, remains 3 at 16,384, is 12 at 1,024, and produces no disconnected SAFE sampling islands;
 - fixed CPU/WebGPU cases keep total flux within `5%`, centroid within one texel, 95th-percentile position within two texels, and support IoU at least `0.9`;
 - the CPU energy-ledger residual is at most `1%`; WebGPU is at most `5%` until its accumulation is upgraded;
 - CPU reference cases numerically cover air→host→inclusion→host→air;

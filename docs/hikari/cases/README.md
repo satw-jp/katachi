@@ -25,7 +25,7 @@ CPU/WebGPU のbackend記録は変わり得る。
 `opticalColorMode=color`, `dispersionMode=local`, `stressAmount=0.55`, `polarization=0.45` とする。
 
 実測との比較では、caseの `compatibility`、`backend`、`appVersion`、`commit` を観察ノートとともに残す。
-安全モードの`opticalRayCount=56`はAnalysisで表示する線の上限で、受光transportは現在最大2,048 samplesを別に計算する。
+安全モードの`opticalRayCount=56`はAnalysisで表示する線の上限で、通常の受光transportは現在1,024 samplesを別に計算し、12-texelのenergy-normalized kernelで点状欠落を連続化する。
 安全版と通常版の異なる標本数を同列の定量比較には使わず、定量判定はv0.25のsame-count runnerで行う。
 
 ## Physical scale の扱い

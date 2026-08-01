@@ -39,6 +39,7 @@ export interface UiCallbacks {
   onMeshInspect: (options: MeshExportUiOptions) => void;
   onMeshExport: (options: MeshExportUiOptions) => void;
   onViewChange: (view: WorkspaceView) => void;
+  onComputeModeChange: (mode: "safe" | "gpu") => void;
   onHikariChange: (settings: HikariSettings) => void;
   onHikariCaseSave: (details: { caseId: string; observation: string }) => void;
   onHikariCaseImportFile: (file: File) => void;
@@ -114,6 +115,7 @@ export function buildUi(
   version: string,
   updatedAt: string,
   initialView: WorkspaceView,
+  initialComputeMode: "safe" | "gpu",
   initialHikari: HikariSettings,
   callbacks: UiCallbacks,
 ): UiHandles {
@@ -1175,6 +1177,27 @@ export function buildUi(
     setOpticsComputeStatus: (status) => {
       opticsComputeStatus.textContent = status.text;
       opticsComputeStatus.dataset.kind = status.kind;
+      const computeModeButton = container.querySelector<HTMLButtonElement>(".compute-mode-button");
+      if (!computeModeButton) return;
+      if (status.kind === "cpu") {
+        if (initialComputeMode === "safe") {
+          computeModeButton.dataset.backend = "safe";
+          computeModeButton.textContent = "SAFE · CPU";
+          computeModeButton.title = "WebGPUへ切り替える（ページを再読み込み）";
+        } else {
+          computeModeButton.dataset.backend = "fallback";
+          computeModeButton.textContent = "CPU · FALLBACK";
+          computeModeButton.title = "WebGPUを利用できないためCPUで表示中。SAFEへ切り替える";
+        }
+      } else if (status.kind === "webgpu") {
+        computeModeButton.dataset.backend = "gpu";
+        computeModeButton.textContent = "GPU · WebGPU";
+        computeModeButton.title = "SAFE（CPU）へ切り替える（ページを再読み込み）";
+      } else if (status.kind === "computing" && computeModeButton.dataset.backend === "gpu") {
+        computeModeButton.textContent = "GPU · 計算中";
+      } else if (status.kind === "checking" && computeModeButton.dataset.backend === "gpu") {
+        computeModeButton.textContent = "GPU · 確認中";
+      }
     },
     setReceiverEnergySummary: (summary) => {
       receiverEnergySummary.textContent = summary.text;
@@ -1337,6 +1360,21 @@ export function buildUi(
     identity.appendChild(versionRow);
     topbar.appendChild(identity);
     topbar.appendChild(workspaceSwitch);
+
+    const computeModeButton = makeToolbarButton(
+      initialComputeMode === "safe" ? "SAFE · CPU" : "GPU · 確認中",
+      "光学計算をSAFE（CPU）へ切り替える",
+    );
+    computeModeButton.classList.add("compute-mode-button");
+    computeModeButton.dataset.backend = initialComputeMode;
+    computeModeButton.setAttribute("aria-label", "光学計算: 実行方式を切り替える");
+    computeModeButton.setAttribute("aria-live", "polite");
+    computeModeButton.onclick = () => {
+      callbacks.onComputeModeChange(
+        computeModeButton.dataset.backend === "safe" ? "gpu" : "safe",
+      );
+    };
+    topbar.appendChild(computeModeButton);
 
     const fileActions = document.createElement("div");
     fileActions.className = "file-actions";
@@ -1526,6 +1564,7 @@ export function buildUi(
         saveButton.title = view === "hikari" ? "追加済みビューをHikari文書へ保存 (⌘S)" : "形の履歴を保存 (⌘S)";
         exportButton.title = view === "hikari" ? "Blender用一式を書き出す" : "3Dデータを書き出す";
         imageButton.hidden = view !== "hikari";
+        computeModeButton.hidden = view !== "hikari";
       },
     };
   }

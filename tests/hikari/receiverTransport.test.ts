@@ -22,6 +22,7 @@ import {
   type ReceiverFieldSpec,
   type ReceiverTransportField,
 } from "../../src/studies/cloud-sculpt/receiverTransport.ts";
+import { receiverReconstructionRadius } from "../../src/studies/cloud-sculpt/optics.ts";
 
 const BASE_SPEC: ReceiverFieldSpec = {
   receiverId: "test-receiver",
@@ -53,6 +54,40 @@ test("coverage splat and blur preserve scalar flux at center and edge", () => {
   assert.ok(Math.abs(integrateCoverageFlux(field) - 5) <= 1e-6);
   const blurred = blurCoverageEnergyNormalized(field, 2);
   assert.ok(Math.abs(integrateCoverageFlux(blurred) - 5) <= 5e-6);
+});
+
+test("low-sample reconstruction widens the kernel without changing high-quality fields", () => {
+  assert.equal(receiverReconstructionRadius(16384), 3);
+  assert.equal(receiverReconstructionRadius(4096), 6);
+  assert.equal(receiverReconstructionRadius(2048), 8);
+  assert.equal(receiverReconstructionRadius(1024), 12);
+  assert.equal(receiverReconstructionRadius(Number.NaN), 12);
+});
+
+test("low-sample coverage reconstruction closes point-pattern gaps and preserves flux", () => {
+  const field = createReceiverTransportField({
+    ...BASE_SPEC,
+    width: 64,
+    height: 64,
+    minU: -32,
+    minV: -32,
+    sizeU: 64,
+    sizeV: 64,
+  });
+  splatBilinearCoverageFlux(field, -10, 0, 1);
+  splatBilinearCoverageFlux(field, 10, 0, 1);
+  const highQuality = blurCoverageEnergyNormalized(
+    field,
+    receiverReconstructionRadius(16384),
+  );
+  const safeCpu = blurCoverageEnergyNormalized(
+    field,
+    receiverReconstructionRadius(1024),
+  );
+  const midpoint = 32 * field.width + 32;
+  assert.equal(highQuality.geometricCoverage[midpoint], 0);
+  assert.ok(safeCpu.geometricCoverage[midpoint] > 0);
+  assert.ok(Math.abs(integrateCoverageFlux(safeCpu) - 2) <= 1e-5);
 });
 
 test("straight baseline splat stays separate from transported deposits", () => {

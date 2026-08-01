@@ -191,6 +191,7 @@ const ui = buildUi(
   manifest.version,
   manifest.updatedAt,
   workspaceView,
+  windowsCompatibilityMode ? "safe" : "gpu",
   hikariSettings,
   {
   onParamChange: (key, value) => {
@@ -258,6 +259,11 @@ const ui = buildUi(
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
     applyWorkspaceView();
+  },
+  onComputeModeChange: (mode) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("safe", mode === "safe" ? "1" : "0");
+    window.location.assign(url);
   },
   onHikariChange: (settings) => {
     hikariSettings = normalizeHikariSettings(settings);
