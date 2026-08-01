@@ -17,6 +17,9 @@ export interface BlenderMeshAsset {
   format: "obj" | "stl" | "ply" | "glb";
   sha256?: string;
   role: "host" | "inclusion" | "receiver";
+  mediumId: string;
+  purpose: "primary" | "check";
+  space: "medium-local" | "hikari-world";
 }
 
 export interface BlenderMeshExportMetadata {
@@ -37,9 +40,16 @@ export interface BlenderEnvironmentAssumptions {
 
 export interface BlenderStudySidecar {
   format: "hikari-blender-study";
-  formatVersion: 1;
+  formatVersion: 2;
   case: { caseId: string; appVersion: string; commit: string; createdAt: string };
-  units: { length: "millimetres"; axes: "hikari-raw-xyz"; physicalScale: PhysicalScale };
+  units: { length: "millimetres"; physicalScale: PhysicalScale };
+  coordinateSystem: {
+    source: "hikari-right-handed-y-up";
+    target: "blender-right-handed-z-up";
+    /** Row-major matrix: Hikari (x,y,z) -> Blender (x,-z,y). */
+    sourceToTarget3x3: readonly [number, number, number, number, number, number, number, number, number];
+    policy: "root-transform";
+  };
   geometry: {
     host: Medium;
     inclusions: Medium[];
@@ -51,8 +61,14 @@ export interface BlenderStudySidecar {
     light: DirectionalLight;
     receiver: PlaneReceiver;
     boundaryEpsilonShapeUnits: number;
+    sunAngularDiameterDeg: number;
   };
-  camera: HikariCase["camera"];
+  camera: {
+    position: HikariCase["camera"]["position"];
+    target: HikariCase["camera"]["target"];
+    fov: number;
+    aspect: number;
+  };
   environment: BlenderEnvironmentAssumptions;
   unsupported: string[];
   approximations: string[];
@@ -65,6 +81,7 @@ export interface BuildBlenderStudyInput {
   environment?: Partial<BlenderEnvironmentAssumptions>;
   unsupported?: string[];
   approximations?: string[];
+  sunAngularDiameterDeg?: number;
 }
 
 const DEFAULT_UNSUPPORTED = [
@@ -73,7 +90,7 @@ const DEFAULT_UNSUPPORTED = [
 ];
 
 const DEFAULT_APPROXIMATIONS = [
-  "Directional light is transferred as a direction and RGB radiance; source angular size is not represented by this schema.",
+  "Directional light, RGB radiance, and source angular diameter are transferred, but they are not calibrated photometric measurements.",
   "RGB absorption coefficients are transferred in inverse millimetres, but Blender node mapping must be recorded separately.",
 ];
 
@@ -97,7 +114,7 @@ export function buildBlenderStudySidecar(input: BuildBlenderStudyInput): Blender
   };
   const sidecar: BlenderStudySidecar = {
     format: "hikari-blender-study",
-    formatVersion: 1,
+    formatVersion: 2,
     case: {
       caseId: input.hikariCase.caseId,
       appVersion: input.hikariCase.appVersion,
@@ -106,8 +123,13 @@ export function buildBlenderStudySidecar(input: BuildBlenderStudyInput): Blender
     },
     units: {
       length: "millimetres",
-      axes: "hikari-raw-xyz",
       physicalScale: { ...input.opticalScene.physicalScale },
+    },
+    coordinateSystem: {
+      source: "hikari-right-handed-y-up",
+      target: "blender-right-handed-z-up",
+      sourceToTarget3x3: [1, 0, 0, 0, 0, -1, 0, 1, 0],
+      policy: "root-transform",
     },
     geometry: {
       host: cloneMedium(input.opticalScene.host),
@@ -120,11 +142,13 @@ export function buildBlenderStudySidecar(input: BuildBlenderStudyInput): Blender
       light: cloneLight(input.opticalScene.light),
       receiver: cloneReceiver(input.opticalScene.receiver),
       boundaryEpsilonShapeUnits: input.opticalScene.boundaryEpsilon,
+      sunAngularDiameterDeg: input.sunAngularDiameterDeg ?? 0.53,
     },
     camera: {
       position: [...input.hikariCase.camera.position],
       target: [...input.hikariCase.camera.target],
       fov: input.hikariCase.camera.fov,
+      aspect: input.hikariCase.camera.aspect ?? 4 / 3,
     },
     environment,
     unsupported: [...DEFAULT_UNSUPPORTED, ...(input.unsupported ?? [])],
@@ -155,16 +179,25 @@ export function parseBlenderStudySidecar(text: string): BlenderStudySidecar {
 }
 
 export function validateBlenderStudySidecar(value: unknown): asserts value is BlenderStudySidecar {
-  objectWithKeys(value, ["format", "formatVersion", "case", "units", "geometry", "optics", "camera", "environment", "unsupported", "approximations"], "sidecar");
-  if (value.format !== "hikari-blender-study" || value.formatVersion !== 1) fail("unsupported format");
+  objectWithKeys(value, ["format", "formatVersion", "case", "units", "coordinateSystem", "geometry", "optics", "camera", "environment", "unsupported", "approximations"], "sidecar");
+  if (value.format !== "hikari-blender-study" || value.formatVersion !== 2) fail("unsupported format; expected version 2");
   objectWithKeys(value.case, ["caseId", "appVersion", "commit", "createdAt"], "case");
   strings(value.case, ["caseId", "appVersion", "commit", "createdAt"], "case", false);
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value.case.createdAt as string)
     || !Number.isFinite(Date.parse(value.case.createdAt as string))) fail("case.createdAt must be an ISO UTC date");
 
-  objectWithKeys(value.units, ["length", "axes", "physicalScale"], "units");
-  if (value.units.length !== "millimetres" || value.units.axes !== "hikari-raw-xyz") fail("invalid unit contract");
+  objectWithKeys(value.units, ["length", "physicalScale"], "units");
+  if (value.units.length !== "millimetres") fail("invalid unit contract");
   validatePhysicalScale(value.units.physicalScale);
+
+  objectWithKeys(value.coordinateSystem, ["source", "target", "sourceToTarget3x3", "policy"], "coordinateSystem");
+  if (value.coordinateSystem.source !== "hikari-right-handed-y-up"
+    || value.coordinateSystem.target !== "blender-right-handed-z-up"
+    || value.coordinateSystem.policy !== "root-transform") fail("invalid coordinate-system contract");
+  tuple(value.coordinateSystem.sourceToTarget3x3, 9, "coordinateSystem.sourceToTarget3x3");
+  if (JSON.stringify(value.coordinateSystem.sourceToTarget3x3) !== JSON.stringify([1, 0, 0, 0, 0, -1, 0, 1, 0])) {
+    fail("unsupported source-to-target transform");
+  }
 
   objectWithKeys(value.geometry, ["host", "inclusions", "meshes"], "geometry");
   const geometry = value.geometry;
@@ -173,7 +206,7 @@ export function validateBlenderStudySidecar(value: unknown): asserts value is Bl
   geometry.inclusions.forEach((item, index) => validateMedium(item, `geometry.inclusions[${index}]`));
   validateMeshes(geometry.meshes);
 
-  objectWithKeys(value.optics, ["hostMaterial", "inclusionMaterials", "light", "receiver", "boundaryEpsilonShapeUnits"], "optics");
+  objectWithKeys(value.optics, ["hostMaterial", "inclusionMaterials", "light", "receiver", "boundaryEpsilonShapeUnits", "sunAngularDiameterDeg"], "optics");
   const optics = value.optics;
   validateMaterial(optics.hostMaterial, "optics.hostMaterial");
   if (!Array.isArray(optics.inclusionMaterials)) fail("optics.inclusionMaterials must be an array");
@@ -183,14 +216,16 @@ export function validateBlenderStudySidecar(value: unknown): asserts value is Bl
   validateLight(optics.light);
   validateReceiver(optics.receiver);
   finite(optics.boundaryEpsilonShapeUnits, "optics.boundaryEpsilonShapeUnits", true);
+  finite(optics.sunAngularDiameterDeg, "optics.sunAngularDiameterDeg", true);
   if (JSON.stringify((geometry.host as Record<string, unknown>).material) !== JSON.stringify(optics.hostMaterial)) fail("host material copies disagree");
   geometry.inclusions.forEach((medium, index) => {
     if (JSON.stringify((medium as Record<string, unknown>).material) !== JSON.stringify(inclusionMaterials[index])) fail(`inclusion material ${index} copies disagree`);
   });
 
-  objectWithKeys(value.camera, ["position", "target", "fov"], "camera");
+  objectWithKeys(value.camera, ["position", "target", "fov", "aspect"], "camera");
   tuple(value.camera.position, 3, "camera.position"); tuple(value.camera.target, 3, "camera.target");
   finite(value.camera.fov, "camera.fov", true);
+  finite(value.camera.aspect, "camera.aspect", true);
   if ((value.camera.fov as number) >= 180) fail("camera.fov must be below 180");
 
   objectWithKeys(value.environment, ["world", "exposure", "viewTransform", "renderer", "notes"], "environment");
@@ -216,10 +251,12 @@ function validateMeshes(value: unknown): void {
   objectWithOptionalKeys(value, ["assets"], ["resolution", "triangleCount", "watertight", "scaleMmPerUnit"], "geometry.meshes");
   if (!Array.isArray(value.assets)) fail("geometry.meshes.assets must be an array");
   value.assets.forEach((asset, index) => {
-    objectWithOptionalKeys(asset, ["filename", "format", "role"], ["sha256"], `mesh asset ${index}`);
-    strings(asset, ["filename"], `mesh asset ${index}`, false);
+    objectWithOptionalKeys(asset, ["filename", "format", "role", "mediumId", "purpose", "space"], ["sha256"], `mesh asset ${index}`);
+    strings(asset, ["filename", "mediumId"], `mesh asset ${index}`, false);
     if (!["obj", "stl", "ply", "glb"].includes(String(asset.format))) fail(`mesh asset ${index} has invalid format`);
     if (!["host", "inclusion", "receiver"].includes(String(asset.role))) fail(`mesh asset ${index} has invalid role`);
+    if (!["primary", "check"].includes(String(asset.purpose))) fail(`mesh asset ${index} has invalid purpose`);
+    if (!["medium-local", "hikari-world"].includes(String(asset.space))) fail(`mesh asset ${index} has invalid space`);
     if (asset.sha256 !== undefined && (typeof asset.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(asset.sha256))) fail(`mesh asset ${index} has invalid SHA-256`);
   });
   if (value.resolution !== undefined) integer(value.resolution, "mesh resolution", true);

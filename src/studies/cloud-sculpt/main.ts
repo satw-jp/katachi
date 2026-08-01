@@ -18,11 +18,22 @@ import {
 } from "./hikari.ts";
 import type { HistoryEntry } from "./history.ts";
 import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "./history.ts";
-import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
+import {
+  buildCloudMesh,
+  downloadMeshBundle,
+  encodeBinaryStl,
+  encodeObj,
+  meshSummary,
+} from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
 import { buildCloudOpticalScene } from "./opticalSceneAdapter.ts";
+import type { OpticalScene, Rgb } from "./opticalScene.ts";
 import { traceStraightRay, type StraightRay, type TraceOptions } from "./opticalTrace.ts";
+import {
+  buildBlenderStudySidecar,
+  serializeBlenderStudySidecar,
+} from "./blenderStudy.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
@@ -39,6 +50,7 @@ let state = createEmptyState();
 let selectedBallId: number | null = null;
 const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
+const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
 let workspaceView: WorkspaceView =
   localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
 let hikariSettings = loadHikariSettings();
@@ -127,6 +139,7 @@ const ui = buildUi(
   onImportFile: (file) => importHistory(file),
   onMeshInspect: (options) => inspectMesh(options),
   onMeshExport: (options) => exportMesh(options),
+  onBlenderExport: (details) => void exportBlenderStudy(details),
   onViewChange: (view) => {
     workspaceView = view;
     localStorage.setItem(WORKSPACE_VIEW_KEY, view);
@@ -300,22 +313,7 @@ function exportHistory(): void {
 }
 
 function exportHikariCase(caseId: string, observation: string): void {
-  const backend = hikariLayer.getOpticsComputeStatus();
-  const json = serializeHikariCase(createHikariCase({
-    caseId,
-    observation,
-    appVersion: manifest.version,
-    commit: "unknown",
-    shape: { studyId: "cloud-sculpt", recipeEntries: history },
-    hikariSettings: { ...hikariSettings },
-    camera: cloudRenderer.captureCamera(),
-    compatibility: {
-      safeModeQuery:
-        safeModeQuery === "1" ? "forced" : safeModeQuery === "0" ? "disabled" : "auto",
-      compatibilityMode: windowsCompatibilityMode,
-    },
-    backend: { kind: backend.kind, text: backend.text, requestedSampleCount: hikariSettings.opticalSampleCount },
-  }));
+  const json = serializeHikariCase(currentHikariCase(caseId, observation));
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -393,6 +391,139 @@ function exportMesh(options: MeshExportUiOptions): void {
   }
 }
 
+async function exportBlenderStudy(details: {
+  caseId: string;
+  observation: string;
+  options: MeshExportUiOptions;
+}): Promise<void> {
+  try {
+    ui.setBlenderExportStatus("Blender用データを準備中...");
+    const mesh = buildCloudMesh(state.balls, state.params.k, details.options);
+    if (!mesh.watertight.ok) {
+      throw new Error("透明体のメッシュが水密ではありません。解像度か形状を調整してください");
+    }
+    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    if (adapter.issues.length > 0) throw new Error(opticalSceneIssueText(adapter.issues));
+    const scene = opticalSceneAtExportScale(adapter, mesh.scaleMmPerUnit);
+    const caseValue = currentHikariCase(details.caseId, details.observation);
+    const baseName = safeCaseId(details.caseId);
+    const obj = encodeObj(mesh);
+    const stl = encodeBinaryStl(mesh, baseName);
+    const objSha256 = await sha256Hex(new TextEncoder().encode(obj));
+    const stlSha256 = await sha256Hex(new Uint8Array(stl));
+    const sidecar = buildBlenderStudySidecar({
+      hikariCase: caseValue,
+      opticalScene: scene,
+      mesh: {
+        assets: [
+          {
+            filename: `${baseName}.obj`, format: "obj", role: "host",
+            mediumId: scene.host.id, purpose: "primary", space: "medium-local", sha256: objSha256,
+          },
+          {
+            filename: `${baseName}.stl`, format: "stl", role: "host",
+            mediumId: scene.host.id, purpose: "check", space: "medium-local", sha256: stlSha256,
+          },
+        ],
+        resolution: Math.round(details.options.resolution),
+        triangleCount: mesh.triangles.length,
+        watertight: mesh.watertight.ok,
+        scaleMmPerUnit: mesh.scaleMmPerUnit,
+      },
+      environment: {
+        world: hikariSettings.daylightMode === "tokyo" ? "Tokyo clear-sky realtime approximation" : "Manual realtime sun approximation",
+        exposure: hikariSettings.opticalExposure,
+        viewTransform: "Record Blender view transform after import",
+        renderer: "cycles",
+        notes: [
+          "The imported OBJ is the primary host geometry; the STL download is a secondary topology check.",
+          "Room and window geometry are not part of the runtime scene yet.",
+        ],
+      },
+      approximations: [
+        "The selected longest edge defines an author scale for this export.",
+        "Absorption was converted from Hikari's visual per-shape-unit control at that scale; it is appearance-matched, not a measured resin coefficient.",
+      ],
+      sunAngularDiameterDeg: hikariSettings.sunSize,
+    });
+    downloadFile(new Blob([obj], { type: "text/plain" }), `${baseName}.obj`);
+    downloadFile(new Blob([stl], { type: "model/stl" }), `${baseName}.stl`);
+    downloadFile(new Blob([serializeRecipe(history)], { type: "application/json" }), `${baseName}.recipe.json`);
+    downloadFile(new Blob([serializeHikariCase(caseValue)], { type: "application/json" }), `${baseName}.hikari-case.json`);
+    downloadFile(new Blob([serializeBlenderStudySidecar(sidecar)], { type: "application/json" }), `${baseName}.blender-study.json`);
+    ui.setBlenderExportStatus(`${baseName} — OBJ / STL / case / Blender設定を書き出しました`, true);
+  } catch (error) {
+    ui.setBlenderExportStatus(`Blender用書き出し失敗: ${(error as Error).message}`, false);
+  }
+}
+
+function currentHikariCase(caseId: string, observation: string) {
+  const backend = hikariLayer.getOpticsComputeStatus();
+  return createHikariCase({
+    caseId,
+    observation,
+    appVersion: manifest.version,
+    commit: APP_COMMIT,
+    shape: { studyId: "cloud-sculpt", recipeEntries: history },
+    hikariSettings: { ...hikariSettings },
+    camera: cloudRenderer.captureCamera(),
+    compatibility: {
+      safeModeQuery:
+        safeModeQuery === "1" ? "forced" : safeModeQuery === "0" ? "disabled" : "auto",
+      compatibilityMode: windowsCompatibilityMode,
+    },
+    backend: {
+      kind: backend.kind,
+      text: backend.text,
+      requestedSampleCount: hikariSettings.opticalSampleCount,
+    },
+  });
+}
+
+function opticalSceneAtExportScale(
+  adapter: ReturnType<typeof buildCloudOpticalScene>,
+  mmPerShapeUnit: number,
+): OpticalScene {
+  const materialAtScale = (material: OpticalScene["host"]["material"], absorption: Rgb) => ({
+    ...material,
+    absorptionPerMm: {
+      r: absorption.r / mmPerShapeUnit,
+      g: absorption.g / mmPerShapeUnit,
+      b: absorption.b / mmPerShapeUnit,
+    },
+  });
+  return {
+    ...adapter.scene,
+    host: {
+      ...adapter.scene.host,
+      material: materialAtScale(adapter.scene.host.material, adapter.hostAbsorptionPerShapeUnit),
+    },
+    inclusions: adapter.scene.inclusions.map((inclusion) => ({
+      ...inclusion,
+      material: materialAtScale(inclusion.material, adapter.inclusionAbsorptionPerShapeUnit),
+    })),
+    physicalScale: { mmPerShapeUnit, source: "author" },
+  };
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>);
+  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+function safeCaseId(caseId: string): string {
+  return caseId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari-blender-study";
+}
+
+function downloadFile(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Debug / verification handle (used by automated checks and the "same shape
 // after import" test in the README). Read state, or feed a recipe directly.
 (window as unknown as Record<string, unknown>).__cloudSculpt = {
@@ -419,26 +550,7 @@ function exportMesh(options: MeshExportUiOptions): void {
     return traceStraightRay(adapter.scene, ray, options);
   },
   exportHikariCaseJson: (caseId = "debug-case", observation = "") => {
-    const backend = hikariLayer.getOpticsComputeStatus();
-    return serializeHikariCase(createHikariCase({
-      caseId,
-      observation,
-      appVersion: manifest.version,
-      commit: "unknown",
-      shape: { studyId: "cloud-sculpt", recipeEntries: history },
-      hikariSettings: { ...hikariSettings },
-      camera: cloudRenderer.captureCamera(),
-      compatibility: {
-        safeModeQuery:
-          safeModeQuery === "1" ? "forced" : safeModeQuery === "0" ? "disabled" : "auto",
-        compatibilityMode: windowsCompatibilityMode,
-      },
-      backend: {
-        kind: backend.kind,
-        text: backend.text,
-        requestedSampleCount: hikariSettings.opticalSampleCount,
-      },
-    }));
+    return serializeHikariCase(currentHikariCase(caseId, observation));
   },
   importHikariCaseJson: (text: string) => applyHikariCaseText(text),
 };

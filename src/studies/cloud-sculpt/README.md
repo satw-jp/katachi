@@ -80,6 +80,12 @@
   太陽が地平線下に入ると直射光と集光を止め、空の明るさは独立して残す。従来の一軸角度は手動モードとして保持する。
   `daylightRoom.ts`には天井高を含む部屋、四方の一面に複数置ける矩形窓、窓ごとの直射入射判定を純粋契約として追加した。
   `blenderStudy.ts`にはcase／実寸／素材／光／床／メッシュを結ぶ厳格なsidecarを追加した。部屋と窓の描画接続は次段階。
+- **Blender handoff v0.20.0**: HIKARIの「Blender用一式を書き出す」は、水密OBJ、確認用STL、形状recipe、
+  Hikari case、Blender study sidecarを同じcase IDで保存する。sidecar v2は各meshのSHA-256、主用途／確認用途、
+  medium ID、実寸、素材、内包、床、太陽、カメラFOVと画面比率を記録する。Hikariの右手Y-upからBlenderの右手Z-upへ
+  `(x,y,z)→(x,-z,y)`を明示し、形・内包・床・カメラ・太陽へ同じ変換を適用する。
+  `tools/blender/import_hikari_study.py`がBlender内でsceneを復元し、未対応や近似をText metadataへ残す。
+  現在の色吸収は選択実寸で見た目を合わせた換算であり、測定済み材料係数ではない。
 - **Hikari Optics v0.2**: Hikari内の `Flow / Optics` で光学観察へ切り替える。透明表面は画面と同じSDFを
   レイマーチし、入射面から内部、出射面までを屈折率に従って追跡する。別のCPU層が平行光線を同じ`fieldSdf`へ
   当て、入射／内部／出射の区間と受光面への到達点を加算表示する。Water / Glass、屈折率、光の角度、光線数、

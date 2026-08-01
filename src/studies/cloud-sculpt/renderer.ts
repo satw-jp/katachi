@@ -16,6 +16,8 @@ export interface CameraSnapshot {
   position: [number, number, number];
   target: [number, number, number];
   fov: number;
+  /** Aspect at capture time; restore keeps the live viewport but exports this framing contract. */
+  aspect?: number;
 }
 
 export class CloudRenderer {
@@ -285,6 +287,7 @@ export class CloudRenderer {
       position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
       target: [this.controls.target.x, this.controls.target.y, this.controls.target.z],
       fov: this.camera.fov,
+      aspect: this.camera.aspect,
     };
   }
 

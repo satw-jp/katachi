@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added the first one-action Hikari-to-Blender handoff. The Hikari panel exports a watertight author-scaled OBJ, topology-check STL, shape recipe, Hikari case, and strict Blender study sidecar with SHA-256 hashes. Sidecar v2 explicitly maps Hikari right-handed Y-up coordinates to Blender right-handed Z-up as (x,y,z)→(x,-z,y), carries camera aspect/FOV, receiver, host/inclusion media, sun direction/angular diameter, and separates primary from check assets. Added a Blender bootstrap that reconstructs the scene without clearing existing work unless requested; the first analytic spherical inclusion may be generated when no mesh exists."
+    },
     {
       "date": "2026-08-01",
       "note": "Connected reproducible Tokyo daylight to the Hikari runtime. A Tokyo civil date and time now resolve to a three-dimensional NOAA-style solar azimuth/altitude; the WebGL body/environment and CPU/WebGPU focused-light paths share that direction. Scrubbing time rebuilds the optical result, and direct sun/caustics stop below the horizon while sky light remains. Manual angle remains as an explicit fallback. Added renderer-independent room/multiple-window admission geometry and a strict Blender study sidecar contract as foundations; room apertures are not rendered yet."

@@ -41,6 +41,11 @@ export interface UiCallbacks {
   onHikariChange: (settings: HikariSettings) => void;
   onHikariCaseSave: (details: { caseId: string; observation: string }) => void;
   onHikariCaseImportFile: (file: File) => void;
+  onBlenderExport: (details: {
+    caseId: string;
+    observation: string;
+    options: MeshExportUiOptions;
+  }) => void;
 }
 
 export interface UiHandles {
@@ -60,6 +65,7 @@ export interface UiHandles {
   setView: (view: WorkspaceView) => void;
   setHikariSource: (text: string) => void;
   setHikariCaseStatus: (text: string, ok?: boolean) => void;
+  setBlenderExportStatus: (text: string, ok?: boolean) => void;
   syncHikariCaseDetails: (details: { caseId: string; observation: string }) => void;
   syncHikariSettings: (settings: HikariSettings) => void;
   setOpticsComputeStatus: (
@@ -408,6 +414,64 @@ export function buildUi(
   const caseStatus = document.createElement("div");
   caseStatus.className = "hint";
   hikariControls.appendChild(caseStatus);
+
+  const blenderTitle = document.createElement("div");
+  blenderTitle.className = "hikari-section-title";
+  blenderTitle.textContent = "Blenderへ渡す";
+  hikariControls.appendChild(blenderTitle);
+
+  const blenderSizeRow = document.createElement("div");
+  blenderSizeRow.className = "row mesh-row";
+  const blenderSizeLabel = document.createElement("label");
+  blenderSizeLabel.textContent = "実物の最長辺 mm";
+  const blenderSizeInput = document.createElement("input");
+  blenderSizeInput.type = "number";
+  blenderSizeInput.min = "10";
+  blenderSizeInput.max = "10000";
+  blenderSizeInput.step = "1";
+  blenderSizeInput.value = "80";
+  blenderSizeRow.appendChild(blenderSizeLabel);
+  blenderSizeRow.appendChild(blenderSizeInput);
+  hikariControls.appendChild(blenderSizeRow);
+
+  const blenderResolutionRow = document.createElement("div");
+  blenderResolutionRow.className = "row mesh-row";
+  const blenderResolutionLabel = document.createElement("label");
+  blenderResolutionLabel.textContent = "形のなめらかさ";
+  const blenderResolutionInput = document.createElement("input");
+  blenderResolutionInput.type = "range";
+  blenderResolutionInput.min = "32";
+  blenderResolutionInput.max = "192";
+  blenderResolutionInput.step = "16";
+  blenderResolutionInput.value = "96";
+  const blenderResolutionOut = document.createElement("span");
+  blenderResolutionOut.className = "value-out";
+  blenderResolutionOut.textContent = blenderResolutionInput.value;
+  blenderResolutionInput.oninput = () => {
+    blenderResolutionOut.textContent = blenderResolutionInput.value;
+  };
+  blenderResolutionRow.appendChild(blenderResolutionLabel);
+  blenderResolutionRow.appendChild(blenderResolutionInput);
+  blenderResolutionRow.appendChild(blenderResolutionOut);
+  hikariControls.appendChild(blenderResolutionRow);
+
+  const blenderExportButton = document.createElement("button");
+  blenderExportButton.type = "button";
+  blenderExportButton.textContent = "Blender用一式を書き出す";
+  blenderExportButton.onclick = () => callbacks.onBlenderExport({
+    caseId: caseIdInput.value.trim() || "hikari-case",
+    observation: observationInput.value,
+    options: {
+      resolution: Number(blenderResolutionInput.value),
+      targetLongestMm: Number(blenderSizeInput.value),
+    },
+  });
+  hikariControls.appendChild(blenderExportButton);
+
+  const blenderExportStatus = document.createElement("div");
+  blenderExportStatus.className = "hint";
+  blenderExportStatus.textContent = "v0.20: 形・実寸・素材・内包・床・太陽・カメラを、Blender用の軸変換と一緒に渡します";
+  hikariControls.appendChild(blenderExportStatus);
 
   const hikariControlSyncers: Array<(settings: HikariSettings) => void> = [];
 
@@ -930,6 +994,10 @@ export function buildUi(
     setHikariCaseStatus: (text, ok) => {
       caseStatus.textContent = text;
       caseStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setBlenderExportStatus: (text, ok) => {
+      blenderExportStatus.textContent = text;
+      blenderExportStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
     syncHikariCaseDetails: (details) => {
       caseIdInput.value = details.caseId;

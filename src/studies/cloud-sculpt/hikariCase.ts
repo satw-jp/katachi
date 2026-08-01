@@ -78,7 +78,7 @@ export function validateHikariCase(value: unknown): asserts value is HikariCase 
     }
   }
   if (!isObject(value.hikariSettings)) throw new Error("Hikari case の設定が不正です");
-  if (!isObject(value.camera) || !finiteTuple(value.camera.position, 3) || !finiteTuple(value.camera.target, 3) || typeof value.camera.fov !== "number" || !Number.isFinite(value.camera.fov) || value.camera.fov <= 0 || value.camera.fov >= 180) {
+  if (!isObject(value.camera) || !finiteTuple(value.camera.position, 3) || !finiteTuple(value.camera.target, 3) || typeof value.camera.fov !== "number" || !Number.isFinite(value.camera.fov) || value.camera.fov <= 0 || value.camera.fov >= 180 || (value.camera.aspect !== undefined && (typeof value.camera.aspect !== "number" || !Number.isFinite(value.camera.aspect) || value.camera.aspect <= 0))) {
     throw new Error("Hikari case のカメラが不正です");
   }
   if (

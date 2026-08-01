@@ -1,6 +1,6 @@
 # hikari ↔ Blender validation protocol
 
-Status: proposed baseline
+Status: bundle v2 active; first Blender reconstruction under validation
 UpdatedAt: 2026-08-01
 
 ## Purpose
@@ -30,7 +30,7 @@ hikari-<case-id>-<utc-stamp>/
   comparison.md
 ```
 
-`mesh.obj` is the primary Blender input. `mesh.stl` is a secondary geometry check. Existing exports use millimetres and preserve raw x/y/z; they do not declare a build axis or print-ready plate orientation.
+`mesh.obj` is the primary Blender input. `mesh.stl` is a secondary geometry check. Existing exports use millimetres and preserve Hikari's raw Y-up x/y/z. The v2 Blender sidecar declares the required right-handed Y-up to right-handed Z-up transform `(x, y, z) → (x, -z, y)`; the importer applies it consistently to geometry, camera, receiver, light, and analytic inclusions. See [integration design](blender-integration.md).
 
 `case.json` records:
 
@@ -40,7 +40,7 @@ hikari-<case-id>-<utc-stamp>/
 - Katachi study ID/version;
 - filenames and SHA-256 values;
 - mesh resolution, triangle count, watertight result, source bounds, millimetre bounds, scale in mm/source-unit;
-- coordinate contract: millimetres, raw axes, Katachi field origin, identity transform to Blender unless explicitly changed;
+- coordinate contract: millimetres, raw Hikari axes, Katachi field origin, and the explicit v2 source-to-Blender transform;
 - camera, receiver, and light values;
 - renderer/backend and optical sample count;
 - known approximations.
@@ -50,7 +50,7 @@ Generated `.blend` files and images are not committed by default. Commit case sp
 ## Blender setup
 
 1. Import `mesh.obj`; verify dimensions against `case.json` before judging optics.
-2. Preserve raw axes. Do not silently rotate to a fabrication axis.
+2. Preserve the raw mesh below the recorded v2 axis root. Do not rotate only the mesh or silently choose a fabrication orientation.
 3. Place a neutral receiver just below the recorded minimum vertical bound using a fixed epsilon.
 4. Recreate the recorded camera and light direction.
 5. Use Cycles for the reference render.

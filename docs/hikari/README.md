@@ -94,12 +94,13 @@ Implemented today:
 
 Known limits:
 
-- only one medium boundary exists;
-- material color is not yet an editable RGB absorption coefficient;
-- no clear inclusion inside a separately colored host;
+- runtime rendering supports one validated analytic spherical inclusion; the scene and bundle contracts allow arrays, but generic multiple-inclusion meshes are not connected yet;
+- outer material uses clear/amber/dark RGB absorption presets; the versioned pigment concentration field exists but is not connected to every CPU/GPU/shadow path yet;
+- the current clear inclusion can sit inside a colored host, but only the first analytic sphere is rendered and focused;
 - CPU, WebGPU, and view-shader optical logic are parallel implementations and can drift;
 - no multiple internal bounces or physically calibrated HDR environment;
-- Blender export does not yet include hikari settings, camera, hashes, or comparison metadata.
+- Tokyo open-air direction is active, while room/window geometry is a pure admission contract not yet rendered;
+- Blender bundle v2 includes Hikari settings, camera, hashes, scale, media, receiver, and sun, but `blender-result.json` return import and generic inclusion meshes remain planned.
 
 ## Architecture decision
 
@@ -136,6 +137,7 @@ Related documents:
 - [Next implementation plan](implementation-plan.md)
 - [Reproducible baseline cases](cases/README.md)
 - [Blender validation protocol](blender-validation.md)
+- [Blender integration design and bundle v2](blender-integration.md)
 - [Reference corpus](reference-corpus.md)
 - [Natural-light environments and receiver materials](lighting-environment.md)
 - [Light drawing from the author's trace](light-drawing.md)
