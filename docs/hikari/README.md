@@ -75,6 +75,8 @@ hikari does not currently own:
 
 General placement is postponed as an interaction feature, not ignored in the architecture. Phase 4 may move the body only nearer to or farther from an opening as an environment relation; height, free orientation, grounded/floating intent, and spatial arrangement wait until a form is frozen. Shape-local coordinates, whole-object pose, inclusion-local pose, optical receiver, and future ground reference remain distinct so the optics do not need to be rewritten later.
 
+Ambient Mix is a parallel presentation branch after the same optical quality gate. It begins with five independent saved views and camera orbits, then deterministic recorded response, then a read-only live Ambient bridge. It does not begin with five mutually interacting optical bodies or audio-driven MPM.
+
 ## Current implementation
 
 The current implementation is co-located with Katachi Cloud Sculpt. This is intentional for the present phase: Katachi produces the shape field and hikari reads the same balls, smooth-union value, and camera in memory, without an export/import step.
@@ -149,6 +151,7 @@ Related documents:
 - [Internal color-variation field](color-variation.md)
 - [Artwork, Ambient, and open-call strategy](artwork-strategy.md)
 - [Ambient environmental artwork contract](ambient-integration.md)
+- [Five-voice Hikari × Ambient Mix](ambient-mix.md)
 - [Blender study 01 reading](blender-study-01.md)
 - [Adjacent study: printed translucent light shade](printed-translucent-shell.md)
 - [Web publishing procedure](publishing.md)
