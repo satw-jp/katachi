@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.28.3",
+  "version": "0.29.0",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Integrated the existing MPM-to-Hikari artwork bridge into the current application shell. A dedicated Shape Deformation property starts the established CPU MLS-MPM study from the live Cloud Sculpt balls, formally selects OPTICS, updates only the realtime BODY at a bounded low rate through at most 220 coarse balls, and pauses receiver transport until author adoption. Input density is allocated under a 3,000-particle cap and shapes outside the finite MPM domain are rejected before allocation. BODY-only updates still refresh the OpticalScene containment state without starting receiver traces. Adoption records an explicit clear plus addBall snapshot in the normal Cloud history, so the selected instant reopens from .hkr without rerunning non-bit-deterministic simulation. Progressive Render, case save/open, Blender export, and Katachi edits are unavailable while shape evolution is active and resume after adoption; programmatic case/recipe restore also cancels a running preview. All 57 Hikari tests, TypeScript, and the production build pass. Real-browser WebGPU verification changed the initial 12-ball form to a 61-ball moving proxy while reporting receiver transport paused, adopted 59 balls, saved v0.29.0 as one timestamped .hkr containing 61 history entries, reopened the same 59-ball view, resumed the 65,536-ray receiver calculation, and produced no console warnings or errors. Mac screen recordings showed actual frame delivery ranging from 5.23 to 20.08 fps while the author found Windows GPU playback smooth, so realtime camera orbit and MPM playback now cap only high-DPI internal resolution at 1x and restore the normal ratio when motion stops; 1x Windows and SAFE rendering are unchanged. The August artwork schedule now places the black/white optical artifact gate before the first rough video take and freezes further MPM scope at this bridge until the optical gate passes."
+    },
     {
       "date": "2026-08-01",
       "note": "Unified the visible background sun/area disc with the finite light's authored angular diameter. The former background used a fixed exponent and ignored sunSize, so broad-source receiver lighting and body refraction saw different emitter sizes. Natural and Analysis environments now use the same 0.1–30 degree diameter control as receiver light directions, while path depth, material absorption, and receiver energy accounting remain unchanged. Added a shader contract and recorded the supplied equal-IOR case as the fixed 0.53 versus 27.3 degree comparison."

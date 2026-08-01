@@ -43,6 +43,7 @@ import {
 } from "./blenderStudy.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
+import { HikariMpmDriver } from "./hikariMpmDriver.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
 import { buildUi } from "./ui.ts";
 import {
@@ -85,6 +86,11 @@ let activeHikariViewId: string | null = null;
 let activeHikariDocumentId = `hikari-${new Date().toISOString().slice(0, 10)}`;
 let hikariDocumentCreatedAt = new Date().toISOString();
 let cameraOrbit: CameraOrbitSettings = { ...DEFAULT_CAMERA_ORBIT };
+const hikariMpmDriver = new HikariMpmDriver();
+let hikariMpmActive = false;
+let hikariMpmLastStepAt = 0;
+let hikariMpmAdoptedBallCount = 0;
+let hikariMpmLastPreview: typeof state.balls = [];
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
   safeModeQuery === "1"
@@ -96,6 +102,11 @@ const cloudRenderer = new CloudRenderer(viewport, {
 const hikariLayer = new HikariLayer(cloudRenderer.scene, {
   disableWebGpu: windowsCompatibilityMode,
   onCausticField: (field) => {
+    if (hikariMpmActive) {
+      receiverTransportPending = true;
+      cloudRenderer.setCausticTransportPending(true);
+      return;
+    }
     receiverTransportPending = false;
     cloudRenderer.invalidateProgressiveRender(
       "受光面が更新されたためリアルタイムへ戻りました",
@@ -109,6 +120,12 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
     cloudRenderer.setCausticField(field);
   },
   onTransportPending: (pending) => {
+    if (hikariMpmActive) {
+      receiverTransportPending = true;
+      cloudRenderer.setCausticTransportPending(true);
+      ui.setReceiverEnergySummary({ text: "MPM変形中は受光面を停止", kind: "empty" });
+      return;
+    }
     receiverTransportPending = pending;
     if (pending) {
       cloudRenderer.invalidateProgressiveRender(
@@ -265,6 +282,8 @@ const ui = buildUi(
   onMeshExport: (options) => exportMesh(options),
   onBlenderExport: (details) => void exportBlenderStudy(details),
   onImageExport: () => exportViewportPng(),
+  onHikariMpmStart: () => startHikariMpmPreview(),
+  onHikariMpmAdopt: () => adoptHikariMpmPreview(),
   onReceiverParityRun: async () => {
     receiverParityReport = await hikariLayer.runReceiverParityCase(
       state.balls.map((ball) => ({ ...ball })),
@@ -300,6 +319,7 @@ const ui = buildUi(
         "自動回転を開始したためリアルタイムへ戻りました",
       );
     }
+    cloudRenderer.setRealtimeMotionMode(cameraOrbit.running || hikariMpmActive);
     ui.setCameraOrbitState(cameraOrbit);
     syncProgressiveRenderStatus(true);
   },
@@ -320,8 +340,18 @@ const ui = buildUi(
     window.location.assign(url);
   },
   onHikariChange: (settings) => {
-    hikariSettings = normalizeHikariSettings(settings);
+    const normalized = normalizeHikariSettings(settings);
+    hikariSettings = hikariMpmActive
+      ? normalizeHikariSettings({ ...normalized, phenomenon: "optics" })
+      : normalized;
     localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+    if (hikariMpmActive) {
+      if (normalized.phenomenon !== "optics") ui.syncHikariSettings(hikariSettings);
+      renderHikariMpmBody(
+        hikariMpmLastPreview.length > 0 ? hikariMpmLastPreview : state.balls,
+      );
+      return;
+    }
     render();
   },
   onHikariCaseSave: (details) => addCurrentHikariView(details.caseId, details.observation),
@@ -341,6 +371,7 @@ cloudRenderer.controls.addEventListener("start", () => {
   if (cameraOrbit.running) {
     cameraOrbit = { ...cameraOrbit, running: false };
     ui.setCameraOrbitState(cameraOrbit);
+    cloudRenderer.setRealtimeMotionMode(hikariMpmActive);
   }
   cloudRenderer.invalidateProgressiveRender(
     "視点が変わったためリアルタイムへ戻りました",
@@ -514,6 +545,7 @@ function applyHikariCaseValue(
   value: ReturnType<typeof parseHikariCase>,
   documentId = value.caseId,
 ): void {
+  cancelHikariMpmPreview("MPMを停止してHikari文書を開きました");
   history = structuredClone(value.shape.recipeEntries);
   state = replay(history);
   selectedBallId = null;
@@ -627,6 +659,7 @@ async function importHikariCase(file: File): Promise<void> {
 }
 
 function applyRecipeText(text: string): void {
+  cancelHikariMpmPreview("MPMを停止して形の履歴を開きました");
   const entries = parseRecipe(text);
   history = entries;
   state = replay(entries);
@@ -858,6 +891,107 @@ async function exportViewportPng(): Promise<{
   return { filename, width: captured.width, height: captured.height };
 }
 
+function startHikariMpmPreview(): void {
+  if (state.balls.length === 0) {
+    ui.setHikariMpmState({ running: false, status: "MPMを開始できません — 先に形を作ってください" });
+    return;
+  }
+  try {
+    hikariMpmDriver.seed(state.balls, state.params.k);
+    hikariMpmActive = true;
+    hikariMpmLastStepAt = 0;
+    hikariMpmAdoptedBallCount = 0;
+    hikariMpmLastPreview = [];
+    cloudRenderer.setRealtimeMotionMode(true);
+    if (cameraOrbit.running) {
+      cameraOrbit = { ...cameraOrbit, running: false };
+      ui.setCameraOrbitState(cameraOrbit);
+    }
+    if (hikariSettings.phenomenon !== "optics") {
+      hikariSettings = normalizeHikariSettings({
+        ...hikariSettings,
+        phenomenon: "optics",
+      });
+      localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+      ui.syncHikariSettings(hikariSettings);
+    }
+    workspaceView = "hikari";
+    localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
+    applyWorkspaceView();
+    receiverTransportPending = true;
+    cloudRenderer.setCausticTransportPending(true);
+    cloudRenderer.setInclusionCausticTrustworthy(false);
+    hikariLayer.setVisible(false);
+    ui.setReceiverEnergySummary({ text: "MPM変形中は受光面を停止", kind: "empty" });
+    ui.setHikariMpmState({
+      running: true,
+      status: `${hikariMpmDriver.description()} · 再生中`,
+    });
+  } catch (error) {
+    ui.setHikariMpmState({
+      running: false,
+      status: `MPM開始失敗: ${(error as Error).message}`,
+    });
+  }
+}
+
+function adoptHikariMpmPreview(): void {
+  if (!hikariMpmActive) return;
+  hikariMpmActive = false;
+  const preview = hikariMpmLastPreview.map((ball) => ({ ...ball }));
+  hikariLayer.setVisible(workspaceView === "hikari");
+  cloudRenderer.setRealtimeMotionMode(cameraOrbit.running);
+  hikariLayer.invalidateReceiverTransport();
+  if (preview.length > 0) {
+    // Persist the selected instant as explicit sculpt operations. The MPM
+    // process may differ across devices, but the adopted artwork reopens
+    // without rerunning the simulation.
+    record(history, state, "clear", {});
+    for (const ball of preview) record(history, state, "addBall", ball);
+    hikariMpmAdoptedBallCount = preview.length;
+    selectedBallId = null;
+    ui.setHistoryCount(history.length);
+    updateSelectionLabel();
+    render();
+  } else {
+    state = replay(history);
+    render();
+    ui.setHikariMpmState({
+      running: false,
+      status: "MPM形態を採用できませんでした — 最後の有効な形がありません",
+    });
+    return;
+  }
+  ui.setHikariMpmState({
+    running: false,
+    status: `MPM形態を採用しました · ${preview.length}球の近似形状 · .hkrへ保存できます`,
+  });
+}
+
+function cancelHikariMpmPreview(status = "MPM形態変形を停止しました"): void {
+  if (!hikariMpmActive) return;
+  hikariMpmActive = false;
+  hikariMpmLastPreview = [];
+  hikariLayer.setVisible(workspaceView === "hikari");
+  cloudRenderer.setRealtimeMotionMode(cameraOrbit.running);
+  hikariLayer.invalidateReceiverTransport();
+  ui.setHikariMpmState({ running: false, status });
+}
+
+function renderHikariMpmBody(preview: typeof state.balls): void {
+  cloudRenderer.invalidateProgressiveRender(
+    "MPM形態が変わったためリアルタイムへ戻りました",
+  );
+  cloudRenderer.update(preview, state.params.k, null);
+  cloudRenderer.setOptics(hikariSettings);
+  const opticalScene = buildCloudOpticalScene(preview, state.params.k, hikariSettings);
+  opticalSceneIssues = opticalScene.issues;
+  opticalInclusionValid = opticalScene.inclusionValid;
+  cloudRenderer.setOpticalScene(opticalScene);
+  cloudRenderer.setVisualMode("optics");
+  ui.setHikariSource(`MPM形態を観察中 — ${preview.length}球 / k ${state.params.k.toFixed(2)}`);
+}
+
 function safeCaseId(caseId: string): string {
   return caseId.replace(/[^a-zA-Z0-9_-]+/g, "-") || "hikari-blender-study";
 }
@@ -920,6 +1054,12 @@ function downloadFile(blob: Blob, filename: string): void {
     return serializeHikariCase(currentHikariCase(caseId, observation));
   },
   importHikariCaseJson: (text: string) => applyHikariCaseText(text),
+  getHikariMpmStatus: () => ({
+    running: hikariMpmActive,
+    particleCount: hikariMpmDriver.particleCount(),
+    adoptedBallCount: hikariMpmAdoptedBallCount,
+  }),
+  getRealtimePixelRatio: () => cloudRenderer.getRealtimePixelRatio(),
 };
 
 // --- Render loop ------------------------------------------------------
@@ -959,6 +1099,21 @@ function renderFrame(now: number): void {
     );
     position.set(next[0], next[1], next[2]);
   }
+  if (hikariMpmActive && (hikariMpmLastStepAt === 0 || now - hikariMpmLastStepAt >= 140)) {
+    hikariMpmLastStepAt = now;
+    hikariMpmDriver.advance();
+    const preview = hikariMpmDriver.previewBalls();
+    if (preview.length > 0) {
+      hikariMpmLastPreview = preview.map((ball) => ({ ...ball }));
+      state.balls = hikariMpmLastPreview;
+      selectedBallId = null;
+      renderHikariMpmBody(hikariMpmLastPreview);
+      ui.setHikariMpmState({
+        running: true,
+        status: `${hikariMpmDriver.description()} · ${preview.length}球プロキシ · 再生中`,
+      });
+    }
+  }
   frameCount++;
   fpsAccum += dt;
   if (fpsAccum >= 500) {
@@ -993,7 +1148,7 @@ function renderFrame(now: number): void {
     fpsAccum = 0;
     frameCount = 0;
   }
-  if (cloudRenderer.getProgressiveRenderState().kind === "realtime") {
+  if (!hikariMpmActive && cloudRenderer.getProgressiveRenderState().kind === "realtime") {
     hikariLayer.animate(now);
   }
   cloudRenderer.render(now);
@@ -1018,6 +1173,9 @@ function progressiveRenderAvailability(): {
   }
   if (state.balls.length === 0) {
     return { available: false, reason: "透明体の形がありません" };
+  }
+  if (hikariMpmActive) {
+    return { available: false, reason: "MPM形態変形を採用してから静止画レンダーを開始できます" };
   }
   if (hikariSettings.inclusionEnabled && !opticalInclusionValid) {
     return { available: false, reason: opticalSceneIssueText(opticalSceneIssues) };

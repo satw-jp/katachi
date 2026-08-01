@@ -97,6 +97,8 @@ export class CloudRenderer {
   private suppressCausticForInclusion = false;
   private inclusionActive = false;
   private inclusionCausticTrustworthy = false;
+  private basePixelRatio = 1;
+  private realtimeMotionMode = false;
 
   constructor(
     container: HTMLElement,
@@ -105,9 +107,8 @@ export class CloudRenderer {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     const compatibilityMode = options.compatibilityMode === true;
-    this.renderer.setPixelRatio(
-      compatibilityMode ? 1 : Math.min(window.devicePixelRatio, 2),
-    );
+    this.basePixelRatio = compatibilityMode ? 1 : Math.min(window.devicePixelRatio, 2);
+    this.renderer.setPixelRatio(this.basePixelRatio);
     container.appendChild(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
@@ -463,6 +464,19 @@ export class CloudRenderer {
     this.progressiveSupported = this.progressiveSupported
       && this.validateProgressiveFramebuffer();
     this.invalidateProgressiveRender("画面サイズが変わったためリアルタイムへ戻りました");
+  }
+
+  setRealtimeMotionMode(active: boolean): void {
+    if (this.realtimeMotionMode === active) return;
+    this.realtimeMotionMode = active;
+    const nextPixelRatio = active ? Math.min(this.basePixelRatio, 1) : this.basePixelRatio;
+    if (Math.abs(this.renderer.getPixelRatio() - nextPixelRatio) < 1e-6) return;
+    this.renderer.setPixelRatio(nextPixelRatio);
+    this.resize();
+  }
+
+  getRealtimePixelRatio(): number {
+    return this.renderer.getPixelRatio();
   }
 
   update(balls: Ball[], k: number, selectedId: number | null): void {

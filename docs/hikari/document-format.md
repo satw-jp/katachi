@@ -68,5 +68,6 @@ View IDs are unique inside one document. `activeViewId` is either `null` or poin
 - thumbnail generation stored separately or as optional bounded assets;
 - explicit dirty/saved state and autosave recovery;
 - optional multi-PNG batch export from selected views;
+- deterministic offline sequence render: advance camera, shape, light, and Ambient-linked time at a fixed FPS, export timestamped PNG frames, and assemble/edit them in Premiere or another NLE without depending on realtime capture speed;
 - schema migration functions when format version 2 is introduced;
 - operating-system file association only after the extension decision stabilizes.

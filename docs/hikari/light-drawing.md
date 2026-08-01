@@ -22,6 +22,13 @@ author gesture / making trace
 
 Every implementation and comparison must preserve this causality. Adding procedural lines to the receiver, moving a fake texture with the object, or changing a pattern independently of geometry fails the requirement.
 
+## Hikari and Blender roles
+
+- **Hikari** is the search instrument: change viewpoint, Tokyo time, source size, receiver distance, material, and a small authored deformation while watching the same geometry-derived line move or soften in realtime. Its validation display keeps focused light inside the reconstructed transparent-shadow support and accumulates a still case progressively rather than inventing new marks each frame.
+- **Blender Cycles** is the reference and finishing path: export the identical geometry/material/light case, retain the actual mid-scale surface irregularity, and converge refractive caustics at higher cost for a chosen still or sequence. It is used to decide whether a missing line is a Hikari transport/reconstruction gap or simply absent for that geometry and light.
+
+The two outputs need not match pixel for pixel. They must agree that the mark originates from the same authored curvature/thickness trace, lies in the causally projected shadow region, moves continuously when that trace moves, and becomes less legible as the source broadens.
+
 ## Current gap
 
 The current optics tracer can carry broad ball-SDF curvature to receiver hit positions, but several choices prevent it from resolving the author's trace:
@@ -41,6 +48,8 @@ These effects may remain useful as exploratory display modes, but they cannot be
 The trace must be part of the shared `ShapeSource` distance/normal query used by CPU, view shader, and WebGPU. Start with a controlled band-limited bulge or recorded local gesture whose physical amplitude and width are saved. Later inputs can include hand-shaped meshes, scans, or a surface-displacement field.
 
 Do not call shader-only normal noise a making trace. Preserve mid-scale irregularity through freezing, meshing, scale changes, and Blender export; do not smooth it away merely to make a generic glass surface.
+
+The first procedural trace is deterministic and author-selectable rather than freshly random every frame. Save `seed`, physical amplitude, feature width, continuity, directionality, density, smoothing, and a world/object-space mask in `.hkr`. The author may reroll the seed, tune the parameters, then freeze a favored trace. Hikari's shared shape query and Blender export must derive from that same frozen field; the finishing export should bake it as real displaced geometry or an equivalently tessellated mesh, because a view-only bump/normal map cannot preserve thickness, silhouette, and focal distance as a reliable optical reference.
 
 ## Focused-light reference path
 

@@ -352,6 +352,10 @@ export class OpticsLayer {
     this.group.visible = visible;
   }
 
+  invalidateTransport(): void {
+    this.signature = "";
+  }
+
   update(balls: Ball[], k: number, settings: OpticalSettings): void {
     this.latestBalls = balls;
     this.latestK = k;

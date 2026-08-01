@@ -151,6 +151,7 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 Related documents:
 
 - [Current week execution plan](current-week-plan.md)
+- [August Hikari × Ambient artwork schedule](ambient-submission-schedule-2026-08.md)
 - [Next implementation plan](implementation-plan.md)
 - [Reproducible baseline cases](cases/README.md)
 - [Blender validation protocol](blender-validation.md)

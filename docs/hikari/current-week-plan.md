@@ -20,8 +20,8 @@ freeze current evidence
   -> inclusion transmitted hue + concentration
   -> representative CPU/WebGPU receiver parity cases
   -> deeper Progressive BODY paths
+  -> minimal existing MPM / freeze bridge verification
   -> transparent-material evidence gate
-  -> minimal living-shape / freeze bridge
   -> spatial pigment variation
 ```
 
@@ -76,13 +76,16 @@ Exit: Phase 3E representative cases pass or record a precise failing event and b
 
 Exit: on both Mac and Windows, a fixed nested/TIR case shows the same physical phenomenon after convergence. Pixel equality is not required; backend-only black patches, detached light, or a benefit visible only in SAFE mode are failures.
 
-### W5 — living shape, only after the optical sub-gate
+### W5 — minimal MPM freeze bridge for the artwork take
+
+Status: the existing coarse bridge is integrated and browser-verified in v0.29.0; further living-shape work remains behind the optical gate.
 
 - Reuse the existing Katachi/MPM shape source rather than build a new general simulator.
-- First bridge: one slowly changing shape can pause, freeze, reopen, and become the exact static input to Hikari.
+- The first bridge lets one slowly changing shape pause, freeze, reopen, and become the exact static input to Hikari.
+- The preview may run before the complete W4 research slice only to produce the August artwork take. The adopted proxy is fixed as explicit history; no claim is made that continuous MPM optics is physically complete.
 - Preserve author actions such as bend, inflate, pinch, and later slime/growth families as separate layers over the base evolution.
 
-Stop rule: if W2–W4 do not pass their fixed optical cases, W5 is limited to contracts and bridge tests; implementation time returns to optics and evidence.
+Stop rule: until W2–W4 pass their fixed optical cases, W5 stops at this verified coarse start/adopt/save bridge. Continuous surface reconstruction, new deformation families, and MPM renderer work do not expand; implementation time returns to optical blockers and evidence.
 
 ## Budget and parallelism
 
@@ -90,7 +93,7 @@ Stop rule: if W2–W4 do not pass their fixed optical cases, W5 is limited to co
 - 20% — W2 inclusion material
 - 25% — W3 receiver parity family and metrics
 - 25% — W4 deeper Progressive BODY
-- 15% — QA, `.hkr`/PNG/Blender evidence, public-build verification, and W5 bridge only if the gate passes
+- 15% — QA, `.hkr`/PNG/Blender evidence, public-build verification, and verification of the already-existing W5 bridge; no further MPM scope until the gate passes
 
 Design and technical decisions stay with the primary thread. Bounded tests, case authoring, documentation audits, Blender-bundle inspection, and cross-platform verification can run in parallel. Two agents must not edit the same runtime files.
 
@@ -101,4 +104,6 @@ Design and technical decisions stay with the primary thread. Bounded tests, case
 - The representative uniform-material receiver case family has explicit parity evidence.
 - Progressive BODY demonstrates a deeper valid path and reports unresolved work on Mac and Windows.
 - At least one before/after Hikari/Blender comparison is recorded; Blender remains validation, not a second implementation target.
-- Only if the optical sub-gate passes, one evolving shape can freeze into the same reopenable Hikari scene.
+- The existing evolving-shape bridge freezes into the same reopenable Hikari scene; it enters an artwork take only after the black/white optical artifact gate passes.
+
+The production-oriented August sequence is tracked separately in [Hikari × Ambient — 2026年8月 作品化スケジュール](ambient-submission-schedule-2026-08.md). It requires the black/white artifact gate before recording the first rough take.

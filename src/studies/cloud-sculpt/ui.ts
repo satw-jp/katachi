@@ -63,6 +63,8 @@ export interface UiCallbacks {
   onProgressiveRenderToggle: (targetSamples: number) => void;
   onCameraOrbitChange: (settings: CameraOrbitSettings) => void;
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
+  onHikariMpmStart: () => void;
+  onHikariMpmAdopt: () => void;
 }
 
 export interface UiHandles {
@@ -101,6 +103,7 @@ export interface UiHandles {
     availability: { available: boolean; reason?: string; resolution?: string },
   ) => void;
   setCameraOrbitState: (settings: CameraOrbitSettings) => void;
+  setHikariMpmState: (state: { running: boolean; status: string }) => void;
 }
 
 export interface HikariViewSummary {
@@ -486,6 +489,19 @@ export function buildUi(
   hikariControls.appendChild(imageExportButton);
   hikariControls.appendChild(imageExportStatus);
 
+  const hikariMpmStartButton = document.createElement("button");
+  hikariMpmStartButton.type = "button";
+  hikariMpmStartButton.textContent = "MPM形態変形を開始";
+  hikariMpmStartButton.onclick = () => callbacks.onHikariMpmStart();
+  const hikariMpmAdoptButton = document.createElement("button");
+  hikariMpmAdoptButton.type = "button";
+  hikariMpmAdoptButton.textContent = "止めてこの形を採用";
+  hikariMpmAdoptButton.disabled = true;
+  hikariMpmAdoptButton.onclick = () => callbacks.onHikariMpmAdopt();
+  const hikariMpmStatus = document.createElement("div");
+  hikariMpmStatus.className = "hint hikari-mpm-status";
+  hikariMpmStatus.textContent = "MPMは低頻度の球プロキシとしてHikariへ渡します。近似形状です。";
+
   const cameraOrbitButton = document.createElement("button");
   cameraOrbitButton.type = "button";
   cameraOrbitButton.textContent = "自動回転を開始";
@@ -513,7 +529,7 @@ export function buildUi(
   cameraOrbitRow.append(cameraOrbitDirection, cameraOrbitDuration, cameraOrbitDurationOut);
   const cameraOrbitHint = document.createElement("div");
   cameraOrbitHint.className = "hint";
-  cameraOrbitHint.textContent = "中心・距離・高さを保って周回します。停止後にRENDERできます。";
+  cameraOrbitHint.textContent = "中心・距離・高さを保って周回します。回転中は録画優先の1×内部解像度、停止後は元の解像度へ戻りRENDERできます。";
   const emitCameraOrbit = (running: boolean): void => {
     callbacks.onCameraOrbitChange({
       running,
@@ -1402,6 +1418,20 @@ export function buildUi(
       cameraOrbitDuration.value = String(settings.durationSeconds);
       cameraOrbitDurationOut.textContent = `1周 ${settings.durationSeconds}秒`;
     },
+    setHikariMpmState: ({ running, status }) => {
+      const computeModeButton = container.querySelector<HTMLButtonElement>(".compute-mode-button");
+      hikariMpmStartButton.disabled = running;
+      hikariMpmAdoptButton.disabled = !running;
+      caseSave.disabled = running;
+      documentSave.disabled = running;
+      caseOpen.disabled = running;
+      savedViewSelect.disabled = running || savedViewSelect.options.length === 0;
+      blenderExportButton.disabled = running;
+      katachiButton.disabled = running;
+      if (computeModeButton) computeModeButton.disabled = running;
+      hikariMpmStatus.textContent = status;
+      hikariMpmStatus.dataset.running = String(running);
+    },
   };
 
   function updateHikari(patch: Partial<HikariSettings>): void {
@@ -1545,12 +1575,18 @@ export function buildUi(
       blenderExportButton,
       blenderExportStatus,
     ]);
+    const mpmGroup = createPropertyGroup("形態変形", [
+      hikariMpmStartButton,
+      hikariMpmAdoptButton,
+      hikariMpmStatus,
+    ]);
     hikariControls.replaceChildren(
       sourceInfo,
       phenomenonTitle,
       phenomenonControl.root,
       flowControls,
       opticsControls,
+      mpmGroup,
       recordGroup,
       blenderGroup,
     );
@@ -1657,6 +1693,7 @@ export function buildUi(
         { label: "虹と応力", target: "虹と応力" },
         { label: "環境と床", target: "環境と床" },
         { label: "光の表示", target: "光の表示" },
+        { label: "形態変形", target: "形態変形" },
         { label: "観察の記録", target: "記録" },
         { label: "Blender", target: "Blenderへ渡す" },
       ],

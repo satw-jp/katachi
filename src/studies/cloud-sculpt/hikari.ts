@@ -258,6 +258,10 @@ export class HikariLayer {
     return this.optics.getComputeStatus();
   }
 
+  invalidateReceiverTransport(): void {
+    this.optics.invalidateTransport();
+  }
+
   runReceiverParityCase(
     balls: Ball[],
     k: number,
