@@ -57,6 +57,9 @@
   実寸換算の出所を明示する `PhysicalScale`、Beer-Lambert の純粋な変換ヘルパーを追加した。既定の
   `1 mm / shape-unit` は `assumed` であり実物寸法ではない。この契約は次の材料接続の準備で、現行Hikariの
   scalar吸収、renderer、shader、CPU/WebGPU光線計算には未接続である。
+- **Scene / geometry contract v0.17.3**: Phase 2では同ファイルへ、uniform scaleだけを許す姿勢、既存球SDFの
+  host/inclusion媒質、受光平面、平行光を追加し、`opticalGeometry.ts`でTHREE非依存の逆変換・SDF評価・媒質判定・
+  内包検査を定義した。境界は明示的epsilonでairに分類し、同じ屈折率でも媒質IDと吸収は区別する。実行時描画は未接続。
 - **Hikari Optics v0.2**: Hikari内の `Flow / Optics` で光学観察へ切り替える。透明表面は画面と同じSDFを
   レイマーチし、入射面から内部、出射面までを屈折率に従って追跡する。別のCPU層が平行光線を同じ`fieldSdf`へ
   当て、入射／内部／出射の区間と受光面への到達点を加算表示する。Water / Glass、屈折率、光の角度、光線数、

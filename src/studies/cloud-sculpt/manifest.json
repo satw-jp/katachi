@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-01",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-01",
+      "note": "Added Phase 2 pure scene/geometry contracts for a single host and at most one inclusion. The contracts preserve medium identity independent of equal IOR, use quaternion-normalized uniform-scale poses, classify epsilon boundaries as air, and deterministically report containment witnesses. No renderer, shader, Hikari settings, CPU optics, or WebGPU optics behavior changed."
+    },
     {
       "date": "2026-08-01",
       "note": "Added Phase 1 runtime-independent optical scene contracts: RGB Beer-Lambert material presets, explicit physical-scale provenance, legacy scalar-to-per-mm conversion, and pure optical-depth/transmission helpers. The assumed 1 mm/shape-unit reference is deliberately marked assumed, not a measured object size. Added four fixed Phase 0 baseline-case specifications. No Hikari runtime, renderer, shader, CPU optics, or WebGPU optics behavior changed."

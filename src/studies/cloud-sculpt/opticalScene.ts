@@ -9,6 +9,63 @@ export interface Rgb {
   b: number;
 }
 
+export interface Vec3 { x: number; y: number; z: number; }
+export interface Quaternion { x: number; y: number; z: number; w: number; }
+
+/** Rotation plus one uniform scale only; non-uniform scale would invalidate distance/absorption units. */
+export interface RigidPose {
+  position: Vec3;
+  rotation: Quaternion;
+  uniformScale: number;
+}
+
+export interface ShapeBall { center: Vec3; radius: number; }
+/** The existing Cloud Sculpt primitive: balls joined by the same polynomial smooth union. */
+export interface BallSdfShape {
+  kind: "balls-smooth-union";
+  balls: readonly ShapeBall[];
+  smoothness: number;
+}
+export type ShapeSource = BallSdfShape;
+
+export interface Medium {
+  /** Identity remains meaningful when two media have the same IOR. */
+  id: string;
+  material: OpticalMaterial;
+  shape: ShapeSource;
+  pose: RigidPose;
+}
+
+export interface PlaneReceiver {
+  id: string;
+  pose: RigidPose;
+  /** Local plane normal; contract requires a normalized vector. */
+  normal: Vec3;
+}
+
+export interface DirectionalLight {
+  /** World-space propagation direction, normalized by the geometry helpers. */
+  direction: Vec3;
+  radiance: Rgb;
+}
+
+/** Phase 2 is deliberately limited to one inclusion before a general medium stack exists. */
+export interface OpticalScene {
+  host: Medium;
+  inclusions: readonly Medium[];
+  receiver: PlaneReceiver;
+  light: DirectionalLight;
+  physicalScale: PhysicalScale;
+  /** Boundary points are classified deterministically as air, not an arbitrary material. */
+  boundaryEpsilon: number;
+}
+
+export const IDENTITY_QUATERNION: Quaternion = { x: 0, y: 0, z: 0, w: 1 };
+export const IDENTITY_POSE: RigidPose = { position: { x: 0, y: 0, z: 0 }, rotation: IDENTITY_QUATERNION, uniformScale: 1 };
+export const AIR_MATERIAL: OpticalMaterial = {
+  id: "air", label: "Air", ior: 1, absorptionPerMm: { r: 0, g: 0, b: 0 }, roughness: 0,
+};
+
 export interface OpticalMaterial {
   /** Stable identifier for saved studies; not a claim about a commercial resin. */
   id: string;
