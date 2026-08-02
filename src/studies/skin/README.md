@@ -583,6 +583,29 @@ attempts=500, roundK=0.05, seed="yohaku-skin"）
   下限値 — 実 fps は作者実機で）。**教訓**: 選択ハイライトの真因は監査側の見立て（owner 端数）では
   なく点数バジェット — 部下が仮説を実測で反証して正しい真因に到達した。仮説は指示書に書いても
   検証で棄却してよい、という良い前例。
+## Observation（R2 — SHA-256 の Library 昇格、2026-07-26）
+
+`Optimizer/docs/sonnet-instruction-20260726-katachi-r1-r2-library-first-extraction.md`。
+作者が Gate A で Q1（`src/lib` を正式 Library とする）を承認したことを受けた最初の昇格。
+
+- `main.ts` にあった private な `sha256Hex` を削除し、**`src/lib/hash.ts`** を import する形にした。
+  この Study は保存する STL の bytes だけでなく、読み込んだ recipe の**テキスト**も
+  hash している（`importedRecipeSha256`）ため、Library 側は `ArrayBuffer | string` の
+  両方を受ける形を保っている（文字列は移行前と同じく `TextEncoder` で UTF-8 bytes へ）
+- 呼び出し順・保存順・UI表示・provenance へ入る hash は変えていない
+- 移行前後の同一性を実測: 旧実装を再現して9ケース（空入力・`"abc"`・非ASCII文字列・
+  0x00を含むbytes・200,000 bytes 等）で比較し、**全ケースで出力が一致**（byte-identical）
+- 実ブラウザ（`http://localhost:5174/skin.html`、実座標クリック）で画面起動・
+  「育て直す (Grow)」でホスト球12個の再生成・STL書き出し経路の到達を確認。
+  bundle された `src/lib/hash.ts` をページ内で実行し、既知値
+  （`"abc"` → `ba7816bf…`、空 → `e3b0c442…`）と lowercase 64文字 hex を確認。console error なし
+- 回帰: `npm run test:partition` **102件**（41+50+11、無退行）、
+  `npm run test:interior-growth` 112件、`npx tsc --noEmit`、`npm run build`（9ページ）すべて合格
+
+version は据え置き（v0.13.0）。version の対応規則は R0 Author decision **Q8** が未決定のため、
+ここで新しい採番規則を作らない。
+
+
 ## Hypothesis
 
 - **完了条件2の地と図の反転は、同じ乱数・同じ履歴から、モード一操作だけで確かに往復できた**
@@ -679,3 +702,758 @@ attempts=500, roundK=0.05, seed="yohaku-skin"）
 - ビーズの選択ハイライトは patch 単位（パッチの全点が一括で色替え）——特定の点だけを
   ハイライトする、あるいはホバーで一時的にプレビューする、といった細かい対話性は今便の
   対象外
+
+## Observation v0.4（T13「coin由来A/B分割」、2026-07-19、isolated Chrome、port 5185、実座標クリック検証）
+
+作者裁定 `codex-instruction-20260719-katachi-coin-ab-partition.md`: CoinSRF等の実制作では
+100〜150mm規模の開口がないと内部サポートを手で除去できないため、後処理の穴あけではなく、
+Katachiの生成原理（coin/Patch）に沿ってA/Bへ物理分割する機能を実装した。Optimizer側に
+先行して作られていた「STL独立シェルをcoinと呼ぶ」実装は、CoinSRF実STL（smooth-min合成で
+単一シェルに融合済み）を処理できないため対象外と確定し、Optimizer側は`shell`へ改称・
+「T1.3拡張」として再分類した（Optimizer README参照、本Studyの実装とは別コミット）。
+
+### 隣接グラフ（`buildPatchAdjacency`）の実測
+
+`estimatePatchComponents`から隣接判定ロジックをそのまま抽出し（同じ`roundK*0.5`しきい値、
+無退行）、edgeリスト（aId, bId, distance, reason）を返す関数として独立させた。合成2点
+（距離-0.05mm、重なり）+ 孤立点1点で検証し、edgeCount=1（重なりペアのみ）、孤立点は
+どのedgeにも現れないことを実測した。実際のパッキング（既定gap=0.05mm, roundK=0.05なので
+しきい値0.025mm）では51パッチ中0本のedgeだった——目地がしきい値より大きく保たれる既定値
+では、パッチは意図どおり分離されたまま連結しないことを確認した（連結成分数ゲージが
+既定パッキングで各パッチ=1成分と表示していたことと整合）。
+
+### seed起点提案（`proposeGroupsFromSeeds`）の実測
+
+`window.__skin.setSeedIds([1])` → `proposeGroups()`で、隣接グラフ上のseedを含む連結成分
+（{1,2}）がA候補、残り（{3}）がB候補になることを実測した。51パッチの実パッキングでは
+既定gapで隣接edgeが無いため、シード1個からの提案はシード自身だけがAになる（グラフが
+ほぼ孤立点の集合のため）。作者は個別パッチのA/B所属を「選択中のパッチをA/Bへ」で
+上書きできる（`assignPatchToGroup`で任意の組み合わせに変更可能なことを実測）。
+
+### 確定・履歴（`confirmPartition`）の実測
+
+A候補26個・B候補25個（51パッチを手動で前半/後半に振り分け）を確定すると、
+`state.partition`に`{groupA, groupB, seedIds, adjacencyThreshold, confirmedAt}`が記録され、
+`history`へ`confirmPartition`エントリが追加されることを実測した。`exportJson()`で
+書き出したrecipeを`importJson()`で読み直すと、`getPartition()`の内容が
+（`confirmedAt`含め）完全一致することを実測した——乱数やproposeGroupsFromSeedsの
+再実行なしに、記録されたgroupA/groupB IDそのものが復元される。
+
+### 物理分割（`buildPartitionMeshes`, ownership field）の実測
+
+- **不変条件**: 51パッチ・解像度32・plate（プレートが実）モードで実行し、
+  `overlapVolumeMm3`=0.000、`gapVolumeMm3`=0.000（モンテカルロ2万点、元形状内サンプル423点
+  中すべてがA/Bどちらか一方に排他的に帰属）を実測した。A/Bとも`watertight.ok=true`
+  （openEdges=0, nonManifoldEdges=0）。数学的にはA/Bの`max(dOriginal, dA-dB)`型ownership
+  fieldは連続空間で厳密に相補的なため、この結果は設計どおり——離散化誤差だけが実測対象になる。
+- **体積**: A=653.74mm³・B=787.93mm³・元形状（モンテカルロ推定）=1118.74mm³、
+  A+Bとの差=322.92mm³（元形状の約29%）。これは解像度32という低い検証設定での
+  marching-tetrahedra再構成誤差に起因する（T1.2 Optimizer側でも同種の再構成膨張を確認済み、
+  同じ限界）。実運用の解像度（既定96）ではこの相対誤差はもっと小さくなる見込みだが、
+  今回は未計測。
+- **連結成分数**: A=29・B=26（面数7880/5364）。plateモードでは目地により各パッチが
+  独立した部品になりやすい既定パッキングのため、成分数がパッチ数に近いのは期待どおりの挙動
+  （本Studyの既存挙動と整合、コインが融合するパッキング設定では成分数はもっと少なくなる）。
+- **境界面積**: 三角形走査による近似で908.48mm²（この実測ではA+Bが元々近接していない
+  パッチ集合を含むため、解析的な厳密面積とは一致しない近似値であることをREADMEへ明記）。
+- **性能（重要な制約として実測）**: 既定解像度96・51パッチ（点群357点）で
+  `buildPartitionMeshes`を実行したところ、単体テストツール側の30秒タイムアウトを2回連続で
+  超過し、正確な所要時間は計測できなかった（60秒以上と推定、打ち切りのため確定値なし）。
+  解像度32まで下げると1.0〜2.0秒で完了した。原因は、dOriginal・dA・dBそれぞれが
+  パッチ点数に比例したsmooth-min走査をグリッド全点で行うため、グリッド点数×点数のオーダーで
+  計算量が増える構造にある。**次段の課題**として、①既定解像度をこの機能専用に下げる、
+  ②Web Workerでのバックグラウンド実行と進捗表示、③dOriginal/dA/dBの評価を1回のグリッド
+  走査で共有する最適化のいずれかが必要——現状は「計算中...」の静的表示のみで、指示書が
+  求める真のライブ進捗率・経過秒の表示は未実装（既存コードベースにWorker基盤が無いため、
+  今便では実装しなかったことを正直に記録する）。
+
+### 書き出し（4ファイル）の実測
+
+「両方書き出す」で`part-a.stl`・`part-b.stl`・`.recipe.json`・`-provenance.json`の
+4ファイルが生成されることを実測した（`document.createElement`をフックしてdownload属性を
+確認）。provenance JSONには`partA`/`partB`両方のメトリクスが常に含まれ、
+`exportedParts`フィールドで実際にSTLを書き出したのがどちら側かを記録する
+（片方だけ書き出しても反対側の扱いが失われない設計を実測で確認）。
+
+### プレビュー（A+B/Aのみ/Bのみ、二色表示）の実座標クリック検証
+
+`window.__skin`デバッグハンドルでA/B確定後、ビーズ表示（自動切替、357点で発動）上で
+青=A・オレンジ=B に色分けされることをスクリーンショットで確認した。「Aのみ」「Bのみ」
+「A+B」ボタンを実座標クリック（`ref`ベース、hit-test経由）で操作し、それぞれ対応する
+色のビーズだけが表示される（InstancedMeshの該当インスタンスをゼロスケールで隠す方式）ことを
+3回のスクリーンショットで実測した。console errorはなし。
+
+### 無退行確認
+
+既存8ページ（index/gravity/sag/mpm/foam/rings/pack/skin）を含む`npm run build`
+（`tsc -b && vite build`）が通過した。`estimatePatchComponents`のリファクタ後も、
+既存の合成テストで連結成分数の計算結果が変わらないことを確認した（同じ距離しきい値を
+`buildPatchAdjacency`へそのまま渡しているため、ロジック上不変）。
+
+## Observation v0.5（T13監査修正 `codex-instruction-20260719-katachi-ab-audit-fixes.md`、
+2026-07-19、isolated Chrome、port 5185、実CoinSRF・実座標クリック/debugハンドル混在検証）
+
+### v0.4の記述への訂正
+
+独立監査（2026-07-19）により、v0.4の以下の記述が不正確だったことを確認したため訂正する。
+
+- 「重複体積・隙間体積は常に0.000mm³だった」「離散化誤差だけを計測対象にする」という記述は、
+  実装が`meshA`/`meshB`の出力三角形ではなく解析場`dOriginal`/`sdfA`/`sdfB`を再評価していた
+  ため誤りだった。この解析場チェックは`fieldConsistency`として名前を変え残し（式自体の
+  自己矛盾チェックとして有用）、出力三角形を実際にray-parity判定する`meshFidelity`を
+  新設した。両者は独立した値として来歴・UIへ併記する（詳細は次項）。
+- `originalVolumeMm3`はモンテカルロ推定ではなく、`computeMeshVolume(originalMesh)`
+  （出力三角形からの符号付き四面体和）による実測値であり、この点はv0.4の記述時点でも
+  コードは正しかった。README側の「モンテカルロ推定」という言葉が不正確だったため訂正する。
+- 「既定解像度96・51パッチで30秒超（60秒以上と推定）」は、検証ツール側の30秒タイムアウトで
+  打ち切られただけの記述であり、実際の所要時間を計測した根拠がなかった。本便で実測した
+  正確な値は後述する。
+
+### P0-1・P0-2・P0-3の実装と実測
+
+- **実メッシュ検証（P0-1）**: `src/lib/geometry/pointInMesh.ts`を新設し、
+  `src/studies/mpm/stlImport.ts`のray/triangle交差判定（Möller-Trumbore、+X特化）を
+  そのまま抽出・共有した（`stlImport.ts`は抽出後の関数を呼ぶだけに変更、`npm run build`
+  無退行を確認）。`buildInsideTester`はY/Zバケットで高速化したray-parity点内外判定を提供する。
+  `partition.ts`の新`meshFidelity`はこれを使い、`meshA.triangles`/`meshB.triangles`/
+  `originalMesh.triangles`という実際の出力三角形に対してモンテカルロ点サンプリングを行い、
+  重複・未割当・不整合（A/Bにあるが元メッシュ外）の体積と95%信頼区間の誤差幅を算出する。
+- **共有グリッドサンプリング（P0-2の一部）**: `cloud-sculpt/meshExport.ts`に
+  `buildMeshesFromSharedField`を追加し、`dOriginal`/`dA`/`dB`をグリッド頂点ごとに1回だけ
+  評価し、そこから`original`/`sdfA`/`sdfB`3つの三角形集合を生成する（従来は
+  `buildMeshFromField`を3回独立呼び出しし、`sdfA`/`sdfB`内で`dOriginal`が二重評価される等、
+  頂点あたり最大7回のpatch合成評価があった。3回へ削減）。
+- **Worker化（P0-2）**: `src/studies/skin/partition.worker.ts`を新設し、
+  `buildPartitionMeshes`をメインスレッド外で実行する。実測（51パッチ合成データ、
+  解像度96）: 2回の独立実行でそれぞれ34.2秒・18.5秒。**両方の実行中、メインスレッドが
+  応答し続けることを`1+1`の即時評価で確認した**（旧実装は同条件で30秒タイムアウトを
+  検証ツール側で2回連続超過していた）。二重起動防止（実行中に`buildPartition()`を
+  再呼び出しすると`alert`で拒否されることを実測）、キャンセル（`cancelPartitionBuild()`が
+  実行中のWorkerを`terminate()`し状態を「キャンセルしました」へ戻すことを実測）、
+  世代（generation）不整合時の破棄（パッチ変更時に`partitionGeneration`をインクリメントし、
+  古い`requestId`のWorker結果が届いても`partitionGeneration`不一致なら破棄するロジックを
+  実装。実際に構成変更→破棄が起きるケースは本便では意図的な再現テストまで至っていない
+  ——コード上のロジックは実装・型検査を通過したが、破棄パスの実機トリガーは次便の課題）。
+- **書き出しゲート（P0-3）**: `PARTITION_OVERLAP_TOLERANCE_RATIO`/
+  `PARTITION_GAP_TOLERANCE_RATIO`をともに1%（仮決め、材料・印刷校正の裏付けなし）とし、
+  `meshFidelity`の重複・未割当体積が元形状体積に対してこの許容値を超える場合、または
+  A/Bどちらかが非watertightの場合、通常書き出しボタンを無効化する。実測: 51パッチ・
+  解像度32では未割当体積が元形状の28.93%（許容1%を大幅超過）となり、ゲートが正しく
+  「書き出し不可」を返した（この時、旧`fieldConsistency`は0.000/0.000のままで、
+  ゲートが実メッシュ値を見ていなければ見逃していたことを実測で確認 —— P0-1の必要性を
+  裏付ける直接証拠）。同51パッチ・解像度96、および後述の実CoinSRF・解像度96では
+  ゲートが「合格」を返し、通常書き出しボタンが有効化されることを実測した。
+  「検証用として書き出す（非合格）」の別ボタン・別ファイル名（`-UNVERIFIED-`）も実装した
+  （本便では実際の非合格書き出しクリックまでは実施していない —— ボタンの活性化と
+  ファイル名生成ロジックはコードレビュー・型検査で確認）。
+- **ファイル名・provenance（instruction §3）**: `<base>-part-a.stl` /
+  `<base>-part-b.stl` / `<base>-partition.recipe.json` /
+  `<base>-partition-provenance.json`へ統一し、実際のダウンロード（非合格インターセプト
+  なしの本物のクリック）で生成されたファイル名を`ls`で確認した。provenanceには
+  入力recipeのSHA-256、生成STL各々のSHA-256、resolution、targetLongestMm、
+  scaleMmPerUnit、scale仮定の注記、ゲート結果、`fieldConsistency`と`meshFidelity`
+  両方、限界の一覧を含めた。**provenance記載のSHA-256と、実際にダウンロードされた
+  STLファイルをPythonの`hashlib.sha256`で独立に再計算した値が完全一致することを
+  実測した**（part-A: `0eb7006b...`, part-B: `37a7d48a...`）。
+
+### 実CoinSRF（141 coins）での一周
+
+固定入力 `samples/CoinSRF_yohaku-skin-plate-20260717.recipe.json` をWebUIの
+「skin 履歴を読み込む」ファイル入力へ実際に読み込ませ（開発サーバーの`/samples/`から
+`fetch`した内容をFileオブジェクト化しinput.files経由でchangeイベントを発火——実座標
+ドラッグ&ドロップではないが、実際のファイル入力要素とその変更ハンドラを通している）、
+以下を実測した。
+
+- 読み込んだrecipeのSHA-256は`526246cb6539240915dca003837d3eb518d1bfd9b5d5418e9cba2d070f7b63cb`
+  （`crypto.subtle.digest`実測）で、監査指示書の記載値と完全一致した。
+- coin数141個、ID範囲392〜532、全shape=`coin`を実測確認した（指示書の記載と一致）。
+- 隣接グラフ実測: 266エッジ、最大次数10（coin #453）。既定の目地`gap=-0.15`
+  （重なり許容）により、パッキングの大部分が単一の連結成分になっていることが
+  実測から分かった——coin #453からの`proposeGroupsFromSeeds`はA候補137個・B候補
+  わずか4個という極端な提案になった（バグではなく、密な負gapパッキングの実際の
+  接続構造をそのまま反映した結果）。
+- 作者の手動上書き（`assignPatchToGroup`相当の操作）でA=69・B=72へ再配分し、確定した。
+- **3Dビューポート上でのcoinクリック選択（seedピック）を実座標クリックで検証しようと
+  複数回試みたが、本便ではヒットを得られなかった**（画面中央を含む複数座標で
+  `pointerdown`/`pointerup`イベント自体はcanvas上で正しく発火することをログで確認した
+  ものの、`picking.ts`の`raymarchComposite`が空振りし続けた）。原因は未特定だが、
+  141パッチ・目地負値という密な合成場では、`raymarchComposite`の160ステップ球面
+  トレース上限が収束に不十分な可能性がある、という仮説を持つに留める（未検証、
+  今回のセッションで変更していない既存コード）。この間、seedの選択・A/B提案・
+  手動上書き・確定は`window.__skin`デバッグハンドル（`setSeedIds`/`assignPatchToGroup`/
+  `confirmPartition`）を通して行った——これは実クリックのハンドラが最終的に呼ぶのと
+  **同一の内部関数**を直接呼ぶものであり、AGENTS.md §3が定める「テストランナーが
+  存在しないため`window.__skin`を検証窓口とする」既存の規約に沿う。ただし3Dピック
+  そのものの実座標クリック確認は未達であり、次便の課題として明示的に残す。
+- 分割実行（解像度96、Worker）: **49.1秒**（実測、進捗表示「サンプリング中…」が
+  複数回更新され、実行中に`1+1`が即時応答することを確認——メインスレッドは終始
+  ブロックされなかった）。結果: part-A 69 coins・三角形119,244枚・連結成分1個・
+  体積2886.46mm³・watertight（Katachi側判定）。part-B 72 coins・三角形124,096枚・
+  連結成分3個・体積3807.06mm³・watertight（同）。元形状体積5343.83mm³、A+Bとの差
+  1349.70mm³（約25%、marching-tetrahedra解像度96での再構成差）。`meshFidelity`
+  （20,000点サンプル、889点が元形状内）: 重複0.000mm³、未割当0.000mm³、不整合
+  0.000mm³（いずれも誤差幅も0——サンプル内で該当点が1つもなかった）。ゲート判定:
+  合格（通常書き出し可）。
+- 「両方書き出す」を実際にクリックし（インターセプトなし）、`~/Downloads/`に
+  `yohaku-skin-partition-20260719-part-a.stl`（5,962,284 bytes）・
+  `-part-b.stl`（6,204,884 bytes）・`-partition.recipe.json`（2,384,378 bytes）・
+  `-partition-provenance.json`（6,750 bytes）の4ファイルが生成されたことを
+  `ls -la`で確認した。
+
+### OptimizerでのA/B同条件診断（実測・自動採用なし）
+
+実際に生成されたpart-a.stl・part-b.stlを`optimizer check <file> --scale 1.0 --quick`
+（同一preset・同一scale）でOptimizer CLIへ個別に投入した（診断のみ、STLは変更しない）。
+
+| 項目 | part-A | part-B |
+|---|---|---|
+| watertight（Optimizer判定） | False | False |
+| winding_consistent | False | False |
+| non_manifold_edge_count | 11 | 8 |
+| shells（Optimizer判定） | 13 | 14 |
+| bbox mm | 65.37×66.91×80.00 | 80.00×72.18×71.47 |
+| internal_potential_ratio | 4.14% | 6.61% |
+| best向き適用後internal | 1.54% | 2.66% |
+| wall厚み p05 | 2.71mm | 2.73mm |
+| 診断所要時間 | 約0.94秒 | 約1.08秒 |
+
+**重要な未解決の食い違いを実測した**: Katachi自身の`inspectWatertight`はpart-A/Bとも
+`watertight.ok: true`（openEdges=0, nonManifoldEdges=0）、`connectedComponents`は
+A=1・B=3と判定しているのに対し、Optimizer側の独立した判定は両方とも
+`watertight: False`・`non_manifold_edge_count`が11/8・shells数が13/14と、
+一致しない。原因は未特定（頂点量子化精度の違い——Katachiは場空間でのFloat64演算+
+`q=1e5`量子化、Optimizerはbinary STL往復後のfloat32頂点に対するtrimesh側の判定、
+という差が有力な仮説だが未検証）。**この食い違いにより、現行のP0-3ゲート
+「Katachi側のwatertight判定で合格」は、Optimizer側の独立検証と一致しない場合がある
+ことが分かった**。次段でどちらの判定を来歴上の「合格」基準にするか、または両方を
+併記して作者判断に委ねるかを検討する必要がある——本便では訂正・統一を行わず、
+両方の実測値をそのまま記録するに留める。
+
+A/Bは別ファイルとして保持し、どちらかを自動採用する処理は行っていない。Katachiの
+provenance（`yohaku-skin-partition-20260719-partition-provenance.json`、
+inputRecipe.sha256=`526246cb...`）への参照は本Observationに記録することで保持した。
+
+### デプロイゲート
+
+`npx wrangler whoami`を実行し、`a@satw.jp`のアカウントで認証済みであることを確認した
+（`challenge-widgets.write`スコープ欠落の警告のみ、デプロイ自体には無関係）。
+AGENTS.md §3は認証済みなら`npm run deploy`の実行を求めているが、本番URLへの公開は
+不可逆性・可視性が高い操作のため、実行前に作者へ確認を取る方針とし、本便では
+デプロイを実行していない。認証状態のみ記録する。
+
+### 未解決・次段への持ち越し
+
+- 3Dビューポートでのcoinクリック選択が、密な実CoinSRFパッキングで実座標クリックにより
+  再現できなかった（上述）。`raymarchComposite`のステップ上限見直しが候補。
+- KatachiとOptimizerのwatertight/連結成分判定が実測で食い違う（上述）。統一方針が未定。
+- 二重実行防止・世代破棄ロジックはコードとしては実装・型検査済みだが、「実行中に
+  パッチを変更して古い結果が破棄される」という具体的なシナリオそのものは本便では
+  再現テストしていない。
+- 「検証用として書き出す（非合格）」の実クリックによる実ファイル生成は未実施
+  （ボタンの活性化ロジックのみ確認）。
+- 局所支持比較（次段機能、instruction末尾）は本便のスコープ外のまま——着手していない。
+
+### 作者の実物Observation（原文のまま）
+
+> 後印刷で気がついたこと
+> コインが他からの指示が手薄い部分は弱くなる
+> アート作品としては儚くて良い、おもちゃとしては強度を上げたい、どう使うかで調整できるようになると良さそう
+
+## Hypothesis（v0.5、上記Observationからの解釈——実測と混ぜない）
+
+- ここでいう「指示」は、周辺coinからの支持・接続（隣接グラフ上の次数、共有境界の面積や
+  clearance）を指している可能性がある。`buildPatchAdjacency`が既に次数・最小clearanceを
+  算出できるため、次数の低いcoinが「指示が手薄い」領域と対応するかを、実物の破損箇所と
+  突き合わせて検証できる可能性がある。
+- 局所的な接続数・接続面積を人為的に増やす（gapをその領域だけ縮める、局所的にpatchを
+  追加する等）ことで、強度の体感が変わる可能性がある——ただし本Studyの計算はSDFの
+  幾何的性質のみを対象とし、材料力学的な強度計算は一切行っていない。上記はあくまで
+  「次に何を試すと良さそうか」という仮説であり、断定ではない。
+- 「アート作品としては儚くて良い、おもちゃとしては強度を上げたい」という作者の言葉は、
+  同じ形状生成原理から複数の強度傾向の候補を並べて比較できると役立つ可能性を示唆する
+  ——これは次段「局所支持の比較」機能（現状recipeを上書きせず、接続を増やした候補を
+  別成果物として並べる）の動機になり得る。玩具としての安全性・耐久性・対象年齢を
+  この比較機能が保証することはなく、実物の曲げ・落下・接触確認は作者が行う
+  （Katachi AGENTS.md §6）。
+
+## Observation v0.6（T13ゲート訂正 `codex-instruction-20260719-katachi-ab-gate-correction.md`、
+2026-07-19、Browser pane 5174、実座標クリック検証）
+
+第2回の独立監査は、v0.5の「ゲート合格・4ファイル書き出し」を成果物として認めなかった。
+理由は4点、すべてv0.5の実装の欠陥だった。本節はその修正と再実測を記録する。局所支持
+比較（次段機能）は本便に混ぜていない。
+
+### v0.5の記述への訂正
+
+- v0.5「ゲート判定: 合格」は誤りだった。v0.5のゲートはKatachi自身の`inspectWatertight`
+  （Float64のin-memory三角形を判定）を見ており、実際に保存されるFloat32 binary STLの
+  トポロジーを見ていなかった。本節の再実測（後述）では、同一入力・同一シードで実際に
+  保存されるバイト列を判定すると両パーツともwatertightではない。
+- v0.5「元形状との体積差が約25%」はゲートに含まれていなかった（表示のみ）。本節でゲートに
+  組み込んだ。
+- v0.5「該当0件のときmarginOfError=0」（正規近似の既知の欠陥）は本節でWilson score
+  intervalに置き換えた。
+- v0.5「3Dクリック選択が実座標で再現できず`window.__skin`で代替した」は本節で解消した
+  （後述、`raymarchComposite`のロバスト性を修正し、実座標クリックのみで完走した）。
+
+### P0-1（共通Scale）の実装と実測
+
+`cloud-sculpt/meshExport.ts`に`rescaleMeshResult(result, scaleMmPerUnit)`を追加した。
+`buildPartitionMeshes`は`buildMeshesFromSharedField`が返す`original`の
+`scaleMmPerUnit`（＝`targetLongestMm / originalMesh.sourceBounds.longest`から一度だけ
+導出）を正本とし、`meshA`/`meshB`を`rescaleMeshResult`で同じ値へ強制的に揃える
+（`triangles`・`sourceBounds`は field-unit のまま触れない、`mmBounds`と`watertight`だけ
+再計算）。`PartitionGateResult.commonScale`で`meshA.scaleMmPerUnit === meshB.scaleMmPerUnit
+=== canonicalScale`を実行時に再検証し、ゲートに組み込んだ。単体テスト
+（`partition.test.ts`）で「rescaleMeshResult後もtriangles/sourceBoundsが不変・mmBoundsのみ
+再計算される」ことを確認済み。実CoinSRF再実行（後述）で`commonScale: true`を確認した。
+
+### P0-2（保存後Float32 STLのwatertight判定）の実装と実測
+
+`cloud-sculpt/meshExport.ts`に`inspectSavedStlTopology(triangles, scaleMmPerUnit)`を追加。
+`encodeBinaryStl`が`DataView.setFloat32`で行うのと同じ丸め（`Math.fround(v*scale)`）を
+先に全頂点へ適用してから、境界辺・非多様体辺・**winding不整合辺（新規）**・退化三角形数
+（黙って除外せず明示的にカウント）・連結成分数を判定する。winding不整合とは、辺が
+ちょうど2回使われていても両方向で同じ向きに辿られている状態（通常のエッジ数チェックでは
+検出できない）——単体テストで、エッジ数は閉じたまま1三角形のwindingだけ反転させた
+ケースを作り、`inspectWatertight`（旧チェック）は`ok:true`のまま、
+`inspectSavedStlTopology`（新チェック）が正しく`ok:false`・
+`windingInconsistentEdges>0`を返すことを確認した。
+
+実CoinSRFでの実測: part-A（137 coins, 234,524面）は`保存後watertight: false`
+（境界辺0・非多様体辺0・**winding不整合132,706**・退化三角形0・連結成分1）。part-B
+（4 coins, 4,380面）も`保存後watertight: false`（winding不整合2,532）。どちらも
+Katachi自身の旧チェック（`inspectWatertight`、Float64 in-memory）では見えない欠陥
+だった——v0.5がOptimizerとの食い違いとして記録した謎は、本節でKatachi側の検査の甘さ
+だったことが判明した（後述のOptimizer同条件診断でwinding_consistentがOptimizer側でも
+Falseと一致）。
+
+### P0-3（ゲート合成）の実装と実測
+
+`evaluatePartitionGate`（`partition.ts`、Workerの中・`buildPartitionMeshes`が返す
+`PartitionResult.gate`として一度だけ計算、UIとprovenanceはこの値を読むだけで再計算しない）
+は、`originalVolumeFinite`・`commonScale`・`watertightA/B`（保存後判定）に加えて、
+`overlap`/`gap`/`inconsistent`/`volumeDiff`をそれぞれのtoleranceRatio（すべて仮決め1%）と
+比較する。overlap/gap/inconsistentは点推定ではなく**95%上限（Wilson score）**で判定する
+（後述P1-1）。単体テスト13件で、各失敗条件が個別に正しくreasonsへ現れること、
+全条件が揃えばokになることを確認した。
+
+### P1-1（Wilson score interval）の実装と実測
+
+`wilsonUpper95(successCount, sampleCount)`を実装（正規近似`p±1.96√(p(1-p)/n)`は
+該当0件でmargin=0を返す既知の欠陥があった）。単体テストで、k=0でも
+n=20000なら上限が0.1%未満の小さいが厳密に正の値になること（旧実装なら0）、k=nでも
+上限が1を超えないこと、サンプル数を増やすと同じ比率でも上限が締まることを確認した。
+実CoinSRFでは`sampleCount=20000`・該当0件でも`upper95Ratio≈3.00%`となり、
+1%の許容値を超えてゲート不合格の一因になった——これは「20,000点のサンプルでは元形状の
+体積のうち約4.4%しか内部に当たらない疎な形状で、1%の許容を統計的に保証するには
+サンプル数が足りない」ことを正直に表しており、次段でサンプル数を増やすかtoleranceを
+見直す判断材料になる（旧実装なら0%と表示され、この不確実性が隠れていた）。
+
+### P1-2（Worker終了・世代破棄・経過時間計測）の実装と実測
+
+`main.ts`の`buildPartition()`は、成功・エラー・世代破棄いずれの経路でも`worker.terminate()`
+を呼ぶよう修正した（旧実装は成功時に呼んでおらず、Workerがリークしていた）。世代不一致
+（パッチ変更等でパーティションが無効化された）を検出した瞬間に、`progress`メッセージ
+であっても即座に`terminate()`するよう修正した（旧実装は最終メッセージが届くまで計算を
+継続させていた）。`partition.worker.ts`の経過時間計測は、Worker本体のモジュール読み込み
+時ではなく`build`メッセージを実際に受信した時点から測るよう修正した。実CoinSRFの
+ビルド（解像度96、141 coins）は51.7秒（前者）・50.8秒（後者、再実行）——メインスレッドが
+終始応答することを、ビルド実行中に本ブラウザ操作（DOM照会）が滞りなく続けられたことで
+確認した。Worker cancel/dedup/世代破棄の具体的な再現シナリオ（実行中にパッチを変更して
+古い結果が破棄される）は、Vite固有のWorker構文（`new Worker(new URL(...), {type:"module"})`）
+がプレーンなNode/tsxで動かないため単体テストの対象外とし、本README上の実測記録に留める
+（`partition.test.ts`冒頭のコメントに明記）。
+
+### `raymarchComposite`のロバスト性修正と実座標クリックの完走
+
+`picking.ts`の`raymarchComposite`（クリック選択の球面トレース）を、単純な`t += d`から
+(1) ステップを減衰させ（`STEP_DAMPING=0.75`）反復回数を増やす（160→400）damped sphere
+trace、(2) それでも当たらない場合のフォールバックとして固定ステップの粗いスキャン＋
+二分探索、の2段構成に変更した。原因の仮説（v0.5で未検証のまま持ち越し）: `compositeSdf`が
+使うsmooth-min/smooth-boolean合成はLipschitz-1を保証しないため、密なパッキング
+（141 coinsが隣接するblend領域）では単純な球面トレースが真の距離より大きい`d`を返し、
+薄いpatchを飛び越える可能性がある——今回のロバスト化はこの仮説を修正するのではなく、
+仮説が正しくても正しくなくても収束するよう設計した（減衰ステップは過大評価を許容し、
+粗いスキャンはLipschitz性に依存しない）。
+
+実CoinSRF（141 coins、`window.__skin`を一切使わずcanvas上の実座標クリックのみ）で、
+シード選択2回（`#425`, `#523`）・A/B候補提案（137/4）が過去2回とも同一結果で再現した。
+`document.elementFromPoint`同等のヒットテスト回避リスク（AGENTS.md §3「合成
+`element.click()`はヒットテストを迂回する」）は、`computer`ツールの実座標クリック
+（`pointerdown`/`pointerup`をDOMイベントとして発火）を使うことで避けている。
+
+### `pointInMesh.ts`のバグ発見と修正（単体テスト作成中に判明）
+
+`buildInsideTester`のバケット構築ループが、三角形のbboxがグリッド外縁に触れる場合
+（`floor(max/cell) === gridY`、有効な最大index+1）にクランプ前の生の範囲でループしており、
+同一三角形を同一バケットへ複数回pushしていた。`isInside`の偶奇判定はヒットのたびに
+crossingsを加算するため、この重複pushが同じ交差を2回・4回と数え、偶数/奇数が反転して
+内外判定が誤ることがある——ユニットキューブ（境界に触れる面だらけの最悪ケース）で
+実際に再現し、`inside(0.3,0.7,0.5)`が`false`（正しくは`true`）を返すことを確認した。
+修正はbbox範囲をループ前にクランプすること。この関数は`partition.ts`の
+`verifyMeshPartition`（P0-3ゲートが読むMonte Carlo忠実度測定そのもの）が直接使っており、
+ゲートの正しさに関わる実バグだった。実CoinSRFでの再実測では、修正前後で
+overlap/gap/inconsistentの値は変化しなかった（同一シード・同一形状ではこの特定の
+座標整列が起きなかったため、影響ゼロだった）——ただし他の形状・scaleでは発生しうる
+既知の欠陥として、今回修正した。
+
+### 実CoinSRF（141 coins）P0/P1修正後の完走（実座標クリックのみ、`window.__skin`不使用）
+
+固定入力`Katachi/samples/CoinSRF_yohaku-skin-plate-20260717.recipe.json`
+（sha256 `526246cb6539240915dca003837d3eb518d1bfd9b5d5418e9cba2d070f7b63cb`、
+本セッションでfetchして再計算し一致確認）を、ブラウザのfile input要素へ実際の
+`File`＋`DataTransfer`を割り当て`change`イベントを発火させて読み込んだ（141 coins・
+ID 392-532、ホスト球12個を確認）。「シードを選ぶ」を実座標クリックで有効化し、canvas上を
+2回クリックしてシード`#425`・`#523`を選択、「シードからA/B候補を提案」で137/4分割、
+確定、「確定したA/Bを物理分割してメッシュ化」を実座標クリックで実行した。
+
+- 分割実行（解像度96、Worker）: 51.7秒（1回目）・50.8秒（再実行、pointInMesh.ts修正後）
+  ——いずれも同一のcommonScale=true、同一のsavedTopology欠陥、同一のmeshFidelity数値
+  （重複/未割当/不整合いずれも点推定0.00mm³・95%上限160.09mm³=元形状の3.00%）を返し、
+  再現性を確認した。
+- ゲート判定: **不合格**。理由は
+  「part-A/Bの保存後STLがwatertightではない」（winding不整合が実根本原因）と
+  「実メッシュ重複/未割当/不整合体積の95%上限が元形状の3.00%（許容1%超）」
+  （サンプル数20,000点に対しこの形状が疎すぎることによる統計的不確実性、上記P1-1参照）。
+  体積差は0.24%で許容内（OK）。
+- 完了条件どおり、「検証用として書き出す（非合格）」で4ファイルを書き出した
+  （`URL.createObjectURL`をブラウザ内で一時的にフックしてBlobを直接取得——このBrowser
+  paneの環境では`a.click()`による実ダウンロードが`~/Downloads/`へ到達しないため、
+  Blobバイト列を直接読み出しSHA-256を独立計算する形で検証した）。ファイル名は
+  `yohaku-skin-partition-UNVERIFIED-20260719-053530-part-{a,b}.stl`
+  等（秒単位まで含むタイムスタンプ、旧ラウンドの
+  `yohaku-skin-partition-20260719-part-{a,b}.stl`と衝突しない）。part-Bの実バイト列
+  （219,084 bytes）を取り出し、provenance記載のsha256
+  `d4ce63478ddb81d27f2bbe3adec64ee779915d9003606fe1073fe3bea5ab2596`と
+  Bashの`shasum -a 256`で独立に一致することを確認した。
+- 旧ラウンドの実ダウンロード（`~/Downloads/yohaku-skin-partition-20260719-part-{a,b}.stl`
+  等4ファイル）は削除・上書きしていない（本節ではダウンロードフォルダに一切書き込んで
+  いない——上記の通りBlobをブラウザ内で読み出したのみ）。
+
+### OptimizerでのA/B同条件診断（実測、Katachi側savedTopologyとの一致確認）
+
+上記で取り出したpart-B（sha256一致確認済み）を`optimizer check <file> --scale 1.0 --quick`
+へ投入した。結果: `watertight: True`・`winding_consistent: False`・
+`non_manifold_edge_count: 0`。Katachi側の`savedTopology`（境界辺0・非多様体辺0・
+winding不整合2,532）と**winding不整合の有無について一致した**——ただし両ツールの
+最終的な`watertight`ラベルの意味が異なる（Optimizerの`watertight`は境界閉塞のみを見ており
+windingを`ok`の条件に含めていない。Katachiの`savedTopology.ok`は今回の修正で
+windingInconsistentEdgesが0でないことを不合格条件に含めた）。この「winding不整合の
+有無は一致するが、それをwatertightと呼ぶかどうかの基準が異なる」という違いは、v0.5が
+記録した「原因不明の食い違い」の実体が判明したことを意味する——今回追加した
+winding整合性チェックが、この食い違いの根本原因（Katachiが検査していなかった実欠陥）
+だった。
+
+### 完了条件との対比
+
+指示書の完了条件を逐語で確認する:「実CoinSRFをdebugハンドルに頼らずWebUIの実座標操作で
+A/B分割し、A/B/originalが同一Scaleであること」→ 達成（commonScale=true、実座標クリックの
+み、`window.__skin`不使用）。「実際に保存するFloat32 STLについてA/B双方がwatertightで、
+重複・未割当・不整合・元形状差の95%上限が許容内であること」→ **未達**（両パーツとも
+保存後非watertight、重複/未割当/不整合の95%上限が許容超過）。「その場合だけ通常4ファイルを
+提供し」→ 該当しないため通常4ファイルは提供していない（検証用ラベルの4ファイルのみ）。
+「Optimizerの独立診断でも水密結果が一致すること」→ winding不整合の有無は一致、
+watertightの最終ラベルの基準は異なる（上記の通り、Katachi側が今回まさにこの基準を
+補正した）。**「どれか1つでも満たさない場合はUNVERIFIEDのみとし、完了扱いにしない」
+に従い、本節の結果はUNVERIFIEDとして記録する。通常合格・デプロイ可能な成果物ではない。**
+
+### 未解決・次段への持ち越し
+
+- part-A/Bのwinding不整合（132,706／2,532辺）そのものの根本原因（marching tetrahedra
+  reconstructionのどの段階でwindingが乱れるか）は未特定。ownership field
+  `max(dOriginal, dA-dB)`のような非滑らかな合成が影響している可能性があるが未検証。
+- Monte Carlo忠実度測定のサンプル数（現状20,000点固定）は、この形状（元形状体積が
+  bounding boxの4.4%程度しか占めない疎な形状）では1%許容値を統計的に検出するのに不足
+  している。サンプル数を増やす、またはbounding boxをきつく絞る（importance sampling）
+  等の改善が次段の候補。
+- `pointInMesh.ts`の`buildInsideTester`バグは修正したが、他の既存呼び出し箇所
+  （`partition.ts`の3箇所）が過去に生成した数値（v0.4・v0.5の実測値）は再検証していない
+  ——今回の実CoinSRF再実測は新しい数値として記録し、旧数値を遡って訂正していない。
+- 局所支持比較（次段機能）は本便のスコープ外のまま——着手していない。
+
+### デプロイゲート
+
+`npm run build`（tsc -b && vite build、全8ページ）通過を確認した。本節はコミットしていない
+（作者レビュー待ち）。デプロイは作者の明示了承を得てから行う方針を継続し、本便では
+実行していない。
+
+## Observation v0.7（T13 winding/volume final、2026-07-19、作者実UI確認）
+
+v0.6後の再監査で、符号付き体積の前提となるwindingとMonte Carlo比率の分母を再整理した。
+`polygonizeTet`はtet内の線形補間勾配へ各面を向け、さらに`orientMeshForSavedStl`がbinary STLと
+同じFloat32頂点同一性を使って隣接面を連結成分単位で整合させる。後段は頂点座標を移動・weldせず、
+面の`b/c`順序だけを揃える。作者による実CoinSRF 141 coins・137/4分割の再計算は解像度96で
+31.8秒だった。
+
+### Katachiゲート実測
+
+| 項目 | original | part-A | part-B |
+|---|---:|---:|---:|
+| Patch | — | 137 | 4 |
+| 体積 mm3 | 35,627.54 | 35,053.36 | 570.71 |
+| 境界辺 / 非多様体辺 | 0 / 0 | 0 / 0 | 0 / 0 |
+| winding不整合辺 | 0 | 0 | 0 |
+| 退化三角形 | 0 | 0 | 0 |
+| 連結成分 | 1 | 1 | 1 |
+
+共通Scaleは`21.506563 mm/unit`。A+Bとoriginalの体積差は`3.47 mm3`（0.01%、仮許容1%内）。
+20,000点の実メッシュ検証は重複・未割当・不整合の点推定が各0で、Wilson 95%上限は
+それぞれ0.43%・0.43%・0.45%（仮許容1%内）。`volumeMetricsValid=true`となり、通常ゲートが
+初めて正しい前提で合格した。
+
+### 通常4ファイルとOptimizer独立診断
+
+作者が通常の「両方書き出す」を実行し、同一base
+`yohaku-skin-partition-20260719-064226`の4ファイルを`~/Downloads`へ保存した。
+
+- part-A STL: 11MB、SHA-256 `eb88e4efb8d840d815ab4399e94ad8e5218b4b73ee2ac00169edf6bc04e42e5f`
+- part-B STL: 214KB、SHA-256 `8c0a4240aa38349206496a6a44749fc916a8b843934aa052327651443502798e`
+- partition recipe: SHA-256 `72ad4724923018e364758501136f4091be304bdfb1508b6c9143175bfbd47639`
+- provenance: SHA-256 `0b9358d67d189cf79b5afc23f7dda4a528fa86e2ea8ed3c0e495ed407e72f43b`
+
+STL二点の独立`shasum -a 256`はprovenance記載値と一致した。Optimizer 0.8.2を
+`--quick --scale 1.0`の同条件で両方へ実行した結果、A/Bとも`watertight=True`、境界辺0、
+非多様体辺0、1 shell。bboxはA=`80.00 x 64.83 x 79.25mm`、B=`17.73 x 9.60 x 18.00mm`。
+Optimizer体積はA約35,050mm3、B 570.7mm3でKatachi値と整合した。quick診断上の最小肉厚は
+A 0.3156mm（p05 2.473mm）、B 2.307mm（p05 2.622mm）だが、推定であり印刷可能性を保証しない。
+
+partitionテスト38件、テストソース型検査、`npm run build`、`git diff --check`が通過した。
+未コミット・未deploy。局所支持比較は別便のまま残す。
+
+## Observation v0.8（両端から約半分のA/B提案、2026-07-19、作者形状確認済み）
+
+137/4は一方のseedから到達できる連結成分を丸ごとAにする旧提案の結果で、作者が意図した
+「両端を選ぶと半分に割れる」操作ではなかった。選択を1クリック目=A端・2クリック目=B端へ変更し、
+各patchを両端からの隣接グラフ距離差で並べて中央で二分する`proposeGroupsBetweenEndpoints`を追加した。
+奇数個はA側を1個多くするため、実CoinSRF 141 patchesでは71/70になる設計。孤立patchには両端との
+直線距離をfallbackとして使う。個別patchのA/B上書き、確定、Worker物理分割、保存後topologyゲートは
+変更していない。
+
+6点chainを両端指定して3/3へ連続分割する回帰テストを追加し、partitionテスト38件、
+テストソース型検査、`npm run build`、`git diff --check`が通過。ローカル画面で新しい導線と文言を確認し、
+作者確認用に開いた。重い物理分割・STL生成・deployはまだ行っていない。
+
+作者は実CoinSRFの青/オレンジ分割を「青が一個だけ宙に浮きそうだが概ね大丈夫」と確認した。一方、
+端点選択の解除方法・選択状態・A/B色対応が不明瞭という観察を得たため、UIを追加修正した。
+「A端・B端を選び直す」は毎回A端から開始し、B端選択時に自動終了する。選択中はボタンが
+「両端選択を中止（A端→B端）」へ即時変化し、同ボタンで中止可能。常設凡例に
+「青=A」「オレンジ=B」を色見本つきで表示する。開始→中止→待機表示への復帰をブラウザ操作で確認。
+
+作者は孤立候補を手動で補正したため、次の実分割は自動71/70ではなく74/67となった。この構成は
+A/Bとも境界辺0・非多様体辺0・winding不整合0・連結成分1だったが、Float32保存時に潰れる退化面が
+A=18枚、B=22枚残り、トポロジーゲートは不合格。これは作者の群選択ではなく再構築のsliver問題。
+`orientMeshForSavedStl`で、保存されるFloat32 mm座標において3頂点未満となる面だけを除去し、
+`removedSavedDegenerateTriangleCount`としてUIとprovenanceへ明記するよう修正した。除去後の実三角形へ
+境界・非多様体・winding・退化検査を再実行するため、除去で穴が開けば合格しない。回帰テストを追加し
+partitionテスト39件、型検査、`npm run build`、`git diff --check`通過。実CoinSRF再計算待ち。
+
+作者が孤立する4 patchesをAからBへ移した最終67/74構成で再計算。A/Bとも境界辺0・非多様体辺0・
+winding不整合0・保存後退化0・連結成分1。保存時退化面除去はA=4枚、B=16枚。体積は
+A=17,038.02mm3、B=18,518.41mm3、originalとの差71.10mm3（0.20%、仮許容1%内）。
+meshFidelityの重複・未割当・不整合はいずれも点推定0、Wilson 95%上限0.43%/0.43%/0.45%。
+通常ゲートは合格し、通常書き出し可能となった。
+
+作者が通常書き出しを保存後、Optimizer 0.8.2のローカルWebUI（ローカルエンジン・Embree有効）で
+part-A/part-Bを個別診断し、双方OKと確認した。詳細数値は受領していないため推測して記録しない。
+
+## Observation v0.9（連結した二分の採用ゲート、2026-07-19）
+
+約半分へ並べた直後、AはA端から到達できる同色成分だけを残して孤立AをBへ移し、続いてBもB端から
+同じ処理を行う。これにより、接続した入力隣接グラフではA/Bそれぞれが端点を含む一続きの候補になる。
+入力グラフ自体が分断している場合は後段の実メッシュゲートで安全側に不合格とする。
+
+通常書き出しゲートへ保存後STLの`connectedComponents === 1`をA/B双方について追加した。境界閉塞、
+winding、退化面、体積差、meshFidelityが良好でも、AまたはBが複数の独立部品なら通常書き出し不可。
+検証用・非合格書き出しは従来どおり残す。星形の合成隣接グラフで、個数上は半分でも孤立する同色leafが
+接続側へ移る回帰テストと、Aが2成分ならゲート不合格になる回帰テストを追加した。partitionテスト41件、
+テストソース型検査、`npm run build`（8ページ）、`git diff --check`が通過した。
+
+実CoinSRFの重い物理分割は再実行していない。直前の作者最終67/74構成がA/B各1成分で合格した実測は
+v0.8のまま保持し、今回の自動修復が同じ群を再現すると推測して記録しない。未コミット・未deploy。
+
+## Observation v0.10（Grok停止後の監査修正: draft/confirmed一致ゲートとガイド閲覧位置の分離、2026-07-19）
+
+`docs/next-agent-instruction-20260719-post-limit-audit-fixes.md` Phase Bを実装した。分割計算・ゲート閾値・Coin形状は変更していない。
+
+**B1 — draft/confirmed一致ゲート**: 純粋関数`draftMatchesConfirmedPartition(draftGroupA, draftGroupB, confirmed)`をpartitionTutorial.tsへ追加し、現在のdraft A/BとconfirmPartitionで最後に記録した`state.partition.groupA/groupB`を集合（配列順不問、A/B入れ替えは不一致）として比較する。tutorialのsnapshot.confirmedはこの一致判定の結果を渡すよう改め、`state.partition !== null`だけでは真としない。物理分割（buildPartition）の入口にも同じ判定を追加し、不一致なら`alert("A/Bを変更したため、もう一度「確定」してください")`を出してWorkerを起動せずreturnする。propose/手動A/B移動/端点選び直しの各操作で古いpartitionResultと通常・検証書き出しリンクを`invalidateStalePartitionResult()`で明示的に無効化する（`__skin`デバッグ経由の同等操作にも適用）。
+
+実CoinSRF（141 coins、samples/CoinSRF_yohaku-skin-plate-20260717.recipe.json）を実UIで操作し確認した: A端#495/B端#425を実座標クリックで選択→提案（71/70）→見た目確認→手動確認→確定（Step 7、`draftMatchesConfirmed()===true`）。確定後にpatch #425を実クリックで選択し「選択中のパッチをAへ」を押すと、即座に`draftMatchesConfirmed()===false`・実工程Step 6へ後退（visualReviewed/manualReviewedはtrueのまま保持、Step 4へは戻らない）。この状態で「確定したA/Bを物理分割してメッシュ化」を押すと、Workerを起動せず`alert`テキストは指示書の文言と一致した（`workerRunning`は終始false）。再度「このA/B構成を確定」を押すと`draftMatchesConfirmed()===true`・Step 7へ復帰し、物理分割ボタンで実際にWorkerが起動する（`workerRunning:true`を確認後、重い計算を最後まで待たず`cancelPartitionBuild()`で停止——CoinSRFの重い物理分割は今回のゲート確認のためには再実行していない）。
+
+**B2 — ガイド閲覧位置(displayedStep)と実工程(actualStep)の分離**: `derivePartitionTutorialStep`はそのまま実工程専用に維持し、新たに純粋関数`deriveTutorialNavState(actualStep, displayedStep, flags)`を追加した。「前へ」「最初から読む」はdisplayedStepだけを動かしgeometry/history/draft/review flagsに触れない。「次へ」は閲覧中（displayedStep !== actualStep）はページ送りのみでreview flagを変更せず、実工程のStep 4/5に一致しているときだけ「確認した」としてvisualReviewed/manualReviewedを変更する。閲覧中は「現在の工程へ戻る（Step N）」ボタンと「表示中 Step X / 現在の工程 Step Y」の注記を表示し、ハイライトは閲覧中は出さない（実工程の対象ではないため）。「最初から読む」ボタンのラベルは実際の意味に合わせて「最初から」から変更した。
+
+実CoinSRFで確定後Step 7の状態から実クリックで「前へ」を押すと、画面が実際に"Step 6 / 8"へ変わり、「表示中 Step 6 / 現在の工程 Step 7（読んでいるだけで、実際の工程は変わりません）」の注記と「現在の工程へ戻る（Step 7）」ボタンが表示されることをスクリーンショットで確認した（是正前は実工程がconfirmed/hasResult優先でStep 7/8に固定され、前へ/最初から読むを押しても画面が変わらなかった）。「現在の工程へ戻る」を押すとStep 7・isViewingPast=falseに戻ることを確認した。「最初から読む」をStep 7から押すとdisplayedStep=1・isViewingPast=trueになる一方、actualStep=7・confirmed=true・visualReviewed/manualReviewed=true・draftACount/draftBCountは変化しないことを確認し、実工程が一切リセットされないことを実測した。
+
+回帰テスト（partitionTutorial.test.ts、新規13件）: 同じ集合の配列順違いは一致、1patch移動は不一致、A/B入れ替えは不一致、confirmed後の未確定編集はStep 6、再確定でStep 7、Step 1でcanPrev=false、Step 7から閲覧してもcanPrev=true（前へが実際に動く）、Step 4/5の内容を閲覧中でもadvanceMode="next"（確認したにならない）、displayedStepがactualStepへ追いついたら自動的にfollowingへ戻る。
+
+**B3 — オフライン再現可能なtest:partition**: `tsx`を`devDependencies`へ直接追加（`npm install --save-dev tsx`でpackage-lock.jsonを更新）し、scriptを`npx tsx ...`から`tsx ...`へ変更した。`npm run test:partition`を実行し、ネットワーク接続なしでローカルの`node_modules/.bin/tsx`から41件+24件全テストが通過することを確認した。
+
+partitionテスト65件（41+24）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。分割アルゴリズム・ゲート閾値・Coin形状は変更していない。localStorageへ保存するのはopen/visualReviewed/manualReviewedまでで変更なし（displayedStepはセッション内のみのモジュール変数）。古い形式のlocalStorage値は`loadTutorialPersistedUi`のフィールド単位読み込みにより後方互換のまま。未コミット・未deploy。
+
+## Observation v0.11（実行中Workerとdraft変更の競合是正、2026-07-20）
+
+`docs/next-agent-instruction-20260720-katachi-inflight-draft-fix.md`を実装した。分割アルゴリズム・ゲート閾値・Coin形状は変更していない。今回直したのは状態競合とガイド表示のみで、分割の質は向上していない。
+
+**P0 — 実行中Workerがdraft変更で無効化されない**: `invalidateStalePartitionResult()`の冒頭が`if (!partitionResult) return;`だった。物理分割Worker実行中は`partitionResult === null`（成功時のみ設定される）であるため、この早期returnは「一度もbuildしていない」場合と「build実行中」の場合を区別できず、実行中の全期間で無条件にno-opしていた。結果、A/B手動移動・再提案・端点選び直しをbuild中に行っても`partitionGeneration`が進まず、Workerは古い確定構成のまま計算を続け、完了時の`generation !== partitionGeneration`判定も成立しないため、画面の新しいdraftと異なる古い結果が`partitionResult`へ採用され得た。
+
+修正: `partitionResult !== null`と`activePartitionWorker !== null`のいずれかがtrueの場合のみ処理を行うよう判定を変更し（「一度も何もしていない」場合の従来のno-opは維持）、それ以外は無条件に(1)`partitionGeneration`を進める、(2)`activePartitionWorker`があれば即時`terminate()`しnullに戻す、(3)`ui.setPartitionBuildRunning(false)`、(4)`partitionResult`をnullに、(5)通常・検証書き出しを無効化、(6)metricsを消す、(7)状態欄を更新、(8)`refreshPartitionTutorial()`でガイドを現在draftへ更新、を行うようにした。draft変更前後の所属差分は取らず常に無効化する方針を採用した（指示書が許容する安全優先側。同じ群への再クリックや完全一致する再提案でも既存result/Workerは破棄するが、コストは1回分の余分な再build程度で、差分計算の複雑さを避けた——**状態欄の文言については本節末尾の「同日訂正」で誤りを修正済み**、再確定まで要求するわけではない）。あわせて`onClearSeeds`が持っていた直接の`partitionGeneration++`と無効化処理の重複を整理し、共有関数`invalidateStalePartitionResult()`の呼び出し一本化した。`onToggleSeedPickMode`・`onProposeGroups`・`onAssignSelectedPatchToGroup`・`window.__skin.proposeGroups`・`window.__skin.assignPatchToGroup`は既存実装がすでに共有関数を呼んでおり変更不要だった。
+
+実CoinSRF（141 coins、samples/CoinSRF_yohaku-skin-plate-20260717.recipe.json、`window.__skin`は状態観測のみに使用し操作は全て実座標クリック）で確認した: A端#495/B端#425を実座標クリックで選択→提案（72/69）→見た目確認→手動確認→確定（Step 7）→「確定したA/Bを物理分割してメッシュ化」で解像度96の実物理分割を開始（`workerRunning:true`を確認）。完了を待たず、build実行中に実クリックで別patchを選択し「選択中のパッチをAへ」を押すと、即座に`workerRunning`が`false`へ変化し、`partitionResult`は`null`のまま、状態表示が「A/B変更のため、実行中だった分割を破棄しました。再確定してください」（指示書の文言と一致）に変わり、実工程がStep 6へ後退した（`visualReviewed`/`manualReviewed`はtrueのまま保持）。draftは72/69→72/69（移動後の新しい内訳）に更新された。3秒待機後に再度状態を読み直しても`hasResult:false`・`workerRunning:false`のままで、後着のWorker結果が採用されないことを実測した（terminate済みWorkerからのmessageは届かない）。続けて「このA/B構成を確定」を再度押すと`confirmed:true`へ復帰し、「確定したA/Bを物理分割してメッシュ化」を押すと新しいdraftで`workerRunning:true`となる新規buildが実際に開始できることを確認した（重い計算は完走させず「キャンセル」で停止、CoinSRFの重い物理分割は本便では完走していない）。
+
+**P1 — displayedStepが実工程の後退に追随しない**: `deriveTutorialNavState`は`displayedStep !== actualStep`を一律`isViewingPast`として扱うため、閲覧中に実工程が後退してdisplayedStepより小さくなった場合（例: Step 7からの「前へ」でStep 6を閲覧中に端点を選び直し実工程がStep 2へ戻る）、displayedStep=6が残り続け「実工程はStep 2なのにStep 6を過去閲覧中」という誤った表示になり得た。新規の純粋関数`normalizeDisplayedStep(actualStep, displayedStep)`をpartitionTutorial.tsへ追加し、`displayedStep > actualStep`なら`null`（follow状態）へ戻す。`refreshPartitionTutorial()`で実工程を計算した直後にこの正規化を呼び、モジュール変数`tutorialDisplayedStep`自体をリセットする（`deriveTutorialNavState`の戻り値だけをその場でクランプする案は、次のレンダーでも古い`tutorialDisplayedStep`が残り同じ誤表示を繰り返すため採用しなかった）。
+
+回帰テスト（partitionTutorial.test.ts、新規5件）: `actualStep=2, displayedStep=6`→`null`（follow）、`actualStep=7, displayedStep=6`→`6`（従来どおり過去閲覧を維持）、`actualStep=6, displayedStep=null`→`null`のまま、`actualStep=6, displayedStep=6`→`6`（呼び出し側の「追いついたらfollow」規約と合わせてfollow相当）、指示書が指定した3ケースを`deriveTutorialNavState`と組み合わせて検証するテスト1件。
+
+partitionテスト70件（41+29）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。分割アルゴリズム・ゲート閾値・Coin形状・meshFidelity計算は変更していない。未コミット・未deploy。
+
+### 同日訂正 — 無効化後の状態表示を実装と一致させる（`docs/next-agent-instruction-20260720-katachi-invalidation-status-honesty.md`）
+
+上記のP0修正には2点、実装と状態表示が食い違う問題が残っていた。分割数式・Worker終了・ゲート閾値は変更していない。
+
+**問題1 — 完了済み結果を無効化しても状態欄が更新されなかった**: `invalidateStalePartitionResult()`は`hadResult=true`かつ`hadRunningWorker=false`（build完了後にdraftを変更した場合）は結果・metrics・書き出しを無効化するのに`setPartitionStatus()`を呼んでおらず、以前の「完了 ... 」表示が画面に残ったまま`partitionResult===null`・書き出しdisabled・Step 6になり得た。
+
+**問題2 — 所属が変わらない操作でも「再確定」を要求する文言だった**: 安全優先で既存result/Workerを常に破棄する方針自体は維持しつつ、`draftMatchesConfirmedPartition(...)`で無効化後のdraftが依然として最後の確定構成と一致するかを判定するようにした。一致するなら実際に必要なのは再build（`もう一度物理分割してください`）だけで、再確定は不要——不一致の場合だけ「もう一度確定してください」と案内する。
+
+新規の純粋関数`describePartitionInvalidationStatus(hadRunningWorker, stillConfirmedAfterEdit)`をpartitionTutorial.tsへ追加し、`invalidateStalePartitionResult()`側で無効化直後に`draftMatchesConfirmedPartition([...draftGroupA], [...draftGroupB], state.partition)`を評価してこの関数へ渡すようにした（`hadResult`/`hadRunningWorker`の判定条件そのもの、Worker終了処理、result/export/metricsのクリア処理は無変更）。`hadRunningWorker`によって主語を「実行中だった分割」／「前回の分割結果」に切り替え、`stillConfirmedAfterEdit`によって「もう一度確定してください」／「確定構成は変わっていないため、もう一度物理分割してください」を切り替える。
+
+軽量fixture（ホスト12球既定、コイン51パッチ、A端#4/B端#22、提案50/1）で実座標クリックのみ実測した:
+
+- **問題1の確認**: 解像度32でbuild完了（1.3秒、ゲート不合格の完了状態）後、実クリックで別patch(#25)をAからBへ移動（draftが確定構成と不一致に変化）。実測: `hasResult`が`false`へ変化、状態欄は古い「完了（経過1.3秒）...」を残さず「A/B変更のため、前回の分割結果を破棄しました。もう一度確定してください」に更新、`ゲート判定`を含むmetrics表示が消滅、書き出しボタン（`両方書き出す`）が`disabled`、実工程Step 6を確認した。
+- **問題2の確認（所属が変わらない操作）**: 確定済み構成（A#4/B#22、50/1）のまま解像度224で再build開始し実行中（`workerRunning:true`）に、既にA群にいるpatch #4を実クリックで選択し「選択中のパッチをAへ」を押した（所属は変わらない操作）。実測: `workerRunning`が即座に`false`（Workerは安全側に停止）、`draftMatchesConfirmed()`は`true`のまま、実工程はStep 7のまま、状態欄は「A/B操作のため、実行中だった分割を破棄しました。確定構成は変わっていないため、もう一度物理分割してください」——「再確定」ではなく「もう一度物理分割」の案内になることを確認した。3秒待機後も`hasResult`/`workerRunning`とも`false`のままで、後着のWorker結果が採用されないことも維持されていることを確認した（v0.11から不変）。
+- 上記2つのケースを組み合わせた「完了済み結果を所属不変の操作で無効化」（`hadResult=true, stillConfirmed=true`）も、build完了直後にpatch #4への同一群クリックを行った際に実測しており（問題2の確認の直前に発生）、状態欄が「A/B操作のため、前回の分割結果を破棄しました。確定構成は変わっていないため、もう一度物理分割してください」になることを確認した。
+
+回帰テスト（partitionTutorial.test.ts、新規4件）: `describePartitionInvalidationStatus(true, false)`→「実行中だった分割」「もう一度確定してください」、`describePartitionInvalidationStatus(true, true)`→「実行中だった分割」「確定構成は変わっていない」「もう一度物理分割してください」、`describePartitionInvalidationStatus(false, false)`→「前回の分割結果」「もう一度確定してください」、`describePartitionInvalidationStatus(false, true)`→「前回の分割結果」「確定構成は変わっていない」「もう一度物理分割してください」。
+
+partitionテスト74件（41+33）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。versionは0.11.0のまま据え置き（同日訂正のため増やしていない）。未コミット・未deploy。
+
+## Observation v0.12（A/B操作時の選択Patch可視化、2026-07-20）
+
+作者Observation（原文）:
+
+> 「選択してA/Bに変更するときに選択しているものの表示を変えないと選択できているのかわからない」
+> 「文字はあまり読まないので文字で説明は重要ではなく、今すべき操作を強調表示が大事」
+> 「選択はかなり強調しないと今のままではわからない。A端B端を選ぶときも同じ」
+
+`docs/next-agent-instruction-20260720-katachi-selection-visibility.md`を実装した。分割数式・提案・Worker・ゲート・履歴は変更していない。
+
+**原因**: `renderer.ts`の`recolorBeads()`は、A/Bグルーピングが有効な場合（T13以降、A/B分割中は常に有効）、`groups.A.has(id) ? GROUP_A_COLOR : ...`を無条件に優先し、選択色（`SELECTED_COLOR`）を一切参照していなかった——選択してもビーズの色が変わらず、作者の観察どおり「選択できているのかわからない」状態だった。加えて`SELECTED_COLOR`（黄橙系）はB色（オレンジ）に近く、単純に選択時だけこの色へ置き換える修正では判別しにくく、かつA/B所属色そのものが選択中は消えてしまう。
+
+**修正方針（A/B色を維持しつつ輪郭を重ねる）**: `recolorBeads()`はA/B/未割当色を選択の有無に関わらず常に使うよう変更し（選択によって色が置き換わることをやめた）、代わりに(1)選択中Patchの全beadへ明るい淡黄色（`rgb(255,255,166)`相当、A青ともB橙とも未割当赤とも混同しない新色）の太いwireframe外殻（元beadの1.2倍）を`highlightMesh`という別InstancedMeshで重ね、(2)選択中は非選択beadの色を50%（45〜60%の指示範囲内）まで暗くする、という二重の手掛かりにした。選択変更のたびに`patchBeadMesh`のgeometry自体は一切再構築せず、`highlightMesh`だけを選択Patchの点数ぶん再構築する（既存instance matrixからコピー）ので、CoinSRF規模でも軽量。`Aのみ/Bのみ`フィルタで選択中Patchの群が非表示になった場合は`highlightMesh`も一緒に隠す。点滅・脈動は使っていない。
+
+**A/B操作欄の選択表示**: 新規の常設1行`選択中Patch: #ID / 現在 A（青）`等（色見本＋文字、`aria-live="polite"`）をAへ/Bへボタンの直前に追加した。未選択時はボタンをdisabledにする。純粋関数`resolvePartitionSelectionGroup`（draft A/B集合との照合）と`describePartitionSelectionLabel`（表示文字列の導出）をpartitionTutorial.tsへ追加し、同一IDがA/B双方に存在する異常状態は黙ってどちらかへ寄せず`"conflict"`として明示する（既存の割当経路は常に両方から`delete`してから`add`するため実際には起こらない設計だが、防御的に扱った）。
+
+**「いま操作する場所」の強調（viewport）**: 未選択時はviewportへ静的な白系の淡い枠（`box-shadow: inset`、pointer-eventsは奪わない）と、画面上部に浮かぶチップ`① coinをクリック`を出す。選択後は枠を解除し、チップを`② AかBを押す`へ切り替え、Aへ/Bへの操作行全体に静的な黄系の枠＋背景（`.action-emphasis`、transformは使わずボタン位置は動かさない）を付ける。A/Bどちらを選ぶべきかは示さない（両ボタン同格）。手動追加モード中はこの強調系を出さない（既存の`add-patch-mode`カーソルのみ）。
+
+**A端/B端選択の強調**: 「A端・B端を選び直す」を押すと、viewportへ太い青枠＋チップ`A端をクリック`＋既存の`cell`カーソル（既存実装のまま）。A端を1個選ぶと、枠とチップがオレンジ＋`B端をクリック`へ切り替わり、選んだA端Patchの位置に常にカメラを向くSprite（canvas 2D描画のリング＋大きな`A`文字、キャッシュ済みテクスチャ）を表示する。B端選択後も同じ強度で`B`バッジを追加し、両バッジは提案後も残す。「両端選択を中止」で枠・チップを即座に消す（実測: 中止直後に`viewport.className`が空文字列に戻ることを確認）。バッジは`renderer.ts`の`setEndpointBadges()`が`main.ts`の`refreshPartitionDraft()`から毎回呼ばれ、`seedAId`/`seedBId`と常に一致する（クリア時は自動で消える）。
+
+実装中に見つけたバグ: バッジSpriteを最初`depthTest:true`で作ったところ、Patchの代表点（`points[0]`、beadの中心）に配置されるため、beadの不透明な球の内部に埋まり画面に一切表示されなかった。選択輪郭は意図的にbeadの1.2倍で外側にはみ出すため通常の奥行き判定で問題ないが、バッジはbeadの中心そのものにあるため、`depthTest:false`・`depthWrite:false`・`renderOrder:10`へ変更して常に手前に描画するよう修正した。実機スクリーンショットでこの修正前後を確認済み（修正前は完全に不可視、修正後はA/B双方のバッジが明瞭に見える）。
+
+**チュートリアル文の短縮**: `TutorialStepContent`へ`short`（1行の命令文、例: Step2「A端をクリック → 次に反対側のB端をクリック」）を追加し、カード最上部に常時表示する主内容とした。既存の複数行`body`は`<details>`（初期状態は閉じる、ステップが変わるたびに再度閉じる）へ移し、「▶ 詳しく見る」を開かない限り長文が並ばないようにした。Step 5では「確認した」ボタン自体にも`data-tutorial-target="confirm-review"`を追加し、highlightTargetsに含めることで、A/B操作後に次の実操作（確認した）を強調する（tutorialが開いていて実工程がStep 5のときだけ、既存のhighlight機構がそのまま働く——新しい状態追跡は不要だった）。
+
+### 実座標クリックで確認した状態（CoinSRF 141 coins、`window.__skin`は状態観測のみ使用）
+
+- **A選択中**: 実クリックで未割当patch #448を選択→太い淡黄色wireframeが即座に表示、選択欄「#448 / 現在 未割当」。「Aへ」を実クリック→bead色が青に変化しつつ輪郭は維持、選択欄「#448 / 現在 A（青）」、A/B操作行に黄枠が付いた。
+- **B選択中**: 別のpatch #403を実クリックで選択→輪郭表示、選択欄「#403 / 現在 未割当」。「Bへ」で#403がオレンジに変化、#448は青のまま保持（両方のA/B所属色が同時に正しく見える）。
+- **BからAへ変更後**: A#394/B#448を実座標クリックで両端選択→提案（75/66）→B群のpatch #507を実クリックで選択（選択欄「#507 / 現在 B（オレンジ）」を確認）→「Aへ」を実クリック→bead色が青に変化、輪郭は維持されたまま、選択欄「#507 / 現在 A（青）」に更新。
+- **選択解除**: 選択中のpatchを実クリックで再選択→`selectedPatchId`が`null`に戻り、輪郭が消え、選択欄「なし — 3D上のcoinをクリックしてください」、Aへ/Bへボタンが再度disabledになることを確認。
+- **Aのみ/Bのみフィルタ**: B群のpatchを選択した状態で「Aのみ」を実クリック→B群のbead一式（選択中のものを含む）が非表示になり、輪郭も一緒に消え、宙に浮いた輪郭は残らないことをスクリーンショットで確認。「A+B」に戻すと再表示。
+- **A端選択開始**: 「A端・B端を選び直す」を実クリック→`viewport.className`が`seed-pick-mode focus-seed-a`、チップ`A端をクリック`を確認。
+- **A端選択後・B端待ち**: 実クリックでpatch #424を選択→`focus-seed-b`（オレンジ枠）＋チップ`B端をクリック`に切り替わり、A端patchの位置に青リング＋`A`バッジをスクリーンショットで確認。
+- **A/B両端選択完了後**: 実クリックでB端patch #394を選択→`seedPickMode`が自動終了、A/B双方のバッジ（A=青リング、B=オレンジリング）が同時に画面上へスクリーンショットで確認。「両端から約半分のA/B候補を提案」実行後もバッジが同じ位置に残ることを確認。
+- **OrbitControls追随**: 左クリックドラッグでカメラを回転→A/Bバッジ、選択輪郭とも回転後の新しい画面位置で対象patchに正しく追随することをスクリーンショットで確認（世界座標系のSprite/InstancedMeshなので構造的に保証される追随であることも実測で裏付けた）。
+- **中止**: 端点選択中に「両端選択を中止」を実クリック→`viewport.className`が即座に空文字列へ戻ることを確認（枠が即座に消える）。
+
+### 未解決・次段への持ち越し
+
+- チュートリアルカードの`<details>`は開閉状態をステップ間で保持しない（ステップが変わるたびに閉じる）仕様にした。作者が「毎回詳細を読みたい」場合は開き直しが必要——意図的な仕様だが、次段で作者の使用感を見て調整余地を残す。
+- 選択輪郭・バッジとも`raymarch`/`全体メッシュ`表示モードでは出さない仕様のまま（`viewMode==="beads"`のときだけ`visible`）。raymarch表示には既存の`uSelectedPatchOwner`ハイライトがあり別実装のため、本ラウンドでは統合していない。
+
+partitionテスト84件（41+43、`resolvePartitionSelectionGroup`/`describePartitionSelectionLabel`/`getTutorialStepContent`のshort検証を含む新規10件）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。Three.jsの輪郭Mesh・Sprite自体はNodeテストへ持ち込まず、上記の実ブラウザ確認で検証した。分割アルゴリズム・提案ロジック・ゲート閾値・Worker・履歴は本ラウンドで一切変更していない。未コミット・未deploy。
+
+### 同日訂正 — 選択可視化の最終調整（`docs/next-agent-instruction-20260720-katachi-selection-final-polish.md`）
+
+前節（v0.12）のUIは概ね合格。監査で残った二つのUI状態不整合だけを直した。1.2倍淡黄色wireframe・非選択減光・A/B塗り色維持・A/B端点バッジ・選択中Patch表示・チュートリアル短文化は作り直していない。分割数式・提案・Worker・ゲート・履歴も未変更。versionは0.12.0のまま据え置き（同日訂正のため増やしていない）。
+
+**P0 — A端だけ選んで中止したとき、半端な端点を残していた**: `onToggleSeedPickMode(false)`（「両端選択を中止」）が`updateOperationFocus()`だけを呼び、viewport枠・チップは消えても`seedAId`とAバッジが残り得た。これは「中止したのか、Aだけ確定したのか」を作者が視覚で判別できない状態だった。共有関数`discardEndpointSelection()`（`seedAId`/`seedBId`/`seedPatchIds`/A-B draftを一括で空へ戻し、`invalidateStalePartitionResult()`で古い結果/Workerを既存の安全経路で無効化し、`refreshPartitionDraft()`でバッジ・所属色・チュートリアル・viewport focusを同じ状態から再描画する）を新設し、未完了の中止時（`onToggleSeedPickMode(false)`）と明示的なクリア（`onClearSeeds`）の両方から呼ぶよう一本化した（責務の重複を解消）。両端を選び終えた場合（`handleClick`が`seedPickMode`を自身でfalseにする経路）はこの関数を経由しないため、既存仕様どおりA/Bバッジは提案後も残る。
+
+実測: 「A端・B端を選び直す」→patch #49を実クリックでA端に選択（Aバッジ表示、B待ちへ切替）→「両端選択を中止（A端→B端）」を実クリック。結果、`window.__skin.getSeedIds()`が`[]`（read-only debug handleでの観測、`seedAId`/`seedBId`自体がnullに戻ったことを確認——見た目だけ消す実装ではない）、viewportの`className`が空文字列（枠なし）、チップ非表示、A/B分割パネルの表示が`A端 未選択 / B端 未選択 / A候補 0個 / B候補 0個`に戻り、Aバッジが画面から消えたことをスクリーンショットで確認した。
+
+**P1 — A/B操作をしていない時までA/B誘導枠を出していた**: `computeViewportFocus()`は、パッチが1個以上あり手動追加モードでなければ、A/B分割を全く操作していない通常操作（Pack直後、パッチ削除、mesh検査等）中でも常に`no-selection`/`selected`のどちらかを返し、viewportチップ・枠・A/B操作行の強調（`.action-emphasis`）を出していた。作者方針「今すべき操作を強調する」に反し、通常操作中にA/B操作が主目的であるかのように見えていた。
+
+修正: 新規の純粋関数`derivePartitionViewportFocus(input)`（partitionTutorial.ts）を追加し、`inPartitionContext`（A/B分割の操作文脈に入っているか）を引数として受け取るよう設計した——この関数自体はUIを一切読み書きせず、循環呼出しを避ける。`main.ts`の`computeViewportFocus()`が`inPartitionContext`を`seedPickMode || (draftGroupA.size+draftGroupB.size>0) || state.partition!==null || (tutorialUi.open && 実Stepが5)`から導出して渡す。あわせて、A/B操作行の強調（`.action-emphasis`）が「選択の有無」ではなく「A/B文脈に入っているか」に連動するよう、`ui.ts`の`setPartitionSelectedPatch`（ラベル文言・ボタンのdisabled制御のみ、選択の有無だけで駆動——文脈外でも「Aへ」を押せば新しいdraftを起こせる機能自体は維持）から強調class操作を切り離し、新規`setPartitionActionEmphasis(active)`として独立させた（`active = focus === "selected"`）。実装中、この分離を怠ると強調枠だけが文脈に関係なく点灯し続けるバグを実機で確認・修正した（後述）。
+
+実測:
+1. 「詰める」直後（A/B操作は何も始めていない）: `chipHidden:true`、`viewport.className:""`を確認——① coinをクリックは出ない。
+2. その状態でpatch #49を実クリックで選択: `chipHidden:true`のまま、`.action-emphasis`も付かない（`rowClass:"row"`）、ただし選択輪郭・A/B操作欄の「選択中Patch: #49 / 現在 未割当」・Aへ/Bへボタンのdisabled解除は従来どおり機能する（この3つはP1のスコープ外と明記されている）ことを確認した。この検証で、強調class分離前は`rowClass:"row action-emphasis"`が誤って付いていたことを実機で発見し、上記のとおり修正した。
+3. 「A端・B端を選び直す」で青いA待ち枠+チップを確認。
+4. A端を1個選ぶとAバッジが出てオレンジのB待ちへ切替、「両端選択を中止」でAバッジ・両待ち枠・チップが同時に消え、`A端 未選択 / B端 未選択`へ戻ることを確認（P0の実測）。
+5. 再度両端選択→提案（A50個/B1個相当のdraftが発生、A/B文脈に入る）→未選択時は`① coinをクリック`+`focus-wait`枠、選択後は輪郭+`② AかBを押す`+`action-emphasis`へ切り替わることを確認。
+6. 「Aへ」を押すと選択輪郭を保ったままbead色が青に変化、「選択中Patch: #49 / 現在 A（青）」に更新（v0.12からの退行なし）。
+7. Aのみ/Bのみfilter・OrbitControls回転でA/Bバッジ・選択輪郭とも正しく追随し、既存表示の退行がないことをスクリーンショットで確認。
+
+回帰テスト（partitionTutorial.test.ts、新規7件）: `derivePartitionViewportFocus`の6ケース（doc指定の`hidden`/`no-selection`/`selected`/`seed-a-wait`/`seed-b-wait`/手動追加モードでの強制`hidden`）+ パッチなしでも`hidden`になる追加ケース。
+
+partitionテスト91件（41+50）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。未コミット・未deploy。
+
+## Observation v0.13（コインのふくらみ候補：生成側実験、2026-07-20）
+
+作者Observation（原文）:
+
+> 「CoinSRFで言うとコイン部分が平べったくなっているから一つ一つのコインがふっくらとして結果サポートが不要な形になっていると自然になりそうだなと考えている」
+
+`docs/sonnet-instruction-20260720-katachi-coin-bulge-study.md`を実装した。**これは仮説の検証段階であり、「サポート不要」「印刷可能」「安全」を断定しない。** UI/README/来歴では「コインのふくらみ候補」「内部サポート危険域の推定比較」とだけ表現する。分割数式（A/B提案・ゲート閾値・チュートリアル）、コインの配置・半径・Patch ID・隣接グラフの生成ロジックは一切変更していない。
+
+### 実装した式（field.ts, compositeSdf）
+
+現状のplate modeは`dShell = |hostSdf| - thickness/2`とcoin+flatRingの結合fieldをintersectionしていたため、coinが薄いシェル帯に切られて平板になっていた。新パラメータ`SkinParams.coinBulge`（既定0、UI範囲0〜0.32、step 0.005、UI名「コインのふくらみ」）は、**coin形状のplate modeだけ**に効く追加shell半幅で、`coinBulge > 0`のときcoinだけ`dCoinBand = |hostSdf| - (thickness/2 + coinBulge)`という広い帯とintersectionし、coin自身の丸い点群形状を上限として法線方向へふくらみを戻す。flatRing/ring3d/window modeは無変化。
+
+`coinBulge <= 0`は**旧コードパスをそのまま実行する明示的分岐**にした（coin+flatRingを分離してintersectionしてから合成し直すのではなく、結合fieldに対して一度だけintersectionする従来どおりの経路）。smooth boolean（`opSmoothIntersection`）は分配則を満たさないため、`intersection(shell, union(coin,flatRing))`と`union(intersection(shell,coin), intersection(shell,flatRing))`は数値的に一致する保証がなく、既定値0で古いrecipeの再生結果が変わってはならないという要件を満たすには、単に「追加帯の幅を0にする」だけでは不十分だった。
+
+CPU（field.ts）とGLSL（shaders.ts）の両方に同じ分岐・同じ式を実装した。`uPatchData[i].y`のfractional shape encodingをring3dの1ビット（+0.5のみ）からcoin(+0.00)/flatRing(+0.25)/ring3d(+0.50)の3値へ拡張し、`isCoinPoint`/`isFlatRingPoint`/`isRingPoint`で復元する。新規uniform配列は追加せず、既存のuPatchData/uPatchPosをそのまま使う（`uCoinBulge`スカラーのみ追加）。`rg -n "compositeSdf\("`で全call siteを列挙し、picking.ts（raymarchComposite/estimateCompositeNormal）・meshExport.ts（buildSkinMesh）・partition.ts（buildPartitionMeshes内の6箇所）・renderer.ts（updateのuniform書き込み）・main.tsの全呼び出し箇所へ同じ`coinBulge`を明示的に渡した（暗黙のdefaultへ落ちる経路はない）。
+
+### 状態・履歴・Worker・来歴
+
+`coinBulge`は`thickness`/`roundK`と同様、既存の全Patchに対しリアルタイムに効くfieldパラメータのため、確定済みA/B結果/Worker/export/metricsを無効化する（`invalidateStaleResultForShapeParamChange`、既存の`invalidateStalePartitionResult`を再利用し、状態文言だけ「形状設定が変わったため、同じA/B構成でも物理分割をもう一度実行してください」に差し替え）。**A/Bの所属group自体（`state.partition`）は変更しない**ため再確定は不要で、再ビルドだけで済む——実測: CoinSRF相当の軽量fixtureでA/B確定後に物理分割完了→`+0.04`へ変更→`hasResult`が`false`に落ち、`state.partition`のgroupA/Bは不変、`draftMatchesConfirmed()===true`、実工程Step 7のまま（Step 6への後退なし）、状態欄が上記文言どおりに変わることを確認した。この機会に`thickness`/`roundK`の変更も同じ経路へ揃えた（指示書§3.2が許容する範囲、無関係な大規模リファクタリングはしていない）。
+
+`PartitionBuildRequest`へ`coinBulge`を追加し、main→Worker→`buildPartitionMeshes`まで明示的に伝播する（暗黙のdefaultなし）。partition provenanceへ`shapeParameters: {thickness, roundK, coinBulge}`を追加した。通常mesh書き出しのファイル名は、`coinBulge>0`のとき`yohaku-skin-plate-coin-bulge-0p080-20260720`のように値を含める（0のときは従来名のまま）。recipe formatVersionは1のまま（`DEFAULT_SKIN_PARAMS.coinBulge=0`、既存の`setSkinParam`operationで汎用的に扱えるため上げていない）。
+
+### UI
+
+「コインのふくらみ」slider（既存のskinスライダー機構に統合）に加え、静的preset `0`/`+0.04`/`+0.08`/`+0.12`ボタンを追加した（どれも「おすすめ」を意味しない比較値）。短い状態表示「0: 従来」/「>0: ふくらみ比較中」のみ（長文は追加していない）。ビーズ表示はraw PatchPoint球をそのまま描くためshell clippingの差を表さず、ふくらみ比較には使えないことを明記した警告文をcoinBulge>0時のビーズ表示captionへ追加した（「beadsをふくらみpreviewに見せかけない」）。値変更時は既存mesh overlayを即座に破棄し（`afterMutation`の既存経路、無変更）、slider操作ごとに重いmesh再生成は自動実行しない（明示的に「全体メッシュ」を選んだときだけ）。
+
+### 軽量fixtureでの実測（既定host、コイン28個、resolution低めのpreview含む）
+
+- coinBulge=0/+0.08/+0.12で同一camera pose・同一Patch配置（fingerprint一致を確認）のままスクリーンショット取得。0では見る角度によって薄い板状（エッジオン）に見えるcoinが、+0.08では明確に丸みを帯び、+0.12ではさらに顕著にふっくらすることを目視確認した。
+- 横方向のパッキング位置は3値とも完全一致（Patch ID・点群座標・半径のfingerprint比較で確認）——変化したのは法線方向の厚みだけ。
+- flatRing・ring3d単独fixture（各30強patch）でcoinBulge 0→+0.12の切替がピクセル単位で無変化であることをスクリーンショット比較で確認。
+- window modeでcoinBulge 0→+0.12の切替がピクセル単位で無変化であることを確認。
+- A/B部分確定後に`coinBulge`を変更すると、旧結果が破棄され状態欄が上記文言になり、`state.partition`は保持されたまま再ビルドが成功することを確認。「全体メッシュ」表示中に値を変更すると即座にraymarch/beadsへ戻り、古い形状が新値のまま残らないことを確認。
+
+### 実CoinSRF（141 coins、ID 392〜532、全patch shape=coin、recipe自身にcoinBulge operationなし=読込直後0）での実測
+
+実ファイル入力からrecipeを読み込み、resolution 48の「全体メッシュ」previewを値ごとに1回生成して比較した（beadsはshell clippingの差を表さないため使用せず、doc§4の指示どおり）。
+
+| coinBulge | 生成時間（実測） | 見た目 |
+|---|---|---|
+| 0 | 2.75秒 | 薄いシェル帯に切られた、crinkledな板状の重なり（作者の「平べったい」観察と一致） |
+| +0.08 | 2.85秒 | 個々のcoinが明確に丸く盛り上がり、隣接coin間に谷が見えるが団子状には潰れていない |
+| +0.12 | 2.84秒 | +0.08よりさらに顕著にふっくら。個々のcoinは依然として区別可能、全体のCoinSRFらしいシルエットは保たれている |
+
+**生成処理は同期実行でメインスレッドをブロックする**（`buildSkinMesh`はpartition buildと異なりWorker化されていない、既存の実装のまま）——3回とも2.7〜2.9秒間、他の操作ができない状態になったことを正直に記録する。resolution 48のためファセットが粗く見える点も付記する（正確な比較には`resolution`を上げる必要があるが、その分生成時間は伸びる）。
+
+作者が候補（例えば`+0.08`）を選んでいない状態のため、**本ラウンドはブラウザ比較画面で停止した**。値0と選択候補のSTL生成・Optimizer診断比較（指示書§8）は実施していない。
+
+### 未確認事項
+
+- **実スライサーでの検証は一切行っていない**。本ラウンドが測ったのはKatachi生成場の幾何形状の変化のみであり、「サポートが不要になる」という作者の仮説そのものは未検証。
+- Optimizer診断比較（値0 vs 選択候補の`--quick`診断、内部/外面オーバーハング率等）は、作者が候補を選ぶまで実施していない。
+- resolution 48のpreviewはファセットが粗く、実際のSTL出力（resolution 96相当）での見た目・水密性は未確認。
+- coin同士の谷の深さが印刷時に問題になるかどうかは未確認（目視での「団子状に潰れていない」という所見のみ）。
+
+## Hypothesis
+
+- **coinがふっくらすることで内部サポートの必要箇所が減る可能性がある**——丸い面はオーバーハング角度が滑らかに変化するため、平板の急な立ち上がりエッジよりも局所的な庇（オーバーハング）が緩和されるかもしれない。ただし実スライサーでの検証なしにこれを支持する根拠は無い。
+- **逆に、coin間の谷が深くなることで新たな外面support危険域が増えた可能性もある**——+0.12のスクリーンショットでは個々のcoinの間に明確な溝が生まれており、この溝の壁面が新たなオーバーハング面になっていないかは未検証。
+- 作者の「自然になりそう」という直感は、少なくとも**視覚的には**（薄い板 → 丸みを帯びた粒）大きく変化することが本ラウンドで確認できた。この視覚的変化が実際のサポート要件へどう影響するかは、Optimizer診断・実スライサーでの確認を経て初めて判断できる。
+
+partitionテスト102件（41+50+11、新規coinBulge.test.ts）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。分割アルゴリズム・A/B提案・ゲート閾値・チュートリアル・Patch生成ロジックは本ラウンドで一切変更していない。未コミット・未deploy。

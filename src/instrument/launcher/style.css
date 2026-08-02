@@ -1,0 +1,160 @@
+/* ---------------------------------------------------------------------------
+ * Instrument — Study launcher (R5-1/R5-2).
+ *
+ * T18 の紙白・墨・hairline token をそのまま使う。新しい design system は作らない
+ * （指示書 §4「新しいdesign systemを作らない」）。色は base.css の :root 変数のみを
+ * 参照し、この画面でリテラル色を定義しない。
+ *
+ * 3D canvas は置かない。Study 本体と違い、ここは読むための面である。
+ * ------------------------------------------------------------------------- */
+
+@import "../../styles/base.css";
+
+/* base.css は Study 画面用に body を暗い viewport 色にしている。launcher は
+   3D を持たない読み物なので、この面だけ紙白へ戻す。 */
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#app {
+  display: block;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.launcher-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.5rem;
+}
+
+/* Version / UpdatedAt。class と見た目は base.css の `.version-row` をそのまま使い、
+   ここでは読み物としての余白だけ調整する（色・字送りは触らない）。 */
+.version-row {
+  margin: 0 0 1.25rem;
+}
+
+.launcher-lede {
+  margin: 0 0 2rem;
+  max-width: 44rem;
+  color: var(--ink);
+}
+
+.launcher-section-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 2.5rem 0 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.study-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* 均等な一覧。比較しやすさを優先し、Study ごとに見た目を変えない。 */
+.study-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  gap: 0 1rem;
+  align-items: baseline;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.study-order {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+.study-main {
+  min-width: 0;
+}
+
+.study-name {
+  font-weight: 600;
+}
+
+.study-name-en {
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.study-principle {
+  margin: 0.25rem 0 0;
+  color: var(--ink);
+}
+
+.study-tags {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.study-tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.05rem 0.4rem;
+}
+
+.study-open {
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 1px;
+}
+
+.study-open:hover {
+  color: var(--muted);
+  border-bottom-color: var(--muted);
+}
+
+.study-paused {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.launcher-note {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  max-width: 44rem;
+}
+
+.launcher-note a {
+  color: inherit;
+}
+
+/* mobile: 3列だとリンクとタイトルが重なるので縦積みへ。
+   リンクは行内の別ブロックにして、指で押せる高さを確保する。 */
+@media (max-width: 34rem) {
+  #app {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .study-row {
+    grid-template-columns: 2.5rem 1fr;
+  }
+  .study-open {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 0.6rem;
+    display: inline-block;
+    padding-bottom: 0.2rem;
+  }
+}

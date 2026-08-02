@@ -8,6 +8,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:hikari": "node --experimental-strip-types --test tests/hikari/*.test.ts",
+    "test:partition": "tsx src/studies/skin/partition.test.ts && tsx src/studies/skin/partitionTutorial.test.ts && tsx src/studies/skin/coinBulge.test.ts",
+    "test:interior-growth": "tsx src/studies/interior-growth/growth.test.ts && tsx src/studies/interior-growth/solidTopology.test.ts && tsx src/studies/interior-growth/sourceTetraDiagnostics.test.ts",
+    "test:ring-union-policies": "tsx src/studies/interior-growth/ringUnionPolicies.test.ts",
+    "test:studies": "tsx src/lib/studies.test.ts",
+    "diagnose:ring-fusion": "tsx src/studies/interior-growth/ringFusionDiagnosis.report.ts",
+    "diagnose:ring-sampling": "tsx --max-old-space-size=12288 src/studies/interior-growth/ringSamplingDiagnosis.report.ts",
+    "typecheck:partition-test": "tsc -p tsconfig.test.json",
+    "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,7 +25,9 @@
     "@types/three": "^0.169.0",
     "@vitejs/plugin-basic-ssl": "^1.2.0",
     "@webgpu/types": "^0.1.71",
+    "tsx": "^4.23.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "wrangler": "^4.0.0"
   }
 }

@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/test-node-shim.d.ts",
+    "src/studies/skin/partition.test.ts",
+    "src/studies/skin/coinBulge.test.ts",
+    "src/studies/interior-growth/growth.test.ts",
+    "src/studies/interior-growth/solidTopology.test.ts",
+    "src/studies/interior-growth/ringUnionPolicies.test.ts",
+    "src/lib/studies.test.ts",
+    "src/lib/hikari/contracts.test.ts"
+  ],
+  "exclude": []
+}

@@ -8,8 +8,80 @@
   position: relative;
 }
 
+#viewport {
+  position: relative;
+}
+
 #viewport.add-patch-mode {
   cursor: crosshair;
+}
+
+#viewport.seed-pick-mode {
+  cursor: cell;
+}
+
+/* --- T14 selection visibility: viewport focus frame + chip --------------- */
+/* Static only -- instruction explicitly forbids blink/pulse/continuous
+   animation. inset box-shadow so the frame never shifts layout. */
+#viewport.focus-wait {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+#viewport.focus-seed-a {
+  box-shadow: inset 0 0 0 6px rgb(89, 158, 242);
+}
+
+#viewport.focus-seed-b {
+  box-shadow: inset 0 0 0 6px rgb(242, 140, 64);
+}
+
+.viewport-chip {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 7px 16px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(10, 10, 14, 0.72);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.viewport-chip[hidden] {
+  display: none;
+}
+
+.viewport-chip.chip-wait {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.viewport-chip.chip-selected {
+  border-color: rgb(255, 232, 130);
+  color: rgb(255, 232, 130);
+}
+
+.viewport-chip.chip-seed-a {
+  border-color: rgb(89, 158, 242);
+  color: rgb(150, 200, 255);
+}
+
+.viewport-chip.chip-seed-b {
+  border-color: rgb(242, 140, 64);
+  color: rgb(255, 190, 130);
+}
+
+.partition-metrics {
+  white-space: pre-wrap;
+  font-size: 12px;
+  background: var(--code-bg, rgba(0, 0, 0, 0.15));
+  padding: 8px;
+  border-radius: 4px;
+  margin: 6px 0;
 }
 
 .panel {
@@ -104,6 +176,57 @@ button.active {
 .selection-info {
   font-size: 12px;
   color: var(--accent);
+}
+
+.partition-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.partition-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.partition-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.partition-swatch-a { background: rgb(89, 158, 242); }
+.partition-swatch-b { background: rgb(242, 140, 64); }
+.partition-swatch-unassigned { background: rgb(230, 38, 38); }
+.partition-swatch-conflict { background: repeating-linear-gradient(45deg, rgb(230, 38, 38), rgb(230, 38, 38) 3px, #fff 3px, #fff 6px); }
+
+/* --- T14 §2.2: always-visible "選択中Patch: ..." line ---------------------- */
+.partition-selection-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+  padding: 4px 0;
+}
+
+.partition-selection-line .partition-swatch {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* --- T14 §2.3: static emphasis on "the current primary action" ----------- */
+/* No transform (would move the buttons), no animation -- a border + a faint
+   background tint only. */
+.action-emphasis {
+  border: 2px solid rgb(255, 232, 130);
+  border-radius: 3px;
+  background: rgba(255, 232, 130, 0.1);
+  padding: 6px;
+  margin: -2px -6px;
 }
 
 .mode-toggle {
@@ -214,4 +337,99 @@ button.active {
   border: 1px solid var(--hairline);
   border-radius: 2px;
   padding: 6px 8px;
+}
+
+/* --- A/B partition guided tutorial (compact card; no modal overlay) ------ */
+.tutorial-start-btn {
+  align-self: flex-start;
+}
+
+.partition-tutorial {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.partition-tutorial[hidden] {
+  display: none;
+}
+
+.partition-tutorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.partition-tutorial-step {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.partition-tutorial-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* T14 §2.5: the one-line imperative instruction -- primary always-visible
+   content, larger/bolder than the old body text since it now carries the
+   whole step's meaning at a glance. */
+.partition-tutorial-short {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.partition-tutorial-details {
+  font-size: 11px;
+}
+
+.partition-tutorial-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.partition-tutorial-body {
+  margin: 6px 0 0;
+  padding-left: 1.15em;
+  color: var(--muted);
+}
+
+.partition-tutorial-body li {
+  margin: 0 0 4px;
+}
+
+.partition-tutorial-viewing-past {
+  padding: 4px 6px;
+  border-left: 2px solid var(--accent, #3a7bd5);
+  background: color-mix(in srgb, var(--accent, #3a7bd5) 10%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.partition-tutorial-viewing-past[hidden] {
+  display: none;
+}
+
+.partition-tutorial-nav {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Temporary outline only — does not block clicks or cover the canvas. */
+.tutorial-highlight {
+  outline: 2px solid var(--accent, #3a7bd5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

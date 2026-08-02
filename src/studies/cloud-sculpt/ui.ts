@@ -169,6 +169,12 @@ export function buildUi(
   workspaceSwitch.appendChild(hikariButton);
   root.appendChild(workspaceSwitch);
 
+  const navStudies = document.createElement("a");
+  navStudies.className = "nav-link";
+  navStudies.href = "./studies.html";
+  navStudies.textContent = "Study 一覧 →";
+  root.appendChild(navStudies);
+
   const nav = document.createElement("a");
   nav.className = "nav-link";
   nav.href = "./gravity.html";
@@ -210,6 +216,12 @@ export function buildUi(
   navSkin.href = "./skin.html";
   navSkin.textContent = "S-skin 表面に詰める →";
   root.appendChild(navSkin);
+
+  const navInteriorGrowth = document.createElement("a");
+  navInteriorGrowth.className = "nav-link";
+  navInteriorGrowth.href = "./interior-growth.html";
+  navInteriorGrowth.textContent = "S-interior-growth 内部から育つ →";
+  root.appendChild(navInteriorGrowth);
 
   const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);

@@ -19,7 +19,34 @@ export interface CompositeHit {
   patchId: number | null;
 }
 
-/** Sphere-trace the composite (mode-dependent) field. */
+const HIT_EPSILON = 0.001;
+
+/**
+ * Sphere-trace the composite (mode-dependent) field.
+ *
+ * gate-correction P2 (raymarchComposite robustness): compositeSdf composes
+ * many primitives through smooth-min/smooth-boolean ops (opSmoothIntersection
+ * / opSmoothSubtraction), which are NOT guaranteed Lipschitz-1 -- unlike a
+ * plain union/intersection of exact-distance primitives, a smoothed blend
+ * can, in the transition zone between two nearby primitives, report a value
+ * LARGER than the true distance to the nearest surface. A naive
+ * `t += d` sphere trace treats every `d` as a safe step size, so on a dense
+ * real packing (141 patches close together, lots of blend zones) it can
+ * step clean over a thin patch instead of landing on it -- this is exactly
+ * what broke real-coordinate click-to-select on the real CoinSRF packing.
+ *
+ * Two changes address this without abandoning sphere tracing for the common
+ * (open, uncluttered) case:
+ *  1. Damp the step (`t += d * STEP_DAMPING`) and raise the iteration count,
+ *     so a step that overshoots the true distance by some bounded factor
+ *     still converges instead of tunnelling through.
+ *  2. If damped sphere tracing still finds nothing, fall back to a coarse
+ *     fixed-step linear scan for a sign change (positive -> at/below the hit
+ *     epsilon, i.e. entering the solid) followed by bisection to refine the
+ *     crossing. This is slower (bounded step count, not adaptive), but is
+ *     immune to the Lipschitz assumption entirely -- it only relies on the
+ *     field being continuous, which composite SDFs are.
+ */
 export function raymarchComposite(
   mode: SkinMode,
   host: Ball[],
@@ -29,25 +56,91 @@ export function raymarchComposite(
   roundK: number,
   origin: THREE.Vector3,
   dir: THREE.Vector3,
+  coinBulge: number,
   maxDist = 50,
 ): CompositeHit | null {
   if (host.length === 0) return null;
+  const sdf = (x: number, y: number, z: number) =>
+    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
+
+  const primaryT = dampedSphereTrace(sdf, origin, dir, maxDist);
+  const t = primaryT ?? coarseScanWithBisection(sdf, origin, dir, maxDist);
+  if (t === null) return null;
+
+  const x = origin.x + dir.x * t;
+  const y = origin.y + dir.y * t;
+  const z = origin.z + dir.z * t;
+  const point = new THREE.Vector3(x, y, z);
+  const normal = estimateCompositeNormal(mode, host, hostK, thickness, patches, roundK, coinBulge, point);
+  const patchId = nearestPatchId(mode, patches, x, y, z);
+  return { point, normal, patchId };
+}
+
+const STEP_DAMPING = 0.75;
+const SPHERE_TRACE_ITERATIONS = 400;
+
+function dampedSphereTrace(
+  sdf: (x: number, y: number, z: number) => number,
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  maxDist: number,
+): number | null {
   let t = 0;
-  for (let i = 0; i < 160; i++) {
-    const x = origin.x + dir.x * t;
-    const y = origin.y + dir.y * t;
-    const z = origin.z + dir.z * t;
-    const d = compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z);
-    if (d < 0.001) {
-      const point = new THREE.Vector3(x, y, z);
-      const normal = estimateCompositeNormal(mode, host, hostK, thickness, patches, roundK, point);
-      const patchId = nearestPatchId(mode, patches, x, y, z);
-      return { point, normal, patchId };
-    }
-    t += d;
-    if (t > maxDist) break;
+  for (let i = 0; i < SPHERE_TRACE_ITERATIONS; i++) {
+    const d = sdf(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
+    if (d < HIT_EPSILON) return t;
+    t += d * STEP_DAMPING;
+    if (t > maxDist) return null;
   }
   return null;
+}
+
+/**
+ * Fixed-step linear scan for a crossing into the solid (d falling below the
+ * hit epsilon), then bisection to refine the crossing point. Step count is
+ * bounded (not resolution-adaptive to maxDist) to keep the fallback's worst
+ * case bounded on a large scene -- this only runs after sphere tracing has
+ * already failed, so it is off the interactive hot path.
+ */
+const COARSE_SCAN_STEPS = 3000;
+const BISECTION_ITERATIONS = 24;
+
+function coarseScanWithBisection(
+  sdf: (x: number, y: number, z: number) => number,
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  maxDist: number,
+): number | null {
+  const step = maxDist / COARSE_SCAN_STEPS;
+  let prevT = 0;
+  if (sdf(origin.x, origin.y, origin.z) < HIT_EPSILON) return 0;
+  for (let i = 1; i <= COARSE_SCAN_STEPS; i++) {
+    const t = i * step;
+    const d = sdf(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
+    if (d < HIT_EPSILON) {
+      return bisectHitEpsilonCrossing(sdf, origin, dir, prevT, t);
+    }
+    prevT = t;
+  }
+  return null;
+}
+
+function bisectHitEpsilonCrossing(
+  sdf: (x: number, y: number, z: number) => number,
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  tLo: number,
+  tHi: number,
+): number {
+  let lo = tLo;
+  let hi = tHi;
+  for (let i = 0; i < BISECTION_ITERATIONS; i++) {
+    const mid = (lo + hi) / 2;
+    const d = sdf(origin.x + dir.x * mid, origin.y + dir.y * mid, origin.z + dir.z * mid);
+    if (d < HIT_EPSILON) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 function estimateCompositeNormal(
@@ -57,10 +150,12 @@ function estimateCompositeNormal(
   thickness: number,
   patches: Patch[],
   roundK: number,
+  coinBulge: number,
   p: THREE.Vector3,
 ): THREE.Vector3 {
   const e = 0.0015;
-  const d = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z);
+  const d = (x: number, y: number, z: number) =>
+    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
   return new THREE.Vector3(
     d(p.x + e, p.y, p.z) - d(p.x - e, p.y, p.z),
     d(p.x, p.y + e, p.z) - d(p.x, p.y - e, p.z),

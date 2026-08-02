@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
       // default) — avoids pulling in @types/node just for path resolution.
       input: {
         main: "index.html",
+        studies: "studies.html",
         gravity: "gravity.html",
         sag: "sag.html",
         mpm: "mpm.html",
@@ -33,6 +34,10 @@ export default defineConfig(({ mode }) => ({
         rings: "rings.html",
         pack: "pack.html",
         skin: "skin.html",
+        interiorGrowth: "interior-growth.html",
+        hitsuji: "hitsuji.html",
+        hitsujiField: "hitsuji-field.html",
+        tangle: "tangle.html",
       },
     },
   },

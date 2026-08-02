@@ -85,6 +85,7 @@ export function buildRingsUi(
     ["./foam.html", "S-foam 泡のセル →"],
     ["./pack.html", "S-pack 虚を詰める →"],
     ["./skin.html", "S-skin 表面に詰める →"],
+    ["./interior-growth.html", "S-interior-growth 内部から育つ →"],
   ];
   for (const [href, label] of navLinks) {
     const a = document.createElement("a");
