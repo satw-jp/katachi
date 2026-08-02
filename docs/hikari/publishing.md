@@ -41,6 +41,16 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.32.0
+
+- Git commit deployed: `afa1a50` (`VITE_GIT_COMMIT=afa1a50` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `f2cf38e3-f33d-4cef-9d5e-efe65e0a6f98`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Added a self-contained Windows x64 `Hikari Blender Bridge.exe` using the same sanitized `hikari-blender://` case handoff and embedded Ref-matched importer as the Mac companion. It discovers Blender, asks for the exported bundle folder through a native picker, stages only sidecar-declared meshes, creates a non-overwriting `.blend`, and opens it.
+- The user-only installer registers the protocol and uninstall entry under HKCU, installs below `%LOCALAPPDATA%`, and needs no administrator permission. The Web action now labels itself Mac or Windows from the browser platform while retaining one protocol contract.
+- Distribution artifact: `Downloads/Hikari-Blender-Bridge-win-x64.zip`, SHA-256 `3bf5893e011b4878ef57e7569713efd2dad36bd334d86fa888b9f77bb9237f48`. The 63 MB archive contains a 68 MB PE32+ x86-64 Windows GUI executable and double-click install/uninstall launchers. It is currently unsigned.
+- Verification: all 74 Hikari tests, production build, .NET Windows x64 build/publish with zero build errors, PE format inspection, archive inventory/checksum, and `git diff --check` passed. Production reported `v0.32.0`, `GPU · WebGPU`, the Mac label on macOS, and no browser warnings/errors. Runtime installation and Blender launch still require the author's first Windows-machine check because the executable cannot run on the Mac build host.
+
 ## Release record — 2026-08-02 — v0.31.3
 
 - Git commit deployed: `5b50518` (`VITE_GIT_COMMIT=5b50518` embedded in exported Hikari/Blender cases)
