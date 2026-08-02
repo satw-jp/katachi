@@ -1,7 +1,8 @@
 # Hikari Light Layers / Visual Art Render — 設計仕様書
 
-Status: proposal for author review  
+Status: conditionally approved; mandatory review corrections incorporated
 UpdatedAt: 2026-08-02  
+SpecRevision: 2
 Implementation: not started
 
 ## 1. この文書の目的
@@ -16,8 +17,9 @@ Hikariで観察している透明体は、同じ形でも、形・カメラ・�
 - M4 MacBook Air: 軽く、長時間安定するリアルタイム観察と作品構成
 - RTX3080級GPU: 同じ時間・同じSeed・同じ構図を高解像度の連番画像へ定着
 
-本仕様は実装指示ではなく、作者レビューのための設計基準である。未決事項は末尾に分離し、
-承認前にUI・保存形式・現行光学処理を変更しない。
+本仕様は実装指示ではなく、作者レビューのための設計基準である。2026-08-02の条件付き承認レビューを受け、
+transport domain、共有台帳、temporal checkpoint、決定論の範囲をRevision 2で修正した。
+末尾にはレビュー判断と、実装前に作るR0.5契約を記録する。UI・保存形式・現行光学処理はまだ変更しない。
 
 ## 2. 作品としての中心命題
 
@@ -34,7 +36,7 @@ HikariはBlenderの造形・仕上げ能力と競争しない。Hikari固有の�
 
 ### 3.1 目標
 
-1. 一度の共有光学計算から現象を原因別レイヤーへ振り分ける。
+1. 一度の共有光学計算からView／Receiverのdomainと経路属性を取り出し、原因別表示層を派生する。
 2. 形・カメラ・光源の運動とレイヤー変化を同一の時間軸で結ぶ。
 3. レイヤーへ個別の空間・時間・色エフェクトを適用し、全面映像へ再構成する。
 4. 実際の形と影を前景に残し、背後へ同じ形由来のVisual Artを置けるようにする。
@@ -53,8 +55,9 @@ HikariはBlenderの造形・仕上げ能力と競争しない。Hikari固有の�
 
 ## 4. 用語
 
-- **Physical Layer**: 光学イベントを原因別に集積した、合成前の線形HDRデータ。
-- **Art Layer**: Physical Layerへ表示変換を施したもの。配置や時間は変えてよい。
+- **Physical Source**: domain、terminal event、path属性を保持する合成前データ。排他的レイヤーとは限らない。
+- **Display Layer**: Physical Sourceを抽出・派生して単独表示できるbuffer。
+- **Art Layer**: Display Layerへ表示変換を施したもの。配置や時間は変えてよい。
 - **Beauty**: Art Layer、実形状、影、地面を最終合成した表示または出力。
 - **Observation Clock**: リアルタイムと連番出力が共有する作品時間。
 - **Render Job**: 作品状態、時間軸、品質、出力条件を固定した再開可能なレンダリング指定。
@@ -96,23 +99,64 @@ HikariはBlenderの造形・仕上げ能力と競争しない。Hikari固有の�
 
 ### 5.4 DEBUG LAYERS / 検証表示
 
-作品表示ではない。各Physical Layer、総光量、マスク、経路分類をfalse colorで確認する。
+作品表示ではない。各domain source、派生Display Layer、共有台帳、マスク、経路属性をfalse colorで確認する。
 Art Layerの魅力ではなく、原因分類の正しさとエネルギーの出所を検証する。
 
-## 6. Physical Layerの初期分類
+## 6. Optical Eventとdomain分類
 
-初期実装は、見た目ではなく**最後に何が起きたか／どの経路を通ったか**で分類する。
-一つの光路が複数イベントを含む場合、イベント履歴を持ち、出力規則で主レイヤーと補助属性を決める。
+View側で観測するradianceとReceiverへ到達するfluxは、同じ種類の量ではない。
+Revision 2では「4つの排他的Physical Layer」を正本にせず、次のdomain・terminal event・path属性を正本とする。
 
-| id | 現象 | 初期の意味 | RGB加算層 |
-|---|---|---|---|
-| `surfaceReflection` | 表面反射 | 外側表面で反射して視点または環境へ向かう光 | yes |
-| `transmittedRefraction` | 透過・屈折 | 形へ入り、方向または色を変えて外へ出た光 | yes |
-| `internalReflection` | 内部反射・TIR | 内部で1回以上反射してから見える／届く光 | yes |
-| `receiverDelivery` | 到達・集光 | 受光面へ実際に到達したRGB flux | yes |
-| `receiverNonArrival` | 非到達 | 吸収、境界拒否、未解決経路などで届かなかった量 | no; diagnostic |
-| `shadowCoverage` | 遮蔽 | 光源サンプルが遮られた割合 | no; scalar mask |
-| `absorption` | 吸収 | 入射量と出射／到達量の差 | no; diagnostic |
+### 6.1 View Domain
+
+| id | terminal event | 意味 |
+|---|---|---|
+| `viewSurfaceReflection` | reflection | 外側表面で反射し、カメラへ捕捉されたradiance |
+| `viewTransmission` | transmission | 形へ入り、最終的に外へ透過してカメラへ捕捉されたradiance |
+
+### 6.2 Receiver Domain
+
+| id | terminal event | 意味 |
+|---|---|---|
+| `receiverDelivery` | receiver hit | 受光面へ実際に到達したRGB flux |
+
+View DomainとReceiver Domainを無加工のまま足して「総光量」と呼ばない。それぞれのdomainで集積・検証し、
+Beautyでは明示したtone mappingとcomposite ruleによって画面上で重ねる。
+
+### 6.3 Path Attributes
+
+一つの経路は複数イベントを含むため、内部反射を排他的terminal layerにしない。
+
+```ts
+interface OpticalPathAttributes {
+  internalBounceCount: number;
+  hadInternalReflection: boolean;
+  opticalPathLength: number;
+  exitDirection: [number, number, number] | null;
+  mediumIds: string[];
+  inclusionIds: string[];
+}
+```
+
+作品UI上の「内部反射」は、例えば次の派生表示層として作る。
+
+```text
+viewInternalReflection = viewTransmission where hadInternalReflection == true
+receiverAfterInternalReflection = receiverDelivery where hadInternalReflection == true
+```
+
+同じ経路を`viewTransmission`と派生`viewInternalReflection`へ重ねて表示することは許すが、
+それを物理的な光量の排他的分割とは呼ばない。
+
+### 6.4 Diagnostics
+
+| id | 意味 |
+|---|---|
+| `shadowCoverage` | 光源サンプルが遮られた割合。scalar maskでありRGB光量ではない |
+| `absorbed` | 媒体内で吸収されたreceiver transport量 |
+| `escaped` | receiver以外へ出た量 |
+| `rejected` | containmentや無効経路として拒否された量 |
+| `unresolved` | event上限などで解決できなかった量 |
 
 補助バッファ:
 
@@ -120,49 +164,66 @@ Art Layerの魅力ではなく、原因分類の正しさとエネルギーの�
 - linear depth
 - geometric normal
 - screen motion vector
-- world-space exit direction
-- optical path length
-- bounce count
-- medium id / inclusion id
 - receiver UV and receiver identity
+- path attributesの可視化buffer
 
-### 6.1 初期作品層
+### 6.5 初期の4表示層
 
-M4 MBAで最初に同時表示する作品層は次の4つに限定する。
+M4 MBAで最初に同時表示する作品上の表示層は次の4つとする。
 
-1. `surfaceReflection`
-2. `transmittedRefraction`
-3. `internalReflection`
+1. `viewSurfaceReflection`
+2. `viewTransmission`
+3. `viewInternalReflection`（path属性から作る派生層）
 4. `receiverDelivery`
 
 `shadowCoverage`は前景の物理的な影または合成マスクとして使い、暗いRGB絵を別生成しない。
-`receiverNonArrival`と`absorption`は最初はDebug／音への入力候補とし、黒い装飾として足さない。
+`absorbed`、`rejected`、`unresolved`は最初はDebug／音への入力候補とし、黒い装飾として足さない。
 
-### 6.2 エネルギー契約
+### 6.6 共有transport台帳
 
-Physical Layerには、少なくとも次を記録する。
+保存則を確認する単位は個別レイヤーではなく、同じframeの共有transport全体とする。
+View radianceとReceiver fluxは次元が異なるため、同じ構造に記録しても互いを加算してclosureを主張しない。
 
 ```ts
-interface PhysicalLayerStats {
-  sourceFluxRgb: [number, number, number];
-  capturedFluxRgb: [number, number, number];
-  rejectedFluxRgb: [number, number, number];
-  unresolvedFluxRgb: [number, number, number];
+type Vec3 = [number, number, number];
+
+interface FrameTransportLedger {
+  receiver: {
+    emittedFluxRgb: Vec3;
+    deliveredFluxRgb: Vec3;
+    absorbedFluxRgb: Vec3;
+    escapedFluxRgb: Vec3;
+    rejectedFluxRgb: Vec3;
+    unresolvedFluxRgb: Vec3;
+  };
+  view: {
+    capturedRadianceIntegralRgb: Vec3;
+    sampleWeight: number;
+  };
+}
+
+interface LayerStats {
+  capturedRgb: Vec3;
+  domain: "view" | "receiver";
+  derivedFrom?: string;
+  redistributed: boolean;
+  displayGain: number;
 }
 ```
 
-- Physical Layer生成段階では、既存receiver transportのエネルギー台帳を破らない。
-- Art処理が総量を保存する場合は`redistributed`と記録する。
+- receiver transportのclosureは`FrameTransportLedger.receiver`だけで確認する。
+- 派生層は`derivedFrom`を持ち、source/emitted量を複製しない。
+- Art処理が総量を保存する場合は`redistributed=true`と記録する。
 - 表示上のgain、threshold、色変換で値を増幅する場合は`displayGain`として記録する。
 - Beautyの明るさを物理的な光量と誤認させない。NaturalとDebugではgainを無効化できる。
 - 影を濃くして光が増えたように見せる処理と、到達光を別の場所へ再配置する処理を区別する。
 
 ## 7. Art Layer処理
 
-初期段階では自由なノードエディタを作らず、各Physical Layerに同じ小さな処理列を持たせる。
+初期段階では自由なノードエディタを作らず、各Display Layerに同じ小さな処理列を持たせる。
 
 ```text
-Physical Layer
+Physical Source -> Display Layer
   -> Projection
   -> Spatial Treatment
   -> Temporal Treatment
@@ -184,7 +245,8 @@ Physical Layer
 `surface-unfold`  
 : 将来候補。表面イベントを安定した形状座標へほどく。初期実装には含めない。
 
-最初の作品候補は`receiverDelivery=receiver`、反射・屈折・内部反射=`screen`または`direction`とする。
+最初の作品候補は`receiverDelivery=receiver`、`viewSurfaceReflection`と`viewTransmission`、
+そこから派生する`viewInternalReflection`を`screen`へ置く。`direction`はR2の観察後に追加判断する。
 
 ### 7.2 Spatial Treatment
 
@@ -214,7 +276,7 @@ Physical Layer
 - luminance-to-palette mapping
 - limited dispersion accent
 
-Physical RGBと表示色を別に保持する。作者の風景映像から抽出した色をpaletteとして使う場合も、
+Physical SourceのRGBと表示色を別に保持する。作者の風景映像から抽出した色をpaletteとして使う場合も、
 元の光量統計は上書きしない。
 
 ## 8. 動きと時間
@@ -240,6 +302,16 @@ timeSeconds = frameIndex / fps
 
 処理速度、画面の実fps、`requestAnimationFrame`の揺れを作品時間へ混ぜない。
 
+停止操作は次の三つを分ける。
+
+| 操作 | Observation Clock | 形／光学入力 | Art temporal state |
+|---|---|---|---|
+| `object-motion-hold` | 進む | poseだけ固定 | 進む |
+| `timeline-pause` | 停止 | 停止 | 完全停止 |
+| `hold-input-continue-effect` | 進む | 最後の光学入力を固定 | settle / feedbackを継続 |
+
+UIの「停止」はどの操作かを明示し、暗黙にClockと形を同時停止しない。
+
 ### 8.2 動かせるもの
 
 - object rotation / whole-object pose
@@ -262,6 +334,14 @@ timeSeconds = frameIndex / fps
 
 初期実装は1と、現在可能な範囲の2を使う。3は後続。役割を暗黙に兼用しない。
 
+Finalでは動画の通常再生時刻へ依存せず、source fpsと開始offsetから取得frameを固定する。
+
+```text
+mediaFrame = floor((mediaStartSeconds + timeSeconds) * sourceFps)
+```
+
+可変fps素材は事前に固定fpsへ変換するか、timestamp tableをasset manifestへ保存する。
+
 ## 9. 共有レンダリング構造
 
 ### 9.1 原則
@@ -275,11 +355,14 @@ ShapeSource + OpticalScene + ObservationTime
                 v
         Shared optical events
                 |
-        +-------+-------+-------+
-        v       v       v       v
-      reflect refract internal receiver
-        |       |       |       |
-        +-------+-------+-------+
+        +---------------+----------------+
+        v               v                v
+    View Domain     Receiver Domain   Path Attributes
+  reflection/transmission   delivery   bounce/path/exit
+        |               |                |
+        +---------------+----------------+
+                v
+       derived Display Layers
                 v
           Art Layer passes
                 v
@@ -364,18 +447,30 @@ M4で決めた作品を別の見え方へ作り直すのではなく、同じRen
 project-name/
   render-job.json
   render-progress.json
+  assets.json
   beauty/frame_000000.png
   beauty/frame_000001.png
-  layers/reflection/frame_000000.png
-  layers/refraction/frame_000000.png
-  layers/internal/frame_000000.png
-  layers/receiver/frame_000000.png
+  layers/view-reflection/frame_000000.png
+  layers/view-transmission/frame_000000.png
+  layers/view-internal-derived/frame_000000.png
+  layers/receiver-delivery/frame_000000.png
   masks/shadow/frame_000000.png
   metadata/frame_000000.json
+  temporal-checkpoints/checkpoint_000600.bin
+  temporal-checkpoints/checkpoint_001200.bin
 ```
 
 途中停止しても、完了済みframeの設定hashが一致する場合だけ続きから再開する。
 動画化、音との同期、最終色調整は外部編集ソフトへ渡す。
+
+temporal feedbackやframe-to-frame advectionを使うframeは直前までの状態を必要とする。
+Render Jobは次のどちらかのresume policyを必ず持つ。
+
+1. `replay-from-start`: 出力を省略しながらframe 0から状態だけを再計算する
+2. `nearest-checkpoint`: 直前のcheckpointから状態を復元して再計算する
+
+長尺Finalの既定は`nearest-checkpoint`とし、初期checkpoint間隔は600 frameを候補とする。
+checkpointはfeedback、advection、delay bufferとその解像度、色空間、state hashを含む。
 
 ### 11.4 出力形式の段階
 
@@ -385,12 +480,26 @@ project-name/
 
 OpenEXRはブラウザ依存・保存帯域・追加依存を評価してから導入する。最初の作品をEXR実装待ちにしない。
 
+Beauty PNGはtone mappingと出力色空間を適用した表示画像としてよい。Physical SourceまたはDisplay Layerを
+PNG 16bitへ保存する場合は、frame metadataへ次を必ず記録する。
+
+- source color space / transfer function
+- linear rangeとnormalization scale
+- exposure適用の有無と値
+- clampした最小／最大値とclipped pixel count
+- 復元時に掛けるRGB scale
+
+このmetadata無しのPNG 16bitを、再利用可能な物理層とは呼ばない。
+
 ### 11.5 高解像度とタイル
 
 4Kで単一bufferが安定しない場合、overlap付きタイルへ分ける。
 
 - 光学計算はタイルfrustumで決定論的に評価する。
-- blur、advection、feedbackに必要な余白を各タイルへ付ける。
+- spatial blurだけなら必要な余白を各タイルへ付ける。
+- temporal feedback／advection stateはタイルごとに独立させない。原則として光学入力だけをタイル化し、
+  結合したfull-frame sourceへ時間処理を適用する。
+- full-frame temporal stateがGPUメモリへ収まらない場合は、全体状態を共有できるout-of-core設計を別途承認する。
 - crop後に結合しても継ぎ目が出ないことを固定画像で検証する。
 - 8Kはタイル実装後の目標であり、初期受け入れ条件にしない。
 
@@ -406,7 +515,15 @@ interface HikariArtRenderJob {
   sourceDocumentHash: string;
   sourceViewId: string;
   opticalSceneRevision: string;
-  seed: number;
+  jobSeed: string;
+  assets: {
+    id: string;
+    path: string;
+    contentHash: string;
+    role: "shape" | "inclusion" | "backdrop" | "opticalEnvironment" | "palette";
+    sourceFps?: number;
+    frameTimestamps?: number[];
+  }[];
   timeline: {
     durationSeconds: number;
     fps: 24 | 30 | 60;
@@ -418,17 +535,48 @@ interface HikariArtRenderJob {
   layers: LayerRecipe[];
   composite: CompositeRecipe;
   quality: PreviewQuality | FinalQuality;
+  temporal: {
+    resumePolicy: "replay-from-start" | "nearest-checkpoint";
+    checkpointIntervalFrames: number;
+    temporalStateHash: string;
+  };
   output: OutputRecipe;
 }
 ```
 
 必須条件:
 
-- 乱数は`seed + frameIndex + sampleIndex + layerId`から決定する。
+- 乱数は文字列連結や加算ではなく、型付きtupleのhashから決定する。
+
+```ts
+randomSeed = hash64(
+  jobSeed,
+  frameIndex,
+  pixelX,
+  pixelY,
+  sampleIndex,
+  sampleDimension,
+  layerId,
+);
+```
+
 - 配列順やGPU処理時間からSeedを作らない。
 - カメラ、形、内包、背景映像の時刻を同じtimelineから評価する。
 - Art effectの半径・速度は固定pixelだけでなく、正規化画面寸法または作品単位で保存する。
 - Render JobはHikari version、commit、backend、既知の近似を記録する。
+- 背景動画、環境画像、形状、内包、palette sourceはasset manifestのcontent hashで固定する。
+- 再開時はdocument、assets、quality、temporal stateのhashが一致しなければ同じ出力先へ続けない。
+- adaptive qualityを使ったPreview記録は、品質段階と変更frameをquality historyへ残す。
+
+### 12.1 決定論の保証範囲
+
+| 条件 | 要求 |
+|---|---|
+| 同じHikari commit・同じbackend・同じquality profile | frame pixelまたは規定hash一致 |
+| 同じGPU familyでもdriver／browserが異なる | 許容差内のpixel差とLayerStats一致 |
+| M4とRTX、または異なるbackend | pixel一致を要求せず、固定ケースの構造・統計・flux許容差を要求 |
+
+「同じRender Job」だけを根拠に、異なるGPU間のbit-identicalを主張しない。
 
 ## 13. UI仕様
 
@@ -480,14 +628,29 @@ Cancelは完了済みフレームを削除しない。設定が変わった場�
 
 ### R0 — 仕様レビュー
 
-- 本文書のLayer分類、三表示モード、M4基準、Final出力、未決事項を作者がレビューする。
+- 条件付き承認レビューを受け、Revision 2でdomain分類、共有台帳、checkpoint、決定論を修正した。
 - production変更なし。
 
-### R1 — Physical Layerの可視化
+### R0.5 — Optical Event Contract
 
-- 一つの共有光学結果から4作品層とshadow maskを出す。
-- DEBUG LAYERSで分類とfluxを確認する。
+- BODY / CPU receiver / WebGPU receiverの現行経路を棚卸しする。
+- View／Receiverのtransport domainを定義する。
+- terminal eventとpath historyを定義する。
+- backendごとに出せる属性／出せない属性を表にする。
+- 共通`OpticalEvent`型と、欠損属性を推測せず表す方法を決める。
+- 固定ケースで、同じ経路がbackendごとにどこまで同じ分類になるかを測る。
+
+Exit: productionの4bufferを作る前に、型、backend capability matrix、固定ケース、未解決属性がレビュー可能である。
+
+### R1 — Optical Eventの計測表示
+
+- 一つの共有光学結果からViewの2 source、Receiverの1 source、path attributes、shadow maskを出す。
+- path属性から`viewInternalReflection`を派生し、4つのDisplay Layerを単独表示する。
+- DEBUG LAYERSでdomain、terminal event、共有台帳、派生元を確認する。
 - Art effectはまだ最小限。
+
+R1は美しい4枚を作る段階ではない。光の出来事を誤分類せず観察可能にする計測器を作る段階である。
+反射が作品層として弱い、receiverだけが面白い、内部反射の取得が不安定という結果も有効なObservationとする。
 
 ### R2 — PHENOMENON
 
@@ -510,11 +673,13 @@ Cancelは完了済みフレームを削除しない。設定が変わった場�
 ### R5 — Deterministic Sequence
 
 - Observation Clockをframe固定評価できるようにする。
-- 1080p PNG Beauty連番、停止、再開、Render Job保存を実装する。
+- 最初の技術成果物として1080p PNG 8bit Beauty連番を実装する。
+- temporal checkpoint、停止、再開、asset manifest、Render Job保存を実装する。
 - 同じframeを二度出力しhashまたはpixel差が一致することを確認する。
 
 ### R6 — RTX Final
 
+- 最初の作品用masterとしてPNG 16bit Beauty + selected layersを接続する。
 - 4K、追加samples、深い経路、レイヤー別連番を接続する。
 - Windows RTX3080 Chromeで長尺ジョブを試す。
 - 必要ならブラウザUIと同じRender Jobを読む専用local rendererを後続で作る。
@@ -529,13 +694,18 @@ Cancelは完了済みフレームを削除しない。設定が変わった場�
 ### 15.1 因果関係
 
 - 同じ形を回転すると、NaturalとArt Layersが同じ時刻に変化する。
-- 形を止めると、入力が固定され、時間処理だけが規定どおりsettleまたは保持する。
+- `object-motion-hold`は時計を進めたままposeだけ固定する。
+- `timeline-pause`は時計、光学入力、temporal stateを同時に停止する。
+- `hold-input-continue-effect`は入力を固定し、時間処理だけを規定どおりsettleまたは保持する。
 - 背景Artを非表示にすると、前景の形と物理的な影がNatural基準と一致する。
 - 別の形を読み込むと、同じエフェクト設定でも異なる光景になる。
 
 ### 15.2 物理層
 
-- 4作品層は別traceではなく一つの共有イベント系列から生成される。
+- Viewの2 source、Receiverの1 source、path attributesは別traceではなく一つの共有イベント系列から生成される。
+- 内部反射表示は`hadInternalReflection`から作る派生層であり、排他的terminal layerとして二重計上しない。
+- View radianceとReceiver fluxを無加工で加算しない。
+- 保存則は個別LayerStatsではなく共有`FrameTransportLedger.receiver`で確認する。
 - `receiverDelivery`のredistribution前後でRGB fluxが許容誤差内に保たれる。
 - `shadowCoverage`をRGB光量として加算しない。
 - 未解決経路と吸収量を成功した内部反射として分類しない。
@@ -551,8 +721,10 @@ Cancelは完了済みフレームを削除しない。設定が変わった場�
 
 - M4 MBAで既定作品が20分安定する。
 - RTX Finalで同じRender Jobを1080pと4Kへ出せる。
-- 同じSeed、frame、sample設定の再出力が決定論的である。
-- 途中停止後、未完了frameから再開できる。
+- 同じcommit・backend・quality profileでは同じframeが規定hashまたはpixel一致になる。
+- 異なるGPU／backend間ではbit一致を要求せず、固定ケースの許容差とLayerStatsを満たす。
+- temporal effectを含む途中停止後、最初からのreplayまたは一致するcheckpointから再開できる。
+- asset content hashが変わったRender Jobは再開を拒否する。
 - Beautyと個別レイヤーが同じframe番号・時間・色管理を共有する。
 
 ## 16. 既知のリスク
@@ -564,75 +736,40 @@ Cancelは完了済みフレームを削除しない。設定が変わった場�
 5. PNG 16bitとEXRはブラウザ標準だけでは完結しない可能性がある。
 6. 4K multilayerはGPUメモリだけでなく、保存帯域とディスク容量が支配的になる。
 7. 背景動画を光学環境へ使う場合、動画デコード時刻とFinal frame時刻の決定論性を確認する必要がある。
+8. temporal checkpointの容量と保存頻度が、長尺4K作品では大きなI/O負荷になる。
+9. PNG 16bit Physical Sourceのnormalization metadataを欠くと、後工程で光量を復元できない。
 
-## 17. 作者レビューで決める項目
+## 17. 作者レビューの決定記録
 
-推奨案を先に示す。未回答でも実装へ進めない項目は`BLOCKING`とする。
+2026-08-02の条件付き承認レビューをRevision 2へ反映した。選択は次で固定する。
 
-### Q1 — 作品の主画面 `BLOCKING`
+| 項目 | 決定 | 仕様への反映 |
+|---|---|---|
+| Q1 主画面 | A | ENVIRONMENT COMPOSITEを作品の主画面とする |
+| Q2 初期表示層 | Aを修正 | 4表示層は維持し、内部正本はView／Receiver domainとpath属性へ分ける |
+| Q3 光量 | A | Physical Sourceを保存し、Artでは記録されたdisplay gainを許す |
+| Q4 回転 | A | 形が回転し、既定カメラは固定する |
+| Q5 Projection | A | 最初はreceiver + screen。directionとsurface-unfoldは後続 |
+| Q6 成果物 | B → A | R5でPNG 8bit Beauty技術成果物、R6でPNG 16bit Beauty + selected layers作品master |
+| Q7 Final入口 | A | Windows Chrome Render Queueから開始し、保存／再開が破綻した場合だけ専用rendererへ移行 |
+| Q8 背景風景 | A | visibleBackdrop + opticalEnvironment。Finalではasset hashとsource frameを固定 |
+| Q9 品質低下 | A | 展示時は自動適応し、品質変更履歴を保存する |
 
-- A. ENVIRONMENT COMPOSITEを主画面にする（推奨）
-- B. PHENOMENON全面を主画面にする
-- C. 両方を同格にする
+この決定でQ1〜Q9のblocking choiceは解消した。ただしproduction実装開始にはR0.5の
+Optical Event Contractレビューが必要である。
 
-### Q2 — 初期Physical Layer `BLOCKING`
+## 18. 次に作る実装指示書
 
-- A. 反射／透過屈折／内部反射／到達光の4層（推奨）
-- B. 最初から吸収と非到達も作品層にする
-- C. さらに少なく、屈折／内部反射／到達光の3層から始める
+次に独立タスク化するのはR1ではなく、**R0.5 Optical Event Contract**である。
+R0.5ではproduction bufferやArt effectを追加せず、次を証明する。
 
-### Q3 — Art Layerの光量
+1. BODY / CPU receiver / WebGPU receiverの現在のイベントと欠損属性を列挙できる。
+2. View radianceとReceiver fluxが別domainとして型に現れる。
+3. terminal eventとpath historyを同じ列挙値で混同しない。
+4. 内部反射を`hadInternalReflection`と`internalBounceCount`で表せる。
+5. backend capability matrixが、取得できない属性を推測値で埋めない。
+6. 固定ケースで共通分類とbackend固有差を測定できる。
 
-- A. Physicalは保存し、Artでは明示的なdisplay gainを許す（推奨）
-- B. Artでも常にflux保存を強制する
-- C. 物理量表示を作品モードから完全に外す
-
-### Q4 — 回転の主語 `BLOCKING`
-
-- A. 形が回転し、カメラは原則固定（推奨）
-- B. カメラが周回し、形は固定
-- C. 両方を常に動かす
-
-### Q5 — 最初のProjection
-
-- A. receiver + screen（推奨）
-- B. directionを最初から含める
-- C. surface-unfoldを優先する
-
-### Q6 — 最初の高解像度成果物
-
-- A. PNG 16bit Beauty + 4レイヤー連番（推奨）
-- B. PNG 8bit Beautyだけを先に完成させる
-- C. OpenEXRまで待つ
-
-### Q7 — Final rendererの入口
-
-- A. まずWindows Chrome内のRender Queue（推奨）
-- B. 最初から専用ローカルレンダラー
-- C. Blenderへレイヤーデータを渡してレンダリング
-
-### Q8 — 背景風景の初期役割
-
-- A. visibleBackdrop + opticalEnvironment（推奨）
-- B. visibleBackdropだけ
-- C. Art paletteまで最初から接続する
-
-### Q9 — 展示時の品質低下
-
-- A. 自動適応し、隠れたoverlayで状態確認（推奨）
-- B. 品質固定で、性能不足時はfps低下を許す
-- C. 作品ごとに固定した軽量presetだけを使う
-
-## 18. レビュー後に作る最初の実装指示書
-
-レビュー後はR1だけを独立タスク化する。R1では全面アート表現を完成させようとせず、
-次を証明する。
-
-1. 現行形状と自動回転を壊さない。
-2. 一度の共有計算から4つの原因別bufferが得られる。
-3. 各bufferを単独表示できる。
-4. receiver fluxとshadow coverageを混同しない。
-5. M4 MBAでNaturalの操作性を大きく悪化させない。
-
-R1の証拠を見てから、どのレイヤーに作品としての可能性があるかを作者が選び、R2の表現を決める。
-
+R0.5の型と固定ケースをレビューした後、R1を「4枚の映像を作る段階」ではなく、
+**光の出来事を誤分類せず観察可能にする計測器**として実装する。
+R1のObservationを見てから、どのDisplay Layerに作品としての可能性があるかを作者が選び、R2の表現を決める。
