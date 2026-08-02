@@ -41,6 +41,17 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.31.3
+
+- Git commit deployed: `5b50518` (`VITE_GIT_COMMIT=5b50518` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `2e05d8d5-dafe-4a9b-85d1-0d264fe5e1f7`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Root cause: the old OBJ wrote three new vertices for every triangle. The author's 139,600-face host therefore arrived in Blender with 418,800 vertices as isolated triangle islands. Smooth shading could not cross them, and the Ref quad mesh's Catmull-Clark modifier pinched the islands into a stronger geometric pattern.
+- New OBJ exports deduplicate coincident positions and write shared face indices. The importer also welds already-downloaded legacy OBJ vertices at 1e-6 mm, producing 69,802 connected vertices for the supplied case. The dense Hikari triangle surface omits Subdivision.
+- The remaining marching-grid corrugation is removed by a scale-aware Voxel Remesh at longest-edge/80 followed by six Smooth iterations at factor 0.5. An opaque diagnostic render confirmed a continuous broad form without the geometric pattern. The Ref-style Empty Volume Absorption mask remains unchanged.
+- Rebuilt and reinstalled `Hikari Blender Bridge.app`. The corrected author file is `Downloads/hikari-2026-08-01-smooth.blend`.
+- Verification: all 73 Hikari tests, production build, Python compilation, Swift build/signature/self-test, Blender save/reopen, OBJ shared-index regression, Ref contract verifier, and diagnostic surface render passed. The verifier reported 139,600 smooth source polygons, 69,802 connected vertices, no Subdivision, 1 mm Voxel Remesh, 0.5×6 Smooth, and one linked Empty. Production reported `v0.31.3` and `GPU · WebGPU` after cache-busted reload.
+
 ## Release record — 2026-08-02 — v0.31.2
 
 - Git commit deployed: `47bd5bc` (`VITE_GIT_COMMIT=47bd5bc` embedded in exported Hikari/Blender cases)
