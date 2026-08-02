@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Topology instrument (T8 §3 "この Study の Yohaku らしさ"): the discrete
+// Topology instrument (T8 §3 "この Study の Katachi らしさ"): the discrete
 // Gauss linking number between two rings' center-lines, computed live.
 //
 // Method: the classical Gauss linking integral

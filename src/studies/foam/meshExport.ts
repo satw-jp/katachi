@@ -46,7 +46,7 @@ export function buildFoamMesh(
 
 export function makeFoamExportBaseName(): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-foam-${stamp}`;
+  return `katachi-foam-${stamp}`;
 }
 
 export function downloadFoamMeshBundle(

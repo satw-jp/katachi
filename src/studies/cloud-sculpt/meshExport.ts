@@ -334,7 +334,7 @@ export function meshSummary(result: MeshBuildResult): string {
 
 export function encodeObj(result: MeshBuildResult): string {
   const lines = [
-    "# Yohaku Cloud Sculpt OBJ",
+    "# Katachi Cloud Sculpt OBJ",
     `# triangles ${result.triangles.length}`,
     `# scale ${result.scaleMmPerUnit} mm/source-unit`,
   ];
@@ -369,7 +369,7 @@ export function encodeObj(result: MeshBuildResult): string {
 export function encodeBinaryStl(result: MeshBuildResult, name: string): ArrayBuffer {
   const buffer = new ArrayBuffer(84 + result.triangles.length * 50);
   const view = new DataView(buffer);
-  const header = new TextEncoder().encode(`Yohaku Cloud Sculpt ${name}`.slice(0, 80));
+  const header = new TextEncoder().encode(`Katachi Cloud Sculpt ${name}`.slice(0, 80));
   new Uint8Array(buffer, 0, header.length).set(header);
   view.setUint32(80, result.triangles.length, true);
   let offset = 84;
@@ -411,7 +411,7 @@ function fmt(n: number): string {
 
 export function makeExportBaseName(): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-cloud-${stamp}`;
+  return `katachi-cloud-${stamp}`;
 }
 
 export function downloadMeshBundle(

@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VERSION_GATE="/Users/atsushisato/Projects/scripts/verify-hikari-current.mjs"
-# ポートは docs/launcher-spec.md のポート台帳で一意に固定（Yohaku=5174）。
+# ポートは docs/launcher-spec.md のポート台帳で一意に固定（Katachi=5174）。
 PORT=5174
 
 if [ ! -f "${VERSION_GATE}" ]; then

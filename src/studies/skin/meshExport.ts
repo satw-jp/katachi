@@ -145,7 +145,7 @@ export function meshSummary(result: SkinMeshResult): string {
 
 export function makeSkinExportBaseName(mode: SkinMode): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-skin-${mode}-${stamp}`;
+  return `katachi-skin-${mode}-${stamp}`;
 }
 
 /**

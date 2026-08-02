@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-02",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-02",
+      "note": "Established the current project identity as Katachi with Hikari as its optical workspace. The GitHub repository and default main branch now use satw-jp/katachi, current browser metadata and newly exported mesh filenames use Katachi, and new default study seeds use the Katachi name. Historical authored quotes, archived filenames, saved cases, and deterministic regression seeds retain Yohaku only as provenance rather than current branding."
+    },
     {
       "date": "2026-08-02",
       "note": "Removed the remaining Blender geometric pattern at its topology and sampling sources. The old OBJ repeated three new vertices for every triangle (139,600 faces / 418,800 vertices), so Blender saw isolated face islands; smooth shading could not cross them, and applying Ref's quad-oriented Catmull-Clark modifier pinched every island. OBJ export now deduplicates coincident positions and writes shared face indices, while the importer welds exact duplicates in already-downloaded legacy OBJ files before smoothing. Dense Hikari triangle hosts omit Subdivision and instead use a scale-aware Voxel Remesh at longest-edge/80 followed by six 0.5 Smooth iterations, which removes the remaining marching-grid corrugation while preserving the broad form. The Ref Empty absorption mask remains unchanged. Added an OBJ shared-topology regression and updated the Blender verifier to require connected vertices, all-smooth faces, the remesh/relax pair, no Subdivision, and linked Empty masks."

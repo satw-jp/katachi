@@ -238,6 +238,11 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Katachi内のHikari v0.32.1）**: 現行プロジェクト名をKatachiへ統一し、Hikariを
+  Katachiの形を透明体・光・影・環境として観察してBlenderへ渡すworkspaceと位置づけた。GitHub repositoryを
+  `satw-jp/katachi`へ改称して最新版を`main`へfast-forwardし、画面metadata、新規mesh書き出し名、初期seedを
+  Katachiへ変更した。過去の作者の引用、保存済みcase、再現性を固定するtest seed内のYohakuは履歴として保持する。
+
 - **2026-08-02（Windows Blender Bridge v0.32.0）**: Mac版と同じ`hikari-blender://`契約を受ける
   Windows用デスクトップBridgeを追加した。自己完結型exeへ同じBlender importerを内包し、現在ユーザーの
   `%LOCALAPPDATA%`とURL protocolだけへ導入するため管理者権限は不要。Hikariのボタンはbrowser platformに応じて

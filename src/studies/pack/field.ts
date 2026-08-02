@@ -216,7 +216,7 @@ export const DEFAULT_PACK_PARAMS: PackParams = {
   gap: 0.05,
   penetration: 0,
   attempts: 600,
-  seed: "yohaku-pack",
+  seed: "katachi-pack",
   // Kept <= gap by default: see README Observation -- when roundK exceeds the
   // physical shell thickness left by gap, the smooth subtraction visually
   // rounds/thins that shell into something that READS as a pinhole even

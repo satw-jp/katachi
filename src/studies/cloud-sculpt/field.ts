@@ -33,7 +33,7 @@ export const DEFAULT_FIELD_PARAMS: FieldParams = {
   count: 12,
   radiusBase: 0.7,
   radiusSpread: 0.5,
-  seed: "yohaku",
+  seed: "katachi",
 };
 
 let nextBallId = 1;

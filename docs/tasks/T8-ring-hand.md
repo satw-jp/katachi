@@ -35,7 +35,7 @@ README、manifest）。場の定義は S1 と同じ（`field.ts` を import、�
 - 削除。すべて履歴に記録（`moveRing`/`rotateRing`/`duplicateRing`/`removeRing` 等、
   引数に結果を決定的に再現できる値を持つこと）
 
-### 3. トポロジーの計器（この Study の Yohaku らしさ）
+### 3. トポロジーの計器（この Study の Katachi らしさ）
 
 - **絡み数（Gauss linking number）を常時表示**: 輪の中心線（節点を結ぶ閉じた折れ線）の
   ペアごとに絡み数を計算し、「輪1と輪2: 絡み 1」「輪2と輪3: 絡み 0」のように一覧する。

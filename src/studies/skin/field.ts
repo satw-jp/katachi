@@ -123,7 +123,7 @@ export const DEFAULT_SKIN_PARAMS: SkinParams = {
   irregularity: 0.5,
   gap: 0.05,
   attempts: 500,
-  seed: "yohaku-skin",
+  seed: "katachi-skin",
   roundK: 0.05,
   patchShape: "coin",
   flatRingHoleRatio: 0.6,

@@ -167,7 +167,7 @@ export function meshSummary(result: PackMeshResult): string {
 
 export function makePackExportBaseName(mode: PackMode): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-pack-${mode}-${stamp}`;
+  return `katachi-pack-${mode}-${stamp}`;
 }
 
 /**

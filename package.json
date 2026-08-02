@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Yohaku — a research platform and sculpting tool for the two margins of form",
+  "description": "Katachi — a research platform and sculpting tool for the two margins of form",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

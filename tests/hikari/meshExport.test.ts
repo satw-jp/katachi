@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { encodeObj, type MeshBuildResult } from "../../src/studies/cloud-sculpt/meshExport.ts";
+import {
+  encodeObj,
+  makeExportBaseName,
+  type MeshBuildResult,
+} from "../../src/studies/cloud-sculpt/meshExport.ts";
 
 test("OBJ export shares coincident vertices across adjacent triangles", () => {
   const a = { x: 0, y: 0, z: 0 };
@@ -21,4 +25,6 @@ test("OBJ export shares coincident vertices across adjacent triangles", () => {
   assert.match(obj, /# shared_vertices 4/);
   assert.match(obj, /^f 1 2 3$/m);
   assert.match(obj, /^f 1 3 4$/m);
+  assert.match(obj, /^# Katachi Cloud Sculpt OBJ$/m);
+  assert.match(makeExportBaseName(), /^katachi-cloud-\d{8}$/);
 });

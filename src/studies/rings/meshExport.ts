@@ -60,7 +60,7 @@ export function meshSummary(result: MeshBuildResult): string {
 
 export function makeExportBaseName(): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-rings-${stamp}`;
+  return `katachi-rings-${stamp}`;
 }
 
 export function downloadRingsMeshBundle(
