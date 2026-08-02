@@ -238,6 +238,13 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Ref準拠のBlender外形・内包 v0.31.2）**: 初回Bridge出力ではOBJの全三角面が
+  flat shadingのまま見え、内包も別の実体meshとして生成されていた。`Ref/study_01_light_size05.blend`を
+  再検査し、外形の全polygonをSmooth、Subdivision SurfaceをRefと同じCatmull–Clarkのviewport 1／render 2へ
+  修正した。内包はSPHERE表示の`Empty`とし、そのObject座標からVector Lengthと0.92145〜1.0のrampを作り、
+  母材Volume AbsorptionのDensityを抜く。同じ表面内の低吸収領域となり、別の屈折境界meshは作らない。
+  Blender内でSmooth、Subdivision、Empty型、material接続を再検査するscriptも追加した。
+
 - **2026-08-02（Hikari Blender Bridge v0.31.1）**: 作者の分担を「詳細な造形力・表現力はBlender、
   Hikariは雰囲気を見るためのもの」と明確化した。既存の5ファイル書き出し後に
   `Blenderで開く（Mac）`を追加し、専用Macアプリがsanitized case名だけを受け取る。作者がnative pickerで

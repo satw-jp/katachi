@@ -1,7 +1,7 @@
 # hikari ↔ Blender integration design
 
-Status: bundle v2 and bootstrap in implementation
-UpdatedAt: 2026-08-01
+Status: bundle v2, Mac Bridge, and Ref-matched bootstrap in implementation
+UpdatedAt: 2026-08-02
 
 ## Division of work
 
@@ -20,8 +20,9 @@ The handoff is therefore a reproducible case, not only a mesh. A visually pleasi
 - An editable `.hkr` may hold several views, but Blender export materializes only the current/selected state as one `.hikari-case.json`; the Blender bootstrap does not read the whole `.hkr` document.
 - `tools/blender/import_hikari_study.py` is the deterministic Blender bootstrap. Artistic refinement stays after import.
 - `tools/blender-bridge/` builds the local Mac companion. After Hikari downloads the existing bundle, `Blenderで開く（Mac）` sends only its sanitized case name. The author grants the export folder through the native macOS picker; the companion stages only the declared sidecar and mesh assets, runs its bundled bootstrap, copies back a non-overwriting `.blend`, and opens Blender without a Terminal step.
+- The host mesh uses smooth faces plus Ref's Catmull-Clark Subdivision settings (viewport 1, render 2). Generated inclusions are Empty object-coordinate masks in the host Volume Absorption, matching the active equal-IOR Ref construction rather than becoming visible triangle/metaball bodies.
 
-The runtime still has one analytic spherical inclusion. The sidecar already permits an inclusion array, but generic multiple-inclusion export is not declared complete until every inclusion has either a deterministic analytic reconstruction or an independently watertight primary mesh.
+The sidecar permits an inclusion array and packed forms retain every source ball and authored smoothness. The Blender bootstrap materializes those balls as Empty masks. This is the selected equal-IOR, lower-absorption baseline; a different-IOR inclusion still requires an authored cavity and inner body in Blender.
 
 ## Bundle v2
 

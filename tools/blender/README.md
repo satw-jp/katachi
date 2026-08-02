@@ -34,7 +34,16 @@ The importer:
 - checks SHA-256 and declared physical scale;
 - imports only assets marked `primary`;
 - converts Hikari right-handed Y-up to Blender right-handed Z-up through the visible axis root;
-- reconstructs camera, receiver, Sun, host material, and one analytic spherical inclusion;
+- smooth-shades the host and adds the Ref Catmull-Clark Subdivision contract (viewport 1, render 2);
+- reconstructs camera, receiver, Sun, and host material;
+- represents generated inclusions as Ref-style Empty object-coordinate masks in the host Volume Absorption rather than separate refractive meshes;
 - stores assumptions and approximations in `HIKARI_IMPORT_METADATA.json` inside the `.blend` file.
 
-Generic or multiple inclusions require their own primary watertight meshes. Imported output is a comparison baseline, not a finished artwork; Blender material, world, and nested-volume behavior still require visual judgment and recording.
+Run `verify_hikari_ref_match.py` against a generated file to guard the authored surface and Empty-mask contract:
+
+```text
+Blender --background /path/to/<case-id>.blend \
+  --python tools/blender/verify_hikari_ref_match.py
+```
+
+The Empty mask is the equal-IOR, lower-absorption Ref baseline. A genuinely different-IOR inclusion still needs an explicitly authored cavity and inner body in Blender. Imported output is a comparison baseline, not a finished artwork; Blender material, world, and nested-volume behavior still require visual judgment and recording.

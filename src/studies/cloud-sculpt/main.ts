@@ -775,7 +775,7 @@ async function exportBlenderStudy(details: {
         "The selected longest edge defines an author scale for this export.",
         "Absorption was converted from Hikari's visual per-shape-unit control at that scale; it is appearance-matched, not a measured resin coefficient.",
         ...(hikariSettings.inclusionMode === "packed"
-          ? ["Packed balls-smooth-union inclusions are reconstructed as Blender metaball families; the exact source balls and smoothness remain in sidecar metadata."]
+          ? ["Packed balls-smooth-union inclusions are transferred as Ref-style Empty masks that modulate the host Volume Absorption; exact source balls and smoothness remain in sidecar metadata."]
           : []),
       ],
       sunAngularDiameterDeg: hikariSettings.sunSize,

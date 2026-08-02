@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.31.1",
+  "version": "0.31.2",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-02",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-02",
+      "note": "Corrected the Blender handoff against Ref/study_01_light_size05.blend after the first Bridge output exposed every imported OBJ triangle and generated the inclusion as a separate mesh. Host faces now all use smooth shading and receive the same Catmull-Clark Subdivision contract as Ref (viewport 1, render 2). Generated inclusions are now SPHERE-display Empty objects whose Object coordinates drive a 0.92145-to-1.0 density ramp in the host Volume Absorption, so they act as low-absorption regions inside one continuous surface rather than separate refractive bodies. Added a Blender-side verifier for this authored contract and retained the full source shape/material records as metadata."
+    },
     {
       "date": "2026-08-02",
       "note": "Added the local Hikari Blender Bridge for the author's clarified division of work: Hikari is the quick instrument for sensing atmosphere, while Blender owns detailed forming and expression. After the existing five-file export completes, a new Mac button opens a narrowly scoped custom URL carrying only a sanitized case name. The author grants the export folder through the native macOS picker; the companion stages only the declared sidecar and mesh assets, uses its bundled validated importer, copies back a non-overwriting .blend, and opens it in Blender without a terminal command. The bridge remains a starting-state handoff, not a promise of pixel parity or finished Blender craft."

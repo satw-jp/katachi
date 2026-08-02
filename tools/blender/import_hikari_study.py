@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconstruct a Hikari Blender study sidecar in Blender 4.x.
+"""Reconstruct a Hikari Blender study sidecar in Blender 4.x or newer.
 
 Usage:
   blender file.blend --python tools/blender/import_hikari_study.py -- case.json
@@ -299,58 +299,106 @@ def medium_pose_matrix(pose: dict[str, Any], mm_per_shape_unit: float) -> Matrix
     return Matrix.Translation(position) @ rotation @ uniform_scale
 
 
-def is_analytic_sphere(medium: dict[str, Any]) -> bool:
+def create_inclusion_empties(medium: dict[str, Any], mm_per_shape_unit: float, root: Any) -> list[Any]:
+    """Create Ref-style Empty masks instead of a separate refractive body."""
+    result = []
     shape = medium["shape"]
-    return shape["kind"] == "balls-smooth-union" and len(shape["balls"]) == 1 and shape["smoothness"] == 0
-
-
-def create_analytic_inclusion(medium: dict[str, Any], material: Any, mm_per_shape_unit: float, root: Any) -> Any:
-    ball = medium["shape"]["balls"][0]
-    center = Vector(vec3(ball["center"], f"inclusion {medium['id']} center")) * mm_per_shape_unit
-    radius = float(ball["radius"]) * mm_per_shape_unit
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=radius, location=center)
-    obj = bpy.context.object
-    obj.name = f"Hikari Analytic Inclusion {medium['id']}"
-    obj.data.materials.append(material)
-    obj["hikari_role"] = "inclusion"
-    obj["hikari_medium_id"] = medium["id"]
-    obj["hikari_generated_from"] = "single ball, smoothness=0"
-    local_matrix = medium_pose_matrix(medium["pose"], mm_per_shape_unit) @ obj.matrix_world.copy()
-    obj.parent = root
-    obj.matrix_parent_inverse = Matrix.Identity(4)
-    obj.matrix_basis = local_matrix
-    return obj
-
-
-def create_smooth_union_inclusion(medium: dict[str, Any], material: Any, mm_per_shape_unit: float, root: Any) -> Any:
-    """Rebuild a packed balls-smooth-union as one Blender metaball object."""
-    shape = medium["shape"]
-    data = bpy.data.metaballs.new(f"Hikari Packed Inclusion {medium['id']}")
-    data.resolution = max(0.15, min(1.0, mm_per_shape_unit * 0.02))
-    data.render_resolution = max(0.08, data.resolution * 0.5)
-    # Hikari's polynomial smooth-min has no exact Blender metaball threshold
-    # equivalent. Keep the authored value as metadata and use a bounded visual
-    # mapping only for the connected surface between constituent balls.
-    mean_radius = sum(float(ball["radius"]) for ball in shape["balls"]) / len(shape["balls"])
-    relative_smoothness = float(shape["smoothness"]) / max(1e-9, mean_radius)
-    data.threshold = max(0.45, min(0.9, 0.6 + relative_smoothness * 0.18))
-    obj = bpy.data.objects.new(f"Hikari Packed Inclusion {medium['id']}", data)
-    bpy.context.scene.collection.objects.link(obj)
     for index, ball in enumerate(shape["balls"]):
-        element = data.elements.new()
-        element.co = Vector(vec3(ball["center"], f"inclusion {medium['id']} ball {index} center")) * mm_per_shape_unit
-        element.radius = float(ball["radius"]) * mm_per_shape_unit
-        element.stiffness = 2.0
-    data.materials.append(material)
-    obj["hikari_role"] = "inclusion"
-    obj["hikari_medium_id"] = medium["id"]
-    obj["hikari_generated_from"] = "balls-smooth-union approximated with one Blender metaball family"
-    obj["hikari_shape_json"] = json.dumps(shape, sort_keys=True)
-    local_matrix = medium_pose_matrix(medium["pose"], mm_per_shape_unit)
-    obj.parent = root
-    obj.matrix_parent_inverse = Matrix.Identity(4)
-    obj.matrix_basis = local_matrix
-    return obj
+        center = Vector(vec3(ball["center"], f"inclusion {medium['id']} ball {index} center")) * mm_per_shape_unit
+        radius = float(ball["radius"]) * mm_per_shape_unit
+        empty = bpy.data.objects.new("Empty", None)
+        bpy.context.scene.collection.objects.link(empty)
+        empty.empty_display_type = "SPHERE"
+        empty.empty_display_size = 1.0
+        empty["hikari_role"] = "inclusion"
+        empty["hikari_medium_id"] = medium["id"]
+        empty["hikari_ball_index"] = index
+        empty["hikari_representation"] = "Ref-style Volume Absorption mask"
+        empty["hikari_shape_json"] = json.dumps(shape, sort_keys=True)
+        local_matrix = (
+            medium_pose_matrix(medium["pose"], mm_per_shape_unit)
+            @ Matrix.Translation(center)
+            @ Matrix.Scale(radius, 4)
+        )
+        empty.parent = root
+        empty.matrix_parent_inverse = Matrix.Identity(4)
+        empty.matrix_basis = local_matrix
+        result.append(empty)
+    return result
+
+
+def apply_ref_inclusion_mask(material: Any, empties: list[Any]) -> None:
+    """Use Empty object coordinates to remove host absorption like the Ref blend."""
+    if not empties or material.node_tree is None:
+        return
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    absorption = next((node for node in nodes if node.bl_idname == "ShaderNodeVolumeAbsorption"), None)
+    if absorption is None:
+        return
+
+    host_density = float(absorption.inputs["Density"].default_value)
+    mask_outputs = []
+    for index, empty in enumerate(empties):
+        coordinates = nodes.new("ShaderNodeTexCoord")
+        coordinates.name = f"Inclusion Empty Coordinates {index + 1:02d}"
+        coordinates.label = empty.name
+        coordinates.object = empty
+
+        length = nodes.new("ShaderNodeVectorMath")
+        length.name = f"Inclusion Radius {index + 1:02d}"
+        length.operation = "LENGTH"
+
+        ramp = nodes.new("ShaderNodeValToRGB")
+        ramp.name = f"Inclusion Density Mask {index + 1:02d}"
+        ramp.color_ramp.interpolation = "LINEAR"
+        ramp.color_ramp.elements[0].position = 0.92145
+        ramp.color_ramp.elements[0].color = (0.0, 0.0, 0.0, 1.0)
+        ramp.color_ramp.elements[1].position = 1.0
+        ramp.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
+
+        links.new(coordinates.outputs["Object"], length.inputs["Vector"])
+        links.new(length.outputs["Value"], ramp.inputs["Fac"])
+        mask_outputs.append(ramp.outputs["Color"])
+
+    combined = mask_outputs[0]
+    for index, mask in enumerate(mask_outputs[1:], start=2):
+        multiply = nodes.new("ShaderNodeMath")
+        multiply.name = f"Combine Inclusion Masks {index:02d}"
+        multiply.operation = "MULTIPLY"
+        links.new(combined, multiply.inputs[0])
+        links.new(mask, multiply.inputs[1])
+        combined = multiply.outputs["Value"]
+
+    density = nodes.new("ShaderNodeMath")
+    density.name = "Host Density outside Empty"
+    density.operation = "MULTIPLY"
+    density.inputs[1].default_value = host_density
+    links.new(combined, density.inputs[0])
+    links.new(density.outputs["Value"], absorption.inputs["Density"])
+    material["hikari_inclusion_mapping"] = (
+        "Ref-style Empty object coordinates -> vector length -> 0.92145..1.0 density ramp; "
+        "masks multiply the host Volume Absorption density and do not create a separate refractive mesh"
+    )
+
+
+def prepare_ref_host_surface(obj: Any) -> None:
+    """Match the Ref host: smooth faces plus Catmull-Clark subdivision."""
+    if obj.type != "MESH":
+        return
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
+    subdivision = obj.modifiers.get("Subdivision") or obj.modifiers.new("Subdivision", "SUBSURF")
+    subdivision.subdivision_type = "CATMULL_CLARK"
+    subdivision.levels = 1
+    subdivision.render_levels = 2
+    if hasattr(subdivision, "boundary_smooth"):
+        subdivision.boundary_smooth = "ALL"
+    if hasattr(subdivision, "uv_smooth"):
+        subdivision.uv_smooth = "PRESERVE_BOUNDARIES"
+    obj["hikari_surface_prep"] = (
+        "Ref match: all polygons smooth; Catmull-Clark Subdivision viewport=1 render=2"
+    )
 
 
 def set_role_properties(obj: Any, asset: dict[str, Any], medium: dict[str, Any] | None) -> None:
@@ -538,6 +586,8 @@ def main() -> None:
             if obj.type == "MESH":
                 obj.data.materials.clear()
                 obj.data.materials.append(material)
+                if asset["role"] == "host":
+                    prepare_ref_host_surface(obj)
         # GLB may import a hierarchy. Only its top-level objects receive the
         # coordinate root, otherwise descendants would be converted twice.
         imported_set = set(objects)
@@ -558,16 +608,14 @@ def main() -> None:
 
     generated_inclusions = 0
     generated_inclusion_kinds: dict[str, str] = {}
+    inclusion_empties = []
     for medium_id in sorted(missing_inclusion_meshes):
         medium = inclusions_by_id[medium_id]
-        material_index = study["geometry"]["inclusions"].index(medium)
-        if is_analytic_sphere(medium):
-            create_analytic_inclusion(medium, inclusion_materials[material_index], scale, root)
-            generated_inclusion_kinds[medium_id] = "analytic-sphere"
-        else:
-            create_smooth_union_inclusion(medium, inclusion_materials[material_index], scale, root)
-            generated_inclusion_kinds[medium_id] = "blender-metaball-approximation"
+        created = create_inclusion_empties(medium, scale, root)
+        inclusion_empties.extend(created)
+        generated_inclusion_kinds[medium_id] = f"Ref-style-empty-absorption-mask ({len(created)} empties)"
         generated_inclusions += 1
+    apply_ref_inclusion_mask(host_material, inclusion_empties)
 
     mesh_scale = study["geometry"]["meshes"].get("scaleMmPerUnit")
     scale_status = "not declared"
@@ -589,6 +637,7 @@ def main() -> None:
         "unsupported": study["unsupported"],
         "approximations": study["approximations"] + [
             "Blender Principled/Volume nodes approximate Hikari transmission and RGB Beer-Lambert absorption.",
+            "Inclusions without primary meshes are Ref-style Empty masks in the host Volume Absorption density; they do not create a separate refractive boundary.",
             "SUN energy and color are normalized from Hikari radiance and are not photometrically calibrated.",
             "The declared world description is represented by a neutral low-strength Blender world, not an HDRI reconstruction.",
             "Generated receiver extent is 10000 mm when no receiver mesh is supplied.",
