@@ -1,6 +1,6 @@
 # hikari ↔ Blender integration design
 
-Status: bundle v2, Mac Bridge, and Ref-matched bootstrap in implementation
+Status: bundle v2, Mac/Windows Bridge, and Ref-matched bootstrap in implementation
 UpdatedAt: 2026-08-02
 
 ## Division of work
@@ -20,6 +20,7 @@ The handoff is therefore a reproducible case, not only a mesh. A visually pleasi
 - An editable `.hkr` may hold several views, but Blender export materializes only the current/selected state as one `.hikari-case.json`; the Blender bootstrap does not read the whole `.hkr` document.
 - `tools/blender/import_hikari_study.py` is the deterministic Blender bootstrap. Artistic refinement stays after import.
 - `tools/blender-bridge/` builds the local Mac companion. After Hikari downloads the existing bundle, `Blenderで開く（Mac）` sends only its sanitized case name. The author grants the export folder through the native macOS picker; the companion stages only the declared sidecar and mesh assets, runs its bundled bootstrap, copies back a non-overwriting `.blend`, and opens Blender without a Terminal step.
+- `tools/blender-bridge-windows/` provides the same handoff as a self-contained Windows desktop app. It registers the same `hikari-blender://` protocol for the current user, locates Blender, asks for the export folder through a native picker, and embeds the same importer. Installation stays under `%LOCALAPPDATA%` and needs no administrator permission. Hikari labels the action `Mac` or `Windows` from the browser platform while keeping one protocol contract.
 - The host OBJ uses shared vertex indices. The importer also welds legacy per-face duplicate vertices before smooth shading. Ref's Catmull-Clark modifier is not copied to this triangulated host because it pinches disconnected triangles into a geometric pattern. A scale-aware Voxel Remesh (longest edge / 80) followed by six 0.5 Smooth iterations removes the remaining marching-grid corrugation; the visible contract is one connected smooth surface. Generated inclusions remain Empty object-coordinate masks in the host Volume Absorption, matching the active equal-IOR Ref construction rather than becoming visible triangle/metaball bodies.
 
 The sidecar permits an inclusion array and packed forms retain every source ball and authored smoothness. The Blender bootstrap materializes those balls as Empty masks. This is the selected equal-IOR, lower-absorption baseline; a different-IOR inclusion still requires an authored cavity and inner body in Blender.

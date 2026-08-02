@@ -238,6 +238,12 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Windows Blender Bridge v0.32.0）**: Mac版と同じ`hikari-blender://`契約を受ける
+  Windows用デスクトップBridgeを追加した。自己完結型exeへ同じBlender importerを内包し、現在ユーザーの
+  `%LOCALAPPDATA%`とURL protocolだけへ導入するため管理者権限は不要。Hikariのボタンはbrowser platformに応じて
+  `Blenderで開く（Mac）`または`Blenderで開く（Windows）`と表示する。Windows版もnative folder pickerで
+  作者が選んだ場所からdeclared sidecar／meshだけをstageし、既存ファイルを上書きせず`.blend`を生成して開く。
+
 - **2026-08-02（Blender共有トポロジー v0.31.3）**: v0.31.2でも残った幾何学模様の原因は、OBJが
   139,600面に対して418,800頂点を持ち、各三角形が隣接面と頂点を共有していなかったことだった。
   Smoothは面をまたげず、Refのquad mesh用Catmull–Clarkを機械的に加えたことで、独立した全三角片が

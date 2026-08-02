@@ -33,6 +33,7 @@ import {
 } from "./progressiveRender.ts";
 import type { CameraOrbitSettings } from "./cameraOrbit.ts";
 import type { BackgroundMediaMode, BackgroundMediaInfo } from "./renderer.ts";
+import { blenderBridgePlatformLabel } from "./blenderBridge.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -605,7 +606,7 @@ export function buildUi(
   let lastBlenderBaseName = "";
   const blenderOpenButton = document.createElement("button");
   blenderOpenButton.type = "button";
-  blenderOpenButton.textContent = "Blenderで開く（Mac）";
+  blenderOpenButton.textContent = `Blenderで開く（${blenderBridgePlatformLabel(navigator.userAgent)}）`;
   blenderOpenButton.disabled = true;
   blenderOpenButton.onclick = () => {
     if (lastBlenderBaseName) callbacks.onBlenderBridgeOpen(lastBlenderBaseName);
