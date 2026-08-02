@@ -21,6 +21,7 @@ import {
   stopProgressiveRender,
   type ProgressiveRenderState,
 } from "./progressiveRender.ts";
+import { ViewObservationPass } from "./viewObservationPass.ts";
 
 const accumulationFragmentShader = /* glsl */ `
   precision highp float;
@@ -83,6 +84,8 @@ export class CloudRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly controls: OrbitControls;
   private material: THREE.ShaderMaterial;
+  /** Optional R1c diagnostic pass; absent means zero observation allocation. */
+  readonly viewObservationPass: ViewObservationPass | null;
   private quad: THREE.Mesh;
   private progressiveScene = new THREE.Scene();
   private progressiveQuad: THREE.Mesh;
@@ -111,10 +114,31 @@ export class CloudRenderer {
   private inclusionCausticTrustworthy = false;
   private basePixelRatio = 1;
   private realtimeMotionMode = false;
+  private viewCameraSignature = "";
+
+  private markViewObservationDirty(): void {
+    this.viewObservationPass?.markDirty();
+  }
+
+  get viewObservation(): ViewObservationPass | null {
+    return this.viewObservationPass;
+  }
+
+  getViewObservationStatus() {
+    return this.viewObservationPass?.getStatus() ?? null;
+  }
+
+  getViewObservationTextures() {
+    return this.viewObservationPass?.getTextures() ?? [];
+  }
 
   constructor(
     container: HTMLElement,
-    options: { compatibilityMode?: boolean } = {},
+    options: {
+      compatibilityMode?: boolean;
+      /** Internal R1c seam; main.ts intentionally does not wire a query flag yet. */
+      viewObservation?: boolean;
+    } = {},
   ) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -235,6 +259,15 @@ export class CloudRenderer {
       },
     });
 
+    const viewObservationEnabled = options.viewObservation === true;
+    this.viewObservationPass = viewObservationEnabled
+      ? new ViewObservationPass(this.renderer, this.material.uniforms, {
+          enabled: true,
+          initialWidth: 1,
+          initialHeight: 1,
+        })
+      : null;
+
     const fullscreenGeometry = new THREE.PlaneGeometry(2, 2);
     this.quad = new THREE.Mesh(fullscreenGeometry, this.material);
     this.quad.frustumCulled = false;
@@ -295,6 +328,7 @@ export class CloudRenderer {
     this.quad.visible = mode !== "flow";
     this.material.uniforms.uRenderMode.value = mode === "optics" ? 1 : 0;
     this.renderer.setClearColor(mode === "katachi" ? 0x101114 : 0x071014, 1);
+    this.markViewObservationDirty();
   }
 
   async setBackgroundMedia(file: File): Promise<BackgroundMediaInfo> {
@@ -347,6 +381,7 @@ export class CloudRenderer {
     this.material.uniforms.uBackgroundMedia.value = texture;
     this.material.uniforms.uBackgroundMediaAspect.value = width / Math.max(1, height);
     this.material.uniforms.uBackgroundMediaEnabled.value = 1;
+    this.markViewObservationDirty();
     this.invalidateProgressiveRender("背景メディアが変わったためリアルタイムへ戻りました");
     return { kind: isVideo ? "video" : "image", name: file.name, width, height };
   }
@@ -354,12 +389,14 @@ export class CloudRenderer {
   setBackgroundMediaMode(mode: BackgroundMediaMode): void {
     this.material.uniforms.uBackgroundMediaEnvironment.value = mode === "environment" ? 1 : 0;
     this.invalidateProgressiveRender("背景の映り込みが変わったためリアルタイムへ戻りました");
+    this.markViewObservationDirty();
   }
 
   clearBackgroundMedia(): void {
     this.releaseBackgroundMedia();
     this.material.uniforms.uBackgroundMediaEnabled.value = 0;
     this.invalidateProgressiveRender("背景メディアを外したためリアルタイムへ戻りました");
+    this.markViewObservationDirty();
   }
 
   hasMovingBackgroundMedia(): boolean {
@@ -449,6 +486,7 @@ export class CloudRenderer {
     this.material.uniforms.uLightDir.value
       .set(daylight.directionToSun.x, daylight.directionToSun.y, daylight.directionToSun.z)
       .normalize();
+    this.markViewObservationDirty();
   }
 
   setOpticalScene(adapter: CloudOpticalSceneAdapter): void {
@@ -532,6 +570,7 @@ export class CloudRenderer {
     // compute-status handoff decides whether the current texture is trustworthy.
     this.inclusionActive = requested && adapter.inclusionValid;
     this.applyCausticAvailability();
+    this.markViewObservationDirty();
   }
 
   setInclusionCausticTrustworthy(trustworthy: boolean): void {
@@ -543,6 +582,7 @@ export class CloudRenderer {
         "内包の受光状態が変わったためリアルタイムへ戻りました",
       );
     }
+    this.markViewObservationDirty();
   }
 
   setCausticTransportPending(pending: boolean): void {
@@ -631,6 +671,7 @@ export class CloudRenderer {
     this.camera.updateProjectionMatrix();
     this.renderer.getDrawingBufferSize(this.drawingBufferSize);
     this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
+    this.viewObservationPass?.resize(this.drawingBufferSize.x, this.drawingBufferSize.y);
     const progressiveSize = fitProgressiveRenderSize(
       this.drawingBufferSize.x,
       this.drawingBufferSize.y,
@@ -682,6 +723,7 @@ export class CloudRenderer {
     this.material.uniforms.uK.value = k;
     this.material.uniforms.uSelectedIndex.value =
       selectedId === null ? -1 : balls.findIndex((b) => b.id === selectedId);
+    this.markViewObservationDirty();
   }
 
   isProgressiveRenderSupported(): boolean {
@@ -734,6 +776,7 @@ export class CloudRenderer {
   render(now = performance.now()): void {
     this.controls.update();
     this.syncCameraUniforms();
+    this.renderViewObservation(now);
     if (this.progressiveState.kind === "rendering") {
       this.renderProgressiveSample(now);
       return;
@@ -747,6 +790,45 @@ export class CloudRenderer {
     this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private renderViewObservation(now: number): void {
+    const pass = this.viewObservationPass;
+    if (!pass) return;
+    const position = this.camera.position;
+    const quaternion = this.camera.quaternion;
+    const signature = [
+      position.x,
+      position.y,
+      position.z,
+      quaternion.x,
+      quaternion.y,
+      quaternion.z,
+      quaternion.w,
+      this.camera.fov,
+      this.camera.aspect,
+    ].join(",");
+    const cameraChanged = signature !== this.viewCameraSignature;
+    if (cameraChanged) {
+      this.viewCameraSignature = signature;
+      pass.markDirty();
+    }
+    // OrbitControls damping can keep changing the camera for several frames
+    // after input ends. Treat that ordinary camera motion as dynamic so the
+    // diagnostic pass observes the same 10 Hz cap as realtime/video motion.
+    // On the first unchanged frame we return to static mode; the dirty result
+    // queued during motion is then rendered promptly as the final settled view.
+    pass.setDynamic(
+      cameraChanged
+      || this.realtimeMotionMode
+      || this.backgroundMediaVideo !== null,
+    );
+    try {
+      pass.render(this.camera, now);
+    } catch {
+      // Observation is diagnostic-only: a driver/FBO failure must never block
+      // the existing Natural Beauty path that follows this call.
+    }
   }
 
   private syncCameraUniforms(): void {
@@ -874,6 +956,18 @@ export class CloudRenderer {
     this.camera.fov = snapshot.fov;
     this.camera.updateProjectionMatrix();
     this.controls.update();
+  }
+
+  dispose(): void {
+    this.viewObservationPass?.dispose();
+    this.sampleTarget.dispose();
+    this.accumulationTargets[0].dispose();
+    this.accumulationTargets[1].dispose();
+    this.material.dispose();
+    this.accumulationMaterial.dispose();
+    this.presentMaterial.dispose();
+    this.quad.geometry.dispose();
+    this.renderer.dispose();
   }
 
   /** Build a world-space ray (origin, direction) from a normalized device (-1..1) pointer position. */

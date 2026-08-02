@@ -89,6 +89,11 @@ export const fragmentShader = /* glsl */ `
 
   varying vec2 vUv;
 
+  #ifdef HIKARI_VIEW_OBSERVATION
+  layout(location = 0) out vec4 outViewReflection;
+  layout(location = 1) out vec4 outViewTransmission;
+  #endif
+
   vec2 backgroundMediaCoverUv(vec2 uv) {
     float viewportAspect = uResolution.x / max(1.0, uResolution.y);
     vec2 fitted = uv;
@@ -991,6 +996,11 @@ export const fragmentShader = /* glsl */ `
     }
 
     if (!hit || uBallCount == 0) {
+      #ifdef HIKARI_VIEW_OBSERVATION
+        outViewReflection = vec4(0.0);
+        outViewTransmission = vec4(0.0);
+        return;
+      #endif
       if (uRenderMode == 1) {
         vec3 environment = screenEnvironment(ro, rd);
         gl_FragColor = vec4(opticalOutput(environment), 1.0);
@@ -1023,6 +1033,7 @@ export const fragmentShader = /* glsl */ `
       float inclusionDistance = 0.0;
       float nestedInterfaceTransmission = 1.0;
       bool traversedInclusion = false;
+      bool nestedPathAmbiguous = false;
       vec3 finalHostDirection = insideDirection;
 
       // A nested interface contributes only when its complete path resolves.
@@ -1048,6 +1059,7 @@ export const fragmentShader = /* glsl */ `
         ) {
           if (inclusionFar >= travelled - 0.012) {
             // Keep the already solved outer-host path in the realtime view.
+            nestedPathAmbiguous = true;
           } else {
             vec3 inclusionEntry = p + insideDirection * inclusionNear;
             vec3 inclusionEntryNormal = normalize(inclusionEntry - uInclusionCenter);
@@ -1089,9 +1101,17 @@ export const fragmentShader = /* glsl */ `
                       normalInterfaceTransmission(uIor, uInclusionIor),
                       2.0
                     );
+                  } else {
+                    nestedPathAmbiguous = true;
                   }
+                } else {
+                  nestedPathAmbiguous = true;
                 }
+              } else {
+                nestedPathAmbiguous = true;
               }
+            } else {
+              nestedPathAmbiguous = true;
             }
           }
         }
@@ -1101,6 +1121,7 @@ export const fragmentShader = /* glsl */ `
       vec3 exitIncidentDirection = finalHostDirection;
       vec3 exitNormal = -n;
       bool hasTransmittedExit = false;
+      bool hadInternalReflection = false;
       if (hasExit) {
         vec3 exitGeometricNormal = estimateNormal(exitPoint);
         exitNormal = perturbSurfaceNormal(exitGeometricNormal, exitPoint);
@@ -1114,6 +1135,7 @@ export const fragmentShader = /* glsl */ `
           // approximation. Never sample the outside environment using the
           // pre-TIR incident direction as if it had transmitted.
           outgoing = tirDirection;
+          hadInternalReflection = true;
           vec3 tirStart = exitPoint + tirDirection * 0.008;
           vec3 tirExitPoint = tirStart;
           float tirDistance = 0.0;
@@ -1141,6 +1163,8 @@ export const fragmentShader = /* glsl */ `
               hostDistance += tirDistance + 0.008;
               travelled = hostDistance + inclusionDistance;
               hasTransmittedExit = true;
+            } else {
+              hadInternalReflection = true;
             }
           }
         } else {
@@ -1233,6 +1257,42 @@ export const fragmentShader = /* glsl */ `
       // above as a view-only approximation; receiver transport never treats it
       // as transmitted energy. Deeper Progressive paths remain a separate gate.
       vec3 color = mix(refractedColor * transmission, reflectedColor, fresnel);
+      #ifdef HIKARI_VIEW_OBSERVATION
+        float observationHighlight = min(
+          6.0,
+          ggxSpecular(n, normalize(-rd), normalize(uLightDir))
+        );
+        vec3 directSpecular = vec3(1.0, 0.94, 0.82) * observationHighlight * uSunIntensity * 0.22;
+        // ViewPathCode: 0 miss, 1 front transmission, 2 one outer IR,
+        // 3 unresolved outer path, 4 ambiguous nested fallback.
+        int viewPathCode = 0;
+        if (nestedPathAmbiguous) {
+          viewPathCode = 4;
+        } else if (hadInternalReflection && hasTransmittedExit) {
+          viewPathCode = 2;
+        } else if (hadInternalReflection && !hasTransmittedExit) {
+          viewPathCode = 3;
+        } else if (hasTransmittedExit) {
+          viewPathCode = 1;
+        } else {
+          viewPathCode = 3;
+        }
+        vec3 baseTransmission = refractedColor * transmission;
+        outViewReflection = vec4(
+          max(reflectedColor * fresnel + directSpecular, vec3(0.0)),
+          1.0
+        );
+        outViewTransmission = vec4(
+          max(
+            hasTransmittedExit
+              ? baseTransmission * (1.0 - fresnel)
+              : vec3(0.0),
+            vec3(0.0)
+          ),
+          float(viewPathCode)
+        );
+        return;
+      #endif
       color += uOpticalTint * edgeGlow * 0.22;
       float opticalDepthLuma = dot(opticalDepth, vec3(0.2126, 0.7152, 0.0722));
       float internalHaze = (1.0 - exp(-opticalDepthLuma * 0.22))
@@ -1264,3 +1324,49 @@ export const fragmentShader = /* glsl */ `
     #include <colorspace_fragment>
   }
 `;
+
+/**
+ * The observation material is GLSL3/MRT while the Beauty material intentionally
+ * remains the shipped GLSL1 source above.  This source is a mechanical adapter:
+ * it keeps the exact optical branch and replaces only the legacy fragment
+ * output and texture/varying spellings required by GLSL3.  Beauty never uses
+ * this string, so its source/compile contract stays pinned.
+ */
+export const viewObservationVertexShader = /* glsl */ `
+  in vec3 position;
+  in vec2 uv;
+  out vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
+`;
+
+function adaptViewObservationFragmentShader(source: string): string {
+  const outputMacro = /* glsl */ `
+  #ifdef HIKARI_VIEW_OBSERVATION
+    void hikariWriteBeauty(vec4 value) {
+      // Non-optical/background branches are misses in the observation pass.
+      outViewReflection = vec4(0.0);
+      outViewTransmission = vec4(0.0);
+    }
+    #define HIKARI_WRITE_BEAUTY(value) hikariWriteBeauty(value)
+  #else
+    #define HIKARI_WRITE_BEAUTY(value) gl_FragColor = value
+  #endif
+  `;
+  const adapted = source
+    .replace(/^\s*precision highp float;/m, "precision highp float;")
+    .replace(/varying vec2 vUv;/g, "in vec2 vUv;")
+    .replace(/texture2D\(/g, "texture(")
+    .replace(/gl_FragColor\s*=\s*([^;]+);/g, "HIKARI_WRITE_BEAUTY($1);")
+    .replace(/#include <colorspace_fragment>/g, "")
+    .replace(/\s*#version 300 es\s*/g, "");
+  return adapted.replace(
+    /(layout\(location = 1\) out vec4 outViewTransmission;\s*#endif)/,
+    `$1\n${outputMacro}`,
+  );
+}
+
+/** GLSL3 source used only by ViewObservationPass; Beauty remains unchanged. */
+export const viewObservationFragmentShader = adaptViewObservationFragmentShader(fragmentShader);

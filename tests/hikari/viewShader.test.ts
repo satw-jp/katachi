@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { presentFragmentShader } from "../../src/studies/cloud-sculpt/renderer.ts";
-import { fragmentShader } from "../../src/studies/cloud-sculpt/shaders.ts";
+import {
+  fragmentShader,
+  viewObservationFragmentShader,
+} from "../../src/studies/cloud-sculpt/shaders.ts";
 
 test("view transport uses geometric rather than cosmetic surface normals", () => {
   assert.match(fragmentShader, /refract\(rd, geometricNormal, eta\)/);
@@ -97,4 +100,26 @@ test("expressive receiver stroke redistributes only delivered light", () => {
   assert.match(fragmentShader, /if \(uReceiverDisplayMode >= 2 && pairedWeight > 0\.0\)/);
   assert.doesNotMatch(fragmentShader, /receiverStrokeShadow/);
   assert.doesNotMatch(fragmentShader, /receiverStrokeBackdrop/);
+});
+
+test("R1c observation define emits two linear HDR sources without changing Beauty source", () => {
+  assert.match(fragmentShader, /#ifdef HIKARI_VIEW_OBSERVATION/);
+  assert.match(fragmentShader, /layout\(location = 0\) out vec4 outViewReflection/);
+  assert.match(fragmentShader, /layout\(location = 1\) out vec4 outViewTransmission/);
+  assert.match(fragmentShader, /vec3 color = mix\(refractedColor \* transmission, reflectedColor, fresnel\)/);
+  assert.match(fragmentShader, /gl_FragColor = vec4\(opticalOutput\(color\), 1\.0\)/);
+  assert.match(viewObservationFragmentShader, /HIKARI_WRITE_BEAUTY/);
+  assert.match(viewObservationFragmentShader, /texture\(/);
+  assert.doesNotMatch(viewObservationFragmentShader, /#include <colorspace_fragment>/);
+});
+
+test("R1c observation source excludes Beauty-only edge glow, haze, and background output", () => {
+  assert.match(fragmentShader, /vec3 directSpecular = vec3\(1\.0, 0\.94, 0\.82\) \* observationHighlight/);
+  assert.match(fragmentShader, /vec3 baseTransmission = refractedColor \* transmission/);
+  assert.match(fragmentShader, /vec3 color = mix\(refractedColor \* transmission, reflectedColor, fresnel\)/);
+  assert.match(fragmentShader, /outViewReflection = vec4\(/);
+  assert.match(fragmentShader, /outViewTransmission = vec4\(/);
+  assert.match(fragmentShader, /bool nestedPathAmbiguous = false/);
+  assert.match(fragmentShader, /viewPathCode = 4/);
+  assert.match(fragmentShader, /viewPathCode = 3/);
 });
