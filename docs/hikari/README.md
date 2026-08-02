@@ -151,6 +151,7 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 Related documents:
 
 - [Light Layers / Visual Art Render design specification](light-layers-art-render-spec.md)
+- [R0.5 Optical Event Contract — research report and Luna implementation handoff](r05-optical-event-contract-handoff.md)
 - [Artwork concept and open-call strategy](artwork-strategy.md)
 - [Current week execution plan](current-week-plan.md)
 - [August Hikari × Ambient artwork schedule](ambient-submission-schedule-2026-08.md)
