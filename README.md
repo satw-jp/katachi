@@ -57,6 +57,14 @@ node /Users/atsushisato/Projects/scripts/verify-hikari-current.mjs --runtime
 npm run build
 ```
 
+## Web公開
+
+公開URL: https://katachi.a-8c3.workers.dev/
+
+Cloudflare Workersへは手動で公開する。最新版ゲートとテストを確認したうえで、
+`VITE_GIT_COMMIT=<commit> npm run build`と`npx wrangler deploy`を実行し、
+公開URL上の版・主要ページを確認する。
+
 現在の実装は、cloud-sculpt / gravity / sag / mpm / foam / rings / pack / skin /
 interior-growth / hitsuji / tangle の11 Study。各StudyのQuestion・Setup・Observationは
 `src/studies/<name>/README.md`、versionと更新記録は各`manifest.json`を正本とする。
