@@ -1,8 +1,11 @@
 # Hikari R0.5 Optical Event Contract — 調査報告・Luna実装指示書
 
-Status: ready for implementation handoff  
-UpdatedAt: 2026-08-02  
-Design authority: `Hikari Light Layers / Visual Art Render — 設計仕様書`, SpecRevision 2  
+Status: ready for implementation handoff
+
+UpdatedAt: 2026-08-02
+
+Design authority: `Hikari Light Layers / Visual Art Render — 設計仕様書`, SpecRevision 2
+
 Repository baseline: `65149073c3cbff480d8dff2a9f1223f36e4a84cf` (`origin/main`, Hikari v0.32.1)
 
 この文書はR0.5の設計上の正本である。`CURRENT`は上記commitで確認した事実、`PROPOSED`はLunaがR0.5で実装する内容を表す。R0.5は診断契約と自動テストだけを追加し、Natural、UI、`.hkr`、production Display Layerを変更しない。
