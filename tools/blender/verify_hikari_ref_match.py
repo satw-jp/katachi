@@ -25,11 +25,16 @@ if host.type != "MESH" or not host.data.polygons:
 if any(not polygon.use_smooth for polygon in host.data.polygons):
     fail("every host polygon must use smooth shading")
 
-subdivision = next((modifier for modifier in host.modifiers if modifier.type == "SUBSURF"), None)
-if subdivision is None:
-    fail("host is missing Subdivision Surface")
-if subdivision.subdivision_type != "CATMULL_CLARK" or subdivision.levels != 1 or subdivision.render_levels != 2:
-    fail("Subdivision must be Catmull-Clark with viewport 1 and render 2")
+if len(host.data.vertices) >= len(host.data.polygons) * 2:
+    fail("host still looks like disconnected per-face triangle vertices")
+if any(modifier.type == "SUBSURF" for modifier in host.modifiers):
+    fail("dense triangulated host must not use the Ref quad mesh's Subdivision modifier")
+remesh = next((modifier for modifier in host.modifiers if modifier.type == "REMESH"), None)
+relax = next((modifier for modifier in host.modifiers if modifier.type == "SMOOTH"), None)
+if remesh is None or remesh.mode != "VOXEL" or not remesh.use_smooth_shade:
+    fail("host needs the smooth Voxel Remesh surface reconstruction")
+if relax is None or relax.iterations != 6 or abs(relax.factor - 0.5) > 1e-9:
+    fail("host needs the six-iteration 0.5 Surface Relax modifier")
 
 material = host.active_material
 if material is None or material.node_tree is None:
@@ -52,5 +57,6 @@ if not set(inclusions).issubset(coordinate_empties):
 print(
     "HIKARI_REF_MATCH_OK "
     f"host={host.name} polygons={len(host.data.polygons)} smooth={len(host.data.polygons)} "
-    f"subdivision=1/2 empties={len(inclusions)}"
+    f"vertices={len(host.data.vertices)} connected=yes subdivision=omitted "
+    f"voxel_mm={remesh.voxel_size:.6g} relax=0.5x6 empties={len(inclusions)}"
 )

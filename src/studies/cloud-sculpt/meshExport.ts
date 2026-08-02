@@ -338,14 +338,30 @@ export function encodeObj(result: MeshBuildResult): string {
     `# triangles ${result.triangles.length}`,
     `# scale ${result.scaleMmPerUnit} mm/source-unit`,
   ];
+  const vertices: MeshVertex[] = [];
+  const vertexIndices = new Map<string, number>();
+  const faces: [number, number, number][] = [];
   for (const tri of result.triangles) {
-    for (const p of [tri.a, tri.b, tri.c]) {
-      lines.push(`v ${fmt(p.x * result.scaleMmPerUnit)} ${fmt(p.y * result.scaleMmPerUnit)} ${fmt(p.z * result.scaleMmPerUnit)}`);
+    const indices = [tri.a, tri.b, tri.c].map((point) => {
+      const key = vertexKey(point, result.scaleMmPerUnit);
+      const existing = vertexIndices.get(key);
+      if (existing !== undefined) return existing;
+      const index = vertices.length + 1;
+      vertices.push(point);
+      vertexIndices.set(key, index);
+      return index;
+    }) as [number, number, number];
+    if (indices[0] !== indices[1] && indices[1] !== indices[2] && indices[2] !== indices[0]) {
+      faces.push(indices);
     }
   }
-  for (let i = 0; i < result.triangles.length; i++) {
-    const base = i * 3 + 1;
-    lines.push(`f ${base} ${base + 1} ${base + 2}`);
+  lines.push(`# shared_vertices ${vertices.length}`);
+  lines.push(`# exported_faces ${faces.length}`);
+  for (const point of vertices) {
+    lines.push(`v ${fmt(point.x * result.scaleMmPerUnit)} ${fmt(point.y * result.scaleMmPerUnit)} ${fmt(point.z * result.scaleMmPerUnit)}`);
+  }
+  for (const face of faces) {
+    lines.push(`f ${face[0]} ${face[1]} ${face[2]}`);
   }
   return `${lines.join("\n")}\n`;
 }

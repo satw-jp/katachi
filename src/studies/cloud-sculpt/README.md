@@ -238,6 +238,15 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Blender共有トポロジー v0.31.3）**: v0.31.2でも残った幾何学模様の原因は、OBJが
+  139,600面に対して418,800頂点を持ち、各三角形が隣接面と頂点を共有していなかったことだった。
+  Smoothは面をまたげず、Refのquad mesh用Catmull–Clarkを機械的に加えたことで、独立した全三角片が
+  pinchingして模様を強めていた。OBJを共有vertex index方式へ変更し、Importerも既存download済みOBJの
+  重複頂点を1e-6 mmでweldしてから全面Smoothにする。すでに高密度な三角形外形へSubdivisionは付けない。
+  weld後にも残るsampling gridの凹凸は、最長辺÷80のVoxel Remeshとfactor 0.5×6回のSmoothで再構成する。
+  診断用の不透明材質レンダーで幾何学模様が消え、形の大きなふくらみが残ることを確認した。
+  EmptyによるVolume Absorption maskは維持し、Blender verifierとOBJ回帰testで再発を防ぐ。
+
 - **2026-08-02（Ref準拠のBlender外形・内包 v0.31.2）**: 初回Bridge出力ではOBJの全三角面が
   flat shadingのまま見え、内包も別の実体meshとして生成されていた。`Ref/study_01_light_size05.blend`を
   再検査し、外形の全polygonをSmooth、Subdivision SurfaceをRefと同じCatmull–Clarkのviewport 1／render 2へ

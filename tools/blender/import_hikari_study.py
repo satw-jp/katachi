@@ -21,6 +21,7 @@ import sys
 from typing import Any
 
 try:
+    import bmesh
     import bpy
     from mathutils import Matrix, Quaternion, Vector
 except ImportError as exc:  # Makes an accidental normal-Python invocation clear.
@@ -383,21 +384,48 @@ def apply_ref_inclusion_mask(material: Any, empties: list[Any]) -> None:
 
 
 def prepare_ref_host_surface(obj: Any) -> None:
-    """Match the Ref host: smooth faces plus Catmull-Clark subdivision."""
+    """Make the exported triangle soup one connected, visually smooth body."""
     if obj.type != "MESH":
         return
+    before = len(obj.data.vertices)
+    mesh = bmesh.new()
+    mesh.from_mesh(obj.data)
+    bmesh.ops.remove_doubles(mesh, verts=list(mesh.verts), dist=1e-6)
+    mesh.to_mesh(obj.data)
+    mesh.free()
+    obj.data.update()
+    after = len(obj.data.vertices)
     for polygon in obj.data.polygons:
         polygon.use_smooth = True
-    subdivision = obj.modifiers.get("Subdivision") or obj.modifiers.new("Subdivision", "SUBSURF")
-    subdivision.subdivision_type = "CATMULL_CLARK"
-    subdivision.levels = 1
-    subdivision.render_levels = 2
-    if hasattr(subdivision, "boundary_smooth"):
-        subdivision.boundary_smooth = "ALL"
-    if hasattr(subdivision, "uv_smooth"):
-        subdivision.uv_smooth = "PRESERVE_BOUNDARIES"
+
+    # Ref's 512-face host is a connected quad mesh and benefits from
+    # Catmull-Clark. Hikari's marching-tetrahedra host is already a dense
+    # triangle mesh. Applying that same modifier to disconnected triangles
+    # made every face a pinched island, producing the reported pattern. After
+    # welding, smooth vertex normals are sufficient and preserve the chosen
+    # Hikari silhouette without a second resampling step.
+    for modifier in list(obj.modifiers):
+        if modifier.type == "SUBSURF":
+            obj.modifiers.remove(modifier)
+    longest_mm = max(float(value) for value in obj.dimensions)
+    remesh = obj.modifiers.get("Hikari Surface Remesh") or obj.modifiers.new(
+        "Hikari Surface Remesh", "REMESH"
+    )
+    remesh.mode = "VOXEL"
+    remesh.voxel_size = max(0.05, longest_mm / 80.0)
+    remesh.adaptivity = 0.0
+    remesh.use_remove_disconnected = True
+    remesh.use_smooth_shade = True
+    relax = obj.modifiers.get("Hikari Surface Relax") or obj.modifiers.new(
+        "Hikari Surface Relax", "SMOOTH"
+    )
+    relax.factor = 0.5
+    relax.iterations = 6
+    obj["hikari_welded_vertices"] = before - after
+    obj["hikari_surface_voxel_mm"] = remesh.voxel_size
     obj["hikari_surface_prep"] = (
-        "Ref match: all polygons smooth; Catmull-Clark Subdivision viewport=1 render=2"
+        "OBJ duplicate vertices welded at 1e-6 mm; all connected triangle polygons smooth; "
+        "Subdivision omitted; Voxel Remesh at longest-edge/80 then Smooth factor=0.5 iterations=6"
     )
 
 

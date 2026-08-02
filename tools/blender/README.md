@@ -34,7 +34,8 @@ The importer:
 - checks SHA-256 and declared physical scale;
 - imports only assets marked `primary`;
 - converts Hikari right-handed Y-up to Blender right-handed Z-up through the visible axis root;
-- smooth-shades the host and adds the Ref Catmull-Clark Subdivision contract (viewport 1, render 2);
+- imports shared-index OBJ topology, welds legacy per-face duplicate vertices, and smooth-shades the connected host;
+- rebuilds the visible surface with a scale-aware Voxel Remesh (longest edge / 80) followed by six 0.5 Smooth iterations, removing marching-grid corrugation without the triangle pinching caused by Catmull-Clark;
 - reconstructs camera, receiver, Sun, and host material;
 - represents generated inclusions as Ref-style Empty object-coordinate masks in the host Volume Absorption rather than separate refractive meshes;
 - stores assumptions and approximations in `HIKARI_IMPORT_METADATA.json` inside the `.blend` file.
@@ -46,4 +47,4 @@ Blender --background /path/to/<case-id>.blend \
   --python tools/blender/verify_hikari_ref_match.py
 ```
 
-The Empty mask is the equal-IOR, lower-absorption Ref baseline. A genuinely different-IOR inclusion still needs an explicitly authored cavity and inner body in Blender. Imported output is a comparison baseline, not a finished artwork; Blender material, world, and nested-volume behavior still require visual judgment and recording.
+Ref's Catmull-Clark modifier belongs to its low-density connected quad mesh. It is intentionally not copied to Hikari's marching-tetrahedra surface: doing so to the older disconnected triangle OBJ pinched every face into the reported geometric pattern. Welding fixes topology; the scale-aware remesh and relax pair removes the remaining sampling-grid corrugation. The Empty mask remains the equal-IOR, lower-absorption Ref baseline. A genuinely different-IOR inclusion still needs an explicitly authored cavity and inner body in Blender. Imported output is a comparison baseline, not a finished artwork; Blender material, world, and nested-volume behavior still require visual judgment and recording.
