@@ -38,6 +38,27 @@ import {
   type OpticsComputeKind,
 } from "./opticsGpu.ts";
 import { segmentLengthInsideInclusions } from "./inclusionTransport.ts";
+import type {
+  CpuReceiverSampleObservation,
+  GpuReceiverSampleObservation,
+  ReceiverEventSink,
+  ReceiverSampleObservation,
+} from "./opticalEventAdapters.ts";
+import type {
+  MissingReason,
+  Observed,
+  OpticalPathAttributes,
+  SourceBackend,
+} from "./opticalEvents.ts";
+import type { PhysicalScale, Rgb, Vec3 } from "./opticalScene.ts";
+
+function sendReceiverObservation(
+  sink: ReceiverEventSink,
+  observation: ReceiverSampleObservation,
+): void {
+  if (typeof sink === "function") sink(observation);
+  else sink.record(observation);
+}
 
 export type HikariPhenomenon = "flow" | "optics";
 export type OpticalMaterial = "water" | "glass";
@@ -83,6 +104,8 @@ interface ReceiverFluxAccumulator {
 interface ReceiverBuildOptions {
   sampleCountOverride?: number;
   publish?: boolean;
+  /** Test-only observation sink. Omitted in every normal render path. */
+  eventSink?: ReceiverEventSink;
 }
 
 interface ReceiverBuildResult {
@@ -647,8 +670,18 @@ export class OpticsLayer {
       "cpu",
     );
 
+    const eventSceneRevision = options.eventSink ? opticalSceneRevision(balls, k, settings) : "";
+    const eventLightRevision = options.eventSink ? daylightRevision(settings) : "";
+    const eventReceiverId = options.eventSink ? opticalScene.scene.receiver.id : "";
+    const eventInclusionId = options.eventSink
+      && settings.inclusionMode === "single"
+      && opticalScene.scene.inclusions.length === 1
+      ? opticalScene.scene.inclusions[0].id
+      : undefined;
+
     for (let emitted = 0; emitted < sampleCount; emitted++) {
         const sequenceIndex = emitted + 1;
+        const eventSampleId = options.eventSink ? `${settings.opticalSeed}:${sequenceIndex}` : "";
         const sourceOffset = emitted * FINITE_LIGHT_SAMPLE_STRIDE;
         const u = sourceSamples[sourceOffset];
         const v = sourceSamples[sourceOffset + 1];
@@ -696,7 +729,21 @@ export class OpticsLayer {
         // Air-to-host should not produce TIR. If numerical/invalid geometry
         // does, do not turn the reflected fallback into receiver energy.
         if (!refractedInside) {
-          if (baselineTracked && baselineHit) recordUnresolvedPath(receiverAccumulator, baselineHit);
+          if (baselineTracked && baselineHit) {
+            recordUnresolvedPath(receiverAccumulator, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: "unresolved",
+                path: cpuObservationPath(undefined, undefined, false, opticalScene.scene.physicalScale, opticalScene.scene.host.id, eventInclusionId),
+                receiverId: eventReceiverId,
+                receiverUv: [baselineHit.x, baselineHit.z],
+                deliveredFluxRgb: undefined,
+              });
+            }
+          }
           if (showRay) {
             appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
           }
@@ -779,6 +826,18 @@ export class OpticsLayer {
         if (inclusionPathUnresolved) {
           if (baselineTracked && baselineHit) {
             recordUnresolvedPath(receiverAccumulator, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: "unresolved",
+                path: cpuObservationPath(undefined, undefined, false, opticalScene.scene.physicalScale, opticalScene.scene.host.id, eventInclusionId),
+                receiverId: eventReceiverId,
+                receiverUv: [baselineHit.x, baselineHit.z],
+                deliveredFluxRgb: undefined,
+              });
+            }
           }
           continue;
         }
@@ -801,7 +860,21 @@ export class OpticsLayer {
         }
 
         if (!exit) {
-          if (baselineTracked && baselineHit) recordUnresolvedPath(receiverAccumulator, baselineHit);
+          if (baselineTracked && baselineHit) {
+            recordUnresolvedPath(receiverAccumulator, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: "unresolved",
+                path: cpuObservationPath(undefined, undefined, traversedInclusion, opticalScene.scene.physicalScale, opticalScene.scene.host.id, eventInclusionId),
+                receiverId: eventReceiverId,
+                receiverUv: [baselineHit.x, baselineHit.z],
+                deliveredFluxRgb: undefined,
+              });
+            }
+          }
           const end = entry.clone().addScaledVector(insideDirection, bounds.radius * 1.6);
           if (showRay) {
             appendSegment(rayPositions, rayColors, entry, end, 0x8cf4ff, 0xd5ffff);
@@ -906,7 +979,32 @@ export class OpticsLayer {
         if (floorHit && outgoing) {
           const deviation = Math.min(1, outgoing.distanceTo(sampleLightDirection) / 1.2);
           if (baselineTracked) {
-            depositReceiverFluxRgb(receiverAccumulator, floorHit, throughputRgb, baselineHit);
+            const receiverDomainHit = depositReceiverFluxRgb(receiverAccumulator, floorHit, throughputRgb, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: receiverDomainHit ? "receiver-hit" : "escaped",
+                path: cpuObservationPath(
+                  hostDistance + inclusionDistance,
+                  outgoing,
+                  traversedInclusion,
+                  opticalScene.scene.physicalScale,
+                  opticalScene.scene.host.id,
+                  eventInclusionId,
+                ),
+                receiverId: eventReceiverId,
+                receiverUv: [floorHit.x, floorHit.z],
+                deliveredFluxRgb: receiverDomainHit
+                  ? {
+                      r: throughputRgb.r * receiverAccumulator.diagnostics.sampleFlux,
+                      g: throughputRgb.g * receiverAccumulator.diagnostics.sampleFlux,
+                      b: throughputRgb.b * receiverAccumulator.diagnostics.sampleFlux,
+                    }
+                  : undefined,
+              });
+            }
           }
           if (showRay) {
             appendCausticDeposit(
@@ -927,8 +1025,48 @@ export class OpticsLayer {
         } else if (baselineTracked) {
           if (outgoing && baselineHit) {
             recordEscapedReceiverFlux(receiverAccumulator, throughputRgb, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: "escaped",
+                path: cpuObservationPath(
+                  hostDistance + inclusionDistance,
+                  outgoing,
+                  traversedInclusion,
+                  opticalScene.scene.physicalScale,
+                  opticalScene.scene.host.id,
+                  eventInclusionId,
+                ),
+                receiverId: eventReceiverId,
+                receiverUv: [baselineHit.x, baselineHit.z],
+                deliveredFluxRgb: undefined,
+              });
+            }
           }
-          else if (baselineHit) recordReflectedFlux(receiverAccumulator, throughputRgb, baselineHit);
+          else if (baselineHit) {
+            recordReflectedFlux(receiverAccumulator, throughputRgb, baselineHit);
+            if (options.eventSink) {
+              emitCpuReceiverObservation(options.eventSink, {
+                sampleId: eventSampleId,
+                sceneRevision: eventSceneRevision,
+                lightRevision: eventLightRevision,
+                outcome: "escaped",
+                path: cpuObservationPath(
+                  hostDistance + inclusionDistance,
+                  undefined,
+                  traversedInclusion,
+                  opticalScene.scene.physicalScale,
+                  opticalScene.scene.host.id,
+                  eventInclusionId,
+                ),
+                receiverId: eventReceiverId,
+                receiverUv: [baselineHit.x, baselineHit.z],
+                deliveredFluxRgb: undefined,
+              });
+            }
+          }
         }
     }
 
@@ -1011,6 +1149,9 @@ export class OpticsLayer {
     let shownRays = 0;
     let visualHitCount = 0;
     let causticHitCount = 0;
+    const eventSceneRevision = options.eventSink ? opticalSceneRevision(balls, k, settings) : "";
+    const eventLightRevision = options.eventSink ? daylightRevision(settings) : "";
+    const eventReceiverId = options.eventSink ? opticalScene.scene.receiver.id : "";
 
     for (let sample = 0; sample < result.sampleCount; sample++) {
       const offset = gpuOpticsResultOffset(sample);
@@ -1063,6 +1204,8 @@ export class OpticsLayer {
         ? vectorFromResult(result.values, offset + GPU_OPTICS_RESULT_OFFSETS.floor)
         : null;
       const outgoing = exit && floor ? floor.clone().sub(exit).normalize() : null;
+      const floorInReceiverDomain = floor !== null
+        && isReceiverPointInDomain(receiverAccumulator.field, floor.x, floor.z);
 
       const baselineTracked = entryValid
         ? depositAffectedBaseline(receiverAccumulator, baseline)
@@ -1079,6 +1222,37 @@ export class OpticsLayer {
             }
             else if (baseline) recordReflectedFlux(receiverAccumulator, throughputRgb, baseline);
           }
+        }
+        if (options.eventSink && baseline) {
+          const outcome: GpuReceiverSampleObservation["outcome"] = !exitValid
+            ? "unresolved"
+            : floorValid && floorInReceiverDomain
+              ? "receiver-hit"
+              : "escaped";
+          emitGpuReceiverObservation(options.eventSink, {
+            sampleId: `${settings.opticalSeed}:${sample + 1}`,
+            sceneRevision: eventSceneRevision,
+            lightRevision: eventLightRevision,
+            outcome,
+            entryValid,
+            exitValid,
+            floorValid,
+            baselineValid: baseline !== null,
+            outgoingValid,
+            receiverId: eventReceiverId,
+            receiverUv: floor
+              ? [floor.x, floor.z]
+              : [baseline.x, baseline.z],
+            deliveredFluxRgb: outcome === "receiver-hit"
+              ? {
+                  r: throughputRgb.r * receiverAccumulator.diagnostics.sampleFlux,
+                  g: throughputRgb.g * receiverAccumulator.diagnostics.sampleFlux,
+                  b: throughputRgb.b * receiverAccumulator.diagnostics.sampleFlux,
+                }
+              : undefined,
+            exit,
+            floor,
+          });
         }
       }
 
@@ -1331,12 +1505,175 @@ function createReceiverFluxAccumulator(
   };
 }
 
+function rawAvailable<T>(
+  value: T,
+  confidence: "exact" | "bounded" | "approximate" = "exact",
+  provenance: "backend-output" | "backend-branch" | "lossless-derivation" = "backend-branch",
+): Observed<T> {
+  return { state: "available", value, confidence, provenance };
+}
+
+function rawUnavailable<T>(reason: MissingReason = "unsupported-path"): Observed<T> {
+  return { state: "unavailable", reason };
+}
+
+function rawBackendSpecific<T>(backend: Extract<SourceBackend, "cpu-receiver" | "webgpu-receiver">, semantics: string, value?: T): Observed<T> {
+  return value === undefined
+    ? { state: "backend-specific", backend, semantics }
+    : { state: "backend-specific", backend, semantics, value };
+}
+
+function cpuObservationPath(
+  pathLengthShapeUnits: number | undefined,
+  outgoing: Vec3 | undefined,
+  traversedInclusion: boolean,
+  scale: PhysicalScale,
+  hostId: string,
+  inclusionId?: string,
+): OpticalPathAttributes {
+  const normalizedOutgoing = outgoing ? normalizeObservationDirection(outgoing) : undefined;
+  const pathLengthAvailable = pathLengthShapeUnits !== undefined
+    && Number.isFinite(pathLengthShapeUnits)
+    && pathLengthShapeUnits >= 0
+    && Number.isFinite(scale.mmPerShapeUnit)
+    && scale.mmPerShapeUnit > 0;
+  return {
+    internalBounceCount: rawUnavailable("not-emitted-by-backend"),
+    hadInternalReflection: rawUnavailable("not-emitted-by-backend"),
+    opticalPathLength: pathLengthAvailable
+      ? rawAvailable({
+          shapeUnits: pathLengthShapeUnits,
+          millimetres: pathLengthShapeUnits * scale.mmPerShapeUnit,
+          scaleSource: scale.source,
+        }, "exact", "backend-branch")
+      : rawUnavailable("unsupported-path"),
+    exitDirectionWorld: normalizedOutgoing
+      ? rawAvailable(normalizedOutgoing, "bounded", "backend-branch")
+      : rawUnavailable("unsupported-path"),
+    mediumIds: rawBackendSpecific("cpu-receiver", "CPU branch identifies the host medium but this is backend-specific.", [hostId]),
+    inclusionIds: traversedInclusion && inclusionId
+      ? rawBackendSpecific("cpu-receiver", "CPU single-inclusion branch identifies the traversed inclusion.", [inclusionId])
+      : rawBackendSpecific(
+          "cpu-receiver",
+          inclusionId
+            ? "CPU branch did not traverse the inclusion."
+            : "CPU packed inclusion path has no individual inclusion identifier.",
+        ),
+  };
+}
+
+function normalizeObservationDirection(value: Vec3): Vec3 | undefined {
+  const length = Math.hypot(value.x, value.y, value.z);
+  return Number.isFinite(length) && length > 1e-12
+    ? { x: value.x / length, y: value.y / length, z: value.z / length }
+    : undefined;
+}
+
+function emitCpuReceiverObservation(
+  sink: ReceiverEventSink | undefined,
+  args: {
+    sampleId: string;
+    sceneRevision: string;
+    lightRevision: string;
+    outcome: CpuReceiverSampleObservation["outcome"];
+    path: OpticalPathAttributes;
+    receiverId: string;
+    receiverUv: readonly [number, number] | undefined;
+    deliveredFluxRgb: Rgb | undefined;
+  },
+): void {
+  if (!sink) return;
+  sendReceiverObservation(sink, {
+    backend: "cpu-receiver",
+    sampleId: args.sampleId,
+    sceneRevision: args.sceneRevision,
+    lightRevision: args.lightRevision,
+    outcome: args.outcome,
+    path: args.path,
+    receiverId: rawAvailable(args.receiverId),
+    receiverUv: args.receiverUv
+      ? rawAvailable(args.receiverUv, "bounded", "backend-branch")
+      : rawUnavailable("unsupported-path"),
+    deliveredFluxRgb: args.deliveredFluxRgb
+      ? rawAvailable(args.deliveredFluxRgb, "exact", "backend-branch")
+      : rawUnavailable("unsupported-path"),
+    shadowCoverageWeight: rawAvailable(1, "exact", "backend-branch"),
+    sampleWeight: rawAvailable(1, "exact", "backend-output"),
+  });
+}
+
+function emitGpuReceiverObservation(
+  sink: ReceiverEventSink | undefined,
+  args: {
+    sampleId: string;
+    sceneRevision: string;
+    lightRevision: string;
+    outcome: GpuReceiverSampleObservation["outcome"];
+    entryValid: boolean;
+    exitValid: boolean;
+    floorValid: boolean;
+    baselineValid: boolean;
+    outgoingValid: boolean;
+    receiverId: string;
+    receiverUv: readonly [number, number] | undefined;
+    deliveredFluxRgb: Rgb | undefined;
+    exit: THREE.Vector3 | null;
+    floor: THREE.Vector3 | null;
+  },
+): void {
+  if (!sink) return;
+  const direction = args.exit && args.floor
+    ? normalizeObservationDirection({
+        x: args.floor.x - args.exit.x,
+        y: args.floor.y - args.exit.y,
+        z: args.floor.z - args.exit.z,
+      })
+    : undefined;
+  sendReceiverObservation(sink, {
+    backend: "webgpu-receiver",
+    sampleId: args.sampleId,
+    sceneRevision: args.sceneRevision,
+    lightRevision: args.lightRevision,
+    outcome: args.outcome,
+    path: {
+      internalBounceCount: rawUnavailable("not-emitted-by-backend"),
+      hadInternalReflection: rawUnavailable("not-emitted-by-backend"),
+      opticalPathLength: rawUnavailable("not-emitted-by-backend"),
+      exitDirectionWorld: direction
+        ? rawAvailable(direction, "bounded", "lossless-derivation")
+        : rawBackendSpecific("webgpu-receiver", "The 28-float payload cannot provide a finite non-zero outgoing direction for this sample."),
+      mediumIds: rawBackendSpecific("webgpu-receiver", "Medium identifiers are absent from the 28-float payload."),
+      inclusionIds: rawUnavailable("not-emitted-by-backend"),
+    },
+    receiverId: rawAvailable(args.receiverId),
+    receiverUv: args.receiverUv
+      ? rawAvailable(args.receiverUv, "bounded", "backend-branch")
+      : rawUnavailable("unsupported-path"),
+    deliveredFluxRgb: args.deliveredFluxRgb
+      ? rawAvailable(args.deliveredFluxRgb, "exact", "backend-output")
+      : rawUnavailable("unsupported-path"),
+    shadowCoverageWeight: rawAvailable(1, "exact", "backend-branch"),
+    sampleWeight: rawAvailable(1, "exact", "lossless-derivation"),
+    flags: {
+      entryValid: args.entryValid,
+      exitValid: args.exitValid,
+      floorValid: args.floorValid,
+      baselineValid: args.baselineValid,
+      outgoingValid: args.outgoingValid,
+    },
+  });
+}
+
 function depositAffectedBaseline(
   accumulator: ReceiverFluxAccumulator,
   baseline: THREE.Vector3 | null,
 ): boolean {
   accumulator.diagnostics.affectedSampleCount++;
   if (!baseline) {
+    accumulator.diagnostics.baselineDomainMissCount++;
+    return false;
+  }
+  if (!isReceiverPointInDomain(accumulator.field, baseline.x, baseline.z)) {
     accumulator.diagnostics.baselineDomainMissCount++;
     return false;
   }
@@ -1454,8 +1791,9 @@ function depositReceiverFluxRgb(
   point: THREE.Vector3,
   throughputRgb: FluxRgb,
   baseline: THREE.Vector3 | null,
-): void {
+): boolean {
   accumulator.diagnostics.spectralDepositCount++;
+  const receiverDomainHit = isReceiverPointInDomain(accumulator.field, point.x, point.z);
   const result = splatBilinearFluxRgb(
     accumulator.field,
     point.x,
@@ -1480,6 +1818,20 @@ function depositReceiverFluxRgb(
   } else if (result.depositedRgb.r + result.depositedRgb.g + result.depositedRgb.b > 0) {
     accumulator.diagnostics.inDomainDepositCount++;
   }
+  return receiverDomainHit;
+}
+
+function isReceiverPointInDomain(
+  field: ReceiverTransportField,
+  u: number,
+  v: number,
+): boolean {
+  return Number.isFinite(u)
+    && Number.isFinite(v)
+    && u >= field.minU
+    && u <= field.minU + field.sizeU
+    && v >= field.minV
+    && v <= field.minV + field.sizeV;
 }
 
 function finishReceiverFluxAccumulator(

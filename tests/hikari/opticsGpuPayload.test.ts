@@ -5,6 +5,7 @@ import {
   GPU_OPTICS_RESULT_OFFSETS,
   gpuOpticsResultOffset,
 } from "../../src/studies/cloud-sculpt/opticsGpu.ts";
+import { decodeGpuReceiverObservation } from "../../src/studies/cloud-sculpt/opticalEventAdapters.ts";
 
 test("GPU optics payload keeps adjacent 28-float records disjoint", () => {
   const values = new Float32Array(GPU_OPTICS_RESULT_FLOATS * 2);
@@ -26,4 +27,20 @@ test("GPU optics payload keeps adjacent 28-float records disjoint", () => {
 test("GPU optics payload rejects invalid sample indices", () => {
   assert.throws(() => gpuOpticsResultOffset(-1), RangeError);
   assert.throws(() => gpuOpticsResultOffset(0.5), RangeError);
+});
+
+test("R0.5 decoder preserves unavailable path attributes for the 28-float payload", () => {
+  assert.equal(GPU_OPTICS_RESULT_FLOATS, 28);
+  const values = new Float32Array(GPU_OPTICS_RESULT_FLOATS);
+  values[GPU_OPTICS_RESULT_OFFSETS.flags] = 1;
+  values[GPU_OPTICS_RESULT_OFFSETS.flags + 1] = 1;
+  values[GPU_OPTICS_RESULT_OFFSETS.flags + 2] = 1;
+  values[GPU_OPTICS_RESULT_OFFSETS.baseline + 3] = 1;
+  values[GPU_OPTICS_RESULT_OFFSETS.throughputRgb + 3] = 1;
+  const observation = decodeGpuReceiverObservation(values, 0, {
+    receiverDomain: { minU: -16, maxU: 16, minV: -16, maxV: 16 },
+  });
+  assert.equal(observation.path.internalBounceCount.state, "unavailable");
+  assert.equal(observation.path.opticalPathLength.state, "unavailable");
+  assert.equal(observation.flags.entryValid, true);
 });

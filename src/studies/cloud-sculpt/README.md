@@ -238,6 +238,12 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Hikari R0.5 Optical Event Contract）**: View／Receiverを混ぜない取得状態付き
+  Optical Event Contract、現行receiver ledgerのFrameTransportLedger adapter、BODY／CPU／WebGPUの
+  能力表、10個の固定診断caseを追加した。通常のNaturalレンダー経路は契約へ接続せず、event sinkを渡さない
+  実行では既存の出力・挙動を変更しない構成である。R0.5ではBODYの最終色からの成分復元、吸収と界面損失の
+  分離、WebGPU path履歴の取得は未解決として記録した。
+
 - **2026-08-02（Katachi内のHikari v0.32.1）**: 現行プロジェクト名をKatachiへ統一し、Hikariを
   Katachiの形を透明体・光・影・環境として観察してBlenderへ渡すworkspaceと位置づけた。GitHub repositoryを
   `satw-jp/katachi`へ改称して最新版を`main`へfast-forwardし、画面metadata、新規mesh書き出し名、初期seedを
