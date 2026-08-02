@@ -1826,6 +1826,7 @@ export function buildUi(
       blenderSizeRow,
       blenderResolutionRow,
       blenderExportButton,
+      blenderOpenButton,
       blenderExportStatus,
     ]);
     const mpmGroup = createPropertyGroup("形態変形", [
