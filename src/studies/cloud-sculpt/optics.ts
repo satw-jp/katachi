@@ -24,7 +24,19 @@ import {
 import {
   compareReceiverFields,
   type ReceiverFieldParityMetrics,
+  type ReceiverParityGates,
 } from "./receiverParity.ts";
+import {
+  buildR1CpuFrameLedger,
+  buildR1GpuFrameLedger,
+  classifyReceiverUnresolvedReason,
+  compareReceiverObservationFrames,
+  ReceiverObservationCollector,
+  type ReceiverObservationFrame,
+  type ReceiverObservationParityMetrics,
+  type CpuOpticalPathStages,
+} from "./receiverObservation.ts";
+import type { FrameTransportLedger } from "./frameTransportLedger.ts";
 import {
   FINITE_LIGHT_SAMPLE_STRIDE,
   generateFiniteLightSamples,
@@ -101,16 +113,23 @@ interface ReceiverFluxAccumulator {
   diagnostics: CausticFieldDiagnostics;
 }
 
-interface ReceiverBuildOptions {
+export interface ReceiverBuildOptions {
   sampleCountOverride?: number;
   publish?: boolean;
   /** Test-only observation sink. Omitted in every normal render path. */
   eventSink?: ReceiverEventSink;
+  /** Internal R1 opt-in. The normal render path leaves this absent. */
+  observationCollector?: ReceiverObservationCollector;
+  receiverObservationCollector?: ReceiverObservationCollector;
+  /** A sealed R1 frame is returned only when this flag or collector is present. */
+  collectObservation?: boolean;
 }
 
-interface ReceiverBuildResult {
+export interface ReceiverBuildResult {
   field: CausticField;
   sampleCount: number;
+  observationFrame?: ReceiverObservationFrame;
+  frameLedger?: FrameTransportLedger;
 }
 
 export interface ReceiverParityReport {
@@ -121,7 +140,26 @@ export interface ReceiverParityReport {
   unavailableReason?: string;
   cpu?: { summary: ReceiverFieldSummary; diagnostics: CausticFieldDiagnostics };
   webgpu?: { summary: ReceiverFieldSummary; diagnostics: CausticFieldDiagnostics };
-  metrics?: ReceiverFieldParityMetrics;
+  metrics?: ReceiverFieldParityMetrics & {
+    observation?: ReceiverObservationParityMetrics;
+    r1?: ReceiverObservationParityMetrics;
+    sampleCount?: ReceiverObservationParityMetrics["sampleCount"];
+    outcomeCountL1?: number;
+    unresolvedFractionDifference?: number;
+    sampleCountExact?: boolean;
+    normalizedOutcomeCountL1?: number;
+    unresolvedFractionAbsoluteDifference?: number;
+    r1Gates?: ReceiverObservationParityMetrics["gates"];
+    r1Pass?: boolean;
+  };
+  gates?: ReceiverParityGates & ReceiverObservationParityMetrics["gates"];
+  observation?: {
+    cpu: ReceiverObservationFrame;
+    webgpu: ReceiverObservationFrame;
+    metrics: ReceiverObservationParityMetrics;
+    cpuLedger: FrameTransportLedger;
+    webgpuLedger: FrameTransportLedger;
+  };
 }
 
 // A stable 32 × 32 bounded receiver study area captures most morning/evening
@@ -334,6 +372,9 @@ export class OpticsLayer {
   private parityGpuEnabled: boolean;
   private onCausticField: ((field: CausticField) => void) | null;
   private onTransportPending: ((pending: boolean) => void) | null;
+  private receiverObservationEnabled: boolean;
+  private receiverObservationFrameId = 0;
+  private latestReceiverObservation: ReceiverObservationFrame | null = null;
   private rayMaterial = new THREE.LineBasicMaterial({
     transparent: true,
     opacity: 0.38,
@@ -375,12 +416,16 @@ export class OpticsLayer {
       disableWebGpu?: boolean;
       onCausticField?: (field: CausticField) => void;
       onTransportPending?: (pending: boolean) => void;
+      receiverObservation?: boolean;
+      enableReceiverObservation?: boolean;
     } = {},
   ) {
     this.parityGpuEnabled = options.disableWebGpu !== true;
     this.gpu = new WebGpuOpticsEngine(this.parityGpuEnabled);
     this.onCausticField = options.onCausticField ?? null;
     this.onTransportPending = options.onTransportPending ?? null;
+    this.receiverObservationEnabled = options.receiverObservation === true
+      || options.enableReceiverObservation === true;
     this.group.visible = false;
     this.group.renderOrder = 20;
     scene.add(this.group);
@@ -394,12 +439,61 @@ export class OpticsLayer {
     });
   }
 
+  /** Latest sealed R1 receiver aggregate; null means disabled or unavailable. */
+  getLatestReceiverObservation(): ReceiverObservationFrame | null {
+    return this.latestReceiverObservation;
+  }
+
+  getReceiverObservationSnapshot(): ReceiverObservationFrame | null {
+    return this.getLatestReceiverObservation();
+  }
+
+  private makeObservationCollector(
+    backend: "cpu-receiver" | "webgpu-receiver",
+    balls: Ball[],
+    k: number,
+    settings: OpticalSettings,
+    options: ReceiverBuildOptions,
+  ): ReceiverObservationCollector | undefined {
+    const requested = options.observationCollector
+      ?? options.receiverObservationCollector
+      ?? (this.receiverObservationEnabled || options.collectObservation
+        ? new ReceiverObservationCollector()
+        : undefined);
+    if (!requested) return undefined;
+    const opticalScene = buildCloudOpticalScene(balls, k, settings);
+    requested.reset(++this.receiverObservationFrameId, {
+      sourceBackend: backend,
+      receiverId: opticalScene.scene.receiver.id,
+      sceneRevision: opticalSceneRevision(balls, k, settings),
+      lightRevision: daylightRevision(settings),
+    });
+    return requested;
+  }
+
+  private finishObservation(
+    collector: ReceiverObservationCollector | undefined,
+    backend: "cpu-receiver" | "webgpu-receiver",
+    publish: boolean,
+  ): { observationFrame?: ReceiverObservationFrame; frameLedger?: FrameTransportLedger } {
+    if (!collector) return {};
+    const frame = collector.seal();
+    if (this.receiverObservationEnabled && publish) this.latestReceiverObservation = frame;
+    return {
+      observationFrame: frame,
+      frameLedger: backend === "cpu-receiver"
+        ? buildR1CpuFrameLedger(frame)
+        : buildR1GpuFrameLedger(frame),
+    };
+  }
+
   setVisible(visible: boolean): void {
     this.group.visible = visible;
   }
 
   invalidateTransport(): void {
     this.signature = "";
+    if (this.receiverObservationEnabled) this.latestReceiverObservation = null;
   }
 
   update(balls: Ball[], k: number, settings: OpticalSettings): void {
@@ -413,6 +507,7 @@ export class OpticsLayer {
     const signature = `${opticalSceneRevision(balls, k, settings)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.daylightMode}:${settings.daylightDate}:${settings.daylightMinutes}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.sunSize.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
+      if (this.receiverObservationEnabled) this.latestReceiverObservation = null;
       this.onTransportPending?.(true);
       if (this.sunBelowHorizon || balls.length === 0) {
         this.requestId++;
@@ -517,6 +612,7 @@ export class OpticsLayer {
       const cpuResult = this.rebuildCpu(parityBalls, k, paritySettings, {
         sampleCountOverride: sampleCount,
         publish: false,
+        collectObservation: true,
       });
       if (this.signature !== startingSignature) {
         return { status: "stale", caseId, sampleCount, pass: false, unavailableReason: "比較中にシーンが変わりました" };
@@ -533,13 +629,51 @@ export class OpticsLayer {
       if (this.signature !== startingSignature) {
         return { status: "stale", caseId, sampleCount, pass: false, unavailableReason: "比較中にシーンが変わりました" };
       }
-      const gpuResult = this.rebuildGpu(gpuPayload, parityBalls, k, paritySettings, { publish: false });
-      const metrics = compareReceiverFields(cpuResult.field, gpuResult.field);
+      const gpuResult = this.rebuildGpu(gpuPayload, parityBalls, k, paritySettings, {
+        publish: false,
+        collectObservation: true,
+      });
+      const fieldMetrics = compareReceiverFields(cpuResult.field, gpuResult.field);
+      if (!cpuResult.observationFrame || !gpuResult.observationFrame) {
+        return {
+          status: "unavailable",
+          caseId,
+          sampleCount,
+          pass: false,
+          unavailableReason: "R1 receiver observation was not produced by both backends",
+          cpu: {
+            summary: summarizeReceiverField(cpuResult.field),
+            diagnostics: structuredClone(cpuResult.field.diagnostics),
+          },
+          webgpu: {
+            summary: summarizeReceiverField(gpuResult.field),
+            diagnostics: structuredClone(gpuResult.field.diagnostics),
+          },
+          metrics: fieldMetrics,
+        };
+      }
+      const observationMetrics = compareReceiverObservationFrames(
+        cpuResult.observationFrame,
+        gpuResult.observationFrame,
+      );
+      const metrics = {
+        ...fieldMetrics,
+        observation: observationMetrics,
+        r1: observationMetrics,
+        sampleCount: observationMetrics.sampleCount,
+        outcomeCountL1: observationMetrics.outcomeCountL1,
+        unresolvedFractionDifference: observationMetrics.unresolvedFractionDifference,
+        sampleCountExact: observationMetrics.sampleCountExact,
+        normalizedOutcomeCountL1: observationMetrics.normalizedOutcomeCountL1,
+        unresolvedFractionAbsoluteDifference: observationMetrics.unresolvedFractionAbsoluteDifference,
+        r1Gates: observationMetrics.gates,
+        r1Pass: observationMetrics.pass,
+      };
       return {
-        status: metrics.pass ? "passed" : "failed",
+        status: metrics.pass && observationMetrics.pass ? "passed" : "failed",
         caseId,
         sampleCount,
-        pass: metrics.pass,
+        pass: metrics.pass && observationMetrics.pass,
         cpu: {
           summary: summarizeReceiverField(cpuResult.field),
           diagnostics: structuredClone(cpuResult.field.diagnostics),
@@ -549,6 +683,17 @@ export class OpticsLayer {
           diagnostics: structuredClone(gpuResult.field.diagnostics),
         },
         metrics,
+        gates: {
+          ...fieldMetrics.gates,
+          ...observationMetrics.gates,
+        },
+        observation: {
+          cpu: cpuResult.observationFrame,
+          webgpu: gpuResult.observationFrame,
+          metrics: observationMetrics,
+          cpuLedger: cpuResult.frameLedger ?? buildR1CpuFrameLedger(cpuResult.observationFrame),
+          webgpuLedger: gpuResult.frameLedger ?? buildR1GpuFrameLedger(gpuResult.observationFrame),
+        },
       };
     } finally {
       this.parityRunActive = false;
@@ -595,6 +740,13 @@ export class OpticsLayer {
     options: ReceiverBuildOptions = {},
   ): ReceiverBuildResult {
     const publish = options.publish !== false;
+    const observationCollector = this.makeObservationCollector(
+      "cpu-receiver",
+      balls,
+      k,
+      settings,
+      options,
+    );
     if (publish) {
       this.clearGeometry();
       this.causticMaterial.uniforms.uSampleScale.value = 1;
@@ -607,7 +759,8 @@ export class OpticsLayer {
       this.caustics = null;
       const field = this.createEmptyCausticField(balls, k, settings);
       if (publish) this.publishCausticField(field, settings);
-      return { field, sampleCount: 0 };
+      const observation = this.finishObservation(observationCollector, "cpu-receiver", publish);
+      return { field, sampleCount: 0, ...observation };
     }
 
     const bounds = fieldBounds(balls);
@@ -699,6 +852,11 @@ export class OpticsLayer {
         const entry = marchToSurface(balls, k, origin, sampleLightDirection, bounds.radius * 5);
 
         if (!entry) {
+          if (observationCollector) observationCollector.record({
+            outcome: "unresolved",
+            unresolvedReason: classifyReceiverUnresolvedReason({ entryValid: false }),
+            receiverUv: baselineHit ? [baselineHit.x, baselineHit.z] : null,
+          });
           const floorHit = intersectFloor(origin, sampleLightDirection, floorY);
           if (floorHit) {
             if (showRay) {
@@ -729,6 +887,14 @@ export class OpticsLayer {
         // Air-to-host should not produce TIR. If numerical/invalid geometry
         // does, do not turn the reflected fallback into receiver energy.
         if (!refractedInside) {
+          if (observationCollector) observationCollector.record({
+            outcome: "unresolved",
+            unresolvedReason: classifyReceiverUnresolvedReason({ entryTir: true }),
+            receiverUv: baselineHit ? [baselineHit.x, baselineHit.z] : null,
+            fluxWeight: baselineTracked ? receiverAccumulator.diagnostics.sampleFlux : undefined,
+            enteredRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+            unknownAttenuationRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+          });
           if (baselineTracked && baselineHit) {
             recordUnresolvedPath(receiverAccumulator, baselineHit);
             if (options.eventSink) {
@@ -824,6 +990,14 @@ export class OpticsLayer {
         // path could not be resolved. Until nested reflections are traced,
         // classify the whole affected baseline as unresolved non-arrival.
         if (inclusionPathUnresolved) {
+          if (observationCollector) observationCollector.record({
+            outcome: "unresolved",
+            unresolvedReason: classifyReceiverUnresolvedReason({ nestedPathUnresolved: true }),
+            receiverUv: baselineHit ? [baselineHit.x, baselineHit.z] : null,
+            fluxWeight: baselineTracked ? receiverAccumulator.diagnostics.sampleFlux : undefined,
+            enteredRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+            unknownAttenuationRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+          });
           if (baselineTracked && baselineHit) {
             recordUnresolvedPath(receiverAccumulator, baselineHit);
             if (options.eventSink) {
@@ -860,6 +1034,14 @@ export class OpticsLayer {
         }
 
         if (!exit) {
+          if (observationCollector) observationCollector.record({
+            outcome: "unresolved",
+            unresolvedReason: classifyReceiverUnresolvedReason({ exitValid: false }),
+            receiverUv: baselineHit ? [baselineHit.x, baselineHit.z] : null,
+            fluxWeight: baselineTracked ? receiverAccumulator.diagnostics.sampleFlux : undefined,
+            enteredRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+            unknownAttenuationRgb: baselineTracked ? { r: 1, g: 1, b: 1 } : null,
+          });
           if (baselineTracked && baselineHit) {
             recordUnresolvedPath(receiverAccumulator, baselineHit);
             if (options.eventSink) {
@@ -949,6 +1131,22 @@ export class OpticsLayer {
         const throughputRgb = outgoing
           ? pathThroughput.transmittedRgb
           : pathThroughput.exitIncidentRgb;
+        let observationStages: CpuOpticalPathStages | undefined;
+        if (observationCollector) {
+          observationStages = outgoing
+            ? pathThroughput.stages
+            : {
+                ...pathThroughput.stages,
+                afterExitInterfaceRgb: pathThroughput.exitIncidentRgb,
+                exitInterfaceLossRgb: { r: 0, g: 0, b: 0 },
+                interfaceLossRgb: pathThroughput.stages.entryInterfaceLossRgb,
+                combinedAttenuationRgb: {
+                  r: pathThroughput.stages.absorbedRgb.r + pathThroughput.stages.entryInterfaceLossRgb.r,
+                  g: pathThroughput.stages.absorbedRgb.g + pathThroughput.stages.entryInterfaceLossRgb.g,
+                  b: pathThroughput.stages.absorbedRgb.b + pathThroughput.stages.entryInterfaceLossRgb.b,
+                },
+              };
+        }
         const energy = (throughputRgb.r + throughputRgb.g + throughputRgb.b) / 3;
         if (baselineTracked && baselineHit) {
           recordMaterialInterfaceLoss(receiverAccumulator, throughputRgb, baselineHit);
@@ -980,6 +1178,18 @@ export class OpticsLayer {
           const deviation = Math.min(1, outgoing.distanceTo(sampleLightDirection) / 1.2);
           if (baselineTracked) {
             const receiverDomainHit = depositReceiverFluxRgb(receiverAccumulator, floorHit, throughputRgb, baselineHit);
+            if (observationCollector) observationCollector.record({
+              outcome: receiverDomainHit ? "receiver-hit" : "escaped",
+              unresolvedReason: receiverDomainHit
+                ? undefined
+                : classifyReceiverUnresolvedReason({ receiverHit: false, receiverInDomain: false }),
+              receiverUv: [floorHit.x, floorHit.z],
+              fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+              enteredRgb: { r: 1, g: 1, b: 1 },
+              deliveredFluxRgb: receiverDomainHit ? throughputRgb : null,
+              escapedFluxRgb: receiverDomainHit ? null : throughputRgb,
+              attenuation: observationStages,
+            });
             if (options.eventSink) {
               emitCpuReceiverObservation(options.eventSink, {
                 sampleId: eventSampleId,
@@ -1005,6 +1215,19 @@ export class OpticsLayer {
                   : undefined,
               });
             }
+          } else if (observationCollector) {
+            // Keep the aggregate observation ledger aligned with GPU for host-entry
+            // samples whose floor hit cannot be tracked in the receiver domain.
+            // This is collector-only: transport/event behavior remains unchanged.
+            observationCollector.record({
+              outcome: "rejected",
+              unresolvedReason: classifyReceiverUnresolvedReason({
+                receiverHit: false,
+                receiverInDomain: false,
+              }),
+              receiverUv: [floorHit.x, floorHit.z],
+              fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+            });
           }
           if (showRay) {
             appendCausticDeposit(
@@ -1025,6 +1248,14 @@ export class OpticsLayer {
         } else if (baselineTracked) {
           if (outgoing && baselineHit) {
             recordEscapedReceiverFlux(receiverAccumulator, throughputRgb, baselineHit);
+            if (observationCollector) observationCollector.record({
+              outcome: "escaped",
+              receiverUv: [baselineHit.x, baselineHit.z],
+              fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+              enteredRgb: { r: 1, g: 1, b: 1 },
+              escapedFluxRgb: throughputRgb,
+              attenuation: observationStages,
+            });
             if (options.eventSink) {
               emitCpuReceiverObservation(options.eventSink, {
                 sampleId: eventSampleId,
@@ -1047,6 +1278,16 @@ export class OpticsLayer {
           }
           else if (baselineHit) {
             recordReflectedFlux(receiverAccumulator, throughputRgb, baselineHit);
+            if (observationCollector) observationCollector.record({
+              outcome: "escaped",
+              unresolvedReason: classifyReceiverUnresolvedReason({ exitTir: true }),
+              receiverUv: [baselineHit.x, baselineHit.z],
+              fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+              enteredRgb: { r: 1, g: 1, b: 1 },
+              reflectedFluxRgb: throughputRgb,
+              escapedFluxRgb: throughputRgb,
+              attenuation: observationStages,
+            });
             if (options.eventSink) {
               emitCpuReceiverObservation(options.eventSink, {
                 sampleId: eventSampleId,
@@ -1067,10 +1308,23 @@ export class OpticsLayer {
               });
             }
           }
+        } else {
+          if (observationCollector) observationCollector.record({
+            outcome: "rejected",
+            unresolvedReason: classifyReceiverUnresolvedReason({ receiverHit: false, receiverInDomain: false }),
+            receiverUv: baselineHit ? [baselineHit.x, baselineHit.z] : null,
+            fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+          });
         }
     }
 
     const field = finishReceiverFluxAccumulator(receiverAccumulator);
+    if (observationCollector) {
+      observationCollector.finalizeFluxTotals({
+        depositedFluxRgb: field.diagnostics.energyLedger.depositedRgb,
+        rejectedFluxRgb: field.diagnostics.supportRejectedFluxRgb,
+      });
+    }
     if (publish) {
       const rayGeometry = new THREE.BufferGeometry();
       rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
@@ -1103,7 +1357,8 @@ export class OpticsLayer {
       this.onTransportPending?.(false);
       this.applyDisplay(settings.opticalDisplay, settings.opticalView);
     }
-    return { field, sampleCount };
+    const observation = this.finishObservation(observationCollector, "cpu-receiver", publish);
+    return { field, sampleCount, ...observation };
   }
 
   private rebuildGpu(
@@ -1114,6 +1369,13 @@ export class OpticsLayer {
     options: ReceiverBuildOptions = {},
   ): ReceiverBuildResult {
     const publish = options.publish !== false;
+    const observationCollector = this.makeObservationCollector(
+      "webgpu-receiver",
+      balls,
+      k,
+      settings,
+      options,
+    );
     if (publish) this.clearGeometry();
     const rayPositions: number[] = [];
     const rayColors: number[] = [];
@@ -1211,6 +1473,71 @@ export class OpticsLayer {
         ? depositAffectedBaseline(receiverAccumulator, baseline)
         : false;
       const outgoingValid = result.values[throughputOffset + 3] > 0.5;
+      if (!entryValid) {
+        if (observationCollector) observationCollector.record({
+          outcome: "unresolved",
+          unresolvedReason: classifyReceiverUnresolvedReason({ entryValid: false }),
+          receiverUv: baseline ? [baseline.x, baseline.z] : null,
+        });
+      } else if (!baselineTracked) {
+        if (observationCollector) observationCollector.record({
+          outcome: "rejected",
+          unresolvedReason: classifyReceiverUnresolvedReason({ baselineValid: false }),
+          receiverUv: baseline ? [baseline.x, baseline.z] : null,
+          fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+        });
+      } else if (!exitValid) {
+        if (observationCollector) observationCollector.record({
+          outcome: "unresolved",
+          unresolvedReason: classifyReceiverUnresolvedReason({
+            exitValid: false,
+          }),
+          receiverUv: baseline ? [baseline.x, baseline.z] : null,
+          fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+          enteredRgb: { r: 1, g: 1, b: 1 },
+          unknownAttenuationRgb: { r: 1, g: 1, b: 1 },
+        });
+      } else if (floorValid && floorInReceiverDomain && floor) {
+        if (observationCollector) observationCollector.record({
+          outcome: "receiver-hit",
+          receiverUv: [floor.x, floor.z],
+          fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+          enteredRgb: { r: 1, g: 1, b: 1 },
+          deliveredFluxRgb: throughputRgb,
+          combinedAttenuationRgb: {
+            r: Math.max(0, 1 - throughputRgb.r),
+            g: Math.max(0, 1 - throughputRgb.g),
+            b: Math.max(0, 1 - throughputRgb.b),
+          },
+        });
+      } else if (floorValid && floor) {
+        if (observationCollector) observationCollector.record({
+          outcome: "escaped",
+          unresolvedReason: classifyReceiverUnresolvedReason({ receiverHit: false, receiverInDomain: false }),
+          receiverUv: [floor.x, floor.z],
+          fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+          enteredRgb: { r: 1, g: 1, b: 1 },
+          escapedFluxRgb: throughputRgb,
+          combinedAttenuationRgb: {
+            r: Math.max(0, 1 - throughputRgb.r),
+            g: Math.max(0, 1 - throughputRgb.g),
+            b: Math.max(0, 1 - throughputRgb.b),
+          },
+        });
+      } else {
+        if (observationCollector) observationCollector.record({
+          outcome: "escaped",
+          receiverUv: baseline ? [baseline.x, baseline.z] : null,
+          fluxWeight: receiverAccumulator.diagnostics.sampleFlux,
+          enteredRgb: { r: 1, g: 1, b: 1 },
+          escapedFluxRgb: throughputRgb,
+          combinedAttenuationRgb: {
+            r: Math.max(0, 1 - throughputRgb.r),
+            g: Math.max(0, 1 - throughputRgb.g),
+            b: Math.max(0, 1 - throughputRgb.b),
+          },
+        });
+      }
       if (baselineTracked) {
         if (!exitValid) {
           if (baseline) recordUnresolvedPath(receiverAccumulator, baseline);
@@ -1345,6 +1672,12 @@ export class OpticsLayer {
     }
 
     const field = finishReceiverFluxAccumulator(receiverAccumulator);
+    if (observationCollector) {
+      observationCollector.finalizeFluxTotals({
+        depositedFluxRgb: field.diagnostics.energyLedger.depositedRgb,
+        rejectedFluxRgb: field.diagnostics.supportRejectedFluxRgb,
+      });
+    }
     if (publish) {
       const rayGeometry = new THREE.BufferGeometry();
       rayGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rayPositions, 3));
@@ -1382,7 +1715,8 @@ export class OpticsLayer {
       this.onTransportPending?.(false);
       this.applyDisplay(settings.opticalDisplay, settings.opticalView);
     }
-    return { field, sampleCount: result.sampleCount };
+    const observation = this.finishObservation(observationCollector, "webgpu-receiver", publish);
+    return { field, sampleCount: result.sampleCount, ...observation };
   }
 
   private applyDisplay(display: OpticalDisplay, view: OpticalView): void {
@@ -2015,7 +2349,19 @@ export function approximateOpticalPathThroughput(
   hostDistance: number,
   inclusionDistance: number,
   traversedInclusion: boolean,
-): { exitIncidentRgb: FluxRgb; transmittedRgb: FluxRgb } {
+  exitResolved = true,
+): {
+  exitIncidentRgb: FluxRgb;
+  transmittedRgb: FluxRgb;
+  stages: CpuOpticalPathStages;
+  enteredRgb: FluxRgb;
+  afterEntryInterfaceRgb: FluxRgb;
+  afterMediumRgb: FluxRgb;
+  afterExitInterfaceRgb: FluxRgb;
+  absorbedRgb: FluxRgb;
+  interfaceLossRgb: FluxRgb;
+  combinedAttenuationRgb: FluxRgb;
+} {
   const hostInterface = normalInterfaceTransmission(1, hostIor);
   const inclusionInterface = traversedInclusion
     ? normalInterfaceTransmission(hostIor, inclusionIor)
@@ -2037,13 +2383,64 @@ export function approximateOpticalPathThroughput(
       - Math.max(0, inclusionAbsorption.b) * safeInclusionDistance,
     ) * entryFactor)),
   };
+  const enteredRgb = { r: 1, g: 1, b: 1 };
+  const afterEntryInterfaceRgb = { r: entryFactor, g: entryFactor, b: entryFactor };
+  const transmittedRgb = exitResolved
+    ? {
+        r: exitIncidentRgb.r * hostInterface,
+        g: exitIncidentRgb.g * hostInterface,
+        b: exitIncidentRgb.b * hostInterface,
+      }
+    : { ...exitIncidentRgb };
+  const afterExitInterfaceRgb = transmittedRgb;
+  const entryInterfaceLossRgb = {
+    r: Math.max(enteredRgb.r - afterEntryInterfaceRgb.r, 0),
+    g: Math.max(enteredRgb.g - afterEntryInterfaceRgb.g, 0),
+    b: Math.max(enteredRgb.b - afterEntryInterfaceRgb.b, 0),
+  };
+  const absorbedRgb = {
+    r: Math.max(afterEntryInterfaceRgb.r - exitIncidentRgb.r, 0),
+    g: Math.max(afterEntryInterfaceRgb.g - exitIncidentRgb.g, 0),
+    b: Math.max(afterEntryInterfaceRgb.b - exitIncidentRgb.b, 0),
+  };
+  const exitInterfaceLossRgb = exitResolved
+    ? {
+        r: Math.max(exitIncidentRgb.r - transmittedRgb.r, 0),
+        g: Math.max(exitIncidentRgb.g - transmittedRgb.g, 0),
+        b: Math.max(exitIncidentRgb.b - transmittedRgb.b, 0),
+      }
+    : { r: 0, g: 0, b: 0 };
+  const interfaceLossRgb = {
+    r: entryInterfaceLossRgb.r + exitInterfaceLossRgb.r,
+    g: entryInterfaceLossRgb.g + exitInterfaceLossRgb.g,
+    b: entryInterfaceLossRgb.b + exitInterfaceLossRgb.b,
+  };
+  const stages: CpuOpticalPathStages = {
+    enteredRgb,
+    afterEntryInterfaceRgb,
+    afterMediumRgb: { ...exitIncidentRgb },
+    afterExitInterfaceRgb,
+    entryInterfaceLossRgb,
+    absorbedRgb,
+    exitInterfaceLossRgb,
+    interfaceLossRgb,
+    combinedAttenuationRgb: {
+      r: absorbedRgb.r + interfaceLossRgb.r,
+      g: absorbedRgb.g + interfaceLossRgb.g,
+      b: absorbedRgb.b + interfaceLossRgb.b,
+    },
+  };
   return {
     exitIncidentRgb,
-    transmittedRgb: {
-      r: exitIncidentRgb.r * hostInterface,
-      g: exitIncidentRgb.g * hostInterface,
-      b: exitIncidentRgb.b * hostInterface,
-    },
+    transmittedRgb,
+    stages,
+    enteredRgb: stages.enteredRgb,
+    afterEntryInterfaceRgb: stages.afterEntryInterfaceRgb,
+    afterMediumRgb: stages.afterMediumRgb,
+    afterExitInterfaceRgb: stages.afterExitInterfaceRgb,
+    absorbedRgb: stages.absorbedRgb,
+    interfaceLossRgb: stages.interfaceLossRgb,
+    combinedAttenuationRgb: stages.combinedAttenuationRgb,
   };
 }
 
