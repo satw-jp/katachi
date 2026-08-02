@@ -41,6 +41,15 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.32.1
+
+- Git commit deployed: `cbce8d8` (`VITE_GIT_COMMIT=cbce8d8` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `87d65896-f22a-4bbf-9d1a-0715d18704b1`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Fast-forwarded GitHub's default `main` to the complete Hikari history, renamed the repository from `satw-jp/yohaku` to `satw-jp/katachi`, updated the local origin, and described Hikari as Katachi's optical workspace. The GitHub homepage continues to point at the existing Katachi deployment.
+- Replaced current user-facing project metadata, new mesh export names/headers, task headings, and new default study seeds with Katachi. Historical authored quotations, archived paths, saved cases, and frozen deterministic regression seeds retain the former name only as provenance.
+- Verification: all 74 Hikari tests, production build, export-name regression, `git diff --check`, remote main/feature SHA equality, GitHub repository metadata, and Cloudflare deployment passed. Post-deploy browser inspection could not run because the browser security policy service was unavailable; no alternate browser path was used to bypass it.
+
 ## Release record — 2026-08-02 — v0.32.0
 
 - Git commit deployed: `afa1a50` (`VITE_GIT_COMMIT=afa1a50` embedded in exported Hikari/Blender cases)
