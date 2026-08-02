@@ -41,6 +41,16 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.31.2
+
+- Git commit deployed: `47bd5bc` (`VITE_GIT_COMMIT=47bd5bc` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `b18dfa8c-bb25-4edb-887f-fc857aaf704e`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Corrected the first Bridge output against `Ref/study_01_light_size05.blend`: all 139,600 imported host polygons now use smooth shading and the host receives Ref's Catmull-Clark Subdivision settings (viewport 1, render 2), eliminating the authored flat-triangle surface error.
+- Generated inclusions are now SPHERE-display Empty objects. Their Object coordinates drive Ref's linear 0.92145-to-1.0 density ramp in the host Volume Absorption, so equal-IOR low-absorption regions remain within one continuous surface instead of becoming separate sphere/metaball refractive bodies.
+- Rebuilt and reinstalled `Hikari Blender Bridge.app` with the corrected importer. A corrected author file was generated at `Downloads/hikari-2026-08-01-ref-match.blend` and reopened successfully in Blender 5.2.0 LTS.
+- Verification: all 72 Hikari tests, production build, Python compilation, Swift build/signature/self-test, Blender save/reopen, and the new Blender-side Ref contract verifier passed. The verifier reported 139,600/139,600 smooth host polygons, Subdivision 1/2, one Empty inclusion, and a linked host density mask. Production reported `v0.31.2`, `GPU · WebGPU`, and retained both Blender actions.
+
 ## Release record — 2026-08-02 — v0.31.1
 
 - Git commit deployed: `e859b51` (`VITE_GIT_COMMIT=e859b51` embedded in exported Hikari/Blender cases)
