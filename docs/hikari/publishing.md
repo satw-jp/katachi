@@ -41,6 +41,16 @@ The production page must be built and deployed from a committed revision. Do not
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-02 — v0.31.1
+
+- Git commit deployed: `e859b51` (`VITE_GIT_COMMIT=e859b51` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `6ff25e42-76b3-47c8-a59b-67b5ebc7a6a9`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- Clarified the authored division of work: Hikari is the quick instrument for sensing atmosphere, while detailed forming and final expression belong to Blender. The handoff is a reproducible starting state rather than pixel parity or finished craft.
+- Added `Blenderで開く（Mac）` after the existing five-file export and installed the local `Hikari Blender Bridge.app`. The companion receives only a sanitized case name, asks the author to grant the export folder through a native picker, stages only the declared sidecar and meshes, generates a non-overwriting `.blend`, and opens Blender without a Terminal command.
+- End-to-end validation generated `hikari-2026-08-01.blend` from the author's Downloads bundle. Blender 5.2.0 LTS read six objects, `Hikari Camera`, Cycles, and case ID `hikari-2026-08-01`. The installed companion self-test found both Blender and its bundled importer.
+- Verification: all 72 Hikari tests, production build, Swift build, ad-hoc signature verification, `git diff --check`, actual `.blend` generation/reopen, and production browser validation passed. Production reported `v0.31.1`, `GPU · WebGPU`, and exposed both `Blender用一式を書き出す` and the initially disabled `Blenderで開く（Mac）` action.
+
 ## Release record — 2026-08-02 — v0.31.0
 
 - Git commit deployed: `3b1b0a3`
