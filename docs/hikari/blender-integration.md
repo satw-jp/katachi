@@ -7,6 +7,8 @@ UpdatedAt: 2026-08-01
 
 hikari is the live instrument: orbit freely, move Tokyo time, alter a form or material relation, and stop when an optical event becomes interesting. Blender is the selected-shot workshop: rebuild one saved state, test a more expensive transport model, and make a still or film without turning hikari into a general DCC application.
 
+The author's current boundary is explicit: detailed forming and expression belong to Blender; hikari is for sensing the atmosphere quickly. The bridge transfers a starting state, not finished craft and not a demand for pixel parity.
+
 The handoff is therefore a reproducible case, not only a mesh. A visually pleasing Blender file with unknown scale, axes, light, or material mapping is a reference; it is not a comparison result.
 
 ## What exists now
@@ -17,6 +19,7 @@ The handoff is therefore a reproducible case, not only a mesh. A visually pleasi
 - The Hikari panel can produce the case, recipe, OBJ, STL, and Blender study sidecar with one action.
 - An editable `.hkr` may hold several views, but Blender export materializes only the current/selected state as one `.hikari-case.json`; the Blender bootstrap does not read the whole `.hkr` document.
 - `tools/blender/import_hikari_study.py` is the deterministic Blender bootstrap. Artistic refinement stays after import.
+- `tools/blender-bridge/` builds the local Mac companion. After Hikari downloads the existing bundle, `Blenderで開く（Mac）` sends only its sanitized case name. The author grants the export folder through the native macOS picker; the companion stages only the declared sidecar and mesh assets, runs its bundled bootstrap, copies back a non-overwriting `.blend`, and opens Blender without a Terminal step.
 
 The runtime still has one analytic spherical inclusion. The sidecar already permits an inclusion array, but generic multiple-inclusion export is not declared complete until every inclusion has either a deterministic analytic reconstruction or an independently watertight primary mesh.
 

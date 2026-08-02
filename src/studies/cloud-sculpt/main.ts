@@ -41,6 +41,7 @@ import {
   buildBlenderStudySidecar,
   serializeBlenderStudySidecar,
 } from "./blenderStudy.ts";
+import { blenderBridgeUrl } from "./blenderBridge.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
 import { HikariMpmDriver } from "./hikariMpmDriver.ts";
@@ -285,7 +286,10 @@ const ui = buildUi(
   onImportFile: (file) => importHistory(file),
   onMeshInspect: (options) => inspectMesh(options),
   onMeshExport: (options) => exportMesh(options),
-  onBlenderExport: (details) => void exportBlenderStudy(details),
+  onBlenderExport: (details) => exportBlenderStudy(details),
+  onBlenderBridgeOpen: (baseName) => {
+    window.location.href = blenderBridgeUrl(baseName);
+  },
   onImageExport: () => exportViewportPng(),
   onHikariMpmStart: () => startHikariMpmPreview(),
   onHikariMpmAdopt: () => adoptHikariMpmPreview(),
@@ -722,7 +726,7 @@ async function exportBlenderStudy(details: {
   caseId: string;
   observation: string;
   options: MeshExportUiOptions;
-}): Promise<void> {
+}): Promise<{ baseName: string }> {
   try {
     ui.setBlenderExportStatus("Blender用データを準備中...");
     const mesh = buildCloudMesh(state.balls, state.params.k, details.options);
@@ -782,8 +786,10 @@ async function exportBlenderStudy(details: {
     downloadFile(new Blob([serializeHikariCase(caseValue)], { type: "application/json" }), `${baseName}.hikari-case.json`);
     downloadFile(new Blob([serializeBlenderStudySidecar(sidecar)], { type: "application/json" }), `${baseName}.blender-study.json`);
     ui.setBlenderExportStatus(`${baseName} — OBJ / STL / case / Blender設定を書き出しました`, true);
+    return { baseName };
   } catch (error) {
     ui.setBlenderExportStatus(`Blender用書き出し失敗: ${(error as Error).message}`, false);
+    throw error;
   }
 }
 

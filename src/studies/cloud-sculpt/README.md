@@ -238,6 +238,14 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-02（Hikari Blender Bridge v0.31.1）**: 作者の分担を「詳細な造形力・表現力はBlender、
+  Hikariは雰囲気を見るためのもの」と明確化した。既存の5ファイル書き出し後に
+  `Blenderで開く（Mac）`を追加し、専用Macアプリがsanitized case名だけを受け取る。作者がnative pickerで
+  書き出しフォルダを許可すると、declared sidecarとmeshだけを一時領域へstageして検証済みimporterへ渡す。
+  `.blend`を生成し、同名がある場合は上書きせず時刻付きで元の書き出しフォルダへ保存して
+  Blenderを開く。これはHikariの形の大枠・視点・光を詳細制作の開始点へ渡すbridgeであり、
+  HikariをDCC化したりpixel parityを要求したりするものではない。
+
 - **2026-08-02（風景メディアとの合成 v0.31.0）**: 現在のprocedural環境を無選択時の既定表示として
   そのまま残し、端末内の写真・動画を任意の背景として読み込めるようにした。`背景だけ`では素材を画面へ
   固定し、その上へ透明体、既存の透過影、ambient loss、床到達光を同じ受光計算で合成する。

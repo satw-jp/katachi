@@ -59,7 +59,8 @@ export interface UiCallbacks {
     caseId: string;
     observation: string;
     options: MeshExportUiOptions;
-  }) => void;
+  }) => Promise<{ baseName: string }>;
+  onBlenderBridgeOpen: (baseName: string) => void;
   onReceiverParityRun: () => Promise<{
     text: string;
     kind: "passed" | "failed" | "unavailable";
@@ -601,19 +602,40 @@ export function buildUi(
   const blenderExportButton = document.createElement("button");
   blenderExportButton.type = "button";
   blenderExportButton.textContent = "Blender用一式を書き出す";
-  blenderExportButton.onclick = () => callbacks.onBlenderExport({
-    caseId: caseIdInput.value.trim() || "hikari-case",
-    observation: observationInput.value,
-    options: {
-      resolution: Number(blenderResolutionInput.value),
-      targetLongestMm: Number(blenderSizeInput.value),
-    },
-  });
+  let lastBlenderBaseName = "";
+  const blenderOpenButton = document.createElement("button");
+  blenderOpenButton.type = "button";
+  blenderOpenButton.textContent = "Blenderで開く（Mac）";
+  blenderOpenButton.disabled = true;
+  blenderOpenButton.onclick = () => {
+    if (lastBlenderBaseName) callbacks.onBlenderBridgeOpen(lastBlenderBaseName);
+  };
+  blenderExportButton.onclick = async () => {
+    blenderExportButton.disabled = true;
+    blenderOpenButton.disabled = true;
+    try {
+      const result = await callbacks.onBlenderExport({
+        caseId: caseIdInput.value.trim() || "hikari-case",
+        observation: observationInput.value,
+        options: {
+          resolution: Number(blenderResolutionInput.value),
+          targetLongestMm: Number(blenderSizeInput.value),
+        },
+      });
+      lastBlenderBaseName = result.baseName;
+      blenderOpenButton.disabled = false;
+    } catch {
+      lastBlenderBaseName = "";
+    } finally {
+      blenderExportButton.disabled = false;
+    }
+  };
   hikariControls.appendChild(blenderExportButton);
+  hikariControls.appendChild(blenderOpenButton);
 
   const blenderExportStatus = document.createElement("div");
   blenderExportStatus.className = "hint";
-  blenderExportStatus.textContent = "v0.20: 形・実寸・素材・内包・床・太陽・カメラを、Blender用の軸変換と一緒に渡します";
+  blenderExportStatus.textContent = "Hikariで見つけた形の大枠・視点・光を、Blenderの詳細制作の開始点へ渡します";
   hikariControls.appendChild(blenderExportStatus);
 
   const hikariControlSyncers: Array<(settings: HikariSettings) => void> = [];

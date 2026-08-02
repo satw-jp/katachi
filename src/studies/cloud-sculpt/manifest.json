@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.31.0",
+  "version": "0.31.1",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-02",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-02",
+      "note": "Added the local Hikari Blender Bridge for the author's clarified division of work: Hikari is the quick instrument for sensing atmosphere, while Blender owns detailed forming and expression. After the existing five-file export completes, a new Mac button opens a narrowly scoped custom URL carrying only a sanitized case name. The author grants the export folder through the native macOS picker; the companion stages only the declared sidecar and mesh assets, uses its bundled validated importer, copies back a non-overwriting .blend, and opens it in Blender without a terminal command. The bridge remains a starting-state handoff, not a promise of pixel parity or finished Blender craft."
+    },
     {
       "date": "2026-08-02",
       "note": "Added an optional local image/video background visualizer while preserving the existing procedural environment as the no-media default. Backdrop mode keeps the selected media screen-fixed and composes the existing transparent body, receiver shadow, ambient loss, and delivered-light field over it. Environment mode keeps that same visible backdrop but also maps the media directionally into body reflection and refraction; ordinary footage is accepted with a clear seam warning, while equirectangular footage is the intended seamless source. Media stays local to the browser session and is not embedded in .hkr. Static images remain compatible with Progressive Render; moving video intentionally keeps the view in Realtime Observation. Verified with the author's Ref portrait image and 3840-by-2160 MP4, including live frame changes in the body, removal back to the unchanged procedural scene, and no browser errors."
