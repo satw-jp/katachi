@@ -17,6 +17,7 @@ import {
   type OpticalSettings,
   type OpticalView,
 } from "./optics.ts";
+import type { ReceiverObservationFrame } from "./receiverObservation.ts";
 import { hashSeed, makeRng } from "./random.ts";
 import type { DaylightMode } from "./daylight.ts";
 
@@ -212,6 +213,8 @@ export class HikariLayer {
       disableWebGpu?: boolean;
       onCausticField?: (field: CausticField) => void;
       onTransportPending?: (pending: boolean) => void;
+      receiverObservation?: boolean;
+      enableReceiverObservation?: boolean;
     } = {},
   ) {
     this.optics = new OpticsLayer(scene, options);
@@ -248,6 +251,19 @@ export class HikariLayer {
     });
     this.group.visible = false;
     scene.add(this.group);
+  }
+
+  /** Latest immutable opt-in receiver observation; null when disabled/unavailable. */
+  getLatestReceiverObservation(): ReceiverObservationFrame | null {
+    return this.optics.getLatestReceiverObservation();
+  }
+
+  getLatestReceiverObservationSnapshot(): ReceiverObservationFrame | null {
+    return this.getLatestReceiverObservation();
+  }
+
+  getReceiverObservationSnapshot(): ReceiverObservationFrame | null {
+    return this.getLatestReceiverObservation();
   }
 
   setVisible(visible: boolean): void {
