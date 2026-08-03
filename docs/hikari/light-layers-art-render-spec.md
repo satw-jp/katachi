@@ -1,6 +1,7 @@
 # Hikari Light Layers / Visual Art Render — 設計仕様書
 
 Status: conditionally approved; mandatory review corrections incorporated
+Current stage status, dependencies, and acceptance authority: [`master-plan.md`](master-plan.md). This document remains the detailed ART design contract.
 UpdatedAt: 2026-08-02  
 SpecRevision: 2
 Implementation: not started

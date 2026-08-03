@@ -1,6 +1,7 @@
 # Hikari R1 Optical Observation — Gate調査報告・Luna実装指示書
 
 Status: **ready for staged implementation handoff**
+Current stage status, acceptance, and execution order: [`master-plan.md`](master-plan.md). This document remains the detailed OPT-1 implementation contract.
 UpdatedAt: 2026-08-03
 Target application: Hikari `v0.32.1`
 R0.5 baseline commit: `f81e03d3b26b93479854faa9ae179f179183afb2`

@@ -1,6 +1,7 @@
 # hikari — next implementation plan
 
 Status: active — Phase 1/2 partial; 3A–3D implemented; 3E runner implemented with raw/case-family acceptance open; Phase 4 foundations only; Phase 5 pending; capture first slice implemented
+Current integrated stage status and execution order: [`master-plan.md`](master-plan.md). This document remains a detailed implementation history and contract.
 UpdatedAt: 2026-08-01
 
 ## Design principle
