@@ -72,7 +72,7 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 
 | Stage | Implementation | Acceptance | commit／根拠 | 次の判定 |
 |---|---|---|---|---|
-| OPT-0.5 | コード完了 | review gate GO | reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`、historical pre-fix `f81e03d3b26b93479854faa9ae179f179183afb2` | 作者のPR #1 Ready／merge判断待ち |
+| OPT-0.5 | コード完了 | review gate GO | reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`、historical pre-fix `f81e03d3b26b93479854faa9ae179f179183afb2`、PR #1 merge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec` | PR #1は`main`へmerge済み。PR #2のcurrent-head independent review／受入／Ready／merge判断待ち |
 | OPT-1a | コード完了 | GO | `a4f804f3` | accepted baseline |
 | OPT-1b | コード完了 | GO | `23ebcb3f` | 現在の安定baseline |
 | OPT-1c | コード完了 | **未検証／HOLD** | `e5c67e4` | Evidence Manifest実行 |
@@ -99,7 +99,7 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 | commit | 統合ID | 内容 | Acceptance | 推奨PR |
 |---|---|---|---|---|
 | `f81e03d3b26b93479854faa9ae179f179183afb2` | OPT-0.5 | historical pre-fix baseline（保持する履歴）。Fresh Sol `fix-first`／NO-GOでsuperseded | superseded | PR #1のparent |
-| `4ccc83c7c51469972d78c474180daafa5bbdeea1` | OPT-0.5 | reviewed direct correction candidate。patch ID `7a6ec7e341dc61c149b7b06639b450293ea45c1b`、receiver `deliveredFlux` accounting units＋outcome/flux invariants＋integration testsのみ | **review gate GO; Fresh Sol `ship`; Ready candidate. PR #1はDraft/not Ready/not merged** | PR #1 `agent/stack-opt-05` |
+| `4ccc83c7c51469972d78c474180daafa5bbdeea1` | OPT-0.5 | reviewed direct correction candidate。patch ID `7a6ec7e341dc61c149b7b06639b450293ea45c1b`、receiver `deliveredFlux` accounting units＋outcome/flux invariants＋integration testsのみ | **review gate GO; Fresh Sol `ship`; Ready candidate。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持** | PR #1 `agent/stack-opt-05`（merged） |
 | `5516a97` | SSOT-0 / KAT設計 | 形態配置計画書 | 文書承認済み | PR-SSOT-0 |
 | `a91756a` | SSOT-0 / OPT-1 handoff | 段階実装指示書 | 文書承認済み | PR-SSOT-0 |
 | `a4f804f3` | OPT-1a | Contract and Fixed Cases | GO | PR-OPT-1a |
@@ -110,11 +110,11 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 
 「1 PR = 1 stage」を維持する。現在の直列commitは、source commitとの対応を保ったstacked PRとして提示する。stack構築時のcherry-pickでhead SHAが変わる場合、上表はsource commit、GitHub上の各PR head SHAは公開commitを表す。
 
-2026-08-03時点で、PR #1 `agent/stack-opt-05`はOPEN/Draftのreviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`をheadとする。candidateはReady candidate only（evidenceの状態）であり、PRのReady authorizationではない。targeted 21 / 21、`npm run test:hikari` 111 / 111（R0.5固定10ケース全件）、TypeScript、build、`git diff --check`はPASSし、Fresh Sol reviewは`ship`である。ただしこれは独立task evidenceであり、GitHub reviewの投稿・approvalではない。PR #1はDraft/not Ready/not mergedである。PR #2はこのSSOT文書改訂であり、現時点ではDraft/unmergedで、commit、push、review、作者受入も未了である。
+2026-08-03時点で、PR #1 `agent/stack-opt-05`はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みである。reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`はそのsecond parentとして保持される。candidateはReady candidate only（evidenceの状態）であり、当時のPR Ready authorizationを表すものではない。targeted 21 / 21、`npm run test:hikari` 111 / 111（R0.5固定10ケース全件）、TypeScript、build、`git diff --check`はPASSし、Fresh Sol reviewは`ship`である。ただしこれは独立task evidenceであり、GitHub reviewの投稿・approvalではない。PR #2は`main`をbaseとするDraft/unmergedのSSOT文書改訂であり、その正確なcurrent headはGitHub上のPRを正とする。current headの独立review（Fresh Sol `ship`を含む）、PR bodyと文書の一致、作者受入、Ready authorization、明示的なmerge authorizationは未了である。
 
 ```text
-Draft PR #1 / PR-OPT-0.5 correction
-  -> Draft PR #2 / PR-SSOT-0 document revision
+Merged PR #1 / PR-OPT-0.5 correction (`main`)
+  -> Draft PR #2 / PR-SSOT-0 document revision (`main` base; GitHub head authoritative)
   -> PR-OPT-1a
   -> PR-OPT-1b
   -> Draft PR-OPT-1c
@@ -124,10 +124,10 @@ Draft PR #1 / PR-OPT-0.5 correction
 
 ### 5.2 公開時のmerge gate
 
-最初の公開では5 PRをすべてDraftとし、この順序と条件でのみReady／mergeへ進める。
+PR #1のmerge後、PR #2以降はこの順序と条件でのみReady／mergeへ進める。
 
-1. PR #1 / `PR-OPT-0.5`: reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`のbounded verificationとFresh Sol `ship`により、OPT-0.5 review gateはGOでcandidateはReadyである。PRはDraft/not Ready/not mergedであり、これはPRのReady化またはmerge authorizationではない。作者のlifecycle decisionを待つ。
-2. PR #2 / `PR-SSOT-0`: Natural三状態・4ペア手順の作者承認は満たした。master planとR1 handoffの一致、README／旧Status／リンク確認、独立文書レビューGO、PR #2のcommit／push／review／作者受入がすべて揃ってからmergeする。このmergeをmaster planのSSOT昇格点とする。
+1. PR #1 / `PR-OPT-0.5`: reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`のbounded verificationとFresh Sol `ship`により、OPT-0.5 review gateはGOでcandidateはReadyである。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持する。
+2. PR #2 / `PR-SSOT-0`: `main`をbaseとするDraft/unmerged PRであり、正確なcurrent headはGitHub上のPRを正とする。Natural三状態・4ペア手順の作者承認は満たしたが、current headの独立review（Fresh Sol `ship`を含む）、PR bodyとmaster plan／R1 handoffの一致、README／旧Status／リンク確認、作者受入、Ready authorization、明示的なmerge authorizationはすべて未了である。これらの後に明示的に承認されたPR #2 mergeだけをmaster planのSSOT昇格点とする。
 3. `PR-OPT-1a`: `PR-SSOT-0` merge後のbaseへ追従し、テストと差分レビューを再確認してmergeする。stage AcceptanceはGO済み。
 4. `PR-OPT-1b`: `PR-OPT-1a` merge後のbaseへ追従し、テストと差分レビューを再確認してmergeする。stage AcceptanceはGO済み。
 5. `Draft PR-OPT-1c`: `<candidate-sha>`のEvidence Manifest全PASS、independent verification PASS、fresh review `ship`、作者のAcceptance GOが揃うまでDraft／HOLDを維持し、mergeしない。
@@ -219,14 +219,13 @@ SSOT-0は新しいproduction機能を含まないgovernance stageである。
 
 ### 7.1 2026-08-03 SSOT-0 HOLDの再計算
 
-満たした事項は、Natural三状態・4ペア手順の作者承認、およびPR #1 candidateのbounded correction verificationとFresh Sol `ship`によるOPT-0.5 review gate GOである。後者の範囲はreceiver `deliveredFlux` accounting units、outcome/flux invariants、integration testsに限られ、renderer、UI、Naturalの変更を意味しない。candidateがReadyであることはPR #1のReady authorizationまたはmerge authorizationではない。
+満たした事項は、Natural三状態・4ペア手順の作者承認、およびPR #1 candidateのbounded correction verificationとFresh Sol `ship`によるOPT-0.5 review gate GOである。後者の範囲はreceiver `deliveredFlux` accounting units、outcome/flux invariants、integration testsに限られ、renderer、UI、Naturalの変更を意味しない。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`はそのsecond parentとして保持する。
 
 `SSOT-0`全体は**HOLD**である。残る条件は次のとおりである。
 
-- PR #1の作者lifecycle decisionと正規のmerge sequenceが未了である（現在はDraft/not Ready/not merged）。
-- このPR #2 SSOT文書改訂はcommit、push、review、作者受入が未了である。
-- PR #2はDraft/unmergedである。
-- `main`上でSSOT-0をpromoteしていない。
+- PR #2は`main`をbaseとするDraft/unmergedであり、正確なcurrent headはGitHub上のPRを正とする。
+- current headの独立review（Fresh Sol `ship`を含む）、PR bodyと文書の一致、作者受入、Ready authorization、明示的なmerge authorizationが未了である。
+- 明示的に承認されたPR #2 mergeによる`main`上のSSOT-0 promotionが未了である。
 
 PR #3〜#5はDraftのまま、GLOW-A1は未着手のままでなければならない。これはSSOT-0 HOLD中のrequired safety stateであり、これらを変更してHOLDを解消してはならない。
 
@@ -250,7 +249,7 @@ Primary／independent／fresh review／作者受入の分離は、同handoffの�
 ```text
 docs/hikari/r1-optical-observation-implementation-handoff.md
 Git blob: 9480d12d08643ebdfa68cf781f8ec488a3603b43
-Current PR #2 candidate blob: de9830a173ce73e471e4539bd72b04763bb07f51
+Current PR #2 candidate blob: 45e8bc9d77ca90071d539f3d8183c0f83fa4b67e
 ```
 
 現在確認中のKatachi checkoutにこのpathがない場合、本節は照合不能であり独立文書レビューをGOにしない。`PR-SSOT-0`は少なくともcommit `a91756a`の同pathを含み、master planと同じPR stackから参照可能にする。handoffを意図的に改訂した場合はblob SHAを更新し、次の対応表を再照合する。
