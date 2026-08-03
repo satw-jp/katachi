@@ -2,6 +2,8 @@
 
 Status: ready for implementation handoff
 
+Current stage status and acceptance authority: [`master-plan.md`](master-plan.md). This document remains the detailed OPT-0.5 contract.
+
 UpdatedAt: 2026-08-02
 
 Design authority: `Hikari Light Layers / Visual Art Render — 設計仕様書`, SpecRevision 2

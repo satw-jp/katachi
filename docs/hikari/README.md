@@ -3,6 +3,8 @@
 Status: design baseline
 UpdatedAt: 2026-08-01
 
+Current integrated status, dependencies, accepted baseline, and candidate state are delegated to [Hikari integrated master plan R0](master-plan.md). The master plan remains a Draft SSOT until its `SSOT-0` gate is GO.
+
 ## Purpose
 
 hikari is a real-time visual instrument specialized for transparent materials.
@@ -150,7 +152,9 @@ Until then, GitHub remains the source of truth through the Katachi repository, w
 
 Related documents:
 
+- [Hikari integrated master plan R0](master-plan.md)
 - [Light Layers / Visual Art Render design specification](light-layers-art-render-spec.md)
+- [Afterglow / 光の残光 design](afterglow-design.md)
 - [R0.5 Optical Event Contract — research report and Luna implementation handoff](r05-optical-event-contract-handoff.md)
 - [Artwork concept and open-call strategy](artwork-strategy.md)
 - [Current week execution plan](current-week-plan.md)

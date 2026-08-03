@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "stage": "OPT-1c",
+  "candidate": {
+    "commitSha": "<full-candidate-sha>",
+    "parentAcceptedBaseline": "23ebcb3f",
+    "status": "HOLD",
+    "supersedesCandidateSha": null
+  },
+  "session": {
+    "id": "<YYYYMMDD-HHMM>-m4mba",
+    "acquiredAt": null,
+    "primaryVerifier": null,
+    "independentVerifier": null,
+    "freshReviewer": null,
+    "author": null
+  },
+  "authorApproval": {
+    "naturalThreeStateFourPairProcedure": "APPROVED",
+    "approvedAt": "2026-08-03",
+    "evidence": "Author approved only the SSOT-0 Natural procedure: baseline, candidate-absent, candidate-on; four safe=0/1 comparisons; maximum channel difference <= 1/255; different pixel ratio <= 0.001; candidate-absent resource non-generation; zero console errors; one full candidate SHA and acquisition session. This does not accept OPT-1c or authorize GLOW-A1."
+  },
+  "environment": {
+    "machine": "M4 MacBook Air",
+    "memoryGb": 16,
+    "build": "release",
+    "hikariVersion": "0.32.1",
+    "browser": null,
+    "window": null,
+    "viewport": null,
+    "devicePixelRatio": null,
+    "power": null,
+    "thermal": null,
+    "caseId": null,
+    "seed": null
+  },
+  "naturalStates": {
+    "baseline": {
+      "commitSha": "23ebcb3f",
+      "definition": "accepted parent release build; OPT-1c code absent"
+    },
+    "candidateAbsent": {
+      "commitSha": "<full-candidate-sha>",
+      "definition": "R1c constructor option absent; pass not instantiated"
+    },
+    "candidateOn": {
+      "commitSha": "<full-candidate-sha>",
+      "definition": "same candidate with R1c observation enabled"
+    }
+  },
+  "naturalComparisons": [
+    { "safe": 0, "left": "baseline", "right": "candidateAbsent", "result": "HOLD" },
+    { "safe": 1, "left": "baseline", "right": "candidateAbsent", "result": "HOLD" },
+    { "safe": 0, "left": "candidateAbsent", "right": "candidateOn", "result": "HOLD" },
+    { "safe": 1, "left": "candidateAbsent", "right": "candidateOn", "result": "HOLD" }
+  ],
+  "thresholds": {
+    "maximumChannelDifference": 0.00392156862745098,
+    "differentPixelRatio": 0.001,
+    "featureAbsentMedianGpuFrameTimeIncrease": "max(0.2 ms, 2%)",
+    "featureOnStaticMedianFrameTimeIncrease": "5%",
+    "motionDiagnosticMinimumDisplayedFps": 30,
+    "consecutiveFramesOver50msAllowed": 1
+  },
+  "gates": {
+    "capabilityAndTarget": "HOLD",
+    "naturalPixels": "HOLD",
+    "diagnosticCaptures": "HOLD",
+    "performance": "HOLD",
+    "automated": "HOLD",
+    "independentVerification": "HOLD",
+    "freshReview": "HOLD",
+    "authorAcceptance": "HOLD"
+  },
+  "artifacts": {
+    "environment": "environment.json",
+    "glCapability": "gl-capability.json",
+    "targetLayout": "target-layout.json",
+    "pixelComparison": "pixel-comparison.json",
+    "performance": "performance.json",
+    "tests": "tests.txt",
+    "review": "review.md",
+    "sha256": {}
+  },
+  "decision": {
+    "acceptance": "HOLD",
+    "reason": "Natural procedure author approval is recorded, but OPT-1c capability, pixel, capture, performance, automated, independent-verification, fresh-review, and author-acceptance gates remain incomplete."
+  }
+}

@@ -1,6 +1,6 @@
 # hikari — current week execution plan
 
-Status: active in the primary implementation branch
+Status: historical execution snapshot; current status is delegated to [`master-plan.md`](master-plan.md)
 UpdatedAt: 2026-08-01
 
 ## Outcome for this week
