@@ -12,6 +12,8 @@ The authoritative thresholds, artifacts, and decision rule are in [`../../master
 
 ## Current hold
 
-The Natural three-state procedure and four comparison pairs are a proposed SSOT-0 procedure. `authorApproval.naturalThreeStateFourPairProcedure` must remain `HOLD` until the author explicitly approves it. Draft PR publication does not satisfy this approval and does not accept OPT-1c.
+On 2026-08-03, the author approved the exact SSOT-0 Natural procedure only: `baseline`, `candidate-absent`, and `candidate-on`; four `safe=0/1` comparisons (`baseline` vs `candidate-absent`, then `candidate-absent` vs `candidate-on`); maximum channel difference `<= 1/255`; different pixel ratio `<= 0.001`; candidate-absent resource non-generation; zero console errors; and evidence fixed to one full candidate SHA and acquisition session. The template records this as `authorApproval.naturalThreeStateFourPairProcedure: APPROVED`.
+
+This procedure approval does not accept OPT-1c, make SSOT-0 GO, or authorize GLOW-A1. OPT-1c capability, pixels, captures, performance, automated evidence, independent verification, fresh review, and author acceptance remain `HOLD` until evidence for one candidate/session satisfies the manifest.
 
 If a limited OPT-1c fix creates a new candidate commit, preserve the old evidence as `superseded` and collect the full evidence set again under the new SHA.

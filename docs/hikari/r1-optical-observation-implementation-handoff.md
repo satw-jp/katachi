@@ -4,8 +4,9 @@ Status: **ready for staged implementation handoff**
 Current stage status, acceptance, and execution order: [`master-plan.md`](master-plan.md). This document remains the detailed OPT-1 implementation contract.
 UpdatedAt: 2026-08-03
 Target application: Hikari `v0.32.1`
-R0.5 baseline commit: `f81e03d3b26b93479854faa9ae179f179183afb2`
-Design authority: [`r05-optical-event-contract-handoff.md`](r05-optical-event-contract-handoff.md) and the current shipped R0.5 implementation
+R0.5 historical pre-fix baseline: `f81e03d3b26b93479854faa9ae179f179183afb2`
+Reviewed correction candidate (PR #1, Draft/not Ready/not merged): `4ccc83c7c51469972d78c474180daafa5bbdeea1`
+Design authority: [`r05-optical-event-contract-handoff.md`](r05-optical-event-contract-handoff.md) and the reviewed (not shipped/merged) R0.5 correction candidate
 
 本書はR0.5を再設計する文書ではない。R0.5のOptical Event Contract、FrameTransportLedger、backend adapter、固定10ケースを基準点として、LunaがR1aからR1eを**一段階ずつ**実装するための調査報告兼指示書である。
 
@@ -64,7 +65,7 @@ Lunaへの受け渡し:
 - R1a〜R1eを一括実装せず、各段階の完了報告後に次へ進む
 ```
 
-`RESOLVED`（repository hygiene）: 承認済みR0.5差分はbaseline commit `f81e03d`として確定した。形態配置計画と本R1指示書は別の文書commitへ分離され、R1aへR0.5差分を混ぜない境界が成立している。
+`RESOLVED`（repository hygiene）: historical pre-fix baseline `f81e03d3b26b93479854faa9ae179f179183afb2`はFresh Sol `fix-first`／NO-GOでsupersededした履歴として保持する。その直接修正のreviewed candidateは`4ccc83c7c51469972d78c474180daafa5bbdeea1`（parentは前者、patch ID `7a6ec7e341dc61c149b7b06639b450293ea45c1b`）である。bounded verificationとFresh Sol `ship`によりOPT-0.5 review gateはGOで、candidateはReadyである。これはPRのReady authorizationではない。修正範囲はreceiver `deliveredFlux` accounting units、outcome/flux invariants、integration testsのみであり、renderer、UI、Naturalの変更を含まない。PR #1はDraft/not Ready/not mergedで、作者のlifecycle decision前にcandidate検証またはreview `ship`だけでPRをReady化・mergeしてはならない。形態配置計画と本R1指示書は別の文書commitへ分離され、R1aへR0.5差分を混ぜない境界が成立している。
 
 ---
 
@@ -93,10 +94,10 @@ WebGPU payloadはR1で拡張しない。bounce、全path長、medium/inclusion I
 
 ### 3.1 検証済み状態
 
-`CURRENT`（2026-08-03、Apple M4 MacBook Air、16 GB）:
+`HISTORICAL PRE-FIX`（2026-08-03、Apple M4 MacBook Air、16 GB、`f81e03d3b26b93479854faa9ae179f179183afb2`）:
 
 - Hikari manifest version: `0.32.1`
-- R0.5 baseline commit: `f81e03d3b26b93479854faa9ae179f179183afb2`
+- R0.5 historical pre-fix baseline: `f81e03d3b26b93479854faa9ae179f179183afb2`
 - `npm run build`: PASS
 - `npm run test:hikari`: 107 / 107 PASS
 - R0.5固定10ケース: 10 / 10 PASS
@@ -106,12 +107,25 @@ WebGPU payloadはR1で拡張しない。bounce、全path長、medium/inclusion I
 - Hikari current gate: version `0.32.1`、`workingManifestChanged=false`
 - build warning: shared `version` chunkが500 kBを超える既存warning。R1 gateではない
 
-依頼で確定済みのNatural regression:
+依頼で確定済みのNatural regression（historical pre-fix evidence。`4ccc83c7c51469972d78c474180daafa5bbdeea1`では再実行していない）:
 
 - safe=0 viewport/canvas: 0 pixel差
 - safe=1 viewport/canvas: 0 pixel差
 - R0.5 reviewer前後: 対象hash一致
 - CPU/WebGPU parity: RGB flux 0.0860%、centroid 0.0844 texel、envelope 0、support 100%、deposit L1 0.8189%、coverage L1 約0.00004%
+
+`REVIEWED CORRECTION CANDIDATE`（2026-08-03、`4ccc83c7c51469972d78c474180daafa5bbdeea1`）:
+
+- direct parent / historical pre-fix baseline: `f81e03d3b26b93479854faa9ae179f179183afb2`
+- direct correction patch ID: `7a6ec7e341dc61c149b7b06639b450293ea45c1b`
+- targeted tests: 21 / 21 PASS
+- `npm run test:hikari`: 111 / 111 PASS; R0.5固定10ケースは全件PASS
+- `npx tsc -p tsconfig.json`: PASS
+- `npm run build`: PASS（shared `version` chunkが500 kBを超える既存warningのみ）
+- `git diff --check`: PASS
+- Hikari version gate: expected exit 2 solely for the owner-approved known v0.32.1 parallel-branch divergence; this is not `HIKARI_VERSION_GATE_OK` for `4ccc83c7c51469972d78c474180daafa5bbdeea1`
+- Fresh Sol review verdict: `ship`。reviewer role `sol_advisor_sol_reviewer`、model `gpt-5.6-sol`、effort high、sandbox `workspace-write`、permission managed。behaviorally read-only（OS-enforced read-onlyではない）で、pre/post HEAD、tracked/untracked、index diff、worktree diffはいずれも完全一致。
+- GitHub reviewは未投稿。`ship`はGitHub review approvalではなく、独立task evidenceである。
 
 ### 3.2 R0.5不変条件
 
@@ -129,10 +143,10 @@ R1で維持する。
 
 `RESOLVED`:
 
-1. approved R0.5差分を専用commit `f81e03d`へ確定した。
-2. 107 tests、build、current gateを再実行してPASSした。
-3. baseline commit hashを本書へ記録した。
-4. R1aはこのbaseline以後の独立commitとする。
+1. historical pre-fix R0.5差分は`f81e03d3b26b93479854faa9ae179f179183afb2`として履歴に保持した。
+2. reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`でtargeted 21 / 21、Hikari 111 / 111（R0.5固定10ケース全件）、TypeScript、build、`git diff --check`を確認した。version gateはowner-approved known parallel-branch divergenceだけによりexpected exit 2であり、candidateのversion gate PASSではない。
+3. Fresh Sol reviewは`ship`でOPT-0.5 review gateはGO、candidateはReadyである。既存のDraft PR #3〜#5 candidate履歴はそのまま保持し、このtaskは新しいR1実装またはAcceptanceを許可しない。
+4. PR #1／#2のlifecycleが正規化された後、downstream baseとreverificationはmaster planのmerge gateに従う。
 
 ---
 
@@ -1422,9 +1436,9 @@ R1は`.hkr` schema、history、localStorage、manifestへdataを保存しない�
 
 ### 25.1 Operational preflight gate — resolved
 
-R0.5承認実装はbaseline commit `f81e03d`として固定済みである。LunaはR1a着手前に`git status`と`git rev-parse HEAD`を確認し、このbaseline以後に意図しない差分がないことを報告する。
+historical pre-fix baselineは`f81e03d3b26b93479854faa9ae179f179183afb2`として保持し、reviewed correction candidateは`4ccc83c7c51469972d78c474180daafa5bbdeea1`である。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。PR #1／#2のlifecycleが正規化された後、downstream baseとreverificationはmaster planのmerge gateに従う。
 
-HEADまたはworktreeがこの記録と異なる場合だけSTOPし、差分を一括commitしない。既に解消したR0.5 commit authorityを再度作者へ問い合わせる必要はない。
+HEADまたはworktreeがこの記録と異なる場合だけSTOPし、差分を一括commitしない。historical pre-fix baselineとreviewed correction candidateの履歴を消去・再ラベルせず、PR #1の正規受入前にR0.5 authorityを推定しない。
 
 ### 25.2 Technical risks
 
@@ -1481,7 +1495,7 @@ R1では行わない:
 
 Lunaは本書をHikari R1の実装正本として扱い、次の順で実行すること。
 
-1. まずR0.5 baseline `f81e03d`以後のcommit状態と`npm run test:hikari`、build、version gateを確認する。意図しない差分がある場合だけ変更せずSTOPして報告する。
+1. まずhistorical pre-fix baseline `f81e03d3b26b93479854faa9ae179f179183afb2`とreviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`の関係を確認する。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。PR #1／#2のlifecycleが正規化された後、downstream baseとreverificationはmaster planのmerge gateに従う。意図しない差分がある場合だけ変更せずSTOPして報告する。
 2. R1aだけを実装する。test/build/reportを揃え、独立reviewでGOを得るまでR1bへ進まない。
 3. R1bだけを実装する。CPU/GPU parityの全数値を報告し、独立reviewでGOを得るまでR1cへ進まない。
 4. R1cだけを実装する。Natural pixel gate、GL capability、M4 MBA 3分測定を報告し、独立reviewでGOを得るまでR1dへ進まない。

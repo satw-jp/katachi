@@ -16,9 +16,9 @@
     "author": null
   },
   "authorApproval": {
-    "naturalThreeStateFourPairProcedure": "HOLD",
-    "approvedAt": null,
-    "evidence": null
+    "naturalThreeStateFourPairProcedure": "APPROVED",
+    "approvedAt": "2026-08-03",
+    "evidence": "Author approved only the SSOT-0 Natural procedure: baseline, candidate-absent, candidate-on; four safe=0/1 comparisons; maximum channel difference <= 1/255; different pixel ratio <= 0.001; candidate-absent resource non-generation; zero console errors; one full candidate SHA and acquisition session. This does not accept OPT-1c or authorize GLOW-A1."
   },
   "environment": {
     "machine": "M4 MacBook Air",
@@ -84,6 +84,6 @@
   },
   "decision": {
     "acceptance": "HOLD",
-    "reason": "Natural three-state/four-pair author approval and evidence are not complete."
+    "reason": "Natural procedure author approval is recorded, but OPT-1c capability, pixel, capture, performance, automated, independent-verification, fresh-review, and author-acceptance gates remain incomplete."
   }
 }
