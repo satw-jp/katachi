@@ -28,6 +28,11 @@ test("outer TIR attempts a bounded internal bounce before the view fallback", ()
   assert.doesNotMatch(fragmentShader, /Progressive Render will replace this approximation/);
 });
 
+test("R0.5 BODY boundary exposes no event buffer or receiver-flux readback", () => {
+  assert.doesNotMatch(fragmentShader, /opticalEvent|eventBuffer|receiverFluxRgb|MRT|imageStore/);
+  assert.match(fragmentShader, /vec3 tirDirection = reflect\(finalHostDirection, -exitGeometricNormal\)/);
+});
+
 test("progressive body samples vary rough transmission without changing realtime compatibility", () => {
   assert.match(fragmentShader, /if \(uProgressiveLinearOutput == 1\) \{/);
   assert.match(fragmentShader, /float index = float\(uProgressiveSampleIndex \+ 1\)/);

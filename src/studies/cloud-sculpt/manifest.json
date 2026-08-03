@@ -17,6 +17,10 @@
   "revisits": [
     {
       "date": "2026-08-02",
+      "note": "R0.5 adds an acquisition-state Optical Event Contract, a non-destructive FrameTransportLedger adapter, capability-only BODY plus minimal CPU/WebGPU adapters, and ten deterministic diagnostics. Natural/runtime output remains unchanged because the optional event sink is disconnected by construction; BODY observability, pure absorption separation, and full WebGPU path history remain R1 gates."
+    },
+    {
+      "date": "2026-08-02",
       "note": "Established the current project identity as Katachi with Hikari as its optical workspace. The GitHub repository and default main branch now use satw-jp/katachi, current browser metadata and newly exported mesh filenames use Katachi, and new default study seeds use the Katachi name. Historical authored quotes, archived filenames, saved cases, and deterministic regression seeds retain Yohaku only as provenance rather than current branding."
     },
     {
