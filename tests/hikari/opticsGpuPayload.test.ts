@@ -5,6 +5,7 @@ import {
   GPU_OPTICS_RESULT_OFFSETS,
   gpuOpticsResultOffset,
 } from "../../src/studies/cloud-sculpt/opticsGpu.ts";
+import { R1_GPU_RESULT_DESCRIPTOR_V1 } from "../../src/studies/cloud-sculpt/opticalObservation.ts";
 import { decodeGpuReceiverObservation } from "../../src/studies/cloud-sculpt/opticalEventAdapters.ts";
 
 test("GPU optics payload keeps adjacent 28-float records disjoint", () => {
@@ -43,4 +44,14 @@ test("R0.5 decoder preserves unavailable path attributes for the 28-float payloa
   assert.equal(observation.path.internalBounceCount.state, "unavailable");
   assert.equal(observation.path.opticalPathLength.state, "unavailable");
   assert.equal(observation.flags.entryValid, true);
+});
+
+test("R1 v1 GPU descriptor references the existing 28-float payload", () => {
+  assert.equal(R1_GPU_RESULT_DESCRIPTOR_V1.version, "hikari-gpu-optics-result/1");
+  assert.equal(R1_GPU_RESULT_DESCRIPTOR_V1.floatsPerSample, GPU_OPTICS_RESULT_FLOATS);
+  assert.strictEqual(R1_GPU_RESULT_DESCRIPTOR_V1.offsets, GPU_OPTICS_RESULT_OFFSETS);
+  assert.deepEqual(R1_GPU_RESULT_DESCRIPTOR_V1.optionalFields, []);
+  assert.equal(Object.isFrozen(R1_GPU_RESULT_DESCRIPTOR_V1.optionalFields), true);
+  assert.equal(Reflect.set(R1_GPU_RESULT_DESCRIPTOR_V1.optionalFields, 0, "future-field"), false);
+  assert.equal(R1_GPU_RESULT_DESCRIPTOR_V1.optionalFields.length, 0);
 });
