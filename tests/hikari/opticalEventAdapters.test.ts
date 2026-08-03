@@ -81,6 +81,66 @@ test("CPU raw branch adapts to exactly one receiver outcome", () => {
   }
 });
 
+test("receiver adapters reject delivered-flux values inconsistent with their outcome", () => {
+  const receiverHit: CpuReceiverSampleObservation = {
+    backend: "cpu-receiver",
+    sampleId: "cpu:inconsistent",
+    sceneRevision: "scene",
+    lightRevision: "light",
+    outcome: "receiver-hit",
+    path,
+    receiverId: observed("test-floor", "exact", "backend-branch"),
+    receiverUv: observed([1, 2] as const, "bounded", "backend-branch"),
+    deliveredFluxRgb: observed({ r: 0.25, g: 0.2, b: 0.15 }, "exact", "backend-branch"),
+    shadowCoverageWeight: observed(1, "exact", "backend-branch"),
+    sampleWeight: observed(1, "exact", "backend-output"),
+  };
+  assert.throws(
+    () => adaptCpuReceiverObservation({ ...receiverHit, outcome: "escaped" }),
+    /diagnostic event must not carry a delivered-flux value/,
+  );
+  assert.throws(
+    () => adaptCpuReceiverObservation({ ...receiverHit, deliveredFluxRgb: unavailable("unsupported-path") }),
+    /terminal receiver-hit must carry available deliveredFluxRgb/,
+  );
+  const gpuReceiverHit = {
+    ...receiverHit,
+    backend: "webgpu-receiver" as const,
+    flags: { entryValid: true, exitValid: true, floorValid: true, baselineValid: true, outgoingValid: true },
+  };
+  assert.throws(
+    () => adaptGpuReceiverObservation({ ...gpuReceiverHit, outcome: "escaped" }),
+    /diagnostic event must not carry a delivered-flux value/,
+  );
+  assert.throws(
+    () => adaptGpuReceiverObservation({ ...gpuReceiverHit, deliveredFluxRgb: unavailable("unsupported-path") }),
+    /terminal receiver-hit must carry available deliveredFluxRgb/,
+  );
+  const diagnosticWithBackendSpecificFlux = {
+    ...receiverHit,
+    outcome: "escaped" as const,
+    deliveredFluxRgb: {
+      state: "backend-specific" as const,
+      backend: "cpu-receiver" as const,
+      semantics: "invalid delivered flux",
+      value: { r: 0.25, g: 0.2, b: 0.15 },
+    },
+  };
+  assert.throws(
+    () => adaptCpuReceiverObservation(diagnosticWithBackendSpecificFlux),
+    /diagnostic event must not carry a delivered-flux value/,
+  );
+  const diagnosticWithoutBackendSpecificFlux = {
+    ...diagnosticWithBackendSpecificFlux,
+    deliveredFluxRgb: {
+      state: "backend-specific" as const,
+      backend: "cpu-receiver" as const,
+      semantics: "no delivered flux is available",
+    },
+  };
+  assert.doesNotThrow(() => adaptCpuReceiverObservation(diagnosticWithoutBackendSpecificFlux));
+});
+
 test("CPU instrumentation classifies an out-of-domain floor hit as escaped", () => {
   const layer = new OpticsLayer(new THREE.Scene(), { disableWebGpu: true });
   const observations: ReceiverSampleObservation[] = [];
@@ -108,6 +168,61 @@ test("CPU instrumentation classifies an out-of-domain floor hit as escaped", () 
   }
 });
 
+test("CPU event sink stays one-outcome-per-affected-sample and matches deposited receiver flux", () => {
+  const layer = new OpticsLayer(new THREE.Scene(), { disableWebGpu: true });
+  const observations: ReceiverSampleObservation[] = [];
+  const rebuildCpu = (layer as unknown as { rebuildCpu: Function }).rebuildCpu;
+  // With no refraction and a contained source aperture, receiver-hit events
+  // and the completed field ledger express the same retained receiver flux.
+  const settings = { ...instrumentationSettings(), ior: 1, lightWidth: 0.75 };
+  const result = rebuildCpu.call(
+    layer,
+    INSTRUMENTATION_BALLS,
+    0,
+    settings,
+    { sampleCountOverride: 256, publish: false, eventSink: (observation: ReceiverSampleObservation) => observations.push(observation) },
+  ) as {
+    field: {
+      diagnostics: {
+        affectedSampleCount: number;
+        energyLedger: { depositedRgb: { r: number; g: number; b: number } };
+      };
+    };
+  };
+  assert.ok(observations.length > 0);
+  assert.ok(observations.length <= result.field.diagnostics.affectedSampleCount);
+  const sampleIds = new Set<string>();
+  const adapted = observations.map((observation) => {
+    assert.ok(["receiver-hit", "absorbed", "escaped", "rejected", "unresolved"].includes(observation.outcome));
+    assert.equal(sampleIds.has(observation.sampleId), false, `duplicate event for ${observation.sampleId}`);
+    sampleIds.add(observation.sampleId);
+    const event = adaptCpuReceiverObservation(observation);
+    if (observation.outcome === "receiver-hit") {
+      assert.equal(event.outcome.kind, "terminal");
+      assert.equal(event.deliveredFluxRgb.state, "available");
+    } else {
+      assert.equal(event.outcome.kind, "diagnostic");
+      assert.equal(event.deliveredFluxRgb.state, "unavailable");
+    }
+    return event;
+  });
+  const eventFlux = { r: 0, g: 0, b: 0 };
+  for (const event of adapted) {
+    if (event.deliveredFluxRgb.state !== "available") continue;
+    eventFlux.r += event.deliveredFluxRgb.value.r;
+    eventFlux.g += event.deliveredFluxRgb.value.g;
+    eventFlux.b += event.deliveredFluxRgb.value.b;
+  }
+  const deposited = result.field.diagnostics.energyLedger.depositedRgb;
+  for (const channel of ["r", "g", "b"] as const) {
+    assert.ok(deposited[channel] > 0, `fixture must deposit ${channel} receiver flux`);
+    assert.ok(
+      Math.abs(eventFlux[channel] - deposited[channel]) <= deposited[channel] * 0.01,
+      `${channel} event flux must agree with field ledger within 1%`,
+    );
+  }
+});
+
 test("GPU decoder uses only 28-float offsets and keeps absent path fields unavailable", () => {
   const values = new Float32Array(GPU_OPTICS_RESULT_FLOATS);
   const offset = gpuOpticsResultOffset(0);
@@ -124,6 +239,7 @@ test("GPU decoder uses only 28-float offsets and keeps absent path fields unavai
   values[offset + GPU_OPTICS_RESULT_OFFSETS.throughputRgb + 3] = 1;
   const raw = decodeGpuReceiverObservation(values, 0, {
     receiverDomain: RECEIVER_DOMAIN,
+    sampleFlux: 0.25,
     sampleId: "gpu:1",
     sceneRevision: "scene",
     lightRevision: "light",
@@ -169,6 +285,7 @@ test("GPU decoder uses explicit inclusive receiver bounds for hit versus escaped
     values[throughputOffset + 3] = 1;
     const raw = decodeGpuReceiverObservation(values, 0, {
       receiverDomain: RECEIVER_DOMAIN,
+      sampleFlux: 0.25,
       sampleId: `gpu-domain:${u}:${v}`,
       sceneRevision: "scene",
       lightRevision: "light",
@@ -186,10 +303,14 @@ test("GPU decoder uses explicit inclusive receiver bounds for hit versus escaped
   }
 });
 
-test("GPU baseline miss is never converted into an affected receiver event", () => {
+test("GPU decoder requires a finite non-negative sample flux and baseline misses stay non-events", () => {
   const values = new Float32Array(GPU_OPTICS_RESULT_FLOATS);
   assert.throws(() => decodeGpuReceiverObservation(values, 0, undefined as never), TypeError);
-  const raw = decodeGpuReceiverObservation(values, 0, { receiverDomain: RECEIVER_DOMAIN });
+  assert.throws(() => decodeGpuReceiverObservation(values, 0, { receiverDomain: RECEIVER_DOMAIN } as never), RangeError);
+  for (const sampleFlux of [Number.NaN, Number.POSITIVE_INFINITY, -1]) {
+    assert.throws(() => decodeGpuReceiverObservation(values, 0, { receiverDomain: RECEIVER_DOMAIN, sampleFlux }), RangeError);
+  }
+  const raw = decodeGpuReceiverObservation(values, 0, { receiverDomain: RECEIVER_DOMAIN, sampleFlux: 0 });
   assert.equal(raw.flags.entryValid, false);
   assert.throws(() => adaptGpuReceiverObservation(raw), RangeError);
 });
@@ -247,6 +368,62 @@ test("GPU instrumentation uses the fixed receiver domain for floor-hit classific
   }
 });
 
+test("GPU decoder receiver flux matches integrated GPU instrumentation", () => {
+  const values = new Float32Array(GPU_OPTICS_RESULT_FLOATS);
+  const flagsOffset = GPU_OPTICS_RESULT_OFFSETS.flags;
+  values[flagsOffset] = 1;
+  values[flagsOffset + 1] = 1;
+  values[flagsOffset + 2] = 1;
+  const baselineOffset = GPU_OPTICS_RESULT_OFFSETS.baseline;
+  values[baselineOffset + 3] = 1;
+  const exitOffset = GPU_OPTICS_RESULT_OFFSETS.exit;
+  values[exitOffset + 1] = 1;
+  const floorOffset = GPU_OPTICS_RESULT_OFFSETS.floor;
+  values[floorOffset + 1] = -2.35;
+  const throughputOffset = GPU_OPTICS_RESULT_OFFSETS.throughputRgb;
+  values[throughputOffset] = 0.4;
+  values[throughputOffset + 1] = 0.5;
+  values[throughputOffset + 2] = 0.6;
+  values[throughputOffset + 3] = 1;
+  const observations: ReceiverSampleObservation[] = [];
+  const layer = new OpticsLayer(new THREE.Scene(), { disableWebGpu: true });
+  const rebuildGpu = (layer as unknown as { rebuildGpu: Function }).rebuildGpu;
+  const result = rebuildGpu.call(
+    layer,
+    { values, sampleCount: 1, hitCount: 1, elapsedMs: 0 } satisfies GpuOpticsResult,
+    INSTRUMENTATION_BALLS,
+    0,
+    instrumentationSettings(),
+    { publish: false, eventSink: (observation: ReceiverSampleObservation) => observations.push(observation) },
+  ) as {
+    field: {
+      minU: number;
+      minV: number;
+      sizeU: number;
+      sizeV: number;
+      diagnostics: { sampleFlux: number };
+    };
+  };
+  assert.equal(observations.length, 1);
+  const decoded = decodeGpuReceiverObservation(values, 0, {
+    receiverDomain: {
+      minU: result.field.minU,
+      maxU: result.field.minU + result.field.sizeU,
+      minV: result.field.minV,
+      maxV: result.field.minV + result.field.sizeV,
+    },
+    sampleFlux: result.field.diagnostics.sampleFlux,
+  });
+  assert.equal(decoded.outcome, "receiver-hit");
+  assert.equal(decoded.deliveredFluxRgb.state, "available");
+  assert.equal(observations[0].deliveredFluxRgb.state, "available");
+  if (decoded.deliveredFluxRgb.state === "available" && observations[0].deliveredFluxRgb.state === "available") {
+    for (const channel of ["r", "g", "b"] as const) {
+      assert.equal(decoded.deliveredFluxRgb.value[channel], observations[0].deliveredFluxRgb.value[channel]);
+    }
+  }
+});
+
 test("GPU decoder classifies every meaningful 28-float flag combination without guessing", () => {
   const combinations: Array<[boolean, boolean, boolean, boolean, boolean]> = [];
   for (const entryValid of [false, true]) {
@@ -282,6 +459,7 @@ test("GPU decoder classifies every meaningful 28-float flag combination without 
     values[throughputOffset + 2] = 0.6;
     const raw = decodeGpuReceiverObservation(values, 0, {
       receiverDomain: RECEIVER_DOMAIN,
+      sampleFlux: 0.25,
       sampleId: `gpu:${Number(entryValid)}${Number(exitValid)}${Number(floorValid)}${Number(baselineValid)}${Number(outgoingValid)}`,
       sceneRevision: "scene",
       lightRevision: "light",

@@ -551,6 +551,20 @@ export function validateOpticalEvent(event: OpticalEvent): readonly string[] {
         }
       }
       validateAvailableRgbObserved(event.deliveredFluxRgb, "deliveredFluxRgb", issues);
+      if (event.outcome.kind === "terminal") {
+        addIssue(
+          issues,
+          event.deliveredFluxRgb.state === "available",
+          "receiver terminal receiver-hit must carry available deliveredFluxRgb",
+        );
+      } else if (event.outcome.kind === "diagnostic") {
+        addIssue(
+          issues,
+          event.deliveredFluxRgb.state !== "available"
+            && (event.deliveredFluxRgb.state !== "backend-specific" || event.deliveredFluxRgb.value === undefined),
+          "receiver diagnostic event must not carry a delivered-flux value",
+        );
+      }
       validateObservedShape(event.shadowCoverageWeight, "shadowCoverageWeight", issues);
       if (observedState<number>(event.shadowCoverageWeight) && (event.shadowCoverageWeight.state === "available" || event.shadowCoverageWeight.state === "backend-specific")) {
         if (event.shadowCoverageWeight.state === "available" || event.shadowCoverageWeight.value !== undefined) {

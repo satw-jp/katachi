@@ -39,6 +39,7 @@ test("R0.5 decoder preserves unavailable path attributes for the 28-float payloa
   values[GPU_OPTICS_RESULT_OFFSETS.throughputRgb + 3] = 1;
   const observation = decodeGpuReceiverObservation(values, 0, {
     receiverDomain: { minU: -16, maxU: 16, minV: -16, maxV: 16 },
+    sampleFlux: 0,
   });
   assert.equal(observation.path.internalBounceCount.state, "unavailable");
   assert.equal(observation.path.opticalPathLength.state, "unavailable");

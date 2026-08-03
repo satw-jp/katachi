@@ -77,6 +77,8 @@ export function recordReceiverObservation(
 
 export interface DecodeGpuReceiverOptions {
   receiverDomain: ReceiverDomainContext;
+  /** Per-sample receiver flux supplied by the runtime accumulator. */
+  sampleFlux: number;
   sampleId?: string;
   sceneRevision?: string;
   lightRevision?: string;
@@ -270,6 +272,9 @@ export function decodeGpuReceiverObservation(
     throw new TypeError("GPU receiver decoder requires explicit receiver-domain bounds");
   }
   assertReceiverDomain(options.receiverDomain);
+  if (!Number.isFinite(options.sampleFlux) || options.sampleFlux < 0) {
+    throw new RangeError("GPU receiver decoder requires a finite non-negative sampleFlux");
+  }
   const values = payload instanceof Float32Array ? payload : payload.values;
   const decoded = readResult(values, sampleIndex);
   const { flags, throughput, exit, floor } = decoded;
@@ -294,7 +299,11 @@ export function decodeGpuReceiverObservation(
     else outcome = "unresolved";
   }
   const deliveredFluxRgb = outcome === "receiver-hit"
-    ? observed(throughput, "exact", "backend-output")
+    ? observed({
+        r: throughput.r * options.sampleFlux,
+        g: throughput.g * options.sampleFlux,
+        b: throughput.b * options.sampleFlux,
+      }, "exact", "backend-output")
     : unsupportedPath<Rgb>("unsupported-path");
   const path: OpticalPathAttributes = {
     internalBounceCount: unsupportedPath("not-emitted-by-backend"),

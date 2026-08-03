@@ -114,6 +114,52 @@ test("validator enforces terminal and diagnostic enums for available and backend
   assert.ok(viewIssues.some((issue) => issue.includes("diagnostic termination")));
 });
 
+test("receiver outcomes require matching delivered-flux availability", () => {
+  const receiver: ReceiverOpticalEvent = {
+    ...identity("cpu-receiver"),
+    transportDomain: "receiver",
+    outcome: { kind: "terminal", terminalEvent: observed("receiver-hit", "exact", "backend-branch") },
+    path,
+    receiverId: observed("test-floor", "exact", "backend-branch"),
+    receiverUv: observed([0, 0] as const, "exact", "backend-branch"),
+    deliveredFluxRgb: unavailable("unsupported-path"),
+    shadowCoverageWeight: observed(1, "exact", "backend-branch"),
+    sampleWeight: observed(1, "exact", "backend-output"),
+  };
+  assert.ok(
+    validateOpticalEvent(receiver).some((issue) => issue.includes("terminal receiver-hit must carry available deliveredFluxRgb")),
+  );
+  const diagnosticWithFlux = {
+    ...receiver,
+    outcome: { kind: "diagnostic", termination: observed("escaped", "exact", "backend-branch") },
+    deliveredFluxRgb: observed(receiverFluxRgb({ r: 0.2, g: 0.2, b: 0.2 }), "exact", "backend-output"),
+  } as ReceiverOpticalEvent;
+  assert.ok(
+    validateOpticalEvent(diagnosticWithFlux).some((issue) => issue.includes("diagnostic event must not carry a delivered-flux value")),
+  );
+  const diagnosticWithBackendSpecificFlux = {
+    ...diagnosticWithFlux,
+    deliveredFluxRgb: {
+      state: "backend-specific",
+      backend: "cpu-receiver",
+      semantics: "invalid delivered flux",
+      value: receiverFluxRgb({ r: 0.2, g: 0.2, b: 0.2 }),
+    },
+  } as ReceiverOpticalEvent;
+  assert.ok(
+    validateOpticalEvent(diagnosticWithBackendSpecificFlux).some((issue) => issue.includes("diagnostic event must not carry a delivered-flux value")),
+  );
+  const diagnosticWithoutBackendSpecificFlux = {
+    ...diagnosticWithFlux,
+    deliveredFluxRgb: {
+      state: "backend-specific",
+      backend: "cpu-receiver",
+      semantics: "no delivered flux is available",
+    },
+  } as ReceiverOpticalEvent;
+  assert.deepEqual(validateOpticalEvent(diagnosticWithoutBackendSpecificFlux), []);
+});
+
 test("validator reports malformed runtime shapes without throwing", () => {
   const malformed: unknown[] = [
     undefined,
