@@ -2,9 +2,10 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const REPO = "/Users/atsushisato/Projects/active/Katachi";
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MANIFEST = "src/studies/cloud-sculpt/manifest.json";
 const PORT = "5174";
 const runtimeRequired = process.argv.includes("--runtime");
@@ -33,6 +34,18 @@ function compareVersion(a, b) {
     if (a[index] !== b[index]) return a[index] - b[index];
   }
   return 0;
+}
+
+function isAncestor(ancestor, descendant) {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+      cwd: REPO,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function branchCandidates() {
@@ -80,30 +93,90 @@ function worktrees() {
   return rows;
 }
 
+/**
+ * Selects the highest manifest version without allowing stale, divergent
+ * same-version topic refs to obscure accepted trunk. A higher divergent
+ * version remains deliberately visible and therefore still blocks selection.
+ */
+function selectCurrent(candidates, mainCommit, ancestor = isAncestor) {
+  candidates.sort((a, b) => compareVersion(b.parsedVersion, a.parsedVersion));
+  const highestVersion = candidates[0].version;
+  let highest = candidates.filter((candidate) => candidate.version === highestVersion);
+  const mainCandidate = mainCommit
+    ? candidates.find((candidate) => candidate.commit === mainCommit)
+    : undefined;
+  if (mainCandidate?.version === highestVersion) {
+    highest = highest.filter((candidate) =>
+      ancestor(candidate.commit, mainCommit) || ancestor(mainCommit, candidate.commit));
+  }
+  let selected = highest[0];
+  if (highest.length > 1) {
+    const descendants = highest.filter((candidate) => highest.every((other) =>
+      candidate.commit === other.commit || ancestor(other.commit, candidate.commit)));
+    if (descendants.length !== 1) {
+      throw new Error(`version ${highestVersion} exists on divergent commits: ${highest.map((item) => `${item.branch}@${item.commit.slice(0, 8)}`).join(", ")}`);
+    }
+    [selected] = descendants;
+  }
+  return { highestVersion, selected };
+}
+
+function runSelectionSelfTest() {
+  const candidate = (branch, commit, version) => ({
+    branch, commit, version, parsedVersion: parseVersion(version),
+  });
+  const assertSelected = (actual, expected, label) => {
+    if (actual.selected.commit !== expected) {
+      throw new Error(`${label}: expected ${expected}, got ${actual.selected.commit}`);
+    }
+  };
+  const trunkRelations = new Set(["old>main"]);
+  const trunkAncestor = (ancestor, descendant) =>
+    ancestor === descendant || trunkRelations.has(`${ancestor}>${descendant}`);
+  assertSelected(selectCurrent([
+    candidate("origin/main", "main", "0.32.1"),
+    candidate("old", "old", "0.32.1"),
+    candidate("draft", "draft", "0.32.1"),
+  ], "main", trunkAncestor), "main", "same-version divergent draft filtering");
+  assertSelected(selectCurrent([
+    candidate("origin/main", "main", "0.32.1"),
+    candidate("next", "next", "0.33.0"),
+  ], "main", trunkAncestor), "next", "higher divergent version remains visible");
+  const descendantRelations = new Set(["main>a", "main>b"]);
+  const descendantAncestor = (ancestor, descendant) =>
+    ancestor === descendant || descendantRelations.has(`${ancestor}>${descendant}`);
+  let rejected = false;
+  try {
+    selectCurrent([
+      candidate("origin/main", "main", "0.32.1"),
+      candidate("feature-a", "a", "0.32.1"),
+      candidate("feature-b", "b", "0.32.1"),
+    ], "main", descendantAncestor);
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) throw new Error("incomparable post-main heads must fail");
+}
+
+if (process.argv.includes("--self-test")) {
+  runSelectionSelfTest();
+  process.stdout.write("HIKARI_VERSION_GATE_SELF_TEST_OK\\n");
+  process.exit(0);
+}
+
 const candidates = branchCandidates();
 if (candidates.length === 0) fail(`no branch contains ${MANIFEST}`);
-candidates.sort((a, b) => compareVersion(b.parsedVersion, a.parsedVersion));
-const highestVersion = candidates[0].version;
-const highest = candidates.filter((candidate) => candidate.version === highestVersion);
-
-let selected = highest[0];
-if (highest.length > 1) {
-  const descendants = highest.filter((candidate) => highest.every((other) => {
-    if (candidate.commit === other.commit) return true;
-    try {
-      execFileSync("git", ["merge-base", "--is-ancestor", other.commit, candidate.commit], {
-        cwd: REPO,
-        stdio: "ignore",
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }));
-  if (descendants.length !== 1) {
-    fail(`version ${highestVersion} exists on divergent commits: ${highest.map((item) => `${item.branch}@${item.commit.slice(0, 8)}`).join(", ")}`);
-  }
-  [selected] = descendants;
+let mainCommit;
+try {
+  mainCommit = run("git", ["rev-parse", "origin/main"]);
+} catch {
+  mainCommit = undefined;
+}
+let selected;
+try {
+  ({ selected } = selectCurrent(candidates, mainCommit));
+} catch (error) {
+  fail(error.message);
 }
 
 const matchingWorktrees = worktrees().filter((worktree) => worktree.commit === selected.commit);
