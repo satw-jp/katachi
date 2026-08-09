@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Source-size readiness visual candidate</title>
+    <link rel="stylesheet" href="./source-size-harness.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">SOURCE-SIZE READINESS / VISUAL CANDIDATE</p>
+        <h1>かたち → 厚み → 透過光<br><span>光源の見かけの大きさだけを変えた比較</span></h1>
+        <p class="warning">NOT OPT-LD-1 OR OPT-LD-2 GO / ACCEPTANCE</p>
+        <p class="warning">FORMAL OPT-LD-2 HAS NOT STARTED</p>
+        <p id="readiness-status" class="pending-status">LOCAL CPU READINESS: EVALUATING</p>
+        <p id="readiness-explanation" class="readiness-explanation">固定の primary/audit 16,384 / 32,768 CPU 実行で、full-field 17×17 local concentration を用いた gate を評価中です。正式 OPT-LD-1/2 は未開始・未受理です。</p>
+        <p class="scope">CPU-ONLY · NOT SHARED ShapeSource / WebGPU / Blender · NOT PRODUCTION</p>
+      </header>
+      <p id="state">同じ固定サンプル列で、3つの光源径を CPU 計算中…</p>
+      <p id="stability" class="stability" aria-live="polite">Gate stability を計算中…</p>
+      <section id="cases" aria-label="光源径ごとの固定比較"></section>
+      <footer>同じ形・同じ受け面・同じ表示変換。readiness metrics と receiver display は raw physical deposit field から一度だけ再構成した固定 radius-8 field（512 / 128 × LD1 radius 2）です。表示側のぼかしではありません。local CPU readiness の結果にかかわらず、正式 OPT-LD-1/2 は未開始・未受理です。</footer>
+    </main>
+    <script type="module" src="./source-size-harness.ts"></script>
+  </body>
+</html>

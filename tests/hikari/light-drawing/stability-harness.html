@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LD2 source-size stability diagnostic — local CPU verification</title>
+    <link rel="stylesheet" href="./stability-harness.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">LD2 SOURCE-SIZE STABILITY / LOCAL VISUAL DIAGNOSTIC</p>
+        <h1>固定 5° / 20° 受け面光の安定性比較</h1>
+        <p id="readiness-status" class="explanation">LOCAL CPU READINESS: EVALUATING</p>
+        <p class="warning">FORMAL OPT-LD-2 HAS NOT STARTED</p>
+        <p class="scope">CPU-ONLY · LOCAL DIAGNOSTIC · NOT PRODUCTION · NOT A GO / ACCEPTANCE</p>
+        <p class="explanation">固定 radius-8 reconstruction と full-field 17×17 local concentration を評価し、max-texel/radius-2 negative evidence を分けて示します。再実行・調整・緩和・昇格は行いません。</p>
+      </header>
+
+      <section class="reading-guide" aria-label="比較の読み方">
+        <p><strong>6 枚は完全な同一 receiver frame `[-1.4, 1.4]²`、512×512、displayScale 9、exposure 1</strong>です。全パネルは raw physical deposit field に一度だけ適用した固定 flux-conserving radius-8 reconstruction と同じ表示変換・CSS canvas scale を使います。半径8は 512 / 128 × LD1半径2 で事前固定しました。</p>
+        <p>行は固定光源径 <strong>5°</strong>、<strong>20°</strong>。列は <strong>primary 16,384</strong>、<strong>primary 32,768</strong>、<strong>audit 32,768</strong> です。author observation only: 最も明るい knot、fine grain、全体の line を比較できますが、これは qualification criterion ではありません。</p>
+        <p>active evaluator は full-field local concentration（complete 17×17 window / total luminance、physical side 0.09296875）を使います。runtime result は評価後に表示します。max-texel の radius-8 two failures と旧 radius-2 eight failures は別の negative evidence として残します。audit16 ↔ audit32 は quantitative-only（audit16 は表示しない）です。primary32 ↔ audit32 は visual independent-estimator comparison です。</p>
+      </section>
+
+      <section id="gate-evidence" class="gate-evidence" aria-live="polite" aria-label="runtime gate evidence">
+        <h2>fixed radius-8 evaluator qualification</h2>
+        <p>unchanged evaluator の実行結果を表示中…</p>
+      </section>
+
+      <section id="panels" aria-label="5 degree and 20 degree receiver stability panels"></section>
+
+      <footer id="readiness-footer">LOCAL CPU READINESS: EVALUATING。FORMAL OPT-LD-2 HAS NOT STARTED。NOT PRODUCTION。これは local CPU verification であり、formal GO または acceptance ではありません。</footer>
+    </main>
+    <script type="module" src="./stability-harness.ts"></script>
+  </body>
+</html>

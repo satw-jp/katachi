@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Actual Hikari CPU ShapeSource receiver behavior</title>
+    <link rel="stylesheet" href="./shape-source-reference-harness.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">HIKARI · CPU SHAPESOURCE DIAGNOSTIC</p>
+        <h1>Actual Hikari CPU ShapeSource receiver behavior</h1>
+        <p class="scope">comparison checkpoint only; not analytic/product pixel parity.</p>
+        <p class="scope">not OPT-LD-2/LD3 GO or acceptance; not WebGPU/Blender/physical validation.</p>
+        <p class="scope">16,384-sample diagnostic override, not SAFE-mode performance. Absence of obvious softening is valid.</p>
+        <p class="detail">Frozen literal ShapeSource captured from the v0.29.2 / b8f7b50 Blender backlight study document. The three panels change only sun size: 0.53°, 5°, 20°.</p>
+      </header>
+      <p id="status" aria-live="polite">Preparing the fixed CPU comparison…</p>
+      <section id="panels" aria-label="fixed sun-size comparison"></section>
+      <footer>Receiver pixels use depositedFluxRgb ÷ texelArea, one fixed exposure and one common tone map. Values are not panel-normalized. The receiver remains the production 512², [-16,16]² domain.</footer>
+    </main>
+    <script type="module" src="./shape-source-reference-harness.ts"></script>
+  </body>
+</html>

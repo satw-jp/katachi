@@ -50,7 +50,7 @@ import type {
   OpticalPathAttributes,
   SourceBackend,
 } from "./opticalEvents.ts";
-import type { PhysicalScale, Rgb, Vec3 } from "./opticalScene.ts";
+import type { PhysicalScale, Rgb, ShapeSource, Vec3 } from "./opticalScene.ts";
 
 function sendReceiverObservation(
   sink: ReceiverEventSink,
@@ -400,6 +400,57 @@ export class OpticsLayer {
 
   invalidateTransport(): void {
     this.signature = "";
+  }
+
+  /**
+   * Runs the established CPU receiver transport against an authored shared
+   * ShapeSource without publishing a field or touching display/GPU state.
+   * This is intentionally a narrow, synchronous diagnostic seam rather than
+   * a second renderer or a public receiver-build configuration surface.
+   */
+  runCpuShapeSourceReferenceCase(
+    shape: ShapeSource,
+    settings: OpticalSettings,
+    options: { sampleCount: number },
+  ): { field: CausticField; sampleCount: number } {
+    if (!shape || shape.kind !== "balls-smooth-union") {
+      throw new TypeError("ShapeSource diagnostic requires balls-smooth-union");
+    }
+    if (!Array.isArray(shape.balls) || shape.balls.length === 0) {
+      throw new RangeError("ShapeSource diagnostic requires at least one ball");
+    }
+    if (!Number.isFinite(shape.smoothness) || shape.smoothness < 0) {
+      throw new RangeError("ShapeSource diagnostic smoothness must be finite and nonnegative");
+    }
+    if (!Number.isInteger(options?.sampleCount)
+      || options.sampleCount < 256
+      || options.sampleCount > 65536) {
+      throw new RangeError("ShapeSource diagnostic sampleCount must be an integer from 256 through 65536");
+    }
+
+    const balls: Ball[] = shape.balls.map((ball, index) => {
+      if (!ball
+        || !Number.isFinite(ball.center?.x)
+        || !Number.isFinite(ball.center?.y)
+        || !Number.isFinite(ball.center?.z)
+        || !Number.isFinite(ball.radius)
+        || ball.radius <= 0) {
+        throw new RangeError("ShapeSource diagnostic balls require finite centers and positive radii");
+      }
+      return {
+        id: index + 1,
+        x: ball.center.x,
+        y: ball.center.y,
+        z: ball.center.z,
+        r: ball.radius,
+      };
+    });
+    const referenceSettings = { ...settings };
+    const result = this.rebuildCpu(balls, shape.smoothness, referenceSettings, {
+      sampleCountOverride: options.sampleCount,
+      publish: false,
+    });
+    return { field: result.field, sampleCount: result.sampleCount };
   }
 
   update(balls: Ball[], k: number, settings: OpticalSettings): void {

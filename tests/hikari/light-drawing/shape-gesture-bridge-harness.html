@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hikari ShapeSource gesture bridge candidate</title>
+    <link rel="stylesheet" href="./shape-gesture-bridge-harness.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">HIKARI · CPU SHAPESOURCE DIAGNOSTIC</p>
+        <h1>形のジェスチャー橋渡し — four frozen states</h1>
+        <p class="scope">Actual Hikari CPU ShapeSource geometry · harness-only bridge candidate.</p>
+        <p class="scope">Not continuous motion / LD3. Not persisted/shared renderer/WebGPU/Blender/physical.</p>
+        <p class="scope">Not OPT-LD-1/2/3 GO or acceptance. No adaptive exposure/geometry tuning; absence of a line is valid evidence.</p>
+        <p class="detail">Frozen yohaku ShapeSource: OFF and one connected local thickening at LEFT / CENTER / RIGHT. Each is traced at fixed 0.53° and 16,384 samples in the production 512², [-16,16]² receiver frame.</p>
+      </header>
+      <p id="status" aria-live="polite">固定 four-state CPU checkpoint を準備中…</p>
+      <nav id="selector" aria-label="Four frozen states"></nav>
+      <p class="legend">Every static card shows an explanatory projection of constituent balls (not the actual smooth-union body renderer), actual CPU receiver light at common exposure 32, and its zero-centered signed ON−OFF difference. Cyan = positive added light; orange = negative removed light. OFF is zero difference.</p>
+      <section id="static-panels" aria-label="Static four-state ShapeSource comparison"></section>
+      <dl id="details"></dl>
+      <footer>Static comparison only: selector highlights one already-rendered frozen card. Canvases render once; no receiver-field arrays are retained. No slider, retrace, retry, animation, renderer, callbacks beyond selector controls, or acceptance gate.</footer>
+    </main>
+    <script type="module" src="./shape-gesture-bridge-harness.ts"></script>
+  </body>
+</html>
