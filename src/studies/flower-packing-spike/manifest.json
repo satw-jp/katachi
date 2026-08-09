@@ -1,0 +1,64 @@
+{
+  "id": "flower-packing-spike",
+  "title": "花を詰める (Flower Packing Spike)",
+  "status": "active",
+  "version": "0.3.0",
+  "createdAt": "2026-08-09",
+  "updatedAt": "2026-08-09",
+  "params": [
+    "seed",
+    "count",
+    "flowerSize",
+    "clearance",
+    "softness",
+    "iterations",
+    "domain",
+    "comparisonMode",
+    "formOpening",
+    "formNeck",
+    "formCoreSize"
+  ],
+  "related": [
+    "skin",
+    "pack",
+    "rings"
+  ],
+  "revisits": [
+    {
+      "date": "2026-08-09",
+      "note": "PACK-SPIKE first implementation. The same seeded Flower motif (one core plus four petal spheres) can be compared as Rigid vs Soft or L0 bounding-sphere vs L1 multi-sphere collision on a plane or sphere surface. Soft flowers retain core-petal connections while petal offsets respond to packing pressure. Diagnostics report unresolved collisions, penetration, outside count, and deformation; JSON comparison reopen and a clearly draft, non-optical Freeze snapshot are included. Browser visual observation remains required before any Core extraction."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "First visual QA and contact-polish revisit. A bounded contact-only projection after the soft spring phase removes residual penetrations without rerunning an unversioned solver at reopen. Default Sphere Surface/Seed 304 converged with zero unresolved collisions in both panels while preserving 10.1% mean Soft deformation; the Plane control converged at 18 flowers with 1.1% Soft deformation. Darker cores, lighter petals, per-instance shade variation, and saved Rigid/Soft plus L0/L1 screenshots make motif identity and proxy resolution readable. Real-coordinate proxy/mode clicks and viewport drag passed with zero browser warnings/errors; deterministic tests and the production build pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Recorded the author's question about making each Flower a single continuous form. The next observation separates L1 multi-sphere collision proxies from a smooth-union display/freeze field, and distinguishes visual continuity, a single watertight mesh component, and Soft core-petal connection preservation. No solver or current comparison behavior changed in this revisit."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented and visually verified Spheres / Unified display switching without changing packing transforms or collision proxies. Each flower now derives a Marching Cubes preview surface from the same five sphere components. A dense Soft regression exposed that smooth union alone could visually hide a disconnected core-petal field path, so a narrow morphological neck field was added; a deterministic test now samples every Rigid and Soft core-petal path and confirms it remains inside the unified field. Default Sphere Surface remains converged at zero collisions with 0.0% / 10.1% mean deformation. Real-coordinate display toggles and viewport rotation passed, and unified plus proxy-overlay evidence was saved. This is a field-preview continuity result, not yet a watertight manufacturing-mesh claim."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Fixed the author's reported right-side Soft rendering bug. Flat circular caps and sliced necks were Marching Cubes boundary cuts: deformed petals could leave the fixed core-centred sampling cube while Rigid stayed within it. Each flower now derives a dynamic cube from all deformed component bounds and scales it so the complete expanded surface remains inside Marching Cubes' guarded interior grid. A deterministic dense-Soft regression checks every component against that usable boundary. Seven Flower tests, typecheck, production build, and close-range browser rotation pass; the saved evidence no longer shows clipped surfaces."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Addressed the author's distinction between intersections of an already fixed flower shape and intersections created because Soft elements separate. Soft petal offsets are now clamped to a bounded rest-shape displacement on every spring and contact-polish iteration, preventing long artificial necks. L1 collision now covers component surfaces plus guarded connector proxies along each short core-petal neck. Default Sphere Surface stays converged with zero unresolved collisions while Soft mean/max deformation become 3.3%/16.5%. Close-range rotation and proxy overlay show cohesive flower units without separated elements crossing other forms. Exact field-field collision between fixed flowers remains explicitly separate from this cohesion fix."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Recorded the author's request to discuss the next steps through understandable forms and appearance. The visual sequence is now one large flower, two-flower contact, then many-flower packing. The author first judges petal count/opening/neck/unity, then separate/touch/overlap/fuse contact, and only then returns to packing. Figure-ground inversion stays a parallel side-by-side view of the same gaps rather than being mixed into the Flower solver."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented the next visual checkpoint as a separate one-flower page while preserving the existing Packing page. Three-petal and four-petal unified forms are shown large under identical opening, neck, and core controls, with optional source-sphere overlay and orbit inspection. The initial silhouettes read as a three-direction cluster versus a cross-like four-petal form; an open 1.18 / thin-neck 0.21 / core 0.68 case stays field-connected. Front and side browser inspection exposed the next human decision rather than an automatic fix: the current component centres are coplanar, so the flower reads flat from the side. Eight deterministic Flower tests, typecheck, multi-page production build, real interaction, and screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Corrected the research direction after the author clarified that three versus four petals has no single correct answer. The goal is to try many forms, inspect every form from the side, and determine how natural form-generating causes enter Katachi. The next visual checkpoint is reframed as a Form Atlas: synchronized front/side/oblique views plus families varied by petal count, cupping or raised core, per-petal growth differences, directionality, gravity, and contact. Natural variation must retain an observable cause rather than becoming generic random distortion; multiple forms remain reusable inputs instead of being reduced to one winner."
+    }
+  ]
+}

@@ -47,6 +47,8 @@ export const fragmentShader = /* glsl */ `
   uniform float uOpticalExposure;
   uniform float uSurfaceRoughness;
   uniform float uSurfaceVariation;
+  uniform vec3 uTraceCenter;
+  uniform float uTraceRadius;
   uniform float uMaterialVariation;
   uniform float uMaterialScale;
   uniform float uEnvironmentContrast;
@@ -72,8 +74,18 @@ export const fragmentShader = /* glsl */ `
     return length(p - c) - r;
   }
 
-  // Whole-field SDF: all balls smooth-min'd together.
-  // Must stay in lockstep with fieldSdf() in field.ts (CPU picking).
+  float curvedRibbonTrace(vec3 p) {
+    if (uSurfaceVariation <= 0.0 || uRenderMode != 1) return 0.0;
+    vec3 q = (p - uTraceCenter) / max(0.1, uTraceRadius);
+    float curve = q.x * 0.74 + q.z * 0.28
+      + sin(q.y * 2.7 + q.z * 0.9) * 0.16 - 0.08;
+    float ribbon = exp(-curve * curve * 42.0);
+    float handPressure = 0.72 + 0.28 * sin(q.y * 5.1 + q.z * 3.7);
+    return uSurfaceVariation * uTraceRadius * 0.22 * ribbon * handPressure;
+  }
+
+  // Whole-field SDF: the Katachi base remains the smooth-min field. Hikari
+  // adds the same saved curved-ribbon displacement used by CPU and WebGPU.
   float map(vec3 p) {
     float d = 1e5;
     for (int i = 0; i < ${MAX_BALLS}; i++) {
@@ -81,7 +93,7 @@ export const fragmentShader = /* glsl */ `
       float bd = sdBall(p, uBallPos[i], uBallRadius[i]);
       d = (i == 0) ? bd : smoothMin(d, bd, uK);
     }
-    return d;
+    return d - curvedRibbonTrace(p);
   }
 
   vec3 estimateNormal(vec3 p) {
@@ -101,17 +113,6 @@ export const fragmentShader = /* glsl */ `
     float fine = sin(dot(q, vec3(2.31, -1.73, 1.19)) + sin(q.y * 1.9));
     float separated = smoothstep(-0.28, 0.32, broad * 0.42 + fine * 0.25);
     return mix(1.0, mix(0.38, 1.82, separated), uMaterialVariation);
-  }
-
-  vec3 perturbSurfaceNormal(vec3 normal, vec3 p) {
-    vec3 q = p * (3.7 + uMaterialScale * 0.8);
-    vec3 variation = vec3(
-      sin(q.y * 1.17 + q.z * 0.83),
-      sin(q.z * 1.31 - q.x * 0.71),
-      sin(q.x * 1.07 + q.y * 0.97)
-    );
-    variation -= normal * dot(variation, normal);
-    return normalize(normal + variation * uSurfaceVariation * 0.34);
   }
 
   float segmentMaterialDensity(vec3 startPoint, vec3 endPoint) {
@@ -677,7 +678,6 @@ export const fragmentShader = /* glsl */ `
 
     vec3 n = estimateNormal(p);
     if (uRenderMode == 1) {
-      n = perturbSurfaceNormal(n, p);
       float eta = 1.0 / max(1.001, uIor);
       vec3 insideDirection = refract(rd, n, eta);
       if (length(insideDirection) < 0.01) insideDirection = reflect(rd, n);
@@ -687,7 +687,7 @@ export const fragmentShader = /* glsl */ `
       vec3 outgoing = insideDirection;
       vec3 exitNormal = -n;
       if (hasExit) {
-        exitNormal = perturbSurfaceNormal(estimateNormal(exitPoint), exitPoint);
+        exitNormal = estimateNormal(exitPoint);
         vec3 refractedOut = refract(insideDirection, -exitNormal, uIor);
         outgoing = length(refractedOut) < 0.01 ? reflect(insideDirection, -exitNormal) : refractedOut;
       }

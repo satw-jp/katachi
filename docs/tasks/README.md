@@ -1,4 +1,4 @@
-# Yohaku — 実装タスク指示書
+# Katachi — 実装タスク指示書
 
 モデル非依存の指示書置き場。実装モデルは着手前に必ず
 STATEMENT → RESEARCH → AGENTS → 対象タスク の順で読む。
@@ -35,9 +35,92 @@ STATEMENT → RESEARCH → AGENTS → 対象タスク の順で読む。
 | T13 | S-pack v0.2 反転と改善 | [指示書あり](T13-pack-invert.md) | 作者発注。地と図の反転を体積へ: 虚に実を詰める(ホスト=型枠・詰めた実の集積が作品)。skin で確立した改善一式を移植(乱数の続き・飽和処方箋・ビーズ全量表示・メッシュオーバーレイ) |
 | T14 | S-pack v0.3 雲を詰める | [指示書あり](T14-cloud-units.md) | 作者発注「球体じゃなくて雲自体を入れ込む」= Y7第二補正の原文「ランダムな形態をパッキング」への回帰。単位=球の小群(シード派生で単位ごとに違う形)、S1レシピを詰め材にも(自作の雲で自作を築く)。両モード対応 |
 | T15 | S-pack v0.4 グリッドとばらし | [指示書あり](T15-grid-lattice.md) | 作者発注: 表層の語彙(コイン/リング)を内部へ＋配置モード「グリッド」新設。**ばらし一本(0=完全格子〜1=ランダム)がグリッドと有機の橋** = H1「揺らぎ×拘束」の UI 化。秩序から始めて揺らぎを注ぐ |
+| T16 | 全体（整理） | [**一部実装済み・R0再監査へ継続**](T16-consolidation.md)（下記「T16 の現在地」） | 2026-07-17 監査発。8 Study に分岐したコピー（input/loop/ui/style/recipe/meshExport）を「最も進化した実装」を正として一本化。挙動・見た目・recipe 後方互換は不変。他タスクと同時進行しない |
+| T17 | 全体（Web公開） | [実装済み](T17-web-publishing.md) | 2026-07-17。satw.jp に Studies 索引を新設し、Katachi / Kumo を Cloudflare Workers（静的アセット）として公開。「変更 → deploy → 公開URL確認」を両プロジェクトの作業終了条件へ追加。Stream / Works / Study 本体は不触 |
+| T18 | 全体（意匠） | [指示書あり](T18-design-alignment.md) | 2026-07-17 作者発注。Katachi / Kumo の UI chrome を satw.jp の実測トークン（紙白・墨・ヘアライン・Helvetica Neue）へ統一。計器の色・3Dの地は不変（地は作者裁定済み: そのまま）。Katachi 側は T16-3（style共通化）完了が前提 |
+| T19 | 羊に原理を作用させる | [第一便実装](T19-hitsuji-principles.md) | 2026-07-28 作者発注。作者自身の hitsuji を共通入力に、加工前／差分成長／相分離／流れに沿う羊毛化を同じ尺度で比較する。第一便は方向選別の素描 |
+| T20 | 軌跡を塊にする | [第十一次実装](T20-trajectory-fusion.md) | 2026-07-29 作者発注。細く柔らかい紐を長さ無制限として追加し、形状充填を最優先する |
 | T4 | S4 細くする | 未起草 | 接地半径の掃引（脚径掃引の Yohaku 版）。並べて比較する Explorer 型 UI |
 | T5 | S5 触るまでの時間 | 未起草 | 実物を人に見せる観察実験の型（記録シートのみ、ソフト不要かもしれない） |
 | T6 | S6 育てる手 | 未起草 | 応力の高い所に肉を足す成長規則。三つ目の手 |
 
 T2〜T2e は実装済み（〜2026-07-10。MPM は WebGPU で作者機 RTX3080 動作確認済み）。T3 第一便は起草済み（2026-07-10、作者発注:「これを3Dデータ化するには」）。風（T2f 候補）は MPM の外力として後日。
 順序は入れ替え可。ただし T3（現実との校正）を長く先送りしないこと — 画面だけの余白は嘘に育つ。
+
+## T16 の現在地（2026-07-26 実測）
+
+状態: **一部実装済み・R0再監査へ継続**。
+
+T16 は「指示書だけがある未着手タスク」でもなければ「全面完了」でもない。
+以下は 2026-07-26 に実ファイルの import と各 Study の manifest `revisits` から
+確認できた範囲だけを書く。推測で埋めた行は無い。
+
+- **入力・ループ・UI 部品・base style は複数 Study で共有化済み**（T16-2 / T16-3）。
+  `src/lib/loop.ts` と `src/lib/ui/version.ts` は 9 Study すべてが import し、
+  `src/lib/ui/slider.ts` も 9 Study の `ui.ts` が使う。`src/lib/input.ts` は 6 Study
+  （cloud-sculpt / gravity / pack / rings / sag / skin）。`src/styles/base.css` は
+  9 Study の `style.css` が冒頭で `@import` している。
+  manifest 側にも 8 Study 分の revisit（2026-07-17「T16 UI consolidation」
+  「T16 style consolidation」「T16 input/loop consolidation」）が残る。
+  interior-growth は T16 のあと（2026-07-24）に追加されたため該当 revisit を持たず、
+  最初から共有側を使っている。
+
+- **recipe envelope は一部 Study だけが `src/lib/recipe.ts` を利用**（T16-4）。
+  共有封筒 `src/lib/recipe.ts` / `src/lib/history.ts` を通しているのは
+  **9 Study 中 2 つ（cloud-sculpt と interior-growth）だけ**。
+  残る 7 Study（gravity / sag / mpm / foam / rings / pack / skin）は
+  `{ formatVersion: 1, studyId, exportedAt, entries }` という同じ封筒を
+  各自の `history.ts` で組んでいる（foam のみ関数名が `serializeFoamRecipe`）。
+  「T16 recipe/history consolidation」の revisit を持つのも cloud-sculpt 1 件のみ。
+  なお cloud-sculpt の `src/lib/recipe.ts` import は複数行に分かれているため、
+  1 行単位の grep では見落とす。
+
+- **mesh export は場の抽出と保存形状の検査だけが共有され、Study 固有の生成は残る**（T16-5）。
+  `buildMeshFromField` / `computeSamplingBounds` / `rescaleMeshResult` /
+  `orientMeshForSavedStl` / `inspectSavedStlTopology` / `encodeBinaryStl` を
+  foam・rings・pack・skin・interior-growth の 5 Study が import する一方、
+  各 Study の `meshExport.ts`（セル / リング / 詰め物 / パッチ / 内部成長）は残っている
+  — これは T16-5 が意図した「インターフェースだけ統一」の姿である。
+  ただし共有先は `src/lib/meshExport.ts` ではない（次項）。
+
+- **R0 で、共有ハブが依然 Study 配下（`src/studies/cloud-sculpt/`）に残ることを確認した**。
+  上の mesh export も、自分以外の 8 Study が使う `Ball` / `smoothMin` / `fieldSdf`
+  （`cloud-sculpt/field.ts`）も、置き場所は Study の中である。
+  `src/lib/` にあるのは history / recipe / input / loop / ui / geometry の 7 ファイルで、
+  T16-5 が想定した `src/lib/meshExport.ts` は存在しない。
+  つまり cloud-sculpt が事実上の Library として振る舞っている。
+  詳細は `docs/architecture/katachi-dependency-duplication-map-20260725.md` §1・§2。
+
+### 実ファイルから成否を判定できなかった項目
+
+T16-consolidation.md の次の項目は、今回の docs-only 調査では**未確認**である。
+できていないとも、できているとも書かない。
+
+- T16-3 の「各 Study で before/after のスクリーンショット比較を残す」— 比較画像は
+  リポジトリ内に見当たらない。manifest に残るのは「見た目不変・ビルド後 CSS サイズ据え置き」
+  という記述だけで、画像が別の場所に保管されたのかどうかは判定できない
+- T16-4 の受け入れ基準「手元の既存 recipe ファイル（旧形式）の読み込みテストが全 Study で通る」—
+  自動テストは 4 本（skin 3 本・interior-growth 1 本）のみで、全 Study の旧形式 recipe 読込を
+  通す試験は存在しない。手作業で行われたかどうかは判定できない
+- T16-1 の呼称置換 — `tsconfig.json` の `noEmit: true` と、リポジトリ直下に
+  `vite.config.d.ts` が無いことは確認した。文書側の「Yohaku」残存はこの節では判定しない。
+  ただし保存 STL / OBJ のヘッダ文字列は旧名のままである
+  （`src/studies/cloud-sculpt/meshExport.ts`。バイト列と SHA-256 が変わる production 変更のため
+  docs-only では直せない）
+
+### R0（2026-07-25/26）との関係
+
+`docs/architecture/` に置いた R0 の 5 文書は、**9 Study 時点での再監査**である。
+T16 の監査は 2026-07-17 の 8 Study 時点で行われ、そのあとに interior-growth が加わった。
+
+R 系列は T16 を置き換える別の大規模整理ではない。T16 のあとに残ったもの —
+Study 配下に残る共有ハブ、制作設定（printer preset の Katachi / Optimizer 二重定義など）、
+Optimizer との境界 — を扱う続編である。上の「一部実装済み」の範囲を前提に読むこと。
+
+- [機能地図](../architecture/katachi-capability-map-20260725.md)
+- [依存関係・重複マップ](../architecture/katachi-dependency-duplication-map-20260725.md)
+- [Optimizer との境界](../architecture/katachi-optimizer-boundary-20260725.md)
+- [座標・書き出し契約](../architecture/katachi-coordinate-export-contract-20260725.md)
+- [段階整理計画](../architecture/katachi-reorganization-plan-20260725.md)
+
+interior-growth への T 番号の発番は、作者判断を伴うためこの文書では行わない。

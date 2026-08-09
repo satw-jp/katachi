@@ -3,6 +3,8 @@
 Status: design baseline
 UpdatedAt: 2026-08-01
 
+Current weekly handoff: [current-week-plan.md](current-week-plan.md)
+
 ## Purpose
 
 hikari is a real-time visual instrument specialized for transparent materials.
@@ -64,6 +66,8 @@ hikari does not currently own:
 6. **The light drawing belongs to the form.** A caustic line or arc is not floor decoration. It must arise from the author's actual geometry and become sharper or softer for a reason when the light environment changes.
 7. **Natural light is the primary light.** Tokyo is the first geographic clock. Open air and simple rooms expose how date, time, opening direction, room size, ceiling height, and distance from a window change the same body.
 8. **A daylighting device redirects; it does not generate.** A brighter patch must be accompanied by an explainable light path. Compare body/no-body states and preserve relative energy before calling the form useful for daylight.
+9. **Darkness is authored information.** A dark outer body containing a small or clear light region can express comfort in darkness. Natural view must not automatically lift every host to the same brightness or treat disappearance and black silhouette as failed exposure.
+10. **Inclusions are plural in the scene model.** The first transport milestone may validate one inclusion, but saved data and renderer boundaries must admit several independently shaped, transformed, and material-bound inclusions. The author is developing a physical work in which this multiplicity matters.
 
 ## Roadmap order
 
@@ -81,6 +85,12 @@ The current implementation is co-located with Katachi Cloud Sculpt. This is inte
 
 Implemented today:
 
+- a versioned, JSON-serializable `ShapeAsset` contract plus a separate runtime shape-query adapter;
+- adapters for the current smooth-union metaballs and sampled signed-distance or density volumes;
+- authored region metadata kept separate from optical-material binding;
+- a serializable `OpticalScene` and minimal `HikariCase` that do not depend on localStorage;
+- a live Cloud Sculpt adapter; Flow projection and CPU optics now query `RuntimeShape`;
+- `観察を保存／観察を開く`, preserving shape recipe, Hikari controls, camera, scene, backend, and approximation notes;
 - WebGL SDF rendering of one smooth-union transparent body;
 - entry/inside/exit refraction with one material IOR;
 - Beer–Lambert-like absorption and thickness-dependent tint;
@@ -94,6 +104,8 @@ Implemented today:
 
 Known limits:
 
+- the live Cloud path and CPU optics use the contracts, but the WebGL view shader and WebGPU compute shader still evaluate metaballs directly;
+- current live fingerprints are labelled non-cryptographic `fnv1a32`; a cryptographic provenance hash remains an export-stage requirement;
 - only one medium boundary exists;
 - material color is not yet an editable RGB absorption coefficient;
 - no clear inclusion inside a separately colored host;
@@ -111,7 +123,10 @@ The extraction boundary is:
 Katachi shape/history
         |
         v
-ShapeSource { revision, balls, smoothK, recipe }
+ShapeAsset { revision, representation, regions, recipe, hash }
+        |
+        v
+RuntimeShape { distance, contains, normal, regionAt }
         |
         v
 OpticalScene { media, receiver, light, camera }
@@ -121,9 +136,63 @@ OpticalScene { media, receiver, light, camera }
         +--> WebGPU tracer
 ```
 
+## Shape handoff is a core purpose
+
+The author identified an important direction on 2026-08-01:
+
+> 「katachiで重要なのは内部重点や表面重点などの複雑形状をhikariに持っていきやすくできること」
+
+This means that the Katachi → hikari boundary must not be designed only around the
+current smooth-union `Ball[]` source. Katachi is valuable here because it can create
+forms whose meaning is in where material is emphasized: inside a volume, on a host
+surface, along a path, around a void, or across several regions. A single exported
+mesh may preserve the silhouette while losing the distinction that made the form
+interesting.
+
+The handoff therefore has three related parts:
+
+1. **Optical shape query** — hikari can evaluate the chosen shape for boundary,
+   normal, containment, and optical path queries without knowing the Study UI.
+2. **Frozen geometry** — a complex result can be viewed and exported even when its
+   generating Study is not running live.
+3. **Recipe and provenance** — the source Study, field/region meaning, parameters,
+   revision, scale, and approximation limits travel with the shape so the optical
+   observation remains reproducible.
+
+The first useful contract is consequently broader than `balls / smoothK` while
+remaining small enough to implement incrementally. It is split deliberately into
+portable data and browser-runtime behavior:
+
+```ts
+type ShapeAsset = {
+  revision: string;
+  bounds: Bounds;
+  representation: Metaballs | SampledField;
+  regions: ShapeRegion[];
+  recipe: JsonValue;
+  sourceHash: string;
+  approximations: string[];
+};
+
+type RuntimeShape = {
+  asset: ShapeAsset;
+  distance(point: Vec3): number;
+  contains(point: Vec3): boolean;
+  normal(point: Vec3): Vec3;
+  regionAt(point: Vec3): string | undefined;
+};
+```
+
+`regions` are not a replacement for the optical medium model. They preserve the
+Katachi-side distinction between host, inclusion, surface emphasis, interior
+emphasis, void, and other authored regions so hikari can map that meaning to
+`Medium` objects deliberately. The first implementation may still adapt the
+current `Ball[]` field, but new complex studies should not be forced to flatten
+their result into an undifferentiated mesh before hikari can observe it.
+
 An independent `Projects/active/hikari` repository becomes appropriate when:
 
-1. `ShapeSource` is explicit and versioned;
+1. `ShapeAsset` and `RuntimeShape` are explicit and versioned;
 2. one host plus one inclusion can be represented by `OpticalScene`;
 3. a saved validation case can be reopened without Katachi localStorage;
 4. CPU reference tests define the expected medium transitions;

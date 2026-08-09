@@ -20,12 +20,17 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     rollupOptions: {
-      // Multi-page build: S1 (index.html) と S2 (gravity.html) は素朴なリンクで
+      // Multi-page build: S1 (cloud-sculpt.html) と S2 (gravity.html) は素朴なリンクで
       // 行き来する別々の Study なので、どちらも static build の出力に含める。
       // Paths are relative to vite's root (project root, process.cwd() by
       // default) — avoids pulling in @types/node just for path resolution.
       input: {
+        // root は Hikari の入口。同じ実装を共有する Cloud Sculpt は、Study一覧から
+        // `cloud-sculpt.html` へ入ることで初期表示を KATACHI に固定する。
         main: "index.html",
+        cloudSculpt: "cloud-sculpt.html",
+        // R5: Study launcher（Instrument の最初の一枚）。
+        studies: "studies.html",
         gravity: "gravity.html",
         sag: "sag.html",
         mpm: "mpm.html",
@@ -33,6 +38,12 @@ export default defineConfig(({ mode }) => ({
         rings: "rings.html",
         pack: "pack.html",
         skin: "skin.html",
+        interiorGrowth: "interior-growth.html",
+        hitsuji: "hitsuji.html",
+        hitsujiField: "hitsuji-field.html",
+        tangle: "tangle.html",
+        flowerPackingSpike: "flower-packing-spike.html",
+        flowerFormSpike: "flower-form-spike.html",
       },
     },
   },

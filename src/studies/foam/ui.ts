@@ -84,6 +84,11 @@ export function buildFoamUi(
   navSkin.href = "./skin.html";
   navSkin.textContent = "S-skin 表面に詰める →";
   navRow.appendChild(navSkin);
+  const navInteriorGrowth = document.createElement("a");
+  navInteriorGrowth.className = "nav-link";
+  navInteriorGrowth.href = "./interior-growth.html";
+  navInteriorGrowth.textContent = "S-interior-growth 内部から育つ →";
+  navRow.appendChild(navInteriorGrowth);
   root.appendChild(navRow);
 
   const title = document.createElement("div");

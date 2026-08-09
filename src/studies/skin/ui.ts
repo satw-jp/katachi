@@ -14,6 +14,13 @@ import type { PackPatchesResult } from "./field.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type { SkinViewMode } from "./renderer.ts";
 import { PATCH_MAX_POINTS } from "./shaders.ts";
+import {
+  describePartitionSelectionLabel,
+  getTutorialStepContent,
+  TUTORIAL_TOTAL_STEPS,
+  type PartitionSelectionInfo,
+  type TutorialStepId,
+} from "./partitionTutorial.ts";
 
 export interface UiCallbacks {
   onHostParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -34,6 +41,33 @@ export interface UiCallbacks {
   onImportFile: (file: File) => void;
   onMeshInspect: (options: MeshUiOptions) => void;
   onMeshExport: (options: MeshUiOptions) => void;
+  // --- T13 coin由来A/B分割 ---------------------------------------------
+  onToggleSeedPickMode: (active: boolean) => void;
+  onProposeGroups: () => void;
+  onAssignSelectedPatchToGroup: (group: "A" | "B") => void;
+  onClearSeeds: () => void;
+  onConfirmPartition: () => void;
+  onBuildPartition: () => void;
+  onCancelPartitionBuild: () => void;
+  /** Only enabled once the gate (watertight + real mesh overlap/gap within
+   * tolerance) passes -- see main.ts's evaluatePartitionGate. */
+  onExportPartition: (parts: Array<"A" | "B">) => void;
+  /** Always available once a build result exists, gate or no gate -- an
+   * explicit, differently-labeled "検証用・非合格" escape hatch (audit fix
+   * P0-3) so an out-of-tolerance result is never silently shipped as if it
+   * were a normal export. */
+  onExportPartitionVerification: (parts: Array<"A" | "B">) => void;
+  /** Bead-preview-only toggle (A+B / Aのみ / Bのみ) -- does not affect export. */
+  onSetPartitionPreviewFilter: (filter: "both" | "A" | "B") => void;
+  // --- A/B partition guided tutorial (optional overlay; no geometry change) ---
+  onTutorialOpen: () => void;
+  onTutorialClose: () => void;
+  onTutorialPrev: () => void;
+  onTutorialAdvance: () => void;
+  onTutorialRestart: () => void;
+  /** Stop browsing a past step and jump the displayed page back to the real
+   * workflow position. */
+  onTutorialReturnToCurrent: () => void;
 }
 
 export interface UiHandles {
@@ -56,9 +90,53 @@ export interface UiHandles {
   setMode: (mode: SkinMode) => void;
   setAddPatchModeActive: (active: boolean) => void;
   setMeshStatus: (text: string, ok?: boolean) => void;
+  // --- T13 coin由来A/B分割 ---------------------------------------------
+  setSeedPickModeActive: (active: boolean) => void;
+  setPartitionDraftInfo: (text: string) => void;
+  /** T14: the always-visible "選択中Patch: #ID / 現在 A（青）" line next to
+   * the A/B assign buttons, and the buttons' enabled state (disabled when
+   * null -- nothing selected to assign). Independent of setSelectionInfo's
+   * far-away general patch info; this one lives right where the A/B
+   * decision is made (作者方針 "A/Bボタンと同時に視界へ入る位置"). */
+  setPartitionSelectedPatch: (info: PartitionSelectionInfo | null) => void;
+  /** T15 P1: static emphasis border/background on the Aへ/Bへ row --
+   * SEPARATE from setPartitionSelectedPatch because emphasis must only show
+   * while the author is actually in an A/B workflow context (selection-
+   * final-polish P1: a plain patch pick during ordinary Pack/delete/mesh
+   * work must not make A/B assignment look like the primary action). The
+   * label text and button-enabled state, by contrast, simply reflect "is
+   * something selected" and stay wired to setPartitionSelectedPatch. */
+  setPartitionActionEmphasis: (active: boolean) => void;
+  setPartitionStatus: (text: string, ok?: boolean) => void;
+  setPartitionMetrics: (text: string) => void;
+  setPartitionExportEnabled: (enabled: boolean) => void;
+  setPartitionVerificationExportEnabled: (enabled: boolean) => void;
+  /** Disables "分割してメッシュ化" while a Worker request is in flight
+   * (prevents double-invocation) and enables/disables "キャンセル" inversely. */
+  setPartitionBuildRunning: (running: boolean) => void;
+  /**
+   * Compact in-panel A/B guide card. When closed, only the start button shows.
+   * Does not block canvas or existing controls. Highlights are non-modal CSS
+   * outline only (no click-blocking overlay).
+   */
+  setPartitionTutorial: (state: {
+    open: boolean;
+    /** The step currently being READ (may be a past step, see isViewingPast). */
+    step: TutorialStepId;
+    /** The real workflow's step (derivePartitionTutorialStep), never rewound. */
+    actualStep: TutorialStepId;
+    /** True when `step` is a past step, not the real workflow position. */
+    isViewingPast: boolean;
+    canPrev: boolean;
+    canAdvance: boolean;
+    /** "confirm" = advancing may set a review flag (only possible at the real
+     * step 4/5); "next" = advancing only turns the displayed page; "none" =
+     * no advance control shown. */
+    advanceMode: "confirm" | "next" | "none";
+  }) => void;
   /** Update the three-way view toggle's active button + honest caption
    * (approximation disclosure for beads, capacity note for raymarch). */
-  setViewMode: (mode: SkinViewMode, totalPatchPoints: number) => void;
+  setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
   /** Show/hide the "自動でビーズ表示に切り替えました" banner (T12 §2). */
   setAutoSwitchNotice: (active: boolean) => void;
   /** Re-render just the shape-selector buttons' active state (T12 bugfix --
@@ -89,6 +167,10 @@ const SKIN_SPECS: { key: keyof SkinParams; label: string; min: number; max: numb
   { key: "gap", label: "目地 g（負=重なり許容）", min: -0.3, max: 0.3, step: 0.005 },
   { key: "attempts", label: "詰め込みの強さ (試行数)", min: 20, max: 4000, step: 20 },
   { key: "roundK", label: "丸さ k (合成の滑らかさ)", min: 0, max: 0.4, step: 0.005 },
+  // T14 coin-bulge experiment (作者Observation 2026-07-20). 既定0 = 従来形状
+  // と数式一致。コイン形状の plate mode だけに効く -- flatRing/ring3d/window
+  // modeは無変化（field.ts's compositeSdf 参照）。
+  { key: "coinBulge", label: "コインのふくらみ", min: 0, max: 0.32, step: 0.005 },
 ];
 
 const RING_SPECS: { key: keyof SkinParams; label: string; min: number; max: number; step: number }[] = [
@@ -127,6 +209,7 @@ export function buildUi(
     ["./foam.html", "S-foam 泡のセル"],
     ["./rings.html", "S-rings 輪の手"],
     ["./pack.html", "S-pack 虚を詰める"],
+    ["./interior-growth.html", "S-interior-growth 内部から育つ"],
   ];
   for (const [href, label] of navLinks) {
     const a = document.createElement("a");
@@ -276,13 +359,53 @@ export function buildUi(
   root.appendChild(shapeHint);
 
   const skinSliders: { spec: (typeof SKIN_SPECS)[number]; set: (v: number) => void }[] = [];
+  let coinBulgeSliderSet: ((v: number) => void) | null = null;
   for (const spec of SKIN_SPECS) {
-    const built = buildSlider(spec.label, spec.min, spec.max, spec.step, skinParams[spec.key] as number, (v) =>
-      callbacks.onSkinParamChange(spec.key, v),
-    );
+    const built = buildSlider(spec.label, spec.min, spec.max, spec.step, skinParams[spec.key] as number, (v) => {
+      callbacks.onSkinParamChange(spec.key, v);
+      if (spec.key === "coinBulge") renderCoinBulgeState(v);
+    });
     skinSliders.push({ spec, set: built.set });
     root.appendChild(built.row);
+    if (spec.key === "coinBulge") coinBulgeSliderSet = built.set;
   }
+
+  // T14 coin-bulge experiment (instruction §4): preset buttons for quick
+  // 0/+0.04/+0.08/+0.12 comparison, and a short (not long-form) visual state
+  // -- 作者方針 "長い説明文を常時追加しない". Presets are comparison values,
+  // not a推奨 -- no preset is visually marked as recommended.
+  const coinBulgePresetRow = document.createElement("div");
+  coinBulgePresetRow.className = "mode-toggle";
+  const coinBulgePresets = [0, 0.04, 0.08, 0.12];
+  const coinBulgePresetButtons: HTMLButtonElement[] = [];
+  for (const presetValue of coinBulgePresets) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = presetValue === 0 ? "0" : `+${presetValue.toFixed(2)}`;
+    btn.onclick = () => {
+      coinBulgeSliderSet?.(presetValue);
+      callbacks.onSkinParamChange("coinBulge", presetValue);
+      renderCoinBulgeState(presetValue);
+    };
+    coinBulgePresetButtons.push(btn);
+    coinBulgePresetRow.appendChild(btn);
+  }
+  root.appendChild(coinBulgePresetRow);
+
+  const coinBulgeState = document.createElement("div");
+  coinBulgeState.className = "hint";
+  root.appendChild(coinBulgeState);
+
+  function renderCoinBulgeState(value: number): void {
+    for (let i = 0; i < coinBulgePresets.length; i++) {
+      coinBulgePresetButtons[i].classList.toggle("mode-active", Math.abs(coinBulgePresets[i] - value) < 1e-6);
+    }
+    coinBulgeState.textContent =
+      value > 0
+        ? `>0: ふくらみ比較中（コイン形状のみ・現在 +${value.toFixed(3)}）`
+        : "0: 従来（コイン・平リングとも旧形状と同一）";
+  }
+  renderCoinBulgeState(skinParams.coinBulge);
 
   const ringSlidersTitle = document.createElement("div");
   ringSlidersTitle.className = "section-title";
@@ -366,18 +489,22 @@ export function buildUi(
   viewCaption.className = "hint";
   root.appendChild(viewCaption);
 
-  function renderViewMode(mode: SkinViewMode, totalPatchPoints: number): void {
+  function renderViewMode(mode: SkinViewMode, totalPatchPoints: number, coinBulge: number): void {
     for (const [m, btn] of Object.entries(viewButtons) as [SkinViewMode, HTMLButtonElement][]) {
       btn.classList.toggle("mode-active", m === mode);
     }
     if (mode === "raymarch") {
       viewCaption.textContent =
         totalPatchPoints > PATCH_MAX_POINTS
-          ? `レイマーチ: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「ビーズ」か「全体メッシュ」で全量を見てください）`
+          ? `レイマーチ: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「ビーズ」か「全体メッシュ」で全量を見てください）` +
+            (coinBulge > 0 ? " ※容量内ならふくらみ比較もそのまま反映されます。" : "")
           : "レイマーチ: 食い込みなしで滑らかな合成場をそのまま描画（この点数では容量内）。";
     } else if (mode === "beads") {
       viewCaption.textContent =
-        `ビーズ近似: ブレンド（smooth-min）省略・配置と密度は全量正確（全${totalPatchPoints}点）。リングは元々数珠なので見た目の乖離は小さいはずだが、コインの融合など見た目が変わる形状もある（README 参照）。容量の制約なしにオービット/ズームできる。`;
+        `ビーズ近似: ブレンド（smooth-min）省略・配置と密度は全量正確（全${totalPatchPoints}点）。リングは元々数珠なので見た目の乖離は小さいはずだが、コインの融合など見た目が変わる形状もある（README 参照）。容量の制約なしにオービット/ズームできる。` +
+        (coinBulge > 0
+          ? " ⚠ ビーズは生のPatchPoint球をそのまま描くため、コインのふくらみ（shell clippingの差）を正しく表しません。ふくらみ比較には「全体メッシュ」を使ってください。"
+          : "");
     } else {
       viewCaption.textContent = "全体メッシュ: STL と同じ実データ全部を lit mesh で表示（正確・やや重い）。編集操作をするとレイマーチ/ビーズへ自動的に戻ります。";
     }
@@ -512,6 +639,310 @@ export function buildUi(
 
   root.appendChild(document.createElement("hr"));
 
+  // --- T13 coin由来A/B分割 --------------------------------------------------
+  const partitionPanel = document.createElement("div");
+  partitionPanel.className = "mesh-export";
+
+  const partitionTitle = document.createElement("div");
+  partitionTitle.className = "mesh-export-title";
+  partitionTitle.textContent = "A/B分割（coin隣接グラフ）";
+  partitionPanel.appendChild(partitionTitle);
+
+  // --- Optional guided tutorial (compact card; never a modal overlay) ------
+  const tutorialStartBtn = document.createElement("button");
+  tutorialStartBtn.type = "button";
+  tutorialStartBtn.className = "tutorial-start-btn";
+  tutorialStartBtn.textContent = "分割ガイドを開始";
+  tutorialStartBtn.onclick = () => callbacks.onTutorialOpen();
+  partitionPanel.appendChild(tutorialStartBtn);
+
+  const tutorialCard = document.createElement("section");
+  tutorialCard.className = "partition-tutorial";
+  tutorialCard.hidden = true;
+  tutorialCard.setAttribute("aria-label", "A/B分割ガイド");
+
+  const tutorialHeader = document.createElement("div");
+  tutorialHeader.className = "partition-tutorial-header";
+  const tutorialStepLabel = document.createElement("div");
+  tutorialStepLabel.className = "partition-tutorial-step";
+  tutorialStepLabel.textContent = `Step 1 / ${TUTORIAL_TOTAL_STEPS}`;
+  const tutorialCloseBtn = document.createElement("button");
+  tutorialCloseBtn.type = "button";
+  tutorialCloseBtn.textContent = "閉じる";
+  tutorialCloseBtn.onclick = () => {
+    callbacks.onTutorialClose();
+    // Avoid leaving focus on a now-hidden control.
+    tutorialStartBtn.focus();
+  };
+  tutorialHeader.appendChild(tutorialStepLabel);
+  tutorialHeader.appendChild(tutorialCloseBtn);
+  tutorialCard.appendChild(tutorialHeader);
+
+  const tutorialHeading = document.createElement("h3");
+  tutorialHeading.className = "partition-tutorial-title";
+  tutorialHeading.textContent = "";
+  tutorialCard.appendChild(tutorialHeading);
+
+  // T14 §2.5: the one-line imperative instruction (TutorialStepContent.short)
+  // is now the primary always-visible content -- 作者方針 2026-07-20 "文字は
+  // あまり読まない...今すべき操作を強調表示が大事". The old multi-bullet
+  // body moves into a collapsed <details>, closed by default, so a first
+  // glance at the card shows only Step N/8 + heading + this one line.
+  const tutorialShort = document.createElement("div");
+  tutorialShort.className = "partition-tutorial-short";
+  tutorialShort.setAttribute("aria-live", "polite");
+  tutorialCard.appendChild(tutorialShort);
+
+  // Shown only while browsing a past step (displayedStep !== actualStep), so
+  // it's always clear that reading an earlier step is not the same as the
+  // real workflow having moved backward.
+  const tutorialViewingPastNote = document.createElement("div");
+  tutorialViewingPastNote.className = "partition-tutorial-viewing-past";
+  tutorialViewingPastNote.hidden = true;
+  tutorialCard.appendChild(tutorialViewingPastNote);
+
+  const tutorialDetails = document.createElement("details");
+  tutorialDetails.className = "partition-tutorial-details";
+  const tutorialSummary = document.createElement("summary");
+  tutorialSummary.textContent = "詳しく見る";
+  tutorialDetails.appendChild(tutorialSummary);
+  const tutorialBody = document.createElement("ul");
+  tutorialBody.className = "partition-tutorial-body";
+  tutorialDetails.appendChild(tutorialBody);
+  tutorialCard.appendChild(tutorialDetails);
+
+  const tutorialNav = document.createElement("div");
+  tutorialNav.className = "partition-tutorial-nav row";
+  const tutorialPrevBtn = document.createElement("button");
+  tutorialPrevBtn.type = "button";
+  tutorialPrevBtn.textContent = "前へ";
+  tutorialPrevBtn.onclick = () => callbacks.onTutorialPrev();
+  const tutorialAdvanceBtn = document.createElement("button");
+  tutorialAdvanceBtn.type = "button";
+  tutorialAdvanceBtn.dataset.tutorialTarget = "confirm-review";
+  tutorialAdvanceBtn.textContent = "確認した";
+  tutorialAdvanceBtn.onclick = () => callbacks.onTutorialAdvance();
+  const tutorialRestartBtn = document.createElement("button");
+  tutorialRestartBtn.type = "button";
+  tutorialRestartBtn.textContent = "最初から読む";
+  tutorialRestartBtn.onclick = () => callbacks.onTutorialRestart();
+  const tutorialReturnBtn = document.createElement("button");
+  tutorialReturnBtn.type = "button";
+  tutorialReturnBtn.hidden = true;
+  tutorialReturnBtn.onclick = () => callbacks.onTutorialReturnToCurrent();
+  tutorialNav.appendChild(tutorialPrevBtn);
+  tutorialNav.appendChild(tutorialAdvanceBtn);
+  tutorialNav.appendChild(tutorialRestartBtn);
+  tutorialNav.appendChild(tutorialReturnBtn);
+  tutorialCard.appendChild(tutorialNav);
+  partitionPanel.appendChild(tutorialCard);
+
+  const partitionHint = document.createElement("div");
+  partitionHint.className = "hint";
+  partitionHint.textContent =
+    "「A端・B端を選び直す」を押し、分けたい方向の片端をA端、反対側をB端として順にクリックします。2点目で選択モードは自動終了します。" +
+    "両端からの隣接グラフ距離を使い、個数が約半分になるA/B候補を提案します。" +
+    "個別パッチの群は「選択中のパッチをA/Bへ」で上書きできます。AもBも使うかは作者が確定・分割実行後に判断してください（自動判定なし）。";
+  partitionPanel.appendChild(partitionHint);
+
+  const partitionLegend = document.createElement("div");
+  partitionLegend.className = "partition-legend";
+  partitionLegend.dataset.tutorialTarget = "legend";
+  partitionLegend.innerHTML =
+    '<span><i class="partition-swatch partition-swatch-a"></i><strong>青 = A</strong></span>' +
+    '<span><i class="partition-swatch partition-swatch-b"></i><strong>オレンジ = B</strong></span>';
+  partitionPanel.appendChild(partitionLegend);
+
+  const seedModeRow = document.createElement("div");
+  seedModeRow.className = "row";
+  const seedModeToggle = document.createElement("button");
+  seedModeToggle.type = "button";
+  seedModeToggle.dataset.tutorialTarget = "seed-pick";
+  seedModeToggle.textContent = "A端・B端を選び直す";
+  let seedModeActive = false;
+  const renderSeedModeButton = () => {
+    seedModeToggle.classList.toggle("active", seedModeActive);
+    seedModeToggle.textContent = seedModeActive
+      ? "両端選択を中止（A端→B端）"
+      : "A端・B端を選び直す";
+  };
+  seedModeToggle.onclick = () => {
+    seedModeActive = !seedModeActive;
+    renderSeedModeButton();
+    callbacks.onToggleSeedPickMode(seedModeActive);
+  };
+  const clearSeedsBtn = document.createElement("button");
+  clearSeedsBtn.type = "button";
+  clearSeedsBtn.textContent = "端点と色分けをクリア";
+  clearSeedsBtn.onclick = () => callbacks.onClearSeeds();
+  seedModeRow.appendChild(seedModeToggle);
+  seedModeRow.appendChild(clearSeedsBtn);
+  partitionPanel.appendChild(seedModeRow);
+
+  const proposeRow = document.createElement("div");
+  proposeRow.className = "row";
+  const proposeBtn = document.createElement("button");
+  proposeBtn.type = "button";
+  proposeBtn.dataset.tutorialTarget = "propose";
+  proposeBtn.textContent = "両端から約半分のA/B候補を提案";
+  proposeBtn.onclick = () => callbacks.onProposeGroups();
+  proposeRow.appendChild(proposeBtn);
+  partitionPanel.appendChild(proposeRow);
+
+  // T14 §2.2: always-visible "選択中Patch: ..." line, right where the A/B
+  // decision is made -- independent of the far-away general selection-info
+  // line (which stays as-is). Color swatch + text both, per 作者方針
+  // "色見本と文字の両方を使う".
+  const partitionSelectionRow = document.createElement("div");
+  partitionSelectionRow.className = "partition-selection-line";
+  const partitionSelectionSwatch = document.createElement("i");
+  partitionSelectionSwatch.className = "partition-swatch";
+  partitionSelectionSwatch.hidden = true;
+  const partitionSelectionText = document.createElement("span");
+  partitionSelectionText.setAttribute("aria-live", "polite");
+  partitionSelectionText.textContent = describePartitionSelectionLabel(null);
+  partitionSelectionRow.appendChild(partitionSelectionSwatch);
+  partitionSelectionRow.appendChild(partitionSelectionText);
+  partitionPanel.appendChild(partitionSelectionRow);
+
+  const overrideRow = document.createElement("div");
+  overrideRow.className = "row";
+  overrideRow.dataset.tutorialTarget = "assign-ab";
+  const assignABtn = document.createElement("button");
+  assignABtn.type = "button";
+  assignABtn.textContent = "選択中のパッチをAへ";
+  assignABtn.disabled = true;
+  assignABtn.onclick = () => callbacks.onAssignSelectedPatchToGroup("A");
+  const assignBBtn = document.createElement("button");
+  assignBBtn.type = "button";
+  assignBBtn.textContent = "選択中のパッチをBへ";
+  assignBBtn.disabled = true;
+  assignBBtn.onclick = () => callbacks.onAssignSelectedPatchToGroup("B");
+  overrideRow.appendChild(assignABtn);
+  overrideRow.appendChild(assignBBtn);
+  partitionPanel.appendChild(overrideRow);
+
+  const partitionDraftInfo = document.createElement("div");
+  partitionDraftInfo.className = "selection-info";
+  partitionDraftInfo.textContent = "シード未選択";
+  partitionPanel.appendChild(partitionDraftInfo);
+
+  const previewFilterRow = document.createElement("div");
+  previewFilterRow.className = "row";
+  previewFilterRow.dataset.tutorialTarget = "preview-filter";
+  const previewFilterLabel = document.createElement("span");
+  previewFilterLabel.textContent = "プレビュー: ";
+  previewFilterRow.appendChild(previewFilterLabel);
+  const previewFilterButtons: Record<"both" | "A" | "B", HTMLButtonElement> = {} as never;
+  for (const [key, label] of [["both", "A+B"], ["A", "Aのみ"], ["B", "Bのみ"]] as const) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    btn.onclick = () => {
+      for (const k of ["both", "A", "B"] as const) previewFilterButtons[k].classList.toggle("mode-active", k === key);
+      callbacks.onSetPartitionPreviewFilter(key);
+    };
+    previewFilterButtons[key] = btn;
+    previewFilterRow.appendChild(btn);
+  }
+  previewFilterButtons.both.classList.add("mode-active");
+  partitionPanel.appendChild(previewFilterRow);
+
+  const confirmRow = document.createElement("div");
+  confirmRow.className = "row";
+  const confirmPartitionBtn = document.createElement("button");
+  confirmPartitionBtn.type = "button";
+  confirmPartitionBtn.dataset.tutorialTarget = "confirm";
+  confirmPartitionBtn.textContent = "このA/B構成を確定（履歴へ記録）";
+  confirmPartitionBtn.onclick = () => callbacks.onConfirmPartition();
+  confirmRow.appendChild(confirmPartitionBtn);
+  partitionPanel.appendChild(confirmRow);
+
+  const buildRow = document.createElement("div");
+  buildRow.className = "row";
+  const buildPartitionBtn = document.createElement("button");
+  buildPartitionBtn.type = "button";
+  buildPartitionBtn.dataset.tutorialTarget = "build";
+  buildPartitionBtn.textContent = "確定したA/Bを物理分割してメッシュ化（Workerで実行）";
+  buildPartitionBtn.onclick = () => callbacks.onBuildPartition();
+  const cancelPartitionBtn = document.createElement("button");
+  cancelPartitionBtn.type = "button";
+  cancelPartitionBtn.dataset.tutorialTarget = "cancel-build";
+  cancelPartitionBtn.textContent = "キャンセル";
+  cancelPartitionBtn.disabled = true;
+  cancelPartitionBtn.onclick = () => callbacks.onCancelPartitionBuild();
+  buildRow.appendChild(buildPartitionBtn);
+  buildRow.appendChild(cancelPartitionBtn);
+  partitionPanel.appendChild(buildRow);
+
+  const partitionStatus = document.createElement("div");
+  partitionStatus.className = "mesh-status";
+  partitionStatus.textContent = "未分割";
+  partitionPanel.appendChild(partitionStatus);
+
+  const partitionMetrics = document.createElement("pre");
+  partitionMetrics.className = "partition-metrics";
+  partitionPanel.appendChild(partitionMetrics);
+
+  const exportHint = document.createElement("div");
+  exportHint.className = "hint";
+  exportHint.textContent =
+    "通常書き出しは、A/Bが各1個の連結部品で、実メッシュが保存後トポロジー有効かつ重複・未割当体積が許容値内のときだけ有効になります。" +
+    "許容値外でも構造や数値を確認したい場合は「検証用として書き出す（非合格）」を使ってください（ファイル名で区別されます）。";
+  partitionPanel.appendChild(exportHint);
+
+  const exportRow = document.createElement("div");
+  exportRow.className = "row";
+  exportRow.dataset.tutorialTarget = "export-normal";
+  const exportABtn = document.createElement("button");
+  exportABtn.type = "button";
+  exportABtn.textContent = "part-Aのみ書き出す";
+  exportABtn.disabled = true;
+  exportABtn.onclick = () => callbacks.onExportPartition(["A"]);
+  const exportBBtn = document.createElement("button");
+  exportBBtn.type = "button";
+  exportBBtn.textContent = "part-Bのみ書き出す";
+  exportBBtn.disabled = true;
+  exportBBtn.onclick = () => callbacks.onExportPartition(["B"]);
+  const exportBothBtn = document.createElement("button");
+  exportBothBtn.type = "button";
+  exportBothBtn.textContent = "両方書き出す";
+  exportBothBtn.disabled = true;
+  exportBothBtn.onclick = () => callbacks.onExportPartition(["A", "B"]);
+  exportRow.appendChild(exportABtn);
+  exportRow.appendChild(exportBBtn);
+  exportRow.appendChild(exportBothBtn);
+  partitionPanel.appendChild(exportRow);
+
+  const verificationExportRow = document.createElement("div");
+  verificationExportRow.className = "row";
+  verificationExportRow.dataset.tutorialTarget = "export-verify";
+  const verifyExportABtn = document.createElement("button");
+  verifyExportABtn.type = "button";
+  verifyExportABtn.className = "secondary";
+  verifyExportABtn.textContent = "検証用A（非合格）";
+  verifyExportABtn.disabled = true;
+  verifyExportABtn.onclick = () => callbacks.onExportPartitionVerification(["A"]);
+  const verifyExportBBtn = document.createElement("button");
+  verifyExportBBtn.type = "button";
+  verifyExportBBtn.className = "secondary";
+  verifyExportBBtn.textContent = "検証用B（非合格）";
+  verifyExportBBtn.disabled = true;
+  verifyExportBBtn.onclick = () => callbacks.onExportPartitionVerification(["B"]);
+  const verifyExportBothBtn = document.createElement("button");
+  verifyExportBothBtn.type = "button";
+  verifyExportBothBtn.className = "secondary";
+  verifyExportBothBtn.textContent = "検証用 両方（非合格）";
+  verifyExportBothBtn.disabled = true;
+  verifyExportBothBtn.onclick = () => callbacks.onExportPartitionVerification(["A", "B"]);
+  verificationExportRow.appendChild(verifyExportABtn);
+  verificationExportRow.appendChild(verifyExportBBtn);
+  verificationExportRow.appendChild(verifyExportBothBtn);
+  partitionPanel.appendChild(verificationExportRow);
+
+  root.appendChild(partitionPanel);
+  root.appendChild(document.createElement("hr"));
+
   const historyRow = document.createElement("div");
   historyRow.className = "row";
   const exportBtn = document.createElement("button");
@@ -522,6 +953,7 @@ export function buildUi(
 
   const importRow = document.createElement("div");
   importRow.className = "row";
+  importRow.dataset.tutorialTarget = "import-recipe";
   const importLabel = document.createElement("label");
   importLabel.textContent = "skin 履歴を読み込む";
   importLabel.className = "file-label";
@@ -713,6 +1145,7 @@ export function buildUi(
       for (const { spec, set } of ringSliders) set(Number(p[spec.key]));
       skinSeedInput.value = p.seed;
       renderShapeButtons(p.patchShape);
+      renderCoinBulgeState(p.coinBulge);
     },
     setMode: (m) => {
       plateBtn.classList.toggle("mode-active", m === "plate");
@@ -724,7 +1157,7 @@ export function buildUi(
       addPatchToggle.classList.toggle("active", active);
       addPatchToggle.textContent = active ? "パッチを手で追加 (有効・クリックで配置)" : "パッチを手で追加 (クリック)";
     },
-    setViewMode: (mode, totalPatchPoints) => renderViewMode(mode, totalPatchPoints),
+    setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
     setAutoSwitchNotice: (active) => {
       autoSwitchNotice.style.display = active ? "block" : "none";
     },
@@ -734,6 +1167,104 @@ export function buildUi(
       meshStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
     getMeshOptions: () => readMeshOptions(),
+    setSeedPickModeActive: (active) => {
+      seedModeActive = active;
+      renderSeedModeButton();
+    },
+    setPartitionDraftInfo: (text) => {
+      partitionDraftInfo.textContent = text;
+    },
+    setPartitionSelectedPatch: (info) => {
+      partitionSelectionText.textContent = describePartitionSelectionLabel(info);
+      partitionSelectionSwatch.hidden = info === null;
+      partitionSelectionSwatch.className = `partition-swatch partition-swatch-${(info?.group ?? "none").toLowerCase()}`;
+      assignABtn.disabled = info === null;
+      assignBBtn.disabled = info === null;
+    },
+    setPartitionActionEmphasis: (active) => {
+      // T14 §2.3 / T15 P1: once a patch is selected WHILE actually doing
+      // A/B work, the A/B decision is "the current primary action" -- give
+      // the whole row a static, non-animated emphasis. Deliberately NOT
+      // driven by selection alone (see setPartitionSelectedPatch) -- a
+      // plain patch pick during ordinary Pack/delete/mesh work must not
+      // make A/B assignment look like the primary action.
+      overrideRow.classList.toggle("action-emphasis", active);
+    },
+    setPartitionStatus: (text, ok) => {
+      partitionStatus.textContent = text;
+      partitionStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setPartitionMetrics: (text) => {
+      partitionMetrics.textContent = text;
+    },
+    setPartitionExportEnabled: (enabled) => {
+      exportABtn.disabled = !enabled;
+      exportBBtn.disabled = !enabled;
+      exportBothBtn.disabled = !enabled;
+    },
+    setPartitionVerificationExportEnabled: (enabled) => {
+      verifyExportABtn.disabled = !enabled;
+      verifyExportBBtn.disabled = !enabled;
+      verifyExportBothBtn.disabled = !enabled;
+    },
+    setPartitionBuildRunning: (running) => {
+      buildPartitionBtn.disabled = running;
+      cancelPartitionBtn.disabled = !running;
+    },
+    setPartitionTutorial: ({ open, step, actualStep, isViewingPast, canPrev, canAdvance, advanceMode }) => {
+      tutorialStartBtn.hidden = open;
+      tutorialCard.hidden = !open;
+      if (!open) {
+        // Clear all highlights when the guide is closed so free A/B use is unchanged.
+        for (const el of partitionPanel.querySelectorAll(".tutorial-highlight")) {
+          el.classList.remove("tutorial-highlight");
+        }
+        for (const el of root.querySelectorAll(".tutorial-highlight")) {
+          el.classList.remove("tutorial-highlight");
+        }
+        return;
+      }
+      const content = getTutorialStepContent(step);
+      tutorialStepLabel.textContent = `Step ${step} / ${TUTORIAL_TOTAL_STEPS}`;
+      tutorialHeading.textContent = content.title;
+      tutorialShort.textContent = content.short;
+      tutorialBody.replaceChildren();
+      for (const line of content.body) {
+        const li = document.createElement("li");
+        li.textContent = line;
+        tutorialBody.appendChild(li);
+      }
+      // Re-collapse on every step change -- an author who left a PREVIOUS
+      // step's details open shouldn't have it silently stay open showing
+      // this step's (unrelated) detail text without them choosing to open it.
+      tutorialDetails.open = false;
+      tutorialViewingPastNote.hidden = !isViewingPast;
+      tutorialViewingPastNote.textContent = isViewingPast
+        ? `表示中 Step ${step} / 現在の工程 Step ${actualStep}（読んでいるだけで、実際の工程は変わりません）`
+        : "";
+      tutorialReturnBtn.hidden = !isViewingPast;
+      tutorialReturnBtn.textContent = `現在の工程へ戻る（Step ${actualStep}）`;
+
+      tutorialPrevBtn.disabled = !canPrev;
+      // advanceMode (not content.advance) decides both the button's meaning
+      // and its label: while browsing a past step, content.advance may say
+      // "confirm" (e.g. reading step 4/5's text again) but this must show
+      // "次へ" and only turn the page -- advanceMode already encodes that.
+      const showAdvance = advanceMode !== "none" && canAdvance;
+      tutorialAdvanceBtn.hidden = !showAdvance;
+      tutorialAdvanceBtn.disabled = !showAdvance;
+      tutorialAdvanceBtn.textContent = advanceMode === "confirm" ? "確認した" : "次へ";
+
+      // Highlights point at controls for the REAL step; suppress them while
+      // reading a past step so nothing is highlighted that isn't actually
+      // the next real action.
+      const targets = isViewingPast ? new Set<string>() : new Set(content.highlightTargets);
+      const allTargets = root.querySelectorAll<HTMLElement>("[data-tutorial-target]");
+      for (const el of allTargets) {
+        const key = el.dataset.tutorialTarget ?? "";
+        el.classList.toggle("tutorial-highlight", targets.has(key));
+      }
+    },
   };
 
   function readMeshOptions(): MeshUiOptions {

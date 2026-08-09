@@ -6,7 +6,14 @@
 // Blender's job, respectively (T2f-import-stl.md "最小負荷の設計": the only
 // two new things this task asked for are "read an STL" and "fill its inside
 // with particles").
+//
+// The ray/triangle intersection itself now lives in
+// ../../lib/geometry/pointInMesh.ts (T13 audit fix P0-1: S-skin's partition
+// verification needed the same test against arbitrary triangle soups, so it
+// was extracted into a shared pure function instead of being re-derived).
 // ---------------------------------------------------------------------------
+
+import { rayTriangleIntersectX } from "../../lib/geometry/pointInMesh.ts";
 
 export interface StlVertex {
   x: number;
@@ -282,43 +289,4 @@ function scaleBounds(b: Bounds3, s: number): Bounds3 {
     max: { x: b.max.x * s, y: b.max.y * s, z: b.max.z * s },
     size: { x: b.size.x * s, y: b.size.y * s, z: b.size.z * s },
   };
-}
-
-/**
- * Möller & Trumbore (1997) ray-triangle intersection, specialized to a ray
- * with direction exactly (1,0,0) starting at (originX, py, pz) -- avoids
- * carrying a general direction vector through the hot loop above. Returns
- * the ray parameter t (> 0, i.e. a forward hit) or null.
- */
-function rayTriangleIntersectX(originX: number, py: number, pz: number, tri: StlTriangle): number | null {
-  const EPS = 1e-9;
-  const { a, b, c } = tri;
-  const e1x = b.x - a.x;
-  const e1y = b.y - a.y;
-  const e1z = b.z - a.z;
-  const e2x = c.x - a.x;
-  const e2y = c.y - a.y;
-  const e2z = c.z - a.z;
-  // h = cross(dir, e2), dir = (1,0,0) => h = (0, -e2z, e2y)
-  const hx = 0;
-  const hy = -e2z;
-  const hz = e2y;
-  const det = e1x * hx + e1y * hy + e1z * hz;
-  if (Math.abs(det) < EPS) return null; // ray parallel to the triangle's plane
-  const invDet = 1 / det;
-  const sx = originX - a.x;
-  const sy = py - a.y;
-  const sz = pz - a.z;
-  const u = (sx * hx + sy * hy + sz * hz) * invDet;
-  if (u < 0 || u > 1) return null;
-  // q = cross(s, e1)
-  const qx = sy * e1z - sz * e1y;
-  const qy = sz * e1x - sx * e1z;
-  const qz = sx * e1y - sy * e1x;
-  // dir . q = (1,0,0) . q = qx
-  const v = qx * invDet;
-  if (v < 0 || u + v > 1) return null;
-  const t = (e2x * qx + e2y * qy + e2z * qz) * invDet;
-  if (t <= EPS) return null;
-  return t;
 }

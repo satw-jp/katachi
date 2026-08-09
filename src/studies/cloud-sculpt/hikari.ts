@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { fieldSdf, type Ball } from "./field.ts";
+import type { MetaballRecord, RuntimeShape, Vec3 } from "../../lib/hikari/index.ts";
 import {
   OpticsLayer,
   type HikariPhenomenon,
@@ -11,6 +11,7 @@ import {
   type OpticalRainbowModel,
   type OpticalSettings,
   type OpticalView,
+  type OpticsShapeSource,
 } from "./optics.ts";
 import { hashSeed, makeRng } from "./random.ts";
 
@@ -59,7 +60,7 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   groundReflectance: 0.7,
   opticalExposure: 1,
   surfaceRoughness: 0.08,
-  surfaceVariation: 0.04,
+  surfaceVariation: 0.14,
   materialVariation: 0.18,
   materialScale: 1,
   environmentContrast: 1,
@@ -214,15 +215,15 @@ export class HikariLayer {
     this.applyVisibility();
   }
 
-  update(balls: Ball[], k: number, settings: HikariSettings): void {
+  update(source: OpticsShapeSource | null, settings: HikariSettings): void {
     this.settings = { ...settings };
-    const signature = `${shapeSignature(balls, k)}:${settings.seed}:${settings.particleCount}:${settings.spawn}:${settings.trailLength}`;
+    const signature = `${source?.runtime.asset.revision ?? "empty"}:${settings.seed}:${settings.particleCount}:${settings.spawn}:${settings.trailLength}`;
     if (signature !== this.signature) {
       this.signature = signature;
-      this.rebuild(balls, k, settings);
+      this.rebuild(source?.runtime ?? null, settings);
     }
     this.applyAppearance();
-    this.optics.update(balls, k, settings);
+    this.optics.update(source, settings);
     this.applyVisibility();
   }
 
@@ -237,7 +238,7 @@ export class HikariLayer {
     return this.optics.getComputeStatus();
   }
 
-  private rebuild(balls: Ball[], k: number, settings: HikariSettings): void {
+  private rebuild(shape: RuntimeShape | null, settings: HikariSettings): void {
     if (this.points) {
       this.points.geometry.dispose();
       this.group.remove(this.points);
@@ -247,7 +248,7 @@ export class HikariLayer {
       this.group.remove(this.trails);
     }
 
-    const cloud = sampleParticles(balls, k, settings);
+    const cloud = sampleParticles(shape, settings);
     const pointGeometry = new THREE.BufferGeometry();
     pointGeometry.setAttribute("position", new THREE.Float32BufferAttribute(cloud.positions, 3));
     pointGeometry.setAttribute("color", new THREE.Float32BufferAttribute(cloud.colors, 3));
@@ -392,7 +393,7 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
     surfaceVariation: clampNumber(
       value.surfaceVariation,
       0,
-      0.4,
+      0.25,
       DEFAULT_HIKARI_SETTINGS.surfaceVariation,
     ),
     materialVariation: clampNumber(
@@ -463,11 +464,10 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
 }
 
 function sampleParticles(
-  balls: Ball[],
-  k: number,
+  shape: RuntimeShape | null,
   settings: HikariSettings,
 ): { positions: Float32Array; colors: Float32Array; phases: Float32Array } {
-  if (balls.length === 0) {
+  if (!shape) {
     return {
       positions: new Float32Array(),
       colors: new Float32Array(),
@@ -479,38 +479,21 @@ function sampleParticles(
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const phases = new Float32Array(count);
-  const random = makeRng(hashSeed(`${settings.seed}:${shapeSignature(balls, k)}`));
-  const weights = balls.map((ball) => Math.max(0.001, ball.r ** (settings.spawn === "surface" ? 2 : 3)));
-  const cumulative: number[] = [];
-  let total = 0;
-  for (const weight of weights) {
-    total += weight;
-    cumulative.push(total);
-  }
+  const random = makeRng(hashSeed(`${settings.seed}:${shapeSeedSignature(shape)}`));
+  const metaballs = shape.asset.representation.kind === "metaballs-v1"
+    ? shape.asset.representation.balls
+    : null;
+  const weighted = metaballs ? createMetaballWeights(metaballs, settings.spawn) : null;
 
   for (let index = 0; index < count; index++) {
-    const ball = pickWeightedBall(balls, cumulative, total, random);
-    const direction = randomUnitVector(random);
-    let radius = ball.r;
-    if (settings.spawn === "inside") radius *= Math.cbrt(random()) * 0.96;
-    let x = ball.x + direction.x * radius;
-    let y = ball.y + direction.y * radius;
-    let z = ball.z + direction.z * radius;
-
-    if (settings.spawn === "surface") {
-      for (let iteration = 0; iteration < 4; iteration++) {
-        const distance = fieldSdf(balls, k, x, y, z);
-        const normal = fieldNormal(balls, k, x, y, z);
-        x -= normal.x * distance;
-        y -= normal.y * distance;
-        z -= normal.z * distance;
-      }
-    }
+    const point = metaballs && weighted
+      ? sampleMetaballPoint(shape, metaballs, weighted, settings.spawn, random)
+      : sampleGenericPoint(shape, settings.spawn, random);
 
     const offset = index * 3;
-    positions[offset] = x;
-    positions[offset + 1] = y;
-    positions[offset + 2] = z;
+    positions[offset] = point.x;
+    positions[offset + 1] = point.y;
+    positions[offset + 2] = point.z;
     const accent = random() > 0.86;
     colors[offset] = accent ? 1 : 0.12;
     colors[offset + 1] = accent ? 0.38 : 0.72;
@@ -521,13 +504,134 @@ function sampleParticles(
   return { positions, colors, phases };
 }
 
+function createMetaballWeights(
+  balls: readonly MetaballRecord[],
+  spawn: HikariSpawn,
+): { cumulative: number[]; total: number } {
+  const cumulative: number[] = [];
+  let total = 0;
+  for (const ball of balls) {
+    total += Math.max(0.001, ball.radius ** (spawn === "surface" ? 2 : 3));
+    cumulative.push(total);
+  }
+  return { cumulative, total };
+}
+
+function sampleMetaballPoint(
+  shape: RuntimeShape,
+  balls: readonly MetaballRecord[],
+  weighted: { cumulative: number[]; total: number },
+  spawn: HikariSpawn,
+  random: () => number,
+): Vec3 {
+  const ball = pickWeightedBall(balls, weighted.cumulative, weighted.total, random);
+  const direction = randomUnitVector(random);
+  let radius = ball.radius;
+  if (spawn === "inside") radius *= Math.cbrt(random()) * 0.96;
+  const point = {
+    x: ball.x + direction.x * radius,
+    y: ball.y + direction.y * radius,
+    z: ball.z + direction.z * radius,
+  };
+
+  if (spawn === "surface") {
+    for (let iteration = 0; iteration < 4; iteration++) {
+      const distance = shape.distance(point);
+      const normal = shape.normal(point, 0.012);
+      if (!normal) break;
+      point.x -= normal.x * distance;
+      point.y -= normal.y * distance;
+      point.z -= normal.z * distance;
+    }
+  }
+  return point;
+}
+
+function sampleGenericPoint(
+  shape: RuntimeShape,
+  spawn: HikariSpawn,
+  random: () => number,
+): Vec3 {
+  const bounds = shape.asset.bounds;
+  const randomPoint = (): Vec3 => ({
+    x: mix(bounds.min.x, bounds.max.x, random()),
+    y: mix(bounds.min.y, bounds.max.y, random()),
+    z: mix(bounds.min.z, bounds.max.z, random()),
+  });
+
+  if (spawn === "inside") {
+    let nearest = randomPoint();
+    let nearestDistance = shape.distance(nearest);
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const candidate = randomPoint();
+      const distance = shape.distance(candidate);
+      if (distance <= 0) return candidate;
+      if (distance < nearestDistance) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const axis = Math.floor(random() * 3) as 0 | 1 | 2;
+    const axisName = (["x", "y", "z"] as const)[axis];
+    const start = randomPoint();
+    start[axisName] = bounds.min[axisName];
+    let previous = start;
+    let previousDistance = shape.distance(previous);
+    for (let step = 1; step <= 16; step++) {
+      const current = { ...start };
+      current[axisName] = mix(bounds.min[axisName], bounds.max[axisName], step / 16);
+      const currentDistance = shape.distance(current);
+      if ((previousDistance <= 0) !== (currentDistance <= 0)) {
+        return bisectSurface(shape, previous, current);
+      }
+      previous = current;
+      previousDistance = currentDistance;
+    }
+  }
+
+  let nearest = randomPoint();
+  let nearestDistance = Math.abs(shape.distance(nearest));
+  for (let attempt = 0; attempt < 32; attempt++) {
+    const candidate = randomPoint();
+    const distance = Math.abs(shape.distance(candidate));
+    if (distance < nearestDistance) {
+      nearest = candidate;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+function bisectSurface(shape: RuntimeShape, a: Vec3, b: Vec3): Vec3 {
+  let inside = shape.distance(a) <= 0 ? { ...a } : { ...b };
+  let outside = shape.distance(a) <= 0 ? { ...b } : { ...a };
+  for (let iteration = 0; iteration < 10; iteration++) {
+    const middle = {
+      x: (inside.x + outside.x) * 0.5,
+      y: (inside.y + outside.y) * 0.5,
+      z: (inside.z + outside.z) * 0.5,
+    };
+    if (shape.distance(middle) <= 0) inside = middle;
+    else outside = middle;
+  }
+  return {
+    x: (inside.x + outside.x) * 0.5,
+    y: (inside.y + outside.y) * 0.5,
+    z: (inside.z + outside.z) * 0.5,
+  };
+}
+
 function pickWeightedBall(
-  balls: Ball[],
+  balls: readonly MetaballRecord[],
   cumulative: number[],
   total: number,
   random: () => number,
-): Ball {
-  if (balls.length === 0) return { id: 0, x: 0, y: 0, z: 0, r: 0 };
+): MetaballRecord {
+  if (balls.length === 0) return { id: "empty", x: 0, y: 0, z: 0, radius: 0 };
   const target = random() * total;
   let low = 0;
   let high = cumulative.length - 1;
@@ -546,25 +650,16 @@ function randomUnitVector(random: () => number): THREE.Vector3 {
   return new THREE.Vector3(radius * Math.cos(angle), z, radius * Math.sin(angle));
 }
 
-function fieldNormal(
-  balls: Ball[],
-  k: number,
-  x: number,
-  y: number,
-  z: number,
-): { x: number; y: number; z: number } {
-  const epsilon = 0.012;
-  const nx = fieldSdf(balls, k, x + epsilon, y, z) - fieldSdf(balls, k, x - epsilon, y, z);
-  const ny = fieldSdf(balls, k, x, y + epsilon, z) - fieldSdf(balls, k, x, y - epsilon, z);
-  const nz = fieldSdf(balls, k, x, y, z + epsilon) - fieldSdf(balls, k, x, y, z - epsilon);
-  const length = Math.hypot(nx, ny, nz) || 1;
-  return { x: nx / length, y: ny / length, z: nz / length };
+function shapeSeedSignature(shape: RuntimeShape): string {
+  const representation = shape.asset.representation;
+  if (representation.kind !== "metaballs-v1") return shape.asset.sourceHash;
+  return `${representation.smoothK.toFixed(4)}|${representation.balls
+    .map((ball) => `${ball.id}:${ball.x.toFixed(4)},${ball.y.toFixed(4)},${ball.z.toFixed(4)},${ball.radius.toFixed(4)}`)
+    .join("|")}`;
 }
 
-function shapeSignature(balls: Ball[], k: number): string {
-  return `${k.toFixed(4)}|${balls
-    .map((ball) => `${ball.id}:${ball.x.toFixed(4)},${ball.y.toFixed(4)},${ball.z.toFixed(4)},${ball.r.toFixed(4)}`)
-    .join("|")}`;
+function mix(a: number, b: number, t: number): number {
+  return a * (1 - t) + b * t;
 }
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {

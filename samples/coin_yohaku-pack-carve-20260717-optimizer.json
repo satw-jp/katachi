@@ -1,0 +1,606 @@
+{
+  "schema_version": 2,
+  "tool": {
+    "name": "Optimizer",
+    "version": "0.6.0"
+  },
+  "generated_at": "2026-07-17T13:03:15.180999+00:00",
+  "input": {
+    "path": "coin_yohaku-pack-carve-20260717.stl",
+    "assumed_unit": "mm",
+    "scale": 1
+  },
+  "topology": {
+    "watertight": true,
+    "winding_consistent": false,
+    "has_boundary_holes": false,
+    "boundary_edge_count": 0,
+    "non_manifold_edge_count": 0
+  },
+  "bounding_box_mm": {
+    "min": [
+      -26.432849884033203,
+      -25.158023834228516,
+      -40.592384338378906
+    ],
+    "max": [
+      42.546451568603516,
+      37.483734130859375,
+      39.407615661621094
+    ],
+    "extents": [
+      68.97930145263672,
+      62.64175796508789,
+      80
+    ]
+  },
+  "shells": {
+    "count": 17,
+    "items": [
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 3663.669981857966,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -26.432849884033203,
+            -25.158023834228516,
+            -40.592384338378906
+          ],
+          "max": [
+            42.546451568603516,
+            37.483734130859375,
+            39.407615661621094
+          ],
+          "extents": [
+            68.97930145263672,
+            62.64175796508789,
+            80
+          ]
+        },
+        "face_count": 359240,
+        "index": 1,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 18.450732495993055,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            36.17953109741211,
+            14.420221328735352,
+            10.039450645446777
+          ],
+          "max": [
+            37.48699188232422,
+            15.921005249023438,
+            11.540234565734863
+          ],
+          "extents": [
+            1.3074607849121094,
+            1.500783920288086,
+            1.500783920288086
+          ]
+        },
+        "face_count": 24,
+        "index": 2,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 8.760429795157135,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            35.835872650146484,
+            16.014236450195312,
+            9.4778413772583
+          ],
+          "max": [
+            36.409912109375,
+            18.31886100769043,
+            10.80319595336914
+          ],
+          "extents": [
+            0.5740394592285156,
+            2.304624557495117,
+            1.3253545761108398
+          ]
+        },
+        "face_count": 48,
+        "index": 3,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 5.6268011742623765,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -16.569631576538086,
+            2.7201292514801025,
+            -33.1504020690918
+          ],
+          "max": [
+            -15.81403923034668,
+            4.947137832641602,
+            -31.96502685546875
+          ],
+          "extents": [
+            0.7555923461914062,
+            2.227008581161499,
+            1.1853752136230469
+          ]
+        },
+        "face_count": 48,
+        "index": 4,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 3.660121369340427,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            30.648427963256836,
+            -0.2806318700313568,
+            9.035272598266602
+          ],
+          "max": [
+            31.08279037475586,
+            -0.07728594541549683,
+            11.043161392211914
+          ],
+          "extents": [
+            0.43436241149902344,
+            0.20334592461585999,
+            2.0078887939453125
+          ]
+        },
+        "face_count": 24,
+        "index": 5,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 3.6168497610672445,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -17.39092254638672,
+            4.4316630363464355,
+            -33.08974075317383
+          ],
+          "max": [
+            -16.12070083618164,
+            5.524649143218994,
+            -32.36032485961914
+          ],
+          "extents": [
+            1.2702217102050781,
+            1.0929861068725586,
+            0.7294158935546875
+          ]
+        },
+        "face_count": 24,
+        "index": 6,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 3.3444897699593104,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            38.01968765258789,
+            16.260377883911133,
+            20.25261116027832
+          ],
+          "max": [
+            38.407711029052734,
+            16.640838623046875,
+            20.843456268310547
+          ],
+          "extents": [
+            0.38802337646484375,
+            0.3804607391357422,
+            0.5908451080322266
+          ]
+        },
+        "face_count": 24,
+        "index": 7,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 2.311541129005336,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -16.768510818481445,
+            -4.511932373046875,
+            -26.950260162353516
+          ],
+          "max": [
+            -15.920862197875977,
+            -4.00027322769165,
+            -26.459552764892578
+          ],
+          "extents": [
+            0.8476486206054688,
+            0.5116591453552246,
+            0.4907073974609375
+          ]
+        },
+        "face_count": 24,
+        "index": 8,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.8099174183378041,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -12.45704460144043,
+            20.398460388183594,
+            -30.237403869628906
+          ],
+          "max": [
+            -11.660799026489258,
+            20.973752975463867,
+            -29.601072311401367
+          ],
+          "extents": [
+            0.7962455749511719,
+            0.5752925872802734,
+            0.6363315582275391
+          ]
+        },
+        "face_count": 24,
+        "index": 9,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.4394427323417321,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            0.03651495650410652,
+            -13.572093963623047,
+            -10.033536911010742
+          ],
+          "max": [
+            1.3155618906021118,
+            -12.084026336669922,
+            -8.10507583618164
+          ],
+          "extents": [
+            1.2790469340980053,
+            1.488067626953125,
+            1.9284610748291016
+          ]
+        },
+        "face_count": 48,
+        "index": 10,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.41967206627855624,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -16.310951232910156,
+            4.647067546844482,
+            -33.99494552612305
+          ],
+          "max": [
+            -15.614494323730469,
+            5.555504322052002,
+            -32.86711502075195
+          ],
+          "extents": [
+            0.6964569091796875,
+            0.9084367752075195,
+            1.1278305053710938
+          ]
+        },
+        "face_count": 24,
+        "index": 11,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.17986256811574633,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -10.924175262451172,
+            6.942484378814697,
+            -1.5791981220245361
+          ],
+          "max": [
+            -10.300890922546387,
+            7.4646525382995605,
+            -1.0959787368774414
+          ],
+          "extents": [
+            0.6232843399047852,
+            0.5221681594848633,
+            0.4832193851470947
+          ]
+        },
+        "face_count": 24,
+        "index": 12,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.1425062445330599,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -13.288909912109375,
+            0.8020418286323547,
+            -34.3842887878418
+          ],
+          "max": [
+            -11.591760635375977,
+            2.177743673324585,
+            -33.53446960449219
+          ],
+          "extents": [
+            1.6971492767333984,
+            1.3757018446922302,
+            0.8498191833496094
+          ]
+        },
+        "face_count": 72,
+        "index": 13,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.06920336517489532,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -20.268007278442383,
+            -8.5886812210083,
+            -17.1888484954834
+          ],
+          "max": [
+            -20.20816993713379,
+            -8.49853515625,
+            -17.10719108581543
+          ],
+          "extents": [
+            0.05983734130859375,
+            0.09014606475830078,
+            0.08165740966796875
+          ]
+        },
+        "face_count": 24,
+        "index": 14,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.04355160976441274,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -14.061376571655273,
+            22.556127548217773,
+            19.370845794677734
+          ],
+          "max": [
+            -13.784355163574219,
+            22.89412498474121,
+            19.49515151977539
+          ],
+          "extents": [
+            0.2770214080810547,
+            0.3379974365234375,
+            0.12430572509765625
+          ]
+        },
+        "face_count": 24,
+        "index": 15,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.004732114919424235,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -23.392919540405273,
+            -0.2263071984052658,
+            -22.369548797607422
+          ],
+          "max": [
+            -23.37885284423828,
+            -0.18850958347320557,
+            -22.34477424621582
+          ],
+          "extents": [
+            0.014066696166992188,
+            0.03779761493206024,
+            0.024774551391601562
+          ]
+        },
+        "face_count": 24,
+        "index": 16,
+        "small_fragment_candidate": true
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 0.0031276561325833696,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            16.312768936157227,
+            -1.3013527393341064,
+            29.885021209716797
+          ],
+          "max": [
+            16.332225799560547,
+            -1.2468913793563843,
+            29.90105438232422
+          ],
+          "extents": [
+            0.019456863403320312,
+            0.05446135997772217,
+            0.016033172607421875
+          ]
+        },
+        "face_count": 24,
+        "index": 17,
+        "small_fragment_candidate": true
+      }
+    ]
+  },
+  "wall_thickness_estimate": {
+    "method": "surface samples with inward normal rays (pure NumPy Moller-Trumbore fallback)",
+    "status": "estimated",
+    "estimated_min_mm": 0.15051775913209436,
+    "p05_mm": 0.9953360414094752,
+    "below_threshold_ratio": 0.04017857142857143,
+    "minimum_location_mm": [
+      24.137675617338804,
+      -8.171635573422643,
+      8.539501315455595
+    ],
+    "valid_rays": 224,
+    "total_rays": 256,
+    "confidence": "medium"
+  },
+  "overhang_estimate": {
+    "method": "area weighted face normals, build direction +Z",
+    "angle_from_vertical_wall_deg": 45,
+    "potential_area_mm2": 6696.42607561164,
+    "potential_ratio": 0.14693520128773727,
+    "bed_contact_area_excluded_mm2": 0,
+    "internal_potential_area_mm2": 3797.9729981080936,
+    "internal_potential_ratio": 0.08333638281991067,
+    "external_potential_area_mm2": 2898.4530775035464,
+    "external_potential_ratio": 0.06359881846782658,
+    "visibility_classification": {
+      "method": "outward hemisphere visibility rays (pure NumPy Moller-Trumbore fallback)",
+      "samples": 512,
+      "rays_per_sample": 32,
+      "note": "外向き半球レイが全て遮られる面を内部とする可視性近似。見えていても工具が届くとは限りません。"
+    }
+  },
+  "orientation_scan": {
+    "method": "6 axes plus fibonacci sphere build-direction samples",
+    "angle_from_vertical_wall_deg": 45,
+    "candidates_evaluated": 32,
+    "baseline": {
+      "direction": [
+        0,
+        0,
+        1
+      ],
+      "potential_ratio": 0.14693520128773727,
+      "internal_potential_ratio": 0.08333638281991067,
+      "external_potential_ratio": 0.06359881846782658
+    },
+    "best": [
+      {
+        "direction": [
+          -0.8645710237908042,
+          0.038461538461538436,
+          -0.5010365803816049
+        ],
+        "potential_ratio": 0.12679214428796956,
+        "potential_area_mm2": 5778.426229736497,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.056964586564160244,
+        "internal_potential_area_mm2": 2596.1045379975567,
+        "external_potential_ratio": 0.06982755772380932,
+        "external_potential_area_mm2": 3182.32169173894
+      },
+      {
+        "direction": [
+          -0.8902147382255726,
+          0.2692307692307693,
+          0.36746770299630915
+        ],
+        "potential_ratio": 0.14689461373268642,
+        "potential_area_mm2": 6694.576338042931,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.058325802511507846,
+        "internal_potential_area_mm2": 2658.140604811164,
+        "external_potential_ratio": 0.08856881122117857,
+        "external_potential_area_mm2": 4036.435733231767
+      },
+      {
+        "direction": [
+          0.23184606738231098,
+          -0.8846153846153846,
+          0.40460230145308385
+        ],
+        "potential_ratio": 0.1578797982689225,
+        "potential_area_mm2": 7195.215228718315,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.06359047430276045,
+        "internal_potential_area_mm2": 2898.072800455988,
+        "external_potential_ratio": 0.09428932396616206,
+        "external_potential_area_mm2": 4297.1424282623275
+      }
+    ],
+    "note": "向きの提案であり、入力メッシュの回転は行いません。"
+  },
+  "thresholds": {
+    "minimum_wall_mm": 0.8,
+    "small_shell_volume_mm3": 1,
+    "overhang_angle_deg": 45,
+    "visibility_samples": 512,
+    "visibility_rays": 32,
+    "note": "FDM向け仮値。作者の実機値で要調整。"
+  },
+  "warnings": [
+    "STLには単位情報がないため、入力座標をmmと仮定しています。",
+    "面法線の向きが一貫していません。肉厚・オーバーハング推定の信頼度が下がります。",
+    "内部/外面は可視性レイによる近似です。外から見えていても工具が届くとは限らず、小さな開口ではサポートを除去できない場合があります。"
+  ]
+}

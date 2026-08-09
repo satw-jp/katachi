@@ -64,12 +64,19 @@ export const fragmentShader = /* glsl */ `
   // x = radius, y = owner index (as a float; rounded back to int in GLSL) --
   // folded into one vec2 array instead of two separate float/int arrays to
   // keep the fragment shader's uniform-vector count under budget (see the
-  // PATCH_MAX_POINTS comment above).
+  // PATCH_MAX_POINTS comment above). T14: the fractional part now also
+  // distinguishes coin (+0.00) / flatRing (+0.25) / ring3d (+0.50), decoded
+  // by isCoinPoint/isFlatRingPoint/isRingPoint below.
   uniform vec2 uPatchData[${PATCH_MAX_POINTS}];
   uniform int uPatchPointCount;
   uniform float uRoundK;
   uniform int uMode; // 0 = plate (shell ∩ patches), 1 = window (shell − patches)
   uniform int uSelectedPatchOwner; // -1 = none
+  // T14 coin-bulge experiment (field.ts's compositeSdf doc comment carries
+  // the full rationale/hypothesis framing -- kept in one place, not
+  // restated here). 0 = old exact shell-clip formula for every plate-mode
+  // shape; >0 = coin patches alone get a wider shell band.
+  uniform float uCoinBulge;
 
   uniform vec3 uCamPos;
   uniform mat4 uCamInverseProjection;
@@ -116,12 +123,22 @@ export const fragmentShader = /* glsl */ `
   }
 
   // uPatchData[i].y encodes BOTH the owning patch's index (for the
-  // selection highlight) and whether that patch is a ring3d shape --
-  // ownerIndex + (isRing ? 0.5 : 0.0) -- folded into one float to avoid a
-  // third uniform array (see PATCH_MAX_POINTS comment: this Study already
-  // hit the fragment uniform-vector budget once). Decode with floor/fract.
+  // selection highlight) and its shape -- ownerIndex + shapeOffset, folded
+  // into one float to avoid extra uniform arrays (see PATCH_MAX_POINTS
+  // comment: this Study already hit the fragment uniform-vector budget
+  // once). T14 extends the fraction from a single ring3d bit to three
+  // shapes: coin +0.00, flatRing +0.25, ring3d +0.50 (renderer.ts's
+  // ownerEncoded). Decode with floor/fract; owner itself is always
+  // floor(y + 0.01) regardless of shape, unchanged from before.
+  bool isCoinPoint(int i) {
+    return fract(uPatchData[i].y) < 0.125;
+  }
+  bool isFlatRingPoint(int i) {
+    float f = fract(uPatchData[i].y);
+    return f >= 0.125 && f < 0.375;
+  }
   bool isRingPoint(int i) {
-    return fract(uPatchData[i].y) > 0.25;
+    return fract(uPatchData[i].y) >= 0.375;
   }
 
   float patchField(vec3 p) {
@@ -136,7 +153,8 @@ export const fragmentShader = /* glsl */ `
 
   // Union of only the non-ring3d (coin/flatRing) patch points -- T11's
   // plate-mode split (see field.ts's compositeSdf doc comment: these stay
-  // flush with the shell, ring3d patches do not).
+  // flush with the shell, ring3d patches do not). Used only on the
+  // coinBulge<=0 (old exact) path -- see map() below.
   float patchFieldFlat(vec3 p) {
     float d = 1e5;
     bool any = false;
@@ -164,22 +182,81 @@ export const fragmentShader = /* glsl */ `
     return d;
   }
 
+  // T14: union of only coin points / only flatRing points, each evaluated
+  // separately so coinBulge>0 can clip coin to a different band than
+  // flatRing. 1e5 (with no contributing point) if that shape isn't present,
+  // same "nothing here" convention field.ts's patchesSdf uses.
+  float patchFieldCoinOnly(vec3 p) {
+    float d = 1e5;
+    bool any = false;
+    for (int i = 0; i < ${PATCH_MAX_POINTS}; i++) {
+      if (i >= uPatchPointCount) break;
+      if (!isCoinPoint(i)) continue;
+      float bd = sdBall(p, uPatchPos[i], uPatchData[i].x);
+      d = any ? smoothMinG(d, bd, uRoundK) : bd;
+      any = true;
+    }
+    return d;
+  }
+
+  float patchFieldFlatRingOnly(vec3 p) {
+    float d = 1e5;
+    bool any = false;
+    for (int i = 0; i < ${PATCH_MAX_POINTS}; i++) {
+      if (i >= uPatchPointCount) break;
+      if (!isFlatRingPoint(i)) continue;
+      float bd = sdBall(p, uPatchPos[i], uPatchData[i].x);
+      d = any ? smoothMinG(d, bd, uRoundK) : bd;
+      any = true;
+    }
+    return d;
+  }
+
   float map(vec3 p) {
     float dShell = shellField(p);
     if (uPatchPointCount == 0) {
       return uMode == 0 ? 1e5 : dShell;
     }
     if (uMode == 1) {
-      // window: any patch shape just carves the shell, same as T10.
+      // window: any patch shape just carves the shell, same as T10 --
+      // unaffected by uCoinBulge (field.ts's compositeSdf doc comment).
       float dPatch = patchField(p);
       return opSmoothSubtraction(dPatch, dShell, uRoundK);
     }
-    // plate: coin/flatRing stay flush with the shell; ring3d patches are
-    // raw (never intersected with the shell) -- see field.ts's compositeSdf
-    // doc comment (CPU-side sibling of this exact split).
-    float plateFlat = opSmoothIntersection(dShell, patchFieldFlat(p), uRoundK);
-    float dRing = patchFieldRing(p);
-    return smoothMinG(plateFlat, dRing, uRoundK);
+    if (uCoinBulge <= 0.0) {
+      // plate, old exact path: coin/flatRing stay flush with the shell as
+      // ONE unioned field (not split), ring3d raw -- see field.ts's
+      // compositeSdf doc comment for why this must stay a literal separate
+      // branch instead of "split with a zero-width extra band" (smooth
+      // booleans are not distributive).
+      float plateFlat = opSmoothIntersection(dShell, patchFieldFlat(p), uRoundK);
+      float dRing = patchFieldRing(p);
+      return smoothMinG(plateFlat, dRing, uRoundK);
+    }
+    // plate, coinBulge > 0: coin/flatRing/ring3d are three separate groups,
+    // each intersected (or left raw, for ring3d) with its own band, then
+    // unioned -- exact GLSL mirror of field.ts's compositeSdf coinBulge>0
+    // branch.
+    float dCoinPatch = patchFieldCoinOnly(p);
+    float dFlatRingPatch = patchFieldFlatRingOnly(p);
+    float dRingPatch = patchFieldRing(p);
+    bool hasCoin = dCoinPatch < 9.0e4;
+    bool hasFlatRing = dFlatRingPatch < 9.0e4;
+    bool hasRing = dRingPatch < 9.0e4;
+    float dCoinBand = abs(hostField(p)) - (uThickness * 0.5 + uCoinBulge);
+    float plateFlat = 1e5;
+    bool hasFlat = false;
+    if (hasCoin) {
+      plateFlat = opSmoothIntersection(dCoinBand, dCoinPatch, uRoundK);
+      hasFlat = true;
+    }
+    if (hasFlatRing) {
+      float plateFlatRing = opSmoothIntersection(dShell, dFlatRingPatch, uRoundK);
+      plateFlat = hasFlat ? smoothMinG(plateFlat, plateFlatRing, uRoundK) : plateFlatRing;
+      hasFlat = true;
+    }
+    if (!hasRing) return hasFlat ? plateFlat : 1e5;
+    return hasFlat ? smoothMinG(plateFlat, dRingPatch, uRoundK) : dRingPatch;
   }
 
   vec3 estimateNormal(vec3 p) {

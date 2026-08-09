@@ -1,0 +1,497 @@
+{
+  "schema_version": 3,
+  "tool": {
+    "name": "Optimizer",
+    "version": "0.7.2"
+  },
+  "generated_at": "2026-07-18T07:29:08.660000+00:00",
+  "input": {
+    "path": "RingSRF_yohaku-skin-plate-20260717.stl",
+    "assumed_unit": "mm",
+    "scale": 1,
+    "preset": "default",
+    "component": "largest",
+    "component_selection": {
+      "target_shell_index": 1,
+      "excluded_shell_count": 1,
+      "excluded_volume_mm3": 347.1256335979638,
+      "note": "肉厚・オーバーハング・向き探索・スケール窓は最大体積シェルのみを対象とした値です。"
+    }
+  },
+  "topology": {
+    "watertight": true,
+    "winding_consistent": false,
+    "has_boundary_holes": false,
+    "boundary_edge_count": 0,
+    "non_manifold_edge_count": 0
+  },
+  "bounding_box_mm": {
+    "min": [
+      -43.30196762084961,
+      -32.64044952392578,
+      -43.70478057861328
+    ],
+    "max": [
+      36.69803237915039,
+      33.36294174194336,
+      35.07161331176758
+    ],
+    "extents": [
+      80,
+      66.00339126586914,
+      78.77639389038086
+    ]
+  },
+  "shells": {
+    "count": 2,
+    "items": [
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 5484.918284220427,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -43.30196762084961,
+            -32.64044952392578,
+            -43.70478057861328
+          ],
+          "max": [
+            36.69803237915039,
+            33.36294174194336,
+            35.07161331176758
+          ],
+          "extents": [
+            80,
+            66.00339126586914,
+            78.77639389038086
+          ]
+        },
+        "face_count": 232324,
+        "index": 1,
+        "small_fragment_candidate": false
+      },
+      {
+        "watertight": true,
+        "boundary_edge_count": 0,
+        "non_manifold_edge_count": 0,
+        "volume_mm3": 347.1256335979638,
+        "volume_reliable": true,
+        "bounding_box_mm": {
+          "min": [
+            -41.53828048706055,
+            15.140371322631836,
+            -16.564836502075195
+          ],
+          "max": [
+            -27.541486740112305,
+            26.572351455688477,
+            -2.2736942768096924
+          ],
+          "extents": [
+            13.996793746948242,
+            11.43198013305664,
+            14.291142225265503
+          ]
+        },
+        "face_count": 2872,
+        "index": 2,
+        "small_fragment_candidate": false
+      }
+    ]
+  },
+  "wall_thickness_estimate": {
+    "method": "surface samples with inward normal rays (pure NumPy Moller-Trumbore fallback)",
+    "status": "estimated",
+    "estimated_min_mm": 0.04194936771780582,
+    "p05_mm": 1.961771085425676,
+    "below_threshold_ratio": 0.02577319587628866,
+    "minimum_location_mm": [
+      -20.549454384417235,
+      21.978624127364164,
+      4.669097819233722
+    ],
+    "valid_rays": 194,
+    "total_rays": 256,
+    "confidence": "medium"
+  },
+  "overhang_estimate": {
+    "method": "area weighted face normals, build direction +Z",
+    "angle_from_vertical_wall_deg": 45,
+    "potential_area_mm2": 3400.073815926243,
+    "potential_ratio": 0.12105583877653887,
+    "bed_contact_area_excluded_mm2": 0,
+    "internal_potential_area_mm2": 1602.8919417938002,
+    "internal_potential_ratio": 0.05706918113751119,
+    "external_potential_area_mm2": 1797.1818741324425,
+    "external_potential_ratio": 0.0639866576390277,
+    "visibility_classification": {
+      "method": "outward hemisphere visibility rays (pure NumPy Moller-Trumbore fallback)",
+      "samples": 512,
+      "rays_per_sample": 32,
+      "note": "外向き半球レイが全て遮られる面を内部とする可視性近似。見えていても工具が届くとは限りません。"
+    }
+  },
+  "orientation_scan": {
+    "method": "6 axes plus fibonacci sphere build-direction samples",
+    "angle_from_vertical_wall_deg": 45,
+    "candidates_evaluated": 32,
+    "baseline": {
+      "direction": [
+        0,
+        0,
+        1
+      ],
+      "potential_ratio": 0.12105583877653887,
+      "internal_potential_ratio": 0.05706918113751119,
+      "external_potential_ratio": 0.0639866576390277
+    },
+    "best": [
+      {
+        "direction": [
+          -0.560338086012998,
+          -0.7307692307692308,
+          0.3898686454746479
+        ],
+        "potential_ratio": 0.14087503542334667,
+        "potential_area_mm2": 3956.732067626897,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.0462875116390996,
+        "internal_potential_area_mm2": 1300.0691079345513,
+        "external_potential_ratio": 0.09458752378424708,
+        "external_potential_area_mm2": 2656.662959692346
+      },
+      {
+        "direction": [
+          -0.5712880764246908,
+          -0.11538461538461542,
+          0.8125985012707819
+        ],
+        "potential_ratio": 0.1218136878121106,
+        "potential_area_mm2": 3421.3593870173563,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.04632351508347867,
+        "internal_potential_area_mm2": 1301.0803302742056,
+        "external_potential_ratio": 0.07549017272863194,
+        "external_potential_area_mm2": 2120.2790567431507
+      },
+      {
+        "direction": [
+          -0.8902147382255726,
+          0.2692307692307693,
+          0.36746770299630915
+        ],
+        "potential_ratio": 0.13431908121216496,
+        "potential_area_mm2": 3772.5961475660934,
+        "bed_contact_area_excluded_mm2": 0,
+        "internal_potential_ratio": 0.04649506657344171,
+        "internal_potential_area_mm2": 1305.898666465186,
+        "external_potential_ratio": 0.08782401463872326,
+        "external_potential_area_mm2": 2466.6974811009077
+      }
+    ],
+    "note": "向きの提案であり、入力メッシュの回転は行いません。"
+  },
+  "scale_window": {
+    "method": "wall thickness p05 and oriented axis-aligned bounding box",
+    "candidates": [
+      {
+        "name": "baseline",
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "bounding_box_mm": [
+          80,
+          66.00339126586914,
+          78.77639389038086
+        ],
+        "windows": [
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 2.25,
+            "has_window": true
+          },
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 2.25,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 3.2,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 3.2,
+            "has_window": true
+          }
+        ]
+      },
+      {
+        "name": "best_1",
+        "direction": [
+          -0.560338086012998,
+          -0.7307692307692308,
+          0.3898686454746479
+        ],
+        "bounding_box_mm": [
+          72.1875987595101,
+          83.4867718656859,
+          82.04028909513998
+        ],
+        "windows": [
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 2.1560301827166737,
+            "has_window": true
+          },
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 2.1560301827166737,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 3.0663540376414913,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 3.0663540376414913,
+            "has_window": true
+          }
+        ]
+      },
+      {
+        "name": "best_2",
+        "direction": [
+          -0.5712880764246908,
+          -0.11538461538461542,
+          0.8125985012707819
+        ],
+        "bounding_box_mm": [
+          78.03870464516264,
+          67.30622148310783,
+          91.15359652943849
+        ],
+        "windows": [
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 1.9746889519808266,
+            "has_window": true
+          },
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 1.9746889519808266,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 2.8084465094838422,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 2.8084465094838422,
+            "has_window": true
+          }
+        ]
+      },
+      {
+        "name": "best_3",
+        "direction": [
+          -0.8902147382255726,
+          0.2692307692307693,
+          0.36746770299630915
+        ],
+        "bounding_box_mm": [
+          72.48521171400368,
+          70.67087740158007,
+          81.94388473423221
+        ],
+        "windows": [
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 2.1966251732364435,
+            "has_window": true
+          },
+          {
+            "printer": "a1_mini",
+            "build_volume_mm": [
+              180,
+              180,
+              180
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 2.1966251732364435,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "minimum_wall_mm",
+            "wall_mm": 0.8,
+            "scale_min": 0.40779477582442375,
+            "scale_max": 3.1240891352696085,
+            "has_window": true
+          },
+          {
+            "printer": "a1",
+            "build_volume_mm": [
+              256,
+              256,
+              256
+            ],
+            "wall_threshold": "single_wall_mm",
+            "wall_mm": 0.45,
+            "scale_min": 0.22938456140123836,
+            "scale_max": 3.1240891352696085,
+            "has_window": true
+          }
+        ]
+      }
+    ],
+    "note": "床面安定性や実機条件を含まない推定窓です。"
+  },
+  "thresholds": {
+    "minimum_wall_mm": 0.8,
+    "single_wall_mm": 0.45,
+    "printers": {
+      "a1_mini": [
+        180,
+        180,
+        180
+      ],
+      "a1": [
+        256,
+        256,
+        256
+      ]
+    },
+    "small_shell_volume_mm3": 1,
+    "overhang_angle_deg": 45,
+    "visibility_samples": 512,
+    "visibility_rays": 32,
+    "note": "FDM向け仮値。作者の実機値で要調整。"
+  },
+  "warnings": [
+    "STLには単位情報がないため、入力座標をmmと仮定しています。",
+    "面法線の向きが一貫していません。肉厚・オーバーハング推定の信頼度が下がります。",
+    "内部/外面は可視性レイによる近似です。外から見えていても工具が届くとは限らず、小さな開口ではサポートを除去できない場合があります。",
+    "最大成分のみ診断: 除外シェルは肉厚・オーバーハング・向き・スケール窓に含まれません。"
+  ]
+}

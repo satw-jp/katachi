@@ -1,13 +1,15 @@
 # hikari — web publishing
 
 Status: active
-UpdatedAt: 2026-08-01
+UpdatedAt: 2026-08-09
 
 ## Current surface
 
-Hikari is currently published as the `HIKARI` workspace on the Cloud Sculpt root page, not as a separate route.
+Hikari and Cloud Sculpt share one implementation and one live shape field, but now have separate public entries.
 
-- Production: <https://katachi.a-8c3.workers.dev/>
+- Hikari: <https://katachi.a-8c3.workers.dev/> (opens in `HIKARI`)
+- Cloud Sculpt: <https://katachi.a-8c3.workers.dev/cloud-sculpt> (opens in `KATACHI`)
+- Study launcher: <https://katachi.a-8c3.workers.dev/studies>
 - Build output: `dist/`
 - Cloudflare Worker: `katachi`
 - Configuration: `wrangler.jsonc`
@@ -18,8 +20,9 @@ The production page must be built and deployed from a committed revision. Do not
 
 1. Confirm the intended commit and working-tree scope.
 2. Run `npm run build` at that commit.
-3. Verify the root page locally with real clicks:
-   - `HIKARI` opens;
+3. Verify both public entries locally with real clicks:
+   - the root opens in `HIKARI`;
+   - `/cloud-sculpt` opens in `KATACHI`, even after Hikari was the last saved workspace;
    - `optics` opens;
    - normal mode reports WebGPU where available;
    - `?safe=1` reports CPU preview;

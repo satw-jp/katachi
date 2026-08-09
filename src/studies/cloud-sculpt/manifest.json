@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.17.0",
+  "version": "0.19.1",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-07-30",
+  "updatedAt": "2026-08-09",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,26 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-09",
+      "note": "Separated the public entry points without duplicating the shape or optics implementation. The root index now opens Hikari, while cloud-sculpt.html opens the same live field in KATACHI view regardless of the previously saved workspace. The Study launcher points Cloud Sculpt to its dedicated entry so '雲をこねる' can no longer be redirected into a remembered Hikari view. The in-page KATACHI/HIKARI handoff remains available because both views still share the same balls, smooth-min field, history, and camera."
+    },
+    {
+      "date": "2026-08-01",
+      "note": "LD1 controlled making-trace prototype. Replaced the former surfaceVariation view-shader normal perturbation with a serializable curved-ribbon-v1 displacement of the actual optical boundary and renamed the UI control to Surface Trace (表面の手跡), default 0.14 with an author range of 0–0.25. ShapeAsset/RuntimeShape, WebGL Hikari map, and WebGPU mapField use the same coefficients; trace strength participates in shape identity, expanded bounds, and HikariCase save/open. A single-sphere IOR 1.5 fixed-receiver test confirms local boundary/normal change and real receiver-hit movement: at the selected 60-degree light angle, 3,252 of 3,344 shared hits moved by more than 0.01 shape unit. A 16,384-ray OFF/ON/difference image shows the smooth round focus becoming an oblique bright stroke. Fixed receiver exposure was reduced from 0.7 to 0.22 after the higher value saturated and hid the stroke, and the one-pass reconstruction footprint increased to two texels to match the approximate 128x128 source lattice to the 256x256 receiver. Nine contracts, three receiver-field tests, two LD1 trace tests, and the production build pass. Evidence is saved under docs/hikari/evidence/ld1-curved-ribbon-2026-08-01.*. The trace remains an analytic proxy rather than an authored physical/scan trace, peripheral samples remain dotted, and browser WebGL/WebGPU visual verification is still unavailable due the localhost access policy check."
+    },
+    {
+      "date": "2026-08-01",
+      "note": "Established a comparison-stable receiver-field foundation for the author's highest-priority shadow/light scribble concern. The CPU fallback now traces the requested optical sample count (16,384 by default) independently of the visible diagnostic rays, and receiver hits accumulate at 256x256 in a fixed world-space domain derived from the current shape bounds. Removed hit-percentile reframing, per-frame maximum normalization, thresholding, and the second blur pass; fixed exposure now scales with emitted rays so sample-count changes improve convergence without silently re-exposing the frame. Three focused tests cover fixed framing, doubled-sample exposure invariance, and hotspot isolation. The OpticalScene contract remains plural and a two-inclusion case with independent transforms/materials now validates, round-trips through HikariCase JSON, and rejects duplicate medium IDs; all nine Hikari contract tests and the production build pass. Documentation also records a dark host containing light as authored comfort rather than an exposure defect. Browser visual verification could not be completed because the verification environment could not authorize localhost access, so no artistic or screenshot-level improvement is claimed. Authored geometric trace, ray-bundle Jacobian, focused finite-source integration, and live multi-boundary inclusion transport/UI remain later work."
+    },
+    {
+      "date": "2026-08-01",
+      "note": "Connected the shape contract to the live Cloud Sculpt Hikari path. The Study now builds a deterministic ShapeAsset/RuntimeShape on each meaningful render; Flow surface projection and the CPU optics tracer query that runtime shape instead of calling fieldSdf directly, while the existing metaball WebGPU path receives an explicit compatibility payload. Sampled-field CPU steps are voxel-limited and unsupported GPU representations report an honest generic-shape CPU preview, with GPU reuse when returning to metaballs. Added user-facing Hikari observation save/open: one .hikari.json contains the replayable Cloud recipe, exact shape fingerprint and bounds, all Hikari controls, camera, stable OpticalScene subset, backend/sample count, observations, and approximation notes. Save and restore both reject recipe/shape hash mismatches; uncalibrated physical scale is marked provisional. Eight focused tests, TypeScript checks, and the production build pass. Browser verification used hit-tested coordinate interaction: normal WebGPU rendered 16,384 samples with 4,107 shape hits, ?safe=1 rendered the new RuntimeShape CPU path with 56 rays, and a real file restored a one-ball k=0.40 shape, IOR 1.61 controls, history, and camera with zero console errors. The first case-action layout wrapped vertically and was corrected to two equal buttons. WebGL and WebGPU geometry evaluation remain metaball-specific; nested media and calibrated physical absorption remain later work."
+    },
+    {
+      "date": "2026-08-01",
+      "note": "Added the first Katachi-to-hikari shape handoff foundation without changing the current renderer or UI. A serializable ShapeAsset now preserves source identity, bounds, physical scale, authored region meaning, recipe, hash, and approximation notes; RuntimeShape separately provides distance, containment, normal, and region queries. The first adapters cover the existing smooth-min metaball field and trilinearly sampled signed-distance or density volumes. Added a serializable OpticalScene for shape/material/receiver/light/camera relationships and a minimal HikariCase that reopens without localStorage. Six contract tests verify parity with Cloud Sculpt fieldSdf, JSON round trips, sampled-field interpolation and normals, density sign semantics, and scene region references; TypeScript checks and the production build pass. CPU/WebGL/WebGPU still read Ball[] directly, and S-pack/S-skin are intentionally not connected until the optical quality gate is stable."
+    },
     {
       "date": "2026-07-30",
       "note": "Separated the receiver's transparent shadow from its focused caustic after the author observed that the shadow disappeared and the light pool exposed a rectangular texture domain. The finite caustic field now has generous empty margins, CPU and shader edge feathering, a rounded outer support, and wider low-sample reconstruction for the Windows-safe 56-ray path. Natural-floor ambient light now retains a thickness-dependent translucent shadow under the caustic, while peak compression prevents the focused contribution from bleaching it away. Verified an irregular soft light pool inside a readable projected shadow in full WebGPU 16,384-ray and Windows-safe CPU 56-ray views with no rendering errors."

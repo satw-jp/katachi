@@ -18,12 +18,13 @@
 import type { Ball } from "../cloud-sculpt/field.ts";
 import {
   buildMeshFromField,
+  computeConnectedComponentsWithKey,
   computeSamplingBounds,
   encodeBinaryStl,
   encodeObj,
   meshSummary as baseMeshSummary,
 } from "../cloud-sculpt/meshExport.ts";
-import type { MeshBuildResult, Triangle } from "../cloud-sculpt/meshExport.ts";
+import type { Bounds, MeshBuildResult, MeshVertex, Triangle } from "../cloud-sculpt/meshExport.ts";
 import { compositeSdf } from "./field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { SkinHistoryEntry } from "./history.ts";
@@ -40,36 +41,19 @@ export interface SkinMeshResult extends MeshBuildResult {
   connectedComponents: number;
 }
 
-export function buildSkinMesh(
-  mode: SkinMode,
-  host: Ball[],
-  hostK: number,
-  thickness: number,
-  patches: Patch[],
-  roundK: number,
-  options: SkinMeshOptions,
-): SkinMeshResult {
-  if (host.length === 0) {
-    throw new Error("実体（ホスト）が空です。まず育ててください。");
-  }
-  if (mode === "plate" && patches.length === 0) {
-    throw new Error("プレート版は虚（パッチ）が無いと何も残りません。まず詰めてください。");
-  }
-  // sourceBounds from the host alone: the shell is always <= the host's own
-  // extent (|hostSdf| < thickness/2 never reaches further out than the
-  // host surface plus half the shell thickness), and both booleans (∩ / −)
-  // only ever remove material from the shell, never add outside it --
-  // mirrors pack/meshExport.ts's identical reasoning for host vs. void.
+/**
+ * The sampling bounds every skin mesh build (full composite, or a partition
+ * side -- see partition.ts) must use: the host's own bounds (shell never
+ * reaches further out than host surface + thickness/2, mirrors pack/
+ * meshExport.ts's host-vs-void reasoning) padded by every patch point's own
+ * extent (立体リング patches can bulge well past thickness/2 -- T11's fix,
+ * see prior inline comment history). Factored out of buildSkinMesh so
+ * partition.ts's two per-side builds sample the EXACT same grid as the
+ * original composite would, which is required for the shared A/B boundary
+ * to close (T13 §3's "同一sampling bounds・同一resolutionでメッシュ化").
+ */
+export function computeSkinSamplingBounds(host: Ball[], hostK: number, thickness: number, patches: Patch[]): Bounds {
   const bounds = computeSamplingBounds(host, hostK);
-  // Pad the host's own bounds so the sampling grid covers everything that
-  // can actually appear: the shell's half-thickness on the outside (T10's
-  // original reasoning) PLUS, new for T11, every patch point's own extent --
-  // 立体リング (ring3d) patches are full 3D objects that only touch the
-  // shell band at one circle (field.ts's compositeSdf doc comment) and can
-  // bulge well past thickness/2, so a fixed thickness-only pad would clip
-  // them. Computed directly from the actual patch geometry rather than a
-  // guessed formula (exact, and a strict superset of T10's coin-only case,
-  // so this is not a behavior change when every patch is a coin).
   let min = { x: bounds.min.x - thickness / 2, y: bounds.min.y - thickness / 2, z: bounds.min.z - thickness / 2 };
   let max = { x: bounds.max.x + thickness / 2, y: bounds.max.y + thickness / 2, z: bounds.max.z + thickness / 2 };
   for (const patch of patches) {
@@ -79,13 +63,28 @@ export function buildSkinMesh(
     }
   }
   const size = { x: max.x - min.x, y: max.y - min.y, z: max.z - min.z };
-  const padded = {
-    min,
-    max,
-    size,
-    longest: Math.max(size.x, size.y, size.z),
-  };
-  const sdf = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z);
+  return { min, max, size, longest: Math.max(size.x, size.y, size.z) };
+}
+
+export function buildSkinMesh(
+  mode: SkinMode,
+  host: Ball[],
+  hostK: number,
+  thickness: number,
+  patches: Patch[],
+  roundK: number,
+  options: SkinMeshOptions,
+  coinBulge: number,
+): SkinMeshResult {
+  if (host.length === 0) {
+    throw new Error("実体（ホスト）が空です。まず育ててください。");
+  }
+  if (mode === "plate" && patches.length === 0) {
+    throw new Error("プレート版は虚（パッチ）が無いと何も残りません。まず詰めてください。");
+  }
+  const padded = computeSkinSamplingBounds(host, hostK, thickness, patches);
+  const sdf = (x: number, y: number, z: number) =>
+    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
   const result = buildMeshFromField(padded, sdf, options);
   return { ...result, connectedComponents: countConnectedComponents(result.triangles) };
 }
@@ -97,55 +96,27 @@ export function buildSkinMesh(
  * cites -- not a topology guess, a count taken from the exported geometry
  * itself. O(triangles) with near-constant-time union-find.
  */
+const CONNECTED_COMPONENTS_QUANTUM = 1e5;
+
 export function countConnectedComponents(triangles: Triangle[]): number {
-  if (triangles.length === 0) return 0;
-  const idOf = new Map<string, number>();
-  const parent: number[] = [];
-  const q = 1e5;
-  const keyOf = (x: number, y: number, z: number) => `${Math.round(x * q)},${Math.round(y * q)},${Math.round(z * q)}`;
-  const idFor = (x: number, y: number, z: number): number => {
-    const key = keyOf(x, y, z);
-    let id = idOf.get(key);
-    if (id === undefined) {
-      id = parent.length;
-      parent.push(id);
-      idOf.set(key, id);
-    }
-    return id;
-  };
-  const find = (i: number): number => {
-    while (parent[i] !== i) {
-      parent[i] = parent[parent[i]];
-      i = parent[i];
-    }
-    return i;
-  };
-  const union = (a: number, b: number): void => {
-    const ra = find(a);
-    const rb = find(b);
-    if (ra !== rb) parent[ra] = rb;
-  };
-
-  for (const tri of triangles) {
-    const a = idFor(tri.a.x, tri.a.y, tri.a.z);
-    const b = idFor(tri.b.x, tri.b.y, tri.b.z);
-    const c = idFor(tri.c.x, tri.c.y, tri.c.z);
-    union(a, b);
-    union(b, c);
-  }
-
-  const roots = new Set<number>();
-  for (let i = 0; i < parent.length; i++) roots.add(find(i));
-  return roots.size;
+  const keyOf = (v: MeshVertex) =>
+    `${Math.round(v.x * CONNECTED_COMPONENTS_QUANTUM)},${Math.round(v.y * CONNECTED_COMPONENTS_QUANTUM)},${Math.round(v.z * CONNECTED_COMPONENTS_QUANTUM)}`;
+  return computeConnectedComponentsWithKey(triangles, keyOf);
 }
 
 export function meshSummary(result: SkinMeshResult): string {
   return `${baseMeshSummary(result)} / 部品数 ${result.connectedComponents}`;
 }
 
-export function makeSkinExportBaseName(mode: SkinMode): string {
+/** T14: coinBulge>0 gets folded into the filename itself (0 keeps the old
+ * name unchanged, per instruction §3.3 "0は従来名を維持してよい") so a
+ * candidate's STL/OBJ/recipe files never collide with -- or get silently
+ * confused with -- the value-0 baseline or a different candidate, without
+ * relying on opening the recipe JSON to tell them apart. */
+export function makeSkinExportBaseName(mode: SkinMode, coinBulge: number): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `yohaku-skin-${mode}-${stamp}`;
+  const bulgeSuffix = coinBulge > 0 ? `-coin-bulge-${coinBulge.toFixed(3).replace(".", "p")}` : "";
+  return `yohaku-skin-${mode}${bulgeSuffix}-${stamp}`;
 }
 
 /**

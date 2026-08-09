@@ -33,6 +33,7 @@ struct Params {
   basisV: vec4f,
   originCenter: vec4f,
   random: vec4f,
+  traceFrame: vec4f,
 };
 
 struct RayResult {
@@ -70,7 +71,17 @@ fn mapField(point: vec3f) -> f32 {
       distance = smoothMin(distance, ballDistance, params.config0.y);
     }
   }
-  return distance;
+  if (params.random.y <= 0.0) {
+    return distance;
+  }
+  let q = (point - params.traceFrame.xyz) / max(0.1, params.traceFrame.w);
+  let curve = q.x * 0.74 + q.z * 0.28
+    + sin(q.y * 2.7 + q.z * 0.9) * 0.16 - 0.08;
+  let ribbon = exp(-curve * curve * 42.0);
+  let handPressure = 0.72 + 0.28 * sin(q.y * 5.1 + q.z * 3.7);
+  let displacement = params.random.y * params.traceFrame.w * 0.22
+    * ribbon * handPressure;
+  return distance - displacement;
 }
 
 fn fieldNormal(point: vec3f) -> vec3f {
@@ -239,6 +250,10 @@ export class WebGpuOpticsEngine {
     return { ...this.status };
   }
 
+  isAvailable(): boolean {
+    return this.device !== null && this.pipeline !== null;
+  }
+
   async compute(
     balls: Ball[],
     k: number,
@@ -263,7 +278,13 @@ export class WebGpuOpticsEngine {
 
     try {
       device.pushErrorScope("validation");
-      const bounds = fieldBounds(balls);
+      const baseBounds = fieldBounds(balls);
+      const tracePadding = settings.surfaceVariation * baseBounds.radius * 0.22;
+      const bounds = {
+        center: baseBounds.center,
+        radius: baseBounds.radius + tracePadding,
+        minY: baseBounds.minY - tracePadding,
+      };
       const lightDirection = directionFromAngle(settings.lightAngle);
       const basisU = new THREE.Vector3().crossVectors(
         lightDirection,
@@ -285,7 +306,7 @@ export class WebGpuOpticsEngine {
         ballValues[offset + 3] = ball.r;
       }
 
-      const parameterValues = new Float32Array(28);
+      const parameterValues = new Float32Array(32);
       parameterValues.set(
         [
           Math.min(balls.length, MAX_GPU_BALLS),
@@ -313,9 +334,13 @@ export class WebGpuOpticsEngine {
           originCenter.z,
           0,
           numericSeed(settings.opticalSeed),
+          settings.surfaceVariation,
           0,
           0,
-          0,
+          baseBounds.center.x,
+          baseBounds.center.y,
+          baseBounds.center.z,
+          baseBounds.radius,
         ],
         0,
       );
@@ -387,8 +412,8 @@ export class WebGpuOpticsEngine {
     }
   }
 
-  setCpuFallback(sampleCount: number, message = "CPUプレビュー"): void {
-    if (this.status.kind === "checking" || this.status.kind === "cpu") {
+  setCpuFallback(sampleCount: number, message = "CPUプレビュー", force = false): void {
+    if (force || this.status.kind === "checking" || this.status.kind === "cpu") {
       this.status = {
         kind: "cpu",
         device: "",

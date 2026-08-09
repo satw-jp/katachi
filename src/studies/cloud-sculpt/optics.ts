@@ -1,5 +1,12 @@
 import * as THREE from "three";
-import { fieldSdf, type Ball } from "./field.ts";
+import type { RuntimeShape } from "../../lib/hikari/index.ts";
+import type { Ball } from "./field.ts";
+import {
+  buildLightDrawingField,
+  type LightDrawingDomain,
+  type LightDrawingField,
+  type LightDrawingSample,
+} from "./lightDrawingField.ts";
 import {
   WebGpuOpticsEngine,
   type GpuOpticsResult,
@@ -14,21 +21,15 @@ export type OpticalColorMode = "color" | "mono";
 export type OpticalDispersionMode = "global" | "local";
 export type OpticalRainbowModel = "prism" | "stress" | "both";
 
-export interface CausticField {
-  data: Uint8Array<ArrayBuffer>;
-  width: number;
-  height: number;
-  minX: number;
-  minZ: number;
-  sizeX: number;
-  sizeZ: number;
-}
+export type CausticField = LightDrawingField;
+type CausticSample = LightDrawingSample;
 
-interface CausticSample {
-  x: number;
-  z: number;
-  energy: number;
-  color: [number, number, number];
+export interface FocusedRayTrace {
+  entry: THREE.Vector3 | null;
+  insideDirection: THREE.Vector3 | null;
+  exit: { point: THREE.Vector3; distance: number } | null;
+  outgoing: THREE.Vector3 | null;
+  floorHit: THREE.Vector3 | null;
 }
 
 export interface OpticalSettings {
@@ -62,6 +63,15 @@ export interface OpticalSettings {
   dispersion: number;
   stressAmount: number;
   polarization: number;
+}
+
+export interface OpticsShapeSource {
+  runtime: RuntimeShape;
+  /** Present only while a backend still requires the original metaball uniforms. */
+  gpuMetaballs?: {
+    balls: Ball[];
+    smoothK: number;
+  };
 }
 
 const causticVertexShader = `
@@ -158,8 +168,7 @@ export class OpticsLayer {
   private caustics: THREE.Points | null = null;
   private signature = "";
   private requestId = 0;
-  private latestBalls: Ball[] = [];
-  private latestK = 0;
+  private latestSource: OpticsShapeSource | null = null;
   private latestSettings: OpticalSettings | null = null;
   private gpu: WebGpuOpticsEngine;
   private onCausticField: ((field: CausticField) => void) | null;
@@ -211,8 +220,8 @@ export class OpticsLayer {
     this.group.renderOrder = 20;
     scene.add(this.group);
     this.gpu.ready().then((available) => {
-      if (available && this.latestSettings) {
-        this.startGpuRebuild(this.latestBalls, this.latestK, this.latestSettings);
+      if (available && this.latestSource?.gpuMetaballs && this.latestSettings) {
+        this.startGpuRebuild(this.latestSource, this.latestSettings);
       }
     });
   }
@@ -221,21 +230,29 @@ export class OpticsLayer {
     this.group.visible = visible;
   }
 
-  update(balls: Ball[], k: number, settings: OpticalSettings): void {
-    this.latestBalls = balls;
-    this.latestK = k;
+  update(source: OpticsShapeSource | null, settings: OpticalSettings): void {
+    this.latestSource = source;
     this.latestSettings = { ...settings };
     this.causticMaterial.uniforms.uStrength.value = settings.causticStrength;
     this.causticMaterial.uniforms.uNatural.value = settings.opticalView === "natural" ? 1 : 0;
-    const signature = `${shapeSignature(balls, k)}:${settings.ior.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
+    const shapeRevision = source?.runtime.asset.revision ?? "empty";
+    const signature = `${shapeRevision}:${settings.ior.toFixed(3)}:${settings.rainbowModel}:${settings.dispersion.toFixed(3)}:${settings.dispersionMode}:${settings.stressAmount.toFixed(3)}:${settings.polarization.toFixed(3)}:${settings.lightAngle.toFixed(2)}:${settings.lightWidth.toFixed(2)}:${settings.opticalRayCount}:${settings.opticalSampleCount}:${settings.opticalSeed}`;
     if (signature !== this.signature) {
       this.signature = signature;
       const status = this.gpu.getStatus();
-      if (status.kind === "webgpu" || status.kind === "computing") {
-        this.startGpuRebuild(balls, k, settings);
+      if (
+        source?.gpuMetaballs
+        && (status.kind === "webgpu" || status.kind === "computing" || this.gpu.isAvailable())
+      ) {
+        this.startGpuRebuild(source, settings);
       } else {
-        const cpuSampleCount = this.rebuildCpu(balls, k, settings);
-        this.gpu.setCpuFallback(cpuSampleCount);
+        this.requestId++;
+        const cpuSampleCount = this.rebuildCpu(source?.runtime ?? null, settings);
+        this.gpu.setCpuFallback(
+          cpuSampleCount,
+          source && !source.gpuMetaballs ? "汎用形状 — CPUプレビュー" : "CPUプレビュー",
+          source !== null && !source.gpuMetaballs,
+        );
       }
     }
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
@@ -272,15 +289,21 @@ export class OpticsLayer {
     };
   }
 
-  private startGpuRebuild(balls: Ball[], k: number, settings: OpticalSettings): void {
+  private startGpuRebuild(source: OpticsShapeSource, settings: OpticalSettings): void {
+    const gpuSource = source.gpuMetaballs;
+    if (!gpuSource) {
+      const cpuSampleCount = this.rebuildCpu(source.runtime, settings);
+      this.gpu.setCpuFallback(cpuSampleCount, "汎用形状 — CPUプレビュー", true);
+      return;
+    }
     const requestId = ++this.requestId;
-    void this.gpu.compute(balls, k, settings).then((result) => {
+    void this.gpu.compute(gpuSource.balls, gpuSource.smoothK, settings).then((result) => {
       if (requestId !== this.requestId) return;
       if (!result) {
-        this.rebuildCpu(balls, k, settings);
+        this.rebuildCpu(source.runtime, settings);
         return;
       }
-      this.rebuildGpu(result, settings);
+      this.rebuildGpu(result, settings, fieldBounds(source.runtime));
     });
   }
 
@@ -299,20 +322,20 @@ export class OpticsLayer {
     }
   }
 
-  private rebuildCpu(balls: Ball[], k: number, settings: OpticalSettings): number {
+  private rebuildCpu(shape: RuntimeShape | null, settings: OpticalSettings): number {
     this.clearGeometry();
     this.causticMaterial.uniforms.uSampleScale.value = 1;
     this.densityMaterial.uniforms.uSampleScale.value = 1;
 
-    if (balls.length === 0) {
+    if (!shape) {
       this.rays = null;
       this.density = null;
       this.caustics = null;
-      this.publishCausticField([]);
+      this.publishCausticField([], { minX: -1, minZ: -1, sizeX: 2, sizeZ: 2 }, 1);
       return 0;
     }
 
-    const bounds = fieldBounds(balls);
+    const bounds = fieldBounds(shape);
     const lightDirection = directionFromAngle(settings.lightAngle);
     const basisU = new THREE.Vector3().crossVectors(lightDirection, new THREE.Vector3(0, 1, 0));
     if (basisU.lengthSq() < 0.001) basisU.set(1, 0, 0);
@@ -332,7 +355,10 @@ export class OpticsLayer {
     const causticAngle: number[] = [];
     const causticFieldSamples: CausticSample[] = [];
     const visibleRayCount = Math.max(8, Math.round(settings.opticalRayCount));
-    const sampleCount = visibleRayCount;
+    // Diagnostic ray lines and receiver-field convergence are separate. The
+    // previous CPU fallback silently traced only the visible rays, so its
+    // light drawing could never approach the requested 16k+ sample field.
+    const sampleCount = Math.max(visibleRayCount, Math.round(settings.opticalSampleCount));
 
     for (let emitted = 0; emitted < sampleCount; emitted++) {
         const sequenceIndex = emitted + 1;
@@ -343,7 +369,7 @@ export class OpticsLayer {
           .clone()
           .addScaledVector(basisU, u * bounds.radius * 1.15 * settings.lightWidth)
           .addScaledVector(basisV, v * bounds.radius * 1.05 * settings.lightWidth);
-        const entry = marchToSurface(balls, k, origin, lightDirection, bounds.radius * 5);
+        const entry = marchToSurface(shape, origin, lightDirection, bounds.radius * 5);
 
         if (!entry) {
           const floorHit = intersectFloor(origin, lightDirection, floorY);
@@ -351,79 +377,87 @@ export class OpticsLayer {
             if (showRay) {
               appendSegment(rayPositions, rayColors, origin, floorHit, 0x153f50, 0x18343f);
             }
-            appendDensitySegment(
-              densityPositions,
-              densityColors,
-              densityEnergy,
-              densityPhases,
-              origin,
-              floorHit,
-              0x174b5c,
-              0x1f6676,
-              24,
-              0.1,
-            );
+            if (showRay) {
+              appendDensitySegment(
+                densityPositions,
+                densityColors,
+                densityEnergy,
+                densityPhases,
+                origin,
+                floorHit,
+                0x174b5c,
+                0x1f6676,
+                24,
+                0.1,
+              );
+            }
           }
           continue;
         }
 
-        const entryNormal = fieldNormal(balls, k, entry);
+        const entryNormal = fieldNormal(shape, entry);
         const insideDirection =
           refract(lightDirection, entryNormal, 1 / settings.ior) ??
           lightDirection.clone().reflect(entryNormal);
-        const exit = marchInside(balls, k, entry, insideDirection, bounds.radius * 4);
+        const exit = marchInside(shape, entry, insideDirection, bounds.radius * 4);
         if (showRay) {
           appendSegment(rayPositions, rayColors, origin, entry, 0x1c5368, 0x62e6ff);
         }
-        appendDensitySegment(
-          densityPositions,
-          densityColors,
-          densityEnergy,
-          densityPhases,
-          origin,
-          entry,
-          0x164858,
-          0x55cfe6,
-          36,
-          0.32,
-        );
+        if (showRay) {
+          appendDensitySegment(
+            densityPositions,
+            densityColors,
+            densityEnergy,
+            densityPhases,
+            origin,
+            entry,
+            0x164858,
+            0x55cfe6,
+            36,
+            0.32,
+          );
+        }
 
         if (!exit) {
           const end = entry.clone().addScaledVector(insideDirection, bounds.radius * 1.6);
           if (showRay) {
             appendSegment(rayPositions, rayColors, entry, end, 0x8cf4ff, 0xd5ffff);
           }
-          appendDensitySegment(
-            densityPositions,
-            densityColors,
-            densityEnergy,
-            densityPhases,
-            entry,
-            end,
-            0x65d9ed,
-            0xcaffff,
-            46,
-            0.85,
-          );
+          if (showRay) {
+            appendDensitySegment(
+              densityPositions,
+              densityColors,
+              densityEnergy,
+              densityPhases,
+              entry,
+              end,
+              0x65d9ed,
+              0xcaffff,
+              46,
+              0.85,
+            );
+          }
           continue;
         }
 
         if (showRay) {
           appendSegment(rayPositions, rayColors, entry, exit.point, 0x6beaff, 0xf6ffff);
         }
-        appendDensitySegment(
-          densityPositions,
-          densityColors,
-          densityEnergy,
-          densityPhases,
-          entry,
-          exit.point,
-          0x5bd3e8,
-          0xf4ffff,
-          52,
-          1,
-        );
-        const outwardNormal = fieldNormal(balls, k, exit.point);
+        if (showRay) {
+          appendDensitySegment(
+            densityPositions,
+            densityColors,
+            densityEnergy,
+            densityPhases,
+            entry,
+            exit.point,
+            0x5bd3e8,
+            0xf4ffff,
+            52,
+            1,
+          );
+        }
+        const outwardNormal = fieldNormal(shape, exit.point);
         const outgoing =
           refract(insideDirection, outwardNormal.clone().negate(), settings.ior) ??
           insideDirection.clone().reflect(outwardNormal.clone().negate());
@@ -432,18 +466,20 @@ export class OpticsLayer {
         if (showRay) {
           appendSegment(rayPositions, rayColors, exit.point, end, 0xf2ffff, 0xffd779);
         }
-        appendDensitySegment(
-          densityPositions,
-          densityColors,
-          densityEnergy,
-          densityPhases,
-          exit.point,
-          end,
-          0xd8ffff,
-          0xffcf67,
-          36,
-          0.62,
-        );
+        if (showRay) {
+          appendDensitySegment(
+            densityPositions,
+            densityColors,
+            densityEnergy,
+            densityPhases,
+            exit.point,
+            end,
+            0xd8ffff,
+            0xffcf67,
+            36,
+            0.62,
+          );
+        }
 
         if (floorHit) {
           const deviation = Math.min(1, outgoing.distanceTo(lightDirection) / 1.2);
@@ -457,20 +493,22 @@ export class OpticsLayer {
             settings.dispersionMode,
             settings.rainbowModel,
           );
-          appendCausticDeposit(
-            causticPositions,
-            causticEnergy,
-            causticStretch,
-            causticAngle,
-            floorHit,
-            0.55 + (1 - deviation) * 0.45,
-            deviation,
-            Math.atan2(
-              outgoing.z - lightDirection.z,
-              outgoing.x - lightDirection.x,
-            ),
-            sequenceIndex,
-          );
+          if (showRay) {
+            appendCausticDeposit(
+              causticPositions,
+              causticEnergy,
+              causticStretch,
+              causticAngle,
+              floorHit,
+              0.55 + (1 - deviation) * 0.45,
+              deviation,
+              Math.atan2(
+                outgoing.z - lightDirection.z,
+                outgoing.x - lightDirection.x,
+              ),
+              sequenceIndex,
+            );
+          }
         }
     }
 
@@ -501,12 +539,16 @@ export class OpticsLayer {
     this.caustics = new THREE.Points(causticGeometry, this.causticMaterial);
     this.caustics.renderOrder = 21;
     this.group.add(this.caustics);
-    this.publishCausticField(causticFieldSamples);
+    this.publishCausticField(causticFieldSamples, receiverDomain(bounds), sampleCount);
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
     return sampleCount;
   }
 
-  private rebuildGpu(result: GpuOpticsResult, settings: OpticalSettings): void {
+  private rebuildGpu(
+    result: GpuOpticsResult,
+    settings: OpticalSettings,
+    bounds: ReturnType<typeof fieldBounds>,
+  ): void {
     this.clearGeometry();
     const rayPositions: number[] = [];
     const rayColors: number[] = [];
@@ -650,7 +692,12 @@ export class OpticsLayer {
       1,
       64 / Math.max(1, causticHitCount),
     );
-    this.publishCausticField(causticFieldSamples);
+    const accumulatedRayCount = Math.ceil(result.sampleCount / visualStride);
+    this.publishCausticField(
+      causticFieldSamples,
+      receiverDomain(bounds),
+      accumulatedRayCount,
+    );
     this.applyDisplay(settings.opticalDisplay, settings.opticalView);
   }
 
@@ -660,8 +707,25 @@ export class OpticsLayer {
     if (this.caustics) this.caustics.visible = view === "analysis";
   }
 
-  private publishCausticField(samples: CausticSample[]): void {
-    this.onCausticField?.(buildCausticField(samples));
+  private publishCausticField(
+    samples: CausticSample[],
+    domain: LightDrawingDomain,
+    emittedRayCount: number,
+  ): void {
+    this.onCausticField?.(buildLightDrawingField(samples, {
+      domain,
+      emittedRayCount,
+      width: 256,
+      height: 256,
+      // At 16,384 samples the source lattice is roughly 128×128 while the
+      // receiver is 256×256. A two-texel one-pass reconstruction footprint
+      // closes sampling gaps without the old repeated beauty blur.
+      reconstructionRadius: 2,
+      // The old value saturated the focal core and hid the trace-directed
+      // diagonal. Keep this fixed; author-facing causticStrength remains the
+      // deliberate display control.
+      exposure: 0.22,
+    }));
   }
 }
 
@@ -761,181 +825,80 @@ function smoothstepNumber(edge0: number, edge1: number, value: number): number {
   return t * t * (3 - 2 * t);
 }
 
-function buildCausticField(samples: CausticSample[]): CausticField {
-  const width = 128;
-  const height = 128;
-  if (samples.length === 0) {
-    return {
-      data: new Uint8Array(width * height * 4),
-      width,
-      height,
-      minX: -1,
-      minZ: -1,
-      sizeX: 2,
-      sizeZ: 2,
-    };
-  }
-
-  const sortedX = samples.map((sample) => sample.x).sort((a, b) => a - b);
-  const sortedZ = samples.map((sample) => sample.z).sort((a, b) => a - b);
-  const low = Math.floor((samples.length - 1) * 0.02);
-  const high = Math.ceil((samples.length - 1) * 0.98);
-  let minX = sortedX[low];
-  let maxX = sortedX[high];
-  let minZ = sortedZ[low];
-  let maxZ = sortedZ[high];
-  const centerX = (minX + maxX) * 0.5;
-  const centerZ = (minZ + maxZ) * 0.5;
-  const spanX = Math.max(1.4, maxX - minX);
-  const spanZ = Math.max(1.4, maxZ - minZ);
-  // Keep generous empty space around the measured receiver hits. The texture
-  // is an implementation detail, so real energy must reach zero well before
-  // its rectangular boundary.
-  minX = centerX - spanX * 0.86;
-  maxX = centerX + spanX * 0.86;
-  minZ = centerZ - spanZ * 0.86;
-  maxZ = centerZ + spanZ * 0.86;
-
-  let red = new Float32Array(width * height);
-  let green = new Float32Array(width * height);
-  let blue = new Float32Array(width * height);
-  const fields = [red, green, blue];
-  for (const sample of samples) {
-    const u = (sample.x - minX) / (maxX - minX);
-    const v = (sample.z - minZ) / (maxZ - minZ);
-    if (u < 0 || u > 1 || v < 0 || v > 1) continue;
-    const x = u * (width - 1);
-    const y = v * (height - 1);
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
-    const x1 = Math.min(width - 1, x0 + 1);
-    const y1 = Math.min(height - 1, y0 + 1);
-    const fx = x - x0;
-    const fy = y - y0;
-    for (let channel = 0; channel < 3; channel++) {
-      const channelEnergy = sample.energy * sample.color[channel];
-      fields[channel][y0 * width + x0] += channelEnergy * (1 - fx) * (1 - fy);
-      fields[channel][y0 * width + x1] += channelEnergy * fx * (1 - fy);
-      fields[channel][y1 * width + x0] += channelEnergy * (1 - fx) * fy;
-      fields[channel][y1 * width + x1] += channelEnergy * fx * fy;
-    }
-  }
-  const blurRadius = samples.length < 1200 ? 3 : 2;
-  red = blurScalarField(
-    blurScalarField(red, width, height, blurRadius),
-    width,
-    height,
-    blurRadius,
-  );
-  green = blurScalarField(
-    blurScalarField(green, width, height, blurRadius),
-    width,
-    height,
-    blurRadius,
-  );
-  blue = blurScalarField(
-    blurScalarField(blue, width, height, blurRadius),
-    width,
-    height,
-    blurRadius,
-  );
-
-  let maximum = 0;
-  for (let index = 0; index < red.length; index++) {
-    maximum = Math.max(maximum, red[index], green[index], blue[index]);
-  }
-  const data = new Uint8Array(width * height * 4);
-  const inverseMaximum = maximum > 0 ? 1 / maximum : 0;
-  const normalize = (value: number): number => {
-    const density = value * inverseMaximum;
-    const thresholded = Math.max(0, Math.min(1, (density - 0.18) / 0.72));
-    return Math.pow(thresholded * thresholded * (3 - 2 * thresholded), 1.4);
-  };
-  for (let index = 0; index < red.length; index++) {
-    const offset = index * 4;
-    const x = index % width;
-    const y = Math.floor(index / width);
-    const edgeDistance = Math.min(
-      x / (width - 1),
-      1 - x / (width - 1),
-      y / (height - 1),
-      1 - y / (height - 1),
-    );
-    const normalizedX = (x / (width - 1) - 0.5) * 2;
-    const normalizedY = (y / (height - 1) - 0.5) * 2;
-    const domainRadius = Math.hypot(normalizedX, normalizedY);
-    const edgeWindow =
-      smoothstepNumber(0, 0.1, edgeDistance)
-      * (1 - smoothstepNumber(0.82, 1.05, domainRadius));
-    data[offset] = Math.round(normalize(red[index]) * edgeWindow * 255);
-    data[offset + 1] = Math.round(normalize(green[index]) * edgeWindow * 255);
-    data[offset + 2] = Math.round(normalize(blue[index]) * edgeWindow * 255);
-    data[offset + 3] = 255;
-  }
-  return {
-    data,
-    width,
-    height,
-    minX,
-    minZ,
-    sizeX: maxX - minX,
-    sizeZ: maxZ - minZ,
-  };
-}
-
-function blurScalarField(
-  source: Float32Array<ArrayBuffer>,
-  width: number,
-  height: number,
-  radius: number,
-): Float32Array<ArrayBuffer> {
-  const horizontal = new Float32Array(source.length);
-  const output = new Float32Array(source.length);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      let sum = 0;
-      let weight = 0;
-      for (let offset = -radius; offset <= radius; offset++) {
-        const sampleX = Math.max(0, Math.min(width - 1, x + offset));
-        const sampleWeight = radius + 1 - Math.abs(offset);
-        sum += source[y * width + sampleX] * sampleWeight;
-        weight += sampleWeight;
-      }
-      horizontal[y * width + x] = sum / weight;
-    }
-  }
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      let sum = 0;
-      let weight = 0;
-      for (let offset = -radius; offset <= radius; offset++) {
-        const sampleY = Math.max(0, Math.min(height - 1, y + offset));
-        const sampleWeight = radius + 1 - Math.abs(offset);
-        sum += horizontal[sampleY * width + x] * sampleWeight;
-        weight += sampleWeight;
-      }
-      output[y * width + x] = sum / weight;
-    }
-  }
-  return output;
-}
-
 function vectorFromResult(values: Float32Array, offset: number): THREE.Vector3 {
   return new THREE.Vector3(values[offset], values[offset + 1], values[offset + 2]);
 }
 
-function fieldBounds(balls: Ball[]): { center: THREE.Vector3; radius: number; minY: number } {
-  const min = new THREE.Vector3(Infinity, Infinity, Infinity);
-  const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-  for (const ball of balls) {
-    min.min(new THREE.Vector3(ball.x - ball.r, ball.y - ball.r, ball.z - ball.r));
-    max.max(new THREE.Vector3(ball.x + ball.r, ball.y + ball.r, ball.z + ball.r));
-  }
+function fieldBounds(shape: RuntimeShape): { center: THREE.Vector3; radius: number; minY: number } {
+  const min = new THREE.Vector3(
+    shape.asset.bounds.min.x,
+    shape.asset.bounds.min.y,
+    shape.asset.bounds.min.z,
+  );
+  const max = new THREE.Vector3(
+    shape.asset.bounds.max.x,
+    shape.asset.bounds.max.y,
+    shape.asset.bounds.max.z,
+  );
   const center = min.clone().add(max).multiplyScalar(0.5);
   return {
     center,
     radius: Math.max(0.1, center.distanceTo(max)),
     minY: min.y,
+  };
+}
+
+function receiverDomain(bounds: ReturnType<typeof fieldBounds>): LightDrawingDomain {
+  const size = bounds.radius * 5;
+  return {
+    minX: bounds.center.x - size * 0.5,
+    minZ: bounds.center.z - size * 0.5,
+    sizeX: size,
+    sizeZ: size,
+  };
+}
+
+/**
+ * Deterministic single-ray reference used by both LD1 verification and the
+ * same RuntimeShape boundary queries as the live CPU receiver path.
+ */
+export function traceFocusedRay(
+  shape: RuntimeShape,
+  origin: THREE.Vector3,
+  incidentDirection: THREE.Vector3,
+  ior: number,
+  floorY: number,
+  maxDistance: number,
+): FocusedRayTrace {
+  const direction = incidentDirection.clone().normalize();
+  const entry = marchToSurface(shape, origin, direction, maxDistance);
+  if (!entry) {
+    return {
+      entry: null,
+      insideDirection: null,
+      exit: null,
+      outgoing: null,
+      floorHit: intersectFloor(origin, direction, floorY),
+    };
+  }
+  const entryNormal = fieldNormal(shape, entry);
+  const insideDirection =
+    refract(direction, entryNormal, 1 / ior) ?? direction.clone().reflect(entryNormal);
+  const exit = marchInside(shape, entry, insideDirection, maxDistance);
+  if (!exit) {
+    return { entry, insideDirection, exit: null, outgoing: null, floorHit: null };
+  }
+  const outwardNormal = fieldNormal(shape, exit.point);
+  const exitInterfaceNormal = outwardNormal.clone().negate();
+  const outgoing =
+    refract(insideDirection, exitInterfaceNormal, ior)
+    ?? insideDirection.clone().reflect(exitInterfaceNormal);
+  return {
+    entry,
+    insideDirection,
+    exit,
+    outgoing,
+    floorHit: intersectFloor(exit.point, outgoing, floorY),
   };
 }
 
@@ -945,46 +908,63 @@ function directionFromAngle(angleDegrees: number): THREE.Vector3 {
 }
 
 function marchToSurface(
-  balls: Ball[],
-  k: number,
+  shape: RuntimeShape,
   origin: THREE.Vector3,
   direction: THREE.Vector3,
   maxDistance: number,
 ): THREE.Vector3 | null {
   let distanceAlongRay = 0;
-  for (let iteration = 0; iteration < 128 && distanceAlongRay < maxDistance; iteration++) {
+  const sampledField = shape.asset.representation.kind === "sampled-field-v1";
+  const maxIterations = sampledField ? 512 : 128;
+  for (let iteration = 0; iteration < maxIterations && distanceAlongRay < maxDistance; iteration++) {
     const point = origin.clone().addScaledVector(direction, distanceAlongRay);
-    const distance = fieldSdf(balls, k, point.x, point.y, point.z);
+    const distance = shape.distance(point);
     if (distance < 0.002) return point;
-    distanceAlongRay += Math.max(0.004, distance * 0.8);
+    distanceAlongRay += opticalStep(shape, distance, 0.8);
   }
   return null;
 }
 
 function marchInside(
-  balls: Ball[],
-  k: number,
+  shape: RuntimeShape,
   entry: THREE.Vector3,
   direction: THREE.Vector3,
   maxDistance: number,
 ): { point: THREE.Vector3; distance: number } | null {
   let distanceAlongRay = 0.018;
   let previous = entry.clone();
-  for (let iteration = 0; iteration < 160 && distanceAlongRay < maxDistance; iteration++) {
+  const sampledField = shape.asset.representation.kind === "sampled-field-v1";
+  const maxIterations = sampledField ? 512 : 160;
+  for (let iteration = 0; iteration < maxIterations && distanceAlongRay < maxDistance; iteration++) {
     const point = entry.clone().addScaledVector(direction, distanceAlongRay);
-    const distance = fieldSdf(balls, k, point.x, point.y, point.z);
+    const distance = shape.distance(point);
     if (distance >= -0.002 && distanceAlongRay > 0.04) {
-      return { point: refineExit(balls, k, previous, point), distance: distanceAlongRay };
+      return { point: refineExit(shape, previous, point), distance: distanceAlongRay };
     }
     previous = point;
-    distanceAlongRay += Math.max(0.012, Math.abs(distance) * 0.72);
+    distanceAlongRay += opticalStep(shape, Math.abs(distance), 0.72);
   }
   return null;
 }
 
+function opticalStep(shape: RuntimeShape, distance: number, metaballScale: number): number {
+  const representation = shape.asset.representation;
+  if (representation.kind === "metaballs-v1") {
+    return Math.max(metaballScale === 0.8 ? 0.004 : 0.012, Math.abs(distance) * metaballScale);
+  }
+  const size = {
+    x: shape.asset.bounds.max.x - shape.asset.bounds.min.x,
+    y: shape.asset.bounds.max.y - shape.asset.bounds.min.y,
+    z: shape.asset.bounds.max.z - shape.asset.bounds.min.z,
+  };
+  const [nx, ny, nz] = representation.dimensions;
+  const voxel = Math.min(size.x / (nx - 1), size.y / (ny - 1), size.z / (nz - 1));
+  const scale = representation.recommendedStepScale;
+  return Math.max(voxel * 0.05, Math.min(Math.abs(distance) * scale, voxel * scale));
+}
+
 function refineExit(
-  balls: Ball[],
-  k: number,
+  shape: RuntimeShape,
   inside: THREE.Vector3,
   outside: THREE.Vector3,
 ): THREE.Vector3 {
@@ -992,23 +972,19 @@ function refineExit(
   let b = outside.clone();
   for (let iteration = 0; iteration < 7; iteration++) {
     const middle = a.clone().lerp(b, 0.5);
-    const d = fieldSdf(balls, k, middle.x, middle.y, middle.z);
+    const d = shape.distance(middle);
     if (d < 0) a = middle;
     else b = middle;
   }
   return a.lerp(b, 0.5);
 }
 
-function fieldNormal(balls: Ball[], k: number, point: THREE.Vector3): THREE.Vector3 {
+function fieldNormal(shape: RuntimeShape, point: THREE.Vector3): THREE.Vector3 {
   const epsilon = 0.006;
-  return new THREE.Vector3(
-    fieldSdf(balls, k, point.x + epsilon, point.y, point.z) -
-      fieldSdf(balls, k, point.x - epsilon, point.y, point.z),
-    fieldSdf(balls, k, point.x, point.y + epsilon, point.z) -
-      fieldSdf(balls, k, point.x, point.y - epsilon, point.z),
-    fieldSdf(balls, k, point.x, point.y, point.z + epsilon) -
-      fieldSdf(balls, k, point.x, point.y, point.z - epsilon),
-  ).normalize();
+  const normal = shape.normal(point, epsilon);
+  return normal
+    ? new THREE.Vector3(normal.x, normal.y, normal.z)
+    : new THREE.Vector3(0, 1, 0);
 }
 
 function refract(incident: THREE.Vector3, normal: THREE.Vector3, eta: number): THREE.Vector3 | null {
@@ -1083,10 +1059,4 @@ function hash(value: number): number {
 
 function signedHash(value: number): number {
   return hash(value) * 2 - 1;
-}
-
-function shapeSignature(balls: Ball[], k: number): string {
-  return `${k.toFixed(4)}|${balls
-    .map((ball) => `${ball.id}:${ball.x.toFixed(3)},${ball.y.toFixed(3)},${ball.z.toFixed(3)},${ball.r.toFixed(3)}`)
-    .join("|")}`;
 }

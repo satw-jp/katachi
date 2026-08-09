@@ -6,6 +6,11 @@
 import "./style.css";
 import * as THREE from "three";
 import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
+import {
+  parseHikariCase,
+  serializeHikariCase,
+  type CameraRecord,
+} from "../../lib/hikari/index.ts";
 import { startFrameLoop } from "../../lib/loop.ts";
 import manifest from "./manifest.json";
 import { DEFAULT_FIELD_PARAMS, freshBallId } from "./field.ts";
@@ -16,12 +21,18 @@ import {
   type HikariSettings,
   type WorkspaceView,
 } from "./hikari.ts";
+import { createCloudHikariShape } from "./hikariAdapter.ts";
+import {
+  createCloudHikariCase,
+  restoreCloudHikariCase,
+} from "./hikariCaseAdapter.ts";
 import type { HistoryEntry } from "./history.ts";
 import { createEmptyState, parseRecipe, record, replay, serializeRecipe } from "./history.ts";
 import { buildCloudMesh, downloadMeshBundle, meshSummary } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { raymarchField } from "./picking.ts";
 import { MAX_BALLS } from "./shaders.ts";
+import { HikariMpmDriver } from "./hikariMpmDriver.ts";
 import type { MeshExportUiOptions } from "./ui.ts";
 import { buildUi } from "./ui.ts";
 
@@ -36,8 +47,7 @@ let state = createEmptyState();
 let selectedBallId: number | null = null;
 const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
-let workspaceView: WorkspaceView =
-  localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
+let workspaceView: WorkspaceView = resolveInitialWorkspaceView();
 let hikariSettings = loadHikariSettings();
 const safeModeQuery = new URLSearchParams(window.location.search).get("safe");
 const windowsCompatibilityMode =
@@ -51,6 +61,9 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
   disableWebGpu: windowsCompatibilityMode,
   onCausticField: (field) => cloudRenderer.setCausticField(field),
 });
+const hikariMpmDriver = new HikariMpmDriver();
+let hikariMpmActive = false;
+let hikariMpmLastStepAt = 0;
 
 // Seed the initial cloud so the app opens with something to look at
 // (an empty field is a legitimate but uninteresting state).
@@ -132,8 +145,60 @@ const ui = buildUi(
     localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
     render();
   },
+  onHikariCaseExport: () => exportHikariCase(),
+  onHikariCaseImportFile: (file) => void importHikariCase(file),
   },
 );
+
+const mpmRow = document.createElement("div");
+mpmRow.className = "row";
+const mpmStartButton = document.createElement("button");
+mpmStartButton.type = "button";
+mpmStartButton.textContent = "MPM形態変形を開始";
+const mpmStopButton = document.createElement("button");
+mpmStopButton.type = "button";
+mpmStopButton.textContent = "止めてこの形を採用";
+mpmStopButton.disabled = true;
+mpmRow.append(mpmStartButton, mpmStopButton);
+const mpmStatus = document.createElement("div");
+mpmStatus.className = "hint";
+mpmStatus.textContent = "MPMは低頻度の球プロキシとしてHikariへ渡します。近似形状です。";
+ui.root.append(mpmRow, mpmStatus);
+
+mpmStartButton.onclick = () => {
+  if (state.balls.length === 0) return;
+  try {
+    hikariMpmDriver.seed(state.balls, state.params.k);
+    hikariMpmActive = true;
+    hikariMpmLastStepAt = 0;
+    workspaceView = "hikari";
+    applyWorkspaceView();
+    mpmStartButton.disabled = true;
+    mpmStopButton.disabled = false;
+    mpmStatus.textContent = hikariMpmDriver.description() + " · 再生中";
+  } catch (error) {
+    mpmStatus.textContent = `MPM開始失敗: ${(error as Error).message}`;
+  }
+};
+
+mpmStopButton.onclick = () => {
+  if (!hikariMpmActive) return;
+  hikariMpmActive = false;
+  const preview = hikariMpmDriver.previewBalls();
+  if (preview.length > 0) {
+    // Commit the chosen proxy as an explicit sculpt snapshot so subsequent
+    // Hikari case export/reopen still passes the recipe/hash check.
+    record(history, state, "clear", {});
+    for (const ball of preview) record(history, state, "addBall", ball);
+    selectedBallId = null;
+    ui.setHistoryCount(history.length);
+    updateSelectionLabel();
+    render();
+  }
+  mpmStartButton.disabled = false;
+  mpmStopButton.disabled = true;
+  mpmStatus.textContent = `MPM形態を採用しました · ${preview.length}球の近似形状`;
+};
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
@@ -292,6 +357,88 @@ function exportHistory(): void {
   URL.revokeObjectURL(url);
 }
 
+function exportHikariCase(): void {
+  try {
+    const stamp = new Date().toISOString();
+    const compute = hikariLayer.getOpticsComputeStatus();
+    const value = createCloudHikariCase({
+      id: `cloud-hikari-${stamp.replace(/[:.]/g, "-")}`,
+      capturedAtUtc: stamp,
+      appVersion: manifest.version,
+      balls: state.balls,
+      smoothK: state.params.k,
+      history,
+      settings: hikariSettings,
+      camera: currentCameraRecord(),
+      rendererBackend: compute.kind === "webgpu" || compute.kind === "computing" ? "webgpu" : "cpu",
+    });
+    downloadJson(
+      serializeHikariCase(value),
+      `hikari-case-${stamp.replace(/[:.]/g, "-")}.hikari.json`,
+    );
+    ui.setHikariCaseStatus("観察ケースを保存しました。物理寸法は未校正として記録されています。", true);
+  } catch (error) {
+    ui.setHikariCaseStatus(`観察ケースを保存できません: ${(error as Error).message}`, false);
+  }
+}
+
+async function importHikariCase(file: File): Promise<void> {
+  try {
+    const restored = restoreCloudHikariCase(parseHikariCase(await file.text()));
+    history = restored.history;
+    state = restored.state;
+    hikariSettings = restored.settings;
+    selectedBallId = null;
+    workspaceView = "hikari";
+    localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+    localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
+    ui.syncParams(state.params);
+    ui.syncHikari(hikariSettings);
+    ui.setHistoryCount(history.length);
+    updateSelectionLabel();
+    applyCameraRecord(restored.camera);
+    applyWorkspaceView();
+    ui.setHikariCaseStatus("観察ケースを開き、形・履歴・光・視点を復元しました。", true);
+  } catch (error) {
+    ui.setHikariCaseStatus(`観察ケースを開けません: ${(error as Error).message}`, false);
+  }
+}
+
+function currentCameraRecord(): CameraRecord {
+  const camera = cloudRenderer.camera;
+  const target = cloudRenderer.controls.target;
+  return {
+    position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+    target: { x: target.x, y: target.y, z: target.z },
+    up: { x: camera.up.x, y: camera.up.y, z: camera.up.z },
+    fovYDeg: camera.fov,
+    near: camera.near,
+    far: camera.far,
+  };
+}
+
+function applyCameraRecord(value: CameraRecord): void {
+  const camera = cloudRenderer.camera;
+  camera.position.set(value.position.x, value.position.y, value.position.z);
+  camera.up.set(value.up.x, value.up.y, value.up.z);
+  camera.fov = value.fovYDeg;
+  camera.near = value.near;
+  camera.far = value.far;
+  camera.updateProjectionMatrix();
+  cloudRenderer.controls.target.set(value.target.x, value.target.y, value.target.z);
+  cloudRenderer.controls.update();
+}
+
+function downloadJson(text: string, filename: string): void {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function applyRecipeText(text: string): void {
   const entries = parseRecipe(text);
   history = entries;
@@ -354,7 +501,11 @@ function render(): void {
   cloudRenderer.setVisualMode(
     workspaceView === "katachi" ? "katachi" : hikariSettings.phenomenon,
   );
-  hikariLayer.update(state.balls, state.params.k, hikariSettings);
+  const hikariShape = createCloudHikariShape(state.balls, state.params.k, {
+    studyVersion: manifest.version,
+    surfaceTraceStrength: hikariSettings.surfaceVariation,
+  });
+  hikariLayer.update(hikariShape, hikariSettings);
   ui.setHikariSource(`同じ場を観察中 — ${state.balls.length}球 / k ${state.params.k.toFixed(2)}`);
 }
 
@@ -373,6 +524,17 @@ function renderFrame(now: number): void {
     fpsAccum = 0;
     frameCount = 0;
   }
+  if (hikariMpmActive && (hikariMpmLastStepAt === 0 || now - hikariMpmLastStepAt >= 140)) {
+    hikariMpmLastStepAt = now;
+    hikariMpmDriver.advance();
+    const preview = hikariMpmDriver.previewBalls();
+    if (preview.length > 0) {
+      state.balls = preview;
+      selectedBallId = null;
+      render();
+      mpmStatus.textContent = hikariMpmDriver.description() + ` · ${preview.length}球プロキシ · 再生中`;
+    }
+  }
   hikariLayer.animate(now);
   cloudRenderer.render();
 }
@@ -386,6 +548,12 @@ function applyWorkspaceView(): void {
   hikariLayer.setVisible(hikariVisible);
   ui.setView(workspaceView);
   render();
+}
+
+function resolveInitialWorkspaceView(): WorkspaceView {
+  const entryView = document.documentElement.dataset.entryView;
+  if (entryView === "hikari" || entryView === "katachi") return entryView;
+  return localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
 }
 
 function loadHikariSettings(): HikariSettings {

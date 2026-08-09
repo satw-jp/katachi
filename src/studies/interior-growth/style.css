@@ -1,0 +1,139 @@
+@import "../../styles/base.css";
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.viewport-labels {
+  position: absolute;
+  inset: 10px 0 auto;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  pointer-events: none;
+}
+
+.viewport-labels span {
+  justify-self: center;
+  max-width: calc(100% - 16px);
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  background: rgba(16, 17, 20, 0.72);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.panel {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 1px solid var(--hairline);
+}
+
+.nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider-row label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mode-row {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mode-row button {
+  flex: 1 1 auto;
+}
+
+button.mode-active {
+  border-color: var(--accent);
+  background: var(--hairline);
+}
+
+.mesh-row {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  align-items: center;
+}
+
+.mesh-row label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mesh-row input[type="number"] {
+  width: 100%;
+}
+
+input[type="text"],
+input[type="number"] {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-table-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 11px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 56px;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.metric-header {
+  font-weight: 600;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 4px;
+}
+
+.metric-label {
+  color: var(--muted);
+}
+
+.metric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+button.danger {
+  color: var(--danger);
+}

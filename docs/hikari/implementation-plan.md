@@ -1,6 +1,6 @@
 # hikari — next implementation plan
 
-Status: planned
+Status: in progress — live runtime bridge and first case round-trip implemented
 UpdatedAt: 2026-08-01
 
 ## Design principle
@@ -12,6 +12,36 @@ CPU is the reference path for new medium-boundary behavior. The view shader and 
 Reproducibility serves exploration. It captures a discovery for Blender or physical work, but ordinary looking, orbiting, and trying variations must not become a case-management task.
 
 The roadmap has one hard order: finish the transparent-material experience first, then add whole-object placement. Placement data is reserved in the scene contract now, but placement controls do not compete with optical work before the quality gate passes.
+
+## Cross-cutting requirement — preserve complex Katachi shapes
+
+The current renderer's in-memory `Ball[]` is enough for the first smooth-union body,
+but it must not become the long-term interchange limit. Katachi's important contribution to
+hikari is the ability to make complex forms such as the author's 「内部重点」 and
+「表面重点」, where the location and relation of material matters as much as the
+outer silhouette.
+
+Before extracting hikari, keep the boundary able to carry the same three things:
+
+- a live or frozen field query for optical boundaries and path length;
+- optional authored regions that can become host, inclusion, void, or surface-derived
+  media without guessing from a mesh;
+- the recipe, revision, scale, hash, and approximation notes needed to reopen the
+  result.
+
+STL/OBJ/GLB remain useful frozen outputs, especially for Blender, but they are not
+the sole source of truth for hikari. If a complex Study is reduced to one anonymous
+mesh at the boundary, the optical instrument can show the shape while losing the
+reason it was made.
+
+Implemented foundation (2026-08-01): `ShapeAsset` stores portable shape data and
+authored-region meaning; `RuntimeShape` supplies distance, containment, normal, and
+region queries; `OpticalScene` binds shape regions to optical materials; and a minimal
+`HikariCase` serializes those records without localStorage. Cloud Sculpt now creates
+the asset at runtime; Flow projection and CPU optics use `RuntimeShape`; and the UI
+can save and reopen shape, recipe, controls, camera, and the stable scene subset.
+The WebGL view shader and WebGPU compute shader remain metaball-specific, and no
+S-pack/S-skin adapter is connected yet.
 
 ## Phase 0 — freeze evidence before changing optics
 
@@ -27,6 +57,11 @@ Acceptance:
 
 - a future build can reopen the same case without relying on browser localStorage;
 - each image identifies app version, commit, backend, sample count, and case ID.
+
+Progress on 2026-08-01: one live Cloud case can already be saved and reopened without
+localStorage, including a recipe/hash consistency check, controls, camera, backend,
+sample count, and explicit approximation notes. The remaining Phase 0 work is to
+capture the four named baseline files with images, commit identifiers, and meshes.
 
 ## Phase 1 — explicit material model
 

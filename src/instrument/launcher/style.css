@@ -1,0 +1,196 @@
+/* ---------------------------------------------------------------------------
+ * Instrument — Study launcher (R5-1/R5-2).
+ *
+ * T18 の紙白・墨・hairline token をそのまま使う。新しい design system は作らない
+ * （指示書 §4「新しいdesign systemを作らない」）。色は base.css の :root 変数のみを
+ * 参照し、この画面でリテラル色を定義しない。
+ *
+ * 3D canvas は置かない。Study 本体と違い、ここは代表像を見比べて入口を選ぶ面である。
+ * ------------------------------------------------------------------------- */
+
+@import "../../styles/base.css";
+
+/* base.css は Study 画面用に body を暗い viewport 色にしている。launcher は
+   3D を持たない読み物なので、この面だけ作者指定の純白へ戻す。 */
+html,
+body,
+#app {
+  background: #fff;
+}
+
+body {
+  color: var(--ink);
+}
+
+#app {
+  display: block;
+  max-width: 77rem;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1.25rem, 5vw, 4rem) 5rem;
+}
+
+.launcher-title {
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.5rem;
+}
+
+/* Version / UpdatedAt。class と見た目は base.css の `.version-row` をそのまま使い、
+   ここでは読み物としての余白だけ調整する（色・字送りは触らない）。 */
+.version-row {
+  margin: 0 0 1.25rem;
+}
+
+.launcher-lede {
+  margin: 0 0 3rem;
+  max-width: 38rem;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.launcher-section-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.study-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3.5rem 1.5rem;
+}
+
+.study-item {
+  min-width: 0;
+}
+
+.study-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.study-card:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.study-frame {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--hairline);
+}
+
+.study-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 120ms ease;
+}
+
+.study-card:hover .study-frame img {
+  opacity: 0.82;
+}
+
+.study-order {
+  position: absolute;
+  left: 0.7rem;
+  top: 0.65rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  padding: 0.05rem 0.4rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.study-main {
+  min-width: 0;
+  padding-top: 0.8rem;
+}
+
+.study-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.study-name-en {
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.study-principle {
+  margin: 0.3rem 0 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.study-tags {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.study-tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.05rem 0.4rem;
+}
+
+.study-open {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.65rem;
+}
+
+.study-paused {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.launcher-note {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  max-width: 44rem;
+}
+
+.launcher-note a {
+  color: inherit;
+}
+
+@media (max-width: 42rem) {
+  #app {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .study-list {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-frame img {
+    transition: none;
+  }
+}

@@ -24,6 +24,20 @@ import { parseRecipe as parseS1Recipe, replay as replayS1 } from "../cloud-sculp
 import type { Patch, SkinMode, SkinParams } from "./field.ts";
 import { DEFAULT_SKIN_PARAMS, resetPatchIdCounter } from "./field.ts";
 
+/** T13 "coin由来A/B分割": author-confirmed patch grouping. Carries the FULL
+ * A/B Patch id lists (not just the seeds) so replay reproduces the exact
+ * same split without re-running proposeGroupsFromSeeds -- seedIds and
+ * adjacencyThreshold are kept alongside purely as a record of how the
+ * author arrived at this grouping (instruction §6 "作者確定"), not as
+ * inputs replay depends on. */
+export interface PartitionSelection {
+  groupA: number[];
+  groupB: number[];
+  seedIds: number[];
+  adjacencyThreshold: number;
+  confirmedAt: string;
+}
+
 export type SkinOp =
   | { op: "growHost"; args: { params: FieldParams } }
   | { op: "setHostParam"; args: { key: keyof FieldParams; value: number | string } }
@@ -34,6 +48,8 @@ export type SkinOp =
   | { op: "removePatch"; args: { id: number } }
   | { op: "clearPatches"; args: Record<string, never> }
   | { op: "setMode"; args: { mode: SkinMode } }
+  | { op: "confirmPartition"; args: { selection: PartitionSelection } }
+  | { op: "clearPartition"; args: Record<string, never> }
   | { op: "clearAll"; args: Record<string, never> };
 
 export interface SkinHistoryEntry {
@@ -55,6 +71,11 @@ export interface SkinState {
   patches: Patch[];
   skinParams: SkinParams;
   mode: SkinMode;
+  /** T13: null until the author has confirmed an A/B grouping. Any patch
+   * mutation (pack/add/remove/clear) invalidates a stale confirmation --
+   * applyEntry clears it on those ops so a replayed recipe never shows a
+   * confirmed split whose patch set has since changed. */
+  partition: PartitionSelection | null;
 }
 
 export function createEmptyState(): SkinState {
@@ -64,6 +85,7 @@ export function createEmptyState(): SkinState {
     patches: [],
     skinParams: { ...DEFAULT_SKIN_PARAMS },
     mode: "plate",
+    partition: null,
   };
 }
 
@@ -108,29 +130,49 @@ export function applyEntry(state: SkinState, entry: SkinHistoryEntry): void {
         shape: p.shape ?? "coin",
         points: p.points.map((pt) => ({ ...pt })),
       }));
+      state.partition = null;
       break;
     }
     case "addPatch": {
       const p = op.args.patch;
       state.patches.push({ id: p.id, shape: p.shape ?? "coin", points: p.points.map((pt) => ({ ...pt })) });
+      state.partition = null;
       break;
     }
     case "removePatch": {
       const { id } = op.args;
       state.patches = state.patches.filter((p) => p.id !== id);
+      state.partition = null;
       break;
     }
     case "clearPatches": {
       state.patches = [];
+      state.partition = null;
       break;
     }
     case "setMode": {
       state.mode = op.args.mode;
       break;
     }
+    case "confirmPartition": {
+      const s = op.args.selection;
+      state.partition = {
+        groupA: [...s.groupA],
+        groupB: [...s.groupB],
+        seedIds: [...s.seedIds],
+        adjacencyThreshold: s.adjacencyThreshold,
+        confirmedAt: s.confirmedAt,
+      };
+      break;
+    }
+    case "clearPartition": {
+      state.partition = null;
+      break;
+    }
     case "clearAll": {
       state.host = [];
       state.patches = [];
+      state.partition = null;
       break;
     }
   }

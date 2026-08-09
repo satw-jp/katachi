@@ -37,6 +37,9 @@
    `document.elementFromPoint` で確かめる — 合成 `element.click()` はヒットテストを迂回するため、
    要素が別の要素に覆われていても成功してしまう（2026-07-10 S2c で実害。作者の実機で全操作不能だった）
 4. 変更点と未解決を1段落で人間に報告
+5. 公開に影響する変更（`src/`・各 `.html`・依存）があった場合は `npm run deploy` を実行し、
+   https://katachi.a-8c3.workers.dev/ で当該変更を確認する。デプロイしない場合は理由を報告する。
+   `docs/`・README だけの変更は対象外。実行前に `wrangler whoami` で認証を確認し、未認証なら作者へ依頼する
 
 ## 4. Study の形式
 

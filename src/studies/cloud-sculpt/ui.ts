@@ -36,6 +36,8 @@ export interface UiCallbacks {
   onMeshExport: (options: MeshExportUiOptions) => void;
   onViewChange: (view: WorkspaceView) => void;
   onHikariChange: (settings: HikariSettings) => void;
+  onHikariCaseExport: () => void;
+  onHikariCaseImportFile: (file: File) => void;
 }
 
 export interface UiHandles {
@@ -54,6 +56,8 @@ export interface UiHandles {
   setMeshStatus: (text: string, ok?: boolean) => void;
   setView: (view: WorkspaceView) => void;
   setHikariSource: (text: string) => void;
+  syncHikari: (settings: HikariSettings) => void;
+  setHikariCaseStatus: (text: string, ok?: boolean) => void;
   setOpticsComputeStatus: (
     status: { text: string; kind: "checking" | "computing" | "webgpu" | "cpu" | "error" },
   ) => void;
@@ -147,6 +151,12 @@ export function buildUi(
   navSkin.href = "./skin.html";
   navSkin.textContent = "S-skin 表面に詰める →";
   root.appendChild(navSkin);
+
+  const navInteriorGrowth = document.createElement("a");
+  navInteriorGrowth.className = "nav-link";
+  navInteriorGrowth.href = "./interior-growth.html";
+  navInteriorGrowth.textContent = "S-interior-growth 内部から育つ →";
+  root.appendChild(navInteriorGrowth);
 
   const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
@@ -368,6 +378,36 @@ export function buildUi(
   sourceInfo.textContent = "同じ場を観察中";
   hikariControls.appendChild(sourceInfo);
 
+  const hikariCaseRow = document.createElement("div");
+  hikariCaseRow.className = "hikari-case-actions";
+  const hikariCaseExportButton = document.createElement("button");
+  hikariCaseExportButton.type = "button";
+  hikariCaseExportButton.textContent = "観察を保存";
+  hikariCaseExportButton.onclick = () => callbacks.onHikariCaseExport();
+  const hikariCaseImportInput = document.createElement("input");
+  hikariCaseImportInput.type = "file";
+  hikariCaseImportInput.accept = "application/json,.hikari.json";
+  hikariCaseImportInput.setAttribute("aria-label", "Hikari観察ケースを開く");
+  hikariCaseImportInput.hidden = true;
+  hikariCaseImportInput.onchange = () => {
+    const file = hikariCaseImportInput.files?.[0];
+    if (file) callbacks.onHikariCaseImportFile(file);
+    hikariCaseImportInput.value = "";
+  };
+  const hikariCaseImportButton = document.createElement("button");
+  hikariCaseImportButton.type = "button";
+  hikariCaseImportButton.textContent = "観察を開く";
+  hikariCaseImportButton.onclick = () => hikariCaseImportInput.click();
+  hikariCaseRow.appendChild(hikariCaseExportButton);
+  hikariCaseRow.appendChild(hikariCaseImportButton);
+  hikariCaseRow.appendChild(hikariCaseImportInput);
+  hikariControls.appendChild(hikariCaseRow);
+
+  const hikariCaseStatus = document.createElement("div");
+  hikariCaseStatus.className = "hint";
+  hikariCaseStatus.textContent = "形・履歴・光・視点をひとつの観察ケースに保存します。";
+  hikariControls.appendChild(hikariCaseStatus);
+
   const phenomenonTitle = document.createElement("div");
   phenomenonTitle.className = "hikari-section-title";
   phenomenonTitle.textContent = "現象";
@@ -425,6 +465,7 @@ export function buildUi(
     { key: "exposure", label: "露光", min: 0.1, max: 3, step: 0.05 },
     { key: "blur", label: "にじみ", min: 0, max: 12, step: 0.25 },
   ];
+  const hikariSliderSetters = new Map<keyof HikariSettings, (value: number) => void>();
   for (const spec of hikariSliders) {
     const built = createSlider({
       label: spec.label,
@@ -435,6 +476,7 @@ export function buildUi(
       format: (value) => (spec.step >= 1 ? value.toFixed(0) : value.toFixed(2)),
       onChange: (value) => updateHikari({ [spec.key]: value }),
     });
+    hikariSliderSetters.set(spec.key, built.set);
     flowControls.appendChild(built.row);
   }
 
@@ -593,7 +635,7 @@ export function buildUi(
     { key: "stressAmount", label: "硬化応力", min: 0, max: 1, step: 0.01 },
     { key: "polarization", label: "偏光", min: 0, max: 1, step: 0.01 },
     { key: "surfaceRoughness", label: "表面の粗さ", min: 0, max: 0.65, step: 0.01 },
-    { key: "surfaceVariation", label: "表面の揺らぎ", min: 0, max: 0.4, step: 0.01 },
+    { key: "surfaceVariation", label: "表面の手跡", min: 0, max: 0.25, step: 0.01 },
     { key: "materialVariation", label: "内部のむら", min: 0, max: 1, step: 0.01 },
     { key: "materialScale", label: "むらの大きさ", min: 0.25, max: 3, step: 0.05 },
     { key: "lightAngle", label: "光の角度", min: -70, max: 70, step: 1 },
@@ -634,6 +676,7 @@ export function buildUi(
             : value.toFixed(2),
       onChange: (value) => updateHikari({ [spec.key]: value }),
     });
+    hikariSliderSetters.set(spec.key, built.set);
     if (spec.key === "ior") setIorSlider = built.set;
     if (spec.key === "dispersion") prismRows.push(built.row);
     if (spec.key === "stressAmount" || spec.key === "polarization") {
@@ -671,6 +714,7 @@ export function buildUi(
   let currentView = initialView;
   const applyView = (view: WorkspaceView): void => {
     currentView = view;
+    title.textContent = view === "hikari" ? "Hikari — 光とかたち" : "雲をこねる — Cloud Sculpt";
     root.dataset.view = view;
     katachiButton.classList.toggle("active", view === "katachi");
     hikariButton.classList.toggle("active", view === "hikari");
@@ -729,6 +773,29 @@ export function buildUi(
     setView: applyView,
     setHikariSource: (text) => {
       sourceInfo.textContent = text;
+    },
+    syncHikari: (settings) => {
+      hikariState = { ...settings };
+      phenomenonControl.set(settings.phenomenon);
+      modeControl.set(settings.mode);
+      spawnControl.set(settings.spawn);
+      opticalViewControl.set(settings.opticalView);
+      opticalColorControl.set(settings.opticalColorMode);
+      rainbowModelControl.set(settings.rainbowModel);
+      dispersionModeControl.set(settings.dispersionMode);
+      materialControl.set(settings.opticalMaterial);
+      applyPhenomenon(settings.phenomenon);
+      applyRainbowModelVisibility(settings.rainbowModel);
+      applyRayVisibility(settings.opticalDisplay === "both");
+      for (const [key, set] of hikariSliderSetters) {
+        const value = settings[key];
+        if (typeof value === "number") set(value);
+      }
+      hikariSeedInput.value = settings.seed;
+    },
+    setHikariCaseStatus: (text, ok) => {
+      hikariCaseStatus.textContent = text;
+      hikariCaseStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
     setOpticsComputeStatus: (status) => {
       opticsComputeStatus.textContent = status.text;

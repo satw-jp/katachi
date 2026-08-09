@@ -77,6 +77,8 @@ export class CloudRenderer {
         uOpticalExposure: { value: 1 },
         uSurfaceRoughness: { value: 0.08 },
         uSurfaceVariation: { value: 0.04 },
+        uTraceCenter: { value: new THREE.Vector3() },
+        uTraceRadius: { value: 1 },
         uMaterialVariation: { value: 0.18 },
         uMaterialScale: { value: 1 },
         uEnvironmentContrast: { value: 1 },
@@ -197,6 +199,18 @@ export class CloudRenderer {
     }
     this.material.uniforms.uBallCount.value = n;
     this.material.uniforms.uK.value = k;
+    if (n > 0) {
+      const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+      const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+      for (let index = 0; index < n; index++) {
+        const ball = balls[index];
+        min.min(new THREE.Vector3(ball.x - ball.r, ball.y - ball.r, ball.z - ball.r));
+        max.max(new THREE.Vector3(ball.x + ball.r, ball.y + ball.r, ball.z + ball.r));
+      }
+      const center = min.clone().add(max).multiplyScalar(0.5);
+      this.material.uniforms.uTraceCenter.value.copy(center);
+      this.material.uniforms.uTraceRadius.value = Math.max(0.1, center.distanceTo(max));
+    }
     this.material.uniforms.uSelectedIndex.value =
       selectedId === null ? -1 : balls.findIndex((b) => b.id === selectedId);
   }

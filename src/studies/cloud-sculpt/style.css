@@ -81,6 +81,17 @@
   line-height: 1.45;
 }
 
+.hikari-case-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hikari-case-actions button {
+  min-width: 0;
+  width: 100%;
+}
+
 .optics-compute-status {
   padding: 9px;
   border: 1px solid var(--hairline);

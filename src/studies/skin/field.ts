@@ -114,6 +114,22 @@ export interface SkinParams {
    * RingRecipe.wobblePos. flatRing nodes are re-projected onto the surface
    * instead, so position wobble does not apply there. */
   ringWobblePos: number;
+  /** T14 coin-bulge experiment (作者Observation 2026-07-20 "コイン部分が
+   * 平べったくなっている...ふっくらとして...サポートが不要な形になっている
+   * と自然になりそう" -- a HYPOTHESIS, not a settled conclusion, see
+   * compositeSdf's doc comment). Additional shell half-width applied ONLY to
+   * "coin"-shape patches in plate mode: instead of clipping a coin to the
+   * normal thin shell band (thickness/2), it is clipped to a wider band
+   * (thickness/2 + coinBulge), letting the coin's own round point geometry
+   * push outward on both sides of the host surface up to that new limit --
+   * never wider than the coin's raw (unclipped) field. Default 0 keeps the
+   * exact old shell-clip formula (see compositeSdf's coinBulge<=0 branch:
+   * NOT merely "coinBulge=0 happens to produce the same number", but a
+   * literal old-code-path branch, since smooth booleans are not
+   * distributive and splitting unconditionally could silently perturb
+   * historic recipes by a hair). flatRing/ring3d/window-mode are entirely
+   * unaffected by this value. */
+  coinBulge: number;
 }
 
 export const DEFAULT_SKIN_PARAMS: SkinParams = {
@@ -131,6 +147,7 @@ export const DEFAULT_SKIN_PARAMS: SkinParams = {
   ringTubeR: 0.06,
   ringWobbleR: 0.3,
   ringWobblePos: 0.15,
+  coinBulge: 0,
 };
 
 let nextPatchId = 1;
@@ -157,6 +174,21 @@ export function opSmoothIntersection(d1: number, d2: number, k: number): number 
 
 // --- Shell / patch fields ----------------------------------------------------
 
+/** |hostSdf(p)| - halfWidth. Negative = inside a band of that half-width
+ * around the host's zero surface. shellSdf (below) is the thickness/2 case;
+ * T14's coinBulge>0 path uses this directly with a WIDER half-width for
+ * coin-shape patches only, without touching shellSdf's own contract. */
+export function hostBandSdf(
+  host: Ball[],
+  hostK: number,
+  halfWidth: number,
+  x: number,
+  y: number,
+  z: number,
+): number {
+  return Math.abs(fieldSdf(host, hostK, x, y, z)) - halfWidth;
+}
+
 /** |hostSdf(p)| - thickness/2. Negative = inside the thin shell band. */
 export function shellSdf(
   host: Ball[],
@@ -166,7 +198,7 @@ export function shellSdf(
   y: number,
   z: number,
 ): number {
-  return Math.abs(fieldSdf(host, hostK, x, y, z)) - thickness / 2;
+  return hostBandSdf(host, hostK, thickness / 2, x, y, z);
 }
 
 /** Flatten every patch's points into one smooth-min union (a patch is just a
@@ -205,7 +237,28 @@ export function patchesSdf(patches: Patch[], roundK: number, x: number, y: numbe
  * to show -- no separate visibility toggle needed. Window mode is
  * unaffected by this split (any patch shape still just carves the shell,
  * same opSmoothSubtraction as T10 -- a bulging ring still carves a
- * ring-shaped hole, which is the intended "殻に窓が開く" reading either way). */
+ * ring-shaped hole, which is the intended "殻に窓が開く" reading either way).
+ *
+ * T14 (coinBulge, 作者Observation 2026-07-20 "コインがふっくらすれば
+ * サポート不要な形になりそう" -- a HYPOTHESIS this Study exists to let the
+ * author visually compare, not a settled fact): plate mode only, and only
+ * for `coinBulge > 0`. Instead of clipping coin patches to the same
+ * thickness/2 shell band as flatRing, coins are clipped to a WIDER band
+ * (thickness/2 + coinBulge) so their own round point geometry can push
+ * outward on both sides of the host surface, up to their raw (unclipped)
+ * extent. flatRing keeps the ordinary shell band; ring3d and window mode are
+ * entirely unaffected by coinBulge.
+ *
+ * `coinBulge <= 0` runs the EXACT old code path (coin+flatRing unioned into
+ * one field, THEN intersected with the shell once) rather than "splitting
+ * unconditionally with a zero-width extra band", because smooth booleans are
+ * not distributive:
+ *   intersection(shell, union(coin, flatRing))                       -- old
+ *   union(intersection(shell, coin), intersection(shell, flatRing))  -- split
+ * these are not guaranteed numerically identical even at zero extra band
+ * width, so an old recipe (or any coinBulge=0 use) must not run through the
+ * split path at all -- see README v0.13 for the reasoning this branch exists
+ * to protect. */
 export function compositeSdf(
   mode: SkinMode,
   host: Ball[],
@@ -216,6 +269,7 @@ export function compositeSdf(
   x: number,
   y: number,
   z: number,
+  coinBulge: number,
 ): number {
   const dShell = shellSdf(host, hostK, thickness, x, y, z);
   if (patches.length === 0) {
@@ -226,17 +280,43 @@ export function compositeSdf(
     const dPatch = patchesSdf(patches, roundK, x, y, z);
     return opSmoothSubtraction(dPatch, dShell, roundK);
   }
-  // plate mode: split by shape (see doc comment above).
-  const flatPatches = patches.filter((p) => p.shape !== "ring3d");
+  if (coinBulge <= 0) {
+    // plate mode, old exact path: split only coin+flatRing vs ring3d (see
+    // doc comment above), coin and flatRing stay unioned together.
+    const flatPatches = patches.filter((p) => p.shape !== "ring3d");
+    const ringPatches = patches.filter((p) => p.shape === "ring3d");
+    let plateFlat = 1e5;
+    if (flatPatches.length > 0) {
+      const dFlat = patchesSdf(flatPatches, roundK, x, y, z);
+      plateFlat = opSmoothIntersection(dShell, dFlat, roundK);
+    }
+    if (ringPatches.length === 0) return plateFlat;
+    const dRing = patchesSdf(ringPatches, roundK, x, y, z);
+    return flatPatches.length === 0 ? dRing : smoothMin(plateFlat, dRing, roundK);
+  }
+  // plate mode, coinBulge > 0: coin/flatRing/ring3d are now three separate
+  // groups, each intersected (or left raw, for ring3d) with its own band,
+  // then unioned together.
+  const coinPatches = patches.filter((p) => p.shape === "coin");
+  const flatRingPatches = patches.filter((p) => p.shape === "flatRing");
   const ringPatches = patches.filter((p) => p.shape === "ring3d");
   let plateFlat = 1e5;
-  if (flatPatches.length > 0) {
-    const dFlat = patchesSdf(flatPatches, roundK, x, y, z);
-    plateFlat = opSmoothIntersection(dShell, dFlat, roundK);
+  let hasFlat = false;
+  if (coinPatches.length > 0) {
+    const dCoinBand = hostBandSdf(host, hostK, thickness / 2 + coinBulge, x, y, z);
+    const dCoin = patchesSdf(coinPatches, roundK, x, y, z);
+    plateFlat = opSmoothIntersection(dCoinBand, dCoin, roundK);
+    hasFlat = true;
   }
-  if (ringPatches.length === 0) return plateFlat;
+  if (flatRingPatches.length > 0) {
+    const dFlatRing = patchesSdf(flatRingPatches, roundK, x, y, z);
+    const plateFlatRing = opSmoothIntersection(dShell, dFlatRing, roundK);
+    plateFlat = hasFlat ? smoothMin(plateFlat, plateFlatRing, roundK) : plateFlatRing;
+    hasFlat = true;
+  }
+  if (ringPatches.length === 0) return hasFlat ? plateFlat : 1e5;
   const dRing = patchesSdf(ringPatches, roundK, x, y, z);
-  return flatPatches.length === 0 ? dRing : smoothMin(plateFlat, dRing, roundK);
+  return hasFlat ? smoothMin(plateFlat, dRing, roundK) : dRing;
 }
 
 // --- Surface projection ------------------------------------------------------
@@ -690,6 +770,8 @@ export function estimateCoverage(
  */
 export function estimatePatchComponents(patches: Patch[], roundK: number): number {
   if (patches.length === 0) return 0;
+  const edges = buildPatchAdjacency(patches, roundK);
+  const indexOf = new Map(patches.map((p, i) => [p.id, i]));
   const parent = patches.map((_, i) => i);
   const find = (i: number): number => {
     while (parent[i] !== i) {
@@ -703,25 +785,223 @@ export function estimatePatchComponents(patches: Patch[], roundK: number): numbe
     const rb = find(b);
     if (ra !== rb) parent[ra] = rb;
   };
-  const touchThreshold = Math.max(0.001, roundK * 0.5);
-  for (let i = 0; i < patches.length; i++) {
-    for (let j = i + 1; j < patches.length; j++) {
-      let touches = false;
-      for (const a of patches[i].points) {
-        for (const b of patches[j].points) {
-          if (Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) - a.r - b.r <= touchThreshold) {
-            touches = true;
-            break;
-          }
-        }
-        if (touches) break;
-      }
-      if (touches) union(i, j);
-    }
+  for (const edge of edges) {
+    const ia = indexOf.get(edge.aId);
+    const ib = indexOf.get(edge.bId);
+    if (ia !== undefined && ib !== undefined) union(ia, ib);
   }
   const roots = new Set<number>();
   for (let i = 0; i < patches.length; i++) roots.add(find(i));
   return roots.size;
+}
+
+// --- Patch adjacency graph (T13 "coin由来A/B分割") --------------------------
+
+export interface PatchAdjacencyEdge {
+  aId: number;
+  bId: number;
+  /** Minimum point-to-point surface clearance between the two patches (their
+   * closest pair of points' center distance minus both radii). Negative =
+   * already overlapping/fused in the smooth-min union. */
+  distance: number;
+  reason: "touching" | "near";
+}
+
+/**
+ * First-class adjacency graph over patches, factored out of
+ * estimatePatchComponents (which now just unions its edges) so seed-based
+ * A/B grouping (see proposeGroupsFromSeeds) shares the exact same distance
+ * convention and touch threshold as the existing "連結成分数" gauge --
+ * per the author's instruction, no separate/new distance regime is invented.
+ * `threshold` defaults to the same `roundK * 0.5` estimatePatchComponents
+ * always used (a generous touch threshold since smooth-min still visibly
+ * separates surfaces well past exact contact -- see that function's original
+ * doc comment, preserved here since this IS that same approximation, only
+ * exposed as data instead of an opaque union-find pass).
+ */
+export function buildPatchAdjacency(
+  patches: Patch[],
+  roundK: number,
+  threshold = Math.max(0.001, roundK * 0.5),
+): PatchAdjacencyEdge[] {
+  const edges: PatchAdjacencyEdge[] = [];
+  for (let i = 0; i < patches.length; i++) {
+    for (let j = i + 1; j < patches.length; j++) {
+      let best = Infinity;
+      for (const a of patches[i].points) {
+        for (const b of patches[j].points) {
+          const d = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) - a.r - b.r;
+          if (d < best) best = d;
+        }
+      }
+      if (best <= threshold) {
+        edges.push({ aId: patches[i].id, bId: patches[j].id, distance: best, reason: best <= 0 ? "touching" : "near" });
+      }
+    }
+  }
+  return edges;
+}
+
+export interface PatchGroups {
+  groupA: number[];
+  groupB: number[];
+}
+
+/**
+ * Seed-driven A/B candidate (T13 §2): A = every patch reachable from any
+ * seed id by walking the adjacency graph (its connected component(s)), B =
+ * everything else. This is a PROPOSAL only -- the caller (main.ts) keeps it
+ * as an editable draft the author can override patch-by-patch before
+ * recording a `confirmPartition` history entry; nothing here decides which
+ * side is "kept". Unknown seed ids (not in `patches`) are ignored rather
+ * than throwing, so a stale seed list from a prior state doesn't crash the
+ * proposal.
+ */
+export function proposeGroupsFromSeeds(patches: Patch[], edges: PatchAdjacencyEdge[], seedIds: number[]): PatchGroups {
+  const known = new Set(patches.map((p) => p.id));
+  const adjacency = new Map<number, number[]>();
+  for (const p of patches) adjacency.set(p.id, []);
+  for (const edge of edges) {
+    adjacency.get(edge.aId)?.push(edge.bId);
+    adjacency.get(edge.bId)?.push(edge.aId);
+  }
+  const groupA = new Set<number>();
+  const queue = seedIds.filter((id) => known.has(id));
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (groupA.has(id)) continue;
+    groupA.add(id);
+    for (const neighbor of adjacency.get(id) ?? []) {
+      if (!groupA.has(neighbor)) queue.push(neighbor);
+    }
+  }
+  const groupB = patches.map((p) => p.id).filter((id) => !groupA.has(id));
+  return { groupA: [...groupA], groupB };
+}
+
+/**
+ * Two-ended split proposal. Each patch is ranked by the difference between
+ * its graph-geodesic distance from the A endpoint and the B endpoint, then
+ * the ordered patches are divided at the midpoint. This keeps the proposal
+ * close to 50/50 while respecting the packed shape's adjacency instead of
+ * treating one connected component as a single side.
+ */
+export function proposeGroupsBetweenEndpoints(
+  patches: Patch[],
+  edges: PatchAdjacencyEdge[],
+  seedAId: number,
+  seedBId: number,
+): PatchGroups {
+  const byId = new Map(patches.map((patch) => [patch.id, patch]));
+  if (seedAId === seedBId || !byId.has(seedAId) || !byId.has(seedBId)) {
+    return { groupA: [], groupB: patches.map((patch) => patch.id) };
+  }
+
+  const representative = (patch: Patch): PatchPoint => {
+    const n = Math.max(1, patch.points.length);
+    const sum = patch.points.reduce(
+      (acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y, z: acc.z + point.z, r: 0 }),
+      { x: 0, y: 0, z: 0, r: 0 },
+    );
+    return { x: sum.x / n, y: sum.y / n, z: sum.z / n, r: 0 };
+  };
+  const positions = new Map(patches.map((patch) => [patch.id, representative(patch)]));
+  const adjacency = new Map<number, Array<{ id: number; cost: number }>>();
+  for (const patch of patches) adjacency.set(patch.id, []);
+  for (const edge of edges) {
+    const a = positions.get(edge.aId);
+    const b = positions.get(edge.bId);
+    if (!a || !b) continue;
+    const cost = Math.max(1e-6, Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z));
+    adjacency.get(edge.aId)?.push({ id: edge.bId, cost });
+    adjacency.get(edge.bId)?.push({ id: edge.aId, cost });
+  }
+
+  const distancesFrom = (sourceId: number): Map<number, number> => {
+    const distances = new Map(patches.map((patch) => [patch.id, Number.POSITIVE_INFINITY]));
+    const pending = new Set(patches.map((patch) => patch.id));
+    distances.set(sourceId, 0);
+    while (pending.size > 0) {
+      let current: number | null = null;
+      let currentDistance = Number.POSITIVE_INFINITY;
+      for (const id of pending) {
+        const distance = distances.get(id)!;
+        if (distance < currentDistance) {
+          current = id;
+          currentDistance = distance;
+        }
+      }
+      if (current === null) break;
+      pending.delete(current);
+      for (const neighbor of adjacency.get(current) ?? []) {
+        const candidate = currentDistance + neighbor.cost;
+        if (candidate < distances.get(neighbor.id)!) distances.set(neighbor.id, candidate);
+      }
+    }
+    return distances;
+  };
+
+  const distanceA = distancesFrom(seedAId);
+  const distanceB = distancesFrom(seedBId);
+  const positionA = positions.get(seedAId)!;
+  const positionB = positions.get(seedBId)!;
+  const euclidean = (id: number, target: PatchPoint): number => {
+    const p = positions.get(id)!;
+    return Math.hypot(p.x - target.x, p.y - target.y, p.z - target.z);
+  };
+  const score = (id: number): number => {
+    const a = distanceA.get(id)!;
+    const b = distanceB.get(id)!;
+    return (Number.isFinite(a) ? a : euclidean(id, positionA)) -
+      (Number.isFinite(b) ? b : euclidean(id, positionB));
+  };
+
+  const targetA = Math.ceil(patches.length / 2);
+  const middle = patches
+    .map((patch) => patch.id)
+    .filter((id) => id !== seedAId && id !== seedBId)
+    .sort((a, b) => score(a) - score(b) || a - b);
+  const inA = new Set([seedAId, ...middle.slice(0, Math.max(0, targetA - 1))]);
+  const inB = new Set(patches.map((patch) => patch.id).filter((id) => !inA.has(id)));
+
+  // Connectivity repair for the intended "two physical pieces" workflow.
+  // Keep the component containing each endpoint and move every same-colour
+  // island to the opposite side. On a connected source graph, an island
+  // necessarily touches the opposite endpoint component after this A-then-B
+  // pass, so both results remain connected. If the source graph itself has
+  // endpoint-free components, the later real-mesh gate still fails closed.
+  const reachableWithin = (seedId: number, group: Set<number>): Set<number> => {
+    const reached = new Set<number>();
+    const queue = group.has(seedId) ? [seedId] : [];
+    for (let i = 0; i < queue.length; i++) {
+      const id = queue[i];
+      if (reached.has(id)) continue;
+      reached.add(id);
+      for (const neighbor of adjacency.get(id) ?? []) {
+        if (group.has(neighbor.id) && !reached.has(neighbor.id)) queue.push(neighbor.id);
+      }
+    }
+    return reached;
+  };
+  const connectedA = reachableWithin(seedAId, inA);
+  for (const id of [...inA]) {
+    if (!connectedA.has(id)) {
+      inA.delete(id);
+      inB.add(id);
+    }
+  }
+  const connectedB = reachableWithin(seedBId, inB);
+  for (const id of [...inB]) {
+    if (!connectedB.has(id)) {
+      inB.delete(id);
+      inA.add(id);
+    }
+  }
+
+  return {
+    groupA: patches.map((patch) => patch.id).filter((id) => inA.has(id)),
+    groupB: patches.map((patch) => patch.id).filter((id) => inB.has(id)),
+  };
 }
 
 export type { Ball, FieldParams };

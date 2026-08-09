@@ -1,0 +1,42 @@
+{
+  "caseId": "LD1-curved-ribbon-2026-08-01",
+  "shape": "analytic single sphere",
+  "emittedRayCount": 16384,
+  "ior": 1.5,
+  "lightAngleDeg": 60,
+  "traceStrength": {
+    "off": 0,
+    "on": 0.14
+  },
+  "receiverDomain": {
+    "minX": -4.330127018922193,
+    "minZ": -4.330127018922193,
+    "sizeX": 8.660254037844386,
+    "sizeZ": 8.660254037844386
+  },
+  "hits": {
+    "off": 3394,
+    "on": 3406,
+    "shared": 3344
+  },
+  "meanSharedReceiverDisplacement": 0.4029725202787907,
+  "p95SharedReceiverDisplacement": 0.6059525749301045,
+  "movedSharedHitsOver0_01ShapeUnits": 3252,
+  "image": {
+    "off": {
+      "litPixels": 11819,
+      "sum": 355109,
+      "maximum": 255
+    },
+    "on": {
+      "litPixels": 11201,
+      "sum": 347534,
+      "maximum": 255
+    },
+    "meanAbsoluteByteDifference": 2.2900238037109375
+  },
+  "limitations": [
+    "The curved ribbon is a controlled authored proxy, not a scan of a physical making trace.",
+    "This report uses the CPU single-boundary reference; finite source integration and multi-boundary transport are not included."
+  ]
+}

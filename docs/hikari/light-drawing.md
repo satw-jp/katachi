@@ -24,14 +24,41 @@ Every implementation and comparison must preserve this causality. Adding procedu
 
 ## Current gap
 
-The current optics tracer can carry broad ball-SDF curvature to receiver hit positions, but several choices prevent it from resolving the author's trace:
+The current optics tracer can carry broad ball-SDF curvature to receiver hit positions. On 2026-08-01 the receiver-field foundation was changed so the comparison itself no longer moves beneath the observation:
 
-- `surfaceVariation` perturbs only the body-view shader normal; CPU/WebGPU focused-light tracing does not see it;
-- the smooth ball field has no explicit mid-scale surface/thickness trace comparable to hand forming;
-- receiver hits are reduced to a 128×128 map and blurred twice;
-- the field is reframed from hit percentiles, normalized by each frame's maximum, thresholded, and converted to 8-bit values, so fine lines disappear and comparisons can shift;
+- CPU fallback traces the requested optical sample count (16k by default) while keeping the visible diagnostic-ray count independent;
+- receiver hits are accumulated in a fixed world-space domain at 256×256;
+- percentile framing, per-frame maximum normalization, density thresholding, and the second blur pass were removed from this path;
+- exposure is fixed relative to emitted ray count, so adding samples improves convergence without automatically making each frame equally bright;
+- the field builder is a pure tested module; tests cover fixed framing, sample-count invariance, and the absence of hotspot-driven re-normalization.
+
+This is the stable paper on which a light drawing can appear.
+
+## LD1 controlled making-trace prototype
+
+On 2026-08-01 the former `surfaceVariation` view-shader normal effect was replaced by `curved-ribbon-v1`, a saved, band-limited displacement of the actual optical boundary. The control is now labelled **表面の手跡**. Its default is 0.14 and its author-facing range is 0–0.25.
+
+The same coefficients are evaluated by:
+
+- the serializable `ShapeAsset` and CPU `RuntimeShape` distance/normal queries;
+- the WebGL Hikari boundary used for camera rays and transparent shadow;
+- the WebGPU focused-light boundary.
+
+The Katachi base form remains unchanged when Hikari is not the active optical view. The Hikari case hash, expanded bounds, save/open data, and approximation notes include the trace, so this is no longer a screen-only effect.
+
+The controlled LD1 test uses one sphere, fixed IOR 1.5, 16,384 rays, a fixed receiver, and trace OFF/ON. Automated checks confirm a local boundary and normal change and that the same incoming rays move on the receiver. A fixed comparison at light angle 60° shows the smooth sphere's round focus becoming an oblique bright stroke; the difference image locates the redirected paths:
+
+![LD1 curved ribbon OFF, ON, and difference](evidence/ld1-curved-ribbon-2026-08-01.png)
+
+Metrics and exact fixed inputs: [LD1 report JSON](evidence/ld1-curved-ribbon-2026-08-01.json).
+
+This passes the causality part of LD1 as a prototype, not the artistic completion gate. The remaining blockers are:
+
+- `curved-ribbon-v1` is one analytic proxy; it is not yet a trace formed by the author's Katachi gesture, physical object, or scan;
+- the trace orientation and width are fixed in v1 rather than authored or moved as LD3 requires;
 - decorative elliptical deposits and spectral offsets are mixed into the displayed caustic rather than derived from a ray-bundle Jacobian;
 - finite source size currently softens the transparent shadow but is not integrated through the focused-light tracer.
+- the 16k receiver image still shows sparse peripheral samples; the two-texel one-pass reconstruction closes gaps but is not a ray-bundle Jacobian or progressive accumulation.
 
 These effects may remain useful as exploratory display modes, but they cannot be the validation path for light drawing.
 
