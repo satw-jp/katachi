@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { fieldSdf, type Ball } from "./field.ts";
 import {
+  DEFAULT_EXPERIMENTAL_LIGHT_BAND,
+  type ExperimentalLightBandConfig,
+} from "./lightDrawingBand.ts";
+import {
   OpticsLayer,
   type HikariPhenomenon,
   type CausticField,
@@ -40,6 +44,8 @@ export type {
 export type { DaylightMode };
 
 export interface HikariSettings extends OpticalSettings {
+  /** Query-gated experimental ShapeSource overlay; the KATACHI recipe stays unchanged. */
+  lightDrawingBand: ExperimentalLightBandConfig;
   seed: string;
   particleCount: number;
   speed: number;
@@ -111,6 +117,7 @@ export const DEFAULT_HIKARI_SETTINGS: HikariSettings = {
   dispersion: 0.32,
   stressAmount: 0.55,
   polarization: 0.45,
+  lightDrawingBand: { ...DEFAULT_EXPERIMENTAL_LIGHT_BAND },
   seed: "hikari-01",
   particleCount: 5000,
   speed: 0.8,
@@ -644,6 +651,7 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
       1,
       DEFAULT_HIKARI_SETTINGS.polarization,
     ),
+    lightDrawingBand: normalizeExperimentalLightBand(value.lightDrawingBand),
     seed: typeof value.seed === "string" ? value.seed : DEFAULT_HIKARI_SETTINGS.seed,
     particleCount: clampNumber(value.particleCount, 500, 12000, DEFAULT_HIKARI_SETTINGS.particleCount),
     speed: clampNumber(value.speed, 0, 3, DEFAULT_HIKARI_SETTINGS.speed),
@@ -654,6 +662,17 @@ export function normalizeHikariSettings(value: Partial<HikariSettings>): HikariS
     blur: clampNumber(value.blur, 0, 12, DEFAULT_HIKARI_SETTINGS.blur),
     mode: value.mode === "trails" || value.mode === "density" ? value.mode : "points",
     spawn: value.spawn === "inside" ? "inside" : "surface",
+  };
+}
+
+function normalizeExperimentalLightBand(value: unknown): ExperimentalLightBandConfig {
+  const candidate = value as Partial<ExperimentalLightBandConfig> | null;
+  if (!candidate || candidate.version !== 1) return { ...DEFAULT_EXPERIMENTAL_LIGHT_BAND };
+  return {
+    ...DEFAULT_EXPERIMENTAL_LIGHT_BAND,
+    position: candidate.position === "left" || candidate.position === "right"
+      ? candidate.position
+      : candidate.position === "center" ? "center" : "off",
   };
 }
 

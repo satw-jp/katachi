@@ -509,6 +509,40 @@
   color: #71591e;
 }
 
+.experimental-light-band-source {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, auto);
+  gap: 4px;
+  align-items: center;
+}
+
+.experimental-light-band-source span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.experimental-light-band-status {
+  padding: 8px 9px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.experimental-light-band-status[data-kind="active"] {
+  border-color: #78b9c7;
+  color: #174f5a;
+}
+
+.experimental-light-band-status[data-kind="unavailable"] {
+  border-color: #c8aa65;
+  color: #71591e;
+}
+
+.experimental-light-band-caution {
+  color: #71591e;
+}
+
 .hikari-section-title {
   margin-top: 3px;
   color: var(--muted);

@@ -59,6 +59,7 @@ import {
 } from "./cameraOrbit.ts";
 import { resolveDaylight } from "./daylight.ts";
 import { cameraPositionForSunBacklight, cameraSunAngleDeg } from "./sunBacklight.ts";
+import { deriveExperimentalLightBand } from "./lightDrawingBand.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -73,6 +74,8 @@ const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
 const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
+/** The saved experiment is deliberately inert unless this explicit URL is used. */
+const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
 let workspaceView: WorkspaceView =
   localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
 let hikariSettings = loadHikariSettings();
@@ -236,6 +239,7 @@ const ui = buildUi(
   workspaceView,
   windowsCompatibilityMode ? "safe" : "gpu",
   hikariSettings,
+  lightDrawingExperimentEnabled,
   {
   onParamChange: (key, value) => {
     record(history, state, "setParam", { key, value });
@@ -294,14 +298,43 @@ const ui = buildUi(
   onHikariMpmStart: () => startHikariMpmPreview(),
   onHikariMpmAdopt: () => adoptHikariMpmPreview(),
   onReceiverParityRun: async () => {
-    receiverParityReport = await hikariLayer.runReceiverParityCase(
-      state.balls.map((ball) => ({ ...ball })),
-      state.params.k,
-      { ...hikariSettings },
-      { caseId: "author-current-scene", sampleCount: 2048 },
-    );
+    const effective = effectiveHikariShape(state.balls);
+    if (!lightDrawingExperimentEnabled) {
+      receiverParityReport = await hikariLayer.runReceiverParityCase(
+        effective.balls.map((ball) => ({ ...ball })),
+        state.params.k,
+        { ...hikariSettings },
+        { caseId: "author-current-scene", sampleCount: 2048 },
+      );
+      document.documentElement.dataset.hikariReceiverParity = JSON.stringify(receiverParityReport);
+      return summarizeReceiverParity(receiverParityReport);
+    }
+    const reports: ReceiverParityReport[] = [];
+    for (const sunSize of [0.53, 5, 20] as const) {
+      reports.push(await hikariLayer.runReceiverParityCase(
+        effective.balls.map((ball) => ({ ...ball })),
+        state.params.k,
+        { ...hikariSettings, sunSize },
+        { caseId: `experimental-light-band-${sunSize}`, sampleCount: 2048 },
+      ));
+    }
+    receiverParityReport = reports[reports.length - 1];
     document.documentElement.dataset.hikariReceiverParity = JSON.stringify(receiverParityReport);
-    return summarizeReceiverParity(receiverParityReport);
+    if (reports.some((report) => report.status === "unavailable")) {
+      return {
+        text: "GPU比較未完了 — この端末ではWebGPUを利用できません（CPU表示のみ）",
+        kind: "unavailable" as const,
+      };
+    }
+    const summaries = reports.map((report, index) => {
+      const result = summarizeReceiverParity(report);
+      return `${[".53°", "5°", "20°"][index]} ${result.text}`;
+    });
+    const passed = reports.every((report) => report.pass);
+    return {
+      text: `${passed ? "3条件一致" : "要確認 — 3条件のうち差を検出"} · ${summaries.join(" / ")}`,
+      kind: passed ? "passed" as const : "failed" as const,
+    };
   },
   onProgressiveRenderToggle: (targetSamples) => {
     const current = cloudRenderer.getProgressiveRenderState();
@@ -729,11 +762,12 @@ async function exportBlenderStudy(details: {
 }): Promise<{ baseName: string }> {
   try {
     ui.setBlenderExportStatus("Blender用データを準備中...");
-    const mesh = buildCloudMesh(state.balls, state.params.k, details.options);
+    const effective = effectiveHikariShape(state.balls);
+    const mesh = buildCloudMesh(effective.balls, state.params.k, details.options);
     if (!mesh.watertight.ok) {
       throw new Error("透明体のメッシュが水密ではありません。解像度か形状を調整してください");
     }
-    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    const adapter = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
     if (adapter.issues.length > 0) throw new Error(opticalSceneIssueText(adapter.issues));
     const scene = opticalSceneAtExportScale(adapter, mesh.scaleMmPerUnit);
     const caseValue = currentHikariCase(details.caseId, details.observation);
@@ -1033,9 +1067,10 @@ function renderHikariMpmBody(preview: typeof state.balls): void {
   cloudRenderer.invalidateProgressiveRender(
     "MPM形態が変わったためリアルタイムへ戻りました",
   );
-  cloudRenderer.update(preview, state.params.k, null);
+  const effective = effectiveHikariShape(preview);
+  cloudRenderer.update(effective.balls, state.params.k, null);
   cloudRenderer.setOptics(hikariSettings);
-  const opticalScene = buildCloudOpticalScene(preview, state.params.k, hikariSettings);
+  const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
@@ -1043,7 +1078,8 @@ function renderHikariMpmBody(preview: typeof state.balls): void {
   opticalReceiverInclusionSupported = opticalScene.receiverInclusionSupported;
   cloudRenderer.setOpticalScene(opticalScene);
   cloudRenderer.setVisualMode("optics");
-  ui.setHikariSource(`MPM形態を観察中 — ${preview.length}球 / k ${state.params.k.toFixed(2)}`);
+  ui.setExperimentalLightBandStatus(effective);
+  ui.setHikariSource(`MPM形態を観察中 — ${effective.balls.length}球 / k ${state.params.k.toFixed(2)}`);
 }
 
 function safeCaseId(caseId: string): string {
@@ -1070,6 +1106,15 @@ function downloadFile(blob: Blob, filename: string): void {
   inspectMesh: (options: MeshExportUiOptions) => buildCloudMesh(state.balls, state.params.k, options),
   getWorkspaceView: () => workspaceView,
   getHikariSettings: () => ({ ...hikariSettings }),
+  getEffectiveHikariShape: () => {
+    const effective = effectiveHikariShape(state.balls);
+    return {
+      balls: effective.balls.map((ball) => ({ ...ball })),
+      enabled: effective.enabled,
+      reason: effective.reason,
+      appendedCount: effective.appendedCount,
+    };
+  },
   getCameraSnapshot: () => cloudRenderer.captureCamera(),
   getOpticsComputeStatus: () => hikariLayer.getOpticsComputeStatus(),
   getReceiverFieldSummary: () => receiverFieldSummary == null
@@ -1087,13 +1132,13 @@ function downloadFile(blob: Blob, filename: string): void {
   stopProgressiveRender: () => cloudRenderer.stopProgressiveRender(),
   runReceiverParityCase: (options?: { caseId?: string; sampleCount?: number }) =>
     hikariLayer.runReceiverParityCase(
-      state.balls.map((ball) => ({ ...ball })),
+      effectiveHikariShape(state.balls).balls.map((ball) => ({ ...ball })),
       state.params.k,
       { ...hikariSettings },
       options,
     ),
   getOpticalSceneValidation: () => {
-    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    const adapter = buildCloudOpticalScene(effectiveHikariShape(state.balls).balls, state.params.k, hikariSettings);
     return {
       issues: [...adapter.issues],
       generationIssues: [...adapter.generationIssues],
@@ -1105,7 +1150,7 @@ function downloadFile(blob: Blob, filename: string): void {
     };
   },
   traceOpticalRay: (ray: StraightRay, options?: TraceOptions) => {
-    const adapter = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+    const adapter = buildCloudOpticalScene(effectiveHikariShape(state.balls).balls, state.params.k, hikariSettings);
     return traceStraightRay(adapter.scene, ray, options);
   },
   exportHikariCaseJson: (caseId = "debug-case", observation = "") => {
@@ -1126,20 +1171,33 @@ function render(): void {
   cloudRenderer.invalidateProgressiveRender(
     "設定が変わったためリアルタイムへ戻りました",
   );
-  const opticalScene = buildCloudOpticalScene(state.balls, state.params.k, hikariSettings);
+  const effective = effectiveHikariShape(state.balls);
+  const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
   opticalInclusionRequestedCount = opticalScene.inclusionRequestedCount;
   opticalReceiverInclusionSupported = opticalScene.receiverInclusionSupported;
-  cloudRenderer.update(state.balls, state.params.k, selectedBallId);
+  cloudRenderer.update(
+    workspaceView === "hikari" ? effective.balls : state.balls,
+    state.params.k,
+    selectedBallId,
+  );
   cloudRenderer.setOptics(hikariSettings);
   cloudRenderer.setOpticalScene(opticalScene);
   cloudRenderer.setVisualMode(
     workspaceView === "katachi" ? "katachi" : hikariSettings.phenomenon,
   );
-  hikariLayer.update(state.balls, state.params.k, hikariSettings);
-  ui.setHikariSource(`同じ場を観察中 — ${state.balls.length}球 / k ${state.params.k.toFixed(2)}`);
+  hikariLayer.update(effective.balls, state.params.k, hikariSettings);
+  ui.setExperimentalLightBandStatus(effective);
+  ui.setHikariSource(`同じ場を観察中 — ${effective.balls.length}球 / k ${state.params.k.toFixed(2)}`);
+}
+
+function effectiveHikariShape(balls: typeof state.balls) {
+  if (!lightDrawingExperimentEnabled) {
+    return { balls, enabled: false, reason: null, appendedCount: 0 };
+  }
+  return deriveExperimentalLightBand(balls, state.params.k, hikariSettings);
 }
 
 let lastFrame = performance.now();
