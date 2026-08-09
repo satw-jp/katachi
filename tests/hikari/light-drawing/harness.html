@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OPT-LD-1 readiness / candidate</title>
+    <link rel="stylesheet" href="./harness.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="warning" aria-label="study scope">
+        <strong>OPT-LD-1 READINESS / CANDIDATE</strong><span>NOT OPT-LD-1 GO OR ACCEPTANCE</span><span>LOCAL MOTION / FORM EXPLORATION ONLY · OPT-LD-2 HAS NOT BEEN COMPLETED · NOT OPT-LD-3 GO OR ACCEPTANCE</span><span>CPU-ONLY</span><span>NOT SHARED ShapeSource / WebGPU / Blender</span><span>NOT PRODUCTION</span>
+      </section>
+      <header>
+        <p class="eyebrow">HIKARI · FINITE LIGHT / TRANSPORT STUDY</p>
+        <h1>A bounded causal comparison</h1>
+        <p class="subhead">Identical finite-light samples → real refracting relief thickness → canonical receiver transport deposits. Fixed 2-texel energy-normalized reconstruction is display reconstruction, not a validated finite-source PSF. No memory, bloom, trails, receiver painting, or peak normalization.</p>
+        <p class="form-intent">小さな形の語彙を試すだけの、非永続の比較です。canonical authored ShapeSource support を示すものではありません。</p>
+        <div class="chips" id="chips"></div>
+      </header>
+      <section class="controls" aria-label="form and local gesture controls">
+        <div class="control-group"><label for="form">FORM / 形</label><select id="form" aria-describedby="form-explanation"></select></div>
+        <div class="control-group"><label for="exit-surface">FAR SIDE / 向こう側</label><select id="exit-surface" aria-describedby="exit-explanation"></select></div>
+        <div class="control-group slider-control"><label for="amplitude">BULGE AMPLITUDE <output id="amplitude-value">0.180</output></label><input id="amplitude" type="range" min="0" max="0.32" step="0.005" value="0.18" /></div>
+        <div class="control-group slider-control gesture-control"><label for="ridge-position">RIDGE POSITION / 稜線の位置 <output id="ridge-position-value">0.00</output></label><input id="ridge-position" type="range" min="-0.18" max="0.18" step="0.01" value="0" /></div>
+        <div class="control-group slider-control gesture-control"><label for="ridge-bend">RIDGE BEND / 稜線の曲がり <output id="ridge-bend-value">0.00</output></label><input id="ridge-bend" type="range" min="-0.20" max="0.20" step="0.01" value="0" /></div>
+        <button id="reset" type="button">Reset candidate</button>
+        <span id="compute-state">CPU trace ready</span>
+        <div class="explanations"><span id="form-explanation">選んだ形から、光を毎回あらためて計算します。</span><span id="exit-explanation">向こう側の面でもう一度曲がる結果を比較します。</span></div>
+      </section>
+      <section class="fields" aria-label="physical receiver field comparison">
+        <article class="field-card"><div><p>BULGE OFF</p><small>physical receiver · fixed absolute exposure</small></div><canvas id="off-canvas" width="512" height="512"></canvas><dl id="off-metrics"></dl></article>
+        <article class="field-card active"><div><p>BULGE ON</p><small>physical receiver · fixed absolute exposure</small></div><canvas id="on-canvas" width="512" height="512"></canvas><dl id="on-metrics"></dl></article>
+        <article class="field-card delta"><div><p>Δ ON−OFF</p><small>diagnostic signed difference · cyan increase / coral decrease</small></div><canvas id="delta-canvas" width="512" height="512"></canvas><dl id="delta-metrics"></dl></article>
+      </section>
+      <section class="provenance">
+        <article><div class="section-kicker">TOP-DOWN / VERTICAL THICKNESS</div><canvas id="height-canvas" width="192" height="192"></canvas><p id="height-note">色は表面と向こう側の間の縦の厚みです。受け面に描いた模様ではありません。</p></article>
+        <article><div class="section-kicker">TWO SURFACES / THICKNESS</div><canvas id="profile-canvas" width="720" height="280"></canvas><p>固定した <code>z=0</code> 断面で表面と向こう側を同時に表示します。形を変えても縮尺は変わりません。</p></article>
+        <article><div class="section-kicker">RAY PROVENANCE</div><canvas id="ray-canvas" width="720" height="280"></canvas><p>線は実際の光路の <code>x–y</code> 投影です。向こう側の曲線は <code>z=0</code> 断面なので、光路の端点と常に重なるとは限りません。</p></article>
+      </section>
+      <footer id="ledger-note">Flux accounting uses finite Fresnel interface throughput and fixed Beer–Lambert absorption without loss renormalization.</footer>
+    </main>
+    <script type="module" src="./harness.ts"></script>
+  </body>
+</html>

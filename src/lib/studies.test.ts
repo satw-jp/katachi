@@ -199,6 +199,7 @@ test("catalog carries no hand-copied version / updatedAt (manifest stays the sol
 // 確認する。ここで自動化できるのは「二重正本を作っていない」という構造の側だけ。
 
 const LAUNCHER_MAIN = join(REPO_ROOT, "src", "instrument", "launcher", "main.ts");
+const LAUNCHER_STYLE = join(REPO_ROOT, "src", "instrument", "launcher", "style.css");
 
 test("launcher reads the package version by import, not by hand-copied literal", () => {
   const src = readFileSync(LAUNCHER_MAIN, "utf8");
@@ -236,6 +237,22 @@ test("launcher defines its updated date in exactly one place, with no invented s
   // launcher 独自の semver / toolVersion を発明していないこと（禁止 §5）。
   assert.equal(/LAUNCHER_VERSION|toolVersion/.test(src), false);
   assert.equal(/"\d+\.\d+\.\d+"/.test(src), false, "no semver literal in the launcher");
+});
+
+test("launcher exposes Hikari as a query-gated cloud-sculpt experiment, not a twelfth Study", () => {
+  const src = readFileSync(LAUNCHER_MAIN, "utf8");
+
+  assert.match(src, /if \(entry\.id === "cloud-sculpt"\)/);
+  assert.match(src, /hikariOpen\.href = "index\.html\?lightDrawing=1";/);
+  assert.match(src, /Hikari 厚みの光（実験）を開く/);
+  assert.equal(STUDY_CATALOG.length, 11);
+});
+
+test("launcher keeps the complete scrolling page on the paper background", () => {
+  const css = readFileSync(LAUNCHER_STYLE, "utf8");
+
+  assert.match(css, /html,\s*\nbody \{\s*\n  background: var\(--paper\);/);
+  assert.match(css, /body \{\s*\n  height: auto;\s*\n  min-height: 100%;/);
 });
 
 console.log(`\n${passed} passed`);

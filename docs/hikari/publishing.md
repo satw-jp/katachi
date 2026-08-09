@@ -1,7 +1,7 @@
 # hikari — web publishing
 
 Status: active
-UpdatedAt: 2026-08-02
+UpdatedAt: 2026-08-09
 
 ## Current surface
 
@@ -13,6 +13,18 @@ Hikari is currently published as the `HIKARI` workspace on the Cloud Sculpt root
 - Configuration: `wrangler.jsonc`
 
 The production page must be built and deployed from a committed revision. Do not deploy directly from a dirty working tree, because the Katachi repository can contain several unrelated studies in progress.
+
+## Accepted separation target (2026-08-09; not yet deployed)
+
+The author accepted separate public applications for Katachi and Hikari. The target is
+`katachi.a-8c3.workers.dev` / `katachi.satw.jp` for shape authoring and
+`hikari.a-8c3.workers.dev` / `hikari.satw.jp` for optical observation. They exchange a versioned immutable
+geometry snapshot; they do not share localStorage or mutable editor state.
+
+This is a target, not the current release procedure. Do not rename this file's current `katachi` Worker or deploy
+the active Hikari branch to a new Worker until the gates in
+[Katachi → Hikari Snapshot handoff](katachi-snapshot-handoff-2026-08-09.md) pass and an independent Hikari build
+entry has been verified. The existing production URL remains authoritative until a recorded cutover release.
 
 ## Release procedure
 

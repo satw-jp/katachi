@@ -1,7 +1,7 @@
 # hikari — project definition
 
 Status: design baseline
-UpdatedAt: 2026-08-01
+UpdatedAt: 2026-08-09
 
 Current integrated status, dependencies, accepted baseline, and candidate state are delegated to [Hikari integrated master plan R0](master-plan.md). The master plan remains a Draft SSOT until its `SSOT-0` gate is GO.
 
@@ -122,6 +122,17 @@ Known limits:
 
 ## Architecture decision
 
+**Author direction added 2026-08-09:** Katachi and Hikari may be published as separate web applications.
+Katachi first compares rigid and deformable motif packing, freezes an interesting state, and exports an immutable
+geometry snapshot. Hikari later imports that snapshot through a pure adapter and keeps optical material, light,
+receiver, and rendering data on the Hikari side. The exact responsibility split, preserved author wording,
+snapshot minimum, independent deployment target, and implementation gate are recorded in
+[Katachi → Hikari Snapshot handoff](katachi-snapshot-handoff-2026-08-09.md).
+
+This direction changes the extraction target, not today's production fact. Hikari v0.32.1 remains co-located
+with Cloud Sculpt until the snapshot gate passes; do not create a copied shape implementation to separate the
+URL early.
+
 hikari remains inside the Katachi repository until a stable interchange boundary exists. Creating a copied standalone application now would duplicate the shape field and three optical implementations before the material model is stable.
 
 The extraction boundary is:
@@ -177,6 +188,7 @@ Related documents:
 - [Blender study 01 reading](blender-study-01.md)
 - [Adjacent study: printed translucent light shade](printed-translucent-shell.md)
 - [Web publishing procedure](publishing.md)
+- [Katachi → Hikari Snapshot handoff](katachi-snapshot-handoff-2026-08-09.md)
 - [Model and subagent delegation plan](delegation-plan.md)
 
 ## Success criteria for the next milestone

@@ -10,11 +10,18 @@
 
 @import "../../styles/base.css";
 
-/* base.css は Study 画面用に body を暗い viewport 色にしている。launcher は
-   3D を持たない読み物なので、この面だけ紙白へ戻す。 */
+/* base.css は Study 画面用に html/body を高さ100%の暗い viewport にしている。
+   launcher は縦に続く読み物なので、html も紙白へ戻し、body を内容の高さまで
+   伸ばす。body だけ白いと1画面を越えた先で html の黒が露出する。 */
+html,
 body {
   background: var(--paper);
   color: var(--ink);
+}
+
+body {
+  height: auto;
+  min-height: 100%;
 }
 
 #app {
@@ -120,6 +127,19 @@ body {
   padding-bottom: 1px;
 }
 
+.study-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
+}
+
+.study-open-experimental {
+  color: var(--muted);
+  border-bottom-color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .study-open:hover {
   color: var(--muted);
   border-bottom-color: var(--muted);
@@ -150,10 +170,13 @@ body {
   .study-row {
     grid-template-columns: 2.5rem 1fr;
   }
-  .study-open {
+  .study-actions {
     grid-column: 2;
     justify-self: start;
+    align-items: flex-start;
     margin-top: 0.6rem;
+  }
+  .study-open {
     display: inline-block;
     padding-bottom: 0.2rem;
   }

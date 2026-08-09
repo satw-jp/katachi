@@ -34,6 +34,11 @@ import {
 import type { CameraOrbitSettings } from "./cameraOrbit.ts";
 import type { BackgroundMediaMode, BackgroundMediaInfo } from "./renderer.ts";
 import { blenderBridgePlatformLabel } from "./blenderBridge.ts";
+import {
+  EXPERIMENTAL_LIGHT_BAND_SOURCE_SIZES,
+  type ExperimentalLightBandPosition,
+  type ExperimentalLightBandResult,
+} from "./lightDrawingBand.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -93,6 +98,7 @@ export interface UiHandles {
   setMeshStatus: (text: string, ok?: boolean) => void;
   setView: (view: WorkspaceView) => void;
   setHikariSource: (text: string) => void;
+  setExperimentalLightBandStatus: (result: ExperimentalLightBandResult) => void;
   setHikariCaseStatus: (text: string, ok?: boolean) => void;
   setBlenderExportStatus: (text: string, ok?: boolean) => void;
   syncHikariCaseDetails: (details: { caseId: string; observation: string }) => void;
@@ -147,6 +153,7 @@ export function buildUi(
   initialView: WorkspaceView,
   initialComputeMode: "safe" | "gpu",
   initialHikari: HikariSettings,
+  lightDrawingExperimentEnabled: boolean,
   callbacks: UiCallbacks,
 ): UiHandles {
   const root = document.createElement("div");
@@ -810,6 +817,71 @@ export function buildUi(
   };
   opticsControls.appendChild(receiverParityButton);
   opticsControls.appendChild(receiverParityStatus);
+
+  let experimentalLightBandStatus: HTMLElement | null = null;
+  let experimentalLightBandGroup: HTMLElement | null = null;
+  if (lightDrawingExperimentEnabled) {
+    const title = document.createElement("div");
+    title.className = "hikari-section-title";
+    title.textContent = "実験機能 · 厚みの光";
+    const caution = document.createElement("div");
+    caution.className = "hint experimental-light-band-caution";
+    caution.textContent = "正式採用前の比較です。OPT-LD-1/2/3 GOではありません。";
+    const shapeNote = document.createElement("div");
+    shapeNote.className = "hint";
+    shapeNote.textContent = "BODY・影・届く光は同じ実形状を使用";
+    const persistenceNote = document.createElement("div");
+    persistenceNote.className = "hint";
+    persistenceNote.textContent = ".hkrに保存されます。KATACHIの形状履歴は変更しません。";
+    const bandControl = createSegmentedControl<"off" | ExperimentalLightBandPosition>(
+      ["off", "left", "center", "right"],
+      hikariState.lightDrawingBand.position,
+      (position) => updateHikari({
+        lightDrawingBand: { ...hikariState.lightDrawingBand, position },
+      }),
+      { off: "OFF", left: "左", center: "中央", right: "右" },
+    );
+    const sourceRow = document.createElement("div");
+    sourceRow.className = "experimental-light-band-source";
+    const sourceLabel = document.createElement("span");
+    sourceLabel.textContent = "光源の広がり";
+    sourceRow.appendChild(sourceLabel);
+    const sourceButtons = new Map<number, HTMLButtonElement>();
+    const setSource = (value: number): void => {
+      for (const [candidate, button] of sourceButtons) {
+        button.classList.toggle("active", Math.abs(candidate - value) < 1e-6);
+      }
+    };
+    for (const sourceSize of EXPERIMENTAL_LIGHT_BAND_SOURCE_SIZES) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = `${sourceSize}°`;
+      button.onclick = () => {
+        setSource(sourceSize);
+        updateHikari({ sunSize: sourceSize });
+      };
+      sourceButtons.set(sourceSize, button);
+      sourceRow.appendChild(button);
+    }
+    setSource(hikariState.sunSize);
+    experimentalLightBandStatus = document.createElement("div");
+    experimentalLightBandStatus.className = "experimental-light-band-status";
+    experimentalLightBandStatus.dataset.kind = "off";
+    experimentalLightBandStatus.textContent = "OFF — 元の形をそのまま使用";
+    hikariControlSyncers.push((settings) => {
+      bandControl.set(settings.lightDrawingBand.position);
+      setSource(settings.sunSize);
+    });
+    experimentalLightBandGroup = createPropertyGroup("実験 · 光の帯", [
+      title,
+      caution,
+      bandControl.root,
+      sourceRow,
+      shapeNote,
+      persistenceNote,
+      experimentalLightBandStatus,
+    ]);
+  }
 
   const daylightTitle = document.createElement("div");
   daylightTitle.className = "hikari-section-title";
@@ -1541,6 +1613,19 @@ export function buildUi(
     setHikariSource: (text) => {
       sourceInfo.textContent = text;
     },
+    setExperimentalLightBandStatus: (result) => {
+      if (!experimentalLightBandStatus) return;
+      if (result.enabled) {
+        experimentalLightBandStatus.dataset.kind = "active";
+        experimentalLightBandStatus.textContent = `接続済み · 元の形 + ${result.appendedCount}球 = ${result.balls.length}球`;
+      } else if (result.reason) {
+        experimentalLightBandStatus.dataset.kind = "unavailable";
+        experimentalLightBandStatus.textContent = `使用不可 — ${result.reason}`;
+      } else {
+        experimentalLightBandStatus.dataset.kind = "off";
+        experimentalLightBandStatus.textContent = "OFF — 元の形をそのまま使用";
+      }
+    },
     setHikariCaseStatus: (text, ok) => {
       caseStatus.textContent = text;
       caseStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
@@ -1808,6 +1893,7 @@ export function buildUi(
     ]);
     opticsControls.replaceChildren(
       statusGroup,
+      ...(experimentalLightBandGroup ? [experimentalLightBandGroup] : []),
       daylightGroup,
       bodyGroup,
       inclusionGroup,

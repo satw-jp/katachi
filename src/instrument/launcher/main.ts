@@ -32,7 +32,7 @@ import "./style.css";
  * Study の追加で一覧を変えた場合は上げる（各 Study の版は各 `manifest.json` が正本）。
  * launcher 独自の semver は作らない。持つのは更新日だけ。
  */
-const LAUNCHER_UPDATED_AT = "2026-07-29";
+const LAUNCHER_UPDATED_AT = "2026-08-09";
 
 const app = document.getElementById("app")!;
 
@@ -67,6 +67,7 @@ function renderStudyRow(entry: StudyCatalogEntry): HTMLLIElement {
   row.appendChild(main);
 
   // 実リンク。合成clickではなく実際の <a href> なので、ブラウザの戻るも効く。
+  const actions = el("div", "study-actions");
   const open = el("a", "study-open", "開く →");
   open.href = entry.href;
   // 見た目は全行「開く →」で揃えるが、accessible name は Study ごとに固有にする。
@@ -75,7 +76,23 @@ function renderStudyRow(entry: StudyCatalogEntry): HTMLLIElement {
   open.setAttribute("aria-label", `${entry.titleJa} (${entry.titleEn}) を開く`);
   // 実ブラウザ検証を座標や並び順だけに依存させないための手がかり。
   open.dataset.studyId = entry.id;
-  row.appendChild(open);
+  actions.appendChild(open);
+
+  // Hikari は別の生成原理ではなく cloud-sculpt の同じ場を見る実験面なので、
+  // catalog の12番目へ偽装せず、元Studyの補助入口としてだけ置く。
+  if (entry.id === "cloud-sculpt") {
+    const hikariOpen = el(
+      "a",
+      "study-open study-open-experimental",
+      "Hikari · 厚みの光（実験）→",
+    );
+    hikariOpen.href = "index.html?lightDrawing=1";
+    hikariOpen.setAttribute("aria-label", "Hikari 厚みの光（実験）を開く");
+    hikariOpen.dataset.studyVariant = "hikari-light-drawing-experimental";
+    actions.appendChild(hikariOpen);
+  }
+
+  row.appendChild(actions);
 
   return row;
 }
