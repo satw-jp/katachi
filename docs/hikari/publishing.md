@@ -53,6 +53,15 @@ entry has been verified. The existing production URL remains authoritative until
 
 Redeploy the last known-good committed revision. Do not repair production by building an unknown dirty tree.
 
+## Release record — 2026-08-10 — v0.32.3
+
+- Git commit deployed: `45de7b4` (`VITE_GIT_COMMIT=45de7b4` embedded in exported Hikari/Blender cases)
+- Cloudflare Version ID: `c6d484f3-5d76-4054-852d-e172f2c6f444`
+- Production URL: <https://katachi.a-8c3.workers.dev/>
+- FORM checkpoint: <https://katachi.a-8c3.workers.dev/?form=1&safe=1>
+- Published the query-gated, read-only FORM observation checkpoint with deterministic bounded SDF sampling, shared-WebGL four-view projection, a fixed right control bar, Safe 40,000-point cap, retained provenance, and selectable 1600×1120 / 3200×2240 PNG output. A first production visual pass exposed the persistent FORM/FLOW/OPTICS row below the fixed panel; v0.32.3 raises the switch above the panel and adds a relative-stacking regression.
+- Verification: Fresh Sol release review returned ship; focused FORM tests passed 18/18, full Hikari tests passed 141/141, `VITE_GIT_COMMIT=45de7b4 npm run build` passed, `git diff --check` passed, and the exact-worktree runtime gate passed. Production browser inspection showed v0.32.3, four distinct fitted views, the right-side mode switch and controls, High 3200×2240 selected, a successful real-click FLOW→FORM roundtrip, and no browser warnings or errors.
+
 ## Release record — 2026-08-02 — v0.32.1
 
 - Git commit deployed: `cbce8d8` (`VITE_GIT_COMMIT=cbce8d8` embedded in exported Hikari/Blender cases)
