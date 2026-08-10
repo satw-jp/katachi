@@ -59,7 +59,7 @@
 
 .form-mode-switch {
   position: fixed;
-  z-index: 2;
+  z-index: 4;
   top: 60px;
   right: 12px;
   display: flex;

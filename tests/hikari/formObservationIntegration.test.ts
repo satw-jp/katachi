@@ -131,7 +131,10 @@ test("FORM integration keeps a real Worker entry, gates optical work before it i
   const worker = readFileSync(new URL("../../src/studies/cloud-sculpt/formObservation/sampling.worker.ts", import.meta.url), "utf8");
   assert.match(worker, /positions\.buffer/);
   const style = readFileSync(new URL("../../src/studies/cloud-sculpt/style.css", import.meta.url), "utf8");
-  assert.match(style, /\.form-mode-switch\s*\{[^}]*z-index:\s*2/s);
+  assert.match(style, /\.form-mode-switch\s*\{[^}]*z-index:\s*4/s);
+  const modeSwitchZ = Number(style.match(/\.form-mode-switch\s*\{[^}]*z-index:\s*(\d+)/s)?.[1]);
+  const formPanelZ = Number(style.match(/\.form-observation-panel\s*\{[^}]*z-index:\s*(\d+)/s)?.[1]);
+  assert.ok(modeSwitchZ > formPanelZ, "persistent mode switch must paint above the fixed FORM panel");
   assert.match(controller, /this\.root\.append\(this\.modeSwitch, this\.viewOverlay, this\.formPanel\)/);
   assert.match(style, /\.form-mode-switch\s*\{[^}]*position:\s*fixed[^}]*right:\s*12px[^}]*width:\s*316px/s);
   assert.match(style, /\.form-view-target:hover,[\s\S]*?background:\s*transparent/);

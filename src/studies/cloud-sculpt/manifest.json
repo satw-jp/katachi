@@ -2,7 +2,7 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.32.2",
+  "version": "0.32.3",
   "createdAt": "2026-07-03",
   "updatedAt": "2026-08-10",
   "params": [
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-10",
+      "note": "Corrected the production-only stacking check for the fixed FORM sidebar. The persistent FORM/FLOW/OPTICS row was structurally present and remained available across mode state, but the later fixed panel painted over it at the same z-index. The switch now has an explicit higher stacking level, and the regression compares both layers rather than checking either value alone."
+    },
     {
       "date": "2026-08-10",
       "note": "Added the query-gated experimental FORM observation checkpoint at ?form=1. It samples the current immutable Cloud SDF in a bounded Worker, presents one retained point buffer through four shared-scale orthographic views on the existing WebGL renderer, keeps FORM read-only and optical work paused, and preserves deterministic provenance for PNG export. The author visually confirmed the point form, requested a fixed 340 px right control bar, corrected Retina four-panel scissoring, and accepted selectable 1600x1120 or 3200x2240 PNG output. Safe mode caps sampling at 40,000 points. Approximate SDF sampling, biased candidate density, unknown physical scale, and PCA ambiguity remain explicit limitations; FLOW/OPTICS roundtrips retain the existing Hikari settings."
