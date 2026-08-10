@@ -8,6 +8,54 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      if (new URLSearchParams(window.location.search).get("debugForm") === "1") {
+        const diagnostic = document.createElement("div");
+        diagnostic.id = "form-boot-diagnostic";
+        diagnostic.textContent = "FORM 診断: HTMLを読み込みました";
+        Object.assign(diagnostic.style, {
+          position: "fixed",
+          left: "12px",
+          bottom: "12px",
+          zIndex: "2147483647",
+          maxWidth: "min(560px, calc(100vw - 24px))",
+          padding: "9px 11px",
+          border: "1px solid #b8b3a8",
+          background: "#f2efe7",
+          color: "#173d4b",
+          font: "12px/1.45 system-ui, sans-serif",
+          whiteSpace: "pre-wrap",
+        });
+        document.body.appendChild(diagnostic);
+        let failed = false;
+        const showError = (message) => {
+          failed = true;
+          diagnostic.style.borderColor = "#a43b32";
+          diagnostic.style.color = "#7b241f";
+          diagnostic.textContent = `FORM 診断エラー: ${message}`;
+        };
+        window.addEventListener("error", (event) => showError(event.message || "module load failed"));
+        window.addEventListener("unhandledrejection", (event) => showError(event.reason?.message || String(event.reason)));
+        const startedAt = performance.now();
+        window.setInterval(() => {
+          if (failed) return;
+          const raw = document.documentElement.dataset.hikariForm;
+          if (raw) {
+            try {
+              const state = JSON.parse(raw);
+              const renderer = state.renderer || {};
+              const details = `${renderer.width || 0}×${renderer.height || 0} · ${renderer.renderCount || 0} frames · ${renderer.panelCount || 0} panels · WebGL ${renderer.contextLost ? "lost" : "ready"}`;
+              if (state.renderError) showError(state.renderError);
+              else diagnostic.textContent = `FORM 診断: ${state.status || "controller ready"}\n${details}`;
+            } catch {
+              diagnostic.textContent = `FORM 診断: controller ready`;
+            }
+          } else if (performance.now() - startedAt > 3000) {
+            diagnostic.textContent = "FORM 診断: controllerへ到達していません";
+          }
+        }, 250);
+      }
+    </script>
     <script type="module" src="/src/studies/cloud-sculpt/main.ts"></script>
   </body>
 </html>

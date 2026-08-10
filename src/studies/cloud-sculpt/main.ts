@@ -60,6 +60,10 @@ import {
 import { resolveDaylight } from "./daylight.ts";
 import { cameraPositionForSunBacklight, cameraSunAngleDeg } from "./sunBacklight.ts";
 import { deriveExperimentalLightBand } from "./lightDrawingBand.ts";
+import { createCloudSdfGeometry } from "./formObservation/cloudSdfAdapter.ts";
+import { FormObservationController, type ObservationMode } from "./formObservation/controller.ts";
+import { isFormQueryEnabled } from "./formObservation/state.ts";
+import { transitionObservationMode } from "./formObservation/modeTransition.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -76,6 +80,13 @@ const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
 /** The saved experiment is deliberately inert unless this explicit URL is used. */
 const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
+const formObservationEnabled = isFormQueryEnabled(window.location.search);
+let formObservation: FormObservationController | null = null;
+// FORM can call render() during initial setup, before the animation-loop
+// declarations are reached. Keep its no-optics counters initialized with the
+// rest of the application state so the query route cannot hit the TDZ.
+let opticsRenderCalls = 0;
+let opticsFrameCalls = 0;
 let workspaceView: WorkspaceView =
   localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
 let hikariSettings = loadHikariSettings();
@@ -107,6 +118,7 @@ const windowsCompatibilityMode =
 
 const cloudRenderer = new CloudRenderer(viewport, {
   compatibilityMode: windowsCompatibilityMode,
+  suppressProgressiveInvalidation: formObservationEnabled,
 });
 const hikariLayer = new HikariLayer(cloudRenderer.scene, {
   disableWebGpu: windowsCompatibilityMode,
@@ -117,9 +129,11 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
       return;
     }
     receiverTransportPending = false;
-    cloudRenderer.invalidateProgressiveRender(
-      "受光面が更新されたためリアルタイムへ戻りました",
-    );
+    if (!formObservation?.isActive()) {
+      cloudRenderer.invalidateProgressiveRender(
+        "受光面が更新されたためリアルタイムへ戻りました",
+      );
+    }
     receiverFieldSummary = {
       ...summarizeReceiverField(field),
       transport: structuredClone(field.diagnostics),
@@ -136,7 +150,7 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
       return;
     }
     receiverTransportPending = pending;
-    if (pending) {
+    if (pending && !formObservation?.isActive()) {
       cloudRenderer.invalidateProgressiveRender(
         "受光面を再計算するためリアルタイムへ戻りました",
       );
@@ -419,6 +433,21 @@ const ui = buildUi(
   onHikariViewActivate: (viewId) => activateHikariView(viewId),
   },
 );
+if (formObservationEnabled) {
+  app.classList.add("form-observation-enabled");
+  formObservation = new FormObservationController({
+    viewport,
+    cloudRenderer,
+    version: manifest.version,
+    updatedAt: manifest.updatedAt,
+    maxPointBudget: windowsCompatibilityMode ? 40_000 : 160_000,
+    onModeChange: setObservationMode,
+  });
+  formObservation.setGeometry(currentFormGeometry());
+  cloudRenderer.controls.enabled = false;
+  ui.root.dataset.formActive = "true";
+  app.classList.add("form-observation-active");
+}
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
@@ -453,6 +482,7 @@ let draggingBallId: number | null = null;
 const DRAG_THRESHOLD = 4;
 
 viewport.addEventListener("pointerdown", (e) => {
+  if (formObservation?.isActive()) { clearFormMutationDrag(); return; }
   if (workspaceView !== "katachi") return;
   pointerDownPos = { x: e.clientX, y: e.clientY };
   const { x, y } = ndcFromPointer(e, viewport);
@@ -469,6 +499,7 @@ viewport.addEventListener("pointerdown", (e) => {
 });
 
 viewport.addEventListener("pointermove", (e) => {
+  if (formObservation?.isActive()) { clearFormMutationDrag(); return; }
   if (workspaceView !== "katachi") return;
   if (draggingBallId === null) return;
   const { x, y } = ndcFromPointer(e, viewport);
@@ -494,6 +525,7 @@ viewport.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("pointerup", (e) => {
+  if (formObservation?.isActive()) { clearFormMutationDrag(); return; }
   if (workspaceView !== "katachi") {
     pointerDownPos = null;
     draggingBallId = null;
@@ -520,6 +552,7 @@ window.addEventListener("pointerup", (e) => {
 });
 
 function handleClick(e: PointerEvent): void {
+  if (formObservation?.isActive()) return;
   const { x, y } = ndcFromPointer(e, viewport);
   const ray = cloudRenderer.screenToRay(x, y);
   const hit = raymarchField(state.balls, state.params.k, ray.origin, ray.dir);
@@ -556,6 +589,7 @@ function approxCloudDistance(): number {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (formObservation?.isActive()) return;
   if (workspaceView !== "katachi") return;
   if (e.key === "Delete" || e.key === "Backspace") {
     if (document.activeElement?.tagName === "INPUT") return; // don't eat text-field edits
@@ -564,6 +598,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 function deleteSelected(): void {
+  if (formObservation?.isActive()) return;
   if (selectedBallId === null) return;
   record(history, state, "removeBall", { id: selectedBallId });
   selectedBallId = null;
@@ -1168,6 +1203,12 @@ function downloadFile(blob: Blob, filename: string): void {
 // --- Render loop ------------------------------------------------------
 
 function render(): void {
+  if (formObservation?.isActive()) {
+    formObservation.setGeometry(currentFormGeometry());
+    document.documentElement.dataset.hikariFormNoOptics = JSON.stringify({ opticsRenderCalls, opticsFrameCalls });
+    return;
+  }
+  opticsRenderCalls += 1;
   cloudRenderer.invalidateProgressiveRender(
     "設定が変わったためリアルタイムへ戻りました",
   );
@@ -1200,11 +1241,65 @@ function effectiveHikariShape(balls: typeof state.balls) {
   return deriveExperimentalLightBand(balls, state.params.k, hikariSettings);
 }
 
+function currentFormGeometry() {
+  return createCloudSdfGeometry(
+    state.balls,
+    state.params.k,
+    "cloud-sculpt-current",
+    `history-${history.length}`,
+  );
+}
+
+function setObservationMode(mode: ObservationMode): void {
+  const transition = transitionObservationMode(mode, hikariSettings);
+  if (transition.formActive) {
+    formObservation?.setActive(true);
+    cloudRenderer.setProgressiveInvalidationSuppressed(true);
+    cloudRenderer.controls.enabled = false;
+    clearFormMutationDrag();
+    hikariLayer.setVisible(false);
+    ui.root.dataset.formActive = "true";
+    app.classList.add("form-observation-active");
+    cloudRenderer.resize();
+    render();
+    return;
+  }
+  formObservation?.setActive(false);
+  cloudRenderer.setProgressiveInvalidationSuppressed(false);
+  delete ui.root.dataset.formActive;
+  app.classList.remove("form-observation-active");
+  cloudRenderer.resize();
+  if (mode === "flow" || mode === "optics") {
+    hikariSettings = normalizeHikariSettings(transition.settings);
+    localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+    ui.syncHikariSettings(hikariSettings);
+    workspaceView = "hikari";
+    localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
+    ui.setView(workspaceView);
+  }
+  cloudRenderer.controls.enabled = true;
+  hikariLayer.setVisible(workspaceView === "hikari");
+  render();
+}
+
+function clearFormMutationDrag(): void {
+  pointerDownPos = null;
+  draggingBallId = null;
+  viewport.classList.remove("dragging-ball");
+}
+
 let lastFrame = performance.now();
 let frameCount = 0;
 let fpsAccum = 0;
 
 function renderFrame(now: number): void {
+  if (formObservation?.isActive()) {
+    lastFrame = now;
+    formObservation.render();
+    document.documentElement.dataset.hikariFormNoOptics = JSON.stringify({ opticsRenderCalls, opticsFrameCalls });
+    return;
+  }
+  opticsFrameCalls += 1;
   const dt = now - lastFrame;
   lastFrame = now;
   if (cameraOrbit.running && workspaceView === "hikari") {
@@ -1355,10 +1450,12 @@ startFrameLoop(renderFrame);
 
 function applyWorkspaceView(): void {
   const hikariVisible = workspaceView === "hikari";
-  hikariLayer.setVisible(hikariVisible);
+  hikariLayer.setVisible(hikariVisible && !formObservation?.isActive());
   ui.setView(workspaceView);
   render();
 }
+
+window.addEventListener("beforeunload", () => formObservation?.dispose(), { once: true });
 
 function loadHikariSettings(): HikariSettings {
   const stored = localStorage.getItem(HIKARI_SETTINGS_KEY);

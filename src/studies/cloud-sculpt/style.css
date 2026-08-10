@@ -11,13 +11,144 @@
   overflow: hidden;
 }
 
+#app.form-observation-active {
+  grid-template:
+    "bar" 48px
+    "viewport" minmax(0, 1fr)
+    / minmax(0, 1fr);
+}
+
+#app.form-observation-active .side-panel { display: none; }
+
+#app.form-observation-enabled:not(.form-observation-active) .side-panel {
+  padding-top: 56px;
+}
+
+#app.form-observation-active .application-bar .compute-mode-button,
+#app.form-observation-active .application-bar .progressive-render-button {
+  display: none;
+}
+
+#app.form-observation-active #viewport {
+  width: calc(100vw - 340px);
+}
+
 #viewport {
   grid-area: viewport;
+  position: relative;
 }
 
 #viewport.dragging-ball {
   cursor: grabbing;
 }
+
+.form-observation-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  color: #173d4b;
+  font: 11px/1.35 system-ui, sans-serif;
+}
+
+.form-mode-switch,
+.form-observation-panel,
+.form-view-overlay button {
+  pointer-events: auto;
+}
+
+.form-mode-switch {
+  position: fixed;
+  z-index: 2;
+  top: 60px;
+  right: 12px;
+  display: flex;
+  width: 316px;
+  background: rgba(242, 239, 231, 0.92);
+  border: 1px solid #b8b3a8;
+}
+
+.form-mode-switch button,
+.form-control-panel button,
+.form-control-panel select {
+  border: 1px solid #b8b3a8;
+  border-radius: 0;
+  background: #f2efe7;
+  color: #173d4b;
+  font-size: 10px;
+  letter-spacing: .05em;
+}
+
+.form-mode-switch button { flex: 1; border-width: 0 0 0 1px; padding: 7px 10px; }
+.form-mode-switch button:first-child { border-left: 0; }
+.form-mode-switch button.active { background: #173d4b; color: #f2efe7; }
+
+.form-observation-panel {
+  position: fixed;
+  z-index: 2;
+  top: 48px;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  padding: 64px 12px 12px;
+  overflow-y: auto;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--hairline);
+  pointer-events: auto;
+}
+
+.form-control-panel {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  background: rgba(242, 239, 231, .94);
+  border: 1px solid #b8b3a8;
+}
+.form-control-panel p { margin: 0; font-size: 9px; color: #555751; }
+.form-control-panel > div:not(.form-view-overlay) { font-size: 9px; color: #555751; word-break: break-all; }
+.form-control-panel button { padding: 5px 6px; }
+.form-control-panel input { width: 100%; accent-color: #173d4b; }
+
+.form-view-overlay { position: absolute; inset: 0; }
+.form-view-target {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  appearance: none;
+  border: 0;
+  border-color: #b8b3a8;
+  background: transparent;
+  color: #173d4b;
+  text-align: left;
+  padding: 9px;
+  font-size: 10px;
+  letter-spacing: .05em;
+}
+.form-view-target:hover,
+.form-view-target:focus,
+.form-view-target:active {
+  background: transparent;
+}
+.form-view-target-top { left: 0; top: 0; width: 50%; height: 50%; border-right: 1px solid #b8b3a8; border-bottom: 1px solid #b8b3a8; }
+.form-view-target-front { left: 50%; top: 0; width: 50%; height: 50%; border-bottom: 1px solid #b8b3a8; }
+.form-view-target-side { left: 0; top: 50%; width: 50%; height: 50%; border-right: 1px solid #b8b3a8; }
+.form-view-target-principal { left: 50%; top: 50%; width: 50%; height: 50%; }
+.form-quad-return { position: absolute; top: 12px; right: 12px; z-index: 1; border: 1px solid #b8b3a8; background: rgba(242, 239, 231, .94); color: #173d4b; padding: 6px 8px; font-size: 10px; }
+.form-observation-controls[data-layout="single"] .form-view-target { display: none; }
+.form-observation-controls[data-layout="single"][data-active-panel="top"] .form-view-target-top,
+.form-observation-controls[data-layout="single"][data-active-panel="front"] .form-view-target-front,
+.form-observation-controls[data-layout="single"][data-active-panel="side"] .form-view-target-side,
+.form-observation-controls[data-layout="single"][data-active-panel="principal"] .form-view-target-principal {
+  display: flex;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+}
+
+.side-panel[data-form-active="true"] { visibility: hidden; pointer-events: none; }
 
 .panel {
   grid-area: panel;

@@ -111,14 +111,16 @@ export class CloudRenderer {
   private inclusionCausticTrustworthy = false;
   private basePixelRatio = 1;
   private realtimeMotionMode = false;
+  private progressiveInvalidationSuppressed = false;
 
   constructor(
     container: HTMLElement,
-    options: { compatibilityMode?: boolean } = {},
+    options: { compatibilityMode?: boolean; suppressProgressiveInvalidation?: boolean } = {},
   ) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     const compatibilityMode = options.compatibilityMode === true;
+    this.progressiveInvalidationSuppressed = options.suppressProgressiveInvalidation === true;
     this.basePixelRatio = compatibilityMode ? 1 : Math.min(window.devicePixelRatio, 2);
     this.renderer.setPixelRatio(this.basePixelRatio);
     container.appendChild(this.renderer.domElement);
@@ -641,7 +643,14 @@ export class CloudRenderer {
     this.accumulationTargets[1].setSize(progressiveSize.width, progressiveSize.height);
     this.progressiveSupported = this.progressiveSupported
       && this.validateProgressiveFramebuffer();
-    this.invalidateProgressiveRender("画面サイズが変わったためリアルタイムへ戻りました");
+    if (!this.progressiveInvalidationSuppressed) {
+      this.invalidateProgressiveRender("画面サイズが変わったためリアルタイムへ戻りました");
+    }
+  }
+
+  /** FORM owns the shared context but must not disturb progressive optics while active. */
+  setProgressiveInvalidationSuppressed(suppressed: boolean): void {
+    this.progressiveInvalidationSuppressed = suppressed;
   }
 
   setRealtimeMotionMode(active: boolean): void {

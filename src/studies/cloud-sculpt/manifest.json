@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-08-02",
+  "updatedAt": "2026-08-10",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,10 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-10",
+      "note": "Added the query-gated experimental FORM observation checkpoint at ?form=1. It samples the current immutable Cloud SDF in a bounded Worker, presents one retained point buffer through four shared-scale orthographic views on the existing WebGL renderer, keeps FORM read-only and optical work paused, and preserves deterministic provenance for PNG export. The author visually confirmed the point form, requested a fixed 340 px right control bar, corrected Retina four-panel scissoring, and accepted selectable 1600x1120 or 3200x2240 PNG output. Safe mode caps sampling at 40,000 points. Approximate SDF sampling, biased candidate density, unknown physical scale, and PCA ambiguity remain explicit limitations; FLOW/OPTICS roundtrips retain the existing Hikari settings."
+    },
     {
       "date": "2026-08-02",
       "note": "R0.5 adds an acquisition-state Optical Event Contract, a non-destructive FrameTransportLedger adapter, capability-only BODY plus minimal CPU/WebGPU adapters, and ten deterministic diagnostics. Natural/runtime output remains unchanged because the optional event sink is disconnected by construction; BODY observability, pure absorption separation, and full WebGPU path history remain R1 gates."

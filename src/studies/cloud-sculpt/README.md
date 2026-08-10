@@ -238,6 +238,14 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-10（Experimental FORM observation v0.32.2）**: `?form=1`限定で、現在のCloud SDFを
+  編集せずに近似点群として観察するFORM画面を追加した。作者実機のSafe表示で40,000点の形が見えること、
+  TOP／FRONT／SIDE／PCAの4方向が各区画へ収まること、単画面との切替、拡大・移動、右側340px固定バー、
+  FORM／FLOW／OPTICSの往復を確認した。Retina画面では当初、drawing buffer寸法へdevice pixel ratioを
+  二重適用して4方向が中央に重なったため、scissor／viewportをCSS pixel基準へ修正した。保存画像は
+  1600×1120と3200×2240を選べる。表示は一つの点bufferを既存WebGL rendererで再投影したもので、
+  物理寸法や厳密なsurface meshを示すものではなく、候補密度の偏りとPCA方向の曖昧さを明記する。
+
 - **2026-08-02（Hikari R0.5 Optical Event Contract）**: View／Receiverを混ぜない取得状態付き
   Optical Event Contract、現行receiver ledgerのFrameTransportLedger adapter、BODY／CPU／WebGPUの
   能力表、10個の固定診断caseを追加した。通常のNaturalレンダー経路は契約へ接続せず、event sinkを渡さない
