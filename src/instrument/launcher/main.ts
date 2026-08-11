@@ -132,9 +132,7 @@ function render(): void {
   app.appendChild(el("div", "launcher-section-label", "光を観察する"));
   const hikariLink = el("a", "hikari-link");
   hikariLink.href = HIKARI_URL;
-  hikariLink.target = "_blank";
-  hikariLink.rel = "noopener noreferrer";
-  hikariLink.setAttribute("aria-label", "Hikari — 光とかたち を新しいタブで開く");
+  hikariLink.setAttribute("aria-label", "Hikari — 光とかたち を開く");
   hikariLink.appendChild(el("span", "hikari-link-title", "Hikari — 光とかたち"));
   hikariLink.appendChild(
     el(

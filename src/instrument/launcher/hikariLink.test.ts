@@ -11,8 +11,7 @@ test("launcher links the standalone Hikari observation app outside Study order",
   assert.match(MAIN, /const HIKARI_URL = "https:\/\/hikari\.a-8c3\.workers\.dev\/"/);
   assert.match(MAIN, /"光を観察する"/);
   assert.match(MAIN, /Katachiで保存した共有Hikari case/);
-  assert.match(MAIN, /hikariLink\.target = "_blank"/);
-  assert.match(MAIN, /hikariLink\.rel = "noopener noreferrer"/);
+  assert.doesNotMatch(MAIN, /hikariLink\.target/);
   assert.doesNotMatch(MAIN, /dataset\.studyId = [^;]*HIKARI_URL/);
 });
 
