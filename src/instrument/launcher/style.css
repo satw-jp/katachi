@@ -169,6 +169,44 @@ body {
   margin-left: 0.5rem;
 }
 
+.hikari-link {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.7fr) minmax(16rem, 1.6fr) auto;
+  gap: 1.5rem;
+  align-items: baseline;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--hairline);
+  padding: 1.1rem 1.25rem;
+}
+
+.hikari-link:hover,
+.hikari-link:focus-visible {
+  border-color: var(--ink);
+}
+
+.hikari-link:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.hikari-link-title {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+.hikari-link-description {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.hikari-link-open {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .launcher-note {
   margin: 1rem 0 0;
   color: var(--muted);
@@ -186,6 +224,10 @@ body {
   .study-list {
     grid-template-columns: 1fr;
     gap: 3rem;
+  }
+  .hikari-link {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
   }
 }
 

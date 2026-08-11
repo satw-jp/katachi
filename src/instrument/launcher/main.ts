@@ -32,7 +32,9 @@ import "./style.css";
  * Study の追加で一覧を変えた場合は上げる（各 Study の版は各 `manifest.json` が正本）。
  * launcher 独自の semver は作らない。持つのは更新日だけ。
  */
-const LAUNCHER_UPDATED_AT = "2026-08-09";
+const LAUNCHER_UPDATED_AT = "2026-08-11";
+
+const HIKARI_URL = "https://hikari.a-8c3.workers.dev/";
 
 const app = document.getElementById("app")!;
 
@@ -123,6 +125,26 @@ function render(): void {
   const ordered = [...STUDY_CATALOG].sort((a, b) => a.researchOrder - b.researchOrder);
   for (const entry of ordered) list.appendChild(renderStudyCard(entry));
   app.appendChild(list);
+
+  // Hikari は形状生成の Study ではなく、Katachi で作った形へ光を通して観察する
+  // 独立アプリ。研究順の番号を付けず、ShapeAsset / Hikari case の受け渡し境界を
+  // 保ったまま外部の観察面として案内する。
+  app.appendChild(el("div", "launcher-section-label", "光を観察する"));
+  const hikariLink = el("a", "hikari-link");
+  hikariLink.href = HIKARI_URL;
+  hikariLink.target = "_blank";
+  hikariLink.rel = "noopener noreferrer";
+  hikariLink.setAttribute("aria-label", "Hikari — 光とかたち を新しいタブで開く");
+  hikariLink.appendChild(el("span", "hikari-link-title", "Hikari — 光とかたち"));
+  hikariLink.appendChild(
+    el(
+      "span",
+      "hikari-link-description",
+      "Katachiで保存した共有Hikari caseを開き、光・影・透過光・コースティクスを別の画面で観察する。",
+    ),
+  );
+  hikariLink.appendChild(el("span", "hikari-link-open", "Hikariを開く ↗"));
+  app.appendChild(hikariLink);
 
   // §4「Optimizer を launcher 内へ埋め込まない」。境界を一文で述べるだけ。
   app.appendChild(el("div", "launcher-section-label", "保存したあと"));
