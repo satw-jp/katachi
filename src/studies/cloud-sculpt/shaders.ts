@@ -85,9 +85,161 @@ export const fragmentShader = /* glsl */ `
   uniform float uCausticStrength;
   uniform int uReceiverDisplayMode;
   uniform float uReceiverY;
+  uniform sampler2D uOpticalImprintStructure;
+  uniform sampler2D uOpticalImprintLight;
+  uniform int uOpticalImprintEnabled;
+  uniform float uOpticalImprintOpacity;
+  uniform float uOpticalImprintSeparation;
+  uniform float uOpticalImprintCausticBoost;
+  uniform int uOpticalImprintFullFrame;
+  uniform int uOpticalImprintPlacement;
+  uniform float uOpticalImprintScale;
+  uniform vec2 uOpticalImprintOffset;
+  uniform vec4 uOpticalImprintCrop;
+  uniform vec2 uOpticalImprintResolution;
+  uniform vec2 uOpticalImprintViewOffset;
+  uniform float uOpticalImprintViewAlignment;
+  uniform int uOpticalFormBlackBackground;
+  uniform int uOpticalDissolveMode;
+  uniform float uOpticalDissolveRetention;
+  uniform float uOpticalDissolveStrokeHalfWidth;
+  uniform float uOpticalDissolveCausticErosion;
+  uniform float uOpticalDissolveTrailReach;
+  uniform int uOpticalFormBodyEnabled;
   uniform int uCompatibilityMode;
 
   varying vec2 vUv;
+
+  // Shared projected coordinates keep the background, BODY composite, and
+  // display-only dissolve aligned to the same existing receiver textures.
+  void opticalImprintProjection(
+    vec2 uv,
+    out vec2 projectionUv,
+    out vec2 structureUv,
+    out vec2 redistributionDirection,
+    out vec2 imprintTexel,
+    out float projectionMask,
+    out float angleVisibility
+  ) {
+    angleVisibility = pow(clamp(uOpticalImprintViewAlignment, 0.0, 1.0), 4.0);
+    vec2 plateUv = (uv - vec2(0.19, 0.52)) / vec2(0.36, 0.66) + 0.5;
+    float projectionEdge = min(
+      min(plateUv.x, plateUv.y),
+      min(1.0 - plateUv.x, 1.0 - plateUv.y)
+    );
+    float plateMask = smoothstep(0.0, 0.035, projectionEdge);
+    float fullFrame = float(uOpticalImprintFullFrame);
+    vec2 displayUv = mix(plateUv, uv, fullFrame);
+    projectionMask = mix(plateMask, 1.0, fullFrame);
+    displayUv = (displayUv - 0.5 - uOpticalImprintOffset)
+      / max(0.01, uOpticalImprintScale)
+      + 0.5;
+    float displayEdge = min(
+      min(displayUv.x, displayUv.y),
+      min(1.0 - displayUv.x, 1.0 - displayUv.y)
+    );
+    projectionMask *= smoothstep(0.0, 0.02, displayEdge);
+    vec2 cropMin = uOpticalImprintCrop.xy;
+    vec2 cropSize = max(vec2(0.001), uOpticalImprintCrop.zw - cropMin);
+    projectionUv = cropMin + clamp(displayUv, 0.0, 1.0) * cropSize;
+    vec2 parallax = uOpticalImprintViewOffset * cropSize * (0.32 * uOpticalImprintSeparation);
+    structureUv = clamp(projectionUv - parallax * 0.08, 0.0, 1.0);
+    redistributionDirection = texture2D(uOpticalImprintStructure, structureUv).rg * 2.0 - 1.0;
+    imprintTexel = 1.0 / max(vec2(1.0), uOpticalImprintResolution);
+  }
+
+  float opticalImprintCaustic(vec2 structureUv, vec2 imprintTexel) {
+    float caustic = texture2D(uOpticalImprintStructure, structureUv).a * 0.28;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv + vec2(imprintTexel.x * 2.0, 0.0), 0.0, 1.0)).a * 0.14;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv - vec2(imprintTexel.x * 2.0, 0.0), 0.0, 1.0)).a * 0.14;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv + vec2(0.0, imprintTexel.y * 2.0), 0.0, 1.0)).a * 0.14;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv - vec2(0.0, imprintTexel.y * 2.0), 0.0, 1.0)).a * 0.14;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv + imprintTexel * vec2(2.0, 2.0), 0.0, 1.0)).a * 0.08;
+    caustic += texture2D(uOpticalImprintStructure, clamp(structureUv - imprintTexel * vec2(2.0, 2.0), 0.0, 1.0)).a * 0.08;
+    return clamp(caustic, 0.0, 1.0);
+  }
+
+  vec3 opticalImprintComposite(vec3 baseColor, vec2 uv, bool bodySurface) {
+    if (uOpticalImprintEnabled == 0) return baseColor;
+    if (bodySurface && uOpticalImprintPlacement == 0) return baseColor;
+
+    vec2 projectionUv;
+    vec2 structureUv;
+    vec2 redistributionDirection;
+    vec2 imprintTexel;
+    float projectionMask;
+    float angleVisibility;
+    opticalImprintProjection(
+      uv, projectionUv, structureUv, redistributionDirection, imprintTexel,
+      projectionMask, angleVisibility
+    );
+    vec2 cropSize = max(vec2(0.001), uOpticalImprintCrop.zw - uOpticalImprintCrop.xy);
+    vec2 parallax = uOpticalImprintViewOffset * cropSize * (0.32 * uOpticalImprintSeparation);
+    vec2 shadowUv = clamp(projectionUv + parallax * 0.58, 0.0, 1.0);
+    float caustic = opticalImprintCaustic(structureUv, imprintTexel);
+    vec2 lightUv = clamp(
+      projectionUv - parallax * 0.82
+        + redistributionDirection * cropSize * 0.035 * uOpticalImprintSeparation,
+      0.0,
+      1.0
+    );
+    float shadow = texture2D(uOpticalImprintStructure, shadowUv).b;
+    float shadowX = texture2D(
+      uOpticalImprintStructure,
+      clamp(shadowUv + vec2(0.006, 0.0), 0.0, 1.0)
+    ).b;
+    float shadowY = texture2D(
+      uOpticalImprintStructure,
+      clamp(shadowUv + vec2(0.0, 0.006), 0.0, 1.0)
+    ).b;
+    float contour = min(1.0, abs(shadow - shadowX) + abs(shadow - shadowY));
+    vec4 delivered = texture2D(uOpticalImprintLight, lightUv);
+    float redistributionStrength = delivered.a;
+    float amount = uOpticalImprintOpacity * angleVisibility;
+    float fieldAmount = amount * projectionMask;
+
+    vec3 spectralLight = delivered.rgb * vec3(1.02, 0.94, 0.82);
+    vec3 redistributedLight = spectralLight * fieldAmount * 1.15;
+    redistributedLight += vec3(0.01, 0.13, 0.16)
+      * redistributionStrength
+      * fieldAmount
+      * 0.55;
+    vec3 causticColor = mix(vec3(1.0, 0.68, 0.24), max(spectralLight, vec3(0.3)), 0.55);
+    vec3 causticLight = causticColor
+      * pow(caustic, 0.52)
+      * fieldAmount
+      * uOpticalImprintCausticBoost
+      * 1.35;
+    vec3 additiveLight = redistributedLight + causticLight;
+
+    // Foreground is an additive optical veil over every pixel. Integrated
+    // mode uses the same veil on the transparent body while retaining the
+    // paper/shadow composition only behind it.
+    if (uOpticalImprintPlacement == 2) {
+      return max(vec3(0.0), baseColor + additiveLight * 1.15);
+    }
+    if (bodySurface) {
+      vec3 integrated = baseColor * (1.0 - shadow * fieldAmount * 0.18);
+      integrated += additiveLight * 0.92;
+      return max(vec3(0.0), integrated);
+    }
+
+    // Dark FORM presentation keeps only light that is actually derived from
+    // the receiver display. It intentionally bypasses the paper lift below.
+    if (uOpticalFormBlackBackground == 1) {
+      return max(vec3(0.0), baseColor + additiveLight * 1.15);
+    }
+
+    // Paper-like ground makes the optical signature legible but remains tied
+    // to the existing environment. This is an authored projection, not an
+    // additional claim of physical receiver energy.
+    vec3 paper = mix(baseColor, vec3(0.86, 0.855, 0.81), 0.68);
+    vec3 color = mix(baseColor, paper, amount * (0.2 + projectionMask * 0.58));
+    color *= 1.0 - shadow * fieldAmount * 0.62;
+    color -= vec3(0.025, 0.12, 0.14) * contour * fieldAmount * 1.8;
+    color += additiveLight;
+    return max(vec3(0.0), color);
+  }
 
   vec2 backgroundMediaCoverUv(vec2 uv) {
     float viewportAspect = uResolution.x / max(1.0, uResolution.y);
@@ -357,6 +509,77 @@ export const fragmentShader = /* glsl */ `
     }
     float shellCompetition = max(0.0, second - nearest);
     return 1.0 - smoothstep(0.06, 0.52, shellCompetition);
+  }
+
+  // A display cutout only: it reads the two existing Optical Imprint textures
+  // after the BODY's resolved transmission has already been calculated.
+  float opticalImprintDissolveKeep(
+    vec3 p,
+    vec3 exitPoint,
+    float travelled,
+    float facing,
+    vec2 uv
+  ) {
+    vec2 projectionUv;
+    vec2 structureUv;
+    vec2 redistributionDirection;
+    vec2 imprintTexel;
+    float projectionMask;
+    float angleVisibility;
+    opticalImprintProjection(
+      uv, projectionUv, structureUv, redistributionDirection, imprintTexel,
+      projectionMask, angleVisibility
+    );
+    // The center C is the existing blurred/display-normalized caustic sample
+    // at these same projected coordinates; it alone feeds erosion V.
+    float C = opticalImprintCaustic(structureUv, imprintTexel);
+    float T = smoothstep(0.35, 3.20, travelled);
+    float E = pow(1.0 - clamp(facing, 0.0, 1.0), 2.2);
+    float J = max(junctionStress(p), junctionStress(exitPoint));
+    float V = clamp(
+      0.55 * (1.0 - T) + 0.20 * E + 0.15 * J
+        + 0.10 * uOpticalDissolveCausticErosion * C,
+      0.0,
+      1.0
+    );
+    float r = uOpticalDissolveRetention;
+    float fill = 1.0 - smoothstep(r - 0.025, r + 0.025, V);
+    float coreThreshold = mix(0.88, 0.48, r);
+    float core = smoothstep(coreThreshold, coreThreshold + 0.10, T);
+
+    vec2 flow = redistributionDirection;
+    if (dot(flow, flow) < 0.0001) flow = vec2(1.0, 0.0);
+    flow = normalize(flow);
+    vec2 perpendicular = vec2(-flow.y, flow.x);
+    // Fixed 12-receiver-texel phase in projected coordinates: strokes run
+    // along the existing redistribution flow, with no temporal phase.
+    vec2 receiverTexelCoordinates = projectionUv * uOpticalImprintResolution;
+    float lineDistance = abs(fract(dot(receiverTexelCoordinates, perpendicular) / 12.0 + 0.5) - 0.5) * 12.0;
+    float stroke = 1.0 - smoothstep(
+      uOpticalDissolveStrokeHalfWidth,
+      uOpticalDissolveStrokeHalfWidth + 0.70,
+      lineDistance
+    );
+    // Display trail samples only the centre, half, and full distance along
+    // existing redistribution direction. It is not material spill.
+    vec2 trailStep = flow * imprintTexel * uOpticalDissolveTrailReach;
+    float trailCaustic = max(
+      C,
+      max(
+        opticalImprintCaustic(clamp(structureUv + trailStep * 0.5, 0.0, 1.0), imprintTexel),
+        opticalImprintCaustic(clamp(structureUv + trailStep, 0.0, 1.0), imprintTexel)
+      )
+    );
+    stroke *= mix(0.45, 1.0, trailCaustic);
+    float keepRaw = max(core, max(fill, max(
+      stroke * (0.25 + 0.75 * max(E, max(J, C))),
+      0.18 * E
+    )));
+    return mix(
+      1.0,
+      clamp(keepRaw, 0.0, 1.0),
+      angleVisibility * projectionMask
+    );
   }
 
   vec3 rotateEnvironment(vec3 direction) {
@@ -990,9 +1213,16 @@ export const fragmentShader = /* glsl */ `
       if (t > 50.0) break;
     }
 
-    if (!hit || uBallCount == 0) {
+    // In query-local FORM-body mode the optical background is still traced
+    // and composited, while the actual SDF silhouette is replaced later by a
+    // point cloud rendered through the same orbiting camera.
+    if (!hit || uBallCount == 0 || (uRenderMode == 1 && uOpticalFormBodyEnabled == 1)) {
       if (uRenderMode == 1) {
         vec3 environment = screenEnvironment(ro, rd);
+        if (uOpticalFormBlackBackground == 1) {
+          environment = vec3(0.0025, 0.0035, 0.005);
+        }
+        environment = opticalImprintComposite(environment, vUv, false);
         gl_FragColor = vec4(opticalOutput(environment), 1.0);
         #include <colorspace_fragment>
         return;
@@ -1246,6 +1476,27 @@ export const fragmentShader = /* glsl */ `
         ggxSpecular(n, normalize(-rd), normalize(uLightDir))
       );
       color += vec3(1.0, 0.94, 0.82) * highlight * uSunIntensity * 0.22;
+
+      // SOLID is the exact v0.32.5 whole-frame BODY output. It returns before
+      // projected coordinates, receiver samples, or drawing thresholds exist.
+      if (uOpticalDissolveMode == 0) {
+        color = opticalImprintComposite(color, vUv, true);
+        gl_FragColor = vec4(opticalOutput(color), 1.0);
+        #include <colorspace_fragment>
+        return;
+      }
+      // Drawing is a resolved transmitted-body display cutout only. A missing
+      // imprint, background-only placement, or unresolved exit stays solid.
+      if (!hasTransmittedExit || uOpticalImprintEnabled == 0 || uOpticalImprintPlacement == 0) {
+        color = opticalImprintComposite(color, vUv, true);
+        gl_FragColor = vec4(opticalOutput(color), 1.0);
+        #include <colorspace_fragment>
+        return;
+      }
+      vec3 solidBody = opticalImprintComposite(color, vUv, true);
+      vec3 underBody = opticalImprintComposite(screenEnvironment(ro, rd), vUv, false);
+      float keep = opticalImprintDissolveKeep(p, exitPoint, travelled, facing, vUv);
+      color = mix(underBody, solidBody, keep);
       gl_FragColor = vec4(opticalOutput(color), 1.0);
       #include <colorspace_fragment>
       return;

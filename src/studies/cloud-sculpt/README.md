@@ -238,6 +238,35 @@ npm run build    # 型チェック + dist/ 生成
 Hikari のプロジェクト定義、次期実装順、Blender比較手順は
 [`docs/hikari/`](../../../docs/hikari/README.md) を正本とする。ここには各実装時点の観察記録を残す。
 
+- **2026-08-11（Optical Dissolve Drawing v0.32.6）**: `?opticalImprint=1`限定で、既存の
+  Optical Imprint receiver structure/light textureを読むだけの、透明BODY向け決定論的display maskを
+  追加した。SOLIDはv0.32.5のBODY compositeを閾値処理なしでそのまま返す。既定のHALFとDRAWINGは
+  resolved transmitted exitにだけ中心質量、輪郭、receiver flow方向のstrokeを残し、BODYの下には同じ
+  投影で合成済みの環境を表示する。SDF、shape/material、receiver transport、history、persistence、
+  exportは変更しない。背景のみ配置・unresolved exit・記録角度から外れたsupportではBODYは完全に
+  solidへ戻る。caustic erosionは表示上の合図であり、BODYを物理的に侵食しない。これは実験的な
+  観察であり、GLOW-A3／ART-2のGOや新しいtrace/render passを意味しない。
+
+- **2026-08-11（全画面コースティクス／一体化 v0.32.5）**: Optical Imprintへ、届いた光が
+  周囲5×5近傍より局所的に強い正の差をコースティクス層として追加し、二段階の空間平滑化後に
+  独立した誇張量で合成するようにした。影の暗さをコースティクスと読み替えてはいない。
+  意味のある影・到達光の支持域をreceiver fieldから自動で切り出して画面へfitするため、固定cropを
+  適当に拡大せず全画面化できる。既定場では638点の局所集光、2,945点の到達光、4,519点の影を表示した。
+  右パネルからコースティクス誇張、投影スケール、左右／上下位置を調整でき、配置は「背景のみ」
+  「形と背景を一体化」「前景として重ねる」を実座標操作で往復確認した。一体化では同じ光膜を
+  透明体と背景へ連続して重ね、前景では全pixelへ加算する。表示の誇張・色・合成は芸術表現であり、
+  物理receiver energyやGLOW-A3／ART-2のGOを意味しない。通常URLは引き続き不変。
+
+- **2026-08-10（Optical Imprint背景 v0.32.4）**: `?opticalImprint=1`限定で、既存の受光面計算から
+  影（geometric coverage）、屈折による光の再配置（depositedとstraight-throughの差の勾配）、
+  届いたRGB光の三層を2D背景へ変換した。新しい光線追跡は行わず、同じreceiver fieldを表示用に
+  robust percentile正規化して使うため、空間的な根拠は共有する一方、紙色・配置・濃さ・視差は
+  芸術的な投影であり物理的な受光エネルギーそのものではない。「この角度を記録」でカメラ方向を
+  固定すると三層が重なり、実座標ドラッグで視点を外すと分離しながら弱まり、別角度で再記録すると
+  再び現れることを確認した。KATACHIでシードを振り直した実操作では、届いた光が2,945→2,396点、
+  影が4,519→4,108点へ変わり背景像も更新された。通常URLでは操作群も追加テクスチャも生成しない。
+  これは独立した実験チェックポイントで、GLOW-A3／ART-2のGOやafterglow統合を意味しない。
+
 - **2026-08-10（FORM固定バー重なり修正 v0.32.3）**: v0.32.2の本番実画面では、右バーへ常駐させた
   FORM／FLOW／OPTICS列と固定パネルが同じ重なり順になり、後から描くパネル背景が切替列を隠した。
   切替列をパネルより明示的に手前へ置き、3モードを往復する入口が常に見えることを公開画面で再確認する。

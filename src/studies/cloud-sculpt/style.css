@@ -674,6 +674,23 @@
   color: #71591e;
 }
 
+.optical-imprint-controls {
+  border-color: color-mix(in srgb, var(--hairline) 55%, #3c8796);
+}
+
+.optical-imprint-status[data-kind="ready"] {
+  color: #174f5a;
+}
+
+.optical-imprint-select-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .hikari-section-title {
   margin-top: 3px;
   color: var(--muted);

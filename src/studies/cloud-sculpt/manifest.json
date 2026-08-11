@@ -2,9 +2,9 @@
   "id": "cloud-sculpt",
   "title": "雲をこねる (Cloud Sculpt)",
   "status": "active",
-  "version": "0.32.3",
+  "version": "0.32.6",
   "createdAt": "2026-07-03",
-  "updatedAt": "2026-08-10",
+  "updatedAt": "2026-08-11",
   "params": [
     "count",
     "radiusBase",
@@ -15,6 +15,18 @@
   ],
   "related": [],
   "revisits": [
+    {
+      "date": "2026-08-11",
+      "note": "Added the query-gated Optical Dissolve Drawing visual checkpoint to Optical Imprint. SOLID is an exact v0.32.5 BODY-composite bypass; HALF (the default) and DRAWING use only the already-derived receiver structure/light textures to make a deterministic display mask on resolved transmitted BODY pixels. The mask never changes the SDF, material, receiver transport, history, persistence, or export. It is active only for integrated/foreground placement at projection support, and orbit fade restores an intact BODY. Caustic-driven values are display erosion cues only and do not physically erode the body. This remains an experimental observation, does not promote GLOW-A3 or ART-2, and adds no transport or rendering pass."
+    },
+    {
+      "date": "2026-08-11",
+      "note": "Expanded the query-gated Optical Imprint into a full-frame optical composition. Caustics are now a distinct display layer derived as positive local concentration above a 5-by-5 delivered-light neighbourhood and then spatially smoothed; they are not inferred from shadow darkness. The meaningful receiver support is cropped from measured coverage and delivered light before fitting the viewport, so the effect can fill the screen without an arbitrary fixed zoom. Author controls now expose caustic exaggeration, scale, XY placement, and background/integrated/foreground composition. Integrated mode applies the same transported-light and caustic veil across both the transparent body and background; foreground mode is additive over every pixel. All emphasis and compositing remain explicitly artistic, query-only, and separate from physical receiver energy or GLOW-A3/ART-2 promotion."
+    },
+    {
+      "date": "2026-08-10",
+      "note": "Added the query-gated Optical Imprint background checkpoint at ?opticalImprint=1. It reuses the already-computed receiver transport without retracing rays, derives a compact artistic three-layer plate from geometric coverage, refractive redistribution, and delivered RGB light, and records one camera direction where those layers coincide. Orbiting away separates the layers and attenuates the plate; capturing the new angle restores it. Rerolling the shared Katachi field changes the receiver counts and projection. Display percentile scaling, the paper plate, crop, colour and parallax are explicitly authored presentation rather than physical receiver energy. The ordinary URL allocates no imprint textures and exposes no imprint controls. This independent experimental checkpoint does not promote GLOW-A3 or ART-2 and does not add afterglow feedback."
+    },
     {
       "date": "2026-08-10",
       "note": "Corrected the production-only stacking check for the fixed FORM sidebar. The persistent FORM/FLOW/OPTICS row was structurally present and remained available across mode state, but the later fixed panel painted over it at the same z-index. The switch now has an explicit higher stacking level, and the regression compares both layers rather than checking either value alone."

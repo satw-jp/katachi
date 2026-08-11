@@ -7,6 +7,19 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MAX_BALLS, MAX_INCLUSION_BALLS, fragmentShader, vertexShader } from "./shaders.ts";
+import {
+  normalizeOpticalDissolveSettings,
+  opticalImprintViewRelation,
+  type OpticalDissolvePresetId,
+  type OpticalDissolveSettings,
+  type OpticalImprintTextureData,
+} from "./opticalImprint.ts";
+import {
+  DEFAULT_OPTICAL_FORM_MOTION,
+  normalizeOpticalFormMotion,
+  type OpticalFormMotionMode,
+  type OpticalFormMotionSettings,
+} from "./formObservation/opticalMotion.ts";
 import type { Ball } from "./field.ts";
 import type { CausticField, OpticalSettings } from "./optics.ts";
 import type { CloudOpticalSceneAdapter } from "./opticalSceneAdapter.ts";
@@ -52,6 +65,324 @@ export const presentFragmentShader = /* glsl */ `
     #include <colorspace_fragment>
   }
 `;
+
+const opticalFormPointVertexShader = /* glsl */ `
+  attribute float aPhase;
+  attribute float aShapeReach;
+  uniform sampler2D uStructure;
+  uniform sampler2D uLight;
+  uniform float uTime;
+  uniform float uSpeed;
+  uniform float uPointMotion;
+  uniform float uOpticalMapping;
+  uniform vec3 uShapeCenter;
+  uniform float uPointSize;
+  uniform int uMotionMode;
+  uniform int uHasOptics;
+  varying vec3 vPointColor;
+  varying float vPointOpacity;
+
+  vec3 opticalRainbow(float hue) {
+    return pow(0.5 + 0.5 * cos(6.2831853 * (hue + vec3(0.0, 0.667, 0.333))), vec3(1.35));
+  }
+
+  void opticalSignals(vec2 uv, out vec2 direction, out float shadow,
+    out float caustic, out float redistribution, out vec3 delivered) {
+    vec4 structure = texture2D(uStructure, clamp(uv, 0.0, 1.0));
+    vec4 light = texture2D(uLight, clamp(uv, 0.0, 1.0));
+    direction = structure.rg * 2.0 - 1.0;
+    if (dot(direction, direction) < 0.0001) {
+      direction = normalize(vec2(cos(aPhase * 6.2831853), sin(aPhase * 6.2831853)));
+    } else {
+      direction = normalize(direction);
+    }
+    shadow = uHasOptics == 1 ? structure.b : 0.0;
+    caustic = uHasOptics == 1 ? structure.a : 0.0;
+    redistribution = uHasOptics == 1 ? light.a : 0.0;
+    delivered = uHasOptics == 1 ? light.rgb : vec3(0.09, 0.24, 0.29);
+  }
+
+  void main() {
+    vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec2 uv = clip.xy / max(0.0001, clip.w) * 0.5 + 0.5;
+    vec2 direction;
+    float shadow;
+    float caustic;
+    float redistribution;
+    vec3 delivered;
+    opticalSignals(uv, direction, shadow, caustic, redistribution, delivered);
+    float optical = clamp(max(redistribution, caustic) * uOpticalMapping, 0.0, 1.0);
+    float localSpeed = uSpeed * (0.5 + 1.25 * optical) * (1.0 - 0.35 * shadow);
+    float shapePhase = dot(position, vec3(1.7, 1.15, 0.8)) + uTime * uSpeed * 0.52;
+    float phase = shapePhase + aPhase * 1.35 + uTime * localSpeed * 0.48;
+    float amplitude = uPointMotion * (0.6 + 0.4 * optical)
+      * mix(0.75, 1.0, aShapeReach);
+    if (uMotionMode == 2) {
+      vec3 radial3 = normalize(position - uShapeCenter + vec3(0.0001));
+      vec3 tangent3 = normalize(cross(vec3(0.0, 1.0, 0.0), radial3) + vec3(0.12, 0.03, 0.08));
+      vec3 binormal3 = normalize(cross(radial3, tangent3));
+      vec3 orbitMotion = tangent3 * sin(phase)
+        + binormal3 * cos(phase * 0.73) * 0.46
+        + radial3 * sin(phase * 0.41) * 0.18;
+      clip = projectionMatrix * modelViewMatrix
+        * vec4(position + orbitMotion * amplitude * 3.2, 1.0);
+    } else if (uMotionMode == 3) {
+      vec3 radial3 = normalize(position - uShapeCenter + vec3(0.0001));
+      vec3 tangent3 = normalize(cross(vec3(0.0, 1.0, 0.0), radial3) + vec3(0.12, 0.03, 0.08));
+      float originalFlowPhase = aPhase + uTime * localSpeed;
+      float flowWave = sin(originalFlowPhase * 6.2831853 + position.y * 2.1 + position.x * 1.3);
+      vec3 flowMotion = tangent3 * flowWave
+        + radial3 * cos(originalFlowPhase * 4.7 + position.z) * 0.20454545;
+      clip = projectionMatrix * modelViewMatrix
+        * vec4(position + flowMotion * amplitude * 3.2, 1.0);
+    } else {
+      vec2 shapeDirection = normalize(
+        vec2(position.x + position.z * 0.35, position.y - position.z * 0.2)
+          + vec2(0.0001)
+      );
+      vec2 shapePerpendicular = vec2(-shapeDirection.y, shapeDirection.x);
+      vec2 perpendicular = vec2(-direction.y, direction.x);
+      vec2 shapeWave = shapeDirection * sin(shapePhase)
+        + shapePerpendicular * cos(shapePhase * 0.61) * 0.28;
+      vec2 opticalWave = uMotionMode == 0
+        ? direction * sin(phase) + perpendicular * cos(phase * 0.73) * 0.35
+        : direction * sin(phase) * 0.55 + perpendicular * sin(phase * 2.0) * 0.22;
+      vec2 motion = mix(shapeWave, opticalWave, 0.22 + 0.68 * optical);
+      clip.xy += motion * amplitude * clip.w;
+    }
+    gl_Position = clip;
+    float cameraDisplayScale = clamp(5.0 / max(0.001, abs(clip.w)), 0.65, 4.0);
+    gl_PointSize = uPointSize * (1.0 + 1.1 * caustic + 0.35 * redistribution)
+      * cameraDisplayScale;
+    float screenRadius = length(uv - 0.5) * 2.0;
+    float centreWhite = 1.0 - smoothstep(0.12, 0.62, screenRadius);
+    vec3 rainbow = opticalRainbow(aPhase + screenRadius * 0.18);
+    vec3 opticalColor = max(delivered, rainbow * (0.38 + 0.42 * optical));
+    vPointColor = mix(opticalColor, vec3(1.0), centreWhite * (0.55 + 0.45 * optical));
+    vPointColor += vec3(1.0) * caustic * 0.32;
+    vPointOpacity = clamp(0.42 + 0.48 * optical + 0.28 * caustic - 0.18 * shadow, 0.12, 1.0);
+  }
+`;
+
+const opticalFormPointFragmentShader = /* glsl */ `
+  varying vec3 vPointColor;
+  varying float vPointOpacity;
+  void main() {
+    float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    float alpha = 1.0 - smoothstep(0.55, 1.0, radius);
+    if (alpha <= 0.001) discard;
+    gl_FragColor = vec4(vPointColor, alpha * vPointOpacity);
+  }
+`;
+
+const opticalFormTrailVertexShader = /* glsl */ `
+  attribute float aPhase;
+  attribute float aTrail;
+  attribute float aShapeReach;
+  attribute float aTrailStart;
+  attribute float aTrailEnd;
+  attribute float aRibbonSide;
+  uniform sampler2D uStructure;
+  uniform sampler2D uLight;
+  uniform float uTime;
+  uniform float uSpeed;
+  uniform float uPointMotion;
+  uniform float uTrailLength;
+  uniform float uOpticalMapping;
+  uniform vec3 uShapeCenter;
+  uniform vec2 uViewport;
+  uniform float uLineWidth;
+  uniform int uMotionMode;
+  uniform int uHasOptics;
+  uniform int uRenderAsRibbon;
+  varying vec3 vTrailColor;
+  varying float vTrailOpacity;
+  varying float vRibbonEdge;
+
+  vec3 opticalRainbow(float hue) {
+    return pow(0.5 + 0.5 * cos(6.2831853 * (hue + vec3(0.0, 0.667, 0.333))), vec3(1.35));
+  }
+
+  float cameraDisplayScale(float clipW) {
+    return clamp(5.0 / max(0.001, abs(clipW)), 0.65, 4.0);
+  }
+
+  vec4 evaluateTrailClip(
+    float trail,
+    vec4 baseClip,
+    float optical,
+    float opticalBend,
+    float localSpeed,
+    float phase,
+    float trailExtent,
+    float pointAmplitude,
+    float detachment
+  ) {
+    vec4 clip = baseClip;
+    vec2 originNdc = baseClip.xy / max(0.0001, baseClip.w);
+    vec2 rootDirection = normalize(originNdc + vec2(0.0001));
+    vec2 perpendicular = vec2(-rootDirection.y, rootDirection.x);
+    float arc = sin(trail * 3.1415927);
+    if (uMotionMode == 2) {
+      // True 3D wrapping: construct a local tangent frame on the sampled SDF
+      // surface, then curve around it before projecting through the live camera.
+      vec3 radial3 = normalize(position - uShapeCenter + vec3(0.0001));
+      vec3 tangent3 = normalize(cross(vec3(0.0, 1.0, 0.0), radial3) + vec3(0.12, 0.03, 0.08));
+      vec3 binormal3 = normalize(cross(radial3, tangent3));
+      float orbitAngle = trail * (1.45 + 1.55 * optical)
+        + sin(phase * 0.38) * 0.16;
+      float orbitExtent = trailExtent * (0.82 + 0.18 * sin(phase * 0.31));
+      vec3 orbitCurve = tangent3 * sin(orbitAngle) * orbitExtent
+        + binormal3 * (1.0 - cos(orbitAngle)) * orbitExtent * 0.62
+        + radial3 * arc * orbitExtent * (0.12 + 0.2 * optical);
+      vec3 orbitEscape = (tangent3 * 0.68 + radial3 * 0.32)
+        * detachment * (0.3 + 0.78 * aShapeReach);
+      clip = projectionMatrix * modelViewMatrix
+        * vec4(position + orbitCurve + orbitEscape, 1.0);
+    } else if (uMotionMode == 3) {
+      // Original Hikari FLOW TRAILS equation: preserve its 2pi tangent wave,
+      // 4.7 radial counter-wave and -aTrail * 0.65 history phase. Optical
+      // signals scale the same vocabulary rather than inventing a direction.
+      vec3 radial3 = normalize(position - uShapeCenter + vec3(0.0001));
+      vec3 tangent3 = normalize(cross(vec3(0.0, 1.0, 0.0), radial3) + vec3(0.12, 0.03, 0.08));
+      float flowPhase = aPhase + uTime * localSpeed - trail * 0.65;
+      float flowWave = sin(flowPhase * 6.2831853 + position.y * 2.1 + position.x * 1.3);
+      vec3 flowCurve = tangent3
+          * (flowWave * pointAmplitude * 3.2 - trail * trailExtent)
+        + radial3 * cos(flowPhase * 4.7 + position.z) * pointAmplitude * 0.65454545;
+      clip = projectionMatrix * modelViewMatrix * vec4(position + flowCurve, 1.0);
+    } else {
+      vec2 offset;
+      if (uMotionMode == 0) {
+        vec2 head = rootDirection * sin(phase) * pointAmplitude
+          + perpendicular * cos(phase * 0.73) * pointAmplitude * 0.35;
+        offset = head + rootDirection * trail * trailExtent
+          + perpendicular * arc * trailExtent
+            * (0.18 + 0.24 * opticalBend + 0.16 * sin(phase * 0.41 + aPhase * 6.2831853));
+      } else {
+        float extension = (0.28 + 0.72 * (0.5 + 0.5 * sin(phase))) * trailExtent;
+        offset = rootDirection * trail * extension
+          + perpendicular * arc * extension
+            * (0.2 + 0.2 * opticalBend + 0.14 * sin(phase * 0.55 + aPhase * 6.2831853));
+      }
+      // Current screen-radial STREAM/PULSE remains available unchanged.
+      offset += rootDirection * detachment * (0.34 + 0.92 * aShapeReach);
+      clip.xy += offset * clip.w;
+    }
+    return clip;
+  }
+
+  void main() {
+    vec4 baseClip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec2 uv = baseClip.xy / max(0.0001, baseClip.w) * 0.5 + 0.5;
+    vec4 structure = texture2D(uStructure, clamp(uv, 0.0, 1.0));
+    vec4 light = texture2D(uLight, clamp(uv, 0.0, 1.0));
+    vec2 direction = structure.rg * 2.0 - 1.0;
+    if (dot(direction, direction) < 0.0001) {
+      direction = normalize(vec2(cos(aPhase * 6.2831853), sin(aPhase * 6.2831853)));
+    } else {
+      direction = normalize(direction);
+    }
+    float shadow = uHasOptics == 1 ? structure.b : 0.0;
+    float caustic = uHasOptics == 1 ? structure.a : 0.0;
+    float redistribution = uHasOptics == 1 ? light.a : 0.0;
+    vec3 delivered = uHasOptics == 1 ? light.rgb : vec3(0.09, 0.24, 0.29);
+    float optical = clamp(max(redistribution, caustic) * uOpticalMapping, 0.0, 1.0);
+    float localSpeed = uSpeed * (0.5 + 1.25 * optical) * (1.0 - 0.35 * shadow);
+    float shapePhase = dot(position, vec3(1.7, 1.15, 0.8)) + uTime * uSpeed * 0.52;
+    float phase = shapePhase + aPhase * 1.35 + uTime * localSpeed * 0.48;
+    float trailExtent = uTrailLength
+      * (0.38 + 0.62 * redistribution + 0.85 * caustic)
+      * mix(0.7, 1.25, aShapeReach)
+      * (0.55 + 0.45 * optical);
+    float pointAmplitude = uPointMotion * (0.6 + 0.4 * optical)
+      * mix(0.75, 1.0, aShapeReach);
+    vec2 originNdc = baseClip.xy / max(0.0001, baseClip.w);
+    vec2 rootDirection = normalize(originNdc + vec2(0.0001));
+    vec2 perpendicular = vec2(-rootDirection.y, rootDirection.x);
+    float opticalBend = dot(direction, perpendicular);
+    float lifeRate = 0.035 + 0.025 * min(uSpeed, 4.0);
+    float life = fract(uTime * lifeRate + aPhase);
+    float detachment = pow(smoothstep(0.18, 0.92, life), 2.0);
+    vec4 clip = evaluateTrailClip(
+      aTrail,
+      baseClip,
+      optical,
+      opticalBend,
+      localSpeed,
+      phase,
+      trailExtent,
+      pointAmplitude,
+      detachment
+    );
+    vRibbonEdge = 0.0;
+    if (uRenderAsRibbon == 1) {
+      vec4 startClip = evaluateTrailClip(
+        aTrailStart, baseClip, optical, opticalBend, localSpeed, phase,
+        trailExtent, pointAmplitude, detachment
+      );
+      vec4 endClip = evaluateTrailClip(
+        aTrailEnd, baseClip, optical, opticalBend, localSpeed, phase,
+        trailExtent, pointAmplitude, detachment
+      );
+      vec2 startNdc = startClip.xy / max(0.0001, startClip.w);
+      vec2 endNdc = endClip.xy / max(0.0001, endClip.w);
+      vec2 segmentPixels = (endNdc - startNdc) * uViewport * 0.5;
+      vec2 segmentDirection = normalize(segmentPixels + vec2(0.0001));
+      vec2 ribbonNormal = vec2(-segmentDirection.y, segmentDirection.x);
+      float halfWidthPixels = 0.5 * uLineWidth * cameraDisplayScale(clip.w);
+      vec2 ribbonOffsetNdc = ribbonNormal * aRibbonSide * halfWidthPixels
+        * 2.0 / max(uViewport, vec2(1.0));
+      clip.xy += ribbonOffsetNdc * clip.w;
+      vRibbonEdge = aRibbonSide;
+    }
+    gl_Position = clip;
+    float separation = clamp(aTrail * 0.78 + detachment * 0.72, 0.0, 1.0);
+    vec3 rainbow = opticalRainbow(aPhase + aTrail * 0.22 + detachment * 0.18);
+    vec3 spectral = mix(rainbow, max(delivered, rainbow * 0.45), 0.38 + 0.32 * optical);
+    float centreWhite = 1.0 - smoothstep(0.08, 0.58, separation);
+    vTrailColor = mix(spectral, vec3(1.0), centreWhite);
+    vTrailColor += vec3(1.0) * caustic * (0.18 + 0.22 * centreWhite);
+    gl_PointSize = mix(1.4, 10.5, pow(separation, 0.72))
+      * (1.0 + 0.35 * caustic) * cameraDisplayScale(clip.w);
+    float birth = smoothstep(0.0, 0.08, life);
+    float death = 1.0 - smoothstep(0.72, 1.0, life);
+    float screenRadius = length(clip.xy / max(0.0001, clip.w));
+    float edgeFade = 1.0 - smoothstep(0.78, 1.25, screenRadius);
+    vTrailOpacity = (0.5 + 0.38 * optical + 0.24 * caustic)
+      * (0.9 - 0.38 * aTrail) * (1.0 - 0.3 * shadow)
+      * birth * death * edgeFade;
+  }
+`;
+
+const opticalFormTrailFragmentShader = /* glsl */ `
+  varying vec3 vTrailColor;
+  varying float vTrailOpacity;
+  void main() {
+    float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    float soft = 1.0 - smoothstep(0.18, 1.0, radius);
+    if (soft <= 0.001) discard;
+    gl_FragColor = vec4(vTrailColor, soft * clamp(vTrailOpacity, 0.0, 0.86));
+  }
+`;
+
+const opticalFormOrbitFragmentShader = /* glsl */ `
+  varying vec3 vTrailColor;
+  varying float vTrailOpacity;
+  varying float vRibbonEdge;
+  void main() {
+    float softEdge = 1.0 - smoothstep(0.58, 1.0, abs(vRibbonEdge));
+    if (softEdge <= 0.001) discard;
+    gl_FragColor = vec4(vTrailColor, softEdge * clamp(vTrailOpacity, 0.0, 0.8));
+  }
+`;
+
+const OPTICAL_FORM_BASE_TRAIL_COUNT = 420;
+const OPTICAL_FORM_MAX_TRAIL_DENSITY = 4;
+const OPTICAL_FORM_TRAIL_STEPS = 48;
+const OPTICAL_FORM_GOLDEN_RATIO_CONJUGATE = 0.6180339887498949;
+const OPTICAL_FORM_RIBBON_ENDPOINT = [0, 0, 1, 1, 0, 1] as const;
+const OPTICAL_FORM_RIBBON_SIDE = [-1, 1, -1, -1, 1, 1] as const;
 
 export interface CameraSnapshot {
   position: [number, number, number];
@@ -101,6 +432,26 @@ export class CloudRenderer {
   private container: HTMLElement;
   private causticTexture: THREE.DataTexture;
   private receiverLossTexture: THREE.DataTexture;
+  private opticalImprintStructureTexture: THREE.DataTexture | null = null;
+  private opticalImprintLightTexture: THREE.DataTexture | null = null;
+  private opticalImprintRequested = false;
+  private opticalImprintAnchorForward: THREE.Vector3 | null = null;
+  private opticalImprintAnchorRight: THREE.Vector3 | null = null;
+  private opticalImprintAnchorUp: THREE.Vector3 | null = null;
+  private opticalFormBodyScene: THREE.Scene | null = null;
+  private opticalFormBodyGeometry: THREE.BufferGeometry | null = null;
+  private opticalFormBodyTrailGeometry: THREE.BufferGeometry | null = null;
+  private opticalFormOrbitTrailGeometry: THREE.BufferGeometry | null = null;
+  private opticalFormBodyMaterial: THREE.ShaderMaterial | null = null;
+  private opticalFormBodyTrailMaterial: THREE.ShaderMaterial | null = null;
+  private opticalFormOrbitTrailMaterial: THREE.ShaderMaterial | null = null;
+  private opticalFormBodyTrails: THREE.Points | null = null;
+  private opticalFormOrbitTrails: THREE.Mesh | null = null;
+  private opticalFormTrailCapacity = 0;
+  private opticalFormMotion = { ...DEFAULT_OPTICAL_FORM_MOTION };
+  private opticalFormBlackBackground = false;
+  private opticalFormBodyRequested = false;
+  private opticalFormBodyHasData = false;
   private backgroundMediaTexture: THREE.Texture;
   private backgroundMediaUrl: string | null = null;
   private backgroundMediaVideo: HTMLVideoElement | null = null;
@@ -233,6 +584,29 @@ export class CloudRenderer {
         uCausticStrength: { value: 1.2 },
         uReceiverDisplayMode: { value: 0 },
         uReceiverY: { value: -2.35 },
+        uOpticalImprintStructure: { value: null },
+        uOpticalImprintLight: { value: null },
+        uOpticalImprintEnabled: { value: 0 },
+        uOpticalImprintOpacity: { value: 0.82 },
+        uOpticalImprintSeparation: { value: 1 },
+        uOpticalImprintCausticBoost: { value: 3.2 },
+        uOpticalImprintFullFrame: { value: 1 },
+        uOpticalImprintPlacement: { value: 1 },
+        uOpticalImprintScale: { value: 1.15 },
+        uOpticalImprintOffset: { value: new THREE.Vector2() },
+        uOpticalImprintCrop: { value: new THREE.Vector4(0, 0, 1, 1) },
+        uOpticalImprintResolution: { value: new THREE.Vector2(1, 1) },
+        uOpticalImprintViewOffset: { value: new THREE.Vector2() },
+        uOpticalImprintViewAlignment: { value: 1 },
+        uOpticalFormBlackBackground: { value: 0 },
+        // Display-only BODY cutout controls. Mode 0 is an exact v0.32.5
+        // bypass, so it must never be approximated by shader thresholds.
+        uOpticalDissolveMode: { value: 0 },
+        uOpticalDissolveRetention: { value: 0.52 },
+        uOpticalDissolveStrokeHalfWidth: { value: 1.6 },
+        uOpticalDissolveCausticErosion: { value: 0.45 },
+        uOpticalDissolveTrailReach: { value: 5 },
+        uOpticalFormBodyEnabled: { value: 0 },
         uCompatibilityMode: { value: compatibilityMode ? 1 : 0 },
       },
     });
@@ -614,6 +988,510 @@ export class CloudRenderer {
     this.applyCausticAvailability();
   }
 
+  setOpticalImprintData(data: OpticalImprintTextureData): void {
+    this.opticalImprintStructureTexture?.dispose();
+    this.opticalImprintLightTexture?.dispose();
+    this.opticalImprintStructureTexture = makeOpticalImprintTexture(
+      data.structure,
+      data.width,
+      data.height,
+    );
+    this.opticalImprintLightTexture = makeOpticalImprintTexture(
+      data.light,
+      data.width,
+      data.height,
+    );
+    this.material.uniforms.uOpticalImprintStructure.value = this.opticalImprintStructureTexture;
+    this.material.uniforms.uOpticalImprintLight.value = this.opticalImprintLightTexture;
+    for (const material of [
+      this.opticalFormBodyMaterial,
+      this.opticalFormBodyTrailMaterial,
+      this.opticalFormOrbitTrailMaterial,
+    ]) {
+      if (!material) continue;
+      material.uniforms.uStructure.value = this.opticalImprintStructureTexture;
+      material.uniforms.uLight.value = this.opticalImprintLightTexture;
+      material.uniforms.uHasOptics.value = 1;
+    }
+    this.material.uniforms.uOpticalImprintCrop.value.set(...data.supportUv);
+    this.material.uniforms.uOpticalImprintResolution.value.set(data.width, data.height);
+    if (!this.opticalImprintAnchorForward) this.captureOpticalImprintView();
+    this.applyOpticalImprintAvailability();
+    this.invalidateProgressiveRender("角度固有の背景が更新されたためリアルタイムへ戻りました");
+  }
+
+  setOpticalImprintEnabled(enabled: boolean): void {
+    this.opticalImprintRequested = enabled;
+    this.applyOpticalImprintAvailability();
+    this.invalidateProgressiveRender("角度固有の背景表示が変わったためリアルタイムへ戻りました");
+  }
+
+  setOpticalImprintPresentation(options: {
+    opacity: number;
+    separation: number;
+    causticBoost: number;
+    fullFrame: boolean;
+    placement: "background" | "integrated" | "foreground";
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+    dissolve?: {
+      preset: OpticalDissolvePresetId;
+      settings: OpticalDissolveSettings;
+    };
+  }): void {
+    this.material.uniforms.uOpticalImprintOpacity.value = THREE.MathUtils.clamp(
+      options.opacity,
+      0,
+      1,
+    );
+    this.material.uniforms.uOpticalImprintSeparation.value = THREE.MathUtils.clamp(
+      options.separation,
+      0,
+      2,
+    );
+    this.material.uniforms.uOpticalImprintCausticBoost.value = THREE.MathUtils.clamp(
+      options.causticBoost,
+      0,
+      8,
+    );
+    this.material.uniforms.uOpticalImprintFullFrame.value = options.fullFrame ? 1 : 0;
+    this.material.uniforms.uOpticalImprintPlacement.value =
+      options.placement === "background" ? 0 : options.placement === "integrated" ? 1 : 2;
+    this.material.uniforms.uOpticalImprintScale.value = THREE.MathUtils.clamp(
+      options.scale,
+      0.5,
+      2.5,
+    );
+    this.material.uniforms.uOpticalImprintOffset.value.set(
+      THREE.MathUtils.clamp(options.offsetX, -0.5, 0.5),
+      THREE.MathUtils.clamp(options.offsetY, -0.5, 0.5),
+    );
+    if (options.dissolve) {
+      const settings = normalizeOpticalDissolveSettings(options.dissolve.settings);
+      this.material.uniforms.uOpticalDissolveMode.value = options.dissolve.preset === "solid" ? 0 : 1;
+      this.material.uniforms.uOpticalDissolveRetention.value = settings.retention;
+      this.material.uniforms.uOpticalDissolveStrokeHalfWidth.value = settings.strokeHalfWidth;
+      this.material.uniforms.uOpticalDissolveCausticErosion.value = settings.causticErosion;
+      this.material.uniforms.uOpticalDissolveTrailReach.value = settings.trailReach;
+    } else {
+      // Existing callers retain their prior Optical Imprint presentation.
+      this.material.uniforms.uOpticalDissolveMode.value = 0;
+    }
+    this.invalidateProgressiveRender("角度固有の背景表現が変わったためリアルタイムへ戻りました");
+  }
+
+  captureOpticalImprintView(): void {
+    this.controls.update();
+    this.camera.updateMatrixWorld();
+    this.opticalImprintAnchorForward = this.camera.getWorldDirection(new THREE.Vector3()).normalize();
+    this.opticalImprintAnchorRight = new THREE.Vector3(1, 0, 0)
+      .applyQuaternion(this.camera.quaternion)
+      .normalize();
+    this.opticalImprintAnchorUp = new THREE.Vector3(0, 1, 0)
+      .applyQuaternion(this.camera.quaternion)
+      .normalize();
+    this.syncOpticalImprintView();
+    this.invalidateProgressiveRender("角度固有の背景の基準角度を記録しました");
+  }
+
+  clearOpticalImprint(): void {
+    this.opticalImprintStructureTexture?.dispose();
+    this.opticalImprintLightTexture?.dispose();
+    this.opticalImprintStructureTexture = null;
+    this.opticalImprintLightTexture = null;
+    this.opticalImprintAnchorForward = null;
+    this.opticalImprintAnchorRight = null;
+    this.opticalImprintAnchorUp = null;
+    this.material.uniforms.uOpticalImprintStructure.value = null;
+    this.material.uniforms.uOpticalImprintLight.value = null;
+    this.material.uniforms.uOpticalImprintEnabled.value = 0;
+    for (const material of [
+      this.opticalFormBodyMaterial,
+      this.opticalFormBodyTrailMaterial,
+      this.opticalFormOrbitTrailMaterial,
+    ]) {
+      if (!material) continue;
+      material.uniforms.uStructure.value = this.causticTexture;
+      material.uniforms.uLight.value = this.causticTexture;
+      material.uniforms.uHasOptics.value = 0;
+    }
+  }
+
+  setOpticalFormBodyEnabled(enabled: boolean): void {
+    this.opticalFormBodyRequested = enabled;
+    this.applyOpticalFormBodyAvailability();
+    this.invalidateProgressiveRender(
+      enabled
+        ? "本体表示をFORM点描へ切り替えました"
+        : "本体表示をOPTICS透明体へ戻しました",
+    );
+  }
+
+  setOpticalFormBodyData(positions: Float32Array): void {
+    if (positions.length === 0 || positions.length % 3 !== 0) {
+      throw new RangeError("Optical FORM body requires finite XYZ point positions");
+    }
+    if (!positions.every(Number.isFinite)) {
+      throw new RangeError("Optical FORM body positions must be finite");
+    }
+    this.ensureOpticalFormMaterials();
+    this.opticalFormBodyGeometry?.dispose();
+    this.opticalFormBodyTrailGeometry?.dispose();
+    this.opticalFormOrbitTrailGeometry?.dispose();
+    this.opticalFormBodyScene!.clear();
+    this.opticalFormBodyTrails = null;
+    this.opticalFormOrbitTrails = null;
+
+    const pointCount = positions.length / 3;
+    const phases = new Float32Array(pointCount);
+    const shapeReach = new Float32Array(pointCount);
+    let centerX = 0;
+    let centerY = 0;
+    let centerZ = 0;
+    for (let index = 0; index < pointCount; index++) {
+      centerX += positions[index * 3];
+      centerY += positions[index * 3 + 1];
+      centerZ += positions[index * 3 + 2];
+    }
+    centerX /= pointCount;
+    centerY /= pointCount;
+    centerZ /= pointCount;
+    for (const material of [
+      this.opticalFormBodyMaterial,
+      this.opticalFormBodyTrailMaterial,
+      this.opticalFormOrbitTrailMaterial,
+    ]) {
+      material?.uniforms.uShapeCenter.value.set(centerX, centerY, centerZ);
+    }
+    let maxRadius = 1e-6;
+    for (let index = 0; index < pointCount; index++) {
+      const offset = index * 3;
+      const radius = Math.hypot(
+        positions[offset] - centerX,
+        positions[offset + 1] - centerY,
+        positions[offset + 2] - centerZ,
+      );
+      shapeReach[index] = radius;
+      maxRadius = Math.max(maxRadius, radius);
+      phases[index] = deterministicPointPhase(
+        positions[offset],
+        positions[offset + 1],
+        positions[offset + 2],
+        index,
+      );
+    }
+    for (let index = 0; index < pointCount; index++) shapeReach[index] /= maxRadius;
+
+    this.opticalFormBodyGeometry = new THREE.BufferGeometry();
+    this.opticalFormBodyGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    this.opticalFormBodyGeometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    this.opticalFormBodyGeometry.setAttribute("aShapeReach", new THREE.BufferAttribute(shapeReach, 1));
+    this.opticalFormBodyGeometry.computeBoundingSphere();
+    const points = new THREE.Points(this.opticalFormBodyGeometry, this.opticalFormBodyMaterial!);
+    points.frustumCulled = false;
+    this.opticalFormBodyScene!.add(points);
+
+    // Allocate once for the full 4x author range. A low-discrepancy source
+    // order keeps every density prefix distributed across the whole form.
+    const trailCount = Math.min(
+      pointCount,
+      OPTICAL_FORM_BASE_TRAIL_COUNT * OPTICAL_FORM_MAX_TRAIL_DENSITY,
+    );
+    const steps = OPTICAL_FORM_TRAIL_STEPS;
+    const trailVertexCount = trailCount * steps;
+    const trailPositions = new Float32Array(trailVertexCount * 3);
+    const trailPhases = new Float32Array(trailVertexCount);
+    const trailProgress = new Float32Array(trailVertexCount);
+    const trailShapeReach = new Float32Array(trailVertexCount);
+    const orbitVertexCount = trailCount * Math.max(0, steps - 1) * 6;
+    const orbitPositions = new Float32Array(orbitVertexCount * 3);
+    const orbitPhases = new Float32Array(orbitVertexCount);
+    const orbitProgress = new Float32Array(orbitVertexCount);
+    const orbitShapeReach = new Float32Array(orbitVertexCount);
+    const orbitTrailStart = new Float32Array(orbitVertexCount);
+    const orbitTrailEnd = new Float32Array(orbitVertexCount);
+    const orbitRibbonSide = new Float32Array(orbitVertexCount);
+    let vertex = 0;
+    let orbitVertex = 0;
+    for (let trail = 0; trail < trailCount; trail++) {
+      const source = Math.min(
+        pointCount - 1,
+        Math.floor(
+          ((trail + 0.5) * OPTICAL_FORM_GOLDEN_RATIO_CONJUGATE % 1) * pointCount,
+        ),
+      );
+      const sourceOffset = source * 3;
+      for (let step = 0; step < steps; step++) {
+        const target = vertex * 3;
+        trailPositions[target] = positions[sourceOffset];
+        trailPositions[target + 1] = positions[sourceOffset + 1];
+        trailPositions[target + 2] = positions[sourceOffset + 2];
+        trailPhases[vertex] = phases[source];
+        trailProgress[vertex] = step / Math.max(1, steps - 1);
+        trailShapeReach[vertex] = shapeReach[source];
+        vertex++;
+      }
+      for (let step = 0; step < steps - 1; step++) {
+        const start = step / (steps - 1);
+        const end = (step + 1) / (steps - 1);
+        for (let ribbonVertex = 0; ribbonVertex < 6; ribbonVertex++) {
+          const progress = OPTICAL_FORM_RIBBON_ENDPOINT[ribbonVertex] === 0 ? start : end;
+          const target = orbitVertex * 3;
+          orbitPositions[target] = positions[sourceOffset];
+          orbitPositions[target + 1] = positions[sourceOffset + 1];
+          orbitPositions[target + 2] = positions[sourceOffset + 2];
+          orbitPhases[orbitVertex] = phases[source];
+          orbitProgress[orbitVertex] = progress;
+          orbitShapeReach[orbitVertex] = shapeReach[source];
+          orbitTrailStart[orbitVertex] = start;
+          orbitTrailEnd[orbitVertex] = end;
+          orbitRibbonSide[orbitVertex] = OPTICAL_FORM_RIBBON_SIDE[ribbonVertex];
+          orbitVertex++;
+        }
+      }
+    }
+    this.opticalFormBodyTrailGeometry = new THREE.BufferGeometry();
+    this.opticalFormBodyTrailGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(trailPositions, 3),
+    );
+    this.opticalFormBodyTrailGeometry.setAttribute(
+      "aPhase",
+      new THREE.BufferAttribute(trailPhases, 1),
+    );
+    this.opticalFormBodyTrailGeometry.setAttribute(
+      "aTrail",
+      new THREE.BufferAttribute(trailProgress, 1),
+    );
+    this.opticalFormBodyTrailGeometry.setAttribute(
+      "aShapeReach",
+      new THREE.BufferAttribute(trailShapeReach, 1),
+    );
+    this.opticalFormOrbitTrailGeometry = new THREE.BufferGeometry();
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(orbitPositions, 3),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aPhase",
+      new THREE.BufferAttribute(orbitPhases, 1),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aTrail",
+      new THREE.BufferAttribute(orbitProgress, 1),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aShapeReach",
+      new THREE.BufferAttribute(orbitShapeReach, 1),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aTrailStart",
+      new THREE.BufferAttribute(orbitTrailStart, 1),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aTrailEnd",
+      new THREE.BufferAttribute(orbitTrailEnd, 1),
+    );
+    this.opticalFormOrbitTrailGeometry.setAttribute(
+      "aRibbonSide",
+      new THREE.BufferAttribute(orbitRibbonSide, 1),
+    );
+    this.opticalFormBodyTrails = new THREE.Points(
+      this.opticalFormBodyTrailGeometry,
+      this.opticalFormBodyTrailMaterial!,
+    );
+    this.opticalFormBodyTrails.frustumCulled = false;
+    this.opticalFormOrbitTrails = new THREE.Mesh(
+      this.opticalFormOrbitTrailGeometry,
+      this.opticalFormOrbitTrailMaterial!,
+    );
+    this.opticalFormOrbitTrails.frustumCulled = false;
+    this.opticalFormTrailCapacity = trailCount;
+    this.opticalFormBodyScene!.add(this.opticalFormBodyTrails, this.opticalFormOrbitTrails);
+    this.syncOpticalFormMotionUniforms();
+    this.opticalFormBodyHasData = true;
+    this.applyOpticalFormBodyAvailability();
+    this.invalidateProgressiveRender("FORM点描の本体表示を更新しました");
+  }
+
+  setOpticalFormMotion(value: Partial<OpticalFormMotionSettings>): void {
+    this.opticalFormMotion = normalizeOpticalFormMotion(value);
+    this.syncOpticalFormMotionUniforms();
+    this.invalidateProgressiveRender("FORMの点と光跡の動きを更新しました");
+  }
+
+  setOpticalFormBlackBackground(enabled: boolean): void {
+    this.opticalFormBlackBackground = enabled;
+    this.material.uniforms.uOpticalFormBlackBackground.value = enabled ? 1 : 0;
+    const blending = enabled ? THREE.AdditiveBlending : THREE.NormalBlending;
+    for (const material of [
+      this.opticalFormBodyMaterial,
+      this.opticalFormBodyTrailMaterial,
+      this.opticalFormOrbitTrailMaterial,
+    ]) {
+      if (!material || material.blending === blending) continue;
+      material.blending = blending;
+      material.needsUpdate = true;
+    }
+    this.invalidateProgressiveRender(
+      enabled ? "FORM背景を黒へ切り替えました" : "FORM背景を光学環境へ戻しました",
+    );
+  }
+
+  clearOpticalFormBody(): void {
+    this.opticalFormBodyGeometry?.dispose();
+    this.opticalFormBodyTrailGeometry?.dispose();
+    this.opticalFormOrbitTrailGeometry?.dispose();
+    this.opticalFormBodyMaterial?.dispose();
+    this.opticalFormBodyTrailMaterial?.dispose();
+    this.opticalFormOrbitTrailMaterial?.dispose();
+    this.opticalFormBodyScene = null;
+    this.opticalFormBodyGeometry = null;
+    this.opticalFormBodyTrailGeometry = null;
+    this.opticalFormOrbitTrailGeometry = null;
+    this.opticalFormBodyMaterial = null;
+    this.opticalFormBodyTrailMaterial = null;
+    this.opticalFormOrbitTrailMaterial = null;
+    this.opticalFormBodyTrails = null;
+    this.opticalFormOrbitTrails = null;
+    this.opticalFormTrailCapacity = 0;
+    this.opticalFormBodyHasData = false;
+    this.material.uniforms.uOpticalFormBodyEnabled.value = 0;
+  }
+
+  private ensureOpticalFormMaterials(): void {
+    if (this.opticalFormBodyScene) return;
+    this.opticalFormBodyScene = new THREE.Scene();
+    const sharedUniforms = () => ({
+      uStructure: { value: this.opticalImprintStructureTexture ?? this.causticTexture },
+      uLight: { value: this.opticalImprintLightTexture ?? this.causticTexture },
+      uTime: { value: 0 },
+      uSpeed: { value: this.opticalFormMotion.speed },
+      uPointMotion: { value: this.opticalFormMotion.pointMotion },
+      uOpticalMapping: { value: this.opticalFormMotion.opticalMapping },
+      uShapeCenter: { value: new THREE.Vector3() },
+      uViewport: { value: this.drawingBufferSize },
+      uMotionMode: { value: opticalFormMotionModeIndex(this.opticalFormMotion.mode) },
+      uHasOptics: { value: this.opticalImprintStructureTexture && this.opticalImprintLightTexture ? 1 : 0 },
+    });
+    this.opticalFormBodyMaterial = new THREE.ShaderMaterial({
+      vertexShader: opticalFormPointVertexShader,
+      fragmentShader: opticalFormPointFragmentShader,
+      uniforms: { ...sharedUniforms(), uPointSize: { value: 1.45 } },
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: this.opticalFormBlackBackground
+        ? THREE.AdditiveBlending
+        : THREE.NormalBlending,
+    });
+    this.opticalFormBodyTrailMaterial = new THREE.ShaderMaterial({
+      vertexShader: opticalFormTrailVertexShader,
+      fragmentShader: opticalFormTrailFragmentShader,
+      uniforms: {
+        ...sharedUniforms(),
+        uTrailLength: { value: this.opticalFormMotion.trailLength },
+        uLineWidth: { value: 1.25 },
+        uRenderAsRibbon: { value: 0 },
+      },
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: this.opticalFormBlackBackground
+        ? THREE.AdditiveBlending
+        : THREE.NormalBlending,
+    });
+    this.opticalFormOrbitTrailMaterial = new THREE.ShaderMaterial({
+      vertexShader: opticalFormTrailVertexShader,
+      fragmentShader: opticalFormOrbitFragmentShader,
+      uniforms: {
+        ...sharedUniforms(),
+        uTrailLength: { value: this.opticalFormMotion.trailLength },
+        uLineWidth: { value: 1.6 },
+        uRenderAsRibbon: { value: 1 },
+      },
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: this.opticalFormBlackBackground
+        ? THREE.AdditiveBlending
+        : THREE.NormalBlending,
+    });
+  }
+
+  private syncOpticalFormMotionUniforms(): void {
+    for (const material of [
+      this.opticalFormBodyMaterial,
+      this.opticalFormBodyTrailMaterial,
+      this.opticalFormOrbitTrailMaterial,
+    ]) {
+      if (!material) continue;
+      material.uniforms.uSpeed.value = this.opticalFormMotion.speed;
+      material.uniforms.uPointMotion.value = this.opticalFormMotion.pointMotion;
+      material.uniforms.uOpticalMapping.value = this.opticalFormMotion.opticalMapping;
+      material.uniforms.uMotionMode.value = opticalFormMotionModeIndex(this.opticalFormMotion.mode);
+    }
+    for (const material of [this.opticalFormBodyTrailMaterial, this.opticalFormOrbitTrailMaterial]) {
+      if (material) material.uniforms.uTrailLength.value = this.opticalFormMotion.trailLength;
+    }
+    const usesContinuousLines = this.opticalFormMotion.mode === "orbit"
+      || this.opticalFormMotion.mode === "flowTrails";
+    if (this.opticalFormBodyTrails) this.opticalFormBodyTrails.visible = !usesContinuousLines;
+    if (this.opticalFormOrbitTrails) this.opticalFormOrbitTrails.visible = usesContinuousLines;
+    const visibleTrails = Math.min(
+      this.opticalFormTrailCapacity,
+      Math.max(
+        1,
+        Math.round(OPTICAL_FORM_BASE_TRAIL_COUNT * this.opticalFormMotion.trailDensity),
+      ),
+    );
+    this.opticalFormBodyTrailGeometry?.setDrawRange(
+      0,
+      visibleTrails * OPTICAL_FORM_TRAIL_STEPS,
+    );
+    this.opticalFormOrbitTrailGeometry?.setDrawRange(
+      0,
+      visibleTrails * (OPTICAL_FORM_TRAIL_STEPS - 1) * 6,
+    );
+  }
+
+  private applyOpticalImprintAvailability(): void {
+    this.material.uniforms.uOpticalImprintEnabled.value =
+      this.opticalImprintRequested
+      && this.opticalImprintStructureTexture
+      && this.opticalImprintLightTexture
+        ? 1
+        : 0;
+    this.applyOpticalFormBodyAvailability();
+  }
+
+  private applyOpticalFormBodyAvailability(): void {
+    this.material.uniforms.uOpticalFormBodyEnabled.value =
+      this.opticalFormBodyRequested
+      && this.opticalFormBodyHasData
+        ? 1
+        : 0;
+  }
+
+  private syncOpticalImprintView(): void {
+    if (!this.opticalImprintAnchorForward
+      || !this.opticalImprintAnchorRight
+      || !this.opticalImprintAnchorUp) return;
+    const current = this.camera.getWorldDirection(new THREE.Vector3()).normalize();
+    const relation = opticalImprintViewRelation(
+      {
+        forward: this.opticalImprintAnchorForward.toArray(),
+        right: this.opticalImprintAnchorRight.toArray(),
+        up: this.opticalImprintAnchorUp.toArray(),
+      },
+      current.toArray(),
+    );
+    this.material.uniforms.uOpticalImprintViewOffset.value.set(...relation.offset);
+    this.material.uniforms.uOpticalImprintViewAlignment.value = relation.alignment;
+  }
+
   private applyCausticAvailability(): void {
     this.suppressCausticForInclusion =
       this.inclusionActive && !this.inclusionCausticTrustworthy;
@@ -756,6 +1634,7 @@ export class CloudRenderer {
     this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
+    this.renderOpticalFormBody(now);
   }
 
   private syncCameraUniforms(): void {
@@ -763,6 +1642,7 @@ export class CloudRenderer {
     this.material.uniforms.uCamPos.value.copy(this.camera.position);
     this.material.uniforms.uCamInverseProjection.value.copy(this.camera.projectionMatrixInverse);
     this.material.uniforms.uCamInverseView.value.copy(this.camera.matrixWorld);
+    this.syncOpticalImprintView();
   }
 
   private renderProgressiveSample(now: number): void {
@@ -809,6 +1689,24 @@ export class CloudRenderer {
     this.renderer.render(this.scene, this.camera);
     this.renderer.autoClear = autoClear;
     this.quad.visible = quadWasVisible;
+    this.renderOpticalFormBody();
+  }
+
+  private renderOpticalFormBody(now = performance.now()): void {
+    if (this.material.uniforms.uOpticalFormBodyEnabled.value !== 1
+      || !this.opticalFormBodyScene) return;
+    const time = now * 0.001;
+    if (this.opticalFormBodyMaterial) this.opticalFormBodyMaterial.uniforms.uTime.value = time;
+    if (this.opticalFormBodyTrailMaterial) {
+      this.opticalFormBodyTrailMaterial.uniforms.uTime.value = time;
+    }
+    if (this.opticalFormOrbitTrailMaterial) {
+      this.opticalFormOrbitTrailMaterial.uniforms.uTime.value = time;
+    }
+    const autoClear = this.renderer.autoClear;
+    this.renderer.autoClear = false;
+    this.renderer.render(this.opticalFormBodyScene, this.camera);
+    this.renderer.autoClear = autoClear;
   }
 
   private clearProgressiveTargets(): void {
@@ -856,6 +1754,7 @@ export class CloudRenderer {
       this.material.uniforms.uResolution.value.copy(this.drawingBufferSize);
       this.renderer.setRenderTarget(null);
       this.renderer.render(this.scene, this.camera);
+      this.renderOpticalFormBody();
     }
     const canvas = this.renderer.domElement;
     const width = canvas.width;
@@ -894,4 +1793,36 @@ export class CloudRenderer {
     raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
     return { origin: raycaster.ray.origin.clone(), dir: raycaster.ray.direction.clone() };
   }
+}
+
+function makeOpticalImprintTexture(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): THREE.DataTexture {
+  const texture = new THREE.DataTexture(
+    new Uint8Array(data),
+    width,
+    height,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
+  );
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function deterministicPointPhase(x: number, y: number, z: number, index: number): number {
+  const value = Math.sin(
+    x * 12.9898 + y * 78.233 + z * 37.719 + index * 0.00137,
+  ) * 43_758.5453;
+  return value - Math.floor(value);
+}
+
+function opticalFormMotionModeIndex(mode: OpticalFormMotionMode): number {
+  return mode === "stream" ? 0 : mode === "pulse" ? 1 : mode === "orbit" ? 2 : 3;
 }

@@ -51,7 +51,7 @@ import {
   summarizeReceiverField,
   type ReceiverFieldSummary,
 } from "./receiverTransport.ts";
-import type { CausticFieldDiagnostics, ReceiverParityReport } from "./optics.ts";
+import type { CausticField, CausticFieldDiagnostics, ReceiverParityReport } from "./optics.ts";
 import {
   advanceCameraOrbit,
   DEFAULT_CAMERA_ORBIT,
@@ -64,6 +64,9 @@ import { createCloudSdfGeometry } from "./formObservation/cloudSdfAdapter.ts";
 import { FormObservationController, type ObservationMode } from "./formObservation/controller.ts";
 import { isFormQueryEnabled } from "./formObservation/state.ts";
 import { transitionObservationMode } from "./formObservation/modeTransition.ts";
+import { OpticalFormBodyController } from "./formObservation/opticalBodyController.ts";
+import { isOpticalImprintQueryEnabled } from "./opticalImprint.ts";
+import { OpticalImprintController } from "./opticalImprintController.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -81,15 +84,24 @@ const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
 /** The saved experiment is deliberately inert unless this explicit URL is used. */
 const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
 const formObservationEnabled = isFormQueryEnabled(window.location.search);
+const opticalImprintEnabled = isOpticalImprintQueryEnabled(window.location.search);
 let formObservation: FormObservationController | null = null;
+let opticalImprint: OpticalImprintController | null = null;
+let opticalFormBody: OpticalFormBodyController | null = null;
+let latestOpticalImprintField: CausticField | null = null;
 // FORM can call render() during initial setup, before the animation-loop
 // declarations are reached. Keep its no-optics counters initialized with the
 // rest of the application state so the query route cannot hit the TDZ.
 let opticsRenderCalls = 0;
 let opticsFrameCalls = 0;
 let workspaceView: WorkspaceView =
-  localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari" ? "hikari" : "katachi";
+  opticalImprintEnabled || localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari"
+    ? "hikari"
+    : "katachi";
 let hikariSettings = loadHikariSettings();
+if (opticalImprintEnabled) {
+  hikariSettings = normalizeHikariSettings({ ...hikariSettings, phenomenon: "optics" });
+}
 let opticalSceneIssues: string[] = [];
 let opticalInclusionValid = false;
 let opticalInclusionCount = 0;
@@ -141,6 +153,10 @@ const hikariLayer = new HikariLayer(cloudRenderer.scene, {
     document.documentElement.dataset.hikariReceiverField = JSON.stringify(receiverFieldSummary);
     ui.setReceiverEnergySummary(summarizeReceiverEnergy(field.diagnostics));
     cloudRenderer.setCausticField(field);
+    if (opticalImprintEnabled) {
+      latestOpticalImprintField = field;
+      opticalImprint?.updateField(field);
+    }
   },
   onTransportPending: (pending) => {
     if (hikariMpmActive) {
@@ -433,6 +449,17 @@ const ui = buildUi(
   onHikariViewActivate: (viewId) => activateHikariView(viewId),
   },
 );
+if (opticalImprintEnabled) {
+  app.classList.add("optical-imprint-enabled");
+  opticalImprint = new OpticalImprintController(ui.root, cloudRenderer);
+  opticalFormBody = new OpticalFormBodyController({
+    renderer: cloudRenderer,
+    pointBudget: windowsCompatibilityMode ? 40_000 : 80_000,
+    onStatus: (status) => opticalImprint?.setFormBodyStatus(status),
+  });
+  opticalFormBody.setGeometry(currentFormGeometry());
+  if (latestOpticalImprintField) opticalImprint.updateField(latestOpticalImprintField);
+}
 if (formObservationEnabled) {
   app.classList.add("form-observation-enabled");
   formObservation = new FormObservationController({
@@ -1209,6 +1236,7 @@ function render(): void {
     return;
   }
   opticsRenderCalls += 1;
+  opticalFormBody?.setGeometry(currentFormGeometry());
   cloudRenderer.invalidateProgressiveRender(
     "設定が変わったためリアルタイムへ戻りました",
   );
@@ -1455,7 +1483,11 @@ function applyWorkspaceView(): void {
   render();
 }
 
-window.addEventListener("beforeunload", () => formObservation?.dispose(), { once: true });
+window.addEventListener("beforeunload", () => {
+  formObservation?.dispose();
+  opticalFormBody?.dispose();
+  opticalImprint?.dispose();
+}, { once: true });
 
 function loadHikariSettings(): HikariSettings {
   const stored = localStorage.getItem(HIKARI_SETTINGS_KEY);
