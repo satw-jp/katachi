@@ -12,6 +12,7 @@ import {
   type OpticalFormMotionMode,
   type OpticalFormMotionSettings,
 } from "./formObservation/opticalMotion.ts";
+import { getHikariPublishedStudyPreset } from "./opticalStudyPreset.ts";
 
 export interface OpticalImprintRenderer {
   setOpticalImprintData(data: OpticalImprintTextureData): void;
@@ -350,6 +351,26 @@ export class OpticalImprintController {
       };
     }
 
+    const publishedStudyPreset = getHikariPublishedStudyPreset(document.documentElement.dataset.hikariStudy);
+    if (publishedStudyPreset) {
+      bodySource.value = publishedStudyPreset.bodySource;
+      placement.value = publishedStudyPreset.placement;
+      motionMode.value = publishedStudyPreset.motionMode;
+      blackBackground.checked = publishedStudyPreset.blackBackground;
+      setRangeValue(trailLength, publishedStudyPreset.trailLength, 2);
+      setRangeValue(motionSpeed, publishedStudyPreset.speed, 2);
+      setRangeValue(pointMotion, publishedStudyPreset.pointMotion, 3);
+      setRangeValue(opticalMapping, publishedStudyPreset.opticalMapping, 2);
+      setRangeValue(trailDensity, publishedStudyPreset.trailDensity, 2);
+      setRangeValue(causticBoost, publishedStudyPreset.causticBoost, 1);
+      preset.value = publishedStudyPreset.dissolvePreset;
+      presetState.textContent = publishedStudyPreset.dissolvePreset.toUpperCase();
+      setDisplayedSettings(
+        OPTICAL_DISSOLVE_PRESETS[publishedStudyPreset.dissolvePreset],
+        publishedStudyPreset.dissolvePreset,
+      );
+    }
+
     body.append(
       title,
       note,
@@ -375,7 +396,7 @@ export class OpticalImprintController {
       ?? hikariControls.querySelector<HTMLElement>(".hikari-mode-controls");
     (opticsControls ?? hikariControls).appendChild(this.group);
     renderer.setOpticalImprintEnabled(true);
-    setDisplayedSettings(OPTICAL_DISSOLVE_PRESETS.half, "half");
+    if (!publishedStudyPreset) setDisplayedSettings(OPTICAL_DISSOLVE_PRESETS.half, "half");
     syncPresentation();
     syncFormMotion();
     syncBodySource();
@@ -431,4 +452,13 @@ function makeRange(
   input.setAttribute("aria-label", label);
   root.append(heading, input, output);
   return { root, input, output };
+}
+
+function setRangeValue(
+  control: { input: HTMLInputElement; output: HTMLOutputElement },
+  value: number,
+  digits: number,
+): void {
+  control.input.value = String(value);
+  control.output.textContent = value.toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
 }

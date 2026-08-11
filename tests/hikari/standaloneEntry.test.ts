@@ -7,7 +7,7 @@ const read = (relative: string): string => readFileSync(
   "utf8",
 );
 
-test("standalone Hikari owns a separate root, build output, port, and Cloudflare service", () => {
+test("standalone Hikari owns a separate entry, build output, port, and Cloudflare service", () => {
   const html = read("hikari/index.html");
   const vite = read("vite.hikari.config.ts");
   const wrangler = read("wrangler.hikari.jsonc");
@@ -16,9 +16,11 @@ test("standalone Hikari owns a separate root, build output, port, and Cloudflare
   assert.match(html, /data-hikari-app="standalone"/);
   assert.match(html, /src="\.\/main\.ts"/);
   assert.match(read("hikari/main.ts"), /import "\.\.\/src\/studies\/cloud-sculpt\/main\.ts"/);
-  assert.match(vite, /root: "hikari"/);
+  assert.match(vite, /root: "\."/);
+  assert.match(vite, /main: resolve\(projectRoot, "hikari\/index\.html"\)/);
+  assert.match(vite, /if \(pathname === "\/"\) req\.url = "\/hikari\/"/);
   assert.match(vite, /port: 5176/);
-  assert.match(vite, /outDir: "\.\.\/dist-hikari"/);
+  assert.match(vite, /outDir: "dist-hikari"/);
   assert.match(wrangler, /"name": "hikari"/);
   assert.match(wrangler, /"directory": "\.\/dist-hikari"/);
   assert.equal(packageJson.scripts["build:hikari"], "tsc -b && vite build --config vite.hikari.config.ts");
