@@ -6,7 +6,9 @@
   "description": "Katachi — a research platform and sculpting tool for the two margins of form",
   "scripts": {
     "dev": "vite",
+    "dev:hikari": "vite --config vite.hikari.config.ts",
     "build": "tsc -b && vite build",
+    "build:hikari": "tsc -b && vite build --config vite.hikari.config.ts",
     "test:hikari": "node --experimental-strip-types --test tests/hikari/*.test.ts",
     "test:partition": "tsx src/studies/skin/partition.test.ts && tsx src/studies/skin/partitionTutorial.test.ts && tsx src/studies/skin/coinBulge.test.ts",
     "test:interior-growth": "tsx src/studies/interior-growth/growth.test.ts && tsx src/studies/interior-growth/solidTopology.test.ts && tsx src/studies/interior-growth/sourceTetraDiagnostics.test.ts",
@@ -16,6 +18,7 @@
     "diagnose:ring-sampling": "tsx --max-old-space-size=12288 src/studies/interior-growth/ringSamplingDiagnosis.report.ts",
     "typecheck:partition-test": "tsc -p tsconfig.test.json",
     "deploy": "npm run build && wrangler deploy",
+    "deploy:hikari": "npm run build:hikari && wrangler deploy --config wrangler.hikari.jsonc",
     "preview": "vite preview"
   },
   "dependencies": {

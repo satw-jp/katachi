@@ -81,10 +81,12 @@ const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
 const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
+const standaloneHikariApp = document.documentElement.dataset.hikariApp === "standalone";
 /** The saved experiment is deliberately inert unless this explicit URL is used. */
 const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
 const formObservationEnabled = isFormQueryEnabled(window.location.search);
-const opticalImprintEnabled = isOpticalImprintQueryEnabled(window.location.search);
+const opticalImprintEnabled = standaloneHikariApp
+  || isOpticalImprintQueryEnabled(window.location.search);
 let formObservation: FormObservationController | null = null;
 let opticalImprint: OpticalImprintController | null = null;
 let opticalFormBody: OpticalFormBodyController | null = null;
@@ -95,7 +97,9 @@ let latestOpticalImprintField: CausticField | null = null;
 let opticsRenderCalls = 0;
 let opticsFrameCalls = 0;
 let workspaceView: WorkspaceView =
-  opticalImprintEnabled || localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari"
+  standaloneHikariApp
+  || opticalImprintEnabled
+  || localStorage.getItem(WORKSPACE_VIEW_KEY) === "hikari"
     ? "hikari"
     : "katachi";
 let hikariSettings = loadHikariSettings();
