@@ -27,6 +27,7 @@ import {
 } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
+import { parseKatachiInterchangeCase } from "./katachiHikariInterchange.ts";
 import {
   createHikariDocument,
   hikariDocumentFilename,
@@ -742,7 +743,7 @@ function exportHikariDocument(documentId: string, observation: string): void {
 }
 
 function applyHikariCaseText(text: string): void {
-  const raw = JSON.parse(text) as { format?: unknown };
+  const raw = JSON.parse(text) as { format?: unknown; assets?: unknown; scene?: unknown };
   if (raw?.format === "hikari-document") {
     const document = parseHikariDocument(text);
     savedHikariViews = document.views.map((view) => structuredClone(view));
@@ -757,10 +758,13 @@ function applyHikariCaseText(text: string): void {
     ui.setHikariCaseStatus(`${document.documentId}.hkr · ${document.views.length}ビューを開きました`, true);
     return;
   }
-  const value = parseHikariCase(text);
+  const fromKatachi = Array.isArray(raw.assets) && raw.scene !== undefined;
+  const value = fromKatachi
+    ? parseKatachiInterchangeCase(text)
+    : parseHikariCase(text);
   savedHikariViews = [{
     viewId: `${safeCaseId(value.caseId)}-view-01`,
-    name: "読み込んだ旧case",
+    name: fromKatachi ? "Katachiから受け取った形" : "読み込んだ旧case",
     createdAt: value.createdAt,
     case: value,
   }];
@@ -769,7 +773,12 @@ function applyHikariCaseText(text: string): void {
   hikariDocumentCreatedAt = value.createdAt;
   applyHikariCaseValue(value, value.caseId);
   syncHikariViewList();
-  ui.setHikariCaseStatus(`旧caseを1ビューのHikari文書として開きました: ${value.caseId}`, true);
+  ui.setHikariCaseStatus(
+    fromKatachi
+      ? `Katachi共有caseから形・光・視点を開きました: ${value.caseId}`
+      : `旧caseを1ビューのHikari文書として開きました: ${value.caseId}`,
+    true,
+  );
 }
 
 async function importHikariCase(file: File): Promise<void> {
