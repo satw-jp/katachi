@@ -72,6 +72,10 @@
   "revisits": [
     {
       "date": "2026-08-23",
+      "note": "PRE-PRINT SEAL: status=AWAITING_PHYSICAL_PRINT_OBSERVATION and printApproval=false. Public stable app v0.65 is frozen and unchanged (Cloudflare Version ID eb6ff21f-2541-440d-9232-dfb53bc30c1a); no deploy was performed. The separate print-artifact series promotes exact v071 only: both normal and strict raster reachability pass all 400 layers with floating layers/components 0/0, while 14 Bambu Floating vertical shell markers across 12 layers remain a known discrepancy. Print artifacts v057-v070 are superseded/rejected and v072-v076 are not promoted or distributed. Only SKIN and directly required common files are sealed; no new method, optimization, refactor, deletion, public-version change or deployment was performed. Next decision waits for one real print and observation."
+    },
+    {
+      "date": "2026-08-23",
       "note": "v071 physical-test checkpoint: Author explicitly stopped additional implementation and deferred the new Support Blocker approach until after one real print. Exact v071 is frozen as a physical-test candidate. Normal and strict raster toolpath reachability both pass all 400 layers with floating layers/components 0/0, while Bambu Studio G-code still contains 14 Floating vertical shell markers across 12 layers; this discrepancy is preserved rather than reported as warning-free approval. Exact 3MF, recipe, normal/strict reachability reports, Bambu marker report and an integrated checkpoint JSON are saved in Downloads. v072-v076 experiments are not promoted or distributed. Next decision follows observation of the real print."
     },
     {

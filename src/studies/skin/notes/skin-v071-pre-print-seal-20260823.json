@@ -1,0 +1,68 @@
+{
+  "schema": "katachi.skin.pre-print-seal.v1",
+  "sealedAt": "2026-08-23",
+  "status": "AWAITING_PHYSICAL_PRINT_OBSERVATION",
+  "printApproval": false,
+  "publicStable": {
+    "version": "v0.65",
+    "state": "FROZEN_UNCHANGED",
+    "cloudflareVersionId": "eb6ff21f-2541-440d-9232-dfb53bc30c1a",
+    "deployedByThisSeal": false
+  },
+  "physicalPrintCandidate": {
+    "artifactVersion": "v071",
+    "threeMf": "katachi-skin-v071-a1mini-pla-020-final.3mf",
+    "threeMfSha256": "cbae5c9eb7a09410b20d4bd4fdaf1eac1e0810ab62a50b4b78a2a56332a23eca",
+    "recipe": "katachi-skin-v071-a1mini-pla-020-final.recipe.json",
+    "recipeSha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f",
+    "validation": "katachi-skin-v071-a1mini-pla-020-final.validation.json",
+    "validationSha256": "546062b9933ccfeefce524a84490ae6366d2f893161bc3d0fcebfef7c30f3ecb",
+    "layerCount": 400,
+    "normalReachabilityFloatingLayers": 0,
+    "normalReachabilityFloatingComponents": 0,
+    "strictReachabilityFloatingLayers": 0,
+    "strictReachabilityFloatingComponents": 0,
+    "knownBambuMarkerLayers": 12,
+    "knownBambuMarkerCount": 14
+  },
+  "rejectedOrNotPromotedPrintArtifacts": {
+    "superseded": "v057-v070",
+    "notPromotedOrDistributed": "v072-v076",
+    "note": "Public stable app v0.65 and print artifact v065 are separate naming series."
+  },
+  "codeState": {
+    "repository": "/Users/atsushisato/Projects/active/Katachi",
+    "branch": "agent/hikari-docs-and-publish",
+    "baseCheckpointCommit": "c13a36d34524e4fdbe0f16c8e30addec7501ab99",
+    "baseCheckpointTag": "skin-v071-physical-test-checkpoint-20260823"
+  },
+  "focusedArchiveScope": [
+    "skin.html",
+    "src/studies/skin",
+    "src/lib/elementAnnotations.ts",
+    "src/lib/elementAnnotations.test.ts",
+    "src/lib/elementLabels.ts",
+    "src/lib/elementLabels.test.ts",
+    "src/studies/cloud-sculpt/meshExport.ts",
+    "scripts/analyze-bambu-gcode-layers.mjs",
+    "scripts/extract-3mf-stl.mjs",
+    "scripts/export-approved-skin-json.ts",
+    "scripts/export-skin-bambu-3mf.ts",
+    "scripts/export-skin-mesh-slice.worker.ts",
+    "scripts/verify-skin-support-reachability.ts",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "tsconfig.test.json",
+    "vite.config.ts"
+  ],
+  "prohibitedDuringSeal": {
+    "newMethod": false,
+    "optimization": false,
+    "refactor": false,
+    "codeDeletion": false,
+    "publicStableChange": false,
+    "deployment": false
+  },
+  "nextStep": "Print exact v071 once and record physical observations before any new implementation decision."
+}
