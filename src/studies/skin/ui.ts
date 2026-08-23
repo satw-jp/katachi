@@ -9,11 +9,42 @@
 import type { FieldParams } from "../cloud-sculpt/field.ts";
 import { createSlider } from "../../lib/ui/slider.ts";
 import { createVersionRow } from "../../lib/ui/version.ts";
-import type { CoverageReport, MortarReport, PatchShape, SkinMode, SkinParams } from "./field.ts";
+import type {
+  CoverageReport,
+  ContactReinforcementMode,
+  InternalStructureMode,
+  FlowerConnectionMode,
+  FlowerMotifPresetId,
+  MotifShapeParams,
+  MotifPlacement,
+  Patch,
+  MortarReport,
+  PatchShape,
+  QuadConnectionMode,
+  QuadTilingMode,
+  SkinMode,
+  SkinParams,
+  SurfaceGenerationMode,
+} from "./field.ts";
+import { captureMotifShapeParams } from "./field.ts";
 import type { PackPatchesResult } from "./field.ts";
+import { PACKING_MOTIF_PRESETS } from "../flower-packing-spike/packing.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
-import type { SkinViewMode } from "./renderer.ts";
+import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import type { InternalObservationMode } from "./previewMeshBuffers.ts";
+import type { SurfaceAngleDiagnosisView } from "./surfaceAngleWorkerProtocol.ts";
+import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
+import type { DenseFlowerOpening } from "./denseFlowerSample.ts";
+import type { DenseSampleView } from "./renderer.ts";
 import { PATCH_MAX_POINTS } from "./shaders.ts";
+import { EMPTY_ANNOTATION, type ElementAnnotationValue } from "../../lib/elementAnnotations.ts";
+import { matchesElementSearch } from "../../lib/elementLabels.ts";
+import { CURRENT_WORKFLOW_PROFILE } from "./workflowProfiles.ts";
+import type { PatchEditIntent } from "./elementTransform.ts";
+import type { InternalPrintGateReport } from "./internalPrintGate.ts";
+import type { BambuSupportType } from "./bambu3mf.ts";
+import { enableMotifPreview3D, renderFlowerConnectionPreview, renderMotifPreview } from "./motifPreview.ts";
+import { ring3dCenterlineDiameter } from "./motifReshape.ts";
 import {
   describePartitionSelectionLabel,
   getTutorialStepContent,
@@ -23,14 +54,44 @@ import {
 } from "./partitionTutorial.ts";
 
 export interface UiCallbacks {
+  onUndo: () => void;
+  onUndoSteps: (steps: number) => void;
   onHostParamChange: (key: keyof FieldParams, value: number | string) => void;
   onGrowHost: () => void;
   onRerollHost: () => void;
   onImportS1File: (file: File) => void;
-  onSkinParamChange: (key: keyof SkinParams, value: number | string) => void;
+  onSkinParamChange: (key: keyof SkinParams, value: number | string | boolean) => void;
   onPackPatches: () => void;
+  /** Keep the primary organization and add smaller motifs only to its
+   * largest remaining gaps. The realized result is stored in the recipe. */
+  onFillLaceGaps: () => void;
+  /** Replace surface elements with an editable reconstruction of the v6
+   * visual principles. The exact preserved STL remains a reference. */
+  onCreateDenseFlowerV6Style: () => Promise<void>;
+  /** Diagnose distinct touching neighbours per realized motif. */
+  onAnalyzeContacts: () => void;
+  /** Reinforce motifs below the target using the selected local/whole mode. */
+  onReinforceContacts: () => void;
+  /** Remove only existing flower patches and pack them again with the
+   * currently visible flower controls. Other patch shapes stay untouched. */
+  onRepackFlowers: () => void;
   /** Switch the active viewport display (T12: raymarch / beads / full mesh). */
   onSetViewMode: (mode: SkinViewMode) => void;
+  onSetDisplayStyle: (style: SkinDisplayStyle) => void;
+  onSetInternalObservationMode: (mode: InternalObservationMode) => void;
+  onDiagnoseSurfaceAngles: (thresholdDeg: number) => void;
+  onSetSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView) => void;
+  onSurfaceAngleThresholdChange: () => void;
+  onToggleMotifLowestPoints: (show: boolean, thresholdDeg: number) => void;
+  onPreviewMeshResolutionChange: (resolution: number) => void;
+  onCancelPreviewMesh: () => void;
+  onToggleElementNames: (show: boolean) => void;
+  onElementSelect: (patchId: number) => void;
+  onElementAnnotationSave: (patchId: number, value: ElementAnnotationValue) => void;
+  onElementEdit: (patchId: number, intent: PatchEditIntent) => void;
+  onDuplicateElement: (patchId: number) => void;
+  /** Regenerate exactly one selected motif from its local draft. */
+  onReshapePatch: (patchId: number, params: MotifShapeParams, ringDiameter?: number) => boolean;
   onClearPatches: () => void;
   onClearAll: () => void;
   onSetMode: (mode: SkinMode) => void;
@@ -41,6 +102,26 @@ export interface UiCallbacks {
   onImportFile: (file: File) => void;
   onMeshInspect: (options: MeshUiOptions) => void;
   onMeshExport: (options: MeshUiOptions) => void;
+  onCancelMeshExport: () => void;
+  onBambu3mfExport: (options: MeshUiOptions, supportType: BambuSupportType) => void;
+  onMeasureOpenings: (options: OpeningMapUiOptions) => void;
+  onOpenDenseFlowerSample: () => void;
+  onDenseFlowerSampleView: (view: DenseSampleView) => void;
+  onCancelOpeningMap: () => void;
+  onClearOpeningMap: () => void;
+  onOpeningMapDisplayCountChange: (count: number | "all") => void;
+  onOpeningMapConditionsChange: () => void;
+  /** Generate the current field as STL and send it directly to the local
+   * Optimizer engine. No file hand-off or second screen is involved. */
+  onPrintCheck: (options: MeshUiOptions) => void;
+  /** Local, fail-closed Internal-only print gate for the fixed A1 mini
+   * profile. Outer-SKIN support remains the slicer's responsibility. */
+  onInternalPrintGate: (options: MeshUiOptions) => void;
+  // --- Generation-native N partition ----------------------------------
+  onProposeNPartition: (count: number) => void;
+  onBuildNPartition: () => void;
+  onCancelNPartitionBuild: () => void;
+  onExportNPartition: () => void;
   // --- T13 coin由来A/B分割 ---------------------------------------------
   onToggleSeedPickMode: (active: boolean) => void;
   onProposeGroups: () => void;
@@ -73,9 +154,20 @@ export interface UiCallbacks {
 export interface UiHandles {
   root: HTMLElement;
   setHistoryCount: (n: number) => void;
+  setUndoHistory: (labels: string[]) => void;
+  setUndoStatus: (text: string) => void;
   setFps: (fps: number) => void;
   setCounts: (hostBalls: number, patches: number) => void;
   setSelectionInfo: (text: string) => void;
+  setElementRegistry: (rows: Array<{ id: number; name: string; annotation: ElementAnnotationValue }>, selectedId: number | null) => void;
+  setElementEditStatus: (text: string, ok?: boolean) => void;
+  getElementMoveStep: () => number;
+  setSelectedMotif: (
+    patch: Patch | null,
+    current: SkinParams,
+    eligibility: { ok: boolean; reason?: string },
+  ) => void;
+  setMotifReshapeStatus: (text: string, ok?: boolean) => void;
   setGauges: (
     mortar: MortarReport,
     coverage: CoverageReport,
@@ -85,11 +177,29 @@ export interface UiHandles {
     overlaps: SkinOverlapWarning[],
   ) => void;
   setPackResult: (result: PackPatchesResult | null) => void;
+  setContactStatus: (text: string, ok?: boolean) => void;
   syncHostParams: (params: FieldParams) => void;
   syncSkinParams: (params: SkinParams) => void;
+  updateMotifPreview: (params: SkinParams) => void;
   setMode: (mode: SkinMode) => void;
   setAddPatchModeActive: (active: boolean) => void;
   setMeshStatus: (text: string, ok?: boolean) => void;
+  setMeshExportRunning: (running: boolean) => void;
+  setBambu3mfExportRunning: (running: boolean) => void;
+  setBambu3mfExportStatus: (text: string, ok?: boolean) => void;
+  setInternalPrintGateExportAllowed: (allowed: boolean, required: boolean) => void;
+  setPrintCheckRunning: (running: boolean) => void;
+  setPrintCheckStatus: (text: string, ok?: boolean) => void;
+  setPrintCheckMetrics: (metrics: PrintCheckMetrics | null) => void;
+  setInternalPrintGateRunning: (running: boolean) => void;
+  setInternalPrintGateStatus: (text: string, ok?: boolean) => void;
+  setInternalPrintGateReport: (report: InternalPrintGateReport | null) => void;
+  setNPartitionProposal: (text: string, groupCount?: number) => void;
+  setNPartitionStatus: (text: string, ok?: boolean) => void;
+  setNPartitionMetrics: (text: string) => void;
+  setNPartitionBuildRunning: (running: boolean) => void;
+  setNPartitionExportEnabled: (enabled: boolean) => void;
+  getNPartitionCount: () => number;
   // --- T13 coin由来A/B分割 ---------------------------------------------
   setSeedPickModeActive: (active: boolean) => void;
   setPartitionDraftInfo: (text: string) => void;
@@ -137,18 +247,57 @@ export interface UiHandles {
   /** Update the three-way view toggle's active button + honest caption
    * (approximation disclosure for beads, capacity note for raymarch). */
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
+  setDisplayStyle: (style: SkinDisplayStyle) => void;
+  setInternalObservationMode: (mode: InternalObservationMode) => void;
+  setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
+  setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
+  setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
+  setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
+  getSurfaceAngleThreshold: () => number;
+  /** Status for the non-blocking low-resolution mesh preview Worker. */
+  setMeshPreviewStatus: (text: string, running?: boolean) => void;
   /** Show/hide the "自動でビーズ表示に切り替えました" banner (T12 §2). */
   setAutoSwitchNotice: (active: boolean) => void;
   /** Re-render just the shape-selector buttons' active state (T12 bugfix --
    * clicking a shape button used to leave the OLD shape looking selected
    * until the next full syncSkinParams(), e.g. after a history import). */
   setPatchShape: (shape: PatchShape) => void;
+  setMotifPlacement: (placement: MotifPlacement) => void;
+  setLaceMotifPlacement: (placement: MotifPlacement) => void;
+  setSurfaceGenerationMode: (mode: SurfaceGenerationMode) => void;
+  setInternalStructure: (mode: InternalStructureMode) => void;
+  setInternalStructureStatus: (text: string, ok?: boolean) => void;
+  setQuadFlowStatus: (text: string, ok?: boolean) => void;
+  setVoronoiStatus: (text: string, ok?: boolean) => void;
+  setGoldbergStatus: (text: string, ok?: boolean) => void;
   getMeshOptions: () => MeshUiOptions;
+  setOpeningMapRunning: (running: boolean) => void;
+  setOpeningMapStatus: (text: string, ok?: boolean) => void;
+  setOpeningMapResults: (openings: OpeningMeasurement[] | null, displayed: number, likelyMergedByOffset?: boolean) => void;
+  setDenseFlowerSampleRunning: (running: boolean) => void;
+  setDenseFlowerSampleActive: (active: boolean, view?: DenseSampleView) => void;
+  setDenseFlowerSampleResults: (openings: DenseFlowerOpening[], total: number) => void;
+  clearOpeningMap: () => void;
 }
 
 export interface MeshUiOptions {
   resolution: number;
   targetLongestMm: number;
+}
+
+export interface OpeningMapUiOptions extends MeshUiOptions {
+  resolution: number;
+  automaticOffset: boolean;
+  offsetMm: number;
+  minAreaMm2: number;
+}
+
+export interface PrintCheckMetrics {
+  topology: string;
+  size: string;
+  wall: string;
+  internalSupport: string;
+  bestOrientation: string;
 }
 
 const HOST_SPECS: { key: keyof FieldParams; label: string; min: number; max: number; step: number }[] = [
@@ -160,17 +309,19 @@ const HOST_SPECS: { key: keyof FieldParams; label: string; min: number; max: num
 
 const SKIN_SPECS: { key: keyof SkinParams; label: string; min: number; max: number; step: number }[] = [
   { key: "thickness", label: "殻の厚み（プレート板厚）", min: 0.02, max: 0.4, step: 0.005 },
-  { key: "minR", label: "パッチの大きさ 下限", min: 0.03, max: 0.4, step: 0.005 },
-  { key: "maxR", label: "パッチの大きさ 上限", min: 0.06, max: 0.8, step: 0.01 },
+  { key: "minR", label: "詰める形の大きさ 下限", min: 0.03, max: 0.4, step: 0.005 },
+  { key: "maxR", label: "詰める形の大きさ 上限", min: 0.06, max: 0.8, step: 0.01 },
   { key: "irregularity", label: "形の不揃い（コインのみ）", min: 0, max: 1, step: 0.01 },
   // T11 §2: negative side = 重なり許容（絡みの偶発装置）。
   { key: "gap", label: "目地 g（負=重なり許容）", min: -0.3, max: 0.3, step: 0.005 },
   { key: "attempts", label: "詰め込みの強さ (試行数)", min: 20, max: 4000, step: 20 },
   { key: "roundK", label: "丸さ k (合成の滑らかさ)", min: 0, max: 0.4, step: 0.005 },
+  { key: "coinHoleRatio", label: "コインの中央穴", min: 0, max: 0.95, step: 0.01 },
   // T14 coin-bulge experiment (作者Observation 2026-07-20). 既定0 = 従来形状
   // と数式一致。コイン形状の plate mode だけに効く -- flatRing/ring3d/window
   // modeは無変化（field.ts's compositeSdf 参照）。
-  { key: "coinBulge", label: "コインのふくらみ", min: 0, max: 0.32, step: 0.005 },
+  { key: "coinBulge", label: "コイン中央のふくらみ", min: 0, max: 0.32, step: 0.005 },
+  { key: "coinBulgeBalance", label: "表裏バランス（−裏 / ＋表）", min: -1, max: 1, step: 0.01 },
 ];
 
 const RING_SPECS: { key: keyof SkinParams; label: string; min: number; max: number; step: number }[] = [
@@ -185,6 +336,7 @@ const SHAPE_LABELS: [PatchShape, string][] = [
   ["coin", "コイン"],
   ["flatRing", "平リング"],
   ["ring3d", "立体リング"],
+  ["flower", "花モチーフ"],
 ];
 
 export function buildUi(
@@ -198,6 +350,38 @@ export function buildUi(
 ): UiHandles {
   const root = document.createElement("div");
   root.className = "panel";
+
+  const undoDock = document.createElement("div");
+  undoDock.className = "history-undo-dock";
+  const undoButton = document.createElement("button");
+  undoButton.type = "button";
+  undoButton.className = "history-undo-button";
+  undoButton.textContent = "↶ 1つ戻す";
+  undoButton.title = "直前の操作を1つ戻します（Windows: Ctrl+Z）";
+  undoButton.setAttribute("aria-label", "直前の操作を1つ戻す");
+  undoButton.onclick = () => callbacks.onUndo();
+  const undoMeta = document.createElement("div");
+  undoMeta.className = "history-undo-meta";
+  const undoCount = document.createElement("span");
+  const undoShortcut = document.createElement("kbd");
+  undoShortcut.textContent = "Ctrl+Z";
+  undoMeta.append(undoCount, undoShortcut);
+  const undoStatus = document.createElement("div");
+  undoStatus.className = "history-undo-status";
+  undoStatus.setAttribute("aria-live", "polite");
+  const undoHistorySelect = document.createElement("select");
+  undoHistorySelect.className = "history-undo-select";
+  undoHistorySelect.setAttribute("aria-label", "戻す履歴を選ぶ");
+  const undoManyButton = document.createElement("button");
+  undoManyButton.type = "button";
+  undoManyButton.className = "history-undo-many";
+  undoManyButton.textContent = "選んだ所まで戻す";
+  undoManyButton.onclick = () => callbacks.onUndoSteps(Math.max(1, Number(undoHistorySelect.value) || 1));
+  undoDock.append(undoButton, undoMeta, undoHistorySelect, undoManyButton, undoStatus);
+  // Persistent actions live on the viewport chrome, never inside or over the
+  // right-side authoring panel. Keep future always-visible controls in the
+  // remaining viewport corners by the same rule.
+  (container.querySelector("#viewport") ?? container).appendChild(undoDock);
 
   const navRow = document.createElement("div");
   navRow.className = "nav-row";
@@ -238,10 +422,40 @@ export function buildUi(
   counts.className = "ball-count";
   root.appendChild(counts);
 
+  const profile = document.createElement("div");
+  profile.className = "workflow-profile";
+  const profileName = document.createElement("strong");
+  profileName.textContent = `${CURRENT_WORKFLOW_PROFILE.name} — 現在の制作テーマ`;
+  const profileDescription = document.createElement("span");
+  profileDescription.textContent = CURRENT_WORKFLOW_PROFILE.description;
+  const profileStages = document.createElement("span");
+  profileStages.className = "workflow-profile-stages";
+  profileStages.textContent = CURRENT_WORKFLOW_PROFILE.stages.join(" → ");
+  profile.append(profileName, profileDescription, profileStages);
+  root.appendChild(profile);
+
+  const workflowNav = document.createElement("nav");
+  workflowNav.className = "skin-workflow-nav";
+  workflowNav.setAttribute("aria-label", "設計の流れ");
+  for (const [targetId, label] of [
+    ["skin-step-base", "1 ベース"],
+    ["skin-step-surface", "2 表面"],
+    ["skin-step-shape", "3 形状"],
+    ["skin-step-adjust", "4 調整"],
+    ["skin-step-split", "5 分割"],
+  ] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    workflowNav.appendChild(button);
+  }
+  root.appendChild(workflowNav);
+
   // --- Mode toggle (この Study の眼目) --------------------------------------
   const modeTitle = document.createElement("div");
   modeTitle.className = "section-title";
-  modeTitle.textContent = "地と図の反転";
+  modeTitle.textContent = "出力の見方（後から変更できます）";
   root.appendChild(modeTitle);
 
   const modeToggle = document.createElement("div");
@@ -271,9 +485,14 @@ export function buildUi(
 
   // --- Host section ----------------------------------------------------
   const hostTitle = document.createElement("div");
-  hostTitle.className = "section-title";
-  hostTitle.textContent = "実体（ホスト）";
+  hostTitle.id = "skin-step-base";
+  hostTitle.className = "workflow-step-title";
+  hostTitle.textContent = "1. ベースのかたち";
   root.appendChild(hostTitle);
+  const hostLead = document.createElement("div");
+  hostLead.className = "workflow-step-lead";
+  hostLead.textContent = "まず表面を持つ元のかたちを作るか、S1のレシピを読み込みます。";
+  root.appendChild(hostLead);
 
   const growRow = document.createElement("div");
   growRow.className = "row";
@@ -324,22 +543,288 @@ export function buildUi(
   s1ImportRow.appendChild(s1ImportLabel);
   s1ImportRow.appendChild(s1ImportInput);
   root.appendChild(s1ImportRow);
+  s1ImportRow.after(modeTitle, modeToggle, modeExplainer);
 
   root.appendChild(document.createElement("hr"));
 
   // --- Skin (patch) section -----------------------------------------------
   const skinTitle = document.createElement("div");
-  skinTitle.className = "section-title";
-  skinTitle.textContent = "詰める（表面パッチのつまみ）";
+  skinTitle.id = "skin-step-surface";
+  skinTitle.className = "workflow-step-title";
+  skinTitle.textContent = "2. 表面の組み方";
   root.appendChild(skinTitle);
+
+  const generationTitle = document.createElement("div");
+  generationTitle.className = "workflow-step-lead";
+  generationTitle.textContent = "使える方式と、これから実装する候補を一度に比較できます。";
+  root.appendChild(generationTitle);
+  const generationRow = document.createElement("div");
+  generationRow.className = "surface-variation-grid";
+  type SurfaceVariationId = "random" | "regularQuad" | "variedQuad" | "fieldQuad" | "voronoi" | "goldberg";
+  const surfaceVariationButtons = new Map<SurfaceVariationId, HTMLButtonElement>();
+  const surfaceVariations: Array<{
+    id: SurfaceVariationId;
+    name: string;
+    description: string;
+    state: "available" | "prototype" | "research";
+  }> = [
+    { id: "random", name: "ランダムPACK", description: "大小を混ぜて自由に詰める", state: "available" },
+    { id: "regularQuad", name: "均一クアッド", description: "同じ密度の四角形で覆う", state: "available" },
+    { id: "variedQuad", name: "不均一クアッド", description: "四角形の大きさを揺らす", state: "available" },
+    { id: "fieldQuad", name: "曲率密度クアッド", description: "曲がりの強い所へセルを寄せる", state: "prototype" },
+    { id: "voronoi", name: "Voronoi / CVT", description: "不規則な領域で表面を覆う", state: "prototype" },
+    { id: "goldberg", name: "六角形＋五角形", description: "12個の五角役物と六角領域", state: "prototype" },
+  ];
+  let activeGenerationMode = skinParams.surfaceGenerationMode;
+  let activeQuadTilingMode = skinParams.quadTilingMode;
+  for (const variation of surfaceVariations) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "surface-variation-card";
+    const cardName = document.createElement("span");
+    cardName.className = "surface-variation-name";
+    cardName.textContent = variation.name;
+    const cardDescription = document.createElement("span");
+    cardDescription.className = "surface-variation-description";
+    cardDescription.textContent = variation.description;
+    const cardState = document.createElement("span");
+    cardState.className = `surface-variation-state ${variation.state === "research" ? "research" : "available"}`;
+    cardState.textContent = variation.state === "available" ? "使用可"
+      : variation.state === "prototype" ? "試作可" : "研究候補";
+    button.append(cardName, cardDescription, cardState);
+    button.disabled = variation.state === "research";
+    if (variation.state !== "research") button.onclick = () => {
+      if (variation.id === "random") {
+        renderSurfaceGenerationMode("randomPack");
+        callbacks.onSkinParamChange("surfaceGenerationMode", "randomPack");
+        return;
+      }
+      if (variation.id === "voronoi") {
+        renderSurfaceGenerationMode("voronoi");
+        callbacks.onSkinParamChange("surfaceGenerationMode", "voronoi");
+        return;
+      }
+      if (variation.id === "goldberg") {
+        renderSurfaceGenerationMode("goldberg");
+        callbacks.onSkinParamChange("surfaceGenerationMode", "goldberg");
+        return;
+      }
+      const tilingMode: QuadTilingMode = variation.id === "variedQuad" ? "varied"
+        : variation.id === "fieldQuad" ? "field" : "regular";
+      renderSurfaceGenerationMode("quadFlow");
+      renderQuadTilingMode(tilingMode);
+      callbacks.onSkinParamChange("surfaceGenerationMode", "quadFlow");
+      callbacks.onSkinParamChange("quadTilingMode", tilingMode);
+    };
+    surfaceVariationButtons.set(variation.id, button);
+    generationRow.appendChild(button);
+  }
+  root.appendChild(generationRow);
+
+  const quadFlowPanel = document.createElement("div");
+  quadFlowPanel.className = "shape-specific quad-flow-panel";
+  const quadFlowHint = document.createElement("div");
+  quadFlowHint.className = "hint";
+  quadFlowHint.textContent = "選んだ形を各セルいっぱいに変形します。接続は共有辺の隙間に最も近い球だけを大きくします。橙は将来の役物候補です。";
+  quadFlowPanel.appendChild(quadFlowHint);
+  const quadDivisionsSlider = buildSlider(
+    "面ごとの分割数",
+    2,
+    10,
+    1,
+    skinParams.quadDivisions,
+    (value) => callbacks.onSkinParamChange("quadDivisions", Math.round(value)),
+  );
+  quadFlowPanel.appendChild(quadDivisionsSlider.row);
+
+  const quadVariationSlider = buildSlider(
+    "セル寸法のばらつき",
+    0,
+    0.45,
+    0.01,
+    skinParams.quadSizeVariation,
+    (value) => callbacks.onSkinParamChange("quadSizeVariation", value),
+  );
+  quadFlowPanel.appendChild(quadVariationSlider.row);
+  const quadCurvatureSlider = buildSlider(
+    "曲率への寄せ方",
+    0,
+    1,
+    0.01,
+    skinParams.quadCurvatureAttraction,
+    (value) => callbacks.onSkinParamChange("quadCurvatureAttraction", value),
+  );
+  quadFlowPanel.appendChild(quadCurvatureSlider.row);
+  function renderQuadTilingMode(mode: QuadTilingMode): void {
+    activeQuadTilingMode = mode;
+    quadVariationSlider.row.hidden = mode !== "varied";
+    quadCurvatureSlider.row.hidden = mode !== "field";
+    renderSurfaceVariationCards();
+  }
+  renderQuadTilingMode(skinParams.quadTilingMode);
+
+  const quadConnectionAdjustment = document.createElement("div");
+  quadConnectionAdjustment.className = "quad-connection-adjustment";
+  const quadConnectionTitle = document.createElement("div");
+  quadConnectionTitle.className = "motif-connection-title";
+  quadConnectionTitle.textContent = "隣同士のつながり";
+  quadConnectionAdjustment.appendChild(quadConnectionTitle);
+  const quadConnectionRow = document.createElement("div");
+  quadConnectionRow.className = "mode-toggle";
+  const quadConnectionButtons = new Map<QuadConnectionMode, HTMLButtonElement>();
+  for (const [mode, label] of [
+    ["local", "隙間だけつなぐ"],
+    ["separate", "離して並べる"],
+  ] as Array<[QuadConnectionMode, string]>) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => {
+      renderQuadConnectionMode(mode);
+      callbacks.onSkinParamChange("quadConnectionMode", mode);
+    };
+    quadConnectionButtons.set(mode, button);
+    quadConnectionRow.appendChild(button);
+  }
+  quadConnectionAdjustment.appendChild(quadConnectionRow);
+  const quadConnectionDepthSlider = buildSlider(
+    "接合の重なり",
+    0,
+    2,
+    0.05,
+    skinParams.quadConnectionDepth,
+    (value) => callbacks.onSkinParamChange("quadConnectionDepth", value),
+  );
+  quadConnectionAdjustment.appendChild(quadConnectionDepthSlider.row);
+  const quadMeshJoinSlider = buildSlider(
+    "メッシュ接合の太さ",
+    0,
+    0.25,
+    0.01,
+    skinParams.quadMeshJoinWidth,
+    (value) => callbacks.onSkinParamChange("quadMeshJoinWidth", value),
+  );
+  quadConnectionAdjustment.appendChild(quadMeshJoinSlider.row);
+  function renderQuadConnectionMode(mode: QuadConnectionMode): void {
+    for (const [candidate, button] of quadConnectionButtons) {
+      button.classList.toggle("mode-active", candidate === mode);
+    }
+    quadConnectionDepthSlider.row.hidden = mode !== "local";
+    quadMeshJoinSlider.row.hidden = mode !== "local";
+  }
+  renderQuadConnectionMode(skinParams.quadConnectionMode);
+  const quadConnectionWarning = document.createElement("div");
+  quadConnectionWarning.className = "hint";
+  quadConnectionAdjustment.appendChild(quadConnectionWarning);
+  function renderQuadConnectionWarning(shape: PatchShape): void {
+    quadConnectionWarning.textContent = shape === "flatRing" || shape === "ring3d"
+      ? "元のリング節は太らせず、隙間方向へ短い接続部を伸ばします。輪の穴を保ったまま接続を試みます。"
+      : "元の形全体は太らせず、隙間方向へ短い接続部だけを伸ばします。";
+  }
+  renderQuadConnectionWarning(skinParams.patchShape);
+
+  const quadFlowStatus = document.createElement("div");
+  quadFlowStatus.className = "quad-flow-status";
+  quadFlowStatus.textContent = "格子を準備中";
+  quadFlowPanel.appendChild(quadFlowStatus);
+  const tilingResearch = document.createElement("details");
+  tilingResearch.className = "flower-details";
+  const tilingResearchSummary = document.createElement("summary");
+  tilingResearchSummary.textContent = "次の表面充填・印刷分割案";
+  tilingResearch.appendChild(tilingResearchSummary);
+  const tilingResearchBody = document.createElement("div");
+  tilingResearchBody.className = "hint";
+  tilingResearchBody.textContent =
+    "曲率密度クアッド、Voronoi/CVT、六角形＋12個の五角役物まで試作できます。いずれも厳密なリメッシュや専用多角形輪郭ではありません。印刷分割はモチーフを横切らずセル境界をつなぎ、造形範囲・支持・継ぎ目の見え方・接合面積を同時に評価します。";
+  tilingResearch.appendChild(tilingResearchBody);
+  quadFlowPanel.appendChild(tilingResearch);
+  root.appendChild(quadFlowPanel);
+
+  const voronoiPanel = document.createElement("div");
+  voronoiPanel.className = "shape-specific voronoi-flow-panel";
+  const voronoiHint = document.createElement("div");
+  voronoiHint.className = "hint";
+  voronoiHint.textContent =
+    "球面上で種点を均し、ホスト表面へ投影する試作です。いまはVoronoi多角形そのものではなく、種点と近傍関係に沿って形を配置します。";
+  voronoiPanel.appendChild(voronoiHint);
+  const voronoiSeedSlider = buildSlider(
+    "種点（詰める数）", 24, 400, 1, skinParams.voronoiSeedCount,
+    (value) => callbacks.onSkinParamChange("voronoiSeedCount", Math.round(value)),
+  );
+  voronoiPanel.appendChild(voronoiSeedSlider.row);
+  const voronoiRelaxationSlider = buildSlider(
+    "均し回数", 0, 5, 1, skinParams.voronoiRelaxationSteps,
+    (value) => callbacks.onSkinParamChange("voronoiRelaxationSteps", Math.round(value)),
+  );
+  voronoiPanel.appendChild(voronoiRelaxationSlider.row);
+  const voronoiStatus = document.createElement("div");
+  voronoiStatus.className = "quad-flow-status";
+  voronoiStatus.textContent = "種点を準備中";
+  voronoiPanel.appendChild(voronoiStatus);
+  root.appendChild(voronoiPanel);
+
+  const goldbergPanel = document.createElement("div");
+  goldbergPanel.className = "shape-specific goldberg-flow-panel";
+  const goldbergHint = document.createElement("div");
+  goldbergHint.className = "hint";
+  goldbergHint.textContent =
+    "正二十面体を細分し、12個の五角価点と残りの六角価点を保ったままホスト表面へ投影します。専用の五角形・六角形輪郭ではなく、選んだ形を各点へ配置する試作です。";
+  goldbergPanel.appendChild(goldbergHint);
+  const goldbergFrequencySlider = buildSlider(
+    "細分の密度", 1, 6, 1, skinParams.goldbergFrequency,
+    (value) => callbacks.onSkinParamChange("goldbergFrequency", Math.round(value)),
+  );
+  goldbergPanel.appendChild(goldbergFrequencySlider.row);
+  const goldbergStatus = document.createElement("div");
+  goldbergStatus.className = "quad-flow-status";
+  goldbergStatus.textContent = "六角形＋五角形を準備中";
+  goldbergPanel.appendChild(goldbergStatus);
+  root.appendChild(goldbergPanel);
+
+  function renderSurfaceGenerationMode(generationMode: SurfaceGenerationMode): void {
+    activeGenerationMode = generationMode;
+    quadFlowPanel.hidden = generationMode !== "quadFlow";
+    voronoiPanel.hidden = generationMode !== "voronoi";
+    goldbergPanel.hidden = generationMode !== "goldberg";
+    quadConnectionAdjustment.hidden = generationMode === "randomPack";
+    renderSurfaceVariationCards();
+  }
+  function renderSurfaceVariationCards(): void {
+    const activeId: SurfaceVariationId = activeGenerationMode === "randomPack" ? "random"
+      : activeGenerationMode === "voronoi" ? "voronoi"
+      : activeGenerationMode === "goldberg" ? "goldberg"
+      : activeQuadTilingMode === "field" ? "fieldQuad"
+      : activeQuadTilingMode === "varied" ? "variedQuad" : "regularQuad";
+    for (const [id, button] of surfaceVariationButtons) button.classList.toggle("mode-active", id === activeId);
+  }
+  renderSurfaceGenerationMode(skinParams.surfaceGenerationMode);
 
   // --- Patch shape (T11 §1) ------------------------------------------------
   const shapeRow = document.createElement("div");
-  shapeRow.className = "mode-toggle";
+  const shapeTitle = document.createElement("div");
+  shapeTitle.id = "skin-step-shape";
+  shapeTitle.className = "workflow-step-title";
+  shapeTitle.textContent = "3. 充填する形状";
+  root.appendChild(shapeTitle);
+  const shapeLead = document.createElement("div");
+  shapeLead.className = "workflow-step-lead";
+  shapeLead.textContent = "表面へ繰り返す単位を選びます。4種類すべて同じ接続・分割へ進めます。";
+  root.appendChild(shapeLead);
+  shapeRow.className = "shape-card-grid";
   const shapeButtons: Record<PatchShape, HTMLButtonElement> = {} as Record<PatchShape, HTMLButtonElement>;
   for (const [shape, label] of SHAPE_LABELS) {
     const btn = document.createElement("button");
-    btn.textContent = label;
+    btn.className = "shape-card";
+    const name = document.createElement("span");
+    name.className = "shape-card-name";
+    name.textContent = label;
+    const description = document.createElement("span");
+    description.className = "shape-card-description";
+    description.textContent = shape === "coin" ? "面をつくる塊"
+      : shape === "flatRing" ? "穴のある薄い輪"
+      : shape === "ring3d" ? "数珠状の立体ループ"
+      : "花弁と花芯のモチーフ";
+    btn.append(name, description);
     btn.onclick = () => callbacks.onSkinParamChange("patchShape", shape);
     shapeButtons[shape] = btn;
     shapeRow.appendChild(btn);
@@ -349,25 +834,290 @@ export function buildUi(
     for (const [s, btn] of Object.entries(shapeButtons) as [PatchShape, HTMLButtonElement][]) {
       btn.classList.toggle("mode-active", s === shape);
     }
+    renderQuadConnectionWarning(shape);
   }
   renderShapeButtons(skinParams.patchShape);
+
+  const placementTitle = document.createElement("div");
+  placementTitle.className = "section-title";
+  placementTitle.textContent = "ベースに対する生成位置";
+  root.appendChild(placementTitle);
+  const placementToggle = document.createElement("div");
+  placementToggle.className = "mode-toggle motif-placement-toggle";
+  const placementButtons = new Map<MotifPlacement, HTMLButtonElement>();
+  const placementChoices: Array<[MotifPlacement, string]> = [
+    ["surface", "表面（現在）"],
+    ["center", "面を中心"],
+    ["inside", "内側"],
+  ];
+  for (const [placement, label] of placementChoices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => callbacks.onSkinParamChange("motifPlacement", placement);
+    placementButtons.set(placement, button);
+    placementToggle.appendChild(button);
+  }
+  root.appendChild(placementToggle);
+  const placementHint = document.createElement("div");
+  placementHint.className = "hint";
+  placementHint.textContent = "表面は従来どおり。面を中心は形の厚み中心を基準面へ合わせ、内側は形全体をベース内へ収めます。次の生成から反映します。";
+  root.appendChild(placementHint);
+  function renderMotifPlacement(placement: MotifPlacement): void {
+    for (const [candidate, button] of placementButtons) button.classList.toggle("mode-active", candidate === placement);
+  }
+  renderMotifPlacement(skinParams.motifPlacement ?? "surface");
 
   const shapeHint = document.createElement("div");
   shapeHint.className = "hint";
   shapeHint.textContent =
-    "コイン=不定形の塊（従来どおり）。平リング=同心の内孔を持つ環状プレート（窓モードでO字窓）。立体リング=表面に接するトーラス（節のある球の鎖、S-rings と同じ語彙）。次の「詰める」または手動追加からこの形状が使われます。";
+    "次の「詰める」から選んだ形を使います。花モチーフはPACK-SPIKEと同じ定義を自由曲面へ沿わせます。";
   root.appendChild(shapeHint);
 
-  const skinSliders: { spec: (typeof SKIN_SPECS)[number]; set: (v: number) => void }[] = [];
+  const adjustmentTitle = document.createElement("div");
+  adjustmentTitle.id = "skin-step-adjust";
+  adjustmentTitle.className = "workflow-step-title";
+  adjustmentTitle.textContent = "4. 選んだ形を調整して生成";
+  root.appendChild(adjustmentTitle);
+  const adjustmentLead = document.createElement("div");
+  adjustmentLead.className = "workflow-step-lead";
+  adjustmentLead.textContent = "選択中の形に必要な項目だけを表示します。詳細値は折りたためます。";
+  root.appendChild(adjustmentLead);
+
+  const motifPreview = document.createElement("section");
+  motifPreview.className = "motif-live-preview";
+  const motifPreviewHeader = document.createElement("div");
+  motifPreviewHeader.className = "motif-live-preview-header";
+  const motifPreviewTitle = document.createElement("strong");
+  motifPreviewTitle.textContent = "選んだ形・3Dプレビュー";
+  const motifPreviewBadge = document.createElement("span");
+  motifPreviewHeader.append(motifPreviewTitle, motifPreviewBadge);
+  const motifPreviewCanvas = document.createElement("canvas");
+  motifPreviewCanvas.width = 640;
+  motifPreviewCanvas.height = 360;
+  motifPreviewCanvas.setAttribute("aria-label", "選択中の形状パラメータの回転可能な3Dプレビュー");
+  enableMotifPreview3D(motifPreviewCanvas);
+  const motifPreviewHint = document.createElement("div");
+  motifPreviewHint.className = "motif-live-preview-hint";
+  motifPreviewHint.textContent = "ドラッグで回転、ホイールで拡大縮小できます。曲面への沿い方と印刷結果は生成後に確認します。";
+  const motifConnectionTitle = document.createElement("div");
+  motifConnectionTitle.className = "motif-connection-preview-title";
+  motifConnectionTitle.textContent = "ランダムPACK・花のつながり";
+  const motifConnectionCanvas = document.createElement("canvas");
+  motifConnectionCanvas.className = "motif-connection-preview-canvas";
+  motifConnectionCanvas.width = 640;
+  motifConnectionCanvas.height = 200;
+  motifConnectionCanvas.setAttribute("aria-label", "融合量と花の接続方法の関係図");
+  motifPreview.append(motifPreviewHeader, motifPreviewCanvas, motifPreviewHint, motifConnectionTitle, motifConnectionCanvas);
+  root.appendChild(motifPreview);
+  let motifPreviewParams: SkinParams = { ...skinParams };
+  function updateMotifPreview(params: SkinParams): void {
+    motifPreviewParams = { ...params };
+    const shapeLabel = SHAPE_LABELS.find(([shape]) => shape === params.patchShape)?.[1] ?? params.patchShape;
+    const placementLabel = placementChoices.find(([placement]) => placement === (params.motifPlacement ?? "surface"))?.[1] ?? "表面";
+    motifPreviewBadge.textContent = `${shapeLabel} · ${placementLabel}`;
+    renderMotifPreview(motifPreviewCanvas, motifPreviewParams);
+    const showConnection = params.patchShape === "flower" && params.surfaceGenerationMode === "randomPack";
+    motifConnectionTitle.hidden = !showConnection;
+    motifConnectionCanvas.hidden = !showConnection;
+    if (showConnection) renderFlowerConnectionPreview(motifConnectionCanvas, motifPreviewParams);
+  }
+  updateMotifPreview(motifPreviewParams);
+  root.appendChild(quadConnectionAdjustment);
+
+  const flowerMotifPanel = document.createElement("div");
+  flowerMotifPanel.className = "shape-specific motif-picker";
+  const flowerMotifTitle = document.createElement("div");
+  flowerMotifTitle.className = "section-title";
+  flowerMotifTitle.textContent = "PACK-SPIKE / MOTIF ON SURFACE";
+  flowerMotifPanel.appendChild(flowerMotifTitle);
+  const flowerMotifButtonsRow = document.createElement("div");
+  flowerMotifButtonsRow.className = "motif-preset-grid";
+  const flowerMotifButtons = new Map<FlowerMotifPresetId, HTMLButtonElement>();
+  let activeFlowerPreset: FlowerMotifPresetId = skinParams.flowerMotifPreset;
+  for (const preset of PACKING_MOTIF_PRESETS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = preset.label;
+    button.onclick = () => {
+      applyFlowerPreset(preset.id);
+    };
+    flowerMotifButtons.set(preset.id, button);
+    flowerMotifButtonsRow.appendChild(button);
+  }
+  flowerMotifPanel.appendChild(flowerMotifButtonsRow);
+
+  const flowerCustomTitle = document.createElement("div");
+  flowerCustomTitle.className = "motif-connection-title";
+  flowerCustomTitle.textContent = "花を調整";
+  flowerMotifPanel.appendChild(flowerCustomTitle);
+
+  const flowerSliders = new Map<keyof SkinParams, { set: (value: number) => void }>();
+  function markFlowerCustom(): void {
+    if (activeFlowerPreset === "custom") return;
+    renderFlowerMotifPreset("custom");
+    callbacks.onSkinParamChange("flowerMotifPreset", "custom");
+  }
+  function addFlowerSlider(
+    parent: HTMLElement,
+    key: keyof SkinParams,
+    label: string,
+    min: number,
+    max: number,
+    step: number,
+  ): void {
+    const built = buildSlider(label, min, max, step, Number(skinParams[key]), (value) => {
+      markFlowerCustom();
+      callbacks.onSkinParamChange(key, step >= 1 ? Math.round(value) : value);
+    });
+    flowerSliders.set(key, built);
+    parent.appendChild(built.row);
+  }
+
+  addFlowerSlider(flowerMotifPanel, "flowerPetalCount", "花弁の数", 3, 12, 1);
+
+  const flowerCoreRow = document.createElement("div");
+  flowerCoreRow.className = "mode-toggle flower-core-toggle";
+  const flowerCoreOn = document.createElement("button");
+  flowerCoreOn.type = "button";
+  flowerCoreOn.textContent = "花芯あり";
+  const flowerCoreOff = document.createElement("button");
+  flowerCoreOff.type = "button";
+  flowerCoreOff.textContent = "花芯なし";
+  flowerCoreRow.append(flowerCoreOn, flowerCoreOff);
+  flowerMotifPanel.appendChild(flowerCoreRow);
+  function renderFlowerCore(showCore: boolean): void {
+    flowerCoreOn.classList.toggle("mode-active", showCore);
+    flowerCoreOff.classList.toggle("mode-active", !showCore);
+  }
+  function setFlowerCore(showCore: boolean): void {
+    markFlowerCustom();
+    renderFlowerCore(showCore);
+    callbacks.onSkinParamChange("flowerShowCore", showCore);
+  }
+  flowerCoreOn.onclick = () => setFlowerCore(true);
+  flowerCoreOff.onclick = () => setFlowerCore(false);
+  renderFlowerCore(skinParams.flowerShowCore);
+
+  addFlowerSlider(flowerMotifPanel, "flowerExpansion", "ランダムPACKの融合", 0, 2, 0.05);
+  const flowerExpansionHint = document.createElement("div");
+  flowerExpansionHint.className = "hint";
+  flowerExpansionHint.textContent = "ランダムPACK専用。QUAD-FLOWでは上の「接合の重なり」を使います。";
+  flowerMotifPanel.appendChild(flowerExpansionHint);
+
+  const flowerDetails = document.createElement("details");
+  flowerDetails.className = "flower-details";
+  const flowerDetailsSummary = document.createElement("summary");
+  flowerDetailsSummary.textContent = "花の詳細";
+  flowerDetails.appendChild(flowerDetailsSummary);
+  addFlowerSlider(flowerDetails, "flowerOpening", "花の開き", 0.72, 1.22, 0.01);
+  addFlowerSlider(flowerDetails, "flowerNeck", "花弁の首", 0.14, 0.62, 0.01);
+  addFlowerSlider(flowerDetails, "flowerCoreSize", "花芯の大きさ", 0.42, 0.78, 0.01);
+  addFlowerSlider(flowerDetails, "flowerCupping", "花弁の起き上がり", -0.18, 0.5, 0.01);
+  addFlowerSlider(flowerDetails, "flowerCoreLift", "花芯の高さ", -0.12, 0.5, 0.01);
+  addFlowerSlider(flowerDetails, "flowerGrowthDifference", "花弁の成長差", 0, 0.34, 0.01);
+  flowerMotifPanel.appendChild(flowerDetails);
+
+  const repackFlowersButton = document.createElement("button");
+  repackFlowersButton.type = "button";
+  repackFlowersButton.className = "primary-action flower-repack-action";
+  repackFlowersButton.textContent = "この設定で花を詰め直す";
+  repackFlowersButton.onclick = () => callbacks.onRepackFlowers();
+  flowerMotifPanel.appendChild(repackFlowersButton);
+  const flowerConnectionTitle = document.createElement("div");
+  flowerConnectionTitle.className = "motif-connection-title";
+  flowerConnectionTitle.textContent = "ランダムPACKの花のつながり";
+  flowerMotifPanel.appendChild(flowerConnectionTitle);
+  const flowerConnectionRow = document.createElement("div");
+  flowerConnectionRow.className = "mode-toggle flower-connection-toggle";
+  const flowerConnectionButtons = new Map<FlowerConnectionMode, HTMLButtonElement>();
+  const flowerConnectionChoices: Array<[FlowerConnectionMode, string]> = [
+    ["fused", "一体の花（融合）"],
+    ["separate", "離して並べる"],
+  ];
+  for (const [mode, label] of flowerConnectionChoices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => {
+      renderFlowerConnectionMode(mode);
+      callbacks.onSkinParamChange("flowerConnectionMode", mode);
+    };
+    flowerConnectionButtons.set(mode, button);
+    flowerConnectionRow.appendChild(button);
+  }
+  flowerMotifPanel.appendChild(flowerConnectionRow);
+  const flowerMotifHint = document.createElement("div");
+  flowerMotifHint.className = "hint";
+  flowerMotifHint.textContent = "「一体の花」は枝を足さず花全体を膨らませます。QUAD-FLOWの接続は上の共通設定です。";
+  flowerMotifPanel.appendChild(flowerMotifHint);
+  root.appendChild(flowerMotifPanel);
+
+  function renderFlowerMotifPreset(id: FlowerMotifPresetId): void {
+    activeFlowerPreset = id;
+    for (const [presetId, button] of flowerMotifButtons) {
+      button.classList.toggle("mode-active", presetId === id);
+    }
+  }
+  function renderFlowerParameterControls(params: SkinParams): void {
+    for (const [key, handle] of flowerSliders) handle.set(Number(params[key]));
+    renderFlowerCore(params.flowerShowCore);
+  }
+  function applyFlowerPreset(id: Exclude<FlowerMotifPresetId, "custom">): void {
+    const preset = PACKING_MOTIF_PRESETS.find((entry) => entry.id === id);
+    if (!preset) return;
+    const definition = preset.definition;
+    renderFlowerMotifPreset(id);
+    const values: Array<[keyof SkinParams, number | boolean]> = [
+      ["flowerPetalCount", definition.petalCount],
+      ["flowerShowCore", definition.showCore],
+      ["flowerOpening", definition.opening],
+      ["flowerNeck", definition.neck],
+      ["flowerCoreSize", definition.coreSize],
+      ["flowerCupping", definition.cupping],
+      ["flowerCoreLift", definition.coreLift],
+      ["flowerGrowthDifference", definition.growthDifference],
+      ["flowerExpansion", 1],
+    ];
+    callbacks.onSkinParamChange("flowerMotifPreset", id);
+    for (const [key, value] of values) callbacks.onSkinParamChange(key, value);
+    for (const [key, value] of values) {
+      if (typeof value === "number") flowerSliders.get(key)?.set(value);
+    }
+    renderFlowerCore(definition.showCore);
+  }
+  renderFlowerMotifPreset(skinParams.flowerMotifPreset);
+  renderFlowerParameterControls(skinParams);
+  function renderFlowerConnectionMode(mode: FlowerConnectionMode): void {
+    for (const [connectionMode, button] of flowerConnectionButtons) {
+      button.classList.toggle("mode-active", connectionMode === mode);
+    }
+  }
+  renderFlowerConnectionMode(skinParams.flowerConnectionMode);
+
+  const commonAdjustmentDetails = document.createElement("details");
+  commonAdjustmentDetails.className = "adjustment-details";
+  const commonAdjustmentSummary = document.createElement("summary");
+  commonAdjustmentSummary.textContent = "形状と造形の詳細調整";
+  commonAdjustmentDetails.appendChild(commonAdjustmentSummary);
+  root.appendChild(commonAdjustmentDetails);
+
+  const skinSliders: { spec: (typeof SKIN_SPECS)[number]; set: (v: number) => void; row: HTMLElement }[] = [];
   let coinBulgeSliderSet: ((v: number) => void) | null = null;
+  let coinBulgeBalanceSliderSet: ((v: number) => void) | null = null;
+  let coinBulgeValue = skinParams.coinBulge;
+  let coinBulgeBalanceValue = skinParams.coinBulgeBalance;
   for (const spec of SKIN_SPECS) {
     const built = buildSlider(spec.label, spec.min, spec.max, spec.step, skinParams[spec.key] as number, (v) => {
       callbacks.onSkinParamChange(spec.key, v);
-      if (spec.key === "coinBulge") renderCoinBulgeState(v);
+      if (spec.key === "coinBulge") coinBulgeValue = v;
+      if (spec.key === "coinBulgeBalance") coinBulgeBalanceValue = v;
+      if (spec.key === "coinBulge" || spec.key === "coinBulgeBalance") renderCoinBulgeState();
     });
-    skinSliders.push({ spec, set: built.set });
-    root.appendChild(built.row);
+    skinSliders.push({ spec, set: built.set, row: built.row });
+    commonAdjustmentDetails.appendChild(built.row);
     if (spec.key === "coinBulge") coinBulgeSliderSet = built.set;
+    if (spec.key === "coinBulgeBalance") coinBulgeBalanceSliderSet = built.set;
   }
 
   // T14 coin-bulge experiment (instruction §4): preset buttons for quick
@@ -385,41 +1135,91 @@ export function buildUi(
     btn.onclick = () => {
       coinBulgeSliderSet?.(presetValue);
       callbacks.onSkinParamChange("coinBulge", presetValue);
-      renderCoinBulgeState(presetValue);
+      coinBulgeValue = presetValue;
+      renderCoinBulgeState();
     };
     coinBulgePresetButtons.push(btn);
     coinBulgePresetRow.appendChild(btn);
   }
-  root.appendChild(coinBulgePresetRow);
+  commonAdjustmentDetails.appendChild(coinBulgePresetRow);
+
+  const coinBulgeBalancePresetRow = document.createElement("div");
+  coinBulgeBalancePresetRow.className = "mode-toggle";
+  const coinBulgeBalancePresets: Array<[number, string]> = [[-1, "裏のみ"], [0, "両面"], [1, "表のみ"]];
+  const coinBulgeBalancePresetButtons: HTMLButtonElement[] = [];
+  for (const [presetValue, label] of coinBulgeBalancePresets) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    btn.onclick = () => {
+      coinBulgeBalanceSliderSet?.(presetValue);
+      callbacks.onSkinParamChange("coinBulgeBalance", presetValue);
+      coinBulgeBalanceValue = presetValue;
+      renderCoinBulgeState();
+    };
+    coinBulgeBalancePresetButtons.push(btn);
+    coinBulgeBalancePresetRow.appendChild(btn);
+  }
+  commonAdjustmentDetails.appendChild(coinBulgeBalancePresetRow);
 
   const coinBulgeState = document.createElement("div");
   coinBulgeState.className = "hint";
-  root.appendChild(coinBulgeState);
+  commonAdjustmentDetails.appendChild(coinBulgeState);
 
-  function renderCoinBulgeState(value: number): void {
+  function renderCoinBulgeState(): void {
     for (let i = 0; i < coinBulgePresets.length; i++) {
-      coinBulgePresetButtons[i].classList.toggle("mode-active", Math.abs(coinBulgePresets[i] - value) < 1e-6);
+      coinBulgePresetButtons[i].classList.toggle("mode-active", Math.abs(coinBulgePresets[i] - coinBulgeValue) < 1e-6);
     }
+    for (let i = 0; i < coinBulgeBalancePresets.length; i++) {
+      coinBulgeBalancePresetButtons[i].classList.toggle(
+        "mode-active",
+        Math.abs(coinBulgeBalancePresets[i][0] - coinBulgeBalanceValue) < 1e-6,
+      );
+    }
+    const balanceLabel = coinBulgeBalanceValue <= -0.999
+      ? "裏だけ"
+      : coinBulgeBalanceValue >= 0.999
+        ? "表だけ"
+        : Math.abs(coinBulgeBalanceValue) < 0.001
+          ? "表裏同量"
+          : `${coinBulgeBalanceValue > 0 ? "表" : "裏"}寄り ${Math.round(Math.abs(coinBulgeBalanceValue) * 100)}%`;
     coinBulgeState.textContent =
-      value > 0
-        ? `>0: ふくらみ比較中（コイン形状のみ・現在 +${value.toFixed(3)}）`
+      coinBulgeValue > 0
+        ? `中央 +${coinBulgeValue.toFixed(3)} / ${balanceLabel}（表=外側・裏=内側）`
         : "0: 従来（コイン・平リングとも旧形状と同一）";
   }
-  renderCoinBulgeState(skinParams.coinBulge);
+  renderCoinBulgeState();
 
   const ringSlidersTitle = document.createElement("div");
   ringSlidersTitle.className = "section-title";
   ringSlidersTitle.textContent = "リング系のつまみ（平リング・立体リング）";
-  root.appendChild(ringSlidersTitle);
+  commonAdjustmentDetails.appendChild(ringSlidersTitle);
 
-  const ringSliders: { spec: (typeof RING_SPECS)[number]; set: (v: number) => void }[] = [];
+  const ringSliders: { spec: (typeof RING_SPECS)[number]; set: (v: number) => void; row: HTMLElement }[] = [];
   for (const spec of RING_SPECS) {
     const built = buildSlider(spec.label, spec.min, spec.max, spec.step, skinParams[spec.key] as number, (v) =>
       callbacks.onSkinParamChange(spec.key, v),
     );
-    ringSliders.push({ spec, set: built.set });
-    root.appendChild(built.row);
+    ringSliders.push({ spec, set: built.set, row: built.row });
+    commonAdjustmentDetails.appendChild(built.row);
   }
+
+  function renderShapeSpecificControls(shape: PatchShape): void {
+    flowerMotifPanel.hidden = shape !== "flower";
+    const irregularity = skinSliders.find(({ spec }) => spec.key === "irregularity")?.row;
+    if (irregularity) irregularity.hidden = shape !== "coin";
+    for (const key of ["coinHoleRatio", "coinBulge", "coinBulgeBalance"] as const) {
+      const coinOnly = skinSliders.find(({ spec }) => spec.key === key)?.row;
+      if (coinOnly) coinOnly.hidden = shape !== "coin";
+    }
+    coinBulgePresetRow.hidden = shape !== "coin";
+    coinBulgeBalancePresetRow.hidden = shape !== "coin";
+    coinBulgeState.hidden = shape !== "coin";
+    const isRing = shape === "flatRing" || shape === "ring3d";
+    ringSlidersTitle.hidden = !isRing;
+    for (const { row } of ringSliders) row.hidden = !isRing;
+  }
+  renderShapeSpecificControls(skinParams.patchShape);
 
   const skinSeedRow = document.createElement("div");
   skinSeedRow.className = "row";
@@ -433,11 +1233,174 @@ export function buildUi(
   skinSeedRow.appendChild(skinSeedInput);
   root.appendChild(skinSeedRow);
 
+  const lacePanel = document.createElement("section");
+  lacePanel.className = "lace-fill-panel";
+  const densePresetTitle = document.createElement("div");
+  densePresetTitle.className = "section-title";
+  densePresetTitle.textContent = "デフォルトサンプル：高密度花 v6スタイル";
+  const densePresetHint = document.createElement("div");
+  densePresetHint.className = "hint";
+  densePresetHint.textContent = "現在のベース形状へ、読み取れる大小の花とレース状の隙間を一操作で再現します。保存v6そのものではなく、編集・UNDO・分割できる原理再現です。";
+  const densePresetButton = document.createElement("button");
+  densePresetButton.type = "button";
+  densePresetButton.className = "primary-action";
+  densePresetButton.textContent = "v6スタイルを編集可能データとして作る";
+  const densePresetStatus = document.createElement("div");
+  densePresetStatus.className = "mesh-status";
+  densePresetButton.onclick = async () => {
+    densePresetButton.disabled = true;
+    densePresetButton.textContent = "v6スタイルを生成中…";
+    densePresetStatus.textContent = "初回の花配置と空隙充填を計算しています";
+    try {
+      await callbacks.onCreateDenseFlowerV6Style();
+      densePresetStatus.textContent = "編集可能なv6スタイルを作りました。1回のUNDOで元へ戻せます";
+      densePresetStatus.dataset.ok = "true";
+    } catch (error) {
+      densePresetStatus.textContent = `生成できませんでした: ${(error as Error).message}`;
+      densePresetStatus.dataset.ok = "false";
+    } finally {
+      densePresetButton.disabled = false;
+      densePresetButton.textContent = "v6スタイルを編集可能データとして作る";
+    }
+  };
+  lacePanel.append(densePresetTitle, densePresetHint, densePresetButton, densePresetStatus);
+  const laceTitle = document.createElement("div");
+  laceTitle.className = "section-title";
+  laceTitle.textContent = "多段レース充填（v6の原理）";
+  const laceHint = document.createElement("div");
+  laceHint.className = "hint";
+  laceHint.textContent = "今の並びを残し、大きい空隙から順に小さな形を足します。形を一様に膨らませないため、花の輪郭とレース状の隙間を保てます。花・コイン・リングすべてに使えます。";
+  lacePanel.append(laceTitle, laceHint);
+  const lacePassesSlider = buildSlider(
+    "大中小の段階", 1, 6, 1, skinParams.lacePasses,
+    (value) => callbacks.onSkinParamChange("lacePasses", Math.round(value)),
+  );
+  const laceMinScaleSlider = buildSlider(
+    "最小形の比率", 0.2, 1, 0.05, skinParams.laceMinScale,
+    (value) => callbacks.onSkinParamChange("laceMinScale", value),
+  );
+  const laceGapSlider = buildSlider(
+    "残す隙間（負=接触）", -0.12, 0.18, 0.005, skinParams.laceGap,
+    (value) => callbacks.onSkinParamChange("laceGap", value),
+  );
+  lacePanel.append(lacePassesSlider.row, laceMinScaleSlider.row, laceGapSlider.row);
+  const lacePlacementTitle = document.createElement("div");
+  lacePlacementTitle.className = "section-title";
+  lacePlacementTitle.textContent = "空隙へ追加する形の位置";
+  const lacePlacementToggle = document.createElement("div");
+  lacePlacementToggle.className = "mode-toggle motif-placement-toggle";
+  const lacePlacementButtons = new Map<MotifPlacement, HTMLButtonElement>();
+  for (const [placement, label] of placementChoices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => callbacks.onSkinParamChange("laceMotifPlacement", placement);
+    lacePlacementButtons.set(placement, button);
+    lacePlacementToggle.appendChild(button);
+  }
+  function renderLaceMotifPlacement(placement: MotifPlacement): void {
+    for (const [candidate, button] of lacePlacementButtons) button.classList.toggle("mode-active", candidate === placement);
+  }
+  renderLaceMotifPlacement(skinParams.laceMotifPlacement ?? "surface");
+  const lacePlacementHint = document.createElement("div");
+  lacePlacementHint.className = "hint";
+  lacePlacementHint.textContent = "上の初回配置とは別設定です。例えば、最初の花は表面、空隙へ足す花だけ面を中心にできます。";
+  lacePanel.append(lacePlacementTitle, lacePlacementToggle, lacePlacementHint);
+  const laceButton = document.createElement("button");
+  laceButton.type = "button";
+  laceButton.textContent = "空隙へ大中小を追加";
+  laceButton.onclick = () => callbacks.onFillLaceGaps();
+  lacePanel.appendChild(laceButton);
+  const laceWarning = document.createElement("div");
+  laceWarning.className = "hint";
+  laceWarning.textContent = "正の隙間は見た目を優先し、全要素の接続を保証しません。印刷前に空隙マップと接続・分割を確認します。";
+  lacePanel.appendChild(laceWarning);
+  root.appendChild(lacePanel);
+
+  const contactPanel = document.createElement("section");
+  contactPanel.className = "contact-strength-panel";
+  const contactTitle = document.createElement("div");
+  contactTitle.className = "section-title";
+  contactTitle.textContent = "花どうしの接点";
+  const contactHint = document.createElement("div");
+  contactHint.className = "hint";
+  contactHint.textContent = "花ごとに、球表面が触れている別の花を数えます。補強方法は接点だけ、または花全体の拡大から選べます。";
+  contactPanel.append(contactTitle, contactHint);
+  const contactModeRow = document.createElement("div");
+  contactModeRow.className = "row mode-row contact-reinforcement-mode";
+  const contactModeButtons = new Map<ContactReinforcementMode, HTMLButtonElement>();
+  for (const [mode, label] of [
+    ["localPoints", "接続部分だけ"],
+    ["wholeMotif", "花全体"],
+  ] as Array<[ContactReinforcementMode, string]>) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => {
+      renderContactReinforcementMode(mode);
+      callbacks.onSkinParamChange("contactReinforcementMode", mode);
+    };
+    contactModeButtons.set(mode, button);
+    contactModeRow.appendChild(button);
+  }
+  contactPanel.appendChild(contactModeRow);
+  const contactTargetSlider = buildSlider(
+    "必要な接続相手", 2, 4, 1, skinParams.contactTarget,
+    (value) => callbacks.onSkinParamChange("contactTarget", Math.round(value)),
+  );
+  const contactMaxGrowthSlider = buildSlider(
+    "局所補強の上限", 0, 0.2, 0.005, skinParams.contactMaxGrowth,
+    (value) => callbacks.onSkinParamChange("contactMaxGrowth", value),
+  );
+  const contactOverlapSlider = buildSlider(
+    "接点の重なり", 0, 0.05, 0.0025, skinParams.contactOverlap,
+    (value) => callbacks.onSkinParamChange("contactOverlap", value),
+  );
+  const contactWholeScaleSlider = buildSlider(
+    "花全体の拡大上限", 0, 1, 0.01, skinParams.contactWholeScaleMax,
+    (value) => callbacks.onSkinParamChange("contactWholeScaleMax", value),
+  );
+  contactPanel.append(contactTargetSlider.row, contactMaxGrowthSlider.row, contactWholeScaleSlider.row, contactOverlapSlider.row);
+  const contactButtons = document.createElement("div");
+  contactButtons.className = "row contact-actions";
+  const analyzeContactsButton = document.createElement("button");
+  analyzeContactsButton.type = "button";
+  analyzeContactsButton.textContent = "接点数を色で確認";
+  analyzeContactsButton.onclick = () => callbacks.onAnalyzeContacts();
+  const reinforceContactsButton = document.createElement("button");
+  reinforceContactsButton.type = "button";
+  reinforceContactsButton.textContent = "弱い花だけ補強";
+  reinforceContactsButton.onclick = () => callbacks.onReinforceContacts();
+  contactButtons.append(analyzeContactsButton, reinforceContactsButton);
+  const contactLegend = document.createElement("div");
+  contactLegend.className = "contact-legend";
+  contactLegend.innerHTML = '<span class="contact-red">0–1</span><span class="contact-orange">目標未満</span><span class="contact-green">目標以上</span>';
+  const contactStatus = document.createElement("div");
+  contactStatus.className = "hint contact-status";
+  contactStatus.textContent = "未確認";
+  contactPanel.append(contactButtons, contactLegend, contactStatus);
+  const contactWarning = document.createElement("div");
+  contactWarning.className = "hint";
+  contactWarning.textContent = "接点数は球どうしの接触近似です。最終メッシュの連結や印刷強度を保証しません。";
+  contactPanel.appendChild(contactWarning);
+  function renderContactReinforcementMode(mode: ContactReinforcementMode): void {
+    for (const [candidate, button] of contactModeButtons) button.classList.toggle("mode-active", candidate === mode);
+    contactMaxGrowthSlider.row.hidden = mode !== "localPoints";
+    contactWholeScaleSlider.row.hidden = mode !== "wholeMotif";
+    reinforceContactsButton.textContent = mode === "wholeMotif" ? "弱い花を上限まで丸ごと拡大" : "弱い花の接続部を補強";
+    contactHint.textContent = mode === "wholeMotif"
+      ? "弱い花の花芯・全花弁・配置を中心から同じ比率で拡大します。届かなくても指定上限まで拡大します。0.15は元の115%です。"
+      : "弱い花のうち、隣に一番近い花びらだけを太くします。従来の補強方法です。";
+  }
+  renderContactReinforcementMode(skinParams.contactReinforcementMode ?? "localPoints");
+  root.appendChild(contactPanel);
+
   const packBtnRow = document.createElement("div");
   packBtnRow.className = "row";
   const packBtn = document.createElement("button");
-  packBtn.textContent = "詰める (Pack)";
-  packBtn.title = "現在のパッチに加えて、表面へ貪欲にパッチを追加します";
+  packBtn.className = "primary-action";
+  packBtn.textContent = "この設定で表面を生成";
+  packBtn.title = "選んだ表面の組み方・形状・調整値で生成します";
   packBtn.onclick = () => callbacks.onPackPatches();
   const clearPatchesBtn = document.createElement("button");
   clearPatchesBtn.textContent = "パッチを消す";
@@ -450,24 +1413,215 @@ export function buildUi(
   packResult.className = "hint";
   root.appendChild(packResult);
 
+  // Internal Structure is independent from Surface generation. These controls
+  // never repack, remove, select, annotate, or partition surface elements.
+  const internalTitle = document.createElement("div");
+  internalTitle.className = "section-title internal-structure-title";
+  internalTitle.textContent = "Internal Structure";
+  root.appendChild(internalTitle);
+
+  const internalPanel = document.createElement("div");
+  internalPanel.className = "internal-structure-panel";
+  root.appendChild(internalPanel);
+  const internalToggle = document.createElement("div");
+  internalToggle.className = "mode-toggle";
+  const internalButtons: Record<InternalStructureMode, HTMLButtonElement> = {
+    none: document.createElement("button"),
+    targetedGrid: document.createElement("button"),
+    voronoiEdge: document.createElement("button"),
+  };
+  internalButtons.none.textContent = "None";
+  internalButtons.targetedGrid.textContent = "赤点→Dry Web";
+  internalButtons.voronoiEdge.textContent = "Voronoi Edge";
+  for (const internalMode of ["none", "targetedGrid", "voronoiEdge"] as InternalStructureMode[]) {
+    const button = internalButtons[internalMode];
+    button.type = "button";
+    button.onclick = () => {
+      renderInternalStructure(internalMode);
+      callbacks.onSkinParamChange("internalStructure", internalMode);
+    };
+    internalToggle.appendChild(button);
+  }
+  internalPanel.appendChild(internalToggle);
+
+  const internalControls = document.createElement("div");
+  internalControls.className = "internal-structure-controls";
+  internalPanel.appendChild(internalControls);
+
+  const internalObservationLabel = document.createElement("div");
+  internalObservationLabel.className = "hint internal-observation-label";
+  internalObservationLabel.textContent = "Internalの観察表示";
+  const internalObservationToggle = document.createElement("div");
+  internalObservationToggle.className = "mode-toggle internal-observation-toggle";
+  const internalObservationButtons = new Map<InternalObservationMode, HTMLButtonElement>();
+  for (const [mode, label] of [
+    ["normal", "通常"],
+    ["ghostSkin", "SKIN半透明"],
+    ["internalOnly", "SKIN非表示"],
+  ] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.setAttribute("aria-label", mode === "internalOnly"
+      ? "SKINを隠してInternal Structureだけを見る"
+      : mode === "ghostSkin" ? "SKINを半透明にして内部を見る" : "通常表示へ戻す");
+    button.onclick = () => callbacks.onSetInternalObservationMode(mode);
+    internalObservationButtons.set(mode, button);
+    internalObservationToggle.appendChild(button);
+  }
+  const internalObservationHint = document.createElement("div");
+  internalObservationHint.className = "hint internal-observation-hint";
+  internalObservationHint.textContent =
+    "表示だけを切り替えます。Surface生成・履歴・メッシュ書き出しは変わりません。";
+  internalControls.append(internalObservationLabel, internalObservationToggle, internalObservationHint);
+
+  const internalDensitySlider = buildSlider(
+    "Density（内部点数）", 8, 72, 1, skinParams.internalDensity,
+    (value) => callbacks.onSkinParamChange("internalDensity", value),
+  );
+  const targetedCountSlider = buildSlider(
+    "追加する補強線の本数", 0, 72, 1, skinParams.internalDensity,
+    (value) => callbacks.onSkinParamChange("internalDensity", value),
+  );
+  const internalRadiusSlider = buildSlider(
+    "Radius（線径）", 0.015, 0.12, 0.005, skinParams.internalRadius,
+    (value) => callbacks.onSkinParamChange("internalRadius", value),
+  );
+  const internalRandomnessSlider = buildSlider(
+    "Randomness（点配置の揺らぎ）", 0, 1, 0.01, skinParams.internalRandomness,
+    (value) => callbacks.onSkinParamChange("internalRandomness", value),
+  );
+  internalControls.append(
+    internalDensitySlider.row, targetedCountSlider.row, internalRadiusSlider.row, internalRandomnessSlider.row,
+  );
+  const internalMethodHint = document.createElement("div");
+  internalMethodHint.className = "hint internal-method-hint";
+  internalControls.appendChild(internalMethodHint);
+  const internalStatus = document.createElement("div");
+  internalStatus.className = "hint internal-structure-status";
+  internalPanel.appendChild(internalStatus);
+
+  const surfaceAnglePanel = document.createElement("section");
+  surfaceAnglePanel.className = "surface-angle-diagnosis";
+  const surfaceAngleTitle = document.createElement("strong");
+  surfaceAngleTitle.textContent = "面の角度診断（最終精度）";
+  const surfaceAngleHint = document.createElement("div");
+  surfaceAngleHint.className = "hint";
+  surfaceAngleHint.textContent =
+    "造形方向は+Z固定。0°=垂直壁、90°=下向き水平面です。左上の最終精度と同じSurface meshを完成させてから測ります。";
+  let surfaceAngleThreshold = 45;
+  const surfaceAngleThresholdSlider = buildSlider(
+    "危険角度の閾値", 0, 90, 1, surfaceAngleThreshold,
+    (value) => {
+      surfaceAngleThreshold = value;
+      callbacks.onSurfaceAngleThresholdChange();
+    },
+  );
+  const surfaceAngleActions = document.createElement("div");
+  surfaceAngleActions.className = "row surface-angle-actions";
+  const surfaceAngleRun = document.createElement("button");
+  surfaceAngleRun.type = "button";
+  surfaceAngleRun.className = "primary-action";
+  surfaceAngleRun.textContent = "最終精度で診断";
+  surfaceAngleRun.onclick = () => callbacks.onDiagnoseSurfaceAngles(surfaceAngleThreshold);
+  const surfaceAngleViewToggle = document.createElement("div");
+  surfaceAngleViewToggle.className = "mode-toggle surface-angle-view-toggle";
+  const surfaceAngleViewButtons = new Map<SurfaceAngleDiagnosisView, HTMLButtonElement>();
+  for (const [view, label] of [["before", "付加前"], ["after", "付加後"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.disabled = true;
+    button.onclick = () => callbacks.onSetSurfaceAngleDiagnosisView(view);
+    surfaceAngleViewButtons.set(view, button);
+    surfaceAngleViewToggle.appendChild(button);
+  }
+  surfaceAngleActions.append(surfaceAngleRun, surfaceAngleViewToggle);
+  const surfaceAngleLegend = document.createElement("div");
+  surfaceAngleLegend.className = "surface-angle-legend";
+  surfaceAngleLegend.innerHTML =
+    '<span><i class="surface-angle-swatch is-danger"></i>赤 = 閾値以上・未支援</span>' +
+    '<span><i class="surface-angle-swatch is-mitigated"></i>青緑 = Internal到達候補</span>';
+  const surfaceAngleStatus = document.createElement("div");
+  surfaceAngleStatus.className = "mesh-status surface-angle-status";
+  surfaceAngleStatus.textContent = "未診断";
+  surfaceAngleStatus.setAttribute("aria-live", "polite");
+  const motifLowestToggle = document.createElement("label");
+  motifLowestToggle.className = "surface-lowest-toggle";
+  const motifLowestCheckbox = document.createElement("input");
+  motifLowestCheckbox.type = "checkbox";
+  motifLowestCheckbox.onchange = () => callbacks.onToggleMotifLowestPoints(motifLowestCheckbox.checked, surfaceAngleThreshold);
+  const motifLowestLabel = document.createElement("span");
+  motifLowestLabel.textContent = "最終メッシュ上の各要素最下端を表示";
+  motifLowestToggle.append(motifLowestCheckbox, motifLowestLabel);
+  const motifLowestHint = document.createElement("div");
+  motifLowestHint.className = "hint";
+  motifLowestHint.textContent =
+    "最終Surface meshの頂点を最も近い花・コイン・リングへ帰属させ、要素ごとの最小Zを示します。赤=未到達、青緑=Internal到達候補。";
+  const motifLowestStatus = document.createElement("div");
+  motifLowestStatus.className = "mesh-status motif-lowest-status";
+  motifLowestStatus.textContent = "非表示";
+  motifLowestStatus.setAttribute("aria-live", "polite");
+  const surfaceAngleLimit = document.createElement("div");
+  surfaceAngleLimit.className = "hint";
+  surfaceAngleLimit.textContent =
+    "面角度と近接だけを見る一次スクリーニングです。ブリッジ、熱、荷重、実機の印刷成功は判定しません。";
+  surfaceAnglePanel.append(
+    surfaceAngleTitle,
+    surfaceAngleHint,
+    surfaceAngleThresholdSlider.row,
+    surfaceAngleActions,
+    surfaceAngleLegend,
+    surfaceAngleStatus,
+    motifLowestToggle,
+    motifLowestHint,
+    motifLowestStatus,
+    surfaceAngleLimit,
+  );
+  internalPanel.appendChild(surfaceAnglePanel);
+
+  function renderInternalObservation(mode: InternalObservationMode): void {
+    for (const [candidate, button] of internalObservationButtons) {
+      button.classList.toggle("mode-active", candidate === mode);
+    }
+  }
+
+  function renderInternalStructure(internalMode: InternalStructureMode): void {
+    internalButtons.none.classList.toggle("mode-active", internalMode === "none");
+    internalButtons.targetedGrid.classList.toggle("mode-active", internalMode === "targetedGrid");
+    internalButtons.voronoiEdge.classList.toggle("mode-active", internalMode === "voronoiEdge");
+    internalControls.hidden = internalMode === "none";
+    internalDensitySlider.row.hidden = internalMode !== "voronoiEdge";
+    targetedCountSlider.row.hidden = internalMode !== "targetedGrid";
+    internalRandomnessSlider.row.hidden = internalMode !== "voronoiEdge";
+    internalMethodHint.textContent = internalMode === "targetedGrid"
+      ? "全要素の赤点を内側から支え、花どうしの最短隙間を短い直線で一体化します。本数は最小網へ足す補強線、Radiusは全線共通です。初回は最終精度診断が必要です。"
+      : "内部点から3D Voronoiのedge graphを作ります。";
+    for (const button of internalObservationButtons.values()) button.disabled = internalMode === "none";
+  }
+  renderInternalObservation("normal");
+  renderInternalStructure(skinParams.internalStructure);
+
   // T12: 三択の表示モード（レイマーチ/ビーズ/全体メッシュ）。ビューポートの容量
   // 制限（先頭パッチ/点のみ描画、shaders.ts の PATCH_MAX_POINTS）で密な詰めが
   // 疎に見える問題への正直な出口 -- T11 は「全体メッシュ」の一本足だったが、
   // 重くてインタラクティブに確認できなかった（作者報告 2026-07-13「メッシュ確認
   // は重い」）。ビーズは InstancedMesh のため uniform 予算の制約を受けず、かつ
   // 通常の three.js シーンなのでオービット/ズームがそのままインタラクティブ。
-  const viewTitle = document.createElement("div");
-  viewTitle.className = "section-title";
-  viewTitle.textContent = "表示モード";
-  root.appendChild(viewTitle);
+  const viewDock = document.createElement("section");
+  viewDock.className = "viewport-view-dock";
+  const viewTitle = document.createElement("strong");
+  viewTitle.className = "viewport-view-title";
+  viewTitle.textContent = "生成結果を見る";
+  viewDock.appendChild(viewTitle);
 
   const viewToggle = document.createElement("div");
-  viewToggle.className = "mode-toggle";
+  viewToggle.className = "mode-toggle viewport-view-toggle";
   const viewButtons: Record<SkinViewMode, HTMLButtonElement> = {} as Record<SkinViewMode, HTMLButtonElement>;
   const VIEW_LABELS: [SkinViewMode, string][] = [
     ["raymarch", "レイマーチ"],
     ["beads", "ビーズ"],
-    ["mesh", "全体メッシュ"],
+    ["mesh", "段階メッシュ"],
   ];
   for (const [mode, label] of VIEW_LABELS) {
     const btn = document.createElement("button");
@@ -476,7 +1630,472 @@ export function buildUi(
     viewButtons[mode] = btn;
     viewToggle.appendChild(btn);
   }
-  root.appendChild(viewToggle);
+  const displayStyleToggle = document.createElement("div");
+  displayStyleToggle.className = "mode-toggle viewport-display-style";
+  const displayStyleButtons = new Map<SkinDisplayStyle, HTMLButtonElement>();
+  for (const [style, label] of [["solid", "通常"], ["ghost", "ゴースト"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.setAttribute("aria-label", style === "ghost" ? "裏側を透過して見る" : "通常の陰影で見る");
+    button.onclick = () => callbacks.onSetDisplayStyle(style);
+    displayStyleButtons.set(style, button);
+    displayStyleToggle.appendChild(button);
+  }
+  const meshPreviewStatus = document.createElement("div");
+  meshPreviewStatus.className = "viewport-view-status";
+  meshPreviewStatus.textContent = "最初から切り替えられます";
+  const quickResolutionRow = document.createElement("label");
+  quickResolutionRow.className = "viewport-mesh-resolution";
+  quickResolutionRow.appendChild(document.createTextNode("最終精度"));
+  const quickResolutionInput = document.createElement("input");
+  quickResolutionInput.type = "number";
+  quickResolutionInput.min = "32";
+  quickResolutionInput.max = "224";
+  quickResolutionInput.step = "16";
+  quickResolutionInput.value = "128";
+  quickResolutionInput.oninput = () => {
+    const value = Number(quickResolutionInput.value);
+    if (!Number.isFinite(value)) return;
+    resolutionInput.value = String(Math.max(32, Math.min(224, Math.round(value))));
+    resolutionOut.textContent = resolutionInput.value;
+  };
+  quickResolutionInput.onchange = () => {
+    const value = Math.max(32, Math.min(224, Math.round(Number(quickResolutionInput.value) || 128)));
+    quickResolutionInput.value = String(value);
+    resolutionInput.value = String(value);
+    resolutionOut.textContent = String(value);
+    callbacks.onPreviewMeshResolutionChange(value);
+  };
+  quickResolutionRow.appendChild(quickResolutionInput);
+  viewDock.append(viewToggle, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
+  const viewportElement = container.querySelector("#viewport") ?? container;
+  viewportElement.appendChild(viewDock);
+
+  const viewportTaskStatus = document.createElement("section");
+  viewportTaskStatus.className = "viewport-task-status";
+  viewportTaskStatus.setAttribute("aria-live", "polite");
+  viewportTaskStatus.hidden = true;
+  const viewportTaskLabel = document.createElement("strong");
+  viewportTaskLabel.textContent = "形を変換しています";
+  const viewportTaskText = document.createElement("span");
+  viewportTaskText.textContent = "準備中";
+  const viewportTaskCancel = document.createElement("button");
+  viewportTaskCancel.type = "button";
+  viewportTaskCancel.textContent = "計算を止める";
+  viewportTaskCancel.onclick = () => callbacks.onCancelPreviewMesh();
+  viewportTaskStatus.append(viewportTaskLabel, viewportTaskText, viewportTaskCancel);
+  viewportElement.appendChild(viewportTaskStatus);
+
+  const elementNamesRow = document.createElement("label");
+  elementNamesRow.className = "row element-names-toggle";
+  const elementNamesToggle = document.createElement("input");
+  elementNamesToggle.type = "checkbox";
+  elementNamesToggle.checked = false;
+  elementNamesToggle.onchange = () => callbacks.onToggleElementNames(elementNamesToggle.checked);
+  elementNamesRow.append(elementNamesToggle, document.createTextNode(" 要素番号を常に表示"));
+  root.appendChild(elementNamesRow);
+  const elementNamesHint = document.createElement("div");
+  elementNamesHint.className = "hint";
+  elementNamesHint.textContent = "通常はカーソルを重ねた要素と選択中の要素だけ表示します。常時表示では代表24要素を表示します。";
+  root.appendChild(elementNamesHint);
+
+  // Compact review registry: names remain derived in main.ts; this panel only
+  // edits the explicit saved review fields for the selected machine key.
+  const registry = document.createElement("details");
+  registry.className = "element-registry";
+  const registrySummary = document.createElement("summary");
+  registrySummary.textContent = "要素を探す・記録する";
+  registry.appendChild(registrySummary);
+  const search = document.createElement("input");
+  search.type = "search";
+  search.placeholder = "例: 花 025 / コイン";
+  registry.appendChild(search);
+  const list = document.createElement("div");
+  list.className = "element-registry-list";
+  registry.appendChild(list);
+  const controls = document.createElement("div");
+  controls.className = "element-review-controls";
+  const keep = document.createElement("input"); keep.type = "checkbox";
+  const weak = document.createElement("input"); weak.type = "checkbox";
+  const opening = document.createElement("input"); opening.type = "checkbox";
+  for (const [input, label] of [[keep, "残したい"], [weak, "接点が弱い"], [opening, "空隙が大きい"]] as const) {
+    const row = document.createElement("label"); row.append(input, document.createTextNode(` ${label}`)); controls.appendChild(row);
+  }
+  const note = document.createElement("textarea"); note.placeholder = "メモ"; note.rows = 2;
+  const save = document.createElement("button"); save.textContent = "記録を保存";
+  controls.append(note, save);
+  registry.appendChild(controls);
+  root.appendChild(registry);
+  let registryRows: Array<{ id: number; name: string; annotation: ElementAnnotationValue }> = [];
+  let registrySelected: number | null = null;
+  const renderRegistry = () => {
+    list.replaceChildren();
+    const query = search.value.trim().toLowerCase();
+    let shown = registryRows.filter((row) => matchesElementSearch(row.name, row.id, query));
+    if (registrySelected !== null && !shown.some((row) => row.id === registrySelected)) {
+      const selected = registryRows.find((row) => row.id === registrySelected); if (selected) shown = [selected, ...shown];
+    }
+    for (const row of shown.slice(0, 12)) {
+      const button = document.createElement("button"); button.textContent = row.name; button.classList.toggle("mode-active", row.id === registrySelected);
+      button.onclick = () => callbacks.onElementSelect(row.id); list.appendChild(button);
+    }
+    const selected = registryRows.find((row) => row.id === registrySelected);
+    keep.checked = selected?.annotation.keep ?? false; weak.checked = selected?.annotation.weakContact ?? false;
+    opening.checked = selected?.annotation.largeOpening ?? false; note.value = selected?.annotation.note ?? "";
+    controls.hidden = !selected;
+    editor.hidden = !selected;
+    selectedElementDock.hidden = !selected;
+  };
+  search.oninput = renderRegistry;
+  save.onclick = () => { if (registrySelected !== null) callbacks.onElementAnnotationSave(registrySelected, { keep: keep.checked, weakContact: weak.checked, largeOpening: opening.checked, note: note.value }); };
+  const clear = document.createElement("button"); clear.textContent = "記録を消す";
+  clear.onclick = () => { if (registrySelected !== null) callbacks.onElementAnnotationSave(registrySelected, { ...EMPTY_ANNOTATION }); };
+  controls.appendChild(clear);
+
+  const editor = document.createElement("div");
+  editor.id = "element-editor";
+  editor.className = "element-editor";
+  const editorTitle = document.createElement("strong");
+  editorTitle.textContent = "選択した要素を少し調整";
+  const editorHint = document.createElement("div");
+  editorHint.className = "hint";
+  editorHint.textContent = "矢印キーで移動（Shiftで4倍）。3D上の選択形状はドラッグできます。";
+  const sizeStep = document.createElement("input"); sizeStep.type = "number"; sizeStep.min = "1"; sizeStep.max = "50"; sizeStep.step = "1"; sizeStep.value = "10";
+  const rotateStep = document.createElement("input"); rotateStep.type = "number"; rotateStep.min = "1"; rotateStep.max = "90"; rotateStep.step = "1"; rotateStep.value = "15";
+  const moveStep = document.createElement("input"); moveStep.type = "number"; moveStep.min = "0.005"; moveStep.max = "0.3"; moveStep.step = "0.005"; moveStep.value = "0.05";
+  const editorNumber = (label: string, input: HTMLInputElement) => {
+    const row = document.createElement("label"); row.className = "row"; row.append(document.createTextNode(label), input); editor.appendChild(row);
+  };
+  editorNumber("大きさの刻み（%）", sizeStep);
+  editorNumber("回す角度（度）", rotateStep);
+  editorNumber("動かす刻み", moveStep);
+  const editorButtons = document.createElement("div"); editorButtons.className = "element-editor-buttons";
+  const bounded = (input: HTMLInputElement, fallback: number) => {
+    const value = Number(input.value); const min = Number(input.min); const max = Number(input.max);
+    return Number.isFinite(value) && value >= min && value <= max ? value : fallback;
+  };
+  const edit = (intent: PatchEditIntent) => { if (registrySelected !== null) callbacks.onElementEdit(registrySelected, intent); };
+  const addEditButton = (label: string, intent: () => PatchEditIntent) => {
+    const button = document.createElement("button"); button.textContent = label; button.onclick = () => edit(intent()); editorButtons.appendChild(button);
+  };
+  addEditButton("小さく", () => ({ kind: "scale", factor: 1 - bounded(sizeStep, 10) / 100 }));
+  addEditButton("大きく", () => ({ kind: "scale", factor: 1 + bounded(sizeStep, 10) / 100 }));
+  addEditButton("左へ回す", () => ({ kind: "rotate", degrees: -bounded(rotateStep, 15) }));
+  addEditButton("右へ回す", () => ({ kind: "rotate", degrees: bounded(rotateStep, 15) }));
+  const duplicateButton = document.createElement("button");
+  duplicateButton.textContent = "複製";
+  duplicateButton.onclick = () => { if (registrySelected !== null) callbacks.onDuplicateElement(registrySelected); };
+  editorButtons.appendChild(duplicateButton);
+  addEditButton("←", () => ({ kind: "nudge", u: -bounded(moveStep, 0.05), v: 0 }));
+  addEditButton("→", () => ({ kind: "nudge", u: bounded(moveStep, 0.05), v: 0 }));
+  addEditButton("↑", () => ({ kind: "nudge", u: 0, v: bounded(moveStep, 0.05) }));
+  addEditButton("↓", () => ({ kind: "nudge", u: 0, v: -bounded(moveStep, 0.05) }));
+  const editorStatus = document.createElement("div"); editorStatus.className = "element-editor-status"; editorStatus.textContent = "要素を選ぶと調整できます";
+  editor.prepend(editorTitle, editorHint);
+  editor.append(editorButtons, editorStatus);
+
+  // This is deliberately separate from Step 4's whole-family preview and
+  // controls above. It edits a realized element's own saved generator values
+  // without changing the next Pack settings or moving any neighbour.
+  const selectedMotif = document.createElement("section");
+  selectedMotif.className = "selected-motif-editor";
+  selectedMotif.hidden = true;
+  const selectedMotifTitle = document.createElement("strong");
+  selectedMotifTitle.textContent = "選んだ形だけ調整";
+  const selectedMotifSource = document.createElement("div");
+  selectedMotifSource.className = "selected-motif-source";
+  const selectedMotifCanvas = document.createElement("canvas");
+  selectedMotifCanvas.width = 320;
+  selectedMotifCanvas.height = 180;
+  selectedMotifCanvas.setAttribute("aria-label", "選んだ要素だけの形状プレビュー");
+  enableMotifPreview3D(selectedMotifCanvas);
+  const selectedMotifControls = document.createElement("div");
+  selectedMotifControls.className = "selected-motif-controls";
+  const selectedPlacementRow = document.createElement("div");
+  selectedPlacementRow.className = "selected-motif-row selected-placement-row";
+  const selectedPlacementLabel = document.createElement("span");
+  selectedPlacementLabel.textContent = "表面からの位置";
+  const selectedPlacementButtons = document.createElement("div");
+  selectedPlacementButtons.className = "mode-toggle";
+  let selectedMotifPlacement: MotifPlacement = "surface";
+  const selectedPlacementChoices: Array<[MotifPlacement, string]> = [
+    ["surface", "表面"], ["center", "面中心"], ["inside", "内側"],
+  ];
+  const selectedPlacementButtonMap = new Map<MotifPlacement, HTMLButtonElement>();
+  for (const [placement, label] of selectedPlacementChoices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => {
+      if (!selectedMotifPatch || !selectedMotifEligible) return;
+      callbacks.onElementEdit(selectedMotifPatch.id, { kind: "placement", placement });
+      selectedMotifPlacement = placement;
+      for (const [choice, choiceButton] of selectedPlacementButtonMap) {
+        choiceButton.classList.toggle("mode-active", choice === placement);
+      }
+      selectedMotifStatus.textContent = `${label}へ移動しました。接点・空隙・メッシュ・分割を再確認してください`;
+      selectedMotifStatus.classList.remove("warn");
+    };
+    selectedPlacementButtonMap.set(placement, button);
+    selectedPlacementButtons.appendChild(button);
+  }
+  selectedPlacementRow.append(selectedPlacementLabel, selectedPlacementButtons);
+  selectedMotifControls.appendChild(selectedPlacementRow);
+  const selectedMotifApply = document.createElement("button");
+  selectedMotifApply.type = "button";
+  selectedMotifApply.className = "primary-action";
+  selectedMotifApply.textContent = "この要素だけ更新";
+  selectedMotifApply.disabled = true;
+  const selectedMotifStatus = document.createElement("div");
+  selectedMotifStatus.className = "element-editor-status";
+  selectedMotifStatus.textContent = "要素を選ぶと、その要素の保存値を表示します";
+  const selectedMotifHint = document.createElement("div");
+  selectedMotifHint.className = "hint";
+  selectedMotifHint.textContent = "隣の要素は動かしません。更新後は接点・空隙・メッシュ・分割をもう一度確認します。";
+  selectedMotif.append(
+    selectedMotifTitle,
+    selectedMotifSource,
+    selectedMotifCanvas,
+    selectedMotifControls,
+    selectedMotifApply,
+    selectedMotifStatus,
+    selectedMotifHint,
+  );
+  const selectedElementDock = document.createElement("aside");
+  selectedElementDock.className = "selected-element-dock";
+  selectedElementDock.hidden = true;
+  selectedElementDock.append(editor, selectedMotif);
+  // This dock deliberately lives inside the viewport so it stays beside the
+  // selected object. Do not let its controls bubble into the viewport's
+  // click/drag picker: removing the selected button during pointerup would
+  // otherwise cancel the subsequent click before "この要素だけ更新" runs.
+  for (const type of ["pointerdown", "pointerup", "pointercancel"] as const) {
+    selectedElementDock.addEventListener(type, (event) => event.stopPropagation());
+  }
+  (container.querySelector("#viewport") ?? container).appendChild(selectedElementDock);
+
+  let selectedMotifPatch: Patch | null = null;
+  let selectedMotifDraft: MotifShapeParams | null = null;
+  let selectedRingDiameter: number | null = null;
+  let selectedRingInitialDiameter: number | null = null;
+  let selectedMotifSignature = "";
+  let selectedMotifEligible = false;
+  const selectedMotifRows: Array<{ shapes: Patch["shape"][]; sync: () => void; row: HTMLElement }> = [];
+  const motifNumber = (
+    label: string,
+    key: Exclude<keyof MotifShapeParams, "flowerMotifPreset" | "flowerShowCore">,
+    min: number,
+    max: number,
+    step: number,
+    shapes: Patch["shape"][],
+  ) => {
+    const row = document.createElement("label");
+    row.className = "selected-motif-row";
+    const caption = document.createElement("span");
+    caption.textContent = label;
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = String(min); input.max = String(max); input.step = String(step);
+    const output = document.createElement("output");
+    const sync = () => {
+      if (!selectedMotifDraft) return;
+      input.value = String(selectedMotifDraft[key]);
+      output.textContent = step >= 1 ? String(Math.round(Number(selectedMotifDraft[key]))) : Number(selectedMotifDraft[key]).toFixed(2);
+    };
+    input.oninput = () => {
+      if (!selectedMotifDraft) return;
+      (selectedMotifDraft as unknown as Record<string, number | boolean | string>)[key] =
+        step >= 1 ? Math.round(Number(input.value)) : Number(input.value);
+      if (shapes.includes("flower")) selectedMotifDraft.flowerMotifPreset = "custom";
+      selectedMotifApply.textContent = "この要素だけ更新（変更あり）";
+      selectedMotifApply.disabled = !selectedMotifEligible;
+      selectedMotifStatus.textContent = "未保存の変更があります";
+      selectedMotifStatus.classList.remove("warn");
+      sync();
+      renderSelectedMotifPreview();
+    };
+    row.append(caption, input, output);
+    selectedMotifControls.appendChild(row);
+    selectedMotifRows.push({ shapes, sync, row });
+  };
+  let selectedMotifCurrent: SkinParams = { ...skinParams };
+  const ringDiameterRow = document.createElement("label");
+  ringDiameterRow.className = "selected-motif-row selected-ring-diameter-row";
+  const ringDiameterCaption = document.createElement("span");
+  ringDiameterCaption.textContent = "リング直径（中心線）";
+  const ringDiameterInput = document.createElement("input");
+  ringDiameterInput.type = "number";
+  ringDiameterInput.step = "0.01";
+  ringDiameterInput.setAttribute("aria-label", "リング直径（中心線）");
+  const ringDiameterUnit = document.createElement("output");
+  ringDiameterUnit.textContent = "形状単位";
+  ringDiameterRow.append(ringDiameterCaption, ringDiameterInput, ringDiameterUnit);
+  selectedMotifControls.appendChild(ringDiameterRow);
+  function selectedRingOrbitScale(): number {
+    if (
+      selectedMotifPatch?.shape !== "ring3d" ||
+      selectedRingDiameter === null ||
+      selectedRingInitialDiameter === null ||
+      selectedRingInitialDiameter <= 0
+    ) return 1;
+    return Math.min(4, Math.max(0.25, selectedRingDiameter / selectedRingInitialDiameter));
+  }
+  function renderSelectedMotifPreview(): void {
+    if (!selectedMotifDraft || !selectedMotifPatch) return;
+    renderMotifPreview(
+      selectedMotifCanvas,
+      { ...selectedMotifCurrent, ...selectedMotifDraft, patchShape: selectedMotifPatch.shape },
+      selectedRingOrbitScale(),
+    );
+  }
+  ringDiameterInput.oninput = () => {
+    if (!selectedMotifPatch || selectedMotifPatch.shape !== "ring3d") return;
+    const value = Number(ringDiameterInput.value);
+    if (!Number.isFinite(value)) return;
+    const min = Math.max(0.04, selectedMotifCurrent.minR * 0.5);
+    const max = Math.max(min, selectedMotifCurrent.maxR * 5);
+    selectedRingDiameter = Math.min(max, Math.max(min, value));
+    ringDiameterInput.value = selectedRingDiameter.toFixed(3);
+    selectedMotifApply.textContent = "この要素だけ更新（変更あり）";
+    selectedMotifApply.disabled = !selectedMotifEligible;
+    selectedMotifStatus.textContent = "未保存の直径変更があります（管の太さは変わりません）";
+    selectedMotifStatus.classList.remove("warn");
+    renderSelectedMotifPreview();
+  };
+  motifNumber("輪郭のゆらぎ", "irregularity", 0, 1, 0.01, ["coin"]);
+  motifNumber("コインの中央穴", "coinHoleRatio", 0, 0.95, 0.01, ["coin"]);
+  motifNumber("穴の大きさ", "flatRingHoleRatio", 0.08, 0.9, 0.01, ["flatRing"]);
+  motifNumber("節の数", "ringNodeCount", 4, 18, 1, ["flatRing", "ring3d"]);
+  motifNumber("管の太さ", "ringTubeR", 0.02, 0.3, 0.005, ["ring3d"]);
+  motifNumber("節のゆらぎ", "ringWobbleR", 0, 1, 0.01, ["flatRing", "ring3d"]);
+  motifNumber("並びのゆらぎ", "ringWobblePos", 0, 1, 0.01, ["ring3d"]);
+  motifNumber("花弁の数", "flowerPetalCount", 3, 12, 1, ["flower"]);
+  motifNumber("花の開き", "flowerOpening", 0.72, 1.22, 0.01, ["flower"]);
+  motifNumber("花弁の首", "flowerNeck", 0.14, 0.62, 0.01, ["flower"]);
+  motifNumber("花芯の大きさ", "flowerCoreSize", 0.42, 0.78, 0.01, ["flower"]);
+  motifNumber("花弁の起き上がり", "flowerCupping", -0.18, 0.5, 0.01, ["flower"]);
+  motifNumber("花芯の高さ", "flowerCoreLift", -0.12, 0.5, 0.01, ["flower"]);
+  motifNumber("花弁の成長差", "flowerGrowthDifference", 0, 0.34, 0.01, ["flower"]);
+  motifNumber("花の融合幅", "flowerExpansion", 0, 2, 0.05, ["flower"]);
+  const coreRow = document.createElement("div");
+  coreRow.className = "selected-motif-core";
+  const coreLabel = document.createElement("span"); coreLabel.textContent = "花芯";
+  const coreToggle = document.createElement("button"); coreToggle.type = "button";
+  coreToggle.onclick = () => {
+    if (!selectedMotifDraft) return;
+    selectedMotifDraft.flowerShowCore = !selectedMotifDraft.flowerShowCore;
+    selectedMotifDraft.flowerMotifPreset = "custom";
+    selectedMotifApply.textContent = "この要素だけ更新（変更あり）";
+    selectedMotifApply.disabled = !selectedMotifEligible;
+    selectedMotifStatus.textContent = "未保存の変更があります";
+    selectedMotifStatus.classList.remove("warn");
+    syncSelectedMotifControls();
+    renderSelectedMotifPreview();
+  };
+  coreRow.append(coreLabel, coreToggle);
+  selectedMotifControls.appendChild(coreRow);
+  const presetRow = document.createElement("div");
+  presetRow.className = "selected-motif-row";
+  const presetLabel = document.createElement("span"); presetLabel.textContent = "元の花型";
+  const presetValue = document.createElement("output");
+  presetRow.append(presetLabel, presetValue);
+  selectedMotifControls.appendChild(presetRow);
+  function syncSelectedMotifControls(): void {
+    if (!selectedMotifDraft || !selectedMotifPatch) return;
+    for (const entry of selectedMotifRows) {
+      entry.row.hidden = !entry.shapes.includes(selectedMotifPatch.shape);
+      entry.sync();
+    }
+    coreRow.hidden = selectedMotifPatch.shape !== "flower";
+    presetRow.hidden = selectedMotifPatch.shape !== "flower";
+    ringDiameterRow.hidden = selectedMotifPatch.shape !== "ring3d";
+    if (selectedMotifPatch.shape === "ring3d" && selectedRingDiameter !== null) {
+      const min = Math.max(0.04, selectedMotifCurrent.minR * 0.5);
+      const max = Math.max(min, selectedMotifCurrent.maxR * 5);
+      ringDiameterInput.min = String(min);
+      ringDiameterInput.max = String(max);
+      ringDiameterInput.value = selectedRingDiameter.toFixed(3);
+    }
+    coreToggle.textContent = selectedMotifDraft.flowerShowCore ? "あり" : "なし";
+    coreToggle.classList.toggle("mode-active", selectedMotifDraft.flowerShowCore);
+    presetValue.textContent = selectedMotifDraft.flowerMotifPreset === "custom" ? "手調整" : selectedMotifDraft.flowerMotifPreset;
+  }
+  function setSelectedMotif(
+    patch: Patch | null,
+    current: SkinParams,
+    eligibility: { ok: boolean; reason?: string },
+  ): void {
+    selectedMotifCurrent = { ...current };
+    if (!patch) {
+      selectedMotifPatch = null;
+      selectedMotifDraft = null;
+      selectedRingDiameter = null;
+      selectedRingInitialDiameter = null;
+      selectedMotifSignature = "";
+      selectedMotifEligible = false;
+      selectedMotifApply.textContent = "この要素だけ更新";
+      selectedMotifApply.disabled = true;
+      selectedMotif.hidden = true;
+      return;
+    }
+    // Surface clicks and registry selection both flow here immediately. Open
+    // once when the selected element changes, but respect a later manual
+    // close while that same element remains selected.
+    // Fill newly-added motif keys from current defaults before applying a
+    // legacy patch capture. Old recipes therefore show coin hole=0 instead
+    // of an empty/NaN control, without changing their realized points.
+    const source = { ...captureMotifShapeParams(current), ...(patch.motifParams ?? {}) };
+    const ringDiameter = ring3dCenterlineDiameter(patch);
+    const signature = `${patch.id}:${JSON.stringify(source)}:${ringDiameter?.toFixed(6) ?? ""}`;
+    if (signature !== selectedMotifSignature) {
+      selectedMotifPatch = patch;
+      selectedMotifDraft = { ...source };
+      selectedRingDiameter = ringDiameter;
+      selectedRingInitialDiameter = ringDiameter;
+      selectedMotifSignature = signature;
+      selectedMotifApply.textContent = "この要素だけ更新";
+      selectedMotifStatus.textContent = "保存値を変更してから、この要素だけ更新します";
+      selectedMotifStatus.classList.remove("warn");
+    } else {
+      selectedMotifPatch = patch;
+    }
+    selectedMotif.hidden = false;
+    selectedMotifTitle.textContent = `選んだ${SHAPE_LABELS.find(([shape]) => shape === patch.shape)?.[1] ?? "形"}だけ調整`;
+    selectedMotifSource.textContent = patch.motifParams
+      ? "この要素を作った保存値"
+      : "以前のレシピ：いまの生成設定を仮の初期値として表示中";
+    selectedMotifEligible = eligibility.ok;
+    selectedMotifPlacement = patch.motifPlacement ?? "surface";
+    for (const [placement, button] of selectedPlacementButtonMap) {
+      button.classList.toggle("mode-active", placement === selectedMotifPlacement);
+      button.disabled = !eligibility.ok;
+    }
+    selectedMotifApply.disabled = !eligibility.ok;
+    if (!eligibility.ok) {
+      selectedMotifStatus.textContent = eligibility.reason ?? "この要素は個別に更新できません";
+      selectedMotifStatus.classList.add("warn");
+    } else if (selectedMotifStatus.classList.contains("warn")) {
+      selectedMotifStatus.textContent = "保存値を変更してから、この要素だけ更新します";
+      selectedMotifStatus.classList.remove("warn");
+    }
+    syncSelectedMotifControls();
+    renderSelectedMotifPreview();
+  }
+  selectedMotifApply.onclick = () => {
+    if (selectedMotifApply.disabled || !selectedMotifPatch || !selectedMotifDraft) return;
+    const beforePointCount = selectedMotifPatch.points.length;
+    const updated = callbacks.onReshapePatch(
+      selectedMotifPatch.id,
+      { ...selectedMotifDraft },
+      selectedMotifPatch.shape === "ring3d" ? selectedRingDiameter ?? undefined : undefined,
+    );
+    if (!updated) return;
+    const afterPointCount = selectedMotifPatch?.points.length ?? beforePointCount;
+    selectedMotifApply.textContent = "この要素だけ更新";
+    selectedMotifStatus.textContent = `更新しました（点 ${beforePointCount} → ${afterPointCount}）。接点・空隙・メッシュ・分割を再確認してください`;
+    selectedMotifStatus.classList.remove("warn");
+  };
 
   const autoSwitchNotice = document.createElement("div");
   autoSwitchNotice.className = "hint auto-switch-notice";
@@ -506,9 +2125,16 @@ export function buildUi(
           ? " ⚠ ビーズは生のPatchPoint球をそのまま描くため、コインのふくらみ（shell clippingの差）を正しく表しません。ふくらみ比較には「全体メッシュ」を使ってください。"
           : "");
     } else {
-      viewCaption.textContent = "全体メッシュ: STL と同じ実データ全部を lit mesh で表示（正確・やや重い）。編集操作をするとレイマーチ/ビーズへ自動的に戻ります。";
+      viewCaption.textContent = "段階メッシュ: まず粗い形を表示し、画面を動かせるまま設定解像度の形へ自動更新します。印刷・書き出しは別の検査経路です。";
     }
   }
+
+  function renderDisplayStyle(style: SkinDisplayStyle): void {
+    for (const [candidate, button] of displayStyleButtons) {
+      button.classList.toggle("mode-active", candidate === style);
+    }
+  }
+  renderDisplayStyle("solid");
 
   const manualRow = document.createElement("div");
   manualRow.className = "row";
@@ -637,15 +2263,123 @@ export function buildUi(
 
   root.appendChild(linkingPanel);
 
+  const resultTools = document.createElement("details");
+  resultTools.className = "result-tools";
+  const resultToolsSummary = document.createElement("summary");
+  resultToolsSummary.textContent = "生成結果を見る・手で直す";
+  resultTools.appendChild(resultToolsSummary);
+  resultTools.append(
+    autoSwitchNotice,
+    viewCaption,
+    manualRow,
+    manualRadiusBuilt.row,
+    hint,
+    deletePatchBtn,
+    selectionInfo,
+    gaugesPanel,
+    linkingPanel,
+  );
+  root.appendChild(resultTools);
+
+  root.appendChild(document.createElement("hr"));
+
+  // --- Generation-native N partition -------------------------------------
+  const nPartitionPanel = document.createElement("section");
+  nPartitionPanel.className = "mesh-export n-partition";
+
+  const nPartitionTitle = document.createElement("div");
+  nPartitionTitle.id = "skin-step-split";
+  nPartitionTitle.className = "mesh-export-title";
+  nPartitionTitle.textContent = "5. 形の流れで分割";
+  nPartitionPanel.appendChild(nPartitionTitle);
+
+  const nPartitionHint = document.createElement("div");
+  nPartitionHint.className = "hint";
+  nPartitionHint.textContent =
+    "平面では切りません。Surface Packingの流れをN色に分け、曲面境界の検証用部品を生成します。接着・隙間・強度は未確認です。";
+  nPartitionPanel.appendChild(nPartitionHint);
+
+  const nCountRow = document.createElement("div");
+  nCountRow.className = "row mesh-row";
+  const nCountLabel = document.createElement("label");
+  nCountLabel.textContent = "部品数";
+  const nCountSelect = document.createElement("select");
+  nCountSelect.setAttribute("aria-label", "N分割の部品数");
+  for (let count = 2; count <= 6; count++) {
+    const option = document.createElement("option");
+    option.value = String(count);
+    option.textContent = `${count}分割`;
+    option.selected = count === 3;
+    nCountSelect.appendChild(option);
+  }
+  nCountRow.append(nCountLabel, nCountSelect);
+  nPartitionPanel.appendChild(nCountRow);
+
+  const nProposeBtn = document.createElement("button");
+  nProposeBtn.type = "button";
+  nProposeBtn.className = "primary-action";
+  nProposeBtn.textContent = "N色の分け方を提案・確定";
+  nProposeBtn.onclick = () => callbacks.onProposeNPartition(Number(nCountSelect.value));
+  nPartitionPanel.appendChild(nProposeBtn);
+
+  const nLegend = document.createElement("div");
+  nLegend.className = "n-partition-legend";
+  nLegend.hidden = true;
+  nPartitionPanel.appendChild(nLegend);
+
+  const nProposal = document.createElement("div");
+  nProposal.className = "selection-info";
+  nProposal.textContent = "未提案";
+  nProposal.setAttribute("aria-live", "polite");
+  nPartitionPanel.appendChild(nProposal);
+
+  const nBuildRow = document.createElement("div");
+  nBuildRow.className = "row";
+  const nBuildBtn = document.createElement("button");
+  nBuildBtn.type = "button";
+  nBuildBtn.textContent = "このN分割を生成";
+  nBuildBtn.onclick = () => callbacks.onBuildNPartition();
+  const nCancelBtn = document.createElement("button");
+  nCancelBtn.type = "button";
+  nCancelBtn.textContent = "キャンセル";
+  nCancelBtn.disabled = true;
+  nCancelBtn.onclick = () => callbacks.onCancelNPartitionBuild();
+  nBuildRow.append(nBuildBtn, nCancelBtn);
+  nPartitionPanel.appendChild(nBuildRow);
+
+  const nStatus = document.createElement("div");
+  nStatus.className = "mesh-status";
+  nStatus.textContent = "未生成";
+  nStatus.setAttribute("aria-live", "polite");
+  nPartitionPanel.appendChild(nStatus);
+
+  const nMetrics = document.createElement("pre");
+  nMetrics.className = "partition-metrics";
+  nPartitionPanel.appendChild(nMetrics);
+
+  const nExportHint = document.createElement("div");
+  nExportHint.className = "hint";
+  nExportHint.textContent =
+    "現在のN分割は形状・水密・部品数・体積差を確認する検証版です。印刷成功や接着強度は保証しません。";
+  nPartitionPanel.appendChild(nExportHint);
+
+  const nExportBtn = document.createElement("button");
+  nExportBtn.type = "button";
+  nExportBtn.textContent = "検証用N部品をまとめて保存";
+  nExportBtn.disabled = true;
+  nExportBtn.onclick = () => callbacks.onExportNPartition();
+  nPartitionPanel.appendChild(nExportBtn);
+
+  root.appendChild(nPartitionPanel);
   root.appendChild(document.createElement("hr"));
 
   // --- T13 coin由来A/B分割 --------------------------------------------------
-  const partitionPanel = document.createElement("div");
+  const partitionPanel = document.createElement("details");
   partitionPanel.className = "mesh-export";
 
-  const partitionTitle = document.createElement("div");
+  const partitionTitle = document.createElement("summary");
   partitionTitle.className = "mesh-export-title";
-  partitionTitle.textContent = "A/B分割（coin隣接グラフ）";
+  partitionTitle.textContent = "詳細を開く: 旧A/B分割";
   partitionPanel.appendChild(partitionTitle);
 
   // --- Optional guided tutorial (compact card; never a modal overlay) ------
@@ -987,7 +2721,7 @@ export function buildUi(
   sizeInput.max = "240";
   sizeInput.step = "1";
   sizeInput.value = "80";
-  sizeInput.oninput = () => refreshGaugesMm();
+  sizeInput.oninput = () => { refreshGaugesMm(); callbacks.onOpeningMapConditionsChange(); };
   sizeRow.appendChild(sizeLabel);
   sizeRow.appendChild(sizeInput);
   meshPanel.appendChild(sizeRow);
@@ -1001,13 +2735,19 @@ export function buildUi(
   resolutionInput.min = "32";
   resolutionInput.max = "224";
   resolutionInput.step = "16";
-  resolutionInput.value = "96";
+  // A 0.8 mm minimum Internal strut needs at least 2.5 samples across its
+  // diameter in the fixed 80 mm A1 mini workflow. 128 is the first standard
+  // authoring resolution that clears that representation gate.
+  resolutionInput.value = "128";
   const resolutionOut = document.createElement("span");
   resolutionOut.className = "value-out";
   resolutionOut.textContent = resolutionInput.value;
   resolutionInput.oninput = () => {
     resolutionOut.textContent = resolutionInput.value;
+    quickResolutionInput.value = resolutionInput.value;
+    callbacks.onOpeningMapConditionsChange();
   };
+  resolutionInput.onchange = () => callbacks.onPreviewMeshResolutionChange(Number(resolutionInput.value));
   resolutionRow.appendChild(resolutionLabel);
   resolutionRow.appendChild(resolutionInput);
   resolutionRow.appendChild(resolutionOut);
@@ -1027,15 +2767,217 @@ export function buildUi(
   const exportMeshBtn = document.createElement("button");
   exportMeshBtn.textContent = "3Dデータで書き出す";
   exportMeshBtn.onclick = () => callbacks.onMeshExport(readMeshOptions());
+  const cancelMeshExportBtn = document.createElement("button");
+  cancelMeshExportBtn.textContent = "書き出しをキャンセル";
+  cancelMeshExportBtn.disabled = true;
+  cancelMeshExportBtn.onclick = () => callbacks.onCancelMeshExport();
+  let meshExportRunning = false;
+  let internalPrintGateRequired = false;
+  let internalPrintGateExportAllowed = true;
+  const syncMeshExportButtons = () => {
+    exportMeshBtn.disabled = meshExportRunning || (internalPrintGateRequired && !internalPrintGateExportAllowed);
+    inspectMeshBtn.disabled = meshExportRunning;
+    cancelMeshExportBtn.disabled = !meshExportRunning;
+    exportMeshBtn.textContent = meshExportRunning ? "別処理で書き出し中…" : "3Dデータで書き出す";
+    exportMeshBtn.title = internalPrintGateRequired && !internalPrintGateExportAllowed
+      ? "A1 mini条件の内部構造判定がOKになるまで書き出せません"
+      : "";
+  };
   meshButtonRow.appendChild(inspectMeshBtn);
   meshButtonRow.appendChild(exportMeshBtn);
+  meshButtonRow.appendChild(cancelMeshExportBtn);
   meshPanel.appendChild(meshButtonRow);
 
   const meshStatus = document.createElement("div");
   meshStatus.className = "mesh-status";
   meshStatus.textContent = "未検査";
   meshPanel.appendChild(meshStatus);
+
+  const bambuExportPanel = document.createElement("section");
+  bambuExportPanel.className = "bambu-3mf-export";
+  const bambuExportTitle = document.createElement("strong");
+  bambuExportTitle.textContent = "Bambu Studio用3MF（Katachi一体融合支柱）";
+  const bambuExportHint = document.createElement("div");
+  bambuExportHint.className = "hint";
+  bambuExportHint.textContent =
+    "最終精度診断で残ったオーバーハング全体から、プレートから真上へBODYと衝突せず届く場所をすべて選び、約0.8 mm間隔・直径0.8 mmの高密度直線支柱を作ります。接触部は直径1.0 mm・食い込み0.30 mmです。BODY・Dry Web・全支柱を同じSDFで再メッシュし、水密な1連結の通常partとして保存します。Bambuの自動サポートはOFFです。";
+  const bambuExportRow = document.createElement("div");
+  bambuExportRow.className = "row bambu-3mf-actions";
+  const bambuSupportType = document.createElement("select");
+  bambuSupportType.setAttribute("aria-label", "Bambu Studioのサポート方式");
+  for (const [value, label] of [
+    ["normal(manual)", "Katachi一体融合支柱（自動Support OFF）"],
+  ] as Array<[BambuSupportType, string]>) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    bambuSupportType.appendChild(option);
+  }
+  const bambuExportBtn = document.createElement("button");
+  bambuExportBtn.type = "button";
+  bambuExportBtn.className = "primary-action";
+  bambuExportBtn.textContent = "一体融合支柱3MFを書き出す";
+  bambuExportBtn.onclick = () => callbacks.onBambu3mfExport(
+    readMeshOptions(),
+    bambuSupportType.value as BambuSupportType,
+  );
+  bambuExportRow.append(bambuSupportType, bambuExportBtn);
+  const bambuExportStatus = document.createElement("div");
+  bambuExportStatus.className = "mesh-status bambu-3mf-status";
+  bambuExportStatus.textContent = "先に「最終精度で診断」を実行してください";
+  bambuExportStatus.setAttribute("aria-live", "polite");
+  const bambuExportLimit = document.createElement("div");
+  bambuExportLimit.className = "hint";
+  bambuExportLimit.textContent =
+    "支柱は全オーバーハングを対象にしますが、BODYを貫通するものだけ除外します。プレートから直線で届く支柱を外殻へ融合し、交差した別meshではなくBODYと同じ閉メッシュへ作り直します。接触パッドは直径1.0 mm・食い込み0.30 mmです。Previewで自動Supportが0 g、支柱が全域へ分布し、floating regions警告と0.2/0.4/0.6 mm層の開始島が消え、印刷後に下方向へ除去できることを確認するまでは印刷しないでください。";
+  bambuExportPanel.append(bambuExportTitle, bambuExportHint, bambuExportRow, bambuExportStatus, bambuExportLimit);
+  meshPanel.appendChild(bambuExportPanel);
   root.appendChild(meshPanel);
+
+  const openingPanel = document.createElement("section");
+  openingPanel.className = "mesh-export opening-map";
+  const openingTitle = document.createElement("div");
+  openingTitle.className = "mesh-export-title";
+  openingTitle.textContent = "空隙マップ（詳細）";
+  openingPanel.appendChild(openingTitle);
+  const denseSampleCard = document.createElement("div");
+  denseSampleCard.className = "dense-sample-card";
+  const denseSampleTitle = document.createElement("strong");
+  denseSampleTitle.textContent = "参考：高密度花モデル v6（保存済み・閲覧専用）";
+  const denseSampleText = document.createElement("div");
+  denseSampleText.className = "hint";
+  denseSampleText.textContent = "現在の作業モデルではありません。Goldbergではなく、花の輪郭・大小の混在・レース状の隙間が残った参照形状です。元recipeがないため閲覧専用です。";
+  const denseSampleOpen = document.createElement("button");
+  denseSampleOpen.type = "button";
+  denseSampleOpen.textContent = "保存済み参考モデルv6を開く";
+  denseSampleOpen.onclick = () => callbacks.onOpenDenseFlowerSample();
+  const denseSampleViews = document.createElement("div");
+  denseSampleViews.className = "mode-toggle dense-sample-views";
+  denseSampleViews.hidden = true;
+  const denseSampleViewButtons = {} as Record<DenseSampleView, HTMLButtonElement>;
+  for (const [view, label] of [["3d", "3Dで見る"], ["sixViews", "6方向一覧"]] as Array<[DenseSampleView, string]>) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => callbacks.onDenseFlowerSampleView(view);
+    denseSampleViewButtons[view] = button;
+    denseSampleViews.appendChild(button);
+  }
+  denseSampleCard.append(denseSampleTitle, denseSampleText, denseSampleOpen, denseSampleViews);
+  const openingHint = document.createElement("div");
+  openingHint.className = "hint";
+  openingHint.textContent = "現在の作業モデルを対象に、有限解像度の計測面で覆われない領域を推定します。自動では、花や立体リングの高さに合わせて形状の胴を通る計測面を選びます。色は番号の識別のみです。";
+  openingPanel.appendChild(openingHint);
+  const openingAutoOffset = document.createElement("input"); openingAutoOffset.type = "checkbox"; openingAutoOffset.checked = true; openingAutoOffset.setAttribute("aria-label", "形状の高さへ自動調整");
+  const openingOffset = document.createElement("input"); openingOffset.type = "number"; openingOffset.min = "-20"; openingOffset.max = "20"; openingOffset.step = "0.1"; openingOffset.value = "0.0"; openingOffset.disabled = true; openingOffset.setAttribute("aria-label", "手動オフセット mm");
+  const openingMinArea = document.createElement("input"); openingMinArea.type = "number"; openingMinArea.min = "0"; openingMinArea.max = "10000"; openingMinArea.step = "0.1"; openingMinArea.value = "0.5";
+  const openingResolution = document.createElement("input"); openingResolution.type = "range"; openingResolution.min = "24"; openingResolution.max = "64"; openingResolution.step = "8"; openingResolution.value = "48";
+  const openingResolutionOut = document.createElement("span"); openingResolutionOut.className = "value-out"; openingResolutionOut.textContent = openingResolution.value;
+  const makeOpeningRow = (label: string, input: HTMLInputElement, output?: HTMLElement) => { const row = document.createElement("div"); row.className = "row mesh-row"; const l = document.createElement("label"); l.textContent = label; row.append(l, input); if (output) row.append(output); openingPanel.appendChild(row); };
+  makeOpeningRow("形状の高さへ自動調整", openingAutoOffset);
+  makeOpeningRow("手動オフセット mm", openingOffset);
+  makeOpeningRow("最小面積 mm²", openingMinArea);
+  makeOpeningRow("計測解像度", openingResolution, openingResolutionOut);
+  const openingConditionChanged = () => callbacks.onOpeningMapConditionsChange();
+  openingAutoOffset.onchange = () => { openingOffset.disabled = openingAutoOffset.checked; openingConditionChanged(); };
+  openingOffset.oninput = openingConditionChanged; openingMinArea.oninput = openingConditionChanged;
+  openingResolution.oninput = () => { openingResolutionOut.textContent = openingResolution.value; openingConditionChanged(); };
+  const openingButtons = document.createElement("div"); openingButtons.className = "row";
+  const measureOpeningsBtn = document.createElement("button"); measureOpeningsBtn.className = "primary-action"; measureOpeningsBtn.textContent = "今の作業モデルの空隙番号を表示";
+  measureOpeningsBtn.onclick = () => callbacks.onMeasureOpenings({ ...readMeshOptions(), resolution: Number(openingResolution.value), automaticOffset: openingAutoOffset.checked, offsetMm: Number(openingOffset.value), minAreaMm2: Number(openingMinArea.value) });
+  const cancelOpeningsBtn = document.createElement("button"); cancelOpeningsBtn.textContent = "キャンセル"; cancelOpeningsBtn.disabled = true; cancelOpeningsBtn.onclick = () => callbacks.onCancelOpeningMap();
+  const clearOpeningsBtn = document.createElement("button"); clearOpeningsBtn.textContent = "表示を消す"; clearOpeningsBtn.onclick = () => callbacks.onClearOpeningMap();
+  openingButtons.append(measureOpeningsBtn, cancelOpeningsBtn, clearOpeningsBtn); openingPanel.appendChild(openingButtons);
+  const openingDisplayRow = document.createElement("div"); openingDisplayRow.className = "row";
+  const openingDisplayLabel = document.createElement("label"); openingDisplayLabel.textContent = "表示数";
+  const openingDisplay = document.createElement("select");
+  for (const [value, text] of [["10", "10"], ["20", "20"], ["40", "40"], ["all", "すべて"]]) { const option = document.createElement("option"); option.value = value; option.textContent = text; openingDisplay.appendChild(option); }
+  openingDisplay.value = "20";
+  openingDisplay.onchange = () => callbacks.onOpeningMapDisplayCountChange(openingDisplay.value === "all" ? "all" : Number(openingDisplay.value));
+  openingDisplayRow.append(openingDisplayLabel, openingDisplay); openingPanel.appendChild(openingDisplayRow);
+  const openingStatus = document.createElement("div"); openingStatus.className = "mesh-status"; openingStatus.textContent = "未計測"; openingPanel.appendChild(openingStatus);
+  const openingSummary = document.createElement("div"); openingSummary.className = "opening-summary"; openingPanel.appendChild(openingSummary);
+  const openingList = document.createElement("div"); openingList.className = "opening-list"; openingPanel.appendChild(openingList);
+  openingPanel.appendChild(denseSampleCard);
+  root.appendChild(openingPanel);
+
+  const internalGatePanel = document.createElement("section");
+  internalGatePanel.className = "mesh-export internal-print-gate";
+  const internalGateTitle = document.createElement("div");
+  internalGateTitle.className = "mesh-export-title";
+  internalGateTitle.textContent = "内部構造の印刷ゲート";
+  const internalGateProfile = document.createElement("strong");
+  internalGateProfile.textContent = "A1 mini · 0.4 mmノズル · PLA · 0.2 mm積層";
+  const internalGateHint = document.createElement("div");
+  internalGateHint.className = "hint";
+  internalGateHint.textContent =
+    "外側SKINのオーバーハングはBambu Studioへ任せます。ここではInternal自身の水密・融合起点・積層順・線径・bridgeだけを最終meshで判定し、OKになるまで通常の3D書き出しを止めます。";
+  const internalGateLimits = document.createElement("div");
+  internalGateLimits.className = "hint";
+  internalGateLimits.textContent =
+    "Katachi保守値: 最低線径0.80 mm / bridge上限5.0 mm / 垂直から45°以内 / 線径2.5 voxel以上。メーカー保証値ではありません。";
+  const internalGateButton = document.createElement("button");
+  internalGateButton.type = "button";
+  internalGateButton.className = "primary-action";
+  internalGateButton.textContent = "A1 mini条件で内部を最終判定";
+  internalGateButton.onclick = () => callbacks.onInternalPrintGate(readMeshOptions());
+  const internalGateStatus = document.createElement("div");
+  internalGateStatus.className = "mesh-status";
+  internalGateStatus.textContent = "未判定 · Internal付き3Dデータは書き出せません";
+  internalGateStatus.dataset.ok = "false";
+  internalGateStatus.setAttribute("aria-live", "polite");
+  const internalGateMetrics = document.createElement("div");
+  internalGateMetrics.className = "print-metrics";
+  internalGateMetrics.hidden = true;
+  internalGatePanel.append(
+    internalGateTitle, internalGateProfile, internalGateHint, internalGateLimits,
+    internalGateButton, internalGateStatus, internalGateMetrics,
+  );
+  root.appendChild(internalGatePanel);
+
+  const printPanel = document.createElement("section");
+  printPanel.className = "mesh-export print-preparation";
+  const printTitle = document.createElement("div");
+  printTitle.className = "mesh-export-title";
+  printTitle.textContent = "4. 印刷を確かめる";
+  printPanel.appendChild(printTitle);
+
+  const printHint = document.createElement("div");
+  printHint.className = "hint";
+  printHint.textContent =
+    "Internal付きでは最終ゲートが作った同一STLを再利用し、Optimizerの概算診断へ渡します。STLを保存して別画面へ移る必要はありません。数値は形状からの推定で、実機の成功を保証しません。";
+  printPanel.appendChild(printHint);
+  if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    const localOnlyHint = document.createElement("div");
+    localOnlyHint.className = "hint";
+    localOnlyHint.append("公開版は形状確認用です。Optimizer診断はKatachiを起動し、");
+    const localLink = document.createElement("a");
+    localLink.href = "http://localhost:5174/skin.html";
+    localLink.textContent = "ローカル版を開く";
+    localLink.target = "_blank";
+    localLink.rel = "noopener";
+    localOnlyHint.append(localLink, " から実行します。");
+    printPanel.appendChild(localOnlyHint);
+  }
+
+  const printCheckBtn = document.createElement("button");
+  printCheckBtn.type = "button";
+  printCheckBtn.className = "primary-action";
+  printCheckBtn.textContent = "今の形を印刷確認";
+  printCheckBtn.onclick = () => callbacks.onPrintCheck(readMeshOptions());
+  printPanel.appendChild(printCheckBtn);
+
+  const printStatus = document.createElement("div");
+  printStatus.className = "mesh-status";
+  printStatus.textContent = "未確認";
+  printStatus.setAttribute("aria-live", "polite");
+  printPanel.appendChild(printStatus);
+
+  const printMetrics = document.createElement("div");
+  printMetrics.className = "print-metrics";
+  printMetrics.hidden = true;
+  printPanel.appendChild(printMetrics);
+  root.appendChild(printPanel);
 
   const clearAllBtn = document.createElement("button");
   clearAllBtn.className = "danger";
@@ -1107,9 +3049,35 @@ export function buildUi(
 
   return {
     root,
+    setElementRegistry: (rows, selectedId) => { registryRows = rows; registrySelected = selectedId; renderRegistry(); },
+    setElementEditStatus: (text, ok) => { editorStatus.textContent = text; editorStatus.classList.toggle("warn", ok === false); },
+    getElementMoveStep: () => bounded(moveStep, 0.05),
+    setSelectedMotif,
+    setMotifReshapeStatus: (text, ok) => {
+      selectedMotifStatus.textContent = text;
+      selectedMotifStatus.classList.toggle("warn", ok === false);
+    },
     setHistoryCount: (n) => {
       historyCount.textContent = `操作履歴: ${n} 件`;
+      const undoable = Math.max(0, n - 1);
+      undoButton.disabled = undoable === 0;
+      undoCount.textContent = `戻せる操作 ${undoable}`;
+      undoStatus.textContent = "";
     },
+    setUndoHistory: (labels) => {
+      undoHistorySelect.replaceChildren();
+      const recent = labels.slice(-10).reverse();
+      recent.forEach((label, index) => {
+        const option = document.createElement("option");
+        option.value = String(index + 1);
+        option.textContent = `${index + 1}つ前 · ${label}`;
+        undoHistorySelect.appendChild(option);
+      });
+      const hasHistory = recent.length > 0;
+      undoHistorySelect.disabled = !hasHistory;
+      undoManyButton.disabled = !hasHistory;
+    },
+    setUndoStatus: (text) => { undoStatus.textContent = text; },
     setFps: (f) => {
       fps.textContent = `~${f.toFixed(0)} fps`;
     },
@@ -1127,14 +3095,50 @@ export function buildUi(
         packResult.classList.remove("pack-saturated");
         return;
       }
+      const lace = result as PackPatchesResult & {
+        laceAdded?: number;
+        lacePasses?: number;
+        laceSmallestRadius?: number | null;
+        laceLargestRadius?: number | null;
+      };
+      if (lace.laceAdded !== undefined) {
+        const sizes = lace.laceSmallestRadius !== null && lace.laceLargestRadius !== null
+          ? ` / 大きさ ${lace.laceSmallestRadius?.toFixed(3)}–${lace.laceLargestRadius?.toFixed(3)}`
+          : "";
+        packResult.textContent = `レース充填 ${lace.lacePasses}段 / ${lace.laceAdded}個追加${sizes} / 隙間 ${skinParams.laceGap.toFixed(3)}`;
+        packResult.classList.toggle("pack-saturated", lace.laceAdded === 0);
+        return;
+      }
       // 飽和の無言は禁止（作者報告 2026-07-13:「試行数を増やしても密度が変わらない」）。
       // 試行数は飽和を破れない — 破れるのは下限サイズと目地。なので処方箋まで言う。
       const saturated = result.stoppedEarly || result.placed === 0;
+      const flowerConnection = result.flowerConnections > 0
+        ? ` / 花の接続 ${result.flowerConnections}本（接続点 ${result.flowerBridgePoints}個）`
+        : "";
+      const flowerFusion = result.flowerFusedPatches > 0
+        ? result.flowerFusionLocalized
+          ? ` / 局所融合 ${result.flowerFusedPatches}花（調整球 ${result.flowerFusionAdjustedPoints}個 / ` +
+            `最大 ${result.flowerFusionRadius.toFixed(3)} / 未接続辺 ${result.flowerFusionOpenEdges}/${result.flowerFusionEdgeCount}）`
+          : ` / 一体化 ${result.flowerFusedPatches}花（共通の融合幅 ${result.flowerFusionRadius.toFixed(3)}）`
+        : "";
+      const shapeLabel = result.quadConnectionShape
+        ? SHAPE_LABELS.find(([shape]) => shape === result.quadConnectionShape)?.[1] ?? result.quadConnectionShape
+        : "";
+      const quadConnection = result.quadConnectionLocalized
+        ? ` / 局所接続 ${shapeLabel}（接続球 ${result.quadConnectionAdjustedPoints}個 / ` +
+          `最大 ${result.quadConnectionMaxRadius.toFixed(3)} / 未接続辺 ${result.quadConnectionOpenEdges}/${result.quadConnectionEdgeCount}）`
+        : "";
+      const connectionSummary = quadConnection || flowerFusion;
       packResult.textContent = saturated
         ? `詰めた: ${result.placed} 個追加（表面が飽和 — このパッチ下限サイズと目地ではもう入りません。` +
           `密度を上げるには「パッチの大きさ 下限」か「目地」を小さくしてください。試行数を増やしても飽和は破れません）`
-        : `詰めた: ${result.placed} 個追加 / 棄却 ${result.triedAndRejected} 回`;
+        : `詰めた: ${result.placed} 個追加 / 棄却 ${result.triedAndRejected} 回${connectionSummary}${flowerConnection}`;
       packResult.classList.toggle("pack-saturated", saturated);
+    },
+    setContactStatus: (text, ok) => {
+      contactStatus.textContent = text;
+      contactStatus.classList.toggle("ok", ok === true);
+      contactStatus.classList.toggle("warn", ok === false);
     },
     syncHostParams: (p) => {
       for (const { spec, set } of hostSliders) set(Number(p[spec.key]));
@@ -1143,10 +3147,45 @@ export function buildUi(
     syncSkinParams: (p) => {
       for (const { spec, set } of skinSliders) set(Number(p[spec.key]));
       for (const { spec, set } of ringSliders) set(Number(p[spec.key]));
+      internalDensitySlider.set(p.internalDensity);
+      targetedCountSlider.set(p.internalDensity);
+      internalRadiusSlider.set(p.internalRadius);
+      internalRandomnessSlider.set(p.internalRandomness);
+      renderInternalStructure(p.internalStructure);
       skinSeedInput.value = p.seed;
       renderShapeButtons(p.patchShape);
-      renderCoinBulgeState(p.coinBulge);
+      renderMotifPlacement(p.motifPlacement ?? "surface");
+      renderShapeSpecificControls(p.patchShape);
+      renderSurfaceGenerationMode(p.surfaceGenerationMode);
+      quadDivisionsSlider.set(p.quadDivisions);
+      renderQuadTilingMode(p.quadTilingMode);
+      quadVariationSlider.set(p.quadSizeVariation);
+      quadCurvatureSlider.set(p.quadCurvatureAttraction);
+      renderQuadConnectionMode(p.quadConnectionMode);
+      quadConnectionDepthSlider.set(p.quadConnectionDepth);
+      quadMeshJoinSlider.set(p.quadMeshJoinWidth);
+      voronoiSeedSlider.set(p.voronoiSeedCount);
+      voronoiRelaxationSlider.set(p.voronoiRelaxationSteps);
+      goldbergFrequencySlider.set(p.goldbergFrequency);
+      lacePassesSlider.set(p.lacePasses);
+      renderLaceMotifPlacement(p.laceMotifPlacement ?? "surface");
+      laceMinScaleSlider.set(p.laceMinScale);
+      laceGapSlider.set(p.laceGap);
+      contactTargetSlider.set(p.contactTarget);
+      contactMaxGrowthSlider.set(p.contactMaxGrowth);
+      contactWholeScaleSlider.set(p.contactWholeScaleMax);
+      contactOverlapSlider.set(p.contactOverlap);
+      renderContactReinforcementMode(p.contactReinforcementMode ?? "localPoints");
+      packBtn.textContent = "この設定で表面を生成";
+      renderFlowerMotifPreset(p.flowerMotifPreset);
+      renderFlowerParameterControls(p);
+      renderFlowerConnectionMode(p.flowerConnectionMode);
+      coinBulgeValue = p.coinBulge;
+      coinBulgeBalanceValue = p.coinBulgeBalance;
+      renderCoinBulgeState();
+      updateMotifPreview(p);
     },
+    updateMotifPreview,
     setMode: (m) => {
       plateBtn.classList.toggle("mode-active", m === "plate");
       windowBtn.classList.toggle("mode-active", m === "window");
@@ -1158,14 +3197,230 @@ export function buildUi(
       addPatchToggle.textContent = active ? "パッチを手で追加 (有効・クリックで配置)" : "パッチを手で追加 (クリック)";
     },
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
+    setDisplayStyle: (style) => renderDisplayStyle(style),
+    setInternalObservationMode: (mode) => renderInternalObservation(mode),
+    setSurfaceAngleDiagnosisRunning: (running) => {
+      surfaceAngleRun.disabled = running;
+      surfaceAngleRun.textContent = running ? "最終精度で診断中…" : "最終精度で診断";
+    },
+    setSurfaceAngleDiagnosisStatus: (text, ok) => {
+      surfaceAngleStatus.textContent = text;
+      surfaceAngleStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setSurfaceAngleDiagnosisView: (view, available, hasInternal) => {
+      for (const [candidate, button] of surfaceAngleViewButtons) {
+        button.disabled = !available || (candidate === "after" && !hasInternal);
+        button.classList.toggle("mode-active", available && candidate === view);
+      }
+    },
+    setMotifLowestPointStatus: (text, ok) => {
+      motifLowestStatus.textContent = text;
+      motifLowestStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    getSurfaceAngleThreshold: () => surfaceAngleThreshold,
+    setMeshPreviewStatus: (text, running = false) => {
+      meshPreviewStatus.textContent = text;
+      viewDock.classList.toggle("is-building", running);
+      viewportTaskText.textContent = text;
+      viewportTaskStatus.hidden = !running;
+    },
     setAutoSwitchNotice: (active) => {
       autoSwitchNotice.style.display = active ? "block" : "none";
     },
-    setPatchShape: (shape) => renderShapeButtons(shape),
+    setPatchShape: (shape) => {
+      renderShapeButtons(shape);
+      renderShapeSpecificControls(shape);
+      updateMotifPreview({ ...motifPreviewParams, patchShape: shape });
+    },
+    setMotifPlacement: (placement) => renderMotifPlacement(placement),
+    setLaceMotifPlacement: (placement) => renderLaceMotifPlacement(placement),
+    setSurfaceGenerationMode: (generationMode) => {
+      renderSurfaceGenerationMode(generationMode);
+      packBtn.textContent = "この設定で表面を生成";
+    },
+    setInternalStructure: (internalMode) => renderInternalStructure(internalMode),
+    setInternalStructureStatus: (text, ok) => {
+      internalStatus.textContent = text;
+      internalStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setQuadFlowStatus: (text, ok) => {
+      quadFlowStatus.textContent = text;
+      quadFlowStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setVoronoiStatus: (text, ok) => {
+      voronoiStatus.textContent = text;
+      voronoiStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setGoldbergStatus: (text, ok) => {
+      goldbergStatus.textContent = text;
+      goldbergStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
     setMeshStatus: (text, ok) => {
       meshStatus.textContent = text;
       meshStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
+    setMeshExportRunning: (running) => {
+      meshExportRunning = running;
+      syncMeshExportButtons();
+    },
+    setBambu3mfExportRunning: (running) => {
+      bambuExportBtn.disabled = running;
+      bambuSupportType.disabled = running;
+      bambuExportBtn.textContent = running ? "一体融合支柱3MFを作成中…" : "一体融合支柱3MFを書き出す";
+    },
+    setBambu3mfExportStatus: (text, ok) => {
+      bambuExportStatus.textContent = text;
+      bambuExportStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setInternalPrintGateExportAllowed: (allowed, required) => {
+      internalPrintGateExportAllowed = allowed;
+      internalPrintGateRequired = required;
+      syncMeshExportButtons();
+    },
+    setOpeningMapRunning: (running) => {
+      measureOpeningsBtn.disabled = running;
+      cancelOpeningsBtn.disabled = !running;
+    },
+    setOpeningMapStatus: (text, ok) => {
+      openingStatus.textContent = text;
+      openingStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setOpeningMapResults: (openings, displayed, likelyMergedByOffset = false) => {
+      openingList.replaceChildren();
+      if (!openings) { openingSummary.textContent = ""; return; }
+      openingSummary.textContent = likelyMergedByOffset
+        ? `この1件は穴ではなく、オフセットで一続きになった未被覆面の可能性が高いです。0 mmで再計測してください。`
+        : `${openings.length}件を受理 / 表示 ${Math.min(displayed, openings.length)}件。面積・周長は有限解像度の導出面による推定です。`;
+      for (const opening of openings) {
+        const row = document.createElement("div"); row.className = "opening-row";
+        const swatch = document.createElement("i"); swatch.className = "opening-swatch"; swatch.style.background = opening.color;
+        const id = document.createElement("strong"); id.textContent = opening.id;
+        const metrics = document.createElement("span"); metrics.textContent = `面積 ${opening.areaMm2.toFixed(1)} mm² / 周長 ${opening.perimeterMm.toFixed(1)} mm / 形状 ${opening.shapeIndex.toFixed(2)}`;
+        row.append(swatch, id, metrics); openingList.appendChild(row);
+      }
+    },
+    setDenseFlowerSampleRunning: (running) => {
+      denseSampleOpen.disabled = running;
+      denseSampleOpen.textContent = running ? "保存済み参考モデルv6を読み込み中…" : "保存済み参考モデルv6を開く";
+    },
+    setDenseFlowerSampleActive: (active, view = "3d") => {
+      denseSampleViews.hidden = !active;
+      denseSampleOpen.textContent = active ? "保存済み参考モデルv6を読み直す" : "保存済み参考モデルv6を開く";
+      for (const [candidate, button] of Object.entries(denseSampleViewButtons) as Array<[DenseSampleView, HTMLButtonElement]>) {
+        button.classList.toggle("mode-active", active && candidate === view);
+      }
+    },
+    setDenseFlowerSampleResults: (openings, total) => {
+      openingList.replaceChildren();
+      openingSummary.textContent = `${total}件の計測空隙 / 上位${openings.length}件を色・番号表示。タグはドラッグできます。`;
+      for (const opening of openings) {
+        const row = document.createElement("div"); row.className = "opening-row";
+        const swatch = document.createElement("i"); swatch.className = "opening-swatch"; swatch.style.background = opening.color;
+        const id = document.createElement("strong"); id.textContent = opening.id;
+        const metrics = document.createElement("span"); metrics.textContent = `面積 ${opening.areaMm2.toFixed(1)} mm² / 周長 ${opening.perimeterMm.toFixed(1)} mm / 形状 ${opening.shapeIndex.toFixed(2)}`;
+        row.append(swatch, id, metrics); openingList.appendChild(row);
+      }
+    },
+    clearOpeningMap: () => { openingList.replaceChildren(); openingSummary.textContent = ""; },
+    setPrintCheckRunning: (running) => {
+      printCheckBtn.disabled = running;
+      printCheckBtn.textContent = running ? "印刷確認中…" : "今の形を印刷確認";
+    },
+    setPrintCheckStatus: (text, ok) => {
+      printStatus.textContent = text;
+      printStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setPrintCheckMetrics: (metrics) => {
+      printMetrics.replaceChildren();
+      printMetrics.hidden = metrics === null;
+      if (!metrics) return;
+      const rows: Array<[string, string]> = [
+        ["閉じた形", metrics.topology],
+        ["大きさ", metrics.size],
+        ["薄い部分の目安", metrics.wall],
+        ["内側サポート候補", metrics.internalSupport],
+        ["向きの候補", metrics.bestOrientation],
+      ];
+      for (const [label, value] of rows) {
+        const row = document.createElement("div");
+        row.className = "print-metric";
+        const name = document.createElement("span");
+        name.textContent = label;
+        const result = document.createElement("strong");
+        result.textContent = value;
+        row.append(name, result);
+        printMetrics.appendChild(row);
+      }
+    },
+    setInternalPrintGateRunning: (running) => {
+      internalGateButton.disabled = running;
+      internalGateButton.textContent = running ? "内部構造を最終判定中…" : "A1 mini条件で内部を最終判定";
+    },
+    setInternalPrintGateStatus: (text, ok) => {
+      internalGateStatus.textContent = text;
+      internalGateStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setInternalPrintGateReport: (report) => {
+      internalGateMetrics.replaceChildren();
+      internalGateMetrics.hidden = report === null;
+      if (!report) return;
+      const rows: Array<[string, string]> = [
+        ["最終mesh", `${report.watertight ? "水密" : "非水密"} · ${report.meshComponents}部品 · 退化${report.removedDegenerateTriangles}面`],
+        ["実寸線径", `${report.minDiameterMm.toFixed(2)} mm · ${report.voxelsAcrossDiameter.toFixed(1)} voxel`],
+        ["外殻との起点", `${report.surfaceAnchorNodes} node · 浮遊連結群${report.floatingGraphComponents}`],
+        ["積層順", `未支持 node ${report.unsupportedNodes} / edge ${report.unsupportedEdges}`],
+        ["内部bridge", `${report.bridgeEdges}本 · 上限超過${report.overlongBridges} · 最長${report.maxObservedBridgeMm.toFixed(1)} mm`],
+      ];
+      for (const [label, value] of rows) {
+        const row = document.createElement("div");
+        row.className = "print-metric";
+        const name = document.createElement("span");
+        name.textContent = label;
+        const result = document.createElement("strong");
+        result.textContent = value;
+        row.append(name, result);
+        internalGateMetrics.appendChild(row);
+      }
+      if (report.reasons.length > 0) {
+        const failures = document.createElement("div");
+        failures.className = "mesh-status";
+        failures.dataset.ok = "false";
+        failures.textContent = report.reasons.map((reason) => `・${reason}`).join("\n");
+        internalGateMetrics.appendChild(failures);
+      }
+    },
+    setNPartitionProposal: (text, groupCount = 0) => {
+      nProposal.textContent = text;
+      nLegend.replaceChildren();
+      nLegend.hidden = groupCount === 0;
+      for (let index = 0; index < groupCount; index++) {
+        const item = document.createElement("span");
+        item.className = "n-partition-legend-item";
+        const swatch = document.createElement("i");
+        swatch.className = `n-partition-swatch n-partition-swatch-${index + 1}`;
+        const label = document.createElement("strong");
+        label.textContent = `部品${index + 1}`;
+        item.append(swatch, label);
+        nLegend.appendChild(item);
+      }
+    },
+    setNPartitionStatus: (text, ok) => {
+      nStatus.textContent = text;
+      nStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setNPartitionMetrics: (text) => {
+      nMetrics.textContent = text;
+    },
+    setNPartitionBuildRunning: (running) => {
+      nProposeBtn.disabled = running;
+      nBuildBtn.disabled = running;
+      nCancelBtn.disabled = !running;
+      nBuildBtn.textContent = running ? "生成中…" : "このN分割を生成";
+    },
+    setNPartitionExportEnabled: (enabled) => {
+      nExportBtn.disabled = !enabled;
+    },
+    getNPartitionCount: () => Number(nCountSelect.value),
     getMeshOptions: () => readMeshOptions(),
     setSeedPickModeActive: (active) => {
       seedModeActive = active;

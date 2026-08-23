@@ -77,6 +77,8 @@ export const fragmentShader = /* glsl */ `
   // restated here). 0 = old exact shell-clip formula for every plate-mode
   // shape; >0 = coin patches alone get a wider shell band.
   uniform float uCoinBulge;
+  // -1 = back/inside only, 0 = equal (historical), +1 = front/outside only.
+  uniform float uCoinBulgeBalance;
 
   uniform vec3 uCamPos;
   uniform mat4 uCamInverseProjection;
@@ -127,7 +129,7 @@ export const fragmentShader = /* glsl */ `
   // into one float to avoid extra uniform arrays (see PATCH_MAX_POINTS
   // comment: this Study already hit the fragment uniform-vector budget
   // once). T14 extends the fraction from a single ring3d bit to three
-  // shapes: coin +0.00, flatRing +0.25, ring3d +0.50 (renderer.ts's
+  // shapes: coin +0.00, flatRing +0.25, ring3d +0.50, flower +0.75 (renderer.ts's
   // ownerEncoded). Decode with floor/fract; owner itself is always
   // floor(y + 0.01) regardless of shape, unchanged from before.
   bool isCoinPoint(int i) {
@@ -137,6 +139,7 @@ export const fragmentShader = /* glsl */ `
     float f = fract(uPatchData[i].y);
     return f >= 0.125 && f < 0.375;
   }
+  // ring3d and flower are both raised/raw shapes in plate mode.
   bool isRingPoint(int i) {
     return fract(uPatchData[i].y) >= 0.375;
   }
@@ -151,7 +154,7 @@ export const fragmentShader = /* glsl */ `
     return d;
   }
 
-  // Union of only the non-ring3d (coin/flatRing) patch points -- T11's
+  // Union of only the flat (coin/flatRing) patch points -- T11's
   // plate-mode split (see field.ts's compositeSdf doc comment: these stay
   // flush with the shell, ring3d patches do not). Used only on the
   // coinBulge<=0 (old exact) path -- see map() below.
@@ -168,7 +171,7 @@ export const fragmentShader = /* glsl */ `
     return d;
   }
 
-  // Union of only ring3d patch points.
+  // Union of raised ring3d/flower patch points.
   float patchFieldRing(vec3 p) {
     float d = 1e5;
     bool any = false;
@@ -215,7 +218,11 @@ export const fragmentShader = /* glsl */ `
   float map(vec3 p) {
     float dShell = shellField(p);
     if (uPatchPointCount == 0) {
-      return uMode == 0 ? 1e5 : dShell;
+      // Authoring preview only: before the first motif is packed (and after
+      // Undo returns to that point), show the actual smooth host volume so
+      // the base form can be read and orbited. Mesh/export still use the
+      // CPU compositeSdf contract, so this does not invent printable output.
+      return hostField(p);
     }
     if (uMode == 1) {
       // window: any patch shape just carves the shell, same as T10 --
@@ -243,7 +250,14 @@ export const fragmentShader = /* glsl */ `
     bool hasCoin = dCoinPatch < 9.0e4;
     bool hasFlatRing = dFlatRingPatch < 9.0e4;
     bool hasRing = dRingPatch < 9.0e4;
-    float dCoinBand = abs(hostField(p)) - (uThickness * 0.5 + uCoinBulge);
+    float balance = clamp(uCoinBulgeBalance, -1.0, 1.0);
+    float frontExtra = balance >= 0.0 ? uCoinBulge : uCoinBulge * (1.0 + balance);
+    float backExtra = balance <= 0.0 ? uCoinBulge : uCoinBulge * (1.0 - balance);
+    float hostDistance = hostField(p);
+    float dCoinBand = max(
+      hostDistance - (uThickness * 0.5 + frontExtra),
+      -hostDistance - (uThickness * 0.5 + backExtra)
+    );
     float plateFlat = 1e5;
     bool hasFlat = false;
     if (hasCoin) {

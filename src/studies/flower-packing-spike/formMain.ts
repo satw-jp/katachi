@@ -7,6 +7,7 @@ import {
 } from "./flowerForm.ts";
 import { FlowerFormRenderer } from "./formRenderer.ts";
 import { buildFlowerFormUi, type FlowerFormUiState } from "./formUi.ts";
+import { packingMotifToSearch } from "./packing.ts";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app was not found");
@@ -18,19 +19,27 @@ const atlasRenderers = new Map<string, FlowerFormRenderer>();
 function updateAll(next: FlowerFormUiState): void {
   currentState = next;
   for (const renderer of viewRenderers) {
-    renderer.update(next.petalCount, next.params, next.showSources);
+    renderer.update(next.petalCount, next.params, next.showCore, next.showSources);
   }
   for (const variant of FLOWER_FORM_VARIANTS) {
     const renderer = atlasRenderers.get(variant.id);
     const params = variant.id === next.selectedVariant
       ? next.params
       : paramsForFlowerVariant(variant.id, next.params);
-    renderer?.update(next.petalCount, params, false);
+    renderer?.update(next.petalCount, params, next.showCore, false);
   }
 }
 
 currentState = buildFlowerFormUi(app, manifest.version, manifest.updatedAt, {
   onStateChange: updateAll,
+  onPackCurrent: (state) => {
+    const search = packingMotifToSearch({
+      petalCount: state.petalCount,
+      showCore: state.showCore,
+      ...state.params,
+    });
+    window.location.href = `./flower-packing-spike.html?${search}`;
+  },
 });
 
 for (const [id, view] of [

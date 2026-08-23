@@ -1,0 +1,96 @@
+{
+  "format": "katachi-skin-validation",
+  "id": "yohaku-skin-plate-20260823-v062-single-part-scaffold-validation",
+  "generatedAt": "2026-08-23",
+  "version": "0.62.0",
+  "status": "geometry-and-package-ok-human-slice-pending",
+  "supersedes": {
+    "filename": "katachi-skin-v061-a1mini-pla-breakaway-contact-scaffold.3mf",
+    "reason": "Bambu Studio still reported floating regions when BODY and the intersecting breakaway scaffold were separate 3MF parts"
+  },
+  "printerProfile": {
+    "printer": "A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "recipe": {
+    "filename": "yohaku-skin-plate-20260822.recipe.json",
+    "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "bodyProvenance": {
+    "filename": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "sha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "final3mf": {
+    "filename": "katachi-skin-v062-a1mini-pla-single-part-scaffold.3mf",
+    "sha256": "11b1615681448c7bc916b9cc9da1c6164ca08fbca33e9ea19ec1b0795c205383",
+    "bytes": 7120734
+  },
+  "export": {
+    "resolution": 128,
+    "targetLongestMm": 80,
+    "thresholdDeg": 45
+  },
+  "internalGraph": { "nodes": 1490, "edges": 823 },
+  "internalGate": { "ok": true, "reasons": [] },
+  "bodyRepair": {
+    "inputWindingInconsistentEdges": 70,
+    "repairedWindingInconsistentEdges": 0
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "scaffold": {
+    "strategy": "katachi-all-plate-reachable-breakaway-contact-columns",
+    "bambuAutomaticSupport": false,
+    "coverageMode": "allReachable",
+    "spacingMm": 2.2,
+    "shaftDiameterMm": 1.1,
+    "baseDiameterMm": 1.5,
+    "tipDiameterMm": 0.48,
+    "contactOverlapMm": 0.12,
+    "pillarCount": 83,
+    "faces": 5312
+  },
+  "package": {
+    "bodySourceFaces": 439736,
+    "scaffoldSourceFaces": 5312,
+    "packagedFaces": 445048,
+    "meshObjectCount": 1,
+    "rootComponentCount": 1,
+    "settingsPartCount": 1,
+    "partName": "BODY_WITH_SCAFFOLD",
+    "partRole": "normal_part",
+    "enableSupport": 0,
+    "removedDegenerateTriangles": 0,
+    "zipOk": true
+  },
+  "verification": {
+    "typescript": "pass",
+    "tests": "full pass",
+    "productionBuild": "pass",
+    "cloudflare": {
+      "versionId": "bf8af047-58af-478a-a973-076d18d1c0fa",
+      "url": "https://katachi.a-8c3.workers.dev/skin",
+      "assetHashesMatchLocalBuild": true
+    }
+  },
+  "humanCheckRequired": [
+    "Open this v0.62 file, not the superseded v0.61 two-part file",
+    "Slice without turning Bambu automatic support back on",
+    "Confirm Support filament is 0 g",
+    "Confirm the floating regions warning is absent",
+    "Confirm the object tree contains one BODY_WITH_SCAFFOLD normal part",
+    "Inspect lower and contact layers for air starts or scaffold trapped inside BODY",
+    "Do not print until all checks pass"
+  ],
+  "limitations": [
+    "Merging package parts does not perform a geometric Boolean remesh; Bambu must still union the intersecting shells during slicing.",
+    "Removal force, surface scars, column buckling, nozzle collision, and actual PLA adhesion are not simulated.",
+    "The Bambu Studio Slice Preview remains the human print gate."
+  ]
+}

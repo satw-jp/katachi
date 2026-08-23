@@ -41,29 +41,111 @@ import { hashSeed, makeRng } from "../cloud-sculpt/random.ts";
 // post-rotation instead).
 import { generateRingBalls, rotatePoint } from "../rings/ring.ts";
 import type { RingRecipe, Vec3 } from "../rings/ring.ts";
+import { createFlowerFormComponents } from "../flower-packing-spike/flowerForm.ts";
+import type { FlowerPetalCount } from "../flower-packing-spike/flowerForm.ts";
+import {
+  normalizePackingMotif,
+  PACKING_MOTIF_PRESETS,
+} from "../flower-packing-spike/packing.ts";
 
 export type SkinMode = "plate" | "window";
 /** T11 §1: コイン(現状無変更) / 平リング(内孔率つまみ、窓モードでO字窓) /
  * 立体リング(S-rings 語彙 = 節のある球の鎖、表面に接するトーラス). All three
  * remain structurally "just another Ball[]" (see file header) -- only how
  * the points are laid out around the anchor differs. */
-export type PatchShape = "coin" | "flatRing" | "ring3d";
+export type PatchShape = "coin" | "flatRing" | "ring3d" | "flower";
+export type SurfaceGenerationMode = "randomPack" | "quadFlow" | "voronoi" | "goldberg";
+export type MotifPlacement = "surface" | "center" | "inside";
+export type QuadTilingMode = "regular" | "varied" | "field";
+export type QuadConnectionMode = "separate" | "local";
+export type FlowerMotifPresetId = "four-core" | "six-core" | "ten-ring" | "twelve-core" | "custom";
+export type FlowerConnectionMode = "separate" | "fused" | "direct";
+export type ContactReinforcementMode = "localPoints" | "wholeMotif";
+export type InternalStructureMode = "none" | "targetedGrid" | "voronoiEdge";
 
 export interface PatchPoint {
   x: number;
   y: number;
   z: number;
   r: number;
+  /** Flower-only provenance. Old recipes and non-flower points omit this.
+   * `bridge` points form the authored flower-to-flower connection network. */
+  role?: "motif" | "bridge" | "surfaceConnector";
+  /** Flower-only realized radii. PACK-SPIKE's lace shell expands every
+   * component by a shared local fusion radius; storing both values keeps
+   * Pack replay and mode changes idempotent. */
+  baseR?: number;
+  /** The PACK-SPIKE-proportional expansion at flowerExpansion=1. Kept
+   * separately from the realized fusionR so changing the slider never
+   * compounds a previous expansion. */
+  fusionBaseR?: number;
+  fusionR?: number;
+  /** Extra realized width reserved for a mesh-resolvable QUAD connection.
+   * Old recipes omit it; mesh export can non-destructively supply the live
+   * `quadMeshJoinWidth` difference without changing the input history. */
+  meshJoinR?: number;
+  /** Extra local radius added by the post-pack contact reinforcement pass.
+   * Kept separate from fusionR/meshJoinR so the authored motif and QUAD
+   * connection provenance remain readable and recipe replay stays exact. */
+  contactR?: number;
+  /** Uniform whole-motif scale added by contact reinforcement. The same
+   * dimensionless value is stored on every editable point so recipes can
+   * replay the realized expansion without inferring it again. */
+  contactScale?: number;
+  /** ring3d-only provenance. New ring recipes mark their authored recipe
+   * nodes and the continuity connectors separately. Old recipes omit this
+   * field and remain literal realized point arrays on replay. */
+  ringPrimary?: boolean;
 }
 
 export interface Patch {
   id: number;
   shape: PatchShape;
-  /** For "coin" patches, points[0] is the anchor and the rest are the "副点"
-   * scattered around it. For "flatRing"/"ring3d", every point is a ring node
-   * (no distinguished anchor point) -- points[0] is just the first node,
-   * kept only as a stable representative for e.g. bounds checks. */
+  /** Per-element placement relative to the host. Legacy patches omit it and
+   * are interpreted as `surface`. */
+  motifPlacement?: MotifPlacement;
+  /** Authored centerline diameter for an individually resized ring3d.
+   * Older/generated patches omit it and derive a display value from their
+   * realized primary nodes. It does not change flat rings or other motifs. */
+  ringDiameter?: number;
+  /** QUAD-FLOW provenance. Old recipes and ordinary PACK patches omit it. */
+  quadCellId?: number;
+  surfaceCellId?: number;
+  surfaceCellKind?: "quad" | "voronoi" | "goldberg" | "lace";
+  /** Shape-only authoring values used to create this individual motif.
+   * Optional for legacy recipes; new generation paths always capture it so
+   * one selected flower/ring/coin can be inspected and regenerated without
+   * repacking its neighbours. */
+  motifParams?: MotifShapeParams;
+  /** For solid "coin" patches, points[0] is the anchor and the rest are the
+   * "副点" scattered around it. A coin with coinHoleRatio>0 is instead an
+   * annular cyclic point set with no distinguished anchor. For flatRing/
+   * ring3d, every point is likewise a ring node. ring3d's
+   * `ringNodeCount` is the authored primary-node count; its realized array
+   * may also contain interleaved continuity connectors. */
   points: PatchPoint[];
+}
+
+export interface MotifShapeParams {
+  irregularity: number;
+  /** Optional only so recipes saved before v0.47 replay as the historical
+   * solid coin. New captures always write an explicit value. */
+  coinHoleRatio?: number;
+  flatRingHoleRatio: number;
+  ringNodeCount: number;
+  ringTubeR: number;
+  ringWobbleR: number;
+  ringWobblePos: number;
+  flowerMotifPreset: FlowerMotifPresetId;
+  flowerPetalCount: FlowerPetalCount;
+  flowerShowCore: boolean;
+  flowerOpening: number;
+  flowerNeck: number;
+  flowerCoreSize: number;
+  flowerCupping: number;
+  flowerCoreLift: number;
+  flowerGrowthDifference: number;
+  flowerExpansion: number;
 }
 
 export interface SkinParams {
@@ -95,6 +177,90 @@ export interface SkinParams {
   roundK: number;
   /** T11 §1: which shape newly packed/manually-added patches take. */
   patchShape: PatchShape;
+  /** Placement of a newly generated motif envelope relative to the host's
+   * projected zero surface. `surface` preserves every historical generator;
+   * `center` centers the envelope across that surface; `inside` moves its
+   * outermost extent just beneath the surface. */
+  motifPlacement: MotifPlacement;
+  /** Current authored surface principle. randomPack is the preserved v0.19
+   * path; quadFlow is an additive experimental all-quad path. */
+  surfaceGenerationMode: SurfaceGenerationMode;
+  /** Number of quads along each cube face edge (total=6*n*n before any
+   * honest projection failures). */
+  quadDivisions: number;
+  /** QUAD-FLOW cell layout. `varied` keeps the closed all-quad cube topology
+   * but deterministically varies interval widths on the three cube axes. */
+  quadTilingMode: QuadTilingMode;
+  /** 0..0.45 deterministic size variation for `quadTilingMode=varied`. */
+  quadSizeVariation: number;
+  /** 0..1 attraction of the closed quad vertices toward locally higher
+   * normal variation. This changes density, not principal-direction alignment. */
+  quadCurvatureAttraction: number;
+  /** Whether motifs in cells sharing an edge stay separate or meet by
+   * enlarging only the closest realized sphere pair. Applies to every shape. */
+  quadConnectionMode: QuadConnectionMode;
+  /** Additional overlap after first contact, relative to the shared edge. */
+  quadConnectionDepth: number;
+  /** Minimum additional radius on the spheres that own a QUAD shared-edge
+   * connection. This is geometry, not a printer guarantee. */
+  quadMeshJoinWidth: number;
+  /** Approximate spherical-CVT seed count and Lloyd relaxation passes. */
+  voronoiSeedCount: number;
+  voronoiRelaxationSteps: number;
+  /** Subdivision frequency of the icosahedral Goldberg dual prototype.
+   * Site count is 10*f^2+2, with exactly 12 pentavalent sites. */
+  goldbergFrequency: number;
+  /** Number of deterministic largest-gap passes in the optional lace-fill
+   * post process. This is independent of the primary surface organization. */
+  lacePasses: number;
+  /** Placement used only by motifs added in the later largest-gap passes.
+   * Kept separate from `motifPlacement` so the primary field can stay on the
+   * surface while gap-fill motifs straddle or sit inside it. */
+  laceMotifPlacement: MotifPlacement;
+  /** Smallest motif band relative to minR/maxR on the final lace pass. */
+  laceMinScale: number;
+  /** Clearance deliberately retained between added motifs. Negative values
+   * permit contact/overlap, using the same sign convention as `gap`. */
+  laceGap: number;
+  /** Desired number of distinct neighbouring motifs in the contact proxy. */
+  contactTarget: number;
+  /** Maximum radius added to any one realized sphere by local contact
+   * reinforcement. This is a geometry cap, not a strength guarantee. */
+  contactMaxGrowth: number;
+  /** Small overlap requested after first contact for a reinforced pair. */
+  contactOverlap: number;
+  /** Keep the historical closest-point thickening, or enlarge each weak
+   * flower/coin/ring as one motif about its editable-point centroid. */
+  contactReinforcementMode: ContactReinforcementMode;
+  /** Maximum whole-motif enlargement above 1.0. For example 0.15 = 115%. */
+  contactWholeScaleMax: number;
+  /** PACK-SPIKE / MOTIF ON SURFACE preset used for newly generated flower
+   * patches. The realized spheres are stored in each Patch, so replay never
+   * depends on re-running the motif generator. */
+  flowerMotifPreset: FlowerMotifPresetId;
+  /** Customizable PACK-SPIKE flower definition. Presets simply write these
+   * same parameters, so history/replay has one source of truth. */
+  flowerPetalCount: FlowerPetalCount;
+  flowerShowCore: boolean;
+  flowerOpening: number;
+  flowerNeck: number;
+  flowerCoreSize: number;
+  flowerCupping: number;
+  flowerCoreLift: number;
+  flowerGrowthDifference: number;
+  /** Multiplier for the automatically derived common surface expansion.
+   * 1 = minimum connected reference, 0 = no expansion, >1 = fuller fusion. */
+  flowerExpansion: number;
+  /** How a newly packed flower field is authored. `separate` preserves the
+   * v0.16 behavior; `direct` writes a minimum connection network into the
+   * realized PatchPoint geometry, so replay never has to infer it again. */
+  flowerConnectionMode: FlowerConnectionMode;
+  /** Coin only: requested central opening relative to the authored outer
+   * radius. 0 preserves the historical filled/scattered coin exactly;
+   * toward 0.95 leaves a thin continuous outer rim. The generator retains
+   * MIN_SUBPOINT_R, so the maximum is a printable-width rim rather than an
+   * impossible zero-width mathematical circle. */
+  coinHoleRatio: number;
   /** 平リング (flatRing) only: 0 = no hole (reads as a coin), toward 0.9 =
    * thin ring with a real hole. See buildFlatRingPoints for the exact
    * geometry (仮決め formula documented there). */
@@ -130,6 +296,21 @@ export interface SkinParams {
    * historic recipes by a hair). flatRing/ring3d/window-mode are entirely
    * unaffected by this value. */
   coinBulge: number;
+  /** Coin only, plate mode: distributes `coinBulge` across the host surface.
+   * -1 = back/inside only, 0 = historical equal front+back, +1 =
+   * front/outside only. Front is positive host SDF (the exterior); back is
+   * negative host SDF (the interior). This changes only the clipping band,
+   * never the authored coin points or outer diameter. */
+  coinBulgeBalance: number;
+  /** Internal structures are a second layer under Surface, never a patch
+   * generation mode. `none` preserves every pre-existing SKIN result. */
+  internalStructure: InternalStructureMode;
+  /** Requested number of sites in the bounded 3D Voronoi construction. */
+  internalDensity: number;
+  /** Constant node/edge radius in SKIN model units. */
+  internalRadius: number;
+  /** 0..1 jitter of the otherwise even interior site lattice. */
+  internalRandomness: number;
 }
 
 export const DEFAULT_SKIN_PARAMS: SkinParams = {
@@ -142,13 +323,73 @@ export const DEFAULT_SKIN_PARAMS: SkinParams = {
   seed: "yohaku-skin",
   roundK: 0.05,
   patchShape: "coin",
+  motifPlacement: "surface",
+  surfaceGenerationMode: "randomPack",
+  quadDivisions: 4,
+  quadTilingMode: "regular",
+  quadSizeVariation: 0.28,
+  quadCurvatureAttraction: 0.35,
+  quadConnectionMode: "local",
+  quadConnectionDepth: 0.25,
+  quadMeshJoinWidth: 0.12,
+  voronoiSeedCount: 150,
+  voronoiRelaxationSteps: 2,
+  goldbergFrequency: 3,
+  lacePasses: 3,
+  laceMotifPlacement: "surface",
+  laceMinScale: 0.45,
+  laceGap: 0.025,
+  contactTarget: 3,
+  contactMaxGrowth: 0.08,
+  contactOverlap: 0.01,
+  contactReinforcementMode: "localPoints",
+  contactWholeScaleMax: 0.15,
+  flowerMotifPreset: "six-core",
+  flowerPetalCount: 6,
+  flowerShowCore: true,
+  flowerOpening: 0.93,
+  flowerNeck: 0.36,
+  flowerCoreSize: 0.57,
+  flowerCupping: 0.32,
+  flowerCoreLift: 0,
+  flowerGrowthDifference: 0,
+  flowerExpansion: 1,
+  flowerConnectionMode: "separate",
+  coinHoleRatio: 0,
   flatRingHoleRatio: 0.6,
   ringNodeCount: 10,
   ringTubeR: 0.06,
   ringWobbleR: 0.3,
   ringWobblePos: 0.15,
   coinBulge: 0,
+  coinBulgeBalance: 0,
+  internalStructure: "none",
+  internalDensity: 28,
+  internalRadius: 0.045,
+  internalRandomness: 0.65,
 };
+
+export function captureMotifShapeParams(params: SkinParams): MotifShapeParams {
+  return {
+    irregularity: params.irregularity,
+    coinHoleRatio: params.coinHoleRatio,
+    flatRingHoleRatio: params.flatRingHoleRatio,
+    ringNodeCount: params.ringNodeCount,
+    ringTubeR: params.ringTubeR,
+    ringWobbleR: params.ringWobbleR,
+    ringWobblePos: params.ringWobblePos,
+    flowerMotifPreset: params.flowerMotifPreset,
+    flowerPetalCount: params.flowerPetalCount,
+    flowerShowCore: params.flowerShowCore,
+    flowerOpening: params.flowerOpening,
+    flowerNeck: params.flowerNeck,
+    flowerCoreSize: params.flowerCoreSize,
+    flowerCupping: params.flowerCupping,
+    flowerCoreLift: params.flowerCoreLift,
+    flowerGrowthDifference: params.flowerGrowthDifference,
+    flowerExpansion: params.flowerExpansion,
+  };
+}
 
 let nextPatchId = 1;
 export function freshPatchId(): number {
@@ -189,6 +430,37 @@ export function hostBandSdf(
   return Math.abs(fieldSdf(host, hostK, x, y, z)) - halfWidth;
 }
 
+export interface CoinBulgeSides {
+  front: number;
+  back: number;
+}
+
+/** Split one bulge amount without increasing its historical maximum extent.
+ * Balance 0 is exactly the old symmetric `coinBulge` interpretation. */
+export function coinBulgeSides(coinBulge: number, balance: number): CoinBulgeSides {
+  const amount = Math.max(0, coinBulge);
+  const clamped = Math.max(-1, Math.min(1, balance));
+  return clamped >= 0
+    ? { front: amount, back: amount * (1 - clamped) }
+    : { front: amount * (1 + clamped), back: amount };
+}
+
+/** Asymmetric band around the host zero surface. `frontHalfWidth` follows
+ * positive host SDF (outside), `backHalfWidth` follows negative host SDF
+ * (inside). Equal widths reduce to `abs(hostSdf)-width`. */
+export function asymmetricHostBandSdf(
+  host: Ball[],
+  hostK: number,
+  frontHalfWidth: number,
+  backHalfWidth: number,
+  x: number,
+  y: number,
+  z: number,
+): number {
+  const hostDistance = fieldSdf(host, hostK, x, y, z);
+  return Math.max(hostDistance - frontHalfWidth, -hostDistance - backHalfWidth);
+}
+
 /** |hostSdf(p)| - thickness/2. Negative = inside the thin shell band. */
 export function shellSdf(
   host: Ball[],
@@ -219,6 +491,58 @@ export function patchesSdf(patches: Patch[], roundK: number, x: number, y: numbe
     }
   }
   return first === null ? 1e5 : d;
+}
+
+/** Compile immutable realized points into contiguous numeric buffers for
+ * voxel sampling. Point order and the polynomial smooth-min sequence stay
+ * identical to patchesSdf; only nested object/property work is removed. */
+function createPatchesSdfEvaluator(
+  patches: readonly Patch[],
+  roundK: number,
+): (x: number, y: number, z: number) => number {
+  const count = patches.reduce((sum, patch) => sum + patch.points.length, 0);
+  if (count === 0) return () => 1e5;
+  const xs = new Float64Array(count);
+  const ys = new Float64Array(count);
+  const zs = new Float64Array(count);
+  const radii = new Float64Array(count);
+  let cursor = 0;
+  for (const patch of patches) {
+    for (const point of patch.points) {
+      xs[cursor] = point.x;
+      ys[cursor] = point.y;
+      zs[cursor] = point.z;
+      radii[cursor] = point.r;
+      cursor++;
+    }
+  }
+  if (roundK <= 0) {
+    return (x, y, z) => {
+      let distance = 1e5;
+      for (let index = 0; index < count; index++) {
+        const dx = x - xs[index];
+        const dy = y - ys[index];
+        const dz = z - zs[index];
+        distance = Math.min(distance, Math.sqrt(dx * dx + dy * dy + dz * dz) - radii[index]);
+      }
+      return distance;
+    };
+  }
+  return (x, y, z) => {
+    let dx = x - xs[0];
+    let dy = y - ys[0];
+    let dz = z - zs[0];
+    let distance = Math.sqrt(dx * dx + dy * dy + dz * dz) - radii[0];
+    for (let index = 1; index < count; index++) {
+      dx = x - xs[index];
+      dy = y - ys[index];
+      dz = z - zs[index];
+      const candidate = Math.sqrt(dx * dx + dy * dy + dz * dz) - radii[index];
+      const h = Math.max(0, Math.min(1, 0.5 + (0.5 * (candidate - distance)) / roundK));
+      distance = candidate * (1 - h) + distance * h - roundK * h * (1 - h);
+    }
+    return distance;
+  };
 }
 
 /** The whole composite field, mode-dependent (T10 §1's "眼目" -- same
@@ -270,6 +594,7 @@ export function compositeSdf(
   y: number,
   z: number,
   coinBulge: number,
+  coinBulgeBalance = 0,
 ): number {
   const dShell = shellSdf(host, hostK, thickness, x, y, z);
   if (patches.length === 0) {
@@ -283,27 +608,36 @@ export function compositeSdf(
   if (coinBulge <= 0) {
     // plate mode, old exact path: split only coin+flatRing vs ring3d (see
     // doc comment above), coin and flatRing stay unioned together.
-    const flatPatches = patches.filter((p) => p.shape !== "ring3d");
-    const ringPatches = patches.filter((p) => p.shape === "ring3d");
+    const flatPatches = patches.filter((p) => p.shape !== "ring3d" && p.shape !== "flower");
+    const raisedPatches = patches.filter((p) => p.shape === "ring3d" || p.shape === "flower");
     let plateFlat = 1e5;
     if (flatPatches.length > 0) {
       const dFlat = patchesSdf(flatPatches, roundK, x, y, z);
       plateFlat = opSmoothIntersection(dShell, dFlat, roundK);
     }
-    if (ringPatches.length === 0) return plateFlat;
-    const dRing = patchesSdf(ringPatches, roundK, x, y, z);
-    return flatPatches.length === 0 ? dRing : smoothMin(plateFlat, dRing, roundK);
+    if (raisedPatches.length === 0) return plateFlat;
+    const dRaised = patchesSdf(raisedPatches, roundK, x, y, z);
+    return flatPatches.length === 0 ? dRaised : smoothMin(plateFlat, dRaised, roundK);
   }
   // plate mode, coinBulge > 0: coin/flatRing/ring3d are now three separate
   // groups, each intersected (or left raw, for ring3d) with its own band,
   // then unioned together.
   const coinPatches = patches.filter((p) => p.shape === "coin");
   const flatRingPatches = patches.filter((p) => p.shape === "flatRing");
-  const ringPatches = patches.filter((p) => p.shape === "ring3d");
+  const raisedPatches = patches.filter((p) => p.shape === "ring3d" || p.shape === "flower");
   let plateFlat = 1e5;
   let hasFlat = false;
   if (coinPatches.length > 0) {
-    const dCoinBand = hostBandSdf(host, hostK, thickness / 2 + coinBulge, x, y, z);
+    const sides = coinBulgeSides(coinBulge, coinBulgeBalance);
+    const dCoinBand = asymmetricHostBandSdf(
+      host,
+      hostK,
+      thickness / 2 + sides.front,
+      thickness / 2 + sides.back,
+      x,
+      y,
+      z,
+    );
     const dCoin = patchesSdf(coinPatches, roundK, x, y, z);
     plateFlat = opSmoothIntersection(dCoinBand, dCoin, roundK);
     hasFlat = true;
@@ -314,9 +648,89 @@ export function compositeSdf(
     plateFlat = hasFlat ? smoothMin(plateFlat, plateFlatRing, roundK) : plateFlatRing;
     hasFlat = true;
   }
-  if (ringPatches.length === 0) return hasFlat ? plateFlat : 1e5;
-  const dRing = patchesSdf(ringPatches, roundK, x, y, z);
-  return hasFlat ? smoothMin(plateFlat, dRing, roundK) : dRing;
+  if (raisedPatches.length === 0) return hasFlat ? plateFlat : 1e5;
+  const dRaised = patchesSdf(raisedPatches, roundK, x, y, z);
+  return hasFlat ? smoothMin(plateFlat, dRaised, roundK) : dRaised;
+}
+
+/** Compile the shape grouping once for dense sampling. `compositeSdf` is
+ * intentionally kept as the convenient point-query API, but filtering all
+ * patches again at every voxel creates millions of temporary arrays during
+ * mesh construction. This evaluator preserves the same point order and
+ * boolean formulas while doing that invariant work once. */
+export function createCompositeSdfEvaluator(
+  mode: SkinMode,
+  host: Ball[],
+  hostK: number,
+  thickness: number,
+  patches: Patch[],
+  roundK: number,
+  coinBulge: number,
+  coinBulgeBalance = 0,
+): (x: number, y: number, z: number) => number {
+  if (patches.length === 0) {
+    return (x, y, z) => mode === "plate" ? 1e5 : shellSdf(host, hostK, thickness, x, y, z);
+  }
+  if (mode === "window") {
+    const evaluatePatches = createPatchesSdfEvaluator(patches, roundK);
+    return (x, y, z) => {
+      const dShell = shellSdf(host, hostK, thickness, x, y, z);
+      return opSmoothSubtraction(evaluatePatches(x, y, z), dShell, roundK);
+    };
+  }
+  if (coinBulge <= 0) {
+    const flatPatches = patches.filter((patch) => patch.shape !== "ring3d" && patch.shape !== "flower");
+    const raisedPatches = patches.filter((patch) => patch.shape === "ring3d" || patch.shape === "flower");
+    const evaluateFlat = createPatchesSdfEvaluator(flatPatches, roundK);
+    const evaluateRaised = createPatchesSdfEvaluator(raisedPatches, roundK);
+    return (x, y, z) => {
+      const dShell = shellSdf(host, hostK, thickness, x, y, z);
+      let plateFlat = 1e5;
+      if (flatPatches.length > 0) {
+        plateFlat = opSmoothIntersection(dShell, evaluateFlat(x, y, z), roundK);
+      }
+      if (raisedPatches.length === 0) return plateFlat;
+      const dRaised = evaluateRaised(x, y, z);
+      return flatPatches.length === 0 ? dRaised : smoothMin(plateFlat, dRaised, roundK);
+    };
+  }
+  const coinPatches = patches.filter((patch) => patch.shape === "coin");
+  const flatRingPatches = patches.filter((patch) => patch.shape === "flatRing");
+  const raisedPatches = patches.filter((patch) => patch.shape === "ring3d" || patch.shape === "flower");
+  const evaluateCoins = createPatchesSdfEvaluator(coinPatches, roundK);
+  const evaluateFlatRings = createPatchesSdfEvaluator(flatRingPatches, roundK);
+  const evaluateRaised = createPatchesSdfEvaluator(raisedPatches, roundK);
+  const coinBulgeDistribution = coinBulgeSides(coinBulge, coinBulgeBalance);
+  return (x, y, z) => {
+    const dShell = shellSdf(host, hostK, thickness, x, y, z);
+    let plateFlat = 1e5;
+    let hasFlat = false;
+    if (coinPatches.length > 0) {
+      const dCoinBand = asymmetricHostBandSdf(
+        host,
+        hostK,
+        thickness / 2 + coinBulgeDistribution.front,
+        thickness / 2 + coinBulgeDistribution.back,
+        x,
+        y,
+        z,
+      );
+      plateFlat = opSmoothIntersection(dCoinBand, evaluateCoins(x, y, z), roundK);
+      hasFlat = true;
+    }
+    if (flatRingPatches.length > 0) {
+      const plateFlatRing = opSmoothIntersection(
+        dShell,
+        evaluateFlatRings(x, y, z),
+        roundK,
+      );
+      plateFlat = hasFlat ? smoothMin(plateFlat, plateFlatRing, roundK) : plateFlatRing;
+      hasFlat = true;
+    }
+    if (raisedPatches.length === 0) return hasFlat ? plateFlat : 1e5;
+    const dRaised = evaluateRaised(x, y, z);
+    return hasFlat ? smoothMin(plateFlat, dRaised, roundK) : dRaised;
+  };
 }
 
 // --- Surface projection ------------------------------------------------------
@@ -413,6 +827,25 @@ export interface PackPatchesResult {
   placed: number;
   triedAndRejected: number;
   stoppedEarly: boolean;
+  /** Direct-flower authoring facts for this realized result. */
+  flowerConnections: number;
+  flowerBridgePoints: number;
+  /** Flowers expanded with PACK-SPIKE's lace-shell fusion radius. */
+  flowerFusedPatches: number;
+  /** Common expansion, or the maximum local expansion in QUAD-FLOW. */
+  flowerFusionRadius: number;
+  /** QUAD-FLOW repairs only the closest components beside an open edge. */
+  flowerFusionLocalized: boolean;
+  flowerFusionAdjustedPoints: number;
+  flowerFusionEdgeCount: number;
+  flowerFusionOpenEdges: number;
+  /** Shape-neutral QUAD-FLOW shared-edge connection facts. */
+  quadConnectionShape: PatchShape | null;
+  quadConnectionLocalized: boolean;
+  quadConnectionAdjustedPoints: number;
+  quadConnectionEdgeCount: number;
+  quadConnectionOpenEdges: number;
+  quadConnectionMaxRadius: number;
 }
 
 const FAIL_LIMIT_FLOOR = 120;
@@ -451,6 +884,12 @@ function buildCoinPoints(
   patchId: number,
   patches: Patch[],
 ): PatchPoint[] {
+  const holeRatio = Math.max(0, Math.min(0.95, params.coinHoleRatio ?? 0));
+  // An explicit zero is a compatibility boundary: old recipes keep the
+  // exact historical random calls, point order, and generated geometry.
+  if (holeRatio > 1e-6) {
+    return buildCoinRimPoints(host, hostK, proj, anchorR, params, rng);
+  }
   const subCount = 3 + Math.round(params.irregularity * 5);
   const points: PatchPoint[] = [{ x: proj.x, y: proj.y, z: proj.z, r: anchorR }];
   const { t1, t2 } = tangentBasis(proj.nx, proj.ny, proj.nz);
@@ -468,6 +907,66 @@ function buildCoinPoints(
     );
     if (clearance < MIN_SUBPOINT_R) continue; // dropped, not shrunk to a speck
     points.push({ x: subProj.x, y: subProj.y, z: subProj.z, r: clearance });
+  }
+  return points;
+}
+
+/** Coin-with-hole generation. Unlike flatRing, this remains a coin: it
+ * keeps coin bulge/shell behavior and derives its own dense continuous rim
+ * automatically instead of exposing ring node/tube controls.
+ *
+ * The requested inner radius is anchorR*holeRatio. Before the minimum-width
+ * clamp, `tube=(outer-inner)/2` and `orbit=outer-tube`, hence
+ * orbit+tube=anchorR and orbit-tube=anchorR*holeRatio. At the thin end we
+ * keep MIN_SUBPOINT_R and increase node density; this is the physical
+ * meaning of "外周円だけ" in a volumetric/printable model. */
+function buildCoinRimPoints(
+  host: Ball[],
+  hostK: number,
+  proj: Projected,
+  anchorR: number,
+  params: SkinParams,
+  rng: () => number,
+): PatchPoint[] {
+  const holeRatio = Math.max(0, Math.min(0.95, params.coinHoleRatio ?? 0));
+  const tubeR = Math.min(anchorR * 0.5, Math.max(MIN_SUBPOINT_R, anchorR * (1 - holeRatio) * 0.5));
+  const orbitR = Math.max(0, anchorR - tubeR);
+  const maxChord = Math.max(MIN_SUBPOINT_R, tubeR * 1.65);
+  const count = Math.max(12, Math.min(128, Math.ceil((Math.PI * 2 * orbitR) / maxChord)));
+  const { t1, t2 } = tangentBasis(proj.nx, proj.ny, proj.nz);
+  const phase = rng() * Math.PI * 2;
+  // As the centre opens, the outside becomes progressively more circle-like
+  // instead of turning into a noisy string of beads.
+  const irregularity = params.irregularity * (1 - holeRatio) * 0.12;
+  const primary: PatchPoint[] = [];
+  for (let index = 0; index < count; index++) {
+    const theta = phase + (index / count) * Math.PI * 2;
+    const wave = 1 + irregularity * (0.58 * Math.sin(theta * 3 + 0.7) + 0.42 * Math.sin(theta * 5 - 0.4));
+    const radial = orbitR * wave;
+    const ox = proj.x + (t1[0] * Math.cos(theta) + t2[0] * Math.sin(theta)) * radial;
+    const oy = proj.y + (t1[1] * Math.cos(theta) + t2[1] * Math.sin(theta)) * radial;
+    const oz = proj.z + (t1[2] * Math.cos(theta) + t2[2] * Math.sin(theta)) * radial;
+    const surface = projectToSurface(host, hostK, ox, oy, oz, 6) ?? { x: ox, y: oy, z: oz };
+    primary.push({ x: surface.x, y: surface.y, z: surface.z, r: tubeR });
+  }
+
+  // Curved hosts can stretch projected neighbours. Add deterministic
+  // interleaved spheres wherever a cyclic edge would otherwise separate.
+  const points: PatchPoint[] = [];
+  for (let index = 0; index < primary.length; index++) {
+    const a = primary[index];
+    const b = primary[(index + 1) % primary.length];
+    points.push(a);
+    const distance = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    const steps = Math.max(1, Math.ceil(distance / Math.max(MIN_SUBPOINT_R, (a.r + b.r) * 0.82)));
+    for (let step = 1; step < steps; step++) {
+      const t = step / steps;
+      const x = a.x + (b.x - a.x) * t;
+      const y = a.y + (b.y - a.y) * t;
+      const z = a.z + (b.z - a.z) * t;
+      const surface = projectToSurface(host, hostK, x, y, z, 4) ?? { x, y, z };
+      points.push({ x: surface.x, y: surface.y, z: surface.z, r: tubeR });
+    }
   }
   return points;
 }
@@ -534,6 +1033,129 @@ function buildFlatRingPoints(
  * The random post-rotation around `axis` (T11 §1 "法線まわりの回転はランダ
  * ム") is applied via `rotatePoint`, since `generateRingBalls`'s own basis
  * is deterministic from the axis alone and exposes no phase parameter. */
+type RingFrame = { center: Vec3; axis: Vec3 };
+
+function normalizeRingAxis(axis: Vec3): Vec3 {
+  const length = Math.hypot(axis.x, axis.y, axis.z);
+  if (length < 1e-12) throw new Error("ring3d の軸を正規化できません");
+  return { x: axis.x / length, y: axis.y / length, z: axis.z / length };
+}
+
+function dotVec(a: Vec3, b: Vec3): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function crossVec(a: Vec3, b: Vec3): Vec3 {
+  return {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  };
+}
+
+function pointDistance(a: PatchPoint, b: PatchPoint): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+/**
+ * Make a new ring3d's generated centreline a continuous cyclic sphere chain.
+ * The primary points come directly from S-rings in its deterministic recipe
+ * order; only failing edges receive points between them. Interpolation stays
+ * in the known ring frame (angle, radial distance, axial distance), rather
+ * than cutting a chord across the hole. This function is intentionally only
+ * called while generating a new or explicit-reshape ring: replay consumes
+ * recorded point arrays verbatim, including legacy arrays without markers.
+ */
+export function realizeRing3dContinuity(primary: PatchPoint[], frame: RingFrame): PatchPoint[] {
+  if (primary.length < 3) throw new Error("ring3d は3個以上の主節を必要とします");
+  const axis = normalizeRingAxis(frame.axis);
+  const realized: PatchPoint[] = [];
+  for (let i = 0; i < primary.length; i++) {
+    const current = primary[i];
+    const next = primary[(i + 1) % primary.length];
+    if (!(current.r > 0) || !(next.r > 0)) throw new Error("ring3d の節半径が不正です");
+    realized.push({ ...current, ringPrimary: true });
+    if (pointDistance(current, next) <= current.r + next.r) continue;
+
+    const currentOffset: Vec3 = {
+      x: current.x - frame.center.x,
+      y: current.y - frame.center.y,
+      z: current.z - frame.center.z,
+    };
+    const nextOffset: Vec3 = {
+      x: next.x - frame.center.x,
+      y: next.y - frame.center.y,
+      z: next.z - frame.center.z,
+    };
+    const axialCurrent = dotVec(currentOffset, axis);
+    const axialNext = dotVec(nextOffset, axis);
+    const radialCurrent: Vec3 = {
+      x: currentOffset.x - axis.x * axialCurrent,
+      y: currentOffset.y - axis.y * axialCurrent,
+      z: currentOffset.z - axis.z * axialCurrent,
+    };
+    const radialNext: Vec3 = {
+      x: nextOffset.x - axis.x * axialNext,
+      y: nextOffset.y - axis.y * axialNext,
+      z: nextOffset.z - axis.z * axialNext,
+    };
+    const radiusCurrent = Math.hypot(radialCurrent.x, radialCurrent.y, radialCurrent.z);
+    const radiusNext = Math.hypot(radialNext.x, radialNext.y, radialNext.z);
+    if (radiusCurrent < 1e-12 || radiusNext < 1e-12) throw new Error("ring3d の半径方向を決められません");
+    const radialUnit: Vec3 = {
+      x: radialCurrent.x / radiusCurrent,
+      y: radialCurrent.y / radiusCurrent,
+      z: radialCurrent.z / radiusCurrent,
+    };
+    const tangentUnit = crossVec(axis, radialUnit);
+    // Adjacent authored nodes are ordered around the ring. The principal arc
+    // is therefore the intended local arc (also for the closing edge), not a
+    // chord through the hole. Its sign is deterministic from the frame.
+    let deltaAngle = Math.atan2(dotVec(radialNext, tangentUnit), dotVec(radialNext, radialUnit));
+    if (deltaAngle <= -Math.PI) deltaAngle += Math.PI * 2;
+    if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
+    const connectorRadius = Math.min(current.r, next.r);
+    const metric = Math.hypot(
+      radiusNext - radiusCurrent,
+      axialNext - axialCurrent,
+      Math.max(radiusCurrent, radiusNext) * Math.abs(deltaAngle),
+    );
+    let intervals = Math.max(1, Math.ceil(metric / (2 * connectorRadius)));
+    for (;;) {
+      const connectors: PatchPoint[] = [];
+      for (let step = 1; step < intervals; step++) {
+        const t = step / intervals;
+        const angle = deltaAngle * t;
+        const radial = radiusCurrent + (radiusNext - radiusCurrent) * t;
+        const axial = axialCurrent + (axialNext - axialCurrent) * t;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        connectors.push({
+          x: frame.center.x + radialUnit.x * radial * cos + tangentUnit.x * radial * sin + axis.x * axial,
+          y: frame.center.y + radialUnit.y * radial * cos + tangentUnit.y * radial * sin + axis.y * axial,
+          z: frame.center.z + radialUnit.z * radial * cos + tangentUnit.z * radial * sin + axis.z * axial,
+          r: connectorRadius,
+          ringPrimary: false,
+        });
+      }
+      const chain = [current, ...connectors, next];
+      if (chain.every((point, index) => index === 0 || pointDistance(chain[index - 1], point) <= chain[index - 1].r + point.r)) {
+        realized.push(...connectors);
+        break;
+      }
+      // The arc metric is conservative, but keep the postcondition exact in
+      // floating point as well. There is deliberately no silent cap: a bad
+      // interval must refine until this edge is connected.
+      intervals++;
+    }
+  }
+  if (!realized.every((point, index) => {
+    const previous = realized[(index + realized.length - 1) % realized.length];
+    return pointDistance(previous, point) <= previous.r + point.r;
+  })) throw new Error("ring3d の連続化後に未接続の辺が残りました");
+  return realized;
+}
+
 function buildRing3dPoints(
   proj: Projected,
   anchorR: number,
@@ -560,10 +1182,346 @@ function buildRing3dPoints(
   };
   const balls = generateRingBalls(recipe);
   const phase = rng() * Math.PI * 2;
-  return balls.map((b) => {
+  const primary = balls.map((b) => {
     const p = rotatePoint({ x: b.x, y: b.y, z: b.z }, center, axis, phase);
     return { x: p.x, y: p.y, z: p.z, r: b.r };
   });
+  return realizeRing3dContinuity(primary, { center, axis });
+}
+
+/** PACK-SPIKE's motif definition adapted to S-skin's arbitrary host field.
+ * The original motif components are scaled into the same clearance-bounded
+ * anchor envelope used by every other Patch shape, rotated in the local
+ * tangent frame, and lifted so the lowest sphere touches the host surface.
+ * Short sampled neck spheres mirror PACK-SPIKE's unified-field connection
+ * without introducing a second field representation into S-skin. */
+function buildFlowerMotifPoints(
+  proj: Projected,
+  anchorR: number,
+  params: SkinParams,
+  rng: () => number,
+): PatchPoint[] {
+  const preset = PACKING_MOTIF_PRESETS.find((entry) => entry.id === params.flowerMotifPreset)
+    ?? PACKING_MOTIF_PRESETS[1];
+  const definition = normalizePackingMotif(params.flowerMotifPreset === "custom" ? {
+    petalCount: params.flowerPetalCount,
+    showCore: params.flowerShowCore,
+    opening: params.flowerOpening,
+    neck: params.flowerNeck,
+    coreSize: params.flowerCoreSize,
+    cupping: params.flowerCupping,
+    coreLift: params.flowerCoreLift,
+    growthDifference: params.flowerGrowthDifference,
+  } : preset.definition);
+  const components = createFlowerFormComponents(definition.petalCount, definition, definition.showCore);
+  if (components.length === 0) return [];
+
+  const connections: Array<readonly [typeof components[number], typeof components[number]]> = [];
+  const core = components.find((component) => component.kind === "core");
+  const petals = components.filter((component) => component.kind === "petal");
+  if (core) {
+    for (const petal of petals) connections.push([core, petal]);
+  } else {
+    for (let index = 0; index < petals.length; index++) {
+      connections.push([petals[index], petals[(index + 1) % petals.length]]);
+    }
+  }
+  const local = components.map((component) => ({
+    x: component.position.x,
+    y: component.position.y,
+    z: component.position.z,
+    r: component.radius,
+  }));
+  for (const [start, end] of connections) {
+    const neckR = Math.max(MIN_SUBPOINT_R, Math.min(start.radius, end.radius) * definition.neck);
+    const length = Math.hypot(
+      end.position.x - start.position.x,
+      end.position.y - start.position.y,
+      end.position.z - start.position.z,
+    );
+    const steps = Math.max(1, Math.min(8, Math.ceil(length / Math.max(neckR * 1.6, 1e-4)) - 1));
+    for (let step = 1; step <= steps; step++) {
+      const t = step / (steps + 1);
+      local.push({
+        x: start.position.x + (end.position.x - start.position.x) * t,
+        y: start.position.y + (end.position.y - start.position.y) * t,
+        z: start.position.z + (end.position.z - start.position.z) * t,
+        r: neckR,
+      });
+    }
+  }
+
+  const bottom = Math.min(...local.map((point) => point.z - point.r));
+  for (const point of local) point.z -= bottom;
+  const envelope = Math.max(...local.map((point) => Math.hypot(point.x, point.y, point.z) + point.r));
+  const motifScale = anchorR / Math.max(envelope, 1e-6);
+  const phase = rng() * Math.PI * 2;
+  const c = Math.cos(phase);
+  const s = Math.sin(phase);
+  const { t1, t2 } = tangentBasis(proj.nx, proj.ny, proj.nz);
+  // PACK-SPIKE's reference lace-shell state uses fusionRadius=0.1 in the
+  // same local flower definition whose components are scaled here. Applying
+  // the addition before motifScale preserves that exact proportion on an
+  // arbitrary S-skin host; unlike the old MST draft it introduces no branch
+  // geometry between flowers.
+  // In the PACK-SPIKE reference, flowerSize=0.25 produces a motif envelope
+  // of about 0.36 and the lace-shell adds 0.10: roughly 28% of the complete
+  // flower envelope. S-skin's `anchorR` is that complete envelope, so this
+  // is the scale-equivalent value (not 0.1 * component scale).
+  const fusionBaseR = anchorR * 0.28;
+  return local.map((point) => {
+    const lx = (point.x * c - point.y * s) * motifScale;
+    const ly = (point.x * s + point.y * c) * motifScale;
+    const lz = point.z * motifScale;
+    return {
+      x: proj.x + t1[0] * lx + t2[0] * ly + proj.nx * lz,
+      y: proj.y + t1[1] * lx + t2[1] * ly + proj.ny * lz,
+      z: proj.z + t1[2] * lx + t2[2] * ly + proj.nz * lz,
+      // Packing must use the unexpanded component, exactly as PACK-SPIKE's
+      // lace-shell path does. All flowers are expanded together only after
+      // placement; expanding here would make later flowers avoid the fusion
+      // envelope and remain disconnected.
+      r: Math.max(MIN_SUBPOINT_R, point.r * motifScale),
+      role: "motif",
+      baseR: Math.max(MIN_SUBPOINT_R, point.r * motifScale),
+      fusionBaseR,
+      fusionR: 0,
+    };
+  });
+}
+
+export interface FlowerConnectionReport {
+  patches: Patch[];
+  flowerCount: number;
+  connectionCount: number;
+  bridgePointCount: number;
+}
+
+export interface FlowerFusionReport {
+  patches: Patch[];
+  flowerCount: number;
+  fusionRadius: number;
+}
+
+/** PACK-SPIKE lace-shell semantics on an arbitrary S-skin host.
+ * Placement is already complete. We choose one common component expansion
+ * from the widest edge of the flowers' closest-surface minimum spanning tree.
+ * This connects the flowers by their own swollen surfaces: no branches,
+ * per-edge connector geometry, or hidden host shell are introduced. */
+export function fuseFlowerPatchesByExpansion(
+  inputPatches: Patch[],
+  expansionMultiplier = 1,
+): FlowerFusionReport {
+  const patches = inputPatches.map((patch) => ({
+    id: patch.id,
+    shape: patch.shape ?? "coin",
+    ...(patch.motifPlacement !== undefined ? { motifPlacement: patch.motifPlacement } : {}),
+    quadCellId: patch.quadCellId,
+    surfaceCellId: patch.surfaceCellId,
+    surfaceCellKind: patch.surfaceCellKind,
+    motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+    points: patch.points.filter((point) => point.role !== "bridge").map((point) => {
+      if ((patch.shape ?? "coin") !== "flower" || point.role !== "motif") return { ...point };
+      const baseR = point.baseR ?? point.r;
+      return { ...point, baseR, r: baseR };
+    }),
+  }));
+  const flowers = patches.filter((patch) => patch.shape === "flower" && patch.points.length > 0);
+  if (flowers.length === 0) return { patches, flowerCount: 0, fusionRadius: 0 };
+
+  const edges: Array<{ a: number; b: number; clearance: number }> = [];
+  for (let a = 0; a < flowers.length; a++) {
+    for (let b = a + 1; b < flowers.length; b++) {
+      let clearance = Infinity;
+      for (const pa of flowers[a].points) for (const pb of flowers[b].points) {
+        clearance = Math.min(
+          clearance,
+          Math.hypot(pa.x - pb.x, pa.y - pb.y, pa.z - pb.z) - (pa.baseR ?? pa.r) - (pb.baseR ?? pb.r),
+        );
+      }
+      edges.push({ a, b, clearance });
+    }
+  }
+  edges.sort((a, b) =>
+    a.clearance - b.clearance || flowers[a.a].id - flowers[b.a].id || flowers[a.b].id - flowers[b.b].id);
+  const parent = flowers.map((_, index) => index);
+  const find = (index: number): number => {
+    while (parent[index] !== index) {
+      parent[index] = parent[parent[index]];
+      index = parent[index];
+    }
+    return index;
+  };
+  let widestSelectedGap = 0;
+  let selected = 0;
+  for (const edge of edges) {
+    const ra = find(edge.a);
+    const rb = find(edge.b);
+    if (ra === rb) continue;
+    parent[ra] = rb;
+    widestSelectedGap = Math.max(widestSelectedGap, edge.clearance);
+    selected++;
+    if (selected === flowers.length - 1) break;
+  }
+  const referenceRadius = flowers.flatMap((patch) => patch.points).reduce(
+    (maximum, point) => Math.max(maximum, point.fusionBaseR ?? point.fusionR ?? 0), 0);
+  const automaticRadius = Math.max(referenceRadius, widestSelectedGap * 0.5 + 1e-4);
+  const fusionRadius = automaticRadius * Math.max(0, Math.min(2, expansionMultiplier));
+  for (const patch of flowers) for (const point of patch.points) {
+    if (point.role !== "motif") continue;
+    point.fusionR = fusionRadius;
+    point.r = (point.baseR ?? point.r) + fusionRadius;
+  }
+  return { patches, flowerCount: flowers.length, fusionRadius };
+}
+
+type FlowerConnectionCandidate = {
+  aIndex: number;
+  bIndex: number;
+  aPoint: PatchPoint;
+  bPoint: PatchPoint;
+  clearance: number;
+};
+
+/** Build a sparse, deterministic flower-to-flower network.
+ *
+ * A minimum spanning tree is selected from the closest realized motif
+ * spheres, so N flowers need only N-1 authored connections. Each connection
+ * follows short projected samples near the host surface and is then
+ * re-sampled densely enough for neighboring bridge spheres to overlap.
+ * Existing bridge points are stripped first, making repeated Pack passes
+ * idempotent and keeping the caller's input immutable. */
+export function connectFlowerPatchesDirectly(
+  host: Ball[],
+  hostK: number,
+  inputPatches: Patch[],
+): FlowerConnectionReport {
+  const patches = inputPatches.map((patch) => ({
+    id: patch.id,
+    shape: patch.shape ?? "coin",
+    ...(patch.motifPlacement !== undefined ? { motifPlacement: patch.motifPlacement } : {}),
+    quadCellId: patch.quadCellId,
+    surfaceCellId: patch.surfaceCellId,
+    surfaceCellKind: patch.surfaceCellKind,
+    motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+    points: patch.points.filter((point) => point.role !== "bridge").map((point) => ({ ...point })),
+  }));
+  const flowers = patches
+    .map((patch, index) => ({ patch, index }))
+    .filter(({ patch }) => patch.shape === "flower" && patch.points.length > 0);
+  if (flowers.length < 2) {
+    return { patches, flowerCount: flowers.length, connectionCount: 0, bridgePointCount: 0 };
+  }
+
+  const candidates: FlowerConnectionCandidate[] = [];
+  for (let i = 0; i < flowers.length; i++) {
+    for (let j = i + 1; j < flowers.length; j++) {
+      let best: FlowerConnectionCandidate | null = null;
+      for (const aPoint of flowers[i].patch.points) {
+        for (const bPoint of flowers[j].patch.points) {
+          const clearance = Math.hypot(
+            aPoint.x - bPoint.x,
+            aPoint.y - bPoint.y,
+            aPoint.z - bPoint.z,
+          ) - aPoint.r - bPoint.r;
+          if (!best || clearance < best.clearance) {
+            best = { aIndex: i, bIndex: j, aPoint, bPoint, clearance };
+          }
+        }
+      }
+      if (best) candidates.push(best);
+    }
+  }
+  candidates.sort((a, b) =>
+    a.clearance - b.clearance ||
+    flowers[a.aIndex].patch.id - flowers[b.aIndex].patch.id ||
+    flowers[a.bIndex].patch.id - flowers[b.bIndex].patch.id,
+  );
+
+  const parent = flowers.map((_, index) => index);
+  const find = (index: number): number => {
+    while (parent[index] !== index) {
+      parent[index] = parent[parent[index]];
+      index = parent[index];
+    }
+    return index;
+  };
+  const selected: FlowerConnectionCandidate[] = [];
+  for (const candidate of candidates) {
+    const aRoot = find(candidate.aIndex);
+    const bRoot = find(candidate.bIndex);
+    if (aRoot === bRoot) continue;
+    parent[aRoot] = bRoot;
+    selected.push(candidate);
+    if (selected.length === flowers.length - 1) break;
+  }
+
+  let bridgePointCount = 0;
+  for (const connection of selected) {
+    const start = connection.aPoint;
+    const end = connection.bPoint;
+    // At 80 mm output scale this lower bound is roughly a 1-2 mm diameter
+    // candidate on the default host. It is a geometric draft, not a printer
+    // or material guarantee; the saved mesh inspection remains authoritative.
+    const bridgeR = Math.max(0.035, Math.min(start.r, end.r) * 0.72);
+    const directLength = Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
+    const routeSegments = Math.max(1, Math.min(24, Math.ceil(directLength / Math.max(bridgeR * 3, 1e-6))));
+    const startHeight = Math.max(bridgeR * 0.5, fieldSdf(host, hostK, start.x, start.y, start.z));
+    const endHeight = Math.max(bridgeR * 0.5, fieldSdf(host, hostK, end.x, end.y, end.z));
+    const controls: PatchPoint[] = [{ ...start }];
+    for (let step = 1; step < routeSegments; step++) {
+      const t = step / routeSegments;
+      const x = start.x + (end.x - start.x) * t;
+      const y = start.y + (end.y - start.y) * t;
+      const z = start.z + (end.z - start.z) * t;
+      const projected = projectToSurface(host, hostK, x, y, z, 16);
+      if (!projected) {
+        controls.push({ x, y, z, r: bridgeR, role: "bridge" });
+        continue;
+      }
+      const height = startHeight + (endHeight - startHeight) * t;
+      controls.push({
+        x: projected.x + projected.nx * height,
+        y: projected.y + projected.ny * height,
+        z: projected.z + projected.nz * height,
+        r: bridgeR,
+        role: "bridge",
+      });
+    }
+    controls.push({ ...end });
+
+    const bridgePoints: PatchPoint[] = [];
+    for (let segment = 0; segment < controls.length - 1; segment++) {
+      const a = controls[segment];
+      const b = controls[segment + 1];
+      const length = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+      const divisions = Math.max(1, Math.ceil(length / (bridgeR * 1.35)));
+      for (let division = 1; division <= divisions; division++) {
+        const isFinalEndpoint = segment === controls.length - 2 && division === divisions;
+        if (isFinalEndpoint) continue;
+        const t = division / divisions;
+        bridgePoints.push({
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+          z: a.z + (b.z - a.z) * t,
+          r: bridgeR,
+          role: "bridge",
+        });
+      }
+    }
+    // Assign the realized bridge to the lower-id endpoint for stable replay.
+    const owner = flowers[connection.aIndex].patch.id <= flowers[connection.bIndex].patch.id
+      ? flowers[connection.aIndex].patch
+      : flowers[connection.bIndex].patch;
+    owner.points.push(...bridgePoints);
+    bridgePointCount += bridgePoints.length;
+  }
+  return {
+    patches,
+    flowerCount: flowers.length,
+    connectionCount: selected.length,
+    bridgePointCount,
+  };
 }
 
 /** Dispatch to the right point-generator for a patch shape. Shared by the
@@ -580,9 +1538,35 @@ export function generateShapePoints(
   patchId: number,
   patches: Patch[],
 ): PatchPoint[] {
-  if (shape === "flatRing") return buildFlatRingPoints(host, hostK, proj, anchorR, params, rng);
-  if (shape === "ring3d") return buildRing3dPoints(proj, anchorR, patchId, params, rng);
-  return buildCoinPoints(host, hostK, proj, anchorR, params, rng, patchId, patches);
+  const points = shape === "flatRing" ? buildFlatRingPoints(host, hostK, proj, anchorR, params, rng)
+    : shape === "ring3d" ? buildRing3dPoints(proj, anchorR, patchId, params, rng)
+    : shape === "flower" ? buildFlowerMotifPoints(proj, anchorR, params, rng)
+    : buildCoinPoints(host, hostK, proj, anchorR, params, rng, patchId, patches);
+  return placeMotifRelativeToSurface(points, proj, params.motifPlacement ?? "surface");
+}
+
+export function placeMotifRelativeToSurface(
+  points: PatchPoint[],
+  surface: Pick<Projected, "x" | "y" | "z" | "nx" | "ny" | "nz">,
+  placement: MotifPlacement,
+): PatchPoint[] {
+  if (placement === "surface" || points.length === 0) return points;
+  let minExtent = Infinity;
+  let maxExtent = -Infinity;
+  for (const point of points) {
+    const signed = (point.x - surface.x) * surface.nx +
+      (point.y - surface.y) * surface.ny +
+      (point.z - surface.z) * surface.nz;
+    minExtent = Math.min(minExtent, signed - point.r);
+    maxExtent = Math.max(maxExtent, signed + point.r);
+  }
+  const shift = placement === "center" ? -(minExtent + maxExtent) * 0.5 : -maxExtent;
+  return points.map((point) => ({
+    ...point,
+    x: point.x + surface.nx * shift,
+    y: point.y + surface.ny * shift,
+    z: point.z + surface.nz * shift,
+  }));
 }
 
 export function packPatchesGreedy(
@@ -591,13 +1575,48 @@ export function packPatchesGreedy(
   existingPatches: Patch[],
   params: SkinParams,
 ): PackPatchesResult {
-  const patches: Patch[] = existingPatches.map((p) => ({
+  let patches: Patch[] = existingPatches.map((p) => ({
     id: p.id,
     shape: p.shape ?? "coin",
-    points: p.points.map((pt) => ({ ...pt })),
+    ...(p.motifPlacement !== undefined ? { motifPlacement: p.motifPlacement } : {}),
+    motifParams: p.motifParams ? { ...p.motifParams } : undefined,
+    // Rebuild direct connections after the packing pass instead of letting
+    // old bridge points consume clearance or accumulate on repeated passes.
+    points: p.points.filter((pt) => pt.role !== "bridge").map((pt) => {
+      if ((p.shape ?? "coin") !== "flower" || pt.role !== "motif") return { ...pt };
+      const baseR = pt.baseR ?? pt.r;
+      const fusionBaseR = pt.fusionBaseR ?? pt.fusionR ?? baseR * 0.27;
+      return {
+        ...pt,
+        baseR,
+        fusionBaseR,
+        // Clearance/placement always sees the original motif. The common
+        // fusion pass runs once after every placement has been decided.
+        r: baseR,
+      };
+    }),
   }));
   if (host.length === 0) {
-    return { patches, placed: 0, triedAndRejected: 0, stoppedEarly: false };
+    return {
+      patches,
+      placed: 0,
+      triedAndRejected: 0,
+      stoppedEarly: false,
+      flowerConnections: 0,
+      flowerBridgePoints: 0,
+      flowerFusedPatches: 0,
+      flowerFusionRadius: 0,
+      flowerFusionLocalized: false,
+      flowerFusionAdjustedPoints: 0,
+      flowerFusionEdgeCount: 0,
+      flowerFusionOpenEdges: 0,
+      quadConnectionShape: null,
+      quadConnectionLocalized: false,
+      quadConnectionAdjustedPoints: 0,
+      quadConnectionEdgeCount: 0,
+      quadConnectionOpenEdges: 0,
+      quadConnectionMaxRadius: 0,
+    };
   }
 
   const bounds = computeSamplingBounds(host, hostK);
@@ -666,12 +1685,56 @@ export function packPatchesGreedy(
       continue;
     }
 
-    patches.push({ id: patchId, shape: params.patchShape, points });
+    patches.push({
+      id: patchId,
+      shape: params.patchShape,
+      motifPlacement: params.motifPlacement ?? "surface",
+      motifParams: captureMotifShapeParams(params),
+      points,
+    });
     placed++;
     consecutiveFails = 0;
   }
 
-  return { patches, placed, triedAndRejected: rejected, stoppedEarly };
+  let flowerFusionRadius = 0;
+  if (params.flowerConnectionMode === "fused") {
+    const fused = fuseFlowerPatchesByExpansion(patches, params.flowerExpansion);
+    patches = fused.patches;
+    flowerFusionRadius = fused.fusionRadius;
+  }
+
+  let flowerConnections = 0;
+  let flowerBridgePoints = 0;
+  const flowerFusedPatches = params.flowerConnectionMode === "fused"
+    ? patches.filter((patch) => patch.shape === "flower" && patch.points.some((point) =>
+      point.role === "motif" && (point.fusionR ?? 0) > 0 && point.r > (point.baseR ?? point.r))).length
+    : 0;
+  if (params.flowerConnectionMode === "direct") {
+    const connected = connectFlowerPatchesDirectly(host, hostK, patches);
+    patches = connected.patches;
+    flowerConnections = connected.connectionCount;
+    flowerBridgePoints = connected.bridgePointCount;
+  }
+  return {
+    patches,
+    placed,
+    triedAndRejected: rejected,
+    stoppedEarly,
+    flowerConnections,
+    flowerBridgePoints,
+    flowerFusedPatches,
+    flowerFusionRadius,
+    flowerFusionLocalized: false,
+    flowerFusionAdjustedPoints: 0,
+    flowerFusionEdgeCount: 0,
+    flowerFusionOpenEdges: 0,
+    quadConnectionShape: null,
+    quadConnectionLocalized: false,
+    quadConnectionAdjustedPoints: 0,
+    quadConnectionEdgeCount: 0,
+    quadConnectionOpenEdges: 0,
+    quadConnectionMaxRadius: 0,
+  };
 }
 
 // --- Gauges (計器・正直さ) ---------------------------------------------------
@@ -807,6 +1870,17 @@ export interface PatchAdjacencyEdge {
   reason: "touching" | "near";
 }
 
+function patchPairClearance(aPatch: Patch, bPatch: Patch): number {
+  let best = Infinity;
+  for (const a of aPatch.points) {
+    for (const b of bPatch.points) {
+      const distance = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) - a.r - b.r;
+      if (distance < best) best = distance;
+    }
+  }
+  return best;
+}
+
 /**
  * First-class adjacency graph over patches, factored out of
  * estimatePatchComponents (which now just unions its edges) so seed-based
@@ -827,17 +1901,36 @@ export function buildPatchAdjacency(
   const edges: PatchAdjacencyEdge[] = [];
   for (let i = 0; i < patches.length; i++) {
     for (let j = i + 1; j < patches.length; j++) {
-      let best = Infinity;
-      for (const a of patches[i].points) {
-        for (const b of patches[j].points) {
-          const d = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) - a.r - b.r;
-          if (d < best) best = d;
-        }
-      }
+      const best = patchPairClearance(patches[i], patches[j]);
       if (best <= threshold) {
         edges.push({ aId: patches[i].id, bId: patches[j].id, distance: best, reason: best <= 0 ? "touching" : "near" });
       }
     }
+  }
+  return edges;
+}
+
+/** Same edge semantics as buildPatchAdjacency, but measures only pairs that
+ * touch one selected patch. This avoids rebuilding the complete O(n²) graph
+ * when the author merely clicks or nudges one motif. */
+export function buildPatchAdjacencyForPatch(
+  patches: Patch[],
+  patchId: number,
+  roundK: number,
+  threshold = Math.max(0.001, roundK * 0.5),
+): PatchAdjacencyEdge[] {
+  const selectedIndex = patches.findIndex((patch) => patch.id === patchId);
+  if (selectedIndex < 0) return [];
+  const selected = patches[selectedIndex];
+  const edges: PatchAdjacencyEdge[] = [];
+  for (let index = 0; index < patches.length; index++) {
+    if (index === selectedIndex) continue;
+    const other = patches[index];
+    const best = patchPairClearance(selected, other);
+    if (best > threshold) continue;
+    const aPatch = index < selectedIndex ? other : selected;
+    const bPatch = index < selectedIndex ? selected : other;
+    edges.push({ aId: aPatch.id, bId: bPatch.id, distance: best, reason: best <= 0 ? "touching" : "near" });
   }
   return edges;
 }

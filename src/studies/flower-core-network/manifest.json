@@ -1,0 +1,33 @@
+{
+  "id": "flower-core-network",
+  "title": "花芯をつなぐ (Flower Core Network)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-08-09",
+  "updatedAt": "2026-08-09",
+  "params": [
+    "seed",
+    "targetCoverage",
+    "targetLongestMm",
+    "buildDirection",
+    "neighbourCount",
+    "loopAmount",
+    "rootInset",
+    "innerDepthMax",
+    "archRise",
+    "middleDiameterMm",
+    "rootDiameterMm",
+    "crossSection",
+    "meshResolution",
+    "layerHeightMm",
+    "overhangLimitDeg",
+    "bridgeLimitMm"
+  ],
+  "related": ["flower-packing-spike", "skin", "interior-growth"],
+  "revisits": [
+    {
+      "date": "2026-08-09",
+      "note": "CORE-NETWORK first implementation, browser observation, and intent correction. A fixed six-petal, core-on, 50%-coverage Flower Packing result now opens as flowers on a closed sphere whose 51 stems grow from every core back toward one shared center, matching the author's clarified image. Resolution 128 honestly exposed two missed root attachments and three saved components; the default was raised to 144, where the 51 flowers, 51 stems, and shared center form one closed saved component. The earlier surface-neighbour network remains intentionally available as a separate seven-flower comparison of shortest chords, surface veins, and build-direction arches; it was not discarded because the author judged its appearance worth retaining. Both routes use actual unioned meshes, round or build-aligned diamond sections, synchronized views, danger-face coloring, coarse layer-support estimates, geometry-gated STL, and reproducible recipe export. The default 1.6mm middle / 2.4mm roots and mesh checks never claim slicer support zero or strength. Hikari remains unchanged."
+    }
+  ]
+}

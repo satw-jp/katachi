@@ -10,10 +10,19 @@ APP_NAME="Katachi"
 PORT=5174
 TITLE_MARKER="Katachi"   # このアプリだけが持つ <title> の目印
 PROJECT_DIR="/Users/atsushisato/Projects/active/Katachi"
+OPTIMIZER_CONTROL="/Users/atsushisato/Projects/active/Optimizer/scripts/server-control.sh"
 
 cd "$PROJECT_DIR" || { echo "プロジェクトが見つかりません: $PROJECT_DIR"; read -r; exit 1; }
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-URL="http://localhost:${PORT}"
+# 通常入口は、造形→分割→印刷確認が一画面で完結する統合Workbench。
+# ルート `/` はHikariの3D入口で、Chromeでは黒い画面だけに見えるため開かない。
+URL="http://localhost:${PORT}/skin.html"
+
+# 「つくる→印刷確認」を同じ画面で完結させるため、Optimizerの計算
+# エンジンだけを裏で起動する（Optimizerの別画面は開かない）。
+if [ -x "$OPTIMIZER_CONTROL" ]; then
+  "$OPTIMIZER_CONTROL" start-engine || echo "⚠️ 印刷確認エンジンを起動できませんでした。造形は続けられます。"
+fi
 
 echo "──────────────────────────────────────────"
 echo "  ${APP_NAME}   ( ${URL} )"

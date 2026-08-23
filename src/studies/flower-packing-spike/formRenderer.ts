@@ -4,6 +4,7 @@ import {
   FLOWER_FORM_SCALE,
   createFlowerFormComponents,
   type FlowerFormParams,
+  type FlowerPetalCount,
 } from "./flowerForm.ts";
 import type { FlowerComponent } from "./packing.ts";
 import { flowerFieldSdf, unifiedSamplingCube } from "./unifiedField.ts";
@@ -89,21 +90,27 @@ export class FlowerFormRenderer {
     this.camera.updateProjectionMatrix();
   }
 
-  update(petalCount: 3 | 4, params: FlowerFormParams, showSources = false): void {
+  update(
+    petalCount: FlowerPetalCount,
+    params: FlowerFormParams,
+    showCore = true,
+    showSources = false,
+  ): void {
     for (const child of [...this.content.children]) {
       this.content.remove(child);
       disposeObject(child);
     }
-    this.content.add(this.buildFlower(petalCount, params, showSources));
+    this.content.add(this.buildFlower(petalCount, params, showCore, showSources));
   }
 
   private buildFlower(
-    petalCount: 3 | 4,
+    petalCount: FlowerPetalCount,
     params: FlowerFormParams,
+    showCore: boolean,
     showSources: boolean,
   ): THREE.Group {
     const group = new THREE.Group();
-    const components = createFlowerFormComponents(petalCount, params);
+    const components = createFlowerFormComponents(petalCount, params, showCore);
     const blend = FLOWER_FORM_SCALE * 0.2;
     const cube = unifiedSamplingCube(components, blend, this.resolution);
     const material = new THREE.MeshStandardMaterial({

@@ -1,0 +1,11 @@
+{
+  "format": "katachi-skin-body-provenance",
+  "id": "v1",
+  "recipeSha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f",
+  "bodyStlSha256": "125bac88c673ed051365f8416ab154da18ff2acae2ed89de4eb8ee582ced1655",
+  "targetLongestMm": 80,
+  "resolution": 128,
+  "internalStructure": "targetedGrid",
+  "expectedGraphNodes": 1490,
+  "expectedGraphEdges": 823
+}

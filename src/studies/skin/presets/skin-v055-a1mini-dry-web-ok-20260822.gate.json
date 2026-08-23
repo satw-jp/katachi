@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "kind": "katachi-skin-internal-print-gate-provenance",
+  "generatedAt": "2026-08-22T10:00:00.000Z",
+  "tool": {
+    "name": "Katachi SKIN",
+    "version": "0.55.0",
+    "publicUrl": "https://katachi.a-8c3.workers.dev/skin",
+    "cloudflareVersionId": "8370907e-c9d0-4494-90d9-8dbe4002e57f"
+  },
+  "recipe": {
+    "filename": "skin-v055-a1mini-dry-web-ok-20260822.recipe.json",
+    "sha256": "5beabf20c5d2ce8c522c2a1e13fd65f5a5fd596681f294196ba7e6bf419df43b",
+    "operationCount": 3,
+    "patchCount": 418,
+    "mode": "plate",
+    "internalStructure": "targetedGrid",
+    "internalDensity": 28,
+    "internalRadiusModelUnits": 0.045,
+    "internalRandomness": 0.65
+  },
+  "printIntent": {
+    "printer": "Bambu Lab A1 mini",
+    "nozzleDiameterMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2,
+    "targetLongestMm": 80,
+    "outerSkinSupport": "Bambu Studioで付加する（Katachiの内部構造判定対象外）"
+  },
+  "profile": {
+    "id": "bambu-a1-mini-pla-04-02",
+    "minStrutDiameterMm": 0.8,
+    "maxBridgeMm": 5,
+    "maxAngleFromVerticalDeg": 45,
+    "minVoxelsAcrossDiameter": 2.5,
+    "minSurfaceOverlapMm": 0.2
+  },
+  "measuredResult": {
+    "ok": true,
+    "meshResolution": 128,
+    "meshWatertight": true,
+    "meshComponents": 1,
+    "removedDegenerateTriangles": 0,
+    "angleThresholdDeg": 45,
+    "lowestPointMarkers": 418,
+    "reinforcedLowestPointMarkers": 418,
+    "unsupportedAreaBeforePercent": 14,
+    "unsupportedAreaAfterPercent": 2.9,
+    "mitigatedPercent": 79.5,
+    "internalNodes": 1490,
+    "internalEdges": 823,
+    "surfaceAnchorNodes": 1490,
+    "floatingGraphComponents": 0,
+    "unsupportedNodes": 0,
+    "unsupportedEdges": 0,
+    "bridgeEdges": 314,
+    "overlongBridges": 0,
+    "maxObservedBridgeMm": 1.4,
+    "strutDiameterMm": 1.69,
+    "voxelStepMm": 0.625,
+    "voxelsAcrossDiameter": 2.7,
+    "finalExportEnabled": true
+  },
+  "limitations": [
+    "OKはInternal Dry Webと最終メッシュの簡易ゲートであり、外側SKINのサポート、材料状態、機体校正、実機強度を保証しない。",
+    "Bambu Studioで外側サポートとスライス後プレビューを確認してから印刷する。"
+  ]
+}

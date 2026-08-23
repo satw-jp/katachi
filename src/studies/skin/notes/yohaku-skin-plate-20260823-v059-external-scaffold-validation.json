@@ -1,0 +1,116 @@
+{
+  "format": "katachi-skin-validation",
+  "id": "yohaku-skin-plate-20260823-v059-external-scaffold-validation",
+  "generatedAt": "2026-08-23",
+  "version": "0.59.0",
+  "status": "superseded-do-not-print",
+  "supersedes": {
+    "filename": "katachi-skin-v058-a1mini-pla-normal-snug.3mf",
+    "reason": "normal(manual) Snug still generated 17.17 g of automatic support throughout the porous interior"
+  },
+  "printerProfile": {
+    "printer": "A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "recipe": {
+    "filename": "yohaku-skin-plate-20260822.recipe.json",
+    "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "bodyProvenance": {
+    "filename": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "sha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "final3mf": {
+    "filename": "katachi-skin-v059-a1mini-pla-external-scaffold.3mf",
+    "sha256": "4433e712d0bb8b5963e752908d23cfa8db7e8d1f1475fc8ee1e47712241928d0",
+    "bytes": 7073080
+  },
+  "export": {
+    "resolution": 128,
+    "targetLongestMm": 80,
+    "thresholdDeg": 45
+  },
+  "internalGraph": {
+    "nodes": 1490,
+    "edges": 823
+  },
+  "internalGate": {
+    "ok": true,
+    "reasons": []
+  },
+  "bodyRepair": {
+    "inputWindingInconsistentEdges": 70,
+    "repairedWindingInconsistentEdges": 0
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "humanSliceValidation": {
+    "result": "failed",
+    "observedAt": "2026-08-23",
+    "authorObservation": "流石にオーバーハング全部につけないと無理だろ",
+    "reason": "the 4 mm perimeter band reduced support to 15 columns and left most diagnosed overhang regions unsupported"
+  },
+  "scaffold": {
+    "strategy": "katachi-external-perimeter-straight-columns",
+    "bambuAutomaticSupport": false,
+    "perimeterBandMm": 4,
+    "spacingMm": 3.2,
+    "shaftDiameterMm": 1.04,
+    "baseDiameterMm": 1.44,
+    "tipDiameterMm": 0.6,
+    "topGapMm": 0.22,
+    "reachableFaces": 6894,
+    "perimeterFaces": 1280,
+    "bodyCollisionRejectedFaces": 1065,
+    "shortRejectedFaces": 0,
+    "spacingRejectedFaces": 200,
+    "pillarCount": 15,
+    "faces": 960
+  },
+  "package": {
+    "bodyFaces": 439736,
+    "bodyRole": "normal_part",
+    "scaffoldFaces": 960,
+    "scaffoldRole": "normal_part",
+    "supportEnforcerFaces": 0,
+    "enableSupport": 0,
+    "removedDegenerateTriangles": 0,
+    "zipOk": true,
+    "scaffoldTopology": {
+      "components": 15,
+      "openEdges": 0,
+      "nonManifoldEdges": 0,
+      "allEdgesUsedTwice": true
+    }
+  },
+  "verification": {
+    "typescript": "pass",
+    "tests": "full pass",
+    "productionBuild": "pass",
+    "cloudflare": {
+      "versionId": "072d21b1-e76c-418b-aae1-4f185a73a53f",
+      "url": "https://katachi.a-8c3.workers.dev/skin",
+      "assetHashesMatchLocalBuild": true
+    }
+  },
+  "humanCheckRequired": [
+    "Open this v0.59 file, not the v0.58 Normal Snug file",
+    "Slice without turning Bambu automatic support back on",
+    "Confirm Support filament is 0 g",
+    "Confirm the 15 straight model-colored columns stay on the outside perimeter",
+    "Inspect several internal layers and confirm no generated structure enters the porous interior",
+    "Confirm a one-layer release gap exists below each supported target",
+    "Do not print until all checks pass"
+  ],
+  "limitations": [
+    "The 0.22 mm release gap and 1.04 mm shafts are conservative first values, not physical removal proof.",
+    "Katachi does not yet simulate column buckling, nozzle collision, surface finish, or actual PLA adhesion.",
+    "The Bambu Studio Slice Preview remains the human print gate."
+  ]
+}

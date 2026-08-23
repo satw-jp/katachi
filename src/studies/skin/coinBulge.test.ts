@@ -18,7 +18,9 @@
 import assert from "node:assert/strict";
 import type { Ball } from "../cloud-sculpt/field.ts";
 import {
+  coinBulgeSides,
   compositeSdf,
+  createCompositeSdfEvaluator,
   DEFAULT_SKIN_PARAMS,
   patchesSdf,
   shellSdf,
@@ -74,6 +76,62 @@ const ring3dPatch = makePatch(3, "ring3d", COIN_ANCHOR, COIN_RADIUS);
 function probeAt(t: number): [number, number, number] {
   return [5 + t, 0, 0];
 }
+
+test("compiled mesh evaluator is numerically identical to point-query compositeSdf", () => {
+  const patches = [coinPatch, flatRingPatch, ring3dPatch];
+  for (const mode of ["plate", "window"] as const) {
+    for (const bulge of [0, 0.08]) {
+      for (const balance of [-1, 0, 1]) {
+      const evaluate = createCompositeSdfEvaluator(mode, HOST, HOST_K, THICKNESS, patches, ROUND_K, bulge, balance);
+      for (const [x, y, z] of [probeAt(-0.2), probeAt(0), probeAt(0.18), [4.8, 0.2, 0.1] as [number, number, number]]) {
+        assert.equal(
+          evaluate(x, y, z),
+          compositeSdf(mode, HOST, HOST_K, THICKNESS, patches, ROUND_K, x, y, z, bulge, balance),
+        );
+      }
+      }
+    }
+  }
+});
+
+test("coinBulge balance 0 preserves the historical symmetric field exactly", () => {
+  for (const t of [-0.55, -0.2, 0, 0.2, 0.55]) {
+    const [x, y, z] = probeAt(t);
+    const implicitHistorical = compositeSdf("plate", HOST, HOST_K, THICKNESS, [coinPatch], ROUND_K, x, y, z, 0.3);
+    const explicitBalanced = compositeSdf("plate", HOST, HOST_K, THICKNESS, [coinPatch], ROUND_K, x, y, z, 0.3, 0);
+    assert.equal(explicitBalanced, implicitHistorical, `t=${t}`);
+  }
+  assert.deepEqual(coinBulgeSides(0.3, 0), { front: 0.3, back: 0.3 });
+});
+
+test("coinBulge balance chooses host exterior (front) or interior (back)", () => {
+  const outside = probeAt(0.35);
+  const inside = probeAt(-0.35);
+  const field = (probe: [number, number, number], balance: number) => compositeSdf(
+    "plate", HOST, HOST_K, THICKNESS, [coinPatch], ROUND_K, probe[0], probe[1], probe[2], 0.3, balance,
+  );
+  assert.ok(field(outside, 1) < 0, "front-only must add material outside the host");
+  assert.ok(field(inside, 1) > 0, "front-only must not add the same bulge inside the host");
+  assert.ok(field(outside, -1) > 0, "back-only must not add the same bulge outside the host");
+  assert.ok(field(inside, -1) < 0, "back-only must add material inside the host");
+});
+
+test("coinBulge balance does not affect non-coin or window fields", () => {
+  for (const patches of [[flatRingPatch], [ring3dPatch]]) {
+    for (const t of [-0.35, 0.35]) {
+      const [x, y, z] = probeAt(t);
+      assert.equal(
+        compositeSdf("plate", HOST, HOST_K, THICKNESS, patches, ROUND_K, x, y, z, 0.3, -1),
+        compositeSdf("plate", HOST, HOST_K, THICKNESS, patches, ROUND_K, x, y, z, 0.3, 1),
+      );
+    }
+  }
+  const [x, y, z] = probeAt(0.35);
+  assert.equal(
+    compositeSdf("window", HOST, HOST_K, THICKNESS, [coinPatch], ROUND_K, x, y, z, 0.3, -1),
+    compositeSdf("window", HOST, HOST_K, THICKNESS, [coinPatch], ROUND_K, x, y, z, 0.3, 1),
+  );
+});
 
 // --- 1. coinBulge=0, coin-only plate matches the pre-existing formula -----
 
@@ -197,6 +255,8 @@ test("replaying a history with no setSkinParam coinBulge entries leaves coinBulg
   const replayed = replay(history);
   assert.equal(replayed.skinParams.coinBulge, 0);
   assert.equal(DEFAULT_SKIN_PARAMS.coinBulge, 0);
+  assert.equal(replayed.skinParams.coinBulgeBalance, 0);
+  assert.equal(DEFAULT_SKIN_PARAMS.coinBulgeBalance, 0);
 });
 
 // --- 10. new recipe export/import round-trips the coinBulge value ---------
@@ -205,10 +265,12 @@ test("export -> import round-trips a non-zero coinBulge value exactly", () => {
   const state = createEmptyState();
   const history: SkinHistoryEntry[] = [];
   record(history, state, "setSkinParam", { key: "coinBulge", value: 0.08 });
+  record(history, state, "setSkinParam", { key: "coinBulgeBalance", value: -0.65 });
   const text = serializeRecipe(history);
   const reparsed = parseRecipe(text);
   const replayed = replay(reparsed);
   assert.equal(replayed.skinParams.coinBulge, 0.08);
+  assert.equal(replayed.skinParams.coinBulgeBalance, -0.65);
 });
 
 // --- 11. buildPartitionMeshes actually uses the passed coinBulge (not

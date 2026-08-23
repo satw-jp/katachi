@@ -12,6 +12,7 @@ import {
   type Vec3,
 } from "./packing.ts";
 import { flowerFieldSdf, unifiedSamplingCube } from "./unifiedField.ts";
+import type { MeshBuildResult } from "../cloud-sculpt/meshExport.ts";
 
 const LEFT_OFFSET = -2.25;
 const RIGHT_OFFSET = 2.25;
@@ -19,9 +20,11 @@ const RIGHT_OFFSET = 2.25;
 export interface RendererPanel {
   result: PackingResult;
   color: number;
+  params: PackingParams;
 }
 
 export type FlowerViewMode = "spheres" | "unified";
+export type PackingCameraView = "front" | "side" | "oblique";
 
 const UNIFIED_RESOLUTION = 20;
 const UNIFIED_MAX_POLYGONS = 6_000;
@@ -86,19 +89,28 @@ export class FlowerPackingRenderer {
     this.camera.updateProjectionMatrix();
   }
 
+  setCameraView(view: PackingCameraView): void {
+    const distance = 10.4;
+    if (view === "front") this.camera.position.set(0, 0.4, distance);
+    else if (view === "side") this.camera.position.set(0, distance, 0.4);
+    else this.camera.position.set(0, 4.8, 9.2);
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+  }
+
   update(
     left: RendererPanel,
     right: RendererPanel,
-    params: PackingParams,
     showProxies: boolean,
     viewMode: FlowerViewMode,
+    rightLaceMesh: MeshBuildResult | null = null,
   ): void {
     for (const child of [...this.content.children]) {
       this.content.remove(child);
       disposeObject(child);
     }
-    this.content.add(this.buildPanel(left, params, LEFT_OFFSET, showProxies, viewMode));
-    this.content.add(this.buildPanel(right, params, RIGHT_OFFSET, showProxies, viewMode));
+    this.content.add(this.buildPanel(left, left.params, LEFT_OFFSET, showProxies, viewMode));
+    this.content.add(this.buildPanel(right, right.params, RIGHT_OFFSET, showProxies, viewMode, rightLaceMesh));
   }
 
   private buildPanel(
@@ -107,6 +119,7 @@ export class FlowerPackingRenderer {
     xOffset: number,
     showProxies: boolean,
     viewMode: FlowerViewMode,
+    laceMesh: MeshBuildResult | null = null,
   ): THREE.Group {
     const group = new THREE.Group();
     group.add(this.buildDomain(params.domain, xOffset));
@@ -114,7 +127,9 @@ export class FlowerPackingRenderer {
     const coreColor = new THREE.Color(panel.color).multiplyScalar(0.68);
     const petalColor = new THREE.Color(panel.color).lerp(new THREE.Color(0xffffff), 0.32);
 
-    if (viewMode === "unified") {
+    if (viewMode === "unified" && laceMesh) {
+      group.add(this.buildLaceMesh(laceMesh, xOffset, petalColor));
+    } else if (viewMode === "unified") {
       group.add(this.buildUnifiedFlowers(panel, params, xOffset, petalColor));
     } else {
       const components = panel.result.instances.flatMap((instance) => flowerComponents(instance, params));
@@ -140,6 +155,34 @@ export class FlowerPackingRenderer {
       group.add(this.buildProxies(panel.result, params, xOffset));
     }
     return group;
+  }
+
+  private buildLaceMesh(
+    mesh: MeshBuildResult,
+    xOffset: number,
+    color: THREE.ColorRepresentation,
+  ): THREE.Mesh {
+    const positions = new Float32Array(mesh.triangles.length * 9);
+    let cursor = 0;
+    for (const triangle of mesh.triangles) {
+      for (const vertex of [triangle.a, triangle.b, triangle.c]) {
+        positions[cursor++] = vertex.x;
+        positions[cursor++] = vertex.y;
+        positions[cursor++] = vertex.z;
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.58,
+      metalness: 0.01,
+      side: THREE.DoubleSide,
+    });
+    const surface = new THREE.Mesh(geometry, material);
+    surface.position.x = xOffset;
+    return surface;
   }
 
   private buildUnifiedFlowers(
@@ -180,7 +223,12 @@ export class FlowerPackingRenderer {
           const row = surface.size2 * z + surface.size * y;
           for (let x = 0; x < surface.size; x++) {
             const px = center.x + ((x - halfSize) / halfSize) * halfExtent;
-            surface.field[row + x] = -flowerFieldSdf(components, { x: px, y: py, z: pz }, blend);
+            surface.field[row + x] = -flowerFieldSdf(
+              components,
+              { x: px, y: py, z: pz },
+              blend,
+              params.motif.neck,
+            );
           }
         }
       }
@@ -227,15 +275,19 @@ export class FlowerPackingRenderer {
     const positions: number[] = [];
     for (const instance of result.instances) {
       const components = flowerComponents(instance, params);
-      const core = components[0].position;
-      for (const petal of components.slice(1)) {
+      const core = components.find((component) => component.kind === "core");
+      const petals = components.filter((component) => component.kind === "petal");
+      const connections = core
+        ? petals.map((petal) => [core, petal] as const)
+        : petals.map((petal, index) => [petal, petals[(index + 1) % petals.length]] as const);
+      for (const [start, end] of connections) {
         positions.push(
-          core.x + xOffset,
-          core.y,
-          core.z,
-          petal.position.x + xOffset,
-          petal.position.y,
-          petal.position.z,
+          start.position.x + xOffset,
+          start.position.y,
+          start.position.z,
+          end.position.x + xOffset,
+          end.position.y,
+          end.position.z,
         );
       }
     }

@@ -1,0 +1,106 @@
+{
+  "schema": "katachi.skin.print-candidate-validation.v1",
+  "candidate": "katachi-skin-v067-a1mini-pla-020-final",
+  "status": "automated-geometry-ok-bambu-layer-preview-required",
+  "automatedGeometryApproval": true,
+  "printApproval": false,
+  "reason": "Katachiの厳密ゲートはOK。Bambu Studioで孤立レイヤー1→3の開始島と接点を目視確認するまで送信印刷は保留。",
+  "printer": {
+    "model": "Bambu Lab A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2,
+    "targetLongestMm": 80,
+    "initialLineWidthMm": 0.5
+  },
+  "inputs": {
+    "recipe": "katachi-skin-v067-a1mini-pla-020-final.recipe.json",
+    "recipeSha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f",
+    "bodyStl": "yohaku-skin-plate-20260822.stl",
+    "bodyStlSha256": "125bac88c673ed051365f8416ab154da18ff2acae2ed89de4eb8ee582ced1655",
+    "bodyProvenance": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "bodyProvenanceSha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "analysis": {
+    "surfaceResolution": 128,
+    "fusedMeshResolution": 160,
+    "meshWorkers": 8,
+    "overhangThresholdDeg": 45,
+    "dryWeb": {
+      "nodes": 1490,
+      "edges": 823,
+      "printGate": "OK",
+      "reasons": []
+    },
+    "reachability": {
+      "candidateFaces": 11829,
+      "keptFaces": 6894,
+      "rejectedFaces": 4935,
+      "invalidFaces": 0
+    }
+  },
+  "fusedScaffold": {
+    "coverageMode": "allReachable",
+    "spacingMm": 0.8,
+    "pillarCount": 168,
+    "shaftDiameterMm": 1.4,
+    "baseDiameterMm": 1.8,
+    "contactDiameterMm": 1.4,
+    "baseHeightMm": 1,
+    "contactOverlapMm": 0.65,
+    "plateAnchorDropMm": 1,
+    "collisionRejectedFaces": 4892,
+    "shortRejectedFaces": 188,
+    "spacingRejectedFaces": 1646,
+    "separateScaffoldVolumes": 0,
+    "bambuAutomaticSupport": false
+  },
+  "plateAnchor": {
+    "ok": true,
+    "pillarCount": 168,
+    "meshMinZMm": -42.06835098762513,
+    "plateZMm": -42.0683514737489,
+    "plateSpreadMm": 0,
+    "plateClearanceMm": -4.861237670183982e-7,
+    "minimumPrintableTracks": 3,
+    "minimumBaseDiameterMm": 1.7761821943253315,
+    "minimumBaseHeightMm": 0.9867678857362953,
+    "minimumFirstLayerFootprintMm": 1.5605384731202998,
+    "requiredBaseDiameterMm": 1.5
+  },
+  "finalMesh": {
+    "faceCount": 1003512,
+    "closed": true,
+    "openEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateFaces": 0,
+    "nonFiniteFaces": 0,
+    "windingInconsistentEdges": 0,
+    "connectedComponents": 1,
+    "threeMfObjects": 1,
+    "threeMfComponents": 1,
+    "threeMfParts": 1,
+    "partName": "BODY_WITH_FUSED_SCAFFOLD"
+  },
+  "output": {
+    "file": "katachi-skin-v067-a1mini-pla-020-final.3mf",
+    "bytes": 15455899,
+    "sha256": "38ccebf99f136ef76b5f715f1ba0bfa1c199f7198a67c39071f4536cbc1dd0d4",
+    "zipIntegrity": "OK"
+  },
+  "humanCheck": {
+    "required": true,
+    "bambuStudioFloatingRegionsWarningAbsent": null,
+    "isolatedLayer1FootprintsAcrossFullXyExtent": null,
+    "layer1To3IslandsAbsent": null,
+    "contactRemovalLooksLocal": null,
+    "notes": "3MFをBambu Studioで再スライスし、右のレイヤースライダーを1だけ表示→2→3へ進めて確認する。100万面超の処理速度警告はトポロジーエラーではない。"
+  },
+  "publication": {
+    "url": "https://katachi.a-8c3.workers.dev/skin",
+    "cloudflareVersionId": "9f920339-6971-4a32-9f50-1c8d8b22e600",
+    "skinAsset": "/assets/skin-BPu0bvtp.js",
+    "skinAssetSha256": "6967fda2d0466fc9b829d5acd9c8153cb7d370f8594ecf71c42495c3055a5bb0",
+    "verification": "public asset SHA-256 matches local production build"
+  }
+}

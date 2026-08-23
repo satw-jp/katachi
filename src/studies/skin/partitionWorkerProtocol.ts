@@ -25,6 +25,8 @@ export interface PartitionBuildRequest {
   /** T14: explicit, never implicitly defaulted inside the Worker -- main.ts
    * must always pass the live state.skinParams.coinBulge value here. */
   coinBulge: number;
+  coinBulgeBalance: number;
+  quadMeshJoinWidth: number;
 }
 
 export type PartitionWorkerMessage =

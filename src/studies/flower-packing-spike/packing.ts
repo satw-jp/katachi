@@ -12,7 +12,19 @@ export interface Vec3 {
 export type DomainKind = "plane" | "sphere-surface";
 export type PackingResponse = "rigid" | "soft";
 export type CollisionProxyMode = "single" | "multi";
-export type ComparisonMode = "response" | "proxy";
+export type ComparisonMode = "response" | "proxy" | "motif";
+export type PackingBasis = "count" | "coverage";
+
+export interface PackingFlowerDefinition extends FlowerFormParams {
+  petalCount: FlowerPetalCount;
+  showCore: boolean;
+}
+
+export interface PackingMotifPreset {
+  id: "four-core" | "six-core" | "ten-ring" | "twelve-core";
+  label: string;
+  definition: PackingFlowerDefinition;
+}
 
 export interface PackingParams {
   seed: number;
@@ -22,6 +34,9 @@ export interface PackingParams {
   softness: number;
   iterations: number;
   domain: DomainKind;
+  packingBasis: PackingBasis;
+  targetCoverage: number;
+  motif: PackingFlowerDefinition;
 }
 
 export interface FlowerInstance {
@@ -54,6 +69,9 @@ export interface PackingDiagnostics {
   outsideCount: number;
   meanDeformation: number;
   maxDeformation: number;
+  materialCoverage: number;
+  territoryCoverage: number;
+  coverageSamples: number;
 }
 
 export interface PackingResult {
@@ -65,6 +83,7 @@ export interface PackingResult {
 
 export interface ComparisonPanel {
   label: string;
+  params: PackingParams;
   result: PackingResult;
 }
 
@@ -84,18 +103,57 @@ export interface FlowerPackingRecord {
 
 export const DOMAIN_RADIUS = 1.72;
 export const PLANE_RADIUS = 2.15;
-const PETAL_COUNT = 4;
 const EPS = 1e-8;
+
+const baselineForm: FlowerFormParams = {
+  opening: 1.06,
+  neck: 0.36,
+  coreSize: 0.57,
+  cupping: 0,
+  coreLift: 0,
+  growthDifference: 0,
+};
+
+function motifDefinition(
+  petalCount: FlowerPetalCount,
+  showCore: boolean,
+  form: FlowerFormParams,
+): PackingFlowerDefinition {
+  return { petalCount, showCore, ...form };
+}
+
+export const PACKING_MOTIF_PRESETS: readonly PackingMotifPreset[] = [
+  { id: "four-core", label: "4枚 · 現在の花", definition: motifDefinition(4, true, baselineForm) },
+  { id: "six-core", label: "6枚 · 花芯あり", definition: motifDefinition(6, true, paramsForFlowerVariant("cupped")) },
+  { id: "ten-ring", label: "10枚 · 花芯なし", definition: motifDefinition(10, false, paramsForFlowerVariant("cupped")) },
+  { id: "twelve-core", label: "12枚 · 花芯あり", definition: motifDefinition(12, true, paramsForFlowerVariant("cupped")) },
+] as const;
+
+export const DEFAULT_PACKING_MOTIF: PackingFlowerDefinition = { ...PACKING_MOTIF_PRESETS[0].definition };
 
 export const DEFAULT_PACKING_PARAMS: PackingParams = {
   seed: 304,
   count: 34,
   flowerSize: 0.25,
-  clearance: 0.025,
+  clearance: 0.055,
   softness: 0.72,
   iterations: 120,
   domain: "sphere-surface",
+  packingBasis: "coverage",
+  targetCoverage: 0.2,
+  motif: { ...DEFAULT_PACKING_MOTIF },
 };
+
+/**
+ * A readable starting density, not a hard capacity limit. Dense, coreless
+ * corollas become nearly continuous surfaces, so fewer are shown initially;
+ * the count control can still raise this after the first comparison.
+ */
+export function recommendedPackingCount(motif: PackingFlowerDefinition): number {
+  const normalized = normalizePackingMotif(motif);
+  if (normalized.petalCount >= 10) return normalized.showCore ? 20 : 18;
+  return DEFAULT_PACKING_PARAMS.count;
+}
 
 function add(a: Vec3, b: Vec3): Vec3 {
   return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
@@ -140,6 +198,73 @@ function finite(value: number, fallback = 0): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
+export function normalizePackingMotif(value: Partial<PackingFlowerDefinition> | undefined): PackingFlowerDefinition {
+  const fallback = DEFAULT_PACKING_MOTIF;
+  const requestedCount = Math.trunc(finite(Number(value?.petalCount), fallback.petalCount));
+  const petalCount = FLOWER_PETAL_COUNTS.reduce((closest, count) =>
+    Math.abs(count - requestedCount) < Math.abs(closest - requestedCount) ? count : closest,
+  );
+  return {
+    petalCount,
+    showCore: value?.showCore !== false,
+    opening: clamp(finite(Number(value?.opening), fallback.opening), 0.72, 1.22),
+    neck: clamp(finite(Number(value?.neck), fallback.neck), 0.14, 0.62),
+    coreSize: clamp(finite(Number(value?.coreSize), fallback.coreSize), 0.42, 0.78),
+    cupping: clamp(finite(Number(value?.cupping), fallback.cupping), -0.18, 0.5),
+    coreLift: clamp(finite(Number(value?.coreLift), fallback.coreLift), -0.12, 0.5),
+    growthDifference: clamp(finite(Number(value?.growthDifference), fallback.growthDifference), 0, 0.34),
+  };
+}
+
+export function packingMotifLabel(motif: PackingFlowerDefinition): string {
+  return `${motif.petalCount}枚 · 花芯${motif.showCore ? "あり" : "なし"}`;
+}
+
+export function packingMotifPresetId(motif: PackingFlowerDefinition): PackingMotifPreset["id"] | "custom" {
+  const keys: readonly (keyof PackingFlowerDefinition)[] = [
+    "petalCount", "showCore", "opening", "neck", "coreSize", "cupping", "coreLift", "growthDifference",
+  ];
+  const match = PACKING_MOTIF_PRESETS.find((preset) => keys.every((key) => preset.definition[key] === motif[key]));
+  return match?.id ?? "custom";
+}
+
+export function packingMotifToSearch(motif: PackingFlowerDefinition): string {
+  const search = new URLSearchParams({
+    petals: String(motif.petalCount),
+    core: motif.showCore ? "1" : "0",
+    opening: String(motif.opening),
+    neck: String(motif.neck),
+    coreSize: String(motif.coreSize),
+    cupping: String(motif.cupping),
+    coreLift: String(motif.coreLift),
+    growth: String(motif.growthDifference),
+  });
+  return search.toString();
+}
+
+export function packingMotifFromSearch(searchText: string): PackingFlowerDefinition | null {
+  const search = new URLSearchParams(searchText.startsWith("?") ? searchText.slice(1) : searchText);
+  if (!search.has("petals")) return null;
+  const numberValue = (key: string): number | undefined => {
+    const raw = search.get(key);
+    return raw === null ? undefined : Number(raw);
+  };
+  return normalizePackingMotif({
+    petalCount: numberValue("petals") as FlowerPetalCount,
+    showCore: search.get("core") !== "0",
+    opening: numberValue("opening"),
+    neck: numberValue("neck"),
+    coreSize: numberValue("coreSize"),
+    cupping: numberValue("cupping"),
+    coreLift: numberValue("coreLift"),
+    growthDifference: numberValue("growth"),
+  });
+}
+
 function mulberry32(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -167,12 +292,33 @@ function frameAt(anchor: Vec3, domain: DomainKind): { normal: Vec3; tangentX: Ve
   return { normal, tangentX, tangentY };
 }
 
-function restPetals(flowerSize: number): Vec2[] {
-  const spread = flowerSize * 1.06;
-  return Array.from({ length: PETAL_COUNT }, (_, index) => {
-    const a = (index / PETAL_COUNT) * Math.PI * 2;
-    return { x: Math.cos(a) * spread, y: Math.sin(a) * spread };
-  });
+function motifScale(params: PackingParams): number {
+  return params.flowerSize / FLOWER_FORM_SCALE;
+}
+
+function motifTemplate(params: PackingParams): FlowerComponent[] {
+  const motif = normalizePackingMotif(params.motif);
+  return createFlowerFormComponents(motif.petalCount, motif, motif.showCore);
+}
+
+function restPetals(params: PackingParams): Vec2[] {
+  const scaleFactor = motifScale(params);
+  return motifTemplate(params)
+    .filter((component) => component.kind === "petal")
+    .map((component) => ({ x: component.position.x * scaleFactor, y: component.position.y * scaleFactor }));
+}
+
+function motifPlanarBound(params: PackingParams): number {
+  const scaleFactor = motifScale(params);
+  return motifTemplate(params).reduce((maximum, component) => Math.max(
+    maximum,
+    Math.hypot(component.position.x, component.position.y) * scaleFactor + component.radius * scaleFactor,
+  ), params.flowerSize * 0.2);
+}
+
+function packingBase(instance: FlowerInstance, params: PackingParams): Vec3 {
+  const frame = frameAt(instance.anchor, params.domain);
+  return add(instance.anchor, scale(frame.normal, params.flowerSize * 0.34));
 }
 
 function cloneInstance(instance: FlowerInstance): FlowerInstance {
@@ -186,7 +332,7 @@ function cloneInstance(instance: FlowerInstance): FlowerInstance {
 
 export function createInitialInstances(params: PackingParams): FlowerInstance[] {
   const random = mulberry32(params.seed);
-  const petals = restPetals(params.flowerSize);
+  const petals = restPetals(params);
   const result: FlowerInstance[] = [];
   const planeRotation = random() * Math.PI * 2;
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -224,34 +370,255 @@ export function createInitialInstances(params: PackingParams): FlowerInstance[] 
 
 export function flowerComponents(instance: FlowerInstance, params: PackingParams): FlowerComponent[] {
   const frame = frameAt(instance.anchor, params.domain);
-  const coreRadius = params.flowerSize * 0.57;
-  const petalRadius = params.flowerSize * 0.51;
-  const lift = params.flowerSize * 0.34;
-  const base = add(instance.anchor, scale(frame.normal, lift));
+  const base = packingBase(instance, params);
+  const scaleFactor = motifScale(params);
+  const template = motifTemplate(params);
+  const components: FlowerComponent[] = [];
 
-  const components: FlowerComponent[] = [
-    {
+  const core = template.find((component) => component.kind === "core");
+  if (core) {
+    components.push({
       instanceId: instance.id,
       componentIndex: -1,
       kind: "core",
-      position: base,
-      radius: coreRadius,
-    },
-  ];
+      position: add(base, scale(frame.normal, core.position.z * scaleFactor)),
+      radius: core.radius * scaleFactor,
+    });
+  }
 
+  const templatePetals = template.filter((component) => component.kind === "petal");
   for (let index = 0; index < instance.petals.length; index++) {
+    const templatePetal = templatePetals[index];
+    if (!templatePetal) continue;
     const rotated = rotate2(instance.petals[index], instance.angle);
-    const position = add(base, add(scale(frame.tangentX, rotated.x), scale(frame.tangentY, rotated.y)));
+    const position = add(
+      add(base, add(scale(frame.tangentX, rotated.x), scale(frame.tangentY, rotated.y))),
+      scale(frame.normal, templatePetal.position.z * scaleFactor),
+    );
     components.push({
       instanceId: instance.id,
       componentIndex: index,
       kind: "petal",
       position,
-      radius: petalRadius,
+      radius: templatePetal.radius * scaleFactor,
     });
   }
 
   return components;
+}
+
+function componentConnections(
+  components: readonly FlowerComponent[],
+): Array<readonly [FlowerComponent, FlowerComponent]> {
+  const core = components.find((component) => component.kind === "core");
+  const petals = components.filter((component) => component.kind === "petal");
+  if (core) return petals.map((petal) => [core, petal] as const);
+  return petals.map((petal, index) => [petal, petals[(index + 1) % petals.length]] as const);
+}
+
+interface FootprintDisc {
+  componentIndex: number;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+interface FootprintNeck {
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+  radius: number;
+}
+
+interface LocalFlowerFootprint {
+  discs: FootprintDisc[];
+  necks: FootprintNeck[];
+  territoryRadius: number;
+}
+
+export interface SurfaceCoverage {
+  material: number;
+  territory: number;
+  samples: number;
+}
+
+function pointSegmentDistance2(x: number, y: number, segment: FootprintNeck): number {
+  const dx = segment.bx - segment.ax;
+  const dy = segment.by - segment.ay;
+  const denominator = dx * dx + dy * dy;
+  const t = denominator > EPS
+    ? clamp(((x - segment.ax) * dx + (y - segment.ay) * dy) / denominator, 0, 1)
+    : 0;
+  return Math.hypot(x - (segment.ax + dx * t), y - (segment.ay + dy * t));
+}
+
+function localFlowerFootprint(instance: FlowerInstance, params: PackingParams): LocalFlowerFootprint {
+  const template = motifTemplate(params);
+  const scaleFactor = motifScale(params);
+  const blend = params.flowerSize * 0.24;
+  const surfaceExpansion = blend * 0.18;
+  const discs: FootprintDisc[] = [];
+  const core = template.find((component) => component.kind === "core");
+  if (core) {
+    discs.push({
+      componentIndex: -1,
+      x: 0,
+      y: 0,
+      radius: core.radius * scaleFactor + surfaceExpansion,
+    });
+  }
+
+  const templatePetals = template.filter((component) => component.kind === "petal");
+  for (let index = 0; index < instance.petals.length; index++) {
+    const templatePetal = templatePetals[index];
+    if (!templatePetal) continue;
+    const position = rotate2(instance.petals[index], instance.angle);
+    discs.push({
+      componentIndex: index,
+      x: position.x,
+      y: position.y,
+      radius: templatePetal.radius * scaleFactor + surfaceExpansion,
+    });
+  }
+
+  const petals = discs.filter((disc) => disc.componentIndex >= 0);
+  const coreDisc = discs.find((disc) => disc.componentIndex === -1);
+  const pairs: Array<readonly [FootprintDisc, FootprintDisc]> = coreDisc
+    ? petals.map((petal) => [coreDisc, petal] as const)
+    : petals.map((petal, index) => [petal, petals[(index + 1) % petals.length]] as const);
+  const motif = normalizePackingMotif(params.motif);
+  const necks = pairs.map(([start, end]) => ({
+    ax: start.x,
+    ay: start.y,
+    bx: end.x,
+    by: end.y,
+    radius: Math.min(start.radius, end.radius) * motif.neck + surfaceExpansion * 0.65,
+  }));
+
+  return {
+    discs,
+    necks,
+    territoryRadius: motifPlanarBound(params) + surfaceExpansion,
+  };
+}
+
+function footprintContains(footprint: LocalFlowerFootprint, x: number, y: number): boolean {
+  for (const disc of footprint.discs) {
+    if (Math.hypot(x - disc.x, y - disc.y) <= disc.radius) return true;
+  }
+  for (const neck of footprint.necks) {
+    if (pointSegmentDistance2(x, y, neck) <= neck.radius) return true;
+  }
+  return false;
+}
+
+function surfaceSample(index: number, sampleCount: number, domain: DomainKind): Vec3 {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  if (domain === "plane") {
+    const radius = Math.sqrt((index + 0.5) / sampleCount) * PLANE_RADIUS;
+    const angle = index * goldenAngle;
+    return { x: Math.cos(angle) * radius, y: 0, z: Math.sin(angle) * radius };
+  }
+  const y = 1 - ((index + 0.5) / sampleCount) * 2;
+  const radial = Math.sqrt(Math.max(0, 1 - y * y));
+  const angle = index * goldenAngle;
+  return {
+    x: Math.cos(angle) * radial * DOMAIN_RADIUS,
+    y: y * DOMAIN_RADIUS,
+    z: Math.sin(angle) * radial * DOMAIN_RADIUS,
+  };
+}
+
+function sampleInInstanceFrame(
+  point: Vec3,
+  instance: FlowerInstance,
+  params: PackingParams,
+): Vec2 {
+  if (params.domain === "plane") {
+    return { x: point.x - instance.anchor.x, y: point.z - instance.anchor.z };
+  }
+  const frame = frameAt(instance.anchor, params.domain);
+  const anchorNormal = normalize(instance.anchor);
+  const pointNormal = normalize(point);
+  const cosine = clamp(dot(anchorNormal, pointNormal), -1, 1);
+  const angle = Math.acos(cosine);
+  if (angle <= EPS) return { x: 0, y: 0 };
+  const direction = normalize(sub(pointNormal, scale(anchorNormal, cosine)), frame.tangentX);
+  const distance = angle * DOMAIN_RADIUS;
+  return {
+    x: dot(direction, frame.tangentX) * distance,
+    y: dot(direction, frame.tangentY) * distance,
+  };
+}
+
+/**
+ * Measures rotation-independent coverage on the placement surface. Material
+ * follows projected flower components and necks; territory uses the outer
+ * envelope and therefore includes a coreless flower's central opening.
+ */
+export function measureSurfaceCoverage(
+  instances: readonly FlowerInstance[],
+  params: PackingParams,
+  sampleCount = 3072,
+): SurfaceCoverage {
+  const safeSampleCount = Math.max(256, Math.trunc(sampleCount));
+  const footprints = instances.map((instance) => localFlowerFootprint(instance, params));
+  let materialHits = 0;
+  let territoryHits = 0;
+
+  for (let index = 0; index < safeSampleCount; index++) {
+    const point = surfaceSample(index, safeSampleCount, params.domain);
+    let material = false;
+    let territory = false;
+    for (let instanceIndex = 0; instanceIndex < instances.length; instanceIndex++) {
+      const local = sampleInInstanceFrame(point, instances[instanceIndex], params);
+      const footprint = footprints[instanceIndex];
+      const radial = Math.hypot(local.x, local.y);
+      if (radial <= footprint.territoryRadius) {
+        territory = true;
+        if (!material && footprintContains(footprint, local.x, local.y)) material = true;
+      }
+      if (material && territory) break;
+    }
+    if (material) materialHits++;
+    if (territory) territoryHits++;
+  }
+
+  return {
+    material: materialHits / safeSampleCount,
+    territory: territoryHits / safeSampleCount,
+    samples: safeSampleCount,
+  };
+}
+
+function singleMotifMaterialArea(params: PackingParams): number {
+  const instance: FlowerInstance = {
+    id: 0,
+    anchor: { x: 0, y: 0, z: 0 },
+    angle: 0,
+    petals: restPetals(params),
+  };
+  const footprint = localFlowerFootprint(instance, params);
+  const halfExtent = footprint.territoryRadius;
+  const resolution = 112;
+  let hits = 0;
+  for (let y = 0; y < resolution; y++) {
+    const py = ((y + 0.5) / resolution * 2 - 1) * halfExtent;
+    for (let x = 0; x < resolution; x++) {
+      const px = ((x + 0.5) / resolution * 2 - 1) * halfExtent;
+      if (footprintContains(footprint, px, py)) hits++;
+    }
+  }
+  return (hits / (resolution * resolution)) * (halfExtent * 2) ** 2;
+}
+
+function estimatedCountForCoverage(params: PackingParams): number {
+  const domainArea = params.domain === "sphere-surface"
+    ? 4 * Math.PI * DOMAIN_RADIUS * DOMAIN_RADIUS
+    : Math.PI * PLANE_RADIUS * PLANE_RADIUS;
+  const motifArea = Math.max(singleMotifMaterialArea(params), EPS);
+  return Math.max(4, Math.min(96, Math.round(params.targetCoverage * domainArea / motifArea)));
 }
 
 export function collisionProxies(
@@ -265,7 +632,6 @@ export function collisionProxies(
     const surfaceGuard = blend * 0.3;
     return instances.flatMap((instance) => {
       const components = flowerComponents(instance, params);
-      const core = components[0];
       const proxies: CollisionProxySphere[] = components.map((component) => ({
         instanceId: component.instanceId,
         componentIndex: component.componentIndex,
@@ -273,16 +639,17 @@ export function collisionProxies(
         radius: component.radius + inflation + surfaceGuard,
       }));
 
-      for (const petal of components.slice(1)) {
-        const neckRadius = Math.min(core.radius, petal.radius) * 0.36 + inflation + surfaceGuard;
+      for (const [start, end] of componentConnections(components)) {
+        const neckRadius = Math.min(start.radius, end.radius) * normalizePackingMotif(params.motif).neck
+          + inflation + surfaceGuard;
         for (const t of [0.34, 0.67]) {
           proxies.push({
             instanceId: instance.id,
-            componentIndex: petal.componentIndex,
+            componentIndex: end.componentIndex,
             position: {
-              x: core.position.x + (petal.position.x - core.position.x) * t,
-              y: core.position.y + (petal.position.y - core.position.y) * t,
-              z: core.position.z + (petal.position.z - core.position.z) * t,
+              x: start.position.x + (end.position.x - start.position.x) * t,
+              y: start.position.y + (end.position.y - start.position.y) * t,
+              z: start.position.z + (end.position.z - start.position.z) * t,
             },
             radius: neckRadius,
           });
@@ -292,14 +659,17 @@ export function collisionProxies(
     });
   }
 
-  const petalRadius = params.flowerSize * 0.51;
-  const boundRadius = params.flowerSize * 1.06 + petalRadius + inflation;
   return instances.map((instance) => {
-    const frame = frameAt(instance.anchor, params.domain);
+    const center = packingBase(instance, params);
+    const components = flowerComponents(instance, params);
+    const boundRadius = components.reduce((maximum, component) => Math.max(
+      maximum,
+      length(sub(component.position, center)) + component.radius,
+    ), params.flowerSize * 0.2) + inflation;
     return {
       instanceId: instance.id,
       componentIndex: -2,
-      position: add(instance.anchor, scale(frame.normal, params.flowerSize * 0.34)),
+      position: center,
       radius: boundRadius,
     };
   });
@@ -307,7 +677,7 @@ export function collisionProxies(
 
 function moveAnchor(instance: FlowerInstance, displacement: Vec3, params: PackingParams): void {
   if (params.domain === "plane") {
-    const limit = Math.max(0.05, PLANE_RADIUS - params.flowerSize * 1.65);
+    const limit = Math.max(0.05, PLANE_RADIUS - motifPlanarBound(params));
     const next = {
       x: finite(instance.anchor.x + displacement.x),
       y: 0,
@@ -353,7 +723,7 @@ function applyDisplacement(
 }
 
 function restoreSoftPetals(instance: FlowerInstance, params: PackingParams): void {
-  const rest = restPetals(params.flowerSize);
+  const rest = restPetals(params);
   const spring = 0.012 + (1 - params.softness) * 0.06;
 
   for (let index = 0; index < instance.petals.length; index++) {
@@ -365,12 +735,12 @@ function restoreSoftPetals(instance: FlowerInstance, params: PackingParams): voi
 }
 
 export function softPetalDisplacementLimit(params: PackingParams): number {
-  const restRadius = params.flowerSize * 1.06;
+  const restRadius = Math.max(...restPetals(params).map((petal) => Math.hypot(petal.x, petal.y)), EPS);
   return restRadius * (0.1 + params.softness * 0.16);
 }
 
 function constrainSoftPetals(instance: FlowerInstance, params: PackingParams): void {
-  const rest = restPetals(params.flowerSize);
+  const rest = restPetals(params);
   const maxDelta = softPetalDisplacementLimit(params);
   for (let index = 0; index < instance.petals.length; index++) {
     const petal = instance.petals[index];
@@ -389,6 +759,43 @@ function fallbackDirection(aId: number, bId: number): Vec3 {
   return { x: Math.cos(angle), y: 0, z: Math.sin(angle) };
 }
 
+function nearbyProxyPairs(proxies: readonly CollisionProxySphere[]): Array<readonly [number, number]> {
+  if (proxies.length < 2) return [];
+  const maxRadius = proxies.reduce((maximum, proxy) => Math.max(maximum, proxy.radius), EPS);
+  const cellSize = maxRadius * 2;
+  const buckets = new Map<string, number[]>();
+  const cells = proxies.map((proxy) => ({
+    x: Math.floor(proxy.position.x / cellSize),
+    y: Math.floor(proxy.position.y / cellSize),
+    z: Math.floor(proxy.position.z / cellSize),
+  }));
+  const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
+  for (let index = 0; index < proxies.length; index++) {
+    const cell = cells[index];
+    const bucketKey = key(cell.x, cell.y, cell.z);
+    const bucket = buckets.get(bucketKey);
+    if (bucket) bucket.push(index);
+    else buckets.set(bucketKey, [index]);
+  }
+
+  const pairs: Array<readonly [number, number]> = [];
+  for (let aIndex = 0; aIndex < proxies.length; aIndex++) {
+    const cell = cells[aIndex];
+    for (let dz = -1; dz <= 1; dz++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const bucket = buckets.get(key(cell.x + dx, cell.y + dy, cell.z + dz));
+          if (!bucket) continue;
+          for (const bIndex of bucket) {
+            if (bIndex > aIndex) pairs.push([aIndex, bIndex]);
+          }
+        }
+      }
+    }
+  }
+  return pairs;
+}
+
 function resolveIteration(
   instances: FlowerInstance[],
   params: PackingParams,
@@ -400,9 +807,8 @@ function resolveIteration(
   const byId = new Map(instances.map((instance) => [instance.id, instance]));
   let collisionCount = 0;
 
-  for (let aIndex = 0; aIndex < proxies.length; aIndex++) {
-    const a = proxies[aIndex];
-    for (let bIndex = aIndex + 1; bIndex < proxies.length; bIndex++) {
+  for (const [aIndex, bIndex] of nearbyProxyPairs(proxies)) {
+      const a = proxies[aIndex];
       const b = proxies[bIndex];
       if (a.instanceId === b.instanceId) continue;
       const delta = sub(a.position, b.position);
@@ -418,7 +824,6 @@ function resolveIteration(
       if (!aInstance || !bInstance) continue;
       applyDisplacement(aInstance, a.componentIndex, correction, params, response);
       applyDisplacement(bInstance, b.componentIndex, scale(correction, -1), params, response);
-    }
   }
 
   if (response === "soft") {
@@ -439,9 +844,8 @@ function collisionMetrics(
   let collisionCount = 0;
   let maxPenetration = 0;
 
-  for (let aIndex = 0; aIndex < proxies.length; aIndex++) {
-    const a = proxies[aIndex];
-    for (let bIndex = aIndex + 1; bIndex < proxies.length; bIndex++) {
+  for (const [aIndex, bIndex] of nearbyProxyPairs(proxies)) {
+      const a = proxies[aIndex];
       const b = proxies[bIndex];
       if (a.instanceId === b.instanceId) continue;
       const overlap = a.radius + b.radius - length(sub(a.position, b.position));
@@ -449,14 +853,13 @@ function collisionMetrics(
         collisionCount++;
         maxPenetration = Math.max(maxPenetration, overlap);
       }
-    }
   }
   return { collisionCount, maxPenetration };
 }
 
 function deformationMetrics(instances: readonly FlowerInstance[], params: PackingParams): { mean: number; max: number } {
-  const rest = restPetals(params.flowerSize);
-  const denominator = Math.max(params.flowerSize * 1.06, EPS);
+  const rest = restPetals(params);
+  const denominator = Math.max(...rest.map((petal) => Math.hypot(petal.x, petal.y)), EPS);
   let total = 0;
   let maximum = 0;
   let count = 0;
@@ -476,7 +879,7 @@ function outsideCount(instances: readonly FlowerInstance[], params: PackingParam
   if (params.domain === "sphere-surface") {
     return instances.filter((instance) => Math.abs(length(instance.anchor) - DOMAIN_RADIUS) > 1e-5).length;
   }
-  const limit = PLANE_RADIUS - params.flowerSize * 1.65 + 1e-5;
+  const limit = PLANE_RADIUS - motifPlanarBound(params) + 1e-5;
   return instances.filter((instance) => Math.hypot(instance.anchor.x, instance.anchor.z) > limit).length;
 }
 
@@ -509,6 +912,7 @@ export function solvePacking(
   const collision = collisionMetrics(instances, params, proxyMode);
   const outside = outsideCount(instances, params);
   const deformation = deformationMetrics(instances, params);
+  const coverage = measureSurfaceCoverage(instances, params);
   const convergence = collision.collisionCount === 0 && outside === 0
     ? "converged"
     : Number.isFinite(collision.maxPenetration)
@@ -527,36 +931,138 @@ export function solvePacking(
       outsideCount: outside,
       meanDeformation: deformation.mean,
       maxDeformation: deformation.max,
+      materialCoverage: coverage.material,
+      territoryCoverage: coverage.territory,
+      coverageSamples: coverage.samples,
     },
   };
+}
+
+function solveForTargetCoverage(
+  params: PackingParams,
+  response: PackingResponse,
+  proxyMode: CollisionProxyMode,
+): ComparisonPanel {
+  let count = estimatedCountForCoverage(params);
+  let countedParams = { ...params, count };
+  let result = solvePacking(createInitialInstances(countedParams), countedParams, response, proxyMode);
+  const measured = result.diagnostics.materialCoverage;
+  if (measured > EPS && Math.abs(measured - params.targetCoverage) > 0.015) {
+    const adjusted = Math.max(4, Math.min(96, Math.round(count * params.targetCoverage / measured)));
+    if (adjusted !== count) {
+      count = adjusted;
+      countedParams = { ...params, count };
+      result = solvePacking(createInitialInstances(countedParams), countedParams, response, proxyMode);
+    }
+  }
+  return { label: "", params: countedParams, result };
 }
 
 export function createComparison(params: PackingParams, mode: ComparisonMode): PackingComparison {
   const safeParams: PackingParams = {
     seed: Math.trunc(finite(params.seed, DEFAULT_PACKING_PARAMS.seed)),
-    count: Math.max(4, Math.min(80, Math.trunc(finite(params.count, DEFAULT_PACKING_PARAMS.count)))),
+    count: Math.max(4, Math.min(96, Math.trunc(finite(params.count, DEFAULT_PACKING_PARAMS.count)))),
     flowerSize: Math.max(0.12, Math.min(0.38, finite(params.flowerSize, DEFAULT_PACKING_PARAMS.flowerSize))),
     clearance: Math.max(0, Math.min(0.14, finite(params.clearance, DEFAULT_PACKING_PARAMS.clearance))),
     softness: Math.max(0, Math.min(1, finite(params.softness, DEFAULT_PACKING_PARAMS.softness))),
     iterations: Math.max(10, Math.min(240, Math.trunc(finite(params.iterations, DEFAULT_PACKING_PARAMS.iterations)))),
     domain: params.domain === "plane" ? "plane" : "sphere-surface",
+    packingBasis: params.packingBasis === "count" ? "count" : "coverage",
+    targetCoverage: Math.max(0.08, Math.min(0.9, finite(params.targetCoverage, DEFAULT_PACKING_PARAMS.targetCoverage))),
+    motif: normalizePackingMotif(params.motif),
   };
   const initial = createInitialInstances(safeParams);
 
-  if (mode === "proxy") {
+  if (mode === "motif") {
+    const baselineParams: PackingParams = { ...safeParams, motif: { ...DEFAULT_PACKING_MOTIF } };
+    if (safeParams.packingBasis === "coverage") {
+      const left = solveForTargetCoverage(baselineParams, "rigid", "multi");
+      const right = solveForTargetCoverage(safeParams, "rigid", "multi");
+      left.label = "4枚 · 現在の花";
+      right.label = packingMotifLabel(safeParams.motif);
+      return {
+        mode,
+        params: { ...safeParams, count: right.params.count },
+        left,
+        right,
+      };
+    }
+    const baselineInitial = createInitialInstances(baselineParams);
     return {
       mode,
       params: safeParams,
-      left: { label: "Rigid · L0 外接球", result: solvePacking(initial, safeParams, "rigid", "single") },
-      right: { label: "Rigid · L1 複数球", result: solvePacking(initial, safeParams, "rigid", "multi") },
+      left: {
+        label: "4枚 · 現在の花",
+        params: baselineParams,
+        result: solvePacking(baselineInitial, baselineParams, "rigid", "multi"),
+      },
+      right: {
+        label: packingMotifLabel(safeParams.motif),
+        params: safeParams,
+        result: solvePacking(initial, safeParams, "rigid", "multi"),
+      },
+    };
+  }
+
+  if (mode === "proxy") {
+    if (safeParams.packingBasis === "coverage") {
+      const right = solveForTargetCoverage(safeParams, "rigid", "multi");
+      const sharedParams = right.params;
+      return {
+        mode,
+        params: sharedParams,
+        left: {
+          label: "Rigid · L0 外接球",
+          params: sharedParams,
+          result: solvePacking(createInitialInstances(sharedParams), sharedParams, "rigid", "single"),
+        },
+        right: { ...right, label: "Rigid · L1 複数球" },
+      };
+    }
+    return {
+      mode,
+      params: safeParams,
+      left: {
+        label: "Rigid · L0 外接球",
+        params: safeParams,
+        result: solvePacking(initial, safeParams, "rigid", "single"),
+      },
+      right: {
+        label: "Rigid · L1 複数球",
+        params: safeParams,
+        result: solvePacking(initial, safeParams, "rigid", "multi"),
+      },
+    };
+  }
+
+  if (safeParams.packingBasis === "coverage") {
+    const left = solveForTargetCoverage(safeParams, "rigid", "multi");
+    const sharedParams = left.params;
+    return {
+      mode,
+      params: sharedParams,
+      left: { ...left, label: "Rigid · 花を保つ" },
+      right: {
+        label: "Soft · 花が応答する",
+        params: sharedParams,
+        result: solvePacking(createInitialInstances(sharedParams), sharedParams, "soft", "multi"),
+      },
     };
   }
 
   return {
     mode,
     params: safeParams,
-    left: { label: "Rigid · 花を保つ", result: solvePacking(initial, safeParams, "rigid", "multi") },
-    right: { label: "Soft · 花が応答する", result: solvePacking(initial, safeParams, "soft", "multi") },
+    left: {
+      label: "Rigid · 花を保つ",
+      params: safeParams,
+      result: solvePacking(initial, safeParams, "rigid", "multi"),
+    },
+    right: {
+      label: "Soft · 花が応答する",
+      params: safeParams,
+      result: solvePacking(initial, safeParams, "soft", "multi"),
+    },
   };
 }
 
@@ -580,13 +1086,56 @@ export function parseComparison(text: string): PackingComparison {
     throw new Error("Flower Packing Spike v1 の記録ではありません。");
   }
   const comparison = value.comparison;
-  if (!isObject(comparison) || (comparison.mode !== "response" && comparison.mode !== "proxy")) {
+  if (
+    !isObject(comparison) ||
+    (comparison.mode !== "response" && comparison.mode !== "proxy" && comparison.mode !== "motif")
+  ) {
     throw new Error("比較モードを読み取れません。");
   }
   if (!isObject(comparison.params) || !isObject(comparison.left) || !isObject(comparison.right)) {
     throw new Error("比較条件または左右の結果がありません。");
   }
-  return comparison as unknown as PackingComparison;
+  const parsed = comparison as unknown as PackingComparison;
+  const normalizedParams = {
+    ...DEFAULT_PACKING_PARAMS,
+    ...parsed.params,
+    packingBasis: parsed.params.packingBasis === "coverage" ? "coverage" as const : "count" as const,
+    targetCoverage: Math.max(
+      0.08,
+      Math.min(0.9, finite(parsed.params.targetCoverage, DEFAULT_PACKING_PARAMS.targetCoverage)),
+    ),
+    motif: normalizePackingMotif(parsed.params.motif),
+  };
+  const normalizePanel = (panel: ComparisonPanel): ComparisonPanel => {
+    const panelParams: PackingParams = {
+      ...normalizedParams,
+      ...(panel.params ?? {}),
+      motif: normalizePackingMotif(panel.params?.motif ?? normalizedParams.motif),
+    };
+    const diagnostics = panel.result.diagnostics;
+    const coverage = typeof diagnostics.materialCoverage === "number"
+      ? null
+      : measureSurfaceCoverage(panel.result.instances, panelParams);
+    return {
+      ...panel,
+      params: panelParams,
+      result: {
+        ...panel.result,
+        diagnostics: {
+          ...diagnostics,
+          materialCoverage: diagnostics.materialCoverage ?? coverage!.material,
+          territoryCoverage: diagnostics.territoryCoverage ?? coverage!.territory,
+          coverageSamples: diagnostics.coverageSamples ?? coverage!.samples,
+        },
+      },
+    };
+  };
+  return {
+    ...parsed,
+    params: normalizedParams,
+    left: normalizePanel(parsed.left),
+    right: normalizePanel(parsed.right),
+  };
 }
 
 export function stableContentHash(value: unknown): string {
@@ -598,3 +1147,11 @@ export function stableContentHash(value: unknown): string {
   }
   return `fnv1a32-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
+import {
+  FLOWER_FORM_SCALE,
+  FLOWER_PETAL_COUNTS,
+  createFlowerFormComponents,
+  paramsForFlowerVariant,
+  type FlowerFormParams,
+  type FlowerPetalCount,
+} from "./flowerForm.ts";

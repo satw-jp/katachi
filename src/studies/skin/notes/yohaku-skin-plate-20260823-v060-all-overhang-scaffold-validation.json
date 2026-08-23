@@ -1,0 +1,116 @@
+{
+  "format": "katachi-skin-validation",
+  "id": "yohaku-skin-plate-20260823-v060-all-overhang-scaffold-validation",
+  "generatedAt": "2026-08-23",
+  "version": "0.60.0",
+  "status": "superseded-do-not-print",
+  "supersedes": {
+    "filename": "katachi-skin-v059-a1mini-pla-external-scaffold.3mf",
+    "reason": "the 4 mm perimeter band produced only 15 columns and left most diagnosed overhang regions unsupported"
+  },
+  "printerProfile": {
+    "printer": "A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "recipe": {
+    "filename": "yohaku-skin-plate-20260822.recipe.json",
+    "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "bodyProvenance": {
+    "filename": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "sha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "final3mf": {
+    "filename": "katachi-skin-v060-a1mini-pla-all-overhang-scaffold.3mf",
+    "sha256": "e62a0e6d50508baf98aa61c4a14061bd04eda29711a04c27b88ac7a7fa1c94b0",
+    "bytes": 7123010
+  },
+  "export": {
+    "resolution": 128,
+    "targetLongestMm": 80,
+    "thresholdDeg": 45
+  },
+  "internalGraph": {
+    "nodes": 1490,
+    "edges": 823
+  },
+  "internalGate": {
+    "ok": true,
+    "reasons": []
+  },
+  "bodyRepair": {
+    "inputWindingInconsistentEdges": 70,
+    "repairedWindingInconsistentEdges": 0
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "humanSliceValidation": {
+    "result": "failed",
+    "observedAt": "2026-08-23",
+    "reason": "Bambu Studio sliced with automatic Support off and showed all 83 columns, but warned that the object still had floating regions because the 0.22 mm release gaps left BODY disconnected from the scaffold"
+  },
+  "scaffold": {
+    "strategy": "katachi-all-plate-reachable-straight-columns",
+    "bambuAutomaticSupport": false,
+    "coverageMode": "allReachable",
+    "spacingMm": 2.2,
+    "shaftDiameterMm": 1.1,
+    "baseDiameterMm": 1.5,
+    "tipDiameterMm": 0.64,
+    "topGapMm": 0.22,
+    "reachableFaces": 6894,
+    "coverageFaces": 6894,
+    "perimeterFaces": 0,
+    "bodyCollisionRejectedFaces": 4768,
+    "shortRejectedFaces": 280,
+    "spacingRejectedFaces": 1763,
+    "pillarCount": 83,
+    "faces": 5312
+  },
+  "package": {
+    "bodyFaces": 439736,
+    "bodyRole": "normal_part",
+    "scaffoldFaces": 5312,
+    "scaffoldRole": "normal_part",
+    "supportEnforcerFaces": 0,
+    "enableSupport": 0,
+    "removedDegenerateTriangles": 0,
+    "zipOk": true,
+    "scaffoldTopology": {
+      "components": 83,
+      "openEdges": 0,
+      "nonManifoldEdges": 0,
+      "allEdgesUsedTwice": true
+    }
+  },
+  "verification": {
+    "typescript": "pass",
+    "tests": "full pass",
+    "productionBuild": "pass",
+    "cloudflare": {
+      "versionId": "6ba00639-c9f5-478a-937a-64f823ab1aaf",
+      "url": "https://katachi.a-8c3.workers.dev/skin",
+      "assetHashesMatchLocalBuild": true
+    }
+  },
+  "humanCheckRequired": [
+    "Open this v0.60 file, not the superseded v0.59 perimeter-scaffold file",
+    "Slice without turning Bambu automatic support back on",
+    "Confirm Support filament is 0 g",
+    "Confirm 83 straight model-colored columns are distributed across the full plate-reachable overhang field",
+    "Inspect several layers and confirm no generated scaffold is trapped inside the porous BODY",
+    "Confirm the columns begin on the plate and stop below their targets with a release gap",
+    "Do not print until all checks pass"
+  ],
+  "limitations": [
+    "Of 6,894 straight-down reachable candidates, 4,768 are excluded because the complete BODY occupies their vertical corridor; lower BODY usually provides material beneath them, but this is not a slicer proof of local support.",
+    "Katachi does not simulate column buckling, nozzle collision, surface finish, or actual PLA adhesion.",
+    "The Bambu Studio Slice Preview remains the human print gate."
+  ]
+}

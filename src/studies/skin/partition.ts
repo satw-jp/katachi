@@ -43,7 +43,11 @@ import { hashSeed, makeRng } from "../cloud-sculpt/random.ts";
 import { buildInsideTester } from "../../lib/geometry/pointInMesh.ts";
 import { compositeSdf } from "./field.ts";
 import type { Patch, SkinMode } from "./field.ts";
-import { computeSkinSamplingBounds, countConnectedComponents } from "./meshExport.ts";
+import {
+  computeSkinSamplingBounds,
+  countConnectedComponents,
+  reinforceQuadConnectionsForMesh,
+} from "./meshExport.ts";
 
 export interface PartitionSideResult {
   patchIds: number[];
@@ -218,11 +222,14 @@ export function buildPartitionMeshes(
   roundK: number,
   options: PartitionOptions,
   coinBulge: number,
+  quadMeshJoinWidth = 0,
+  coinBulgeBalance = 0,
   onProgress?: PartitionProgress,
 ): PartitionResult {
   if (host.length === 0) {
     throw new Error("実体（ホスト）が空です。まず育ててください。");
   }
+  allPatches = reinforceQuadConnectionsForMesh(allPatches, quadMeshJoinWidth).patches;
   const idSet = new Set(allPatches.map((p) => p.id));
   const aSet = new Set(groupAIds);
   const bSet = new Set(groupBIds);
@@ -242,9 +249,9 @@ export function buildPartitionMeshes(
 
   const bounds = computeSkinSamplingBounds(host, hostK, thickness, allPatches);
   const sampleAll = (x: number, y: number, z: number): Record<"original" | "sdfA" | "sdfB", number> => {
-    const dOriginal = compositeSdf(mode, host, hostK, thickness, allPatches, roundK, x, y, z, coinBulge);
-    const dA = compositeSdf(mode, host, hostK, thickness, patchesA, roundK, x, y, z, coinBulge);
-    const dB = compositeSdf(mode, host, hostK, thickness, patchesB, roundK, x, y, z, coinBulge);
+    const dOriginal = compositeSdf(mode, host, hostK, thickness, allPatches, roundK, x, y, z, coinBulge, coinBulgeBalance);
+    const dA = compositeSdf(mode, host, hostK, thickness, patchesA, roundK, x, y, z, coinBulge, coinBulgeBalance);
+    const dB = compositeSdf(mode, host, hostK, thickness, patchesB, roundK, x, y, z, coinBulge, coinBulgeBalance);
     return { original: dOriginal, sdfA: Math.max(dOriginal, dA - dB), sdfB: Math.max(dOriginal, dB - dA) };
   };
   onProgress?.(0, "サンプリング中");
@@ -265,14 +272,14 @@ export function buildPartitionMeshes(
   const originalVolume = Math.abs(signedVolumeOriginal);
 
   onProgress?.(0, "境界面積を推定中");
-  const dA = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patchesA, roundK, x, y, z, coinBulge);
-  const dB = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patchesB, roundK, x, y, z, coinBulge);
+  const dA = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patchesA, roundK, x, y, z, coinBulge, coinBulgeBalance);
+  const dB = (x: number, y: number, z: number) => compositeSdf(mode, host, hostK, thickness, patchesB, roundK, x, y, z, coinBulge, coinBulgeBalance);
   const step = bounds.longest / Math.max(8, Math.round(options.resolution));
   const boundaryAreaMm2 = estimateBoundaryAreaMm2(meshA, dA, dB, step);
 
   onProgress?.(0, "解析場の整合を確認中");
   const dOriginal = (x: number, y: number, z: number) =>
-    compositeSdf(mode, host, hostK, thickness, allPatches, roundK, x, y, z, coinBulge);
+    compositeSdf(mode, host, hostK, thickness, allPatches, roundK, x, y, z, coinBulge, coinBulgeBalance);
   const sdfAFn = (x: number, y: number, z: number) => Math.max(dOriginal(x, y, z), dA(x, y, z) - dB(x, y, z));
   const sdfBFn = (x: number, y: number, z: number) => Math.max(dOriginal(x, y, z), dB(x, y, z) - dA(x, y, z));
   const fieldConsistency = estimateFieldConsistency(bounds, dOriginal, sdfAFn, sdfBFn, canonicalScale);

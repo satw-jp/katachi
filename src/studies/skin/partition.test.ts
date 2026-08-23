@@ -31,8 +31,12 @@ import {
 import { buildInsideTester } from "../../lib/geometry/pointInMesh.ts";
 import { conditionedFidelityQuantity, evaluatePartitionGate, wilsonUpper95 } from "./partition.ts";
 import type { FidelityQuantity, MeshFidelityReport } from "./partition.ts";
-import { proposeGroupsBetweenEndpoints } from "./field.ts";
+import { buildPatchAdjacency, buildPatchAdjacencyForPatch, proposeGroupsBetweenEndpoints } from "./field.ts";
 import type { Patch, PatchAdjacencyEdge } from "./field.ts";
+import { createEmptyState as createSkinState, record as recordSkin, replay as replaySkin, serializeRecipe as serializeSkinRecipe, parseRecipe as parseSkinRecipe, type SkinHistoryEntry } from "./history.ts";
+import type { SurfaceElementReference } from "../../lib/elementAnnotations.ts";
+import { runElementTransformTests } from "./elementTransform.test.ts";
+import { runWorkflowProfileTests } from "./workflowProfiles.test.ts";
 
 let passed = 0;
 function test(name: string, fn: () => void): void {
@@ -46,6 +50,9 @@ function test(name: string, fn: () => void): void {
     process.exitCode = 1;
   }
 }
+
+runWorkflowProfileTests(test);
+runElementTransformTests(test);
 
 // --- fixtures --------------------------------------------------------------
 
@@ -312,6 +319,26 @@ test("inspectSavedStlTopology: a degenerate (collapsed) triangle is reported exp
   const report = inspectSavedStlTopology(tris, 21.5);
   assert.equal(report.degenerateTriangleCount, 1);
   assert.equal(report.ok, false);
+});
+
+test("inspectSavedStlTopology: non-finite and distinct-vertex collinear faces fail before repair", () => {
+  const withNaN = cubeTriangles();
+  withNaN.push({ a: { x: NaN, y: 0, z: 0 }, b: { x: 0, y: 1, z: 0 }, c: { x: 0, y: 0, z: 1 } });
+  const nonFinite = inspectSavedStlTopology(withNaN, 1);
+  assert.equal(nonFinite.nonFiniteTriangleCount, 1);
+  assert.equal(nonFinite.ok, false);
+  const withCollinear = cubeTriangles();
+  withCollinear.push({ a: { x: 0, y: 0, z: 2 }, b: { x: 1, y: 0, z: 2 }, c: { x: 2, y: 0, z: 2 } });
+  const collinear = inspectSavedStlTopology(withCollinear, 1);
+  assert.equal(collinear.degenerateTriangleCount, 1);
+  assert.equal(collinear.ok, false);
+});
+
+test("inspectSavedStlTopology: an extremely tiny finite nonzero face is not degenerate", () => {
+  const tiny: Triangle[] = [{ a: { x: 0, y: 0, z: 0 }, b: { x: 1e-11, y: 0, z: 0 }, c: { x: 0, y: 1e-11, z: 0 } }];
+  const report = inspectSavedStlTopology(tiny, 1);
+  assert.equal(report.nonFiniteTriangleCount, 0);
+  assert.equal(report.degenerateTriangleCount, 0);
 });
 
 test("inspectSavedStlTopology: float32 rounding at a large scale can collapse near-coincident vertices into a real defect", () => {
@@ -600,6 +627,37 @@ test("proposeGroupsBetweenEndpoints: moves balanced-but-isolated same-colour lea
   const proposal = proposeGroupsBetweenEndpoints(patches, edges, 10, 11);
   assert.deepEqual(proposal.groupA, [10]);
   assert.deepEqual(new Set(proposal.groupB), new Set([11, 100, 1, 2, 3]));
+});
+
+test("selected-patch adjacency matches the same patch's edges from the complete graph", () => {
+  const patches: Patch[] = [
+    { id: 10, shape: "coin", points: [{ x: 0, y: 0, z: 0, r: 0.2 }] },
+    { id: 20, shape: "flower", points: [{ x: 0.35, y: 0, z: 0, r: 0.2 }] },
+    { id: 30, shape: "flatRing", points: [{ x: 2, y: 0, z: 0, r: 0.1 }] },
+    { id: 40, shape: "ring3d", points: [{ x: 0, y: 0.42, z: 0, r: 0.2 }] },
+  ];
+  const complete = buildPatchAdjacency(patches, 0.1).filter((edge) => edge.aId === 20 || edge.bId === 20);
+  assert.deepEqual(buildPatchAdjacencyForPatch(patches, 20, 0.1), complete);
+  assert.deepEqual(buildPatchAdjacencyForPatch(patches, 999, 0.1), [], "unknown selection returns no neighbours");
+});
+
+test("surface annotation revisions prevent numeric patch-ID reuse and preserve identity-mode replacements", () => {
+  const patch = (id: number): Patch => ({ id, shape: "coin", points: [{ x: id, y: 0, z: 0, r: 0.1 }] });
+  const history: SkinHistoryEntry[] = [];
+  const state = createSkinState();
+  recordSkin(history, state, "packPatches", { patches: [patch(1)], identity: "replace" });
+  const first: SurfaceElementReference = { domain: "surface", setRevision: state.patchSetRevision, patchId: 1 };
+  recordSkin(history, state, "setAnnotation", { reference: first, value: { keep: true, weakContact: false, largeOpening: false, note: "残す" } });
+  recordSkin(history, state, "packPatches", { patches: [patch(1), patch(2)], identity: "preserve" });
+  assert.equal(state.annotations.length, 1, "identity-preserving replacement retains a live patch annotation");
+  recordSkin(history, state, "packPatches", { patches: [patch(1)], identity: "replace" });
+  assert.equal(state.annotations.length, 0, "new set clears annotations even when ID 1 is reused");
+  const stale: SurfaceElementReference = { ...first };
+  recordSkin(history, state, "setAnnotation", { reference: stale, value: { keep: true, weakContact: false, largeOpening: false, note: "stale" } });
+  assert.equal(state.annotations.length, 0, "stale revision cannot annotate regenerated numeric ID");
+  const replayed = replaySkin(parseSkinRecipe(serializeSkinRecipe(history)));
+  assert.equal(replayed.patchSetRevision, state.patchSetRevision);
+  assert.deepEqual(replayed.annotations, state.annotations, "recipe replay recovers revision-scoped review data");
 });
 
 console.log(`\n${passed} passed`);

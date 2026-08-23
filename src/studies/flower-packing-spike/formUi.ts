@@ -3,21 +3,25 @@ import { createVersionRow } from "../../lib/ui/version.ts";
 import {
   DEFAULT_FLOWER_FORM_PARAMS,
   DEFAULT_FLOWER_FORM_VARIANT,
+  FLOWER_PETAL_COUNTS,
   FLOWER_FORM_VARIANTS,
   paramsForFlowerVariant,
   type FlowerFormParams,
   type FlowerFormVariantId,
+  type FlowerPetalCount,
 } from "./flowerForm.ts";
 
 export interface FlowerFormUiState {
-  petalCount: 3 | 4;
+  petalCount: FlowerPetalCount;
   params: FlowerFormParams;
   selectedVariant: FlowerFormVariantId;
+  showCore: boolean;
   showSources: boolean;
 }
 
 export interface FlowerFormUiCallbacks {
   onStateChange: (state: FlowerFormUiState) => void;
+  onPackCurrent: (state: FlowerFormUiState) => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -107,7 +111,7 @@ export function buildFlowerFormUi(
     el(
       "p",
       "question-copy",
-      "正解を一つに決めず、同じ花を正面・横・斜めから見る。自然らしさは、反り・中心の成長・花弁ごとの成長差として一つずつ加える。",
+      "正解を一つに決めず、3〜12枚の花を正面・横・斜めから見る。花芯の有無と、反り・中心の成長・花弁ごとの成長差を分けて観察する。",
     ),
   );
 
@@ -115,13 +119,14 @@ export function buildFlowerFormUi(
     petalCount: 4,
     params: { ...DEFAULT_FLOWER_FORM_PARAMS },
     selectedVariant: DEFAULT_FLOWER_FORM_VARIANT,
+    showCore: true,
     showSources: false,
   };
   const emit = (): void => callbacks.onStateChange({ ...state, params: { ...state.params } });
 
   panel.appendChild(el("div", "section-title", "花弁の数 — 勝ち負けではない"));
   const countRow = el("div", "segmented petal-count-segmented");
-  const countButtons = ([3, 4] as const).map((count) => {
+  const countButtons = FLOWER_PETAL_COUNTS.map((count) => {
     const button = el("button", "segment-button", `${count}枚`) as HTMLButtonElement;
     button.type = "button";
     button.onclick = () => {
@@ -170,6 +175,21 @@ export function buildFlowerFormUi(
   addSlider("coreLift", "花芯の高さ", -0.12, 0.5, 0.01);
   addSlider("growthDifference", "花弁の成長差", 0, 0.34, 0.01);
 
+  const coreRow = el("label", "check-row");
+  const coreCheck = document.createElement("input");
+  coreCheck.type = "checkbox";
+  coreCheck.checked = true;
+  coreCheck.onchange = () => {
+    state = { ...state, showCore: coreCheck.checked };
+    updateUiState();
+    status.textContent = coreCheck.checked
+      ? "花芯を戻しました。花芯から花弁へつながる形です。"
+      : "花芯を外しました。隣り合う花弁同士で一体形を保っています。";
+    emit();
+  };
+  coreRow.append(coreCheck, document.createTextNode(" 花芯をつける"));
+  panel.appendChild(coreRow);
+
   const sourceRow = el("label", "check-row");
   const sourceCheck = document.createElement("input");
   sourceCheck.type = "checkbox";
@@ -180,14 +200,20 @@ export function buildFlowerFormUi(
   sourceRow.append(sourceCheck, document.createTextNode(" もとの球を重ねる"));
   panel.appendChild(sourceRow);
 
-  const reset = el("button", "primary-action", "最初のアトラスに戻す");
+  const packCurrent = el("button", "primary-action", "この形と設定をPackingへ渡す");
+  packCurrent.onclick = () => callbacks.onPackCurrent({ ...state, params: { ...state.params } });
+  panel.appendChild(packCurrent);
+
+  const reset = el("button", "secondary-action", "最初のアトラスに戻す");
   reset.onclick = () => {
     state = {
       petalCount: 4,
       params: { ...DEFAULT_FLOWER_FORM_PARAMS },
       selectedVariant: DEFAULT_FLOWER_FORM_VARIANT,
+      showCore: true,
       showSources: false,
     };
+    coreCheck.checked = true;
     sourceCheck.checked = false;
     for (const [key, handle] of handles) handle.set(state.params[key]);
     updateUiState();
@@ -199,7 +225,7 @@ export function buildFlowerFormUi(
     el(
       "p",
       "hint",
-      "下の四つは完成候補ではなく、変化の入口。形を押すと三つの窓が同じ花へ切り替わります。",
+      "下の四つは完成候補ではなく、変化の入口。花芯を外すと花弁だけの輪と中央の空きを観察できます。",
     ),
   );
 
@@ -223,10 +249,16 @@ export function buildFlowerFormUi(
   }
 
   function updateUiState(): void {
-    for (const [index, count] of ([3, 4] as const).entries()) {
+    for (const [index, count] of FLOWER_PETAL_COUNTS.entries()) {
       const active = state.petalCount === count;
       countButtons[index].classList.toggle("active", active);
       countButtons[index].setAttribute("aria-pressed", String(active));
+    }
+    for (const key of ["coreSize", "coreLift"] as const) {
+      const handle = handles.get(key);
+      handle?.row.classList.toggle("control-disabled", !state.showCore);
+      const input = handle?.row.querySelector("input");
+      if (input) input.disabled = !state.showCore;
     }
     for (const button of atlasButtons) {
       const active = button.dataset.variant === state.selectedVariant;

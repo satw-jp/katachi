@@ -1,0 +1,93 @@
+{
+  "format": "katachi-skin-validation",
+  "id": "yohaku-skin-plate-20260823-v058-normal-snug-validation",
+  "generatedAt": "2026-08-23",
+  "version": "0.58.0",
+  "status": "superseded-do-not-print",
+  "supersedes": {
+    "filename": "katachi-skin-v057-a1mini-pla-external-support.3mf",
+    "reason": "tree(manual) branches entered the porous SKIN interior in the author's Bambu Slice Preview"
+  },
+  "printerProfile": {
+    "printer": "A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "recipe": {
+    "filename": "yohaku-skin-plate-20260822.recipe.json",
+    "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "bodyProvenance": {
+    "filename": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "sha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "final3mf": {
+    "filename": "katachi-skin-v058-a1mini-pla-normal-snug.3mf",
+    "sha256": "b7b0dfd1d0307eaf3dfb06e5805a5aa00c79caebbba35c3a19eb6b56e8afe647",
+    "bytes": 8456670
+  },
+  "support": {
+    "type": "normal(manual)",
+    "style": "snug",
+    "onBuildPlateOnly": true,
+    "expansionMm": 0,
+    "treeAllowed": false
+  },
+  "humanSliceValidation": {
+    "result": "failed",
+    "observedAt": "2026-08-23",
+    "authorObservation": "まだだめだな",
+    "modelFilamentG": 19.88,
+    "supportFilamentG": 17.17,
+    "reason": "Bambu normal(manual)/Snug/build-plate-only still filled the porous interior with automatic support"
+  },
+  "export": {
+    "resolution": 128,
+    "targetLongestMm": 80,
+    "thresholdDeg": 45
+  },
+  "internalGraph": {
+    "nodes": 1490,
+    "edges": 823
+  },
+  "internalGate": {
+    "ok": true,
+    "reasons": []
+  },
+  "bodyRepair": {
+    "inputWindingInconsistentEdges": 70,
+    "repairedWindingInconsistentEdges": 0
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "package": {
+    "bodyFaces": 439736,
+    "bodyRole": "normal_part",
+    "enforcerFaces": 55152,
+    "enforcerRole": "support_enforcer",
+    "zipOk": true
+  },
+  "verification": {
+    "tests": "full pass",
+    "cloudflare": {
+      "versionId": "8c5b7420-c269-4959-80df-8088b1eac2fc",
+      "url": "https://katachi.a-8c3.workers.dev/skin",
+      "assetHashesMatchLocalBuild": true
+    }
+  },
+  "humanCheckRequired": [
+    "Do not print this superseded v0.58 file",
+    "Confirm Type is normal(manual), Style is Snug, and On build plate only is enabled",
+    "Slice and inspect support at several internal layers",
+    "Do not print if support occupies the porous interior or cannot be removed downward"
+  ],
+  "limitations": [
+    "Normal Snug still produced 17.17 g of automatic support throughout the porous interior in the author Slice Preview.",
+    "Katachi does not prove removal access or physical print success."
+  ]
+}

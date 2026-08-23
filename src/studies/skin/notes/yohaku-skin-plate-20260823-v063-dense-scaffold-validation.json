@@ -1,0 +1,69 @@
+{
+  "schema": "katachi.skin.bambu3mf-validation.v1",
+  "status": "geometry-and-package-ok-human-slice-pending",
+  "version": "0.63.0",
+  "date": "2026-08-23",
+  "printer": {
+    "model": "Bambu Lab A1 mini",
+    "nozzleDiameterMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "source": {
+    "recipe": "yohaku-skin-plate-20260822.recipe.json",
+    "bodyStl": "yohaku-skin-plate-20260822.stl",
+    "targetLongestMm": 80,
+    "resolution": 128,
+    "thresholdDeg": 45
+  },
+  "internalGate": {
+    "ok": true,
+    "nodes": 1490,
+    "edges": 823
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "scaffold": {
+    "coverageMode": "allReachable",
+    "spacingMm": 0.8,
+    "shaftDiameterMm": 0.8,
+    "baseDiameterMm": 1,
+    "tipDiameterMm": 0.48,
+    "bodyOverlapMm": 0.12,
+    "xyClearanceMm": 0.05,
+    "collisionRejectedFaces": 3350,
+    "shortRejectedFaces": 280,
+    "spacingRejectedFaces": 2938,
+    "pillarCount": 326,
+    "faces": 20864
+  },
+  "package": {
+    "file": "katachi-skin-v063-a1mini-pla-dense-scaffold.3mf",
+    "bytes": 7291355,
+    "sha256": "549e5b2ae430f73ad74033687d273b886b678cb9d768ca12a5881308c27256fd",
+    "bodyFaces": 439736,
+    "totalFaces": 460600,
+    "removedDegenerateTriangles": 0,
+    "objectCount": 1,
+    "componentCount": 1,
+    "partCount": 1,
+    "partName": "BODY_WITH_SCAFFOLD",
+    "partSubtype": "normal_part",
+    "automaticSupport": false
+  },
+  "humanSliceValidation": {
+    "status": "pending",
+    "checks": [
+      "Bambu Studio no longer reports floating regions",
+      "layer 1 through the first BODY contacts contain no isolated model islands",
+      "all columns start on the build plate and remain outside removable corridors",
+      "automatic Bambu Support stays disabled"
+    ]
+  },
+  "printApproval": false,
+  "note": "v0.62 remained unsafe with 83 columns. v0.63 increases the dry straight scaffold to 326 columns; print approval remains false until the author's Bambu Slice Preview is clean."
+}

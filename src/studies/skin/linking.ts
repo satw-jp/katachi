@@ -138,6 +138,16 @@ export function findDeepPatchOverlaps(patches: Patch[]): SkinOverlapWarning[] {
       let worst = 0;
       for (const pa of a.points) {
         for (const pb of b.points) {
+          // Direct flower bridges intentionally overlap their destination
+          // motif. They are authored joints, not accidental deep fusion.
+          if (pa.role === "bridge" || pb.role === "bridge") continue;
+          // PACK-SPIKE lace-shell mode deliberately expands components until
+          // neighbouring flowers fuse. Report its component count/mesh
+          // topology instead of relabelling the authored fusion as an
+          // accidental-overlap warning.
+          const fusedA = (pa.fusionR ?? 0) > 0 && pa.r > (pa.baseR ?? pa.r);
+          const fusedB = (pb.fusionR ?? 0) > 0 && pb.r > (pb.baseR ?? pb.r);
+          if (a.shape === "flower" && b.shape === "flower" && fusedA && fusedB) continue;
           const dist = Math.hypot(pa.x - pb.x, pa.y - pb.y, pa.z - pb.z);
           const overlap = pa.r + pb.r - dist;
           if (overlap <= 0) continue;

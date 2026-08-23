@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => ({
         tangle: "tangle.html",
         flowerPackingSpike: "flower-packing-spike.html",
         flowerFormSpike: "flower-form-spike.html",
+        flowerCoreNetwork: "flower-core-network.html",
       },
     },
   },

@@ -32,6 +32,8 @@ self.onmessage = (event: MessageEvent<PartitionBuildRequest>) => {
       request.roundK,
       request.options,
       request.coinBulge,
+      request.quadMeshJoinWidth,
+      request.coinBulgeBalance,
       (fraction, stage) => {
         post({ type: "progress", requestId, stage, fraction, elapsedMs: performance.now() - startedAt });
       },

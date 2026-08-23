@@ -12,6 +12,10 @@ MorphogenesisLab（`active/MorphogenesisLab`）の姉妹プロジェクト — �
 状態: **11 Study が存在する**。package version は 0.1.0。
 各 Study は独立した manifest version を持つ（各 `src/studies/<name>/manifest.json` が正本）。
 
+他プロジェクトから参照する現在地は
+[Projects共通の Current Project State](../../docs/current-project-state.md) に集約する。
+Git HEADだけで最新版を決めず、各Studyのmanifest・研究ノート・公開画面を合わせて確認する。
+
 | Study id | 表示名 | version | updatedAt | status |
 |---|---|---:|---|---|
 | cloud-sculpt | 雲をこねる (Cloud Sculpt) | 0.2.0 | 2026-07-17 | active |
@@ -21,7 +25,7 @@ MorphogenesisLab（`active/MorphogenesisLab`）の姉妹プロジェクト — �
 | foam | 泡のセル (Foam Cells) | 0.1.0 | 2026-07-17 | active |
 | rings | 輪の手 (Ring Hand) | 0.1.0 | 2026-07-17 | active |
 | pack | 虚を詰める (Void Packing) | 0.4.0 | 2026-07-17 | active |
-| skin | 表面に詰める (Surface Patch Packing) / リングの皮 | 0.13.0 | 2026-07-20 | active |
+| skin | 表面に詰める (Surface Patch Packing) / Internal Structure | 0.60.0 | 2026-08-23 | active |
 | interior-growth | 内部から育つネットワーク (Interior Growth) | 0.5.0 | 2026-07-25 | active |
 | hitsuji | 羊に原理を作用させる (Hitsuji Principles) | 0.11.0 | 2026-07-28 | active |
 | tangle | 軌跡を塊にする (Trajectory Fusion) | 0.10.0 | 2026-07-29 | active |
@@ -195,3 +199,14 @@ Drive 側の関連調査: `~/Projects/docs/drive-survey-20260703.md`
   original/A/Bすべてclosed・winding整合・退化なしとなり、重複/未割当/不整合と体積差を含む
   通常書き出しゲートが合格した。保存したA/BはOptimizer独立診断でも双方watertightだった。
   詳細値とSHA-256は`src/studies/skin/README.md` Observation v0.7を参照。
+
+- 2026-08-22: SKIN v0.57.0 adds a deterministic fail-closed final-Surface straight-down reachability filter before Bambu Support Enforcer export. It reports candidate → exterior-reachable / interior-or-occluded counts and records a real 36-case modest-resolution screening matrix; it is not a slicer or print-success guarantee.
+- 2026-08-23: SKIN v0.58.0 records the real Bambu Slice Preview failure of tree(manual): external-only Enforcer contacts did not stop tree branches entering the porous interior. Tree export is now rejected; 3MF support is fixed to normal(manual) / snug / build-plate-only / expansion0. The v0.57 tree artifact is superseded and must not be printed.
+- 2026-08-23: SKIN v0.59.0 records that Normal/Snug also filled the porous interior (17.17 g support for a 19.88 g model), supersedes v0.58 as do-not-print, and replaces Bambu automatic support with deterministic removable straight scaffold columns generated only in the outer XY hull band; BODY-collision corridors are rejected and 3MF automatic support is explicitly disabled.
+- 2026-08-23: SKIN v0.60.0 supersedes the rejected 15-column v0.59 artifact and covers every plate-reachable diagnosed overhang candidate across the full XY field. Exact author geometry yields 83 closed removable columns with Bambu automatic support disabled; Bambu Slice Preview remains the human print gate.
+- 2026-08-23: SKIN v0.61.0 records that v0.60 still triggered Bambu floating-regions because its 83 columns stopped 0.22 mm below BODY. The same column layout now tapers to 0.48 mm breakaway tips overlapping BODY by 0.12 mm; human re-slice remains required.
+- 2026-08-23: SKIN v0.63.0 densified the dry scaffold to 326 columns, but actual Bambu re-slice still reported floating regions; v0.63 is superseded and must not be printed.
+- 2026-08-23: SKIN v0.66.0 adds a wide printable first-layer pad, seven-stage elapsed-time UI, repeat-export caching, grid-phase preservation, and exact detached-component diagnostics. Current exact 160 run is closed but still 2 components, so no v0.66 3MF was emitted and print approval remains false.
+- 2026-08-23: SKIN v0.65.0 rejects v0.64 after isolated Bambu layer 1 showed only one start island (horizontal maximum 98 versus layer 3 maximum 4515). All 336 pillars now use a common rescale-safe plate anchor and rounded first-layer foot; the final one-component 1,100,124-face mesh has 0 mm plate spread and an independent 0.10 mm slice shows 190 components across the full XY extent. Bambu isolated layer-1 confirmation remains required.
+- 2026-08-23: SKIN v0.64.0 (rejected: isolated layer 1 had only one start island) fused BODY, Dry Web, and all 326 columns through one resolution-160 SDF mesh pass. The exact author candidate is closed, degenerate-free, winding-consistent, and one connected component (1,081,140 faces; one 3MF object/component/part). Bambu re-slice remains required before print approval.
+- 2026-08-23: SKIN v0.62.0 packaged BODY and 83 intersecting columns as one BODY_WITH_SCAFFOLD part, but actual Bambu re-slice still reported floating regions; v0.62 is superseded and must not be printed.

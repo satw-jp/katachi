@@ -113,14 +113,67 @@ export function buildMeshFromField(
     }
   }
 
+  return buildMeshResultFromTriangles(triangles, options.targetLongestMm);
+}
+
+/** Assemble the same result metadata as buildMeshFromField after disjoint
+ * ranges of the global cube grid were polygonized in parallel. */
+export function buildMeshResultFromTriangles(
+  triangles: Triangle[],
+  targetLongestMm: number,
+): MeshBuildResult {
   const meshBounds = computeMeshBounds(triangles);
   const scaleMmPerUnit =
-    meshBounds.longest > 0 ? options.targetLongestMm / meshBounds.longest : 1;
+    meshBounds.longest > 0 ? targetLongestMm / meshBounds.longest : 1;
   const mmBounds = scaleBounds(meshBounds, scaleMmPerUnit);
   const watertight = inspectWatertight(triangles, scaleMmPerUnit);
   return { triangles, sourceBounds: meshBounds, mmBounds, scaleMmPerUnit, watertight };
 }
+export interface MeshGridShape {
+  nx: number;
+  ny: number;
+  nz: number;
+  step: number;
+}
 
+export function meshGridShape(sourceBounds: Bounds, resolutionValue: number): MeshGridShape {
+  const resolution = Math.max(8, Math.round(resolutionValue));
+  const step = sourceBounds.longest / resolution;
+  return {
+    nx: Math.max(2, Math.ceil((sourceBounds.size.x / sourceBounds.longest) * resolution)),
+    ny: Math.max(2, Math.ceil((sourceBounds.size.y / sourceBounds.longest) * resolution)),
+    nz: Math.max(2, Math.ceil((sourceBounds.size.z / sourceBounds.longest) * resolution)),
+    step,
+  };
+}
+
+/** Polygonize one exact contiguous range of the global Z cube grid. */
+export function buildMeshTrianglesFromFieldSlice(
+  sourceBounds: Bounds,
+  sdf: (x: number, y: number, z: number) => number,
+  resolutionValue: number,
+  zStartValue: number,
+  zEndValue: number,
+): Triangle[] {
+  const { nx, ny, nz, step } = meshGridShape(sourceBounds, resolutionValue);
+  const zStart = Math.max(0, Math.min(nz, Math.round(zStartValue)));
+  const zEnd = Math.max(zStart, Math.min(nz, Math.round(zEndValue)));
+  if (zEnd === zStart) return [];
+  const localNz = zEnd - zStart;
+  const values = sampleGridSlice(sdf, sourceBounds, nx, ny, localNz, zStart, step);
+  const triangles: Triangle[] = [];
+  for (let z = 0; z < localNz; z++) {
+    for (let y = 0; y < ny; y++) {
+      for (let x = 0; x < nx; x++) {
+        const corners = cubeCorners(sourceBounds, values, nx, ny, x, y, z, step, zStart);
+        for (const tet of TETS) {
+          polygonizeTet([corners[tet[0]], corners[tet[1]], corners[tet[2]], corners[tet[3]]], triangles);
+        }
+      }
+    }
+  }
+  return triangles;
+}
 /**
  * Generalization of buildMeshFromField to N named scalar fields sampled from
  * a SINGLE combined evaluation per grid corner (T13 audit fix P0-2: S-skin's
@@ -247,7 +300,30 @@ function sampleGrid(
   }
   return values;
 }
-
+function sampleGridSlice(
+  sdf: (x: number, y: number, z: number) => number,
+  bounds: Bounds,
+  nx: number,
+  ny: number,
+  localNz: number,
+  zOffset: number,
+  step: number,
+): Float32Array {
+  const sx = nx + 1;
+  const sy = ny + 1;
+  const values = new Float32Array(sx * sy * (localNz + 1));
+  for (let z = 0; z <= localNz; z++) {
+    const pz = bounds.min.z + (z + zOffset) * step;
+    for (let y = 0; y <= ny; y++) {
+      const py = bounds.min.y + y * step;
+      for (let x = 0; x <= nx; x++) {
+        const px = bounds.min.x + x * step;
+        values[x + y * sx + z * sx * sy] = sdf(px, py, pz);
+      }
+    }
+  }
+  return values;
+}
 function cubeCorners(
   bounds: Bounds,
   values: Float32Array,
@@ -257,6 +333,7 @@ function cubeCorners(
   y: number,
   z: number,
   step: number,
+  zOffset = 0,
 ): Corner[] {
   const sx = nx + 1;
   const sy = ny + 1;
@@ -267,7 +344,7 @@ function cubeCorners(
     return {
       x: bounds.min.x + gx * step,
       y: bounds.min.y + gy * step,
-      z: bounds.min.z + gz * step,
+      z: bounds.min.z + (gz + zOffset) * step,
       value: values[gx + gy * sx + gz * sx * sy],
     };
   });
@@ -626,6 +703,77 @@ export function orientMeshForSavedStl(result: MeshBuildResult): MeshBuildResult 
  * loosely, as countConnectedComponents below does, or use EXACT keys on
  * already-rounded vertices, as inspectSavedStlTopology does below).
  */
+export interface SavedStlComponentSummary {
+  triangleCount: number;
+  boundsMm: Bounds;
+}
+
+/** Exact float32-STL component sizes for fail-closed diagnostics. */
+export function summarizeSavedStlComponents(
+  triangles: Triangle[],
+  scaleMmPerUnit: number,
+): SavedStlComponentSummary[] {
+  if (triangles.length === 0) return [];
+  const idOf = new Map<string, number>();
+  const parent: number[] = [];
+  const idFor = (vertex: MeshVertex): number => {
+    const v = roundVertexToF32(vertex, scaleMmPerUnit);
+    const key = `${v.x},${v.y},${v.z}`;
+    let id = idOf.get(key);
+    if (id === undefined) {
+      id = parent.length;
+      parent.push(id);
+      idOf.set(key, id);
+    }
+    return id;
+  };
+  const find = (start: number): number => {
+    let i = start;
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  };
+  const union = (a: number, b: number): void => {
+    const ra = find(a); const rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+  for (const triangle of triangles) {
+    const a = idFor(triangle.a); const b = idFor(triangle.b); const c = idFor(triangle.c);
+    union(a, b); union(b, c);
+  }
+  const records = new Map<number, {
+    triangleCount: number;
+    minX: number; minY: number; minZ: number;
+    maxX: number; maxY: number; maxZ: number;
+  }>();
+  for (const triangle of triangles) {
+    const vertices = [triangle.a, triangle.b, triangle.c].map((v) => roundVertexToF32(v, scaleMmPerUnit));
+    const root = find(idOf.get(`${vertices[0].x},${vertices[0].y},${vertices[0].z}`) ?? 0);
+    let record = records.get(root);
+    if (!record) {
+      record = {
+        triangleCount: 0,
+        minX: Infinity, minY: Infinity, minZ: Infinity,
+        maxX: -Infinity, maxY: -Infinity, maxZ: -Infinity,
+      };
+      records.set(root, record);
+    }
+    record.triangleCount++;
+    for (const v of vertices) {
+      record.minX = Math.min(record.minX, v.x); record.minY = Math.min(record.minY, v.y); record.minZ = Math.min(record.minZ, v.z);
+      record.maxX = Math.max(record.maxX, v.x); record.maxY = Math.max(record.maxY, v.y); record.maxZ = Math.max(record.maxZ, v.z);
+    }
+  }
+  return [...records.values()].map((record) => {
+    const min = { x: record.minX, y: record.minY, z: record.minZ };
+    const max = { x: record.maxX, y: record.maxY, z: record.maxZ };
+    const size = { x: max.x - min.x, y: max.y - min.y, z: max.z - min.z };
+    return { triangleCount: record.triangleCount, boundsMm: { min, max, size, longest: Math.max(size.x, size.y, size.z) } };
+  }).sort((a, b) => b.triangleCount - a.triangleCount);
+}
+
 export function computeConnectedComponentsWithKey(triangles: Triangle[], keyOf: (v: MeshVertex) => string): number {
   if (triangles.length === 0) return 0;
   const idOf = new Map<string, number>();
@@ -691,6 +839,8 @@ export interface SavedStlTopologyReport {
    * pass/fail decision (T13 gate-correction P0-2: "退成三角形を検査から
    * 黙って除外してok=trueにしない"). */
   degenerateTriangleCount: number;
+  /** Triangles whose Float32 saved coordinates are non-finite. */
+  nonFiniteTriangleCount: number;
   connectedComponents: number;
   totalEdges: number;
   /** winding-volume-final Task 6: Optimizer/trimesh can report
@@ -724,14 +874,25 @@ export function inspectSavedStlTopology(triangles: Triangle[], scaleMmPerUnit: n
   }));
   const keyOf = (v: MeshVertex) => `${v.x},${v.y},${v.z}`; // exact -- vertices are already float32-rounded
   let degenerateTriangleCount = 0;
+  let nonFiniteTriangleCount = 0;
   const undirectedCount = new Map<string, number>();
   const directedCount = new Map<string, number>();
   const survivors: Triangle[] = [];
   for (const tri of rounded) {
+    const values = [tri.a.x, tri.a.y, tri.a.z, tri.b.x, tri.b.y, tri.b.z, tri.c.x, tri.c.y, tri.c.z];
+    if (!values.every(Number.isFinite)) {
+      nonFiniteTriangleCount++;
+      continue;
+    }
     const ka = keyOf(tri.a);
     const kb = keyOf(tri.b);
     const kc = keyOf(tri.c);
-    if (ka === kb || kb === kc || kc === ka) {
+    const abx = tri.b.x - tri.a.x; const aby = tri.b.y - tri.a.y; const abz = tri.b.z - tri.a.z;
+    const acx = tri.c.x - tri.a.x; const acy = tri.c.y - tri.a.y; const acz = tri.c.z - tri.a.z;
+    const nx = aby * acz - abz * acy;
+    const ny = abz * acx - abx * acz;
+    const nz = abx * acy - aby * acx;
+    if (ka === kb || kb === kc || kc === ka || (nx === 0 && ny === 0 && nz === 0)) {
       degenerateTriangleCount++;
       continue;
     }
@@ -768,13 +929,14 @@ export function inspectSavedStlTopology(triangles: Triangle[], scaleMmPerUnit: n
   const closed = openEdges === 0 && nonManifoldEdges === 0;
   const windingConsistent = windingInconsistentEdges === 0;
   const degenerateFree = degenerateTriangleCount === 0;
-  const ok = closed && windingConsistent && degenerateFree;
+  const ok = closed && windingConsistent && degenerateFree && nonFiniteTriangleCount === 0;
   return {
     ok,
     openEdges,
     nonManifoldEdges,
     windingInconsistentEdges,
     degenerateTriangleCount,
+    nonFiniteTriangleCount,
     connectedComponents,
     totalEdges: undirectedCount.size,
     closed,

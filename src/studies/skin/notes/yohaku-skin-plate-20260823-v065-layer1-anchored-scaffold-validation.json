@@ -1,0 +1,111 @@
+{
+  "schema": "katachi.skin.print-candidate-validation.v1",
+  "candidate": "katachi-skin-v065-a1mini-pla-layer1-anchored-scaffold",
+  "status": "rejected-bambu-first-layer-sparse",
+  "printApproval": false,
+  "reason": "作者のBambu Studio実確認で、レイヤー1横スライダー最大は旧98から1164へ増えたが、336支柱に対する開始断面が全域でまだ少なかった。半径0.5 mmの球形基部は0.20 mm初層中央で約0.6 mm幅しかなく、0.50 mm初層線幅に対して多くがスライサーから落ちたため。v0.65は印刷禁止。",
+  "printer": {
+    "model": "Bambu Lab A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2,
+    "targetLongestMm": 80
+  },
+  "inputs": {
+    "recipe": "yohaku-skin-plate-20260822.recipe.json",
+    "recipeSha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f",
+    "bodyStl": "yohaku-skin-plate-20260822.stl",
+    "bodyStlSha256": "125bac88c673ed051365f8416ab154da18ff2acae2ed89de4eb8ee582ced1655",
+    "bodyProvenance": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "bodyProvenanceSha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "analysis": {
+    "surfaceResolution": 128,
+    "fusedMeshResolution": 160,
+    "overhangThresholdDeg": 45,
+    "dryWeb": {
+      "nodes": 1490,
+      "edges": 823,
+      "printGate": "OK",
+      "reasons": []
+    },
+    "reachability": {
+      "candidateFaces": 11829,
+      "keptFaces": 6894,
+      "rejectedFaces": 4935,
+      "invalidFaces": 0
+    }
+  },
+  "fusedScaffold": {
+    "coverageMode": "allReachable",
+    "spacingMm": 0.8,
+    "pillarCount": 336,
+    "shaftDiameterMm": 0.8,
+    "baseDiameterMm": 1,
+    "contactPadDiameterMm": 1,
+    "contactOverlapMm": 0.3,
+    "plateAnchorDropMm": 1,
+    "collisionRejectedFaces": 3411,
+    "shortRejectedFaces": 160,
+    "spacingRejectedFaces": 2987,
+    "separateScaffoldVolumes": 0
+  },
+  "plateAnchor": {
+    "ok": true,
+    "pillarCount": 336,
+    "meshMinZMm": -42.0681814059245,
+    "plateZMm": -42.0685395494791,
+    "plateSpreadMm": 0,
+    "plateClearanceMm": -0.00035814355459962144,
+    "firstLayerHeightMm": 0.2,
+    "toleranceMm": 0.05
+  },
+  "firstLayerMeshInspection": {
+    "ok": false,
+    "planeOffsetFromMeshMinMm": 0.1,
+    "planeZMm": -41.96818389892578,
+    "cutTriangles": 2264,
+    "crossingEdges": 2264,
+    "sliceComponents": 190,
+    "sliceBoundsMm": {
+      "minX": -36.9650306531706,
+      "maxX": 36.3154363022289,
+      "minY": -30.04424365865536,
+      "maxY": 23.480217865237343
+    },
+    "note": "幾何断面190成分は存在したが、Bambuの0.50 mm初層線幅による実造形可能性を見ていなかった。作者の実Sliceでは横最大1164まで増えたものの、目視できる開始足は336本に大きく届かなかった。"
+  },
+  "finalMesh": {
+    "faceCount": 1100124,
+    "closed": true,
+    "openEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateFaces": 0,
+    "nonFiniteFaces": 0,
+    "windingInconsistentEdges": 0,
+    "connectedComponents": 1,
+    "threeMfObjects": 1,
+    "threeMfComponents": 1,
+    "threeMfParts": 1,
+    "partName": "BODY_WITH_FUSED_SCAFFOLD"
+  },
+  "output": {
+    "file": "katachi-skin-v065-a1mini-pla-layer1-anchored-scaffold.3mf",
+    "bytes": 16713669,
+    "sha256": "a032c24a843dcd13349ac23183cb8ea041cd2886c8e2576f3bcdde3e47fbe10c"
+  },
+  "publication": {
+    "url": "https://katachi.a-8c3.workers.dev/skin",
+    "cloudflareVersionId": "eb6ff21f-2541-440d-9232-dfb53bc30c1a",
+    "browserVisualCheck": "asset-sha256-matches-local-build",
+    "note": "公開skin assetはlocal buildとSHA-256一致（a2e4925115ad616c070b7f5e490fd7a65be28d5cb5c675aaa03da277a1d28e88）。Bambu Studioの視覚確認は作者が行う。"
+  },
+  "humanCheck": {
+    "bambuStudioFloatingRegionsWarningAbsent": true,
+    "layer1ShowsFootprintsAcrossFullXyExtent": false,
+    "layer1To3IslandsAbsent": false,
+    "supportColumnsReachEveryObservedLowOverhang": null,
+    "evidence": "screenshots/bambu-v065-layer1-sparse-20260823.png",
+    "notes": "作者の観察（原文）: 増えたけど少ない。v0.65は印刷禁止、v0.66の低背・幅広初層パッドへ差し替える。"
+  }
+}

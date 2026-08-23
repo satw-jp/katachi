@@ -1,0 +1,106 @@
+{
+  "format": "katachi-skin-validation",
+  "id": "yohaku-skin-plate-20260822-v057-validation",
+  "generatedAt": "2026-08-23",
+  "version": "0.57.0",
+  "status": "superseded-do-not-print",
+  "humanSliceValidation": {
+    "result": "failed",
+    "date": "2026-08-23",
+    "observation": "Bambu tree(manual) routed support branches through the porous SKIN interior even though Enforcer contacts passed the external straight-down screen."
+  },
+  "printerProfile": {
+    "printer": "A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2
+  },
+  "recipe": {
+    "filename": "yohaku-skin-plate-20260822.recipe.json",
+    "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "sourceBodyStl": {
+    "filename": "yohaku-skin-plate-20260822.stl",
+    "sha256": "125bac88c673ed051365f8416ab154da18ff2acae2ed89de4eb8ee582ced1655"
+  },
+  "bodyProvenance": {
+    "filename": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "sha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "final3mf": {
+    "intendedFilename": "katachi-skin-v057-a1mini-pla-external-support.3mf",
+    "sha256": "3ddb52ddaf4c209f45af63a41e339bbcf66188447baceb7fabb0037282691296",
+    "bytes": 8456624
+  },
+  "export": {
+    "resolution": 128,
+    "targetLongestMm": 80,
+    "thresholdDeg": 45,
+    "supportType": "tree(manual)"
+  },
+  "internalGraph": {
+    "nodes": 1490,
+    "edges": 823
+  },
+  "internalGate": {
+    "ok": true,
+    "reasons": []
+  },
+  "bodyRepair": {
+    "inputWindingInconsistentEdges": 70,
+    "repairedWindingInconsistentEdges": 0
+  },
+  "reachability": {
+    "candidateFaces": 11829,
+    "keptFaces": 6894,
+    "rejectedFaces": 4935,
+    "invalidFaces": 0
+  },
+  "package": {
+    "body": {
+      "faces": 439736,
+      "role": "normal_part"
+    },
+    "supportEnforcer": {
+      "faces": 55152,
+      "role": "support_enforcer"
+    },
+    "independentBodyTopology": {
+      "vertices": 219782,
+      "faces": 439736,
+      "degenerate": 0,
+      "nonFinite": 0,
+      "open": 0,
+      "nonManifold": 0,
+      "winding": 0,
+      "components": 1,
+      "ok": true
+    },
+    "zipOk": true
+  },
+  "verification": {
+    "tests": "full pass",
+    "screeningMatrix": {
+      "passed": 36,
+      "total": 36
+    },
+    "cloudflareDeployment": {
+      "status": "deployed",
+      "versionId": "906f6ca6-e097-4d05-945a-c204ae0766be",
+      "url": "https://katachi.a-8c3.workers.dev/skin",
+      "assetHashesMatchLocalBuild": true
+    },
+    "bambuHeadlessInfo": "inconclusive: exit 139 reproduced on an old known file"
+  },
+  "humanCheckRequired": [
+    "Bambu GUI open",
+    "Bambu GUI slice",
+    "support path",
+    "removal accessibility",
+    "plate placement"
+  ],
+  "limitations": [
+    "The reachability screen is a conservative straight-down four-sample lower-envelope test.",
+    "It is not a support router, removal proof, or print-success guarantee."
+  ]
+}

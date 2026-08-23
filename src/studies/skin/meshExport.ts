@@ -16,8 +16,10 @@
 // ---------------------------------------------------------------------------
 
 import type { Ball } from "../cloud-sculpt/field.ts";
+import { smoothMin } from "../cloud-sculpt/field.ts";
 import {
   buildMeshFromField,
+  buildMeshTrianglesFromFieldSlice,
   computeConnectedComponentsWithKey,
   computeSamplingBounds,
   encodeBinaryStl,
@@ -25,10 +27,14 @@ import {
   meshSummary as baseMeshSummary,
 } from "../cloud-sculpt/meshExport.ts";
 import type { Bounds, MeshBuildResult, MeshVertex, Triangle } from "../cloud-sculpt/meshExport.ts";
-import { compositeSdf } from "./field.ts";
+import { createCompositeSdfEvaluator, patchesSdf } from "./field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { SkinHistoryEntry } from "./history.ts";
 import { serializeRecipe } from "./history.ts";
+import type { InternalStructureGraph } from "./voronoi.ts";
+import { internalGraphToPatchPoints } from "./voronoi.ts";
+import { combineWithScaffoldSdf, expandScaffoldSamplingGrid } from "./scaffoldFusion.ts";
+import type { SkinScaffoldPillar } from "./scaffoldFusion.ts";
 
 export type { MeshBuildResult };
 
@@ -37,8 +43,59 @@ export interface SkinMeshOptions {
   targetLongestMm: number;
 }
 
+export interface SkinMeshFieldInput {
+  mode: SkinMode;
+  host: Ball[];
+  hostK: number;
+  thickness: number;
+  patches: Patch[];
+  roundK: number;
+  options: SkinMeshOptions;
+  coinBulge: number;
+  quadMeshJoinWidth?: number;
+  coinBulgeBalance?: number;
+  internalGraph?: InternalStructureGraph | null;
+  scaffoldPillars?: SkinScaffoldPillar[];
+}
+
+export interface SkinMeshSliceInput extends SkinMeshFieldInput {
+  zStart: number;
+  zEnd: number;
+}
+
+export interface SkinMeshSamplingGrid {
+  bounds: Bounds;
+  resolution: number;
+  reinforcedConnectionPoints: number;
+  internalEdgeCount: number;
+}
+
 export interface SkinMeshResult extends MeshBuildResult {
   connectedComponents: number;
+  /** Number of old-recipe points that received the live non-destructive
+   * QUAD mesh-join difference before sampling. */
+  reinforcedConnectionPoints: number;
+  /** Voronoi graph edges included in this exact mesh build. */
+  internalEdgeCount: number;
+}
+
+export function reinforceQuadConnectionsForMesh(
+  patches: Patch[],
+  requestedWidth: number,
+): { patches: Patch[]; reinforcedPointCount: number } {
+  const width = Math.max(0, Math.min(0.25, requestedWidth));
+  let reinforcedPointCount = 0;
+  const reinforced = patches.map((patch) => ({
+    ...patch,
+    points: patch.points.map((point) => {
+      if (patch.quadCellId === undefined || (point.fusionR ?? 0) <= 0) return { ...point };
+      const current = point.meshJoinR ?? 0;
+      const addition = Math.max(0, width - current);
+      if (addition > 1e-9) reinforcedPointCount++;
+      return { ...point, r: point.r + addition, meshJoinR: Math.max(current, width) };
+    }),
+  }));
+  return { patches: reinforced, reinforcedPointCount };
 }
 
 /**
@@ -66,6 +123,91 @@ export function computeSkinSamplingBounds(host: Ball[], hostK: number, thickness
   return { min, max, size, longest: Math.max(size.x, size.y, size.z) };
 }
 
+function internalStructurePatches(graph: InternalStructureGraph | null): Patch[] {
+  if (!graph) return [];
+  const points = internalGraphToPatchPoints(graph);
+  return points.length > 0 ? [{ id: -1, shape: "ring3d", points }] : [];
+}
+
+function combineWithInternalStructure(
+  surfaceSdf: (x: number, y: number, z: number) => number,
+  internalPatches: Patch[],
+  roundK: number,
+): (x: number, y: number, z: number) => number {
+  if (internalPatches.length === 0) return surfaceSdf;
+  const radius = internalPatches[0].points[0]?.r ?? 0;
+  const blend = Math.min(Math.max(0.005, roundK), radius * 0.75);
+  return (x, y, z) => smoothMin(
+    surfaceSdf(x, y, z),
+    patchesSdf(internalPatches, blend, x, y, z),
+    blend,
+  );
+}
+
+function validateSkinMeshInput(input: SkinMeshFieldInput): void {
+  if (input.host.length === 0) {
+    throw new Error("実体（ホスト）が空です。まず育ててください。");
+  }
+  if (input.mode === "plate" && input.patches.length === 0) {
+    throw new Error("プレート版は虚（パッチ）が無いと何も残りません。まず詰めてください。");
+  }
+}
+
+function prepareSkinMeshField(input: SkinMeshFieldInput): {
+  grid: SkinMeshSamplingGrid;
+  sdf: (x: number, y: number, z: number) => number;
+} {
+  validateSkinMeshInput(input);
+  const reinforced = reinforceQuadConnectionsForMesh(input.patches, input.quadMeshJoinWidth ?? 0);
+  const internalGraph = input.internalGraph ?? null;
+  const internalPatches = internalStructurePatches(internalGraph);
+  const scaffoldPillars = input.scaffoldPillars ?? [];
+  const samplingGrid = expandScaffoldSamplingGrid(
+    computeSkinSamplingBounds(input.host, input.hostK, input.thickness, [...reinforced.patches, ...internalPatches]),
+    scaffoldPillars,
+    input.options.resolution,
+  );
+  const surfaceSdf = createCompositeSdfEvaluator(
+    input.mode,
+    input.host,
+    input.hostK,
+    input.thickness,
+    reinforced.patches,
+    input.roundK,
+    input.coinBulge,
+    input.coinBulgeBalance ?? 0,
+  );
+  const bodySdf = combineWithInternalStructure(surfaceSdf, internalPatches, input.roundK);
+  return {
+    grid: {
+      bounds: samplingGrid.bounds,
+      resolution: samplingGrid.resolution,
+      reinforcedConnectionPoints: reinforced.reinforcedPointCount,
+      internalEdgeCount: internalGraph?.edges.length ?? 0,
+    },
+    sdf: combineWithScaffoldSdf(bodySdf, scaffoldPillars),
+  };
+}
+
+/** The authoritative expanded grid shared by serial and parallel SKIN
+ * meshing. Workers divide only its global Z cube range. */
+export function computeSkinMeshSamplingGrid(input: SkinMeshFieldInput): SkinMeshSamplingGrid {
+  return prepareSkinMeshField(input).grid;
+}
+
+/** Polygonize one disjoint global-Z cube range. Concatenating ascending
+ * ranges preserves buildSkinMesh's scalar field and global sampling grid. */
+export function buildSkinMeshTrianglesSlice(input: SkinMeshSliceInput): Triangle[] {
+  const prepared = prepareSkinMeshField(input);
+  return buildMeshTrianglesFromFieldSlice(
+    prepared.grid.bounds,
+    prepared.sdf,
+    prepared.grid.resolution,
+    input.zStart,
+    input.zEnd,
+  );
+}
+
 export function buildSkinMesh(
   mode: SkinMode,
   host: Ball[],
@@ -75,18 +217,52 @@ export function buildSkinMesh(
   roundK: number,
   options: SkinMeshOptions,
   coinBulge: number,
+  quadMeshJoinWidth = 0,
+  coinBulgeBalance = 0,
+  internalGraph: InternalStructureGraph | null = null,
+  scaffoldPillars: SkinScaffoldPillar[] = [],
 ): SkinMeshResult {
-  if (host.length === 0) {
-    throw new Error("実体（ホスト）が空です。まず育ててください。");
-  }
-  if (mode === "plate" && patches.length === 0) {
-    throw new Error("プレート版は虚（パッチ）が無いと何も残りません。まず詰めてください。");
-  }
-  const padded = computeSkinSamplingBounds(host, hostK, thickness, patches);
-  const sdf = (x: number, y: number, z: number) =>
-    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
-  const result = buildMeshFromField(padded, sdf, options);
-  return { ...result, connectedComponents: countConnectedComponents(result.triangles) };
+  const prepared = prepareSkinMeshField({
+    mode, host, hostK, thickness, patches, roundK, options, coinBulge,
+    quadMeshJoinWidth, coinBulgeBalance, internalGraph, scaffoldPillars,
+  });
+  const result = buildMeshFromField(prepared.grid.bounds, prepared.sdf, {
+    ...options,
+    resolution: prepared.grid.resolution,
+  });
+  return {
+    ...result,
+    connectedComponents: countConnectedComponents(result.triangles),
+    reinforcedConnectionPoints: prepared.grid.reinforcedConnectionPoints,
+    internalEdgeCount: prepared.grid.internalEdgeCount,
+  };
+}
+
+/** Display-only meshing range used by the preview Worker pool. Export and
+ * inspection continue to call buildSkinMesh and its topology checks. */
+export function buildSkinPreviewMeshSlice(
+  mode: SkinMode,
+  host: Ball[],
+  hostK: number,
+  thickness: number,
+  patches: Patch[],
+  roundK: number,
+  resolution: number,
+  coinBulge: number,
+  quadMeshJoinWidth: number,
+  zStart: number,
+  zEnd: number,
+  coinBulgeBalance = 0,
+  internalGraph: InternalStructureGraph | null = null,
+): Triangle[] {
+  const reinforced = reinforceQuadConnectionsForMesh(patches, quadMeshJoinWidth);
+  const internalPatches = internalStructurePatches(internalGraph);
+  const bounds = computeSkinSamplingBounds(host, hostK, thickness, [...reinforced.patches, ...internalPatches]);
+  const surfaceSdf = createCompositeSdfEvaluator(
+    mode, host, hostK, thickness, reinforced.patches, roundK, coinBulge, coinBulgeBalance,
+  );
+  const sdf = combineWithInternalStructure(surfaceSdf, internalPatches, roundK);
+  return buildMeshTrianglesFromFieldSlice(bounds, sdf, resolution, zStart, zEnd);
 }
 
 /**
@@ -105,7 +281,13 @@ export function countConnectedComponents(triangles: Triangle[]): number {
 }
 
 export function meshSummary(result: SkinMeshResult): string {
-  return `${baseMeshSummary(result)} / 部品数 ${result.connectedComponents}`;
+  const reinforcement = result.reinforcedConnectionPoints > 0
+    ? ` / 旧接合を補強 ${result.reinforcedConnectionPoints}点`
+    : "";
+  const internal = result.internalEdgeCount > 0
+    ? ` / 内部Voronoi ${result.internalEdgeCount}辺`
+    : "";
+  return `${baseMeshSummary(result)} / 部品数 ${result.connectedComponents}${reinforcement}${internal}`;
 }
 
 /** T14: coinBulge>0 gets folded into the filename itself (0 keeps the old
@@ -113,10 +295,14 @@ export function meshSummary(result: SkinMeshResult): string {
  * candidate's STL/OBJ/recipe files never collide with -- or get silently
  * confused with -- the value-0 baseline or a different candidate, without
  * relying on opening the recipe JSON to tell them apart. */
-export function makeSkinExportBaseName(mode: SkinMode, coinBulge: number): string {
+export function makeSkinExportBaseName(mode: SkinMode, coinBulge: number, coinBulgeBalance = 0): string {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const bulgeSuffix = coinBulge > 0 ? `-coin-bulge-${coinBulge.toFixed(3).replace(".", "p")}` : "";
-  return `yohaku-skin-${mode}${bulgeSuffix}-${stamp}`;
+  const clampedBalance = Math.max(-1, Math.min(1, coinBulgeBalance));
+  const balanceSuffix = coinBulge > 0 && Math.abs(clampedBalance) > 1e-6
+    ? `-${clampedBalance > 0 ? "front" : "back"}-${Math.abs(clampedBalance).toFixed(2).replace(".", "p")}`
+    : "";
+  return `yohaku-skin-${mode}${bulgeSuffix}${balanceSuffix}-${stamp}`;
 }
 
 /**
@@ -129,10 +315,27 @@ export function downloadSkinMeshBundle(
   history: SkinHistoryEntry[],
   baseName: string,
 ): void {
-  downloadBlob(new Blob([encodeBinaryStl(result, baseName)], { type: "model/stl" }), `${baseName}.stl`);
-  downloadBlob(new Blob([encodeObj(result)], { type: "text/plain" }), `${baseName}.obj`);
+  downloadSkinMeshArtifacts(
+    encodeBinaryStl(result, baseName),
+    encodeObj(result),
+    serializeRecipe(history),
+    baseName,
+  );
+}
+
+/** Download already-computed export artifacts. The interactive S-skin path
+ * creates STL/OBJ inside a Worker and calls this lightweight main-thread
+ * handoff so meshing and text encoding never block pointer/UI events. */
+export function downloadSkinMeshArtifacts(
+  stl: ArrayBuffer,
+  obj: string,
+  recipe: string,
+  baseName: string,
+): void {
+  downloadBlob(new Blob([stl], { type: "model/stl" }), `${baseName}.stl`);
+  downloadBlob(new Blob([obj], { type: "text/plain" }), `${baseName}.obj`);
   downloadBlob(
-    new Blob([serializeRecipe(history)], { type: "application/json" }),
+    new Blob([recipe], { type: "application/json" }),
     `${baseName}.recipe.json`,
   );
 }

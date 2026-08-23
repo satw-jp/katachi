@@ -163,7 +163,23 @@
 }
 
 .petal-count-segmented {
+  grid-template-columns: repeat(5, 1fr);
   margin-bottom: 14px;
+}
+
+.petal-count-segmented .segment-button {
+  margin-bottom: -1px;
+  padding-inline: 4px;
+}
+
+.control-disabled {
+  opacity: 0.34;
+}
+
+.secondary-action {
+  width: 100%;
+  margin-top: 7px;
+  padding: 9px;
 }
 
 @media (max-width: 1000px) {

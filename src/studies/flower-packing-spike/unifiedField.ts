@@ -71,11 +71,22 @@ export function flowerFieldSdf(
     distance = smoothUnionDistance(distance, sphereDistance, blend);
   }
 
-  const core = components[0];
+  const core = components.find((component) => component.kind === "core");
+  const petals = components.filter((component) => component.kind === "petal");
   if (core) {
-    for (const petal of components.slice(1)) {
+    for (const petal of petals) {
       const neckRadius = Math.min(core.radius, petal.radius) * neckFactor;
       const neckDistance = pointSegmentDistance(point, core.position, petal.position) - neckRadius;
+      distance = smoothUnionDistance(distance, neckDistance, blend * 0.55);
+    }
+  } else if (petals.length > 1) {
+    // A coreless flower is still one motif: connect neighbouring petals as a ring
+    // instead of treating the first petal as an accidental hidden core.
+    for (let index = 0; index < petals.length; index++) {
+      const petal = petals[index];
+      const neighbour = petals[(index + 1) % petals.length];
+      const neckRadius = Math.min(petal.radius, neighbour.radius) * neckFactor;
+      const neckDistance = pointSegmentDistance(point, petal.position, neighbour.position) - neckRadius;
       distance = smoothUnionDistance(distance, neckDistance, blend * 0.55);
     }
   }

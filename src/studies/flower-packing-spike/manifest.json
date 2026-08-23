@@ -2,7 +2,7 @@
   "id": "flower-packing-spike",
   "title": "花を詰める (Flower Packing Spike)",
   "status": "active",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "createdAt": "2026-08-09",
   "updatedAt": "2026-08-09",
   "params": [
@@ -13,10 +13,23 @@
     "softness",
     "iterations",
     "domain",
+    "packingBasis",
+    "targetCoverage",
     "comparisonMode",
     "formOpening",
     "formNeck",
-    "formCoreSize"
+    "formCoreSize",
+    "formCupping",
+    "formCoreLift",
+    "formGrowthDifference",
+    "formPetalCount",
+    "formCoreEnabled",
+    "packingMotif",
+    "cameraView",
+    "laceFusionRadius",
+    "laceResolution",
+    "laceTargetLongestMm",
+    "laceMinimumThicknessMm"
   ],
   "related": [
     "skin",
@@ -59,6 +72,58 @@
     {
       "date": "2026-08-09",
       "note": "Corrected the research direction after the author clarified that three versus four petals has no single correct answer. The goal is to try many forms, inspect every form from the side, and determine how natural form-generating causes enter Katachi. The next visual checkpoint is reframed as a Form Atlas: synchronized front/side/oblique views plus families varied by petal count, cupping or raised core, per-petal growth differences, directionality, gravity, and contact. Natural variation must retain an observable cause rather than becoming generic random distortion; multiple forms remain reusable inputs instead of being reduced to one winner."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented and visually verified the first Form Atlas checkpoint. One selected unified flower is now shown simultaneously from fixed front, side, and oblique cameras, while four retained causal variants remain visible below: coplanar baseline, petal cupping, raised core, and deterministic per-petal growth difference. Three/four petal counts remain a parameter rather than a winner selection, and source spheres can be overlaid in all three views. Side inspection distinguishes a petal ring moving forward from only the core lifting, which the former front-only comparison could not show. All four variants remain deterministic and core-petal field-connected; nine Flower tests, typecheck, build, real variant/count/source interactions, and saved visual evidence pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Expanded the Form Atlas petal-count parameter from three/four to three through six and added an independent core on/off control without changing the four-petal Packing solver. Coreless forms contain no hidden centre sphere: adjacent petals receive cyclic neighbour neck fields and move inward only as needed to remain one ring motif. Browser inspection shows a five-sided central opening with five petals and a more circular opening with six, creating a concrete bridge to figure-ground duality rather than treating the centre as a missing part. Ten Flower tests verify deterministic connected paths for every three-to-six count with and without a core, plus an exterior centre for coreless five/six forms. Typecheck, build, count/core/source interactions, and three saved screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Extended the Form Atlas count continuum from three through twelve petals. Counts above six reduce individual petal radius by sqrt(6/count), keeping the flower envelope comparable so count is not confounded with unlimited overall growth. Browser inspection shows eight petals still reading as a dense rosette, ten coreless petals as a visibly scalloped ring, twelve coreless petals approaching a continuous corolla, and twelve petals with the core restored as a raised-centre medallion. Petal count can therefore be observed as a transition from discrete lobes to a continuous ring rather than only as component quantity. Ten Flower tests now cover deterministic field connection for every count through twelve and exterior coreless centres from five onward; typecheck, build, real count/core interactions, and four screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Recorded the author's question about carrying all Form Atlas flowers into Flower Packing. The next implementation boundary is explicit: serialize the selected petal count, core presence, opening, neck, cupping, core lift, and growth difference as one rigid Flower definition; compare it against the current four-petal motif under the same domain and seed; and derive collision proxies from only the components and neighbour connections actually present. Coreless motifs must not receive a hidden centre proxy, preserving the hole as geometry. Soft response follows as a separate observation because ring-neighbour cohesion and whether contact may collapse the central opening require an explicit human judgment."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented the first Form Atlas-to-Packing checkpoint. The complete selected Flower definition now travels by URL from the Atlas button into seeded initialization, Rigid/Soft solving, L0/L1 proxies, unified rendering, comparison JSON, and draft Freeze. A new motif comparison places the legacy four-petal flower on the left and the selected rigid flower on the right from identical seeded anchors and angles; six-core, ten-coreless, and twelve-core presets are also selectable in Packing. Coreless collision proxies follow cyclic petal-neighbour connections and never insert a hidden centre. Browser QA converged at zero unresolved collisions for 34 six-petal motifs, 24 ten-petal rings, 24 twelve-petal motifs, and a custom 34-instance eight-petal coreless Atlas handoff. The ring holes remain visible after packing and under proxy overlay. Twelve Flower tests, typecheck, build, URL handoff, real controls, and five screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Made the full Form Atlas geometry handoff visible and verifiable. Packing now displays all eight received shape settings—petal count, core presence, opening, neck, core size, cupping, core lift, and per-petal growth difference—rather than reducing a custom flower to a generic label. A browser fixture changed every numeric setting on a nine-petal core flower (1.17/0.23/0.71/0.41/0.29/0.27), handed it off through the Atlas button, reproduced the exact values in Packing, and converged 34 instances with zero unresolved collisions while preserving the visibly raised, cupped, unequal-petal form. A deterministic test proves exact URL and comparison-JSON round trips for all eight fields; draft Freeze already consumes the same chosen panel parameters. The source-sphere overlay remains intentionally excluded because it is an observation aid, not geometry. Twelve tests, typecheck, build, visual QA, and two screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Promoted all eight inherited Flower geometry settings from a read-only summary to direct Packing controls. Petal count, opening, neck, core size, cupping, core lift, growth difference, and core presence now update one live Flower definition that is reused by motif, Rigid/Soft, and L0/L1 comparisons. Core-off keeps its core-size and core-lift values but disables those two irrelevant controls until the core returns. Browser QA changed every field to an eleven-petal cupped unequal-growth form, converged 34 instances at zero unresolved collisions, then removed only the core and preserved open ring holes; Rigid/Soft and L0/L1 retained the same edited definition. Twelve deterministic tests, typecheck, production build, and two new screenshots pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Responded to the author's close-up observation that the flowers overlap too strongly. Proxy overlay showed the multi-sphere guards covering the visible eleven-petal ring, so this checkpoint addresses initial visual density rather than claiming a new exact field-field collision solver. Coreless motifs with ten or more petals now start at 18 instances instead of 24, while high-petal motifs with a core start at 20; the recommendation never caps a count the author raises afterward. Default clearance increased from 0.025 to 0.055 and the control is now labelled 花の間隔. The same eleven-petal coreless form at Seed 304 remains converged with zero unresolved proxy collisions while each corolla is easier to follow. Thirteen tests, typecheck, production build, real-browser comparison, and a new screenshot pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Recorded the author's request for surface fill ratio as an alternative to flower count. Count remains a direct mode, while a separate fill-ratio comparison should give each motif its own resulting count under one shared target and seed. The primary metric is material coverage on the placement surface, with coreless central holes counted as uncovered; a secondary territory metric includes the motif envelope and reveals spacing. View-dependent screen coverage is explicitly rejected. The proposed checkpoint shows target ratio, measured ratio, and resulting count together, starting with a 55% comparison between the four-petal core flower and the eleven-petal coreless corolla. No solver or UI changed in this design revisit."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented surface-fill packing as a separate basis alongside direct flower count. A deterministic 3072-point sampling of the placement surface measures projected material coverage from petals, cores, and necks while leaving coreless central holes uncovered; a second territory metric measures the full outer envelope. In coverage mode each motif independently estimates and refines its count against one shared target, while response and proxy comparisons retain one shared derived count. The default visual checkpoint uses 20% rather than the provisional 55% because calibration showed the higher value would immediately recreate unreadable crowding at the current flower size. Browser QA at Seed 304 produced 24 four-petal flowers at 19.4% material / 32.1% territory and 22 eleven-petal coreless flowers at 20.2% / 32.7%, both with zero unresolved collisions. Count mode remains editable, old records receive measured coverage when reopened, and target/count controls disable only when the other basis owns the result. Sixteen tests, typecheck, production build, mode switching, real target interaction, and visual evidence pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Recorded the author's next criterion: higher fill is useful only if the result becomes one printable form. This separates three checks that the current per-flower unified preview does not prove—high surface density, one global connected component, and a closed mesh with printable minimum thickness. Two visually distinct manufacturing routes remain: a flower-only lace shell that preserves coreless and inter-flower holes as through-holes, or flowers unioned to a thin support shell that is easier to connect but closes the figure-ground openings behind them. The research direction recommends the lace shell first because it preserves the author's figure-ground question, but pauses implementation for the author's explicit visual choice. Future STL output must not be labelled print-ready unless global component count, watertightness, and minimum connection thickness pass."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Implemented the author's chosen flower-only manufacturing route as one global lace-shell field with no supporting sphere geometry. The first visual checkpoint raises the selected six-petal core motif to 50% target coverage: 51 flowers achieve 49.7% material coverage with zero unresolved collisions. At fusion radius 0.100, resolution 48, and 100mm overall size, the shared preview/STL mesh has one flower graph group, one saved component, zero open or non-manifold edges, a 1.68mm minimum connection, and 93,056 triangles after removing a 24-triangle meshing fragment. STL export stays disabled unless connectivity, component, watertightness, and requested thickness checks all pass, and any parameter change invalidates the prior inspection. Front/side/oblique controls and two browser screenshots keep the through-holes observable. The same 50% legacy four-petal control remains honestly partial with 63 unresolved proxy collisions and is not treated as manufacturing-ready. Eighteen Flower tests, typecheck, and the production build pass; actual slicer and physical-print validation remain future work."
+    },
+    {
+      "date": "2026-08-09",
+      "note": "Designed the next research boundary after the author asked to connect flower cores as thinly as possible while avoiding internal slicer supports. Flower Packing remains responsible for placement; a proposed flower-core-network Study consumes a frozen core-node snapshot plus physical scale and build direction. Its first visual checkpoint compares the same seven-flower patch as shortest chords, surface-following veins, and build-direction arches, with round versus vertically aligned diamond sections. A deterministic minimum spanning tree establishes one group, then short edges add loops; roots are thick, middles thin, and only core backs receive local union. Support-free is never asserted from geometry alone: quick down-facing color, layer-support starts, estimated bridge span, mesh component/watertightness, and minimum diameter remain separate diagnostics until actual slicer and physical-print observation. The full D0-D4 design is recorded in docs/architecture/flower-core-network-20260809.md; no runtime code or Hikari implementation changed."
     }
   ]
 }

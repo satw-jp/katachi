@@ -39,8 +39,9 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 `src/studies/skin/` に自己完結。`skin.html` から起動。
 
 - **ホスト**: S1 と全く同じ場の定義。`cloud-sculpt/field.ts` の `Ball`・`FieldParams`・
-  `fieldSdf`・`growBalls` をそのまま import（コピーしない）。既定は S1 と同じ
-  `DEFAULT_FIELD_PARAMS` での grow。「S1 レシピを読み込む」でホストを輸入できる
+  `fieldSdf`・`growBalls` をそのまま import（コピーしない）。SKIN の起動時だけ v0.48 の見た目と
+  高密度花fixtureを再現する `DEFAULT_SKIN_HOST_PARAMS`（seed `katachi`）を使い、S1 側の現在の既定値は
+  変更しない。「S1 レシピを読み込む」でホストを輸入できる
   （T9 の `loadHostFromS1Recipe` と同じ設計 — S1 自身の `parseRecipe`/`replay` を使って
   再生し、結果の球リストを1エントリとして記録する）
 - **殻**（`field.ts` の `shellSdf`）: `|hostSdf(p)| - 厚み/2`。負なら殻の内部。厚みはつまみ
@@ -117,11 +118,15 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 ### v0.2（T11）: パッチ形状の切替
 
-- **`Patch.shape: "coin" | "flatRing" | "ring3d"`**（`field.ts`）。パッチは相変わらず
+- **`Patch.shape: "coin" | "flatRing" | "ring3d" | "flower"`**（`field.ts`）。パッチは相変わらず
   「もう一つの Ball[]」（file header の原則）のまま — 形状ごとに変わるのは点の**置き方**
   だけで、距離場の式（`patchesSdf`・`smoothMin`）は一切増えていない
-  - **コイン**: T10 のまま無変更（`buildCoinPoints`、旧 `packPatchesGreedy` の本体をそのまま
-    切り出した関数）
+  - **コイン**: `coinHoleRatio=0` はT10のまま無変更（`buildCoinPoints`、旧
+    `packPatchesGreedy`の乱数呼出し・点順を含む本体をそのまま通る）。v0.47では0を超えた時だけ、
+    外径`anchorR`と指定内径`anchorR*coinHoleRatio`から管半径`(外径-内径)/2`と円周半径
+    `外径-管半径`を求める。最大0.95でもゼロ幅の曲線にはせず`MIN_SUBPOINT_R`を残し、曲面へ
+    再射影した隣接球が離れる区間には中間球を自動追加する。平リングとは別に、coinBulgeと
+    コイン固有の輪郭ゆらぎを保ったまま中央だけを開ける
   - **平リング**（`buildFlatRingPoints`）: アンカーの接平面内に、内孔率 `flatRingHoleRatio`
     （0..0.95）から決まる半径の円周上に `ringNodeCount` 個のノードを並べ、それぞれ表面へ
     再射影する。式（仮決め、README に理由つきで残す方針どおり）:
@@ -136,6 +141,11 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
     管半径だけ持ち上げると、最近接点の高さがちょうど0になる、という初等的な接線条件）。
     「法線まわりの回転はランダム」は `generateRingBalls` 自体には位相パラメータが
     無いため、生成後に `rotatePoint` で軸まわりランダム角だけ回して満たした
+  - **花モチーフ**（`buildFlowerMotifPoints`）: PACK-SPIKEの4つのpresetと
+    `createFlowerFormComponents`を共有し、花弁・花芯に短いneck球を加えた全体を既存の
+    `anchorR`目地 envelopeへ正規化する。アンカーの接平面へランダム回転して置き、最下球が
+    ホスト表面へ接する高さまで法線方向に持ち上げる。自由曲面全体を測地変形する方式ではなく、
+    各アンカー近傍の接平面近似である。実現した点群は履歴へ保存するため、再生時に生成し直さない
   - **`generateShapePoints`** が上記3つの分岐点。貪欲パッカー（`packPatchesGreedy`）と
     手動追加（`main.ts` の `handleClick`）の両方から同じ関数を呼ぶ
 - **重なり許容**（T11 §2）: `SkinParams.gap` は既存のまま「クリアランス − gap」の式を
@@ -652,8 +662,669 @@ version は据え置き（v0.13.0）。version の対応規則は R0 Author deci
   （未閲覧 — 参考であり拘束ではないと T10 に明記されている。作者の視覚確認時に、
   この実装との異同を照らし合わせてもらいたい）
 
+## 問答 2026-08-22（印刷曲面のメッシュエッジ）
+
+作者の質問（原文）:
+
+> 「印刷用メッシュについて、曲面にエッジが出ないようにしたいのだがいまのソフト内で可能だろうか」
+> 「難しそうだったり処理が重そうであればblenderで加工すると思う」
+
+現在の段階メッシュ表示は粗い段階を識別しやすくするため意図的にflat normalで描いており、画面上の三角形境界を
+実形状以上に強く見せる。一方、STLは三角形の頂点だけを保存するため、smooth normalを付けても印刷形状は変わらない。
+
+印刷形状そのものについて、現在のSKIN内には頂点平滑化、subdivision、remeshの後処理はない。操作できるのは最終解像度
+128を最大224まで上げ、marching tetrahedraの格子と三角形を細かくする方法である。
+
+最長辺80 mmでは、最長軸の格子間隔は次の目安になる。
+
+- 解像度128: 0.625 mm
+- 解像度160: 0.500 mm
+- 解像度192: 0.417 mm
+- 解像度224: 0.357 mm
+
+sampling点数は解像度のおおむね3乗で増えるため、128比で160は約2.0倍、192は約3.4倍、224は約5.4倍が目安になる。
+まず160、曲率の強い箇所にfacetが残る場合だけ192を試し、224は時間とメモリを確認して使う。
+
+BlenderのShade Smoothは表示だけで印刷形状を変えない。印刷形状を変えるにはSubdivision、Voxel Remesh、Smooth等を
+適用する必要があるが、外殻だけでなく1.69 mmのDry Webや融合部も変形し得る。加工後はKatachiの既存ゲートと別形状に
+なるため、Bambu Studio側で水密・部品数・最薄部・スライス経路を再確認する。
+
+## 問答 2026-08-22（外殻supportをBambu Studioへ渡す）
+
+作者の指示（原文）:
+
+> 「サポートつける外殻を下記のように指定できるか考えてほしい」
+> 「Bambu Studio上で毎回手動ペイントするのではなく、形状生成時点でサポート指定まで完了している状態を目指す」
+> 「やるとしたら僕がやることを簡単に説明して」
+> 「やってみよう」
+
+Phase 1では、作者がBambu Studioで面を毎回塗る代わりに、Katachiの最終精度角度診断で赤くなった外殻面を
+Support Enforcer用の薄い閉Volumeへ変換する。これはsupport材そのものではなく、「この領域からsupportを発生させる」
+modifierである。最終的なsupport経路はBambu Studioのslicerが決める。
+
+作者が行う操作は、Katachiで「最終精度で診断」→必要ならInternal最終判定をOK→「Support指定3MFを書き出す」→
+Bambu Studioで開いてSlice plate→Preview確認、の四段階に絞る。
+
+## Observation v0.56.1（実Sliceで判明したSupport Enforcer過剰指定、2026-08-22）
+
+作者の報告（原文）:
+
+> 「そのまま開いたら本体にもサポート着いた」
+> 「なにかエラーが出ているみたい」
+> 「ënforcerはmanualで動いてるけどいまのDrywebだと当たり前に内側にサポートが生成されるね」
+
+実際に書き出された18 MBの3MFとBambu Studio Previewを確認した。Slice自体は完了し、Model 19.88 g / 6.67 mに
+対してSupport 40.07 g / 13.43 m、合計59.95 g、推定5時間58分だった。左ツリーの論理objectとBODYにオレンジ警告が
+表示されたため、この旧3MFは印刷しない。
+
+3MF内部はBODY 439,736面（normal_part）、SUPPORT_ENFORCER 460,496面（support_enforcer）、
+tree(manual)、enable_support=1で、ZIP検査は全entry OK、導入済みBambu Studio 02.06.00.51 CLIもreturn code 0 /
+Successでparseした。したがってファイル破損やEnforcerの通常印刷物化ではなく、オレンジ印はSliceを止めないBambu側の
+警告である。警告文そのものは画像に開かれていないため、修正版でも残る場合は三角印のtooltipを次の観察対象にする。
+
+Support過剰の直接原因はKatachi側にあった。v0.56.0はInternal付きBODYでも、Dry Web付加前の赤面57,562面をすべて
+8面の三角柱へ変換していた。その結果、Dry Webが軽減済みの領域までBambuへ再度support指定し、460,496面の巨大な
+Enforcerになった。v0.56.1ではInternalありなら同じ最終mesh診断のafterDangerPositions、つまり付加後にも赤く残る
+未支援面だけを変換する。Internalなしだけ従来どおりbeforeDangerPositionsを使う。この選択を純関数化し、Internal edge
+0ではbefore、823ではafterを返す回帰テストを追加した。
+
+Supportは最終的にBODYへ接触して支えるため、赤面の下にBODY supportが見えること自体は正常である。異常だったのは
+Internalで既に軽減した場所まで重複指定した量である。修正版もBambu StudioでSupport重量、到達位置、内部への侵入、
+除去経路を再確認し、十分に減らなければ次にベッドから到達可能な下側包絡だけへ絞る。
+
+実Sliceではmanual指定そのものは機能したが、Dry Webは内部の構造材であってSupport Blockerではないため、残った赤面を
+支えるtreeがレース状の開口から内部へ入る。現在のEnforcerは「角度診断で残った赤面」だけを条件にし、その面が外部から
+除去可能か、ベッド側からどの空間経路で到達するかをまだ判定していない。したがって次の絞り込みは、内部全域を一律Blocker
+にするのではなく、+Z積層方向に対して外側かつベッド側から到達可能な下側包絡だけをEnforcer候補にする。内部Blockerの
+一律適用は、開口を通って外殻下面へ届く必要なsupport経路まで消す可能性があるため、第一選択にしない。
+
+## Observation v0.56.0（Bambu Studio用Support Enforcer 3MF、2026-08-22）
+
+Bambu Studioの公式ソースtag v02.06.00.51と、Macに導入済みのBambu Studio 02.06.00.51を基準に、
+3MFのProduction extension形式を実装した。一つの論理objectがBODY（normal_part）と
+SUPPORT_ENFORCER（support_enforcer）の複数volumeを持ち、object metadataで
+enable_support=1とtree(manual)またはnormal(manual)を設定する。Bambu側が
+model_settings.configを読むために必要なApplication互換値は導入版へ固定し、生成元は別metadata
+Katachi:Generatorへ正直に記録する。
+
+Support Enforcerは、赤い三角形ごとに面内へ0.4 mm広げ、外へ0.35 mm、BODY内へ0.55 mm重なる8面の
+閉じた三角柱にする。BODYとの交差を持ちながら印刷物volumeにはならない。隣接赤面の三角柱は同じEnforcer volumeへ
+まとめるが、これは面単位paint-on supportではなく初期の領域近似である。
+
+BODYは再生成しない。Internalなしでは角度診断が使用した同一の最終Surface triangle bufferをmm化し、Internalありでは
+同じ形・graph・解像度・実寸でA1 mini内部最終判定がOKを出した正確なSTLだけを再利用する。XML化、index化、ZIP圧縮は
+専用Workerで行うため画面操作を止めない。形・閾値・解像度が変わると診断と書き出し準備を破棄する。
+
+単体検証は、頂点index化、退化面除去、Enforcerの全edge二回使用（閉Volume）、BODYとの内外重なり、STL単位変換、
+一object二volumeのsubtype、ZIP構造の5件が通過した。生成した最小fixtureはunzip -tに通り、導入済み
+Bambu Studio CLIが3MFをreturn code 0 / Successでparseした。ただしCLI parseだけでは実際のsupport経路を保証しない。
+Bambu StudioのSlice plate後Previewが人間の最終gateであり、内部へsupportが入りすぎないこと、ベッドへ届くこと、除去経路を
+必ず目視する。Support Blockerとtriangle単位Paint-on SupportsはPhase 2へ残す。
+
+## Observation v0.55.2（公開版とローカル印刷エンジンの境界、2026-08-22）
+
+公開Cloudflare画面からMac内の `127.0.0.1:5178` へアクセスさせると、公開Webページがローカルサービスを
+操作できる境界になる。公開originへその権限は付与しない。従来は接続失敗を一律に「エンジンが起動していない」
+と表示したため、起動済みでも応答停止に見えた。
+
+v0.55.2では公開hostを印刷確認開始前に識別し、待たずに「公開版は形状確認用」「Katachiを起動して
+`http://localhost:5174/skin.html` でOptimizer診断」と表示する。印刷欄にもローカル版へのリンクを常時表示する。
+localhostではv0.55.1の同一STL再利用、quick診断、進捗表示をそのまま実行する。公開版の最終Internalゲートは
+ブラウザ内のWorker計算なので引き続き利用できる。geometry、判定閾値、recipe、Dry Webは変更していない。
+
+## Observation v0.55.1（最終meshの一回生成・再利用、2026-08-22）
+
+作者の報告（原文）:
+
+> 「印刷確認が応答しませんと出てしまうので対策してほしい」
+> 「印刷ゲートの最終判定も重い」
+
+従来は、段階メッシュ、A1 mini内部ゲート、通常書き出し、Optimizer印刷確認が同じ最終解像度の場を別々に再計算し得た。特に印刷確認はmain threadで同期的にmeshを作り直してからOptimizerへ送っていたため、その間ブラウザが応答しないように見えた。
+
+v0.55.1では、内部ゲートWorkerが判定に使った正確なSTLを結果と一緒に返してfingerprint付きで保持する。Internal付きのOptimizer確認は一致するOKゲートを必須とし、その同一STLを再利用するためmain threadでmeshを再生成しない。同じ形・graph・解像度・最長辺でゲートを再度押した場合も前回結果を即時再利用する。段階メッシュで既に同一fingerprintの最終解像度が完成していれば、ゲートWorkerはその三角形bufferを受け取り場のsamplingを省く。初回の最終mesh生成自体は必要だが、同じmeshを何度も作る重複を除いた。
+
+ゲートは段階名・経過秒・画面操作可能を表示し、slice Worker上限を6から8へ広げた。Optimizerはこの画面ではquick概算を使い、接続確認・STL送信・診断進捗を表示する。uploadは60秒、pollは10秒で応答を区切り、3回まで再確認してから明示的に停止する。geometry、A1 miniの判定閾値、recipe、Dry Webは変更していない。
+
+## Observation v0.55.0（A1 mini用Internal印刷ゲートOK、2026-08-22）
+
+作者の継続条件（原文）:
+
+> 「OKになるまで続けて」
+
+v0.54.0でNGだった選択式XYZ latticeを、外殻とは対照的な直線だけの`赤点→Dry Web`へ置き換えた。
+recipe互換のため内部mode key `targetedGrid`は維持する。全418要素の最終mesh最下端へ、要素を構成する実材球の
+中心方向に接点を入れる。要素間は中心距離でなく既存球包絡どうしの空隙を測り、全要素を結ぶ最小全域網を作る。
+UIの本数は要素を間引く値ではなく、最小網へ加える冗長な補強線数になった。Radiusは全線共通である。
+
+bridge判定も中心間距離から、Surface-only SDFの外に連続して露出する区間長へ改めた。花の中心から花の中心へ
+走るedgeのうち既存花材に埋まった両端をbridgeへ数えず、空隙だけを従来どおり5.0 mm上限で判定する。閾値は
+緩めていない。既定最終解像度は128とし、80 mm出力で現在の線径を2.5 voxel以上で表現する。
+
+ローカル実ブラウザで、編集可能な高密度花v6-style 418要素、最長辺80 mm、Radius 0.045、補強線28、
+最終解像度128を実座標クリックで生成・診断・判定した。角度診断は418/418赤点へ接続し、45°超の危険候補面を
+付加前14.0%から付加後未支援2.9%へ分離（軽減候補79.5%）。固定profile
+（A1 mini / 0.4 mm nozzle / PLA / 0.2 mm layer）の最終ゲート結果は次のとおり:
+
+- 最終mesh: 水密、1部品、STL座標退化0面
+- 実寸線径: 1.69 mm、2.7 voxel
+- Surface融合起点: 1490 node、浮遊連結群0
+- 積層順: 未支持node 0 / edge 0
+- 内部bridge: 314本、5.0 mm上限超過0、最長露出1.4 mm
+
+結果は**内部構造: OK**となり、同じfingerprintの通常`3Dデータで書き出す`が有効になった。判定時間85.2秒。
+ローカル証拠は`screenshots/skin-v055-a1mini-internal-gate-ok-local-20260822.jpg`へ保存した。これはKatachi内部の
+固定幾何ゲートのOKであり、外側SKINのsupportは作者の方針どおりBambu Studioへ委ねる。熱収縮、振動、荷重、
+実スライサーの経路、実機成功はまだ保証しない。
+
+Cloudflare WorkersへVersion ID `8370907e-c9d0-4494-90d9-8dbe4002e57f`として公開した。公開URLの
+`v0.55.0`、既定解像度128、`赤点→Dry Web`を確認し、実座標クリックで同じ418花を新規生成した。公開版の
+角度診断は418/418接続、Dry node 1490 / edge 823、分離群0、14.0%→2.9%、軽減79.5%（83.8秒）。
+最終ゲートは水密・1部品・退化0面、1.69 mm / 2.7 voxel、Surface融合1490、未支持0 / 0、bridge
+314本・上限超過0・最長1.4 mmで**OK**（146.2秒）となり、通常3D書き出しbuttonがenabled、title空文字へ
+戻ったことを確認した。Console warning/errorは0件。公開証拠は
+`screenshots/skin-v055-a1mini-internal-gate-ok-public-20260822.jpg`へ保存した。
+
+## Observation v0.54.0（A1 mini用Internal印刷ゲート、2026-08-22）
+
+作者の印刷条件（原文）:
+
+> 「外側はbambu studioでサポートをつけるとして、それ以外は君がOK出せるレベルにならないと印刷できないな」
+>
+> 「a1mini 0.4mm pla 0.2mm」
+
+外側SKINのオーバーハングをBambu Studioの担当として合否から除外し、Internal自身だけをfail-closedで
+判定する`内部構造の印刷ゲート`を追加した。固定profileはBambu Lab A1 mini / 0.4 mm nozzle / PLA /
+0.2 mm layer。最低線径0.80 mm、bridge上限5.0 mm、垂直から45°以内、線径2.5 voxel以上をKatachiの
+保守値とする。これらはメーカー公称性能ではなく、「既知の内部幾何リスクを残したままOKにしない」ための
+研究上のmarginである。
+
+判定はInternalを融合した最終解像度meshを既存の並列slice経路で生成し、水密、最終部品数、STL座標での
+退化、実寸線径、mesh voxel数、Surface-only場へ十分に重なる起点、下から上へ伝播できる45°以内のedge、
+両端が先に成立したbridgeの長さを測る。水平材を片持ちのままbridge扱いせず、Surfaceへ融合しない連結群と
+積層順で到達できないnode/edgeを数える。形状、Internal、解像度が変わると結果を破棄する。InternalがONの
+通常3D書き出しは、同一fingerprintのゲートがOKになるまで停止する。
+
+高密度花v6-style、Targeted XYZ Grid 28指定 / 18接続、Radius 0.045、最長辺80 mm、最終解像度96を
+実測した。最終meshは水密だが150部品、最低線径1.69 mm、線径2.0 voxel、Surface融合起点6 node、
+未支持61 node / 70 edge、bridge 50本中5 mm超30本、最長22.9 mmとなり、**内部構造: NG**である。
+外側supportをBambu Studioで付けても、このInternalは現状のまま印刷へ進めない。次は見た目の赤点到達率
+ではなく、このNG項目を一つずつ0へ近づける。既存の最大6並列slice経路を共有し、最終判定は25.3秒。
+NG後は通常の`3Dデータで書き出す`がdisabledになり、titleにも合格まで書き出せない理由を表示した。
+証拠は`screenshots/skin-v054-a1mini-internal-gate-ng-local-20260822.jpg`へ保存した。
+
+Cloudflare WorkersへVersion ID `3fdee18d-24af-4d15-a7bd-84d923b3dd22`として公開した。公開URLでも
+`v0.54.0`を確認し、同じ高密度花とTargeted Gridを実座標クリックで生成した。公開判定は27.7秒で、
+150部品、1.69 mm / 2.0 voxel、融合起点6、未支持61 node / 70 edge、bridge超過30本、最長22.9 mmと
+ローカルに一致した。NG後の通常3D書き出しはdisabledで、理由titleも表示された。公開証拠は
+`screenshots/skin-v054-a1mini-internal-gate-ng-public-20260822.jpg`へ保存した。
+
+## Observation v0.53.0（赤点を目標にするTargeted XYZ Grid、2026-08-22）
+
+作者の実装指示（原文）:
+
+> 「では今君が言っているものを実装して見て」
+
+Internal Structureへ`赤点→XYZ Grid`を追加した。最終mesh解像度で得た各要素の最下端418点を、XY平面の
+遠点選択でUI指定の本数まで決定論的に間引く。各targetは最終mesh法線を使って共通Radiusぶん内側へ入れ、
+host内に置いた規則的なXYZ latticeの最寄りnodeへ、X/Y/Zの一軸ずつを動かす折線で接続する。host外へ出る
+経路は採用せず「経路なし」として数える。線径はgrid railとtarget strutですべて同じ値である。生成物は
+既存の`InternalStructureGraph`へ変換し、Voronoiと同じ表示・観察・SKIN mesh・検査・書き出し経路を使う。
+
+初回は重い最終Surface meshを一度だけ生成する。その同じposition/normal bufferからTargeted Gridを作り、
+付加後の面角度と最下端到達を再計算するため、比較の途中で粗いmeshや別の外郭へすり替わらない。Targeted
+Gridがまだ無い状態で検査・書き出し・印刷確認を押した場合は、Internalなしで黙って続けず、最終精度診断を
+先に求める。
+
+ローカル実ブラウザで高密度花v6の418要素、支える本数28、Radius 0.045、最終mesh解像度96、閾値45°を
+実座標クリックで測った。28 target中18本がgridへ接続し、grid 8 node / 12 edge、全80 edge、経路なし10。
+最下端到達は22 / 418（選択18点に加えgridが近傍4点へ到達）、危険面は付加前31,252面中1,055面が
+Internal到達候補となり、面積比は13.8% → 未支援13.3%、軽減候補3.6%、最終mesh生成を含む23.9秒だった。
+同じ外郭に対するVoronoi Edgeの軽減候補1.0%、最下端到達9 / 418より対象へ届いたが、これは線の近接比較で
+あり、実際に造形方向の下から支えていること、荷重経路、スライサーsupport、印刷成功、強度を意味しない。
+10本の経路なしは、単純なXYZ折線が凹形状内で接続できない限界をそのまま示す。console warning/errorは0件。
+ローカルの証拠は`screenshots/skin-v053-targeted-grid-local-20260822.jpg`へ保存した。
+
+Cloudflare WorkersへVersion ID `8a357cd2-63b2-42d5-a206-1b79a547445d`として公開した。公開URLでも
+画面表示`v0.53.0`を確認して同じ操作を実座標クリックで再現し、18 / 28 target接続、最下端到達22 / 418、
+危険面31,252面中Internal到達候補1,055面、13.8% → 未支援13.3%、軽減候補3.6%を確認した。公開環境の
+最終mesh生成時間は26.4秒だった。公開画面の証拠は
+`screenshots/skin-v053-targeted-grid-public-20260822.jpg`へ保存した。
+
+## Observation v0.52.1（粗い診断を撤回し、最終メッシュへ統一、2026-08-22）
+
+作者の指摘（原文）:
+
+> 「見えている画像だとメッシュが粗いまま検証しているので意味ないと思った」
+
+指摘どおりだった。v0.51の面診断は速度優先で最終精度96を解像度36へ落とし、v0.52の最下端画像は
+最終メッシュでなく、10,450構成点を球として並べたビーズ表示だった。`min(point.z-point.r)`は元球の
+連続包絡の参考値ではあるが、smooth-minと殻との交差を経た最終Surfaceの証拠ではない。この二つを同じ
+診断欄と画像で提示した判断を撤回した。
+
+面角度と最下端の診断は、左上で作者が指定した最終精度をそのまま使うSurface-only meshの完成後だけ
+結果を出すよう改めた。通常の段階メッシュと同じ最大6並列のZ slice Workerを共有し、Internalを融合する
+前の外側SKINを最終解像度で生成する。面角度はその全三角形から算出する。要素最下端は最終mesh頂点を、
+各花・コイン・リングの橋を除いた構成球場の値が最小になる要素へ帰属させ、要素ごとに最小Zの実mesh
+頂点を選ぶ。位置は最終meshそのものだが、smooth-minで複数要素が融合した境界の「どの要素か」は一意な
+幾何学的事実ではなく、最小局所球場による帰属ヒューリスティックである。
+
+高密度花v6の418要素、Voronoi Edge 103 node / 130 edge、閾値45°、最終mesh解像度96では、31,252面が
+付加前の危険面となった。外側SKIN面積比は付加前13.8%、付加後未支援13.7%、Internal到達による軽減候補
+1.0%、最下端は418点中Internal到達9 / 未到達409、生成・診断はローカル22.3秒、公開版38.9秒だった。解像度36で出していた
+軽減候補12.1%は、粗いmesh stepを接触帯へ足したため効果を大きく過大評価していた。旧値は現在の診断値
+として使わず、「粗い診断では誤差が方向判断を変える」という破壊された仮説の記録としてのみ残す。
+実座標チェックで診断を開始し、完成後の表示モードがmesh、console warning/error 0件を確認した。
+Cloudflare Workersへversion ID `bb2b1880-9ef2-45fb-984e-fbb32147f34d`として公開し、公開URL
+`/skin`でも同じ31,252危険面、13.8% → 13.7%、軽減候補1.0%、最下端418点中Internal到達9 / 未到達409を
+確認した。公開版の証拠は`screenshots/skin-v0521-final-mesh-lowest-points-public-20260822.png`へ保存した。
+
+### 問答：赤い点を構造の目標にする（2026-08-22）
+
+作者の質問（原文）:
+
+> 「この赤い点を支えるように構造入れられるようにしたら楽になる？」
+
+なる。Voronoi Edgeを先に作って赤点へ偶然届いたかを測るより、赤点を構造生成のtargetとして渡せば、
+「どこへ支柱を届けるか」が明示された問題になる。ただし418点すべてへ独立した柱を一本ずつ立てると、
+本数と材料が増え、外殻の有機性にInternal側が追従しすぎる。赤点は構造そのものではなく必要箇所を示す
+入力として扱い、近い点をXY方向でまとめ、代表点から+Zと逆方向へ短い縦材を下ろし、最寄りのXYZ Grid
+nodeまたは共有railへ接続するのが「ドライな構造」と両立する初期仮説である。
+
+初期UIは`Target spacing / Strut count`と`Radius`を中心にし、赤点の全採用／間引きを本数側へ吸収する。
+診断は「赤点へ近づいた」だけで成功とせず、構造付加後の最終meshを同じ解像度で再生成し、危険面と
+未到達点がどれだけ減ったかを付加前と比較する。現在の赤点は各要素の最下端代表点であり、赤い危険面
+全体やスライサーのsupport要求点ではないため、まずこの限定された意味のまま比較する。
+
+## Observation v0.52.0（花・コインごとの最下端、2026-08-22・v0.52.1で診断根拠を撤回）
+
+作者の観察（原文）:
+
+> 「例えば花やコインのそれぞれの最下端がわかるようになると良いのかも」
+
+面角度とは別に、各花・コイン・平リング・立体リングについて、造形方向+Zに対する最下端を一点ずつ
+表示できるようにした。SKINの要素は構成球で保存されているため、各要素の`min(point.z - point.r)`を
+最下端の簡易代理とする。花同士を結ぶ`bridge`とSurfaceへの`surfaceConnector`は要素本体ではないので
+候補から除き、それ以外の構成球がない古い要素だけ全点へフォールバックする。マーカーは赤が未到達、
+青緑が「最下端を作る構成球へInternal edge tubeが直接重なる候補」である。
+
+この旧診断は面の閾値診断より厳しいと解釈していた。面診断は低解像度mesh stepを含む広い接触帯を使う一方、最下端は
+`edge radius + 最下端球radius + 0.02 unit`だけを見る。したがって、面の近くにInternalがあることと、
+その花・コインの最下端を作る球へ直接届くことの差を観察できる。これはスライサーの孤立層、bridge、
+実サポート、荷重経路、印刷成功を判定するものではない。
+
+以下はv0.52.1で最終Surfaceの証拠として無効と判断した旧観察である。ローカル実ブラウザでは高密度花v6の418要素、Voronoi Edge 103 node / 130 edgeに対し、418個すべての
+最下端マーカーを実座標クリックで表示した。この条件では直接到達0 / 未到達418だった。v0.51の面診断で
+362面が広い接触帯への到達候補だったことと対照的であり、現在のVoronoi骨格は面の近傍へ来ても、花の
+最下端球を直接支える位置までは延びていないことが見えた。console warning/errorは0件。証拠は
+`screenshots/skin-v052-motif-lowest-points-20260822.png`へ保存した。Cloudflare Workersへversion ID
+`6428dde3-b37f-4da2-96b4-dee672d4f594`として公開し、公開URL `/skin`でもv0.52.0、418花、
+103 node / 130 edge、最下端418点、直接到達0 / 未到達418、実座標チェック、console warning/error
+0件を確認した。公開版の証拠は`screenshots/skin-v052-motif-lowest-points-public-20260822.png`へ保存した。
+
+## Observation v0.51.0（面角度の付加前／付加後診断、2026-08-22）
+
+作者要望（原文）:
+
+> 「構造を作る前と後でSKIN内に面の角度診断も必要
+> 閾値はこちらで操作するが45度以上は赤とか
+> 内部構造を付加すると危険地帯が減らせるか確認したい
+> 厳密なプリントまで考えると大変なのでまずは簡単なもので良い」
+
+Internal Structure欄に、外側SKINの三角形を対象にする簡易な面角度診断を追加した。造形方向を`+Z`、
+垂直壁を0°、下向き水平面を90°と定義し、作者が0〜90°の閾値を直接変更できる。既定45°以上の
+下向き面を「付加前」では赤で表示する。「付加後」では角度そのものを変わったように見せず、同じ危険面の
+うち現在のInternal edgeが有限解像度の接触帯へ届くものだけを青緑へ分け、届かない危険面を赤のまま残す。
+これにより、内部構造の追加によって減るのは面角度ではなく「内部線が届いていない危険候補」であることを
+比較できる。
+
+診断は既存のSurface-only meshを低解像度で一度だけWorker生成し、各危険三角形の重心からInternal edge線分
+までの距離が`edge radius + 1.75 * mesh step`以内なら「到達候補」とする。閾値を含め診断表示はhistory/
+recipe、Surface/Internal生成、メッシュ検査、分割、STL/OBJ書き出しを変更しない。スライサーのbridge方向、
+積層ピッチ、熱、荷重、材料、実プリント成功は計算しないため、赤は失敗確定、青緑は支持成功の保証ではない。
+
+ローカル実ブラウザでは高密度花v6の418パッチ、Voronoi Edge 103 node / 130 edge、閾値45°、診断解像度36で
+確認した。外側SKIN面積に対する危険候補は付加前13.5%（2,893面）、付加後の未到達候補11.8%
+（2,531面）となり、危険面の12.1%（362面）がInternal到達候補として青緑へ移った。診断は7.5秒で完了し、
+実座標クリックで付加前／付加後を切り替え、console warning/error 0件を確認した。比較画像は
+`screenshots/skin-v051-angle-before-20260822.png`と
+`screenshots/skin-v051-angle-after-20260822.png`へ保存した。Cloudflare Workersへversion ID
+`d1c5a63f-9329-4c92-a66f-33717c7fab20`として公開し、公開URL `/skin`でもv0.51.0、418パッチ、
+103 node / 130 edge、同じ13.5% → 11.8% / 12.1%の診断結果、実座標での付加後切替、console
+warning/error 0件を確認した。公開版の証拠は
+`screenshots/skin-v051-angle-after-public-20260822.png`へ保存した。
+
+## Observation v0.50.0（Internal Structureだけを観察する表示、2026-08-22）
+
+作者要望（原文）:
+
+> 「SKINを半透明表示にするか非表示にして**Internal Structureだけ観察できるモードが欲しい**」
+
+Internal Structure欄へ、表示専用の「通常 / SKIN半透明 / SKIN非表示」を追加した。半透明はSurfaceの
+meshまたはbeadsだけを薄くし、独立したVoronoi node/edgeは不透明のまま残す。非表示はraymarch、mesh、
+host/patch beads、要素名、選択輪郭、分割badge、QUAD線、空隙注記を隠し、Internal graphだけを残す。
+レイマーチは最前面しか描けず透過観察に使えないため、半透明/非表示を選んだ時だけ自動で全量beads表示へ
+切り替える。通常へ戻すと同じ生成済みSurfaceを再計算せず復帰する。
+
+この選択は形状パラメータではなく画面状態であり、history/recipe、Surface生成、Internal生成、mesh検査、
+A/B・N分割、STL/OBJ書き出しには保存・伝播しない。表示切替によって形状履歴が増えないことを実ブラウザで
+確認した。
+
+隔離Chrome（1800×1000、実座標クリック）で高密度花v6の418パッチと、Density 28から生成された
+103 node / 130 edgeを使用した。SKIN半透明ではhost/patch beadsとgraphが同時に可視、SKIN非表示では
+hostBeads=false、patchBeads=false、surfaceDecorations=false、internalGraph=trueとなり、通常ボタンで
+Surface表示へ復帰した。操作中のconsole errorは0件。比較画像は
+`screenshots/skin-v050-internal-ghost-20260822.png`と
+`screenshots/skin-v050-internal-only-20260822.png`へ保存した。これは観察表示の確認であり、内部構造の
+強度、印刷成功、光学特性を示す検証ではない。Cloudflare Workersへversion ID
+`2590fca3-1178-4625-9a3b-c700fbe057d4`として公開し、公開URL `/skin`でも3ボタン、Internal-onlyの
+レイヤー状態、103 node / 130 edge、console error 0件を確認した。
+
+## Observation / Design Direction（Internalは乾いた対照構造、2026-08-22）
+
+作者の方向づけ（原文）:
+
+> 「内部構造について
+> 外殻の造形とは対照的なものとしてドライな構造で本数や太さの調整だけで成立させたい
+> 確実になんとかなにそうなXYZのグリッドでも考えたい」
+
+Internal Structureは外殻の有機性を内側でも繰り返す装飾ではなく、外殻と対照になる、規則が読める
+制御構造として扱う。第一の基準候補を乱数のないXYZ Gridとし、Voronoi Edgeは不規則な比較対象として
+残す。操作の中心は「本数」と「太さ」に限定する。最小UIは全軸共通の本数＋太さの2項目とし、X/Y/Zで
+異なる密度を観察する必要が出たときだけ、X本数・Y本数・Z本数へ開く。RandomnessはXYZ Gridには持たせず、
+既存Voronoiの互換値は消さずに詳細へ退ける候補とする。
+
+XYZ Gridはhostのbounding boxへ軸平行線を置き、線の中心が`fieldSdf <= -radius`となる区間だけを残す。
+凹形状では一本を複数区間へ分け、内部にあるXYZ交点を共有nodeとして結ぶ。極端な短辺と交点を持たない
+孤立区間を除き、境界端は線径ぶん内側で止めることで、既存のInternal graph → SKIN mesh pipelineへ
+そのまま渡せる。新しいmesh生成系は作らない。
+
+ここでの「確実」は、線の方向・本数・交点が説明でき、同じ入力から同じ骨格になるという幾何学的な
+予測可能性を指す。XYZ Gridでも造形方向に対して水平な線が生じるため、印刷成功・強度・支持性能はまだ
+保証できない。まず純粋なXYZを比較基準として観察し、実物試験で不足が見えた場合にだけ斜材等を検討する。
+
+## Observation v0.49.0（前UIの完全復元＋内部Voronoi骨格、2026-08-22）
+
+作者報告（原文）:
+
+> 「一個前のUI,戻すや生成結果を見るが今の画面には無くなってしまった」
+
+> 「まえのuiのコピペ、抜けているものは全部戻して」
+
+保存されていた v0.48 の実装を正本として、右上の複数段Undo、左上の「生成結果を見る」、
+レイマーチ／ビーズ／段階メッシュ、通常／ゴースト、最終精度、編集可能な高密度花v6、
+多段レース充填、花の接点診断、要素名・個別編集、空隙マップ、保存済みv6参照、N分割、
+メッシュ検査・3D書き出しを含む、作者が貼り付けた画面項目とそれを支えるWorker・履歴処理を復元した。
+単なる文言の復元ではなく、Undoの再生、段階メッシュのZ分割、非同期の最終精度更新、空隙計測、
+要素参照を再接続した。SKINの起動hostはv0.48のseed `katachi`へ限定して戻し、S1の現在値は変えていない。
+
+Internal Structure は Surface の生成設定から分離した第二レイヤーとして追加した。`None` / `Voronoi Edge`、
+Density、Radius、Randomnessを持ち、seed付き内部点群から3D Delaunay双対の有限Voronoi頂点・edge graphを作る。
+短辺・孤立辺・host外へ半径ごとはみ出す辺を除き、既存SKINの球/smooth-min語彙へ変換してViewerと通常の
+mesh exportへ合成する。Surfaceのパッチ配置・形状生成・既存recipeの既定値は変えていない。
+
+隔離Chrome（1800×1000、実座標`elementFromPoint`確認）では、高密度花v6ボタンが418パッチを生成し、
+右上Undoが初期hostまで戻した後、同じボタンで再生成できた。Voronoi Edgeは既定Density 28から103 node /
+130 edgeを生成し、境界clip 40 / 除外44を表示した。段階メッシュは画面を操作可能なまま6並列で最終
+274,152面・解像度96・20.4秒へ更新され、その後ゴーストへ切り替えた。操作中のconsole errorは0件だった。
+証拠は`screenshots/skin-v049-ui-restored-voronoi-20260822.png`へ保存した。Cloudflare Workersへ
+version ID `63d7aa77-ff60-4764-8df9-22991a78b2c8`として公開し、公開URL `/skin`でも v0.49.0、
+Undo、生成結果、段階メッシュ、Internal Structure、4つのWebGL canvasを確認し、console errorは0件だった。
+
+自動検証では要素名/注記、Undo、作者編集、A/B・N分割、空隙マップ、高密度花v6、多段レース、接点、
+4形状、QUAD/Voronoi/Goldberg表面配置、印刷結果整形、内部Voronoiを含む全SKIN回帰テストとテスト型検査、
+production buildが通過した。内部骨格を含むA/B/N分割の意味づけ、FEM/応力最適化、スライサー、実機印刷、
+透明素材での光学結果は未検証であり、強度や印刷成功を断定しない。
+
+## Observation v0.39（個別移動・複数コアの表示用メッシュ・要素名の奥行き、2026-08-11）
+
+3D上の要素選択では、選択輪郭だけが更新され、左下の個別調整欄へ同じIDが同期されていなかった。
+実クリック経路でも要素一覧・個別調整・選択形状プレビューを同じIDへ同期するようにした。選択済みの
+孤立要素は、左下の刻み値を使う矢印キー（Shift併用は4倍）と、3D上で表面に沿うドラッグで移動できる。
+ドラッグ中はカメラ回転を一時停止し、指を離した時だけ1件の`editPatch`を保存する。ボタン・キー・
+ドラッグはいずれも既存の履歴再生と複数段UNDOを使い、隣の要素を再PACKしない。接続bridgeや
+surfaceConnectorを含む要素を拒否する従来の安全側制約は残している。
+
+実ブラウザで69花を生成し、3D上の花を実座標クリックすると個別調整欄が表示された。右矢印で操作履歴が
+3→4件、同じ選択花のドラッグで4→5件へ増え、どちらも「位置を変更しました。UNDOで戻せます」と表示した。
+密な形状の選択は、全composite fieldを反復評価する前に、実現済み球を一度だけ走査する選択経路を追加した。
+
+表示用メッシュは、毎voxelでPatch/Pointオブジェクトをたどる処理を、同じ点順序の連続数値バッファへ
+置き換えた。作者提供recipe（3,075点、解像度32、同じMac実行）では、同一12,564面の生成が修正前
+5,004ms、修正後2,237msだった。さらに画面用の同一global gridをZ方向へ最大6分割し、複数Workerで
+同時に計算する。2つのZ sliceを連結した三角形配列が単一passと完全一致する自動試験を追加した。
+実ブラウザでは「6並列」を進行欄で確認し、69花・解像度96の最終表示は107,468面、10.9秒だった。
+この並列化は表示用だけであり、印刷用の検査・STL書き出し・形状式は変更していない。GPU計算はまだ使わない。
+
+要素名はカメラ距離に応じて手前1.0から奥0.3まで連続的に半透明化し、選択中だけは奥でも1.0を保つ。
+実画面の代表ラベルではopacity 0.321〜0.990を確認した。右上UNDO（幅190px）と左上表示切替（幅270px）も
+実画面の`elementFromPoint`で重なりがなく、「段階メッシュ」中央の最前面要素がボタン自身であることを確認した。
+
+`npm run test:partition`は全suite成功（要素名18、Authoring preview 19、partition 50ほか既存suite）、
+テスト用TypeScript型検査とproduction buildが通過した。実スライサー、印刷時間、強度、サポート量は
+本変更では未確認であり、印刷可能性を断定しない。
+
+## Observation v0.39.1（選択元ビーズのwire表示と非同期計器、2026-08-11）
+
+- `npm run typecheck:partition-test` は exit 0 だった。`npm run test:partition` は exit 0 で、Authoring preview の選択表示テストは 22 passed、partition suite は 51 passed（選択Patchだけの隣接辺が完全グラフの同じ辺と一致する検証を含む）を出力し、全suite は `ALL TESTS PASSED` で終了した。
+- Authoring preview の純粋関数テストは、選択元ビーズwireの表示倍率を raymarch `null`、beads `1.2`、mesh `1.025` と確認した。
+- `npm run build` は exit 0 で、196 modules transformed、専用 `dist/assets/gauge.worker-B7YP5a_m.js`（6.14 kB）を出力した。これは計器計算用Worker chunkがproduction buildに含まれたというビルド結果であり、実スライサー、印刷時間、強度、サポート量、印刷可能性の実測ではない。
+- viewport-local quick-edit toolbar と個別更新ボタンのeligibility修正後、`npm run typecheck:partition-test` は exit 0、`npm run test:partition` は exit 0 だった。後者は `Selected motif reshape tests: 26 passed`、Authoring preview 22 passed、partition 51 passed、および既存suiteすべての `ALL TESTS PASSED` を出力した。
+
+## Observation v0.40.0（ring3d連続化、2026-08-11）
+
+- `npx tsx src/studies/skin/motifReshape.test.ts` は exit 0 で `Selected motif reshape tests: 42 passed` を出力した。4条件（主節3/4/9/18、管半径0.02/0.08/0.30、半径ゆらぎ・位置ゆらぎ0/0.15/1、seed 4種、`roundK=0`）で、全実現点列の各辺と閉じ辺が半径和以内、connectorが主節の半径方向envelope内であることを確認した。同じ実測で実現点数/主節数は `3/3`、`197/4`、`34/18`、`9/9` だった。最小管・大半径・荒い4節の条件では、連続化が193個のconnectorを要するため、これは点数を増やす正確性優先の処理である。
+- 同テストは、legacy ring3d recipe配列を再生時に書き換えないこと、新規pack/manual生成と個別reshapeのconnector配列がそのまま再生・Undoされること、既知のHopf linkの丸め値`-1`と分離loopの`0`を確認した。孤立ringのplate meshはresolution 32と48で、どちらもwatertightかつ連結成分1だった。これはこのfixtureと2解像度でのメッシュ測定であり、任意のring recipe、STL、スライサー、強度、サポート量、印刷可能性を保証しない。
+- `npm run typecheck:partition-test` は exit 0 だった。
+
+## Observation v0.41.0（初回配置と空隙追加の位置を分離、2026-08-11）
+
+- 初回の表面生成が使う `motifPlacement` を変更せず、後段の多段レース充填だけが使う `laceMotifPlacement` を追加した。既定値は従来互換の `surface` で、`center` または `inside` を選ぶと空隙へ新しく追加する要素だけが移動する。選択は `setSkinParam` 履歴で再生する。
+- 一球host上のcupping 0.85 / core lift 0.24の花で、後段を`center`へ変えても最初の追加花の実現点数はsurface版と同じで、実現点中心の平均host半径は内側へ移った。focused lace-fill testは16 assertions、`npm run test:partition`は全suite、`npm run typecheck:partition-test`、Study入口21件、228 modulesのproduction buildがすべてexit 0だった。これは配置と再生の検証であり、接続、強度、サポート量、印刷可能性を保証しない。
+- ローカル1280×720画面で選択カーソル`(340,588)`に対しquick toolbar左端は`x=409.3`で、間の点はtoolbarではなくCanvasにhitした。その空間から位置ドラッグすると操作履歴は2→3になり、console errorはなかった。選択位置の周囲には52pxの安全域を採点対象として置き、候補距離を従来の20〜22pxから72pxへ広げた。
+
+## Observation v0.42.0（直接操作・個別更新・書き出し応答、2026-08-11）
+
+- 位置ドラッグは、pointer移動中に全体メッシュや履歴を更新せず、選択要素の実現ビーズだけをanimation frameごとに更新するよう変更した。raymarchでは一時的なwireビーズ、beadsでは既存instance、meshでは既存の選択wireが追従し、pointerを離した時だけ最終位置を`editPatch`へ1件記録する。ローカル実ブラウザで17点の実座標dragを行い、履歴2→3、選択保持、`位置を変更しました。UNDOで戻せます`、console error 0件を確認した。
+- viewport内の個別編集dockがpointerupを背後の3D pickerへ伝えて選択を外していたため、dock内のpointer eventをviewportへ伝播しないようにした。ローカル実ブラウザで`S・コイン 001`の輪郭ゆらぎを0.50→0.84へ変更すると、ボタンは`変更あり`になり、適用後も選択を保持したまま実現点が7→8、履歴2→3となり、更新結果が画面に残った。
+- 通常の3D書き出しは、正規の`buildSkinMesh`、水密・部品数検査、STL/OBJ encodingを専用Workerへ移した。既定hostのランダムPACK 38コイン・解像度96・最長辺80mmでは109,112三角形、水密OK、30部品、Worker経過3.3秒で保存完了した。計算中の画面表示は約60fpsで、キャンセルが有効、console errorは0件だった。この値は当該Macと形状での実測であり、Windowsの時間や印刷可能性を保証しない。
+- 空隙マップの主操作を`今の作業モデルの空隙番号を表示`へ変更し、保存済みv6は`参考・閲覧専用・現在モデルではない`と明示して後段へ分離した。同じ38パッチの現行モデルを実画面から計測すると、v6表示へ切り替わらず、現在のパッチ数を保持したまま1件・0.7秒で完了した。面積・周長は従来どおり有限解像度の推定である。
+- `npm run test:partition`は全suite成功（reshape 42、authoring preview 22、partition 51、tutorial 50、lace 16、contact 34ほか）、`npm run typecheck:partition-test`はexit 0だった。production buildは228 modulesを変換し、`meshExport.worker` chunk 10.69kBを出力した。実スライサー、実印刷、強度、サポート量は未確認である。
+
+## Observation v0.43.0（空隙1件への誤集約を検出、2026-08-11）
+
+- 作者提供`skin-recipe-2026-08-11T14-14-14-420Z.json`を入力変更せず再生した。形状は平リング205個・実現点2,050点だった。計測解像度48、最小面積0.5 mm²で、ホスト表面そのもの（offset 0 mm）は空隙300件・未被覆面積率13.19%だった。一方、従来初期値のoffset 2 mmは空隙1件・未被覆面積率99.81%となった。これは穴が1個なのではなく、計測面がリングの起伏より外へ出て、ほぼ全表面が一続きの未被覆領域になった結果である。
+- 空隙計測の初期offsetを2 mmから0 mmへ変更した。正のoffsetで「未被覆領域が1件かつ未被覆面積率80%以上」になった場合は、普通の1穴として表示せず、offsetで一続きになった可能性と0 mm再計測を画面に表示する。閾値80%は誤条件を知らせるUI上の仮決めで、CADブーリアンによる厳密な穴判定ではない。
+- 空隙の面積・周長・件数は引き続き有限解像度のホスト導出面による推定であり、リング内孔とリング間の隙間を用途別に区別してはいない。入力レシピ、生成形状、分割結果、STLは変更していない。
+- `npm run test:partition`は空隙マップ5件を含む全suite、`npm run typecheck:partition-test`はexit 0だった。通常production buildは228 modules、Hikari buildは95 modulesを変換した。Hikari全163件、Study入口21件、Hikari共存契約9件も合格した。ローカル実画面でv0.43.0、空隙offset初期値`0.0`、現在モデル用ボタンと保存済みv6参照の分離を確認し、console errorは0件だった。
+
+## Observation v0.44.0（編集可能な高密度花v6スタイル、2026-08-11）
+
+- 元recipeがない保存v6 STLを生成履歴として捏造せず、v6から読み取った「花の輪郭が読める・複数寸法が混ざる・花間にレース状空隙を残す」を現在のベース形状へ適用するデフォルトサンプルを追加した。`v6スタイルを編集可能データとして作る`は、花のランダム初回配置と3段の空隙充填を行い、全実現Patchと全パラメータを1件の`applySurfacePreset`履歴として保存する。再生時は探索を再実行せず、1回のUNDOで直前モデルへ戻る。保存v6 STLと205件の既存空隙記録は比較用の別データとして残した。
+- 既定12球ホストでは初回54花、空隙追加364花、合計418花・実現点10,450点だった。追加花のアンカー半径は0.0540〜0.3200 field unitで、複数寸法帯を含む。ローカル実画面のボタンクリックから表示完了まで406 msで、履歴1→2、UNDO可能数1となった。生成花を実座標クリックすると個別の拡大・縮小・回転と花弁パラメータが表示され、1回UNDO後はホスト12球・Patch 0・履歴1へ戻った。console errorは0件だった。
+- このデフォルトサンプルは保存v6の完全一致ではない。現在の生成原理による編集可能な再構成であり、別のベース形状にも適用できる。正の`laceGap=0.025`は見た目の隙間を残すため、全花の構造接続、強度、サポート量、印刷可能性を保証しない。
+- `npm run test:partition`は新規preset 9 assertionsを含む全suite、`npm run typecheck:partition-test`はexit 0だった。通常production buildは229 modules、Hikari buildは95 modulesを変換した。Hikari全163件、Study入口21件、Hikari共存契約9件も合格した。
+
+## Observation v0.45.0（立体リング直径と形状高さに沿う空隙計測、2026-08-12）
+
+- 個別選択した立体リングに`リング直径（中心線）`の数値入力を追加し、`管の太さ`とは別の保存値にした。直径の未保存変更は単体3Dプレビューで球中心の軌道だけを広げ、球半径は変えない。実画面では選択リングの直径0.642を1.000へ変更すると実現点22→33、操作履歴3→4になり、管の太さは0.06のままだった。1回UNDOで履歴は3へ戻った。
+- 空隙計測は、実現球のホスト面からの高さと半径から、球断面の合計が最大になる計測面を自動選択するようにした。平面上のコイン・平リングは0 mm付近、立ち上がる花・立体リングは胴を横切る高さになる。手動の符号付きoffsetも残した。この選択は計測面を決める代理指標で、CADブーリアンによる厳密な開口面ではない。
+- 作者提供`skin-recipe-2026-08-11T15-00-20-391Z.json`を入力変更せず再生すると417花・10,425点だった。解像度48・offset 0 mmの旧方式では最大空隙8,102.36 mm²、未被覆77.91%が一つに誤集約された。新方式を解像度32・最長辺80 mm・最小面積0.5 mm²で実測すると自動面は+1.682 mm、239件、未被覆29.51%、最大119.80 mm²、周長101.97 mmだった。解像度が異なるため面積値の直接比較ではなく、巨大な誤集約が解消したことの確認である。
+- `npm run test:partition`はreshape 51、opening map 6を含む全suite、`npm run typecheck:partition-test`はexit 0だった。通常production buildは229 modules、Hikari buildは95 modulesを変換した。Hikari全163件、Study入口21件、Hikari共存契約9件も合格した。これらは編集・再生・共存の確認であり、空隙面積のCAD精度、リングの強度、印刷可能性を保証しない。
+
+## Observation v0.46.0（カーソル要素名と形状外の空隙注記、2026-08-12）
+
+- S・花／コイン／リングのIDは既定の常時24件表示をやめ、カーソルを重ねた要素と選択中の要素だけ表示する。必要な作者向け比較のため`要素番号を常に表示`は任意設定として残し、形状・ID・recipeは変更しない。ローカル実画面の418花では、静止時0件、形へカーソルを重ねると`S・花 005`の1件、形から外すと0件へ戻った。
+- 空隙ID・面積・周長のカードは、投影された形と左上表示切替・右上UNDO等の常設欄を避ける画面外周スロットへ割り当て、近い穴と引き出し線で結ぶ。カード同士は同一スロットを使わず、作者がドラッグしたカードだけは以後その手動位置を優先する。有限解像度の空隙面積・周長・番号付け自体は変更しない。
+- 純粋配置テスト3件を含むopening map suiteは9件となり、`npm run test:partition`の全suite、`npm run typecheck:partition-test`、230 modulesの通常production build、Hikari全163件が合格した。ブラウザで最終配置とconsoleを再確認してから公開する。
+
+## Observation v0.48.0（コインの表裏ふくらみ・複製・個別配置、2026-08-12）
+
+- `coinBulge`は中央のふくらみ量のまま残し、`coinBulgeBalance`（-1〜+1）で裏のみ／表裏同量／表のみを連続調整する。表はhost SDFの正側（外側）、裏は負側（内側）。balance 0は従来の`abs(hostSdf) - (thickness/2 + coinBulge)`と数値一致し、旧recipeの既定も0である。CPU場、GLSL、通常／段階メッシュWorker、空隙計測、A/B・N分割、書き出し来歴へ同じ値を明示的に渡す。コイン自身のraw fieldより外へ物体を増やさず、平リング・立体リング・花・window modeには作用しない。
+- 選択中の孤立要素へ「複製」を追加した。同じIDやセル所属を流用せず、新IDの独立要素として少し接平面方向へずらして保存し、新しい方を選択する。通常の`addPatch`履歴なので1回UNDOとrecipe再生ができる。接続点を持つ要素は関係を複製しないため拒否する。
+- 個別プロパティに表面／面中心／内側を追加した。再PACKや乱数再生成は行わず、保存済み点群全体をその位置のhost法線方向へ平行移動する。表面は点中心の平均、面中心は全球envelopeの表裏中央、内側は外側envelopeをhost面へ合わせる。変更は`editPatch`履歴と`Patch.motifPlacement`へ残り、旧recipeの未記録値は表面として表示する。
+- `npm run test:partition`は全suite合格した（個別編集を含むpartition 52件、coinBulge 15件、選択モチーフ64件、authoring preview 22件、ほか既存suite）。表のみ／裏のみの相互非対称、balance 0の従来一致、非コイン・window不変、配置の3状態、UNDO/replayを確認した。Hikariは163件と専用build、Study一覧は21件が合格した。
+- ローカル実画面とCloudflare公開画面の両方で、38コイン生成後に`S・コイン 001`を選択し、ビューポート上の`複製`から新ID `S・コイン 039`を作成、その複製だけを`内側`へ変更できた。共通調整では中央ふくらみ`+0.080`／表裏バランス`+1.000`を実操作し、表示が`表だけ（表=外側・裏=内側）`になった。公開画面の再測定ではconsole errorとHTTP失敗応答はいずれも0件だった。
+
+これは幾何形状の操作であり、接触・水密・印刷強度・サポート除去性を保証しない。複製・配置変更後は接点、空隙、段階メッシュ、分割を改めて確認する。
+
+## Observation v0.47.0（コイン中央穴とゴースト表示、2026-08-12）
+
+- コインの中央穴は0..0.95。0では従来の不定形コイン生成を分岐前のまま使い、穴を開けた時だけ外径を維持する環状点列へ変わる。最大側は物理的に成立しないゼロ幅線ではなく`MIN_SUBPOINT_R`の外周リムである。曲面射影後の閉ループ全辺（終端→始端を含む）の球重なり、中央空隙、外径範囲、最大側での節数自動増加をテストした。
+- 値は全体生成、単体3Dプレビュー、選択コインの個別更新、履歴再生、UNDOを通る。v0.47以前の`MotifShapeParams`に値がないrecipeは0として受理し、保存済み実現点を変えない。
+- 表示欄へ通常／ゴーストを追加した。ゴーストは段階メッシュとビーズのGPU材質だけを半透明・両面・低陰影へ変え、形状、空隙計測、recipe、STLには影響しない。前面の最初の交点しか描かないレイマーチを選ぶと通常へ戻す。
+- 実測: `npm run test:partition`全suite、`npm run typecheck:partition-test`、230 modulesの`npm run build`、focused motif reshapeが合格。ローカル実画面では穴0.95の4コイン生成と回転可能な単体3Dプレビュー、418花の通常／ゴースト往復、raymarch選択時の通常復帰、console error / warning 0件を確認した。ゴーストは裏面の視認を助ける表示であり、印刷可能性や内部接続を保証しない。
+
+## Observation v0.38（花全体補強と段階メッシュ、2026-08-11）
+
+- 弱い接点の補強を `接続部分だけ`（従来互換）と `花全体` から選べるようにした。花全体では、枝・表面コネクタを固定したまま、花芯と全花弁の中心位置・半径をモチーフ重心から同率で拡大する。拡大率は `contactScale` として実現点へ保存し、方式と上限もsetSkinParam履歴で再生する。単体テストでは2花・6点が全体拡大して接触し、上限0.15を越えず、再適用で累積しなかった。届かない2花も上限まで拡大し、未達IDを残すことを含めcontact-strength suiteは34 assertionsだった。
+- 作者提供 `skin-recipe-2026-08-11T10-21-11-222Z.json`（123花、3,075 motif点）は、修正前は接点0・弱い花123・調整0だった。修正後は既定上限0.15で123花・3,075点すべてを全体拡大し、先頭点半径は0.1014886606→0.1167119597、接点0→2、弱い花は123のままだった。入力JSONは変更していない。これは操作が実行された事実であり、接続目標や印刷強度の達成を示さない。
+- 画面メッシュを二段階にした。密度上限つきの粗表示を先に表示し、そのメッシュを操作可能なまま、作者が指定した最終解像度32〜224を別Workerで生成して置き換える。粗表示は最終形として扱わない。最終精度はメイン画面左上で直接入力でき、右バーの解像度スライダーと同期した。
+- 変換中はメイン3D画面下へ、実測できる工程名・解像度・経過秒・`画面は操作できます`・`計算を止める`を表示する。1280×720の実画面では進捗欄 `x=366..866`、右バー `x=880..1280` で重ならなかった。完了時は進捗欄が非表示になった。
+- 実ブラウザでランダムPACKの花69個、最終精度64を選ぶと、粗表示は解像度32で開始し、高精度結果は45,176面・21.7秒だった。高精度化中と完了後はいずれも約60fpsで、console error/warningはなかった。この値は当該Mac・当該形状の実測であり、Windowsの時間、Blender相当の速度、印刷可能性を保証しない。
+- メッシュ用SDFは、各voxelでpatch形状群をfilterして一時配列を作る処理をやめ、形状群をビルド開始時に一度だけ確定する評価器へ変更した。plate/window、coinBulge 0/0.08の試験点で従来point-query式と数値一致した。全patch pointとの距離評価自体は残るため、形状数×解像度³の計算量は解消していない。
+- `npm run test:partition`、`npm run typecheck:partition-test`、`npm run build`、`git diff --check`が通過した。Authoring previewは18件、coinBulge/compiled evaluatorは12件、contact-strengthは34件、buildは196 modulesだった。
+
+## Observation v0.37（画面を止めない軽量メッシュと制作クローム整理、2026-08-11）
+
+- 常設操作の配置規則を「3D画面の四隅」、工程設定を右バーとした。実ブラウザ1280×720では、表示切替は左上 `x=14..344`、UNDO履歴は右上 `x=616..866`、右バーは `x=880..1280` で重ならなかった。選択要素の位置・大きさ・回転・形状値は左下の独立パネル `x=14..324` に表示し、右バーを開閉しなくても編集できた。
+- UNDOは直前1操作に加え、最近10操作から戻す地点を選べる。69花を生成した履歴で `2つ前` を選ぶと、基準ホスト12球を残したままパッチ69→0、状態文は `2操作前まで戻しました` となった。
+- 手順4の単体図をWebGLの3Dプレビューへ変更した。ドラッグ回転とホイール拡大縮小をイベント駆動で再描画し、ランダムPACKの花では別の接続図へ `flowerExpansion` と `separate/fused` の違いを表示する。接続図は曲面上の生成結果や印刷結果を装わない説明図である。
+- 新規生成位置に `表面（従来互換） / 面を中心 / 内側` を追加した。中心は全構成球の法線方向包絡を基準面の両側へ均等化し、内側は包絡の最外端が基準面へ接する位置まで平行移動する。入力点は変更せず、選択はsetSkinParam履歴で再生した。
+- 画面のメッシュ表示は高精細出力経路から分離した。密度に応じ解像度を32〜48へ制限し、Worker内で三角形化とflat normalを作り、transferableなFloat32Arrayを画面へ渡す。計算中は現在のレイマーチ/ビーズ表示を維持し、別モード選択や形状変更でWorkerを終了する。同一generation・解像度はキャッシュを再利用する。高精細の検査・STL/OBJ出力は従来の明示操作と解像度を維持している。
+- 実ブラウザv0.37で融合花69個を生成後、軽量メッシュ選択直後はビーズ表示のまま `軽量メッシュを準備中 · 解像度40` を表示して操作へ応答した。完了値は50,448面、11.5秒、完了後は約60fpsだった。別の生成を開始直後にレイマーチを選ぶとWorkerは終了し、`building=false / レイマーチ表示` になった。これは画面応答性の実測であり、Windows実機の処理時間、印刷可否、形状精度を保証しない。
+- `npm run typecheck:partition-test`、全surface suite（新規Authoring preview 16件を含む）、`npm run build`、`git diff --check` が通過した。buildは196 modules、previewMesh Worker chunkを生成した。公開deployはこの確認時点では行っていない。
+
+## Observation v0.36（選択要素だけの形状調整、2026-08-11）
+
+- `npm run typecheck:partition-test` は exit 0 だった。`npm run test:partition` は、追加した選択要素の再生成・履歴テストを含め、`Selected motif reshape tests: 25 passed` と最後の `ALL TESTS PASSED` を出力した。
+- `npm run build` は exit 0 で、Vite は `195 modules transformed` と `✓ built in 4.07s` を出力した。
+- ローカル v0.36 では、手順4のプレビュー高さは 238px だった。花を選んで生成すると 69 パッチになった。
+- `S・花 001` を選択すると registry が自動で開き、CSS 修正後は花専用の行だけが表示された。個別の花弁数を 6 から 9 へ変更すると小型プレビューが更新された。
+- 適用後も 69 パッチのままで、履歴は 3 から 4 へ変化し、`この要素だけ形を更新しました。接点・空隙・メッシュ・分割は再確認してください` という状態文が表示された。Undo は履歴を 4 から 3 へ戻し、`S・花 001` を再選択すると保存値の花弁数 6 が表示された。最終 reload 後の warning/error entry はなかった。
+- ローカルのコイン生成は 51 パッチだった。`S・コイン 001` では `輪郭のゆらぎ` だけが表示され、0.50→0.80 の適用後も 51 パッチで履歴は 2→3 になった。Undo と再選択後は 0.50 と履歴 2 に戻った。ローカル最終 session の issue は空だった。
+- ローカルの平リング生成は 52 パッチだった。選択 editor には `穴の大きさ`、`節の数`、`節のゆらぎ` だけが表示され、`並びのゆらぎ` は表示されなかった。
+- Cloudflare deploy は Version ID `f926e79c-0c63-46da-89be-248846b45c63` で完了した。公開 `skin.html?published=0.36.0` は v0.36.0 を表示して 69 個の花パッチを生成し、`S・花 001` の選択で registry が自動で開き、source label は保存値を表示し、花専用の 9 行だけが表示された。cache-busted public v0.36 は 52 個の平リングを生成し、`S・平リング 001` には同じ 3 行だけを表示して `並びのゆらぎ` は表示しなかった。公開 warning/error log は空だった。
+
+## Observation v0.35（選択形状の単体ライブプレビュー、2026-08-11）
+
+- 手順4の先頭に16:9の小型画面を追加した。コイン、平リング、立体リング、花を切り替えると単体表示が切り替わり、コインの不揃い/ふくらみ、リングの孔/節数/管太さ/揺らぎ、花弁数/花芯/開き/首/起き上がり/花芯高さ/成長差を操作するたびに再描画する。
+- これはパラメータの効き方を読むための単体図であり、曲面への沿い方、隣接接続、最終メッシュ、印刷結果を示すものではない。その区別をプレビュー直下へ常時表示した。
+
+## Observation v0.34（初期ベース形状プレビュー、2026-08-11）
+
+- パッチ0のraymarchだけは `hostField` の全体積を表示し、最初にページを開いた時とUndoで初期状態へ戻った時に、ベースの外形を回転しながら読めるようにした。これは制作中の表示だけで、CPU側の合成、メッシュ検査、STL、recipe、印刷判定は変更していない。
+- 中央に重なっていた案内を画面下へ移し、`ベース形状を表示中` と明示した。
+- `npm run test:partition`、`npm run typecheck:partition-test`、`npm run build` は成功した。実ブラウザのv0.34.0で初期 `ホスト球: 12 / パッチ: 0` の滑らかなベース外形と下部案内を目視確認した。表面生成後は51パッチとなり案内が消え、Undo後は12ホスト球・0パッチとベース表示へ戻った。consoleのwarning/errorは空だった。
+
+## Observation v0.33（右上Undo、2026-08-11）
+
+- 画面右上に常時残る `↶ 1つ戻す` を追加し、Windowsの `Ctrl+Z` とmacOSの `Cmd+Z` からも同じ履歴操作を呼べるようにした。テキスト入力中はブラウザの通常Undoを優先する。
+- Undoは入力配列を変更せず、末尾の1操作を除いた正確な履歴を再生する。最初からある `growHost` だけは基準形状として残すため、初回の表面生成直後に戻すと「ホスト形状あり・パッチ0」に戻り、乱数パッキングを再実行しない。Undo後は現在履歴が読込ファイルそのものではなくなるため、読込recipeのSHA-256来歴を残さない。
+- 新規の初回pack→undoおよび基準hostで停止するテストを含めて `npm run test:partition` は成功した。`npm run typecheck:partition-test` と `npm run build` は exit 0 だった。
+- 実ブラウザの `http://127.0.0.1:5174/skin.html` で v0.33.0、右上固定表示、初期 `ホスト球: 12 / パッチ: 0`・履歴1件・Undo無効を確認した。`この設定で表面を生成` は51パッチ・履歴2件・戻せる操作1となり、右上ボタンと `Ctrl+Z` の両方が12ホスト球を残したまま0パッチ・履歴1件へ戻した。console logにwarning/errorはなかった。
+- Cloudflare Workersへのasset deployは成功し、Version IDは `a56a6e3b-dd69-4a3a-a576-74541600ea30` だった。公開URLの v0.33.0 でも51パッチ・履歴2件の生成から右上ボタンで0パッチ・履歴1件へ戻ることを再確認し、consoleのwarning/errorは空だった。
+
+## Observation v0.32（立体レースの作者編集、2026-08-11）
+
+- `npm run test:partition` は成功した。新しい workflow profile、入力非破壊の表面変換、非対称リングの担体重心を中心にした拡大・回転、立体リング風の法線方向の持ち上がり保持、全半径フィールドの拡大、回転・移動時の半径保持、bridge / surfaceConnector 拒否、`editPatch` の不正・未知ID・構造不一致no-op、annotation / revision保持とpartition無効化を含む `48 passed` が出力された。既存の surface suite も最後まで成功した。
+- `npm run typecheck:partition-test` と `npm run build` は exit 0 だった。build は S-skin を含む既存ページと Worker を生成した。
+- 実ブラウザ（`http://127.0.0.1:5174/skin.html`、reload後）で v0.32.0、`立体レース — 現在の制作テーマ` と5段階表示、既存の `1 ベース / 2 表面 / 3 形状 / 4 調整 / 5 分割` ナビゲーションを確認した。既定生成は `ホスト球: 12 / パッチ: 51`、registry は `S・コイン 001` から表示された。`S・コイン 001` を選ぶと editor が開き、`大きく`、`右へ回す`、`→` の順で履歴は 2→3→4→5 と増え、それぞれ大きさ・向き・位置の変更と接点/空隙の再確認を促す状態文を表示した。browser console の warning/error は空だった。接点・空隙の値、および実際の接続性は編集後にあらためて確認が必要である。
+
+## Observation v0.31（要素レビュー記録、2026-08-11）
+
+- `npm run test:partition` は成功した。名前検索を含む要素名テストは15 assertion、共有注釈テストは6 assertion、surface の revision/replay 検証は42 passed と表示され、既存の partition / tutorial / motif / flow 各suiteも最後まで成功した。
+- `npm run typecheck:partition-test` と `npm run build` はともに exit 0 だった。build は skin と interior-growth を含む17ページを生成した。
+- 一次ブラウザ確認では既定の表面生成で51 patchができた。`コイン 025` の検索は `S・コイン 025` を返して選択し、保存と `記録を消す` を操作した。
+
+## Observation v0.30（表面・内部で共通の要素名、2026-08-11）
+
+作者との指示を位置に依存せず共有できるよう、表面充填は `S・花 023` / `S・コイン 023` /
+`S・平リング 023` / `S・立体リング 023`、内部充填は `I・コイン 023` / `I・リング 023` という
+短い共通名を導入した。名前は新しい不透明な識別子ではなく、recipeに既に保存されるkindとPatch/Unit IDから
+純粋関数で導く。表面では密集時も読めるよう決定論的な代表24要素までを小型DOMタグで表示し、現在選択した
+Patchは必ず対象へ加える。表示切替は形状・履歴を変更しない。
+
+実ブラウザで既定hostへ花69個を生成するとタグは24個になり、表示例は `S・花 001`、`S・花 004`、
+`S・花 007` だった。3D上の花を実座標クリックすると選択欄と強調タグがともに `S・花 025` となった。
+表示チェックを外すとlabel layerが非表示になり、戻すと選択中タグを含む24個が再表示された。
+`npm run test:partition`（共通命名11件を含む全suite）、`npm run test:interior-growth`、
+テスト用TypeScript型検査、production buildは通過した。
+
+## Observation v0.29（花ごとの接点診断＋局所補強、2026-08-11）
+
+多段レースの見た目を全体膨張で潰さず、作者が指摘した「1点・2点だけで接続された花」を直接扱うため、
+実現済み Patch の球集合どうしが接触する別 Patch 数を花ごとに数える接点診断を追加した。画面は0–1接点を
+赤、目標未満を橙、目標以上を緑で全量ビーズ表示する。これは球表面の有限精度接触近似であり、FEA、
+最終メッシュ連結、スライサー、印刷強度の判定ではない。
+
+補強は目標未満の Patch が関係する近傍候補だけを距離順に処理し、2 Patch 間で最も近い実現球の半径だけを
+接触＋指定重なりまで増す。入力配列は複製し、1点あたりの追加半径は `contactMaxGrowth` を絶対上限とする。
+追加量は `contactR` として花本来の `baseR` / `fusionR` / QUAD の `meshJoinR` から分離して保存するため、
+同じ上限でボタンを繰り返しても累積膨張しない。届かない花は長い棒を捏造せず未達IDとして残す。実現結果は
+既存の `packPatches` 履歴へ全件保存され、JSON再生は近傍探索をやり直さない。花・コイン・リングで同じ処理を
+使うが、画面の名称は今回の主対象に合わせて花としている。
+
+実ブラウザの既定12球ホストで random PACK の花69個へ3段レース361個を追加した合計430花は、正の
+`laceGap=0.025` のため補強前の直接接触が0件（430花すべて0接点、430連結群）だった。
+目標3相手、重なり0.010、上限0.120の局所補強で弱い花は430→1、新規接点824、調整球1,366点、
+最大追加+0.120になった。上限を0.140へ上げて再実行すると残る1花だけに新規接点1・調整球2点が入り、
+実現最大追加は+0.130で止まった。再診断は0/1/2接点が各0、3接点以上430、弱い花0、連結群1だった。
+
+その履歴を既存の生成原理由来3分割へ渡すと、180 / 156 / 94 Patch の3群になった。解像度32の物理分割は
+55.7秒で完了し、部品1は14,380面、部品2は14,684面、部品3は8,836面、3部品とも水密かつ各1連結だった。
+ただし元形状との体積差は3.52%で、N版の実メッシュ同士の重複・隙間検査は未実装である。したがって
+保存ボタンが出る検証結果まで確認したが、印刷確定データとしては保存していない。解像度64の試行は
+146.4秒時点でサンプリング中だったためキャンセルし、画面操作確認は解像度32へ落として行った。
+
+自動検証は全12 suite・314 assertions相当（接点診断18件を含む）、テスト用TypeScript型検査、
+production buildが通過した。buildは既存のchunk-size warningのみ。実スライサー・実機印刷・接着強度は未確認。
+
+## Observation v0.28（高密度花 v6 参照＋多段レース充填、2026-08-11）
+
+作者が気に入った v6 は Skin の生成履歴から直接作られたものではなく、Optimizer 側で空隙を確認しながら
+花を追加した結果 STL だったため、再生可能な recipe は残っていなかった。ここでは正確な生成 recipe を
+捏造せず、SHA-256 `9a00dbc61c04a8a418dc6da939e81c1f0afc5b11586743d7eccab5707ac0cfab` の
+master STL、offset 2.0 mm・解像度112の既存計測結果205件、上位40件の開口面 STL、6方向画像、
+`replayableRecipe: false` の参照来歴を別ファイルとして保存した。入力の Optimizer report は変更していない。
+
+再利用できる原理は `laceFill.ts` の「多段レース充填」とした。現在の random PACK / QUAD-FLOW /
+Voronoi / Goldberg の結果を初期配置として保ち、決定論的な表面候補のうち残存クリアランスが大きい順に、
+最大寸法から指定最小比率まで段階を下げながら、現在選択中の花・コイン・平リング・立体リングを追加する。
+全体膨張は行わず、正の `laceGap` は空隙を残し、負値だけが接触・重なりを許す。操作後は既存の
+`packPatches` op が実現済み Patch 全件を保存するため、recipe replay は最大空隙探索や乱数を再実行しない。
+単一球 fixture の自動テストでは3段で複数寸法が生成され、同じ seed で配置が一致し、flatRingにも適用でき、
+3つの lace パラメータと実現配置が JSON 往復後に一致した。正の隙間を選んだ場合の構造接続は保証しない。
+
+実ブラウザでは保存STL＋40開口面の41資産を読み込み、205件中上位40件の行・タグ・引出線を表示した。
+初期視点で40タグ中20タグが表側として見え、O-002タグを実ポインター操作で94.34 px移動した後も、
+引出線の始点・終点が更新された。ビューポート中央のhit targetはCanvasで、6方向ボタンではCanvasとタグを
+隠して既存の6方向画像へ切り替わった。同じ実画面の既定12球ホストでは、random PACKの花69個へ
+多段レース充填を適用し、3段で361個（実現アンカー半径0.054–0.320）を追加して合計430個になった。
+`npm run test:partition` は全11 suite・296 assertions相当、
+`npm run typecheck:partition-test`、`npm run build`、`git diff --check` は通過した。
+
+## Observation v0.27（空隙マップ、2026-08-11）
+
+`openingMap.test.ts` の単一球・窓パッチ fixture では、ホスト場の中心差分法線が外向きになり、
+`buildSkinMesh` が返す同一の `scaleMmPerUnit` を使った空隙結果が1件以上生成された。受理した
+領域は面積下限以上で、周長・形状指標・オーバーレイ三角形を持ち、同じ入力で番号と計測値の順序が
+一致した。`npm run test:partition` は既存の S-skin suites と空隙マップ4件を通過し、
+`npm run typecheck:partition-test` と `npm run build` は通過した（本書の今回の実測事実）。
+
+空隙マップは、現在の完全メッシュと同じ解像度・最長辺スケールを先に作り、ホスト場の外向き勾配で
+指定 mm 分だけずらした有限解像度の表面を分類する。ここでの面積・周長はその導出面の推定であり、
+正確な CAD ブーリアン曲線や実機の印刷可能性・安全性を表すものではない。色は開口番号の識別だけで、
+危険／安全の尺度ではない。形状または計測条件が変わると、実行中 Worker を止め、古い色・ラベル・数値を
+消して再計測を求める。表示件数（10/20/40/すべて）の変更だけは既存の結果を切り替え、再計算や番号変更を
+行わない。
+
 ## Next
 
+- Support Enforcer候補を、付加後に残る赤面からさらに「外側・下向き・ベッド側から空間的に到達可能・除去可能」な
+  下側包絡へ絞る。Dry Web内部へtreeが入る現状と同じ3MFを比較し、Support重量、内部侵入、外殻下面の被覆をPreviewで
+  確認する。内部全域の一律Support Blockerは必要な外殻supportも消し得るため、到達判定より先には採用しない
+- Dry Webの追加補強線数0 / 14 / 28 / 56を、同じ外殻・Radius・最終解像度で並べ、外観から見える線、材料量、
+  角度危険面の軽減率、ゲート時間を比較する。単一部品化に必要な最小網は全条件で維持する
 - プレート版の連結成分数の乖離（ライブ44 vs メッシュ実測22）を埋める、より正確な
   ライブ計器の設計（殻の厚みを介した間接融合の検出、あるいは低解像度メッシュでの
   高速プレビュー）
@@ -1395,6 +2066,367 @@ partitionテスト84件（41+43、`resolvePartitionSelectionGroup`/`describePart
 
 partitionテスト91件（41+50）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。未コミット・未deploy。
 
+## Observation v0.25（旧QUADメッシュの分断修正＋Voronoi/CVT試作、2026-08-10）
+
+作者共有の `skin-recipe-2026-08-10T11-16-49-185Z.json` は、履歴107件、150個の平リング、
+不均一QUAD（面ごとの分割数5、寸法ばらつき0.45）のレシピだった。入力レシピは変更せず再生した。
+修正前のメッシュは水密ではあるが、解像度48で92部品、64で57部品に分断された。原因はライブ場では
+接触している隣接点の首が、メッシュの1ボクセルより細くなることだった。
+
+新規生成では局所接続点へ `quadMeshJoinWidth`（既定0.12）を記録し、接合部だけにメッシュ解像度へ
+耐える幅を足す。旧履歴は `fusionR` とQUADセル来歴を持つ点だけをビルド直前に複製して不足分を補い、
+保存済みPatchや入力JSONは書き換えない。同じ共有レシピの実測は、解像度48で60,236面、
+80.0 × 61.8 × 79.4 mm、水密、1部品、旧接合補強455点。解像度64では108,752面、
+80.0 × 61.7 × 79.3 mm、水密、1部品、旧接合補強455点だった。これは幾何メッシュの閉塞と部品数の
+実測であり、実機での接合強度や印刷成功を示さない。
+
+未実装候補から `Voronoi / CVT` を「試作可」に進めた。Fibonacci球面種点を決定論的に作り、
+サンプル帰属と重心更新による近似Lloyd緩和を行い、ホスト外周へ投影する。近傍は投影済みアンカーの
+相互6近傍を基本に、連結しない場合だけ最短全域木の辺を足す。各種点へ既存のコイン・平リング・
+立体リング・花のいずれかを配置し、同じ局所接続設定とN分割へ渡せる。これは正確なVoronoi多角形、
+測地CVT、曲率重み、専用役物を生成するものではなく、画面にもその制約を表示した。
+
+実ブラウザでは種点48、均し2回、平リングを生成し、48パッチ、近傍辺136、投影失敗0、
+未接続辺0を確認した。解像度48のメッシュは65,952面、水密、1部品だった。ただし既定の強い局所接続では
+平リングの穴が狭まり、場所によっては塊に近く見える。したがってVoronoiリングは最終形ではなく、
+次は穴を保つ接続子またはセル境界方向への変形が必要である。
+
+自動検証はS-skin 248件（41+50+11+9+11+45+67+14）が通過し、テスト用TypeScript型検査、
+全18ページのproduction build、`git diff --check` が通過した。公開済みv0.19は更新せず、ローカルの
+確認画面だけをv0.25へ進めた。
+
+## Observation v0.24（ベース→表面→形状→調整→分割へ画面再設計、2026-08-10）
+
+操作の正本を「1. ベースのかたち → 2. 表面の組み方 → 3. 充填する形状 → 4. 選んだ形を調整して生成
+→ 5. 形の流れで分割」の5段階へ整理した。画面上部の5ボタンは説明用の飾りではなく、各実操作位置へ
+スクロールする索引である。地と図の反転はベースの後へ移し、後から変えられる出力の見方として扱った。
+
+表面の組み方は別々のトグルを廃止し、6枚の比較カードを常時一覧表示する。ランダムPACK・均一クアッド・
+不均一クアッドは「使用可」でクリックできる。曲率追従クアッド・Voronoi/CVT・六角形＋五角形は
+「研究候補」と明記した無効カードで、存在は見えるが実装済みとは誤認させない。充填形状もコイン・平リング・
+立体リング・花を説明つき4カードにした。
+
+隣同士の接続は、表面方式を選ぶ前ではなく形状選択後の「4. 調整」へ移した。形状と造形の詳細値、計器、
+手動修正は折りたたみへ入れ、現在必要な生成ボタンと結果行は常に見せる。生成ボタンの名称は方式ごとに
+変わる専門語をやめ「この設定で表面を生成」に統一した。履歴、形状生成、メッシュ、N分割の計算は変更していない。
+
+実ブラウザで上から不均一クアッド→立体リング→生成の順に操作し、96パッチ、調整球314個、最大0.103、
+未接続辺0/192、投影失敗0を確認した。その後、上部索引の「5 分割」で実際のN分割位置へ移動できた。
+自動検証はpartition/motif系228件、テストソース型検査、18ページのproduction buildが通過した。
+全体メッシュ、スライサー、支持、強度、接合、実機印刷はこの画面整理では新たに検証していない。
+公開v0.19は保存し、v0.24はローカル確認版のままとした。
+
+## Observation v0.23（4形状の局所接続＋不均一クアッド、2026-08-10）
+
+花だけに使っていた共有辺ごとの局所補修を、コイン・平リング・立体リング・花の共通処理へ変更した。
+すべての形は最終的に球集合として保存されるため、共有辺の左右から最も近い球を1つずつ選び、接触に
+必要な量と「接合の重なり」だけをその2球へ加える。別の枝やコネクタは足さない。「離して並べる」なら
+元半径を変えない。リングは輪の点列を保つ一方、接続側の節が太くなって穴が局所的に狭くなるため、
+画面に注意を出した。最小穴径はまだ計測していない。
+
+表面充填の最初の追加案として「不均一クアッド」を実装した。x/y/z各軸の分割位置をシードから決め、
+反対側と対称にずらすことでセル寸法を変える。四角形だけの6×n×nセル、面をまたぐ共有頂点、全辺2回
+使用、8特異点という閉じた構成は均一版と同じで、ランダムな穴やT字境界は作らない。これは本格的な
+曲率方向リメッシュではなく、現在のcube-guided projectionを安全に拡張した第一段階である。
+
+### 調査した次の充填候補
+
+- [Instant Field-Aligned Meshes](https://igl.ethz.ch/projects/instant-meshes/) と
+  [QuadriFlow](https://web.stanford.edu/~jingweih/papers/quadriflow/) は、形状の方向場・特徴線に沿う
+  quad remeshの基準候補。現ブラウザ実装より大きい別エンジンとして扱う。
+- [Anisotropic Centroidal Voronoi Tessellations](https://epubs.siam.org/doi/10.1137/S1064827503428527)
+  と[Variational Anisotropic Surface Meshing](https://perso.liris.cnrs.fr/nbonneel/vorpaline.pdf)は、
+  曲率に応じて密度と向きを変える表面Voronoi/CVTの根拠になる。平均的に六角形主体の混合多角形へ
+  進める本命とする。
+- [Voronoi Grid-Shell Structures](https://arxiv.org/abs/1408.6591)は、応力方向と密度を異方性CVTへ
+  渡して六角形主体のセルを得る。形だけでなく構造情報をセル配置へ入れる段階の候補である。
+- 閉じた球状面を六角形だけで覆うことはできず、Goldberg系では12個の五角形が必要になる。
+  [Goldberg geometry](https://pmc.ncbi.nlm.nih.gov/articles/PMC9363989/)を根拠に、五角形を失敗ではなく
+  役物・接合位置として扱う。
+
+### 形態に沿う3Dプリント分割案
+
+分割の正本を断面平面ではなくセル隣接グラフに置く。花・コイン・リングそのものは切らず、セル境界を
+連続してたどる辺列だけを継ぎ目候補とする。その上で、(1)造形範囲、(2)向きごとの支持量、
+(3)見える場所の継ぎ目、(4)各部品の連結、(5)接合面積、(6)リング穴や局所接続球を横切らないこと、
+(7)部品量の偏りを同時に評価する。[Chopper](https://gfx.cs.princeton.edu/pubs/Luo_2012_CPM/)の
+造形範囲・継ぎ目・強度・組立性と、[Support-effective decomposition](https://arxiv.org/abs/1812.00606)
+の部品ごとの造形方向を設計根拠にする。非平面の目立たない境界は
+[Functional decomposition for 3D printing](https://diglib.eg.org/items/1cff4fd1-8656-48d4-b415-53a5cb972fc5)
+を参照する。
+
+パターン別には、均一／不均一クアッドは辺列を帯状部品へまとめ、Voronoi／六角形主体は低曲率・
+低応力のセル境界を選ぶ。12五角形や特異セルは位置が明確なので役物または接合の基準点にできる。
+リングでは閉ループを途中で切らず、強い複数接触を持つ境界へ継ぎ目を移す。最初の接合は内側だけの
+平坦な接着面、後段で厚みが許す場所にキー・磁石・ピンを候補化する。寸法は機種・材料で決め打ちせず、
+Optimizerの形状計測後に決める。これは分割設計であり、実メッシュ生成と実機強度は未確認である。
+
+実ブラウザの既定12球host・n=4・不均一クアッドで、コインは258球（最大0.143）、平リングは
+274球（最大0.152）、立体リングは314球（最大0.103）だけを局所調整し、全形状で未接続辺0/192、
+隣接速報1群だった。同設定の立体リングを続けて生成しても結果が一致した。
+不均一クアッドのリングでも96セル、役物候補24、特異点8、投影失敗0を確認した。自動検証は
+QUAD-FLOW 61件、partition/motif系228件。TypeScriptと18ページのproduction buildも通過した。
+全体メッシュ、最小穴径、スライサー支持、強度、接着、磁石、実機成功は未確認である。公開v0.19は
+保存し、v0.23はローカル確認版のままにした。
+
+## Observation v0.22（隙間に近い球だけを大きくする局所融合、2026-08-10）
+
+作者から共有された`skin-recipe-2026-08-10T09-08-28-931Z.json`は40操作を持ち、最終状態は
+12球host、QUAD-FLOW 4分割、10弁、花芯なし、融合の膨らみ0.25だった。この意図を保つため、
+v0.21の「全花・全球へ同じ融合幅を加える」方法をやめ、共有辺ごとの局所補修へ変更した。
+
+各共有辺について左右の花の全球から最も近い1対を探し、測った隙間が閉じる分だけその2球を大きくする。
+同じ球が複数辺を担当する場合は必要量の最大だけを採用する。枝、線、隠れたhost shell、新しい球は足さない。
+QUAD-FLOWでの`融合の膨らみ`は、0でも接触までは補修し、値を上げるほど接触後の重なりだけを深くする。
+ランダムPACKの花全体を膨らませる従来動作は変更していない。
+
+共有JSONを実画面のファイル入力から読み込み、`この設定で花を詰め直す`を実クリックした。
+96花・2,880球のうち変更したのは310球、最大局所膨張0.104、未接続辺0/192、被覆率粗推定27.7%、
+隣接速報1群となった。つまり全体を丸く太らせず、隙間側の約10.8%の球だけを変えた。
+この重い12球hostの実メッシュ検査は処理中に確認接続が切れ、完了を確認できなかったため、
+水密・部品数は未確認と明記する。自動検証はQUAD-FLOW 27件、全partition/motif系194件で、
+共有設定相当の10弁・花芯なし・膨らみ0.25でも未接続辺0を確認した。
+
+## Observation v0.21（クアッド全面へ変形し、全隣接を形自身で融合、2026-08-10）
+
+作者の要望「入れ込む形状をクアッドメッシュいっぱいにして隣り合う形状とくっつく」を受け、
+QUAD-FLOWの配置原理をセル中央の縮小モチーフから四辺いっぱいのモチーフへ変更した。
+生成済みモチーフの全点をセル座標へ戻し、点中心と半径を含む外形をクアッド領域へ拡大し、
+四隅の双線形補間で位置を写してからhost表面へ再投影する。境界には4%だけ越境を持たせる。
+別の接続線、枝、隠れたhost shellは加えず、選択したコイン・リング・花自身だけを変形する。
+
+`一体の花（融合）`では、従来の花全体の最小全域木ではなく、クアッドの共有辺を正本にする。
+共有辺を持つ全セル対の形状間距離を測り、`融合の膨らみ=1`で最も離れた隣接対も辺長の6%ぶん
+重なる共通膨張量を決める。4分割の閉格子では96セル・共有辺192本の全隣接対が負のclearance、
+すなわち形自身の面で重なることを自動検証した。`離して並べる`は別状態として残し、膨らみ1未満は
+意図的に分離し得る従来の意味を保つ。
+
+自動検証はQUAD-FLOW 22件、全partition/motif系189件となった。本格的な曲率方向quad remesherでは
+なくcube-guided projectionであり、特異点用の役物形状はまだ通常モチーフの仮置きである。
+
+実ブラウザでは1球・半径1.5・4分割・4弁花・融合1.0を実操作した。96花の共通融合幅は0.075、
+被覆率粗推定64.5%、隣接速報1群、深いめり込み警告なしだった。格子を重ねたビーズ表示と全体メッシュを
+比較し、花の内部やクアッド頂点付近に意匠上の抜けを残しながら、隣接セル間は花自身で一続きになった。
+resolution 64の実メッシュは172,136面、80.0 × 80.0 × 79.9 mm、水密、1部品だった。
+操作中のconsole error/warningは0件。実スライサー、支持、強度、印刷成功は未確認である。
+公開済みv0.19を保存するチェックポイント方針を優先し、v0.21はこの時点ではローカル確認版とした。
+
+## Observation v0.20（全クアッド格子へ形を当て込む別系統、2026-08-10）
+
+公開済みv0.19のランダムPACKを既定値・既存コード経路のまま残し、`表面の組み方`に
+`QUAD-FLOW（実験）`を別系統として追加した。切替値は`surfaceGenerationMode`として履歴へ保存し、
+履歴に値がない旧レシピは必ず`randomPack`から始まる。QUAD-FLOWへ切り替えただけでは既存パッチを
+消さず、明示的に`クアッドに当て込む`を押したときだけクアッド由来形状へ置き換える。
+
+初版はcube-sphere topologyを使う。立方体6面を各`n × n`の四角形に分け、面境界の頂点を共有した
+閉じた全クアッド格子を作り、各方向からhostの外表面へ頂点を投影する。三角形への置換はしない。
+閉曲面では避けられない特異点は消さず、頂点valenceが4でない場所として数える。通常セルの辺は水色、
+特異点に接するセルは橙色の`役物候補`として画面へ重ねる。役物形状は未設計なので、現段階では
+通常セルと同じ選択モチーフを仮置きし、穴を捏造しない。
+
+各クアッドには現在選択しているコイン・リング・花を1つずつ置く。花弁数・花芯・融合の膨らみ等は
+v0.19の定義を共有し、別の花ジェネレータは作っていない。`quadDivisions=4`の解析球では96セル、
+98共有頂点、特異点8、役物候補24、全edgeがちょうど2セル共有、投影失敗0を自動検証した。
+同じ格子へ96花を一対一で配置し、同じhost/設定から点群が完全一致することも確認した。
+
+実ブラウザでは1球・半径1.5のhost、`quadDivisions=4`で格子を作り、96セル、役物候補24、
+特異点8、投影失敗0の表示を確認した。花弁4枚の花を96セルへ一対一で置くと1,632点、
+分離配置の被覆率粗推定16.9%となった。続けて`一体の花（融合）`を選ぶと共通融合幅0.099、
+被覆率粗推定73.4%、隣接速報1群となった。resolution 64の実メッシュは156,508面、
+79.7 × 80.0 × 79.7 mm、水密、1部品だった。格子だけ、分離配置、融合配置、全体メッシュ表示を
+実操作し、一連のconsole error/warningは0件だった。
+
+自動検証は従来167件にQUAD-FLOW 18件を加えた計185件、Study一覧19件、共有PACK-SPIKE 18件が通過し、
+TypeScriptと18ページの本番buildも成功した。現段階は曲率方向場から辺の流れを解く本格的な
+quad remesherではなく、cube-guided outer-surface projectionの試作である。強い凹形状や
+中心から見えない面では投影失敗を正直に表示する。役物、クアッド四隅への厳密な双線形変形、
+実スライサー、構造強度、印刷成功は未確認である。
+
+## Observation v0.19（花の形と融合量を直接つまむ、2026-08-10）
+
+作者の要望「花弁の数や花芯の有り無し、膨らませ具合などをコントロール」を、既存の
+PACK-SPIKE定義を別実装せずS-skinの花パラメータとして公開した。常時見える基本操作は
+`花弁の数`（3〜12枚）、`花芯あり/なし`、`融合の膨らみ`（0〜2倍）の三つである。
+1.0は花の最短surface clearanceから算出する自動一体化幅、0は元半径のまま、1より大きい値は
+同じ共通幅を比例して増やす。1未満では意図的に分離し得るため、「一体」を保証する値とは表示しない。
+
+折りたたんだ`花の詳細`では、花の開き、花弁の首、花芯の大きさ、花弁の起き上がり、花芯の高さ、
+花弁の成長差を操作できる。従来の4プリセットは削除せず、同じ数値群を設定する近道として残した。
+手動で一つでも変えるとプリセット強調を外して`custom`として履歴へ記録する。
+`この設定で花を詰め直す`は既存の花だけを置き換え、コイン・リングは残す。
+
+実現点には元の半径`baseR`、1.0基準の`fusionBaseR`、実際に適用した`fusionR`を分けて保存する。
+これにより0→2→1と変更しても前回値へ掛け続けず、同じ1.0形状へ戻る。履歴JSONは全カスタム値と
+実現済み点群を保存するため、再読込で生成を推測し直さない。旧プリセット履歴も従来どおり再生できる。
+
+実ブラウザでは1球・半径1.5のhostに対し、花弁8枚、花芯なし、融合の膨らみ1.25、花弁の起き上がり
+0.45を実スライダーで設定し、`この設定で花を詰め直す`を実クリックした。64花、共通融合幅0.191、
+被覆率粗推定80.6%、隣接速報1群となった。resolution 64の実メッシュは175,160面、
+80.0 × 80.0 × 79.5 mm、水密、1部品だった。プリセット強調は手動変更後に外れ、詳細欄の開閉、
+花芯toggle、再パック、全体メッシュ表示の一連でconsole error/warningはなかった。
+
+同日Cloudflare Workersへ公開した（Version ID `9a7a2f50-9339-42e5-8180-faa035873d41`）。
+通常URL `https://katachi.a-8c3.workers.dev/skin` がv0.19.0を返すことを配信切替後に再確認し、
+公開画面でも花弁8枚・花芯なし・融合の膨らみ1.25への変更と花の詰め直しを実操作した。
+花パラメータ欄と融合結果が表示され、console error/warningは0件だった。
+
+自動検証はpartition 41、tutorial 50、coinBulge 11、印刷結果整形9、N分割11、花モチーフ45の
+計167件、Study一覧19件、共有PACK-SPIKE 18件が通過し、TypeScriptと18ページの本番buildも成功した。
+実スライサー、サポート、構造強度、接着、磁石、実機印刷は未確認で、印刷可能性を断定しない。
+
+## Observation v0.18（「一体化」の定義訂正：花の面を融合する、2026-08-10）
+
+作者がPACK-SPIKEの`プリント用レース殻`画像を示し、「一体化といっているのはこの状態」と定義した。
+v0.17で試した「離れた花をMSTの枝で結ぶ」は意図と異なる。現在の主画面から枝方式を外し、
+「一体の花（融合）」へ置き換えた。過去v0.17履歴の`direct`値と実現済みbridge点は再生互換のため
+残すが、新規UIでは選べない。
+
+新しい順序はPACK-SPIKEのレース殻と同じである。まず全花を元の大きさで表面へ配置し、配置完了後に
+全花のcomponent半径を同時に増やす。配置中から膨らませる初稿では、パッカーが膨張後の花を互いに
+避けて66花中66群のままになったため棄却した。修正版は花同士の最短surface clearanceから最小全域木を
+作り、その木で最も広い隙間の半分を共通の融合幅とする。全componentを同じ幅だけ膨らませるので、
+追加されるのは花自身の面だけであり、線・枝・接続物体・見えないhost shellは一切加えない。
+`baseR`と実現した`fusionR`を各motif点へ保存し、同じ履歴の再生とPack反復で二重膨張しない。
+
+実ブラウザの既定12球hostでは、69花、共通融合幅0.163、被覆率粗推定58.7%、隣接速報1群。
+resolution 64の実メッシュは131,456面、水密、1部品だった。添付画像の輪郭と比較するためhostを
+1球・半径1.5にすると、77花、融合幅0.178、被覆率粗推定68.5%、隣接速報1群となり、
+resolution 64で186,684面、78.0 × 80.0 × 79.6 mm、水密、1部品を実測した。
+
+同じ球状一体形をresolution 48で3分割した。提案は16/36/25花、生成20.1秒、各部品は
+24,540/46,116/36,904面で、すべて水密・1連結。元形状と部品合計の体積差は0.26%だった。
+N版の実三角形同士の重複・隙間検査は未実装なので、保存物は引き続き`VERIFICATION`である。
+
+形状変更後に前の「水密・部品数」が画面へ残る問題も実操作で発見し、host/patch変更のたびに
+メッシュ検査結果を`未検査`へ戻すよう修正した。手動で花を追加・削除した場合も、残った全花から
+共通融合幅を再計算して実現形状を履歴保存する。自動検証はpartition 41、tutorial 50、coinBulge 11、
+印刷結果整形9、N分割11、花モチーフ35の計157件、Study一覧19件、共有PACK-SPIKE 18件が通過。
+実スライサー、サポート量、構造強度、接着剤、
+磁石、実機印刷は未確認で、印刷可能性を断定しない。
+
+## Observation v0.17（花どうしを直接つなぐ生成、2026-08-10）
+
+> **v0.18で作者定義により不採用**: この節の枝方式は履歴互換のため記録として残すが、現在UIの
+> 「一体の花」は花面の一括膨張・融合であり、枝を生成しない。
+
+作者の「花を詰めるでやったときのように一体化できるようになっている？」という確認に対し、
+連続したhost shellを花の下へ隠す方式だけではなく、花そのものを直接つなぐ生成モードを追加した。
+画面で「花モチーフ」→「花どうしでつなぐ」→花preset→「詰める」を選ぶ。
+
+接続は、実現済みの花N個に対して近い花を結ぶ最小全域木を決定的に作る。接続数は必ずN-1本で、
+各経路をhost表面近くへサンプルし、重なり合うbridge球としてPatchPointへ追加する。したがって
+見えない殻ではなく、画面に見える枝も書き出し形状そのものである。bridgeは`role: "bridge"`、
+花本体は`role: "motif"`として履歴に実現形状を保存するため、recipe再生時に再生成しない。
+従来recipeは既定の「離して並べる」で変わらない。直接接続中の花の追加・削除では、残った花から
+同じ接続木を作り直すので、削除済み花へ向かう古い枝を残さない。
+
+実ブラウザで6枚花・花芯ありを選び、69花を詰めた。接続は68本、bridge点294個、全実現点は
+2,019個で、隣接速報は1連結、意図しない深いめり込み警告はなしだった。実メッシュは解像度48で
+27,148面・水密だったが15連結に分かれ、細い接続が粗い格子で消える事実を確認した。解像度64では
+51,284面・水密・1連結となった。したがって現時点の確認基準は64で、48を一体化確認には使わない。
+
+同じ形から曲面境界の3分割も実操作した。提案は11/24/34花、生成時間108.3秒、各部品は
+8,972/17,280/25,108面で、3部品とも水密かつ1連結だった。元形状と3部品合計の体積差は0.08%。
+ただしN版の実三角形同士の重複・隙間検査は未実装なので、保存物は引き続き`VERIFICATION`である。
+
+自動検証はpartition 41、tutorial 50、coinBulge 11、印刷結果整形9、N分割11、花モチーフ24の
+計146件が通過。Study一覧19件、共有する花packing 7件、テスト用TypeScript型検査、全18ページの
+production buildも通過した。
+
+最終監査で、host変更後に古いN分割選択・保存結果を残せる経路と、次回Pack用の接続トグルが
+現在のN分割元を誤って切り替える経路を検出して修正した。hostのgrow・field変更・S1読込は
+確定済み分割を履歴レベルで失効する。N分割はトグル値ではなく、現在の実現点に`role: "bridge"`が
+あるかを正本として直接接続形状を判定するため、通常メッシュとN分割元が食い違わない。
+
+未確認事項は隠さない。最小全域木はユークリッド距離の短さを優先し、作者の構図判断や真の測地距離を
+評価しない。bridgeは球サンプルの幾何ヒューリスティックで、凹部を横切る場合がある。解像度によって
+細い接続が切れる。実スライサー、サポート量、アクリサンデー、磁石、接着・構造強度、実機印刷は
+未確認で、印刷可能性を断定しない。公開deployは行っていない。実験経路と別作業の変更が混在する
+dirty workspaceを、作者確認前にまとめて公開しないためである。
+
+## Observation v0.16（PACK-SPIKE / MOTIF ON SURFACEの一体化、2026-08-10）
+
+作者の「詰める物体をPACK-SPIKE / MOTIF ON SURFACEと一体化できる？」という問いに対し、
+別画面から形を移す方式ではなく、S-skinの「詰める形」に花モチーフを追加した。同じ画面で
+花の4presetを選び、自由曲面へ詰め、色分けを確認し、2〜6分割を生成して保存できる。
+
+花の正本はPACK-SPIKEのpreset定義とcomponent生成を共有する。花弁・花芯、および接続を表す短い
+neck球を一つのPatchとしてS-skinの目地 envelopeへ収め、アンカーの接平面へ回転配置する。
+花は薄いplate帯で平らに切らず、立体リングと同じraised形状として扱う。N分割では花だけを
+ばらばらにせず、既存の連続host shellと結合した上でPatch単位の所属を曲面境界へ変換する。
+履歴にはpresetだけでなく実現済みPatchPointを保存するため、同じrecipeの再生で乱数生成を
+やり直さない。画面では花を選んだ時にコイン・リング専用項目を隠し、花の4presetと共通の
+大きさ・目地・詰め込み操作だけを表示するよう整理した。
+
+実ブラウザで「10枚・花芯なし」を選び「詰める」を操作した結果、56花（実現点1,680）、
+棄却444回となった。3分割提案は25/14/17花。resolution 48の検証メッシュ生成は35.7秒で、
+各部品は27,832 / 27,072 / 20,140面、3部品とも水密、連結成分1だった。元形状と部品合計の
+体積差は2.27%。画面の青・橙・緑の所属色と、ブラウザconsole errorが0件であることも確認した。
+
+自動検証はpartition 41、tutorial 50、coinBulge 11、印刷結果整形9、N分割11、花モチーフ10の
+計132件が通過。テスト用TypeScript型検査と全18ページのproduction buildも通過した。
+
+未確認事項は隠さない。曲面への配置は局所接平面近似であり測地変形ではない。neckは
+PACK-SPIKEの厳密なcapsule fieldではなく球のサンプルである。N版の実三角形重複・隙間検査、
+実スライサー、サポート量、接着剤、磁石、実機印刷は未確認で、印刷可能性や接着強度を断定しない。
+公開deployは行っていない。実験中のN+花経路と作業ツリー内の別変更を、作者確認前にまとめて
+公開しないためである。
+
+## Observation v0.15（Surface Packingから曲面境界N分割、2026-08-10）
+
+作者の「断面でスパっと切るのではなく、形状の生成時、たとえばSRFpackingの時に考えたい」および
+「katachiとoptimizerを行き来したくない」という判断を受け、S-skin画面内に2〜6分割を追加した。
+分割数を選ぶと、既存Patchの隣接と空間配置から決定的なseedと所属群を作り、最大6色で表示する。
+物理部品は各群のPatch field同士の競合からownership fieldを作るため、Optimizerの平面カッターは使わない。
+旧A/B分割は互換性のため残すが、主画面では「詳細を開く」の中へ折りたたみ、N分割を主操作にした。
+
+通常の「プレートが実」は目地を持つ別々のプレート群であり、そのまま所属色だけを付けても接着できる
+N部品にはならない。実ブラウザで最初に生成した結果も14/13/8連結に分散した。そこでN分割だけは
+Surface Packingを境界・表面ディテールの設計図として使い、下地に連続したhost shellを持たせる経路へ変更した。
+「形態が実（窓）」は既に連続殻なので現在のcompositeを分割元として保つ。この違いはUIと来歴に明記した。
+
+実ブラウザで既定の「詰める」を操作すると51パッチが生成され、3分割の提案は20/19/12パッチになった。
+resolution 48で曲面境界の3部品を生成した実測は10.3秒。保存後Float32トポロジーは3部品とも水密、
+連結成分はすべて1だった。元形状と3部品合計の体積差は2.44%だったため、画面は「要確認」と表示した。
+N版にはA/B版の実三角形Monte Carlo重複・隙間ゲートをまだ移植していないため、保存名は常に
+`VERIFICATION`を含み、通常品として扱わない。recipe、各STLのSHA-256、seed/group、トポロジー、
+連結成分、体積差、限界をprovenanceへ残す。入力履歴・入力形状は変更しない。
+
+作者スクリーンショットで左が黒く見えた時点は「プレートが実」かつパッチ0で、実体が存在しない正常状態だった。
+ただし無言の黒画面では故障と区別できないため、同条件では左中央に「詰める (Pack) を押す」と案内する。
+
+自動検証はpartition 41、tutorial 50、coinBulge 11、印刷結果整形9、N分割11の計122件が通過。
+テスト用TypeScript型検査とproduction buildも通過した。実スライサー、接着強度、磁石、実機印刷は未確認で、
+印刷可能性を断定しない。未deploy（作者確認前）。
+
+## Observation v0.14（Surface Packing / 印刷準備の一画面化、2026-08-10）
+
+作者の「KatachiとOptimizerを行き来したくない」という判断を受け、S-skinの現在形状を同じ画面から
+Optimizerローカルエンジンへ渡す「4. 印刷を確かめる」を追加した。Katachiが現在の場をメッシュ化し、
+STLバイトをメモリ上で生成して `127.0.0.1:5178` の診断へ直接渡す。中間STLを保存して別WebUIで
+読み直す操作は行わない。画面へ戻す値は、保存対象メッシュの閉塞、部品数、外形寸法、肉厚p05推定、
+内部オーバーハング候補率、向き探索の第1候補である。これらは形状からの推定で、機種・材料・積層条件を
+校正した印刷可否判定ではない。
+
+実ブラウザで「詰める (Pack)」を押すと既定条件で51パッチが生成された。同じ画面の
+「今の形を印刷確認」を押し、Optimizerローカルエンジンの完了まで待った結果、閉じた形、33部品、
+76.3 × 71.4 × 80.0 mm、肉厚p05 2.74 mm（推定）、内部サポート候補0.0%（推定）、向き第1候補
+−Y・内部0.0%（推定）が画面内に表示された。最初の実操作では、保存時刻を含むrecipe文字列を形状同一性に
+使ったため、形が変わっていないのに結果を破棄した。比較対象を保存時刻のない操作履歴配列へ変更した後、
+同じ実操作で完了した。
+
+KatachiランチャーからはOptimizerの別Web画面を起動せず、計算エンジンだけを同時起動する経路を追加した。
+同ランチャーの表示先も旧ルート `/` ではなく統合画面 `/skin.html` に固定した。旧ルートは別の3D入口で、
+Chromeでは黒いビューポートだけに見えるという作者報告があったためである。ランチャーのshell構文検査と
+`http://localhost:5174/skin.html` の応答を確認したが、Chrome操作拡張が未導入のためChrome内の実クリックは
+この修正時点では未確認である。
+既存A/B分割の計算と画面は変更していない。生成原理に沿うN群化はこの一画面接続とは別の次段階であり、
+今回の実測には含まれない。
+
+自動検証ではS-skinの既存102件（partition 41、tutorial 50、coinBulge 11）に印刷結果整形9件を加えた
+111件が通過し、テスト用TypeScript型検査と全18ページのproduction buildが通過した。Optimizer側は
+Katachi originのCORS回帰を加えた134件が通過した（警告77件）。
+
 ## Observation v0.13（コインのふくらみ候補：生成側実験、2026-07-20）
 
 作者Observation（原文）:
@@ -1457,3 +2489,163 @@ CPU（field.ts）とGLSL（shaders.ts）の両方に同じ分岐・同じ式を�
 - 作者の「自然になりそう」という直感は、少なくとも**視覚的には**（薄い板 → 丸みを帯びた粒）大きく変化することが本ラウンドで確認できた。この視覚的変化が実際のサポート要件へどう影響するかは、Optimizer診断・実スライサーでの確認を経て初めて判断できる。
 
 partitionテスト102件（41+50+11、新規coinBulge.test.ts）、テストソース型検査、`npm run build`（8ページ、Worker chunk含む）、`git diff --check`が通過した。分割アルゴリズム・A/B提案・ゲート閾値・チュートリアル・Patch生成ロジックは本ラウンドで一切変更していない。未コミット・未deploy。
+
+## Observation v0.57.0（Support Enforcerの外側直下到達スクリーン、2026-08-22）
+
+作者の記録は保持する: 「ënforcerはmanualで動いてるけどいまのDrywebだと当たり前に内側にサポートが生成されるね」。
+
+3MFの候補赤面は、融合BODYではなく**正確な最終Surface**だけを遮蔽meshとして、重心＋3つの頂点寄り内点から真下（-Z）へ調べる。4点すべてでbuild plateまでに下側Surface交差が無い面だけを残す。入力順・三角形全体は保存し、退化/非有限候補は除外する。XY spatial gridとmesh scale由来の同高交差epsilonを用いる。到達0面なら3MFをfail closedで停止する。
+
+これは保守的なstraight-down lower-envelope screenであり、Tree経路、横からの到達、除去性、スライス、実印刷成功を証明しない。Dry Webを遮蔽meshに含めないため、外側候補をInternalによって誤って消さない。
+
+`notes/support-reachability-matrix-20260822.json`は、非同一の3 host seed × random PACK / quadFlow regular / varied / field-curvature / Voronoi/CVT / Goldberg × targetedGrid(Dry Web) / voronoiEdgeの36ケースを実関数でscreenした記録である。resolution 30の**境界付きscreening**で、36/36が `0 <= kept <= candidate`・有限buffer・deterministic rerun countを満たした。最終作者modelと同等の解像度検証ではない。
+
+## Next
+
+- v0.59外周支柱3MFをBambu StudioでSliceし、自動Support 0 g・外周だけの直線支柱・0.22 mmの剥離gapを人間確認する。
+
+## Observation v0.58.0（Tree経路は外側Enforcerだけでは制御できない、2026-08-23）
+
+作者の観察を原文のまま残す: 「全然内側に出来てしまうな」。実際のBambu Studio Slice Previewでは、v0.57の外側直下到達screenを通ったEnforcerだけを含むにもかかわらず、`tree(manual)`の緑色の枝がporous SKINの穴を通って内部へ広く侵入した。候補接触面の到達性と、Bambuが生成するTree経路の到達性は別問題だった。
+
+Bambu StudioのTree実装ではSupport Blockerがoverhang候補を除外しても枝の通過空間を禁止しないため、Blocker追加だけでは解決しない。v0.58はTreeをUIから除き、runtimeでもfail closedで拒否する。3MFは`normal(manual)`、`support_style=snug`、`support_on_build_plate_only=1`、`support_expansion=0`を固定し、真下へ開いた候補を垂直支持する比較へ切り替える。旧v0.57 tree 3MFは**印刷禁止・差し替え対象**とする。
+
+
+## Observation v0.69.0（実G-code全400層で浮遊0・足配置の先行確認、2026-08-23）
+
+作者の問いを原文のまま残す: 「足元の調整でなんでこんなに時間がかかるの」。足元候補の選択自体は遅くない。従来は足を1本変えるたびに、80 mm全体のSDFをfused resolution 160で再サンプルし、約194万面を保存Float32座標で水密・一部品・退化0まで再検査し、3MFを再圧縮していた。これが待ち時間の大半だった。
+
+CLIへ `--plan-only` を追加し、Surface診断、Dry Web gate、支柱候補、plate配置だけを44–51秒で先行確認できるようにした。最終一体mesh化は配置が確定した最後の1回だけ行う。8 Workerの最終生成は271.87秒、Bambu CLI sliceは22.12秒、全400層のG-code到達解析は約6秒。10 Workerはメモリ帯域とトポロジー統合の競合で8 Workerより遅いため、8を実測上限とする。
+
+slice-feedback支柱の重複除去が低いZを先に残し、近接する高い危険点を消していた。明示feedback候補をZ降順へ変更し、近い候補では最も高いrailを残す回帰テストを追加した。v068のlayer 280、v069のlayer 151、v070の厳格解析3点を順にfeedbackへ戻し、v071では通常条件と厳格条件の双方が0になった。
+
+作者recipeのv071最終実測はSurface 128 / fused 160 / 8 Worker / A1 mini / 0.4 mm nozzle / PLA / 0.20 mm layer / 最長辺80 mm。Dry Web 1490 node / 823 edge、角度候補11829、plate-reachable 6894。累積slice-feedback 222点のうち220本を明示支柱として採用し、全380本。141本はBODY内部へ通して恒久railとして融合した。最終meshは1,940,176 faces、969,442 vertices、closed、水密、open edge 0、non-manifold edge 0、degenerate 0、winding inconsistency 0、connected component 1。24面の微小副成分だけを除去後に全条件を再検査した。初層最小足跡1.5605 mm >= 必要1.50 mm、plate spread 0 mm。
+
+Bambu自動supportは無効。Bambu Studioの事前形状警告 `floating regions` は残るが、実際のG-code全400層を0.15 mm rasterで解析すると、通常条件（許容0.35 mm・0.045 mm²未満除外）も厳格条件（許容0 mm・面積除外0）もfloating layer 0 / component 0 / PASS。厳格条件では全押出島が直前層の同一XY rasterへ重なる。最初の3層もunsupported 0。同じ厳格判定maskからlayer 1〜3の証拠SVG/PNGを任意出力し、初層239島が全XYへ分布し、2層179島・3層165島がすべて直前層へ接続する像も保存した。3MFは28,531,351 bytes、SHA-256 `cbae5c9eb7a09410b20d4bd4fdaf1eac1e0810ab62a50b4b78a2a56332a23eca`、ZIP integrity OK。
+
+partition test、外部支柱回帰test、TypeScript build、`git diff --check`は通過。自動幾何gateと実toolpath gateはOK。ただしBambuの警告自体は消えていないため、exact v071をBambuで孤立layer 1→2→3表示して開始島を目視するまでは、最終の送信印刷承認だけを保留する。
+
+
+## Observation v071 実物印刷チェックポイント（2026-08-23）
+
+作者の判断を原文のまま残す: 「ここで追加実装を止めてください。全400層の解析で浮遊0になった候補3MF・recipe・検証結果をDownloadsへ保存し、現状を記録してチェックポイント化してください。次は実物を一度印刷してから判断します。新しいSupport Blocker方式には進まないでください」。直前の観察「floatingでてる」も併記する。
+
+v071を実物印刷用の**候補チェックポイント**として固定した。通常と厳格の積層到達解析はともに全400層でfloating layer 0 / component 0 / PASS。一方、Bambu StudioがG-codeに出力した「Floating vertical shell」マーカーは12層・14件残っている。このため「警告なしの最終承認」ではなく、同一データを実物で確かめるための停止点とする。
+
+Downloadsにexact v071の3MF、同一recipe、400層の通常/厳格到達解析、Bambuマーカー解析、統合チェックポイントJSONを保存する。v072〜v076の追加試行は候補に昇格せず、配布しない。Support Blocker方式は保留し、次の判断は実物印刷の開始層、破綻、取り外しやすさ、表面痕の観察後とする。
+
+## Observation v0.67.0（最終一体メッシュOK・重い経路の並列化、2026-08-23）
+
+作者の発言（原文）:
+
+- 「CPUはもっと使って良いんじゃない」
+- 「solの設定変えたら早くなる？」
+- 「他の処理も重いところは全部直して」
+- 「足元の調整でなんでこんなに時間がかかるの」
+
+問答として確認したこと: 形状処理の所要時間は会話モデルの推論設定ではなく、ローカルのSDF全体サンプリング、約100万面のトポロジー検査、3MF圧縮で決まる。そこで最終3MFだけでなく、通常メッシュ書き出し、メッシュ検査、段階プレビューも同じZ-slice Worker方式へ揃え、最大8 WorkerでCPUを使うようにした。メッシュ検査はUIスレッドからWorkerへ移し、検査だけならSTLエンコードを省く。3MF作成UIは7段階と各slice完了数・経過時間を表示し、同一入力の再保存は完成archiveを再利用する。空隙マップは解像度64上限、計器は専用Worker、分割は共有格子1回で元形状/A/Bを判定する既存の省メモリ経路を維持した。
+
+足元だけを変えても時間がかかる理由も確認した。支柱を別部品にするとBambuでfloating regionsが再発したため、足元・支柱・SKINを同じSDFから1個の水密meshとして作る。従って0.1 mmの足元変更でも80 mm全体を160格子で再構築し、保存Float32座標で連結・水密・初層接地を再検査する。普段の観察は粗い並列preview、印刷承認時だけこの厳密経路を通す。
+
+残っていたOptimizer印刷確認の同期mesh生成も専用Workerへ移し、最大8 sliceの進捗・面数・経過秒をUIへ返す。印刷確認では不要なOBJを生成せずSTLだけを作る。全赤点からDry Webを生成した直後の付加後角度診断とモチーフ最下端抽出も別Workerへ移した。形状変更時は古いWorkerを停止し、古い結果を表示しない。角度診断と段階previewも最大8 Workerへ統一した。
+
+作者の保存recipeとgate-approved BODY STLを使った最終実測は、Surface解像度128 / fused解像度160 / 8 Worker / A1 mini / 0.4 mm nozzle / PLA / 0.20 mm layer / 最長辺80 mm。Dry Webは1490 node / 823 edgeでInternal gate OK。45度診断11829候補のうち6894面をplate-reachableとして評価し、BODY衝突・短さ・0.8 mm間隔を除いた168本の直線支柱を全域へ配置した。足元径1.8 mm、支柱径1.4 mm、SKIN接点径1.4 mm、接点重なり0.65 mm。
+
+最終meshは1,003,512 faces、closed、open edge 0、non-manifold edge 0、degenerate 0、non-finite 0、winding-inconsistent edge 0、connected component 1。初層面は168本共通、plate spread 0 mm、plate clearance -0.000000486 mm、レイヤー1中央の最小足跡1.5605 mm >= 必要1.50 mmで自動幾何gate OK。3MFは1 object / 1 component / 1 normal part（BODY_WITH_FUSED_SCAFFOLD）、Bambu自動supportは無効。archive 15,455,899 bytes、SHA-256 38ccebf99f136ef76b5f715f1ba0bfa1c199f7198a67c39071f4536cbc1dd0d4、ZIP integrity OK。検証JSONと同一recipe JSONを同梱する。
+
+公開版は https://katachi.a-8c3.workers.dev/skin、Cloudflare Version ID 9f920339-6971-4a32-9f50-1c8d8b22e600。公開skin asset SHA-256 6967fda2d0466fc9b829d5acd9c8153cb7d370f8594ecf71c42495c3055a5bb0 はlocal production buildと一致。
+
+このOKはKatachiの自動幾何gateに対するもの。Bambu Studioで孤立表示したlayer 1→2→3に開始島の欠落がなく、接点が局所的に外せそうかを見る人間の最終確認まではprintApproval=falseを保つ。100万面超の処理速度警告はトポロジー不良とは別。
+
+## Observation v0.66.0（初層幅・進捗表示・再計算削減、2026-08-23）
+
+作者の観察を原文のまま残す: 「増えたけど少ない」「UIにも同じように処理状況が表示されるようにしてね」「今より早くできる方法はある？」。v0.65の球形足は自動幾何断面を通ったが、Bambu Studioの実レイヤー1では336本に対して開始経路が少なかったため、v0.65を印刷禁止とする。
+
+v0.66は初層線幅0.50 mmを3本置けることをfail-closed条件にし、半径0.85 mm・高さ0.60 mmの低い4次スーパー楕円パッドへ変更した。初層中央で1.50 mm以上の実寸幅、共通plate面、plate clearance ±0.05 mmを満たさなければ3MFを作らない。3MF Workerは「入力を準備／危険面の到達性を判定／支柱を選択／最終一体メッシュを生成／トポロジーを検査／初層パッドを検査／3MFを圧縮」の7段階、件数、経過秒をUIへ返す。同じ形状・診断・設定の二回目の保存は完成3MFのメモリキャッシュを使い、再計算せず保存する。
+
+幅広足のXY boundsがBODY・Dry Web・支柱先端の格子を再配置しないよう、v0.65の接触半径で決まるpitch/phaseを固定し、パッド外周にだけ同じpitchのcellを足す。回帰テスト18件とTypeScriptは通過した。ただし作者recipeのexact高精度run（Surface 128 / fused 160 / 80 mm / 45°）はclosed=true、退化0、open edge 0、non-manifold edge 0だが**連結成分2**でfail closedとなり、3MFは生成していない。低精度128も3成分だった。v0.66はまだ印刷OKではない。
+
+失敗の再試行時間を減らすため、保存STLと同じfloat32頂点で各連結成分の面数、XYZ実寸、Z範囲を集計する診断をCLIとUI Workerへ追加した。次のrunでは「2部品」の内訳を同じ結果から表示し、支柱片かDry Web群かを一度で切り分ける。さらに大きい高速化候補は、高精度格子を既存のZ-slice Worker群へ分割して並列生成することと、ブラウザ再起動後も使える永続キャッシュである。
+
+## Observation v0.65.0（全支柱を同じ初層へ固定、2026-08-23）
+
+作者がv0.64のBambu Studio Previewをレイヤー別に確認した。作者の観察を原文のまま残す: 「一部浮いてると思う」「98より右にはいかない」。レイヤー1の横スライダー最大は98で一つの開始島しかなく、レイヤー3では最大4515まで多数の経路が現れた。floating regions警告が消え、水密・一部品でも、全支柱が初層から始まる保証にはならなかった。証拠は `screenshots/bambu-v064-layer1-full-20260823.png`、`screenshots/bambu-v064-layer3-full-20260823.png`、`screenshots/bambu-v064-layer3-detail-20260823.png`。v0.64を**印刷禁止・差し替え対象**とする。
+
+原因は、支柱のplateZを融合前BODYの最下端から決めた後、支柱込みの長いboundsを最長辺80 mmへ再スケールしていたことと、旧支柱SDFがplate面直下のoutsideから直上の完全insideへ不連続に切り替わり、marching tetrahedraの交点が一格子ぶん上へ移動し得たことだった。v0.65はplate anchorをBODY最下端より1.0 mm下へ置き、底を半径0.5 mmの球、軸をcapsule、先端を球のhard unionで作る。0.2 mm初層では設計上およそ0.8 mm幅の丸足になる。
+
+作者recipeのexact run（80 mm / Surface resolution 128 / fused resolution 160 / threshold 45 deg）はInternal graph 1,490 nodes / 823 edges、gate OK、reachability 11,829 → 6,894、支柱336本、最終一体mesh 1,100,124面。保存後の共通plate spreadは0 mm、mesh最下端との差は-0.00036 mmで、許容0.05 mm内。3MF XMLを最下端+0.10 mmで独立切断するとcut triangle 2,264、断面190成分、X 73.28 mm / Y 53.52 mmへ分布し、旧v0.64の初層1島とは異なる。候補3MFは16,713,669 bytes、SHA-256 `a032c24a843dcd13349ac23183cb8ea041cd2886c8e2576f3bcdde3e47fbe10c`。検証値は `notes/yohaku-skin-plate-20260823-v065-layer1-anchored-scaffold-validation.json`。
+
+自動検査は合格したが、Bambu Studioでレイヤー1だけを表示し、丸足が全域に出ることを作者が確認するまではprintApproval=falseとする。
+
+## Observation v0.64.0（BODY・Dry Web・326本の支柱を一つの水密SDFへ融合、2026-08-23）
+
+作者のv0.63 Slice Previewでも floating regions 警告が残った。作者の観察を原文のまま残す: 「さっきのところも直ってないな」。v0.63は一つの3MF partに入っていたが、BODYと支柱は交差する別々の閉triangle componentのままで、Bambuから見た浮遊領域を幾何学的には解消していなかった。画面証拠は `screenshots/bambu-v063-floating-regions-20260823.png`。v0.63を**印刷禁止・差し替え対象**とする。
+
+v0.64は新しいmesh方式を増やさず、既存SKIN SDF mesh pipelineへ支柱の解析SDFを入力する。BODY・Dry Web・326本の支柱を同じ160解像度の場で一回だけメッシュ化するため、交差triangle soupや別partを残さない。初回は先端径0.48 mm・食い込み0.12 mmが約0.5 mmの最終格子より細く、一箇所の接触が消えて連結成分2となったためfail closedで破棄した。接触パッド径を1.0 mm、食い込みを0.30 mmへ変更した二回目は、float32保存後も closed=true、open edge 0、non-manifold edge 0、退化0、面方向不整合0、**連結成分1**を通過した。
+
+作者recipeのexact run（80 mm / Surface resolution 128 / fused resolution 160 / threshold 45 deg）はInternal graph 1,490 nodes / 823 edges、gate OK、reachability 11,829 → 6,894、支柱326本、最終一体mesh 1,081,140面だった。3MF内部は1 object / 1 component / 1 normal part `BODY_WITH_FUSED_SCAFFOLD`、別scaffold volume 0。候補3MFは16,450,865 bytes、SHA-256 `e8717d22b8964f6b24e5b7d92c2e054c753af48172a118a6a4fcf74ba3d5e387`。自動検査とfloating regions警告消失だけでは不十分だった。作者がレイヤー1だけを確認すると横スライダー最大98で一つの開始島しかなく、レイヤー3で多数の経路が突然現れたため、v0.64は印刷禁止・v0.65へ差し替え対象とする。100万triangle超過の緑通知は性能警告であって造形警告ではない。検証値は `notes/yohaku-skin-plate-20260823-v064-fused-scaffold-validation.json`。
+
+公開版は `https://katachi.a-8c3.workers.dev/skin`、Cloudflare Version ID `044289e7-6a68-4be8-bc88-33ec631c751c`。公開assetとworkerは配備後に同期確認済み。
+
+高精度融合は実データで長時間を要した。正しさは改善したが、最終判定の重さは未解決であり、既存BODY場のキャッシュまたは支柱接触周辺だけの局所再メッシュをNextとする。
+
+## Observation v0.63.0（低層の開始島を326本の密なDry scaffoldで支える、2026-08-23）
+
+v0.62をBambu StudioでSliceしても`object ... has floating regions`が残った。作者が0.6 mm付近まで拡大すると、花やコインの下面に、その層から突然始まる小さなオーバーハングが多数見えた。作者の観察を原文のまま残す: 「83でも少ないんだと思う」「たとえばこのオーバーハングみたいのがたくさんある」。一つの3MF partへ統合しただけでは解消しないため、v0.62を**印刷禁止・差し替え対象**とする。画面証拠は`screenshots/bambu-v062-floating-regions-20260823.png`と`screenshots/bambu-v062-layer-islands-20260823.png`。
+
+v0.63は、最終精度で残った危険面6,894枚とplate-reachabilityを維持したまま、支柱間隔を2.2 mmから0.8 mm、軸径を1.10 mmから0.80 mm、基部径を1.50 mmから1.00 mm、XY clearanceを0.18 mmから0.05 mmへ変更した。0.80 mm軸は作者の0.4 mm nozzleで2線幅を確保し、先端径0.48 mm・BODY overlap 0.12 mm・自動Support OFF・一つの`BODY_WITH_SCAFFOLD`通常partは維持する。
+
+作者recipeのexact run（80 mm / resolution 128 / threshold 45 deg）はInternal gate OK、reachability 11,829 → 6,894、BODY corridor衝突3,350、短すぎる280、間隔重複2,938、支柱326本 / 20,864面、BODY 439,736面、合計460,600面、退化除去0だった。候補3MFは7,291,355 bytes、SHA-256 `549e5b2ae430f73ad74033687d273b886b678cb9d768ca12a5881308c27256fd`。実際のBambu再Sliceでも floating regions が残ったため、v0.63は印刷禁止・v0.64へ差し替え対象とする。
+
+## Observation v0.62.0（BODYと支柱を一つのBambu mesh partへ統合、2026-08-23）
+
+v0.61のBambu Studio Slice Previewでも`object ... has floating regions`警告が残った。83本すべての破断先端はBODYへ0.12 mm食い込んでいたが、3MF内ではBODYとEXTERNAL_SCAFFOLDが同一object配下の別partだった。Bambuのfloating判定がBODY part単独を評価している可能性を切り分けるため、v0.61を**印刷禁止・差し替え対象**とする。
+
+v0.62は三角形、83本の位置、接点、重量を変えず、BODY 439,736面と支柱5,312面を`BODY_WITH_SCAFFOLD`という一つの通常meshへ連結してpackageする。3MF内部はsubmodel object 1個、root component 1個、settings part 1個、合計445,048面、`enable_support=0`である。これは幾何Boolean/remeshではなく、交差するtriangle soupを一つのBambu partへまとめる変更である。
+
+作者recipeのexact 3MFは7,120,734 bytes、SHA-256 `11b1615681448c7bc916b9cc9da1c6164ca08fbca33e9ea19ec1b0795c205383`。ZIP、XML object/component/part数、全回帰テスト、TypeScript、production buildを通過し、Cloudflare Version ID `bf8af047-58af-478a-a973-076d18d1c0fa`へ配布した。公開assetはlocal buildとSHA-256一致。Bambu再Sliceでfloating警告が消えるまでは印刷OKにしない。
+
+## Observation v0.61.0（空隙支柱を破断接触支柱へ変える、2026-08-23）
+
+v0.60のBambu Studio Slice Previewでは、自動Support OFF、83本の全域支柱、Model 21.62 g / 3時間12分を確認できた一方、右下に`object ... has floating regions`警告が残った。支柱が対象面の0.22 mm手前で止まり、通常部品としてBODYと接続していなかったためである。v0.60 3MFは**印刷禁止・差し替え対象**とする。
+
+v0.61は83本の配置、2.2 mm間隔、1.10 mm軸径、全BODY corridor判定を変えず、最後0.9 mmを直径0.48 mmへ絞り、対象Surfaceへ0.12 mmだけ食い込ませる。支柱経路の衝突判定は対象面0.22 mm手前までに限定し、支持対象そのものを障害物と誤認しない。これにより積層経路を連続させ、印刷後は細い接点を折って下方向へ除去する。
+
+作者recipeのexact runはInternal graph 1,490 nodes / 823 edges、gate OK、reachability 11,829 → 6,894（遮蔽4,935）、BODY衝突4,768面、短すぎる280面、間隔重複1,763面、支柱83本 / 5,312面でv0.60と一致した。3MFは7,122,938 bytes、SHA-256 `1ea3606c91842ac0d55a3bc10c83f6bab612c47e446aeddc04f59a80b8832226`。ZIP検査、全回帰テスト、TypeScript、production buildを通過し、Cloudflare Version ID `b16ef8ec-4149-41f8-8c4e-c54df67437a1`へ配布した。公開assetはlocal buildとSHA-256一致。Bambu再Sliceでfloating警告消失を確認するまでは印刷OKにしない。
+
+## Observation v0.60.0（外周15本ではなく、到達可能な全オーバーハングを支える、2026-08-23）
+
+作者の観察を原文のまま残す: 「流石にオーバーハング全部につけないと無理だろ」。v0.59は内部への侵入を避けるため最終SurfaceのXY外周4 mm帯へ限定し、さらにBODY衝突を除外した結果、支柱が15本だけになった。Bambu Previewで本体全体にoverhang wallが残る形に対して、この支持率では不足している。v0.59 3MFは**印刷禁止・差し替え対象**とする。
+
+v0.60は外周band制限を既定から外す。Internal付加後にも残る最終診断赤面をstraight-down reachabilityへ通し、完全BODYとの9点垂直corridorが空いている候補を全域から採用する。支柱間隔は3.2 mmから2.2 mm、軸径は1.04 mmから1.10 mmへ変更する。BODYを貫通する支柱は除外するため、文字どおり全赤面へ物理接触するのではなく、**プレートから真上へ到達し、下方向へ除去できる全候補**を支える。Bambu自動supportは引き続きOFFである。
+
+作者recipeのexact run（resolution 128 / target 80 mm / threshold 45° / supplied gate-approved BODY）は、Internal graph 1,490 nodes / 823 edges、gate OK、reachability 11,829 → 6,894（遮蔽4,935）だった。全6,894面をcoverageへ渡し、完全BODY corridor衝突4,768面、短すぎる候補280面、2.2 mm間隔の重複1,763面を除き、83本 / 5,312面の支柱を生成した。3MFは7,123,010 bytes、SHA-256 `e62a0e6d50508baf98aa61c4a14061bd04eda29711a04c27b88ac7a7fa1c94b0`。実package内の支柱は83 components、open edge 0、non-manifold edge 0、全edge使用回数2である。全回帰テスト、TypeScript、production buildを通過し、Cloudflare Version ID `6ba00639-c9f5-478a-937a-64f823ab1aaf`へ配布した。公開SKIN/Worker assetはlocal buildとSHA-256一致。Bambu Slice Previewの人間確認は未完了なので、印刷OKとはまだしない。
+
+## Observation v0.59.0（Bambu自動supportをやめ、外周支柱を形状として作る、2026-08-23）
+
+作者の観察を原文のまま残す: 「まだだめだな」。v0.58の`normal(manual)` / Snug / build plate onlyでも、Bambu Studioはporous SKIN内部へ緑色supportを広く生成した。Slice Preview実測は本体19.88 gに対してsupport 17.17 gで、Treeの経路選択だけが原因ではなく、自動support生成そのものがこの開放多孔形状と相性が悪いことが分かった。v0.58 3MFも**印刷禁止・差し替え対象**とする。
+
+v0.59はBambuのSupport Enforcerを使わない。最終精度診断で残る赤面を外側直下到達screenへ通した後、最終SurfaceのXY convex hullから4 mm以内だけに絞る。プレートから候補面の1層手前まで、中心と周囲8点の垂直corridorが最終BODYと交差しない候補だけを残し、3.2 mm間隔で直線支柱を配置する。支柱は軸径1.04 mm、裾径1.44 mm、先端径0.60 mm、上端gap 0.22 mmの閉meshである。BODYと`EXTERNAL_SCAFFOLD`をどちらも通常の印刷部品として3MFへ入れ、object metadataは`enable_support=0`を明示する。
+
+これによりBambuが内部へ新しいsupport経路を作る余地をなくし、支柱の位置・本数・形をKatachi側で決定論的に検査できる。ただし、0.22 mm gapの実際の剥がれやすさ、支柱径の十分さ、外殻の下面品質はBambu Slice Previewと実機で確認する必要がある。緑色の自動Supportが1本でも出た3MFは印刷しない。
+
+作者recipeのexact run（resolution 128 / target 80 mm / threshold 45° / supplied gate-approved BODY）は、Internal graph 1,490 nodes / 823 edges、gate OK、reachability 11,829 → 6,894（遮蔽4,935）だった。外周band候補1,280面からBODY衝突1,065面・間隔重複200面を除き、15本 / 960面の支柱を生成した。3MFは7,073,080 bytes、SHA-256 `4433e712d0bb8b5963e752908d23cfa8db7e8d1f1475fc8ee1e47712241928d0`。実package内の支柱は15 components、open edge 0、non-manifold edge 0、全edge使用回数2である。全回帰テスト、TypeScript、production buildを通過し、Cloudflare Version ID `072d21b1-e76c-418b-aae1-4f185a73a53f`へ配布した。公開SKIN/Worker assetはlocal buildとSHA-256一致。Bambu Slice Previewの人間確認は未完了なので、印刷OKとはまだしない。
+
+### v0.57 運用上の設計メモ（2026-08-23）
+
+アプリの3MF書き出しは、すでに完了した最終精度Surface診断の正確なtriangle bufferと、InternalありではA1 mini gateがOKにしたBODY STLを再利用する。reachability選別と3MF packagingはWorkerで行うため、生成中も画面操作を保つ。CLIの`--body-stl <absolute binary STL>`再利用は、必ず`--body-provenance <absolute JSON>`を併用する。strict v1 provenanceはraw recipe/STLのSHA-256、targetLongestMm、resolution、Internal mode、replayed graph node/edge countを照合し、Surface生成前とgraph生成後にfail closedで検証する。有限座標・非退化面・水密・単一部品・targetLongestMmとのextentも確認してから使う。CLIは replay / BODY provenance / BODY reuse validation / surface mesh / internal graph / BODY reuse/build / gate / reachability / package のstageをstderrへ出す。
+
+final Surface occluderが空、全無効、または一枚でも非有限/退化なら、遮蔽穴を「外側到達」と誤読しないためfail closedで停止する。Support Enforcer prismも同じ有限かつexact-zeroのみ除外の規則に揃え、kept faceごとのraw 8面とindex/package後の8面が一致しなければfail closedで停止する。作者recipeの成功runはresolution 128 / targetLongestMm 80、required v1 --body-provenance付き supplied BODY reuseでCLI wall time 7:41.42（このmachine上の時間であり、印刷速度の主張ではない）。BODY input windingは70→repaired 0、Internal graphは1,490 nodes / 823 edges、gateはOK、reachabilityはcandidate 11,829 / kept 6,894 / rejected 4,935 / invalid 0、archiveは8,456,624 bytes、3MF SHA-256は`3ddb52ddaf4c209f45af63a41e339bbcf66188447baceb7fabb0037282691296`だった。
+
+出力3MFのBODYは独立XML topology検査で439,736 faces、degenerate/open/non-manifold/windingすべて0、components 1；Support Enforcerは55,152 facesで、actual package topologyはOKだった。Bambu CLIのheadless `--info`は新3MFと以前にGUIで開いた旧3MFの双方でexit 139を再現するため、GUIでの人間確認は未完了のままにする。
+
+### v0.57 保存STLの面方向修復（2026-08-23）
+
+作者のgate-approved BODY STL（439,736 faces）は、Float32保存座標で closed、degenerate 0、1 componentだった一方、`inspectSavedStlTopology`では winding-inconsistent edge 70を検出した。Internal gate Workerはmesh再構成後に`orientMeshForSavedStl`を通し、修復後のsaved topologyが closed / winding-consistent / degenerate-free / 1 componentでなければfail closedとする。cached gate STLはこの修復・再検査後のものだけを使う。
+
+CLI `--body-stl`も、open/non-manifold/exact-degenerate/multi-componentは修復前に拒否し、windingだけが不整合なら座標を動かさずtriangle orderのみ修復してsaved topologyを再検査する。実測では70→0、`ok=true`、座標保持を確認した。Bambu GUIの警告が消えたとはまだ言わない。
+
+
+### v0.57 exact Surface tiny-face rule（2026-08-23）
+
+作者のresolution 128 exportはreachability段階まで到達し、final Surfaceの11面が固定面積閾値では「退化」と誤分類された。Float32座標で有限かつcross productが厳密に0でない面は遮蔽に使えるため残し、非有限または厳密なzero-area/collinearだけを無効としてfail closedにする。小さな有効面を黙ってskipして遮蔽穴を作らない。

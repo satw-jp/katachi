@@ -171,4 +171,15 @@ export const STUDY_CATALOG: readonly StudyCatalogEntry[] = [
     purposeTags: ["表面", "単位", "比較"],
     status: "active",
   },
+  {
+    id: "flower-core-network",
+    href: "flower-core-network.html",
+    titleJa: "花芯をつなぐ",
+    titleEn: "Flower Core Network",
+    principle:
+      "配置済みの花を変えず、花芯の裏側を細い枝でつないで一体化し、造形方向による支持リスクと内側の形を比較する。",
+    researchOrder: 13,
+    purposeTags: ["内部", "造形制約", "比較"],
+    status: "active",
+  },
 ];

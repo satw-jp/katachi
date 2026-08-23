@@ -1,0 +1,88 @@
+{
+  "schema": "katachi.skin.print-candidate-validation.v1",
+  "candidate": "katachi-skin-v064-a1mini-pla-fused-scaffold",
+  "status": "rejected-bambu-layer1-floating",
+  "printApproval": false,
+  "reason": "作者がBambu Studioのレイヤー1全体を確認し、横スライダー最大98に対してレイヤー3は4515で、一部支柱しか初層に存在しないと確認したため。v0.64は印刷禁止。",
+  "printer": {
+    "model": "Bambu Lab A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2,
+    "targetLongestMm": 80
+  },
+  "inputs": {
+    "recipe": "yohaku-skin-plate-20260822.recipe.json",
+    "recipeSha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f",
+    "bodyStl": "yohaku-skin-plate-20260822.stl",
+    "bodyStlSha256": "125bac88c673ed051365f8416ab154da18ff2acae2ed89de4eb8ee582ced1655",
+    "bodyProvenance": "yohaku-skin-plate-20260822-body-provenance-v1.json",
+    "bodyProvenanceSha256": "05f4406bfcaccc3fc48b5df6442a46970b850806fa480ebab2ee4e63fbf2c77e"
+  },
+  "analysis": {
+    "surfaceResolution": 128,
+    "fusedMeshResolution": 160,
+    "overhangThresholdDeg": 45,
+    "dryWeb": {
+      "nodes": 1490,
+      "edges": 823,
+      "printGate": "OK",
+      "reasons": []
+    },
+    "reachability": {
+      "candidateFaces": 11829,
+      "keptFaces": 6894,
+      "rejectedFaces": 4935,
+      "invalidFaces": 0
+    }
+  },
+  "fusedScaffold": {
+    "coverageMode": "allReachable",
+    "spacingMm": 0.8,
+    "pillarCount": 326,
+    "shaftDiameterMm": 0.8,
+    "baseDiameterMm": 1,
+    "contactPadDiameterMm": 1,
+    "contactOverlapMm": 0.3,
+    "collisionRejectedFaces": 3350,
+    "shortRejectedFaces": 280,
+    "spacingRejectedFaces": 2938,
+    "separateScaffoldVolumes": 0
+  },
+  "finalMesh": {
+    "faceCount": 1081140,
+    "closed": true,
+    "openEdges": 0,
+    "nonManifoldEdges": 0,
+    "degenerateFaces": 0,
+    "nonFiniteFaces": 0,
+    "windingInconsistentEdges": 0,
+    "connectedComponents": 1,
+    "threeMfObjects": 1,
+    "threeMfComponents": 1,
+    "threeMfParts": 1,
+    "partName": "BODY_WITH_FUSED_SCAFFOLD"
+  },
+  "output": {
+    "file": "katachi-skin-v064-a1mini-pla-fused-scaffold.3mf",
+    "bytes": 16450865,
+    "sha256": "e8717d22b8964f6b24e5b7d92c2e054c753af48172a118a6a4fcf74ba3d5e387"
+  },
+  "publication": {
+    "url": "https://katachi.a-8c3.workers.dev/skin",
+    "cloudflareVersionId": "044289e7-6a68-4be8-bc88-33ec631c751c",
+    "browserVisualCheck": "blocked-by-local-control-runtime",
+    "note": "公開assetとworkerはcurlとSHA-256で同期確認済み。Bambu Studioの視覚確認は作者が行う。"
+  },
+  "humanCheck": {
+    "bambuStudioFloatingRegionsWarningAbsent": true,
+    "layer1To3IslandsAbsent": false,
+    "supportColumnsReachEveryObservedLowOverhang": false,
+    "evidence": [
+      "screenshots/bambu-v064-layer1-full-20260823.png",
+      "screenshots/bambu-v064-layer3-full-20260823.png",
+      "screenshots/bambu-v064-layer3-detail-20260823.png"
+    ],
+    "notes": "作者の観察: 「一部浮いてると思う」「98より右にはいかない」。レイヤー1の全体は一つの開始島だけで、レイヤー3には多数の経路が突然現れる。floating-regions警告が消えても初層連続性は保証されない。"
+  }
+}

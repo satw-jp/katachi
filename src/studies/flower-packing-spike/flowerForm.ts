@@ -1,6 +1,11 @@
 import type { FlowerComponent } from "./packing.ts";
 
 export type FlowerFormVariantId = "flat" | "cupped" | "raised-core" | "growth-difference";
+export type FlowerPetalCount = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+export const FLOWER_PETAL_COUNTS: readonly FlowerPetalCount[] = [
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+] as const;
 
 export interface FlowerFormParams {
   opening: number;
@@ -74,28 +79,36 @@ export const DEFAULT_FLOWER_FORM_PARAMS = paramsForFlowerVariant(DEFAULT_FLOWER_
 
 export const FLOWER_FORM_SCALE = 0.72;
 
-const growthPattern = [0.82, -0.46, 0.34, -0.78] as const;
+const growthPattern = [
+  0.82, -0.46, 0.34, -0.78, 0.56, -0.22, 0.68, -0.58, 0.18, -0.36, 0.74, -0.12,
+] as const;
 
 /**
  * Builds the component field for one flower. Natural variation stays deterministic:
  * the same petal count and parameters always return the same form.
  */
 export function createFlowerFormComponents(
-  petalCount: 3 | 4,
+  petalCount: FlowerPetalCount,
   params: FlowerFormParams,
+  showCore = true,
 ): FlowerComponent[] {
   const coreRadius = FLOWER_FORM_SCALE * params.coreSize;
-  const petalRadius = FLOWER_FORM_SCALE * 0.51;
-  const spread = FLOWER_FORM_SCALE * params.opening;
-  const components: FlowerComponent[] = [
-    {
+  // Above six petals, keep the flower envelope comparable by sharing the
+  // available circumference among smaller petals instead of growing outward.
+  const petalRadius = FLOWER_FORM_SCALE * 0.51 * Math.sqrt(6 / Math.max(6, petalCount));
+  const requestedSpread = FLOWER_FORM_SCALE * params.opening;
+  const corelessRingSpread = (petalRadius * 0.94) / Math.sin(Math.PI / petalCount);
+  const spread = showCore ? requestedSpread : Math.min(requestedSpread, corelessRingSpread);
+  const components: FlowerComponent[] = [];
+  if (showCore) {
+    components.push({
       instanceId: petalCount,
       componentIndex: -1,
       kind: "core",
       position: { x: 0, y: 0, z: FLOWER_FORM_SCALE * params.coreLift },
       radius: coreRadius,
-    },
-  ];
+    });
+  }
 
   for (let index = 0; index < petalCount; index++) {
     const angle = Math.PI * 0.5 + (index / petalCount) * Math.PI * 2;

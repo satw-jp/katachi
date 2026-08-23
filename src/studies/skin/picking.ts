@@ -19,6 +19,40 @@ export interface CompositeHit {
   patchId: number | null;
 }
 
+/** Fast direct-manipulation pick for dense realized motifs. It checks the
+ * actual point spheres once instead of repeatedly evaluating the complete
+ * composite field for every raymarch step. */
+export function pickPatchBySpheres(
+  patches: readonly Patch[],
+  origin: Pick<THREE.Vector3, "x" | "y" | "z">,
+  dir: Pick<THREE.Vector3, "x" | "y" | "z">,
+  padding = 0,
+): number | null {
+  let bestT = Infinity;
+  let bestId: number | null = null;
+  for (const patch of patches) {
+    for (const point of patch.points) {
+      const radius = point.r + Math.max(0, padding);
+      if (!Number.isFinite(radius) || radius <= 0) continue;
+      const ox = origin.x - point.x;
+      const oy = origin.y - point.y;
+      const oz = origin.z - point.z;
+      const along = -(ox * dir.x + oy * dir.y + oz * dir.z);
+      const discriminant = along * along - (ox * ox + oy * oy + oz * oz - radius * radius);
+      if (discriminant < 0) continue;
+      const root = Math.sqrt(discriminant);
+      const near = along - root;
+      const far = along + root;
+      const t = near > 0 ? near : far > 0 ? far : Infinity;
+      if (t < bestT) {
+        bestT = t;
+        bestId = patch.id;
+      }
+    }
+  }
+  return bestId;
+}
+
 const HIT_EPSILON = 0.001;
 
 /**
@@ -57,11 +91,12 @@ export function raymarchComposite(
   origin: THREE.Vector3,
   dir: THREE.Vector3,
   coinBulge: number,
+  coinBulgeBalance = 0,
   maxDist = 50,
 ): CompositeHit | null {
   if (host.length === 0) return null;
   const sdf = (x: number, y: number, z: number) =>
-    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
+    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge, coinBulgeBalance);
 
   const primaryT = dampedSphereTrace(sdf, origin, dir, maxDist);
   const t = primaryT ?? coarseScanWithBisection(sdf, origin, dir, maxDist);
@@ -71,7 +106,9 @@ export function raymarchComposite(
   const y = origin.y + dir.y * t;
   const z = origin.z + dir.z * t;
   const point = new THREE.Vector3(x, y, z);
-  const normal = estimateCompositeNormal(mode, host, hostK, thickness, patches, roundK, coinBulge, point);
+  const normal = estimateCompositeNormal(
+    mode, host, hostK, thickness, patches, roundK, coinBulge, coinBulgeBalance, point,
+  );
   const patchId = nearestPatchId(mode, patches, x, y, z);
   return { point, normal, patchId };
 }
@@ -151,11 +188,12 @@ function estimateCompositeNormal(
   patches: Patch[],
   roundK: number,
   coinBulge: number,
+  coinBulgeBalance: number,
   p: THREE.Vector3,
 ): THREE.Vector3 {
   const e = 0.0015;
   const d = (x: number, y: number, z: number) =>
-    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge);
+    compositeSdf(mode, host, hostK, thickness, patches, roundK, x, y, z, coinBulge, coinBulgeBalance);
   return new THREE.Vector3(
     d(p.x + e, p.y, p.z) - d(p.x - e, p.y, p.z),
     d(p.x, p.y + e, p.z) - d(p.x, p.y - e, p.z),
