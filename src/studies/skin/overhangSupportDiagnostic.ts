@@ -44,13 +44,7 @@ export interface OverhangSupportDiagnosticReport {
 
 function centroid(entry: OverhangAssignmentEntry): OverhangPointMm | null {
   if (entry.positionMm) return entry.positionMm;
-  const face = entry.positionsMm;
-  if (!face || face.length !== 9) return null;
-  return {
-    xMm: (face[0] + face[3] + face[6]) / 3,
-    yMm: (face[1] + face[4] + face[7]) / 3,
-    zMm: (face[2] + face[5] + face[8]) / 3,
-  };
+  return null;
 }
 
 function nearestDistance(point: OverhangPointMm, candidates: readonly OverhangPointMm[]): number | null {
@@ -60,10 +54,6 @@ function nearestDistance(point: OverhangPointMm, candidates: readonly OverhangPo
     if (Number.isFinite(distance)) nearest = Math.min(nearest, distance);
   }
   return Number.isFinite(nearest) ? nearest : null;
-}
-
-function exactFloat32FaceKey(face: Float32Array): string {
-  return Array.from(face, (value) => String(Math.fround(value))).join(",");
 }
 
 /**
@@ -96,27 +86,20 @@ export function buildOverhangSupportDiagnostic(input: {
       });
       continue;
     }
-    const faceDiagnosis = entry.positionsMm ? reachability.diagnoseTriangle(entry.positionsMm) : null;
-    const lowerDistances = faceDiagnosis?.samples
-      .map((sample) => sample.nearestLowerIntersectionDistanceMm)
-      .filter((distance): distance is number => distance !== null) ?? [];
-    const mixed = Boolean(faceDiagnosis && faceDiagnosis.blockedSampleCount > 0 && faceDiagnosis.openSampleCount > 0);
-    const stableFace = entry.source === "diagnosed-face" && entry.positionsMm
-      ? exactFloat32FaceKey(entry.positionsMm) === exactFloat32FaceKey(entry.positionsMm.slice())
-      : false;
+    const pointClassification = reachability.classifyPoint(positionMm.xMm, positionMm.yMm, positionMm.zMm);
     records.push({
       id: entry.id, source: entry.source, sourceIndex: entry.sourceIndex, positionMm,
       classification: entry.classification,
-      currentMmClassification: faceDiagnosis?.classification ?? entry.classification,
-      failureCategory: mixed ? "base-classification-unresolved" : "other",
-      failureReason: mixed ? "deterministic -Z samples straddle the final Surface lower envelope" : (entry.reason ?? "unresolved-for-other-reason"),
-      sampleCounts: faceDiagnosis ? { inside: faceDiagnosis.blockedSampleCount, outside: faceDiagnosis.openSampleCount } : null,
-      nearestLowerSurfaceDistanceMm: lowerDistances.length ? Math.min(...lowerDistances) : null,
+      currentMmClassification: pointClassification,
+      failureCategory: "base-classification-unresolved",
+      failureReason: entry.reason ?? "unresolved-support-site",
+      sampleCounts: null,
+      nearestLowerSurfaceDistanceMm: null,
       nearestDryWebConnectionCandidateDistanceMm: nearestDistance(positionMm, candidates),
       nearestScaffoldConnectionCandidateDistanceMm: Number.isFinite(input.plateZMm)
         ? Math.max(0, positionMm.zMm - input.plateZMm)
         : null,
-      v087ExcludedMatch: { matched: mixed && stableFace, method: "source-index-and-exact-float32-coordinates" },
+      v087ExcludedMatch: { matched: false, method: "source-index-and-exact-float32-coordinates" },
     });
   }
   const count = (category: OverhangDiagnosticFailureCategory): number => records.filter((record) => record.failureCategory === category).length;

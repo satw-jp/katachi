@@ -426,7 +426,7 @@ if (overhangDiagnosticPath) {
 }
 if (printPlan) assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts);
 else validateOverhangAssignmentLedger(assignments);
-stage(`classification policy=${assignments.policy} total=${assignments.counts.total} inside=${assignments.counts.inside} outside=${assignments.counts.outside} unresolved=${assignments.counts.unresolved}`);
+stage(`classification policy=${assignments.policy} mixed-face=${assignments.counts.mixedFace} inside-site=${assignments.counts.insideSupportSite} outside-site=${assignments.counts.outsideSupportSite} unresolved-site=${assignments.counts.unresolvedSupportSite} duplicate-site=${assignments.counts.duplicateSupportSite}`);
 stage("internal graph");
 let graph;
 if (internalStructure === "targetedGrid") {

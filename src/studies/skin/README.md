@@ -44,9 +44,11 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 作者の観察を原文のまま残す: 「消えすぎていて印刷すると絶対失敗する。オーバーハング部はベース形状の外側はサポート、内側はDrywebでの補強が必要」
 
-実装した共有policyは `outside-breakaway-scaffold-inside-dry-web-v1`。診断faceとProfile明示targetへ入力順を保つ名前空間付きIDを付け、各targetを`outside`、`inside`、`unresolved`のいずれかへ一度だけ記録する。`outside`だけがbuild plateから-Zで到達する除去可能scaffoldへ、`inside`だけがtargeted Dry Webへ渡り、malformed／部分遮蔽／duplicate／unassigned／unresolvedは保存前にfail closedとなる。CLI、Worker、appは同じpolicyとvalidation facts builderを使い、Print Profile、画面、CLI JSON、Worker resultへpolicyと`total / inside / outside / unresolved`（およびduplicate／unassigned）を表示する。
+実装した共有policyは `outside-breakaway-scaffold-inside-dry-web-v1`。overhang面ごとの4判定点を個別のsupport siteとして`outside`、`inside`、`unresolved`へ分類し、同じ面にinsideとoutsideが共存することを許す。`outside` siteだけがbuild plateから-Zで到達する除去可能scaffoldへ、`inside` siteだけがtargeted Dry Webへ渡る。mixed faceはエラーではなく観察値として数え、判定不能な個別site、同一siteの重複、未割当は保存前にfail closedとする。近接siteは既存の決定的な許容距離と入力順でdeduplicateする。CLI、Worker、appは同じ分類・routing純関数とvalidation facts builderを使う。
 
-低解像度の検証範囲はSurface 24／fused 32とし、旧`formatVersion: 1` recipeおよび新しいv088 Print Profileの互換性を保つ。appの成功保存はv088名の3MF、正確なShape Recipe／Print Profile／validation JSON、各保存bytesのSHA-256一覧を一式で出せる。これは実装上の分類と保存経路の記録であり、造形成功の観察ではない。`printApproval=false`を維持し、高解像度生成、Slice、publish、deploy、印刷はこのPhase Aでは実施しない。
+アプリは最終Surface mesh上へinside siteを青、outside siteをオレンジ、unresolved siteを赤、mixed faceを紫輪郭で重ね、表示ON/OFFと`mixed face / inside site / outside site / unresolved site / duplicate site`件数を同じ画面に出す。この表示は共有policyの結果を観察するだけで、形状、割当、production validationを変更しない。
+
+低解像度の検証範囲はSurface 24／fused 32。実recipe bytesのSHA-256 `93bdafd7f20ef34e239900739fd9633c3fda63a7931c814f80b2c77f877e0c8f`とSeed `phase-a-low`に結合したProfileを共有builderで一度生成し、mixed face 173、inside site 2,705、outside site 4,483、unresolved 0、duplicate 0を記録した。旧`formatVersion: 1` recipeおよび既存Profile互換性を保つ。appの成功保存はv088名の3MF、正確なShape Recipe／Print Profile／validation JSON、各保存bytesのSHA-256一覧を一式で出せるが、この観察工程ではarchiveを生成しない。`printApproval=false`を維持し、高解像度生成、Slice、publish、deploy、印刷は実施しない。
 
 ## Hypothesis v088 Phase A
 

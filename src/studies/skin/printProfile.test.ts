@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { sha256Hex } from "../../lib/hash.ts";
+import { parseRecipe, replay } from "./history.ts";
 import {
   buildPrintValidationFacts, canonicalPrintProfileJson,
   geometryFingerprintLowResolution,
@@ -14,35 +16,35 @@ import {
   type SkinPrintProfileV1,
 } from "./printProfile.ts";
 
-const recipeSha256 = "a".repeat(64);
-const profile: SkinPrintProfileV1 = {
-  schema: "katachi.skin.print-profile.v1", profileVersion: 1, profileName: "low-resolution CLI Worker parity fixture", appVersion: "0.70.0",
-  artifactVersion: "v088-low-resolution-fixture", generatorCommit: "fixture", generatorTag: null,
-  supportPolicy: "outside-breakaway-scaffold-inside-dry-web-v1",
-  expectedClassificationCounts: { total: 4, inside: 2, outside: 2, unresolved: 0, duplicate: 0, unassigned: 0 },
-  shapeRecipe: { sha256: recipeSha256, seed: "fixture-seed", pathHint: "fixture.recipe.json" },
-  geometry: { targetLongestMm: 24, surfaceResolution: 24, fusedResolution: 32, angleThresholdDeg: 45 },
-  internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: 0.045, dryWebPhysicalRadiusMm: 0.45, dryWebPhysicalDiameterMm: 0.9 },
-  scaffold: {
-    coverageMode: "allReachable", perimeterBandMm: 4, spacingMm: 0.8,
-    shaftRadiusMm: 0.7, shaftDiameterMm: 1.4, footRadiusMm: 1.2, footDiameterMm: 2.4,
-    contactRadiusMm: 0.5, contactDiameterMm: 1, contactOverlapMm: 0.65,
-    plateAnchorDropMm: 1, baseHeightMm: 1, tipHeightMm: 0.9, xyClearanceMm: 0.05, sides: 8,
-    baseInteriorPolicy: "exclude-host-interior-v1", explicitTargets: [],
-  },
-  printer: { printer: "Bambu Lab A1 mini", nozzleMm: 0.4, material: "PLA", layerHeightMm: 0.2, automaticSupport: false, supportType: "normal(manual)" },
-  slicer: { application: "Bambu Studio", version: "fixture", printerPresetId: "A1 mini", filamentPresetId: "Generic PLA", processPresetId: "0.20mm Standard" },
-  executionHints: { workerCount: 2 },
-};
-
-const fixtureProfile = validateSkinPrintProfile(JSON.parse(readFileSync(fileURLToPath(new URL("./presets/skin-print-profile-v1-low-resolution-fixture.json", import.meta.url)), "utf8")));
-
+const recipeText = readFileSync(
+  fileURLToPath(new URL("./presets/skin-v088-low-resolution-fixture.recipe.json", import.meta.url)),
+  "utf8",
+);
+const profile: SkinPrintProfileV1 = validateSkinPrintProfile(JSON.parse(readFileSync(
+  fileURLToPath(new URL("./presets/skin-v088-low-resolution-fixture.print-profile.json", import.meta.url)),
+  "utf8",
+)));
+const replayedFixture = replay(parseRecipe(recipeText));
+const recipeSha256 = profile.shapeRecipe.sha256;
 const binding: PrintRecipeBinding = {
-  recipeSha256, seed: "fixture-seed", currentInternalStructure: "targetedGrid", currentDryWebNormalizedRadius: 0.045, scaleMmPerUnit: 10,
+  recipeSha256,
+  seed: replayedFixture.hostParams.seed,
+  currentInternalStructure: replayedFixture.skinParams.internalStructure,
+  currentDryWebNormalizedRadius: replayedFixture.skinParams.internalRadius,
+  scaleMmPerUnit: profile.internalStructure.dryWebPhysicalRadiusMm / replayedFixture.skinParams.internalRadius,
 };
 
-test("low-resolution fixture is the tested Profile", () => {
-  assert.deepEqual(fixtureProfile, profile);
+test("low-resolution recipe and Print Profile are one exact-byte pair", async () => {
+  assert.equal(await sha256Hex(recipeText), profile.shapeRecipe.sha256);
+  assert.equal(replayedFixture.hostParams.seed, profile.shapeRecipe.seed);
+  assert.equal(replayedFixture.skinParams.internalStructure, profile.internalStructure.method);
+  assert.equal(replayedFixture.skinParams.internalRadius, profile.internalStructure.dryWebNormalizedRadius);
+  assert.equal(profile.geometry.surfaceResolution, 24);
+  assert.equal(profile.geometry.fusedResolution, 32);
+  assert.equal(profile.geometry.targetLongestMm, 24);
+  assert.equal(profile.geometry.angleThresholdDeg, 45);
+  assert.equal(profile.expectedClassificationCounts?.unresolvedSupportSite, 0);
+  assert.equal(profile.expectedClassificationCounts?.duplicateSupportSite, 0);
 });
 
 test("Print Profile canonicalization and SHA are key-order independent", async () => {
@@ -76,7 +78,8 @@ test("new Profile classification counts are checked at runtime", async () => {
   const sha = await printProfileSha256(profile);
   const plan = resolveCliPrintPlan(profile, sha, binding);
   assert.throws(() => assertResolvedPrintPlanSupportCounts(plan, {
-    total: 4, inside: 1, outside: 3, unresolved: 0, duplicate: 0, unassigned: 0,
+    total: 4, inside: 1, outside: 3, unresolved: 0, duplicate: 0, unassigned: 0, mixedFace: 1,
+    insideSupportSite: 1, outsideSupportSite: 3, unresolvedSupportSite: 0, duplicateSupportSite: 0,
   }), /do not match|match/);
   assert.deepEqual(assertResolvedPrintPlanSupportCounts(plan, profile.expectedClassificationCounts!), undefined);
 });

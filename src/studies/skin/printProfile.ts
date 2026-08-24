@@ -75,6 +75,12 @@ export interface SkinPrintProfileV1 {
   };
 }
 
+export type SkinPrintProfileBuildInput = Omit<SkinPrintProfileV1,
+  "schema" | "profileVersion" | "internalStructure" | "scaffold"> & {
+  internalStructure: Omit<SkinPrintProfileV1["internalStructure"], "dryWebPhysicalDiameterMm">;
+  scaffold: Omit<SkinPrintProfileV1["scaffold"], "shaftDiameterMm" | "footDiameterMm" | "contactDiameterMm">;
+};
+
 export interface PrintRecipeBinding {
   recipeSha256: string | null;
   seed: string;
@@ -237,18 +243,34 @@ function validateTargets(value: unknown): ExternalScaffoldTarget[] {
 function validateClassificationCounts(value: unknown, label: string): PrintSupportClassificationCounts {
   const item = requireObject(value, label);
   const keys = ["total", "inside", "outside", "unresolved", "duplicate", "unassigned"] as const;
-  const counts = Object.fromEntries(keys.map((key) => {
+  const core = Object.fromEntries(keys.map((key) => {
     const raw = item[key];
     if (!Number.isInteger(raw) || Number(raw) < 0) throw new Error(`${label}.${key} must be a non-negative integer`);
     return [key, Number(raw)];
-  })) as unknown as PrintSupportClassificationCounts;
-  if (counts.total !== counts.inside + counts.outside + counts.unresolved) throw new Error(`${label} is not a complete partition`);
-  return counts;
+  })) as Record<(typeof keys)[number], number>;
+  if (core.total !== core.inside + core.outside + core.unresolved) throw new Error(`${label} is not a complete partition`);
+  const optional = (key: string, fallback: number): number => {
+    const raw = item[key];
+    if (raw === undefined) return fallback;
+    if (!Number.isInteger(raw) || Number(raw) < 0) throw new Error(`${label}.${key} must be a non-negative integer`);
+    return Number(raw);
+  };
+  return {
+    ...core,
+    mixedFace: optional("mixedFace", 0),
+    insideSupportSite: optional("insideSupportSite", core.inside),
+    outsideSupportSite: optional("outsideSupportSite", core.outside),
+    unresolvedSupportSite: optional("unresolvedSupportSite", core.unresolved),
+    duplicateSupportSite: optional("duplicateSupportSite", core.duplicate),
+  };
 }
 
 function sameClassificationCounts(a: PrintSupportClassificationCounts, b: PrintSupportClassificationCounts): boolean {
   return a.total === b.total && a.inside === b.inside && a.outside === b.outside &&
-    a.unresolved === b.unresolved && a.duplicate === b.duplicate && a.unassigned === b.unassigned;
+    a.unresolved === b.unresolved && a.duplicate === b.duplicate && a.unassigned === b.unassigned &&
+    a.mixedFace === b.mixedFace && a.insideSupportSite === b.insideSupportSite &&
+    a.outsideSupportSite === b.outsideSupportSite && a.unresolvedSupportSite === b.unresolvedSupportSite &&
+    a.duplicateSupportSite === b.duplicateSupportSite;
 }
 
 export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
@@ -319,6 +341,25 @@ export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
     slicer: { application: requireString(slicer.application, "slicer.application"), version: requireString(slicer.version, "slicer.version"), printerPresetId: requireString(slicer.printerPresetId, "slicer.printerPresetId"), filamentPresetId: requireString(slicer.filamentPresetId, "slicer.filamentPresetId"), processPresetId: requireString(slicer.processPresetId, "slicer.processPresetId") },
     executionHints: { workerCount },
   };
+}
+
+/** Shared constructor for app-saved Profiles and checked-in fixtures. */
+export function buildSkinPrintProfileV1(input: SkinPrintProfileBuildInput): SkinPrintProfileV1 {
+  return validateSkinPrintProfile({
+    ...input,
+    schema: SKIN_PRINT_PROFILE_SCHEMA,
+    profileVersion: 1,
+    internalStructure: {
+      ...input.internalStructure,
+      dryWebPhysicalDiameterMm: input.internalStructure.dryWebPhysicalRadiusMm * 2,
+    },
+    scaffold: {
+      ...input.scaffold,
+      shaftDiameterMm: input.scaffold.shaftRadiusMm * 2,
+      footDiameterMm: input.scaffold.footRadiusMm * 2,
+      contactDiameterMm: input.scaffold.contactRadiusMm * 2,
+    },
+  });
 }
 
 function canonicalValue(value: unknown): unknown {
@@ -436,6 +477,7 @@ export function buildPrintValidationFacts(plan: ResolvedPrintPlan, input: PrintV
   const p = plan.profile;
   const classificationCounts = input.classificationCounts ?? plan.expectedClassificationCounts ?? {
     total: 0, inside: 0, outside: 0, unresolved: 0, duplicate: 0, unassigned: 0,
+    mixedFace: 0, insideSupportSite: 0, outsideSupportSite: 0, unresolvedSupportSite: 0, duplicateSupportSite: 0,
   };
   return {
     schema: PRINT_VALIDATION_FACTS_SCHEMA, printApproval: false,

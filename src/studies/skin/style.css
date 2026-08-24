@@ -1373,12 +1373,19 @@ details.mesh-export:not([open]) > :not(summary) {
 
 .surface-angle-swatch.is-danger { background: #d9483b; }
 .surface-angle-swatch.is-mitigated { background: #3bb7aa; }
+.surface-angle-swatch.is-support-inside { background: #3185ff; border-radius: 50%; }
+.surface-angle-swatch.is-support-outside { background: #ff922e; border-radius: 50%; }
+.surface-angle-swatch.is-support-unresolved { background: #ff3b30; border-radius: 50%; }
+.surface-angle-swatch.is-support-mixed {
+  background: linear-gradient(135deg, transparent 42%, #b35cff 42%, #b35cff 58%, transparent 58%);
+}
 
 .surface-angle-status {
   min-height: 2.6em;
   line-height: 1.45;
 }
 
+.support-site-toggle,
 .surface-lowest-toggle {
   display: inline-flex;
   align-items: center;
@@ -1390,10 +1397,12 @@ details.mesh-export:not([open]) > :not(summary) {
   font-weight: 650;
 }
 
+.support-site-toggle input,
 .surface-lowest-toggle input {
   margin: 0;
 }
 
+.support-site-status,
 .motif-lowest-status {
   min-height: 1.5em;
   line-height: 1.45;

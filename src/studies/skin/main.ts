@@ -113,7 +113,7 @@ import {
 import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWorkerProtocol.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
-  matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
+  buildSkinPrintProfileV1, matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
   assertResolvedPrintPlanSupportCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
 } from "./printProfile.ts";
 import {
@@ -219,6 +219,7 @@ let bambu3mfExportCache: {
   validationFacts: Extract<Bambu3mfWorkerMessage, { type: "result" }>["validationFacts"];
 } | null = null;
 let showMotifLowestPoints = false;
+let showOverhangSupportSites = true;
 
 let activeOpeningMapWorker: Worker | null = null;
 let openingMapRequestId = 0;
@@ -572,6 +573,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onDiagnoseSurfaceAngles: (thresholdDeg) => startSurfaceAngleDiagnosis(thresholdDeg),
   onSetSurfaceAngleDiagnosisView: (diagnosisView) => showSurfaceAngleDiagnosisView(diagnosisView),
   onSurfaceAngleThresholdChange: () => { invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
+  onToggleOverhangSupportSites: (show) => {
+    showOverhangSupportSites = show;
+    refreshOverhangSupportSiteOverlay();
+    render();
+  },
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
@@ -893,11 +899,17 @@ function classifySurfaceAngleSupport(
     explicitTargets: activePrintProfile?.scaffold.explicitTargets ?? [],
     finalSurfacePositionsMm,
   });
-  if (activePrintProfile && activePrintProfileSha256) {
-    const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
-    assertResolvedPrintPlanSupportCounts(plan, result.counts);
-  } else {
-    validateOverhangAssignmentLedger(result);
+  try {
+    if (activePrintProfile && activePrintProfileSha256) {
+      const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
+      assertResolvedPrintPlanSupportCounts(plan, result.counts);
+    } else {
+      validateOverhangAssignmentLedger(result);
+    }
+  } catch (error) {
+    const failure = error instanceof Error ? error : new Error(String(error));
+    (failure as Error & { supportResult?: OverhangSupportPolicyResult }).supportResult = result;
+    throw failure;
   }
   return result;
 }
@@ -914,11 +926,56 @@ function sourceDryWebTargets(result: OverhangSupportPolicyResult, scaleMmPerUnit
 }
 
 function diagnosedPositionsForPolicy(result: OverhangSupportPolicyResult): Float32Array {
-  const positions: number[] = [];
-  for (const entry of result.entries) {
-    if (entry.source === "diagnosed-face" && entry.positionsMm) positions.push(...entry.positionsMm);
+  return result.diagnosedFacePositionsMm.slice();
+}
+
+function overhangSupportCountsText(result: OverhangSupportPolicyResult): string {
+  const counts = result.counts;
+  return `mixed face ${counts.mixedFace.toLocaleString()} / inside site ${counts.insideSupportSite.toLocaleString()} / outside site ${counts.outsideSupportSite.toLocaleString()} / unresolved site ${counts.unresolvedSupportSite.toLocaleString()} / duplicate site ${counts.duplicateSupportSite.toLocaleString()}`;
+}
+
+function refreshOverhangSupportSiteOverlay(): void {
+  const result = overhangSupportResult;
+  const diagnosis = surfaceAngleCache;
+  if (!result || !diagnosis) {
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点は未診断");
+    return;
   }
-  return new Float32Array(positions);
+  const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
+  const targetLongestMm = ui.getMeshOptions().targetLongestMm;
+  if (!(sourceLongest > 0) || !(targetLongestMm > 0)) {
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, "支持点の表示Scaleを求められませんでした", false);
+    return;
+  }
+  const scaleMmPerUnit = targetLongestMm / sourceLongest;
+  const markerRadius = 0.55 / scaleMmPerUnit;
+  const markers = result.entries.flatMap((entry) => {
+    if (!entry.positionMm || entry.duplicateOf) return [];
+    return [{
+      classification: entry.classification,
+      markerRadius,
+      position: {
+        x: entry.positionMm.xMm / scaleMmPerUnit,
+        y: entry.positionMm.yMm / scaleMmPerUnit,
+        z: entry.positionMm.zMm / scaleMmPerUnit,
+      },
+    }];
+  });
+  const mixedPositions: number[] = [];
+  for (const faceIndex of result.mixedFaceIndices) {
+    const offset = faceIndex * 9;
+    if (offset < 0 || offset + 9 > diagnosis.beforeDangerPositions.length) continue;
+    mixedPositions.push(...diagnosis.beforeDangerPositions.subarray(offset, offset + 9));
+  }
+  if (showOverhangSupportSites) {
+    skinRenderer.setOverhangSupportSiteOverlay(markers, new Float32Array(mixedPositions));
+  } else {
+    skinRenderer.clearOverhangSupportSiteOverlay();
+  }
+  const ok = result.counts.unresolvedSupportSite === 0 && result.counts.duplicateSupportSite === 0;
+  ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, overhangSupportCountsText(result), ok);
 }
 
 function targetedSupportSourceIsCurrent(): boolean {
@@ -2529,7 +2586,7 @@ function refreshPrintProfileSummary(): void {
       ["Support policy", profile.supportPolicy ?? "outside-breakaway-scaffold-inside-dry-web-v1"],
       ["分類 total / inside / outside / unresolved", (() => {
         const counts = overhangSupportResult?.counts ?? profile.expectedClassificationCounts;
-        return counts ? `${counts.total} / ${counts.inside} / ${counts.outside} / ${counts.unresolved}` : "診断後に確定";
+        return counts ? `${counts.mixedFace} mixed / ${counts.insideSupportSite} inside site / ${counts.outsideSupportSite} outside site / ${counts.unresolvedSupportSite} unresolved site / ${counts.duplicateSupportSite} duplicate site` : "診断後に確定";
       })()],
       ["最長辺", profile.geometry.targetLongestMm + " mm"],
       ["Surface / 融合", profile.geometry.surfaceResolution + " / " + profile.geometry.fusedResolution],
@@ -2568,8 +2625,7 @@ async function saveCurrentPrintProfile(): Promise<void> {
   const options = ui.getMeshOptions();
   const dryRadiusMm = state.skinParams.internalRadius * scaleMmPerUnit;
   const scaffold = { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: 1.2 };
-  const profile = validateSkinPrintProfile({
-    schema: "katachi.skin.print-profile.v1", profileVersion: 1,
+  const profile = buildSkinPrintProfileV1({
     profileName: (importedRecipeFilename.endsWith(".json") ? importedRecipeFilename.slice(0, -5) : importedRecipeFilename) + " print",
     appVersion: manifest.version, artifactVersion: "v088",
     generatorCommit: import.meta.env.VITE_GIT_COMMIT || "working-tree", generatorTag: null,
@@ -2577,10 +2633,10 @@ async function saveCurrentPrintProfile(): Promise<void> {
     expectedClassificationCounts: overhangSupportResult.counts,
     shapeRecipe: { sha256: importedRecipeSha256, seed: state.hostParams.seed, pathHint: importedRecipeFilename },
     geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: options.resolution <= 24 ? 32 : Math.max(240, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
-    internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm, dryWebPhysicalDiameterMm: dryRadiusMm * 2 },
+    internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm },
     scaffold: { coverageMode: scaffold.coverageMode, perimeterBandMm: scaffold.perimeterBandMm, spacingMm: scaffold.spacingMm,
-      shaftRadiusMm: scaffold.shaftRadiusMm, shaftDiameterMm: scaffold.shaftRadiusMm * 2, footRadiusMm: scaffold.baseRadiusMm, footDiameterMm: scaffold.baseRadiusMm * 2,
-      contactRadiusMm: scaffold.tipRadiusMm, contactDiameterMm: scaffold.tipRadiusMm * 2, contactOverlapMm: scaffold.contactOverlapMm,
+      shaftRadiusMm: scaffold.shaftRadiusMm, footRadiusMm: scaffold.baseRadiusMm,
+      contactRadiusMm: scaffold.tipRadiusMm, contactOverlapMm: scaffold.contactOverlapMm,
       plateAnchorDropMm: scaffold.plateAnchorDropMm, baseHeightMm: scaffold.baseHeightMm, tipHeightMm: scaffold.tipHeightMm, xyClearanceMm: scaffold.xyClearanceMm, sides: scaffold.sides,
       baseInteriorPolicy: "exclude-host-interior-v1", explicitTargets: [] },
     printer: { printer: "Bambu Lab A1 mini", nozzleMm: 0.4, material: "PLA", layerHeightMm: 0.2, automaticSupport: false, supportType: "normal(manual)" },
@@ -3060,6 +3116,8 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   surfaceAngleCache = null;
   overhangSupportResult = null;
   skinRenderer.clearSurfaceAngleOverlay();
+  skinRenderer.clearOverhangSupportSiteOverlay();
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点は未診断");
   cancelBambu3mfExport(false);
   if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
   ui.setSurfaceAngleDiagnosisRunning(false);
@@ -3209,7 +3267,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
   activeBambu3mfWorker = worker;
   const started = performance.now();
   const dangerFaces = dangerousPositions.length / 9;
-  let progressStage = `3MF 1/7 · 入力を準備 · policy=${assignments.policy} · inside=${assignments.counts.inside} outside=${assignments.counts.outside} unresolved=${assignments.counts.unresolved} · 候補${dangerFaces.toLocaleString()}面`;
+  let progressStage = `3MF 1/7 · 入力を準備 · policy=${assignments.policy} · mixed=${assignments.counts.mixedFace} inside-site=${assignments.counts.insideSupportSite} outside-site=${assignments.counts.outsideSupportSite} unresolved-site=${assignments.counts.unresolvedSupportSite} duplicate-site=${assignments.counts.duplicateSupportSite} · 候補${dangerFaces.toLocaleString()}面`;
   ui.setBambu3mfExportRunning(true);
   ui.setBambu3mfExportStatus(`${progressStage} · 0秒`);
   bambu3mfStatusTimer = window.setInterval(() => {
@@ -3248,7 +3306,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
       .catch((error) => ui.setBambu3mfExportStatus(`v088候補保存に失敗しました: ${(error as Error).message}`, false));
     const sizeMb = message.stats.archiveBytes / (1024 * 1024);
     ui.setBambu3mfExportStatus(
-      `保存完了 · policy=${message.supportPolicy} · total=${message.classificationCounts.total} / inside=${message.classificationCounts.inside} / outside=${message.classificationCounts.outside} / unresolved=${message.classificationCounts.unresolved} · 候補${message.reachability.candidateFaceCount.toLocaleString()} → 外側直下到達${message.reachability.keptFaceCount.toLocaleString()} / 内側・遮蔽除外${message.reachability.rejectedFaceCount.toLocaleString()}（無効${message.reachability.invalidCandidateFaceCount.toLocaleString()}） · 全到達候補${message.scaffold.coverageFaceCount.toLocaleString()} → 支柱${message.scaffold.pillarCount.toLocaleString()}本（BODY衝突除外${message.scaffold.collisionRejectedFaceCount.toLocaleString()}） · 最終一体mesh ${message.stats.bodyFaces.toLocaleString()}面 · ${sizeMb.toFixed(1)} MB · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+      `保存完了 · policy=${message.supportPolicy} · mixed face=${message.classificationCounts.mixedFace} / inside site=${message.classificationCounts.insideSupportSite} / outside site=${message.classificationCounts.outsideSupportSite} / unresolved site=${message.classificationCounts.unresolvedSupportSite} / duplicate site=${message.classificationCounts.duplicateSupportSite} · 候補${message.reachability.candidateFaceCount.toLocaleString()} → 外側直下到達${message.reachability.keptFaceCount.toLocaleString()} / 内側・遮蔽除外${message.reachability.rejectedFaceCount.toLocaleString()}（無効${message.reachability.invalidCandidateFaceCount.toLocaleString()}） · 全到達候補${message.scaffold.coverageFaceCount.toLocaleString()} → 支柱${message.scaffold.pillarCount.toLocaleString()}本（BODY衝突除外${message.scaffold.collisionRejectedFaceCount.toLocaleString()}） · 最終一体mesh ${message.stats.bodyFaces.toLocaleString()}面 · ${sizeMb.toFixed(1)} MB · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
       true,
     );
   };
@@ -3310,18 +3368,19 @@ function finishSurfaceAngleDiagnosis(
     : message.metrics.dangerousFaceCountBefore;
   if (supportFaceCount === 0) {
     ui.setBambu3mfExportStatus(classification
-      ? `準備完了 · policy=${overhangSupportResult!.policy} · total=${classification.total} / inside=${classification.inside} / outside=${classification.outside} / unresolved=${classification.unresolved}`
+      ? `準備完了 · policy=${overhangSupportResult!.policy} · mixed face=${classification.mixedFace} / inside site=${classification.insideSupportSite} / outside site=${classification.outsideSupportSite} / unresolved site=${classification.unresolvedSupportSite} / duplicate site=${classification.duplicateSupportSite}`
       : "Internal付加後に未支援の赤面は0面です。外部支柱は不要です", true);
   } else {
     const gateNote = hasInternal ? " · Internal最終判定OKも必要" : "";
     const stage = hasInternal ? "付加後に残る赤面" : "赤面";
     ui.setBambu3mfExportStatus(
       classification
-        ? `準備完了 · policy=${overhangSupportResult!.policy} · total=${classification.total} / inside=${classification.inside} / outside=${classification.outside} / unresolved=${classification.unresolved} · ${stage}${supportFaceCount.toLocaleString()}面${gateNote}`
+        ? `準備完了 · policy=${overhangSupportResult!.policy} · mixed face=${classification.mixedFace} / inside site=${classification.insideSupportSite} / outside site=${classification.outsideSupportSite} / unresolved site=${classification.unresolvedSupportSite} / duplicate site=${classification.duplicateSupportSite} · ${stage}${supportFaceCount.toLocaleString()}面${gateNote}`
         : `準備完了 · ${stage}${supportFaceCount.toLocaleString()}面をSupport Enforcerへ変換できます${gateNote}`,
       true,
     );
   }
+  refreshOverhangSupportSiteOverlay();
   showSurfaceAngleDiagnosisView("before");
   ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
   refreshPrintProfileSummary();
@@ -3385,6 +3444,8 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
   // inside assignments; never let a prior mesh's target ledger leak into it.
   targetedSupportSource = null;
   skinRenderer.clearSurfaceAngleOverlay();
+  skinRenderer.clearOverhangSupportSiteOverlay();
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点を診断中…");
   ui.setSurfaceAngleDiagnosisView("before", false, false);
   ui.setSurfaceAngleDiagnosisRunning(true);
   ui.setSurfaceAngleDiagnosisStatus("最終精度の外殻Surface meshを並列生成して診断しています…");
@@ -3446,8 +3507,18 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
     try {
       overhangSupportResult = classifySurfaceAngleSupport(message);
     } catch (error) {
-      overhangSupportResult = null;
-      ui.setSurfaceAngleDiagnosisStatus(`オーバーハング分類に失敗しました: ${(error as Error).message}`, false);
+      const failure = error as Error & { supportResult?: OverhangSupportPolicyResult };
+      overhangSupportResult = failure.supportResult ?? null;
+      if (overhangSupportResult) {
+        surfaceAngleCache = message;
+        skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
+        viewMode = "mesh";
+        skinRenderer.setViewMode(viewMode);
+        ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+        refreshOverhangSupportSiteOverlay();
+        showSurfaceAngleDiagnosisView("before");
+      }
+      ui.setSurfaceAngleDiagnosisStatus(`オーバーハング分類に失敗しました: ${failure.message}`, false);
       return;
     }
     const sourceLongest = triangleSoupLongestExtent(message.basePositions);

@@ -87,6 +87,12 @@ interface ElementDomLabel {
   anchor: THREE.Vector3;
 }
 
+export interface OverhangSupportSiteOverlayMarker {
+  position: { x: number; y: number; z: number };
+  classification: "inside" | "outside" | "unresolved";
+  markerRadius: number;
+}
+
 export class SkinRenderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
@@ -102,6 +108,19 @@ export class SkinRenderer {
    * contact band. It never changes the generated field or export mesh. */
   private surfaceAngleGroup: THREE.Group | null = null;
   private surfaceAngleShowInternal = false;
+  private overhangSupportSiteGroup: THREE.Group | null = null;
+  private readonly overhangSupportSiteGeometry = new THREE.OctahedronGeometry(1, 0);
+  private readonly overhangSupportSiteMaterials = {
+    inside: new THREE.MeshBasicMaterial({ color: 0x3185ff, depthTest: false, depthWrite: false, toneMapped: false }),
+    outside: new THREE.MeshBasicMaterial({ color: 0xff922e, depthTest: false, depthWrite: false, toneMapped: false }),
+    unresolved: new THREE.MeshBasicMaterial({ color: 0xff3b30, depthTest: false, depthWrite: false, toneMapped: false }),
+  } as const;
+  private readonly mixedFaceMaterial = new THREE.LineBasicMaterial({
+    color: 0xb35cff,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   private motifLowestPointGroup: THREE.Group | null = null;
   private readonly motifLowestPointGeometry = new THREE.OctahedronGeometry(1, 0);
   private readonly motifLowestUnreachedMaterial = new THREE.MeshBasicMaterial({
@@ -463,6 +482,9 @@ export class SkinRenderer {
     if (this.surfaceAngleGroup) {
       this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
     }
+    if (this.overhangSupportSiteGroup) {
+      this.overhangSupportSiteGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+    }
     if (this.motifLowestPointGroup) {
       this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
     }
@@ -690,6 +712,70 @@ export class SkinRenderer {
     this.scene.add(group);
     this.surfaceAngleGroup = group;
     this.surfaceAngleShowInternal = showInternal;
+    this.applyLayerVisibility();
+  }
+
+  clearOverhangSupportSiteOverlay(): void {
+    if (!this.overhangSupportSiteGroup) return;
+    this.scene.remove(this.overhangSupportSiteGroup);
+    this.overhangSupportSiteGroup.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh) object.dispose();
+      if (object instanceof THREE.LineSegments) object.geometry.dispose();
+    });
+    this.overhangSupportSiteGroup = null;
+    this.applyLayerVisibility();
+  }
+
+  /** Display-only routing evidence. Sites are classified by the shared
+   * production policy; this overlay does not change assignment or validation. */
+  setOverhangSupportSiteOverlay(
+    markers: readonly OverhangSupportSiteOverlayMarker[],
+    mixedFacePositions: Float32Array,
+  ): void {
+    this.clearOverhangSupportSiteOverlay();
+    if (markers.length === 0 && mixedFacePositions.length === 0) return;
+    const group = new THREE.Group();
+    const matrix = new THREE.Matrix4();
+    for (const classification of ["inside", "outside", "unresolved"] as const) {
+      const subset = markers.filter((marker) => marker.classification === classification);
+      if (subset.length === 0) continue;
+      const mesh = new THREE.InstancedMesh(
+        this.overhangSupportSiteGeometry,
+        this.overhangSupportSiteMaterials[classification],
+        subset.length,
+      );
+      for (const [index, marker] of subset.entries()) {
+        matrix.makeScale(marker.markerRadius, marker.markerRadius, marker.markerRadius)
+          .setPosition(marker.position.x, marker.position.y, marker.position.z);
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = 41;
+      mesh.frustumCulled = false;
+      group.add(mesh);
+    }
+    if (mixedFacePositions.length > 0) {
+      const linePositions = new Float32Array(mixedFacePositions.length * 2);
+      let cursor = 0;
+      for (let offset = 0; offset < mixedFacePositions.length; offset += 9) {
+        const a = mixedFacePositions.subarray(offset, offset + 3);
+        const b = mixedFacePositions.subarray(offset + 3, offset + 6);
+        const c = mixedFacePositions.subarray(offset + 6, offset + 9);
+        for (const [from, to] of [[a, b], [b, c], [c, a]] as const) {
+          linePositions.set(from, cursor);
+          linePositions.set(to, cursor + 3);
+          cursor += 6;
+        }
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
+      const lines = new THREE.LineSegments(geometry, this.mixedFaceMaterial);
+      lines.renderOrder = 42;
+      lines.frustumCulled = false;
+      group.add(lines);
+    }
+    this.scene.add(group);
+    this.overhangSupportSiteGroup = group;
     this.applyLayerVisibility();
   }
 

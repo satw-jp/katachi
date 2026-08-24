@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "studyId": "skin",
+  "exportedAt": "2026-08-24T00:00:00.000Z",
+  "entries": [
+    {
+      "t": 1,
+      "op": "growHost",
+      "args": {
+        "params": {
+          "k": 0.6,
+          "count": 1,
+          "radiusBase": 2,
+          "radiusSpread": 0,
+          "seed": "phase-a-low"
+        }
+      }
+    },
+    {
+      "t": 2,
+      "op": "setSkinParam",
+      "args": { "key": "internalStructure", "value": "targetedGrid" }
+    },
+    {
+      "t": 3,
+      "op": "setMode",
+      "args": { "mode": "window" }
+    },
+    {
+      "t": 4,
+      "op": "addPatch",
+      "args": {
+        "patch": {
+          "id": 1,
+          "shape": "coin",
+          "motifPlacement": "surface",
+          "points": [
+            { "x": 0, "y": 0, "z": -2, "r": 0.8 }
+          ]
+        }
+      }
+    }
+  ]
+}

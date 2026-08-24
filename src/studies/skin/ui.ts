@@ -90,6 +90,7 @@ export interface UiCallbacks {
   onDiagnoseSurfaceAngles: (thresholdDeg: number) => void;
   onSetSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView) => void;
   onSurfaceAngleThresholdChange: () => void;
+  onToggleOverhangSupportSites: (show: boolean) => void;
   onToggleMotifLowestPoints: (show: boolean, thresholdDeg: number) => void;
   onPreviewMeshResolutionChange: (resolution: number) => void;
   onCancelPreviewMesh: () => void;
@@ -264,6 +265,7 @@ export interface UiHandles {
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
+  setOverhangSupportSiteOverlay: (available: boolean, show: boolean, text: string, ok?: boolean) => void;
   setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
   getSurfaceAngleThreshold: () => number;
   setSurfaceAngleThreshold: (value: number) => void;
@@ -1553,12 +1555,30 @@ export function buildUi(
   const surfaceAngleLegend = document.createElement("div");
   surfaceAngleLegend.className = "surface-angle-legend";
   surfaceAngleLegend.innerHTML =
-    '<span><i class="surface-angle-swatch is-danger"></i>赤 = 閾値以上・未支援</span>' +
-    '<span><i class="surface-angle-swatch is-mitigated"></i>青緑 = Internal到達候補</span>';
+    '<span><i class="surface-angle-swatch is-danger"></i>赤面 = 閾値以上・未支援</span>' +
+    '<span><i class="surface-angle-swatch is-mitigated"></i>青緑面 = Internal到達候補</span>' +
+    '<span><i class="surface-angle-swatch is-support-inside"></i>青点 = inside / Dry Web</span>' +
+    '<span><i class="surface-angle-swatch is-support-outside"></i>橙点 = outside / scaffold</span>' +
+    '<span><i class="surface-angle-swatch is-support-unresolved"></i>赤点 = unresolved</span>' +
+    '<span><i class="surface-angle-swatch is-support-mixed"></i>紫線 = mixed face</span>';
   const surfaceAngleStatus = document.createElement("div");
   surfaceAngleStatus.className = "mesh-status surface-angle-status";
   surfaceAngleStatus.textContent = "未診断";
   surfaceAngleStatus.setAttribute("aria-live", "polite");
+  const supportSiteToggle = document.createElement("label");
+  supportSiteToggle.className = "support-site-toggle";
+  const supportSiteCheckbox = document.createElement("input");
+  supportSiteCheckbox.type = "checkbox";
+  supportSiteCheckbox.checked = true;
+  supportSiteCheckbox.disabled = true;
+  supportSiteCheckbox.onchange = () => callbacks.onToggleOverhangSupportSites(supportSiteCheckbox.checked);
+  const supportSiteLabel = document.createElement("span");
+  supportSiteLabel.textContent = "inside / outside支持点を形状上に表示";
+  supportSiteToggle.append(supportSiteCheckbox, supportSiteLabel);
+  const supportSiteStatus = document.createElement("div");
+  supportSiteStatus.className = "mesh-status support-site-status";
+  supportSiteStatus.textContent = "支持点は未診断";
+  supportSiteStatus.setAttribute("aria-live", "polite");
   const motifLowestToggle = document.createElement("label");
   motifLowestToggle.className = "surface-lowest-toggle";
   const motifLowestCheckbox = document.createElement("input");
@@ -1586,6 +1606,8 @@ export function buildUi(
     surfaceAngleActions,
     surfaceAngleLegend,
     surfaceAngleStatus,
+    supportSiteToggle,
+    supportSiteStatus,
     motifLowestToggle,
     motifLowestHint,
     motifLowestStatus,
@@ -3253,6 +3275,12 @@ export function buildUi(
         button.disabled = !available || (candidate === "after" && !hasInternal);
         button.classList.toggle("mode-active", available && candidate === view);
       }
+    },
+    setOverhangSupportSiteOverlay: (available, show, text, ok) => {
+      supportSiteCheckbox.disabled = !available;
+      supportSiteCheckbox.checked = show;
+      supportSiteStatus.textContent = text;
+      supportSiteStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
     setMotifLowestPointStatus: (text, ok) => {
       motifLowestStatus.textContent = text;

@@ -62,7 +62,7 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
     assertResolvedPrintPlanSupportCounts(plan, assignments.counts);
     const reachability = filterSupportEnforcerReachability(assignments.outsideFacePositionsMm, finalSurfaceMm);
     if (assignments.outsideFacePositionsMm.length > 0 && reachability.keptPositions.length === 0) throw new Error(`外側へ直下到達する支柱候補が0面です（候補${reachability.candidateFaceCount}面・内側${assignments.counts.inside}面・未解決${assignments.counts.unresolved}面）`);
-    postProgress(3, "支柱を選択", `outside=${assignments.counts.outside} / inside=${assignments.counts.inside} / unresolved=${assignments.counts.unresolved}`);
+    postProgress(3, "支柱を選択", `mixed face=${assignments.counts.mixedFace} / inside site=${assignments.counts.insideSupportSite} / outside site=${assignments.counts.outsideSupportSite} / unresolved site=${assignments.counts.unresolvedSupportSite} / duplicate site=${assignments.counts.duplicateSupportSite}`);
     const scaffold = buildExternalPerimeterScaffold(
       reachability.keptPositions,
       finalSurfaceMm,
