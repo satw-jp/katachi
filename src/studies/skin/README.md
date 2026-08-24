@@ -52,6 +52,21 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 ローカルreview URLで上記recipe→Profileの順に読み込み、Surface 24の診断を実行した。画面はProfile不一致なく、mixed face 173、inside site 2,705、outside site 4,483、unresolved site 0、duplicate site 0を表示し、青inside点、オレンジoutside点、紫mixed-face輪郭と表示toggleを確認した。証拠は`screenshots/skin-v088-support-sites-review-20260824.png`。これは更新されたアプリの表示を作者が判断できる状態にした技術確認であり、形状の承認、印刷候補封印、`printApproval`変更ではない。
 
+
+### 作者確認 — 基礎ケースは問題なさそうだが、例外確認は未了（2026-08-24）
+
+作者の観察を原文のまま残す:
+
+> 現状は問題なさそう
+> 単純な球体に穴が一つの形状になってしまったので例外があるかがわからない
+
+これは単純な球体＋1穴という基礎ケースの表示についての観察である。分類全体、複雑形状での例外の不存在、印刷可能性を承認した発言として扱わない。そこで形状・分類ロジックを変更せず、既存recipeだけで次の2ケースをSurface 48、最長辺119.5 mm、閾値45°としてアプリに追加した。表示色はinside青、outsideオレンジ、mixed紫、unresolved赤で、画面上の6ボタンからケースと上／横／裏を切り替えられる。
+
+- Case Aは実際のv087 Shape Recipeをbyte-for-byteで保存したfixture（SHA-256 e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f）。複数の凹凸・穴・内部空間と実物スケール条件を保ち、app Workerはmixed face 1,139、inside site 8,636、outside site 15,906、unresolved site 0、duplicate site 0を表示した。証拠はscreenshots/skin-v088-case-a-top-20260824.png、skin-v088-case-a-side-20260824.png、skin-v088-case-a-back-20260824.png。
+- Case Bは既存のsamples/yohaku-skin-plate-20260719.recipe.json（SHA-256 c4c7e836b8acc3789e8aa341c01e249bc7a2da4ec358f2613a771f2682c06b46）だけを使う境界stress case。12球と453個の既存ring3d patchにより複数穴、深い凹部、細い張り出し、base境界を横切るmixed faceを観察できる。app Workerはmixed face 1,180、inside site 13,165、outside site 18,190、unresolved site 0、duplicate site 0を表示した。証拠はscreenshots/skin-v088-case-b-top-20260824.png、skin-v088-case-b-side-20260824.png、skin-v088-case-b-back-20260824.png。
+
+6枚すべてに青・オレンジ・紫のoverlayが含まれ、unresolvedとduplicateは両ケースとも0。これは例外を作者が目視比較できるreview checkpointであり、分類全体の承認、archive生成、高精度生成、Slice、印刷候補封印、公開、deploy、printApproval変更ではない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

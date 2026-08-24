@@ -3382,6 +3382,7 @@ function finishSurfaceAngleDiagnosis(
   }
   refreshOverhangSupportSiteOverlay();
   showSurfaceAngleDiagnosisView("before");
+  applyLocalReviewCamera(message.basePositions);
   ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
   refreshPrintProfileSummary();
   refreshMotifLowestPointMarkers();
@@ -4265,24 +4266,156 @@ function updateEmptyViewportHint(): void {
   tutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 };
 
+type LocalV088ReviewCase = "A" | "B";
+type LocalV088ReviewView = "top" | "side" | "back";
+
+let localV088ReviewSelection: {
+  reviewCase: LocalV088ReviewCase;
+  view: LocalV088ReviewView;
+} | null = null;
+
+function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV088ReviewSelection>): void {
+  document.querySelector(".local-v088-review-navigation")?.remove();
+  const panel = document.createElement("aside");
+  panel.className = "local-v088-review-navigation";
+  Object.assign(panel.style, {
+    position: "fixed",
+    left: "50%",
+    top: "12px",
+    transform: "translateX(-50%)",
+    zIndex: "1000",
+    display: "grid",
+    gap: "6px",
+    padding: "10px 12px",
+    border: "1px solid rgba(255,255,255,0.28)",
+    borderRadius: "8px",
+    background: "rgba(18,18,20,0.90)",
+    color: "#f5f5f5",
+    font: "12px/1.35 Helvetica Neue, Arial, sans-serif",
+    boxShadow: "0 6px 22px rgba(0,0,0,0.25)",
+  });
+  const title = document.createElement("strong");
+  title.textContent = "v088 exception review · Case " + selection.reviewCase + " · " + selection.view;
+  panel.append(title);
+  const settings = document.createElement("span");
+  settings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
+  panel.append(settings);
+  const legend = document.createElement("span");
+  legend.textContent = "inside 青 · outside オレンジ · mixed 紫 · unresolved 赤";
+  panel.append(legend);
+  const navigation = document.createElement("nav");
+  Object.assign(navigation.style, { display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" });
+  const choices: Array<[string, LocalV088ReviewCase, LocalV088ReviewView]> = [
+    ["A 上", "A", "top"], ["A 横", "A", "side"], ["A 裏", "A", "back"],
+    ["B 上", "B", "top"], ["B 横", "B", "side"], ["B 裏", "B", "back"],
+  ];
+  for (const [label, reviewCase, view] of choices) {
+    const link = document.createElement("a");
+    link.textContent = label;
+    link.href = "?reviewCase=" + reviewCase + "&view=" + view;
+    const active = reviewCase === selection.reviewCase && view === selection.view;
+    Object.assign(link.style, {
+      color: active ? "#111" : "#fff",
+      background: active ? "#fff" : "transparent",
+      border: "1px solid rgba(255,255,255,0.55)",
+      borderRadius: "999px",
+      padding: "3px 8px",
+      textDecoration: "none",
+    });
+    navigation.append(link);
+  }
+  panel.append(navigation);
+  document.body.append(panel);
+}
+
+function applyLocalReviewCamera(positions: Float32Array): void {
+  if (!localV088ReviewSelection || positions.length < 3) return;
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let i = 0; i < positions.length; i += 3) {
+    minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i]);
+    minY = Math.min(minY, positions[i + 1]); maxY = Math.max(maxY, positions[i + 1]);
+    minZ = Math.min(minZ, positions[i + 2]); maxZ = Math.max(maxZ, positions[i + 2]);
+  }
+  const centerX = (minX + maxX) * 0.5;
+  const centerY = (minY + maxY) * 0.5;
+  const centerZ = (minZ + maxZ) * 0.5;
+  const span = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 0.01);
+  const distance = span * 1.75;
+  skinRenderer.controls.target.set(centerX, centerY, centerZ);
+  if (localV088ReviewSelection.view === "top") {
+    skinRenderer.camera.up.set(0, 1, 0);
+    skinRenderer.camera.position.set(centerX, centerY, centerZ + distance);
+  } else if (localV088ReviewSelection.view === "side") {
+    skinRenderer.camera.up.set(0, 0, 1);
+    skinRenderer.camera.position.set(centerX + distance, centerY, centerZ);
+  } else {
+    skinRenderer.camera.up.set(0, 0, 1);
+    skinRenderer.camera.position.set(centerX, centerY - distance, centerZ);
+  }
+  skinRenderer.camera.near = Math.max(span / 1000, 0.001);
+  skinRenderer.camera.far = span * 20;
+  skinRenderer.camera.updateProjectionMatrix();
+  skinRenderer.controls.update();
+  skinRenderer.render();
+}
+
 async function loadLocalV088ReviewFixture(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
-  if (
-    params.get("reviewFixture") !== "v088-low"
-    || !["127.0.0.1", "localhost"].includes(window.location.hostname)
-  ) return;
+  if (!["127.0.0.1", "localhost"].includes(window.location.hostname)) return;
+
+  const reviewCase = params.get("reviewCase");
+  if (reviewCase === "A" || reviewCase === "B") {
+    const view = params.get("view");
+    localV088ReviewSelection = {
+      reviewCase,
+      view: view === "side" || view === "back" ? view : "top",
+    };
+    installLocalV088ReviewNavigation(localV088ReviewSelection);
+    try {
+      const recipe = reviewCase === "A"
+        ? {
+            url: new URL("./presets/skin-v087-actual-review-source.recipe.json", import.meta.url),
+            filename: "skin-v087-actual-review-source.recipe.json",
+            label: "Case A · actual v087 Shape Recipe",
+          }
+        : {
+            url: new URL("../../../samples/yohaku-skin-plate-20260719.recipe.json", import.meta.url),
+            filename: "yohaku-skin-plate-20260719.recipe.json",
+            label: "Case B · existing boundary stress recipe",
+          };
+      ui.setSurfaceAngleDiagnosisStatus(recipe.label + ": recipeを読み込んでいます…");
+      const response = await fetch(recipe.url);
+      if (!response.ok) throw new Error("recipe HTTP " + response.status);
+      const recipeText = await response.text();
+      await importHistory(new File([recipeText], recipe.filename, { type: "application/json" }));
+      ui.setMeshOptions({ resolution: 48, targetLongestMm: 119.5 });
+      ui.setSurfaceAngleThreshold(45);
+      ui.setSurfaceAngleDiagnosisStatus(recipe.label + ": Surface48支持点を診断しています…");
+      startSurfaceAngleDiagnosis(45);
+      const revealReviewPanel = () => document.querySelector<HTMLElement>(".surface-angle-diagnosis")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(revealReviewPanel, 1500);
+      window.setTimeout(revealReviewPanel, 6000);
+    } catch (error) {
+      ui.setSurfaceAngleDiagnosisStatus("review caseを読み込めませんでした: " + (error as Error).message, false);
+    }
+    return;
+  }
+
+  if (params.get("reviewFixture") !== "v088-low") return;
   try {
     ui.setSurfaceAngleDiagnosisStatus("review fixture: recipeを読み込んでいます…");
     const recipeUrl = new URL("./presets/skin-v088-low-resolution-fixture.recipe.json", import.meta.url);
     const recipeResponse = await fetch(recipeUrl);
-    if (!recipeResponse.ok) throw new Error(`recipe HTTP ${recipeResponse.status}`);
+    if (!recipeResponse.ok) throw new Error("recipe HTTP " + recipeResponse.status);
     const recipeText = await recipeResponse.text();
     await importHistory(new File([recipeText], "skin-v088-low-resolution-fixture.recipe.json", { type: "application/json" }));
 
     ui.setSurfaceAngleDiagnosisStatus("review fixture: Print Profileを読み込んでいます…");
     const profileUrl = new URL("./presets/skin-v088-low-resolution-fixture.print-profile.json", import.meta.url);
     const profileResponse = await fetch(profileUrl);
-    if (!profileResponse.ok) throw new Error(`Print Profile HTTP ${profileResponse.status}`);
+    if (!profileResponse.ok) throw new Error("Print Profile HTTP " + profileResponse.status);
     const profileText = await profileResponse.text();
     await importPrintProfile(new File([profileText], "skin-v088-low-resolution-fixture.print-profile.json", { type: "application/json" }));
 
@@ -4293,7 +4426,7 @@ async function loadLocalV088ReviewFixture(): Promise<void> {
     window.setTimeout(revealReviewPanel, 1500);
     window.setTimeout(revealReviewPanel, 5000);
   } catch (error) {
-    ui.setSurfaceAngleDiagnosisStatus(`review fixtureを読み込めませんでした: ${(error as Error).message}`, false);
+    ui.setSurfaceAngleDiagnosisStatus("review fixtureを読み込めませんでした: " + (error as Error).message, false);
   }
 }
 
