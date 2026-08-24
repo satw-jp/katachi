@@ -417,6 +417,12 @@ const scaffold = buildExternalPerimeterScaffold(
   bodyPositions,
   { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: scaffoldBaseRadiusMm },
   explicitScaffoldTargets,
+  {
+    host: state.host,
+    hostK: state.hostParams.k,
+    scaleMmPerUnit: surface.scaleMmPerUnit,
+    rejectEmbeddedExplicitTargets: true,
+  },
 );
 if (!scaffold.stats.pillarCount || !scaffold.positions.length) {
   throw new Error("Fail closed: no external scaffold pillars (coverage=" + scaffold.stats.coverageFaceCount + ", collisionRejected=" + scaffold.stats.collisionRejectedFaceCount + ", shortRejected=" + scaffold.stats.shortRejectedFaceCount + ")");
@@ -463,9 +469,15 @@ if (fusedBefore.connectedComponents > 1 && fusedBefore.closed && fusedBefore.deg
   const expectedRemoved = detachedFragments.reduce((sum, component) => sum + component.triangleCount, 0);
   const totalTriangles = summaries.reduce((sum, component) => sum + component.triangleCount, 0);
   const largest = summaries[0];
+  const detachedShare = expectedRemoved / totalTriangles;
+  const maximumScaffoldCrossSectionMm = scaffoldBaseRadiusMm * 4;
+  const detachedComponentsAreScaffoldLike = detachedFragments.every((component) =>
+    Math.min(component.boundsMm.size.x, component.boundsMm.size.y) <= maximumScaffoldCrossSectionMm
+  );
   const removable = detachedFragments.length > 0
     && largest.boundsMm.longest >= targetLongestMm * 0.95
-    && expectedRemoved / totalTriangles <= 0.005;
+    && detachedShare <= 0.02
+    && detachedComponentsAreScaffoldLike;
   if (removable) {
     const cleaned = keepLargestSavedTriangleComponent(fusedForSave.triangles, fusedForSave.scaleMmPerUnit);
     if (cleaned.removedTriangleCount !== expectedRemoved) throw new Error("Fail closed: detached fragment cleanup count mismatch");

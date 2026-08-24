@@ -1,3 +1,5 @@
+import { fieldSdf, type Ball } from "../cloud-sculpt/field.ts";
+
 /**
  * Printable, removable support columns owned by Katachi.
  *
@@ -23,6 +25,14 @@ export interface ExternalScaffoldOptions {
   sides: number;
 }
 
+export interface ExternalScaffoldInteriorPolicy {
+  host: Ball[];
+  hostK: number;
+  scaleMmPerUnit: number;
+  clearanceMm?: number;
+  rejectEmbeddedExplicitTargets?: boolean;
+}
+
 export interface ExternalScaffoldTarget {
   xMm: number;
   yMm: number;
@@ -37,10 +47,12 @@ export interface ExternalScaffoldStats {
   coverageFaceCount: number;
   perimeterFaceCount: number;
   collisionRejectedFaceCount: number;
+  baseInteriorRejectedFaceCount: number;
   shortRejectedFaceCount: number;
   spacingRejectedFaceCount: number;
   explicitTargetCount: number;
   explicitTargetCollisionRejectedCount: number;
+  explicitTargetBaseInteriorRejectedCount: number;
   explicitTargetShortRejectedCount: number;
   explicitTargetEmbeddedColumnCount: number;
   explicitTargetSpacingRejectedCount: number;
@@ -233,6 +245,39 @@ function corridorIsClear(
   return true;
 }
 
+function columnEntersBaseInterior(
+  candidate: Candidate,
+  plateZ: number,
+  topZ: number,
+  radius: number,
+  policy: ExternalScaffoldInteriorPolicy,
+): boolean {
+  if (!(policy.scaleMmPerUnit > 0) || !Number.isFinite(policy.scaleMmPerUnit) || policy.host.length === 0) {
+    throw new Error("Fail closed: ベース内部除外policyが不正です");
+  }
+  const clearanceMm = Math.max(0, policy.clearanceMm ?? 0.05);
+  const scale = policy.scaleMmPerUnit;
+  const sampleRadius = Math.max(0, radius);
+  const xySamples: Point2[] = [
+    { x: candidate.x, y: candidate.y },
+    { x: candidate.x + sampleRadius, y: candidate.y },
+    { x: candidate.x - sampleRadius, y: candidate.y },
+    { x: candidate.x, y: candidate.y + sampleRadius },
+    { x: candidate.x, y: candidate.y - sampleRadius },
+  ];
+  for (const sample of xySamples) {
+    let z = plateZ;
+    let iterations = 0;
+    while (z <= topZ + 1e-6) {
+      if (++iterations > 10000) throw new Error("Fail closed: ベース内部除外の探索が収束しません");
+      const distanceMm = fieldSdf(policy.host, policy.hostK, sample.x / scale, sample.y / scale, z / scale) * scale;
+      if (distanceMm < -clearanceMm) return true;
+      z += Math.max(0.20, Math.min(1.50, Math.abs(distanceMm) * 0.70));
+    }
+  }
+  return false;
+}
+
 function appendTriangle(target: number[], a: number[], b: number[], c: number[]): void {
   target.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
 }
@@ -277,6 +322,7 @@ export function buildExternalPerimeterScaffold(
   bodyPositionsMm: Float32Array,
   partialOptions: Partial<ExternalScaffoldOptions> = {},
   explicitTargetsMm: ReadonlyArray<ExternalScaffoldTarget> = [],
+  interiorPolicy?: ExternalScaffoldInteriorPolicy,
 ): ExternalScaffoldResult {
   if (reachablePositionsMm.length % 9 !== 0) throw new Error("到達面bufferの長さが9の倍数ではありません");
   if (finalSurfacePositionsMm.length === 0 || finalSurfacePositionsMm.length % 9 !== 0) throw new Error("最終Surface bufferが不正です");
@@ -304,8 +350,10 @@ export function buildExternalPerimeterScaffold(
   let coverageFaceCount = 0;
   let perimeterFaceCount = 0;
   let collisionRejectedFaceCount = 0;
+  let baseInteriorRejectedFaceCount = 0;
   let shortRejectedFaceCount = 0;
   let explicitTargetCollisionRejectedCount = 0;
+  let explicitTargetBaseInteriorRejectedCount = 0;
   let explicitTargetShortRejectedCount = 0;
   let explicitTargetEmbeddedColumnCount = 0;
   for (let index = 0; index < explicitTargetsMm.length; index++) {
@@ -320,8 +368,17 @@ export function buildExternalPerimeterScaffold(
       throw new Error("明示支柱targetの接触寸法が不正です");
     }
     const collisionTopZ = candidate.z - TARGET_CONTACT_EXCLUSION_MM;
-    if (!corridorIsClear(bodyIndex, cellSize, candidate, plateZ, collisionTopZ, clearRadius, collisionEpsilon)) {
+    if (interiorPolicy && columnEntersBaseInterior(candidate, plateZ, collisionTopZ, clearRadius, interiorPolicy)) {
+      explicitTargetBaseInteriorRejectedCount++;
+      continue;
+    }
+    const embedded = !corridorIsClear(bodyIndex, cellSize, candidate, plateZ, collisionTopZ, clearRadius, collisionEpsilon);
+    if (embedded) {
       explicitTargetEmbeddedColumnCount++;
+      if (interiorPolicy?.rejectEmbeddedExplicitTargets) {
+        explicitTargetCollisionRejectedCount++;
+        continue;
+      }
     }
     candidates.push(candidate);
   }
@@ -349,6 +406,10 @@ export function buildExternalPerimeterScaffold(
     const collisionTopZ = candidate.z - TARGET_CONTACT_EXCLUSION_MM;
     if (collisionTopZ - plateZ < options.baseHeightMm + options.tipHeightMm + 0.2) {
       shortRejectedFaceCount++;
+      continue;
+    }
+    if (interiorPolicy && columnEntersBaseInterior(candidate, plateZ, collisionTopZ, clearRadius, interiorPolicy)) {
+      baseInteriorRejectedFaceCount++;
       continue;
     }
     if (!corridorIsClear(bodyIndex, cellSize, candidate, plateZ, collisionTopZ, clearRadius, collisionEpsilon)) {
@@ -402,10 +463,12 @@ export function buildExternalPerimeterScaffold(
       coverageFaceCount,
       perimeterFaceCount,
       collisionRejectedFaceCount,
+      baseInteriorRejectedFaceCount,
       shortRejectedFaceCount,
       spacingRejectedFaceCount,
       explicitTargetCount: explicitTargetsMm.length,
       explicitTargetCollisionRejectedCount,
+      explicitTargetBaseInteriorRejectedCount,
       explicitTargetShortRejectedCount,
       explicitTargetEmbeddedColumnCount,
       explicitTargetSpacingRejectedCount,

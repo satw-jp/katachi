@@ -58,6 +58,13 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       finalSurfaceMm,
       bodyPositionsMm,
       request.scaffoldOptions,
+      [],
+      {
+        host: request.fusedMeshInput.host,
+        hostK: request.fusedMeshInput.hostK,
+        scaleMmPerUnit: request.scaleMmPerUnit,
+        rejectEmbeddedExplicitTargets: true,
+      },
     );
     if (scaffold.stats.pillarCount === 0 || scaffold.positions.length === 0) {
       throw new Error(`外周の直線支柱を作れませんでした（全到達候補${scaffold.stats.coverageFaceCount}面・BODY衝突除外${scaffold.stats.collisionRejectedFaceCount}面・短すぎる除外${scaffold.stats.shortRejectedFaceCount}面）`);

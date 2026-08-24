@@ -2959,6 +2959,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     targetLongestMm: options.targetLongestMm,
     supportType,
     scaffoldOptions: DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS,
+    baseInteriorPolicy: "exclude-host-interior-v1",
     generatorVersion: manifest.version,
   });
   if (bambu3mfExportCache?.fingerprint === exportFingerprint) {

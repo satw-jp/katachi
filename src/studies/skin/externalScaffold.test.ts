@@ -77,6 +77,48 @@ test("slice feedback keeps a plate rail even when BODY intersects its vertical p
   assert.equal(result.pillars[0].contactRadiusMm, 0.12);
 });
 
+test("base-form interior policy removes internal columns but keeps an exterior column", () => {
+  const reachable = new Float32Array([...smallTriangle(5, 5, 5), ...smallTriangle(0.8, 5, 5)]);
+  const result = buildExternalPerimeterScaffold(
+    reachable,
+    square(5),
+    bodyWithPlate(),
+    {
+      spacingMm: 1, shaftRadiusMm: 0.2, baseRadiusMm: 0.3,
+      tipRadiusMm: 0.12, xyClearanceMm: 0.05, contactOverlapMm: 0.1,
+    },
+    [],
+    {
+      host: [{ id: 1, x: 5, y: 5, z: 2.5, r: 2.5 }],
+      hostK: 0,
+      scaleMmPerUnit: 1,
+      rejectEmbeddedExplicitTargets: true,
+    },
+  );
+  assert.equal(result.stats.baseInteriorRejectedFaceCount, 1);
+  assert.equal(result.stats.pillarCount, 1);
+  assert.ok(Math.abs(result.pillars[0].xMm - 0.8) < 1e-6);
+});
+test("next-candidate policy rejects an explicit slice-feedback rail that crosses BODY", () => {
+  const blocker = new Float32Array(smallTriangle(5, 5, 2));
+  const result = buildExternalPerimeterScaffold(
+    new Float32Array(0),
+    square(5),
+    bodyWithPlate(Array.from(blocker)),
+    { spacingMm: 1, shaftRadiusMm: 0.2, baseRadiusMm: 0.3, tipRadiusMm: 0.12, xyClearanceMm: 0.05, contactOverlapMm: 0.1 },
+    [{ xMm: 5, yMm: 5, zMm: 4 }],
+    {
+      host: [{ id: 1, x: 100, y: 100, z: 100, r: 1 }],
+      hostK: 0,
+      scaleMmPerUnit: 1,
+      rejectEmbeddedExplicitTargets: true,
+    },
+  );
+  assert.equal(result.stats.explicitTargetEmbeddedColumnCount, 1);
+  assert.equal(result.stats.explicitTargetCollisionRejectedCount, 1);
+  assert.equal(result.stats.explicitTargetBaseInteriorRejectedCount, 0);
+  assert.equal(result.stats.pillarCount, 0);
+});
 test("Bambu floating-shell feedback can enlarge only the contact bulb", () => {
   const result = buildExternalPerimeterScaffold(
     new Float32Array(0), square(10), bodyWithPlate(),

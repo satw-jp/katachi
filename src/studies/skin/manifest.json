@@ -72,6 +72,30 @@
   "revisits": [
     {
       "date": "2026-08-24",
+      "note": "v087 base-interior-free print candidate: Author observation preserved verbatim: retraction0でプリントしている今のところ大丈夫そう / プリントに時間がかかるので次の案を作りたい / いまベースのかたち内部にもサポートが入ってしまっている / ベースのかたちは実体は無いがここはサポートではなく、Drywebで解決するところだと思うのでサポートの除去と必要であればDrywebの修正して. The sealed v086 artifact and public stable v0.65 remain unchanged. An optional host-interior policy now rejects 1,074 normal candidate faces inside the implicit base, 114 explicit targets inside the base, and 106 explicit targets whose vertical rail crosses BODY, while retaining 135 exterior explicit rails. Planned pillars fall from v086 585 to v087 413. The unchanged targetedGrid Dry Web remains 1,490 nodes / 823 edges and passes the internal A1 mini gate, so no evidence-driven Dry Web geometry change was made. Exact Surface128/fused240 output removes 72 closed detached scaffold components / 35,712 triangles only under a narrow scaffold-cross-section, largest-body-size, and <=2% fail-closed rule; final 3MF is 2,372,868 faces, watertight, degenerate-free, one component, plate spread 0, minimum first-layer footprint 2.085 mm >= 1.5 mm. SHA-256 a8db96f1836e8e55d29639a2549e4d74b0f6ecffefab41438ae8b489dfe7b5d4. Bambu Studio 02.08.02.61 Slice was deliberately deferred to preserve the active unsaved retraction-0 print project, so normal/strict G-code reachability and physical behavior remain pending; printApproval=false. No deployment was performed."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "Screenshot observation: Bambu Studio 02.06.00.51 showed Generic PLA @BBL A1M > Setting Overrides > Retraction with only Length enabled at a measured baseline of 0.8 mm; all other retraction overrides were unchecked/N/A. The first untested printer-side comparison is Length 0.6 mm only, saved as a separate user preset, with no simultaneous Travel distance threshold, speed, temperature, or geometry change. This is a 25% one-step hypothesis, not a proven anti-clog value. No setting was changed by the observer, no reslice/print was started, and the sealed v086 artifact remains unchanged with printApproval=false."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "Screenshot-grounded Q&A preserved verbatim: どこだ. On the supplied Bambu Studio 02.06.00.51 screen, the correct entry is the circular ellipsis at the right edge of the Generic PLA row under Project Filaments, not the currently open Process > Others > G-code output > Reduce infill retraction control. No UI action, setting change, reslice, geometry change, or deployment was performed."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "Q&A preserved verbatim: bambustudioでどこを触ればいい？ For Bambu Studio 02.06.00.51, recorded the non-geometry path Prepare > Filament preset edit > Advanced > Setting Overrides > Retraction > Length. The current value must be recorded and changed by one small step in a duplicated user preset; Minimum travel is a separate frequency comparison and must not be changed simultaneously. No setting was actually changed, no reslice or print was initiated, and exact v086 remains sealed with printApproval=false."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "Printer-side countermeasure question recorded verbatim: データを直すのではなく例えば3Dプリンターで引き戻しを減らすのはどうだろう？ Retraction reduction was kept as an untested hypothesis, not a confirmed fix. The note distinguishes reducing retraction length from reducing retraction frequency through minimum-travel behavior, records stringing/ooze/restart-blob tradeoffs, and limits the next comparison to three printer-side candidates tested one variable at a time. Exact v086 geometry and sealed artifacts remain unchanged with printApproval=false. No setting, code, mesh, 3MF, calculation, publication, or deployment was changed."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "Physical print observation recorded verbatim and classified as a print-blocking issue: データではなく3Dプリンターの問題で小さな点（今回はサポート）をたくさん打つと詰まってしまうので対策を考える必要がある. The author currently identifies the problem as printer-side rather than malformed shape data. Cause candidates and human judgment points were kept separate; no cause was declared. Three non-implemented next comparisons were recorded: isolate nozzle/feed/material conditions, correlate the clog with dense short-extrusion/retraction layers in slicer Preview, and only if printer-side measures are insufficient compare a shape-preserving continuous support path. Exact v086 remains sealed with printApproval=false. No code, recalculation, artifact generation, publication, or deployment was performed."
+    },
+    {
+      "date": "2026-08-24",
       "note": "v086 PRINT-CANDIDATE SEAL: Existing 3MF, recipe, normal/strict reachability reports, validation JSON and SHA-256 list were preserved without recalculation. Current SKIN-scoped changes were checkpointed under local tag skin-v086-print-candidate-checkpoint-20260824; unrelated result.json was excluded. status=AWAITING_PHYSICAL_PRINT_OBSERVATION and printApproval=false. Public stable v0.65 was not changed, no publication/deployment occurred, and no next candidate was generated."
     },
     {

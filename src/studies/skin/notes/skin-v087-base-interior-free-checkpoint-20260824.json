@@ -1,0 +1,90 @@
+{
+  "schema": "katachi.skin.print-candidate-checkpoint.v1",
+  "sealedAt": "2026-08-24",
+  "status": "AWAITING_BAMBU_SLICE_AND_PHYSICAL_PRINT_OBSERVATION",
+  "printApproval": false,
+  "candidate": {
+    "artifactVersion": "v087",
+    "description": "base-interior-free development candidate",
+    "sealedCandidateBase": "v086",
+    "approvedForPrint": false
+  },
+  "artifactPolicy": {
+    "reusedExistingHighResolutionArtifact": true,
+    "recalculatedDuringSeal": false,
+    "generatedNewCandidateDuringSeal": false,
+    "slicedDuringSeal": false,
+    "publishedDuringSeal": false,
+    "deployedDuringSeal": false,
+    "shapeChangedDuringSeal": false
+  },
+  "validationSummary": {
+    "targetLongestMm": 119.5,
+    "surfaceResolution": 128,
+    "fusedResolution": 240,
+    "workerCount": 10,
+    "angleThresholdDeg": 45,
+    "internalStructure": "targetedGrid / Dry Web",
+    "internalGraphNodes": 1490,
+    "internalGraphEdges": 823,
+    "dryWebNormalizedRadius": 0.045,
+    "scaffoldPillarCount": 413,
+    "meshFaceCount": 2372868,
+    "connectedComponents": 1,
+    "watertight": true,
+    "degenerateTriangles": 0,
+    "plateAnchorOk": true,
+    "plateSpreadMm": 0,
+    "minimumFirstLayerFootprintMm": 2.0854148915150725,
+    "requiredFirstLayerFootprintMm": 1.5,
+    "sliceStatus": "PENDING"
+  },
+  "artifacts": [
+    {
+      "role": "DEVELOPMENT_CANDIDATE_3MF",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.3mf",
+      "sha256": "a8db96f1836e8e55d29639a2549e4d74b0f6ecffefab41438ae8b489dfe7b5d4"
+    },
+    {
+      "role": "RECIPE",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.recipe.json",
+      "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+    },
+    {
+      "role": "VALIDATION",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.validation.json",
+      "sha256": "8d13425d9569c290cfecc9d56c1e36f6ed181784ec91e9d2b2f01505ccc17603"
+    },
+    {
+      "role": "SHA256_LIST",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.sha256"
+    }
+  ],
+  "codeState": {
+    "repository": "/Users/atsushisato/Projects/active/Katachi",
+    "branch": "agent/hikari-docs-and-publish",
+    "parentCheckpointCommit": "48e132ad3f8e42961dbe5e61b91c68c59b4bc42b",
+    "checkpointTag": "skin-v087-base-interior-free-candidate-checkpoint-20260824",
+    "includedPaths": [
+      "scripts/export-skin-bambu-3mf.ts",
+      "src/studies/skin/README.md",
+      "src/studies/skin/bambu3mf.worker.ts",
+      "src/studies/skin/externalScaffold.test.ts",
+      "src/studies/skin/externalScaffold.ts",
+      "src/studies/skin/main.ts",
+      "src/studies/skin/manifest.json",
+      "src/studies/skin/notes/skin-v087-base-interior-free-candidate-20260824.json",
+      "src/studies/skin/notes/skin-v087-base-interior-free-checkpoint-20260824.json"
+    ],
+    "excludedDirtyPaths": [
+      "result.json"
+    ]
+  },
+  "knownLimits": [
+    "Bambu Studio Slice has not been run for v087.",
+    "Normal and strict G-code reachability have not been measured for v087.",
+    "No physical print observation exists for v087.",
+    "The candidate is not approved for printing."
+  ],
+  "nextStep": "Keep v087 sealed as an unapproved development candidate. Do not print-promote, publish, deploy, or alter its geometry until Bambu Slice and human physical-print observations are explicitly requested."
+}

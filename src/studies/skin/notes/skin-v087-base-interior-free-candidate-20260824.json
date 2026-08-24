@@ -1,0 +1,87 @@
+{
+  "schema": "katachi.skin.print-candidate-validation.v1",
+  "candidate": "v087",
+  "status": "AWAITING_BAMBU_SLICE_AND_PHYSICAL_PRINT_OBSERVATION",
+  "printApproval": false,
+  "generatedAt": "2026-08-24T17:45:00+09:00",
+  "authorObservation": "retraction0でプリントしている今のところ大丈夫そう\nプリントに時間がかかるので次の案を作りたい\nいまベースのかたち内部にもサポートが入ってしまっている\nベースのかたちは実体は無いがここはサポートではなく、Drywebで解決するところだと思うのでサポートの除去と必要であればDrywebの修正して",
+  "source": {
+    "sealedCandidate": "v086",
+    "sealedCandidateChanged": false,
+    "publicStableVersion": "v0.65",
+    "publicStableChanged": false,
+    "deployed": false,
+    "targetLongestMm": 119.5,
+    "surfaceResolution": 128,
+    "fusedResolution": 240,
+    "workers": 10,
+    "thresholdDeg": 45
+  },
+  "dryWeb": {
+    "structure": "targetedGrid / Dry Web",
+    "nodes": 1490,
+    "edges": 823,
+    "recipeInternalRadius": 0.045,
+    "changedFromV086": false,
+    "internalPrintGateOk": true,
+    "decision": "同一Dry Webで内部最終判定がOKのため修正しない"
+  },
+  "removableScaffold": {
+    "v086PillarCount": 585,
+    "v087PlannedPillarCount": 413,
+    "baseInteriorRejectedFaceCount": 1074,
+    "explicitTargetCount": 509,
+    "explicitTargetBaseInteriorRejectedCount": 114,
+    "explicitTargetEmbeddedColumnCount": 106,
+    "explicitTargetCollisionRejectedCount": 106,
+    "explicitTargetPillarCount": 135,
+    "detachedScaffoldComponentCountBeforeCleanup": 72,
+    "detachedScaffoldTriangleCountRemoved": 35712,
+    "shaftRadiusMm": 0.7,
+    "bedFootRadiusMm": 1.2
+  },
+  "geometry": {
+    "meshFaces": 2372868,
+    "connectedComponents": 1,
+    "watertight": true,
+    "degenerateTriangles": 0,
+    "archiveBytes": 36002744
+  },
+  "plateAnchor": {
+    "ok": true,
+    "pillarCount": 413,
+    "plateSpreadMm": 0,
+    "plateClearanceMm": 0,
+    "minimumFirstLayerFootprintMm": 2.0854148915150725,
+    "requiredFirstLayerFootprintMm": 1.5,
+    "normalizationCorrectionMm": 0.14475314046865875
+  },
+  "slice": {
+    "status": "PENDING",
+    "installedBambuStudioVersion": "02.08.02.61",
+    "v086ValidationEngineVersion": "02.06.00.51",
+    "reason": "印刷中の未保存retraction 0プロジェクトを保持するため、既存Bambu Studio画面を切り替えなかった",
+    "normalReachability": null,
+    "strictReachability": null
+  },
+  "files": {
+    "threeMf": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.3mf",
+    "recipe": "/Users/atsushisato/Downloads/katachi-skin-v087-a1mini-pla-020-119p5mm-base-interior-free-print-candidate.recipe.json"
+  },
+  "sha256": {
+    "threeMf": "a8db96f1836e8e55d29639a2549e4d74b0f6ecffefab41438ae8b489dfe7b5d4",
+    "recipe": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+  },
+  "codeState": {
+    "repository": "/Users/atsushisato/Projects/active/Katachi",
+    "branch": "agent/hikari-docs-and-publish",
+    "baseHead": "48e132ad3f8e42961dbe5e61b91c68c59b4bc42b",
+    "publicStableFrozen": true,
+    "unrelatedDirtyPathPreserved": "result.json"
+  },
+  "nextHumanJudgment": [
+    "現在のretraction 0印刷が最後まで成立するか、糸引き・垂れ・詰まり再発を観察する",
+    "印刷後にv087をBambu Studio 02.08.02.61で再Sliceし、通常・厳格raster到達性を確認する",
+    "v087実物で外側支柱の不足、Dry Web強度、支柱除去性、表面痕を観察する"
+  ]
+}
