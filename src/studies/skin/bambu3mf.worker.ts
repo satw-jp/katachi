@@ -58,7 +58,6 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       diagnosedFaces: dangerMm,
       explicitTargets: plan.explicitScaffoldTargets,
       finalSurfacePositionsMm: finalSurfaceMm,
-      bodyPositionsMm,
     });
     assertResolvedPrintPlanSupportCounts(plan, assignments.counts);
     const reachability = filterSupportEnforcerReachability(assignments.outsideFacePositionsMm, finalSurfaceMm);

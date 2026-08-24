@@ -74,8 +74,6 @@ export interface OverhangSupportPolicyInput {
   diagnosedFaces?: Float32Array | readonly (Float32Array | readonly number[])[];
   explicitTargets?: readonly OverhangExplicitTargetMm[];
   finalSurfacePositionsMm: Float32Array;
-  /** BODY can contribute additional lower occlusion; malformed BODY fails closed. */
-  bodyPositionsMm?: Float32Array;
 }
 
 export interface OverhangDryWebTarget {
@@ -153,10 +151,11 @@ function flattenFaces(faces: Float32Array | readonly (Float32Array | readonly nu
 
 /** Build a mixed diagnosed-face/Profile ledger with deterministic IDs. */
 export function assignOverhangSupportTargets(input: OverhangSupportPolicyInput): OverhangSupportPolicyResult {
-  const finalSurface = input.bodyPositionsMm
-    ? new Float32Array([...input.finalSurfacePositionsMm, ...input.bodyPositionsMm])
-    : input.finalSurfacePositionsMm;
-  const reachability = createSupportReachabilityIndex(finalSurface);
+  // Classification is deliberately based on the final Surface only. An
+  // already-built Dry Web is an output of inside assignment, not another
+  // occluder; including it would make browser export reclassify its own
+  // result and drift from the CLI/app Profile ledger.
+  const reachability = createSupportReachabilityIndex(input.finalSurfacePositionsMm);
   const targets = input.targets
     ? Array.from(input.targets)
     : [

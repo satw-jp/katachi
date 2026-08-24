@@ -32,6 +32,7 @@ import { buildVoronoiInternalStructure } from "../src/studies/skin/voronoi.ts";
 import { evaluateInternalPrintGate } from "../src/studies/skin/internalPrintGate.ts";
 import { filterSupportEnforcerReachability } from "../src/studies/skin/supportReachability.ts";
 import { assignOverhangSupportTargets, validateOverhangAssignmentLedger } from "../src/studies/skin/overhangSupportPolicy.ts";
+import { buildOverhangSupportDiagnostic } from "../src/studies/skin/overhangSupportDiagnostic.ts";
 import { parseBodyProvenance, validateBodyProvenanceGraph, validateBodyProvenanceInput } from "../src/studies/skin/bodyProvenance.ts";
 import {
   assertResolvedPrintPlanSupportCounts, bboxFromPositionsMm, buildPrintValidationFacts, geometryFingerprintLowResolution, printProfileSha256,
@@ -52,6 +53,8 @@ const bodyStlPath = option("--body-stl");
 const bodyProvenancePath = option("--body-provenance");
 const sliceFeedbackReportPath = option("--slice-feedback-report");
 const sliceFeedbackStlPath = option("--slice-feedback-stl");
+const overhangDiagnosticPath = option("--overhang-diagnostic");
+const diagnosticOnly = process.argv.includes("--diagnostic-only");
 if (!recipePath || !outputPath || !resolve(recipePath).startsWith("/") || !resolve(outputPath).startsWith("/")) {
   throw new Error("Usage: npx tsx scripts/export-skin-bambu-3mf.ts --recipe <absolute JSON> --output <absolute .3mf> [--body-stl <absolute binary STL> --body-provenance <absolute JSON>]");
 }
@@ -77,6 +80,8 @@ if (Boolean(bodyStlPath) !== Boolean(bodyProvenancePath)) throw new Error("--bod
 if (Boolean(sliceFeedbackReportPath) !== Boolean(sliceFeedbackStlPath)) throw new Error("--slice-feedback-report and --slice-feedback-stl must be supplied together");
 if (sliceFeedbackReportPath && !sliceFeedbackReportPath.startsWith("/")) throw new Error("--slice-feedback-report must be an absolute path");
 if (sliceFeedbackStlPath && !sliceFeedbackStlPath.startsWith("/")) throw new Error("--slice-feedback-stl must be an absolute path");
+if (overhangDiagnosticPath && !overhangDiagnosticPath.startsWith("/")) throw new Error("--overhang-diagnostic must be an absolute path");
+if (diagnosticOnly && !overhangDiagnosticPath) throw new Error("--diagnostic-only requires --overhang-diagnostic");
 if (!Number.isFinite(targetLongestMm) || targetLongestMm <= 0 || !Number.isFinite(fusedResolution) || !Number.isFinite(thresholdDeg) || !Number.isFinite(requestedWorkers) || !Number.isFinite(scaffoldBaseRadiusMm) || scaffoldBaseRadiusMm < DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.shaftRadiusMm || supportType !== "normal(manual)") throw new Error("Invalid numeric, worker, scaffold base, or supportType option: porous SKIN accepts only normal(manual)");
 
 const stage = (name: string): void => console.error("stage: " + name);
@@ -382,11 +387,43 @@ const scaffoldOptions = printPlan
   : { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: scaffoldBaseRadiusMm };
 stage("reachability policy");
 const initialDiagnosis = diagnoseSurfaceAnglePositions(surfacePositions, null, thresholdDeg, meshStep);
+// The policy index is expressed in millimetres. Keep the diagnosed faces in
+// that same coordinate system; passing source units here collapses scaffold
+// contacts toward the origin and can make the fused first layer miss its
+// recorded plate anchors at low resolution.
+const initialDangerPositionsMm = new Float32Array(
+  initialDiagnosis.beforeDangerPositions.map((value) => value * surface.scaleMmPerUnit),
+);
 const assignments = assignOverhangSupportTargets({
-  diagnosedFaces: initialDiagnosis.beforeDangerPositions.map((value, index, values) => index % 9 === 0 ? values.slice(index, index + 9) : new Float32Array(0)).filter((face) => face.length === 9),
+  diagnosedFaces: initialDangerPositionsMm,
   explicitTargets: explicitScaffoldTargets,
   finalSurfacePositionsMm: surfacePositionsMm,
 });
+if (overhangDiagnosticPath) {
+  let plateZMm = Infinity;
+  for (let offset = 2; offset < surfacePositionsMm.length; offset += 3) plateZMm = Math.min(plateZMm, surfacePositionsMm[offset]);
+  const dryWebConnectionCandidatesMm = state.patches.flatMap((patch) => patch.points
+    .filter((point) => point.role !== "bridge" && point.role !== "surfaceConnector")
+    .map((point) => ({
+      xMm: point.x * surface.scaleMmPerUnit,
+      yMm: point.y * surface.scaleMmPerUnit,
+      zMm: point.z * surface.scaleMmPerUnit,
+    })));
+  const diagnostic = buildOverhangSupportDiagnostic({
+    ledger: assignments,
+    finalSurfacePositionsMm: surfacePositionsMm,
+    dryWebConnectionCandidatesMm,
+    plateZMm,
+  });
+  await mkdir(dirname(overhangDiagnosticPath), { recursive: true });
+  await writeFile(overhangDiagnosticPath, JSON.stringify(diagnostic, null, 2) + "\n", "utf8");
+  stage(`overhang diagnostic unresolved=${diagnostic.summary.unresolvedTotal} base=${diagnostic.summary.baseClassificationUnresolved} inside-no-dry-web=${diagnostic.summary.insideDryWebDestinationMissing} outside-no-scaffold=${diagnostic.summary.outsideScaffoldDestinationMissing} other=${diagnostic.summary.other}`);
+  if (diagnosticOnly) {
+    // Deliberately stop before Dry Web, BODY, scaffold, fusion, or archive work.
+    // This is a fail-closed observation path, not an export bypass.
+    throw new Error(`Diagnostic-only stop: unresolved overhang targets (${diagnostic.summary.unresolvedTotal})`);
+  }
+}
 if (printPlan) assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts);
 else validateOverhangAssignmentLedger(assignments);
 stage(`classification policy=${assignments.policy} total=${assignments.counts.total} inside=${assignments.counts.inside} outside=${assignments.counts.outside} unresolved=${assignments.counts.unresolved}`);

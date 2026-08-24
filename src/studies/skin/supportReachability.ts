@@ -34,12 +34,28 @@ export interface SupportReachabilityResult extends SupportReachabilityFacts {
 
 export type SupportReachabilityClassification = "outside" | "inside" | "unresolved";
 
+export interface SupportReachabilitySampleDiagnosis {
+  xMm: number;
+  yMm: number;
+  zMm: number;
+  classification: Exclude<SupportReachabilityClassification, "unresolved">;
+  nearestLowerIntersectionDistanceMm: number | null;
+}
+
+export interface SupportReachabilityTriangleDiagnosis {
+  classification: SupportReachabilityClassification;
+  samples: SupportReachabilitySampleDiagnosis[];
+  blockedSampleCount: number;
+  openSampleCount: number;
+}
+
 /** A reusable, deterministic lower-Surface index. The v088 policy uses this
  * same index for diagnosed faces and explicit Profile points so the CLI,
  * Worker, and app cannot drift into different routing rules. */
 export interface SupportReachabilityIndex extends SupportReachabilityFacts {
   classifyTriangle: (positions: Float32Array, offset?: number) => SupportReachabilityClassification;
   classifyPoint: (x: number, y: number, z: number) => SupportReachabilityClassification;
+  diagnoseTriangle: (positions: Float32Array, offset?: number) => SupportReachabilityTriangleDiagnosis;
 }
 
 type Triangle = { ax: number; ay: number; az: number; bx: number; by: number; bz: number; cx: number; cy: number; cz: number };
@@ -161,19 +177,33 @@ export function createSupportReachabilityIndex(finalSurfacePositionsMm: Float32A
   }
   if (surfaceTriangleCount === 0) throw new Error("Fail closed: 最終Surface occlusion meshに有効面がありません");
 
-  const classifyPoint = (x: number, y: number, z: number): SupportReachabilityClassification => {
-    if (![x, y, z].every(Number.isFinite)) return "unresolved";
+  const diagnosePoint = (x: number, y: number, z: number): SupportReachabilitySampleDiagnosis | null => {
+    if (![x, y, z].every(Number.isFinite)) return null;
     const bucket = grid.get(cellKey(Math.floor(x / gridCellSizeMm), Math.floor(y / gridCellSizeMm))) ?? [];
+    let nearestLowerIntersectionDistanceMm = Infinity;
     for (const surface of bucket) {
       const hitZ = zAtXY(surface, x, y);
-      if (hitZ !== null && hitZ < z - lowerIntersectionEpsilonMm) return "inside";
+      if (hitZ !== null && hitZ < z - lowerIntersectionEpsilonMm) {
+        nearestLowerIntersectionDistanceMm = Math.min(nearestLowerIntersectionDistanceMm, z - hitZ);
+      }
     }
-    return "outside";
+    return {
+      xMm: x,
+      yMm: y,
+      zMm: z,
+      classification: Number.isFinite(nearestLowerIntersectionDistanceMm) ? "inside" : "outside",
+      nearestLowerIntersectionDistanceMm: Number.isFinite(nearestLowerIntersectionDistanceMm)
+        ? nearestLowerIntersectionDistanceMm
+        : null,
+    };
   };
 
-  const classifyTriangle = (positions: Float32Array, offset = 0): SupportReachabilityClassification => {
+  const classifyPoint = (x: number, y: number, z: number): SupportReachabilityClassification =>
+    diagnosePoint(x, y, z)?.classification ?? "unresolved";
+
+  const diagnoseTriangle = (positions: Float32Array, offset = 0): SupportReachabilityTriangleDiagnosis => {
     const triangle = finiteTriangle(positions, offset);
-    if (!triangle) return "unresolved";
+    if (!triangle) return { classification: "unresolved", samples: [], blockedSampleCount: 0, openSampleCount: 0 };
     const vertices: Array<[number, number, number]> = [
       [triangle.ax, triangle.ay, triangle.az], [triangle.bx, triangle.by, triangle.bz], [triangle.cx, triangle.cy, triangle.cz],
     ];
@@ -193,19 +223,27 @@ export function createSupportReachabilityIndex(finalSurfacePositionsMm: Float32A
         point[2] * VERTEX_BIASED_WEIGHT + (otherA[2] + otherB[2]) * (1 - VERTEX_BIASED_WEIGHT) / 2,
       ]);
     }
-    let blocked = 0;
+    const diagnosedSamples: SupportReachabilitySampleDiagnosis[] = [];
     for (const [x, y, z] of samples) {
-      const classification = classifyPoint(x, y, z);
-      if (classification === "unresolved") return "unresolved";
-      if (classification === "inside") blocked++;
+      const diagnosis = diagnosePoint(x, y, z);
+      if (!diagnosis) return { classification: "unresolved", samples: diagnosedSamples, blockedSampleCount: 0, openSampleCount: 0 };
+      diagnosedSamples.push(diagnosis);
     }
-    if (blocked === 0) return "outside";
-    if (blocked === samples.length) return "inside";
-    return "unresolved";
+    const blockedSampleCount = diagnosedSamples.filter((sample) => sample.classification === "inside").length;
+    const openSampleCount = diagnosedSamples.length - blockedSampleCount;
+    return {
+      classification: blockedSampleCount === 0 ? "outside" : openSampleCount === 0 ? "inside" : "unresolved",
+      samples: diagnosedSamples,
+      blockedSampleCount,
+      openSampleCount,
+    };
   };
+
+  const classifyTriangle = (positions: Float32Array, offset = 0): SupportReachabilityClassification =>
+    diagnoseTriangle(positions, offset).classification;
 
   return {
     meshScaleMm, lowerIntersectionEpsilonMm, gridCellSizeMm, gridCellCount: grid.size,
-    surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint,
+    surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint, diagnoseTriangle,
   };
 }
