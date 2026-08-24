@@ -34,6 +34,12 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
   「布になったか点在か」が数字で読めるか
 - **立体リングだけでホストの総体形状が読める**（ホスト表示なしでも形が立ち上がる）か
 
+## Observation — Print Profile v1共有基盤（2026-08-24）
+
+`katachi.skin.print-profile.v1`はShape Recipeと分離し、recipe SHA-256とSeed、Surface／融合解像度、最長辺、角度閾値、Dry Webの正規化径と実寸径、scaffold各部のmm寸法、base-interior方針、printer／slicer条件を記録する。CLIとブラウザWorkerは同じ`ResolvedPrintPlan`導出を使い、Profile指定時の未記録CLI上書きはfail closedとする。アプリはProfile JSONの読込・保存と現在設定／実寸の一致状態を既存研究ノートUI内に表示する。既存recipe `formatVersion: 1`は変更していない。
+
+低解像度fixture（Surface 24／融合32）ではCLIとWorkerのResolvedPrintPlanおよび共通validation factsが一致し、Profile canonical SHA、recipe SHA／Seed照合、三角形順序非依存fingerprintを確認した。関連SKINテスト、テスト型検査、production build、`git diff --check`は合格。ブラウザ実操作、高精度生成／比較、Slice、印刷再現性の最終確認は未実施で次の独立タスクへ分離する。既存v087成果物は上書きせず、`printApproval=false`、公開・デプロイなし。
+
 ## Setup
 
 `src/studies/skin/` に自己完結。`skin.html` から起動。

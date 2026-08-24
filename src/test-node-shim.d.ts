@@ -1,3 +1,7 @@
+declare module "node:test" {
+  export function test(name: string, fn: () => void | Promise<void>): void;
+}
+
 declare module "node:assert/strict" {
   const assert: {
     ok(value: unknown, message?: string): asserts value;
@@ -6,7 +10,7 @@ declare module "node:assert/strict" {
     deepEqual(actual: unknown, expected: unknown, message?: string): void;
     notDeepEqual(actual: unknown, expected: unknown, message?: string): void;
     match(actual: string, expected: RegExp, message?: string): void;
-    throws(fn: () => unknown, message?: string): void;
+    throws(fn: () => unknown, message?: string | RegExp): void;
   };
   export default assert;
 }

@@ -41,6 +41,7 @@ export interface Bambu3mfOptions {
 
 export interface Bambu3mfStats {
   bodyFaces: number;
+  bodyVertices: number;
   scaffoldFaces: number;
   enforcerFaces: number;
   blockerFaces: number;
@@ -371,6 +372,7 @@ export function buildBambu3mfPackageEntries(
     entries,
     stats: {
       bodyFaces: sourceIndexed.filter((item) => item.volume.role === "body").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
+      bodyVertices: indexed.filter((item) => item.volume.role === "body").reduce((sum, item) => sum + item.mesh.vertices.length / 3, 0),
       scaffoldFaces: sourceIndexed.filter((item) => item.volume.role === "printable_support").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
       enforcerFaces: sourceIndexed.filter((item) => item.volume.role === "support_enforcer").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
       blockerFaces: sourceIndexed.filter((item) => item.volume.role === "support_blocker").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),

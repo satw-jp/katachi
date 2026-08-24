@@ -33,6 +33,10 @@ import { buildVoronoiInternalStructure } from "../src/studies/skin/voronoi.ts";
 import { evaluateInternalPrintGate } from "../src/studies/skin/internalPrintGate.ts";
 import { filterSupportEnforcerReachability } from "../src/studies/skin/supportReachability.ts";
 import { parseBodyProvenance, validateBodyProvenanceGraph, validateBodyProvenanceInput } from "../src/studies/skin/bodyProvenance.ts";
+import {
+  bboxFromPositionsMm, buildPrintValidationFacts, geometryFingerprintLowResolution, printProfileSha256,
+  resolveCliPrintPlan, validateSkinPrintProfile, type ResolvedPrintPlan, type SkinPrintProfileV1,
+} from "../src/studies/skin/printProfile.ts";
 
 function option(name: string, fallback?: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -42,6 +46,8 @@ function option(name: string, fallback?: string): string | undefined {
 const planOnly = process.argv.includes("--plan-only");
 const recipePath = option("--recipe");
 const outputPath = option("--output");
+const profilePath = option("--profile");
+const validationPath = option("--validation");
 const bodyStlPath = option("--body-stl");
 const bodyProvenancePath = option("--body-provenance");
 const sliceFeedbackReportPath = option("--slice-feedback-report");
@@ -49,16 +55,20 @@ const sliceFeedbackStlPath = option("--slice-feedback-stl");
 if (!recipePath || !outputPath || !resolve(recipePath).startsWith("/") || !resolve(outputPath).startsWith("/")) {
   throw new Error("Usage: npx tsx scripts/export-skin-bambu-3mf.ts --recipe <absolute JSON> --output <absolute .3mf> [--body-stl <absolute binary STL> --body-provenance <absolute JSON>]");
 }
-const targetLongestMm = Number(option("--targetLongestMm", "80"));
-const resolution = Math.max(16, Math.round(Number(option("--resolution", "128"))));
-const fusedResolution = Math.max(resolution, Math.round(Number(option("--fusedResolution", "160"))));
-const thresholdDeg = Number(option("--thresholdDeg", "45"));
-const scaffoldBaseRadiusMm = Number(option("--scaffoldBaseRadiusMm", String(DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseRadiusMm)));
+let targetLongestMm = Number(option("--targetLongestMm", "80"));
+let resolution = Math.max(16, Math.round(Number(option("--resolution", "128"))));
+let fusedResolution = Math.max(resolution, Math.round(Number(option("--fusedResolution", "160"))));
+let thresholdDeg = Number(option("--thresholdDeg", "45"));
+let scaffoldBaseRadiusMm = Number(option("--scaffoldBaseRadiusMm", String(DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseRadiusMm)));
 const supportType = option("--supportType", "normal(manual)") as "normal(manual)";
-const requestedWorkers = Math.max(
+let requestedWorkers = Math.max(
   1,
   Math.round(Number(option("--workers", String(Math.min(8, availableParallelism()))))),
 );
+if (profilePath && !profilePath.startsWith("/")) throw new Error("--profile must be an absolute path");
+if (validationPath && !validationPath.startsWith("/")) throw new Error("--validation must be an absolute path");
+const profileForbiddenOverrides = ["--targetLongestMm", "--resolution", "--fusedResolution", "--thresholdDeg", "--scaffoldBaseRadiusMm", "--supportType", "--workers", "--slice-feedback-report", "--slice-feedback-stl"].filter((name) => process.argv.includes(name));
+if (profilePath && profileForbiddenOverrides.length > 0) throw new Error("Fail closed: --profile forbids unrecorded CLI overrides: " + profileForbiddenOverrides.join(", "));
 if (bodyStlPath && !bodyStlPath.startsWith("/")) throw new Error("--body-stl must be an absolute path");
 if (bodyProvenancePath && !bodyProvenancePath.startsWith("/")) throw new Error("--body-provenance must be an absolute path");
 if (Boolean(bodyStlPath) !== Boolean(bodyProvenancePath)) throw new Error("--body-stl and --body-provenance must be supplied together");
@@ -272,6 +282,25 @@ const entries = parseRecipe(recipeBytes.toString("utf8"));
 const state = replay(entries);
 const internalStructure = state.skinParams.internalStructure;
 if (internalStructure !== "targetedGrid" && internalStructure !== "voronoiEdge") throw new Error("Fail closed: recipe must enable an Internal Structure");
+let activePrintProfile: SkinPrintProfileV1 | null = null;
+let activePrintProfileSha256: string | null = null;
+let printPlan: ResolvedPrintPlan | null = null;
+if (profilePath) {
+  stage("Print Profile");
+  activePrintProfile = validateSkinPrintProfile(JSON.parse(await readFile(profilePath, "utf8")));
+  activePrintProfileSha256 = await printProfileSha256(activePrintProfile);
+  targetLongestMm = activePrintProfile.geometry.targetLongestMm;
+  resolution = activePrintProfile.geometry.surfaceResolution;
+  fusedResolution = activePrintProfile.geometry.fusedResolution;
+  thresholdDeg = activePrintProfile.geometry.angleThresholdDeg;
+  scaffoldBaseRadiusMm = activePrintProfile.scaffold.footRadiusMm;
+  requestedWorkers = activePrintProfile.executionHints.workerCount;
+  printPlan = resolveCliPrintPlan(activePrintProfile, activePrintProfileSha256, {
+    recipeSha256, seed: state.hostParams.seed, currentInternalStructure: internalStructure,
+    currentDryWebNormalizedRadius: state.skinParams.internalRadius, currentTargetLongestMm: targetLongestMm,
+    currentSurfaceResolution: resolution, currentFusedResolution: fusedResolution, currentAngleThresholdDeg: thresholdDeg,
+  });
+}
 let suppliedBody: {
   positions: Float32Array;
   watertight: ReturnType<typeof inspectWatertight>;
@@ -328,6 +357,14 @@ const surface = await buildSkinMeshParallel({
   coinBulgeBalance: state.skinParams.coinBulgeBalance,
   internalGraph: null,
 }, requestedWorkers);
+if (activePrintProfile && activePrintProfileSha256) {
+  printPlan = resolveCliPrintPlan(activePrintProfile, activePrintProfileSha256, {
+    recipeSha256, seed: state.hostParams.seed, currentInternalStructure: internalStructure,
+    currentDryWebNormalizedRadius: state.skinParams.internalRadius, currentTargetLongestMm: targetLongestMm,
+    currentSurfaceResolution: resolution, currentFusedResolution: fusedResolution, currentAngleThresholdDeg: thresholdDeg,
+    scaleMmPerUnit: surface.scaleMmPerUnit,
+  });
+}
 const meshStep = computeSkinSamplingBounds(state.host, state.hostParams.k, state.skinParams.thickness, state.patches).longest / resolution;
 stage("internal graph");
 let graph;
@@ -406,23 +443,28 @@ const reachability = filterSupportEnforcerReachability(
   surfacePositionsMm,
 );
 if (!reachability.keptFaceCount) throw new Error(`Fail closed: no reachable scaffold faces (candidate=${reachability.candidateFaceCount}, rejected=${reachability.rejectedFaceCount})`);
-const explicitScaffoldTargets = sliceFeedbackReportPath && sliceFeedbackStlPath
-  ? await loadSliceFeedbackTargets(sliceFeedbackReportPath, sliceFeedbackStlPath, bodyPositions)
-  : [];
-if (explicitScaffoldTargets.length) stage("slice feedback targets " + explicitScaffoldTargets.length);
+const explicitScaffoldTargets = printPlan
+  ? printPlan.explicitScaffoldTargets
+  : sliceFeedbackReportPath && sliceFeedbackStlPath
+    ? await loadSliceFeedbackTargets(sliceFeedbackReportPath, sliceFeedbackStlPath, bodyPositions)
+    : [];
+const scaffoldOptions = printPlan
+  ? printPlan.scaffoldOptions
+  : { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: scaffoldBaseRadiusMm };
+if (explicitScaffoldTargets.length) stage("explicit scaffold targets " + explicitScaffoldTargets.length);
 stage("external scaffold");
 const scaffold = buildExternalPerimeterScaffold(
   reachability.keptPositions,
   surfacePositionsMm,
   bodyPositions,
-  { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: scaffoldBaseRadiusMm },
+  scaffoldOptions,
   explicitScaffoldTargets,
-  {
+  !printPlan || printPlan.baseInteriorPolicy === "exclude-host-interior-v1" ? {
     host: state.host,
     hostK: state.hostParams.k,
     scaleMmPerUnit: surface.scaleMmPerUnit,
     rejectEmbeddedExplicitTargets: true,
-  },
+  } : undefined,
 );
 if (!scaffold.stats.pillarCount || !scaffold.positions.length) {
   throw new Error("Fail closed: no external scaffold pillars (coverage=" + scaffold.stats.coverageFaceCount + ", collisionRejected=" + scaffold.stats.collisionRejectedFaceCount + ", shortRejected=" + scaffold.stats.shortRejectedFaceCount + ")");
@@ -434,16 +476,16 @@ if (planOnly) {
 stage("fused scaffold mesh");
 const mmToSource = 1 / surface.scaleMmPerUnit;
 const sourcePillars: SkinScaffoldPillar[] = scaffold.pillars.map((pillar) => {
-  const localRadiusMm = 0.65;
+  const localRadiusMm = printPlan ? scaffoldOptions.shaftRadiusMm : 0.65;
   const local = !pillar.plateAnchored;
   return {
     x: pillar.xMm * mmToSource, y: pillar.yMm * mmToSource,
     plateZ: pillar.plateZMm * mmToSource, topZ: pillar.topZMm * mmToSource,
-    shaftRadius: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.shaftRadiusMm) * mmToSource,
-    baseRadius: (local ? localRadiusMm : scaffoldBaseRadiusMm) * mmToSource,
+    shaftRadius: (local ? localRadiusMm : scaffoldOptions.shaftRadiusMm) * mmToSource,
+    baseRadius: (local ? localRadiusMm : scaffoldOptions.baseRadiusMm) * mmToSource,
     tipRadius: (local ? localRadiusMm : pillar.contactRadiusMm) * mmToSource,
-    baseHeight: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseHeightMm) * mmToSource,
-    tipHeight: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.tipHeightMm) * mmToSource,
+    baseHeight: (local ? localRadiusMm : scaffoldOptions.baseHeightMm) * mmToSource,
+    tipHeight: (local ? localRadiusMm : scaffoldOptions.tipHeightMm) * mmToSource,
   };
 });
 const fused = await buildSkinMeshParallel({
@@ -511,10 +553,22 @@ if (!plateAnchor.ok) {
   throw new Error("Fail closed: fused scaffold does not start on layer 1 (clearance=" + plateAnchor.plateClearanceMm.toFixed(3) + " mm, spread=" + plateAnchor.plateSpreadMm.toFixed(3) + " mm)");
 }
 const fusedPositionsMm = positionsFromTriangles(fusedRepaired.triangles).map((value) => value * fusedRepaired.scaleMmPerUnit);
+const geometryFingerprint = printPlan ? await geometryFingerprintLowResolution(fusedPositionsMm) : null;
 stage("package");
 const result = await buildBambu3mf([
   { name: "BODY_WITH_FUSED_SCAFFOLD", role: "body", positions: fusedPositionsMm },
-], { title: basename(outputPath, ".3mf"), supportType, generatorVersion: "0.69.0" });
+], { title: basename(outputPath, ".3mf"), supportType, generatorVersion: printPlan?.profile.appVersion ?? "0.69.0" });
 await mkdir(dirname(resolve(outputPath)), { recursive: true });
 await writeFile(outputPath, new Uint8Array(result.archive));
-console.log(JSON.stringify({ output: resolve(outputPath), resolution, fusedResolution, workers: requestedWorkers, targetLongestMm, thresholdDeg, supportType, scaffoldBaseRadiusMm, graph: { nodes: graph.nodes.length, edges: graph.edges.length }, gate: { ok: gate.ok, reasons: gate.reasons }, bodyReuse: suppliedBody ? { inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : null, bodySavedTopology: suppliedBody ? { source: "supplied", inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : builtBodyTopology ? { source: "built", inputWindingInconsistentEdges: builtBodyTopology.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: builtBodyTopology.savedAfter.windingInconsistentEdges } : null, reachability: { candidate: reachability.candidateFaceCount, kept: reachability.keptFaceCount, rejected: reachability.rejectedFaceCount, invalid: reachability.invalidCandidateFaceCount }, scaffold: scaffold.stats, plateNormalization, plateAnchor, removedTinyFragmentTriangleCount, stats: result.stats, archiveBytes: result.stats.archiveBytes }));
+const validationFacts = printPlan && geometryFingerprint ? buildPrintValidationFacts(printPlan, {
+  bboxMm: bboxFromPositionsMm(fusedPositionsMm), faceCount: fusedPositionsMm.length / 9, vertexCount: result.stats.bodyVertices,
+  connectedComponents: fusedAfter.connectedComponents, watertight: fusedAfter.closed, degenerateTriangleCount: fusedAfter.degenerateTriangleCount,
+  internalGraphNodes: graph.nodes.length, internalGraphEdges: graph.edges.length, scaffoldPillarCount: scaffold.stats.pillarCount,
+  plateAnchorOk: plateAnchor.ok, plateSpreadMm: plateAnchor.plateSpreadMm, fingerprint: geometryFingerprint,
+}) : null;
+const validationOutputPath = validationPath ?? (validationFacts ? (outputPath.endsWith(".3mf") ? outputPath.slice(0, -4) : outputPath) + ".validation.json" : undefined);
+if (validationFacts && validationOutputPath) {
+  await mkdir(dirname(resolve(validationOutputPath)), { recursive: true });
+  await writeFile(validationOutputPath, JSON.stringify(validationFacts, null, 2) + "\n", "utf8");
+}
+console.log(JSON.stringify({ output: resolve(outputPath), resolution, fusedResolution, workers: requestedWorkers, targetLongestMm, thresholdDeg, supportType, scaffoldBaseRadiusMm, graph: { nodes: graph.nodes.length, edges: graph.edges.length }, gate: { ok: gate.ok, reasons: gate.reasons }, bodyReuse: suppliedBody ? { inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : null, bodySavedTopology: suppliedBody ? { source: "supplied", inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : builtBodyTopology ? { source: "built", inputWindingInconsistentEdges: builtBodyTopology.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: builtBodyTopology.savedAfter.windingInconsistentEdges } : null, reachability: { candidate: reachability.candidateFaceCount, kept: reachability.keptFaceCount, rejected: reachability.rejectedFaceCount, invalid: reachability.invalidCandidateFaceCount }, scaffold: scaffold.stats, plateNormalization, plateAnchor, removedTinyFragmentTriangleCount, stats: result.stats, archiveBytes: result.stats.archiveBytes, printProfile: printPlan ? { sha256: printPlan.profileSha256, schema: printPlan.profile.schema } : null, validationOutput: validationOutputPath ?? null, validationFacts }));

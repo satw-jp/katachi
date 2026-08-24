@@ -14,6 +14,7 @@ import type { PreviewMeshRequest } from "./previewMeshWorkerProtocol.ts";
 import { inspectFusedScaffoldPlateAnchoring, normalizeFusedScaffoldPlatePlane, type SkinScaffoldPillar } from "./scaffoldFusion.ts";
 import { buildMeshResultFromTriangles, inspectSavedStlTopology, orientMeshForSavedStl, summarizeSavedStlComponents } from "../cloud-sculpt/meshExport.ts";
 import type { Triangle } from "../cloud-sculpt/meshExport.ts";
+import { bboxFromPositionsMm, buildPrintValidationFacts, geometryFingerprintLowResolution } from "./printProfile.ts";
 
 function trianglesFromPositions(positions: Float32Array): Triangle[] {
   if (positions.length % 9 !== 0) throw new Error("parallel mesh position buffer is not triangular");
@@ -41,6 +42,8 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
   };
   try {
     postProgress(1, "入力を準備");
+    const plan = request.printPlan;
+    const scaffoldOptions = plan.scaffoldOptions;
     const finalSurfaceMm = scaleTriangleSoup(request.finalSurfacePositions, request.scaleMmPerUnit);
     const bodyPositionsMm = request.bodyStl
       ? parseBinaryStlPositions(request.bodyStl)
@@ -57,14 +60,14 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       reachability.keptPositions,
       finalSurfaceMm,
       bodyPositionsMm,
-      request.scaffoldOptions,
-      [],
-      {
+      scaffoldOptions,
+      plan.explicitScaffoldTargets,
+      plan.baseInteriorPolicy === "exclude-host-interior-v1" ? {
         host: request.fusedMeshInput.host,
         hostK: request.fusedMeshInput.hostK,
         scaleMmPerUnit: request.scaleMmPerUnit,
         rejectEmbeddedExplicitTargets: true,
-      },
+      } : undefined,
     );
     if (scaffold.stats.pillarCount === 0 || scaffold.positions.length === 0) {
       throw new Error(`外周の直線支柱を作れませんでした（全到達候補${scaffold.stats.coverageFaceCount}面・BODY衝突除外${scaffold.stats.collisionRejectedFaceCount}面・短すぎる除外${scaffold.stats.shortRejectedFaceCount}面）`);
@@ -75,14 +78,14 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       y: pillar.yMm * mmToSource,
       plateZ: pillar.plateZMm * mmToSource,
       topZ: pillar.topZMm * mmToSource,
-      shaftRadius: request.scaffoldOptions.shaftRadiusMm * mmToSource,
-      baseRadius: request.scaffoldOptions.baseRadiusMm * mmToSource,
+      shaftRadius: scaffoldOptions.shaftRadiusMm * mmToSource,
+      baseRadius: scaffoldOptions.baseRadiusMm * mmToSource,
       tipRadius: pillar.contactRadiusMm * mmToSource,
-      baseHeight: request.scaffoldOptions.baseHeightMm * mmToSource,
-      tipHeight: request.scaffoldOptions.tipHeightMm * mmToSource,
+      baseHeight: scaffoldOptions.baseHeightMm * mmToSource,
+      tipHeight: scaffoldOptions.tipHeightMm * mmToSource,
     }));
     const input = request.fusedMeshInput;
-    const workerCount = Math.max(2, Math.min(8, Math.floor(self.navigator.hardwareConcurrency || 4)));
+    const workerCount = Math.max(1, Math.min(8, Math.round(plan.executionHints.workerCount)));
     postProgress(4, "最終一体メッシュを生成", "支柱" + scaffold.stats.pillarCount.toLocaleString() + "本 · " + workerCount + "並列");
     let fused: ReturnType<typeof buildSkinMesh>;
     try {
@@ -144,6 +147,7 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       triangle.c.x * repaired.scaleMmPerUnit, triangle.c.y * repaired.scaleMmPerUnit, triangle.c.z * repaired.scaleMmPerUnit,
     ]));
     postProgress(7, "3MFを圧縮", (fusedPositionsMm.length / 9).toLocaleString() + "面");
+    const fingerprint = await geometryFingerprintLowResolution(fusedPositionsMm);
     const result = await buildBambu3mf([
       { name: "BODY_WITH_FUSED_SCAFFOLD", role: "body", positions: fusedPositionsMm },
     ], {
@@ -169,6 +173,20 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       } satisfies SupportReachabilityStats,
       scaffold: scaffold.stats,
       plateAnchor,
+      validationFacts: buildPrintValidationFacts(plan, {
+        bboxMm: bboxFromPositionsMm(fusedPositionsMm),
+        faceCount: fusedPositionsMm.length / 9,
+        vertexCount: result.stats.bodyVertices,
+        connectedComponents: after.connectedComponents,
+        watertight: after.closed,
+        degenerateTriangleCount: after.degenerateTriangleCount,
+        internalGraphNodes: input.internalGraph?.nodes.length ?? 0,
+        internalGraphEdges: input.internalGraph?.edges.length ?? 0,
+        scaffoldPillarCount: scaffold.stats.pillarCount,
+        plateAnchorOk: plateAnchor.ok,
+        plateSpreadMm: plateAnchor.plateSpreadMm,
+        fingerprint,
+      }),
       elapsedMs: performance.now() - started,
     };
     self.postMessage(message, { transfer: [result.archive] });

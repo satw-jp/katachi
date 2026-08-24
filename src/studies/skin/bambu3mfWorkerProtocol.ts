@@ -1,5 +1,6 @@
 import type { Bambu3mfStats, BambuSupportType } from "./bambu3mf.ts";
-import type { ExternalScaffoldOptions, ExternalScaffoldStats } from "./externalScaffold.ts";
+import type { ExternalScaffoldStats } from "./externalScaffold.ts";
+import type { PrintValidationFactsV1, ResolvedPrintPlan } from "./printProfile.ts";
 import type { SupportReachabilityFacts } from "./supportReachability.ts";
 import type { Ball } from "../cloud-sculpt/field.ts";
 import type { Patch, SkinMode } from "./field.ts";
@@ -40,7 +41,7 @@ export interface Bambu3mfExportRequest {
   finalSurfacePositions: Float32Array;
   dangerousPositions: Float32Array;
   scaleMmPerUnit: number;
-  scaffoldOptions: ExternalScaffoldOptions;
+  printPlan: ResolvedPrintPlan;
   /** Required for a print candidate: remesh BODY + Internal + scaffold as one watertight field. */
   fusedMeshInput: FusedSkinMeshInput;
   supportType: BambuSupportType;
@@ -75,6 +76,7 @@ export type Bambu3mfWorkerMessage = {
   reachability: SupportReachabilityStats;
   scaffold: ExternalScaffoldStats;
   plateAnchor: FusedScaffoldPlateAnchorReport;
+  validationFacts: PrintValidationFactsV1;
   elapsedMs: number;
 } | {
   type: "error";

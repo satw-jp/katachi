@@ -53,6 +53,14 @@ import {
   type TutorialStepId,
 } from "./partitionTutorial.ts";
 
+export interface PrintProfileUiSummary {
+  profileName: string;
+  profileSha256: string;
+  matches: boolean;
+  status: string;
+  values: Array<[string, string]>;
+}
+
 export interface UiCallbacks {
   onUndo: () => void;
   onUndoSteps: (steps: number) => void;
@@ -104,6 +112,8 @@ export interface UiCallbacks {
   onMeshExport: (options: MeshUiOptions) => void;
   onCancelMeshExport: () => void;
   onBambu3mfExport: (options: MeshUiOptions, supportType: BambuSupportType) => void;
+  onImportPrintProfile: (file: File) => void;
+  onSavePrintProfile: () => void;
   onMeasureOpenings: (options: OpeningMapUiOptions) => void;
   onOpenDenseFlowerSample: () => void;
   onDenseFlowerSampleView: (view: DenseSampleView) => void;
@@ -187,6 +197,8 @@ export interface UiHandles {
   setMeshExportRunning: (running: boolean) => void;
   setBambu3mfExportRunning: (running: boolean) => void;
   setBambu3mfExportStatus: (text: string, ok?: boolean) => void;
+  setPrintProfileSummary: (summary: PrintProfileUiSummary | null) => void;
+  setMeshOptions: (options: MeshUiOptions) => void;
   setInternalPrintGateExportAllowed: (allowed: boolean, required: boolean) => void;
   setPrintCheckRunning: (running: boolean) => void;
   setPrintCheckStatus: (text: string, ok?: boolean) => void;
@@ -254,6 +266,7 @@ export interface UiHandles {
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
   setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
   getSurfaceAngleThreshold: () => number;
+  setSurfaceAngleThreshold: (value: number) => void;
   /** Status for the non-blocking low-resolution mesh preview Worker. */
   setMeshPreviewStatus: (text: string, running?: boolean) => void;
   /** Show/hide the "自動でビーズ表示に切り替えました" banner (T12 §2). */
@@ -2801,6 +2814,34 @@ export function buildUi(
   bambuExportHint.className = "hint";
   bambuExportHint.textContent =
     "最終精度診断で残ったオーバーハング全体から、プレートから真上へBODYと衝突せず届く場所をすべて選び、約0.8 mm間隔・直径0.8 mmの高密度直線支柱を作ります。接触部は直径1.0 mm・食い込み0.30 mmです。BODY・Dry Web・全支柱を同じSDFで再メッシュし、水密な1連結の通常partとして保存します。Bambuの自動サポートはOFFです。";
+  const printProfileActions = document.createElement("div");
+  printProfileActions.className = "row bambu-3mf-actions";
+  const printProfileInput = document.createElement("input");
+  printProfileInput.type = "file";
+  printProfileInput.accept = "application/json,.json";
+  printProfileInput.hidden = true;
+  printProfileInput.onchange = () => {
+    const file = printProfileInput.files?.[0];
+    if (file) callbacks.onImportPrintProfile(file);
+    printProfileInput.value = "";
+  };
+  const printProfileLoad = document.createElement("button");
+  printProfileLoad.type = "button";
+  printProfileLoad.textContent = "Print Profileを読み込む";
+  printProfileLoad.onclick = () => printProfileInput.click();
+  const printProfileSave = document.createElement("button");
+  printProfileSave.type = "button";
+  printProfileSave.textContent = "現在のProfileを保存";
+  printProfileSave.onclick = () => callbacks.onSavePrintProfile();
+  printProfileActions.append(printProfileInput, printProfileLoad, printProfileSave);
+  const printProfileStatus = document.createElement("div");
+  printProfileStatus.className = "mesh-status";
+  printProfileStatus.textContent = "Print Profile未読込";
+  printProfileStatus.setAttribute("aria-live", "polite");
+  const printProfileMetrics = document.createElement("div");
+  printProfileMetrics.className = "print-metrics";
+  printProfileMetrics.hidden = true;
+
   const bambuExportRow = document.createElement("div");
   bambuExportRow.className = "row bambu-3mf-actions";
   const bambuSupportType = document.createElement("select");
@@ -2830,7 +2871,7 @@ export function buildUi(
   bambuExportLimit.className = "hint";
   bambuExportLimit.textContent =
     "支柱は全オーバーハングを対象にしますが、BODYを貫通するものだけ除外します。プレートから直線で届く支柱を外殻へ融合し、交差した別meshではなくBODYと同じ閉メッシュへ作り直します。接触パッドは直径1.0 mm・食い込み0.30 mmです。Previewで自動Supportが0 g、支柱が全域へ分布し、floating regions警告と0.2/0.4/0.6 mm層の開始島が消え、印刷後に下方向へ除去できることを確認するまでは印刷しないでください。";
-  bambuExportPanel.append(bambuExportTitle, bambuExportHint, bambuExportRow, bambuExportStatus, bambuExportLimit);
+  bambuExportPanel.append(bambuExportTitle, bambuExportHint, printProfileActions, printProfileStatus, printProfileMetrics, bambuExportRow, bambuExportStatus, bambuExportLimit);
   meshPanel.appendChild(bambuExportPanel);
   root.appendChild(meshPanel);
 
@@ -3218,6 +3259,7 @@ export function buildUi(
       motifLowestStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
     getSurfaceAngleThreshold: () => surfaceAngleThreshold,
+    setSurfaceAngleThreshold: (value) => { surfaceAngleThreshold = value; surfaceAngleThresholdSlider.set(value); },
     setMeshPreviewStatus: (text, running = false) => {
       meshPreviewStatus.textContent = text;
       viewDock.classList.toggle("is-building", running);
@@ -3271,6 +3313,30 @@ export function buildUi(
     setBambu3mfExportStatus: (text, ok) => {
       bambuExportStatus.textContent = text;
       bambuExportStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setPrintProfileSummary: (summary) => {
+      printProfileMetrics.replaceChildren();
+      printProfileMetrics.hidden = summary === null;
+      if (!summary) {
+        printProfileStatus.textContent = "Print Profile未読込";
+        printProfileStatus.dataset.ok = "unknown";
+        return;
+      }
+      printProfileStatus.textContent = `${summary.profileName} · ${summary.status}`;
+      printProfileStatus.dataset.ok = String(summary.matches);
+      const rows: Array<[string, string]> = [["Profile SHA-256", summary.profileSha256], ...summary.values];
+      for (const [label, value] of rows) {
+        const row = document.createElement("div"); row.className = "print-metric";
+        const name = document.createElement("span"); name.textContent = label;
+        const result = document.createElement("strong"); result.textContent = value;
+        row.append(name, result); printProfileMetrics.appendChild(row);
+      }
+    },
+    setMeshOptions: (options) => {
+      resolutionInput.value = String(options.resolution);
+      resolutionOut.textContent = String(options.resolution);
+      quickResolutionInput.value = String(options.resolution);
+      sizeInput.value = String(options.targetLongestMm);
     },
     setInternalPrintGateExportAllowed: (allowed, required) => {
       internalPrintGateExportAllowed = allowed;

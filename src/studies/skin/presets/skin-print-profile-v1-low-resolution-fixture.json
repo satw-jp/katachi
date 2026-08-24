@@ -1,0 +1,63 @@
+{
+  "schema": "katachi.skin.print-profile.v1",
+  "profileVersion": 1,
+  "profileName": "low-resolution CLI Worker parity fixture",
+  "appVersion": "0.69.0",
+  "artifactVersion": "fixture-001",
+  "generatorCommit": "fixture",
+  "generatorTag": null,
+  "shapeRecipe": {
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "seed": "fixture-seed",
+    "pathHint": "fixture.recipe.json"
+  },
+  "geometry": {
+    "targetLongestMm": 24,
+    "surfaceResolution": 24,
+    "fusedResolution": 32,
+    "angleThresholdDeg": 45
+  },
+  "internalStructure": {
+    "method": "targetedGrid",
+    "dryWebNormalizedRadius": 0.05,
+    "dryWebPhysicalRadiusMm": 0.5,
+    "dryWebPhysicalDiameterMm": 1
+  },
+  "scaffold": {
+    "coverageMode": "allReachable",
+    "perimeterBandMm": 4,
+    "spacingMm": 0.8,
+    "shaftRadiusMm": 0.7,
+    "shaftDiameterMm": 1.4,
+    "footRadiusMm": 1.2,
+    "footDiameterMm": 2.4,
+    "contactRadiusMm": 0.5,
+    "contactDiameterMm": 1,
+    "contactOverlapMm": 0.65,
+    "plateAnchorDropMm": 1,
+    "baseHeightMm": 1,
+    "tipHeightMm": 0.9,
+    "xyClearanceMm": 0.05,
+    "sides": 8,
+    "baseInteriorPolicy": "exclude-host-interior-v1",
+    "explicitTargets": []
+  },
+  "printer": {
+    "printer": "Bambu Lab A1 mini",
+    "nozzleMm": 0.4,
+    "material": "PLA",
+    "layerHeightMm": 0.2,
+    "automaticSupport": false,
+    "supportType": "normal(manual)"
+  },
+  "slicer": {
+    "application": "Bambu Studio",
+    "version": "fixture",
+    "printerPresetId": "A1 mini",
+    "filamentPresetId": "Generic PLA",
+    "processPresetId": "0.20mm Standard"
+  },
+  "executionHints": {
+    "workerCount": 2
+  }
+}

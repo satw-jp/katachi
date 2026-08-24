@@ -13,6 +13,7 @@
     "src/studies/skin/laceFill.test.ts",
     "src/studies/skin/contactStrength.test.ts",
     "src/studies/skin/printPreparation.test.ts",
+    "src/studies/skin/printProfile.test.ts",
     "src/studies/skin/nPartition.test.ts",
     "src/studies/skin/motifPatch.test.ts",
     "src/studies/skin/quadFlow.test.ts",

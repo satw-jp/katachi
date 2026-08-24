@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import {
+  buildPrintValidationFacts, canonicalPrintProfileJson,
+  geometryFingerprintLowResolution,
+  printProfileSha256,
+  resolveCliPrintPlan,
+  resolveWorkerPrintPlan,
+  validateSkinPrintProfile,
+  type PrintRecipeBinding,
+  type SkinPrintProfileV1,
+} from "./printProfile.ts";
+
+const recipeSha256 = "a".repeat(64);
+const profile: SkinPrintProfileV1 = {
+  schema: "katachi.skin.print-profile.v1", profileVersion: 1, profileName: "low-resolution CLI Worker parity fixture", appVersion: "0.69.0",
+  artifactVersion: "fixture-001", generatorCommit: "fixture", generatorTag: null,
+  shapeRecipe: { sha256: recipeSha256, seed: "fixture-seed", pathHint: "fixture.recipe.json" },
+  geometry: { targetLongestMm: 24, surfaceResolution: 24, fusedResolution: 32, angleThresholdDeg: 45 },
+  internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: 0.05, dryWebPhysicalRadiusMm: 0.5, dryWebPhysicalDiameterMm: 1 },
+  scaffold: {
+    coverageMode: "allReachable", perimeterBandMm: 4, spacingMm: 0.8,
+    shaftRadiusMm: 0.7, shaftDiameterMm: 1.4, footRadiusMm: 1.2, footDiameterMm: 2.4,
+    contactRadiusMm: 0.5, contactDiameterMm: 1, contactOverlapMm: 0.65,
+    plateAnchorDropMm: 1, baseHeightMm: 1, tipHeightMm: 0.9, xyClearanceMm: 0.05, sides: 8,
+    baseInteriorPolicy: "exclude-host-interior-v1", explicitTargets: [],
+  },
+  printer: { printer: "Bambu Lab A1 mini", nozzleMm: 0.4, material: "PLA", layerHeightMm: 0.2, automaticSupport: false, supportType: "normal(manual)" },
+  slicer: { application: "Bambu Studio", version: "fixture", printerPresetId: "A1 mini", filamentPresetId: "Generic PLA", processPresetId: "0.20mm Standard" },
+  executionHints: { workerCount: 2 },
+};
+
+const fixtureProfile = validateSkinPrintProfile(JSON.parse(readFileSync(fileURLToPath(new URL("./presets/skin-print-profile-v1-low-resolution-fixture.json", import.meta.url)), "utf8")));
+
+const binding: PrintRecipeBinding = {
+  recipeSha256, seed: "fixture-seed", currentInternalStructure: "targetedGrid", currentDryWebNormalizedRadius: 0.05, scaleMmPerUnit: 10,
+};
+
+test("low-resolution fixture is the tested Profile", () => {
+  assert.deepEqual(fixtureProfile, profile);
+});
+
+test("Print Profile canonicalization and SHA are key-order independent", async () => {
+  const reordered = JSON.parse(JSON.stringify(profile)) as Record<string, unknown>;
+  const reversed = Object.fromEntries(Object.entries(reordered).reverse());
+  assert.equal(canonicalPrintProfileJson(profile), canonicalPrintProfileJson(validateSkinPrintProfile(reversed)));
+  assert.equal(await printProfileSha256(profile), await printProfileSha256(validateSkinPrintProfile(reversed)));
+});
+
+test("Profile validation rejects inconsistent radius and diameter", () => {
+  const invalid = structuredClone(profile);
+  invalid.scaffold.footDiameterMm = 2.3;
+  assert.throws(() => validateSkinPrintProfile(invalid), /radius\/diameter/);
+});
+
+test("recipe SHA and Seed fail closed", async () => {
+  const sha = await printProfileSha256(profile);
+  assert.throws(() => resolveCliPrintPlan(profile, sha, { ...binding, seed: "wrong" }), /Seed/);
+  assert.throws(() => resolveCliPrintPlan(profile, sha, { ...binding, recipeSha256: "b".repeat(64) }), /Recipe SHA/);
+});
+
+test("low-resolution CLI and Worker resolve identical print plans", async () => {
+  const sha = await printProfileSha256(profile);
+  assert.deepEqual(resolveCliPrintPlan(profile, sha, binding), resolveWorkerPrintPlan(profile, sha, binding));
+});
+
+test("CLI and Worker validation facts share one format", async () => {
+  const sha = await printProfileSha256(profile);
+  const cliPlan = resolveCliPrintPlan(profile, sha, binding);
+  const workerPlan = resolveWorkerPrintPlan(profile, sha, binding);
+  const fingerprint = await geometryFingerprintLowResolution(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]));
+  const facts = { bboxMm: { width: 1, depth: 1, height: 0 }, faceCount: 1, vertexCount: 3, connectedComponents: 1, watertight: false, degenerateTriangleCount: 0, internalGraphNodes: 2, internalGraphEdges: 1, scaffoldPillarCount: 1, plateAnchorOk: true, plateSpreadMm: 0, fingerprint };
+  assert.deepEqual(buildPrintValidationFacts(cliPlan, facts), buildPrintValidationFacts(workerPlan, facts));
+});
+
+test("geometry fingerprint ignores triangle and per-triangle vertex order", async () => {
+  const a = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]);
+  const b = new Float32Array([1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0]);
+  assert.equal((await geometryFingerprintLowResolution(a)).sha256, (await geometryFingerprintLowResolution(b)).sha256);
+  assert.equal((await geometryFingerprintLowResolution(a, 1)).status, "deferred-high-resolution");
+});

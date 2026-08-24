@@ -114,6 +114,10 @@ import {
 import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWorkerProtocol.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
+  matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
+  type ResolvedPrintPlan, type SkinPrintProfileV1,
+} from "./printProfile.ts";
+import {
   correctTutorialFlags,
   derivePartitionTutorialStep,
   describePartitionInvalidationStatus,
@@ -207,6 +211,7 @@ let bambu3mfStatusTimer: number | null = null;
 let bambu3mfExportCache: {
   fingerprint: string;
   archive: ArrayBuffer;
+  validationFacts: Extract<Bambu3mfWorkerMessage, { type: "result" }>["validationFacts"];
 } | null = null;
 let showMotifLowestPoints = false;
 
@@ -242,6 +247,9 @@ let partitionGeneration = 0;
 // "input recipe" to cite).
 let importedRecipeSha256: string | null = null;
 let importedRecipeFilename: string | null = null;
+let activePrintProfile: SkinPrintProfileV1 | null = null;
+let activePrintProfileSha256: string | null = null;
+let activePrintProfileFilename: string | null = null;
 
 // --- Generation-native N partition state ---------------------------------
 let draftNGroups: number[][] = [];
@@ -555,7 +563,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   },
   onDiagnoseSurfaceAngles: (thresholdDeg) => startSurfaceAngleDiagnosis(thresholdDeg),
   onSetSurfaceAngleDiagnosisView: (diagnosisView) => showSurfaceAngleDiagnosisView(diagnosisView),
-  onSurfaceAngleThresholdChange: () => invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"),
+  onSurfaceAngleThresholdChange: () => { invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
@@ -565,6 +573,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     }
   },
   onPreviewMeshResolutionChange: (resolution) => {
+    refreshPrintProfileSummary();
     invalidateSurfaceAngleDiagnosis("解像度が変わりました。もう一度診断してください");
     invalidateInternalPrintGate("最終mesh解像度が変わりました。内部構造をもう一度判定してください");
     const wasBuilding = activePreviewMeshWorker !== null;
@@ -740,6 +749,8 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onMeshExport: (options) => exportMesh(options),
   onCancelMeshExport: () => cancelMeshExport(true),
   onBambu3mfExport: (options, supportType) => exportBambu3mf(options, supportType),
+  onImportPrintProfile: (file) => void importPrintProfile(file),
+  onSavePrintProfile: () => void saveCurrentPrintProfile(),
   onInternalPrintGate: (options) => startInternalPrintGate(options),
   onMeasureOpenings: (options) => {
     invalidateSurfaceAngleDiagnosis("空隙マップへ切り替えました");
@@ -750,7 +761,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onCancelOpeningMap: () => cancelOpeningMap(),
   onClearOpeningMap: () => clearOpeningMapDisplay(),
   onOpeningMapDisplayCountChange: (count) => { openingMapDisplayCount = count; refreshOpeningMapDisplay(); },
-  onOpeningMapConditionsChange: () => invalidateOpeningMap(),
+  onOpeningMapConditionsChange: () => { invalidateOpeningMap(); refreshPrintProfileSummary(); },
   onPrintCheck: (options) => void checkCurrentPrint(options),
   onProposeNPartition: (count) => proposeAndConfirmNPartition(count),
   onBuildNPartition: () => buildNPartition(),
@@ -2330,6 +2341,7 @@ function applyHistoryEntries(entries: SkinHistoryEntry[]): void {
   afterMutation();
   refreshPartitionDraft();
   if (state.nPartition) showNPartitionGroups(state.nPartition.groups);
+  refreshPrintProfileSummary();
 }
 
 function applyRecipeText(text: string): void {
@@ -2414,6 +2426,99 @@ async function importS1Recipe(file: File): Promise<void> {
   } catch (err) {
     alert(`S1 レシピの読み込みに失敗しました: ${(err as Error).message}`);
   }
+}
+
+function currentPrintScaleMmPerUnit(): number | undefined {
+  const diagnosis = surfaceAngleCache;
+  if (!diagnosis) return undefined;
+  const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
+  const targetLongestMm = ui.getMeshOptions().targetLongestMm;
+  return sourceLongest > 0 && targetLongestMm > 0 ? targetLongestMm / sourceLongest : undefined;
+}
+
+function currentPrintProfileBinding(profile: SkinPrintProfileV1, includeScale = true) {
+  const options = ui.getMeshOptions();
+  return {
+    recipeSha256: importedRecipeSha256,
+    seed: state.hostParams.seed,
+    currentInternalStructure: state.skinParams.internalStructure,
+    currentDryWebNormalizedRadius: state.skinParams.internalRadius,
+    currentTargetLongestMm: options.targetLongestMm,
+    currentSurfaceResolution: Math.round(options.resolution),
+    currentFusedResolution: profile.geometry.fusedResolution,
+    currentAngleThresholdDeg: ui.getSurfaceAngleThreshold(),
+    ...(includeScale && currentPrintScaleMmPerUnit() !== undefined ? { scaleMmPerUnit: currentPrintScaleMmPerUnit() } : {}),
+  };
+}
+
+function refreshPrintProfileSummary(): void {
+  if (!activePrintProfile || !activePrintProfileSha256) { ui.setPrintProfileSummary(null); return; }
+  const profile = activePrintProfile;
+  const match = matchPrintProfile(profile, currentPrintProfileBinding(profile));
+  const actualScale = currentPrintScaleMmPerUnit();
+  const actualDryWebDiameterMm = actualScale === undefined ? "最終精度診断後に確定" : (state.skinParams.internalRadius * actualScale * 2).toFixed(3) + " mm";
+  ui.setPrintProfileSummary({
+    profileName: profile.profileName,
+    profileSha256: activePrintProfileSha256,
+    matches: match.matches,
+    status: match.matches ? "現在設定と一致" : match.reasons.join(" / "),
+    values: [
+      ["読込ファイル", activePrintProfileFilename ?? "画面で作成"],
+      ["最長辺", profile.geometry.targetLongestMm + " mm"],
+      ["Surface / 融合", profile.geometry.surfaceResolution + " / " + profile.geometry.fusedResolution],
+      ["角度閾値", profile.geometry.angleThresholdDeg + "°"],
+      ["Dry Web 正規化径", String(profile.internalStructure.dryWebNormalizedRadius)],
+      ["Dry Web 実寸直径", profile.internalStructure.dryWebPhysicalDiameterMm.toFixed(3) + " mm（現在 " + actualDryWebDiameterMm + "）"],
+      ["scaffold 軸 / 足 / 接点", profile.scaffold.shaftDiameterMm.toFixed(2) + " / " + profile.scaffold.footDiameterMm.toFixed(2) + " / " + profile.scaffold.contactDiameterMm.toFixed(2) + " mm"],
+      ["scaffold 間隔 / overlap", profile.scaffold.spacingMm.toFixed(2) + " / " + profile.scaffold.contactOverlapMm.toFixed(2) + " mm"],
+      ["Printer", profile.printer.printer + " · nozzle " + profile.printer.nozzleMm + " mm · " + profile.printer.material + " · layer " + profile.printer.layerHeightMm + " mm"],
+      ["Generator", profile.generatorCommit + (profile.generatorTag ? " · " + profile.generatorTag : "")],
+    ],
+  });
+}
+
+async function importPrintProfile(file: File): Promise<void> {
+  try {
+    const profile = validateSkinPrintProfile(JSON.parse(await file.text()));
+    const sha = await printProfileSha256(profile);
+    activePrintProfile = profile; activePrintProfileSha256 = sha; activePrintProfileFilename = file.name;
+    ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
+    ui.setSurfaceAngleThreshold(profile.geometry.angleThresholdDeg);
+    invalidateSurfaceAngleDiagnosis("Print Profileを読み込みました。Profile精度で再診断してください");
+    refreshPrintProfileSummary();
+  } catch (error) {
+    alert("Print Profileの読み込みに失敗しました: " + (error as Error).message);
+  }
+}
+
+async function saveCurrentPrintProfile(): Promise<void> {
+  if (!importedRecipeSha256 || !importedRecipeFilename) { alert("先にShape Recipeを読み込んでください"); return; }
+  const scaleMmPerUnit = currentPrintScaleMmPerUnit();
+  if (scaleMmPerUnit === undefined || !surfaceAngleCache) { alert("先に最終精度診断を実行してください"); return; }
+  if (state.skinParams.internalStructure !== "targetedGrid") { alert("Print Profile v1はDry Web（targetedGrid）に限定しています"); return; }
+  const options = ui.getMeshOptions();
+  const dryRadiusMm = state.skinParams.internalRadius * scaleMmPerUnit;
+  const scaffold = DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS;
+  const profile = validateSkinPrintProfile({
+    schema: "katachi.skin.print-profile.v1", profileVersion: 1,
+    profileName: (importedRecipeFilename.endsWith(".json") ? importedRecipeFilename.slice(0, -5) : importedRecipeFilename) + " print",
+    appVersion: manifest.version, artifactVersion: "unassigned",
+    generatorCommit: import.meta.env.VITE_GIT_COMMIT || "working-tree", generatorTag: null,
+    shapeRecipe: { sha256: importedRecipeSha256, seed: state.hostParams.seed, pathHint: importedRecipeFilename },
+    geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: Math.max(160, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
+    internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm, dryWebPhysicalDiameterMm: dryRadiusMm * 2 },
+    scaffold: { coverageMode: scaffold.coverageMode, perimeterBandMm: scaffold.perimeterBandMm, spacingMm: scaffold.spacingMm,
+      shaftRadiusMm: scaffold.shaftRadiusMm, shaftDiameterMm: scaffold.shaftRadiusMm * 2, footRadiusMm: scaffold.baseRadiusMm, footDiameterMm: scaffold.baseRadiusMm * 2,
+      contactRadiusMm: scaffold.tipRadiusMm, contactDiameterMm: scaffold.tipRadiusMm * 2, contactOverlapMm: scaffold.contactOverlapMm,
+      plateAnchorDropMm: scaffold.plateAnchorDropMm, baseHeightMm: scaffold.baseHeightMm, tipHeightMm: scaffold.tipHeightMm, xyClearanceMm: scaffold.xyClearanceMm, sides: scaffold.sides,
+      baseInteriorPolicy: "exclude-host-interior-v1", explicitTargets: [] },
+    printer: { printer: "Bambu Lab A1 mini", nozzleMm: 0.4, material: "PLA", layerHeightMm: 0.2, automaticSupport: false, supportType: "normal(manual)" },
+    slicer: { application: "Bambu Studio", version: "not-recorded", printerPresetId: "Bambu Lab A1 mini 0.4 nozzle", filamentPresetId: "Generic PLA", processPresetId: "0.20mm Standard BBL A1M" },
+    executionHints: { workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)) },
+  });
+  activePrintProfile = profile; activePrintProfileSha256 = await printProfileSha256(profile); activePrintProfileFilename = null;
+  downloadBlob(new Blob([JSON.stringify(profile, null, 2) + "\n"], { type: "application/json" }), (importedRecipeFilename.endsWith(".recipe.json") ? importedRecipeFilename.slice(0, -12) : importedRecipeFilename) + ".print-profile.json");
+  refreshPrintProfileSummary();
 }
 
 function internalPrintGateFingerprint(options: MeshUiOptions, graph: InternalStructureGraph): string {
@@ -2909,6 +3014,10 @@ function cancelBambu3mfExport(notify: boolean): void {
 
 function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): void {
   cancelBambu3mfExport(false);
+  if (!activePrintProfile || !activePrintProfileSha256) {
+    ui.setBambu3mfExportStatus("先にShape RecipeとPrint Profileを読み込んでください", false);
+    return;
+  }
   const diagnosis = surfaceAngleCache;
   if (!diagnosis) {
     ui.setBambu3mfExportStatus("先に「最終精度で診断」を実行してください", false);
@@ -2934,6 +3043,18 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     return;
   }
   const scaleMmPerUnit = options.targetLongestMm / sourceLongest;
+  let printPlan: ResolvedPrintPlan;
+  try {
+    printPlan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile));
+  } catch (error) {
+    ui.setBambu3mfExportStatus((error as Error).message, false);
+    refreshPrintProfileSummary();
+    return;
+  }
+  if (supportType !== printPlan.printer.supportType) {
+    ui.setBambu3mfExportStatus("Support方式がPrint Profileと一致しません", false);
+    return;
+  }
   const internalGraph = getInternalStructureGraph();
   let bodyStl: ArrayBuffer | undefined;
   let bodyPositions: Float32Array | undefined;
@@ -2958,14 +3079,18 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     resolution,
     targetLongestMm: options.targetLongestMm,
     supportType,
-    scaffoldOptions: DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS,
-    baseInteriorPolicy: "exclude-host-interior-v1",
+    printProfileSha256: printPlan.profileSha256,
+    resolvedPlan: printPlan,
     generatorVersion: manifest.version,
   });
   if (bambu3mfExportCache?.fingerprint === exportFingerprint) {
     downloadBlob(
       new Blob([bambu3mfExportCache.archive.slice(0)], { type: "model/3mf" }),
       `${baseName}-fused-scaffold.3mf`,
+    );
+    downloadBlob(
+      new Blob([JSON.stringify(bambu3mfExportCache.validationFacts, null, 2) + "\n"], { type: "application/json" }),
+      `${baseName}-fused-scaffold.validation.json`,
     );
     ui.setBambu3mfExportStatus("再計算なし・同じ診断結果のキャッシュから保存完了 · 0.0秒", true);
     return;
@@ -2979,7 +3104,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     finalSurfacePositions,
     dangerousPositions,
     scaleMmPerUnit,
-    scaffoldOptions: { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS },
+    printPlan,
     fusedMeshInput: {
       mode: state.mode,
       host: state.host,
@@ -2987,7 +3112,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
       thickness: state.skinParams.thickness,
       patches: state.patches,
       roundK: state.skinParams.roundK,
-      options: { resolution: Math.max(160, resolution), targetLongestMm: options.targetLongestMm },
+      options: { resolution: printPlan.fusedResolution, targetLongestMm: printPlan.targetLongestMm },
       coinBulge: state.skinParams.coinBulge,
       quadMeshJoinWidth: state.skinParams.quadMeshJoinWidth,
       coinBulgeBalance: state.skinParams.coinBulgeBalance,
@@ -3034,10 +3159,15 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     bambu3mfExportCache = {
       fingerprint: exportFingerprint,
       archive: message.archive.slice(0),
+      validationFacts: message.validationFacts,
     };
     downloadBlob(
       new Blob([message.archive], { type: "model/3mf" }),
       `${baseName}-fused-scaffold.3mf`,
+    );
+    downloadBlob(
+      new Blob([JSON.stringify(message.validationFacts, null, 2) + "\n"], { type: "application/json" }),
+      `${baseName}-fused-scaffold.validation.json`,
     );
     const sizeMb = message.stats.archiveBytes / (1024 * 1024);
     ui.setBambu3mfExportStatus(
