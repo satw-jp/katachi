@@ -2809,11 +2809,11 @@ export function buildUi(
   const bambuExportPanel = document.createElement("section");
   bambuExportPanel.className = "bambu-3mf-export";
   const bambuExportTitle = document.createElement("strong");
-  bambuExportTitle.textContent = "Bambu Studio用3MF（Katachi一体融合支柱）";
+  bambuExportTitle.textContent = "v088候補一式（Bambu Studio用3MF + 来歴）";
   const bambuExportHint = document.createElement("div");
   bambuExportHint.className = "hint";
   bambuExportHint.textContent =
-    "最終精度診断で残ったオーバーハング全体から、プレートから真上へBODYと衝突せず届く場所をすべて選び、約0.8 mm間隔・直径0.8 mmの高密度直線支柱を作ります。接触部は直径1.0 mm・食い込み0.30 mmです。BODY・Dry Web・全支柱を同じSDFで再メッシュし、水密な1連結の通常partとして保存します。Bambuの自動サポートはOFFです。";
+    "共有policyで全オーバーハングをinside / outside / unresolvedへ一度だけ分類します。outsideだけを除去可能なbuild-plate scaffoldへ、insideだけをDry Webへ送り、unresolved・重複・未割当は保存を止めます。成功するとv088-named 3MF、Shape Recipe、Print Profile、validation JSON、正確な保存bytesのSHA-256一覧を一式で保存します。";
   const printProfileActions = document.createElement("div");
   printProfileActions.className = "row bambu-3mf-actions";
   const printProfileInput = document.createElement("input");
@@ -2857,7 +2857,7 @@ export function buildUi(
   const bambuExportBtn = document.createElement("button");
   bambuExportBtn.type = "button";
   bambuExportBtn.className = "primary-action";
-  bambuExportBtn.textContent = "一体融合支柱3MFを書き出す";
+  bambuExportBtn.textContent = "v088候補一式を保存";
   bambuExportBtn.onclick = () => callbacks.onBambu3mfExport(
     readMeshOptions(),
     bambuSupportType.value as BambuSupportType,
@@ -2870,7 +2870,7 @@ export function buildUi(
   const bambuExportLimit = document.createElement("div");
   bambuExportLimit.className = "hint";
   bambuExportLimit.textContent =
-    "支柱は全オーバーハングを対象にしますが、BODYを貫通するものだけ除外します。プレートから直線で届く支柱を外殻へ融合し、交差した別meshではなくBODYと同じ閉メッシュへ作り直します。接触パッドは直径1.0 mm・食い込み0.30 mmです。Previewで自動Supportが0 g、支柱が全域へ分布し、floating regions警告と0.2/0.4/0.6 mm層の開始島が消え、印刷後に下方向へ除去できることを確認するまでは印刷しないでください。";
+    "outside scaffoldはbuild plateからの-Z routeがclearなものだけです。insideはDry Web補強だけに使い、outsideをDry Webへ混ぜません。printApproval=falseの研究候補です。Previewで自動Supportが0 g、支柱が外側へ分布し、floating regions警告と0.2/0.4/0.6 mm層の開始島が消えることを確認するまでは印刷しないでください。";
   bambuExportPanel.append(bambuExportTitle, bambuExportHint, printProfileActions, printProfileStatus, printProfileMetrics, bambuExportRow, bambuExportStatus, bambuExportLimit);
   meshPanel.appendChild(bambuExportPanel);
   root.appendChild(meshPanel);
@@ -3308,7 +3308,7 @@ export function buildUi(
     setBambu3mfExportRunning: (running) => {
       bambuExportBtn.disabled = running;
       bambuSupportType.disabled = running;
-      bambuExportBtn.textContent = running ? "一体融合支柱3MFを作成中…" : "一体融合支柱3MFを書き出す";
+    bambuExportBtn.textContent = running ? "v088候補一式を作成中…" : "v088候補一式を保存";
     },
     setBambu3mfExportStatus: (text, ok) => {
       bambuExportStatus.textContent = text;

@@ -6,6 +6,7 @@ import {
   buildPrintValidationFacts, canonicalPrintProfileJson,
   geometryFingerprintLowResolution,
   printProfileSha256,
+  assertResolvedPrintPlanSupportCounts,
   resolveCliPrintPlan,
   resolveWorkerPrintPlan,
   validateSkinPrintProfile,
@@ -15,11 +16,13 @@ import {
 
 const recipeSha256 = "a".repeat(64);
 const profile: SkinPrintProfileV1 = {
-  schema: "katachi.skin.print-profile.v1", profileVersion: 1, profileName: "low-resolution CLI Worker parity fixture", appVersion: "0.69.0",
-  artifactVersion: "fixture-001", generatorCommit: "fixture", generatorTag: null,
+  schema: "katachi.skin.print-profile.v1", profileVersion: 1, profileName: "low-resolution CLI Worker parity fixture", appVersion: "0.70.0",
+  artifactVersion: "v088-low-resolution-fixture", generatorCommit: "fixture", generatorTag: null,
+  supportPolicy: "outside-breakaway-scaffold-inside-dry-web-v1",
+  expectedClassificationCounts: { total: 4, inside: 2, outside: 2, unresolved: 0, duplicate: 0, unassigned: 0 },
   shapeRecipe: { sha256: recipeSha256, seed: "fixture-seed", pathHint: "fixture.recipe.json" },
   geometry: { targetLongestMm: 24, surfaceResolution: 24, fusedResolution: 32, angleThresholdDeg: 45 },
-  internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: 0.05, dryWebPhysicalRadiusMm: 0.5, dryWebPhysicalDiameterMm: 1 },
+  internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: 0.045, dryWebPhysicalRadiusMm: 0.45, dryWebPhysicalDiameterMm: 0.9 },
   scaffold: {
     coverageMode: "allReachable", perimeterBandMm: 4, spacingMm: 0.8,
     shaftRadiusMm: 0.7, shaftDiameterMm: 1.4, footRadiusMm: 1.2, footDiameterMm: 2.4,
@@ -35,7 +38,7 @@ const profile: SkinPrintProfileV1 = {
 const fixtureProfile = validateSkinPrintProfile(JSON.parse(readFileSync(fileURLToPath(new URL("./presets/skin-print-profile-v1-low-resolution-fixture.json", import.meta.url)), "utf8")));
 
 const binding: PrintRecipeBinding = {
-  recipeSha256, seed: "fixture-seed", currentInternalStructure: "targetedGrid", currentDryWebNormalizedRadius: 0.05, scaleMmPerUnit: 10,
+  recipeSha256, seed: "fixture-seed", currentInternalStructure: "targetedGrid", currentDryWebNormalizedRadius: 0.045, scaleMmPerUnit: 10,
 };
 
 test("low-resolution fixture is the tested Profile", () => {
@@ -61,6 +64,23 @@ test("recipe SHA and Seed fail closed", async () => {
   assert.throws(() => resolveCliPrintPlan(profile, sha, { ...binding, recipeSha256: "b".repeat(64) }), /Recipe SHA/);
 });
 
+test("old v1 Profile without policy fields remains compatible", () => {
+  const old = structuredClone(profile);
+  old.artifactVersion = "fixture-001";
+  delete old.supportPolicy;
+  delete old.expectedClassificationCounts;
+  assert.equal(validateSkinPrintProfile(old).supportPolicy, undefined);
+});
+
+test("new Profile classification counts are checked at runtime", async () => {
+  const sha = await printProfileSha256(profile);
+  const plan = resolveCliPrintPlan(profile, sha, binding);
+  assert.throws(() => assertResolvedPrintPlanSupportCounts(plan, {
+    total: 4, inside: 1, outside: 3, unresolved: 0, duplicate: 0, unassigned: 0,
+  }), /do not match|match/);
+  assert.deepEqual(assertResolvedPrintPlanSupportCounts(plan, profile.expectedClassificationCounts!), undefined);
+});
+
 test("low-resolution CLI and Worker resolve identical print plans", async () => {
   const sha = await printProfileSha256(profile);
   assert.deepEqual(resolveCliPrintPlan(profile, sha, binding), resolveWorkerPrintPlan(profile, sha, binding));
@@ -71,7 +91,7 @@ test("CLI and Worker validation facts share one format", async () => {
   const cliPlan = resolveCliPrintPlan(profile, sha, binding);
   const workerPlan = resolveWorkerPrintPlan(profile, sha, binding);
   const fingerprint = await geometryFingerprintLowResolution(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]));
-  const facts = { bboxMm: { width: 1, depth: 1, height: 0 }, faceCount: 1, vertexCount: 3, connectedComponents: 1, watertight: false, degenerateTriangleCount: 0, internalGraphNodes: 2, internalGraphEdges: 1, scaffoldPillarCount: 1, plateAnchorOk: true, plateSpreadMm: 0, fingerprint };
+  const facts = { bboxMm: { width: 1, depth: 1, height: 0 }, faceCount: 1, vertexCount: 3, connectedComponents: 1, watertight: false, degenerateTriangleCount: 0, internalGraphNodes: 2, internalGraphEdges: 1, scaffoldPillarCount: 1, plateAnchorOk: true, plateSpreadMm: 0, fingerprint, supportPolicy: profile.supportPolicy, classificationCounts: profile.expectedClassificationCounts };
   assert.deepEqual(buildPrintValidationFacts(cliPlan, facts), buildPrintValidationFacts(workerPlan, facts));
 });
 

@@ -1,5 +1,6 @@
 import type { Ball } from "../cloud-sculpt/field.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
+import type { OverhangDryWebTarget } from "./overhangSupportPolicy.ts";
 import type { Patch, PatchPoint } from "./field.ts";
 import type {
   InternalStructureEdge,
@@ -68,7 +69,7 @@ function hostCentre(host: Ball[]): Vector3Value {
 }
 
 function surfaceContact(
-  target: MotifLowestPoint,
+  target: Pick<MotifLowestPoint | OverhangDryWebTarget, "position" | "normal">,
   centre: Vector3Value,
   radius: number,
   materialPoint?: PatchPoint,
@@ -139,7 +140,7 @@ export function buildTargetedGridInternalStructure(
   host: Ball[],
   _hostK: number,
   patches: Patch[],
-  targets: MotifLowestPoint[],
+  targets: Array<MotifLowestPoint | OverhangDryWebTarget>,
   supportCount: number,
   radius: number,
 ): InternalStructureGraph {
@@ -148,7 +149,8 @@ export function buildTargetedGridInternalStructure(
   const finalTargets = targets
     .filter((target) => target.basis === "finalMesh")
     .slice()
-    .sort((a, b) => a.patchId - b.patchId);
+    .sort((a, b) => (a.patchId ?? Number.MAX_SAFE_INTEGER) - (b.patchId ?? Number.MAX_SAFE_INTEGER)
+      || ("assignmentId" in a ? a.assignmentId : "") .localeCompare("assignmentId" in b ? b.assignmentId : ""));
   const usefulPatches = patches.filter((patch) => patch.points.length > 0).slice().sort((a, b) => a.id - b.id);
   const stats: InternalStructureStats = {
     inputPoints: targets.length,
@@ -236,9 +238,11 @@ export function buildTargetedGridInternalStructure(
   const centre = hostCentre(host);
   let contactedTargets = 0;
   for (const target of finalTargets) {
-    const patch = patchById.get(target.patchId);
-    if (!patch) continue;
-    const nearest = ownPoints(patch).slice().sort((a, b) =>
+    const patch = target.patchId === undefined ? undefined : patchById.get(target.patchId);
+    const nearbyPoints = patch
+      ? ownPoints(patch)
+      : usefulPatches.flatMap((candidate) => ownPoints(candidate));
+    const nearest = nearbyPoints.slice().sort((a, b) =>
       distance(target.position, a) - a.r - (distance(target.position, b) - b.r))[0];
     if (!nearest) continue;
     const contact = surfaceContact(target, centre, safeRadius, nearest);

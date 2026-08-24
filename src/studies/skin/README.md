@@ -40,6 +40,20 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 低解像度fixture（Surface 24／融合32）ではCLIとWorkerのResolvedPrintPlanおよび共通validation factsが一致し、Profile canonical SHA、recipe SHA／Seed照合、三角形順序非依存fingerprintを確認した。関連SKINテスト、テスト型検査、production build、`git diff --check`は合格。ブラウザ実操作、高精度生成／比較、Slice、印刷再現性の最終確認は未実施で次の独立タスクへ分離する。既存v087成果物は上書きせず、`printApproval=false`、公開・デプロイなし。
 
+## Observation v088 Phase A（overhangを外側scaffold／内側Dry Webへ一度だけ割り当て、2026-08-24）
+
+作者の観察を原文のまま残す: 「消えすぎていて印刷すると絶対失敗する。オーバーハング部はベース形状の外側はサポート、内側はDrywebでの補強が必要」
+
+実装した共有policyは `outside-breakaway-scaffold-inside-dry-web-v1`。診断faceとProfile明示targetへ入力順を保つ名前空間付きIDを付け、各targetを`outside`、`inside`、`unresolved`のいずれかへ一度だけ記録する。`outside`だけがbuild plateから-Zで到達する除去可能scaffoldへ、`inside`だけがtargeted Dry Webへ渡り、malformed／部分遮蔽／duplicate／unassigned／unresolvedは保存前にfail closedとなる。CLI、Worker、appは同じpolicyとvalidation facts builderを使い、Print Profile、画面、CLI JSON、Worker resultへpolicyと`total / inside / outside / unresolved`（およびduplicate／unassigned）を表示する。
+
+低解像度の検証範囲はSurface 24／fused 32とし、旧`formatVersion: 1` recipeおよび新しいv088 Print Profileの互換性を保つ。appの成功保存はv088名の3MF、正確なShape Recipe／Print Profile／validation JSON、各保存bytesのSHA-256一覧を一式で出せる。これは実装上の分類と保存経路の記録であり、造形成功の観察ではない。`printApproval=false`を維持し、高解像度生成、Slice、publish、deploy、印刷はこのPhase Aでは実施しない。
+
+## Hypothesis v088 Phase A
+
+overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。
+
+更新されたアプリを操作した結果の形状を印刷候補にする
+
 ## Setup
 
 `src/studies/skin/` に自己完結。`skin.html` から起動。

@@ -107,7 +107,6 @@ import type {
   SurfaceAngleWorkerMessage,
 } from "./surfaceAngleWorkerProtocol.ts";
 import {
-  supportEnforcerPositionsForDiagnosis,
   triangleSoupLongestExtent,
   type BambuSupportType,
 } from "./bambu3mf.ts";
@@ -115,8 +114,14 @@ import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWor
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
   matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
-  type ResolvedPrintPlan, type SkinPrintProfileV1,
+  assertResolvedPrintPlanSupportCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
 } from "./printProfile.ts";
+import {
+  assignOverhangSupportTargets,
+  validateOverhangAssignmentLedger,
+  type OverhangSupportPolicyResult,
+} from "./overhangSupportPolicy.ts";
+import type { OverhangDryWebTarget } from "./overhangSupportPolicy.ts";
 import {
   correctTutorialFlags,
   derivePartitionTutorialStep,
@@ -166,7 +171,7 @@ let internalStructureFingerprint = "";
 let targetedSupportSource: {
   surfaceFingerprint: string;
   resolution: number;
-  targets: MotifLowestPoint[];
+  targets: Array<MotifLowestPoint | OverhangDryWebTarget>;
 } | null = null;
 // T12: three-way view toggle (レイマーチ / ビーズ / 全体メッシュ), replacing
 // T11's boolean mesh-overlay flag. See afterMutation() for the auto-switch
@@ -250,6 +255,9 @@ let importedRecipeFilename: string | null = null;
 let activePrintProfile: SkinPrintProfileV1 | null = null;
 let activePrintProfileSha256: string | null = null;
 let activePrintProfileFilename: string | null = null;
+let activePrintProfileText: string | null = null;
+let importedRecipeText: string | null = null;
+let overhangSupportResult: OverhangSupportPolicyResult | null = null;
 
 // --- Generation-native N partition state ---------------------------------
 let draftNGroups: number[][] = [];
@@ -862,6 +870,55 @@ function currentTargetSurfaceFingerprint(): string {
       patch.points.map((point) => [point.x, point.y, point.z, point.r, point.role ?? ""]),
     ]),
   });
+}
+
+function splitTriangleSoup(positions: Float32Array): Float32Array[] {
+  if (positions.length % 9 !== 0) throw new Error("overhang diagnosis buffer is not a triangle soup");
+  const faces: Float32Array[] = [];
+  for (let offset = 0; offset < positions.length; offset += 9) faces.push(positions.slice(offset, offset + 9));
+  return faces;
+}
+
+function classifySurfaceAngleSupport(
+  message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+): OverhangSupportPolicyResult {
+  const sourceLongest = triangleSoupLongestExtent(message.basePositions);
+  const targetLongestMm = ui.getMeshOptions().targetLongestMm;
+  if (!(sourceLongest > 0) || !(targetLongestMm > 0)) throw new Error("Fail closed: BODYの実寸Scaleを求められませんでした");
+  const scaleMmPerUnit = targetLongestMm / sourceLongest;
+  const finalSurfacePositionsMm = new Float32Array(message.basePositions.map((value) => value * scaleMmPerUnit));
+  const diagnosedPositionsMm = new Float32Array(message.beforeDangerPositions.map((value) => value * scaleMmPerUnit));
+  const result = assignOverhangSupportTargets({
+    diagnosedFaces: splitTriangleSoup(diagnosedPositionsMm),
+    explicitTargets: activePrintProfile?.scaffold.explicitTargets ?? [],
+    finalSurfacePositionsMm,
+  });
+  if (activePrintProfile && activePrintProfileSha256) {
+    const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
+    assertResolvedPrintPlanSupportCounts(plan, result.counts);
+  } else {
+    validateOverhangAssignmentLedger(result);
+  }
+  return result;
+}
+
+function sourceDryWebTargets(result: OverhangSupportPolicyResult, scaleMmPerUnit: number): Array<OverhangDryWebTarget> {
+  return result.insideTargets.map((target) => ({
+    ...target,
+    position: {
+      x: target.position.x / scaleMmPerUnit,
+      y: target.position.y / scaleMmPerUnit,
+      z: target.position.z / scaleMmPerUnit,
+    },
+  }));
+}
+
+function diagnosedPositionsForPolicy(result: OverhangSupportPolicyResult): Float32Array {
+  const positions: number[] = [];
+  for (const entry of result.entries) {
+    if (entry.source === "diagnosed-face" && entry.positionsMm) positions.push(...entry.positionsMm);
+  }
+  return new Float32Array(positions);
 }
 
 function targetedSupportSourceIsCurrent(): boolean {
@@ -2345,6 +2402,7 @@ function applyHistoryEntries(entries: SkinHistoryEntry[]): void {
 }
 
 function applyRecipeText(text: string): void {
+  importedRecipeText = text;
   applyHistoryEntries(parseRecipe(text));
 }
 
@@ -2356,6 +2414,7 @@ function undoLastOperation(): void {
   }
   importedRecipeSha256 = null;
   importedRecipeFilename = null;
+  importedRecipeText = null;
   applyHistoryEntries(result.history);
   ui.setUndoStatus("直前の操作を戻しました");
 }
@@ -2370,6 +2429,7 @@ function undoSeveralOperations(requestedSteps: number): void {
   const actual = Math.min(steps, available);
   importedRecipeSha256 = null;
   importedRecipeFilename = null;
+  importedRecipeText = null;
   applyHistoryEntries(history.slice(0, history.length - actual));
   ui.setUndoStatus(`${actual}操作前まで戻しました`);
 }
@@ -2410,6 +2470,7 @@ async function importHistory(file: File): Promise<void> {
     // provenance as `inputRecipe` (instruction: "入力recipe SHA-256").
     importedRecipeSha256 = await sha256Hex(text);
     importedRecipeFilename = file.name;
+    importedRecipeText = text;
     applyRecipeText(text);
   } catch (err) {
     alert(`履歴の読み込みに失敗しました: ${(err as Error).message}`);
@@ -2447,6 +2508,7 @@ function currentPrintProfileBinding(profile: SkinPrintProfileV1, includeScale = 
     currentSurfaceResolution: Math.round(options.resolution),
     currentFusedResolution: profile.geometry.fusedResolution,
     currentAngleThresholdDeg: ui.getSurfaceAngleThreshold(),
+    ...(overhangSupportResult ? { currentSupportClassificationCounts: overhangSupportResult.counts } : {}),
     ...(includeScale && currentPrintScaleMmPerUnit() !== undefined ? { scaleMmPerUnit: currentPrintScaleMmPerUnit() } : {}),
   };
 }
@@ -2464,6 +2526,11 @@ function refreshPrintProfileSummary(): void {
     status: match.matches ? "現在設定と一致" : match.reasons.join(" / "),
     values: [
       ["読込ファイル", activePrintProfileFilename ?? "画面で作成"],
+      ["Support policy", profile.supportPolicy ?? "outside-breakaway-scaffold-inside-dry-web-v1"],
+      ["分類 total / inside / outside / unresolved", (() => {
+        const counts = overhangSupportResult?.counts ?? profile.expectedClassificationCounts;
+        return counts ? `${counts.total} / ${counts.inside} / ${counts.outside} / ${counts.unresolved}` : "診断後に確定";
+      })()],
       ["最長辺", profile.geometry.targetLongestMm + " mm"],
       ["Surface / 融合", profile.geometry.surfaceResolution + " / " + profile.geometry.fusedResolution],
       ["角度閾値", profile.geometry.angleThresholdDeg + "°"],
@@ -2479,9 +2546,10 @@ function refreshPrintProfileSummary(): void {
 
 async function importPrintProfile(file: File): Promise<void> {
   try {
-    const profile = validateSkinPrintProfile(JSON.parse(await file.text()));
+    const text = await file.text();
+    const profile = validateSkinPrintProfile(JSON.parse(text));
     const sha = await printProfileSha256(profile);
-    activePrintProfile = profile; activePrintProfileSha256 = sha; activePrintProfileFilename = file.name;
+    activePrintProfile = profile; activePrintProfileSha256 = sha; activePrintProfileFilename = file.name; activePrintProfileText = text;
     ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
     ui.setSurfaceAngleThreshold(profile.geometry.angleThresholdDeg);
     invalidateSurfaceAngleDiagnosis("Print Profileを読み込みました。Profile精度で再診断してください");
@@ -2496,16 +2564,19 @@ async function saveCurrentPrintProfile(): Promise<void> {
   const scaleMmPerUnit = currentPrintScaleMmPerUnit();
   if (scaleMmPerUnit === undefined || !surfaceAngleCache) { alert("先に最終精度診断を実行してください"); return; }
   if (state.skinParams.internalStructure !== "targetedGrid") { alert("Print Profile v1はDry Web（targetedGrid）に限定しています"); return; }
+  if (!overhangSupportResult) { alert("先に共有ポリシーでオーバーハング分類を完了してください"); return; }
   const options = ui.getMeshOptions();
   const dryRadiusMm = state.skinParams.internalRadius * scaleMmPerUnit;
-  const scaffold = DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS;
+  const scaffold = { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: 1.2 };
   const profile = validateSkinPrintProfile({
     schema: "katachi.skin.print-profile.v1", profileVersion: 1,
     profileName: (importedRecipeFilename.endsWith(".json") ? importedRecipeFilename.slice(0, -5) : importedRecipeFilename) + " print",
-    appVersion: manifest.version, artifactVersion: "unassigned",
+    appVersion: manifest.version, artifactVersion: "v088",
     generatorCommit: import.meta.env.VITE_GIT_COMMIT || "working-tree", generatorTag: null,
+    supportPolicy: overhangSupportResult.policy,
+    expectedClassificationCounts: overhangSupportResult.counts,
     shapeRecipe: { sha256: importedRecipeSha256, seed: state.hostParams.seed, pathHint: importedRecipeFilename },
-    geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: Math.max(160, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
+    geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: options.resolution <= 24 ? 32 : Math.max(240, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
     internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm, dryWebPhysicalDiameterMm: dryRadiusMm * 2 },
     scaffold: { coverageMode: scaffold.coverageMode, perimeterBandMm: scaffold.perimeterBandMm, spacingMm: scaffold.spacingMm,
       shaftRadiusMm: scaffold.shaftRadiusMm, shaftDiameterMm: scaffold.shaftRadiusMm * 2, footRadiusMm: scaffold.baseRadiusMm, footDiameterMm: scaffold.baseRadiusMm * 2,
@@ -2516,8 +2587,9 @@ async function saveCurrentPrintProfile(): Promise<void> {
     slicer: { application: "Bambu Studio", version: "not-recorded", printerPresetId: "Bambu Lab A1 mini 0.4 nozzle", filamentPresetId: "Generic PLA", processPresetId: "0.20mm Standard BBL A1M" },
     executionHints: { workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)) },
   });
-  activePrintProfile = profile; activePrintProfileSha256 = await printProfileSha256(profile); activePrintProfileFilename = null;
-  downloadBlob(new Blob([JSON.stringify(profile, null, 2) + "\n"], { type: "application/json" }), (importedRecipeFilename.endsWith(".recipe.json") ? importedRecipeFilename.slice(0, -12) : importedRecipeFilename) + ".print-profile.json");
+  const profileText = JSON.stringify(profile, null, 2) + "\n";
+  activePrintProfile = profile; activePrintProfileSha256 = await printProfileSha256(profile); activePrintProfileFilename = null; activePrintProfileText = profileText;
+  downloadBlob(new Blob([profileText], { type: "application/json" }), `v088-${importedRecipeFilename.endsWith(".recipe.json") ? importedRecipeFilename.slice(0, -12) : importedRecipeFilename}.print-profile.json`);
   refreshPrintProfileSummary();
 }
 
@@ -2986,6 +3058,7 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
     activeSurfaceAngleWorker = null;
   }
   surfaceAngleCache = null;
+  overhangSupportResult = null;
   skinRenderer.clearSurfaceAngleOverlay();
   cancelBambu3mfExport(false);
   if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
@@ -3012,6 +3085,24 @@ function cancelBambu3mfExport(notify: boolean): void {
   if (notify && wasRunning) ui.setBambu3mfExportStatus("3MF書き出しを中止しました。形状は変更していません");
 }
 
+async function saveV088CandidateBundle(
+  baseName: string,
+  archive: ArrayBuffer,
+  validationFacts: Extract<Bambu3mfWorkerMessage, { type: "result" }>['validationFacts'],
+): Promise<void> {
+  if (!importedRecipeText || !activePrintProfileText) throw new Error("Fail closed: exact Shape Recipe and Print Profile bytes are unavailable");
+  const prefix = `v088-${baseName}`;
+  const artifacts: Array<{ filename: string; bytes: Uint8Array; type: string }> = [
+    { filename: `${prefix}.3mf`, bytes: new Uint8Array(archive.slice(0)), type: "model/3mf" },
+    { filename: `${prefix}.shape-recipe.json`, bytes: new TextEncoder().encode(importedRecipeText), type: "application/json" },
+    { filename: `${prefix}.print-profile.json`, bytes: new TextEncoder().encode(activePrintProfileText), type: "application/json" },
+    { filename: `${prefix}.validation.json`, bytes: new TextEncoder().encode(JSON.stringify(validationFacts, null, 2) + "\n"), type: "application/json" },
+  ];
+  const hashes = await Promise.all(artifacts.map(async (artifact) => `${await sha256Hex(artifact.bytes.buffer as ArrayBuffer)}  ${artifact.filename}`));
+  for (const artifact of artifacts) downloadBlob(new Blob([artifact.bytes.buffer as ArrayBuffer], { type: artifact.type }), artifact.filename);
+  downloadBlob(new Blob([hashes.join("\n") + "\n"], { type: "text/plain" }), `${prefix}.sha256.txt`);
+}
+
 function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): void {
   cancelBambu3mfExport(false);
   if (!activePrintProfile || !activePrintProfileSha256) {
@@ -3028,13 +3119,9 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     ui.setBambu3mfExportStatus("解像度が変わりました。もう一度「最終精度で診断」を実行してください", false);
     return;
   }
-  const supportPositions = supportEnforcerPositionsForDiagnosis(
-    diagnosis.beforeDangerPositions,
-    diagnosis.afterDangerPositions,
-    diagnosis.internalEdgeCount,
-  );
-  if (supportPositions.length === 0) {
-    ui.setBambu3mfExportStatus("Internal付加後に未支援の赤面は0面です。外部支柱は不要です", true);
+  const assignments = overhangSupportResult;
+  if (!assignments) {
+    ui.setBambu3mfExportStatus("先に共有ポリシーでオーバーハング分類を完了してください", false);
     return;
   }
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
@@ -3046,6 +3133,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
   let printPlan: ResolvedPrintPlan;
   try {
     printPlan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile));
+    assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts);
   } catch (error) {
     ui.setBambu3mfExportStatus((error as Error).message, false);
     refreshPrintProfileSummary();
@@ -3069,7 +3157,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     // Worker reuses finalSurfacePositions as BODY when no gate STL is needed.
     bodyPositions = undefined;
   }
-  const dangerousPositions = supportPositions.slice();
+  const dangerousPositions = new Float32Array(diagnosedPositionsForPolicy(assignments).map((value) => value / scaleMmPerUnit));
   const finalSurfacePositions = diagnosis.basePositions.slice();
   const requestId = ++bambu3mfRequestId;
   const generation = ++bambu3mfGeneration;
@@ -3081,18 +3169,13 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     supportType,
     printProfileSha256: printPlan.profileSha256,
     resolvedPlan: printPlan,
+    classificationCounts: assignments.counts,
     generatorVersion: manifest.version,
   });
   if (bambu3mfExportCache?.fingerprint === exportFingerprint) {
-    downloadBlob(
-      new Blob([bambu3mfExportCache.archive.slice(0)], { type: "model/3mf" }),
-      `${baseName}-fused-scaffold.3mf`,
-    );
-    downloadBlob(
-      new Blob([JSON.stringify(bambu3mfExportCache.validationFacts, null, 2) + "\n"], { type: "application/json" }),
-      `${baseName}-fused-scaffold.validation.json`,
-    );
-    ui.setBambu3mfExportStatus("再計算なし・同じ診断結果のキャッシュから保存完了 · 0.0秒", true);
+    void saveV088CandidateBundle(baseName, bambu3mfExportCache.archive, bambu3mfExportCache.validationFacts)
+      .then(() => ui.setBambu3mfExportStatus("再計算なし・同じ診断結果のv088候補一式を保存しました · 0.0秒", true))
+      .catch((error) => ui.setBambu3mfExportStatus(`v088候補保存に失敗しました: ${(error as Error).message}`, false));
     return;
   }
   const request: Bambu3mfExportRequest = {
@@ -3119,14 +3202,14 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
       internalGraph,
     },
     supportType,
-    title: `${baseName}-fused-scaffold`,
+    title: `v088-${baseName}-fused-scaffold`,
     generatorVersion: manifest.version,
   };
   const worker = new Worker(new URL("./bambu3mf.worker.ts", import.meta.url), { type: "module" });
   activeBambu3mfWorker = worker;
   const started = performance.now();
   const dangerFaces = dangerousPositions.length / 9;
-  let progressStage = `3MF 1/7 · 入力を準備 · 候補${dangerFaces.toLocaleString()}面`;
+  let progressStage = `3MF 1/7 · 入力を準備 · policy=${assignments.policy} · inside=${assignments.counts.inside} outside=${assignments.counts.outside} unresolved=${assignments.counts.unresolved} · 候補${dangerFaces.toLocaleString()}面`;
   ui.setBambu3mfExportRunning(true);
   ui.setBambu3mfExportStatus(`${progressStage} · 0秒`);
   bambu3mfStatusTimer = window.setInterval(() => {
@@ -3161,17 +3244,11 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
       archive: message.archive.slice(0),
       validationFacts: message.validationFacts,
     };
-    downloadBlob(
-      new Blob([message.archive], { type: "model/3mf" }),
-      `${baseName}-fused-scaffold.3mf`,
-    );
-    downloadBlob(
-      new Blob([JSON.stringify(message.validationFacts, null, 2) + "\n"], { type: "application/json" }),
-      `${baseName}-fused-scaffold.validation.json`,
-    );
+    void saveV088CandidateBundle(baseName, message.archive, message.validationFacts)
+      .catch((error) => ui.setBambu3mfExportStatus(`v088候補保存に失敗しました: ${(error as Error).message}`, false));
     const sizeMb = message.stats.archiveBytes / (1024 * 1024);
     ui.setBambu3mfExportStatus(
-      `保存完了 · 候補${message.reachability.candidateFaceCount.toLocaleString()} → 外側直下到達${message.reachability.keptFaceCount.toLocaleString()} / 内側・遮蔽除外${message.reachability.rejectedFaceCount.toLocaleString()}（無効${message.reachability.invalidCandidateFaceCount.toLocaleString()}） · 全到達候補${message.scaffold.coverageFaceCount.toLocaleString()} → 支柱${message.scaffold.pillarCount.toLocaleString()}本（BODY衝突除外${message.scaffold.collisionRejectedFaceCount.toLocaleString()}） · 初層パッドOK ${message.plateAnchor.minimumFirstLayerFootprintMm.toFixed(2)} mm（必要${message.plateAnchor.requiredBaseDiameterMm.toFixed(2)} mm） · 共通面${message.plateAnchor.plateClearanceMm.toFixed(3)} mm · 最終一体mesh ${message.stats.bodyFaces.toLocaleString()}面 · ${sizeMb.toFixed(1)} MB · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+      `保存完了 · policy=${message.supportPolicy} · total=${message.classificationCounts.total} / inside=${message.classificationCounts.inside} / outside=${message.classificationCounts.outside} / unresolved=${message.classificationCounts.unresolved} · 候補${message.reachability.candidateFaceCount.toLocaleString()} → 外側直下到達${message.reachability.keptFaceCount.toLocaleString()} / 内側・遮蔽除外${message.reachability.rejectedFaceCount.toLocaleString()}（無効${message.reachability.invalidCandidateFaceCount.toLocaleString()}） · 全到達候補${message.scaffold.coverageFaceCount.toLocaleString()} → 支柱${message.scaffold.pillarCount.toLocaleString()}本（BODY衝突除外${message.scaffold.collisionRejectedFaceCount.toLocaleString()}） · 最終一体mesh ${message.stats.bodyFaces.toLocaleString()}面 · ${sizeMb.toFixed(1)} MB · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
       true,
     );
   };
@@ -3221,6 +3298,7 @@ function finishSurfaceAngleDiagnosis(
     ? `${(message.metrics.mitigatedArea / message.metrics.dangerousAreaBefore * 100).toFixed(1)}%`
     : "0.0%";
   const hasInternal = message.internalEdgeCount > 0;
+  const classification = overhangSupportResult?.counts;
   ui.setSurfaceAngleDiagnosisRunning(false);
   ui.setSurfaceAngleDiagnosisStatus(hasInternal
     ? `最終mesh解像度${message.resolution} · 閾値${message.metrics.thresholdDeg.toFixed(0)}° · 付加前 ${areaPct(message.metrics.dangerousAreaBefore)} → 付加後未支援 ${areaPct(message.metrics.dangerousAreaAfter)} · 軽減候補 ${reducedPct} · ${(message.elapsedMs / 1000).toFixed(1)}秒`
@@ -3231,17 +3309,22 @@ function finishSurfaceAngleDiagnosis(
     ? message.metrics.dangerousFaceCountAfter
     : message.metrics.dangerousFaceCountBefore;
   if (supportFaceCount === 0) {
-    ui.setBambu3mfExportStatus("Internal付加後に未支援の赤面は0面です。外部支柱は不要です", true);
+    ui.setBambu3mfExportStatus(classification
+      ? `準備完了 · policy=${overhangSupportResult!.policy} · total=${classification.total} / inside=${classification.inside} / outside=${classification.outside} / unresolved=${classification.unresolved}`
+      : "Internal付加後に未支援の赤面は0面です。外部支柱は不要です", true);
   } else {
     const gateNote = hasInternal ? " · Internal最終判定OKも必要" : "";
     const stage = hasInternal ? "付加後に残る赤面" : "赤面";
     ui.setBambu3mfExportStatus(
-      `準備完了 · ${stage}${supportFaceCount.toLocaleString()}面をSupport Enforcerへ変換できます${gateNote}`,
+      classification
+        ? `準備完了 · policy=${overhangSupportResult!.policy} · total=${classification.total} / inside=${classification.inside} / outside=${classification.outside} / unresolved=${classification.unresolved} · ${stage}${supportFaceCount.toLocaleString()}面${gateNote}`
+        : `準備完了 · ${stage}${supportFaceCount.toLocaleString()}面をSupport Enforcerへ変換できます${gateNote}`,
       true,
     );
   }
   showSurfaceAngleDiagnosisView("before");
   ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
+  refreshPrintProfileSummary();
   refreshMotifLowestPointMarkers();
 }
 
@@ -3297,6 +3380,10 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
   surfaceAngleGeneration++;
   const generation = surfaceAngleGeneration;
   surfaceAngleCache = null;
+  overhangSupportResult = null;
+  // A new exact diagnosis must rebuild Dry Web targets from this run's
+  // inside assignments; never let a prior mesh's target ledger leak into it.
+  targetedSupportSource = null;
   skinRenderer.clearSurfaceAngleOverlay();
   ui.setSurfaceAngleDiagnosisView("before", false, false);
   ui.setSurfaceAngleDiagnosisRunning(true);
@@ -3356,16 +3443,20 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
       ui.setSurfaceAngleDiagnosisStatus(`診断できませんでした: ${message.message}`, false);
       return;
     }
-    if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph?.edges.length && message.motifLowestPoints.length > 0) {
+    try {
+      overhangSupportResult = classifySurfaceAngleSupport(message);
+    } catch (error) {
+      overhangSupportResult = null;
+      ui.setSurfaceAngleDiagnosisStatus(`オーバーハング分類に失敗しました: ${(error as Error).message}`, false);
+      return;
+    }
+    const sourceLongest = triangleSoupLongestExtent(message.basePositions);
+    const scaleMmPerUnit = ui.getMeshOptions().targetLongestMm / sourceLongest;
+    if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph?.edges.length && overhangSupportResult.insideTargets.length > 0) {
       targetedSupportSource = {
         surfaceFingerprint: currentTargetSurfaceFingerprint(),
         resolution: message.resolution,
-        targets: message.motifLowestPoints.map((target) => ({
-          ...target,
-          position: { ...target.position },
-          normal: target.normal ? { ...target.normal } : undefined,
-          reachedByInternal: false,
-        })),
+        targets: sourceDryWebTargets(overhangSupportResult, scaleMmPerUnit),
       };
       internalStructureFingerprint = "";
       surfaceAngleCache = message;

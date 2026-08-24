@@ -2,6 +2,7 @@ import type { Bambu3mfStats, BambuSupportType } from "./bambu3mf.ts";
 import type { ExternalScaffoldStats } from "./externalScaffold.ts";
 import type { PrintValidationFactsV1, ResolvedPrintPlan } from "./printProfile.ts";
 import type { SupportReachabilityFacts } from "./supportReachability.ts";
+import type { OverhangAssignmentCounts } from "./overhangSupportPolicy.ts";
 import type { Ball } from "../cloud-sculpt/field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { SkinMeshOptions } from "./meshExport.ts";
@@ -13,6 +14,7 @@ export interface SupportReachabilityStats extends SupportReachabilityFacts {
   keptFaceCount: number;
   rejectedFaceCount: number;
   invalidCandidateFaceCount: number;
+  unresolvedCandidateFaceCount: number;
 }
 
 export interface FusedSkinMeshInput {
@@ -74,6 +76,8 @@ export type Bambu3mfWorkerMessage = {
   archive: ArrayBuffer;
   stats: Bambu3mfStats;
   reachability: SupportReachabilityStats;
+  supportPolicy: string;
+  classificationCounts: OverhangAssignmentCounts;
   scaffold: ExternalScaffoldStats;
   plateAnchor: FusedScaffoldPlateAnchorReport;
   validationFacts: PrintValidationFactsV1;

@@ -1,9 +1,11 @@
 import { sha256Hex } from "../../lib/hash.ts";
 import type { ExternalScaffoldOptions, ExternalScaffoldTarget } from "./externalScaffold.ts";
+import { OVERHANG_SUPPORT_POLICY, type OverhangAssignmentCounts } from "./overhangSupportPolicy.ts";
 
 export const SKIN_PRINT_PROFILE_SCHEMA = "katachi.skin.print-profile.v1" as const;
 export const PRINT_VALIDATION_FACTS_SCHEMA = "katachi.skin.print-validation-facts.v1" as const;
 export const LOW_RESOLUTION_FINGERPRINT_FACE_LIMIT = 200_000;
+export type PrintSupportClassificationCounts = OverhangAssignmentCounts;
 
 export interface SkinPrintProfileV1 {
   schema: typeof SKIN_PRINT_PROFILE_SCHEMA;
@@ -11,6 +13,10 @@ export interface SkinPrintProfileV1 {
   profileName: string;
   appVersion: string;
   artifactVersion: string;
+  /** Optional for old v1 Profiles; required for new v088 Profiles. */
+  supportPolicy?: typeof OVERHANG_SUPPORT_POLICY;
+  /** Optional for old v1 Profiles; required for new v088 Profiles. */
+  expectedClassificationCounts?: PrintSupportClassificationCounts;
   generatorCommit: string;
   generatorTag: string | null;
   shapeRecipe: {
@@ -79,6 +85,7 @@ export interface PrintRecipeBinding {
   currentFusedResolution?: number;
   currentAngleThresholdDeg?: number;
   scaleMmPerUnit?: number;
+  currentSupportClassificationCounts?: PrintSupportClassificationCounts;
 }
 
 export interface ResolvedPrintPlan {
@@ -100,6 +107,8 @@ export interface ResolvedPrintPlan {
   printer: SkinPrintProfileV1["printer"];
   slicer: SkinPrintProfileV1["slicer"];
   executionHints: SkinPrintProfileV1["executionHints"];
+  supportPolicy: typeof OVERHANG_SUPPORT_POLICY;
+  expectedClassificationCounts?: PrintSupportClassificationCounts;
 }
 
 export interface PrintProfileMatch {
@@ -166,6 +175,8 @@ export interface PrintValidationFactsV1 {
   printer: SkinPrintProfileV1["printer"];
   slicer: SkinPrintProfileV1["slicer"];
   executionHints: SkinPrintProfileV1["executionHints"];
+  supportPolicy: typeof OVERHANG_SUPPORT_POLICY;
+  classificationCounts: PrintSupportClassificationCounts;
 }
 
 export interface PrintValidationFactsInput {
@@ -181,6 +192,8 @@ export interface PrintValidationFactsInput {
   plateAnchorOk: boolean;
   plateSpreadMm: number;
   fingerprint: GeometryFingerprintResult;
+  supportPolicy?: typeof OVERHANG_SUPPORT_POLICY;
+  classificationCounts?: PrintSupportClassificationCounts;
 }
 
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
@@ -221,6 +234,23 @@ function validateTargets(value: unknown): ExternalScaffoldTarget[] {
   });
 }
 
+function validateClassificationCounts(value: unknown, label: string): PrintSupportClassificationCounts {
+  const item = requireObject(value, label);
+  const keys = ["total", "inside", "outside", "unresolved", "duplicate", "unassigned"] as const;
+  const counts = Object.fromEntries(keys.map((key) => {
+    const raw = item[key];
+    if (!Number.isInteger(raw) || Number(raw) < 0) throw new Error(`${label}.${key} must be a non-negative integer`);
+    return [key, Number(raw)];
+  })) as unknown as PrintSupportClassificationCounts;
+  if (counts.total !== counts.inside + counts.outside + counts.unresolved) throw new Error(`${label} is not a complete partition`);
+  return counts;
+}
+
+function sameClassificationCounts(a: PrintSupportClassificationCounts, b: PrintSupportClassificationCounts): boolean {
+  return a.total === b.total && a.inside === b.inside && a.outside === b.outside &&
+    a.unresolved === b.unresolved && a.duplicate === b.duplicate && a.unassigned === b.unassigned;
+}
+
 export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
   const root = requireObject(value, "Print Profile");
   if (root.schema !== SKIN_PRINT_PROFILE_SCHEMA || root.profileVersion !== 1) throw new Error(`Unsupported Print Profile schema: ${String(root.schema)}`);
@@ -231,6 +261,18 @@ export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
   const printer = requireObject(root.printer, "printer");
   const slicer = requireObject(root.slicer, "slicer");
   const hints = requireObject(root.executionHints, "executionHints");
+  const artifactVersion = requireString(root.artifactVersion, "artifactVersion");
+  let supportPolicy: typeof OVERHANG_SUPPORT_POLICY | undefined;
+  let expectedClassificationCounts: PrintSupportClassificationCounts | undefined;
+  if (root.supportPolicy !== undefined || root.expectedClassificationCounts !== undefined) {
+    if (root.supportPolicy !== OVERHANG_SUPPORT_POLICY) throw new Error("supportPolicy is invalid");
+    if (root.expectedClassificationCounts === undefined) throw new Error("expectedClassificationCounts is required with supportPolicy");
+    supportPolicy = OVERHANG_SUPPORT_POLICY;
+    expectedClassificationCounts = validateClassificationCounts(root.expectedClassificationCounts, "expectedClassificationCounts");
+  }
+  if (artifactVersion.includes("v088") && (!supportPolicy || !expectedClassificationCounts)) {
+    throw new Error("v088 Print Profile requires supportPolicy and expectedClassificationCounts");
+  }
   const recipeSha256 = requireString(shapeRecipe.sha256, "shapeRecipe.sha256").toLowerCase();
   if (!SHA256_PATTERN.test(recipeSha256)) throw new Error("shapeRecipe.sha256 must be lowercase SHA-256 hex");
   if (internal.method !== "targetedGrid") throw new Error("internalStructure.method must be targetedGrid");
@@ -258,7 +300,9 @@ export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
     profileVersion: 1,
     profileName: requireString(root.profileName, "profileName"),
     appVersion: requireString(root.appVersion, "appVersion"),
-    artifactVersion: requireString(root.artifactVersion, "artifactVersion"),
+    artifactVersion,
+    ...(supportPolicy ? { supportPolicy } : {}),
+    ...(expectedClassificationCounts ? { expectedClassificationCounts } : {}),
     generatorCommit: requireString(root.generatorCommit, "generatorCommit"),
     generatorTag: root.generatorTag === null ? null : requireString(root.generatorTag, "generatorTag"),
     shapeRecipe: { sha256: recipeSha256, seed: requireString(shapeRecipe.seed, "shapeRecipe.seed"), ...(shapeRecipe.pathHint === undefined ? {} : { pathHint: requireString(shapeRecipe.pathHint, "shapeRecipe.pathHint") }) },
@@ -311,6 +355,10 @@ export function matchPrintProfile(profile: SkinPrintProfileV1, binding: PrintRec
     const actualRadiusMm = binding.currentDryWebNormalizedRadius * binding.scaleMmPerUnit;
     if (!close(actualRadiusMm, profile.internalStructure.dryWebPhysicalRadiusMm, 1e-5)) reasons.push("Dry Web実寸径がProfileと一致しません");
   }
+  if (profile.expectedClassificationCounts && binding.currentSupportClassificationCounts &&
+    !sameClassificationCounts(profile.expectedClassificationCounts, binding.currentSupportClassificationCounts)) {
+    reasons.push("オーバーハング内外分類件数がProfileと一致しません");
+  }
   return { matches: reasons.length === 0, reasons };
 }
 
@@ -337,11 +385,28 @@ export function resolvePrintPlan(profileValue: SkinPrintProfileV1, profileSha256
     explicitScaffoldTargets: scaffold.explicitTargets.map((target) => ({ ...target })),
     baseInteriorPolicy: scaffold.baseInteriorPolicy,
     printer: { ...profile.printer }, slicer: { ...profile.slicer }, executionHints: { ...profile.executionHints },
+    supportPolicy: profile.supportPolicy ?? OVERHANG_SUPPORT_POLICY,
+    ...(profile.expectedClassificationCounts ? { expectedClassificationCounts: { ...profile.expectedClassificationCounts } } : {}),
   };
 }
 
 export const resolveCliPrintPlan = resolvePrintPlan;
 export const resolveWorkerPrintPlan = resolvePrintPlan;
+
+/** Runtime gate used after exact diagnosis/classification, before geometry. */
+export function assertResolvedPrintPlanSupportCounts(
+  plan: ResolvedPrintPlan,
+  counts: PrintSupportClassificationCounts,
+): void {
+  if (plan.supportPolicy !== OVERHANG_SUPPORT_POLICY) throw new Error("Fail closed: unsupported overhang support policy");
+  if (counts.total !== counts.inside + counts.outside + counts.unresolved) throw new Error("Fail closed: overhang counts are not a complete partition");
+  if (counts.duplicate !== 0) throw new Error(`Fail closed: duplicate overhang assignments (${counts.duplicate})`);
+  if (counts.unassigned !== 0) throw new Error(`Fail closed: unassigned overhang targets (${counts.unassigned})`);
+  if (counts.unresolved !== 0) throw new Error(`Fail closed: unresolved overhang targets (${counts.unresolved})`);
+  if (plan.expectedClassificationCounts && !sameClassificationCounts(plan.expectedClassificationCounts, counts)) {
+    throw new Error("Fail closed: runtime overhang classification counts do not match Print Profile");
+  }
+}
 
 function normalFloat32(value: number): number {
   const rounded = Math.fround(value);
@@ -369,6 +434,9 @@ export async function geometryFingerprintLowResolution(positionsMm: Float32Array
 
 export function buildPrintValidationFacts(plan: ResolvedPrintPlan, input: PrintValidationFactsInput): PrintValidationFactsV1 {
   const p = plan.profile;
+  const classificationCounts = input.classificationCounts ?? plan.expectedClassificationCounts ?? {
+    total: 0, inside: 0, outside: 0, unresolved: 0, duplicate: 0, unassigned: 0,
+  };
   return {
     schema: PRINT_VALIDATION_FACTS_SCHEMA, printApproval: false,
     profile: { name: p.profileName, version: 1, sha256: plan.profileSha256, appVersion: p.appVersion, artifactVersion: p.artifactVersion, generatorCommit: p.generatorCommit, generatorTag: p.generatorTag },
@@ -381,6 +449,8 @@ export function buildPrintValidationFacts(plan: ResolvedPrintPlan, input: PrintV
       contactRadiusMm: p.scaffold.contactRadiusMm, contactDiameterMm: p.scaffold.contactDiameterMm, contactOverlapMm: p.scaffold.contactOverlapMm, spacingMm: p.scaffold.spacingMm,
       plateAnchorDropMm: p.scaffold.plateAnchorDropMm, plateAnchorOk: input.plateAnchorOk, plateSpreadMm: input.plateSpreadMm },
     printer: { ...plan.printer }, slicer: { ...plan.slicer }, executionHints: { ...plan.executionHints },
+    supportPolicy: input.supportPolicy ?? plan.supportPolicy,
+    classificationCounts: { ...classificationCounts },
   };
 }
 

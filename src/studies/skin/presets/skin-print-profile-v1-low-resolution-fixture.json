@@ -2,10 +2,19 @@
   "schema": "katachi.skin.print-profile.v1",
   "profileVersion": 1,
   "profileName": "low-resolution CLI Worker parity fixture",
-  "appVersion": "0.69.0",
-  "artifactVersion": "fixture-001",
+  "appVersion": "0.70.0",
+  "artifactVersion": "v088-low-resolution-fixture",
   "generatorCommit": "fixture",
   "generatorTag": null,
+  "supportPolicy": "outside-breakaway-scaffold-inside-dry-web-v1",
+  "expectedClassificationCounts": {
+    "total": 4,
+    "inside": 2,
+    "outside": 2,
+    "unresolved": 0,
+    "duplicate": 0,
+    "unassigned": 0
+  },
   "shapeRecipe": {
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "seed": "fixture-seed",
@@ -19,9 +28,9 @@
   },
   "internalStructure": {
     "method": "targetedGrid",
-    "dryWebNormalizedRadius": 0.05,
-    "dryWebPhysicalRadiusMm": 0.5,
-    "dryWebPhysicalDiameterMm": 1
+    "dryWebNormalizedRadius": 0.045,
+    "dryWebPhysicalRadiusMm": 0.45,
+    "dryWebPhysicalDiameterMm": 0.9
   },
   "scaffold": {
     "coverageMode": "allReachable",

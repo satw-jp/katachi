@@ -26,6 +26,20 @@ export interface SupportReachabilityResult extends SupportReachabilityFacts {
   keptFaceCount: number;
   rejectedFaceCount: number;
   invalidCandidateFaceCount: number;
+  /** Valid candidate faces whose deterministic samples were only partly
+   * occluded. The legacy filter rejects these conservatively; the shared
+   * v088 policy records them as unresolved instead of dropping them. */
+  unresolvedCandidateFaceCount: number;
+}
+
+export type SupportReachabilityClassification = "outside" | "inside" | "unresolved";
+
+/** A reusable, deterministic lower-Surface index. The v088 policy uses this
+ * same index for diagnosed faces and explicit Profile points so the CLI,
+ * Worker, and app cannot drift into different routing rules. */
+export interface SupportReachabilityIndex extends SupportReachabilityFacts {
+  classifyTriangle: (positions: Float32Array, offset?: number) => SupportReachabilityClassification;
+  classifyPoint: (x: number, y: number, z: number) => SupportReachabilityClassification;
 }
 
 type Triangle = { ax: number; ay: number; az: number; bx: number; by: number; bz: number; cx: number; cy: number; cz: number };
@@ -88,6 +102,34 @@ export function filterSupportEnforcerReachability(
   finalSurfacePositionsMm: Float32Array,
 ): SupportReachabilityResult {
   if (dangerousPositionsMm.length % 9 !== 0) throw new Error("危険面bufferの長さが9の倍数ではありません");
+  const index = createSupportReachabilityIndex(finalSurfacePositionsMm);
+  const kept: number[] = [];
+  let candidateFaceCount = 0;
+  let keptFaceCount = 0;
+  let rejectedFaceCount = 0;
+  let invalidCandidateFaceCount = 0;
+  let unresolvedCandidateFaceCount = 0;
+  for (let offset = 0; offset < dangerousPositionsMm.length; offset += 9) {
+    candidateFaceCount++;
+    const triangle = finiteTriangle(dangerousPositionsMm, offset);
+    if (!triangle) { invalidCandidateFaceCount++; continue; }
+    const classification = index.classifyTriangle(dangerousPositionsMm, offset);
+    if (classification === "unresolved") unresolvedCandidateFaceCount++;
+    if (classification !== "outside") { rejectedFaceCount++; continue; }
+    for (let index = 0; index < 9; index++) kept.push(dangerousPositionsMm[offset + index]);
+    keptFaceCount++;
+  }
+  return {
+    keptPositions: new Float32Array(kept), candidateFaceCount, keptFaceCount, rejectedFaceCount, invalidCandidateFaceCount,
+    unresolvedCandidateFaceCount,
+    meshScaleMm: index.meshScaleMm, lowerIntersectionEpsilonMm: index.lowerIntersectionEpsilonMm,
+    gridCellSizeMm: index.gridCellSizeMm, gridCellCount: index.gridCellCount,
+    surfaceTriangleCount: index.surfaceTriangleCount, invalidSurfaceTriangleCount: index.invalidSurfaceTriangleCount,
+  };
+}
+
+/** Build the shared lower-envelope index used by all three execution paths. */
+export function createSupportReachabilityIndex(finalSurfacePositionsMm: Float32Array): SupportReachabilityIndex {
   if (finalSurfacePositionsMm.length % 9 !== 0) throw new Error("最終Surface bufferの長さが9の倍数ではありません");
   if (finalSurfacePositionsMm.length === 0) throw new Error("Fail closed: 最終Surface occlusion meshが空です");
   const meshScaleMm = meshExtent(finalSurfacePositionsMm);
@@ -118,15 +160,20 @@ export function filterSupportEnforcerReachability(
     throw new Error(`Fail closed: 最終Surface occlusion meshに無効面が${invalidSurfaceTriangleCount}枚あります`);
   }
   if (surfaceTriangleCount === 0) throw new Error("Fail closed: 最終Surface occlusion meshに有効面がありません");
-  const kept: number[] = [];
-  let candidateFaceCount = 0;
-  let keptFaceCount = 0;
-  let rejectedFaceCount = 0;
-  let invalidCandidateFaceCount = 0;
-  for (let offset = 0; offset < dangerousPositionsMm.length; offset += 9) {
-    candidateFaceCount++;
-    const triangle = finiteTriangle(dangerousPositionsMm, offset);
-    if (!triangle) { invalidCandidateFaceCount++; continue; }
+
+  const classifyPoint = (x: number, y: number, z: number): SupportReachabilityClassification => {
+    if (![x, y, z].every(Number.isFinite)) return "unresolved";
+    const bucket = grid.get(cellKey(Math.floor(x / gridCellSizeMm), Math.floor(y / gridCellSizeMm))) ?? [];
+    for (const surface of bucket) {
+      const hitZ = zAtXY(surface, x, y);
+      if (hitZ !== null && hitZ < z - lowerIntersectionEpsilonMm) return "inside";
+    }
+    return "outside";
+  };
+
+  const classifyTriangle = (positions: Float32Array, offset = 0): SupportReachabilityClassification => {
+    const triangle = finiteTriangle(positions, offset);
+    if (!triangle) return "unresolved";
     const vertices: Array<[number, number, number]> = [
       [triangle.ax, triangle.ay, triangle.az], [triangle.bx, triangle.by, triangle.bz], [triangle.cx, triangle.cy, triangle.cz],
     ];
@@ -146,22 +193,19 @@ export function filterSupportEnforcerReachability(
         point[2] * VERTEX_BIASED_WEIGHT + (otherA[2] + otherB[2]) * (1 - VERTEX_BIASED_WEIGHT) / 2,
       ]);
     }
-    let blocked = false;
+    let blocked = 0;
     for (const [x, y, z] of samples) {
-      const bucket = grid.get(cellKey(Math.floor(x / gridCellSizeMm), Math.floor(y / gridCellSizeMm))) ?? [];
-      for (const surface of bucket) {
-        const hitZ = zAtXY(surface, x, y);
-        if (hitZ !== null && hitZ < z - lowerIntersectionEpsilonMm) { blocked = true; break; }
-      }
-      if (blocked) break;
+      const classification = classifyPoint(x, y, z);
+      if (classification === "unresolved") return "unresolved";
+      if (classification === "inside") blocked++;
     }
-    if (blocked) { rejectedFaceCount++; continue; }
-    for (let index = 0; index < 9; index++) kept.push(dangerousPositionsMm[offset + index]);
-    keptFaceCount++;
-  }
+    if (blocked === 0) return "outside";
+    if (blocked === samples.length) return "inside";
+    return "unresolved";
+  };
+
   return {
-    keptPositions: new Float32Array(kept), candidateFaceCount, keptFaceCount, rejectedFaceCount, invalidCandidateFaceCount,
     meshScaleMm, lowerIntersectionEpsilonMm, gridCellSizeMm, gridCellCount: grid.size,
-    surfaceTriangleCount, invalidSurfaceTriangleCount,
+    surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint,
   };
 }

@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.69.0",
+  "version": "0.70.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-24",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-24",
+      "note": "SKIN v088 Phase A: author observation preserved verbatim: 「消えすぎていて印刷すると絶対失敗する。オーバーハング部はベース形状の外側はサポート、内側はDrywebでの補強が必要」. Shared policy outside-breakaway-scaffold-inside-dry-web-v1 assigns diagnosed faces and explicit Profile targets exactly once by deterministic -Z reachability; outside alone routes to removable scaffold, inside alone routes to targeted Dry Web, and unresolved/duplicate/unassigned fail closed. Low-resolution Surface24/fused32 fixture records policy and expected counts, old recipe formatVersion1 remains compatible, app candidate save records exact v088 artifact bytes and SHA list, and the production principle 「更新されたアプリを操作した結果の形状を印刷候補にする」 is retained. Browser operation and low-resolution generation evidence are required before commit; no high-resolution generation, Slice, publish, deploy, or printer operation; printApproval=false."
+    },
     {
       "date": "2026-08-24",
       "note": "Print Profile v1 shared foundation: added katachi.skin.print-profile.v1 validation/canonical SHA and one low-resolution fixture; CLI and browser Worker now derive the same ResolvedPrintPlan, bind recipe SHA/Seed and recorded geometry/Dry Web/scaffold/printer conditions, and emit common validation facts. The app compiles with Profile JSON load/save and current mm/match display. Low-resolution CLI/Worker plan and validation-facts parity tests, related SKIN tests, test typecheck, production build, and git diff --check passed. Browser operation, high-resolution generation/comparison, Slice, physical reproducibility confirmation, deployment, and v087 artifact overwrite were not performed; printApproval=false."
