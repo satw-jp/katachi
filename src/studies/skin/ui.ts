@@ -1685,18 +1685,18 @@ export function buildUi(
   quickResolutionRow.appendChild(document.createTextNode("最終精度"));
   const quickResolutionInput = document.createElement("input");
   quickResolutionInput.type = "number";
-  quickResolutionInput.min = "32";
+  quickResolutionInput.min = "16";
   quickResolutionInput.max = "224";
-  quickResolutionInput.step = "16";
+  quickResolutionInput.step = "8";
   quickResolutionInput.value = "128";
   quickResolutionInput.oninput = () => {
     const value = Number(quickResolutionInput.value);
     if (!Number.isFinite(value)) return;
-    resolutionInput.value = String(Math.max(32, Math.min(224, Math.round(value))));
+    resolutionInput.value = String(Math.max(16, Math.min(224, Math.round(value))));
     resolutionOut.textContent = resolutionInput.value;
   };
   quickResolutionInput.onchange = () => {
-    const value = Math.max(32, Math.min(224, Math.round(Number(quickResolutionInput.value) || 128)));
+    const value = Math.max(16, Math.min(224, Math.round(Number(quickResolutionInput.value) || 128)));
     quickResolutionInput.value = String(value);
     resolutionInput.value = String(value);
     resolutionOut.textContent = String(value);
@@ -2767,9 +2767,9 @@ export function buildUi(
   resolutionLabel.textContent = "解像度";
   const resolutionInput = document.createElement("input");
   resolutionInput.type = "range";
-  resolutionInput.min = "32";
+  resolutionInput.min = "16";
   resolutionInput.max = "224";
-  resolutionInput.step = "16";
+  resolutionInput.step = "8";
   // A 0.8 mm minimum Internal strut needs at least 2.5 samples across its
   // diameter in the fixed 80 mm A1 mini workflow. 128 is the first standard
   // authoring resolution that clears that representation gate.

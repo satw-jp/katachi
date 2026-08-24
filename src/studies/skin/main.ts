@@ -4237,6 +4237,13 @@ function updateEmptyViewportHint(): void {
   getPartitionResult: () => partitionResult,
   getPartitionGate: () => partitionResult?.gate ?? null,
   getImportedRecipeInfo: () => ({ filename: importedRecipeFilename, sha256: importedRecipeSha256 }),
+  getOverhangSupportReview: () => ({
+    recipeFilename: importedRecipeFilename,
+    profileFilename: activePrintProfileFilename,
+    profileMatch: activePrintProfile ? currentPrintProfileBinding(activePrintProfile, false) : null,
+    counts: overhangSupportResult?.counts ?? null,
+    overlayVisible: showOverhangSupportSites,
+  }),
   // Guided tutorial (read-only / open-close helpers for verification).
   getPartitionTutorial: () => {
     const actualStep = derivePartitionTutorialStep(buildTutorialSnapshot());
@@ -4257,6 +4264,38 @@ function updateEmptyViewportHint(): void {
   tutorialRestart: () => tutorialRestart(),
   tutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 };
+
+async function loadLocalV088ReviewFixture(): Promise<void> {
+  const params = new URLSearchParams(window.location.search);
+  if (
+    params.get("reviewFixture") !== "v088-low"
+    || !["127.0.0.1", "localhost"].includes(window.location.hostname)
+  ) return;
+  try {
+    ui.setSurfaceAngleDiagnosisStatus("review fixture: recipeを読み込んでいます…");
+    const recipeUrl = new URL("./presets/skin-v088-low-resolution-fixture.recipe.json", import.meta.url);
+    const recipeResponse = await fetch(recipeUrl);
+    if (!recipeResponse.ok) throw new Error(`recipe HTTP ${recipeResponse.status}`);
+    const recipeText = await recipeResponse.text();
+    await importHistory(new File([recipeText], "skin-v088-low-resolution-fixture.recipe.json", { type: "application/json" }));
+
+    ui.setSurfaceAngleDiagnosisStatus("review fixture: Print Profileを読み込んでいます…");
+    const profileUrl = new URL("./presets/skin-v088-low-resolution-fixture.print-profile.json", import.meta.url);
+    const profileResponse = await fetch(profileUrl);
+    if (!profileResponse.ok) throw new Error(`Print Profile HTTP ${profileResponse.status}`);
+    const profileText = await profileResponse.text();
+    await importPrintProfile(new File([profileText], "skin-v088-low-resolution-fixture.print-profile.json", { type: "application/json" }));
+
+    ui.setSurfaceAngleDiagnosisStatus("review fixture一致 · 低解像度支持点を診断しています…");
+    startSurfaceAngleDiagnosis(ui.getSurfaceAngleThreshold());
+    const revealReviewPanel = () => document.querySelector<HTMLElement>(".surface-angle-diagnosis")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(revealReviewPanel, 1500);
+    window.setTimeout(revealReviewPanel, 5000);
+  } catch (error) {
+    ui.setSurfaceAngleDiagnosisStatus(`review fixtureを読み込めませんでした: ${(error as Error).message}`, false);
+  }
+}
 
 // --- Render loop ------------------------------------------------------
 
@@ -4293,4 +4332,5 @@ function renderFrame(now: number): void {
 }
 
 render();
+void loadLocalV088ReviewFixture();
 startFrameLoop(renderFrame);
