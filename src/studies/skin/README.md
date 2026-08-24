@@ -50,6 +50,8 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 低解像度の検証範囲はSurface 24／fused 32。実recipe bytesのSHA-256 `93bdafd7f20ef34e239900739fd9633c3fda63a7931c814f80b2c77f877e0c8f`とSeed `phase-a-low`に結合したProfileを共有builderで一度生成し、mixed face 173、inside site 2,705、outside site 4,483、unresolved 0、duplicate 0を記録した。旧`formatVersion: 1` recipeおよび既存Profile互換性を保つ。appの成功保存はv088名の3MF、正確なShape Recipe／Print Profile／validation JSON、各保存bytesのSHA-256一覧を一式で出せるが、この観察工程ではarchiveを生成しない。`printApproval=false`を維持し、高解像度生成、Slice、publish、deploy、印刷は実施しない。
 
+ローカルreview URLで上記recipe→Profileの順に読み込み、Surface 24の診断を実行した。画面はProfile不一致なく、mixed face 173、inside site 2,705、outside site 4,483、unresolved site 0、duplicate site 0を表示し、青inside点、オレンジoutside点、紫mixed-face輪郭と表示toggleを確認した。証拠は`screenshots/skin-v088-support-sites-review-20260824.png`。これは更新されたアプリの表示を作者が判断できる状態にした技術確認であり、形状の承認、印刷候補封印、`printApproval`変更ではない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。
