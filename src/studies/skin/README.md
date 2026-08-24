@@ -2549,6 +2549,22 @@ Downloadsにexact v071の3MF、同一recipe、400層の通常/厳格到達解析
 
 SKINと直接必要な共通ファイルだけをpath限定archiveへ保存し、recipe、検証JSON、SHA-256、Git commit/tagを統合封印記録へ残す。新方式の追加、高速化、リファクタリング、不要コード削除、公開版変更、デプロイは行わない。次の判断はexact v071を一度印刷し、開始層、浮き、融合、破損、取り外し、表面痕を観察した後に行う。
 
+## Observation v086 実物印刷フィードバック反映（2026-08-24）
+
+作者の観察を原文のまま残す:
+
+> 印刷をしてみた
+> まず物体がおもったより小さかったので1.5倍位にしたい
+> サポートは今の細さを維持してDrywebは強度が必要なので1.5倍の太さにする
+
+実物印刷したv071（最長辺80 mm）を基準に、次の観察用候補v086は最長辺119.5 mm（1.49375倍）へ拡大した。Dry Webのrecipe値 internalRadius=0.045 は変更していない。全体寸法の拡大だけで実寸線径が1.49375倍になるため、ここをさらに1.5倍すると二重拡大になる。外して捨てるscaffold軸は半径0.70 mm／直径1.40 mmを維持し、ベッド接地足だけ半径1.20 mm／直径2.40 mmとした。
+
+A1 mini・0.4 mm nozzle・PLA・0.20 mm layerでBambu Studio 02.06.00.51を使い、597層を生成した。自動supportは無効。通常raster（許容0.35 mm・0.045 mm²未満除外）と厳格raster（許容0 mm・面積除外0）はともに floating component 0。実寸bboxは115.835 × 85.604 × 119.353 mm、見積り材料89.646 g、最終mesh 3,983,584 faces、1 component、水密、退化0。3MF SHA-256は `a1328a1171b396f641e5be3864c13776b30ff4b0c913bafdcb53a8de3ed48e87`。
+
+ただしBambu G-codeの診断用 Floating vertical shell マーカーは残るため、v086は `AWAITING_PHYSICAL_PRINT_OBSERVATION`、`printApproval=false` とする。公開安定版v0.65は変更せず、デプロイもしない。v077〜v085は調整途中の非配布artifactとし、次に実物で大きさ、Dry Web強度、scaffold除去性と表面痕を観察する。
+
+2026-08-24、既存の3MF・recipe・通常/厳格reachability・検証JSON・SHA-256一覧を再計算せず、`skin-v086-print-candidate-checkpoint-20260824` として封印した。追加修正、次候補生成、公開、デプロイは行っていない。次の判断はこのexact v086を実物印刷して観察した後に行う。
+
 ## Observation v0.67.0（最終一体メッシュOK・重い経路の並列化、2026-08-23）
 
 作者の発言（原文）:

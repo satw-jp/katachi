@@ -14,7 +14,7 @@ import {
   type SkinMeshFieldInput,
   type SkinMeshResult,
 } from "../src/studies/skin/meshExport.ts";
-import { inspectFusedScaffoldPlateAnchoring, type SkinScaffoldPillar } from "../src/studies/skin/scaffoldFusion.ts";
+import { inspectFusedScaffoldPlateAnchoring, normalizeFusedScaffoldPlatePlane, type SkinScaffoldPillar } from "../src/studies/skin/scaffoldFusion.ts";
 import {
   buildMeshResultFromTriangles,
   inspectSavedStlTopology,
@@ -53,6 +53,7 @@ const targetLongestMm = Number(option("--targetLongestMm", "80"));
 const resolution = Math.max(16, Math.round(Number(option("--resolution", "128"))));
 const fusedResolution = Math.max(resolution, Math.round(Number(option("--fusedResolution", "160"))));
 const thresholdDeg = Number(option("--thresholdDeg", "45"));
+const scaffoldBaseRadiusMm = Number(option("--scaffoldBaseRadiusMm", String(DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseRadiusMm)));
 const supportType = option("--supportType", "normal(manual)") as "normal(manual)";
 const requestedWorkers = Math.max(
   1,
@@ -64,7 +65,7 @@ if (Boolean(bodyStlPath) !== Boolean(bodyProvenancePath)) throw new Error("--bod
 if (Boolean(sliceFeedbackReportPath) !== Boolean(sliceFeedbackStlPath)) throw new Error("--slice-feedback-report and --slice-feedback-stl must be supplied together");
 if (sliceFeedbackReportPath && !sliceFeedbackReportPath.startsWith("/")) throw new Error("--slice-feedback-report must be an absolute path");
 if (sliceFeedbackStlPath && !sliceFeedbackStlPath.startsWith("/")) throw new Error("--slice-feedback-stl must be an absolute path");
-if (!Number.isFinite(targetLongestMm) || targetLongestMm <= 0 || !Number.isFinite(fusedResolution) || !Number.isFinite(thresholdDeg) || !Number.isFinite(requestedWorkers) || supportType !== "normal(manual)") throw new Error("Invalid numeric, worker, or supportType option: porous SKIN accepts only normal(manual)");
+if (!Number.isFinite(targetLongestMm) || targetLongestMm <= 0 || !Number.isFinite(fusedResolution) || !Number.isFinite(thresholdDeg) || !Number.isFinite(requestedWorkers) || !Number.isFinite(scaffoldBaseRadiusMm) || scaffoldBaseRadiusMm < DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.shaftRadiusMm || supportType !== "normal(manual)") throw new Error("Invalid numeric, worker, scaffold base, or supportType option: porous SKIN accepts only normal(manual)");
 
 const stage = (name: string): void => console.error("stage: " + name);
 const sha256 = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
@@ -414,7 +415,7 @@ const scaffold = buildExternalPerimeterScaffold(
   reachability.keptPositions,
   surfacePositionsMm,
   bodyPositions,
-  DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS,
+  { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: scaffoldBaseRadiusMm },
   explicitScaffoldTargets,
 );
 if (!scaffold.stats.pillarCount || !scaffold.positions.length) {
@@ -433,7 +434,7 @@ const sourcePillars: SkinScaffoldPillar[] = scaffold.pillars.map((pillar) => {
     x: pillar.xMm * mmToSource, y: pillar.yMm * mmToSource,
     plateZ: pillar.plateZMm * mmToSource, topZ: pillar.topZMm * mmToSource,
     shaftRadius: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.shaftRadiusMm) * mmToSource,
-    baseRadius: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseRadiusMm) * mmToSource,
+    baseRadius: (local ? localRadiusMm : scaffoldBaseRadiusMm) * mmToSource,
     tipRadius: (local ? localRadiusMm : pillar.contactRadiusMm) * mmToSource,
     baseHeight: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.baseHeightMm) * mmToSource,
     tipHeight: (local ? localRadiusMm : DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS.tipHeightMm) * mmToSource,
@@ -487,6 +488,7 @@ if (!fusedBefore.closed || !fusedBefore.degenerateFree || fusedBefore.nonFiniteT
   throw new Error("Fail closed: fused BODY topology NG before repair (closed=" + fusedBefore.closed + ", components=" + fusedBefore.connectedComponents + ", degenerate=" + fusedBefore.degenerateTriangleCount + ", open=" + fusedBefore.openEdges + ", nonManifold=" + fusedBefore.nonManifoldEdges + "; detail=" + componentDetail + ")");
 }
 const fusedRepaired = orientMeshForSavedStl(fusedForSave);
+const plateNormalization = normalizeFusedScaffoldPlatePlane(fusedRepaired, sourcePillars);
 const fusedAfter = inspectSavedStlTopology(fusedRepaired.triangles, fusedRepaired.scaleMmPerUnit);
 if (!fusedAfter.ok || fusedAfter.connectedComponents !== 1) {
   throw new Error("Fail closed: fused BODY topology NG after repair (closed=" + fusedAfter.closed + ", winding=" + fusedAfter.windingConsistent + ", components=" + fusedAfter.connectedComponents + ", degenerate=" + fusedAfter.degenerateTriangleCount + ")");
@@ -503,4 +505,4 @@ const result = await buildBambu3mf([
 ], { title: basename(outputPath, ".3mf"), supportType, generatorVersion: "0.69.0" });
 await mkdir(dirname(resolve(outputPath)), { recursive: true });
 await writeFile(outputPath, new Uint8Array(result.archive));
-console.log(JSON.stringify({ output: resolve(outputPath), resolution, fusedResolution, workers: requestedWorkers, targetLongestMm, thresholdDeg, supportType, graph: { nodes: graph.nodes.length, edges: graph.edges.length }, gate: { ok: gate.ok, reasons: gate.reasons }, bodyReuse: suppliedBody ? { inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : null, bodySavedTopology: suppliedBody ? { source: "supplied", inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : builtBodyTopology ? { source: "built", inputWindingInconsistentEdges: builtBodyTopology.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: builtBodyTopology.savedAfter.windingInconsistentEdges } : null, reachability: { candidate: reachability.candidateFaceCount, kept: reachability.keptFaceCount, rejected: reachability.rejectedFaceCount, invalid: reachability.invalidCandidateFaceCount }, scaffold: scaffold.stats, plateAnchor, removedTinyFragmentTriangleCount, stats: result.stats, archiveBytes: result.stats.archiveBytes }));
+console.log(JSON.stringify({ output: resolve(outputPath), resolution, fusedResolution, workers: requestedWorkers, targetLongestMm, thresholdDeg, supportType, scaffoldBaseRadiusMm, graph: { nodes: graph.nodes.length, edges: graph.edges.length }, gate: { ok: gate.ok, reasons: gate.reasons }, bodyReuse: suppliedBody ? { inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : null, bodySavedTopology: suppliedBody ? { source: "supplied", inputWindingInconsistentEdges: suppliedBody.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: suppliedBody.savedAfter.windingInconsistentEdges } : builtBodyTopology ? { source: "built", inputWindingInconsistentEdges: builtBodyTopology.savedBefore.windingInconsistentEdges, repairedWindingInconsistentEdges: builtBodyTopology.savedAfter.windingInconsistentEdges } : null, reachability: { candidate: reachability.candidateFaceCount, kept: reachability.keptFaceCount, rejected: reachability.rejectedFaceCount, invalid: reachability.invalidCandidateFaceCount }, scaffold: scaffold.stats, plateNormalization, plateAnchor, removedTinyFragmentTriangleCount, stats: result.stats, archiveBytes: result.stats.archiveBytes }));

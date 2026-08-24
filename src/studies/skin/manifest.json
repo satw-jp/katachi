@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.69.0",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-23",
+  "updatedAt": "2026-08-24",
   "params": [
     "count",
     "radiusBase",
@@ -70,6 +70,14 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-24",
+      "note": "v086 PRINT-CANDIDATE SEAL: Existing 3MF, recipe, normal/strict reachability reports, validation JSON and SHA-256 list were preserved without recalculation. Current SKIN-scoped changes were checkpointed under local tag skin-v086-print-candidate-checkpoint-20260824; unrelated result.json was excluded. status=AWAITING_PHYSICAL_PRINT_OBSERVATION and printApproval=false. Public stable v0.65 was not changed, no publication/deployment occurred, and no next candidate was generated."
+    },
+    {
+      "date": "2026-08-24",
+      "note": "v086 physical-print feedback candidate: Author observation preserved verbatim: 印刷をしてみた / まず物体がおもったより小さかったので1.5倍位にしたい / サポートは今の細さを維持してDrywebは強度が必要なので1.5倍の太さにする. The exact v071 recipe remains unchanged at internalRadius=0.045; target longest dimension increased from 80 to 119.5 mm (1.49375x), which makes Dry Web physically 1.49375x thicker without double-scaling the parameter. Removable scaffold shaft remains 1.40 mm diameter; only the bed foot is 2.40 mm diameter. Exact v086: bbox 115.835 x 85.604 x 119.353 mm, 3,983,584 faces, one watertight component, 585 pillars, Bambu A1 mini PLA 0.20 mm 597 layers, automatic support off. Normal and strict raster reachability both have 0 floating components. Bambu Floating vertical shell diagnostic markers remain, therefore status=AWAITING_PHYSICAL_PRINT_OBSERVATION and printApproval=false. 3MF SHA-256 a1328a1171b396f641e5be3864c13776b30ff4b0c913bafdcb53a8de3ed48e87. Public stable v0.65 is unchanged and no deployment was performed; v077-v085 remain undistributed intermediate artifacts."
+    },
     {
       "date": "2026-08-23",
       "note": "PRE-PRINT SEAL: status=AWAITING_PHYSICAL_PRINT_OBSERVATION and printApproval=false. Public stable app v0.65 is frozen and unchanged (Cloudflare Version ID eb6ff21f-2541-440d-9232-dfb53bc30c1a); no deploy was performed. The separate print-artifact series promotes exact v071 only: both normal and strict raster reachability pass all 400 layers with floating layers/components 0/0, while 14 Bambu Floating vertical shell markers across 12 layers remain a known discrepancy. Print artifacts v057-v070 are superseded/rejected and v072-v076 are not promoted or distributed. Only SKIN and directly required common files are sealed; no new method, optimization, refactor, deletion, public-version change or deployment was performed. Next decision waits for one real print and observation."

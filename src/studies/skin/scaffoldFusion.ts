@@ -173,6 +173,43 @@ export interface FusedScaffoldPlateAnchorReport {
   requiredBaseDiameterMm: number;
 }
 
+export interface FusedScaffoldPlateNormalizationReport {
+  correctedVertexCount: number;
+  correctionMm: number;
+}
+
+/** Marching tetrahedra can interpolate a rounded scaffold foot a fraction of
+ * a layer below its analytic plate plane. Clamp only that bounded sampling
+ * overshoot to the common plate plane before the exact saved-mesh checks. */
+export function normalizeFusedScaffoldPlatePlane(
+  mesh: Pick<MeshBuildResult, "triangles" | "scaleMmPerUnit">,
+  pillars: SkinScaffoldPillar[],
+  maxCorrectionMm = 0.2,
+  toleranceMm = 0.05,
+): FusedScaffoldPlateNormalizationReport {
+  if (pillars.length === 0) return { correctedVertexCount: 0, correctionMm: 0 };
+  const plateZ = Math.min(...pillars.map((pillar) => pillar.plateZ));
+  let meshMinZ = Infinity;
+  for (const triangle of mesh.triangles) {
+    meshMinZ = Math.min(meshMinZ, triangle.a.z, triangle.b.z, triangle.c.z);
+  }
+  const correctionMm = (plateZ - meshMinZ) * mesh.scaleMmPerUnit;
+  if (!(correctionMm > toleranceMm)) return { correctedVertexCount: 0, correctionMm };
+  if (!Number.isFinite(correctionMm) || correctionMm > maxCorrectionMm) {
+    throw new Error("Fail closed: fused scaffold plate overshoot is too large to normalize (" + correctionMm.toFixed(3) + " mm)");
+  }
+  let correctedVertexCount = 0;
+  for (const triangle of mesh.triangles) {
+    for (const point of [triangle.a, triangle.b, triangle.c]) {
+      if (point.z < plateZ) {
+        point.z = plateZ;
+        correctedVertexCount++;
+      }
+    }
+  }
+  return { correctedVertexCount, correctionMm };
+}
+
 /** Fail-closed check for the exact final fused mesh. A single connected mesh
  * is not enough: the common pillar plane must itself define the saved mesh's
  * lowest Z, otherwise Bambu can place a BODY extremum on the plate and start

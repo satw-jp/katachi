@@ -11,7 +11,7 @@ import type { Bambu3mfExportRequest, Bambu3mfProgressStage, Bambu3mfWorkerMessag
 import { buildSkinMesh, countConnectedComponents, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
 import { buildParallelMeshBuffers } from "./parallelMeshBuffers.ts";
 import type { PreviewMeshRequest } from "./previewMeshWorkerProtocol.ts";
-import { inspectFusedScaffoldPlateAnchoring, type SkinScaffoldPillar } from "./scaffoldFusion.ts";
+import { inspectFusedScaffoldPlateAnchoring, normalizeFusedScaffoldPlatePlane, type SkinScaffoldPillar } from "./scaffoldFusion.ts";
 import { buildMeshResultFromTriangles, inspectSavedStlTopology, orientMeshForSavedStl, summarizeSavedStlComponents } from "../cloud-sculpt/meshExport.ts";
 import type { Triangle } from "../cloud-sculpt/meshExport.ts";
 
@@ -119,11 +119,14 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       throw new Error("Fail closed: fused BODY topology NG before winding repair (closed=" + before.closed + ", components=" + before.connectedComponents + ", degenerate=" + before.degenerateTriangleCount + ", open=" + before.openEdges + ", nonManifold=" + before.nonManifoldEdges + "; 部品=" + componentDetail + ")");
     }
     const repaired = orientMeshForSavedStl(fused);
+    const plateNormalization = normalizeFusedScaffoldPlatePlane(repaired, sourcePillars);
     const after = inspectSavedStlTopology(repaired.triangles, repaired.scaleMmPerUnit);
     if (!after.ok || after.connectedComponents !== 1) {
       throw new Error("Fail closed: fused BODY topology NG after winding repair (closed=" + after.closed + ", winding=" + after.windingConsistent + ", components=" + after.connectedComponents + ", degenerate=" + after.degenerateTriangleCount + ")");
     }
-    postProgress(6, "初層パッドを検査");
+    postProgress(6, "初層パッドを検査", plateNormalization.correctedVertexCount > 0
+      ? "SDF補間" + plateNormalization.correctionMm.toFixed(3) + " mmをプレート面へ整列"
+      : undefined);
     const plateAnchor = inspectFusedScaffoldPlateAnchoring(repaired, sourcePillars, 0.2);
     if (!plateAnchor.ok) {
       throw new Error("Fail closed: fused scaffold does not start on layer 1 (clearance=" + plateAnchor.plateClearanceMm.toFixed(3) + " mm, spread=" + plateAnchor.plateSpreadMm.toFixed(3) + " mm)");

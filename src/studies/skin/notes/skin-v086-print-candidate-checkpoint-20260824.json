@@ -1,0 +1,89 @@
+{
+  "schema": "katachi.skin.print-candidate-checkpoint.v1",
+  "sealedAt": "2026-08-24",
+  "status": "AWAITING_PHYSICAL_PRINT_OBSERVATION",
+  "printApproval": false,
+  "artifactPolicy": {
+    "reusedExistingArtifacts": true,
+    "recalculatedDuringSeal": false,
+    "generatedNewCandidateDuringSeal": false,
+    "publishedDuringSeal": false,
+    "deployedDuringSeal": false
+  },
+  "publicStable": {
+    "version": "v0.65",
+    "state": "FROZEN_UNCHANGED",
+    "cloudflareVersionId": "eb6ff21f-2541-440d-9232-dfb53bc30c1a"
+  },
+  "physicalPrintCandidate": {
+    "artifactVersion": "v086",
+    "basePrintArtifact": "v071",
+    "targetLongestMm": 119.5,
+    "scaleFactorFromV071": 1.49375,
+    "dryWebPhysicalScaleFactorFromV071": 1.49375,
+    "scaffoldShaftDiameterMm": 1.4,
+    "scaffoldFootDiameterMm": 2.4,
+    "layerCount": 597,
+    "normalRasterFloatingComponents": 0,
+    "strictRasterFloatingComponents": 0,
+    "knownBambuDiagnosticShellMarkers": 2113,
+    "knownBambuDiagnosticTargetMarkers": 93722,
+    "note": "Normal and strict raster reachability are both zero, but conservative Bambu diagnostic markers remain. This candidate is sealed for another physical print and is not print-approved."
+  },
+  "artifacts": [
+    {
+      "role": "PRINT_CANDIDATE_3MF",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.3mf",
+      "sha256": "a1328a1171b396f641e5be3864c13776b30ff4b0c913bafdcb53a8de3ed48e87"
+    },
+    {
+      "role": "RECIPE",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.recipe.json",
+      "sha256": "e510cd475ba8c9fc071afd817d566a09ef3c8a3cc2ea6a8e51f7b32a1cdb661f"
+    },
+    {
+      "role": "REACHABILITY_NORMAL",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.reachability-normal.json",
+      "sha256": "13cbc34b9fca12b80f7532646119b3d231cde69efcaf6230912e14881848ab6b"
+    },
+    {
+      "role": "REACHABILITY_STRICT",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.reachability-strict.json",
+      "sha256": "48d63d221949165d3d582e8488981e604d127463a14b2aecd226cc71b7742d88"
+    },
+    {
+      "role": "VALIDATION",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.validation.json",
+      "sha256": "06a09b343e3de16d8b9244fcc5fcbeaefb23d5f37890799ee033df2c07f5aa01"
+    },
+    {
+      "role": "SHA256_LIST",
+      "path": "/Users/atsushisato/Downloads/katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.sha256"
+    }
+  ],
+  "codeState": {
+    "repository": "/Users/atsushisato/Projects/active/Katachi",
+    "branch": "agent/hikari-docs-and-publish",
+    "parentCheckpointCommit": "d4a34a8900526d9305031e3e898a5683e774e8d4",
+    "checkpointTag": "skin-v086-print-candidate-checkpoint-20260824",
+    "includedPaths": [
+      "scripts/export-skin-bambu-3mf.ts",
+      "src/studies/skin/README.md",
+      "src/studies/skin/bambu3mf.worker.ts",
+      "src/studies/skin/manifest.json",
+      "src/studies/skin/notes/skin-v086-print-candidate-checkpoint-20260824.json",
+      "src/studies/skin/scaffoldFusion.test.ts",
+      "src/studies/skin/scaffoldFusion.ts"
+    ],
+    "excludedDirtyPaths": [
+      "result.json"
+    ]
+  },
+  "disposition": {
+    "v071": "PHYSICALLY_PRINTED_BASELINE",
+    "v077-v085": "NOT_PROMOTED_OR_DISTRIBUTED",
+    "v086": "SEALED_PRINT_CANDIDATE",
+    "nextCandidate": "NOT_GENERATED"
+  },
+  "nextStep": "Print the sealed v086 artifact once and record physical observations before any further calculation, correction, publication, deployment, or candidate generation."
+}

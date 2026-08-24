@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildMeshFromField, inspectSavedStlTopology, orientMeshForSavedStl } from "../cloud-sculpt/meshExport.ts";
-import { combineWithScaffoldSdf, expandBoundsWithScaffold, expandScaffoldSamplingGrid, inspectFusedScaffoldPlateAnchoring, type SkinScaffoldPillar } from "./scaffoldFusion.ts";
+import { combineWithScaffoldSdf, expandBoundsWithScaffold, expandScaffoldSamplingGrid, inspectFusedScaffoldPlateAnchoring, normalizeFusedScaffoldPlatePlane, type SkinScaffoldPillar } from "./scaffoldFusion.ts";
 
 const pillar: SkinScaffoldPillar = {
   x: 0, y: 0, plateZ: 0, topZ: 1.58,
@@ -12,10 +12,10 @@ const pillar: SkinScaffoldPillar = {
 test("fused scaffold closes at the plate and makes a floating body one component", () => {
   const body = (x: number, y: number, z: number): number => Math.hypot(x, y, z - 2) - 0.5;
   const sdf = combineWithScaffoldSdf(body, [pillar]);
-  assert.ok(sdf(0, 0, -0.01) > 0, "the field is outside immediately below the plate");
+  assert.ok(sdf(0, 0, 0.01) < 0, "the shaft center remains continuous from the plate");
   assert.ok(sdf(0, 0, 0.01) < 0, "the field is inside immediately above the plate");
-  assert.ok(sdf(pillar.baseRadius * 0.85, 0, pillar.baseHeight * 0.25) < 0, "the broad pad keeps printable width through layer 1");
-  assert.ok(sdf(pillar.baseRadius * 0.85, 0, -0.01) > 0, "the broad pad does not extend below the plate");
+  assert.ok(sdf(pillar.baseRadius * 0.85, 0, pillar.baseHeight * 0.25) < 0, "the rounded pad keeps printable width through layer 1");
+  assert.ok(sdf(pillar.baseRadius * 0.85, 0, -0.01) > 0, "the rounded pad remains bounded around the plate plane");
   assert.ok(sdf(0, 0, 1.5) < 0, "tip overlaps the body underside");
   assert.ok(sdf(0, 0, 0.4) < 0, "shaft is solid");
   assert.ok(sdf(pillar.shaftRadius * 0.8, 0, pillar.baseHeight * 0.6) < 0, "shaft overlaps the broad pad below its pinched top");
@@ -31,6 +31,7 @@ test("fused scaffold closes at the plate and makes a floating body one component
   assert.equal(before.closed, true);
   assert.equal(before.connectedComponents, 1);
   const repaired = orientMeshForSavedStl(mesh);
+  normalizeFusedScaffoldPlatePlane(repaired, [pillar]);
   assert.equal(inspectSavedStlTopology(repaired.triangles, repaired.scaleMmPerUnit).ok, true);
   const anchor = inspectFusedScaffoldPlateAnchoring(repaired, [pillar]);
   assert.equal(anchor.ok, true);
@@ -41,6 +42,29 @@ test("fused scaffold closes at the plate and makes a floating body one component
   assert.equal(inspectFusedScaffoldPlateAnchoring(repaired, [{ ...pillar, plateZ: 0.5 }]).ok, false);
 });
 
+
+test("bounded marching overshoot is normalized to the analytic plate plane", () => {
+  const mesh = {
+    scaleMmPerUnit: 1,
+    triangles: [{
+      a: { x: 0, y: 0, z: -0.14 },
+      b: { x: 1, y: 0, z: 0.1 },
+      c: { x: 0, y: 1, z: 0.1 },
+    }],
+  };
+  const normalized = normalizeFusedScaffoldPlatePlane(mesh, [pillar]);
+  assert.equal(normalized.correctedVertexCount, 1);
+  assert.ok(Math.abs(normalized.correctionMm - 0.14) < 1e-9);
+  assert.equal(mesh.triangles[0].a.z, 0);
+  assert.throws(() => normalizeFusedScaffoldPlatePlane({
+    scaleMmPerUnit: 1,
+    triangles: [{
+      a: { x: 0, y: 0, z: -0.21 },
+      b: { x: 1, y: 0, z: 0.1 },
+      c: { x: 0, y: 1, z: 0.1 },
+    }],
+  }, [pillar]), /too large/);
+});
 
 test("broad pad changes XY bounds without shifting the scaffold Z sampling margin", () => {
   const bounds = {
