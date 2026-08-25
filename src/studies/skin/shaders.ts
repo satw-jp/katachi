@@ -85,6 +85,11 @@ export const fragmentShader = /* glsl */ `
   uniform mat4 uCamInverseView;
   uniform vec2 uResolution;
   uniform vec3 uLightDir;
+  // Viewport-only object-coordinate clipping. These uniforms are session UI
+  // state and are never part of recipe, Profile, validation, or export.
+  uniform vec3 uClipEnabled;
+  uniform vec3 uClipPosition;
+  uniform vec3 uClipDirection;
 
   varying vec2 vUv;
 
@@ -295,6 +300,15 @@ export const fragmentShader = /* glsl */ `
     return bestOwner;
   }
 
+  vec2 clipAxisRayInterval(float enabled, float origin, float direction, float position, float keepDirection) {
+    if (enabled < 0.5) return vec2(-1e5, 1e5);
+    float signedOrigin = keepDirection * (origin - position);
+    float signedRate = keepDirection * direction;
+    if (abs(signedRate) < 1e-7) return signedOrigin >= 0.0 ? vec2(-1e5, 1e5) : vec2(1.0, 0.0);
+    float crossing = -signedOrigin / signedRate;
+    return signedRate > 0.0 ? vec2(crossing, 1e5) : vec2(-1e5, crossing);
+  }
+
   void main() {
     vec2 ndc = vUv * 2.0 - 1.0;
     vec4 clip = vec4(ndc, -1.0, 1.0);
@@ -303,15 +317,25 @@ export const fragmentShader = /* glsl */ `
     vec3 rd = normalize((uCamInverseView * viewDir4).xyz);
     vec3 ro = uCamPos;
 
-    float t = 0.0;
+    vec2 clipX = clipAxisRayInterval(uClipEnabled.x, ro.x, rd.x, uClipPosition.x, uClipDirection.x);
+    vec2 clipY = clipAxisRayInterval(uClipEnabled.y, ro.y, rd.y, uClipPosition.y, uClipDirection.y);
+    vec2 clipZ = clipAxisRayInterval(uClipEnabled.z, ro.z, rd.z, uClipPosition.z, uClipDirection.z);
+    float clipStart = max(0.0, max(clipX.x, max(clipY.x, clipZ.x)));
+    float clipEnd = min(50.0, min(clipX.y, min(clipY.y, clipZ.y)));
+    bool clipIntervalValid = clipStart <= clipEnd;
+    float t = clipStart > 0.0 ? clipStart + 0.0005 : 0.0;
     bool hit = false;
     vec3 p = ro;
     for (int i = 0; i < 160; i++) {
+      if (!clipIntervalValid || t > clipEnd) break;
       p = ro + rd * t;
       float d = map(p);
-      if (d < 0.001) { hit = true; break; }
-      t += d;
-      if (t > 50.0) break;
+      // A clip plane may start the retained ray interval inside the solid.
+      // March by |d| until the real SDF surface instead of mistaking the
+      // clipping boundary for a generated cap.
+      if (abs(d) < 0.001) { hit = true; break; }
+      t += max(abs(d), 0.0005);
+      if (t > clipEnd) break;
     }
 
     if (!hit || uHostCount == 0) {

@@ -1,6 +1,18 @@
 import { sha256Hex } from "../../lib/hash.ts";
 import type { ExternalScaffoldOptions, ExternalScaffoldTarget } from "./externalScaffold.ts";
-import { OVERHANG_SUPPORT_POLICY, type OverhangAssignmentCounts } from "./overhangSupportPolicy.ts";
+import {
+  LEGACY_OVERHANG_SUPPORT_POLICY,
+  OVERHANG_SUPPORT_POLICY,
+  OVERHANG_SUPPORT_RAY_METHOD,
+  type OverhangAssignmentCounts,
+  type OverhangSupportRayFacts,
+} from "./overhangSupportPolicy.ts";
+import {
+  supportPaintEquals,
+  validateSupportPaint,
+  type SupportPaintApplicationFacts,
+  type SupportPaintV1,
+} from "./supportPaint.ts";
 
 export const SKIN_PRINT_PROFILE_SCHEMA = "katachi.skin.print-profile.v1" as const;
 export const PRINT_VALIDATION_FACTS_SCHEMA = "katachi.skin.print-validation-facts.v1" as const;
@@ -14,9 +26,18 @@ export interface SkinPrintProfileV1 {
   appVersion: string;
   artifactVersion: string;
   /** Optional for old v1 Profiles; required for new v088 Profiles. */
-  supportPolicy?: typeof OVERHANG_SUPPORT_POLICY;
+  supportPolicy?: typeof OVERHANG_SUPPORT_POLICY | typeof LEGACY_OVERHANG_SUPPORT_POLICY;
   /** Optional for old v1 Profiles; required for new v088 Profiles. */
   expectedClassificationCounts?: PrintSupportClassificationCounts;
+  /** Derived from the support-free final Surface and recorded in millimetres. */
+  supportClassification?: {
+    method: typeof OVERHANG_SUPPORT_RAY_METHOD;
+    surfaceSource: "support-free-final-surface";
+    rayDirection: "negative-z";
+    lowerIntersectionEpsilonMm: number;
+  };
+  /** Optional author override. Missing means the automatic Surface-ray draft is final. */
+  supportPaint?: SupportPaintV1;
   generatorCommit: string;
   generatorTag: string | null;
   shapeRecipe: {
@@ -92,6 +113,8 @@ export interface PrintRecipeBinding {
   currentAngleThresholdDeg?: number;
   scaleMmPerUnit?: number;
   currentSupportClassificationCounts?: PrintSupportClassificationCounts;
+  currentSupportRayEpsilonMm?: number;
+  currentSupportPaint?: SupportPaintV1 | null;
 }
 
 export interface ResolvedPrintPlan {
@@ -114,6 +137,8 @@ export interface ResolvedPrintPlan {
   slicer: SkinPrintProfileV1["slicer"];
   executionHints: SkinPrintProfileV1["executionHints"];
   supportPolicy: typeof OVERHANG_SUPPORT_POLICY;
+  supportRayEpsilonMm: number;
+  supportPaint?: SupportPaintV1;
   expectedClassificationCounts?: PrintSupportClassificationCounts;
 }
 
@@ -182,7 +207,21 @@ export interface PrintValidationFactsV1 {
   slicer: SkinPrintProfileV1["slicer"];
   executionHints: SkinPrintProfileV1["executionHints"];
   supportPolicy: typeof OVERHANG_SUPPORT_POLICY;
+  supportClassification: {
+    method: typeof OVERHANG_SUPPORT_RAY_METHOD;
+    surfaceSource: "support-free-final-surface";
+    rayDirection: "negative-z";
+    lowerIntersectionEpsilonMm: number;
+  };
   classificationCounts: PrintSupportClassificationCounts;
+  supportPaint: {
+    strokeCount: number;
+    automaticCounts: SupportPaintApplicationFacts["automaticCounts"];
+    paintedSupportSiteCount: number;
+    manualOverrideSupportSiteCount: number;
+    autoResetSupportSiteCount: number;
+    finalCounts: SupportPaintApplicationFacts["finalCounts"];
+  };
 }
 
 export interface PrintValidationFactsInput {
@@ -199,7 +238,9 @@ export interface PrintValidationFactsInput {
   plateSpreadMm: number;
   fingerprint: GeometryFingerprintResult;
   supportPolicy?: typeof OVERHANG_SUPPORT_POLICY;
+  supportRayFacts: OverhangSupportRayFacts;
   classificationCounts?: PrintSupportClassificationCounts;
+  supportPaintFacts: SupportPaintApplicationFacts;
 }
 
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
@@ -284,16 +325,34 @@ export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
   const slicer = requireObject(root.slicer, "slicer");
   const hints = requireObject(root.executionHints, "executionHints");
   const artifactVersion = requireString(root.artifactVersion, "artifactVersion");
-  let supportPolicy: typeof OVERHANG_SUPPORT_POLICY | undefined;
+  let supportPolicy: SkinPrintProfileV1["supportPolicy"];
   let expectedClassificationCounts: PrintSupportClassificationCounts | undefined;
+  let supportClassification: SkinPrintProfileV1["supportClassification"];
+  let supportPaint: SupportPaintV1 | undefined;
   if (root.supportPolicy !== undefined || root.expectedClassificationCounts !== undefined) {
-    if (root.supportPolicy !== OVERHANG_SUPPORT_POLICY) throw new Error("supportPolicy is invalid");
+    if (root.supportPolicy !== OVERHANG_SUPPORT_POLICY && root.supportPolicy !== LEGACY_OVERHANG_SUPPORT_POLICY) throw new Error("supportPolicy is invalid");
     if (root.expectedClassificationCounts === undefined) throw new Error("expectedClassificationCounts is required with supportPolicy");
-    supportPolicy = OVERHANG_SUPPORT_POLICY;
+    supportPolicy = root.supportPolicy;
     expectedClassificationCounts = validateClassificationCounts(root.expectedClassificationCounts, "expectedClassificationCounts");
   }
+  if (root.supportClassification !== undefined) {
+    const classification = requireObject(root.supportClassification, "supportClassification");
+    if (classification.method !== OVERHANG_SUPPORT_RAY_METHOD || classification.surfaceSource !== "support-free-final-surface" || classification.rayDirection !== "negative-z") {
+      throw new Error("supportClassification method/source/direction is invalid");
+    }
+    supportClassification = {
+      method: OVERHANG_SUPPORT_RAY_METHOD,
+      surfaceSource: "support-free-final-surface",
+      rayDirection: "negative-z",
+      lowerIntersectionEpsilonMm: requirePositive(classification.lowerIntersectionEpsilonMm, "supportClassification.lowerIntersectionEpsilonMm"),
+    };
+  }
+  if (root.supportPaint !== undefined) supportPaint = validateSupportPaint(root.supportPaint);
   if (artifactVersion.includes("v088") && (!supportPolicy || !expectedClassificationCounts)) {
     throw new Error("v088 Print Profile requires supportPolicy and expectedClassificationCounts");
+  }
+  if (supportPolicy === OVERHANG_SUPPORT_POLICY && !supportClassification) {
+    throw new Error("current supportPolicy requires supportClassification with a millimetre epsilon");
   }
   const recipeSha256 = requireString(shapeRecipe.sha256, "shapeRecipe.sha256").toLowerCase();
   if (!SHA256_PATTERN.test(recipeSha256)) throw new Error("shapeRecipe.sha256 must be lowercase SHA-256 hex");
@@ -325,6 +384,8 @@ export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {
     artifactVersion,
     ...(supportPolicy ? { supportPolicy } : {}),
     ...(expectedClassificationCounts ? { expectedClassificationCounts } : {}),
+    ...(supportClassification ? { supportClassification } : {}),
+    ...(supportPaint ? { supportPaint } : {}),
     generatorCommit: requireString(root.generatorCommit, "generatorCommit"),
     generatorTag: root.generatorTag === null ? null : requireString(root.generatorTag, "generatorTag"),
     shapeRecipe: { sha256: recipeSha256, seed: requireString(shapeRecipe.seed, "shapeRecipe.seed"), ...(shapeRecipe.pathHint === undefined ? {} : { pathHint: requireString(shapeRecipe.pathHint, "shapeRecipe.pathHint") }) },
@@ -396,6 +457,15 @@ export function matchPrintProfile(profile: SkinPrintProfileV1, binding: PrintRec
     const actualRadiusMm = binding.currentDryWebNormalizedRadius * binding.scaleMmPerUnit;
     if (!close(actualRadiusMm, profile.internalStructure.dryWebPhysicalRadiusMm, 1e-5)) reasons.push("Dry Web実寸径がProfileと一致しません");
   }
+  if (profile.supportPolicy === LEGACY_OVERHANG_SUPPORT_POLICY) reasons.push("Print Profileは撤回済みのfootprint分類規則です");
+  if (profile.supportPolicy === OVERHANG_SUPPORT_POLICY && !profile.supportClassification) reasons.push("Surface ray epsilonがProfileにありません");
+  if (profile.supportClassification && binding.currentSupportRayEpsilonMm !== undefined &&
+    !close(binding.currentSupportRayEpsilonMm, profile.supportClassification.lowerIntersectionEpsilonMm, 1e-9)) {
+    reasons.push("Surface ray epsilonがProfileと一致しません");
+  }
+  if (binding.currentSupportPaint !== undefined && !supportPaintEquals(profile.supportPaint, binding.currentSupportPaint)) {
+    reasons.push("Support PaintがProfileと一致しません");
+  }
   if (profile.expectedClassificationCounts && binding.currentSupportClassificationCounts &&
     !sameClassificationCounts(profile.expectedClassificationCounts, binding.currentSupportClassificationCounts)) {
     reasons.push("オーバーハング内外分類件数がProfileと一致しません");
@@ -408,6 +478,9 @@ export function resolvePrintPlan(profileValue: SkinPrintProfileV1, profileSha256
   if (!SHA256_PATTERN.test(profileSha256)) throw new Error("Profile SHA-256 is invalid");
   const match = matchPrintProfile(profile, binding);
   if (!match.matches) throw new Error(`Print Profile mismatch: ${match.reasons.join(" / ")}`);
+  if (profile.supportPolicy !== OVERHANG_SUPPORT_POLICY || !profile.supportClassification) {
+    throw new Error("Print Profile mismatch: current Surface-ray support policy is required");
+  }
   const scaffold = profile.scaffold;
   return {
     schema: "katachi.skin.resolved-print-plan.v1", profile, profileSha256,
@@ -426,7 +499,9 @@ export function resolvePrintPlan(profileValue: SkinPrintProfileV1, profileSha256
     explicitScaffoldTargets: scaffold.explicitTargets.map((target) => ({ ...target })),
     baseInteriorPolicy: scaffold.baseInteriorPolicy,
     printer: { ...profile.printer }, slicer: { ...profile.slicer }, executionHints: { ...profile.executionHints },
-    supportPolicy: profile.supportPolicy ?? OVERHANG_SUPPORT_POLICY,
+    supportPolicy: OVERHANG_SUPPORT_POLICY,
+    supportRayEpsilonMm: profile.supportClassification.lowerIntersectionEpsilonMm,
+    ...(profile.supportPaint ? { supportPaint: validateSupportPaint(profile.supportPaint) } : {}),
     ...(profile.expectedClassificationCounts ? { expectedClassificationCounts: { ...profile.expectedClassificationCounts } } : {}),
   };
 }
@@ -438,8 +513,15 @@ export const resolveWorkerPrintPlan = resolvePrintPlan;
 export function assertResolvedPrintPlanSupportCounts(
   plan: ResolvedPrintPlan,
   counts: PrintSupportClassificationCounts,
+  rayFacts: OverhangSupportRayFacts | null | undefined,
 ): void {
   if (plan.supportPolicy !== OVERHANG_SUPPORT_POLICY) throw new Error("Fail closed: unsupported overhang support policy");
+  if (!rayFacts || rayFacts.method !== OVERHANG_SUPPORT_RAY_METHOD || rayFacts.surfaceSource !== "support-free-final-surface" || rayFacts.rayDirection !== "negative-z") {
+    throw new Error("Fail closed: support-free Surface ray facts are unavailable");
+  }
+  if (!close(rayFacts.lowerIntersectionEpsilonMm, plan.supportRayEpsilonMm, 1e-9)) {
+    throw new Error("Fail closed: runtime Surface ray epsilon does not match Print Profile");
+  }
   if (counts.total !== counts.inside + counts.outside + counts.unresolved) throw new Error("Fail closed: overhang counts are not a complete partition");
   if (counts.duplicate !== 0) throw new Error(`Fail closed: duplicate overhang assignments (${counts.duplicate})`);
   if (counts.unassigned !== 0) throw new Error(`Fail closed: unassigned overhang targets (${counts.unassigned})`);
@@ -492,7 +574,21 @@ export function buildPrintValidationFacts(plan: ResolvedPrintPlan, input: PrintV
       plateAnchorDropMm: p.scaffold.plateAnchorDropMm, plateAnchorOk: input.plateAnchorOk, plateSpreadMm: input.plateSpreadMm },
     printer: { ...plan.printer }, slicer: { ...plan.slicer }, executionHints: { ...plan.executionHints },
     supportPolicy: input.supportPolicy ?? plan.supportPolicy,
+    supportClassification: {
+      method: OVERHANG_SUPPORT_RAY_METHOD,
+      surfaceSource: "support-free-final-surface",
+      rayDirection: "negative-z",
+      lowerIntersectionEpsilonMm: input.supportRayFacts.lowerIntersectionEpsilonMm,
+    },
     classificationCounts: { ...classificationCounts },
+    supportPaint: {
+      strokeCount: input.supportPaintFacts.strokeCount,
+      automaticCounts: { ...input.supportPaintFacts.automaticCounts },
+      paintedSupportSiteCount: input.supportPaintFacts.paintedSupportSiteCount,
+      manualOverrideSupportSiteCount: input.supportPaintFacts.manualOverrideSupportSiteCount,
+      autoResetSupportSiteCount: input.supportPaintFacts.autoResetSupportSiteCount,
+      finalCounts: { ...input.supportPaintFacts.finalCounts },
+    },
   };
 }
 

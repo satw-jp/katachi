@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// Three.js wiring: a fullscreen raymarch quad + OrbitControls. Structurally
+// Three.js wiring: a fullscreen raymarch quad + pole-free TrackballControls. Structurally
 // identical to pack/renderer.ts, but update() pushes host balls + a flat
 // patch-point array (with owner indices) + thickness + roundK + mode into
 // the shader.
 // ---------------------------------------------------------------------------
 
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
 import { deriveSkinLayerVisibility, selectedBeadWireScale, type InternalObservationMode } from "./previewMeshBuffers.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_POINTS, fragmentShader, vertexShader } from "./shaders.ts";
 import type { Ball, Patch, SkinMode } from "./field.ts";
@@ -17,6 +17,27 @@ import type { InternalStructureGraph } from "./voronoi.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
 import { elementDisplayName, elementLabelDepthOpacity, representativeElements } from "../../lib/elementLabels.ts";
 import { layoutOpeningLabelsOutside, type ScreenRect } from "./openingLabelLayout.ts";
+import {
+  SUPPORT_SITE_PRESENTATION,
+  buildSupportOverlayBatch,
+  supportGlyphIndex,
+  supportOverlayPasses,
+  type SupportOverlayMarkerInput,
+  type SupportSiteDepthMode,
+} from "./supportOverlayPresentation.ts";
+import { buildSupportPaintBrushRing, supportPaintVisibilityAllows, type SupportPaintMode } from "./supportPaint.ts";
+import {
+  VIEWPORT_CLIP_AXES,
+  viewportPointVisible,
+  type ViewportClippingBounds,
+  type ViewportClippingState,
+} from "./viewportClipping.ts";
+import {
+  buildUniformSpatialGrid3,
+  queryUniformSpatialGridRayNeighborhood,
+  queryUniformSpatialGridSphere,
+  type UniformSpatialGrid3,
+} from "./uniformSpatialGrid.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -87,17 +108,109 @@ interface ElementDomLabel {
   anchor: THREE.Vector3;
 }
 
-export interface OverhangSupportSiteOverlayMarker {
+export type OverhangSupportSiteOverlayMarker = SupportOverlayMarkerInput;
+export interface OverhangSupportSitePick {
+  id: string;
+  classification: string;
+  back: boolean;
   position: { x: number; y: number; z: number };
-  classification: "inside" | "outside" | "unresolved";
-  markerRadius: number;
+  normal: { x: number; y: number; z: number };
 }
+export interface OverhangSupportBrushCandidate extends Omit<OverhangSupportSitePick, "back"> {}
+
+const SUPPORT_MARKER_VERTEX_SHADER = /* glsl */ `
+  uniform float uPointSize;
+  attribute vec3 aMarkerColor;
+  attribute float aMarkerShape;
+  attribute float aMarkerEmphasis;
+  varying vec3 vMarkerColor;
+  varying float vMarkerShape;
+  #include <clipping_planes_pars_vertex>
+
+  void main() {
+    vMarkerColor = aMarkerColor;
+    vMarkerShape = aMarkerShape;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    #include <clipping_planes_vertex>
+    // Pull only enough to prevent surface z-fighting. A far-side site stays
+    // behind the body and therefore fails the opaque front pass depth test.
+    gl_Position.z -= 0.0008 * gl_Position.w;
+    gl_PointSize = uPointSize * (1.0 + aMarkerEmphasis * 0.65);
+  }
+`;
+
+const SUPPORT_MARKER_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uScreenDoorCoverage;
+  varying vec3 vMarkerColor;
+  varying float vMarkerShape;
+  #include <clipping_planes_pars_fragment>
+
+  float shapeField(vec2 point, float shape, float scale) {
+    vec2 p = point / scale;
+    if (shape < 0.5) return 1.0 - length(p);
+    if (shape < 1.5) {
+      float aboveBase = p.y + 0.75;
+      float belowSides = (0.90 - p.y) * 0.55 - abs(p.x);
+      return min(aboveBase, belowSides);
+    }
+    float diagonal = 0.22 - abs(abs(p.x) - abs(p.y));
+    float extent = 0.82 - max(abs(p.x), abs(p.y));
+    return min(diagonal, extent);
+  }
+
+  float bayer4(vec2 coordinate) {
+    float x = mod(floor(coordinate.x), 4.0);
+    float y = mod(floor(coordinate.y), 4.0);
+    if (y < 1.0) {
+      if (x < 1.0) return 0.0;
+      if (x < 2.0) return 8.0;
+      if (x < 3.0) return 2.0;
+      return 10.0;
+    }
+    if (y < 2.0) {
+      if (x < 1.0) return 12.0;
+      if (x < 2.0) return 4.0;
+      if (x < 3.0) return 14.0;
+      return 6.0;
+    }
+    if (y < 3.0) {
+      if (x < 1.0) return 3.0;
+      if (x < 2.0) return 11.0;
+      if (x < 3.0) return 1.0;
+      return 9.0;
+    }
+    if (x < 1.0) return 15.0;
+    if (x < 2.0) return 7.0;
+    if (x < 3.0) return 13.0;
+    return 5.0;
+  }
+
+  void main() {
+    #include <clipping_planes_fragment>
+    vec2 point = gl_PointCoord * 2.0 - 1.0;
+    float outer = shapeField(point, vMarkerShape, 0.92);
+    if (outer < 0.0) discard;
+    if (uScreenDoorCoverage < 0.999) {
+      // Circle, triangle and cross own disjoint 3/16 Bayer ranks. Back-marker
+      // colors therefore never overwrite one another, regardless of draw order.
+      float classStart = floor(vMarkerShape + 0.5) * 3.0;
+      float relativeRank = mod(bayer4(gl_FragCoord.xy) - classStart + 16.0, 16.0);
+      if (relativeRank >= uScreenDoorCoverage * 16.0) discard;
+    }
+    float inner = shapeField(point, vMarkerShape, 0.68);
+    vec3 markerColor = inner >= 0.0 ? vMarkerColor : vec3(0.025);
+    gl_FragColor = vec4(markerColor, 1.0);
+    #include <colorspace_fragment>
+  }
+`;
+
 
 export class SkinRenderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
-  readonly controls: OrbitControls;
+  readonly controls: TrackballControls;
   private material: THREE.ShaderMaterial;
   private container: HTMLElement;
   private raymarchQuad!: THREE.Mesh;
@@ -109,18 +222,28 @@ export class SkinRenderer {
   private surfaceAngleGroup: THREE.Group | null = null;
   private surfaceAngleShowInternal = false;
   private overhangSupportSiteGroup: THREE.Group | null = null;
-  private readonly overhangSupportSiteGeometry = new THREE.OctahedronGeometry(1, 0);
-  private readonly overhangSupportSiteMaterials = {
-    inside: new THREE.MeshBasicMaterial({ color: 0x3185ff, depthTest: false, depthWrite: false, toneMapped: false }),
-    outside: new THREE.MeshBasicMaterial({ color: 0xff922e, depthTest: false, depthWrite: false, toneMapped: false }),
-    unresolved: new THREE.MeshBasicMaterial({ color: 0xff3b30, depthTest: false, depthWrite: false, toneMapped: false }),
-  } as const;
+  private overhangSupportSiteGrid: UniformSpatialGrid3 | null = null;
+  private overhangSupportSiteGeometry: THREE.BufferGeometry | null = null;
+  private overhangSupportSiteIds: Array<string | null> = [];
+  private overhangSupportSiteNormals: Float32Array<ArrayBufferLike> = new Float32Array();
+  private overhangSupportSiteCommittedClassifications: string[] = [];
+  private overhangSupportSiteCurrentClassifications: string[] = [];
+  private readonly overhangSupportSiteIndexById = new Map<string, number>();
+  private readonly overhangSupportSitePreviewIndices = new Set<number>();
+  private readonly supportPaintBrushHighlightIndices = new Set<number>();
+  private supportPaintBrushGroup: THREE.Group | null = null;
+  private supportPaintBrushRing: THREE.LineLoop | null = null;
+  private supportPaintBrushCenter: THREE.Points | null = null;
   private readonly mixedFaceMaterial = new THREE.LineBasicMaterial({
-    color: 0xb35cff,
-    depthTest: false,
-    depthWrite: false,
-    toneMapped: false,
+    color: 0xb35cff, depthTest: false, depthWrite: false, toneMapped: false,
   });
+  private readonly baseFootprintMaterial = new THREE.LineBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.82, depthTest: false, depthWrite: false, toneMapped: false,
+  });
+  private viewportClippingState: ViewportClippingState | null = null;
+  private readonly viewportClippingPlanes: THREE.Plane[] = [];
+  private appliedViewportClipPlaneCount = -1;
+  private meshBoundsRevision = 0;
   private motifLowestPointGroup: THREE.Group | null = null;
   private readonly motifLowestPointGeometry = new THREE.OctahedronGeometry(1, 0);
   private readonly motifLowestUnreachedMaterial = new THREE.MeshBasicMaterial({
@@ -320,6 +443,7 @@ export class SkinRenderer {
   constructor(container: HTMLElement) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.localClippingEnabled = false;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(this.renderer.domElement);
 
@@ -358,9 +482,20 @@ export class SkinRenderer {
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     this.camera.position.set(4, 2.5, 5);
 
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
+    // OrbitControls keeps a fixed world-up and therefore has a spherical
+    // coordinate singularity at the poles. TrackballControls rotates both
+    // the eye and camera up vector by the same quaternion, so one continuous
+    // drag can pass front -> top -> back -> bottom -> front without a flip.
+    // It is part of the existing Three.js dependency and retains mouse zoom,
+    // pan, target-centred rotation and reset semantics.
+    this.controls = new TrackballControls(this.camera, this.renderer.domElement);
+    this.controls.rotateSpeed = 1.0;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.panSpeed = 0.3;
+    this.controls.staticMoving = true;
+    // The application owns keyboard shortcuts and text fields. Mouse/touch
+    // remain the only trackball inputs, avoiding accidental A/S/D mode swaps.
+    this.controls.keys = ["", "", ""];
     this.controls.target.set(0, 0, 0);
 
     this.material = new THREE.ShaderMaterial({
@@ -386,6 +521,9 @@ export class SkinRenderer {
         uCamInverseView: { value: new THREE.Matrix4() },
         uResolution: { value: new THREE.Vector2(1, 1) },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
+        uClipEnabled: { value: new THREE.Vector3() },
+        uClipPosition: { value: new THREE.Vector3() },
+        uClipDirection: { value: new THREE.Vector3(1, 1, 1) },
       },
     });
 
@@ -407,6 +545,78 @@ export class SkinRenderer {
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
+  }
+
+  setViewportClippingState(state: ViewportClippingState | null): void {
+    this.viewportClippingState = state
+      ? Object.fromEntries(VIEWPORT_CLIP_AXES.map((axis) => [axis, { ...state[axis] }])) as ViewportClippingState
+      : null;
+    this.viewportClippingPlanes.length = 0;
+    if (this.viewportClippingState) {
+      for (const axis of VIEWPORT_CLIP_AXES) {
+        const clip = this.viewportClippingState[axis];
+        if (!clip.enabled) continue;
+        const normal = new THREE.Vector3(
+          axis === "x" ? clip.direction : 0,
+          axis === "y" ? clip.direction : 0,
+          axis === "z" ? clip.direction : 0,
+        );
+        this.viewportClippingPlanes.push(new THREE.Plane(normal, -clip.direction * clip.position));
+      }
+    }
+    const enabled = this.material.uniforms.uClipEnabled.value as THREE.Vector3;
+    const position = this.material.uniforms.uClipPosition.value as THREE.Vector3;
+    const direction = this.material.uniforms.uClipDirection.value as THREE.Vector3;
+    for (const [index, axis] of VIEWPORT_CLIP_AXES.entries()) {
+      const clip = this.viewportClippingState?.[axis];
+      enabled.setComponent(index, clip?.enabled ? 1 : 0);
+      position.setComponent(index, clip?.position ?? 0);
+      direction.setComponent(index, clip?.direction ?? 1);
+    }
+  }
+
+  getViewportClippingState(): ViewportClippingState | null {
+    return this.viewportClippingState
+      ? Object.fromEntries(VIEWPORT_CLIP_AXES.map((axis) => [axis, { ...this.viewportClippingState![axis] }])) as ViewportClippingState
+      : null;
+  }
+
+  getMeshBoundsObject(): ViewportClippingBounds | null {
+    if (!this.overlayMesh) return null;
+    const geometry = this.overlayMesh.geometry;
+    if (!geometry.boundingBox) geometry.computeBoundingBox();
+    const box = geometry.boundingBox;
+    if (!box) return null;
+    return {
+      x: { min: box.min.x, max: box.max.x },
+      y: { min: box.min.y, max: box.max.y },
+      z: { min: box.min.z, max: box.max.z },
+    };
+  }
+
+  getMeshBoundsRevision(): number {
+    return this.meshBoundsRevision;
+  }
+
+  private applyViewportClippingToScene(): void {
+    const planes = this.viewportClippingPlanes.length > 0 ? this.viewportClippingPlanes : null;
+    const planeCountChanged = this.appliedViewportClipPlaneCount !== this.viewportClippingPlanes.length;
+    this.renderer.localClippingEnabled = this.viewportClippingPlanes.length > 0;
+    this.scene.traverse((object) => {
+      if (object === this.raymarchQuad) return;
+      const candidate = object as THREE.Object3D & { material?: THREE.Material | THREE.Material[] };
+      if (!candidate.material) return;
+      const materials = Array.isArray(candidate.material) ? candidate.material : [candidate.material];
+      for (const material of materials) {
+        const referenceChanged = material.clippingPlanes !== planes;
+        material.clippingPlanes = planes;
+        material.clipIntersection = false;
+        material.clipShadows = true;
+        if (material instanceof THREE.ShaderMaterial) material.clipping = true;
+        if (referenceChanged || planeCountChanged) material.needsUpdate = true;
+      }
+    });
+    this.appliedViewportClipPlaneCount = this.viewportClippingPlanes.length;
   }
 
   /** Switch which of the three views is visible. Does not itself supply new
@@ -484,6 +694,10 @@ export class SkinRenderer {
     }
     if (this.overhangSupportSiteGroup) {
       this.overhangSupportSiteGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+    }
+    if (this.supportPaintBrushGroup) {
+      this.supportPaintBrushGroup.visible = this.supportPaintBrushGroup.userData.requestedVisible === true
+        && visibility.surfaceDecorations && this.viewMode === "mesh";
     }
     if (this.motifLowestPointGroup) {
       this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
@@ -623,6 +837,7 @@ export class SkinRenderer {
       this.overlayMesh.geometry.dispose();
       this.overlayMesh = null;
     }
+    this.meshBoundsRevision++;
     if (!triangles) return;
     const pos = new Float32Array(triangles.length * 9);
     let o = 0;
@@ -651,6 +866,7 @@ export class SkinRenderer {
       this.overlayMesh.geometry.dispose();
       this.overlayMesh = null;
     }
+    this.meshBoundsRevision++;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
@@ -716,14 +932,311 @@ export class SkinRenderer {
   }
 
   clearOverhangSupportSiteOverlay(): void {
+    this.overhangSupportSiteGrid = null;
+    this.overhangSupportSiteGeometry = null;
+    this.overhangSupportSiteIds = [];
+    this.overhangSupportSiteNormals = new Float32Array();
+    this.overhangSupportSiteCommittedClassifications = [];
+    this.overhangSupportSiteCurrentClassifications = [];
+    this.overhangSupportSiteIndexById.clear();
+    this.overhangSupportSitePreviewIndices.clear();
+    this.supportPaintBrushHighlightIndices.clear();
+    if (this.supportPaintBrushGroup) this.supportPaintBrushGroup.visible = false;
     if (!this.overhangSupportSiteGroup) return;
     this.scene.remove(this.overhangSupportSiteGroup);
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
     this.overhangSupportSiteGroup.traverse((object) => {
-      if (object instanceof THREE.InstancedMesh) object.dispose();
-      if (object instanceof THREE.LineSegments) object.geometry.dispose();
+      if (!(object instanceof THREE.Points || object instanceof THREE.LineSegments || object instanceof THREE.LineLoop)) return;
+      geometries.add(object.geometry);
+      if (object instanceof THREE.Points) {
+        const material = object.material;
+        if (Array.isArray(material)) material.forEach((entry) => materials.add(entry));
+        else materials.add(material);
+      }
     });
+    geometries.forEach((geometry) => geometry.dispose());
+    materials.forEach((material) => material.dispose());
     this.overhangSupportSiteGroup = null;
     this.applyLayerVisibility();
+  }
+
+  getOverhangSupportSiteOverlayDebug(): Array<{
+    classification: string;
+    glyph: string;
+    pass: string;
+    screenDoorCoverage: number;
+    pointCount: number;
+    classificationCounts: Record<string, number>;
+  }> {
+    if (!this.overhangSupportSiteGroup) return [];
+    return this.overhangSupportSiteGroup.children.flatMap((object) => {
+      if (!(object instanceof THREE.Points)) return [];
+      const position = object.geometry.getAttribute("position");
+      return [{
+        classification: String(object.userData.supportClassification),
+        glyph: String(object.userData.supportGlyph),
+        pass: String(object.userData.supportPass),
+        screenDoorCoverage: Number(object.userData.screenDoorCoverage),
+        pointCount: position?.count ?? 0,
+        classificationCounts: { ...(object.userData.supportClassificationCounts as Record<string, number>) },
+      }];
+    });
+  }
+
+  private overhangSupportSiteBack(
+    index: number,
+    cameraPosition: THREE.Vector3,
+    raycaster: THREE.Raycaster,
+  ): boolean {
+    if (!this.overhangSupportSiteGrid || !this.overlayMesh) return false;
+    const offset = index * 3;
+    const point = new THREE.Vector3(
+      this.overhangSupportSiteGrid.points[offset],
+      this.overhangSupportSiteGrid.points[offset + 1],
+      this.overhangSupportSiteGrid.points[offset + 2],
+    );
+    const direction = point.clone().sub(cameraPosition);
+    const siteDistance = direction.length();
+    if (!(siteDistance > 0)) return false;
+    raycaster.set(cameraPosition, direction.normalize());
+    raycaster.far = siteDistance;
+    const hit = raycaster.intersectObject(this.overlayMesh, false)[0];
+    const tolerance = Math.max(1e-4, siteDistance * 1e-4);
+    return Boolean(hit && hit.distance < siteDistance - tolerance);
+  }
+
+  pickOverhangSupportSite(clientX: number, clientY: number, maxDistanceCssPx = 10, includeBack = false): OverhangSupportSitePick | null {
+    const grid = this.overhangSupportSiteGrid;
+    if (!grid) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    this.camera.updateMatrixWorld();
+    const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
+    const pickRay = new THREE.Raycaster();
+    pickRay.setFromCamera(new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      1 - ((clientY - rect.top) / rect.height) * 2,
+    ), this.camera);
+    const candidateIndices = queryUniformSpatialGridRayNeighborhood(
+      grid,
+      pickRay.ray.origin,
+      pickRay.ray.direction,
+    );
+    const projected = new THREE.Vector3();
+    const candidates: Array<{ distanceSq: number; siteDistance: number; index: number }> = [];
+    for (const index of candidateIndices) {
+      const id = this.overhangSupportSiteIds[index];
+      if (!id) continue;
+      const offset = index * 3;
+      const world = new THREE.Vector3(grid.points[offset], grid.points[offset + 1], grid.points[offset + 2]);
+      if (!viewportPointVisible(world, this.viewportClippingState)) continue;
+      projected.copy(world).project(this.camera);
+      if (projected.z < -1 || projected.z > 1) continue;
+      const x = rect.left + (projected.x + 1) * rect.width * 0.5;
+      const y = rect.top + (1 - projected.y) * rect.height * 0.5;
+      const distanceSq = (clientX - x) ** 2 + (clientY - y) ** 2;
+      if (distanceSq <= maxDistanceCssPx ** 2) {
+        candidates.push({ distanceSq, siteDistance: world.distanceTo(cameraPosition), index });
+      }
+    }
+    candidates.sort((left, right) => left.distanceSq - right.distanceSq || left.siteDistance - right.siteDistance);
+    const occlusionRay = new THREE.Raycaster();
+    for (const candidate of candidates) {
+      const back = this.overhangSupportSiteBack(candidate.index, cameraPosition, occlusionRay);
+      if (!supportPaintVisibilityAllows(back, includeBack)) continue;
+      const offset = candidate.index * 3;
+      return {
+        id: this.overhangSupportSiteIds[candidate.index]!,
+        classification: this.overhangSupportSiteCurrentClassifications[candidate.index],
+        back,
+        position: { x: grid.points[offset], y: grid.points[offset + 1], z: grid.points[offset + 2] },
+        normal: {
+          x: this.overhangSupportSiteNormals[offset],
+          y: this.overhangSupportSiteNormals[offset + 1],
+          z: this.overhangSupportSiteNormals[offset + 2],
+        },
+      };
+    }
+    return null;
+  }
+
+  queryOverhangSupportBrushCandidates(
+    center: { x: number; y: number; z: number },
+    radius: number,
+    includeBack: boolean,
+    referenceNormal: { x: number; y: number; z: number },
+  ): OverhangSupportBrushCandidate[] {
+    const grid = this.overhangSupportSiteGrid;
+    if (!grid || !(radius > 0)) return [];
+    this.camera.updateMatrixWorld();
+    const projected = new THREE.Vector3();
+    const candidates: OverhangSupportBrushCandidate[] = [];
+    for (const index of queryUniformSpatialGridSphere(grid, center, radius)) {
+      const id = this.overhangSupportSiteIds[index];
+      if (!id) continue;
+      const offset = index * 3;
+      const position = { x: grid.points[offset], y: grid.points[offset + 1], z: grid.points[offset + 2] };
+      if (!viewportPointVisible(position, this.viewportClippingState)) continue;
+      projected.set(position.x, position.y, position.z).project(this.camera);
+      if (projected.x < -1 || projected.x > 1 || projected.y < -1 || projected.y > 1 || projected.z < -1 || projected.z > 1) continue;
+      const normal = {
+        x: this.overhangSupportSiteNormals[offset],
+        y: this.overhangSupportSiteNormals[offset + 1],
+        z: this.overhangSupportSiteNormals[offset + 2],
+      };
+      if (!includeBack) {
+        const normalLength = Math.hypot(normal.x, normal.y, normal.z);
+        const referenceLength = Math.hypot(referenceNormal.x, referenceNormal.y, referenceNormal.z);
+        if (!(normalLength > 1e-9 && referenceLength > 1e-9)) continue;
+        const normalDot = (normal.x * referenceNormal.x + normal.y * referenceNormal.y + normal.z * referenceNormal.z)
+          / (normalLength * referenceLength);
+        if (normalDot < 0.5) continue;
+      }
+      candidates.push({
+        id,
+        classification: this.overhangSupportSiteCurrentClassifications[index],
+        position,
+        normal,
+      });
+    }
+    return candidates;
+  }
+
+  private updateSupportPaintBrushHighlights(ids: readonly string[]): void {
+    const geometry = this.overhangSupportSiteGeometry;
+    if (!geometry) return;
+    const emphasis = geometry.getAttribute("aMarkerEmphasis") as THREE.BufferAttribute | undefined;
+    if (!emphasis) return;
+    let minIndex = Number.POSITIVE_INFINITY;
+    let maxIndex = -1;
+    for (const index of this.supportPaintBrushHighlightIndices) {
+      emphasis.setX(index, 0);
+      minIndex = Math.min(minIndex, index); maxIndex = Math.max(maxIndex, index);
+    }
+    this.supportPaintBrushHighlightIndices.clear();
+    for (const id of ids) {
+      const index = this.overhangSupportSiteIndexById.get(id);
+      if (index === undefined) continue;
+      emphasis.setX(index, 1);
+      this.supportPaintBrushHighlightIndices.add(index);
+      minIndex = Math.min(minIndex, index); maxIndex = Math.max(maxIndex, index);
+    }
+    if (maxIndex >= minIndex) {
+      emphasis.clearUpdateRanges();
+      emphasis.addUpdateRange(minIndex, maxIndex - minIndex + 1);
+      emphasis.needsUpdate = true;
+    }
+  }
+
+  setSupportPaintBrushPreview(input: {
+    center: { x: number; y: number; z: number };
+    normal: { x: number; y: number; z: number };
+    radius: number;
+    mode: SupportPaintMode;
+    affectedIds: readonly string[];
+  }): void {
+    if (!this.supportPaintBrushGroup) {
+      const group = new THREE.Group();
+      const ringGeometry = new THREE.BufferGeometry();
+      ringGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(64 * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      const ring = new THREE.LineLoop(ringGeometry, new THREE.LineBasicMaterial({
+        color: 0x3185ff, depthTest: true, depthWrite: false, toneMapped: false,
+      }));
+      ring.renderOrder = 44; ring.frustumCulled = false;
+      const centerGeometry = new THREE.BufferGeometry();
+      centerGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3), 3).setUsage(THREE.DynamicDrawUsage));
+      centerGeometry.setAttribute("aMarkerColor", new THREE.BufferAttribute(new Float32Array(3), 3).setUsage(THREE.DynamicDrawUsage));
+      centerGeometry.setAttribute("aMarkerShape", new THREE.BufferAttribute(new Float32Array(1), 1).setUsage(THREE.DynamicDrawUsage));
+      centerGeometry.setAttribute("aMarkerEmphasis", new THREE.BufferAttribute(new Float32Array([1]), 1));
+      const center = new THREE.Points(centerGeometry, new THREE.ShaderMaterial({
+        vertexShader: SUPPORT_MARKER_VERTEX_SHADER, fragmentShader: SUPPORT_MARKER_FRAGMENT_SHADER,
+        uniforms: { uPointSize: { value: 15 * this.renderer.getPixelRatio() }, uScreenDoorCoverage: { value: 1 } },
+        depthTest: true, depthWrite: false, clipping: true, transparent: true,
+        blending: THREE.NoBlending, toneMapped: false,
+      }));
+      center.renderOrder = 45; center.frustumCulled = false;
+      group.add(ring, center);
+      group.userData.requestedVisible = false;
+      this.scene.add(group);
+      this.supportPaintBrushGroup = group; this.supportPaintBrushRing = ring; this.supportPaintBrushCenter = center;
+    }
+    const ring = this.supportPaintBrushRing!;
+    const center = this.supportPaintBrushCenter!;
+    const ringPositions = buildSupportPaintBrushRing({ center: input.center, normal: input.normal, radius: input.radius, segments: 64 });
+    const ringAttribute = ring.geometry.getAttribute("position") as THREE.BufferAttribute;
+    (ringAttribute.array as Float32Array).set(ringPositions); ringAttribute.needsUpdate = true;
+    const classification = input.mode === "auto" ? null : input.mode;
+    const presentation = classification ? SUPPORT_SITE_PRESENTATION[classification] : { colorHex: 0xc8c8c8, glyph: "cross" as const };
+    (ring.material as THREE.LineBasicMaterial).color.setHex(presentation.colorHex);
+    const centerPosition = center.geometry.getAttribute("position") as THREE.BufferAttribute;
+    centerPosition.setXYZ(0, input.center.x, input.center.y, input.center.z); centerPosition.needsUpdate = true;
+    const centerColor = center.geometry.getAttribute("aMarkerColor") as THREE.BufferAttribute;
+    centerColor.setXYZ(0, ((presentation.colorHex >> 16) & 0xff) / 255, ((presentation.colorHex >> 8) & 0xff) / 255, (presentation.colorHex & 0xff) / 255); centerColor.needsUpdate = true;
+    const centerShape = center.geometry.getAttribute("aMarkerShape") as THREE.BufferAttribute;
+    centerShape.setX(0, supportGlyphIndex(presentation.glyph)); centerShape.needsUpdate = true;
+    this.updateSupportPaintBrushHighlights(input.affectedIds);
+    this.supportPaintBrushGroup!.userData.requestedVisible = true;
+    this.applyLayerVisibility();
+  }
+
+  clearSupportPaintBrushPreview(): void {
+    this.updateSupportPaintBrushHighlights([]);
+    if (!this.supportPaintBrushGroup) return;
+    this.supportPaintBrushGroup.userData.requestedVisible = false;
+    this.supportPaintBrushGroup.visible = false;
+  }
+
+  private updateOverhangSupportSiteClassifications(
+    changes: readonly { id: string; classification: SupportOverlayMarkerInput["classification"] }[],
+    trackPreview: boolean,
+  ): number {
+    const geometry = this.overhangSupportSiteGeometry;
+    if (!geometry || changes.length === 0) return 0;
+    const colors = geometry.getAttribute("aMarkerColor") as THREE.BufferAttribute;
+    const glyphs = geometry.getAttribute("aMarkerShape") as THREE.BufferAttribute;
+    let changed = 0;
+    let minIndex = Number.POSITIVE_INFINITY;
+    let maxIndex = -1;
+    for (const change of changes) {
+      const index = this.overhangSupportSiteIndexById.get(change.id);
+      if (index === undefined || this.overhangSupportSiteCurrentClassifications[index] === change.classification) continue;
+      const presentation = SUPPORT_SITE_PRESENTATION[change.classification];
+      const hex = presentation.colorHex;
+      colors.setXYZ(index, ((hex >> 16) & 0xff) / 255, ((hex >> 8) & 0xff) / 255, (hex & 0xff) / 255);
+      glyphs.setX(index, supportGlyphIndex(presentation.glyph));
+      this.overhangSupportSiteCurrentClassifications[index] = change.classification;
+      if (trackPreview) this.overhangSupportSitePreviewIndices.add(index);
+      minIndex = Math.min(minIndex, index);
+      maxIndex = Math.max(maxIndex, index);
+      changed++;
+    }
+    if (changed > 0) {
+      colors.clearUpdateRanges();
+      glyphs.clearUpdateRanges();
+      colors.addUpdateRange(minIndex * 3, (maxIndex - minIndex + 1) * 3);
+      glyphs.addUpdateRange(minIndex, maxIndex - minIndex + 1);
+      colors.needsUpdate = true;
+      glyphs.needsUpdate = true;
+    }
+    return changed;
+  }
+
+  previewOverhangSupportSiteClassifications(
+    changes: readonly { id: string; classification: SupportOverlayMarkerInput["classification"] }[],
+  ): number {
+    return this.updateOverhangSupportSiteClassifications(changes, true);
+  }
+
+  clearOverhangSupportSitePreview(): void {
+    if (this.overhangSupportSitePreviewIndices.size === 0) return;
+    const changes = [...this.overhangSupportSitePreviewIndices].flatMap((index) => {
+      const id = this.overhangSupportSiteIds[index];
+      const classification = this.overhangSupportSiteCommittedClassifications[index] as SupportOverlayMarkerInput["classification"] | undefined;
+      return id && classification ? [{ id, classification }] : [];
+    });
+    this.updateOverhangSupportSiteClassifications(changes, false);
+    this.overhangSupportSitePreviewIndices.clear();
   }
 
   /** Display-only routing evidence. Sites are classified by the shared
@@ -731,28 +1244,55 @@ export class SkinRenderer {
   setOverhangSupportSiteOverlay(
     markers: readonly OverhangSupportSiteOverlayMarker[],
     mixedFacePositions: Float32Array,
+    baseFootprintPositions: Float32Array,
+    depthMode: SupportSiteDepthMode,
   ): void {
     this.clearOverhangSupportSiteOverlay();
-    if (markers.length === 0 && mixedFacePositions.length === 0) return;
+    if (markers.length === 0 && mixedFacePositions.length === 0 && baseFootprintPositions.length === 0) return;
     const group = new THREE.Group();
-    const matrix = new THREE.Matrix4();
-    for (const classification of ["inside", "outside", "unresolved"] as const) {
-      const subset = markers.filter((marker) => marker.classification === classification);
-      if (subset.length === 0) continue;
-      const mesh = new THREE.InstancedMesh(
-        this.overhangSupportSiteGeometry,
-        this.overhangSupportSiteMaterials[classification],
-        subset.length,
-      );
-      for (const [index, marker] of subset.entries()) {
-        matrix.makeScale(marker.markerRadius, marker.markerRadius, marker.markerRadius)
-          .setPosition(marker.position.x, marker.position.y, marker.position.z);
-        mesh.setMatrixAt(index, matrix);
+    const batch = buildSupportOverlayBatch(markers);
+    if (batch) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(batch.positions, 3));
+      geometry.setAttribute("aMarkerColor", new THREE.BufferAttribute(batch.colors, 3));
+      geometry.setAttribute("aMarkerShape", new THREE.BufferAttribute(batch.glyphIndices, 1));
+      geometry.setAttribute("aMarkerEmphasis", new THREE.BufferAttribute(new Float32Array(batch.classifications.length), 1));
+      this.overhangSupportSiteGeometry = geometry;
+      this.overhangSupportSiteGrid = buildUniformSpatialGrid3(batch.positions);
+      this.overhangSupportSiteIds = batch.ids;
+      this.overhangSupportSiteNormals = batch.normals;
+      this.overhangSupportSiteCommittedClassifications = [...batch.classifications];
+      this.overhangSupportSiteCurrentClassifications = batch.classifications;
+      batch.ids.forEach((id, index) => { if (id) this.overhangSupportSiteIndexById.set(id, index); });
+      for (const pass of supportOverlayPasses(depthMode)) {
+        const material = new THREE.ShaderMaterial({
+          vertexShader: SUPPORT_MARKER_VERTEX_SHADER,
+          fragmentShader: SUPPORT_MARKER_FRAGMENT_SHADER,
+          uniforms: {
+            uPointSize: { value: 13 * this.renderer.getPixelRatio() },
+            uScreenDoorCoverage: { value: pass.screenDoorCoverage },
+          },
+          depthTest: pass.depthTest,
+          depthWrite: pass.depthWrite,
+          clipping: true,
+          // No alpha blending: the back pass is thinned by a deterministic
+          // screen-door mask and every visible pixel keeps its exact hue.
+          transparent: true,
+          blending: THREE.NoBlending,
+          toneMapped: false,
+        });
+        const points = new THREE.Points(geometry, material);
+        points.renderOrder = pass.kind === "back" ? 40 : 41;
+        points.frustumCulled = false;
+        points.userData.supportClassification = "combined";
+        points.userData.supportGlyph = "per-site";
+        points.userData.supportPass = pass.kind;
+        points.userData.screenDoorCoverage = pass.screenDoorCoverage;
+        points.userData.supportEntryIds = batch.ids;
+        points.userData.supportClassifications = batch.classifications;
+        points.userData.supportClassificationCounts = batch.classificationCounts;
+        group.add(points);
       }
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.renderOrder = 41;
-      mesh.frustumCulled = false;
-      group.add(mesh);
     }
     if (mixedFacePositions.length > 0) {
       const linePositions = new Float32Array(mixedFacePositions.length * 2);
@@ -773,6 +1313,14 @@ export class SkinRenderer {
       lines.renderOrder = 42;
       lines.frustumCulled = false;
       group.add(lines);
+    }
+    if (baseFootprintPositions.length >= 9 && baseFootprintPositions.length % 3 === 0) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(baseFootprintPositions, 3));
+      const outline = new THREE.LineLoop(geometry, this.baseFootprintMaterial);
+      outline.renderOrder = 43;
+      outline.frustumCulled = false;
+      group.add(outline);
     }
     this.scene.add(group);
     this.overhangSupportSiteGroup = group;
@@ -1440,6 +1988,7 @@ export class SkinRenderer {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.material.uniforms.uResolution.value.set(w, h);
+    this.controls.handleResize();
   }
 
   update(
@@ -1504,6 +2053,7 @@ export class SkinRenderer {
     this.material.uniforms.uCamInverseView.value.copy(this.camera.matrixWorld);
     this.updateOpeningLabels();
     this.updateElementNames();
+    this.applyViewportClippingToScene();
     this.renderer.render(this.scene, this.camera);
   }
 

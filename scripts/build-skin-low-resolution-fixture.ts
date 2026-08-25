@@ -5,6 +5,7 @@ import { parseRecipe, replay } from "../src/studies/skin/history.ts";
 import { buildSkinMesh, computeSkinSamplingBounds } from "../src/studies/skin/meshExport.ts";
 import { diagnoseSurfaceAnglePositions } from "../src/studies/skin/surfaceAngleDiagnosis.ts";
 import { assignOverhangSupportTargets, validateOverhangAssignmentLedger } from "../src/studies/skin/overhangSupportPolicy.ts";
+import { buildBaseFootprint } from "../src/studies/skin/baseFootprint.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "../src/studies/skin/externalScaffold.ts";
 import { buildSkinPrintProfileV1 } from "../src/studies/skin/printProfile.ts";
 
@@ -30,11 +31,13 @@ const meshStep = computeSkinSamplingBounds(state.host, state.hostParams.k, state
 const diagnosis = diagnoseSurfaceAnglePositions(surfacePositions, null, angleThresholdDeg, meshStep);
 const assignments = assignOverhangSupportTargets({
   diagnosedFaces: new Float32Array(diagnosis.beforeDangerPositions.map((value) => value * surface.scaleMmPerUnit)),
-  finalSurfacePositionsMm: new Float32Array(surfacePositions.map((value) => value * surface.scaleMmPerUnit)),
+  supportSurfacePositionsMm: new Float32Array(surfacePositions.map((value) => value * surface.scaleMmPerUnit)),
+  baseFootprint: buildBaseFootprint(state.host, state.hostParams.k, surface.scaleMmPerUnit),
 });
 validateOverhangAssignmentLedger(assignments);
 const scaffold = { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: 1.2 };
 const dryWebPhysicalRadiusMm = state.skinParams.internalRadius * surface.scaleMmPerUnit;
+if (!assignments.rayFacts) throw new Error("support-free Surface ray facts are unavailable");
 const profile = buildSkinPrintProfileV1({
   profileName: "phase-a-low paired browser fixture",
   appVersion: "0.70.0",
@@ -42,6 +45,10 @@ const profile = buildSkinPrintProfileV1({
   generatorCommit: "fixture-builder",
   generatorTag: null,
   supportPolicy: assignments.policy,
+  supportClassification: {
+    method: assignments.rayFacts.method, surfaceSource: assignments.rayFacts.surfaceSource,
+    rayDirection: assignments.rayFacts.rayDirection, lowerIntersectionEpsilonMm: assignments.rayFacts.lowerIntersectionEpsilonMm,
+  },
   expectedClassificationCounts: assignments.counts,
   shapeRecipe: { sha256: await sha256Hex(recipeText), seed: state.hostParams.seed, pathHint: "skin-v088-low-resolution-fixture.recipe.json" },
   geometry: { targetLongestMm, surfaceResolution, fusedResolution, angleThresholdDeg },

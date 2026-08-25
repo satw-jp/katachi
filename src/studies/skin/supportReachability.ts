@@ -55,6 +55,7 @@ export interface SupportReachabilityTriangleDiagnosis {
 export interface SupportReachabilityIndex extends SupportReachabilityFacts {
   classifyTriangle: (positions: Float32Array, offset?: number) => SupportReachabilityClassification;
   classifyPoint: (x: number, y: number, z: number) => SupportReachabilityClassification;
+  diagnosePoint: (x: number, y: number, z: number) => SupportReachabilitySampleDiagnosis | null;
   diagnoseTriangle: (positions: Float32Array, offset?: number) => SupportReachabilityTriangleDiagnosis;
 }
 
@@ -244,6 +245,6 @@ export function createSupportReachabilityIndex(finalSurfacePositionsMm: Float32A
 
   return {
     meshScaleMm, lowerIntersectionEpsilonMm, gridCellSizeMm, gridCellCount: grid.size,
-    surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint, diagnoseTriangle,
+    surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint, diagnosePoint, diagnoseTriangle,
   };
 }

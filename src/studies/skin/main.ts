@@ -59,6 +59,15 @@ import type { NPartitionResult } from "./nPartition.ts";
 import type { NPartitionBuildRequest, NPartitionWorkerMessage } from "./nPartitionWorkerProtocol.ts";
 import { encodeBinaryStl } from "../cloud-sculpt/meshExport.ts";
 import type { DenseSampleView, SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import { supportOverlayPickingIncludesBack, type SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
+import {
+  createViewportClippingState,
+  rebaseViewportClippingState,
+  reduceViewportClippingState,
+  viewportClippingToObjectUnits,
+  type ViewportClippingAction,
+  type ViewportClippingBounds,
+} from "./viewportClipping.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import { SkinRenderer } from "./renderer.ts";
 import { pickPatchBySpheres, raymarchComposite, raymarchHost } from "./picking.ts";
@@ -117,11 +126,33 @@ import {
   assertResolvedPrintPlanSupportCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
 } from "./printProfile.ts";
 import {
+  applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
   validateOverhangAssignmentLedger,
   type OverhangSupportPolicyResult,
 } from "./overhangSupportPolicy.ts";
 import type { OverhangDryWebTarget } from "./overhangSupportPolicy.ts";
+import {
+  SUPPORT_PAINT_NORMAL_COSINE_THRESHOLD,
+  appendActiveSupportPaintSample,
+  beginSupportPaintStroke,
+  buildSupportPaintFrame,
+  createSupportPaintSession,
+  createSupportPaintStroke,
+  emptySupportPaint,
+  finishActiveSupportPaintStroke,
+  redoSupportPaint,
+  resetSupportPaint,
+  reviseSupportPaintSession,
+  shouldSampleSupportPaintPoint,
+  supportPaintSessionDocument,
+  supportPaintWorkerRevisionIsCurrent,
+  undoSupportPaint,
+  type SupportPaintMode,
+  type SupportPaintV1,
+} from "./supportPaint.ts";
+import type { SupportPaintWorkerMessage, SupportPaintWorkerRequest } from "./supportPaintWorkerProtocol.ts";
+import { buildBaseFootprint } from "./baseFootprint.ts";
 import {
   correctTutorialFlags,
   derivePartitionTutorialStep,
@@ -220,6 +251,44 @@ let bambu3mfExportCache: {
 } | null = null;
 let showMotifLowestPoints = false;
 let showOverhangSupportSites = true;
+let showMixedSupportFaces = false;
+let supportSiteDepthMode: SupportSiteDepthMode = "show-back";
+let supportPaintEnabled = false;
+let supportPaintMode: SupportPaintMode = "inside";
+let supportPaintRadiusMm = 6;
+let supportPaintBackfaces = false;
+let supportPaintSession = createSupportPaintSession();
+let supportPaintStatusText = "自動分類を下書きとして表示中";
+let activeSupportPaintWorker: Worker | null = null;
+let supportPaintSurfaceCache: {
+  diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  targetLongestMm: number;
+  positionsMm: Float32Array;
+  frame: ReturnType<typeof buildSupportPaintFrame>;
+  scaleMmPerUnit: number;
+} | null = null;
+let supportPaintEntryIndexSource: OverhangSupportPolicyResult | null = null;
+let supportPaintEntryById = new Map<string, OverhangSupportPolicyResult["entries"][number]>();
+let supportPaintDrag: {
+  pointerId: number;
+  lastSampleCenterMm: { xMm: number; yMm: number; zMm: number } | null;
+  pendingPointer: { clientX: number; clientY: number } | null;
+  frameRequestId: number | null;
+  previewClassifications: Map<string, "inside" | "outside" | "unresolved">;
+  frameDurationsMs: number[];
+  candidateCount: number;
+  siteCount: number;
+  startedAt: number;
+  changed: boolean;
+} | null = null;
+let supportPaintHoverPointer: { clientX: number; clientY: number } | null = null;
+let supportPaintHoverFrameRequestId: number | null = null;
+let viewportClippingBoundsMm: ViewportClippingBounds | null = null;
+let viewportClippingStateMm = createViewportClippingState();
+let viewportClippingScaleMmPerUnit = 1;
+let viewportClippingLastMeshRevision = -1;
+let viewportClippingLastPreviewGeneration = -1;
+let viewportClippingLastTargetLongestMm = Number.NaN;
 
 let activeOpeningMapWorker: Worker | null = null;
 let openingMapRequestId = 0;
@@ -258,7 +327,9 @@ let activePrintProfileSha256: string | null = null;
 let activePrintProfileFilename: string | null = null;
 let activePrintProfileText: string | null = null;
 let importedRecipeText: string | null = null;
+let automaticOverhangSupportResult: OverhangSupportPolicyResult | null = null;
 let overhangSupportResult: OverhangSupportPolicyResult | null = null;
+let selectedOverhangSupportSiteId: string | null = null;
 
 // --- Generation-native N partition state ---------------------------------
 let draftNGroups: number[][] = [];
@@ -306,7 +377,7 @@ for (const action of QUICK_EDIT_ACTIONS) {
   if (action.duplicate) button.classList.add("quick-edit-duplicate");
   button.setAttribute("aria-label", action.title);
   // The viewport owns pointer selection/dragging. A toolbar pointer must
-  // never bubble into that path or OrbitControls behind the overlay.
+  // never bubble into that path or the trackball behind the overlay.
   for (const type of ["pointerdown", "pointerup", "pointercancel"] as const) {
     button.addEventListener(type, (event) => {
       event.preventDefault();
@@ -480,6 +551,96 @@ function regrowHost(): void {
 }
 
 // --- UI ------------------------------------------------------------------
+function viewportBoundsFromObject(
+  objectBounds: ViewportClippingBounds,
+  scaleMmPerUnit: number,
+): ViewportClippingBounds {
+  return {
+    x: { min: objectBounds.x.min * scaleMmPerUnit, max: objectBounds.x.max * scaleMmPerUnit },
+    y: { min: objectBounds.y.min * scaleMmPerUnit, max: objectBounds.y.max * scaleMmPerUnit },
+    z: { min: objectBounds.z.min * scaleMmPerUnit, max: objectBounds.z.max * scaleMmPerUnit },
+  };
+}
+
+function currentViewportBoundsObject(): ViewportClippingBounds | null {
+  const meshBounds = skinRenderer.getMeshBoundsObject();
+  if (meshBounds) return meshBounds;
+  if (state.host.length === 0) return null;
+  const bounds = computeSkinSamplingBounds(
+    state.host,
+    state.hostParams.k,
+    state.skinParams.thickness,
+    state.patches,
+  );
+  return {
+    x: { min: bounds.min.x, max: bounds.max.x },
+    y: { min: bounds.min.y, max: bounds.max.y },
+    z: { min: bounds.min.z, max: bounds.max.z },
+  };
+}
+
+function applyViewportClippingState(): void {
+  const bounds = viewportClippingBoundsMm;
+  if (!bounds) {
+    skinRenderer.setViewportClippingState(null);
+    ui.setViewportClippingState(false, null, viewportClippingStateMm);
+    return;
+  }
+  skinRenderer.setViewportClippingState(
+    viewportClippingToObjectUnits(viewportClippingStateMm, viewportClippingScaleMmPerUnit),
+  );
+  ui.setViewportClippingState(true, bounds, viewportClippingStateMm);
+}
+
+function refreshViewportClippingBounds(force = false): void {
+  const meshRevision = skinRenderer.getMeshBoundsRevision();
+  const targetLongestMm = ui.getMeshOptions().targetLongestMm;
+  if (!force &&
+    meshRevision === viewportClippingLastMeshRevision &&
+    previewMeshGeneration === viewportClippingLastPreviewGeneration &&
+    targetLongestMm === viewportClippingLastTargetLongestMm
+  ) return;
+  viewportClippingLastMeshRevision = meshRevision;
+  viewportClippingLastPreviewGeneration = previewMeshGeneration;
+  viewportClippingLastTargetLongestMm = targetLongestMm;
+  const objectBounds = currentViewportBoundsObject();
+  if (!objectBounds) {
+    viewportClippingBoundsMm = null;
+    applyViewportClippingState();
+    return;
+  }
+  const longest = Math.max(
+    objectBounds.x.max - objectBounds.x.min,
+    objectBounds.y.max - objectBounds.y.min,
+    objectBounds.z.max - objectBounds.z.min,
+  );
+  if (!(longest > 0) || !(targetLongestMm > 0)) {
+    viewportClippingBoundsMm = null;
+    applyViewportClippingState();
+    return;
+  }
+  const nextScale = targetLongestMm / longest;
+  const nextBounds = viewportBoundsFromObject(objectBounds, nextScale);
+  viewportClippingStateMm = rebaseViewportClippingState(
+    viewportClippingStateMm,
+    viewportClippingBoundsMm,
+    nextBounds,
+  );
+  viewportClippingBoundsMm = nextBounds;
+  viewportClippingScaleMmPerUnit = nextScale;
+  applyViewportClippingState();
+}
+
+function updateViewportClipping(action: ViewportClippingAction): void {
+  if (!viewportClippingBoundsMm) return;
+  viewportClippingStateMm = reduceViewportClippingState(
+    viewportClippingStateMm,
+    viewportClippingBoundsMm,
+    action,
+  );
+  applyViewportClippingState();
+}
+
 const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest.version, manifest.updatedAt, {
   onUndo: () => undoLastOperation(),
   onUndoSteps: (steps) => undoSeveralOperations(steps),
@@ -570,6 +731,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     invalidateSurfaceAngleDiagnosis("Internal表示を切り替えたため、角度診断を終了しました");
     setInternalObservationMode(mode);
   },
+  onViewportClippingAction: (action) => updateViewportClipping(action),
   onDiagnoseSurfaceAngles: (thresholdDeg) => startSurfaceAngleDiagnosis(thresholdDeg),
   onSetSurfaceAngleDiagnosisView: (diagnosisView) => showSurfaceAngleDiagnosisView(diagnosisView),
   onSurfaceAngleThresholdChange: () => { invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
@@ -578,6 +740,23 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     refreshOverhangSupportSiteOverlay();
     render();
   },
+  onSetOverhangSupportDepthMode: (mode) => {
+    supportSiteDepthMode = mode;
+    refreshOverhangSupportSiteOverlay();
+    render();
+  },
+  onToggleMixedSupportFaces: (show) => {
+    showMixedSupportFaces = show;
+    refreshOverhangSupportSiteOverlay();
+    render();
+  },
+  onSetSupportPaintEnabled: (enabled) => setSupportPaintEnabled(enabled),
+  onSetSupportPaintMode: (mode) => { supportPaintMode = mode; refreshSupportPaintUi(); },
+  onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; refreshSupportPaintUi(); },
+  onSetSupportPaintBackfaces: (enabled) => { supportPaintBackfaces = enabled; refreshSupportPaintUi(); },
+  onUndoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, undoSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを1操作戻しました"); },
+  onRedoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, redoSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを1操作進めました"); },
+  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを自動分類へ戻しました"); },
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
@@ -892,17 +1071,22 @@ function classifySurfaceAngleSupport(
   const targetLongestMm = ui.getMeshOptions().targetLongestMm;
   if (!(sourceLongest > 0) || !(targetLongestMm > 0)) throw new Error("Fail closed: BODYの実寸Scaleを求められませんでした");
   const scaleMmPerUnit = targetLongestMm / sourceLongest;
-  const finalSurfacePositionsMm = new Float32Array(message.basePositions.map((value) => value * scaleMmPerUnit));
   const diagnosedPositionsMm = new Float32Array(message.beforeDangerPositions.map((value) => value * scaleMmPerUnit));
-  const result = assignOverhangSupportTargets({
+  const supportSurfacePositionsMm = new Float32Array(message.basePositions.map((value) => value * scaleMmPerUnit));
+  const baseFootprint = buildBaseFootprint(state.host, state.hostParams.k, scaleMmPerUnit);
+  const automaticResult = assignOverhangSupportTargets({
     diagnosedFaces: splitTriangleSoup(diagnosedPositionsMm),
+    supportSurfacePositionsMm,
     explicitTargets: activePrintProfile?.scaffold.explicitTargets ?? [],
-    finalSurfacePositionsMm,
+    baseFootprint,
   });
+  automaticOverhangSupportResult = automaticResult;
+  const paint = supportPaintSession.history.present.strokes.length > 0 ? supportPaintSession.history.present : null;
+  const result = applySupportPaintToPolicyResult(automaticResult, supportSurfacePositionsMm, paint);
   try {
     if (activePrintProfile && activePrintProfileSha256) {
       const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
-      assertResolvedPrintPlanSupportCounts(plan, result.counts);
+      assertResolvedPrintPlanSupportCounts(plan, result.counts, result.rayFacts);
     } else {
       validateOverhangAssignmentLedger(result);
     }
@@ -931,7 +1115,9 @@ function diagnosedPositionsForPolicy(result: OverhangSupportPolicyResult): Float
 
 function overhangSupportCountsText(result: OverhangSupportPolicyResult): string {
   const counts = result.counts;
-  return `mixed face ${counts.mixedFace.toLocaleString()} / inside site ${counts.insideSupportSite.toLocaleString()} / outside site ${counts.outsideSupportSite.toLocaleString()} / unresolved site ${counts.unresolvedSupportSite.toLocaleString()} / duplicate site ${counts.duplicateSupportSite.toLocaleString()}`;
+  const paint = result.paintFacts;
+  const paintText = paint ? ` / painted ${paint.paintedSupportSiteCount.toLocaleString()} / overridden ${paint.manualOverrideSupportSiteCount.toLocaleString()}` : "";
+  return `mixed face ${counts.mixedFace.toLocaleString()} / inside site ${counts.insideSupportSite.toLocaleString()} / outside site ${counts.outsideSupportSite.toLocaleString()} / unresolved site ${counts.unresolvedSupportSite.toLocaleString()} / duplicate site ${counts.duplicateSupportSite.toLocaleString()}${paintText}`;
 }
 
 function refreshOverhangSupportSiteOverlay(): void {
@@ -939,43 +1125,302 @@ function refreshOverhangSupportSiteOverlay(): void {
   const diagnosis = surfaceAngleCache;
   if (!result || !diagnosis) {
     skinRenderer.clearOverhangSupportSiteOverlay();
-    ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点は未診断");
+    ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点は未診断");
     return;
   }
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
   const targetLongestMm = ui.getMeshOptions().targetLongestMm;
   if (!(sourceLongest > 0) || !(targetLongestMm > 0)) {
     skinRenderer.clearOverhangSupportSiteOverlay();
-    ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, "支持点の表示Scaleを求められませんでした", false);
+    ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点の表示Scaleを求められませんでした", false);
     return;
   }
   const scaleMmPerUnit = targetLongestMm / sourceLongest;
   const markerRadius = 0.55 / scaleMmPerUnit;
-  const markers = result.entries.flatMap((entry) => {
-    if (!entry.positionMm || entry.duplicateOf) return [];
+  const drawableEntries = result.entries.filter((entry) => entry.positionMm && !entry.duplicateOf);
+  // Editing stays a low-to-medium density preview. Saved normalized strokes
+  // are reprojected to every high-resolution site by the export Worker.
+  const previewStride = Math.max(1, Math.ceil(drawableEntries.length / 40_000));
+  const markers = drawableEntries.flatMap((entry, index) => {
+    if (entry.classification !== "unresolved" && index % previewStride !== 0) return [];
     return [{
+      id: entry.id,
       classification: entry.classification,
       markerRadius,
+      normal: entry.normal ? { x: entry.normal.xMm, y: entry.normal.yMm, z: entry.normal.zMm } : undefined,
       position: {
-        x: entry.positionMm.xMm / scaleMmPerUnit,
-        y: entry.positionMm.yMm / scaleMmPerUnit,
-        z: entry.positionMm.zMm / scaleMmPerUnit,
+        x: entry.positionMm!.xMm / scaleMmPerUnit,
+        y: entry.positionMm!.yMm / scaleMmPerUnit,
+        z: entry.positionMm!.zMm / scaleMmPerUnit,
       },
     }];
   });
   const mixedPositions: number[] = [];
-  for (const faceIndex of result.mixedFaceIndices) {
-    const offset = faceIndex * 9;
-    if (offset < 0 || offset + 9 > diagnosis.beforeDangerPositions.length) continue;
-    mixedPositions.push(...diagnosis.beforeDangerPositions.subarray(offset, offset + 9));
+  if (showMixedSupportFaces) {
+    for (const faceIndex of result.mixedFaceIndices) {
+      const offset = faceIndex * 9;
+      if (offset < 0 || offset + 9 > diagnosis.beforeDangerPositions.length) continue;
+      mixedPositions.push(...diagnosis.beforeDangerPositions.subarray(offset, offset + 9));
+    }
   }
-  if (showOverhangSupportSites) {
-    skinRenderer.setOverhangSupportSiteOverlay(markers, new Float32Array(mixedPositions));
+  const footprintPositions: number[] = [];
+  const footprint = result.baseFootprint;
+  if (showOverhangSupportSites && footprint?.valid && footprint.vertices.length >= 3) {
+    let baseZ = Infinity;
+    for (let offset = 2; offset < diagnosis.basePositions.length; offset += 3) {
+      baseZ = Math.min(baseZ, diagnosis.basePositions[offset]);
+    }
+    if (Number.isFinite(baseZ)) {
+      const outlineZ = baseZ - markerRadius * 0.2;
+      for (const point of footprint.vertices) {
+        footprintPositions.push(point.xMm / scaleMmPerUnit, point.yMm / scaleMmPerUnit, outlineZ);
+      }
+    }
+  }
+  if (showOverhangSupportSites || showMixedSupportFaces) {
+    skinRenderer.setOverhangSupportSiteOverlay(
+      showOverhangSupportSites ? markers : [],
+      new Float32Array(mixedPositions),
+      new Float32Array(footprintPositions),
+      supportSiteDepthMode,
+    );
   } else {
     skinRenderer.clearOverhangSupportSiteOverlay();
   }
-  const ok = result.counts.unresolvedSupportSite === 0 && result.counts.duplicateSupportSite === 0;
-  ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, overhangSupportCountsText(result), ok);
+  if (supportPaintDrag?.previewClassifications.size) {
+    skinRenderer.previewOverhangSupportSiteClassifications(
+      [...supportPaintDrag.previewClassifications].map(([id, classification]) => ({ id, classification })),
+    );
+  }
+  const ok = result.counts.unresolvedSupportSite === 0
+    && result.counts.duplicateSupportSite === 0;
+  ui.setOverhangSupportSiteOverlay(
+    true,
+    showOverhangSupportSites,
+    showMixedSupportFaces,
+    supportSiteDepthMode,
+    overhangSupportCountsText(result),
+    ok,
+  );
+}
+
+function setSelectedOverhangSupportSite(id: string | null): void {
+  selectedOverhangSupportSiteId = id;
+  const result = overhangSupportResult;
+  const entry = id && result ? result.entries.find((candidate) => candidate.id === id) : null;
+  if (!entry) {
+    ui.setOverhangSupportSiteSelection("支持点を選ぶと plate-visible / body-blocked を表示します");
+    return;
+  }
+  const distance = entry.nearestLowerSurfaceDistanceMm;
+  const distanceText = distance == null ? "lower bodyなし" : `lower bodyまで ${distance.toFixed(4)} mm`;
+  const epsilonText = result?.rayFacts ? `epsilon ${result.rayFacts.lowerIntersectionEpsilonMm.toFixed(6)} mm` : "epsilon不明";
+  const paintText = entry.supportPaintMode ? ` · paint=${entry.supportPaintMode}#${entry.supportPaintStrokeOrder}` : " · paint=auto draft";
+  ui.setOverhangSupportSiteSelection(
+    `${entry.id} · ${entry.classification} · ${entry.rayResult ?? "ray-unresolved"} · ${distanceText} · ${epsilonText}${paintText}`,
+    entry.classification,
+  );
+}
+
+
+function supportPaintEditingContext(): {
+  positionsMm: Float32Array;
+  frame: ReturnType<typeof buildSupportPaintFrame>;
+  scaleMmPerUnit: number;
+} | null {
+  if (!surfaceAngleCache) return null;
+  const targetLongestMm = ui.getMeshOptions().targetLongestMm;
+  if (
+    supportPaintSurfaceCache
+    && supportPaintSurfaceCache.diagnosis === surfaceAngleCache
+    && supportPaintSurfaceCache.targetLongestMm === targetLongestMm
+  ) return supportPaintSurfaceCache;
+  const sourceLongest = triangleSoupLongestExtent(surfaceAngleCache.basePositions);
+  if (!(sourceLongest > 0) || !(targetLongestMm > 0)) return null;
+  const scaleMmPerUnit = targetLongestMm / sourceLongest;
+  const positionsMm = new Float32Array(surfaceAngleCache.basePositions.length);
+  for (let index = 0; index < positionsMm.length; index++) {
+    positionsMm[index] = surfaceAngleCache.basePositions[index] * scaleMmPerUnit;
+  }
+  supportPaintSurfaceCache = {
+    diagnosis: surfaceAngleCache,
+    targetLongestMm,
+    positionsMm,
+    frame: buildSupportPaintFrame(positionsMm),
+    scaleMmPerUnit,
+  };
+  return supportPaintSurfaceCache;
+}
+
+function indexedSupportPaintEntry(id: string): OverhangSupportPolicyResult["entries"][number] | null {
+  const source = overhangSupportResult;
+  if (!source) return null;
+  if (supportPaintEntryIndexSource !== source) {
+    supportPaintEntryById = new Map(source.entries.map((entry) => [entry.id, entry]));
+    supportPaintEntryIndexSource = source;
+  }
+  return supportPaintEntryById.get(id) ?? null;
+}
+
+function currentSupportPaintDocument(includeActive = false): SupportPaintV1 {
+  return supportPaintSessionDocument(supportPaintSession, includeActive);
+}
+
+function refreshSupportPaintUi(status = supportPaintStatusText): void {
+  supportPaintStatusText = status;
+  const facts = overhangSupportResult?.paintFacts;
+  const paint = currentSupportPaintDocument();
+  ui.setSupportPaintState({
+    available: Boolean(automaticOverhangSupportResult && surfaceAngleCache),
+    enabled: supportPaintEnabled,
+    mode: supportPaintMode,
+    radiusMm: supportPaintRadiusMm,
+    paintBackfaces: supportPaintBackfaces,
+    strokeCount: paint.strokes.length,
+    paintedSiteCount: facts?.paintedSupportSiteCount ?? 0,
+    manualOverrideSiteCount: facts?.manualOverrideSupportSiteCount ?? 0,
+    canUndo: supportPaintSession.history.past.length > 0,
+    canRedo: supportPaintSession.history.future.length > 0,
+    status,
+  });
+}
+
+function invalidateSupportPaintEditingResources(): void {
+  supportPaintSession = reviseSupportPaintSession(supportPaintSession);
+  if (activeSupportPaintWorker) {
+    activeSupportPaintWorker.terminate();
+    activeSupportPaintWorker = null;
+  }
+  if (supportPaintDrag?.frameRequestId !== null && supportPaintDrag?.frameRequestId !== undefined) {
+    window.cancelAnimationFrame(supportPaintDrag.frameRequestId);
+  }
+  supportPaintDrag = null;
+  if (supportPaintHoverFrameRequestId !== null) window.cancelAnimationFrame(supportPaintHoverFrameRequestId);
+  supportPaintHoverFrameRequestId = null; supportPaintHoverPointer = null;
+  supportPaintSurfaceCache = null;
+  supportPaintEntryIndexSource = null;
+  supportPaintEntryById.clear();
+  skinRenderer.clearOverhangSupportSitePreview();
+  skinRenderer.clearSupportPaintBrushPreview();
+}
+
+function setSupportPaintEnabled(enabled: boolean): void {
+  supportPaintEnabled = enabled && Boolean(automaticOverhangSupportResult && surfaceAngleCache);
+  showOverhangSupportSites = true;
+  viewport.classList.toggle("support-paint-active", supportPaintEnabled);
+  skinRenderer.setOrbitEnabled(!supportPaintEnabled);
+  if (!supportPaintEnabled) skinRenderer.clearSupportPaintBrushPreview();
+  refreshOverhangSupportSiteOverlay();
+  refreshSupportPaintUi(supportPaintEnabled ? "ドラッグして支持方式を塗ります" : "自動分類＋保存済みoverrideを表示中");
+  render();
+}
+
+function refreshPaintedDryWebTargets(): void {
+  if (!surfaceAngleCache || !overhangSupportResult || state.skinParams.internalStructure !== "targetedGrid") return;
+  const sourceLongest = triangleSoupLongestExtent(surfaceAngleCache.basePositions);
+  const scaleMmPerUnit = ui.getMeshOptions().targetLongestMm / sourceLongest;
+  if (!(scaleMmPerUnit > 0)) return;
+  targetedSupportSource = {
+    surfaceFingerprint: currentTargetSurfaceFingerprint(),
+    resolution: surfaceAngleCache.resolution,
+    targets: sourceDryWebTargets(overhangSupportResult, scaleMmPerUnit),
+  };
+  internalStructureFingerprint = "";
+  refreshInternalStructure();
+}
+
+interface SupportPaintPreviewPerformance {
+  siteCount: number;
+  sampleCount: number;
+  candidateCount: number;
+  frameDurationsMs: number[];
+  startedAt: number;
+}
+
+function supportPaintP95(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
+}
+
+function reapplySupportPaint(
+  status: string,
+  paint = supportPaintSession.history.present,
+  refreshDryWeb = true,
+  previewPerformance?: SupportPaintPreviewPerformance,
+): void {
+  const context = supportPaintEditingContext();
+  if (!automaticOverhangSupportResult || !context) {
+    refreshSupportPaintUi("支持点の診断後に使えます");
+    return;
+  }
+  const revision = supportPaintSession.revision;
+  if (activeSupportPaintWorker) activeSupportPaintWorker.terminate();
+  const worker = new Worker(new URL("./supportPaint.worker.ts", import.meta.url), { type: "module" });
+  activeSupportPaintWorker = worker;
+  const requestedAt = performance.now();
+  refreshSupportPaintUi(status + " · routingをWorkerで確定中…");
+  const finishError = (message: string): void => {
+    if (worker !== activeSupportPaintWorker) return;
+    activeSupportPaintWorker = null;
+    worker.terminate();
+    skinRenderer.clearOverhangSupportSitePreview();
+    refreshSupportPaintUi("Support Paint確定に失敗しました: " + message);
+  };
+  worker.onmessage = (event: MessageEvent<SupportPaintWorkerMessage>) => {
+    const message = event.data;
+    if (message.revision !== revision || !supportPaintWorkerRevisionIsCurrent(supportPaintSession, message.revision) || worker !== activeSupportPaintWorker) {
+      worker.terminate();
+      return;
+    }
+    if (message.type === "error") {
+      finishError(message.message);
+      return;
+    }
+    activeSupportPaintWorker = null;
+    worker.terminate();
+    overhangSupportResult = message.result;
+    supportPaintEntryIndexSource = null;
+    validateOverhangAssignmentLedger(overhangSupportResult);
+    if (refreshDryWeb) refreshPaintedDryWebTargets();
+    refreshOverhangSupportSiteOverlay();
+    refreshPrintProfileSummary();
+    const totalMs = performance.now() - requestedAt;
+    const p95 = supportPaintP95(previewPerformance?.frameDurationsMs ?? []);
+    const averageCandidates = previewPerformance?.sampleCount
+      ? previewPerformance.candidateCount / previewPerformance.sampleCount
+      : 0;
+    const performanceText = previewPerformance
+      ? " · grid候補 " + averageCandidates.toFixed(0) + "/" + previewPerformance.siteCount.toLocaleString()
+        + "点 · preview p95 " + p95.toFixed(1) + "ms"
+        + " · Worker " + message.computeMs.toFixed(1) + "ms"
+        + " · 確定 " + totalMs.toFixed(1) + "ms"
+      : " · Worker " + message.computeMs.toFixed(1) + "ms · 確定 " + totalMs.toFixed(1) + "ms";
+    console.info("[Support Paint performance]", {
+      before: {
+        pointerMoveFullSiteScan: previewPerformance?.siteCount ?? message.result.entries.length,
+        routingAndOverlayRebuildPerPointerMove: true,
+      },
+      after: {
+        sampledDabs: previewPerformance?.sampleCount ?? 0,
+        averageGridCandidates: averageCandidates,
+        previewP95Ms: p95,
+        workerComputeMs: message.computeMs,
+        pointerUpTotalMs: totalMs,
+      },
+    });
+    refreshSupportPaintUi(status + performanceText);
+    render();
+  };
+  worker.onerror = (event) => finishError(event.message);
+  const request: SupportPaintWorkerRequest = {
+    type: "apply",
+    revision,
+    automaticResult: automaticOverhangSupportResult,
+    supportSurfacePositionsMm: context.positionsMm,
+    supportPaint: paint.strokes.length > 0 ? paint : null,
+  };
+  worker.postMessage(request);
 }
 
 function targetedSupportSourceIsCurrent(): boolean {
@@ -1125,7 +1570,8 @@ window.addEventListener("keydown", (event) => {
 // --- Pointer interaction ---------------------------------------------------
 // Click (no drag) on a patch -> select it (toggle). Click on host skin while
 // "add patch" mode is active -> place a manual patch there. Same click/orbit
-// disambiguation pattern as pack/cloud-sculpt.
+// disambiguation pattern as pack/cloud-sculpt; trackball drags still exceed
+// DRAG_THRESHOLD before release and therefore cannot become clicks.
 
 let pointerDownPos: { x: number; y: number } | null = null;
 let patchDrag: {
@@ -1161,7 +1607,7 @@ function flushHoverPick(): void {
   hoverPickFrameId = null;
   const pointer = hoverPickPointer;
   hoverPickPointer = null;
-  if (!pointer || patchDrag || addPatchMode || seedPickMode || denseFlowerSampleActive) return;
+  if (!pointer || patchDrag || supportPaintEnabled || addPatchMode || seedPickMode || denseFlowerSampleActive) return;
   setHoveredPatch(fastPatchId(pointerRay(pointer)));
 }
 
@@ -1214,7 +1660,175 @@ function finishPatchDrag(restoreSource = true): void {
   patchDrag = null;
 }
 
+function resolveSupportPaintBrush(pointer: { clientX: number; clientY: number }): {
+  pick: NonNullable<ReturnType<typeof skinRenderer.pickOverhangSupportSite>>;
+  entry: OverhangSupportPolicyResult["entries"][number];
+  context: NonNullable<ReturnType<typeof supportPaintEditingContext>>;
+  candidates: ReturnType<typeof skinRenderer.queryOverhangSupportBrushCandidates>;
+} | null {
+  const includeBack = supportOverlayPickingIncludesBack(supportSiteDepthMode, supportPaintBackfaces);
+  const pick = skinRenderer.pickOverhangSupportSite(pointer.clientX, pointer.clientY, 14, includeBack);
+  const entry = pick ? indexedSupportPaintEntry(pick.id) : null;
+  const context = supportPaintEditingContext();
+  if (!pick || !entry?.positionMm || !entry.normal || !context || entry.classification === "unresolved" || entry.duplicateOf) return null;
+  const candidates = skinRenderer.queryOverhangSupportBrushCandidates(
+    pick.position, supportPaintRadiusMm / context.scaleMmPerUnit, includeBack, pick.normal,
+  ).filter((candidate) => {
+    const candidateEntry = indexedSupportPaintEntry(candidate.id);
+    if (!candidateEntry || candidateEntry.duplicateOf || !candidateEntry.normal) return false;
+    const automatic = candidateEntry.automaticClassification ?? candidateEntry.classification;
+    if (automatic === "unresolved") return false;
+    const a = candidateEntry.normal; const b = pick.normal;
+    const length = Math.hypot(a.xMm, a.yMm, a.zMm) * Math.hypot(b.x, b.y, b.z);
+    return length > 1e-9 && (a.xMm * b.x + a.yMm * b.y + a.zMm * b.z) / length >= SUPPORT_PAINT_NORMAL_COSINE_THRESHOLD;
+  });
+  return { pick, entry, context, candidates };
+}
+
+function showSupportPaintBrush(hit: NonNullable<ReturnType<typeof resolveSupportPaintBrush>>): void {
+  skinRenderer.setSupportPaintBrushPreview({
+    center: hit.pick.position,
+    normal: hit.pick.normal,
+    radius: supportPaintRadiusMm / hit.context.scaleMmPerUnit,
+    mode: supportPaintMode,
+    affectedIds: hit.candidates.map((candidate) => candidate.id),
+  });
+}
+
+function processSupportPaintPointer(
+  pointer: { clientX: number; clientY: number },
+  drag: NonNullable<typeof supportPaintDrag>,
+): void {
+  const started = performance.now();
+  const hit = resolveSupportPaintBrush(pointer);
+  if (!hit) { skinRenderer.clearSupportPaintBrushPreview(); render(); return; }
+  showSupportPaintBrush(hit);
+  if (!shouldSampleSupportPaintPoint(drag.lastSampleCenterMm, hit.entry.positionMm!, supportPaintRadiusMm)) { render(); return; }
+  const stroke = createSupportPaintStroke({
+    order: currentSupportPaintDocument(true).strokes.length,
+    mode: supportPaintMode, centerMm: hit.entry.positionMm!, radiusMm: supportPaintRadiusMm,
+    surfaceNormal: hit.entry.normal!, frame: hit.context.frame, paintBackfaces: supportPaintBackfaces,
+  });
+  supportPaintSession = appendActiveSupportPaintSample(supportPaintSession, stroke);
+  drag.lastSampleCenterMm = { ...hit.entry.positionMm! };
+  drag.candidateCount += hit.candidates.length;
+  const changes: Array<{ id: string; classification: "inside" | "outside" | "unresolved" }> = [];
+  for (const candidate of hit.candidates) {
+    const candidateEntry = indexedSupportPaintEntry(candidate.id)!;
+    const automatic = candidateEntry.automaticClassification ?? candidateEntry.classification;
+    const classification = stroke.mode === "auto" ? automatic : stroke.mode;
+    drag.previewClassifications.set(candidate.id, classification);
+    changes.push({ id: candidate.id, classification });
+  }
+  skinRenderer.previewOverhangSupportSiteClassifications(changes);
+  drag.changed = drag.changed || changes.length > 0;
+  drag.frameDurationsMs.push(performance.now() - started);
+  const sampleCount = supportPaintSession.activeStroke?.samples.length ?? 0;
+  if (sampleCount === 1 || sampleCount % 8 === 0) {
+    refreshSupportPaintUi(
+      "ドラッグ中 · grid候補 " + Math.round(drag.candidateCount / sampleCount).toLocaleString()
+      + "/" + drag.siteCount.toLocaleString() + "点 · sample " + sampleCount,
+    );
+  }
+  render();
+}
+
+function refreshSupportPaintBrushHover(): void {
+  supportPaintHoverFrameRequestId = null;
+  const pointer = supportPaintHoverPointer; supportPaintHoverPointer = null;
+  if (!supportPaintEnabled || supportPaintDrag || !pointer) return;
+  const hit = resolveSupportPaintBrush(pointer);
+  if (hit) showSupportPaintBrush(hit); else skinRenderer.clearSupportPaintBrushPreview();
+  render();
+}
+
+function scheduleSupportPaintBrushHover(pointer: { clientX: number; clientY: number }): void {
+  supportPaintHoverPointer = pointer;
+  if (supportPaintHoverFrameRequestId !== null) return;
+  supportPaintHoverFrameRequestId = window.requestAnimationFrame(refreshSupportPaintBrushHover);
+}
+
+function flushSupportPaintPointer(drag: NonNullable<typeof supportPaintDrag>): void {
+  drag.frameRequestId = null;
+  if (supportPaintDrag !== drag || !drag.pendingPointer) return;
+  const pointer = drag.pendingPointer;
+  drag.pendingPointer = null;
+  processSupportPaintPointer(pointer, drag);
+}
+
+function scheduleSupportPaintPointer(
+  pointer: { clientX: number; clientY: number },
+  drag: NonNullable<typeof supportPaintDrag>,
+): void {
+  drag.pendingPointer = pointer;
+  if (drag.frameRequestId !== null) return;
+  drag.frameRequestId = window.requestAnimationFrame(() => flushSupportPaintPointer(drag));
+}
+
+function finishSupportPaintDrag(commit: boolean): void {
+  const drag = supportPaintDrag;
+  if (!drag) return;
+  if (drag.frameRequestId !== null) window.cancelAnimationFrame(drag.frameRequestId);
+  drag.frameRequestId = null;
+  if (drag.pendingPointer) {
+    const pointer = drag.pendingPointer;
+    drag.pendingPointer = null;
+    processSupportPaintPointer(pointer, drag);
+  }
+  supportPaintDrag = null;
+  const sampleCount = supportPaintSession.activeStroke?.samples.length ?? 0;
+  if (commit && drag.changed && sampleCount > 0) {
+    supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, true);
+    reapplySupportPaint("Support Paintを1 stroke確定しました", supportPaintSession.history.present, true, {
+      siteCount: drag.siteCount,
+      sampleCount,
+      candidateCount: drag.candidateCount,
+      frameDurationsMs: drag.frameDurationsMs,
+      startedAt: drag.startedAt,
+    });
+  } else {
+    supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, false);
+    skinRenderer.clearOverhangSupportSitePreview();
+    refreshSupportPaintUi("塗布対象は変わりませんでした");
+    render();
+  }
+}
+
 viewport.addEventListener("pointerdown", (e) => {
+  // Capture before TrackballControls sees the canvas event. A selected-patch
+  // direct drag can therefore disable camera rotation before the control
+  // acquires pointer capture; HUD and toolbar descendants remain untouched.
+  if (e.target !== skinRenderer.renderer.domElement) return;
+  if (supportPaintEnabled) {
+    pointerDownPos = null;
+    if (e.button !== 0 || !overhangSupportResult) return;
+    e.preventDefault();
+    const context = supportPaintEditingContext();
+    if (!context) return;
+    if (activeSupportPaintWorker) {
+      refreshSupportPaintUi("前のstrokeを確定中です");
+      return;
+    }
+    const initialPaint = supportPaintSession.history.present.strokes.length > 0
+      ? undefined
+      : emptySupportPaint(context.frame.longestMm);
+    supportPaintSession = beginSupportPaintStroke(supportPaintSession, initialPaint);
+    supportPaintDrag = {
+      pointerId: e.pointerId,
+      lastSampleCenterMm: null,
+      pendingPointer: null,
+      frameRequestId: null,
+      previewClassifications: new Map(),
+      frameDurationsMs: [],
+      candidateCount: 0,
+      siteCount: overhangSupportResult.entries.length,
+      startedAt: performance.now(),
+      changed: false,
+    };
+    skinRenderer.renderer.domElement.setPointerCapture?.(e.pointerId);
+    scheduleSupportPaintPointer(e, supportPaintDrag);
+    return;
+  }
   pointerDownPos = { x: e.clientX, y: e.clientY };
   if (e.button !== 0 || selectedPatchId === null || addPatchMode || seedPickMode) return;
   const ray = pointerRay(e);
@@ -1236,9 +1850,11 @@ viewport.addEventListener("pointerdown", (e) => {
     active: false,
   };
   skinRenderer.setOrbitEnabled(false);
-});
+}, { capture: true });
 
 window.addEventListener("pointermove", (e) => {
+  if (supportPaintDrag && e.pointerId === supportPaintDrag.pointerId) { scheduleSupportPaintPointer(e, supportPaintDrag); return; }
+  if (supportPaintEnabled) { scheduleSupportPaintBrushHover(e); return; }
   if (!patchDrag || e.pointerId !== patchDrag.pointerId) return;
   if (Math.hypot(e.clientX - patchDrag.startX, e.clientY - patchDrag.startY) <= DRAG_THRESHOLD) return;
   patchDrag.active = true;
@@ -1251,6 +1867,7 @@ window.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("pointerup", (e) => {
+  if (supportPaintDrag && e.pointerId === supportPaintDrag.pointerId) { finishSupportPaintDrag(true); return; }
   if (patchDrag && e.pointerId === patchDrag.pointerId) {
     const drag = patchDrag;
     const wasActive = drag.active;
@@ -1279,6 +1896,7 @@ window.addEventListener("pointerup", (e) => {
 
 window.addEventListener("pointercancel", () => {
   pointerDownPos = null;
+  if (supportPaintDrag) finishSupportPaintDrag(false);
   if (patchDrag) finishPatchDrag();
 });
 
@@ -1350,6 +1968,17 @@ function handleClick(e: PointerEvent): void {
       refreshPartitionDraft();
     }
     return;
+  }
+
+  if (showOverhangSupportSites && overhangSupportResult) {
+    const supportSite = skinRenderer.pickOverhangSupportSite(
+      e.clientX, e.clientY, 10,
+      supportOverlayPickingIncludesBack(supportSiteDepthMode, true),
+    );
+    if (supportSite) {
+      setSelectedOverhangSupportSite(supportSite.id);
+      return;
+    }
   }
 
   const quickId = fastPatchId(ray);
@@ -2566,6 +3195,8 @@ function currentPrintProfileBinding(profile: SkinPrintProfileV1, includeScale = 
     currentFusedResolution: profile.geometry.fusedResolution,
     currentAngleThresholdDeg: ui.getSurfaceAngleThreshold(),
     ...(overhangSupportResult ? { currentSupportClassificationCounts: overhangSupportResult.counts } : {}),
+    ...(overhangSupportResult?.rayFacts ? { currentSupportRayEpsilonMm: overhangSupportResult.rayFacts.lowerIntersectionEpsilonMm } : {}),
+    currentSupportPaint: supportPaintSession.history.present.strokes.length > 0 ? supportPaintSession.history.present : null,
     ...(includeScale && currentPrintScaleMmPerUnit() !== undefined ? { scaleMmPerUnit: currentPrintScaleMmPerUnit() } : {}),
   };
 }
@@ -2576,6 +3207,8 @@ function refreshPrintProfileSummary(): void {
   const match = matchPrintProfile(profile, currentPrintProfileBinding(profile));
   const actualScale = currentPrintScaleMmPerUnit();
   const actualDryWebDiameterMm = actualScale === undefined ? "最終精度診断後に確定" : (state.skinParams.internalRadius * actualScale * 2).toFixed(3) + " mm";
+  const supportRayEpsilonMm = overhangSupportResult?.rayFacts?.lowerIntersectionEpsilonMm
+    ?? profile.supportClassification?.lowerIntersectionEpsilonMm;
   ui.setPrintProfileSummary({
     profileName: profile.profileName,
     profileSha256: activePrintProfileSha256,
@@ -2583,7 +3216,9 @@ function refreshPrintProfileSummary(): void {
     status: match.matches ? "現在設定と一致" : match.reasons.join(" / "),
     values: [
       ["読込ファイル", activePrintProfileFilename ?? "画面で作成"],
-      ["Support policy", profile.supportPolicy ?? "outside-breakaway-scaffold-inside-dry-web-v1"],
+      ["Support policy", profile.supportPolicy ?? "未記録"],
+      ["Surface ray epsilon", supportRayEpsilonMm === undefined ? "診断後に確定" : `${supportRayEpsilonMm.toFixed(6)} mm`],
+      ["Support Paint", `${profile.supportPaint?.strokes.length ?? 0} stroke（現在 ${supportPaintSession.history.present.strokes.length}）`],
       ["分類 total / inside / outside / unresolved", (() => {
         const counts = overhangSupportResult?.counts ?? profile.expectedClassificationCounts;
         return counts ? `${counts.mixedFace} mixed / ${counts.insideSupportSite} inside site / ${counts.outsideSupportSite} outside site / ${counts.unresolvedSupportSite} unresolved site / ${counts.duplicateSupportSite} duplicate site` : "診断後に確定";
@@ -2607,7 +3242,8 @@ async function importPrintProfile(file: File): Promise<void> {
     const profile = validateSkinPrintProfile(JSON.parse(text));
     const sha = await printProfileSha256(profile);
     activePrintProfile = profile; activePrintProfileSha256 = sha; activePrintProfileFilename = file.name; activePrintProfileText = text;
-    ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
+    supportPaintSession = createSupportPaintSession(profile.supportPaint ?? emptySupportPaint(profile.geometry.targetLongestMm));
+      ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
     ui.setSurfaceAngleThreshold(profile.geometry.angleThresholdDeg);
     invalidateSurfaceAngleDiagnosis("Print Profileを読み込みました。Profile精度で再診断してください");
     refreshPrintProfileSummary();
@@ -2617,11 +3253,13 @@ async function importPrintProfile(file: File): Promise<void> {
 }
 
 async function saveCurrentPrintProfile(): Promise<void> {
+  if (activeSupportPaintWorker) { alert("Support Paintの確定を待ってください"); return; }
   if (!importedRecipeSha256 || !importedRecipeFilename) { alert("先にShape Recipeを読み込んでください"); return; }
   const scaleMmPerUnit = currentPrintScaleMmPerUnit();
   if (scaleMmPerUnit === undefined || !surfaceAngleCache) { alert("先に最終精度診断を実行してください"); return; }
   if (state.skinParams.internalStructure !== "targetedGrid") { alert("Print Profile v1はDry Web（targetedGrid）に限定しています"); return; }
   if (!overhangSupportResult) { alert("先に共有ポリシーでオーバーハング分類を完了してください"); return; }
+  if (!overhangSupportResult.rayFacts) { alert("support-free Surface ray factsがありません"); return; }
   const options = ui.getMeshOptions();
   const dryRadiusMm = state.skinParams.internalRadius * scaleMmPerUnit;
   const scaffold = { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: 1.2 };
@@ -2630,7 +3268,14 @@ async function saveCurrentPrintProfile(): Promise<void> {
     appVersion: manifest.version, artifactVersion: "v088",
     generatorCommit: import.meta.env.VITE_GIT_COMMIT || "working-tree", generatorTag: null,
     supportPolicy: overhangSupportResult.policy,
+    supportClassification: {
+      method: overhangSupportResult.rayFacts.method,
+      surfaceSource: overhangSupportResult.rayFacts.surfaceSource,
+      rayDirection: overhangSupportResult.rayFacts.rayDirection,
+      lowerIntersectionEpsilonMm: overhangSupportResult.rayFacts.lowerIntersectionEpsilonMm,
+    },
     expectedClassificationCounts: overhangSupportResult.counts,
+    ...(supportPaintSession.history.present.strokes.length > 0 ? { supportPaint: supportPaintSession.history.present } : {}),
     shapeRecipe: { sha256: importedRecipeSha256, seed: state.hostParams.seed, pathHint: importedRecipeFilename },
     geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: options.resolution <= 24 ? 32 : Math.max(240, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
     internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm },
@@ -3113,11 +3758,18 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
     activeSurfaceAngleWorker.terminate();
     activeSurfaceAngleWorker = null;
   }
+  invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
+  automaticOverhangSupportResult = null;
   overhangSupportResult = null;
+  supportPaintEnabled = false;
+  viewport.classList.remove("support-paint-active");
+  skinRenderer.setOrbitEnabled(true);
+  setSelectedOverhangSupportSite(null);
+  refreshSupportPaintUi("支持点の診断後に使えます");
   skinRenderer.clearSurfaceAngleOverlay();
   skinRenderer.clearOverhangSupportSiteOverlay();
-  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点は未診断");
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点は未診断");
   cancelBambu3mfExport(false);
   if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
   ui.setSurfaceAngleDiagnosisRunning(false);
@@ -3163,6 +3815,10 @@ async function saveV088CandidateBundle(
 
 function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): void {
   cancelBambu3mfExport(false);
+  if (activeSupportPaintWorker) {
+    ui.setBambu3mfExportStatus("Support Paintの確定を待ってください", false);
+    return;
+  }
   if (!activePrintProfile || !activePrintProfileSha256) {
     ui.setBambu3mfExportStatus("先にShape RecipeとPrint Profileを読み込んでください", false);
     return;
@@ -3191,7 +3847,7 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
   let printPlan: ResolvedPrintPlan;
   try {
     printPlan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile));
-    assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts);
+    assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts, assignments.rayFacts);
   } catch (error) {
     ui.setBambu3mfExportStatus((error as Error).message, false);
     refreshPrintProfileSummary();
@@ -3381,6 +4037,8 @@ function finishSurfaceAngleDiagnosis(
     );
   }
   refreshOverhangSupportSiteOverlay();
+  setSelectedOverhangSupportSite(null);
+  refreshSupportPaintUi("自動分類を下書きとしてSupport Paintを使えます");
   showSurfaceAngleDiagnosisView("before");
   applyLocalReviewCamera(message.basePositions);
   ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
@@ -3439,14 +4097,21 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
   clearOpeningMapDisplay();
   surfaceAngleGeneration++;
   const generation = surfaceAngleGeneration;
+  invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
+  automaticOverhangSupportResult = null;
   overhangSupportResult = null;
+  supportPaintEnabled = false;
+  viewport.classList.remove("support-paint-active");
+  skinRenderer.setOrbitEnabled(true);
+  setSelectedOverhangSupportSite(null);
+  refreshSupportPaintUi("支持点を診断中…");
   // A new exact diagnosis must rebuild Dry Web targets from this run's
   // inside assignments; never let a prior mesh's target ledger leak into it.
   targetedSupportSource = null;
   skinRenderer.clearSurfaceAngleOverlay();
   skinRenderer.clearOverhangSupportSiteOverlay();
-  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, "支持点を診断中…");
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点を診断中…");
   ui.setSurfaceAngleDiagnosisView("before", false, false);
   ui.setSurfaceAngleDiagnosisRunning(true);
   ui.setSurfaceAngleDiagnosisStatus("最終精度の外殻Surface meshを並列生成して診断しています…");
@@ -4141,6 +4806,13 @@ function updateEmptyViewportHint(): void {
   getViewMode: () => viewMode,
   getDisplayStyle: () => displayStyle,
   getInternalObservationMode: () => internalObservationMode,
+  getViewportClipping: () => ({
+    boundsMm: viewportClippingBoundsMm,
+    stateMm: viewportClippingStateMm,
+    scaleMmPerUnit: viewportClippingScaleMmPerUnit,
+    objectState: skinRenderer.getViewportClippingState(),
+  }),
+  setViewportClipping: (action: ViewportClippingAction) => updateViewportClipping(action),
   getInternalLayerVisibility: () => skinRenderer.getLayerVisibility(),
   getOpeningMap: () => openingMapResult ? {
     running: activeOpeningMapWorker !== null,
@@ -4163,8 +4835,8 @@ function updateEmptyViewportHint(): void {
   // in a backgrounded/automated tab (document.hidden), which makes the
   // on-screen fps counter (tick()) unusable for verification in that
   // environment. This calls the SAME renderer.render() the real loop uses,
-  // orbiting the camera slightly each call so OrbitControls' damping update
-  // isn't skipped, giving an honest per-frame cost independent of tab focus.
+  // moving the camera slightly each call so the full camera-dependent path
+  // is exercised, giving an honest per-frame cost independent of tab focus.
   benchmarkRender: (n = 120) => {
     const t0 = performance.now();
     for (let i = 0; i < n; i++) {
@@ -4243,8 +4915,49 @@ function updateEmptyViewportHint(): void {
     profileFilename: activePrintProfileFilename,
     profileMatch: activePrintProfile ? currentPrintProfileBinding(activePrintProfile, false) : null,
     counts: overhangSupportResult?.counts ?? null,
+    rayFacts: overhangSupportResult?.rayFacts ?? null,
+    supportPaint: {
+      enabled: supportPaintEnabled,
+      mode: supportPaintMode,
+      radiusMm: supportPaintRadiusMm,
+      paintBackfaces: supportPaintBackfaces,
+      strokeCount: supportPaintSession.history.present.strokes.length,
+      facts: overhangSupportResult?.paintFacts ?? null,
+      canUndo: supportPaintSession.history.past.length > 0,
+      canRedo: supportPaintSession.history.future.length > 0,
+    },
+    selectedSupportSite: selectedOverhangSupportSiteId && overhangSupportResult
+      ? overhangSupportResult.entries.find((entry) => entry.id === selectedOverhangSupportSiteId) ?? null
+      : null,
+    baseFootprint: overhangSupportResult?.baseFootprint
+      ? {
+          valid: overhangSupportResult.baseFootprint.valid,
+          source: overhangSupportResult.baseFootprint.source,
+          vertexCount: overhangSupportResult.baseFootprint.vertices.length,
+          reason: overhangSupportResult.baseFootprint.reason,
+        }
+      : null,
     overlayVisible: showOverhangSupportSites,
+    mixedVisible: showMixedSupportFaces,
+    depthMode: supportSiteDepthMode,
+    markerPresentation: {
+      inside: { color: "#3185ff", glyph: "circle" },
+      outside: { color: "#ff922e", glyph: "triangle" },
+      unresolved: { color: "#ff3b30", glyph: "cross" },
+      backCoverage: 0.1875,
+    },
+    renderedOverlay: skinRenderer.getOverhangSupportSiteOverlayDebug(),
   }),
+  setLocalV088ReviewView: (view: LocalV088ReviewView) => {
+    if (!localV088ReviewSelection || !surfaceAngleCache) return false;
+    localV088ReviewSelection = { ...localV088ReviewSelection, view };
+    const params = new URLSearchParams(window.location.search);
+    params.set("view", view);
+    window.history.replaceState(null, "", "?" + params.toString());
+    installLocalV088ReviewNavigation(localV088ReviewSelection);
+    applyLocalReviewCamera(surfaceAngleCache.basePositions);
+    return true;
+  },
   // Guided tutorial (read-only / open-close helpers for verification).
   getPartitionTutorial: () => {
     const actualStep = derivePartitionTutorialStep(buildTutorialSnapshot());
@@ -4301,7 +5014,7 @@ function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV08
   settings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
   panel.append(settings);
   const legend = document.createElement("span");
-  legend.textContent = "inside 青 · outside オレンジ · mixed 紫 · unresolved 赤";
+  legend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意） · 支持点クリックで根拠表示";
   panel.append(legend);
   const navigation = document.createElement("nav");
   Object.assign(navigation.style, { display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" });
@@ -4451,6 +5164,7 @@ let frameCount = 0;
 let fpsAccum = 0;
 
 function renderFrame(now: number): void {
+  refreshViewportClippingBounds();
   const dt = now - lastFrame;
   lastFrame = now;
   frameCount++;

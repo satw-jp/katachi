@@ -8,6 +8,7 @@ import {
 import { buildExternalPerimeterScaffold } from "./externalScaffold.ts";
 import { filterSupportEnforcerReachability } from "./supportReachability.ts";
 import { assignOverhangSupportTargets } from "./overhangSupportPolicy.ts";
+import { buildBaseFootprint } from "./baseFootprint.ts";
 import type { Bambu3mfExportRequest, Bambu3mfProgressStage, Bambu3mfWorkerMessage, SupportReachabilityStats } from "./bambu3mfWorkerProtocol.ts";
 import { buildSkinMesh, countConnectedComponents, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
 import { buildParallelMeshBuffers } from "./parallelMeshBuffers.ts";
@@ -54,12 +55,19 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
     if (!bodyPositionsMm) throw new Error("BODY meshを受け取れませんでした");
     const dangerMm = scaleTriangleSoup(request.dangerousPositions, request.scaleMmPerUnit);
     postProgress(2, "危険面の到達性を判定", "候補" + (dangerMm.length / 9).toLocaleString() + "面 · policy=" + plan.supportPolicy);
+    const baseFootprint = buildBaseFootprint(
+      request.fusedMeshInput.host,
+      request.fusedMeshInput.hostK,
+      request.scaleMmPerUnit,
+    );
     const assignments = assignOverhangSupportTargets({
       diagnosedFaces: dangerMm,
+      supportSurfacePositionsMm: finalSurfaceMm,
       explicitTargets: plan.explicitScaffoldTargets,
-      finalSurfacePositionsMm: finalSurfaceMm,
+      baseFootprint,
+      supportPaint: plan.supportPaint,
     });
-    assertResolvedPrintPlanSupportCounts(plan, assignments.counts);
+    assertResolvedPrintPlanSupportCounts(plan, assignments.counts, assignments.rayFacts);
     const reachability = filterSupportEnforcerReachability(assignments.outsideFacePositionsMm, finalSurfaceMm);
     if (assignments.outsideFacePositionsMm.length > 0 && reachability.keptPositions.length === 0) throw new Error(`外側へ直下到達する支柱候補が0面です（候補${reachability.candidateFaceCount}面・内側${assignments.counts.inside}面・未解決${assignments.counts.unresolved}面）`);
     postProgress(3, "支柱を選択", `mixed face=${assignments.counts.mixedFace} / inside site=${assignments.counts.insideSupportSite} / outside site=${assignments.counts.outsideSupportSite} / unresolved site=${assignments.counts.unresolvedSupportSite} / duplicate site=${assignments.counts.duplicateSupportSite}`);
@@ -188,7 +196,9 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
         plateSpreadMm: plateAnchor.plateSpreadMm,
         fingerprint,
         supportPolicy: assignments.policy,
+        supportRayFacts: assignments.rayFacts!,
         classificationCounts: assignments.counts,
+        supportPaintFacts: assignments.paintFacts!,
       }),
       elapsedMs: performance.now() - started,
     };

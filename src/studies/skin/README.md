@@ -67,6 +67,122 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
 
 6枚すべてに青・オレンジ・紫のoverlayが含まれ、unresolvedとduplicateは両ケースとも0。これは例外を作者が目視比較できるreview checkpointであり、分類全体の承認、archive生成、高精度生成、Slice、印刷候補封印、公開、deploy、printApproval変更ではない。
 
+### 作者判断 — 支持前ベースの外周footprintへ分類を単純化（2026-08-24）
+
+作者の観察と判断を原文のまま残す:
+
+> 複雑なので画像では判断できなくて実際のプレビューを見ている
+> ベースのかたちの内側部分も赤くなっている
+> ベースのかたち内側は一律で青くなるようにすればいいと思う
+
+これは分類全体または印刷可能性の承認ではなく、実際のローカルプレビューを見た作者によるrouting規則の変更である。従来の最終Surface遮蔽によるsite分類を現行仕様から外し、支持を加える前のhost balls、host blend `k`、source-to-mm scaleだけからXY外周footprintを一度作る。Dry Web、scaffold、patchの穴、生成途中／融合後BODY、診断Surface triangleはこのfootprint入力に含めない。外周は保守的なconvex outer hullとし、穴、局所凹部、混在面の状態に関係なく、その輪郭内と境界上のsiteをすべて`inside`／青／Dry Webへ送る。輪郭外だけを`outside`／オレンジ／取り外し式scaffoldへ送る。
+
+赤い`unresolved`は非有限座標、壊れたface、空hostなどfootprint生成不能の場合だけに残す。unresolvedまたはduplicateが1件でもあればproduction validationは従来どおりfail closedであり、特にfootprint内に赤点があれば明示的に失敗する。mixed faceはinside/outside両siteを含む面の診断件数にだけ残し、routingには影響しない。アプリはsupport前base footprintを細い白線、最終routingを青／オレンジで既定表示し、紫mixed輪郭は独立toggleの既定OFFとした。CLI、Worker、appは同じ`buildBaseFootprint`とsupport-site routingを使う。
+
+形状・分類ロジックを追加変更せず、Case A/BをSurface 48、119.5 mm、45°で実ブラウザ確認した。Case Aはmixed 208、inside 23,281、outside 1,261、unresolved 0、duplicate 0、footprint 68頂点。Case Bはmixed 40、inside 31,250、outside 105、unresolved 0、duplicate 0、footprint 69頂点。両方のfootprint sourceは`support-free-host-field-outer-hull-v1`で、mixed表示はOFFだった。新しい上面証拠は`screenshots/skin-v088-footprint-case-a-top-20260824.png`と`screenshots/skin-v088-footprint-case-b-top-20260824.png`。既存の上／横／裏切替は維持し、作者が実際のプレビューを動かして判断する。archive、高精度生成、Slice、印刷候補封印、公開、deployは行わず、`printApproval=false`を維持する。
+
+### 作者観察 — 支持点の前後関係と分類色の判別（2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> 前後関係がわかるように物体の後ろにあるものは半透明とかにしてもらったほうが良いかも
+> 角度によって青に見えている部分が赤に見える気がするが判断しかねる
+
+これは支持点の前後関係と色の判別しやすさについての観察であり、分類規則、形状、routing、Print Profile、validation結果の変更判断ではない。inside／outside／unresolvedの分類色をカメラ角度から独立した固定値とし、insideは青い丸、outsideはオレンジの三角、unresolvedは赤い×で描画する。各マーカーには暗い細線の輪郭を付け、手前は不透明、物体の後ろは同じ色相の3/16（18.75%）screen-door表示とした。RGB混色で色相が変わらないようにし、画面上で「前面のみ」と「背面を半透明表示」を切り替えられる。unresolved=0のときは赤いsupport markerの描画batch自体を作らない。support前base footprintの細い白線は維持し、mixed紫は診断用の任意表示として既定OFFを維持する。
+
+Case A/BをSurface 48、119.5 mm、45°の同じ形状・同じ分類件数で上／横／裏から確認する表示証拠をscreenshots/skin-v088-depth-case-{a,b}-{top,side,back}-20260825.pngとして残す。回転で変わるのはfront/back passだけで、分類色とinside／outside／unresolved件数は変えない。この表示改善を分類全体または印刷可能性の承認として扱わない。archive、高精度生成、Slice、印刷候補封印、tag、push、公開、deployは行わず、printApproval=falseを維持する。
+
+### 作者判断 — footprint一律insideを撤回し、下向きSurfaceレイへ戻す（2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> outsideになるべきinsideが多い
+> 下側とかは大体outsideになるべき
+
+これは実際のローカルプレビューを見た作者による分類規則の修正であり、分類全体または印刷可能性の承認ではない。直前の「外周footprint内と境界上を一律insideにする」routing規則は撤回する。footprintは細い白線の補助表示だけに残し、最終routingには使わない。
+
+現行の共有規則は、支持追加前の本体Surface triangleだけをmmへ変換して空間indexを一度構築し、各support siteの表面直下から造形方向の下向き（-Z）へビルドプレートまでレイ判定する。安定した自己交差回避epsilonより下に本体Surfaceがなければ`plate-visible`／outside／オレンジ／取り外し式scaffold、下側に本体Surfaceがあれば`body-blocked`／inside／青／Dry Webへ送る。Dry Web、scaffold、生成途中BODYは分類入力に戻さない。したがって球体や塊の外側下面、footprint内でも下へ開いた場所、下向きに開いた穴はoutsideになり、閉じた内部空洞の下面や下側に本体がある内部領域だけがinsideになる。mixed faceは支持点ごとの結果を示す診断情報に限り、面全体を一律分類しない。
+
+レイ判定不能や座標不正だけを赤い`unresolved`とし、unresolvedまたはduplicateが1件でもあればproduction validationはfail closedを維持する。自己交差回避epsilonはSurfaceのmm scaleから決定し、Print Profileとvalidationへmm単位で記録・照合する。アプリでは青い丸／オレンジの三角／赤い×、前面不透明／背面18.75%表示を維持し、support siteを選ぶと`plate-visible`または`body-blocked`、最寄りの下側Surface距離、epsilonを表示する。CLI、Worker、appは同じSurfaceレイroutingを使う。
+
+この変更は分類と表示の作者確認用checkpointであり、形状生成、archive生成、高精度生成、Slice、印刷候補封印、tag、push、公開、deploy、printApproval変更ではない。`printApproval=false`を維持する。
+
+### 制作原則 — 自動分類を下書きにし、作者の恣意性をSupport Paintで重ねる（2026-08-25）
+
+作者の判断を原文のまま残す:
+
+> よくはなったけど原理的に恣意性が必要だと思うのでペイント方式などある程度ざっくりと編集できるようにしたい
+
+これは分類全体の承認ではなく、支持方式を決める制作原則である。支持追加前の本体Surfaceによる自動分類（plate-visibleはoutside／オレンジ／取り外し式scaffold、body-blockedはinside／青／Dry Web）は下書きとして残し、作者が青、オレンジ、AutoのSupport Paintをその上へ重ねる。上書き対象は形状生成前のsupport site分類だけで、本体形状とoverhang検出は変えない。unresolvedは手動指定で隠さず、従来どおりfail closedとする。
+
+ブラシstrokeはsupport-free Surfaceの正規化object座標、mm半径、正規化半径、表面法線、描画順、mode、背面許可をPrint Profileのoptionalな`supportPaint`へ保存する。後のstrokeを優先し、Autoは該当領域を自動分類へ戻す。通常はカメラから見える前面siteだけを対象とし、明示した場合だけ背面を許可する。法線差が大きい反対側には適用しない。CLIとWorkerは同じoverride純関数を使い、validationは自動分類数、塗布site数、手動上書き数、最終inside／outside／unresolved数を分けて記録する。旧Profileは`supportPaint`なしとして互換を保ち、Profile SHAには存在するstroke列を含める。
+
+この段階は作者が低解像度Case Aを実際に塗って判断するためのローカルreviewであり、分類全体、印刷可能性、`printApproval`の承認ではない。archive、高精度生成、Slice、印刷候補封印、tag、push、公開、deployは行わず、`printApproval=false`を維持する。
+
+### 作者観察 — 回転で青／オレンジが一斉反転する描画バグ（2026-08-25）
+
+作者の観察と修正指示を原文のまま残す:
+
+> ある角度でいきなり表示が大きく変わるのはなぜ
+> 分類や形状は変更せず、角度によって青／オレンジ表示が一斉反転する描画バグを修正してください。
+
+2枚の画面はどちらもCase Aのmixed 1,139、inside 8,636、outside 15,906、unresolved 0、duplicate 0で一致しており、分類結果が回転で変化したのではない。原因はinside／outside／unresolvedを別々の透明objectとして同じrender order、depthWriteなしで描いていたため、カメラ角度の境界でThree.jsの透明object単位のsort順が切り替わり、重なった青とオレンジの前後が一斉に入れ替わったことだった。
+
+表示だけを修正し、全support siteをカメラから独立した1個の共通BufferGeometryへ統合した。分類色と丸／三角／×は頂点属性として保持し、前面passはdepthTest／depthWriteを有効にして実深度順に不透明表示する。背面passはalpha blendingを使わず、青・オレンジ・赤それぞれに重ならないBayer rankを割り当てた3/16（18.75%）screen-door表示とする。同じglyph同士は同色なので、描画順による混色や一斉反転は起きない。unresolved=0なら共通batchに赤×の頂点は存在しない。pickingも同じ共通geometry、ID列、分類列を使い、背面passが表示されている場合だけ背面点を対象にできる。
+
+これは作者確認用overlayの描画修正であり、support siteの座標・分類件数、Surfaceレイ判定、author override、routing、形状、Print Profile、validationを変更しない。分類全体または印刷可能性の承認ではなく、`printApproval=false`を維持する。archive、高精度生成、Slice、公開、deployは行わない。
+
+### Observation — XYZ clipping planeは制作物ではなく観察窓（2026-08-25）
+
+SKINのメイン3D viewportへ、X／Y／Zを各行で操作する小型モノクロHUDを常設した。各軸は独立したON/OFF、現在形状bboxに沿う位置slider、保持側を`>=`／`<=`で反転するbutton、mm表示、軸Resetを持ち、全軸のALL OFFとRESETも同じHUDから行う。複数軸は積集合として同時に使える。位置はカメラではなく支持追加前から使っているobject座標XYZに固定されるため、形状を回転しても切断位置は動かない。
+
+同じobject座標planeを本体mesh、raymarch、bead、Dry Web、fused scaffold、面診断、inside／outside／unresolved support-site共通batch、mixed輪郭、base footprintへ表示時だけ適用する。support marker shaderのdiscardとCPU pickingは同じstateを参照し、clipで消えた点は通常選択にもSupport Paintにも入らない。境界上は表示側に含め、背面ditherと前面depth描画は従来の分類色を維持する。
+
+clipping stateは画面sessionだけに存在し、Shape Recipe、Print Profile、support routing、validation、mesh生成、3MF worker／archiveへ渡さない。全軸OFFではclipping planeをrendererから外し、従来表示と同じ経路へ戻る。この機能は内部空間と支持関係を目視するための観察窓であり、分類全体または印刷可能性の承認ではない。`printApproval=false`を維持し、高精度生成、archive、Slice、公開、deployは行わない。
+
+### 作者観察 — 極を越えて裏側まで連続回転する（2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> ローテイトびゅーするときにある角度で引っかかり裏から見れないので直したい
+
+従来のOrbitControlsはworld-upを固定した球面座標でカメラを動かすため、上下の極に角度制限と特異点があり、縦ドラッグを続けても前面から上を越えて裏面へ滑らかに回り込めなかった。メイン3D viewportだけをThree.js同梱のTrackballControlsへ置き換え、視線ベクトルとcamera upを同じquaternionで回す。これによりobject中心のtarget、距離、直交したupを保ったまま、前→上→裏→下→前および水平回転を連続して繰り返せる。極でworld-upへ戻す補正を行わないため、反転や跳躍も発生させない。
+
+左ドラッグの回転、wheel／中ボタンのzoom、右ボタンのpan、reset、上／横／裏のreview presetは維持する。Support Paintや要素の直接drag中は従来どおりcamera controlを無効にし、通常viewportでは4pxを超えたdragをclickとして扱わない。XYZ clippingは引き続きobject座標で評価し、camera quaternionを入力にしない。
+
+これは作者が裏側を観察できるようにする表示・入力修正であり、形状、support-site座標・分類、routing、Print Profile、recipe、validation、3MF／archive出力を変更しない。分類全体または印刷可能性の承認ではなく、`printApproval=false`を維持する。
+
+### 作者観察 — Support Paintはドラッグ中に生成処理をしない（2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> ペイントが重くて機能しない
+
+原因は、従来のpointermoveがsupport site約3万点を毎回画面投影してpickし、sampleを1つ加えるたびに全site×全strokeのoverride適用、assignment ledger検証、Dry Web target更新、support overlayのBufferGeometry再生成、Print Profile要約まで同期実行していたことだった。作者が線を引く操作と、印刷用routingを確定する処理が同じframeへ混在していた。
+
+編集画面ではsupport siteのobject座標とnormalを共通BufferGeometryへ登録するときにuniform spatial gridも一度だけ作る。pointer pickはcamera rayが通るgrid cell近傍、brushは半径が触れるcell近傍だけを検索し、clipping外のsite、通常brushの反対側normal、unresolved、duplicateを除外する。pointermoveはrequestAnimationFrameで最新座標を最大1回／frameだけ処理し、ブラシ半径の35%（最小0.35 mm）以上進んだ位置だけをdabとして保存する。ドラッグ中は既存の色／glyph BufferAttributeの該当indexへupdate rangeを設定するだけで、geometry、routing、ledger、件数、Profile SHAを作り直さない。
+
+pointerupでsampled dab列を1回のhistory transactionとしてcommitするため、Undo／Redoはsupport site単位ではなく1ドラッグ単位のままである。その後、専用Support Paint Workerが全override、最終inside／outside件数、ledger validationを1回だけ確定し、完了時にoverlay、Dry Web target、Profile要約を同期する。次のstrokeが先に確定した場合は古いWorkerを破棄し、最新の全strokeから再計算する。高精度3MF書出しは従来どおりexport Workerが保存済みsupportPaintを共有関数へ適用し、編集viewportのgridや一時色を入力にしない。
+
+3万点のdeterministic fixtureによるローカル計測では、grid構築2.59 ms、同一brush query 100回はgrid 2.88 ms／全点走査5.76 ms、1 queryの実候補は257点だった。さらにCase B相当の30,000 siteへ10 sampled dabを確定するWorker coreと同じ共有適用関数は16.04–24.62 msだった。この数値はCPU上の近傍検索だけの比較で、旧pointermoveに含まれていたrouting・validation・geometry再生成時間を含まない。実アプリはstroke確定後、画面とdevelopment consoleへ「旧経路なら毎move走査した全site数」「平均grid候補数」「preview p95 ms」「Worker compute ms」「pointerup総時間」を記録する。Case B実操作の数値と10 strokeの作者確認は未確認であり、分類全体や印刷可能性の承認ではない。
+
+これは操作性能だけの変更であり、青／オレンジ／Autoの後勝ち、normal閾値、背面許可、unresolved fail-closed、supportPaint v1 Profile、Profile SHA、CLI／Worker共有適用、validation条件、形状、archive出力を変更しない。`printApproval=false`を維持する。
+
+### 問答 — Support Paintを長時間編集し、印刷解像度へ移す（2026-08-25）
+
+作者の質問を原文のまま残す:
+
+> ブラシ半径を表示したい
+> ペイント中に全部戻ってしまうバグが有る
+> 長い作業になりそうなので途中で保存できるようにしたい
+> また今は解像度が低いがこの状態から印刷クオリティに持っていくのか
+
+回答:
+
+低解像度は編集用プレビュー。Support Paintは一時的なsupport site IDではなく、正規化object座標・表面法線・mmブラシ半径として保存する。印刷時にSurface 128のsupport siteへ再投影し、最終高精度形状を一度だけ生成する。作者確認後は同じキャッシュ済み形状を3MFへ封入し、再生成しない。
+
+Checkpoint Aでは、committed strokeと描画中のactive strokeをrevision付きの単一sessionで管理する。Worker応答は要求時revisionと現在revisionが一致し、active strokeが存在しない場合だけ採用する。カメラ、clipping、overlay再構築は保存済みstrokeを変更せず、active previewも同じsessionから復元する。カーソルには表面接線上の実寸ブラシ円とmode glyphを表示し、実際に対象となる前面siteだけを拡大表示する。これは長時間制作の土台であり、分類全体または印刷可能性の承認ではない。printApproval=falseを維持する。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

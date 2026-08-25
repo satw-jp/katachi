@@ -32,6 +32,14 @@ import { PACKING_MOTIF_PRESETS } from "../flower-packing-spike/packing.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
+import type { SupportSiteClassification, SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
+import type { SupportPaintMode } from "./supportPaint.ts";
+import {
+  VIEWPORT_CLIP_AXES,
+  type ViewportClippingAction,
+  type ViewportClippingBounds,
+  type ViewportClippingState,
+} from "./viewportClipping.ts";
 import type { SurfaceAngleDiagnosisView } from "./surfaceAngleWorkerProtocol.ts";
 import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
 import type { DenseFlowerOpening } from "./denseFlowerSample.ts";
@@ -87,10 +95,20 @@ export interface UiCallbacks {
   onSetViewMode: (mode: SkinViewMode) => void;
   onSetDisplayStyle: (style: SkinDisplayStyle) => void;
   onSetInternalObservationMode: (mode: InternalObservationMode) => void;
+  onViewportClippingAction: (action: ViewportClippingAction) => void;
   onDiagnoseSurfaceAngles: (thresholdDeg: number) => void;
   onSetSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView) => void;
   onSurfaceAngleThresholdChange: () => void;
   onToggleOverhangSupportSites: (show: boolean) => void;
+  onSetOverhangSupportDepthMode: (mode: SupportSiteDepthMode) => void;
+  onToggleMixedSupportFaces: (show: boolean) => void;
+  onSetSupportPaintEnabled: (enabled: boolean) => void;
+  onSetSupportPaintMode: (mode: SupportPaintMode) => void;
+  onSetSupportPaintRadiusMm: (radiusMm: number) => void;
+  onSetSupportPaintBackfaces: (enabled: boolean) => void;
+  onUndoSupportPaint: () => void;
+  onRedoSupportPaint: () => void;
+  onResetSupportPaint: () => void;
   onToggleMotifLowestPoints: (show: boolean, thresholdDeg: number) => void;
   onPreviewMeshResolutionChange: (resolution: number) => void;
   onCancelPreviewMesh: () => void;
@@ -262,10 +280,16 @@ export interface UiHandles {
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
   setDisplayStyle: (style: SkinDisplayStyle) => void;
   setInternalObservationMode: (mode: InternalObservationMode) => void;
+  setViewportClippingState: (available: boolean, bounds: ViewportClippingBounds | null, state: ViewportClippingState) => void;
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
-  setOverhangSupportSiteOverlay: (available: boolean, show: boolean, text: string, ok?: boolean) => void;
+  setOverhangSupportSiteOverlay: (available: boolean, show: boolean, showMixed: boolean, depthMode: SupportSiteDepthMode, text: string, ok?: boolean) => void;
+  setOverhangSupportSiteSelection: (text: string, classification?: SupportSiteClassification) => void;
+  setSupportPaintState: (state: {
+    available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
+    strokeCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
+  }) => void;
   setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
   getSurfaceAngleThreshold: () => number;
   setSurfaceAngleThreshold: (value: number) => void;
@@ -1557,10 +1581,11 @@ export function buildUi(
   surfaceAngleLegend.innerHTML =
     '<span><i class="surface-angle-swatch is-danger"></i>赤面 = 閾値以上・未支援</span>' +
     '<span><i class="surface-angle-swatch is-mitigated"></i>青緑面 = Internal到達候補</span>' +
-    '<span><i class="surface-angle-swatch is-support-inside"></i>青点 = inside / Dry Web</span>' +
-    '<span><i class="surface-angle-swatch is-support-outside"></i>橙点 = outside / scaffold</span>' +
-    '<span><i class="surface-angle-swatch is-support-unresolved"></i>赤点 = unresolved</span>' +
-    '<span><i class="surface-angle-swatch is-support-mixed"></i>紫線 = mixed face</span>';
+    '<span><i class="surface-angle-swatch is-support-inside"></i>青丸 = inside / Dry Web</span>' +
+    '<span><i class="surface-angle-swatch is-support-outside"></i>橙三角 = outside / scaffold</span>' +
+    '<span><i class="surface-angle-swatch is-support-unresolved"></i>赤× = unresolved</span>' +
+    '<span><i class="surface-angle-swatch is-support-footprint"></i>白線 = base外周footprint</span>' +
+    '<span><i class="surface-angle-swatch is-support-mixed"></i>紫線 = mixed face（任意表示）</span>';
   const surfaceAngleStatus = document.createElement("div");
   surfaceAngleStatus.className = "mesh-status surface-angle-status";
   surfaceAngleStatus.textContent = "未診断";
@@ -1575,10 +1600,87 @@ export function buildUi(
   const supportSiteLabel = document.createElement("span");
   supportSiteLabel.textContent = "inside / outside支持点を形状上に表示";
   supportSiteToggle.append(supportSiteCheckbox, supportSiteLabel);
+  const supportDepthMode = document.createElement("div");
+  supportDepthMode.className = "mode-toggle support-depth-mode";
+  const supportDepthButtons = new Map<SupportSiteDepthMode, HTMLButtonElement>();
+  for (const [mode, label] of [["front-only", "前面のみ"], ["show-back", "背面を半透明表示"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.disabled = true;
+    button.onclick = () => callbacks.onSetOverhangSupportDepthMode(mode);
+    supportDepthButtons.set(mode, button);
+    supportDepthMode.appendChild(button);
+  }
+  const mixedFaceToggle = document.createElement("label");
+  mixedFaceToggle.className = "mixed-face-toggle";
+  const mixedFaceCheckbox = document.createElement("input");
+  mixedFaceCheckbox.type = "checkbox";
+  mixedFaceCheckbox.checked = false;
+  mixedFaceCheckbox.disabled = true;
+  mixedFaceCheckbox.onchange = () => callbacks.onToggleMixedSupportFaces(mixedFaceCheckbox.checked);
+  const mixedFaceLabel = document.createElement("span");
+  mixedFaceLabel.textContent = "mixed faceの紫輪郭を表示（診断のみ）";
+  mixedFaceToggle.append(mixedFaceCheckbox, mixedFaceLabel);
   const supportSiteStatus = document.createElement("div");
   supportSiteStatus.className = "mesh-status support-site-status";
   supportSiteStatus.textContent = "支持点は未診断";
   supportSiteStatus.setAttribute("aria-live", "polite");
+  const supportSiteSelectionStatus = document.createElement("div");
+  supportSiteSelectionStatus.className = "hint support-site-selection-status";
+  supportSiteSelectionStatus.textContent = "支持点を選ぶと plate-visible / body-blocked を表示します";
+  supportSiteSelectionStatus.setAttribute("aria-live", "polite");
+  const supportPaintPanel = document.createElement("section");
+  supportPaintPanel.className = "support-paint-panel";
+  const supportPaintTitle = document.createElement("strong");
+  supportPaintTitle.textContent = "Support Paint（author override）";
+  const supportPaintHint = document.createElement("div");
+  supportPaintHint.className = "hint";
+  supportPaintHint.textContent = "自動分類を下書きとして、形状生成前の支持方式だけを塗り直します。赤いunresolvedは変更できません。";
+  const supportPaintEnable = document.createElement("label");
+  supportPaintEnable.className = "support-paint-enable";
+  const supportPaintEnableCheckbox = document.createElement("input");
+  supportPaintEnableCheckbox.type = "checkbox";
+  supportPaintEnableCheckbox.disabled = true;
+  supportPaintEnableCheckbox.onchange = () => callbacks.onSetSupportPaintEnabled(supportPaintEnableCheckbox.checked);
+  supportPaintEnable.append(supportPaintEnableCheckbox, document.createTextNode(" ペイントを使う"));
+  const supportPaintModes = document.createElement("div");
+  supportPaintModes.className = "mode-toggle support-paint-modes";
+  const supportPaintModeButtons = new Map<SupportPaintMode, HTMLButtonElement>();
+  for (const [mode, label] of [["inside", "青 · Dry Web"], ["outside", "橙 · scaffold"], ["auto", "Autoへ戻す"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.disabled = true;
+    button.onclick = () => callbacks.onSetSupportPaintMode(mode);
+    supportPaintModeButtons.set(mode, button);
+    supportPaintModes.appendChild(button);
+  }
+  const supportPaintRadius = buildSlider("ブラシ半径", 1, 20, 0.5, 6, (value) => callbacks.onSetSupportPaintRadiusMm(value));
+  const supportPaintRadiusInput = supportPaintRadius.row.querySelector<HTMLInputElement>("input")!;
+  const supportPaintRadiusValue = supportPaintRadius.row.querySelector<HTMLElement>(".value-out")!;
+  supportPaintRadiusValue.textContent = "半径 6.0 mm / 直径 12.0 mm";
+  const supportPaintBackfaces = document.createElement("label");
+  supportPaintBackfaces.className = "support-paint-backfaces";
+  const supportPaintBackfacesCheckbox = document.createElement("input");
+  supportPaintBackfacesCheckbox.type = "checkbox";
+  supportPaintBackfacesCheckbox.disabled = true;
+  supportPaintBackfacesCheckbox.onchange = () => callbacks.onSetSupportPaintBackfaces(supportPaintBackfacesCheckbox.checked);
+  supportPaintBackfaces.append(supportPaintBackfacesCheckbox, document.createTextNode(" 背面も塗る（明示ON）"));
+  const supportPaintActions = document.createElement("div");
+  supportPaintActions.className = "row support-paint-actions";
+  const supportPaintUndo = document.createElement("button");
+  supportPaintUndo.type = "button"; supportPaintUndo.textContent = "Undo"; supportPaintUndo.disabled = true; supportPaintUndo.onclick = () => callbacks.onUndoSupportPaint();
+  const supportPaintRedo = document.createElement("button");
+  supportPaintRedo.type = "button"; supportPaintRedo.textContent = "Redo"; supportPaintRedo.disabled = true; supportPaintRedo.onclick = () => callbacks.onRedoSupportPaint();
+  const supportPaintReset = document.createElement("button");
+  supportPaintReset.type = "button"; supportPaintReset.textContent = "すべてリセット"; supportPaintReset.disabled = true; supportPaintReset.onclick = () => callbacks.onResetSupportPaint();
+  supportPaintActions.append(supportPaintUndo, supportPaintRedo, supportPaintReset);
+  const supportPaintStatus = document.createElement("div");
+  supportPaintStatus.className = "mesh-status support-paint-status";
+  supportPaintStatus.textContent = "支持点の診断後に使えます";
+  supportPaintStatus.setAttribute("aria-live", "polite");
+  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintStatus);
   const motifLowestToggle = document.createElement("label");
   motifLowestToggle.className = "surface-lowest-toggle";
   const motifLowestCheckbox = document.createElement("input");
@@ -1607,7 +1709,11 @@ export function buildUi(
     surfaceAngleLegend,
     surfaceAngleStatus,
     supportSiteToggle,
+    supportDepthMode,
+    mixedFaceToggle,
     supportSiteStatus,
+    supportSiteSelectionStatus,
+    supportPaintPanel,
     motifLowestToggle,
     motifLowestHint,
     motifLowestStatus,
@@ -1706,6 +1812,73 @@ export function buildUi(
   viewDock.append(viewToggle, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
   const viewportElement = container.querySelector("#viewport") ?? container;
   viewportElement.appendChild(viewDock);
+
+  const clippingHud = document.createElement("section");
+  clippingHud.className = "viewport-clipping-hud";
+  clippingHud.setAttribute("aria-label", "XYZ clipping planes");
+  for (const type of ["pointerdown", "pointerup", "pointercancel", "click"] as const) {
+    clippingHud.addEventListener(type, (event) => event.stopPropagation());
+  }
+  const clippingHeader = document.createElement("div");
+  clippingHeader.className = "viewport-clipping-header";
+  const clippingTitle = document.createElement("strong");
+  clippingTitle.textContent = "CLIP XYZ";
+  const clippingAllOff = document.createElement("button");
+  clippingAllOff.type = "button";
+  clippingAllOff.textContent = "ALL OFF";
+  clippingAllOff.onclick = () => callbacks.onViewportClippingAction({ type: "disable-all" });
+  const clippingResetAll = document.createElement("button");
+  clippingResetAll.type = "button";
+  clippingResetAll.textContent = "RESET";
+  clippingResetAll.onclick = () => callbacks.onViewportClippingAction({ type: "reset-all" });
+  clippingHeader.append(clippingTitle, clippingAllOff, clippingResetAll);
+  clippingHud.appendChild(clippingHeader);
+
+  const clippingRows = new Map<typeof VIEWPORT_CLIP_AXES[number], {
+    row: HTMLDivElement;
+    enabled: HTMLInputElement;
+    slider: HTMLInputElement;
+    direction: HTMLButtonElement;
+    value: HTMLOutputElement;
+    reset: HTMLButtonElement;
+  }>();
+  for (const axis of VIEWPORT_CLIP_AXES) {
+    const row = document.createElement("div");
+    row.className = "viewport-clipping-row";
+    row.dataset.axis = axis;
+    const axisLabel = document.createElement("label");
+    axisLabel.className = "viewport-clipping-axis";
+    const enabled = document.createElement("input");
+    enabled.type = "checkbox";
+    enabled.onchange = () => callbacks.onViewportClippingAction({ type: "toggle", axis, enabled: enabled.checked });
+    axisLabel.append(enabled, document.createTextNode(axis.toUpperCase()));
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = "0";
+    slider.step = "0.1";
+    slider.value = "0";
+    slider.oninput = () => callbacks.onViewportClippingAction({ type: "position", axis, position: Number(slider.value) });
+    const direction = document.createElement("button");
+    direction.type = "button";
+    direction.className = "viewport-clipping-direction";
+    direction.textContent = ">= ";
+    direction.setAttribute("aria-label", axis.toUpperCase() + " clip direction");
+    direction.onclick = () => callbacks.onViewportClippingAction({ type: "flip", axis });
+    const value = document.createElement("output");
+    value.className = "viewport-clipping-value";
+    value.textContent = "--";
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "viewport-clipping-reset";
+    reset.textContent = "R";
+    reset.title = axis.toUpperCase() + " reset";
+    reset.onclick = () => callbacks.onViewportClippingAction({ type: "reset-axis", axis });
+    row.append(axisLabel, slider, direction, value, reset);
+    clippingRows.set(axis, { row, enabled, slider, direction, value, reset });
+    clippingHud.appendChild(row);
+  }
+  viewportElement.appendChild(clippingHud);
 
   const viewportTaskStatus = document.createElement("section");
   viewportTaskStatus.className = "viewport-task-status";
@@ -3262,6 +3435,31 @@ export function buildUi(
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
     setDisplayStyle: (style) => renderDisplayStyle(style),
     setInternalObservationMode: (mode) => renderInternalObservation(mode),
+    setViewportClippingState: (available, bounds, clippingState) => {
+      clippingHud.classList.toggle("is-unavailable", !available);
+      clippingAllOff.disabled = !available;
+      clippingResetAll.disabled = !available;
+      for (const axis of VIEWPORT_CLIP_AXES) {
+        const controls = clippingRows.get(axis)!;
+        const range = bounds?.[axis] ?? { min: 0, max: 0 };
+        const span = Math.max(0, range.max - range.min);
+        controls.enabled.disabled = !available;
+        controls.enabled.checked = available && clippingState[axis].enabled;
+        controls.slider.disabled = !available;
+        controls.slider.min = String(range.min);
+        controls.slider.max = String(range.max);
+        controls.slider.step = String(Math.max(0.01, span / 500));
+        controls.slider.value = String(Math.min(range.max, Math.max(range.min, clippingState[axis].position)));
+        controls.direction.disabled = !available;
+        controls.direction.textContent = clippingState[axis].direction === 1 ? ">=" : "<=";
+        controls.direction.title = clippingState[axis].direction === 1
+          ? axis.toUpperCase() + ": keep greater side"
+          : axis.toUpperCase() + ": keep lesser side";
+        controls.value.textContent = available ? clippingState[axis].position.toFixed(1) + " mm" : "--";
+        controls.reset.disabled = !available;
+        controls.row.classList.toggle("is-enabled", available && clippingState[axis].enabled);
+      }
+    },
     setSurfaceAngleDiagnosisRunning: (running) => {
       surfaceAngleRun.disabled = running;
       surfaceAngleRun.textContent = running ? "最終精度で診断中…" : "最終精度で診断";
@@ -3276,11 +3474,38 @@ export function buildUi(
         button.classList.toggle("mode-active", available && candidate === view);
       }
     },
-    setOverhangSupportSiteOverlay: (available, show, text, ok) => {
+    setOverhangSupportSiteOverlay: (available, show, showMixed, depthMode, text, ok) => {
       supportSiteCheckbox.disabled = !available;
       supportSiteCheckbox.checked = show;
+      for (const [mode, button] of supportDepthButtons) {
+        button.disabled = !available || !show;
+        button.classList.toggle("mode-active", mode === depthMode);
+      }
+      mixedFaceCheckbox.disabled = !available;
+      mixedFaceCheckbox.checked = showMixed;
       supportSiteStatus.textContent = text;
       supportSiteStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setOverhangSupportSiteSelection: (text, classification) => {
+      supportSiteSelectionStatus.textContent = text;
+      supportSiteSelectionStatus.dataset.classification = classification ?? "none";
+    },
+    setSupportPaintState: (state) => {
+      supportPaintEnableCheckbox.disabled = !state.available;
+      supportPaintEnableCheckbox.checked = state.enabled;
+      for (const [mode, button] of supportPaintModeButtons) {
+        button.disabled = !state.available || !state.enabled;
+        button.classList.toggle("mode-active", mode === state.mode);
+      }
+      supportPaintRadiusInput.disabled = !state.available || !state.enabled;
+      supportPaintRadius.set(state.radiusMm);
+      supportPaintRadiusValue.textContent = "半径 " + state.radiusMm.toFixed(1) + " mm / 直径 " + (state.radiusMm * 2).toFixed(1) + " mm";
+      supportPaintBackfacesCheckbox.disabled = !state.available || !state.enabled;
+      supportPaintBackfacesCheckbox.checked = state.paintBackfaces;
+      supportPaintUndo.disabled = !state.canUndo;
+      supportPaintRedo.disabled = !state.canRedo;
+      supportPaintReset.disabled = state.strokeCount === 0;
+      supportPaintStatus.textContent = `${state.status} · stroke ${state.strokeCount} · 塗布site ${state.paintedSiteCount} · 自動から変更 ${state.manualOverrideSiteCount}`;
     },
     setMotifLowestPointStatus: (text, ok) => {
       motifLowestStatus.textContent = text;

@@ -32,6 +32,7 @@ import { buildVoronoiInternalStructure } from "../src/studies/skin/voronoi.ts";
 import { evaluateInternalPrintGate } from "../src/studies/skin/internalPrintGate.ts";
 import { filterSupportEnforcerReachability } from "../src/studies/skin/supportReachability.ts";
 import { assignOverhangSupportTargets, validateOverhangAssignmentLedger } from "../src/studies/skin/overhangSupportPolicy.ts";
+import { buildBaseFootprint } from "../src/studies/skin/baseFootprint.ts";
 import { buildOverhangSupportDiagnostic } from "../src/studies/skin/overhangSupportDiagnostic.ts";
 import { parseBodyProvenance, validateBodyProvenanceGraph, validateBodyProvenanceInput } from "../src/studies/skin/bodyProvenance.ts";
 import {
@@ -370,6 +371,7 @@ if (activePrintProfile && activePrintProfileSha256) {
     currentDryWebNormalizedRadius: state.skinParams.internalRadius, currentTargetLongestMm: targetLongestMm,
     currentSurfaceResolution: resolution, currentFusedResolution: fusedResolution, currentAngleThresholdDeg: thresholdDeg,
     scaleMmPerUnit: surface.scaleMmPerUnit,
+    currentSupportPaint: activePrintProfile.supportPaint ?? null,
   });
 }
 const meshStep = computeSkinSamplingBounds(state.host, state.hostParams.k, state.skinParams.thickness, state.patches).longest / resolution;
@@ -394,10 +396,13 @@ const initialDiagnosis = diagnoseSurfaceAnglePositions(surfacePositions, null, t
 const initialDangerPositionsMm = new Float32Array(
   initialDiagnosis.beforeDangerPositions.map((value) => value * surface.scaleMmPerUnit),
 );
+const baseFootprint = buildBaseFootprint(state.host, state.hostParams.k, surface.scaleMmPerUnit);
 const assignments = assignOverhangSupportTargets({
   diagnosedFaces: initialDangerPositionsMm,
+  supportSurfacePositionsMm: surfacePositionsMm,
   explicitTargets: explicitScaffoldTargets,
-  finalSurfacePositionsMm: surfacePositionsMm,
+  baseFootprint,
+  supportPaint: printPlan?.supportPaint,
 });
 if (overhangDiagnosticPath) {
   let plateZMm = Infinity;
@@ -424,7 +429,7 @@ if (overhangDiagnosticPath) {
     throw new Error(`Diagnostic-only stop: unresolved overhang targets (${diagnostic.summary.unresolvedTotal})`);
   }
 }
-if (printPlan) assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts);
+if (printPlan) assertResolvedPrintPlanSupportCounts(printPlan, assignments.counts, assignments.rayFacts);
 else validateOverhangAssignmentLedger(assignments);
 stage(`classification policy=${assignments.policy} mixed-face=${assignments.counts.mixedFace} inside-site=${assignments.counts.insideSupportSite} outside-site=${assignments.counts.outsideSupportSite} unresolved-site=${assignments.counts.unresolvedSupportSite} duplicate-site=${assignments.counts.duplicateSupportSite}`);
 stage("internal graph");
@@ -616,7 +621,7 @@ const validationFacts = printPlan && geometryFingerprint ? buildPrintValidationF
   connectedComponents: fusedAfter.connectedComponents, watertight: fusedAfter.closed, degenerateTriangleCount: fusedAfter.degenerateTriangleCount,
   internalGraphNodes: graph.nodes.length, internalGraphEdges: graph.edges.length, scaffoldPillarCount: scaffold.stats.pillarCount,
   plateAnchorOk: assignments.counts.outside === 0 || plateAnchor.ok, plateSpreadMm: plateAnchor.plateSpreadMm, fingerprint: geometryFingerprint,
-  supportPolicy: assignments.policy, classificationCounts: assignments.counts,
+  supportPolicy: assignments.policy, supportRayFacts: assignments.rayFacts!, classificationCounts: assignments.counts, supportPaintFacts: assignments.paintFacts!,
 }) : null;
 const validationOutputPath = validationPath ?? (validationFacts ? (outputPath.endsWith(".3mf") ? outputPath.slice(0, -4) : outputPath) + ".validation.json" : undefined);
 if (validationFacts && validationOutputPath) {
