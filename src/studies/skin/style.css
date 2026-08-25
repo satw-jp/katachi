@@ -250,19 +250,15 @@
 }
 
 .history-undo-dock {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 60;
+  position: static;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 3px 10px;
-  width: min(190px, calc(100vw - 24px));
+  width: 100%;
+  box-sizing: border-box;
   padding: 8px;
   border: 1px solid var(--ink);
-  background: color-mix(in srgb, var(--paper) 94%, transparent);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14);
-  backdrop-filter: blur(8px);
+  background: var(--paper);
 }
 
 .history-undo-button {

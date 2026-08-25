@@ -430,10 +430,9 @@ export function buildUi(
   undoManyButton.textContent = "選んだ所まで戻す";
   undoManyButton.onclick = () => callbacks.onUndoSteps(Math.max(1, Number(undoHistorySelect.value) || 1));
   undoDock.append(undoButton, undoMeta, undoHistorySelect, undoManyButton, undoStatus);
-  // Persistent actions live on the viewport chrome, never inside or over the
-  // right-side authoring panel. Keep future always-visible controls in the
-  // remaining viewport corners by the same rule.
-  (container.querySelector("#viewport") ?? container).appendChild(undoDock);
+  // History actions belong to the left tools pane so they never cover the
+  // one/four-view canvas. The callback and shared history remain unchanged.
+  displayToolsRoot.appendChild(undoDock);
 
   const navRow = document.createElement("div");
   navRow.className = "nav-row";
