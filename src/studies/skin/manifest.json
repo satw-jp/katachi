@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.75.0",
+  "version": "0.75.1",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.75.1 adds thresholded plain-left rotation in Axome view. A movement of 4 px or less remains a click for selection; beyond it the existing pole-free quaternion rotation owns the drag. Support Paint explicitly keeps plain-left brush ownership while enabled, and Shift-left pan plus all non-Axome behavior remain unchanged. This is editor input only and does not affect geometry, classification, Profile, routing or validation."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.75.0 removes the duplicate left-pane Viewport section and integrates direction, Reset View, activation and maximize/four-view return into each canvas viewport title. A compact 1/4 layout switch remains at the main view upper-right. Fresh four-view defaults remain Top/Axome over Front/Right, while each independent camera and viewport composition still round-trips through editor draft only. Geometry, classification, routing, Support Paint, Profile, validation and printApproval=false are unchanged."

@@ -56,6 +56,8 @@ import {
 import type { SkinEditorLayoutDraftV1 } from "./editorLayout.ts";
 import {
   applyRhinoOrthographicDrag,
+  isAxomeLeftRotateCandidate,
+  RHINO_DRAG_THRESHOLD_PX,
   resolveRhinoViewportGesture,
   shouldStartRhinoCameraGesture,
   type RhinoViewportGesture,
@@ -263,6 +265,14 @@ export class SkinRenderer {
     lastX: number;
     lastY: number;
     moved: boolean;
+    plainLeftAxome: boolean;
+  } | null = null;
+  private axomeLeftRotateEnabled = true;
+  private axomeLeftRotateCandidate: {
+    pointerId: number;
+    viewportIndex: number;
+    startX: number;
+    startY: number;
   } | null = null;
   private suppressContextMenuUntil = 0;
   private splitDrag: {
@@ -733,18 +743,38 @@ export class SkinRenderer {
   private configureRhinoCameraInput(): void {
     const canvas = this.renderer.domElement;
     canvas.addEventListener("pointerdown", (event) => {
+      const viewportRect = this.viewportRectFromClient(event.clientX, event.clientY);
+      if (!viewportRect) return;
+      const slot = this.viewportSlots[viewportRect.index];
       const shiftLeftPan = event.button === 0 && event.shiftKey;
-      if (event.button === 0 && !shiftLeftPan) {
-        // The viewport's capture handler already owns left select/drag/paint.
-        // Do not let TrackballControls acquire that pointer afterward.
+      const plainLeftAxome = isAxomeLeftRotateCandidate(
+        event.button,
+        slot.direction,
+        { shiftKey: event.shiftKey, metaKey: event.metaKey },
+        this.axomeLeftRotateEnabled,
+      );
+      if (event.button === 0 && !shiftLeftPan && !plainLeftAxome) {
+        // Selection, direct manipulation and Support Paint own plain left
+        // input outside Axome, and while paint explicitly disables Axome-left rotate.
         event.stopImmediatePropagation();
         return;
       }
-      if (!shouldStartRhinoCameraGesture(event.button, event.shiftKey) || !this.orbitEnabled || this.rhinoCameraDrag) return;
-      const viewportRect = this.viewportRectFromClient(event.clientX, event.clientY);
-      if (!viewportRect) return;
+      if (!this.orbitEnabled || this.rhinoCameraDrag || this.axomeLeftRotateCandidate) return;
       this.selectViewport(viewportRect.index);
-      const slot = this.viewportSlots[viewportRect.index];
+      if (plainLeftAxome) {
+        // Keep a click available to selection. Rotation starts only after the
+        // same 4 px threshold main.ts uses to reject a click as a drag.
+        this.axomeLeftRotateCandidate = {
+          pointerId: event.pointerId,
+          viewportIndex: viewportRect.index,
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+        canvas.setPointerCapture(event.pointerId);
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!shouldStartRhinoCameraGesture(event.button, event.shiftKey)) return;
       this.rhinoCameraDrag = {
         pointerId: event.pointerId,
         viewportIndex: viewportRect.index,
@@ -755,6 +785,7 @@ export class SkinRenderer {
         lastX: event.clientX,
         lastY: event.clientY,
         moved: false,
+        plainLeftAxome: false,
       };
       canvas.setPointerCapture(event.pointerId);
       this.container.classList.add("rhino-camera-dragging");
@@ -763,6 +794,21 @@ export class SkinRenderer {
     }, { capture: true });
 
     canvas.addEventListener("pointermove", (event) => {
+      const candidate = this.axomeLeftRotateCandidate;
+      if (candidate && candidate.pointerId === event.pointerId && !this.rhinoCameraDrag) {
+        if (Math.hypot(event.clientX - candidate.startX, event.clientY - candidate.startY) <= RHINO_DRAG_THRESHOLD_PX) return;
+        this.rhinoCameraDrag = {
+          pointerId: candidate.pointerId,
+          viewportIndex: candidate.viewportIndex,
+          gesture: "rotate",
+          lastX: candidate.startX,
+          lastY: candidate.startY,
+          moved: true,
+          plainLeftAxome: true,
+        };
+        this.axomeLeftRotateCandidate = null;
+        this.container.classList.add("rhino-camera-dragging");
+      }
       const drag = this.rhinoCameraDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       event.preventDefault();
@@ -773,27 +819,33 @@ export class SkinRenderer {
       drag.lastY = event.clientY;
       if (dx === 0 && dy === 0) return;
       drag.moved = drag.moved || Math.hypot(dx, dy) > 1;
-      const rect = this.viewportRects().find((candidate) => candidate.index === drag.viewportIndex);
+      const rect = this.viewportRects().find((candidateRect) => candidateRect.index === drag.viewportIndex);
       if (!rect) return;
-      const slot = this.viewportSlots[drag.viewportIndex];
+      const dragSlot = this.viewportSlots[drag.viewportIndex];
       applyRhinoOrthographicDrag(
-        slot.camera,
-        slot.controls.target,
+        dragSlot.camera,
+        dragSlot.controls.target,
         drag.gesture,
         dx,
         dy,
         rect.width,
         rect.height,
       );
-      slot.controls.update();
+      dragSlot.controls.update();
       this.requestViewportRender();
     }, { capture: true });
 
     const finish = (event: PointerEvent) => {
+      const candidate = this.axomeLeftRotateCandidate;
+      if (candidate && candidate.pointerId === event.pointerId) {
+        this.axomeLeftRotateCandidate = null;
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        return;
+      }
       const drag = this.rhinoCameraDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       event.preventDefault();
-      event.stopImmediatePropagation();
+      if (!drag.plainLeftAxome) event.stopImmediatePropagation();
       this.rhinoCameraDrag = null;
       this.suppressContextMenuUntil = performance.now() + 500;
       this.container.classList.remove("rhino-camera-dragging");
@@ -813,6 +865,19 @@ export class SkinRenderer {
 
   isRhinoCameraGestureActive(): boolean {
     return this.rhinoCameraDrag !== null;
+  }
+
+  isAxomeViewportAt(clientX: number, clientY: number): boolean {
+    const rect = this.viewportRectFromClient(clientX, clientY);
+    return Boolean(rect && this.viewportSlots[rect.index]?.direction === "axome");
+  }
+
+  setAxomeLeftRotateEnabled(enabled: boolean): void {
+    this.axomeLeftRotateEnabled = enabled;
+    if (enabled || !this.axomeLeftRotateCandidate) return;
+    const pointerId = this.axomeLeftRotateCandidate.pointerId;
+    this.axomeLeftRotateCandidate = null;
+    if (this.renderer.domElement.hasPointerCapture(pointerId)) this.renderer.domElement.releasePointerCapture(pointerId);
   }
 
   getFourViewSplit(): { x: number; y: number } {
@@ -2706,6 +2771,11 @@ export class SkinRenderer {
 
   setOrbitEnabled(enabled: boolean): void {
     this.orbitEnabled = enabled;
+    if (!enabled && this.axomeLeftRotateCandidate) {
+      const pointerId = this.axomeLeftRotateCandidate.pointerId;
+      this.axomeLeftRotateCandidate = null;
+      if (this.renderer.domElement.hasPointerCapture(pointerId)) this.renderer.domElement.releasePointerCapture(pointerId);
+    }
     for (const [index, slot] of this.viewportSlots.entries()) {
       slot.controls.enabled = enabled && index === this.selectedViewport;
     }

@@ -103,6 +103,7 @@ import {
   type PointerRay,
 } from "./elementTransform.ts";
 import { reshapePatchMotif } from "./motifReshape.ts";
+import { RHINO_DRAG_THRESHOLD_PX } from "./rhinoViewportControls.ts";
 import { chooseProgressivePreviewResolutions } from "./previewMeshBuffers.ts";
 import type { PreviewMeshRequest, PreviewMeshWorkerMessage } from "./previewMeshWorkerProtocol.ts";
 import type { GaugeBuildRequest, GaugeWorkerMessage } from "./gaugeWorkerProtocol.ts";
@@ -1738,7 +1739,9 @@ function setSupportPaintEnabled(enabled: boolean): void {
   supportPaintEnabled = enabled && Boolean(automaticOverhangSupportResult && surfaceAngleCache);
   showOverhangSupportSites = true;
   viewport.classList.toggle("support-paint-active", supportPaintEnabled);
-  // Left input stays with Support Paint; the renderer owns only Rhino-style right-camera gestures.
+  // Support Paint owns plain left drag. Outside paint mode the Axome
+  // viewport can use the same button for thresholded camera rotation.
+  skinRenderer.setAxomeLeftRotateEnabled(!supportPaintEnabled);
   skinRenderer.setOrbitEnabled(true);
   if (!supportPaintEnabled) skinRenderer.clearSupportPaintBrushPreview();
   refreshOverhangSupportSiteOverlay();
@@ -2017,7 +2020,7 @@ let patchDrag: {
   frameRequestId: number | null;
   active: boolean;
 } | null = null;
-const DRAG_THRESHOLD = 4;
+const DRAG_THRESHOLD = RHINO_DRAG_THRESHOLD_PX;
 
 function pointerRay(event: Pick<PointerEvent, "clientX" | "clientY">): ReturnType<typeof skinRenderer.screenToRay> {
   return skinRenderer.screenToRayFromClient(event.clientX, event.clientY);
@@ -2272,6 +2275,9 @@ viewport.addEventListener("pointerdown", (e) => {
     return;
   }
   pointerDownPos = { x: e.clientX, y: e.clientY };
+  // In Axome an unmodified left drag belongs to camera rotation. A release
+  // inside the shared threshold still reaches handleClick for selection.
+  if (skinRenderer.isAxomeViewportAt(e.clientX, e.clientY)) return;
   if (selectedPatchId === null || addPatchMode || seedPickMode) return;
   const ray = pointerRay(e);
   if (fastPatchId(ray) !== selectedPatchId) return;

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { applyRhinoOrthographicDrag, resolveRhinoViewportGesture, shouldStartRhinoCameraGesture } from "./rhinoViewportControls.ts";
+import {
+  applyRhinoOrthographicDrag,
+  isAxomeLeftRotateCandidate,
+  RHINO_DRAG_THRESHOLD_PX,
+  resolveRhinoViewportGesture,
+  shouldStartRhinoCameraGesture,
+} from "./rhinoViewportControls.ts";
 
 function camera(): THREE.OrthographicCamera {
   const value = new THREE.OrthographicCamera(-4, 4, 3, -3, 0.01, 100);
@@ -11,10 +17,16 @@ function camera(): THREE.OrthographicCamera {
   return value;
 }
 
-test("Rhino drag mapping preserves plain left input and adds Shift-left pan", () => {
+test("Rhino drag mapping adds Axome plain-left rotate without stealing modified gestures", () => {
+  assert.equal(RHINO_DRAG_THRESHOLD_PX, 4);
   assert.equal(shouldStartRhinoCameraGesture(0), false);
   assert.equal(shouldStartRhinoCameraGesture(0, true), true);
   assert.equal(shouldStartRhinoCameraGesture(2), true);
+  assert.equal(isAxomeLeftRotateCandidate(0, "axome", { shiftKey: false, metaKey: false }, true), true);
+  assert.equal(isAxomeLeftRotateCandidate(0, "top", { shiftKey: false, metaKey: false }, true), false);
+  assert.equal(isAxomeLeftRotateCandidate(0, "axome", { shiftKey: true, metaKey: false }, true), false);
+  assert.equal(isAxomeLeftRotateCandidate(0, "axome", { shiftKey: false, metaKey: true }, true), false);
+  assert.equal(isAxomeLeftRotateCandidate(0, "axome", { shiftKey: false, metaKey: false }, false), false);
   assert.equal(resolveRhinoViewportGesture("top", { shiftKey: false, metaKey: false }), "pan");
   assert.equal(resolveRhinoViewportGesture("front", { shiftKey: true, metaKey: false }), "pan");
   assert.equal(resolveRhinoViewportGesture("axome", { shiftKey: false, metaKey: false }), "rotate");

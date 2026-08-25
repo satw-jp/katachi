@@ -2,9 +2,19 @@ import * as THREE from "three";
 import type { SkinViewDirection } from "./multiViewport.ts";
 
 export type RhinoViewportGesture = "rotate" | "pan" | "zoom";
+export const RHINO_DRAG_THRESHOLD_PX = 4;
 
 export function shouldStartRhinoCameraGesture(button: number, shiftKey = false): boolean {
   return button === 2 || (button === 0 && shiftKey);
+}
+
+export function isAxomeLeftRotateCandidate(
+  button: number,
+  direction: SkinViewDirection,
+  modifiers: { shiftKey: boolean; metaKey: boolean },
+  enabled: boolean,
+): boolean {
+  return enabled && button === 0 && direction === "axome" && !modifiers.shiftKey && !modifiers.metaKey;
 }
 
 export function resolveRhinoViewportGesture(
