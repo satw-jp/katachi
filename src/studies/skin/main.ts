@@ -1594,7 +1594,8 @@ function setSupportPaintEnabled(enabled: boolean): void {
   supportPaintEnabled = enabled && Boolean(automaticOverhangSupportResult && surfaceAngleCache);
   showOverhangSupportSites = true;
   viewport.classList.toggle("support-paint-active", supportPaintEnabled);
-  skinRenderer.setOrbitEnabled(!supportPaintEnabled);
+  // Left input stays with Support Paint; the renderer owns only Rhino-style right-camera gestures.
+  skinRenderer.setOrbitEnabled(true);
   if (!supportPaintEnabled) skinRenderer.clearSupportPaintBrushPreview();
   refreshOverhangSupportSiteOverlay();
   refreshSupportPaintUi(supportPaintEnabled ? "ドラッグして支持方式を塗ります" : "自動分類＋保存済みoverrideを表示中");
@@ -2117,8 +2118,12 @@ viewport.addEventListener("pointerdown", (e) => {
     scheduleSupportPaintPointer(e, supportPaintDrag);
     return;
   }
+  if (e.button !== 0) {
+    pointerDownPos = null;
+    return;
+  }
   pointerDownPos = { x: e.clientX, y: e.clientY };
-  if (e.button !== 0 || selectedPatchId === null || addPatchMode || seedPickMode) return;
+  if (selectedPatchId === null || addPatchMode || seedPickMode) return;
   const ray = pointerRay(e);
   if (fastPatchId(ray) !== selectedPatchId) return;
   const patch = state.patches.find((candidate) => candidate.id === selectedPatchId);
@@ -2141,6 +2146,7 @@ viewport.addEventListener("pointerdown", (e) => {
 }, { capture: true });
 
 window.addEventListener("pointermove", (e) => {
+  if (skinRenderer.isRhinoCameraGestureActive()) return;
   if (supportPaintDrag && e.pointerId === supportPaintDrag.pointerId) { scheduleSupportPaintPointer(e, supportPaintDrag); return; }
   if (supportPaintEnabled) { scheduleSupportPaintBrushHover(e); return; }
   if (!patchDrag || e.pointerId !== patchDrag.pointerId) return;

@@ -1925,3 +1925,5 @@ details.mesh-export:not([open]) > :not(summary) {
   .skin-pane-header span { display: none; }
   .skin-pane-collapse { width: 16px; }
 }
+
+#viewport.rhino-camera-dragging canvas { cursor: grabbing; }

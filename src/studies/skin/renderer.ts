@@ -53,6 +53,12 @@ import {
   type SkinViewportRect,
 } from "./multiViewport.ts";
 import type { SkinEditorLayoutDraftV1 } from "./editorLayout.ts";
+import {
+  applyRhinoOrthographicDrag,
+  resolveRhinoViewportGesture,
+  shouldStartRhinoCameraGesture,
+  type RhinoViewportGesture,
+} from "./rhinoViewportControls.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -251,6 +257,15 @@ export class SkinRenderer {
   private readonly horizontalViewportDivider: HTMLDivElement;
   private fourSplitX = 0.5;
   private fourSplitY = 0.5;
+  private rhinoCameraDrag: {
+    pointerId: number;
+    viewportIndex: number;
+    gesture: RhinoViewportGesture;
+    lastX: number;
+    lastY: number;
+    moved: boolean;
+  } | null = null;
+  private suppressContextMenuUntil = 0;
   private splitDrag: {
     axis: "x" | "y";
     pointerId: number;
@@ -571,6 +586,8 @@ export class SkinRenderer {
       controls.panSpeed = 0.3;
       controls.staticMoving = true;
       controls.keys = ["", "", ""];
+      controls.mouseButtons.LEFT = null;
+      controls.mouseButtons.RIGHT = null;
       controls.noRotate = direction !== "axome";
       controls.enabled = index === this.selectedViewport;
       controls.addEventListener("change", () => this.renderRequestCallback?.());
@@ -592,6 +609,13 @@ export class SkinRenderer {
       maximize.title = "このviewportを1面表示";
       maximize.onclick = () => { this.selectViewport(index); this.setViewportMode("one", true); };
       header.append(directionLabel, axis, maximize);
+      header.ondblclick = (event) => {
+        if ((event.target as Element).closest("button")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.selectViewport(index);
+        this.setViewportMode(this.viewportMode === "four" ? "one" : "four", true);
+      };
       frame.appendChild(header);
       this.viewportHud.appendChild(frame);
 
@@ -619,12 +643,7 @@ export class SkinRenderer {
       this.viewportSlots.push({ camera, controls, direction, frame, directionSelect, directionLabel, axis, controlRow });
     }
     for (let index = 0; index < this.viewportSlots.length; index++) this.resetViewportCamera(index, false);
-    this.renderer.domElement.addEventListener("dblclick", (event) => {
-      const rect = this.viewportRectFromClient(event.clientX, event.clientY);
-      if (!rect) return;
-      this.selectViewport(rect.index);
-      this.setViewportMode("one", true);
-    });
+    this.configureRhinoCameraInput();
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
@@ -686,6 +705,90 @@ export class SkinRenderer {
 
   mountViewportControls(container: HTMLElement): void {
     container.appendChild(this.viewportControls);
+  }
+
+  private configureRhinoCameraInput(): void {
+    const canvas = this.renderer.domElement;
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.button === 0) {
+        // The viewport's capture handler already owns left select/drag/paint.
+        // Do not let TrackballControls acquire that pointer afterward.
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!shouldStartRhinoCameraGesture(event.button) || !this.orbitEnabled || this.rhinoCameraDrag) return;
+      const viewportRect = this.viewportRectFromClient(event.clientX, event.clientY);
+      if (!viewportRect) return;
+      this.selectViewport(viewportRect.index);
+      const slot = this.viewportSlots[viewportRect.index];
+      this.rhinoCameraDrag = {
+        pointerId: event.pointerId,
+        viewportIndex: viewportRect.index,
+        gesture: resolveRhinoViewportGesture(slot.direction, {
+          shiftKey: event.shiftKey,
+          metaKey: event.metaKey,
+        }),
+        lastX: event.clientX,
+        lastY: event.clientY,
+        moved: false,
+      };
+      canvas.setPointerCapture(event.pointerId);
+      this.container.classList.add("rhino-camera-dragging");
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, { capture: true });
+
+    canvas.addEventListener("pointermove", (event) => {
+      const drag = this.rhinoCameraDrag;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const dx = event.clientX - drag.lastX;
+      const dy = event.clientY - drag.lastY;
+      drag.lastX = event.clientX;
+      drag.lastY = event.clientY;
+      if (dx === 0 && dy === 0) return;
+      drag.moved = drag.moved || Math.hypot(dx, dy) > 1;
+      const rect = this.viewportRects().find((candidate) => candidate.index === drag.viewportIndex);
+      if (!rect) return;
+      const slot = this.viewportSlots[drag.viewportIndex];
+      applyRhinoOrthographicDrag(
+        slot.camera,
+        slot.controls.target,
+        drag.gesture,
+        dx,
+        dy,
+        rect.width,
+        rect.height,
+      );
+      slot.controls.update();
+      this.requestViewportRender();
+    }, { capture: true });
+
+    const finish = (event: PointerEvent) => {
+      const drag = this.rhinoCameraDrag;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.rhinoCameraDrag = null;
+      this.suppressContextMenuUntil = performance.now() + 500;
+      this.container.classList.remove("rhino-camera-dragging");
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      this.editorViewChangeCallback?.();
+      this.requestViewportRender();
+    };
+    canvas.addEventListener("pointerup", finish, { capture: true });
+    canvas.addEventListener("pointercancel", finish, { capture: true });
+    canvas.addEventListener("contextmenu", (event) => {
+      if (performance.now() <= this.suppressContextMenuUntil || event.target === canvas) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, { capture: true });
+  }
+
+  isRhinoCameraGestureActive(): boolean {
+    return this.rhinoCameraDrag !== null;
   }
 
   getFourViewSplit(): { x: number; y: number } {

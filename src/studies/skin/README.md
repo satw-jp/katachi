@@ -222,6 +222,14 @@ Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全
 
 左右pane幅、開閉状態、4面divider比は検証済みeditor layoutとしてlocalStorageとoptionalなSupport Paint editor draftへ保存し、次回起動またはdraft読込で復元する。Shape Recipe、Print Profile、Profile SHA、validation、routing、3MF、archiveには含めず、形状、分類、Support Paint stroke、clipping plane自体、`printApproval=false`を変更しない。
 
+### 制作環境Observation — Rhino準拠の4面camera操作（2026-08-25）
+
+作者がRhinoと同じ手癖で4面を観察しながらSupport Paintを続けられるよう、camera入力を左の制作入力と右の表示入力へ分離する。Top／Bottom／Front／Back／Left／Rightは右dragをpan、wheelをzoomとし、標準方向を回転させない。Axomeだけは右dragをpole-freeな360°回転、Shift＋右dragをpanとする。全viewportでCommand＋右drag上下もorthographic zoomとして使える。gesture開始時のpointer位置から対象viewportをactiveにし、そのcamera／target／zoomだけを変更する。
+
+左click／dragは要素選択、直接移動、Support Paintが専有し、TrackballControlsへ渡さない。右camera gesture中はbrush hover、stroke、選択を発火させず、pointer captureで開始viewportをdrag終了まで維持する。右drag終了後のcontext menuもcanvasでは抑止する。viewportタイトルのdouble clickはその面の最大化と4面復帰を往復し、最大化buttonとは二重発火させない。
+
+Axome回転はworld-up固定や極角を使わず、cameraからtargetへのeyeとcamera upへ同じquaternionを適用する。panではcameraとtargetを同じ量だけ移動するため、その後の回転中心は移動後targetになる。Resetは方向ごとの既定cameraと現在object中心へ戻す。各cameraのposition／up／target／zoomは既存editor draftへ独立保存するが、Shape Recipe、Print Profile、Profile SHA、geometry、classification、routing、validation、3MF／archiveには含めない。clippingとsupport overlay／paint結果は共有sceneのままである。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。
