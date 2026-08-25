@@ -156,6 +156,13 @@ import {
   supportPaintDraftStorageKey, validateSupportPaintDraft, type SupportPaintDraftV1,
 } from "./supportPaintDraft.ts";
 import { supportPaintReprojectionFacts } from "./supportPaintReprojection.ts";
+import {
+  DEFAULT_SKIN_EDITOR_LAYOUT,
+  fitSkinEditorLayout,
+  resizeSkinEditorPane,
+  validateSkinEditorLayoutDraft,
+  type SkinEditorLayoutDraftV1,
+} from "./editorLayout.ts";
 import { buildBaseFootprint } from "./baseFootprint.ts";
 import {
   correctTutorialFlags,
@@ -173,10 +180,86 @@ import {
   type TutorialStepId,
 } from "./partitionTutorial.ts";
 
+const SKIN_EDITOR_LAYOUT_STORAGE_KEY = "katachi.skin.editor-layout.local.v1";
+function loadSkinEditorLayout(): SkinEditorLayoutDraftV1 {
+  try {
+    const text = localStorage.getItem(SKIN_EDITOR_LAYOUT_STORAGE_KEY);
+    return text ? validateSkinEditorLayoutDraft(JSON.parse(text)) : { ...DEFAULT_SKIN_EDITOR_LAYOUT };
+  } catch {
+    return { ...DEFAULT_SKIN_EDITOR_LAYOUT };
+  }
+}
+
 const app = document.getElementById("app")!;
+let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
+let editorLayoutCommitCallback: () => void = () => {};
+const leftPane = document.createElement("aside");
+leftPane.className = "skin-editor-pane skin-left-pane";
+leftPane.setAttribute("aria-label", "表示ツール");
+const leftPaneHeader = document.createElement("header");
+leftPaneHeader.className = "skin-pane-header";
+leftPaneHeader.innerHTML = "<strong>TOOLS</strong><span>表示操作</span>";
+const leftPaneBody = document.createElement("div");
+leftPaneBody.className = "skin-pane-body";
+leftPane.append(leftPaneHeader, leftPaneBody);
+const rightPane = document.createElement("aside");
+rightPane.className = "skin-editor-pane skin-right-pane";
+rightPane.setAttribute("aria-label", "Properties");
+const rightPaneHeader = document.createElement("header");
+rightPaneHeader.className = "skin-pane-header";
+rightPaneHeader.innerHTML = "<strong>PROPERTIES</strong><span>形状・印刷設定</span>";
+const rightPaneBody = document.createElement("div");
+rightPaneBody.className = "skin-pane-body";
+rightPane.append(rightPaneHeader, rightPaneBody);
+
+function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
+  const divider = document.createElement("div");
+  divider.className = `skin-pane-divider is-${side}`;
+  divider.setAttribute("role", "separator");
+  divider.setAttribute("aria-orientation", "vertical");
+  divider.tabIndex = 0;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "skin-pane-collapse";
+  toggle.setAttribute("aria-label", side === "left" ? "左ツールペインを開閉" : "右Propertiesを開閉");
+  toggle.onclick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (side === "left") editorLayoutState = { ...editorLayoutState, leftCollapsed: !editorLayoutState.leftCollapsed };
+    else editorLayoutState = { ...editorLayoutState, rightCollapsed: !editorLayoutState.rightCollapsed };
+    applyEditorLayoutDom();
+    commitEditorLayout();
+  };
+  divider.appendChild(toggle);
+  return divider;
+}
+const leftPaneDivider = buildPaneDivider("left");
+const rightPaneDivider = buildPaneDivider("right");
 const viewport = document.createElement("div");
 viewport.id = "viewport";
-app.appendChild(viewport);
+app.append(leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane);
+
+function applyEditorLayoutDom(): void {
+  const fitted = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
+  editorLayoutState = fitted;
+  const leftWidth = fitted.leftCollapsed ? 0 : fitted.leftWidthPx;
+  const rightWidth = fitted.rightCollapsed ? 0 : fitted.rightWidthPx;
+  app.style.gridTemplateColumns = `${leftWidth}px 8px minmax(360px, 1fr) 8px ${rightWidth}px`;
+  leftPane.hidden = fitted.leftCollapsed;
+  rightPane.hidden = fitted.rightCollapsed;
+  leftPaneDivider.classList.toggle("is-collapsed", fitted.leftCollapsed);
+  rightPaneDivider.classList.toggle("is-collapsed", fitted.rightCollapsed);
+  leftPaneDivider.querySelector("button")!.textContent = fitted.leftCollapsed ? "›" : "‹";
+  rightPaneDivider.querySelector("button")!.textContent = fitted.rightCollapsed ? "‹" : "›";
+}
+function persistEditorLayout(): void {
+  localStorage.setItem(SKIN_EDITOR_LAYOUT_STORAGE_KEY, JSON.stringify(editorLayoutState));
+}
+function commitEditorLayout(): void {
+  persistEditorLayout();
+  editorLayoutCommitCallback();
+}
+applyEditorLayoutDom();
 
 // T14 selection visibility (作者Observation 2026-07-20): a floating chip
 // naming "the next thing to do", overlaid directly on the viewport instead
@@ -257,6 +340,7 @@ let bambu3mfExportCache: {
 let showMotifLowestPoints = false;
 let showOverhangSupportSites = true;
 let showMixedSupportFaces = false;
+let showSupportFootprint = true;
 let supportSiteDepthMode: SupportSiteDepthMode = "show-back";
 let supportPaintEnabled = false;
 let supportPaintMode: SupportPaintMode = "inside";
@@ -362,6 +446,8 @@ let tutorialUi: TutorialPersistedUi = loadTutorialPersistedUi();
 let tutorialDisplayedStep: TutorialStepId | null = null;
 
 const skinRenderer = new SkinRenderer(viewport);
+skinRenderer.mountViewportControls(leftPaneBody);
+skinRenderer.setFourViewSplit(editorLayoutState.fourSplitX, editorLayoutState.fourSplitY);
 
 // Compact, viewport-local edit affordance. The buttons intentionally call
 // applyElementEdit below rather than mutating geometry themselves, so their
@@ -762,6 +848,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     refreshOverhangSupportSiteOverlay();
     render();
   },
+  onToggleSupportFootprint: (show) => {
+    showSupportFootprint = show;
+    refreshOverhangSupportSiteOverlay();
+    render();
+  },
   onSetSupportPaintEnabled: (enabled) => setSupportPaintEnabled(enabled),
   onSetSupportPaintMode: (mode) => { supportPaintMode = mode; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
   onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
@@ -1049,6 +1140,88 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialRestart: () => tutorialRestart(),
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 });
+rightPaneBody.appendChild(ui.root);
+leftPaneBody.appendChild(ui.displayToolsRoot);
+skinRenderer.mountViewportControls(ui.displayToolsRoot);
+
+function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): void {
+  let drag: {
+    pointerId: number;
+    pendingX: number;
+    frameId: number;
+    restoreOrbit: boolean;
+  } | null = null;
+  const applyPending = () => {
+    if (!drag) return;
+    drag.frameId = 0;
+    const rect = app.getBoundingClientRect();
+    editorLayoutState = resizeSkinEditorPane(editorLayoutState, side, drag.pendingX, rect.left, rect.right);
+    editorLayoutState = fitSkinEditorLayout(editorLayoutState, rect.width);
+    applyEditorLayoutDom();
+    skinRenderer.resize();
+  };
+  divider.addEventListener("pointerdown", (event) => {
+    if (event.target !== divider || drag) return;
+    event.preventDefault();
+    event.stopPropagation();
+    divider.setPointerCapture(event.pointerId);
+    const restoreOrbit = !supportPaintEnabled;
+    skinRenderer.setOrbitEnabled(false);
+    drag = { pointerId: event.pointerId, pendingX: event.clientX, frameId: 0, restoreOrbit };
+    divider.classList.add("is-dragging");
+  });
+  divider.addEventListener("pointermove", (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.pendingX = event.clientX;
+    if (drag.frameId === 0) drag.frameId = requestAnimationFrame(applyPending);
+  });
+  const finish = (event: PointerEvent) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.frameId !== 0) {
+      cancelAnimationFrame(drag.frameId);
+      applyPending();
+    }
+    const restoreOrbit = drag.restoreOrbit;
+    drag = null;
+    divider.classList.remove("is-dragging");
+    if (divider.hasPointerCapture(event.pointerId)) divider.releasePointerCapture(event.pointerId);
+    skinRenderer.setOrbitEnabled(restoreOrbit);
+    commitEditorLayout();
+  };
+  divider.addEventListener("pointerup", finish);
+  divider.addEventListener("pointercancel", finish);
+  divider.addEventListener("dblclick", (event) => {
+    if (event.target !== divider) return;
+    event.preventDefault();
+    editorLayoutState = {
+      ...editorLayoutState,
+      ...(side === "left"
+        ? { leftWidthPx: DEFAULT_SKIN_EDITOR_LAYOUT.leftWidthPx, leftCollapsed: false }
+        : { rightWidthPx: DEFAULT_SKIN_EDITOR_LAYOUT.rightWidthPx, rightCollapsed: false }),
+    };
+    applyEditorLayoutDom();
+    skinRenderer.resize();
+    commitEditorLayout();
+  });
+}
+installPaneResize(leftPaneDivider, "left");
+installPaneResize(rightPaneDivider, "right");
+editorLayoutCommitCallback = () => {
+  markSupportPaintDraftDirty();
+  autosaveSupportPaintDraft();
+  requestRenderFrame();
+};
+let layoutResizeFrame = 0;
+window.addEventListener("resize", () => {
+  if (layoutResizeFrame !== 0) return;
+  layoutResizeFrame = requestAnimationFrame(() => {
+    layoutResizeFrame = 0;
+    editorLayoutState = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
+    applyEditorLayoutDom();
+    skinRenderer.resize();
+    persistEditorLayout();
+  });
+});
 ui.setMode(state.mode);
 skinRenderer.resize();
 afterMutation();
@@ -1141,14 +1314,14 @@ function refreshOverhangSupportSiteOverlay(): void {
   const diagnosis = surfaceAngleCache;
   if (!result || !diagnosis) {
     skinRenderer.clearOverhangSupportSiteOverlay();
-    ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点は未診断");
+    ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点は未診断");
     return;
   }
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
   const targetLongestMm = ui.getMeshOptions().targetLongestMm;
   if (!(sourceLongest > 0) || !(targetLongestMm > 0)) {
     skinRenderer.clearOverhangSupportSiteOverlay();
-    ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点の表示Scaleを求められませんでした", false);
+    ui.setOverhangSupportSiteOverlay(true, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点の表示Scaleを求められませんでした", false);
     return;
   }
   const scaleMmPerUnit = targetLongestMm / sourceLongest;
@@ -1181,7 +1354,7 @@ function refreshOverhangSupportSiteOverlay(): void {
   }
   const footprintPositions: number[] = [];
   const footprint = result.baseFootprint;
-  if (showOverhangSupportSites && footprint?.valid && footprint.vertices.length >= 3) {
+  if (showOverhangSupportSites && showSupportFootprint && footprint?.valid && footprint.vertices.length >= 3) {
     let baseZ = Infinity;
     for (let offset = 2; offset < diagnosis.basePositions.length; offset += 3) {
       baseZ = Math.min(baseZ, diagnosis.basePositions[offset]);
@@ -1214,6 +1387,7 @@ function refreshOverhangSupportSiteOverlay(): void {
     true,
     showOverhangSupportSites,
     showMixedSupportFaces,
+    showSupportFootprint,
     supportSiteDepthMode,
     overhangSupportCountsText(result),
     ok,
@@ -1299,7 +1473,7 @@ function currentSupportPaintDraft(savedAt?: string): SupportPaintDraftV1 | null 
   return createSupportPaintDraft({
     savedAt, ...binding, supportPaint: supportPaintSession.history.present,
     brush: { mode: supportPaintMode, radiusMm: supportPaintRadiusMm, paintBackfaces: supportPaintBackfaces },
-    editorView: skinRenderer.captureEditorViewDraft(),
+    editorView: skinRenderer.captureEditorViewDraft(editorLayoutState),
   });
 }
 
@@ -1342,6 +1516,11 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   supportPaintSession = createSupportPaintSession(draft.supportPaint);
   invalidateSupportPaintReprojection();
   supportPaintMode = draft.brush.mode; supportPaintRadiusMm = draft.brush.radiusMm; supportPaintBackfaces = draft.brush.paintBackfaces;
+  if (draft.editorView?.layout) {
+    editorLayoutState = validateSkinEditorLayoutDraft(draft.editorView.layout);
+    applyEditorLayoutDom();
+    persistEditorLayout();
+  }
   if (draft.editorView) skinRenderer.restoreEditorViewDraft(draft.editorView);
   localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
   supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
@@ -3882,7 +4061,7 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   refreshSupportPaintUi("支持点の診断後に使えます");
   skinRenderer.clearSurfaceAngleOverlay();
   skinRenderer.clearOverhangSupportSiteOverlay();
-  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点は未診断");
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点は未診断");
   cancelBambu3mfExport(false);
   if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
   ui.setSurfaceAngleDiagnosisRunning(false);
@@ -4282,7 +4461,7 @@ function startSurfaceAngleDiagnosis(thresholdDeg: number): void {
   targetedSupportSource = null;
   skinRenderer.clearSurfaceAngleOverlay();
   skinRenderer.clearOverhangSupportSiteOverlay();
-  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, supportSiteDepthMode, "支持点を診断中…");
+  ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点を診断中…");
   ui.setSurfaceAngleDiagnosisView("before", false, false);
   ui.setSurfaceAngleDiagnosisRunning(true);
   ui.setSurfaceAngleDiagnosisStatus("最終精度の外殻Surface meshを並列生成して診断しています…");
@@ -5110,6 +5289,7 @@ function updateEmptyViewportHint(): void {
       : null,
     overlayVisible: showOverhangSupportSites,
     mixedVisible: showMixedSupportFaces,
+    footprintVisible: showSupportFootprint,
     depthMode: supportSiteDepthMode,
     markerPresentation: {
       inside: { color: "#3185ff", glyph: "circle" },
@@ -5340,6 +5520,9 @@ function renderFrame(): void {
 
 skinRenderer.setRenderRequestCallback(requestRenderFrame);
 skinRenderer.setEditorViewChangeCallback(() => {
+  const split = skinRenderer.getFourViewSplit();
+  editorLayoutState = { ...editorLayoutState, fourSplitX: split.x, fourSplitY: split.y };
+  persistEditorLayout();
   markSupportPaintDraftDirty();
   autosaveSupportPaintDraft();
   requestRenderFrame();

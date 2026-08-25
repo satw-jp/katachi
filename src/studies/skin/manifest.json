@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.71.1",
+  "version": "0.72.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.72.0 three-pane SKIN authoring workspace. Author observation preserved verbatim: 「左にペインを作って『生成結果を見る』『CLIP XYZ』[1View/4View]等はまとめたい\n各ペインの幅は自分で調整できるようにしたい」. Display-only controls now live in a left tools pane, the shared-scene one/four-view WebGL canvas remains central, and geometry, Dry Web/scaffold, Print Profile, validation, generation and save settings remain in right Properties. Pointer-captured left/right dividers resize at most once per animation frame, double-click resets standard width, collapse buttons preserve the central minimum workspace, and narrow layouts collapse a side. Four-view horizontal/vertical scissor dividers are independently draggable without duplicating scene, geometry or support buffers. Pane widths, collapse state and four-view split ratios round-trip through validated localStorage/editor draft only; Recipe, Print Profile, Profile SHA, routing, validation, 3MF/archive, geometry, classification and printApproval=false are unchanged. No high-resolution generation, archive, Slice, publish or deploy."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.71.1 four-view black-canvas boot hotfix. The first afterMutation() could call render() while the demand-driven render scheduler state still sat in its temporal dead zone near the end of main.ts, stopping local SKIN boot with ReferenceError before any viewport draw. The scheduler state now initializes with the other application state before every mutation callback can run. Four cameras, shared scene/scissor rendering, geometry, support classification, Support Paint, Print Profile, validation, recipe and printApproval=false are unchanged. Full focused suite, TypeScript, production build and diff check pass; no archive, high-resolution generation, Slice, publish or deploy."

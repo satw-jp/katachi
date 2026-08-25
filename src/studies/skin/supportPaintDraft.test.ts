@@ -35,6 +35,15 @@ test("draft optionally restores editor-only four-view layout without entering pr
       schema: "katachi.skin.editor-view.v1",
       mode: "four",
       selectedViewport: 1,
+      layout: {
+        schema: "katachi.skin.editor-layout.v1",
+        leftWidthPx: 300,
+        rightWidthPx: 410,
+        leftCollapsed: false,
+        rightCollapsed: false,
+        fourSplitX: 0.4,
+        fourSplitY: 0.6,
+      },
       viewports: ["top", "axome", "front", "right"].map((direction, index) => ({
         direction: direction as "top" | "axome" | "front" | "right",
         camera: { position: [index, index + 1, index + 2], up: [0, 0, 1], target: [0, 0, 0], zoom: 1 },
@@ -44,6 +53,7 @@ test("draft optionally restores editor-only four-view layout without entering pr
   const roundTrip = validateSupportPaintDraft(JSON.parse(serializeSupportPaintDraft(draft)));
   assert.equal(roundTrip.editorView?.mode, "four");
   assert.equal(roundTrip.editorView?.viewports[1].direction, "axome");
+  assert.equal(roundTrip.editorView?.layout?.fourSplitY, 0.6);
   assert.equal("editorView" in roundTrip.supportPaint, false);
   assert.equal(roundTrip.printApproval, false);
 

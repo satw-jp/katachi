@@ -52,6 +52,7 @@ import {
   type SkinViewportMode,
   type SkinViewportRect,
 } from "./multiViewport.ts";
+import type { SkinEditorLayoutDraftV1 } from "./editorLayout.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -138,7 +139,9 @@ interface SkinViewportSlot {
   direction: SkinViewDirection;
   frame: HTMLDivElement;
   directionSelect: HTMLSelectElement;
+  directionLabel: HTMLElement;
   axis: HTMLSpanElement;
+  controlRow: HTMLDivElement;
 }
 
 const SUPPORT_MARKER_VERTEX_SHADER = /* glsl */ `
@@ -240,9 +243,22 @@ export class SkinRenderer {
   private viewportCenter = new THREE.Vector3();
   private viewportDistance = 8;
   private readonly viewportHud: HTMLDivElement;
+  private readonly viewportControls: HTMLElement;
   private readonly oneViewButton: HTMLButtonElement;
   private readonly fourViewsButton: HTMLButtonElement;
   private readonly returnToFourButton: HTMLButtonElement;
+  private readonly verticalViewportDivider: HTMLDivElement;
+  private readonly horizontalViewportDivider: HTMLDivElement;
+  private fourSplitX = 0.5;
+  private fourSplitY = 0.5;
+  private splitDrag: {
+    axis: "x" | "y";
+    pointerId: number;
+    pendingClientCoordinate: number;
+    frameId: number;
+    restoreOrbit: boolean;
+    handle: HTMLDivElement;
+  } | null = null;
   private renderRequestCallback: (() => void) | null = null;
   private editorViewChangeCallback: (() => void) | null = null;
   private orbitEnabled = true;
@@ -486,6 +502,10 @@ export class SkinRenderer {
     this.viewportHud = document.createElement("div");
     this.viewportHud.className = "multi-viewport-hud";
     this.viewportHud.setAttribute("aria-label", "3D viewport layout");
+    this.viewportControls = document.createElement("section");
+    this.viewportControls.className = "multi-viewport-controls";
+    const controlsTitle = document.createElement("strong");
+    controlsTitle.textContent = "Viewport";
     this.oneViewButton = document.createElement("button");
     this.oneViewButton.type = "button";
     this.oneViewButton.textContent = "1 View";
@@ -501,7 +521,14 @@ export class SkinRenderer {
     const layoutToggle = document.createElement("div");
     layoutToggle.className = "multi-viewport-layout-toggle";
     layoutToggle.append(this.oneViewButton, this.fourViewsButton, this.returnToFourButton);
-    this.viewportHud.appendChild(layoutToggle);
+    this.viewportControls.append(controlsTitle, layoutToggle);
+    this.verticalViewportDivider = document.createElement("div");
+    this.verticalViewportDivider.className = "multi-viewport-splitter is-vertical";
+    this.horizontalViewportDivider = document.createElement("div");
+    this.horizontalViewportDivider.className = "multi-viewport-splitter is-horizontal";
+    this.configureViewportDivider(this.verticalViewportDivider, "x");
+    this.configureViewportDivider(this.horizontalViewportDivider, "y");
+    this.viewportHud.append(this.verticalViewportDivider, this.horizontalViewportDivider);
     container.appendChild(this.viewportHud);
 
     this.openingLineLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -554,6 +581,24 @@ export class SkinRenderer {
       frame.dataset.viewport = String(index);
       const header = document.createElement("div");
       header.className = "multi-viewport-frame-header";
+      const directionLabel = document.createElement("strong");
+      directionLabel.textContent = skinViewDirectionLabel(direction);
+      const axis = document.createElement("span");
+      axis.className = "multi-viewport-axis";
+      axis.textContent = skinViewAxisLegend(direction);
+      const maximize = document.createElement("button");
+      maximize.type = "button";
+      maximize.textContent = "□";
+      maximize.title = "このviewportを1面表示";
+      maximize.onclick = () => { this.selectViewport(index); this.setViewportMode("one", true); };
+      header.append(directionLabel, axis, maximize);
+      frame.appendChild(header);
+      this.viewportHud.appendChild(frame);
+
+      const controlRow = document.createElement("div");
+      controlRow.className = "multi-viewport-control-row";
+      const controlLabel = document.createElement("span");
+      controlLabel.textContent = String(index + 1);
       const directionSelect = document.createElement("select");
       directionSelect.setAttribute("aria-label", `viewport ${index + 1} direction`);
       for (const optionDirection of SKIN_VIEW_DIRECTIONS) {
@@ -564,23 +609,14 @@ export class SkinRenderer {
       }
       directionSelect.value = direction;
       directionSelect.onchange = () => this.setViewportDirection(index, directionSelect.value as SkinViewDirection, true);
-      const axis = document.createElement("span");
-      axis.className = "multi-viewport-axis";
-      axis.textContent = skinViewAxisLegend(direction);
       const reset = document.createElement("button");
       reset.type = "button";
       reset.textContent = "Reset";
       reset.title = `${skinViewDirectionLabel(direction)} camera reset`;
       reset.onclick = () => this.resetViewportCamera(index, true);
-      const maximize = document.createElement("button");
-      maximize.type = "button";
-      maximize.textContent = "□";
-      maximize.title = "このviewportを1面表示";
-      maximize.onclick = () => { this.selectViewport(index); this.setViewportMode("one", true); };
-      header.append(directionSelect, axis, reset, maximize);
-      frame.appendChild(header);
-      this.viewportHud.appendChild(frame);
-      this.viewportSlots.push({ camera, controls, direction, frame, directionSelect, axis });
+      controlRow.append(controlLabel, directionSelect, reset);
+      this.viewportControls.appendChild(controlRow);
+      this.viewportSlots.push({ camera, controls, direction, frame, directionSelect, directionLabel, axis, controlRow });
     }
     for (let index = 0; index < this.viewportSlots.length; index++) this.resetViewportCamera(index, false);
     this.renderer.domElement.addEventListener("dblclick", (event) => {
@@ -648,6 +684,93 @@ export class SkinRenderer {
     return this.viewportSlots[this.selectedViewport].controls;
   }
 
+  mountViewportControls(container: HTMLElement): void {
+    container.appendChild(this.viewportControls);
+  }
+
+  getFourViewSplit(): { x: number; y: number } {
+    return { x: this.fourSplitX, y: this.fourSplitY };
+  }
+
+  setFourViewSplit(x: number, y: number, notify = false): void {
+    this.fourSplitX = Math.max(0.2, Math.min(0.8, x));
+    this.fourSplitY = Math.max(0.2, Math.min(0.8, y));
+    this.syncViewportHud();
+    this.requestViewportRender();
+    if (notify) this.editorViewChangeCallback?.();
+  }
+
+  private viewportRects(): SkinViewportRect[] {
+    return skinViewportRects(
+      this.container.clientWidth,
+      this.container.clientHeight,
+      this.viewportMode,
+      this.selectedViewport,
+      { x: this.fourSplitX, y: this.fourSplitY },
+    );
+  }
+
+  private configureViewportDivider(handle: HTMLDivElement, axis: "x" | "y"): void {
+    handle.setAttribute("role", "separator");
+    handle.tabIndex = 0;
+    handle.setAttribute("aria-orientation", axis === "x" ? "vertical" : "horizontal");
+    handle.addEventListener("pointerdown", (event) => {
+      if (this.viewportMode !== "four" || this.splitDrag) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handle.setPointerCapture(event.pointerId);
+      const restoreOrbit = this.orbitEnabled;
+      this.setOrbitEnabled(false);
+      this.splitDrag = {
+        axis,
+        pointerId: event.pointerId,
+        pendingClientCoordinate: axis === "x" ? event.clientX : event.clientY,
+        frameId: 0,
+        restoreOrbit,
+        handle,
+      };
+      handle.classList.add("is-dragging");
+    });
+    handle.addEventListener("pointermove", (event) => {
+      const drag = this.splitDrag;
+      if (!drag || drag.handle !== handle || drag.pointerId !== event.pointerId) return;
+      drag.pendingClientCoordinate = axis === "x" ? event.clientX : event.clientY;
+      if (drag.frameId === 0) drag.frameId = requestAnimationFrame(() => this.applyViewportDividerDrag());
+    });
+    const finish = (event: PointerEvent) => {
+      const drag = this.splitDrag;
+      if (!drag || drag.handle !== handle || drag.pointerId !== event.pointerId) return;
+      if (drag.frameId !== 0) {
+        cancelAnimationFrame(drag.frameId);
+        drag.frameId = 0;
+        this.applyViewportDividerDrag();
+      }
+      handle.classList.remove("is-dragging");
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+      this.splitDrag = null;
+      this.setOrbitEnabled(drag.restoreOrbit);
+      this.editorViewChangeCallback?.();
+    };
+    handle.addEventListener("pointerup", finish);
+    handle.addEventListener("pointercancel", finish);
+    handle.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.setFourViewSplit(axis === "x" ? 0.5 : this.fourSplitX, axis === "y" ? 0.5 : this.fourSplitY, true);
+    });
+  }
+
+  private applyViewportDividerDrag(): void {
+    const drag = this.splitDrag;
+    if (!drag) return;
+    drag.frameId = 0;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (drag.axis === "x") this.fourSplitX = Math.max(0.2, Math.min(0.8, (drag.pendingClientCoordinate - rect.left) / Math.max(1, rect.width)));
+    else this.fourSplitY = Math.max(0.2, Math.min(0.8, (drag.pendingClientCoordinate - rect.top) / Math.max(1, rect.height)));
+    this.syncViewportHud();
+    this.requestViewportRender();
+  }
+
   setRenderRequestCallback(callback: (() => void) | null): void {
     this.renderRequestCallback = callback;
   }
@@ -678,9 +801,7 @@ export class SkinRenderer {
   private updateViewportCameraProjection(index: number, rect?: SkinViewportRect): void {
     const slot = this.viewportSlots[index];
     if (!slot) return;
-    const viewportRect = rect ?? skinViewportRects(
-      this.container.clientWidth, this.container.clientHeight, this.viewportMode, this.selectedViewport,
-    ).find((candidate) => candidate.index === index);
+    const viewportRect = rect ?? this.viewportRects().find((candidate) => candidate.index === index);
     const aspect = viewportRect ? viewportRect.width / Math.max(1, viewportRect.height) : 1;
     slot.camera.left = -this.viewportHalfHeight * aspect;
     slot.camera.right = this.viewportHalfHeight * aspect;
@@ -720,6 +841,7 @@ export class SkinRenderer {
     if (!slot || !SKIN_VIEW_DIRECTIONS.includes(direction)) return;
     slot.direction = direction;
     slot.directionSelect.value = direction;
+    slot.directionLabel.textContent = skinViewDirectionLabel(direction);
     slot.axis.textContent = skinViewAxisLegend(direction);
     this.resetViewportCamera(index, false);
     this.syncViewportHud();
@@ -751,7 +873,10 @@ export class SkinRenderer {
     const x = clientX - canvasRect.left;
     const y = clientY - canvasRect.top;
     if (x < 0 || y < 0 || x > canvasRect.width || y > canvasRect.height) return null;
-    return skinViewportAtPoint(x, y, canvasRect.width, canvasRect.height, this.viewportMode, this.selectedViewport);
+    return skinViewportAtPoint(
+      x, y, canvasRect.width, canvasRect.height, this.viewportMode, this.selectedViewport,
+      { x: this.fourSplitX, y: this.fourSplitY },
+    );
   }
 
   activateViewportAt(clientX: number, clientY: number): boolean {
@@ -762,9 +887,7 @@ export class SkinRenderer {
   }
 
   private syncViewportHud(): void {
-    const rects = skinViewportRects(
-      this.container.clientWidth, this.container.clientHeight, this.viewportMode, this.selectedViewport,
-    );
+    const rects = this.viewportRects();
     const rectByIndex = new Map(rects.map((rect) => [rect.index, rect]));
     this.container.classList.toggle("multi-view-four", this.viewportMode === "four");
     this.openingLineLayer.style.display = this.viewportMode === "four" ? "none" : "";
@@ -774,6 +897,7 @@ export class SkinRenderer {
       const rect = rectByIndex.get(index);
       slot.frame.hidden = !rect;
       slot.frame.classList.toggle("is-selected", index === this.selectedViewport);
+      slot.controlRow.classList.toggle("is-selected", index === this.selectedViewport);
       if (!rect) continue;
       Object.assign(slot.frame.style, {
         left: rect.x + "px",
@@ -786,6 +910,11 @@ export class SkinRenderer {
     this.oneViewButton.classList.toggle("is-active", this.viewportMode === "one");
     this.fourViewsButton.classList.toggle("is-active", this.viewportMode === "four");
     this.returnToFourButton.hidden = this.viewportMode === "four";
+    const showSplitters = this.viewportMode === "four";
+    this.verticalViewportDivider.hidden = !showSplitters;
+    this.horizontalViewportDivider.hidden = !showSplitters;
+    this.verticalViewportDivider.style.left = `${this.fourSplitX * 100}%`;
+    this.horizontalViewportDivider.style.top = `${this.fourSplitY * 100}%`;
   }
 
   setViewportBoundsFromPositions(positions: Float32Array): void {
@@ -810,7 +939,12 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
-  captureEditorViewDraft(): SkinEditorViewDraftV1 {
+  captureEditorViewDraft(layout?: SkinEditorLayoutDraftV1): SkinEditorViewDraftV1 {
+    const editorLayout = layout ? {
+      ...layout,
+      fourSplitX: this.fourSplitX,
+      fourSplitY: this.fourSplitY,
+    } : undefined;
     return validateSkinEditorViewDraft({
       schema: SKIN_EDITOR_VIEW_SCHEMA,
       mode: this.viewportMode,
@@ -824,6 +958,7 @@ export class SkinRenderer {
           zoom: slot.camera.zoom,
         },
       })),
+      ...(editorLayout ? { layout: editorLayout } : {}),
     });
   }
 
@@ -831,10 +966,15 @@ export class SkinRenderer {
     const draft = validateSkinEditorViewDraft(value);
     this.viewportMode = draft.mode;
     this.selectedViewport = draft.selectedViewport;
+    if (draft.layout) {
+      this.fourSplitX = draft.layout.fourSplitX;
+      this.fourSplitY = draft.layout.fourSplitY;
+    }
     for (const [index, saved] of draft.viewports.entries()) {
       const slot = this.viewportSlots[index];
       slot.direction = saved.direction;
       slot.directionSelect.value = saved.direction;
+      slot.directionLabel.textContent = skinViewDirectionLabel(saved.direction);
       slot.axis.textContent = skinViewAxisLegend(saved.direction);
       slot.controls.noRotate = saved.direction !== "axome";
       slot.camera.position.fromArray(saved.camera.position);
@@ -2368,7 +2508,10 @@ export class SkinRenderer {
   render(): void {
     const width = Math.max(1, this.container.clientWidth);
     const height = Math.max(1, this.container.clientHeight);
-    const rects = skinViewportRects(width, height, this.viewportMode, this.selectedViewport);
+    const rects = skinViewportRects(
+      width, height, this.viewportMode, this.selectedViewport,
+      { x: this.fourSplitX, y: this.fourSplitY },
+    );
     this.applyViewportClippingToScene();
     this.renderer.setScissorTest(true);
     this.renderer.autoClear = false;

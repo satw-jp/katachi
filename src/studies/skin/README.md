@@ -209,6 +209,19 @@ Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全
 
 4面checkpoint直後の初回起動では、module評価中の初期状態更新がdemand-driven描画スケジューラの状態変数初期化より先に`render()`へ到達し、`ReferenceError`でメインcanvasが黒いまま停止した。描画スケジューラ状態を他のapp stateと同じ初期化領域へ移し、最初の`afterMutation()`より前に必ず初期化する。これは起動順だけの修正で、4 camera、scene、形状、分類、Support Paint、Profile、validationを変更しない。
 
+### 制作環境Observation — 3ペインと調整可能な作業領域（2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> 左にペインを作って『生成結果を見る』『CLIP XYZ』[1View/4View]等はまとめたい
+> 各ペインの幅は自分で調整できるようにしたい
+
+これは分類規則や形状の承認ではなく、Support Paintと形状観察を続ける制作環境についてのObservationである。画面を左ツールペイン、中央3D viewport、右Propertiesへ分ける。左には生成結果の表示方式、1 View／4 Views、各viewport方向、XYZ clipping、support-siteの前面／背面・mixed・footprintなど表示専用操作を集約する。中央は共有sceneの1面／4面描画、Support Paintのbrush cursor、viewport名と最大化操作だけを担う。右は形状生成、Dry Web／scaffold、Print Profile、validation、生成と保存の設定を維持する。同じ表示操作をcanvasへ重複配置しない。
+
+左右dividerはpointer captureでdragし、requestAnimationFrameごとに最大1回だけ幅とWebGL camera aspectを更新する。drag中はcameraとSupport Paintへ入力を渡さず、double clickで標準幅へ戻す。左右paneはdivider buttonで折りたため、狭い画面では中央の操作可能幅を優先して片側を自動的に閉じる。4面内の縦横dividerも同じくdragでき、共有scene／geometry／support-site bufferを複製せずscissor境界と4 cameraのprojectionだけを更新する。
+
+左右pane幅、開閉状態、4面divider比は検証済みeditor layoutとしてlocalStorageとoptionalなSupport Paint editor draftへ保存し、次回起動またはdraft読込で復元する。Shape Recipe、Print Profile、Profile SHA、validation、routing、3MF、archiveには含めず、形状、分類、Support Paint stroke、clipping plane自体、`printApproval=false`を変更しない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

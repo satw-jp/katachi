@@ -102,6 +102,7 @@ export interface UiCallbacks {
   onToggleOverhangSupportSites: (show: boolean) => void;
   onSetOverhangSupportDepthMode: (mode: SupportSiteDepthMode) => void;
   onToggleMixedSupportFaces: (show: boolean) => void;
+  onToggleSupportFootprint: (show: boolean) => void;
   onSetSupportPaintEnabled: (enabled: boolean) => void;
   onSetSupportPaintMode: (mode: SupportPaintMode) => void;
   onSetSupportPaintRadiusMm: (radiusMm: number) => void;
@@ -185,6 +186,7 @@ export interface UiCallbacks {
 
 export interface UiHandles {
   root: HTMLElement;
+  displayToolsRoot: HTMLElement;
   setHistoryCount: (n: number) => void;
   setUndoHistory: (labels: string[]) => void;
   setUndoStatus: (text: string) => void;
@@ -287,7 +289,7 @@ export interface UiHandles {
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
-  setOverhangSupportSiteOverlay: (available: boolean, show: boolean, showMixed: boolean, depthMode: SupportSiteDepthMode, text: string, ok?: boolean) => void;
+  setOverhangSupportSiteOverlay: (available: boolean, show: boolean, showMixed: boolean, showFootprint: boolean, depthMode: SupportSiteDepthMode, text: string, ok?: boolean) => void;
   setOverhangSupportSiteSelection: (text: string, classification?: SupportSiteClassification) => void;
   setSupportPaintState: (state: {
     available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
@@ -394,6 +396,12 @@ export function buildUi(
 ): UiHandles {
   const root = document.createElement("div");
   root.className = "panel";
+  const displayToolsRoot = document.createElement("div");
+  displayToolsRoot.className = "skin-display-tools";
+  const displayToolsTitle = document.createElement("strong");
+  displayToolsTitle.className = "skin-display-tools-title";
+  displayToolsTitle.textContent = "表示";
+  displayToolsRoot.appendChild(displayToolsTitle);
 
   const undoDock = document.createElement("div");
   undoDock.className = "history-undo-dock";
@@ -1517,7 +1525,7 @@ export function buildUi(
   internalObservationHint.className = "hint internal-observation-hint";
   internalObservationHint.textContent =
     "表示だけを切り替えます。Surface生成・履歴・メッシュ書き出しは変わりません。";
-  internalControls.append(internalObservationLabel, internalObservationToggle, internalObservationHint);
+  displayToolsRoot.append(internalObservationLabel, internalObservationToggle, internalObservationHint);
 
   const internalDensitySlider = buildSlider(
     "Density（内部点数）", 8, 72, 1, skinParams.internalDensity,
@@ -1627,6 +1635,14 @@ export function buildUi(
   const mixedFaceLabel = document.createElement("span");
   mixedFaceLabel.textContent = "mixed faceの紫輪郭を表示（診断のみ）";
   mixedFaceToggle.append(mixedFaceCheckbox, mixedFaceLabel);
+  const footprintToggle = document.createElement("label");
+  footprintToggle.className = "footprint-toggle";
+  const footprintCheckbox = document.createElement("input");
+  footprintCheckbox.type = "checkbox";
+  footprintCheckbox.checked = true;
+  footprintCheckbox.disabled = true;
+  footprintCheckbox.onchange = () => callbacks.onToggleSupportFootprint(footprintCheckbox.checked);
+  footprintToggle.append(footprintCheckbox, document.createTextNode(" base外周footprintを表示"));
   const supportSiteStatus = document.createElement("div");
   supportSiteStatus.className = "mesh-status support-site-status";
   supportSiteStatus.textContent = "支持点は未診断";
@@ -1735,20 +1751,23 @@ export function buildUi(
     surfaceAngleHint,
     surfaceAngleThresholdSlider.row,
     surfaceAngleActions,
-    surfaceAngleLegend,
     surfaceAngleStatus,
-    supportSiteToggle,
-    supportDepthMode,
-    mixedFaceToggle,
-    supportSiteStatus,
-    supportSiteSelectionStatus,
     supportPaintPanel,
-    motifLowestToggle,
-    motifLowestHint,
-    motifLowestStatus,
     surfaceAngleLimit,
   );
   internalPanel.appendChild(surfaceAnglePanel);
+  displayToolsRoot.append(
+    surfaceAngleLegend,
+    supportSiteToggle,
+    supportDepthMode,
+    mixedFaceToggle,
+    footprintToggle,
+    supportSiteStatus,
+    supportSiteSelectionStatus,
+    motifLowestToggle,
+    motifLowestHint,
+    motifLowestStatus,
+  );
 
   function renderInternalObservation(mode: InternalObservationMode): void {
     for (const [candidate, button] of internalObservationButtons) {
@@ -1840,7 +1859,7 @@ export function buildUi(
   quickResolutionRow.appendChild(quickResolutionInput);
   viewDock.append(viewToggle, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
   const viewportElement = container.querySelector("#viewport") ?? container;
-  viewportElement.appendChild(viewDock);
+  displayToolsRoot.appendChild(viewDock);
 
   const clippingHud = document.createElement("section");
   clippingHud.className = "viewport-clipping-hud";
@@ -1907,7 +1926,7 @@ export function buildUi(
     clippingRows.set(axis, { row, enabled, slider, direction, value, reset });
     clippingHud.appendChild(row);
   }
-  viewportElement.appendChild(clippingHud);
+  displayToolsRoot.appendChild(clippingHud);
 
   const viewportTaskStatus = document.createElement("section");
   viewportTaskStatus.className = "viewport-task-status";
@@ -1931,11 +1950,11 @@ export function buildUi(
   elementNamesToggle.checked = false;
   elementNamesToggle.onchange = () => callbacks.onToggleElementNames(elementNamesToggle.checked);
   elementNamesRow.append(elementNamesToggle, document.createTextNode(" 要素番号を常に表示"));
-  root.appendChild(elementNamesRow);
+  displayToolsRoot.appendChild(elementNamesRow);
   const elementNamesHint = document.createElement("div");
   elementNamesHint.className = "hint";
   elementNamesHint.textContent = "通常はカーソルを重ねた要素と選択中の要素だけ表示します。常時表示では代表24要素を表示します。";
-  root.appendChild(elementNamesHint);
+  displayToolsRoot.appendChild(elementNamesHint);
 
   // Compact review registry: names remain derived in main.ts; this panel only
   // edits the explicit saved review fields for the selected machine key.
@@ -3314,6 +3333,7 @@ export function buildUi(
 
   return {
     root,
+    displayToolsRoot,
     setElementRegistry: (rows, selectedId) => { registryRows = rows; registrySelected = selectedId; renderRegistry(); },
     setElementEditStatus: (text, ok) => { editorStatus.textContent = text; editorStatus.classList.toggle("warn", ok === false); },
     getElementMoveStep: () => bounded(moveStep, 0.05),
@@ -3503,7 +3523,7 @@ export function buildUi(
         button.classList.toggle("mode-active", available && candidate === view);
       }
     },
-    setOverhangSupportSiteOverlay: (available, show, showMixed, depthMode, text, ok) => {
+    setOverhangSupportSiteOverlay: (available, show, showMixed, showFootprint, depthMode, text, ok) => {
       supportSiteCheckbox.disabled = !available;
       supportSiteCheckbox.checked = show;
       for (const [mode, button] of supportDepthButtons) {
@@ -3512,6 +3532,8 @@ export function buildUi(
       }
       mixedFaceCheckbox.disabled = !available;
       mixedFaceCheckbox.checked = showMixed;
+      footprintCheckbox.disabled = !available;
+      footprintCheckbox.checked = showFootprint;
       supportSiteStatus.textContent = text;
       supportSiteStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },

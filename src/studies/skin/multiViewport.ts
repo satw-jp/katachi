@@ -1,3 +1,8 @@
+import {
+  validateSkinEditorLayoutDraft,
+  type SkinEditorLayoutDraftV1,
+} from "./editorLayout.ts";
+
 export const SKIN_EDITOR_VIEW_SCHEMA = "katachi.skin.editor-view.v1" as const;
 
 export const SKIN_VIEW_DIRECTIONS = [
@@ -22,6 +27,8 @@ export interface SkinEditorViewDraftV1 {
     direction: SkinViewDirection;
     camera: SkinViewportCameraPose;
   }>;
+  /** Editor-only chrome. Never copied into Recipe, Print Profile, or 3MF. */
+  layout?: SkinEditorLayoutDraftV1;
 }
 
 export interface SkinViewportRect {
@@ -69,13 +76,16 @@ export function skinViewportRects(
   height: number,
   mode: SkinViewportMode,
   selectedViewport: number,
+  split: { x: number; y: number } = { x: 0.5, y: 0.5 },
 ): SkinViewportRect[] {
   const safeWidth = Math.max(1, width);
   const safeHeight = Math.max(1, height);
   const selected = Math.max(0, Math.min(3, Math.trunc(selectedViewport)));
   if (mode === "one") return [{ index: selected, x: 0, y: 0, width: safeWidth, height: safeHeight }];
-  const leftWidth = Math.floor(safeWidth / 2);
-  const topHeight = Math.floor(safeHeight / 2);
+  const splitX = Math.max(0.2, Math.min(0.8, split.x));
+  const splitY = Math.max(0.2, Math.min(0.8, split.y));
+  const leftWidth = Math.floor(safeWidth * splitX);
+  const topHeight = Math.floor(safeHeight * splitY);
   return [
     { index: 0, x: 0, y: 0, width: leftWidth, height: topHeight },
     { index: 1, x: leftWidth, y: 0, width: safeWidth - leftWidth, height: topHeight },
@@ -91,8 +101,9 @@ export function skinViewportAtPoint(
   height: number,
   mode: SkinViewportMode,
   selectedViewport: number,
+  split?: { x: number; y: number },
 ): SkinViewportRect | null {
-  return skinViewportRects(width, height, mode, selectedViewport).find((rect) => (
+  return skinViewportRects(width, height, mode, selectedViewport, split).find((rect) => (
     x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height
   )) ?? null;
 }
@@ -132,5 +143,6 @@ export function validateSkinEditorViewDraft(value: unknown): SkinEditorViewDraft
       },
     };
   });
-  return { schema: SKIN_EDITOR_VIEW_SCHEMA, mode: root.mode, selectedViewport, viewports };
+  const layout = root.layout === undefined ? undefined : validateSkinEditorLayoutDraft(root.layout);
+  return { schema: SKIN_EDITOR_VIEW_SCHEMA, mode: root.mode, selectedViewport, viewports, ...(layout ? { layout } : {}) };
 }
