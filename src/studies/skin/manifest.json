@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.73.0",
+  "version": "0.73.1",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.73.1 Rhino input refinement. Shift+left-drag now pans the camera in every viewport, including while Support Paint is enabled, and is intercepted before selection, direct manipulation or paint can start. Plain left input remains selection/Support Paint; Axome plain right-drag remains pole-free continuous rotate. Camera state stays editor-draft-only and geometry, classification, routing, Profile, validation and output remain unchanged."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.73.0 Rhino-style independent four-view camera input. Orthographic Top/Bottom/Front/Back/Left/Right keep their standard direction and use right-drag pan plus wheel zoom; Axome uses pole-free right-drag quaternion rotate, Shift+right-drag pan, and wheel zoom. Command+right vertical drag zooms every view. Left click/drag remains exclusively selection, direct manipulation and Support Paint; right-camera pointer capture suppresses brush/selection and canvas context menus. Gesture and wheel start activate only the pointer viewport. Camera position/up/target/zoom remain independent and editor-draft-only; title double-click toggles maximize/four-view and Reset restores the direction default around the object centre. Shared clipping, overlays and Support Paint buffers, geometry, classification, routing, Print Profile, validation, 3MF/archive and printApproval=false are unchanged."

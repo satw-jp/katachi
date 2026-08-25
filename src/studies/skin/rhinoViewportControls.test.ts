@@ -11,8 +11,9 @@ function camera(): THREE.OrthographicCamera {
   return value;
 }
 
-test("Rhino right-drag mapping preserves left input for selection and paint", () => {
+test("Rhino drag mapping preserves plain left input and adds Shift-left pan", () => {
   assert.equal(shouldStartRhinoCameraGesture(0), false);
+  assert.equal(shouldStartRhinoCameraGesture(0, true), true);
   assert.equal(shouldStartRhinoCameraGesture(2), true);
   assert.equal(resolveRhinoViewportGesture("top", { shiftKey: false, metaKey: false }), "pan");
   assert.equal(resolveRhinoViewportGesture("front", { shiftKey: true, metaKey: false }), "pan");

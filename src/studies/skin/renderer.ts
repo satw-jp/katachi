@@ -710,13 +710,14 @@ export class SkinRenderer {
   private configureRhinoCameraInput(): void {
     const canvas = this.renderer.domElement;
     canvas.addEventListener("pointerdown", (event) => {
-      if (event.button === 0) {
+      const shiftLeftPan = event.button === 0 && event.shiftKey;
+      if (event.button === 0 && !shiftLeftPan) {
         // The viewport's capture handler already owns left select/drag/paint.
         // Do not let TrackballControls acquire that pointer afterward.
         event.stopImmediatePropagation();
         return;
       }
-      if (!shouldStartRhinoCameraGesture(event.button) || !this.orbitEnabled || this.rhinoCameraDrag) return;
+      if (!shouldStartRhinoCameraGesture(event.button, event.shiftKey) || !this.orbitEnabled || this.rhinoCameraDrag) return;
       const viewportRect = this.viewportRectFromClient(event.clientX, event.clientY);
       if (!viewportRect) return;
       this.selectViewport(viewportRect.index);
@@ -724,7 +725,7 @@ export class SkinRenderer {
       this.rhinoCameraDrag = {
         pointerId: event.pointerId,
         viewportIndex: viewportRect.index,
-        gesture: resolveRhinoViewportGesture(slot.direction, {
+        gesture: shiftLeftPan ? "pan" : resolveRhinoViewportGesture(slot.direction, {
           shiftKey: event.shiftKey,
           metaKey: event.metaKey,
         }),

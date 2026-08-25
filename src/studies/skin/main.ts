@@ -2088,6 +2088,11 @@ viewport.addEventListener("pointerdown", (e) => {
   // acquires pointer capture; HUD and toolbar descendants remain untouched.
   if (e.target !== skinRenderer.renderer.domElement) return;
   skinRenderer.activateViewportAt(e.clientX, e.clientY);
+  if (e.button === 0 && e.shiftKey) {
+    // Shift + left drag belongs to the viewport camera even while paint is enabled.
+    pointerDownPos = null;
+    return;
+  }
   if (supportPaintEnabled) {
     pointerDownPos = null;
     if (e.button !== 0 || !overhangSupportResult) return;

@@ -3,8 +3,8 @@ import type { SkinViewDirection } from "./multiViewport.ts";
 
 export type RhinoViewportGesture = "rotate" | "pan" | "zoom";
 
-export function shouldStartRhinoCameraGesture(button: number): boolean {
-  return button === 2;
+export function shouldStartRhinoCameraGesture(button: number, shiftKey = false): boolean {
+  return button === 2 || (button === 0 && shiftKey);
 }
 
 export function resolveRhinoViewportGesture(
