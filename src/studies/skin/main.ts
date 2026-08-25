@@ -238,7 +238,15 @@ const bottomAutosaveStatus = document.createElement("div");
 bottomAutosaveStatus.className = "skin-bottom-autosave";
 bottomAutosaveStatus.textContent = "Autosave | 未保存";
 bottomAutosaveStatus.setAttribute("aria-live", "polite");
-bottomPane.append(bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus);
+const bottomReviewTools = document.createElement("div");
+bottomReviewTools.className = "skin-bottom-review-tools";
+bottomReviewTools.hidden = true;
+const bottomReviewLegend = document.createElement("span");
+bottomReviewLegend.className = "skin-bottom-review-legend";
+const bottomReviewChoices = document.createElement("nav");
+bottomReviewChoices.className = "skin-bottom-review-choices";
+bottomReviewTools.append(bottomReviewLegend, bottomReviewChoices);
+bottomPane.append(bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus, bottomReviewTools);
 
 const bottomPaneDivider = document.createElement("div");
 bottomPaneDivider.className = "skin-bottom-pane-divider";
@@ -5481,30 +5489,24 @@ function updateEmptyViewportHint(): void {
 
 function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV088ReviewSelection>): void {
   document.querySelector(".local-v088-review-navigation")?.remove();
-  const panel = document.createElement("aside");
-  panel.className = "local-v088-review-navigation";
-  const legend = document.createElement("span");
-  legend.className = "local-v088-review-legend";
-  legend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意）";
-  const navigation = document.createElement("nav");
-  navigation.className = "local-v088-review-choices";
+  bottomReviewTools.hidden = false;
+  bottomReviewLegend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意）";
+  bottomReviewChoices.replaceChildren();
   const choices: Array<[string, LocalV088ReviewCase, LocalV088ReviewView]> = [
     ["A 上", "A", "top"], ["A 横", "A", "side"], ["A 裏", "A", "back"],
     ["B 上", "B", "top"], ["B 横", "B", "side"], ["B 裏", "B", "back"],
   ];
   for (const [label, reviewCase, view] of choices) {
     const link = document.createElement("a");
-    link.className = "local-v088-review-choice";
+    link.className = "skin-bottom-review-choice";
     link.textContent = label;
     link.href = "?reviewCase=" + reviewCase + "&view=" + view
       + (new URLSearchParams(window.location.search).get("views") === "four" ? "&views=four" : "");
     const active = reviewCase === selection.reviewCase && view === selection.view;
     link.classList.toggle("is-active", active);
     if (active) link.setAttribute("aria-current", "page");
-    navigation.append(link);
+    bottomReviewChoices.append(link);
   }
-  panel.append(legend, navigation);
-  leftPaneBody.prepend(panel);
   refreshBottomStatusPane();
 }
 
