@@ -1819,69 +1819,85 @@ details.mesh-export:not([open]) > :not(summary) {
 .viewport-clipping-row.is-enabled { background: rgba(28,28,26,.055); }
 .viewport-clipping-value { color: var(--muted); }
 
-.multi-viewport-controls {
-  order: -2;
-  display: grid;
-  gap: 5px;
-  padding: 7px;
-  border: 1px solid var(--hairline);
-}
-
-.multi-viewport-controls > strong {
-  font-size: 9px;
-  letter-spacing: .12em;
-}
-
 .multi-viewport-layout-toggle {
-  position: static;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 3px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  position: absolute;
+  z-index: 6;
+  top: 8px;
+  right: 8px;
+  bottom: auto;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid rgba(255,255,255,.38);
+  background: rgba(9,11,14,.82);
   pointer-events: auto;
 }
 
-.multi-viewport-layout-toggle button,
-.multi-viewport-control-row button,
-.multi-viewport-control-row select {
+.multi-viewport-layout-toggle button {
+  width: 24px;
   min-width: 0;
-  padding: 4px 5px;
-  border: 1px solid var(--hairline);
-  background: var(--paper);
-  color: var(--ink);
+  padding: 3px 0;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(10,12,15,.82);
+  color: rgba(255,255,255,.88);
   font: inherit;
 }
 
 .multi-viewport-layout-toggle button.is-active {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.multi-viewport-control-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  gap: 4px;
-  align-items: center;
-  padding: 3px;
-  border-left: 2px solid transparent;
-}
-
-.multi-viewport-control-row.is-selected {
-  border-left-color: var(--ink);
-  background: rgba(28,28,26,.045);
+  border-color: #fff;
+  background: #f2f2f2;
+  color: #111;
 }
 
 .multi-viewport-frame-header {
+  z-index: 5;
   top: 5px !important;
 }
 
-.multi-viewport-frame-header strong {
-  min-width: 42px;
-  padding-left: 3px;
+.multi-viewport-title-button {
+  min-width: 54px !important;
+  font-weight: 700 !important;
+  text-align: left;
+  white-space: nowrap;
 }
+
+.multi-viewport-title-button.is-active {
+  border-color: #fff;
+  background: rgba(255,255,255,.94);
+  color: #111;
+}
+
+.multi-viewport-direction-menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  display: grid;
+  min-width: 108px;
+  max-height: min(260px, calc(100vh - 100px));
+  overflow-y: auto;
+  padding: 3px;
+  border: 1px solid rgba(255,255,255,.42);
+  background: rgba(9,11,14,.96);
+  box-shadow: 0 5px 18px rgba(0,0,0,.38);
+  pointer-events: auto;
+}
+
+.multi-viewport-direction-menu[hidden] { display: none; }
+
+.multi-viewport-direction-menu button {
+  width: 100%;
+  padding: 4px 7px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  background: transparent;
+  color: rgba(255,255,255,.9);
+  font: inherit;
+  text-align: left;
+}
+
+.multi-viewport-direction-menu button:last-child { border-bottom: 0; }
+.multi-viewport-direction-menu button:hover,
+.multi-viewport-direction-menu button:focus-visible { background: rgba(255,255,255,.16); }
 
 .multi-viewport-splitter {
   position: absolute;

@@ -505,7 +505,6 @@ let tutorialUi: TutorialPersistedUi = loadTutorialPersistedUi();
 let tutorialDisplayedStep: TutorialStepId | null = null;
 
 const skinRenderer = new SkinRenderer(viewport);
-skinRenderer.mountViewportControls(leftPaneBody);
 skinRenderer.setFourViewSplit(editorLayoutState.fourSplitX, editorLayoutState.fourSplitY);
 
 function refreshBottomStatusPane(): void {
@@ -1227,7 +1226,6 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
 });
 rightPaneBody.appendChild(ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
-skinRenderer.mountViewportControls(ui.displayToolsRoot);
 
 function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): void {
   let drag: {

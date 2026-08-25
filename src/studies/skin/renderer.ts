@@ -46,6 +46,7 @@ import {
   skinViewDirectionLabel,
   skinViewportAtPoint,
   skinViewportRects,
+  toggleSkinViewportMode,
   validateSkinEditorViewDraft,
   type SkinEditorViewDraftV1,
   type SkinViewDirection,
@@ -144,10 +145,9 @@ interface SkinViewportSlot {
   controls: TrackballControls;
   direction: SkinViewDirection;
   frame: HTMLDivElement;
-  directionSelect: HTMLSelectElement;
-  directionLabel: HTMLElement;
+  directionButton: HTMLButtonElement;
+  directionMenu: HTMLDivElement;
   axis: HTMLSpanElement;
-  controlRow: HTMLDivElement;
 }
 
 const SUPPORT_MARKER_VERTEX_SHADER = /* glsl */ `
@@ -244,15 +244,14 @@ export class SkinRenderer {
   readonly renderer: THREE.WebGLRenderer;
   private readonly viewportSlots: SkinViewportSlot[] = [];
   private viewportMode: SkinViewportMode = "one";
+  private fourViewInitialized = false;
   private selectedViewport = 1;
   private viewportHalfHeight = 3.2;
   private viewportCenter = new THREE.Vector3();
   private viewportDistance = 8;
   private readonly viewportHud: HTMLDivElement;
-  private readonly viewportControls: HTMLElement;
   private readonly oneViewButton: HTMLButtonElement;
   private readonly fourViewsButton: HTMLButtonElement;
-  private readonly returnToFourButton: HTMLButtonElement;
   private readonly verticalViewportDivider: HTMLDivElement;
   private readonly horizontalViewportDivider: HTMLDivElement;
   private fourSplitX = 0.5;
@@ -517,33 +516,37 @@ export class SkinRenderer {
     this.viewportHud = document.createElement("div");
     this.viewportHud.className = "multi-viewport-hud";
     this.viewportHud.setAttribute("aria-label", "3D viewport layout");
-    this.viewportControls = document.createElement("section");
-    this.viewportControls.className = "multi-viewport-controls";
-    const controlsTitle = document.createElement("strong");
-    controlsTitle.textContent = "Viewport";
     this.oneViewButton = document.createElement("button");
     this.oneViewButton.type = "button";
-    this.oneViewButton.textContent = "1 View";
-    this.oneViewButton.onclick = () => this.setViewportMode("one", true);
+    this.oneViewButton.textContent = "1";
+    this.oneViewButton.title = "1 View";
+    this.oneViewButton.setAttribute("aria-label", "1 View");
+    this.oneViewButton.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.setViewportMode("one", true);
+    };
     this.fourViewsButton = document.createElement("button");
     this.fourViewsButton.type = "button";
-    this.fourViewsButton.textContent = "4 Views";
-    this.fourViewsButton.onclick = () => this.setViewportMode("four", true);
-    this.returnToFourButton = document.createElement("button");
-    this.returnToFourButton.type = "button";
-    this.returnToFourButton.textContent = "4面へ戻る";
-    this.returnToFourButton.onclick = () => this.setViewportMode("four", true);
+    this.fourViewsButton.textContent = "4";
+    this.fourViewsButton.title = "4 Views";
+    this.fourViewsButton.setAttribute("aria-label", "4 Views");
+    this.fourViewsButton.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.setViewportMode("four", true);
+    };
     const layoutToggle = document.createElement("div");
     layoutToggle.className = "multi-viewport-layout-toggle";
-    layoutToggle.append(this.oneViewButton, this.fourViewsButton, this.returnToFourButton);
-    this.viewportControls.append(controlsTitle, layoutToggle);
+    layoutToggle.setAttribute("aria-label", "viewport layout");
+    layoutToggle.append(this.oneViewButton, this.fourViewsButton);
     this.verticalViewportDivider = document.createElement("div");
     this.verticalViewportDivider.className = "multi-viewport-splitter is-vertical";
     this.horizontalViewportDivider = document.createElement("div");
     this.horizontalViewportDivider.className = "multi-viewport-splitter is-horizontal";
     this.configureViewportDivider(this.verticalViewportDivider, "x");
     this.configureViewportDivider(this.horizontalViewportDivider, "y");
-    this.viewportHud.append(this.verticalViewportDivider, this.horizontalViewportDivider);
+    this.viewportHud.append(layoutToggle, this.verticalViewportDivider, this.horizontalViewportDivider);
     container.appendChild(this.viewportHud);
 
     this.openingLineLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -598,49 +601,66 @@ export class SkinRenderer {
       frame.dataset.viewport = String(index);
       const header = document.createElement("div");
       header.className = "multi-viewport-frame-header";
-      const directionLabel = document.createElement("strong");
-      directionLabel.textContent = skinViewDirectionLabel(direction);
+      const directionButton = document.createElement("button");
+      directionButton.type = "button";
+      directionButton.className = "multi-viewport-title-button";
+      directionButton.textContent = `${skinViewDirectionLabel(direction)} ▼`;
+      directionButton.setAttribute("aria-haspopup", "menu");
+      directionButton.setAttribute("aria-expanded", "false");
+      directionButton.setAttribute("aria-label", `viewport ${index + 1}: ${skinViewDirectionLabel(direction)}`);
       const axis = document.createElement("span");
       axis.className = "multi-viewport-axis";
       axis.textContent = skinViewAxisLegend(direction);
-      const maximize = document.createElement("button");
-      maximize.type = "button";
-      maximize.textContent = "□";
-      maximize.title = "このviewportを1面表示";
-      maximize.onclick = () => { this.selectViewport(index); this.setViewportMode("one", true); };
-      header.append(directionLabel, axis, maximize);
-      header.ondblclick = (event) => {
-        if ((event.target as Element).closest("button")) return;
+      const directionMenu = document.createElement("div");
+      directionMenu.className = "multi-viewport-direction-menu";
+      directionMenu.setAttribute("role", "menu");
+      directionMenu.hidden = true;
+      for (const optionDirection of SKIN_VIEW_DIRECTIONS) {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.setAttribute("role", "menuitem");
+        option.textContent = skinViewDirectionLabel(optionDirection);
+        option.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.selectViewport(index);
+          this.setViewportDirection(index, optionDirection, true);
+          this.closeViewportDirectionMenus();
+        };
+        directionMenu.appendChild(option);
+      }
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.setAttribute("role", "menuitem");
+      reset.textContent = "Reset View";
+      reset.onclick = (event) => {
         event.preventDefault();
         event.stopPropagation();
         this.selectViewport(index);
-        this.setViewportMode(this.viewportMode === "four" ? "one" : "four", true);
+        this.resetViewportCamera(index, true);
+        this.closeViewportDirectionMenus();
       };
+      directionMenu.appendChild(reset);
+      directionButton.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const open = directionMenu.hidden;
+        this.selectViewport(index);
+        this.closeViewportDirectionMenus();
+        directionMenu.hidden = !open;
+        directionButton.setAttribute("aria-expanded", String(open));
+      };
+      directionButton.ondblclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.closeViewportDirectionMenus();
+        this.selectViewport(index);
+        this.setViewportMode(toggleSkinViewportMode(this.viewportMode), true);
+      };
+      header.append(directionButton, axis, directionMenu);
       frame.appendChild(header);
       this.viewportHud.appendChild(frame);
-
-      const controlRow = document.createElement("div");
-      controlRow.className = "multi-viewport-control-row";
-      const controlLabel = document.createElement("span");
-      controlLabel.textContent = String(index + 1);
-      const directionSelect = document.createElement("select");
-      directionSelect.setAttribute("aria-label", `viewport ${index + 1} direction`);
-      for (const optionDirection of SKIN_VIEW_DIRECTIONS) {
-        const option = document.createElement("option");
-        option.value = optionDirection;
-        option.textContent = skinViewDirectionLabel(optionDirection);
-        directionSelect.appendChild(option);
-      }
-      directionSelect.value = direction;
-      directionSelect.onchange = () => this.setViewportDirection(index, directionSelect.value as SkinViewDirection, true);
-      const reset = document.createElement("button");
-      reset.type = "button";
-      reset.textContent = "Reset";
-      reset.title = `${skinViewDirectionLabel(direction)} camera reset`;
-      reset.onclick = () => this.resetViewportCamera(index, true);
-      controlRow.append(controlLabel, directionSelect, reset);
-      this.viewportControls.appendChild(controlRow);
-      this.viewportSlots.push({ camera, controls, direction, frame, directionSelect, directionLabel, axis, controlRow });
+      this.viewportSlots.push({ camera, controls, direction, frame, directionButton, directionMenu, axis });
     }
     for (let index = 0; index < this.viewportSlots.length; index++) this.resetViewportCamera(index, false);
     this.configureRhinoCameraInput();
@@ -703,8 +723,11 @@ export class SkinRenderer {
     return this.viewportSlots[this.selectedViewport].controls;
   }
 
-  mountViewportControls(container: HTMLElement): void {
-    container.appendChild(this.viewportControls);
+  private closeViewportDirectionMenus(): void {
+    for (const slot of this.viewportSlots) {
+      slot.directionMenu.hidden = true;
+      slot.directionButton.setAttribute("aria-expanded", "false");
+    }
   }
 
   private configureRhinoCameraInput(): void {
@@ -944,8 +967,8 @@ export class SkinRenderer {
     const slot = this.viewportSlots[index];
     if (!slot || !SKIN_VIEW_DIRECTIONS.includes(direction)) return;
     slot.direction = direction;
-    slot.directionSelect.value = direction;
-    slot.directionLabel.textContent = skinViewDirectionLabel(direction);
+    slot.directionButton.textContent = `${skinViewDirectionLabel(direction)} ▼`;
+    slot.directionButton.setAttribute("aria-label", `viewport ${index + 1}: ${skinViewDirectionLabel(direction)}`);
     slot.axis.textContent = skinViewAxisLegend(direction);
     this.resetViewportCamera(index, false);
     this.syncViewportHud();
@@ -953,6 +976,13 @@ export class SkinRenderer {
   }
 
   setViewportMode(mode: SkinViewportMode, notify = false): void {
+    if (mode === "four" && !this.fourViewInitialized) {
+      this.fourViewInitialized = true;
+      for (const [index, direction] of DEFAULT_SKIN_VIEW_DIRECTIONS.entries()) {
+        if (this.viewportSlots[index]?.direction !== direction) this.setViewportDirection(index, direction, false);
+      }
+    }
+    this.closeViewportDirectionMenus();
     this.viewportMode = mode;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mode === "four" ? 1.5 : 2));
     this.resize();
@@ -1001,7 +1031,7 @@ export class SkinRenderer {
       const rect = rectByIndex.get(index);
       slot.frame.hidden = !rect;
       slot.frame.classList.toggle("is-selected", index === this.selectedViewport);
-      slot.controlRow.classList.toggle("is-selected", index === this.selectedViewport);
+      slot.directionButton.classList.toggle("is-active", index === this.selectedViewport);
       if (!rect) continue;
       Object.assign(slot.frame.style, {
         left: rect.x + "px",
@@ -1013,7 +1043,6 @@ export class SkinRenderer {
     }
     this.oneViewButton.classList.toggle("is-active", this.viewportMode === "one");
     this.fourViewsButton.classList.toggle("is-active", this.viewportMode === "four");
-    this.returnToFourButton.hidden = this.viewportMode === "four";
     const showSplitters = this.viewportMode === "four";
     this.verticalViewportDivider.hidden = !showSplitters;
     this.horizontalViewportDivider.hidden = !showSplitters;
@@ -1069,6 +1098,7 @@ export class SkinRenderer {
   restoreEditorViewDraft(value: SkinEditorViewDraftV1): void {
     const draft = validateSkinEditorViewDraft(value);
     this.viewportMode = draft.mode;
+    this.fourViewInitialized = true;
     this.selectedViewport = draft.selectedViewport;
     if (draft.layout) {
       this.fourSplitX = draft.layout.fourSplitX;
@@ -1077,8 +1107,8 @@ export class SkinRenderer {
     for (const [index, saved] of draft.viewports.entries()) {
       const slot = this.viewportSlots[index];
       slot.direction = saved.direction;
-      slot.directionSelect.value = saved.direction;
-      slot.directionLabel.textContent = skinViewDirectionLabel(saved.direction);
+      slot.directionButton.textContent = `${skinViewDirectionLabel(saved.direction)} ▼`;
+      slot.directionButton.setAttribute("aria-label", `viewport ${index + 1}: ${skinViewDirectionLabel(saved.direction)}`);
       slot.axis.textContent = skinViewAxisLegend(saved.direction);
       slot.controls.noRotate = saved.direction !== "axome";
       slot.camera.position.fromArray(saved.camera.position);

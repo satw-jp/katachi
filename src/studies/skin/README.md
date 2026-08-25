@@ -236,6 +236,12 @@ Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全
 
 Axome回転はworld-up固定や極角を使わず、cameraからtargetへのeyeとcamera upへ同じquaternionを適用する。panではcameraとtargetを同じ量だけ移動するため、その後の回転中心は移動後targetになる。Resetは方向ごとの既定cameraと現在object中心へ戻す。各cameraのposition／up／target／zoomは既存editor draftへ独立保存するが、Shape Recipe、Print Profile、Profile SHA、geometry、classification、routing、validation、3MF／archiveには含めない。clippingとsupport overlay／paint結果は共有sceneのままである。
 
+### 制作環境Observation — viewport操作を各枠へ統合（2026-08-25）
+
+作者の判断により、左TOOLSに置いていた`Viewport`節を廃止し、Rhinoと同じく各viewport自身から方向とlayoutを操作する。4面の初期配置はTop／Axomeを上段、Front／Rightを下段とし、各枠の左上タイトルを`Top ▼`のようなmenuにする。menuからTop、Bottom、Front、Back、Right、Left、Axome、Reset Viewを選ぶと、その枠のcameraだけを変更する。タイトルclickはactive枠を選び、double clickはその枠の1面最大化と4面復帰を往復する。canvas右上には小さな1面／4面切替だけを残す。
+
+左TOOLSには生成結果、CLIP XYZ、support overlay、前面／背面、mixed、footprintなど表示専用操作だけを残し、viewport番号、方向一覧、Reset、layout切替を重複表示しない。既存のRhino camera gesture、4台の独立camera、共有scene／clipping／Support Paint／overlay、editor draftの方向・camera保存は維持する。この整理は制作環境だけの変更であり、Shape Recipe、Print Profile、Profile SHA、geometry、classification、routing、validation、3MF／archiveには含めず、`printApproval=false`を維持する。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

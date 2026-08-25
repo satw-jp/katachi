@@ -1,12 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DEFAULT_SKIN_VIEW_DIRECTIONS,
   SKIN_EDITOR_VIEW_SCHEMA,
+  SKIN_VIEW_MENU_ITEMS,
   skinViewAxisLegend,
   skinViewportAtPoint,
   skinViewportRects,
+  toggleSkinViewportMode,
   validateSkinEditorViewDraft,
 } from "./multiViewport.ts";
+
+test("viewport-local title menu exposes every direction and Reset View", () => {
+  assert.deepEqual(DEFAULT_SKIN_VIEW_DIRECTIONS, ["top", "axome", "front", "right"]);
+  assert.deepEqual(SKIN_VIEW_MENU_ITEMS, ["top", "bottom", "front", "back", "right", "left", "axome", "reset"]);
+  assert.equal(toggleSkinViewportMode("four"), "one");
+  assert.equal(toggleSkinViewportMode("one"), "four");
+});
 
 test("four-view layout is Top/Axome over Front/Right and shares one canvas", () => {
   assert.deepEqual(skinViewportRects(1001, 801, "four", 0), [

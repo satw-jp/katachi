@@ -12,6 +12,12 @@ export const SKIN_VIEW_DIRECTIONS = [
 export type SkinViewDirection = typeof SKIN_VIEW_DIRECTIONS[number];
 export type SkinViewportMode = "one" | "four";
 
+export const SKIN_VIEW_MENU_ITEMS = [...SKIN_VIEW_DIRECTIONS, "reset"] as const;
+
+export function toggleSkinViewportMode(mode: SkinViewportMode): SkinViewportMode {
+  return mode === "four" ? "one" : "four";
+}
+
 export interface SkinViewportCameraPose {
   position: [number, number, number];
   up: [number, number, number];
