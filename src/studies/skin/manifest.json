@@ -72,6 +72,10 @@
   "revisits": [
     {
       "date": "2026-08-25",
+      "note": "v088 Support Paint checkpoint B: every committed drag stroke and each Undo/Redo/reset writes one validated draft to localStorage under the exact Shape Recipe SHA-256 and Seed. The panel reports unsaved/saved state and timestamp. 「作業を保存」downloads the same canonical draft JSON; 「作業を読み込む」validates schema, printApproval=false, recipe SHA, Seed and target size before replacing the revisioned session. A mismatch is fail-closed. The draft contains the normalized-coordinate/normal/mm-radius supportPaint document plus brush mode, radius and explicit backface setting. Reloading reuses the shared Worker to restore colors, counts and routing. Existing Shape Recipe and Print Profile schemas remain compatible and unchanged; no geometry generation is performed."
+    },
+    {
+      "date": "2026-08-25",
       "note": "v088 Support Paint checkpoint A: author reports 「ブラシ半径を表示したい」「ペイント中に全部戻ってしまうバグが有る」. Committed history and the active sampled stroke now live in one revisioned paint session. Each begin/sample/commit/cancel advances the revision; a Support Paint Worker response is accepted only when its requested revision equals the current inactive session, so a stale result cannot restore an older overlay. Overlay rebuilds restore the active classification preview. The canvas shows a surface-tangent brush ring at the true object-unit radius derived from mm, a blue-circle/orange-triangle/neutral-Auto centre glyph, and enlarges only the front, unclipped, normal-compatible sites that the stroke would affect. Ring, centre and marker-emphasis BufferAttributes are allocated once and updated in place. The panel states radius and diameter in mm. Shape, automatic classification, routing, Profile, validation and export remain unchanged; printApproval=false."
     },
     {

@@ -109,6 +109,8 @@ export interface UiCallbacks {
   onUndoSupportPaint: () => void;
   onRedoSupportPaint: () => void;
   onResetSupportPaint: () => void;
+  onSaveSupportPaintDraft: () => void;
+  onLoadSupportPaintDraft: (file: File) => void;
   onToggleMotifLowestPoints: (show: boolean, thresholdDeg: number) => void;
   onPreviewMeshResolutionChange: (resolution: number) => void;
   onCancelPreviewMesh: () => void;
@@ -289,6 +291,7 @@ export interface UiHandles {
   setSupportPaintState: (state: {
     available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
     strokeCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
+    canSaveDraft: boolean; draftStatus: string;
   }) => void;
   setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
   getSurfaceAngleThreshold: () => number;
@@ -1676,11 +1679,26 @@ export function buildUi(
   const supportPaintReset = document.createElement("button");
   supportPaintReset.type = "button"; supportPaintReset.textContent = "すべてリセット"; supportPaintReset.disabled = true; supportPaintReset.onclick = () => callbacks.onResetSupportPaint();
   supportPaintActions.append(supportPaintUndo, supportPaintRedo, supportPaintReset);
+  const supportPaintDraftActions = document.createElement("div");
+  supportPaintDraftActions.className = "row support-paint-draft-actions";
+  const supportPaintDraftSave = document.createElement("button");
+  supportPaintDraftSave.type = "button"; supportPaintDraftSave.textContent = "作業を保存";
+  supportPaintDraftSave.onclick = () => callbacks.onSaveSupportPaintDraft();
+  const supportPaintDraftLoad = document.createElement("button");
+  supportPaintDraftLoad.type = "button"; supportPaintDraftLoad.textContent = "作業を読み込む";
+  const supportPaintDraftInput = document.createElement("input");
+  supportPaintDraftInput.type = "file"; supportPaintDraftInput.accept = "application/json,.json"; supportPaintDraftInput.hidden = true;
+  supportPaintDraftLoad.onclick = () => supportPaintDraftInput.click();
+  supportPaintDraftInput.onchange = () => { const file = supportPaintDraftInput.files?.[0]; if (file) callbacks.onLoadSupportPaintDraft(file); supportPaintDraftInput.value = ""; };
+  supportPaintDraftActions.append(supportPaintDraftSave, supportPaintDraftLoad, supportPaintDraftInput);
+  const supportPaintDraftStatus = document.createElement("div");
+  supportPaintDraftStatus.className = "hint support-paint-draft-status";
+  supportPaintDraftStatus.textContent = "Shape Recipe読込後にautosaveできます";
   const supportPaintStatus = document.createElement("div");
   supportPaintStatus.className = "mesh-status support-paint-status";
   supportPaintStatus.textContent = "支持点の診断後に使えます";
   supportPaintStatus.setAttribute("aria-live", "polite");
-  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintStatus);
+  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintDraftActions, supportPaintDraftStatus, supportPaintStatus);
   const motifLowestToggle = document.createElement("label");
   motifLowestToggle.className = "surface-lowest-toggle";
   const motifLowestCheckbox = document.createElement("input");
@@ -3505,6 +3523,9 @@ export function buildUi(
       supportPaintUndo.disabled = !state.canUndo;
       supportPaintRedo.disabled = !state.canRedo;
       supportPaintReset.disabled = state.strokeCount === 0;
+      supportPaintDraftSave.disabled = !state.canSaveDraft;
+      supportPaintDraftLoad.disabled = !state.available;
+      supportPaintDraftStatus.textContent = state.draftStatus;
       supportPaintStatus.textContent = `${state.status} · stroke ${state.strokeCount} · 塗布site ${state.paintedSiteCount} · 自動から変更 ${state.manualOverrideSiteCount}`;
     },
     setMotifLowestPointStatus: (text, ok) => {

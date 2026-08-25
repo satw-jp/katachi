@@ -183,6 +183,10 @@ pointerupでsampled dab列を1回のhistory transactionとしてcommitするた�
 
 Checkpoint Aでは、committed strokeと描画中のactive strokeをrevision付きの単一sessionで管理する。Worker応答は要求時revisionと現在revisionが一致し、active strokeが存在しない場合だけ採用する。カメラ、clipping、overlay再構築は保存済みstrokeを変更せず、active previewも同じsessionから復元する。カーソルには表面接線上の実寸ブラシ円とmode glyphを表示し、実際に対象となる前面siteだけを拡大表示する。これは長時間制作の土台であり、分類全体または印刷可能性の承認ではない。printApproval=falseを維持する。
 
+### 制作継続 — Support Paint draft（Checkpoint B）
+
+1ドラッグのstroke確定、Undo、Redo、resetのたびに、対応Shape RecipeのSHA-256とSeedをkeyにしてlocalStorageへ自動保存する。画面は未保存または保存済み時刻を示す。作業を保存は同じ検証済みdraftをJSONとしてdownloadし、作業を読み込むはrecipe SHA、Seed、対象サイズを現在形状と照合してから復元する。不一致は警告で通過させずfail-closedにする。draftは正規化座標・surface normal・mm半径を持つsupportPaint、現在brush mode／半径／背面許可を含み、printApprovalは常にfalseである。読込後は共有Workerが色、最終件数、routingを1回再計算する。Shape Recipeと既存Print Profileのschemaは変更しない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

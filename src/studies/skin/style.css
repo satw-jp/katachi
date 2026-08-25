@@ -1492,6 +1492,9 @@ details.mesh-export:not([open]) > :not(summary) {
 
 .support-paint-actions { gap: 5px; }
 .support-paint-actions button { flex: 1; min-width: 0; padding: 6px 4px; font-size: 11px; }
+.support-paint-draft-actions { gap: 5px; margin-top: 7px; }
+.support-paint-draft-actions button { flex: 1; min-width: 0; padding: 6px 4px; font-size: 11px; }
+.support-paint-draft-status { margin-top: 5px; font-variant-numeric: tabular-nums; }
 .support-paint-status { min-height: 2.8em; line-height: 1.45; }
 #viewport.support-paint-active canvas { cursor: crosshair; }
 

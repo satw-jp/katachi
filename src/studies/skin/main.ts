@@ -152,6 +152,10 @@ import {
   type SupportPaintV1,
 } from "./supportPaint.ts";
 import type { SupportPaintWorkerMessage, SupportPaintWorkerRequest } from "./supportPaintWorkerProtocol.ts";
+import {
+  assertSupportPaintDraftBinding, createSupportPaintDraft, serializeSupportPaintDraft,
+  supportPaintDraftStorageKey, validateSupportPaintDraft, type SupportPaintDraftV1,
+} from "./supportPaintDraft.ts";
 import { buildBaseFootprint } from "./baseFootprint.ts";
 import {
   correctTutorialFlags,
@@ -259,6 +263,8 @@ let supportPaintRadiusMm = 6;
 let supportPaintBackfaces = false;
 let supportPaintSession = createSupportPaintSession();
 let supportPaintStatusText = "自動分類を下書きとして表示中";
+let supportPaintDraftSavedAt: string | null = null;
+let supportPaintDraftDirty = false;
 let activeSupportPaintWorker: Worker | null = null;
 let supportPaintSurfaceCache: {
   diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
@@ -751,12 +757,14 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     render();
   },
   onSetSupportPaintEnabled: (enabled) => setSupportPaintEnabled(enabled),
-  onSetSupportPaintMode: (mode) => { supportPaintMode = mode; refreshSupportPaintUi(); },
-  onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; refreshSupportPaintUi(); },
-  onSetSupportPaintBackfaces: (enabled) => { supportPaintBackfaces = enabled; refreshSupportPaintUi(); },
-  onUndoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, undoSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを1操作戻しました"); },
-  onRedoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, redoSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを1操作進めました"); },
-  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); reapplySupportPaint("Support Paintを自動分類へ戻しました"); },
+  onSetSupportPaintMode: (mode) => { supportPaintMode = mode; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
+  onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
+  onSetSupportPaintBackfaces: (enabled) => { supportPaintBackfaces = enabled; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
+  onUndoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, undoSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作戻しました"); },
+  onRedoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, redoSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作進めました"); },
+  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを自動分類へ戻しました"); },
+  onSaveSupportPaintDraft: () => saveSupportPaintDraftDownload(),
+  onLoadSupportPaintDraft: (file) => loadSupportPaintDraftFile(file),
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
@@ -1266,6 +1274,81 @@ function currentSupportPaintDocument(includeActive = false): SupportPaintV1 {
   return supportPaintSessionDocument(supportPaintSession, includeActive);
 }
 
+function currentSupportPaintDraftBinding(): { recipeSha256: string; seed: string; targetLongestMm: number } | null {
+  if (!importedRecipeSha256) return null;
+  return { recipeSha256: importedRecipeSha256, seed: state.hostParams.seed, targetLongestMm: ui.getMeshOptions().targetLongestMm };
+}
+
+function currentSupportPaintDraft(savedAt?: string): SupportPaintDraftV1 | null {
+  const binding = currentSupportPaintDraftBinding();
+  if (!binding) return null;
+  return createSupportPaintDraft({
+    savedAt, ...binding, supportPaint: supportPaintSession.history.present,
+    brush: { mode: supportPaintMode, radiusMm: supportPaintRadiusMm, paintBackfaces: supportPaintBackfaces },
+  });
+}
+
+function supportPaintDraftStatusText(): string {
+  if (!currentSupportPaintDraftBinding()) return "Shape Recipe未読込 · 未保存";
+  if (supportPaintDraftDirty) return supportPaintDraftSavedAt ? "未保存の変更あり · 前回 " + new Date(supportPaintDraftSavedAt).toLocaleTimeString("ja-JP", { hour12: false }) : "未保存";
+  return supportPaintDraftSavedAt ? "保存済み · " + new Date(supportPaintDraftSavedAt).toLocaleTimeString("ja-JP", { hour12: false }) : "未保存";
+}
+
+function markSupportPaintDraftDirty(): void { supportPaintDraftDirty = true; }
+
+function autosaveSupportPaintDraft(): SupportPaintDraftV1 | null {
+  const binding = currentSupportPaintDraftBinding();
+  const draft = currentSupportPaintDraft();
+  if (!binding || !draft) { supportPaintDraftDirty = true; return null; }
+  try {
+    localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
+    supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
+    return draft;
+  } catch (error) {
+    supportPaintDraftDirty = true;
+    supportPaintStatusText = "autosave失敗: " + (error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+function saveSupportPaintDraftDownload(): void {
+  const draft = autosaveSupportPaintDraft();
+  if (!draft) { refreshSupportPaintUi("Shape Recipeを読み込むまでdraftを保存できません"); return; }
+  const base = importedRecipeFilename?.replace(/.recipe.json$/i, "") ?? "skin";
+  downloadBlob(new Blob([serializeSupportPaintDraft(draft)], { type: "application/json" }), base + ".support-paint-draft.json");
+  refreshSupportPaintUi("Support Paint draftを保存しました");
+}
+
+function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" | "file"): void {
+  const binding = currentSupportPaintDraftBinding();
+  if (!binding) throw new Error("先に対応するShape Recipeを読み込んでください");
+  assertSupportPaintDraftBinding(draft, binding);
+  if (activeSupportPaintWorker) { activeSupportPaintWorker.terminate(); activeSupportPaintWorker = null; }
+  supportPaintSession = createSupportPaintSession(draft.supportPaint);
+  supportPaintMode = draft.brush.mode; supportPaintRadiusMm = draft.brush.radiusMm; supportPaintBackfaces = draft.brush.paintBackfaces;
+  localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
+  supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
+  if (automaticOverhangSupportResult && supportPaintEditingContext()) {
+    reapplySupportPaint(source === "autosave" ? "autosaveからSupport Paintを復元しました" : "draftからSupport Paintを復元しました");
+  } else {
+    refreshSupportPaintUi(source === "autosave" ? "autosaveを復元しました · 診断後に色と件数を再計算します" : "draftを復元しました · 診断後に色と件数を再計算します");
+  }
+}
+
+function restoreAutosavedSupportPaintDraft(): boolean {
+  const binding = currentSupportPaintDraftBinding();
+  if (!binding) return false;
+  const text = localStorage.getItem(supportPaintDraftStorageKey(binding));
+  if (!text) return false;
+  try { applySupportPaintDraft(validateSupportPaintDraft(JSON.parse(text)), "autosave"); return true; }
+  catch (error) { supportPaintDraftDirty = true; supportPaintStatusText = "autosave復元失敗: " + (error instanceof Error ? error.message : String(error)); return false; }
+}
+
+async function loadSupportPaintDraftFile(file: File): Promise<void> {
+  try { applySupportPaintDraft(validateSupportPaintDraft(JSON.parse(await file.text())), "file"); }
+  catch (error) { alert("Support Paint draftの読み込みに失敗しました: " + (error instanceof Error ? error.message : String(error))); }
+}
+
 function refreshSupportPaintUi(status = supportPaintStatusText): void {
   supportPaintStatusText = status;
   const facts = overhangSupportResult?.paintFacts;
@@ -1281,6 +1364,8 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     manualOverrideSiteCount: facts?.manualOverrideSupportSiteCount ?? 0,
     canUndo: supportPaintSession.history.past.length > 0,
     canRedo: supportPaintSession.history.future.length > 0,
+    canSaveDraft: Boolean(currentSupportPaintDraftBinding()) && !supportPaintSession.activeStroke && !activeSupportPaintWorker,
+    draftStatus: supportPaintDraftStatusText(),
     status,
   });
 }
@@ -1779,6 +1864,7 @@ function finishSupportPaintDrag(commit: boolean): void {
   const sampleCount = supportPaintSession.activeStroke?.samples.length ?? 0;
   if (commit && drag.changed && sampleCount > 0) {
     supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, true);
+    autosaveSupportPaintDraft();
     reapplySupportPaint("Support Paintを1 stroke確定しました", supportPaintSession.history.present, true, {
       siteCount: drag.siteCount,
       sampleCount,
@@ -3157,7 +3243,9 @@ async function importHistory(file: File): Promise<void> {
     importedRecipeSha256 = await sha256Hex(text);
     importedRecipeFilename = file.name;
     importedRecipeText = text;
+    supportPaintSession = createSupportPaintSession(); supportPaintDraftSavedAt = null; supportPaintDraftDirty = false;
     applyRecipeText(text);
+    restoreAutosavedSupportPaintDraft();
   } catch (err) {
     alert(`履歴の読み込みに失敗しました: ${(err as Error).message}`);
   }
@@ -3242,10 +3330,12 @@ async function importPrintProfile(file: File): Promise<void> {
     const profile = validateSkinPrintProfile(JSON.parse(text));
     const sha = await printProfileSha256(profile);
     activePrintProfile = profile; activePrintProfileSha256 = sha; activePrintProfileFilename = file.name; activePrintProfileText = text;
-    supportPaintSession = createSupportPaintSession(profile.supportPaint ?? emptySupportPaint(profile.geometry.targetLongestMm));
-      ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
+    ui.setMeshOptions({ resolution: profile.geometry.surfaceResolution, targetLongestMm: profile.geometry.targetLongestMm });
     ui.setSurfaceAngleThreshold(profile.geometry.angleThresholdDeg);
     invalidateSurfaceAngleDiagnosis("Print Profileを読み込みました。Profile精度で再診断してください");
+    supportPaintSession = createSupportPaintSession(profile.supportPaint ?? emptySupportPaint(profile.geometry.targetLongestMm));
+    supportPaintDraftSavedAt = null; supportPaintDraftDirty = false;
+    restoreAutosavedSupportPaintDraft();
     refreshPrintProfileSummary();
   } catch (error) {
     alert("Print Profileの読み込みに失敗しました: " + (error as Error).message);
