@@ -224,7 +224,7 @@ Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全
 
 ### 制作環境Observation — 全幅の下部review status pane（2026-08-25）
 
-作者が形状を隠さずreview文脈を確認できるよう、canvas上に固定されていた`v088 exception review · Case A · side`見出しを撤去し、左／中央／右の3ペイン下を横断するeditor専用status paneへ移す。左端はreview名、Case、選択中viewportの実方向、中央は選択support siteの最終分類、下向きレイ判定根拠、最寄り下側Surface距離、右端はSupport Paint autosaveの保存状態と最終時刻を表示する。Case、camera方向、support選択、dirty／autosave確定の各状態源から即時更新し、同じ選択情報とautosave状態は旧TOOLS／Propertiesから外す。Case切替と診断凡例はcanvasへ重ねず左TOOLS内へ置く。履歴の「↶ 1つ戻す」と複数step undoも同じ左TOOLSへ格納し、1面／4面canvasを覆わない。履歴callback、Ctrl+Z、選択履歴、Undo可能件数は変更しない。
+作者が形状を隠さずreview文脈を確認できるよう、canvas上に固定されていた`v088 exception review · Case A · side`見出しを撤去し、左／中央／右の3ペイン下を横断するeditor専用status paneへ移す。左端はreview名、Case、選択中viewportの実方向、その隣はreview条件（Surface48、119.5 mm、45°、scaffold Ø1.4／foot Ø2.4 mm）、中央は選択support siteの最終分類、下向きレイ判定根拠、最寄り下側Surface距離、右端はSupport Paint autosaveの保存状態と最終時刻を表示する。review条件は左TOOLSから外し、同じ値を重複表示しない。Case、camera方向、support選択、dirty／autosave確定の各状態源から即時更新し、同じ選択情報とautosave状態は旧TOOLS／Propertiesから外す。Case切替と診断凡例はcanvasへ重ねず左TOOLS内へ置く。履歴の「↶ 1つ戻す」と複数step undoも同じ左TOOLSへ格納し、1面／4面canvasを覆わない。履歴callback、Ctrl+Z、選択履歴、Undo可能件数は変更しない。
 
 下部paneの高さは水平dividerをpointer captureして変更し、requestAnimationFrameごとに最大1回だけgrid rowとWebGL viewport／camera projection／picking矩形をresizeする。paneは折りたため、dividerのdouble clickで標準58pxへ戻る。`bottomHeightPx`と`bottomCollapsed`は後方互換のeditor layout v1としてlocalStorageおよびoptional editor draftだけへ保存し、Shape Recipe、Print Profile、Profile SHA、geometry、classification、Support Paint、routing、validation、3MF／archiveには含めない。
 

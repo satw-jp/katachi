@@ -227,6 +227,9 @@ bottomPane.setAttribute("aria-label", "Review status");
 const bottomReviewStatus = document.createElement("strong");
 bottomReviewStatus.className = "skin-bottom-review";
 bottomReviewStatus.textContent = "SKIN editor | --";
+const bottomReviewSettings = document.createElement("span");
+bottomReviewSettings.className = "skin-bottom-settings";
+bottomReviewSettings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
 const bottomSupportStatus = document.createElement("div");
 bottomSupportStatus.className = "skin-bottom-support";
 bottomSupportStatus.textContent = "Support site | 未選択";
@@ -235,7 +238,7 @@ const bottomAutosaveStatus = document.createElement("div");
 bottomAutosaveStatus.className = "skin-bottom-autosave";
 bottomAutosaveStatus.textContent = "Autosave | 未保存";
 bottomAutosaveStatus.setAttribute("aria-live", "polite");
-bottomPane.append(bottomReviewStatus, bottomSupportStatus, bottomAutosaveStatus);
+bottomPane.append(bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus);
 
 const bottomPaneDivider = document.createElement("div");
 bottomPaneDivider.className = "skin-bottom-pane-divider";
@@ -5480,9 +5483,6 @@ function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV08
   document.querySelector(".local-v088-review-navigation")?.remove();
   const panel = document.createElement("aside");
   panel.className = "local-v088-review-navigation";
-  const settings = document.createElement("span");
-  settings.className = "local-v088-review-settings";
-  settings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
   const legend = document.createElement("span");
   legend.className = "local-v088-review-legend";
   legend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意）";
@@ -5503,7 +5503,7 @@ function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV08
     if (active) link.setAttribute("aria-current", "page");
     navigation.append(link);
   }
-  panel.append(settings, legend, navigation);
+  panel.append(legend, navigation);
   leftPaneBody.prepend(panel);
   refreshBottomStatusPane();
 }

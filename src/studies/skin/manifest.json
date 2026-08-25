@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.74.1",
+  "version": "0.74.2",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.74.2 consolidates the Surface48 / 119.5 mm / 45 degree / scaffold diameter / foot diameter review-condition line into the full-width bottom status pane beside review context. The duplicate condition line is removed from left TOOLS; Case controls and the support legend remain there. This is display-only and changes no geometry, classification, Profile or validation."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.74.1 moves the existing one-step and selected-history Undo dock from canvas chrome into left TOOLS. The same callbacks, history counts, keyboard shortcut and multi-step behavior remain unchanged; one/four-view WebGL and picking are no longer covered by Undo UI. Geometry, classification, Support Paint, Profile and validation are unchanged."
