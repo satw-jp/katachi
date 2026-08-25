@@ -375,6 +375,7 @@ export class SkinRenderer {
    * consumed here without regenerating or reclassifying Support Paint sites. */
   private phaseASupportGroup: THREE.Group | null = null;
   private phaseAObjectLiftSource = 0;
+  private phaseADryWebVisible = false;
 
   // --- Bead approximation view (T12) --------------------------------------
   // InstancedMesh spheres for every host ball and every patch point, with NO
@@ -1376,8 +1377,9 @@ export class SkinRenderer {
     if (this.hostBeadMesh) this.hostBeadMesh.visible = visibility.hostBeads;
     if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads;
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
-    if (this.internalNodeMesh) this.internalNodeMesh.visible = visibility.internalGraph || diagnosticInternal;
-    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = visibility.internalGraph || diagnosticInternal;
+    const phaseAInternal = this.phaseADryWebVisible && this.viewMode === "mesh";
+    if (this.internalNodeMesh) this.internalNodeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal;
+    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal;
     if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
     if (this.surfaceAngleGroup) {
       this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
@@ -1539,6 +1541,7 @@ export class SkinRenderer {
       });
       this.phaseASupportGroup = null;
     }
+    this.phaseADryWebVisible = forest !== null;
     this.phaseAObjectLiftSource = scaleMmPerUnit > 0 ? objectLiftMm / scaleMmPerUnit : 0;
     const bodyZ = this.phaseAObjectLiftSource;
     if (this.overlayMesh) this.overlayMesh.position.z = bodyZ;

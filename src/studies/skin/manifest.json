@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.77.0",
+  "version": "0.78.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-26",
   "params": [
@@ -80,6 +80,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-26",
+      "note": "v0.78.0 restores automatic Dry Web as a Paint-independent baseline from final ledger entries: automatic inside/body-blocked downward Surface sites stay targeted under unpainted or Auto; blue adds automatic outside sites; orange excludes automatic inside sites and routes them to Branching; Auto restores automatic classification. Object lift, cradle and retained vertical settings are not routing inputs. A dedicated preview Worker builds routing plus the targeted graph only after Surface completion, Paint pointerup, Undo/Redo, reset or draft restore; Paint drag launches no Dry Web build. Phase A reports automatic/blue-added/orange-excluded/final counts separately and keeps the Dry Web visible in mesh view. Existing Support Paint v1 persistence is unchanged. Case A / Surface 48 author visual confirmation is pending; no Surface 128, output generation, 3MF, Slice or commit; printApproval=false."
+    },
     {
       "date": "2026-08-26",
       "note": "Phase A preview checkpoint author confirmation, verbatim: 「作者確認：Branchingサポートは機能している。」 Approval is limited to the Case A / Surface 48 Branching support-forest preview. The right Properties pane now owns a height-constrained vertical scroll region so the Phase A controls remain reachable. Surface 128, high-resolution generation, 3MF, Slice and print approval remain out of scope; printApproval=false."

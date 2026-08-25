@@ -34,6 +34,33 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
   「布になったか点在か」が数字で読めるか
 - **立体リングだけでホストの総体形状が読める**（ホスト表示なしでも形が立ち上がる）か
 
+## Observation — v0.78.0 自動Dry Web基準の復元（2026-08-26）
+
+作者指示原文:
+
+> 「ベースボリューム内部の下向きSurfaceは、未ペイント／Auto状態でも
+> 自動的にDry Web生成対象とする
+> object lift、cradle、内部垂直支持ON/OFFによって、この対象を消さない
+> 青ペイントは自動Dry Webへ対象を追加する
+> 橙ペイントは対象をDry Webから除外し、Branching supportへ渡す
+> Autoへ戻すと元の自動判定へ戻す
+> previewに「自動Dry Web／青追加／橙除外」の件数を分けて表示する
+> drag中は生成せず、pointerup後にWorkerで一度だけ更新する
+> Undo／Redo、保存／読込で同じ結果を復元する」
+
+消失原因は自動の下向きSurface判定ではなく、Paintのlive差分が`entries`の分類だけを更新し、派生済みの`insideTargets`配列を再構築しないままPhase A previewが古いtarget sourceを参照していたことだった。自動判定の`automaticClassification=inside`は、support-free BODYへの下向きrayがBODYで遮られるベース内部Surfaceを表し、Paintに依存しないDry Web基準として残す。
+
+新しい純関数`resolveDryWebRouting`は確定済みledger entriesから次を毎回導出する。
+
+- Auto／未Paintでautomatic insideを自動Dry Webに残す
+- 青（inside）はautomatic outsideを追加する
+- 橙（outside）はautomatic insideを除外し、同じfinal classificationをBranching support側が読む
+- Auto strokeはfinal classificationをautomaticへ戻す
+
+object lift、最下面cradle、retained vertical ON/OFFはこの関数の入力に含めず、Dry Web対象を変えられない。preview専用Workerがroutingとtargeted graphをまとめて計算し、Surface診断完了時、Paint pointerup、Undo/Redo、Auto reset、draft復元後にだけ更新する。Paint drag開始時は進行中のDry Web Workerを止め、dab中はmarker分類だけを更新し、pointerup後に1 requestだけ送る。保存形式は既存Support Paint v1のまま変えず、同じstrokesから同じtarget IDsと件数を再導出する。
+
+Phase A statusには`自動Dry Web / 青追加 / 橙除外 / 最終`を分離表示する。Dry Web node/edgeはSurface mesh表示中もPhase A layerとして可視にし、BODYと同じobject liftだけを表示変換として受ける。Surface 48 / Case Aでベース内部下側のDry Webを作者が3D確認するまで未承認とする。BODY衝突回避、Surface 128、生成出力、3MF、Slice、commitは行わず、`printApproval=false`を維持する。
+
 ## Observation — v089 Phase A 支持林preview（2026-08-25）
 
 作者観察原文:
