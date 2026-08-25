@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.73.1",
+  "version": "0.74.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.74.0 full-width bottom review status pane. The former canvas-fixed v088 exception review title is removed. Review name, Case and actual active viewport direction now update at the left of the bottom pane; selected support classification, downward-ray basis and nearest lower-Surface distance update in the centre; Support Paint autosave state and last save time update at the right. Case controls and diagnosis legend move into left TOOLS, while duplicate support selection and autosave status leave the old UI. A pointer-captured horizontal divider resizes at most once per frame and calls the shared renderer resize so WebGL projection and picking follow; collapse and double-click reset are supported. Backward-compatible bottomHeightPx/bottomCollapsed fields round-trip only through editor layout localStorage/optional draft and never enter Recipe, Print Profile, geometry, routing, validation or output."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.73.1 Rhino input refinement. Shift+left-drag now pans the camera in every viewport, including while Support Paint is enabled, and is intercepted before selection, direct manipulation or paint can start. Plain left input remains selection/Support Paint; Axome plain right-drag remains pole-free continuous rotate. Camera state stays editor-draft-only and geometry, classification, routing, Profile, validation and output remain unchanged."

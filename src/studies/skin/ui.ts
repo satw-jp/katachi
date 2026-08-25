@@ -1725,7 +1725,7 @@ export function buildUi(
   supportPaintStatus.className = "mesh-status support-paint-status";
   supportPaintStatus.textContent = "支持点の診断後に使えます";
   supportPaintStatus.setAttribute("aria-live", "polite");
-  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintDraftActions, supportPaintDraftStatus, supportPaintResolutionStatus, supportPaintReprojectionButton, supportPaintReprojectionStatus, supportPaintStatus);
+  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintDraftActions, supportPaintResolutionStatus, supportPaintReprojectionButton, supportPaintReprojectionStatus, supportPaintStatus);
   const motifLowestToggle = document.createElement("label");
   motifLowestToggle.className = "surface-lowest-toggle";
   const motifLowestCheckbox = document.createElement("input");
@@ -1763,7 +1763,6 @@ export function buildUi(
     mixedFaceToggle,
     footprintToggle,
     supportSiteStatus,
-    supportSiteSelectionStatus,
     motifLowestToggle,
     motifLowestHint,
     motifLowestStatus,

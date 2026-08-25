@@ -222,6 +222,12 @@ Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全
 
 左右pane幅、開閉状態、4面divider比は検証済みeditor layoutとしてlocalStorageとoptionalなSupport Paint editor draftへ保存し、次回起動またはdraft読込で復元する。Shape Recipe、Print Profile、Profile SHA、validation、routing、3MF、archiveには含めず、形状、分類、Support Paint stroke、clipping plane自体、`printApproval=false`を変更しない。
 
+### 制作環境Observation — 全幅の下部review status pane（2026-08-25）
+
+作者が形状を隠さずreview文脈を確認できるよう、canvas上に固定されていた`v088 exception review · Case A · side`見出しを撤去し、左／中央／右の3ペイン下を横断するeditor専用status paneへ移す。左端はreview名、Case、選択中viewportの実方向、中央は選択support siteの最終分類、下向きレイ判定根拠、最寄り下側Surface距離、右端はSupport Paint autosaveの保存状態と最終時刻を表示する。Case、camera方向、support選択、dirty／autosave確定の各状態源から即時更新し、同じ選択情報とautosave状態は旧TOOLS／Propertiesから外す。Case切替と診断凡例はcanvasへ重ねず左TOOLS内へ置く。
+
+下部paneの高さは水平dividerをpointer captureして変更し、requestAnimationFrameごとに最大1回だけgrid rowとWebGL viewport／camera projection／picking矩形をresizeする。paneは折りたため、dividerのdouble clickで標準58pxへ戻る。`bottomHeightPx`と`bottomCollapsed`は後方互換のeditor layout v1としてlocalStorageおよびoptional editor draftだけへ保存し、Shape Recipe、Print Profile、Profile SHA、geometry、classification、Support Paint、routing、validation、3MF／archiveには含めない。
+
 ### 制作環境Observation — Rhino準拠の4面camera操作（2026-08-25）
 
 作者がRhinoと同じ手癖で4面を観察しながらSupport Paintを続けられるよう、camera入力を左の制作入力と右の表示入力へ分離する。Top／Bottom／Front／Back／Left／Rightは右dragをpan、wheelをzoomとし、標準方向を回転させない。Axomeだけは右dragをpole-freeな360°回転、Shift＋右dragをpanとする。全viewportでCommand＋右drag上下もorthographic zoomとして使える。gesture開始時のpointer位置から対象viewportをactiveにし、そのcamera／target／zoomだけを変更する。

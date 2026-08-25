@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { DEFAULT_SKIN_EDITOR_LAYOUT, fitSkinEditorLayout, resizeSkinEditorPane, validateSkinEditorLayoutDraft } from "./editorLayout.ts";
+import { DEFAULT_SKIN_EDITOR_LAYOUT, fitSkinEditorLayout, resizeSkinEditorBottomPane, resizeSkinEditorPane, validateSkinEditorLayoutDraft } from "./editorLayout.ts";
 
 const roundTrip = validateSkinEditorLayoutDraft(JSON.parse(JSON.stringify(DEFAULT_SKIN_EDITOR_LAYOUT)));
 assert.deepEqual(roundTrip, DEFAULT_SKIN_EDITOR_LAYOUT);
@@ -17,4 +17,16 @@ const clamped = validateSkinEditorLayoutDraft({ ...DEFAULT_SKIN_EDITOR_LAYOUT, f
 assert.equal(clamped.fourSplitX, 0.2);
 assert.equal(clamped.fourSplitY, 0.8);
 
-console.log("editor layout tests passed (8 assertions)");
+const resizedBottom = resizeSkinEditorBottomPane(DEFAULT_SKIN_EDITOR_LAYOUT, 720, 900);
+assert.equal(resizedBottom.bottomHeightPx, 180);
+assert.equal(resizedBottom.bottomCollapsed, false);
+
+const legacyBottom = validateSkinEditorLayoutDraft({
+  schema: DEFAULT_SKIN_EDITOR_LAYOUT.schema,
+  leftWidthPx: 292, rightWidthPx: 400, leftCollapsed: false, rightCollapsed: false,
+  fourSplitX: 0.5, fourSplitY: 0.5,
+});
+assert.equal(legacyBottom.bottomHeightPx, DEFAULT_SKIN_EDITOR_LAYOUT.bottomHeightPx);
+assert.equal(legacyBottom.bottomCollapsed, false);
+
+console.log("editor layout tests passed (12 assertions)");

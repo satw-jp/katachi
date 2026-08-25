@@ -159,11 +159,13 @@ import { supportPaintReprojectionFacts } from "./supportPaintReprojection.ts";
 import {
   DEFAULT_SKIN_EDITOR_LAYOUT,
   fitSkinEditorLayout,
+  resizeSkinEditorBottomPane,
   resizeSkinEditorPane,
   validateSkinEditorLayoutDraft,
   type SkinEditorLayoutDraftV1,
 } from "./editorLayout.ts";
 import { buildBaseFootprint } from "./baseFootprint.ts";
+import { skinViewDirectionLabel } from "./multiViewport.ts";
 import {
   correctTutorialFlags,
   derivePartitionTutorialStep,
@@ -190,6 +192,13 @@ function loadSkinEditorLayout(): SkinEditorLayoutDraftV1 {
   }
 }
 
+type LocalV088ReviewCase = "A" | "B";
+type LocalV088ReviewView = "top" | "side" | "back";
+let localV088ReviewSelection: {
+  reviewCase: LocalV088ReviewCase;
+  view: LocalV088ReviewView;
+} | null = null;
+
 const app = document.getElementById("app")!;
 let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
 let editorLayoutCommitCallback: () => void = () => {};
@@ -211,6 +220,41 @@ rightPaneHeader.innerHTML = "<strong>PROPERTIES</strong><span>形状・印刷設
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
 rightPane.append(rightPaneHeader, rightPaneBody);
+
+const bottomPane = document.createElement("footer");
+bottomPane.className = "skin-bottom-status-pane";
+bottomPane.setAttribute("aria-label", "Review status");
+const bottomReviewStatus = document.createElement("strong");
+bottomReviewStatus.className = "skin-bottom-review";
+bottomReviewStatus.textContent = "SKIN editor | --";
+const bottomSupportStatus = document.createElement("div");
+bottomSupportStatus.className = "skin-bottom-support";
+bottomSupportStatus.textContent = "Support site | 未選択";
+bottomSupportStatus.setAttribute("aria-live", "polite");
+const bottomAutosaveStatus = document.createElement("div");
+bottomAutosaveStatus.className = "skin-bottom-autosave";
+bottomAutosaveStatus.textContent = "Autosave | 未保存";
+bottomAutosaveStatus.setAttribute("aria-live", "polite");
+bottomPane.append(bottomReviewStatus, bottomSupportStatus, bottomAutosaveStatus);
+
+const bottomPaneDivider = document.createElement("div");
+bottomPaneDivider.className = "skin-bottom-pane-divider";
+bottomPaneDivider.setAttribute("role", "separator");
+bottomPaneDivider.setAttribute("aria-orientation", "horizontal");
+bottomPaneDivider.tabIndex = 0;
+const bottomPaneToggle = document.createElement("button");
+bottomPaneToggle.type = "button";
+bottomPaneToggle.className = "skin-bottom-pane-collapse";
+bottomPaneToggle.setAttribute("aria-label", "下部ステータスペインを開閉");
+bottomPaneToggle.onclick = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  editorLayoutState = { ...editorLayoutState, bottomCollapsed: !editorLayoutState.bottomCollapsed };
+  applyEditorLayoutDom();
+  skinRenderer.resize();
+  commitEditorLayout();
+};
+bottomPaneDivider.appendChild(bottomPaneToggle);
 
 function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
   const divider = document.createElement("div");
@@ -237,7 +281,7 @@ const leftPaneDivider = buildPaneDivider("left");
 const rightPaneDivider = buildPaneDivider("right");
 const viewport = document.createElement("div");
 viewport.id = "viewport";
-app.append(leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane);
+app.append(leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane, bottomPaneDivider, bottomPane);
 
 function applyEditorLayoutDom(): void {
   const fitted = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
@@ -245,12 +289,16 @@ function applyEditorLayoutDom(): void {
   const leftWidth = fitted.leftCollapsed ? 0 : fitted.leftWidthPx;
   const rightWidth = fitted.rightCollapsed ? 0 : fitted.rightWidthPx;
   app.style.gridTemplateColumns = `${leftWidth}px 8px minmax(360px, 1fr) 8px ${rightWidth}px`;
+  app.style.gridTemplateRows = `minmax(240px, 1fr) 8px ${fitted.bottomCollapsed ? 0 : fitted.bottomHeightPx}px`;
   leftPane.hidden = fitted.leftCollapsed;
   rightPane.hidden = fitted.rightCollapsed;
   leftPaneDivider.classList.toggle("is-collapsed", fitted.leftCollapsed);
   rightPaneDivider.classList.toggle("is-collapsed", fitted.rightCollapsed);
   leftPaneDivider.querySelector("button")!.textContent = fitted.leftCollapsed ? "›" : "‹";
   rightPaneDivider.querySelector("button")!.textContent = fitted.rightCollapsed ? "‹" : "›";
+  bottomPane.hidden = fitted.bottomCollapsed;
+  bottomPaneDivider.classList.toggle("is-collapsed", fitted.bottomCollapsed);
+  bottomPaneToggle.textContent = fitted.bottomCollapsed ? "STATUS ▲" : "STATUS ▼";
 }
 function persistEditorLayout(): void {
   localStorage.setItem(SKIN_EDITOR_LAYOUT_STORAGE_KEY, JSON.stringify(editorLayoutState));
@@ -448,6 +496,32 @@ let tutorialDisplayedStep: TutorialStepId | null = null;
 const skinRenderer = new SkinRenderer(viewport);
 skinRenderer.mountViewportControls(leftPaneBody);
 skinRenderer.setFourViewSplit(editorLayoutState.fourSplitX, editorLayoutState.fourSplitY);
+
+function refreshBottomStatusPane(): void {
+  const editorView = skinRenderer.captureEditorViewDraft(editorLayoutState);
+  const direction = editorView.viewports[editorView.selectedViewport]?.direction;
+  const directionLabel = direction ? skinViewDirectionLabel(direction) : "--";
+  bottomReviewStatus.textContent = localV088ReviewSelection
+    ? `v088 exception review | Case ${localV088ReviewSelection.reviewCase} | ${directionLabel}`
+    : `SKIN editor | ${directionLabel}`;
+
+  const selectedEntry = selectedOverhangSupportSiteId && overhangSupportResult
+    ? overhangSupportResult.entries.find((entry) => entry.id === selectedOverhangSupportSiteId) ?? null
+    : null;
+  if (selectedEntry) {
+    const lowerDistance = selectedEntry.nearestLowerSurfaceDistanceMm;
+    const distanceText = lowerDistance == null ? "下側Surfaceなし" : `下側Surface ${lowerDistance.toFixed(4)} mm`;
+    const basis = selectedEntry.rayResult ?? selectedEntry.reason ?? "ray-unresolved";
+    bottomSupportStatus.textContent = `Support site | ${selectedEntry.classification} | ${basis} | ${distanceText}`;
+    bottomSupportStatus.dataset.classification = selectedEntry.classification;
+  } else {
+    bottomSupportStatus.textContent = "Support site | 未選択";
+    bottomSupportStatus.dataset.classification = "none";
+  }
+  bottomAutosaveStatus.textContent = `Autosave | ${supportPaintDraftStatusText()}`;
+}
+
+refreshBottomStatusPane();
 
 // Compact, viewport-local edit affordance. The buttons intentionally call
 // applyElementEdit below rather than mutating geometry themselves, so their
@@ -1206,9 +1280,64 @@ function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): voi
 }
 installPaneResize(leftPaneDivider, "left");
 installPaneResize(rightPaneDivider, "right");
+
+function installBottomPaneResize(divider: HTMLDivElement): void {
+  let drag: { pointerId: number; pendingY: number; frameId: number; restoreOrbit: boolean } | null = null;
+  const applyPending = () => {
+    if (!drag) return;
+    drag.frameId = 0;
+    const rect = app.getBoundingClientRect();
+    editorLayoutState = resizeSkinEditorBottomPane(editorLayoutState, drag.pendingY, rect.bottom);
+    applyEditorLayoutDom();
+    skinRenderer.resize();
+  };
+  divider.addEventListener("pointerdown", (event) => {
+    if (event.target !== divider || drag) return;
+    event.preventDefault();
+    event.stopPropagation();
+    divider.setPointerCapture(event.pointerId);
+    const restoreOrbit = !supportPaintEnabled;
+    skinRenderer.setOrbitEnabled(false);
+    editorLayoutState = { ...editorLayoutState, bottomCollapsed: false };
+    drag = { pointerId: event.pointerId, pendingY: event.clientY, frameId: 0, restoreOrbit };
+    divider.classList.add("is-dragging");
+  });
+  divider.addEventListener("pointermove", (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.pendingY = event.clientY;
+    if (drag.frameId === 0) drag.frameId = requestAnimationFrame(applyPending);
+  });
+  const finish = (event: PointerEvent) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.frameId !== 0) { cancelAnimationFrame(drag.frameId); applyPending(); }
+    const restoreOrbit = drag.restoreOrbit;
+    drag = null;
+    divider.classList.remove("is-dragging");
+    if (divider.hasPointerCapture(event.pointerId)) divider.releasePointerCapture(event.pointerId);
+    skinRenderer.setOrbitEnabled(restoreOrbit);
+    commitEditorLayout();
+  };
+  divider.addEventListener("pointerup", finish);
+  divider.addEventListener("pointercancel", finish);
+  divider.addEventListener("dblclick", (event) => {
+    if (event.target !== divider) return;
+    event.preventDefault();
+    editorLayoutState = {
+      ...editorLayoutState,
+      bottomHeightPx: DEFAULT_SKIN_EDITOR_LAYOUT.bottomHeightPx,
+      bottomCollapsed: false,
+    };
+    applyEditorLayoutDom();
+    skinRenderer.resize();
+    commitEditorLayout();
+  });
+}
+installBottomPaneResize(bottomPaneDivider);
+
 editorLayoutCommitCallback = () => {
   markSupportPaintDraftDirty();
   autosaveSupportPaintDraft();
+  refreshBottomStatusPane();
   requestRenderFrame();
 };
 let layoutResizeFrame = 0;
@@ -1400,6 +1529,7 @@ function setSelectedOverhangSupportSite(id: string | null): void {
   const entry = id && result ? result.entries.find((candidate) => candidate.id === id) : null;
   if (!entry) {
     ui.setOverhangSupportSiteSelection("支持点を選ぶと plate-visible / body-blocked を表示します");
+    refreshBottomStatusPane();
     return;
   }
   const distance = entry.nearestLowerSurfaceDistanceMm;
@@ -1410,6 +1540,7 @@ function setSelectedOverhangSupportSite(id: string | null): void {
     `${entry.id} · ${entry.classification} · ${entry.rayResult ?? "ray-unresolved"} · ${distanceText} · ${epsilonText}${paintText}`,
     entry.classification,
   );
+  refreshBottomStatusPane();
 }
 
 
@@ -1483,7 +1614,7 @@ function supportPaintDraftStatusText(): string {
   return supportPaintDraftSavedAt ? "保存済み · " + new Date(supportPaintDraftSavedAt).toLocaleTimeString("ja-JP", { hour12: false }) : "未保存";
 }
 
-function markSupportPaintDraftDirty(): void { supportPaintDraftDirty = true; }
+function markSupportPaintDraftDirty(): void { supportPaintDraftDirty = true; refreshBottomStatusPane(); }
 
 function autosaveSupportPaintDraft(): SupportPaintDraftV1 | null {
   const binding = currentSupportPaintDraftBinding();
@@ -1492,10 +1623,12 @@ function autosaveSupportPaintDraft(): SupportPaintDraftV1 | null {
   try {
     localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
     supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
+    refreshBottomStatusPane();
     return draft;
   } catch (error) {
     supportPaintDraftDirty = true;
     supportPaintStatusText = "autosave失敗: " + (error instanceof Error ? error.message : String(error));
+    refreshBottomStatusPane();
     return null;
   }
 }
@@ -1519,6 +1652,7 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   if (draft.editorView?.layout) {
     editorLayoutState = validateSkinEditorLayoutDraft(draft.editorView.layout);
     applyEditorLayoutDom();
+    skinRenderer.resize();
     persistEditorLayout();
   }
   if (draft.editorView) skinRenderer.restoreEditorViewDraft(draft.editorView);
@@ -1568,6 +1702,7 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     reprojectionStatus: supportPaintReprojectionStatus,
     status,
   });
+  refreshBottomStatusPane();
 }
 
 function invalidateSupportPaintEditingResources(): void {
@@ -5341,67 +5476,36 @@ function updateEmptyViewportHint(): void {
   tutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 };
 
-type LocalV088ReviewCase = "A" | "B";
-type LocalV088ReviewView = "top" | "side" | "back";
-
-let localV088ReviewSelection: {
-  reviewCase: LocalV088ReviewCase;
-  view: LocalV088ReviewView;
-} | null = null;
-
 function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV088ReviewSelection>): void {
   document.querySelector(".local-v088-review-navigation")?.remove();
   const panel = document.createElement("aside");
   panel.className = "local-v088-review-navigation";
-  Object.assign(panel.style, {
-    position: "fixed",
-    left: "50%",
-    top: "12px",
-    transform: "translateX(-50%)",
-    zIndex: "1000",
-    display: "grid",
-    gap: "6px",
-    padding: "10px 12px",
-    border: "1px solid rgba(255,255,255,0.28)",
-    borderRadius: "8px",
-    background: "rgba(18,18,20,0.90)",
-    color: "#f5f5f5",
-    font: "12px/1.35 Helvetica Neue, Arial, sans-serif",
-    boxShadow: "0 6px 22px rgba(0,0,0,0.25)",
-  });
-  const title = document.createElement("strong");
-  title.textContent = "v088 exception review · Case " + selection.reviewCase + " · " + selection.view;
-  panel.append(title);
   const settings = document.createElement("span");
+  settings.className = "local-v088-review-settings";
   settings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
-  panel.append(settings);
   const legend = document.createElement("span");
-  legend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意） · 支持点クリックで根拠表示";
-  panel.append(legend);
+  legend.className = "local-v088-review-legend";
+  legend.textContent = "-Z ray: plate-visible=outside 橙三角 · body-blocked=inside 青丸 · unresolved 赤× · 背面18.75% · footprint 白（参考） · mixed 紫（任意）";
   const navigation = document.createElement("nav");
-  Object.assign(navigation.style, { display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" });
+  navigation.className = "local-v088-review-choices";
   const choices: Array<[string, LocalV088ReviewCase, LocalV088ReviewView]> = [
     ["A 上", "A", "top"], ["A 横", "A", "side"], ["A 裏", "A", "back"],
     ["B 上", "B", "top"], ["B 横", "B", "side"], ["B 裏", "B", "back"],
   ];
   for (const [label, reviewCase, view] of choices) {
     const link = document.createElement("a");
+    link.className = "local-v088-review-choice";
     link.textContent = label;
     link.href = "?reviewCase=" + reviewCase + "&view=" + view
       + (new URLSearchParams(window.location.search).get("views") === "four" ? "&views=four" : "");
     const active = reviewCase === selection.reviewCase && view === selection.view;
-    Object.assign(link.style, {
-      color: active ? "#111" : "#fff",
-      background: active ? "#fff" : "transparent",
-      border: "1px solid rgba(255,255,255,0.55)",
-      borderRadius: "999px",
-      padding: "3px 8px",
-      textDecoration: "none",
-    });
+    link.classList.toggle("is-active", active);
+    if (active) link.setAttribute("aria-current", "page");
     navigation.append(link);
   }
-  panel.append(navigation);
-  document.body.append(panel);
+  panel.append(settings, legend, navigation);
+  leftPaneBody.prepend(panel);
+  refreshBottomStatusPane();
 }
 
 function applyLocalReviewCamera(positions: Float32Array): void {
@@ -5422,6 +5526,7 @@ function applyLocalReviewCamera(positions: Float32Array): void {
     );
     skinRenderer.setViewportMode("one");
   }
+  refreshBottomStatusPane();
   render();
 }
 
@@ -5536,6 +5641,7 @@ skinRenderer.setEditorViewChangeCallback(() => {
   persistEditorLayout();
   markSupportPaintDraftDirty();
   autosaveSupportPaintDraft();
+  refreshBottomStatusPane();
   requestRenderFrame();
 });
 window.addEventListener("pointermove", requestRenderFrame, { passive: true });

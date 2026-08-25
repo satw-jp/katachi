@@ -6,6 +6,8 @@ export interface SkinEditorLayoutDraftV1 {
   rightWidthPx: number;
   leftCollapsed: boolean;
   rightCollapsed: boolean;
+  bottomHeightPx: number;
+  bottomCollapsed: boolean;
   fourSplitX: number;
   fourSplitY: number;
 }
@@ -16,6 +18,8 @@ export const DEFAULT_SKIN_EDITOR_LAYOUT: SkinEditorLayoutDraftV1 = {
   rightWidthPx: 400,
   leftCollapsed: false,
   rightCollapsed: false,
+  bottomHeightPx: 58,
+  bottomCollapsed: false,
   fourSplitX: 0.5,
   fourSplitY: 0.5,
 };
@@ -30,12 +34,17 @@ export function validateSkinEditorLayoutDraft(value: unknown): SkinEditorLayoutD
   if (typeof root.leftCollapsed !== "boolean" || typeof root.rightCollapsed !== "boolean") {
     throw new Error("editor pane collapse state is invalid");
   }
+  if (root.bottomCollapsed !== undefined && typeof root.bottomCollapsed !== "boolean") {
+    throw new Error("editor bottom pane collapse state is invalid");
+  }
   return {
     schema: SKIN_EDITOR_LAYOUT_SCHEMA,
     leftWidthPx: clamp(finite(root.leftWidthPx, DEFAULT_SKIN_EDITOR_LAYOUT.leftWidthPx), 180, 640),
     rightWidthPx: clamp(finite(root.rightWidthPx, DEFAULT_SKIN_EDITOR_LAYOUT.rightWidthPx), 280, 760),
     leftCollapsed: root.leftCollapsed,
     rightCollapsed: root.rightCollapsed,
+    bottomHeightPx: clamp(finite(root.bottomHeightPx, DEFAULT_SKIN_EDITOR_LAYOUT.bottomHeightPx), 42, 240),
+    bottomCollapsed: typeof root.bottomCollapsed === "boolean" ? root.bottomCollapsed : DEFAULT_SKIN_EDITOR_LAYOUT.bottomCollapsed,
     fourSplitX: clamp(finite(root.fourSplitX, 0.5), 0.2, 0.8),
     fourSplitY: clamp(finite(root.fourSplitY, 0.5), 0.2, 0.8),
   };
@@ -78,5 +87,16 @@ export function resizeSkinEditorPane(
     next.rightCollapsed = false;
     next.rightWidthPx = clamp(workspaceRight - pointerX, 280, 760);
   }
+  return next;
+}
+
+export function resizeSkinEditorBottomPane(
+  layout: SkinEditorLayoutDraftV1,
+  pointerY: number,
+  workspaceBottom: number,
+): SkinEditorLayoutDraftV1 {
+  const next = validateSkinEditorLayoutDraft(layout);
+  next.bottomCollapsed = false;
+  next.bottomHeightPx = clamp(workspaceBottom - pointerY, 42, 240);
   return next;
 }
