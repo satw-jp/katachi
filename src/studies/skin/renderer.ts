@@ -25,7 +25,7 @@ import {
   type SupportOverlayMarkerInput,
   type SupportSiteDepthMode,
 } from "./supportOverlayPresentation.ts";
-import { buildSupportPaintBrushRing, supportPaintVisibilityAllows, type SupportPaintMode } from "./supportPaint.ts";
+import { supportPaintVisibilityAllows } from "./supportPaint.ts";
 import {
   VIEWPORT_CLIP_AXES,
   viewportPointVisible,
@@ -141,6 +141,14 @@ export interface OverhangSupportSitePick {
   normal: { x: number; y: number; z: number };
 }
 export interface OverhangSupportBrushCandidate extends Omit<OverhangSupportSitePick, "back"> {}
+export interface SupportPaintPointerFrame {
+  viewportIndex: number;
+  ray: {
+    origin: { x: number; y: number; z: number };
+    direction: { x: number; y: number; z: number };
+  };
+  pixelsPerObjectUnit: number;
+}
 
 interface SkinViewportSlot {
   camera: THREE.OrthographicCamera;
@@ -306,10 +314,6 @@ export class SkinRenderer {
   private overhangSupportSiteCurrentClassifications: string[] = [];
   private readonly overhangSupportSiteIndexById = new Map<string, number>();
   private readonly overhangSupportSitePreviewIndices = new Set<number>();
-  private readonly supportPaintBrushHighlightIndices = new Set<number>();
-  private supportPaintBrushGroup: THREE.Group | null = null;
-  private supportPaintBrushRing: THREE.LineLoop | null = null;
-  private supportPaintBrushCenter: THREE.Points | null = null;
   private readonly mixedFaceMaterial = new THREE.LineBasicMaterial({
     color: 0xb35cff, depthTest: false, depthWrite: false, toneMapped: false,
   });
@@ -1078,6 +1082,43 @@ export class SkinRenderer {
     );
   }
 
+  /** Camera-only Paint input. It never selects a viewport, raycasts geometry,
+   * changes a Buffer, or requests a WebGL render. */
+  supportPaintPointerFrame(clientX: number, clientY: number): SupportPaintPointerFrame | null {
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const rect = this.viewportRectFromClient(clientX, clientY);
+    if (!rect) return null;
+    const slot = this.viewportSlots[rect.index];
+    const camera = slot?.camera;
+    if (!camera) return null;
+    camera.updateMatrixWorld();
+    const localX = clientX - canvasRect.left - rect.x;
+    const localY = clientY - canvasRect.top - rect.y;
+    const ndcX = localX / Math.max(1, rect.width) * 2 - 1;
+    const ndcY = 1 - localY / Math.max(1, rect.height) * 2;
+    const origin = new THREE.Vector3(ndcX, ndcY, -1).unproject(camera);
+    const far = new THREE.Vector3(ndcX, ndcY, 1).unproject(camera);
+    const direction = far.sub(origin).normalize();
+    const verticalObjectSpan = (camera.top - camera.bottom) / Math.max(1e-9, camera.zoom);
+    return {
+      viewportIndex: rect.index,
+      ray: {
+        origin: { x: origin.x, y: origin.y, z: origin.z },
+        direction: { x: direction.x, y: direction.y, z: direction.z },
+      },
+      pixelsPerObjectUnit: rect.height / Math.max(1e-9, verticalObjectSpan),
+    };
+  }
+
+  supportPaintBrushScreenScale(clientX: number, clientY: number): { viewportIndex: number; pixelsPerObjectUnit: number } | null {
+    const rect = this.viewportRectFromClient(clientX, clientY);
+    if (!rect) return null;
+    const camera = this.viewportSlots[rect.index]?.camera;
+    if (!camera) return null;
+    const verticalObjectSpan = (camera.top - camera.bottom) / Math.max(1e-9, camera.zoom);
+    return { viewportIndex: rect.index, pixelsPerObjectUnit: rect.height / Math.max(1e-9, verticalObjectSpan) };
+  }
+
   activateViewportAt(clientX: number, clientY: number): boolean {
     const rect = this.viewportRectFromClient(clientX, clientY);
     if (!rect) return false;
@@ -1339,10 +1380,6 @@ export class SkinRenderer {
     if (this.overhangSupportSiteGroup) {
       this.overhangSupportSiteGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
     }
-    if (this.supportPaintBrushGroup) {
-      this.supportPaintBrushGroup.visible = this.supportPaintBrushGroup.userData.requestedVisible === true
-        && visibility.surfaceDecorations && this.viewMode === "mesh";
-    }
     if (this.motifLowestPointGroup) {
       this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
     }
@@ -1584,8 +1621,6 @@ export class SkinRenderer {
     this.overhangSupportSiteCurrentClassifications = [];
     this.overhangSupportSiteIndexById.clear();
     this.overhangSupportSitePreviewIndices.clear();
-    this.supportPaintBrushHighlightIndices.clear();
-    if (this.supportPaintBrushGroup) this.supportPaintBrushGroup.visible = false;
     if (!this.overhangSupportSiteGroup) return;
     this.scene.remove(this.overhangSupportSiteGroup);
     const geometries = new Set<THREE.BufferGeometry>();
@@ -1751,94 +1786,6 @@ export class SkinRenderer {
     return candidates;
   }
 
-  private updateSupportPaintBrushHighlights(ids: readonly string[]): void {
-    const geometry = this.overhangSupportSiteGeometry;
-    if (!geometry) return;
-    const emphasis = geometry.getAttribute("aMarkerEmphasis") as THREE.BufferAttribute | undefined;
-    if (!emphasis) return;
-    let minIndex = Number.POSITIVE_INFINITY;
-    let maxIndex = -1;
-    for (const index of this.supportPaintBrushHighlightIndices) {
-      emphasis.setX(index, 0);
-      minIndex = Math.min(minIndex, index); maxIndex = Math.max(maxIndex, index);
-    }
-    this.supportPaintBrushHighlightIndices.clear();
-    for (const id of ids) {
-      const index = this.overhangSupportSiteIndexById.get(id);
-      if (index === undefined) continue;
-      emphasis.setX(index, 1);
-      this.supportPaintBrushHighlightIndices.add(index);
-      minIndex = Math.min(minIndex, index); maxIndex = Math.max(maxIndex, index);
-    }
-    if (maxIndex >= minIndex) {
-      emphasis.clearUpdateRanges();
-      emphasis.addUpdateRange(minIndex, maxIndex - minIndex + 1);
-      emphasis.needsUpdate = true;
-    }
-  }
-
-  setSupportPaintBrushPreview(input: {
-    center: { x: number; y: number; z: number };
-    normal: { x: number; y: number; z: number };
-    radius: number;
-    mode: SupportPaintMode;
-    affectedIds: readonly string[];
-  }): void {
-    if (!this.supportPaintBrushGroup) {
-      const group = new THREE.Group();
-      const ringGeometry = new THREE.BufferGeometry();
-      ringGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(64 * 3), 3).setUsage(THREE.DynamicDrawUsage));
-      const ring = new THREE.LineLoop(ringGeometry, new THREE.LineBasicMaterial({
-        color: 0x3185ff, depthTest: true, depthWrite: false, toneMapped: false,
-      }));
-      ring.renderOrder = 44; ring.frustumCulled = false;
-      const centerGeometry = new THREE.BufferGeometry();
-      centerGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3), 3).setUsage(THREE.DynamicDrawUsage));
-      centerGeometry.setAttribute("aMarkerColor", new THREE.BufferAttribute(new Float32Array(3), 3).setUsage(THREE.DynamicDrawUsage));
-      centerGeometry.setAttribute("aMarkerShape", new THREE.BufferAttribute(new Float32Array(1), 1).setUsage(THREE.DynamicDrawUsage));
-      centerGeometry.setAttribute("aMarkerEmphasis", new THREE.BufferAttribute(new Float32Array([1]), 1));
-      const center = new THREE.Points(centerGeometry, new THREE.ShaderMaterial({
-        vertexShader: SUPPORT_MARKER_VERTEX_SHADER, fragmentShader: SUPPORT_MARKER_FRAGMENT_SHADER,
-        uniforms: {
-          uPointSize: { value: 15 * this.renderer.getPixelRatio() },
-          uScreenDoorCoverage: { value: 1 },
-          uShowBrushEmphasis: { value: 1 },
-        },
-        depthTest: true, depthWrite: false, clipping: true, transparent: true,
-        blending: THREE.NoBlending, toneMapped: false,
-      }));
-      center.renderOrder = 45; center.frustumCulled = false;
-      group.add(ring, center);
-      group.userData.requestedVisible = false;
-      this.scene.add(group);
-      this.supportPaintBrushGroup = group; this.supportPaintBrushRing = ring; this.supportPaintBrushCenter = center;
-    }
-    const ring = this.supportPaintBrushRing!;
-    const center = this.supportPaintBrushCenter!;
-    const ringPositions = buildSupportPaintBrushRing({ center: input.center, normal: input.normal, radius: input.radius, segments: 64 });
-    const ringAttribute = ring.geometry.getAttribute("position") as THREE.BufferAttribute;
-    (ringAttribute.array as Float32Array).set(ringPositions); ringAttribute.needsUpdate = true;
-    const classification = input.mode === "auto" ? null : input.mode;
-    const presentation = classification ? SUPPORT_SITE_PRESENTATION[classification] : { colorHex: 0xc8c8c8, glyph: "cross" as const };
-    (ring.material as THREE.LineBasicMaterial).color.setHex(presentation.colorHex);
-    const centerPosition = center.geometry.getAttribute("position") as THREE.BufferAttribute;
-    centerPosition.setXYZ(0, input.center.x, input.center.y, input.center.z); centerPosition.needsUpdate = true;
-    const centerColor = center.geometry.getAttribute("aMarkerColor") as THREE.BufferAttribute;
-    centerColor.setXYZ(0, ((presentation.colorHex >> 16) & 0xff) / 255, ((presentation.colorHex >> 8) & 0xff) / 255, (presentation.colorHex & 0xff) / 255); centerColor.needsUpdate = true;
-    const centerShape = center.geometry.getAttribute("aMarkerShape") as THREE.BufferAttribute;
-    centerShape.setX(0, supportGlyphIndex(presentation.glyph)); centerShape.needsUpdate = true;
-    this.updateSupportPaintBrushHighlights(input.affectedIds);
-    this.supportPaintBrushGroup!.userData.requestedVisible = true;
-    this.applyLayerVisibility();
-  }
-
-  clearSupportPaintBrushPreview(): void {
-    this.updateSupportPaintBrushHighlights([]);
-    if (!this.supportPaintBrushGroup) return;
-    this.supportPaintBrushGroup.userData.requestedVisible = false;
-    this.supportPaintBrushGroup.visible = false;
-  }
-
   private updateOverhangSupportSiteClassifications(
     changes: readonly { id: string; classification: SupportOverlayMarkerInput["classification"] }[],
     trackPreview: boolean,
@@ -1848,8 +1795,7 @@ export class SkinRenderer {
     const colors = geometry.getAttribute("aMarkerColor") as THREE.BufferAttribute;
     const glyphs = geometry.getAttribute("aMarkerShape") as THREE.BufferAttribute;
     let changed = 0;
-    let minIndex = Number.POSITIVE_INFINITY;
-    let maxIndex = -1;
+    const changedIndices: number[] = [];
     for (const change of changes) {
       const index = this.overhangSupportSiteIndexById.get(change.id);
       if (index === undefined || this.overhangSupportSiteCurrentClassifications[index] === change.classification) continue;
@@ -1859,15 +1805,27 @@ export class SkinRenderer {
       glyphs.setX(index, supportGlyphIndex(presentation.glyph));
       this.overhangSupportSiteCurrentClassifications[index] = change.classification;
       if (trackPreview) this.overhangSupportSitePreviewIndices.add(index);
-      minIndex = Math.min(minIndex, index);
-      maxIndex = Math.max(maxIndex, index);
+      changedIndices.push(index);
       changed++;
     }
     if (changed > 0) {
       colors.clearUpdateRanges();
       glyphs.clearUpdateRanges();
-      colors.addUpdateRange(minIndex * 3, (maxIndex - minIndex + 1) * 3);
-      glyphs.addUpdateRange(minIndex, maxIndex - minIndex + 1);
+      changedIndices.sort((left, right) => left - right);
+      let rangeStart = changedIndices[0];
+      let rangeEnd = rangeStart;
+      const flushRange = () => {
+        colors.addUpdateRange(rangeStart * 3, (rangeEnd - rangeStart + 1) * 3);
+        glyphs.addUpdateRange(rangeStart, rangeEnd - rangeStart + 1);
+      };
+      for (let cursor = 1; cursor < changedIndices.length; cursor++) {
+        const index = changedIndices[cursor];
+        if (index === rangeEnd + 1) { rangeEnd = index; continue; }
+        flushRange();
+        rangeStart = index;
+        rangeEnd = index;
+      }
+      flushRange();
       colors.needsUpdate = true;
       glyphs.needsUpdate = true;
     }
@@ -1878,6 +1836,19 @@ export class SkinRenderer {
     changes: readonly { id: string; classification: SupportOverlayMarkerInput["classification"] }[],
   ): number {
     return this.updateOverhangSupportSiteClassifications(changes, true);
+  }
+
+  commitOverhangSupportSiteClassifications(
+    changes: readonly { id: string; classification: SupportOverlayMarkerInput["classification"] }[],
+  ): number {
+    const changed = this.updateOverhangSupportSiteClassifications(changes, false);
+    for (const change of changes) {
+      const index = this.overhangSupportSiteIndexById.get(change.id);
+      if (index === undefined) continue;
+      this.overhangSupportSiteCommittedClassifications[index] = change.classification;
+      this.overhangSupportSitePreviewIndices.delete(index);
+    }
+    return changed;
   }
 
   clearOverhangSupportSitePreview(): void {
@@ -2644,8 +2615,6 @@ export class SkinRenderer {
       const material = (object as THREE.Points).material as THREE.ShaderMaterial | undefined;
       if (material?.uniforms?.uPointSize) material.uniforms.uPointSize.value = 13 * pixelRatio;
     });
-    const brushMaterial = this.supportPaintBrushCenter?.material as THREE.ShaderMaterial | undefined;
-    if (brushMaterial?.uniforms?.uPointSize) brushMaterial.uniforms.uPointSize.value = 15 * pixelRatio;
     this.syncViewportHud();
     this.requestViewportRender();
   }
@@ -2704,13 +2673,16 @@ export class SkinRenderer {
     this.material.uniforms.uCoinBulgeBalance.value = coinBulgeBalance;
   }
 
-  render(): void {
+  render(activeViewportOnly = false): void {
     const width = Math.max(1, this.container.clientWidth);
     const height = Math.max(1, this.container.clientHeight);
-    const rects = skinViewportRects(
+    const allRects = skinViewportRects(
       width, height, this.viewportMode, this.selectedViewport,
       { x: this.fourSplitX, y: this.fourSplitY },
     );
+    const rects = activeViewportOnly && this.viewportMode === "four"
+      ? allRects.filter((rect) => rect.index === this.selectedViewport)
+      : allRects;
     this.applyViewportClippingToScene();
     this.renderer.setScissorTest(true);
     this.renderer.autoClear = false;
@@ -2728,9 +2700,6 @@ export class SkinRenderer {
       this.renderer.setScissor(rect.x, glY, rect.width, rect.height);
       this.renderer.clear(true, true, true);
       const showBrush = rect.index === this.selectedViewport;
-      if (this.supportPaintBrushGroup) {
-        this.supportPaintBrushGroup.visible = showBrush && Boolean(this.supportPaintBrushGroup.userData.requestedVisible);
-      }
       this.overhangSupportSiteGroup?.traverse((object) => {
         const material = (object as THREE.Points).material as THREE.ShaderMaterial | undefined;
         const uniform = material?.uniforms?.uShowBrushEmphasis;
@@ -2741,11 +2710,10 @@ export class SkinRenderer {
     this.renderer.setScissorTest(false);
     this.renderer.setViewport(0, 0, width, height);
     this.renderer.autoClear = true;
-    if (this.supportPaintBrushGroup) {
-      this.supportPaintBrushGroup.visible = Boolean(this.supportPaintBrushGroup.userData.requestedVisible);
+    if (!activeViewportOnly) {
+      this.updateOpeningLabels();
+      this.updateElementNames();
     }
-    this.updateOpeningLabels();
-    this.updateElementNames();
   }
 
   /** Build a world-space ray from the selected viewport's normalized device position. */

@@ -32,7 +32,7 @@ export interface SurfaceAngleDiagnosisRecheckRequest {
   baseNormals: Float32Array;
   baseFaceCount: number;
   resolution: number;
-  internalGraph: InternalStructureGraph;
+  internalGraph: InternalStructureGraph | null;
   thresholdDeg: number;
   meshStep: number;
   mode: SkinMode;

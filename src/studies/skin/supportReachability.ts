@@ -34,6 +34,9 @@ export interface SupportReachabilityResult extends SupportReachabilityFacts {
 
 export type SupportReachabilityClassification = "outside" | "inside" | "unresolved";
 
+/** Cache/provenance version for max(0.001 mm, meshScaleMm * 1e-6). */
+export const SUPPORT_REACHABILITY_RAY_EPSILON_VERSION = "scale-1e-6-floor-0.001mm-v1";
+
 export interface SupportReachabilitySampleDiagnosis {
   xMm: number;
   yMm: number;

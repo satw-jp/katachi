@@ -25,7 +25,7 @@ self.onmessage = async (event: MessageEvent<SurfaceAngleDiagnosisRequest>): Prom
       const message: SurfaceAngleWorkerMessage = {
         type: "result", generation: request.generation, metrics,
         basePositions: request.basePositions, baseNormals: request.baseNormals, baseFaceCount: request.baseFaceCount,
-        resolution: request.resolution, internalEdgeCount: request.internalGraph.edges.length, motifLowestPoints,
+        resolution: request.resolution, internalEdgeCount: request.internalGraph?.edges.length ?? 0, motifLowestPoints,
         beforeDangerPositions, afterDangerPositions, mitigatedPositions,
         elapsedMs: request.previousElapsedMs + performance.now() - started,
       };

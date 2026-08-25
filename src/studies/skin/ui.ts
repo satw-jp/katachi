@@ -34,6 +34,7 @@ import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import type { SupportSiteClassification, SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
 import type { SupportPaintMode } from "./supportPaint.ts";
+import { invokeExclusiveSupportPaintUndo, supportPaintOperationLabel } from "./supportPaintUndoRouting.ts";
 import {
   VIEWPORT_CLIP_AXES,
   type ViewportClippingAction,
@@ -190,6 +191,7 @@ export interface UiHandles {
   setHistoryCount: (n: number) => void;
   setUndoHistory: (labels: string[]) => void;
   setUndoStatus: (text: string) => void;
+  setShapeUndoLocked: (locked: boolean) => void;
   setFps: (fps: number) => void;
   setCounts: (hostBalls: number, patches: number) => void;
   setSelectionInfo: (text: string) => void;
@@ -288,12 +290,13 @@ export interface UiHandles {
   setViewportClippingState: (available: boolean, bounds: ViewportClippingBounds | null, state: ViewportClippingState) => void;
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
+  setSurfaceStartupStatus: (text: string, ok?: boolean) => void;
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
   setOverhangSupportSiteOverlay: (available: boolean, show: boolean, showMixed: boolean, showFootprint: boolean, depthMode: SupportSiteDepthMode, text: string, ok?: boolean) => void;
   setOverhangSupportSiteSelection: (text: string, classification?: SupportSiteClassification) => void;
   setSupportPaintState: (state: {
     available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
-    strokeCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
+    operationCount: number; sampleCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
     canSaveDraft: boolean; draftStatus: string;
     editingResolution: number | null; printResolution: number; canVerifyReprojection: boolean; reprojectionStatus: string;
   }) => void;
@@ -408,9 +411,9 @@ export function buildUi(
   const undoButton = document.createElement("button");
   undoButton.type = "button";
   undoButton.className = "history-undo-button";
-  undoButton.textContent = "↶ 1つ戻す";
-  undoButton.title = "直前の操作を1つ戻します（Windows: Ctrl+Z）";
-  undoButton.setAttribute("aria-label", "直前の操作を1つ戻す");
+  undoButton.textContent = "↶ 形状を戻す";
+  undoButton.title = "形状履歴を1つ戻します。Support Paint中は無効です";
+  undoButton.setAttribute("aria-label", "形状履歴を1つ戻す");
   undoButton.onclick = () => callbacks.onUndo();
   const undoMeta = document.createElement("div");
   undoMeta.className = "history-undo-meta";
@@ -430,6 +433,17 @@ export function buildUi(
   undoManyButton.textContent = "選んだ所まで戻す";
   undoManyButton.onclick = () => callbacks.onUndoSteps(Math.max(1, Number(undoHistorySelect.value) || 1));
   undoDock.append(undoButton, undoMeta, undoHistorySelect, undoManyButton, undoStatus);
+  let shapeUndoLocked = false;
+  let shapeUndoableCount = 0;
+  let shapeUndoHistoryAvailable = false;
+  const syncShapeUndoLock = () => {
+    undoButton.disabled = shapeUndoLocked || shapeUndoableCount === 0;
+    undoHistorySelect.disabled = shapeUndoLocked || !shapeUndoHistoryAvailable;
+    undoManyButton.disabled = shapeUndoLocked || !shapeUndoHistoryAvailable;
+    undoDock.classList.toggle("is-paint-locked", shapeUndoLocked);
+    undoShortcut.textContent = shapeUndoLocked ? "Paint中は無効" : "Ctrl+Z";
+    if (shapeUndoLocked) undoStatus.textContent = "Paint中のUndoは右のSupport Paint Undoへ送られます";
+  };
   // History actions belong to the left tools pane so they never cover the
   // one/four-view canvas. The callback and shared history remain unchanged.
   displayToolsRoot.appendChild(undoDock);
@@ -1602,6 +1616,10 @@ export function buildUi(
   surfaceAngleStatus.className = "mesh-status surface-angle-status";
   surfaceAngleStatus.textContent = "未診断";
   surfaceAngleStatus.setAttribute("aria-live", "polite");
+  const surfaceStartupStatus = document.createElement("div");
+  surfaceStartupStatus.className = "mesh-status surface-startup-status";
+  surfaceStartupStatus.textContent = "起動実測: 待機中";
+  surfaceStartupStatus.setAttribute("aria-live", "polite");
   const supportSiteToggle = document.createElement("label");
   supportSiteToggle.className = "support-site-toggle";
   const supportSiteCheckbox = document.createElement("input");
@@ -1690,11 +1708,15 @@ export function buildUi(
   const supportPaintActions = document.createElement("div");
   supportPaintActions.className = "row support-paint-actions";
   const supportPaintUndo = document.createElement("button");
-  supportPaintUndo.type = "button"; supportPaintUndo.textContent = "Undo"; supportPaintUndo.disabled = true; supportPaintUndo.onclick = () => callbacks.onUndoSupportPaint();
+  supportPaintUndo.type = "button"; supportPaintUndo.textContent = "Paint Undo"; supportPaintUndo.disabled = true;
+  supportPaintUndo.onclick = (event) => invokeExclusiveSupportPaintUndo(event, callbacks.onUndoSupportPaint);
   const supportPaintRedo = document.createElement("button");
   supportPaintRedo.type = "button"; supportPaintRedo.textContent = "Redo"; supportPaintRedo.disabled = true; supportPaintRedo.onclick = () => callbacks.onRedoSupportPaint();
   const supportPaintReset = document.createElement("button");
   supportPaintReset.type = "button"; supportPaintReset.textContent = "すべてリセット"; supportPaintReset.disabled = true; supportPaintReset.onclick = () => callbacks.onResetSupportPaint();
+  for (const button of [supportPaintUndo, supportPaintRedo, supportPaintReset]) {
+    button.addEventListener("pointerdown", (event) => event.stopPropagation());
+  }
   supportPaintActions.append(supportPaintUndo, supportPaintRedo, supportPaintReset);
   const supportPaintDraftActions = document.createElement("div");
   supportPaintDraftActions.className = "row support-paint-draft-actions";
@@ -1751,6 +1773,7 @@ export function buildUi(
     surfaceAngleThresholdSlider.row,
     surfaceAngleActions,
     surfaceAngleStatus,
+    surfaceStartupStatus,
     supportPaintPanel,
     surfaceAngleLimit,
   );
@@ -3343,9 +3366,10 @@ export function buildUi(
     setHistoryCount: (n) => {
       historyCount.textContent = `操作履歴: ${n} 件`;
       const undoable = Math.max(0, n - 1);
-      undoButton.disabled = undoable === 0;
+      shapeUndoableCount = undoable;
       undoCount.textContent = `戻せる操作 ${undoable}`;
-      undoStatus.textContent = "";
+      if (!shapeUndoLocked) undoStatus.textContent = "";
+      syncShapeUndoLock();
     },
     setUndoHistory: (labels) => {
       undoHistorySelect.replaceChildren();
@@ -3357,10 +3381,11 @@ export function buildUi(
         undoHistorySelect.appendChild(option);
       });
       const hasHistory = recent.length > 0;
-      undoHistorySelect.disabled = !hasHistory;
-      undoManyButton.disabled = !hasHistory;
+      shapeUndoHistoryAvailable = hasHistory;
+      syncShapeUndoLock();
     },
     setUndoStatus: (text) => { undoStatus.textContent = text; },
+    setShapeUndoLocked: (locked) => { shapeUndoLocked = locked; syncShapeUndoLock(); },
     setFps: (f) => {
       fps.textContent = `~${f.toFixed(0)} fps`;
     },
@@ -3515,6 +3540,10 @@ export function buildUi(
       surfaceAngleStatus.textContent = text;
       surfaceAngleStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
+    setSurfaceStartupStatus: (text, ok) => {
+      surfaceStartupStatus.textContent = text;
+      surfaceStartupStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
     setSurfaceAngleDiagnosisView: (view, available, hasInternal) => {
       for (const [candidate, button] of surfaceAngleViewButtons) {
         button.disabled = !available || (candidate === "after" && !hasInternal);
@@ -3553,14 +3582,14 @@ export function buildUi(
       supportPaintBackfacesCheckbox.checked = state.paintBackfaces;
       supportPaintUndo.disabled = !state.canUndo;
       supportPaintRedo.disabled = !state.canRedo;
-      supportPaintReset.disabled = state.strokeCount === 0;
+      supportPaintReset.disabled = state.sampleCount === 0;
       supportPaintDraftSave.disabled = !state.canSaveDraft;
       supportPaintDraftLoad.disabled = !state.available;
       supportPaintDraftStatus.textContent = state.draftStatus;
       supportPaintResolutionStatus.textContent = "編集 preview Surface " + (state.editingResolution ?? "--") + " / 印刷 Surface " + state.printResolution + "（未生成）";
       supportPaintReprojectionButton.disabled = !state.canVerifyReprojection;
       supportPaintReprojectionStatus.textContent = state.reprojectionStatus;
-      supportPaintStatus.textContent = `${state.status} · stroke ${state.strokeCount} · 塗布site ${state.paintedSiteCount} · 自動から変更 ${state.manualOverrideSiteCount}`;
+      supportPaintStatus.textContent = `${state.status} · ${supportPaintOperationLabel(state.operationCount, state.sampleCount)} · 塗布site ${state.paintedSiteCount} · 自動から変更 ${state.manualOverrideSiteCount}`;
     },
     setMotifLowestPointStatus: (text, ok) => {
       motifLowestStatus.textContent = text;

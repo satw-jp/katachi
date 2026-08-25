@@ -1496,6 +1496,25 @@ details.mesh-export:not([open]) > :not(summary) {
 .support-paint-status { min-height: 2.8em; line-height: 1.45; }
 #viewport.support-paint-active canvas { cursor: crosshair; }
 
+.support-paint-css-brush {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  width: var(--support-paint-brush-diameter, 24px);
+  height: var(--support-paint-brush-diameter, 24px);
+  box-sizing: border-box;
+  border: 2px solid #3185ff;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  transform: translate3d(-9999px, -9999px, 0);
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.82), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+.support-paint-css-brush[data-mode="outside"] { border-color: #ff922e; }
+.support-paint-css-brush[data-mode="auto"] { border-color: #b8b8b8; border-style: dashed; }
+
 .viewport-clipping-hud {
   position: absolute;
   top: 166px;

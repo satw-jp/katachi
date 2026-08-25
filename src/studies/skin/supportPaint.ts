@@ -365,17 +365,24 @@ export function beginSupportPaintStroke(session: SupportPaintSession, initial?: 
 
 export function appendActiveSupportPaintSample(session: SupportPaintSession, stroke: SupportPaintStrokeV1): SupportPaintSession {
   if (!session.activeStroke) throw new Error("supportPaint stroke is not active");
-  const document = supportPaintSessionDocument(session, true);
-  const expectedOrder = document.strokes.length;
-  const validated = validateSupportPaint({ ...document, strokes: [...document.strokes, { ...stroke, order: expectedOrder }] });
-  const sample = validated.strokes[validated.strokes.length - 1];
+  const activeSamples = session.activeStroke.samples;
+  const committedStrokes = session.history.present.strokes;
+  const previous = activeSamples[activeSamples.length - 1] ?? committedStrokes[committedStrokes.length - 1];
+  const expectedOrder = previous ? previous.order + 1 : 0;
+  const sample = validateSupportPaint({
+    schema: SUPPORT_PAINT_SCHEMA,
+    coordinateSpace: SUPPORT_PAINT_COORDINATE_SPACE,
+    sourceLongestMm: session.history.present.sourceLongestMm,
+    strokes: [{ ...stroke, order: 0 }],
+  }).strokes[0];
+  sample.order = expectedOrder;
+  // Active samples are ephemeral and have no undo identity until pointerup.
+  // Appending in place avoids copying the growing drag path on every dab.
+  session.activeStroke.samples.push(sample);
   return {
     revision: session.revision + 1,
     history: session.history,
-    activeStroke: {
-      startedAtRevision: session.activeStroke.startedAtRevision,
-      samples: [...session.activeStroke.samples, sample],
-    },
+    activeStroke: session.activeStroke,
   };
 }
 

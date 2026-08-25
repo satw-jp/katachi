@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.76.0",
+  "version": "0.76.8",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,34 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.8 records the author statement verbatim: 「ちぇっくOK」. Approval is strictly limited to Case A / Surface 48 / 1 View: continuous Support Paint drawing, one drag per Undo, right Paint Undo, Ctrl/Cmd+Z, disabled left shape Undo during Paint, and preservation of Surface diagnosis and persistent cache key across Undo. Case B, 4 Views, Surface 128 reprojection, Print Profile save, 3MF/archive, Slice, overall geometry/classification and print candidacy remain unapproved; printApproval=false."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.7 records the author observation verbatim: 「Undoで長時間停止した後、形状全体のUndoが実行され、Surface診断が無効化されてビーズ表示へ戻りました。」 Paint ON now exclusively owns Ctrl/Cmd+Z and the right Paint Undo; both stop event propagation, while the left control is explicitly labelled shape Undo and locked throughout Paint. One drag is one operation regardless of saved sample count, and the UI distinguishes operation count from samples instead of calling 929 samples strokes. Undo/Redo restores only the changed-site before/after journal through the persistent Paint Worker and partial marker Buffer path, without replaying every saved sample or mutating shape history, Surface diagnosis, or persistent cache keys. Saved supportPaint v1, classification, geometry, Profile and validation are unchanged. Author interaction acceptance remains pending; no commit or print output."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.6 records the author observation verbatim: 「塗ってみて固まらなくはなったが反応がとても遅い」. The accepted exact-hit startup path remains unchanged. Paint application now uses one persistent Worker initialized once with automatic classification and Surface positions; each drag dab returns only changed site indices/classes and incremental facts. The main thread partially updates only changed marker Buffer ranges and the active viewport, while pointerup commits one Undo transaction, autosaves, and commits preview state without a full ledger/overlay/Dry Web rebuild. Surface raycast cadence is adaptive with one request in flight and latest-pointer retention; brush, Surface-hit and paint-display latency are measured separately. Active sample append validates only the new sample instead of cloning/revalidating the entire growing stroke path. Saved v1 strokes, classification, geometry, Profile and validation are unchanged. Author 30-second 1 View acceptance remains pending; no commit or print output."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.5 records author acceptance of the corrected exact-hit startup: shell 99.8 ms, recipe 32.2 ms, cache lookup 48.6 ms, ledger restore 5.3 ms, and zero Surface-generation, face-diagnosis, automatic-classification and Paint-BVH Worker launches while Paint is OFF. The saved 6.3-second diagnosis is correctly labelled as historical and excluded from current reload timing. Startup is accepted; 30-second 1 View Paint remains pending, so Paint performance and printApproval remain unapproved. No commit or print output."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.4 follows the author exact-hit measurement: shell 172.6 ms, cache lookup 57.6 ms and all Surface/face/classification/Paint-BVH Worker counts zero, but startup still failed because synchronous reconstruction of the derived targeted Dry Web graph made ledger restore 39,227.0 ms. A complete cached diagnosis now adopts the saved result before any derived graph reconstruction. Editing keeps the exact inside targets and classification ledger, while startup and each Paint pointerup update routing/markers without rebuilding Dry Web on the main thread. The existing Dry Web target set and generation algorithm remain unchanged for the later final-generation stage. Cache, Paint and targeted-grid tests, typecheck, build and diff check pass; author reload and 30-second Paint acceptance remain pending. No commit or print output."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.3 records the rejected reload startup path and makes it non-blocking: the DOM shell is yielded to the first browser paint before model/renderer initialization and review-recipe loading; the diagnosis cache persists the validated automatic support-classification ledger; a complete hit restores it without invoking assign/classify or their Worker factory; an old diagnosis-only record is upgraded by one classification Worker without rerunning Surface generation or face diagnosis; cache-miss classification also stays off the main thread. Paint BVH construction is lazy until Paint ON, reports Worker progress without blocking the viewport, and replaces full-array conversion plus recursive sorting with typed in-place quickselect. UI/debug output separates current shell, recipe, cache, ledger, classification and BVH timings and all four launch counters from saved elapsedMs. Focused tests, typecheck and build pass, but author reload and 30-second 1 View Paint acceptance remain pending. No commit or print output; printApproval=false."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.2 rejects the first persistent-cache key after the same Case A / Surface 48 / 119.5 mm / 45° missed following a Paint-only code change. Cache identity is now two-layered. Surface mesh key = stable support-free shape fingerprint + Surface resolution + Surface algorithm version. Face-diagnosis key = mesh key + targetLongestMm + angle threshold + support-classification policy version + ray-epsilon version. generatorCommit, manifest/editor/UI state, viewport/camera/Clip/layout, Support Paint/draft, derived Dry Web graph, Worker count, generation and URL reload are excluded; generatorCommit remains output provenance only. A cache hit cannot invoke its Worker factory. Miss diagnostics show current/saved keys and component differences. Exact legacy v1 request matches with graph and null-graph candidates can migrate to the same stable mesh key without a Worker; ambiguous legacy entries are not used. The author accepted the cache after a same-URL reload reported persistent cache hit, Surface Worker 0 and face Worker 0. Paint input now keeps hover CSS-only; drag raycasts a persistent support-free BODY triangle BVH in a dedicated Worker at 25 Hz with one request in flight, performs no support-site enumeration, marker Buffer update or WebGL render until pointerup, then runs one existing Paint Worker and one full overlay/render sync. Author acceptance of 30-second Case A/B painting is still pending. No commit, Surface 128, Profile save, 3MF/archive, Slice, tag, push or deploy; printApproval=false."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.76.0 adds the v088 finalization-only fail-closed gate shared by Print Profile save and 3MF generation. Both require Surface 128 / fused 240, a completed current Surface 128 Support Paint reprojection/classification proof, zero unresolved/duplicate/unassigned sites, exact agreement between reprojected/runtime/Profile classification counts, a matching Profile, and a 40-character generatorCommit equal to the running app Git HEAD injected at dev/build start. The low-resolution editing Profile may transition once to Surface 128 only after its resolution-independent recipe SHA, Seed, dimensions, Dry Web, angle and Support Paint binding match; resolution-dependent counts are then fixed into the new Surface 128 Profile. Existing Profile parsing compatibility, support classification, routing, geometry and validation rules are unchanged. This checkpoint intentionally performs no Surface 128 diagnosis, 3MF/archive, Slice, tag, push or deploy before author approval; printApproval=false."

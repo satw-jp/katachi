@@ -34,6 +34,50 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
   「布になったか点在か」が数字で読めるか
 - **立体リングだけでホストの総体形状が読める**（ホスト表示なしでも形が立ち上がる）か
 
+## 作者確認 — Case A/Surface 48/1 ViewのSupport Paint操作合格（2026-08-25）
+
+作者原文:
+
+> 「ちぇっくOK」
+
+この承認は、Case A、Surface 48、1 ViewにおけるSupport Paint連続描画、1 drag＝1 Undo、右Paint Undo、Ctrl/Cmd+Z、Paint中の左形状Undo無効化、およびUndo前後でSurface診断と永続cache keyが維持されることだけを対象とする。4 Views、Case B、Surface 128再投影、Print Profile保存、3MF、archive、Slice、形状・分類全体、印刷候補は未承認であり、printApproval=falseを維持する。
+
+## Observation — Support Paint Undoを形状履歴から分離する（2026-08-25）
+
+追加の作者確認を原文のまま残す:
+
+> 「Undoで長時間停止した後、形状全体のUndoが実行され、Surface診断が無効化されてビーズ表示へ戻りました。」
+
+画面では左の全体Undo履歴が10から9へ減り、「直前の操作を戻しました」「形が変わりました。メッシュをもう一度選ぶと…」と表示された一方、Support Paint側には929 sampleが残っていた。これはPaint分類の承認ではなく、編集操作の所有権が混線した不具合の観察である。
+
+Paint ON中のCtrl/Cmd+ZはSupport Paintだけが所有し、右側のPaint Undoもイベントをそこで停止して形状履歴へ伝播させない。左TOOLSのUndoは「形状を戻す」と明記し、Paint中はボタン、複数step選択、実行経路をすべて無効にする。表示は1 dragをPaint操作、その中の保存点をsampleとして分け、929 sampleを929 strokeとは呼ばない。
+
+1 dragのUndoは全strokeを再投影せず、そのdragで変化したsite index、前後class、前後件数だけを持つ差分journalを常駐Paint Workerとmarker Bufferへ戻す。従ってsample数に関係なく1 dragが1 Undoとなり、形状history、Surface診断object、永続cache keyを変更しない。保存済みsupportPaint v1、分類規則、形状、Profile、validationは変更しない。作者による右Undo、左Undo、Ctrl/Cmd+Zの実操作確認前なので受入済みとは扱わず、commit、4 Views、Surface 128、Profile保存、3MF、Sliceへ進まない。
+
+## Observation — reload起動経路のfail-closed化（2026-08-25）
+
+同一Case A／Surface 48の永続cache hit後も画面が長時間開かなかったため、作者はPaint操作へ進まず起動経路を受入不合格とした。診断では、保存済みSurfaceAngleResultを復元した後に自動支持点分類ledgerをmain threadで再計算し、PaintがOFFでもPaint用Surface BVHを即時構築していた。画面に出ていた6.3秒は保存済み診断のelapsedMsで、今回のreload実測ではなかった。
+
+起動時はDOM外枠を最初のpaintへ渡してからmodel／renderer初期化とreview recipe読込を始める。diagnosis cacheは検証済みの自動支持点分類ledgerも同じdiagnosis keyへ保存し、完全hitではassign／classifyとそのWorker factoryを一度も呼ばず復元する。旧cacheにledgerがない場合だけ分類専用Workerで一度補完し、Surface生成・面判定は再実行しない。cache missの分類も同じWorkerで行う。Paint用BVHはPaint ONまで作らず、Worker構築中もviewportを止めず進捗を表示する。BVH構築は全配列変換と再帰sortを使わずtyped indexのin-place quickselectで分割する。shell、recipe、cache lookup、ledger復元、分類Worker、Paint BVHの実測時間と、Surface生成／面判定／自動分類／BVHの起動回数を画面へ分離表示する。作者の完全cache hit実測ではshell 172.6 ms、cache lookup 57.6 ms、Surface生成／面判定／自動分類／Paint BVHはすべて0になった一方、inside targetからderived Dry Web graphをmain threadで同期再構築していたためledger restore欄が39,227.0 msとなり、起動全体は引き続き不合格だった。完全hitでは保存済み診断を先に採用してderived graphを編集起動から外し、Paint確定時もrouting／markerだけを同期する。最終生成時に使う既存Dry Webアルゴリズムとtargetは変更しない。修正後の作者reloadではshell 99.8 ms、recipe 32.2 ms、cache lookup 48.6 ms、ledger restore 5.3 msとなり、Surface生成／面判定／自動分類／Paint BVHはすべて0を維持した。保存済み診断6.3秒も今回の読込時間から分離され、起動経路は合格。1 View 30秒Paint確認は未了であり、Paint性能全体の受入済みとは扱わない。
+
+## Observation — 同一Surface入力の重複計算禁止とPaint入力の分離（2026-08-25）
+
+最初の永続cacheはCase AのreloadでWorker 0を一度確認したが、Paint実装だけを変えた次のURLで同じSurface 48／119.5 mm／45°がmissになったため受入不合格とした。原因は1個のkeyに、Surface生成へ使わない実行中アプリのcommit、derived Dry Web internalGraph、実寸、角度閾値まで混ぜていたことだった。
+
+現行cacheは二層に分ける。Surface mesh keyはstableなsupport-free形状fingerprint、Surface resolution、Surface生成algorithm versionだけを持つ。面判定keyはそのmesh key、targetLongestMm、angle threshold、support classification policy version、ray epsilon versionだけを持つ。generatorCommit、manifest、viewport／camera／Clip／pane layout、Support Paint、editor draft、derived internalGraph、Worker数、generation、URL reload値はどちらの無効化条件にも入れない。generatorCommitは成果物provenanceにだけ残す。cache hit時は対応するWorker factory自体を呼ばず、読込不能時は再計算へ逃げずfail closedとする。miss時はcurrent key、保存済みkey、構成要素差分をUIとconsoleへ出す。旧v1 cacheは現在の形状request（internalGraphあり／なし）とのexact一致を確認した場合だけ同じ新mesh keyへ移行する。二層key修正後、作者がCase Aのreloadで「永続cache hit · Surface Worker 0 · 面判定Worker 0」を確認し、cacheは合格と判断した。
+
+支持点をhover／dragごとにpick・列挙してpreview Bufferを書き換える方式と、main threadで45,600面へ`Raycaster.intersectObject`してworld-space brush ringのためWebGL再描画する方式は、実データで操作が固まったため受入不合格とした。Support PaintのhoverはSurface raycastもWebGL描画もせず、orthographic cameraのzoomとviewport寸法から実寸半径を画面pxへ換算したHTML／CSS円のtransformだけを更新する。drag時だけ、support-free BODY Surfaceから一度構築して常駐する専用Workerのtriangle BVHへ最大25 Hz・同時1件でrayを送り、処理中は最新pointerだけを保持する。drag中は支持点検索、候補marker、分類Buffer、WebGL、Profile／routing／validationを更新しない。pointerupで最後のraycast結果を既存`supportPaint v1` sampleとして確定し、既存Paint Workerを1回だけ適用した後、分類Bufferと全viewportを各1回同期・描画する。保存形式、stroke順、Undo／Redo、autosave、Profile適用、分類規則、形状、validationは変えない。作者によるCase A/Bの30秒連続Paint確認は未了であり、この記録を性能受入または印刷承認として扱わない。`printApproval=false`を維持し、Surface 128、Profile保存、3MF、archive、Slice、tag、push、deployは行わない。
+
+## Observation — 1 View Paintの反応遅延と常駐差分適用（2026-08-25）
+
+作者観察原文：
+
+> 「塗ってみて固まらなくはなったが反応がとても遅い」
+
+起動cacheは作者確認済みの合格状態（完全hitでSurface生成／面判定／自動分類／Paint BVHがすべて0、ledger restore 5.3 ms）を固定する。一方、25 Hz固定のSurface hitとpointerup後の全Paint再適用では、brush位置から分類色までの反応が遅く、1 View Paintは受入不合格である。
+
+編集時のPaint適用は常駐Workerへ移し、automatic classificationとsupport Surface配列はPaint開始時に一度だけ転送する。各Surface hitは既存supportPaint v1のdabだけを送信し、Workerはuniform spatial gridの近傍だけを検索して変更site index／classと差分件数だけを返す。main threadは該当marker Buffer範囲とactive viewportだけを更新し、全ledger集計、Dry Web生成、Profile／validation再計算は保存／最終生成まで行わない。CSS brush円、Surface hit、塗布色表示の遅延を分離測定し、Surface raycastは同時1件・最新pointer保持のまま前回応答時間に合わせて適応発行する。active drag sample追加も過去stroke全体を再検証せず、その1 sampleだけを検証する。pointerupは1回のUndo履歴確定とautosave、previewのcommitだけを行う。保存形式、stroke順、Undo／Redo、分類規則、形状、Profile、validationは変更しない。作者による1 View 30秒連続drag、10 stroke、Undo／Redo、保存→再読込の実操作確認前なので、性能を受入済みとは記録しない。`printApproval=false`を維持し、4 Views、Surface 128、Profile保存、3MF、Slice、commitへ進まない。
+
 ## Observation — Print Profile v1共有基盤（2026-08-24）
 
 `katachi.skin.print-profile.v1`はShape Recipeと分離し、recipe SHA-256とSeed、Surface／融合解像度、最長辺、角度閾値、Dry Webの正規化径と実寸径、scaffold各部のmm寸法、base-interior方針、printer／slicer条件を記録する。CLIとブラウザWorkerは同じ`ResolvedPrintPlan`導出を使い、Profile指定時の未記録CLI上書きはfail closedとする。アプリはProfile JSONの読込・保存と現在設定／実寸の一致状態を既存研究ノートUI内に表示する。既存recipe `formatVersion: 1`は変更していない。
