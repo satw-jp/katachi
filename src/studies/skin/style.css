@@ -1327,6 +1327,72 @@ details.mesh-export:not([open]) > :not(summary) {
   background: color-mix(in srgb, var(--paper) 94%, #d9483b 6%);
 }
 
+.phase-a-support-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--ink) 72%, #e28a2b 28%);
+  background: color-mix(in srgb, var(--paper) 95%, #e28a2b 5%);
+}
+
+.phase-a-support-panel h3,
+.phase-a-support-panel p { margin: 0; }
+
+.phase-a-support-note,
+.phase-a-support-status {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.phase-a-support-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.phase-a-support-controls > label:not(.phase-a-support-checkbox) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, .85fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.phase-a-support-controls label > span {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) auto;
+  gap: 5px;
+  align-items: center;
+}
+
+.phase-a-support-controls input[type="number"],
+.phase-a-support-controls select {
+  width: 100%;
+  min-width: 0;
+}
+
+.phase-a-support-controls small {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.phase-a-support-checkbox {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.phase-a-support-refresh {
+  width: 100%;
+  padding: 7px 8px;
+}
+
+.phase-a-support-status[data-ok="true"] { color: #236d5d; }
+.phase-a-support-status[data-ok="false"] { color: #a24335; }
+
 .surface-angle-actions {
   align-items: stretch;
 }
@@ -1690,15 +1756,27 @@ details.mesh-export:not([open]) > :not(summary) {
 
 .skin-pane-body {
   height: calc(100% - 34px);
+  min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
 }
 
+.skin-right-pane .skin-pane-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .skin-right-pane .panel {
+  flex: 1 1 auto;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   padding: 12px;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   border-left: 0;
 }
 

@@ -14,6 +14,7 @@ import type { QuadFlowGrid } from "./quadFlow.ts";
 import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
 import type { DenseFlowerSample } from "./denseFlowerSample.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
+import type { SupportForest, SupportMember } from "./branchingSupport.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
 import { elementDisplayName, elementLabelDepthOpacity, representativeElements } from "../../lib/elementLabels.ts";
 import { layoutOpeningLabelsOutside, type ScreenRect } from "./openingLabelLayout.ts";
@@ -370,6 +371,10 @@ export class SkinRenderer {
   });
   private internalNodeMesh: THREE.InstancedMesh | null = null;
   private internalEdgeMesh: THREE.InstancedMesh | null = null;
+  /** Phase A display geometry only. The same millimetre-space forest is
+   * consumed here without regenerating or reclassifying Support Paint sites. */
+  private phaseASupportGroup: THREE.Group | null = null;
+  private phaseAObjectLiftSource = 0;
 
   // --- Bead approximation view (T12) --------------------------------------
   // InstancedMesh spheres for every host ball and every patch point, with NO
@@ -1380,6 +1385,9 @@ export class SkinRenderer {
     if (this.overhangSupportSiteGroup) {
       this.overhangSupportSiteGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
     }
+    if (this.phaseASupportGroup) {
+      this.phaseASupportGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+    }
     if (this.motifLowestPointGroup) {
       this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
     }
@@ -1510,6 +1518,116 @@ export class SkinRenderer {
     this.applyLayerVisibility();
   }
 
+  /** Render the Katachi-native branching support plan as radius-scaled
+   * instanced cylinders and junction/contact spheres. BODY-owned layers are
+   * lifted here; the forest coordinates already include that same lift. */
+  setPhaseASupportPreview(
+    forest: SupportForest | null,
+    retainedVerticals: readonly SupportMember[],
+    scaleMmPerUnit: number,
+    objectLiftMm: number,
+  ): void {
+    if (this.phaseASupportGroup) {
+      this.scene.remove(this.phaseASupportGroup);
+      this.phaseASupportGroup.traverse((object) => {
+        if (object instanceof THREE.InstancedMesh) object.dispose();
+        const candidate = object as THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] };
+        candidate.geometry?.dispose();
+        if (candidate.material) {
+          for (const material of Array.isArray(candidate.material) ? candidate.material : [candidate.material]) material.dispose();
+        }
+      });
+      this.phaseASupportGroup = null;
+    }
+    this.phaseAObjectLiftSource = scaleMmPerUnit > 0 ? objectLiftMm / scaleMmPerUnit : 0;
+    const bodyZ = this.phaseAObjectLiftSource;
+    if (this.overlayMesh) this.overlayMesh.position.z = bodyZ;
+    if (this.surfaceAngleGroup) this.surfaceAngleGroup.position.z = bodyZ;
+    if (this.overhangSupportSiteGroup) this.overhangSupportSiteGroup.position.z = bodyZ;
+    if (this.motifLowestPointGroup) this.motifLowestPointGroup.position.z = bodyZ;
+    if (this.internalNodeMesh) this.internalNodeMesh.position.z = bodyZ;
+    if (this.internalEdgeMesh) this.internalEdgeMesh.position.z = bodyZ;
+    if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
+      this.applyLayerVisibility();
+      return;
+    }
+
+    const group = new THREE.Group();
+    group.name = "phase-a-support-forest";
+    const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 1, 10, 1);
+    const sphereGeometry = new THREE.SphereGeometry(1, 12, 8);
+    const exteriorMaterial = new THREE.MeshStandardMaterial({ color: 0xe28a2b, roughness: 0.78, metalness: 0 });
+    const raftMaterial = new THREE.MeshStandardMaterial({ color: 0xb9681d, roughness: 0.86, metalness: 0 });
+    const retainedMaterial = new THREE.MeshStandardMaterial({ color: 0x42a88b, roughness: 0.8, metalness: 0 });
+    const toSource = (valueMm: number) => valueMm / scaleMmPerUnit;
+    const addMembers = (items: readonly SupportMember[], material: THREE.MeshStandardMaterial) => {
+      if (items.length === 0) return;
+      const mesh = new THREE.InstancedMesh(cylinderGeometry.clone(), material.clone(), items.length);
+      const matrix = new THREE.Matrix4();
+      const midpoint = new THREE.Vector3();
+      const direction = new THREE.Vector3();
+      const rotation = new THREE.Quaternion();
+      const yAxis = new THREE.Vector3(0, 1, 0);
+      const scale = new THREE.Vector3();
+      for (const [index, item] of items.entries()) {
+        const start = new THREE.Vector3(toSource(item.start.xMm), toSource(item.start.yMm), toSource(item.start.zMm));
+        const end = new THREE.Vector3(toSource(item.end.xMm), toSource(item.end.yMm), toSource(item.end.zMm));
+        direction.subVectors(end, start);
+        const length = direction.length();
+        midpoint.addVectors(start, end).multiplyScalar(0.5);
+        const radius = toSource((item.startRadiusMm + item.endRadiusMm) * 0.5);
+        if (length <= 1e-9) {
+          matrix.makeScale(0, 0, 0).setPosition(midpoint);
+        } else {
+          rotation.setFromUnitVectors(yAxis, direction.normalize());
+          scale.set(radius, length, radius);
+          matrix.compose(midpoint, rotation, scale);
+        }
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = 12;
+      mesh.frustumCulled = false;
+      group.add(mesh);
+    };
+    addMembers(forest.members.filter((member) => member.kind !== "raft"), exteriorMaterial);
+    addMembers(forest.members.filter((member) => member.kind === "raft"), raftMaterial);
+    addMembers(retainedVerticals, retainedMaterial);
+
+    const contactNodes = forest.members
+      .filter((member) => member.kind === "tip")
+      .map((member) => ({ ...member.end, radiusMm: member.endRadiusMm }));
+    const nodes = [
+      ...forest.junctions.map((node) => ({ xMm: node.xMm, yMm: node.yMm, zMm: node.zMm, radiusMm: node.radiusMm })),
+      ...contactNodes,
+    ];
+    if (nodes.length > 0) {
+      const mesh = new THREE.InstancedMesh(sphereGeometry, exteriorMaterial, nodes.length);
+      const matrix = new THREE.Matrix4();
+      for (const [index, node] of nodes.entries()) {
+        const radius = toSource(node.radiusMm);
+        matrix.makeScale(radius, radius, radius).setPosition(
+          toSource(node.xMm), toSource(node.yMm), toSource(node.zMm),
+        );
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = 13;
+      mesh.frustumCulled = false;
+      group.add(mesh);
+    }
+    cylinderGeometry.dispose();
+    raftMaterial.dispose();
+    retainedMaterial.dispose();
+    if (nodes.length === 0) {
+      sphereGeometry.dispose();
+      exteriorMaterial.dispose();
+    }
+    this.scene.add(group);
+    this.phaseASupportGroup = group;
+    this.applyLayerVisibility();
+  }
+
   /** Build (or replace) the true (uncapped) marching-tets geometry as a lit
    * mesh. Visibility is controlled separately via setViewMode. */
   setMeshOverlay(triangles: { a: {x:number;y:number;z:number}; b: {x:number;y:number;z:number}; c: {x:number;y:number;z:number} }[] | null): void {
@@ -1532,6 +1650,7 @@ export class SkinRenderer {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     geo.computeVertexNormals();
     this.overlayMesh = new THREE.Mesh(geo, this.overlayMaterial);
+    this.overlayMesh.position.z = this.phaseAObjectLiftSource;
     this.overlayMesh.renderOrder = this.displayStyle === "ghost" || this.internalObservationMode === "ghostSkin" ? 1 : 0;
     this.overlayMesh.visible = this.viewMode === "mesh";
     this.scene.add(this.overlayMesh);
@@ -1552,6 +1671,7 @@ export class SkinRenderer {
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
     this.overlayMesh = new THREE.Mesh(geometry, this.overlayMaterial);
+    this.overlayMesh.position.z = this.phaseAObjectLiftSource;
     this.overlayMesh.renderOrder = this.displayStyle === "ghost" || this.internalObservationMode === "ghostSkin" ? 1 : 0;
     this.overlayMesh.visible = this.viewMode === "mesh";
     this.scene.add(this.overlayMesh);

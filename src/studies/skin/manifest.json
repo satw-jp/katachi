@@ -2,9 +2,9 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.76.8",
+  "version": "0.77.0",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-25",
+  "updatedAt": "2026-08-26",
   "params": [
     "count",
     "radiusBase",
@@ -61,7 +61,17 @@
     "internalStructure",
     "internalDensity",
     "internalRadius",
-    "internalRandomness"
+    "internalRandomness",
+    "supportMode",
+    "objectLiftMm",
+    "tipRadiusMm",
+    "trunkMinimumRadiusMm",
+    "loadWidening",
+    "maximumUnsupportedLengthMm",
+    "branchAngleDeg",
+    "baseVolumeVerticalSupports",
+    "dryWebMinimumDiameterMm",
+    "dryWebMaximumUnreinforcedLengthMm"
   ],
   "related": [
     "cloud-sculpt",
@@ -70,6 +80,14 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-26",
+      "note": "Phase A preview checkpoint author confirmation, verbatim: 「作者確認：Branchingサポートは機能している。」 Approval is limited to the Case A / Surface 48 Branching support-forest preview. The right Properties pane now owns a height-constrained vertical scroll region so the Phase A controls remain reachable. Surface 128, high-resolution generation, 3MF, Slice and print approval remain out of scope; printApproval=false."
+    },
+    {
+      "date": "2026-08-25",
+      "note": "v0.77.0 / SKIN v089 Phase A replaces the default isolated outside posts with a Katachi-native deterministic branching support forest preview driven by the existing Support Paint ledger. Nearby leaves merge downward only when the selected FDM angle remains feasible; trunks widen by downstream length, contacts retain a fine tip, junctions thicken, all non-plate Branching members obey the maximum unsupported length, and roots share a plate raft. Object lift adds uniform lowest-surface cradle sites; retained base-volume verticals remain an independent on/off artwork system; Dry Web gains physical minimum diameter, maximum unreinforced length, intermediate nodes and thicker junctions. Case A / Surface 48 UI comparisons cover Vertical/Branching, lift 0/1.2mm, retained off/on and Dry Web 1.6/2.4mm. PrusaSlicer AGPL and meshy MIT were behavior references only; no source code was copied or adapted. Paint/Undo/cache schemas remain unchanged. No Surface 128, 3MF, Slice, high-resolution generation, commit, tag, push or deploy; printApproval=false."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.76.8 records the author statement verbatim: 「ちぇっくOK」. Approval is strictly limited to Case A / Surface 48 / 1 View: continuous Support Paint drawing, one drag per Undo, right Paint Undo, Ctrl/Cmd+Z, disabled left shape Undo during Paint, and preservation of Surface diagnosis and persistent cache key across Undo. Case B, 4 Views, Surface 128 reprojection, Print Profile save, 3MF/archive, Slice, overall geometry/classification and print candidacy remain unapproved; printApproval=false."

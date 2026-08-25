@@ -142,6 +142,14 @@ import {
 import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWorkerProtocol.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
+  buildSupportForest,
+  outsideLeavesFromAssignments,
+  reinforceDryWebGraph,
+  retainedVerticalMembers,
+  uniformLowestSurfaceLeaves,
+  type SupportForestMode,
+} from "./branchingSupport.ts";
+import {
   buildSkinPrintProfileV1, matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
   assertResolvedPrintPlanSupportCounts, assertV088FinalizationReady,
   V088_FUSED_RESOLUTION, V088_SURFACE_RESOLUTION,
@@ -1303,6 +1311,128 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialRestart: () => tutorialRestart(),
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 });
+
+interface PhaseASupportPreviewSettings {
+  supportMode: SupportForestMode;
+  objectLiftMm: number;
+  tipRadiusMm: number;
+  trunkMinimumRadiusMm: number;
+  loadWidening: number;
+  maximumUnsupportedLengthMm: number;
+  branchAngleDeg: number;
+  baseVolumeVerticalSupports: boolean;
+  dryWebMinimumDiameterMm: number;
+  dryWebMaximumUnreinforcedLengthMm: number;
+}
+
+const phaseASupportSettings: PhaseASupportPreviewSettings = {
+  supportMode: "branching",
+  objectLiftMm: 1.2,
+  tipRadiusMm: 0.35,
+  trunkMinimumRadiusMm: 0.70,
+  loadWidening: 0.08,
+  maximumUnsupportedLengthMm: 12,
+  branchAngleDeg: 40,
+  baseVolumeVerticalSupports: false,
+  dryWebMinimumDiameterMm: 1.6,
+  dryWebMaximumUnreinforcedLengthMm: 12,
+};
+
+const phaseASupportPanel = document.createElement("section");
+phaseASupportPanel.className = "phase-a-support-panel";
+phaseASupportPanel.dataset.phaseA = "support-forest";
+const phaseATitle = document.createElement("h3");
+phaseATitle.textContent = "Phase A · 支持林 preview";
+const phaseANote = document.createElement("p");
+phaseANote.className = "phase-a-support-note";
+phaseANote.textContent = "Surface 48 / Case A用。現在のSupport Paint分類を葉として使い、書き出しは行いません。";
+const phaseAControls = document.createElement("div");
+phaseAControls.className = "phase-a-support-controls";
+
+function addPhaseANumberControl(
+  labelText: string,
+  key: Exclude<keyof PhaseASupportPreviewSettings, "supportMode" | "baseVolumeVerticalSupports">,
+  min: number,
+  max: number,
+  step: number,
+  suffix: string,
+): void {
+  const label = document.createElement("label");
+  label.textContent = labelText;
+  const valueWrap = document.createElement("span");
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = String(min);
+  input.max = String(max);
+  input.step = String(step);
+  input.value = String(phaseASupportSettings[key]);
+  input.dataset.phaseAControl = key;
+  const unit = document.createElement("small");
+  unit.textContent = suffix;
+  input.addEventListener("change", () => {
+    const value = Math.max(min, Math.min(max, Number(input.value)));
+    if (!Number.isFinite(value)) return;
+    phaseASupportSettings[key] = value;
+    input.value = String(value);
+    refreshPhaseASupportPreview();
+  });
+  valueWrap.append(input, unit);
+  label.append(valueWrap);
+  phaseAControls.appendChild(label);
+}
+
+const phaseAModeLabel = document.createElement("label");
+phaseAModeLabel.textContent = "support mode";
+const phaseAModeSelect = document.createElement("select");
+phaseAModeSelect.dataset.phaseAControl = "supportMode";
+for (const [value, text] of [["vertical", "Vertical（旧比較）"], ["branching", "Branching"]] as const) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = text;
+  option.selected = value === phaseASupportSettings.supportMode;
+  phaseAModeSelect.appendChild(option);
+}
+phaseAModeSelect.addEventListener("change", () => {
+  phaseASupportSettings.supportMode = phaseAModeSelect.value as SupportForestMode;
+  refreshPhaseASupportPreview();
+});
+phaseAModeLabel.appendChild(phaseAModeSelect);
+phaseAControls.appendChild(phaseAModeLabel);
+addPhaseANumberControl("object lift", "objectLiftMm", 0, 3, 0.1, "mm");
+addPhaseANumberControl("tip radius", "tipRadiusMm", 0.2, 0.8, 0.05, "mm");
+addPhaseANumberControl("trunk minimum radius", "trunkMinimumRadiusMm", 0.4, 2, 0.05, "mm");
+addPhaseANumberControl("load widening", "loadWidening", 0, 0.2, 0.01, "r + k√L");
+addPhaseANumberControl("maximum unsupported length", "maximumUnsupportedLengthMm", 4, 30, 1, "mm");
+addPhaseANumberControl("branch angle", "branchAngleDeg", 25, 45, 1, "° from vertical");
+
+const phaseAVerticalLabel = document.createElement("label");
+phaseAVerticalLabel.className = "phase-a-support-checkbox";
+const phaseAVerticalInput = document.createElement("input");
+phaseAVerticalInput.type = "checkbox";
+phaseAVerticalInput.dataset.phaseAControl = "baseVolumeVerticalSupports";
+phaseAVerticalInput.checked = phaseASupportSettings.baseVolumeVerticalSupports;
+phaseAVerticalInput.addEventListener("change", () => {
+  phaseASupportSettings.baseVolumeVerticalSupports = phaseAVerticalInput.checked;
+  refreshPhaseASupportPreview();
+});
+phaseAVerticalLabel.append(phaseAVerticalInput, document.createTextNode("base-volume vertical supports ON"));
+phaseAControls.appendChild(phaseAVerticalLabel);
+addPhaseANumberControl("Dry Web minimum diameter", "dryWebMinimumDiameterMm", 0.8, 4, 0.1, "mm");
+addPhaseANumberControl("Dry Web maximum unreinforced", "dryWebMaximumUnreinforcedLengthMm", 4, 30, 1, "mm");
+
+const phaseASupportStatus = document.createElement("p");
+phaseASupportStatus.className = "phase-a-support-status";
+phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+const phaseARefreshButton = document.createElement("button");
+phaseARefreshButton.type = "button";
+phaseARefreshButton.className = "phase-a-support-refresh";
+phaseARefreshButton.textContent = "現在のPaint分類からpreview更新";
+phaseARefreshButton.addEventListener("click", () => refreshPhaseASupportPreview());
+phaseASupportPanel.append(phaseATitle, phaseANote, phaseAControls, phaseARefreshButton, phaseASupportStatus);
+const surfaceAnglePanel = ui.root.querySelector(".surface-angle-diagnosis");
+if (surfaceAnglePanel) surfaceAnglePanel.insertAdjacentElement("afterend", phaseASupportPanel);
+else ui.root.appendChild(phaseASupportPanel);
+
 rightPaneBody.appendChild(ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
 
@@ -1661,6 +1791,83 @@ function supportPaintEditingContext(): {
     scaleMmPerUnit,
   };
   return supportPaintSurfaceCache;
+}
+
+function refreshPhaseASupportPreview(): void {
+  const result = overhangSupportResult;
+  const context = supportPaintEditingContext();
+  if (!surfaceAngleCache || !result || !context) {
+    skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+    phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+    delete phaseASupportStatus.dataset.ok;
+    return;
+  }
+  try {
+    let plateZMm = Infinity;
+    for (let offset = 2; offset < context.positionsMm.length; offset += 3) {
+      plateZMm = Math.min(plateZMm, context.positionsMm[offset]);
+    }
+    if (!Number.isFinite(plateZMm)) throw new Error("BODYの最下面を求められません");
+    const outsideLeaves = outsideLeavesFromAssignments(result.entries);
+    const cradleLeaves = phaseASupportSettings.objectLiftMm > 0
+      ? uniformLowestSurfaceLeaves(
+        context.positionsMm,
+        Math.max(2.4, phaseASupportSettings.trunkMinimumRadiusMm * 4),
+        0.9,
+      )
+      : [];
+    const forest = buildSupportForest([...outsideLeaves, ...cradleLeaves], {
+      mode: phaseASupportSettings.supportMode,
+      plateZMm,
+      objectLiftMm: phaseASupportSettings.objectLiftMm,
+      tipRadiusMm: phaseASupportSettings.tipRadiusMm,
+      trunkMinimumRadiusMm: phaseASupportSettings.trunkMinimumRadiusMm,
+      loadWidening: phaseASupportSettings.loadWidening,
+      maximumUnsupportedLengthMm: phaseASupportSettings.maximumUnsupportedLengthMm,
+      branchAngleDeg: phaseASupportSettings.branchAngleDeg,
+      footRadiusMm: Math.max(1.0, phaseASupportSettings.trunkMinimumRadiusMm * 1.45),
+      raftRadiusMm: Math.max(0.75, phaseASupportSettings.trunkMinimumRadiusMm),
+    });
+    const retained = phaseASupportSettings.baseVolumeVerticalSupports
+      ? retainedVerticalMembers(result.entries, phaseASupportSettings.trunkMinimumRadiusMm)
+        .map((member) => ({
+          ...member,
+          start: { ...member.start, zMm: member.start.zMm + phaseASupportSettings.objectLiftMm },
+          end: { ...member.end, zMm: member.end.zMm + phaseASupportSettings.objectLiftMm },
+        }))
+      : [];
+    const reinforcedDryWeb = reinforceDryWebGraph(
+      getInternalStructureGraph(),
+      context.scaleMmPerUnit,
+      phaseASupportSettings.dryWebMinimumDiameterMm,
+      phaseASupportSettings.dryWebMaximumUnreinforcedLengthMm,
+    );
+    skinRenderer.setInternalStructure(reinforcedDryWeb);
+    skinRenderer.setPhaseASupportPreview(
+      forest,
+      retained,
+      context.scaleMmPerUnit,
+      phaseASupportSettings.objectLiftMm,
+    );
+    const stats = forest.stats;
+    const dryWebText = reinforcedDryWeb
+      ? `Dry Web ${reinforcedDryWeb.edges.length.toLocaleString()} edge / 最小径${phaseASupportSettings.dryWebMinimumDiameterMm.toFixed(1)}mm`
+      : "Dry Webなし";
+    phaseASupportStatus.textContent =
+      `${phaseASupportSettings.supportMode === "branching" ? "Branching" : "Vertical"} · outside葉 ${outsideLeaves.length.toLocaleString()} / `
+      + `最下面cradle ${cradleLeaves.length.toLocaleString()} / branch ${stats.branchCount.toLocaleString()} / `
+      + `brace ${stats.braceCount.toLocaleString()} / foot ${stats.rootCount.toLocaleString()} / `
+      + `最大部材 ${stats.maximumMemberLengthMm.toFixed(1)}mm / 最大角 ${stats.maximumBranchAngleDeg.toFixed(1)}° / `
+      + `base内 retained ${retained.length.toLocaleString()} / ${dryWebText}`;
+    delete phaseASupportStatus.dataset.stale;
+    phaseASupportStatus.dataset.ok = String(stats.unsupportedLengthViolationCount === 0
+      && stats.maximumBranchAngleDeg <= phaseASupportSettings.branchAngleDeg + 1e-4);
+    render();
+  } catch (error) {
+    skinRenderer.setPhaseASupportPreview(null, [], context.scaleMmPerUnit, 0);
+    phaseASupportStatus.textContent = `支持林preview生成失敗: ${error instanceof Error ? error.message : String(error)}`;
+    phaseASupportStatus.dataset.ok = "false";
+  }
 }
 
 function terminateSupportPaintRaycastWorker(): void {
@@ -2042,6 +2249,12 @@ function applySupportPaintLiveSnapshot(
   } else {
     const updated = skinRenderer.commitOverhangSupportSiteClassifications(markerChanges);
     if (updated > 0) requestRenderFrame();
+    // A real Case A forest contains tens of thousands of members. Rebuilding
+    // it inside Paint pointerup would regress the already accepted Paint/Undo
+    // interaction. Keep Paint fast and let the author explicitly refresh the
+    // structure after finishing a classification edit.
+    phaseASupportStatus.textContent = "Support Paint分類が更新されました。「現在のPaint分類からpreview更新」で支持林へ反映します";
+    phaseASupportStatus.dataset.stale = "true";
   }
 }
 
@@ -4828,6 +5041,10 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   refreshSupportPaintUi("支持点の診断後に使えます");
   skinRenderer.clearSurfaceAngleOverlay();
   skinRenderer.clearOverhangSupportSiteOverlay();
+  skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+  phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+  delete phaseASupportStatus.dataset.ok;
+  delete phaseASupportStatus.dataset.stale;
   ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点は未診断");
   cancelBambu3mfExport(false);
   if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
@@ -5175,6 +5392,7 @@ function finishSurfaceAngleDiagnosis(
   ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
   refreshPrintProfileSummary();
   refreshMotifLowestPointMarkers();
+  refreshPhaseASupportPreview();
   refreshSurfaceStartupStatus("ready");
 }
 

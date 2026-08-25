@@ -34,6 +34,37 @@ T9（S-pack）が体積の内部を虚で詰めて骨組みを残したのに対
   「布になったか点在か」が数字で読めるか
 - **立体リングだけでホストの総体形状が読める**（ホスト表示なしでも形が立ち上がる）か
 
+## Observation — v089 Phase A 支持林preview（2026-08-25）
+
+作者観察原文:
+
+> 「サポートやDryweb形状について
+> 現状細い要素を垂直に伸ばしているが一定長さ以上は途中で折れる可能性があるため
+> ひかりぞ形式のサポートのように相互に支え合う等の方式が必要
+> 最下面についてはオブジェクトをプレートにベタ付けせず、
+> 少しだけ浮かせてサポートを一律につけるようにしたほうが
+> 仕上がりが良いように思った
+> ベースボリューム内の垂直サポートは作品の見た目としては可能性を感じるので
+> オプションとして合っても良いと思った
+> 最後に出力したボリュームでは何箇所かサポート不良による崩壊、
+> Drywebが細すぎて壊れる場所があった」
+
+4 Views性能確認は行わず、Case A / Surface 48の実際のSupport Paint分類を入力にして、支持形状を回転観察するPhase Aへ進んだ。`outside` siteを葉とする決定的な純粋TypeScript生成器は、近傍を下方向へ段階合流し、下流総延長Lに対して `r = trunkMinimumRadius + loadWidening * sqrt(L)` で幹を太くする。BODY接点だけtip radiusを使い、junctionは接続edgeより15%太くする。合流前に残り高さと指定角度を検査し、Branching modeでは全非plate部材をmaximum unsupported length以下、かつbranch angle以下にする。plate側はfootを共通raftのrow networkへ接続する。Vertical modeは旧isolated postを比較するため、長柱と個別footを意図的に残して不合格条件を可視化する。
+
+object liftが0より大きいときは、support-free BODYの最下面0.9mm帯をXY gridで一様samplingしてcradle葉を加え、BODY表示自体を同じ実寸だけ上げる。base-volume内の垂直支柱は`retained-vertical`として別系統にし、取り外し式forestへ混ぜない。Dry Webは正規化radiusに加えて実寸minimum diameterとmaximum unreinforced lengthを持ち、長edgeを中間nodeで分割し、長いほど20%ずつ太くし、nodeを接続edgeより25%太くする。これは上記の実物破損をvalidation根拠とする。
+
+Case A / Surface 48の実画面では、Branching既定値（lift 1.2mm、tip 0.35mm、trunk minimum 0.70mm、load widening 0.08、最大無支持長12mm、角度40°）でoutside葉15,906、最下面cradle 6、branch 32,830、foot 1,420、最大部材12.0mm、最大角40.0°、Dry Web 7,993 edgeとなった。Vertical比較は最大孤立柱113.4mmで不合格、lift 0mmではcradle 0、base-volume verticalはOFF 0 / ON 1,082、Dry Web minimum diameterは1.6mm / 2.4mm（1.5倍）をUIから切り替えられた。Paint pointerupへ数万memberの再構築を混ぜず、分類編集後は「現在のPaint分類からpreview更新」で明示的に反映する。Paint分類、Paint履歴、Undo、永続cacheのschema/keyは変更していない。
+
+構造・挙動の参考として[PrusaSlicer SLA support tree](https://github.com/prusa3d/PrusaSlicer/tree/master/src/libslic3r/SLA)（AGPL）と[meshy tree supports](https://github.com/0x00019913/meshy)（MIT）を調査したが、両repositoryのsource codeはコピー／翻案していない。meshy由来のcode採用箇所はなく、今回の実装はKatachi固有の新規TypeScriptである。このcheckpointは作者が3D previewを回転して接触、合流、長柱、最下面を判断する停止点であり、印刷承認ではない。Surface 128、3MF、Slice、高精度生成、tag、push、deployは行わず、`printApproval=false`を維持する。
+
+### 作者確認（2026-08-26）
+
+作者原文:
+
+> 「作者確認：Branchingサポートは機能している。」
+
+承認範囲はCase A / Surface 48のBranching支持林previewとする。右Propertiesペインは、内容要素自体に確定した高さと縦スクロールを持たせ、Phase A controlsまで移動できるようにした。この時点をPhase A preview checkpointとしてcommitするが、Surface 128、高精度生成、3MF、Sliceおよび印刷成立は未確認であり、`printApproval=false`を維持する。
+
 ## 作者確認 — Case A/Surface 48/1 ViewのSupport Paint操作合格（2026-08-25）
 
 作者原文:
