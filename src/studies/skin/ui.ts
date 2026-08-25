@@ -111,6 +111,7 @@ export interface UiCallbacks {
   onResetSupportPaint: () => void;
   onSaveSupportPaintDraft: () => void;
   onLoadSupportPaintDraft: (file: File) => void;
+  onVerifySupportPaintReprojection: () => void;
   onToggleMotifLowestPoints: (show: boolean, thresholdDeg: number) => void;
   onPreviewMeshResolutionChange: (resolution: number) => void;
   onCancelPreviewMesh: () => void;
@@ -292,6 +293,7 @@ export interface UiHandles {
     available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
     strokeCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
     canSaveDraft: boolean; draftStatus: string;
+    editingResolution: number | null; printResolution: number; canVerifyReprojection: boolean; reprojectionStatus: string;
   }) => void;
   setMotifLowestPointStatus: (text: string, ok?: boolean) => void;
   getSurfaceAngleThreshold: () => number;
@@ -1694,11 +1696,20 @@ export function buildUi(
   const supportPaintDraftStatus = document.createElement("div");
   supportPaintDraftStatus.className = "hint support-paint-draft-status";
   supportPaintDraftStatus.textContent = "Shape Recipe読込後にautosaveできます";
+  const supportPaintResolutionStatus = document.createElement("div");
+  supportPaintResolutionStatus.className = "support-paint-resolution-status";
+  supportPaintResolutionStatus.textContent = "編集 preview Surface -- / 印刷 Surface 128（未生成）";
+  const supportPaintReprojectionButton = document.createElement("button");
+  supportPaintReprojectionButton.type = "button"; supportPaintReprojectionButton.textContent = "Surface 48へ再投影確認";
+  supportPaintReprojectionButton.onclick = () => callbacks.onVerifySupportPaintReprojection();
+  const supportPaintReprojectionStatus = document.createElement("div");
+  supportPaintReprojectionStatus.className = "hint support-paint-reprojection-status";
+  supportPaintReprojectionStatus.textContent = "未検証";
   const supportPaintStatus = document.createElement("div");
   supportPaintStatus.className = "mesh-status support-paint-status";
   supportPaintStatus.textContent = "支持点の診断後に使えます";
   supportPaintStatus.setAttribute("aria-live", "polite");
-  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintDraftActions, supportPaintDraftStatus, supportPaintStatus);
+  supportPaintPanel.append(supportPaintTitle, supportPaintHint, supportPaintEnable, supportPaintModes, supportPaintRadius.row, supportPaintBackfaces, supportPaintActions, supportPaintDraftActions, supportPaintDraftStatus, supportPaintResolutionStatus, supportPaintReprojectionButton, supportPaintReprojectionStatus, supportPaintStatus);
   const motifLowestToggle = document.createElement("label");
   motifLowestToggle.className = "surface-lowest-toggle";
   const motifLowestCheckbox = document.createElement("input");
@@ -3526,6 +3537,9 @@ export function buildUi(
       supportPaintDraftSave.disabled = !state.canSaveDraft;
       supportPaintDraftLoad.disabled = !state.available;
       supportPaintDraftStatus.textContent = state.draftStatus;
+      supportPaintResolutionStatus.textContent = "編集 preview Surface " + (state.editingResolution ?? "--") + " / 印刷 Surface " + state.printResolution + "（未生成）";
+      supportPaintReprojectionButton.disabled = !state.canVerifyReprojection;
+      supportPaintReprojectionStatus.textContent = state.reprojectionStatus;
       supportPaintStatus.textContent = `${state.status} · stroke ${state.strokeCount} · 塗布site ${state.paintedSiteCount} · 自動から変更 ${state.manualOverrideSiteCount}`;
     },
     setMotifLowestPointStatus: (text, ok) => {

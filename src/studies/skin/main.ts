@@ -156,6 +156,7 @@ import {
   assertSupportPaintDraftBinding, createSupportPaintDraft, serializeSupportPaintDraft,
   supportPaintDraftStorageKey, validateSupportPaintDraft, type SupportPaintDraftV1,
 } from "./supportPaintDraft.ts";
+import { supportPaintReprojectionFacts } from "./supportPaintReprojection.ts";
 import { buildBaseFootprint } from "./baseFootprint.ts";
 import {
   correctTutorialFlags,
@@ -265,6 +266,11 @@ let supportPaintSession = createSupportPaintSession();
 let supportPaintStatusText = "自動分類を下書きとして表示中";
 let supportPaintDraftSavedAt: string | null = null;
 let supportPaintDraftDirty = false;
+let activeSupportPaintReprojectionWorker: Worker | null = null;
+let supportPaintReprojectionGeneration = 0;
+let supportPaintReprojectionStatus = "未検証";
+const SUPPORT_PAINT_REPROJECTION_RESOLUTION = 48;
+const SUPPORT_PAINT_PRINT_RESOLUTION = 128;
 let activeSupportPaintWorker: Worker | null = null;
 let supportPaintSurfaceCache: {
   diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
@@ -760,11 +766,12 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onSetSupportPaintMode: (mode) => { supportPaintMode = mode; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
   onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
   onSetSupportPaintBackfaces: (enabled) => { supportPaintBackfaces = enabled; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
-  onUndoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, undoSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作戻しました"); },
-  onRedoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, redoSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作進めました"); },
-  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを自動分類へ戻しました"); },
+  onUndoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, undoSupportPaint(supportPaintSession.history)); invalidateSupportPaintReprojection(); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作戻しました"); },
+  onRedoSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, redoSupportPaint(supportPaintSession.history)); invalidateSupportPaintReprojection(); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを1操作進めました"); },
+  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); invalidateSupportPaintReprojection(); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを自動分類へ戻しました"); },
   onSaveSupportPaintDraft: () => saveSupportPaintDraftDownload(),
   onLoadSupportPaintDraft: (file) => loadSupportPaintDraftFile(file),
+  onVerifySupportPaintReprojection: () => startSupportPaintReprojectionVerification(),
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
@@ -1074,6 +1081,7 @@ function splitTriangleSoup(positions: Float32Array): Float32Array[] {
 
 function classifySurfaceAngleSupport(
   message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+  options: { commit?: boolean; enforceProfile?: boolean } = {},
 ): OverhangSupportPolicyResult {
   const sourceLongest = triangleSoupLongestExtent(message.basePositions);
   const targetLongestMm = ui.getMeshOptions().targetLongestMm;
@@ -1088,11 +1096,11 @@ function classifySurfaceAngleSupport(
     explicitTargets: activePrintProfile?.scaffold.explicitTargets ?? [],
     baseFootprint,
   });
-  automaticOverhangSupportResult = automaticResult;
+  if (options.commit !== false) automaticOverhangSupportResult = automaticResult;
   const paint = supportPaintSession.history.present.strokes.length > 0 ? supportPaintSession.history.present : null;
   const result = applySupportPaintToPolicyResult(automaticResult, supportSurfacePositionsMm, paint);
   try {
-    if (activePrintProfile && activePrintProfileSha256) {
+    if (options.enforceProfile !== false && activePrintProfile && activePrintProfileSha256) {
       const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
       assertResolvedPrintPlanSupportCounts(plan, result.counts, result.rayFacts);
     } else {
@@ -1274,6 +1282,12 @@ function currentSupportPaintDocument(includeActive = false): SupportPaintV1 {
   return supportPaintSessionDocument(supportPaintSession, includeActive);
 }
 
+function invalidateSupportPaintReprojection(): void {
+  supportPaintReprojectionGeneration++;
+  if (activeSupportPaintReprojectionWorker) { activeSupportPaintReprojectionWorker.terminate(); activeSupportPaintReprojectionWorker = null; }
+  supportPaintReprojectionStatus = "未検証";
+}
+
 function currentSupportPaintDraftBinding(): { recipeSha256: string; seed: string; targetLongestMm: number } | null {
   if (!importedRecipeSha256) return null;
   return { recipeSha256: importedRecipeSha256, seed: state.hostParams.seed, targetLongestMm: ui.getMeshOptions().targetLongestMm };
@@ -1325,6 +1339,7 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   assertSupportPaintDraftBinding(draft, binding);
   if (activeSupportPaintWorker) { activeSupportPaintWorker.terminate(); activeSupportPaintWorker = null; }
   supportPaintSession = createSupportPaintSession(draft.supportPaint);
+  invalidateSupportPaintReprojection();
   supportPaintMode = draft.brush.mode; supportPaintRadiusMm = draft.brush.radiusMm; supportPaintBackfaces = draft.brush.paintBackfaces;
   localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
   supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
@@ -1366,6 +1381,10 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     canRedo: supportPaintSession.history.future.length > 0,
     canSaveDraft: Boolean(currentSupportPaintDraftBinding()) && !supportPaintSession.activeStroke && !activeSupportPaintWorker,
     draftStatus: supportPaintDraftStatusText(),
+    editingResolution: surfaceAngleCache?.resolution ?? null,
+    printResolution: SUPPORT_PAINT_PRINT_RESOLUTION,
+    canVerifyReprojection: supportPaintSession.history.present.strokes.length > 0 && Boolean(importedRecipeSha256) && !activeSupportPaintReprojectionWorker,
+    reprojectionStatus: supportPaintReprojectionStatus,
     status,
   });
 }
@@ -1376,6 +1395,7 @@ function invalidateSupportPaintEditingResources(): void {
     activeSupportPaintWorker.terminate();
     activeSupportPaintWorker = null;
   }
+  invalidateSupportPaintReprojection();
   if (supportPaintDrag?.frameRequestId !== null && supportPaintDrag?.frameRequestId !== undefined) {
     window.cancelAnimationFrame(supportPaintDrag.frameRequestId);
   }
@@ -1864,6 +1884,7 @@ function finishSupportPaintDrag(commit: boolean): void {
   const sampleCount = supportPaintSession.activeStroke?.samples.length ?? 0;
   if (commit && drag.changed && sampleCount > 0) {
     supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, true);
+    invalidateSupportPaintReprojection();
     autosaveSupportPaintDraft();
     reapplySupportPaint("Support Paintを1 stroke確定しました", supportPaintSession.history.present, true, {
       siteCount: drag.siteCount,
@@ -4175,6 +4196,64 @@ function recheckTargetedGridFromExactMesh(
     ui.setSurfaceAngleDiagnosisStatus(`Dry Webの付加後診断Workerに失敗しました: ${event.message}`, false);
   };
   worker.postMessage(request, [request.basePositions.buffer, request.baseNormals.buffer]);
+}
+
+function startSupportPaintReprojectionVerification(): void {
+  if (supportPaintSession.history.present.strokes.length === 0) { supportPaintReprojectionStatus = "strokeがないため未検証"; refreshSupportPaintUi(); return; }
+  if (!importedRecipeSha256) { supportPaintReprojectionStatus = "Shape Recipe未読込 · fail-closed"; refreshSupportPaintUi(); return; }
+  if (activeSupportPaintReprojectionWorker) activeSupportPaintReprojectionWorker.terminate();
+  const generation = ++supportPaintReprojectionGeneration;
+  const options = ui.getMeshOptions();
+  const request: SurfaceAngleDiagnosisRequest = {
+    type: "build", generation,
+    host: state.host.map((ball) => ({ ...ball })), hostK: state.hostParams.k, thickness: state.skinParams.thickness,
+    patches: state.patches.map((patch) => ({ ...patch, motifParams: patch.motifParams ? { ...patch.motifParams } : undefined, points: patch.points.map((point) => ({ ...point })) })),
+    internalGraph: null, roundK: state.skinParams.roundK, coinBulge: state.skinParams.coinBulge, coinBulgeBalance: state.skinParams.coinBulgeBalance,
+    quadMeshJoinWidth: state.skinParams.quadMeshJoinWidth, mode: state.mode, thresholdDeg: ui.getSurfaceAngleThreshold(),
+    resolution: SUPPORT_PAINT_REPROJECTION_RESOLUTION, targetLongestMm: options.targetLongestMm,
+    workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)),
+  };
+  const worker = new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
+  activeSupportPaintReprojectionWorker = worker;
+  supportPaintReprojectionStatus = "Surface 48を低解像度Workerで準備中…"; refreshSupportPaintUi();
+  worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
+    const message = event.data;
+    if (generation !== supportPaintReprojectionGeneration || worker !== activeSupportPaintReprojectionWorker) { worker.terminate(); return; }
+    if (message.type === "progress") {
+      supportPaintReprojectionStatus = "Surface 48を準備中 · " + message.completedSlices + "/" + message.totalSlices; refreshSupportPaintUi(); return;
+    }
+    activeSupportPaintReprojectionWorker = null; worker.terminate();
+    if (message.type === "error") { supportPaintReprojectionStatus = "Surface 48再投影失敗: " + message.message; refreshSupportPaintUi(); return; }
+    try {
+      const classified = classifySurfaceAngleSupport(message, { commit: false, enforceProfile: false });
+      const longest = triangleSoupLongestExtent(message.basePositions);
+      const scale = options.targetLongestMm / longest;
+      if (!(scale > 0)) throw new Error("Surface 48 scaleを求められません");
+      const surfaceMm = new Float32Array(message.basePositions.map((value) => value * scale));
+      const targetFacts = supportPaintReprojectionFacts({
+        resolution: message.resolution, sites: classified.entries, supportPaint: supportPaintSession.history.present, frame: buildSupportPaintFrame(surfaceMm),
+      });
+      if (!targetFacts.regionMatch || targetFacts.oppositeNormalCount !== 0) throw new Error("反対面または保存brush領域外への適用を検出しました");
+      const currentContext = supportPaintEditingContext();
+      const currentFacts = overhangSupportResult && currentContext ? supportPaintReprojectionFacts({
+        resolution: surfaceAngleCache?.resolution ?? 0, sites: overhangSupportResult.entries, supportPaint: supportPaintSession.history.present, frame: currentContext.frame,
+      }) : null;
+      const currentText = currentFacts ? "編集Surface " + currentFacts.resolution + " affected inside/outside " + currentFacts.affectedInsideCount + "/" + currentFacts.affectedOutsideCount + " → " : "";
+      supportPaintReprojectionStatus = currentText + "Surface 48 affected inside/outside " + targetFacts.affectedInsideCount + "/" + targetFacts.affectedOutsideCount
+        + " · Auto " + targetFacts.affectedAutoCount + " · override " + targetFacts.manualOverrideCount
+        + " · 反対面 " + targetFacts.oppositeNormalCount + " · 正規化領域一致";
+      refreshSupportPaintUi("Surface 48へのID非依存再投影を確認しました");
+    } catch (error) {
+      supportPaintReprojectionStatus = "Surface 48再投影 fail-closed: " + (error instanceof Error ? error.message : String(error));
+      refreshSupportPaintUi();
+    }
+  };
+  worker.onerror = (event) => {
+    if (worker !== activeSupportPaintReprojectionWorker) return;
+    activeSupportPaintReprojectionWorker = null; worker.terminate();
+    supportPaintReprojectionStatus = "Surface 48 Worker失敗: " + event.message; refreshSupportPaintUi();
+  };
+  worker.postMessage(request);
 }
 
 function startSurfaceAngleDiagnosis(thresholdDeg: number): void {

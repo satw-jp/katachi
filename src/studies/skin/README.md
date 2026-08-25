@@ -187,6 +187,10 @@ Checkpoint Aでは、committed strokeと描画中のactive strokeをrevision付�
 
 1ドラッグのstroke確定、Undo、Redo、resetのたびに、対応Shape RecipeのSHA-256とSeedをkeyにしてlocalStorageへ自動保存する。画面は未保存または保存済み時刻を示す。作業を保存は同じ検証済みdraftをJSONとしてdownloadし、作業を読み込むはrecipe SHA、Seed、対象サイズを現在形状と照合してから復元する。不一致は警告で通過させずfail-closedにする。draftは正規化座標・surface normal・mm半径を持つsupportPaint、現在brush mode／半径／背面許可を含み、printApprovalは常にfalseである。読込後は共有Workerが色、最終件数、routingを1回再計算する。Shape Recipeと既存Print Profileのschemaは変更しない。
 
+### 解像度移行 — IDではなく保存領域をSurface 48へ再投影する（Checkpoint C）
+
+Support Paint panelは、現在診断している編集preview Surfaceと、印刷時に使うSurface 128（未生成）を分離して表示する。Surface 48へ再投影確認は専用の低解像度Workerでsupport追加前BODY Surfaceだけを作り、保存済みの正規化object座標・surface normal・mm半径を共有override関数へ渡す。一時的なsupport site IDは渡さない。再投影後はpaintが触れた最終inside／outside／Auto件数、manual override件数、反対normalへの適用数を表示する。各適用siteが保存brushの正規化半径内かつnormal閾値内であることを診断し、反対面または領域外が1件でもあればfail-closedにする。Surface 128や最終形状はこの確認では生成しない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

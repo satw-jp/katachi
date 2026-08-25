@@ -72,6 +72,10 @@
   "revisits": [
     {
       "date": "2026-08-25",
+      "note": "v088 Support Paint checkpoint C: the panel now distinguishes the current editing-preview Surface resolution from the planned print Surface 128, explicitly marked ungenerated. A dedicated low-resolution Worker can build only a Surface 48 support-free BODY diagnosis, then apply the saved normalized object coordinates, surface normals and mm brush radii through the same shared override function without using temporary support-site IDs. The UI compares editing and Surface 48 affected inside/outside counts and reports Auto, manual override, opposite-normal and stored-region-outside counts. Any opposite-normal or out-of-stored-region application fails closed. Focused tests use different low/Surface48 IDs and confirm identical normalized regions and zero penetration. No Surface 128, final geometry, archive or 3MF is generated; printApproval=false."
+    },
+    {
+      "date": "2026-08-25",
       "note": "v088 Support Paint checkpoint B: every committed drag stroke and each Undo/Redo/reset writes one validated draft to localStorage under the exact Shape Recipe SHA-256 and Seed. The panel reports unsaved/saved state and timestamp. 「作業を保存」downloads the same canonical draft JSON; 「作業を読み込む」validates schema, printApproval=false, recipe SHA, Seed and target size before replacing the revisioned session. A mismatch is fail-closed. The draft contains the normalized-coordinate/normal/mm-radius supportPaint document plus brush mode, radius and explicit backface setting. Reloading reuses the shared Worker to restore colors, counts and routing. Existing Shape Recipe and Print Profile schemas remain compatible and unchanged; no geometry generation is performed."
     },
     {
