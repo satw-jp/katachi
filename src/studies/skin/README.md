@@ -242,6 +242,12 @@ Axome回転はworld-up固定や極角を使わず、cameraからtargetへのeye�
 
 左TOOLSには生成結果、CLIP XYZ、support overlay、前面／背面、mixed、footprintなど表示専用操作だけを残し、viewport番号、方向一覧、Reset、layout切替を重複表示しない。既存のRhino camera gesture、4台の独立camera、共有scene／clipping／Support Paint／overlay、editor draftの方向・camera保存は維持する。この整理は制作環境だけの変更であり、Shape Recipe、Print Profile、Profile SHA、geometry、classification、routing、validation、3MF／archiveには含めず、`printApproval=false`を維持する。
 
+### Observation — v088印刷候補への最終接続はSurface 128診断後だけ開く（2026-08-25）
+
+Support Paintの編集previewと印刷候補を混同しないため、v088 Print Profile保存と3MF生成はSurface 128／fused 240に固定し、現在のrecipe・Support PaintをSurface 128支持点へ再投影して分類を完了した証明がある場合だけ許可する。unresolved／duplicate／unassignedが0で、Surface 128の分類件数、現在の分類件数、Profileの期待件数が完全一致しなければfail closedとする。既存Profileの読込互換性や分類・形状ロジックは変更しない。 編集用の低解像度ProfileからSurface 128へ移る診断だけは、解像度に依存しないrecipe SHA、Seed、実寸、Dry Web、角度、Support Paintが元Profileと一致することを先に検証し、新しい支持点件数は診断後のSurface 128 Profileへ固定する。
+
+generatorCommitはdev server／build開始時のGit HEADを40桁SHAとして埋め込み、Profile側と実行中appが一致しない場合も保存・3MFを止める。今回のcheckpointでは作者承認前なのでSurface 128診断、3MF、archive、Slice、tag、push、deployを実行せず、低解像度の作者確認画面でゲートが閉じていることだけを確認する。printApproval=falseを維持する。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

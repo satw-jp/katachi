@@ -9,6 +9,7 @@ import {
   geometryFingerprintLowResolution,
   printProfileSha256,
   assertResolvedPrintPlanSupportCounts,
+  assertV088FinalizationReady,
   resolveCliPrintPlan,
   resolveWorkerPrintPlan,
   validateSkinPrintProfile,
@@ -140,6 +141,40 @@ test("new Profile classification counts and ray facts are checked at runtime", a
   }, rayFacts), /do not match|match/);
   assert.throws(() => assertResolvedPrintPlanSupportCounts(plan, profile.expectedClassificationCounts!, { ...rayFacts, lowerIntersectionEpsilonMm: 0.002 }), /epsilon/);
   assert.deepEqual(assertResolvedPrintPlanSupportCounts(plan, profile.expectedClassificationCounts!, rayFacts), undefined);
+});
+
+test("v088 finalization accepts only exact Surface 128 reprojection, fused 240, counts, and running commit", () => {
+  const counts = profile.expectedClassificationCounts!;
+  const commit = "5".repeat(40);
+  const ready = {
+    surfaceResolution: 128, fusedResolution: 240,
+    reprojectedSurfaceResolution: 128, reprojectedClassificationCounts: counts,
+    classificationCounts: counts, expectedProfileClassificationCounts: counts,
+    profileMatches: true, generatorCommit: commit, runningAppCommit: commit,
+  };
+  assert.equal(assertV088FinalizationReady(ready), undefined);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, surfaceResolution: 48 }), /Surface 128/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, fusedResolution: 128 }), /fused 240/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, reprojectedSurfaceResolution: null, reprojectedClassificationCounts: null }), /reprojection/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, profileMatches: false }), /Profile/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, generatorCommit: "working-tree" }), /generatorCommit/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, generatorCommit: "6".repeat(40) }), /generatorCommit/);
+});
+
+test("v088 finalization fails closed for unresolved, duplicate, and Profile count drift", () => {
+  const counts = profile.expectedClassificationCounts!;
+  const commit = "5".repeat(40);
+  const ready = {
+    surfaceResolution: 128, fusedResolution: 240,
+    reprojectedSurfaceResolution: 128, reprojectedClassificationCounts: counts,
+    classificationCounts: counts, expectedProfileClassificationCounts: counts,
+    profileMatches: true, generatorCommit: commit, runningAppCommit: commit,
+  };
+  const unresolved = { ...counts, inside: counts.inside - 1, unresolved: 1, insideSupportSite: counts.insideSupportSite - 1, unresolvedSupportSite: 1 };
+  assert.throws(() => assertV088FinalizationReady({ ...ready, reprojectedClassificationCounts: unresolved, classificationCounts: unresolved, expectedProfileClassificationCounts: unresolved }), /unresolved/);
+  const duplicate = { ...counts, duplicate: 1, duplicateSupportSite: 1 };
+  assert.throws(() => assertV088FinalizationReady({ ...ready, reprojectedClassificationCounts: duplicate, classificationCounts: duplicate, expectedProfileClassificationCounts: duplicate }), /duplicate/);
+  assert.throws(() => assertV088FinalizationReady({ ...ready, expectedProfileClassificationCounts: { ...counts, mixedFace: counts.mixedFace + 1 } }), /Profile classification counts/);
 });
 
 test("low-resolution CLI and Worker resolve identical print plans", async () => {

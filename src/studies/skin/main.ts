@@ -123,7 +123,9 @@ import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWor
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
   buildSkinPrintProfileV1, matchPrintProfile, printProfileSha256, resolveWorkerPrintPlan, validateSkinPrintProfile,
-  assertResolvedPrintPlanSupportCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
+  assertResolvedPrintPlanSupportCounts, assertV088FinalizationReady,
+  V088_FUSED_RESOLUTION, V088_SURFACE_RESOLUTION,
+  type PrintSupportClassificationCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
 } from "./printProfile.ts";
 import {
   applySupportPaintToPolicyResult,
@@ -414,7 +416,16 @@ let activeSupportPaintReprojectionWorker: Worker | null = null;
 let supportPaintReprojectionGeneration = 0;
 let supportPaintReprojectionStatus = "未検証";
 const SUPPORT_PAINT_REPROJECTION_RESOLUTION = 48;
-const SUPPORT_PAINT_PRINT_RESOLUTION = 128;
+const SUPPORT_PAINT_PRINT_RESOLUTION = V088_SURFACE_RESOLUTION;
+const RUNNING_APP_COMMIT = import.meta.env.VITE_GIT_COMMIT;
+if (!/^[0-9a-f]{40}$/.test(RUNNING_APP_COMMIT)) {
+  throw new Error("SKIN v088 boot error: exact running app commit SHA is unavailable");
+}
+let v088Surface128Proof: {
+  surfaceAngleGeneration: number;
+  resolution: number;
+  counts: PrintSupportClassificationCounts;
+} | null = null;
 let activeSupportPaintWorker: Worker | null = null;
 let supportPaintSurfaceCache: {
   diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
@@ -1413,8 +1424,16 @@ function classifySurfaceAngleSupport(
   const result = applySupportPaintToPolicyResult(automaticResult, supportSurfacePositionsMm, paint);
   try {
     if (options.enforceProfile !== false && activePrintProfile && activePrintProfileSha256) {
-      const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
-      assertResolvedPrintPlanSupportCounts(plan, result.counts, result.rayFacts);
+      const isPrintResolutionTransition = message.resolution === V088_SURFACE_RESOLUTION
+        && activePrintProfile.geometry.surfaceResolution !== V088_SURFACE_RESOLUTION;
+      if (isPrintResolutionTransition) {
+        const sourceMatch = matchPrintProfile(activePrintProfile, currentPrintProfileFinalizationSourceBinding());
+        if (!sourceMatch.matches) throw new Error(`Print Profile mismatch: ${sourceMatch.reasons.join(" / ")}`);
+        validateOverhangAssignmentLedger(result);
+      } else {
+        const plan = resolveWorkerPrintPlan(activePrintProfile, activePrintProfileSha256, currentPrintProfileBinding(activePrintProfile, false));
+        assertResolvedPrintPlanSupportCounts(plan, result.counts, result.rayFacts);
+      }
     } else {
       validateOverhangAssignmentLedger(result);
     }
@@ -1598,6 +1617,7 @@ function currentSupportPaintDocument(includeActive = false): SupportPaintV1 {
 }
 
 function invalidateSupportPaintReprojection(): void {
+  v088Surface128Proof = null;
   supportPaintReprojectionGeneration++;
   if (activeSupportPaintReprojectionWorker) { activeSupportPaintReprojectionWorker.terminate(); activeSupportPaintReprojectionWorker = null; }
   supportPaintReprojectionStatus = "未検証";
@@ -3626,12 +3646,33 @@ async function importS1Recipe(file: File): Promise<void> {
   }
 }
 
+function currentV088Surface128Proof(): typeof v088Surface128Proof {
+  return v088Surface128Proof
+    && v088Surface128Proof.surfaceAngleGeneration === surfaceAngleGeneration
+    && surfaceAngleCache?.resolution === V088_SURFACE_RESOLUTION
+    ? v088Surface128Proof
+    : null;
+}
+
 function currentPrintScaleMmPerUnit(): number | undefined {
   const diagnosis = surfaceAngleCache;
   if (!diagnosis) return undefined;
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
   const targetLongestMm = ui.getMeshOptions().targetLongestMm;
   return sourceLongest > 0 && targetLongestMm > 0 ? targetLongestMm / sourceLongest : undefined;
+}
+
+function currentPrintProfileFinalizationSourceBinding() {
+  const options = ui.getMeshOptions();
+  return {
+    recipeSha256: importedRecipeSha256,
+    seed: state.hostParams.seed,
+    currentInternalStructure: state.skinParams.internalStructure,
+    currentDryWebNormalizedRadius: state.skinParams.internalRadius,
+    currentTargetLongestMm: options.targetLongestMm,
+    currentAngleThresholdDeg: ui.getSurfaceAngleThreshold(),
+    currentSupportPaint: supportPaintSession.history.present.strokes.length > 0 ? supportPaintSession.history.present : null,
+  };
 }
 
 function currentPrintProfileBinding(profile: SkinPrintProfileV1, includeScale = true) {
@@ -3660,6 +3701,20 @@ function refreshPrintProfileSummary(): void {
   const actualDryWebDiameterMm = actualScale === undefined ? "最終精度診断後に確定" : (state.skinParams.internalRadius * actualScale * 2).toFixed(3) + " mm";
   const supportRayEpsilonMm = overhangSupportResult?.rayFacts?.lowerIntersectionEpsilonMm
     ?? profile.supportClassification?.lowerIntersectionEpsilonMm;
+  const proof = currentV088Surface128Proof();
+  let finalizationStatus = "Surface 128再投影・分類が未完了";
+  try {
+    assertV088FinalizationReady({
+      surfaceResolution: profile.geometry.surfaceResolution, fusedResolution: profile.geometry.fusedResolution,
+      reprojectedSurfaceResolution: proof?.resolution ?? null, reprojectedClassificationCounts: proof?.counts ?? null,
+      classificationCounts: overhangSupportResult?.counts ?? null,
+      expectedProfileClassificationCounts: profile.expectedClassificationCounts ?? null,
+      profileMatches: match.matches, generatorCommit: profile.generatorCommit, runningAppCommit: RUNNING_APP_COMMIT,
+    });
+    finalizationStatus = "保存・3MF生成条件に一致";
+  } catch (error) {
+    finalizationStatus = (error as Error).message;
+  }
   ui.setPrintProfileSummary({
     profileName: profile.profileName,
     profileSha256: activePrintProfileSha256,
@@ -3682,7 +3737,9 @@ function refreshPrintProfileSummary(): void {
       ["scaffold 軸 / 足 / 接点", profile.scaffold.shaftDiameterMm.toFixed(2) + " / " + profile.scaffold.footDiameterMm.toFixed(2) + " / " + profile.scaffold.contactDiameterMm.toFixed(2) + " mm"],
       ["scaffold 間隔 / overlap", profile.scaffold.spacingMm.toFixed(2) + " / " + profile.scaffold.contactOverlapMm.toFixed(2) + " mm"],
       ["Printer", profile.printer.printer + " · nozzle " + profile.printer.nozzleMm + " mm · " + profile.printer.material + " · layer " + profile.printer.layerHeightMm + " mm"],
-      ["Generator", profile.generatorCommit + (profile.generatorTag ? " · " + profile.generatorTag : "")],
+      ["Profile generator", profile.generatorCommit + (profile.generatorTag ? " · " + profile.generatorTag : "")],
+      ["実行中app commit", RUNNING_APP_COMMIT],
+      ["v088 finalization", finalizationStatus],
     ],
   });
 }
@@ -3714,12 +3771,13 @@ async function saveCurrentPrintProfile(): Promise<void> {
   if (!overhangSupportResult) { alert("先に共有ポリシーでオーバーハング分類を完了してください"); return; }
   if (!overhangSupportResult.rayFacts) { alert("support-free Surface ray factsがありません"); return; }
   const options = ui.getMeshOptions();
+  const proof = currentV088Surface128Proof();
   const dryRadiusMm = state.skinParams.internalRadius * scaleMmPerUnit;
   const scaffold = { ...DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS, baseRadiusMm: 1.2 };
   const profile = buildSkinPrintProfileV1({
     profileName: (importedRecipeFilename.endsWith(".json") ? importedRecipeFilename.slice(0, -5) : importedRecipeFilename) + " print",
     appVersion: manifest.version, artifactVersion: "v088",
-    generatorCommit: import.meta.env.VITE_GIT_COMMIT || "working-tree", generatorTag: null,
+    generatorCommit: RUNNING_APP_COMMIT, generatorTag: null,
     supportPolicy: overhangSupportResult.policy,
     supportClassification: {
       method: overhangSupportResult.rayFacts.method,
@@ -3730,7 +3788,7 @@ async function saveCurrentPrintProfile(): Promise<void> {
     expectedClassificationCounts: overhangSupportResult.counts,
     ...(supportPaintSession.history.present.strokes.length > 0 ? { supportPaint: supportPaintSession.history.present } : {}),
     shapeRecipe: { sha256: importedRecipeSha256, seed: state.hostParams.seed, pathHint: importedRecipeFilename },
-    geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: Math.round(options.resolution), fusedResolution: options.resolution <= 24 ? 32 : Math.max(240, Math.round(options.resolution)), angleThresholdDeg: ui.getSurfaceAngleThreshold() },
+    geometry: { targetLongestMm: options.targetLongestMm, surfaceResolution: V088_SURFACE_RESOLUTION, fusedResolution: V088_FUSED_RESOLUTION, angleThresholdDeg: ui.getSurfaceAngleThreshold() },
     internalStructure: { method: "targetedGrid", dryWebNormalizedRadius: state.skinParams.internalRadius, dryWebPhysicalRadiusMm: dryRadiusMm },
     scaffold: { coverageMode: scaffold.coverageMode, perimeterBandMm: scaffold.perimeterBandMm, spacingMm: scaffold.spacingMm,
       shaftRadiusMm: scaffold.shaftRadiusMm, footRadiusMm: scaffold.baseRadiusMm,
@@ -3741,6 +3799,18 @@ async function saveCurrentPrintProfile(): Promise<void> {
     slicer: { application: "Bambu Studio", version: "not-recorded", printerPresetId: "Bambu Lab A1 mini 0.4 nozzle", filamentPresetId: "Generic PLA", processPresetId: "0.20mm Standard BBL A1M" },
     executionHints: { workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)) },
   });
+  const profileMatch = matchPrintProfile(profile, currentPrintProfileBinding(profile));
+  try {
+    assertV088FinalizationReady({
+      surfaceResolution: profile.geometry.surfaceResolution, fusedResolution: profile.geometry.fusedResolution,
+      reprojectedSurfaceResolution: proof?.resolution ?? null, reprojectedClassificationCounts: proof?.counts ?? null,
+      classificationCounts: overhangSupportResult.counts, expectedProfileClassificationCounts: profile.expectedClassificationCounts ?? null,
+      profileMatches: profileMatch.matches, generatorCommit: profile.generatorCommit, runningAppCommit: RUNNING_APP_COMMIT,
+    });
+  } catch (error) {
+    alert((error as Error).message);
+    return;
+  }
   const profileText = JSON.stringify(profile, null, 2) + "\n";
   activePrintProfile = profile; activePrintProfileSha256 = await printProfileSha256(profile); activePrintProfileFilename = null; activePrintProfileText = profileText;
   downloadBlob(new Blob([profileText], { type: "application/json" }), `v088-${importedRecipeFilename.endsWith(".recipe.json") ? importedRecipeFilename.slice(0, -12) : importedRecipeFilename}.print-profile.json`);
@@ -4291,6 +4361,20 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     ui.setBambu3mfExportStatus("先に共有ポリシーでオーバーハング分類を完了してください", false);
     return;
   }
+  const proof = currentV088Surface128Proof();
+  const profileMatch = matchPrintProfile(activePrintProfile, currentPrintProfileBinding(activePrintProfile));
+  try {
+    assertV088FinalizationReady({
+      surfaceResolution: activePrintProfile.geometry.surfaceResolution, fusedResolution: activePrintProfile.geometry.fusedResolution,
+      reprojectedSurfaceResolution: proof?.resolution ?? null, reprojectedClassificationCounts: proof?.counts ?? null,
+      classificationCounts: assignments.counts, expectedProfileClassificationCounts: activePrintProfile.expectedClassificationCounts ?? null,
+      profileMatches: profileMatch.matches, generatorCommit: activePrintProfile.generatorCommit, runningAppCommit: RUNNING_APP_COMMIT,
+    });
+  } catch (error) {
+    ui.setBambu3mfExportStatus((error as Error).message, false);
+    refreshPrintProfileSummary();
+    return;
+  }
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
   if (!(sourceLongest > 0) || !(options.targetLongestMm > 0)) {
     ui.setBambu3mfExportStatus("BODYの実寸Scaleを求められませんでした", false);
@@ -4466,6 +4550,9 @@ function finishSurfaceAngleDiagnosis(
     : "0.0%";
   const hasInternal = message.internalEdgeCount > 0;
   const classification = overhangSupportResult?.counts;
+  v088Surface128Proof = message.resolution === V088_SURFACE_RESOLUTION && classification
+    ? { surfaceAngleGeneration, resolution: message.resolution, counts: { ...classification } }
+    : null;
   ui.setSurfaceAngleDiagnosisRunning(false);
   ui.setSurfaceAngleDiagnosisStatus(hasInternal
     ? `最終mesh解像度${message.resolution} · 閾値${message.metrics.thresholdDeg.toFixed(0)}° · 付加前 ${areaPct(message.metrics.dangerousAreaBefore)} → 付加後未支援 ${areaPct(message.metrics.dangerousAreaAfter)} · 軽減候補 ${reducedPct} · ${(message.elapsedMs / 1000).toFixed(1)}秒`

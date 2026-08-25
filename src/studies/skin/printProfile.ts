@@ -17,7 +17,21 @@ import {
 export const SKIN_PRINT_PROFILE_SCHEMA = "katachi.skin.print-profile.v1" as const;
 export const PRINT_VALIDATION_FACTS_SCHEMA = "katachi.skin.print-validation-facts.v1" as const;
 export const LOW_RESOLUTION_FINGERPRINT_FACE_LIMIT = 200_000;
+export const V088_SURFACE_RESOLUTION = 128;
+export const V088_FUSED_RESOLUTION = 240;
 export type PrintSupportClassificationCounts = OverhangAssignmentCounts;
+
+export interface V088FinalizationGateInput {
+  surfaceResolution: number;
+  fusedResolution: number;
+  reprojectedSurfaceResolution: number | null;
+  reprojectedClassificationCounts: PrintSupportClassificationCounts | null;
+  classificationCounts: PrintSupportClassificationCounts | null;
+  expectedProfileClassificationCounts: PrintSupportClassificationCounts | null;
+  profileMatches: boolean;
+  generatorCommit: string;
+  runningAppCommit: string;
+}
 
 export interface SkinPrintProfileV1 {
   schema: typeof SKIN_PRINT_PROFILE_SCHEMA;
@@ -312,6 +326,37 @@ function sameClassificationCounts(a: PrintSupportClassificationCounts, b: PrintS
     a.mixedFace === b.mixedFace && a.insideSupportSite === b.insideSupportSite &&
     a.outsideSupportSite === b.outsideSupportSite && a.unresolvedSupportSite === b.unresolvedSupportSite &&
     a.duplicateSupportSite === b.duplicateSupportSite;
+}
+
+/** Shared fail-closed gate for saving a v088 Profile and producing its 3MF. */
+export function assertV088FinalizationReady(input: V088FinalizationGateInput): void {
+  if (input.surfaceResolution !== V088_SURFACE_RESOLUTION || input.fusedResolution !== V088_FUSED_RESOLUTION) {
+    throw new Error(`Fail closed: v088 requires Surface ${V088_SURFACE_RESOLUTION} / fused ${V088_FUSED_RESOLUTION}`);
+  }
+  if (input.reprojectedSurfaceResolution !== V088_SURFACE_RESOLUTION || !input.reprojectedClassificationCounts) {
+    throw new Error("Fail closed: Surface 128 Support Paint reprojection and classification are incomplete");
+  }
+  const counts = input.classificationCounts;
+  if (!counts || !sameClassificationCounts(input.reprojectedClassificationCounts, counts)) {
+    throw new Error("Fail closed: current classification does not match the Surface 128 reprojection");
+  }
+  if (counts.total !== counts.inside + counts.outside + counts.unresolved || counts.unassigned !== 0) {
+    throw new Error("Fail closed: support classification is not a complete assignment");
+  }
+  if (counts.unresolvedSupportSite !== 0 || counts.unresolved !== 0) {
+    throw new Error(`Fail closed: unresolved support sites (${counts.unresolvedSupportSite})`);
+  }
+  if (counts.duplicateSupportSite !== 0 || counts.duplicate !== 0) {
+    throw new Error(`Fail closed: duplicate support sites (${counts.duplicateSupportSite})`);
+  }
+  if (!input.expectedProfileClassificationCounts || !sameClassificationCounts(input.expectedProfileClassificationCounts, counts)) {
+    throw new Error("Fail closed: Profile classification counts do not match Surface 128");
+  }
+  if (!input.profileMatches) throw new Error("Fail closed: Print Profile does not match the current app state");
+  const commitPattern = /^[0-9a-f]{40}$/;
+  if (!commitPattern.test(input.runningAppCommit) || !commitPattern.test(input.generatorCommit) || input.generatorCommit !== input.runningAppCommit) {
+    throw new Error("Fail closed: generatorCommit is not the exact running app commit SHA");
+  }
 }
 
 export function validateSkinPrintProfile(value: unknown): SkinPrintProfileV1 {

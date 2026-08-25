@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.75.1",
+  "version": "0.76.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v0.76.0 adds the v088 finalization-only fail-closed gate shared by Print Profile save and 3MF generation. Both require Surface 128 / fused 240, a completed current Surface 128 Support Paint reprojection/classification proof, zero unresolved/duplicate/unassigned sites, exact agreement between reprojected/runtime/Profile classification counts, a matching Profile, and a 40-character generatorCommit equal to the running app Git HEAD injected at dev/build start. The low-resolution editing Profile may transition once to Surface 128 only after its resolution-independent recipe SHA, Seed, dimensions, Dry Web, angle and Support Paint binding match; resolution-dependent counts are then fixed into the new Surface 128 Profile. Existing Profile parsing compatibility, support classification, routing, geometry and validation rules are unchanged. This checkpoint intentionally performs no Surface 128 diagnosis, 3MF/archive, Slice, tag, push or deploy before author approval; printApproval=false."
+    },
     {
       "date": "2026-08-25",
       "note": "v0.75.1 adds thresholded plain-left rotation in Axome view. A movement of 4 px or less remains a click for selection; beyond it the existing pole-free quaternion rotation owns the drag. Support Paint explicitly keeps plain-left brush ownership while enabled, and Shift-left pan plus all non-Axome behavior remain unchanged. This is editor input only and does not affect geometry, classification, Profile, routing or validation."

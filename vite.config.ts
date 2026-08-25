@@ -1,5 +1,12 @@
 import { defineConfig } from "vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
+import { execFileSync } from "node:child_process";
+
+function exactRunningCommit(): string {
+  const commit = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim().toLowerCase();
+  if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("Cannot resolve exact generator commit SHA");
+  return commit;
+}
 
 // base: "./" keeps asset paths relative, so the build works on GitHub Pages
 // project subpaths, Vercel, Netlify and plain static hosting without changes.
@@ -11,6 +18,9 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 // 「Katachi を別のPCから見る.command」が `--mode https` を渡す。普段の localhost は素の HTTP のまま。
 export default defineConfig(({ mode }) => ({
   base: "./",
+  define: {
+    "import.meta.env.VITE_GIT_COMMIT": JSON.stringify(exactRunningCommit()),
+  },
   plugins: mode === "https" ? [basicSsl()] : [],
   server: {
     // Katachi は常に 5174。docs/launcher-spec.md のポート台帳で一意に固定。
