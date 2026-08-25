@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.70.0",
+  "version": "0.71.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-25",
   "params": [
@@ -70,6 +70,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-25",
+      "note": "v088 Support Paint checkpoint D, Rhino-style four-view production environment. Author observation preserved verbatim: 「ライノみたいに４面ビュワーモードがあると作業しやすい\n基本は\n[Top][axome]\n[Front][Right]\nでBottomやback,Leftも切り替えられるといい」. The main canvas switches between one and four views with Top/Axome over Front/Right, per-viewport Top/Bottom/Front/Back/Right/Left/Axome selection, selected frame, axis legend, reset, maximize/double-click and return-to-four. One WebGL renderer scissors one shared scene, geometry and support-site batch through exactly four orthographic cameras; only Axome rotates with the existing pole-free Trackball, while every camera keeps independent zoom/pan. Rendering is demand-driven and four-view DPR is capped at 1.5. Support Paint picking/front visibility/brush use only the active viewport camera; committed shared-buffer colors appear in all four views. Object-coordinate XYZ clipping applies to all views. Optional editorView in the backward-compatible Support Paint draft stores layout, directions and camera poses, but Shape Recipe, Print Profile, routing, validation, 3MF and geometry remain unchanged; printApproval=false. No high-resolution generation, archive, Slice, publish or deploy."
+    },
     {
       "date": "2026-08-25",
       "note": "v088 Support Paint checkpoint C: the panel now distinguishes the current editing-preview Surface resolution from the planned print Surface 128, explicitly marked ungenerated. A dedicated low-resolution Worker can build only a Surface 48 support-free BODY diagnosis, then apply the saved normalized object coordinates, surface normals and mm brush radii through the same shared override function without using temporary support-site IDs. The UI compares editing and Surface 48 affected inside/outside counts and reports Auto, manual override, opposite-normal and stored-region-outside counts. Any opposite-normal or out-of-stored-region application fails closed. Focused tests use different low/Surface48 IDs and confirm identical normalized regions and zero penetration. No Surface 128, final geometry, archive or 3MF is generated; printApproval=false."

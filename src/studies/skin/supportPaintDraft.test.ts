@@ -25,6 +25,35 @@ test("draft round-trips paint, brush, binding and printApproval=false", () => {
   assert.equal(roundTrip.printApproval, false);
 });
 
+
+test("draft optionally restores editor-only four-view layout without entering print data", () => {
+  const draft = createSupportPaintDraft({
+    recipeSha256: sha, seed: "katachi", targetLongestMm: 119.5,
+    supportPaint: emptySupportPaint(119.5),
+    brush: { mode: "inside", radiusMm: 6, paintBackfaces: false },
+    editorView: {
+      schema: "katachi.skin.editor-view.v1",
+      mode: "four",
+      selectedViewport: 1,
+      viewports: ["top", "axome", "front", "right"].map((direction, index) => ({
+        direction: direction as "top" | "axome" | "front" | "right",
+        camera: { position: [index, index + 1, index + 2], up: [0, 0, 1], target: [0, 0, 0], zoom: 1 },
+      })),
+    },
+  });
+  const roundTrip = validateSupportPaintDraft(JSON.parse(serializeSupportPaintDraft(draft)));
+  assert.equal(roundTrip.editorView?.mode, "four");
+  assert.equal(roundTrip.editorView?.viewports[1].direction, "axome");
+  assert.equal("editorView" in roundTrip.supportPaint, false);
+  assert.equal(roundTrip.printApproval, false);
+
+  const legacy = validateSupportPaintDraft({
+    ...JSON.parse(serializeSupportPaintDraft(draft)),
+    editorView: undefined,
+  });
+  assert.equal(legacy.editorView, undefined);
+});
+
 test("recipe SHA and Seed mismatches fail closed", () => {
   const draft = createSupportPaintDraft({
     recipeSha256: sha, seed: "katachi", targetLongestMm: 119.5,

@@ -64,7 +64,7 @@ function rotateBy(
   axis: "x" | "y",
   radians: number,
   steps: number,
-  camera: THREE.PerspectiveCamera,
+  camera: THREE.Camera,
 ): number {
   let maxStep = 0;
   let previous = camera.position.clone();
@@ -105,6 +105,25 @@ test("horizontal mouse rotation completes 360 degrees around the same target", (
   assert.ok(maxStep < radius * 0.08, "horizontal orbit has no discontinuity");
   assert.ok(camera.position.distanceTo(start) < 1e-8, "one horizontal turn closes continuously");
   assert.ok(Math.abs(camera.position.distanceTo(target) - radius) < 1e-10);
+  controls.dispose();
+});
+
+test("orthographic Axome crosses the poles continuously for two complete turns", () => {
+  const target = new THREE.Vector3(0.5, -0.25, 0.75);
+  const camera = new THREE.OrthographicCamera(-4, 4, 4, -4, 0.01, 100);
+  camera.position.copy(target).add(new THREE.Vector3(5, -5, 5));
+  camera.up.set(-1, 1, 2).normalize();
+  const controls = new TrackballControls(camera, fakeElement()) as TrackballInternals;
+  controls.target.copy(target);
+  controls.staticMoving = true;
+  controls.noRotate = false;
+  controls.update();
+  const start = camera.position.clone();
+
+  const maxStep = rotateBy(controls, "y", Math.PI * 4, 128, camera);
+
+  assert.ok(maxStep < start.distanceTo(target) * 0.11);
+  assert.ok(camera.position.distanceTo(start) < 1e-8);
   controls.dispose();
 });
 

@@ -9,8 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import "./style.css";
-import { eventTargetsViewport, ndcFromPointer } from "../../lib/input.ts";
-import { startFrameLoop } from "../../lib/loop.ts";
+import { eventTargetsViewport } from "../../lib/input.ts";
 // R2 昇格 (2026-07-26): このファイルにあった private な sha256Hex を Library へ移した。
 // 呼び出し順・保存順・provenance へ入る hash は変えていない。
 import { sha256Hex } from "../../lib/hash.ts";
@@ -1299,6 +1298,7 @@ function currentSupportPaintDraft(savedAt?: string): SupportPaintDraftV1 | null 
   return createSupportPaintDraft({
     savedAt, ...binding, supportPaint: supportPaintSession.history.present,
     brush: { mode: supportPaintMode, radiusMm: supportPaintRadiusMm, paintBackfaces: supportPaintBackfaces },
+    editorView: skinRenderer.captureEditorViewDraft(),
   });
 }
 
@@ -1341,6 +1341,7 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   supportPaintSession = createSupportPaintSession(draft.supportPaint);
   invalidateSupportPaintReprojection();
   supportPaintMode = draft.brush.mode; supportPaintRadiusMm = draft.brush.radiusMm; supportPaintBackfaces = draft.brush.paintBackfaces;
+  if (draft.editorView) skinRenderer.restoreEditorViewDraft(draft.editorView);
   localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
   supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
   if (automaticOverhangSupportResult && supportPaintEditingContext()) {
@@ -1694,8 +1695,7 @@ let patchDrag: {
 const DRAG_THRESHOLD = 4;
 
 function pointerRay(event: Pick<PointerEvent, "clientX" | "clientY">): ReturnType<typeof skinRenderer.screenToRay> {
-  const { x, y } = ndcFromPointer(event, viewport);
-  return skinRenderer.screenToRay(x, y);
+  return skinRenderer.screenToRayFromClient(event.clientX, event.clientY);
 }
 
 function fastPatchId(ray: PointerRay): number | null {
@@ -1906,6 +1906,7 @@ viewport.addEventListener("pointerdown", (e) => {
   // direct drag can therefore disable camera rotation before the control
   // acquires pointer capture; HUD and toolbar descendants remain untouched.
   if (e.target !== skinRenderer.renderer.domElement) return;
+  skinRenderer.activateViewportAt(e.clientX, e.clientY);
   if (supportPaintEnabled) {
     pointerDownPos = null;
     if (e.button !== 0 || !overhangSupportResult) return;
@@ -5194,7 +5195,8 @@ function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV08
   for (const [label, reviewCase, view] of choices) {
     const link = document.createElement("a");
     link.textContent = label;
-    link.href = "?reviewCase=" + reviewCase + "&view=" + view;
+    link.href = "?reviewCase=" + reviewCase + "&view=" + view
+      + (new URLSearchParams(window.location.search).get("views") === "four" ? "&views=four" : "");
     const active = reviewCase === selection.reviewCase && view === selection.view;
     Object.assign(link.style, {
       color: active ? "#111" : "#fff",
@@ -5212,34 +5214,23 @@ function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV08
 
 function applyLocalReviewCamera(positions: Float32Array): void {
   if (!localV088ReviewSelection || positions.length < 3) return;
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-  for (let i = 0; i < positions.length; i += 3) {
-    minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i]);
-    minY = Math.min(minY, positions[i + 1]); maxY = Math.max(maxY, positions[i + 1]);
-    minZ = Math.min(minZ, positions[i + 2]); maxZ = Math.max(maxZ, positions[i + 2]);
-  }
-  const centerX = (minX + maxX) * 0.5;
-  const centerY = (minY + maxY) * 0.5;
-  const centerZ = (minZ + maxZ) * 0.5;
-  const span = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 0.01);
-  const distance = span * 1.75;
-  skinRenderer.controls.target.set(centerX, centerY, centerZ);
-  if (localV088ReviewSelection.view === "top") {
-    skinRenderer.camera.up.set(0, 1, 0);
-    skinRenderer.camera.position.set(centerX, centerY, centerZ + distance);
-  } else if (localV088ReviewSelection.view === "side") {
-    skinRenderer.camera.up.set(0, 0, 1);
-    skinRenderer.camera.position.set(centerX + distance, centerY, centerZ);
+  skinRenderer.setViewportBoundsFromPositions(positions);
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("views") === "four") {
+    skinRenderer.setViewportMode("four");
   } else {
-    skinRenderer.camera.up.set(0, 0, 1);
-    skinRenderer.camera.position.set(centerX, centerY - distance, centerZ);
+    skinRenderer.selectViewport(1);
+    skinRenderer.setViewportDirection(
+      1,
+      localV088ReviewSelection.view === "top"
+        ? "top"
+        : localV088ReviewSelection.view === "back"
+          ? "back"
+          : "right",
+    );
+    skinRenderer.setViewportMode("one");
   }
-  skinRenderer.camera.near = Math.max(span / 1000, 0.001);
-  skinRenderer.camera.far = span * 20;
-  skinRenderer.camera.updateProjectionMatrix();
-  skinRenderer.controls.update();
-  skinRenderer.render();
+  render();
 }
 
 async function loadLocalV088ReviewFixture(): Promise<void> {
@@ -5312,7 +5303,15 @@ async function loadLocalV088ReviewFixture(): Promise<void> {
   }
 }
 
-// --- Render loop ------------------------------------------------------
+// --- Demand-driven render loop -------------------------------------------
+// Four scissored views share one scene and can cost roughly four draws. Keep
+// the canvas idle until geometry, a camera, clipping, or paint state changes.
+let renderFrameRequestId: number | null = null;
+
+function requestRenderFrame(): void {
+  if (renderFrameRequestId !== null) return;
+  renderFrameRequestId = window.requestAnimationFrame(renderFrame);
+}
 
 function render(): void {
   skinRenderer.update(
@@ -5326,27 +5325,33 @@ function render(): void {
     state.skinParams.coinBulge,
     state.skinParams.coinBulgeBalance,
   );
+  requestRenderFrame();
 }
 
-let lastFrame = performance.now();
-let frameCount = 0;
-let fpsAccum = 0;
-
-function renderFrame(now: number): void {
+function renderFrame(): void {
+  renderFrameRequestId = null;
   refreshViewportClippingBounds();
-  const dt = now - lastFrame;
-  lastFrame = now;
-  frameCount++;
-  fpsAccum += dt;
-  if (fpsAccum >= 500) {
-    ui.setFps(1000 / (fpsAccum / frameCount));
-    fpsAccum = 0;
-    frameCount = 0;
-  }
+  const started = performance.now();
   skinRenderer.render();
   updateQuickEditToolbar();
+  const elapsed = performance.now() - started;
+  if (elapsed > 0) ui.setFps(1000 / elapsed);
 }
+
+skinRenderer.setRenderRequestCallback(requestRenderFrame);
+skinRenderer.setEditorViewChangeCallback(() => {
+  markSupportPaintDraftDirty();
+  autosaveSupportPaintDraft();
+  requestRenderFrame();
+});
+window.addEventListener("pointermove", requestRenderFrame, { passive: true });
+window.addEventListener("pointerup", requestRenderFrame, { passive: true });
+viewport.addEventListener("wheel", (event) => {
+  if (event.target === skinRenderer.renderer.domElement) {
+    skinRenderer.activateViewportAt(event.clientX, event.clientY);
+    requestRenderFrame();
+  }
+}, { capture: true, passive: true });
 
 render();
 void loadLocalV088ReviewFixture();
-startFrameLoop(renderFrame);

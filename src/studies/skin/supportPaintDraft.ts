@@ -1,4 +1,5 @@
 import { validateSupportPaint, type SupportPaintMode, type SupportPaintV1 } from "./supportPaint.ts";
+import { validateSkinEditorViewDraft, type SkinEditorViewDraftV1 } from "./multiViewport.ts";
 
 export const SUPPORT_PAINT_DRAFT_SCHEMA = "katachi.skin.support-paint-draft.v1" as const;
 
@@ -14,6 +15,9 @@ export interface SupportPaintDraftV1 {
     radiusMm: number;
     paintBackfaces: boolean;
   };
+  /** Editing-only viewport state. It is intentionally absent from Shape
+   * Recipe, Print Profile, validation and 3MF. Older drafts omit it. */
+  editorView?: SkinEditorViewDraftV1;
   printApproval: false;
 }
 
@@ -60,6 +64,7 @@ export function validateSupportPaintDraft(value: unknown): SupportPaintDraftV1 {
       radiusMm: finitePositive(brush.radiusMm, "Support Paint draft brush radius"),
       paintBackfaces: brush.paintBackfaces,
     },
+    ...(root.editorView === undefined ? {} : { editorView: validateSkinEditorViewDraft(root.editorView) }),
     printApproval: false,
   };
 }
@@ -71,6 +76,7 @@ export function createSupportPaintDraft(input: {
   targetLongestMm: number;
   supportPaint: SupportPaintV1;
   brush: SupportPaintDraftV1["brush"];
+  editorView?: SkinEditorViewDraftV1;
 }): SupportPaintDraftV1 {
   return validateSupportPaintDraft({
     schema: SUPPORT_PAINT_DRAFT_SCHEMA,
@@ -80,6 +86,7 @@ export function createSupportPaintDraft(input: {
     targetLongestMm: input.targetLongestMm,
     supportPaint: input.supportPaint,
     brush: input.brush,
+    editorView: input.editorView,
     printApproval: false,
   });
 }

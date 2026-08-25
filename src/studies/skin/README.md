@@ -191,6 +191,22 @@ Checkpoint Aでは、committed strokeと描画中のactive strokeをrevision付�
 
 Support Paint panelは、現在診断している編集preview Surfaceと、印刷時に使うSurface 128（未生成）を分離して表示する。Surface 48へ再投影確認は専用の低解像度Workerでsupport追加前BODY Surfaceだけを作り、保存済みの正規化object座標・surface normal・mm半径を共有override関数へ渡す。一時的なsupport site IDは渡さない。再投影後はpaintが触れた最終inside／outside／Auto件数、manual override件数、反対normalへの適用数を表示する。各適用siteが保存brushの正規化半径内かつnormal閾値内であることを診断し、反対面または領域外が1件でもあればfail-closedにする。Surface 128や最終形状はこの確認では生成しない。
 
+### 制作環境Observation — Rhino風4面view（Checkpoint D、2026-08-25）
+
+作者の観察を原文のまま残す:
+
+> ライノみたいに４面ビュワーモードがあると作業しやすい
+> 基本は
+> [Top][axome]
+> [Front][Right]
+> でBottomやback,Leftも切り替えられるといい
+
+これは分類規則や形状を承認・変更する判断ではなく、Support Paintを長時間行う制作環境についてのObservationである。メイン3D canvasは`1 View`と`4 Views`を切り替え、4面ではTop／Axomeを上段、Front／Rightを下段に置く。各枠はTop、Bottom、Front、Back、Right、Left、Axomeへ個別に切り替えられ、選択枠、方向名、世界軸の向きを示す。最大化またはdouble clickで選択枠だけを表示し、`4面へ戻る`で共有配置へ戻る。
+
+scene、BODY、Dry Web、scaffold、support-site BufferGeometry、footprintを複製せず、1台のWebGL rendererが同じsceneを4台のorthographic cameraでviewport／scissor分割描画する。Top／Bottom／Front／Back／Right／Leftは回転を固定してzoom／panだけを独立させ、Axomeだけは既存のpole-free Trackballで縦横360°回転できる。Bottom／Back／Leftは鏡像かどうかを曖昧にせず、画面右・上に対応するobject座標軸を文字で示す。4面時のdevicePixelRatioは1.5以下に抑え、連続loopを廃止してcamera、clipping、paintまたは形状状態が変わったframeだけ再描画する。
+
+Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全枠で共有する。pointerがある枠のcameraだけをpicking、前面判定、brush円へ使い、brush円とhover emphasisは選択枠だけに描く。確定した青／オレンジは共有bufferの部分更新なので他の3面へ同じframeで反映される。XYZ clippingは従来のobject座標planeを全枠へ同時適用する。4面／1面、各枠の方向、camera position／up／target／zoomはoptionalなeditor draftへ保存するが、Shape Recipe、Print Profile、validation、3MFには渡さない。形状、automatic classification、routing、validation、`printApproval=false`は変更しない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。

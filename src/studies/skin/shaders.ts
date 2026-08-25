@@ -83,6 +83,7 @@ export const fragmentShader = /* glsl */ `
   uniform vec3 uCamPos;
   uniform mat4 uCamInverseProjection;
   uniform mat4 uCamInverseView;
+  uniform float uCameraOrthographic;
   uniform vec2 uResolution;
   uniform vec3 uLightDir;
   // Viewport-only object-coordinate clipping. These uniforms are session UI
@@ -312,10 +313,16 @@ export const fragmentShader = /* glsl */ `
   void main() {
     vec2 ndc = vUv * 2.0 - 1.0;
     vec4 clip = vec4(ndc, -1.0, 1.0);
-    vec4 viewDir4 = uCamInverseProjection * clip;
-    viewDir4 = vec4(viewDir4.xy, -1.0, 0.0);
-    vec3 rd = normalize((uCamInverseView * viewDir4).xyz);
-    vec3 ro = uCamPos;
+    vec4 nearView = uCamInverseProjection * clip;
+    nearView /= max(abs(nearView.w), 1.0e-7);
+    vec4 perspectiveDirection = vec4(nearView.xy, -1.0, 0.0);
+    vec3 forward = normalize((uCamInverseView * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+    vec3 rd = uCameraOrthographic > 0.5
+      ? forward
+      : normalize((uCamInverseView * perspectiveDirection).xyz);
+    vec3 ro = uCameraOrthographic > 0.5
+      ? (uCamInverseView * vec4(nearView.xyz, 1.0)).xyz
+      : uCamPos;
 
     vec2 clipX = clipAxisRayInterval(uClipEnabled.x, ro.x, rd.x, uClipPosition.x, uClipDirection.x);
     vec2 clipY = clipAxisRayInterval(uClipEnabled.y, ro.y, rd.y, uClipPosition.y, uClipDirection.y);

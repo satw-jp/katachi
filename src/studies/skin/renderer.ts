@@ -38,6 +38,20 @@ import {
   queryUniformSpatialGridSphere,
   type UniformSpatialGrid3,
 } from "./uniformSpatialGrid.ts";
+import {
+  DEFAULT_SKIN_VIEW_DIRECTIONS,
+  SKIN_EDITOR_VIEW_SCHEMA,
+  SKIN_VIEW_DIRECTIONS,
+  skinViewAxisLegend,
+  skinViewDirectionLabel,
+  skinViewportAtPoint,
+  skinViewportRects,
+  validateSkinEditorViewDraft,
+  type SkinEditorViewDraftV1,
+  type SkinViewDirection,
+  type SkinViewportMode,
+  type SkinViewportRect,
+} from "./multiViewport.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -118,8 +132,18 @@ export interface OverhangSupportSitePick {
 }
 export interface OverhangSupportBrushCandidate extends Omit<OverhangSupportSitePick, "back"> {}
 
+interface SkinViewportSlot {
+  camera: THREE.OrthographicCamera;
+  controls: TrackballControls;
+  direction: SkinViewDirection;
+  frame: HTMLDivElement;
+  directionSelect: HTMLSelectElement;
+  axis: HTMLSpanElement;
+}
+
 const SUPPORT_MARKER_VERTEX_SHADER = /* glsl */ `
   uniform float uPointSize;
+  uniform float uShowBrushEmphasis;
   attribute vec3 aMarkerColor;
   attribute float aMarkerShape;
   attribute float aMarkerEmphasis;
@@ -136,7 +160,7 @@ const SUPPORT_MARKER_VERTEX_SHADER = /* glsl */ `
     // Pull only enough to prevent surface z-fighting. A far-side site stays
     // behind the body and therefore fails the opaque front pass depth test.
     gl_Position.z -= 0.0008 * gl_Position.w;
-    gl_PointSize = uPointSize * (1.0 + aMarkerEmphasis * 0.65);
+    gl_PointSize = uPointSize * (1.0 + aMarkerEmphasis * 0.65 * uShowBrushEmphasis);
   }
 `;
 
@@ -208,9 +232,21 @@ const SUPPORT_MARKER_FRAGMENT_SHADER = /* glsl */ `
 
 export class SkinRenderer {
   readonly scene = new THREE.Scene();
-  readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
-  readonly controls: TrackballControls;
+  private readonly viewportSlots: SkinViewportSlot[] = [];
+  private viewportMode: SkinViewportMode = "one";
+  private selectedViewport = 1;
+  private viewportHalfHeight = 3.2;
+  private viewportCenter = new THREE.Vector3();
+  private viewportDistance = 8;
+  private readonly viewportHud: HTMLDivElement;
+  private readonly oneViewButton: HTMLButtonElement;
+  private readonly fourViewsButton: HTMLButtonElement;
+  private readonly returnToFourButton: HTMLButtonElement;
+  private renderRequestCallback: (() => void) | null = null;
+  private editorViewChangeCallback: (() => void) | null = null;
+  private orbitEnabled = true;
+  private restoredEditorViewPendingBounds = false;
   private material: THREE.ShaderMaterial;
   private container: HTMLElement;
   private raymarchQuad!: THREE.Mesh;
@@ -447,6 +483,27 @@ export class SkinRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(this.renderer.domElement);
 
+    this.viewportHud = document.createElement("div");
+    this.viewportHud.className = "multi-viewport-hud";
+    this.viewportHud.setAttribute("aria-label", "3D viewport layout");
+    this.oneViewButton = document.createElement("button");
+    this.oneViewButton.type = "button";
+    this.oneViewButton.textContent = "1 View";
+    this.oneViewButton.onclick = () => this.setViewportMode("one", true);
+    this.fourViewsButton = document.createElement("button");
+    this.fourViewsButton.type = "button";
+    this.fourViewsButton.textContent = "4 Views";
+    this.fourViewsButton.onclick = () => this.setViewportMode("four", true);
+    this.returnToFourButton = document.createElement("button");
+    this.returnToFourButton.type = "button";
+    this.returnToFourButton.textContent = "4面へ戻る";
+    this.returnToFourButton.onclick = () => this.setViewportMode("four", true);
+    const layoutToggle = document.createElement("div");
+    layoutToggle.className = "multi-viewport-layout-toggle";
+    layoutToggle.append(this.oneViewButton, this.fourViewsButton, this.returnToFourButton);
+    this.viewportHud.appendChild(layoutToggle);
+    container.appendChild(this.viewportHud);
+
     this.openingLineLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.openingLineLayer.classList.add("opening-leader-layer");
     container.appendChild(this.openingLineLayer);
@@ -479,24 +536,59 @@ export class SkinRenderer {
     window.addEventListener("pointerup", endOpeningDrag);
     window.addEventListener("pointercancel", endOpeningDrag);
 
-    this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    this.camera.position.set(4, 2.5, 5);
+    for (const [index, direction] of DEFAULT_SKIN_VIEW_DIRECTIONS.entries()) {
+      const camera = new THREE.OrthographicCamera(-4, 4, 4, -4, 0.001, 200);
+      const controls = new TrackballControls(camera, this.renderer.domElement);
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 1.2;
+      controls.panSpeed = 0.3;
+      controls.staticMoving = true;
+      controls.keys = ["", "", ""];
+      controls.noRotate = direction !== "axome";
+      controls.enabled = index === this.selectedViewport;
+      controls.addEventListener("change", () => this.renderRequestCallback?.());
+      controls.addEventListener("end", () => this.editorViewChangeCallback?.());
 
-    // OrbitControls keeps a fixed world-up and therefore has a spherical
-    // coordinate singularity at the poles. TrackballControls rotates both
-    // the eye and camera up vector by the same quaternion, so one continuous
-    // drag can pass front -> top -> back -> bottom -> front without a flip.
-    // It is part of the existing Three.js dependency and retains mouse zoom,
-    // pan, target-centred rotation and reset semantics.
-    this.controls = new TrackballControls(this.camera, this.renderer.domElement);
-    this.controls.rotateSpeed = 1.0;
-    this.controls.zoomSpeed = 1.2;
-    this.controls.panSpeed = 0.3;
-    this.controls.staticMoving = true;
-    // The application owns keyboard shortcuts and text fields. Mouse/touch
-    // remain the only trackball inputs, avoiding accidental A/S/D mode swaps.
-    this.controls.keys = ["", "", ""];
-    this.controls.target.set(0, 0, 0);
+      const frame = document.createElement("div");
+      frame.className = "multi-viewport-frame";
+      frame.dataset.viewport = String(index);
+      const header = document.createElement("div");
+      header.className = "multi-viewport-frame-header";
+      const directionSelect = document.createElement("select");
+      directionSelect.setAttribute("aria-label", `viewport ${index + 1} direction`);
+      for (const optionDirection of SKIN_VIEW_DIRECTIONS) {
+        const option = document.createElement("option");
+        option.value = optionDirection;
+        option.textContent = skinViewDirectionLabel(optionDirection);
+        directionSelect.appendChild(option);
+      }
+      directionSelect.value = direction;
+      directionSelect.onchange = () => this.setViewportDirection(index, directionSelect.value as SkinViewDirection, true);
+      const axis = document.createElement("span");
+      axis.className = "multi-viewport-axis";
+      axis.textContent = skinViewAxisLegend(direction);
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.textContent = "Reset";
+      reset.title = `${skinViewDirectionLabel(direction)} camera reset`;
+      reset.onclick = () => this.resetViewportCamera(index, true);
+      const maximize = document.createElement("button");
+      maximize.type = "button";
+      maximize.textContent = "□";
+      maximize.title = "このviewportを1面表示";
+      maximize.onclick = () => { this.selectViewport(index); this.setViewportMode("one", true); };
+      header.append(directionSelect, axis, reset, maximize);
+      frame.appendChild(header);
+      this.viewportHud.appendChild(frame);
+      this.viewportSlots.push({ camera, controls, direction, frame, directionSelect, axis });
+    }
+    for (let index = 0; index < this.viewportSlots.length; index++) this.resetViewportCamera(index, false);
+    this.renderer.domElement.addEventListener("dblclick", (event) => {
+      const rect = this.viewportRectFromClient(event.clientX, event.clientY);
+      if (!rect) return;
+      this.selectViewport(rect.index);
+      this.setViewportMode("one", true);
+    });
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
@@ -519,6 +611,7 @@ export class SkinRenderer {
         uCamPos: { value: new THREE.Vector3() },
         uCamInverseProjection: { value: new THREE.Matrix4() },
         uCamInverseView: { value: new THREE.Matrix4() },
+        uCameraOrthographic: { value: 1 },
         uResolution: { value: new THREE.Vector2(1, 1) },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
         uClipEnabled: { value: new THREE.Vector3() },
@@ -545,6 +638,218 @@ export class SkinRenderer {
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
+  }
+
+  get camera(): THREE.OrthographicCamera {
+    return this.viewportSlots[this.selectedViewport].camera;
+  }
+
+  get controls(): TrackballControls {
+    return this.viewportSlots[this.selectedViewport].controls;
+  }
+
+  setRenderRequestCallback(callback: (() => void) | null): void {
+    this.renderRequestCallback = callback;
+  }
+
+  setEditorViewChangeCallback(callback: (() => void) | null): void {
+    this.editorViewChangeCallback = callback;
+  }
+
+  private requestViewportRender(): void {
+    this.renderRequestCallback?.();
+  }
+
+  private cameraPose(direction: SkinViewDirection): { offset: THREE.Vector3; up: THREE.Vector3 } {
+    switch (direction) {
+      case "top": return { offset: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0) };
+      case "bottom": return { offset: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0) };
+      case "front": return { offset: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 0, 1) };
+      case "back": return { offset: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 0, 1) };
+      case "right": return { offset: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 0, 1) };
+      case "left": return { offset: new THREE.Vector3(-1, 0, 0), up: new THREE.Vector3(0, 0, 1) };
+      case "axome": return {
+        offset: new THREE.Vector3(1, -1, 1).normalize(),
+        up: new THREE.Vector3(-1, 1, 2).normalize(),
+      };
+    }
+  }
+
+  private updateViewportCameraProjection(index: number, rect?: SkinViewportRect): void {
+    const slot = this.viewportSlots[index];
+    if (!slot) return;
+    const viewportRect = rect ?? skinViewportRects(
+      this.container.clientWidth, this.container.clientHeight, this.viewportMode, this.selectedViewport,
+    ).find((candidate) => candidate.index === index);
+    const aspect = viewportRect ? viewportRect.width / Math.max(1, viewportRect.height) : 1;
+    slot.camera.left = -this.viewportHalfHeight * aspect;
+    slot.camera.right = this.viewportHalfHeight * aspect;
+    slot.camera.top = this.viewportHalfHeight;
+    slot.camera.bottom = -this.viewportHalfHeight;
+    slot.camera.near = Math.max(this.viewportDistance / 10000, 0.0001);
+    slot.camera.far = Math.max(this.viewportDistance * 8, 100);
+    slot.camera.updateProjectionMatrix();
+    slot.controls.handleResize();
+    if (viewportRect) {
+      const canvasBox = this.renderer.domElement.getBoundingClientRect();
+      slot.controls.screen.left = canvasBox.left + window.pageXOffset + viewportRect.x;
+      slot.controls.screen.top = canvasBox.top + window.pageYOffset + viewportRect.y;
+      slot.controls.screen.width = viewportRect.width;
+      slot.controls.screen.height = viewportRect.height;
+    }
+  }
+
+  resetViewportCamera(index: number, notify = false): void {
+    const slot = this.viewportSlots[index];
+    if (!slot) return;
+    const pose = this.cameraPose(slot.direction);
+    slot.controls.target.copy(this.viewportCenter);
+    slot.camera.position.copy(this.viewportCenter).addScaledVector(pose.offset, this.viewportDistance);
+    slot.camera.up.copy(pose.up);
+    slot.camera.zoom = 1;
+    slot.camera.lookAt(this.viewportCenter);
+    this.updateViewportCameraProjection(index);
+    slot.controls.noRotate = slot.direction !== "axome";
+    slot.controls.update();
+    if (notify) this.editorViewChangeCallback?.();
+    this.requestViewportRender();
+  }
+
+  setViewportDirection(index: number, direction: SkinViewDirection, notify = false): void {
+    const slot = this.viewportSlots[index];
+    if (!slot || !SKIN_VIEW_DIRECTIONS.includes(direction)) return;
+    slot.direction = direction;
+    slot.directionSelect.value = direction;
+    slot.axis.textContent = skinViewAxisLegend(direction);
+    this.resetViewportCamera(index, false);
+    this.syncViewportHud();
+    if (notify) this.editorViewChangeCallback?.();
+  }
+
+  setViewportMode(mode: SkinViewportMode, notify = false): void {
+    this.viewportMode = mode;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mode === "four" ? 1.5 : 2));
+    this.resize();
+    this.syncViewportHud();
+    if (notify) this.editorViewChangeCallback?.();
+    this.requestViewportRender();
+  }
+
+  selectViewport(index: number): void {
+    if (!this.viewportSlots[index] || index === this.selectedViewport) return;
+    this.selectedViewport = index;
+    for (const [slotIndex, slot] of this.viewportSlots.entries()) {
+      slot.controls.enabled = this.orbitEnabled && slotIndex === this.selectedViewport;
+    }
+    this.syncViewportHud();
+    this.editorViewChangeCallback?.();
+    this.requestViewportRender();
+  }
+
+  viewportRectFromClient(clientX: number, clientY: number): SkinViewportRect | null {
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const x = clientX - canvasRect.left;
+    const y = clientY - canvasRect.top;
+    if (x < 0 || y < 0 || x > canvasRect.width || y > canvasRect.height) return null;
+    return skinViewportAtPoint(x, y, canvasRect.width, canvasRect.height, this.viewportMode, this.selectedViewport);
+  }
+
+  activateViewportAt(clientX: number, clientY: number): boolean {
+    const rect = this.viewportRectFromClient(clientX, clientY);
+    if (!rect) return false;
+    this.selectViewport(rect.index);
+    return true;
+  }
+
+  private syncViewportHud(): void {
+    const rects = skinViewportRects(
+      this.container.clientWidth, this.container.clientHeight, this.viewportMode, this.selectedViewport,
+    );
+    const rectByIndex = new Map(rects.map((rect) => [rect.index, rect]));
+    this.container.classList.toggle("multi-view-four", this.viewportMode === "four");
+    this.openingLineLayer.style.display = this.viewportMode === "four" ? "none" : "";
+    this.openingLabelLayer.style.display = this.viewportMode === "four" ? "none" : "";
+    this.elementLabelLayer.style.display = this.viewportMode === "four" ? "none" : "";
+    for (const [index, slot] of this.viewportSlots.entries()) {
+      const rect = rectByIndex.get(index);
+      slot.frame.hidden = !rect;
+      slot.frame.classList.toggle("is-selected", index === this.selectedViewport);
+      if (!rect) continue;
+      Object.assign(slot.frame.style, {
+        left: rect.x + "px",
+        top: rect.y + "px",
+        width: rect.width + "px",
+        height: rect.height + "px",
+      });
+      this.updateViewportCameraProjection(index, rect);
+    }
+    this.oneViewButton.classList.toggle("is-active", this.viewportMode === "one");
+    this.fourViewsButton.classList.toggle("is-active", this.viewportMode === "four");
+    this.returnToFourButton.hidden = this.viewportMode === "four";
+  }
+
+  setViewportBoundsFromPositions(positions: Float32Array): void {
+    if (positions.length < 3) return;
+    const box = new THREE.Box3();
+    for (let index = 0; index + 2 < positions.length; index += 3) {
+      box.expandByPoint(new THREE.Vector3(positions[index], positions[index + 1], positions[index + 2]));
+    }
+    if (box.isEmpty()) return;
+    box.getCenter(this.viewportCenter);
+    const size = box.getSize(new THREE.Vector3());
+    const span = Math.max(size.x, size.y, size.z, 0.01);
+    this.viewportHalfHeight = span * 0.62;
+    this.viewportDistance = span * 2.2;
+    if (this.restoredEditorViewPendingBounds) {
+      this.restoredEditorViewPendingBounds = false;
+      for (let index = 0; index < this.viewportSlots.length; index++) this.updateViewportCameraProjection(index);
+    } else {
+      for (let index = 0; index < this.viewportSlots.length; index++) this.resetViewportCamera(index, false);
+    }
+    this.syncViewportHud();
+    this.requestViewportRender();
+  }
+
+  captureEditorViewDraft(): SkinEditorViewDraftV1 {
+    return validateSkinEditorViewDraft({
+      schema: SKIN_EDITOR_VIEW_SCHEMA,
+      mode: this.viewportMode,
+      selectedViewport: this.selectedViewport,
+      viewports: this.viewportSlots.map((slot) => ({
+        direction: slot.direction,
+        camera: {
+          position: slot.camera.position.toArray(),
+          up: slot.camera.up.toArray(),
+          target: slot.controls.target.toArray(),
+          zoom: slot.camera.zoom,
+        },
+      })),
+    });
+  }
+
+  restoreEditorViewDraft(value: SkinEditorViewDraftV1): void {
+    const draft = validateSkinEditorViewDraft(value);
+    this.viewportMode = draft.mode;
+    this.selectedViewport = draft.selectedViewport;
+    for (const [index, saved] of draft.viewports.entries()) {
+      const slot = this.viewportSlots[index];
+      slot.direction = saved.direction;
+      slot.directionSelect.value = saved.direction;
+      slot.axis.textContent = skinViewAxisLegend(saved.direction);
+      slot.controls.noRotate = saved.direction !== "axome";
+      slot.camera.position.fromArray(saved.camera.position);
+      slot.camera.up.fromArray(saved.camera.up);
+      slot.controls.target.fromArray(saved.camera.target);
+      slot.camera.zoom = saved.camera.zoom;
+      slot.camera.updateProjectionMatrix();
+      slot.controls.enabled = this.orbitEnabled && index === this.selectedViewport;
+      slot.controls.update();
+    }
+    this.restoredEditorViewPendingBounds = true;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.viewportMode === "four" ? 1.5 : 2));
+    this.resize();
+    this.syncViewportHud();
+    this.requestViewportRender();
   }
 
   setViewportClippingState(state: ViewportClippingState | null): void {
@@ -1009,14 +1314,18 @@ export class SkinRenderer {
   pickOverhangSupportSite(clientX: number, clientY: number, maxDistanceCssPx = 10, includeBack = false): OverhangSupportSitePick | null {
     const grid = this.overhangSupportSiteGrid;
     if (!grid) return null;
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const viewportRect = this.viewportRectFromClient(clientX, clientY);
+    if (!viewportRect) return null;
+    this.selectViewport(viewportRect.index);
     this.camera.updateMatrixWorld();
     const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
+    const localX = clientX - canvasRect.left - viewportRect.x;
+    const localY = clientY - canvasRect.top - viewportRect.y;
     const pickRay = new THREE.Raycaster();
     pickRay.setFromCamera(new THREE.Vector2(
-      ((clientX - rect.left) / rect.width) * 2 - 1,
-      1 - ((clientY - rect.top) / rect.height) * 2,
+      localX / Math.max(1, viewportRect.width) * 2 - 1,
+      1 - localY / Math.max(1, viewportRect.height) * 2,
     ), this.camera);
     const candidateIndices = queryUniformSpatialGridRayNeighborhood(
       grid,
@@ -1033,8 +1342,8 @@ export class SkinRenderer {
       if (!viewportPointVisible(world, this.viewportClippingState)) continue;
       projected.copy(world).project(this.camera);
       if (projected.z < -1 || projected.z > 1) continue;
-      const x = rect.left + (projected.x + 1) * rect.width * 0.5;
-      const y = rect.top + (1 - projected.y) * rect.height * 0.5;
+      const x = canvasRect.left + viewportRect.x + (projected.x + 1) * viewportRect.width * 0.5;
+      const y = canvasRect.top + viewportRect.y + (1 - projected.y) * viewportRect.height * 0.5;
       const distanceSq = (clientX - x) ** 2 + (clientY - y) ** 2;
       if (distanceSq <= maxDistanceCssPx ** 2) {
         candidates.push({ distanceSq, siteDistance: world.distanceTo(cameraPosition), index });
@@ -1151,7 +1460,11 @@ export class SkinRenderer {
       centerGeometry.setAttribute("aMarkerEmphasis", new THREE.BufferAttribute(new Float32Array([1]), 1));
       const center = new THREE.Points(centerGeometry, new THREE.ShaderMaterial({
         vertexShader: SUPPORT_MARKER_VERTEX_SHADER, fragmentShader: SUPPORT_MARKER_FRAGMENT_SHADER,
-        uniforms: { uPointSize: { value: 15 * this.renderer.getPixelRatio() }, uScreenDoorCoverage: { value: 1 } },
+        uniforms: {
+          uPointSize: { value: 15 * this.renderer.getPixelRatio() },
+          uScreenDoorCoverage: { value: 1 },
+          uShowBrushEmphasis: { value: 1 },
+        },
         depthTest: true, depthWrite: false, clipping: true, transparent: true,
         blending: THREE.NoBlending, toneMapped: false,
       }));
@@ -1271,6 +1584,7 @@ export class SkinRenderer {
           uniforms: {
             uPointSize: { value: 13 * this.renderer.getPixelRatio() },
             uScreenDoorCoverage: { value: pass.screenDoorCoverage },
+            uShowBrushEmphasis: { value: 1 },
           },
           depthTest: pass.depthTest,
           depthWrite: pass.depthWrite,
@@ -1982,13 +2296,19 @@ export class SkinRenderer {
   }
 
   resize(): void {
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
+    const w = Math.max(1, this.container.clientWidth);
+    const h = Math.max(1, this.container.clientHeight);
     this.renderer.setSize(w, h);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
     this.material.uniforms.uResolution.value.set(w, h);
-    this.controls.handleResize();
+    const pixelRatio = this.renderer.getPixelRatio();
+    this.overhangSupportSiteGroup?.traverse((object) => {
+      const material = (object as THREE.Points).material as THREE.ShaderMaterial | undefined;
+      if (material?.uniforms?.uPointSize) material.uniforms.uPointSize.value = 13 * pixelRatio;
+    });
+    const brushMaterial = this.supportPaintBrushCenter?.material as THREE.ShaderMaterial | undefined;
+    if (brushMaterial?.uniforms?.uPointSize) brushMaterial.uniforms.uPointSize.value = 15 * pixelRatio;
+    this.syncViewportHud();
+    this.requestViewportRender();
   }
 
   update(
@@ -2046,18 +2366,47 @@ export class SkinRenderer {
   }
 
   render(): void {
-    this.controls.update();
-    this.camera.updateMatrixWorld();
-    this.material.uniforms.uCamPos.value.copy(this.camera.position);
-    this.material.uniforms.uCamInverseProjection.value.copy(this.camera.projectionMatrixInverse);
-    this.material.uniforms.uCamInverseView.value.copy(this.camera.matrixWorld);
+    const width = Math.max(1, this.container.clientWidth);
+    const height = Math.max(1, this.container.clientHeight);
+    const rects = skinViewportRects(width, height, this.viewportMode, this.selectedViewport);
+    this.applyViewportClippingToScene();
+    this.renderer.setScissorTest(true);
+    this.renderer.autoClear = false;
+    for (const rect of rects) {
+      const slot = this.viewportSlots[rect.index];
+      slot.controls.update();
+      slot.camera.updateMatrixWorld();
+      this.material.uniforms.uCamPos.value.copy(slot.camera.position);
+      this.material.uniforms.uCamInverseProjection.value.copy(slot.camera.projectionMatrixInverse);
+      this.material.uniforms.uCamInverseView.value.copy(slot.camera.matrixWorld);
+      this.material.uniforms.uCameraOrthographic.value = 1;
+      this.material.uniforms.uResolution.value.set(rect.width, rect.height);
+      const glY = height - rect.y - rect.height;
+      this.renderer.setViewport(rect.x, glY, rect.width, rect.height);
+      this.renderer.setScissor(rect.x, glY, rect.width, rect.height);
+      this.renderer.clear(true, true, true);
+      const showBrush = rect.index === this.selectedViewport;
+      if (this.supportPaintBrushGroup) {
+        this.supportPaintBrushGroup.visible = showBrush && Boolean(this.supportPaintBrushGroup.userData.requestedVisible);
+      }
+      this.overhangSupportSiteGroup?.traverse((object) => {
+        const material = (object as THREE.Points).material as THREE.ShaderMaterial | undefined;
+        const uniform = material?.uniforms?.uShowBrushEmphasis;
+        if (uniform) uniform.value = showBrush ? 1 : 0;
+      });
+      this.renderer.render(this.scene, slot.camera);
+    }
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, width, height);
+    this.renderer.autoClear = true;
+    if (this.supportPaintBrushGroup) {
+      this.supportPaintBrushGroup.visible = Boolean(this.supportPaintBrushGroup.userData.requestedVisible);
+    }
     this.updateOpeningLabels();
     this.updateElementNames();
-    this.applyViewportClippingToScene();
-    this.renderer.render(this.scene, this.camera);
   }
 
-  /** Build a world-space ray (origin, direction) from a normalized device (-1..1) pointer position. */
+  /** Build a world-space ray from the selected viewport's normalized device position. */
   screenToRay(ndcX: number, ndcY: number): { origin: THREE.Vector3; dir: THREE.Vector3 } {
     this.camera.updateMatrixWorld();
     const raycaster = new THREE.Raycaster();
@@ -2065,8 +2414,24 @@ export class SkinRenderer {
     return { origin: raycaster.ray.origin.clone(), dir: raycaster.ray.direction.clone() };
   }
 
+  screenToRayFromClient(clientX: number, clientY: number): { origin: THREE.Vector3; dir: THREE.Vector3 } {
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const viewportRect = this.viewportRectFromClient(clientX, clientY);
+    if (!viewportRect) return this.screenToRay(0, 0);
+    this.selectViewport(viewportRect.index);
+    const localX = clientX - canvasRect.left - viewportRect.x;
+    const localY = clientY - canvasRect.top - viewportRect.y;
+    return this.screenToRay(
+      localX / Math.max(1, viewportRect.width) * 2 - 1,
+      1 - localY / Math.max(1, viewportRect.height) * 2,
+    );
+  }
+
   setOrbitEnabled(enabled: boolean): void {
-    this.controls.enabled = enabled;
+    this.orbitEnabled = enabled;
+    for (const [index, slot] of this.viewportSlots.entries()) {
+      slot.controls.enabled = enabled && index === this.selectedViewport;
+    }
   }
 
   /** Screen-local anchor for a DOM affordance associated with one realized
