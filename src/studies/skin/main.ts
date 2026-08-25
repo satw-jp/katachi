@@ -219,6 +219,7 @@ let showElementNames = false;
 let hoveredPatchId: number | null = null;
 let hoverPickFrameId: number | null = null;
 let hoverPickPointer: { clientX: number; clientY: number } | null = null;
+let renderFrameRequestId: number | null = null;
 let activePreviewMeshWorker: Worker | null = null;
 let previewMeshRequestId = 0;
 let previewMeshGeneration = 0;
@@ -5306,7 +5307,6 @@ async function loadLocalV088ReviewFixture(): Promise<void> {
 // --- Demand-driven render loop -------------------------------------------
 // Four scissored views share one scene and can cost roughly four draws. Keep
 // the canvas idle until geometry, a camera, clipping, or paint state changes.
-let renderFrameRequestId: number | null = null;
 
 function requestRenderFrame(): void {
   if (renderFrameRequestId !== null) return;

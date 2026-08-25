@@ -207,6 +207,8 @@ scene、BODY、Dry Web、scaffold、support-site BufferGeometry、footprintを�
 
 Support Paintのstroke、Undo／Redo、autosave、override BufferAttributeは全枠で共有する。pointerがある枠のcameraだけをpicking、前面判定、brush円へ使い、brush円とhover emphasisは選択枠だけに描く。確定した青／オレンジは共有bufferの部分更新なので他の3面へ同じframeで反映される。XYZ clippingは従来のobject座標planeを全枠へ同時適用する。4面／1面、各枠の方向、camera position／up／target／zoomはoptionalなeditor draftへ保存するが、Shape Recipe、Print Profile、validation、3MFには渡さない。形状、automatic classification、routing、validation、`printApproval=false`は変更しない。
 
+4面checkpoint直後の初回起動では、module評価中の初期状態更新がdemand-driven描画スケジューラの状態変数初期化より先に`render()`へ到達し、`ReferenceError`でメインcanvasが黒いまま停止した。描画スケジューラ状態を他のapp stateと同じ初期化領域へ移し、最初の`afterMutation()`より前に必ず初期化する。これは起動順だけの修正で、4 camera、scene、形状、分類、Support Paint、Profile、validationを変更しない。
+
 ## Hypothesis v088 Phase A
 
 overhangをbuild-plateからの経路で外側／内側に分けると、ベース形状内部へ外部scaffoldが侵入することを避けながら、内側の下面だけをDry Webで補強できるはずである。実際の剥がれやすさ、接触強度、印刷結果は別の人間確認が必要であり、この仮説を自動判定や`printApproval`へ昇格させない。
