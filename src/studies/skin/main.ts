@@ -127,11 +127,15 @@ import {
   buildSurfacePersistentCacheKeys,
   createSurfaceWorkerOnCacheMiss,
   createAutomaticSupportClassificationWorkerOnCacheMiss,
+  detectSurfacePersistentCacheCapability,
   readLegacySurfacePersistentCache,
   readSurfacePersistentCache,
+  runSurfacePersistentCacheIfAvailable,
+  surfacePersistentCacheRoute,
   writeSurfacePersistentCache,
   type SurfaceCacheMissReport,
   type SurfaceMeshCacheValue,
+  type SurfacePersistentCacheCapability,
   type SurfacePersistentCacheKeys,
   type SurfaceAngleResult,
 } from "./surfaceAnglePersistentCache.ts";
@@ -166,6 +170,11 @@ import {
 } from "./overhangSupportPolicy.ts";
 import { SUPPORT_REACHABILITY_RAY_EPSILON_VERSION } from "./supportReachability.ts";
 import type { OverhangDryWebTarget } from "./overhangSupportPolicy.ts";
+import {
+  HeavyComputationLifecycle,
+  HeavyComputationProgressState,
+  isCurrentWorkerRun,
+} from "./heavyComputationLifecycle.ts";
 import {
   appendActiveSupportPaintSample,
   beginSupportPaintStroke,
@@ -456,6 +465,26 @@ const bottomAutosaveStatus = document.createElement("div");
 bottomAutosaveStatus.className = "skin-bottom-autosave";
 bottomAutosaveStatus.textContent = "Autosave | 未保存";
 bottomAutosaveStatus.setAttribute("aria-live", "polite");
+const bottomRightStatus = document.createElement("div");
+bottomRightStatus.className = "skin-bottom-right-status";
+const bottomComputation = document.createElement("div");
+bottomComputation.className = "skin-bottom-computation";
+bottomComputation.hidden = true;
+const bottomComputationLabel = document.createElement("strong");
+bottomComputationLabel.className = "skin-bottom-computation-label";
+const bottomComputationPercent = document.createElement("strong");
+bottomComputationPercent.className = "skin-bottom-computation-percent";
+const bottomComputationDetail = document.createElement("span");
+bottomComputationDetail.className = "skin-bottom-computation-detail";
+bottomComputationDetail.setAttribute("aria-live", "polite");
+const bottomComputationCancel = document.createElement("button");
+bottomComputationCancel.type = "button";
+bottomComputationCancel.className = "skin-bottom-computation-cancel";
+bottomComputationCancel.textContent = "キャンセル";
+bottomComputationCancel.disabled = true;
+bottomComputationCancel.onclick = () => cancelActiveHeavyComputation();
+bottomComputation.append(bottomComputationLabel, bottomComputationPercent, bottomComputationDetail, bottomComputationCancel);
+bottomRightStatus.append(bottomComputation, bottomAutosaveStatus);
 const bottomWorkflowSummary = document.createElement("div");
 bottomWorkflowSummary.className = "skin-bottom-workflow-summary";
 const bottomWorkflowCurrent = document.createElement("span");
@@ -482,7 +511,121 @@ bottomReviewLegend.className = "skin-bottom-review-legend";
 const bottomReviewChoices = document.createElement("nav");
 bottomReviewChoices.className = "skin-bottom-review-choices";
 bottomReviewTools.append(bottomReviewLegend, bottomReviewChoices);
-bottomPane.append(bottomWorkflowSummary, bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus, bottomReviewTools);
+bottomPane.append(bottomWorkflowSummary, bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomRightStatus, bottomReviewTools);
+
+interface HeavyComputationHandle {
+  id: number;
+  update: (detail: string, progress?: number) => void;
+  /** Apply observed worker progress and stop any prior visual estimate. */
+  updateActual: (detail: string, progress: number) => void;
+  smoothTo: (cap: number, durationMs?: number) => void;
+  finish: () => void;
+}
+
+const heavyComputationLifecycle = new HeavyComputationLifecycle();
+const heavyComputationRegistrations = new Map<number, {
+  cancel: () => void;
+  finish: () => void;
+  render: () => void;
+}>();
+let activeHeavyComputation: { id: number; cancel: () => void; finish: () => void } | null = null;
+const HEAVY_PROGRESS_TICK_MS = 250;
+const HEAVY_PROGRESS_SMOOTH_DURATION_MS = 60_000;
+
+function beginHeavyComputation(label: string, cancel: () => void): HeavyComputationHandle {
+  const operation = heavyComputationLifecycle.begin(label);
+  const id = operation.id;
+  const progressState = new HeavyComputationProgressState();
+  let finished = false;
+  let smoothTimer: number | null = null;
+  let smoothStartedAt = 0;
+  let smoothDurationMs = HEAVY_PROGRESS_SMOOTH_DURATION_MS;
+  const render = (): void => {
+    const snapshot = progressState.snapshot();
+    bottomComputationLabel.textContent = label;
+    bottomComputationPercent.textContent = `${snapshot.estimated ? "約" : ""}${Math.round(snapshot.progress)}%`;
+    bottomComputationDetail.textContent = snapshot.detail;
+  };
+  const isVisible = (): boolean => !finished && heavyComputationLifecycle.isVisible(operation);
+  const stopSmoothing = (): void => {
+    if (smoothTimer !== null) window.clearInterval(smoothTimer);
+    smoothTimer = null;
+  };
+  const tickSmoothing = (): void => {
+    if (finished) {
+      stopSmoothing();
+      return;
+    }
+    const fraction = Math.min(1, (performance.now() - smoothStartedAt) / smoothDurationMs);
+    const completed = progressState.advanceSmoothing(fraction);
+    if (isVisible()) render();
+    if (completed) stopSmoothing();
+  };
+  const update = (detail: string, progress?: number): void => {
+    if (finished) return;
+    const nextProgress = progress;
+    // Keep the operation's snapshot current even while another operation is
+    // visible; only DOM rendering is visibility-gated.
+    progressState.update(detail, nextProgress);
+    if (isVisible()) render();
+  };
+  const updateActual = (detail: string, progressValue: number): void => {
+    if (finished) return;
+    progressState.updateActual(detail, progressValue);
+    if (isVisible()) render();
+  };
+  const smoothTo = (cap: number, durationMs = HEAVY_PROGRESS_SMOOTH_DURATION_MS): void => {
+    if (finished || !progressState.smoothTo(cap)) return;
+    stopSmoothing();
+    smoothStartedAt = performance.now();
+    smoothDurationMs = Math.max(1, durationMs);
+    smoothTimer = window.setInterval(tickSmoothing, HEAVY_PROGRESS_TICK_MS);
+    tickSmoothing();
+  };
+  const finish = (): void => {
+    if (finished) return;
+    finished = true;
+    stopSmoothing();
+    heavyComputationRegistrations.delete(id);
+    const revealed = heavyComputationLifecycle.finish(operation);
+    if (revealed) {
+      const registration = heavyComputationRegistrations.get(revealed.id);
+      if (registration) {
+        activeHeavyComputation = { id: revealed.id, cancel: registration.cancel, finish: registration.finish };
+        bottomComputation.hidden = false;
+        bottomComputationCancel.disabled = false;
+        registration.render();
+        return;
+      }
+    }
+    if (activeHeavyComputation?.id === id || !heavyComputationLifecycle.current()) {
+      activeHeavyComputation = null;
+      bottomComputation.hidden = true;
+      bottomComputationCancel.disabled = true;
+      bottomComputationPercent.textContent = "";
+      bottomComputationDetail.textContent = "";
+    }
+  };
+  heavyComputationRegistrations.set(id, { cancel, finish, render });
+  activeHeavyComputation = { id, cancel, finish };
+  bottomComputation.hidden = false;
+  bottomComputationCancel.disabled = false;
+  render();
+  return { id, update, updateActual, smoothTo, finish };
+}
+
+function cancelActiveHeavyComputation(): void {
+  const active = activeHeavyComputation;
+  if (!active) return;
+  active.cancel();
+  if (activeHeavyComputation?.id === active.id) {
+    active.finish();
+  }
+}
+
+function workerFractionPercent(fraction: number): number {
+  return Number.isFinite(fraction) ? Math.max(0, Math.min(100, fraction * 100)) : 0;
+}
 
 const bottomPaneDivider = document.createElement("div");
 bottomPaneDivider.className = "skin-bottom-pane-divider";
@@ -638,6 +781,7 @@ let hoverPickPointer: { clientX: number; clientY: number } | null = null;
 let renderFrameRequestId: number | null = null;
 let renderFrameScope: "none" | "active" | "full" = "none";
 let activePreviewMeshWorker: Worker | null = null;
+let previewMeshHeavyComputation: HeavyComputationHandle | null = null;
 let previewMeshRequestId = 0;
 let previewMeshGeneration = 0;
 let previewMeshStatusTimer: number | null = null;
@@ -654,6 +798,7 @@ let printCheckMeshReject: ((error: Error) => void) | null = null;
 let printCheckMeshRequestId = 0;
 let printCheckMeshGeneration = 0;
 let activeInternalPrintGateWorker: Worker | null = null;
+let internalPrintGateHeavyComputation: HeavyComputationHandle | null = null;
 let internalPrintGateRequestId = 0;
 let internalPrintGateGeneration = 0;
 let pendingInternalPrintGateFingerprint = "";
@@ -661,12 +806,18 @@ let internalPrintGateCache: { fingerprint: string; report: InternalPrintGateRepo
 let internalPrintGateStatusTimer: number | null = null;
 let activeSurfaceAngleWorker: Worker | null = null;
 let activeSurfaceSupportClassificationWorker: Worker | null = null;
+let surfaceHeavyComputation: HeavyComputationHandle | null = null;
+const SURFACE_PROGRESS_CACHE_LOOKUP = 2;
+const SURFACE_PROGRESS_WORKER_START = 5;
+const SURFACE_PROGRESS_CLASSIFICATION = 80;
 let surfaceAngleGeneration = 0;
 let surfaceAngleCache: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null = null;
 let activeSurfacePersistentCacheKeys: SurfacePersistentCacheKeys | null = null;
 let activeSurfaceCacheMissReport: SurfaceCacheMissReport | null = null;
 let activeLegacySurfaceCacheKey: string | null = null;
-let surfaceAnglePersistentCacheStatus: "idle" | "miss" | "mesh-hit" | "hit" | "migrated" | "ledger-upgrade" | "stored" | "error" = "idle";
+let surfaceAnglePersistentCacheStatus: "idle" | "miss" | "mesh-hit" | "hit" | "migrated" | "ledger-upgrade" | "stored" | "unavailable" | "error" = "idle";
+let surfacePersistentCacheCapability: SurfacePersistentCacheCapability = detectSurfacePersistentCacheCapability();
+let surfaceWorkerLaunchCount = 0;
 let surfaceGenerationWorkerLaunchCount = 0;
 let automaticFaceDiagnosisWorkerLaunchCount = 0;
 let automaticSupportClassificationWorkerLaunchCount = 0;
@@ -701,6 +852,7 @@ let supportPaintStatusText = "自動分類を下書きとして表示中";
 let supportPaintDraftSavedAt: string | null = null;
 let supportPaintDraftDirty = false;
 let activeSupportPaintReprojectionWorker: Worker | null = null;
+let supportPaintReprojectionHeavyComputation: HeavyComputationHandle | null = null;
 let supportPaintReprojectionGeneration = 0;
 let supportPaintReprojectionStatus = "未検証";
 const SUPPORT_PAINT_REPROJECTION_RESOLUTION = 48;
@@ -721,6 +873,7 @@ let supportPaintApplyRequestId = 0;
 let supportPaintApplyReplacePending = 0;
 const supportPaintDryWebRefreshRequestIds = new Set<number>();
 let activeSupportPaintRaycastWorker: Worker | null = null;
+let supportPaintRaycastHeavyComputation: HeavyComputationHandle | null = null;
 let supportPaintRaycastGeneration = 0;
 let supportPaintRaycastReady = false;
 let supportPaintRaycastRequestId = 0;
@@ -767,6 +920,7 @@ let viewportClippingLastPreviewGeneration = -1;
 let viewportClippingLastTargetLongestMm = Number.NaN;
 
 let activeOpeningMapWorker: Worker | null = null;
+let openingMapHeavyComputation: HeavyComputationHandle | null = null;
 let openingMapRequestId = 0;
 let openingMapGeneration = 0;
 let openingMapResult: OpeningMapResult | null = null;
@@ -786,6 +940,7 @@ let draftGroupB = new Set<number>();
 let lastAdjacencyEdges: PatchAdjacencyEdge[] = [];
 let partitionResult: PartitionResult | null = null;
 let activePartitionWorker: Worker | null = null;
+let partitionHeavyComputation: HeavyComputationHandle | null = null;
 let partitionRequestId = 0;
 // Bumped whenever the confirmed partition or the underlying patch set
 // changes -- any in-flight worker result tagged with a stale generation is
@@ -812,6 +967,7 @@ let draftNGroups: number[][] = [];
 let nSeedIds: number[] = [];
 let nPartitionResult: NPartitionResult | null = null;
 let activeNPartitionWorker: Worker | null = null;
+let nPartitionHeavyComputation: HeavyComputationHandle | null = null;
 let nPartitionRequestId = 0;
 let nPartitionGeneration = 0;
 
@@ -1236,6 +1392,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   },
   onViewportClippingAction: (action) => updateViewportClipping(action),
   onDiagnoseSurfaceAngles: (thresholdDeg) => startSurfaceAngleDiagnosis(thresholdDeg),
+  onShowSurfaceDiagnostics: () => formatSurfaceEnvironmentDiagnostics(),
   onSetSurfaceAngleDiagnosisView: (diagnosisView) => showSurfaceAngleDiagnosisView(diagnosisView),
   onSurfaceAngleThresholdChange: () => { invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
   onToggleOverhangSupportSites: (show) => {
@@ -2228,6 +2385,15 @@ function terminateSupportPaintRaycastWorker(): void {
   activeSupportPaintRaycastWorker = null;
   supportPaintRaycastReady = false;
   supportPaintRaycastGeneration++;
+  supportPaintRaycastHeavyComputation?.finish();
+  supportPaintRaycastHeavyComputation = null;
+}
+
+function cancelSupportPaintRaycastBuild(): void {
+  if (!activeSupportPaintRaycastWorker && !supportPaintRaycastHeavyComputation) return;
+  terminateSupportPaintRaycastWorker();
+  refreshSupportPaintUi("Paint Surface indexの構築をキャンセルしました");
+  refreshSurfaceStartupStatus("Paint BVH canceled");
 }
 
 function initializeSupportPaintRaycastWorker(diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>): void {
@@ -2235,6 +2401,17 @@ function initializeSupportPaintRaycastWorker(diagnosis: Extract<SurfaceAngleWork
   const generation = supportPaintRaycastGeneration;
   const worker = new Worker(new URL("./supportPaintRaycast.worker.ts", import.meta.url), { type: "module" });
   activeSupportPaintRaycastWorker = worker;
+  supportPaintRaycastHeavyComputation?.finish();
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activeSupportPaintRaycastWorker, null, undefined, generation, supportPaintRaycastGeneration)
+      || supportPaintRaycastHeavyComputation?.id !== heavy.id) return;
+    cancelSupportPaintRaycastBuild();
+  };
+  heavy = beginHeavyComputation("Paint BVH 全体進捗", cancel);
+  supportPaintRaycastHeavyComputation = heavy;
+  heavy.update("Paint Surface indexをWorkerへ送信しています…", 0);
+  heavy.smoothTo(99);
   paintBvhWorkerLaunchCount++;
   const requestedAt = performance.now();
   supportPaintRaycastReady = false;
@@ -2242,10 +2419,17 @@ function initializeSupportPaintRaycastWorker(diagnosis: Extract<SurfaceAngleWork
   refreshSurfaceStartupStatus("Paint BVH building");
   worker.onmessage = (event: MessageEvent<SupportPaintRaycastWorkerMessage>) => {
     const message = event.data;
-    if (worker !== activeSupportPaintRaycastWorker || message.generation !== supportPaintRaycastGeneration) return;
+    if (!isCurrentWorkerRun(worker, activeSupportPaintRaycastWorker, null, undefined, generation, supportPaintRaycastGeneration, message.generation)) {
+      worker.terminate();
+      return;
+    }
     if (message.type === "progress") {
       refreshSupportPaintUi("Paint Surface index構築中 · " + message.triangleCount.toLocaleString() + "面 · viewportは操作できます");
       refreshSurfaceStartupStatus("Paint BVH building");
+      heavy.update(
+        "Paint Surface index構築中 · " + message.triangleCount.toLocaleString() + "面",
+        12,
+      );
       return;
     }
     if (message.type === "ready") {
@@ -2254,17 +2438,33 @@ function initializeSupportPaintRaycastWorker(diagnosis: Extract<SurfaceAngleWork
       console.info("[Support Paint BVH] ready", { ...message, roundTripMs: paintBvhBuildMs });
       refreshSupportPaintUi("Paint Surface index ready · " + message.triangleCount.toLocaleString() + "面 · build " + message.buildMs.toFixed(1) + "ms · round-trip " + paintBvhBuildMs.toFixed(1) + "ms");
       refreshSurfaceStartupStatus("ready");
+      heavy.update("Paint Surface index完了", 100);
+      heavy.finish();
+      if (supportPaintRaycastHeavyComputation?.id === heavy.id) supportPaintRaycastHeavyComputation = null;
       return;
     }
     if (message.type === "error") {
+      activeSupportPaintRaycastWorker = null;
+      supportPaintRaycastGeneration++;
+      worker.terminate();
+      heavy.finish();
+      if (supportPaintRaycastHeavyComputation?.id === heavy.id) supportPaintRaycastHeavyComputation = null;
       handleSupportPaintRaycastError(message.message, message.requestId);
       return;
     }
     handleSupportPaintRaycastHit(message);
   };
   worker.onerror = (event) => {
-    if (worker !== activeSupportPaintRaycastWorker) return;
+    if (!isCurrentWorkerRun(worker, activeSupportPaintRaycastWorker, null, undefined, generation, supportPaintRaycastGeneration)) {
+      worker.terminate();
+      return;
+    }
+    activeSupportPaintRaycastWorker = null;
+    supportPaintRaycastGeneration++;
+    worker.terminate();
     supportPaintRaycastReady = false;
+    heavy.finish();
+    if (supportPaintRaycastHeavyComputation?.id === heavy.id) supportPaintRaycastHeavyComputation = null;
     handleSupportPaintRaycastError(event.message);
   };
   const positions = diagnosis.basePositions.slice();
@@ -2280,6 +2480,8 @@ function invalidateSupportPaintReprojection(): void {
   v088Surface128Proof = null;
   supportPaintReprojectionGeneration++;
   if (activeSupportPaintReprojectionWorker) { activeSupportPaintReprojectionWorker.terminate(); activeSupportPaintReprojectionWorker = null; }
+  supportPaintReprojectionHeavyComputation?.finish();
+  supportPaintReprojectionHeavyComputation = null;
   supportPaintReprojectionStatus = "未検証";
 }
 
@@ -3331,6 +3533,7 @@ viewport.addEventListener("pointerdown", (e) => {
     const context = supportPaintEditingContext();
     if (!context) return;
     if (!activeSupportPaintRaycastWorker || !supportPaintRaycastReady) {
+      if (!activeSupportPaintRaycastWorker && surfaceAngleCache) initializeSupportPaintRaycastWorker(surfaceAngleCache);
       refreshSupportPaintUi("Paint Surface indexの準備を待ってください");
       return;
     }
@@ -3834,6 +4037,8 @@ function proposeAndConfirmNPartition(requestedCount: number): void {
 function invalidateNPartitionResult(message: string): void {
   if (!nPartitionResult && !activeNPartitionWorker) return;
   nPartitionGeneration++;
+  nPartitionHeavyComputation?.finish();
+  nPartitionHeavyComputation = null;
   if (activeNPartitionWorker) {
     activeNPartitionWorker.terminate();
     activeNPartitionWorker = null;
@@ -3846,10 +4051,16 @@ function invalidateNPartitionResult(message: string): void {
 }
 
 function cancelNPartitionBuild(): void {
-  if (!activeNPartitionWorker) return;
+  if (!activeNPartitionWorker) {
+    nPartitionHeavyComputation?.finish();
+    nPartitionHeavyComputation = null;
+    return;
+  }
   nPartitionGeneration++;
   activeNPartitionWorker.terminate();
   activeNPartitionWorker = null;
+  nPartitionHeavyComputation?.finish();
+  nPartitionHeavyComputation = null;
   ui.setNPartitionBuildRunning(false);
   ui.setNPartitionStatus("N分割の生成をキャンセルしました");
 }
@@ -3883,21 +4094,38 @@ function buildNPartition(): void {
   ui.setNPartitionExportEnabled(false);
   ui.setNPartitionMetrics("");
   ui.setNPartitionStatus("曲面境界のN部品を生成しています…");
+  nPartitionHeavyComputation?.finish();
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activeNPartitionWorker, requestId, requestId, generation, nPartitionGeneration)
+      || nPartitionHeavyComputation?.id !== heavy.id) return;
+    cancelNPartitionBuild();
+  };
+  heavy = beginHeavyComputation("N分割 全体進捗", cancel);
+  nPartitionHeavyComputation = heavy;
+  heavy.update("Workerへ計算を送信しています…", 0);
+  heavy.smoothTo(99);
 
   const finish = (): void => {
-    if (activeNPartitionWorker === worker) activeNPartitionWorker = null;
+    if (!isCurrentWorkerRun(worker, activeNPartitionWorker, requestId, requestId, generation, nPartitionGeneration)) return;
     worker.terminate();
+    activeNPartitionWorker = null;
+    heavy.update("N分割完了", 100);
+    heavy.finish();
+    if (nPartitionHeavyComputation?.id === heavy.id) nPartitionHeavyComputation = null;
     ui.setNPartitionBuildRunning(false);
   };
   worker.onmessage = (event: MessageEvent<NPartitionWorkerMessage>) => {
     const message = event.data;
-    if (message.requestId !== requestId) return;
-    if (generation !== nPartitionGeneration) {
-      finish();
-      ui.setNPartitionStatus("形または分け方が変わったため、古い結果を破棄しました", false);
+    if (!isCurrentWorkerRun(worker, activeNPartitionWorker, requestId, message.requestId, generation, nPartitionGeneration)) {
+      worker.terminate();
       return;
     }
     if (message.type === "progress") {
+      heavy.update(
+        `${message.stage}…（${(message.elapsedMs / 1000).toFixed(1)}秒）`,
+        workerFractionPercent(message.fraction),
+      );
       ui.setNPartitionStatus(`${message.stage}…（${(message.elapsedMs / 1000).toFixed(1)}秒）`);
       return;
     }
@@ -3919,6 +4147,10 @@ function buildNPartition(): void {
     showNPartitionGroups(state.nPartition?.groups ?? draftNGroups);
   };
   worker.onerror = (event) => {
+    if (!isCurrentWorkerRun(worker, activeNPartitionWorker, requestId, requestId, generation, nPartitionGeneration)) {
+      worker.terminate();
+      return;
+    }
     finish();
     ui.setNPartitionStatus(`生成失敗: ${event.message}`, false);
   };
@@ -4216,6 +4448,8 @@ function invalidateStalePartitionResult(): void {
   if (!hadResult && !hadRunningWorker) return; // nothing was ever built or building
 
   partitionGeneration++;
+  partitionHeavyComputation?.finish();
+  partitionHeavyComputation = null;
   if (activePartitionWorker) {
     activePartitionWorker.terminate();
     activePartitionWorker = null;
@@ -4304,31 +4538,43 @@ function buildPartition(): void {
   ui.setPartitionMetrics("");
   ui.setPartitionBuildRunning(true);
   ui.setPartitionStatus("Workerへ計算を送信しています…");
+  partitionHeavyComputation?.finish();
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activePartitionWorker, requestId, requestId, generation, partitionGeneration)
+      || partitionHeavyComputation?.id !== heavy.id) return;
+    cancelPartitionBuild();
+  };
+  heavy = beginHeavyComputation("A/B分割 全体進捗", cancel);
+  partitionHeavyComputation = heavy;
+  heavy.update("Workerへ計算を送信しています…", 0);
+  heavy.smoothTo(99);
   refreshPartitionTutorial();
 
   // gate-correction P1-2: every exit path terminates the Worker (a Worker
   // that merely posts a result message stays alive/idle otherwise -- the
   // previous round only terminated it on the error/stale paths).
   const finish = (): void => {
-    if (activePartitionWorker === worker) activePartitionWorker = null;
+    if (!isCurrentWorkerRun(worker, activePartitionWorker, requestId, requestId, generation, partitionGeneration)) return;
     worker.terminate();
+    activePartitionWorker = null;
+    heavy.update("A/B分割完了", 100);
+    heavy.finish();
+    if (partitionHeavyComputation?.id === heavy.id) partitionHeavyComputation = null;
     ui.setPartitionBuildRunning(false);
   };
 
   worker.onmessage = (event: MessageEvent<PartitionWorkerMessage>) => {
     const msg = event.data;
-    if (msg.requestId !== requestId) return; // a stale worker's leftover message
-    if (generation !== partitionGeneration) {
-      // Patches/confirmation changed while this build was running. P1-2:
-      // terminate THE MOMENT this is detected, even mid-progress -- don't
-      // let a doomed computation run to completion just because the final
-      // message hasn't arrived yet.
-      finish();
-      ui.setPartitionStatus("パッチ/確定が変更されたため、実行中だった結果を破棄しました");
-      refreshPartitionTutorial();
+    if (!isCurrentWorkerRun(worker, activePartitionWorker, requestId, msg.requestId, generation, partitionGeneration)) {
+      worker.terminate();
       return;
     }
     if (msg.type === "progress") {
+      heavy.update(
+        `${msg.stage}… (経過 ${(msg.elapsedMs / 1000).toFixed(1)}秒)`,
+        workerFractionPercent(msg.fraction),
+      );
       ui.setPartitionStatus(`${msg.stage}… (経過 ${(msg.elapsedMs / 1000).toFixed(1)}秒)`);
       refreshPartitionTutorial();
       return;
@@ -4353,7 +4599,10 @@ function buildPartition(): void {
     refreshPartitionTutorial();
   };
   worker.onerror = (event) => {
-    if (requestId !== partitionRequestId) return;
+    if (!isCurrentWorkerRun(worker, activePartitionWorker, requestId, requestId, generation, partitionGeneration)) {
+      worker.terminate();
+      return;
+    }
     finish();
     ui.setPartitionMetrics("");
     ui.setPartitionStatus(`失敗: ${event.message}`, false);
@@ -4380,9 +4629,16 @@ function buildPartition(): void {
 }
 
 function cancelPartitionBuild(): void {
-  if (!activePartitionWorker) return;
+  if (!activePartitionWorker) {
+    partitionHeavyComputation?.finish();
+    partitionHeavyComputation = null;
+    return;
+  }
+  partitionGeneration++;
   activePartitionWorker.terminate();
   activePartitionWorker = null;
+  partitionHeavyComputation?.finish();
+  partitionHeavyComputation = null;
   ui.setPartitionBuildRunning(false);
   ui.setPartitionStatus("キャンセルしました");
   refreshPartitionTutorial();
@@ -4968,6 +5224,8 @@ function clearInternalPrintGateStatusTimer(): void {
 function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデータは書き出せません"): void {
   clearInternalPrintGateStatusTimer();
   internalPrintGateGeneration++;
+  internalPrintGateHeavyComputation?.finish();
+  internalPrintGateHeavyComputation = null;
   activeInternalPrintGateWorker?.terminate();
   activeInternalPrintGateWorker = null;
   pendingInternalPrintGateFingerprint = "";
@@ -4984,6 +5242,11 @@ function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデ
   );
 }
 
+function cancelInternalPrintGate(): void {
+  if (!activeInternalPrintGateWorker && !internalPrintGateHeavyComputation) return;
+  invalidateInternalPrintGate("内部構造判定をキャンセルしました");
+}
+
 function startInternalPrintGate(options: MeshUiOptions): void {
   const graph = getInternalStructureGraph();
   if (!graph?.edges.length) {
@@ -4998,6 +5261,8 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     return;
   }
   activeInternalPrintGateWorker?.terminate();
+  internalPrintGateHeavyComputation?.finish();
+  internalPrintGateHeavyComputation = null;
   const generation = ++internalPrintGateGeneration;
   const requestId = ++internalPrintGateRequestId;
   const fingerprint = internalPrintGateFingerprint(options, graph);
@@ -5023,6 +5288,19 @@ function startInternalPrintGate(options: MeshUiOptions): void {
   const gateStarted = performance.now();
   const gateStage = reusablePreview ? "表示済みの最終meshを再利用して判定中" : "最終meshを並列生成して判定中";
   ui.setInternalPrintGateStatus(`${gateStage} · 0秒`);
+  const worker = new Worker(new URL("./internalPrintGate.worker.ts", import.meta.url), { type: "module" });
+  activeInternalPrintGateWorker = worker;
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activeInternalPrintGateWorker, requestId, requestId, generation, internalPrintGateGeneration)
+      || pendingInternalPrintGateFingerprint !== fingerprint
+      || internalPrintGateHeavyComputation?.id !== heavy.id) return;
+    cancelInternalPrintGate();
+  };
+  heavy = beginHeavyComputation("Internal判定 全体進捗", cancel);
+  internalPrintGateHeavyComputation = heavy;
+  heavy.update(`${gateStage} · 0秒`, 0);
+  heavy.smoothTo(99);
   clearInternalPrintGateStatusTimer();
   internalPrintGateStatusTimer = window.setInterval(() => {
     ui.setInternalPrintGateStatus(`${gateStage} · ${Math.floor((performance.now() - gateStarted) / 1000)}秒 · 画面は操作できます`);
@@ -5051,13 +5329,11 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     prebuiltPositions: reusablePreview,
     baseName: makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance),
   };
-  const worker = new Worker(new URL("./internalPrintGate.worker.ts", import.meta.url), { type: "module" });
-  activeInternalPrintGateWorker = worker;
   worker.onmessage = (event: MessageEvent<InternalPrintGateWorkerMessage>) => {
     const message = event.data;
     if (
-      worker !== activeInternalPrintGateWorker || message.requestId !== requestId ||
-      message.generation !== internalPrintGateGeneration || pendingInternalPrintGateFingerprint !== fingerprint
+      !isCurrentWorkerRun(worker, activeInternalPrintGateWorker, requestId, message.requestId, generation, internalPrintGateGeneration, message.generation) ||
+      pendingInternalPrintGateFingerprint !== fingerprint
     ) {
       worker.terminate();
       return;
@@ -5067,11 +5343,16 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     clearInternalPrintGateStatusTimer();
     ui.setInternalPrintGateRunning(false);
     if (message.type === "error") {
+      heavy.finish();
+      if (internalPrintGateHeavyComputation?.id === heavy.id) internalPrintGateHeavyComputation = null;
       pendingInternalPrintGateFingerprint = "";
       ui.setInternalPrintGateStatus(`NG · 判定できませんでした: ${message.message}`, false);
       ui.setInternalPrintGateExportAllowed(false, true);
       return;
     }
+    heavy.update("Internal判定完了", 100);
+    heavy.finish();
+    if (internalPrintGateHeavyComputation?.id === heavy.id) internalPrintGateHeavyComputation = null;
     const currentGraph = getInternalStructureGraph();
     if (!currentGraph || internalPrintGateFingerprint(options, currentGraph) !== fingerprint) {
       pendingInternalPrintGateFingerprint = "";
@@ -5090,11 +5371,17 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     );
   };
   worker.onerror = (event) => {
-    if (worker !== activeInternalPrintGateWorker) return;
+    if (!isCurrentWorkerRun(worker, activeInternalPrintGateWorker, null, undefined, generation, internalPrintGateGeneration) ||
+      pendingInternalPrintGateFingerprint !== fingerprint) {
+      worker.terminate();
+      return;
+    }
     worker.terminate();
     activeInternalPrintGateWorker = null;
     pendingInternalPrintGateFingerprint = "";
     clearInternalPrintGateStatusTimer();
+    heavy.finish();
+    if (internalPrintGateHeavyComputation?.id === heavy.id) internalPrintGateHeavyComputation = null;
     ui.setInternalPrintGateRunning(false);
     ui.setInternalPrintGateStatus(`NG · 判定Workerに失敗しました: ${event.message}`, false);
     ui.setInternalPrintGateExportAllowed(false, true);
@@ -5277,6 +5564,14 @@ function cloneOpeningRequest(options: OpeningMapUiOptions): OpeningMapRequest {
   };
 }
 
+function openingMapStageProgress(stage: string): number {
+  if (stage.includes("現在の形状メッシュ")) return 20;
+  if (stage.includes("ホスト表面")) return 45;
+  if (stage.includes("被覆を分類")) return 70;
+  if (stage.includes("空隙を連結")) return 88;
+  return 50;
+}
+
 function measureOpeningMap(options: OpeningMapUiOptions): void {
   if (activeOpeningMapWorker) return;
   if (denseFlowerSampleActive) {
@@ -5291,12 +5586,41 @@ function measureOpeningMap(options: OpeningMapUiOptions): void {
   activeOpeningMapWorker = worker;
   ui.setOpeningMapRunning(true);
   ui.setOpeningMapStatus("現在の形状メッシュを準備中…");
+  openingMapHeavyComputation?.finish();
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activeOpeningMapWorker, request.requestId, request.requestId, request.generation, openingMapGeneration)
+      || openingMapHeavyComputation?.id !== heavy.id) return;
+    cancelOpeningMap(true);
+  };
+  heavy = beginHeavyComputation("Opening Map 全体進捗", cancel);
+  openingMapHeavyComputation = heavy;
+  heavy.update("現在の形状メッシュを準備中…", 0);
+  heavy.smoothTo(99);
   worker.onmessage = (event: MessageEvent<OpeningMapWorkerMessage>) => {
     const message = event.data;
-    if (message.requestId !== request.requestId || message.generation !== openingMapGeneration || worker !== activeOpeningMapWorker) { worker.terminate(); return; }
-    if (message.type === "progress") { ui.setOpeningMapStatus(`${message.stage} · 経過 ${(message.elapsedMs / 1000).toFixed(1)}秒`); return; }
+    if (!isCurrentWorkerRun(worker, activeOpeningMapWorker, request.requestId, message.requestId, request.generation, openingMapGeneration, message.generation)) {
+      worker.terminate();
+      return;
+    }
+    if (message.type === "progress") {
+      heavy.update(
+        `${message.stage} · 経過 ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+        openingMapStageProgress(message.stage),
+      );
+      ui.setOpeningMapStatus(`${message.stage} · 経過 ${(message.elapsedMs / 1000).toFixed(1)}秒`);
+      return;
+    }
     activeOpeningMapWorker = null; worker.terminate(); ui.setOpeningMapRunning(false);
-    if (message.type === "error") { ui.setOpeningMapStatus(`計測できませんでした: ${message.message}`, false); return; }
+    if (message.type === "error") {
+      heavy.finish();
+      if (openingMapHeavyComputation?.id === heavy.id) openingMapHeavyComputation = null;
+      ui.setOpeningMapStatus(`計測できませんでした: ${message.message}`, false);
+      return;
+    }
+    heavy.update("Opening Map完了", 100);
+    heavy.finish();
+    if (openingMapHeavyComputation?.id === heavy.id) openingMapHeavyComputation = null;
     openingMapResult = message.result;
     ui.setOpeningMapStatus(message.result.likelyMergedByOffset
       ? `オフセット ${message.result.offsetMm.toFixed(1)} mmで未被覆面が一続きになりました · 0 mmで再計測してください`
@@ -5308,7 +5632,18 @@ function measureOpeningMap(options: OpeningMapUiOptions): void {
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   };
-  worker.onerror = (event) => { if (worker !== activeOpeningMapWorker) return; activeOpeningMapWorker = null; worker.terminate(); ui.setOpeningMapRunning(false); ui.setOpeningMapStatus(`計測Workerに失敗しました: ${event.message}`, false); };
+  worker.onerror = (event) => {
+    if (!isCurrentWorkerRun(worker, activeOpeningMapWorker, null, undefined, request.generation, openingMapGeneration)) {
+      worker.terminate();
+      return;
+    }
+    activeOpeningMapWorker = null;
+    worker.terminate();
+    heavy.finish();
+    if (openingMapHeavyComputation?.id === heavy.id) openingMapHeavyComputation = null;
+    ui.setOpeningMapRunning(false);
+    ui.setOpeningMapStatus(`計測Workerに失敗しました: ${event.message}`, false);
+  };
   worker.postMessage(request);
 }
 
@@ -5379,8 +5714,14 @@ function clearOpeningMapDisplay(): void {
 }
 
 function cancelOpeningMap(showStatus = true): void {
-  if (!activeOpeningMapWorker) return;
+  if (!activeOpeningMapWorker) {
+    openingMapHeavyComputation?.finish();
+    openingMapHeavyComputation = null;
+    return;
+  }
   activeOpeningMapWorker.terminate(); activeOpeningMapWorker = null; openingMapGeneration++;
+  openingMapHeavyComputation?.finish();
+  openingMapHeavyComputation = null;
   ui.setOpeningMapRunning(false);
   if (showStatus) ui.setOpeningMapStatus("計測をキャンセルしました");
 }
@@ -5388,6 +5729,8 @@ function cancelOpeningMap(showStatus = true): void {
 /** Mutations invalidate both completed estimates and in-flight Workers. */
 function invalidateOpeningMap(): void {
   const hadMeasurement = openingMapEverRun || activeOpeningMapWorker !== null || openingMapResult !== null || denseFlowerSampleActive;
+  openingMapHeavyComputation?.finish();
+  openingMapHeavyComputation = null;
   if (activeOpeningMapWorker) { activeOpeningMapWorker.terminate(); activeOpeningMapWorker = null; ui.setOpeningMapRunning(false); }
   openingMapGeneration++;
   if (!hadMeasurement) return;
@@ -5405,6 +5748,8 @@ function invalidateOpeningMap(): void {
 
 function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。もう一度診断してください"): void {
   const hadDiagnosis = activeSurfaceAngleWorker !== null || activeSurfaceSupportClassificationWorker !== null || surfaceAngleCache !== null;
+  surfaceHeavyComputation?.finish();
+  surfaceHeavyComputation = null;
   surfaceAngleGeneration++;
   if (activeSurfaceAngleWorker) {
     activeSurfaceAngleWorker.terminate();
@@ -5414,6 +5759,9 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
     activeSurfaceSupportClassificationWorker.terminate();
     activeSurfaceSupportClassificationWorker = null;
   }
+  activeSurfacePersistentCacheKeys = null;
+  activeSurfaceCacheMissReport = null;
+  activeLegacySurfaceCacheKey = null;
   invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
   automaticOverhangSupportResult = null;
@@ -5440,6 +5788,12 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
     ui.setSurfaceAngleDiagnosisStatus(message);
     ui.setBambu3mfExportStatus("角度診断が古くなりました。もう一度「最終精度で診断」を実行してください");
   }
+}
+
+function cancelSurfaceAngleDiagnosis(): void {
+  if (!surfaceHeavyComputation && !activeSurfaceAngleWorker && !activeSurfaceSupportClassificationWorker) return;
+  invalidateSurfaceAngleDiagnosis("角度診断をキャンセルしました");
+  ui.setSurfaceAngleDiagnosisStatus("角度診断をキャンセルしました");
 }
 
 function clearBambu3mfStatusTimer(): void {
@@ -5692,14 +6046,44 @@ function refreshSurfaceStartupStatus(phase: string): void {
   );
 }
 
+function formatSurfaceEnvironmentDiagnostics(): string {
+  const capability = surfacePersistentCacheCapability;
+  const yesNo = (value: boolean | null): string => value === null ? "unknown" : value ? "yes" : "no";
+  const activeKeys = activeSurfacePersistentCacheKeys;
+  return [
+    "Surface / Windows確認情報（取得時点）",
+    `origin: ${capability.origin ?? location.origin}`,
+    `isSecureContext: ${yesNo(capability.isSecureContext)}`,
+    `crypto: ${yesNo(capability.cryptoAvailable)}`,
+    `crypto.subtle: ${yesNo(capability.subtleAvailable)}`,
+    `crypto.subtle.digest: ${yesNo(capability.digestAvailable)}`,
+    `indexedDB: ${yesNo(capability.indexedDBAvailable)}`,
+    `Worker: ${yesNo(capability.workerAvailable)}`,
+    `navigator.hardwareConcurrency: ${capability.hardwareConcurrency ?? "unknown"}`,
+    `cache status: ${surfaceAnglePersistentCacheStatus}`,
+    `cache available: ${yesNo(capability.cacheAvailable)}`,
+    `unavailable reasons: ${capability.unavailableReasons.join(", ") || "none"}`,
+    `active cache keys: mesh=${activeKeys?.meshKey ? "set" : "null"} / diagnosis=${activeKeys?.diagnosisKey ? "set" : "null"}`,
+    `Worker launches: Surface=${surfaceWorkerLaunchCount} / Surface生成=${surfaceGenerationWorkerLaunchCount} / 面判定=${automaticFaceDiagnosisWorkerLaunchCount} / 自動分類=${automaticSupportClassificationWorkerLaunchCount} / Paint BVH=${paintBvhWorkerLaunchCount}`,
+    `timings: cache lookup=${surfaceCacheLookupMs.toFixed(1)}ms / ledger restore=${surfaceClassificationRestoreMs.toFixed(1)}ms / classification=${supportClassificationComputeMs.toFixed(1)}ms / Paint BVH=${paintBvhBuildMs.toFixed(1)}ms`,
+    `resolution: ${surfaceAngleCache?.resolution ?? "none"}`,
+  ].join("\n");
+}
+
 function persistFinishedSurfaceAngleDiagnosis(
   message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
 ): void {
   const keys = activeSurfacePersistentCacheKeys;
   const automaticResult = automaticOverhangSupportResult;
-  if (!keys || !automaticResult || surfaceAnglePersistentCacheStatus === "hit") return;
-  void writeSurfacePersistentCache(keys, message, automaticResult)
-    .then(() => {
+  if (!surfacePersistentCacheCapability.cacheAvailable
+    || !keys
+    || !automaticResult
+    || ["hit", "unavailable", "error"].includes(surfaceAnglePersistentCacheStatus)) return;
+  void runSurfacePersistentCacheIfAvailable(
+    surfacePersistentCacheCapability,
+    () => writeSurfacePersistentCache(keys, message, automaticResult).then(() => true),
+  ).then((stored) => {
+      if (!stored) return;
       if (keys.diagnosisKey !== activeSurfacePersistentCacheKeys?.diagnosisKey) return;
       surfaceAnglePersistentCacheStatus = "stored";
       console.info("[SKIN Surface cache] stored", {
@@ -5717,7 +6101,11 @@ function persistFinishedSurfaceAngleDiagnosis(
 
 function finishSurfaceAngleDiagnosis(
   message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+  heavy: HeavyComputationHandle,
 ): void {
+  heavy.update("Surface診断完了", 100);
+  heavy.finish();
+  if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
   persistFinishedSurfaceAngleDiagnosis(message);
   surfaceAngleCache = message;
   skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
@@ -5744,6 +6132,10 @@ function finishSurfaceAngleDiagnosis(
       ? `永続cache hit · Surface Worker ${surfaceGenerationWorkerLaunchCount} · 面判定Worker ${automaticFaceDiagnosisWorkerLaunchCount}`
     : surfaceAnglePersistentCacheStatus === "mesh-hit"
       ? `Surface mesh cache hit · Surface Worker ${surfaceGenerationWorkerLaunchCount} · 面判定Worker ${automaticFaceDiagnosisWorkerLaunchCount}`
+    : surfaceAnglePersistentCacheStatus === "unavailable"
+      ? `永続cache unavailable · cacheを使わず再計算 · Surface Worker ${surfaceGenerationWorkerLaunchCount} · 面判定Worker ${automaticFaceDiagnosisWorkerLaunchCount}`
+    : surfaceAnglePersistentCacheStatus === "error"
+      ? `永続cache error · cacheを使わず再計算 · Surface Worker ${surfaceGenerationWorkerLaunchCount} · 面判定Worker ${automaticFaceDiagnosisWorkerLaunchCount}`
       : "永続cache miss · Surface Worker " + surfaceGenerationWorkerLaunchCount + " · 面判定Worker " + automaticFaceDiagnosisWorkerLaunchCount;
   const elapsedText = ["hit", "migrated", "ledger-upgrade"].includes(surfaceAnglePersistentCacheStatus)
     ? "保存済み診断 " + (message.elapsedMs / 1000).toFixed(1) + "秒（今回の読込時間には非計上）"
@@ -5786,19 +6178,24 @@ function finishSurfaceAngleDiagnosis(
 function recheckTargetedGridFromExactMesh(
   base: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
   graph: InternalStructureGraph,
+  heavy: HeavyComputationHandle,
 ): void {
+  const generation = surfaceAngleGeneration;
   ui.setSurfaceAngleDiagnosisRunning(true);
   ui.setSurfaceAngleDiagnosisStatus("全赤点からDry Webを生成しました。同じ最終メッシュ上で付加後を別Workerで再診断しています…");
   const reinforced = reinforceQuadConnectionsForMesh(state.patches, state.skinParams.quadMeshJoinWidth);
   const bounds = computeSkinSamplingBounds(state.host, state.hostParams.k, state.skinParams.thickness, reinforced.patches);
   const meshStep = bounds.longest > 0 ? bounds.longest / base.resolution : 1 / base.resolution;
   const worker = createSurfaceWorkerOnCacheMiss(null, () => {
+    surfaceWorkerLaunchCount++;
     automaticFaceDiagnosisWorkerLaunchCount++;
     return new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
   })!;
   activeSurfaceAngleWorker = worker;
+  heavy.update("Dry Web付加後のSurface再診断Workerを実行中…", 50);
+  heavy.smoothTo(SURFACE_PROGRESS_CLASSIFICATION - 1);
   const request: SurfaceAngleDiagnosisRequest = {
-    type: "recheck", generation: surfaceAngleGeneration,
+    type: "recheck", generation,
     basePositions: base.basePositions.slice(), baseNormals: base.baseNormals.slice(), baseFaceCount: base.baseFaceCount,
     resolution: base.resolution, internalGraph: graph, thresholdDeg: base.metrics.thresholdDeg, meshStep,
     mode: state.mode,
@@ -5807,21 +6204,32 @@ function recheckTargetedGridFromExactMesh(
   };
   worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
     const message = event.data;
-    if (worker !== activeSurfaceAngleWorker || message.generation !== surfaceAngleGeneration) return;
+    if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration, message.generation)) {
+      worker.terminate();
+      return;
+    }
     if (message.type === "progress") return;
     worker.terminate();
     activeSurfaceAngleWorker = null;
     ui.setSurfaceAngleDiagnosisRunning(false);
     if (message.type === "error") {
       ui.setSurfaceAngleDiagnosisStatus(`Dry Webの付加後診断に失敗しました: ${message.message}`, false);
+      heavy.finish();
+      if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
       return;
     }
-    finishSurfaceAngleDiagnosis(message);
+    finishSurfaceAngleDiagnosis(message, heavy);
   };
   worker.onerror = (event) => {
-    if (worker === activeSurfaceAngleWorker) activeSurfaceAngleWorker = null;
+    if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration)) {
+      worker.terminate();
+      return;
+    }
+    activeSurfaceAngleWorker = null;
     worker.terminate();
     ui.setSurfaceAngleDiagnosisRunning(false);
+    heavy.finish();
+    if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
     ui.setSurfaceAngleDiagnosisStatus(`Dry Webの付加後診断Workerに失敗しました: ${event.message}`, false);
   };
   worker.postMessage(request, [request.basePositions.buffer, request.baseNormals.buffer]);
@@ -5831,6 +6239,7 @@ function startSupportPaintReprojectionVerification(): void {
   if (supportPaintSession.history.present.strokes.length === 0) { supportPaintReprojectionStatus = "Paint sampleがないため未検証"; refreshSupportPaintUi(); return; }
   if (!importedRecipeSha256) { supportPaintReprojectionStatus = "Shape Recipe未読込 · fail-closed"; refreshSupportPaintUi(); return; }
   if (activeSupportPaintReprojectionWorker) activeSupportPaintReprojectionWorker.terminate();
+  supportPaintReprojectionHeavyComputation?.finish();
   const generation = ++supportPaintReprojectionGeneration;
   const options = ui.getMeshOptions();
   const request: SurfaceAngleDiagnosisRequest = {
@@ -5844,16 +6253,40 @@ function startSupportPaintReprojectionVerification(): void {
   };
   const worker = new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
   activeSupportPaintReprojectionWorker = worker;
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(worker, activeSupportPaintReprojectionWorker, null, undefined, generation, supportPaintReprojectionGeneration)
+      || supportPaintReprojectionHeavyComputation?.id !== heavy.id) return;
+    cancelSupportPaintReprojection();
+  };
+  heavy = beginHeavyComputation("Support Paint再投影 全体進捗", cancel);
+  supportPaintReprojectionHeavyComputation = heavy;
+  heavy.update("Surface 48をWorkerへ送信しています…", 0);
+  heavy.smoothTo(99);
   supportPaintReprojectionStatus = "Surface 48を低解像度Workerで準備中…"; refreshSupportPaintUi();
   worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
     const message = event.data;
-    if (generation !== supportPaintReprojectionGeneration || worker !== activeSupportPaintReprojectionWorker) { worker.terminate(); return; }
+    if (!isCurrentWorkerRun(worker, activeSupportPaintReprojectionWorker, null, undefined, generation, supportPaintReprojectionGeneration, message.generation)) {
+      worker.terminate();
+      return;
+    }
     if (message.type === "progress") {
-      supportPaintReprojectionStatus = "Surface 48を準備中 · " + message.completedSlices + "/" + message.totalSlices; refreshSupportPaintUi(); return;
+      const fraction = message.totalSlices > 0 ? message.completedSlices / message.totalSlices : 0;
+      supportPaintReprojectionStatus = "Surface 48を準備中 · " + message.completedSlices + "/" + message.totalSlices; refreshSupportPaintUi();
+      heavy.update(
+        "Surface 48を準備中 · " + message.completedSlices + "/" + message.totalSlices + " slice",
+        5 + fraction * 80,
+      );
+      return;
     }
     activeSupportPaintReprojectionWorker = null; worker.terminate();
-    if (message.type === "error") { supportPaintReprojectionStatus = "Surface 48再投影失敗: " + message.message; refreshSupportPaintUi(); return; }
+    if (message.type === "error") {
+      heavy.finish();
+      if (supportPaintReprojectionHeavyComputation?.id === heavy.id) supportPaintReprojectionHeavyComputation = null;
+      supportPaintReprojectionStatus = "Surface 48再投影失敗: " + message.message; refreshSupportPaintUi(); return;
+    }
     try {
+      heavy.update("Surface 48の保存Paint領域を検証中…", 90);
       const classified = classifySurfaceAngleSupport(message, { commit: false, enforceProfile: false });
       const longest = triangleSoupLongestExtent(message.basePositions);
       const scale = options.targetLongestMm / longest;
@@ -5872,17 +6305,38 @@ function startSupportPaintReprojectionVerification(): void {
         + " · Auto " + targetFacts.affectedAutoCount + " · override " + targetFacts.manualOverrideCount
         + " · 反対面 " + targetFacts.oppositeNormalCount + " · 正規化領域一致";
       refreshSupportPaintUi("Surface 48へのID非依存再投影を確認しました");
+      heavy.update("Support Paint再投影完了", 100);
+      heavy.finish();
+      if (supportPaintReprojectionHeavyComputation?.id === heavy.id) supportPaintReprojectionHeavyComputation = null;
     } catch (error) {
+      heavy.finish();
+      if (supportPaintReprojectionHeavyComputation?.id === heavy.id) supportPaintReprojectionHeavyComputation = null;
       supportPaintReprojectionStatus = "Surface 48再投影 fail-closed: " + (error instanceof Error ? error.message : String(error));
       refreshSupportPaintUi();
     }
   };
   worker.onerror = (event) => {
-    if (worker !== activeSupportPaintReprojectionWorker) return;
+    if (!isCurrentWorkerRun(worker, activeSupportPaintReprojectionWorker, null, undefined, generation, supportPaintReprojectionGeneration)) {
+      worker.terminate();
+      return;
+    }
     activeSupportPaintReprojectionWorker = null; worker.terminate();
+    heavy.finish();
+    if (supportPaintReprojectionHeavyComputation?.id === heavy.id) supportPaintReprojectionHeavyComputation = null;
     supportPaintReprojectionStatus = "Surface 48 Worker失敗: " + event.message; refreshSupportPaintUi();
   };
   worker.postMessage(request);
+}
+
+function cancelSupportPaintReprojection(): void {
+  if (!activeSupportPaintReprojectionWorker && !supportPaintReprojectionHeavyComputation) return;
+  if (activeSupportPaintReprojectionWorker) activeSupportPaintReprojectionWorker.terminate();
+  activeSupportPaintReprojectionWorker = null;
+  supportPaintReprojectionGeneration++;
+  supportPaintReprojectionHeavyComputation?.finish();
+  supportPaintReprojectionHeavyComputation = null;
+  supportPaintReprojectionStatus = "Surface 48再投影をキャンセルしました";
+  refreshSupportPaintUi();
 }
 
 async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
@@ -5898,6 +6352,21 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   clearOpeningMapDisplay();
   surfaceAngleGeneration++;
   const generation = surfaceAngleGeneration;
+  surfaceHeavyComputation?.finish();
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (generation !== surfaceAngleGeneration || surfaceHeavyComputation?.id !== heavy.id) return;
+    cancelSurfaceAngleDiagnosis();
+  };
+  heavy = beginHeavyComputation("Surface診断 全体進捗", cancel);
+  surfaceHeavyComputation = heavy;
+  heavy.update("cache capabilityを確認中…", 0);
+  surfacePersistentCacheCapability = detectSurfacePersistentCacheCapability();
+  activeSurfacePersistentCacheKeys = null;
+  activeSurfaceCacheMissReport = null;
+  activeLegacySurfaceCacheKey = null;
+  surfaceAnglePersistentCacheStatus = "idle";
+  surfaceWorkerLaunchCount = 0;
   invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
   automaticOverhangSupportResult = null;
@@ -5963,15 +6432,25 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
       activeSurfaceSupportClassificationWorker = worker;
       automaticSupportClassificationWorkerLaunchCount++;
       const requestedAt = performance.now();
+      ui.setSurfaceAngleDiagnosisRunning(true);
       ui.setSurfaceAngleDiagnosisStatus("Surface準備完了 · 自動支持点分類をWorkerで計算中 · 画面は操作できます");
+      heavy.updateActual(
+        "自動支持点分類Worker · ledgerを計算中… · 80%",
+        SURFACE_PROGRESS_CLASSIFICATION,
+      );
       refreshSurfaceStartupStatus("classification Worker");
       worker.onmessage = (event: MessageEvent<SurfaceSupportClassificationMessage>) => {
         const classified = event.data;
-        if (worker !== activeSurfaceSupportClassificationWorker || classified.generation !== surfaceAngleGeneration) { worker.terminate(); return; }
+        if (!isCurrentWorkerRun(worker, activeSurfaceSupportClassificationWorker, null, undefined, generation, surfaceAngleGeneration, classified.generation)) {
+          worker.terminate();
+          return;
+        }
         worker.terminate();
         activeSurfaceSupportClassificationWorker = null;
         if (classified.type === "error") {
           ui.setSurfaceAngleDiagnosisRunning(false);
+          heavy.finish();
+          if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
           ui.setSurfaceAngleDiagnosisStatus("自動支持点分類Workerに失敗しました: " + classified.message, false);
           return;
         }
@@ -5980,9 +6459,15 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
         adoptResult(classified.diagnosis, classified.automaticResult);
       };
       worker.onerror = (event) => {
-        if (worker === activeSurfaceSupportClassificationWorker) activeSurfaceSupportClassificationWorker = null;
+        if (!isCurrentWorkerRun(worker, activeSurfaceSupportClassificationWorker, null, undefined, generation, surfaceAngleGeneration)) {
+          worker.terminate();
+          return;
+        }
+        activeSurfaceSupportClassificationWorker = null;
         worker.terminate();
         ui.setSurfaceAngleDiagnosisRunning(false);
+        heavy.finish();
+        if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
         ui.setSurfaceAngleDiagnosisStatus("自動支持点分類Workerに失敗しました: " + event.message, false);
       };
       const classifyRequest: SurfaceSupportClassificationRequest = {
@@ -6017,7 +6502,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
           skinRenderer.setInternalStructure(null);
           ui.setInternalStructureStatus("保存済みDry Web診断を使用中 · 編集起動ではderived graphを同期再構築しません");
           surfaceClassificationRestoreMs = performance.now() - restoreStarted;
-          finishSurfaceAngleDiagnosis(message);
+          finishSurfaceAngleDiagnosis(message, heavy);
           if (supportPaintSession.history.present.strokes.length > 0) {
             reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present, false);
           }
@@ -6031,12 +6516,12 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
         refreshInternalStructure();
         const targetedGraph = getInternalStructureGraph();
         if (targetedGraph?.edges.length) {
-          recheckTargetedGridFromExactMesh(message, targetedGraph);
+          recheckTargetedGridFromExactMesh(message, targetedGraph, heavy);
           return;
         }
       }
       surfaceClassificationRestoreMs = performance.now() - restoreStarted;
-      finishSurfaceAngleDiagnosis(message);
+      finishSurfaceAngleDiagnosis(message, heavy);
       if (supportPaintSession.history.present.strokes.length > 0) reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present, false);
     } catch (error) {
       const failure = error as Error;
@@ -6048,6 +6533,8 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
       refreshOverhangSupportSiteOverlay();
       showSurfaceAngleDiagnosisView("before");
       ui.setSurfaceAngleDiagnosisRunning(false);
+      heavy.finish();
+      if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
       ui.setSurfaceAngleDiagnosisStatus("分類ledger／cache結果の適用に失敗しました: " + failure.message, false);
     }
   };
@@ -6056,25 +6543,135 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   automaticFaceDiagnosisWorkerLaunchCount = 0;
   automaticSupportClassificationWorkerLaunchCount = 0;
   paintBvhWorkerLaunchCount = 0;
+  surfaceWorkerLaunchCount = 0;
   surfaceCacheLookupMs = 0;
   surfaceClassificationRestoreMs = 0;
   supportClassificationComputeMs = 0;
   paintBvhBuildMs = 0;
+  activeSurfacePersistentCacheKeys = null;
   activeLegacySurfaceCacheKey = null;
   activeSurfaceCacheMissReport = null;
-  let lookup: Awaited<ReturnType<typeof readSurfacePersistentCache>>;
+  surfaceAnglePersistentCacheStatus = "idle";
+
+  const startFreshSurfaceWorker = (
+    reason: "miss" | "unavailable" | "error",
+    miss?: SurfaceCacheMissReport,
+  ): void => {
+    if (generation !== surfaceAngleGeneration) return;
+    if (reason === "unavailable" || reason === "error") {
+      activeSurfacePersistentCacheKeys = null;
+      activeSurfaceCacheMissReport = null;
+      activeLegacySurfaceCacheKey = null;
+    } else if (miss) {
+      activeSurfaceCacheMissReport = miss;
+    }
+    surfaceAnglePersistentCacheStatus = reason;
+    const cacheLabel = reason === "unavailable"
+      ? "永続cache unavailable · cacheを使わず再計算 · Surface Worker開始"
+      : reason === "error"
+        ? "永続cache error · cacheを使わず再計算 · Surface Worker開始"
+        : miss
+          ? `Surface mesh/面判定 cache miss · current mesh=${miss.currentMeshKey.slice(0, 24)}… · 保存mesh=${miss.nearestMeshKey?.slice(0, 24) ?? "なし"} · 差分=${miss.meshDifferences.map((item) => item.component).join(", ") || "保存済みkeyなし"} · Surface Worker開始`
+          : "永続cache miss · cacheを使わず再計算 · Surface Worker開始";
+    const worker = createSurfaceWorkerOnCacheMiss(null, () => {
+      surfaceGenerationWorkerLaunchCount++;
+      surfaceWorkerLaunchCount++;
+      automaticFaceDiagnosisWorkerLaunchCount++;
+      return new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
+    });
+    if (!worker) throw new Error("Surface cache route did not create a Worker");
+    activeSurfaceAngleWorker = worker;
+    heavy.update(
+      `${reason === "unavailable" ? "cache unavailable · " : reason === "error" ? "cache error · " : "cache miss · "}Surface Worker開始 · 起動回数 ${surfaceWorkerLaunchCount}`,
+      SURFACE_PROGRESS_WORKER_START,
+    );
+    heavy.smoothTo(SURFACE_PROGRESS_CLASSIFICATION - 1);
+    ui.setSurfaceAngleDiagnosisStatus(`${cacheLabel} · 起動回数 ${surfaceWorkerLaunchCount}`);
+    refreshSurfaceStartupStatus("Surface Worker");
+    if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
+    const progressLabel = reason === "unavailable"
+      ? "永続cache unavailable · cacheを使わず再計算 · Surface Worker実行中"
+      : reason === "error"
+        ? "永続cache error · cacheを使わず再計算 · Surface Worker実行中"
+        : "永続cache miss · Surface Worker実行中";
+    worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
+      const message = event.data;
+      if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration, message.generation)) {
+        worker.terminate();
+        return;
+      }
+      if (message.type === "progress") {
+        const sliceFraction = message.totalSlices > 0
+          ? Math.max(0, Math.min(1, message.completedSlices / message.totalSlices))
+          : 0;
+        const overallProgress = SURFACE_PROGRESS_WORKER_START
+          + sliceFraction * (SURFACE_PROGRESS_CLASSIFICATION - SURFACE_PROGRESS_WORKER_START);
+        heavy.update(
+          `${progressLabel} · ${message.completedSlices}/${message.totalSlices} slice · ${message.faceCount.toLocaleString()}面 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+          overallProgress,
+        );
+        ui.setSurfaceAngleDiagnosisStatus(`${progressLabel} · ${message.completedSlices}/${message.totalSlices} slice · ${message.faceCount.toLocaleString()}面 · ${(message.elapsedMs / 1000).toFixed(1)}秒 · 画面は操作できます`);
+        return;
+      }
+      activeSurfaceAngleWorker = null;
+      worker.terminate();
+      if (message.type === "error") {
+        ui.setSurfaceAngleDiagnosisRunning(false);
+        ui.setSurfaceAngleDiagnosisStatus(`診断できませんでした: ${message.message}`, false);
+        heavy.finish();
+        if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
+        return;
+      }
+      adoptResult(message);
+    };
+    worker.onerror = (event) => {
+      if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration)) {
+        worker.terminate();
+        return;
+      }
+      activeSurfaceAngleWorker = null;
+      worker.terminate();
+      ui.setSurfaceAngleDiagnosisRunning(false);
+      heavy.finish();
+      if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
+      ui.setSurfaceAngleDiagnosisStatus(`角度診断Workerに失敗しました: ${event.message}`, false);
+    };
+    worker.postMessage(request);
+  };
+
+  let lookup: Awaited<ReturnType<typeof readSurfacePersistentCache>> | null = null;
   const cacheLookupStarted = performance.now();
   refreshSurfaceStartupStatus("cache lookup");
-  try {
-    const cacheKeys = await buildSurfacePersistentCacheKeys(request, {
-      supportClassificationPolicyVersion: OVERHANG_SUPPORT_POLICY,
-      rayEpsilonVersion: SUPPORT_REACHABILITY_RAY_EPSILON_VERSION,
-    });
-    if (generation !== surfaceAngleGeneration) return;
-    activeSurfacePersistentCacheKeys = cacheKeys;
-    lookup = await readSurfacePersistentCache(cacheKeys, generation);
+  heavy.update("cache capability確認 · persistent cache lookup中…", SURFACE_PROGRESS_CACHE_LOOKUP);
+  heavy.smoothTo(SURFACE_PROGRESS_WORKER_START - 1, 15_000);
+  if (surfacePersistentCacheRoute(surfacePersistentCacheCapability) === "fresh-worker") {
     surfaceCacheLookupMs = performance.now() - cacheLookupStarted;
+    surfaceAnglePersistentCacheStatus = "unavailable";
+    console.info("[SKIN Surface cache] unavailable; starting fresh Worker", {
+      generation,
+      capability: surfacePersistentCacheCapability,
+    });
+    startFreshSurfaceWorker("unavailable");
+    return;
+  }
+  try {
+    const cacheResult = await runSurfacePersistentCacheIfAvailable(
+      surfacePersistentCacheCapability,
+      async () => {
+        const cacheKeys = await buildSurfacePersistentCacheKeys(request, {
+          supportClassificationPolicyVersion: OVERHANG_SUPPORT_POLICY,
+          rayEpsilonVersion: SUPPORT_REACHABILITY_RAY_EPSILON_VERSION,
+        });
+        if (generation !== surfaceAngleGeneration) return null;
+        const cacheLookup = await readSurfacePersistentCache(cacheKeys, generation);
+        return { cacheKeys, cacheLookup };
+      },
+    );
+    surfaceCacheLookupMs = performance.now() - cacheLookupStarted;
+    if (cacheResult === undefined || cacheResult === null) return;
     if (generation !== surfaceAngleGeneration) return;
+    activeSurfacePersistentCacheKeys = cacheResult.cacheKeys;
+    lookup = cacheResult.cacheLookup;
     activeSurfaceCacheMissReport = lookup.miss;
 
     if (!lookup.diagnosis && lookup.unclassifiedDiagnosis) {
@@ -6085,17 +6682,28 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
     }
 
     if (!lookup.diagnosis) {
-      const legacy = await readLegacySurfacePersistentCache(request, RUNNING_APP_COMMIT, generation);
+      const legacy = await runSurfacePersistentCacheIfAvailable(
+        surfacePersistentCacheCapability,
+        () => readLegacySurfacePersistentCache(request, RUNNING_APP_COMMIT, generation),
+      );
+      if (legacy === undefined) {
+        activeSurfacePersistentCacheKeys = null;
+        activeSurfaceCacheMissReport = null;
+        activeLegacySurfaceCacheKey = null;
+        surfaceAnglePersistentCacheStatus = "unavailable";
+        startFreshSurfaceWorker("unavailable");
+        return;
+      }
       if (generation !== surfaceAngleGeneration) return;
       if (legacy) {
         activeLegacySurfaceCacheKey = legacy.key;
         surfaceAnglePersistentCacheStatus = "migrated";
         console.info("[SKIN Surface cache] legacy v1 exact request migrated to stable two-layer keys", {
           legacyKey: legacy.key,
-          meshKey: cacheKeys.meshKey,
-          diagnosisKey: cacheKeys.diagnosisKey,
-          meshComponents: cacheKeys.meshComponents,
-          diagnosisComponents: cacheKeys.diagnosisComponents,
+          meshKey: cacheResult.cacheKeys.meshKey,
+          diagnosisKey: cacheResult.cacheKeys.diagnosisKey,
+          meshComponents: cacheResult.cacheKeys.meshComponents,
+          diagnosisComponents: cacheResult.cacheKeys.diagnosisComponents,
           surfaceGenerationWorkerLaunchCount,
           automaticFaceDiagnosisWorkerLaunchCount,
         });
@@ -6105,11 +6713,15 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
     }
   } catch (error) {
     surfaceAnglePersistentCacheStatus = "error";
-    ui.setSurfaceAngleDiagnosisRunning(false);
-    ui.setSurfaceAngleDiagnosisStatus(`永続Surface cacheを確認できないためWorkerを起動しません: ${error instanceof Error ? error.message : String(error)}`, false);
+    activeSurfacePersistentCacheKeys = null;
+    activeSurfaceCacheMissReport = null;
+    activeLegacySurfaceCacheKey = null;
+    console.warn("[SKIN Surface cache] key or lookup failed; starting fresh Worker", error);
+    startFreshSurfaceWorker("error");
     return;
   }
 
+  if (!lookup) return;
   if (lookup.diagnosis) {
     surfaceAnglePersistentCacheStatus = "hit";
     console.info("[SKIN Surface cache] diagnosis hit; both Worker launches forbidden", {
@@ -6136,10 +6748,13 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
     const bounds = computeSkinSamplingBounds(state.host, state.hostParams.k, state.skinParams.thickness, reinforced.patches);
     const meshStep = bounds.longest > 0 ? bounds.longest / mesh.resolution : 1 / mesh.resolution;
     const worker = createSurfaceWorkerOnCacheMiss(null, () => {
+      surfaceWorkerLaunchCount++;
       automaticFaceDiagnosisWorkerLaunchCount++;
       return new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
     })!;
     activeSurfaceAngleWorker = worker;
+    heavy.update("Surface mesh cache hit · 面判定Workerを実行中…", 55);
+    heavy.smoothTo(SURFACE_PROGRESS_CLASSIFICATION - 1);
     ui.setSurfaceAngleDiagnosisStatus(
       `Surface mesh cache hit · 面判定key miss · current=${miss.currentDiagnosisKey.slice(0, 28)}… · 差分=${miss.diagnosisDifferences.map((item) => item.component).join(", ") || "保存済みkeyなし"}`,
     );
@@ -6152,64 +6767,37 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
     };
     worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
       const message = event.data;
-      if (message.generation !== surfaceAngleGeneration || worker !== activeSurfaceAngleWorker) { worker.terminate(); return; }
+      if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration, message.generation)) {
+        worker.terminate();
+        return;
+      }
       if (message.type === "progress") return;
       activeSurfaceAngleWorker = null; worker.terminate();
       if (message.type === "error") {
         ui.setSurfaceAngleDiagnosisRunning(false);
         ui.setSurfaceAngleDiagnosisStatus(`面判定cache missの再診断に失敗しました: ${message.message}`, false);
+        heavy.finish();
+        if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
         return;
       }
       adoptResult(message);
     };
     worker.onerror = (event) => {
-      if (worker === activeSurfaceAngleWorker) activeSurfaceAngleWorker = null;
+      if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration)) {
+        worker.terminate();
+        return;
+      }
+      activeSurfaceAngleWorker = null;
       worker.terminate(); ui.setSurfaceAngleDiagnosisRunning(false);
+      heavy.finish();
+      if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
       ui.setSurfaceAngleDiagnosisStatus(`面判定Workerに失敗しました: ${event.message}`, false);
     };
     worker.postMessage(recheck, [recheck.basePositions.buffer, recheck.baseNormals.buffer]);
     return;
   }
 
-  surfaceAnglePersistentCacheStatus = "miss";
-  ui.setSurfaceAngleDiagnosisStatus(
-    `Surface mesh/面判定 cache miss · current mesh=${miss.currentMeshKey.slice(0, 24)}… · 保存mesh=${miss.nearestMeshKey?.slice(0, 24) ?? "なし"} · 差分=${miss.meshDifferences.map((item) => item.component).join(", ") || "保存済みkeyなし"}`,
-  );
-  const worker = createSurfaceWorkerOnCacheMiss(null, () => {
-    surfaceGenerationWorkerLaunchCount++;
-    automaticFaceDiagnosisWorkerLaunchCount++;
-    return new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
-  });
-  if (!worker) throw new Error("Surface cache miss did not create a Worker");
-  activeSurfaceAngleWorker = worker;
-  if (showMotifLowestPoints) refreshMotifLowestPointMarkers();
-  worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
-    const message = event.data;
-    if (message.generation !== surfaceAngleGeneration || worker !== activeSurfaceAngleWorker) {
-      worker.terminate();
-      return;
-    }
-    if (message.type === "progress") {
-      ui.setSurfaceAngleDiagnosisStatus(`永続cache miss · 最終mesh ${message.completedSlices}/${message.totalSlices} slice · ${message.faceCount.toLocaleString()}面 · ${(message.elapsedMs / 1000).toFixed(1)}秒 · 画面は操作できます`);
-      return;
-    }
-    activeSurfaceAngleWorker = null;
-    worker.terminate();
-    ui.setSurfaceAngleDiagnosisRunning(false);
-    if (message.type === "error") {
-      ui.setSurfaceAngleDiagnosisStatus(`診断できませんでした: ${message.message}`, false);
-      return;
-    }
-    adoptResult(message);
-  };
-  worker.onerror = (event) => {
-    if (worker !== activeSurfaceAngleWorker) return;
-    activeSurfaceAngleWorker = null;
-    worker.terminate();
-    ui.setSurfaceAngleDiagnosisRunning(false);
-    ui.setSurfaceAngleDiagnosisStatus(`角度診断Workerに失敗しました: ${event.message}`, false);
-  };
-  worker.postMessage(request);
+  startFreshSurfaceWorker("miss", miss);
 }
 
 async function checkCurrentPrint(options: MeshUiOptions): Promise<void> {
@@ -6384,6 +6972,8 @@ function cancelPreviewMeshBuild(showStatus = false): void {
     activePreviewMeshWorker = null;
   }
   clearPreviewMeshStatusTimer();
+  previewMeshHeavyComputation?.finish();
+  previewMeshHeavyComputation = null;
   if (showStatus) ui.setMeshPreviewStatus("軽量メッシュ生成を中止しました");
 }
 
@@ -6431,12 +7021,25 @@ function startPreviewMeshStage(resolution: number, finalResolution: number, targ
   const started = performance.now();
   const stageLabel = refining ? `形状に近い高精度メッシュへ${request.workerCount}並列で更新中` : `操作用の粗いメッシュを${request.workerCount}並列で準備中`;
   ui.setMeshPreviewStatus(`${stageLabel} · 解像度${resolution}`, true);
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (previewMeshHeavyComputation?.id !== heavy.id) return;
+    cancelPreviewMeshBuild(true);
+  };
+  heavy = previewMeshHeavyComputation ?? beginHeavyComputation("Preview mesh 全体進捗", cancel);
+  if (!previewMeshHeavyComputation) {
+    previewMeshHeavyComputation = heavy;
+    heavy.update(`${stageLabel} · 解像度${resolution}`, 0);
+  } else {
+    heavy.update(`${stageLabel} · 解像度${resolution}`);
+  }
+  heavy.smoothTo(99);
   previewMeshStatusTimer = window.setInterval(() => {
     ui.setMeshPreviewStatus(`${stageLabel} · ${(performance.now() - started) / 1000 | 0}秒 · 画面は操作できます`, true);
   }, 500);
   worker.onmessage = (event: MessageEvent<PreviewMeshWorkerMessage>) => {
     const message = event.data;
-    if (message.requestId !== request.requestId || message.generation !== previewMeshGeneration || worker !== activePreviewMeshWorker) {
+    if (!isCurrentWorkerRun(worker, activePreviewMeshWorker, request.requestId, message.requestId, request.generation, previewMeshGeneration, message.generation)) {
       worker.terminate();
       return;
     }
@@ -6444,6 +7047,8 @@ function startPreviewMeshStage(resolution: number, finalResolution: number, targ
     clearPreviewMeshStatusTimer();
     worker.terminate();
     if (message.type === "error") {
+      heavy.finish();
+      if (previewMeshHeavyComputation?.id === heavy.id) previewMeshHeavyComputation = null;
       ui.setMeshPreviewStatus(refining
         ? `粗いメッシュを表示中 / 高精度化できませんでした: ${message.message}`
         : `メッシュを作れませんでした: ${message.message}`);
@@ -6459,25 +7064,38 @@ function startPreviewMeshStage(resolution: number, finalResolution: number, targ
     };
     installPreviewMesh(previewMeshCache);
     if (message.resolution < finalResolution) {
+      heavy.update(
+        `粗いメッシュ完了 · ${message.faceCount.toLocaleString()}面 · 続けて解像度${finalResolution}へ高精度化`,
+        45,
+      );
+      heavy.smoothTo(99);
       ui.setMeshPreviewStatus(
         `粗表示 ${message.faceCount.toLocaleString()}面 · 続けて解像度${finalResolution}へ高精度化します`, true,
       );
       window.setTimeout(() => {
-        if (viewMode === "mesh" && message.generation === previewMeshGeneration && !activePreviewMeshWorker) {
+        if (viewMode === "mesh" && message.generation === previewMeshGeneration && !activePreviewMeshWorker && previewMeshHeavyComputation?.id === heavy.id) {
           startPreviewMeshStage(finalResolution, finalResolution, targetLongestMm);
         }
       }, 0);
       return;
     }
+    heavy.update("Preview mesh完了", 100);
+    heavy.finish();
+    if (previewMeshHeavyComputation?.id === heavy.id) previewMeshHeavyComputation = null;
     ui.setMeshPreviewStatus(
       `高精度メッシュ ${message.faceCount.toLocaleString()}面 · 解像度${message.resolution} · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
     );
   };
   worker.onerror = (event) => {
-    if (worker !== activePreviewMeshWorker) return;
+    if (!isCurrentWorkerRun(worker, activePreviewMeshWorker, null, undefined, request.generation, previewMeshGeneration)) {
+      worker.terminate();
+      return;
+    }
     activePreviewMeshWorker = null;
     clearPreviewMeshStatusTimer();
     worker.terminate();
+    heavy.finish();
+    if (previewMeshHeavyComputation?.id === heavy.id) previewMeshHeavyComputation = null;
     ui.setMeshPreviewStatus(refining
       ? `粗いメッシュを表示中 / 高精度Workerに失敗しました: ${event.message}`
       : `メッシュWorkerに失敗しました: ${event.message}`);
@@ -6910,6 +7528,20 @@ function updateEmptyViewportHint(): void {
     legacyMigratedFromKey: activeLegacySurfaceCacheKey,
     miss: activeSurfaceCacheMissReport,
     status: surfaceAnglePersistentCacheStatus,
+    cacheStatus: surfaceAnglePersistentCacheStatus,
+    capability: {
+      origin: surfacePersistentCacheCapability.origin,
+      isSecureContext: surfacePersistentCacheCapability.isSecureContext,
+      crypto: surfacePersistentCacheCapability.cryptoAvailable,
+      subtle: surfacePersistentCacheCapability.subtleAvailable,
+      digest: surfacePersistentCacheCapability.digestAvailable,
+      indexedDB: surfacePersistentCacheCapability.indexedDBAvailable,
+      Worker: surfacePersistentCacheCapability.workerAvailable,
+      hardwareConcurrency: surfacePersistentCacheCapability.hardwareConcurrency,
+      cacheAvailable: surfacePersistentCacheCapability.cacheAvailable,
+      unavailableReasons: [...surfacePersistentCacheCapability.unavailableReasons],
+    },
+    workerLaunchCount: surfaceWorkerLaunchCount,
     surfaceGenerationWorkerLaunchCount,
     automaticFaceDiagnosisWorkerLaunchCount,
     automaticSupportClassificationWorkerLaunchCount,

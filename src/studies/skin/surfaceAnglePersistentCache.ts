@@ -15,6 +15,107 @@ export const SURFACE_MESH_CACHE_SCHEMA = "katachi.skin.surface-mesh-cache.v2";
 export const SURFACE_DIAGNOSIS_CACHE_SCHEMA = "katachi.skin.surface-diagnosis-cache.v2";
 export const SURFACE_GENERATION_ALGORITHM_VERSION = "support-free-skin-surface-parallel-v1";
 
+/**
+ * Runtime values used only for capability inspection. Keeping this seam as a
+ * plain object lets tests model Windows/LAN failures without replacing the
+ * process-global Web Crypto or IndexedDB objects.
+ */
+export interface SurfacePersistentCacheRuntime {
+  crypto?: unknown;
+  indexedDB?: unknown;
+  isSecureContext?: unknown;
+  location?: { origin?: unknown };
+  Worker?: unknown;
+  navigator?: { hardwareConcurrency?: unknown };
+}
+
+export interface SurfacePersistentCacheCapability {
+  origin: string | null;
+  isSecureContext: boolean | null;
+  cryptoAvailable: boolean;
+  subtleAvailable: boolean;
+  digestAvailable: boolean;
+  indexedDBAvailable: boolean;
+  workerAvailable: boolean;
+  hardwareConcurrency: number | null;
+  cacheAvailable: boolean;
+  unavailableReasons: string[];
+}
+
+export function detectSurfacePersistentCacheCapability(
+  runtime: SurfacePersistentCacheRuntime = globalThis as unknown as SurfacePersistentCacheRuntime,
+): SurfacePersistentCacheCapability {
+  let cryptoValue: unknown = undefined;
+  let subtleValue: unknown = undefined;
+  let digestValue: unknown = undefined;
+  try {
+    cryptoValue = runtime.crypto;
+    subtleValue = cryptoValue && (typeof cryptoValue === "object" || typeof cryptoValue === "function")
+      ? (cryptoValue as { subtle?: unknown }).subtle
+      : undefined;
+    digestValue = subtleValue && (typeof subtleValue === "object" || typeof subtleValue === "function")
+      ? (subtleValue as { digest?: unknown }).digest
+      : undefined;
+  } catch {
+    cryptoValue = undefined;
+    subtleValue = undefined;
+    digestValue = undefined;
+  }
+  let origin: string | null = null;
+  try {
+    origin = typeof runtime.location?.origin === "string" ? runtime.location.origin : null;
+  } catch {
+    origin = null;
+  }
+  const isSecureContext = typeof runtime.isSecureContext === "boolean" ? runtime.isSecureContext : null;
+  const cryptoAvailable = Boolean(cryptoValue && (typeof cryptoValue === "object" || typeof cryptoValue === "function"));
+  const subtleAvailable = Boolean(subtleValue && (typeof subtleValue === "object" || typeof subtleValue === "function"));
+  const digestAvailable = typeof digestValue === "function";
+  const indexedDBAvailable = runtime.indexedDB !== undefined && runtime.indexedDB !== null;
+  const workerAvailable = typeof runtime.Worker === "function";
+  const hardwareConcurrency = typeof runtime.navigator?.hardwareConcurrency === "number"
+    && Number.isFinite(runtime.navigator.hardwareConcurrency)
+    && runtime.navigator.hardwareConcurrency > 0
+    ? Math.floor(runtime.navigator.hardwareConcurrency)
+    : null;
+  const unavailableReasons: string[] = [];
+  if (!cryptoAvailable) unavailableReasons.push("crypto");
+  if (!subtleAvailable) unavailableReasons.push("crypto.subtle");
+  if (!digestAvailable) unavailableReasons.push("crypto.subtle.digest");
+  if (!indexedDBAvailable) unavailableReasons.push("indexedDB");
+  return {
+    origin,
+    isSecureContext,
+    cryptoAvailable,
+    subtleAvailable,
+    digestAvailable,
+    indexedDBAvailable,
+    workerAvailable,
+    hardwareConcurrency,
+    cacheAvailable: cryptoAvailable && subtleAvailable && digestAvailable && indexedDBAvailable,
+    unavailableReasons,
+  };
+}
+
+export type SurfacePersistentCacheRoute = "persistent-cache" | "fresh-worker";
+
+export function surfacePersistentCacheRoute(
+  capability: SurfacePersistentCacheCapability,
+): SurfacePersistentCacheRoute {
+  return capability.cacheAvailable ? "persistent-cache" : "fresh-worker";
+}
+
+/** Runs cache work only after the complete capability gate has passed. */
+export async function runSurfacePersistentCacheIfAvailable<T>(
+  capability: SurfacePersistentCacheCapability,
+  operation: () => Promise<T>,
+): Promise<T | undefined> {
+  if (!capability.cacheAvailable) return undefined;
+  return operation();
+}
+
+export type SurfaceCacheSha256 = (data: ArrayBuffer | string) => Promise<string>;
+
 export type SurfaceAngleResult = Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
 export interface SurfaceDiagnosisCacheValue {
   result: SurfaceAngleResult;
@@ -176,20 +277,22 @@ function canonicalShapeInput(request: SurfaceAngleDiagnosisBuildRequest): unknow
 
 export async function buildStableSurfaceShapeFingerprint(
   request: SurfaceAngleDiagnosisBuildRequest,
+  sha256: SurfaceCacheSha256 = sha256Hex,
 ): Promise<string> {
-  return "shape:" + await sha256Hex(JSON.stringify(canonicalShapeInput(request)));
+  return "shape:" + await sha256(JSON.stringify(canonicalShapeInput(request)));
 }
 
 export async function buildSurfacePersistentCacheKeys(
   request: SurfaceAngleDiagnosisBuildRequest,
   versions: { supportClassificationPolicyVersion: string; rayEpsilonVersion: string },
+  sha256: SurfaceCacheSha256 = sha256Hex,
 ): Promise<SurfacePersistentCacheKeys> {
   const meshComponents: SurfaceMeshKeyComponents = {
-    stableShapeFingerprint: await buildStableSurfaceShapeFingerprint(request),
+    stableShapeFingerprint: await buildStableSurfaceShapeFingerprint(request, sha256),
     resolution: request.resolution,
     surfaceGenerationAlgorithmVersion: SURFACE_GENERATION_ALGORITHM_VERSION,
   };
-  const meshKey = "surface-mesh:" + await sha256Hex(JSON.stringify({ schema: SURFACE_MESH_CACHE_SCHEMA, ...meshComponents }));
+  const meshKey = "surface-mesh:" + await sha256(JSON.stringify({ schema: SURFACE_MESH_CACHE_SCHEMA, ...meshComponents }));
   const diagnosisComponents: SurfaceDiagnosisKeyComponents = {
     surfaceMeshKey: meshKey,
     targetLongestMm: request.targetLongestMm,
@@ -197,7 +300,7 @@ export async function buildSurfacePersistentCacheKeys(
     supportClassificationPolicyVersion: versions.supportClassificationPolicyVersion,
     rayEpsilonVersion: versions.rayEpsilonVersion,
   };
-  const diagnosisKey = "surface-diagnosis:" + await sha256Hex(JSON.stringify({ schema: SURFACE_DIAGNOSIS_CACHE_SCHEMA, ...diagnosisComponents }));
+  const diagnosisKey = "surface-diagnosis:" + await sha256(JSON.stringify({ schema: SURFACE_DIAGNOSIS_CACHE_SCHEMA, ...diagnosisComponents }));
   return { meshKey, diagnosisKey, meshComponents, diagnosisComponents };
 }
 
@@ -317,7 +420,11 @@ export async function writeSurfacePersistentCache(
   }
 }
 
-async function legacyKey(request: SurfaceAngleDiagnosisBuildRequest, generatorCommit: string): Promise<string> {
+async function legacyKey(
+  request: SurfaceAngleDiagnosisBuildRequest,
+  generatorCommit: string,
+  sha256: SurfaceCacheSha256,
+): Promise<string> {
   const canonical = JSON.stringify({
     schema: LEGACY_SCHEMA, generatorCommit,
     host: request.host, hostK: request.hostK, thickness: request.thickness, patches: request.patches,
@@ -326,7 +433,7 @@ async function legacyKey(request: SurfaceAngleDiagnosisBuildRequest, generatorCo
     mode: request.mode, thresholdDeg: request.thresholdDeg, resolution: request.resolution,
     targetLongestMm: request.targetLongestMm,
   });
-  return "surface-angle:" + await sha256Hex(canonical);
+  return "surface-angle:" + await sha256(canonical);
 }
 
 /** Reads only exact v1 request matches (with current graph or support-free null graph).
@@ -335,9 +442,10 @@ export async function readLegacySurfacePersistentCache(
   request: SurfaceAngleDiagnosisBuildRequest,
   generatorCommit: string,
   generation: number,
+  sha256: SurfaceCacheSha256 = sha256Hex,
 ): Promise<{ key: string; result: SurfaceAngleResult } | null> {
   const candidates = [request, { ...request, internalGraph: null }];
-  const keys = [...new Set(await Promise.all(candidates.map((candidate) => legacyKey(candidate, generatorCommit))))];
+  const keys = [...new Set(await Promise.all(candidates.map((candidate) => legacyKey(candidate, generatorCommit, sha256))))];
   const database = await openDatabase();
   try {
     const transaction = database.transaction(LEGACY_STORE_NAME, "readonly");

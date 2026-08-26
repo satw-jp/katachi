@@ -1,5 +1,20 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## 作者確認 — Task 03F Windows復旧・共通進捗（2026-08-26）
+
+作者原文:
+
+> 確認した
+
+確認対象:
+
+- ページと既存形状が表示される
+- cache unavailableでもSurface Workerが1回起動する
+- 下部右側に進捗が表示され、cancelできる
+- 右ペイン「作品内部の構造」入口へ到達できる
+
+これは印刷承認、Internal Structure承認、Surface完走承認ではない。`printApproval=false`を維持する。
+
 ## Observation — Task 01 workflow shell (2026-08-26)
 
 Task 01 adds an editor-only author workflow shell: a PROJECT bar, the existing 3D viewport, a right-side A/B/C rail for workflow steps 1–10, and a lower current/generation/stale-result review shelf. Existing controls remain reachable in the Properties pane. `.fkei` Open/Save, project Export, and Combined artwork diagnosis / Support Paint 2 are visible disabled placeholders. This shell does not add file-format state, a new history model, export/print output, Dry Web routing, or Paint 2 state. Author visual confirmation is pending; no commit or deploy.

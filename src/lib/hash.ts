@@ -33,7 +33,12 @@
  */
 export async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data;
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const cryptoObject = globalThis.crypto;
+  const subtle = cryptoObject?.subtle;
+  if (!subtle || typeof subtle.digest !== "function") {
+    throw new Error("SHA-256 requires WebCrypto crypto.subtle.digest");
+  }
+  const digest = await subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

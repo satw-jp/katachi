@@ -97,6 +97,7 @@ export interface UiCallbacks {
   onSetInternalObservationMode: (mode: InternalObservationMode) => void;
   onViewportClippingAction: (action: ViewportClippingAction) => void;
   onDiagnoseSurfaceAngles: (thresholdDeg: number) => void;
+  onShowSurfaceDiagnostics: () => string;
   onSetSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView) => void;
   onSurfaceAngleThresholdChange: () => void;
   onToggleOverhangSupportSites: (show: boolean) => void;
@@ -1563,6 +1564,20 @@ export function buildUi(
   surfaceStartupStatus.className = "mesh-status surface-startup-status";
   surfaceStartupStatus.textContent = "起動実測: 待機中";
   surfaceStartupStatus.setAttribute("aria-live", "polite");
+  const surfaceDiagnosticsActions = document.createElement("div");
+  surfaceDiagnosticsActions.className = "row surface-angle-diagnostics-actions";
+  const surfaceDiagnosticsButton = document.createElement("button");
+  surfaceDiagnosticsButton.type = "button";
+  surfaceDiagnosticsButton.textContent = "Windows確認情報を表示";
+  const surfaceDiagnosticsOutput = document.createElement("pre");
+  surfaceDiagnosticsOutput.className = "surface-angle-diagnostics-output";
+  surfaceDiagnosticsOutput.hidden = true;
+  surfaceDiagnosticsButton.onclick = () => {
+    surfaceDiagnosticsOutput.textContent = callbacks.onShowSurfaceDiagnostics();
+    surfaceDiagnosticsOutput.hidden = false;
+    surfaceDiagnosticsButton.textContent = "Windows確認情報を更新";
+  };
+  surfaceDiagnosticsActions.appendChild(surfaceDiagnosticsButton);
   const supportSiteToggle = document.createElement("label");
   supportSiteToggle.className = "support-site-toggle";
   const supportSiteCheckbox = document.createElement("input");
@@ -1717,6 +1732,8 @@ export function buildUi(
     surfaceAngleActions,
     surfaceAngleStatus,
     surfaceStartupStatus,
+    surfaceDiagnosticsActions,
+    surfaceDiagnosticsOutput,
     supportPaintPanel,
     surfaceAngleLimit,
   );

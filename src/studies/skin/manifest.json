@@ -82,6 +82,10 @@
   "revisits": [
     {
       "date": "2026-08-26",
+      "note": "Task 03F author confirmation, verbatim: 「確認した」. The author confirmed that the page and existing shape display, cache-unavailable recovery launches exactly one fresh Surface Worker, the lower-right common progress is visible and cancellable, and the right-pane 「作品内部の構造」 entry is reachable. This does not extend to print approval, Internal Structure approval or Surface completion approval; printApproval=false remains in force."
+    },
+    {
+      "date": "2026-08-26",
       "note": "Task 02B moves the existing history export/import nodes into the PROJECT bar, keeps the selected filename visible after input reset, and groups the existing Frozen split, legacy A/B split and 空隙マップ（詳細） nodes in a final 「凍結中の実験」 Properties section. IDs, callbacks, state, history/JSON behavior and generation behavior are unchanged. Local browser checks at 1280×720 and 760×720 found no history I/O in the right pane, ten A/B/C workflow labels, no PROJECT overflow, a hit-testable pane collapse control and zero obsolete-sentence matches. Build and diff checks passed; import, generation, gap calculation, high-resolution work and downloads were not run. Author visual confirmation is pending; no deploy or commit."
     },
     {

@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "node:test";
 import {
   buildSurfacePersistentCacheKeys,
   compareSurfaceCacheComponents,
   createSurfaceWorkerOnCacheMiss,
   createAutomaticSupportClassificationWorkerOnCacheMiss,
+  detectSurfacePersistentCacheCapability,
+  runSurfacePersistentCacheIfAvailable,
+  surfacePersistentCacheRoute,
   type SurfaceAngleResult,
 } from "./surfaceAnglePersistentCache.ts";
 import { OVERHANG_SUPPORT_POLICY } from "./overhangSupportPolicy.ts";
@@ -35,12 +38,98 @@ function cachedResult(): SurfaceAngleResult {
 function buildRequest(): SurfaceAngleDiagnosisBuildRequest {
   return {
     type: "build", generation: 1,
-    host: [{ x: 0, y: 0, z: 0, r: 1 }], hostK: 0.2, thickness: 0.1, patches: [],
+    host: [{ id: 0, x: 0, y: 0, z: 0, r: 1 }], hostK: 0.2, thickness: 0.1, patches: [],
     internalGraph: null, roundK: 0.1, coinBulge: 0, coinBulgeBalance: 0,
     quadMeshJoinWidth: 0.1, mode: "plate", thresholdDeg: 45, resolution: 48,
     targetLongestMm: 119.5, workerCount: 1,
   };
 }
+
+function availableRuntime() {
+  return {
+    crypto: { subtle: { digest: () => Promise.resolve(new ArrayBuffer(32)) } },
+    indexedDB: {},
+    isSecureContext: false,
+    location: { origin: "http://192.168.0.20:5173" },
+    Worker: function Worker() {},
+    navigator: { hardwareConcurrency: 8 },
+  };
+}
+
+test("capability seam reports LAN diagnostics without treating secure context as the cache gate", () => {
+  const capability = detectSurfacePersistentCacheCapability(availableRuntime());
+  assert.equal(capability.origin, "http://192.168.0.20:5173");
+  assert.equal(capability.isSecureContext, false);
+  assert.equal(capability.cryptoAvailable, true);
+  assert.equal(capability.subtleAvailable, true);
+  assert.equal(capability.digestAvailable, true);
+  assert.equal(capability.indexedDBAvailable, true);
+  assert.equal(capability.workerAvailable, true);
+  assert.equal(capability.hardwareConcurrency, 8);
+  assert.equal(capability.cacheAvailable, true);
+  assert.equal(surfacePersistentCacheRoute(capability), "persistent-cache");
+});
+
+test("missing crypto.subtle.digest is unavailable and never becomes a weak hash route", () => {
+  const capability = detectSurfacePersistentCacheCapability({
+    ...availableRuntime(), crypto: { subtle: { digest: undefined } },
+  });
+  assert.equal(capability.cryptoAvailable, true);
+  assert.equal(capability.subtleAvailable, true);
+  assert.equal(capability.digestAvailable, false);
+  assert.equal(capability.cacheAvailable, false);
+  assert.equal(surfacePersistentCacheRoute(capability), "fresh-worker");
+  assert.ok(capability.unavailableReasons.includes("crypto.subtle.digest"));
+});
+
+test("missing IndexedDB is unavailable even when WebCrypto is complete", () => {
+  const capability = detectSurfacePersistentCacheCapability({
+    ...availableRuntime(), indexedDB: undefined,
+  });
+  assert.equal(capability.digestAvailable, true);
+  assert.equal(capability.indexedDBAvailable, false);
+  assert.equal(capability.cacheAvailable, false);
+  assert.ok(capability.unavailableReasons.includes("indexedDB"));
+});
+
+test("unavailable cache gate skips read/write/migration work", async () => {
+  const capability = detectSurfacePersistentCacheCapability({
+    ...availableRuntime(), crypto: undefined,
+  });
+  let cacheCalls = 0;
+  const result = await runSurfacePersistentCacheIfAvailable(capability, async () => {
+    cacheCalls++;
+    return "cache-result";
+  });
+  assert.equal(result, undefined);
+  assert.equal(cacheCalls, 0);
+});
+
+test("cache key generation remains fail-closed when the injected SHA-256 seam fails", async () => {
+  let errorMessage = "";
+  try {
+    await buildSurfacePersistentCacheKeys(buildRequest(), versions, async () => {
+      throw new Error("digest unavailable");
+    });
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : String(error);
+  }
+  assert.equal(errorMessage, "digest unavailable");
+});
+
+test("unavailable route still permits exactly one fresh Surface Worker", () => {
+  const capability = detectSurfacePersistentCacheCapability({
+    ...availableRuntime(), indexedDB: null,
+  });
+  assert.equal(surfacePersistentCacheRoute(capability), "fresh-worker");
+  let launches = 0;
+  const worker = createSurfaceWorkerOnCacheMiss(null, () => {
+    launches++;
+    return { terminate() {} };
+  });
+  assert.ok(worker);
+  assert.equal(launches, 1);
+});
 
 test("cache hit forbids Worker construction", () => {
   let launches = 0;
