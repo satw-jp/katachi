@@ -15,6 +15,36 @@
 
 これは印刷承認、Internal Structure承認、Surface完走承認ではない。`printApproval=false`を維持する。
 
+## Observation — Task 04A Internal Structure操作入口（2026-08-26）
+
+工程7を作者向けの「7. 作品内部の構造」パネルへ整理した。直下に、印刷後も残る作品部分であり、
+印刷後に外すサポートではないことを明記し、既存の`none` / `targetedGrid` / `voronoiEdge`を
+「なし」 / 「Dry Web」 / 「Voronoi Edge」として表示する。Voronoi Edgeでは既存の「点の数」・
+「線の太さ」・「配置の揺らぎ」、Dry Webでは既存の「追加する補強線の本数」・「線の太さ」だけを
+工程7内に表示する。値、範囲、刻み、callback、形状履歴、Seed、recipe、preview、Undo/Redo、
+書き出し契約は変更していない。内部だけの確認は左ペインのSKIN非表示で行う案内を置いた。
+工程7カードはこの見出しを含むパネル先頭へ移動する。未実装のCombined artwork diagnosis / Support
+Paint 2だけをdisabledのままとする。
+
+これは操作入口の整理だけであり、作者はまだInternal Structureを選択・生成・承認していない。
+作者確認待ちで、形状データ、保存データ、生成、出力、高精度処理は行っていない。`printApproval=false`。
+
+## Observation — Task 04A correction WORKFLOW折りたたみ（2026-08-26）
+
+右ペイン上部の既存WORKFLOW map（A/B/Cと工程1〜10）に、表示だけを一行へ折りたたむ見出しボタンを
+追加した。折りたたみ後もPropertiesと既存工程ターゲットはそのままで、再展開して工程7の
+「作品内部の構造」へ到達できる。`aria-expanded` / `aria-controls`を付け、初期状態は既存互換の展開とした。
+折りたたみ状態は保存せず、Shape Recipe、history、Support Paint draft、Print Profile、cache、ledger、
+形状データ、出力には入れていない。作者はまだ工程7の形状を選択・生成・承認しておらず、`printApproval=false`。
+
+## 作者確認 — Task 04A（2026-08-26）
+
+作者原文:
+
+> 全部OK
+
+確認範囲は、WORKFLOW mapの一行折りたたみ、折りたたみ後のProperties残存、再展開、工程7「作品内部の構造」への到達、およびTask 04Aの既存Internal Structure操作入口UIまで。これはUI導線の確認であり、形状の良し悪し、Internal Structure形状、印刷、高精度生成、Surface完走、出力の承認ではない。`printApproval=false`を維持する。
+
 ## Observation — Task 01 workflow shell (2026-08-26)
 
 Task 01 adds an editor-only author workflow shell: a PROJECT bar, the existing 3D viewport, a right-side A/B/C rail for workflow steps 1–10, and a lower current/generation/stale-result review shelf. Existing controls remain reachable in the Properties pane. `.fkei` Open/Save, project Export, and Combined artwork diagnosis / Support Paint 2 are visible disabled placeholders. This shell does not add file-format state, a new history model, export/print output, Dry Web routing, or Paint 2 state. Author visual confirmation is pending; no commit or deploy.

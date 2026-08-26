@@ -1261,6 +1261,13 @@ details.mesh-export:not([open]) > :not(summary) {
 
 
 /* SKIN v0.49 — Internal Structure remains a separate layer below Surface. */
+.internal-structure-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-margin-top: 8px;
+}
+
 .internal-structure-title {
   margin-top: 8px;
   padding-top: 14px;
@@ -1294,6 +1301,12 @@ details.mesh-export:not([open]) > :not(summary) {
 
 .internal-structure-status[data-ok="false"] {
   color: var(--danger, #a33);
+}
+
+.internal-structure-purpose,
+.internal-observation-redirect,
+.internal-history-hint {
+  line-height: 1.45;
 }
 
 
@@ -1942,14 +1955,53 @@ details.mesh-export:not([open]) > :not(summary) {
 }
 
 .skin-workflow-shell-heading {
-  padding-bottom: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 18px;
+  margin: 0;
+  padding: 0 1px 4px;
+  border: 0;
+  background: transparent;
   color: var(--muted);
+  font: inherit;
   letter-spacing: .08em;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.skin-workflow-shell-heading:hover {
+  color: var(--ink);
+}
+
+.skin-workflow-shell-heading:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .skin-workflow-shell-heading strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   color: var(--ink);
   font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skin-workflow-shell.is-collapsed {
+  flex: 0 0 28px;
+  height: 28px;
+  max-height: 28px;
+  overflow: hidden;
+}
+
+.skin-workflow-shell.is-collapsed .skin-workflow-shell-heading {
+  padding-bottom: 0;
+}
+
+.skin-workflow-map[hidden] {
+  display: none;
 }
 
 .skin-workflow-shell-heading span,

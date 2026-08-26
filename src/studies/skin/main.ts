@@ -336,10 +336,33 @@ function buildWorkflowShell(): HTMLElement {
   const shell = document.createElement("section");
   shell.className = "skin-workflow-shell";
   shell.setAttribute("aria-label", "SKIN author workflow");
-  const heading = document.createElement("div");
+  const heading = document.createElement("button");
+  heading.type = "button";
   heading.className = "skin-workflow-shell-heading";
-  heading.innerHTML = "<strong>AUTHOR WORKFLOW</strong><span>workflow map / available surface</span>";
-  shell.appendChild(heading);
+  heading.id = "skin-workflow-heading";
+  heading.setAttribute("aria-controls", "skin-workflow-map");
+  const headingLabel = document.createElement("strong");
+  heading.appendChild(headingLabel);
+  const workflowMap = document.createElement("div");
+  workflowMap.id = "skin-workflow-map";
+  workflowMap.className = "skin-workflow-map";
+  workflowMap.setAttribute("aria-labelledby", heading.id);
+  shell.append(heading, workflowMap);
+
+  let workflowExpanded = true;
+  const renderWorkflowState = (): void => {
+    headingLabel.textContent = `WORKFLOW ${workflowExpanded ? "▾" : "▸"}`;
+    heading.setAttribute("aria-expanded", String(workflowExpanded));
+    heading.setAttribute("aria-label", workflowExpanded ? "WORKFLOWを折りたたむ" : "WORKFLOWを展開する");
+    workflowMap.hidden = !workflowExpanded;
+    workflowMap.setAttribute("aria-hidden", String(!workflowExpanded));
+    shell.classList.toggle("is-collapsed", !workflowExpanded);
+  };
+  heading.addEventListener("click", () => {
+    workflowExpanded = !workflowExpanded;
+    renderWorkflowState();
+  });
+  renderWorkflowState();
 
   const stages: Array<{
     key: "surface" | "internal" | "print";
@@ -365,7 +388,7 @@ function buildWorkflowShell(): HTMLElement {
       note: "作品として残る内部構造",
       steps: [
         { number: 6, label: "Support Paint 1", target: ".support-paint-panel", available: true, note: "draft / current" },
-        { number: 7, label: "Internal Structure", target: ".internal-structure-panel", available: true },
+        { number: 7, label: "作品内部の構造", target: "#skin-step-internal", available: true },
         { number: 8, label: "Combined artwork diagnosis / Support Paint 2", available: false, note: "not connected" },
       ],
     },
@@ -420,7 +443,7 @@ function buildWorkflowShell(): HTMLElement {
       card.append(number, copy, state);
       group.appendChild(card);
     }
-    shell.appendChild(group);
+    workflowMap.appendChild(group);
   }
   return shell;
 }
@@ -3108,11 +3131,11 @@ function refreshInternalStructure(): void {
     if (!graph) {
       ui.setInternalStructureStatus(state.skinParams.internalStructure === "targetedGrid"
         ? state.mode === "window"
-          ? "赤点→Dry Webは「プレートが実」で使います"
+          ? "Dry Webは「プレートが実」で使います"
           : activeSurfaceAngleWorker
             ? "最終精度診断から赤点を取得しています…"
-            : "最終精度で角度診断すると、全赤点からDry Webを生成します"
-        : "None — Surface のみ");
+            : "最終精度で角度診断すると、Dry Webを生成します"
+        : "なし — Surface のみ");
       return;
     }
     const stats = graph.stats;

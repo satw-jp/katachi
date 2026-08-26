@@ -82,6 +82,18 @@
   "revisits": [
     {
       "date": "2026-08-26",
+      "note": "Task 04A author confirmation, verbatim: 「全部OK」. The author confirmed only the WORKFLOW map one-line collapse, Properties remaining visible, reopening the map, reaching step 7 「作品内部の構造」, and the existing Task 04A Internal Structure operation-entry UI. This is not approval of shape quality, any Internal Structure shape, printing, high-resolution generation, Surface completion or output; printApproval=false remains in force."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04A correction adds only a one-line display collapse for the existing WORKFLOW map (A/B/C and steps 1–10). The WORKFLOW heading is a keyboard-accessible button with aria-expanded and aria-controls; the map starts expanded, can be collapsed and reopened, and the Properties pane plus all existing workflow targets remain available. No editor layout schema, Shape Recipe, history, Support Paint draft, Print Profile, cache, ledger, shape data or output was changed. The author has not selected, generated or approved the step 7 Internal Structure shape; printApproval=false; author confirmation remains pending."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04A reorganizes only the existing Internal Structure entry for author review: step 7 is shown as 「7. 作品内部の構造」 with the explicit note that it remains part of the artwork after printing, and the existing none/targetedGrid/voronoiEdge values are displayed as 「なし」/「Dry Web」/「Voronoi Edge」. Voronoi Edge shows only the existing point-count, line-thickness and placement-jitter controls; Dry Web shows only the existing reinforcement-count and line-thickness controls. Values, ranges, steps, callbacks, history, Seed, recipe, preview, Undo/Redo and export contracts are unchanged. Step 7 scrolls to the panel heading; step 8 Combined artwork diagnosis / Support Paint 2 remains the only disabled workflow placeholder. The author has not selected, generated or approved Internal Structure; no shape or saved data was created or changed; printApproval=false; author confirmation is pending."
+    },
+    {
+      "date": "2026-08-26",
       "note": "Task 03F author confirmation, verbatim: 「確認した」. The author confirmed that the page and existing shape display, cache-unavailable recovery launches exactly one fresh Surface Worker, the lower-right common progress is visible and cancellable, and the right-pane 「作品内部の構造」 entry is reachable. This does not extend to print approval, Internal Structure approval or Surface completion approval; printApproval=false remains in force."
     },
     {

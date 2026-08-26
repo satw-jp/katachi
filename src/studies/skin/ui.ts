@@ -1424,14 +1424,22 @@ export function buildUi(
 
   // Internal Structure is independent from Surface generation. These controls
   // never repack, remove, select, annotate, or partition surface elements.
+  const internalWorkflowSection = document.createElement("section");
+  internalWorkflowSection.id = "skin-step-internal";
+  internalWorkflowSection.className = "internal-structure-workflow";
+  root.appendChild(internalWorkflowSection);
   const internalTitle = document.createElement("div");
   internalTitle.className = "section-title internal-structure-title";
-  internalTitle.textContent = "INTERNAL STRUCTURE / 7 Internal Structure";
-  root.appendChild(internalTitle);
+  internalTitle.textContent = "7. 作品内部の構造";
+  internalWorkflowSection.appendChild(internalTitle);
+  const internalPurpose = document.createElement("div");
+  internalPurpose.className = "hint internal-structure-purpose";
+  internalPurpose.textContent = "印刷後も残る作品部分です。印刷後に外すサポートではありません";
+  internalWorkflowSection.appendChild(internalPurpose);
 
   const internalPanel = document.createElement("div");
   internalPanel.className = "internal-structure-panel";
-  root.appendChild(internalPanel);
+  internalWorkflowSection.appendChild(internalPanel);
   const internalToggle = document.createElement("div");
   internalToggle.className = "mode-toggle";
   const internalButtons: Record<InternalStructureMode, HTMLButtonElement> = {
@@ -1439,8 +1447,8 @@ export function buildUi(
     targetedGrid: document.createElement("button"),
     voronoiEdge: document.createElement("button"),
   };
-  internalButtons.none.textContent = "None";
-  internalButtons.targetedGrid.textContent = "赤点→Dry Web";
+  internalButtons.none.textContent = "なし";
+  internalButtons.targetedGrid.textContent = "Dry Web";
   internalButtons.voronoiEdge.textContent = "Voronoi Edge";
   for (const internalMode of ["none", "targetedGrid", "voronoiEdge"] as InternalStructureMode[]) {
     const button = internalButtons[internalMode];
@@ -1452,6 +1460,11 @@ export function buildUi(
     internalToggle.appendChild(button);
   }
   internalPanel.appendChild(internalToggle);
+
+  const internalObservationRedirect = document.createElement("div");
+  internalObservationRedirect.className = "hint internal-observation-redirect";
+  internalObservationRedirect.textContent = "内部だけの確認は左ペインのSKIN非表示で見ます。";
+  internalPanel.appendChild(internalObservationRedirect);
 
   const internalControls = document.createElement("div");
   internalControls.className = "internal-structure-controls";
@@ -1485,7 +1498,7 @@ export function buildUi(
   displayToolsRoot.append(internalObservationLabel, internalObservationToggle, internalObservationHint);
 
   const internalDensitySlider = buildSlider(
-    "Density（内部点数）", 8, 72, 1, skinParams.internalDensity,
+    "点の数", 8, 72, 1, skinParams.internalDensity,
     (value) => callbacks.onSkinParamChange("internalDensity", value),
   );
   const targetedCountSlider = buildSlider(
@@ -1493,11 +1506,11 @@ export function buildUi(
     (value) => callbacks.onSkinParamChange("internalDensity", value),
   );
   const internalRadiusSlider = buildSlider(
-    "Radius（線径）", 0.015, 0.12, 0.005, skinParams.internalRadius,
+    "線の太さ", 0.015, 0.12, 0.005, skinParams.internalRadius,
     (value) => callbacks.onSkinParamChange("internalRadius", value),
   );
   const internalRandomnessSlider = buildSlider(
-    "Randomness（点配置の揺らぎ）", 0, 1, 0.01, skinParams.internalRandomness,
+    "配置の揺らぎ", 0, 1, 0.01, skinParams.internalRandomness,
     (value) => callbacks.onSkinParamChange("internalRandomness", value),
   );
   internalControls.append(
@@ -1509,6 +1522,10 @@ export function buildUi(
   const internalStatus = document.createElement("div");
   internalStatus.className = "hint internal-structure-status";
   internalPanel.appendChild(internalStatus);
+  const internalHistoryHint = document.createElement("div");
+  internalHistoryHint.className = "hint internal-history-hint";
+  internalHistoryHint.textContent = "操作は形状履歴へ記録され、同じSeedと値で再現できます";
+  internalPanel.appendChild(internalHistoryHint);
 
   const surfaceAnglePanel = document.createElement("section");
   surfaceAnglePanel.className = "surface-angle-diagnosis";
