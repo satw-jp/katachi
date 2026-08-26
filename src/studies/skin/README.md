@@ -1,5 +1,13 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Task 01 workflow shell (2026-08-26)
+
+Task 01 adds an editor-only author workflow shell: a PROJECT bar, the existing 3D viewport, a right-side A/B/C rail for workflow steps 1–10, and a lower current/generation/stale-result review shelf. Existing controls remain reachable in the Properties pane. `.fkei` Open/Save, project Export, and Combined artwork diagnosis / Support Paint 2 are visible disabled placeholders. This shell does not add file-format state, a new history model, export/print output, Dry Web routing, or Paint 2 state. Author visual confirmation is pending; no commit or deploy.
+
+## Observation — Task 02B author workflow placement (2026-08-26)
+
+Task 02B moves the existing history export/import nodes into the PROJECT bar and keeps the selected filename visible after the native file input is reset. The existing Frozen split, legacy A/B split, and 空隙マップ（詳細） nodes now share a final 「凍結中の実験」 section after the normal Properties controls; their handlers, state, IDs, and history/JSON behavior are unchanged. At 1280×720 the history controls appear once in PROJECT, the right pane has no history I/O, the A/B/C rail still has ten labels, the frozen section is the last Properties child, and the obsolete UI sentence is absent. At 760×720 the PROJECT bar has no horizontal overflow and the right-pane collapse control remains hit-testable. Build and diff checks passed; import, partition generation, gap calculation, high-resolution work, and downloads were not run. Author visual review is pending; no deploy or commit.
+
 ## Question
 
 RESEARCH.md v5「Y7 表面版」（作者の言葉、2026-07-11、虚のパッキング（T9/S-pack）の姉妹）:

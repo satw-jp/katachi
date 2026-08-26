@@ -82,6 +82,14 @@
   "revisits": [
     {
       "date": "2026-08-26",
+      "note": "Task 02B moves the existing history export/import nodes into the PROJECT bar, keeps the selected filename visible after input reset, and groups the existing Frozen split, legacy A/B split and 空隙マップ（詳細） nodes in a final 「凍結中の実験」 Properties section. IDs, callbacks, state, history/JSON behavior and generation behavior are unchanged. Local browser checks at 1280×720 and 760×720 found no history I/O in the right pane, ten A/B/C workflow labels, no PROJECT overflow, a hit-testable pane collapse control and zero obsolete-sentence matches. Build and diff checks passed; import, generation, gap calculation, high-resolution work and downloads were not run. Author visual confirmation is pending; no deploy or commit."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 01 adds an editor-only workflow shell for visual review: PROJECT bar, existing 3D viewport, A/B/C rail with steps 1–10, disabled placeholders for .fkei Open/Save, project Export and Combined artwork diagnosis / Support Paint 2, plus a lower current/generation/stale-result/Frozen split shelf. Existing controls remain in the Properties pane; no file-format state, new history model, export/print output, Dry Web routing or Paint 2 state was added. Author visual confirmation is pending; no commit or deploy."
+    },
+    {
+      "date": "2026-08-26",
       "note": "v0.78.0 restores automatic Dry Web as a Paint-independent baseline from final ledger entries: automatic inside/body-blocked downward Surface sites stay targeted under unpainted or Auto; blue adds automatic outside sites; orange excludes automatic inside sites and routes them to Branching; Auto restores automatic classification. Object lift, cradle and retained vertical settings are not routing inputs. A dedicated preview Worker builds routing plus the targeted graph only after Surface completion, Paint pointerup, Undo/Redo, reset or draft restore; Paint drag launches no Dry Web build. Phase A reports automatic/blue-added/orange-excluded/final counts separately and keeps the Dry Web visible in mesh view. Existing Support Paint v1 persistence is unchanged. Case A / Surface 48 author visual confirmation is pending; no Surface 128, output generation, 3MF, Slice or commit; printApproval=false."
     },
     {

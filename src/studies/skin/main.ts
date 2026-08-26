@@ -239,6 +239,71 @@ let localV088ReviewUrlViewApplied = false;
 const app = document.getElementById("app")!;
 let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
 let editorLayoutCommitCallback: () => void = () => {};
+
+// Editor-only project chrome. The .fkei actions and project-level Export are
+// intentionally visible placeholders until their file/state contracts exist.
+// Existing recipe-history controls are attached below after buildUi creates
+// their nodes; their callbacks and JSON contract remain unchanged.
+const projectBar = document.createElement("header");
+projectBar.className = "skin-project-bar";
+projectBar.setAttribute("aria-label", "Project actions");
+const projectIdentity = document.createElement("div");
+projectIdentity.className = "skin-project-identity";
+const projectEyebrow = document.createElement("span");
+projectEyebrow.className = "skin-project-eyebrow";
+projectEyebrow.textContent = "PROJECT";
+const projectName = document.createElement("strong");
+projectName.className = "skin-project-name";
+projectName.textContent = "SKIN";
+const projectFormat = document.createElement("span");
+projectFormat.className = "skin-project-format";
+projectFormat.textContent = ".fkei / author workflow shell";
+projectIdentity.append(projectEyebrow, projectName, projectFormat);
+
+const projectActions = document.createElement("nav");
+projectActions.className = "skin-project-actions";
+projectActions.setAttribute("aria-label", "Project file and history actions");
+const projectOpenButton = document.createElement("button");
+projectOpenButton.type = "button";
+projectOpenButton.className = "skin-project-action is-placeholder";
+projectOpenButton.textContent = ".fkei Open";
+projectOpenButton.disabled = true;
+projectOpenButton.title = ".fkei Open is reserved for the workflow file format task";
+const projectSaveButton = document.createElement("button");
+projectSaveButton.type = "button";
+projectSaveButton.className = "skin-project-action is-placeholder";
+projectSaveButton.textContent = ".fkei Save";
+projectSaveButton.disabled = true;
+projectSaveButton.title = ".fkei Save is reserved for the workflow file format task";
+const projectUndoButton = document.createElement("button");
+projectUndoButton.type = "button";
+projectUndoButton.className = "skin-project-action";
+projectUndoButton.textContent = "Undo · Shape";
+projectUndoButton.disabled = true;
+projectUndoButton.title = "Shape history Undo (Support Paint has its own Undo)";
+projectUndoButton.onclick = () => {
+  if (supportPaintEnabled) undoOneSupportPaintOperation();
+  else requestShapeUndo();
+};
+const projectRedoButton = document.createElement("button");
+projectRedoButton.type = "button";
+projectRedoButton.className = "skin-project-action is-placeholder";
+projectRedoButton.textContent = "Redo";
+projectRedoButton.disabled = true;
+projectRedoButton.title = "Shape Redo is not implemented; Support Paint Redo appears while Paint is active";
+projectRedoButton.onclick = () => redoOneSupportPaintOperation();
+const projectExportButton = document.createElement("button");
+projectExportButton.type = "button";
+projectExportButton.className = "skin-project-action is-placeholder";
+projectExportButton.textContent = "Export";
+projectExportButton.disabled = true;
+projectExportButton.title = "Project export is reserved for the export task";
+projectActions.append(projectOpenButton, projectSaveButton, projectUndoButton, projectRedoButton, projectExportButton);
+const projectMeta = document.createElement("div");
+projectMeta.className = "skin-project-meta";
+projectMeta.textContent = "UI SHELL · author review";
+projectBar.append(projectIdentity, projectActions, projectMeta);
+
 const leftPane = document.createElement("aside");
 leftPane.className = "skin-editor-pane skin-left-pane";
 leftPane.setAttribute("aria-label", "表示ツール");
@@ -250,13 +315,129 @@ leftPaneBody.className = "skin-pane-body";
 leftPane.append(leftPaneHeader, leftPaneBody);
 const rightPane = document.createElement("aside");
 rightPane.className = "skin-editor-pane skin-right-pane";
-rightPane.setAttribute("aria-label", "Properties");
+rightPane.setAttribute("aria-label", "Workflow and properties");
 const rightPaneHeader = document.createElement("header");
 rightPaneHeader.className = "skin-pane-header";
-rightPaneHeader.innerHTML = "<strong>PROPERTIES</strong><span>形状・印刷設定</span>";
+rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>工程1–10 · properties below</span>";
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
 rightPane.append(rightPaneHeader, rightPaneBody);
+
+function buildWorkflowShell(): HTMLElement {
+  const shell = document.createElement("section");
+  shell.className = "skin-workflow-shell";
+  shell.setAttribute("aria-label", "SKIN author workflow");
+  const heading = document.createElement("div");
+  heading.className = "skin-workflow-shell-heading";
+  heading.innerHTML = "<strong>AUTHOR WORKFLOW</strong><span>workflow map / available surface</span>";
+  shell.appendChild(heading);
+
+  const stages: Array<{
+    key: "surface" | "internal" | "print";
+    title: string;
+    note: string;
+    steps: Array<{ number: number; label: string; target?: string; available: boolean; note?: string }>;
+  }> = [
+    {
+      key: "surface",
+      title: "A — FORM / SURFACE",
+      note: "外形から表面診断まで",
+      steps: [
+        { number: 1, label: "Base", target: "#skin-step-base", available: true },
+        { number: 2, label: "Surface composition", target: "#skin-step-surface", available: true },
+        { number: 3, label: "Filled Shape", target: "#skin-step-shape", available: true },
+        { number: 4, label: "Surface mesh generation", target: ".surface-mesh-generation-panel", available: true },
+        { number: 5, label: "Surface angle diagnosis", target: ".surface-angle-diagnosis", available: true },
+      ],
+    },
+    {
+      key: "internal",
+      title: "B — INTERNAL STRUCTURE",
+      note: "作品として残る内部構造",
+      steps: [
+        { number: 6, label: "Support Paint 1", target: ".support-paint-panel", available: true, note: "draft / current" },
+        { number: 7, label: "Internal Structure", target: ".internal-structure-panel", available: true },
+        { number: 8, label: "Combined artwork diagnosis / Support Paint 2", available: false, note: "not connected" },
+      ],
+    },
+    {
+      key: "print",
+      title: "C — PRINT SUPPORT",
+      note: "印刷後に外す支え",
+      steps: [
+        { number: 9, label: "Removable print supports", target: ".phase-a-support-panel", available: true, note: "preview only" },
+        { number: 10, label: "Print validation / print runs", target: ".print-preparation", available: true, note: "validation only" },
+      ],
+    },
+  ];
+
+  for (const stage of stages) {
+    const group = document.createElement("section");
+    group.className = `skin-workflow-group is-${stage.key}`;
+    const groupHeader = document.createElement("div");
+    groupHeader.className = "skin-workflow-group-header";
+    const groupTitle = document.createElement("strong");
+    groupTitle.textContent = stage.title;
+    const groupNote = document.createElement("span");
+    groupNote.textContent = stage.note;
+    groupHeader.append(groupTitle, groupNote);
+    group.appendChild(groupHeader);
+
+    for (const step of stage.steps) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `skin-workflow-step${step.available ? " is-available" : " is-disabled"}`;
+      card.disabled = !step.available;
+      card.dataset.step = String(step.number);
+      card.dataset.stepLabel = step.label;
+      card.setAttribute("aria-label", `${step.number} ${step.label}`);
+      if (step.target) card.dataset.workflowTarget = step.target;
+      const number = document.createElement("span");
+      number.className = "skin-workflow-step-number";
+      number.textContent = String(step.number);
+      const copy = document.createElement("span");
+      copy.className = "skin-workflow-step-copy";
+      const label = document.createElement("strong");
+      label.textContent = step.label;
+      copy.appendChild(label);
+      if (step.note) {
+        const note = document.createElement("small");
+        note.textContent = step.note;
+        copy.appendChild(note);
+      }
+      const state = document.createElement("span");
+      state.className = "skin-workflow-step-state";
+      state.textContent = step.available ? "available" : "placeholder";
+      card.append(number, copy, state);
+      group.appendChild(card);
+    }
+    shell.appendChild(group);
+  }
+  return shell;
+}
+const workflowShell = buildWorkflowShell();
+function scrollWorkflowTarget(targetSelector: string): void {
+  const target = document.querySelector<HTMLElement>(targetSelector);
+  if (!target) return;
+  const panel = target.closest<HTMLElement>(".skin-right-pane .panel");
+  if (!panel) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const panelRect = panel.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  panel.scrollTo({
+    top: Math.max(0, panel.scrollTop + targetRect.top - panelRect.top - 8),
+    behavior: "smooth",
+  });
+}
+workflowShell.querySelectorAll<HTMLButtonElement>(".skin-workflow-step[data-workflow-target]").forEach((card) => {
+  const targetSelector = card.dataset.workflowTarget;
+  if (!targetSelector) return;
+  card.onclick = () => {
+    scrollWorkflowTarget(targetSelector);
+  };
+});
 
 const bottomPane = document.createElement("footer");
 bottomPane.className = "skin-bottom-status-pane";
@@ -275,6 +456,24 @@ const bottomAutosaveStatus = document.createElement("div");
 bottomAutosaveStatus.className = "skin-bottom-autosave";
 bottomAutosaveStatus.textContent = "Autosave | 未保存";
 bottomAutosaveStatus.setAttribute("aria-live", "polite");
+const bottomWorkflowSummary = document.createElement("div");
+bottomWorkflowSummary.className = "skin-bottom-workflow-summary";
+const bottomWorkflowCurrent = document.createElement("span");
+bottomWorkflowCurrent.className = "skin-bottom-workflow-current is-placeholder";
+bottomWorkflowCurrent.textContent = "Current | not connected";
+const bottomWorkflowGeneration = document.createElement("span");
+bottomWorkflowGeneration.className = "skin-bottom-workflow-generation is-placeholder";
+bottomWorkflowGeneration.textContent = "Generation | not connected";
+const bottomWorkflowError = document.createElement("span");
+bottomWorkflowError.className = "skin-bottom-workflow-error is-placeholder";
+bottomWorkflowError.textContent = "Error | not connected";
+const bottomWorkflowStale = document.createElement("span");
+bottomWorkflowStale.className = "skin-bottom-workflow-stale is-placeholder";
+bottomWorkflowStale.textContent = "Stale result | reserved";
+const bottomWorkflowFrozen = document.createElement("span");
+bottomWorkflowFrozen.className = "skin-bottom-workflow-frozen is-placeholder";
+bottomWorkflowFrozen.textContent = "Frozen split | reserved";
+bottomWorkflowSummary.append(bottomWorkflowCurrent, bottomWorkflowGeneration, bottomWorkflowError, bottomWorkflowStale, bottomWorkflowFrozen);
 const bottomReviewTools = document.createElement("div");
 bottomReviewTools.className = "skin-bottom-review-tools";
 bottomReviewTools.hidden = true;
@@ -283,7 +482,7 @@ bottomReviewLegend.className = "skin-bottom-review-legend";
 const bottomReviewChoices = document.createElement("nav");
 bottomReviewChoices.className = "skin-bottom-review-choices";
 bottomReviewTools.append(bottomReviewLegend, bottomReviewChoices);
-bottomPane.append(bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus, bottomReviewTools);
+bottomPane.append(bottomWorkflowSummary, bottomReviewStatus, bottomReviewSettings, bottomSupportStatus, bottomAutosaveStatus, bottomReviewTools);
 
 const bottomPaneDivider = document.createElement("div");
 bottomPaneDivider.className = "skin-bottom-pane-divider";
@@ -318,8 +517,28 @@ function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
     event.preventDefault();
     event.stopPropagation();
     if (side === "left") editorLayoutState = { ...editorLayoutState, leftCollapsed: !editorLayoutState.leftCollapsed };
-    else editorLayoutState = { ...editorLayoutState, rightCollapsed: !editorLayoutState.rightCollapsed };
+    else if (!editorLayoutState.rightCollapsed) {
+      editorLayoutState = { ...editorLayoutState, rightCollapsed: true };
+    } else {
+      // At narrow widths fitSkinEditorLayout intentionally keeps the center
+      // usable by collapsing the right pane when both side panes are open.
+      // Opening the right pane is still an explicit author action, so let it
+      // take the available side width and collapse the opposite pane when
+      // necessary. No new layout state or persistence contract is introduced.
+      const workspaceWidth = app.clientWidth || window.innerWidth;
+      const candidate = fitSkinEditorLayout(
+        { ...editorLayoutState, rightCollapsed: false },
+        workspaceWidth,
+      );
+      editorLayoutState = candidate.rightCollapsed
+        ? fitSkinEditorLayout(
+          { ...editorLayoutState, leftCollapsed: true, rightCollapsed: false },
+          workspaceWidth,
+        )
+        : candidate;
+    }
     applyEditorLayoutDom();
+    if (side === "right") skinRenderer.resize();
     commitEditorLayout();
   };
   divider.appendChild(toggle);
@@ -329,7 +548,7 @@ const leftPaneDivider = buildPaneDivider("left");
 const rightPaneDivider = buildPaneDivider("right");
 const viewport = document.createElement("div");
 viewport.id = "viewport";
-app.append(leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane, bottomPaneDivider, bottomPane);
+app.append(projectBar, leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane, bottomPaneDivider, bottomPane);
 
 function applyEditorLayoutDom(): void {
   const fitted = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
@@ -337,7 +556,7 @@ function applyEditorLayoutDom(): void {
   const leftWidth = fitted.leftCollapsed ? 0 : fitted.leftWidthPx;
   const rightWidth = fitted.rightCollapsed ? 0 : fitted.rightWidthPx;
   app.style.gridTemplateColumns = `${leftWidth}px 8px minmax(360px, 1fr) 8px ${rightWidth}px`;
-  app.style.gridTemplateRows = `minmax(240px, 1fr) 8px ${fitted.bottomCollapsed ? 0 : fitted.bottomHeightPx}px`;
+  app.style.gridTemplateRows = `42px minmax(240px, 1fr) 8px ${fitted.bottomCollapsed ? 0 : fitted.bottomHeightPx}px`;
   leftPane.hidden = fitted.leftCollapsed;
   rightPane.hidden = fitted.rightCollapsed;
   leftPaneDivider.classList.toggle("is-collapsed", fitted.leftCollapsed);
@@ -1327,6 +1546,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 });
 
+// Move the existing history DOM nodes into PROJECT without rebuilding them or
+// registering a second set of handlers. The Properties root keeps all other
+// controls, including Shape/Paint Undo and the frozen experiment group.
+projectActions.appendChild(ui.historyIoRoot);
+
 interface PhaseASupportPreviewSettings {
   supportMode: SupportForestMode;
   objectLiftMm: number;
@@ -1357,7 +1581,7 @@ const phaseASupportPanel = document.createElement("section");
 phaseASupportPanel.className = "phase-a-support-panel";
 phaseASupportPanel.dataset.phaseA = "support-forest";
 const phaseATitle = document.createElement("h3");
-phaseATitle.textContent = "Phase A · 支持林 preview";
+phaseATitle.textContent = "PRINT SUPPORT / 9 Removable print supports";
 const phaseANote = document.createElement("p");
 phaseANote.className = "phase-a-support-note";
 phaseANote.textContent = "Surface 48 / Case A用。現在のSupport Paint分類を葉として使い、書き出しは行いません。";
@@ -1448,7 +1672,7 @@ const surfaceAnglePanel = ui.root.querySelector(".surface-angle-diagnosis");
 if (surfaceAnglePanel) surfaceAnglePanel.insertAdjacentElement("afterend", phaseASupportPanel);
 else ui.root.appendChild(phaseASupportPanel);
 
-rightPaneBody.appendChild(ui.root);
+rightPaneBody.append(workflowShell, ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
 
 function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): void {
@@ -2171,6 +2395,7 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     status,
   });
   refreshBottomStatusPane();
+  syncProjectBar();
 }
 
 function invalidateSupportPaintEditingResources(): void {
@@ -4498,6 +4723,25 @@ function describeHistoryEntry(entry: SkinHistoryEntry): string {
 function syncUndoHistory(): void {
   ui.setHistoryCount(history.length);
   ui.setUndoHistory(history.slice(1).map(describeHistoryEntry));
+  syncProjectBar();
+}
+
+function syncProjectBar(): void {
+  const paintBusy = Boolean(supportPaintDrag) || supportPaintApplyReplacePending > 0;
+  const canPaintUndo = supportPaintEnabled && supportPaintSession.history.past.length > 0 && !paintBusy;
+  const canShapeUndo = !supportPaintEnabled && history.length > 1;
+  const canPaintRedo = supportPaintEnabled && supportPaintSession.history.future.length > 0 && !paintBusy;
+
+  projectUndoButton.disabled = !(canPaintUndo || canShapeUndo);
+  projectUndoButton.textContent = supportPaintEnabled ? "Undo · Paint" : "Undo · Shape";
+  projectUndoButton.title = supportPaintEnabled
+    ? "Support Paint Undo（右のPaint履歴と同じ）"
+    : "Shape history Undo（既存の形状履歴）";
+  projectRedoButton.disabled = !canPaintRedo;
+  projectRedoButton.textContent = supportPaintEnabled ? "Redo · Paint" : "Redo";
+  projectRedoButton.title = supportPaintEnabled
+    ? "Support Paint Redo（右のPaint履歴と同じ）"
+    : "Shape Redoは未実装。Paint中のみPaint Redoを表示します";
 }
 
 async function importHistory(file: File): Promise<void> {

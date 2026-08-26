@@ -48,7 +48,6 @@ import type { DenseSampleView } from "./renderer.ts";
 import { PATCH_MAX_POINTS } from "./shaders.ts";
 import { EMPTY_ANNOTATION, type ElementAnnotationValue } from "../../lib/elementAnnotations.ts";
 import { matchesElementSearch } from "../../lib/elementLabels.ts";
-import { CURRENT_WORKFLOW_PROFILE } from "./workflowProfiles.ts";
 import type { PatchEditIntent } from "./elementTransform.ts";
 import type { InternalPrintGateReport } from "./internalPrintGate.ts";
 import type { BambuSupportType } from "./bambu3mf.ts";
@@ -188,6 +187,7 @@ export interface UiCallbacks {
 export interface UiHandles {
   root: HTMLElement;
   displayToolsRoot: HTMLElement;
+  historyIoRoot: HTMLElement;
   setHistoryCount: (n: number) => void;
   setUndoHistory: (labels: string[]) => void;
   setUndoStatus: (text: string) => void;
@@ -448,37 +448,10 @@ export function buildUi(
   // one/four-view canvas. The callback and shared history remain unchanged.
   displayToolsRoot.appendChild(undoDock);
 
-  const navRow = document.createElement("div");
-  navRow.className = "nav-row";
-  const navLinks: [string, string][] = [
-    ["./index.html", "S1 雲をこねる"],
-    ["./gravity.html", "S2 重力を入れる"],
-    ["./sag.html", "S2b たわむ"],
-    ["./mpm.html", "S2c 本物を混ぜる (MPM)"],
-    ["./foam.html", "S-foam 泡のセル"],
-    ["./rings.html", "S-rings 輪の手"],
-    ["./pack.html", "S-pack 虚を詰める"],
-    ["./interior-growth.html", "S-interior-growth 内部から育つ"],
-  ];
-  for (const [href, label] of navLinks) {
-    const a = document.createElement("a");
-    a.className = "nav-link";
-    a.href = href;
-    a.textContent = `${label} →`;
-    navRow.appendChild(a);
-  }
-  root.appendChild(navRow);
-
   const title = document.createElement("div");
   title.className = "panel-title";
   title.textContent = "表面に詰める — Surface Patch Packing (S-skin)";
   root.appendChild(title);
-
-  const banner = document.createElement("div");
-  banner.className = "approx-banner";
-  banner.textContent =
-    "実体（ホスト）の表面に不定形の閉パッチを目地つきで貪欲に詰めます。同じパッキングから、プレートが実（形態は暗示）と、殻に窓が開く版が出ます。";
-  root.appendChild(banner);
 
   const versionRow = createVersionRow(version, updatedAt);
   root.appendChild(versionRow);
@@ -486,36 +459,6 @@ export function buildUi(
   const counts = document.createElement("div");
   counts.className = "ball-count";
   root.appendChild(counts);
-
-  const profile = document.createElement("div");
-  profile.className = "workflow-profile";
-  const profileName = document.createElement("strong");
-  profileName.textContent = `${CURRENT_WORKFLOW_PROFILE.name} — 現在の制作テーマ`;
-  const profileDescription = document.createElement("span");
-  profileDescription.textContent = CURRENT_WORKFLOW_PROFILE.description;
-  const profileStages = document.createElement("span");
-  profileStages.className = "workflow-profile-stages";
-  profileStages.textContent = CURRENT_WORKFLOW_PROFILE.stages.join(" → ");
-  profile.append(profileName, profileDescription, profileStages);
-  root.appendChild(profile);
-
-  const workflowNav = document.createElement("nav");
-  workflowNav.className = "skin-workflow-nav";
-  workflowNav.setAttribute("aria-label", "設計の流れ");
-  for (const [targetId, label] of [
-    ["skin-step-base", "1 ベース"],
-    ["skin-step-surface", "2 表面"],
-    ["skin-step-shape", "3 形状"],
-    ["skin-step-adjust", "4 調整"],
-    ["skin-step-split", "5 分割"],
-  ] as const) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.onclick = () => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    workflowNav.appendChild(button);
-  }
-  root.appendChild(workflowNav);
 
   // --- Mode toggle (この Study の眼目) --------------------------------------
   const modeTitle = document.createElement("div");
@@ -552,7 +495,7 @@ export function buildUi(
   const hostTitle = document.createElement("div");
   hostTitle.id = "skin-step-base";
   hostTitle.className = "workflow-step-title";
-  hostTitle.textContent = "1. ベースのかたち";
+  hostTitle.textContent = "FORM / 1 Base";
   root.appendChild(hostTitle);
   const hostLead = document.createElement("div");
   hostLead.className = "workflow-step-lead";
@@ -616,7 +559,7 @@ export function buildUi(
   const skinTitle = document.createElement("div");
   skinTitle.id = "skin-step-surface";
   skinTitle.className = "workflow-step-title";
-  skinTitle.textContent = "2. 表面の組み方";
+  skinTitle.textContent = "SURFACE / 2 Surface composition";
   root.appendChild(skinTitle);
 
   const generationTitle = document.createElement("div");
@@ -869,7 +812,7 @@ export function buildUi(
   const shapeTitle = document.createElement("div");
   shapeTitle.id = "skin-step-shape";
   shapeTitle.className = "workflow-step-title";
-  shapeTitle.textContent = "3. 充填する形状";
+  shapeTitle.textContent = "SURFACE / 3 Filled Shape";
   root.appendChild(shapeTitle);
   const shapeLead = document.createElement("div");
   shapeLead.className = "workflow-step-lead";
@@ -942,7 +885,7 @@ export function buildUi(
   const adjustmentTitle = document.createElement("div");
   adjustmentTitle.id = "skin-step-adjust";
   adjustmentTitle.className = "workflow-step-title";
-  adjustmentTitle.textContent = "4. 選んだ形を調整して生成";
+  adjustmentTitle.textContent = "SURFACE / 4 Surface mesh generation";
   root.appendChild(adjustmentTitle);
   const adjustmentLead = document.createElement("div");
   adjustmentLead.className = "workflow-step-lead";
@@ -1482,7 +1425,7 @@ export function buildUi(
   // never repack, remove, select, annotate, or partition surface elements.
   const internalTitle = document.createElement("div");
   internalTitle.className = "section-title internal-structure-title";
-  internalTitle.textContent = "Internal Structure";
+  internalTitle.textContent = "INTERNAL STRUCTURE / 7 Internal Structure";
   root.appendChild(internalTitle);
 
   const internalPanel = document.createElement("div");
@@ -1569,7 +1512,7 @@ export function buildUi(
   const surfaceAnglePanel = document.createElement("section");
   surfaceAnglePanel.className = "surface-angle-diagnosis";
   const surfaceAngleTitle = document.createElement("strong");
-  surfaceAngleTitle.textContent = "面の角度診断（最終精度）";
+  surfaceAngleTitle.textContent = "SURFACE / Surface angle diagnosis";
   const surfaceAngleHint = document.createElement("div");
   surfaceAngleHint.className = "hint";
   surfaceAngleHint.textContent =
@@ -1671,7 +1614,7 @@ export function buildUi(
   const supportPaintPanel = document.createElement("section");
   supportPaintPanel.className = "support-paint-panel";
   const supportPaintTitle = document.createElement("strong");
-  supportPaintTitle.textContent = "Support Paint（author override）";
+  supportPaintTitle.textContent = "INTERNAL STRUCTURE / 6 Support Paint 1";
   const supportPaintHint = document.createElement("div");
   supportPaintHint.className = "hint";
   supportPaintHint.textContent = "自動分類を下書きとして、形状生成前の支持方式だけを塗り直します。赤いunresolvedは変更できません。";
@@ -2048,6 +1991,7 @@ export function buildUi(
   editorNumber("回す角度（度）", rotateStep);
   editorNumber("動かす刻み", moveStep);
   const editorButtons = document.createElement("div"); editorButtons.className = "element-editor-buttons";
+  const nudgeButtons = document.createElement("div"); nudgeButtons.className = "element-editor-nudge-buttons";
   const bounded = (input: HTMLInputElement, fallback: number) => {
     const value = Number(input.value); const min = Number(input.min); const max = Number(input.max);
     return Number.isFinite(value) && value >= min && value <= max ? value : fallback;
@@ -2055,6 +1999,9 @@ export function buildUi(
   const edit = (intent: PatchEditIntent) => { if (registrySelected !== null) callbacks.onElementEdit(registrySelected, intent); };
   const addEditButton = (label: string, intent: () => PatchEditIntent) => {
     const button = document.createElement("button"); button.textContent = label; button.onclick = () => edit(intent()); editorButtons.appendChild(button);
+  };
+  const addNudgeButton = (label: string, intent: () => PatchEditIntent) => {
+    const button = document.createElement("button"); button.textContent = label; button.onclick = () => edit(intent()); nudgeButtons.appendChild(button);
   };
   addEditButton("小さく", () => ({ kind: "scale", factor: 1 - bounded(sizeStep, 10) / 100 }));
   addEditButton("大きく", () => ({ kind: "scale", factor: 1 + bounded(sizeStep, 10) / 100 }));
@@ -2064,13 +2011,13 @@ export function buildUi(
   duplicateButton.textContent = "複製";
   duplicateButton.onclick = () => { if (registrySelected !== null) callbacks.onDuplicateElement(registrySelected); };
   editorButtons.appendChild(duplicateButton);
-  addEditButton("←", () => ({ kind: "nudge", u: -bounded(moveStep, 0.05), v: 0 }));
-  addEditButton("→", () => ({ kind: "nudge", u: bounded(moveStep, 0.05), v: 0 }));
-  addEditButton("↑", () => ({ kind: "nudge", u: 0, v: bounded(moveStep, 0.05) }));
-  addEditButton("↓", () => ({ kind: "nudge", u: 0, v: -bounded(moveStep, 0.05) }));
+  addNudgeButton("←", () => ({ kind: "nudge", u: -bounded(moveStep, 0.05), v: 0 }));
+  addNudgeButton("→", () => ({ kind: "nudge", u: bounded(moveStep, 0.05), v: 0 }));
+  addNudgeButton("↑", () => ({ kind: "nudge", u: 0, v: bounded(moveStep, 0.05) }));
+  addNudgeButton("↓", () => ({ kind: "nudge", u: 0, v: -bounded(moveStep, 0.05) }));
   const editorStatus = document.createElement("div"); editorStatus.className = "element-editor-status"; editorStatus.textContent = "要素を選ぶと調整できます";
   editor.prepend(editorTitle, editorHint);
-  editor.append(editorButtons, editorStatus);
+  editor.append(editorButtons, nudgeButtons, editorStatus);
 
   // This is deliberately separate from Step 4's whole-family preview and
   // controls above. It edits a realized element's own saved generator values
@@ -2558,7 +2505,16 @@ export function buildUi(
   );
   root.appendChild(resultTools);
 
-  root.appendChild(document.createElement("hr"));
+  // These experimental controls stay together at the end of Properties so
+  // the author workflow rail remains a clean 1–10 path. The child nodes are
+  // the existing controls; only their containing section is new.
+  const frozenExperiments = document.createElement("section");
+  frozenExperiments.className = "skin-frozen-experiments";
+  frozenExperiments.setAttribute("aria-label", "凍結中の実験");
+  const frozenExperimentsTitle = document.createElement("div");
+  frozenExperimentsTitle.className = "skin-frozen-experiments-title";
+  frozenExperimentsTitle.textContent = "凍結中の実験";
+  frozenExperiments.append(frozenExperimentsTitle, document.createElement("hr"));
 
   // --- Generation-native N partition -------------------------------------
   const nPartitionPanel = document.createElement("section");
@@ -2567,7 +2523,7 @@ export function buildUi(
   const nPartitionTitle = document.createElement("div");
   nPartitionTitle.id = "skin-step-split";
   nPartitionTitle.className = "mesh-export-title";
-  nPartitionTitle.textContent = "5. 形の流れで分割";
+  nPartitionTitle.textContent = "Frozen split";
   nPartitionPanel.appendChild(nPartitionTitle);
 
   const nPartitionHint = document.createElement("div");
@@ -2647,8 +2603,7 @@ export function buildUi(
   nExportBtn.onclick = () => callbacks.onExportNPartition();
   nPartitionPanel.appendChild(nExportBtn);
 
-  root.appendChild(nPartitionPanel);
-  root.appendChild(document.createElement("hr"));
+  frozenExperiments.append(nPartitionPanel, document.createElement("hr"));
 
   // --- T13 coin由来A/B分割 --------------------------------------------------
   const partitionPanel = document.createElement("details");
@@ -2951,41 +2906,55 @@ export function buildUi(
   verificationExportRow.appendChild(verifyExportBothBtn);
   partitionPanel.appendChild(verificationExportRow);
 
-  root.appendChild(partitionPanel);
-  root.appendChild(document.createElement("hr"));
+  frozenExperiments.append(partitionPanel, document.createElement("hr"));
 
   const historyRow = document.createElement("div");
-  historyRow.className = "row";
+  historyRow.className = "row skin-history-export-row";
   const exportBtn = document.createElement("button");
+  exportBtn.type = "button";
+  exportBtn.className = "skin-history-export";
   exportBtn.textContent = "履歴を書き出す (Export JSON)";
   exportBtn.onclick = () => callbacks.onExport();
   historyRow.appendChild(exportBtn);
-  root.appendChild(historyRow);
 
   const importRow = document.createElement("div");
-  importRow.className = "row";
+  importRow.className = "row skin-history-import-row";
   importRow.dataset.tutorialTarget = "import-recipe";
   const importLabel = document.createElement("label");
   importLabel.textContent = "skin 履歴を読み込む";
-  importLabel.className = "file-label";
+  importLabel.className = "file-label skin-history-import-label";
   const importInput = document.createElement("input");
   importInput.type = "file";
   importInput.accept = "application/json";
+  importInput.setAttribute("aria-label", "skin 履歴を読み込む");
+  const importFileName = document.createElement("span");
+  importFileName.className = "skin-history-file-name";
+  importFileName.textContent = "未選択";
+  importFileName.setAttribute("aria-live", "polite");
   importInput.onchange = () => {
     const file = importInput.files?.[0];
-    if (file) callbacks.onImportFile(file);
+    if (file) {
+      importFileName.textContent = file.name;
+      importFileName.title = file.name;
+      callbacks.onImportFile(file);
+    }
     importInput.value = "";
   };
   importRow.appendChild(importLabel);
   importRow.appendChild(importInput);
-  root.appendChild(importRow);
+  importRow.appendChild(importFileName);
+  const historyIo = document.createElement("div");
+  historyIo.className = "skin-history-io";
+  historyIo.setAttribute("aria-label", "History import and export");
+  historyIo.append(historyRow, importRow);
+  root.appendChild(historyIo);
 
   const meshPanel = document.createElement("div");
-  meshPanel.className = "mesh-export";
+  meshPanel.className = "mesh-export surface-mesh-generation-panel";
 
   const meshTitle = document.createElement("div");
   meshTitle.className = "mesh-export-title";
-  meshTitle.textContent = "3Dデータ";
+  meshTitle.textContent = "SURFACE / 4 Surface mesh generation";
   meshPanel.appendChild(meshTitle);
 
   const sizeRow = document.createElement("div");
@@ -3204,7 +3173,7 @@ export function buildUi(
   const openingSummary = document.createElement("div"); openingSummary.className = "opening-summary"; openingPanel.appendChild(openingSummary);
   const openingList = document.createElement("div"); openingList.className = "opening-list"; openingPanel.appendChild(openingList);
   openingPanel.appendChild(denseSampleCard);
-  root.appendChild(openingPanel);
+  frozenExperiments.appendChild(openingPanel);
 
   const internalGatePanel = document.createElement("section");
   internalGatePanel.className = "mesh-export internal-print-gate";
@@ -3244,7 +3213,7 @@ export function buildUi(
   printPanel.className = "mesh-export print-preparation";
   const printTitle = document.createElement("div");
   printTitle.className = "mesh-export-title";
-  printTitle.textContent = "4. 印刷を確かめる";
+  printTitle.textContent = "PRINT SUPPORT / 10 Print validation / print runs";
   printPanel.appendChild(printTitle);
 
   const printHint = document.createElement("div");
@@ -3297,6 +3266,7 @@ export function buildUi(
   const fps = document.createElement("div");
   fps.className = "fps";
   root.appendChild(fps);
+  root.appendChild(frozenExperiments);
 
   container.appendChild(root);
 
@@ -3355,6 +3325,7 @@ export function buildUi(
   return {
     root,
     displayToolsRoot,
+    historyIoRoot: historyIo,
     setElementRegistry: (rows, selectedId) => { registryRows = rows; registrySelected = selectedId; renderRegistry(); },
     setElementEditStatus: (text, ok) => { editorStatus.textContent = text; editorStatus.classList.toggle("warn", ok === false); },
     getElementMoveStep: () => bounded(moveStep, 0.05),
@@ -3880,6 +3851,9 @@ export function buildUi(
         for (const el of root.querySelectorAll(".tutorial-highlight")) {
           el.classList.remove("tutorial-highlight");
         }
+        for (const el of document.querySelectorAll(".tutorial-highlight")) {
+          el.classList.remove("tutorial-highlight");
+        }
         return;
       }
       const content = getTutorialStepContent(step);
@@ -3917,7 +3891,15 @@ export function buildUi(
       // reading a past step so nothing is highlighted that isn't actually
       // the next real action.
       const targets = isViewingPast ? new Set<string>() : new Set(content.highlightTargets);
-      const allTargets = root.querySelectorAll<HTMLElement>("[data-tutorial-target]");
+      // History import now lives in the PROJECT bar, outside this Properties
+      // root. Search the current document so the existing import-recipe guide
+      // target remains highlighted after the node move.
+      // Include the detached-root case for unit callers while also covering
+      // the history target after it moves into the PROJECT bar.
+      const allTargets = new Set<HTMLElement>([
+        ...root.querySelectorAll<HTMLElement>("[data-tutorial-target]"),
+        ...document.querySelectorAll<HTMLElement>("[data-tutorial-target]"),
+      ]);
       for (const el of allTargets) {
         const key = el.dataset.tutorialTarget ?? "";
         el.classList.toggle("tutorial-highlight", targets.has(key));
