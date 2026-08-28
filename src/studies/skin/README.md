@@ -1,5 +1,27 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — 現在の状態を.fkeiへ保存（2026-08-28）
+
+作者の指示を原文のまま記録する。
+
+> Save only current, continuously restorable Stage 1–7 artifacts; omit stale/running/error/downstream-mismatched artifacts and lower completedStage.
+
+PROJECT barの`.fkei Save`は、形状履歴と既存のcurrent identityへ束縛された成果だけを同期的にdetached captureし、
+`captureFkei` → `serializeFkei` → `parseFkeiDocument`の自己検証を通過した場合だけダウンロードする。
+古い・実行中・不一致の下流成果は保存せず、`completedStage`は連続した再開可能prefixまで下げる（現行の復元契約上の上限はStage 4。後工程の任意成果を保存してもStage 5–7を主張しない）。.fkei Open、復元、
+Worker、診断、生成、cache書込みはこの操作では実行しない。
+
+実制作に近い38 Surface Pattern / Surface 48 / 2,389 targetのStage 4でSaveを検証したところ、
+量子化された5 targetは接触点と材料点が同一nodeになり、非零長edgeを持たないままruntimeでは`connected`だった。
+`.fkei`の既存証拠契約はこれを拒否するため、保存用のdetached cloneだけを`unresolved`へ保守的に下げる。
+Graph、Runtime、生成結果は変更せず、存在しないedgeを発明しない。
+
+同じ実データでは、必要接触数が複数のpatchのうち31件で、保存された接触nodeがGraph上の
+複数成分にまたがっていた。現行schema／validatorを変えずにこの接触事実をStage 4として
+復元することはできない。保存時にGraphや接触数を作り替えず、Dry Webだけを省略して
+`completedStage 3`へ下げ、Shape／Support Paint／Artwork Graph／current Surfaceは残す。
+これはStage 4保存成功ではなく、実データで見つかった既存保存契約の境界である。
+
 ## Observation — Artwork Graph表示操作を左ペインへ統合（2026-08-28）
 
 作者の指示を原文のまま記録する。

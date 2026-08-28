@@ -177,6 +177,18 @@ import {
   type PrintSupportClassificationCounts, type ResolvedPrintPlan, type SkinPrintProfileV1,
 } from "./printProfile.ts";
 import {
+  buildFkeiRuntimeSaveSnapshot,
+  saveFkeiRuntime,
+  type FkeiRuntimeSaveFacts,
+} from "./fkeiRuntimeSave.ts";
+import type {
+  FkeiDryWebArtifact,
+  FkeiPrintProfileArtifact,
+  FkeiSupportPaintArtifact,
+  FkeiSurfaceBinding,
+  FkeiSurfaceArtifact,
+} from "./fkei.ts";
+import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
   OVERHANG_SUPPORT_POLICY,
@@ -378,10 +390,10 @@ projectOpenButton.disabled = true;
 projectOpenButton.title = ".fkei Open is reserved for the workflow file format task";
 const projectSaveButton = document.createElement("button");
 projectSaveButton.type = "button";
-projectSaveButton.className = "skin-project-action is-placeholder";
+projectSaveButton.className = "skin-project-action";
 projectSaveButton.textContent = ".fkei Save";
-projectSaveButton.disabled = true;
-projectSaveButton.title = ".fkei Save is reserved for the workflow file format task";
+projectSaveButton.disabled = false;
+projectSaveButton.title = "現在のSKIN状態を.fkeiとして保存";
 const projectUndoButton = document.createElement("button");
 projectUndoButton.type = "button";
 projectUndoButton.className = "skin-project-action";
@@ -408,7 +420,9 @@ projectExportButton.title = "Project export is reserved for the export task";
 projectActions.append(projectOpenButton, projectSaveButton, projectUndoButton, projectRedoButton, projectExportButton);
 const projectMeta = document.createElement("div");
 projectMeta.className = "skin-project-meta";
+projectMeta.setAttribute("aria-live", "polite");
 projectMeta.textContent = "UI SHELL · author review";
+projectSaveButton.onclick = () => saveCurrentFkeiProject();
 projectBar.append(projectIdentity, projectActions, projectMeta);
 
 const leftPane = document.createElement("aside");
@@ -814,6 +828,10 @@ const SURFACE_PROGRESS_WORKER_START = 5;
 const SURFACE_PROGRESS_CLASSIFICATION = 80;
 let surfaceAngleGeneration = 0;
 let surfaceAngleCache: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null = null;
+// Binding captured at the same accepted Surface diagnosis commit as the
+// result/cache context. Save compares this immutable session fact to current
+// runtime settings; it never reconstructs it from the current UI alone.
+let acceptedSurfaceSaveBinding: FkeiSurfaceBinding | null = null;
 let installedSurfaceAngleDiagnosisView: SurfaceAngleDiagnosisView | null = null;
 let activeSurfacePersistentCacheKeys: SurfacePersistentCacheKeys | null = null;
 let activeSurfaceCacheMissReport: SurfaceCacheMissReport | null = null;
@@ -3101,7 +3119,7 @@ function currentStage7ProvisionalAdoptionGatePresentation(): Stage7ProvisionalAd
   return presentation;
 }
 
-function stage7CanonicalCandidateAdoptionIsCurrent(): boolean {
+function stage7CanonicalCandidateAdoptionIsCurrent(options: { clearStale?: boolean } = {}): boolean {
   const adoption = stage7CanonicalCandidateAdoption;
   if (!adoption || state.skinParams.internalStructure !== "targetedGrid") return false;
   const preview = phaseADryWebPreview;
@@ -3130,7 +3148,7 @@ function stage7CanonicalCandidateAdoptionIsCurrent(): boolean {
     && currentDryWebArtworkGraphBoundary().status === "current"
     && dryWebPreviewIsCurrent()
   );
-  if (!current) stage7CanonicalCandidateAdoptionUndo = null;
+  if (!current && options.clearStale !== false) stage7CanonicalCandidateAdoptionUndo = null;
   return current;
 }
 
@@ -7871,6 +7889,245 @@ function currentPrintProfileBinding(profile: SkinPrintProfileV1, includeScale = 
   };
 }
 
+function fkeiDryWebTargetList(
+  targets: Array<MotifLowestPoint | OverhangDryWebTarget>,
+): OverhangDryWebTarget[] | null {
+  if (!targets.every((target) => (
+    "assignmentId" in target
+    && typeof target.assignmentId === "string"
+    && target.basis === "finalMesh"
+    && Number.isFinite(target.markerRadius)
+    && typeof target.reachedByInternal === "boolean"
+    && target.position !== null
+    && typeof target.position === "object"
+    && [target.position.x, target.position.y, target.position.z].every(Number.isFinite)
+  ))) return null;
+  return targets as OverhangDryWebTarget[];
+}
+
+function currentFkeiSurfaceBinding(): FkeiSurfaceArtifact["binding"] | null {
+  if (!surfaceAngleCache) return null;
+  const options = ui.getMeshOptions();
+  return {
+    surfaceFingerprint: currentTargetSurfaceFingerprint(),
+    resolution: Math.max(16, Math.round(options.resolution)),
+    targetLongestMm: options.targetLongestMm,
+    angleThresholdDeg: ui.getSurfaceAngleThreshold(),
+    cacheKeys: activeSurfacePersistentCacheKeys,
+  };
+}
+
+function currentFkeiRuntimeSaveSnapshot(): FkeiRuntimeSaveFacts {
+  const artworkBoundary = currentDryWebArtworkGraphBoundary();
+  const artworkCurrent = artworkBoundary.status === "current"
+    && artworkGraphSnapshot !== null
+    && artworkGraphSourceKey !== null;
+  const surfaceBusy = Boolean(
+    activeSurfaceAngleWorker
+    || activeSurfaceSupportClassificationWorker
+    || surfaceHeavyComputation
+    || supportPaintDrag
+    || supportPaintApplyReplacePending > 0
+    || (activeSupportPaintWorker && !supportPaintApplyWorkerReady),
+  );
+  const currentSurfaceBinding = currentFkeiSurfaceBinding();
+  const acceptedSurfaceBinding = acceptedSurfaceSaveBinding;
+  const surfaceCurrent = Boolean(
+    currentSurfaceBinding
+    && surfaceAngleCache
+    && automaticOverhangSupportResult
+    && overhangSupportResult
+    && surfaceAnglePersistentCacheStatus !== "error"
+    && !surfaceBusy,
+  );
+  const supportPaintExists = supportPaintSession.history.present.strokes.length > 0
+    || supportPaintSession.history.past.length > 0
+    || supportPaintSession.history.future.length > 0
+    || supportPaintSession.revision > 0;
+  const supportPaintCurrent = Boolean(surfaceCurrent && supportPaintExists && !supportPaintSession.activeStroke);
+  const dryBaseCurrent = Boolean(
+    phaseADryWebPreview
+    && dryWebPreviewIsCurrent()
+    && targetedSupportSourceIsCurrent()
+    && !dryWebInsideTargetRunActive(),
+  );
+  const dryTargets = targetedSupportSource ? fkeiDryWebTargetList(targetedSupportSource.targets) : null;
+  const canonicalCurrent = Boolean(
+    dryBaseCurrent
+    && stage7CanonicalCandidateAdoption
+    && stage7CanonicalCandidateAdoptionIsCurrent({ clearStale: false }),
+  );
+  const retainedCanonicalFacts = canonicalCurrent
+    ? stage7CanonicalCandidateAdoptionUndo?.phaseADryWebPreview.targetConnectionFacts
+    : undefined;
+  if (canonicalCurrent && !retainedCanonicalFacts) {
+    throw new Error("Stage 7 canonical adoption の targetConnectionFacts がありません");
+  }
+  const dryWebCurrent = Boolean(
+    dryBaseCurrent
+    && dryTargets
+    && phaseADryWebPreview
+    && (!canonicalCurrent || retainedCanonicalFacts),
+  );
+
+  let surface: FkeiSurfaceArtifact | undefined;
+  const surfaceArtifactBinding = acceptedSurfaceBinding ?? currentSurfaceBinding;
+  if (surfaceArtifactBinding && surfaceAngleCache && automaticOverhangSupportResult && overhangSupportResult) {
+    surface = {
+      diagnosis: surfaceAngleCache,
+      automaticSupportResult: automaticOverhangSupportResult,
+      effectiveSupportResult: overhangSupportResult,
+      binding: surfaceArtifactBinding,
+    };
+  }
+
+  let supportPaint: FkeiSupportPaintArtifact | undefined;
+  if (supportPaintCurrent) {
+    supportPaint = {
+      revision: supportPaintSession.revision,
+      history: supportPaintSession.history,
+      mode: supportPaintMode,
+      radiusMm: supportPaintRadiusMm,
+      paintBackfaces: supportPaintBackfaces,
+      enabled: supportPaintEnabled,
+      editorView: skinRenderer.captureEditorViewDraft(editorLayoutState),
+    };
+  }
+
+  let artworkGraph: NonNullable<FkeiRuntimeSaveFacts["artworkGraph"]> | undefined;
+  if (artworkGraphSnapshot && artworkGraphSourceKey) {
+    artworkGraph = {
+      current: artworkCurrent,
+      value: { snapshot: artworkGraphSnapshot, sourceKey: artworkGraphSourceKey },
+    };
+  }
+
+  let dryWeb: FkeiDryWebArtifact | undefined;
+  if (dryWebCurrent && phaseADryWebPreview && targetedSupportSource && dryTargets) {
+    const preview = phaseADryWebPreview;
+    const adoption = stage7CanonicalCandidateAdoption;
+    const exactCurrent = dryWebSupportSeparationIsCurrent() && dryWebSupportSeparationSource !== null && surfaceArtifactBinding !== null;
+    dryWeb = {
+      preview: {
+        surfaceFingerprint: preview.surfaceFingerprint,
+        resolution: preview.resolution,
+        paintRevision: preview.paintRevision,
+        artworkGraphSnapshot: preview.artworkGraphSnapshot,
+        artworkGraphSourceKey: preview.artworkGraphSourceKey,
+        graph: preview.graph,
+        targetConnectionFacts: canonicalCurrent ? null : preview.targetConnectionFacts,
+        contactFloorFacts: canonicalCurrent ? null : preview.contactFloorFacts,
+        facts: canonicalCurrent ? null : preview.facts,
+        ...(canonicalCurrent && adoption && retainedCanonicalFacts ? {
+          canonicalAdoption: {
+            surfaceFingerprint: adoption.surfaceFingerprint,
+            resolution: adoption.resolution,
+            paintRevision: adoption.paintRevision,
+            artworkGraphSourceKey: adoption.artworkGraphSourceKey ?? "",
+            mode: adoption.mode,
+            supportSettingsKey: adoption.supportSettingsKey,
+            targetConnectionFacts: retainedCanonicalFacts,
+            exactValidated: adoption.exactValidated,
+          },
+        } : {}),
+        computeMs: preview.computeMs,
+      },
+      targetSource: {
+        surfaceFingerprint: targetedSupportSource.surfaceFingerprint,
+        resolution: targetedSupportSource.resolution,
+        targets: dryTargets,
+      },
+      ...(exactCurrent ? {
+        exactDiagnosis: dryWebSupportSeparationSource!,
+        exactBinding: surfaceArtifactBinding!,
+      } : {}),
+    };
+  }
+
+  let printProfile: FkeiPrintProfileArtifact | undefined;
+  if (activePrintProfile && activePrintProfileText && activePrintProfileSha256) {
+    try {
+      const profile = validateSkinPrintProfile(activePrintProfile);
+      if (matchPrintProfile(profile, currentPrintProfileBinding(profile)).matches) {
+        printProfile = {
+          profile,
+          text: activePrintProfileText,
+          ...(activePrintProfileFilename ? { filename: activePrintProfileFilename } : {}),
+          sha256: activePrintProfileSha256,
+        };
+      }
+    } catch {
+      // A stale or malformed profile is intentionally omitted from a save.
+    }
+  }
+
+  return {
+    shape: { formatVersion: 1, entries: history },
+    bindings: {
+      shapeFingerprint: currentTargetSurfaceFingerprint(),
+      patchSetRevision: state.patchSetRevision,
+      paintRevision: supportPaintSession.revision,
+    },
+    stageCurrent: {
+      1: history.length > 0 && state.host.length > 0,
+      2: state.patches.length > 0,
+      3: artworkCurrent,
+      4: dryWebCurrent,
+      5: dryWebCurrent || supportPaintCurrent,
+      6: surfaceCurrent,
+      7: dryWebCurrent && Boolean(
+        (dryWebSupportSeparationIsCurrent() && dryWebSupportSeparationSource)
+        || (canonicalCurrent && stage7CanonicalCandidateAdoption?.exactValidated),
+      ),
+    },
+    ...(supportPaint ? { supportPaint: { current: true, value: supportPaint } } : {}),
+    ...(artworkGraph ? { artworkGraph } : {}),
+    ...(surface && currentSurfaceBinding ? {
+      surface: {
+        value: surface,
+        current: surfaceCurrent,
+        acceptedBinding: acceptedSurfaceBinding,
+        currentBinding: currentSurfaceBinding,
+        ...(supportPaintSurfaceCache?.diagnosis === surfaceAngleCache
+          ? { supportPaintSurfaceTargetLongestMm: supportPaintSurfaceCache.targetLongestMm }
+          : {}),
+      },
+    } : {}),
+    ...(dryWeb ? { dryWeb: { current: dryWebCurrent, value: dryWeb } } : dryBaseCurrent && phaseADryWebPreview && targetedSupportSource && dryTargets ? {
+      dryWeb: { current: false, value: {
+        preview: {
+          surfaceFingerprint: phaseADryWebPreview.surfaceFingerprint,
+          resolution: phaseADryWebPreview.resolution,
+          paintRevision: phaseADryWebPreview.paintRevision,
+          artworkGraphSnapshot: phaseADryWebPreview.artworkGraphSnapshot,
+          artworkGraphSourceKey: phaseADryWebPreview.artworkGraphSourceKey,
+          graph: phaseADryWebPreview.graph,
+          targetConnectionFacts: phaseADryWebPreview.targetConnectionFacts,
+          contactFloorFacts: phaseADryWebPreview.contactFloorFacts,
+          facts: phaseADryWebPreview.facts,
+          computeMs: phaseADryWebPreview.computeMs,
+        },
+        targetSource: { surfaceFingerprint: targetedSupportSource.surfaceFingerprint, resolution: targetedSupportSource.resolution, targets: dryTargets },
+      } },
+    } : {}),
+    ...(printProfile ? { printProfile: { current: true, value: printProfile } } : {}),
+    compatibility: { appVersion: manifest.version, generatorCommit: RUNNING_APP_COMMIT },
+  };
+}
+
+function saveCurrentFkeiProject(): void {
+  try {
+    const result = saveFkeiRuntime(buildFkeiRuntimeSaveSnapshot(currentFkeiRuntimeSaveSnapshot()), {
+      savedAt: new Date(),
+      download: (text, filename) => downloadBlob(new Blob([text], { type: "application/json" }), filename),
+    });
+    projectMeta.textContent = `.fkei 保存済み · Stage ${result.completedStage ?? "--"} · ${result.filename}`;
+  } catch (error) {
+    console.error("[SKIN .fkei Save] failed", error);
+    projectMeta.textContent = ".fkeiを保存できませんでした。現在の工程データを確認してください。";
+  }
+}
+
 function refreshPrintProfileSummary(): void {
   if (!activePrintProfile || !activePrintProfileSha256) { ui.setPrintProfileSummary(null); return; }
   const profile = activePrintProfile;
@@ -8575,6 +8832,7 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   activeSurfacePersistentCacheKeys = null;
   activeSurfaceCacheMissReport = null;
   activeLegacySurfaceCacheKey = null;
+  acceptedSurfaceSaveBinding = null;
   invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
   automaticOverhangSupportResult = null;
@@ -8975,12 +9233,18 @@ function finishSurfaceAngleDiagnosis(
   heavy: HeavyComputationHandle,
   diagnosisView: SurfaceAngleDiagnosisView = "before",
   preserveViewState?: DryWebGraphViewViewportState,
+  acceptedBinding?: FkeiSurfaceBinding | null,
 ): void {
   heavy.updateActual("Surface診断完了", 100);
   heavy.finish();
   if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
   persistFinishedSurfaceAngleDiagnosis(message);
   surfaceAngleCache = message;
+  // Retain the exact request inputs accepted for this diagnosis, including
+  // the cache-unavailable (null cacheKeys) case. The caller supplies the
+  // run-captured binding; completion must never re-read current UI settings
+  // and accidentally stamp new values onto an old result.
+  if (acceptedBinding !== undefined) acceptedSurfaceSaveBinding = acceptedBinding;
   skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
   const completedViewState = preserveViewState
     ? preserveDryWebGraphViewForCompletion(preserveViewState)
@@ -9082,6 +9346,10 @@ function recheckTargetedGridFromExactMesh(
   const expectedArtworkGraphSourceKey = artworkGraphSourceKey;
   const expectedTargetedSupportSource = targetedSupportSource;
   const expectedPaintRevision = supportPaintSession.revision;
+  // Exact recheck must keep the Surface binding accepted by the diagnosis it
+  // started from. In particular, do not replace its targetLongest/cache
+  // identity with values read from the UI when this worker completes.
+  const exactRecheckAcceptedSurfaceBinding = acceptedSurfaceSaveBinding;
   const expectedSurfaceFingerprint = currentTargetSurfaceFingerprint();
   const expectedResolution = base.resolution;
   const expectedMode = state.mode;
@@ -9274,7 +9542,13 @@ function recheckTargetedGridFromExactMesh(
     // The exact recheck result is the first completed Dry Web presentation.
     // Keep the measured post-attachment diagnosis without adopting a
     // diagnosis-specific viewport mode.
-    finishSurfaceAngleDiagnosis(message, heavy, "after", exactRecheckViewState);
+    finishSurfaceAngleDiagnosis(
+      message,
+      heavy,
+      "after",
+      exactRecheckViewState,
+      exactRecheckAcceptedSurfaceBinding,
+    );
     adoptDryWebSupportSeparation(message);
     if (expectedCanonicalCandidate
       && stage7CanonicalCandidateAdoption?.graph === expectedCanonicalCandidate.graph
@@ -9470,6 +9744,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   activeSurfacePersistentCacheKeys = null;
   activeSurfaceCacheMissReport = null;
   activeLegacySurfaceCacheKey = null;
+  acceptedSurfaceSaveBinding = null;
   surfaceAnglePersistentCacheStatus = "idle";
   surfaceWorkerLaunchCount = 0;
   invalidateSupportPaintEditingResources();
@@ -9506,6 +9781,15 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   const options = ui.getMeshOptions();
   const resolution = Math.max(16, Math.round(options.resolution));
   const internalGraph = getInternalStructureGraph();
+  // Capture the accepted diagnosis inputs at request creation. Cache keys are
+  // attached only when this run's existing lookup has settled; unavailable
+  // cache remains null. Do not reconstruct the binding from UI state at finish.
+  const surfaceRunBinding = {
+    surfaceFingerprint: currentTargetSurfaceFingerprint(),
+    resolution,
+    targetLongestMm: options.targetLongestMm,
+    angleThresholdDeg: thresholdDeg,
+  };
   const request: SurfaceAngleDiagnosisBuildRequest = {
     type: "build",
     generation,
@@ -9617,7 +9901,10 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
         refreshInternalAngleScreening(null);
         ui.setInternalStructureStatus("Surface分類完了 · 自動inside ledgerを確認してDry Web生成を押してください");
       }
-      finishSurfaceAngleDiagnosis(message, heavy);
+      finishSurfaceAngleDiagnosis(message, heavy, "before", undefined, {
+        ...surfaceRunBinding,
+        cacheKeys: activeSurfacePersistentCacheKeys,
+      });
       if (supportPaintSession.history.present.strokes.length > 0) reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present);
     } catch (error) {
       const failure = error as Error;

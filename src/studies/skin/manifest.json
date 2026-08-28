@@ -82,6 +82,14 @@
   ],
   "revisits": [
     {
+      "date": "2026-08-28",
+      "note": "実データStage 4の.fkei Save検証で、量子化によりcontact/materialが同一nodeとなりedgeIdを持てない5 targetを検出。保存用detached cloneでは、graphが証明できないconnected事実だけをunresolvedへfail-closed正規化し、connectedTargetsを既存component factsから再計算する。Runtime/Graph/Worker/currentness/schemaは変更しない。"
+    },
+    {
+      "date": "2026-08-28",
+      "note": "`.fkei Save`を有効化。現在のShape履歴と既存のcurrent identityへ束縛された後工程成果だけをdetached captureし、captureFkei→serializeFkei→parseFkeiDocumentの自己検証後にダウンロードする。stale/running/error/downstream-mismatched成果は省略し、completedStageは連続prefixへ低下（現行の復元契約上限はStage 4で、Stage 5–7は主張しない）。.fkei Open/復元/Worker/診断/生成/cache書込みは未実装・未実行。"
+    },
+    {
       "date": "2026-08-27",
       "note": "Stage 7赤面→Dry Web補強候補 checkpoint: current exact red-face locatorのcentroidから、current targetedGridの既存edge segment最近傍点への決定的なstraight-line previewを赤面順に最大128本表示。cyanはpreview pathのみで、Base containment、collision、diameter、strength、mesh union、printabilityは未検証、Graph・geometry・diagnosis・reinforcement・出力は不変。作者の言葉「この工程は高速化は後回しで次の工程に進めたい」と、承認前に各赤面の接続先を視覚確認する次の問いをREADMEへ記録。"
     },
@@ -888,6 +896,10 @@
     {
       "date": "2026-08-28",
       "note": "Artwork Graph display control placement: move the existing `Artwork Graphを3D表示` checkbox from the Stage 3 Workflow card to the left display-tools pane while keeping snapshot creation, current/stale status, node facts, legend, and explanation in Stage 3. The same callback and presentation-only lifecycle remain unchanged; no Graph, geometry, history, recipe, diagnosis, or output behavior changes."
+    },
+    {
+      "date": "2026-08-28",
+      "note": ".fkei real-data fail-closed validation: a 38-patch Surface48 / 2,389-target Stage 4 run exposed five target self-contacts without graph edges and 31 multi-contact patches whose contact nodes span graph components. Save-only detached self-contact evidence is lowered to unresolved; when the immutable validator still cannot represent the current Dry Web topology, Save omits only Dry Web, lowers completedStage to 3, and preserves independently current Shape, Paint, Artwork Graph, and Surface instead of inventing edges or rewriting contact meaning."
     }
   ]
 }
