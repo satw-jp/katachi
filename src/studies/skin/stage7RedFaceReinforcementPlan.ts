@@ -25,6 +25,26 @@ export interface Stage7RedFaceReinforcementPlanInput {
 }
 
 export interface Stage7RedFaceReinforcementPlanFacts {
+  readonly planSource: "red-face-reinforcement" | "explicit-topology-repair";
+  readonly topologyEvidence?: {
+    readonly resolution: number;
+    readonly baselineComponents: number;
+    readonly provisionalComponents: number;
+    readonly closed: boolean;
+    readonly openEdges: number;
+    readonly nonManifoldEdges: number;
+    readonly degenerateTriangles: number;
+    readonly nonFiniteTriangles: number;
+    readonly windingAfterRepair: number;
+    readonly baselineUnsupportedNodes: number;
+    readonly provisionalUnsupportedNodes: number;
+    readonly baselineUnsupportedEdges: number;
+    readonly provisionalUnsupportedEdges: number;
+    readonly baselineOverlongBridges: number;
+    readonly provisionalOverlongBridges: number;
+    readonly baselineMaxObservedBridgeMm: number;
+    readonly provisionalMaxObservedBridgeMm: number;
+  };
   readonly baseNodeCount: number;
   readonly provisionalNodeCount: number;
   readonly baseEdgeCount: number;
@@ -63,6 +83,7 @@ interface JunctionRecord {
 }
 
 const EMPTY_FACTS = (targetDiameterMm: number, reinforcementRadius: number): Stage7RedFaceReinforcementPlanFacts => Object.freeze({
+  planSource: "red-face-reinforcement",
   baseNodeCount: 0,
   provisionalNodeCount: 0,
   baseEdgeCount: 0,
@@ -388,6 +409,7 @@ export function createStage7RedFaceReinforcementPlan(
     gridEdgeCount: provisionalEdges.length,
   };
   const facts = immutableFacts({
+    planSource: "red-face-reinforcement",
     baseNodeCount: input.graph.nodes.length,
     provisionalNodeCount: provisionalNodes.length,
     baseEdgeCount: input.graph.edges.length,

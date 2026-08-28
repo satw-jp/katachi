@@ -900,6 +900,10 @@
     {
       "date": "2026-08-28",
       "note": ".fkei real-data fail-closed validation: a 38-patch Surface48 / 2,389-target Stage 4 run exposed five target self-contacts without graph edges and 31 multi-contact patches whose contact nodes span graph components. Save-only detached self-contact evidence is lowered to unresolved; when the immutable validator still cannot represent the current Dry Web topology, Save omits only Dry Web, lowers completedStage to 3, and preserves independently current Shape, Paint, Artwork Graph, and Surface instead of inventing edges or rewriting contact meaning."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 explicit Patch 6 topology repair adapter: register only the read-only-validated fixed 4-node/3-edge candidate as an independent existing Stage7RedFaceReinforcementPlan clone. The binding captures canonical Graph, Surface, Dry Web preview, Artwork Graph, target source, Paint revision, fingerprint, resolution, mode, support settings, and print scale identities; any drift fails closed. The existing provisional exact comparison, author approval, canonical adoption, and undo remain the sole transition path. No generic Graph editor, search, radius change, Stage 8, schema, output, or direct canonical mutation path was added."
     }
   ]
 }

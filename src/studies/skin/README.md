@@ -4002,3 +4002,9 @@ current exact baselineのbefore/after/mitigated triangle soupをWorker境界でc
 作者の言葉を原文のまま記録する: `仮Graphで再診断と Dry Web付加後を再診断 まだかなり時間がかかっているな`
 
 exact reachabilityの各face queryで作っていた候補Set・配列化・sortを、compile単位のgeneration stampで重複抑制する。AABBのslack、point-to-segment判定、global/reference fallback、progress、diagnosis booleanは変えず、同じcompile内の繰り返しqueryだけのallocationを減らす。index自体はcompileごとに再構築され、cross-runのpersistent index/cache reuseではない。bucket traversal順が変わるためruntime-only statsのexact check数は順序依存になり得るが、結果の分類とcanonical stateは変わらない。
+
+## Observation Stage 7 explicit Patch 6 topology repair adapter（2026-08-28）
+
+作者の問いを原文のまま記録する: `既にread-only検証済みのPatch 6 topology repair候補を、既存のStage 7正式経路へ登録する最小アダプターを実装してください。`
+
+既知の4 node / 3 edgeだけを、current canonical Graphの決定的な次IDで独立cloneへ追加し、既存のStage 7 provisional planとして扱う。登録時のGraph object、Surface diagnosis、Dry Web preview、Artwork Graph、target source、Paint revision、Surface fingerprint、resolution、mode、support settings、print scaleをidentity境界として保持し、どれかが変わればplanと比較結果をfail closedで破棄する。read-only resolution 128事前検証のtopology・unsupported・bridge比較はplan事実として明示し、既存exact provisional比較がcurrentになったとき同じ欄でSurface teal/orange/redと併記する。plan作成時はcanonical Graphを変更せず、その後のexact provisional比較、作者承認、canonical adoption、undoは既存経路だけを使う。汎用Graph editor、任意座標入力、repair探索、radius変更、Stage 8、出力は追加していない。

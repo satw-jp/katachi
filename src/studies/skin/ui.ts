@@ -154,6 +154,7 @@ export interface UiCallbacks {
   onSetDryWebRedFaceDryWebCandidateVisible: (visible: boolean) => void;
   /** Stage 7 provisional topology plan is presentation-only. */
   onBuildDryWebRedFaceReinforcementPlan: () => void;
+  onBuildPatch6ExplicitTopologyRepairPlan: () => void;
   onDiscardDryWebRedFaceReinforcementPlan: () => void;
   /** Stage 7 provisional graph exact comparison is presentation-only. */
   onRecheckDryWebRedFaceReinforcementPlan: () => void;
@@ -392,6 +393,11 @@ export interface UiHandles {
       reason: string;
       previewedCandidateCount: number;
       totalRedFaceCount: number;
+    };
+    explicitTopologyRepair: {
+      available: boolean;
+      current: boolean;
+      reason: string;
     };
     redFaceReinforcementComparison: Stage7ProvisionalRecheckPresentation;
     redFaceProvisionalAdoptionGate: Stage7ProvisionalAdoptionGatePresentation;
@@ -2305,6 +2311,11 @@ export function buildUi(
   dryWebRedFaceReinforcementPlanBuild.textContent = "補強候補を仮Graphへ反映";
   dryWebRedFaceReinforcementPlanBuild.disabled = true;
   dryWebRedFaceReinforcementPlanBuild.onclick = () => callbacks.onBuildDryWebRedFaceReinforcementPlan();
+  const dryWebPatch6ExplicitTopologyRepairPlanBuild = document.createElement("button");
+  dryWebPatch6ExplicitTopologyRepairPlanBuild.type = "button";
+  dryWebPatch6ExplicitTopologyRepairPlanBuild.textContent = "孤立Patch 6の接続候補を仮Graphへ反映";
+  dryWebPatch6ExplicitTopologyRepairPlanBuild.disabled = true;
+  dryWebPatch6ExplicitTopologyRepairPlanBuild.onclick = () => callbacks.onBuildPatch6ExplicitTopologyRepairPlan();
   const dryWebRedFaceReinforcementPlanDiscard = document.createElement("button");
   dryWebRedFaceReinforcementPlanDiscard.type = "button";
   dryWebRedFaceReinforcementPlanDiscard.textContent = "仮Graph計画を破棄";
@@ -2419,6 +2430,7 @@ export function buildUi(
     dryWebRedFaceLocatorShow,
     dryWebRedFaceDryWebCandidateShow,
     dryWebRedFaceReinforcementPlanBuild,
+    dryWebPatch6ExplicitTopologyRepairPlanBuild,
     dryWebRedFaceReinforcementPlanDiscard,
     dryWebSupportSeparationRestore,
   );
@@ -4624,6 +4636,8 @@ export function buildUi(
       dryWebRedFaceLocatorShow.disabled = !state.redFaceLocator.enabled || redFaceLocatorVisible || redFaceDryWebCandidateVisible;
       dryWebRedFaceDryWebCandidateShow.disabled = !state.redFaceDryWebCandidate.enabled || redFaceDryWebCandidateVisible;
       dryWebRedFaceReinforcementPlanBuild.disabled = !state.redFaceReinforcementPlan.available;
+      dryWebPatch6ExplicitTopologyRepairPlanBuild.disabled = !state.explicitTopologyRepair.available;
+      dryWebPatch6ExplicitTopologyRepairPlanBuild.title = state.explicitTopologyRepair.reason;
       dryWebRedFaceReinforcementPlanDiscard.disabled = !state.redFaceReinforcementPlan.current;
       dryWebSupportSeparationRestore.disabled = !state.available || !(state.visible || redFaceLocatorVisible || redFaceDryWebCandidateVisible);
       dryWebSupportSeparationCounts.textContent = state.available
@@ -4634,8 +4648,14 @@ export function buildUi(
         ? `${state.redFaceDryWebCandidate.reason} · 長さ min/mean/max ${[state.redFaceDryWebCandidate.minLength, state.redFaceDryWebCandidate.meanLength, state.redFaceDryWebCandidate.maxLength].map((length) => length === null ? "--" : length.toFixed(3)).join(" / ")}`
         : state.redFaceDryWebCandidate.reason;
       const planFacts = state.redFaceReinforcementPlan.facts;
+      const topologyEvidence = planFacts?.topologyEvidence;
+      const topologyEvidenceText = topologyEvidence
+        ? `read-only事前検証 r${topologyEvidence.resolution} · component ${topologyEvidence.baselineComponents}→${topologyEvidence.provisionalComponents} · closed ${topologyEvidence.closed ? "yes" : "no"} / open ${topologyEvidence.openEdges} / nonManifold ${topologyEvidence.nonManifoldEdges} / degenerate ${topologyEvidence.degenerateTriangles} / nonFinite ${topologyEvidence.nonFiniteTriangles} / winding修復後 ${topologyEvidence.windingAfterRepair} · unsupported node ${topologyEvidence.baselineUnsupportedNodes}→${topologyEvidence.provisionalUnsupportedNodes} / edge ${topologyEvidence.baselineUnsupportedEdges}→${topologyEvidence.provisionalUnsupportedEdges} · overlong ${topologyEvidence.baselineOverlongBridges}→${topologyEvidence.provisionalOverlongBridges} · max bridge ${topologyEvidence.provisionalMaxObservedBridgeMm.toFixed(3)} mm`
+        : null;
       dryWebRedFaceReinforcementPlanStatus.textContent = planFacts
-        ? `base ${planFacts.baseNodeCount} node → provisional ${planFacts.provisionalNodeCount} node / base ${planFacts.baseEdgeCount} edge → provisional ${planFacts.provisionalEdgeCount} edge · split ${planFacts.sourceEdgesSplit} · junction ${planFacts.junctionNodesAdded} · red endpoint ${planFacts.redEndpointNodesAdded} · reinforcement ${planFacts.reinforcementEdgesAdded} · preview ${state.redFaceReinforcementPlan.previewedCandidateCount} / total red ${state.redFaceReinforcementPlan.totalRedFaceCount} · target ${planFacts.targetDiameterMm.toFixed(3)} mm / radius ${planFacts.reinforcementRadius.toFixed(6)} · 仮Graph・未診断`
+        ? planFacts.planSource === "explicit-topology-repair"
+          ? `explicit topology repair · base ${planFacts.baseNodeCount} node → provisional ${planFacts.provisionalNodeCount} node / base ${planFacts.baseEdgeCount} edge → provisional ${planFacts.provisionalEdgeCount} edge · new node ${planFacts.provisionalNodeCount - planFacts.baseNodeCount} / edge ${planFacts.reinforcementEdgesAdded} · radius ${planFacts.reinforcementRadius.toFixed(6)} · ${topologyEvidenceText ?? "topology事前検証なし"} · canonical未変更・exact比較待ち`
+          : `base ${planFacts.baseNodeCount} node → provisional ${planFacts.provisionalNodeCount} node / base ${planFacts.baseEdgeCount} edge → provisional ${planFacts.provisionalEdgeCount} edge · split ${planFacts.sourceEdgesSplit} · junction ${planFacts.junctionNodesAdded} · red endpoint ${planFacts.redEndpointNodesAdded} · reinforcement ${planFacts.reinforcementEdgesAdded} · preview ${state.redFaceReinforcementPlan.previewedCandidateCount} / total red ${state.redFaceReinforcementPlan.totalRedFaceCount} · target ${planFacts.targetDiameterMm.toFixed(3)} mm / radius ${planFacts.reinforcementRadius.toFixed(6)} · 仮Graph・未診断`
         : state.redFaceReinforcementPlan.reason;
       dryWebRedFaceReinforcementPlanStatus.dataset.state = planFacts ? "current" : "missing";
       const comparison = state.redFaceReinforcementComparison;
@@ -4656,7 +4676,8 @@ export function buildUi(
           + ` / orange ${comparison.baseline.orange}→${comparison.provisional.orange}`
           + ` / red ${comparison.baseline.red}→${comparison.provisional.red}`
           + ` · Δ teal ${signed(comparison.deltas.teal)} / orange ${signed(comparison.deltas.orange)} / red ${signed(comparison.deltas.red)}`
-          + ` · red reduction ${signed(comparison.redReduction)} · ${comparison.status} · ${elapsed}`;
+          + ` · red reduction ${signed(comparison.redReduction)} · ${comparison.status} · ${elapsed}`
+          + (topologyEvidenceText ? ` · ${topologyEvidenceText}` : "");
       } else {
         const elapsed = comparison.elapsedSeconds === null ? "" : ` · 経過 ${(comparison.elapsedSeconds).toFixed(1)}秒`;
         dryWebRedFaceReinforcementComparisonStatus.textContent = comparison.state === "running"
