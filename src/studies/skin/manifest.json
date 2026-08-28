@@ -83,6 +83,14 @@
   "revisits": [
     {
       "date": "2026-08-28",
+      "note": "`.fkei Open`の同一ファイル再選択が初期状態のままになる配線を修正。Open専用inputをpicker直前にresetし、legacy履歴Importと分離した単一change handlerのまま、picker-opened→file-selected→file-read→parse→Restore Plan→Atomic apply→UI sync→failedを上部statusとJSON console logへ記録する。実ファイル103,064,191 bytesでStage 3（history 3 / host 12 / patch 38 / Surface 48・80mm・45° / revisions 1・4 / Paint inside / Graph 38 / inside 2389）をexact gateの変更なしに復元し、Dry Web missing、Worker 0、console error 0を確認。"
+    },
+    {
+      "date": "2026-08-28",
+      "note": "`.fkei Open`のStage 1〜3限定契約を追加。parse→既存Shape replay→detached Restore Plan全体検証後だけAtomic applyし、Shape fingerprint/patchSetRevision、Surface binding、Support Paint revision、Artwork Graph sourceKeyをexact照合する。Plan作成はID counterを退避復帰しDOM/renderer/Worker/cache/Runtime不変。Open後はDry Web/exact/Stage 7 provisional/Stage 8を必ずmissingにし、schema・Stage 4・cache・3MFは変更しない。"
+    },
+    {
+      "date": "2026-08-28",
       "note": "実データStage 4の.fkei Save検証で、量子化によりcontact/materialが同一nodeとなりedgeIdを持てない5 targetを検出。保存用detached cloneでは、graphが証明できないconnected事実だけをunresolvedへfail-closed正規化し、connectedTargetsを既存component factsから再計算する。Runtime/Graph/Worker/currentness/schemaは変更しない。"
     },
     {

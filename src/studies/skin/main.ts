@@ -22,6 +22,7 @@ import {
   parseRecipe,
   record,
   replay,
+  syncReplayIdCounters,
   serializeRecipe,
   undoLastHistoryEntry,
 } from "./history.ts";
@@ -181,12 +182,24 @@ import {
   saveFkeiRuntime,
   type FkeiRuntimeSaveFacts,
 } from "./fkeiRuntimeSave.ts";
-import type {
-  FkeiDryWebArtifact,
-  FkeiPrintProfileArtifact,
-  FkeiSupportPaintArtifact,
-  FkeiSurfaceBinding,
-  FkeiSurfaceArtifact,
+import {
+  applyFkeiRestorePlanAtomically,
+  createFkeiRestorePlan,
+  type FkeiRestorePlan,
+} from "./fkeiRuntimeRestore.ts";
+import {
+  fkeiArtworkGraphPatches,
+  fkeiArtworkGraphSourceKey,
+  fkeiShapeFingerprint,
+} from "./fkeiRestoreIdentity.ts";
+import {
+  parseFkeiDocument,
+  type FkeiDocument,
+  type FkeiDryWebArtifact,
+  type FkeiPrintProfileArtifact,
+  type FkeiSupportPaintArtifact,
+  type FkeiSurfaceBinding,
+  type FkeiSurfaceArtifact,
 } from "./fkei.ts";
 import {
   applySupportPaintToPolicyResult,
@@ -389,10 +402,14 @@ projectActions.className = "skin-project-actions";
 projectActions.setAttribute("aria-label", "Project file and history actions");
 const projectOpenButton = document.createElement("button");
 projectOpenButton.type = "button";
-projectOpenButton.className = "skin-project-action is-placeholder";
+projectOpenButton.className = "skin-project-action";
 projectOpenButton.textContent = ".fkei Open";
-projectOpenButton.disabled = true;
-projectOpenButton.title = ".fkei Open is reserved for the workflow file format task";
+projectOpenButton.disabled = false;
+projectOpenButton.title = "Stage 1〜3のSKIN状態を.fkeiから開く";
+const projectOpenInput = document.createElement("input");
+projectOpenInput.type = "file";
+projectOpenInput.accept = ".fkei,application/json,application/octet-stream";
+projectOpenInput.hidden = true;
 const projectSaveButton = document.createElement("button");
 projectSaveButton.type = "button";
 projectSaveButton.className = "skin-project-action";
@@ -422,7 +439,7 @@ projectExportButton.className = "skin-project-action is-placeholder";
 projectExportButton.textContent = "Export";
 projectExportButton.disabled = true;
 projectExportButton.title = "Project export is reserved for the export task";
-projectActions.append(projectOpenButton, projectSaveButton, projectUndoButton, projectRedoButton, projectExportButton);
+projectActions.append(projectOpenButton, projectOpenInput, projectSaveButton, projectUndoButton, projectRedoButton, projectExportButton);
 const projectMeta = document.createElement("div");
 projectMeta.className = "skin-project-meta";
 projectMeta.setAttribute("aria-live", "polite");
@@ -1073,29 +1090,12 @@ let lastContactReport: ContactReport | null = null;
  * handing the facts to the existing graph factories. Defined facts and
  * nested point/motif data are copied unchanged.
  */
-function omitUndefinedGraphProperties<T extends object>(value: T): T {
-  const compact: Record<string, unknown> = {};
-  for (const [key, current] of Object.entries(value)) {
-    if (current !== undefined) compact[key] = current;
-  }
-  return compact as T;
-}
-
 function currentGraphPatches(): Patch[] {
-  return state.patches.map((patch) => omitUndefinedGraphProperties({
-    ...patch,
-    motifParams: patch.motifParams === undefined
-      ? undefined
-      : omitUndefinedGraphProperties({ ...patch.motifParams }),
-    points: patch.points.map((point) => omitUndefinedGraphProperties({ ...point })),
-  } as Patch));
+  return fkeiArtworkGraphPatches(state);
 }
 
 function currentArtworkGraphSourceKey(): string {
-  return canonicalStringify({
-    patchSetRevision: state.patchSetRevision,
-    patches: currentGraphPatches(),
-  });
+  return fkeiArtworkGraphSourceKey(state);
 }
 
 function currentDryWebArtworkGraphBoundary(): DryWebArtworkGraphBoundaryDecision {
@@ -2426,21 +2426,7 @@ skinRenderer.resize();
 // Defer model/renderer initialization until after the browser has painted the interactive shell.
 
 function currentTargetSurfaceFingerprint(): string {
-  return JSON.stringify({
-    mode: state.mode,
-    hostK: state.hostParams.k,
-    host: state.host.map((ball) => [ball.x, ball.y, ball.z, ball.r]),
-    thickness: state.skinParams.thickness,
-    roundK: state.skinParams.roundK,
-    coinBulge: state.skinParams.coinBulge,
-    coinBulgeBalance: state.skinParams.coinBulgeBalance,
-    quadMeshJoinWidth: state.skinParams.quadMeshJoinWidth,
-    patches: state.patches.map((patch) => [
-      patch.id,
-      patch.shape,
-      patch.points.map((point) => [point.x, point.y, point.z, point.r, point.role ?? ""]),
-    ]),
-  });
+  return fkeiShapeFingerprint(state);
 }
 
 function splitTriangleSoup(positions: Float32Array): Float32Array[] {
@@ -8280,6 +8266,311 @@ function saveCurrentFkeiProject(): void {
     projectMeta.textContent = ".fkeiを保存できませんでした。現在の工程データを確認してください。";
   }
 }
+
+type FkeiOpenStage =
+  | "picker-opened"
+  | "file-selected"
+  | "file-read-started"
+  | "file-read-complete"
+  | "document-parsed"
+  | "restore-plan-created"
+  | "restore-plan-validated"
+  | "runtime-applied"
+  | "ui-synchronized"
+  | "failed";
+
+const FKEI_OPEN_STAGE_MESSAGE: Readonly<Record<FkeiOpenStage, string>> = {
+  "picker-opened": ".fkeiを選択してください",
+  "file-selected": ".fkeiを読み込んでいます",
+  "file-read-started": ".fkeiを読み込んでいます",
+  "file-read-complete": ".fkeiを検証しています",
+  "document-parsed": ".fkeiを検証しています",
+  "restore-plan-created": ".fkeiを検証しています",
+  "restore-plan-validated": ".fkeiを反映しています",
+  "runtime-applied": ".fkeiを画面へ反映しています",
+  "ui-synchronized": ".fkei Open完了",
+  "failed": ".fkeiを開けませんでした。現在の工程データを確認してください。",
+};
+
+let activeFkeiOpenAttempt = 0;
+
+function reportFkeiOpenStage(
+  attempt: number,
+  stage: FkeiOpenStage,
+  detail: Readonly<Record<string, unknown>> = {},
+  statusText = FKEI_OPEN_STAGE_MESSAGE[stage],
+): void {
+  console.info("[SKIN .fkei Open stage] " + JSON.stringify({ attempt, stage, ...detail }));
+  projectMeta.textContent = statusText;
+}
+
+projectOpenButton.onclick = () => {
+  activeFkeiOpenAttempt += 1;
+  // Reset immediately before opening the picker so selecting the same file
+  // again always produces a change event. This is a dedicated .fkei input;
+  // the legacy Shape History import input is not involved.
+  projectOpenInput.value = "";
+  reportFkeiOpenStage(activeFkeiOpenAttempt, "picker-opened");
+  projectOpenInput.click();
+};
+
+type FkeiOpenRuntimeSnapshot = {
+  readonly history: SkinHistoryEntry[];
+  readonly state: typeof state;
+  readonly artworkGraphSnapshot: ArtworkGraph | null;
+  readonly artworkGraphSourceKey: string | null;
+  readonly artworkGraphLastError: string | null;
+  readonly surfaceDiagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null;
+  readonly acceptedSurfaceSaveBinding: FkeiSurfaceBinding | null;
+  readonly activeSurfacePersistentCacheKeys: SurfacePersistentCacheKeys | null;
+  readonly automaticOverhangSupportResult: OverhangSupportPolicyResult | null;
+  readonly overhangSupportResult: OverhangSupportPolicyResult | null;
+  readonly supportPaintSession: typeof supportPaintSession;
+  readonly supportPaintMode: SupportPaintMode;
+  readonly supportPaintRadiusMm: number;
+  readonly supportPaintBackfaces: boolean;
+  readonly supportPaintEnabled: boolean;
+  readonly phaseADryWebPreview: PhaseADryWebPreviewState | null;
+  readonly targetedSupportSource: TargetedSupportSourceState | null;
+  readonly internalStructureGraph: InternalStructureGraph | null;
+};
+
+function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
+  return {
+    history,
+    state,
+    artworkGraphSnapshot,
+    artworkGraphSourceKey,
+    artworkGraphLastError,
+    surfaceDiagnosis: surfaceAngleCache,
+    acceptedSurfaceSaveBinding,
+    activeSurfacePersistentCacheKeys,
+    automaticOverhangSupportResult,
+    overhangSupportResult,
+    supportPaintSession,
+    supportPaintMode,
+    supportPaintRadiusMm,
+    supportPaintBackfaces,
+    supportPaintEnabled,
+    phaseADryWebPreview,
+    targetedSupportSource,
+    internalStructureGraph,
+  };
+}
+
+function cancelWorkersForFkeiOpen(): void {
+  cancelPartitionBuild();
+  cancelNPartitionBuild();
+  cancelPreviewMeshBuild(false);
+  cancelMeshExport(false);
+  cancelOpeningMap(false);
+  cancelBambu3mfExport(false);
+  invalidateInternalPrintGate(".fkeiを開いたため再判定が必要です");
+  invalidateSurfaceAngleDiagnosis(".fkeiを開いています");
+  if (activeGaugeWorker) {
+    activeGaugeWorker.terminate();
+    activeGaugeWorker = null;
+    gaugeGeneration++;
+  }
+}
+
+function replaceRuntimeWithFkeiPlan(plan: FkeiRestorePlan): void {
+  applyHistoryEntries([...plan.history], plan.shapeState);
+  syncReplayIdCounters(plan.shapeState);
+  importedRecipeText = serializeRecipe([...plan.history]);
+  importedRecipeFilename = null;
+  importedRecipeSha256 = null;
+
+  artworkGraphSnapshot = plan.artworkGraph?.snapshot ?? null;
+  artworkGraphSourceKey = plan.artworkGraph?.sourceKey ?? null;
+  artworkGraphLastError = null;
+  artworkGraphOverlayEnabled = false;
+
+  supportPaintSession = plan.supportPaint
+    ? { revision: plan.supportPaint.revision, history: plan.supportPaint.history, activeStroke: null }
+    : createSupportPaintSession();
+  supportPaintMode = plan.supportPaint?.mode ?? "inside";
+  supportPaintRadiusMm = plan.supportPaint?.radiusMm ?? 6;
+  supportPaintBackfaces = plan.supportPaint?.paintBackfaces ?? false;
+  supportPaintEnabled = Boolean(plan.supportPaint?.enabled && plan.surface);
+  supportPaintDraftSavedAt = null;
+  supportPaintDraftDirty = false;
+  supportPaintSurfaceCache = null;
+  resetSupportPaintUndoJournal();
+
+  surfaceAngleCache = plan.surface?.diagnosis ?? null;
+  automaticOverhangSupportResult = plan.surface?.automaticSupportResult ?? null;
+  overhangSupportResult = plan.surface?.effectiveSupportResult ?? null;
+  acceptedSurfaceSaveBinding = plan.surface?.binding ?? null;
+  activeSurfacePersistentCacheKeys = plan.surface?.binding.cacheKeys ?? null;
+  surfaceAnglePersistentCacheStatus = "idle";
+  if (plan.surface) {
+    ui.setMeshOptions({
+      resolution: plan.surface.binding.resolution,
+      targetLongestMm: plan.surface.binding.targetLongestMm,
+    });
+    ui.setSurfaceAngleThreshold(plan.surface.binding.angleThresholdDeg);
+  }
+
+  // The Stage 1–3 Open contract deliberately ends here. No old cache/runtime
+  // downstream object can survive, and no missing Stage 4 fact is derived.
+  phaseADryWebPreview = null;
+  targetedSupportSource = null;
+  internalStructureGraph = null;
+  internalStructureFingerprint = "";
+  clearStage7CanonicalCandidateAdoption();
+  clearStage7ProvisionalRecheck(".fkei OpenではStage 7を復元しません", "missing");
+  stage7RedFaceReinforcementPlan = null;
+  stage7RedFaceReinforcementPlanMessage = null;
+  stage7CanonicalCandidateAdoptionUndo = null;
+  skinRenderer.setInternalStructure(null);
+  refreshInternalAngleScreening(null);
+  syncPhaseASupportPreviewAvailability(null);
+}
+
+function restoreFkeiOpenRuntimeSnapshot(snapshot: FkeiOpenRuntimeSnapshot): void {
+  history = snapshot.history;
+  state = snapshot.state;
+  syncReplayIdCounters(state);
+  artworkGraphSnapshot = snapshot.artworkGraphSnapshot;
+  artworkGraphSourceKey = snapshot.artworkGraphSourceKey;
+  artworkGraphLastError = snapshot.artworkGraphLastError;
+  surfaceAngleCache = snapshot.surfaceDiagnosis;
+  acceptedSurfaceSaveBinding = snapshot.acceptedSurfaceSaveBinding;
+  activeSurfacePersistentCacheKeys = snapshot.activeSurfacePersistentCacheKeys;
+  automaticOverhangSupportResult = snapshot.automaticOverhangSupportResult;
+  overhangSupportResult = snapshot.overhangSupportResult;
+  supportPaintSession = snapshot.supportPaintSession;
+  supportPaintMode = snapshot.supportPaintMode;
+  supportPaintRadiusMm = snapshot.supportPaintRadiusMm;
+  supportPaintBackfaces = snapshot.supportPaintBackfaces;
+  supportPaintEnabled = snapshot.supportPaintEnabled;
+  phaseADryWebPreview = snapshot.phaseADryWebPreview;
+  targetedSupportSource = snapshot.targetedSupportSource;
+  internalStructureGraph = snapshot.internalStructureGraph;
+}
+
+function redrawFkeiOpenRuntime(): void {
+  ui.syncHostParams(state.hostParams);
+  ui.syncSkinParams(state.skinParams);
+  ui.setMode(state.mode);
+  syncUndoHistory();
+  if (surfaceAngleCache) {
+    skinRenderer.setMeshOverlayBuffers(surfaceAngleCache.basePositions, surfaceAngleCache.baseNormals);
+    viewMode = "mesh";
+    skinRenderer.setViewMode(viewMode);
+    ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+    showSurfaceAngleDiagnosisView("before");
+    refreshOverhangSupportSiteOverlay();
+    ui.setSurfaceAngleDiagnosisRunning(false);
+    ui.setSurfaceAngleDiagnosisStatus(
+      `.fkeiからSurfaceを復元 · 解像度${surfaceAngleCache.resolution} · 閾値${surfaceAngleCache.metrics.thresholdDeg.toFixed(0)}° · Worker未起動`,
+      true,
+    );
+  } else {
+    skinRenderer.setMeshOverlay(null);
+    skinRenderer.clearSurfaceAngleOverlay();
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    ui.setSurfaceAngleDiagnosisRunning(false);
+    ui.setSurfaceAngleDiagnosisStatus(".fkei Stage 1からShapeだけを復元しました");
+  }
+  if (supportPaintSession.history.present.strokes.length > 0 || supportPaintSession.revision > 0) {
+    refreshSupportPaintUi(`.fkeiからSupport Paint revision ${supportPaintSession.revision}を復元しました`);
+  } else {
+    refreshSupportPaintUi(".fkeiのSupport Paint事実を復元しました");
+  }
+  syncArtworkGraphStatus();
+  refreshDryWebActions(".fkei Open完了 · Dry Webは未生成です");
+  refreshBottomStatusPane();
+  render();
+}
+
+async function openFkeiProject(file: File): Promise<void> {
+  const attempt = activeFkeiOpenAttempt;
+  let lastCompletedStage: FkeiOpenStage = "file-selected";
+  projectOpenButton.disabled = true;
+  try {
+    reportFkeiOpenStage(attempt, "file-read-started", { name: file.name, size: file.size, type: file.type });
+    const text = await file.text();
+    lastCompletedStage = "file-read-complete";
+    reportFkeiOpenStage(attempt, lastCompletedStage, { name: file.name, size: file.size, textLength: text.length });
+
+    const document: FkeiDocument = parseFkeiDocument(text);
+    lastCompletedStage = "document-parsed";
+    reportFkeiOpenStage(attempt, lastCompletedStage, {
+      completedStage: document.completedStage,
+      historyCount: document.shape.entries.length,
+    });
+
+    const plan = createFkeiRestorePlan(document);
+    lastCompletedStage = "restore-plan-created";
+    reportFkeiOpenStage(attempt, lastCompletedStage, {
+      completedStage: plan.completedStage,
+      historyCount: plan.history.length,
+      hostCount: plan.shapeState.host.length,
+      patchCount: plan.shapeState.patches.length,
+      patchSetRevision: plan.bindings.patchSetRevision,
+      paintRevision: plan.bindings.paintRevision,
+      supportPaintMode: plan.supportPaint?.mode ?? null,
+      artworkGraphNodeCount: plan.artworkGraph?.snapshot.surfaceDraft.nodes.length ?? null,
+      insideTargetCount: plan.surface?.effectiveSupportResult.counts.inside ?? null,
+      surface: plan.surface ? {
+        resolution: plan.surface.binding.resolution,
+        targetLongestMm: plan.surface.binding.targetLongestMm,
+        angleThresholdDeg: plan.surface.binding.angleThresholdDeg,
+      } : null,
+    });
+    lastCompletedStage = "restore-plan-validated";
+    reportFkeiOpenStage(attempt, lastCompletedStage);
+
+    applyFkeiRestorePlanAtomically(plan, {
+      capture: captureFkeiOpenRuntimeSnapshot,
+      cancelWorkers: cancelWorkersForFkeiOpen,
+      replace: replaceRuntimeWithFkeiPlan,
+      restore: restoreFkeiOpenRuntimeSnapshot,
+      redraw: redrawFkeiOpenRuntime,
+    });
+    lastCompletedStage = "runtime-applied";
+    reportFkeiOpenStage(attempt, lastCompletedStage);
+    lastCompletedStage = "ui-synchronized";
+    reportFkeiOpenStage(
+      attempt,
+      lastCompletedStage,
+      { completedStage: plan.completedStage, fileName: file.name },
+      `.fkei Open完了 · Stage ${plan.completedStage} · Dry Web未生成 · ${file.name}`,
+    );
+  } catch (error) {
+    console.error("[SKIN .fkei Open] failed", { attempt, lastCompletedStage, error });
+    reportFkeiOpenStage(
+      attempt,
+      "failed",
+      { lastCompletedStage, errorName: error instanceof Error ? error.name : typeof error },
+      ".fkeiを開けませんでした。現在の工程データを確認してください。",
+    );
+  } finally {
+    projectOpenInput.value = "";
+    projectOpenButton.disabled = false;
+  }
+}
+
+projectOpenInput.onchange = () => {
+  const file = projectOpenInput.files?.[0];
+  if (!file) {
+    console.info("[SKIN .fkei Open stage] " + JSON.stringify({
+      attempt: activeFkeiOpenAttempt,
+      stage: "file-selected",
+      file: null,
+    }));
+    projectMeta.textContent = ".fkei Openをキャンセルしました";
+    return;
+  }
+  reportFkeiOpenStage(activeFkeiOpenAttempt, "file-selected", {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+  });
+  void openFkeiProject(file);
+};
 
 function refreshPrintProfileSummary(): void {
   if (!activePrintProfile || !activePrintProfileSha256) { ui.setPrintProfileSummary(null); return; }

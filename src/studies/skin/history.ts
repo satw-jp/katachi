@@ -18,14 +18,14 @@
 // ---------------------------------------------------------------------------
 
 import type { Ball, FieldParams } from "../cloud-sculpt/field.ts";
-import { DEFAULT_FIELD_PARAMS, growBalls, resetBallIdCounter } from "../cloud-sculpt/field.ts";
+import { currentBallIdCounter, DEFAULT_FIELD_PARAMS, growBalls, resetBallIdCounter } from "../cloud-sculpt/field.ts";
 
 /** Preserve the v0.48 SKIN opening host without changing S1 current defaults. */
 export const DEFAULT_SKIN_HOST_PARAMS: FieldParams = { ...DEFAULT_FIELD_PARAMS, seed: "katachi" };
 import type { HistoryEntry as S1HistoryEntry } from "../cloud-sculpt/history.ts";
 import { parseRecipe as parseS1Recipe, replay as replayS1 } from "../cloud-sculpt/history.ts";
 import type { MotifShapeParams, Patch, SkinMode, SkinParams } from "./field.ts";
-import { DEFAULT_SKIN_PARAMS, resetPatchIdCounter } from "./field.ts";
+import { currentPatchIdCounter, DEFAULT_SKIN_PARAMS, resetPatchIdCounter } from "./field.ts";
 import { editEligibility, isPatchEditIntent, isValidReplacementPatch, samePatchStructure, type PatchEditIntent } from "./elementTransform.ts";
 import {
   pruneAnnotations,
@@ -404,6 +404,28 @@ export function replay(entries: SkinHistoryEntry[]): SkinState {
   const maxPatchId = state.patches.reduce((m, p) => Math.max(m, p.id), 0);
   resetPatchIdCounter(maxPatchId + 1);
   return state;
+}
+
+/**
+ * Restore-plan replay. The production replay contract owns the shared id
+ * counters, so planning snapshots and restores them around the exact same
+ * replay instead of introducing a second replay implementation.
+ */
+export function replayDetached(entries: SkinHistoryEntry[]): SkinState {
+  const ballCounter = currentBallIdCounter();
+  const patchCounter = currentPatchIdCounter();
+  try {
+    return replay(entries);
+  } finally {
+    resetBallIdCounter(ballCounter);
+    resetPatchIdCounter(patchCounter);
+  }
+}
+
+/** Commit the id-counter portion of an already validated replay. */
+export function syncReplayIdCounters(state: SkinState): void {
+  resetBallIdCounter(state.host.reduce((maximum, ball) => Math.max(maximum, ball.id), 0) + 1);
+  resetPatchIdCounter(state.patches.reduce((maximum, patch) => Math.max(maximum, patch.id), 0) + 1);
 }
 
 export interface UndoHistoryResult {

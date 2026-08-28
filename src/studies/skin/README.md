@@ -1,5 +1,34 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Stage 1〜3を.fkeiからAtomic復元（2026-08-28）
+
+作者の目的を原文のまま記録する。
+
+> 現在の実作品を新しい`a1b8acb`タブへ正式に復元し、Stage 4 Dry Webを正式操作で再生成できる地点まで戻す
+
+PROJECT barの`.fkei Open`は、既存`parseFkeiDocument`を通した後、Shape履歴を既存replayで検証し、
+Shape fingerprint / patchSetRevision / Surface binding / Support Paint revision / Artwork Graph sourceKeyが
+すべて一致するdetached Restore PlanだけをRuntimeへ反映する。Plan作成中は共有ID counterも退避・復帰し、
+DOM、renderer、Worker、cache、現在Runtimeを変更しない。検証失敗時は現在の作品状態を保持し、画面には短い
+日本語エラーだけを出す。
+
+Openの復元上限はStage 3である。保存済みShape、Surface diagnosis/classification、Support Paint、Artwork Graphを
+復元する一方、Dry Web / exact / Stage 7 provisional / Stage 8は必ずmissingへ戻す。Stage 4のGraphやtarget接続を
+推測せず、作者が現行Stage 4操作からDry Webを再生成する地点を正式な再開点とする。
+
+実データのNode側read-only検証では、保存元ChromeとNodeのMath実装差により、growHostの1座標で
+約`5e-17`の差が出てexact fingerprintが拒否された。これを許容誤差で通す変更は行わず、Openは既存の
+exact identity契約を維持する。実ブラウザ検証も同じexact gateを通過した場合だけRuntimeへ反映する。
+
+実ブラウザで同じ`.fkei`を再選択しても初期状態のままだった原因は、Open専用file inputをpicker直前に
+resetしておらず、同一ファイルでは`change`が発火しなかった配線だった。専用inputと単一handler、
+legacy履歴Importとの分離は維持し、picker直前の`value = ""`だけを追加した。Openは
+`picker-opened`から`ui-synchronized`までの10段階を上部statusとconsoleへ記録する。
+103,064,191 bytesの実ファイルを同じ5202で再選択し、Shape履歴3、host 12、patch 38、Surface
+48 / 80 mm / 45°、patchSetRevision 1、paintRevision 4、Support Paint inside、Artwork Graph
+38 node、inside target 2,389までexact gateを通過した。Dry Webはmissing、Stage 7 provisionalは
+なし、explicit repairはdisabled、Worker起動とconsole errorは0だった。
+
 ## Observation — 現在の状態を.fkeiへ保存（2026-08-28）
 
 作者の指示を原文のまま記録する。

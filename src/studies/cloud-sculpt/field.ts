@@ -40,6 +40,9 @@ let nextBallId = 1;
 export function freshBallId(): number {
   return nextBallId++;
 }
+export function currentBallIdCounter(): number {
+  return nextBallId;
+}
 /** Reset the id counter — used only when replaying a history from scratch. */
 export function resetBallIdCounter(startAt = 1): void {
   nextBallId = startAt;

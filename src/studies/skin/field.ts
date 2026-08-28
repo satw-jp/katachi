@@ -399,6 +399,9 @@ let nextPatchId = 1;
 export function freshPatchId(): number {
   return nextPatchId++;
 }
+export function currentPatchIdCounter(): number {
+  return nextPatchId;
+}
 export function resetPatchIdCounter(startAt = 1): void {
   nextPatchId = startAt;
 }
