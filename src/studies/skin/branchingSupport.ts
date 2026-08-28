@@ -421,6 +421,56 @@ export function outsideLeavesFromAssignments(entries: readonly OverhangAssignmen
     : []);
 }
 
+export interface SupportForestPreviewLeafSelection {
+  leaves: SupportLeaf[];
+  eligibleOutsideLeafCount: number;
+  limited: boolean;
+}
+
+/**
+ * Selects a bounded, deterministic display sample without changing the exact
+ * assignment ledger. The first pass counts eligible leaves; the second pass
+ * samples stable ordinals without materialising the full leaf array.
+ */
+export function selectSupportForestPreviewLeaves(
+  entries: readonly OverhangAssignmentEntry[],
+  maximumLeaves = 2_000,
+): SupportForestPreviewLeafSelection {
+  if (!Number.isSafeInteger(maximumLeaves) || maximumLeaves < 1) {
+    throw new Error("Support forest preview leaf limit is invalid");
+  }
+  const eligible = (entry: OverhangAssignmentEntry) =>
+    entry.classification === "outside" && !entry.duplicateOf && Boolean(entry.positionMm);
+  let eligibleOutsideLeafCount = 0;
+  for (const entry of entries) if (eligible(entry)) eligibleOutsideLeafCount++;
+
+  const targetCount = Math.min(maximumLeaves, eligibleOutsideLeafCount);
+  const leaves: SupportLeaf[] = [];
+  if (targetCount === 0) return { leaves, eligibleOutsideLeafCount, limited: false };
+
+  let eligibleOrdinal = 0;
+  let nextSelectedOrdinal = 0;
+  for (const entry of entries) {
+    if (!eligible(entry)) continue;
+    if (eligibleOrdinal === nextSelectedOrdinal && leaves.length < targetCount) {
+      const position = entry.positionMm!;
+      leaves.push({ id: entry.id, ...position, kind: "outside" });
+      const nextSelectionIndex = leaves.length;
+      if (nextSelectionIndex < targetCount) {
+        nextSelectedOrdinal = targetCount === 1
+          ? 0
+          : Math.round(nextSelectionIndex * (eligibleOutsideLeafCount - 1) / (targetCount - 1));
+      }
+    }
+    eligibleOrdinal++;
+  }
+  return {
+    leaves,
+    eligibleOutsideLeafCount,
+    limited: eligibleOutsideLeafCount > targetCount,
+  };
+}
+
 export function uniformLowestSurfaceLeaves(
   positionsMm: Float32Array,
   spacingMm: number,

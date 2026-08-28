@@ -1,5 +1,11 @@
 import type { Patch } from "./field.ts";
-import { findMotifLowestPoints, findMotifMeshLowestPoints } from "./motifLowestPoint.ts";
+import {
+  findMotifLowestPoints,
+  findMotifMeshLowestPoints,
+  recomputeMotifLowestPointReachability,
+  type MotifLowestPoint,
+} from "./motifLowestPoint.ts";
+import { compileInternalGraphReachability } from "./surfaceAngleDiagnosis.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
 
 let assertions = 0;
@@ -79,5 +85,51 @@ equal(meshLowest[0].basis, "finalMesh", "final mesh marker identifies its basis"
 near(meshLowest[0].position.z, -0.9, "lowest attributed final mesh vertex is kept");
 equal(meshLowest[0].reachedByInternal, true, "final mesh contact uses the mesh-step band");
 equal(meshLowest[1].reachedByInternal, false, "far final mesh point remains unreached");
+
+const savedFinalMarkers: MotifLowestPoint[] = [
+  {
+    patchId: 31,
+    shape: "coin",
+    sourcePointIndex: 4,
+    position: { x: 0, y: 0, z: -0.8 },
+    normal: { x: 0, y: 0, z: -1 },
+    markerRadius: 0.041,
+    reachedByInternal: false,
+    basis: "finalMesh",
+  },
+  {
+    patchId: 32,
+    shape: "flatRing",
+    sourcePointIndex: 8,
+    position: { x: 0.32, y: 0, z: -0.8 },
+    markerRadius: 0.042,
+    reachedByInternal: true,
+    basis: "finalMesh",
+  },
+];
+const savedFinalMarkersBefore = JSON.stringify(savedFinalMarkers);
+const reuseQuery = compileInternalGraphReachability(meshGraph);
+const reusedMarkers = recomputeMotifLowestPointReachability(savedFinalMarkers, reuseQuery, 0.1);
+equal(reusedMarkers.length, savedFinalMarkers.length, "reuse preserves marker count");
+equal(reusedMarkers[0].patchId, savedFinalMarkers[0].patchId, "reuse preserves marker order and identity");
+equal(reusedMarkers[0].shape, savedFinalMarkers[0].shape, "reuse preserves shape");
+equal(reusedMarkers[0].sourcePointIndex, savedFinalMarkers[0].sourcePointIndex, "reuse preserves source index");
+equal(reusedMarkers[0].markerRadius, savedFinalMarkers[0].markerRadius, "reuse preserves marker radius");
+equal(reusedMarkers[0].basis, savedFinalMarkers[0].basis, "reuse preserves basis");
+equal(reusedMarkers[0].reachedByInternal, true, "reuse recomputes reached marker exactly");
+equal(reusedMarkers[1].reachedByInternal, false, "reuse recomputes unreached marker exactly");
+equal(JSON.stringify({ ...reusedMarkers[0], reachedByInternal: undefined }), JSON.stringify({ ...savedFinalMarkers[0], reachedByInternal: undefined }), "reuse preserves final marker fields");
+equal(JSON.stringify({ ...reusedMarkers[1], reachedByInternal: undefined }), JSON.stringify({ ...savedFinalMarkers[1], reachedByInternal: undefined }), "reuse preserves marker without normal");
+equal(reusedMarkers[0] === savedFinalMarkers[0], false, "reuse returns fresh marker objects");
+equal(reusedMarkers[0].position === savedFinalMarkers[0].position, false, "reuse clones position");
+equal(reusedMarkers[0].normal === savedFinalMarkers[0].normal, false, "reuse clones normal");
+equal(Object.prototype.hasOwnProperty.call(reusedMarkers[1], "normal"), false, "reuse preserves absent optional normal");
+equal(JSON.stringify(savedFinalMarkers), savedFinalMarkersBefore, "reuse leaves nested input fields unchanged");
+const repeatedMarkers = recomputeMotifLowestPointReachability(savedFinalMarkers, compileInternalGraphReachability(meshGraph), 0.1);
+equal(JSON.stringify(reusedMarkers), JSON.stringify(repeatedMarkers), "reuse is deterministic");
+const emptyMarkers: MotifLowestPoint[] = [];
+const emptyReusedMarkers = recomputeMotifLowestPointReachability(emptyMarkers, reuseQuery, 0.1);
+equal(emptyReusedMarkers.length, 0, "supplied empty marker list stays empty");
+equal(emptyReusedMarkers === emptyMarkers, false, "empty reuse returns a fresh list");
 
 console.log(`motif lowest point tests: ${assertions} passed`);

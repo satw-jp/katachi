@@ -2011,6 +2011,53 @@ await testAsync("§5.1 lib/hash: interior-growth の旧 import path が Library 
   assert.equal(await sha256Hex(bytes), await libSha256Hex(bytes));
 });
 
+await testAsync("§5.1 lib/hash: WebCryptoなしの SHA-256 fallback が既知値と長大入力に対応する", async () => {
+  // Empty / abc / one million 'a' are the published SHA-256 test vectors.
+  const publishedVectors: Array<[string, string]> = [
+    ["", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+    ["abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
+    [
+      "a".repeat(1_000_000),
+      "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
+    ],
+  ];
+  for (const [input, expected] of publishedVectors) {
+    assert.equal(await libSha256Hex(input, { forceFallback: true }), expected);
+  }
+
+  // These inputs are synthetic and verify the exact UTF-8 and binary paths
+  // without relying on a browser's WebCrypto implementation.
+  const utf8 = new TextEncoder().encode("日本語").buffer as ArrayBuffer;
+  assert.equal(
+    await libSha256Hex("日本語", { forceFallback: true }),
+    await libSha256Hex(utf8, { forceFallback: true }),
+  );
+  const withNul = new Uint8Array([0x00, 0x01, 0x00, 0xff]).buffer as ArrayBuffer;
+  const truncated = new Uint8Array([0x00]).buffer as ArrayBuffer;
+  assert.notEqual(
+    await libSha256Hex(withNul, { forceFallback: true }),
+    await libSha256Hex(truncated, { forceFallback: true }),
+  );
+
+  const multiBlock = new Uint8Array(257);
+  for (let i = 0; i < multiBlock.length; i += 1) {
+    multiBlock[i] = (i * 73 + (i >>> 3)) & 0xff;
+  }
+  const fallbackMultiBlock = await libSha256Hex(multiBlock.buffer as ArrayBuffer, { forceFallback: true });
+  // The one-argument call uses WebCrypto when the runtime exposes it, and
+  // otherwise takes the same fallback path; either way the bytes must match.
+  assert.equal(fallbackMultiBlock, await libSha256Hex(multiBlock.buffer as ArrayBuffer));
+
+  // A recipe-sized synthetic byte stream exercises many compression blocks
+  // while keeping the test independent of any author data or saved artifact.
+  const large = new Uint8Array(2_000_123);
+  for (let i = 0; i < large.length; i += 1) {
+    large[i] = (i * 31 + (i >>> 8) + 0xa5) & 0xff;
+  }
+  const fallbackLarge = await libSha256Hex(large.buffer as ArrayBuffer, { forceFallback: true });
+  assert.equal(fallbackLarge, await libSha256Hex(large.buffer as ArrayBuffer));
+});
+
 // === R3: savedFrame（保存座標系の来歴） ==================================
 // (Optimizer/docs/sonnet-instruction-20260726-katachi-r3-saved-frame-
 // provenance.md §6。geometry は一切動かさないので、STL bytes/hash が

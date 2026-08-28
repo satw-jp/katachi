@@ -14,8 +14,19 @@ import type { QuadFlowGrid } from "./quadFlow.ts";
 import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
 import type { DenseFlowerSample } from "./denseFlowerSample.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
+import type { InternalAngleScreeningReport } from "./internalPrintGate.ts";
 import type { SupportForest, SupportMember } from "./branchingSupport.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
+import { dryWebContactBinKey, normalizeDryWebRequiredContacts } from "./dryWebAuthorPresentation.ts";
+import type { TargetedGridContactFacts } from "./targetedGrid.ts";
+import type { DryWebContactBinKey } from "./dryWebAuthorPresentation.ts";
+import type { DryWebInsufficientEdge } from "./dryWebInsufficientEdgePresentation.ts";
+import {
+  ARTWORK_GRAPH_CURRENT_MARKER_COLOR,
+  ARTWORK_GRAPH_STALE_MARKER_COLOR,
+  type ArtworkGraphOverlayMarker,
+} from "./artworkGraphOverlayPresentation.ts";
+import type { DryWebContactFloorCategory } from "./dryWebContactFloorPresentation.ts";
 import { elementDisplayName, elementLabelDepthOpacity, representativeElements } from "../../lib/elementLabels.ts";
 import { layoutOpeningLabelsOutside, type ScreenRect } from "./openingLabelLayout.ts";
 import {
@@ -63,6 +74,14 @@ import {
   shouldStartRhinoCameraGesture,
   type RhinoViewportGesture,
 } from "./rhinoViewportControls.ts";
+import {
+  overhangSupportSiteGroupVisible,
+  type OverhangSupportSiteVisibilityPolicy,
+} from "./dryWebInsideTargetVisibility.ts";
+import {
+  stage7RedFaceLocatorFaceCentroids,
+  stage7RedFaceLocatorMarkerRadius,
+} from "./stage7RedFaceLocatorPresentation.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -92,6 +111,13 @@ const N_GROUP_COLORS = [
 const CONTACT_WEAK_COLOR = new THREE.Color(0.92, 0.22, 0.2);
 const CONTACT_TWO_COLOR = new THREE.Color(1.0, 0.58, 0.12);
 const CONTACT_GOOD_COLOR = new THREE.Color(0.25, 0.76, 0.42);
+// Dry Web author-preview bins. These colors are stable across threshold
+// changes so the same Surface Pattern element remains visually identifiable;
+// an insufficient bin is dimmed below its selected pass boundary.
+const DRY_WEB_CONTACT_ZERO_COLOR = new THREE.Color(0.84, 0.18, 0.16);
+const DRY_WEB_CONTACT_ONE_COLOR = new THREE.Color(0.90, 0.52, 0.14);
+const DRY_WEB_CONTACT_TWO_COLOR = new THREE.Color(0.86, 0.72, 0.16);
+const DRY_WEB_CONTACT_THREE_PLUS_COLOR = new THREE.Color(0.20, 0.66, 0.42);
 // T14 selection visibility (作者Observation 2026-07-20 "選択できているのか
 // わからない"): SELECTED_COLOR (orange-ish) reads too close to
 // GROUP_B_COLOR to work as a bead recolor -- and recoloring the bead at all
@@ -301,12 +327,29 @@ export class SkinRenderer {
   private raymarchQuad!: THREE.Mesh;
   private overlayMaterial!: THREE.MeshStandardMaterial;
   private overlayMesh: THREE.Mesh | null = null;
+  private artworkGraphOverlayGroup: THREE.Group | null = null;
+  private artworkGraphOverlayEnabled = false;
+  private readonly artworkGraphMarkerGeometry = new THREE.OctahedronGeometry(1, 0);
+  private dryWebContactFloorOverlayGroup: THREE.Group | null = null;
+  private dryWebContactFloorOverlayEnabled = false;
+  private dryWebInsufficientEdgeGroup: THREE.Group | null = null;
+  private dryWebInsufficientEdgeOverlayEnabled = false;
   /** Display-only face-angle diagnosis. Red is still above the selected
    * angle threshold; teal means an internal strut reaches the finite mesh
    * contact band. It never changes the generated field or export mesh. */
   private surfaceAngleGroup: THREE.Group | null = null;
   private surfaceAngleShowInternal = false;
+  /** Stage 7 presentation-only red-face locator. Its dimmed context and
+   * bright red triangles are independent of the established three-color
+   * surface-angle group and never alter the source mesh. */
+  private dryWebRedFaceLocatorGroup: THREE.Group | null = null;
+  private dryWebRedFaceLocatorEnabled = false;
+  /** Stage 7 presentation-only nearest-edge paths. This is deliberately a
+   * separate group from the red-face locator and is never exported/persisted. */
+  private dryWebRedFaceDryWebCandidateGroup: THREE.Group | null = null;
+  private dryWebRedFaceDryWebCandidateEnabled = false;
   private overhangSupportSiteGroup: THREE.Group | null = null;
+  private overhangSupportSiteVisibilityPolicy: OverhangSupportSiteVisibilityPolicy = "standard";
   private overhangSupportSiteGrid: UniformSpatialGrid3 | null = null;
   private overhangSupportSiteGeometry: THREE.BufferGeometry | null = null;
   private overhangSupportSiteIds: Array<string | null> = [];
@@ -369,8 +412,24 @@ export class SkinRenderer {
     roughness: 0.82,
     metalness: 0,
   });
+  /** Display-only angle screening colors. The ordinary Internal material is
+   * left untouched so the overlay-off preview remains the established cyan.
+   * Keep vertex colors off: this cylinder geometry has no `color` attribute,
+   * while InstancedMesh supplies the per-edge color through `instanceColor`.
+   * Enabling the geometry-color branch would multiply that instance color by
+   * a missing/default vertex color and can render the rods black. */
+  private readonly internalAngleMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    vertexColors: false,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly internalAngleSelfSupportingColor = new THREE.Color(0x28a66f);
+  private readonly internalAngleRiskColor = new THREE.Color(0xd64b42);
   private internalNodeMesh: THREE.InstancedMesh | null = null;
   private internalEdgeMesh: THREE.InstancedMesh | null = null;
+  private internalAngleScreening: InternalAngleScreeningReport | null = null;
   /** Phase A display geometry only. The same millimetre-space forest is
    * consumed here without regenerating or reclassifying Support Paint sites. */
   private phaseASupportGroup: THREE.Group | null = null;
@@ -410,6 +469,8 @@ export class SkinRenderer {
   private activeGroups: { A: Set<number>; B: Set<number> } | null = null;
   private activeNGroupByPatch: Map<number, number> | null = null;
   private activeContactCountByPatch: Map<number, number> | null = null;
+  private activeDryWebContactCountByPatch: Map<number, number> | null = null;
+  private dryWebContactTarget = 3;
   private contactTarget = 3;
   private beadGroupFilter: "both" | "A" | "B" = "both";
   private lastSelectedPatchId: number | null = null;
@@ -460,6 +521,7 @@ export class SkinRenderer {
   updateBeadGroups(groups: { A: Set<number>; B: Set<number> } | null): void {
     this.activeGroups = groups;
     if (groups) {
+      this.activeDryWebContactCountByPatch = null;
       this.activeNGroupByPatch = null;
       this.activeContactCountByPatch = null;
     }
@@ -474,6 +536,7 @@ export class SkinRenderer {
       ? new Map(groups.flatMap((group, groupIndex) => [...group].map((patchId) => [patchId, groupIndex] as const)))
       : null;
     if (groups) {
+      this.activeDryWebContactCountByPatch = null;
       this.activeGroups = null;
       this.activeContactCountByPatch = null;
     }
@@ -489,8 +552,36 @@ export class SkinRenderer {
     this.activeContactCountByPatch = rows ? new Map(rows.map((row) => [row.id, row.count])) : null;
     this.contactTarget = Math.max(1, Math.round(target));
     if (rows) {
+      this.activeDryWebContactCountByPatch = null;
       this.activeGroups = null;
       this.activeNGroupByPatch = null;
+      this.beadGroupFilter = "both";
+    }
+    this.recolorBeads();
+    this.updateSelectionHighlight();
+  }
+
+  /**
+   * Stage 4 display-only contact preview. The graph has already supplied the
+   * per-patch unique artwork contact facts; this method only recolors the
+   * uncapped bead instances and never rebuilds the graph or exported mesh.
+   * Passing null removes the Dry Web palette so stale colors cannot survive
+   * cancellation, invalidation, or switching away from the stage.
+   */
+  updateDryWebContactPresentation(
+    facts: TargetedGridContactFacts | null,
+    requiredContacts = 3,
+  ): void {
+    this.activeDryWebContactCountByPatch = facts
+      ? new Map(facts.patches.map((patch) => [patch.patchId, patch.contactCount]))
+      : null;
+    this.dryWebContactTarget = normalizeDryWebRequiredContacts(requiredContacts);
+    if (facts) {
+      // Dry Web is the active interpretation of the same beads. Do not let a
+      // previous A/B/N/contact-strength palette obscure its four bins.
+      this.activeGroups = null;
+      this.activeNGroupByPatch = null;
+      this.activeContactCountByPatch = null;
       this.beadGroupFilter = "both";
     }
     this.recolorBeads();
@@ -1322,6 +1413,237 @@ export class SkinRenderer {
     return this.viewMode;
   }
 
+  private disposeArtworkGraphOverlay(): void {
+    if (!this.artworkGraphOverlayGroup) return;
+    this.scene.remove(this.artworkGraphOverlayGroup);
+    this.artworkGraphOverlayGroup.traverse((object) => {
+      if (!(object instanceof THREE.InstancedMesh)) return;
+      object.dispose();
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        material.dispose();
+      }
+    });
+    this.artworkGraphOverlayGroup = null;
+  }
+
+  /**
+   * Show one fixed-size wire marker for every frozen Surface node. This group
+   * is deliberately separate from patch beads, Dry Web colors, selection,
+   * mesh geometry, and every persisted state; marker size has no data meaning.
+   */
+  setArtworkGraphOverlay(markers: readonly ArtworkGraphOverlayMarker[], enabled: boolean): void {
+    this.artworkGraphOverlayEnabled = enabled;
+    this.disposeArtworkGraphOverlay();
+    if (!enabled || markers.length === 0) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+
+    const status = markers[0].status;
+    const material = new THREE.MeshBasicMaterial({
+      color: status === "current" ? ARTWORK_GRAPH_CURRENT_MARKER_COLOR : ARTWORK_GRAPH_STALE_MARKER_COLOR,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.96,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const mesh = new THREE.InstancedMesh(this.artworkGraphMarkerGeometry, material, markers.length);
+    const matrix = new THREE.Matrix4();
+    const markerScale = 0.12;
+    for (const [index, marker] of markers.entries()) {
+      matrix.makeScale(markerScale, markerScale, markerScale).setPosition(
+        marker.position.x,
+        marker.position.y,
+        marker.position.z,
+      );
+      mesh.setMatrixAt(index, matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.renderOrder = 50;
+    mesh.frustumCulled = false;
+    mesh.userData.artworkGraphOverlay = true;
+    mesh.userData.artworkGraphOverlayStatus = status;
+    mesh.userData.artworkGraphOverlayNodeCount = markers.length;
+    const group = new THREE.Group();
+    group.name = "artwork-graph-node-overlay";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.artworkGraphOverlay = true;
+    group.add(mesh);
+    this.scene.add(group);
+    this.artworkGraphOverlayGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  clearArtworkGraphOverlay(): void {
+    this.artworkGraphOverlayEnabled = false;
+    this.disposeArtworkGraphOverlay();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  private disposeDryWebContactFloorOverlay(): void {
+    if (!this.dryWebContactFloorOverlayGroup) return;
+    this.scene.remove(this.dryWebContactFloorOverlayGroup);
+    this.dryWebContactFloorOverlayGroup.traverse((object) => {
+      if (!(object instanceof THREE.InstancedMesh)) return;
+      object.dispose();
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        material.dispose();
+      }
+    });
+    this.dryWebContactFloorOverlayGroup = null;
+  }
+
+  /** Show one neutral wire marker per current contact-floor residual patch. */
+  setDryWebContactFloorOverlay(
+    markers: readonly { patchId: number; position: { x: number; y: number; z: number }; category: DryWebContactFloorCategory }[],
+    category: DryWebContactFloorCategory,
+  ): void {
+    this.dryWebContactFloorOverlayEnabled = true;
+    this.disposeDryWebContactFloorOverlay();
+    if (markers.length === 0) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+    const material = new THREE.MeshBasicMaterial({
+      color: "#e7e2d8",
+      wireframe: true,
+      transparent: true,
+      opacity: 0.92,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const mesh = new THREE.InstancedMesh(this.artworkGraphMarkerGeometry, material, markers.length);
+    const matrix = new THREE.Matrix4();
+    const markerScale = 0.16;
+    for (const [index, marker] of markers.entries()) {
+      matrix.makeScale(markerScale, markerScale, markerScale).setPosition(
+        marker.position.x,
+        marker.position.y,
+        marker.position.z,
+      );
+      mesh.setMatrixAt(index, matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.renderOrder = 51;
+    mesh.frustumCulled = false;
+    mesh.userData.dryWebContactFloorOverlay = true;
+    mesh.userData.dryWebContactFloorCategory = category;
+    mesh.userData.dryWebContactFloorPatchIds = markers.map((marker) => marker.patchId);
+    const group = new THREE.Group();
+    group.name = "dry-web-contact-floor-overlay";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.dryWebContactFloorOverlay = true;
+    group.userData.dryWebContactFloorCategory = category;
+    group.add(mesh);
+    this.scene.add(group);
+    this.dryWebContactFloorOverlayGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  clearDryWebContactFloorOverlay(): void {
+    this.dryWebContactFloorOverlayEnabled = false;
+    this.disposeDryWebContactFloorOverlay();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  private disposeDryWebInsufficientEdgeOverlay(): void {
+    if (!this.dryWebInsufficientEdgeGroup) return;
+    this.scene.remove(this.dryWebInsufficientEdgeGroup);
+    this.dryWebInsufficientEdgeGroup.traverse((object) => {
+      if (!(object instanceof THREE.InstancedMesh)) return;
+      object.dispose();
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        material.dispose();
+      }
+    });
+    this.dryWebInsufficientEdgeGroup = null;
+  }
+
+  /** Show exact generator-selected explanation edges without taking ownership
+   * of the normal internal graph or the full-face contact palette. */
+  setDryWebInsufficientEdgeOverlay(edges: readonly DryWebInsufficientEdge[]): void {
+    this.dryWebInsufficientEdgeOverlayEnabled = true;
+    this.disposeDryWebInsufficientEdgeOverlay();
+    const group = new THREE.Group();
+    group.name = "dry-web-insufficient-edge-overlay";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.dryWebInsufficientEdgeOverlay = true;
+    const byBin = new Map<DryWebContactBinKey, DryWebInsufficientEdge[]>();
+    for (const edge of edges) {
+      const subset = byBin.get(edge.binKey);
+      if (subset) subset.push(edge);
+      else byBin.set(edge.binKey, [edge]);
+    }
+    const binColor = (key: DryWebContactBinKey): THREE.Color => {
+      switch (key) {
+        case "zero": return DRY_WEB_CONTACT_ZERO_COLOR;
+        case "one": return DRY_WEB_CONTACT_ONE_COLOR;
+        case "two": return DRY_WEB_CONTACT_TWO_COLOR;
+        case "threeOrMore": return DRY_WEB_CONTACT_THREE_PLUS_COLOR;
+      }
+    };
+    for (const [binKey, subset] of byBin) {
+      const material = new THREE.MeshBasicMaterial({
+        color: binColor(binKey),
+        transparent: true,
+        opacity: 0.98,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      });
+      const mesh = new THREE.InstancedMesh(this.internalEdgeGeometry, material, subset.length);
+      const matrix = new THREE.Matrix4();
+      const midpoint = new THREE.Vector3();
+      const direction = new THREE.Vector3();
+      const rotation = new THREE.Quaternion();
+      const yAxis = new THREE.Vector3(0, 1, 0);
+      const scale = new THREE.Vector3();
+      for (const [index, edge] of subset.entries()) {
+        direction.set(
+          edge.endPosition.x - edge.startPosition.x,
+          edge.endPosition.y - edge.startPosition.y,
+          edge.endPosition.z - edge.startPosition.z,
+        );
+        const length = direction.length();
+        midpoint.set(
+          (edge.startPosition.x + edge.endPosition.x) / 2,
+          (edge.startPosition.y + edge.endPosition.y) / 2,
+          (edge.startPosition.z + edge.endPosition.z) / 2,
+        );
+        rotation.setFromUnitVectors(yAxis, direction.normalize());
+        scale.set(edge.radius, length, edge.radius);
+        matrix.compose(midpoint, rotation, scale);
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = 52;
+      mesh.frustumCulled = false;
+      mesh.userData.dryWebInsufficientEdgeBin = binKey;
+      mesh.userData.dryWebInsufficientEdgeIds = subset.map((edge) => edge.edgeId);
+      group.add(mesh);
+    }
+    this.scene.add(group);
+    this.dryWebInsufficientEdgeGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  clearDryWebInsufficientEdgeOverlay(): void {
+    this.dryWebInsufficientEdgeOverlayEnabled = false;
+    this.disposeDryWebInsufficientEdgeOverlay();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
   /** Rhino's Ghosted display is a translucent shaded surface. This local
    * equivalent changes only GPU materials: geometry, opening measurements,
    * recipes and export remain untouched. Double-sided low-shadow shading
@@ -1378,20 +1700,46 @@ export class SkinRenderer {
     if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads;
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
     const phaseAInternal = this.phaseADryWebVisible && this.viewMode === "mesh";
-    if (this.internalNodeMesh) this.internalNodeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal;
-    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal;
+    const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive;
+    if (this.internalNodeMesh) this.internalNodeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal;
+    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal;
     if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
     if (this.surfaceAngleGroup) {
       this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
     }
     if (this.overhangSupportSiteGroup) {
-      this.overhangSupportSiteGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+      this.overhangSupportSiteGroup.visible = overhangSupportSiteGroupVisible(
+        this.overhangSupportSiteVisibilityPolicy,
+        visibility,
+        this.viewMode,
+      );
     }
     if (this.phaseASupportGroup) {
       this.phaseASupportGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
     }
     if (this.motifLowestPointGroup) {
       this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
+    }
+    if (this.artworkGraphOverlayGroup) {
+      this.artworkGraphOverlayGroup.visible = this.artworkGraphOverlayEnabled && !this.denseSampleActive;
+    }
+    if (this.dryWebInsufficientEdgeGroup) {
+      this.dryWebInsufficientEdgeGroup.visible = this.dryWebInsufficientEdgeOverlayEnabled
+        && visibility.surfaceDecorations;
+    }
+    if (this.dryWebContactFloorOverlayGroup) {
+      this.dryWebContactFloorOverlayGroup.visible = this.dryWebContactFloorOverlayEnabled
+        && visibility.surfaceDecorations;
+    }
+    if (this.dryWebRedFaceLocatorGroup) {
+      this.dryWebRedFaceLocatorGroup.visible = this.dryWebRedFaceLocatorEnabled
+        && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
+    }
+    if (this.dryWebRedFaceDryWebCandidateGroup) {
+      this.dryWebRedFaceDryWebCandidateGroup.visible = this.dryWebRedFaceDryWebCandidateEnabled
+        && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
     }
     if (this.endpointBadges.A) this.endpointBadges.A.visible = visibility.patchBeads;
     if (this.endpointBadges.B) this.endpointBadges.B.visible = visibility.patchBeads;
@@ -1458,6 +1806,10 @@ export class SkinRenderer {
   /** Preview the independent internal graph with radius-accurate cylinders
    * and nodes. Ordinary mesh view avoids duplication; observation modes show the graph separately. */
   setInternalStructure(graph: InternalStructureGraph | null): void {
+    this.dryWebInsufficientEdgeOverlayEnabled = false;
+    this.disposeDryWebInsufficientEdgeOverlay();
+    this.dryWebContactFloorOverlayEnabled = false;
+    this.disposeDryWebContactFloorOverlay();
     if (this.internalNodeMesh) {
       this.scene.remove(this.internalNodeMesh);
       this.internalNodeMesh.dispose();
@@ -1520,6 +1872,33 @@ export class SkinRenderer {
     this.applyLayerVisibility();
   }
 
+  /** Apply a derived angle-only color screen without changing graph geometry. */
+  setInternalAngleScreening(screening: InternalAngleScreeningReport | null): void {
+    this.internalAngleScreening = screening;
+    const edgeMesh = this.internalEdgeMesh;
+    if (edgeMesh) {
+      if (!screening) {
+        // The established cyan material is used verbatim when the toggle is
+        // off; any stale instance colors are ignored by vertexColors=false.
+        edgeMesh.material = this.internalMaterial;
+        edgeMesh.instanceColor = null;
+      } else {
+        edgeMesh.material = this.internalAngleMaterial;
+        for (let index = 0; index < edgeMesh.count; index++) {
+          const classification = screening.edges[index]?.classification;
+          edgeMesh.setColorAt(
+            index,
+            classification === "selfSupportingAngle"
+              ? this.internalAngleSelfSupportingColor
+              : this.internalAngleRiskColor,
+          );
+        }
+        if (edgeMesh.instanceColor) edgeMesh.instanceColor.needsUpdate = true;
+      }
+    }
+    this.applyLayerVisibility();
+  }
+
   /** Render the Katachi-native branching support plan as radius-scaled
    * instanced cylinders and junction/contact spheres. BODY-owned layers are
    * lifted here; the forest coordinates already include that same lift. */
@@ -1548,6 +1927,10 @@ export class SkinRenderer {
     if (this.surfaceAngleGroup) this.surfaceAngleGroup.position.z = bodyZ;
     if (this.overhangSupportSiteGroup) this.overhangSupportSiteGroup.position.z = bodyZ;
     if (this.motifLowestPointGroup) this.motifLowestPointGroup.position.z = bodyZ;
+    if (this.artworkGraphOverlayGroup) this.artworkGraphOverlayGroup.position.z = bodyZ;
+    if (this.dryWebInsufficientEdgeGroup) this.dryWebInsufficientEdgeGroup.position.z = bodyZ;
+    if (this.dryWebRedFaceLocatorGroup) this.dryWebRedFaceLocatorGroup.position.z = bodyZ;
+    if (this.dryWebRedFaceDryWebCandidateGroup) this.dryWebRedFaceDryWebCandidateGroup.position.z = bodyZ;
     if (this.internalNodeMesh) this.internalNodeMesh.position.z = bodyZ;
     if (this.internalEdgeMesh) this.internalEdgeMesh.position.z = bodyZ;
     if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
@@ -1634,6 +2017,8 @@ export class SkinRenderer {
   /** Build (or replace) the true (uncapped) marching-tets geometry as a lit
    * mesh. Visibility is controlled separately via setViewMode. */
   setMeshOverlay(triangles: { a: {x:number;y:number;z:number}; b: {x:number;y:number;z:number}; c: {x:number;y:number;z:number} }[] | null): void {
+    this.clearDryWebRedFaceLocator();
+    this.clearDryWebRedFaceDryWebCandidateOverlay();
     if (this.overlayMesh) {
       this.scene.remove(this.overlayMesh);
       this.overlayMesh.geometry.dispose();
@@ -1664,6 +2049,8 @@ export class SkinRenderer {
    * for the GPU so the main page never loops over the full triangle set or
    * computes normals while the author is trying to orbit the form. */
   setMeshOverlayBuffers(positions: Float32Array, normals: Float32Array): void {
+    this.clearDryWebRedFaceLocator();
+    this.clearDryWebRedFaceDryWebCandidateOverlay();
     if (this.overlayMesh) {
       this.scene.remove(this.overlayMesh);
       this.overlayMesh.geometry.dispose();
@@ -1682,6 +2069,8 @@ export class SkinRenderer {
   }
 
   clearSurfaceAngleOverlay(): void {
+    this.clearDryWebRedFaceLocator();
+    this.clearDryWebRedFaceDryWebCandidateOverlay();
     if (this.surfaceAngleGroup) {
       this.scene.remove(this.surfaceAngleGroup);
       this.surfaceAngleGroup.traverse((object) => {
@@ -1703,6 +2092,7 @@ export class SkinRenderer {
     redPositions: Float32Array,
     mitigatedPositions: Float32Array,
     showInternal = false,
+    outsidePositions: Float32Array = new Float32Array(0),
   ): void {
     this.clearSurfaceAngleOverlay();
     const group = new THREE.Group();
@@ -1727,6 +2117,7 @@ export class SkinRenderer {
       group.add(mesh);
     };
     add(redPositions, 0xd9483b, 0.9);
+    add(outsidePositions, 0xff922e, 0.88);
     add(mitigatedPositions, 0x3bb7aa, 0.78);
     group.visible = this.viewMode === "mesh" && this.internalObservationMode !== "internalOnly";
     this.scene.add(group);
@@ -1735,7 +2126,180 @@ export class SkinRenderer {
     this.applyLayerVisibility();
   }
 
+  /**
+   * Highlight only the exact Stage 7 red-face positions while keeping the
+   * current mesh as subdued spatial context. The dim mesh shares the current
+   * overlay geometry when available; the red triangle geometry is owned by
+   * this independent presentation group and is never exported or persisted.
+   */
+  setDryWebRedFaceLocator(
+    basePositions: Float32Array,
+    redPositions: Float32Array,
+    enabled: boolean,
+  ): void {
+    this.clearDryWebRedFaceLocator();
+    this.clearDryWebRedFaceDryWebCandidateOverlay();
+    this.dryWebRedFaceLocatorEnabled = enabled;
+    if (!enabled || redPositions.length === 0 || redPositions.length % 9 !== 0) {
+      this.applyLayerVisibility();
+      return;
+    }
+    const group = new THREE.Group();
+    group.name = "dry-web-red-face-locator";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.dryWebRedFaceLocator = true;
+
+    const dimMaterial = new THREE.MeshBasicMaterial({
+      color: 0x101217,
+      transparent: true,
+      opacity: 0.72,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: 2,
+      polygonOffsetUnits: 2,
+      toneMapped: false,
+    });
+    if (this.overlayMesh) {
+      const dimMesh = new THREE.Mesh(this.overlayMesh.geometry, dimMaterial);
+      dimMesh.renderOrder = 9;
+      dimMesh.userData.dryWebRedFaceLocatorSharedGeometry = true;
+      group.add(dimMesh);
+    } else if (basePositions.length > 0 && basePositions.length % 3 === 0) {
+      const dimGeometry = new THREE.BufferGeometry();
+      dimGeometry.setAttribute("position", new THREE.BufferAttribute(basePositions.slice(), 3));
+      const dimMesh = new THREE.Mesh(dimGeometry, dimMaterial);
+      dimMesh.renderOrder = 9;
+      group.add(dimMesh);
+    } else {
+      dimMaterial.dispose();
+    }
+
+    const redGeometry = new THREE.BufferGeometry();
+    redGeometry.setAttribute("position", new THREE.BufferAttribute(redPositions.slice(), 3));
+    redGeometry.computeVertexNormals();
+    const redMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff2144,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4,
+      toneMapped: false,
+    });
+    const redMesh = new THREE.Mesh(redGeometry, redMaterial);
+    redMesh.renderOrder = 10;
+    redMesh.userData.dryWebRedFaceLocatorRedFaces = true;
+    group.add(redMesh);
+    const markerCentroids = stage7RedFaceLocatorFaceCentroids(redPositions);
+    const markerRadius = stage7RedFaceLocatorMarkerRadius(basePositions);
+    if (markerCentroids.length > 0 && markerRadius > 0) {
+      const markerGeometry = new THREE.SphereGeometry(1, 12, 8);
+      const markerMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffd34f,
+        transparent: true,
+        opacity: 0.96,
+        wireframe: true,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      });
+      const markerMesh = new THREE.InstancedMesh(markerGeometry, markerMaterial, markerCentroids.length / 3);
+      const matrix = new THREE.Matrix4();
+      for (let offset = 0, markerIndex = 0; offset < markerCentroids.length; offset += 3, markerIndex++) {
+        matrix.makeScale(markerRadius, markerRadius, markerRadius).setPosition(
+          markerCentroids[offset],
+          markerCentroids[offset + 1],
+          markerCentroids[offset + 2],
+        );
+        markerMesh.setMatrixAt(markerIndex, matrix);
+      }
+      markerMesh.instanceMatrix.needsUpdate = true;
+      markerMesh.renderOrder = 20;
+      markerMesh.userData.dryWebRedFaceLocatorMarkers = markerCentroids.length / 3;
+      group.add(markerMesh);
+    }
+    this.scene.add(group);
+    this.dryWebRedFaceLocatorGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  clearDryWebRedFaceLocator(): void {
+    this.dryWebRedFaceLocatorEnabled = false;
+    const group = this.dryWebRedFaceLocatorGroup;
+    if (!group) return;
+    this.scene.remove(group);
+    group.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      if (object instanceof THREE.InstancedMesh) object.dispose();
+      if (!object.userData.dryWebRedFaceLocatorSharedGeometry) object.geometry.dispose();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) material.dispose();
+    });
+    this.dryWebRedFaceLocatorGroup = null;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Install independent cyan/light-blue nearest-edge preview paths. The
+   * buffer is copied so the renderer cannot mutate the pure presentation
+   * result, and the group follows the same object lift as the mesh/locator. */
+  setDryWebRedFaceDryWebCandidateOverlay(
+    linePositions: Float32Array,
+    enabled: boolean,
+  ): void {
+    this.clearDryWebRedFaceDryWebCandidateOverlay();
+    this.dryWebRedFaceDryWebCandidateEnabled = enabled;
+    if (!enabled || linePositions.length === 0 || linePositions.length % 6 !== 0) {
+      this.applyLayerVisibility();
+      return;
+    }
+    const group = new THREE.Group();
+    group.name = "dry-web-red-face-dry-web-candidate";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.dryWebRedFaceDryWebCandidate = true;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(linePositions.slice(), 3));
+    const material = new THREE.LineBasicMaterial({
+      color: 0x78dce8,
+      transparent: true,
+      opacity: 0.96,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const lines = new THREE.LineSegments(geometry, material);
+    lines.renderOrder = 30;
+    lines.frustumCulled = false;
+    lines.userData.dryWebRedFaceDryWebCandidateLines = linePositions.length / 6;
+    group.add(lines);
+    this.scene.add(group);
+    this.dryWebRedFaceDryWebCandidateGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  clearDryWebRedFaceDryWebCandidateOverlay(): void {
+    this.dryWebRedFaceDryWebCandidateEnabled = false;
+    const group = this.dryWebRedFaceDryWebCandidateGroup;
+    if (!group) return;
+    this.scene.remove(group);
+    group.traverse((object) => {
+      if (!(object instanceof THREE.LineSegments) && !(object instanceof THREE.Line) && !(object instanceof THREE.Mesh)) return;
+      object.geometry.dispose();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) material.dispose();
+    });
+    this.dryWebRedFaceDryWebCandidateGroup = null;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
   clearOverhangSupportSiteOverlay(): void {
+    this.overhangSupportSiteVisibilityPolicy = "standard";
     this.overhangSupportSiteGrid = null;
     this.overhangSupportSiteGeometry = null;
     this.overhangSupportSiteIds = [];
@@ -1992,9 +2556,11 @@ export class SkinRenderer {
     mixedFacePositions: Float32Array,
     baseFootprintPositions: Float32Array,
     depthMode: SupportSiteDepthMode,
+    visibilityPolicy: OverhangSupportSiteVisibilityPolicy = "standard",
   ): void {
     this.clearOverhangSupportSiteOverlay();
     if (markers.length === 0 && mixedFacePositions.length === 0 && baseFootprintPositions.length === 0) return;
+    this.overhangSupportSiteVisibilityPolicy = visibilityPolicy;
     const group = new THREE.Group();
     const batch = buildSupportOverlayBatch(markers);
     if (batch) {
@@ -2630,6 +3196,7 @@ export class SkinRenderer {
     const groups = this.activeGroups;
     const nGroups = this.activeNGroupByPatch;
     const contactCounts = this.activeContactCountByPatch;
+    const dryWebContactCounts = this.activeDryWebContactCountByPatch;
     const selId = this.lastSelectedPatchId;
     for (let i = 0; i < this.patchBeadOwner.length; i++) {
       const id = this.patchBeadOwner[i];
@@ -2641,8 +3208,27 @@ export class SkinRenderer {
       // unassigned color is never lost.
       const nGroupIndex = nGroups?.get(id);
       const contactCount = contactCounts?.get(id);
-      let c: THREE.Color = nGroupIndex !== undefined
-        ? (N_GROUP_COLORS[nGroupIndex] ?? UNASSIGNED_GROUP_COLOR)
+      const dryWebContactCount = dryWebContactCounts?.get(id);
+      let c: THREE.Color = dryWebContactCount !== undefined
+        ? (() => {
+          const normalized = Number.isFinite(dryWebContactCount)
+            ? Math.max(0, Math.round(dryWebContactCount))
+            : 0;
+          const key = dryWebContactBinKey(normalized);
+          const base = key === "zero"
+            ? DRY_WEB_CONTACT_ZERO_COLOR
+            : key === "one"
+              ? DRY_WEB_CONTACT_ONE_COLOR
+              : key === "two"
+                ? DRY_WEB_CONTACT_TWO_COLOR
+                : DRY_WEB_CONTACT_THREE_PLUS_COLOR;
+          // Keep the four bin hues stable while making the selected numeric
+          // boundary legible directly in the viewport: below-target bins are
+          // dimmed, threshold-meeting bins keep their saturated color.
+          return normalized < this.dryWebContactTarget ? base.clone().multiplyScalar(0.58) : base;
+        })()
+        : nGroupIndex !== undefined
+          ? (N_GROUP_COLORS[nGroupIndex] ?? UNASSIGNED_GROUP_COLOR)
         : groups
           ? (groups.A.has(id) ? GROUP_A_COLOR : groups.B.has(id) ? GROUP_B_COLOR : UNASSIGNED_GROUP_COLOR)
           : contactCount !== undefined

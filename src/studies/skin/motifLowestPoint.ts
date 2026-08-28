@@ -1,5 +1,9 @@
 import type { Patch, PatchPoint, PatchShape } from "./field.ts";
-import { internalGraphReachesPoint } from "./surfaceAngleDiagnosis.ts";
+import {
+  compileInternalGraphReachability,
+  type InternalGraphReachabilityQuery,
+  type SurfaceAngleDiagnosisProgress,
+} from "./surfaceAngleDiagnosis.ts";
 import type { InternalStructureGraph, Vector3Value } from "./voronoi.ts";
 
 export interface MotifLowestPoint {
@@ -12,6 +16,57 @@ export interface MotifLowestPoint {
   markerRadius: number;
   reachedByInternal: boolean;
   basis: "sourceSphere" | "finalMesh";
+}
+
+export interface MotifLowestPointOptions {
+  onProgress?: (progress: SurfaceAngleDiagnosisProgress) => void;
+  reachabilityQuery?: InternalGraphReachabilityQuery;
+}
+
+/**
+ * Recheck already-attributed final-mesh markers against a newly compiled
+ * reachability query.  Attribution is intentionally not repeated here: the
+ * marker position is the saved final-mesh position, and the exact historical
+ * predicate used the mesh-step contact band without adding marker radius.
+ * Every returned object and nested vector is fresh so a Worker cannot mutate
+ * the diagnosis retained by the main thread.
+ */
+export function recomputeMotifLowestPointReachability(
+  markers: MotifLowestPoint[],
+  reachabilityQuery: InternalGraphReachabilityQuery,
+  meshStep: number,
+): MotifLowestPoint[] {
+  const step = Math.max(1e-6, Math.abs(meshStep));
+  const contactTolerance = step * 1.75;
+  return markers.map((marker) => {
+    const position = { ...marker.position };
+    const result: MotifLowestPoint = {
+      ...marker,
+      position,
+      reachedByInternal: reachabilityQuery.reachesPoint(position, contactTolerance),
+    };
+    // Preserve an explicitly undefined optional field's presence while
+    // cloning a defined normal vector rather than sharing it.
+    if (Object.prototype.hasOwnProperty.call(marker, "normal") && marker.normal !== undefined) {
+      result.normal = { ...marker.normal };
+    }
+    return result;
+  });
+}
+
+function throttledProgress(
+  onProgress: ((progress: SurfaceAngleDiagnosisProgress) => void) | undefined,
+): ((progress: SurfaceAngleDiagnosisProgress) => void) | undefined {
+  if (!onProgress) return undefined;
+  const last = new Map<string, number>();
+  return (progress) => {
+    const previous = last.get(progress.stage);
+    const step = progress.total > 0 ? Math.max(1, Math.ceil(progress.total / 100)) : 1;
+    if (progress.completed !== 0 && progress.completed !== progress.total
+      && previous !== undefined && progress.completed - previous < step) return;
+    last.set(progress.stage, progress.completed);
+    onProgress(progress);
+  };
 }
 
 interface IndexedPoint {
@@ -32,11 +87,19 @@ export function findMotifLowestPoints(
   patches: Patch[],
   internalGraph: InternalStructureGraph | null,
   contactTolerance = 0.02,
+  options: MotifLowestPointOptions = {},
 ): MotifLowestPoint[] {
   const tolerance = Math.max(0, Number.isFinite(contactTolerance) ? contactTolerance : 0.02);
+  const reportProgress = throttledProgress(options.onProgress);
+  const reachability = options.reachabilityQuery ?? compileInternalGraphReachability(internalGraph, { onProgress: reportProgress });
   const result: MotifLowestPoint[] = [];
-  for (const patch of patches) {
-    if (patch.points.length === 0) continue;
+  reportProgress?.({ stage: "motif-attribution", completed: 0, total: patches.length });
+  for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
+    const patch = patches[patchIndex];
+    if (patch.points.length === 0) {
+      reportProgress?.({ stage: "motif-attribution", completed: patchIndex + 1, total: patches.length });
+      continue;
+    }
     const ownPoints: IndexedPoint[] = patch.points
       .map((point, index) => ({ point, index }))
       .filter(({ point }) => point.role !== "bridge" && point.role !== "surfaceConnector");
@@ -54,10 +117,13 @@ export function findMotifLowestPoints(
       sourcePointIndex: lowest.index,
       position: { x: point.x, y: point.y, z: point.z - point.r },
       markerRadius: Math.max(0.025, Math.min(0.06, point.r * 0.3)),
-      reachedByInternal: internalGraphReachesPoint(point, internalGraph, tolerance, point.r),
+      reachedByInternal: reachability.reachesPoint(point, tolerance, point.r),
       basis: "sourceSphere",
     });
+    reportProgress?.({ stage: "motif-attribution", completed: patchIndex + 1, total: patches.length });
   }
+  reportProgress?.({ stage: "motif-reachability", completed: 0, total: result.length });
+  reportProgress?.({ stage: "motif-reachability", completed: result.length, total: result.length });
   return result;
 }
 
@@ -86,6 +152,7 @@ export function findMotifMeshLowestPoints(
   meshStep: number,
   roundK: number,
   normals?: Float32Array,
+  options: MotifLowestPointOptions = {},
 ): MotifLowestPoint[] {
   const step = Math.max(1e-6, Math.abs(meshStep));
   const influence = Math.max(step * 2, Math.max(0, roundK));
@@ -125,13 +192,19 @@ export function findMotifMeshLowestPoints(
       }
     }
   }
+  const reportProgress = throttledProgress(options.onProgress);
   const lowest = new Map<number, { position: Vector3Value; normal?: Vector3Value }>();
+  const vertexCount = Math.floor(positions.length / 3);
+  reportProgress?.({ stage: "motif-attribution", completed: 0, total: vertexCount });
   for (let offset = 0; offset + 2 < positions.length; offset += 3) {
     const x = positions[offset];
     const y = positions[offset + 1];
     const z = positions[offset + 2];
     const nearby = patchGrid.get(key(cell(x), cell(y), cell(z)));
-    if (!nearby) continue;
+    if (!nearby) {
+      reportProgress?.({ stage: "motif-attribution", completed: offset / 3 + 1, total: vertexCount });
+      continue;
+    }
     let ownerIndex = -1;
     let ownerDistance = Infinity;
     for (const candidateIndex of nearby) {
@@ -146,7 +219,10 @@ export function findMotifMeshLowestPoints(
         ownerIndex = candidateIndex;
       }
     }
-    if (ownerIndex < 0) continue;
+    if (ownerIndex < 0) {
+      reportProgress?.({ stage: "motif-attribution", completed: offset / 3 + 1, total: vertexCount });
+      continue;
+    }
     const patchId = candidates[ownerIndex].patch.id;
     const previous = lowest.get(patchId);
     if (!previous || z < previous.position.z) {
@@ -160,20 +236,31 @@ export function findMotifMeshLowestPoints(
       }
       lowest.set(patchId, { position: { x, y, z }, normal });
     }
+    reportProgress?.({ stage: "motif-attribution", completed: offset / 3 + 1, total: vertexCount });
   }
+  if (vertexCount > 0) reportProgress?.({ stage: "motif-attribution", completed: vertexCount, total: vertexCount });
   const markerRadius = Math.max(0.02, Math.min(0.055, step * 0.8));
   const contactTolerance = step * 1.75;
-  return candidates.flatMap(({ patch }) => {
+  const reachability = options.reachabilityQuery ?? compileInternalGraphReachability(internalGraph, { onProgress: reportProgress });
+  const result: MotifLowestPoint[] = [];
+  reportProgress?.({ stage: "motif-reachability", completed: 0, total: candidates.length });
+  for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex++) {
+    const { patch } = candidates[candidateIndex];
     const sample = lowest.get(patch.id);
-    if (!sample) return [];
-    return [{
+    if (!sample) {
+      reportProgress?.({ stage: "motif-reachability", completed: candidateIndex + 1, total: candidates.length });
+      continue;
+    }
+    result.push({
       patchId: patch.id,
       shape: patch.shape,
       position: sample.position,
       normal: sample.normal,
       markerRadius,
-      reachedByInternal: internalGraphReachesPoint(sample.position, internalGraph, contactTolerance),
+      reachedByInternal: reachability.reachesPoint(sample.position, contactTolerance),
       basis: "finalMesh" as const,
-    }];
-  });
+    });
+    reportProgress?.({ stage: "motif-reachability", completed: candidateIndex + 1, total: candidates.length });
+  }
+  return result;
 }

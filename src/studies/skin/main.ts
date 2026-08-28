@@ -42,7 +42,7 @@ import {
   proposeGroupsBetweenEndpoints,
   proposeGroupsFromSeeds,
 } from "./field.ts";
-import type { Patch, PackPatchesResult, PatchAdjacencyEdge } from "./field.ts";
+import type { Patch, PackPatchesResult, PatchAdjacencyEdge, SkinMode } from "./field.ts";
 import { estimateRingLinking, findDeepPatchOverlaps } from "./linking.ts";
 import {
   buildSkinMesh,
@@ -71,8 +71,18 @@ import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import { SkinRenderer } from "./renderer.ts";
 import { pickPatchBySpheres, raymarchComposite, raymarchHost } from "./picking.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_COUNT, PATCH_MAX_POINTS } from "./shaders.ts";
-import type { MeshUiOptions, OpeningMapUiOptions } from "./ui.ts";
+import type { ArtworkGraphUiStatus, MeshUiOptions, OpeningMapUiOptions } from "./ui.ts";
 import { buildUi } from "./ui.ts";
+import { canonicalStringify } from "./graphCore.ts";
+import { createSurfaceGraph } from "./surfaceGraph.ts";
+import { createArtworkGraph, type ArtworkGraph } from "./artworkGraph.ts";
+import {
+  cloneDryWebArtworkGraphPatches,
+  DRY_WEB_ARTWORK_GRAPH_REFRESH_PROMPT,
+  inspectDryWebArtworkGraphBoundary,
+  type DryWebArtworkGraphBoundaryDecision,
+} from "./dryWebArtworkGraphBoundary.ts";
+import { createArtworkGraphOverlayPresentation } from "./artworkGraphOverlayPresentation.ts";
 import type { OpeningMapRequest, OpeningMapResult, OpeningMapWorkerMessage } from "./openingMapWorkerProtocol.ts";
 import { checkGeneratedStl, formatDirection } from "./printPreparation.ts";
 import { hashSeed, makeRng } from "../cloud-sculpt/random.ts";
@@ -84,7 +94,6 @@ import { packPatchesOnGoldberg } from "./goldbergFlow.ts";
 import type { GoldbergPackResult } from "./goldbergFlow.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
 import { buildVoronoiInternalStructure } from "./voronoi.ts";
-import { buildTargetedGridInternalStructure } from "./targetedGrid.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
 import { fillLargestSurfaceGaps } from "./laceFill.ts";
 import { analyzePatchContacts, reinforceWeakPatchContacts } from "./contactStrength.ts";
@@ -108,7 +117,12 @@ import { chooseProgressivePreviewResolutions } from "./previewMeshBuffers.ts";
 import type { PreviewMeshRequest, PreviewMeshWorkerMessage } from "./previewMeshWorkerProtocol.ts";
 import type { GaugeBuildRequest, GaugeWorkerMessage } from "./gaugeWorkerProtocol.ts";
 import type { MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
-import type { InternalPrintGateReport } from "./internalPrintGate.ts";
+import {
+  internalStructureOutputBlockReason,
+  screenInternalStructureAngles,
+  type InternalAngleScreeningReport,
+  type InternalPrintGateReport,
+} from "./internalPrintGate.ts";
 import type { InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
 import type {
   SurfaceAngleDiagnosisRequest,
@@ -118,6 +132,7 @@ import type {
 } from "./surfaceAngleWorkerProtocol.ts";
 import type { SupportPaintRaycastWorkerMessage, SupportPaintRaycastWorkerRequest } from "./supportPaintRaycastWorkerProtocol.ts";
 import type { SurfaceSupportClassificationMessage, SurfaceSupportClassificationRequest } from "./surfaceSupportClassificationWorkerProtocol.ts";
+import { deriveSurfaceSupportClassificationWorkerCount } from "./surfaceSupportClassificationParallel.ts";
 import {
   createSupportPaintInteractionCounters,
   supportPaintInteractionCounterFailures,
@@ -147,9 +162,9 @@ import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWor
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
   buildSupportForest,
-  outsideLeavesFromAssignments,
   reinforceDryWebGraph,
   retainedVerticalMembers,
+  selectSupportForestPreviewLeaves,
   uniformLowestSurfaceLeaves,
   type SupportForestMode,
 } from "./branchingSupport.ts";
@@ -170,6 +185,89 @@ import {
 } from "./overhangSupportPolicy.ts";
 import { SUPPORT_REACHABILITY_RAY_EPSILON_VERSION } from "./supportReachability.ts";
 import type { OverhangDryWebTarget } from "./overhangSupportPolicy.ts";
+import { dryWebAuthorPresentation, normalizeDryWebRequiredContacts } from "./dryWebAuthorPresentation.ts";
+import {
+  createDryWebGraphViewPresentation,
+  preserveDryWebGraphViewForCompletion,
+  preserveDryWebGraphViewState,
+  type DryWebGraphViewOption,
+  type DryWebGraphViewViewportState,
+} from "./dryWebGraphViewPresentation.ts";
+import {
+  createDryWebSupportSeparationPresentation,
+  dryWebSupportSeparationOutputBlockReason,
+  type DryWebSupportSeparationPresentation,
+} from "./dryWebSupportSeparationPresentation.ts";
+import { selectStage8RemovableSupportPreviewLeaves } from "./stage8RemovableSupportSelection.ts";
+import { buildBambu3mfOutputSelection } from "./bambu3mfOutputSelection.ts";
+import {
+  createStage7RedFaceLocatorPresentation,
+  stage7RedFaceLocatorOverlayPolicy,
+  type Stage7RedFaceLocatorPresentation,
+} from "./stage7RedFaceLocatorPresentation.ts";
+import {
+  createStage7RedFaceDryWebCandidatePresentation,
+  type Stage7RedFaceDryWebCandidatePresentation,
+  type Stage7RedFaceDryWebCandidate,
+} from "./stage7RedFaceDryWebCandidatePresentation.ts";
+import {
+  createStage7RedFaceReinforcementPlan,
+  type Stage7RedFaceReinforcementPlan,
+} from "./stage7RedFaceReinforcementPlan.ts";
+import {
+  createStage7ProvisionalRecheckPresentation,
+  type Stage7ProvisionalRecheckPresentation,
+} from "./stage7ProvisionalRecheckPresentation.ts";
+import {
+  createStage7ProvisionalAdoptionGatePresentation,
+  type Stage7ProvisionalAdoptionGatePresentation,
+} from "./stage7ProvisionalAdoptionGatePresentation.ts";
+import {
+  cloneStage7CanonicalCandidateGraph,
+  createStage7CanonicalCandidateAdoptionPresentation,
+  decideStage7CanonicalCandidateExactRecheck,
+  type Stage7CanonicalCandidateAdoptionPresentation,
+} from "./stage7CanonicalCandidateAdoptionPresentation.ts";
+import {
+  createDryWebArtworkReadinessPresentation,
+  type DryWebArtworkReadinessStageState,
+} from "./dryWebArtworkReadinessPresentation.ts";
+import {
+  createDryWebInsideTargetPresentation,
+  type DryWebInsideTargetPresentationState,
+} from "./dryWebInsideTargetPresentation.ts";
+import {
+  createDryWebTargetConnectionMappingPresentation,
+  type DryWebTargetConnectionMappingPresentation,
+} from "./dryWebTargetConnectionMappingPresentation.ts";
+import {
+  createDryWebInsufficientEdgePresentation,
+  type DryWebInsufficientEdgePresentation,
+} from "./dryWebInsufficientEdgePresentation.ts";
+import {
+  createDryWebContactFloorPresentation,
+  type DryWebContactFloorPresentation,
+} from "./dryWebContactFloorPresentation.ts";
+import {
+  createDryWebContactFloorOverlayPresentation,
+  type DryWebContactFloorOverlayPresentation,
+  type DryWebContactFloorResidualCategory,
+} from "./dryWebContactFloorOverlayPresentation.ts";
+import type {
+  TargetedGridContactFacts,
+  TargetedGridContactFloorFacts,
+  TargetedGridInternalStructureStats,
+  TargetedGridTargetConnectionFact,
+} from "./targetedGrid.ts";
+import {
+  createDryWebExactRecheckPresentation,
+  dryWebPreviewTerminalDecision,
+  dryWebContactPresentationCanReapply,
+  isDryWebRequiredContactsOnlyChange,
+  type DryWebContactPresentationOwner,
+  type DryWebExactRecheckPresentation,
+  type DryWebPreviewTerminalKind,
+} from "./dryWebLifecycle.ts";
 import {
   HeavyComputationLifecycle,
   HeavyComputationProgressState,
@@ -327,149 +425,10 @@ rightPane.className = "skin-editor-pane skin-right-pane";
 rightPane.setAttribute("aria-label", "Workflow and properties");
 const rightPaneHeader = document.createElement("header");
 rightPaneHeader.className = "skin-pane-header";
-rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>工程1–10 · properties below</span>";
+rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>8 author stages · properties below</span>";
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
 rightPane.append(rightPaneHeader, rightPaneBody);
-
-function buildWorkflowShell(): HTMLElement {
-  const shell = document.createElement("section");
-  shell.className = "skin-workflow-shell";
-  shell.setAttribute("aria-label", "SKIN author workflow");
-  const heading = document.createElement("button");
-  heading.type = "button";
-  heading.className = "skin-workflow-shell-heading";
-  heading.id = "skin-workflow-heading";
-  heading.setAttribute("aria-controls", "skin-workflow-map");
-  const headingLabel = document.createElement("strong");
-  heading.appendChild(headingLabel);
-  const workflowMap = document.createElement("div");
-  workflowMap.id = "skin-workflow-map";
-  workflowMap.className = "skin-workflow-map";
-  workflowMap.setAttribute("aria-labelledby", heading.id);
-  shell.append(heading, workflowMap);
-
-  let workflowExpanded = true;
-  const renderWorkflowState = (): void => {
-    headingLabel.textContent = `WORKFLOW ${workflowExpanded ? "▾" : "▸"}`;
-    heading.setAttribute("aria-expanded", String(workflowExpanded));
-    heading.setAttribute("aria-label", workflowExpanded ? "WORKFLOWを折りたたむ" : "WORKFLOWを展開する");
-    workflowMap.hidden = !workflowExpanded;
-    workflowMap.setAttribute("aria-hidden", String(!workflowExpanded));
-    shell.classList.toggle("is-collapsed", !workflowExpanded);
-  };
-  heading.addEventListener("click", () => {
-    workflowExpanded = !workflowExpanded;
-    renderWorkflowState();
-  });
-  renderWorkflowState();
-
-  const stages: Array<{
-    key: "surface" | "internal" | "print";
-    title: string;
-    note: string;
-    steps: Array<{ number: number; label: string; target?: string; available: boolean; note?: string }>;
-  }> = [
-    {
-      key: "surface",
-      title: "A — FORM / SURFACE",
-      note: "外形から表面診断まで",
-      steps: [
-        { number: 1, label: "Base", target: "#skin-step-base", available: true },
-        { number: 2, label: "Surface composition", target: "#skin-step-surface", available: true },
-        { number: 3, label: "Filled Shape", target: "#skin-step-shape", available: true },
-        { number: 4, label: "Surface mesh generation", target: ".surface-mesh-generation-panel", available: true },
-        { number: 5, label: "Surface angle diagnosis", target: ".surface-angle-diagnosis", available: true },
-      ],
-    },
-    {
-      key: "internal",
-      title: "B — INTERNAL STRUCTURE",
-      note: "作品として残る内部構造",
-      steps: [
-        { number: 6, label: "Support Paint 1", target: ".support-paint-panel", available: true, note: "draft / current" },
-        { number: 7, label: "作品内部の構造", target: "#skin-step-internal", available: true },
-        { number: 8, label: "Combined artwork diagnosis / Support Paint 2", available: false, note: "not connected" },
-      ],
-    },
-    {
-      key: "print",
-      title: "C — PRINT SUPPORT",
-      note: "印刷後に外す支え",
-      steps: [
-        { number: 9, label: "Removable print supports", target: ".phase-a-support-panel", available: true, note: "preview only" },
-        { number: 10, label: "Print validation / print runs", target: ".print-preparation", available: true, note: "validation only" },
-      ],
-    },
-  ];
-
-  for (const stage of stages) {
-    const group = document.createElement("section");
-    group.className = `skin-workflow-group is-${stage.key}`;
-    const groupHeader = document.createElement("div");
-    groupHeader.className = "skin-workflow-group-header";
-    const groupTitle = document.createElement("strong");
-    groupTitle.textContent = stage.title;
-    const groupNote = document.createElement("span");
-    groupNote.textContent = stage.note;
-    groupHeader.append(groupTitle, groupNote);
-    group.appendChild(groupHeader);
-
-    for (const step of stage.steps) {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = `skin-workflow-step${step.available ? " is-available" : " is-disabled"}`;
-      card.disabled = !step.available;
-      card.dataset.step = String(step.number);
-      card.dataset.stepLabel = step.label;
-      card.setAttribute("aria-label", `${step.number} ${step.label}`);
-      if (step.target) card.dataset.workflowTarget = step.target;
-      const number = document.createElement("span");
-      number.className = "skin-workflow-step-number";
-      number.textContent = String(step.number);
-      const copy = document.createElement("span");
-      copy.className = "skin-workflow-step-copy";
-      const label = document.createElement("strong");
-      label.textContent = step.label;
-      copy.appendChild(label);
-      if (step.note) {
-        const note = document.createElement("small");
-        note.textContent = step.note;
-        copy.appendChild(note);
-      }
-      const state = document.createElement("span");
-      state.className = "skin-workflow-step-state";
-      state.textContent = step.available ? "available" : "placeholder";
-      card.append(number, copy, state);
-      group.appendChild(card);
-    }
-    workflowMap.appendChild(group);
-  }
-  return shell;
-}
-const workflowShell = buildWorkflowShell();
-function scrollWorkflowTarget(targetSelector: string): void {
-  const target = document.querySelector<HTMLElement>(targetSelector);
-  if (!target) return;
-  const panel = target.closest<HTMLElement>(".skin-right-pane .panel");
-  if (!panel) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-  const panelRect = panel.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  panel.scrollTo({
-    top: Math.max(0, panel.scrollTop + targetRect.top - panelRect.top - 8),
-    behavior: "smooth",
-  });
-}
-workflowShell.querySelectorAll<HTMLButtonElement>(".skin-workflow-step[data-workflow-target]").forEach((card) => {
-  const targetSelector = card.dataset.workflowTarget;
-  if (!targetSelector) return;
-  card.onclick = () => {
-    scrollWorkflowTarget(targetSelector);
-  };
-});
 
 const bottomPane = document.createElement("footer");
 bottomPane.className = "skin-bottom-status-pane";
@@ -766,6 +725,10 @@ viewport.appendChild(supportPaintCssBrush);
 // --- State -------------------------------------------------------------
 let history: SkinHistoryEntry[] = [];
 let state = createEmptyState();
+let artworkGraphSnapshot: ArtworkGraph | null = null;
+let artworkGraphSourceKey: string | null = null;
+let artworkGraphLastError: string | null = null;
+let artworkGraphOverlayEnabled = false;
 let selectedPatchId: number | null = null;
 let addPatchMode = false;
 let manualRadius = DEFAULT_SKIN_PARAMS.maxR * 0.5;
@@ -773,23 +736,39 @@ let lastPackResult: PackPatchesResult | null = null;
 let currentQuadGrid: QuadFlowGrid | null = null;
 let internalStructureGraph: InternalStructureGraph | null = null;
 let internalStructureFingerprint = "";
-let targetedSupportSource: {
+let internalAngleScreeningEnabled = false;
+let internalAngleScreeningGraph: InternalStructureGraph | null = null;
+let internalAngleScreening: InternalAngleScreeningReport | null = null;
+type TargetedSupportSourceState = {
   surfaceFingerprint: string;
   resolution: number;
   targets: Array<MotifLowestPoint | OverhangDryWebTarget>;
-} | null = null;
-let phaseADryWebPreview: {
+};
+let targetedSupportSource: TargetedSupportSourceState | null = null;
+type PhaseADryWebPreviewState = {
   surfaceFingerprint: string;
   resolution: number;
   paintRevision: number;
+  artworkGraphSnapshot: ArtworkGraph;
+  artworkGraphSourceKey: string;
   graph: InternalStructureGraph;
-  facts: DryWebRoutingFacts;
+  /** Runtime-only worker fact; never persisted with the graph/history. */
+  targetConnectionFacts: TargetedGridTargetConnectionFact[] | null;
+  /** Runtime-only worker fact; never persisted with the graph/history. */
+  contactFloorFacts: TargetedGridContactFloorFacts | null;
+  /** Null after Stage 7 candidate adoption: the old generator facts are no longer current. */
+  facts: DryWebRoutingFacts | null;
   computeMs: number;
-} | null = null;
+};
+let phaseADryWebPreview: PhaseADryWebPreviewState | null = null;
 let activeDryWebPreviewWorker: Worker | null = null;
 let dryWebPreviewGeneration = 0;
 let dryWebPreviewRequestId = 0;
 let dryWebPreviewPending = false;
+let dryWebPreviewStartTimer: number | null = null;
+let dryWebPreviewHeavyComputation: HeavyComputationHandle | null = null;
+let activeDryWebExactRecheckWorker: Worker | null = null;
+let dryWebExactRecheckGeneration = 0;
 // T12: three-way view toggle (レイマーチ / ビーズ / 全体メッシュ), replacing
 // T11's boolean mesh-overlay flag. See afterMutation() for the auto-switch
 // rule (raymarch -> beads once the point count exceeds the shader's
@@ -835,6 +814,7 @@ const SURFACE_PROGRESS_WORKER_START = 5;
 const SURFACE_PROGRESS_CLASSIFICATION = 80;
 let surfaceAngleGeneration = 0;
 let surfaceAngleCache: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null = null;
+let installedSurfaceAngleDiagnosisView: SurfaceAngleDiagnosisView | null = null;
 let activeSurfacePersistentCacheKeys: SurfacePersistentCacheKeys | null = null;
 let activeSurfaceCacheMissReport: SurfaceCacheMissReport | null = null;
 let activeLegacySurfaceCacheKey: string | null = null;
@@ -865,6 +845,115 @@ let showMotifLowestPoints = false;
 let showOverhangSupportSites = true;
 let showMixedSupportFaces = false;
 let showSupportFootprint = true;
+let dryWebAuthorIntegrationPresentation = false;
+let dryWebInsideTargetOverlayVisible = false;
+let dryWebInsufficientEdgeOverlayVisible = false;
+let dryWebContactFloorOverlayVisible: DryWebContactFloorResidualCategory | null = null;
+let dryWebSupportSeparation: DryWebSupportSeparationPresentation | null = null;
+let dryWebSupportSeparationSource: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null = null;
+let dryWebSupportSeparationVisible = false;
+let dryWebSupportSeparationRestoreViewState: DryWebGraphViewViewportState | null = null;
+let dryWebSupportSeparationRestoreDiagnosisView: SurfaceAngleDiagnosisView | null = null;
+let dryWebRedFaceLocatorVisible = false;
+let dryWebRedFaceLocatorRestoreViewState: DryWebGraphViewViewportState | null = null;
+let dryWebRedFaceLocatorRestoreDiagnosisView: SurfaceAngleDiagnosisView | null = null;
+let dryWebRedFaceDryWebCandidateVisible = false;
+type Stage7RedFaceReinforcementPlanBinding = {
+  readonly sourceGraph: InternalStructureGraph;
+  readonly exactSource: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  readonly candidateFaceIds: readonly number[];
+  readonly targetDiameterMm: number;
+  readonly scaleMmPerUnit: number;
+  readonly plan: Stage7RedFaceReinforcementPlan;
+};
+let stage7RedFaceReinforcementPlan: Stage7RedFaceReinforcementPlanBinding | null = null;
+let stage7RedFaceReinforcementPlanMessage: string | null = null;
+interface Stage7ProvisionalRecheckBinding {
+  readonly plan: Stage7RedFaceReinforcementPlan;
+  readonly sourceGraph: InternalStructureGraph;
+  readonly baseDiagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  readonly baselineSeparation: DryWebSupportSeparationPresentation;
+  readonly exactSource: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  readonly candidateFaceIds: readonly number[];
+  readonly targetDiameterMm: number;
+  readonly scaleMmPerUnit: number;
+  readonly supportEntries: OverhangSupportPolicyResult["entries"] | null;
+  readonly meshStep: number;
+  readonly mode: SkinMode;
+}
+
+type Stage7ProvisionalRecheckResult = {
+  readonly binding: Stage7ProvisionalRecheckBinding;
+  readonly source: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  readonly separation: DryWebSupportSeparationPresentation;
+  readonly elapsedMs: number;
+};
+
+interface Stage7ProvisionalAdoptionGateApproval {
+  /** The exact provisional plan object reviewed by the author. */
+  readonly plan: Stage7RedFaceReinforcementPlan;
+  /** The exact provisional recheck result object reviewed by the author. */
+  readonly result: Stage7ProvisionalRecheckResult;
+}
+
+let activeStage7ProvisionalRecheckWorker: Worker | null = null;
+let stage7ProvisionalRecheckGeneration = 0;
+let stage7ProvisionalRecheckHeavyComputation: HeavyComputationHandle | null = null;
+let stage7ProvisionalRecheckRunBinding: Stage7ProvisionalRecheckBinding | null = null;
+let stage7ProvisionalRecheckResult: Stage7ProvisionalRecheckResult | null = null;
+let stage7ProvisionalRecheckElapsedMs: number | null = null;
+let stage7ProvisionalRecheckTerminal: "missing" | "stale" | "error" = "missing";
+let stage7ProvisionalRecheckMessage: string | null = null;
+let stage7ProvisionalAdoptionGateApproval: Stage7ProvisionalAdoptionGateApproval | null = null;
+interface Stage7CanonicalCandidateAdoptionUndo {
+  readonly phaseADryWebPreview: PhaseADryWebPreviewState;
+  readonly internalStructureGraph: InternalStructureGraph | null;
+  readonly internalAngleScreeningGraph: InternalStructureGraph | null;
+  readonly internalAngleScreening: InternalAngleScreeningReport | null;
+  readonly dryWebSupportSeparation: DryWebSupportSeparationPresentation | null;
+  readonly dryWebSupportSeparationSource: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null;
+  readonly dryWebSupportSeparationVisible: boolean;
+  readonly dryWebSupportSeparationRestoreViewState: DryWebGraphViewViewportState | null;
+  readonly dryWebSupportSeparationRestoreDiagnosisView: SurfaceAngleDiagnosisView | null;
+  readonly installedSurfaceAngleDiagnosisView: SurfaceAngleDiagnosisView | null;
+  readonly dryWebInsideTargetOverlayVisible: boolean;
+  readonly dryWebInsufficientEdgeOverlayVisible: boolean;
+  readonly dryWebContactFloorOverlayVisible: DryWebContactFloorResidualCategory | null;
+  readonly dryWebRedFaceLocatorVisible: boolean;
+  readonly dryWebRedFaceLocatorRestoreViewState: DryWebGraphViewViewportState | null;
+  readonly dryWebRedFaceLocatorRestoreDiagnosisView: SurfaceAngleDiagnosisView | null;
+  readonly dryWebRedFaceDryWebCandidateVisible: boolean;
+  readonly dryWebContactPresentationOwner: DryWebContactPresentationOwner;
+  readonly stage7RedFaceReinforcementPlan: Stage7RedFaceReinforcementPlanBinding | null;
+  readonly stage7RedFaceReinforcementPlanMessage: string | null;
+  readonly stage7ProvisionalRecheckResult: Stage7ProvisionalRecheckResult | null;
+  readonly stage7ProvisionalRecheckElapsedMs: number | null;
+  readonly stage7ProvisionalRecheckTerminal: "missing" | "stale" | "error";
+  readonly stage7ProvisionalRecheckMessage: string | null;
+  readonly stage7ProvisionalAdoptionGateApproval: Stage7ProvisionalAdoptionGateApproval | null;
+}
+
+interface Stage7CanonicalCandidateAdoptionRecord {
+  readonly graph: InternalStructureGraph;
+  readonly surfaceAngleCache: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
+  readonly artworkGraphSnapshot: ArtworkGraph | null;
+  readonly artworkGraphSourceKey: string | null;
+  readonly targetedSupportSource: TargetedSupportSourceState | null;
+  readonly paintRevision: number;
+  readonly surfaceFingerprint: string;
+  readonly resolution: number;
+  readonly mode: SkinMode;
+  readonly supportSettingsKey: string;
+  readonly exactValidated: boolean;
+}
+
+let stage7CanonicalCandidateAdoption: Stage7CanonicalCandidateAdoptionRecord | null = null;
+let stage7CanonicalCandidateAdoptionUndo: Stage7CanonicalCandidateAdoptionUndo | null = null;
+// Exactly one author diagnostic owns the bead colors at a time.  This is
+// separate from the removable-support presentation flag above: A/B, N-way,
+// and legacy contact views may temporarily take over without invalidating the
+// already-generated Dry Web graph, but the Dry Web legend must then disappear.
+let dryWebContactPresentationOwner: DryWebContactPresentationOwner = "none";
 let supportSiteDepthMode: SupportSiteDepthMode = "show-back";
 let supportPaintEnabled = false;
 let supportPaintMode: SupportPaintMode = "inside";
@@ -894,7 +983,6 @@ let supportPaintApplyWorkerReady = false;
 let supportPaintApplyGeneration = 0;
 let supportPaintApplyRequestId = 0;
 let supportPaintApplyReplacePending = 0;
-const supportPaintDryWebRefreshRequestIds = new Set<number>();
 let activeSupportPaintRaycastWorker: Worker | null = null;
 let supportPaintRaycastHeavyComputation: HeavyComputationHandle | null = null;
 let supportPaintRaycastGeneration = 0;
@@ -952,6 +1040,137 @@ let openingMapEverRun = false;
 let denseFlowerSampleActive = false;
 let denseFlowerSampleLoadId = 0;
 let lastContactReport: ContactReport | null = null;
+
+/**
+ * The history replay path preserves legacy optional Patch keys as explicit
+ * `undefined` properties. Graph Core intentionally rejects that shape, so
+ * the Stage 3 adapter removes only those absent optional values before
+ * handing the facts to the existing graph factories. Defined facts and
+ * nested point/motif data are copied unchanged.
+ */
+function omitUndefinedGraphProperties<T extends object>(value: T): T {
+  const compact: Record<string, unknown> = {};
+  for (const [key, current] of Object.entries(value)) {
+    if (current !== undefined) compact[key] = current;
+  }
+  return compact as T;
+}
+
+function currentGraphPatches(): Patch[] {
+  return state.patches.map((patch) => omitUndefinedGraphProperties({
+    ...patch,
+    motifParams: patch.motifParams === undefined
+      ? undefined
+      : omitUndefinedGraphProperties({ ...patch.motifParams }),
+    points: patch.points.map((point) => omitUndefinedGraphProperties({ ...point })),
+  } as Patch));
+}
+
+function currentArtworkGraphSourceKey(): string {
+  return canonicalStringify({
+    patchSetRevision: state.patchSetRevision,
+    patches: currentGraphPatches(),
+  });
+}
+
+function currentDryWebArtworkGraphBoundary(): DryWebArtworkGraphBoundaryDecision {
+  let currentSourceKey: string | null = null;
+  try {
+    currentSourceKey = currentArtworkGraphSourceKey();
+  } catch {
+    // A source-key failure is intentionally fail-closed by the pure boundary.
+  }
+  return inspectDryWebArtworkGraphBoundary({
+    snapshot: artworkGraphSnapshot,
+    snapshotSourceKey: artworkGraphSourceKey,
+    currentSourceKey,
+    currentPatchSetRevision: state.patchSetRevision,
+  });
+}
+
+function syncArtworkGraphStatus(): void {
+  let currentKey: string | null = null;
+  let keyError: string | null = null;
+  try {
+    currentKey = currentArtworkGraphSourceKey();
+  } catch (error) {
+    keyError = error instanceof Error ? error.message : String(error);
+  }
+  const boundary = inspectDryWebArtworkGraphBoundary({
+    snapshot: artworkGraphSnapshot,
+    snapshotSourceKey: artworkGraphSourceKey,
+    currentSourceKey: currentKey,
+    currentPatchSetRevision: state.patchSetRevision,
+  });
+  const isCurrent = boundary.status === "current";
+  const status: ArtworkGraphUiStatus["status"] = state.patches.length === 0
+    ? "not-ready"
+    : artworkGraphSnapshot === null
+      ? "not-ready"
+      : isCurrent
+        ? "ready"
+        : "stale";
+  const detail = keyError
+    ? `現在のSurfaceをGraph化できません: ${keyError}`
+    : state.patches.length === 0
+      ? artworkGraphSnapshot === null
+        ? "Surfaceパッチがないため未準備です。Surfaceを生成するとGraph化できます。"
+        : "Surfaceパッチがないため未準備です。前回snapshotは現在のSurfaceとして扱いません。"
+      : artworkGraphSnapshot === null
+        ? artworkGraphLastError ?? "現在のSurfaceをボタンでsnapshot化してください。"
+        : isCurrent
+          ? "現在のSurfaceから生成したin-memory snapshotです。"
+          : boundary.reason;
+  ui.setArtworkGraphStatus({
+    status,
+    currentPatchCount: state.patches.length,
+    snapshotNodeCount: artworkGraphSnapshot?.surfaceDraft.nodes.length ?? null,
+    relationCount: artworkGraphSnapshot?.surfaceDraft.edges.length ?? null,
+    patchSetRevision: state.patchSetRevision,
+    artworkState: artworkGraphSnapshot?.state === "surfaceDraft" ? "surfaceDraft" : null,
+    detail,
+  });
+  const overlay = createArtworkGraphOverlayPresentation(
+    artworkGraphSnapshot,
+    boundary.status,
+    artworkGraphOverlayEnabled,
+  );
+  skinRenderer.setArtworkGraphOverlay(overlay.markers, overlay.enabled);
+  ui.setArtworkGraphOverlayState({
+    enabled: overlay.enabled,
+    status: overlay.status,
+    nodeCount: artworkGraphSnapshot?.surfaceDraft.nodes.length ?? 0,
+  });
+}
+
+function deriveCurrentArtworkGraph(): void {
+  // Replacing the explicit Stage-3 snapshot invalidates any Stage-4 result
+  // immediately. The diagnosis/Paint facts remain available for the next
+  // run, but no graph derived from the previous snapshot stays visible.
+  invalidateDryWebPreviewForInputChange(
+    `Stage 3 snapshotを更新しました。${DRY_WEB_ARTWORK_GRAPH_REFRESH_PROMPT}`,
+  );
+  if (state.patches.length === 0) {
+    syncArtworkGraphStatus();
+    refreshDryWebActions();
+    return;
+  }
+  try {
+    const patches = currentGraphPatches();
+    const sourceKey = canonicalStringify({ patchSetRevision: state.patchSetRevision, patches });
+    const surfaceGraph = createSurfaceGraph(patches, state.patchSetRevision, {
+      revision: state.patchSetRevision,
+    });
+    artworkGraphSnapshot = createArtworkGraph(surfaceGraph, { revision: state.patchSetRevision });
+    artworkGraphSourceKey = sourceKey;
+    artworkGraphLastError = null;
+    artworkGraphOverlayEnabled = true;
+  } catch (error) {
+    artworkGraphLastError = error instanceof Error ? error.message : String(error);
+  }
+  syncArtworkGraphStatus();
+  refreshDryWebActions();
+}
 
 // --- T13 coin由来A/B分割 state ------------------------------------------
 let seedPickMode = false;
@@ -1344,7 +1563,6 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   },
   onImportS1File: (file) => importS1Recipe(file),
   onSkinParamChange: (key, value) => {
-    const enteringTargetedGrid = key === "internalStructure" && value === "targetedGrid";
     record(history, state, "setSkinParam", { key, value });
     ui.updateMotifPreview(state.skinParams);
     if (key === "patchShape") ui.setPatchShape(state.skinParams.patchShape);
@@ -1355,6 +1573,12 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     }
     if (key === "internalStructure") {
       ui.setInternalStructure(state.skinParams.internalStructure);
+      syncPhaseAVerticalControl();
+      if (state.skinParams.internalStructure === "targetedGrid" && supportPaintMode === "outside") {
+        // Existing outside strokes remain in the v1 document for compatibility,
+        // but new Stage 4 Dry Web edits are inside-only.
+        supportPaintMode = "inside";
+      }
       if (state.skinParams.internalStructure === "none") setInternalObservationMode("normal");
     }
     // T14 (instruction §3.2, extended to the pre-existing thickness/roundK
@@ -1377,12 +1601,29 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
       key === "contactReinforcementMode" || key === "contactWholeScaleMax") {
       clearContactView("設定が変わりました。「接点数を色で確認」を押してください");
     }
-    afterMutation({ skipGauges: true });
-    if (enteringTargetedGrid) {
-      window.setTimeout(() => startSurfaceAngleDiagnosis(ui.getSurfaceAngleThreshold()), 0);
+    // Required Dry Web contacts is an author-preview threshold only. Keep the
+    // current generator facts while recomputing their pass/warning summary.
+    // The next explicit generation passes the selected floor to the Worker.
+    if (key === "dryWebRequiredContacts") {
+      clearStage7CanonicalCandidateAdoption();
+      if (stage7RedFaceReinforcementPlan || stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+        clearStage7RedFaceReinforcementPlan();
+        stage7RedFaceReinforcementPlanMessage = "必要接触数が変わったため、仮Graph計画と比較結果を破棄しました。";
+      }
+      releaseDryWebInsufficientEdgeOverlayForCompetingView();
+      syncUndoHistory();
+      syncArtworkGraphStatus();
+      ui.setInternalStructureStatus("必要接触数の変更は現在結果を再判定します。形状へ反映するにはDry Webを再生成します。");
+      refreshDryWebActions();
+      render();
+      return;
     }
+    afterMutation({ skipGauges: true });
   },
   onSetViewMode: (mode) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    releaseDryWebSupportSeparationPresentationForCompetingView();
     invalidateSurfaceAngleDiagnosis("通常の生成結果表示へ戻りました");
     // A first-hit raymarch cannot reveal geometry behind the front surface.
     // Choosing it explicitly therefore returns to honest opaque shading.
@@ -1397,6 +1638,9 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     setViewMode(mode);
   },
   onSetDisplayStyle: (style) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    releaseDryWebSupportSeparationPresentationForCompetingView();
     invalidateSurfaceAngleDiagnosis("表示を切り替えたため、角度診断を終了しました");
     if (internalObservationMode !== "normal") setInternalObservationMode("normal");
     displayStyle = style;
@@ -1410,45 +1654,121 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     }
   },
   onSetInternalObservationMode: (mode) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    releaseDryWebSupportSeparationPresentationForCompetingView();
     invalidateSurfaceAngleDiagnosis("Internal表示を切り替えたため、角度診断を終了しました");
     setInternalObservationMode(mode);
   },
-  onViewportClippingAction: (action) => updateViewportClipping(action),
-  onDiagnoseSurfaceAngles: (thresholdDeg) => startSurfaceAngleDiagnosis(thresholdDeg),
+  onSetDryWebGraphView: (option: DryWebGraphViewOption) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    releaseDryWebSupportSeparationPresentationForCompetingView();
+    // Stage 4 observation must not take the generic callbacks above: those
+    // intentionally invalidate a diagnosis, while this panel only changes
+    // the existing viewport presentation around the current graph.
+    if (state.skinParams.internalStructure !== "targetedGrid"
+      || !dryWebPreviewIsCurrent()
+      || phaseADryWebPreview?.graph?.kind !== "targetedGrid") {
+      refreshDryWebActions();
+      return;
+    }
+    setViewMode(option.viewMode);
+    setInternalObservationMode(option.observationMode);
+  },
+  onSetDryWebInsideTargetVisible: (visible) => setDryWebInsideTargetOverlayVisible(visible),
+  onSetDryWebInsufficientEdgeVisible: (visible) => setDryWebInsufficientEdgeOverlayVisible(visible),
+  onSetDryWebContactFloorOverlay: (category) => setDryWebContactFloorOverlay(category),
+  onSetDryWebSupportSeparationVisible: (visible) => setDryWebSupportSeparationVisible(visible),
+  onSetDryWebRedFaceLocatorVisible: (visible) => setDryWebRedFaceLocatorVisible(visible),
+  onSetDryWebRedFaceDryWebCandidateVisible: (visible) => setDryWebRedFaceDryWebCandidateVisible(visible),
+  onBuildDryWebRedFaceReinforcementPlan: () => buildStage7RedFaceReinforcementPlan(),
+  onDiscardDryWebRedFaceReinforcementPlan: () => discardStage7RedFaceReinforcementPlan(),
+  onRecheckDryWebRedFaceReinforcementPlan: () => requestStage7ProvisionalRecheck(),
+  onDiscardDryWebRedFaceReinforcementComparison: () => discardStage7ProvisionalRecheck(),
+  onApproveDryWebRedFaceProvisionalComparison: () => approveStage7ProvisionalAdoptionGate(),
+  onReturnDryWebRedFaceProvisionalComparisonToPending: () => returnStage7ProvisionalAdoptionGateToPending(),
+  onAdoptDryWebRedFaceCanonicalCandidate: () => adoptStage7CanonicalCandidate(),
+  onUndoDryWebRedFaceCanonicalCandidateAdoption: () => undoStage7CanonicalCandidateAdoption(),
+  onToggleInternalAngleScreening: (enabled) => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); setInternalAngleScreeningEnabled(enabled); },
+  onViewportClippingAction: (action) => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); updateViewportClipping(action); },
+  onDiagnoseSurfaceAngles: (thresholdDeg) => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); startSurfaceAngleDiagnosis(thresholdDeg); },
+  onGenerateDryWeb: () => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); requestDryWebPreviewUpdate("作者がDry Web生成を開始"); },
+  onRecheckDryWebAfterAttachment: () => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); requestDryWebExactRecheck(); },
   onShowSurfaceDiagnostics: () => formatSurfaceEnvironmentDiagnostics(),
-  onSetSurfaceAngleDiagnosisView: (diagnosisView) => showSurfaceAngleDiagnosisView(diagnosisView),
-  onSurfaceAngleThresholdChange: () => { invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
+  onSetSurfaceAngleDiagnosisView: (diagnosisView) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    releaseDryWebSupportSeparationPresentationForCompetingView();
+    showSurfaceAngleDiagnosisView(diagnosisView);
+  },
+  onSurfaceAngleThresholdChange: () => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); releaseDryWebSupportSeparationPresentationForCompetingView(); invalidateSurfaceAngleDiagnosis("閾値が変わりました。もう一度診断してください"); refreshPrintProfileSummary(); },
   onToggleOverhangSupportSites: (show) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    dryWebAuthorIntegrationPresentation = false;
     showOverhangSupportSites = show;
     refreshOverhangSupportSiteOverlay();
     render();
   },
   onSetOverhangSupportDepthMode: (mode) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    dryWebAuthorIntegrationPresentation = false;
     supportSiteDepthMode = mode;
     refreshOverhangSupportSiteOverlay();
     render();
   },
   onToggleMixedSupportFaces: (show) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    dryWebAuthorIntegrationPresentation = false;
     showMixedSupportFaces = show;
     refreshOverhangSupportSiteOverlay();
     render();
   },
   onToggleSupportFootprint: (show) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    dryWebAuthorIntegrationPresentation = false;
     showSupportFootprint = show;
     refreshOverhangSupportSiteOverlay();
     render();
   },
-  onSetSupportPaintEnabled: (enabled) => setSupportPaintEnabled(enabled),
-  onSetSupportPaintMode: (mode) => { supportPaintMode = mode; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
-  onSetSupportPaintRadiusMm: (radiusMm) => { supportPaintRadiusMm = radiusMm; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
-  onSetSupportPaintBackfaces: (enabled) => { supportPaintBackfaces = enabled; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
-  onUndoSupportPaint: () => undoOneSupportPaintOperation(),
-  onRedoSupportPaint: () => redoOneSupportPaintOperation(),
-  onResetSupportPaint: () => { supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history)); resetSupportPaintUndoJournal(); invalidateSupportPaintReprojection(); autosaveSupportPaintDraft(); reapplySupportPaint("Support Paintを自動分類へ戻しました", supportPaintSession.history.present, true); },
+  onSetSupportPaintEnabled: (enabled) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    setSupportPaintEnabled(enabled);
+  },
+  onSetSupportPaintMode: (mode) => {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    if (state.skinParams.internalStructure === "targetedGrid" && mode === "outside") {
+      supportPaintMode = "inside";
+      refreshSupportPaintUi("Dry Webではinsideだけを編集します。outside / scaffoldは後段で扱います");
+      return;
+    }
+    supportPaintMode = mode;
+    markSupportPaintDraftDirty();
+    refreshSupportPaintUi();
+  },
+  onSetSupportPaintRadiusMm: (radiusMm) => { releaseDryWebInsideTargetOverlayForCompetingView(); releaseDryWebInsufficientEdgeOverlayForCompetingView(); supportPaintRadiusMm = radiusMm; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
+  onSetSupportPaintBackfaces: (enabled) => { releaseDryWebInsideTargetOverlayForCompetingView(); releaseDryWebInsufficientEdgeOverlayForCompetingView(); supportPaintBackfaces = enabled; markSupportPaintDraftDirty(); refreshSupportPaintUi(); },
+  onUndoSupportPaint: () => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); undoOneSupportPaintOperation(); },
+  onRedoSupportPaint: () => { releaseDryWebInsufficientEdgeOverlayForCompetingView(); redoOneSupportPaintOperation(); },
+  onResetSupportPaint: () => {
+    invalidateDryWebPreviewForInputChange("Support Paintを自動分類へ戻しました。Dry Webをもう一度生成してください");
+    supportPaintSession = reviseSupportPaintSession(supportPaintSession, resetSupportPaint(supportPaintSession.history));
+    resetSupportPaintUndoJournal();
+    invalidateSupportPaintReprojection();
+    autosaveSupportPaintDraft();
+    reapplySupportPaint("Support Paintを自動分類へ戻しました", supportPaintSession.history.present);
+  },
   onSaveSupportPaintDraft: () => saveSupportPaintDraftDownload(),
   onLoadSupportPaintDraft: (file) => loadSupportPaintDraftFile(file),
   onVerifySupportPaintReprojection: () => startSupportPaintReprojectionVerification(),
   onToggleMotifLowestPoints: (show, thresholdDeg) => {
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
     showMotifLowestPoints = show;
     if (show && !surfaceAngleCache) startSurfaceAngleDiagnosis(thresholdDeg);
     else {
@@ -1526,6 +1846,12 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     selectedPatchId = null;
     afterMutation();
     updateSurfacePackStatus(result);
+  },
+  onCreateArtworkGraph: () => deriveCurrentArtworkGraph(),
+  onToggleArtworkGraphOverlay: (enabled) => {
+    artworkGraphOverlayEnabled = enabled;
+    syncArtworkGraphStatus();
+    render();
   },
   onFillLaceGaps: () => {
     const result = fillLargestSurfaceGaps(state.host, state.hostParams.k, state.patches, state.skinParams);
@@ -1614,6 +1940,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     invalidateNPartitionResult("実体モードが変わったため、N分割をもう一度生成してください");
     invalidateOpeningMap();
     ui.setMode(state.mode);
+    refreshInternalAngleScreening(internalAngleScreeningGraph);
     updateEmptyViewportHint();
     render();
   },
@@ -1645,7 +1972,15 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onCancelOpeningMap: () => cancelOpeningMap(),
   onClearOpeningMap: () => clearOpeningMapDisplay(),
   onOpeningMapDisplayCountChange: (count) => { openingMapDisplayCount = count; refreshOpeningMapDisplay(); },
-  onOpeningMapConditionsChange: () => { invalidateOpeningMap(); refreshPrintProfileSummary(); },
+  onOpeningMapConditionsChange: () => {
+    if (stage7RedFaceReinforcementPlan || stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+      clearStage7RedFaceReinforcementPlan();
+      stage7RedFaceReinforcementPlanMessage = "meshの実寸設定が変わったため、仮Graph計画と比較結果を破棄しました。";
+    }
+    invalidateOpeningMap();
+    refreshPrintProfileSummary();
+    refreshDryWebSupportSeparationUi();
+  },
   onPrintCheck: (options) => void checkCurrentPrint(options),
   onProposeNPartition: (count) => proposeAndConfirmNPartition(count),
   onBuildNPartition: () => buildNPartition(),
@@ -1726,6 +2061,8 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 });
 
+syncArtworkGraphStatus();
+
 // Move the existing history DOM nodes into PROJECT without rebuilding them or
 // registering a second set of handlers. The Properties root keeps all other
 // controls, including Shape/Paint Undo and the frozen experiment group.
@@ -1744,6 +2081,8 @@ interface PhaseASupportPreviewSettings {
   dryWebMaximumUnreinforcedLengthMm: number;
 }
 
+const PHASE_A_SUPPORT_PREVIEW_MAX_LEAVES = 2_000;
+
 const phaseASupportSettings: PhaseASupportPreviewSettings = {
   supportMode: "branching",
   objectLiftMm: 1.2,
@@ -1760,13 +2099,17 @@ const phaseASupportSettings: PhaseASupportPreviewSettings = {
 const phaseASupportPanel = document.createElement("section");
 phaseASupportPanel.className = "phase-a-support-panel";
 phaseASupportPanel.dataset.phaseA = "support-forest";
+phaseASupportPanel.dataset.owner = "removable-print-support";
+phaseASupportPanel.dataset.role = "removable-support-preview";
 const phaseATitle = document.createElement("h3");
-phaseATitle.textContent = "PRINT SUPPORT / 9 Removable print supports";
+phaseATitle.textContent = "8. Removable Print Support";
 const phaseANote = document.createElement("p");
 phaseANote.className = "phase-a-support-note";
-phaseANote.textContent = "Surface 48 / Case A用。現在のSupport Paint分類を葉として使い、書き出しは行いません。";
+phaseANote.textContent = "Surface 48 / Case A用。現在のSupport Paint分類から最大2,000葉だけを表示用に抽出します。Artwork Dry Webの物理設定はStage 4にあります。書き出し・印刷判定には使いません。";
 const phaseAControls = document.createElement("div");
 phaseAControls.className = "phase-a-support-controls";
+phaseAControls.dataset.owner = "removable-print-support";
+phaseAControls.dataset.role = "removable-support-controls";
 
 function addPhaseANumberControl(
   labelText: string,
@@ -1775,8 +2118,9 @@ function addPhaseANumberControl(
   max: number,
   step: number,
   suffix: string,
-): void {
+): HTMLLabelElement {
   const label = document.createElement("label");
+  label.dataset.owner = "removable-print-support";
   label.textContent = labelText;
   const valueWrap = document.createElement("span");
   const input = document.createElement("input");
@@ -1793,11 +2137,17 @@ function addPhaseANumberControl(
     if (!Number.isFinite(value)) return;
     phaseASupportSettings[key] = value;
     input.value = String(value);
+    clearStage7CanonicalCandidateAdoption();
+    if (stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+      clearStage7ProvisionalRecheck("Stage 4 settingsが変わったため、仮Graph比較を破棄しました。", "stale");
+    }
     refreshPhaseASupportPreview();
+    refreshDryWebActions();
   });
   valueWrap.append(input, unit);
   label.append(valueWrap);
   phaseAControls.appendChild(label);
+  return label;
 }
 
 const phaseAModeLabel = document.createElement("label");
@@ -1813,6 +2163,10 @@ for (const [value, text] of [["vertical", "Vertical（旧比較）"], ["branchin
 }
 phaseAModeSelect.addEventListener("change", () => {
   phaseASupportSettings.supportMode = phaseAModeSelect.value as SupportForestMode;
+  clearStage7CanonicalCandidateAdoption();
+  if (stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+    clearStage7ProvisionalRecheck("Stage 4 settingsが変わったため、仮Graph比較を破棄しました。", "stale");
+  }
   refreshPhaseASupportPreview();
 });
 phaseAModeLabel.appendChild(phaseAModeSelect);
@@ -1830,29 +2184,82 @@ const phaseAVerticalInput = document.createElement("input");
 phaseAVerticalInput.type = "checkbox";
 phaseAVerticalInput.dataset.phaseAControl = "baseVolumeVerticalSupports";
 phaseAVerticalInput.checked = phaseASupportSettings.baseVolumeVerticalSupports;
+const phaseAVerticalText = document.createTextNode("base-volume vertical supports ON");
+function syncPhaseAVerticalControl(): void {
+  const ignoredForDryWeb = state.skinParams.internalStructure === "targetedGrid";
+  phaseAVerticalInput.disabled = ignoredForDryWeb;
+  phaseAVerticalLabel.dataset.ignored = String(ignoredForDryWeb);
+  phaseAVerticalLabel.title = ignoredForDryWeb
+    ? "Dry WebではBase内部のretained verticalを生成しません"
+    : "表示用のbase-volume vertical supportsを切り替えます";
+  phaseAVerticalText.textContent = ignoredForDryWeb
+    ? "base-volume vertical supports ignored（Dry Web）"
+    : "base-volume vertical supports ON";
+}
 phaseAVerticalInput.addEventListener("change", () => {
   phaseASupportSettings.baseVolumeVerticalSupports = phaseAVerticalInput.checked;
+  clearStage7CanonicalCandidateAdoption();
+  if (stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+    clearStage7ProvisionalRecheck("Stage 4 settingsが変わったため、仮Graph比較を破棄しました。", "stale");
+  }
   refreshPhaseASupportPreview();
 });
-phaseAVerticalLabel.append(phaseAVerticalInput, document.createTextNode("base-volume vertical supports ON"));
+phaseAVerticalLabel.append(phaseAVerticalInput, phaseAVerticalText);
 phaseAControls.appendChild(phaseAVerticalLabel);
-addPhaseANumberControl("Dry Web minimum diameter", "dryWebMinimumDiameterMm", 0.8, 4, 0.1, "mm");
-addPhaseANumberControl("Dry Web maximum unreinforced", "dryWebMaximumUnreinforcedLengthMm", 4, 30, 1, "mm");
+const phaseADryWebMinimumLabel = addPhaseANumberControl("Dry Web minimum diameter", "dryWebMinimumDiameterMm", 0.8, 4, 0.1, "mm");
+const phaseADryWebMaximumLabel = addPhaseANumberControl("Dry Web maximum unreinforced", "dryWebMaximumUnreinforcedLengthMm", 4, 30, 1, "mm");
+phaseADryWebMinimumLabel.dataset.owner = "artwork-dry-web";
+phaseADryWebMaximumLabel.dataset.owner = "artwork-dry-web";
+
+const phaseADryWebArtworkControls = document.createElement("section");
+phaseADryWebArtworkControls.className = "phase-a-support-controls phase-a-dry-web-artwork-controls";
+phaseADryWebArtworkControls.dataset.owner = "artwork-dry-web";
+phaseADryWebArtworkControls.dataset.role = "artwork-dry-web-physical-settings";
+const phaseADryWebTitle = document.createElement("strong");
+phaseADryWebTitle.textContent = "Artwork Dry Web physical settings";
+const phaseADryWebHint = document.createElement("div");
+phaseADryWebHint.className = "hint";
+phaseADryWebHint.textContent = "作品として残るInternal Structureの物理設定です。Removable Print Supportの支持林設定とは別に保持します。";
+phaseADryWebArtworkControls.append(phaseADryWebTitle, phaseADryWebHint, phaseADryWebMinimumLabel, phaseADryWebMaximumLabel);
+const phaseADryWebStageBody = ui.root.querySelector<HTMLElement>("#skin-stage-4-body");
+if (phaseADryWebStageBody) phaseADryWebStageBody.appendChild(phaseADryWebArtworkControls);
+else ui.root.appendChild(phaseADryWebArtworkControls);
 
 const phaseASupportStatus = document.createElement("p");
 phaseASupportStatus.className = "phase-a-support-status";
-phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+phaseASupportStatus.textContent = "工程7でInternal Structureを生成・確認した後に使います";
 const phaseARefreshButton = document.createElement("button");
 phaseARefreshButton.type = "button";
 phaseARefreshButton.className = "phase-a-support-refresh";
-phaseARefreshButton.textContent = "現在のPaint分類からpreview更新";
-phaseARefreshButton.addEventListener("click", () => refreshPhaseASupportPreview());
+phaseARefreshButton.textContent = "Internal Structureを確認して印刷用サポートpreview生成";
+phaseARefreshButton.disabled = true;
+let phaseASupportPreviewRequested = false;
+phaseARefreshButton.addEventListener("click", () => {
+  const graph = getInternalStructureGraph();
+  if (!graph?.edges.length || !surfaceAngleCache || !overhangSupportResult) {
+    phaseASupportStatus.textContent = "先に工程7でInternal Structureを生成・確認してください";
+    return;
+  }
+  const separationBlockReason = dryWebSupportSeparationOutputBlockReason(
+    state.skinParams.internalStructure,
+    dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+  );
+  if (separationBlockReason) {
+    phaseASupportStatus.textContent = separationBlockReason;
+    phaseASupportStatus.dataset.stale = "true";
+    delete phaseASupportStatus.dataset.ok;
+    return;
+  }
+  phaseASupportPreviewRequested = true;
+  refreshPhaseASupportPreview();
+});
 phaseASupportPanel.append(phaseATitle, phaseANote, phaseAControls, phaseARefreshButton, phaseASupportStatus);
-const surfaceAnglePanel = ui.root.querySelector(".surface-angle-diagnosis");
-if (surfaceAnglePanel) surfaceAnglePanel.insertAdjacentElement("afterend", phaseASupportPanel);
+const phaseASupportStageBody = ui.root.querySelector<HTMLElement>("#skin-stage-8-body");
+if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPanel);
 else ui.root.appendChild(phaseASupportPanel);
+syncPhaseAVerticalControl();
 
-rightPaneBody.append(workflowShell, ui.root);
+rightPaneBody.appendChild(ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
 
 function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): void {
@@ -2082,12 +2489,55 @@ function overhangSupportCountsText(result: OverhangSupportPolicyResult): string 
   return `mixed face ${counts.mixedFace.toLocaleString()} / inside site ${counts.insideSupportSite.toLocaleString()} / outside site ${counts.outsideSupportSite.toLocaleString()} / unresolved site ${counts.unresolvedSupportSite.toLocaleString()} / duplicate site ${counts.duplicateSupportSite.toLocaleString()}${paintText}`;
 }
 
+/** Stage 4 Dry Web authoring must not present removable outside/scaffold
+ * triangles as if they were artwork integration.  Keep the classification
+ * ledger and user visibility settings intact; a later Stage 7/8 toggle calls
+ * refreshOverhangSupportSiteOverlay() and can show the preserved overlay. */
+function hideRemovableSupportOverlayForDryWeb(): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  dryWebAuthorIntegrationPresentation = true;
+  skinRenderer.clearOverhangSupportSiteOverlay();
+  const result = overhangSupportResult;
+  ui.setOverhangSupportSiteOverlay(
+    Boolean(result && surfaceAngleCache),
+    false,
+    false,
+    false,
+    supportSiteDepthMode,
+    result
+      ? "Dry Web統合表示中 · outside / scaffold表示を隠しています（ledgerは保持）"
+      : "Dry Web統合表示中 · outside / scaffold表示を隠しています",
+    undefined,
+  );
+}
+
 function refreshOverhangSupportSiteOverlay(): void {
+  if (dryWebInsideTargetOverlayVisible) return;
+  if (dryWebAuthorIntegrationPresentation) {
+    hideRemovableSupportOverlayForDryWeb();
+    return;
+  }
   const result = overhangSupportResult;
   const diagnosis = surfaceAngleCache;
   if (!result || !diagnosis) {
     skinRenderer.clearOverhangSupportSiteOverlay();
     ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点は未診断");
+    return;
+  }
+  if (!showOverhangSupportSites && !showMixedSupportFaces) {
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    const ok = result.counts.unresolvedSupportSite === 0
+      && result.counts.duplicateSupportSite === 0;
+    ui.setOverhangSupportSiteOverlay(
+      true,
+      false,
+      false,
+      showSupportFootprint,
+      supportSiteDepthMode,
+      overhangSupportCountsText(result),
+      ok,
+    );
     return;
   }
   const sourceLongest = triangleSoupLongestExtent(diagnosis.basePositions);
@@ -2099,24 +2549,28 @@ function refreshOverhangSupportSiteOverlay(): void {
   }
   const scaleMmPerUnit = targetLongestMm / sourceLongest;
   const markerRadius = 0.55 / scaleMmPerUnit;
-  const drawableEntries = result.entries.filter((entry) => entry.positionMm && !entry.duplicateOf);
-  // Editing stays a low-to-medium density preview. Saved normalized strokes
-  // are reprojected to every high-resolution site by the export Worker.
-  const previewStride = Math.max(1, Math.ceil(drawableEntries.length / 40_000));
-  const markers = drawableEntries.flatMap((entry, index) => {
-    if (entry.classification !== "unresolved" && index % previewStride !== 0) return [];
-    return [{
-      id: entry.id,
-      classification: entry.classification,
-      markerRadius,
-      normal: entry.normal ? { x: entry.normal.xMm, y: entry.normal.yMm, z: entry.normal.zMm } : undefined,
-      position: {
-        x: entry.positionMm!.xMm / scaleMmPerUnit,
-        y: entry.positionMm!.yMm / scaleMmPerUnit,
-        z: entry.positionMm!.zMm / scaleMmPerUnit,
-      },
-    }];
-  });
+  const markers = showOverhangSupportSites
+    ? (() => {
+      const drawableEntries = result.entries.filter((entry) => entry.positionMm && !entry.duplicateOf);
+      // Editing stays a low-to-medium density preview. Saved normalized strokes
+      // are reprojected to every high-resolution site by the export Worker.
+      const previewStride = Math.max(1, Math.ceil(drawableEntries.length / 40_000));
+      return drawableEntries.flatMap((entry, index) => {
+        if (entry.classification !== "unresolved" && index % previewStride !== 0) return [];
+        return [{
+          id: entry.id,
+          classification: entry.classification,
+          markerRadius,
+          normal: entry.normal ? { x: entry.normal.xMm, y: entry.normal.yMm, z: entry.normal.zMm } : undefined,
+          position: {
+            x: entry.positionMm!.xMm / scaleMmPerUnit,
+            y: entry.positionMm!.yMm / scaleMmPerUnit,
+            z: entry.positionMm!.zMm / scaleMmPerUnit,
+          },
+        }];
+      });
+    })()
+    : [];
   const mixedPositions: number[] = [];
   if (showMixedSupportFaces) {
     for (const faceIndex of result.mixedFaceIndices) {
@@ -2215,64 +2669,1986 @@ function supportPaintEditingContext(): {
 function dryWebPreviewIsCurrent(): boolean {
   return Boolean(
     phaseADryWebPreview
+    && !dryWebPreviewPending
     && surfaceAngleCache
     && phaseADryWebPreview.surfaceFingerprint === currentTargetSurfaceFingerprint()
     && phaseADryWebPreview.resolution === surfaceAngleCache.resolution
-    && phaseADryWebPreview.paintRevision === supportPaintSession.revision,
+    && phaseADryWebPreview.paintRevision === supportPaintSession.revision
+    && phaseADryWebPreview.artworkGraphSnapshot === artworkGraphSnapshot
+    && phaseADryWebPreview.artworkGraphSourceKey === artworkGraphSourceKey
+    && currentDryWebArtworkGraphBoundary().status === "current",
   );
 }
 
-function terminateDryWebPreviewWorker(clearResult = false): void {
-  if (activeDryWebPreviewWorker) activeDryWebPreviewWorker.terminate();
-  activeDryWebPreviewWorker = null;
-  dryWebPreviewGeneration++;
-  dryWebPreviewPending = false;
-  if (clearResult) {
-    phaseADryWebPreview = null;
-    targetedSupportSource = null;
+function currentDryWebContactFacts(): TargetedGridContactFacts | undefined {
+  if (state.skinParams.internalStructure !== "targetedGrid" || !dryWebPreviewIsCurrent()) return undefined;
+  const graph = phaseADryWebPreview?.graph;
+  if (!graph || graph.kind !== "targetedGrid") return undefined;
+  return (graph.stats as TargetedGridInternalStructureStats).dryWebContactFacts;
+}
+
+function currentDryWebInsufficientEdgePresentation(): DryWebInsufficientEdgePresentation {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const running = targeted && dryWebInsideTargetRunActive();
+  const current = targeted && dryWebPreviewIsCurrent();
+  const graph = current && phaseADryWebPreview?.graph?.kind === "targetedGrid"
+    ? phaseADryWebPreview.graph
+    : null;
+  return createDryWebInsufficientEdgePresentation({
+    current,
+    running,
+    stale: targeted && Boolean(phaseADryWebPreview) && !current,
+    graph,
+    contactFacts: current ? currentDryWebContactFacts() ?? null : null,
+    requiredContacts: state.skinParams.dryWebRequiredContacts,
+    targetConnectionFacts: current ? phaseADryWebPreview?.targetConnectionFacts ?? null : null,
+    targetSourceCount: current ? targetedSupportSource?.targets.length : undefined,
+    surfaceContextVisible: (viewMode === "beads" || viewMode === "mesh") && internalObservationMode !== "internalOnly",
+  });
+}
+
+function currentDryWebContactFloorPresentation(): DryWebContactFloorPresentation {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const current = targeted && dryWebPreviewIsCurrent();
+  return createDryWebContactFloorPresentation({
+    current,
+    running: targeted && dryWebInsideTargetRunActive(),
+    stale: targeted && Boolean(phaseADryWebPreview) && !current,
+    facts: current ? phaseADryWebPreview?.contactFloorFacts ?? null : null,
+    contactFacts: current ? currentDryWebContactFacts() ?? null : null,
+    requiredContacts: state.skinParams.dryWebRequiredContacts,
+  });
+}
+
+function currentDryWebContactFloorOverlayPresentation(): DryWebContactFloorOverlayPresentation {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const current = targeted && dryWebPreviewIsCurrent();
+  return createDryWebContactFloorOverlayPresentation({
+    current,
+    running: targeted && dryWebInsideTargetRunActive(),
+    stale: targeted && Boolean(phaseADryWebPreview) && !current,
+    surfaceContextVisible: internalObservationMode !== "internalOnly",
+    snapshot: current ? artworkGraphSnapshot : null,
+    contactFloor: current ? currentDryWebContactFloorPresentation() : null,
+    category: dryWebContactFloorOverlayVisible,
+    enabled: dryWebContactFloorOverlayVisible !== null,
+  });
+}
+
+/** Claim the visible bead palette for an explicit non-Dry-Web diagnostic.
+ * Keeping the owner in main.ts lets the legend follow the same decision as
+ * the renderer, even when the competing diagnostic only refreshes an existing
+ * bead mesh and does not change the generated graph. */
+function claimCompetingDryWebPresentation(owner: Exclude<DryWebContactPresentationOwner, "none" | "dryWeb">): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  dryWebContactPresentationOwner = owner;
+  skinRenderer.updateDryWebContactPresentation(null, state.skinParams.dryWebRequiredContacts);
+  // A current facts report may still be useful as text, but its color legend
+  // must not describe the competing palette now on screen.
+  if (currentDryWebContactFacts()) refreshDryWebActions();
+}
+
+function releaseCompetingDryWebPresentation(owner: Exclude<DryWebContactPresentationOwner, "none" | "dryWeb">): void {
+  if (dryWebContactPresentationOwner !== owner) return;
+  dryWebContactPresentationOwner = "none";
+  refreshDryWebActions();
+}
+
+/** Keep the author-facing 3D contact palette derived from the current graph
+ * facts. The threshold is an interpretation-only change, so this is a cheap
+ * recolor; no Dry Web worker, graph rebuild, or output geometry is involved.
+ * Bead view is the uncapped 3D representation that can retain patch identity
+ * (the raymarch shader intentionally has no per-patch color lookup). */
+function syncDryWebContactVisualization(facts = currentDryWebContactFacts()): void {
+  if (!facts || !dryWebContactPresentationCanReapply(dryWebContactPresentationOwner)) {
+    if (!facts) dryWebContactPresentationOwner = "none";
+    skinRenderer.updateDryWebContactPresentation(null, state.skinParams.dryWebRequiredContacts);
+    return;
+  }
+  dryWebContactPresentationOwner = "dryWeb";
+  skinRenderer.updateDryWebContactPresentation(
+    facts,
+    state.skinParams.dryWebRequiredContacts,
+  );
+  const preservedViewState = preserveDryWebGraphViewState({ viewMode, internalObservationMode });
+  if (preservedViewState.viewMode !== viewMode) setViewMode(preservedViewState.viewMode);
+  if (preservedViewState.internalObservationMode !== internalObservationMode) {
+    setInternalObservationMode(preservedViewState.internalObservationMode);
   }
 }
 
-function requestDryWebPreviewUpdate(reason: string): void {
-  if (supportPaintDrag) return;
-  const result = overhangSupportResult;
-  const context = supportPaintEditingContext();
-  if (!surfaceAngleCache || !result || !context || state.skinParams.internalStructure !== "targetedGrid") {
-    terminateDryWebPreviewWorker(true);
-    skinRenderer.setInternalStructure(null);
+type DryWebPreviewProgress = Extract<DryWebPreviewWorkerMessage, { type: "progress" }>;
+
+function clearDryWebPreviewStartTimer(): void {
+  if (dryWebPreviewStartTimer !== null) window.clearTimeout(dryWebPreviewStartTimer);
+  dryWebPreviewStartTimer = null;
+}
+
+function terminateDryWebExactRecheck(): void {
+  dryWebExactRecheckGeneration++;
+  const worker = activeDryWebExactRecheckWorker;
+  activeDryWebExactRecheckWorker = null;
+  if (!worker) return;
+  worker.onmessage = null;
+  worker.onerror = null;
+  if (activeSurfaceAngleWorker === worker) activeSurfaceAngleWorker = null;
+  worker.terminate();
+}
+
+function dryWebSupportSeparationIsCurrent(): boolean {
+  return Boolean(
+    state.skinParams.internalStructure === "targetedGrid"
+    && dryWebSupportSeparation?.state === "current"
+    && dryWebSupportSeparationSource === surfaceAngleCache
+    && dryWebPreviewIsCurrent(),
+  );
+}
+
+function currentDryWebExactRecheckPresentation(): DryWebExactRecheckPresentation {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const graph = phaseADryWebPreview?.graph ?? null;
+  const boundary = currentDryWebArtworkGraphBoundary();
+  return createDryWebExactRecheckPresentation({
+    targetedGrid: targeted,
+    graphCurrent: targeted && dryWebPreviewIsCurrent(),
+    graphKind: graph?.kind ?? null,
+    stage3BoundaryCurrent: boundary.status === "current",
+    hasGraph: phaseADryWebPreview !== null,
+    exactFactsCurrent: targeted && dryWebSupportSeparationIsCurrent(),
+    runActive: dryWebInsideTargetRunActive(),
+  });
+}
+
+function currentStage7RedFaceLocatorPresentation(): Stage7RedFaceLocatorPresentation {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const running = targeted && canonicalDryWebOrSurfaceRunIsActive();
+  const current = targeted && dryWebSupportSeparationIsCurrent();
+  // A current generator graph without an exact result is a missing Stage 7
+  // fact, not an old red-face result. Only a previously published exact
+  // separation can make the locator stale.
+  const stale = targeted && Boolean(dryWebSupportSeparation) && !current;
+  return createStage7RedFaceLocatorPresentation({
+    current,
+    running,
+    stale,
+    separation: current ? dryWebSupportSeparation : null,
+    afterDangerPositions: current ? dryWebSupportSeparationSource?.afterDangerPositions ?? null : null,
+  });
+}
+
+function currentStage7RedFaceDryWebCandidatePresentation(): Stage7RedFaceDryWebCandidatePresentation {
+  const targetedGrid = state.skinParams.internalStructure === "targetedGrid";
+  const graphCurrent = targetedGrid && dryWebPreviewIsCurrent();
+  const exactCurrent = targetedGrid && dryWebSupportSeparationIsCurrent();
+  const locator = currentStage7RedFaceLocatorPresentation();
+  const graph = graphCurrent && phaseADryWebPreview?.graph?.kind === "targetedGrid"
+    ? phaseADryWebPreview.graph
+    : null;
+  return createStage7RedFaceDryWebCandidatePresentation({
+    current: graphCurrent && exactCurrent,
+    targetedGrid,
+    running: targetedGrid && canonicalDryWebOrSurfaceRunIsActive(),
+    stale: targetedGrid && Boolean(dryWebSupportSeparation) && (!graphCurrent || !exactCurrent),
+    redFaceLocator: locator,
+    graph,
+  });
+}
+
+function stage7RedFaceCandidateFaceIds(candidates: readonly Stage7RedFaceDryWebCandidate[]): number[] {
+  return candidates.map((candidate) => candidate.faceId);
+}
+
+function sameStage7RedFaceCandidateOrder(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((faceId, index) => faceId === b[index]);
+}
+
+/** A provisional plan is valid only while every source boundary it observed
+ * remains the exact object/value it planned from. It is never canonical graph
+ * state and therefore has no graph fingerprint or history entry. */
+function currentStage7RedFaceReinforcementPlan(
+  candidatePresentation: Stage7RedFaceDryWebCandidatePresentation,
+): Stage7RedFaceReinforcementPlan | null {
+  const planBinding = stage7RedFaceReinforcementPlan;
+  if (!planBinding) return null;
+  const currentGraph = phaseADryWebPreview?.graph ?? null;
+  const currentExactSource = dryWebSupportSeparationSource;
+  const currentScale = currentPrintScaleMmPerUnit();
+  const currentFaceIds = stage7RedFaceCandidateFaceIds(candidatePresentation.candidates);
+  const candidateStillCurrent = candidatePresentation.state === "current"
+    || (stage7ProvisionalRecheckIsActive() && candidatePresentation.state === "running");
+  const current = candidateStillCurrent
+    && candidatePresentation.enabled
+    && currentGraph === planBinding.sourceGraph
+    && currentExactSource === planBinding.exactSource
+    && dryWebSupportSeparationIsCurrent()
+    && Number.isFinite(currentScale)
+    && currentScale === planBinding.scaleMmPerUnit
+    && phaseASupportSettings.dryWebMinimumDiameterMm === planBinding.targetDiameterMm
+    && sameStage7RedFaceCandidateOrder(currentFaceIds, planBinding.candidateFaceIds)
+    && planBinding.plan.state === "current"
+    && planBinding.plan.graph !== null;
+  if (!current) {
+    clearStage7ProvisionalRecheck("仮Graph計画のsource/settingsが変わったため、比較を破棄しました。", "stale");
+    stage7RedFaceReinforcementPlan = null;
+    stage7RedFaceReinforcementPlanMessage = null;
+    return null;
+  }
+  return planBinding.plan;
+}
+
+function stage7ProvisionalRecheckIsActive(): boolean {
+  return Boolean(
+    activeStage7ProvisionalRecheckWorker
+    || stage7ProvisionalRecheckHeavyComputation
+    || stage7ProvisionalRecheckRunBinding,
+  );
+}
+
+/** Canonical work is kept separate from the provisional comparison worker. */
+function canonicalDryWebOrSurfaceRunIsActive(): boolean {
+  return Boolean(
+    activeDryWebPreviewWorker
+    || activeDryWebExactRecheckWorker
+    || dryWebPreviewHeavyComputation
+    || activeSurfaceAngleWorker
+    || activeSurfaceSupportClassificationWorker
+    || surfaceHeavyComputation
+    || supportPaintDrag
+    || supportPaintApplyReplacePending > 0
+    || (activeSupportPaintWorker && !supportPaintApplyWorkerReady)
+  );
+}
+
+/** Adoption must never replace or snapshot state while any competing work is live. */
+function stage7CanonicalCandidateAdoptionCompetingWorkIsActive(): boolean {
+  return Boolean(
+    activeHeavyComputation
+    || activeDryWebPreviewWorker
+    || activeDryWebExactRecheckWorker
+    || dryWebPreviewHeavyComputation
+    || activeSurfaceAngleWorker
+    || activeSurfaceSupportClassificationWorker
+    || surfaceHeavyComputation
+    || activePreviewMeshWorker
+    || previewMeshHeavyComputation
+    || activeGaugeWorker
+    || gaugeDebounceTimer !== null
+    || activeMeshExportWorker
+    || activePrintCheckMeshWorker
+    || activeInternalPrintGateWorker
+    || internalPrintGateHeavyComputation
+    || activeBambu3mfWorker
+    || activeSupportPaintReprojectionWorker
+    || supportPaintReprojectionHeavyComputation
+    || supportPaintDrag
+    || supportPaintApplyReplacePending > 0
+    || (activeSupportPaintWorker && !supportPaintApplyWorkerReady)
+    || activeSupportPaintRaycastWorker && !supportPaintRaycastReady
+    || supportPaintRaycastHeavyComputation
+    || activeOpeningMapWorker
+    || openingMapHeavyComputation
+    || activePartitionWorker
+    || partitionHeavyComputation
+    || activeNPartitionWorker
+    || nPartitionHeavyComputation
+    || activeStage7ProvisionalRecheckWorker
+    || stage7ProvisionalRecheckHeavyComputation
+  );
+}
+
+function stage7ProvisionalSeparationCounts(
+  separation: DryWebSupportSeparationPresentation,
+): { teal: number; orange: number; red: number } {
+  return {
+    teal: separation.mitigatedFaceCount,
+    orange: separation.outsideFaceCount,
+    red: separation.unresolvedFaceCount,
+  };
+}
+
+function stage7ProvisionalMeshStep(
+  diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+): number {
+  const reinforced = reinforceQuadConnectionsForMesh(state.patches, state.skinParams.quadMeshJoinWidth);
+  const bounds = computeSkinSamplingBounds(
+    state.host,
+    state.hostParams.k,
+    state.skinParams.thickness,
+    reinforced.patches,
+  );
+  return bounds.longest > 0 ? bounds.longest / diagnosis.resolution : 1 / diagnosis.resolution;
+}
+
+function stage7ProvisionalRecheckBindingIsCurrent(binding: Stage7ProvisionalRecheckBinding): boolean {
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const plan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
+  const currentGraph = phaseADryWebPreview?.graph ?? null;
+  const currentExactSource = dryWebSupportSeparationSource;
+  const currentBaseline = dryWebSupportSeparation;
+  const currentDiagnosis = surfaceAngleCache;
+  const currentScale = currentPrintScaleMmPerUnit();
+  const currentSupportEntries = overhangSupportResult?.entries ?? null;
+  return state.skinParams.internalStructure === "targetedGrid"
+    && plan === binding.plan
+    && currentGraph === binding.sourceGraph
+    && currentDiagnosis === binding.baseDiagnosis
+    && currentBaseline === binding.baselineSeparation
+    && currentExactSource === binding.exactSource
+    && dryWebSupportSeparationIsCurrent()
+    && currentSupportEntries === binding.supportEntries
+    && Number.isFinite(currentScale)
+    && currentScale === binding.scaleMmPerUnit
+    && phaseASupportSettings.dryWebMinimumDiameterMm === binding.targetDiameterMm
+    && sameStage7RedFaceCandidateOrder(
+      stage7RedFaceCandidateFaceIds(candidatePresentation.candidates),
+      binding.candidateFaceIds,
+    )
+    && currentDiagnosis.metrics.thresholdDeg === binding.baseDiagnosis.metrics.thresholdDeg
+    && stage7ProvisionalMeshStep(binding.baseDiagnosis) === binding.meshStep
+    && state.mode === binding.mode;
+}
+
+function stage7ProvisionalRecheckMessageMatchesBinding(
+  message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+  binding: Stage7ProvisionalRecheckBinding,
+): boolean {
+  const sameFloat32 = (a: Float32Array, b: Float32Array): boolean =>
+    a.length === b.length && a.every((value, index) => value === b[index]);
+  const baselineBeforeDangerFaceCount = binding.exactSource.beforeDangerPositions.length / 9;
+  const baselineAfterDangerFaceCount = binding.exactSource.afterDangerPositions.length / 9;
+  const audit = message.recheckAudit;
+  const auditMatches = audit !== undefined
+    && audit.requestedMode === "delta"
+    && audit.baselineBeforeDangerFaceCount === baselineBeforeDangerFaceCount
+    && audit.baselineAfterDangerFaceCount === baselineAfterDangerFaceCount
+    && ((audit.mode === "delta"
+      && audit.monotonicProof === "passed"
+      && audit.fallbackReason === undefined
+      && audit.queryFaceCount === baselineAfterDangerFaceCount)
+      || (audit.mode === "full"
+        && (audit.monotonicProof === "passed" || audit.monotonicProof === "failed")
+        && audit.fallbackReason !== undefined
+        && audit.queryFaceCount === binding.baseDiagnosis.baseFaceCount));
+  return message.resolution === binding.baseDiagnosis.resolution
+    && message.baseFaceCount === binding.baseDiagnosis.baseFaceCount
+    && message.internalEdgeCount === binding.plan.graph?.edges.length
+    && message.metrics.thresholdDeg === binding.baseDiagnosis.metrics.thresholdDeg
+    && auditMatches
+    && sameFloat32(message.basePositions, binding.baseDiagnosis.basePositions)
+    && sameFloat32(message.baseNormals, binding.baseDiagnosis.baseNormals)
+    && message.beforeDangerPositions.length % 9 === 0
+    && message.afterDangerPositions.length % 9 === 0
+    && message.mitigatedPositions.length % 9 === 0;
+}
+
+function currentStage7ProvisionalRecheckPresentation(): Stage7ProvisionalRecheckPresentation {
+  const result = stage7ProvisionalRecheckResult;
+  const resultCurrent = result !== null && stage7ProvisionalRecheckBindingIsCurrent(result.binding);
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const currentPlan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
+  const actionReady = currentPlan !== null
+    && state.skinParams.internalStructure === "targetedGrid"
+    && surfaceAngleCache !== null
+    && dryWebSupportSeparation !== null
+    && dryWebSupportSeparationSource === surfaceAngleCache
+    && overhangSupportResult !== null
+    && !canonicalDryWebOrSurfaceRunIsActive()
+    && !stage7ProvisionalRecheckIsActive();
+  const stale = stage7ProvisionalRecheckTerminal === "stale"
+    || (result !== null && !resultCurrent);
+  const error = stage7ProvisionalRecheckTerminal === "error"
+    ? stage7ProvisionalRecheckMessage
+    : null;
+  return createStage7ProvisionalRecheckPresentation({
+    actionReady,
+    running: stage7ProvisionalRecheckIsActive(),
+    current: resultCurrent,
+    stale,
+    error,
+    baseline: resultCurrent ? stage7ProvisionalSeparationCounts(result!.binding.baselineSeparation) : null,
+    provisional: resultCurrent ? stage7ProvisionalSeparationCounts(result!.separation) : null,
+    elapsedMs: stage7ProvisionalRecheckElapsedMs,
+  });
+}
+
+function currentStage7ProvisionalAdoptionGatePresentation(): Stage7ProvisionalAdoptionGatePresentation {
+  const comparison = currentStage7ProvisionalRecheckPresentation();
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const plan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
+  const result = stage7ProvisionalRecheckResult;
+  const build = (approval: Stage7ProvisionalAdoptionGateApproval | null): Stage7ProvisionalAdoptionGatePresentation =>
+    createStage7ProvisionalAdoptionGatePresentation({
+      planIdentity: plan,
+      resultIdentity: result,
+      planCurrent: plan !== null,
+      resultCurrent: result !== null && stage7ProvisionalRecheckBindingIsCurrent(result.binding),
+      comparisonState: comparison.state,
+      comparisonCurrent: comparison.current,
+      comparisonStatus: comparison.status,
+      approval: approval
+        ? { planIdentity: approval.plan, resultIdentity: approval.result }
+        : null,
+    });
+  let presentation = build(stage7ProvisionalAdoptionGateApproval);
+  // An identity mismatch is a fail-closed invalidation, not a new pending
+  // review. Recompute after dropping the stale volatile marker so a newly
+  // current result can immediately show the explicit review action.
+  if (stage7ProvisionalAdoptionGateApproval
+    && presentation.state !== "author-approved-for-next-confirmation") {
+    stage7ProvisionalAdoptionGateApproval = null;
+    presentation = build(null);
+  }
+  return presentation;
+}
+
+function stage7CanonicalCandidateAdoptionIsCurrent(): boolean {
+  const adoption = stage7CanonicalCandidateAdoption;
+  if (!adoption || state.skinParams.internalStructure !== "targetedGrid") return false;
+  const preview = phaseADryWebPreview;
+  const currentResolution = Math.max(16, Math.round(ui.getMeshOptions().resolution));
+  const current = Boolean(
+    preview
+    && preview.graph === adoption.graph
+    && preview.targetConnectionFacts === null
+    && preview.contactFloorFacts === null
+    && preview.facts === null
+    && internalStructureGraph === adoption.graph
+    && surfaceAngleCache === adoption.surfaceAngleCache
+    && preview.artworkGraphSnapshot === adoption.artworkGraphSnapshot
+    && preview.artworkGraphSourceKey === adoption.artworkGraphSourceKey
+    && artworkGraphSnapshot === adoption.artworkGraphSnapshot
+    && artworkGraphSourceKey === adoption.artworkGraphSourceKey
+    && preview.paintRevision === adoption.paintRevision
+    && supportPaintSession.revision === adoption.paintRevision
+    && preview.surfaceFingerprint === adoption.surfaceFingerprint
+    && currentTargetSurfaceFingerprint() === adoption.surfaceFingerprint
+    && preview.resolution === adoption.resolution
+    && currentResolution === adoption.resolution
+    && state.mode === adoption.mode
+    && JSON.stringify(phaseASupportSettings) === adoption.supportSettingsKey
+    && targetedSupportSource === adoption.targetedSupportSource
+    && currentDryWebArtworkGraphBoundary().status === "current"
+    && dryWebPreviewIsCurrent()
+  );
+  if (!current) stage7CanonicalCandidateAdoptionUndo = null;
+  return current;
+}
+
+function stage7CanonicalCandidateAdoptionUndoIsCurrent(): boolean {
+  const adoption = stage7CanonicalCandidateAdoption;
+  const undo = stage7CanonicalCandidateAdoptionUndo;
+  if (!adoption || !undo || !stage7CanonicalCandidateAdoptionIsCurrent()) return false;
+  const current = dryWebSupportSeparation === null
+    && dryWebSupportSeparationSource === null
+    && surfaceAngleCache === adoption.surfaceAngleCache
+    && !canonicalDryWebOrSurfaceRunIsActive();
+  if (!current) stage7CanonicalCandidateAdoptionUndo = null;
+  return current;
+}
+
+function currentStage7CanonicalCandidateAdoptionPresentation(): Stage7CanonicalCandidateAdoptionPresentation {
+  const adoption = stage7CanonicalCandidateAdoption;
+  const adoptionCurrent = stage7CanonicalCandidateAdoptionIsCurrent();
+  return createStage7CanonicalCandidateAdoptionPresentation({
+    approved: currentStage7ProvisionalAdoptionGatePresentation().state === "author-approved-for-next-confirmation",
+    adopted: adoption !== null,
+    adoptionCurrent,
+    undoCurrent: adoptionCurrent && stage7CanonicalCandidateAdoptionUndoIsCurrent(),
+    exactValidated: adoption?.exactValidated ?? false,
+    competingWorkActive: stage7CanonicalCandidateAdoptionCompetingWorkIsActive(),
+    graph: adoptionCurrent ? adoption?.graph ?? null : null,
+  });
+}
+
+function captureStage7CanonicalCandidateAdoptionUndo(): Stage7CanonicalCandidateAdoptionUndo | null {
+  if (!phaseADryWebPreview) return null;
+  return {
+    phaseADryWebPreview,
+    internalStructureGraph,
+    internalAngleScreeningGraph,
+    internalAngleScreening,
+    dryWebSupportSeparation,
+    dryWebSupportSeparationSource,
+    dryWebSupportSeparationVisible,
+    dryWebSupportSeparationRestoreViewState,
+    dryWebSupportSeparationRestoreDiagnosisView,
+    installedSurfaceAngleDiagnosisView,
+    dryWebInsideTargetOverlayVisible,
+    dryWebInsufficientEdgeOverlayVisible,
+    dryWebContactFloorOverlayVisible,
+    dryWebRedFaceLocatorVisible,
+    dryWebRedFaceLocatorRestoreViewState,
+    dryWebRedFaceLocatorRestoreDiagnosisView,
+    dryWebRedFaceDryWebCandidateVisible,
+    dryWebContactPresentationOwner,
+    stage7RedFaceReinforcementPlan,
+    stage7RedFaceReinforcementPlanMessage,
+    stage7ProvisionalRecheckResult,
+    stage7ProvisionalRecheckElapsedMs,
+    stage7ProvisionalRecheckTerminal,
+    stage7ProvisionalRecheckMessage,
+    stage7ProvisionalAdoptionGateApproval,
+  };
+}
+
+function clearStage7CanonicalCandidateAdoption(): void {
+  stage7CanonicalCandidateAdoption = null;
+  stage7CanonicalCandidateAdoptionUndo = null;
+}
+
+function restoreStage7CanonicalCandidateAdoptionUndo(undo: Stage7CanonicalCandidateAdoptionUndo): void {
+  phaseADryWebPreview = undo.phaseADryWebPreview;
+  internalStructureGraph = undo.internalStructureGraph;
+  internalStructureFingerprint = "";
+  internalAngleScreeningGraph = undo.internalAngleScreeningGraph;
+  internalAngleScreening = undo.internalAngleScreening;
+  dryWebSupportSeparation = undo.dryWebSupportSeparation;
+  dryWebSupportSeparationSource = undo.dryWebSupportSeparationSource;
+  dryWebSupportSeparationVisible = undo.dryWebSupportSeparationVisible;
+  dryWebSupportSeparationRestoreViewState = undo.dryWebSupportSeparationRestoreViewState;
+  dryWebSupportSeparationRestoreDiagnosisView = undo.dryWebSupportSeparationRestoreDiagnosisView;
+  installedSurfaceAngleDiagnosisView = undo.installedSurfaceAngleDiagnosisView;
+  dryWebInsideTargetOverlayVisible = false;
+  dryWebInsufficientEdgeOverlayVisible = false;
+  dryWebContactFloorOverlayVisible = null;
+  dryWebRedFaceLocatorVisible = false;
+  dryWebRedFaceDryWebCandidateVisible = false;
+  dryWebContactPresentationOwner = undo.dryWebContactPresentationOwner;
+  stage7RedFaceReinforcementPlan = undo.stage7RedFaceReinforcementPlan;
+  stage7RedFaceReinforcementPlanMessage = undo.stage7RedFaceReinforcementPlanMessage;
+  stage7ProvisionalRecheckResult = undo.stage7ProvisionalRecheckResult;
+  stage7ProvisionalRecheckElapsedMs = undo.stage7ProvisionalRecheckElapsedMs;
+  stage7ProvisionalRecheckTerminal = undo.stage7ProvisionalRecheckTerminal;
+  stage7ProvisionalRecheckMessage = undo.stage7ProvisionalRecheckMessage;
+  stage7ProvisionalAdoptionGateApproval = undo.stage7ProvisionalAdoptionGateApproval;
+  skinRenderer.clearSurfaceAngleOverlay();
+  skinRenderer.clearDryWebRedFaceLocator();
+  skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+  skinRenderer.clearDryWebInsufficientEdgeOverlay();
+  skinRenderer.clearDryWebContactFloorOverlay();
+  skinRenderer.setInternalStructure(internalStructureGraph);
+  skinRenderer.setInternalAngleScreening(internalAngleScreening);
+  ui.setInternalAngleScreening(
+    internalAngleScreeningGraph !== null,
+    internalAngleScreeningEnabled,
+    internalAngleScreening,
+  );
+  if (undo.dryWebContactPresentationOwner === "dryWeb") syncDryWebContactVisualization();
+  // Re-enter the existing presentation setters in a deterministic priority
+  // order. Each setter re-checks current facts and exclusivity; a stale
+  // captured overlay therefore stays off instead of being painted blindly.
+  if (undo.dryWebSupportSeparationVisible && dryWebSupportSeparationIsCurrent()) {
+    setDryWebSupportSeparationVisible(true);
+    dryWebSupportSeparationRestoreViewState = undo.dryWebSupportSeparationRestoreViewState;
+    dryWebSupportSeparationRestoreDiagnosisView = undo.dryWebSupportSeparationRestoreDiagnosisView;
+    installedSurfaceAngleDiagnosisView = undo.installedSurfaceAngleDiagnosisView;
+  } else if (undo.dryWebRedFaceDryWebCandidateVisible) {
+    setDryWebRedFaceDryWebCandidateVisible(true);
+    dryWebRedFaceLocatorRestoreViewState = undo.dryWebRedFaceLocatorRestoreViewState;
+    dryWebRedFaceLocatorRestoreDiagnosisView = undo.dryWebRedFaceLocatorRestoreDiagnosisView;
+  } else if (undo.dryWebRedFaceLocatorVisible) {
+    setDryWebRedFaceLocatorVisible(true);
+    dryWebRedFaceLocatorRestoreViewState = undo.dryWebRedFaceLocatorRestoreViewState;
+    dryWebRedFaceLocatorRestoreDiagnosisView = undo.dryWebRedFaceLocatorRestoreDiagnosisView;
+  } else if (undo.dryWebInsideTargetOverlayVisible) {
+    setDryWebInsideTargetOverlayVisible(true);
+  } else if (undo.dryWebContactFloorOverlayVisible !== null) {
+    setDryWebContactFloorOverlay(undo.dryWebContactFloorOverlayVisible);
+  } else if (undo.dryWebInsufficientEdgeOverlayVisible) {
+    setDryWebInsufficientEdgeOverlayVisible(true);
+  }
+  refreshDryWebSupportSeparationUi();
+  refreshDryWebActions();
+  syncPhaseASupportPreviewAvailability(internalStructureGraph);
+  render();
+}
+
+function adoptStage7CanonicalCandidate(): void {
+  const gate = currentStage7ProvisionalAdoptionGatePresentation();
+  if (gate.state !== "author-approved-for-next-confirmation"
+    || canonicalDryWebOrSurfaceRunIsActive()
+    || stage7CanonicalCandidateAdoptionCompetingWorkIsActive()
+    || stage7CanonicalCandidateAdoption !== null) {
+    refreshDryWebSupportSeparationUi();
     return;
   }
-  if (activeDryWebPreviewWorker) activeDryWebPreviewWorker.terminate();
+  const binding = stage7RedFaceReinforcementPlan;
+  const approvedPlan = binding?.plan;
+  const currentGraph = phaseADryWebPreview?.graph;
+  const currentDiagnosis = surfaceAngleCache;
+  const currentScale = currentPrintScaleMmPerUnit();
+  if (!binding || !approvedPlan || !approvedPlan.graph || !currentGraph
+    || approvedPlan.state !== "current"
+    || currentGraph !== binding.sourceGraph
+    || !currentDiagnosis
+    || dryWebSupportSeparationSource !== currentDiagnosis
+    || !dryWebSupportSeparationIsCurrent()
+    || !stage7ProvisionalRecheckResult
+    || !stage7ProvisionalRecheckBindingIsCurrent(stage7ProvisionalRecheckResult.binding)
+    || currentStage7ProvisionalRecheckPresentation().state !== "current"
+    || !Number.isFinite(currentScale)
+    || currentScale !== binding.scaleMmPerUnit) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const undo = captureStage7CanonicalCandidateAdoptionUndo();
+  if (!undo) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  // This is a session transition: clear the old exact/provisional evidence
+  // only after the exact pre-adoption references have been captured.
+  clearDryWebSupportSeparation();
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  const candidateGraph = cloneStage7CanonicalCandidateGraph(approvedPlan.graph);
+  phaseADryWebPreview = {
+    ...undo.phaseADryWebPreview,
+    graph: candidateGraph,
+    targetConnectionFacts: null,
+    contactFloorFacts: null,
+    facts: null,
+  };
+  internalStructureGraph = candidateGraph;
+  internalStructureFingerprint = "";
+  skinRenderer.setInternalStructure(candidateGraph);
+  refreshInternalAngleScreening(candidateGraph);
+  stage7CanonicalCandidateAdoption = {
+    graph: candidateGraph,
+    surfaceAngleCache: currentDiagnosis,
+    artworkGraphSnapshot,
+    artworkGraphSourceKey,
+    targetedSupportSource,
+    paintRevision: supportPaintSession.revision,
+    surfaceFingerprint: currentTargetSurfaceFingerprint(),
+    resolution: currentDiagnosis.resolution,
+    mode: state.mode,
+    supportSettingsKey: JSON.stringify(phaseASupportSettings),
+    exactValidated: false,
+  };
+  stage7CanonicalCandidateAdoptionUndo = undo;
+  ui.setInternalStructureStatus(
+    `Stage 7作品候補を採用 · candidate ${candidateGraph.nodes.length.toLocaleString()} node / ${candidateGraph.edges.length.toLocaleString()} edge · 旧generator facts無効 · exact再診断が必要`,
+    candidateGraph.edges.length > 0,
+  );
+  ui.setSurfaceAngleDiagnosisStatus("Stage 7作品候補を採用しました · 旧exact separationとgenerator factsは無効です · 「Dry Web付加後を再診断」で再検証してください");
+  refreshInternalAngleScreening(candidateGraph);
+  syncPhaseASupportPreviewAvailability(candidateGraph);
+  refreshDryWebSupportSeparationUi();
+  refreshDryWebActions("Stage 7作品候補を採用しました。旧factsは無効です。「Dry Web付加後を再診断」で再検証してください");
+  render();
+}
+
+function undoStage7CanonicalCandidateAdoption(): void {
+  if (!stage7CanonicalCandidateAdoptionUndoIsCurrent()) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const undo = stage7CanonicalCandidateAdoptionUndo;
+  if (!undo) return;
+  restoreStage7CanonicalCandidateAdoptionUndo(undo);
+  clearStage7CanonicalCandidateAdoption();
+  ui.setSurfaceAngleDiagnosisStatus("採用前へ戻しました。Dry Web candidate Graphとexact separationを採用前の状態へ復元しました");
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+function terminateStage7ProvisionalRecheck(): void {
+  stage7ProvisionalRecheckGeneration++;
+  const worker = activeStage7ProvisionalRecheckWorker;
+  activeStage7ProvisionalRecheckWorker = null;
+  stage7ProvisionalRecheckRunBinding = null;
+  if (worker) {
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.terminate();
+  }
+  stage7ProvisionalRecheckHeavyComputation?.finish();
+  stage7ProvisionalRecheckHeavyComputation = null;
+}
+
+function clearStage7ProvisionalRecheck(
+  reason: string | null = null,
+  state: "missing" | "stale" = "missing",
+): void {
+  terminateStage7ProvisionalRecheck();
+  stage7ProvisionalRecheckResult = null;
+  // Approval is deliberately volatile and tied to this exact result. Any
+  // rerun, cancellation, discard, or stale transition clears it fail-closed.
+  stage7ProvisionalAdoptionGateApproval = null;
+  stage7ProvisionalRecheckElapsedMs = null;
+  stage7ProvisionalRecheckTerminal = state;
+  stage7ProvisionalRecheckMessage = reason;
+}
+
+function captureStage7ProvisionalRecheckBinding(): Stage7ProvisionalRecheckBinding | null {
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const planBinding = stage7RedFaceReinforcementPlan;
+  const plan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
+  const baselineSeparation = dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null;
+  const exactSource = dryWebSupportSeparationSource;
+  // The exact result that produced the current separation is the immutable
+  // Stage 7 baseline boundary. Do not derive a fresh baseline from live mesh
+  // or settings while preparing the provisional request.
+  const baseDiagnosis = exactSource ?? surfaceAngleCache;
+  const sourceGraph = phaseADryWebPreview?.graph ?? null;
+  const scaleMmPerUnit = currentPrintScaleMmPerUnit();
+  if (!plan
+    || !planBinding
+    || planBinding.plan !== plan
+    || candidatePresentation.state !== "current"
+    || !candidatePresentation.enabled
+    || !baselineSeparation
+    || !baseDiagnosis
+    || !exactSource
+    || !sourceGraph
+    || sourceGraph.kind !== "targetedGrid"
+    || !dryWebSupportSeparationIsCurrent()
+    || typeof scaleMmPerUnit !== "number"
+    || !Number.isFinite(scaleMmPerUnit)
+    || !(scaleMmPerUnit > 0)
+    || !Number.isFinite(phaseASupportSettings.dryWebMinimumDiameterMm)
+    || !(phaseASupportSettings.dryWebMinimumDiameterMm > 0)
+    || !overhangSupportResult) return null;
+  const targetDiameterMm = phaseASupportSettings.dryWebMinimumDiameterMm;
+  const candidateFaceIds = Object.freeze(stage7RedFaceCandidateFaceIds(candidatePresentation.candidates));
+  return {
+    plan,
+    sourceGraph,
+    baseDiagnosis,
+    baselineSeparation,
+    exactSource,
+    candidateFaceIds,
+    targetDiameterMm,
+    scaleMmPerUnit,
+    supportEntries: overhangSupportResult.entries,
+    meshStep: stage7ProvisionalMeshStep(baseDiagnosis),
+    mode: state.mode,
+  };
+}
+
+function discardStage7ProvisionalRecheck(): void {
+  if (!stage7ProvisionalRecheckIsActive() && !stage7ProvisionalRecheckResult) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  clearStage7ProvisionalRecheck("仮診断結果を破棄しました。仮Graph計画とcanonical stateは変更していません。");
+  refreshDryWebSupportSeparationUi();
+}
+
+function requestStage7ProvisionalRecheck(): void {
+  const binding = captureStage7ProvisionalRecheckBinding();
+  if (!binding || canonicalDryWebOrSurfaceRunIsActive() || stage7ProvisionalRecheckIsActive()) {
+    stage7ProvisionalAdoptionGateApproval = null;
+    stage7ProvisionalRecheckMessage = "current仮Graph計画・exact baseline・source/settingsがそろっていないか、別の診断が実行中です。仮Graph exact比較は開始しません。";
+    stage7ProvisionalRecheckTerminal = "stale";
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+
+  clearStage7ProvisionalRecheck();
+  const generation = ++stage7ProvisionalRecheckGeneration;
+  const worker = new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
+  activeStage7ProvisionalRecheckWorker = worker;
+  stage7ProvisionalRecheckRunBinding = binding;
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (!isCurrentWorkerRun(
+      worker,
+      activeStage7ProvisionalRecheckWorker,
+      null,
+      undefined,
+      generation,
+      stage7ProvisionalRecheckGeneration,
+    ) || stage7ProvisionalRecheckHeavyComputation?.id !== heavy.id) return;
+    clearStage7ProvisionalRecheck("仮Graph exact比較をキャンセルしました。仮Graph計画とcanonical stateは変更していません。", "missing");
+    ui.setSurfaceAngleDiagnosisStatus("仮Graph exact比較をキャンセルしました。計画は保持しています。", false);
+    refreshDryWebSupportSeparationUi();
+  };
+  heavy = beginHeavyComputation("仮Graph exact比較 全体進捗", cancel);
+  stage7ProvisionalRecheckHeavyComputation = heavy;
+  stage7ProvisionalRecheckElapsedMs = 0;
+  stage7ProvisionalRecheckTerminal = "missing";
+  stage7ProvisionalRecheckMessage = null;
+  refreshDryWebSupportSeparationUi();
+
+  const baselineSource = binding.exactSource;
+  let latestScopeText = "差分適用条件を確認中";
+  heavy.updateActual(`仮Graph exact比較 · ${latestScopeText} · 接触索引を準備しています…`, 0);
+  ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較 · ${latestScopeText} · 接触索引を準備しています…`);
+
+  const savedMotifLowestPoints = Array.isArray(baselineSource.motifLowestPoints)
+    ? baselineSource.motifLowestPoints.map((marker) => {
+      const clone = { ...marker, position: { ...marker.position } };
+      if (marker.normal !== undefined) clone.normal = { ...marker.normal };
+      return clone;
+    })
+    : undefined;
+  const reusesMotifLowestPoints = savedMotifLowestPoints !== undefined;
+  const phaseRanges: Record<string, [number, number]> = reusesMotifLowestPoints
+    ? {
+      "reachability-index": [0, 18],
+      "dangerous-face-contact": [18, 68],
+      "motif-reachability": [68, 99],
+      complete: [100, 100],
+    }
+    : {
+      "reachability-index": [0, 15],
+      "dangerous-face-contact": [15, 58],
+      "motif-attribution": [58, 79],
+      "motif-reachability": [79, 99],
+      complete: [100, 100],
+    };
+  let currentPhase: string | null = null;
+  let phaseStartedElapsedMs = 0;
+  const request: SurfaceAngleDiagnosisRequest = {
+    type: "recheck",
+    generation,
+    basePositions: baselineSource.basePositions.slice(),
+    baseNormals: baselineSource.baseNormals.slice(),
+    baseFaceCount: baselineSource.baseFaceCount,
+    resolution: baselineSource.resolution,
+    internalGraph: binding.plan.graph,
+    thresholdDeg: baselineSource.metrics.thresholdDeg,
+    meshStep: binding.meshStep,
+    mode: binding.mode,
+    patches: state.patches.map((patch) => ({
+      ...patch,
+      motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+      points: patch.points.map((point) => ({ ...point })),
+    })),
+    roundK: state.skinParams.roundK,
+    previousElapsedMs: 0,
+    ...(savedMotifLowestPoints !== undefined ? { motifLowestPoints: savedMotifLowestPoints } : {}),
+    recheckMode: "delta",
+    baseGraph: binding.sourceGraph,
+    baseline: {
+      beforeDangerPositions: baselineSource.beforeDangerPositions.slice(),
+      afterDangerPositions: baselineSource.afterDangerPositions.slice(),
+      mitigatedPositions: baselineSource.mitigatedPositions.slice(),
+      metrics: { ...baselineSource.metrics },
+    },
+  };
+  worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
+    const message = event.data;
+    if (!isCurrentWorkerRun(
+      worker,
+      activeStage7ProvisionalRecheckWorker,
+      null,
+      undefined,
+      generation,
+      stage7ProvisionalRecheckGeneration,
+      message.generation,
+    )) {
+      worker.terminate();
+      return;
+    }
+    if (message.type === "progress") {
+      stage7ProvisionalRecheckElapsedMs = message.elapsedMs;
+      const stageLabels: Record<string, [string, string]> = {
+        "reachability-index": ["接触索引", "edge"],
+        "dangerous-face-contact": ["危険面接触", "面"],
+        "motif-attribution": ["最下点帰属（legacy全走査）", "頂点"],
+        "motif-reachability": [reusesMotifLowestPoints ? "最下点再利用/到達確認" : "最下点到達確認", "patch"],
+        complete: ["完了", ""],
+      };
+      const stage = message.stage ? stageLabels[message.stage] : undefined;
+      latestScopeText = message.recheckMode === "delta"
+        && typeof message.recheckQueryFaceCount === "number"
+        && typeof message.recheckBaselineFaceCount === "number"
+        ? `差分 ${message.recheckQueryFaceCount.toLocaleString()}/${message.recheckBaselineFaceCount.toLocaleString()}面`
+        : "全件 fallback";
+      const completed = message.completed ?? message.completedSlices;
+      const total = message.total ?? message.totalSlices;
+      const phase = message.stage ?? "worker";
+      if (phase !== currentPhase) {
+        currentPhase = phase;
+        phaseStartedElapsedMs = message.elapsedMs;
+      }
+      const fraction = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
+      const phaseElapsedMs = Math.max(0, message.elapsedMs - phaseStartedElapsedMs);
+      const [phaseStart, phaseEnd] = phaseRanges[phase] ?? [0, 0];
+      const progress = phase === "complete" ? 100 : phaseStart + (phaseEnd - phaseStart) * fraction;
+      const detail = stage
+        ? `${latestScopeText} · ${stage[0]}${stage[1] ? ` ${completed.toLocaleString()}/${total.toLocaleString()} ${stage[1]}` : ""} · 工程内進捗${(fraction * 100).toFixed(0)}% · 工程内経過 ${(phaseElapsedMs / 1000).toFixed(1)}秒 · 合計 ${(message.elapsedMs / 1000).toFixed(1)}秒`
+        : `${latestScopeText} · 仮Graph exact比較Worker · ${completed}/${total} slice · ${message.faceCount.toLocaleString()}面 · 工程内経過 ${(phaseElapsedMs / 1000).toFixed(1)}秒 · 合計 ${(message.elapsedMs / 1000).toFixed(1)}秒`;
+      heavy.updateActual(`仮Graph exact比較 · ${detail}`, progress);
+      ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較 · ${detail} · 画面は操作できます`);
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.terminate();
+    activeStage7ProvisionalRecheckWorker = null;
+    stage7ProvisionalRecheckGeneration++;
+    const capturedBinding = stage7ProvisionalRecheckRunBinding;
+    stage7ProvisionalRecheckRunBinding = null;
+    if (stage7ProvisionalRecheckHeavyComputation?.id === heavy.id) stage7ProvisionalRecheckHeavyComputation = null;
+    heavy.updateActual(`仮Graph exact比較 · ${latestScopeText} · 完了`, 100);
+    heavy.finish();
+    stage7ProvisionalRecheckElapsedMs = message.elapsedMs;
+    if (message.type === "error") {
+      stage7ProvisionalAdoptionGateApproval = null;
+      stage7ProvisionalRecheckResult = null;
+      stage7ProvisionalRecheckTerminal = "error";
+      stage7ProvisionalRecheckMessage = message.message;
+      ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較に失敗しました: ${message.message}`, false);
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+    if (!capturedBinding
+      || !stage7ProvisionalRecheckBindingIsCurrent(capturedBinding)
+      || !stage7ProvisionalRecheckMessageMatchesBinding(message, capturedBinding)) {
+      stage7ProvisionalAdoptionGateApproval = null;
+      stage7ProvisionalRecheckResult = null;
+      stage7ProvisionalRecheckTerminal = "stale";
+      stage7ProvisionalRecheckMessage = "仮Graph exact比較結果がplan/source/settingsと一致しないため破棄しました。canonical stateは変更していません。";
+      ui.setSurfaceAngleDiagnosisStatus(stage7ProvisionalRecheckMessage, false);
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+    const separation = createDryWebSupportSeparationPresentation({
+      beforeDangerPositions: message.beforeDangerPositions,
+      afterDangerPositions: message.afterDangerPositions,
+      mitigatedPositions: message.mitigatedPositions,
+      entries: capturedBinding.supportEntries,
+    });
+    if (separation.state !== "current") {
+      stage7ProvisionalAdoptionGateApproval = null;
+      stage7ProvisionalRecheckResult = null;
+      stage7ProvisionalRecheckTerminal = "error";
+      stage7ProvisionalRecheckMessage = separation.reason;
+      ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較を採用できません: ${separation.reason}`, false);
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+    stage7ProvisionalRecheckResult = {
+      binding: capturedBinding,
+      source: message,
+      separation,
+      elapsedMs: message.elapsedMs,
+    };
+    stage7ProvisionalRecheckTerminal = "missing";
+    stage7ProvisionalRecheckMessage = null;
+    ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較が完了しました · ${latestScopeText} · canonical未変更`);
+    refreshDryWebSupportSeparationUi();
+  };
+  worker.onerror = (event) => {
+    if (!isCurrentWorkerRun(
+      worker,
+      activeStage7ProvisionalRecheckWorker,
+      null,
+      undefined,
+      generation,
+      stage7ProvisionalRecheckGeneration,
+    )) {
+      worker.terminate();
+      return;
+    }
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.terminate();
+    activeStage7ProvisionalRecheckWorker = null;
+    stage7ProvisionalRecheckGeneration++;
+    stage7ProvisionalRecheckRunBinding = null;
+    if (stage7ProvisionalRecheckHeavyComputation?.id === heavy.id) stage7ProvisionalRecheckHeavyComputation = null;
+    heavy.finish();
+    stage7ProvisionalRecheckTerminal = "error";
+    stage7ProvisionalRecheckMessage = event.message;
+    stage7ProvisionalAdoptionGateApproval = null;
+    stage7ProvisionalRecheckResult = null;
+    ui.setSurfaceAngleDiagnosisStatus(`仮Graph exact比較Workerに失敗しました: ${event.message}`, false);
+    refreshDryWebSupportSeparationUi();
+  };
+  const requestBaseline = request.baseline;
+  const transferables: Transferable[] = [request.basePositions.buffer, request.baseNormals.buffer];
+  if (requestBaseline) {
+    transferables.push(
+      requestBaseline.beforeDangerPositions.buffer,
+      requestBaseline.afterDangerPositions.buffer,
+      requestBaseline.mitigatedPositions.buffer,
+    );
+  }
+  worker.postMessage(request, transferables);
+}
+
+function approveStage7ProvisionalAdoptionGate(): void {
+  const gate = currentStage7ProvisionalAdoptionGatePresentation();
+  if (gate.state !== "ready-for-author-review") {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const plan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
+  const result = stage7ProvisionalRecheckResult;
+  if (!plan || !result
+    || !stage7ProvisionalRecheckBindingIsCurrent(result.binding)
+    || currentStage7ProvisionalRecheckPresentation().state !== "current") {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  stage7ProvisionalAdoptionGateApproval = { plan, result };
+  ui.setSurfaceAngleDiagnosisStatus("作者がこのexact provisional比較を確認しました · 次の採用確認へ進めます · canonical未変更");
+  refreshDryWebSupportSeparationUi();
+}
+
+function returnStage7ProvisionalAdoptionGateToPending(): void {
+  const gate = currentStage7ProvisionalAdoptionGatePresentation();
+  if (gate.state !== "author-approved-for-next-confirmation") {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  stage7ProvisionalAdoptionGateApproval = null;
+  ui.setSurfaceAngleDiagnosisStatus("このexact provisional比較を保留に戻しました · canonical未変更");
+  refreshDryWebSupportSeparationUi();
+}
+
+function buildStage7RedFaceReinforcementPlan(): void {
+  const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  const currentGraph = phaseADryWebPreview?.graph ?? null;
+  const currentExactSource = dryWebSupportSeparationSource;
+  const scaleMmPerUnit = currentPrintScaleMmPerUnit();
+  if (candidatePresentation.state !== "current"
+    || !candidatePresentation.enabled
+    || !currentGraph
+    || currentGraph.kind !== "targetedGrid"
+    || !currentExactSource
+    || !dryWebSupportSeparationIsCurrent()
+    || dryWebInsideTargetRunActive()
+    || stage7RedFaceReinforcementPlan !== null) {
+    stage7RedFaceReinforcementPlanMessage = "current候補・exact boundary・print scaleがそろっていないため、仮Graph計画は作成しません。";
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  // Rebuilding is always a fresh provisional checkpoint; do not carry a
+  // comparison from a previous plan into the new plan object.
+  clearStage7ProvisionalRecheck();
+  if (typeof scaleMmPerUnit !== "number" || !Number.isFinite(scaleMmPerUnit) || !(scaleMmPerUnit > 0)) {
+    stage7RedFaceReinforcementPlanMessage = "current print scaleが有限・正値ではないため、仮Graph計画は作成しません。";
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const targetDiameterMm = phaseASupportSettings.dryWebMinimumDiameterMm;
+  const reinforcementRadius = targetDiameterMm * 0.5 / scaleMmPerUnit;
+  const plan = createStage7RedFaceReinforcementPlan({
+    graph: currentGraph,
+    candidates: candidatePresentation.candidates,
+    targetDiameterMm,
+    reinforcementRadius,
+  });
+  if (plan.state !== "current" || !plan.graph) {
+    stage7RedFaceReinforcementPlan = null;
+    stage7RedFaceReinforcementPlanMessage = plan.reason;
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  stage7RedFaceReinforcementPlan = {
+    sourceGraph: currentGraph,
+    exactSource: currentExactSource,
+    candidateFaceIds: Object.freeze(stage7RedFaceCandidateFaceIds(candidatePresentation.candidates)),
+    targetDiameterMm,
+    scaleMmPerUnit,
+    plan,
+  };
+  stage7RedFaceReinforcementPlanMessage = null;
+  refreshDryWebSupportSeparationUi();
+}
+
+function discardStage7RedFaceReinforcementPlan(): void {
+  // The plan is the comparison's identity root. Stop/clear its provisional
+  // run before dropping that root; canonical graph/diagnosis remain untouched.
+  clearStage7ProvisionalRecheck("仮Graph計画を破棄するため、比較結果を破棄しました。", "missing");
+  if (!stage7RedFaceReinforcementPlan) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  stage7RedFaceReinforcementPlan = null;
+  stage7RedFaceReinforcementPlanMessage = "仮Graph計画を破棄しました。canonical Graphは変更していません。";
+  refreshDryWebSupportSeparationUi();
+}
+
+function clearStage7RedFaceReinforcementPlan(): void {
+  clearStage7ProvisionalRecheck();
+  stage7RedFaceReinforcementPlan = null;
+  stage7RedFaceReinforcementPlanMessage = null;
+}
+
+function clearDryWebSupportSeparation(preserveCanonicalCandidate = false): void {
+  if (!preserveCanonicalCandidate) clearStage7CanonicalCandidateAdoption();
+  clearStage7RedFaceReinforcementPlan();
+  skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+  dryWebRedFaceDryWebCandidateVisible = false;
+  if (dryWebRedFaceLocatorVisible) skinRenderer.clearDryWebRedFaceLocator();
+  if (dryWebSupportSeparationVisible) {
+    skinRenderer.clearSurfaceAngleOverlay();
+    installedSurfaceAngleDiagnosisView = null;
+  }
+  dryWebSupportSeparation = null;
+  dryWebSupportSeparationSource = null;
+  dryWebSupportSeparationVisible = false;
+  dryWebSupportSeparationRestoreViewState = null;
+  dryWebSupportSeparationRestoreDiagnosisView = null;
+  dryWebRedFaceLocatorVisible = false;
+  dryWebRedFaceLocatorRestoreViewState = null;
+  dryWebRedFaceLocatorRestoreDiagnosisView = null;
+}
+
+/** Release only the Stage 7 presentation when another author action owns the
+ * viewport. The competing action supplies its own view; the Stage 7 snapshot
+ * must not be restored over that explicit choice. */
+function releaseDryWebSupportSeparationPresentationForCompetingView(): void {
+  releaseDryWebRedFaceLocatorForCompetingView();
+  if (!dryWebSupportSeparationVisible) return;
+  skinRenderer.clearSurfaceAngleOverlay();
+  installedSurfaceAngleDiagnosisView = null;
+  dryWebSupportSeparationVisible = false;
+  dryWebSupportSeparationRestoreViewState = null;
+  dryWebSupportSeparationRestoreDiagnosisView = null;
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+/** Release the independent Stage 7 locator without taking ownership away
+ * from an already-visible three-color separation. Generic viewport actions
+ * call this before installing their own presentation. */
+function releaseDryWebRedFaceLocatorForCompetingView(): void {
+  if (dryWebRedFaceDryWebCandidateVisible) {
+    dryWebRedFaceDryWebCandidateVisible = false;
+    skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+  }
+  if (!dryWebRedFaceLocatorVisible) return;
+  skinRenderer.clearDryWebRedFaceLocator();
+  dryWebRedFaceLocatorVisible = false;
+  dryWebRedFaceLocatorRestoreViewState = null;
+  dryWebRedFaceLocatorRestoreDiagnosisView = null;
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+function refreshDryWebSupportSeparationUi(): void {
+  if (dryWebSupportSeparation && !dryWebSupportSeparationIsCurrent()) clearDryWebSupportSeparation();
+  const current = dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null;
+  const exactRecheck = currentDryWebExactRecheckPresentation();
+  const redFaceLocator = currentStage7RedFaceLocatorPresentation();
+  if (dryWebRedFaceLocatorVisible && (!redFaceLocator.enabled || redFaceLocator.state !== "current")) {
+    skinRenderer.clearDryWebRedFaceLocator();
+    dryWebRedFaceLocatorVisible = false;
+    dryWebRedFaceLocatorRestoreViewState = null;
+    dryWebRedFaceLocatorRestoreDiagnosisView = null;
+  }
+  const redFaceDryWebCandidate = currentStage7RedFaceDryWebCandidatePresentation();
+  const currentRedFaceReinforcementPlan = currentStage7RedFaceReinforcementPlan(redFaceDryWebCandidate);
+  const redFaceReinforcementComparison = currentStage7ProvisionalRecheckPresentation();
+  const redFaceProvisionalAdoptionGate = currentStage7ProvisionalAdoptionGatePresentation();
+  const canonicalCandidateAdoption = currentStage7CanonicalCandidateAdoptionPresentation();
+  const currentPrintScale = currentPrintScaleMmPerUnit();
+  const hasCurrentPrintScale = typeof currentPrintScale === "number"
+    && Number.isFinite(currentPrintScale)
+    && currentPrintScale > 0;
+  const reinforcementPlanAvailable = currentRedFaceReinforcementPlan === null
+    && redFaceDryWebCandidate.state === "current"
+    && redFaceDryWebCandidate.enabled
+    && dryWebSupportSeparationIsCurrent()
+    && hasCurrentPrintScale
+    && !dryWebInsideTargetRunActive();
+  const reinforcementPlanReason = currentRedFaceReinforcementPlan
+    ? currentRedFaceReinforcementPlan.reason
+    : stage7RedFaceReinforcementPlanMessage
+      ?? (redFaceDryWebCandidate.state === "current" && redFaceDryWebCandidate.enabled
+        ? `${redFaceDryWebCandidate.reason} · target diameter ${phaseASupportSettings.dryWebMinimumDiameterMm.toFixed(3)} mm / normalized radius ${hasCurrentPrintScale ? (phaseASupportSettings.dryWebMinimumDiameterMm * 0.5 / currentPrintScale).toFixed(6) : "--"} · 仮Graph未作成`
+        : "current赤面→Dry Web候補がそろうと仮Graph計画を作成できます。");
+  if (dryWebRedFaceDryWebCandidateVisible && (redFaceDryWebCandidate.state !== "current" || !redFaceDryWebCandidate.enabled)) {
+    skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+    dryWebRedFaceDryWebCandidateVisible = false;
+    if (dryWebRedFaceLocatorVisible) {
+      skinRenderer.clearDryWebRedFaceLocator();
+      dryWebRedFaceLocatorVisible = false;
+      dryWebRedFaceLocatorRestoreViewState = null;
+      dryWebRedFaceLocatorRestoreDiagnosisView = null;
+    }
+  }
+  ui.setDryWebSupportSeparationState({
+    state: current?.state ?? "missing",
+    available: current !== null,
+    visible: current !== null && dryWebSupportSeparationVisible,
+    mitigatedFaceCount: current?.mitigatedFaceCount ?? 0,
+    outsideFaceCount: current?.outsideFaceCount ?? 0,
+    unresolvedFaceCount: current?.unresolvedFaceCount ?? 0,
+    reason: current?.reason ?? exactRecheck.reason,
+    recheckEnabled: exactRecheck.enabled,
+    redFaceLocator: {
+      state: redFaceLocator.state,
+      enabled: redFaceLocator.enabled,
+      count: redFaceLocator.count,
+      faceIds: redFaceLocator.faceIds,
+      status: redFaceLocator.status,
+      visible: dryWebRedFaceLocatorVisible,
+    },
+    redFaceDryWebCandidate: {
+      state: redFaceDryWebCandidate.state,
+      enabled: redFaceDryWebCandidate.enabled,
+      totalRedFaceCount: redFaceDryWebCandidate.totalRedFaceCount,
+      previewedCandidateCount: redFaceDryWebCandidate.previewedCandidateCount,
+      minLength: redFaceDryWebCandidate.minLength,
+      meanLength: redFaceDryWebCandidate.meanLength,
+      maxLength: redFaceDryWebCandidate.maxLength,
+      reason: redFaceDryWebCandidate.reason,
+      visible: dryWebRedFaceDryWebCandidateVisible,
+    },
+    redFaceReinforcementPlan: {
+      available: reinforcementPlanAvailable,
+      current: currentRedFaceReinforcementPlan !== null,
+      facts: currentRedFaceReinforcementPlan?.facts ?? null,
+      reason: reinforcementPlanReason,
+      previewedCandidateCount: redFaceDryWebCandidate.previewedCandidateCount,
+      totalRedFaceCount: redFaceDryWebCandidate.totalRedFaceCount,
+    },
+    redFaceReinforcementComparison,
+    redFaceProvisionalAdoptionGate,
+    canonicalCandidateAdoption,
+  });
+}
+
+function adoptDryWebSupportSeparation(
+  message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
+): void {
+  dryWebSupportSeparation = createDryWebSupportSeparationPresentation({
+    beforeDangerPositions: message.beforeDangerPositions,
+    afterDangerPositions: message.afterDangerPositions,
+    mitigatedPositions: message.mitigatedPositions,
+    entries: overhangSupportResult?.entries ?? null,
+  });
+  dryWebSupportSeparationSource = message;
+  dryWebSupportSeparationVisible = false;
+  dryWebSupportSeparationRestoreViewState = null;
+  dryWebSupportSeparationRestoreDiagnosisView = null;
+  refreshDryWebSupportSeparationUi();
+  syncPhaseASupportPreviewAvailability(phaseADryWebPreview?.graph ?? null);
+}
+
+function setDryWebSupportSeparationVisible(visible: boolean): void {
+  if (dryWebRedFaceDryWebCandidateVisible) {
+    setDryWebRedFaceDryWebCandidateVisible(false);
+  }
+  if (visible && dryWebRedFaceLocatorVisible) releaseDryWebRedFaceLocatorForCompetingView();
+  if (!visible && dryWebRedFaceLocatorVisible) {
+    setDryWebRedFaceLocatorVisible(false);
+    return;
+  }
+  if (visible) {
+    releaseDryWebInsideTargetOverlayForCompetingView();
+    releaseDryWebInsufficientEdgeOverlayForCompetingView();
+    denseFlowerSampleLoadId++;
+    denseFlowerSampleActive = false;
+    skinRenderer.clearDenseFlowerSample();
+    ui.setDenseFlowerSampleRunning(false);
+    ui.setDenseFlowerSampleActive(false);
+  }
+  if (visible && dryWebSupportSeparationVisible) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  if (!visible) {
+    if (!dryWebSupportSeparationVisible) {
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+    const restoreViewState = dryWebSupportSeparationRestoreViewState;
+    const restoreDiagnosisView = dryWebSupportSeparationRestoreDiagnosisView;
+    dryWebSupportSeparationVisible = false;
+    dryWebSupportSeparationRestoreViewState = null;
+    dryWebSupportSeparationRestoreDiagnosisView = null;
+    skinRenderer.clearSurfaceAngleOverlay();
+    installedSurfaceAngleDiagnosisView = null;
+    if (restoreViewState) {
+      if (restoreViewState.internalObservationMode !== internalObservationMode) {
+        setInternalObservationMode(restoreViewState.internalObservationMode);
+      }
+      if (restoreViewState.viewMode !== viewMode) setViewMode(restoreViewState.viewMode);
+    }
+    if (restoreDiagnosisView) {
+      showSurfaceAngleDiagnosisView(restoreDiagnosisView, true);
+    } else {
+      if (dryWebAuthorIntegrationPresentation) hideRemovableSupportOverlayForDryWeb();
+      syncDryWebContactVisualization();
+    }
+    refreshDryWebSupportSeparationUi();
+    render();
+    return;
+  }
+
+  if (!dryWebSupportSeparationIsCurrent() || !dryWebSupportSeparation) {
+    clearDryWebSupportSeparation();
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  dryWebSupportSeparationRestoreViewState = preserveDryWebGraphViewState({ viewMode, internalObservationMode });
+  dryWebSupportSeparationRestoreDiagnosisView = installedSurfaceAngleDiagnosisView;
+  dryWebSupportSeparationVisible = true;
+  if (viewMode !== "mesh") {
+    viewMode = "mesh";
+    skinRenderer.setViewMode(viewMode);
+    ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  }
+  if (internalObservationMode === "internalOnly") setInternalObservationMode("normal");
+  skinRenderer.setSurfaceAngleOverlay(
+    dryWebSupportSeparation.unresolvedPositions,
+    dryWebSupportSeparation.mitigatedPositions,
+    true,
+    dryWebSupportSeparation.outsidePositions,
+  );
+  installedSurfaceAngleDiagnosisView = null;
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+function setDryWebRedFaceLocatorVisible(visible: boolean): void {
+  if (!visible && dryWebRedFaceDryWebCandidateVisible) {
+    setDryWebRedFaceDryWebCandidateVisible(false);
+    return;
+  }
+  if (visible && dryWebRedFaceLocatorVisible) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const presentation = currentStage7RedFaceLocatorPresentation();
+  const policy = stage7RedFaceLocatorOverlayPolicy(presentation, visible);
+  if (!visible || policy.clearOverlay) {
+    if (!dryWebRedFaceLocatorVisible) {
+      refreshDryWebSupportSeparationUi();
+      return;
+    }
+    const restoreViewState = dryWebRedFaceLocatorRestoreViewState;
+    const restoreDiagnosisView = dryWebRedFaceLocatorRestoreDiagnosisView;
+    dryWebRedFaceLocatorVisible = false;
+    dryWebRedFaceLocatorRestoreViewState = null;
+    dryWebRedFaceLocatorRestoreDiagnosisView = null;
+    skinRenderer.clearDryWebRedFaceLocator();
+    if (restoreViewState) {
+      if (restoreViewState.internalObservationMode !== internalObservationMode) {
+        setInternalObservationMode(restoreViewState.internalObservationMode);
+      }
+      if (restoreViewState.viewMode !== viewMode) setViewMode(restoreViewState.viewMode);
+    }
+    if (restoreDiagnosisView && !dryWebSupportSeparationVisible) {
+      showSurfaceAngleDiagnosisView(restoreDiagnosisView, true);
+    } else if (!dryWebSupportSeparationVisible) {
+      syncDryWebContactVisualization();
+    }
+    refreshDryWebSupportSeparationUi();
+    render();
+    return;
+  }
+  if (!presentation.enabled || presentation.state !== "current" || !surfaceAngleCache) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  denseFlowerSampleLoadId++;
+  denseFlowerSampleActive = false;
+  skinRenderer.clearDenseFlowerSample();
+  ui.setDenseFlowerSampleRunning(false);
+  ui.setDenseFlowerSampleActive(false);
+  dryWebRedFaceLocatorRestoreViewState = preserveDryWebGraphViewState({ viewMode, internalObservationMode });
+  dryWebRedFaceLocatorRestoreDiagnosisView = installedSurfaceAngleDiagnosisView;
+  dryWebRedFaceLocatorVisible = true;
+  if (viewMode !== "mesh") {
+    viewMode = "mesh";
+    skinRenderer.setViewMode(viewMode);
+    ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  }
+  if (internalObservationMode === "internalOnly") setInternalObservationMode("normal");
+  skinRenderer.setDryWebRedFaceLocator(
+    surfaceAngleCache.basePositions,
+    presentation.redPositions,
+    policy.mode === "red-only",
+  );
+  installedSurfaceAngleDiagnosisView = null;
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+function setDryWebRedFaceDryWebCandidateVisible(visible: boolean): void {
+  if (!visible && dryWebRedFaceDryWebCandidateVisible) {
+    dryWebRedFaceDryWebCandidateVisible = false;
+    skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+    // Candidate mode borrows the exact locator's viewport ownership. Turning
+    // the shared restore action off therefore restores the same prior view.
+    if (dryWebRedFaceLocatorVisible) setDryWebRedFaceLocatorVisible(false);
+    refreshDryWebSupportSeparationUi();
+    render();
+    return;
+  }
+  if (!visible) {
+    skinRenderer.clearDryWebRedFaceDryWebCandidateOverlay();
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  if (dryWebRedFaceDryWebCandidateVisible) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const presentation = currentStage7RedFaceDryWebCandidatePresentation();
+  if (presentation.state !== "current" || !presentation.enabled) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  denseFlowerSampleLoadId++;
+  denseFlowerSampleActive = false;
+  skinRenderer.clearDenseFlowerSample();
+  ui.setDenseFlowerSampleRunning(false);
+  ui.setDenseFlowerSampleActive(false);
+  // The existing red locator supplies the exact red-face context and owns
+  // restoration of the prior viewport; the cyan paths remain independent.
+  setDryWebRedFaceLocatorVisible(true);
+  if (!dryWebRedFaceLocatorVisible) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  const currentPresentation = currentStage7RedFaceDryWebCandidatePresentation();
+  if (currentPresentation.state !== "current" || !currentPresentation.enabled) {
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
+  dryWebRedFaceDryWebCandidateVisible = true;
+  skinRenderer.setDryWebRedFaceDryWebCandidateOverlay(currentPresentation.linePositions, true);
+  refreshDryWebSupportSeparationUi();
+  render();
+}
+
+function clearDryWebPreviewResult(): void {
+  clearStage7CanonicalCandidateAdoption();
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  clearDryWebInsufficientEdgeOverlayState();
+  phaseADryWebPreview = null;
+  clearDryWebSupportSeparation();
+  targetedSupportSource = null;
+  dryWebContactPresentationOwner = "none";
+  skinRenderer.updateDryWebContactPresentation(null, state.skinParams.dryWebRequiredContacts);
+  internalStructureFingerprint = "";
+  internalStructureGraph = null;
+  skinRenderer.setInternalStructure(null);
+  refreshInternalAngleScreening(null);
+  syncPhaseASupportPreviewAvailability(null);
+  refreshDryWebSupportSeparationUi();
+}
+
+/** Exact post-attachment diagnosis is a validation step for an already-built
+ * graph. If it fails, the graph is not an author-visible result: invalidate
+ * its generation and clear the graph/facts/palette together. The caller must
+ * first prove that its Worker is still current, so an old Worker can never
+ * erase a newer run. */
+function failClosedDryWebExactRecheck(status: string): void {
+  dryWebPreviewGeneration++;
+  clearDryWebPreviewResult();
+  phaseASupportStatus.textContent = status;
+  phaseASupportStatus.dataset.stale = "true";
+  delete phaseASupportStatus.dataset.ok;
+  ui.setInternalStructureStatus(status, false);
+  // Demand-driven rendering has no animation loop to pick up the cleared
+  // graph. One central request keeps both accepted failure paths visually in
+  // sync without touching stale-worker early returns.
+  render();
+}
+
+function settleDryWebPreviewWorkerTerminal(
+  worker: Worker,
+  kind: DryWebPreviewTerminalKind,
+  heavy: HeavyComputationHandle,
+): boolean {
+  if (worker !== activeDryWebPreviewWorker) return false;
+  const decision = dryWebPreviewTerminalDecision(kind);
+  if (decision.detachWorker) {
+    worker.onmessage = null;
+    worker.onerror = null;
+    activeDryWebPreviewWorker = null;
+    worker.terminate();
+  }
+  if (decision.clearPending) dryWebPreviewPending = false;
+  if (decision.clearPreview) {
+    // A failed/stale terminal must not let an earlier graph become current
+    // again, even when the Surface fingerprint itself has not changed.
+    dryWebPreviewGeneration++;
+    clearDryWebPreviewResult();
+  }
+  if (decision.releaseHeavy) {
+    heavy.finish();
+    if (dryWebPreviewHeavyComputation?.id === heavy.id) dryWebPreviewHeavyComputation = null;
+    if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
+  }
+  return true;
+}
+
+function terminateDryWebPreviewWorker(clearResult = false): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  clearDryWebInsufficientEdgeOverlayState();
+  clearDryWebPreviewStartTimer();
+  dryWebPreviewGeneration++;
+  const worker = activeDryWebPreviewWorker;
+  activeDryWebPreviewWorker = null;
+  dryWebPreviewPending = false;
+  if (worker) {
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.terminate();
+  }
+  terminateDryWebExactRecheck();
+  if (dryWebPreviewHeavyComputation) {
+    dryWebPreviewHeavyComputation.finish();
+    dryWebPreviewHeavyComputation = null;
+  }
+  if (clearResult) {
+    clearDryWebPreviewResult();
+  }
+}
+
+function dryWebGenerationCanStart(): boolean {
+  return currentDryWebArtworkGraphBoundary().canStart
+    && state.skinParams.internalStructure === "targetedGrid"
+    && Boolean(surfaceAngleCache && automaticOverhangSupportResult && overhangSupportResult)
+    && !activeSurfaceAngleWorker
+    && !activeSurfaceSupportClassificationWorker
+    && !surfaceHeavyComputation
+    && !supportPaintDrag
+    && supportPaintApplyReplacePending === 0
+    && !(activeSupportPaintWorker && !supportPaintApplyWorkerReady)
+    && !activeDryWebPreviewWorker
+    && !activeDryWebExactRecheckWorker
+    && !dryWebPreviewHeavyComputation
+    && !activeStage7ProvisionalRecheckWorker
+    && !stage7ProvisionalRecheckHeavyComputation;
+}
+
+interface DryWebActionsRefreshOptions {
+  /** Reuse a boundary already checked by the caller; useful on hot paths. */
+  artworkGraphBoundary?: DryWebArtworkGraphBoundaryDecision;
+  /** A running worker cannot be started again; avoid a readiness scan. */
+  canGenerate?: boolean;
+}
+
+function refreshDryWebActions(status?: string, options: DryWebActionsRefreshOptions = {}): void {
+  const targeted = state.skinParams.internalStructure === "targetedGrid";
+  const artworkGraphBoundary = options.artworkGraphBoundary ?? currentDryWebArtworkGraphBoundary();
+  const contactFacts = targeted ? currentDryWebContactFacts() : undefined;
+  syncDryWebContactVisualization(contactFacts);
+  const integration = targeted
+    ? dryWebAuthorPresentation(
+      state.skinParams.dryWebRequiredContacts,
+      state.patches.length,
+      contactFacts,
+    )
+    : null;
+  if (integration && dryWebContactPresentationOwner !== "dryWeb") {
+    // Keep the generator-facts text available for the author, but never leave
+    // a legend claiming ownership of colors that a partition/contact view is
+    // currently drawing.
+    integration.contactBins = null;
+  }
+  const diagnosisRunning = Boolean(
+    activeSurfaceAngleWorker || activeSurfaceSupportClassificationWorker || surfaceHeavyComputation,
+  );
+  const dryWebRunning = Boolean(
+    activeDryWebPreviewWorker
+    || activeDryWebExactRecheckWorker
+    || dryWebPreviewHeavyComputation
+    || activeStage7ProvisionalRecheckWorker
+    || stage7ProvisionalRecheckHeavyComputation,
+  );
+  const dryWebPreviewCurrent = targeted && dryWebPreviewIsCurrent();
+  const graphView = createDryWebGraphViewPresentation({
+    graph: dryWebPreviewCurrent && phaseADryWebPreview?.graph?.kind === "targetedGrid"
+      ? phaseADryWebPreview.graph
+      : null,
+    current: dryWebPreviewCurrent,
+    running: dryWebRunning,
+    stale: Boolean(phaseADryWebPreview) && !dryWebPreviewCurrent,
+  });
+  const targetConnectionMapping: DryWebTargetConnectionMappingPresentation =
+    createDryWebTargetConnectionMappingPresentation({
+      current: dryWebPreviewCurrent,
+      running: dryWebRunning,
+      stale: Boolean(phaseADryWebPreview) && !dryWebPreviewCurrent,
+      facts: dryWebPreviewCurrent ? phaseADryWebPreview?.targetConnectionFacts ?? null : null,
+      sourceTargets: dryWebPreviewCurrent ? targetedSupportSource?.targets ?? null : null,
+    });
+  const insufficientEdge = currentDryWebInsufficientEdgePresentation();
+  if (!insufficientEdge.available && dryWebInsufficientEdgeOverlayVisible) {
+    dryWebInsufficientEdgeOverlayVisible = false;
+    skinRenderer.clearDryWebInsufficientEdgeOverlay();
+  }
+  const contactFloor = currentDryWebContactFloorPresentation();
+  refreshDryWebInsideTargetPresentation();
+  const staleSeparation = dryWebSupportSeparation !== null && !dryWebSupportSeparationIsCurrent();
+  refreshDryWebSupportSeparationUi();
+  const currentSeparation = dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null;
+  const readinessStage4: DryWebArtworkReadinessStageState = !targeted
+    ? "missing"
+    : graphView.state === "current"
+      ? "current"
+      : graphView.state === "running"
+        ? "running"
+        : graphView.state === "stale"
+          ? "stale"
+          : diagnosisRunning
+            ? "running"
+            : "missing";
+  const readinessSurface = integration && integration.status !== "uncomputed" && contactFacts
+    ? {
+      elementCount: integration.totalPatchCount,
+      requiredContacts: integration.requiredContacts,
+      passingElementCount: integration.passingPatchCount,
+      insufficientElementCount: integration.insufficientPatchCount,
+    }
+    : null;
+  const readinessGraph = graphView.state === "current"
+    && graphView.nodeCount !== null
+    && graphView.edgeCount !== null
+    && contactFacts
+    ? {
+      nodeCount: graphView.nodeCount,
+      edgeCount: graphView.edgeCount,
+      componentCount: contactFacts.componentCount,
+      mainComponentSize: contactFacts.mainComponentSize,
+    }
+    : null;
+  const readinessSeparation = currentSeparation
+    ? {
+      tealFaceCount: currentSeparation.mitigatedFaceCount,
+      orangeFaceCount: currentSeparation.outsideFaceCount,
+      redFaceCount: currentSeparation.unresolvedFaceCount,
+    }
+    : null;
+  ui.setDryWebArtworkReadiness(createDryWebArtworkReadinessPresentation({
+    stage3: artworkGraphBoundary.status,
+    stage4: readinessStage4,
+    stage7: activeDryWebExactRecheckWorker
+      ? "running"
+      : currentSeparation
+        ? "current"
+        : staleSeparation
+          ? "stale"
+          : "missing",
+    surface: readinessSurface,
+    graph: readinessGraph,
+    separation: readinessSeparation,
+    configured: {
+      requiredContacts: state.skinParams.dryWebRequiredContacts ?? 3,
+      minimumDiameterMm: phaseASupportSettings.dryWebMinimumDiameterMm,
+      maximumUnreinforcedSpanMm: phaseASupportSettings.dryWebMaximumUnreinforcedLengthMm,
+    },
+  }));
+  const paintPending = Boolean(
+    supportPaintDrag
+    || supportPaintApplyReplacePending > 0
+    || (activeSupportPaintWorker && !supportPaintApplyWorkerReady)
+  );
+  const hasDiagnosis = Boolean(surfaceAngleCache && automaticOverhangSupportResult && overhangSupportResult);
+  const detail = status
+    ?? (!targeted
+      ? "Dry Webは「プレートが実」で使います"
+      : !artworkGraphBoundary.canStart
+        ? artworkGraphBoundary.reason
+      : diagnosisRunning
+        ? "Surface診断中です。完了後にPaint分類を確認できます"
+        : dryWebRunning
+          ? "Dry Web生成中です。下部のキャンセルで停止できます"
+          : paintPending
+            ? "Paint分類の確定を待っています"
+            : !hasDiagnosis
+              ? "先にDry Web用のSurface診断を実行してください"
+              : "insideの自動分類を確認し、必要ならPaint後にDry Web生成を押してください");
+  ui.setDryWebActionsState({
+    visible: targeted,
+    canDiagnose: targeted && !diagnosisRunning && !dryWebRunning && !paintPending,
+    diagnosisRunning,
+    canGenerate: options.canGenerate ?? dryWebGenerationCanStart(),
+    generateRunning: dryWebRunning,
+    status: detail,
+    graphView,
+    targetConnectionMapping,
+    insufficientEdge,
+    insufficientEdgeVisible: dryWebInsufficientEdgeOverlayVisible,
+    contactFloor,
+    contactFloorOverlay: currentDryWebContactFloorOverlayPresentation(),
+    integrationStatus: integration?.text,
+    integration: integration
+      ? {
+        status: integration.status,
+        text: integration.text,
+        requiredContacts: integration.requiredContacts,
+        contactBins: integration.contactBins,
+      }
+      : undefined,
+  });
+}
+
+function invalidateDryWebPreviewForInputChange(status: string): void {
+  clearStage7CanonicalCandidateAdoption();
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  dryWebAuthorIntegrationPresentation = false;
+  terminateDryWebPreviewWorker(true);
+  // The exact post-Dry-Web Surface recheck shares the legacy Surface
+  // diagnosis button.  Invalidation/cancel must release that UI lock even
+  // though the recheck worker is owned by the Dry Web request.
+  ui.setSurfaceAngleDiagnosisRunning(false);
+  internalStructureGraph = null;
+  internalStructureFingerprint = "";
+  skinRenderer.setInternalStructure(null);
+  refreshInternalAngleScreening(null);
+  syncPhaseASupportPreviewAvailability(null);
+  phaseASupportStatus.textContent = status;
+  phaseASupportStatus.dataset.stale = "true";
+  delete phaseASupportStatus.dataset.ok;
+  ui.setInternalStructureStatus(status, false);
+  ui.setSurfaceAngleDiagnosisStatus(status, false);
+  refreshDryWebActions(status);
+  render();
+}
+
+function dryWebProgressDetail(progress: DryWebPreviewProgress): string {
+  if (progress.phase === "routing") return `Dry Web routing ${progress.completed}/${progress.total}`;
+  if (progress.phase === "pair-search") return `Dry Web候補探索 ${progress.completed}/${progress.total}組`;
+  if (progress.phase === "candidate-ordering") return "Dry Web候補順序を確定中";
+  if (progress.phase === "tree") return "Dry Web spanning treeを構築中";
+  if (progress.phase === "target-connections") {
+    return `Dry Web target接続 ${progress.completed}/${progress.total}`;
+  }
+  return "Dry Web graph構築完了・付加後exact再診断は未実行";
+}
+
+function dryWebProgressPercent(progress: DryWebPreviewProgress): number {
+  const fraction = progress.total > 0
+    ? Math.max(0, Math.min(1, progress.completed / progress.total))
+    : 0;
+  switch (progress.phase) {
+    case "routing": return 99 + fraction * 0.02;
+    case "pair-search": return 99.02 + fraction * 0.18;
+    case "candidate-ordering": return 99.20 + fraction * 0.03;
+    case "tree": return 99.23 + fraction * 0.12;
+    case "target-connections": return 99.35 + fraction * 0.14;
+    case "complete": return 99.49;
+  }
+}
+
+function cancelDryWebPreviewUpdate(): void {
+  if (!activeDryWebPreviewWorker && !activeDryWebExactRecheckWorker && !dryWebPreviewHeavyComputation) return;
+  phaseASupportStatus.textContent = "Dry Webをキャンセル中…";
+  phaseASupportStatus.dataset.stale = "true";
+  terminateDryWebPreviewWorker(true);
+  ui.setSurfaceAngleDiagnosisRunning(false);
+  internalStructureGraph = null;
+  internalStructureFingerprint = "";
+  skinRenderer.setInternalStructure(null);
+  refreshInternalAngleScreening(null);
+  syncPhaseASupportPreviewAvailability(null);
+  ui.setInternalStructureStatus("Dry Web生成をキャンセルしました", false);
+  ui.setSurfaceAngleDiagnosisStatus("Dry Web生成をキャンセルしました", false);
+  phaseASupportStatus.textContent = "Dry Web生成をキャンセルしました";
+  delete phaseASupportStatus.dataset.ok;
+  refreshDryWebActions("Dry Web生成をキャンセルしました。Paint分類は保持されています。もう一度生成できます");
+  render();
+}
+
+/** Start the existing exact post-attachment diagnosis only from its explicit
+ * Stage 7 action. The generator itself stops after publishing its current
+ * graph, so this separate heavy operation is observable and cancellable. */
+function requestDryWebExactRecheck(): void {
+  const presentation = currentDryWebExactRecheckPresentation();
+  if (!presentation.enabled) {
+    refreshDryWebActions(presentation.reason);
+    return;
+  }
+  const baseDiagnosis = surfaceAngleCache;
+  const graph = phaseADryWebPreview?.graph;
+  if (!baseDiagnosis || !graph || graph.kind !== "targetedGrid") {
+    // Keep the guard close to the existing canonical inputs as a second
+    // fail-closed check; no exact Worker is started without both facts.
+    refreshDryWebActions("Dry Web graphまたはSurface診断がcurrentではありません。旧Stage 7 factsは表示しません。");
+    return;
+  }
+
+  const expectedCanonicalCandidate = stage7CanonicalCandidateAdoption
+    && stage7CanonicalCandidateAdoptionIsCurrent()
+    ? stage7CanonicalCandidateAdoption
+    : null;
+  // A repeat is still an explicit new exact run. Do not show the previous
+  // separation/red-face facts while this run is pending.
+  clearDryWebSupportSeparation(expectedCanonicalCandidate !== null);
+  let heavy: HeavyComputationHandle | null = null;
+  const cancel = (): void => {
+    if (heavy && dryWebPreviewHeavyComputation?.id === heavy.id) cancelDryWebPreviewUpdate();
+  };
+  heavy = beginHeavyComputation("Dry Web付加後Surface再診断 全体進捗", cancel);
+  dryWebPreviewHeavyComputation = heavy;
+  phaseASupportStatus.textContent = "Dry Web生成完了 · Dry Web付加後Surfaceを再診断中…";
+  phaseASupportStatus.dataset.stale = "true";
+  delete phaseASupportStatus.dataset.ok;
+  refreshDryWebActions("Dry Web付加後Surfaceを再診断中…");
+  recheckTargetedGridFromExactMesh(baseDiagnosis, graph, heavy, expectedCanonicalCandidate);
+}
+
+interface DryWebPreviewUpdateOptions {
+  heavy?: HeavyComputationHandle;
+}
+
+function requestDryWebPreviewUpdate(reason: string, options: DryWebPreviewUpdateOptions = {}): void {
+  if (supportPaintDrag) return;
+  if (state.skinParams.internalStructure !== "targetedGrid") {
+    terminateDryWebPreviewWorker(true);
+    return;
+  }
+  const artworkGraphBoundary = currentDryWebArtworkGraphBoundary();
+  if (!artworkGraphBoundary.canStart) {
+    invalidateDryWebPreviewForInputChange(artworkGraphBoundary.reason);
+    return;
+  }
+  const result = overhangSupportResult;
+  const context = supportPaintEditingContext();
+  if (!surfaceAngleCache || !result || !context) {
+    terminateDryWebPreviewWorker(true);
+    skinRenderer.setInternalStructure(null);
+    refreshInternalAngleScreening(null);
+    return;
+  }
+  if (!dryWebGenerationCanStart() && !options.heavy) {
+    refreshDryWebActions("Dry Web生成の前提が未完了です。Surface診断とPaint確定を確認してください");
+    return;
+  }
+  const artworkGraphForRun = artworkGraphSnapshot;
+  const artworkGraphSourceKeyForRun = artworkGraphSourceKey;
+  if (!artworkGraphForRun || !artworkGraphSourceKeyForRun) {
+    invalidateDryWebPreviewForInputChange(
+      `Dry Web生成を開始できません。${DRY_WEB_ARTWORK_GRAPH_REFRESH_PROMPT}`,
+    );
+    return;
+  }
+  let snapshotPatches: Patch[];
+  try {
+    snapshotPatches = cloneDryWebArtworkGraphPatches(artworkGraphForRun);
+  } catch (error) {
+    invalidateDryWebPreviewForInputChange(
+      `Dry Web生成を開始できません。Stage 3 snapshotのPatch factsを読み出せません。${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return;
+  }
+  // Any Paint/Internal refresh returns to step 7. A previously requested
+  // removable-support preview must not survive across that author boundary.
+  phaseASupportPreviewRequested = false;
+  phaseARefreshButton.disabled = true;
+  skinRenderer.setPhaseASupportPreview(null, [], context.scaleMmPerUnit, 0);
+  terminateDryWebPreviewWorker(true);
+  let heavy = options.heavy ?? null;
+  let ownsHeavy = false;
+  if (!heavy) {
+    let localHeavy: HeavyComputationHandle | null = null;
+    const cancel = (): void => {
+      if (localHeavy && dryWebPreviewHeavyComputation?.id === localHeavy.id) cancelDryWebPreviewUpdate();
+    };
+    localHeavy = beginHeavyComputation("Dry Web 全体進捗", cancel);
+    heavy = localHeavy;
+    dryWebPreviewHeavyComputation = localHeavy;
+    ownsHeavy = true;
+  }
   const worker = new Worker(new URL("./dryWebPreview.worker.ts", import.meta.url), { type: "module" });
   const generation = ++dryWebPreviewGeneration;
   const requestId = ++dryWebPreviewRequestId;
   const paintRevision = supportPaintSession.revision;
   const surfaceFingerprint = currentTargetSurfaceFingerprint();
+  const resolutionForRun = surfaceAngleCache.resolution;
+  const patchSetRevisionForRun = state.patchSetRevision;
   activeDryWebPreviewWorker = worker;
   dryWebPreviewPending = true;
   phaseASupportStatus.textContent = reason + " · Dry Web Worker更新中…";
   phaseASupportStatus.dataset.stale = "true";
+  refreshDryWebActions("Dry Web生成中です。進捗は下部に表示されます");
   worker.onmessage = (event: MessageEvent<DryWebPreviewWorkerMessage>) => {
     const message = event.data;
-    if (worker !== activeDryWebPreviewWorker || message.generation !== dryWebPreviewGeneration || message.requestId !== requestId) return;
-    worker.terminate();
-    activeDryWebPreviewWorker = null;
-    dryWebPreviewPending = false;
-    if (message.type === "error") {
-      phaseASupportStatus.textContent = "Dry Web preview Worker失敗: " + message.message;
-      phaseASupportStatus.dataset.ok = "false";
+    if (worker !== activeDryWebPreviewWorker || message.generation !== dryWebPreviewGeneration || message.requestId !== requestId) {
+      // An old worker may still deliver one queued event after a new run has
+      // taken ownership. Detach only that old worker; never clear the new run.
+      if (worker !== activeDryWebPreviewWorker) {
+        worker.onmessage = null;
+        worker.onerror = null;
+        worker.terminate();
+      }
       return;
     }
-    if (
-      message.paintRevision !== supportPaintSession.revision
-      || message.surfaceFingerprint !== currentTargetSurfaceFingerprint()
-      || message.resolution !== surfaceAngleCache?.resolution
-    ) return;
+    if (message.type === "progress" || message.type === "result") {
+      // Progress can be emitted many thousands of times. Keep this path to
+      // scalar/identity checks; canonicalizing all current Patch facts is
+      // reserved for the terminal result below.
+      const artworkGraphWasReplaced = artworkGraphSnapshot !== artworkGraphForRun
+        || artworkGraphSourceKey !== artworkGraphSourceKeyForRun
+        || state.patchSetRevision !== patchSetRevisionForRun;
+      const currentArtworkGraphBoundary = message.type === "result"
+        ? currentDryWebArtworkGraphBoundary()
+        : null;
+      const artworkGraphStale = message.type === "result"
+        ? currentArtworkGraphBoundary!.status !== "current" || artworkGraphWasReplaced
+        : artworkGraphWasReplaced;
+      if (
+        artworkGraphStale
+        || message.paintRevision !== paintRevision
+        || message.surfaceFingerprint !== surfaceFingerprint
+        || message.resolution !== resolutionForRun
+      ) {
+        settleDryWebPreviewWorkerTerminal(worker, "stale", heavy!);
+        const staleStatus = currentArtworkGraphBoundary && currentArtworkGraphBoundary.status !== "current"
+          ? currentArtworkGraphBoundary.reason
+          : artworkGraphWasReplaced
+            ? `Stage 3 snapshotが置き換わりました。${DRY_WEB_ARTWORK_GRAPH_REFRESH_PROMPT}`
+            : "Dry Web生成結果が古くなりました。もう一度生成してください";
+        phaseASupportStatus.textContent = staleStatus;
+        phaseASupportStatus.dataset.stale = "true";
+        delete phaseASupportStatus.dataset.ok;
+        ui.setInternalStructureStatus(staleStatus, false);
+        ui.setSurfaceAngleDiagnosisStatus(staleStatus, false);
+        ui.setSurfaceAngleDiagnosisRunning(false);
+        refreshDryWebActions(staleStatus);
+        render();
+        return;
+      }
+    }
+    if (message.type === "progress") {
+      const detail = dryWebProgressDetail(message);
+      heavy!.updateActual(detail, dryWebProgressPercent(message));
+      phaseASupportStatus.textContent = reason + " · " + detail;
+      phaseASupportStatus.dataset.stale = "true";
+      ui.setSurfaceAngleDiagnosisStatus(reason + " · " + detail + " · 画面は操作できます");
+      refreshSurfaceStartupStatus(detail);
+      refreshDryWebActions(detail, { artworkGraphBoundary, canGenerate: false });
+      return;
+    }
+    if (message.type === "error") {
+      settleDryWebPreviewWorkerTerminal(worker, "message-error", heavy!);
+      phaseASupportStatus.textContent = "Dry Web preview Worker失敗: " + message.message;
+      phaseASupportStatus.dataset.ok = "false";
+      phaseASupportStatus.dataset.stale = "true";
+      ui.setInternalStructureStatus("Dry Web preview Worker失敗: " + message.message, false);
+      ui.setSurfaceAngleDiagnosisStatus("Dry Web preview Worker失敗: " + message.message, false);
+      ui.setSurfaceAngleDiagnosisRunning(false);
+      refreshDryWebActions("Dry Web生成に失敗しました。プレビューを破棄しました。Paint分類は保持されています");
+      render();
+      return;
+    }
+    settleDryWebPreviewWorkerTerminal(worker, "success", heavy!);
     phaseADryWebPreview = {
       surfaceFingerprint: message.surfaceFingerprint,
       resolution: message.resolution,
       paintRevision: message.paintRevision,
+      artworkGraphSnapshot: artworkGraphForRun,
+      artworkGraphSourceKey: artworkGraphSourceKeyForRun,
       graph: message.graph,
+      targetConnectionFacts: message.targetConnectionFacts ?? null,
+      contactFloorFacts: message.contactFloorFacts ?? null,
       facts: message.facts,
       computeMs: message.computeMs,
     };
@@ -2289,15 +4665,35 @@ function requestDryWebPreviewUpdate(reason: string): void {
       + ` / Worker ${message.computeMs.toFixed(1)}ms`,
       message.graph.edges.length > 0,
     );
-    refreshPhaseASupportPreview();
+    skinRenderer.setInternalStructure(message.graph);
+    refreshInternalAngleScreening(message.graph);
+    syncPhaseASupportPreviewAvailability(message.graph);
+    heavy!.updateActual("Dry Web graph構築完了", 100);
+    heavy!.finish();
+    if (ownsHeavy && dryWebPreviewHeavyComputation?.id === heavy!.id) dryWebPreviewHeavyComputation = null;
+    if (surfaceHeavyComputation?.id === heavy!.id) surfaceHeavyComputation = null;
+    ui.setSurfaceAngleDiagnosisRunning(false);
+    phaseASupportStatus.textContent = `${reason} · Dry Web graph構築完了 / Worker ${message.computeMs.toFixed(1)}ms · 付加後exact再診断は未実行`;
+    delete phaseASupportStatus.dataset.stale;
+    refreshDryWebActions("Dry Web生成が完了しました。generator facts only / mesh / printability未判定。付加後exact診断は未実行です。Stage 7の「Dry Web付加後を再診断」で実行できます");
+    render();
   };
   worker.onerror = (event) => {
-    if (worker !== activeDryWebPreviewWorker) return;
-    worker.terminate();
-    activeDryWebPreviewWorker = null;
-    dryWebPreviewPending = false;
+    if (worker !== activeDryWebPreviewWorker) {
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.terminate();
+      return;
+    }
+    settleDryWebPreviewWorkerTerminal(worker, "onerror", heavy!);
     phaseASupportStatus.textContent = "Dry Web preview Worker失敗: " + event.message;
     phaseASupportStatus.dataset.ok = "false";
+    phaseASupportStatus.dataset.stale = "true";
+    ui.setInternalStructureStatus("Dry Web preview Worker失敗: " + event.message, false);
+    ui.setSurfaceAngleDiagnosisStatus("Dry Web preview Worker失敗: " + event.message, false);
+    ui.setSurfaceAngleDiagnosisRunning(false);
+    refreshDryWebActions("Dry Web Workerに失敗しました。プレビューを破棄しました。Paint分類は保持されています");
+    render();
   };
   const request: DryWebPreviewWorkerRequest = {
     type: "build",
@@ -2305,7 +4701,7 @@ function requestDryWebPreviewUpdate(reason: string): void {
     requestId,
     paintRevision,
     surfaceFingerprint,
-    resolution: surfaceAngleCache.resolution,
+    resolution: resolutionForRun,
     entries: result.entries.map((entry) => ({
       ...entry,
       ...(entry.positionMm ? { positionMm: { ...entry.positionMm } } : {}),
@@ -2314,9 +4710,10 @@ function requestDryWebPreviewUpdate(reason: string): void {
     scaleMmPerUnit: context.scaleMmPerUnit,
     host: state.host.map((ball) => ({ ...ball })),
     hostK: state.hostParams.k,
-    patches: state.patches.map((patch) => ({ ...patch, points: patch.points.map((point) => ({ ...point })) })),
+    patches: snapshotPatches,
     internalDensity: state.skinParams.internalDensity,
     internalRadius: state.skinParams.internalRadius,
+    dryWebRequiredContacts: normalizeDryWebRequiredContacts(state.skinParams.dryWebRequiredContacts),
   };
   worker.postMessage(request);
 }
@@ -2324,9 +4721,30 @@ function requestDryWebPreviewUpdate(reason: string): void {
 function refreshPhaseASupportPreview(): void {
   const result = overhangSupportResult;
   const context = supportPaintEditingContext();
-  if (!surfaceAngleCache || !result || !context) {
+  const internalGraph = getInternalStructureGraph();
+  syncPhaseAVerticalControl();
+  syncPhaseASupportPreviewAvailability(internalGraph);
+  const separationBlockReason = dryWebSupportSeparationOutputBlockReason(
+    state.skinParams.internalStructure,
+    dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+  );
+  if (separationBlockReason) {
+    phaseASupportPreviewRequested = false;
     skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
-    phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+    phaseASupportStatus.textContent = separationBlockReason;
+    phaseASupportStatus.dataset.stale = "true";
+    delete phaseASupportStatus.dataset.ok;
+    return;
+  }
+  if (!surfaceAngleCache || !result || !context || !internalGraph?.edges.length) {
+    skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+    phaseASupportStatus.textContent = "先に工程7でInternal Structureを生成・確認してください";
+    delete phaseASupportStatus.dataset.ok;
+    return;
+  }
+  if (!phaseASupportPreviewRequested) {
+    skinRenderer.setPhaseASupportPreview(null, [], context.scaleMmPerUnit, 0);
+    phaseASupportStatus.textContent = "Internal Structure生成済み · 確認後にボタンを押して工程9へ進みます";
     delete phaseASupportStatus.dataset.ok;
     return;
   }
@@ -2336,7 +4754,19 @@ function refreshPhaseASupportPreview(): void {
       plateZMm = Math.min(plateZMm, context.positionsMm[offset]);
     }
     if (!Number.isFinite(plateZMm)) throw new Error("BODYの最下面を求められません");
-    const outsideLeaves = outsideLeavesFromAssignments(result.entries);
+    const targetedGrid = state.skinParams.internalStructure === "targetedGrid";
+    const stage8Selection = targetedGrid
+      ? selectStage8RemovableSupportPreviewLeaves({
+        entries: result.entries,
+        separation: dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+        maximumLeaves: PHASE_A_SUPPORT_PREVIEW_MAX_LEAVES,
+      })
+      : null;
+    const outsidePreview = stage8Selection ?? selectSupportForestPreviewLeaves(
+      result.entries,
+      PHASE_A_SUPPORT_PREVIEW_MAX_LEAVES,
+    );
+    const outsideLeaves = outsidePreview.leaves;
     const cradleLeaves = phaseASupportSettings.objectLiftMm > 0
       ? uniformLowestSurfaceLeaves(
         context.positionsMm,
@@ -2356,7 +4786,7 @@ function refreshPhaseASupportPreview(): void {
       footRadiusMm: Math.max(1.0, phaseASupportSettings.trunkMinimumRadiusMm * 1.45),
       raftRadiusMm: Math.max(0.75, phaseASupportSettings.trunkMinimumRadiusMm),
     });
-    const retained = phaseASupportSettings.baseVolumeVerticalSupports
+    const retained = !targetedGrid && phaseASupportSettings.baseVolumeVerticalSupports
       ? retainedVerticalMembers(result.entries, phaseASupportSettings.trunkMinimumRadiusMm)
         .map((member) => ({
           ...member,
@@ -2371,7 +4801,6 @@ function refreshPhaseASupportPreview(): void {
       phaseASupportSettings.dryWebMinimumDiameterMm,
       phaseASupportSettings.dryWebMaximumUnreinforcedLengthMm,
     );
-    skinRenderer.setInternalStructure(reinforcedDryWeb);
     skinRenderer.setPhaseASupportPreview(
       forest,
       retained,
@@ -2381,17 +4810,26 @@ function refreshPhaseASupportPreview(): void {
     const stats = forest.stats;
     const dryWebText = reinforcedDryWeb && dryWebPreview
       ? `Dry Web ${reinforcedDryWeb.edges.length.toLocaleString()} edge / 最小径${phaseASupportSettings.dryWebMinimumDiameterMm.toFixed(1)}mm / `
-        + dryWebRoutingFactsText(dryWebPreview.facts)
+        + (dryWebPreview.facts
+          ? dryWebRoutingFactsText(dryWebPreview.facts)
+          : "Stage 7作品候補を採用済み · 旧generator factsは無効 · exact再診断が必要")
         + ` / Worker ${dryWebPreview.computeMs.toFixed(1)}ms`
       : dryWebPreviewPending
         ? "Dry Web Worker更新中"
         : "Dry Web未生成";
+    const outsidePreviewText = stage8Selection
+      ? `exact orange faces ${stage8Selection.exactOrangeFaceCount.toLocaleString()} / diagnosed sites used ${stage8Selection.diagnosedEligibleSiteCount.toLocaleString()} / old pre-attachment outside sites excluded ${stage8Selection.excludedPreAttachmentDiagnosedOutsideSiteCount.toLocaleString()} / explicit profile sites retained ${stage8Selection.explicitEligibleSiteCount.toLocaleString()} / sampled ${stage8Selection.sampledCount.toLocaleString()}${stage8Selection.limited ? " / limited" : ""}${stage8Selection.failClosedReason ? ` / fail-closed: ${stage8Selection.failClosedReason}` : ""}`
+      : outsidePreview.limited
+        ? `outside葉 preview ${outsideLeaves.length.toLocaleString()} / 全体 ${outsidePreview.eligibleOutsideLeafCount.toLocaleString()}（表示用sample）`
+        : `outside葉 ${outsideLeaves.length.toLocaleString()} / 全体 ${outsidePreview.eligibleOutsideLeafCount.toLocaleString()}`;
     phaseASupportStatus.textContent =
-      `${phaseASupportSettings.supportMode === "branching" ? "Branching" : "Vertical"} · outside葉 ${outsideLeaves.length.toLocaleString()} / `
+      `${phaseASupportSettings.supportMode === "branching" ? "Branching" : "Vertical"} · ${outsidePreviewText} / `
       + `最下面cradle ${cradleLeaves.length.toLocaleString()} / branch ${stats.branchCount.toLocaleString()} / `
       + `brace ${stats.braceCount.toLocaleString()} / foot ${stats.rootCount.toLocaleString()} / `
       + `最大部材 ${stats.maximumMemberLengthMm.toFixed(1)}mm / 最大角 ${stats.maximumBranchAngleDeg.toFixed(1)}° / `
-      + `base内 retained ${retained.length.toLocaleString()} / ${dryWebText}`;
+      + (targetedGrid
+        ? `base内 retained ${retained.length.toLocaleString()}（Dry Webでは生成しない） / ${dryWebText}`
+        : `base内 retained ${retained.length.toLocaleString()} / ${dryWebText}`);
     delete phaseASupportStatus.dataset.stale;
     phaseASupportStatus.dataset.ok = String(stats.unsupportedLengthViolationCount === 0
       && stats.maximumBranchAngleDeg <= phaseASupportSettings.branchAngleDeg + 1e-4);
@@ -2565,6 +5003,7 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   resetSupportPaintUndoJournal();
   invalidateSupportPaintReprojection();
   supportPaintMode = draft.brush.mode; supportPaintRadiusMm = draft.brush.radiusMm; supportPaintBackfaces = draft.brush.paintBackfaces;
+  if (state.skinParams.internalStructure === "targetedGrid" && supportPaintMode === "outside") supportPaintMode = "inside";
   if (draft.editorView?.layout) {
     editorLayoutState = validateSkinEditorLayoutDraft(draft.editorView.layout);
     applyEditorLayoutDom();
@@ -2575,7 +5014,8 @@ function applySupportPaintDraft(draft: SupportPaintDraftV1, source: "autosave" |
   localStorage.setItem(supportPaintDraftStorageKey(binding), serializeSupportPaintDraft(draft));
   supportPaintDraftSavedAt = draft.savedAt; supportPaintDraftDirty = false;
   if (automaticOverhangSupportResult && supportPaintEditingContext()) {
-    reapplySupportPaint(source === "autosave" ? "autosaveからSupport Paintを復元しました" : "draftからSupport Paintを復元しました", supportPaintSession.history.present, true);
+    invalidateDryWebPreviewForInputChange("Support Paintを復元しました。Dry Web生成を押して反映してください");
+    reapplySupportPaint(source === "autosave" ? "autosaveからSupport Paintを復元しました" : "draftからSupport Paintを復元しました", supportPaintSession.history.present);
   } else {
     refreshSupportPaintUi(source === "autosave" ? "autosaveを復元しました · 診断後に色と件数を再計算します" : "draftを復元しました · 診断後に色と件数を再計算します");
   }
@@ -2605,6 +5045,7 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     mode: supportPaintMode,
     radiusMm: supportPaintRadiusMm,
     paintBackfaces: supportPaintBackfaces,
+    allowOutside: state.skinParams.internalStructure !== "targetedGrid",
     operationCount: supportPaintSession.history.past.length,
     sampleCount: paint.strokes.length,
     paintedSiteCount: facts?.paintedSupportSiteCount ?? 0,
@@ -2619,11 +5060,14 @@ function refreshSupportPaintUi(status = supportPaintStatusText): void {
     reprojectionStatus: supportPaintReprojectionStatus,
     status,
   });
+  refreshDryWebActions();
   refreshBottomStatusPane();
   syncProjectBar();
 }
 
 function invalidateSupportPaintEditingResources(): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
   supportPaintSession = reviseSupportPaintSession(supportPaintSession);
   terminateSupportPaintApplyWorker();
   invalidateSupportPaintReprojection();
@@ -2637,6 +5081,8 @@ function invalidateSupportPaintEditingResources(): void {
 }
 
 function setSupportPaintEnabled(enabled: boolean): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
   supportPaintEnabled = enabled && Boolean(automaticOverhangSupportResult && surfaceAngleCache);
   showOverhangSupportSites = true;
   viewport.classList.toggle("support-paint-active", supportPaintEnabled);
@@ -2658,6 +5104,9 @@ function setSupportPaintEnabled(enabled: boolean): void {
 }
 
 function refreshPaintedDryWebTargets(): void {
+  clearStage7CanonicalCandidateAdoption();
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
   if (!surfaceAngleCache || !overhangSupportResult || state.skinParams.internalStructure !== "targetedGrid") return;
   const sourceLongest = triangleSoupLongestExtent(surfaceAngleCache.basePositions);
   const scaleMmPerUnit = ui.getMeshOptions().targetLongestMm / sourceLongest;
@@ -2667,10 +5116,13 @@ function refreshPaintedDryWebTargets(): void {
     resolution: surfaceAngleCache.resolution,
     targets: sourceDryWebTargets(overhangSupportResult, scaleMmPerUnit),
   };
+  clearStage7RedFaceReinforcementPlan();
+  phaseADryWebPreview = null;
   internalStructureFingerprint = "";
   internalStructureGraph = null;
   skinRenderer.setInternalStructure(null);
-  ui.setInternalStructureStatus("Support Paint routing更新済み · derived Dry Webは編集完了後の生成時に適用します");
+  refreshInternalAngleScreening(null);
+  ui.setInternalStructureStatus("Support Paint routing更新済み · Dry Web生成ボタンで適用します");
 }
 
 interface SupportPaintPreviewPerformance {
@@ -2786,6 +5238,8 @@ function applySupportPaintLiveSnapshot(
   facts: SupportPaintLiveFacts,
   preview: boolean,
 ): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
   const result = ensureEditableOverhangSupportResult();
   if (!result) return;
   const activeJournal = preview ? supportPaintDrag : null;
@@ -2828,12 +5282,7 @@ function applySupportPaintLiveSnapshot(
   } else {
     const updated = skinRenderer.commitOverhangSupportSiteClassifications(markerChanges);
     if (updated > 0) requestRenderFrame();
-    // A real Case A forest contains tens of thousands of members. Rebuilding
-    // it inside Paint pointerup would regress the already accepted Paint/Undo
-    // interaction. Keep Paint fast and let the author explicitly refresh the
-    // structure after finishing a classification edit.
-    phaseASupportStatus.textContent = "Support Paint分類が更新されました。「現在のPaint分類からpreview更新」で支持林へ反映します";
-    phaseASupportStatus.dataset.stale = "true";
+    invalidateDryWebPreviewForInputChange("Support Paint分類が更新されました。Dry Web生成を押して反映してください");
   }
 }
 
@@ -2842,7 +5291,6 @@ function terminateSupportPaintApplyWorker(): void {
   activeSupportPaintWorker = null;
   supportPaintApplyWorkerReady = false;
   supportPaintApplyReplacePending = 0;
-  supportPaintDryWebRefreshRequestIds.clear();
   supportPaintApplyGeneration++;
 }
 
@@ -2857,6 +5305,8 @@ function maybeFinalizeSupportPaintDrag(drag: NonNullable<typeof supportPaintDrag
 }
 
 function failSupportPaintApplyWorker(status: string): void {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
   const drag = supportPaintDrag;
   terminateSupportPaintApplyWorker();
   if (drag) {
@@ -2899,7 +5349,6 @@ function initializeSupportPaintApplyWorker(status: string): void {
         }
         applySupportPaintLiveSnapshot(message.snapshot.changes, message.snapshot.facts, false);
         refreshLiveSupportPaintCounts();
-        requestDryWebPreviewUpdate("Support Paint確定ledgerを復元しました");
         refreshSupportPaintUi(
           status + " · Paint差分Worker ready " + message.computeMs.toFixed(1)
           + "ms / round-trip " + (performance.now() - initializedAt).toFixed(1) + "ms",
@@ -2907,12 +5356,10 @@ function initializeSupportPaintApplyWorker(status: string): void {
         return;
       }
       if (message.type === "replace" || message.type === "restore") {
-        const refreshDryWeb = supportPaintDryWebRefreshRequestIds.delete(message.requestId);
         supportPaintApplyReplacePending = Math.max(0, supportPaintApplyReplacePending - 1);
         if (message.revision !== supportPaintSession.revision) return;
         applySupportPaintLiveSnapshot(message.changes, message.facts, false);
         refreshLiveSupportPaintCounts();
-        if (refreshDryWeb) requestDryWebPreviewUpdate("Support Paint確定ledgerを復元しました");
         refreshSupportPaintUi(status + " · Paint差分 " + message.computeMs.toFixed(1) + "ms");
         return;
       }
@@ -2959,7 +5406,6 @@ function initializeSupportPaintApplyWorker(status: string): void {
 function reapplySupportPaint(
   status: string,
   paint = supportPaintSession.history.present,
-  refreshDryWeb = false,
   _previewPerformance?: SupportPaintPreviewPerformance,
 ): void {
   if (!automaticOverhangSupportResult || !supportPaintEditingContext()) {
@@ -2976,7 +5422,6 @@ function reapplySupportPaint(
   }
   const requestId = ++supportPaintApplyRequestId;
   supportPaintApplyReplacePending++;
-  if (refreshDryWeb) supportPaintDryWebRefreshRequestIds.add(requestId);
   const request: SupportPaintWorkerRequest = {
     type: "replace",
     generation: supportPaintApplyGeneration,
@@ -2993,7 +5438,6 @@ function restoreSupportPaintJournal(
 ): void {
   applySupportPaintLiveSnapshot(snapshot.changes, snapshot.facts, false);
   refreshLiveSupportPaintCounts();
-  requestDryWebPreviewUpdate(status);
   if (!activeSupportPaintWorker || !supportPaintApplyWorkerReady) {
     initializeSupportPaintApplyWorker(status);
     return;
@@ -3027,6 +5471,7 @@ function undoOneSupportPaintOperation(): void {
     supportPaintSession,
     undoSupportPaint(supportPaintSession.history),
   );
+  invalidateDryWebPreviewForInputChange("Support Paintを戻しました。Dry Web生成を押して反映してください");
   invalidateSupportPaintReprojection();
   autosaveSupportPaintDraft();
   const journal = supportPaintUndoJournalPast.pop();
@@ -3037,7 +5482,7 @@ function undoOneSupportPaintOperation(): void {
       "Support Paintの直前1 dragを戻しました",
     );
   } else {
-    reapplySupportPaint("Support Paintの直前1操作を戻しました", supportPaintSession.history.present, true);
+    reapplySupportPaint("Support Paintの直前1操作を戻しました", supportPaintSession.history.present);
   }
   if (history !== shapeHistoryBefore || surfaceAngleCache !== surfaceBefore || activeSurfacePersistentCacheKeys !== cacheKeysBefore) {
     throw new Error("Support Paint Undo must not mutate shape history, Surface diagnosis, or cache key");
@@ -3057,6 +5502,7 @@ function redoOneSupportPaintOperation(): void {
     supportPaintSession,
     redoSupportPaint(supportPaintSession.history),
   );
+  invalidateDryWebPreviewForInputChange("Support Paintを進めました。Dry Web生成を押して反映してください");
   invalidateSupportPaintReprojection();
   autosaveSupportPaintDraft();
   const journal = supportPaintUndoJournalFuture.pop();
@@ -3067,7 +5513,7 @@ function redoOneSupportPaintOperation(): void {
       "Support Paintの直前1 dragを進めました",
     );
   } else {
-    reapplySupportPaint("Support Paintの直前1操作を進めました", supportPaintSession.history.present, true);
+    reapplySupportPaint("Support Paintの直前1操作を進めました", supportPaintSession.history.present);
   }
 }
 
@@ -3077,12 +5523,205 @@ function targetedSupportSourceIsCurrent(): boolean {
     && targetedSupportSource.resolution === Math.max(16, Math.round(ui.getMeshOptions().resolution));
 }
 
+function dryWebInsideTargetRunActive(): boolean {
+  return Boolean(
+    activeDryWebPreviewWorker
+    || activeDryWebExactRecheckWorker
+    || dryWebPreviewHeavyComputation
+    || activeSurfaceAngleWorker
+    || activeSurfaceSupportClassificationWorker
+    || surfaceHeavyComputation
+    || supportPaintDrag
+    || supportPaintApplyReplacePending > 0
+    || (activeSupportPaintWorker && !supportPaintApplyWorkerReady)
+    || activeStage7ProvisionalRecheckWorker
+    || stage7ProvisionalRecheckHeavyComputation
+    || stage7ProvisionalRecheckRunBinding,
+  );
+}
+
+function currentDryWebInsideTargetPresentationState(): DryWebInsideTargetPresentationState {
+  if (dryWebInsideTargetRunActive()) return "running";
+  if (state.skinParams.internalStructure !== "targetedGrid") return "missing";
+  const artworkGraphBoundary = currentDryWebArtworkGraphBoundary();
+  if (artworkGraphBoundary.status === "stale") return "stale";
+  if (artworkGraphBoundary.status !== "current") return "missing";
+  if (!dryWebPreviewIsCurrent() || !targetedSupportSourceIsCurrent()) {
+    return phaseADryWebPreview || targetedSupportSource ? "stale" : "missing";
+  }
+  return "current";
+}
+
+function refreshDryWebInsideTargetPresentation(): void {
+  const state = currentDryWebInsideTargetPresentationState();
+  let presentation = createDryWebInsideTargetPresentation({
+    state,
+    targets: state === "current" ? targetedSupportSource?.targets ?? null : null,
+    visible: dryWebInsideTargetOverlayVisible,
+  });
+  if (!presentation.available && dryWebInsideTargetOverlayVisible) {
+    dryWebInsideTargetOverlayVisible = false;
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    presentation = createDryWebInsideTargetPresentation({
+      state,
+      targets: state === "current" ? targetedSupportSource?.targets ?? null : null,
+      visible: false,
+    });
+  }
+  ui.setDryWebInsideTargetPresentation(presentation);
+}
+
+function releaseDryWebInsideTargetOverlayForCompetingView(): void {
+  const hadInsideOverlay = dryWebInsideTargetOverlayVisible;
+  const hadContactFloorOverlay = dryWebContactFloorOverlayVisible !== null;
+  if (hadInsideOverlay) {
+    dryWebInsideTargetOverlayVisible = false;
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    refreshDryWebInsideTargetPresentation();
+  }
+  if (hadContactFloorOverlay) {
+    clearDryWebContactFloorOverlayState();
+  }
+  if (hadContactFloorOverlay) refreshDryWebActions();
+}
+
+function setDryWebInsideTargetOverlayVisible(visible: boolean): void {
+  if (!visible) {
+    if (!dryWebInsideTargetOverlayVisible) {
+      refreshDryWebInsideTargetPresentation();
+      return;
+    }
+    dryWebInsideTargetOverlayVisible = false;
+    skinRenderer.clearOverhangSupportSiteOverlay();
+    refreshOverhangSupportSiteOverlay();
+    refreshDryWebInsideTargetPresentation();
+    render();
+    return;
+  }
+
+  const state = currentDryWebInsideTargetPresentationState();
+  const presentation = createDryWebInsideTargetPresentation({
+    state,
+    targets: state === "current" ? targetedSupportSource?.targets ?? null : null,
+    visible: true,
+  });
+  if (!presentation.available) {
+    refreshDryWebInsideTargetPresentation();
+    return;
+  }
+  releaseDryWebContactFloorOverlayForCompetingView();
+  releaseDryWebSupportSeparationPresentationForCompetingView();
+  dryWebInsideTargetOverlayVisible = true;
+  skinRenderer.setOverhangSupportSiteOverlay(
+    presentation.markers,
+    new Float32Array(),
+    new Float32Array(),
+    supportSiteDepthMode,
+    "dryWebInside",
+  );
+  ui.setDryWebInsideTargetPresentation(presentation);
+  render();
+}
+
+function clearDryWebContactFloorOverlayState(): void {
+  dryWebContactFloorOverlayVisible = null;
+  skinRenderer.clearDryWebContactFloorOverlay();
+}
+
+function releaseDryWebContactFloorOverlayForCompetingView(): void {
+  if (dryWebContactFloorOverlayVisible === null) return;
+  clearDryWebContactFloorOverlayState();
+  refreshDryWebActions();
+}
+
+function setDryWebContactFloorOverlay(category: DryWebContactFloorResidualCategory | null): void {
+  if (category === null) {
+    clearDryWebContactFloorOverlayState();
+    refreshDryWebActions();
+    render();
+    return;
+  }
+  const presentation = createDryWebContactFloorOverlayPresentation({
+    current: state.skinParams.internalStructure === "targetedGrid" && dryWebPreviewIsCurrent(),
+    running: state.skinParams.internalStructure === "targetedGrid" && dryWebInsideTargetRunActive(),
+    stale: state.skinParams.internalStructure === "targetedGrid"
+      && Boolean(phaseADryWebPreview)
+      && !dryWebPreviewIsCurrent(),
+    surfaceContextVisible: internalObservationMode !== "internalOnly",
+    snapshot: dryWebPreviewIsCurrent() ? artworkGraphSnapshot : null,
+    contactFloor: dryWebPreviewIsCurrent() ? currentDryWebContactFloorPresentation() : null,
+    category,
+    enabled: true,
+  });
+  if (!presentation.available) {
+    clearDryWebContactFloorOverlayState();
+    refreshDryWebActions();
+    return;
+  }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebSupportSeparationPresentationForCompetingView();
+  dryWebContactFloorOverlayVisible = category;
+  skinRenderer.setDryWebContactFloorOverlay(presentation.markers, category);
+  refreshDryWebActions();
+  render();
+}
+
+function clearDryWebInsufficientEdgeOverlayState(): void {
+  dryWebInsufficientEdgeOverlayVisible = false;
+  skinRenderer.clearDryWebInsufficientEdgeOverlay();
+}
+
+function releaseDryWebInsufficientEdgeOverlayForCompetingView(): void {
+  const hadInsufficientEdgeOverlay = dryWebInsufficientEdgeOverlayVisible;
+  const hadContactFloorOverlay = dryWebContactFloorOverlayVisible !== null;
+  if (hadInsufficientEdgeOverlay) clearDryWebInsufficientEdgeOverlayState();
+  if (hadContactFloorOverlay) clearDryWebContactFloorOverlayState();
+  if (hadInsufficientEdgeOverlay || hadContactFloorOverlay) refreshDryWebActions();
+}
+
+function setDryWebInsufficientEdgeOverlayVisible(visible: boolean): void {
+  if (!visible) {
+    if (!dryWebInsufficientEdgeOverlayVisible) {
+      skinRenderer.clearDryWebInsufficientEdgeOverlay();
+      refreshDryWebActions();
+      return;
+    }
+    dryWebInsufficientEdgeOverlayVisible = false;
+    skinRenderer.clearDryWebInsufficientEdgeOverlay();
+    refreshDryWebActions();
+    render();
+    return;
+  }
+
+  const presentation = currentDryWebInsufficientEdgePresentation();
+  if (!presentation.available) {
+    refreshDryWebActions();
+    return;
+  }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebSupportSeparationPresentationForCompetingView();
+  dryWebInsufficientEdgeOverlayVisible = true;
+  skinRenderer.setDryWebInsufficientEdgeOverlay(presentation.edges);
+  refreshDryWebActions();
+  render();
+}
+
 function getInternalStructureGraph(): InternalStructureGraph | null {
   if (state.skinParams.internalStructure === "none" || state.host.length === 0) {
     internalStructureFingerprint = "";
     internalStructureGraph = null;
     return null;
   }
+  // A targeted graph is authoritative once produced by the Dry Web Worker.
+  // Do not re-enter the synchronous builder from a later UI/readiness path.
+  if (state.skinParams.internalStructure === "targetedGrid" && dryWebPreviewPending) {
+    internalStructureFingerprint = "";
+    internalStructureGraph = null;
+    return null;
+  }
+  if (state.skinParams.internalStructure === "targetedGrid"
+    && internalStructureGraph
+    && dryWebPreviewIsCurrent()) return internalStructureGraph;
   const targetedTargets = state.skinParams.internalStructure === "targetedGrid" && targetedSupportSourceIsCurrent()
     ? targetedSupportSource!.targets
     : null;
@@ -3107,16 +5746,15 @@ function getInternalStructureGraph(): InternalStructureGraph | null {
     ]) ?? [],
   });
   if (fingerprint === internalStructureFingerprint) return internalStructureGraph;
-  internalStructureGraph = state.skinParams.internalStructure === "targetedGrid"
-    ? buildTargetedGridInternalStructure(
-      state.host,
-      state.hostParams.k,
-      state.patches,
-      targetedTargets!,
-      state.skinParams.internalDensity,
-      state.skinParams.internalRadius,
-    )
-    : buildVoronoiInternalStructure(
+  if (state.skinParams.internalStructure === "targetedGrid") {
+    // Targeted Dry Web is deliberately worker-owned.  There must be no
+    // synchronous fallback here: reading a stale/partial target ledger from
+    // a render path would recreate the 99% main-thread freeze.
+    internalStructureFingerprint = "";
+    internalStructureGraph = null;
+    return null;
+  }
+  internalStructureGraph = buildVoronoiInternalStructure(
       state.host, state.hostParams.k, state.skinParams.internalDensity,
       state.skinParams.internalRadius, state.skinParams.internalRandomness, state.skinParams.seed,
     );
@@ -3124,17 +5762,41 @@ function getInternalStructureGraph(): InternalStructureGraph | null {
   return internalStructureGraph;
 }
 
+function refreshInternalAngleScreening(graph: InternalStructureGraph | null): void {
+  internalAngleScreeningGraph = graph && graph.edges.length > 0 ? graph : null;
+  const available = internalAngleScreeningGraph !== null;
+  if (!available) {
+    internalAngleScreeningEnabled = false;
+    internalAngleScreening = null;
+  } else {
+    internalAngleScreening = internalAngleScreeningEnabled
+      ? screenInternalStructureAngles(internalAngleScreeningGraph)
+      : null;
+  }
+  skinRenderer.setInternalAngleScreening(internalAngleScreening);
+  ui.setInternalAngleScreening(available, internalAngleScreeningEnabled, internalAngleScreening);
+}
+
+function setInternalAngleScreeningEnabled(enabled: boolean): void {
+  internalAngleScreeningEnabled = enabled && internalAngleScreeningGraph !== null;
+  refreshInternalAngleScreening(internalAngleScreeningGraph);
+  render();
+}
+
 function refreshInternalStructure(): void {
+  if (dryWebInsufficientEdgeOverlayVisible) clearDryWebInsufficientEdgeOverlayState();
   try {
     const graph = getInternalStructureGraph();
     skinRenderer.setInternalStructure(graph);
+    refreshInternalAngleScreening(graph);
+    syncPhaseASupportPreviewAvailability(graph);
     if (!graph) {
       ui.setInternalStructureStatus(state.skinParams.internalStructure === "targetedGrid"
         ? state.mode === "window"
           ? "Dry Webは「プレートが実」で使います"
           : activeSurfaceAngleWorker
             ? "最終精度診断から赤点を取得しています…"
-            : "最終精度で角度診断すると、Dry Webを生成します"
+            : "Stage 4のSurface診断後、生成ボタンでDry Webを作ります"
         : "なし — Surface のみ");
       return;
     }
@@ -3151,7 +5813,33 @@ function refreshInternalStructure(): void {
     internalStructureGraph = null;
     internalStructureFingerprint = "";
     skinRenderer.setInternalStructure(null);
+    refreshInternalAngleScreening(null);
+    syncPhaseASupportPreviewAvailability(null);
     ui.setInternalStructureStatus(`生成失敗: ${(error as Error).message}`, false);
+  }
+}
+
+function syncPhaseASupportPreviewAvailability(graph: InternalStructureGraph | null): void {
+  const separationBlockReason = dryWebSupportSeparationOutputBlockReason(
+    state.skinParams.internalStructure,
+    dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+  );
+  const available = Boolean(graph?.edges.length && surfaceAngleCache && overhangSupportResult && !separationBlockReason);
+  phaseARefreshButton.disabled = !available;
+  phaseARefreshButton.title = available
+    ? "Internal Structureの見た目を確認した後、印刷後に外すサポートのpreviewを生成します"
+    : separationBlockReason ?? "工程7のInternal Structure生成とSurface診断が必要です";
+  if (!available) {
+    phaseASupportPreviewRequested = false;
+    skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+    if (separationBlockReason) {
+      phaseASupportStatus.textContent = separationBlockReason;
+      phaseASupportStatus.dataset.stale = "true";
+      delete phaseASupportStatus.dataset.ok;
+    }
+  } else if (!phaseASupportPreviewRequested) {
+    phaseASupportStatus.textContent = "Internal Structure生成済み · 確認後にボタンを押して工程9へ進みます";
+    delete phaseASupportStatus.dataset.ok;
   }
 }
 
@@ -3493,6 +6181,7 @@ function finalizeSupportPaintDrag(drag: NonNullable<typeof supportPaintDrag>, co
   supportPaintDrag = null;
   if (commit && drag.changed && sampleCount > 0) {
     supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, true);
+    invalidateDryWebPreviewForInputChange("Support Paintを確定しました。Dry Web生成を押して反映してください");
     supportPaintInteractionCounters.pointerupHistoryCommits++;
     supportPaintUndoJournalPast.push({
       before: [...drag.journalBefore.values()].map((change) => ({ ...change })),
@@ -3507,7 +6196,6 @@ function finalizeSupportPaintDrag(drag: NonNullable<typeof supportPaintDrag>, co
     );
     autosaveSupportPaintDraft();
     refreshLiveSupportPaintCounts();
-    requestDryWebPreviewUpdate("Support Paint pointerup後に更新");
     lastSupportPaintInteractionCounters = { ...supportPaintInteractionCounters };
     refreshSupportPaintUi(
       "Support Paintを1 drag確定 · " + sampleCount + " sample"
@@ -3519,7 +6207,7 @@ function finalizeSupportPaintDrag(drag: NonNullable<typeof supportPaintDrag>, co
   } else {
     supportPaintSession = finishActiveSupportPaintStroke(supportPaintSession, false);
     skinRenderer.clearOverhangSupportSitePreview();
-    reapplySupportPaint("塗布対象は変わりませんでした", supportPaintSession.history.present, true);
+    reapplySupportPaint("塗布対象は変わりませんでした", supportPaintSession.history.present);
   }
 }
 
@@ -3566,7 +6254,7 @@ viewport.addEventListener("pointerdown", (e) => {
     }
     if (activeDryWebPreviewWorker) {
       terminateDryWebPreviewWorker(false);
-      phaseASupportStatus.textContent = "Paint drag中 · Dry Webはpointerup後に1回更新します";
+      phaseASupportStatus.textContent = "Paint drag中 · Dry Webはドラッグ確定後に生成ボタンを押します";
       phaseASupportStatus.dataset.stale = "true";
     }
     const initialPaint = supportPaintSession.history.present.strokes.length > 0
@@ -3991,13 +6679,16 @@ function updateEndpointBadges(): void {
 function clearContactView(message?: string): void {
   const hadReport = lastContactReport !== null;
   lastContactReport = null;
+  releaseCompetingDryWebPresentation("contactStrength");
   skinRenderer.updateContactStrength(null, state.skinParams.contactTarget);
   if (message && hadReport) ui.setContactStatus(message);
 }
 
 function showContactReport(report: ContactReport, updateStatus = true): void {
+  releaseDryWebSupportSeparationPresentationForCompetingView();
   lastContactReport = report;
   if (viewMode !== "beads") setViewMode("beads");
+  claimCompetingDryWebPresentation("contactStrength");
   skinRenderer.updateContactStrength(report.rows, state.skinParams.contactTarget);
   if (!updateStatus) return;
   const c = report.counts;
@@ -4011,6 +6702,10 @@ function showContactReport(report: ContactReport, updateStatus = true): void {
 // --- Generation-native N partition ---------------------------------------
 
 function showNPartitionGroups(groups: number[][]): void {
+  if (groups.length > 0) {
+    releaseDryWebSupportSeparationPresentationForCompetingView();
+    claimCompetingDryWebPresentation("nPartition");
+  } else releaseCompetingDryWebPresentation("nPartition");
   skinRenderer.updateNBeadGroups(groups.length > 0 ? groups.map((group) => new Set(group)) : null);
   if (groups.length > 0 && viewMode !== "beads") setViewMode("beads");
 }
@@ -4285,6 +6980,8 @@ function refreshPartitionDraft(): void {
     `${seedText} / A候補 ${a}個 / B候補 ${b}個` +
       (unassigned > 0 ? ` / 未割当 ${unassigned}個（未確定・警告色で表示）` : ""),
   );
+  if (a + b > 0) claimCompetingDryWebPresentation("partition");
+  else releaseCompetingDryWebPresentation("partition");
   skinRenderer.updateBeadGroups(a + b > 0 ? { A: new Set(draftGroupA), B: new Set(draftGroupB) } : null);
   updateEndpointBadges();
   updateOperationFocus();
@@ -4618,7 +7315,10 @@ function buildPartition(): void {
     ui.setPartitionMetrics(formatPartitionMetrics(msg.result));
     ui.setPartitionExportEnabled(gate.ok);
     ui.setPartitionVerificationExportEnabled(true);
-    if (state.partition) skinRenderer.updateBeadGroups({ A: new Set(state.partition.groupA), B: new Set(state.partition.groupB) });
+    if (state.partition) {
+      claimCompetingDryWebPresentation("partition");
+      skinRenderer.updateBeadGroups({ A: new Set(state.partition.groupA), B: new Set(state.partition.groupB) });
+    }
     refreshPartitionTutorial();
   };
   worker.onerror = (event) => {
@@ -4860,11 +7560,24 @@ function exportHistory(): void {
   URL.revokeObjectURL(url);
 }
 
-function applyHistoryEntries(entries: SkinHistoryEntry[]): void {
+function applyHistoryEntries(entries: SkinHistoryEntry[], replayedState = replay(entries)): void {
+  const previousState = state;
+  const restoreDryWebContactPresentation = dryWebContactPresentationCanReapply(dryWebContactPresentationOwner);
+  const preserveDryWebPreview = isDryWebRequiredContactsOnlyChange(previousState, replayedState)
+    && previousState.skinParams.internalStructure === "targetedGrid"
+    && phaseADryWebPreview !== null
+    && internalStructureGraph === phaseADryWebPreview.graph
+    && dryWebPreviewIsCurrent()
+    && !activeDryWebPreviewWorker
+    && !activeDryWebExactRecheckWorker
+    && !dryWebPreviewHeavyComputation
+    && !activeSurfaceAngleWorker
+    && !activeSurfaceSupportClassificationWorker
+    && !surfaceHeavyComputation;
   cancelPartitionBuild();
   cancelNPartitionBuild();
   history = entries;
-  state = replay(entries);
+  state = replayedState;
   selectedPatchId = null;
   addPatchMode = false;
   viewport.classList.remove("add-patch-mode");
@@ -4921,15 +7634,44 @@ function applyHistoryEntries(entries: SkinHistoryEntry[]): void {
   ui.syncHostParams(state.hostParams);
   ui.syncSkinParams(state.skinParams);
   ui.setMode(state.mode);
-  afterMutation();
+  if (preserveDryWebPreview) {
+    // Contact threshold is an interpretation-only history change. Keep the
+    // generated graph/facts and re-screen them under the replayed threshold.
+    syncUndoHistory();
+    syncArtworkGraphStatus();
+    refreshBottomStatusPane();
+    render();
+  } else {
+    afterMutation();
+  }
   refreshPartitionDraft();
   if (state.nPartition) showNPartitionGroups(state.nPartition.groups);
   refreshPrintProfileSummary();
+  if (preserveDryWebPreview) {
+    // refreshPartitionDraft/showNPartitionGroups can legitimately rebuild a
+    // competing bead palette. Reapply Dry Web exactly once, after those
+    // refreshes, only when Dry Web owned the author presentation before the
+    // replay; otherwise leave the competing owner and hide its legend.
+    if (restoreDryWebContactPresentation) dryWebContactPresentationOwner = "dryWeb";
+    refreshDryWebActions();
+    refreshBottomStatusPane();
+    render();
+  }
 }
 
-function applyRecipeText(text: string): void {
+function prepareRecipeText(text: string): { entries: SkinHistoryEntry[]; state: ReturnType<typeof replay> } {
+  // Parse and replay completely before any imported-recipe or Support Paint
+  // state is changed. This is the validation boundary for atomic imports.
+  const entries = parseRecipe(text);
+  return { entries, state: replay(entries) };
+}
+
+function applyRecipeText(
+  text: string,
+  prepared = prepareRecipeText(text),
+): void {
+  applyHistoryEntries(prepared.entries, prepared.state);
   importedRecipeText = text;
-  applyHistoryEntries(parseRecipe(text));
 }
 
 function requestShapeUndo(): void {
@@ -5024,19 +7766,49 @@ function syncProjectBar(): void {
 }
 
 async function importHistory(file: File): Promise<void> {
+  ui.setHistoryImportStatus("読込中…");
+  const previous = {
+    history,
+    state,
+    supportPaintSession,
+    supportPaintDraftSavedAt,
+    supportPaintDraftDirty,
+    importedRecipeSha256,
+    importedRecipeFilename,
+    importedRecipeText,
+  };
   try {
     const text = await file.text();
-    // Captured BEFORE applyRecipeText/replay touches anything -- this is the
-    // hash of the exact bytes the author picked, cited in partition
+    const prepared = prepareRecipeText(text);
+    // Keep the hash local until parse + replay validation and the visible
+    // state apply have succeeded. It is the exact text cited in partition
     // provenance as `inputRecipe` (instruction: "入力recipe SHA-256").
-    importedRecipeSha256 = await sha256Hex(text);
+    const importedSha256 = await sha256Hex(text);
+    supportPaintSession = createSupportPaintSession();
+    resetSupportPaintUndoJournal();
+    supportPaintDraftSavedAt = null;
+    supportPaintDraftDirty = false;
+    applyRecipeText(text, prepared);
+    importedRecipeSha256 = importedSha256;
     importedRecipeFilename = file.name;
     importedRecipeText = text;
-    supportPaintSession = createSupportPaintSession(); resetSupportPaintUndoJournal(); supportPaintDraftSavedAt = null; supportPaintDraftDirty = false;
-    applyRecipeText(text);
     restoreAutosavedSupportPaintDraft();
+    ui.setHistoryImportStatus(`読込完了・履歴${prepared.entries.length}件`, true);
   } catch (err) {
-    alert(`履歴の読み込みに失敗しました: ${(err as Error).message}`);
+    // A malformed/unsupported recipe must leave both the visible shape and
+    // import-associated sessions untouched. The candidate replay above is
+    // never assigned until parsing and replay have succeeded.
+    history = previous.history;
+    state = previous.state;
+    supportPaintSession = previous.supportPaintSession;
+    supportPaintDraftSavedAt = previous.supportPaintDraftSavedAt;
+    supportPaintDraftDirty = previous.supportPaintDraftDirty;
+    importedRecipeSha256 = previous.importedRecipeSha256;
+    importedRecipeFilename = previous.importedRecipeFilename;
+    importedRecipeText = previous.importedRecipeText;
+    const reason = err instanceof Error ? err.message : String(err);
+    ui.setHistoryImportStatus(`読込失敗: ${reason}`, false);
+    alert(`履歴の読み込みに失敗しました: ${reason}`);
   }
 }
 
@@ -5272,13 +8044,14 @@ function cancelInternalPrintGate(): void {
 
 function startInternalPrintGate(options: MeshUiOptions): void {
   const graph = getInternalStructureGraph();
-  if (!graph?.edges.length) {
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, graph);
+  if (state.skinParams.internalStructure === "none" || readinessBlockReason || !graph) {
     ui.setInternalPrintGateReport(null);
     ui.setInternalPrintGateExportAllowed(state.skinParams.internalStructure === "none", state.skinParams.internalStructure !== "none");
     ui.setInternalPrintGateStatus(
-      state.skinParams.internalStructure === "targetedGrid"
-        ? "NG · 赤点→Dry Webを最終精度診断で生成してから判定してください"
-        : "NG · Internal StructureをONにしてから判定してください",
+      state.skinParams.internalStructure === "none"
+        ? "NG · Internal StructureをONにしてから判定してください"
+        : `NG · ${readinessBlockReason}`,
       false,
     );
     return;
@@ -5416,8 +8189,9 @@ function startInternalPrintGate(options: MeshUiOptions): void {
 function inspectMesh(options: MeshUiOptions): void {
   cancelMeshExport(false);
   const internalGraph = getInternalStructureGraph();
-  if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph) {
-    ui.setMeshStatus("赤点→Dry Webは最終精度診断の完了後に検査できます", false);
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
+  if (readinessBlockReason) {
+    ui.setMeshStatus(`検査停止: ${readinessBlockReason}`, false);
     return;
   }
   const requestId = ++meshExportRequestId;
@@ -5491,8 +8265,9 @@ function cancelMeshExport(notify = false): void {
 function exportMesh(options: MeshUiOptions): void {
   cancelMeshExport(false);
   const internalGraph = getInternalStructureGraph();
-  if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph) {
-    ui.setMeshStatus("赤点→Dry Webは最終精度診断の完了後に書き出せます", false);
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
+  if (readinessBlockReason) {
+    ui.setMeshStatus(`書き出し停止: ${readinessBlockReason}`, false);
     return;
   }
   if (internalGraph?.edges.length) {
@@ -5671,6 +8446,9 @@ function measureOpeningMap(options: OpeningMapUiOptions): void {
 }
 
 async function openDenseFlowerSample(): Promise<void> {
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  releaseDryWebSupportSeparationPresentationForCompetingView();
   cancelOpeningMap(false);
   const loadId = ++denseFlowerSampleLoadId;
   denseFlowerSampleActive = false;
@@ -5686,6 +8464,7 @@ async function openDenseFlowerSample(): Promise<void> {
       if (loadId === denseFlowerSampleLoadId) ui.setOpeningMapStatus(`高密度花モデル v6 を読み込み中… ${loaded}/${total}`);
     });
     if (loadId !== denseFlowerSampleLoadId) return;
+    releaseDryWebSupportSeparationPresentationForCompetingView();
     denseFlowerSampleActive = true;
     viewMode = "mesh";
     skinRenderer.setDenseFlowerSample(sample);
@@ -5770,15 +8549,26 @@ function invalidateOpeningMap(): void {
 }
 
 function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。もう一度診断してください"): void {
+  clearStage7CanonicalCandidateAdoption();
+  if (stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
+    clearStage7ProvisionalRecheck(`仮Graph exact比較を停止しました: ${message}`, "stale");
+  }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  dryWebAuthorIntegrationPresentation = false;
   const hadDiagnosis = activeSurfaceAngleWorker !== null || activeSurfaceSupportClassificationWorker !== null || surfaceAngleCache !== null;
   surfaceHeavyComputation?.finish();
   surfaceHeavyComputation = null;
   surfaceAngleGeneration++;
   if (activeSurfaceAngleWorker) {
+    activeSurfaceAngleWorker.onmessage = null;
+    activeSurfaceAngleWorker.onerror = null;
     activeSurfaceAngleWorker.terminate();
     activeSurfaceAngleWorker = null;
   }
   if (activeSurfaceSupportClassificationWorker) {
+    activeSurfaceSupportClassificationWorker.onmessage = null;
+    activeSurfaceSupportClassificationWorker.onerror = null;
     activeSurfaceSupportClassificationWorker.terminate();
     activeSurfaceSupportClassificationWorker = null;
   }
@@ -5796,10 +8586,13 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   setSelectedOverhangSupportSite(null);
   refreshSupportPaintUi("支持点の診断後に使えます");
   skinRenderer.clearSurfaceAngleOverlay();
+  installedSurfaceAngleDiagnosisView = null;
   skinRenderer.clearOverhangSupportSiteOverlay();
   terminateDryWebPreviewWorker(true);
   skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
-  phaseASupportStatus.textContent = "Surface診断後に支持林を表示します";
+  phaseASupportPreviewRequested = false;
+  phaseARefreshButton.disabled = true;
+  phaseASupportStatus.textContent = "工程7でInternal Structureを生成・確認した後に使います";
   delete phaseASupportStatus.dataset.ok;
   delete phaseASupportStatus.dataset.stale;
   ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点は未診断");
@@ -5858,7 +8651,8 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     ui.setBambu3mfExportStatus("Support Paintの確定を待ってください", false);
     return;
   }
-  refreshPaintedDryWebTargets();
+  const dryWebPreviewWasCurrent = dryWebPreviewIsCurrent();
+  if (!dryWebPreviewWasCurrent) refreshPaintedDryWebTargets();
   if (!activePrintProfile || !activePrintProfileSha256) {
     ui.setBambu3mfExportStatus("先にShape RecipeとPrint Profileを読み込んでください", false);
     return;
@@ -5911,7 +8705,20 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     ui.setBambu3mfExportStatus("Support方式がPrint Profileと一致しません", false);
     return;
   }
+  const separationBlockReason = dryWebSupportSeparationOutputBlockReason(
+    state.skinParams.internalStructure,
+    dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+  );
+  if (separationBlockReason) {
+    ui.setBambu3mfExportStatus(`3MF停止: ${separationBlockReason}`, false);
+    return;
+  }
   const internalGraph = getInternalStructureGraph();
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
+  if (readinessBlockReason) {
+    ui.setBambu3mfExportStatus(`3MF停止: ${readinessBlockReason}`, false);
+    return;
+  }
   let bodyStl: ArrayBuffer | undefined;
   let bodyPositions: Float32Array | undefined;
   if (internalGraph?.edges.length) {
@@ -5925,7 +8732,26 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     // Worker reuses finalSurfacePositions as BODY when no gate STL is needed.
     bodyPositions = undefined;
   }
-  const dangerousPositions = new Float32Array(diagnosedPositionsForPolicy(assignments).map((value) => value / scaleMmPerUnit));
+  const diagnosedPositionsMm = diagnosedPositionsForPolicy(assignments);
+  const legacyDangerousPositions = new Float32Array(diagnosedPositionsMm.map((value) => value / scaleMmPerUnit));
+  const outputSelection = buildBambu3mfOutputSelection({
+    internalStructure: state.skinParams.internalStructure,
+    legacyDangerousPositions,
+    separation: dryWebSupportSeparation,
+    separationIsCurrent: dryWebSupportSeparationIsCurrent(),
+    sourceFaceCount: diagnosedPositionsMm.length / 9,
+    generation: surfaceAngleGeneration,
+    originalEntries: assignments.entries,
+    originalClassificationCounts: assignments.counts,
+    originalSupportRayFacts: assignments.rayFacts,
+    originalSupportPaintFacts: assignments.paintFacts,
+    explicitTargetCount: printPlan.explicitScaffoldTargets.length,
+  });
+  if (!outputSelection.ok) {
+    ui.setBambu3mfExportStatus(`3MF停止: ${outputSelection.reason}`, false);
+    return;
+  }
+  const dangerousPositions = outputSelection.dangerousPositions;
   const finalSurfacePositions = diagnosis.basePositions.slice();
   const requestId = ++bambu3mfRequestId;
   const generation = ++bambu3mfGeneration;
@@ -5938,6 +8764,8 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     printProfileSha256: printPlan.profileSha256,
     resolvedPlan: printPlan,
     classificationCounts: assignments.counts,
+    supportSelection: outputSelection.evidence,
+    supportSelectionIdentity: outputSelection.evidence.selectionIdentity,
     generatorVersion: manifest.version,
   });
   if (bambu3mfExportCache?.fingerprint === exportFingerprint) {
@@ -5950,10 +8778,11 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
     type: "export",
     requestId,
     generation,
-    bodyStl,
-    bodyPositions,
+    ...(bodyStl ? { bodyStl } : {}),
+    ...(bodyPositions ? { bodyPositions } : {}),
     finalSurfacePositions,
     dangerousPositions,
+    supportSelection: outputSelection.evidence,
     scaleMmPerUnit,
     printPlan,
     fusedMeshInput: {
@@ -6034,16 +8863,35 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
   worker.postMessage(request, transfer);
 }
 
-function showSurfaceAngleDiagnosisView(nextView: SurfaceAngleDiagnosisView): void {
+function showSurfaceAngleDiagnosisView(
+  nextView: SurfaceAngleDiagnosisView,
+  restoreStage7Diagnosis = false,
+): void {
   const result = surfaceAngleCache;
   if (!result) return;
   const hasInternal = result.internalEdgeCount > 0;
   if (nextView === "after" && !hasInternal) return;
+  if (state.skinParams.internalStructure === "targetedGrid"
+    && dryWebAuthorIntegrationPresentation
+    && !restoreStage7Diagnosis) {
+    // Stage 4 is an artwork-integration checkpoint, not a removable-support
+    // or red-face presentation. Keep the selected before/after label honest,
+    // but do not re-install either overlay after the author checkpoint hides
+    // them.
+    hideRemovableSupportOverlayForDryWeb();
+    skinRenderer.clearSurfaceAngleOverlay();
+    installedSurfaceAngleDiagnosisView = null;
+    ui.setSurfaceAngleDiagnosisView(nextView, true, hasInternal);
+    ui.setMeshPreviewStatus("Dry Web統合表示 · Surface angle / outside / scaffold表示は非表示（未計算 / gray）");
+    render();
+    return;
+  }
   if (nextView === "before") {
     skinRenderer.setSurfaceAngleOverlay(result.beforeDangerPositions, new Float32Array(0), false);
   } else {
     skinRenderer.setSurfaceAngleOverlay(result.afterDangerPositions, result.mitigatedPositions, true);
   }
+  installedSurfaceAngleDiagnosisView = nextView;
   ui.setSurfaceAngleDiagnosisView(nextView, true, hasInternal);
   ui.setMeshPreviewStatus(nextView === "before"
     ? `角度診断・付加前 · ${result.metrics.dangerousFaceCountBefore.toLocaleString()}面を赤表示`
@@ -6125,16 +8973,28 @@ function persistFinishedSurfaceAngleDiagnosis(
 function finishSurfaceAngleDiagnosis(
   message: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
   heavy: HeavyComputationHandle,
+  diagnosisView: SurfaceAngleDiagnosisView = "before",
+  preserveViewState?: DryWebGraphViewViewportState,
 ): void {
-  heavy.update("Surface診断完了", 100);
+  heavy.updateActual("Surface診断完了", 100);
   heavy.finish();
   if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
   persistFinishedSurfaceAngleDiagnosis(message);
   surfaceAngleCache = message;
   skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
-  viewMode = "mesh";
-  skinRenderer.setViewMode(viewMode);
-  ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  const completedViewState = preserveViewState
+    ? preserveDryWebGraphViewForCompletion(preserveViewState)
+    : null;
+  if (completedViewState) {
+    if (completedViewState.internalObservationMode !== internalObservationMode) {
+      setInternalObservationMode(completedViewState.internalObservationMode);
+    }
+    if (completedViewState.viewMode !== viewMode) setViewMode(completedViewState.viewMode);
+  } else {
+    viewMode = "mesh";
+    skinRenderer.setViewMode(viewMode);
+    ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  }
   const areaPct = (area: number) => message.metrics.surfaceArea > 0
     ? `${(area / message.metrics.surfaceArea * 100).toFixed(1)}%`
     : "0.0%";
@@ -6185,16 +9045,28 @@ function finishSurfaceAngleDiagnosis(
       true,
     );
   }
-  refreshOverhangSupportSiteOverlay();
+  if (state.skinParams.internalStructure === "targetedGrid") {
+    hideRemovableSupportOverlayForDryWeb();
+  } else {
+    refreshOverhangSupportSiteOverlay();
+  }
   setSelectedOverhangSupportSite(null);
   refreshSupportPaintUi("自動分類を下書きとしてSupport Paintを使えます");
-  showSurfaceAngleDiagnosisView("before");
+  showSurfaceAngleDiagnosisView(diagnosisView);
   applyLocalReviewCamera(message.basePositions);
-  ui.setSurfaceAngleDiagnosisView("before", true, hasInternal);
+  ui.setSurfaceAngleDiagnosisView(diagnosisView, true, hasInternal);
   refreshPrintProfileSummary();
   refreshMotifLowestPointMarkers();
-  refreshPhaseASupportPreview();
-  requestDryWebPreviewUpdate("自動Dry Web判定を適用");
+  phaseASupportPreviewRequested = false;
+  skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+  phaseASupportStatus.textContent = "Surface診断完了 · 次は工程6のPaint表示と工程7のInternal Structureを確認します";
+  phaseASupportStatus.dataset.stale = "true";
+  clearDryWebPreviewStartTimer();
+  refreshDryWebActions(
+    state.skinParams.internalStructure === "targetedGrid"
+      ? "Surface診断が完了しました。自動inside ledgerを確認し、必要ならPaint後にDry Webを生成してください"
+      : undefined,
+  );
   refreshSurfaceStartupStatus("ready");
 }
 
@@ -6202,10 +9074,23 @@ function recheckTargetedGridFromExactMesh(
   base: Extract<SurfaceAngleWorkerMessage, { type: "result" }>,
   graph: InternalStructureGraph,
   heavy: HeavyComputationHandle,
+  expectedCanonicalCandidate: Stage7CanonicalCandidateAdoptionRecord | null = null,
 ): void {
   const generation = surfaceAngleGeneration;
+  const expectedPreview = phaseADryWebPreview;
+  const expectedArtworkGraphSnapshot = artworkGraphSnapshot;
+  const expectedArtworkGraphSourceKey = artworkGraphSourceKey;
+  const expectedTargetedSupportSource = targetedSupportSource;
+  const expectedPaintRevision = supportPaintSession.revision;
+  const expectedSurfaceFingerprint = currentTargetSurfaceFingerprint();
+  const expectedResolution = base.resolution;
+  const expectedMode = state.mode;
+  const expectedThresholdDeg = base.metrics.thresholdDeg;
+  const expectedRequiredContacts = state.skinParams.dryWebRequiredContacts;
+  const expectedSupportSettingsKey = JSON.stringify(phaseASupportSettings);
+  const exactRecheckViewState = preserveDryWebGraphViewForCompletion({ viewMode, internalObservationMode });
   ui.setSurfaceAngleDiagnosisRunning(true);
-  ui.setSurfaceAngleDiagnosisStatus("全赤点からDry Webを生成しました。同じ最終メッシュ上で付加後を別Workerで再診断しています…");
+  ui.setSurfaceAngleDiagnosisStatus("Dry Web付加後Surfaceを再診断中 · 接触索引を準備しています…");
   const reinforced = reinforceQuadConnectionsForMesh(state.patches, state.skinParams.quadMeshJoinWidth);
   const bounds = computeSkinSamplingBounds(state.host, state.hostParams.k, state.skinParams.thickness, reinforced.patches);
   const meshStep = bounds.longest > 0 ? bounds.longest / base.resolution : 1 / base.resolution;
@@ -6214,9 +9099,52 @@ function recheckTargetedGridFromExactMesh(
     automaticFaceDiagnosisWorkerLaunchCount++;
     return new Worker(new URL("./surfaceAngle.worker.ts", import.meta.url), { type: "module" });
   })!;
+  const exactRecheckGeneration = ++dryWebExactRecheckGeneration;
+  activeDryWebExactRecheckWorker = worker;
   activeSurfaceAngleWorker = worker;
-  heavy.update("Dry Web付加後のSurface再診断Workerを実行中…", 50);
-  heavy.smoothTo(SURFACE_PROGRESS_CLASSIFICATION - 1);
+  const savedMotifLowestPoints = Array.isArray(base.motifLowestPoints)
+    ? base.motifLowestPoints.map((marker) => {
+      const clone = { ...marker, position: { ...marker.position } };
+      if (marker.normal !== undefined) clone.normal = { ...marker.normal };
+      return clone;
+    })
+    : undefined;
+  const reusesMotifLowestPoints = savedMotifLowestPoints !== undefined;
+  // These ranges are phase allocations for a readable monotonic 0–100 shelf,
+  // not a claim that a phase's wall time is proportional to its weight.  The
+  // numerator/denominator shown below is the phase's actual completed work.
+  const phaseRanges: Record<string, [number, number]> = reusesMotifLowestPoints
+    ? {
+      "reachability-index": [0, 18],
+      "dangerous-face-contact": [18, 68],
+      "motif-reachability": [68, 99],
+      complete: [100, 100],
+    }
+    : {
+      "reachability-index": [0, 15],
+      "dangerous-face-contact": [15, 58],
+      "motif-attribution": [58, 79],
+      "motif-reachability": [79, 99],
+      complete: [100, 100],
+  };
+  let currentPhase: string | null = null;
+  let phaseStartedElapsedMs = 0;
+  heavy.updateActual("接触索引を準備しています…", 0);
+  const failCurrentExactRecheck = (status: string): void => {
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.terminate();
+    if (activeDryWebExactRecheckWorker === worker) activeDryWebExactRecheckWorker = null;
+    if (activeSurfaceAngleWorker === worker) activeSurfaceAngleWorker = null;
+    dryWebExactRecheckGeneration++;
+    ui.setSurfaceAngleDiagnosisRunning(false);
+    failClosedDryWebExactRecheck(status);
+    heavy.finish();
+    if (dryWebPreviewHeavyComputation?.id === heavy.id) dryWebPreviewHeavyComputation = null;
+    if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
+    ui.setSurfaceAngleDiagnosisStatus(status, false);
+    refreshDryWebActions("Dry Web付加後Surface再診断を破棄しました");
+  };
   const request: SurfaceAngleDiagnosisRequest = {
     type: "recheck", generation,
     basePositions: base.basePositions.slice(), baseNormals: base.baseNormals.slice(), baseFaceCount: base.baseFaceCount,
@@ -6224,36 +9152,173 @@ function recheckTargetedGridFromExactMesh(
     mode: state.mode,
     patches: state.patches.map((patch) => ({ ...patch, points: patch.points.map((point) => ({ ...point })) })),
     roundK: state.skinParams.roundK, previousElapsedMs: base.elapsedMs,
+    ...(savedMotifLowestPoints !== undefined ? { motifLowestPoints: savedMotifLowestPoints } : {}),
   };
   worker.onmessage = (event: MessageEvent<SurfaceAngleWorkerMessage>) => {
     const message = event.data;
-    if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration, message.generation)) {
+    const workerGate = decideStage7CanonicalCandidateExactRecheck({
+      workerIdentityCurrent: worker === activeDryWebExactRecheckWorker
+        && worker === activeSurfaceAngleWorker,
+      runGenerationCurrent: exactRecheckGeneration === dryWebExactRecheckGeneration,
+      messageGenerationCurrent: message.generation === generation
+        && generation === surfaceAngleGeneration,
+      candidateBindingCurrent: true,
+      graphBindingCurrent: true,
+      stage3BoundaryCurrent: true,
+      settingsCurrent: true,
+    });
+    if (workerGate === "ignore-stale-worker") {
       worker.terminate();
       return;
     }
-    if (message.type === "progress") return;
+    if (workerGate === "fail-closed") {
+      failCurrentExactRecheck("Dry Web付加後Surface再診断のWorker generationがcurrent runと一致しないため、候補と診断を破棄しました");
+      return;
+    }
+    if (message.type === "progress") {
+      const stageLabels: Record<string, [string, string]> = {
+        "reachability-index": ["接触索引", "edge"],
+        "dangerous-face-contact": ["危険面接触", "面"],
+        "motif-attribution": ["最下点帰属（legacy全走査）", "頂点"],
+        "motif-reachability": [reusesMotifLowestPoints ? "最下点再利用/到達確認" : "最下点到達確認", "patch"],
+        complete: ["完了", ""],
+      };
+      const stage = message.stage ? stageLabels[message.stage] : undefined;
+      const completed = message.completed ?? message.completedSlices;
+      const total = message.total ?? message.totalSlices;
+      const phase = message.stage ?? "worker";
+      if (phase !== currentPhase) {
+        currentPhase = phase;
+        phaseStartedElapsedMs = message.elapsedMs;
+      }
+      const fraction = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
+      const phaseElapsedMs = Math.max(0, message.elapsedMs - phaseStartedElapsedMs);
+      const [phaseStart, phaseEnd] = phaseRanges[phase] ?? [0, 0];
+      const progress = phase === "complete"
+        ? 100
+        : phaseStart + (phaseEnd - phaseStart) * fraction;
+      const detail = stage
+        ? `${stage[0]}${stage[1] ? ` ${completed.toLocaleString()}/${total.toLocaleString()} ${stage[1]}` : ""} · 工程内進捗${(fraction * 100).toFixed(0)}% · 工程内経過 ${(phaseElapsedMs / 1000).toFixed(1)}秒 · 合計 ${(message.elapsedMs / 1000).toFixed(1)}秒`
+        : `Dry Web付加後Surface再診断Worker · ${completed}/${total} slice · ${message.faceCount.toLocaleString()}面 · 工程内経過 ${(phaseElapsedMs / 1000).toFixed(1)}秒 · 合計 ${(message.elapsedMs / 1000).toFixed(1)}秒`;
+      heavy.updateActual(detail, progress);
+      ui.setSurfaceAngleDiagnosisStatus(detail + " · 画面は操作できます");
+      phaseASupportStatus.textContent = detail;
+      phaseASupportStatus.dataset.stale = "true";
+      delete phaseASupportStatus.dataset.ok;
+      refreshDryWebActions(detail);
+      return;
+    }
+    const candidateBindingCurrent = expectedCanonicalCandidate === null
+      ? stage7CanonicalCandidateAdoption === null
+      : stage7CanonicalCandidateAdoption === expectedCanonicalCandidate
+        && expectedCanonicalCandidate.graph === graph
+        && expectedCanonicalCandidate.surfaceAngleCache === base
+        && expectedCanonicalCandidate.artworkGraphSnapshot === expectedArtworkGraphSnapshot
+        && expectedCanonicalCandidate.artworkGraphSourceKey === expectedArtworkGraphSourceKey
+        && expectedCanonicalCandidate.targetedSupportSource === expectedTargetedSupportSource
+        && expectedCanonicalCandidate.paintRevision === expectedPaintRevision
+        && expectedCanonicalCandidate.surfaceFingerprint === expectedSurfaceFingerprint
+        && expectedCanonicalCandidate.resolution === expectedResolution
+        && expectedCanonicalCandidate.mode === expectedMode
+        && expectedCanonicalCandidate.supportSettingsKey === expectedSupportSettingsKey;
+    const graphBindingCurrent = phaseADryWebPreview === expectedPreview
+      && phaseADryWebPreview?.graph === graph
+      && internalStructureGraph === graph
+      && !dryWebPreviewPending
+      && surfaceAngleCache === base
+      && phaseADryWebPreview.surfaceFingerprint === expectedSurfaceFingerprint
+      && phaseADryWebPreview.resolution === expectedResolution
+      && phaseADryWebPreview.paintRevision === expectedPaintRevision
+      && phaseADryWebPreview.artworkGraphSnapshot === expectedArtworkGraphSnapshot
+      && phaseADryWebPreview.artworkGraphSourceKey === expectedArtworkGraphSourceKey;
+    const stage3BoundaryCurrent = currentDryWebArtworkGraphBoundary().status === "current"
+      && artworkGraphSnapshot === expectedArtworkGraphSnapshot
+      && artworkGraphSourceKey === expectedArtworkGraphSourceKey;
+    const settingsCurrent = state.skinParams.internalStructure === "targetedGrid"
+      && state.mode === expectedMode
+      && JSON.stringify(phaseASupportSettings) === expectedSupportSettingsKey
+      && currentTargetSurfaceFingerprint() === expectedSurfaceFingerprint
+      && supportPaintSession.revision === expectedPaintRevision
+      && Math.max(16, Math.round(ui.getMeshOptions().resolution)) === expectedResolution
+      && ui.getSurfaceAngleThreshold() === expectedThresholdDeg
+      && state.skinParams.dryWebRequiredContacts === expectedRequiredContacts;
+    const resultDecision = decideStage7CanonicalCandidateExactRecheck({
+      workerIdentityCurrent: true,
+      runGenerationCurrent: true,
+      messageGenerationCurrent: true,
+      candidateBindingCurrent,
+      graphBindingCurrent,
+      stage3BoundaryCurrent,
+      settingsCurrent,
+    });
+    if (resultDecision !== "commit") {
+      failCurrentExactRecheck("Dry Web付加後Surface再診断の開始時candidate・Graph・Stage 3/4境界が変わったため、exact結果を採用せず破棄しました");
+      return;
+    }
     worker.terminate();
+    activeDryWebExactRecheckWorker = null;
+    dryWebExactRecheckGeneration++;
     activeSurfaceAngleWorker = null;
     ui.setSurfaceAngleDiagnosisRunning(false);
     if (message.type === "error") {
-      ui.setSurfaceAngleDiagnosisStatus(`Dry Webの付加後診断に失敗しました: ${message.message}`, false);
+      const status = `Dry Webの付加後診断に失敗しました: ${message.message}`;
+      failClosedDryWebExactRecheck(status);
+      ui.setSurfaceAngleDiagnosisStatus(status, false);
       heavy.finish();
+      if (dryWebPreviewHeavyComputation?.id === heavy.id) dryWebPreviewHeavyComputation = null;
       if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
+      refreshDryWebActions("Dry Webの付加後Surface再診断に失敗しました");
       return;
     }
-    finishSurfaceAngleDiagnosis(message, heavy);
+    if (dryWebPreviewHeavyComputation?.id === heavy.id) dryWebPreviewHeavyComputation = null;
+    // The exact recheck result is the first completed Dry Web presentation.
+    // Keep the measured post-attachment diagnosis without adopting a
+    // diagnosis-specific viewport mode.
+    finishSurfaceAngleDiagnosis(message, heavy, "after", exactRecheckViewState);
+    adoptDryWebSupportSeparation(message);
+    if (expectedCanonicalCandidate
+      && stage7CanonicalCandidateAdoption?.graph === expectedCanonicalCandidate.graph
+      && phaseADryWebPreview?.graph === expectedCanonicalCandidate.graph) {
+      stage7CanonicalCandidateAdoption = {
+        ...expectedCanonicalCandidate,
+        surfaceAngleCache: message,
+        exactValidated: true,
+      };
+      stage7CanonicalCandidateAdoptionUndo = null;
+    }
+    refreshDryWebActions("Dry Webの付加後Surface再診断が完了しました");
   };
   worker.onerror = (event) => {
-    if (!isCurrentWorkerRun(worker, activeSurfaceAngleWorker, null, undefined, generation, surfaceAngleGeneration)) {
+    const workerGate = decideStage7CanonicalCandidateExactRecheck({
+      workerIdentityCurrent: worker === activeDryWebExactRecheckWorker
+        && worker === activeSurfaceAngleWorker,
+      runGenerationCurrent: exactRecheckGeneration === dryWebExactRecheckGeneration,
+      messageGenerationCurrent: generation === surfaceAngleGeneration,
+      candidateBindingCurrent: true,
+      graphBindingCurrent: true,
+      stage3BoundaryCurrent: true,
+      settingsCurrent: true,
+    });
+    if (workerGate === "ignore-stale-worker") {
       worker.terminate();
       return;
     }
+    if (workerGate === "fail-closed") {
+      failCurrentExactRecheck("Dry Web付加後Surface再診断のWorker generationがcurrent runと一致しないため、候補と診断を破棄しました");
+      return;
+    }
+    activeDryWebExactRecheckWorker = null;
+    dryWebExactRecheckGeneration++;
     activeSurfaceAngleWorker = null;
     worker.terminate();
     ui.setSurfaceAngleDiagnosisRunning(false);
+    const status = `Dry Webの付加後診断Workerに失敗しました: ${event.message}`;
+    failClosedDryWebExactRecheck(status);
     heavy.finish();
+    if (dryWebPreviewHeavyComputation?.id === heavy.id) dryWebPreviewHeavyComputation = null;
     if (surfaceHeavyComputation?.id === heavy.id) surfaceHeavyComputation = null;
-    ui.setSurfaceAngleDiagnosisStatus(`Dry Webの付加後診断Workerに失敗しました: ${event.message}`, false);
+    ui.setSurfaceAngleDiagnosisStatus(status, false);
+    refreshDryWebActions("Dry Webの付加後Surface再診断に失敗しました");
   };
   worker.postMessage(request, [request.basePositions.buffer, request.baseNormals.buffer]);
 }
@@ -6363,16 +9428,33 @@ function cancelSupportPaintReprojection(): void {
 }
 
 async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
+  if (stage7ProvisionalRecheckIsActive()) {
+    ui.setSurfaceAngleDiagnosisStatus("仮Graph exact比較を実行中のため、canonical Surface診断は開始しません", false);
+    refreshDryWebSupportSeparationUi();
+    return;
+  }
   if (state.host.length === 0) {
     ui.setSurfaceAngleDiagnosisStatus("まずベース形状を作ってください", false);
     return;
   }
+  releaseDryWebInsideTargetOverlayForCompetingView();
+  releaseDryWebInsufficientEdgeOverlayForCompetingView();
+  releaseDryWebSupportSeparationPresentationForCompetingView();
+  dryWebAuthorIntegrationPresentation = false;
+  // A fresh Surface diagnosis changes the graph's source context. Do not let
+  // a prior Dry Web graph's contact facts survive while this run is pending.
+  terminateDryWebPreviewWorker(true);
   if (activeSurfaceAngleWorker) activeSurfaceAngleWorker.terminate();
   activeSurfaceAngleWorker = null;
   if (activeSurfaceSupportClassificationWorker) activeSurfaceSupportClassificationWorker.terminate();
   activeSurfaceSupportClassificationWorker = null;
   cancelPreviewMeshBuild();
   clearOpeningMapDisplay();
+  phaseASupportPreviewRequested = false;
+  phaseARefreshButton.disabled = true;
+  skinRenderer.setPhaseASupportPreview(null, [], 1, 0);
+  phaseASupportStatus.textContent = "Surface診断中 · 印刷用サポートpreviewは生成しません";
+  delete phaseASupportStatus.dataset.ok;
   surfaceAngleGeneration++;
   const generation = surfaceAngleGeneration;
   surfaceHeavyComputation?.finish();
@@ -6405,6 +9487,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   terminateDryWebPreviewWorker(true);
   targetedSupportSource = null;
   skinRenderer.clearSurfaceAngleOverlay();
+  installedSurfaceAngleDiagnosisView = null;
   skinRenderer.clearOverhangSupportSiteOverlay();
   ui.setOverhangSupportSiteOverlay(false, showOverhangSupportSites, showMixedSupportFaces, showSupportFootprint, supportSiteDepthMode, "支持点を診断中…");
   ui.setSurfaceAngleDiagnosisView("before", false, false);
@@ -6458,7 +9541,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
       ui.setSurfaceAngleDiagnosisRunning(true);
       ui.setSurfaceAngleDiagnosisStatus("Surface準備完了 · 自動支持点分類をWorkerで計算中 · 画面は操作できます");
       heavy.updateActual(
-        "自動支持点分類Worker · ledgerを計算中… · 80%",
+        "自動支持点分類Worker · 分類を準備中…",
         SURFACE_PROGRESS_CLASSIFICATION,
       );
       refreshSurfaceStartupStatus("classification Worker");
@@ -6466,6 +9549,17 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
         const classified = event.data;
         if (!isCurrentWorkerRun(worker, activeSurfaceSupportClassificationWorker, null, undefined, generation, surfaceAngleGeneration, classified.generation)) {
           worker.terminate();
+          return;
+        }
+        if (classified.type === "progress") {
+          const fraction = classified.totalFaceCount > 0
+            ? Math.max(0, Math.min(1, classified.classifiedFaceCount / classified.totalFaceCount))
+            : 0;
+          const overallProgress = SURFACE_PROGRESS_CLASSIFICATION + fraction * 19;
+          const detail = `自動支持点分類Worker · ${classified.classifiedFaceCount}/${classified.totalFaceCount}面 · Worker ${classified.workerCount} · ${(classified.elapsedMs / 1000).toFixed(1)}秒`;
+          heavy.updateActual(detail, overallProgress);
+          ui.setSurfaceAngleDiagnosisStatus(detail + " · 画面は操作できます");
+          refreshSurfaceStartupStatus("classification Worker");
           return;
         }
         worker.terminate();
@@ -6497,6 +9591,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
         type: "classify", generation, diagnosis: message, targetLongestMm: options.targetLongestMm,
         host: state.host.map((ball) => ({ ...ball })), hostK: state.hostParams.k,
         explicitTargets: activePrintProfile?.scaffold.explicitTargets.map((target) => ({ ...target })) ?? [],
+        workerCount: deriveSurfaceSupportClassificationWorkerCount(navigator.hardwareConcurrency),
       };
       worker.postMessage(classifyRequest, [
         message.basePositions.buffer, message.baseNormals.buffer, message.beforeDangerPositions.buffer,
@@ -6506,46 +9601,24 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
     }
 
     const restoreStarted = performance.now();
-    ui.setSurfaceAngleDiagnosisRunning(false);
     try {
       validateOverhangAssignmentLedger(cachedAutomaticResult);
       automaticOverhangSupportResult = cachedAutomaticResult;
       overhangSupportResult = cachedAutomaticResult;
-      const sourceLongest = triangleSoupLongestExtent(message.basePositions);
-      const scaleMmPerUnit = ui.getMeshOptions().targetLongestMm / sourceLongest;
-      if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph?.edges.length && overhangSupportResult.insideTargets.length > 0) {
-        targetedSupportSource = {
-          surfaceFingerprint: currentTargetSurfaceFingerprint(),
-          resolution: message.resolution,
-          targets: sourceDryWebTargets(overhangSupportResult, scaleMmPerUnit),
-        };
-        internalStructureFingerprint = "";
-        if (message.internalEdgeCount > 0 && ["hit", "ledger-upgrade", "migrated"].includes(surfaceAnglePersistentCacheStatus)) {
-          internalStructureGraph = null;
-          skinRenderer.setInternalStructure(null);
-          ui.setInternalStructureStatus("保存済みDry Web診断を使用中 · 編集起動ではderived graphを同期再構築しません");
-          surfaceClassificationRestoreMs = performance.now() - restoreStarted;
-          finishSurfaceAngleDiagnosis(message, heavy);
-          if (supportPaintSession.history.present.strokes.length > 0) {
-            reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present, false);
-          }
-          return;
-        }
-        surfaceAngleCache = message;
-        skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
-        viewMode = "mesh";
-        skinRenderer.setViewMode(viewMode);
-        ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-        refreshInternalStructure();
-        const targetedGraph = getInternalStructureGraph();
-        if (targetedGraph?.edges.length) {
-          recheckTargetedGridFromExactMesh(message, targetedGraph, heavy);
-          return;
-        }
-      }
       surfaceClassificationRestoreMs = performance.now() - restoreStarted;
+      const targetedGrid = state.skinParams.internalStructure === "targetedGrid";
+      if (targetedGrid) {
+        // Classification only prepares the ledger. Dry Web is an explicit
+        // author action in Stage 4; never launch it from diagnosis completion.
+        internalStructureGraph = null;
+        internalStructureFingerprint = "";
+        targetedSupportSource = null;
+        skinRenderer.setInternalStructure(null);
+        refreshInternalAngleScreening(null);
+        ui.setInternalStructureStatus("Surface分類完了 · 自動inside ledgerを確認してDry Web生成を押してください");
+      }
       finishSurfaceAngleDiagnosis(message, heavy);
-      if (supportPaintSession.history.present.strokes.length > 0) reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present, false);
+      if (supportPaintSession.history.present.strokes.length > 0) reapplySupportPaint("保存済みSupport PaintをWorkerで復元しました", supportPaintSession.history.present);
     } catch (error) {
       const failure = error as Error;
       surfaceAngleCache = message;
@@ -6828,9 +9901,18 @@ async function checkCurrentPrint(options: MeshUiOptions): Promise<void> {
   // unchanged shape are intentionally not byte-identical. The immutable
   // history entries themselves are the stable source identity needed here.
   const sourceFingerprint = JSON.stringify(history);
+  const separationBlockReason = dryWebSupportSeparationOutputBlockReason(
+    state.skinParams.internalStructure,
+    dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null,
+  );
+  if (separationBlockReason) {
+    ui.setPrintCheckStatus(`確認停止: ${separationBlockReason}`, false);
+    return;
+  }
   const internalGraph = getInternalStructureGraph();
-  if (state.skinParams.internalStructure === "targetedGrid" && !internalGraph) {
-    ui.setPrintCheckStatus("赤点→Dry Webは最終精度診断の完了後に確認できます", false);
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
+  if (readinessBlockReason) {
+    ui.setPrintCheckStatus(`確認停止: ${readinessBlockReason}`, false);
     return;
   }
   const gateFingerprint = internalGraph?.edges.length ? internalPrintGateFingerprint(options, internalGraph) : null;
@@ -7304,6 +10386,8 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
     }
     refreshPartitionDraft();
   }
+  artworkGraphLastError = null;
+  syncArtworkGraphStatus();
   render();
 }
 

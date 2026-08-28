@@ -7,9 +7,18 @@ import {
 } from "./bambu3mf.ts";
 import { buildExternalPerimeterScaffold } from "./externalScaffold.ts";
 import { filterSupportEnforcerReachability } from "./supportReachability.ts";
-import { assignOverhangSupportTargets } from "./overhangSupportPolicy.ts";
+import {
+  assignOverhangSupportTargets,
+  type OverhangExplicitTargetMm,
+  type OverhangSupportPolicyResult,
+} from "./overhangSupportPolicy.ts";
 import { buildBaseFootprint } from "./baseFootprint.ts";
 import type { Bambu3mfExportRequest, Bambu3mfProgressStage, Bambu3mfWorkerMessage, SupportReachabilityStats } from "./bambu3mfWorkerProtocol.ts";
+import {
+  BAMBU3MF_EXACT_ORANGE_SELECTION_MODE,
+  shouldApplyBambu3mfDiagnosedSupportPaint,
+  validateBambu3mfSupportSelectionEvidence,
+} from "./bambu3mfOutputSelection.ts";
 import { buildSkinMesh, countConnectedComponents, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
 import { buildParallelMeshBuffers } from "./parallelMeshBuffers.ts";
 import type { PreviewMeshRequest } from "./previewMeshWorkerProtocol.ts";
@@ -31,6 +40,42 @@ function trianglesFromPositions(positions: Float32Array): Triangle[] {
   return triangles;
 }
 
+function explicitOutsideTargetsForWorker(
+  assignments: OverhangSupportPolicyResult,
+  exactOrangeMode: boolean,
+): OverhangExplicitTargetMm[] {
+  if (!exactOrangeMode) return assignments.outsideExplicitTargetsMm.map((target) => ({ ...target }));
+  // In the exact-orange route, diagnosed faces are already classified by the
+  // current Support Paint result. Only Profile-owned targets may enter the
+  // separate explicit-target channel; diagnosed sample sites must not be
+  // silently reintroduced as explicit targets.
+  return assignments.entries
+    .filter((entry) => entry.source === "explicit-profile" && !entry.duplicateOf && entry.classification === "outside" && entry.positionMm)
+    .map((entry) => ({
+      ...entry.positionMm!,
+      ...(entry.patchId === undefined ? {} : { patchId: entry.patchId }),
+      ...(entry.contactRadiusMm === undefined ? {} : { contactRadiusMm: entry.contactRadiusMm }),
+      ...(entry.contactOverlapMm === undefined ? {} : { contactOverlapMm: entry.contactOverlapMm }),
+    }));
+}
+
+function classifyExplicitProfileTargets(
+  finalSurfaceMm: Float32Array,
+  plan: Bambu3mfExportRequest["printPlan"],
+  baseFootprint: ReturnType<typeof buildBaseFootprint>,
+): OverhangSupportPolicyResult {
+  // Exact-orange diagnosed faces are already authoritative current output;
+  // only explicit Profile targets are classified here. This keeps the worker
+  // from reapplying Support Paint or reclassifying selected orange faces.
+  return assignOverhangSupportTargets({
+    diagnosedFaces: new Float32Array(0),
+    supportSurfacePositionsMm: finalSurfaceMm,
+    explicitTargets: plan.explicitScaffoldTargets,
+    baseFootprint,
+    supportPaint: plan.supportPaint ?? null,
+  });
+}
+
 self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<void> => {
   const request = event.data;
   if (request.type !== "export") return;
@@ -45,6 +90,13 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
   try {
     postProgress(1, "入力を準備");
     const plan = request.printPlan;
+    validateBambu3mfSupportSelectionEvidence({
+      evidence: request.supportSelection,
+      dangerousPositions: request.dangerousPositions,
+    });
+    if (request.supportSelection.explicitTargetCount !== plan.explicitScaffoldTargets.length) {
+      throw new Error("Fail closed: explicit Profile target count is inconsistent with Print Profile");
+    }
     const scaffoldOptions = plan.scaffoldOptions;
     const finalSurfaceMm = scaleTriangleSoup(request.finalSurfacePositions, request.scaleMmPerUnit);
     const bodyPositionsMm = request.bodyStl
@@ -60,23 +112,46 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       request.fusedMeshInput.hostK,
       request.scaleMmPerUnit,
     );
-    const assignments = assignOverhangSupportTargets({
-      diagnosedFaces: dangerMm,
-      supportSurfacePositionsMm: finalSurfaceMm,
-      explicitTargets: plan.explicitScaffoldTargets,
-      baseFootprint,
-      supportPaint: plan.supportPaint,
-    });
-    assertResolvedPrintPlanSupportCounts(plan, assignments.counts, assignments.rayFacts);
-    const reachability = filterSupportEnforcerReachability(assignments.outsideFacePositionsMm, finalSurfaceMm);
-    if (assignments.outsideFacePositionsMm.length > 0 && reachability.keptPositions.length === 0) throw new Error(`外側へ直下到達する支柱候補が0面です（候補${reachability.candidateFaceCount}面・内側${assignments.counts.inside}面・未解決${assignments.counts.unresolved}面）`);
-    postProgress(3, "支柱を選択", `mixed face=${assignments.counts.mixedFace} / inside site=${assignments.counts.insideSupportSite} / outside site=${assignments.counts.outsideSupportSite} / unresolved site=${assignments.counts.unresolvedSupportSite} / duplicate site=${assignments.counts.duplicateSupportSite}`);
+    const exactOrangeMode = request.supportSelection.mode === BAMBU3MF_EXACT_ORANGE_SELECTION_MODE;
+    const assignments = exactOrangeMode
+      ? classifyExplicitProfileTargets(finalSurfaceMm, plan, baseFootprint)
+      : assignOverhangSupportTargets({
+        diagnosedFaces: dangerMm,
+        supportSurfacePositionsMm: finalSurfaceMm,
+        explicitTargets: plan.explicitScaffoldTargets,
+        baseFootprint,
+        supportPaint: shouldApplyBambu3mfDiagnosedSupportPaint(request.supportSelection.mode)
+          ? plan.supportPaint
+          : null,
+      });
+    // The Profile gate remains bound to the original full ledger. The
+    // narrowed exact selection is validated separately and never substitutes
+    // for those historical/profile facts.
+    assertResolvedPrintPlanSupportCounts(
+      plan,
+      request.supportSelection.originalClassificationCounts,
+      request.supportSelection.originalSupportRayFacts,
+    );
+    // The exact diagnosed subset is bound to the original ledger in the
+    // additive request evidence, and is sent directly to reachability below;
+    // it is intentionally absent from this explicit-target assignment ledger.
+    const reachablePositionsForScaffold = exactOrangeMode ? dangerMm : assignments.outsideFacePositionsMm;
+    const reachability = filterSupportEnforcerReachability(reachablePositionsForScaffold, finalSurfaceMm);
+    if (reachablePositionsForScaffold.length > 0 && reachability.keptPositions.length === 0) throw new Error(`外側へ直下到達する支柱候補が0面です（候補${reachability.candidateFaceCount}面・内側${assignments.counts.inside}面・未解決${assignments.counts.unresolved}面）`);
+    postProgress(3, "支柱を選択", `mode=${request.supportSelection.mode} · mixed face=${assignments.counts.mixedFace} / selected outside site=${assignments.counts.outsideSupportSite} / unresolved site=${assignments.counts.unresolvedSupportSite} / duplicate site=${assignments.counts.duplicateSupportSite}`);
+    const explicitOutsideTargets = explicitOutsideTargetsForWorker(assignments, exactOrangeMode);
+    // Keep the legacy scaffold/plate-anchor gate tied to its historical full
+    // ledger count. Exact-orange instead gates on the actual selected soup plus
+    // the separately classified explicit Profile targets.
+    const hasScaffoldTargets = exactOrangeMode
+      ? reachablePositionsForScaffold.length > 0 || explicitOutsideTargets.length > 0
+      : assignments.counts.outside > 0;
     const scaffold = buildExternalPerimeterScaffold(
       reachability.keptPositions,
       finalSurfaceMm,
       bodyPositionsMm,
       scaffoldOptions,
-      assignments.outsideExplicitTargetsMm,
+      explicitOutsideTargets,
       plan.baseInteriorPolicy === "exclude-host-interior-v1" ? {
         host: request.fusedMeshInput.host,
         hostK: request.fusedMeshInput.hostK,
@@ -84,7 +159,7 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
         rejectEmbeddedExplicitTargets: true,
       } : undefined,
     );
-    if (assignments.counts.outside > 0 && (scaffold.stats.pillarCount === 0 || scaffold.positions.length === 0)) {
+    if (hasScaffoldTargets && (scaffold.stats.pillarCount === 0 || scaffold.positions.length === 0)) {
       throw new Error(`外周の直線支柱を作れませんでした（全到達候補${scaffold.stats.coverageFaceCount}面・BODY衝突除外${scaffold.stats.collisionRejectedFaceCount}面・短すぎる除外${scaffold.stats.shortRejectedFaceCount}面）`);
     }
     const mmToSource = 1 / request.scaleMmPerUnit;
@@ -144,7 +219,7 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
       ? "SDF補間" + plateNormalization.correctionMm.toFixed(3) + " mmをプレート面へ整列"
       : undefined);
     const plateAnchor = inspectFusedScaffoldPlateAnchoring(repaired, sourcePillars, 0.2);
-    if (assignments.counts.outside > 0 && !plateAnchor.ok) {
+    if (hasScaffoldTargets && !plateAnchor.ok) {
       throw new Error("Fail closed: fused scaffold does not start on layer 1 (clearance=" + plateAnchor.plateClearanceMm.toFixed(3) + " mm, spread=" + plateAnchor.plateSpreadMm.toFixed(3) + " mm)");
     }
     const fusedPositionsMm = new Float32Array(repaired.triangles.flatMap((triangle) => [
@@ -179,9 +254,23 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
         invalidSurfaceTriangleCount: reachability.invalidSurfaceTriangleCount,
       } satisfies SupportReachabilityStats,
       supportPolicy: assignments.policy,
-      classificationCounts: assignments.counts,
+      // Preserve the original full classification contract for Profile and
+      // history consumers; narrowed exact-selection counts are additive.
+      classificationCounts: { ...request.supportSelection.originalClassificationCounts },
       scaffold: scaffold.stats,
       plateAnchor,
+      supportSelection: {
+        mode: request.supportSelection.mode,
+        selectionIdentity: request.supportSelection.selectionIdentity,
+        sourceFaceCount: request.supportSelection.sourceFaceCount,
+        exactOrangeFaceCount: request.supportSelection.exactOrangeFaceCount,
+        exactOrangeDiagnosedSiteCount: request.supportSelection.exactOrangeDiagnosedSiteCount,
+        explicitTargetCount: request.supportSelection.explicitTargetCount,
+        explicitOutsideTargetCount: explicitOutsideTargets.length,
+        mitigatedOrExcludedTealFaceCount: request.supportSelection.mitigatedOrExcludedTealFaceCount,
+        unresolvedFaceCount: request.supportSelection.unresolvedFaceCount,
+        originalClassificationCounts: { ...request.supportSelection.originalClassificationCounts },
+      },
       validationFacts: buildPrintValidationFacts(plan, {
         bboxMm: bboxFromPositionsMm(fusedPositionsMm),
         faceCount: fusedPositionsMm.length / 9,
@@ -192,13 +281,13 @@ self.onmessage = async (event: MessageEvent<Bambu3mfExportRequest>): Promise<voi
         internalGraphNodes: input.internalGraph?.nodes.length ?? 0,
         internalGraphEdges: input.internalGraph?.edges.length ?? 0,
         scaffoldPillarCount: scaffold.stats.pillarCount,
-        plateAnchorOk: assignments.counts.outside === 0 || plateAnchor.ok,
+        plateAnchorOk: !hasScaffoldTargets || plateAnchor.ok,
         plateSpreadMm: plateAnchor.plateSpreadMm,
         fingerprint,
         supportPolicy: assignments.policy,
-        supportRayFacts: assignments.rayFacts!,
-        classificationCounts: assignments.counts,
-        supportPaintFacts: assignments.paintFacts!,
+        supportRayFacts: request.supportSelection.originalSupportRayFacts,
+        classificationCounts: request.supportSelection.originalClassificationCounts,
+        supportPaintFacts: request.supportSelection.originalSupportPaintFacts,
       }),
       elapsedMs: performance.now() - started,
     };

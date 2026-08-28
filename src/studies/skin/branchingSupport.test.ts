@@ -4,9 +4,11 @@ import {
   buildSupportForest,
   reinforceDryWebGraph,
   retainedVerticalMembers,
+  selectSupportForestPreviewLeaves,
   uniformLowestSurfaceLeaves,
   type SupportForestOptions,
 } from "./branchingSupport.ts";
+import type { OverhangAssignmentEntry } from "./overhangSupportPolicy.ts";
 
 const OPTIONS: SupportForestOptions = {
   mode: "branching",
@@ -78,6 +80,32 @@ test("retained base-volume verticals remain a separately typed system", () => {
   assert.equal(members.length, 1);
   assert.equal(members[0].kind, "retained-vertical");
   assert.deepEqual(members[0].start, { xMm: 2, yMm: 3, zMm: 4 });
+});
+
+test("support forest preview samples a large assignment ledger deterministically without changing eligibility", () => {
+  const entries: OverhangAssignmentEntry[] = Array.from({ length: 100_003 }, (_, index) => ({
+    id: `outside-${index}`,
+    source: "diagnosed-face",
+    sourceIndex: index,
+    siteIndex: 0,
+    classification: "outside",
+    positionMm: { xMm: index, yMm: index % 17, zMm: 20 + index % 11 },
+  }));
+  entries.push(
+    { id: "inside", source: "diagnosed-face", sourceIndex: 100_003, siteIndex: 0, classification: "inside", positionMm: { xMm: 0, yMm: 0, zMm: 1 } },
+    { id: "duplicate", source: "diagnosed-face", sourceIndex: 100_004, siteIndex: 0, classification: "outside", duplicateOf: "outside-0", positionMm: { xMm: 0, yMm: 0, zMm: 1 } },
+    { id: "missing-position", source: "diagnosed-face", sourceIndex: 100_005, siteIndex: 0, classification: "outside" },
+  );
+
+  const first = selectSupportForestPreviewLeaves(entries, 2_000);
+  const second = selectSupportForestPreviewLeaves(entries, 2_000);
+  assert.equal(first.eligibleOutsideLeafCount, 100_003);
+  assert.equal(first.limited, true);
+  assert.equal(first.leaves.length, 2_000);
+  assert.deepEqual(second, first);
+  assert.equal(first.leaves[0].id, "outside-0");
+  assert.equal(first.leaves.at(-1)?.id, "outside-100002");
+  assert.ok(first.leaves.every((leaf, index) => index === 0 || leaf.xMm > first.leaves[index - 1].xMm));
 });
 
 test("Dry Web enforces physical diameter, inserts intermediate nodes and thickens junctions", () => {

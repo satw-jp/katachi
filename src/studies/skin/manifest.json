@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.78.0",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-26",
+  "updatedAt": "2026-08-28",
   "params": [
     "count",
     "radiusBase",
@@ -71,7 +71,8 @@
     "branchAngleDeg",
     "baseVolumeVerticalSupports",
     "dryWebMinimumDiameterMm",
-    "dryWebMaximumUnreinforcedLengthMm"
+    "dryWebMaximumUnreinforcedLengthMm",
+    "dryWebRequiredContacts"
   ],
   "related": [
     "cloud-sculpt",
@@ -80,6 +81,114 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-27",
+      "note": "Stage 7赤面→Dry Web補強候補 checkpoint: current exact red-face locatorのcentroidから、current targetedGridの既存edge segment最近傍点への決定的なstraight-line previewを赤面順に最大128本表示。cyanはpreview pathのみで、Base containment、collision、diameter、strength、mesh union、printabilityは未検証、Graph・geometry・diagnosis・reinforcement・出力は不変。作者の言葉「この工程は高速化は後回しで次の工程に進めたい」と、承認前に各赤面の接続先を視覚確認する次の問いをREADMEへ記録。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "作者観察「Dry web生成にものすごく時間がかかっているので高速化が必要」を受け、Dry Web Workerのcurrent graph/facts公開で生成工程を完了し、既存の付加後exact Surface再診断をStage 7の「Dry Web付加後を再診断」へ分離。exact診断の計算量・判定・generator facts only / mesh / printability未判定の表記は不変で、生成完了前の旧Stage 7 factsは表示しない。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 3の現在のSurfaceをArtwork Graph化をStage 4 Dry Webのauthoritativeなin-memory入力境界へ接続。生成時はcurrent source keyとpatchSetRevisionが一致するArtwork Graph surfaceDraft nodesのPatch factsをnode順でcloneし、snapshot欠落・stale・置換時はDry Web Workerとpreviewをfail closedで停止する。既存の決定的なDry Web geometry、診断/Paint prerequisites、history・recipe・cache・output、support-derived provisional / generator-facts-only表記は不変。3D Artwork Graph visualizationは次のcheckpoint。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web接触数の意味を作者が3Dで比較できるよう、既存generator factsを0/1/2/3以上の4binへ集計し、Surface Patternのビーズを同じ色相で再着色した。必要接触数1–3は凡例のpass/不足とビューポートの明暗へ即時反映し、閾値変更でWorker・graph・出力形状は再実行しない。未計算・cancel・stale・error・Dry Web以外では色を解除する。これはgenerator facts onlyの観察表示であり、mesh / printabilityを主張しない。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web graph生成後に、chosen patch-to-patch linkのmaterial endpoint graph node IDからSurface Patternごとの重複なし接触数・component/main-component・不足patch IDを表示するgenerator-derived previewを追加。必要接触数は1–3（既定3）、target source=support-derived provisionalを維持し、未生成・cancel・staleはuncomputed/grayへ戻す。exact mesh integration・printability・出力は主張しない。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Safe Dry Web author-presentation checkpoint only: Stage 4 keeps the per-element contact setting 1–3 with default 3; Artwork Integration is uncomputed/gray before generation or when the graph is stale/cancelled, then shows a generator-derived contact preview after graph generation. The target source remains support-derived provisional, both Surface-angle and outside/scaffold overlays stay hidden during targeted Dry Web presentation, and diagnosis/cache/Paint ledgers are preserved. No exact integration, target replacement, geometry, or printability claim was added."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web付加後のSurface再診断Workerを、診断単位で一度だけ構築する決定論的edge接触索引へ変更。tube radius込みの安全なAABB候補絞り込みとlegacy fallbackで全edge走査を削減し、reachability-index／dangerous-face-contact／motif-attribution／motif-reachabilityを実測X/Yで通知。形状、接触許容差、分類、graph、保存形式とprintApproval=falseは不変。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web target接続の対象ごとのslice/sortとownPoints再計算を、事前計算したpatch/global point列と有限スコアの線形arg-minへ置換。stable tieと非有限値のlegacy fallbackを固定し、100k synthetic targetsでsort fallback 0・scan 100kを確認。graph順序・IDs・progress totals・保存形式は不変。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web workflow correction: selecting Dry Web no longer starts diagnosis; Stage 4 now exposes explicit Surface diagnosis and Generate buttons. Diagnosis and Support Paint changes invalidate stale Dry Web without auto-generating. Stage 4 accepts only new inside edits; outside/scaffold controls remain for the later removable-support path, while saved outside strokes stay compatible. Dry Web graph and exact recheck cancellation keep dedicated worker/generation guards."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G08 Dry Web 99% stop: post-classification targeted-grid construction moved off the main thread into the existing Dry Web Worker with routing/pair-search/tree/target progress and exact AABB lower-bound pruning. Worker and exact-mesh recheck now share generation/request cancellation guards; deterministic output matches the legacy reference path. Shape, ledger, history, recipe, output and printApproval=false are unchanged."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G07b Stage 3 vertical slice: the author can explicitly derive the current Surface Patch facts into an in-memory Surface Graph and Artwork Graph surfaceDraft, with ready/not-ready/stale status, patch/node/relation counts, patchSetRevision, and regeneration after Surface edits. Interior/Artwork Connections, Geometry/Mesh, print proof, persistence, history and output remain out of scope; printApproval=false."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G03d Artwork Graph boundary repair: Graph Core strict JSON checks now run on original values before clone/normalization, rejecting inherited, non-enumerable, symbol, undefined, function, bigint and cyclic facts at Artwork validation boundaries. Candidate baseRevision is independently bound to the active snapshot revision at generation, checked against the current active slot while pending, and preserved for stale/rejected/confirmed histories; coordinated candidate/payload mutations fail validation, serialization, parsing, fingerprinting and acceptance. Focused artwork/surface/core tests, test-source typecheck, production build and diff check passed. No UI/runtime, geometry, printability, Slice, 3MF or output behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G03d Artwork Graph integrity boundary: retained candidate revision/parentRevision/lineage values must be embedded in the containing graph lineage as an ordered subsequence; generated provenance carries canonical base/generated snapshots and fingerprints for every candidate lifecycle; post-accept/reject/stale mutation fails validation, serialization, parsing and fingerprinting; integratedConfirmed must canonical-equal its confirmed source candidate content and generated fingerprint provenance. No UI/runtime, geometry, printability, Slice, 3MF or output behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G03d adds a strict Artwork Graph container with explicit surfaceDraft, integrationCandidates, and nullable integratedConfirmed slots. Stage 3 keeps Interior and Artwork Connections empty; generated candidates carry active-snapshot and input fingerprints, and explicit accept/reject transitions retain revision, lineage, and generated-to-author provenance chronology. Canonical serialize/parse/fingerprint ordering is locked. This remains semantic graph evidence only: no UI/runtime, history, geometry, printability, Slice, 3MF, or output behavior changed."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "G07a implements the approved author-visible eight-stage right-pane shell in exact order: Base Shape, Surface Pattern, Artwork Graph化, Dry Web / Structural Integration, Integrated Artwork Graph調整, Geometry / Mesh化, 作品形状診断, and separate Removable Print Support. Ownership is explicit: Stage 2 keeps manual Surface patch creation/radius/delete/selection; Stage 3 is only the gray common Artwork Graph container; Stage 4 owns artwork Dry Web physical settings (minimum diameter and maximum unreinforced length); Stage 5 keeps only graph-screening/connection gauges as compatibility aids; Stage 8 keeps removable-support controls and preview only. Print Job Assembly/Profile/3MF evidence, Slice/Print Run, Windows/cache/debug, frozen experiments, old splits, Gap Map and developer utilities remain at the bottom under Auxiliary & frozen material. The author then judged verbatim 「右ペイン上部のここは不要」, so only the duplicate top `WORKFLOW ▾ / AUTHOR WORKFLOW · 8 STAGES` navigation block was removed; the eight collapsible stage bodies and every existing function/display remain. Existing controls, status nodes, callbacks, IDs, values, history, recipe/.fkei, Support Paint, cache and ledger routes are otherwise only reparented; no Graph Core, geometry behavior, shape, generation, output or persistence schema changed; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Design-only G00 records the author's unchanged artwork intent and physical goals 「一体性」「印刷できる」. The author replaces the former technical 1–10 top level with eight author-facing stages: Base Shape, Surface Pattern, Artwork Graphization, Dry Web / Structural Integration, Integrated Artwork Graph adjustment, Geometry/Mesh realization, artwork geometry diagnosis, and separate Removable Print Support; Slice/Print Run remain downstream evidence. Dry Web is explicitly broader than an Interior Graph Generator: it consumes Surface Graph, Virtual Mother, print constraints and author targets, then proposes Interior paths plus Artwork Connections as an Integrated Artwork Graph Candidate Revision, with both morphological and structural-integration roles. Confirmed Graph is never auto-overwritten, and Interior Graph remains artwork rather than removable support. The attached conditional review's six contracts—future Base/Skeleton Graph, typed Graph Core, three-layer identity, proposed/confirmed/rejected relations, Geometry Realization Spec, and Candidate-to-Confirmed author merge—plus Evaluation Proxy, fail-closed STL capabilities, evidence traceability and <=30-minute checkpoints are incorporated. A fresh read-only Sol High review returned ship with no blocking findings. This passes the design contract only: every implementation remains separately authorized and stops at an author-visible checkpoint. No implementation code, schema, shape, generation, output or print approval changed; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04J records the author workflow judgment verbatim: 「診断と同時にツリーサポートが生成されるのはおかしい」, 「まずはinternalstructureが生成されるかそれ用のペイント表示などになるべき」, and 「internalstructureの確定後に印刷用サポートの生成となるはず」. The runtime order is now Surface diagnosis -> Support Paint 1/Internal Structure generation and observation -> author confirmation -> step 9 removable print-support preview. Surface diagnosis never builds the Phase A tree. Targeted Dry Web Worker results are displayed as Internal Structure and angle-screen input without entering print-support preview; Voronoi Edge keeps its existing graph display. The step 9 button remains disabled until a current Surface diagnosis and non-empty Internal Structure exist, and its explicit label/action is the transition that generates the bounded preview; changing step 9 controls before that action cannot generate a tree. Sol High review found and the implementation closed three transient-state gaps: a new diagnosis now clears an old tree immediately, Paint/Dry Web refresh invalidates the prior step-9 request and returns to author confirmation, and step 9 no longer replaces a confirmed Voronoi/Internal display with a null Dry Web graph. No new persisted confirmation flag was invented because that would change history/recipe/.fkei compatibility. Ledger, Internal graph, shape, outputs and print validation are unchanged; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04I records the author observations verbatim: 「99でとまった」, 「変わらないし応答しませんて出る」, 「キャンセルも出来ない」, and after testing the same history on MBA, 「一緒みたい」. Windows had already completed 57567/57567 faces across Worker 8 in 1.3 seconds; Chrome reported no error or warning. The platform-independent stop was the synchronous post-result display path: finishSurfaceAngleDiagnosis fed every eligible outside assignment into the preview-only buildSupportForest before the browser could paint 100% or process input. The exact ledger, classification, shape, history, recipe, .fkei and outputs remain unchanged. A deterministic two-pass selector now counts all eligible outside leaves and evenly samples at most 2,000 stable ordinals without materialising the full leaf array; Phase A status reports preview/total and explicitly labels it display-only. Diagnosis completion is painted before the bounded preview task, and hidden support-site overlays no longer build the up-to-40,000 marker array. A 100,003-entry regression selects exactly 2,000 in 27.5ms while preserving first/last/stable order and excluding inside, duplicate and missing-position entries. The author then reran the same diagnosis on MBA and confirmed verbatim, 「すすんだ」. This confirms the 99% stop is resolved, not Internal Structure, support, output or print approval; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04H records the author Windows error verbatim: 「自動支持点分類Workerに失敗しました: Maximum call stack size exceeded」. Runtime facts were HTTP origin http://192.168.11.13:5188, no secure context, Worker available, navigator.hardwareConcurrency 20, cache unavailable because crypto.subtle and crypto.subtle.digest were absent, launches Surface=1 / Surface生成=1 / 面判定=1 / 自動分類=1, and classification 0.0ms because the Worker result failed before adoption. The cause was variadic expansion of large child diagnosedFacePositionsMm arrays during stable merge. The merge now validates contiguous chunk coverage, precomputes exact entry/Float32 lengths, allocates once, copies Float32 chunks with set(), and stores entries with bounded iteration while preserving original order and bytes. A 30,000-face / 270,000-Float32 reverse-completion regression covers the former browser argument-limit range. Classification, routing, ledger, cache, geometry and schemas are unchanged. Windows recheck pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04G records the author instruction verbatim, 「やって」, only as authorization following the immediately preceding CPU-parallelization proposal. The automatic support-site raw classification is now split into contiguous dangerous-face chunks across 1–8 CPU module Workers, selected from min(8, max(1, hardwareConcurrency - 1)) and capped by dangerous-face count plus a conservative 384 MiB total scaled support-Surface copy budget. Raw chunks are merged in original face/source order and the existing exact/near dedup and ledger route run once globally, preserving IDs, sourceIndex/siteIndex, mixed faces, explicit targets, malformed behavior and output arrays. Child progress is throttled to about 100 updates per chunk; the coordinator reuses child Surface facts and routes explicit raw entries after the global diagnosed merge. A dangerous-face buffer with a non-9-value remainder stays on the exact Worker 1 inline path, and any one-worker plan stays inline without a nested child. Progress reports 自動支持点分類Worker · X/Y面 · Worker N · elapsed from 80% toward 99%; 100% remains reserved for the final validated result. Synthetic oracle, planner boundary, monotonic progress and stable-merge tests pass. No SharedArrayBuffer or GPU is used; RTX3080 is not used. Author Windows runtime confirmation is pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04F records the author question verbatim: 「80%で計算が詰まるのは高速化出来ない？」. The LAN HTTP screenshot showed 「自動支持点分類Worker · ledgerを計算中… · 80%」 with Surface prepared, shell 617.2ms, recipe 0.0ms, cache lookup 0.1ms, ledger restore 0.0ms, and classification Worker still 0.0ms because it had not returned. routeClassifiedSupportSites now uses an incremental 3D bucket index for finite-positive deduplication tolerances, searching all 27 neighbouring cells and retaining the exact Euclidean near predicate; exact-key-first ordering, exact-map insertion before near omission, stable first-site-wins acceptance, duplicate fail-closed semantics, IDs/classifications/counts, and output schema are unchanged. Zero/negative/NaN/non-finite compatibility paths preserve the literal old distance <= tolerance behavior, including +Infinity. A synthetic 30,000 finite spaced-site regression measured 230.67ms locally with exact count/order; the author Windows timing recheck is pending. No author data, high-resolution generation, output or print approval; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04E records the author statement verbatim: 「履歴は読み込めないまま何だがとりあえず今の状態」. The LAN HTTP screenshot shows the angle display now visibly red/green, with green 33 / red 97 at a 45° basis; this visually confirms the Task04C color-legibility correction but is not printing approval. The same screenshot's Shape History status begins exactly 「読込失敗: SHA-256 requires WebCrypto」. src/lib/hash.ts now prefers WebCrypto and uses a dependency-free SHA-256 fallback when crypto.subtle.digest is unavailable, while preserving exact selected-text UTF-8 and ArrayBuffer bytes; real digest errors remain visible. No author JSON or shape was imported; 5188 visual recheck is pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04D fixed the Shape History import boundary without changing formatVersion=1 or the legacy array / {entries} forms. Current SkinParams, including Internal Structure fields, plus pack and mode now have a synthetic serialize → parse → replay round-trip test. Import parses and replays before committing imported recipe metadata or resetting Support Paint; a failed import restores the prior references and leaves the current shape unchanged. PROJECT now explicitly associates the visible import label with its file input, preserves the input reset for same-file reselect, and shows an aria-live 読込中／読込完了・履歴N件／読込失敗 status. No author data was imported; 5188 visual confirmation is pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04C color-legibility correction records the author screenshot facts: angle screening green 33 / red 97 at a 45° basis; status internal points 28 / node 103 / edge 130 / boundary clip 40 / excluded 44; visible line thickness 0.045 and placement jitter 0.650. The rods appeared black/dark rather than legible red/green in the screenshot (AI visual observation, not an author quote). Three.js cylinder geometry has no color attribute, so internalAngleMaterial now keeps vertexColors=false and uses the existing white base with edge-order-aligned instanceColor; graph, classification, counts, geometry, threshold and all settings are unchanged. OFF still returns to cyan internalMaterial and clears stale instance colors. Author same-origin 5188 visual recheck is pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04C adds a deterministic O(edges), display-only Internal Structure angle screen using A1_MINI_PLA_04_02's 45° threshold: selfSupportingAngle edges are green and angleRisk edges are red, with invalid or missing endpoints failing closed as red. Step 7 exposes exactly one toggle, 「積層角度を色で確認」, only for a non-empty graph, and reports exact green/red counts plus the disclaimer that angle screening is not print approval. Overlay-off Internal preview remains the existing cyan; graph geometry, none/targetedGrid/voronoiEdge builders, Seed, sliders, history/recipe, preview mesh, Support Paint, cache/ledger, Print Profile, output permission and full Internal Print Gate are unchanged. The toggle is editor display state only and is not persisted. Author same-origin 5188 visual confirmation is pending; printApproval=false remains."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04B author observation, verbatim: 「見た目は良いがプリントしたときに絶対に成立していない」. The attached screenshot shows, as readable UI facts only, Voronoi Edge 点の数 72 / 線の太さ 0.025 / 配置の揺らぎ 1.000 and status node 319 / edge 446 / boundary clip 97 / excluded 173. The current Voronoi Edge has no FDM print-viability approval. The fail-closed guard prevents only missing/empty graphs; a non-empty graph does not prove layer-by-layer print viability. No shape or print approval; printApproval=false. A graph-only print-viability diagnosis without changing the shape is a candidate next step, not an author decision."
+    },
+    {
+      "date": "2026-08-26",
+      "note": "Task 04B adds one pure internalStructureOutputBlockReason readiness rule: none keeps Surface-only output valid, while selected targetedGrid/voronoiEdge requires a non-null graph with at least one edge. Ordinary mesh inspect/export, print-check, Internal gate, and Bambu 3MF now stop before Worker/download when the selected graph is missing or empty. Preview, graph generation, history/recipe, Seed, cache/ledger, Print Profile and worker protocols are unchanged. No author shape was selected or generated; printApproval=false remains."
+    },
     {
       "date": "2026-08-26",
       "note": "Task 04A author confirmation, verbatim: 「全部OK」. The author confirmed only the WORKFLOW map one-line collapse, Properties remaining visible, reopening the map, reaching step 7 「作品内部の構造」, and the existing Task 04A Internal Structure operation-entry UI. This is not approval of shape quality, any Internal Structure shape, printing, high-resolution generation, Surface completion or output; printApproval=false remains in force."
@@ -639,6 +748,146 @@
     {
       "date": "2026-07-26",
       "note": "R2 — first Library promotion (Optimizer/docs/sonnet-instruction-20260726-katachi-r1-r2-library-first-extraction.md). Author approved Gate A Q1 (src/lib is the canonical Library), so sha256Hex became the first promoted operation: src/lib/hash.ts is now the single implementation. Equivalence was MEASURED, not assumed - both former implementations (skin's ArrayBuffer|string version and interior-growth's ArrayBuffer version) were reproduced and compared over 9 cases (empty input, \"abc\", non-ASCII string, bytes containing 0x00, 200,000 bytes): byte-identical output in every case. Real-browser check with hit-tested real-coordinate clicks, no console errors. Tests: test:interior-growth 106 -> 112 (6 known-value cases added, expected values taken from published SHA-256 vectors rather than generated by the same implementation), test:partition 102 unchanged, tsc --noEmit clean, build 9 pages. Version deliberately left unchanged: the version-numbering rule is Author decision Q8 and is still undecided, so no new rule was invented here. skin: the private sha256Hex in main.ts was removed and src/lib/hash.ts imported; the ArrayBuffer|string signature is kept because this Study also hashes imported recipe TEXT (importedRecipeSha256). Call order, save order, UI text and the hash written into provenance are unchanged. Browser: grow re-ran (host balls 12), STL export path reachable."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a Graph Core: added the semantic-neutral identity, immutable revision and parent-revision lineage, lifecycle (candidate / confirmed / rejected / stale), provenance fact history, canonical serialization, fallback SHA-256 fingerprint, and fail-closed validation contract. Graph entity collection ordering is explicit through graph paths or wrappers; ordered author-action arrays remain chronological even when actions have IDs. Typed-edge endpoint checks are caller-supplied and do not define SurfaceRelation, InteriorStrut, or ArtworkConnection meaning. Added focused graphCore tests for key-order stability, collection/action ordering, provenance preservation, revision immutability, round-trip, malformed lifecycle, duplicate IDs, dangling endpoints, non-finite numeric facts, and hashing without crypto.subtle. No Surface adapter, Artwork Graph container, UI, runtime integration, shape generation, printability claim, or author-visible change."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a persistence boundary repair: strict Graph Core validation now rejects inherited, non-enumerable, accessor-only, or explicit-undefined persisted facts before canonical serialization across document, entity metadata, provenance/history, revision lineage, collection paths, and opted-in endpoint pairs. Legacy relaxation remains limited to genuinely missing legacy entity fields. Start/current/parent/provenance/action revision facts and lineage entries require finite non-negative safe integers; advancing Number.MAX_SAFE_INTEGER fails closed. Added nested descriptor and boundary regressions; direct graphCore test, test typecheck, production build, and git diff --check passed. Existing plain JSON and own __proto__ data round-trip remain covered. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a action-order boundary repair: persisted collectionPaths now reject reserved action paths instead of reclassifying chronological author actions as unordered entity collections. Typed endpoint fixtures use the public GraphEndpointSelector<TestTypedEdge> contract. Direct graphCore test, partition test typecheck, production build, and scoped diff check passed; no shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a canonical/provenance boundary repair: canonical bytes and graph fingerprints now fail closed on lossy non-JSON values; persisted collectionPaths cannot be overridden by overlapping orderedArrayPaths; generated provenance requires a non-empty generator, algorithmVersion, and inputFingerprint and source/intent combinations are coherent. Direct graphCore test, partition test typecheck, production build, and scoped diff check passed; no shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a canonical API and provenance strictness: canonicalize, canonicalStringify, serializeGraph, and fingerprintGraph now reject lossy non-JSON values before bytes or fingerprints; GraphFingerprintOptions carries canonical path options and rejects persisted collection authority conflicts; generated/generated provenance requires non-empty generator metadata while author ownership facts remain valid without it. Added collision, path-authority, exhaustive source/intent, and generated-field regressions. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a collection marker authority: an ORDERED_ACTION_COLLECTION_MARKER at a persisted collectionPaths entity path is now rejected before canonical bytes or fingerprints, so an ordered wrapper cannot override an authoritative unordered custom collection. Legitimate action markers and non-conflicting explicit ordered paths remain valid; added reversed customNodes rejection regressions. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a provenance history authority: persisted collectionPaths now reject exact, nested, and descendant paths containing the provenance.history segment, so chronological ownership evidence cannot be normalized as an unordered entity collection. Reversed provenance history remains byte- and fingerprint-sensitive; valid custom collections and action ordering remain unchanged. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a chronology and declaration-set repair: persisted collectionPaths now reserve every segment at or below actions, including numeric descendants such as actions.0.items; provenance revisions are checked as safe strictly increasing history/current facts and append rejects same or lower revisions without mutating the source; collectionPaths strings are sorted as an unordered set and duplicates fail closed. Added action descendant, chronology, append immutability, declaration permutation and duplicate regressions. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a persisted collection path grammar: collectionPaths now accepts only dot-separated safe object-key segments with the array as the terminal value; numeric/index, wildcard and bracket forms such as groups.0.items fail before path resolution in validation, serialization and fingerprinting. Object-only nested collections remain unordered and stable, with regression coverage for supported and ambiguous paths. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a persisted declaration and provenance input boundary: canonicalize, canonicalStringify, serializeGraph, and fingerprintGraph now share authoritative collectionPaths validation before bytes or hashes, rejecting missing paths, non-array terminals, and arrays without own ID-bearing entity records. appendGraphProvenance accepts the history-free GraphProvenanceFactInput contract and rejects own, inherited, or non-enumerable history without mutating the source. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G01a history-free provenance type boundary: GraphProvenanceFactInput omits the history key and appendGraphProvenance generically rejects arguments whose keyof includes history, including inline and predeclared history: undefined values; positive typed fact calls remain valid and runtime property-presence rejection remains covered. No shape, mesh, Slice, output, or UI behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G03a/G03b Surface Graph boundary: added a deterministic Patch-to-Surface adapter keyed by (patchSetRevision, patchId), copied Patch facts without mutating the source, typed Surface relation records with candidate/confirmed/rejected/stale lifecycle, confirmed-only deterministic components, fail-closed malformed/core metadata checks, and canonical serialize/parse/fingerprint fixtures. No Surface generation, geometry/mesh, runtime/UI, history/recipe, printability, Slice, or output behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "G03a/G03b Surface Graph contract repair: Surface snapshots now carry a strict stable id, root/parent revision and lineage, and graph provenance chronology; relation add/transition revisions advance immutably, retain edge parentRevision, and append generated-to-author facts (confirmed=pinned, rejected=manuallyDeleted). Node/edge parentRevision and generated provenance are required and safe-integer overflow fails closed. Patch facts and nested motif/point fields are validated exhaustively, and patch input order is presentation-only because stable node ordering makes canonical bytes/fingerprints independent of caller order. Tests cover source immutability and strict round-trip. No Surface generation, geometry/mesh, runtime/UI, history/recipe, printability, Slice, or output behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 3 Artwork Graph 3D node overlay: added a pure snapshot-patch representative point helper with deterministic anchor/centroid/origin fallback and focused immutability/current-stale/OFF tests. The independent fixed-size wire marker group shows exactly one teal current or red stale marker per surfaceDraft node; the UI explains that connections are generated in Stage 4 Dry Web and exposes the exact old-snapshot re-Graph prompt. Overlay cleanup leaves the existing Surface Pattern and Dry Web contact presentation untouched. No shape, history, recipe, graph schema, Dry Web facts, mesh, export, cache, or print evidence changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 Dry Web candidate Graph observation checkpoint: the author can inspect the existing current targetedGrid InternalStructureGraph node/edge counts in the right Workflow and choose Surface + Dry Web, Surface半透明 + Dry Web, or Dry Webだけ through the existing beads and Internal observation callbacks. Missing, running, stale, and replaced previews fail closed without old counts; line endpoints remain generator candidate positions, not Stage 3 representative points. Stage 3 overlay, full-face Surface/Dry Web palette, Support, selection, clip, graph generation, history, recipe, mesh, export, cache, and printability remain unchanged."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 7 Dry Web post-attachment support separation checkpoint: current targetedGrid exact-recheck faces are shown as teal Dry Web arrival candidates, orange outside removable-support candidates for later narrowing (Stage 8 preview target selection is unchanged), or red internal/unknown unresolved faces using exact Float32 triangle multiset matching and the existing support ledger. Red or missing separation fail closed for Stage 8 removable-support preview, print check, and 3MF start; no support is generated and no mesh/printability claim is made."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Dry Web作品成立条件 checkpoint: right Workflow Stage 7付近に、既存current generator/exact-recheck factsだけを一画面へ並べるread-only summaryを追加。Surface要素のpass/insufficient、candidate Graph node/edge/component、Stage 7青緑/橙/赤、必要接触数とDry Webの設定目標を出し、missing/running/staleでは旧countを隠してStage 3再Graph化・Stage 4生成/再診断・Stage 7 exact支持分離を案内する。insufficient 0・component 1・赤0が同時にcurrentのときだけ「候補条件通過・最終未判定」とし、mesh union、水密性、実径/span、機械強度、printability、slicer結果は未計測のまま。作者観察「触ってみた限りまだDrywebだけで作品が成立するようにはなっていないように見える」をREADMEに原文記録。生成・補強・Support・診断分類・出力・printApproval=falseは不変。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 inside接続候補3D overlay checkpoint: existing current targetedSupportSource.targetsからfinal Surfaceのinside siteだけを、既存青丸glyphで決定的stride表示するpresentation-only操作を追加。total target/display sampleとsupport-derived provisional、Base Shape実体anchorではないこと、接続・強度・mesh・printability未判定を明示し、missing/running/stale・Surface/Graph/Paint/診断変更・競合表示では旧count/overlayを解放してOFF時に既存表示へ戻す。Graph、線、geometry、生成、分類、Stage 7/8、出力は不変。READMEに訂正観察を原文記録。"
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 inside接続候補 visibility acceptance repair: the existing Support overlay remains mesh-only, while only the existing current Dry Web inside candidate glyph group uses a narrow policy that stays visible in beads normal/ghostSkin. The author viewport mode is preserved; OFF resets the policy and restores the ordinary overlay. README records the author observation「押したけど画面には見えない」. No geometry, connection, strength, mesh, printability, generation, Graph, Stage 7/8, or output behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 target接続 mapping runtime fact checkpoint: preserve source target original indices and exact contactNodeId/materialNodeId/edgeId as an optional runtime-only worker fact, without copying assignmentId strings into the graph or changing node/edge order or existing aggregate stats. Stage 4 shows connected/unresolved/total only for a complete current mapping and hides counts for missing/running/stale facts. The mapping is exact generator evidence only; reinforcement, connection success, strength, mesh, printability, history, recipe, cache, .fkei, and output remain unchanged."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 contact insufficiency edge overlay checkpoint: reuse current canonical contact facts to show exact chosen patch-to-patch explanation edges for insufficient Surface elements, excluding runtime target-connection edge IDs and preserving the full-face palette. The overlay is generator facts only; mesh union, strength, printability, and output remain unmeasured. Missing, stale, running, and competing presentations clear the independent overlay."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 required-contact floor checkpoint: explicit Dry Web generation now passes normalized author-selected requiredContacts 1/2/3 into the existing deterministic builder. The spanning structure remains first, unused candidate ties add distinct generator contact nodes for deficient Surface elements, and the existing supportCount extras remain after the floor. Target/support-derived edges stay outside dryWebContactFacts; omitted builder calls and explicit floor 1 preserve the legacy result, while unreachable elements remain insufficient."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 contact floor explanation checkpoint: current runtime-only candidate facts now classify every Surface Pattern patch as satisfied, candidate shortage, duplicate contact positions, outside the main component, or planner unresolved. The explanation reuses the existing candidate list, quantized contact keys, and canonical dryWebContactFacts; current-only counts and capped patch IDs are shown without changing selection, geometry, Graph schema, history, cache, output, or printability meaning."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 4 contact-floor residual overlay checkpoint: the author can select candidate shortage, duplicate contact positions, outside main component, or planner unresolved and see one neutral wire marker per exact current Surface Pattern patch in the central 3D view. Marker positions reuse the current Stage 3 Artwork Graph representative-point rule; no live-patch or nearest-position inference is used. The overlay preserves the full-face contact palette, Graph lines, insufficient-edge lines, and Stage 3 markers, and clears fail-closed on missing/stale/incompatible facts. Markers identify generator category membership only; contact count, mesh union, strength, printability, and slicer results remain unmeasured."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 7 red-face locator checkpoint: the current 418-element run has contact pass 418/418 while exact Dry Web post-attachment diagnosis leaves 8 red faces, so localization is needed before deciding a correction. Added a presentation-only `赤面だけ強調` action and compact `赤 N面 / 診断face ID ...` status using zero-based ordinals from the current exact afterDangerPositions ordering; IDs are diagnostic face IDs, not Surface Pattern patch IDs. Non-red mesh context is dimmed, the existing `3色で確認` palette remains intact, and `表示を戻す` removes the locator and restores prior ownership. Missing/stale/running results clear IDs; geometry, classification, history, cache, export and printability facts remain unchanged."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 7 exact recheck optimization: author question `Dry Web付加後を再診断は高速化出来る？` is addressed by deep-cloning and reusing the current base diagnosis final-mesh motifLowestPoints, recomputing only reachedByInternal against the single compiled reachability query with the unchanged meshStep*1.75 predicate. Legacy requests without markers keep the old full final-mesh attribution scan; an explicit empty marker list stays empty. Exact recheck progress now exposes 接触索引 / 危険面接触 / 最下点再利用/到達確認 / 完了 across a monotonic 0–100 phase allocation with phase-local progress and elapsed time. No mesh, threshold, graph, persistence, output, diagnosis meaning, cancellation, or guard behavior changed."
+    },
+    {
+      "date": "2026-08-27",
+      "note": "Stage 7 provisional red-face reinforcement plan checkpoint: current ordered red-face candidate lines are validated against their source edgeOrder/edgeId and projected onto true edge topology; interior hits share deterministic junction nodes, source edges split in t order, and red-centroid reinforcement edges are appended in candidate order. The deep-cloned provisional graph reports base/provisional node and edge counts, split/junction/endpoint/reinforcement deltas, Stage 4 target diameter and normalized radius, and preview N / total red M. The author instruction `次へ進めて` is recorded in the README. This is an unadopted, undiagnosed presentation plan: canonical Graph, renderer, geometry, exact diagnosis, history, cache, save/export, strength, and printability remain unchanged."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 provisional exact comparison checkpoint: add an explicit `仮Graphで再診断` action that runs the planned independent graph through the existing exact recheck Worker with its own Worker, heavy handle, generation, cancellation, and identity guards. The presentation compares current baseline and provisional teal/orange/red counts, signed deltas, red reduction, status, and elapsed time while hiding stale counts. The provisional result remains separate and is never adopted into canonical Graph, Surface diagnosis, renderer, cache, history, or output; it is finite-resolution contact-heuristic evidence only and does not claim containment, collision freedom, diameter, strength, watertightness, or printability."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 provisional comparison author-adoption gate: after the independent `仮Graphで再診断` result is current, the author can explicitly choose `次の採用確認へ進める` or `保留に戻す`. Approval is a volatile in-memory marker bound to the exact plan and provisional result identities; plan/source/settings/result changes, discard, rerun, cancellation, and stale transitions clear it fail-closed. Improved/unchanged/worse red facts never auto-approve, and stale/running/error states hide old counts. The gate is only permission to enter the next canonical-adoption checkpoint; it does not mutate canonical Graph, Surface diagnosis/cache, renderer, geometry, history, recipe, .fkei, export, output, or print gate."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 canonical candidate adoption: after the exact provisional comparison is explicitly author-approved, `作品候補として採用` installs an independent clone of the approved reinforcement Graph as the session Dry Web candidate. Old generator/contact-floor/target-connection facts and exact separation are cleared, and `Dry Web付加後を再診断` is required next. `採用前へ戻す` restores the exact pre-adoption preview/internal Graph/separation without rerunning workers only while all bound identities remain unchanged; no history, recipe, cache, output, export, or printability claim is added."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 8 removable-support preview selection checkpoint: only diagnosed-face sites whose source face index is in the current exact Dry Web post-attachment orange subset reach the existing deterministic preview sampler; explicit-profile outside targets remain eligible. targetedGrid retains zero base-volume vertical members and reports exact-orange/diagnosed/explicit/excluded/sample counts plus fail-closed reasons. This narrows preview selection only; support-forest geometry, diagnosis, canonical Graph, mesh, 3MF/export, Slice, and printability claims are unchanged, and later work must reuse this boundary for 3MF/export."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 8 exact-orange to 3MF dispatch checkpoint: targetedGrid now sends only a cloned, current, finite exact-orange triangle soup in source units, bound to generation, source face IDs, the original full classification/ray/Paint facts, and a deterministic selection identity. Red/unresolved, stale/missing, count/nonfinite, and original-ledger outside-binding mismatches fail closed. Exact-orange is not reclassified or repainted in the Worker; explicit Print Profile targets remain separate, while legacy/non-targeted dispatch keeps its prior full-diagnosis Paint route. No real 3MF generation/save, Slice, or author visual verification has been performed; printApproval=false."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 provisional delta recheck: `仮Graphで再診断` now requests a runtime-only exact delta path that rechecks only the captured baseline orange+red after-danger soup when a pure base-edge tube monotonicity proof passes. The proof requires unchanged or split collinear segments with continuous end-to-end coverage and radius no smaller than the base; removed, gapped, off-segment, shrunken, or malformed graphs use the unchanged full basePositions fallback. Baseline before/mitigated faces and motifLowestPoints are reused without mutation, exact Float32 face-order/metric merge is audited, and progress reports `差分 after/before面` or `全件 fallback`; resolution, threshold, geometry, canonical state, history, cache, output, and 3MF remain unchanged. No author timing or speed claim has been made."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Stage 7 exact reachability query allocation: the per-face indexed candidate Set, array materialization, and sort are replaced by compile-owned generation stamps that suppress duplicate bucket references without changing the AABB/predicate/fallback logic or diagnosis booleans. The exact index is still rebuilt per compile; no cross-run persistent index/cache reuse or speed claim is made. Runtime-only exact-check statistics may vary with bucket traversal order."
+    },
+    {
+      "date": "2026-08-28",
+      "note": "Artwork Graph display control placement: move the existing `Artwork Graphを3D表示` checkbox from the Stage 3 Workflow card to the left display-tools pane while keeping snapshot creation, current/stale status, node facts, legend, and explanation in Stage 3. The same callback and presentation-only lifecycle remain unchanged; no Graph, geometry, history, recipe, diagnosis, or output behavior changes."
     }
   ]
 }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { performance } from "node:perf_hooks";
 import { test } from "node:test";
 import { buildBaseFootprint, type BaseFootprint2d } from "./baseFootprint.ts";
 import {
@@ -57,6 +58,71 @@ function routeFour(classes: readonly OverhangTargetClass[]) {
     positionMm: { xMm: siteIndex * 2, yMm: 0, zMm: 3 },
   }));
   return routeClassifiedSupportSites({ sites, deduplicationToleranceMm: 0.001 });
+}
+
+/**
+ * Compatibility oracle for the pre-Task-04F loop. Keep this deliberately
+ * literal: exact-key lookup precedes the near check, exact.set happens even
+ * when a site is later omitted as near, and only accepted non-duplicates are
+ * scanned by entries.some. This helper is intentionally used only on a small
+ * mixed fixture; the performance regression below exercises the indexed path.
+ */
+function quadraticReferenceDedup(
+  sites: readonly ClassifiedSupportSiteInput[],
+  deduplicationToleranceMm: number,
+): ClassifiedSupportSiteInput[] {
+  const exact = new Map<string, ClassifiedSupportSiteInput>();
+  const entries: ClassifiedSupportSiteInput[] = [];
+  const exactPointKey = (point: NonNullable<ClassifiedSupportSiteInput["positionMm"]>): string =>
+    Math.fround(point.xMm) + "," + Math.fround(point.yMm) + "," + Math.fround(point.zMm);
+  const near = (
+    a: NonNullable<ClassifiedSupportSiteInput["positionMm"]>,
+    b: NonNullable<ClassifiedSupportSiteInput["positionMm"]>,
+  ): boolean => Math.hypot(a.xMm - b.xMm, a.yMm - b.yMm, a.zMm - b.zMm) <= deduplicationToleranceMm;
+
+  for (const site of sites) {
+    const entry = { ...site };
+    if (!entry.positionMm) {
+      entries.push(entry);
+      continue;
+    }
+    const key = exactPointKey(entry.positionMm);
+    const identical = exact.get(key);
+    if (identical) {
+      entries.push({ ...entry, duplicateOf: identical.id });
+      continue;
+    }
+    exact.set(key, entry);
+    if (entries.some(
+      (other) => other.positionMm
+        && !other.duplicateOf
+        && near(entry.positionMm!, other.positionMm),
+    )) continue;
+    entries.push(entry);
+  }
+  return entries;
+}
+
+function entryShape(entry: ClassifiedSupportSiteInput) {
+  return {
+    id: entry.id,
+    classification: entry.classification,
+    duplicateOf: entry.duplicateOf,
+    positionMm: entry.positionMm,
+  };
+}
+
+function compareDeduplicationToQuadraticReference(
+  sites: readonly ClassifiedSupportSiteInput[],
+  deduplicationToleranceMm: number,
+): void {
+  const optimized = routeClassifiedSupportSites({ sites, deduplicationToleranceMm });
+  const expectedEntries = quadraticReferenceDedup(sites, deduplicationToleranceMm);
+  assert.deepEqual(
+    optimized.entries.map(entryShape),
+    expectedEntries.map(entryShape),
+    `indexed route matches quadratic reference at tolerance ${String(deduplicationToleranceMm)}`,
+  );
 }
 
 for (const [name, classes] of [
@@ -232,6 +298,135 @@ test("near sites deduplicate stably while exact duplicates remain validation err
   });
   assert.equal(exact.counts.duplicateSupportSite, 1);
   assert.throws(() => validateOverhangAssignmentLedger(exact), /duplicate support sites/);
+});
+
+test("bucketed near-site deduplication matches the literal quadratic reference", () => {
+  const sites: ClassifiedSupportSiteInput[] = [
+    {
+      id: "accepted-origin",
+      source: "explicit-profile",
+      sourceIndex: 0,
+      siteIndex: 0,
+      classification: "outside",
+      positionMm: { xMm: 0.25, yMm: 0.25, zMm: 0.25 },
+    },
+    {
+      id: "exact-origin-copy",
+      source: "explicit-profile",
+      sourceIndex: 1,
+      siteIndex: 0,
+      classification: "inside",
+      positionMm: { xMm: 0.25, yMm: 0.25, zMm: 0.25 },
+    },
+    {
+      id: "near-origin-omitted",
+      source: "explicit-profile",
+      sourceIndex: 2,
+      siteIndex: 0,
+      classification: "inside",
+      positionMm: { xMm: 0.9, yMm: 0.25, zMm: 0.25 },
+    },
+    {
+      id: "exact-omitted-copy",
+      source: "explicit-profile",
+      sourceIndex: 3,
+      siteIndex: 0,
+      classification: "outside",
+      positionMm: { xMm: 0.9, yMm: 0.25, zMm: 0.25 },
+    },
+    {
+      id: "negative-accepted",
+      source: "explicit-profile",
+      sourceIndex: 4,
+      siteIndex: 0,
+      classification: "inside",
+      positionMm: { xMm: -4.25, yMm: -3.5, zMm: -2.75 },
+    },
+    {
+      id: "boundary-near-accepted",
+      source: "explicit-profile",
+      sourceIndex: 5,
+      siteIndex: 0,
+      classification: "outside",
+      positionMm: { xMm: 0.999, yMm: 1.999, zMm: -0.004 },
+    },
+    {
+      id: "boundary-near-omitted",
+      source: "explicit-profile",
+      sourceIndex: 6,
+      siteIndex: 0,
+      classification: "inside",
+      positionMm: { xMm: 1.001, yMm: 2.001, zMm: -1.001 },
+    },
+    {
+      id: "no-position",
+      source: "explicit-profile",
+      sourceIndex: 7,
+      siteIndex: 0,
+      classification: "unresolved",
+    },
+    {
+      id: "non-finite-position",
+      source: "explicit-profile",
+      sourceIndex: 8,
+      siteIndex: 0,
+      classification: "unresolved",
+      positionMm: { xMm: Number.NaN, yMm: 0, zMm: 0 },
+    },
+    {
+      id: "exact-non-finite-position-copy",
+      source: "explicit-profile",
+      sourceIndex: 9,
+      siteIndex: 0,
+      classification: "outside",
+      positionMm: { xMm: Number.NaN, yMm: 0, zMm: 0 },
+    },
+  ];
+  const toleranceCases = [1, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
+  for (const tolerance of toleranceCases) {
+    compareDeduplicationToQuadraticReference(sites, tolerance);
+  }
+
+  const finiteToleranceResult = routeClassifiedSupportSites({ sites, deduplicationToleranceMm: 1 });
+  assert.deepEqual(
+    finiteToleranceResult.entries.map((entry) => entry.id),
+    [
+      "accepted-origin",
+      "exact-origin-copy",
+      "exact-omitted-copy",
+      "negative-accepted",
+      "boundary-near-accepted",
+      "no-position",
+      "non-finite-position",
+      "exact-non-finite-position-copy",
+    ],
+    "cell-boundary neighbours are compared while exact copies of omitted near sites remain duplicates",
+  );
+  assert.equal(finiteToleranceResult.entries.find((entry) => entry.id === "exact-omitted-copy")?.duplicateOf, "near-origin-omitted");
+  assert.equal(finiteToleranceResult.entries.find((entry) => entry.id === "exact-non-finite-position-copy")?.duplicateOf, "non-finite-position");
+});
+
+test("30,000 finite spaced sites stay ordered and complete through indexed deduplication", () => {
+  const siteCount = 30_000;
+  const sites: ClassifiedSupportSiteInput[] = Array.from({ length: siteCount }, (_, index) => ({
+    id: `perf-site-${String(index).padStart(5, "0")}`,
+    source: "explicit-profile" as const,
+    sourceIndex: index,
+    siteIndex: 0,
+    classification: index % 2 === 0 ? "inside" as const : "outside" as const,
+    positionMm: { xMm: index * 4 + 0.125, yMm: -index * 0.25 - 0.375, zMm: index * 0.5 + 0.625 },
+  }));
+  const startedAt = performance.now();
+  const result = routeClassifiedSupportSites({ sites, deduplicationToleranceMm: 1 });
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.equal(result.entries.length, siteCount, "all deliberately spaced sites are accepted");
+  assert.deepEqual(result.entries.map((entry) => entry.id), sites.map((site) => site.id), "accepted order and IDs are exact");
+  assert.equal(result.counts.inside, Math.ceil(siteCount / 2));
+  assert.equal(result.counts.outside, Math.floor(siteCount / 2));
+  assert.equal(result.counts.duplicate, 0);
+  assert.ok(elapsedMs <= 1_500, `30,000-site indexed deduplication took ${elapsedMs.toFixed(2)} ms`);
+  console.log(`30,000 finite spaced support sites: ${elapsedMs.toFixed(2)} ms`);
 });
 
 test("serialized CLI and Worker Surface inputs produce identical shared plans", () => {

@@ -57,6 +57,13 @@ assert.equal(normalBeads.internalGraph, true, "normal bead view keeps the indepe
 assert.equal(deriveSkinLayerVisibility("mesh", "normal").internalGraph, false, "normal mesh view avoids doubling the graph already fused into the mesh");
 const ghostMesh = deriveSkinLayerVisibility("mesh", "ghostSkin");
 assert.equal(ghostMesh.overlay && ghostMesh.internalGraph, true, "ghost observation overlays the opaque graph through a translucent SKIN mesh");
+// The targeted Dry Web completion path promotes only the renderer display
+// policy from normal mesh to ghost when no manual observation choice exists;
+// main's cancel/invalidation path clears the graph and returns to normal mesh.
+const completedTargetedDryWeb = deriveSkinLayerVisibility("mesh", "ghostSkin");
+assert.equal(completedTargetedDryWeb.internalGraph, true, "completed targeted Dry Web display policy keeps the graph visible");
+const invalidatedTargetedDryWeb = deriveSkinLayerVisibility("mesh", "normal");
+assert.equal(invalidatedTargetedDryWeb.internalGraph, false, "cancel/invalidation display policy hides the cleared graph");
 const internalOnly = deriveSkinLayerVisibility("beads", "internalOnly");
 assert.equal(internalOnly.patchBeads || internalOnly.hostBeads || internalOnly.surfaceDecorations, false, "internal-only hides every Surface-derived bead and decoration");
 assert.equal(internalOnly.internalGraph, true, "internal-only retains the independent graph");
@@ -77,4 +84,4 @@ const slicedTriangles = [
 ];
 assert.deepEqual(slicedTriangles, fullMesh.triangles, "parallel Z slices concatenate to the exact single-pass triangle order");
 
-console.log("Authoring preview tests: 29 passed");
+console.log("Authoring preview tests: 31 passed");

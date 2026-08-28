@@ -1,5 +1,692 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Artwork Graph表示操作を左ペインへ統合（2026-08-28）
+
+作者の指示を原文のまま記録する。
+
+> グラフの表示オンオフは左ペインに移動したい
+
+Stage 3の`Artwork Graphを3D表示`は形状やGraphを変更しない表示操作なので、右Workflowから左ペインの
+表示ツールへ移した。Graph化、current／旧snapshotの状態、node数、凡例は工程の事実として右ペインに残す。
+同じcheckboxとcallbackを移設するだけで、snapshot、overlay lifecycle、history、recipe、geometry、出力は変更しない。
+
+## Observation — Stage 7 canonical candidate Graphのセッション採用（2026-08-28）
+
+作者の指示を原文のまま記録する。
+
+> 次へ進もう
+> 後何回で作品で競う
+
+current exact provisional比較を作者が明示的に承認した後だけ、`作品候補として採用`を押して、
+approved `Stage7RedFaceReinforcementPlan.graph`の独立cloneをセッション中のDry Web candidate Graphへ反映できる。
+kind、node/edge topology、radiusはclone前後で保持し、Stage 3 snapshot/source、Surface・Paint・resolution bindingは
+同じcurrent identityへ束縛する。採用時は旧generator `DryWebRoutingFacts`、`dryWebContactFacts`、target-connection /
+contact-floor facts、旧exact separationを現在値として表示せず、`Dry Web付加後を再診断`を次の必須操作として示す。
+
+`採用前へ戻す`は、Surface・Stage 3・Paint・settings・Graph・exact identityが採用時から変わらず、次のexact結果も
+まだ採用されていないセッション中だけ、Workerを再実行せずに採用前のpreview/internal Graph/separationと表示所有権を復元する。
+identityがずれた場合はundoをfail-closedで無効にする。この遷移はhistory、recipe、`.fkei`、cache、output、export、
+save、print gateへ記録せず、containment、collision、diameter、strength、watertightness、support removal、
+printabilityを主張しない。
+
+## Observation — Stage 7 provisional comparisonのauthor adoption gate（2026-08-28）
+
+作者の指示を原文のまま記録する。
+
+> 次へ進もう
+
+既存の`仮Graphで再診断`が返したcurrentな比較結果の直後に、次の判断を止めずに読める小さな
+author checkpointを追加した。current exact plan/result identityが揃うときだけ、baseline→provisionalの
+teal / orange / red数とsigned delta、red reduction（改善・不変・悪化）を確認したうえで、作者が明示的に
+`次の採用確認へ進める`を押せる。赤面の改善・不変・悪化から自動承認はしない。
+
+承認は、このexact provisional比較を作者が確認し、次のcanonical採用確認へ進みたいというvolatileな
+in-memory記録だけである。canonical Graph、Surface diagnosis/cache、renderer geometry、history、recipe、
+`.fkei`、export、output、print gateは変更しない。`保留に戻す`で同じcurrent比較を未承認へ戻せる。
+plan/source/settings/resultのidentityが変わる、discard・rerun・cancel・staleになる場合は承認を
+fail-closedで消す。stale・running・errorでは古いcountを表示しない。このcheckpointはcontainment、
+collision、diameter、strength、watertightness、printability、support removalの正しさを主張しない。
+
+## Observation — 赤面からDry Web最近傍edgeへの直線候補preview（2026-08-27）
+
+作者の言葉を原文のまま記録する。
+
+> この工程は高速化は後回しで次の工程に進めたい
+
+次に見るべき視覚的な問いを、current exactの赤面ごとに「どのDry Web edgeへつながり得るか」とした。
+既存の赤面locatorのface順・centroidを正本に、current targetedGridの既存edge segment上の最近傍点まで、
+決定的な1本の直線を最大128面だけ表示する。これは赤面→Dry Web補強候補のnearest-edge straight-line previewで
+あり、Graph、geometry、mesh、diagnosis、strength、containment、printabilityを変更・検証するものではない。
+cyanはpreview pathのみを示し、Base containment、collision、diameter、strength、mesh union、printabilityは
+未検証で、まだ補強ではない。作者承認前に、各赤面がどこへつながるように見えるかを観察する段階である。
+
+## Observation — 赤面候補のtopology接続を仮Graphで読む（2026-08-27）
+
+作者の指示を原文のまま記録する。
+
+> 次へ進めて
+
+このcheckpointでは、現在の候補線をcurrent targetedGridの既存edge endpointまたはedge内部のjunctionへ
+解決し、内部edgeを分割した独立のprovisional Graph planを作る。赤面centroidからjunctionへ向かう補強edgeも
+候補順に計画するが、cyan overlayの表現は変えない。`base node → provisional node`、`base edge → provisional edge`、
+分割edge数、junction数、補強数、Stage 4のtarget diameter mmとnormalized radius、`preview N / total red M`を
+作者へ表示する。
+
+これはtopologyを仮に計画して差分を読むためのcheckpointであり、まだそのGraphを診断しない。canonical Graph、
+renderer、geometry、exact再診断、履歴、cache、保存、export、strength、printabilityは変更・実行しない。
+
+## Observation — 仮Graphをexact比較してから止める（2026-08-28）
+
+作者の指示を原文のまま記録する。
+
+> 次へ進もう
+
+現在のexact三色（teal / orange / red）をbaselineとして保持し、直前に計画した補強候補だけを入れた
+独立のprovisional Graphを、既存の`surfaceAngle.worker.ts` exact recheck protocolへ明示的に渡して比較する。
+表示は`baseline 赤 N → provisional 赤 M`、三色のsigned delta、red reduction、status、操作時間だけで、
+`仮Graph exact比較`がcanonical Graph、Surface diagnosis、cache、history、renderer、outputへ採用されたことを
+意味しない。これは有限解像度の接触ヒューリスティックについてのcheckpointであり、containment、collision、
+diameter、strength、watertightness、printabilityを証明しない。計画を受け入れる前に、候補が現在の赤面を
+減らすかだけを観察する。
+
+## Observation — Dry Web付加後再診断の最下点再利用（2026-08-27）
+
+作者の問いを原文のまま記録する。
+
+> Dry Web付加後を再診断は高速化出来る？
+
+Stage 7の明示的な`Dry Web付加後を再診断`では、current base Surface診断がすでに保持している
+final-mesh由来の各モチーフ最下点marker（位置、法線、所属、半径、basis、順序）をdeep cloneして
+Workerへ渡し、同じmeshStep × 1.75の接触許容差で`reachedByInternal`だけを再計算する。これにより
+同じfinal mesh vertexをもう一度全走査してpatch帰属を探す処理を省く。保存cache、履歴、recipe、Graph、
+mesh、閾値、診断の意味は変えない。base markerがないlegacy/test requestでは従来の全final-mesh走査へ
+戻り、空配列を明示的に渡した場合は空配列のまま扱う。
+
+残る高コスト工程は、Dry Web edgeの接触索引構築と、危険面ごとのfinal-mesh contact判定である。進捗は
+`接触索引`、`危険面接触`、`最下点再利用/到達確認`、`完了`のphaseとして0〜100の範囲へ再配置し、各phaseの
+実際のX/Yと工程内経過時間を表示する。これは各phase内の完了数を示すもので、全体の重みが実時間比率である
+ことを意味しない。
+
+## Observation — Dry Web生成と付加後exact再診断を分ける（2026-08-27）
+
+作者の観察を原文のまま記録する。
+
+> Dry web生成にものすごく時間がかかっているので高速化が必要
+
+418要素のauthor datasetでは、Dry Web Worker自体は約16.3秒で完了し、current graphとgenerator facts（接触
+418/418）を返していた。その直後に同じ操作が自動で`Dry Web付加後のSurface再診断`を始め、約3〜5分の間、画面が
+応答しにくくなっていた。現在はWorkerのcurrent graph/factsを生成完了時点で表示し、付加後のexact再診断は
+Stage 7の`Dry Web付加後を再診断`から明示的に開始する。
+
+これは処理全体を高速化したものではない。exact再診断の計算量と既存の判定は変えず、生成と後段診断の時間を
+別工程として観察・キャンセルできるようにした。生成結果は引き続き`generator facts only / mesh / printability未判定`
+であり、作品成立や印刷準備を主張しない。
+
+## Observation — Stage 7 exact赤面を中央3Dで特定（2026-08-27）
+
+現在の418要素runでは接触条件が418/418で通過している一方、Dry Web付加後のexact診断には赤面が8面残る。
+補正を決める前に位置を見比べられるよう、Stage 7の`赤面だけ強調`を追加した。current exact結果の
+`afterDangerPositions`順（0始まり）から`診断face ID`を決め、赤面数とIDを表示する。これはSurface Pattern
+のpatch IDではなく、診断結果の一時的なface IDである。
+
+強調時は既存の3色表示を置き換えず、非赤面を減光した上でcurrent exactの赤面だけを明るく重ねる。
+`表示を戻す`でこのpresentation-only表示を完全に片付け、通常表示または直前の3色表示へ戻る。生成、
+分類、mesh、履歴、cache、export、printabilityの判定は変更しない。
+
+## Observation — Dry Web接触不足の残理由を中央3Dで読む（2026-08-27）
+
+Stage 4の「残理由を3D表示」で、current contact-floor factsの`候補不足`、`接点位置重複`、
+`main component外`、`planner未達`を一つずつ選び、current Stage 3 Artwork Graphの同じpatch IDへ
+解決した中立wire markerを中央3Dで確認できるようにした。位置は既存のshape-awareな
+`representativePatchPoint`を再利用し、live patchや最近傍位置から推測しない。markerは理由の所属を
+示すだけで、既存のfull-face contact palette、接触不足edge、Graph line、Stage 3 markerを置き換えない。
+
+これはgenerator candidate factsの観察であり、接触数・強度・mesh union・水密性・実寸径・span・
+printability・slicer結果を意味しない。current facts、Stage 3 snapshot、Surface表示が揃わない場合は
+旧markerを残さず表示を止める。
+
+## Observation — Dry Web接触不足の理由を読む（2026-08-27）
+
+Stage 4の現在のDry Web生成結果について、既存candidate集合と同じ量子化contact keyから、各Surface
+Pattern要素の残る理由をruntime-onlyで分類できるようにした。`satisfied`、`候補不足`、`接点位置重複`、
+`main component外`、`planner未達`を、candidate link数・利用可能なdistinct contact位置・生成後の
+canonical contact factsと照合して表示する。current factsが揃わない、生成中、stale、またはcoverageが
+一致しない場合はcountとpatch IDを表示しない。
+
+これは候補計画とgenerator factの観察であり、候補を追加したり、geometry・Graph・threshold・supportCountを
+変更したりしない。`planner未達`は実装警告として残し、mesh union、水密性、機械強度、printability、
+slicer結果を意味しない。
+
+## Observation — Dry Web明示生成で必要接触数を使う（2026-08-27）
+
+Stage 4の明示的なDry Web生成は、作者が選んだ必要接触数（1 / 2 / 3）を、既存のdeterministic
+spanning structure後のpatch-to-patch contact floorとして使うようになった。candidate順（exposed gap、
+centre distance、patch ID）を変えず、量子化後のdistinct generator contact nodeが不足する要素へ、
+未使用candidateを短い順に追加する。floor後は従来どおりsupportCountの追加tieを別に適用する。
+
+これはtarget / removable support-derived edgeをcontact factsへ数えない。候補が存在しない要素は
+insufficientのまま残り、mesh union、水密性、強度、printability、slicer結果を意味しない。つまみを
+変えただけではcurrent factsの読み方を再判定し、形状への反映は作者が明示的にDry Webを再生成する。
+
+## Observation — Stage 4 接触不足edgeを3Dで読む（2026-08-27）
+
+既存のcurrent `dryWebContactFacts`からcanonicalな必要接触判定を再利用し、不足している
+Surface Pattern要素に対応するchosen patch-to-patch edgeだけを、中央3Dへ独立表示できるようにした。
+複数の不足要素に同じedgeが対応する場合は、contact countが最も弱いbin、同値ならpatch ID順で
+表示の色を決める。runtime-onlyのtarget接続edgeは正確なedge IDで除外する。
+
+これは「なぜ不足と表示されたか」を見るgenerator factの説明であり、既存の全Surface face paletteを
+置き換えない。mesh union、水密性、実寸径、span、機械強度、printability、slicer結果や、接続の
+成立を判定するものではない。Surface / Graph / Paint / 診断の変更や表示競合ではoverlayを解放し、
+`表示を戻す`で既存表示へ戻る。
+
+## Observation — Dry Web target接続の対応をruntime factとして保持（2026-08-27）
+
+作者の問いと、今回確認した欠落を原文のまま記録する。
+
+> 『じゃあこのあとは補強Drywebが生成されるってことで合ってる？』
+
+従来のDry Web生成結果では、source targetの`assignmentId`と、実際に追加されたcontact node・material
+node・edgeの対応が、`connectedTargets`という集計値の後ろで失われていた。現在はWorkerへ渡したtargets配列の
+元indexを正本にし、targetのsort後indexや位置推測を使わず、numericな`sourceTargetIndex`とexactな
+node / edge IDをruntime-only optional factとして保持する。Stage 4の`target接続 mapping`は
+`connected / unresolved / total`をcurrent時だけ表示する。これはgenerator factの対応確認であり、補強の
+自動生成・接続成立・強度・mesh・printabilityを意味しない。assignmentId文字列はcurrent source側で解決し、
+Graph本体、statsの既存集計、history、recipe、cache、`.fkei`、export、outputへ複製しない。
+
+## Observation — Stage 4 inside候補がbeads表示で見えない問題（2026-08-27）
+
+作者の実機観察を原文のまま記録する。
+
+> 押したけど画面には見えない
+
+Stage 4のinside接続候補は、既存Support overlayのmesh-only visibilityにより、Dry Webをbeadsで
+観察している間は画面から消えていた。inside候補だけに狭いvisibility policyを与え、作者の現在の
+beads / normal / ghostSkinを変更せず青丸を重ねて表示する。通常のSupport、分類、生成、Graph、geometry、
+接続・強度・mesh・printabilityの意味は変えない。「表示を戻す」ではpolicyをstandardへ戻し、既存の
+Support overlay契約を保持する。
+
+## Observation — Stage 4 inside接続候補の3D表示（2026-08-27）
+
+訂正観察：
+
+> 現時点の候補はBase Shape実体のanchorではなく、final Surfaceのinside siteから導いたsupport-derived provisionalである
+
+Stage 4の現在のinside接続候補siteだけを、既存の青丸glyphで中央3Dに表示／解除できるようにした。
+total targetと決定的strideによるdisplay sampleを併記する。これは接続・強度・mesh・printabilityを
+判定する表示ではなく、Surface上の候補密度と位置を観察するためのpresentation-onlyである。
+outside / unresolved / scaffoldは表示せず、Surface・Graph・Paint・診断の変更や競合する表示操作では
+旧countとoverlayを解放する。
+
+## Observation — Dry Web作品成立条件の一画面要約（2026-08-27）
+
+作者の観察を原文のまま記録する。
+
+> 触ってみた限りまだDrywebだけで作品が成立するようにはなっていないように見える
+
+右WorkflowのStage 7付近に、既存のcurrent Surface Pattern接触事実、候補Graphのnode / edgeと
+component、exact再診断の青緑 / 橙 / 赤面数、必要接触数、Dry Webの設定目標を一画面で並べる
+`Dry Web作品成立条件`を追加した。各行は現行generator事実・現行exact再診断事実・設定値のみ・
+未計測を明示し、Stage 3 snapshot、Stage 4 graph、Stage 7 exact支持分離のいずれかが
+missing / running / staleなら旧countを表示せず、既存の再実行操作を案内する。
+
+`候補条件通過・最終未判定`はinsufficient Surface要素0、candidate Graph component 1、
+Stage 7赤面0の三つが同時にcurrentのときだけ表示する。それでもmesh union、水密性、実際の
+径・最大無補強span適合、機械強度、printability、slicer結果は未計測であり、設定した値は
+目標にとどまる。既存のStage 7 `3色で確認／表示を戻す`は変更していない。
+
+## Observation — Stage 3 Artwork Graph 3D node overlay (2026-08-27)
+
+作者の問いを、Surface Patternを壊さない表示だけで確かめられるようにした。
+
+> Artwork Graph化した結果が数値だけでは、何がGraphになったのか作者には見えない。中央3D上でSurface nodeと現在との差を視覚化できないか。
+
+Stage 3の`Artwork Graphを3D表示`をONにすると、凍結したArtwork Graphの
+`surfaceDraft.nodes[*].patch`から、Surface nodeごとに1個の独立したwire markerを表示する。
+snapshotがcurrentならteal、Surface編集後の旧snapshotならredで、red時は
+`旧snapshot／再Graph化が必要`と表示する。再び`現在のSurfaceをArtwork Graph化`すると、
+新しいsnapshotのnode数・位置へ更新してtealに戻る。markerの色と大きさは、強度・接触判定・診断・
+printabilityを表さない。接続線は描かず、接続はStage 4 Dry Webで生成する。
+
+作者の既存の画面への感想も原文のまま記録する。
+
+> 感想なのだが診断中のこの画面がビジュアル的によかった
+
+表示はSurface PatternとDry Webの既存full-face表現から独立している。OFFにするとoverlayだけを
+完全に片付け、既存のteal / yellow / orangeのcontact・diagnosis表示へ戻る。したがって、このcheckpointは
+Graphになった対象とcurrent/staleの差を中央3Dで観察するためのものであり、shape history、recipe、
+Artwork Graph facts、Dry Web graph、mesh、export、cache、`.fkei`、print evidenceには入らない。
+
+## Observation — Stage 4 Dry Web候補Graphを中央3Dで観察（2026-08-27）
+
+作者の問いを、既存のDry Web生成結果を観察する小さな操作として記録する。
+
+> 次の工程で点をつなぐという認識であっている？
+
+Stage 3は現在のSurfaceとsnapshotの一致を確認する工程で、Surface nodeの代表点だけを表示する。
+Stage 4はその次に、既存のDry Web `InternalStructureGraph` の候補nodeとedgeを中央3Dで見る工程である。
+右Workflowの`Dry Web候補Graphを3Dで見る`には、同じcurrent graphから読んだcandidate node / edge数と、
+`Surface + Dry Web`、`Surface半透明 + Dry Web`、`Dry Webだけ`の3表示を置く。これらは既存のbeads表示と
+Internal観察モードを呼び出すだけで、graph生成完了時に表示を自動変更しない。Stage 4の線端は実際の接触候補位置であり、
+Stage 3 markerの代表点中心へ直結するとは限らない。
+
+> 現在の状態とgraphが一致しているかを確認する機能ってことでいい？
+
+その通りで、Stage 3の`current`は現在のSurfaceとsnapshotの一致、Stage 4の`current`はその同じSurface境界で
+生成された候補Graphの観察可能性を示す。Surface変更・cancel・再Graph化待ち・Worker置換中は旧countを残さず操作を止める。
+表示は`generator facts only`で、線をConfirmed Artwork Connections、強度、mesh、printability、印刷合否とは呼ばない。
+既存のSurface Pattern全顔表示、teal / yellow / orange接触表示、Support、selection、clipは独立して保持する。
+
+## Observation — Stage 7 Dry Web付加後の支持分離（2026-08-27）
+
+作者の問いを原文のまま記録する。
+
+> この後ベース内部に印刷サポートが発生しないよう調整が必要であると思うがどう進む？
+
+現在のtargetedGrid Dry Web exact recheckが完了したときだけ、既存のSurface診断バッファと
+Support ledgerを突き合わせ、中央3Dで三つの事実を分けて確認できるようにした。青緑は
+`Dry Web到達候補`（付加後診断でmitigatedになった面）、橙は`外側・取り外しサポート候補`
+（一意に対応し、現在の診断face siteがすべてoutsideの面）、赤は`内部/不明・Dry Web調整が必要`
+（inside / unresolved / mixed / duplicate / site欠落 / 対応不明を含む面）である。色は強度や
+印刷合否、mesh統合を表さず、橙もサポートを生成済みとは表さない。橙は後段で取り外しサポートへ
+絞り込む候補だが、今回のStage 8 preview対象選定は変更していない。
+
+`3色で確認`は明示操作でだけ三色表示へ切り替わり、`表示を戻す`でStage 4のSurface / Dry Web
+表示へ戻る。赤面が残る、または分離が未確認のtargetedGridでは、Stage 8の取り外しサポートpreviewと
+印刷確認・3MF開始を停止し、赤面数または未確認理由を表示する。これは有限解像度での既存診断と
+ledgerの対応を観察するcheckpointであり、支持生成、除去性、接着、mesh統合、printabilityを保証しない。
+
+## Observation — Stage 8 exact orange removable-support preview境界（2026-08-28）
+
+作者の問いを原文のまま記録する。
+
+> この後ベース内部に印刷サポートが発生しないよう調整が必要であると思うがどう進む？
+
+Stage 8の表示用取り外しサポート選定だけを、現在のDry Web付加後exact再診断が橙に分けた面へ狭めた。
+橙面に対応する`beforeDangerPositions`の一意なface indexをFloat32の完全一致で保持し、診断face siteはその集合に
+含まれるものだけを既存の決定的sampleへ渡す。付加前のoutside siteは表示から除外し、explicit-profileのoutside siteは
+明示的な印刷計画targetとして残す。`targetedGrid`ではBase/Dry Web内部へ入る`retained-vertical`を生成せず、保存された
+checkbox値は他モードへ戻った時のために保持する。この表示はcountsとfail-closed理由をstatusへ出すが、support forestの
+geometry・diagnosis・Graph・mesh・3MF・Slice・printabilityを変更または保証しない。
+
+これはpreview selectionだけを狭めるcheckpointである。3MF/exportで同じselection boundaryを再利用することは、後続
+checkpointの作業として残る。現時点では印刷成立・安全の承認ではない。
+
+## Observation — Stage 3 snapshotをDry Webの入力境界にする（2026-08-27）
+
+Stage 3の`現在のSurfaceをArtwork Graph化`を、Stage 4 Dry Webが読む唯一のSurface入力境界へ
+接続した。作者の手順は、現在のSurfaceをStage 3で明示的にsnapshot化し、Stage 4でSurface診断と
+Paintを確認してからDry Webを生成する順序になった。生成開始時には、そのsnapshotの
+`surfaceDraft.nodes[*].patch`をnode順のままcloneしてWorkerへ渡すため、Dry Webは生成後に変化した
+live `state.patches`を暗黙に読み直さない。
+
+snapshotのsource key（現在のPatch factsと`patchSetRevision`の既存canonical契約）がcurrentと一致しない、
+snapshotがない、または置き換わった場合は、Dry Webの生成ボタンを無効化し、Workerとpreviewを開始・表示しない。
+Workerの進捗・結果にもrun開始時のsource keyを照合し、Stage 3を更新した古い結果はfail closedにする。
+同じPatch factsではsnapshot由来の順序・内容を維持するため、既存Dry Webの決定的な生成形状は変更しない。
+これはsupport-derived provisional / generator facts onlyの入力境界であり、Artwork Graphの3D可視化、
+Interior、Connections、Geometry/Mesh化、printabilityの証明は次のcheckpointに残す。
+
+## Observation — Dry Web接触数を4色で読む（2026-08-27）
+
+Stage 4のDry Web生成後、既存の`dryWebContactFacts`だけを使い、Surface Patternを
+`0接点 / 1接点 / 2接点 / 3接点以上`の4つへ固定的に色分けする。必要接触数（1–3）を変えると
+同じ要素の色相は変えず、選択した境界より下だけを暗くし、上は彩度を保ったまま即時にpass表示へ
+切り替わる。右ペインの凡例は各binの要素数とpass/不足を併記する。表示はパッチのビーズ表現へ
+切り替わるが、これはpatch identityを保つための観察表示であり、生成Worker・graph・出力形状・
+mesh / printability判定を変更しない。未計算・cancel・stale・error・Dry Web以外では色分けを解除し、
+通常の中立表示へ戻る。
+
+## Observation — Dry Web接触数の作者チェックポイント（2026-08-27）
+
+作者の観察を原文のまま記録する。
+
+> 「各表面要素の接続強度（1箇所2箇所3箇所などが調整できるようになると好ましい）」
+
+今回の表示確認で作者が追加した判断も原文のまま記録する。
+
+> 「Dryweb用のSurface診断時、現在橙三角 = outside / scaffold の点が作品意図と異なるので診断内容を変更する必要がある」
+
+> 「最終的には印刷サポートがつくので下側が問題ではなく、下側表面パターンが一体化して印刷したときも成立しているか」
+
+> 「初期値3」
+
+Stage 4にDry Web専用の必要接触数（1〜3、既定3）を追加した。現在のtarget sourceは`support-derived provisional`のため、
+graph未生成・無効化・cancel・stale時のArtwork Integrationは`未計算 / gray`と表示する。Dry Web graph生成後は、
+Surface Pattern target replacementによる統合判定ではなく、generator-derived contact previewだけを表示する。Surface診断完了時は
+Surface angleとoutside / scaffoldのSupport表示を一時的に隠すが、Stage 8用の分類ledgerと保存済みPaintは保持する。
+
+## Observation — Dry Web生成事実の接触プレビュー（2026-08-27）
+
+Stage 4のDry Web graph生成後に、選択した必要接触数（1〜3、既定3）に対する全Surface Patternのpass数、
+不足数、main artwork component所属数とサイズ、不足patch IDを表示する。接触数はchosen patch-to-patch linkの
+material endpoint graph node IDをpatchごとに重複除去したgenerator factだけから数え、red target-connection edgeは含めない。
+これは`target source=support-derived provisional`のgenerator-derived previewであり、exact mesh integration、
+printability、出力を主張しない。graph未生成・無効化・cancel・stale時は`uncomputed / gray`へ戻る。
+
+## Observation — Dry Web付加後のSurface再診断を工程として観察可能にする（2026-08-27）
+
+作者の実機観察を原文のまま記録する。
+
+> 「Dry Web付加後のSurface再診断Workerを実行中… ここが工程不明瞭な上に時間がかかっている」
+
+原因になっていた面ごとの全edge走査と毎回のnode map構築を、診断単位で一度だけコンパイルする接触索引へ置き換えた。
+edgeのtube AABBを使った安全な候補絞り込み後も、同じpoint-to-segment判定を行い、長すぎるedge・負/非有限radius・
+不確かなnodeはlegacy全走査へ戻す。再診断Workerは、`reachability-index`、`dangerous-face-contact`、
+`motif-attribution`、`motif-reachability` を実測X/Yで表示し、最後にcompleteを送る。形状、接触許容差、分類、
+graph、履歴、保存形式、出力、`printApproval=false`は変更しない。
+
+## Observation — G08 Dry Webの99%停止をWorker進捗へ分離（2026-08-27）
+
+Surface分類が57567/57567面まで完了した後も99%で画面が固まり、キャンセルできなかった原因は、
+分類結果の採用時にtargeted-gridの全patch pairを主スレッドで同期探索していたことだった。分類ledgerを
+既存Dry Web Workerへ渡し、routing、実測patch pair探索X/Y、candidate順序、tree、target接続、graph完了を
+共有進捗へ表示するようにした。patch material AABBの距離がmaxExposedGapを数学的に超えるpairだけを
+exact closest-material searchから除外し、legacy reference pathとの決定論的deep equalityを回帰テストで確認した。
+Dry Web graph後の既存exact Surface再診断は維持し、キャンセル時はWorker／timer／listener／generationを
+無効化して遅れて届く進捗・結果を採用しない。これは応答性と観察可能性の修正であり、形状、ledger、履歴、
+recipe、出力、printApproval=falseは変更しない。
+
+## Observation — Dry Web target接続の線形探索（2026-08-27）
+
+作者は、実測進捗で対象接続が遅い箇所を次のように観察した。
+
+> 「Dry Web target接続 17051/99235 ここがすごい時間かかる」
+
+原因だった対象ごとの配列コピー・ソート・距離再計算を、build開始時にpatchごとのmaterial point列とglobal fallback列を一度だけ作り、
+各targetの最近点を同じスコアの線形arg-minで選ぶ処理へ置き換えた。有限スコアでは同点時に元の最初の点を残し、
+非有限値は旧stable sortへ戻すため、graph・target順・ID・進捗総数は変わらない。
+
+## Observation — Dry Webを作者操作で開始する工程境界（2026-08-27）
+
+作者はDry Webの工程について次のように観察した。
+
+> 「Dryweb選択時に計算が勝手に始まるがDrywebを選択すると診断ボタンが表示されるべき」
+
+> 「またペイント確定後にDrywebの生成ボタンがない」
+
+そこでStage 4は、`Dry Web`選択 → `Dry Web用のSurface診断` → 自動inside分類ledger／Paintの確認 →
+`現在のPaint分類からDry Webを生成`という明示的な境界になった。選択や診断完了、Paintの確定・復元・Undo・Redoは
+Dry Web Workerを起動せず、既存graphをstaleとして扱う。生成中は実測されたWorker phaseを表示し、キャンセル後は
+同じ分類ledgerを使って再生成できる。
+
+作者はDry Web診断の対象についても次の意図を示した。
+
+> 「またこのDryweb時の診断の意図は表面を印刷可能状態で一体化させるためであるため、ベースShape側（いわゆる内側）のみペイントが発生するべきである」
+
+Stage 4ではinsideのみを新規編集・生成対象とし、outside / scaffoldの操作は後段のRemovable Print Supportへ分離した。
+互換性のため保存済みoutside strokeは削除・書換えせず、既存の分類geometryでinside-onlyのhit eligibilityを定義する課題は残している。
+
+## Observation — G07b Stage 3 Surface → Artwork Graph vertical slice (2026-08-27)
+
+After Base Shape and Surface Pattern have produced patches, Stage 3 now has one explicit
+`現在のSurfaceをArtwork Graph化` action. It adapts the current Patch facts to Surface Graph nodes and
+creates an in-memory Artwork Graph in `surfaceDraft`; the panel reports `ready` / `not-ready` / `stale`,
+current patch count, snapshot node count, relation count, `patchSetRevision`, and the Artwork Graph state.
+That snapshot is now the authoritative in-memory input boundary for Stage 4 Dry Web: generation clones
+`surfaceDraft.nodes[*].patch` from the exact current snapshot, and a missing or stale key blocks the Worker
+until Stage 3 is run again. Surface relations remain empty in this bounded slice. Interior / Artwork Connections,
+full Artwork Graph editing, Geometry / Mesh化, and print proof are explicitly not included; this checkpoint adds only the
+independent Surface node overlay described above, and
+`printApproval=false` remains unchanged.
+
+The snapshot source key is a synchronous canonical serialization of the current defined Patch facts plus
+`patchSetRevision`, so a later Surface patch edit, repack, or clear makes the previous snapshot stale and the
+same action regenerates it. History replay can expose legacy optional Patch fields as explicit `undefined`;
+the adapter omits only those absent values at the strict Graph Core boundary and does not alter any defined fact,
+history, recipe, geometry, or output.
+
+## Observation — G03d Artwork Graph boundary repair (2026-08-27)
+
+Artwork Graph validation now inspects the caller's original value graph through the Graph Core strict
+JSON boundary before any clone or canonical normalization. Inherited, non-enumerable, symbol,
+`undefined`, function, bigint, and cyclic facts therefore fail closed at validation, serialization,
+fingerprinting, and lifecycle entry points. A candidate's `baseRevision` is also independently checked
+against the active snapshot revision at generation (and against the current active slot while pending),
+while retained stale, rejected, and confirmed candidates keep that original binding through later
+container revisions. Coordinated edits to the candidate field and generated payload are rejected; no
+UI/runtime, geometry, printability, Slice, 3MF, or output behavior changed.
+
+## Observation — G03d Artwork Graph integrity boundary (2026-08-27)
+
+Retained integration candidates now bind their candidate revision, parent revision, and lineage to an
+ordered subsequence of the containing Artwork Graph history, so sibling candidates and later accept/reject
+transitions remain verifiable without treating a branch as a future container revision. Every candidate
+lifecycle retains one generated provenance fact containing canonical base/generated snapshots and their
+fingerprints; mutation after accept, reject, or stale transition fails validation, serialization, parsing,
+and graph fingerprinting. integratedConfirmed is checked against the confirmed sourceCandidateId for
+canonical Surface/Interior/Connections content and generated fingerprint provenance. This is semantic graph
+evidence only: no UI/runtime, geometry, printability, Slice, 3MF, or output behavior was added.
+
+## Observation — G03d Artwork Graph container facts (2026-08-27)
+
+The semantic Artwork Graph container now keeps `surfaceDraft`, `integrationCandidates`, and nullable
+`integratedConfirmed` as separate strict slots. Stage 3 therefore has an explicit Surface snapshot with empty
+Interior and Artwork Connection collections. Candidate generation is pure with generated provenance and an active
+snapshot fingerprint; explicit acceptance promotes one selected candidate while rejection leaves the active slots
+unchanged. Candidate, confirmed, stale, and rejected histories retain Graph Core revision/lineage facts and survive
+canonical serialize/parse/fingerprint round trips. This is semantic graph evidence only: no UI/runtime, history,
+geometry, printability, Slice, 3MF, or output behavior was added.
+
+## Observation — Surface Graph adapter and relation fixtures (2026-08-27)
+
+The current `Patch` facts can now be read as a semantic Surface Graph without changing the source patches:
+the `(patchSetRevision, patchId)` pair yields a deterministic author-element identity, while the copied patch
+facts remain separate from any later realization identity. Surface relations are typed relation records with
+candidate/confirmed/rejected/stale lifecycle values; confirmed-component inspection uses confirmed relations only.
+Focused fixtures cover identity across revisions, source-patch immutability, relation transitions/components,
+malformed graph rejection, and canonical serialize/parse/fingerprint behavior with presentation-order independence.
+This is a graph-facts boundary only: no Surface generation, geometry/mesh, runtime/UI, history/recipe, printability,
+Slice, or output behavior was changed.
+
+## Observation — Surface Graph revision and provenance boundary (2026-08-27)
+
+Each Surface snapshot now records its stable graph id, root/parent revision and monotonic lineage. Pure relation
+add/confirm/reject/propose/stale transitions create a new immutable snapshot, retain the prior edge revision as
+`parentRevision`, and append provenance chronology; confirmation is an author `pinned` fact and rejection is an author
+`manuallyDeleted` fact. Nodes and edges carry explicit parent revisions and complete generated provenance at the root,
+with safe-integer overflow rejected. This remains semantic graph evidence only: it makes no geometry, printability,
+runtime, UI, history, recipe, Slice, or output claim.
+
+Patch input order is presentation-only: the adapter normalizes Surface nodes by stable author identity before
+persisting graph facts, so equivalent patch sets serialize and fingerprint identically even when callers supply
+the patches in a different order.
+
+## Observation — G07a author-visible eight-stage WORKFLOW shell (2026-08-26)
+
+The approved author-facing order is exactly: `Base Shape` → `Surface Pattern` → `Artwork Graph化` →
+`Dry Web / Structural Integration` → `Integrated Artwork Graph調整` → `Geometry / Mesh化` → `作品形状診断` →
+`Removable Print Support`. The right pane now presents these as keyboard-accessible, collapsible stage rows while
+reusing every existing control, status, callback, DOM id, value, history path and saved-data route. Stage 2 owns
+manual Surface patch creation, radius, deletion and selection; Stage 3 is only the common Artwork Graph container
+with gray unimplemented slots; Stage 4 names Dry Web as the Interior + Artwork Connections candidate-integration
+step and owns its artwork physical settings (minimum diameter and maximum unreinforced length); Stage 5 marks true
+Candidate/Confirmed Graph editing as gray while retaining only the existing graph-screening/connection gauges as
+compatibility aids; Stage 7 keeps Surface/Internal checks as compatible diagnosis subfunctions; and Stage 8 owns
+removable-support controls and preview only. Print Job Assembly / Profile / 3MF evidence, Slice / Print Run
+evidence, Windows/cache/debug status, old split experiments, Gap Map, and developer utilities remain open at the
+bottom in `Auxiliary & frozen material`.
+作者は上部に重複した工程一覧を見て、原文で「右ペイン上部のここは不要」と判断した。8工程そのものは
+下の折りたたみ可能なstage群として残し、`WORKFLOW ▾`と`AUTHOR WORKFLOW · 8 STAGES`から始まる
+重複ナビゲーションだけを表示・DOMから除いた。各stage内の機能、表示、折りたたみ、状態は変更していない。
+This is a visual shell checkpoint only: no Graph Core, geometry algorithm, shape data, generation, output behavior,
+or persistence schema was added or changed, and `printApproval=false` remains.
+
+## Observation — Graph中心のSKIN全体制作工程を再検討（2026-08-26）
+
+作者は、作りたい作品自体は変えず、Metaball / SDFを仮想的な母体、Surface GraphとInterior Graphを
+そこから生まれる同格の作品構造、両者を接続した下流をPrint Geometryとする工程を示した。
+作者原文:
+
+> 僕が作りたいものは変わらないけれど全体の工程は見直してみてほしい
+
+> Graphを取り入れることで今時間をかけている診断も簡素化できるように思う
+
+この「工程」は診断部分だけでなく、Base、表面制作、内部構造、Print Geometry、removable print support、
+Slice / Print RunまでのSKIN全体を指す。再設計案を
+`notes/skin-graph-author-workflow-design-20260826.md`へ分離した。作者確認までは設計提案であり、現行工程、
+保存schema、形状、診断、出力を変更しない。`printApproval=false`を維持する。
+
+作者は、現時点での作品形状の物理的ゴールを原文で次の二点とした。
+
+> 一体性
+
+> 印刷できる
+
+Graphの連結性は一体になる設計意図のscreening、作品meshの実connected component／融合は一体性のexact evidence、
+Slice／Print Runは印刷できることの証拠として分ける。閾値や印刷合格はまだ決めず、`printApproval=false`を維持する。
+
+作者が添付した別レビューは、設計思想を承認し、実装開始を条件付き保留とした。必須条件として、Future Base / Skeleton
+Graph、typed Graph Core、author / instance / realization ID、Surface relationのproposed / confirmed / rejected、
+Geometry Realization Spec、Candidate RevisionとConfirmed Graphの作者mergeを挙げた。設計書へ全項目を追記し、
+Virtual Motherは常に非出力、殻を残す時はMother Shell ComponentをSurface Graphへ作者確認後に昇格する契約とした。
+この修正版はSol Highの読み取り専用再レビューで`ship`、blocking findingなしとなった。ただしこれは設計契約の
+レビュー通過であり、一括実装の承認ではない。G02a / G02bの完全一致性能改善を含め、作者が指定した小taskだけを
+個別に実装し、各回30分程度の目視確認地点で停止する。
+
+作者はさらに、Dry Webを`Interior Graph Generator`と呼ぶのは狭すぎると整理した。作者原文:
+
+> 表面パターンを内部構造と接続し、作品全体を一体化して、印刷可能な構造へ成立させる工程
+
+Dry Webを現在の`Structural Integration Generator`とし、Surface Graph、Virtual Mother、印刷条件、作者targetから、
+Interior Graph単体ではなく`Integrated Artwork Graph Candidate Revision`を出す設計へ修正した。形態的役割として
+見える内部構造を作り、構造的役割として離れたSurface要素を内部pathとConnectionsでつなぐ。Confirmed Graphは
+自動上書きせず、作者が段階5でcandidate diffを採否する。`Interior Graph ≠ removable print support`を維持する。
+
+## Observation — Task 04J Internal Structure確定後に印刷用サポートへ進む（2026-08-26）
+
+作者の違和感と工程判断を原文のまま残す。
+
+> 診断と同時にツリーサポートが生成されるのはおかしい
+
+> まずはinternalstructureが生成されるかそれ用のペイント表示などになるべき
+
+> internalstructureの確定後に印刷用サポートの生成となるはず
+
+工程を`Surface診断 → Support Paint 1／Internal Structure生成・観察 → 作者の確認 → 工程9の印刷用サポートpreview`
+へ分離した。Surface診断完了時にはPhase A支持林を生成しない。Dry Web選択時はInternal Structure用Workerの結果を
+Internal表示と角度screenへ渡し、Voronoi Edgeでは既存graphを表示する。工程9のボタンは有効なSurface診断と非空の
+Internal Structureが揃うまで無効で、作者が`Internal Structureを確認して印刷用サポートpreview生成`を押した時だけ
+表示用ツリーを作る。工程9の数値変更も、この明示操作より前にはツリーを生成しない。
+
+作者確認を保存形式へ新設すると互換性判断になるため、この便では履歴・recipe・.fkeiへ新しい確定flagを発明していない。
+ボタン操作を工程7から9へ進む明示境界とし、分類ledger、Internal graph、形状、出力、印刷判定は変更していない。
+`printApproval=false`を維持する。
+
+Sol High受入レビューで、再診断中に旧ツリーが残る、Paint更新後に工程9要求済み状態が残る、Voronoi Edgeで
+工程9を押すとInternal表示がDry Webのnull表示へ置き換わる、という3つの一時UI状態を確認した。再診断開始時に
+旧ツリーと工程9状態を即時解除し、Paint／Dry Web更新も必ず工程7へ戻す。工程9はInternal表示と角度screenを
+変更せず、確認済みVoronoi／Dry Webをそのまま表示する。再レビューで、Voronoi中のSupport Paint操作が
+Dry Web更新関数の前提不成立分岐からInternal表示を消す旧経路も確認し、非Dry WebモードではWorker状態だけを停止して
+rendererと角度screenへ触れないようにした。永続データと出力は引き続き変更していない。
+
+## Observation — Task 04I 99%後の表示用支持林を上限化（2026-08-26）
+
+8 Workerの自動支持点分類はWindows実機で`57567/57567面 · Worker 8 · 1.3秒`まで完了したが、
+その直後に画面が99%のまま停止した。作者の観察を原文のまま残す。
+
+> 99でとまった
+
+> 変わらないし応答しませんて出る
+
+> キャンセルも出来ない
+
+同じ履歴をMBAでも試し、作者は「一緒みたい」と確認した。Chromeの開発者情報にはerror／warningがなく、
+Windows固有のWorker・GPU・cache問題ではなく、Worker result採用後に主スレッドで行う表示処理が停止点だった。
+`finishSurfaceAngleDiagnosis()`は全outside分類点を`buildSupportForest()`へ同期投入してからブラウザへ制御を返していたため、
+診断完了の100%表示とキャンセル入力を描画・処理できなかった。
+
+分類ledger、inside/outside判定、形状、履歴、recipe、.fkei、出力を変更せず、Phase Aの書き出しに使わない
+表示用支持林だけを、全eligible件数を数えた上で安定順に最大2,000葉へ決定論的sampleする。診断完了表示を先に返し、
+次taskで上限付きpreviewを生成する。Support site表示がOFFのときは最大40,000 markerの準備も行わない。
+100,003件から2,000件を選ぶ回帰テストは27.5msで、先頭・末尾・安定順・再現性とinside／duplicate／座標欠落の除外を確認した。
+これは画面停止の修正であり、支持林previewは印刷判定でも出力形状でもない。`printApproval=false`を維持する。
+
+作者がMBA実機で同じ診断を再実行し、原文で「すすんだ」と確認した。これは99%停止の解消確認であり、
+Internal Structureの形、支持方法、印刷成立または出力の承認ではない。
+
+## Observation — Task 04H Windows並列結果のstack-safe統合（2026-08-26）
+
+作者のWindows実機ではTask 04Gの8 Worker経路へ進んだ後、次のエラーで結果採用前に停止した。
+
+> 自動支持点分類Workerに失敗しました: Maximum call stack size exceeded
+
+確認情報はorigin `http://192.168.11.13:5188`、secure contextなし、Workerあり、
+`navigator.hardwareConcurrency: 20`。HTTPのため`crypto.subtle`／`crypto.subtle.digest`がなく、永続cacheは
+unavailableだった。起動回数はSurface 1／Surface生成1／面判定1／自動分類1、表示上のclassification `0.0ms`は
+Worker resultを採用する前に失敗したためである。
+
+原因は分類規則ではなく、子Workerの大きな`diagnosedFacePositionsMm`を統合時にvariadic spreadで
+関数引数へ展開していたことだった。元のchunk順を検証してから総長を一度求め、単一の`Float32Array`を確保し、
+各chunkを`.set()`で順番にコピーする。entryもvariadic spreadを使わず通常ループで同じ順に格納する。
+30,000面／270,000 Float32値の合成結果を逆完了順から統合する回帰テストで、境界値・末尾・entry順を確認する。
+分類、Worker数、inside/outside/unresolved、dedup、ledger、cache、形状、出力形式は変更していない。
+作者Windowsでの再診断は保留で、印刷成立の承認ではない。`printApproval=false`を維持する。
+
+## Observation — Task 04G CPU並列の自動支持点分類（2026-08-26）
+
+80%で止まって見える自動支持点分類について、直前に提示した「同じsupport-free final Surfaceをコピー予算内で
+1〜8個のCPU Workerへ分け、危険面を連続チャンクで分類し、最後に一度だけ全体ledgerをrouteする」CPU並列化提案への
+実装認可として、作者の指示を原文のまま記録する。
+
+> やって
+
+分類のraw phaseを純粋化し、`surfaceSupportClassification.worker.ts`をcoordinatorとして同じmodule Workerを子Workerに
+使える構成へした。要求Worker数は`min(8, max(1, hardwareConcurrency - 1))`、実際の数は危険面数と、scaled support Surface
+の総コピー量384 MiBを上限として決める。子の連続面チャンクは完了順に関係なく元のface/source順へ戻し、exact/near dedupと
+ledger routingは従来どおり一度だけ行う。進捗は`自動支持点分類Worker · X/Y面 · Worker N · elapsed`として80%から99%へ進み、
+100%は最終resultの検証後だけにする。各childの進捗通知は約100回/chunkへ抑え、coordinatorは重複indexを作らず、chunk-0から
+explicit raw entriesとSurface factsを受けて最後に一度だけglobal routeする。面bufferの9要素未満の端数を含むmalformed入力は
+chunk化せずWorker 1の同じinline raw classifierへ倒し、実際のWorker数が1なら同じ理由でnested childを起動しない。合成Surfaceで
+単一呼出しoracleとのdeep equality、cross-chunk exact/near
+duplicate、mixed face、explicit target、malformed input、planner境界、単調進捗と安定mergeを確認した。
+
+RTX3080は使用していない。作者Windows runtimeでのWorker数・実時間の確認は保留で、これは分類完走・印刷成立の承認ではない。
+`printApproval=false`を維持する。
+
+## Observation — Task 04F 自動支持点分類の近傍重複除去（2026-08-26）
+
+作者の質問（原文）:
+
+> 80%で計算が詰まるのは高速化出来ない？
+
+`http://192.168.11.13:5188` のスクリーンショットでは、`自動支持点分類Worker · ledgerを計算中… · 80%` と
+表示されていた。画面上の事実は `Surface prepared`、shell `617.2ms`、recipe `0.0ms`、cache lookup `0.1ms`、
+ledger restore `0.0ms`、classification Worker はまだ返っていないため `0.0ms` のままだった。
+
+80%段階の分類結果を変えずに、`routeClassifiedSupportSites` 内の受理済みsupport site近傍検索だけを、
+`deduplicationToleranceMm`をセル幅とする増分3D空間バケットへ置き換えた。隣接27セルを候補として調べ、最後は従来と
+同じ厳密なユークリッド距離比較を行う。完全一致の先行判定、近傍で省略されたsiteをexact mapへ先に記録する順序、
+重複entryのfail-closed、受理順・分類・ID・件数は維持した。0／負／NaN／非有限値の互換経路も残し、`+Infinity`を含む
+旧`distance <= tolerance`の挙動を変えない。合成30,000件の有限・離間siteでは、この便のローカルテスト実測が
+230.67msで、出力件数・順序・IDが完全一致した。これはauthor dataを使わない回帰計測である。
+
+作者Windows実機での同一画面の再計測は未確認であり、分類完走や印刷承認を意味しない。`printApproval=false`を維持する。
+
+## Observation — Task 04E LAN HTTP Shape History import（2026-08-26）
+
+作者原文:
+
+> 履歴は読み込めないまま何だがとりあえず今の状態
+
+`http://192.168.11.13:5188` のスクリーンショットでは、角度表示は現在はっきり赤／緑に見え、基準45°で
+green33／red97だった。これはTask04Cのcolor-legibility correctionが視覚的に確認できた事実だが、印刷の承認ではない。
+同じ画面のShape History import statusは正確に`読込失敗: SHA-256 requires WebCrypto`で始まっていた。
+`src/lib/hash.ts` は `crypto.subtle.digest` が使えないHTTP originでも、選択ファイルのテキスト／bytesを変更せずに
+dependency-free SHA-256へ進めるようになった。通常はWebCryptoを優先し、digest自体の実エラーは握りつぶさない。
+作者JSON・形状の読込実行はしておらず、5188で作者が既にexport済みのShape History JSONを目視再確認する待機中である。
+`printApproval=false`を維持する。
+
+## Observation — Task 04D Shape History round-trip（2026-08-26）
+
+現行のShape History importは、`parseRecipe`／`replay`の検証より先にimport recipeのSHA・filename・textと
+Support Paint sessionを更新していたため、失敗時に状態が部分更新され得た。またPROJECT内の可視import labelに
+file inputの結び付けがなく、ラベルクリックでの再選択が不確実だった。import境界でparse＋replayを先に完了し、
+成功後だけ履歴・メタデータ・Support Paintをcommitする経路へ最小修正した。label/inputには明示的な結び付けを追加し、
+PROJECT内に`aria-live`の「読込中／読込完了・履歴N件／読込失敗」状態を表示する。formatVersion=1、旧配列形式と
+`{entries}`形式は維持し、現行全SkinParams（Internal Structureを含む）＋pack／modeのsynthetic export→parse→replay
+テストを追加した。作者のJSON・形状・保存データを読み込む実行確認はしておらず、5188での目視確認待ち。`printApproval=false`。
+
 ## 作者確認 — Task 03F Windows復旧・共通進捗（2026-08-26）
 
 作者原文:
@@ -28,6 +715,56 @@ Paint 2だけをdisabledのままとする。
 
 これは操作入口の整理だけであり、作者はまだInternal Structureを選択・生成・承認していない。
 作者確認待ちで、形状データ、保存データ、生成、出力、高精度処理は行っていない。`printApproval=false`。
+
+## Observation — Task 04B Internal output readiness（2026-08-26）
+
+Internal Structureを選択したまま、派生graphが未生成またはedge 0の状態でBODY／3MFを出力できてしまう
+分岐を確認した。`internalStructureOutputBlockReason`を共通の純粋判定として追加し、`targetedGrid`と
+`voronoiEdge`ではgraphが存在し、edgeが1本以上あることを出力前提にした。通常meshの検査／書き出し、
+印刷確認、Bambu 3MF、Internal最終判定の各入口は、この判定に失敗した時点でWorker起動と保存を止める。
+`none`は従来どおりSurfaceのみの出力を許可する。preview描画、graph生成、履歴／recipe、Seed、cache、
+ledger、Print Profile、worker protocolは変更していない。これは出力経路のfail-closed修正であり、作者は
+Internal Structureの形状をまだ選択・生成・承認していない。高精度生成、Surface診断、3MF、Sliceは行わず、
+`printApproval=false`を維持する。
+
+## 作者観察 — Task 04B Internal Structure（2026-08-26）
+
+作者原文:
+
+> 「見た目は良いがプリントしたときに絶対に成立していない」
+
+これは添付スクリーンショットを見た作者による観察である。画像から読める事実として、作者が設定した
+Voronoi Edgeの点の数は`72`、線の太さは`0.025`、配置の揺らぎは`1.000`、statusには`node 319 / edge 446 /
+boundary clip 97 / excluded 173`が表示されている。現在のVoronoi Edgeは見た目についてこの評価を受けたが、
+FDM印刷成立の承認は得ていない。現行のfail-closed guardはmissing／empty graphを防ぐだけで、非空graphの
+積層成立性を保証しない。印刷承認・形状承認はなく、`printApproval=false`を維持する。次は形を変えず、
+graph-onlyの印刷成立診断を先に行うことが候補だが、作者の判断はまだ決めていない。
+
+## Observation — Task 04C Internal angle screening（2026-08-26）
+
+既存のInternal Structure graphを変更せず、graphのedge順に+Z積層方向からの角度だけを同期的に確認する
+表示を追加した。`A1_MINI_PLA_04_02.maxAngleFromVerticalDeg`（45°）以下は`selfSupportingAngle`（緑）、
+45°を超えるedgeは`angleRisk`（赤）とし、欠損・不正なendpointもfail-closedで赤にする。工程7の
+`積層角度を色で確認`は非空Internal graphがある時だけ有効で、緑／赤の件数と
+`これは角度だけの確認で、印刷合格ではありません`を表示する。これは角度だけのscreeningであり、
+anchoring、bridge長、径、水密性、layer continuity、印刷成功を判定しない。OFF時の既存cyan表示、
+`none` / `targetedGrid` / `voronoiEdge`、graph生成、履歴／recipe、Seed、preview mesh、Support Paint、
+出力権限とfull Internal Print Gateは変更していない。toggleはeditor表示状態だけで保存・履歴化しない。
+著者の同一origin 5188ページでの赤／緑結果確認は待機中であり、`printApproval=false`を維持する。
+
+## Observation — Task 04C color legibility correction（2026-08-26）
+
+作者スクリーンショットから読める事実は、角度screeningが緑`33`／赤`97`、判定の基準が`45°`、statusが
+`internal points 28 / node 103 / edge 130 / boundary clip 40 / excluded 44`、表示中の設定が線の太さ`0.045`・
+配置の揺らぎ`0.650`である。スクリーンショット上のrodは赤／緑として判別しづらく黒／暗く見える（これは作者の
+発言ではなくAIによる視覚観察）。
+
+原因は角度screen用の白いmaterialが、`color` attributeを持たないcylinder geometryに対して
+`vertexColors: true`となっていたことだった。Three.jsのgeometry color branchが欠損／default vertex colorを
+`instanceColor`へ乗算し得るため、materialだけを`vertexColors: false`へ修正し、白いbase materialと
+edge順に対応した緑／赤の`instanceColor`を保つ。graph、edge順、分類、件数、形状、角度基準は変更せず、OFF時は
+既存のcyan `internalMaterial`へ戻し、staleなinstance colorをclearする既存経路も維持した。作者の同一origin
+5188での赤／緑の見た目の再確認は待機中であり、印刷承認ではない。`printApproval=false`を維持する。
 
 ## Observation — Task 04A correction WORKFLOW折りたたみ（2026-08-26）
 
@@ -1695,6 +2432,8 @@ Voronoi / Goldberg の結果を初期配置として保ち、決定論的な表�
 
 ## Next
 
+- 作者の次の要望は、Dry Webの全体補強線数とは別に、選択した各表面要素へ何箇所接続するかを1／2／3箇所のように比較できるようにすること。
+  原文: 「各表面要素の接続強度（1箇所2箇所3箇所などが調整できるようになると好ましい）」
 - Support Enforcer候補を、付加後に残る赤面からさらに「外側・下向き・ベッド側から空間的に到達可能・除去可能」な
   下側包絡へ絞る。Dry Web内部へtreeが入る現状と同じ3MFを比較し、Support重量、内部侵入、外殻下面の被覆をPreviewで
   確認する。内部全域の一律Support Blockerは必要な外殻supportも消し得るため、到達判定より先には採用しない
@@ -3159,3 +3898,85 @@ CLI `--body-stl`も、open/non-manifold/exact-degenerate/multi-componentは修�
 ### v0.57 exact Surface tiny-face rule（2026-08-23）
 
 作者のresolution 128 exportはreachability段階まで到達し、final Surfaceの11面が固定面積閾値では「退化」と誤分類された。Float32座標で有限かつcross productが厳密に0でない面は遮蔽に使えるため残し、非有限または厳密なzero-area/collinearだけを無効としてfail closedにする。小さな有効面を黙ってskipして遮蔽穴を作らない。
+
+## Observation G01a — Graph Coreの再現可能な管理契約（2026-08-27）
+
+Graph Coreを、Surface／Interior／Artworkの意味を決めない共通契約として追加した。ノードや各Typed Graphの意味を一つのEdge型へ押し込まず、identity、revisionと親revisionのlineage、lifecycle（candidate / confirmed / rejected / stale）、canonical serialization、fingerprint、validationだけを共有する。生成時の事実を後から作者がpin／move／add／deleteしても失わないよう、現在のprovenance factと過去のordered historyを別に保持する。
+
+nodes と edges のようなGraph entity collectionだけはstable IDで正規化し、ordered author actionsはIDを持っていても順序を保持する。この区別はパス指定または明示wrapperで表す。JSONのmalformed lifecycle、重複ID、callerが指定したtyped-edge descriptorのdangling endpoint、非有限数値はfail closedする。sha256HexのfallbackでWebCryptoなし／LAN HTTPでもfingerprintを計算できる。
+
+これは形状生成、Surface adapter、Artwork Graph container、UI、runtime接続ではなく、印刷可能性を主張するものでもない。今回の変更で作者が見た形や制作判断は変わっていない。
+
+## Observation G01a persistence boundary repair（2026-08-27）
+
+Graph Coreの保存境界を再点検し、canonical JSONが読み落とすrequired factをstrict validationで受け入れないようにした。document、entity metadata、provenance/history、revision lineage、collection path配列、opt-in endpoint pairのrequired値は、own enumerable data propertyであることを確認してから読む。明示された`undefined`、継承値、non-enumerable値はstrict serialize前にfail closedし、relaxedLegacyModeも「旧形式で欠けている」フィールドだけを許す。start/current/parent/provenance/actionのrevisionとlineage entryはfinite・non-negative・safe integerに限定し、`Number.MAX_SAFE_INTEGER`からのadvanceは停止する。
+
+既存のplain JSONとown `__proto__` data keyは引き続きcanonical serialize→parseできる。新しい境界fixtureとMAX_SAFE_INTEGER前後のrevision fixture、および直接serialize rejectionを追加した。graphCore direct test、test typecheck、production build、`git diff --check`は成功した。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a action-order boundary repair（2026-08-27）
+
+`collectionPaths`に`actions`（またはその下位path）を指定した文書は、ordered author actionsとunordered entity collectionの
+意味が衝突するため、canonical bytesを作る前にfail closedする。action配列自体は引き続きIDの有無に関係なく時系列を保持し、
+typed endpoint fixtureは公開`GraphEndpointSelector<TestTypedEdge>`型に適合させた。graphCore direct test、test typecheck、
+production build、scoped diff checkは成功した。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a canonical/provenance boundary repair（2026-08-27）
+
+`canonicalStringify`、`serializeGraph`、`fingerprintGraph`（および内部の`canonicalize`）は、JSONが暗黙にnull化・省略・
+例外化する`undefined`、function、symbol、bigint、非有限数、cycleを受け入れず、canonical bytesを作る前にfail closedする。
+`fingerprintGraph`にもcanonical optionを渡せるが、persisted `collectionPaths`と同じ／親／子pathを`orderedArrayPaths`で
+再分類する指定は拒否する。provenanceは`generated/generated`だけが生成事実で、generator・algorithmVersion・inputFingerprint
+を非空で要求し、authorのpinned／manuallyMoved／manuallyAdded／manuallyDeletedは生成情報なしで保持できる。
+direct test、test typecheck、production build、scoped diff checkは成功した。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a canonical API and provenance strictness（2026-08-27）
+
+canonical API全体で、JSON.stringifyが別の値へ変換する事実をbytes／fingerprintへ通さない境界を統一した。
+`fingerprintGraph`は`GraphFingerprintOptions`でcanonical path指定を受け、persisted collectionとordered pathの同一／親／子の衝突を拒否する。
+provenanceはsource／intentの全組み合わせを検査し、`generated/generated`には生成器名・algorithm version・入力fingerprintを非空で要求する。
+authorの所有権変更（pinned／manuallyMoved／manuallyAdded／manuallyDeleted）は生成メタデータなしで有効である。
+無効値のcollision、path authority、provenance欠損／空文字の回帰テストを追加した。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a collection marker authority（2026-08-27）
+
+persisted `collectionPaths`でunordered entity collectionとして宣言した配列は、その場所で権威を持つ。
+そこへ`asOrderedActionCollection`を重ねた値は、action markerを優先して順序付きとして保存せず、document validation、canonical serialize、fingerprintの全境界でbytes生成前に拒否する。
+action配列自身の合法なmarkerと、persisted collectionと重ならない明示ordered pathは引き続き意味を保つ。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a provenance history authority（2026-08-27）
+
+provenanceの`history`は所有権の時系列証拠であり、entity collectionとして正規化しない。`provenance.history`、そこへ到達するnested path、history配下のdescendant pathをpersisted `collectionPaths`へ指定した場合は、validation、serialize、fingerprintのbytes境界より前にfail closedする。通常のhistoryの順序、valid custom collection、actionsの順序は変えていない。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a action／provenance chronology and collection declaration set（2026-08-27）
+
+persisted `collectionPaths`の`actions` segment以下（`actions.0.items`のようなnumeric descendantを含む）は、ordered author chronologyをunordered collectionへ再分類できない。provenance factsにrevisionがある場合はsafe integerのoldest→newest順を検査し、history内の同値／後退とcurrent factの非増加を拒否する。appendは同じまたは低いrevisionを追加せず、既存値を変更しない。persisted collection declaration自体は文字列のunordered setとしてcanonical bytes／fingerprintへ出し、順序の入替えは同値、重複は拒否する。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a persisted collection path grammar（2026-08-27）
+
+persisted `collectionPaths`は、配列を終端に置くdot-separated safe object-key segmentだけを受け入れる。`groups.0.items`のようなnumeric／index segment、wildcard、bracket表記は、array element traversalを暗黙にしないためvalidation、serialize、fingerprintの同じ保存境界で拒否する。`groups.customNodes`のようなobject-only nested pathは従来どおりunordered collectionとしてpresentation orderを正規化する。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a persisted declaration and provenance input boundary（2026-08-27）
+
+canonicalize、canonicalStringify、serializeGraph、fingerprintGraphは、persisted `collectionPaths`の各宣言をbytes／fingerprintの前に同じauthoritative validatorで検査する。宣言pathが存在しない、終端がarrayでない、またはown ID-bearing entity recordの配列でない場合はfail closedする。`appendGraphProvenance`はhistoryを持たない`GraphProvenanceFactInput`だけを受け付け、own／継承／non-enumerableの`history`も黙って捨てず拒否する。sourceのimmutabilityとvalid fact appendは保たれる。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation G01a history-free provenance type boundary（2026-08-27）
+
+`GraphProvenanceFactInput`から`history` key自体を型として除き、`appendGraphProvenance`は引数型の`keyof`に`history`が含まれる場合を受け付けない。inline objectだけでなく、`history: undefined`を持つannotated／predeclared variableもcompile-timeで拒否されることを`@ts-expect-error`回帰として固定し、historyを持たないtyped factは引き続きappendできる。runtimeでもown／継承／non-enumerable propertyを拒否する。形状生成、mesh、Slice、出力、UI、print approvalは変更していない。
+
+## Observation Stage 8 exact-orange → 3MF dispatch checkpoint（2026-08-28）
+
+targetedGridの3MF Workerへ渡す危険面候補を、現在のDry Web付加後診断で確定したexact-orange triangle soupだけに限定した。source単位の座標、source face ID、generation、orange面数、4点診断site数を純粋な境界でcloneして検証し、currentでない分離結果、red／unresolved、非有限値、面数不一致、ID不一致、元の全分類ledgerでoutsideでない面はfail closedする。exact-orangeはWorkerでSupport Paintを再適用せず、そのまま外側到達性・足場候補として扱い、Print Profileのexplicit targetは別経路で保持する。legacy/non-targeted routeは従来の全診断＋Paint適用を維持し、元のclassification／ray／paint factsはvalidation evidenceとして保存する。selection mode・generation・source face IDを3MF export fingerprintへ含める。ここでは実際の3MF生成、保存、Slice、作者による印刷視認確認はまだ行っていない（printApproval=false）。
+
+## Observation Stage 7 provisional delta recheck（2026-08-28）
+
+作者の問いを原文のまま記録する: `仮Graphで再診断 を高速化できる？`
+
+current exact baselineのbefore/after/mitigated triangle soupをWorker境界でcloneし、base edge tubeがprovisional graphで端から端まで連続被覆され、半径が縮んでいないことを純粋なvalidatorで証明できた場合だけ、現在のorange+red（after-danger）面を差分再診断する。base edgeの削除・gap・off-segment・radius shrink・malformed graphは証明失敗として、resolution、threshold、meshStep、surface geometry、canonical stateを変えず全件のbasePositionsへfallbackする。delta結果はbaselineのface orderへ戻してmergeし、countsだけでなくFloat32 positionsと関連metricsをexact比較する。進捗には実際の `差分 after/before面` または `全件 fallback` を表示する。
+
+これは実行境界とexact/fail-closed条件を記録したもので、作者の実測timingがまだないため速度の主張はしていない。
+
+## Observation Stage 7 exact reachability query allocation（2026-08-28）
+
+作者の言葉を原文のまま記録する: `仮Graphで再診断と Dry Web付加後を再診断 まだかなり時間がかかっているな`
+
+exact reachabilityの各face queryで作っていた候補Set・配列化・sortを、compile単位のgeneration stampで重複抑制する。AABBのslack、point-to-segment判定、global/reference fallback、progress、diagnosis booleanは変えず、同じcompile内の繰り返しqueryだけのallocationを減らす。index自体はcompileごとに再構築され、cross-runのpersistent index/cache reuseではない。bucket traversal順が変わるためruntime-only statsのexact check数は順序依存になり得るが、結果の分類とcanonical stateは変わらない。

@@ -311,6 +311,9 @@ export interface SkinParams {
   internalRadius: number;
   /** 0..1 jitter of the otherwise even interior site lattice. */
   internalRandomness: number;
+  /** Dry Web artwork-integration screen: independent graph contact sites
+   * required per Surface Pattern (legacy recipes omit this and read as 3). */
+  dryWebRequiredContacts?: number;
 }
 
 export const DEFAULT_SKIN_PARAMS: SkinParams = {
@@ -367,6 +370,7 @@ export const DEFAULT_SKIN_PARAMS: SkinParams = {
   internalDensity: 28,
   internalRadius: 0.045,
   internalRandomness: 0.65,
+  dryWebRequiredContacts: 3,
 };
 
 export function captureMotifShapeParams(params: SkinParams): MotifShapeParams {

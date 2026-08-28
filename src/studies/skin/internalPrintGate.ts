@@ -1,4 +1,5 @@
 import type { SkinMeshResult } from "./meshExport.ts";
+import type { InternalStructureMode } from "./field.ts";
 import type { InternalStructureGraph, Vector3Value } from "./voronoi.ts";
 
 const EPSILON = 1e-8;
@@ -61,6 +62,100 @@ export interface InternalPrintGateInput {
   /** Surface-only SDF. Negative means the Internal node centre is inside the
    * already printable outer SKIN; the unioned Internal field must not be used. */
   surfaceSdf: (point: Vector3Value) => number;
+}
+
+export type InternalAngleScreeningClassification = "selfSupportingAngle" | "angleRisk";
+
+export interface InternalAngleScreeningEdge {
+  /** Position in the source graph's edge array. */
+  edgeIndex: number;
+  edgeId: number;
+  angleFromVerticalDeg: number | null;
+  classification: InternalAngleScreeningClassification;
+}
+
+export interface InternalAngleScreeningReport {
+  profileId: string;
+  thresholdDeg: number;
+  edges: InternalAngleScreeningEdge[];
+  selfSupportingAngleCount: number;
+  angleRiskCount: number;
+}
+
+/**
+ * Output readiness is stricter than preview readiness: when an artwork
+ * Internal Structure mode is selected, a missing or empty graph must stop the
+ * caller before it can start a Worker or emit a BODY artifact. `none` keeps
+ * the pre-existing Surface-only output path valid.
+ */
+export function internalStructureOutputBlockReason(
+  mode: InternalStructureMode,
+  graph: InternalStructureGraph | null,
+): string | null {
+  if (mode === "none" || (graph !== null && graph.edges.length > 0)) return null;
+  return "選択したInternal Structureが未生成または空です。生成後に出力してください";
+}
+
+/**
+ * Fast, display-only FDM angle screen for an existing Internal graph.
+ * 0° is vertical in the +Z print direction and 90° is horizontal. This
+ * deliberately assesses angle only; it does not inspect anchoring, bridge
+ * length, diameter, watertightness, layer continuity, or print success.
+ * Edge endpoints are node IDs (not array positions). Invalid endpoint
+ * references and degenerate/non-finite edges are red so a malformed graph can
+ * never be presented as self-supporting.
+ */
+export function screenInternalStructureAngles(
+  graph: InternalStructureGraph | null,
+  profile: Pick<InternalPrintProfile, "id" | "maxAngleFromVerticalDeg"> = A1_MINI_PLA_04_02,
+): InternalAngleScreeningReport {
+  const thresholdDeg = profile.maxAngleFromVerticalDeg;
+  const edges: InternalAngleScreeningEdge[] = [];
+  let selfSupportingAngleCount = 0;
+  let angleRiskCount = 0;
+  const nodes = graph?.nodes ?? [];
+  const nodeIndex = new Map(nodes.map((node, index) => [node.id, index]));
+
+  for (let edgeIndex = 0; edgeIndex < (graph?.edges.length ?? 0); edgeIndex++) {
+    const edge = graph!.edges[edgeIndex];
+    const start = nodeIndex.has(edge.start) ? nodes[nodeIndex.get(edge.start)!] : undefined;
+    const end = nodeIndex.has(edge.end) ? nodes[nodeIndex.get(edge.end)!] : undefined;
+    let angleFromVerticalDeg: number | null = null;
+    const startPosition = start?.position;
+    const endPosition = end?.position;
+    if (startPosition && endPosition) {
+      const dx = endPosition.x - startPosition.x;
+      const dy = endPosition.y - startPosition.y;
+      const dz = endPosition.z - startPosition.z;
+      const length = Math.hypot(dx, dy, dz);
+      if (
+        Number.isFinite(dx) && Number.isFinite(dy) && Number.isFinite(dz)
+        && Number.isFinite(length) && length > EPSILON
+      ) {
+        const verticalRatio = Math.min(1, Math.max(0, Math.abs(dz) / length));
+        angleFromVerticalDeg = Math.acos(verticalRatio) * 180 / Math.PI;
+      }
+    }
+    const selfSupporting = angleFromVerticalDeg !== null
+      && Number.isFinite(angleFromVerticalDeg)
+      && angleFromVerticalDeg <= thresholdDeg + 1e-6;
+    if (selfSupporting) selfSupportingAngleCount++;
+    else angleRiskCount++;
+    edges.push({
+      edgeIndex,
+      edgeId: edge.id,
+      angleFromVerticalDeg,
+      classification: selfSupporting ? "selfSupportingAngle" : "angleRisk",
+    });
+  }
+
+  return {
+    profileId: profile.id,
+    thresholdDeg,
+    edges,
+    selfSupportingAngleCount,
+    angleRiskCount,
+  };
 }
 
 function distance(a: Vector3Value, b: Vector3Value): number {

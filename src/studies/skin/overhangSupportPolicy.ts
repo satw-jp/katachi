@@ -169,8 +169,103 @@ function exactPointKey(point: OverhangPointMm): string {
   return Math.fround(point.xMm) + "," + Math.fround(point.yMm) + "," + Math.fround(point.zMm);
 }
 
+function hasFinitePosition(point: OverhangPointMm | undefined): point is OverhangPointMm {
+  return point !== undefined
+    && Number.isFinite(point.xMm)
+    && Number.isFinite(point.yMm)
+    && Number.isFinite(point.zMm);
+}
+
+function hasUsableDeduplicationTolerance(toleranceMm: number): boolean {
+  return Number.isFinite(toleranceMm) && toleranceMm > 0;
+}
+
 function near(a: OverhangPointMm, b: OverhangPointMm, toleranceMm: number): boolean {
   return Math.hypot(a.xMm - b.xMm, a.yMm - b.yMm, a.zMm - b.zMm) <= toleranceMm;
+}
+
+type SpatialBucket = [number, number, number];
+
+const SPATIAL_NEIGHBOR_OFFSETS: SpatialBucket[] = [];
+for (let z = -1; z <= 1; z += 1) {
+  for (let y = -1; y <= 1; y += 1) {
+    for (let x = -1; x <= 1; x += 1) {
+      SPATIAL_NEIGHBOR_OFFSETS.push([x, y, z]);
+    }
+  }
+}
+
+/**
+ * Incremental index for the accepted, positioned entries in one ledger pass.
+ * A cell has the same length as the tolerance, so two points within the
+ * Euclidean tolerance can differ by at most one cell on each axis. The
+ * neighbouring-cell scan is only a candidate filter; `near` remains the exact
+ * Euclidean acceptance test. Non-finite positions are deliberately not indexed
+ * because the old comparison cannot consider them near any finite position.
+ */
+class IncrementalNearSiteIndex {
+  private readonly buckets = new Map<string, OverhangAssignmentEntry[]>();
+  /** Compatibility path for zero/+Infinity (and malformed positions). */
+  private readonly acceptedEntries: OverhangAssignmentEntry[] = [];
+
+  constructor(private readonly cellSizeMm: number) {}
+
+  private cellFor(point: OverhangPointMm): SpatialBucket {
+    return [
+      Math.floor(point.xMm / this.cellSizeMm),
+      Math.floor(point.yMm / this.cellSizeMm),
+      Math.floor(point.zMm / this.cellSizeMm),
+    ];
+  }
+
+  private static key(cell: SpatialBucket): string {
+    return cell[0] + "," + cell[1] + "," + cell[2];
+  }
+
+  hasNear(point: OverhangPointMm): boolean {
+    if (!hasUsableDeduplicationTolerance(this.cellSizeMm)) {
+      // Keep the old literal `Math.hypot(...) <= tolerance` semantics for
+      // tolerances that cannot define a bucket. In particular, +Infinity
+      // accepts every pair of finite points, while NaN/negative values accept
+      // none. This path is intentionally linear because production uses the
+      // finite positive Surface epsilon; it is a compatibility guard only.
+      if (this.cellSizeMm === 0 || this.cellSizeMm === Number.POSITIVE_INFINITY) {
+        for (const candidate of this.acceptedEntries) {
+          if (candidate.positionMm && near(point, candidate.positionMm, this.cellSizeMm)) return true;
+        }
+      }
+      return false;
+    }
+    if (!hasFinitePosition(point)) return false;
+    const [cellX, cellY, cellZ] = this.cellFor(point);
+    for (const [offsetX, offsetY, offsetZ] of SPATIAL_NEIGHBOR_OFFSETS) {
+      const candidates = this.buckets.get(IncrementalNearSiteIndex.key([
+        cellX + offsetX,
+        cellY + offsetY,
+        cellZ + offsetZ,
+      ]));
+      if (!candidates) continue;
+      for (const candidate of candidates) {
+        if (candidate.positionMm && near(point, candidate.positionMm, this.cellSizeMm)) return true;
+      }
+    }
+    return false;
+  }
+
+  add(entry: OverhangAssignmentEntry): void {
+    // The old entries.some predicate considered accepted entries with a
+    // positioned value (including malformed values, which simply fail near),
+    // but never entries carrying duplicateOf. Retain that candidate set for
+    // compatibility fallbacks, then index only finite positions for buckets.
+    if (entry.duplicateOf || !entry.positionMm) return;
+    this.acceptedEntries.push(entry);
+    if (!hasUsableDeduplicationTolerance(this.cellSizeMm) || !hasFinitePosition(entry.positionMm)) return;
+    const cell = this.cellFor(entry.positionMm);
+    const key = IncrementalNearSiteIndex.key(cell);
+    const candidates = this.buckets.get(key);
+    if (candidates) candidates.push(entry);
+    else this.buckets.set(key, [entry]);
+  }
 }
 
 function emptyCounts(): OverhangAssignmentCounts {
@@ -180,7 +275,7 @@ function emptyCounts(): OverhangAssignmentCounts {
   };
 }
 
-function toRayFacts(index: SupportReachabilityIndex): OverhangSupportRayFacts {
+export function toOverhangSupportRayFacts(index: SupportReachabilityIndex): OverhangSupportRayFacts {
   return {
     method: OVERHANG_SUPPORT_RAY_METHOD,
     surfaceSource: "support-free-final-surface",
@@ -224,6 +319,111 @@ function classifyRayDiagnosis(diagnosis: SupportReachabilitySampleDiagnosis | nu
   };
 }
 
+export interface OverhangRawClassificationResult {
+  entries: OverhangAssignmentEntry[];
+  diagnosedFacePositionsMm: Float32Array;
+}
+
+/**
+ * Classify targets without applying exact/near deduplication, Paint, or
+ * routing. Keeping this phase pure lets a coordinator classify contiguous
+ * dangerous-face chunks and then run the historical single route globally.
+ * Source offsets are used by chunks so sourceIndex/faceIndex remain the same
+ * values as the single-pass oracle.
+ */
+export function classifyRawOverhangTargets(input: {
+  rayIndex: SupportReachabilityIndex;
+  targets: readonly OverhangTargetInput[];
+  diagnosedFaceSourceIndexOffset?: number;
+  explicitSourceIndexOffset?: number;
+  onDiagnosedFaceComplete?: (completedFaceCount: number, totalFaceCount: number) => void;
+}): OverhangRawClassificationResult {
+  const sourceCounts: Record<OverhangTargetSource, number> = {
+    "diagnosed-face": input.diagnosedFaceSourceIndexOffset ?? 0,
+    "explicit-profile": input.explicitSourceIndexOffset ?? 0,
+  };
+  const totalDiagnosedFaces = input.targets.reduce(
+    (count, target) => count + (target.source === "diagnosed-face" ? 1 : 0),
+    0,
+  );
+  let completedDiagnosedFaces = 0;
+  const rawEntries: OverhangAssignmentEntry[] = [];
+  const diagnosedFaces: number[] = [];
+  const reportDiagnosedFace = (): void => {
+    completedDiagnosedFaces++;
+    input.onDiagnosedFaceComplete?.(completedDiagnosedFaces, totalDiagnosedFaces);
+  };
+
+  for (const target of input.targets) {
+    const sourceIndex = sourceCounts[target.source]++;
+    if (target.source === "diagnosed-face") {
+      const face = asFace(target);
+      if (!face) {
+        rawEntries.push({
+          id: stableId(target.source, sourceIndex, 0),
+          source: target.source,
+          sourceIndex,
+          siteIndex: 0,
+          faceIndex: sourceIndex,
+          classification: "unresolved",
+          rayResult: "ray-unresolved",
+          reason: "malformed-or-nonfinite-diagnosed-face",
+        });
+        reportDiagnosedFace();
+        continue;
+      }
+      diagnosedFaces.push(...face);
+      const sampledNormal = target.normal ?? faceNormal(face);
+      sampleFace(face).forEach((positionMm, siteIndex) => {
+        const routed = classifyRayDiagnosis(input.rayIndex.diagnosePoint(positionMm.xMm, positionMm.yMm, positionMm.zMm));
+        rawEntries.push({
+          id: stableId(target.source, sourceIndex, siteIndex),
+          source: target.source,
+          sourceIndex,
+          siteIndex,
+          faceIndex: sourceIndex,
+          positionMm,
+          classification: routed.classification,
+          rayResult: routed.rayResult,
+          nearestLowerSurfaceDistanceMm: routed.nearestLowerSurfaceDistanceMm,
+          reason: routed.reason,
+          patchId: target.patchId,
+          normal: sampledNormal,
+          contactRadiusMm: target.contactRadiusMm,
+          contactOverlapMm: target.contactOverlapMm,
+        });
+      });
+      reportDiagnosedFace();
+      continue;
+    }
+    const positionMm = asPoint(target);
+    const routed = positionMm
+      ? classifyRayDiagnosis(input.rayIndex.diagnosePoint(positionMm.xMm, positionMm.yMm, positionMm.zMm))
+      : {
+          classification: "unresolved" as const,
+          rayResult: "ray-unresolved" as const,
+          nearestLowerSurfaceDistanceMm: null,
+          reason: "malformed-or-nonfinite-explicit-target",
+        };
+    rawEntries.push({
+      id: stableId(target.source, sourceIndex, 0),
+      source: target.source,
+      sourceIndex,
+      siteIndex: 0,
+      classification: routed.classification,
+      rayResult: routed.rayResult,
+      nearestLowerSurfaceDistanceMm: routed.nearestLowerSurfaceDistanceMm,
+      positionMm: positionMm ?? undefined,
+      patchId: target.patchId,
+      normal: target.normal,
+      contactRadiusMm: target.contactRadiusMm,
+      contactOverlapMm: target.contactOverlapMm,
+      reason: routed.reason,
+    });
+  }
+  return { entries: rawEntries, diagnosedFacePositionsMm: new Float32Array(diagnosedFaces) };
+}
+
 export function routeClassifiedSupportSites(input: {
   sites: readonly ClassifiedSupportSiteInput[];
   deduplicationToleranceMm: number;
@@ -245,6 +445,7 @@ export function routeClassifiedSupportSites(input: {
     .map(([faceIndex]) => faceIndex);
   const mixedFace = mixedFaceIndices.length;
   const exact = new Map<string, OverhangAssignmentEntry>();
+  const nearSiteIndex = new IncrementalNearSiteIndex(input.deduplicationToleranceMm);
   const entries: OverhangAssignmentEntry[] = [];
   for (const site of input.sites) {
     const entry = { ...site };
@@ -259,12 +460,9 @@ export function routeClassifiedSupportSites(input: {
       continue;
     }
     exact.set(key, entry);
-    if (entries.some(
-      (other) => other.positionMm
-        && !other.duplicateOf
-        && near(entry.positionMm!, other.positionMm, input.deduplicationToleranceMm),
-    )) continue;
+    if (nearSiteIndex.hasNear(entry.positionMm)) continue;
     entries.push(entry);
+    nearSiteIndex.add(entry);
   }
   const automaticEntries = entries.map((entry) => ({
     ...entry,
@@ -319,7 +517,7 @@ export function routeClassifiedSupportSites(input: {
 
 export function assignOverhangSupportTargets(input: OverhangSupportPolicyInput): OverhangSupportPolicyResult {
   const rayIndex = createSupportReachabilityIndex(input.supportSurfacePositionsMm);
-  const facts = toRayFacts(rayIndex);
+  const facts = toOverhangSupportRayFacts(rayIndex);
   const targets = input.targets ? Array.from(input.targets) : [
     ...flattenFaces(input.diagnosedFaces).map((positionsMm): OverhangTargetInput => ({ source: "diagnosed-face", positionsMm })),
     ...(input.explicitTargets ?? []).map((target): OverhangTargetInput => ({
@@ -330,78 +528,11 @@ export function assignOverhangSupportTargets(input: OverhangSupportPolicyInput):
       contactOverlapMm: target.contactOverlapMm,
     })),
   ];
-  const sourceCounts: Record<OverhangTargetSource, number> = { "diagnosed-face": 0, "explicit-profile": 0 };
-  const rawEntries: OverhangAssignmentEntry[] = [];
-  const diagnosedFaces: number[] = [];
-  for (const target of targets) {
-    const sourceIndex = sourceCounts[target.source]++;
-    if (target.source === "diagnosed-face") {
-      const face = asFace(target);
-      if (!face) {
-        rawEntries.push({
-          id: stableId(target.source, sourceIndex, 0),
-          source: target.source,
-          sourceIndex,
-          siteIndex: 0,
-          faceIndex: sourceIndex,
-          classification: "unresolved",
-          rayResult: "ray-unresolved",
-          reason: "malformed-or-nonfinite-diagnosed-face",
-        });
-        continue;
-      }
-      diagnosedFaces.push(...face);
-      const sampledNormal = target.normal ?? faceNormal(face);
-      sampleFace(face).forEach((positionMm, siteIndex) => {
-        const routed = classifyRayDiagnosis(rayIndex.diagnosePoint(positionMm.xMm, positionMm.yMm, positionMm.zMm));
-        rawEntries.push({
-          id: stableId(target.source, sourceIndex, siteIndex),
-          source: target.source,
-          sourceIndex,
-          siteIndex,
-          faceIndex: sourceIndex,
-          positionMm,
-          classification: routed.classification,
-          rayResult: routed.rayResult,
-          nearestLowerSurfaceDistanceMm: routed.nearestLowerSurfaceDistanceMm,
-          reason: routed.reason,
-          patchId: target.patchId,
-          normal: sampledNormal,
-          contactRadiusMm: target.contactRadiusMm,
-          contactOverlapMm: target.contactOverlapMm,
-        });
-      });
-      continue;
-    }
-    const positionMm = asPoint(target);
-    const routed = positionMm
-      ? classifyRayDiagnosis(rayIndex.diagnosePoint(positionMm.xMm, positionMm.yMm, positionMm.zMm))
-      : {
-          classification: "unresolved" as const,
-          rayResult: "ray-unresolved" as const,
-          nearestLowerSurfaceDistanceMm: null,
-          reason: "malformed-or-nonfinite-explicit-target",
-        };
-    rawEntries.push({
-      id: stableId(target.source, sourceIndex, 0),
-      source: target.source,
-      sourceIndex,
-      siteIndex: 0,
-      classification: routed.classification,
-      rayResult: routed.rayResult,
-      nearestLowerSurfaceDistanceMm: routed.nearestLowerSurfaceDistanceMm,
-      positionMm: positionMm ?? undefined,
-      patchId: target.patchId,
-      normal: target.normal,
-      contactRadiusMm: target.contactRadiusMm,
-      contactOverlapMm: target.contactOverlapMm,
-      reason: routed.reason,
-    });
-  }
+  const raw = classifyRawOverhangTargets({ rayIndex, targets });
   return routeClassifiedSupportSites({
-    sites: rawEntries,
+    sites: raw.entries,
     deduplicationToleranceMm: facts.lowerIntersectionEpsilonMm,
-    diagnosedFacePositionsMm: diagnosedFaces,
+    diagnosedFacePositionsMm: raw.diagnosedFacePositionsMm,
     baseFootprint: input.baseFootprint ?? null,
     rayFacts: facts,
     supportSurfacePositionsMm: input.supportSurfacePositionsMm,

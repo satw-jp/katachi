@@ -49,10 +49,41 @@ import { PATCH_MAX_POINTS } from "./shaders.ts";
 import { EMPTY_ANNOTATION, type ElementAnnotationValue } from "../../lib/elementAnnotations.ts";
 import { matchesElementSearch } from "../../lib/elementLabels.ts";
 import type { PatchEditIntent } from "./elementTransform.ts";
-import type { InternalPrintGateReport } from "./internalPrintGate.ts";
+import type { InternalAngleScreeningReport, InternalPrintGateReport } from "./internalPrintGate.ts";
 import type { BambuSupportType } from "./bambu3mf.ts";
 import { enableMotifPreview3D, renderFlowerConnectionPreview, renderMotifPreview } from "./motifPreview.ts";
 import { ring3dCenterlineDiameter } from "./motifReshape.ts";
+import type { DryWebContactBin } from "./dryWebAuthorPresentation.ts";
+import {
+  DRY_WEB_GRAPH_VIEW_OPTIONS,
+  type DryWebGraphViewMode,
+  type DryWebGraphViewOption,
+  type DryWebGraphViewPresentation,
+} from "./dryWebGraphViewPresentation.ts";
+import type { DryWebSupportSeparationPresentation } from "./dryWebSupportSeparationPresentation.ts";
+import type { Stage7RedFaceLocatorPresentation } from "./stage7RedFaceLocatorPresentation.ts";
+import type { Stage7RedFaceDryWebCandidatePresentation } from "./stage7RedFaceDryWebCandidatePresentation.ts";
+import type { Stage7RedFaceReinforcementPlanFacts } from "./stage7RedFaceReinforcementPlan.ts";
+import type { Stage7ProvisionalRecheckPresentation } from "./stage7ProvisionalRecheckPresentation.ts";
+import type { Stage7ProvisionalAdoptionGatePresentation } from "./stage7ProvisionalAdoptionGatePresentation.ts";
+import type { Stage7CanonicalCandidateAdoptionPresentation } from "./stage7CanonicalCandidateAdoptionPresentation.ts";
+import {
+  dryWebArtworkReadinessEvidenceLabel,
+  type DryWebArtworkReadinessPresentation,
+} from "./dryWebArtworkReadinessPresentation.ts";
+import type { DryWebInsideTargetPresentation } from "./dryWebInsideTargetPresentation.ts";
+import type { DryWebTargetConnectionMappingPresentation } from "./dryWebTargetConnectionMappingPresentation.ts";
+import type { DryWebInsufficientEdgePresentation } from "./dryWebInsufficientEdgePresentation.ts";
+import {
+  DRY_WEB_CONTACT_FLOOR_CATEGORY_LABELS,
+  type DryWebContactFloorCategory,
+  type DryWebContactFloorPresentation,
+} from "./dryWebContactFloorPresentation.ts";
+import {
+  DRY_WEB_CONTACT_FLOOR_RESIDUAL_CATEGORIES,
+  type DryWebContactFloorOverlayPresentation,
+  type DryWebContactFloorResidualCategory,
+} from "./dryWebContactFloorOverlayPresentation.ts";
 import {
   describePartitionSelectionLabel,
   getTutorialStepContent,
@@ -69,6 +100,16 @@ export interface PrintProfileUiSummary {
   values: Array<[string, string]>;
 }
 
+export interface ArtworkGraphUiStatus {
+  status: "ready" | "not-ready" | "stale";
+  currentPatchCount: number;
+  snapshotNodeCount: number | null;
+  relationCount: number | null;
+  patchSetRevision: number;
+  artworkState: "surfaceDraft" | null;
+  detail: string;
+}
+
 export interface UiCallbacks {
   onUndo: () => void;
   onUndoSteps: (steps: number) => void;
@@ -78,6 +119,8 @@ export interface UiCallbacks {
   onImportS1File: (file: File) => void;
   onSkinParamChange: (key: keyof SkinParams, value: number | string | boolean) => void;
   onPackPatches: () => void;
+  onCreateArtworkGraph: () => void;
+  onToggleArtworkGraphOverlay: (enabled: boolean) => void;
   /** Keep the primary organization and add smaller motifs only to its
    * largest remaining gaps. The realized result is stored in the recipe. */
   onFillLaceGaps: () => void;
@@ -95,8 +138,37 @@ export interface UiCallbacks {
   onSetViewMode: (mode: SkinViewMode) => void;
   onSetDisplayStyle: (style: SkinDisplayStyle) => void;
   onSetInternalObservationMode: (mode: InternalObservationMode) => void;
+  /** Stage 4 candidate-graph observation only; must preserve the frozen graph. */
+  onSetDryWebGraphView: (option: DryWebGraphViewOption) => void;
+  /** Stage 4 inside-target overlay is a presentation-only action. */
+  onSetDryWebInsideTargetVisible: (visible: boolean) => void;
+  /** Stage 4 insufficient-contact explanation edges are presentation-only. */
+  onSetDryWebInsufficientEdgeVisible: (visible: boolean) => void;
+  /** Stage 4 residual contact-floor markers are presentation-only. */
+  onSetDryWebContactFloorOverlay: (category: DryWebContactFloorResidualCategory | null) => void;
+  /** Stage 7 exact-recheck support separation is a display-only action. */
+  onSetDryWebSupportSeparationVisible: (visible: boolean) => void;
+  /** Stage 7 exact red-face localization is presentation-only. */
+  onSetDryWebRedFaceLocatorVisible: (visible: boolean) => void;
+  /** Stage 7 nearest-edge candidate paths are presentation-only. */
+  onSetDryWebRedFaceDryWebCandidateVisible: (visible: boolean) => void;
+  /** Stage 7 provisional topology plan is presentation-only. */
+  onBuildDryWebRedFaceReinforcementPlan: () => void;
+  onDiscardDryWebRedFaceReinforcementPlan: () => void;
+  /** Stage 7 provisional graph exact comparison is presentation-only. */
+  onRecheckDryWebRedFaceReinforcementPlan: () => void;
+  onDiscardDryWebRedFaceReinforcementComparison: () => void;
+  /** Stage 7 author decision is volatile and never adopts canonical state. */
+  onApproveDryWebRedFaceProvisionalComparison: () => void;
+  onReturnDryWebRedFaceProvisionalComparisonToPending: () => void;
+  /** Stage 7 candidate graph transition is session-only and identity-bound. */
+  onAdoptDryWebRedFaceCanonicalCandidate: () => void;
+  onUndoDryWebRedFaceCanonicalCandidateAdoption: () => void;
+  onToggleInternalAngleScreening: (enabled: boolean) => void;
   onViewportClippingAction: (action: ViewportClippingAction) => void;
   onDiagnoseSurfaceAngles: (thresholdDeg: number) => void;
+  onGenerateDryWeb: () => void;
+  onRecheckDryWebAfterAttachment: () => void;
   onShowSurfaceDiagnostics: () => string;
   onSetSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView) => void;
   onSurfaceAngleThresholdChange: () => void;
@@ -190,6 +262,7 @@ export interface UiHandles {
   displayToolsRoot: HTMLElement;
   historyIoRoot: HTMLElement;
   setHistoryCount: (n: number) => void;
+  setHistoryImportStatus: (text: string, ok?: boolean) => void;
   setUndoHistory: (labels: string[]) => void;
   setUndoStatus: (text: string) => void;
   setShapeUndoLocked: (locked: boolean) => void;
@@ -214,6 +287,12 @@ export interface UiHandles {
     overlaps: SkinOverlapWarning[],
   ) => void;
   setPackResult: (result: PackPatchesResult | null) => void;
+  setArtworkGraphStatus: (status: ArtworkGraphUiStatus) => void;
+  setArtworkGraphOverlayState: (state: {
+    enabled: boolean;
+    status: "current" | "stale" | "missing";
+    nodeCount: number;
+  }) => void;
   setContactStatus: (text: string, ok?: boolean) => void;
   syncHostParams: (params: FieldParams) => void;
   syncSkinParams: (params: SkinParams) => void;
@@ -291,12 +370,63 @@ export interface UiHandles {
   setViewportClippingState: (available: boolean, bounds: ViewportClippingBounds | null, state: ViewportClippingState) => void;
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
+  setDryWebSupportSeparationState: (state: {
+    state: DryWebSupportSeparationPresentation["state"];
+    available: boolean;
+    visible: boolean;
+    mitigatedFaceCount: number;
+    outsideFaceCount: number;
+    unresolvedFaceCount: number;
+    reason: string;
+    recheckEnabled: boolean;
+    redFaceLocator: Pick<Stage7RedFaceLocatorPresentation, "state" | "enabled" | "count" | "faceIds" | "status"> & {
+      visible: boolean;
+    };
+    redFaceDryWebCandidate: Pick<Stage7RedFaceDryWebCandidatePresentation, "state" | "enabled" | "totalRedFaceCount" | "previewedCandidateCount" | "minLength" | "meanLength" | "maxLength" | "reason"> & {
+      visible: boolean;
+    };
+    redFaceReinforcementPlan: {
+      available: boolean;
+      current: boolean;
+      facts: Stage7RedFaceReinforcementPlanFacts | null;
+      reason: string;
+      previewedCandidateCount: number;
+      totalRedFaceCount: number;
+    };
+    redFaceReinforcementComparison: Stage7ProvisionalRecheckPresentation;
+    redFaceProvisionalAdoptionGate: Stage7ProvisionalAdoptionGatePresentation;
+    canonicalCandidateAdoption: Stage7CanonicalCandidateAdoptionPresentation;
+  }) => void;
+  setDryWebArtworkReadiness: (presentation: DryWebArtworkReadinessPresentation) => void;
+  setDryWebInsideTargetPresentation: (presentation: DryWebInsideTargetPresentation) => void;
+  setDryWebActionsState: (state: {
+    visible: boolean;
+    canDiagnose: boolean;
+    diagnosisRunning: boolean;
+    canGenerate: boolean;
+    generateRunning: boolean;
+    status: string;
+    graphView: DryWebGraphViewPresentation;
+    targetConnectionMapping: DryWebTargetConnectionMappingPresentation;
+    insufficientEdge: DryWebInsufficientEdgePresentation;
+    insufficientEdgeVisible: boolean;
+    contactFloor: DryWebContactFloorPresentation;
+    contactFloorOverlay: DryWebContactFloorOverlayPresentation;
+    integrationStatus?: string;
+    integration?: {
+      status: "uncomputed" | "pass" | "warning";
+      text: string;
+      requiredContacts: number;
+      contactBins: DryWebContactBin[] | null;
+    };
+  }) => void;
   setSurfaceStartupStatus: (text: string, ok?: boolean) => void;
   setSurfaceAngleDiagnosisView: (view: SurfaceAngleDiagnosisView, available: boolean, hasInternal: boolean) => void;
   setOverhangSupportSiteOverlay: (available: boolean, show: boolean, showMixed: boolean, showFootprint: boolean, depthMode: SupportSiteDepthMode, text: string, ok?: boolean) => void;
   setOverhangSupportSiteSelection: (text: string, classification?: SupportSiteClassification) => void;
   setSupportPaintState: (state: {
     available: boolean; enabled: boolean; mode: SupportPaintMode; radiusMm: number; paintBackfaces: boolean;
+    allowOutside: boolean;
     operationCount: number; sampleCount: number; paintedSiteCount: number; manualOverrideSiteCount: number; canUndo: boolean; canRedo: boolean; status: string;
     canSaveDraft: boolean; draftStatus: string;
     editingResolution: number | null; printResolution: number; canVerifyReprojection: boolean; reprojectionStatus: string;
@@ -317,6 +447,7 @@ export interface UiHandles {
   setSurfaceGenerationMode: (mode: SurfaceGenerationMode) => void;
   setInternalStructure: (mode: InternalStructureMode) => void;
   setInternalStructureStatus: (text: string, ok?: boolean) => void;
+  setInternalAngleScreening: (available: boolean, enabled: boolean, report: InternalAngleScreeningReport | null) => void;
   setQuadFlowStatus: (text: string, ok?: boolean) => void;
   setVoronoiStatus: (text: string, ok?: boolean) => void;
   setGoldbergStatus: (text: string, ok?: boolean) => void;
@@ -496,7 +627,7 @@ export function buildUi(
   const hostTitle = document.createElement("div");
   hostTitle.id = "skin-step-base";
   hostTitle.className = "workflow-step-title";
-  hostTitle.textContent = "FORM / 1 Base";
+  hostTitle.textContent = "1. Base Shape / FORM";
   root.appendChild(hostTitle);
   const hostLead = document.createElement("div");
   hostLead.className = "workflow-step-lead";
@@ -515,12 +646,12 @@ export function buildUi(
   growRow.appendChild(rerollBtn);
   root.appendChild(growRow);
 
-  const hostSliders: { spec: (typeof HOST_SPECS)[number]; set: (v: number) => void }[] = [];
+  const hostSliders: { spec: (typeof HOST_SPECS)[number]; set: (v: number) => void; row: HTMLElement }[] = [];
   for (const spec of HOST_SPECS) {
     const built = buildSlider(spec.label, spec.min, spec.max, spec.step, hostParams[spec.key] as number, (v) =>
       callbacks.onHostParamChange(spec.key, v),
     );
-    hostSliders.push({ spec, set: built.set });
+    hostSliders.push({ spec, set: built.set, row: built.row });
     root.appendChild(built.row);
   }
 
@@ -560,7 +691,7 @@ export function buildUi(
   const skinTitle = document.createElement("div");
   skinTitle.id = "skin-step-surface";
   skinTitle.className = "workflow-step-title";
-  skinTitle.textContent = "SURFACE / 2 Surface composition";
+  skinTitle.textContent = "2. Surface Pattern";
   root.appendChild(skinTitle);
 
   const generationTitle = document.createElement("div");
@@ -813,7 +944,7 @@ export function buildUi(
   const shapeTitle = document.createElement("div");
   shapeTitle.id = "skin-step-shape";
   shapeTitle.className = "workflow-step-title";
-  shapeTitle.textContent = "SURFACE / 3 Filled Shape";
+  shapeTitle.textContent = "Surface Pattern / motif shape";
   root.appendChild(shapeTitle);
   const shapeLead = document.createElement("div");
   shapeLead.className = "workflow-step-lead";
@@ -886,7 +1017,7 @@ export function buildUi(
   const adjustmentTitle = document.createElement("div");
   adjustmentTitle.id = "skin-step-adjust";
   adjustmentTitle.className = "workflow-step-title";
-  adjustmentTitle.textContent = "SURFACE / 4 Surface mesh generation";
+  adjustmentTitle.textContent = "Surface Pattern / motif and connection adjustment";
   root.appendChild(adjustmentTitle);
   const adjustmentLead = document.createElement("div");
   adjustmentLead.className = "workflow-step-lead";
@@ -1430,11 +1561,11 @@ export function buildUi(
   root.appendChild(internalWorkflowSection);
   const internalTitle = document.createElement("div");
   internalTitle.className = "section-title internal-structure-title";
-  internalTitle.textContent = "7. 作品内部の構造";
+  internalTitle.textContent = "4. Dry Web / Structural Integration";
   internalWorkflowSection.appendChild(internalTitle);
   const internalPurpose = document.createElement("div");
   internalPurpose.className = "hint internal-structure-purpose";
-  internalPurpose.textContent = "印刷後も残る作品部分です。印刷後に外すサポートではありません";
+  internalPurpose.textContent = "表面パターンを内部構造と接続する候補生成の入口です。Dry Web / Voronoi Edgeは印刷後も残る作品部分で、印刷後に外すサポートではありません。Artwork ConnectionsとCandidate管理は未実装です。";
   internalWorkflowSection.appendChild(internalPurpose);
 
   const internalPanel = document.createElement("div");
@@ -1466,6 +1597,317 @@ export function buildUi(
   internalObservationRedirect.textContent = "内部だけの確認は左ペインのSKIN非表示で見ます。";
   internalPanel.appendChild(internalObservationRedirect);
 
+  let surfaceAngleThreshold = 45;
+  const dryWebAuthorActions = document.createElement("section");
+  dryWebAuthorActions.className = "dry-web-author-actions";
+  dryWebAuthorActions.hidden = true;
+  const dryWebAuthorHint = document.createElement("div");
+  dryWebAuthorHint.className = "hint";
+  dryWebAuthorHint.textContent = "Dry WebはベースShape側（inside）の作品統合だけを扱います。outside / scaffoldは後段のRemovable Print Supportで扱います。";
+  const dryWebAuthorButtons = document.createElement("div");
+  dryWebAuthorButtons.className = "row dry-web-author-buttons";
+  const dryWebDiagnosisButton = document.createElement("button");
+  dryWebDiagnosisButton.type = "button";
+  dryWebDiagnosisButton.disabled = true;
+  dryWebDiagnosisButton.textContent = "Dry Web用のSurface診断";
+  dryWebDiagnosisButton.onclick = () => callbacks.onDiagnoseSurfaceAngles(surfaceAngleThreshold);
+  const dryWebGenerateButton = document.createElement("button");
+  dryWebGenerateButton.type = "button";
+  dryWebGenerateButton.className = "primary-action";
+  dryWebGenerateButton.disabled = true;
+  dryWebGenerateButton.textContent = "現在のPaint分類からDry Webを生成";
+  dryWebGenerateButton.onclick = () => callbacks.onGenerateDryWeb();
+  dryWebAuthorButtons.append(dryWebDiagnosisButton, dryWebGenerateButton);
+  const dryWebAuthorStatus = document.createElement("div");
+  dryWebAuthorStatus.className = "hint dry-web-author-status";
+  dryWebAuthorStatus.setAttribute("aria-live", "polite");
+  dryWebAuthorStatus.textContent = "先にDry Web用のSurface診断を実行してください";
+  const dryWebIntegrationStatus = document.createElement("div");
+  dryWebIntegrationStatus.className = "hint dry-web-integration-status";
+  dryWebIntegrationStatus.dataset.status = "uncomputed";
+  dryWebIntegrationStatus.textContent = "Artwork Integration: 未計算 / gray";
+  const dryWebContactLegend = document.createElement("div");
+  dryWebContactLegend.className = "dry-web-contact-legend";
+  dryWebContactLegend.hidden = true;
+  const dryWebContactLegendTitle = document.createElement("div");
+  dryWebContactLegendTitle.className = "dry-web-contact-legend-title";
+  dryWebContactLegendTitle.textContent = "接点数の色分け（Surface Pattern）";
+  const dryWebContactLegendItems = new Map<DryWebContactBin["key"], {
+    row: HTMLDivElement;
+    count: HTMLSpanElement;
+    state: HTMLSpanElement;
+  }>();
+  const dryWebContactBinLabels: Record<DryWebContactBin["key"], string> = {
+    zero: "0接点",
+    one: "1接点",
+    two: "2接点",
+    threeOrMore: "3接点以上",
+  };
+  for (const key of ["zero", "one", "two", "threeOrMore"] as DryWebContactBin["key"][]) {
+    const row = document.createElement("div");
+    row.className = "dry-web-contact-legend-item";
+    row.dataset.bin = key;
+    const swatch = document.createElement("span");
+    swatch.className = "dry-web-contact-legend-swatch";
+    swatch.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "dry-web-contact-legend-label";
+    label.textContent = dryWebContactBinLabels[key];
+    const count = document.createElement("span");
+    count.className = "dry-web-contact-legend-count";
+    const state = document.createElement("span");
+    state.className = "dry-web-contact-legend-state";
+    row.append(swatch, label, count, state);
+    dryWebContactLegendItems.set(key, { row, count, state });
+    dryWebContactLegend.appendChild(row);
+  }
+  dryWebContactLegend.prepend(dryWebContactLegendTitle);
+  const dryWebContactLegendHint = document.createElement("div");
+  dryWebContactLegendHint.className = "dry-web-contact-legend-hint";
+  dryWebContactLegendHint.textContent = "必要接触数以上がpass。閾値を変えると、同じ色の要素のpass/不足だけが即時に変わります。";
+  dryWebContactLegend.appendChild(dryWebContactLegendHint);
+
+  const dryWebGraphViewPanel = document.createElement("section");
+  dryWebGraphViewPanel.className = "dry-web-graph-view-panel";
+  dryWebGraphViewPanel.dataset.state = "missing";
+  const dryWebGraphViewTitle = document.createElement("strong");
+  dryWebGraphViewTitle.textContent = "Dry Web候補Graphを3Dで見る";
+  const dryWebGraphViewCounts = document.createElement("div");
+  dryWebGraphViewCounts.className = "dry-web-graph-view-counts";
+  dryWebGraphViewCounts.textContent = "node 未生成 / edge 未生成";
+  const dryWebTargetConnectionMapping = document.createElement("div");
+  dryWebTargetConnectionMapping.className = "dry-web-target-connection-mapping";
+  dryWebTargetConnectionMapping.dataset.state = "missing";
+  dryWebTargetConnectionMapping.textContent = "target接続 mapping: 未確認";
+  const dryWebTargetConnectionMappingCopy = document.createElement("div");
+  dryWebTargetConnectionMappingCopy.className = "hint dry-web-target-connection-mapping-copy";
+  dryWebTargetConnectionMappingCopy.textContent = "exact generator mapping · mesh/strength/printability未判定";
+  const dryWebGraphViewReason = document.createElement("div");
+  dryWebGraphViewReason.className = "hint dry-web-graph-view-reason";
+  dryWebGraphViewReason.setAttribute("aria-live", "polite");
+  dryWebGraphViewReason.textContent = "Dry Web候補Graphは未生成です。先にDry Webを生成してください。";
+  const dryWebGraphViewButtons = document.createElement("div");
+  dryWebGraphViewButtons.className = "mode-toggle dry-web-graph-view-buttons";
+  const dryWebGraphViewButtonMap = new Map<DryWebGraphViewMode, HTMLButtonElement>();
+  for (const option of DRY_WEB_GRAPH_VIEW_OPTIONS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = option.label;
+    button.disabled = true;
+    button.onclick = () => callbacks.onSetDryWebGraphView(option);
+    dryWebGraphViewButtonMap.set(option.mode, button);
+    dryWebGraphViewButtons.appendChild(button);
+  }
+  const dryWebGraphViewHint = document.createElement("div");
+  dryWebGraphViewHint.className = "hint dry-web-graph-view-hint";
+  dryWebGraphViewHint.textContent =
+    "Stage 3 markerはSurface要素の代表点、Stage 4の線端は実際の接触候補位置です。代表点中心へ直結するとは限りません。";
+  const dryWebGraphViewDisclaimer = document.createElement("div");
+  dryWebGraphViewDisclaimer.className = "hint dry-web-graph-view-disclaimer";
+  dryWebGraphViewDisclaimer.textContent =
+    "generator facts only / mesh・printability未判定 / Confirmed Artwork Connectionsではありません。";
+  dryWebGraphViewPanel.append(
+    dryWebGraphViewTitle,
+    dryWebGraphViewCounts,
+    dryWebTargetConnectionMapping,
+    dryWebTargetConnectionMappingCopy,
+    dryWebGraphViewReason,
+    dryWebGraphViewButtons,
+    dryWebGraphViewHint,
+    dryWebGraphViewDisclaimer,
+  );
+  dryWebAuthorActions.append(
+    dryWebAuthorHint,
+    dryWebAuthorButtons,
+    dryWebAuthorStatus,
+    dryWebIntegrationStatus,
+    dryWebContactLegend,
+    dryWebGraphViewPanel,
+  );
+
+  const dryWebInsideTargetPanel = document.createElement("section");
+  dryWebInsideTargetPanel.className = "dry-web-inside-target-panel";
+  dryWebInsideTargetPanel.dataset.state = "missing";
+  const dryWebInsideTargetTitle = document.createElement("strong");
+  dryWebInsideTargetTitle.textContent = "Stage 4 inside接続候補を3Dで見る";
+  const dryWebInsideTargetState = document.createElement("div");
+  dryWebInsideTargetState.className = "dry-web-inside-target-state";
+  dryWebInsideTargetState.setAttribute("role", "status");
+  dryWebInsideTargetState.setAttribute("aria-live", "polite");
+  dryWebInsideTargetState.textContent = "未確認";
+  const dryWebInsideTargetCounts = document.createElement("div");
+  dryWebInsideTargetCounts.className = "dry-web-inside-target-counts";
+  dryWebInsideTargetCounts.textContent = "total target 未確認 / display sample 未確認";
+  const dryWebInsideTargetReason = document.createElement("div");
+  dryWebInsideTargetReason.className = "hint dry-web-inside-target-reason";
+  dryWebInsideTargetReason.setAttribute("aria-live", "polite");
+  dryWebInsideTargetReason.textContent = "inside接続候補は未確認です。Stage 4のDry Web生成を実行してください。";
+  const dryWebInsideTargetActions = document.createElement("div");
+  dryWebInsideTargetActions.className = "row dry-web-inside-target-actions";
+  const dryWebInsideTargetShow = document.createElement("button");
+  dryWebInsideTargetShow.type = "button";
+  dryWebInsideTargetShow.textContent = "inside接続候補を3D表示";
+  dryWebInsideTargetShow.disabled = true;
+  dryWebInsideTargetShow.onclick = () => callbacks.onSetDryWebInsideTargetVisible(true);
+  const dryWebInsideTargetRestore = document.createElement("button");
+  dryWebInsideTargetRestore.type = "button";
+  dryWebInsideTargetRestore.textContent = "表示を戻す";
+  dryWebInsideTargetRestore.disabled = true;
+  dryWebInsideTargetRestore.onclick = () => callbacks.onSetDryWebInsideTargetVisible(false);
+  dryWebInsideTargetActions.append(dryWebInsideTargetShow, dryWebInsideTargetRestore);
+  const dryWebInsideTargetLegend = document.createElement("div");
+  dryWebInsideTargetLegend.className = "hint dry-web-inside-target-legend";
+  dryWebInsideTargetLegend.textContent = "青丸 = final Surfaceのinside site由来";
+  const dryWebInsideTargetCopy = document.createElement("div");
+  dryWebInsideTargetCopy.className = "hint dry-web-inside-target-copy";
+  dryWebInsideTargetCopy.textContent = "support-derived provisional · Base Shape実体anchorではない · 接続・強度・mesh・printability未判定";
+  dryWebInsideTargetPanel.append(
+    dryWebInsideTargetTitle,
+    dryWebInsideTargetState,
+    dryWebInsideTargetCounts,
+    dryWebInsideTargetReason,
+    dryWebInsideTargetActions,
+    dryWebInsideTargetLegend,
+    dryWebInsideTargetCopy,
+  );
+
+  const dryWebInsufficientEdgePanel = document.createElement("section");
+  dryWebInsufficientEdgePanel.className = "dry-web-graph-view-panel dry-web-insufficient-edge-panel";
+  dryWebInsufficientEdgePanel.dataset.state = "missing";
+  dryWebInsufficientEdgePanel.dataset.visible = "false";
+  const dryWebInsufficientEdgeTitle = document.createElement("strong");
+  dryWebInsufficientEdgeTitle.textContent = "接触不足edgeを3Dで読む";
+  const dryWebInsufficientEdgeCounts = document.createElement("div");
+  dryWebInsufficientEdgeCounts.className = "dry-web-graph-view-counts";
+  dryWebInsufficientEdgeCounts.textContent = "不足 未確認 / highlight edge 未確認";
+  const dryWebInsufficientEdgeReason = document.createElement("div");
+  dryWebInsufficientEdgeReason.className = "hint dry-web-graph-view-reason";
+  dryWebInsufficientEdgeReason.setAttribute("aria-live", "polite");
+  dryWebInsufficientEdgeReason.textContent = "current contact factsが未確認です。Dry Webを生成してください。";
+  const dryWebInsufficientEdgeActions = document.createElement("div");
+  dryWebInsufficientEdgeActions.className = "mode-toggle dry-web-graph-view-buttons";
+  const dryWebInsufficientEdgeShow = document.createElement("button");
+  dryWebInsufficientEdgeShow.type = "button";
+  dryWebInsufficientEdgeShow.textContent = "接触不足edgeを3D表示";
+  dryWebInsufficientEdgeShow.disabled = true;
+  dryWebInsufficientEdgeShow.onclick = () => callbacks.onSetDryWebInsufficientEdgeVisible(true);
+  const dryWebInsufficientEdgeRestore = document.createElement("button");
+  dryWebInsufficientEdgeRestore.type = "button";
+  dryWebInsufficientEdgeRestore.textContent = "表示を戻す";
+  dryWebInsufficientEdgeRestore.disabled = true;
+  dryWebInsufficientEdgeRestore.onclick = () => callbacks.onSetDryWebInsufficientEdgeVisible(false);
+  dryWebInsufficientEdgeActions.append(dryWebInsufficientEdgeShow, dryWebInsufficientEdgeRestore);
+  const dryWebInsufficientEdgeCopy = document.createElement("div");
+  dryWebInsufficientEdgeCopy.className = "hint dry-web-graph-view-disclaimer";
+  dryWebInsufficientEdgeCopy.textContent =
+    "generator facts only · target接続edgeを除外 · mesh / strength / printability未判定";
+  dryWebInsufficientEdgePanel.append(
+    dryWebInsufficientEdgeTitle,
+    dryWebInsufficientEdgeCounts,
+    dryWebInsufficientEdgeReason,
+    dryWebInsufficientEdgeActions,
+    dryWebInsufficientEdgeCopy,
+  );
+  const dryWebContactFloorPanel = document.createElement("section");
+  dryWebContactFloorPanel.className = "dry-web-graph-view-panel dry-web-contact-floor-panel";
+  dryWebContactFloorPanel.dataset.state = "missing";
+  const dryWebContactFloorTitle = document.createElement("strong");
+  dryWebContactFloorTitle.textContent = "接触不足が残る理由";
+  const dryWebContactFloorCounts = document.createElement("div");
+  dryWebContactFloorCounts.className = "dry-web-graph-view-counts";
+  dryWebContactFloorCounts.textContent = "未確認（countなし）";
+  const dryWebContactFloorIds = document.createElement("div");
+  dryWebContactFloorIds.className = "hint dry-web-contact-floor-ids";
+  dryWebContactFloorIds.textContent = "patch IDs 未確認";
+  const dryWebContactFloorReason = document.createElement("div");
+  dryWebContactFloorReason.className = "hint dry-web-graph-view-reason";
+  dryWebContactFloorReason.setAttribute("aria-live", "polite");
+  dryWebContactFloorReason.textContent = "currentのcontact floor factsが未確認です。Dry Webを再生成してください。";
+  const dryWebContactFloorCopy = document.createElement("div");
+  dryWebContactFloorCopy.className = "hint dry-web-graph-view-disclaimer";
+  dryWebContactFloorCopy.textContent =
+    "generator candidate facts only · 接続距離上限は現設定 · mesh / strength / printability未判定";
+  dryWebContactFloorPanel.append(
+    dryWebContactFloorTitle,
+    dryWebContactFloorCounts,
+    dryWebContactFloorIds,
+    dryWebContactFloorReason,
+    dryWebContactFloorCopy,
+  );
+  const dryWebContactFloorCategoryOrder: DryWebContactFloorCategory[] = [
+    "satisfied",
+    "candidateShortage",
+    "duplicateContactPositions",
+    "outsideMainComponent",
+    "plannerUnresolved",
+  ];
+  const dryWebContactFloorOverlayPanel = document.createElement("section");
+  dryWebContactFloorOverlayPanel.className = "dry-web-graph-view-panel dry-web-contact-floor-overlay-panel";
+  dryWebContactFloorOverlayPanel.dataset.state = "missing";
+  const dryWebContactFloorOverlayTitle = document.createElement("strong");
+  dryWebContactFloorOverlayTitle.textContent = "残理由を3D表示";
+  const dryWebContactFloorOverlayButtons = document.createElement("div");
+  dryWebContactFloorOverlayButtons.className = "mode-toggle dry-web-graph-view-buttons";
+  const dryWebContactFloorOverlayButtonMap = new Map<DryWebContactFloorResidualCategory, HTMLButtonElement>();
+  for (const category of DRY_WEB_CONTACT_FLOOR_RESIDUAL_CATEGORIES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = DRY_WEB_CONTACT_FLOOR_CATEGORY_LABELS[category];
+    button.disabled = true;
+    button.onclick = () => callbacks.onSetDryWebContactFloorOverlay(category);
+    dryWebContactFloorOverlayButtonMap.set(category, button);
+    dryWebContactFloorOverlayButtons.appendChild(button);
+  }
+  const dryWebContactFloorOverlayRestore = document.createElement("button");
+  dryWebContactFloorOverlayRestore.type = "button";
+  dryWebContactFloorOverlayRestore.textContent = "表示を戻す";
+  dryWebContactFloorOverlayRestore.disabled = true;
+  dryWebContactFloorOverlayRestore.onclick = () => callbacks.onSetDryWebContactFloorOverlay(null);
+  dryWebContactFloorOverlayButtons.appendChild(dryWebContactFloorOverlayRestore);
+  const dryWebContactFloorOverlayStatus = document.createElement("div");
+  dryWebContactFloorOverlayStatus.className = "hint dry-web-graph-view-reason";
+  dryWebContactFloorOverlayStatus.setAttribute("aria-live", "polite");
+  dryWebContactFloorOverlayStatus.textContent = "currentの残理由が未確認です。";
+  const dryWebContactFloorOverlayCopy = document.createElement("div");
+  dryWebContactFloorOverlayCopy.className = "hint dry-web-graph-view-disclaimer";
+  dryWebContactFloorOverlayCopy.textContent =
+    "中立wire marker · 接触数・強度・printabilityの色ではありません";
+  dryWebContactFloorOverlayPanel.append(
+    dryWebContactFloorOverlayTitle,
+    dryWebContactFloorOverlayButtons,
+    dryWebContactFloorOverlayStatus,
+    dryWebContactFloorOverlayCopy,
+  );
+  internalPanel.appendChild(dryWebAuthorActions);
+
+  let renderedViewMode: SkinViewMode = "raymarch";
+  let renderedInternalObservationMode: InternalObservationMode = "normal";
+  let dryWebGraphViewAvailable = false;
+
+  function renderDryWebGraphViewButtons(): void {
+    const activeMode: DryWebGraphViewMode | null = dryWebGraphViewAvailable && renderedViewMode === "beads"
+      ? renderedInternalObservationMode === "ghostSkin"
+        ? "ghostSkin"
+        : renderedInternalObservationMode === "internalOnly"
+          ? "internalOnly"
+          : "surface"
+      : null;
+    for (const option of DRY_WEB_GRAPH_VIEW_OPTIONS) {
+      dryWebGraphViewButtonMap.get(option.mode)?.classList.toggle("mode-active", option.mode === activeMode);
+    }
+  }
+
+  function setDryWebGraphViewState(state: DryWebGraphViewPresentation): void {
+    dryWebGraphViewPanel.dataset.state = state.state;
+    dryWebGraphViewAvailable = state.buttonsEnabled;
+    dryWebGraphViewCounts.textContent = state.nodeCount === null || state.edgeCount === null
+      ? "node 未生成 / edge 未生成"
+      : `candidate node ${state.nodeCount} / edge ${state.edgeCount}`;
+    dryWebGraphViewReason.textContent = state.reason;
+    for (const button of dryWebGraphViewButtonMap.values()) button.disabled = !state.buttonsEnabled;
+    renderDryWebGraphViewButtons();
+  }
+
   const internalControls = document.createElement("div");
   internalControls.className = "internal-structure-controls";
   internalPanel.appendChild(internalControls);
@@ -1496,6 +1938,14 @@ export function buildUi(
   internalObservationHint.textContent =
     "表示だけを切り替えます。Surface生成・履歴・メッシュ書き出しは変わりません。";
   displayToolsRoot.append(internalObservationLabel, internalObservationToggle, internalObservationHint);
+  const artworkGraphDisplayControl = document.createElement("section");
+  artworkGraphDisplayControl.className = "skin-artwork-graph-display-control";
+  artworkGraphDisplayControl.dataset.owner = "artwork-graph";
+  artworkGraphDisplayControl.dataset.role = "stage-3-3d-overlay-control";
+  const artworkGraphDisplayTitle = document.createElement("strong");
+  artworkGraphDisplayTitle.textContent = "Artwork Graph表示";
+  artworkGraphDisplayControl.appendChild(artworkGraphDisplayTitle);
+  displayToolsRoot.appendChild(artworkGraphDisplayControl);
 
   const internalDensitySlider = buildSlider(
     "点の数", 8, 72, 1, skinParams.internalDensity,
@@ -1504,6 +1954,10 @@ export function buildUi(
   const targetedCountSlider = buildSlider(
     "追加する補強線の本数", 0, 72, 1, skinParams.internalDensity,
     (value) => callbacks.onSkinParamChange("internalDensity", value),
+  );
+  const dryWebContactsSlider = buildSlider(
+    "Dry Web必要接触数（各表面要素）", 1, 3, 1, skinParams.dryWebRequiredContacts ?? 3,
+    (value) => callbacks.onSkinParamChange("dryWebRequiredContacts", value),
   );
   const internalRadiusSlider = buildSlider(
     "線の太さ", 0.015, 0.12, 0.005, skinParams.internalRadius,
@@ -1514,14 +1968,32 @@ export function buildUi(
     (value) => callbacks.onSkinParamChange("internalRandomness", value),
   );
   internalControls.append(
-    internalDensitySlider.row, targetedCountSlider.row, internalRadiusSlider.row, internalRandomnessSlider.row,
+    internalDensitySlider.row, targetedCountSlider.row, dryWebContactsSlider.row,
+    internalRadiusSlider.row, internalRandomnessSlider.row,
   );
   const internalMethodHint = document.createElement("div");
-  internalMethodHint.className = "hint internal-method-hint";
+    internalMethodHint.className = "hint internal-method-hint";
   internalControls.appendChild(internalMethodHint);
   const internalStatus = document.createElement("div");
   internalStatus.className = "hint internal-structure-status";
   internalPanel.appendChild(internalStatus);
+  const internalAngleScreenToggle = document.createElement("label");
+  internalAngleScreenToggle.className = "internal-angle-screen-toggle";
+  const internalAngleScreenCheckbox = document.createElement("input");
+  internalAngleScreenCheckbox.type = "checkbox";
+  internalAngleScreenCheckbox.disabled = true;
+  internalAngleScreenCheckbox.onchange = () => callbacks.onToggleInternalAngleScreening(internalAngleScreenCheckbox.checked);
+  internalAngleScreenToggle.append(internalAngleScreenCheckbox, document.createTextNode("積層角度を色で確認"));
+  internalPanel.appendChild(internalAngleScreenToggle);
+  const internalAngleScreenStatus = document.createElement("div");
+  internalAngleScreenStatus.className = "hint internal-angle-screen-status";
+  internalAngleScreenStatus.textContent = "Internal Structure生成後に使えます";
+  internalAngleScreenStatus.setAttribute("aria-live", "polite");
+  internalPanel.appendChild(internalAngleScreenStatus);
+  const internalAngleScreenDisclaimer = document.createElement("div");
+  internalAngleScreenDisclaimer.className = "hint internal-angle-screen-disclaimer";
+  internalAngleScreenDisclaimer.textContent = "これは角度だけの確認で、印刷合格ではありません";
+  internalPanel.appendChild(internalAngleScreenDisclaimer);
   const internalHistoryHint = document.createElement("div");
   internalHistoryHint.className = "hint internal-history-hint";
   internalHistoryHint.textContent = "操作は形状履歴へ記録され、同じSeedと値で再現できます";
@@ -1530,12 +2002,11 @@ export function buildUi(
   const surfaceAnglePanel = document.createElement("section");
   surfaceAnglePanel.className = "surface-angle-diagnosis";
   const surfaceAngleTitle = document.createElement("strong");
-  surfaceAngleTitle.textContent = "SURFACE / Surface angle diagnosis";
+  surfaceAngleTitle.textContent = "7. 作品形状診断 / Surface angle diagnosis（互換サブ機能）";
   const surfaceAngleHint = document.createElement("div");
   surfaceAngleHint.className = "hint";
   surfaceAngleHint.textContent =
     "造形方向は+Z固定。0°=垂直壁、90°=下向き水平面です。左上の最終精度と同じSurface meshを完成させてから測ります。";
-  let surfaceAngleThreshold = 45;
   const surfaceAngleThresholdSlider = buildSlider(
     "危険角度の閾値", 0, 90, 1, surfaceAngleThreshold,
     (value) => {
@@ -1646,7 +2117,7 @@ export function buildUi(
   const supportPaintPanel = document.createElement("section");
   supportPaintPanel.className = "support-paint-panel";
   const supportPaintTitle = document.createElement("strong");
-  supportPaintTitle.textContent = "INTERNAL STRUCTURE / 6 Support Paint 1";
+  supportPaintTitle.textContent = "5. Integrated Artwork Graph調整 / Support Paint（互換サブ機能）";
   const supportPaintHint = document.createElement("div");
   supportPaintHint.className = "hint";
   supportPaintHint.textContent = "自動分類を下書きとして、形状生成前の支持方式だけを塗り直します。赤いunresolvedは変更できません。";
@@ -1742,6 +2213,272 @@ export function buildUi(
   surfaceAngleLimit.className = "hint";
   surfaceAngleLimit.textContent =
     "面角度と近接だけを見る一次スクリーニングです。ブリッジ、熱、荷重、実機の印刷成功は判定しません。";
+  const dryWebArtworkReadinessPanel = document.createElement("section");
+  dryWebArtworkReadinessPanel.className = "dry-web-artwork-readiness-panel";
+  dryWebArtworkReadinessPanel.dataset.overall = "未確認";
+  const dryWebArtworkReadinessTitle = document.createElement("strong");
+  dryWebArtworkReadinessTitle.textContent = "Dry Web作品成立条件";
+  const dryWebArtworkReadinessOverall = document.createElement("div");
+  dryWebArtworkReadinessOverall.className = "dry-web-artwork-readiness-overall";
+  dryWebArtworkReadinessOverall.setAttribute("role", "status");
+  dryWebArtworkReadinessOverall.setAttribute("aria-live", "polite");
+  dryWebArtworkReadinessOverall.textContent = "未確認";
+  const dryWebArtworkReadinessReason = document.createElement("div");
+  dryWebArtworkReadinessReason.className = "hint dry-web-artwork-readiness-reason";
+  dryWebArtworkReadinessReason.textContent = "現行の候補条件に必要な事実がそろっていません。";
+  const dryWebArtworkReadinessRows = document.createElement("dl");
+  dryWebArtworkReadinessRows.className = "dry-web-artwork-readiness-rows";
+  const dryWebArtworkReadinessRowValues = new Map<string, {
+    label: HTMLSpanElement;
+    value: HTMLSpanElement;
+    evidence: HTMLSpanElement;
+  }>();
+  for (const key of [
+    "surface-elements", "required-contacts", "surface-pass", "surface-insufficient",
+    "graph-nodes", "graph-edges", "graph-components", "graph-main-component",
+    "separation-teal", "separation-orange", "separation-red",
+    "minimum-diameter", "maximum-unreinforced-span",
+  ]) {
+    const term = document.createElement("dt");
+    const label = document.createElement("span");
+    term.appendChild(label);
+    const definition = document.createElement("dd");
+    const value = document.createElement("span");
+    value.className = "dry-web-artwork-readiness-value";
+    const evidence = document.createElement("span");
+    evidence.className = "dry-web-artwork-readiness-evidence";
+    definition.append(value, evidence);
+    dryWebArtworkReadinessRows.append(term, definition);
+    dryWebArtworkReadinessRowValues.set(key, { label, value, evidence });
+  }
+  const dryWebArtworkReadinessAction = document.createElement("div");
+  dryWebArtworkReadinessAction.className = "hint dry-web-artwork-readiness-action";
+  dryWebArtworkReadinessAction.textContent = "次: Stage 3の「現在のSurfaceをArtwork Graph化」を実行/更新してください。";
+  const dryWebArtworkReadinessUnmeasured = document.createElement("div");
+  dryWebArtworkReadinessUnmeasured.className = "hint dry-web-artwork-readiness-unmeasured";
+  dryWebArtworkReadinessUnmeasured.textContent = "未計測項目はここに表示されます。";
+  dryWebArtworkReadinessPanel.append(
+    dryWebArtworkReadinessTitle,
+    dryWebArtworkReadinessOverall,
+    dryWebArtworkReadinessReason,
+    dryWebArtworkReadinessRows,
+    dryWebArtworkReadinessAction,
+    dryWebArtworkReadinessUnmeasured,
+  );
+  const dryWebSupportSeparationPanel = document.createElement("section");
+  dryWebSupportSeparationPanel.className = "dry-web-support-separation-panel";
+  dryWebSupportSeparationPanel.dataset.state = "missing";
+  const dryWebSupportSeparationTitle = document.createElement("strong");
+  dryWebSupportSeparationTitle.textContent = "Dry Web付加後の支持分離";
+  const dryWebSupportSeparationHint = document.createElement("div");
+  dryWebSupportSeparationHint.className = "hint";
+  dryWebSupportSeparationHint.textContent =
+    "現在のDry Web exact再診断だけを、明示操作で3色に分けて確認します。橙は後段で取り外しサポートへ絞り込む候補です。今回のStage 8 preview対象選定は変更していません。サポート生成・mesh・印刷合否ではありません。";
+  const dryWebSupportSeparationRecheckRow = document.createElement("div");
+  dryWebSupportSeparationRecheckRow.className = "row dry-web-support-separation-recheck-row";
+  const dryWebSupportSeparationRecheck = document.createElement("button");
+  dryWebSupportSeparationRecheck.type = "button";
+  dryWebSupportSeparationRecheck.className = "primary-action";
+  dryWebSupportSeparationRecheck.textContent = "Dry Web付加後を再診断";
+  dryWebSupportSeparationRecheck.disabled = true;
+  dryWebSupportSeparationRecheck.onclick = () => callbacks.onRecheckDryWebAfterAttachment();
+  dryWebSupportSeparationRecheckRow.appendChild(dryWebSupportSeparationRecheck);
+  const dryWebSupportSeparationActions = document.createElement("div");
+  dryWebSupportSeparationActions.className = "row dry-web-support-separation-actions";
+  const dryWebSupportSeparationShow = document.createElement("button");
+  dryWebSupportSeparationShow.type = "button";
+  dryWebSupportSeparationShow.textContent = "3色で確認";
+  dryWebSupportSeparationShow.disabled = true;
+  dryWebSupportSeparationShow.onclick = () => callbacks.onSetDryWebSupportSeparationVisible(true);
+  const dryWebRedFaceLocatorShow = document.createElement("button");
+  dryWebRedFaceLocatorShow.type = "button";
+  dryWebRedFaceLocatorShow.textContent = "赤面だけ強調";
+  dryWebRedFaceLocatorShow.disabled = true;
+  dryWebRedFaceLocatorShow.onclick = () => callbacks.onSetDryWebRedFaceLocatorVisible(true);
+  const dryWebRedFaceDryWebCandidateShow = document.createElement("button");
+  dryWebRedFaceDryWebCandidateShow.type = "button";
+  dryWebRedFaceDryWebCandidateShow.textContent = "赤面→Dry Web補強候補";
+  dryWebRedFaceDryWebCandidateShow.disabled = true;
+  dryWebRedFaceDryWebCandidateShow.onclick = () => callbacks.onSetDryWebRedFaceDryWebCandidateVisible(true);
+  const dryWebRedFaceReinforcementPlanBuild = document.createElement("button");
+  dryWebRedFaceReinforcementPlanBuild.type = "button";
+  dryWebRedFaceReinforcementPlanBuild.textContent = "補強候補を仮Graphへ反映";
+  dryWebRedFaceReinforcementPlanBuild.disabled = true;
+  dryWebRedFaceReinforcementPlanBuild.onclick = () => callbacks.onBuildDryWebRedFaceReinforcementPlan();
+  const dryWebRedFaceReinforcementPlanDiscard = document.createElement("button");
+  dryWebRedFaceReinforcementPlanDiscard.type = "button";
+  dryWebRedFaceReinforcementPlanDiscard.textContent = "仮Graph計画を破棄";
+  dryWebRedFaceReinforcementPlanDiscard.disabled = true;
+  dryWebRedFaceReinforcementPlanDiscard.onclick = () => callbacks.onDiscardDryWebRedFaceReinforcementPlan();
+  const dryWebRedFaceReinforcementComparisonActions = document.createElement("div");
+  dryWebRedFaceReinforcementComparisonActions.className = "row dry-web-red-face-reinforcement-comparison-actions";
+  const dryWebRedFaceReinforcementComparisonRun = document.createElement("button");
+  dryWebRedFaceReinforcementComparisonRun.type = "button";
+  dryWebRedFaceReinforcementComparisonRun.className = "primary-action";
+  dryWebRedFaceReinforcementComparisonRun.textContent = "仮Graphで再診断";
+  dryWebRedFaceReinforcementComparisonRun.disabled = true;
+  dryWebRedFaceReinforcementComparisonRun.onclick = () => callbacks.onRecheckDryWebRedFaceReinforcementPlan();
+  const dryWebRedFaceReinforcementComparisonDiscard = document.createElement("button");
+  dryWebRedFaceReinforcementComparisonDiscard.type = "button";
+  dryWebRedFaceReinforcementComparisonDiscard.textContent = "仮診断結果を破棄";
+  dryWebRedFaceReinforcementComparisonDiscard.disabled = true;
+  dryWebRedFaceReinforcementComparisonDiscard.onclick = () => callbacks.onDiscardDryWebRedFaceReinforcementComparison();
+  dryWebRedFaceReinforcementComparisonActions.append(
+    dryWebRedFaceReinforcementComparisonRun,
+    dryWebRedFaceReinforcementComparisonDiscard,
+  );
+  const dryWebRedFaceReinforcementComparisonStatus = document.createElement("div");
+  dryWebRedFaceReinforcementComparisonStatus.className = "mesh-status dry-web-red-face-reinforcement-comparison-status";
+  dryWebRedFaceReinforcementComparisonStatus.textContent = "仮Graph exact比較は未実行";
+  dryWebRedFaceReinforcementComparisonStatus.setAttribute("aria-live", "polite");
+  const dryWebRedFaceReinforcementComparisonHint = document.createElement("div");
+  dryWebRedFaceReinforcementComparisonHint.className = "hint dry-web-red-face-reinforcement-comparison-hint";
+  dryWebRedFaceReinforcementComparisonHint.textContent =
+    "仮Graph診断のみ・canonical未変更。有限解像度の接触ヒューリスティックの比較であり、containment・collision・diameter・strength・watertightness・printabilityは示しません。";
+  const dryWebRedFaceProvisionalAdoptionGate = document.createElement("section");
+  dryWebRedFaceProvisionalAdoptionGate.className = "dry-web-red-face-provisional-adoption-gate";
+  dryWebRedFaceProvisionalAdoptionGate.dataset.state = "unavailable";
+  const dryWebRedFaceProvisionalAdoptionGateTitle = document.createElement("strong");
+  dryWebRedFaceProvisionalAdoptionGateTitle.textContent = "次の採用確認";
+  const dryWebRedFaceProvisionalAdoptionGateStatus = document.createElement("div");
+  dryWebRedFaceProvisionalAdoptionGateStatus.className = "mesh-status dry-web-red-face-provisional-adoption-gate-status";
+  dryWebRedFaceProvisionalAdoptionGateStatus.textContent = "currentの仮Graph計画とprovisional比較結果がそろうまで、採用確認へは進めません。";
+  dryWebRedFaceProvisionalAdoptionGateStatus.setAttribute("role", "status");
+  dryWebRedFaceProvisionalAdoptionGateStatus.setAttribute("aria-live", "polite");
+  const dryWebRedFaceProvisionalAdoptionGateCopy = document.createElement("div");
+  dryWebRedFaceProvisionalAdoptionGateCopy.className = "hint dry-web-red-face-provisional-adoption-gate-copy";
+  dryWebRedFaceProvisionalAdoptionGateCopy.textContent =
+    "この確認はexact provisional比較の作者判断だけを記録します。canonical Graphの採用、Surface診断、cache、history、renderer、outputは変更しません。";
+  const dryWebRedFaceProvisionalAdoptionGateActions = document.createElement("div");
+  dryWebRedFaceProvisionalAdoptionGateActions.className = "row dry-web-red-face-provisional-adoption-gate-actions";
+  const dryWebRedFaceProvisionalAdoptionGateApprove = document.createElement("button");
+  dryWebRedFaceProvisionalAdoptionGateApprove.type = "button";
+  dryWebRedFaceProvisionalAdoptionGateApprove.className = "primary-action";
+  dryWebRedFaceProvisionalAdoptionGateApprove.textContent = "次の採用確認へ進める";
+  dryWebRedFaceProvisionalAdoptionGateApprove.disabled = true;
+  dryWebRedFaceProvisionalAdoptionGateApprove.onclick = () => callbacks.onApproveDryWebRedFaceProvisionalComparison();
+  const dryWebRedFaceProvisionalAdoptionGatePending = document.createElement("button");
+  dryWebRedFaceProvisionalAdoptionGatePending.type = "button";
+  dryWebRedFaceProvisionalAdoptionGatePending.textContent = "保留に戻す";
+  dryWebRedFaceProvisionalAdoptionGatePending.disabled = true;
+  dryWebRedFaceProvisionalAdoptionGatePending.onclick = () => callbacks.onReturnDryWebRedFaceProvisionalComparisonToPending();
+  dryWebRedFaceProvisionalAdoptionGateActions.append(
+    dryWebRedFaceProvisionalAdoptionGateApprove,
+    dryWebRedFaceProvisionalAdoptionGatePending,
+  );
+  dryWebRedFaceProvisionalAdoptionGate.append(
+    dryWebRedFaceProvisionalAdoptionGateTitle,
+    dryWebRedFaceProvisionalAdoptionGateStatus,
+    dryWebRedFaceProvisionalAdoptionGateCopy,
+    dryWebRedFaceProvisionalAdoptionGateActions,
+  );
+  const dryWebCanonicalCandidateAdoption = document.createElement("section");
+  dryWebCanonicalCandidateAdoption.className = "dry-web-canonical-candidate-adoption";
+  dryWebCanonicalCandidateAdoption.dataset.state = "unavailable";
+  const dryWebCanonicalCandidateAdoptionTitle = document.createElement("strong");
+  dryWebCanonicalCandidateAdoptionTitle.textContent = "作品候補への採用";
+  const dryWebCanonicalCandidateAdoptionStatus = document.createElement("div");
+  dryWebCanonicalCandidateAdoptionStatus.className = "mesh-status dry-web-canonical-candidate-adoption-status";
+  dryWebCanonicalCandidateAdoptionStatus.textContent = "作者承認済みのexact provisional比較が必要です。";
+  dryWebCanonicalCandidateAdoptionStatus.setAttribute("role", "status");
+  dryWebCanonicalCandidateAdoptionStatus.setAttribute("aria-live", "polite");
+  const dryWebCanonicalCandidateAdoptionCopy = document.createElement("div");
+  dryWebCanonicalCandidateAdoptionCopy.className = "hint dry-web-canonical-candidate-adoption-copy";
+  dryWebCanonicalCandidateAdoptionCopy.textContent =
+    "採用はセッション中だけの候補Graph遷移です。旧generator/contact-floor/target-connection factsと旧exact separationを無効にし、次のexact再診断を要求します。";
+  const dryWebCanonicalCandidateAdoptionActions = document.createElement("div");
+  dryWebCanonicalCandidateAdoptionActions.className = "row dry-web-canonical-candidate-adoption-actions";
+  const dryWebCanonicalCandidateAdoptionApply = document.createElement("button");
+  dryWebCanonicalCandidateAdoptionApply.type = "button";
+  dryWebCanonicalCandidateAdoptionApply.className = "primary-action";
+  dryWebCanonicalCandidateAdoptionApply.textContent = "作品候補として採用";
+  dryWebCanonicalCandidateAdoptionApply.disabled = true;
+  dryWebCanonicalCandidateAdoptionApply.onclick = () => callbacks.onAdoptDryWebRedFaceCanonicalCandidate();
+  const dryWebCanonicalCandidateAdoptionUndo = document.createElement("button");
+  dryWebCanonicalCandidateAdoptionUndo.type = "button";
+  dryWebCanonicalCandidateAdoptionUndo.textContent = "採用前へ戻す";
+  dryWebCanonicalCandidateAdoptionUndo.disabled = true;
+  dryWebCanonicalCandidateAdoptionUndo.onclick = () => callbacks.onUndoDryWebRedFaceCanonicalCandidateAdoption();
+  dryWebCanonicalCandidateAdoptionActions.append(
+    dryWebCanonicalCandidateAdoptionApply,
+    dryWebCanonicalCandidateAdoptionUndo,
+  );
+  dryWebCanonicalCandidateAdoption.append(
+    dryWebCanonicalCandidateAdoptionTitle,
+    dryWebCanonicalCandidateAdoptionStatus,
+    dryWebCanonicalCandidateAdoptionCopy,
+    dryWebCanonicalCandidateAdoptionActions,
+  );
+  const dryWebSupportSeparationRestore = document.createElement("button");
+  dryWebSupportSeparationRestore.type = "button";
+  dryWebSupportSeparationRestore.textContent = "表示を戻す";
+  dryWebSupportSeparationRestore.disabled = true;
+  dryWebSupportSeparationRestore.onclick = () => callbacks.onSetDryWebSupportSeparationVisible(false);
+  dryWebSupportSeparationActions.append(
+    dryWebSupportSeparationShow,
+    dryWebRedFaceLocatorShow,
+    dryWebRedFaceDryWebCandidateShow,
+    dryWebRedFaceReinforcementPlanBuild,
+    dryWebRedFaceReinforcementPlanDiscard,
+    dryWebSupportSeparationRestore,
+  );
+  const dryWebSupportSeparationCounts = document.createElement("div");
+  dryWebSupportSeparationCounts.className = "mesh-status dry-web-support-separation-counts";
+  dryWebSupportSeparationCounts.textContent = "未確認";
+  dryWebSupportSeparationCounts.setAttribute("aria-live", "polite");
+  const dryWebRedFaceLocatorStatus = document.createElement("div");
+  dryWebRedFaceLocatorStatus.className = "mesh-status dry-web-red-face-locator-status";
+  dryWebRedFaceLocatorStatus.textContent = "赤面の診断face IDは未確認";
+  dryWebRedFaceLocatorStatus.setAttribute("aria-live", "polite");
+  const dryWebRedFaceLocatorHint = document.createElement("div");
+  dryWebRedFaceLocatorHint.className = "hint dry-web-red-face-locator-hint";
+  dryWebRedFaceLocatorHint.textContent =
+    "黄wire球 = 赤face位置locator（判定色・強度・printabilityではない）。診断face IDはcurrent exactの付加後危険面順（0始まり）です。Surface Pattern patch IDではありません。強調表示はpresentation-onlyで、診断・生成・出力を変更しません。";
+  const dryWebRedFaceDryWebCandidateStatus = document.createElement("div");
+  dryWebRedFaceDryWebCandidateStatus.className = "mesh-status dry-web-red-face-dry-web-candidate-status";
+  dryWebRedFaceDryWebCandidateStatus.textContent = "赤面→Dry Web候補は未確認";
+  dryWebRedFaceDryWebCandidateStatus.setAttribute("aria-live", "polite");
+  const dryWebRedFaceDryWebCandidateHint = document.createElement("div");
+  dryWebRedFaceDryWebCandidateHint.className = "hint dry-web-red-face-dry-web-candidate-hint";
+  dryWebRedFaceDryWebCandidateHint.textContent =
+    "最近傍edgeへのstraight-line preview（cyan = preview pathのみ）です。Base containment、collision、diameter、strength、mesh union、printabilityは未検証で、補強ではありません。";
+  const dryWebRedFaceReinforcementPlanStatus = document.createElement("div");
+  dryWebRedFaceReinforcementPlanStatus.className = "mesh-status dry-web-red-face-reinforcement-plan-status";
+  dryWebRedFaceReinforcementPlanStatus.textContent = "仮Graph計画は未作成";
+  dryWebRedFaceReinforcementPlanStatus.setAttribute("aria-live", "polite");
+  const dryWebRedFaceReinforcementPlanHint = document.createElement("div");
+  dryWebRedFaceReinforcementPlanHint.className = "hint dry-web-red-face-reinforcement-plan-hint";
+  dryWebRedFaceReinforcementPlanHint.textContent =
+    "仮Graphは候補線のtopology接続を確認するための表示専用計画です。canonical Graphへ採用せず、再診断・geometry・出力・printability判定は行いません。";
+  const dryWebSupportSeparationLegend = document.createElement("div");
+  dryWebSupportSeparationLegend.className = "dry-web-support-separation-legend";
+  dryWebSupportSeparationLegend.innerHTML =
+    '<span><i class="surface-angle-swatch is-mitigated"></i>青緑 = Dry Web到達候補</span>' +
+    '<span><i class="surface-angle-swatch is-support-outside"></i>橙 = 外側・取り外しサポート候補</span>' +
+    '<span><i class="surface-angle-swatch is-danger"></i>赤 = 内部/不明・Dry Web調整が必要</span>';
+  const dryWebSupportSeparationReason = document.createElement("div");
+  dryWebSupportSeparationReason.className = "hint dry-web-support-separation-reason";
+  dryWebSupportSeparationReason.textContent = "Dry Web付加後の支持分離が未確認です";
+  dryWebSupportSeparationPanel.append(
+    dryWebSupportSeparationTitle,
+    dryWebSupportSeparationHint,
+    dryWebSupportSeparationRecheckRow,
+    dryWebSupportSeparationActions,
+    dryWebSupportSeparationCounts,
+    dryWebRedFaceLocatorStatus,
+    dryWebRedFaceLocatorHint,
+    dryWebRedFaceDryWebCandidateStatus,
+    dryWebRedFaceDryWebCandidateHint,
+    dryWebRedFaceReinforcementPlanStatus,
+    dryWebRedFaceReinforcementPlanHint,
+    dryWebRedFaceReinforcementComparisonActions,
+    dryWebRedFaceReinforcementComparisonStatus,
+    dryWebRedFaceReinforcementComparisonHint,
+    dryWebRedFaceProvisionalAdoptionGate,
+    dryWebCanonicalCandidateAdoption,
+    dryWebSupportSeparationLegend,
+    dryWebSupportSeparationReason,
+  );
   surfaceAnglePanel.append(
     surfaceAngleTitle,
     surfaceAngleHint,
@@ -1753,6 +2490,12 @@ export function buildUi(
     surfaceDiagnosticsOutput,
     supportPaintPanel,
     surfaceAngleLimit,
+    dryWebInsideTargetPanel,
+    dryWebInsufficientEdgePanel,
+    dryWebContactFloorPanel,
+    dryWebContactFloorOverlayPanel,
+    dryWebArtworkReadinessPanel,
+    dryWebSupportSeparationPanel,
   );
   internalPanel.appendChild(surfaceAnglePanel);
   displayToolsRoot.append(
@@ -1768,21 +2511,25 @@ export function buildUi(
   );
 
   function renderInternalObservation(mode: InternalObservationMode): void {
+    renderedInternalObservationMode = mode;
     for (const [candidate, button] of internalObservationButtons) {
       button.classList.toggle("mode-active", candidate === mode);
     }
+    renderDryWebGraphViewButtons();
   }
 
   function renderInternalStructure(internalMode: InternalStructureMode): void {
     internalButtons.none.classList.toggle("mode-active", internalMode === "none");
     internalButtons.targetedGrid.classList.toggle("mode-active", internalMode === "targetedGrid");
     internalButtons.voronoiEdge.classList.toggle("mode-active", internalMode === "voronoiEdge");
+    dryWebAuthorActions.hidden = internalMode !== "targetedGrid";
     internalControls.hidden = internalMode === "none";
     internalDensitySlider.row.hidden = internalMode !== "voronoiEdge";
     targetedCountSlider.row.hidden = internalMode !== "targetedGrid";
+    dryWebContactsSlider.row.hidden = internalMode !== "targetedGrid";
     internalRandomnessSlider.row.hidden = internalMode !== "voronoiEdge";
     internalMethodHint.textContent = internalMode === "targetedGrid"
-      ? "全要素の赤点を内側から支え、花どうしの最短隙間を短い直線で一体化します。本数は最小網へ足す補強線、Radiusは全線共通です。初回は最終精度診断が必要です。"
+      ? "全要素の赤点をinsideから支え、花どうしの最短隙間を短い直線で一体化します。本数は最小網へ足す補強線、Radiusは全線共通です。Dry Web用Surface診断後にPaint分類を確認し、Stage 4の生成ボタンを押します。outside / scaffoldは後段です。"
       : "内部点から3D Voronoiのedge graphを作ります。";
     for (const button of internalObservationButtons.values()) button.disabled = internalMode === "none";
   }
@@ -2367,6 +3114,7 @@ export function buildUi(
   root.appendChild(viewCaption);
 
   function renderViewMode(mode: SkinViewMode, totalPatchPoints: number, coinBulge: number): void {
+    renderedViewMode = mode;
     for (const [m, btn] of Object.entries(viewButtons) as [SkinViewMode, HTMLButtonElement][]) {
       btn.classList.toggle("mode-active", m === mode);
     }
@@ -2385,6 +3133,7 @@ export function buildUi(
     } else {
       viewCaption.textContent = "段階メッシュ: まず粗い形を表示し、画面を動かせるまま設定解像度の形へ自動更新します。印刷・書き出しは別の検査経路です。";
     }
+    renderDryWebGraphViewButtons();
   }
 
   function renderDisplayStyle(style: SkinDisplayStyle): void {
@@ -2396,6 +3145,8 @@ export function buildUi(
 
   const manualRow = document.createElement("div");
   manualRow.className = "row";
+  manualRow.dataset.owner = "surface-pattern";
+  manualRow.dataset.role = "manual-surface-edit";
   const addPatchToggle = document.createElement("button");
   addPatchToggle.textContent = "パッチを手で追加 (クリック)";
   let addPatchActive = false;
@@ -2409,21 +3160,29 @@ export function buildUi(
   const manualRadiusBuilt = buildSlider("手動のパッチ半径", 0.03, 0.8, 0.01, skinParams.maxR * 0.5, (v) =>
     callbacks.onManualRadiusChange(v),
   );
+  manualRadiusBuilt.row.dataset.owner = "surface-pattern";
+  manualRadiusBuilt.row.dataset.role = "manual-surface-edit-radius";
   root.appendChild(manualRadiusBuilt.row);
 
   const hint = document.createElement("div");
   hint.className = "hint";
+  hint.dataset.owner = "surface-pattern";
+  hint.dataset.role = "manual-surface-edit-help";
   hint.textContent =
     "「パッチを手で追加」を有効にしてホストの表面をクリックすると、その場所に手動のパッチを置きます。既存のパッチをクリックで選択、Delete で削除。";
   root.appendChild(hint);
 
   const deletePatchBtn = document.createElement("button");
+  deletePatchBtn.dataset.owner = "surface-pattern";
+  deletePatchBtn.dataset.role = "manual-surface-edit-delete";
   deletePatchBtn.textContent = "選択したパッチを削除 (Delete)";
   deletePatchBtn.onclick = () => callbacks.onDeleteSelectedPatch();
   root.appendChild(deletePatchBtn);
 
   const selectionInfo = document.createElement("div");
   selectionInfo.className = "selection-info";
+  selectionInfo.dataset.owner = "surface-pattern";
+  selectionInfo.dataset.role = "manual-surface-selection-status";
   selectionInfo.textContent = "選択なし";
   root.appendChild(selectionInfo);
 
@@ -2432,6 +3191,8 @@ export function buildUi(
   // --- Gauges (計器) -------------------------------------------------------
   const gaugesPanel = document.createElement("div");
   gaugesPanel.className = "gauges";
+  gaugesPanel.dataset.owner = "graph-screening";
+  gaugesPanel.dataset.role = "connection-gauges";
   const gaugesTitle = document.createElement("div");
   gaugesTitle.className = "gauges-title";
   gaugesTitle.textContent = "計器";
@@ -2478,6 +3239,8 @@ export function buildUi(
   // --- 絡み計器 (T11 §2, 立体リングの眼目) -----------------------------------
   const linkingPanel = document.createElement("div");
   linkingPanel.className = "gauges";
+  linkingPanel.dataset.owner = "graph-screening";
+  linkingPanel.dataset.role = "connection-gauges";
   const linkingTitle = document.createElement("div");
   linkingTitle.className = "gauges-title";
   linkingTitle.textContent = "絡み計器（立体リングの Gauss linking number）";
@@ -2523,8 +3286,10 @@ export function buildUi(
 
   const resultTools = document.createElement("details");
   resultTools.className = "result-tools";
+  resultTools.dataset.owner = "graph-screening";
+  resultTools.dataset.role = "connection-gauges";
   const resultToolsSummary = document.createElement("summary");
-  resultToolsSummary.textContent = "生成結果を見る・手で直す";
+  resultToolsSummary.textContent = "Graph screening / connection gauges（互換サブ機能）";
   resultTools.appendChild(resultToolsSummary);
   resultTools.append(
     autoSwitchNotice,
@@ -2540,7 +3305,7 @@ export function buildUi(
   root.appendChild(resultTools);
 
   // These experimental controls stay together at the end of Properties so
-  // the author workflow rail remains a clean 1–10 path. The child nodes are
+  // the author workflow rail remains a clean eight-stage path. The child nodes are
   // the existing controls; only their containing section is new.
   const frozenExperiments = document.createElement("section");
   frozenExperiments.className = "skin-frozen-experiments";
@@ -2958,13 +3723,20 @@ export function buildUi(
   importLabel.textContent = "skin 履歴を読み込む";
   importLabel.className = "file-label skin-history-import-label";
   const importInput = document.createElement("input");
+  importInput.id = "skin-history-import-input";
   importInput.type = "file";
   importInput.accept = "application/json";
   importInput.setAttribute("aria-label", "skin 履歴を読み込む");
+  importLabel.htmlFor = importInput.id;
   const importFileName = document.createElement("span");
   importFileName.className = "skin-history-file-name";
   importFileName.textContent = "未選択";
   importFileName.setAttribute("aria-live", "polite");
+  const importStatus = document.createElement("span");
+  importStatus.className = "skin-history-import-status";
+  importStatus.textContent = "未読込";
+  importStatus.setAttribute("role", "status");
+  importStatus.setAttribute("aria-live", "polite");
   importInput.onchange = () => {
     const file = importInput.files?.[0];
     if (file) {
@@ -2977,6 +3749,7 @@ export function buildUi(
   importRow.appendChild(importLabel);
   importRow.appendChild(importInput);
   importRow.appendChild(importFileName);
+  importRow.appendChild(importStatus);
   const historyIo = document.createElement("div");
   historyIo.className = "skin-history-io";
   historyIo.setAttribute("aria-label", "History import and export");
@@ -2988,7 +3761,7 @@ export function buildUi(
 
   const meshTitle = document.createElement("div");
   meshTitle.className = "mesh-export-title";
-  meshTitle.textContent = "SURFACE / 4 Surface mesh generation";
+  meshTitle.textContent = "6. Geometry / Mesh化（Surface mesh generation）";
   meshPanel.appendChild(meshTitle);
 
   const sizeRow = document.createElement("div");
@@ -3075,6 +3848,8 @@ export function buildUi(
 
   const bambuExportPanel = document.createElement("section");
   bambuExportPanel.className = "bambu-3mf-export";
+  bambuExportPanel.dataset.owner = "print-job-assembly";
+  bambuExportPanel.dataset.role = "profile-3mf-evidence";
   const bambuExportTitle = document.createElement("strong");
   bambuExportTitle.textContent = "v088候補一式（Bambu Studio用3MF + 来歴）";
   const bambuExportHint = document.createElement("div");
@@ -3213,7 +3988,7 @@ export function buildUi(
   internalGatePanel.className = "mesh-export internal-print-gate";
   const internalGateTitle = document.createElement("div");
   internalGateTitle.className = "mesh-export-title";
-  internalGateTitle.textContent = "内部構造の印刷ゲート";
+  internalGateTitle.textContent = "7. 作品形状診断 / Internal診断・印刷ゲート（互換サブ機能）";
   const internalGateProfile = document.createElement("strong");
   internalGateProfile.textContent = "A1 mini · 0.4 mmノズル · PLA · 0.2 mm積層";
   const internalGateHint = document.createElement("div");
@@ -3245,9 +4020,11 @@ export function buildUi(
 
   const printPanel = document.createElement("section");
   printPanel.className = "mesh-export print-preparation";
+  printPanel.dataset.owner = "print-job-evidence";
+  printPanel.dataset.role = "slice-print-run-evidence";
   const printTitle = document.createElement("div");
   printTitle.className = "mesh-export-title";
-  printTitle.textContent = "PRINT SUPPORT / 10 Print validation / print runs";
+  printTitle.textContent = "補助・凍結 / Slice・Print Run evidence";
   printPanel.appendChild(printTitle);
 
   const printHint = document.createElement("div");
@@ -3301,6 +4078,262 @@ export function buildUi(
   fps.className = "fps";
   root.appendChild(fps);
   root.appendChild(frozenExperiments);
+
+  // The author-facing rail is a visual shell around the existing controls.
+  // Every node below is moved, never recreated, so callbacks, IDs, values,
+  // history and status updates continue to address the same DOM objects.
+  type AuthorStageState = "current" | "partial" | "placeholder";
+  const authorWorkflow = document.createElement("section");
+  authorWorkflow.className = "skin-author-workflow";
+  authorWorkflow.setAttribute("aria-label", "SKIN author workflow stages");
+
+  const makeAuthorStage = (
+    number: number,
+    label: string,
+    state: AuthorStageState,
+    description: string,
+  ): { details: HTMLDetailsElement; body: HTMLDivElement } => {
+    const details = document.createElement("details");
+    details.id = `skin-stage-${number}`;
+    details.className = `skin-author-stage is-${state}`;
+    details.open = true;
+    const summary = document.createElement("summary");
+    summary.className = "skin-author-stage-summary";
+    summary.setAttribute("aria-label", `${number}. ${label}`);
+    const numberBadge = document.createElement("span");
+    numberBadge.className = "skin-author-stage-number";
+    numberBadge.textContent = String(number);
+    const summaryCopy = document.createElement("span");
+    summaryCopy.className = "skin-author-stage-copy";
+    const summaryLabel = document.createElement("strong");
+    summaryLabel.textContent = label;
+    const summaryDescription = document.createElement("small");
+    summaryDescription.textContent = description;
+    summaryCopy.append(summaryLabel, summaryDescription);
+    const summaryState = document.createElement("span");
+    summaryState.className = "skin-author-stage-state";
+    summaryState.textContent = state === "current" ? "current" : state === "partial" ? "partial" : "gray / not yet";
+    summary.append(numberBadge, summaryCopy, summaryState);
+    const body = document.createElement("div");
+    body.id = `skin-stage-${number}-body`;
+    body.className = "skin-author-stage-body";
+    details.append(summary, body);
+    return { details, body };
+  };
+
+  const stage1 = makeAuthorStage(1, "Base Shape", "current", "Metaball / SDF host");
+  const stage2 = makeAuthorStage(2, "Surface Pattern", "current", "surface placement, motif and generation");
+  const stage3 = makeAuthorStage(3, "Artwork Graph化", "partial", "Surface snapshot → common Artwork Graph");
+  const stage4 = makeAuthorStage(4, "Dry Web / Structural Integration", "partial", "candidate Interior + Connections");
+  const stage5 = makeAuthorStage(5, "Integrated Artwork Graph調整", "partial", "screening is an editing aid");
+  const stage6 = makeAuthorStage(6, "Geometry / Mesh化", "current", "explicit geometry realization");
+  const stage7 = makeAuthorStage(7, "作品形状診断", "current", "exact artwork checks");
+  const stage8 = makeAuthorStage(8, "Removable Print Support", "partial", "separate, preview-only support");
+
+  stage1.body.append(
+    hostTitle,
+    hostLead,
+    growRow,
+    ...hostSliders.map(({ row }) => row),
+    seedRow,
+    s1ImportRow,
+  );
+  stage2.body.append(
+    modeTitle,
+    modeToggle,
+    modeExplainer,
+    skinTitle,
+    generationTitle,
+    generationRow,
+    quadFlowPanel,
+    voronoiPanel,
+    goldbergPanel,
+    shapeTitle,
+    shapeLead,
+    shapeRow,
+    placementTitle,
+    placementToggle,
+    placementHint,
+    shapeHint,
+    adjustmentTitle,
+    adjustmentLead,
+    motifPreview,
+    quadConnectionAdjustment,
+    flowerMotifPanel,
+    commonAdjustmentDetails,
+    skinSeedRow,
+    lacePanel,
+    contactPanel,
+    packBtnRow,
+    packResult,
+  );
+
+  const surfaceResultStatus = document.createElement("div");
+  surfaceResultStatus.className = "surface-result-status";
+  surfaceResultStatus.dataset.owner = "surface-pattern";
+  surfaceResultStatus.dataset.role = "surface-result-status";
+  surfaceResultStatus.append(autoSwitchNotice, viewCaption);
+  stage2.body.append(
+    surfaceResultStatus,
+    manualRow,
+    manualRadiusBuilt.row,
+    hint,
+    deletePatchBtn,
+    selectionInfo,
+  );
+
+  const stage3Panel = document.createElement("section");
+  stage3Panel.className = "skin-artwork-graph-panel";
+  stage3Panel.dataset.owner = "artwork-graph";
+  stage3Panel.dataset.role = "stage-3-surface-snapshot";
+  const stage3Title = document.createElement("strong");
+  stage3Title.textContent = "Surface → Artwork Graph snapshot";
+  const stage3Hint = document.createElement("p");
+  stage3Hint.className = "skin-artwork-graph-hint";
+  stage3Hint.textContent = "今のSurface patch factsだけを、in-memoryの共通Artwork Graphへ固定します。履歴・recipe・geometryは変更しません。";
+  const stage3DeriveButton = document.createElement("button");
+  stage3DeriveButton.type = "button";
+  stage3DeriveButton.id = "skin-stage-3-derive";
+  stage3DeriveButton.className = "primary-action skin-artwork-graph-action";
+  stage3DeriveButton.textContent = "現在のSurfaceをArtwork Graph化";
+  stage3DeriveButton.disabled = true;
+  stage3DeriveButton.onclick = () => callbacks.onCreateArtworkGraph();
+  const stage3Overlay = document.createElement("section");
+  stage3Overlay.className = "skin-artwork-graph-overlay";
+  stage3Overlay.dataset.owner = "artwork-graph";
+  stage3Overlay.dataset.role = "stage-3-3d-overlay";
+  stage3Overlay.dataset.status = "missing";
+  stage3Overlay.dataset.enabled = "false";
+  const stage3OverlayToggleLabel = document.createElement("label");
+  stage3OverlayToggleLabel.className = "skin-artwork-graph-overlay-toggle";
+  const stage3OverlayToggle = document.createElement("input");
+  stage3OverlayToggle.type = "checkbox";
+  stage3OverlayToggle.id = "skin-stage-3-overlay-toggle";
+  stage3OverlayToggle.onchange = () => callbacks.onToggleArtworkGraphOverlay(stage3OverlayToggle.checked);
+  const stage3OverlayToggleText = document.createElement("span");
+  stage3OverlayToggleText.textContent = "Artwork Graphを3D表示";
+  stage3OverlayToggleLabel.append(stage3OverlayToggle, stage3OverlayToggleText);
+  const stage3OverlayStatus = document.createElement("div");
+  stage3OverlayStatus.className = "skin-artwork-graph-overlay-status";
+  stage3OverlayStatus.dataset.role = "stage-3-overlay-status";
+  stage3OverlayStatus.setAttribute("role", "status");
+  stage3OverlayStatus.setAttribute("aria-live", "polite");
+  stage3OverlayStatus.textContent = "overlay OFF · snapshotなし";
+  const stage3OverlayLegend = document.createElement("div");
+  stage3OverlayLegend.className = "skin-artwork-graph-overlay-legend";
+  const stage3CurrentLegend = document.createElement("span");
+  const stage3CurrentSwatch = document.createElement("i");
+  stage3CurrentSwatch.className = "skin-artwork-graph-overlay-swatch current";
+  stage3CurrentLegend.append(stage3CurrentSwatch, document.createTextNode("青緑：現在のSurfaceと一致"));
+  const stage3StaleLegend = document.createElement("span");
+  const stage3StaleSwatch = document.createElement("i");
+  stage3StaleSwatch.className = "skin-artwork-graph-overlay-swatch stale";
+  stage3StaleLegend.append(stage3StaleSwatch, document.createTextNode("赤：Surface変更前のGraph"));
+  stage3OverlayLegend.append(stage3CurrentLegend, stage3StaleLegend);
+  const stage3OverlayNote = document.createElement("p");
+  stage3OverlayNote.className = "skin-artwork-graph-overlay-note";
+  stage3OverlayNote.textContent = "接続はStage 4 Dry Webで生成します。ここではSurface nodeの位置だけを表示します。";
+  artworkGraphDisplayControl.appendChild(stage3OverlayToggleLabel);
+  stage3Overlay.append(
+    stage3OverlayStatus,
+    stage3OverlayLegend,
+    stage3OverlayNote,
+  );
+  const stage3Status = document.createElement("div");
+  stage3Status.id = "skin-stage-3-status";
+  stage3Status.className = "skin-artwork-graph-status";
+  stage3Status.dataset.status = "not-ready";
+  stage3Status.setAttribute("role", "status");
+  stage3Status.setAttribute("aria-live", "polite");
+  const stage3StatusLabel = document.createElement("strong");
+  stage3StatusLabel.dataset.role = "stage-3-status-label";
+  stage3StatusLabel.textContent = "not-ready";
+  const stage3StatusDetail = document.createElement("span");
+  stage3StatusDetail.dataset.role = "stage-3-status-detail";
+  stage3StatusDetail.textContent = "Surfaceパッチがないため未準備です。";
+  stage3Status.append(stage3StatusLabel, stage3StatusDetail);
+  const stage3Facts = document.createElement("dl");
+  stage3Facts.className = "skin-artwork-graph-facts";
+  const stage3FactValues = new Map<string, HTMLElement>();
+  const addStage3Fact = (key: string, label: string, value: string): void => {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const definition = document.createElement("dd");
+    definition.dataset.artworkGraphField = key;
+    definition.textContent = value;
+    stage3Facts.append(term, definition);
+    stage3FactValues.set(key, definition);
+  };
+  addStage3Fact("current-patches", "current Surface patches", "0");
+  addStage3Fact("snapshot-nodes", "snapshot Surface nodes", "—");
+  addStage3Fact("relations", "Surface relations", "—");
+  addStage3Fact("patch-set-revision", "patchSetRevision", "0");
+  addStage3Fact("artwork-state", "Artwork Graph state", "—");
+  const stage3Boundary = document.createElement("p");
+  stage3Boundary.className = "skin-artwork-graph-boundary";
+  stage3Boundary.textContent = "この縦 slice は surfaceDraft だけです。Interior / Artwork Connections と print proof、Geometry / Mesh化はまだ含みません。";
+  stage3Panel.append(stage3Title, stage3Hint, stage3DeriveButton, stage3Overlay, stage3Status, stage3Facts, stage3Boundary);
+  stage3.body.appendChild(stage3Panel);
+
+  stage4.body.appendChild(internalWorkflowSection);
+
+  const stage5Placeholder = document.createElement("div");
+  stage5Placeholder.className = "skin-stage-placeholder";
+  stage5Placeholder.innerHTML =
+    "<strong>Integrated Artwork Graph Candidate / Confirmed Graph</strong>" +
+    "<span>Candidate差分の作者確認・採否とGraph編集は未実装です。下の既存操作は互換サブ機能で、" +
+    "graph screeningは印刷証明ではありません。</span>";
+  stage5.body.append(stage5Placeholder, supportPaintPanel, resultTools);
+
+  // Print-job assembly/profile evidence is retained as one existing node and
+  // moves to the bottom auxiliary shelf; mesh inspection itself remains stage 6.
+  stage6.body.appendChild(meshPanel);
+
+  stage7.body.append(surfaceAnglePanel, internalGatePanel);
+  const auxiliary = document.createElement("details");
+  auxiliary.className = "skin-auxiliary-frozen";
+  auxiliary.open = true;
+  const auxiliarySummary = document.createElement("summary");
+  auxiliarySummary.textContent = "補助・凍結 / Auxiliary & frozen material";
+  auxiliarySummary.setAttribute("aria-label", "補助・凍結 material を開閉");
+  const auxiliaryBody = document.createElement("div");
+  auxiliaryBody.className = "skin-auxiliary-frozen-body";
+  const auxiliaryStatus = document.createElement("section");
+  auxiliaryStatus.className = "skin-auxiliary-status";
+  const auxiliaryStatusTitle = document.createElement("strong");
+  auxiliaryStatusTitle.textContent = "開発・診断ステータス（補助）";
+  const auxiliaryStatusHint = document.createElement("div");
+  auxiliaryStatusHint.className = "hint";
+  auxiliaryStatusHint.textContent = "Slice / Print Run evidence、Windows確認情報、履歴・開発状態は作者8段階の外側に置きます。既存操作は削除・非表示にしません。";
+  auxiliaryStatus.append(auxiliaryStatusTitle, auxiliaryStatusHint, surfaceStartupStatus, surfaceDiagnosticsActions, surfaceDiagnosticsOutput, clearAllBtn, historyCount, fps, registry);
+  const printJobAssemblyTitle = document.createElement("strong");
+  printJobAssemblyTitle.className = "skin-auxiliary-subheading";
+  printJobAssemblyTitle.textContent = "Print Job Assembly / Profile・3MF evidence";
+  const printJobAssembly = document.createElement("section");
+  printJobAssembly.className = "skin-auxiliary-print-job";
+  printJobAssembly.dataset.owner = "print-job-assembly";
+  printJobAssembly.append(printJobAssemblyTitle, bambuExportPanel);
+  auxiliaryBody.append(auxiliaryStatus, printPanel, printJobAssembly, frozenExperiments);
+  auxiliary.append(auxiliarySummary, auxiliaryBody);
+
+  authorWorkflow.append(
+    stage1.details,
+    stage2.details,
+    stage3.details,
+    stage4.details,
+    stage5.details,
+    stage6.details,
+    stage7.details,
+    stage8.details,
+  );
+
+  // Any root-level node not explicitly assigned above (including existing
+  // separators and history I/O, which main.ts moves into PROJECT) is retained
+  // in the auxiliary shelf rather than being dropped during reparenting.
+  const topLevelNodes = new Set<Node>([title, versionRow, counts]);
+  const ungroupedRootChildren = Array.from(root.children).filter((node) => !topLevelNodes.has(node));
+  root.replaceChildren(title, versionRow, counts, authorWorkflow, auxiliary);
+  auxiliaryBody.append(...ungroupedRootChildren);
 
   container.appendChild(root);
 
@@ -3376,6 +4409,10 @@ export function buildUi(
       if (!shapeUndoLocked) undoStatus.textContent = "";
       syncShapeUndoLock();
     },
+    setHistoryImportStatus: (text, ok) => {
+      importStatus.textContent = text;
+      importStatus.classList.toggle("warn", ok === false);
+    },
     setUndoHistory: (labels) => {
       undoHistorySelect.replaceChildren();
       const recent = labels.slice(-10).reverse();
@@ -3448,6 +4485,35 @@ export function buildUi(
         : `詰めた: ${result.placed} 個追加 / 棄却 ${result.triedAndRejected} 回${connectionSummary}${flowerConnection}`;
       packResult.classList.toggle("pack-saturated", saturated);
     },
+    setArtworkGraphStatus: (status) => {
+      const statusLabel = status.status === "ready"
+        ? "ready · current"
+        : status.status === "stale"
+          ? "stale · 再生成が必要"
+          : "not-ready";
+      stage3Panel.dataset.status = status.status;
+      stage3Status.dataset.status = status.status;
+      stage3StatusLabel.textContent = statusLabel;
+      stage3StatusDetail.textContent = status.detail;
+      stage3FactValues.get("current-patches")!.textContent = String(status.currentPatchCount);
+      stage3FactValues.get("snapshot-nodes")!.textContent = status.snapshotNodeCount === null ? "—" : String(status.snapshotNodeCount);
+      stage3FactValues.get("relations")!.textContent = status.relationCount === null ? "—" : String(status.relationCount);
+      stage3FactValues.get("patch-set-revision")!.textContent = String(status.patchSetRevision);
+      stage3FactValues.get("artwork-state")!.textContent = status.artworkState ?? "—";
+      stage3DeriveButton.disabled = status.currentPatchCount === 0;
+    },
+    setArtworkGraphOverlayState: (state) => {
+      stage3OverlayToggle.checked = state.enabled;
+      stage3Overlay.dataset.status = state.status;
+      stage3Overlay.dataset.enabled = String(state.enabled);
+      const markerLabel = state.nodeCount === 1 ? "1 node marker" : `${state.nodeCount} node markers`;
+      const statusLabel = state.status === "current"
+        ? `current snapshot · ${markerLabel}`
+        : state.status === "stale"
+          ? `旧snapshot／再Graph化が必要 · ${markerLabel}`
+          : "snapshotなし";
+      stage3OverlayStatus.textContent = state.enabled ? statusLabel : `overlay OFF · ${statusLabel}`;
+    },
     setContactStatus: (text, ok) => {
       contactStatus.textContent = text;
       contactStatus.classList.toggle("ok", ok === true);
@@ -3462,6 +4528,7 @@ export function buildUi(
       for (const { spec, set } of ringSliders) set(Number(p[spec.key]));
       internalDensitySlider.set(p.internalDensity);
       targetedCountSlider.set(p.internalDensity);
+      dryWebContactsSlider.set(p.dryWebRequiredContacts ?? 3);
       internalRadiusSlider.set(p.internalRadius);
       internalRandomnessSlider.set(p.internalRandomness);
       renderInternalStructure(p.internalStructure);
@@ -3545,6 +4612,195 @@ export function buildUi(
       surfaceAngleStatus.textContent = text;
       surfaceAngleStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
     },
+    setDryWebSupportSeparationState: (state) => {
+      dryWebSupportSeparationPanel.dataset.state = state.state;
+      const redFaceLocatorVisible = state.redFaceLocator.visible;
+      const redFaceDryWebCandidateVisible = state.redFaceDryWebCandidate.visible;
+      dryWebSupportSeparationPanel.dataset.visible = String(state.visible || redFaceLocatorVisible || redFaceDryWebCandidateVisible);
+      dryWebSupportSeparationPanel.dataset.redFaceLocator = redFaceLocatorVisible ? "true" : "false";
+      dryWebSupportSeparationPanel.dataset.redFaceDryWebCandidate = redFaceDryWebCandidateVisible ? "true" : "false";
+      dryWebSupportSeparationRecheck.disabled = !state.recheckEnabled;
+      dryWebSupportSeparationShow.disabled = !state.available || state.visible || redFaceLocatorVisible || redFaceDryWebCandidateVisible;
+      dryWebRedFaceLocatorShow.disabled = !state.redFaceLocator.enabled || redFaceLocatorVisible || redFaceDryWebCandidateVisible;
+      dryWebRedFaceDryWebCandidateShow.disabled = !state.redFaceDryWebCandidate.enabled || redFaceDryWebCandidateVisible;
+      dryWebRedFaceReinforcementPlanBuild.disabled = !state.redFaceReinforcementPlan.available;
+      dryWebRedFaceReinforcementPlanDiscard.disabled = !state.redFaceReinforcementPlan.current;
+      dryWebSupportSeparationRestore.disabled = !state.available || !(state.visible || redFaceLocatorVisible || redFaceDryWebCandidateVisible);
+      dryWebSupportSeparationCounts.textContent = state.available
+        ? `青緑 ${state.mitigatedFaceCount.toLocaleString()}面 / 橙 ${state.outsideFaceCount.toLocaleString()}面 / 赤 ${state.unresolvedFaceCount.toLocaleString()}面`
+        : "未確認（countなし）";
+      dryWebRedFaceLocatorStatus.textContent = state.redFaceLocator.status;
+      dryWebRedFaceDryWebCandidateStatus.textContent = state.redFaceDryWebCandidate.enabled
+        ? `${state.redFaceDryWebCandidate.reason} · 長さ min/mean/max ${[state.redFaceDryWebCandidate.minLength, state.redFaceDryWebCandidate.meanLength, state.redFaceDryWebCandidate.maxLength].map((length) => length === null ? "--" : length.toFixed(3)).join(" / ")}`
+        : state.redFaceDryWebCandidate.reason;
+      const planFacts = state.redFaceReinforcementPlan.facts;
+      dryWebRedFaceReinforcementPlanStatus.textContent = planFacts
+        ? `base ${planFacts.baseNodeCount} node → provisional ${planFacts.provisionalNodeCount} node / base ${planFacts.baseEdgeCount} edge → provisional ${planFacts.provisionalEdgeCount} edge · split ${planFacts.sourceEdgesSplit} · junction ${planFacts.junctionNodesAdded} · red endpoint ${planFacts.redEndpointNodesAdded} · reinforcement ${planFacts.reinforcementEdgesAdded} · preview ${state.redFaceReinforcementPlan.previewedCandidateCount} / total red ${state.redFaceReinforcementPlan.totalRedFaceCount} · target ${planFacts.targetDiameterMm.toFixed(3)} mm / radius ${planFacts.reinforcementRadius.toFixed(6)} · 仮Graph・未診断`
+        : state.redFaceReinforcementPlan.reason;
+      dryWebRedFaceReinforcementPlanStatus.dataset.state = planFacts ? "current" : "missing";
+      const comparison = state.redFaceReinforcementComparison;
+      const signed = (value: number): string => value >= 0 ? `+${value}` : String(value);
+      dryWebRedFaceReinforcementComparisonRun.disabled = !comparison.enabled;
+      dryWebRedFaceReinforcementComparisonDiscard.disabled = comparison.state !== "current" && comparison.state !== "running";
+      dryWebRedFaceReinforcementComparisonStatus.dataset.state = comparison.state;
+      if (comparison.current
+        && comparison.baseline
+        && comparison.provisional
+        && comparison.deltas
+        && comparison.redReduction !== null
+        && comparison.status) {
+        const elapsed = comparison.elapsedSeconds === null ? "経過 --秒" : `経過 ${comparison.elapsedSeconds.toFixed(1)}秒`;
+        dryWebRedFaceReinforcementComparisonStatus.textContent =
+          `baseline 赤 ${comparison.baseline.red} → provisional 赤 ${comparison.provisional.red}`
+          + ` · teal ${comparison.baseline.teal}→${comparison.provisional.teal}`
+          + ` / orange ${comparison.baseline.orange}→${comparison.provisional.orange}`
+          + ` / red ${comparison.baseline.red}→${comparison.provisional.red}`
+          + ` · Δ teal ${signed(comparison.deltas.teal)} / orange ${signed(comparison.deltas.orange)} / red ${signed(comparison.deltas.red)}`
+          + ` · red reduction ${signed(comparison.redReduction)} · ${comparison.status} · ${elapsed}`;
+      } else {
+        const elapsed = comparison.elapsedSeconds === null ? "" : ` · 経過 ${(comparison.elapsedSeconds).toFixed(1)}秒`;
+        dryWebRedFaceReinforcementComparisonStatus.textContent = comparison.state === "running"
+          ? `仮Graph exact比較 · 実行中${elapsed} · baseline/provisional countは完了まで表示しません`
+          : comparison.reason;
+      }
+      const adoptionGate = state.redFaceProvisionalAdoptionGate;
+      dryWebRedFaceProvisionalAdoptionGate.dataset.state = adoptionGate.state;
+      dryWebRedFaceProvisionalAdoptionGateStatus.textContent = adoptionGate.reason;
+      dryWebRedFaceProvisionalAdoptionGateCopy.textContent = adoptionGate.copy;
+      dryWebRedFaceProvisionalAdoptionGateApprove.disabled = !adoptionGate.approveEnabled;
+      dryWebRedFaceProvisionalAdoptionGatePending.disabled = !adoptionGate.returnToPendingEnabled;
+      const canonicalCandidateAdoption = state.canonicalCandidateAdoption;
+      dryWebCanonicalCandidateAdoption.dataset.state = canonicalCandidateAdoption.state;
+      dryWebCanonicalCandidateAdoptionStatus.textContent = canonicalCandidateAdoption.nodeCount !== null
+        && canonicalCandidateAdoption.edgeCount !== null
+        ? `${canonicalCandidateAdoption.reason} · candidate ${canonicalCandidateAdoption.nodeCount.toLocaleString()} node / ${canonicalCandidateAdoption.edgeCount.toLocaleString()} edge`
+        : canonicalCandidateAdoption.reason;
+      dryWebCanonicalCandidateAdoptionCopy.textContent = canonicalCandidateAdoption.copy;
+      dryWebCanonicalCandidateAdoptionApply.disabled = !canonicalCandidateAdoption.adoptEnabled;
+      dryWebCanonicalCandidateAdoptionUndo.disabled = !canonicalCandidateAdoption.undoEnabled;
+      dryWebSupportSeparationReason.textContent = redFaceDryWebCandidateVisible
+        ? "赤面→Dry Web補強候補を表示中 · cyanはpreview pathのみです。表示を戻すと元の表示へ戻ります。"
+        : redFaceLocatorVisible
+        ? "赤面だけ強調中 · 非赤面は空間把握用に減光しています。表示を戻すと元の表示へ戻ります。"
+        : state.visible
+        ? "3色表示中 · 橙は後段で絞り込む候補です（Stage 8の対象選定は未変更）"
+        : state.reason;
+    },
+    setDryWebInsideTargetPresentation: (presentation) => {
+      dryWebInsideTargetPanel.dataset.state = presentation.state;
+      dryWebInsideTargetPanel.dataset.visible = String(presentation.visible);
+      dryWebInsideTargetState.textContent = presentation.visible
+        ? "表示中"
+        : presentation.available
+          ? "current / 非表示"
+          : presentation.state === "running"
+            ? "実行中"
+            : presentation.state === "stale"
+              ? "stale"
+              : "未確認";
+      dryWebInsideTargetCounts.textContent = presentation.totalTargetCount === null
+        || presentation.displaySampleCount === null
+        ? "total target 未確認 / display sample 未確認"
+        : `total target ${presentation.totalTargetCount.toLocaleString()} / display sample ${presentation.displaySampleCount.toLocaleString()} / stride ${presentation.stride}`;
+      dryWebInsideTargetReason.textContent = presentation.reason;
+      dryWebInsideTargetCopy.textContent = presentation.copy;
+      dryWebInsideTargetShow.disabled = !presentation.available || presentation.visible;
+      dryWebInsideTargetRestore.disabled = !presentation.visible;
+    },
+    setDryWebArtworkReadiness: (presentation) => {
+      dryWebArtworkReadinessPanel.dataset.overall = presentation.overall;
+      dryWebArtworkReadinessOverall.textContent = presentation.overall;
+      dryWebArtworkReadinessReason.textContent = presentation.overallReason;
+      dryWebArtworkReadinessAction.textContent = `次: ${presentation.action}`;
+      dryWebArtworkReadinessUnmeasured.textContent = presentation.unmeasuredNote;
+      for (const row of presentation.rows) {
+        const elements = dryWebArtworkReadinessRowValues.get(row.key);
+        if (!elements) continue;
+        elements.label.textContent = row.label;
+        elements.value.textContent = row.value;
+        elements.evidence.textContent = dryWebArtworkReadinessEvidenceLabel(row.evidence);
+        elements.evidence.dataset.evidence = row.evidence;
+      }
+    },
+    setDryWebActionsState: (state) => {
+      dryWebAuthorActions.hidden = !state.visible;
+      dryWebDiagnosisButton.disabled = !state.canDiagnose;
+      dryWebDiagnosisButton.textContent = state.diagnosisRunning ? "Dry Web用Surface診断中…" : "Dry Web用のSurface診断";
+      dryWebGenerateButton.disabled = !state.canGenerate;
+      dryWebGenerateButton.textContent = state.generateRunning ? "Dry Web生成中…" : "現在のPaint分類からDry Webを生成";
+      dryWebAuthorStatus.textContent = state.status;
+      dryWebTargetConnectionMapping.dataset.state = state.targetConnectionMapping.state;
+      dryWebTargetConnectionMapping.textContent = state.targetConnectionMapping.totalCount === null
+        ? "target接続 mapping: 未確認"
+        : `target接続 mapping: connected ${state.targetConnectionMapping.connectedCount} / unresolved ${state.targetConnectionMapping.unresolvedCount} / total ${state.targetConnectionMapping.totalCount}`;
+      dryWebTargetConnectionMappingCopy.textContent = state.targetConnectionMapping.copy;
+      dryWebInsufficientEdgePanel.dataset.state = state.insufficientEdge.state;
+      dryWebInsufficientEdgePanel.dataset.visible = String(state.insufficientEdgeVisible);
+      dryWebInsufficientEdgeCounts.textContent = state.insufficientEdge.insufficientPatchCount === null
+        || state.insufficientEdge.highlightEdgeCount === null
+        ? "不足 未確認 / highlight edge 未確認"
+        : `不足 ${state.insufficientEdge.insufficientPatchCount.toLocaleString()}要素 / highlight edge ${state.insufficientEdge.highlightEdgeCount.toLocaleString()}`;
+      dryWebInsufficientEdgeReason.textContent = state.insufficientEdge.reason;
+      dryWebInsufficientEdgeCopy.textContent = state.insufficientEdge.copy;
+      dryWebInsufficientEdgeShow.disabled = !state.insufficientEdge.available || state.insufficientEdgeVisible;
+      dryWebInsufficientEdgeRestore.disabled = !state.insufficientEdgeVisible;
+      const contactFloor = state.contactFloor;
+      dryWebContactFloorPanel.dataset.state = contactFloor.state;
+      if (!contactFloor.categoryCounts || !contactFloor.categoryPatchIds || !contactFloor.categoryPatchIdsTruncated
+        || contactFloor.requiredContacts === null || contactFloor.totalPatchCount === null) {
+        dryWebContactFloorCounts.textContent = "未確認（countなし）";
+        dryWebContactFloorIds.textContent = "patch IDs 未確認";
+      } else {
+        dryWebContactFloorCounts.textContent = dryWebContactFloorCategoryOrder
+          .map((category) => `${DRY_WEB_CONTACT_FLOOR_CATEGORY_LABELS[category]} ${contactFloor.categoryCounts![category]}`)
+          .join(" / ");
+        dryWebContactFloorIds.textContent = dryWebContactFloorCategoryOrder
+          .filter((category) => contactFloor.categoryCounts![category] > 0)
+          .map((category) => {
+            const ids = contactFloor.categoryPatchIds![category].join(", ");
+            return `${DRY_WEB_CONTACT_FLOOR_CATEGORY_LABELS[category]}: ${ids || "なし"}${contactFloor.categoryPatchIdsTruncated![category] ? " …" : ""}`;
+          })
+          .join(" / ") || "patch IDs なし";
+      }
+      dryWebContactFloorReason.textContent = contactFloor.reason;
+      dryWebContactFloorCopy.textContent = contactFloor.copy;
+      const contactFloorOverlay = state.contactFloorOverlay;
+      dryWebContactFloorOverlayPanel.dataset.state = contactFloorOverlay.state;
+      dryWebContactFloorOverlayStatus.textContent = contactFloorOverlay.enabled
+        && contactFloorOverlay.category !== null
+        && contactFloorOverlay.affectedCount !== null
+        ? `${DRY_WEB_CONTACT_FLOOR_CATEGORY_LABELS[contactFloorOverlay.category]} ${contactFloorOverlay.affectedCount}要素を表示`
+        : contactFloorOverlay.state === "current"
+          ? "current / 非表示"
+          : contactFloorOverlay.reason;
+      for (const category of DRY_WEB_CONTACT_FLOOR_RESIDUAL_CATEGORIES) {
+        const button = dryWebContactFloorOverlayButtonMap.get(category);
+        if (!button) continue;
+        const count = contactFloor.categoryCounts?.[category] ?? 0;
+        button.disabled = !contactFloor.available || count <= 0 || contactFloorOverlay.enabled;
+        button.classList.toggle("mode-active", contactFloorOverlay.enabled && contactFloorOverlay.category === category);
+      }
+      dryWebContactFloorOverlayRestore.disabled = !contactFloorOverlay.enabled;
+      dryWebContactFloorOverlayCopy.textContent = contactFloorOverlay.copy;
+      dryWebIntegrationStatus.textContent = state.integration?.text
+        ?? state.integrationStatus
+        ?? "Artwork Integration: 未計算 / gray";
+      dryWebIntegrationStatus.dataset.status = state.integration?.status ?? "uncomputed";
+      const contactBins = state.integration?.contactBins ?? null;
+      dryWebContactLegend.hidden = contactBins === null;
+      if (contactBins) {
+        dryWebContactLegendTitle.textContent =
+          `接点数の色分け（Surface Pattern · 必要 ${state.integration?.requiredContacts ?? 3}接点）`;
+        for (const bin of contactBins) {
+          const item = dryWebContactLegendItems.get(bin.key);
+          if (!item) continue;
+          item.count.textContent = `${bin.count}要素`;
+          item.state.textContent = bin.passesThreshold ? "pass" : "不足";
+          item.row.dataset.boundary = bin.passesThreshold ? "pass" : "insufficient";
+        }
+      }
+      setDryWebGraphViewState(state.graphView);
+    },
     setSurfaceStartupStatus: (text, ok) => {
       surfaceStartupStatus.textContent = text;
       surfaceStartupStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
@@ -3577,7 +4833,8 @@ export function buildUi(
       supportPaintEnableCheckbox.disabled = !state.available;
       supportPaintEnableCheckbox.checked = state.enabled;
       for (const [mode, button] of supportPaintModeButtons) {
-        button.disabled = !state.available || !state.enabled;
+        button.hidden = mode === "outside" && !state.allowOutside;
+        button.disabled = !state.available || !state.enabled || (mode === "outside" && !state.allowOutside);
         button.classList.toggle("mode-active", mode === state.mode);
       }
       supportPaintRadiusInput.disabled = !state.available || !state.enabled;
@@ -3626,6 +4883,25 @@ export function buildUi(
     setInternalStructureStatus: (text, ok) => {
       internalStatus.textContent = text;
       internalStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setInternalAngleScreening: (available, enabled, report) => {
+      internalAngleScreenCheckbox.disabled = !available;
+      internalAngleScreenCheckbox.checked = available && enabled;
+      if (!available) {
+        internalAngleScreenStatus.textContent = "Internal Structure生成後に使えます";
+        delete internalAngleScreenStatus.dataset.ok;
+      } else if (!enabled || !report) {
+        internalAngleScreenStatus.textContent = "表示OFF";
+        delete internalAngleScreenStatus.dataset.ok;
+      } else {
+        const threshold = Number.isInteger(report.thresholdDeg)
+          ? String(report.thresholdDeg)
+          : report.thresholdDeg.toFixed(1);
+        internalAngleScreenStatus.textContent =
+          `角度screening · 緑 ${report.selfSupportingAngleCount} / 赤 ${report.angleRiskCount} · ${threshold}°基準`;
+        if (report.angleRiskCount > 0) internalAngleScreenStatus.dataset.ok = "false";
+        else delete internalAngleScreenStatus.dataset.ok;
+      }
     },
     setQuadFlowStatus: (text, ok) => {
       quadFlowStatus.textContent = text;

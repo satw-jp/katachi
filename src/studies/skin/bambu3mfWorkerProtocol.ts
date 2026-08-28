@@ -8,6 +8,10 @@ import type { Patch, SkinMode } from "./field.ts";
 import type { SkinMeshOptions } from "./meshExport.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
 import type { FusedScaffoldPlateAnchorReport } from "./scaffoldFusion.ts";
+import type {
+  Bambu3mfSupportSelectionEvidence,
+  Bambu3mfSupportSelectionMode,
+} from "./bambu3mfOutputSelection.ts";
 
 export interface SupportReachabilityStats extends SupportReachabilityFacts {
   candidateFaceCount: number;
@@ -42,6 +46,8 @@ export interface Bambu3mfExportRequest {
   /** Exact final Surface triangle soup, used for reachability and the outer XY hull. */
   finalSurfacePositions: Float32Array;
   dangerousPositions: Float32Array;
+  /** Additive evidence describing whether dangerousPositions is legacy-full or exact-orange. */
+  supportSelection: Bambu3mfSupportSelectionEvidence;
   scaleMmPerUnit: number;
   printPlan: ResolvedPrintPlan;
   /** Required for a print candidate: remesh BODY + Internal + scaffold as one watertight field. */
@@ -49,6 +55,19 @@ export interface Bambu3mfExportRequest {
   supportType: BambuSupportType;
   title: string;
   generatorVersion: string;
+}
+
+export interface Bambu3mfSupportSelectionResultFacts {
+  mode: Bambu3mfSupportSelectionMode;
+  selectionIdentity: string;
+  sourceFaceCount: number;
+  exactOrangeFaceCount: number;
+  exactOrangeDiagnosedSiteCount: number;
+  explicitTargetCount: number;
+  explicitOutsideTargetCount: number;
+  mitigatedOrExcludedTealFaceCount: number;
+  unresolvedFaceCount: number;
+  originalClassificationCounts: OverhangAssignmentCounts;
 }
 
 export type Bambu3mfProgressStage =
@@ -80,6 +99,7 @@ export type Bambu3mfWorkerMessage = {
   classificationCounts: OverhangAssignmentCounts;
   scaffold: ExternalScaffoldStats;
   plateAnchor: FusedScaffoldPlateAnchorReport;
+  supportSelection: Bambu3mfSupportSelectionResultFacts;
   validationFacts: PrintValidationFactsV1;
   elapsedMs: number;
 } | {
