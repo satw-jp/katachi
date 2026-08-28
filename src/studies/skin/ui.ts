@@ -398,6 +398,8 @@ export interface UiHandles {
       available: boolean;
       current: boolean;
       reason: string;
+      currentScaleMmPerUnit: number | null;
+      validationScaleMmPerUnit: number;
     };
     redFaceReinforcementComparison: Stage7ProvisionalRecheckPresentation;
     redFaceProvisionalAdoptionGate: Stage7ProvisionalAdoptionGatePresentation;
@@ -2316,6 +2318,10 @@ export function buildUi(
   dryWebPatch6ExplicitTopologyRepairPlanBuild.textContent = "孤立Patch 6の接続候補を仮Graphへ反映";
   dryWebPatch6ExplicitTopologyRepairPlanBuild.disabled = true;
   dryWebPatch6ExplicitTopologyRepairPlanBuild.onclick = () => callbacks.onBuildPatch6ExplicitTopologyRepairPlan();
+  const dryWebPatch6ExplicitTopologyRepairReadiness = document.createElement("div");
+  dryWebPatch6ExplicitTopologyRepairReadiness.className = "hint dry-web-patch6-explicit-topology-repair-readiness";
+  dryWebPatch6ExplicitTopologyRepairReadiness.textContent = "Patch 6候補のreadinessを確認中";
+  dryWebPatch6ExplicitTopologyRepairReadiness.setAttribute("aria-live", "polite");
   const dryWebRedFaceReinforcementPlanDiscard = document.createElement("button");
   dryWebRedFaceReinforcementPlanDiscard.type = "button";
   dryWebRedFaceReinforcementPlanDiscard.textContent = "仮Graph計画を破棄";
@@ -2431,6 +2437,7 @@ export function buildUi(
     dryWebRedFaceDryWebCandidateShow,
     dryWebRedFaceReinforcementPlanBuild,
     dryWebPatch6ExplicitTopologyRepairPlanBuild,
+    dryWebPatch6ExplicitTopologyRepairReadiness,
     dryWebRedFaceReinforcementPlanDiscard,
     dryWebSupportSeparationRestore,
   );
@@ -4638,6 +4645,8 @@ export function buildUi(
       dryWebRedFaceReinforcementPlanBuild.disabled = !state.redFaceReinforcementPlan.available;
       dryWebPatch6ExplicitTopologyRepairPlanBuild.disabled = !state.explicitTopologyRepair.available;
       dryWebPatch6ExplicitTopologyRepairPlanBuild.title = state.explicitTopologyRepair.reason;
+      dryWebPatch6ExplicitTopologyRepairReadiness.textContent = state.explicitTopologyRepair.reason;
+      dryWebPatch6ExplicitTopologyRepairReadiness.dataset.available = String(state.explicitTopologyRepair.available);
       dryWebRedFaceReinforcementPlanDiscard.disabled = !state.redFaceReinforcementPlan.current;
       dryWebSupportSeparationRestore.disabled = !state.available || !(state.visible || redFaceLocatorVisible || redFaceDryWebCandidateVisible);
       dryWebSupportSeparationCounts.textContent = state.available

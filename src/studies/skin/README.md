@@ -4037,3 +4037,13 @@ exact reachabilityの各face queryで作っていた候補Set・配列化・sort
 作者の問いを原文のまま記録する: `既にread-only検証済みのPatch 6 topology repair候補を、既存のStage 7正式経路へ登録する最小アダプターを実装してください。`
 
 既知の4 node / 3 edgeだけを、current canonical Graphの決定的な次IDで独立cloneへ追加し、既存のStage 7 provisional planとして扱う。登録時のGraph object、Surface diagnosis、Dry Web preview、Artwork Graph、target source、Paint revision、Surface fingerprint、resolution、mode、support settings、print scaleをidentity境界として保持し、どれかが変わればplanと比較結果をfail closedで破棄する。read-only resolution 128事前検証のtopology・unsupported・bridge比較はplan事実として明示し、既存exact provisional比較がcurrentになったとき同じ欄でSurface teal/orange/redと併記する。plan作成時はcanonical Graphを変更せず、その後のexact provisional比較、作者承認、canonical adoption、undoは既存経路だけを使う。汎用Graph editor、任意座標入力、repair探索、radius変更、Stage 8、出力は追加していない。
+
+## Observation Stage 7 explicit Patch 6 source-space readiness（2026-08-28）
+
+今回の依頼を原文のまま記録する: `既にread-only検証済みのPatch 6 topology repair候補を、既存のStage 7正式経路へ登録する最小アダプターを実装してください。`
+
+正式再生成runでは node 2,471 / edge 2,401 / target 2,389 / exact teal-orange-red 2,805-436-0 がそろっていたが、候補ボタンは validation provenance の scale 21.335120456771964 と current scale 21.37231162039355 の差（+0.03719116362158559、+0.1743189765%）だけで無効になっていた。固定4 node / 3 edgeの座標は、既存の高精度mm値を一度だけ source spaceへ変換した値をそのまま候補Graphへ保存し、validation scaleでのruntime再計算も、丸めた表示値からの再構成も行わない。validation scaleとresolution 128のtopology / unsupported / bridge factsはread-only provenanceとして保持する。
+
+候補のreadinessは純粋な境界で、targetedGrid、current exact / unresolved 0、canonical Graphのobject identity・node/edge count・決定的なnext IDとcollision、既存Graph / Surface / Dry Web / Artwork / target / Paintのidentity、current scale、targetLongestMm 80、3 edge各length・angle・exposed span、Patch 6 / Patch 22 endpoint overlap、radius / diameterを個別のexpected/current/passとfirst-failure reasonとして内部reportに保持する。作者画面は失敗時に最初の短い理由を表示し、合格時にcurrent / provenance scaleも表示する。物理値はcurrent Surface SDFとcurrent scaleで測り、A1 miniの露出5 mm・角度45°・Surface overlap 0.2 mm・diameter 0.8 mmを再利用する。validation scaleとの一致はreadiness条件にしないが、current scaleの変更は既存のplan→exact比較→作者承認→adoption→undoのstrict bindingで引き続き失敗させる。
+
+Graphにrevision/hashを追加せず、既存canonical Graph objectと各Surface / Dry Web / Artwork / target / Paint / settings bindingをcurrentness境界として使う。readinessに合格してもcanonical Graphは触らず、従来どおりprovisional planから先のexact比較・作者判断・採用・Undoでのみ進む。

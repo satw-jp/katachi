@@ -42,6 +42,8 @@ import {
   projectToSurface,
   proposeGroupsBetweenEndpoints,
   proposeGroupsFromSeeds,
+  createCompositeSdfEvaluator,
+  patchesSdf,
 } from "./field.ts";
 import type { Patch, PackPatchesResult, PatchAdjacencyEdge, SkinMode } from "./field.ts";
 import { estimateRingLinking, findDeepPatchOverlaps } from "./linking.ts";
@@ -241,8 +243,17 @@ import {
 } from "./stage7RedFaceReinforcementPlan.ts";
 import {
   createExplicitTopologyRepairPlan,
+  evaluateExplicitTopologyRepairReadiness,
+  PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_EDGES,
+  PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_RADIUS,
+  PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_SOURCE_NODES,
+  PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_VALIDATION_SCALE_MM_PER_UNIT,
+  explicitTopologyRepairAdoptionScaleIsCurrent,
   explicitTopologyRepairPlanIsCurrent,
+  type ExplicitTopologyRepairCurrentness,
+  type ExplicitTopologyRepairEndpointOverlap,
   type ExplicitTopologyRepairIdentity,
+  type ExplicitTopologyRepairReadiness,
 } from "./explicitTopologyRepairPlan.ts";
 import {
   createStage7ProvisionalRecheckPresentation,
@@ -986,6 +997,8 @@ interface Stage7CanonicalCandidateAdoptionRecord {
   readonly resolution: number;
   readonly mode: SkinMode;
   readonly supportSettingsKey: string;
+  /** Exact print scale captured when this candidate became canonical. */
+  readonly scaleMmPerUnit: number;
   readonly exactValidated: boolean;
 }
 
@@ -2875,19 +2888,13 @@ function sameStage7RedFaceCandidateOrder(a: readonly number[], b: readonly numbe
 }
 
 const PATCH_6_EXPLICIT_TOPOLOGY_REPAIR = Object.freeze({
-  scaleMmPerUnit: 21.335120456771964,
-  radius: 0.045,
-  nodes: Object.freeze([
-    Object.freeze({ id: 2471, positionMm: Object.freeze({ x: 37.1793871198354, y: -19.893426892035993, z: -0.4473601807942676 }), radius: 0.045 }),
-    Object.freeze({ id: 2472, positionMm: Object.freeze({ x: 34.83790584814474, y: -19.82693309099039, z: 3.2297230722459576 }), radius: 0.045 }),
-    Object.freeze({ id: 2473, positionMm: Object.freeze({ x: 32.496424576454075, y: -19.76043928994479, z: 6.906806325286183 }), radius: 0.045 }),
-    Object.freeze({ id: 2474, positionMm: Object.freeze({ x: 30.154943304763417, y: -19.69394548889919, z: 10.583889578326408 }), radius: 0.045 }),
-  ]),
-  edges: Object.freeze([
-    Object.freeze({ id: 2401, start: 2471, end: 2472, radius: 0.045 }),
-    Object.freeze({ id: 2402, start: 2472, end: 2473, radius: 0.045 }),
-    Object.freeze({ id: 2403, start: 2473, end: 2474, radius: 0.045 }),
-  ]),
+  // Source-space geometry is canonical. The validation scale below is kept
+  // only as read-only provenance; current readiness measures this same
+  // geometry against the current Surface-derived scale.
+  validationScaleMmPerUnit: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_VALIDATION_SCALE_MM_PER_UNIT,
+  radius: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_RADIUS,
+  nodes: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_SOURCE_NODES,
+  edges: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_EDGES,
   topologyEvidence: Object.freeze({
     resolution: 128,
     baselineComponents: 2,
@@ -2910,6 +2917,31 @@ const PATCH_6_EXPLICIT_TOPOLOGY_REPAIR = Object.freeze({
 });
 
 function currentExplicitTopologyRepairIdentity(): ExplicitTopologyRepairIdentity | null {
+  const preview = phaseADryWebPreview;
+  const graph = preview?.graph ?? null;
+  // Bind the candidate to the producer-owned identities recorded by the
+  // accepted Dry Web/exact results. Do not reconstruct these fields from the
+  // current UI: readiness must be able to detect producer/current drift.
+  const surfaceIdentity = dryWebSupportSeparationSource;
+  const dryWebIdentity = preview;
+  const artworkGraphIdentity = preview?.artworkGraphSnapshot ?? null;
+  const targetedSupportSourceIdentity = targetedSupportSource;
+  if (!graph || !surfaceIdentity || !dryWebIdentity || !artworkGraphIdentity || !targetedSupportSourceIdentity) return null;
+  return {
+    canonicalGraphIdentity: graph,
+    surfaceIdentity,
+    dryWebIdentity,
+    artworkGraphIdentity,
+    targetedSupportSourceIdentity,
+    paintRevision: preview.paintRevision,
+    surfaceFingerprint: preview.surfaceFingerprint,
+    resolution: preview.resolution,
+    mode: state.mode,
+    supportSettingsKey: JSON.stringify(phaseASupportSettings),
+  };
+}
+
+function currentExplicitTopologyRepairCurrentness(): ExplicitTopologyRepairCurrentness | null {
   const graph = phaseADryWebPreview?.graph ?? null;
   const surfaceIdentity = surfaceAngleCache;
   const dryWebIdentity = phaseADryWebPreview;
@@ -2928,6 +2960,81 @@ function currentExplicitTopologyRepairIdentity(): ExplicitTopologyRepairIdentity
     mode: state.mode,
     supportSettingsKey: JSON.stringify(phaseASupportSettings),
   };
+}
+
+function currentPatch6ExplicitTopologyRepairSurfaceContext(): {
+  readonly patches: Patch[];
+  readonly surfaceSdf: (point: { x: number; y: number; z: number }) => number;
+} | null {
+  if (state.host.length === 0 || state.patches.length === 0) return null;
+  const reinforced = reinforceQuadConnectionsForMesh(state.patches, state.skinParams.quadMeshJoinWidth);
+  const evaluate = createCompositeSdfEvaluator(
+    state.mode,
+    state.host,
+    state.hostParams.k,
+    state.skinParams.thickness,
+    reinforced.patches,
+    state.skinParams.roundK,
+    state.skinParams.coinBulge,
+    state.skinParams.coinBulgeBalance,
+  );
+  return {
+    patches: reinforced.patches,
+    surfaceSdf: (point) => evaluate(point.x, point.y, point.z),
+  };
+}
+
+function currentPatch6ExplicitTopologyRepairEndpointOverlaps(
+  scaleMmPerUnit: number | undefined,
+  finalSurfacePatches: Patch[] | null,
+): ExplicitTopologyRepairEndpointOverlap[] {
+  const endpointPairs = [
+    { patchId: 6, endpointNodeId: 2471 },
+    { patchId: 22, endpointNodeId: 2474 },
+  ];
+  return endpointPairs.map(({ patchId, endpointNodeId }) => {
+    const node = PATCH_6_EXPLICIT_TOPOLOGY_REPAIR.nodes.find((candidate) => candidate.id === endpointNodeId);
+    const patch = finalSurfacePatches?.find((candidate) => candidate.id === patchId);
+    const sdf = node && patch && typeof scaleMmPerUnit === "number" && Number.isFinite(scaleMmPerUnit) && scaleMmPerUnit > 0
+      ? patchesSdf([patch], state.skinParams.roundK, node.position.x, node.position.y, node.position.z)
+      : Number.NaN;
+    return {
+      patchId,
+      endpointNodeId,
+      overlapMm: Number.isFinite(sdf) && typeof scaleMmPerUnit === "number"
+        ? Math.max(0, -sdf * scaleMmPerUnit)
+        : Number.NaN,
+    };
+  });
+}
+
+function currentPatch6ExplicitTopologyRepairReadiness(): ExplicitTopologyRepairReadiness {
+  const currentGraph = phaseADryWebPreview?.graph ?? null;
+  const currentScale = currentPrintScaleMmPerUnit();
+  const targetSourceCurrent = state.skinParams.internalStructure === "targetedGrid"
+    && targetedSupportSourceIsCurrent();
+  const producerBindingsCurrent = targetSourceCurrent
+    && dryWebPreviewIsCurrent()
+    && currentDryWebArtworkGraphBoundary().status === "current"
+    && dryWebSupportSeparationIsCurrent()
+    && dryWebSupportSeparationSource === surfaceAngleCache;
+  const finalSurface = producerBindingsCurrent ? currentPatch6ExplicitTopologyRepairSurfaceContext() : null;
+  return evaluateExplicitTopologyRepairReadiness({
+    baselineGraph: currentGraph,
+    candidateNodes: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR.nodes,
+    candidateEdges: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR.edges,
+    identity: currentExplicitTopologyRepairIdentity(),
+    currentness: producerBindingsCurrent ? currentExplicitTopologyRepairCurrentness() : null,
+    exactCurrent: producerBindingsCurrent,
+    unresolvedFaceCount: producerBindingsCurrent
+      ? dryWebSupportSeparation?.unresolvedFaceCount ?? null
+      : null,
+    currentScaleMmPerUnit: currentScale,
+    targetLongestMm: ui.getMeshOptions().targetLongestMm,
+    validationScaleMmPerUnit: PATCH_6_EXPLICIT_TOPOLOGY_REPAIR_VALIDATION_SCALE_MM_PER_UNIT,
+    surfaceSdf: finalSurface?.surfaceSdf ?? null,
+    endpointOverlaps: currentPatch6ExplicitTopologyRepairEndpointOverlaps(currentScale, finalSurface?.patches ?? null),
+  });
 }
 
 function explicitTopologyRepairBindingIsCurrent(binding: Stage7RedFaceReinforcementPlanBinding): boolean {
@@ -3191,6 +3298,7 @@ function stage7CanonicalCandidateAdoptionIsCurrent(options: { clearStale?: boole
   if (!adoption || state.skinParams.internalStructure !== "targetedGrid") return false;
   const preview = phaseADryWebPreview;
   const currentResolution = Math.max(16, Math.round(ui.getMeshOptions().resolution));
+  const currentScaleMmPerUnit = currentPrintScaleMmPerUnit();
   const current = Boolean(
     preview
     && preview.graph === adoption.graph
@@ -3209,6 +3317,7 @@ function stage7CanonicalCandidateAdoptionIsCurrent(options: { clearStale?: boole
     && currentTargetSurfaceFingerprint() === adoption.surfaceFingerprint
     && preview.resolution === adoption.resolution
     && currentResolution === adoption.resolution
+    && explicitTopologyRepairAdoptionScaleIsCurrent(adoption.scaleMmPerUnit, currentScaleMmPerUnit)
     && state.mode === adoption.mode
     && JSON.stringify(phaseASupportSettings) === adoption.supportSettingsKey
     && targetedSupportSource === adoption.targetedSupportSource
@@ -3409,6 +3518,7 @@ function adoptStage7CanonicalCandidate(): void {
     resolution: currentDiagnosis.resolution,
     mode: state.mode,
     supportSettingsKey: JSON.stringify(phaseASupportSettings),
+    scaleMmPerUnit: currentScale,
     exactValidated: false,
   };
   stage7CanonicalCandidateAdoptionUndo = undo;
@@ -3846,19 +3956,9 @@ function buildStage7RedFaceReinforcementPlan(): void {
 }
 
 function patch6ExplicitTopologyRepairPlanIsAvailable(): boolean {
-  const currentGraph = phaseADryWebPreview?.graph ?? null;
-  const currentExactSource = dryWebSupportSeparationSource;
-  const currentSeparation = dryWebSupportSeparationIsCurrent() ? dryWebSupportSeparation : null;
-  const scaleMmPerUnit = currentPrintScaleMmPerUnit();
-  const identity = currentExplicitTopologyRepairIdentity();
+  const readiness = currentPatch6ExplicitTopologyRepairReadiness();
   return state.skinParams.internalStructure === "targetedGrid"
-    && currentGraph?.kind === "targetedGrid"
-    && currentGraph.nodes.length === 2471
-    && currentGraph.edges.length === 2401
-    && currentExactSource !== null
-    && currentSeparation?.unresolvedFaceCount === 0
-    && identity !== null
-    && scaleMmPerUnit === PATCH_6_EXPLICIT_TOPOLOGY_REPAIR.scaleMmPerUnit
+    && readiness.available
     && stage7RedFaceReinforcementPlan === null
     && stage7CanonicalCandidateAdoption === null
     && !canonicalDryWebOrSurfaceRunIsActive()
@@ -3870,9 +3970,11 @@ function buildPatch6ExplicitTopologyRepairPlan(): void {
   const currentExactSource = dryWebSupportSeparationSource;
   const scaleMmPerUnit = currentPrintScaleMmPerUnit();
   const identity = currentExplicitTopologyRepairIdentity();
-  if (!patch6ExplicitTopologyRepairPlanIsAvailable()
+  const readiness = currentPatch6ExplicitTopologyRepairReadiness();
+  if (!readiness.available
+    || !patch6ExplicitTopologyRepairPlanIsAvailable()
     || !currentGraph || !currentExactSource || !identity || typeof scaleMmPerUnit !== "number") {
-    stage7RedFaceReinforcementPlanMessage = "Patch 6候補のbaseline Graph / Surface / Paint / Artwork Graph / Dry Web identityがcurrentではないため登録しません。";
+    stage7RedFaceReinforcementPlanMessage = readiness.reason;
     refreshDryWebSupportSeparationUi();
     return;
   }
@@ -3994,6 +4096,13 @@ function refreshDryWebSupportSeparationUi(): void {
   const redFaceProvisionalAdoptionGate = currentStage7ProvisionalAdoptionGatePresentation();
   const canonicalCandidateAdoption = currentStage7CanonicalCandidateAdoptionPresentation();
   const currentPrintScale = currentPrintScaleMmPerUnit();
+  const patch6Readiness = currentPatch6ExplicitTopologyRepairReadiness();
+  const patch6PlanAvailable = state.skinParams.internalStructure === "targetedGrid"
+    && patch6Readiness.available
+    && stage7RedFaceReinforcementPlan === null
+    && stage7CanonicalCandidateAdoption === null
+    && !canonicalDryWebOrSurfaceRunIsActive()
+    && !stage7ProvisionalRecheckIsActive();
   const hasCurrentPrintScale = typeof currentPrintScale === "number"
     && Number.isFinite(currentPrintScale)
     && currentPrintScale > 0;
@@ -4056,11 +4165,13 @@ function refreshDryWebSupportSeparationUi(): void {
       totalRedFaceCount: redFaceDryWebCandidate.totalRedFaceCount,
     },
     explicitTopologyRepair: {
-      available: patch6ExplicitTopologyRepairPlanIsAvailable(),
+      available: patch6PlanAvailable,
       current: currentRedFaceReinforcementPlan?.facts.planSource === "explicit-topology-repair",
       reason: currentRedFaceReinforcementPlan?.facts.planSource === "explicit-topology-repair"
-        ? "Patch 6 explicit topology repair planはcurrentです。次に仮Graphで再診断してください。"
-        : "node 2,471 / edge 2,401・current exact赤0・候補生成時scaleが一致すると登録できます。",
+        ? `Patch 6 explicit topology repair planはcurrentです。次に仮Graphで再診断してください。 · ${patch6Readiness.reason}`
+        : patch6Readiness.reason,
+      currentScaleMmPerUnit: patch6Readiness.currentScaleMmPerUnit,
+      validationScaleMmPerUnit: patch6Readiness.validationScaleMmPerUnit,
     },
     redFaceReinforcementComparison,
     redFaceProvisionalAdoptionGate,
