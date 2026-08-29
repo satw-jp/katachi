@@ -82,6 +82,13 @@ import {
   stage7RedFaceLocatorFaceCentroids,
   stage7RedFaceLocatorMarkerRadius,
 } from "./stage7RedFaceLocatorPresentation.ts";
+import type {
+  RiskCluster,
+  RiskDrivenInternalLatticeFacts,
+  RiskSeverity,
+  SupportCandidate,
+} from "./riskDrivenInternalLattice.ts";
+import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -131,6 +138,16 @@ const SELECTION_OUTLINE_COLOR = new THREE.Color(1.0, 1.0, 0.65);
 const SELECTION_DIM_FACTOR = 0.5; // instruction: 45-60%
 const SEED_A_BADGE_COLOR = "#59c8ff";
 const SEED_B_BADGE_COLOR = "#ff9b45";
+// Checkpoint 1 risk overlay colors encode only the ranking heuristic. They
+// intentionally do not reuse Surface/Dry Web/support colors.
+const RISK_CLUSTER_COLORS: Record<RiskCluster["severity"], number> = {
+  low: 0x5f9c99,
+  medium: 0xe0bd39,
+  high: 0xe88932,
+  critical: 0xd9483b,
+};
+const RISK_CANDIDATE_COLOR = 0x72e7e2;
+const RISK_TOP_CANDIDATE_COLOR = 0xffffff;
 
 export type SkinViewMode = "raymarch" | "beads" | "mesh";
 export type SkinDisplayStyle = "solid" | "ghost";
@@ -348,6 +365,12 @@ export class SkinRenderer {
    * separate group from the red-face locator and is never exported/persisted. */
   private dryWebRedFaceDryWebCandidateGroup: THREE.Group | null = null;
   private dryWebRedFaceDryWebCandidateEnabled = false;
+  /** Checkpoint 1 read-only risk clusters/candidates. This group never feeds
+   * the mesh, graph, history, or export paths. */
+  private riskDrivenInternalLatticeGroup: THREE.Group | null = null;
+  private riskDrivenInternalLatticeFacts: RiskDrivenInternalLatticeFacts | null = null;
+  private riskDrivenInternalLatticeOverlayEnabled = false;
+  private riskDrivenPermanentLatticeGroup: THREE.Group | null = null;
   private overhangSupportSiteGroup: THREE.Group | null = null;
   private overhangSupportSiteVisibilityPolicy: OverhangSupportSiteVisibilityPolicy = "standard";
   private overhangSupportSiteGrid: UniformSpatialGrid3 | null = null;
@@ -1485,6 +1508,191 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
+  private disposeRiskDrivenInternalLatticeOverlay(): void {
+    const group = this.riskDrivenInternalLatticeGroup;
+    if (!group) return;
+    this.scene.remove(group);
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    group.traverse((object) => {
+      const candidate = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+      };
+      if (candidate.geometry) geometries.add(candidate.geometry);
+      if (candidate.material) {
+        const entries = Array.isArray(candidate.material) ? candidate.material : [candidate.material];
+        entries.forEach((material) => materials.add(material));
+      }
+    });
+    geometries.forEach((geometry) => geometry.dispose());
+    materials.forEach((material) => material.dispose());
+    this.riskDrivenInternalLatticeGroup = null;
+  }
+
+  /** Rebuild independent Checkpoint 1 objects after a mesh replacement. */
+  private rebuildRiskDrivenInternalLatticeOverlay(): void {
+    this.disposeRiskDrivenInternalLatticeOverlay();
+    const facts = this.riskDrivenInternalLatticeFacts;
+    if (!this.riskDrivenInternalLatticeOverlayEnabled || !facts || facts.clusters.length === 0) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+
+    const group = new THREE.Group();
+    group.name = "risk-driven-internal-lattice-checkpoint-1";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.userData.riskDrivenInternalLattice = true;
+    group.userData.riskDrivenInternalLatticeAlgorithm = "checkpoint-1-v0";
+
+    // One unit box geometry is instanced per severity. This keeps the
+    // presentation to at most four cluster draw groups regardless of cluster
+    // count while retaining a clear bounds-box reading.
+    const clustersBySeverity: Record<RiskSeverity, RiskCluster[]> = {
+      low: [],
+      medium: [],
+      high: [],
+      critical: [],
+    };
+    for (const cluster of facts.clusters) clustersBySeverity[cluster.severity].push(cluster);
+    const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const severities: readonly RiskSeverity[] = ["low", "medium", "high", "critical"];
+    for (const severity of severities) {
+      const clusters = clustersBySeverity[severity];
+      if (clusters.length === 0) continue;
+      const material = new THREE.MeshBasicMaterial({
+        color: RISK_CLUSTER_COLORS[severity],
+        transparent: true,
+        opacity: 0.9,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+        wireframe: true,
+      });
+      const mesh = new THREE.InstancedMesh(boxGeometry, material, clusters.length);
+      const matrix = new THREE.Matrix4();
+      for (const [index, cluster] of clusters.entries()) {
+        const width = Math.max(facts.meshStep * 0.18, cluster.bounds.max.x - cluster.bounds.min.x);
+        const height = Math.max(facts.meshStep * 0.18, cluster.bounds.max.y - cluster.bounds.min.y);
+        const depth = Math.max(facts.meshStep * 0.18, cluster.bounds.max.z - cluster.bounds.min.z);
+        matrix.makeScale(width, height, depth).setPosition(
+          (cluster.bounds.min.x + cluster.bounds.max.x) / 2,
+          (cluster.bounds.min.y + cluster.bounds.max.y) / 2,
+          (cluster.bounds.min.z + cluster.bounds.max.z) / 2,
+        );
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = 48;
+      mesh.frustumCulled = false;
+      mesh.name = `risk-clusters-${severity}`;
+      mesh.userData.riskClusterSeverity = severity;
+      mesh.userData.riskClusterCount = clusters.length;
+      group.add(mesh);
+    }
+
+    const markerSize = Math.max(facts.meshStep * 0.32, 0.012);
+    const topCandidate = facts.candidates[0];
+    const otherCandidates = topCandidate ? facts.candidates.slice(1) : [];
+    let markerGeometry: THREE.OctahedronGeometry | null = null;
+    const addMarkers = (
+      candidates: readonly SupportCandidate[],
+      color: number,
+      name: string,
+    ): void => {
+      if (candidates.length === 0) return;
+      markerGeometry ??= new THREE.OctahedronGeometry(markerSize, 0);
+      const material = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.98,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      });
+      const mesh = new THREE.InstancedMesh(markerGeometry, material, candidates.length);
+      const matrix = new THREE.Matrix4();
+      for (const [index, candidate] of candidates.entries()) {
+        matrix.makeTranslation(candidate.position.x, candidate.position.y, candidate.position.z);
+        mesh.setMatrixAt(index, matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.renderOrder = color === RISK_TOP_CANDIDATE_COLOR ? 51 : 50;
+      mesh.frustumCulled = false;
+      mesh.name = name;
+      mesh.userData.riskCandidateCount = candidates.length;
+      group.add(mesh);
+    };
+    addMarkers(otherCandidates, RISK_CANDIDATE_COLOR, "risk-candidates");
+    addMarkers(topCandidate ? [topCandidate] : [], RISK_TOP_CANDIDATE_COLOR, "risk-top-candidate");
+
+    // The box and marker geometries are shared by their InstancedMeshes;
+    // disposal is deduplicated by disposeRiskDrivenInternalLatticeOverlay().
+    this.scene.add(group);
+    this.riskDrivenInternalLatticeGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /**
+   * Show Checkpoint 1 boxes and lower-side candidate markers. Every object is
+   * an independent presentation object; the facts are never converted into
+   * Internal Structure geometry or sent to an export Worker.
+   */
+  setRiskDrivenInternalLatticeOverlay(
+    facts: RiskDrivenInternalLatticeFacts,
+    enabled: boolean,
+  ): void {
+    this.riskDrivenInternalLatticeFacts = facts;
+    this.riskDrivenInternalLatticeOverlayEnabled = enabled;
+    this.rebuildRiskDrivenInternalLatticeOverlay();
+  }
+
+  clearRiskDrivenInternalLatticeOverlay(): void {
+    this.riskDrivenInternalLatticeFacts = null;
+    this.riskDrivenInternalLatticeOverlayEnabled = false;
+    this.disposeRiskDrivenInternalLatticeOverlay();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  private disposeRiskDrivenPermanentLatticeOverlay(): void {
+    if (!this.riskDrivenPermanentLatticeGroup) return;
+    this.scene.remove(this.riskDrivenPermanentLatticeGroup);
+    this.riskDrivenPermanentLatticeGroup.traverse((object) => {
+      const item = object as THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] };
+      item.geometry?.dispose();
+      for (const material of item.material ? (Array.isArray(item.material) ? item.material : [item.material]) : []) material.dispose();
+    });
+    this.riskDrivenPermanentLatticeGroup = null;
+  }
+
+  /** Restored checkpoint geometry only. It is deliberately distinct from
+   * Checkpoint 1 ranking overlay and never changes the field/history. */
+  setRiskDrivenPermanentLatticeOverlay(artifact: FkeiRiskDrivenLatticeArtifact, enabled: boolean): void {
+    this.disposeRiskDrivenPermanentLatticeOverlay();
+    if (!enabled) { this.requestViewportRender(); return; }
+    const group = new THREE.Group(); group.name = "risk-driven-permanent-lattice-v0";
+    const linePositions: number[] = [];
+    for (const edge of artifact.graph.edges) {
+      const a = artifact.graph.nodes[edge.start]!.position; const b = artifact.graph.nodes[edge.end]!.position;
+      linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+    const lines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x83f5e5, depthTest: false, transparent: true, opacity: 0.95 }));
+    lines.geometry.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3)); lines.renderOrder = 55; group.add(lines);
+    const points = new THREE.BufferGeometry(); const colors: number[] = []; const positions: number[] = [];
+    const roleColor: Record<string, THREE.Color> = { "surface-anchor": new THREE.Color(0x77aaff), spine: new THREE.Color(0x83f5e5), junction: new THREE.Color(0xffffff), branch: new THREE.Color(0xffbd5c), "risk-target": new THREE.Color(0xff665c) };
+    for (const node of artifact.graph.nodes) { positions.push(node.position.x, node.position.y, node.position.z); const color = roleColor[node.role]; colors.push(color.r, color.g, color.b); }
+    points.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3)); points.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    group.add(new THREE.Points(points, new THREE.PointsMaterial({ size: Math.max(0.016, artifact.graph.nodes[0]?.radius ?? 0.02), vertexColors: true, depthTest: false, sizeAttenuation: true })));
+    group.position.z = this.phaseAObjectLiftSource; this.scene.add(group); this.riskDrivenPermanentLatticeGroup = group; this.requestViewportRender();
+  }
+
+  clearRiskDrivenPermanentLatticeOverlay(): void {
+    this.disposeRiskDrivenPermanentLatticeOverlay(); this.requestViewportRender();
+  }
+
   private disposeDryWebContactFloorOverlay(): void {
     if (!this.dryWebContactFloorOverlayGroup) return;
     this.scene.remove(this.dryWebContactFloorOverlayGroup);
@@ -1741,6 +1949,11 @@ export class SkinRenderer {
         && visibility.surfaceDecorations
         && this.viewMode === "mesh";
     }
+    if (this.riskDrivenInternalLatticeGroup) {
+      this.riskDrivenInternalLatticeGroup.visible = this.riskDrivenInternalLatticeOverlayEnabled
+        && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
+    }
     if (this.endpointBadges.A) this.endpointBadges.A.visible = visibility.patchBeads;
     if (this.endpointBadges.B) this.endpointBadges.B.visible = visibility.patchBeads;
     if (this.dragPreviewMesh && !visibility.surfaceDecorations) this.dragPreviewMesh.visible = false;
@@ -1931,6 +2144,7 @@ export class SkinRenderer {
     if (this.dryWebInsufficientEdgeGroup) this.dryWebInsufficientEdgeGroup.position.z = bodyZ;
     if (this.dryWebRedFaceLocatorGroup) this.dryWebRedFaceLocatorGroup.position.z = bodyZ;
     if (this.dryWebRedFaceDryWebCandidateGroup) this.dryWebRedFaceDryWebCandidateGroup.position.z = bodyZ;
+    if (this.riskDrivenInternalLatticeGroup) this.riskDrivenInternalLatticeGroup.position.z = bodyZ;
     if (this.internalNodeMesh) this.internalNodeMesh.position.z = bodyZ;
     if (this.internalEdgeMesh) this.internalEdgeMesh.position.z = bodyZ;
     if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
@@ -2025,7 +2239,10 @@ export class SkinRenderer {
       this.overlayMesh = null;
     }
     this.meshBoundsRevision++;
-    if (!triangles) return;
+    if (!triangles) {
+      this.rebuildRiskDrivenInternalLatticeOverlay();
+      return;
+    }
     const pos = new Float32Array(triangles.length * 9);
     let o = 0;
     for (const t of triangles) {
@@ -2043,6 +2260,7 @@ export class SkinRenderer {
     this.overlayMesh.visible = this.viewMode === "mesh";
     this.scene.add(this.overlayMesh);
     this.applyLayerVisibility();
+    this.rebuildRiskDrivenInternalLatticeOverlay();
   }
 
   /** Worker-produced preview mesh. Positions and flat normals arrive ready
@@ -2066,6 +2284,7 @@ export class SkinRenderer {
     this.overlayMesh.visible = this.viewMode === "mesh";
     this.scene.add(this.overlayMesh);
     this.applyLayerVisibility();
+    this.rebuildRiskDrivenInternalLatticeOverlay();
   }
 
   clearSurfaceAngleOverlay(): void {

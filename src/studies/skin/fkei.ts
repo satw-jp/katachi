@@ -32,6 +32,13 @@ import type {
   TargetedGridContactFloorFacts,
   TargetedGridTargetConnectionFact,
 } from "./targetedGrid.ts";
+import {
+  validateFkeiCanonicalDryWebArtifact,
+  fkeiCanonicalShapeSnapshotFingerprint,
+  validateFkeiRiskDrivenLatticeArtifact,
+  type FkeiCanonicalDryWebArtifact,
+  type FkeiRiskDrivenLatticeArtifact,
+} from "./fkeiRiskDrivenLattice.ts";
 
 export const FKEI_SCHEMA = "katachi.skin.fkei.v1" as const;
 export const FKEI_TYPED_ENCODING = "base64-binary-v1" as const;
@@ -168,6 +175,11 @@ export interface FkeiDocument {
   };
   surface?: FkeiSurfaceArtifact;
   dryWeb?: FkeiDryWebArtifact;
+  /** Compact, exact canonical adoption used only when full Dry Web evidence
+   * is unavailable. It deliberately stores no face buffers or target reconstruction. */
+  canonicalDryWeb?: FkeiCanonicalDryWebArtifact;
+  /** Optional reviewed v0 lattice; this never advances completedStage. */
+  riskDrivenLattice?: FkeiRiskDrivenLatticeArtifact;
   printProfile?: FkeiPrintProfileArtifact;
 }
 
@@ -1329,7 +1341,7 @@ function validateInternalGraph(value: unknown, label: string): InternalStructure
 
 function validateDocument(value: unknown): FkeiDocument {
   const root = objectRecord(value, "FKEI document");
-  const allowed = new Set(["schema", "printApproval", "savedAt", "compatibility", "bindings", "completedStage", "shape", "supportPaint", "artworkGraph", "surface", "dryWeb", "printProfile"]);
+  const allowed = new Set(["schema", "printApproval", "savedAt", "compatibility", "bindings", "completedStage", "shape", "supportPaint", "artworkGraph", "surface", "dryWeb", "canonicalDryWeb", "riskDrivenLattice", "printProfile"]);
   for (const key of Object.keys(root)) if (!allowed.has(key)) throw new Error(`Unknown FKEI document field: ${key}`);
   if (root.schema !== FKEI_SCHEMA) throw new Error(`Unsupported FKEI schema: ${String(root.schema)}`);
   if (root.printApproval !== false) throw new Error("FKEI printApproval must remain false");
@@ -1491,6 +1503,15 @@ function validateDocument(value: unknown): FkeiDocument {
       ...(exactBinding ? { exactBinding } : {}),
     };
   }
+  const canonicalDryWeb = root.canonicalDryWeb === undefined
+    ? undefined
+    : validateFkeiCanonicalDryWebArtifact(root.canonicalDryWeb);
+  const riskDrivenLattice = root.riskDrivenLattice === undefined
+    ? undefined
+    : (() => {
+      if (!canonicalDryWeb) throw new Error("riskDrivenLattice requires canonicalDryWeb");
+      return validateFkeiRiskDrivenLatticeArtifact(root.riskDrivenLattice, canonicalDryWeb);
+    })();
   let printProfile: FkeiPrintProfileArtifact | undefined;
   if (root.printProfile !== undefined) {
     const item = objectRecord(root.printProfile, "printProfile");
@@ -1510,6 +1531,23 @@ function validateDocument(value: unknown): FkeiDocument {
   if (artworkGraph) {
     if (!bindings.artworkGraph || artworkGraph.sourceKey !== bindings.artworkGraph.sourceKey || bindings.artworkGraph.patchSetRevision !== bindings.patchSetRevision) throw new Error("artworkGraph binding must exactly match authoritative bindings.artworkGraph");
     if (artworkGraph.snapshot.revision < 0) throw new Error("artworkGraph revision is invalid");
+  }
+  if (canonicalDryWeb) {
+    if (!artworkGraph || !bindings.artworkGraph || !surface) throw new Error("canonicalDryWeb requires Surface and Artwork Graph");
+    const binding = canonicalDryWeb.inputBinding;
+    if (binding.shapeFingerprint !== bindings.shapeFingerprint
+      || binding.patchSetRevision !== bindings.patchSetRevision
+      || binding.paintRevision !== bindings.paintRevision
+      || binding.artworkGraphSourceKey !== artworkGraph.sourceKey
+      || binding.surfaceResolution !== surface.binding.resolution
+      || binding.surfaceTargetLongestMm !== surface.binding.targetLongestMm
+      || binding.surfaceAngleThresholdDeg !== surface.binding.angleThresholdDeg
+      || binding.exactDiagnosisProvenanceSha256 !== canonicalDryWeb.exactDiagnosisSummary.provenanceSha256) {
+      throw new Error("canonicalDryWeb input binding contradicts checkpoint identities");
+    }
+    if (fkeiCanonicalShapeSnapshotFingerprint(canonicalDryWeb.shapeSnapshot) !== bindings.shapeFingerprint) {
+      throw new Error("canonicalDryWeb Shape snapshot does not match authoritative Shape fingerprint");
+    }
   }
   if (dryWeb) {
     if (!bindings.dryWeb) throw new Error("dryWeb requires authoritative bindings.dryWeb");
@@ -1555,6 +1593,8 @@ function validateDocument(value: unknown): FkeiDocument {
     ...(artworkGraph ? { artworkGraph } : {}),
     ...(surface ? { surface } : {}),
     ...(dryWeb ? { dryWeb } : {}),
+    ...(canonicalDryWeb ? { canonicalDryWeb } : {}),
+    ...(riskDrivenLattice ? { riskDrivenLattice } : {}),
     ...(printProfile ? { printProfile } : {}),
   };
 }
@@ -1595,7 +1635,7 @@ function encodeDocument(document: FkeiDocument): Record<string, unknown> {
     shape: encodeFkeiValue(source.shape, seen, budget),
   };
   if (source.completedStage !== undefined) encoded.completedStage = source.completedStage;
-  for (const key of ["supportPaint", "artworkGraph", "surface", "dryWeb", "printProfile"] as const) {
+  for (const key of ["supportPaint", "artworkGraph", "surface", "dryWeb", "canonicalDryWeb", "riskDrivenLattice", "printProfile"] as const) {
     if (source[key] !== undefined) encoded[key] = encodeFkeiValue(source[key], seen, budget);
   }
   return encoded;
@@ -1616,7 +1656,7 @@ export function parseFkeiDocument(text: string): FkeiDocument {
   const decoded = Object.create(null) as Record<string, unknown>;
   for (const key of Object.keys(root)) Object.defineProperty(decoded, key, { value: root[key], enumerable: true, writable: true, configurable: true });
   const budget = newCodecBudget();
-  for (const key of ["shape", "supportPaint", "artworkGraph", "surface", "dryWeb", "printProfile"] as const) {
+  for (const key of ["shape", "supportPaint", "artworkGraph", "surface", "dryWeb", "canonicalDryWeb", "riskDrivenLattice", "printProfile"] as const) {
     if (Object.prototype.hasOwnProperty.call(root, key)) decoded[key] = decodeFkeiValue(root[key], budget);
   }
   if (Object.prototype.hasOwnProperty.call(root, "compatibility")) decoded.compatibility = cloneValue(root.compatibility);

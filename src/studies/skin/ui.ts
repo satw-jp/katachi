@@ -67,6 +67,7 @@ import type { Stage7RedFaceReinforcementPlanFacts } from "./stage7RedFaceReinfor
 import type { Stage7ProvisionalRecheckPresentation } from "./stage7ProvisionalRecheckPresentation.ts";
 import type { Stage7ProvisionalAdoptionGatePresentation } from "./stage7ProvisionalAdoptionGatePresentation.ts";
 import type { Stage7CanonicalCandidateAdoptionPresentation } from "./stage7CanonicalCandidateAdoptionPresentation.ts";
+import type { RiskSeverity } from "./riskDrivenInternalLattice.ts";
 import {
   dryWebArtworkReadinessEvidenceLabel,
   type DryWebArtworkReadinessPresentation,
@@ -152,6 +153,10 @@ export interface UiCallbacks {
   onSetDryWebRedFaceLocatorVisible: (visible: boolean) => void;
   /** Stage 7 nearest-edge candidate paths are presentation-only. */
   onSetDryWebRedFaceDryWebCandidateVisible: (visible: boolean) => void;
+  /** Checkpoint 1 risk clusters/candidates are presentation-only. */
+  onToggleRiskDrivenInternalLatticeOverlay: (visible: boolean) => void;
+  onToggleRiskDrivenPermanentLatticeOverlay: (visible: boolean) => void;
+  onRebuildRiskDrivenPermanentLatticeBody: () => void;
   /** Stage 7 provisional topology plan is presentation-only. */
   onBuildDryWebRedFaceReinforcementPlan: () => void;
   onBuildPatch6ExplicitTopologyRepairPlan: () => void;
@@ -371,6 +376,18 @@ export interface UiHandles {
   setViewportClippingState: (available: boolean, bounds: ViewportClippingBounds | null, state: ViewportClippingState) => void;
   setSurfaceAngleDiagnosisRunning: (running: boolean) => void;
   setSurfaceAngleDiagnosisStatus: (text: string, ok?: boolean) => void;
+  setRiskDrivenInternalLattice: (state: {
+    available: boolean;
+    enabled: boolean;
+    status: "missing" | "running" | "current" | "disabled" | "stale";
+    clusterCount: number;
+    candidateCount: number;
+    severityDistribution: Readonly<Record<RiskSeverity, number>>;
+    riskyArea: number | null;
+    topCandidate: { supportGain: number; requiredLatticeLength: number } | null;
+    reason: string;
+  }) => void;
+  setRiskDrivenPermanentLattice: (state: { available: boolean; enabled: boolean; status: string; onBody: string }) => void;
   setDryWebSupportSeparationState: (state: {
     state: DryWebSupportSeparationPresentation["state"];
     available: boolean;
@@ -1575,6 +1592,71 @@ export function buildUi(
   internalPurpose.className = "hint internal-structure-purpose";
   internalPurpose.textContent = "表面パターンを内部構造と接続する候補生成の入口です。Dry Web / Voronoi Edgeは印刷後も残る作品部分で、印刷後に外すサポートではありません。Artwork ConnectionsとCandidate管理は未実装です。";
   internalWorkflowSection.appendChild(internalPurpose);
+
+  // Checkpoint 1 is deliberately read-only and sits at the Stage 3/4
+  // boundary. It describes where a lower-side support point would be tried;
+  // it never enables or invokes the existing Internal Structure controls.
+  const riskDrivenInternalLatticePanel = document.createElement("section");
+  riskDrivenInternalLatticePanel.className = "risk-driven-internal-lattice-panel";
+  riskDrivenInternalLatticePanel.dataset.status = "missing";
+  riskDrivenInternalLatticePanel.setAttribute("aria-label", "SKIN Risk-Driven Internal Lattice v0 Checkpoint 1");
+  const riskDrivenTitle = document.createElement("strong");
+  riskDrivenTitle.textContent = "SKIN Risk-Driven Internal Lattice v0 · Checkpoint 1";
+  const riskDrivenHint = document.createElement("div");
+  riskDrivenHint.className = "hint";
+  riskDrivenHint.textContent = "現在のSurface diagnosisから、空間的にまとまったRisk Clusterと、下側から試すSupport Candidateを読むだけです。"
+    + " Permanent Latticeの生成・採用・保存・出力は行いません。";
+  const riskDrivenToggle = document.createElement("label");
+  riskDrivenToggle.className = "risk-driven-overlay-toggle";
+  const riskDrivenToggleInput = document.createElement("input");
+  riskDrivenToggleInput.type = "checkbox";
+  riskDrivenToggleInput.disabled = true;
+  riskDrivenToggleInput.onchange = () => callbacks.onToggleRiskDrivenInternalLatticeOverlay(riskDrivenToggleInput.checked);
+  riskDrivenToggle.append(riskDrivenToggleInput, document.createTextNode(" Risk Cluster / Support Candidateを3D表示"));
+  const riskDrivenCounts = document.createElement("div");
+  riskDrivenCounts.className = "risk-driven-counts";
+  riskDrivenCounts.textContent = "未診断（countなし）";
+  const riskDrivenSeverity = document.createElement("div");
+  riskDrivenSeverity.className = "hint risk-driven-severity";
+  riskDrivenSeverity.textContent = "severity: —";
+  const riskDrivenArea = document.createElement("div");
+  riskDrivenArea.className = "hint risk-driven-area";
+  riskDrivenArea.textContent = "total risky area proxy: —";
+  const riskDrivenTopCandidate = document.createElement("div");
+  riskDrivenTopCandidate.className = "hint risk-driven-top-candidate";
+  riskDrivenTopCandidate.textContent = "top Support Candidate: —";
+  const riskDrivenStatus = document.createElement("div");
+  riskDrivenStatus.className = "hint risk-driven-status";
+  riskDrivenStatus.setAttribute("aria-live", "polite");
+  riskDrivenStatus.textContent = "Surface診断を実行すると表示できます。";
+  const riskDrivenCaveat = document.createElement("div");
+  riskDrivenCaveat.className = "hint risk-driven-caveat";
+  riskDrivenCaveat.textContent = "severity / supportGainはv0ランキングヒューリスティック（診断face ID基準）。危険の除去・荷重経路・印刷可能性は判定しません。";
+  riskDrivenInternalLatticePanel.append(
+    riskDrivenTitle,
+    riskDrivenHint,
+    riskDrivenToggle,
+    riskDrivenCounts,
+    riskDrivenSeverity,
+    riskDrivenArea,
+    riskDrivenTopCandidate,
+    riskDrivenStatus,
+    riskDrivenCaveat,
+  );
+  internalWorkflowSection.appendChild(riskDrivenInternalLatticePanel);
+  const riskDrivenPermanentPanel = document.createElement("section");
+  riskDrivenPermanentPanel.className = "risk-driven-internal-lattice-panel";
+  const riskDrivenPermanentTitle = document.createElement("strong"); riskDrivenPermanentTitle.textContent = "Restored Risk-driven Lattice v0";
+  const riskDrivenPermanentToggle = document.createElement("input"); riskDrivenPermanentToggle.type = "checkbox"; riskDrivenPermanentToggle.disabled = true;
+  riskDrivenPermanentToggle.onchange = () => callbacks.onToggleRiskDrivenPermanentLatticeOverlay(riskDrivenPermanentToggle.checked);
+  const riskDrivenPermanentLabel = document.createElement("label"); riskDrivenPermanentLabel.append(riskDrivenPermanentToggle, document.createTextNode(" saved latticeを3D表示"));
+  const riskDrivenPermanentBody = document.createElement("button"); riskDrivenPermanentBody.type = "button"; riskDrivenPermanentBody.textContent = "BODYを再構築してSTL保存"; riskDrivenPermanentBody.disabled = true;
+  riskDrivenPermanentBody.onclick = () => callbacks.onRebuildRiskDrivenPermanentLatticeBody();
+  const riskDrivenPermanentStatus = document.createElement("div"); riskDrivenPermanentStatus.className = "hint"; riskDrivenPermanentStatus.textContent = "Risk-driven Lattice checkpointをOpenすると使えます。";
+  riskDrivenPermanentPanel.append(riskDrivenPermanentTitle, riskDrivenPermanentLabel, riskDrivenPermanentBody, riskDrivenPermanentStatus);
+  // This is an observation/display artifact, not a Dry Web generation
+  // control; keep it with the left-pane display tools.
+  displayToolsRoot.appendChild(riskDrivenPermanentPanel);
 
   const internalPanel = document.createElement("div");
   internalPanel.className = "internal-structure-panel";
@@ -4630,6 +4712,33 @@ export function buildUi(
     setSurfaceAngleDiagnosisStatus: (text, ok) => {
       surfaceAngleStatus.textContent = text;
       surfaceAngleStatus.dataset.ok = ok === undefined ? "unknown" : String(ok);
+    },
+    setRiskDrivenInternalLattice: (state) => {
+      riskDrivenInternalLatticePanel.dataset.status = state.status;
+      riskDrivenToggleInput.disabled = !state.available;
+      riskDrivenToggleInput.checked = state.available && state.enabled;
+      if (!state.available) {
+        riskDrivenCounts.textContent = "未確認（countなし）";
+      } else {
+        riskDrivenCounts.textContent = `Risk Cluster ${state.clusterCount} / Support Candidate ${state.candidateCount}`;
+      }
+      const severity = state.severityDistribution;
+      riskDrivenSeverity.textContent = `severity: low ${severity.low} / medium ${severity.medium} / high ${severity.high} / critical ${severity.critical}`;
+      riskDrivenArea.textContent = state.riskyArea === null
+        ? "total risky area proxy: —"
+        : `total risky area proxy: ${state.riskyArea.toFixed(3)} source²`;
+      riskDrivenTopCandidate.textContent = state.topCandidate
+        ? `top Support Candidate: gain ${state.topCandidate.supportGain.toFixed(4)} / length ${state.topCandidate.requiredLatticeLength.toFixed(4)} source units`
+        : "top Support Candidate: —";
+      riskDrivenStatus.textContent = state.reason;
+      riskDrivenStatus.dataset.ok = state.status === "current" ? "true" : "unknown";
+      riskDrivenToggleInput.title = state.reason;
+    },
+    setRiskDrivenPermanentLattice: (state) => {
+      riskDrivenPermanentToggle.disabled = !state.available;
+      riskDrivenPermanentToggle.checked = state.available && state.enabled;
+      riskDrivenPermanentBody.disabled = !state.available;
+      riskDrivenPermanentStatus.textContent = state.status + (state.onBody ? ` · ${state.onBody}` : "");
     },
     setDryWebSupportSeparationState: (state) => {
       dryWebSupportSeparationPanel.dataset.state = state.state;

@@ -159,6 +159,16 @@ function sha256Fallback(bytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * Synchronous SHA-256 for validation boundaries that cannot defer parsing.
+ * This deliberately uses the same dependency-free implementation as the
+ * async helper below; callers still receive the canonical lowercase digest.
+ */
+export function sha256HexSync(data: ArrayBuffer | string): string {
+  const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
+  return bytesToHex(sha256Fallback(bytes));
+}
+
+/**
  * `data` の SHA-256 を lowercase 64 文字の hex 文字列で返す。
  *
  * `string` を受ける形は削れない: S-skin は保存する STL の bytes だけでなく、
@@ -181,5 +191,5 @@ export async function sha256Hex(
     const digest = await subtle.digest("SHA-256", bytes);
     return bytesToHex(new Uint8Array(digest));
   }
-  return bytesToHex(sha256Fallback(bytes));
+  return sha256HexSync(data);
 }

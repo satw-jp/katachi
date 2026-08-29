@@ -1803,6 +1803,57 @@ details.mesh-export:not([open]) > :not(summary) {
   line-height: 1.45;
 }
 
+/* Checkpoint 1: read-only risk ranking at the Stage 3/4 boundary. */
+.risk-driven-internal-lattice-panel {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 9px;
+  border: 1px solid #6a8f8d;
+  background: color-mix(in srgb, var(--paper) 95%, #72e7e2 5%);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.risk-driven-internal-lattice-panel > strong {
+  font-size: 11px;
+  letter-spacing: .03em;
+}
+
+.risk-driven-overlay-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--hairline);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.risk-driven-counts,
+.risk-driven-severity,
+.risk-driven-area,
+.risk-driven-top-candidate,
+.risk-driven-status,
+.risk-driven-caveat {
+  font-variant-numeric: tabular-nums;
+}
+
+.risk-driven-counts { color: var(--text); font-weight: 600; }
+.risk-driven-status { min-height: 1.3em; color: var(--muted); }
+.risk-driven-caveat {
+  padding-top: 5px;
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.risk-driven-internal-lattice-panel[data-status="disabled"],
+.risk-driven-internal-lattice-panel[data-status="stale"] {
+  border-color: #aaa8a1;
+  background: rgba(28, 28, 26, .035);
+}
+
 .internal-angle-screen-toggle {
   display: inline-flex;
   align-items: center;

@@ -10,11 +10,16 @@ import {
 } from "./fkei.ts";
 import { createSurfaceGraph } from "./surfaceGraph.ts";
 import {
+  assembleFkeiCaptureInput,
   buildFkeiRuntimeSaveSnapshot,
   formatFkeiFilename,
   saveFkeiRuntime,
   type FkeiRuntimeSaveFacts,
 } from "./fkeiRuntimeSave.ts";
+import { fkeiRiskDrivenLatticeSemanticSha256, type
+  FkeiCanonicalDryWebArtifact,
+  FkeiRiskDrivenLatticeArtifact,
+} from "./fkeiRiskDrivenLattice.ts";
 
 const shape = {
   formatVersion: 1 as const,
@@ -319,5 +324,108 @@ try {
 }
 assert.equal(failedDownloads, 0);
 assert.equal(workerConstructors, 0);
+
+// 9. A current compact Stage-4 checkpoint survives Save; exact binding drift
+// omits both optional artifacts, lowers the continuous prefix, and never
+// mutates the Runtime-owned objects.
+const checkpointBinding = {
+  shapeFingerprint: "{\"mode\":\"plate\",\"hostK\":0.5,\"host\":[],\"thickness\":0.1,\"roundK\":0.05,\"coinBulge\":0,\"coinBulgeBalance\":0,\"quadMeshJoinWidth\":0,\"patches\":[]}",
+  patchSetRevision: 2,
+  paintRevision: 3,
+  artworkGraphSourceKey: artworkSourceKey,
+  canonicalRequestSha256: "request-sha",
+  canonicalGraphSha256: "564dcd32c422149cba61ffa0ca5f7286ea9811410889d23400ea6312d71b3d3d",
+  surfaceResolution: 8,
+  surfaceTargetLongestMm: 1,
+  surfaceAngleThresholdDeg: 45,
+  exactDiagnosisProvenanceSha256: "exact-sha",
+};
+const checkpointStats = {
+  inputPoints: 2, delaunayTetrahedra: 0, candidateEdges: 1, clippedEdges: 0,
+  removedShortEdges: 0, removedOutsideEdges: 0, removedIsolatedEdges: 0,
+};
+const checkpointCanonical: FkeiCanonicalDryWebArtifact = {
+  schemaVersion: 1,
+  producer: "katachi.skin.risk-driven-permanent-lattice-v0",
+  inputBinding: checkpointBinding,
+  graph: {
+    kind: "targetedGrid",
+    nodes: [
+      { id: 0, position: { x: 0, y: 0, z: 0 }, radius: 0.1 },
+      { id: 1, position: { x: 0, y: 0, z: 1 }, radius: 0.1 },
+    ],
+    edges: [{ id: 0, start: 0, end: 1, radius: 0.1 }],
+    stats: checkpointStats,
+  },
+  shapeSnapshot: {
+    mode: "plate", patchSetRevision: 2, host: [], hostK: 0.5,
+    thickness: 0.1, roundK: 0.05, coinBulge: 0, coinBulgeBalance: 0,
+    quadMeshJoinWidth: 0, patches: [],
+  },
+  exactDiagnosisSummary: { teal: 1, orange: 0, red: 0, provenanceSha256: "exact-sha", summarySha256: "53e7677c52ec82fad85aa8ed757f766acf634a6c553e38931c3a494c5e4b27b1" },
+};
+const checkpointLattice: FkeiRiskDrivenLatticeArtifact = {
+  schemaVersion: 1,
+  producer: "katachi.skin.risk-driven-permanent-lattice-v0",
+  inputBinding: { ...checkpointBinding, canonicalGraphNodes: 2, canonicalGraphEdges: 1 },
+  planSha256: "plan", validationSha256: "validation", stlSha256: "stl", semanticSha256: "0".repeat(64),
+  settings: { thresholdDeg: 45, meshStep: 0.1, scaleMmPerUnit: 11, diameterMm: 2.2, maximumSegmentLengthMm: 5, maximumAngleFromVerticalDeg: 45 },
+  graph: {
+    kind: "targetedGrid",
+    nodes: [
+      { id: 0, position: { x: 0, y: 0, z: 0 }, radius: 0.1, role: "surface-anchor", anchorId: 0 },
+      { id: 1, position: { x: 0, y: 0, z: 1 }, radius: 0.1, role: "risk-target", candidateId: 0, spineId: 0 },
+    ],
+    edges: [{ id: 0, start: 0, end: 1, radius: 0.1, role: "branch", diameterMm: 2.2, physicalLengthMm: 1, horizontalMm: 0, verticalMm: 1, angleFromVerticalDeg: 0, candidateId: 0, spineId: 0 }],
+    stats: checkpointStats,
+  },
+  anchors: [{ id: 0, diagnosisFaceId: 0, position: { x: 0, y: 0, z: 0 }, angleDeg: 0, candidateIds: [0] }],
+  selectedCandidates: [{ id: 0, sourceRank: 0, riskClusterId: 0, position: { x: 0, y: 0, z: 1 }, affectedRiskArea: 1, remainingRiskArea: 0, requiredLatticeLength: 1, supportGain: 1, anchorId: 0 }],
+  spines: [{ id: 0, anchorId: 0, candidateIds: [0], nodeIds: [0, 1], edgeIds: [0] }],
+  branches: [{ candidateId: 0, spineId: 0, junctionNodeId: 0, targetNodeId: 1, edgeIds: [0] }],
+  generationFacts: { canonicalNodeCount: 2, canonicalEdgeCount: 1, latticeNodeCount: 2, latticeEdgeCount: 1, augmentedNodeCount: 4, augmentedEdgeCount: 2, sharedSpineCount: 0, savedDiameterMm: 2.2, triangleCount: 1 },
+  sourceSpace: { resolution: 128, targetLongestMm: 80 },
+};
+(checkpointLattice as { semanticSha256: string }).semanticSha256 = fkeiRiskDrivenLatticeSemanticSha256(checkpointLattice);
+const checkpointFacts: FkeiRuntimeSaveFacts = {
+  ...fullFacts,
+  bindings: { ...fullFacts.bindings, shapeFingerprint: checkpointBinding.shapeFingerprint },
+  dryWeb: undefined,
+  canonicalDryWeb: { current: true, value: checkpointCanonical },
+  riskDrivenLattice: { current: true, value: checkpointLattice },
+};
+const checkpointBefore = structuredClone(checkpointFacts);
+const checkpointSave = saveFkeiRuntime(buildFkeiRuntimeSaveSnapshot(checkpointFacts), {
+  savedAt: new Date(2026, 7, 28, 13, 14, 15), download: () => { downloadCount++; },
+});
+assert.equal(checkpointSave.document.completedStage, 4);
+assert.equal(checkpointSave.document.canonicalDryWeb?.graph.nodes.length, 2);
+assert.equal(checkpointSave.document.riskDrivenLattice?.graph.nodes.length, 2);
+assert.deepEqual(checkpointFacts, checkpointBefore);
+
+// The Save codec validates the canonical Shape snapshot before download; a
+// document whose authoritative Shape fingerprint disagrees cannot be emitted.
+const snapshotMismatch = structuredClone(checkpointFacts);
+(snapshotMismatch.canonicalDryWeb!.value.shapeSnapshot as { hostK: number }).hostK = 0.75;
+let rejectedDownloadCount = 0;
+assert.throws(() => saveFkeiRuntime(buildFkeiRuntimeSaveSnapshot(snapshotMismatch), {
+  savedAt: new Date(2026, 7, 28, 13, 14, 15), download: () => { rejectedDownloadCount++; },
+}), /Shape snapshot does not match authoritative Shape fingerprint/);
+assert.equal(rejectedDownloadCount, 0);
+
+const staleCheckpoint = assembleFkeiCaptureInput(buildFkeiRuntimeSaveSnapshot({
+  ...checkpointFacts,
+  bindings: { ...checkpointFacts.bindings, paintRevision: 4 },
+}));
+assert.equal(staleCheckpoint.input.canonicalDryWeb, undefined);
+assert.equal(staleCheckpoint.input.riskDrivenLattice, undefined);
+assert.equal(staleCheckpoint.completedStage, 3);
+const staleSurfaceCheckpoint = assembleFkeiCaptureInput(buildFkeiRuntimeSaveSnapshot({
+  ...checkpointFacts,
+  surface: { ...checkpointFacts.surface!, currentBinding: { ...surfaceBinding, targetLongestMm: 2 } },
+}));
+assert.equal(staleSurfaceCheckpoint.input.canonicalDryWeb, undefined);
+assert.equal(staleSurfaceCheckpoint.input.riskDrivenLattice, undefined);
+assert.equal(staleSurfaceCheckpoint.completedStage, 3);
 
 console.log("fkeiRuntimeSave.test.ts: all assertions passed");

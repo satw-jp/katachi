@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.78.0",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-28",
+  "updatedAt": "2026-08-29",
   "params": [
     "count",
     "radiusBase",
@@ -916,6 +916,18 @@
     {
       "date": "2026-08-28",
       "note": "Stage 7 explicit Patch 6 source-space readiness: retain the reviewed validation scale 21.335120456771964 and resolution-128 topology/unsupported/bridge facts as provenance only, while storing the exact fixed 4-node/3-edge geometry directly in source units. A pure fail-closed boundary now reports targetedGrid, exact/unresolved, canonical Graph identity/count/next-ID/collisions, existing identity bindings, current scale, targetLongestMm 80, per-edge physical length/angle/exposed span, Patch 6/Patch 22 endpoint overlap, radius and diameter. Readiness measures current Surface SDF under the current scale; validation-scale equality is not required. Existing provisional exact comparison, author approval, canonical adoption and Undo remain unchanged, and canonical Graph is untouched by plan creation."
+    },
+    {
+      "date": "2026-08-29",
+      "note": "SKIN Risk-Driven Internal Lattice v0 Checkpoint 1: derive deterministic finite-resolution Risk Clusters and lower-side Support Candidates from the accepted current Surface diagnosis triangle soup, then show counts, severity distribution, risky-area proxy, candidate gain/length, and an independent 3D overlay. Diagnosis face IDs are zero-based triangle-soup ordinals. severity/supportGain are ranking heuristics only; no Permanent Lattice geometry, Graph mutation, save/export, Slice, Bambu output, or printability claim is added."
+    },
+    {
+      "date": "2026-08-29",
+      "note": "SKIN Risk-Driven Permanent Internal Lattice v0 resolution-128 BODY checkpoint: from the accepted current Surface Risk Cluster / Support Candidate facts, choose diagnosed-safe lower Surface anchors and build 8 detached shared-spine groups (2 serving multiple Risk candidates), 56 nodes / 48 edges. Every Risk target reaches a Safe Anchor in exact Graph topology. Saved-BODY dimensions are diameter 2.1962 mm, maximum edge 4.6599 mm and maximum 44.9634 degrees from vertical. Union with the unchanged detached canonical Dry Web 2,475/2,404 gives a 216,000-triangle saved-Float32 BODY at resolution 128 / target 80 mm: one component, closed, open/non-manifold/degenerate/non-finite 0 and winding inconsistency 6→0 after the existing orientation repair. Bambu floating evidence is not a generation input; canonical Runtime/Graph, Surface, Paint and history are unchanged. The STL is AUTHOR REVIEW / NOT FOR PRINT; combined Risk re-diagnosis, resolution 240, Slice, floating regions and printability remain unverified."
+    },
+    {
+      "date": "2026-08-29",
+      "note": "Risk-driven Lattice v0 checkpoint: optional versioned canonical Shape/Dry Web/lattice artifacts preserve the reviewed 2475/2404 + 56/48 candidate with strict identities and an honest 2813/428/0 compact provenance summary. Open atomically restores only saved artifacts; the left-pane overlay and manual resolution128 BODY download are display/manual paths with no planner, external artifact read, canonical mutation, or automatic mesh generation."
     }
   ]
 }

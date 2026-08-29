@@ -133,6 +133,11 @@ import type {
   SurfaceAngleDiagnosisView,
   SurfaceAngleWorkerMessage,
 } from "./surfaceAngleWorkerProtocol.ts";
+import {
+  deriveRiskDrivenInternalLattice,
+  type RiskDrivenInternalLatticeFacts,
+  type RiskSeverity,
+} from "./riskDrivenInternalLattice.ts";
 import type { SupportPaintRaycastWorkerMessage, SupportPaintRaycastWorkerRequest } from "./supportPaintRaycastWorkerProtocol.ts";
 import type { SurfaceSupportClassificationMessage, SurfaceSupportClassificationRequest } from "./surfaceSupportClassificationWorkerProtocol.ts";
 import { deriveSurfaceSupportClassificationWorkerCount } from "./surfaceSupportClassificationParallel.ts";
@@ -194,6 +199,7 @@ import {
   fkeiArtworkGraphSourceKey,
   fkeiShapeFingerprint,
 } from "./fkeiRestoreIdentity.ts";
+import { fkeiRestoredRiskDrivenCheckpointGraphIsCurrent, hydrateFkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 import {
   parseFkeiDocument,
   type FkeiDocument,
@@ -861,6 +867,15 @@ const SURFACE_PROGRESS_WORKER_START = 5;
 const SURFACE_PROGRESS_CLASSIFICATION = 80;
 let surfaceAngleGeneration = 0;
 let surfaceAngleCache: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null = null;
+// Checkpoint 1 is a presentation-only derivation from the accepted Surface
+// diagnosis. It has no save/export identity and is cleared with that cache.
+let riskDrivenInternalLatticeFacts: RiskDrivenInternalLatticeFacts | null = null;
+let riskDrivenInternalLatticeOverlayEnabled = false;
+let restoredRiskDrivenLattice: FkeiRestorePlan["riskDrivenLattice"] = null;
+let restoredCanonicalDryWeb: FkeiRestorePlan["canonicalDryWeb"] = null;
+let riskDrivenPermanentLatticeOverlayEnabled = false;
+let restoredRiskDrivenLatticeBodyWorker: Worker | null = null;
+let restoredRiskDrivenLatticeBodyGeneration = 0;
 // Binding captured at the same accepted Surface diagnosis commit as the
 // result/cache context. Save compares this immutable session fact to current
 // runtime settings; it never reconstructs it from the current UI alone.
@@ -1045,13 +1060,14 @@ let supportPaintRaycastReady = false;
 let supportPaintRaycastRequestId = 0;
 let supportPaintInteractionCounters = createSupportPaintInteractionCounters();
 let lastSupportPaintInteractionCounters: SupportPaintInteractionCounters | null = null;
-let supportPaintSurfaceCache: {
+type SupportPaintSurfaceCacheState = {
   diagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }>;
   targetLongestMm: number;
   positionsMm: Float32Array;
   frame: ReturnType<typeof buildSupportPaintFrame>;
   scaleMmPerUnit: number;
-} | null = null;
+};
+let supportPaintSurfaceCache: SupportPaintSurfaceCacheState | null = null;
 let supportPaintDrag: {
   pointerId: number;
   lastSampleCenterMm: { xMm: number; yMm: number; zMm: number } | null;
@@ -1695,7 +1711,14 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     releaseDryWebInsideTargetOverlayForCompetingView();
     releaseDryWebInsufficientEdgeOverlayForCompetingView();
     releaseDryWebSupportSeparationPresentationForCompetingView();
-    invalidateSurfaceAngleDiagnosis("Internal表示を切り替えたため、角度診断を終了しました");
+    const restoredCheckpointCurrent = Boolean(
+      restoredCanonicalDryWeb
+      && restoredRiskDrivenLattice
+      && restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice),
+    );
+    if (!restoredCheckpointCurrent) {
+      invalidateSurfaceAngleDiagnosis("Internal表示を切り替えたため、角度診断を終了しました");
+    }
     setInternalObservationMode(mode);
   },
   onSetDryWebGraphView: (option: DryWebGraphViewOption) => {
@@ -1705,9 +1728,13 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     // Stage 4 observation must not take the generic callbacks above: those
     // intentionally invalidate a diagnosis, while this panel only changes
     // the existing viewport presentation around the current graph.
+    const restoredGraphCurrent = Boolean(
+      restoredCanonicalDryWeb
+      && restoredRiskDrivenLattice
+      && restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice),
+    );
     if (state.skinParams.internalStructure !== "targetedGrid"
-      || !dryWebPreviewIsCurrent()
-      || phaseADryWebPreview?.graph?.kind !== "targetedGrid") {
+      || ((!dryWebPreviewIsCurrent() || phaseADryWebPreview?.graph?.kind !== "targetedGrid") && !restoredGraphCurrent)) {
       refreshDryWebActions();
       return;
     }
@@ -1720,6 +1747,62 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onSetDryWebSupportSeparationVisible: (visible) => setDryWebSupportSeparationVisible(visible),
   onSetDryWebRedFaceLocatorVisible: (visible) => setDryWebRedFaceLocatorVisible(visible),
   onSetDryWebRedFaceDryWebCandidateVisible: (visible) => setDryWebRedFaceDryWebCandidateVisible(visible),
+  onToggleRiskDrivenInternalLatticeOverlay: (visible) => {
+    const facts = riskDrivenInternalLatticeFacts;
+    if (!facts || !surfaceAngleCache) {
+      clearRiskDrivenInternalLatticePresentation("missing", "現在のSurface診断がありません。Surface診断完了後に表示できます。");
+      return;
+    }
+    riskDrivenInternalLatticeOverlayEnabled = visible;
+    skinRenderer.setRiskDrivenInternalLatticeOverlay(facts, visible);
+    updateRiskDrivenInternalLatticeUi(facts);
+    render();
+  },
+  onToggleRiskDrivenPermanentLatticeOverlay: (visible) => {
+    if (!restoredRiskDrivenLattice || !restoredCanonicalDryWeb
+      || !restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice)) {
+      riskDrivenPermanentLatticeOverlayEnabled = false;
+      skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
+      ui.setRiskDrivenPermanentLattice({ available: false, enabled: false, status: "saved latticeは現在のShape/Paint bindingと一致しません", onBody: "" });
+      return;
+    }
+    riskDrivenPermanentLatticeOverlayEnabled = visible;
+    skinRenderer.setRiskDrivenPermanentLatticeOverlay(restoredRiskDrivenLattice, visible);
+    ui.setRiskDrivenPermanentLattice({ available: true, enabled: visible, status: "saved 56 nodes / 48 edges · 8 spines", onBody: "BODY未生成" }); render();
+  },
+  onRebuildRiskDrivenPermanentLatticeBody: () => {
+    if (!restoredRiskDrivenLattice || !restoredCanonicalDryWeb
+      || !restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice)) {
+      ui.setRiskDrivenPermanentLattice({ available: Boolean(restoredRiskDrivenLattice), enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "checkpointがstaleです", onBody: "再Openまたは現在状態の確認が必要" });
+      return;
+    }
+    try {
+      ui.setRiskDrivenPermanentLattice({ available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "resolution128 BODYを再構築中", onBody: "planner/外部入力なし" });
+      restoredRiskDrivenLatticeBodyWorker?.terminate();
+      const generation = ++restoredRiskDrivenLatticeBodyGeneration;
+      const capturedCanonical = restoredCanonicalDryWeb;
+      const capturedLattice = restoredRiskDrivenLattice;
+      const worker = new Worker(new URL("./fkeiRiskDrivenLatticeBody.worker.ts", import.meta.url), { type: "module" });
+      restoredRiskDrivenLatticeBodyWorker = worker;
+      worker.onmessage = (event: MessageEvent<{ type: "result" | "error"; generation: number; stl?: ArrayBuffer; triangleCount?: number; closed?: boolean; components?: number; savedDiameterMm?: number; stlSha256?: string; message?: string }>) => {
+        const message = event.data;
+        if (worker !== restoredRiskDrivenLatticeBodyWorker || message.generation !== generation
+          || restoredCanonicalDryWeb !== capturedCanonical || restoredRiskDrivenLattice !== capturedLattice
+          || !restoredRiskDrivenCheckpointIsCurrent(capturedCanonical, capturedLattice)) { worker.terminate(); restoredRiskDrivenLatticeBodyWorker = null; return; }
+        worker.terminate(); restoredRiskDrivenLatticeBodyWorker = null;
+        if (message.type === "error" || !message.stl || message.triangleCount !== capturedLattice.generationFacts.triangleCount || message.closed !== true || message.components !== 1 || message.savedDiameterMm !== capturedLattice.generationFacts.savedDiameterMm || message.stlSha256 !== capturedLattice.stlSha256) { ui.setRiskDrivenPermanentLattice({ available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "BODY再構築に失敗", onBody: message.message ?? "saved geometry SHA mismatch" }); return; }
+        downloadBlob(new Blob([message.stl], { type: "model/stl" }), "skin-risk-driven-lattice-v0-restored-res128.stl");
+        ui.setRiskDrivenPermanentLattice({ available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: `BODY ${message.triangleCount.toLocaleString()} triangles`, onBody: `closed / 1 component / ${message.savedDiameterMm.toFixed(12)}mm` });
+      };
+      worker.onerror = () => { if (worker === restoredRiskDrivenLatticeBodyWorker) { worker.terminate(); restoredRiskDrivenLatticeBodyWorker = null; ui.setRiskDrivenPermanentLattice({ available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "BODY再構築に失敗", onBody: "Worker error" }); } };
+      worker.postMessage({ type: "rebuild", generation, state: { ...state, host: state.host.map((ball) => ({ ...ball })), patches: state.patches.map((patch) => ({ ...patch, points: patch.points.map((point) => ({ ...point })) })) }, canonical: capturedCanonical, lattice: capturedLattice });
+    } catch (error) {
+      restoredRiskDrivenLatticeBodyGeneration++;
+      restoredRiskDrivenLatticeBodyWorker?.terminate();
+      restoredRiskDrivenLatticeBodyWorker = null;
+      ui.setRiskDrivenPermanentLattice({ available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "BODY再構築に失敗", onBody: error instanceof Error ? error.message : "Workerを開始できません" });
+    }
+  },
   onBuildDryWebRedFaceReinforcementPlan: () => buildStage7RedFaceReinforcementPlan(),
   onBuildPatch6ExplicitTopologyRepairPlan: () => buildPatch6ExplicitTopologyRepairPlan(),
   onDiscardDryWebRedFaceReinforcementPlan: () => discardStage7RedFaceReinforcementPlan(),
@@ -3166,6 +3249,96 @@ function stage7ProvisionalMeshStep(
   return bounds.longest > 0 ? bounds.longest / diagnosis.resolution : 1 / diagnosis.resolution;
 }
 
+const EMPTY_RISK_SEVERITY_DISTRIBUTION: Readonly<Record<RiskSeverity, number>> = Object.freeze({
+  low: 0,
+  medium: 0,
+  high: 0,
+  critical: 0,
+});
+
+function clearRiskDrivenInternalLatticePresentation(
+  status: "missing" | "running" | "stale" | "disabled",
+  reason: string,
+): void {
+  riskDrivenInternalLatticeFacts = null;
+  riskDrivenInternalLatticeOverlayEnabled = false;
+  skinRenderer.clearRiskDrivenInternalLatticeOverlay();
+  ui.setRiskDrivenInternalLattice({
+    available: false,
+    enabled: false,
+    status,
+    clusterCount: 0,
+    candidateCount: 0,
+    severityDistribution: EMPTY_RISK_SEVERITY_DISTRIBUTION,
+    riskyArea: null,
+    topCandidate: null,
+    reason,
+  });
+}
+
+function updateRiskDrivenInternalLatticeUi(facts: RiskDrivenInternalLatticeFacts): void {
+  ui.setRiskDrivenInternalLattice({
+    available: true,
+    enabled: riskDrivenInternalLatticeOverlayEnabled,
+    status: "current",
+    clusterCount: facts.clusters.length,
+    candidateCount: facts.candidates.length,
+    severityDistribution: facts.severityDistribution,
+    riskyArea: facts.riskyArea,
+    topCandidate: facts.candidates[0]
+      ? {
+        supportGain: facts.candidates[0].supportGain,
+        requiredLatticeLength: facts.candidates[0].requiredLatticeLength,
+      }
+      : null,
+    reason: facts.heuristicNote,
+  });
+}
+
+/** Derive the read-only Checkpoint 1 facts from the accepted Surface result. */
+function refreshRiskDrivenInternalLatticePresentation(): void {
+  const diagnosis = surfaceAngleCache;
+  if (!diagnosis) {
+    clearRiskDrivenInternalLatticePresentation(
+      "missing",
+      "現在のSurface診断がありません。Surface診断完了後に表示できます。",
+    );
+    return;
+  }
+  let result: ReturnType<typeof deriveRiskDrivenInternalLattice>;
+  try {
+    result = deriveRiskDrivenInternalLattice({
+      surfacePositions: diagnosis.basePositions,
+      surfaceNormals: diagnosis.baseNormals,
+      thresholdDeg: diagnosis.metrics.thresholdDeg,
+      meshStep: stage7ProvisionalMeshStep(diagnosis),
+      resolution: diagnosis.resolution,
+    });
+  } catch (error) {
+    console.error("[SKIN Risk-Driven Internal Lattice] derivation failed", error);
+    clearRiskDrivenInternalLatticePresentation(
+      "disabled",
+      "Risk Clusterを表示できません（Surface diagnosisデータが不正です）",
+    );
+    return;
+  }
+  if (result.status !== "current") {
+    console.warn("[SKIN Risk-Driven Internal Lattice] disabled", result.reason);
+    clearRiskDrivenInternalLatticePresentation(
+      "disabled",
+      "Risk Clusterを表示できません（Surface diagnosisデータが不正です）",
+    );
+    return;
+  }
+  riskDrivenInternalLatticeFacts = result;
+  if (riskDrivenInternalLatticeOverlayEnabled) {
+    skinRenderer.setRiskDrivenInternalLatticeOverlay(result, true);
+  } else {
+    skinRenderer.setRiskDrivenInternalLatticeOverlay(result, false);
+  }
+  updateRiskDrivenInternalLatticeUi(result);
+}
+
 function stage7ProvisionalRecheckBindingIsCurrent(binding: Stage7ProvisionalRecheckBinding): boolean {
   const candidatePresentation = currentStage7RedFaceDryWebCandidatePresentation();
   const plan = currentStage7RedFaceReinforcementPlan(candidatePresentation);
@@ -4528,11 +4701,17 @@ function refreshDryWebActions(status?: string, options: DryWebActionsRefreshOpti
     || stage7ProvisionalRecheckHeavyComputation,
   );
   const dryWebPreviewCurrent = targeted && dryWebPreviewIsCurrent();
+  const restoredDryWebCurrent = Boolean(
+    targeted
+    && restoredCanonicalDryWeb
+    && restoredRiskDrivenLattice
+    && restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice),
+  );
   const graphView = createDryWebGraphViewPresentation({
     graph: dryWebPreviewCurrent && phaseADryWebPreview?.graph?.kind === "targetedGrid"
       ? phaseADryWebPreview.graph
-      : null,
-    current: dryWebPreviewCurrent,
+      : restoredDryWebCurrent ? restoredCanonicalDryWeb!.graph : null,
+    current: dryWebPreviewCurrent || restoredDryWebCurrent,
     running: dryWebRunning,
     stale: Boolean(phaseADryWebPreview) && !dryWebPreviewCurrent,
   });
@@ -8167,6 +8346,50 @@ function currentFkeiSurfaceBinding(): FkeiSurfaceArtifact["binding"] | null {
   };
 }
 
+function restoredRiskDrivenCheckpointIsCurrent(
+  canonical: NonNullable<FkeiRestorePlan["canonicalDryWeb"]>,
+  lattice: NonNullable<FkeiRestorePlan["riskDrivenLattice"]>,
+): boolean {
+  const binding = canonical.inputBinding;
+  const currentSurface = currentFkeiSurfaceBinding();
+  const acceptedSurface = acceptedSurfaceSaveBinding;
+  return restoredCanonicalDryWeb === canonical
+    && restoredRiskDrivenLattice === lattice
+    && fkeiRestoredRiskDrivenCheckpointGraphIsCurrent(canonical, lattice, internalStructureGraph)
+    && fkeiShapeFingerprint(state) === binding.shapeFingerprint
+    && state.patchSetRevision === binding.patchSetRevision
+    && supportPaintSession.revision === binding.paintRevision
+    && artworkGraphSourceKey === binding.artworkGraphSourceKey
+    && currentSurface !== null
+    && currentSurface.surfaceFingerprint === binding.shapeFingerprint
+    && currentSurface.resolution === binding.surfaceResolution
+    && currentSurface.targetLongestMm === binding.surfaceTargetLongestMm
+    && currentSurface.angleThresholdDeg === binding.surfaceAngleThresholdDeg
+    && acceptedSurface?.surfaceFingerprint === currentSurface.surfaceFingerprint
+    && acceptedSurface.resolution === currentSurface.resolution
+    && acceptedSurface.targetLongestMm === currentSurface.targetLongestMm
+    && acceptedSurface.angleThresholdDeg === currentSurface.angleThresholdDeg
+    && canonical.exactDiagnosisSummary.provenanceSha256 === binding.exactDiagnosisProvenanceSha256
+    && lattice.inputBinding.canonicalRequestSha256 === binding.canonicalRequestSha256;
+}
+
+/** The restored lattice is a reviewed observation, never a stale overlay.
+ * This single predicate is used by toggle, BODY and every render transition. */
+function refreshRestoredRiskDrivenLatticeCurrentness(): void {
+  if (!restoredCanonicalDryWeb || !restoredRiskDrivenLattice) return;
+  if (restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice)) return;
+  if (riskDrivenPermanentLatticeOverlayEnabled) {
+    riskDrivenPermanentLatticeOverlayEnabled = false;
+    skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
+  }
+  ui.setRiskDrivenPermanentLattice({
+    available: false,
+    enabled: false,
+    status: "saved latticeは現在のShape/Paint/Surface bindingと一致しません",
+    onBody: "再Openまたは現在状態の確認が必要",
+  });
+}
+
 function currentFkeiRuntimeSaveSnapshot(): FkeiRuntimeSaveFacts {
   const artworkBoundary = currentDryWebArtworkGraphBoundary();
   const artworkCurrent = artworkBoundary.status === "current"
@@ -8322,7 +8545,11 @@ function currentFkeiRuntimeSaveSnapshot(): FkeiRuntimeSaveFacts {
       1: history.length > 0 && state.host.length > 0,
       2: state.patches.length > 0,
       3: artworkCurrent,
-      4: dryWebCurrent,
+      4: dryWebCurrent || Boolean(
+        restoredCanonicalDryWeb
+        && restoredRiskDrivenLattice
+        && restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice),
+      ),
       5: dryWebCurrent || supportPaintCurrent,
       6: surfaceCurrent,
       7: dryWebCurrent && Boolean(
@@ -8359,6 +8586,11 @@ function currentFkeiRuntimeSaveSnapshot(): FkeiRuntimeSaveFacts {
         },
         targetSource: { surfaceFingerprint: targetedSupportSource.surfaceFingerprint, resolution: targetedSupportSource.resolution, targets: dryTargets },
       } },
+    } : {}),
+    ...(restoredCanonicalDryWeb && restoredRiskDrivenLattice
+      && restoredRiskDrivenCheckpointIsCurrent(restoredCanonicalDryWeb, restoredRiskDrivenLattice) ? {
+      canonicalDryWeb: { current: true, value: restoredCanonicalDryWeb },
+      riskDrivenLattice: { current: true, value: restoredRiskDrivenLattice },
     } : {}),
     ...(printProfile ? { printProfile: { current: true, value: printProfile } } : {}),
     compatibility: { appVersion: manifest.version, generatorCommit: RUNNING_APP_COMMIT },
@@ -8431,7 +8663,13 @@ type FkeiOpenRuntimeSnapshot = {
   readonly artworkGraphSnapshot: ArtworkGraph | null;
   readonly artworkGraphSourceKey: string | null;
   readonly artworkGraphLastError: string | null;
+  readonly artworkGraphOverlayEnabled: boolean;
+  readonly viewMode: SkinViewMode;
+  readonly installedSurfaceAngleDiagnosisView: SurfaceAngleDiagnosisView | null;
+  readonly meshOptions: ReturnType<typeof ui.getMeshOptions>;
+  readonly surfaceAngleThresholdDeg: number;
   readonly surfaceDiagnosis: Extract<SurfaceAngleWorkerMessage, { type: "result" }> | null;
+  readonly riskDrivenInternalLatticeOverlayEnabled: boolean;
   readonly acceptedSurfaceSaveBinding: FkeiSurfaceBinding | null;
   readonly activeSurfacePersistentCacheKeys: SurfacePersistentCacheKeys | null;
   readonly automaticOverhangSupportResult: OverhangSupportPolicyResult | null;
@@ -8444,7 +8682,30 @@ type FkeiOpenRuntimeSnapshot = {
   readonly phaseADryWebPreview: PhaseADryWebPreviewState | null;
   readonly targetedSupportSource: TargetedSupportSourceState | null;
   readonly internalStructureGraph: InternalStructureGraph | null;
+  readonly internalStructureFingerprint: string;
+  readonly internalAngleScreeningEnabled: boolean;
+  readonly internalAngleScreeningGraph: InternalStructureGraph | null;
+  readonly internalAngleScreening: InternalAngleScreeningReport | null;
+  readonly riskDrivenInternalLatticeFacts: RiskDrivenInternalLatticeFacts | null;
+  readonly restoredRiskDrivenLattice: FkeiRestorePlan["riskDrivenLattice"];
+  readonly restoredCanonicalDryWeb: FkeiRestorePlan["canonicalDryWeb"];
+  readonly riskDrivenPermanentLatticeOverlayEnabled: boolean;
+  readonly supportPaintDraftSavedAt: string | null;
+  readonly supportPaintDraftDirty: boolean;
+  readonly supportPaintSurfaceCache: SupportPaintSurfaceCacheState | null;
+  readonly surfaceAnglePersistentCacheStatus: "idle" | "miss" | "mesh-hit" | "hit" | "migrated" | "ledger-upgrade" | "stored" | "unavailable" | "error";
+  readonly stage7CanonicalCandidateAdoption: Stage7CanonicalCandidateAdoptionRecord | null;
+  readonly stage7CanonicalCandidateAdoptionUndo: Stage7CanonicalCandidateAdoptionUndo | null;
+  readonly stage7RedFaceReinforcementPlan: Stage7RedFaceReinforcementPlanBinding | null;
+  readonly stage7RedFaceReinforcementPlanMessage: string | null;
+  readonly stage7ProvisionalRecheckResult: Stage7ProvisionalRecheckResult | null;
+  readonly stage7ProvisionalRecheckElapsedMs: number | null;
+  readonly stage7ProvisionalRecheckTerminal: "missing" | "stale" | "error";
+  readonly stage7ProvisionalRecheckMessage: string | null;
+  readonly stage7ProvisionalAdoptionGateApproval: Stage7ProvisionalAdoptionGateApproval | null;
 };
+
+let restoringFkeiOpenRuntime = false;
 
 function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
   return {
@@ -8453,7 +8714,13 @@ function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
     artworkGraphSnapshot,
     artworkGraphSourceKey,
     artworkGraphLastError,
+    artworkGraphOverlayEnabled,
+    viewMode,
+    installedSurfaceAngleDiagnosisView,
+    meshOptions: ui.getMeshOptions(),
+    surfaceAngleThresholdDeg: ui.getSurfaceAngleThreshold(),
     surfaceDiagnosis: surfaceAngleCache,
+    riskDrivenInternalLatticeOverlayEnabled,
     acceptedSurfaceSaveBinding,
     activeSurfacePersistentCacheKeys,
     automaticOverhangSupportResult,
@@ -8466,10 +8733,34 @@ function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
     phaseADryWebPreview,
     targetedSupportSource,
     internalStructureGraph,
+    internalStructureFingerprint,
+    internalAngleScreeningEnabled,
+    internalAngleScreeningGraph,
+    internalAngleScreening,
+    riskDrivenInternalLatticeFacts,
+    restoredRiskDrivenLattice,
+    restoredCanonicalDryWeb,
+    riskDrivenPermanentLatticeOverlayEnabled,
+    supportPaintDraftSavedAt,
+    supportPaintDraftDirty,
+    supportPaintSurfaceCache,
+    surfaceAnglePersistentCacheStatus,
+    stage7CanonicalCandidateAdoption,
+    stage7CanonicalCandidateAdoptionUndo,
+    stage7RedFaceReinforcementPlan,
+    stage7RedFaceReinforcementPlanMessage,
+    stage7ProvisionalRecheckResult,
+    stage7ProvisionalRecheckElapsedMs,
+    stage7ProvisionalRecheckTerminal,
+    stage7ProvisionalRecheckMessage,
+    stage7ProvisionalAdoptionGateApproval,
   };
 }
 
 function cancelWorkersForFkeiOpen(): void {
+  restoredRiskDrivenLatticeBodyGeneration++;
+  restoredRiskDrivenLatticeBodyWorker?.terminate();
+  restoredRiskDrivenLatticeBodyWorker = null;
   cancelPartitionBuild();
   cancelNPartitionBuild();
   cancelPreviewMeshBuild(false);
@@ -8523,18 +8814,29 @@ function replaceRuntimeWithFkeiPlan(plan: FkeiRestorePlan): void {
     ui.setSurfaceAngleThreshold(plan.surface.binding.angleThresholdDeg);
   }
 
-  // The Stage 1–3 Open contract deliberately ends here. No old cache/runtime
-  // downstream object can survive, and no missing Stage 4 fact is derived.
+  // No old cache/runtime object can survive. The versioned checkpoint may
+  // install only its already validated, detached Stage-4 graph; it does not
+  // derive Dry Web, start a Worker, or create a Stage 7/8 result.
   phaseADryWebPreview = null;
   targetedSupportSource = null;
-  internalStructureGraph = null;
+  const hydratedLattice = plan.canonicalDryWeb && plan.riskDrivenLattice
+    ? hydrateFkeiRiskDrivenLatticeArtifact(plan.canonicalDryWeb, plan.riskDrivenLattice)
+    : null;
+  // The canonical runtime remains the reviewed Dry Web 2475/2404. The
+  // lattice is a separate saved observation artifact and is augmented only
+  // transiently inside the explicit BODY rebuild Worker.
+  internalStructureGraph = hydratedLattice?.canonicalGraph ?? null;
+  restoredCanonicalDryWeb = plan.canonicalDryWeb;
+  restoredRiskDrivenLattice = plan.riskDrivenLattice;
+  riskDrivenPermanentLatticeOverlayEnabled = false;
   internalStructureFingerprint = "";
   clearStage7CanonicalCandidateAdoption();
   clearStage7ProvisionalRecheck(".fkei OpenではStage 7を復元しません", "missing");
   stage7RedFaceReinforcementPlan = null;
   stage7RedFaceReinforcementPlanMessage = null;
   stage7CanonicalCandidateAdoptionUndo = null;
-  skinRenderer.setInternalStructure(null);
+  skinRenderer.setInternalStructure(internalStructureGraph);
+  skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
   refreshInternalAngleScreening(null);
   syncPhaseASupportPreviewAvailability(null);
 }
@@ -8546,7 +8848,13 @@ function restoreFkeiOpenRuntimeSnapshot(snapshot: FkeiOpenRuntimeSnapshot): void
   artworkGraphSnapshot = snapshot.artworkGraphSnapshot;
   artworkGraphSourceKey = snapshot.artworkGraphSourceKey;
   artworkGraphLastError = snapshot.artworkGraphLastError;
+  artworkGraphOverlayEnabled = snapshot.artworkGraphOverlayEnabled;
+  viewMode = snapshot.viewMode;
+  installedSurfaceAngleDiagnosisView = snapshot.installedSurfaceAngleDiagnosisView;
+  ui.setMeshOptions(snapshot.meshOptions);
+  ui.setSurfaceAngleThreshold(snapshot.surfaceAngleThresholdDeg);
   surfaceAngleCache = snapshot.surfaceDiagnosis;
+  riskDrivenInternalLatticeOverlayEnabled = snapshot.riskDrivenInternalLatticeOverlayEnabled;
   acceptedSurfaceSaveBinding = snapshot.acceptedSurfaceSaveBinding;
   activeSurfacePersistentCacheKeys = snapshot.activeSurfacePersistentCacheKeys;
   automaticOverhangSupportResult = snapshot.automaticOverhangSupportResult;
@@ -8559,6 +8867,39 @@ function restoreFkeiOpenRuntimeSnapshot(snapshot: FkeiOpenRuntimeSnapshot): void
   phaseADryWebPreview = snapshot.phaseADryWebPreview;
   targetedSupportSource = snapshot.targetedSupportSource;
   internalStructureGraph = snapshot.internalStructureGraph;
+  internalStructureFingerprint = snapshot.internalStructureFingerprint;
+  internalAngleScreeningEnabled = snapshot.internalAngleScreeningEnabled;
+  internalAngleScreeningGraph = snapshot.internalAngleScreeningGraph;
+  internalAngleScreening = snapshot.internalAngleScreening;
+  riskDrivenInternalLatticeFacts = snapshot.riskDrivenInternalLatticeFacts;
+  restoredRiskDrivenLattice = snapshot.restoredRiskDrivenLattice;
+  restoredCanonicalDryWeb = snapshot.restoredCanonicalDryWeb;
+  riskDrivenPermanentLatticeOverlayEnabled = snapshot.riskDrivenPermanentLatticeOverlayEnabled;
+  supportPaintDraftSavedAt = snapshot.supportPaintDraftSavedAt;
+  supportPaintDraftDirty = snapshot.supportPaintDraftDirty;
+  supportPaintSurfaceCache = snapshot.supportPaintSurfaceCache;
+  surfaceAnglePersistentCacheStatus = snapshot.surfaceAnglePersistentCacheStatus;
+  stage7CanonicalCandidateAdoption = snapshot.stage7CanonicalCandidateAdoption;
+  stage7CanonicalCandidateAdoptionUndo = snapshot.stage7CanonicalCandidateAdoptionUndo;
+  stage7RedFaceReinforcementPlan = snapshot.stage7RedFaceReinforcementPlan;
+  stage7RedFaceReinforcementPlanMessage = snapshot.stage7RedFaceReinforcementPlanMessage;
+  stage7ProvisionalRecheckResult = snapshot.stage7ProvisionalRecheckResult;
+  stage7ProvisionalRecheckElapsedMs = snapshot.stage7ProvisionalRecheckElapsedMs;
+  stage7ProvisionalRecheckTerminal = snapshot.stage7ProvisionalRecheckTerminal;
+  stage7ProvisionalRecheckMessage = snapshot.stage7ProvisionalRecheckMessage;
+  stage7ProvisionalAdoptionGateApproval = snapshot.stage7ProvisionalAdoptionGateApproval;
+  // Restore renderer-owned graph/overlay resources immediately as well as
+  // restoring their variables.  The following redraw may throw; without this
+  // explicit repair a failed Open could leave checkpoint geometry paired with
+  // the old runtime state until some later render happens.
+  skinRenderer.setInternalStructure(snapshot.internalStructureGraph);
+  skinRenderer.setInternalAngleScreening(snapshot.internalAngleScreening);
+  if (snapshot.restoredRiskDrivenLattice && snapshot.riskDrivenPermanentLatticeOverlayEnabled) {
+    skinRenderer.setRiskDrivenPermanentLatticeOverlay(snapshot.restoredRiskDrivenLattice, true);
+  } else {
+    skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
+  }
+  restoringFkeiOpenRuntime = true;
 }
 
 function redrawFkeiOpenRuntime(): void {
@@ -8568,10 +8909,13 @@ function redrawFkeiOpenRuntime(): void {
   syncUndoHistory();
   if (surfaceAngleCache) {
     skinRenderer.setMeshOverlayBuffers(surfaceAngleCache.basePositions, surfaceAngleCache.baseNormals);
-    viewMode = "mesh";
+    refreshRiskDrivenInternalLatticePresentation();
+    if (!restoringFkeiOpenRuntime) viewMode = "mesh";
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-    showSurfaceAngleDiagnosisView("before");
+    showSurfaceAngleDiagnosisView(restoringFkeiOpenRuntime && installedSurfaceAngleDiagnosisView
+      ? installedSurfaceAngleDiagnosisView
+      : "before");
     refreshOverhangSupportSiteOverlay();
     ui.setSurfaceAngleDiagnosisRunning(false);
     ui.setSurfaceAngleDiagnosisStatus(
@@ -8581,6 +8925,7 @@ function redrawFkeiOpenRuntime(): void {
   } else {
     skinRenderer.setMeshOverlay(null);
     skinRenderer.clearSurfaceAngleOverlay();
+    clearRiskDrivenInternalLatticePresentation("missing", "現在のSurface診断がありません。Surface診断完了後に表示できます。");
     skinRenderer.clearOverhangSupportSiteOverlay();
     ui.setSurfaceAngleDiagnosisRunning(false);
     ui.setSurfaceAngleDiagnosisStatus(".fkei Stage 1からShapeだけを復元しました");
@@ -8591,9 +8936,20 @@ function redrawFkeiOpenRuntime(): void {
     refreshSupportPaintUi(".fkeiのSupport Paint事実を復元しました");
   }
   syncArtworkGraphStatus();
-  refreshDryWebActions(".fkei Open完了 · Dry Webは未生成です");
+  refreshDryWebActions(internalStructureGraph
+    ? ".fkei Open完了 · canonical Dry Web / Risk-driven Latticeを復元（BODYは未生成）"
+    : ".fkei Open完了 · Dry Webは未生成です");
+  if (restoredRiskDrivenLattice && riskDrivenPermanentLatticeOverlayEnabled) {
+    skinRenderer.setRiskDrivenPermanentLatticeOverlay(restoredRiskDrivenLattice, true);
+  } else {
+    skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
+  }
+  ui.setRiskDrivenPermanentLattice(restoredRiskDrivenLattice
+    ? { available: true, enabled: riskDrivenPermanentLatticeOverlayEnabled, status: "saved 56 nodes / 48 edges · 8 spines · 2 shared", onBody: "BODY未生成" }
+    : { available: false, enabled: false, status: "restored latticeなし", onBody: "" });
   refreshBottomStatusPane();
   render();
+  restoringFkeiOpenRuntime = false;
 }
 
 async function openFkeiProject(file: File): Promise<void> {
@@ -8648,7 +9004,7 @@ async function openFkeiProject(file: File): Promise<void> {
       attempt,
       lastCompletedStage,
       { completedStage: plan.completedStage, fileName: file.name },
-      `.fkei Open完了 · Stage ${plan.completedStage} · Dry Web未生成 · ${file.name}`,
+      `.fkei Open完了 · Stage ${plan.completedStage} · ${plan.canonicalDryWeb ? "canonical Dry Web / Risk-driven Lattice復元・BODY未生成" : "Dry Web未生成"} · ${file.name}`,
     );
   } catch (error) {
     console.error("[SKIN .fkei Open] failed", { attempt, lastCompletedStage, error });
@@ -9390,6 +9746,12 @@ function invalidateSurfaceAngleDiagnosis(message = "形が変わりました。�
   acceptedSurfaceSaveBinding = null;
   invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
+  clearRiskDrivenInternalLatticePresentation(
+    hadDiagnosis ? "stale" : "missing",
+    hadDiagnosis
+      ? `${message} · Risk Cluster / Support Candidateも古くなりました`
+      : "現在のSurface診断がありません。Surface診断完了後に表示できます。",
+  );
   automaticOverhangSupportResult = null;
   overhangSupportResult = null;
   supportPaintEnabled = false;
@@ -9801,6 +10163,7 @@ function finishSurfaceAngleDiagnosis(
   // and accidentally stamp new values onto an old result.
   if (acceptedBinding !== undefined) acceptedSurfaceSaveBinding = acceptedBinding;
   skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
+  refreshRiskDrivenInternalLatticePresentation();
   const completedViewState = preserveViewState
     ? preserveDryWebGraphViewForCompletion(preserveViewState)
     : null;
@@ -10304,6 +10667,10 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
   surfaceWorkerLaunchCount = 0;
   invalidateSupportPaintEditingResources();
   surfaceAngleCache = null;
+  clearRiskDrivenInternalLatticePresentation(
+    "running",
+    "Surface診断を実行中です。完了までRisk Clusterの件数とoverlayを隠します。",
+  );
   automaticOverhangSupportResult = null;
   overhangSupportResult = null;
   supportPaintEnabled = false;
@@ -10465,6 +10832,7 @@ async function startSurfaceAngleDiagnosis(thresholdDeg: number): Promise<void> {
       const failure = error as Error;
       surfaceAngleCache = message;
       skinRenderer.setMeshOverlayBuffers(message.basePositions, message.baseNormals);
+      refreshRiskDrivenInternalLatticePresentation();
       viewMode = "mesh";
       skinRenderer.setViewMode(viewMode);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
@@ -11729,6 +12097,7 @@ function requestRenderFrame(activeViewportOnly = false): void {
 }
 
 function render(): void {
+  refreshRestoredRiskDrivenLatticeCurrentness();
   skinRenderer.update(
     state.host,
     state.hostParams.k,

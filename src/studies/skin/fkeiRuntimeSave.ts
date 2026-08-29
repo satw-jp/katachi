@@ -16,6 +16,7 @@ import {
   type FkeiSurfaceBinding,
   type FkeiSurfaceArtifact,
 } from "./fkei.ts";
+import type { FkeiCanonicalDryWebArtifact, FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 
 /**
  * Runtime-save adapters deliberately receive currentness decisions made by
@@ -60,6 +61,8 @@ export interface FkeiRuntimeSaveSnapshot {
   readonly artworkGraph?: FkeiRuntimeSaveArtifact<NonNullable<FkeiDocument["artworkGraph"]>>;
   readonly surface?: FkeiRuntimeSaveArtifact<FkeiSurfaceArtifact>;
   readonly dryWeb?: FkeiRuntimeSaveArtifact<FkeiDryWebArtifact>;
+  readonly canonicalDryWeb?: FkeiRuntimeSaveArtifact<FkeiCanonicalDryWebArtifact>;
+  readonly riskDrivenLattice?: FkeiRuntimeSaveArtifact<FkeiRiskDrivenLatticeArtifact>;
   readonly printProfile?: FkeiRuntimeSaveArtifact<FkeiPrintProfileArtifact>;
   readonly compatibility?: Partial<FkeiCompatibility>;
 }
@@ -74,6 +77,8 @@ export interface FkeiRuntimeSaveFacts {
   readonly artworkGraph?: FkeiRuntimeSaveArtifact<NonNullable<FkeiDocument["artworkGraph"]>>;
   readonly surface?: FkeiRuntimeSurfaceFacts;
   readonly dryWeb?: FkeiRuntimeSaveArtifact<FkeiDryWebArtifact>;
+  readonly canonicalDryWeb?: FkeiRuntimeSaveArtifact<FkeiCanonicalDryWebArtifact>;
+  readonly riskDrivenLattice?: FkeiRuntimeSaveArtifact<FkeiRiskDrivenLatticeArtifact>;
   readonly printProfile?: FkeiRuntimeSaveArtifact<FkeiPrintProfileArtifact>;
   readonly compatibility?: Partial<FkeiCompatibility>;
 }
@@ -289,6 +294,8 @@ export function buildFkeiRuntimeSaveSnapshot(facts: FkeiRuntimeSaveFacts): FkeiR
         value: normalizeDryWebTargetEvidenceForSave(facts.dryWeb.value),
       },
     } : {}),
+    ...(facts.canonicalDryWeb ? { canonicalDryWeb: facts.canonicalDryWeb } : {}),
+    ...(facts.riskDrivenLattice ? { riskDrivenLattice: facts.riskDrivenLattice } : {}),
     ...(facts.printProfile ? { printProfile: facts.printProfile } : {}),
     ...(facts.compatibility ? { compatibility: facts.compatibility } : {}),
   };
@@ -357,6 +364,27 @@ export function assembleFkeiCaptureInput(snapshot: FkeiRuntimeSaveSnapshot): Fke
   if (!input.surface) delete input.bindings.surface;
   if (!input.dryWeb) delete input.bindings.dryWeb;
 
+  const canonical = snapshot.canonicalDryWeb;
+  const lattice = snapshot.riskDrivenLattice;
+  if (canonical?.current && lattice?.current
+    && input.surface
+    && canonical.value.inputBinding.shapeFingerprint === bindings.shapeFingerprint
+    && canonical.value.inputBinding.patchSetRevision === bindings.patchSetRevision
+    && canonical.value.inputBinding.paintRevision === bindings.paintRevision
+    && canonical.value.inputBinding.artworkGraphSourceKey === input.artworkGraph?.sourceKey
+    && canonical.value.inputBinding.surfaceResolution === input.surface.binding.resolution
+    && canonical.value.inputBinding.surfaceTargetLongestMm === input.surface.binding.targetLongestMm
+    && canonical.value.inputBinding.surfaceAngleThresholdDeg === input.surface.binding.angleThresholdDeg
+    && canonical.value.inputBinding.exactDiagnosisProvenanceSha256 === canonical.value.exactDiagnosisSummary.provenanceSha256
+    && lattice.value.inputBinding.shapeFingerprint === bindings.shapeFingerprint
+    && lattice.value.inputBinding.canonicalRequestSha256 === canonical.value.inputBinding.canonicalRequestSha256) {
+    input.canonicalDryWeb = cloneDetached(canonical.value);
+    input.riskDrivenLattice = cloneDetached(lattice.value);
+    input.completedStage = 4;
+  } else if (canonical || lattice) {
+    omitted.push("riskDrivenLattice");
+  }
+
   // Artifact omission is itself a downstream boundary: a caller cannot claim
   // a stage whose restorable artifact was not admitted, even if an upstream
   // currentness bit was accidentally left true.
@@ -373,7 +401,7 @@ export function assembleFkeiCaptureInput(snapshot: FkeiRuntimeSaveSnapshot): Fke
     effectiveStageCurrent[6] = false;
     effectiveStageCurrent[7] = false;
   }
-  if (!input.dryWeb) {
+  if (!input.dryWeb && !(input.canonicalDryWeb && input.riskDrivenLattice)) {
     effectiveStageCurrent[4] = false;
     effectiveStageCurrent[5] = false;
     effectiveStageCurrent[7] = false;

@@ -1,5 +1,41 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN Risk-Driven Internal Lattice v0 / resolution 128 BODY（2026-08-29）
+
+Checkpoint 1のcurrent Surface Risk Cluster / Support Candidateを第一入力にし、診断上SafeなSurface faceを
+下側anchorとして選び、共有Spine / Junction / branchからなるdetached Permanent Internal Lattice v0を生成した。
+Bambu floating位置は生成入力に使わず、既存Dry Webの役割とcanonical Graphも変更していない。
+
+現在のdetached canonical request（Dry Web 2,475 node / 2,404 edge）では、supportGain上位からcluster重複を
+避けて12 candidateを採用し、8 spine group（うち2つは複数Riskが共有）、56 lattice node / 48 edge、
+総延長159.4705 mmのNetworkになった。保存BODY換算の直径は2.1962 mm、全edgeは最大4.6599 mm、
+鉛直から最大44.9634°である。各Risk targetはGraph上でもSafe Anchorへ到達し、SDF半径だけで接してはいない。
+Surface + Dry Web + Permanent Latticeをresolution 128 / target 80 mmでSDF unionし、保存Float32座標で
+216,000 triangles、1 connected component、closed、open / non-manifold / degenerate / non-finite各0を確認した。
+orientation repair前のwinding不整合6 edgeは、座標を変えない既存repair後0になった。
+
+これは`AUTHOR REVIEW / NOT FOR PRINT`のdetached BODYである。affectedRiskAreaはv0 proxyで、Lattice付加後の
+Risk再診断、resolution 240、Bambu Slice、floating region、荷重、実機printabilityはまだ判定していない。
+最下部に近く下側Safe Surfaceを持たないRiskへplate柱を発明せず、今回のbounded候補から除外する。
+
+## Observation — SKIN Risk-Driven Internal Lattice v0 / Checkpoint 1（2026-08-29）
+
+作者の新しい指示を原文のまま記録する。
+
+> SKIN Risk-Driven Internal Lattice v0
+
+Checkpoint 1では、現在のSurface diagnosisのtriangle soup（+Z build direction）から、有限解像度の
+空間隣接でRisk Clusterを決定し、各clusterの下側からSupport Candidateを最大3点ずつ順位づけする。
+cluster数・severity分布・risky area proxy・top candidateのsupportGain / estimated lengthは、中央3D viewの
+read-only panelと独立overlayで比較できる。face IDは選択したdiagnosis triangle soupのzero-based ordinalであり、
+Surface Pattern patch IDではない。
+
+これはseverityとsupportGainというv0ランキングヒューリスティックを観察できるようにするcheckpointである。
+Support Candidateは危険が実際に除去されたこと、荷重経路が成立したこと、または印刷可能性を示さない。
+Internal Spine / Junction / branch / capsule / SDF union / BODY mesh / 3MF / STL / Bambu出力、Permanent
+Latticeの生成・採用・保存・export・Sliceは、このcheckpointでは行わない。Surface diagnosisがmissing / running /
+stale / malformedの間は、古い件数とoverlayを表示しない。
+
 ## Observation — Stage 1〜3を.fkeiからAtomic復元（2026-08-28）
 
 作者の目的を原文のまま記録する。
@@ -4047,3 +4083,7 @@ exact reachabilityの各face queryで作っていた候補Set・配列化・sort
 候補のreadinessは純粋な境界で、targetedGrid、current exact / unresolved 0、canonical Graphのobject identity・node/edge count・決定的なnext IDとcollision、既存Graph / Surface / Dry Web / Artwork / target / Paintのidentity、current scale、targetLongestMm 80、3 edge各length・angle・exposed span、Patch 6 / Patch 22 endpoint overlap、radius / diameterを個別のexpected/current/passとfirst-failure reasonとして内部reportに保持する。作者画面は失敗時に最初の短い理由を表示し、合格時にcurrent / provenance scaleも表示する。物理値はcurrent Surface SDFとcurrent scaleで測り、A1 miniの露出5 mm・角度45°・Surface overlap 0.2 mm・diameter 0.8 mmを再利用する。validation scaleとの一致はreadiness条件にしないが、current scaleの変更は既存のplan→exact比較→作者承認→adoption→undoのstrict bindingで引き続き失敗させる。
 
 Graphにrevision/hashを追加せず、既存canonical Graph objectと各Surface / Dry Web / Artwork / target / Paint / settings bindingをcurrentness境界として使う。readinessに合格してもcanonical Graphは触らず、従来どおりprovisional planから先のexact比較・作者判断・採用・Undoでのみ進む。
+
+## Observation Risk-driven Lattice checkpoint（2026-08-29）
+
+作者の依頼により、既に生成済みのRisk-driven Permanent Lattice v0だけをversioned `.fkei` checkpointとして残す。Openは保存済みのcanonical Dry Web 2,475/2,404とlocal lattice 56/48をexact bindingで検証してからatomicに表示する。左の表示toggleは観察専用で、Shape・history・canonical Graphを変えない。BODYは作者が明示して押すまで生成しない。手動のresolution128再構築は保存済みのShape/Graph/lattice意味だけを使い、planner・外部plan/STL/requestを読まない。exact summary 2,813/428/0はprovenanceであり、欠けているper-face replayを主張しない。これはreview-only / not-for-printで、Slice・floating・実物の安全性は未検証である。
