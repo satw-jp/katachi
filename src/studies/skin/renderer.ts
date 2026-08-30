@@ -528,6 +528,7 @@ export class SkinRenderer {
   private networkFormationTerminalSprite: THREE.Sprite | null = null;
   private readonly networkFormationHiddenObjects = new Map<THREE.Object3D, boolean>();
   private networkFormationPreviousClear: { color: THREE.Color; alpha: number } | null = null;
+  private networkFormationPreviousOrbitEnabled: boolean | null = null;
   private selectedInternalEdgeMesh: THREE.Mesh | null = null;
   private reinforcedInternalEdgeMesh: THREE.InstancedMesh | null = null;
   private internalStructureVisible = true;
@@ -2262,7 +2263,60 @@ export class SkinRenderer {
     };
     this.renderer.setClearColor(0x0d120f, 1);
     this.networkFormationGroup.visible = true;
+    this.networkFormationPreviousOrbitEnabled = this.orbitEnabled;
     this.setOrbitEnabled(false);
+    this.requestViewportRender();
+  }
+
+  /** Fit the completed graph into the temporary one-view presentation camera.
+   * The ordinary editor pose is captured/restored by the caller; this method
+   * only reframes that temporary camera and never changes graph/runtime data. */
+  frameNetworkFormationGraph(graph: InternalStructureGraph, fill = 0.8): void {
+    if (!this.networkFormationActive || graph.nodes.length === 0) return;
+    const bounds = new THREE.Box3();
+    const point = new THREE.Vector3();
+    for (const node of graph.nodes) {
+      const radius = Math.max(0, node.radius);
+      point.set(node.position.x, node.position.y, node.position.z + this.phaseAObjectLiftSource);
+      bounds.expandByPoint(new THREE.Vector3(point.x - radius, point.y - radius, point.z - radius));
+      bounds.expandByPoint(new THREE.Vector3(point.x + radius, point.y + radius, point.z + radius));
+    }
+    if (bounds.isEmpty()) return;
+
+    const camera = this.camera;
+    const controls = this.controls;
+    const center = bounds.getCenter(new THREE.Vector3());
+    const offset = camera.position.clone().sub(controls.target);
+    if (offset.lengthSq() < 1e-8) {
+      camera.getWorldDirection(offset);
+      offset.multiplyScalar(-Math.max(this.viewportDistance, 1));
+    }
+    camera.position.copy(center).add(offset);
+    controls.target.copy(center);
+    camera.lookAt(center);
+    camera.updateMatrixWorld(true);
+
+    let projectedHalfWidth = 0;
+    let projectedHalfHeight = 0;
+    for (const node of graph.nodes) {
+      const radius = Math.max(0, node.radius);
+      point.set(node.position.x, node.position.y, node.position.z + this.phaseAObjectLiftSource)
+        .applyMatrix4(camera.matrixWorldInverse);
+      projectedHalfWidth = Math.max(projectedHalfWidth, Math.abs(point.x) + radius);
+      projectedHalfHeight = Math.max(projectedHalfHeight, Math.abs(point.y) + radius);
+    }
+    const frustumHalfWidth = Math.abs(camera.right - camera.left) * 0.5;
+    const frustumHalfHeight = Math.abs(camera.top - camera.bottom) * 0.5;
+    const safeFill = THREE.MathUtils.clamp(fill, 0.2, 0.95);
+    const widthZoom = projectedHalfWidth > 1e-8
+      ? frustumHalfWidth * safeFill / projectedHalfWidth
+      : Number.POSITIVE_INFINITY;
+    const heightZoom = projectedHalfHeight > 1e-8
+      ? frustumHalfHeight * safeFill / projectedHalfHeight
+      : Number.POSITIVE_INFINITY;
+    camera.zoom = THREE.MathUtils.clamp(Math.min(widthZoom, heightZoom), 0.05, 80);
+    camera.updateProjectionMatrix();
+    controls.update();
     this.requestViewportRender();
   }
 
@@ -2460,7 +2514,9 @@ export class SkinRenderer {
       );
       this.networkFormationPreviousClear = null;
     }
-    this.setOrbitEnabled(true);
+    const restoreOrbit = this.networkFormationPreviousOrbitEnabled ?? true;
+    this.networkFormationPreviousOrbitEnabled = null;
+    this.setOrbitEnabled(restoreOrbit);
     this.applyLayerVisibility();
     this.requestViewportRender();
   }

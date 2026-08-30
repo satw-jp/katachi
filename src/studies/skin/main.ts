@@ -2683,6 +2683,7 @@ else ui.root.appendChild(phaseASupportPanel);
 syncPhaseAVerticalControl();
 
 type NetworkFormationSession = {
+  readonly id: number;
   readonly graph: InternalStructureGraph;
   readonly timeline: NetworkFormationTimeline;
   readonly viewDraft: ReturnType<SkinRenderer["captureEditorViewDraft"]>;
@@ -2694,6 +2695,7 @@ type NetworkFormationSession = {
 
 let skinArtUiShellController: SkinArtUiShellController | null = null;
 let networkFormationSession: NetworkFormationSession | null = null;
+let nextNetworkFormationSessionId = 1;
 
 function applyNetworkFormationEvent(
   session: NetworkFormationSession,
@@ -2744,9 +2746,21 @@ function applyNetworkFormationEvent(
   }
 }
 
-function runNetworkFormationFrame(now: number): void {
+function scheduleNetworkFormationFrame(session: NetworkFormationSession): void {
+  session.frameId = window.requestAnimationFrame((now) => runNetworkFormationFrame(session.id, now));
+}
+
+function runNetworkFormationFrame(sessionId: number, now: number): void {
   const session = networkFormationSession;
-  if (!session) return;
+  if (!session || session.id !== sessionId) return;
+  if (internalStructureGraph !== session.graph) {
+    exitNetworkFormation();
+    skinArtUiShellController?.setNetworkFormationState(
+      "unavailable",
+      "The completed Network changed. Start Formation again.",
+    );
+    return;
+  }
   const elapsed = now - session.startedAt;
   while (session.eventIndex < session.timeline.events.length) {
     const event = session.timeline.events[session.eventIndex];
@@ -2755,13 +2769,14 @@ function runNetworkFormationFrame(now: number): void {
     session.eventIndex++;
   }
   if (session.eventIndex < session.timeline.events.length) {
-    session.frameId = window.requestAnimationFrame(runNetworkFormationFrame);
+    scheduleNetworkFormationFrame(session);
   } else {
     session.frameId = 0;
   }
 }
 
 function startNetworkFormation(): void {
+  if (networkFormationSession) exitNetworkFormation();
   const graph = internalStructureGraph;
   if (!graph?.edges.length) {
     skinArtUiShellController?.setNetworkFormationState(
@@ -2770,13 +2785,14 @@ function startNetworkFormation(): void {
     );
     return;
   }
-  if (networkFormationSession) exitNetworkFormation();
   const timeline = createNetworkFormationTimeline(graph);
   const viewDraft = skinRenderer.captureEditorViewDraft(editorLayoutState);
   skinArtUiShellController?.setNetworkFormationState("running", "NETWORK FORMATION", `0 / ${graph.edges.length} EDGES`);
   skinRenderer.setViewportMode("one");
   skinRenderer.beginNetworkFormationPresentation();
+  skinRenderer.frameNetworkFormationGraph(graph);
   const session: NetworkFormationSession = {
+    id: nextNetworkFormationSessionId++,
     graph,
     timeline,
     viewDraft,
@@ -2788,7 +2804,7 @@ function startNetworkFormation(): void {
   networkFormationSession = session;
   applyNetworkFormationEvent(session, timeline.events[0]);
   session.eventIndex = 1;
-  session.frameId = window.requestAnimationFrame(runNetworkFormationFrame);
+  scheduleNetworkFormationFrame(session);
 }
 
 function exitNetworkFormation(): void {
