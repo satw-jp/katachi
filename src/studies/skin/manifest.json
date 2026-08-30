@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Windows compute boundary inventory records the actual production path skin-rebuild.html -> src/studies/skin/main.ts and maps current files/functions into browser UI, platform-independent project/graph/FKEI contracts, heavy geometry candidates, and CPU-sufficient metadata/serialization. The future dependency direction is UI -> GeometryEngine -> current Web Worker implementation or optional Windows CUDA local adapter; Cloudflare Web UI and FKEI remain shared, and no native/GPU handle becomes project data. The first candidate kernels are resolution-cubed SDF/mesh generation, batch surface/mesh diagnosis, and radius-aware spider containment/collision. STL Base Import, Custom Curve Motif, Base Surface Graph, Spider Graph Cleanup, Curved Network Edge and Calyx/Motif Morph remain compatible by separating portable intent/topology from backend realization. Design only: no runtime, schema, geometry, threshold, coordinate or dependency change."
+    },
+    {
+      "date": "2026-08-30",
       "note": "実装無しの将来geometry architectureを文書化。BASE sourceを共通Geometry capabilityへ隠蔽、Coin/Ring/Flower/一筆Flower/Curve/SVG/Polyline/Custom Motifをversioned定義、Base→Surface Graph→graph-aware random distribution、Network topologyとStraight/Curve/Spline/Custom edge geometryの分離、Motif→がく状Junction→stem/network morphを設計。UI/FKEI/projectはbackend-neutralで、CPU reference/fallback、Browser WebGPU optional、Windows RTX 3080 CUDA外部adapterとしCUDA依存をUI/data modelから隔離。実機結果後のmigration/conformance/FKEI/座標gateだけを定義しruntime/schema/geometry outputは不変。"
     },
     {

@@ -16,6 +16,22 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Windows compute backend boundary inventory (design only)
+
+公開入口`skin-rebuild.html`は簡略prototypeではなく、元editor shellの`src/studies/skin/main.ts`を読み込み、
+そこから`rebuild/model.ts`、FKEI、mesh／diagnosis／export Workerを呼ぶ構成であることを実ファイルと関数で棚卸しした。
+`docs/architecture/skin-rebuild-windows-compute-boundary-20260830.md`へ、A=UI/Browser、
+B=platform-independent core、C=heavy geometry、D=CPUで十分、の対応表を記録した。
+
+将来境界は`UI → GeometryEngine → WebGeometryEngine / WindowsCudaGeometryEngine`とし、既存Worker protocolを
+backend-neutral request/resultへ正規化する。Windows側はCloudflareのWeb UIを置き換えず、限定local serviceとして
+batch jobを受ける。FKEIは共通project dataのまま、CUDA pointer、native path、GPU bufferを唯一の正本にしない。
+
+最初のCUDA候補は、resolution³のSDF sampling＋mesh生成、Surface/mesh batch診断、蜘蛛routeの全半径Base内包／
+collision検査の3処理とした。STL Base Import、Custom Curve Motif、Base Surface Graph、Spider Graph Cleanup、
+Curved Network Edge、Calyx-like Junction / Motif Morphも、意図／topologyをcore、realization／幾何検証をengineへ分ければ
+同じ境界に収まる。設計記録だけでruntime、FKEI schema、geometry、閾値、座標、依存は変更していない。
+
 ### 2026-08-30 — future geometry architecture (design only)
 
 実装を変えず、`docs/architecture/skin-rebuild-future-geometry-architecture.md`へ将来境界を定義した。
