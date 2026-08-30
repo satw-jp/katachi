@@ -19,15 +19,17 @@ import type { Ball } from "../cloud-sculpt/field.ts";
 import { smoothMin } from "../cloud-sculpt/field.ts";
 import {
   buildMeshFromField,
+  buildMeshResultFromTriangles,
   buildMeshTrianglesFromFieldSlice,
   computeConnectedComponentsWithKey,
   computeSamplingBounds,
   encodeBinaryStl,
   encodeObj,
   meshSummary as baseMeshSummary,
+  rescaleMeshResult,
 } from "../cloud-sculpt/meshExport.ts";
 import type { Bounds, MeshBuildResult, MeshVertex, Triangle } from "../cloud-sculpt/meshExport.ts";
-import { createCompositeSdfEvaluator, patchesSdf } from "./field.ts";
+import { createCompositeSdfEvaluator } from "./field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { SkinHistoryEntry } from "./history.ts";
 import { serializeRecipe } from "./history.ts";
@@ -131,15 +133,50 @@ function internalStructurePatches(graph: InternalStructureGraph | null): Patch[]
 
 function combineWithInternalStructure(
   surfaceSdf: (x: number, y: number, z: number) => number,
-  internalPatches: Patch[],
+  graph: InternalStructureGraph | null,
   roundK: number,
 ): (x: number, y: number, z: number) => number {
-  if (internalPatches.length === 0) return surfaceSdf;
-  const radius = internalPatches[0].points[0]?.r ?? 0;
+  if (!graph || graph.edges.length === 0) return surfaceSdf;
+  const primitives = graph.edges.flatMap((edge) => {
+    const start = graph.nodes[edge.start]?.position;
+    const end = graph.nodes[edge.end]?.position;
+    return start && end && edge.radius > 0 ? [{ start, end, radius: edge.radius }] : [];
+  });
+  if (primitives.length === 0) return surfaceSdf;
+  const radius = primitives.reduce((minimum, primitive) => Math.min(minimum, primitive.radius), Number.POSITIVE_INFINITY);
   const blend = Math.min(Math.max(0.005, roundK), radius * 0.75);
+  // A graph edge is a real capsule, not a row of independent balls. Besides
+  // removing thousands of repeated field primitives, this keeps the lower
+  // side of a <=45-degree Stage 5B member at the authored printable angle;
+  // sampled balls created scalloped downward hemispheres that Stage 7 quite
+  // correctly diagnosed as new red faces.
+  const evaluateInternal = (x: number, y: number, z: number): number => {
+    let distance = Number.POSITIVE_INFINITY;
+    for (let primitiveIndex = 0; primitiveIndex < primitives.length; primitiveIndex++) {
+      const primitive = primitives[primitiveIndex];
+      const dx = primitive.end.x - primitive.start.x;
+      const dy = primitive.end.y - primitive.start.y;
+      const dz = primitive.end.z - primitive.start.z;
+      const denominator = dx * dx + dy * dy + dz * dz;
+      const t = denominator > 1e-16
+        ? Math.max(0, Math.min(1, (
+          (x - primitive.start.x) * dx
+          + (y - primitive.start.y) * dy
+          + (z - primitive.start.z) * dz
+        ) / denominator))
+        : 0;
+      const capsule = Math.hypot(
+        x - (primitive.start.x + dx * t),
+        y - (primitive.start.y + dy * t),
+        z - (primitive.start.z + dz * t),
+      ) - primitive.radius;
+      distance = primitiveIndex === 0 ? capsule : smoothMin(distance, capsule, blend);
+    }
+    return distance;
+  };
   return (x, y, z) => smoothMin(
     surfaceSdf(x, y, z),
-    patchesSdf(internalPatches, blend, x, y, z),
+    evaluateInternal(x, y, z),
     blend,
   );
 }
@@ -177,7 +214,7 @@ function prepareSkinMeshField(input: SkinMeshFieldInput): {
     input.coinBulge,
     input.coinBulgeBalance ?? 0,
   );
-  const bodySdf = combineWithInternalStructure(surfaceSdf, internalPatches, input.roundK);
+  const bodySdf = combineWithInternalStructure(surfaceSdf, internalGraph, input.roundK);
   return {
     grid: {
       bounds: samplingGrid.bounds,
@@ -261,7 +298,7 @@ export function buildSkinPreviewMeshSlice(
   const surfaceSdf = createCompositeSdfEvaluator(
     mode, host, hostK, thickness, reinforced.patches, roundK, coinBulge, coinBulgeBalance,
   );
-  const sdf = combineWithInternalStructure(surfaceSdf, internalPatches, roundK);
+  const sdf = combineWithInternalStructure(surfaceSdf, internalGraph, roundK);
   return buildMeshTrianglesFromFieldSlice(bounds, sdf, resolution, zStart, zEnd);
 }
 
@@ -323,6 +360,127 @@ export function downloadSkinMeshBundle(
   );
 }
 
+/**
+ * Build a small, closed cylinder mesh for the independently removable print
+ * support Graph. Unlike BODY meshing this does not sample the full 3D field,
+ * so tens of vertical support pillars take milliseconds rather than another
+ * resolution^3 marching pass. The caller supplies BODY's scale so both STL
+ * files retain exactly the same coordinate system.
+ */
+export function buildPrintSupportMesh(
+  graph: InternalStructureGraph,
+  scaleMmPerUnit: number,
+  options: {
+    radialSegments?: number;
+    /** Exact BODY build-plate translation. This preserves the authored
+     * support-to-artwork contacts in separate STL/OBJ/3MF parts. */
+    sourceOffset?: MeshVertex;
+    /** In the translated coordinate system, extend only the lower endpoint
+     * of a vertical pillar to this plate Z. The upper artwork contact stays
+     * fixed. */
+    extendVerticalRootsToPlateZ?: number;
+  } = {},
+): MeshBuildResult {
+  if (!(scaleMmPerUnit > 0) || !Number.isFinite(scaleMmPerUnit)) throw new Error("print support scale is invalid");
+  const segments = Math.max(8, Math.min(32, Math.round(options.radialSegments ?? 12)));
+  const sourceOffset = options.sourceOffset ?? { x: 0, y: 0, z: 0 };
+  if (![sourceOffset.x, sourceOffset.y, sourceOffset.z].every(Number.isFinite)) {
+    throw new Error("print support source offset is invalid");
+  }
+  const triangles: Triangle[] = [];
+  const normalize = (value: MeshVertex): MeshVertex => {
+    const magnitude = Math.hypot(value.x, value.y, value.z);
+    if (!(magnitude > 1e-12)) throw new Error("print support contains a zero-length edge");
+    return { x: value.x / magnitude, y: value.y / magnitude, z: value.z / magnitude };
+  };
+  const cross = (a: MeshVertex, b: MeshVertex): MeshVertex => ({
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  });
+  const add = (a: MeshVertex, b: MeshVertex): MeshVertex => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
+  const multiply = (value: MeshVertex, amount: number): MeshVertex => ({ x: value.x * amount, y: value.y * amount, z: value.z * amount });
+  for (const edge of graph.edges) {
+    const sourceStart = graph.nodes[edge.start]?.position;
+    const sourceEnd = graph.nodes[edge.end]?.position;
+    if (!sourceStart || !sourceEnd || !(edge.radius > 0)) throw new Error("print support graph edge is invalid");
+    let start = add(sourceStart, sourceOffset);
+    let end = add(sourceEnd, sourceOffset);
+    const plateZ = options.extendVerticalRootsToPlateZ;
+    if (plateZ !== undefined) {
+      if (!Number.isFinite(plateZ)) throw new Error("print support plate Z is invalid");
+      const vertical = Math.hypot(end.x - start.x, end.y - start.y) <= 1e-8;
+      if (vertical) {
+        if (start.z <= end.z) start = { ...start, z: plateZ };
+        else end = { ...end, z: plateZ };
+      }
+    }
+    const axis = normalize({ x: end.x - start.x, y: end.y - start.y, z: end.z - start.z });
+    const reference = Math.abs(axis.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+    const u = normalize(cross(reference, axis));
+    const v = cross(axis, u);
+    const startRing: MeshVertex[] = [];
+    const endRing: MeshVertex[] = [];
+    for (let index = 0; index < segments; index++) {
+      const angle = index * Math.PI * 2 / segments;
+      const radial = add(multiply(u, Math.cos(angle) * edge.radius), multiply(v, Math.sin(angle) * edge.radius));
+      startRing.push(add(start, radial));
+      endRing.push(add(end, radial));
+    }
+    for (let index = 0; index < segments; index++) {
+      const next = (index + 1) % segments;
+      const a0 = startRing[index]; const a1 = startRing[next];
+      const b0 = endRing[index]; const b1 = endRing[next];
+      triangles.push(
+        { a: a0, b: a1, c: b1 },
+        { a: a0, b: b1, c: b0 },
+        { a: start, b: a1, c: a0 },
+        { a: end, b: b0, c: b1 },
+      );
+    }
+  }
+  if (triangles.length === 0) throw new Error("print support graph is empty");
+  return rescaleMeshResult(buildMeshResultFromTriangles(triangles, 1), scaleMmPerUnit);
+}
+
+/** Convert the exact binary STL bytes accepted by the Internal Print Gate to
+ * an OBJ without rebuilding the implicit field. STL coordinates are already
+ * in millimetres, so the cached export keeps an identity scale. */
+export function encodeObjFromBinaryStl(stl: ArrayBuffer): string {
+  if (stl.byteLength < 84) throw new Error("cached binary STL is truncated");
+  const view = new DataView(stl);
+  const triangleCount = view.getUint32(80, true);
+  const expectedBytes = 84 + triangleCount * 50;
+  if (expectedBytes !== stl.byteLength) throw new Error("cached binary STL size is invalid");
+  const lines = [
+    "# Yohaku SKIN cached STL OBJ",
+    `# triangles ${triangleCount}`,
+    "# scale 1 mm/source-unit",
+  ];
+  const format = (value: number): string => {
+    if (!Number.isFinite(value)) throw new Error("cached binary STL contains a non-finite coordinate");
+    const fixed = value.toFixed(6).replace(/(?:\.0+|(?:(\.\d*?)0+))$/, "$1");
+    return fixed === "-0" ? "0" : fixed;
+  };
+  let offset = 84;
+  for (let triangle = 0; triangle < triangleCount; triangle++) {
+    offset += 12; // stored normal; OBJ recomputes it from the face winding
+    for (let vertex = 0; vertex < 3; vertex++) {
+      const x = view.getFloat32(offset, true);
+      const y = view.getFloat32(offset + 4, true);
+      const z = view.getFloat32(offset + 8, true);
+      lines.push(`v ${format(x)} ${format(y)} ${format(z)}`);
+      offset += 12;
+    }
+    offset += 2;
+  }
+  for (let triangle = 0; triangle < triangleCount; triangle++) {
+    const base = triangle * 3 + 1;
+    lines.push(`f ${base} ${base + 1} ${base + 2}`);
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 /** Download already-computed export artifacts. The interactive S-skin path
  * creates STL/OBJ inside a Worker and calls this lightweight main-thread
  * handoff so meshing and text encoding never block pointer/UI events. */
@@ -331,13 +489,25 @@ export function downloadSkinMeshArtifacts(
   obj: string,
   recipe: string,
   baseName: string,
+  printSupport?: { stl: ArrayBuffer; obj: string },
+  selection: { stl?: boolean; obj?: boolean; recipe?: boolean } = { stl: true, obj: true, recipe: true },
 ): void {
-  downloadBlob(new Blob([stl], { type: "model/stl" }), `${baseName}.stl`);
-  downloadBlob(new Blob([obj], { type: "text/plain" }), `${baseName}.obj`);
-  downloadBlob(
-    new Blob([recipe], { type: "application/json" }),
-    `${baseName}.recipe.json`,
-  );
+  if (selection.stl !== false) downloadBlob(new Blob([stl], { type: "model/stl" }), `${baseName}.stl`);
+  if (selection.obj !== false) downloadBlob(new Blob([obj], { type: "text/plain" }), `${baseName}.obj`);
+  if (printSupport) {
+    if (selection.stl !== false) {
+      downloadBlob(new Blob([printSupport.stl], { type: "model/stl" }), `${baseName}-print-support.stl`);
+    }
+    if (selection.obj !== false) {
+      downloadBlob(new Blob([printSupport.obj], { type: "text/plain" }), `${baseName}-print-support.obj`);
+    }
+  }
+  if (selection.recipe !== false) {
+    downloadBlob(
+      new Blob([recipe], { type: "application/json" }),
+      `${baseName}.recipe.json`,
+    );
+  }
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

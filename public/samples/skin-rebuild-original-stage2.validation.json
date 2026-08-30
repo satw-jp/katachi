@@ -1,0 +1,38 @@
+{
+  "schema": "katachi.skin-rebuild.original-stage2-validation.v1",
+  "generatedAt": "2026-08-29T12:00:00.000Z",
+  "generatorCommit": "6f7b36fb115d58245044e50a48a3f3bd52c6891d",
+  "appVersion": "0.90.6",
+  "printApproval": false,
+  "completedStage": 2,
+  "sourceUi": "src/studies/skin/main.ts + ui.ts + renderer.ts",
+  "originalUiPreserved": {
+    "projectBar": true,
+    "leftToolsPane": true,
+    "rightWorkflowPane": true,
+    "bottomStatusPane": true,
+    "oneAndFourViewportModes": true
+  },
+  "baseShape": {
+    "hostBalls": 12,
+    "params": {
+      "count": 12,
+      "k": 0.6,
+      "radiusBase": 0.7,
+      "radiusSpread": 0.5,
+      "seed": "katachi"
+    }
+  },
+  "surfacePattern": {
+    "patches": 38,
+    "realizedPoints": 266,
+    "generationMode": "randomPack",
+    "motif": "coin"
+  },
+  "fkei": {
+    "filename": "skin-rebuild-original-stage2.fkei",
+    "bytes": 483433,
+    "sha256": "14f4af4925956fe3258f3b665227826ca55a36da700b8d4e8eb3fd8bf4995339",
+    "parsedByOriginalRuntime": true
+  }
+}

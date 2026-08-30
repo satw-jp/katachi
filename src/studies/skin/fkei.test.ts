@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createArtworkGraph } from "./artworkGraph.ts";
 import { assignOverhangSupportTargets, routeClassifiedSupportSites, validateOverhangAssignmentLedger } from "./overhangSupportPolicy.ts";
 import { DEFAULT_SKIN_PARAMS } from "./field.ts";
@@ -104,7 +105,7 @@ if (parsedEdit.kind === "legacy" && parsedEdit.entries[0].op === "editPatch") {
   assert.deepEqual({ ...parsedIntent }, validEditEntry.args.intent);
 }
 assert.throws(() => parseFkei(JSON.stringify([{ ...validEditEntry, args: { ...validEditEntry.args, intent: "scale" } }])), /editPatch.intent/);
-assert.equal(/\breplay\b/.test(readFileSync(new URL("./fkei.ts", import.meta.url).pathname, "utf8")), false);
+assert.equal(/\breplay\b/.test(readFileSync(fileURLToPath(new URL("./fkei.ts", import.meta.url)), "utf8")), false);
 
 // Current SkinParams values are key-typed: numeric, boolean, and closed enum
 // families are all exercised, including the complete preset payload.

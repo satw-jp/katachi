@@ -1,9 +1,14 @@
 import { defineConfig } from "vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { execFileSync } from "node:child_process";
+import { cwd } from "node:process";
 
 function exactRunningCommit(): string {
-  const commit = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim().toLowerCase();
+  // Codex may build a workspace owned by its sandbox account from the signed-
+  // in desktop account. Scope Git's ownership exception to this one command
+  // and this exact checkout instead of mutating the user's global config.
+  const repository = cwd().replace(/\\/g, "/");
+  const commit = execFileSync("git", ["-c", `safe.directory=${repository}`, "rev-parse", "HEAD"], { encoding: "utf8" }).trim().toLowerCase();
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("Cannot resolve exact generator commit SHA");
   return commit;
 }
@@ -48,6 +53,7 @@ export default defineConfig(({ mode }) => ({
         rings: "rings.html",
         pack: "pack.html",
         skin: "skin.html",
+        skinRebuild: "skin-rebuild.html",
         interiorGrowth: "interior-growth.html",
         hitsuji: "hitsuji.html",
         hitsujiField: "hitsuji-field.html",

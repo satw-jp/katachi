@@ -114,6 +114,48 @@
   cursor: grabbing;
 }
 
+.skin-rebuild-region-marquee {
+  position: absolute;
+  z-index: 30;
+  box-sizing: border-box;
+  border: 2px solid #ffd23f;
+  background: rgba(255, 210, 63, 0.13);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.72), inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+}
+
+.skin-rebuild-region-marquee[data-operation="remove"] {
+  border-color: #ff6b68;
+  background: rgba(255, 70, 70, 0.13);
+}
+
+.skin-rebuild-region-marquee[hidden] { display: none; }
+
+#viewport.skin-rebuild-region-drag-pick-mode canvas { cursor: crosshair; }
+
+.skin-rebuild-export-formats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.skin-rebuild-export-formats label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--line, #9aa2a8);
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+.skin-rebuild-unsupported-focus:not(:disabled) {
+  border-color: #f1bd16;
+  background: #fff1a8;
+  color: #2b2300;
+}
+
 /* --- T14 selection visibility: viewport focus frame + chip --------------- */
 /* Static only -- instruction explicitly forbids blink/pulse/continuous
    animation. inset box-shadow so the frame never shifts layout. */
@@ -3639,4 +3681,129 @@ details.mesh-export:not([open]) > :not(summary) {
   }
   .skin-history-file-name { max-width: 72px; font-size: 8px; }
   .skin-history-import-status { max-width: 92px; font-size: 8px; }
+}
+
+.skin-rebuild-print-plate-control {
+  margin: 7px 0;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, #78cbd1 8%, var(--paper));
+}
+.skin-rebuild-print-plate-control .row { justify-content: flex-start; font-weight: 700; }
+.skin-rebuild-print-plate-control .hint { display: block; margin-top: 4px; }
+.skin-rebuild-viewport-selection-control {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+}
+.skin-rebuild-viewport-selection-control > strong {
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+.skin-rebuild-viewport-selection-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.skin-rebuild-viewport-selection-choices label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.skin-rebuild-viewport-selection-choices label:has(input:checked) {
+  border-color: #2a9d97;
+  background: color-mix(in srgb, #78cbd1 18%, var(--paper));
+}
+.skin-rebuild-viewport-selection-status[data-mode="lattice-edge"] {
+  color: #287f7a;
+  font-weight: 700;
+}
+.skin-rebuild-viewport-selection-status[data-mode="overhang-region"] {
+  color: #9a6a00;
+  font-weight: 700;
+}
+#viewport.skin-rebuild-lattice-pick-mode canvas { cursor: crosshair; }
+.skin-rebuild-region-drag-toggle {
+  padding: 5px 6px;
+  border: 1px dashed color-mix(in srgb, #f0b429 60%, var(--ink));
+  background: color-mix(in srgb, #ffd23f 10%, var(--paper));
+}
+#viewport.skin-rebuild-region-drag-pick-mode canvas { cursor: crosshair; }
+#viewport.skin-rebuild-region-dragging canvas { cursor: cell; }
+
+/* SKIN REBUILD keeps the original editor shell; only the explicit Stage 5
+   inside/lowest/lattice sequence receives a compact workflow treatment. */
+.skin-rebuild-pipeline-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(55, 208, 188, .46);
+  background: linear-gradient(180deg, rgba(23, 58, 54, .28), rgba(15, 15, 15, .12));
+}
+.skin-rebuild-pipeline-panel > .hint { margin: -3px 0 1px; }
+.skin-rebuild-pipeline-step {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border-left: 3px solid rgba(55, 208, 188, .72);
+  background: rgba(255, 255, 255, .035);
+}
+.skin-rebuild-pipeline-step > .hint { margin: 0; }
+.skin-rebuild-pipeline-step .primary-action,
+.skin-rebuild-pipeline-step > .secondary-action { width: 100%; }
+.skin-rebuild-pipeline-setting {
+  justify-content: space-between;
+  gap: 8px;
+}
+.skin-rebuild-pipeline-setting input[type="number"] {
+  width: 68px;
+  margin-left: auto;
+}
+.skin-rebuild-lattice-edit-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.skin-rebuild-lattice-edge-select {
+  width: 100%;
+  min-width: 0;
+}
+.skin-rebuild-lattice-delete {
+  width: 100%;
+  border-color: rgba(255, 210, 63, .56);
+}
+.skin-rebuild-target-selection-hint {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 210, 63, .26);
+}
+.skin-rebuild-target-selection-status {
+  padding: 6px 7px;
+  border: 1px solid rgba(255, 210, 63, .42);
+  color: #ffe58b;
+  background: rgba(255, 210, 63, .07);
+}
+.skin-rebuild-bulk-support-row {
+  margin-top: 3px;
+}
+.skin-rebuild-pipeline-status {
+  min-height: 2.6em;
+  padding: 6px 7px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(0, 0, 0, .18);
+}
+.skin-rebuild-pipeline-status[data-ok="true"] {
+  border-color: rgba(55, 208, 188, .6);
+  color: #91f0df;
+}
+.skin-rebuild-pipeline-status[data-ok="false"] {
+  border-color: rgba(255, 107, 94, .5);
+  color: #ffb1aa;
 }

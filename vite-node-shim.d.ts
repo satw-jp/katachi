@@ -5,3 +5,7 @@ declare module "node:child_process" {
     options: { encoding: "utf8" },
   ): string;
 }
+
+declare module "node:process" {
+  export function cwd(): string;
+}

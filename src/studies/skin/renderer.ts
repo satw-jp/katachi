@@ -13,7 +13,7 @@ import type { Ball, Patch, SkinMode } from "./field.ts";
 import type { QuadFlowGrid } from "./quadFlow.ts";
 import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
 import type { DenseFlowerSample } from "./denseFlowerSample.ts";
-import type { InternalStructureGraph } from "./voronoi.ts";
+import type { InternalStructureGraph, Vector3Value } from "./voronoi.ts";
 import type { InternalAngleScreeningReport } from "./internalPrintGate.ts";
 import type { SupportForest, SupportMember } from "./branchingSupport.ts";
 import type { MotifLowestPoint } from "./motifLowestPoint.ts";
@@ -89,6 +89,7 @@ import type {
   SupportCandidate,
 } from "./riskDrivenInternalLattice.ts";
 import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
+import { normalizedScreenRect, screenTriangleIntersectsRect } from "./rebuild/screenRectSelection.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -392,6 +393,8 @@ export class SkinRenderer {
   private appliedViewportClipPlaneCount = -1;
   private meshBoundsRevision = 0;
   private motifLowestPointGroup: THREE.Group | null = null;
+  private motifLowestPointMarkers: MotifLowestPoint[] = [];
+  private selectedMotifLowestPointPatchId: number | null = null;
   private readonly motifLowestPointGeometry = new THREE.OctahedronGeometry(1, 0);
   private readonly motifLowestUnreachedMaterial = new THREE.MeshBasicMaterial({
     color: 0xff4c3f,
@@ -435,6 +438,11 @@ export class SkinRenderer {
     roughness: 0.82,
     metalness: 0,
   });
+  private readonly printSupportMaterial = new THREE.MeshStandardMaterial({
+    color: 0xd9823f,
+    roughness: 0.86,
+    metalness: 0,
+  });
   /** Display-only angle screening colors. The ordinary Internal material is
    * left untouched so the overlay-off preview remains the established cyan.
    * Keep vertex colors off: this cylinder geometry has no `color` attribute,
@@ -450,14 +458,61 @@ export class SkinRenderer {
   });
   private readonly internalAngleSelfSupportingColor = new THREE.Color(0x28a66f);
   private readonly internalAngleRiskColor = new THREE.Color(0xd64b42);
+  private readonly selectedInternalEdgeMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffd23f,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly reinforcedInternalEdgeMaterial = new THREE.MeshBasicMaterial({
+    color: 0x32e6ff,
+    transparent: true,
+    opacity: 1,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly motifLowestSelectedMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffd23f,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly motifLowestSelectedOutlineMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    wireframe: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   private internalNodeMesh: THREE.InstancedMesh | null = null;
   private internalEdgeMesh: THREE.InstancedMesh | null = null;
+  private selectedInternalEdgeMesh: THREE.Mesh | null = null;
+  private reinforcedInternalEdgeMesh: THREE.InstancedMesh | null = null;
+  private internalStructureVisible = true;
+  private printSupportNodeMesh: THREE.InstancedMesh | null = null;
+  private printSupportEdgeMesh: THREE.InstancedMesh | null = null;
+  private printSupportVisible = true;
+  /** SKIN REBUILD final-mesh overhang candidates. This diagnostic overlay
+   * is display-only and never changes BODY, support, history, or export. */
+  private skinRebuildOverhangGroup: THREE.Group | null = null;
+  private skinRebuildOverhangMesh: THREE.Mesh | null = null;
+  private skinRebuildOverhangPositions: Float32Array | null = null;
+  private skinRebuildOverhangFaceRegionIds: Int32Array | null = null;
+  private reinforcedSkinRebuildOverhangRegionMesh: THREE.Mesh | null = null;
+  private reinforcedSkinRebuildOverhangRegionIds = new Set<number>();
+  private selectedSkinRebuildOverhangRegionMesh: THREE.Mesh | null = null;
+  private skinRebuildOverhangVisible = true;
   private internalAngleScreening: InternalAngleScreeningReport | null = null;
   /** Phase A display geometry only. The same millimetre-space forest is
    * consumed here without regenerating or reclassifying Support Paint sites. */
   private phaseASupportGroup: THREE.Group | null = null;
   private phaseAObjectLiftSource = 0;
   private phaseADryWebVisible = false;
+  /** Display-only XY build surface shared by 1 View and 4 Views.  It is not
+   * part of the field, history, .fkei geometry, or exported STL. */
+  private readonly printPlateGroup = new THREE.Group();
+  private printPlateVisible = false;
 
   // --- Bead approximation view (T12) --------------------------------------
   // InstancedMesh spheres for every host ball and every patch point, with NO
@@ -844,6 +899,29 @@ export class SkinRenderer {
     const dir = new THREE.DirectionalLight(0xffffff, 0.9);
     dir.position.set(3, 5, 4);
     this.scene.add(dir);
+
+    const plateSurface = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({
+        color: 0x8ba6ad,
+        transparent: true,
+        opacity: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    plateSurface.name = "skin-print-plate-surface";
+    const plateGrid = new THREE.GridHelper(1, 20, 0xbfe4e8, 0x66848b);
+    plateGrid.name = "skin-print-plate-grid";
+    plateGrid.rotation.x = Math.PI * 0.5;
+    const gridMaterial = plateGrid.material as THREE.LineBasicMaterial;
+    gridMaterial.transparent = true;
+    gridMaterial.opacity = 0.62;
+    gridMaterial.depthWrite = false;
+    this.printPlateGroup.name = "skin-print-plate";
+    this.printPlateGroup.visible = false;
+    this.printPlateGroup.add(plateSurface, plateGrid);
+    this.scene.add(this.printPlateGroup);
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -1909,8 +1987,17 @@ export class SkinRenderer {
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
     const phaseAInternal = this.phaseADryWebVisible && this.viewMode === "mesh";
     const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive;
-    if (this.internalNodeMesh) this.internalNodeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal;
-    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal;
+    if (this.internalNodeMesh) this.internalNodeMesh.visible = this.internalStructureVisible && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal);
+    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = this.internalStructureVisible && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal);
+    if (this.selectedInternalEdgeMesh) this.selectedInternalEdgeMesh.visible = this.internalStructureVisible && !this.denseSampleActive;
+    if (this.reinforcedInternalEdgeMesh) this.reinforcedInternalEdgeMesh.visible = this.internalStructureVisible && !this.denseSampleActive;
+    if (this.printSupportNodeMesh) this.printSupportNodeMesh.visible = this.printSupportVisible && !this.denseSampleActive;
+    if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.visible = this.printSupportVisible && !this.denseSampleActive;
+    if (this.skinRebuildOverhangGroup) {
+      this.skinRebuildOverhangGroup.visible = this.skinRebuildOverhangVisible
+        && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
+    }
     if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
     if (this.surfaceAngleGroup) {
       this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
@@ -2033,6 +2120,8 @@ export class SkinRenderer {
       this.internalEdgeMesh.dispose();
       this.internalEdgeMesh = null;
     }
+    this.setSelectedInternalStructureEdge(null, null);
+    this.setReinforcedInternalStructureEdges(null, []);
     if (!graph || graph.edges.length === 0) {
       this.applyLayerVisibility();
       return;
@@ -2083,6 +2172,486 @@ export class SkinRenderer {
     this.scene.add(edgeMesh);
     this.internalEdgeMesh = edgeMesh;
     this.applyLayerVisibility();
+  }
+
+  /** Highlight one author-selected permanent member without changing the
+   * graph or the ordinary internal-angle colors. */
+  setSelectedInternalStructureEdge(graph: InternalStructureGraph | null, edgeId: number | null): void {
+    if (this.selectedInternalEdgeMesh) {
+      this.scene.remove(this.selectedInternalEdgeMesh);
+      this.selectedInternalEdgeMesh = null;
+    }
+    if (!graph || edgeId === null) {
+      this.requestViewportRender();
+      return;
+    }
+    const edge = graph.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) return;
+    const start = graph.nodes[edge.start]?.position;
+    const end = graph.nodes[edge.end]?.position;
+    if (!start || !end) return;
+    const midpoint = new THREE.Vector3(
+      (start.x + end.x) * 0.5,
+      (start.y + end.y) * 0.5,
+      (start.z + end.z) * 0.5,
+    );
+    const direction = new THREE.Vector3(end.x - start.x, end.y - start.y, end.z - start.z);
+    const edgeLength = direction.length();
+    if (!(edgeLength > 0)) return;
+    const rotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    const matrix = new THREE.Matrix4().compose(
+      midpoint,
+      rotation,
+      new THREE.Vector3(edge.radius * 1.45, edgeLength * 1.01, edge.radius * 1.45),
+    );
+    const selected = new THREE.Mesh(this.internalEdgeGeometry, this.selectedInternalEdgeMaterial);
+    selected.matrixAutoUpdate = false;
+    selected.matrix.copy(matrix);
+    selected.position.z = this.phaseAObjectLiftSource;
+    selected.renderOrder = 15;
+    this.scene.add(selected);
+    this.selectedInternalEdgeMesh = selected;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Keep the just-added red-area reinforcement unmistakable in mesh view.
+   * This is a bright-cyan display overlay; the actual printable cylinders are
+   * already part of the permanent graph passed to setInternalStructure. */
+  setReinforcedInternalStructureEdges(
+    graph: InternalStructureGraph | null,
+    edgeIds: readonly number[],
+  ): void {
+    if (this.reinforcedInternalEdgeMesh) {
+      this.scene.remove(this.reinforcedInternalEdgeMesh);
+      this.reinforcedInternalEdgeMesh.dispose();
+      this.reinforcedInternalEdgeMesh = null;
+    }
+    if (!graph || edgeIds.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+    const wanted = new Set(edgeIds);
+    const edges = graph.edges.filter((edge) => wanted.has(edge.id));
+    if (edges.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+    const mesh = new THREE.InstancedMesh(
+      this.internalEdgeGeometry,
+      this.reinforcedInternalEdgeMaterial,
+      edges.length,
+    );
+    const matrix = new THREE.Matrix4();
+    const midpoint = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    for (const [index, edge] of edges.entries()) {
+      const start = graph.nodes[edge.start]?.position;
+      const end = graph.nodes[edge.end]?.position;
+      if (!start || !end) continue;
+      direction.set(end.x - start.x, end.y - start.y, end.z - start.z);
+      const length = direction.length();
+      midpoint.set((start.x + end.x) * 0.5, (start.y + end.y) * 0.5, (start.z + end.z) * 0.5);
+      rotation.setFromUnitVectors(yAxis, direction.normalize());
+      matrix.compose(
+        midpoint,
+        rotation,
+        new THREE.Vector3(edge.radius * 1.28, length * 1.02, edge.radius * 1.28),
+      );
+      mesh.setMatrixAt(index, matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.position.z = this.phaseAObjectLiftSource;
+    mesh.renderOrder = 18;
+    mesh.frustumCulled = false;
+    mesh.name = "skin-rebuild-red-area-reinforcement-cyan";
+    this.scene.add(mesh);
+    this.reinforcedInternalEdgeMesh = mesh;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Pick one visible permanent lattice cylinder in the active 1/4 viewport.
+   * The InstancedMesh instance order is the graph edge order established by
+   * setInternalStructure, so the hit can be mapped back to its stable edge id
+   * without rebuilding geometry or changing the graph. */
+  pickInternalStructureEdge(
+    clientX: number,
+    clientY: number,
+    graph: InternalStructureGraph | null,
+  ): number | null {
+    const edgeMesh = this.internalEdgeMesh;
+    if (!this.internalStructureVisible || !edgeMesh || !graph || graph.edges.length === 0) return null;
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const viewportRect = this.viewportRectFromClient(clientX, clientY);
+    if (!viewportRect) return null;
+    this.selectViewport(viewportRect.index);
+    this.camera.updateMatrixWorld();
+    const project = (position: Vector3Value): { x: number; y: number; depth: number } => {
+      const point = new THREE.Vector3(
+        position.x,
+        position.y,
+        position.z + this.phaseAObjectLiftSource,
+      ).project(this.camera);
+      return {
+        x: canvasRect.left + viewportRect.x + (point.x * 0.5 + 0.5) * viewportRect.width,
+        y: canvasRect.top + viewportRect.y + (-point.y * 0.5 + 0.5) * viewportRect.height,
+        depth: point.z,
+      };
+    };
+    const pointSegmentDistanceSq = (
+      px: number, py: number,
+      ax: number, ay: number,
+      bx: number, by: number,
+    ): number => {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const denominator = dx * dx + dy * dy;
+      const t = denominator > 1e-9
+        ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / denominator))
+        : 0;
+      const ex = px - (ax + dx * t);
+      const ey = py - (ay + dy * t);
+      return ex * ex + ey * ey;
+    };
+    const verticalObjectSpan = (this.camera.top - this.camera.bottom) / Math.max(1e-9, this.camera.zoom);
+    const pixelsPerObjectUnit = viewportRect.height / Math.max(1e-9, verticalObjectSpan);
+    let best: { edgeId: number; distanceSq: number; depth: number } | null = null;
+    for (const edge of graph.edges) {
+      const start = graph.nodes[edge.start]?.position;
+      const end = graph.nodes[edge.end]?.position;
+      if (!start || !end) continue;
+      const a = project(start);
+      const b = project(end);
+      if (a.depth < -1.02 || a.depth > 1.02 || b.depth < -1.02 || b.depth > 1.02) continue;
+      const distanceSq = pointSegmentDistanceSq(clientX, clientY, a.x, a.y, b.x, b.y);
+      const tolerancePx = Math.max(6, edge.radius * pixelsPerObjectUnit + 4);
+      if (distanceSq > tolerancePx * tolerancePx) continue;
+      const depth = (a.depth + b.depth) * 0.5;
+      if (!best || distanceSq < best.distanceSq - 0.25
+        || (Math.abs(distanceSq - best.distanceSq) <= 0.25 && depth < best.depth)) {
+        best = { edgeId: edge.id, distanceSq, depth };
+      }
+    }
+    if (best) return best.edgeId;
+    // Retain exact cylinder raycasting as a fallback for a clipped endpoint
+    // whose projected centreline falls outside the ordinary segment test.
+    const ray = this.screenToRayFromClient(clientX, clientY);
+    const raycaster = new THREE.Raycaster(ray.origin, ray.dir, 0, Number.POSITIVE_INFINITY);
+    edgeMesh.updateMatrixWorld(true);
+    const hit = raycaster.intersectObject(edgeMesh, false)[0];
+    const edgeIndex = hit?.instanceId;
+    return edgeIndex === undefined ? null : graph.edges[edgeIndex]?.id ?? null;
+  }
+
+  /** Orange, removable SKIN REBUILD print support. It deliberately owns a
+   * separate pair of meshes from the permanent cyan Internal Graph. */
+  setPrintSupport(graph: InternalStructureGraph | null): void {
+    if (this.printSupportNodeMesh) {
+      this.scene.remove(this.printSupportNodeMesh);
+      this.printSupportNodeMesh.dispose();
+      this.printSupportNodeMesh = null;
+    }
+    if (this.printSupportEdgeMesh) {
+      this.scene.remove(this.printSupportEdgeMesh);
+      this.printSupportEdgeMesh.dispose();
+      this.printSupportEdgeMesh = null;
+    }
+    if (!graph?.edges.length) {
+      this.applyLayerVisibility();
+      return;
+    }
+    if (graph.nodes.length > 0) {
+      const nodes = new THREE.InstancedMesh(this.internalNodeGeometry, this.printSupportMaterial, graph.nodes.length);
+      const matrix = new THREE.Matrix4();
+      for (let index = 0; index < graph.nodes.length; index++) {
+        const node = graph.nodes[index];
+        matrix.makeScale(node.radius, node.radius, node.radius)
+          .setPosition(node.position.x, node.position.y, node.position.z);
+        nodes.setMatrixAt(index, matrix);
+      }
+      nodes.instanceMatrix.needsUpdate = true;
+      nodes.renderOrder = 10;
+      this.scene.add(nodes);
+      this.printSupportNodeMesh = nodes;
+    }
+    const edges = new THREE.InstancedMesh(this.internalEdgeGeometry, this.printSupportMaterial, graph.edges.length);
+    const matrix = new THREE.Matrix4();
+    const midpoint = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    const scale = new THREE.Vector3();
+    for (let index = 0; index < graph.edges.length; index++) {
+      const edge = graph.edges[index];
+      const start = graph.nodes[edge.start].position;
+      const end = graph.nodes[edge.end].position;
+      direction.set(end.x - start.x, end.y - start.y, end.z - start.z);
+      const edgeLength = direction.length();
+      midpoint.set((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
+      rotation.setFromUnitVectors(yAxis, direction.normalize());
+      scale.set(edge.radius, edgeLength, edge.radius);
+      matrix.compose(midpoint, rotation, scale);
+      edges.setMatrixAt(index, matrix);
+    }
+    edges.instanceMatrix.needsUpdate = true;
+    edges.renderOrder = 9;
+    this.scene.add(edges);
+    this.printSupportEdgeMesh = edges;
+    this.applyLayerVisibility();
+  }
+
+  setPrintSupportVisible(visible: boolean): void {
+    this.printSupportVisible = visible;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Red face overlay from the REBUILD final-mesh build-direction diagnosis. */
+  setSkinRebuildOverhangOverlay(
+    positions: Float32Array | null,
+    faceRegionIds: Int32Array | null = null,
+  ): void {
+    if (this.skinRebuildOverhangGroup) {
+      this.scene.remove(this.skinRebuildOverhangGroup);
+      this.skinRebuildOverhangGroup.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.geometry.dispose();
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          material.dispose();
+        }
+      });
+      this.skinRebuildOverhangGroup = null;
+    }
+    this.skinRebuildOverhangMesh = null;
+    this.skinRebuildOverhangPositions = null;
+    this.skinRebuildOverhangFaceRegionIds = null;
+    this.reinforcedSkinRebuildOverhangRegionMesh = null;
+    this.reinforcedSkinRebuildOverhangRegionIds.clear();
+    this.selectedSkinRebuildOverhangRegionMesh = null;
+    if (!positions || positions.length === 0) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xff304d,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -3,
+      polygonOffsetUnits: -3,
+      toneMapped: false,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 12;
+    mesh.userData.skinRebuildOverhangFaceCount = positions.length / 9;
+    const group = new THREE.Group();
+    group.name = "skin-rebuild-overhang-regions";
+    group.position.z = this.phaseAObjectLiftSource;
+    group.add(mesh);
+    this.scene.add(group);
+    this.skinRebuildOverhangGroup = group;
+    this.skinRebuildOverhangMesh = mesh;
+    this.skinRebuildOverhangPositions = positions;
+    this.skinRebuildOverhangFaceRegionIds = faceRegionIds?.length === positions.length / 9
+      ? faceRegionIds
+      : null;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Paint reinforced red-face regions green without changing diagnosis geometry. */
+  setReinforcedSkinRebuildOverhangRegions(regionIds: readonly number[]): void {
+    if (this.reinforcedSkinRebuildOverhangRegionMesh && this.skinRebuildOverhangGroup) {
+      this.skinRebuildOverhangGroup.remove(this.reinforcedSkinRebuildOverhangRegionMesh);
+      this.reinforcedSkinRebuildOverhangRegionMesh.geometry.dispose();
+      for (const material of Array.isArray(this.reinforcedSkinRebuildOverhangRegionMesh.material)
+        ? this.reinforcedSkinRebuildOverhangRegionMesh.material
+        : [this.reinforcedSkinRebuildOverhangRegionMesh.material]) material.dispose();
+    }
+    this.reinforcedSkinRebuildOverhangRegionMesh = null;
+    this.reinforcedSkinRebuildOverhangRegionIds = new Set(regionIds);
+    const positions = this.skinRebuildOverhangPositions;
+    const faceRegionIds = this.skinRebuildOverhangFaceRegionIds;
+    const group = this.skinRebuildOverhangGroup;
+    if (this.reinforcedSkinRebuildOverhangRegionIds.size === 0 || !positions || !faceRegionIds || !group) {
+      this.requestViewportRender();
+      return;
+    }
+    const reinforcedPositions: number[] = [];
+    for (let faceIndex = 0; faceIndex < faceRegionIds.length; faceIndex++) {
+      if (!this.reinforcedSkinRebuildOverhangRegionIds.has(faceRegionIds[faceIndex])) continue;
+      const offset = faceIndex * 9;
+      for (let index = 0; index < 9; index++) reinforcedPositions.push(positions[offset + index]);
+    }
+    if (reinforcedPositions.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(reinforcedPositions, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x34e39a,
+      transparent: true,
+      opacity: 0.94,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4,
+      toneMapped: false,
+    });
+    const reinforced = new THREE.Mesh(geometry, material);
+    reinforced.name = "skin-rebuild-reinforced-overhang-regions";
+    reinforced.renderOrder = 14;
+    group.add(reinforced);
+    this.reinforcedSkinRebuildOverhangRegionMesh = reinforced;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /** Pick the actual red triangle and return its connected-region id. */
+  pickSkinRebuildOverhangRegion(clientX: number, clientY: number): number | null {
+    const mesh = this.skinRebuildOverhangMesh;
+    const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    if (!this.skinRebuildOverhangVisible || !mesh || !regionIds) return null;
+    const ray = this.screenToRayFromClient(clientX, clientY);
+    const raycaster = new THREE.Raycaster(ray.origin, ray.dir, 0, Number.POSITIVE_INFINITY);
+    mesh.updateMatrixWorld(true);
+    const faceIndex = raycaster.intersectObject(mesh, false)[0]?.faceIndex;
+    return faceIndex === undefined || faceIndex === null ? null : regionIds[faceIndex] ?? null;
+  }
+
+  /** Return every connected red region whose projected triangles overlap the
+   * drag rectangle. The drag-start viewport is authoritative in four-view
+   * mode, and the rectangle is clipped to that viewport before testing. */
+  pickSkinRebuildOverhangRegionsInClientRect(
+    startClientX: number,
+    startClientY: number,
+    endClientX: number,
+    endClientY: number,
+  ): number[] {
+    const mesh = this.skinRebuildOverhangMesh;
+    const positions = this.skinRebuildOverhangPositions;
+    const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    if (!this.skinRebuildOverhangVisible || !mesh || !positions || !regionIds) return [];
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const viewportRect = this.viewportRectFromClient(startClientX, startClientY);
+    const camera = viewportRect ? this.viewportSlots[viewportRect.index]?.camera : null;
+    if (!viewportRect || !camera) return [];
+    const raw = normalizedScreenRect(startClientX, startClientY, endClientX, endClientY);
+    const selection = {
+      left: Math.max(raw.left, canvasRect.left + viewportRect.x),
+      top: Math.max(raw.top, canvasRect.top + viewportRect.y),
+      right: Math.min(raw.right, canvasRect.left + viewportRect.x + viewportRect.width),
+      bottom: Math.min(raw.bottom, canvasRect.top + viewportRect.y + viewportRect.height),
+    };
+    if (selection.right < selection.left || selection.bottom < selection.top) return [];
+    camera.updateMatrixWorld(true);
+    mesh.updateWorldMatrix(true, false);
+    const selected = new Set<number>();
+    const projectPoint = (offset: number): { point: { x: number; y: number }; z: number } => {
+      const projected = new THREE.Vector3(
+        positions[offset],
+        positions[offset + 1],
+        positions[offset + 2],
+      ).applyMatrix4(mesh.matrixWorld).project(camera);
+      return {
+        point: {
+          x: canvasRect.left + viewportRect.x + (projected.x + 1) * 0.5 * viewportRect.width,
+          y: canvasRect.top + viewportRect.y + (1 - projected.y) * 0.5 * viewportRect.height,
+        },
+        z: projected.z,
+      };
+    };
+    for (let faceIndex = 0; faceIndex < regionIds.length; faceIndex++) {
+      const offset = faceIndex * 9;
+      const first = projectPoint(offset);
+      const second = projectPoint(offset + 3);
+      const third = projectPoint(offset + 6);
+      if ((first.z < -1 && second.z < -1 && third.z < -1)
+        || (first.z > 1 && second.z > 1 && third.z > 1)) continue;
+      if (screenTriangleIntersectsRect([first.point, second.point, third.point], selection)) {
+        selected.add(regionIds[faceIndex]);
+      }
+    }
+    return [...selected].sort((first, second) => first - second);
+  }
+
+  /** Highlight every triangle in the selected connected red regions. */
+  setSelectedSkinRebuildOverhangRegions(selectedRegionIds: readonly number[]): void {
+    if (this.selectedSkinRebuildOverhangRegionMesh && this.skinRebuildOverhangGroup) {
+      this.skinRebuildOverhangGroup.remove(this.selectedSkinRebuildOverhangRegionMesh);
+      this.selectedSkinRebuildOverhangRegionMesh.geometry.dispose();
+      for (const material of Array.isArray(this.selectedSkinRebuildOverhangRegionMesh.material)
+        ? this.selectedSkinRebuildOverhangRegionMesh.material
+        : [this.selectedSkinRebuildOverhangRegionMesh.material]) material.dispose();
+    }
+    this.selectedSkinRebuildOverhangRegionMesh = null;
+    const positions = this.skinRebuildOverhangPositions;
+    const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    const group = this.skinRebuildOverhangGroup;
+    const selectedIds = new Set(selectedRegionIds);
+    if (selectedIds.size === 0 || !positions || !regionIds || !group) {
+      this.requestViewportRender();
+      return;
+    }
+    const selectedPositions: number[] = [];
+    for (let faceIndex = 0; faceIndex < regionIds.length; faceIndex++) {
+      if (!selectedIds.has(regionIds[faceIndex])) continue;
+      const offset = faceIndex * 9;
+      for (let index = 0; index < 9; index++) selectedPositions.push(positions[offset + index]);
+    }
+    if (selectedPositions.length === 0) return;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(selectedPositions, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffd23f,
+      transparent: true,
+      opacity: 0.96,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -5,
+      polygonOffsetUnits: -5,
+      toneMapped: false,
+    });
+    const selected = new THREE.Mesh(geometry, material);
+    selected.name = "skin-rebuild-selected-overhang-regions";
+    selected.renderOrder = 16;
+    group.add(selected);
+    this.selectedSkinRebuildOverhangRegionMesh = selected;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  setSelectedSkinRebuildOverhangRegion(regionId: number | null): void {
+    this.setSelectedSkinRebuildOverhangRegions(regionId === null ? [] : [regionId]);
+  }
+
+  setSkinRebuildOverhangVisible(visible: boolean): void {
+    this.skinRebuildOverhangVisible = visible;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  setInternalStructureVisible(visible: boolean): void {
+    this.internalStructureVisible = visible;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   /** Apply a derived angle-only color screen without changing graph geometry. */
@@ -2147,6 +2716,9 @@ export class SkinRenderer {
     if (this.riskDrivenInternalLatticeGroup) this.riskDrivenInternalLatticeGroup.position.z = bodyZ;
     if (this.internalNodeMesh) this.internalNodeMesh.position.z = bodyZ;
     if (this.internalEdgeMesh) this.internalEdgeMesh.position.z = bodyZ;
+    if (this.printSupportNodeMesh) this.printSupportNodeMesh.position.z = bodyZ;
+    if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.position.z = bodyZ;
+    if (this.skinRebuildOverhangGroup) this.skinRebuildOverhangGroup.position.z = bodyZ;
     if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
       this.applyLayerVisibility();
       return;
@@ -2863,7 +3435,7 @@ export class SkinRenderer {
    * Markers ignore scene depth so a low point on the far side remains
    * discoverable; rotating the form is still needed to read its actual
    * spatial relation. */
-  setMotifLowestPointMarkers(markers: MotifLowestPoint[] | null): void {
+  setMotifLowestPointMarkers(markers: MotifLowestPoint[] | null, selectedPatchId?: number | null): void {
     if (this.motifLowestPointGroup) {
       this.scene.remove(this.motifLowestPointGroup);
       this.motifLowestPointGroup.traverse((object) => {
@@ -2871,7 +3443,16 @@ export class SkinRenderer {
       });
       this.motifLowestPointGroup = null;
     }
-    if (!markers || markers.length === 0) return;
+    this.motifLowestPointMarkers = markers?.map((marker) => ({
+      ...marker,
+      position: { ...marker.position },
+      ...(marker.normal ? { normal: { ...marker.normal } } : {}),
+    })) ?? [];
+    if (selectedPatchId !== undefined) this.selectedMotifLowestPointPatchId = selectedPatchId;
+    if (!this.motifLowestPointMarkers.some((marker) => marker.patchId === this.selectedMotifLowestPointPatchId)) {
+      this.selectedMotifLowestPointPatchId = null;
+    }
+    if (this.motifLowestPointMarkers.length === 0) return;
     const group = new THREE.Group();
     const add = (subset: MotifLowestPoint[], material: THREE.MeshBasicMaterial) => {
       if (subset.length === 0) return;
@@ -2887,11 +3468,67 @@ export class SkinRenderer {
       mesh.frustumCulled = false;
       group.add(mesh);
     };
-    add(markers.filter((marker) => !marker.reachedByInternal), this.motifLowestUnreachedMaterial);
-    add(markers.filter((marker) => marker.reachedByInternal), this.motifLowestReachedMaterial);
+    add(this.motifLowestPointMarkers.filter((marker) => !marker.reachedByInternal), this.motifLowestUnreachedMaterial);
+    add(this.motifLowestPointMarkers.filter((marker) => marker.reachedByInternal), this.motifLowestReachedMaterial);
+    const selected = this.motifLowestPointMarkers.find((marker) => marker.patchId === this.selectedMotifLowestPointPatchId);
+    if (selected) {
+      const highlight = new THREE.Mesh(this.motifLowestPointGeometry, this.motifLowestSelectedMaterial);
+      const scale = selected.markerRadius * 2.6;
+      highlight.scale.set(scale, scale, scale);
+      highlight.position.set(selected.position.x, selected.position.y, selected.position.z);
+      highlight.renderOrder = 41;
+      highlight.frustumCulled = false;
+      group.add(highlight);
+      const outline = new THREE.Mesh(this.motifLowestPointGeometry, this.motifLowestSelectedOutlineMaterial);
+      const outlineScale = selected.markerRadius * 4.2;
+      outline.scale.set(outlineScale, outlineScale, outlineScale);
+      outline.position.copy(highlight.position);
+      outline.renderOrder = 42;
+      outline.frustumCulled = false;
+      outline.name = `skin-rebuild-unsupported-target-${selected.patchId}`;
+      group.add(outline);
+    }
+    group.position.z = this.phaseAObjectLiftSource;
     this.scene.add(group);
     this.motifLowestPointGroup = group;
     this.applyLayerVisibility();
+  }
+
+  setSelectedMotifLowestPointMarker(patchId: number | null): void {
+    this.setMotifLowestPointMarkers(this.motifLowestPointMarkers, patchId);
+  }
+
+  /** Pick the visible depth-independent lowest-point marker in the active
+   * viewport.  The generous hit radius makes a red face target practical to
+   * select without changing ordinary Pattern picking outside Stage 4/5. */
+  pickMotifLowestPointMarker(
+    clientX: number,
+    clientY: number,
+    allowedPatchIds?: readonly number[],
+  ): number | null {
+    const allowed = allowedPatchIds ? new Set(allowedPatchIds) : null;
+    const ray = this.screenToRayFromClient(clientX, clientY);
+    let best: { patchId: number; ratio: number; along: number } | null = null;
+    for (const marker of this.motifLowestPointMarkers) {
+      if (allowed && !allowed.has(marker.patchId)) continue;
+      const dx = marker.position.x - ray.origin.x;
+      const dy = marker.position.y - ray.origin.y;
+      const dz = marker.position.z + this.phaseAObjectLiftSource - ray.origin.z;
+      const along = dx * ray.dir.x + dy * ray.dir.y + dz * ray.dir.z;
+      if (along <= 0) continue;
+      const perpendicular = Math.hypot(
+        dx - ray.dir.x * along,
+        dy - ray.dir.y * along,
+        dz - ray.dir.z * along,
+      );
+      const hitRadius = Math.max(0.04, marker.markerRadius * 2.75);
+      const ratio = perpendicular / hitRadius;
+      if (ratio > 1) continue;
+      if (!best || ratio < best.ratio - 1e-6 || (Math.abs(ratio - best.ratio) <= 1e-6 && along < best.along)) {
+        best = { patchId: marker.patchId, ratio, along };
+      }
+    }
+    return best?.patchId ?? null;
   }
 
   /** Replace categorical opening overlays without rebuilding their analysed
@@ -3599,6 +4236,34 @@ export class SkinRenderer {
     this.material.uniforms.uSelectedPatchOwner.value = selectedOwner;
     this.material.uniforms.uCoinBulge.value = coinBulge;
     this.material.uniforms.uCoinBulgeBalance.value = coinBulgeBalance;
+    if (this.printPlateVisible) this.updatePrintPlatePlacement(host, patches);
+  }
+
+  setPrintPlateVisible(visible: boolean): void {
+    this.printPlateVisible = visible;
+    this.printPlateGroup.visible = visible;
+    this.requestViewportRender();
+  }
+
+  private updatePrintPlatePlacement(host: Ball[], patches: Patch[]): void {
+    const points = patches.flatMap((patch) => patch.points);
+    const source = points.length > 0
+      ? points.map((point) => ({ x: point.x, y: point.y, z: point.z, r: point.r }))
+      : host;
+    if (source.length === 0) {
+      this.printPlateGroup.visible = false;
+      return;
+    }
+    const minX = Math.min(...source.map((point) => point.x - point.r));
+    const maxX = Math.max(...source.map((point) => point.x + point.r));
+    const minY = Math.min(...source.map((point) => point.y - point.r));
+    const maxY = Math.max(...source.map((point) => point.y + point.r));
+    const minZ = Math.min(...source.map((point) => point.z - point.r));
+    const span = Math.max(maxX - minX, maxY - minY, 0.01);
+    const plateSize = Math.max(4, span * 2.25);
+    this.printPlateGroup.position.set((minX + maxX) * 0.5, (minY + maxY) * 0.5, minZ - 0.012);
+    this.printPlateGroup.scale.set(plateSize, plateSize, 1);
+    this.printPlateGroup.visible = this.printPlateVisible;
   }
 
   render(activeViewportOnly = false): void {

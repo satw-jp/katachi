@@ -1,5 +1,37 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN REBUILD original editor shell（2026-08-29）
+
+作者の修正指示を原文のまま記録する。
+
+> 1と2は元のアプリから流用して
+> 元アプリのUI構成は維持すること
+> 上部、左、下部等の機能は維持
+> メイン画面も4画面表示機能や操作系は維持
+
+`/skin-rebuild.html` は簡略版専用UIを起動せず、元SKINと同じ `main.ts / ui.ts / renderer.ts / style.css`
+を直接起動する。したがってProject Bar、左TOOLS、右WORKFLOW、下部STATUS、ペインresize/collapse、
+1/4画面、Top/Axome/Front/Right、各viewport方向変更、trackball、clipping、選択・手動patch編集を共有する。
+Stage 1 Base ShapeとStage 2 Surface PatternはDOM、callback、history、recipe、`.fkei`を複製せず完全に同じ実装である。
+
+REBUILD入口だけ上部名を`SKIN REBUILD`とし、元ランタイムがstrict parse / exact fingerprint / atomic restoreした
+Stage 2 sampleを開く操作を追加した。sampleはS1互換の明示12球、random PACK coin 38 patch / 266 pointで、
+Open後はStage 3 Artwork Graph化が有効になる。実ブラウザで初期12/0、4画面Top/Axome/Front/Right、
+sample復元12/38、Stage 3 current snapshot 38 node、直近console error 0を確認した。
+
+## Observation — SKIN REBUILD first-print path（2026-08-29）
+
+現行SKINのSDFメッシュ、最終メッシュ上のモチーフ最下点抽出、InternalStructureGraph、
+Float32 STL topology gate、FKEI入力予算だけを再利用し、七工程の内部prototypeを作成した。
+作者確認後、`/skin-rebuild.html` の入口としては採用せず元SKIN editor shellへ戻した。
+ベースは印刷物ではなく内外を決める型で、38パターンの裏中央をDryWebで
+一体化し、DryWeb付き表面の最下点からplate contactを除いたoverhang targetを抽出する。
+各targetは法線が向かい合う別パターン裏中央と下側rootへ結び、全lattice segmentをbuild方向
+45度以内・5 mm以下に制限する。独立schemaの `.fkei` は全事実をstrict validation後にatomic復元し、
+STLはone component / closed / manifold / winding-consistent / degenerate-freeの場合だけ保存する。
+同梱サンプルと実測値は `../skin-rebuild/README.md` を正本とする。`printApproval=false`であり、
+Slice Preview・floating確認・実物印刷は未実施である。
+
 ## Observation — SKIN Risk-Driven Internal Lattice v0 / resolution 128 BODY（2026-08-29）
 
 Checkpoint 1のcurrent Surface Risk Cluster / Support Candidateを第一入力にし、診断上SafeなSurface faceを
@@ -4087,3 +4119,355 @@ Graphにrevision/hashを追加せず、既存canonical Graph objectと各Surface
 ## Observation Risk-driven Lattice checkpoint（2026-08-29）
 
 作者の依頼により、既に生成済みのRisk-driven Permanent Lattice v0だけをversioned `.fkei` checkpointとして残す。Openは保存済みのcanonical Dry Web 2,475/2,404とlocal lattice 56/48をexact bindingで検証してからatomicに表示する。左の表示toggleは観察専用で、Shape・history・canonical Graphを変えない。BODYは作者が明示して押すまで生成しない。手動のresolution128再構築は保存済みのShape/Graph/lattice意味だけを使い、planner・外部plan/STL/requestを読まない。exact summary 2,813/428/0はprovenanceであり、欠けているper-face replayを主張しない。これはreview-only / not-for-printで、Slice・floating・実物の安全性は未検証である。
+
+## Observation SKIN REBUILD工程3〜6（2026-08-29）
+
+元SKINのStage 1 Base Shape、Stage 2 Surface Pattern、Project Bar、左右ペイン、下部STATUS、1/4画面と操作系を維持したまま、REBUILDのStage 5へ `Inside → Lowest → Spider Lattice` を接続した。工程3は各Pattern代表点をBase Shapeへ再投影し、法線両側のSDFでBase Shape側だけをinsideと証明する。工程4は現在のDry Webを含む最終Surface meshの実頂点をPatternへ帰属し、各Patternの最小Zと45°以上の支持対象を抽出する。工程5は向かい合うPattern裏中央のprovenanceとDry Web networkを起点に、最大5 mm、垂直から45°以内の蜘蛛の巣ラティスを作る。
+
+任意の形状で内部から物理的に届かない最下端は未支持として残し、A1 mini最終判定、STL出力、完成`.fkei`保存をfail closedする。完成`.fkei`は元editorのShape Recipeをそのまま含み、Base/Pattern編集性とDry Web、内外証拠、最下端、lattice、接続、auditを同時に復元する。同梱初回プリント候補はhost 12、Pattern 38、支持11/11、最大44.429°、80 × 32.623 × 32.390 mm、61,864 triangle、closed single component、open/non-manifold/degenerate/non-finite/winding 0。Sliceと実機印刷は未実施で、printApproval=falseを維持する。
+
+## Observation SKIN REBUILD DryWeb任意・ラティス一体化ループ（v0.83.0、2026-08-29）
+
+作者の判断「Dryweb工程を一旦スルーして向かい合うPattern裏中央から蜘蛛の巣ラティスを作るのみで一体化」を反映した。工程3は既存DryWebがなければ0 node / 0 edgeの明示Graphを保持し、工程4はそのままSurface最下端を背景Workerで抽出する。工程5は支持対象→対象Pattern裏→向かい合うPattern裏を45°以内の二脚bridgeで接続し、その実GraphのPattern裏componentを再計測する。複数componentなら最大Pattern数まで有限回接続を追加し、未支持点は向かい合い条件を段階的に広げて再探索する。進展がなければ未支持IDを残し、捏造しない。
+
+未支持点は従来どおりA1 mini判定とSTL出力を止める。一方、編集途中の回復点を失わないよう、未支持数をauditへ残した`.fkei`の保存・Open・再保存は許可した。左TOOLSには表示専用の「印刷プレート面を表示」を追加し、1画面／4画面で共通のXY造形面を切り替える。サンプルはDryWeb 0 edge、Pattern未接続0、支持35/35、最大42.754°。解像度依存でsmooth-union交点に生じるsub-percentの閉じた内側微小bubbleだけは有界な明示repairで除き、独立Pattern規模のcomponentは従来のtopology gateへ失敗させる。Sliceと実機印刷は未実施で、printApproval=falseを維持する。
+
+## Observation SKIN REBUILD exact route-node identity（v0.83.1、2026-08-29）
+
+工程5で報告された `Connectivity loop emitted a segment above the 45 degree contract` は、bridge式ではなくGraph挿入時の近傍node量子化が原因だった。中間route nodeが別経路の近傍nodeへ統合され、計画edgeは45°以内でも、実際に保存されたedgeだけが45°を超えていた。route nodeとPattern裏anchorはexact座標だけを再利用し、分割終端は浮動小数点のlerp(t=1)ではなく元endpointをそのまま登録する。18 Pattern / 径1.6 mmおよび64 Pattern / 径4.0 mmで全保存edgeを直接再計測し、45°以内、未接続Pattern 0を確認した。
+
+## Observation SKIN REBUILDラティス込み高速mesh出力（v0.84.0、2026-08-30）
+
+工程6は工程5のfinalGraphをSurfaceへ融合し、DryWebなしでも蜘蛛の巣ラティス込みSTL/OBJを出力する。
+Surfaceへ融合しないendpointと谷routeはbuild plate rootへ接続し、A1 mini gateで未支持node/edge 0を確認する。
+初回は最大8 slice Workerで自動判定し、合格したexact STLをcacheする。保存時はcached STLを再利用して
+OBJとrecipeだけを準備するため二度目のfield mesh化を行わない。下部STATUSは進捗、core、slice、面、秒、
+完了/error/cancelを保持する。resolution 128 sampleは333,592 triangle、1 component、水密、Internal 1,031 edge、
+gate 18.6秒、cached保存準備1.0秒、console error 0。Slice/実機は未実施でprintApproval=falseを維持する。
+
+## Observation SKIN REBUILD蜘蛛の巣／印刷サポート分離（v0.85.0、2026-08-30）
+
+作者の依頼を原文のまま記録する。
+
+> 10900kなのでもっと早く出来ない？
+
+> クモの巣ラティスと印刷サポートが一緒になってしまったので別個の処理にしたい
+
+> 両方とも太さを指定できるようにしたい
+
+工程5を、完成品に残す `5A クモの巣ラティス` と、造形後に外す `5B 印刷サポート` へ分けた。
+5AのGraphからbuild plateへの垂直rootを取り除き、5BはSurfaceへ直接定着していないラティス最下部だけを
+plateから支える独立Graphとして生成する。左右のGraphは別々の直径入力、左TOOLSの表示toggle、
+`.fkei`保存項目を持つ。旧v0.84 `.fkei`の混在rootはrestore時に恒久ラティスを決定的に再構築し、
+5Bを明示生成するまでサポートを空に保つ。
+
+工程6のBODY fieldにはSurfaceと5Aだけを入れ、5Bは同じ物理scaleでclosed capped cylinderへ直接mesh化して
+`-print-support.stl/.obj`へ別出力する。従ってサポートのための二回目の全空間SDF samplingはない。
+A1 miniの積層到達性検査だけはBODY+5Bの結合Graphを使うが、BODY meshへ5Bを融合しない。
+mesh slice Worker上限を16へ広げ、`navigator.hardwareConcurrency=20`ではUI threadを残して16 Workerを選ぶ。
+
+決定的fixtureでは恒久ラティス465 node / 492 edge、サポート78 node / 39 edge、BODY 60,832 triangle・
+closed 1 component、サポート1,872 triangle・closed 39 componentとなった。これはgeometry fixtureの結果であり、
+実ブラウザの完成sample、resolution 128、ラティス径2.6 mm、サポート径1.7 mmでは、下部STATUSが
+16コアを表示し、BODY 227,480 triangle・水密1 component、別support 1,872 triangle / 39 componentを
+保存した。初回判定から保存完了まで11.5秒、判定済みBODYの保存準備は0.8秒で、旧v0.84の18.6秒より
+約38%短かった。ただしGraph構成も分離により1,031 edgeから492 edgeへ変わっているため、Worker数だけの
+比較ではない。Slice Preview、取り外しやすさ、強度、実印刷は未確認で、`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD工程6の実進捗・mesh再利用（v0.86.0、2026-08-30）
+
+作者の報告を原文のまま記録する。
+
+> **工程6 mesh検査 · 16コア約90%**ラティス込み最終mesh · 16コア**キャンセル**
+>
+> Autosave | Shape Recipe未読込 · 未保存
+>
+> ここで止まっているのでさらなる詳細表示と高速化は出来る？
+
+> STLの書き出し
+>
+> **Internal判定 全体進捗約99%**最終meshを16コアで並列生成して判定中 · 0秒
+>
+> ここからすすまない
+
+近似時間で90%/99%まで進めていた表示を廃止し、WorkerからSDF準備、slice生成、面結合、水密edge、
+component、微小空洞repair、保存座標topology、積層到達性、STL変換、別support変換を通知する。
+下部STATUSは工程名、実進捗、16コア、完了slice、面数、経過秒を更新し、同期的な後処理中も「0秒」に戻さない。
+
+内部ラティスのSDFは、同じpoint順とsmooth-min順を保ったまま連続Float64配列へ一度だけcompileする。
+工程6検査で得たexact Float32 triangle列は入力fingerprintへ束縛して保持し、同じ形状のInternal判定では
+resolution³ samplingを再実行しない。repair後の保存座標topologyが既に向きと水密を証明した場合は、
+重複するorientationとtopology走査を省く。形状変更時はcacheを破棄する。
+
+実ブラウザの完成sample、resolution 128、16 Worker、BODY 227,480 triangle・水密1 component、
+Internal 492 edge、別support 1,872 triangle / 39 componentで、初回STL書き出しは5.9秒だった。
+同じPC・sample・resolutionのv0.85実測11.5秒から約48%短い。Slice Previewと実印刷は未実施で、
+`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD補強済み赤面の緑表示（v0.89.5、2026-08-30）
+
+作者は「補強した赤面は補強が表示されるようにして」と指示した。工程5Aの赤面エリア補強が成功した直後、
+元の危険triangleと同じregion全体へ緑の表示専用meshを重ねる。未補強の診断面は赤、補強済みの診断面は緑、
+恒久Graphへ追加された実際の立体補強部材は従来どおり水色なので、面の状態と接続形状を同時に確認できる。
+補強済みエリアを再選択した場合も黄色ではなく明るい緑を使い、補強済み状態を隠さない。
+
+緑表示は現在の工程4診断region IDにだけ結びつく表示事実であり、Graphや最終meshを色で変更しない。
+工程4または5Bで最終meshを再診断するとregion IDが再構築されるため、旧緑表示を破棄して新しい赤面診断へ戻す。
+`.fkei`、STL/3MF、角度・Base内包auditは変更せず、実物強度やスライス成功の保証ではないため
+`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD Pattern物理接続repair（v0.86.1、2026-08-30）
+
+作者のエラーを原文のまま記録する。
+
+> Error | 内部構造の自動判定に失敗しました: Fail closed: input 保存STL topology NG（closed=true, degenerate=4, nonFinite=0, components=34, open=0, nonManifold=0, windingInconsistent=0）
+
+`closed=true / components=34`は壊れた開放meshではなく、34個の閉じたSurface Patternが蜘蛛の巣と物理的に
+融合していないことを示す。リングやcoreなしの花ではPattern centroidが穴になり、従来の裏中央nodeはGraph上で
+接続済みでも実材料へ触れない場合があった。工程3は中央nodeがrealized Pattern sphereへ最終解像度で読める重なりを
+持つ場合は従来位置を維持し、穴の場合だけ中央に最も近い実材料をBaseへ再投影したinside attachmentへ移す。
+12 flat-ring / DryWebなしのfixtureで蜘蛛の巣込み保存STLがclosed、degenerate 0、1 componentになることを固定した。
+
+`degenerate=4`はbuild plate原点へ移した後のFloat32保存座標で面積0になるcollinear faceだった。
+保存topologyがsurfaceとして数えないrepeated/collinear zero-area faceだけを除去し、移動後の座標で再orientationする。
+大きな独立Patternを削除して合格させる変更ではなく、融合できないcomponentは引き続きfail closedする。
+旧`.fkei`は保存事実を黙って変更しないため、工程3→4→5A→5Bを再実行して新しいattachmentを生成する。
+
+## Observation SKIN REBUILD編集可能な内包蜘蛛／分離3MF（v0.87.0、2026-08-30）
+
+作者の修正要求に合わせ、Base重心より下の赤面は恒久蜘蛛ラティスの支持義務から外し、後段の取り外す
+印刷サポートへ移した。5Aはボタン1回につき支持routeまたはcomponent接続のどちらか1つだけを追加する。
+各線を一覧から選ぶと元editorの1画面／4画面内で黄色表示し、不要な線は削除できる。削除後は保存済みの
+件数を信用せず、対象接触点、対象Pattern裏、向かい合うPattern裏が実Graphで同じcomponentに残るかを再監査する。
+
+蜘蛛の中心線はmetaball BaseのSDF内へ同一造形層を優先して戻す。Base内包と45°を同時に満たせない候補は
+別の向かい側候補へ切り替え、全候補が不可能なら未接続として残すため、旧来のangle-contract例外で工程全体を
+停止しない。決定的fixtureでは全nodeがBase SDF内、下半分赤面への恒久connection 0、保存edge 45°以内を確認した。
+
+5Bは編集後の `Surface Pattern + spider = artwork` を最大16 Workerで再mesh化して危険地帯を抽出し、別Graphの
+plate支柱を作る。工程6はartwork BODYとsupportのSTL/OBJを別々に保存し、さらに同じ座標の2つのnormal partを
+融合せず1つの3MFへ格納する。直線capsuleの不要な5 mm分割を12 mmへ広げ、決定的sampleのfield primitiveを
+511 edgeから283 edgeへ減らした。形状・45°・Base内包contractは維持する。Slice Preview、取り外しやすさ、強度、
+実印刷は未確認で、`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD 3MF作品／サポート共通Z座標（v0.88.4、2026-08-30）
+
+作者のBambu Studio画像で、作品と別体supportの高さがずれていた。BODYはInternal gateの最終repairで
+mesh最下端をZ=0へ移動していたが、support cylinderは元source座標のまま別STL化され、3MF内で同じinstance
+transformを受けていた。BODYへ適用した正確なsource-space Z移動量をmeshへ記録し、gate cacheとexport Workerを
+経由してsupport全頂点へ同じ移動を適用する。支柱上端の作品接触高さは保持し、垂直支柱下端だけをZ=0へ延長する。
+3MFのplate placementはBODY boundsではなく全part unionの最小Zを使用する。fixtureはsupport min Z=0、
+contact max Z不変、BODY/support共通移動、union Z transformを検査する。`printApproval=false`は維持する。
+
+## Observation SKIN REBUILD保存STLの三角穴修復（v0.88.3、2026-08-30）
+
+作者報告 `closed=false, degenerate=0, components=1, open=3, nonManifold=0, windingInconsistent=0` は、
+保存されるFloat32-mm座標で三角形1面分だけ境界が開いた状態だった。最終build-plate移動後に、open edgeが
+正確に3本、3頂点の1 cycle、1 component、他欠陥0をすべて満たす場合だけ、隣接面と逆向きの1面を追加する。
+各辺2.5 mm以下・面積2.5 mm²以下に限定し、修復後のsaved topologyがclosed / winding consistent / 1 component
+にならなければ候補を破棄する。大きな三角開口を10,000倍scale fixtureで拒否する回帰も追加した。
+自動修復した面数は工程6下部STATUSとInternal欄に明示する。一般的な穴埋めやgate無効化ではなく、
+報告された1面数値欠落だけのbounded repairであり、`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD Internalゲート1項目NGの自動修復（v0.88.2、2026-08-30）
+
+工程5Bは完成artwork Graphを対象にし、45°を超える線の非支持端点へ別体verticalを追加する。さらに浅い露出spanが
+5 mmを超える場合は4.8 mm以下の間隔で途中支点を置く。reachability Graphはこの実接触位置でBODY edgeを分割するが、
+BODY fieldと保存STLは変更しない。これにより、物理支柱を追加したのに長い1本のedgeとしてNGになる不一致を解消した。
+Stage 6は恒久／別体の最小指定線径を2.5 voxel以上で表現できる最小の8刻み解像度へ自動補正し、0.8 mm支柱用に
+最終精度256を許可する。自動修復できないtopology等は、汎用の「NG（1項目）」ではなく最初の理由を直接表示する。
+
+## Observation SKIN REBUILD未支持の書き出し停止を1クリックで解消（v0.88.1、2026-08-30）
+
+工程5Aへ「蜘蛛支持の未支持をワンクリックで0にする」を追加した。現在のauditで未支持になっている
+蜘蛛target数をボタン側で読み、support-only builderへ全残数のroute budgetを渡す。成功後はauditが0になり、
+ボタン自身も無効になる。3D書き出しのfail-closed文もこのボタン名を直接案内する。指定数支持は形を見ながら
+調整する操作として残し、Pattern接続0化とは分離した。3経路だけのpartial latticeから1回で全残数を追加し、
+unsupported target IDが空になる回帰を追加した。
+
+## Observation SKIN REBUILD局所法線支持・選択／一括接続（v0.88.0、2026-08-30）
+
+作者が報告した `蜘蛛支持 21/22` が何度押しても変わらない原因は、支持候補の向かい合い法線coneを
+`-0.35 → -0.12` と広げる意図だったにもかかわらず、厳しい最初のconeで追加0本になると外側のloopまで
+終了していたことだった。追加0本のときこそ次のconeへ進み、最終fallbackまで有限回で試す。選択targetだけを
+処理するfixtureでは、最初のconeに候補がない法線dot=0の組でも1回で未支持0になることを固定した。
+
+支持義務はBase重心の上／下で分けず、PatternのBase側を指す内向き法線とPlate方向 `-Z` のdotで局所判定する。
+Plate方向へ向く危険赤面だけが恒久蜘蛛の支持targetになる。反対向きの危険赤面は恒久蜘蛛を接触させず、Pattern裏を
+作品の同一componentへ接続した後、5Bの取り外す印刷サポートへ渡す。この分類は保存fieldを増やさず、保存済みの
+inside/outside証拠と最下端点から決定的に再計算する。v0.87の重心based auditはappVersionを確認して読込時だけ受理し、
+以後の保存では局所法線based auditへcanonicalizeする。
+
+元editorの1画面／4画面で赤い最下端markerまたは対応Patternをクリックするとtargetを黄色表示する。選択target処理、
+入力N点の蜘蛛支持一括、全未接続componentの一括接続を別操作とし、1パス追加も維持する。一括接続fixtureは1回で
+未接続Pattern 0、指定数fixtureは1回で指定した3経路だけ追加される。すべての恒久nodeはBase SDF内、保存edgeは45°以内、
+作品と印刷サポートは別Graph／別3MF partのまま、`printApproval=false`を維持する。
+## Observation SKIN REBUILD全メッシュ・オーバーハング領域（v0.89.0、2026-08-30）
+
+作者のBambu Studio画像では、従来のPattern最下端1点だけでは読めない浮動領域が作品側に残っていた。
+工程4は保存STLと同じ向きにした最終Surface meshの全triangleを+Z造形方向から角度判定し、plateへ直接接触する
+最下層bandを除外して、共通edgeでつながる危険faceを赤い領域として表示する。左TOOLSで独立表示切替を持ち、
+工程4と下部STATUSへ領域数、face数、物理面積、全mesh面積比を残す。38 Pattern / resolution 48の実ブラウザでは
+86領域、1,224 face、439.5 mm²、10.3%、16 Worker / 0.4秒だった。既存のPattern最下端は蜘蛛latticeの入力として維持する。
+これはslicer layer、bridge、extrusion、冷却、実印刷の判定ではなく、`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD工程5Aラティス単独表示（v0.89.1、2026-08-30）
+
+工程4の赤面検出後に5Aで恒久蜘蛛ラティスを生成しても、元editorの `Internal Structure=none` が
+半透明SKIN観察への自動切替を拒否し、水色Graphが不透明meshの内側へ隠れていた。後から5Bを実行すると
+橙色の別体印刷サポートは独立描画されるため、印刷サポートを作らないとラティスを確認できないように見えていた。
+
+現在のSKIN REBUILD projectにedgeを持つ `finalGraph` がある場合は、旧Internal生成設定とは独立した観察対象として扱う。
+工程4はproject graphを画面と同期して古い印刷サポートを消し、工程5Aの生成・編集は現在の恒久Graphを再登録し、
+橙色supportを空にしたうえで、段階mesh表示ならSKIN半透明／水色ラティス表示へ切り替える。左TOOLSの
+「クモの巣ラティスを表示」と「印刷サポートを表示（橙）」は引き続き別々に切り替えられる。
+表示だけの修正で、Graph形状、`.fkei`、STL/3MF生成内容、`printApproval=false`は変更しない。
+
+## Observation SKIN REBUILDラティス全半径のBase内包（v0.89.2、2026-08-30）
+
+作者の画面では下部の水色ラティスがBase輪郭を突き抜けていた。従来の内包条件は中心線のSDFだけを
+最大0.0005 source unit内側へ戻しており、既定直径2.6 mmの半径1.3 mmを検査していなかった。
+旧完成fixtureを全edge・半径当たり5点の密度で再計測すると、280線中37線がBase外、最大突出推定は
+1.292 mmだった。
+
+生成時はBaseを設定ラティス半径＋4%ぶん内側へ縮めた領域へ中心線を戻し、新しく追加する各円柱を
+半径当たり5点でSDF検査する。1点でも外ならその候補routeを破棄し、別候補へ進む。Pattern接続端は、
+そのedgeが分類済みの同一Pattern裏anchorへ直接つながり、かつ自分のPattern材料へ融合できる半径1.25倍以内の
+短い区間だけを例外にする。近くに別Patternがあるだけでは外側線を許可しない。
+
+再生成fixtureは270線・8,072検査点で外側0、最小内側余白0.052 mm、蜘蛛支持20/20、未接続Pattern 0、
+最大保存edge角41.760°だった。工程5Aの右欄と下部STATUSへ `Base内包OK` と検査線／点数を表示する。
+元UIのStage 2 Sampleでも、Pattern裏anchorを全径ぶんBase内へ優先配置し、入り組んだ箇所だけ上下両方向の
+bridgeを探索することで、蜘蛛支持14/14、全Pattern接続後228線・7,635検査点・Base外0・未接続0を実画面で確認した。
+細いリング等で全径ぶん内側へ移すとPattern材料から離れる場合だけ、従来の短い融合端例外を保つ。
+旧Graphは保存事実を黙って移動せず、工程4から5Aを再実行して置き換える。これは有限sampleのSDF検査であり、
+mesh解像度、スライサー、強度、実印刷の合格ではないため `printApproval=false`を維持する。
+
+## Observation SKIN REBUILDメイン画面から蜘蛛ラティス線を選択（v0.89.3、2026-08-30）
+
+作者の指示は「削除する線の選択はメイン画面で選べるようにする」「画面で選べるものを表面パターンと
+蜘蛛ラティス線で切り替えられるように左ペインに設定を作る」だった。元UIの左TOOLSへ
+「メイン画面の選択対象」を追加し、表面パターン／蜘蛛ラティス線を明示的に切り替える。
+
+表面パターンでは従来のPattern選択と赤い危険面選択を保つ。蜘蛛ラティス線へ切り替えると水色Graphを
+表示し、競合するPattern／赤面の黄色選択を解除する。メイン画面の円柱instanceを現在の1画面または4画面cameraで
+hit-testし、Graph edge IDへ戻して既存の工程5A一覧と同期する。選ばれた線は黄色表示になり、既存の
+「選択した黄色の線を削除」で削除できる。空白クリックは線選択だけを解除する。
+選択切替と選択自体はGraph、履歴、`.fkei`、STL/3MFを変更せず、削除ボタンを実行した場合だけ既存編集処理が走る。
+印刷適否は変わらず `printApproval=false`である。
+
+## Observation SKIN REBUILD既存蜘蛛網への未支持点迂回（v0.90.5、2026-08-30）
+
+作者提供の最終`.fkei`ではPattern #5だけが未支持だった。既存蜘蛛網はBase内で1 componentになっていたが、工程5Aの支持passは
+未支持接点→自Pattern裏中央→別Pattern裏中央という新しい直通経路を必須にしたため、深い凹部でその直通だけが全径内包に失敗した。
+
+全通常候補の後に、別Pattern裏anchorを含む既存Graph componentのroute nodeへ合流する汎用fallbackを追加した。下側と近距離を優先し、
+候補は最大192点、通常と同じ45°bridgeと全半径Base検査を通す。Pattern #5は1回で4 edgeを追加し、支持12/12、未支持0、
+最大角44.99075°、Base外0になった。接続claim再監査と`.fkei` roundtripでも12件を保持する。条件緩和やPattern削除ではない。
+
+実データを回帰fixtureへ固定し、工程5Aと下部STATUSはfallback採用時に「既存蜘蛛へ迂回」と件数を表示する。有限形状検査であり、
+slicerや実物造形の合格ではないため`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD最終未支持点・工程8書き出し・Workflow Undo（v0.90.4、2026-08-30）
+
+作者提供の最終 `.fkei` は39 Pattern、蜘蛛支持対象12点中11点支持で、書き出しを止める唯一の未支持点は
+Pattern #5だった。復元直後と書き出し停止時にそのPatternを自動選択し、通常の黄色最下端マーカーを大きくしたうえで、
+深度に隠れない白いwireframeを重ねる。工程5Aと下部STATUSもPattern番号を表示し、「未支持点を黄色で強調」から同じ点へ戻れる。
+
+工程5Bの明るい水色は編集確認用overlayで、恒久Graphと作品meshへ入る実形状とは別である。工程6が完成作品meshを表示する時点で
+overlayだけを一度消し、補強形状そのものはmesh内に残す。工程6をUndoした場合は、工程5B時点の水色previewもsnapshotから復元する。
+
+工程8の直下に最終書き出しを置き、3MF／STL／OBJを独立checkboxで選ぶ。3MFは作品と取り外しサポートを同一座標の別part、
+STL／OBJは作品とサポートを別fileにする。工程3〜8の形状変更、5A線削除、工程6〜8確定はproject snapshotとして上部Undo／Redoへ統合し、
+履歴が空のときだけ従来Shape Undoへ戻る。
+
+実ブラウザで作者の最終 `.fkei` を開き、Pattern #5の黄色＋白枠表示、形式checkboxの個別切替、工程5A履歴の上部Undo／Redo往復、
+console warning/error 0を確認した。有限geometry/UI検査であり、slicerや実物造形の合格ではないため `printApproval=false` を維持する。
+
+## Observation SKIN REBUILD工程5Bの個別経路・背景進捗・矩形選択（v0.90.3、2026-08-30）
+
+v0.90.2の全接点を同じ蜘蛛ラティス実接点へ集める方式は、離れた接点が1つ混ざるだけで領域全体を破棄していた。
+v0.90.3では各面接点ごとに、接続済み蜘蛛Graphの近傍節点24件、次に近傍線上点24件を調べる。成功した部材は直ちに
+作業Graphへ入るため、次の接点は元の蜘蛛網だけでなく追加済みの枝へも接続できる。Pattern外向きの膨らみには短い法線方向／
+鉛直の面首を試し、角度45°と全径Base内包の条件自体は緩和しない。
+
+後半の接点が難しい場合も、先に成立した水色形状を捨てない。Workerは残点だけを最大3パス再探索し、完全に覆った領域だけを
+緑へ移す。部分補強は実形状を恒久Graphへ保存しつつ黄色選択を残し、残り面接点数を表示する。計算はUI threadから分離し、下部
+STATUSに領域番号、面接点、候補番号、経過秒を実測表示する。キャンセルはWorkerを終了し、開始前のprojectを維持する。
+
+赤面ドラッグ選択は6pxごとの軌跡raycastを廃止した。ドラッグ中は黄色い矩形、Ctrl除外時は赤い矩形をviewport上へ表示し、pointerupで
+赤triangleの3頂点をdrag開始viewportのcameraへ投影する。頂点内包、矩形corner内包、全辺交差を含むinclusive overlapで判定するため、
+細い赤面も矩形内なら取りこぼさない。4画面では開始した1 viewportへ矩形をclipする。実ブラウザで1矩形から52領域／864面を選択し、
+背景候補進捗、部分形状保持、1/4画面、console error 0を確認した。有限mesh/SDF診断であり、`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD工程5Bの面→点立体補強（v0.90.2、2026-08-30）
+
+作者が求めたのは、工程7で補強済みIDを赤判定から除外することではなく、工程5Bで形状自体を直し、通常の角度診断でも
+同じ場所が赤にならないことである。従来の5Bは連結赤面の最下側triangle centroid 1点から蜘蛛ラティスへ一定径routeを1本追加した。
+線の中心角は45°以内でも、赤面の大部分は元の平らな下面のままなので、工程7が再び赤表示するのは正しい結果だった。
+
+v0.90.2は連結赤面のtriangle centroidを空間的に間引いて複数の実接点とし、中心に近い接点を基準に、全接点から同じ
+蜘蛛ラティス実接点へ直接45°以内のrouteを張る。これにより、水色部材は単なる線ではなく選択面から蜘蛛上の点へ絞られる
+立体となり、成功した接点だけを色で免除せず、恒久lattice/finalGraph、`.fkei`、工程6 meshへ保存される。表面端だけは実Pattern
+との融合を確認した範囲でBase内包例外を使い、それ以外の全径は従来どおりBase SDF内包を要求する。
+
+mesh fieldもGraph edgeを独立球の列で近似せず、線分距離による実capsuleとして評価する。旧球列の各球下面はroute中心角が
+45°以内でも局所的な下向き半球を作り、工程7で新しい赤になる原因だった。capsule化により側面角をroute角と一致させ、field primitive
+数も減らした。bounded repair後はconnected component数も再計算し、工程6表示を最終triangle soupと一致させる。
+
+決定的38 Pattern回帰では上部の85赤面を19接点・76部材で面→点補強し、resolution 64の再診断で全接点から1.15ラティス半径以内の
+赤面が0であることを確認した。実ブラウザのresolution 128では202,704 final facesを生成し、同じ上部領域が工程7後も赤へ戻らないことを
+目視確認した。これは有限meshの角度診断であり、slicer layer、強度、実物の造形成功は未検証なので `printApproval=false` を維持する。
+
+## Observation SKIN REBUILD工程6の5B補強mesh表示（v0.90.1、2026-08-30）
+
+工程5Bの補強routeは従来も恒久lattice/finalGraphへ入り、工程6のSDF入力へ渡っていた。しかし工程6検査は生成した
+Float32 triangle soupをcacheにだけ保持し、main viewportには工程4のSurface-only meshを残していた。この表示経路の不一致が
+「補強がメッシュ化されていない」と見える原因だった。
+
+工程6 Workerはexact positionsとflat normalsを対で返し、完了時にその完成作品meshへ自動で表示を置き換える。通常mesh観察へ戻すため、
+通常の線overlayを左TOOLSで隠しても5A/5B部材の実meshが残る。cache再利用時も同じbufferを再表示する。回帰では5B追加edgeごとに
+中点から指定radius以内に工程6 mesh surface vertexが存在することを確認した。これは有限SDF meshへの包含証拠であり、slicer layer、
+強度、実物の造形成功は未検証なので `printApproval=false` を維持する。
+
+## Observation SKIN REBUILD工程3〜8整理・赤面複数選択・水色補強表示（v0.90.0、2026-08-30）
+
+作者指定の制作順へWorkflowを整理した。工程3はPattern内外、4は全meshの危険面検出、5Aは恒久蜘蛛ラティス、
+5Bは赤面エリアから蜘蛛への恒久補強、6はSurface＋5A＋5Bの作品mesh確定、7は確定作品に残る危険面の再診断、
+8は残存赤への取り外し印刷サポートである。工程8のGraphは作品と結合せず、同じ座標の別STL／OBJ／3MF partへ出す。
+
+5B追加edge IDを生成結果から返し、通常の蜘蛛ラティスとは別の明るい水色InstancedMeshで重ねる。深度に隠されない表示専用
+overlayであり、実形状は恒久lattice Graphへ入って工程6の作品meshに融合する。補強済み危険領域は緑、未補強は赤、
+選択中は黄色である。複数補強で既存edge分割によりIDが再採番されても表示線がずれないよう、追加直後の端点を独立preview
+Graphへコピーしてから描画する。
+
+赤面選択はSetで保持し、通常クリック=置換、Shift+クリック=追加、Ctrl+クリック=除外とした。AxomeのShift+左panより
+実赤面へのShiftクリックを先に取得する。左TOOLSのドラッグ選択ONでは、pointer軌跡を6px間隔でraycastして複数の連結領域を
+選ぶ。5Bは選択した未補強領域を順番に処理し、成功分を緑へ移し、届かない領域だけ黄色選択に残す。
+
+実画面で2領域ドラッグ選択、Shift追加、Ctrl除外、2領域一括補強4本、緑面＋明るい水色部材を確認した。工程7は
+201,380 faceを16 Worker・2.5秒で診断し、残存赤744領域／13,428面／6.6%を表示した。工程8はその結果から橙の別Graph
+66本を生成した。数値は同梱候補・現在設定の有限mesh結果で、スライサーや強度、物理造形の合格ではない。
+`printApproval=false`を維持する。
+
+## Observation SKIN REBUILD赤面エリア選択・蜘蛛への立体補強（v0.89.4、2026-08-30）
+
+作者は「蜘蛛ラティスを選択する際カーソルと実際に選択される線がずれる」「赤面をエリアごとに選択」
+「蜘蛛ラティス選択時にも赤面を選択」「選択した赤面とラティスの赤面に近い点から補強部材を生成」と指示した。
+選択ずれの主因は、左TOOLSを開閉してcanvasのCSS領域が変わってもrendererのdrawing bufferとcamera aspectを
+更新していなかったことだった。左右どちらのpane変更でも直後にresizeし、さらに現在の1画面／4画面cameraで
+全lattice centerlineをCSS client座標へ投影して、円柱半径を含む許容幅内でカーソルに最も近い線を選ぶ。
+
+工程4 Workerは危険triangleの共通edge連結からfaceごとのregion IDを返し、各regionにface数、source面積、
+最下support faceのcentroidと法線を保持する。赤い実triangleをraycastしてregion IDへ戻すため、左の
+「表面パターン」「蜘蛛ラティス線＋赤面」の両方で赤面area全体を黄色選択できる。
+
+工程5Aのarea補強は、選択面を線径ぶんBase側へ重ねた実接点と、既存蜘蛛edge上の真の最近傍点を結ぶ。
+接続先edgeをその点で分割し、既存の印刷可能bridge routerで45°以下の立体円柱列を生成する。全radiusを含む
+Base内包auditに通る候補だけを恒久lattice Graphへ採用するため、`.fkei`保存とSurface＋蜘蛛の最終BODY meshへ
+そのまま含まれる。検証中、空の5B Graphを旧v0.84の混在supportと誤認し、Open時に恒久latticeを再生成して
+編集を消す既存分岐も発見した。再生成をappVersion 0.84以前／version不明の移行だけへ限定し、v0.89.4の
+area補強Graphが`.fkei` roundtrip後もnode／edgeをexact保持する回帰を追加した。
+赤表示は角度診断なので補強後も元triangle自体は赤いが、UIはareaを補強済みとして区別する。
+これは有限mesh角度、SDF sampleと45°contractの幾何検査であり、slicer layer、強度、実物の造形成功は未検証。
+`printApproval=false`を維持する。

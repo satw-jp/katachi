@@ -70,7 +70,6 @@ import {
   type ViewportClippingAction,
   type ViewportClippingBounds,
 } from "./viewportClipping.ts";
-import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import { SkinRenderer } from "./renderer.ts";
 import { pickPatchBySpheres, raymarchComposite, raymarchHost } from "./picking.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_COUNT, PATCH_MAX_POINTS } from "./shaders.ts";
@@ -116,11 +115,16 @@ import {
 } from "./elementTransform.ts";
 import { reshapePatchMotif } from "./motifReshape.ts";
 import { RHINO_DRAG_THRESHOLD_PX } from "./rhinoViewportControls.ts";
-import { chooseProgressivePreviewResolutions } from "./previewMeshBuffers.ts";
+import {
+  chooseProgressivePreviewResolutions,
+  observationModeKeepingInternalGraphVisible,
+  type InternalObservationMode,
+} from "./previewMeshBuffers.ts";
 import type { PreviewMeshRequest, PreviewMeshWorkerMessage } from "./previewMeshWorkerProtocol.ts";
 import type { GaugeBuildRequest, GaugeWorkerMessage } from "./gaugeWorkerProtocol.ts";
 import type { MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
 import {
+  A1_MINI_PLA_04_02,
   internalStructureOutputBlockReason,
   screenInternalStructureAngles,
   type InternalAngleScreeningReport,
@@ -163,6 +167,8 @@ import {
   type SurfaceAngleResult,
 } from "./surfaceAnglePersistentCache.ts";
 import {
+  buildBambu3mf,
+  parseBinaryStlPositions,
   triangleSoupLongestExtent,
   type BambuSupportType,
 } from "./bambu3mf.ts";
@@ -209,6 +215,49 @@ import {
   type FkeiSurfaceBinding,
   type FkeiSurfaceArtifact,
 } from "./fkei.ts";
+import {
+  DEFAULT_SKIN_REBUILD_SETTINGS,
+  assembleSkinRebuildProject,
+  buildSkinRebuildLattice,
+  buildSkinRebuildPrintSupport,
+  classifySkinRebuildPatternSides,
+  createEmptySkinRebuildGraph,
+  mergeSkinRebuildGraphsAtSupportContacts,
+  removeSkinRebuildLatticeEdge,
+  retainConnectedSkinRebuildLatticeConnections,
+  skinRebuildDisconnectedPatternIds,
+  skinRebuildRequiresSpiderSupport,
+  skinRebuildSpiderSupportTargetIds,
+  type SkinRebuildBase,
+  type SkinRebuildLowestPoint,
+  type SkinRebuildPatternSide,
+  type SkinRebuildProject,
+  type SkinRebuildSettings,
+} from "./rebuild/model.ts";
+import {
+  sampleSkinRebuildOverhangRegionSurface,
+  type SkinRebuildOverhangRegion,
+} from "./rebuild/overhangRegions.ts";
+import {
+  chooseSkinRebuildLowestWorkerCount,
+  skinRebuildLowestProgressPercent,
+  type SkinRebuildLowestPointRequest,
+  type SkinRebuildLowestPointWorkerMessage,
+} from "./rebuild/lowestPointWorkerProtocol.ts";
+import {
+  skinRebuildStage5BProgressPercent,
+  type SkinRebuildStage5BRequest,
+  type SkinRebuildStage5BWorkerMessage,
+} from "./rebuild/stage5bReinforcementWorkerProtocol.ts";
+import { stage6MeshProgressPercent } from "./rebuild/stage6MeshProgress.ts";
+import {
+  SKIN_REBUILD_FKEI_SCHEMA,
+  captureSkinRebuildFkei,
+  parseSkinRebuildFkei,
+  projectFromSkinRebuildFkei,
+  serializeSkinRebuildFkei,
+  type SkinRebuildFkeiDocument,
+} from "./rebuild/fkei.ts";
 import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
@@ -391,6 +440,7 @@ let localV088ReviewUrlViewPending = false;
 let localV088ReviewUrlViewApplied = false;
 
 const app = document.getElementById("app")!;
+const isSkinRebuildApp = document.documentElement.dataset.skinApp === "rebuild";
 let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
 let editorLayoutCommitCallback: () => void = () => {};
 
@@ -408,10 +458,12 @@ projectEyebrow.className = "skin-project-eyebrow";
 projectEyebrow.textContent = "PROJECT";
 const projectName = document.createElement("strong");
 projectName.className = "skin-project-name";
-projectName.textContent = "SKIN";
+projectName.textContent = isSkinRebuildApp ? "SKIN REBUILD" : "SKIN";
 const projectFormat = document.createElement("span");
 projectFormat.className = "skin-project-format";
-projectFormat.textContent = ".fkei / author workflow shell";
+projectFormat.textContent = isSkinRebuildApp
+  ? ".fkei / original editor shell"
+  : ".fkei / author workflow shell";
 projectIdentity.append(projectEyebrow, projectName, projectFormat);
 
 const projectActions = document.createElement("nav");
@@ -433,34 +485,82 @@ projectSaveButton.className = "skin-project-action";
 projectSaveButton.textContent = ".fkei Save";
 projectSaveButton.disabled = false;
 projectSaveButton.title = "現在のSKIN状態を.fkeiとして保存";
+const projectSampleButton = document.createElement("button");
+projectSampleButton.type = "button";
+projectSampleButton.className = "skin-project-action";
+projectSampleButton.textContent = "Stage 2 Sample";
+projectSampleButton.title = "元SKINのBase Shape / Surface Patternで作った同梱.fkeiを開く";
+projectSampleButton.hidden = !isSkinRebuildApp;
+projectSampleButton.onclick = async () => {
+  try {
+    projectSampleButton.disabled = true;
+    projectMeta.textContent = "同梱Stage 2 sampleを検証中…";
+    const response = await fetch("./samples/skin-rebuild-original-stage2.fkei", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const file = new File([await response.blob()], "skin-rebuild-original-stage2.fkei", { type: "application/json" });
+    await openFkeiProject(file);
+  } catch (error) {
+    projectMeta.textContent = `Sample Open失敗: ${error instanceof Error ? error.message : String(error)}`;
+  } finally {
+    projectSampleButton.disabled = false;
+  }
+};
+const projectCompleteSampleButton = document.createElement("button");
+projectCompleteSampleButton.type = "button";
+projectCompleteSampleButton.className = "skin-project-action";
+projectCompleteSampleButton.textContent = "完成 Sample";
+projectCompleteSampleButton.title = "工程3〜6と蜘蛛の巣ラティスを含む初回プリント候補.fkeiを開く";
+projectCompleteSampleButton.hidden = !isSkinRebuildApp;
+projectCompleteSampleButton.onclick = async () => {
+  try {
+    projectCompleteSampleButton.disabled = true;
+    projectMeta.textContent = "同梱SKIN REBUILD完成sampleを検証中…";
+    const response = await fetch("./samples/skin-rebuild-first-print.fkei", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const file = new File([await response.blob()], "skin-rebuild-first-print.fkei", { type: "application/json" });
+    await openFkeiProject(file);
+  } catch (error) {
+    projectMeta.textContent = `完成Sample Open失敗: ${error instanceof Error ? error.message : String(error)}`;
+  } finally {
+    projectCompleteSampleButton.disabled = false;
+  }
+};
 const projectUndoButton = document.createElement("button");
 projectUndoButton.type = "button";
 projectUndoButton.className = "skin-project-action";
 projectUndoButton.textContent = "Undo · Shape";
 projectUndoButton.disabled = true;
 projectUndoButton.title = "Shape history Undo (Support Paint has its own Undo)";
-projectUndoButton.onclick = () => {
-  if (supportPaintEnabled) undoOneSupportPaintOperation();
-  else requestShapeUndo();
-};
+projectUndoButton.onclick = () => requestProjectUndo();
 const projectRedoButton = document.createElement("button");
 projectRedoButton.type = "button";
 projectRedoButton.className = "skin-project-action is-placeholder";
 projectRedoButton.textContent = "Redo";
 projectRedoButton.disabled = true;
 projectRedoButton.title = "Shape Redo is not implemented; Support Paint Redo appears while Paint is active";
-projectRedoButton.onclick = () => redoOneSupportPaintOperation();
+projectRedoButton.onclick = () => requestProjectRedo();
 const projectExportButton = document.createElement("button");
 projectExportButton.type = "button";
 projectExportButton.className = "skin-project-action is-placeholder";
 projectExportButton.textContent = "Export";
 projectExportButton.disabled = true;
 projectExportButton.title = "Project export is reserved for the export task";
-projectActions.append(projectOpenButton, projectOpenInput, projectSaveButton, projectUndoButton, projectRedoButton, projectExportButton);
+projectActions.append(
+  projectOpenButton,
+  projectOpenInput,
+  projectSaveButton,
+  projectSampleButton,
+  projectCompleteSampleButton,
+  projectUndoButton,
+  projectRedoButton,
+  projectExportButton,
+);
 const projectMeta = document.createElement("div");
 projectMeta.className = "skin-project-meta";
 projectMeta.setAttribute("aria-live", "polite");
-projectMeta.textContent = "UI SHELL · author review";
+projectMeta.textContent = isSkinRebuildApp
+  ? "ORIGINAL UI · Base Shape / Surface Pattern preserved"
+  : "UI SHELL · author review";
 projectSaveButton.onclick = () => saveCurrentFkeiProject();
 projectBar.append(projectIdentity, projectActions, projectMeta);
 
@@ -488,7 +588,7 @@ bottomPane.className = "skin-bottom-status-pane";
 bottomPane.setAttribute("aria-label", "Review status");
 const bottomReviewStatus = document.createElement("strong");
 bottomReviewStatus.className = "skin-bottom-review";
-bottomReviewStatus.textContent = "SKIN editor | --";
+bottomReviewStatus.textContent = `${isSkinRebuildApp ? "SKIN REBUILD" : "SKIN"} editor | --`;
 const bottomReviewSettings = document.createElement("span");
 bottomReviewSettings.className = "skin-bottom-settings";
 bottomReviewSettings.textContent = "Surface48 · 119.5mm · 45° · scaffold Ø1.4 / foot Ø2.4mm";
@@ -716,7 +816,10 @@ function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
         : candidate;
     }
     applyEditorLayoutDom();
-    if (side === "right") skinRenderer.resize();
+    // Either side changes the canvas CSS box. Keep the WebGL drawing buffer,
+    // camera aspect and client-coordinate picking on that same box; otherwise
+    // opening the left tools pane makes the visible line and click ray diverge.
+    skinRenderer.resize();
     commitEditorLayout();
   };
   divider.appendChild(toggle);
@@ -727,6 +830,12 @@ const rightPaneDivider = buildPaneDivider("right");
 const viewport = document.createElement("div");
 viewport.id = "viewport";
 app.append(projectBar, leftPane, leftPaneDivider, viewport, rightPaneDivider, rightPane, bottomPaneDivider, bottomPane);
+
+const skinRebuildRegionMarquee = document.createElement("div");
+skinRebuildRegionMarquee.className = "skin-rebuild-region-marquee";
+skinRebuildRegionMarquee.hidden = true;
+skinRebuildRegionMarquee.setAttribute("aria-hidden", "true");
+viewport.appendChild(skinRebuildRegionMarquee);
 
 function applyEditorLayoutDom(): void {
   const fitted = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
@@ -789,6 +898,98 @@ let lastPackResult: PackPatchesResult | null = null;
 let currentQuadGrid: QuadFlowGrid | null = null;
 let internalStructureGraph: InternalStructureGraph | null = null;
 let internalStructureFingerprint = "";
+type SkinRebuildPipelineRuntime = {
+  shapeFingerprint: string;
+  settings: SkinRebuildSettings;
+  base: SkinRebuildBase;
+  patternSides: SkinRebuildPatternSide[];
+  dryWeb: InternalStructureGraph | null;
+  lowestPoints: SkinRebuildLowestPoint[] | null;
+  overhang: {
+    faceCount: number;
+    regionCount: number;
+    areaMm2: number;
+    areaPercent: number;
+    meshPositions: Float32Array;
+    meshNormals: Float32Array;
+    positions: Float32Array;
+    faceRegionIds: Int32Array;
+    regions: SkinRebuildOverhangRegion[];
+  } | null;
+  project: SkinRebuildProject | null;
+};
+type SkinRebuildFinalArtworkDiagnosis = {
+  project: SkinRebuildProject;
+  lowestPoints: SkinRebuildLowestPoint[];
+  meshPositions: Float32Array;
+  meshNormals: Float32Array;
+  overhangFacePositions: Float32Array;
+  overhangFaceRegionIds: Int32Array;
+  overhangRegions: SkinRebuildOverhangRegion[];
+  overhangFaceCount: number;
+  overhangRegionCount: number;
+  overhangAreaMm2: number;
+  overhangAreaPercent: number;
+  faceCount: number;
+  workerCount: number;
+  elapsedMs: number;
+};
+let skinRebuildPipeline: SkinRebuildPipelineRuntime | null = null;
+let skinRebuildFinalizedArtworkProject: SkinRebuildProject | null = null;
+let skinRebuildFinalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null = null;
+let skinRebuildStage8CompletedProject: SkinRebuildProject | null = null;
+let skinRebuildInsideStatus: HTMLElement | null = null;
+let skinRebuildLowestStatus: HTMLElement | null = null;
+let skinRebuildLatticeStatus: HTMLElement | null = null;
+let skinRebuildFinalDiagnosisStatus: HTMLElement | null = null;
+let skinRebuildPrintSupportStatus: HTMLElement | null = null;
+let skinRebuildSaveStatus: HTMLElement | null = null;
+let skinRebuildReinforcementStatus: HTMLElement | null = null;
+let skinRebuildStage8ExportStatus: HTMLElement | null = null;
+let skinRebuildLowestButton: HTMLButtonElement | null = null;
+let skinRebuildLatticeButton: HTMLButtonElement | null = null;
+let skinRebuildFinalDiagnosisButton: HTMLButtonElement | null = null;
+let skinRebuildPrintSupportButton: HTMLButtonElement | null = null;
+let skinRebuildStage8ExportButton: HTMLButtonElement | null = null;
+let skinRebuildSaveButton: HTMLButtonElement | null = null;
+let skinRebuildThresholdInput: HTMLInputElement | null = null;
+let skinRebuildDiameterInput: HTMLInputElement | null = null;
+let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
+let skinRebuildLatticeEdgeSelect: HTMLSelectElement | null = null;
+let skinRebuildLatticeDeleteButton: HTMLButtonElement | null = null;
+type SkinRebuildViewportSelectionMode = "pattern" | "lattice-edge";
+let skinRebuildViewportSelectionMode: SkinRebuildViewportSelectionMode = "pattern";
+let skinRebuildViewportSelectionStatus: HTMLElement | null = null;
+let skinRebuildSpiderLatticeToggle: HTMLInputElement | null = null;
+let skinRebuildSelectedTargetPatchId: number | null = null;
+let skinRebuildSelectedOverhangRegionIds = new Set<number>();
+let skinRebuildReinforcedOverhangRegionIds = new Set<number>();
+let skinRebuildRegionDragSelectEnabled = false;
+let skinRebuildRegionDragSelection: {
+  pointerId: number;
+  operation: "replace" | "add" | "remove";
+  startX: number;
+  startY: number;
+} | null = null;
+let skinRebuildSelectedTargetStatus: HTMLElement | null = null;
+let skinRebuildSelectedTargetButton: HTMLButtonElement | null = null;
+let skinRebuildSelectedRegionStatus: HTMLElement | null = null;
+let skinRebuildSelectedRegionReinforceButton: HTMLButtonElement | null = null;
+let skinRebuildBulkSupportButton: HTMLButtonElement | null = null;
+let skinRebuildCompleteSupportButton: HTMLButtonElement | null = null;
+let skinRebuildUnsupportedFocusButton: HTMLButtonElement | null = null;
+let skinRebuildConnectAllButton: HTMLButtonElement | null = null;
+type SkinRebuildReinforcementPreview = { graph: InternalStructureGraph; edgeIds: number[] };
+let skinRebuildReinforcementPreview: SkinRebuildReinforcementPreview | null = null;
+let activeSkinRebuildLowestWorker: Worker | null = null;
+let skinRebuildLowestRequestId = 0;
+let skinRebuildLowestHeavyComputation: HeavyComputationHandle | null = null;
+let skinRebuildLowestStatusTimer: number | null = null;
+let activeSkinRebuildStage5BWorker: Worker | null = null;
+let skinRebuildStage5BRequestId = 0;
+let skinRebuildStage5BHeavyComputation: HeavyComputationHandle | null = null;
+let activeSkinRebuildPrintSupportWorker: Worker | null = null;
+let skinRebuildPrintSupportRequestId = 0;
 let internalAngleScreeningEnabled = false;
 let internalAngleScreeningGraph: InternalStructureGraph | null = null;
 let internalAngleScreening: InternalAngleScreeningReport | null = null;
@@ -841,6 +1042,58 @@ let previewMeshRequestId = 0;
 let previewMeshGeneration = 0;
 let previewMeshStatusTimer: number | null = null;
 let previewMeshCache: { generation: number; resolution: number; fingerprint: string; positions: Float32Array; normals: Float32Array; faceCount: number } | null = null;
+type SkinRebuildStage6BodyMeshCache = {
+  fingerprint: string;
+  positions: Float32Array;
+  normals: Float32Array;
+  summary: string;
+  watertightOk: boolean;
+};
+let stage6BodyMeshCache: SkinRebuildStage6BodyMeshCache | null = null;
+type SkinRebuildExportFormatSelection = {
+  threeMf: boolean;
+  stl: boolean;
+  obj: boolean;
+  recipe: boolean;
+};
+const DEFAULT_SKIN_REBUILD_EXPORT_FORMATS: SkinRebuildExportFormatSelection = {
+  threeMf: true,
+  stl: true,
+  obj: true,
+  recipe: true,
+};
+type SkinRebuildWorkflowStatusSnapshot = {
+  text: string;
+  ok: string | null;
+};
+type SkinRebuildWorkflowSnapshot = {
+  pipeline: SkinRebuildPipelineRuntime | null;
+  finalizedArtworkProject: SkinRebuildProject | null;
+  finalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null;
+  stage8CompletedProject: SkinRebuildProject | null;
+  stage6BodyMeshCache: SkinRebuildStage6BodyMeshCache | null;
+  reinforcementPreview: SkinRebuildReinforcementPreview | null;
+  selectedTargetPatchId: number | null;
+  selectedOverhangRegionIds: Set<number>;
+  reinforcedOverhangRegionIds: Set<number>;
+  statuses: {
+    inside: SkinRebuildWorkflowStatusSnapshot | null;
+    lowest: SkinRebuildWorkflowStatusSnapshot | null;
+    lattice: SkinRebuildWorkflowStatusSnapshot | null;
+    reinforcement: SkinRebuildWorkflowStatusSnapshot | null;
+    finalDiagnosis: SkinRebuildWorkflowStatusSnapshot | null;
+    printSupport: SkinRebuildWorkflowStatusSnapshot | null;
+    save: SkinRebuildWorkflowStatusSnapshot | null;
+    stage8Export: SkinRebuildWorkflowStatusSnapshot | null;
+  };
+};
+type SkinRebuildWorkflowHistoryEntry = {
+  label: string;
+  before: SkinRebuildWorkflowSnapshot;
+  after: SkinRebuildWorkflowSnapshot;
+};
+let skinRebuildWorkflowHistoryPast: SkinRebuildWorkflowHistoryEntry[] = [];
+let skinRebuildWorkflowHistoryFuture: SkinRebuildWorkflowHistoryEntry[] = [];
 let activeGaugeWorker: Worker | null = null;
 let gaugeGeneration = 0;
 let gaugeDebounceTimer: number | null = null;
@@ -848,6 +1101,12 @@ let activeMeshExportWorker: Worker | null = null;
 let meshExportRequestId = 0;
 let meshExportGeneration = 0;
 let meshExportStatusTimer: number | null = null;
+let meshExportHeavyComputation: HeavyComputationHandle | null = null;
+let pendingMeshExportAfterGate: {
+  options: MeshUiOptions;
+  fingerprint: string;
+  formats: SkinRebuildExportFormatSelection;
+} | null = null;
 let activePrintCheckMeshWorker: Worker | null = null;
 let printCheckMeshReject: ((error: Error) => void) | null = null;
 let printCheckMeshRequestId = 0;
@@ -857,7 +1116,14 @@ let internalPrintGateHeavyComputation: HeavyComputationHandle | null = null;
 let internalPrintGateRequestId = 0;
 let internalPrintGateGeneration = 0;
 let pendingInternalPrintGateFingerprint = "";
-let internalPrintGateCache: { fingerprint: string; report: InternalPrintGateReport; stl: ArrayBuffer } | null = null;
+let internalPrintGateCache: {
+  fingerprint: string;
+  report: InternalPrintGateReport;
+  stl: ArrayBuffer;
+  summary: string;
+  scaleMmPerUnit: number;
+  plateShiftSourceZ: number;
+} | null = null;
 let internalPrintGateStatusTimer: number | null = null;
 let activeSurfaceAngleWorker: Worker | null = null;
 let activeSurfaceSupportClassificationWorker: Worker | null = null;
@@ -1286,7 +1552,7 @@ function refreshBottomStatusPane(): void {
   const directionLabel = direction ? skinViewDirectionLabel(direction) : "--";
   bottomReviewStatus.textContent = localV088ReviewSelection
     ? `v088 exception review | Case ${localV088ReviewSelection.reviewCase} | ${directionLabel}`
-    : `SKIN editor | ${directionLabel}`;
+    : `${isSkinRebuildApp ? "SKIN REBUILD" : "SKIN"} editor | ${directionLabel}`;
 
   const selectedEntry = selectedOverhangSupportSiteId && overhangSupportResult
     ? overhangSupportResult.entries.find((entry) => entry.id === selectedOverhangSupportSiteId) ?? null
@@ -2383,6 +2649,98 @@ syncPhaseAVerticalControl();
 
 rightPaneBody.appendChild(ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
+if (isSkinRebuildApp) {
+  const printPlateControl = document.createElement("section");
+  printPlateControl.className = "skin-rebuild-print-plate-control";
+  const selectionControl = document.createElement("section");
+  selectionControl.className = "skin-rebuild-viewport-selection-control";
+  const selectionTitle = document.createElement("strong");
+  selectionTitle.textContent = "メイン画面の選択対象";
+  const selectionChoices = document.createElement("div");
+  selectionChoices.className = "skin-rebuild-viewport-selection-choices";
+  const patternSelectionLabel = document.createElement("label");
+  const patternSelectionInput = document.createElement("input");
+  patternSelectionInput.type = "radio";
+  patternSelectionInput.name = "skin-rebuild-viewport-selection";
+  patternSelectionInput.value = "pattern";
+  patternSelectionInput.checked = true;
+  patternSelectionInput.setAttribute("aria-label", "表面パターンを選択");
+  patternSelectionLabel.append(patternSelectionInput, document.createTextNode(" 表面パターン"));
+  const latticeSelectionLabel = document.createElement("label");
+  const latticeSelectionInput = document.createElement("input");
+  latticeSelectionInput.type = "radio";
+  latticeSelectionInput.name = "skin-rebuild-viewport-selection";
+  latticeSelectionInput.value = "lattice-edge";
+  latticeSelectionInput.setAttribute("aria-label", "蜘蛛ラティス線と赤面を選択");
+  latticeSelectionLabel.append(latticeSelectionInput, document.createTextNode(" 蜘蛛ラティス線＋赤面"));
+  selectionChoices.append(patternSelectionLabel, latticeSelectionLabel);
+  const selectionStatus = document.createElement("small");
+  selectionStatus.className = "hint skin-rebuild-viewport-selection-status";
+  selectionStatus.setAttribute("aria-live", "polite");
+  const regionDragLabel = document.createElement("label");
+  regionDragLabel.className = "row skin-rebuild-region-drag-toggle";
+  const regionDragInput = document.createElement("input");
+  regionDragInput.type = "checkbox";
+  regionDragInput.setAttribute("aria-label", "赤面エリアをドラッグで複数選択");
+  regionDragLabel.append(regionDragInput, document.createTextNode(" 赤面エリアを四角形でドラッグ選択"));
+  const regionSelectionHint = document.createElement("small");
+  regionSelectionHint.className = "hint";
+  regionSelectionHint.textContent = "Shift+クリックで追加、Ctrl+クリックで除外。ドラッグ選択ONでは黄色い四角形に少しでも入った赤面をまとめて選びます。";
+  selectionControl.append(selectionTitle, selectionChoices, regionDragLabel, regionSelectionHint, selectionStatus);
+  const printPlateLabel = document.createElement("label");
+  printPlateLabel.className = "row";
+  const printPlateToggle = document.createElement("input");
+  printPlateToggle.type = "checkbox";
+  printPlateToggle.checked = true;
+  printPlateToggle.setAttribute("aria-label", "印刷プレート面を表示");
+  printPlateLabel.append(printPlateToggle, document.createTextNode(" 印刷プレート面を表示"));
+  const spiderLatticeLabel = document.createElement("label");
+  spiderLatticeLabel.className = "row";
+  const spiderLatticeToggle = document.createElement("input");
+  spiderLatticeToggle.type = "checkbox";
+  spiderLatticeToggle.checked = true;
+  spiderLatticeToggle.setAttribute("aria-label", "クモの巣ラティスを表示");
+  spiderLatticeLabel.append(spiderLatticeToggle, document.createTextNode(" クモの巣ラティスを表示"));
+  const printSupportLabel = document.createElement("label");
+  printSupportLabel.className = "row";
+  const printSupportToggle = document.createElement("input");
+  printSupportToggle.type = "checkbox";
+  printSupportToggle.checked = true;
+  printSupportToggle.setAttribute("aria-label", "印刷サポートを表示");
+  printSupportLabel.append(printSupportToggle, document.createTextNode(" 印刷サポートを表示（橙）"));
+  const overhangLabel = document.createElement("label");
+  overhangLabel.className = "row";
+  const overhangToggle = document.createElement("input");
+  overhangToggle.type = "checkbox";
+  overhangToggle.checked = true;
+  overhangToggle.setAttribute("aria-label", "オーバーハング危険面を表示");
+  overhangLabel.append(overhangToggle, document.createTextNode(" オーバーハング危険面を表示（赤／補強済みは緑）"));
+  const printPlateHint = document.createElement("small");
+  printPlateHint.className = "hint";
+  printPlateHint.textContent = "表示専用です。赤=未補強、緑=蜘蛛補強済み、水色=補強部材です。危険面診断はスライサーの完全な再現ではありません。";
+  printPlateControl.append(selectionControl, printPlateLabel, spiderLatticeLabel, printSupportLabel, overhangLabel, printPlateHint);
+  ui.displayToolsRoot.insertBefore(printPlateControl, ui.displayToolsRoot.children[1] ?? null);
+  skinRebuildViewportSelectionStatus = selectionStatus;
+  skinRebuildSpiderLatticeToggle = spiderLatticeToggle;
+  patternSelectionInput.onchange = () => {
+    if (patternSelectionInput.checked) setSkinRebuildViewportSelectionMode("pattern");
+  };
+  latticeSelectionInput.onchange = () => {
+    if (latticeSelectionInput.checked) setSkinRebuildViewportSelectionMode("lattice-edge");
+  };
+  regionDragInput.onchange = () => {
+    skinRebuildRegionDragSelectEnabled = regionDragInput.checked;
+    viewport.classList.toggle("skin-rebuild-region-drag-pick-mode", skinRebuildRegionDragSelectEnabled);
+    refreshSkinRebuildViewportSelectionStatus();
+  };
+  printPlateToggle.onchange = () => skinRenderer.setPrintPlateVisible(printPlateToggle.checked);
+  spiderLatticeToggle.onchange = () => skinRenderer.setInternalStructureVisible(spiderLatticeToggle.checked);
+  printSupportToggle.onchange = () => skinRenderer.setPrintSupportVisible(printSupportToggle.checked);
+  overhangToggle.onchange = () => skinRenderer.setSkinRebuildOverhangVisible(overhangToggle.checked);
+  skinRenderer.setPrintPlateVisible(true);
+  refreshSkinRebuildViewportSelectionStatus();
+  installSkinRebuildPipelinePanel();
+}
 
 function installPaneResize(divider: HTMLDivElement, side: "left" | "right"): void {
   let drag: {
@@ -5115,6 +5473,7 @@ function requestDryWebPreviewUpdate(reason: string, options: DryWebPreviewUpdate
     skinRenderer.setInternalStructure(message.graph);
     refreshInternalAngleScreening(message.graph);
     syncPhaseASupportPreviewAvailability(message.graph);
+    keepInternalGraphVisibleInMesh(message.graph);
     heavy!.updateActual("Dry Web graph構築完了", 100);
     heavy!.finish();
     if (ownsHeavy && dryWebPreviewHeavyComputation?.id === heavy!.id) dryWebPreviewHeavyComputation = null;
@@ -6153,7 +6512,1865 @@ function setDryWebInsufficientEdgeOverlayVisible(visible: boolean): void {
   render();
 }
 
+function currentSkinRebuildPipelineSettings(): SkinRebuildSettings {
+  const radii = state.patches.flatMap((patch) => patch.points.map((point) => point.r)).filter(Number.isFinite);
+  const averageRadius = radii.length > 0 ? radii.reduce((sum, value) => sum + value, 0) / radii.length : DEFAULT_SKIN_REBUILD_SETTINGS.patternRadius;
+  return {
+    ...DEFAULT_SKIN_REBUILD_SETTINGS,
+    patternCount: Math.max(1, state.patches.length),
+    strutDiameterMm: Number(skinRebuildDiameterInput?.value ?? DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm),
+    supportDiameterMm: Number(skinRebuildSupportDiameterInput?.value ?? DEFAULT_SKIN_REBUILD_SETTINGS.supportDiameterMm),
+    targetLongestMm: 80,
+    surfaceThickness: state.skinParams.thickness,
+    patternRadius: Math.max(0.18, Math.min(0.38, averageRadius)),
+    roundK: state.skinParams.roundK,
+    overhangThresholdDeg: Number(skinRebuildThresholdInput?.value ?? DEFAULT_SKIN_REBUILD_SETTINGS.overhangThresholdDeg),
+    analysisResolution: 48,
+    exportResolution: 128,
+  };
+}
+
+function refreshSkinRebuildViewportSelectionStatus(edgeId: number | null = null): void {
+  const status = skinRebuildViewportSelectionStatus;
+  if (!status) return;
+  const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
+  const selectedRegions = overhang?.regions.filter((candidate) => skinRebuildSelectedOverhangRegionIds.has(candidate.id)) ?? [];
+  if (selectedRegions.length > 0) {
+    const faceCount = selectedRegions.reduce((sum, region) => sum + region.faceCount, 0);
+    const reinforcedCount = selectedRegions.filter((region) => skinRebuildReinforcedOverhangRegionIds.has(region.id)).length;
+    status.textContent = `赤面エリア ${selectedRegions.length}領域（${faceCount.toLocaleString()}面）を黄色で選択中 · 補強済み${reinforcedCount} · Shift追加 / Ctrl除外${skinRebuildRegionDragSelectEnabled ? " / ドラッグ選択ON" : ""}`;
+    status.dataset.mode = "overhang-region";
+    return;
+  }
+  if (skinRebuildViewportSelectionMode === "pattern") {
+    status.textContent = skinRebuildRegionDragSelectEnabled
+      ? "黄色い四角形で赤面を囲んで複数選択します。Shiftで追加、Ctrlで四角形内の領域を除外します。"
+      : "表面パターンまたは赤い危険面エリアをクリックします。Shiftで赤面を追加、Ctrlで除外できます。";
+    status.dataset.mode = "pattern";
+    return;
+  }
+  const graph = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project?.lattice ?? null : null;
+  status.dataset.mode = "lattice-edge";
+  status.textContent = edgeId !== null
+    ? `蜘蛛ラティス線 #${edgeId + 1}を黄色で選択中です。右の工程5Aから削除できます。`
+    : graph?.edges.length
+      ? "水色の蜘蛛ラティス線、または赤い危険面エリアをクリックしてください。"
+      : "赤い危険面エリアを選択できます。線は工程5Aで蜘蛛ラティスを生成すると選べます。";
+}
+
+function refreshSkinRebuildSelectedRegion(): void {
+  const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
+  const validIds = new Set(overhang?.regions.map((region) => region.id) ?? []);
+  skinRebuildSelectedOverhangRegionIds = new Set(
+    [...skinRebuildSelectedOverhangRegionIds].filter((regionId) => validIds.has(regionId)),
+  );
+  const selectedRegions = overhang?.regions.filter((region) => skinRebuildSelectedOverhangRegionIds.has(region.id)) ?? [];
+  skinRenderer.setReinforcedSkinRebuildOverhangRegions([...skinRebuildReinforcedOverhangRegionIds]);
+  skinRenderer.setSelectedSkinRebuildOverhangRegions([...skinRebuildSelectedOverhangRegionIds]);
+  if (!skinRebuildSelectedRegionStatus || !skinRebuildSelectedRegionReinforceButton) {
+    refreshSkinRebuildViewportSelectionStatus();
+    return;
+  }
+  if (!overhang || selectedRegions.length === 0) {
+    skinRebuildSelectedRegionStatus.textContent = overhang
+      ? "赤面エリアをクリック、Shift+クリック、またはドラッグで選択してください"
+      : "工程4を実行すると連続する赤面をエリア単位で選べます";
+    skinRebuildSelectedRegionReinforceButton.disabled = true;
+    refreshSkinRebuildViewportSelectionStatus();
+    return;
+  }
+  const totalSourceArea = overhang.regions.reduce((sum, candidate) => sum + candidate.areaSourceSquared, 0);
+  const selectedAreaSource = selectedRegions.reduce((sum, region) => sum + region.areaSourceSquared, 0);
+  const areaMm2 = totalSourceArea > 0 ? overhang.areaMm2 * selectedAreaSource / totalSourceArea : 0;
+  const reinforcedCount = selectedRegions.filter((region) => skinRebuildReinforcedOverhangRegionIds.has(region.id)).length;
+  const pendingCount = selectedRegions.length - reinforcedCount;
+  skinRebuildSelectedRegionStatus.textContent = `選択 ${selectedRegions.length}領域 · ${selectedRegions.reduce((sum, region) => sum + region.faceCount, 0).toLocaleString()}面 · 約${areaMm2.toFixed(1)} mm² · 未補強${pendingCount} / 緑表示${reinforcedCount}`;
+  skinRebuildSelectedRegionReinforceButton.disabled = pendingCount === 0 || !project?.lattice.edges.length;
+  refreshSkinRebuildViewportSelectionStatus();
+}
+
+function setSkinRebuildOverhangRegionSelection(
+  regionId: number | null,
+  operation: "replace" | "add" | "remove" = "replace",
+): boolean {
+  return setSkinRebuildOverhangRegionSelections(
+    regionId === null ? [] : [regionId],
+    operation,
+  ) > 0;
+}
+
+function setSkinRebuildOverhangRegionSelections(
+  regionIds: readonly number[],
+  operation: "replace" | "add" | "remove" = "replace",
+): number {
+  const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
+  const validIds = new Set(overhang?.regions.map((region) => region.id) ?? []);
+  const selectedIds = [...new Set(regionIds)].filter((regionId) => validIds.has(regionId));
+  if (operation === "replace") skinRebuildSelectedOverhangRegionIds.clear();
+  for (const regionId of selectedIds) {
+    if (operation === "remove") skinRebuildSelectedOverhangRegionIds.delete(regionId);
+    else skinRebuildSelectedOverhangRegionIds.add(regionId);
+  }
+  if (selectedIds.length > 0 && operation !== "remove") {
+    setSkinRebuildLatticeEdgeSelection(null);
+    skinRebuildSelectedTargetPatchId = null;
+    refreshSkinRebuildSelectedTarget();
+  }
+  refreshSkinRebuildSelectedRegion();
+  return selectedIds.length;
+}
+
+function setSkinRebuildLatticeEdgeSelection(edgeId: number | null): boolean {
+  const graph = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project?.lattice ?? null : null;
+  const validEdgeId = edgeId !== null && graph?.edges.some((edge) => edge.id === edgeId) ? edgeId : null;
+  if (skinRebuildLatticeEdgeSelect) skinRebuildLatticeEdgeSelect.value = validEdgeId === null ? "" : String(validEdgeId);
+  if (skinRebuildLatticeDeleteButton) skinRebuildLatticeDeleteButton.disabled = validEdgeId === null;
+  if (validEdgeId !== null && skinRebuildSelectedOverhangRegionIds.size > 0) {
+    skinRebuildSelectedOverhangRegionIds.clear();
+    skinRenderer.setSelectedSkinRebuildOverhangRegions([]);
+    refreshSkinRebuildSelectedRegion();
+  }
+  skinRenderer.setSelectedInternalStructureEdge(graph, validEdgeId);
+  refreshSkinRebuildViewportSelectionStatus(validEdgeId);
+  return validEdgeId !== null;
+}
+
+function setSkinRebuildViewportSelectionMode(mode: SkinRebuildViewportSelectionMode): void {
+  skinRebuildViewportSelectionMode = mode;
+  viewport.classList.toggle("skin-rebuild-lattice-pick-mode", mode === "lattice-edge");
+  if (mode === "lattice-edge") {
+    // The combined mode owns cyan lines and red face regions. Leave ordinary
+    // Pattern/marker highlights, then make sure the cyan graph is visible.
+    selectedPatchId = null;
+    skinRebuildSelectedTargetPatchId = null;
+    skinRenderer.updateBeadSelection(null);
+    skinRenderer.setElementNames(state.patches, null, showElementNames, hoveredPatchId);
+    refreshSkinRebuildSelectedTarget();
+    if (skinRebuildSpiderLatticeToggle) skinRebuildSpiderLatticeToggle.checked = true;
+    skinRenderer.setInternalStructureVisible(true);
+    setSkinRebuildLatticeEdgeSelection(null);
+    updateSelectionLabel();
+  } else {
+    setSkinRebuildLatticeEdgeSelection(null);
+  }
+  refreshSkinRebuildViewportSelectionStatus();
+  render();
+}
+
+function refreshSkinRebuildLatticeEdgeEditor(preferredEdgeId: number | null = null): void {
+  const select = skinRebuildLatticeEdgeSelect;
+  const deleteButton = skinRebuildLatticeDeleteButton;
+  if (!select || !deleteButton) return;
+  const graph = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project?.lattice ?? null : null;
+  const previous = preferredEdgeId ?? (select.value === "" ? Number.NaN : Number(select.value));
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = graph?.edges.length ? "削除する線を選択" : "ラティス線なし";
+  select.replaceChildren(placeholder);
+  for (const edge of graph?.edges ?? []) {
+    const start = graph!.nodes[edge.start]?.position;
+    const end = graph!.nodes[edge.end]?.position;
+    const edgeLength = start && end
+      ? Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z)
+      : 0;
+    const option = document.createElement("option");
+    option.value = String(edge.id);
+    option.textContent = `線 #${edge.id + 1} · node ${edge.start + 1}–${edge.end + 1} · 長さ ${edgeLength.toFixed(3)}`;
+    select.append(option);
+  }
+  const canRestoreSelection = graph?.edges.some((edge) => edge.id === previous) ?? false;
+  select.value = canRestoreSelection ? String(previous) : "";
+  select.disabled = !graph?.edges.length;
+  setSkinRebuildLatticeEdgeSelection(canRestoreSelection ? previous : null);
+}
+
+function refreshSkinRebuildSelectedTarget(): void {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
+  if (skinRebuildUnsupportedFocusButton) {
+    skinRebuildUnsupportedFocusButton.disabled = !project || project.audit.unsupportedTargetCount === 0;
+    skinRebuildUnsupportedFocusButton.textContent = project?.audit.unsupportedTargetCount
+      ? `未支持${project.audit.unsupportedTargetCount}点を黄色で強調`
+      : "未支持点を黄色で強調";
+  }
+  const point = project?.lowestPoints.find((candidate) => candidate.patchId === skinRebuildSelectedTargetPatchId);
+  if (!project || !point?.needsSupport) skinRebuildSelectedTargetPatchId = null;
+  skinRenderer.setSelectedMotifLowestPointMarker(skinRebuildSelectedTargetPatchId);
+  if (!skinRebuildSelectedTargetStatus || !skinRebuildSelectedTargetButton) return;
+  if (!project || skinRebuildSelectedTargetPatchId === null) {
+    skinRebuildSelectedTargetStatus.textContent = "赤面をメイン画面でクリックしてください";
+    skinRebuildSelectedTargetButton.disabled = true;
+    return;
+  }
+  const selectedPoint = project.lowestPoints.find((candidate) => candidate.patchId === skinRebuildSelectedTargetPatchId)!;
+  const side = project.patternSides.find((candidate) => candidate.patchId === skinRebuildSelectedTargetPatchId);
+  const requiresSpider = skinRebuildRequiresSpiderSupport(selectedPoint, side);
+  const spiderSupported = project.latticeConnections.some((connection) => connection.targetPatchId === skinRebuildSelectedTargetPatchId);
+  const disconnected = skinRebuildDisconnectedPatternIds(project.patternSides, project.finalGraph)
+    .includes(skinRebuildSelectedTargetPatchId);
+  skinRebuildSelectedTargetStatus.textContent = requiresSpider
+    ? `Pattern #${skinRebuildSelectedTargetPatchId} · 内向き法線はPlate方向 · 蜘蛛支持 ${spiderSupported ? "済み" : "必要"}`
+    : `Pattern #${skinRebuildSelectedTargetPatchId} · 蜘蛛支持は不要 · 接続 ${disconnected ? "必要" : "済み"} · 工程8印刷サポート対象`;
+  skinRebuildSelectedTargetButton.disabled = requiresSpider ? spiderSupported : !disconnected;
+}
+
+function skinRebuildUnsupportedSpiderTargetIds(project: SkinRebuildProject): number[] {
+  const supported = new Set(project.latticeConnections.map((connection) => connection.targetPatchId));
+  return skinRebuildSpiderSupportTargetIds(project.patternSides, project.lowestPoints)
+    .filter((patchId) => !supported.has(patchId));
+}
+
+function focusSkinRebuildUnsupportedTarget(): number | null {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  if (!project) return null;
+  const unsupported = skinRebuildUnsupportedSpiderTargetIds(project);
+  const patchId = unsupported[0] ?? null;
+  if (patchId === null) return null;
+  setSkinRebuildViewportSelectionMode("pattern");
+  selectSkinRebuildTarget(patchId);
+  if (skinRebuildSelectedTargetStatus) {
+    skinRebuildSelectedTargetStatus.textContent = `書き出しを止めている未支持点 · Pattern #${patchId} · 画面の大きい黄色＋白枠マーカー`;
+    skinRebuildSelectedTargetStatus.dataset.ok = "false";
+  }
+  setSkinRebuildMeshBottomProgress(
+    "未支持点を強調",
+    `Pattern #${patchId} · 大きい黄色＋白枠マーカー · 残り${unsupported.length}点`,
+    "この点へ蜘蛛支持が必要です",
+  );
+  projectMeta.textContent = `書き出し停止の原因を強調 · Pattern #${patchId}`;
+  render();
+  return patchId;
+}
+
+function selectSkinRebuildTarget(patchId: number | null): boolean {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
+  if (!project || patchId === null) return false;
+  const point = project.lowestPoints.find((candidate) => candidate.patchId === patchId);
+  if (!point?.needsSupport) return false;
+  skinRebuildSelectedOverhangRegionIds.clear();
+  skinRenderer.setSelectedSkinRebuildOverhangRegions([]);
+  skinRebuildSelectedTargetPatchId = patchId;
+  refreshSkinRebuildSelectedTarget();
+  refreshSkinRebuildSelectedRegion();
+  render();
+  return true;
+}
+
+function refreshSkinRebuildLowestPointMarkers(project: SkinRebuildProject): void {
+  const sideByPatch = new Map(project.patternSides.map((side) => [side.patchId, side]));
+  const spiderSupported = new Set(project.latticeConnections.map((connection) => connection.targetPatchId));
+  const removableSupported = (point: SkinRebuildLowestPoint): boolean => project.printSupport.nodes.some((node) =>
+    Math.hypot(
+      node.position.x - point.position.x,
+      node.position.y - point.position.y,
+      node.position.z - point.position.z,
+    ) <= 1e-6);
+  const markers: MotifLowestPoint[] = project.lowestPoints.map((point) => {
+    const requiresSpider = skinRebuildRequiresSpiderSupport(point, sideByPatch.get(point.patchId));
+    return {
+      patchId: point.patchId,
+      shape: state.patches.find((patch) => patch.id === point.patchId)?.shape ?? "coin",
+      position: { ...point.position },
+      normal: { ...point.normal },
+      markerRadius: point.needsSupport ? 0.055 : 0.025,
+      reachedByInternal: !point.needsSupport
+        || (requiresSpider ? spiderSupported.has(point.patchId) : removableSupported(point)),
+      basis: point.basis,
+    };
+  });
+  skinRenderer.setMotifLowestPointMarkers(markers, skinRebuildSelectedTargetPatchId);
+}
+
+function skinRebuildPipelineIsCurrent(): boolean {
+  return skinRebuildPipeline !== null && skinRebuildPipeline.shapeFingerprint === fkeiShapeFingerprint(state);
+}
+
+function currentOriginalDryWebForSkinRebuild(): InternalStructureGraph | null {
+  if (skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.dryWeb) return skinRebuildPipeline.dryWeb;
+  return state.skinParams.internalStructure === "targetedGrid"
+    && phaseADryWebPreview
+    && dryWebPreviewIsCurrent()
+    ? phaseADryWebPreview.graph
+    : null;
+}
+
+function setSkinRebuildPipelineBusy(button: HTMLButtonElement, busy: boolean, idleText: string, busyText: string): void {
+  button.disabled = busy;
+  button.textContent = busy ? busyText : idleText;
+}
+
+function revealBottomStatusPaneForSkinRebuild(): void {
+  if (!editorLayoutState.bottomCollapsed) return;
+  editorLayoutState = { ...editorLayoutState, bottomCollapsed: false };
+  applyEditorLayoutDom();
+  skinRenderer.resize();
+}
+
+function setSkinRebuildLowestBottomProgress(current: string, generation: string, error?: string): void {
+  bottomWorkflowCurrent.textContent = `Current | ${current}`;
+  bottomWorkflowCurrent.classList.remove("is-placeholder");
+  bottomWorkflowGeneration.textContent = `Generation | ${generation}`;
+  bottomWorkflowGeneration.classList.remove("is-placeholder");
+  if (error) {
+    bottomWorkflowError.textContent = `Error | ${error}`;
+    bottomWorkflowError.classList.remove("is-placeholder");
+  } else {
+    bottomWorkflowError.textContent = "Error | なし";
+    bottomWorkflowError.classList.add("is-placeholder");
+  }
+}
+
+function setSkinRebuildMeshBottomProgress(current: string, generation: string, error?: string): void {
+  if (!isSkinRebuildApp) return;
+  revealBottomStatusPaneForSkinRebuild();
+  setSkinRebuildLowestBottomProgress(current, generation, error);
+}
+
+function clearSkinRebuildLowestStatusTimer(): void {
+  if (skinRebuildLowestStatusTimer !== null) window.clearInterval(skinRebuildLowestStatusTimer);
+  skinRebuildLowestStatusTimer = null;
+}
+
+function cancelSkinRebuildLowestExtraction(reason = "工程4をキャンセルしました"): void {
+  if (!activeSkinRebuildLowestWorker && !skinRebuildLowestHeavyComputation) return;
+  skinRebuildLowestRequestId++;
+  activeSkinRebuildLowestWorker?.terminate();
+  activeSkinRebuildLowestWorker = null;
+  clearSkinRebuildLowestStatusTimer();
+  skinRebuildLowestHeavyComputation?.finish();
+  skinRebuildLowestHeavyComputation = null;
+  if (skinRebuildLowestButton) {
+    setSkinRebuildPipelineBusy(skinRebuildLowestButton, false, "4. オーバーハング部を検出", "複数コアで解析中…");
+  }
+  if (skinRebuildLowestStatus) {
+    skinRebuildLowestStatus.textContent = reason;
+    skinRebuildLowestStatus.dataset.ok = "false";
+  }
+  setSkinRebuildLowestBottomProgress("工程4 中断", reason);
+}
+
+function cancelSkinRebuildPrintSupportDiagnosis(): void {
+  skinRebuildPrintSupportRequestId++;
+  activeSkinRebuildPrintSupportWorker?.terminate();
+  activeSkinRebuildPrintSupportWorker = null;
+}
+
+async function diagnoseSkinRebuildArtworkForPrintSupport(
+  project: SkinRebuildProject,
+  settings: SkinRebuildSettings,
+  onProgress: (message: Extract<SkinRebuildLowestPointWorkerMessage, { type: "progress" }>) => void,
+): Promise<{
+  lowestPoints: SkinRebuildLowestPoint[];
+  meshPositions: Float32Array;
+  meshNormals: Float32Array;
+  overhangFacePositions: Float32Array;
+  overhangFaceRegionIds: Int32Array;
+  overhangRegions: SkinRebuildOverhangRegion[];
+  overhangFaceCount: number;
+  overhangRegionCount: number;
+  overhangAreaMm2: number;
+  overhangAreaPercent: number;
+  faceCount: number;
+  workerCount: number;
+  elapsedMs: number;
+}> {
+  cancelSkinRebuildPrintSupportDiagnosis();
+  const requestId = ++skinRebuildPrintSupportRequestId;
+  const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
+  const worker = new Worker(new URL("./rebuild/lowestPoint.worker.ts", import.meta.url), { type: "module" });
+  activeSkinRebuildPrintSupportWorker = worker;
+  return await new Promise((resolve, reject) => {
+    worker.onmessage = (event: MessageEvent<SkinRebuildLowestPointWorkerMessage>) => {
+      const message = event.data;
+      if (message.requestId !== requestId || activeSkinRebuildPrintSupportWorker !== worker) return;
+      if (message.type === "progress") {
+        onProgress(message);
+        return;
+      }
+      worker.terminate();
+      activeSkinRebuildPrintSupportWorker = null;
+      if (message.type === "error") {
+        reject(new Error(message.message));
+        return;
+      }
+      resolve({
+        lowestPoints: message.lowestPoints,
+        meshPositions: message.meshPositions,
+        meshNormals: message.meshNormals,
+        overhangFacePositions: message.overhangFacePositions,
+        overhangFaceRegionIds: message.overhangFaceRegionIds,
+        overhangRegions: message.overhangRegions,
+        overhangFaceCount: message.overhangFaceCount,
+        overhangRegionCount: message.overhangRegionCount,
+        overhangAreaMm2: message.overhangAreaMm2,
+        overhangAreaPercent: message.overhangAreaPercent,
+        faceCount: message.faceCount,
+        workerCount: message.workerCount,
+        elapsedMs: message.elapsedMs,
+      });
+    };
+    worker.onerror = (event) => {
+      if (activeSkinRebuildPrintSupportWorker !== worker) return;
+      worker.terminate();
+      activeSkinRebuildPrintSupportWorker = null;
+      reject(new Error(event.message || "作品mesh解析Workerでエラーが発生しました"));
+    };
+    const request: SkinRebuildLowestPointRequest = {
+      type: "build",
+      requestId,
+      base: { ...project.base, host: project.base.host.map((ball) => ({ ...ball })) },
+      patterns: state.patches.map((patch) => ({
+        ...patch,
+        motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+        points: patch.points.map((point) => ({ ...point })),
+      })),
+      patternSides: project.patternSides.map((side) => ({
+        ...side,
+        surfacePosition: { ...side.surfacePosition },
+        outwardNormal: { ...side.outwardNormal },
+        insidePosition: { ...side.insidePosition },
+        outsidePosition: { ...side.outsidePosition },
+      })),
+      // finalGraph is exactly the artwork: Surface Pattern + permanent
+      // spider (and optional retained DryWeb). Removable support is absent.
+      dryWeb: {
+        ...project.finalGraph,
+        nodes: project.finalGraph.nodes.map((node) => ({ ...node, position: { ...node.position } })),
+        edges: project.finalGraph.edges.map((edge) => ({ ...edge })),
+        stats: { ...project.finalGraph.stats },
+      },
+      settings,
+      workerCount,
+    };
+    worker.postMessage(request);
+  });
+}
+
+function skinRebuildFinalDiagnosisIsCurrent(): boolean {
+  return skinRebuildPipelineIsCurrent()
+    && skinRebuildPipeline?.project !== null
+    && skinRebuildFinalArtworkDiagnosis?.project === skinRebuildPipeline?.project;
+}
+
+function refreshSkinRebuildFinalStageButtons(): void {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  if (skinRebuildFinalDiagnosisButton) {
+    skinRebuildFinalDiagnosisButton.disabled = project === null || skinRebuildFinalizedArtworkProject !== project;
+  }
+  if (skinRebuildPrintSupportButton) {
+    skinRebuildPrintSupportButton.disabled = !skinRebuildFinalDiagnosisIsCurrent();
+  }
+  refreshSkinRebuildStage8ExportButton();
+}
+
+function refreshSkinRebuildStage8ExportButton(): void {
+  if (!skinRebuildStage8ExportButton) return;
+  const reason = skinRebuildPipelineOutputBlockReason();
+  const running = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
+  skinRebuildStage8ExportButton.disabled = reason !== null || running;
+  if (!skinRebuildStage8ExportStatus) return;
+  if (reason && skinRebuildStage8ExportStatus.textContent === "未実行") {
+    skinRebuildStage8ExportStatus.textContent = `準備待ち · ${reason}`;
+    skinRebuildStage8ExportStatus.dataset.ok = "false";
+  } else if (!reason && !running && (skinRebuildStage8ExportStatus.textContent === "未実行"
+    || skinRebuildStage8ExportStatus.textContent?.startsWith("準備待ち"))) {
+    skinRebuildStage8ExportStatus.textContent = "準備完了 · 必要な形式を選んで書き出せます";
+    skinRebuildStage8ExportStatus.dataset.ok = "true";
+  }
+}
+
+function invalidateSkinRebuildFinalStages(reason: string): void {
+  skinRebuildFinalizedArtworkProject = null;
+  skinRebuildFinalArtworkDiagnosis = null;
+  skinRebuildStage8CompletedProject = null;
+  if (skinRebuildFinalDiagnosisStatus) {
+    skinRebuildFinalDiagnosisStatus.textContent = reason;
+    skinRebuildFinalDiagnosisStatus.dataset.ok = "false";
+  }
+  if (skinRebuildPrintSupportStatus) {
+    skinRebuildPrintSupportStatus.textContent = "工程7の最終診断待ち";
+    skinRebuildPrintSupportStatus.dataset.ok = "false";
+  }
+  refreshSkinRebuildFinalStageButtons();
+}
+
+function markSkinRebuildArtworkFinalized(project: SkinRebuildProject, summary: string): void {
+  if (skinRebuildFinalizedArtworkProject !== project) skinRebuildFinalArtworkDiagnosis = null;
+  skinRebuildFinalizedArtworkProject = project;
+  if (skinRebuildFinalDiagnosisStatus && !skinRebuildFinalArtworkDiagnosis) {
+    skinRebuildFinalDiagnosisStatus.textContent = `${summary} · 工程7を実行してください`;
+    delete skinRebuildFinalDiagnosisStatus.dataset.ok;
+  }
+  refreshSkinRebuildFinalStageButtons();
+}
+
+function setSkinRebuildReinforcementPreview(
+  graph: InternalStructureGraph | null,
+  edgeIds: readonly number[],
+): void {
+  skinRebuildReinforcementPreview = graph && edgeIds.length > 0
+    ? { graph, edgeIds: [...edgeIds] }
+    : null;
+  skinRenderer.setReinforcedInternalStructureEdges(
+    skinRebuildReinforcementPreview?.graph ?? null,
+    skinRebuildReinforcementPreview?.edgeIds ?? [],
+  );
+}
+
+/** Replace the stale Stage 4 surface-only preview with the exact Stage 6
+ * triangle soup. In normal mesh observation the ordinary line overlay is
+ * hidden, so turning the left-pane lattice display off still leaves every
+ * genuinely meshed 5A/5B member visible as part of the artwork. */
+function showSkinRebuildStage6ArtworkMesh(
+  positions: Float32Array,
+  normals: Float32Array,
+): void {
+  if (!isSkinRebuildApp || positions.length === 0 || normals.length !== positions.length) return;
+  // The bright cyan Stage 5B layer is only an authoring confirmation. Once
+  // the exact Stage 6 artwork mesh is visible, remove that duplicate overlay;
+  // the reinforcement remains physically present in the fused mesh.
+  setSkinRebuildReinforcementPreview(null, []);
+  skinRenderer.setSkinRebuildOverhangOverlay(null);
+  skinRenderer.setMeshOverlayBuffers(positions, normals);
+  viewMode = "mesh";
+  setInternalObservationMode("normal");
+  skinRenderer.setViewMode(viewMode);
+  ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  render();
+}
+
+function installSkinRebuildPipelinePanel(): void {
+  const stage3Body = ui.root.querySelector<HTMLElement>("#skin-stage-3-body");
+  const stage4Body = ui.root.querySelector<HTMLElement>("#skin-stage-4-body");
+  const stage5Body = ui.root.querySelector<HTMLElement>("#skin-stage-5-body");
+  const stage6Body = ui.root.querySelector<HTMLElement>("#skin-stage-6-body");
+  const stage7Body = ui.root.querySelector<HTMLElement>("#skin-stage-7-body");
+  const stage8Body = ui.root.querySelector<HTMLElement>("#skin-stage-8-body");
+  if (!stage3Body || !stage4Body || !stage5Body || !stage6Body || !stage7Body || !stage8Body) return;
+  const stageSummaries: Array<[HTMLElement, string, string]> = [
+    [stage3Body, "Surface Patternの内外を決める", "Base Shape側をinsideとして確定"],
+    [stage4Body, "オーバーハング部を検出", "最初の危険面を赤表示"],
+    [stage5Body, "蜘蛛ラティスと赤面エリア補強", "5A spider web → 5B red-area reinforcement"],
+    [stage6Body, "作品形状の確定", "Surface Pattern＋蜘蛛＋補強をmesh化"],
+    [stage7Body, "作品の最終診断", "確定meshに残る危険面を赤表示"],
+    [stage8Body, "残っている赤へ印刷サポート", "別体supportを生成して出力"],
+  ];
+  for (const [body, title, description] of stageSummaries) {
+    const details = body.closest("details");
+    const summary = details?.querySelector<HTMLElement>(".skin-author-stage-copy");
+    const stateLabel = details?.querySelector<HTMLElement>(".skin-author-stage-state");
+    const summaryTitle = summary?.querySelector<HTMLElement>("strong");
+    const summaryDescription = summary?.querySelector<HTMLElement>("small");
+    if (summaryTitle) summaryTitle.textContent = title;
+    if (summaryDescription) summaryDescription.textContent = description;
+    if (stateLabel) stateLabel.textContent = "current";
+  }
+  stage5Body.querySelector<HTMLElement>(".skin-stage-placeholder")?.remove();
+
+  const makeStep = (heading: string, copy: string) => {
+    const section = document.createElement("section");
+    section.className = "skin-rebuild-pipeline-step";
+    const stepTitle = document.createElement("strong");
+    stepTitle.textContent = heading;
+    const stepCopy = document.createElement("p");
+    stepCopy.className = "hint";
+    stepCopy.textContent = copy;
+    const status = document.createElement("div");
+    status.className = "mesh-status skin-rebuild-pipeline-status";
+    status.textContent = "未実行";
+    section.append(stepTitle, stepCopy);
+    return { section, status };
+  };
+
+  const inside = makeStep(
+    "3. Surface Patternの内外を決める",
+    "各Patternの代表点をBase Shapeへ再投影し、法線の両側をSDFで測ります。Base Shapeが存在する側だけをinsideとして採用します。",
+  );
+  const insideButton = document.createElement("button");
+  insideButton.type = "button";
+  insideButton.className = "primary-action";
+  insideButton.textContent = "3. Base Shape側をinsideとして判定";
+  insideButton.onclick = async () => {
+    cancelSkinRebuildLowestExtraction("工程3を再実行したため、工程4を停止しました");
+    if (state.host.length === 0 || state.patches.length === 0) {
+      inside.status.textContent = "先にStage 1/2でBase ShapeとSurface Patternを作成またはOpenしてください";
+      inside.status.dataset.ok = "false";
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    setSkinRebuildPipelineBusy(insideButton, true, "3. Base Shape側をinsideとして判定", "内外を判定中…");
+    inside.status.textContent = "各PatternをBase Shapeへ再投影中…";
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    try {
+      const settings = currentSkinRebuildPipelineSettings();
+      const base: SkinRebuildBase = {
+        kind: "metaball-capsule",
+        host: state.host.map((ball) => ({ ...ball })),
+        hostK: state.hostParams.k,
+      };
+      const patternSides = classifySkinRebuildPatternSides(base, state.patches, settings);
+      skinRebuildPipeline = {
+        shapeFingerprint: fkeiShapeFingerprint(state),
+        settings,
+        base,
+        patternSides,
+        dryWeb: currentOriginalDryWebForSkinRebuild() ?? createEmptySkinRebuildGraph(),
+        lowestPoints: null,
+        overhang: null,
+        project: null,
+      };
+      skinRebuildSelectedTargetPatchId = null;
+      skinRebuildSelectedOverhangRegionIds.clear();
+      skinRebuildReinforcedOverhangRegionIds.clear();
+      setSkinRebuildReinforcementPreview(null, []);
+      invalidateSkinRebuildFinalStages("工程3を更新したため、工程6〜8は未実行です");
+      skinRenderer.setMotifLowestPointMarkers(null, null);
+      skinRenderer.setSkinRebuildOverhangOverlay(null);
+      refreshSkinRebuildSelectedTarget();
+      refreshSkinRebuildSelectedRegion();
+      inside.status.textContent = `inside確定 ${patternSides.length}/${state.patches.length} · 全Patternで内側SDF < 0 / 外側SDF > 0`;
+      inside.status.dataset.ok = "true";
+      if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = false;
+      if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = true;
+      if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = true;
+      if (skinRebuildCompleteSupportButton) skinRebuildCompleteSupportButton.disabled = true;
+      if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = true;
+      if (skinRebuildPrintSupportButton) skinRebuildPrintSupportButton.disabled = true;
+      if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = true;
+      if (skinRebuildLowestStatus) skinRebuildLowestStatus.textContent = "内外判定済み · 次にオーバーハング部を検出してください";
+      if (skinRebuildLatticeStatus) skinRebuildLatticeStatus.textContent = "オーバーハング検出後に実行できます";
+      if (skinRebuildPrintSupportStatus) skinRebuildPrintSupportStatus.textContent = "工程6の作品確定と工程7の最終診断待ち";
+      if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "工程4と5の実行待ち";
+      commitSkinRebuildWorkflowHistory("工程3 内外判定", workflowBefore);
+    } catch (error) {
+      restoreSkinRebuildWorkflowSnapshot(workflowBefore);
+      inside.status.textContent = `内外判定失敗: ${error instanceof Error ? error.message : String(error)}`;
+      inside.status.dataset.ok = "false";
+    } finally {
+      setSkinRebuildPipelineBusy(insideButton, false, "3. Base Shape側をinsideとして判定", "内外を判定中…");
+    }
+  };
+  inside.section.append(insideButton, inside.status);
+
+  const lowest = makeStep(
+    "4. オーバーハング部を検出",
+    "最終Surface meshの全三角面を造形方向から判定し、閾値以上の下面を隣接する危険領域にまとめて赤く表示します。同時に各Patternの最下端点も蜘蛛ラティス用に抽出します。",
+  );
+  const thresholdRow = document.createElement("label");
+  thresholdRow.className = "row skin-rebuild-pipeline-setting";
+  thresholdRow.append(document.createTextNode("危険角度 "));
+  const threshold = document.createElement("input");
+  threshold.type = "number";
+  threshold.min = "30";
+  threshold.max = "65";
+  threshold.step = "1";
+  threshold.value = "45";
+  thresholdRow.append(threshold, document.createTextNode("°"));
+  const lowestButton = document.createElement("button");
+  lowestButton.type = "button";
+  lowestButton.className = "primary-action";
+  lowestButton.textContent = "4. オーバーハング部を検出";
+  lowestButton.disabled = true;
+  lowestButton.onclick = () => {
+    if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline) {
+      lowest.status.textContent = "先に工程3の内外判定を実行してください";
+      lowest.status.dataset.ok = "false";
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    const dryWeb = skinRebuildPipeline.dryWeb ?? createEmptySkinRebuildGraph();
+    cancelSkinRebuildLowestExtraction("新しい工程4を開始します");
+    const pipeline = skinRebuildPipeline;
+    const settings = currentSkinRebuildPipelineSettings();
+    pipeline.settings = settings;
+    pipeline.lowestPoints = null;
+    pipeline.overhang = null;
+    pipeline.project = null;
+    skinRenderer.setSkinRebuildOverhangOverlay(null);
+    skinRebuildSelectedTargetPatchId = null;
+    skinRebuildSelectedOverhangRegionIds.clear();
+    skinRebuildReinforcedOverhangRegionIds.clear();
+    setSkinRebuildReinforcementPreview(null, []);
+    invalidateSkinRebuildFinalStages("工程4を再計算しているため、工程6〜8は未実行です");
+    refreshSkinRebuildSelectedTarget();
+    refreshSkinRebuildSelectedRegion();
+    if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = true;
+    if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = true;
+    if (skinRebuildCompleteSupportButton) skinRebuildCompleteSupportButton.disabled = true;
+    if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = true;
+    if (skinRebuildLatticeStatus) skinRebuildLatticeStatus.textContent = "工程4を複数コアで再計算中…";
+    if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = true;
+    if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "工程4と5の再実行待ち";
+    const requestId = ++skinRebuildLowestRequestId;
+    const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
+    const worker = new Worker(new URL("./rebuild/lowestPoint.worker.ts", import.meta.url), { type: "module" });
+    const started = performance.now();
+    let lastDetail = `最終メッシュを${workerCount > 1 ? `${workerCount}コアへ分割` : "背景Workerで生成"}`;
+    activeSkinRebuildLowestWorker = worker;
+    setSkinRebuildPipelineBusy(lowestButton, true, "4. オーバーハング部を検出", "複数コアで解析中…");
+    lowest.status.textContent = `${lastDetail} · 下部STATUSに進捗を表示します`;
+    delete lowest.status.dataset.ok;
+    revealBottomStatusPaneForSkinRebuild();
+    setSkinRebuildLowestBottomProgress("工程4 オーバーハング検出", `${lastDetail} · 0.0秒`);
+    const cancel = (): void => {
+      if (activeSkinRebuildLowestWorker !== worker || skinRebuildLowestRequestId !== requestId) return;
+      cancelSkinRebuildLowestExtraction("工程4をキャンセルしました");
+      restoreSkinRebuildWorkflowSnapshot(workflowBefore);
+      lowest.status.textContent = "工程4をキャンセルしました。開始前の状態を復元しました";
+    };
+    const heavy = beginHeavyComputation(`工程4 オーバーハング検出 · ${workerCount}コア`, cancel);
+    skinRebuildLowestHeavyComputation = heavy;
+    heavy.updateActual(`${lastDetail} · 解像度${settings.analysisResolution}`, 0);
+    clearSkinRebuildLowestStatusTimer();
+    skinRebuildLowestStatusTimer = window.setInterval(() => {
+      if (activeSkinRebuildLowestWorker !== worker) return;
+      const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+      heavy.update(`${lastDetail} · ${elapsed}秒`);
+      setSkinRebuildLowestBottomProgress("工程4 オーバーハング検出", `${lastDetail} · ${elapsed}秒`);
+    }, 500);
+
+    const finishWorker = (): void => {
+      if (activeSkinRebuildLowestWorker === worker) activeSkinRebuildLowestWorker = null;
+      worker.terminate();
+      clearSkinRebuildLowestStatusTimer();
+      if (skinRebuildLowestHeavyComputation?.id === heavy.id) {
+        skinRebuildLowestHeavyComputation = null;
+        heavy.finish();
+      }
+      setSkinRebuildPipelineBusy(lowestButton, false, "4. オーバーハング部を検出", "複数コアで解析中…");
+    };
+
+    worker.onmessage = (event: MessageEvent<SkinRebuildLowestPointWorkerMessage>) => {
+      const message = event.data;
+      if (activeSkinRebuildLowestWorker !== worker
+        || message.requestId !== requestId
+        || skinRebuildLowestRequestId !== requestId) {
+        worker.terminate();
+        return;
+      }
+      if (message.type === "progress") {
+        const elapsed = (message.elapsedMs / 1000).toFixed(1);
+        if (message.phase === "mesh") {
+          lastDetail = `メッシュ分割 ${message.completed}/${message.total} · ${message.workerCount}コア · ${message.faceCount.toLocaleString()}面`;
+        } else if (message.phase === "fallback") {
+          lastDetail = "分割Workerを使えないため背景Worker 1本へ切替";
+          heavy.smoothTo(70, 90_000);
+        } else if (message.phase === "orientation") {
+          lastDetail = `メッシュ統合・面方向を整理中 · ${message.faceCount.toLocaleString()}面`;
+        } else if (message.phase === "attribution") {
+          lastDetail = `Pattern帰属 ${message.completed.toLocaleString()}/${message.total.toLocaleString()}頂点`;
+        } else if (message.phase === "reachability") {
+          lastDetail = `Pattern最下端確認 ${message.completed.toLocaleString()}/${message.total.toLocaleString()}`;
+        } else if (message.phase === "overhang") {
+          lastDetail = `危険面を領域化中 · ${message.faceCount.toLocaleString()}面を検査`;
+        } else {
+          lastDetail = "最下端と支持対象を確定中";
+        }
+        const progress = skinRebuildLowestProgressPercent(message.phase, message.completed, message.total);
+        heavy.updateActual(`${lastDetail} · ${elapsed}秒`, progress);
+        lowest.status.textContent = `${lastDetail} · ${elapsed}秒 · 画面は操作できます`;
+        setSkinRebuildLowestBottomProgress("工程4 オーバーハング検出", `${Math.round(progress)}% · ${lastDetail} · ${elapsed}秒`);
+        return;
+      }
+
+      finishWorker();
+      if (message.type === "error") {
+        restoreSkinRebuildWorkflowSnapshot(workflowBefore);
+        const errorText = `オーバーハング検出失敗: ${message.message}`;
+        lowest.status.textContent = errorText;
+        lowest.status.dataset.ok = "false";
+        setSkinRebuildLowestBottomProgress("工程4 失敗", `${(message.elapsedMs / 1000).toFixed(1)}秒`, message.message);
+        return;
+      }
+      if (!skinRebuildPipelineIsCurrent() || skinRebuildPipeline !== pipeline
+        || currentOriginalDryWebForSkinRebuild() !== dryWeb) {
+        lowest.status.textContent = "工程4の計算中に形状またはDry Webが変わったため、結果を採用しませんでした";
+        lowest.status.dataset.ok = "false";
+        setSkinRebuildLowestBottomProgress("工程4 結果破棄", "入力が変更されました");
+        return;
+      }
+
+      pipeline.settings = settings;
+      pipeline.dryWeb = dryWeb;
+      pipeline.lowestPoints = message.lowestPoints;
+      pipeline.overhang = {
+        faceCount: message.overhangFaceCount,
+        regionCount: message.overhangRegionCount,
+        areaMm2: message.overhangAreaMm2,
+        areaPercent: message.overhangAreaPercent,
+        meshPositions: message.meshPositions,
+        meshNormals: message.meshNormals,
+        positions: message.overhangFacePositions,
+        faceRegionIds: message.overhangFaceRegionIds,
+        regions: message.overhangRegions,
+      };
+      pipeline.project = assembleSkinRebuildProject(
+        settings,
+        pipeline.base,
+        state.patches,
+        pipeline.patternSides,
+        dryWeb,
+        message.lowestPoints,
+        createEmptySkinRebuildGraph(),
+        [],
+      );
+      installSkinRebuildPermanentLatticePreview(pipeline.project, false);
+      if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = true;
+      if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "工程5の実行待ち";
+      const targets = message.lowestPoints.filter((point) => point.needsSupport);
+      const spiderTargets = skinRebuildSpiderSupportTargetIds(pipeline.patternSides, message.lowestPoints);
+      const removableSupportTargets = targets.length - spiderTargets.length;
+      refreshSkinRebuildLowestPointMarkers(pipeline.project);
+      skinRenderer.setMeshOverlayBuffers(message.meshPositions, message.meshNormals);
+      skinRenderer.setSkinRebuildOverhangOverlay(
+        message.overhangFacePositions,
+        message.overhangFaceRegionIds,
+      );
+      viewMode = "mesh";
+      skinRenderer.setViewMode(viewMode);
+      ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+      keepInternalGraphVisibleInMesh(getInternalStructureGraph());
+      const elapsed = (message.elapsedMs / 1000).toFixed(1);
+      const execution = message.parallel ? `${message.workerCount}コア` : "背景Worker 1本";
+      lowest.status.textContent = `危険領域 ${message.overhangRegionCount} · 赤mesh ${message.overhangFaceCount.toLocaleString()}面 / ${message.overhangAreaMm2.toFixed(1)} mm² (${message.overhangAreaPercent.toFixed(1)}%) · Pattern最下端 ${message.lowestPoints.length}点 · 蜘蛛支持 ${spiderTargets.length}点 · ${execution} · ${elapsed}秒`;
+      lowest.status.dataset.ok = "true";
+      setSkinRebuildLowestBottomProgress(
+        "工程4 完了",
+        `${execution} · 全${message.faceCount.toLocaleString()}面 / 危険${message.overhangFaceCount.toLocaleString()}面・${message.overhangRegionCount}領域・${message.overhangAreaPercent.toFixed(1)}% · ${elapsed}秒 · 蜘蛛支持${spiderTargets.length}点 · 非蜘蛛候補${removableSupportTargets}点`,
+      );
+      if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = false;
+      if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = false;
+      if (skinRebuildCompleteSupportButton) skinRebuildCompleteSupportButton.disabled = spiderTargets.length === 0;
+      if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = false;
+      if (skinRebuildPrintSupportButton) skinRebuildPrintSupportButton.disabled = true;
+      if (skinRebuildLatticeStatus) skinRebuildLatticeStatus.textContent = targets.length > 0
+        ? `蜘蛛支持${spiderTargets.length}点と全Pattern接続を作る準備ができました · 赤面エリアは5Bで個別補強できます`
+        : "支持対象はありません。工程5で全Patternの一体化ラティスを作ります";
+      if (skinRebuildPrintSupportStatus) skinRebuildPrintSupportStatus.textContent = "工程6の作品確定と工程7の最終診断待ち";
+      refreshSkinRebuildSelectedTarget();
+      refreshSkinRebuildSelectedRegion();
+      commitSkinRebuildWorkflowHistory("工程4 オーバーハング検出", workflowBefore);
+      render();
+    };
+    worker.onerror = (event) => {
+      if (activeSkinRebuildLowestWorker !== worker || skinRebuildLowestRequestId !== requestId) {
+        worker.terminate();
+        return;
+      }
+      finishWorker();
+      restoreSkinRebuildWorkflowSnapshot(workflowBefore);
+      const message = event.message || "工程4 Workerを起動できませんでした";
+      lowest.status.textContent = `オーバーハング検出失敗: ${message}`;
+      lowest.status.dataset.ok = "false";
+      setSkinRebuildLowestBottomProgress("工程4 失敗", `${((performance.now() - started) / 1000).toFixed(1)}秒`, message);
+    };
+
+    const request: SkinRebuildLowestPointRequest = {
+      type: "build",
+      requestId,
+      base: { ...pipeline.base, host: pipeline.base.host.map((ball) => ({ ...ball })) },
+      patterns: state.patches.map((patch) => ({
+        ...patch,
+        motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+        points: patch.points.map((point) => ({ ...point })),
+      })),
+      patternSides: pipeline.patternSides.map((side) => ({
+        ...side,
+        surfacePosition: { ...side.surfacePosition },
+        outwardNormal: { ...side.outwardNormal },
+        insidePosition: { ...side.insidePosition },
+        outsidePosition: { ...side.outsidePosition },
+      })),
+      dryWeb: {
+        ...dryWeb,
+        nodes: dryWeb.nodes.map((node) => ({ ...node, position: { ...node.position } })),
+        edges: dryWeb.edges.map((edge) => ({ ...edge })),
+        stats: { ...dryWeb.stats },
+      },
+      settings,
+      workerCount,
+    };
+    worker.postMessage(request);
+  };
+  lowest.section.append(thresholdRow, lowestButton, lowest.status);
+
+  const lattice = makeStep(
+    "5A. 向かい合うPattern裏中央から蜘蛛の巣ラティスを作る",
+    "Pattern裏中央どうしをBase内の水色線で結び、作品を一体化します。Plate方向を向く最下端は蜘蛛支持、それ以外はPattern接続だけを行います。1パス・指定数・未支持一括・未接続一括を使い分けられます。",
+  );
+  const diameterRow = document.createElement("label");
+  diameterRow.className = "row skin-rebuild-pipeline-setting";
+  diameterRow.append(document.createTextNode("ラティス直径 "));
+  const diameter = document.createElement("input");
+  diameter.type = "number";
+  diameter.min = "1.6";
+  diameter.max = "4";
+  diameter.step = "0.1";
+  diameter.value = "2.6";
+  diameterRow.append(diameter, document.createTextNode(" mm"));
+  const targetSelectionHint = document.createElement("p");
+  targetSelectionHint.className = "hint skin-rebuild-target-selection-hint";
+  targetSelectionHint.textContent = "赤い最下端マーカーはPattern単位で黄色選択できます。面エリアそのものの補強は次の工程5Bで行います。";
+  const targetSelectionStatus = document.createElement("div");
+  targetSelectionStatus.className = "mesh-status skin-rebuild-target-selection-status";
+  targetSelectionStatus.textContent = "赤面をメイン画面でクリックしてください";
+  const selectedTargetButton = document.createElement("button");
+  selectedTargetButton.type = "button";
+  selectedTargetButton.className = "secondary-action";
+  selectedTargetButton.textContent = "選択した赤面を処理";
+  selectedTargetButton.disabled = true;
+  const unsupportedFocusButton = document.createElement("button");
+  unsupportedFocusButton.type = "button";
+  unsupportedFocusButton.className = "secondary-action skin-rebuild-unsupported-focus";
+  unsupportedFocusButton.textContent = "未支持点を黄色で強調";
+  unsupportedFocusButton.disabled = true;
+  unsupportedFocusButton.onclick = () => focusSkinRebuildUnsupportedTarget();
+  const reinforcement = makeStep(
+    "5B. 赤面エリアの補強",
+    "選んだ連続赤面を複数の実接点で覆い、最寄りの蜘蛛ラティス上の点へ45°以内の立体として絞ります。色だけを除外せず、工程7で再診断される恒久形状を作ります。補強前は緑、追加部材は明るい水色で確認できます。",
+  );
+  const regionSelectionStatus = document.createElement("div");
+  regionSelectionStatus.className = "mesh-status skin-rebuild-region-selection-status";
+  regionSelectionStatus.textContent = "工程4を実行すると連続する赤面をエリア単位で選べます";
+  const regionReinforceButton = document.createElement("button");
+  regionReinforceButton.type = "button";
+  regionReinforceButton.className = "secondary-action skin-rebuild-region-reinforce";
+  regionReinforceButton.textContent = "5B. 選択赤面を面→点の水色立体で補強";
+  regionReinforceButton.disabled = true;
+  const bulkSupportRow = document.createElement("label");
+  bulkSupportRow.className = "row skin-rebuild-pipeline-setting skin-rebuild-bulk-support-row";
+  bulkSupportRow.append(document.createTextNode("一括で蜘蛛支持する数 "));
+  const bulkSupportCount = document.createElement("input");
+  bulkSupportCount.type = "number";
+  bulkSupportCount.min = "1";
+  bulkSupportCount.max = "999";
+  bulkSupportCount.step = "1";
+  bulkSupportCount.value = "5";
+  bulkSupportRow.append(bulkSupportCount, document.createTextNode(" 点"));
+  const bulkSupportButton = document.createElement("button");
+  bulkSupportButton.type = "button";
+  bulkSupportButton.className = "secondary-action";
+  bulkSupportButton.textContent = "指定数をワンクリックで蜘蛛支持";
+  bulkSupportButton.disabled = true;
+  const completeSupportButton = document.createElement("button");
+  completeSupportButton.type = "button";
+  completeSupportButton.className = "secondary-action skin-rebuild-complete-support";
+  completeSupportButton.textContent = "蜘蛛支持の未支持をワンクリックで0にする";
+  completeSupportButton.disabled = true;
+  const connectAllButton = document.createElement("button");
+  connectAllButton.type = "button";
+  connectAllButton.className = "secondary-action";
+  connectAllButton.textContent = "未接続Patternをワンクリックで0にする";
+  connectAllButton.disabled = true;
+  const latticeEditLabel = document.createElement("label");
+  latticeEditLabel.className = "skin-rebuild-lattice-edit-label";
+  latticeEditLabel.textContent = "不要な蜘蛛ラティス線";
+  const latticeEdgeSelect = document.createElement("select");
+  latticeEdgeSelect.className = "skin-rebuild-lattice-edge-select";
+  latticeEdgeSelect.disabled = true;
+  latticeEdgeSelect.append(new Option("ラティス線なし", ""));
+  latticeEdgeSelect.onchange = () => {
+    const edgeId = latticeEdgeSelect.value === "" ? null : Number(latticeEdgeSelect.value);
+    setSkinRebuildLatticeEdgeSelection(edgeId);
+    render();
+  };
+  const latticeDeleteButton = document.createElement("button");
+  latticeDeleteButton.type = "button";
+  latticeDeleteButton.className = "secondary-action skin-rebuild-lattice-delete";
+  latticeDeleteButton.textContent = "選択した黄色の線を削除";
+  latticeDeleteButton.disabled = true;
+  latticeDeleteButton.onclick = () => {
+    const current = skinRebuildPipeline?.project;
+    const edgeId = latticeEdgeSelect.value === "" ? Number.NaN : Number(latticeEdgeSelect.value);
+    if (!skinRebuildPipelineIsCurrent() || !current || !Number.isInteger(edgeId)) return;
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    const editedLattice = removeSkinRebuildLatticeEdge(current.lattice, edgeId);
+    if (editedLattice === current.lattice) return;
+    const settings = currentSkinRebuildPipelineSettings();
+    const retainedConnections = retainConnectedSkinRebuildLatticeConnections(
+      current.base,
+      state.patches,
+      current.patternSides,
+      current.lowestPoints,
+      editedLattice,
+      current.latticeConnections,
+      settings,
+    );
+    const project = assembleSkinRebuildProject(
+      settings,
+      current.base,
+      state.patches,
+      current.patternSides,
+      current.dryWeb,
+      current.lowestPoints,
+      editedLattice,
+      retainedConnections,
+    );
+    skinRebuildPipeline!.settings = settings;
+    skinRebuildPipeline!.project = project;
+    stage6BodyMeshCache = null;
+    invalidateSkinRebuildFinalStages("工程5Aの蜘蛛ラティスを編集したため、工程6〜8を再実行してください");
+    setSkinRebuildReinforcementPreview(null, []);
+    installSkinRebuildPermanentLatticePreview(project, true);
+    invalidateInternalPrintGate("蜘蛛の巣ラティスを編集しました。工程5B〜8を再実行してください");
+    refreshSkinRebuildLatticeEdgeEditor();
+    // Edge ids are compacted when the graph is rebuilt. Do not let the old
+    // numeric id silently select a different edge after deletion.
+    setSkinRebuildLatticeEdgeSelection(null);
+    refreshSkinRebuildLowestPointMarkers(project);
+    refreshSkinRebuildSelectedTarget();
+    refreshSkinRebuildSelectedRegion();
+    if (skinRebuildCompleteSupportButton) {
+      skinRebuildCompleteSupportButton.disabled = project.audit.unsupportedTargetCount === 0;
+    }
+    const invalidated = current.latticeConnections.length - retainedConnections.length;
+    const disconnected = skinRebuildDisconnectedPatternIds(project.patternSides, project.finalGraph).length;
+    lattice.status.textContent = `線 #${edgeId + 1}を削除 · edge ${project.lattice.edges.length} · 切れた支持経路 ${invalidated} · 未支持 ${project.audit.unsupportedTargetCount} · 未接続Pattern ${disconnected}`;
+    lattice.status.dataset.ok = String(project.audit.unsupportedTargetCount === 0 && disconnected === 0);
+    printSupport.status.textContent = "作品を編集したため、印刷サポートを再生成してください";
+    printSupport.status.dataset.ok = "false";
+    setSkinRebuildMeshBottomProgress(
+      "工程5A ラティス編集",
+      `1本削除 · 残り${project.lattice.edges.length}本 · 未支持${project.audit.unsupportedTargetCount}点`,
+    );
+    commitSkinRebuildWorkflowHistory(`工程5A 線 #${edgeId + 1}を削除`, workflowBefore);
+    render();
+  };
+  const latticeButton = document.createElement("button");
+  latticeButton.type = "button";
+  latticeButton.className = "primary-action";
+  latticeButton.textContent = "5A. ラティスを1パス追加";
+  latticeButton.disabled = true;
+  const runLatticeBuild = async (
+    button: HTMLButtonElement,
+    idleText: string,
+    busyText: string,
+    options: Parameters<typeof buildSkinRebuildLattice>[5],
+    actionLabel: string,
+  ): Promise<void> => {
+    if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.lowestPoints || !skinRebuildPipeline.dryWeb) {
+      lattice.status.textContent = "先に工程3と4を実行してください";
+      lattice.status.dataset.ok = "false";
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    setSkinRebuildPipelineBusy(button, true, idleText, busyText);
+    lattice.status.textContent = `${actionLabel}を計算中…`;
+    setSkinRebuildMeshBottomProgress("工程5A 蜘蛛の巣ラティス", `${actionLabel}を計算中`);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    try {
+      const settings = currentSkinRebuildPipelineSettings();
+      const built = buildSkinRebuildLattice(
+        skinRebuildPipeline.base,
+        state.patches,
+        skinRebuildPipeline.patternSides,
+        skinRebuildPipeline.lowestPoints,
+        settings,
+        {
+          existingLattice: skinRebuildPipeline.project?.lattice,
+          existingConnections: skinRebuildPipeline.project?.latticeConnections,
+          ...options,
+        },
+      );
+      const project = assembleSkinRebuildProject(
+        settings,
+        skinRebuildPipeline.base,
+        state.patches,
+        skinRebuildPipeline.patternSides,
+        skinRebuildPipeline.dryWeb,
+        skinRebuildPipeline.lowestPoints,
+        built.lattice,
+        built.connections,
+      );
+      skinRebuildPipeline.settings = settings;
+      skinRebuildPipeline.project = project;
+      stage6BodyMeshCache = null;
+      invalidateSkinRebuildFinalStages("工程5Aの蜘蛛ラティスを更新したため、工程6〜8を再実行してください");
+      setSkinRebuildReinforcementPreview(null, []);
+      installSkinRebuildPermanentLatticePreview(project, true);
+      invalidateInternalPrintGate("蜘蛛の巣ラティスを生成しました。次に工程5Bの赤面補強と工程6〜8を実行してください");
+      refreshSkinRebuildLowestPointMarkers(project);
+      ui.setInternalStructureStatus(
+        `SKIN REBUILD蜘蛛の巣 · node ${project.finalGraph.nodes.length} / edge ${project.finalGraph.edges.length}`,
+        project.audit.unsupportedTargetCount === 0,
+      );
+      const disconnected = built.disconnectedPatternIds.length;
+      const spiderTargetIds = new Set(skinRebuildSpiderSupportTargetIds(project.patternSides, project.lowestPoints));
+      const printSupportTargetCount = project.lowestPoints.filter((point) => point.needsSupport
+        && !spiderTargetIds.has(point.patchId)).length;
+      const fallbackSupportText = built.fallbackSupportCount > 0 ? `（既存蜘蛛へ迂回 ${built.fallbackSupportCount}）` : "";
+      lattice.status.textContent = `${actionLabel}完了 · 水色ラティス表示中 / 橙サポートなし · Base内包OK ${built.containment.checkedEdgeCount}線 / ${built.containment.checkedSampleCount.toLocaleString()}点 · 今回 蜘蛛支持 ${built.addedSupportCount}${fallbackSupportText} / 接続 ${built.addedConnectivityCount} · 未接続 ${disconnected} · 蜘蛛支持 ${project.audit.supportedTargetCount}/${project.audit.overhangTargetCount} · 工程8印刷サポート候補 ${printSupportTargetCount}点 · edge ${project.lattice.edges.length}`;
+      lattice.status.dataset.ok = String(project.audit.unsupportedTargetCount === 0 && disconnected === 0);
+      setSkinRebuildMeshBottomProgress(
+        "工程5A 完了",
+        `${actionLabel} · 水色ラティス表示中 / 橙サポートなし · Base内包${built.containment.checkedEdgeCount}線/${built.containment.checkedSampleCount.toLocaleString()}点 · 直径${settings.strutDiameterMm.toFixed(1)}mm · 今回支持${built.addedSupportCount}${fallbackSupportText}/接続${built.addedConnectivityCount} · 未接続${disconnected} · 蜘蛛支持${project.audit.supportedTargetCount}/${project.audit.overhangTargetCount} · edge ${project.lattice.edges.length}`,
+      );
+      if (skinRebuildPrintSupportStatus) {
+        skinRebuildPrintSupportStatus.textContent = "工程6で作品を確定し、工程7で残る赤を診断してください";
+        delete skinRebuildPrintSupportStatus.dataset.ok;
+      }
+      if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = false;
+      if (skinRebuildSaveStatus) {
+        skinRebuildSaveStatus.textContent = project.audit.unsupportedTargetCount === 0
+          ? "保存可能 · 元の編集履歴と工程3〜5を1ファイルへ入れます"
+          : `未支持${project.audit.unsupportedTargetCount}点を事実として残したまま.fkei保存できます`;
+        skinRebuildSaveStatus.dataset.ok = "true";
+      }
+      refreshSkinRebuildLatticeEdgeEditor();
+      refreshSkinRebuildSelectedTarget();
+      refreshSkinRebuildSelectedRegion();
+      commitSkinRebuildWorkflowHistory(`工程5A ${actionLabel}`, workflowBefore);
+      render();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      lattice.status.textContent = `ラティス生成失敗: ${message}`;
+      lattice.status.dataset.ok = "false";
+      setSkinRebuildMeshBottomProgress("工程5A 失敗", "ラティスを生成できませんでした", message);
+    } finally {
+      setSkinRebuildPipelineBusy(button, false, idleText, busyText);
+      if (skinRebuildCompleteSupportButton) {
+        skinRebuildCompleteSupportButton.disabled = !skinRebuildPipelineIsCurrent()
+          || !skinRebuildPipeline?.project
+          || skinRebuildPipeline.project.audit.unsupportedTargetCount === 0;
+      }
+      refreshSkinRebuildSelectedTarget();
+      refreshSkinRebuildSelectedRegion();
+    }
+  };
+  latticeButton.onclick = () => runLatticeBuild(
+    latticeButton,
+    "5A. ラティスを1パス追加",
+    "1パス追加中…",
+    { incremental: true, maximumRoutes: 1, mode: "auto" },
+    "1パス追加",
+  );
+  selectedTargetButton.onclick = () => {
+    const project = skinRebuildPipeline?.project;
+    const patchId = skinRebuildSelectedTargetPatchId;
+    if (!project || patchId === null) return;
+    const point = project.lowestPoints.find((candidate) => candidate.patchId === patchId);
+    const side = project.patternSides.find((candidate) => candidate.patchId === patchId);
+    const requiresSpider = point ? skinRebuildRequiresSpiderSupport(point, side) : false;
+    void runLatticeBuild(
+      selectedTargetButton,
+      "選択した赤面を処理",
+      "選択赤面を処理中…",
+      requiresSpider
+        ? { maximumRoutes: 1, targetPatchIds: [patchId], mode: "support-only" }
+        : { maximumRoutes: 1, preferredConnectivityPatchIds: [patchId], mode: "connectivity-only" },
+      `Pattern #${patchId}`,
+    );
+  };
+  regionReinforceButton.onclick = () => {
+    const current = skinRebuildPipeline?.project;
+    const overhang = skinRebuildPipeline?.overhang;
+    const selectedRegions = overhang?.regions.filter((region) =>
+      skinRebuildSelectedOverhangRegionIds.has(region.id)
+      && !skinRebuildReinforcedOverhangRegionIds.has(region.id)) ?? [];
+    if (!skinRebuildPipelineIsCurrent() || !current || selectedRegions.length === 0) return;
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    activeSkinRebuildStage5BWorker?.terminate();
+    activeSkinRebuildStage5BWorker = null;
+    skinRebuildStage5BHeavyComputation?.finish();
+    skinRebuildStage5BHeavyComputation = null;
+    const requestId = ++skinRebuildStage5BRequestId;
+    const settings = currentSkinRebuildPipelineSettings();
+    const strutRadius = current.lattice.edges[0]?.radius
+      ?? current.lattice.nodes[0]?.radius
+      ?? 0.05;
+    const regionTasks = selectedRegions.map((region) => {
+      const surfaceSamples = sampleSkinRebuildOverhangRegionSurface(
+        overhang!,
+        region.id,
+        // A capsule covers a two-radius band.  Slightly-over-one-radius
+        // spacing preserves overlap while avoiding redundant face contacts.
+        Math.max(strutRadius * 1.05, 1e-4),
+      );
+      const hubSample = surfaceSamples[0];
+      return {
+        regionId: region.id,
+        surfacePoint: hubSample?.point ?? region.supportPoint,
+        surfaceNormal: hubSample?.normal ?? region.supportNormal,
+        surfaceSamples,
+      };
+    });
+    const worker = new Worker(
+      new URL("./rebuild/stage5bReinforcement.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    activeSkinRebuildStage5BWorker = worker;
+    let heavy: HeavyComputationHandle;
+    const finishWorker = (): void => {
+      if (activeSkinRebuildStage5BWorker === worker) activeSkinRebuildStage5BWorker = null;
+      worker.terminate();
+      heavy.finish();
+      if (skinRebuildStage5BHeavyComputation === heavy) skinRebuildStage5BHeavyComputation = null;
+      setSkinRebuildPipelineBusy(
+        regionReinforceButton,
+        false,
+        "5B. 選択赤面を面→点の水色立体で補強",
+        "5B. 面→点補強を計算中…",
+      );
+    };
+    const cancelWorker = (): void => {
+      if (activeSkinRebuildStage5BWorker !== worker) return;
+      skinRebuildStage5BRequestId++;
+      finishWorker();
+      reinforcement.status.textContent = "工程5Bをキャンセルしました。選択赤面と元の蜘蛛ラティスは保持されています";
+      reinforcement.status.dataset.ok = "false";
+      setSkinRebuildMeshBottomProgress("工程5B 中断", "選択と既存形状を保持");
+      refreshSkinRebuildSelectedRegion();
+    };
+    heavy = beginHeavyComputation("工程5B 赤面エリア補強", cancelWorker);
+    skinRebuildStage5BHeavyComputation = heavy;
+    setSkinRebuildPipelineBusy(
+      regionReinforceButton,
+      true,
+      "5B. 選択赤面を面→点の水色立体で補強",
+      "5B. 面→点補強を計算中…",
+    );
+    reinforcement.status.textContent = `計算開始 · ${regionTasks.length}領域 · 面接点ごとに最寄りの到達可能な蜘蛛ラティスを探索中`;
+    reinforcement.status.dataset.ok = "true";
+    setSkinRebuildMeshBottomProgress("工程5B 赤面エリア補強", `${regionTasks.length}領域 · 背景計算を開始 · 0.0秒`);
+    heavy.updateActual(`${regionTasks.length}領域 · 準備中`, 1);
+    worker.onmessage = (event: MessageEvent<SkinRebuildStage5BWorkerMessage>) => {
+      const message = event.data;
+      if (message.requestId !== requestId || activeSkinRebuildStage5BWorker !== worker) return;
+      if (message.type === "progress") {
+        const progress = skinRebuildStage5BProgressPercent(
+          message.regionIndex,
+          message.regionCount,
+          message.progress,
+        );
+        const phase = message.progress.phase === "routing"
+          ? `面接点 ${message.progress.completedContactCount + 1}/${message.progress.contactCount}${message.progress.candidateCount > 0 ? ` · 経路候補 ${message.progress.candidateIndex}/${message.progress.candidateCount}` : ""}`
+          : message.progress.phase === "containment" ? "補強全体のBase内包を最終確認中" : "領域完了";
+        const detail = `領域 ${message.regionIndex + 1}/${message.regionCount} (#${message.regionId}) · ${phase} · ${(message.elapsedMs / 1000).toFixed(1)}秒`;
+        reinforcement.status.textContent = detail;
+        heavy.updateActual(detail, progress);
+        setSkinRebuildMeshBottomProgress("工程5B 赤面エリア補強", `${Math.round(progress)}% · ${detail}`);
+        return;
+      }
+      finishWorker();
+      if (message.type === "error") {
+        reinforcement.status.textContent = `赤面エリア補強失敗: ${message.message}`;
+        reinforcement.status.dataset.ok = "false";
+        setSkinRebuildMeshBottomProgress("工程5B 失敗", `${(message.elapsedMs / 1000).toFixed(1)}秒`, message.message);
+        refreshSkinRebuildSelectedRegion();
+        return;
+      }
+      if (!skinRebuildPipelineIsCurrent() || skinRebuildPipeline?.project !== current) {
+        reinforcement.status.textContent = "工程5Bの計算中に形状が変わったため、結果を適用しませんでした";
+        reinforcement.status.dataset.ok = "false";
+        setSkinRebuildMeshBottomProgress("工程5B 破棄", "形状変更後の古い結果");
+        refreshSkinRebuildSelectedRegion();
+        return;
+      }
+      if (message.regions.length === 0) {
+        const reason = message.failures[0]?.message ?? "選択した赤面エリアを補強できませんでした";
+        reinforcement.status.textContent = `赤面エリア補強失敗: ${reason}`;
+        reinforcement.status.dataset.ok = "false";
+        setSkinRebuildMeshBottomProgress("工程5B 失敗", `${(message.elapsedMs / 1000).toFixed(1)}秒`, reason);
+        refreshSkinRebuildSelectedRegion();
+        return;
+      }
+      const completedRegions = message.regions.filter((region) => region.complete);
+      const partialRegions = message.regions.filter((region) => !region.complete);
+      const reinforcedRegionIds = completedRegions.map((region) => region.regionId);
+      const segmentCount = message.regions.reduce((sum, region) => sum + region.segmentCount, 0);
+      const surfaceContactCount = message.regions.reduce((sum, region) => sum + region.surfaceContactCount, 0);
+      const uncoveredSurfaceContactCount = partialRegions.reduce(
+        (sum, region) => sum + region.uncoveredSurfaceContactCount,
+        0,
+      );
+      const maximumEdgeAngleDeg = message.regions.reduce(
+        (maximum, region) => Math.max(maximum, region.maximumEdgeAngleDeg),
+        0,
+      );
+      const emptyPrintSupport = createEmptySkinRebuildGraph();
+      const project = assembleSkinRebuildProject(
+        settings,
+        current.base,
+        state.patches,
+        current.patternSides,
+        current.dryWeb,
+        current.lowestPoints,
+        message.lattice,
+        current.latticeConnections,
+        emptyPrintSupport,
+      );
+      skinRebuildPipeline!.settings = settings;
+      skinRebuildPipeline!.project = project;
+      stage6BodyMeshCache = null;
+      invalidateSkinRebuildFinalStages("工程5Bで作品を補強したため、工程6のmesh確定から再実行してください");
+      for (const regionId of reinforcedRegionIds) {
+        skinRebuildReinforcedOverhangRegionIds.add(regionId);
+        skinRebuildSelectedOverhangRegionIds.delete(regionId);
+      }
+      installSkinRebuildPermanentLatticePreview(project, true);
+      setSkinRebuildReinforcementPreview(
+        message.reinforcement,
+        message.reinforcement.edges.map((edge) => edge.id),
+      );
+      skinRenderer.setPrintSupport(emptyPrintSupport);
+      invalidateInternalPrintGate("赤面エリアを蜘蛛ラティスへ補強しました。工程6〜8を再実行してください");
+      refreshSkinRebuildLatticeEdgeEditor();
+      setSkinRebuildLatticeEdgeSelection(null);
+      refreshSkinRebuildLowestPointMarkers(project);
+      refreshSkinRebuildSelectedTarget();
+      refreshSkinRebuildSelectedRegion();
+      if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = false;
+      reinforcement.status.textContent = `緑面 ${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色の面→点補強 ${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · 全edge ${project.lattice.edges.length} · ${(message.elapsedMs / 1000).toFixed(1)}秒${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}領域（残り面接点${uncoveredSurfaceContactCount}）は追加形状と黄色選択を保持` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}領域` : ""}`;
+      reinforcement.status.dataset.ok = "true";
+      if (skinRebuildPrintSupportStatus) {
+        skinRebuildPrintSupportStatus.textContent = "補強後の工程6確定と工程7最終診断を待っています";
+        skinRebuildPrintSupportStatus.dataset.ok = "false";
+      }
+      if (skinRebuildSaveStatus) {
+        skinRebuildSaveStatus.textContent = "保存可能 · 赤面エリア補強を恒久ラティスGraphへ保持します";
+        skinRebuildSaveStatus.dataset.ok = "true";
+      }
+      setSkinRebuildMeshBottomProgress(
+        "工程5B 赤面エリア補強",
+        `100% · 緑${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · Base内包OK · ${(message.elapsedMs / 1000).toFixed(1)}秒${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}/残り接点${uncoveredSurfaceContactCount}` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}` : ""}`,
+      );
+      commitSkinRebuildWorkflowHistory("工程5B 赤面エリア補強", workflowBefore);
+      render();
+    };
+    worker.onerror = (event) => {
+      if (requestId !== skinRebuildStage5BRequestId || activeSkinRebuildStage5BWorker !== worker) return;
+      finishWorker();
+      reinforcement.status.textContent = `赤面エリア補強失敗: ${event.message}`;
+      reinforcement.status.dataset.ok = "false";
+      setSkinRebuildMeshBottomProgress("工程5B 失敗", "Worker error", event.message);
+      refreshSkinRebuildSelectedRegion();
+    };
+    const request: SkinRebuildStage5BRequest = {
+      type: "build",
+      requestId,
+      base: current.base,
+      patterns: state.patches,
+      patternSides: current.patternSides,
+      lattice: current.lattice,
+      settings,
+      regions: regionTasks,
+    };
+    worker.postMessage(request);
+  };
+  bulkSupportButton.onclick = () => {
+    const count = Math.max(1, Math.min(999, Math.floor(Number(bulkSupportCount.value) || 1)));
+    bulkSupportCount.value = String(count);
+    void runLatticeBuild(
+      bulkSupportButton,
+      "指定数をワンクリックで蜘蛛支持",
+      `${count}点を支持中…`,
+      { maximumRoutes: count, mode: "support-only" },
+      `指定${count}点支持`,
+    );
+  };
+  completeSupportButton.onclick = () => {
+    const remaining = skinRebuildPipeline?.project?.audit.unsupportedTargetCount ?? 0;
+    if (remaining <= 0) {
+      completeSupportButton.disabled = true;
+      lattice.status.textContent = "蜘蛛支持の未支持は0点です";
+      lattice.status.dataset.ok = String(
+        (skinRebuildPipeline?.project
+          ? skinRebuildDisconnectedPatternIds(
+            skinRebuildPipeline.project.patternSides,
+            skinRebuildPipeline.project.finalGraph,
+          ).length
+          : 1) === 0,
+      );
+      return;
+    }
+    void runLatticeBuild(
+      completeSupportButton,
+      "蜘蛛支持の未支持をワンクリックで0にする",
+      `残り${remaining}点をすべて支持中…`,
+      { maximumRoutes: Number.MAX_SAFE_INTEGER, mode: "support-only" },
+      `蜘蛛未支持${remaining}点を一括支持`,
+    );
+  };
+  connectAllButton.onclick = () => runLatticeBuild(
+    connectAllButton,
+    "未接続Patternをワンクリックで0にする",
+    "全Patternを接続中…",
+    { maximumRoutes: Number.MAX_SAFE_INTEGER, mode: "connectivity-only" },
+    "未接続一括接続",
+  );
+  lattice.section.append(
+    diameterRow,
+    latticeButton,
+    targetSelectionHint,
+    targetSelectionStatus,
+    unsupportedFocusButton,
+    selectedTargetButton,
+    bulkSupportRow,
+    bulkSupportButton,
+    completeSupportButton,
+    connectAllButton,
+    latticeEditLabel,
+    latticeEdgeSelect,
+    latticeDeleteButton,
+    lattice.status,
+  );
+  reinforcement.section.append(regionSelectionStatus, regionReinforceButton, reinforcement.status);
+
+  const finalDiagnosis = makeStep(
+    "7. 作品の最終診断",
+    "工程6で確定したSurface Pattern＋蜘蛛ラティス＋赤面補強の作品meshを再解析し、まだ残っている危険面だけを赤く表示します。",
+  );
+  const finalDiagnosisButton = document.createElement("button");
+  finalDiagnosisButton.type = "button";
+  finalDiagnosisButton.className = "primary-action";
+  finalDiagnosisButton.textContent = "7. 確定作品を診断して残る赤を表示";
+  finalDiagnosisButton.disabled = true;
+  finalDiagnosisButton.onclick = async () => {
+    const current = skinRebuildPipeline?.project;
+    if (!skinRebuildPipelineIsCurrent() || !current || skinRebuildFinalizedArtworkProject !== current) {
+      finalDiagnosis.status.textContent = "先に工程6で作品をメッシュ化して確定してください";
+      finalDiagnosis.status.dataset.ok = "false";
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    setSkinRebuildPipelineBusy(
+      finalDiagnosisButton,
+      true,
+      "7. 確定作品を診断して残る赤を表示",
+      "最終作品を診断中…",
+    );
+    finalDiagnosis.status.textContent = "確定作品meshを複数コアで解析中…";
+    setSkinRebuildMeshBottomProgress("工程7 作品の最終診断", "複数コア解析を開始");
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    try {
+      const currentSettings = currentSkinRebuildPipelineSettings();
+      const settings = {
+        ...currentSettings,
+        analysisResolution: currentSettings.exportResolution,
+      };
+      const diagnosedArtwork = await diagnoseSkinRebuildArtworkForPrintSupport(
+        current,
+        settings,
+        (progress) => {
+          const percent = skinRebuildLowestProgressPercent(progress.phase, progress.completed, progress.total);
+          const elapsed = (progress.elapsedMs / 1000).toFixed(1);
+          finalDiagnosis.status.textContent = `最終診断 ${Math.round(percent)}% · ${progress.workerCount}コア · ${progress.faceCount.toLocaleString()} faces · ${elapsed}秒`;
+          setSkinRebuildMeshBottomProgress(
+            "工程7 作品の最終診断",
+            `${Math.round(percent)}% · ${progress.workerCount}コア · ${progress.faceCount.toLocaleString()} faces · ${elapsed}秒`,
+          );
+        },
+      );
+      if (!skinRebuildPipelineIsCurrent()
+        || skinRebuildPipeline?.project !== current
+        || skinRebuildFinalizedArtworkProject !== current) {
+        throw new Error("作品が変更されたため、最終診断結果を破棄しました");
+      }
+      const emptyPrintSupport = createEmptySkinRebuildGraph();
+      const project = assembleSkinRebuildProject(
+        settings,
+        skinRebuildPipeline.base,
+        state.patches,
+        skinRebuildPipeline.patternSides,
+        skinRebuildPipeline.dryWeb ?? createEmptySkinRebuildGraph(),
+        skinRebuildPipeline.lowestPoints!,
+        current.lattice,
+        current.latticeConnections,
+        emptyPrintSupport,
+      );
+      skinRebuildPipeline.settings = settings;
+      skinRebuildPipeline.project = project;
+      skinRebuildPipeline.overhang = {
+        faceCount: diagnosedArtwork.overhangFaceCount,
+        regionCount: diagnosedArtwork.overhangRegionCount,
+        areaMm2: diagnosedArtwork.overhangAreaMm2,
+        areaPercent: diagnosedArtwork.overhangAreaPercent,
+        meshPositions: diagnosedArtwork.meshPositions,
+        meshNormals: diagnosedArtwork.meshNormals,
+        positions: diagnosedArtwork.overhangFacePositions,
+        faceRegionIds: diagnosedArtwork.overhangFaceRegionIds,
+        regions: diagnosedArtwork.overhangRegions,
+      };
+      skinRebuildFinalizedArtworkProject = project;
+      skinRebuildFinalArtworkDiagnosis = { ...diagnosedArtwork, project };
+      skinRebuildStage8CompletedProject = null;
+      skinRenderer.setMeshOverlayBuffers(diagnosedArtwork.meshPositions, diagnosedArtwork.meshNormals);
+      skinRenderer.setSkinRebuildOverhangOverlay(
+        diagnosedArtwork.overhangFacePositions,
+        diagnosedArtwork.overhangFaceRegionIds,
+      );
+      skinRebuildSelectedOverhangRegionIds.clear();
+      skinRebuildReinforcedOverhangRegionIds.clear();
+      viewMode = "mesh";
+      skinRenderer.setViewMode(viewMode);
+      ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+      skinRenderer.setPrintSupport(emptyPrintSupport);
+      refreshSkinRebuildSelectedRegion();
+      refreshSkinRebuildFinalStageButtons();
+      invalidateInternalPrintGate("工程7で確定作品を再診断しました。工程8の印刷サポート生成後に最終判定します");
+      finalDiagnosis.status.textContent = diagnosedArtwork.overhangFaceCount > 0
+        ? `最終作品 ${diagnosedArtwork.faceCount.toLocaleString()} faces · 残る赤 ${diagnosedArtwork.overhangRegionCount}領域 / ${diagnosedArtwork.overhangFaceCount.toLocaleString()}面 / ${diagnosedArtwork.overhangAreaPercent.toFixed(1)}% · ${(diagnosedArtwork.elapsedMs / 1000).toFixed(1)}秒`
+        : `最終作品 ${diagnosedArtwork.faceCount.toLocaleString()} faces · 残る赤0面 · 印刷サポート不要 · ${(diagnosedArtwork.elapsedMs / 1000).toFixed(1)}秒`;
+      finalDiagnosis.status.dataset.ok = "true";
+      setSkinRebuildMeshBottomProgress(
+        "工程7 完了",
+        `残る赤 ${diagnosedArtwork.overhangRegionCount}領域 / ${diagnosedArtwork.overhangFaceCount.toLocaleString()}面 / ${diagnosedArtwork.overhangAreaPercent.toFixed(1)}% · ${diagnosedArtwork.workerCount}コア · ${(diagnosedArtwork.elapsedMs / 1000).toFixed(1)}秒`,
+      );
+      if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = false;
+      commitSkinRebuildWorkflowHistory("工程7 作品の最終診断", workflowBefore);
+      render();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      skinRebuildFinalArtworkDiagnosis = null;
+      finalDiagnosis.status.textContent = `最終診断失敗: ${message}`;
+      finalDiagnosis.status.dataset.ok = "false";
+      setSkinRebuildMeshBottomProgress("工程7 失敗", "最終作品を診断できませんでした", message);
+      refreshSkinRebuildFinalStageButtons();
+    } finally {
+      setSkinRebuildPipelineBusy(
+        finalDiagnosisButton,
+        false,
+        "7. 確定作品を診断して残る赤を表示",
+        "最終作品を診断中…",
+      );
+      refreshSkinRebuildFinalStageButtons();
+    }
+  };
+  finalDiagnosis.section.append(finalDiagnosisButton, finalDiagnosis.status);
+
+  const printSupport = makeStep(
+    "8. 残っている赤に印刷サポートを生成",
+    "工程7で残った赤面の最下側へ、造形プレートから取り外し可能な橙色支柱を生成します。作品とは結合せず、別STL / OBJ / 同梱3MFとして保存します。",
+  );
+  const supportDiameterRow = document.createElement("label");
+  supportDiameterRow.className = "row skin-rebuild-pipeline-setting";
+  supportDiameterRow.append(document.createTextNode("印刷サポート直径 "));
+  const supportDiameter = document.createElement("input");
+  supportDiameter.type = "number";
+  supportDiameter.min = "0.8";
+  supportDiameter.max = "4";
+  supportDiameter.step = "0.1";
+  supportDiameter.value = String(DEFAULT_SKIN_REBUILD_SETTINGS.supportDiameterMm);
+  supportDiameterRow.append(supportDiameter, document.createTextNode(" mm"));
+  const printSupportButton = document.createElement("button");
+  printSupportButton.type = "button";
+  printSupportButton.className = "primary-action";
+  printSupportButton.textContent = "8. 残っている赤に印刷サポートを生成";
+  printSupportButton.disabled = true;
+  printSupportButton.onclick = async () => {
+    const pipeline = skinRebuildPipeline;
+    const current = pipeline?.project;
+    const lowestPoints = pipeline?.lowestPoints;
+    const diagnosis = skinRebuildFinalArtworkDiagnosis;
+    if (!skinRebuildPipelineIsCurrent() || !pipeline || !current || !lowestPoints
+      || !diagnosis || diagnosis.project !== current) {
+      printSupport.status.textContent = "先に工程7で確定作品を診断してください";
+      printSupport.status.dataset.ok = "false";
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    setSkinRebuildPipelineBusy(
+      printSupportButton,
+      true,
+      "8. 残っている赤に印刷サポートを生成",
+      "印刷サポートを生成中…",
+    );
+    printSupport.status.textContent = `工程7の残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面から支柱を生成中…`;
+    setSkinRebuildMeshBottomProgress("工程8 印刷サポート", "残る赤面から別体支柱を生成");
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    try {
+      const settings = currentSkinRebuildPipelineSettings();
+      const supportGraph = buildSkinRebuildPrintSupport(
+        current.base,
+        state.patches,
+        current.patternSides,
+        diagnosis.lowestPoints,
+        current.finalGraph,
+        settings,
+      );
+      const project = assembleSkinRebuildProject(
+        settings,
+        pipeline.base,
+        state.patches,
+        pipeline.patternSides,
+        pipeline.dryWeb ?? createEmptySkinRebuildGraph(),
+        lowestPoints,
+        current.lattice,
+        current.latticeConnections,
+        supportGraph,
+      );
+      pipeline.settings = settings;
+      pipeline.project = project;
+      skinRebuildFinalizedArtworkProject = project;
+      skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
+      skinRebuildStage8CompletedProject = project;
+      skinRenderer.setPrintSupport(project.printSupport);
+      refreshSkinRebuildLowestPointMarkers(project);
+      refreshSkinRebuildFinalStageButtons();
+      invalidateInternalPrintGate("工程8で別体印刷サポートを更新しました。3D書き出し時に自動判定します");
+      const count = project.printSupport.edges.length;
+      printSupport.status.textContent = count > 0
+        ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成`
+        : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした`;
+      printSupport.status.dataset.ok = "true";
+      setSkinRebuildMeshBottomProgress(
+        "工程8 完了",
+        `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · 本体と別出力`,
+      );
+      if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "保存可能 · 恒久ラティスと印刷サポートを別Graphで保持します";
+      refreshSkinRebuildStage8ExportButton();
+      commitSkinRebuildWorkflowHistory("工程8 印刷サポート生成", workflowBefore);
+      render();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      printSupport.status.textContent = `印刷サポート生成失敗: ${message}`;
+      printSupport.status.dataset.ok = "false";
+      setSkinRebuildMeshBottomProgress("工程8 失敗", "印刷サポートを生成できませんでした", message);
+    } finally {
+      setSkinRebuildPipelineBusy(
+        printSupportButton,
+        false,
+        "8. 残っている赤に印刷サポートを生成",
+        "印刷サポートを生成中…",
+      );
+      refreshSkinRebuildFinalStageButtons();
+    }
+  };
+  printSupport.section.append(supportDiameterRow, printSupportButton, printSupport.status);
+
+  const stage8Export = makeStep(
+    "サポート確定後の3Dデータ書き出し",
+    "必要な形式だけを選びます。3MFは作品と橙色サポートを同じ座標の別パーツで1ファイルへ入れます。STL / OBJは作品とサポートを別ファイルで保存します。",
+  );
+  const exportFormats = document.createElement("div");
+  exportFormats.className = "skin-rebuild-export-formats";
+  const makeExportFormat = (labelText: string, checked: boolean) => {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = checked;
+    label.append(input, document.createTextNode(` ${labelText}`));
+    return { label, input };
+  };
+  const export3mf = makeExportFormat("3MF", true);
+  const exportStl = makeExportFormat("STL", false);
+  const exportObj = makeExportFormat("OBJ", false);
+  exportFormats.append(export3mf.label, exportStl.label, exportObj.label);
+  const stage8ExportButton = document.createElement("button");
+  stage8ExportButton.type = "button";
+  stage8ExportButton.className = "primary-action skin-rebuild-stage8-export";
+  stage8ExportButton.textContent = "サポート確定後の3Dデータを書き出す";
+  stage8ExportButton.disabled = true;
+  stage8ExportButton.onclick = () => {
+    const formats: SkinRebuildExportFormatSelection = {
+      threeMf: export3mf.input.checked,
+      stl: exportStl.input.checked,
+      obj: exportObj.input.checked,
+      recipe: false,
+    };
+    if (!formats.threeMf && !formats.stl && !formats.obj) {
+      stage8Export.status.textContent = "3MF / STL / OBJのうち、少なくとも1形式を選んでください";
+      stage8Export.status.dataset.ok = "false";
+      return;
+    }
+    const names = [formats.threeMf ? "3MF" : "", formats.stl ? "STL" : "", formats.obj ? "OBJ" : ""]
+      .filter(Boolean)
+      .join(" + ");
+    stage8Export.status.textContent = `${names}を書き出し中 · 進捗は下部STATUSにも表示します`;
+    delete stage8Export.status.dataset.ok;
+    exportMesh(ui.getMeshOptions(), formats);
+  };
+  stage8Export.section.append(exportFormats, stage8ExportButton, stage8Export.status);
+
+  const save = makeStep(
+    "編集可能な完成.fkeiを保存",
+    "Base Shape / Surface Pattern履歴と、工程3〜8の事実を1ファイルへ保存します。未完了でも現在の事実を保持して保存できます。",
+  );
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "primary-action";
+  saveButton.textContent = "SKIN REBUILD完成.fkeiを保存";
+  saveButton.disabled = true;
+  saveButton.onclick = () => {
+    try {
+      const filename = saveCurrentSkinRebuildFkei();
+      save.status.textContent = `${filename} を保存しました · printApproval=false`;
+      save.status.dataset.ok = "true";
+    } catch (error) {
+      save.status.textContent = `保存失敗: ${error instanceof Error ? error.message : String(error)}`;
+      save.status.dataset.ok = "false";
+    }
+  };
+  save.section.append(saveButton, save.status);
+
+  const makePipelinePanel = (label: string, description: string, ...steps: HTMLElement[]): HTMLElement => {
+    const panel = document.createElement("section");
+    panel.className = "skin-rebuild-pipeline-panel";
+    panel.setAttribute("aria-label", label);
+    const title = document.createElement("strong");
+    title.textContent = label;
+    const hint = document.createElement("p");
+    hint.className = "hint";
+    hint.textContent = description;
+    panel.append(title, hint, ...steps);
+    return panel;
+  };
+  stage3Body.prepend(makePipelinePanel(
+    "工程3 · Surface Patternの内外を決める",
+    "Base Shapeがある側をinsideとして固定します。",
+    inside.section,
+  ));
+  stage4Body.prepend(makePipelinePanel(
+    "工程4 · オーバーハング部を検出",
+    "Surface Patternの危険面を赤く表示し、蜘蛛ラティス用の最下端も抽出します。",
+    lowest.section,
+  ));
+  stage5Body.prepend(makePipelinePanel(
+    "工程5 · 作品内部を接続・補強",
+    "5Aで蜘蛛の巣を作り、5Bで選択した赤面を面→点の明るい水色立体へ作り替えます。工程7では色の履歴ではなく完成形状を通常どおり再診断します。",
+    lattice.section,
+    reinforcement.section,
+  ));
+  const meshTitle = stage6Body.querySelector<HTMLElement>(".mesh-export-title");
+  if (meshTitle) meshTitle.textContent = "6. 作品形状の確定 / Mesh化";
+  const inspectButton = Array.from(stage6Body.querySelectorAll<HTMLButtonElement>("button"))
+    .find((button) => button.textContent === "メッシュを検査");
+  if (inspectButton) inspectButton.textContent = "6. 作品をメッシュ化して確定";
+  stage7Body.prepend(makePipelinePanel(
+    "工程7 · 作品の最終診断",
+    "工程6の確定meshにまだ残る危険面だけを赤表示します。",
+    finalDiagnosis.section,
+  ));
+  stage8Body.prepend(makePipelinePanel(
+    "工程8 · 残っている赤へ印刷サポート",
+    "最終診断の赤面へ、作品と分離した橙色サポートを生成します。",
+    printSupport.section,
+    stage8Export.section,
+    save.section,
+  ));
+  skinRebuildInsideStatus = inside.status;
+  skinRebuildLowestStatus = lowest.status;
+  skinRebuildLatticeStatus = lattice.status;
+  skinRebuildReinforcementStatus = reinforcement.status;
+  skinRebuildFinalDiagnosisStatus = finalDiagnosis.status;
+  skinRebuildPrintSupportStatus = printSupport.status;
+  skinRebuildStage8ExportStatus = stage8Export.status;
+  skinRebuildSaveStatus = save.status;
+  skinRebuildLowestButton = lowestButton;
+  skinRebuildLatticeButton = latticeButton;
+  skinRebuildFinalDiagnosisButton = finalDiagnosisButton;
+  skinRebuildPrintSupportButton = printSupportButton;
+  skinRebuildStage8ExportButton = stage8ExportButton;
+  skinRebuildSaveButton = saveButton;
+  skinRebuildThresholdInput = threshold;
+  skinRebuildDiameterInput = diameter;
+  skinRebuildSupportDiameterInput = supportDiameter;
+  skinRebuildLatticeEdgeSelect = latticeEdgeSelect;
+  skinRebuildLatticeDeleteButton = latticeDeleteButton;
+  skinRebuildSelectedTargetStatus = targetSelectionStatus;
+  skinRebuildSelectedTargetButton = selectedTargetButton;
+  skinRebuildSelectedRegionStatus = regionSelectionStatus;
+  skinRebuildSelectedRegionReinforceButton = regionReinforceButton;
+  skinRebuildBulkSupportButton = bulkSupportButton;
+  skinRebuildCompleteSupportButton = completeSupportButton;
+  skinRebuildUnsupportedFocusButton = unsupportedFocusButton;
+  skinRebuildConnectAllButton = connectAllButton;
+  refreshSkinRebuildLatticeEdgeEditor();
+  refreshSkinRebuildSelectedTarget();
+  refreshSkinRebuildSelectedRegion();
+  refreshSkinRebuildFinalStageButtons();
+  refreshSkinRebuildStage8ExportButton();
+}
+
+function invalidateSkinRebuildPipeline(reason = "形状が変わったため、工程3から再実行してください"): void {
+  cancelSkinRebuildLowestExtraction("形状が変わったため、工程4を停止しました");
+  cancelSkinRebuildPrintSupportDiagnosis();
+  stage6BodyMeshCache = null;
+  setSkinRebuildReinforcementPreview(null, []);
+  if (skinRebuildWorkflowHistoryPast.length > 0 || skinRebuildWorkflowHistoryFuture.length > 0) {
+    resetSkinRebuildWorkflowHistory();
+  }
+  if (!skinRebuildPipeline) return;
+  skinRebuildPipeline = null;
+  skinRebuildSelectedTargetPatchId = null;
+  skinRebuildSelectedOverhangRegionIds.clear();
+  skinRebuildReinforcedOverhangRegionIds.clear();
+  invalidateSkinRebuildFinalStages("形状が変わったため、工程6〜8は未実行です");
+  skinRenderer.setMotifLowestPointMarkers(null, null);
+  skinRenderer.setSkinRebuildOverhangOverlay(null);
+  refreshSkinRebuildLatticeEdgeEditor();
+  refreshSkinRebuildSelectedTarget();
+  refreshSkinRebuildSelectedRegion();
+  if (skinRebuildInsideStatus) {
+    skinRebuildInsideStatus.textContent = reason;
+    skinRebuildInsideStatus.dataset.ok = "false";
+  }
+  if (skinRebuildLowestStatus) skinRebuildLowestStatus.textContent = "工程3の再実行待ち";
+  if (skinRebuildLatticeStatus) skinRebuildLatticeStatus.textContent = "工程3と4の再実行待ち";
+  if (skinRebuildPrintSupportStatus) skinRebuildPrintSupportStatus.textContent = "工程7の最終診断待ち";
+  if (skinRebuildSaveStatus) {
+    skinRebuildSaveStatus.textContent = "工程3〜5の再実行待ち";
+    skinRebuildSaveStatus.dataset.ok = "false";
+  }
+  if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = true;
+  if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = true;
+  if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = true;
+  if (skinRebuildCompleteSupportButton) skinRebuildCompleteSupportButton.disabled = true;
+  if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = true;
+  if (skinRebuildPrintSupportButton) skinRebuildPrintSupportButton.disabled = true;
+  if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = true;
+  skinRenderer.setPrintSupport(null);
+}
+
+function skinRebuildPipelineOutputBlockReason(): string | null {
+  if (!isSkinRebuildApp) return null;
+  if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.project) {
+    return "SKIN REBUILD工程3〜5（内外判定・最下端抽出・ラティス生成）を完了してください";
+  }
+  if (skinRebuildPipeline.project.audit.unsupportedTargetCount > 0) {
+    const unsupportedIds = skinRebuildUnsupportedSpiderTargetIds(skinRebuildPipeline.project);
+    return `SKIN REBUILD蜘蛛支持が必要な赤面に未支持が${skinRebuildPipeline.project.audit.unsupportedTargetCount}点あります（Pattern #${unsupportedIds.join(", #")}）。黄色＋白枠で強調しました。「蜘蛛支持の未支持をワンクリックで0にする」を実行してください`;
+  }
+  const disconnected = skinRebuildDisconnectedPatternIds(
+    skinRebuildPipeline.project.patternSides,
+    skinRebuildPipeline.project.finalGraph,
+  );
+  if (disconnected.length > 0) {
+    return `SKIN REBUILD作品に未接続Patternが${disconnected.length}個あります。「未接続Patternをワンクリックで0にする」を実行してください`;
+  }
+  if (!skinRebuildFinalDiagnosisIsCurrent()) {
+    return "工程6で作品形状を確定し、工程7で残っている赤面を最終診断してください";
+  }
+  if ((skinRebuildFinalArtworkDiagnosis?.overhangFaceCount ?? 0) > 0
+    && skinRebuildStage8CompletedProject !== skinRebuildPipeline.project) {
+    return "工程7で残った赤面があります。工程8で別体印刷サポートを生成してください";
+  }
+  return null;
+}
+
+function saveCurrentSkinRebuildFkei(): string {
+  if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.project) {
+    throw new Error("工程3〜5を完了してから保存してください");
+  }
+  const document = captureSkinRebuildFkei(skinRebuildPipeline.project, {
+    savedAt: new Date().toISOString(),
+    appVersion: manifest.version,
+    generatorCommit: RUNNING_APP_COMMIT,
+    shapeRecipe: serializeRecipe(history),
+  });
+  const text = serializeSkinRebuildFkei(document);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `skin-rebuild-complete-${stamp}.fkei`;
+  downloadBlob(new Blob([text], { type: "application/json" }), filename);
+  const unsupported = skinRebuildPipeline.project.audit.unsupportedTargetCount;
+  projectMeta.textContent = `.fkei 保存済み · SKIN REBUILD工程3〜8 · 未支持${unsupported}点を記録 · ${filename}`;
+  return filename;
+}
+
 function getInternalStructureGraph(): InternalStructureGraph | null {
+  if (isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project) {
+    return skinRebuildPipeline.project.finalGraph;
+  }
   if (state.skinParams.internalStructure === "none" || state.host.length === 0) {
     internalStructureFingerprint = "";
     internalStructureGraph = null;
@@ -6347,7 +8564,7 @@ window.addEventListener("keydown", (event) => {
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
-  requestShapeUndo();
+  requestProjectUndo();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -6385,6 +8602,44 @@ const DRAG_THRESHOLD = RHINO_DRAG_THRESHOLD_PX;
 
 function pointerRay(event: Pick<PointerEvent, "clientX" | "clientY">): ReturnType<typeof skinRenderer.screenToRay> {
   return skinRenderer.screenToRayFromClient(event.clientX, event.clientY);
+}
+
+function updateSkinRebuildRegionSelectionMarquee(
+  drag: NonNullable<typeof skinRebuildRegionDragSelection>,
+  clientX: number,
+  clientY: number,
+): void {
+  const viewportRect = viewport.getBoundingClientRect();
+  const left = Math.min(drag.startX, clientX) - viewportRect.left;
+  const top = Math.min(drag.startY, clientY) - viewportRect.top;
+  const width = Math.abs(clientX - drag.startX);
+  const height = Math.abs(clientY - drag.startY);
+  Object.assign(skinRebuildRegionMarquee.style, {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+  });
+  skinRebuildRegionMarquee.dataset.operation = drag.operation;
+  skinRebuildRegionMarquee.hidden = false;
+}
+
+function finishSkinRebuildRegionSelectionMarquee(
+  drag: NonNullable<typeof skinRebuildRegionDragSelection>,
+  clientX: number,
+  clientY: number,
+): void {
+  skinRebuildRegionMarquee.hidden = true;
+  const dragDistance = Math.hypot(clientX - drag.startX, clientY - drag.startY);
+  const regionIds = dragDistance <= DRAG_THRESHOLD
+    ? [skinRenderer.pickSkinRebuildOverhangRegion(clientX, clientY)].filter((id): id is number => id !== null)
+    : skinRenderer.pickSkinRebuildOverhangRegionsInClientRect(
+      drag.startX,
+      drag.startY,
+      clientX,
+      clientY,
+    );
+  setSkinRebuildOverhangRegionSelections(regionIds, drag.operation);
 }
 
 function fastPatchId(ray: PointerRay): number | null {
@@ -6679,9 +8934,43 @@ viewport.addEventListener("pointerdown", (e) => {
   // acquires pointer capture; HUD and toolbar descendants remain untouched.
   if (e.target !== skinRenderer.renderer.domElement) return;
   skinRenderer.activateViewportAt(e.clientX, e.clientY);
-  if (e.button === 0 && e.shiftKey) {
+  const skinRebuildRegionInteraction = isSkinRebuildApp
+    && skinRebuildPipelineIsCurrent()
+    && Boolean(skinRebuildPipeline?.overhang);
+  const shiftedRegionHit = skinRebuildRegionInteraction && e.shiftKey
+    ? skinRenderer.pickSkinRebuildOverhangRegion(e.clientX, e.clientY)
+    : null;
+  if (e.button === 0 && e.shiftKey && !skinRebuildRegionDragSelectEnabled && shiftedRegionHit === null) {
     // Shift + left drag belongs to the viewport camera even while paint is enabled.
     pointerDownPos = null;
+    return;
+  }
+  if (e.button === 0 && e.shiftKey && !skinRebuildRegionDragSelectEnabled && shiftedRegionHit !== null) {
+    // A Shift-click directly on red belongs to multi-selection, not camera pan.
+    // The matching pointerup still reaches handleClick through pointerDownPos.
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+    return;
+  }
+  if (!supportPaintEnabled && e.button === 0 && skinRebuildRegionInteraction && skinRebuildRegionDragSelectEnabled) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    const operation = e.ctrlKey || e.metaKey ? "remove" : e.shiftKey ? "add" : "replace";
+    skinRebuildRegionDragSelection = {
+      pointerId: e.pointerId,
+      operation,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    pointerDownPos = null;
+    skinRenderer.setOrbitEnabled(false);
+    skinRenderer.renderer.domElement.setPointerCapture?.(e.pointerId);
+    updateSkinRebuildRegionSelectionMarquee(skinRebuildRegionDragSelection, e.clientX, e.clientY);
+    viewport.classList.add("skin-rebuild-region-dragging");
+    requestRenderFrame();
     return;
   }
   if (supportPaintEnabled) {
@@ -6747,6 +9036,9 @@ viewport.addEventListener("pointerdown", (e) => {
   // In Axome an unmodified left drag belongs to camera rotation. A release
   // inside the shared threshold still reaches handleClick for selection.
   if (skinRenderer.isAxomeViewportAt(e.clientX, e.clientY)) return;
+  if (isSkinRebuildApp && skinRebuildViewportSelectionMode === "lattice-edge") return;
+  if (isSkinRebuildApp && skinRebuildPipeline?.overhang
+    && skinRenderer.pickSkinRebuildOverhangRegion(e.clientX, e.clientY) !== null) return;
   if (selectedPatchId === null || addPatchMode || seedPickMode) return;
   const ray = pointerRay(e);
   if (fastPatchId(ray) !== selectedPatchId) return;
@@ -6770,6 +9062,11 @@ viewport.addEventListener("pointerdown", (e) => {
 }, { capture: true });
 
 window.addEventListener("pointermove", (e) => {
+  if (skinRebuildRegionDragSelection && e.pointerId === skinRebuildRegionDragSelection.pointerId) {
+    e.preventDefault();
+    updateSkinRebuildRegionSelectionMarquee(skinRebuildRegionDragSelection, e.clientX, e.clientY);
+    return;
+  }
   if (skinRenderer.isRhinoCameraGestureActive()) return;
   if (supportPaintDrag && e.pointerId === supportPaintDrag.pointerId) { scheduleSupportPaintPointer(e, supportPaintDrag); return; }
   if (supportPaintEnabled) {
@@ -6789,6 +9086,15 @@ window.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("pointerup", (e) => {
+  if (skinRebuildRegionDragSelection && e.pointerId === skinRebuildRegionDragSelection.pointerId) {
+    finishSkinRebuildRegionSelectionMarquee(skinRebuildRegionDragSelection, e.clientX, e.clientY);
+    skinRebuildRegionDragSelection = null;
+    skinRenderer.setOrbitEnabled(true);
+    viewport.classList.remove("skin-rebuild-region-dragging");
+    refreshSkinRebuildSelectedRegion();
+    render();
+    return;
+  }
   if (supportPaintDrag && e.pointerId === supportPaintDrag.pointerId) { finishSupportPaintDrag(true, e); return; }
   if (patchDrag && e.pointerId === patchDrag.pointerId) {
     const drag = patchDrag;
@@ -6818,6 +9124,13 @@ window.addEventListener("pointerup", (e) => {
 
 window.addEventListener("pointercancel", () => {
   pointerDownPos = null;
+  if (skinRebuildRegionDragSelection) {
+    skinRebuildRegionDragSelection = null;
+    skinRebuildRegionMarquee.hidden = true;
+    skinRenderer.setOrbitEnabled(true);
+    viewport.classList.remove("skin-rebuild-region-dragging");
+    refreshSkinRebuildSelectedRegion();
+  }
   if (supportPaintDrag) finishSupportPaintDrag(false);
   if (patchDrag) finishPatchDrag();
 });
@@ -6890,6 +9203,37 @@ function handleClick(e: PointerEvent): void {
       refreshPartitionDraft();
     }
     return;
+  }
+
+  if (isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.overhang) {
+    const regionId = skinRenderer.pickSkinRebuildOverhangRegion(e.clientX, e.clientY);
+    if (regionId !== null) {
+      const operation = e.ctrlKey || e.metaKey ? "remove" : e.shiftKey ? "add" : "replace";
+      setSkinRebuildOverhangRegionSelection(regionId, operation);
+      render();
+      return;
+    }
+  }
+
+  if (isSkinRebuildApp && skinRebuildViewportSelectionMode === "lattice-edge") {
+    const graph = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project?.lattice ?? null : null;
+    const edgeId = skinRenderer.pickInternalStructureEdge(e.clientX, e.clientY, graph);
+    setSkinRebuildLatticeEdgeSelection(edgeId);
+    render();
+    return;
+  }
+
+  if (isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project) {
+    const selectableIds = skinRebuildPipeline.project.lowestPoints
+      .filter((point) => point.needsSupport)
+      .map((point) => point.patchId);
+    const markerPatchId = skinRenderer.pickMotifLowestPointMarker(
+      e.clientX,
+      e.clientY,
+      selectableIds,
+    );
+    const surfacePatchId = markerPatchId ?? fastPatchId(ray);
+    if (selectableIds.includes(surfacePatchId ?? -1) && selectSkinRebuildTarget(surfacePatchId)) return;
   }
 
   if (showOverhangSupportSites && overhangSupportResult) {
@@ -8121,6 +10465,216 @@ function applyRecipeText(
   importedRecipeText = text;
 }
 
+function captureSkinRebuildWorkflowStatus(element: HTMLElement | null): SkinRebuildWorkflowStatusSnapshot | null {
+  return element ? { text: element.textContent ?? "", ok: element.dataset.ok ?? null } : null;
+}
+
+function restoreSkinRebuildWorkflowStatus(
+  element: HTMLElement | null,
+  snapshot: SkinRebuildWorkflowStatusSnapshot | null,
+): void {
+  if (!element || !snapshot) return;
+  element.textContent = snapshot.text;
+  if (snapshot.ok === null) delete element.dataset.ok;
+  else element.dataset.ok = snapshot.ok;
+}
+
+function captureSkinRebuildWorkflowSnapshot(): SkinRebuildWorkflowSnapshot {
+  const pipeline = skinRebuildPipeline
+    ? {
+        ...skinRebuildPipeline,
+      }
+    : null;
+  return {
+    pipeline,
+    finalizedArtworkProject: skinRebuildFinalizedArtworkProject,
+    finalArtworkDiagnosis: skinRebuildFinalArtworkDiagnosis,
+    stage8CompletedProject: skinRebuildStage8CompletedProject,
+    stage6BodyMeshCache,
+    reinforcementPreview: skinRebuildReinforcementPreview
+      ? { graph: skinRebuildReinforcementPreview.graph, edgeIds: [...skinRebuildReinforcementPreview.edgeIds] }
+      : null,
+    selectedTargetPatchId: skinRebuildSelectedTargetPatchId,
+    selectedOverhangRegionIds: new Set(skinRebuildSelectedOverhangRegionIds),
+    reinforcedOverhangRegionIds: new Set(skinRebuildReinforcedOverhangRegionIds),
+    statuses: {
+      inside: captureSkinRebuildWorkflowStatus(skinRebuildInsideStatus),
+      lowest: captureSkinRebuildWorkflowStatus(skinRebuildLowestStatus),
+      lattice: captureSkinRebuildWorkflowStatus(skinRebuildLatticeStatus),
+      reinforcement: captureSkinRebuildWorkflowStatus(skinRebuildReinforcementStatus),
+      finalDiagnosis: captureSkinRebuildWorkflowStatus(skinRebuildFinalDiagnosisStatus),
+      printSupport: captureSkinRebuildWorkflowStatus(skinRebuildPrintSupportStatus),
+      save: captureSkinRebuildWorkflowStatus(skinRebuildSaveStatus),
+      stage8Export: captureSkinRebuildWorkflowStatus(skinRebuildStage8ExportStatus),
+    },
+  };
+}
+
+function skinRebuildWorkflowSnapshotChanged(
+  before: SkinRebuildWorkflowSnapshot,
+  after: SkinRebuildWorkflowSnapshot,
+): boolean {
+  return before.pipeline?.patternSides !== after.pipeline?.patternSides
+    || before.pipeline?.lowestPoints !== after.pipeline?.lowestPoints
+    || before.pipeline?.overhang !== after.pipeline?.overhang
+    || before.pipeline?.project !== after.pipeline?.project
+    || before.finalizedArtworkProject !== after.finalizedArtworkProject
+    || before.finalArtworkDiagnosis !== after.finalArtworkDiagnosis
+    || before.stage8CompletedProject !== after.stage8CompletedProject
+    || before.stage6BodyMeshCache !== after.stage6BodyMeshCache
+    || before.reinforcementPreview?.graph !== after.reinforcementPreview?.graph;
+}
+
+function commitSkinRebuildWorkflowHistory(label: string, before: SkinRebuildWorkflowSnapshot): void {
+  if (!isSkinRebuildApp) return;
+  const after = captureSkinRebuildWorkflowSnapshot();
+  if (!skinRebuildWorkflowSnapshotChanged(before, after)) return;
+  skinRebuildWorkflowHistoryPast.push({ label, before, after });
+  skinRebuildWorkflowHistoryFuture = [];
+  syncProjectBar();
+}
+
+function resetSkinRebuildWorkflowHistory(): void {
+  skinRebuildWorkflowHistoryPast = [];
+  skinRebuildWorkflowHistoryFuture = [];
+  syncProjectBar();
+}
+
+function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapshot): void {
+  cancelSkinRebuildLowestExtraction("工程履歴を復元しました");
+  activeSkinRebuildStage5BWorker?.terminate();
+  activeSkinRebuildStage5BWorker = null;
+  skinRebuildStage5BRequestId += 1;
+  skinRebuildStage5BHeavyComputation?.finish();
+  skinRebuildStage5BHeavyComputation = null;
+  cancelSkinRebuildPrintSupportDiagnosis();
+  cancelMeshExport(false);
+
+  skinRebuildPipeline = snapshot.pipeline
+    ? {
+        ...snapshot.pipeline,
+      }
+    : null;
+  skinRebuildFinalizedArtworkProject = snapshot.finalizedArtworkProject;
+  skinRebuildFinalArtworkDiagnosis = snapshot.finalArtworkDiagnosis;
+  skinRebuildStage8CompletedProject = snapshot.stage8CompletedProject;
+  stage6BodyMeshCache = snapshot.stage6BodyMeshCache;
+  skinRebuildSelectedTargetPatchId = snapshot.selectedTargetPatchId;
+  skinRebuildSelectedOverhangRegionIds = new Set(snapshot.selectedOverhangRegionIds);
+  skinRebuildReinforcedOverhangRegionIds = new Set(snapshot.reinforcedOverhangRegionIds);
+
+  const project = skinRebuildPipeline?.project ?? null;
+  internalStructureGraph = project?.finalGraph ?? null;
+  internalStructureFingerprint = "";
+  skinRenderer.setInternalStructure(internalStructureGraph);
+  skinRenderer.setPrintSupport(project?.printSupport ?? null);
+  if (project) refreshSkinRebuildLowestPointMarkers(project);
+  else skinRenderer.setMotifLowestPointMarkers(null, null);
+
+  if (snapshot.finalArtworkDiagnosis) {
+    showSkinRebuildStage6ArtworkMesh(
+      snapshot.finalArtworkDiagnosis.meshPositions,
+      snapshot.finalArtworkDiagnosis.meshNormals,
+    );
+    skinRenderer.setSkinRebuildOverhangOverlay(
+      snapshot.finalArtworkDiagnosis.overhangFacePositions,
+      snapshot.finalArtworkDiagnosis.overhangFaceRegionIds,
+    );
+  } else if (snapshot.stage6BodyMeshCache && snapshot.finalizedArtworkProject === project) {
+    showSkinRebuildStage6ArtworkMesh(
+      snapshot.stage6BodyMeshCache.positions,
+      snapshot.stage6BodyMeshCache.normals,
+    );
+  } else if (skinRebuildPipeline?.overhang) {
+    skinRenderer.setMeshOverlayBuffers(
+      skinRebuildPipeline.overhang.meshPositions,
+      skinRebuildPipeline.overhang.meshNormals,
+    );
+    skinRenderer.setSkinRebuildOverhangOverlay(
+      skinRebuildPipeline.overhang.positions,
+      skinRebuildPipeline.overhang.faceRegionIds,
+    );
+    viewMode = "mesh";
+    skinRenderer.setViewMode(viewMode);
+    ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+    if (project?.finalGraph.edges.length) setInternalObservationMode("ghostSkin");
+  } else {
+    skinRenderer.setSkinRebuildOverhangOverlay(null);
+  }
+  setSkinRebuildReinforcementPreview(
+    snapshot.reinforcementPreview?.graph ?? null,
+    snapshot.reinforcementPreview?.edgeIds ?? [],
+  );
+
+  refreshSkinRebuildLatticeEdgeEditor();
+  refreshSkinRebuildSelectedTarget();
+  refreshSkinRebuildSelectedRegion();
+  refreshSkinRebuildFinalStageButtons();
+  refreshSkinRebuildStage8ExportButton();
+  if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = skinRebuildPipeline === null;
+  if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = !skinRebuildPipeline?.lowestPoints;
+  if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = project === null;
+  if (skinRebuildCompleteSupportButton) {
+    skinRebuildCompleteSupportButton.disabled = project === null || project.audit.unsupportedTargetCount === 0;
+  }
+  if (skinRebuildUnsupportedFocusButton) {
+    skinRebuildUnsupportedFocusButton.disabled = project === null || project.audit.unsupportedTargetCount === 0;
+  }
+  if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = project === null;
+  if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = project === null;
+
+  restoreSkinRebuildWorkflowStatus(skinRebuildInsideStatus, snapshot.statuses.inside);
+  restoreSkinRebuildWorkflowStatus(skinRebuildLowestStatus, snapshot.statuses.lowest);
+  restoreSkinRebuildWorkflowStatus(skinRebuildLatticeStatus, snapshot.statuses.lattice);
+  restoreSkinRebuildWorkflowStatus(skinRebuildReinforcementStatus, snapshot.statuses.reinforcement);
+  restoreSkinRebuildWorkflowStatus(skinRebuildFinalDiagnosisStatus, snapshot.statuses.finalDiagnosis);
+  restoreSkinRebuildWorkflowStatus(skinRebuildPrintSupportStatus, snapshot.statuses.printSupport);
+  restoreSkinRebuildWorkflowStatus(skinRebuildSaveStatus, snapshot.statuses.save);
+  restoreSkinRebuildWorkflowStatus(skinRebuildStage8ExportStatus, snapshot.statuses.stage8Export);
+  invalidateInternalPrintGate("工程履歴を戻したため、書き出し時に最終判定を再実行します");
+  render();
+}
+
+function undoSkinRebuildWorkflowOperation(): void {
+  const entry = skinRebuildWorkflowHistoryPast.pop();
+  if (!entry) return;
+  skinRebuildWorkflowHistoryFuture.push(entry);
+  restoreSkinRebuildWorkflowSnapshot(entry.before);
+  ui.setUndoStatus(`工程を戻しました: ${entry.label}`);
+  projectMeta.textContent = `UNDO · ${entry.label}`;
+  syncProjectBar();
+}
+
+function redoSkinRebuildWorkflowOperation(): void {
+  const entry = skinRebuildWorkflowHistoryFuture.pop();
+  if (!entry) return;
+  skinRebuildWorkflowHistoryPast.push(entry);
+  restoreSkinRebuildWorkflowSnapshot(entry.after);
+  ui.setUndoStatus(`工程をやり直しました: ${entry.label}`);
+  projectMeta.textContent = `REDO · ${entry.label}`;
+  syncProjectBar();
+}
+
+function requestProjectUndo(): void {
+  if (supportPaintEnabled) {
+    undoOneSupportPaintOperation();
+    return;
+  }
+  if (skinRebuildWorkflowHistoryPast.length > 0) {
+    undoSkinRebuildWorkflowOperation();
+    return;
+  }
+  requestShapeUndo();
+}
+
+function requestProjectRedo(): void {
+  if (supportPaintEnabled) {
+    redoOneSupportPaintOperation();
+    return;
+  }
+  if (skinRebuildWorkflowHistoryFuture.length > 0) redoSkinRebuildWorkflowOperation();
+}
+
 function requestShapeUndo(): void {
   if (!canInvokeShapeUndo(supportPaintEnabled)) {
     ui.setUndoStatus("Support Paint中です。右のPaint UndoまたはCtrl/Cmd+Zを使ってください");
@@ -8199,17 +10753,27 @@ function syncProjectBar(): void {
   const canPaintUndo = supportPaintEnabled && supportPaintSession.history.past.length > 0 && !paintBusy;
   const canShapeUndo = !supportPaintEnabled && history.length > 1;
   const canPaintRedo = supportPaintEnabled && supportPaintSession.history.future.length > 0 && !paintBusy;
+  const workflowUndo = !supportPaintEnabled
+    ? skinRebuildWorkflowHistoryPast[skinRebuildWorkflowHistoryPast.length - 1] ?? null
+    : null;
+  const workflowRedo = !supportPaintEnabled
+    ? skinRebuildWorkflowHistoryFuture[skinRebuildWorkflowHistoryFuture.length - 1] ?? null
+    : null;
 
-  projectUndoButton.disabled = !(canPaintUndo || canShapeUndo);
-  projectUndoButton.textContent = supportPaintEnabled ? "Undo · Paint" : "Undo · Shape";
+  projectUndoButton.disabled = !(canPaintUndo || workflowUndo || canShapeUndo);
+  projectUndoButton.textContent = supportPaintEnabled
+    ? "Undo · Paint"
+    : workflowUndo ? `Undo · ${workflowUndo.label}` : "Undo · Shape";
   projectUndoButton.title = supportPaintEnabled
     ? "Support Paint Undo（右のPaint履歴と同じ）"
-    : "Shape history Undo（既存の形状履歴）";
-  projectRedoButton.disabled = !canPaintRedo;
-  projectRedoButton.textContent = supportPaintEnabled ? "Redo · Paint" : "Redo";
+    : workflowUndo ? `SKIN REBUILD工程履歴を戻す: ${workflowUndo.label}` : "Shape history Undo（既存の形状履歴）";
+  projectRedoButton.disabled = !(canPaintRedo || workflowRedo);
+  projectRedoButton.textContent = supportPaintEnabled
+    ? "Redo · Paint"
+    : workflowRedo ? `Redo · ${workflowRedo.label}` : "Redo";
   projectRedoButton.title = supportPaintEnabled
     ? "Support Paint Redo（右のPaint履歴と同じ）"
-    : "Shape Redoは未実装。Paint中のみPaint Redoを表示します";
+    : workflowRedo ? `SKIN REBUILD工程履歴をやり直す: ${workflowRedo.label}` : "Shape Redoは未実装です";
 }
 
 async function importHistory(file: File): Promise<void> {
@@ -8599,6 +11163,10 @@ function currentFkeiRuntimeSaveSnapshot(): FkeiRuntimeSaveFacts {
 
 function saveCurrentFkeiProject(): void {
   try {
+    if (isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project) {
+      saveCurrentSkinRebuildFkei();
+      return;
+    }
     const result = saveFkeiRuntime(buildFkeiRuntimeSaveSnapshot(currentFkeiRuntimeSaveSnapshot()), {
       savedAt: new Date(),
       download: (text, filename) => downloadBlob(new Blob([text], { type: "application/json" }), filename),
@@ -8758,6 +11326,7 @@ function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
 }
 
 function cancelWorkersForFkeiOpen(): void {
+  cancelSkinRebuildLowestExtraction(".fkeiを開くため、工程4を停止しました");
   restoredRiskDrivenLatticeBodyGeneration++;
   restoredRiskDrivenLatticeBodyWorker?.terminate();
   restoredRiskDrivenLatticeBodyWorker = null;
@@ -8952,6 +11521,212 @@ function redrawFkeiOpenRuntime(): void {
   restoringFkeiOpenRuntime = false;
 }
 
+function getSkinRebuildPrintSupportGraph(): InternalStructureGraph | null {
+  return isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project
+    ? skinRebuildPipeline.project.printSupport
+    : null;
+}
+
+function getInternalPrintReachabilityGraph(bodyGraph: InternalStructureGraph | null): InternalStructureGraph | null {
+  if (!bodyGraph) return null;
+  const printSupport = getSkinRebuildPrintSupportGraph();
+  return printSupport?.edges.length ? mergeSkinRebuildGraphsAtSupportContacts(bodyGraph, printSupport) : bodyGraph;
+}
+
+function skinRebuildGateSafeMeshOptions(options: MeshUiOptions): MeshUiOptions {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
+  if (!isSkinRebuildApp || !project) return options;
+  const minimumDiameterMm = Math.min(
+    project.settings.strutDiameterMm,
+    project.printSupport.edges.length > 0 ? project.settings.supportDiameterMm : Number.POSITIVE_INFINITY,
+  );
+  if (!Number.isFinite(minimumDiameterMm) || minimumDiameterMm <= 0) return options;
+  const requiredResolution = Math.min(256, Math.max(16,
+    Math.ceil((A1_MINI_PLA_04_02.minVoxelsAcrossDiameter * options.targetLongestMm / minimumDiameterMm) / 8) * 8,
+  ));
+  if (options.resolution >= requiredResolution) return options;
+  const repaired = { ...options, resolution: requiredResolution };
+  ui.setMeshOptions(repaired);
+  setSkinRebuildMeshBottomProgress(
+    "工程6 自動調整",
+    `線径${minimumDiameterMm.toFixed(1)}mmを表現するため最終精度を${options.resolution}→${requiredResolution}へ変更`,
+  );
+  return repaired;
+}
+
+function assertSkinRebuildRecipeMatchesProject(
+  recipeState: ReturnType<typeof replay>,
+  document: SkinRebuildFkeiDocument,
+): void {
+  const project = document.project;
+  if (recipeState.host.length !== project.base.host.length || recipeState.patches.length !== project.patterns.length) {
+    throw new Error("shapeRecipeとSKIN REBUILD形状の要素数が一致しません");
+  }
+  const close = (left: number, right: number) => Math.abs(left - right) <= 1e-9;
+  for (const saved of project.base.host) {
+    const restored = recipeState.host.find((ball) => ball.id === saved.id);
+    if (!restored || !close(restored.x, saved.x) || !close(restored.y, saved.y)
+      || !close(restored.z, saved.z) || !close(restored.r, saved.r)) {
+      throw new Error(`shapeRecipeのBase Shape #${saved.id}が保存証拠と一致しません`);
+    }
+  }
+  if (!close(recipeState.hostParams.k, project.base.hostK)) throw new Error("shapeRecipeのBase Shape kが一致しません");
+  for (const saved of project.patterns) {
+    const restored = recipeState.patches.find((patch) => patch.id === saved.id);
+    if (!restored || restored.shape !== saved.shape
+      || (restored.motifPlacement ?? "surface") !== (saved.motifPlacement ?? "surface")
+      || restored.points.length !== saved.points.length) {
+      throw new Error(`shapeRecipeのSurface Pattern #${saved.id}が保存証拠と一致しません`);
+    }
+    for (let index = 0; index < saved.points.length; index++) {
+      const left = restored.points[index];
+      const right = saved.points[index];
+      if (!close(left.x, right.x) || !close(left.y, right.y) || !close(left.z, right.z)
+        || !close(left.r, right.r) || left.role !== right.role) {
+        throw new Error(`shapeRecipeのSurface Pattern #${saved.id} point ${index}が一致しません`);
+      }
+    }
+  }
+}
+
+function fallbackHistoryForSkinRebuildProject(document: SkinRebuildFkeiDocument): SkinHistoryEntry[] {
+  const project = document.project;
+  const timestamp = Date.now();
+  return [
+    {
+      t: timestamp,
+      op: "loadHostFromS1Recipe",
+      args: {
+        balls: project.base.host.map((ball) => ({ ...ball })),
+        params: { ...DEFAULT_SKIN_HOST_PARAMS, count: project.base.host.length, k: project.base.hostK },
+        source: "SKIN REBUILD .fkei",
+      },
+    },
+    { t: timestamp + 1, op: "setSkinParam", args: { key: "thickness", value: project.settings.surfaceThickness } },
+    { t: timestamp + 2, op: "setSkinParam", args: { key: "roundK", value: project.settings.roundK } },
+    { t: timestamp + 3, op: "setSkinParam", args: { key: "internalStructure", value: "targetedGrid" } },
+    {
+      t: timestamp + 4,
+      op: "packPatches",
+      args: {
+        patches: project.patterns.map((patch) => ({
+          ...patch,
+          points: patch.points.map((point) => ({ ...point })),
+        })),
+        identity: "replace",
+      },
+    },
+  ];
+}
+
+function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
+  const project = projectFromSkinRebuildFkei(document);
+  const prepared = document.shapeRecipe
+    ? prepareRecipeText(document.shapeRecipe)
+    : (() => {
+      const entries = fallbackHistoryForSkinRebuildProject(document);
+      return { entries, state: replay(entries) };
+    })();
+  assertSkinRebuildRecipeMatchesProject(prepared.state, document);
+
+  const previousRuntime = captureFkeiOpenRuntimeSnapshot();
+  const previousPipeline = skinRebuildPipeline;
+  cancelWorkersForFkeiOpen();
+  try {
+    applyHistoryEntries(prepared.entries, prepared.state);
+    importedRecipeText = serializeRecipe(prepared.entries);
+    importedRecipeFilename = null;
+    importedRecipeSha256 = null;
+    skinRebuildPipeline = {
+      shapeFingerprint: fkeiShapeFingerprint(state),
+      settings: { ...project.settings },
+      base: { ...project.base, host: project.base.host.map((ball) => ({ ...ball })) },
+      patternSides: project.patternSides.map((side) => ({
+        ...side,
+        surfacePosition: { ...side.surfacePosition },
+        outwardNormal: { ...side.outwardNormal },
+        insidePosition: { ...side.insidePosition },
+        outsidePosition: { ...side.outsidePosition },
+      })),
+      dryWeb: project.dryWeb,
+      lowestPoints: project.lowestPoints,
+      // Face-region buffers are runtime diagnostics. Stage 4 recreates them
+      // from the restored final mesh and the current angle threshold.
+      overhang: null,
+      project,
+    };
+    internalStructureGraph = project.finalGraph;
+    internalStructureFingerprint = "";
+    stage6BodyMeshCache = null;
+    skinRenderer.setInternalStructure(project.finalGraph);
+    skinRenderer.setPrintSupport(project.printSupport);
+    setSkinRebuildReinforcementPreview(null, []);
+    skinRenderer.setSkinRebuildOverhangOverlay(null);
+    skinRebuildSelectedTargetPatchId = null;
+    skinRebuildSelectedOverhangRegionIds.clear();
+    skinRebuildReinforcedOverhangRegionIds.clear();
+    invalidateSkinRebuildFinalStages(".fkeiを開いたため、工程6〜8を再実行してください");
+    refreshInternalAngleScreening(project.finalGraph);
+    invalidateInternalPrintGate("SKIN REBUILD .fkeiを開いたため、最終判定を再実行してください");
+    setInternalObservationMode("ghostSkin");
+    refreshSkinRebuildLowestPointMarkers(project);
+    if (skinRebuildThresholdInput) skinRebuildThresholdInput.value = String(project.settings.overhangThresholdDeg);
+    if (skinRebuildDiameterInput) skinRebuildDiameterInput.value = String(project.settings.strutDiameterMm);
+    if (skinRebuildSupportDiameterInput) skinRebuildSupportDiameterInput.value = String(project.settings.supportDiameterMm);
+    refreshSkinRebuildLatticeEdgeEditor();
+    refreshSkinRebuildSelectedTarget();
+    refreshSkinRebuildSelectedRegion();
+    if (skinRebuildInsideStatus) {
+      skinRebuildInsideStatus.textContent = `復元済み · inside ${project.audit.classifiedInsideCount}/${project.audit.realizedPatternCount}`;
+      skinRebuildInsideStatus.dataset.ok = "true";
+    }
+    if (skinRebuildLowestStatus) {
+      const totalRed = project.lowestPoints.filter((point) => point.needsSupport).length;
+      skinRebuildLowestStatus.textContent = `復元済み · Pattern最下端 ${project.audit.lowestPointCount}点 / 旧支持候補 ${totalRed}点 / 蜘蛛支持 ${project.audit.overhangTargetCount}点 · 赤い面領域は工程4で再検出`;
+      skinRebuildLowestStatus.dataset.ok = "true";
+    }
+    if (skinRebuildLatticeStatus) {
+      const unsupportedIds = skinRebuildUnsupportedSpiderTargetIds(project);
+      skinRebuildLatticeStatus.textContent = `復元済み · 支持 ${project.audit.supportedTargetCount}/${project.audit.overhangTargetCount} · 未支持 ${project.audit.unsupportedTargetCount}${unsupportedIds.length > 0 ? `（Pattern #${unsupportedIds.join(", #")}）` : ""} · 最大線分角 ${project.audit.maximumLatticeAngleDeg.toFixed(1)}°`;
+      skinRebuildLatticeStatus.dataset.ok = String(project.audit.unsupportedTargetCount === 0);
+    }
+    if (skinRebuildPrintSupportStatus) {
+      skinRebuildPrintSupportStatus.textContent = project.printSupport.edges.length > 0
+        ? `復元済み · 橙の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · 再生成は工程6→7→8`
+        : "復元済み · 印刷サポート0本 · 工程6→7→8で生成できます";
+      delete skinRebuildPrintSupportStatus.dataset.ok;
+    }
+    if (skinRebuildSaveStatus) {
+      skinRebuildSaveStatus.textContent = project.audit.unsupportedTargetCount === 0
+        ? "復元済み · 完成.fkeiを再保存できます"
+        : `復元済み · 未支持${project.audit.unsupportedTargetCount}点を保持して再保存できます`;
+      skinRebuildSaveStatus.dataset.ok = "true";
+    }
+    if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = false;
+    if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = false;
+    if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = false;
+    if (skinRebuildCompleteSupportButton) {
+      skinRebuildCompleteSupportButton.disabled = project.audit.unsupportedTargetCount === 0;
+    }
+    if (skinRebuildConnectAllButton) skinRebuildConnectAllButton.disabled = false;
+    if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = false;
+    refreshSkinRebuildFinalStageButtons();
+    refreshSkinRebuildStage8ExportButton();
+    ui.setInternalStructureStatus(
+      `SKIN REBUILD復元 · node ${project.finalGraph.nodes.length} / edge ${project.finalGraph.edges.length}`,
+      project.audit.unsupportedTargetCount === 0,
+    );
+    resetSkinRebuildWorkflowHistory();
+    if (project.audit.unsupportedTargetCount > 0) focusSkinRebuildUnsupportedTarget();
+    render();
+  } catch (error) {
+    skinRebuildPipeline = previousPipeline;
+    restoreFkeiOpenRuntimeSnapshot(previousRuntime);
+    redrawFkeiOpenRuntime();
+    throw error;
+  }
+}
+
 async function openFkeiProject(file: File): Promise<void> {
   const attempt = activeFkeiOpenAttempt;
   let lastCompletedStage: FkeiOpenStage = "file-selected";
@@ -8961,6 +11736,33 @@ async function openFkeiProject(file: File): Promise<void> {
     const text = await file.text();
     lastCompletedStage = "file-read-complete";
     reportFkeiOpenStage(attempt, lastCompletedStage, { name: file.name, size: file.size, textLength: text.length });
+
+    let schema: unknown;
+    try {
+      schema = (JSON.parse(text) as { schema?: unknown } | null)?.schema;
+    } catch {
+      schema = undefined;
+    }
+    if (isSkinRebuildApp && schema === SKIN_REBUILD_FKEI_SCHEMA) {
+      const document = parseSkinRebuildFkei(text);
+      lastCompletedStage = "document-parsed";
+      reportFkeiOpenStage(attempt, lastCompletedStage, {
+        schema,
+        patternCount: document.project.patterns.length,
+        overhangTargetCount: document.project.audit.overhangTargetCount,
+      });
+      restoreSkinRebuildFkei(document);
+      lastCompletedStage = "runtime-applied";
+      reportFkeiOpenStage(attempt, lastCompletedStage);
+      lastCompletedStage = "ui-synchronized";
+      reportFkeiOpenStage(
+        attempt,
+        lastCompletedStage,
+        { fileName: file.name, schema },
+        `.fkei Open完了 · SKIN REBUILD工程3〜6を復元 · ${file.name}`,
+      );
+      return;
+    }
 
     const document: FkeiDocument = parseFkeiDocument(text);
     lastCompletedStage = "document-parsed";
@@ -9007,12 +11809,13 @@ async function openFkeiProject(file: File): Promise<void> {
       `.fkei Open完了 · Stage ${plan.completedStage} · ${plan.canonicalDryWeb ? "canonical Dry Web / Risk-driven Lattice復元・BODY未生成" : "Dry Web未生成"} · ${file.name}`,
     );
   } catch (error) {
-    console.error("[SKIN .fkei Open] failed", { attempt, lastCompletedStage, error });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[SKIN .fkei Open] failed after ${lastCompletedStage}: ${errorMessage}`, { attempt, error });
     reportFkeiOpenStage(
       attempt,
       "failed",
       { lastCompletedStage, errorName: error instanceof Error ? error.name : typeof error },
-      ".fkeiを開けませんでした。現在の工程データを確認してください。",
+      `.fkeiを開けませんでした: ${errorMessage}`,
     );
   } finally {
     projectOpenInput.value = "";
@@ -9184,6 +11987,13 @@ function clearInternalPrintGateStatusTimer(): void {
   internalPrintGateStatusTimer = null;
 }
 
+function internalPrintGateIsRequiredForCurrentOutput(): boolean {
+  if (isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project) {
+    return skinRebuildPipeline.project.finalGraph.edges.length > 0;
+  }
+  return state.skinParams.internalStructure !== "none";
+}
+
 function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデータは書き出せません"): void {
   clearInternalPrintGateStatusTimer();
   internalPrintGateGeneration++;
@@ -9192,16 +12002,19 @@ function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデ
   activeInternalPrintGateWorker?.terminate();
   activeInternalPrintGateWorker = null;
   pendingInternalPrintGateFingerprint = "";
+  pendingMeshExportAfterGate = null;
   internalPrintGateCache = null;
+  ui.setMeshExportRunning(false);
   ui.setInternalPrintGateRunning(false);
   ui.setInternalPrintGateReport(null);
+  const required = internalPrintGateIsRequiredForCurrentOutput();
   ui.setInternalPrintGateExportAllowed(
-    state.skinParams.internalStructure === "none",
-    state.skinParams.internalStructure !== "none",
+    !required,
+    required,
   );
   ui.setInternalPrintGateStatus(
-    state.skinParams.internalStructure === "none" ? "Internalなし · このゲートは対象外です" : message,
-    state.skinParams.internalStructure === "none" ? undefined : false,
+    required ? message : "Internalなし · このゲートは対象外です",
+    required ? false : undefined,
   );
 }
 
@@ -9210,17 +12023,40 @@ function cancelInternalPrintGate(): void {
   invalidateInternalPrintGate("内部構造判定をキャンセルしました");
 }
 
+function failPendingMeshExportAfterGate(message: string): void {
+  if (!pendingMeshExportAfterGate) return;
+  pendingMeshExportAfterGate = null;
+  ui.setMeshExportRunning(false);
+  ui.setMeshStatus(`書き出し停止: ${message}`, false);
+  if (skinRebuildStage8ExportStatus) {
+    skinRebuildStage8ExportStatus.textContent = `書き出し停止: ${message}`;
+    skinRebuildStage8ExportStatus.dataset.ok = "false";
+  }
+  refreshSkinRebuildStage8ExportButton();
+  setSkinRebuildMeshBottomProgress("工程6 停止", "ラティス込みmeshを書き出せませんでした", message);
+}
+
 function startInternalPrintGate(options: MeshUiOptions): void {
+  options = skinRebuildGateSafeMeshOptions(options);
   const graph = getInternalStructureGraph();
-  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, graph);
-  if (state.skinParams.internalStructure === "none" || readinessBlockReason || !graph) {
+  const reachabilityGraph = getInternalPrintReachabilityGraph(graph);
+  const required = internalPrintGateIsRequiredForCurrentOutput();
+  const rebuildBlockReason = skinRebuildPipelineOutputBlockReason();
+  if (rebuildBlockReason) {
     ui.setInternalPrintGateReport(null);
-    ui.setInternalPrintGateExportAllowed(state.skinParams.internalStructure === "none", state.skinParams.internalStructure !== "none");
+    ui.setInternalPrintGateExportAllowed(false, true);
+    ui.setInternalPrintGateStatus(`NG · ${rebuildBlockReason}`, false);
+    return;
+  }
+  const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, graph);
+  if (!required || readinessBlockReason || !graph || graph.edges.length === 0) {
+    ui.setInternalPrintGateReport(null);
+    ui.setInternalPrintGateExportAllowed(!required, required);
     ui.setInternalPrintGateStatus(
-      state.skinParams.internalStructure === "none"
-        ? "NG · Internal StructureをONにしてから判定してください"
-        : `NG · ${readinessBlockReason}`,
-      false,
+      !required
+        ? "Internalなし · このゲートは対象外です"
+        : `NG · ${readinessBlockReason ?? "Internal Structureが未生成または空です"}`,
+      required ? false : undefined,
     );
     return;
   }
@@ -9229,7 +12065,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
   internalPrintGateHeavyComputation = null;
   const generation = ++internalPrintGateGeneration;
   const requestId = ++internalPrintGateRequestId;
-  const fingerprint = internalPrintGateFingerprint(options, graph);
+  const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? graph);
   if (internalPrintGateCache?.fingerprint === fingerprint) {
     ui.setInternalPrintGateReport(internalPrintGateCache.report);
     ui.setInternalPrintGateExportAllowed(internalPrintGateCache.report.ok, true);
@@ -9241,16 +12077,27 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     );
     return;
   }
-  const reusablePreview = previewMeshCache?.fingerprint === fingerprint && previewMeshCache.resolution === Math.max(16, Math.round(options.resolution))
-    ? previewMeshCache.positions.slice()
+  const bodyFingerprint = internalPrintGateFingerprint(options, graph);
+  const reusableStage6Body = stage6BodyMeshCache?.fingerprint === bodyFingerprint
+    ? stage6BodyMeshCache.positions.slice()
     : undefined;
+  const reusablePreview = reusableStage6Body ?? (
+    previewMeshCache?.fingerprint === bodyFingerprint && previewMeshCache.resolution === Math.max(16, Math.round(options.resolution))
+      ? previewMeshCache.positions.slice()
+      : undefined
+  );
   pendingInternalPrintGateFingerprint = fingerprint;
   internalPrintGateCache = null;
   ui.setInternalPrintGateExportAllowed(false, true);
   ui.setInternalPrintGateReport(null);
   ui.setInternalPrintGateRunning(true);
   const gateStarted = performance.now();
-  const gateStage = reusablePreview ? "表示済みの最終meshを再利用して判定中" : "最終meshを並列生成して判定中";
+  const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
+  const gateStage = reusablePreview
+    ? reusableStage6Body
+      ? "工程6で検査済みの最終meshを再利用して判定中"
+      : "表示済みの最終meshを再利用して判定中"
+    : `最終meshを${workerCount}コアで並列生成して判定中`;
   ui.setInternalPrintGateStatus(`${gateStage} · 0秒`);
   const worker = new Worker(new URL("./internalPrintGate.worker.ts", import.meta.url), { type: "module" });
   activeInternalPrintGateWorker = worker;
@@ -9263,11 +12110,14 @@ function startInternalPrintGate(options: MeshUiOptions): void {
   };
   heavy = beginHeavyComputation("Internal判定 全体進捗", cancel);
   internalPrintGateHeavyComputation = heavy;
-  heavy.update(`${gateStage} · 0秒`, 0);
-  heavy.smoothTo(99);
+  let lastGateProgress = 0;
+  let lastGateDetail = gateStage;
+  heavy.updateActual(`${lastGateDetail} · 0.0秒`, lastGateProgress);
   clearInternalPrintGateStatusTimer();
   internalPrintGateStatusTimer = window.setInterval(() => {
-    ui.setInternalPrintGateStatus(`${gateStage} · ${Math.floor((performance.now() - gateStarted) / 1000)}秒 · 画面は操作できます`);
+    const elapsed = ((performance.now() - gateStarted) / 1000).toFixed(1);
+    heavy.updateActual(`${lastGateDetail} · ${elapsed}秒`, lastGateProgress);
+    ui.setInternalPrintGateStatus(`${lastGateDetail} · ${elapsed}秒 · 画面は操作できます`);
   }, 1000);
   const request: InternalPrintGateRequest = {
     type: "check",
@@ -9282,6 +12132,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       points: patch.points.map((point) => ({ ...point })),
     })),
     internalGraph: graph,
+    printSupportGraph: getSkinRebuildPrintSupportGraph(),
     roundK: state.skinParams.roundK,
     coinBulge: state.skinParams.coinBulge,
     coinBulgeBalance: state.skinParams.coinBulgeBalance,
@@ -9289,8 +12140,12 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     mode: state.mode,
     resolution: Math.max(16, Math.round(options.resolution)),
     targetLongestMm: options.targetLongestMm,
-    workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)),
+    workerCount,
     prebuiltPositions: reusablePreview,
+    skinRebuildRepair: isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project !== null,
+    buildPlateZSource: isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project
+      ? Math.min(...skinRebuildPipeline.project.lowestPoints.map((point) => point.position.z))
+      : undefined,
     baseName: makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance),
   };
   worker.onmessage = (event: MessageEvent<InternalPrintGateWorkerMessage>) => {
@@ -9300,6 +12155,18 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       pendingInternalPrintGateFingerprint !== fingerprint
     ) {
       worker.terminate();
+      return;
+    }
+    if (message.type === "progress") {
+      lastGateProgress = stage6MeshProgressPercent(message.phase, message.completedSlices, message.totalSlices);
+      lastGateDetail = message.detail;
+      const elapsed = (message.elapsedMs / 1000).toFixed(1);
+      heavy.updateActual(`${message.detail} · ${elapsed}秒`, lastGateProgress);
+      ui.setInternalPrintGateStatus(`${message.detail} · ${Math.round(lastGateProgress)}% · ${elapsed}秒 · 画面は操作できます`);
+      setSkinRebuildMeshBottomProgress(
+        "工程6 Internal判定",
+        `${Math.round(lastGateProgress)}% · ${workerCount}コア · ${message.detail} · ${elapsed}秒`,
+      );
       return;
     }
     worker.terminate();
@@ -9312,27 +12179,61 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       pendingInternalPrintGateFingerprint = "";
       ui.setInternalPrintGateStatus(`NG · 判定できませんでした: ${message.message}`, false);
       ui.setInternalPrintGateExportAllowed(false, true);
+      failPendingMeshExportAfterGate(`内部構造の自動判定に失敗しました: ${message.message}`);
       return;
     }
-    heavy.update("Internal判定完了", 100);
+    heavy.updateActual("Internal判定完了", 100);
     heavy.finish();
     if (internalPrintGateHeavyComputation?.id === heavy.id) internalPrintGateHeavyComputation = null;
-    const currentGraph = getInternalStructureGraph();
+    const currentGraph = getInternalPrintReachabilityGraph(getInternalStructureGraph());
     if (!currentGraph || internalPrintGateFingerprint(options, currentGraph) !== fingerprint) {
       pendingInternalPrintGateFingerprint = "";
       ui.setInternalPrintGateStatus("形が変わったため、古い判定結果を破棄しました", false);
+      failPendingMeshExportAfterGate("自動判定中に形が変わりました");
       return;
     }
-    internalPrintGateCache = { fingerprint, report: message.report, stl: message.stl };
+    internalPrintGateCache = {
+      fingerprint,
+      report: message.report,
+      stl: message.stl,
+      summary: message.summary,
+      scaleMmPerUnit: message.scaleMmPerUnit,
+      plateShiftSourceZ: message.plateShiftSourceZ,
+    };
     pendingInternalPrintGateFingerprint = "";
     ui.setInternalPrintGateReport(message.report);
     ui.setInternalPrintGateExportAllowed(message.report.ok, true);
     ui.setInternalPrintGateStatus(
       message.report.ok
-        ? `内部構造：OK · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`
+        ? `内部構造：OK${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復済み` : ""} · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`
         : `内部構造：NG · ${message.report.reasons.length}項目を直してください · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
       message.report.ok,
     );
+    const pendingExport = pendingMeshExportAfterGate;
+    if (pendingExport?.fingerprint === fingerprint) {
+      pendingMeshExportAfterGate = null;
+      ui.setMeshExportRunning(false);
+      if (message.report.ok) {
+        setSkinRebuildMeshBottomProgress(
+          "工程6 自動判定完了",
+          `水密 · 1部品${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復` : ""} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+        );
+        window.setTimeout(() => exportMesh(pendingExport.options, pendingExport.formats), 0);
+      } else {
+        const stopReason = message.report.reasons[0] ?? `内部構造がNGです（${message.report.reasons.length}項目）`;
+        ui.setMeshStatus(`書き出し停止: ${stopReason}`, false);
+        if (skinRebuildStage8ExportStatus) {
+          skinRebuildStage8ExportStatus.textContent = `書き出し停止: ${stopReason}`;
+          skinRebuildStage8ExportStatus.dataset.ok = "false";
+        }
+        refreshSkinRebuildStage8ExportButton();
+        setSkinRebuildMeshBottomProgress(
+          "工程6 停止",
+          `内部構造NG · ${message.report.reasons.length}項目`,
+          stopReason,
+        );
+      }
+    }
   };
   worker.onerror = (event) => {
     if (!isCurrentWorkerRun(worker, activeInternalPrintGateWorker, null, undefined, generation, internalPrintGateGeneration) ||
@@ -9349,21 +12250,74 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     ui.setInternalPrintGateRunning(false);
     ui.setInternalPrintGateStatus(`NG · 判定Workerに失敗しました: ${event.message}`, false);
     ui.setInternalPrintGateExportAllowed(false, true);
+    failPendingMeshExportAfterGate(`内部構造判定Workerに失敗しました: ${event.message}`);
   };
   if (request.prebuiltPositions) worker.postMessage(request, [request.prebuiltPositions.buffer]);
   else worker.postMessage(request);
 }
 
 function inspectMesh(options: MeshUiOptions): void {
+  options = skinRebuildGateSafeMeshOptions(options);
   cancelMeshExport(false);
+  const workflowBefore = isSkinRebuildApp ? captureSkinRebuildWorkflowSnapshot() : null;
+  const rebuildProjectAtStart = isSkinRebuildApp && skinRebuildPipelineIsCurrent()
+    ? skinRebuildPipeline?.project ?? null
+    : null;
   const internalGraph = getInternalStructureGraph();
+  const reachabilityGraph = getInternalPrintReachabilityGraph(internalGraph);
   const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
   if (readinessBlockReason) {
     ui.setMeshStatus(`検査停止: ${readinessBlockReason}`, false);
     return;
   }
+  const bodyFingerprint = internalGraph?.edges.length ? internalPrintGateFingerprint(options, internalGraph) : "";
+  if (internalGraph?.edges.length) {
+    const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? internalGraph);
+    if (internalPrintGateCache?.fingerprint === fingerprint) {
+      const ok = internalPrintGateCache.report.ok;
+      if (bodyFingerprint && stage6BodyMeshCache?.fingerprint === bodyFingerprint) {
+        showSkinRebuildStage6ArtworkMesh(stage6BodyMeshCache.positions, stage6BodyMeshCache.normals);
+      } else if (bodyFingerprint
+        && previewMeshCache?.fingerprint === bodyFingerprint
+        && previewMeshCache.resolution === Math.max(16, Math.round(options.resolution))) {
+        showSkinRebuildStage6ArtworkMesh(previewMeshCache.positions, previewMeshCache.normals);
+      }
+      ui.setMeshStatus(`${internalPrintGateCache.summary} / 内部判定済みmeshを再利用`, ok);
+      setSkinRebuildMeshBottomProgress(
+        "工程6 検査完了",
+        `判定済みmesh再利用 · 水密${internalPrintGateCache.report.watertight ? "OK" : "NG"} · 部品数${internalPrintGateCache.report.meshComponents} · 0.0秒`,
+        ok ? undefined : internalPrintGateCache.report.reasons[0],
+      );
+      if (ok && rebuildProjectAtStart && skinRebuildPipeline?.project === rebuildProjectAtStart) {
+        markSkinRebuildArtworkFinalized(rebuildProjectAtStart, "工程6 mesh確定済み（判定cache再利用）");
+        if (workflowBefore) commitSkinRebuildWorkflowHistory("工程6 作品mesh確定", workflowBefore);
+      }
+      return;
+    }
+  }
+  if (bodyFingerprint && stage6BodyMeshCache?.fingerprint === bodyFingerprint) {
+    showSkinRebuildStage6ArtworkMesh(stage6BodyMeshCache.positions, stage6BodyMeshCache.normals);
+    ui.setMeshStatus(`${stage6BodyMeshCache.summary} / 工程6検査済みmeshを再利用`, stage6BodyMeshCache.watertightOk);
+    setSkinRebuildMeshBottomProgress(
+      "工程6 検査完了",
+      `検査済みBODY再利用 · ${stage6BodyMeshCache.summary} · 0.0秒`,
+      stage6BodyMeshCache.watertightOk ? undefined : "水密検査NG",
+    );
+    if (stage6BodyMeshCache.watertightOk
+      && rebuildProjectAtStart
+      && skinRebuildPipeline?.project === rebuildProjectAtStart) {
+      markSkinRebuildArtworkFinalized(rebuildProjectAtStart, "工程6 mesh確定済み（検査cache再利用）");
+      if (workflowBefore) commitSkinRebuildWorkflowHistory("工程6 作品mesh確定", workflowBefore);
+    }
+    return;
+  }
+  const reusablePreview = bodyFingerprint && previewMeshCache?.fingerprint === bodyFingerprint &&
+    previewMeshCache.resolution === Math.max(16, Math.round(options.resolution))
+    ? previewMeshCache.positions.slice()
+    : undefined;
   const requestId = ++meshExportRequestId;
   const generation = meshExportGeneration;
+  const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
   const request: MeshExportRequest = {
     type: "export", operation: "inspect", requestId, generation,
     host: state.host.map((ball) => ({ ...ball })), hostK: state.hostParams.k,
@@ -9376,40 +12330,105 @@ function inspectMesh(options: MeshUiOptions): void {
     coinBulgeBalance: state.skinParams.coinBulgeBalance, quadMeshJoinWidth: state.skinParams.quadMeshJoinWidth,
     mode: state.mode, resolution: Math.max(16, Math.round(options.resolution)),
     targetLongestMm: options.targetLongestMm,
-    workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)),
+    workerCount,
     baseName: makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance),
+    prebuiltPositions: reusablePreview,
   };
   const worker = new Worker(new URL("./meshExport.worker.ts", import.meta.url), { type: "module" });
   activeMeshExportWorker = worker;
   const started = performance.now();
   ui.setMeshExportRunning(true);
-  ui.setMeshStatus("最終meshを並列検査中 · 0秒 · 画面は操作できます");
+  const inspectionStartDetail = reusablePreview
+    ? `表示済みmesh ${Math.floor(reusablePreview.length / 9).toLocaleString()}面を再利用`
+    : `SDFを${workerCount}コアで並列sampling`;
+  ui.setMeshStatus(`${inspectionStartDetail} · 0.0秒 · 画面は操作できます`);
+  setSkinRebuildMeshBottomProgress("工程6 mesh検査", `${workerCount}コア · 開始 · 0.0秒`);
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (activeMeshExportWorker !== worker || meshExportHeavyComputation?.id !== heavy.id) return;
+    cancelMeshExport(true);
+  };
+  heavy = beginHeavyComputation(`工程6 mesh検査 · ${workerCount}コア`, cancel);
+  meshExportHeavyComputation = heavy;
+  let lastInspectionProgress = 0;
+  let lastInspectionDetail = inspectionStartDetail;
+  heavy.updateActual(`${lastInspectionDetail} · 0.0秒`, lastInspectionProgress);
   meshExportStatusTimer = window.setInterval(() => {
-    if (activeMeshExportWorker === worker) ui.setMeshStatus("最終meshを並列検査中 · " + ((performance.now() - started) / 1000).toFixed(1) + "秒 · 画面は操作できます");
+    if (activeMeshExportWorker === worker) {
+      const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+      heavy.updateActual(`${lastInspectionDetail} · ${elapsed}秒`, lastInspectionProgress);
+      ui.setMeshStatus(`${lastInspectionDetail} · ${elapsed}秒 · 画面は操作できます`);
+      setSkinRebuildMeshBottomProgress("工程6 mesh検査", `${Math.round(lastInspectionProgress)}% · ${workerCount}コア · ${lastInspectionDetail} · ${elapsed}秒`);
+    }
   }, 500);
   worker.onmessage = (event: MessageEvent<MeshExportWorkerMessage>) => {
     const message = event.data;
     if (activeMeshExportWorker !== worker || message.requestId !== requestId || message.generation !== meshExportGeneration) return;
     if (message.type === "progress") {
-      ui.setMeshStatus(`最終meshを並列検査中 · ${message.completedSlices}/${message.totalSlices} slice · ${message.faceCount.toLocaleString()}面 · ${(message.elapsedMs / 1000).toFixed(1)}秒 · 画面は操作できます`);
+      lastInspectionProgress = stage6MeshProgressPercent(message.phase, message.completedSlices, message.totalSlices);
+      lastInspectionDetail = message.detail;
+      const elapsed = (message.elapsedMs / 1000).toFixed(1);
+      heavy.updateActual(`${message.detail} · ${elapsed}秒`, lastInspectionProgress);
+      ui.setMeshStatus(`${message.detail} · ${Math.round(lastInspectionProgress)}% · ${elapsed}秒 · 画面は操作できます`);
+      setSkinRebuildMeshBottomProgress("工程6 mesh検査", `${Math.round(lastInspectionProgress)}% · ${workerCount}コア · ${message.detail} · ${elapsed}秒`);
       return;
     }
+    heavy.updateActual("mesh検査完了", 100);
     clearMeshExportWorker();
     if (message.type === "error") {
       ui.setMeshStatus("検査失敗: " + message.message, false);
+      setSkinRebuildMeshBottomProgress("工程6 検査失敗", `${(message.elapsedMs / 1000).toFixed(1)}秒`, message.message);
       return;
     }
-    ui.setMeshStatus(message.summary + " / 並列検査 " + (message.elapsedMs / 1000).toFixed(1) + "秒", message.watertightOk);
+    if (bodyFingerprint
+      && message.positions?.length
+      && message.normals?.length === message.positions.length) {
+      stage6BodyMeshCache = {
+        fingerprint: bodyFingerprint,
+        positions: message.positions,
+        normals: message.normals,
+        summary: message.summary,
+        watertightOk: message.watertightOk,
+      };
+      showSkinRebuildStage6ArtworkMesh(message.positions, message.normals);
+    }
+    const rebuildMeshSummary = rebuildProjectAtStart
+      ? ` / 工程5A＋5Bの恒久Graph ${rebuildProjectAtStart.finalGraph.edges.length}辺を作品meshへ統合・表示`
+      : "";
+    ui.setMeshStatus(
+      message.summary + rebuildMeshSummary + " / 並列検査 " + (message.elapsedMs / 1000).toFixed(1) + "秒",
+      message.watertightOk,
+    );
+    setSkinRebuildMeshBottomProgress(
+      "工程6 検査完了",
+      `${workerCount}コア · ${message.summary}${rebuildProjectAtStart ? ` · 5B補強込み${rebuildProjectAtStart.finalGraph.edges.length}辺をmesh表示` : ""} · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+      message.watertightOk ? undefined : "水密検査NG",
+    );
+    if (message.watertightOk
+      && rebuildProjectAtStart
+      && skinRebuildPipelineIsCurrent()
+      && skinRebuildPipeline?.project === rebuildProjectAtStart) {
+      markSkinRebuildArtworkFinalized(rebuildProjectAtStart, "工程6 mesh確定済み");
+      if (workflowBefore) commitSkinRebuildWorkflowHistory("工程6 作品mesh確定", workflowBefore);
+    }
   };
   worker.onerror = (event) => {
     if (activeMeshExportWorker !== worker) return;
     clearMeshExportWorker();
     ui.setMeshStatus("検査Workerに失敗しました: " + event.message, false);
+    setSkinRebuildMeshBottomProgress("工程6 検査失敗", "Worker error", event.message);
   };
-  worker.postMessage(request);
+  if (request.prebuiltPositions) worker.postMessage(request, [request.prebuiltPositions.buffer]);
+  else worker.postMessage(request);
 }
 
-let pendingMeshExport: { requestId: number; generation: number; baseName: string; recipe: string } | null = null;
+let pendingMeshExport: {
+  requestId: number;
+  generation: number;
+  baseName: string;
+  recipe: string;
+  formats: SkinRebuildExportFormatSelection;
+} | null = null;
 
 function clearMeshExportWorker(): void {
   if (activeMeshExportWorker) {
@@ -9420,33 +12439,74 @@ function clearMeshExportWorker(): void {
     window.clearInterval(meshExportStatusTimer);
     meshExportStatusTimer = null;
   }
+  meshExportHeavyComputation?.finish();
+  meshExportHeavyComputation = null;
   ui.setMeshExportRunning(false);
 }
 
 function cancelMeshExport(notify = false): void {
-  const wasRunning = activeMeshExportWorker !== null;
+  const wasRunning = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
+  if (pendingMeshExportAfterGate) {
+    pendingMeshExportAfterGate = null;
+    cancelInternalPrintGate();
+  }
   clearMeshExportWorker();
   pendingMeshExport = null;
-  if (notify && wasRunning) ui.setMeshStatus("書き出しをキャンセルしました。形状は変更していません");
+  if (notify && wasRunning) {
+    ui.setMeshStatus("書き出しをキャンセルしました。形状は変更していません");
+    setSkinRebuildMeshBottomProgress("工程6 中断", "書き出しをキャンセルしました");
+  }
+  refreshSkinRebuildStage8ExportButton();
 }
 
-function exportMesh(options: MeshUiOptions): void {
+function exportMesh(
+  options: MeshUiOptions,
+  formats: SkinRebuildExportFormatSelection = DEFAULT_SKIN_REBUILD_EXPORT_FORMATS,
+): void {
+  options = skinRebuildGateSafeMeshOptions(options);
   cancelMeshExport(false);
   const internalGraph = getInternalStructureGraph();
+  const printSupportGraph = getSkinRebuildPrintSupportGraph();
+  const reachabilityGraph = getInternalPrintReachabilityGraph(internalGraph);
+  const rebuildBlockReason = skinRebuildPipelineOutputBlockReason();
+  if (rebuildBlockReason) {
+    if ((skinRebuildPipeline?.project?.audit.unsupportedTargetCount ?? 0) > 0) {
+      const patchId = focusSkinRebuildUnsupportedTarget();
+      if (patchId !== null) {
+        if (skinRebuildStage8ExportStatus) {
+          skinRebuildStage8ExportStatus.textContent = `書き出し停止 · Pattern #${patchId}を大きい黄色＋白枠で強調しました`;
+          skinRebuildStage8ExportStatus.dataset.ok = "false";
+        }
+      }
+    }
+    ui.setMeshStatus(`書き出し停止: ${rebuildBlockReason}`, false);
+    return;
+  }
   const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
   if (readinessBlockReason) {
     ui.setMeshStatus(`書き出し停止: ${readinessBlockReason}`, false);
     return;
   }
   if (internalGraph?.edges.length) {
-    const fingerprint = internalPrintGateFingerprint(options, internalGraph);
+    const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? internalGraph);
     if (!internalPrintGateCache || internalPrintGateCache.fingerprint !== fingerprint) {
-      ui.setMeshStatus("書き出し停止: A1 mini条件で内部構造を最終判定してください", false);
-      ui.setInternalPrintGateStatus("未判定 · Internal付き3Dデータは書き出せません", false);
+      pendingMeshExportAfterGate = {
+        options: { ...options },
+        fingerprint,
+        formats: { ...formats },
+      };
+      ui.setMeshExportRunning(true);
+      refreshSkinRebuildStage8ExportButton();
+      ui.setMeshStatus("ラティス込みmeshを自動判定中… 合格後、同じSTLをそのまま保存します");
+      setSkinRebuildMeshBottomProgress(
+        "工程6 自動判定",
+        `ラティス${internalGraph.edges.length}辺込み · 最終meshを並列生成中`,
+      );
+      startInternalPrintGate(options);
       return;
     }
     if (!internalPrintGateCache.report.ok) {
-      ui.setMeshStatus(`書き出し停止: 内部構造がNGです（${internalPrintGateCache.report.reasons.length}項目）`, false);
+      ui.setMeshStatus(`書き出し停止: ${internalPrintGateCache.report.reasons[0] ?? `内部構造がNGです（${internalPrintGateCache.report.reasons.length}項目）`}`, false);
       return;
     }
   }
@@ -9454,6 +12514,10 @@ function exportMesh(options: MeshUiOptions): void {
   const generation = meshExportGeneration;
   const baseName = makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance);
   const recipe = serializeRecipe(history);
+  const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
+  const reusableGate = internalGraph?.edges.length && internalPrintGateCache?.report.ok
+    ? internalPrintGateCache
+    : null;
   const request: MeshExportRequest = {
     type: "export",
     operation: "export",
@@ -9475,18 +12539,44 @@ function exportMesh(options: MeshUiOptions): void {
     mode: state.mode,
     resolution: Math.max(16, Math.round(options.resolution)),
     targetLongestMm: options.targetLongestMm,
-    workerCount: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)),
+    workerCount,
     baseName,
+    cachedStl: reusableGate?.stl.slice(0),
+    cachedSummary: reusableGate?.summary,
+    cachedScaleMmPerUnit: reusableGate?.scaleMmPerUnit,
+    cachedPlateShiftSourceZ: reusableGate?.plateShiftSourceZ,
+    printSupportGraph,
   };
-  pendingMeshExport = { requestId, generation, baseName, recipe };
+  pendingMeshExport = { requestId, generation, baseName, recipe, formats: { ...formats } };
   const worker = new Worker(new URL("./meshExport.worker.ts", import.meta.url), { type: "module" });
   activeMeshExportWorker = worker;
+  refreshSkinRebuildStage8ExportButton();
   const started = performance.now();
   ui.setMeshExportRunning(true);
-  ui.setMeshStatus("別処理で3Dデータを作成中… 画面はそのまま操作できます");
+  const exportStartDetail = reusableGate
+    ? "判定済みSTLを再利用し、OBJとrecipeを作成中"
+    : `最終meshを${workerCount}コアで作成中`;
+  ui.setMeshStatus(`${exportStartDetail}… 画面はそのまま操作できます`);
+  setSkinRebuildMeshBottomProgress("工程6 ラティス込み書き出し", `${exportStartDetail} · 0.0秒`);
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (activeMeshExportWorker !== worker || meshExportHeavyComputation?.id !== heavy.id) return;
+    cancelMeshExport(true);
+  };
+  heavy = beginHeavyComputation(
+    reusableGate ? "工程6 保存準備 · 判定済みmesh再利用" : `工程6 mesh書き出し · ${workerCount}コア`,
+    cancel,
+  );
+  meshExportHeavyComputation = heavy;
+  let lastExportProgress = reusableGate ? 90 : 0;
+  let lastExportDetail = exportStartDetail;
+  heavy.updateActual(`${lastExportDetail} · 0.0秒`, lastExportProgress);
   meshExportStatusTimer = window.setInterval(() => {
     if (activeMeshExportWorker !== worker) return;
-    ui.setMeshStatus(`別処理で3Dデータを作成中… ${((performance.now() - started) / 1000).toFixed(1)}秒（画面は操作できます）`);
+    const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+    heavy.updateActual(`${lastExportDetail} · ${elapsed}秒`, lastExportProgress);
+    ui.setMeshStatus(`${lastExportDetail} · ${elapsed}秒（画面は操作できます）`);
+    setSkinRebuildMeshBottomProgress("工程6 ラティス込み書き出し", `${Math.round(lastExportProgress)}% · ${lastExportDetail} · ${elapsed}秒`);
   }, 500);
   worker.onmessage = (event: MessageEvent<MeshExportWorkerMessage>) => {
     const message = event.data;
@@ -9497,25 +12587,113 @@ function exportMesh(options: MeshUiOptions): void {
       pending.generation !== meshExportGeneration
     ) return;
     if (message.type === "progress") {
-      ui.setMeshStatus(`別処理で3Dデータを作成中 · ${message.completedSlices}/${message.totalSlices} slice · ${message.faceCount.toLocaleString()}面 · ${(message.elapsedMs / 1000).toFixed(1)}秒（画面は操作できます）`);
+      lastExportProgress = stage6MeshProgressPercent(message.phase, message.completedSlices, message.totalSlices);
+      lastExportDetail = message.detail;
+      const elapsed = (message.elapsedMs / 1000).toFixed(1);
+      heavy.updateActual(`${message.detail} · ${elapsed}秒`, lastExportProgress);
+      ui.setMeshStatus(`別処理で3Dデータを作成中 · ${message.detail} · ${Math.round(lastExportProgress)}% · ${elapsed}秒（画面は操作できます）`);
+      setSkinRebuildMeshBottomProgress("工程6 ラティス込み書き出し", `${Math.round(lastExportProgress)}% · ${workerCount}コア · ${message.detail} · ${elapsed}秒`);
       return;
     }
+    heavy.updateActual("保存ファイルを準備中", 100);
     clearMeshExportWorker();
     pendingMeshExport = null;
     if (message.type === "error") {
       ui.setMeshStatus(`書き出し失敗: ${message.message}`, false);
+      if (skinRebuildStage8ExportStatus) {
+        skinRebuildStage8ExportStatus.textContent = `書き出し失敗: ${message.message}`;
+        skinRebuildStage8ExportStatus.dataset.ok = "false";
+      }
+      refreshSkinRebuildStage8ExportButton();
+      setSkinRebuildMeshBottomProgress("工程6 書き出し失敗", `${(message.elapsedMs / 1000).toFixed(1)}秒`, message.message);
       return;
     }
-    downloadSkinMeshArtifacts(message.stl, message.obj, pending.recipe, pending.baseName);
-    ui.setMeshStatus(`${message.summary} / 保存完了 ${(message.elapsedMs / 1000).toFixed(1)}秒`, message.watertightOk);
+    downloadSkinMeshArtifacts(
+      message.stl,
+      message.obj,
+      pending.recipe,
+      pending.baseName,
+      message.supportStl && message.supportObj
+        ? { stl: message.supportStl, obj: message.supportObj }
+        : undefined,
+      { stl: pending.formats.stl, obj: pending.formats.obj, recipe: pending.formats.recipe },
+    );
+    const cacheLabel = message.cacheHit ? " · 判定済みmesh再利用" : ` · ${workerCount}コア`;
+    const savedSummary = `${message.summary}${message.supportSummary ? ` / ${message.supportSummary}` : ""}`;
+    const directFormats = [pending.formats.stl ? "STL" : "", pending.formats.obj ? "OBJ" : "", pending.formats.recipe ? "recipe" : ""]
+      .filter(Boolean);
+    const directSummary = directFormats.length > 0 ? `${directFormats.join("・")}保存済み` : "個別ファイルなし";
+    if (isSkinRebuildApp && pending.formats.threeMf) {
+      ui.setMeshStatus(`${savedSummary} / ${directSummary} / 分離3MFを梱包中…${cacheLabel}`, message.watertightOk);
+      if (skinRebuildStage8ExportStatus) skinRebuildStage8ExportStatus.textContent = `${directSummary} · 3MFを梱包中…`;
+      setSkinRebuildMeshBottomProgress("工程6 分離3MF", "作品＋印刷サポートを別パーツのまま梱包中");
+      const bodyPositions = parseBinaryStlPositions(message.stl);
+      const supportPositions = message.supportStl ? parseBinaryStlPositions(message.supportStl) : null;
+      void buildBambu3mf([
+        { name: "SKIN_REBUILD_ARTWORK", role: "body", positions: bodyPositions },
+        ...(supportPositions && supportPositions.length > 0
+          ? [{ name: "SKIN_REBUILD_PRINT_SUPPORT", role: "printable_support" as const, positions: supportPositions }]
+          : []),
+      ], {
+        title: pending.baseName,
+        generatorVersion: manifest.version,
+        supportType: "normal(manual)",
+        mergePrintableSupportIntoBody: false,
+      }).then((result) => {
+        downloadBlob(new Blob([result.archive], { type: "model/3mf" }), `${pending.baseName}.3mf`);
+        const partSummary = supportPositions?.length
+          ? `作品＋印刷サポートを共通Z座標の別パーツで保存 · Plate 0 · support ${result.stats.scaffoldFaces.toLocaleString()} faces`
+          : "作品を1パーツで保存 · 印刷サポート0";
+        ui.setMeshStatus(`${savedSummary} / 3MF保存完了 · ${partSummary} / ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`, message.watertightOk);
+        if (skinRebuildStage8ExportStatus) {
+          skinRebuildStage8ExportStatus.textContent = `保存完了 · 3MF${directFormats.length > 0 ? ` + ${directFormats.join(" + ")}` : ""} · ${partSummary}`;
+          skinRebuildStage8ExportStatus.dataset.ok = String(message.watertightOk);
+        }
+        refreshSkinRebuildStage8ExportButton();
+        setSkinRebuildMeshBottomProgress(
+          "工程6 保存完了",
+          `${partSummary} · BODY ${result.stats.bodyFaces.toLocaleString()} faces · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`,
+          message.watertightOk ? undefined : "水密検査NG",
+        );
+      }).catch((error) => {
+        const detail = error instanceof Error ? error.message : String(error);
+        ui.setMeshStatus(`${savedSummary} / ${directSummary} / 3MF梱包失敗: ${detail}`, false);
+        if (skinRebuildStage8ExportStatus) {
+          skinRebuildStage8ExportStatus.textContent = `3MF梱包失敗: ${detail}${directFormats.length > 0 ? ` · ${directSummary}` : ""}`;
+          skinRebuildStage8ExportStatus.dataset.ok = "false";
+        }
+        refreshSkinRebuildStage8ExportButton();
+        setSkinRebuildMeshBottomProgress("工程6 3MF失敗", directSummary, detail);
+      });
+    } else {
+      const selectedSummary = directFormats.join("・") || "選択ファイルなし";
+      ui.setMeshStatus(`${savedSummary} / ${selectedSummary}保存完了 ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`, message.watertightOk);
+      if (skinRebuildStage8ExportStatus) {
+        skinRebuildStage8ExportStatus.textContent = `保存完了 · ${selectedSummary}`;
+        skinRebuildStage8ExportStatus.dataset.ok = String(message.watertightOk);
+      }
+      refreshSkinRebuildStage8ExportButton();
+      setSkinRebuildMeshBottomProgress(
+        "工程6 保存完了",
+        `${selectedSummary} · ${savedSummary} · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`,
+        message.watertightOk ? undefined : "水密検査NG",
+      );
+    }
   };
   worker.onerror = (event) => {
     if (activeMeshExportWorker !== worker) return;
     clearMeshExportWorker();
     pendingMeshExport = null;
     ui.setMeshStatus(`書き出し失敗: ${event.message}`, false);
+    if (skinRebuildStage8ExportStatus) {
+      skinRebuildStage8ExportStatus.textContent = `書き出し失敗: ${event.message}`;
+      skinRebuildStage8ExportStatus.dataset.ok = "false";
+    }
+    refreshSkinRebuildStage8ExportButton();
+    setSkinRebuildMeshBottomProgress("工程6 書き出し失敗", "Worker error", event.message);
   };
-  worker.postMessage(request);
+  if (request.cachedStl) worker.postMessage(request, [request.cachedStl]);
+  else worker.postMessage(request);
 }
 
 function cloneOpeningRequest(options: OpeningMapUiOptions): OpeningMapRequest {
@@ -11322,6 +14500,7 @@ function installPreviewMesh(cache: NonNullable<typeof previewMeshCache>): void {
   viewMode = "mesh";
   skinRenderer.setViewMode(viewMode);
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  keepInternalGraphVisibleInMesh(getInternalStructureGraph());
 }
 
 function startPreviewMeshStage(resolution: number, finalResolution: number, targetLongestMm: number): void {
@@ -11465,7 +14644,10 @@ function setViewMode(mode: SkinViewMode): void {
 }
 
 function setInternalObservationMode(mode: InternalObservationMode): void {
-  if (mode !== "normal" && state.skinParams.internalStructure === "none") {
+  const rebuildGraphIsObservable = isSkinRebuildApp
+    && skinRebuildPipelineIsCurrent()
+    && (skinRebuildPipeline?.project?.finalGraph.edges.length ?? 0) > 0;
+  if (mode !== "normal" && state.skinParams.internalStructure === "none" && !rebuildGraphIsObservable) {
     ui.setInternalStructureStatus("Internal StructureをONにすると観察表示を使えます", false);
     return;
   }
@@ -11488,9 +14670,40 @@ function setInternalObservationMode(mode: InternalObservationMode): void {
   render();
 }
 
+/** Mesh preview uses an opaque fused surface in normal mode. When a Dry Web
+ * is present, retain it as the cyan inspection layer by selecting the
+ * existing translucent-SKIN observation mode. The author can still choose
+ * normal or internal-only afterwards. */
+function keepInternalGraphVisibleInMesh(graph: InternalStructureGraph | null): boolean {
+  const nextMode = observationModeKeepingInternalGraphVisible(
+    viewMode,
+    internalObservationMode,
+    graph?.edges.length ?? 0,
+  );
+  if (nextMode === internalObservationMode) return false;
+  setInternalObservationMode(nextMode);
+  return true;
+}
+
+/** Keep the permanent cyan REBUILD graph synchronized with the original
+ * editor preview. Stage 5A deliberately clears the removable orange support:
+ * authors must be able to inspect the lattice before running Stage 5B. */
+function installSkinRebuildPermanentLatticePreview(
+  project: SkinRebuildProject,
+  reveal: boolean,
+): void {
+  internalStructureGraph = project.finalGraph;
+  internalStructureFingerprint = "";
+  skinRenderer.setInternalStructure(project.finalGraph);
+  skinRenderer.setPrintSupport(null);
+  refreshInternalAngleScreening(project.finalGraph);
+  if (reveal) keepInternalGraphVisibleInMesh(project.finalGraph);
+}
+
 function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}): void {
   // Every field/host/patch mutation reaches this common path.  The display
   // count control bypasses it, so it can redraw without recomputing.
+  if (isSkinRebuildApp) invalidateSkinRebuildPipeline();
   meshExportGeneration++;
   printCheckMeshGeneration++;
   if (activePrintCheckMeshWorker) {
@@ -11509,6 +14722,7 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
   cancelPreviewMeshBuild();
   previewMeshGeneration++;
   previewMeshCache = null;
+  stage6BodyMeshCache = null;
   invalidateSurfaceAngleDiagnosis();
   invalidateOpeningMap();
   if (!opts.skipGauges) clearContactView("形状が変わったため、接点数を再確認してください");

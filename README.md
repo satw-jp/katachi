@@ -25,7 +25,7 @@ Git HEADだけで最新版を決めず、各Studyのmanifest・研究ノート�
 | foam | 泡のセル (Foam Cells) | 0.1.0 | 2026-07-17 | active |
 | rings | 輪の手 (Ring Hand) | 0.1.0 | 2026-07-17 | active |
 | pack | 虚を詰める (Void Packing) | 0.4.0 | 2026-07-17 | active |
-| skin | 表面に詰める (Surface Patch Packing) / Internal Structure | 0.60.0 | 2026-08-23 | active |
+| skin | 表面に詰める (Surface Patch Packing) / SKIN REBUILD | 0.90.6 | 2026-08-30 | active |
 | interior-growth | 内部から育つネットワーク (Interior Growth) | 0.5.0 | 2026-07-25 | active |
 | hitsuji | 羊に原理を作用させる (Hitsuji Principles) | 0.11.0 | 2026-07-28 | active |
 | tangle | 軌跡を塊にする (Trajectory Fusion) | 0.10.0 | 2026-07-29 | active |

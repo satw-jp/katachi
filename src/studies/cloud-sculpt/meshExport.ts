@@ -30,6 +30,13 @@ export interface MeshBuildResult {
    * exact Float32 millimetre coordinates written to STL. Kept explicit so
    * cleanup is never mistaken for a generator that emitted no slivers. */
   removedSavedDegenerateTriangleCount?: number;
+  /** One-face numerical boundary holes closed by an explicitly bounded
+   * caller repair. General or authored openings must never increment this. */
+  repairedSavedTriangleHoleCount?: number;
+  /** Source-space Z translation applied to place this mesh at its final
+   * build-plate coordinate. Separate parts must receive the same translation
+   * instead of each being dropped to its own minimum. */
+  plateShiftSourceZ?: number;
 }
 
 export interface Bounds {
@@ -612,14 +619,26 @@ export function orientMeshForSavedStl(result: MeshBuildResult): MeshBuildResult 
     const p = roundVertexToF32(v, scale);
     return `${p.x},${p.y},${p.z}`;
   };
-  // A face with repeated Float32 vertices contributes no surface to the
-  // bytes that STL consumers see. inspectSavedStlTopology already excludes
-  // exactly these faces when counting edges; if its surviving surface is
-  // closed, exporting the same survivors removes zero-area noise without
-  // changing that measured topology. Record the removal explicitly.
+  // A face with repeated or collinear Float32 vertices contributes no
+  // surface to the bytes that STL consumers see. inspectSavedStlTopology
+  // already excludes exactly these faces when counting edges; if its
+  // surviving surface is closed, exporting the same survivors removes
+  // zero-area noise without changing that measured topology. Record the
+  // removal explicitly.
   const triangles = result.triangles.filter((tri) => {
-    const a = keyOf(tri.a), b = keyOf(tri.b), c = keyOf(tri.c);
-    return a !== b && b !== c && c !== a;
+    const savedA = roundVertexToF32(tri.a, scale);
+    const savedB = roundVertexToF32(tri.b, scale);
+    const savedC = roundVertexToF32(tri.c, scale);
+    const a = `${savedA.x},${savedA.y},${savedA.z}`;
+    const b = `${savedB.x},${savedB.y},${savedB.z}`;
+    const c = `${savedC.x},${savedC.y},${savedC.z}`;
+    if (a === b || b === c || c === a) return false;
+    const abx = savedB.x - savedA.x; const aby = savedB.y - savedA.y; const abz = savedB.z - savedA.z;
+    const acx = savedC.x - savedA.x; const acy = savedC.y - savedA.y; const acz = savedC.z - savedA.z;
+    const nx = aby * acz - abz * acy;
+    const ny = abz * acx - abx * acz;
+    const nz = abx * acy - aby * acx;
+    return nx !== 0 || ny !== 0 || nz !== 0;
   });
   const removedSavedDegenerateTriangleCount =
     (result.removedSavedDegenerateTriangleCount ?? 0) + result.triangles.length - triangles.length;

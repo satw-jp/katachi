@@ -27,7 +27,7 @@ import { validateSupportPaint } from "./supportPaint.ts";
 const recipeText = readFileSync(
   fileURLToPath(new URL("./presets/skin-v088-low-resolution-fixture.recipe.json", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const legacyProfile: SkinPrintProfileV1 = validateSkinPrintProfile(JSON.parse(readFileSync(
   fileURLToPath(new URL("./presets/skin-v088-low-resolution-fixture.print-profile.json", import.meta.url)),
   "utf8",

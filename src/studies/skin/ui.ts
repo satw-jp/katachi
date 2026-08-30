@@ -3887,11 +3887,12 @@ export function buildUi(
   const resolutionInput = document.createElement("input");
   resolutionInput.type = "range";
   resolutionInput.min = "16";
-  resolutionInput.max = "224";
+  resolutionInput.max = "256";
   resolutionInput.step = "8";
-  // A 0.8 mm minimum Internal strut needs at least 2.5 samples across its
-  // diameter in the fixed 80 mm A1 mini workflow. 128 is the first standard
-  // authoring resolution that clears that representation gate.
+  // The default 1.6 mm removable support needs at least 2.5 samples across
+  // its diameter in the fixed 80 mm A1 mini workflow. 128 is the first
+  // standard authoring resolution that clears that representation gate;
+  // an explicitly selected 0.8 mm support is raised to resolution 256.
   resolutionInput.value = "128";
   const resolutionOut = document.createElement("span");
   resolutionOut.className = "value-out";
@@ -3910,7 +3911,7 @@ export function buildUi(
   const meshHint = document.createElement("div");
   meshHint.className = "hint";
   meshHint.textContent =
-    "プレート版は分離部品のまま水密であることを検査します。窓版は殻自体が繋がったままか、部品数が正直に出ます。";
+    "Surface Pattern＋工程5Aの蜘蛛の巣＋工程5Bの赤面補強を一体の作品メッシュへ合成します。工程8の印刷サポートは同じ座標の別STL / OBJへ出し、3MFでは別パーツのまま同梱します。初回はA1 mini条件を自動判定し、判定済み本体STLを再利用します。進捗は下部STATUSにも表示します。";
   meshPanel.appendChild(meshHint);
 
   const meshButtonRow = document.createElement("div");
@@ -3929,12 +3930,12 @@ export function buildUi(
   let internalPrintGateRequired = false;
   let internalPrintGateExportAllowed = true;
   const syncMeshExportButtons = () => {
-    exportMeshBtn.disabled = meshExportRunning || (internalPrintGateRequired && !internalPrintGateExportAllowed);
+    exportMeshBtn.disabled = meshExportRunning;
     inspectMeshBtn.disabled = meshExportRunning;
     cancelMeshExportBtn.disabled = !meshExportRunning;
     exportMeshBtn.textContent = meshExportRunning ? "別処理で書き出し中…" : "3Dデータで書き出す";
     exportMeshBtn.title = internalPrintGateRequired && !internalPrintGateExportAllowed
-      ? "A1 mini条件の内部構造判定がOKになるまで書き出せません"
+      ? "書き出し時にA1 mini条件の内部構造判定を自動実行します"
       : "";
   };
   meshButtonRow.appendChild(inspectMeshBtn);
@@ -5190,7 +5191,7 @@ export function buildUi(
       const rows: Array<[string, string]> = [
         ["最終mesh", `${report.watertight ? "水密" : "非水密"} · ${report.meshComponents}部品 · 退化${report.removedDegenerateTriangles}面`],
         ["実寸線径", `${report.minDiameterMm.toFixed(2)} mm · ${report.voxelsAcrossDiameter.toFixed(1)} voxel`],
-        ["外殻との起点", `${report.surfaceAnchorNodes} node · 浮遊連結群${report.floatingGraphComponents}`],
+        ["外殻・プレート起点", `外殻${report.surfaceAnchorNodes} / plate ${report.buildPlateAnchorNodes} node · 浮遊連結群${report.floatingGraphComponents}`],
         ["積層順", `未支持 node ${report.unsupportedNodes} / edge ${report.unsupportedEdges}`],
         ["内部bridge", `${report.bridgeEdges}本 · 上限超過${report.overlongBridges} · 最長${report.maxObservedBridgeMm.toFixed(1)} mm`],
       ];

@@ -293,10 +293,14 @@ export function buildBambu3mfPackageEntries(
   const title = xmlEscape(options.title);
   const generatorVersion = xmlEscape(options.generatorVersion ?? "0.62.0");
   const bodyBounds = boundsOf(indexed[0].mesh.vertices);
+  // All parts share one authored coordinate system. Z placement therefore
+  // uses the union, not BODY alone; otherwise a support root fractionally
+  // below BODY can make the slicer move or repair the parts independently.
+  const allBounds = indexed.map((item) => boundsOf(item.mesh.vertices));
   const plateCenter = options.plateCenter ?? { x: 90, y: 90 };
   const tx = plateCenter.x - (bodyBounds.minX + bodyBounds.maxX) / 2;
   const ty = plateCenter.y - (bodyBounds.minY + bodyBounds.maxY) / 2;
-  const tz = -bodyBounds.minZ;
+  const tz = -Math.min(...allBounds.map((bounds) => bounds.minZ));
   const instanceTransform = `1 0 0 0 1 0 0 0 1 ${xmlNumber(tx)} ${xmlNumber(ty)} ${xmlNumber(tz)}`;
 
   const subModel: string[] = [
@@ -320,7 +324,7 @@ export function buildBambu3mfPackageEntries(
     ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n',
     ` <metadata name="Katachi:Generator">Katachi SKIN ${generatorVersion}</metadata>\n`,
     ` <metadata name="Title">${title}</metadata>\n`,
-    ` <metadata name="Description">Katachi SKIN BODY with fused deterministic all-reachable scaffold</metadata>\n`,
+    ` <metadata name="Description">${options.mergePrintableSupportIntoBody ? "Katachi SKIN fused BODY and scaffold" : "Katachi SKIN artwork and printable support as separate parts"}</metadata>\n`,
     ` <metadata name="CreationDate">${date}</metadata>\n <metadata name="ModificationDate">${date}</metadata>\n`,
     ` <resources>\n  <object id="${objectId}" p:UUID="00000001-61cb-4c03-9d28-80fed5dfa1dc" type="model">\n   <components>\n`,
     components,

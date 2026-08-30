@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { DEFAULT_SKIN_PARAMS, placeMotifRelativeToSurface, type PatchPoint, type Projected } from "./field.ts";
 import { flowerConnectionPreviewModel } from "./motifPreview.ts";
-import { choosePreviewMeshResolution, chooseProgressivePreviewResolutions, deriveSkinLayerVisibility, packPreviewMeshBuffers, selectedBeadWireScale } from "./previewMeshBuffers.ts";
+import { choosePreviewMeshResolution, chooseProgressivePreviewResolutions, deriveSkinLayerVisibility, observationModeKeepingInternalGraphVisible, packPreviewMeshBuffers, selectedBeadWireScale } from "./previewMeshBuffers.ts";
 import { createEmptyState, record, replay, type SkinHistoryEntry } from "./history.ts";
 import { buildMeshFromField, buildMeshTrianglesFromFieldSlice, meshGridShape, type Bounds } from "../cloud-sculpt/meshExport.ts";
 
@@ -64,6 +64,14 @@ const completedTargetedDryWeb = deriveSkinLayerVisibility("mesh", "ghostSkin");
 assert.equal(completedTargetedDryWeb.internalGraph, true, "completed targeted Dry Web display policy keeps the graph visible");
 const invalidatedTargetedDryWeb = deriveSkinLayerVisibility("mesh", "normal");
 assert.equal(invalidatedTargetedDryWeb.internalGraph, false, "cancel/invalidation display policy hides the cleared graph");
+assert.equal(
+  observationModeKeepingInternalGraphVisible("mesh", "normal", 4),
+  "ghostSkin",
+  "installing a mesh with a non-empty Dry Web promotes the existing ghost observation so the graph cannot appear to vanish",
+);
+assert.equal(observationModeKeepingInternalGraphVisible("mesh", "normal", 0), "normal", "an empty graph does not change observation mode");
+assert.equal(observationModeKeepingInternalGraphVisible("beads", "normal", 4), "normal", "bead view already exposes the graph without changing mode");
+assert.equal(observationModeKeepingInternalGraphVisible("mesh", "internalOnly", 4), "internalOnly", "an explicit observation choice is retained");
 const internalOnly = deriveSkinLayerVisibility("beads", "internalOnly");
 assert.equal(internalOnly.patchBeads || internalOnly.hostBeads || internalOnly.surfaceDecorations, false, "internal-only hides every Surface-derived bead and decoration");
 assert.equal(internalOnly.internalGraph, true, "internal-only retains the independent graph");

@@ -114,6 +114,55 @@ test("printable external scaffold can merge into one normal BODY part and disabl
   assert.equal(stats.enforcerFaces, 0);
 });
 
+test("SKIN REBUILD keeps artwork and printable support as two parts in one 3MF", () => {
+  const { entries, stats } = buildBambu3mfPackageEntries([
+    { name: "SKIN_REBUILD_ARTWORK", role: "body", positions: ONE_TRIANGLE },
+    { name: "SKIN_REBUILD_PRINT_SUPPORT", role: "printable_support", positions: ONE_TRIANGLE },
+  ], {
+    title: "SKIN REBUILD separate output",
+    supportType: "normal(manual)",
+    date: "2026-08-30",
+    mergePrintableSupportIntoBody: false,
+  });
+  const root = textEntry(entries, "3D/3dmodel.model");
+  const settings = textEntry(entries, "Metadata/model_settings.config");
+  const submodel = textEntry(entries, "3D/Objects/object_1.model");
+  assert.match(root, /artwork and printable support as separate parts/);
+  assert.match(root, /object id="3"/);
+  assert.match(settings, /<part id="1" subtype="normal_part">/);
+  assert.match(settings, /key="name" value="SKIN_REBUILD_ARTWORK"/);
+  assert.match(settings, /<part id="2" subtype="normal_part">/);
+  assert.match(settings, /key="name" value="SKIN_REBUILD_PRINT_SUPPORT"/);
+  assert.match(settings, /key="enable_support" value="0"/);
+  assert.match(submodel, /<object id="1"[^>]+type="model">/);
+  assert.match(submodel, /<object id="2"[^>]+type="model">/);
+  assert.equal(stats.bodyFaces, 1);
+  assert.equal(stats.scaffoldFaces, 1);
+});
+
+test("separate 3MF placement uses the shared BODY and support Z extent", () => {
+  const atZ = (positions: Float32Array, z: number): Float32Array => {
+    const shifted = positions.slice();
+    for (let index = 2; index < shifted.length; index += 3) shifted[index] += z;
+    return shifted;
+  };
+  const { entries } = buildBambu3mfPackageEntries([
+    { name: "SKIN_REBUILD_ARTWORK", role: "body", positions: atZ(ONE_TRIANGLE, 10) },
+    { name: "SKIN_REBUILD_PRINT_SUPPORT", role: "printable_support", positions: atZ(ONE_TRIANGLE, -2) },
+  ], {
+    title: "shared Z coordinates",
+    supportType: "normal(manual)",
+    date: "2026-08-30",
+    mergePrintableSupportIntoBody: false,
+  });
+  const root = textEntry(entries, "3D/3dmodel.model");
+  assert.match(
+    root,
+    /transform="1 0 0 0 1 0 0 0 1 89\.5 89\.5 2" printable="1"/,
+    "the grouped instance must put the lowest part, not BODY alone, on the plate",
+  );
+});
+
 test("porous SKIN export rejects unsafe Tree routing", () => {
   assert.throws(() => buildBambu3mfPackageEntries([
     { name: "BODY", role: "body", positions: ONE_TRIANGLE },

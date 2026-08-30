@@ -3,12 +3,16 @@ import type { SkinMeshResult } from "./meshExport.ts";
 import { buildMeshResultFromTriangles, meshGridShape } from "../cloud-sculpt/meshExport.ts";
 import type { Triangle } from "../cloud-sculpt/meshExport.ts";
 import type { PreviewMeshRequest } from "./previewMeshWorkerProtocol.ts";
+import type { Patch } from "./field.ts";
+import { flatNormalsFromTriangleSoup } from "./previewMeshBuffers.ts";
 
 export interface ParallelMeshBuffers {
   positions: Float32Array;
   normals: Float32Array;
   faceCount: number;
 }
+
+export type ParallelMeshFinalizePhase = "assembling" | "topology" | "components";
 
 function trianglesFromPositions(positions: Float32Array): Triangle[] {
   if (positions.length % 9 !== 0) throw new Error("parallel mesh position buffer is not triangular");
@@ -21,6 +25,32 @@ function trianglesFromPositions(positions: Float32Array): Triangle[] {
     };
   }
   return triangles;
+}
+
+/** Rebuild audited mesh metadata from an exact Float32 triangle buffer.
+ * Used when Stage 6 can reuse a matching preview/inspection instead of
+ * repeating the resolution³ SDF sampling pass. */
+export function buildSkinMeshResultFromPositions(
+  positions: Float32Array,
+  targetLongestMm: number,
+  patches: Patch[],
+  quadMeshJoinWidth: number,
+  internalEdgeCount: number,
+  onFinalizePhase?: (phase: ParallelMeshFinalizePhase, faceCount: number) => void,
+): SkinMeshResult {
+  const faceCount = positions.length / 9;
+  onFinalizePhase?.("assembling", faceCount);
+  const triangles = trianglesFromPositions(positions);
+  onFinalizePhase?.("topology", triangles.length);
+  const base = buildMeshResultFromTriangles(triangles, targetLongestMm);
+  const reinforced = reinforceQuadConnectionsForMesh(patches, quadMeshJoinWidth);
+  onFinalizePhase?.("components", triangles.length);
+  return {
+    ...base,
+    connectedComponents: countConnectedComponents(triangles),
+    reinforcedConnectionPoints: reinforced.reinforcedPointCount,
+    internalEdgeCount,
+  };
 }
 
 /** Shared nested-Worker mesh path used by both ordinary final preview and
@@ -106,15 +136,23 @@ export function buildParallelMeshBuffers(
 export async function buildParallelSkinMesh(
   request: PreviewMeshRequest,
   onSliceComplete?: (completed: number, total: number, faceCount: number) => void,
+  onFinalizePhase?: (phase: ParallelMeshFinalizePhase, faceCount: number) => void,
+  onPositionBuffer?: (positions: Float32Array, normals: Float32Array) => void,
 ): Promise<SkinMeshResult> {
   const buffers = await buildParallelMeshBuffers({ ...request, positionsOnly: true }, onSliceComplete);
-  const triangles = trianglesFromPositions(buffers.positions);
-  const base = buildMeshResultFromTriangles(triangles, request.targetLongestMm);
-  const reinforced = reinforceQuadConnectionsForMesh(request.patches, request.quadMeshJoinWidth);
-  return {
-    ...base,
-    connectedComponents: countConnectedComponents(triangles),
-    reinforcedConnectionPoints: reinforced.reinforcedPointCount,
-    internalEdgeCount: request.internalGraph?.edges.length ?? 0,
-  };
+  // positionsOnly deliberately keeps the sixteen slice messages small, so
+  // their normal buffers are empty. Build flat display normals once in this
+  // parent Worker before Stage 6 transfers the exact mesh to the renderer.
+  const normals = buffers.normals.length === buffers.positions.length
+    ? buffers.normals
+    : flatNormalsFromTriangleSoup(buffers.positions);
+  onPositionBuffer?.(buffers.positions, normals);
+  return buildSkinMeshResultFromPositions(
+    buffers.positions,
+    request.targetLongestMm,
+    request.patches,
+    request.quadMeshJoinWidth,
+    request.internalGraph?.edges.length ?? 0,
+    onFinalizePhase,
+  );
 }

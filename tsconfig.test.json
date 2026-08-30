@@ -33,6 +33,8 @@
     "src/studies/skin/stage8RemovableSupportSelection.test.ts",
     "src/studies/skin/bambu3mfOutputSelection.test.ts",
     "src/studies/skin/stage7ProvisionalDeltaRecheck.test.ts",
+    "src/studies/skin/rebuild/lowestPointWorkerProtocol.test.ts",
+    "src/studies/skin/rebuild/overhangRegions.test.ts",
     "src/studies/interior-growth/growth.test.ts",
     "src/studies/interior-growth/solidTopology.test.ts",
     "src/studies/interior-growth/ringUnionPolicies.test.ts",

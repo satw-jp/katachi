@@ -1,15 +1,36 @@
 import { createCompositeSdfEvaluator } from "./field.ts";
 import { evaluateInternalPrintGate } from "./internalPrintGate.ts";
-import { encodeBinaryStl, inspectSavedStlTopology, inspectWatertight, orientMeshForSavedStl, type Triangle } from "../cloud-sculpt/meshExport.ts";
-import { buildSkinMesh, countConnectedComponents, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
-import { buildParallelMeshBuffers } from "./parallelMeshBuffers.ts";
-import type { InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
+import { encodeBinaryStl, inspectSavedStlTopology, orientMeshForSavedStl } from "../cloud-sculpt/meshExport.ts";
+import { buildSkinMesh, meshSummary, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
+import { buildParallelMeshBuffers, buildSkinMeshResultFromPositions } from "./parallelMeshBuffers.ts";
+import { mergeSkinRebuildGraphsAtSupportContacts, repairSkinRebuildFinalMesh } from "./rebuild/model.ts";
+import type { InternalPrintGateProgressPhase, InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
 
 self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
   const request = event.data;
   if (request.type !== "check") return;
   const started = performance.now();
   try {
+    let completedSlices = 0;
+    let totalSlices = Math.max(1, request.workerCount);
+    let faceCount = request.prebuiltPositions?.length ? request.prebuiltPositions.length / 9 : 0;
+    const reportProgress = (phase: InternalPrintGateProgressPhase, detail: string): void => {
+      const message: InternalPrintGateWorkerMessage = {
+        type: "progress",
+        requestId: request.requestId,
+        generation: request.generation,
+        phase,
+        completedSlices,
+        totalSlices,
+        faceCount,
+        detail,
+        elapsedMs: performance.now() - started,
+      };
+      (self as unknown as Worker).postMessage(message);
+    };
+    reportProgress("preparing", request.prebuiltPositions?.length
+      ? `工程6検査済み ${faceCount.toLocaleString()}面を再利用`
+      : `SDFと${request.workerCount}個のslice Workerを準備`);
     const reinforced = reinforceQuadConnectionsForMesh(request.patches, request.quadMeshJoinWidth);
     const surfaceSdf = createCompositeSdfEvaluator(
       request.mode, request.host, request.hostK, request.thickness, reinforced.patches,
@@ -19,78 +40,100 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
     try {
       const buffers = request.prebuiltPositions?.length
         ? { positions: request.prebuiltPositions, normals: new Float32Array(0), faceCount: request.prebuiltPositions.length / 9 }
-        : await buildParallelMeshBuffers({ ...request, type: "build" });
-      const triangles: Triangle[] = [];
-      let minX = Infinity, minY = Infinity, minZ = Infinity;
-      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-      for (let index = 0; index + 8 < buffers.positions.length; index += 9) {
-        const a = { x: buffers.positions[index], y: buffers.positions[index + 1], z: buffers.positions[index + 2] };
-        const b = { x: buffers.positions[index + 3], y: buffers.positions[index + 4], z: buffers.positions[index + 5] };
-        const c = { x: buffers.positions[index + 6], y: buffers.positions[index + 7], z: buffers.positions[index + 8] };
-        triangles.push({ a, b, c });
-        for (const point of [a, b, c]) {
-          minX = Math.min(minX, point.x); minY = Math.min(minY, point.y); minZ = Math.min(minZ, point.z);
-          maxX = Math.max(maxX, point.x); maxY = Math.max(maxY, point.y); maxZ = Math.max(maxZ, point.z);
-        }
-      }
-      const longest = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
-      const scaleMmPerUnit = longest > 0 ? request.targetLongestMm / longest : 1;
-      mesh = {
-        triangles,
-        sourceBounds: {
-          min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ },
-          size: { x: maxX - minX, y: maxY - minY, z: maxZ - minZ }, longest,
+        : await buildParallelMeshBuffers({ ...request, type: "build" }, (completed, total, sliceFaceCount) => {
+          completedSlices = completed;
+          totalSlices = total;
+          faceCount += sliceFaceCount;
+          reportProgress("sampling", `${completed}/${total} slice完了 · ${faceCount.toLocaleString()}面`);
+        });
+      faceCount = buffers.faceCount;
+      if (request.prebuiltPositions?.length) completedSlices = totalSlices;
+      mesh = buildSkinMeshResultFromPositions(
+        buffers.positions,
+        request.targetLongestMm,
+        request.patches,
+        request.quadMeshJoinWidth,
+        request.internalGraph.edges.length,
+        (phase, faces) => {
+          faceCount = faces;
+          reportProgress(phase, phase === "assembling"
+            ? `Float32三角形 ${faces.toLocaleString()}面を組み立て`
+            : phase === "topology"
+              ? `辺共有と水密を検査 · ${faces.toLocaleString()}面`
+              : `連結部品数を検査 · ${faces.toLocaleString()}面`);
         },
-        mmBounds: {
-          min: { x: minX * scaleMmPerUnit, y: minY * scaleMmPerUnit, z: minZ * scaleMmPerUnit },
-          max: { x: maxX * scaleMmPerUnit, y: maxY * scaleMmPerUnit, z: maxZ * scaleMmPerUnit },
-          size: { x: (maxX - minX) * scaleMmPerUnit, y: (maxY - minY) * scaleMmPerUnit, z: (maxZ - minZ) * scaleMmPerUnit },
-          longest: request.targetLongestMm,
-        },
-        scaleMmPerUnit,
-        watertight: inspectWatertight(triangles, scaleMmPerUnit),
-        connectedComponents: countConnectedComponents(triangles),
-        reinforcedConnectionPoints: reinforced.reinforcedPointCount,
-        internalEdgeCount: request.internalGraph.edges.length,
-      };
+      );
     } catch {
+      reportProgress("sampling", "並列経路を使えないため背景Worker 1本へ切替");
       mesh = buildSkinMesh(
         request.mode, request.host, request.hostK, request.thickness, request.patches,
         request.roundK, { resolution: request.resolution, targetLongestMm: request.targetLongestMm },
         request.coinBulge, request.quadMeshJoinWidth, request.coinBulgeBalance, request.internalGraph,
       );
     }
-    // Only winding is repairable. Any other saved-STL defect must stop
-    // before orientation can drop or mask it.
+    if (request.skinRebuildRepair) {
+      reportProgress("repair", `閉じた微小空洞だけを整理 · ${mesh.triangles.length.toLocaleString()}面`);
+      mesh = repairSkinRebuildFinalMesh(mesh);
+      faceCount = mesh.triangles.length;
+    }
+    // Winding and the explicitly bounded SKIN REBUILD micro-island cleanup
+    // are repairable. Any remaining saved-STL defect must stop here.
+    reportProgress("saved-topology", `保存座標で水密・部品数を検査 · ${mesh.triangles.length.toLocaleString()}面`);
     const inputSavedTopology = inspectSavedStlTopology(mesh.triangles, mesh.scaleMmPerUnit);
     if (!inputSavedTopology.closed || !inputSavedTopology.degenerateFree || inputSavedTopology.nonFiniteTriangleCount > 0 || inputSavedTopology.connectedComponents !== 1) {
-      throw new Error("Fail closed: input 保存STL topology NG（closed=" + inputSavedTopology.closed + ", degenerate=" + inputSavedTopology.degenerateTriangleCount + ", nonFinite=" + inputSavedTopology.nonFiniteTriangleCount + ", components=" + inputSavedTopology.connectedComponents + ", open=" + inputSavedTopology.openEdges + ", nonManifold=" + inputSavedTopology.nonManifoldEdges + ", windingInconsistent=" + inputSavedTopology.windingInconsistentEdges + "）");
+      const componentHint = inputSavedTopology.connectedComponents > 1
+        ? " · Surface Patternが蜘蛛の巣と物理的に分離しています。工程3→4→5A→5Bを再実行してください"
+        : "";
+      throw new Error("Fail closed: input 保存STL topology NG（closed=" + inputSavedTopology.closed + ", degenerate=" + inputSavedTopology.degenerateTriangleCount + ", nonFinite=" + inputSavedTopology.nonFiniteTriangleCount + ", components=" + inputSavedTopology.connectedComponents + ", open=" + inputSavedTopology.openEdges + ", nonManifold=" + inputSavedTopology.nonManifoldEdges + ", windingInconsistent=" + inputSavedTopology.windingInconsistentEdges + "）" + componentHint);
     }
     // Repair face direction in exact Float32 STL identity, then make the
     // gate and cached bytes speak about that same saved mesh.
-    const repaired = orientMeshForSavedStl(mesh);
-    const savedTopology = inspectSavedStlTopology(repaired.triangles, repaired.scaleMmPerUnit);
+    const repairAlreadyOriented = Boolean(request.skinRebuildRepair && inputSavedTopology.windingConsistent);
+    reportProgress(
+      "saved-topology",
+      repairAlreadyOriented
+        ? "修復済み面方向を再利用（同じ保存座標の重複検査を省略）"
+        : "面方向を揃え、保存STL topologyを再確認",
+    );
+    const repaired = repairAlreadyOriented ? mesh : orientMeshForSavedStl(mesh);
+    const savedTopology = repairAlreadyOriented
+      ? inputSavedTopology
+      : inspectSavedStlTopology(repaired.triangles, repaired.scaleMmPerUnit);
     if (!savedTopology.ok || savedTopology.connectedComponents !== 1) {
       throw new Error("Fail closed: 保存STL topology NG（closed=" + savedTopology.closed + ", winding=" + savedTopology.windingConsistent + ", degenerate=" + savedTopology.degenerateTriangleCount + ", nonFinite=" + savedTopology.nonFiniteTriangleCount + ", components=" + savedTopology.connectedComponents + ", open=" + savedTopology.openEdges + ", nonManifold=" + savedTopology.nonManifoldEdges + ", windingInconsistent=" + savedTopology.windingInconsistentEdges + "）");
     }
     mesh = {
       ...mesh,
       ...repaired,
-      watertight: inspectWatertight(repaired.triangles, repaired.scaleMmPerUnit),
+      watertight: {
+        ok: savedTopology.closed,
+        openEdges: savedTopology.openEdges,
+        nonManifoldEdges: savedTopology.nonManifoldEdges,
+        totalEdges: savedTopology.totalEdges,
+      },
       connectedComponents: savedTopology.connectedComponents,
       removedSavedDegenerateTriangleCount: repaired.removedSavedDegenerateTriangleCount ?? savedTopology.degenerateTriangleCount,
     };
+    const reachabilityGraph = request.printSupportGraph?.edges.length
+      ? mergeSkinRebuildGraphsAtSupportContacts(request.internalGraph, request.printSupportGraph)
+      : request.internalGraph;
+    reportProgress("printability", `積層到達・線径・bridgeを判定 · BODY ${request.internalGraph.edges.length}辺 + support ${request.printSupportGraph?.edges.length ?? 0}本`);
     const report = evaluateInternalPrintGate({
-      graph: request.internalGraph,
+      graph: reachabilityGraph,
       mesh,
       resolution: request.resolution,
       targetLongestMm: request.targetLongestMm,
       surfaceSdf: (point) => surfaceSdf(point.x, point.y, point.z),
+      buildPlateZSource: request.buildPlateZSource,
     });
+    reportProgress("encoding", `判定済み ${mesh.triangles.length.toLocaleString()}面をSTLへ変換`);
     const stl = encodeBinaryStl(mesh, request.baseName);
     const message: InternalPrintGateWorkerMessage = {
       type: "result", requestId: request.requestId, generation: request.generation,
-      report, stl, elapsedMs: performance.now() - started,
+      report, stl, summary: meshSummary(mesh), scaleMmPerUnit: mesh.scaleMmPerUnit,
+      plateShiftSourceZ: mesh.plateShiftSourceZ ?? 0,
+      repairedSavedTriangleHoleCount: mesh.repairedSavedTriangleHoleCount ?? 0,
+      elapsedMs: performance.now() - started,
     };
     (self as unknown as Worker).postMessage(message, [stl]);
   } catch (error) {

@@ -1,0 +1,127 @@
+{
+  "schema": "katachi.skin-rebuild.first-print-validation.v1",
+  "generatedAt": "2026-08-30T12:00:00.000Z",
+  "generatorCommit": "6f7b36fb115d58245044e50a48a3f3bd52c6891d",
+  "algorithmVersion": "skin-rebuild-first-print-v1",
+  "printApproval": false,
+  "slicerPreview": "not-run",
+  "physicalPrint": "not-run",
+  "settings": {
+    "baseStretch": 2.8,
+    "patternCount": 38,
+    "strutDiameterMm": 2.6,
+    "supportDiameterMm": 1.6,
+    "targetLongestMm": 80,
+    "surfaceThickness": 0.18,
+    "patternRadius": 0.27,
+    "roundK": 0.045,
+    "overhangThresholdDeg": 45,
+    "analysisResolution": 48,
+    "exportResolution": 68
+  },
+  "audit": {
+    "requestedPatternCount": 38,
+    "realizedPatternCount": 38,
+    "classifiedInsideCount": 38,
+    "dryWebNodeCount": 0,
+    "dryWebEdgeCount": 0,
+    "lowestPointCount": 38,
+    "overhangTargetCount": 20,
+    "supportedTargetCount": 20,
+    "unsupportedTargetCount": 0,
+    "maximumLatticeAngleDeg": 41.760299703897914
+  },
+  "mesh": {
+    "resolution": 68,
+    "triangleCount": 59524,
+    "boundsMm": {
+      "min": {
+        "x": -16.418080158393266,
+        "y": -16.41979897472664,
+        "z": 0
+      },
+      "max": {
+        "x": 16.205030611769825,
+        "y": 15.915166077607056,
+        "z": 80
+      },
+      "size": {
+        "x": 32.623110770163095,
+        "y": 32.33496505233369,
+        "z": 80
+      },
+      "longest": 80
+    },
+    "scaleMmPerUnit": 17.661497513579093,
+    "topology": {
+      "ok": true,
+      "openEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingInconsistentEdges": 0,
+      "degenerateTriangleCount": 0,
+      "nonFiniteTriangleCount": 0,
+      "connectedComponents": 1,
+      "totalEdges": 89286,
+      "closed": true,
+      "windingConsistent": true,
+      "degenerateFree": true
+    }
+  },
+  "files": {
+    "fkei": {
+      "filename": "skin-rebuild-first-print.fkei",
+      "bytes": 268944,
+      "sha256": "6066ecee6b2fcd0a55dfa74edd7de83d5ae2b1e5187949e5683625b8f58412f9"
+    },
+    "stl": {
+      "filename": "skin-rebuild-first-print.stl",
+      "bytes": 2976284,
+      "sha256": "c3317cf15272c9daf0a32a7244c7c0f16e7b6c4215016c9e73054e7d2c9b7487",
+      "written": false
+    },
+    "printSupportStl": {
+      "filename": "skin-rebuild-first-print-print-support.stl",
+      "bytes": 160884,
+      "sha256": "f5c2ad1125717c9c6c49df463188e27485b7c91c4a3436d1328dc4ae1a274b39",
+      "written": false
+    }
+  },
+  "printSupport": {
+    "edgeCount": 67,
+    "triangleCount": 3216,
+    "boundsMm": {
+      "min": {
+        "x": -14.17871197844914,
+        "y": -14.337996065110607,
+        "z": 0
+      },
+      "max": {
+        "x": 13.56396776847311,
+        "y": 15.25914125760378,
+        "z": 73.39769266494487
+      },
+      "size": {
+        "x": 27.74267974692225,
+        "y": 29.59713732271439,
+        "z": 73.39769266494487
+      },
+      "longest": 73.39769266494487
+    },
+    "sharedBodyPlateShiftSourceZ": 2.265105505855989,
+    "zOriginDeltaMm": 0,
+    "topology": {
+      "ok": true,
+      "openEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingInconsistentEdges": 0,
+      "degenerateTriangleCount": 0,
+      "nonFiniteTriangleCount": 0,
+      "connectedComponents": 67,
+      "totalEdges": 4824,
+      "closed": true,
+      "windingConsistent": true,
+      "degenerateFree": true
+    }
+  },
+  "elapsedMs": 4487
+}

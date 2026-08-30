@@ -6,6 +6,11 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 
+# Local SKIN REBUILD comparison and generated print exports.
+/work/
+/public/samples/skin-rebuild-first-print.stl
+/public/samples/skin-rebuild-first-print-print-support.stl
+
 # TypeScript/Vite generated files
 *.tsbuildinfo
 vite.config.js

@@ -41,6 +41,7 @@ export interface InternalPrintGateReport {
   removedDegenerateTriangles: number;
   graphComponents: number;
   surfaceAnchorNodes: number;
+  buildPlateAnchorNodes: number;
   floatingGraphComponents: number;
   unsupportedNodes: number;
   unsupportedEdges: number;
@@ -62,6 +63,9 @@ export interface InternalPrintGateInput {
   /** Surface-only SDF. Negative means the Internal node centre is inside the
    * already printable outer SKIN; the unioned Internal field must not be used. */
   surfaceSdf: (point: Vector3Value) => number;
+  /** Source-space Z of the build plate before the final mesh is translated
+   * to Z=0. Nodes whose strut reaches this plane are printable roots. */
+  buildPlateZSource?: number;
 }
 
 export type InternalAngleScreeningClassification = "selfSupportingAngle" | "angleRisk";
@@ -209,6 +213,7 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
       removedDegenerateTriangles: input.mesh.removedSavedDegenerateTriangleCount ?? 0,
       graphComponents: 0,
       surfaceAnchorNodes: 0,
+      buildPlateAnchorNodes: 0,
       floatingGraphComponents: 0,
       unsupportedNodes: 0,
       unsupportedEdges: 0,
@@ -228,10 +233,16 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
   const voxelsAcrossDiameter = minDiameterMm / voxelStepMm;
   const components = graphComponents(graph);
   const overlapSource = profile.minSurfaceOverlapMm / scale;
-  const anchored = new Set<number>();
+  const surfaceAnchored = new Set<number>();
+  const buildPlateAnchored = new Set<number>();
   for (const [index, node] of graph.nodes.entries()) {
-    if (input.surfaceSdf(node.position) <= -Math.min(node.radius * 0.25, overlapSource)) anchored.add(index);
+    if (input.surfaceSdf(node.position) <= -Math.min(node.radius * 0.25, overlapSource)) surfaceAnchored.add(index);
+    if (input.buildPlateZSource !== undefined
+      && node.position.z - node.radius <= input.buildPlateZSource + EPSILON) {
+      buildPlateAnchored.add(index);
+    }
   }
+  const anchored = new Set([...surfaceAnchored, ...buildPlateAnchored]);
   const floatingGraphComponents = components.filter((component) => !component.some((index) => anchored.has(index))).length;
 
   type EdgeInfo = {
@@ -343,7 +354,8 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
     meshComponents: input.mesh.connectedComponents,
     removedDegenerateTriangles,
     graphComponents: components.length,
-    surfaceAnchorNodes: anchored.size,
+    surfaceAnchorNodes: surfaceAnchored.size,
+    buildPlateAnchorNodes: buildPlateAnchored.size,
     floatingGraphComponents,
     unsupportedNodes,
     unsupportedEdges,

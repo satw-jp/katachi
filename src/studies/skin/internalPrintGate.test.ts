@@ -6,6 +6,7 @@ import {
   screenInternalStructureAngles,
 } from "./internalPrintGate.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
+import { mergeSkinRebuildGraphsAtSupportContacts } from "./rebuild/model.ts";
 
 let passed = 0;
 const check = (value: unknown, message: string) => { assert.ok(value, message); passed++; };
@@ -34,6 +35,16 @@ check(pass.ok, "a rooted 1 mm vertical strut passes the conservative profile");
 check(pass.surfaceAnchorNodes === 1 && pass.unsupportedNodes === 0, "support propagates upward from the surface root");
 check(pass.minDiameterMm === 1, "edge radius is converted to an actual diameter in millimetres");
 check(pass.voxelsAcrossDiameter >= A1_MINI_PLA_04_02.minVoxelsAcrossDiameter, "final mesh resolves the strut");
+
+const plateRooted = evaluateInternalPrintGate({
+  graph: vertical, mesh, resolution: 224, targetLongestMm: 80,
+  surfaceSdf: () => 1,
+  buildPlateZSource: -0.05,
+});
+check(
+  plateRooted.ok && plateRooted.surfaceAnchorNodes === 0 && plateRooted.buildPlateAnchorNodes === 1,
+  "a strut that reaches the build plate is an explicit printable root",
+);
 
 const thin = evaluateInternalPrintGate({ ...{
   graph: graph([[0, 0, 0], [0, 0, 1]], [[0, 1, 0.03]]), mesh, resolution: 224, targetLongestMm: 80,
@@ -70,6 +81,16 @@ const bridgeFail = evaluateInternalPrintGate({
   surfaceSdf: (point) => point.z < 0.01 ? -0.05 : 1,
 });
 check(!bridgeFail.ok && bridgeFail.overlongBridges === 1, "a 7 mm bridge exceeds the conservative 5 mm gate");
+const midpointSupport = graph([[0.35, 0, 0], [0.35, 0, 1]], [[0, 1, 0.05]]);
+const repairedBridge = evaluateInternalPrintGate({
+  graph: mergeSkinRebuildGraphsAtSupportContacts(longBridge, midpointSupport),
+  mesh, resolution: 224, targetLongestMm: 80,
+  surfaceSdf: (point) => point.z < 0.01 ? -0.05 : 1,
+});
+check(
+  repairedBridge.ok && repairedBridge.overlongBridges === 0 && repairedBridge.maxObservedBridgeMm <= 5,
+  "a real midpoint pillar splits the physical 7 mm bridge into printable intervals",
+);
 
 const embeddedTie = graph([[0, 0, 0], [1, 0, 0]], [[0, 1, 0.05]]);
 const embeddedPass = evaluateInternalPrintGate({

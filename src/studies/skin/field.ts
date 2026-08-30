@@ -503,7 +503,7 @@ export function patchesSdf(patches: Patch[], roundK: number, x: number, y: numbe
 /** Compile immutable realized points into contiguous numeric buffers for
  * voxel sampling. Point order and the polynomial smooth-min sequence stay
  * identical to patchesSdf; only nested object/property work is removed. */
-function createPatchesSdfEvaluator(
+export function createPatchesSdfEvaluator(
   patches: readonly Patch[],
   roundK: number,
 ): (x: number, y: number, z: number) => number {
