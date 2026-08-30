@@ -16,6 +16,20 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — migration regression harness
+
+`public/samples/skin-rebuild-first-print.fkei`を変更せず、SHA-256を入口で固定したtest-only回帰を追加した。
+strict parse/restore後のBase 12、Pattern 38、inside 38/38、Spider 251 node / 270 edge、未接続0、
+支持対象20/支持済20/未支持0、finalGraph統計、別体support 134 node / 67 edgeを実データから固定する。
+
+現行resolution 68のWeb referenceは59,524 triangles、saved Float32-mm一意vertex 29,688、1 component、
+closed/winding-consistent、open/non-manifold/degenerate/non-finite各0、longest 80 mm、volume
+14,302.041001524116 mm3だった。離散topology/countは厳密、boundsとvolumeだけ限定toleranceで比較する。
+
+`GeometryResultContract`と`compareGeometryResult(reference, candidate, tolerances)`をtest内に定義し、
+将来Web/Windows CPU/CUDA結果を同じscalar/topology contractへ正規化できる。backend名は形状差にせず、
+CUDA用toleranceは実装・conformance時に明示レビューする。production geometry/FKEI schemaは変更していない。
+
 ### 2026-08-30 — Base / Motif source abstraction migration plan (design only)
 
 現行Baseの`Ball[] + hostK`がhistory、`main.ts`、renderer/picking、field/mesh、診断と多数のWorker protocolへ

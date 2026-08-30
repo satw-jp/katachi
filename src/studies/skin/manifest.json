@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD migration regression harness locks the untouched first-print FKEI SHA before strict parse/restore, then fixes Base/Pattern/inside counts, Spider 251-node/270-edge topology, zero disconnected Patterns, 20/20 support claims, finalGraph statistics and separate print-support counts. Its resolution-68 Web reference records 59,524 triangles, 29,688 unique saved Float32-mm vertices, one closed consistently-wound component, zero open/non-manifold/degenerate/non-finite defects, 80 mm longest size and 14,302.041001524116 mm3 volume. A backend-neutral GeometryResultContract and parameterized compareGeometryResult support future Web/Windows CPU/CUDA candidate comparison; discrete reference topology/counts remain exact and only bounds/volume receive narrow tolerances. Test/helper/docs only; production geometry, FKEI schema and baseline are unchanged."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Base/Motif abstraction inventory finds Ball[]+hostK exposed through history, main orchestration, renderer/picking, field/mesh/diagnosis and many Worker protocols, while Patch combines reusable shape parameters, placement/cell provenance, exact realized spheres, fusion/contact repair and bridges. The migration plan separates portable BaseSource from backend-local BaseGeometry capabilities (bounds, nearest surface, normals, deterministic sampling, guarded inside/outside, optional signed distance, mesh and Base Surface Graph source) and separates MotifSource/Definition/Instance/surface binding from derived realization. STL/Mesh uses canonical transforms, BVH nearest/sampling and fail-closed sign for open/non-manifold input. Placement consumes a common surface provider and distinct BaseSurfaceGraph, never Base kind. Current Patch points remain the authoritative compatibility realization; FKEI v1/runtime/geometry remain unchanged and migration proceeds operation-by-operation only after the physical-print gate."
     },
     {
