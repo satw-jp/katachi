@@ -16,6 +16,22 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Spider Network / Junction data model (design only)
+
+`InternalStructureGraph`、`GraphBuilder`、`buildSkinRebuildLattice()`、Stage 5B補強、
+`finalGraph`のmergeとFKEI Save/Restoreを実ファイルで対応付けし、
+`docs/architecture/skin-rebuild-network-junction-architecture-20260830.md`へ将来Network境界を記録した。
+
+Edgeを円柱ではなく安定IDを持つNode間のtopologyとし、straight/polyline/Bezier/spline/custom curve、
+circle/custom profile、恒久作品／取り外しsupport、Spider／reinforcement／junction-stemの役割を
+portable definitionとして分離する。raw Graphから、許容誤差内で形態意図を変えないCleanupと、作者が
+0–100%等で構造を変えるSimplificationを別工程にし、Node alias、Edge lineage、監査と保護anchorを保持する。
+
+Motif identity、Network Node/Edge identity、接続位置・方向・本数、influence radius、morph strength、
+transition typeを`JunctionIntent`として保存し、最終meshはGeometryEngineが導出する。現行FKEI v1は変更せず、
+将来schemaでraw/cleaned Graph、simplification intent、junction intentをmigration可能にする。Web/CUDAとも
+同じproject dataを読み、current straight realizationを互換経路にする設計だけでgeometry outputは変更していない。
+
 ### 2026-08-30 — Windows compute backend boundary inventory (design only)
 
 公開入口`skin-rebuild.html`は簡略prototypeではなく、元editor shellの`src/studies/skin/main.ts`を読み込み、

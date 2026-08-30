@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Spider Network/Junction architecture maps current InternalStructureGraph, GraphBuilder/lattice generation, Stage 5B reinforcement, derived finalGraph and strict FKEI v1 persistence to a future portable model. Stable Node/Edge topology is separated from straight/polyline/Bezier/spline/custom realization, radius/profile, provenance, permanent/removable disposition and semantic roles. Deterministic Graph Cleanup preserves morphology and emits aliases/lineage/audits; author-controlled Graph Simplification is a separate structural operation. Junction intent stores Motif and Network identity, position/frame, incoming directions/count, influence radius, morph strength and transition type, while Web/CUDA GeometryEngine realizes curves, Calyx morphology, union and mesh. FKEI v1/runtime/geometry remain unchanged; future raw/cleaned topology, simplification and junction fields require a new versioned migration after the physical-print gate."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Windows compute boundary inventory records the actual production path skin-rebuild.html -> src/studies/skin/main.ts and maps current files/functions into browser UI, platform-independent project/graph/FKEI contracts, heavy geometry candidates, and CPU-sufficient metadata/serialization. The future dependency direction is UI -> GeometryEngine -> current Web Worker implementation or optional Windows CUDA local adapter; Cloudflare Web UI and FKEI remain shared, and no native/GPU handle becomes project data. The first candidate kernels are resolution-cubed SDF/mesh generation, batch surface/mesh diagnosis, and radius-aware spider containment/collision. STL Base Import, Custom Curve Motif, Base Surface Graph, Spider Graph Cleanup, Curved Network Edge and Calyx/Motif Morph remain compatible by separating portable intent/topology from backend realization. Design only: no runtime, schema, geometry, threshold, coordinate or dependency change."
     },
     {
