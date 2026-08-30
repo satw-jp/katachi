@@ -16,6 +16,24 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Base Surface Graph / graph-aware distribution (design only)
+
+現行`packPatchesGreedy()`のbounds乱数→SDF内判定→表面投影→Euclidean clearance→Motif実現という
+一続きの経路と、QUAD/Voronoi/Goldberg、既存`SurfaceGraph`の意味を実ファイルで分離した。
+`docs/architecture/skin-rebuild-surface-graph-distribution-20260830.md`へ、Metaball/SDFとSTL/Meshが
+同じ下流placementへ渡せるportable `BaseSurfaceGraph`を設計した。
+
+初期生成はdeterministic Poisson surface sample＋mutual local kNN＋surface plausibilityを推奨する。
+Nodeはposition、normal、決定的tangent frame、scale/confidence付きcurvature、area/spacing、boundary、optional
+thickness/structural importance、Base bindingを持つ。Edgeはlocal surface近傍、geodesic-like距離、両端tangent方向、
+optional curvature/structural weightを持ち、mesh topologyやSpider Networkと同一視しない。
+
+最初の配置はseeded graph Poissonとし、候補選択、位置、向き、scale、field noiseの偶然性を別parameterにする。
+UIが将来0–100%のmacroを出しても保存modelは一本のsliderに固定しない。現行pure randomは別の
+`legacy-random-pack-v1`として無変更で共存する。PlacementIntent→Motif→Junction→NetworkのID provenance、
+future FKEI/GeometryEngine、Metaball→Graph→Flowerの最小vertical sliceを設計しただけで、runtime、schema、
+geometry output、dependencyは変更していない。
+
 ### 2026-08-30 — Windows local GeometryEngine transport (design only)
 
 Cloudflare公開UIを維持してWindows native計算へ接続する方式を比較し、固定loopbackへだけbindする

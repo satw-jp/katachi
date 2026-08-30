@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Base Surface Graph / graph-aware distribution design maps current bounds-random SDF projection/clearance/realization and keeps it as legacy-random-pack-v1. The portable BaseSurfaceGraph is generated for Metaball/SDF or STL/Mesh by deterministic Poisson surface samples plus mutual local kNN and surface-plausibility filters; Nodes carry binding, position/normal/frame, scale/confidence-aware curvature, area/spacing, boundary and optional thickness/structural facts, while Edges carry local surface adjacency, geodesic-like distance, endpoint tangent directions and optional weights. The first new placement is seeded graph Poisson with independent candidate/position/orientation/scale/noise stochasticity, returning backend-neutral PlacementIntent before Motif realization. Base Surface, placed-Motif SurfaceGraph and Network remain distinct with explicit provenance links. Future FKEI/GeometryEngine and a Metaball-to-Flower vertical slice are specified; runtime, schema, geometry, dependency and baseline remain unchanged."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Windows local GeometryEngine transport compares localhost HTTP, WebSocket, WebTransport, native-helper deployment and full Electron/Tauri migration. The selected first boundary is a signed native helper bound only to one fixed loopback port, with job-oriented Fetch/JSON control, content-addressed binary artifacts, sequenced NDJSON progress streaming and idempotent DELETE cancellation. Public Cloudflare HTTPS requires browser Local Network Access permission plus exact-origin CORS and helper-side pairing; service absence, denial, version mismatch, crash or missing CUDA leaves the project intact and falls back to Web. FKEI stores no endpoint/token/job/native path/CUDA buffer. The first CUDA prototype is shadow-only radius-aware Spider containment behind evaluateContainment, compared with Web/CPU before any shape-affecting use. Design/Study record only; no runtime, FKEI schema, geometry, dependency or deployment setting change."
     },
     {
