@@ -42,6 +42,17 @@ Exit後4-viewの復元も確認した。`test:skin-rebuild`は全件成功した
 production bundleは成功し、通常`dist/assets`のcleanupだけはGoogle Driveの既存file lockで停止した。
 geometry algorithm、DryWeb、Graph生成、FKEI schema、Base/Motif model、GeometryEngine、STL/3MF出力は変更していない。
 
+follow-up hardeningでは各再生へsession IDを付け、cancel後のstale animation frameを無視する。再生中に
+`internalStructureGraph`参照が変わった場合は古い完成Graphを表示し続けず安全に終了し、FORMATION開始前のorbit
+enabled状態をそのまま復元する。完成Graph boundsを現在のone-view camera方向へ80% fitし、縦長Networkも画面高の
+大部分を使う。TEMP edgeの太さはnode径ではなく、近傍の完成edge実径のmedianを表示に使う。
+
+unit testは1-edge疎Graph、複数component、1,000-edge dense Graphを追加し、event時刻範囲と単調性、最大52回の
+表示batch、全edge一意、stable参照同一性、入力非変更を固定した。実ブラウザでは4-viewからempty start後Escape、
+84 / 270 edgeの`TEMP-01` REJECT中Exit、12.4秒完走を3回連続で行った。全完走がone-viewの
+`NETWORK STABLE / COMPLETED GRAPH MATCHED`へ到達し、各Exit後に4-viewへ復元した。console errorは0件、
+`test:skin-rebuild`、`tsc -b`、`vite build --emptyOutDir false`（269 modules）は成功した。
+
 ### 2026-08-30 — SKIN ART UI v0 design system and application shell
 
 `/skin-rebuild.html`へ作品提示用のPresentation Layerを追加した。上部は`KATACHI / SKIN`と

@@ -1092,6 +1092,10 @@
     {
       "date": "2026-08-30",
       "note": "SKIN ART UI v0 adds a Presentation Layer design system and artwork-facing application shell to /skin-rebuild.html. The existing Project/FKEI actions, one/four viewport, camera, clipping, selection, Stage 1–8 controls, Graph/DryWeb/Spider workflow, mesh checks and 3MF/STL/OBJ export remain the same DOM nodes and runtime callbacks. The new English-first shell provides a minimal project header, editorial Tools rail, large Artwork View, always-visible four-phase navigation, contextual phase controls, a collapsed Advanced/Lab shelf, and mobile overlay drawers that preserve the viewport. Real browser checks clicked all four phases, Advanced/Lab, Samples, one/four view, and 480 px Tools/Phase drawers; each phase button passed center-point hit testing and console warning/error count was zero. The SKIN REBUILD suite and production build passed. No geometry, worker, FKEI schema, model or output implementation changed."
+    },
+    {
+      "date": "2026-08-31",
+      "note": "SKIN NETWORK FORMATION now hardens its presentation-only replay with session identity, completed-Graph reference guards, exact orbit/view restoration, completed-network camera fitting, and TEMP member widths derived from nearby real edges. Sparse, disconnected and 1,000-edge timeline contracts pass; real-browser checks covered empty-start Escape, REJECT-time exit and three consecutive stable 251-node / 270-edge replays with four-view restoration and zero console errors. Geometry generation, FKEI, runtime Graph data and exports remain unchanged."
     }
   ]
 }

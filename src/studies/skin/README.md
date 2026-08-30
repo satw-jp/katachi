@@ -18,6 +18,11 @@ TypeScript compileと一時出力先へのVite production bundleも成功した�
 削除lockで通常buildのcleanupだけが停止した。geometry、DryWeb、Graph生成、FKEI、GeometryEngine、
 STL/3MF output logicは変更していない。詳細は`rebuild/README.md`を正本とする。
 
+follow-upでは完成Graph参照が再生中に差し替わった場合の中断、stale animation frameを無視するsession ID、
+開始前orbit状態の正確な復元を追加した。TEMP edge径は近傍の実edge径へ合わせ、完成Graph全体を一時cameraへ
+自動fitする。疎Graph、分断Graph、1,000-edge Graphのtimeline契約を追加し、実ブラウザでempty開始からEscape、
+REJECT中Exit、完走3回を連続確認した。全完走が`NETWORK STABLE`へ到達し、毎回4-viewへ復元、console error 0だった。
+
 ## Observation — SKIN ART UI v0 application shell（2026-08-30）
 
 `/skin-rebuild.html`のPresentation Layerを、minimal project header、左Tools / View、中央Artwork View、
