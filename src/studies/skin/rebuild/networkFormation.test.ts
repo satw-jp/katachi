@@ -1,14 +1,21 @@
 import assert from "node:assert/strict";
 import type { InternalStructureGraph } from "../voronoi.ts";
 import {
+  DEFAULT_NETWORK_FORMATION_VARIANT_ID,
   NETWORK_FORMATION_DURATION_MS,
+  NETWORK_FORMATION_VARIANTS,
   createNetworkFormationTimeline,
   networkFormationGraphAt,
+  type NetworkFormationVariantId,
 } from "./networkFormation.ts";
 
-function assertTimelineContract(candidate: InternalStructureGraph): void {
+function assertTimelineContract(
+  candidate: InternalStructureGraph,
+  variantId: NetworkFormationVariantId = DEFAULT_NETWORK_FORMATION_VARIANT_ID,
+): void {
   const sourceJson = JSON.stringify(candidate);
-  const candidateTimeline = createNetworkFormationTimeline(candidate);
+  const candidateTimeline = createNetworkFormationTimeline(candidate, variantId);
+  assert.equal(candidateTimeline.variantId, variantId);
   assert.equal(candidateTimeline.durationMs, NETWORK_FORMATION_DURATION_MS);
   assert.deepEqual(
     [...candidateTimeline.edgeOrder].sort((left, right) => left - right),
@@ -40,6 +47,11 @@ function assertTimelineContract(candidate: InternalStructureGraph): void {
     "the stable frame must reuse the exact completed graph",
   );
   assert.equal(JSON.stringify(candidate), sourceJson, "formation planning must not mutate the completed graph");
+  assert.deepEqual(
+    createNetworkFormationTimeline(candidate, variantId),
+    candidateTimeline,
+    "formation planning must be deterministic",
+  );
 }
 
 const graph: InternalStructureGraph = {
@@ -164,5 +176,27 @@ for (const proposalEvent of denseTimeline.events.filter((event) => event.kind ==
   assert.ok(proposalEvent.proposal);
   assert.ok(proposalEvent.proposal.radius <= 0.022, "TEMP route must use real member scale, not node scale");
 }
+
+const emptyGraph: InternalStructureGraph = { ...graph, nodes: [], edges: [] };
+for (const variant of NETWORK_FORMATION_VARIANTS) {
+  assertTimelineContract(emptyGraph, variant.id);
+  assertTimelineContract(sparseGraph, variant.id);
+  assertTimelineContract(disconnectedGraph, variant.id);
+  assertTimelineContract(graph, variant.id);
+  assertTimelineContract(denseGraph, variant.id);
+  const variantText = createNetworkFormationTimeline(graph, variant.id).events
+    .flatMap((event) => event.terminalLines)
+    .join("\n");
+  assert.match(variantText, new RegExp(`STUDY ${variant.label}`));
+  assert.match(variantText, /NETWORK STABLE/);
+}
+
+assert.equal(NETWORK_FORMATION_VARIANTS.length, 10);
+assert.equal(new Set(NETWORK_FORMATION_VARIANTS.map((variant) => variant.id)).size, 10);
+assert.equal(new Set(NETWORK_FORMATION_VARIANTS.map((variant) => variant.label)).size, 10);
+const variantOrderSignatures = NETWORK_FORMATION_VARIANTS.map((variant) => (
+  createNetworkFormationTimeline(graph, variant.id).edgeOrder.join(",")
+));
+assert.equal(new Set(variantOrderSignatures).size, 10, "the comparison fixture must expose ten distinct reveal orders");
 
 console.log("SKIN network formation presentation tests passed");
