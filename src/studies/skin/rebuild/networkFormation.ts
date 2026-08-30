@@ -102,6 +102,13 @@ function proposalForCheckpoint(
     const edge = graph.edges[edgeIndex];
     return [edge.start, edge.end];
   });
+  const nearbyRadii = [...visible.slice(0, 8), ...upcoming.slice(0, 12)]
+    .map((edgeIndex) => graph.edges[edgeIndex]?.radius)
+    .filter((radius): radius is number => Number.isFinite(radius) && radius > 0)
+    .sort((left, right) => left - right);
+  const presentationRadius = nearbyRadii.length > 0
+    ? nearbyRadii[Math.floor(nearbyRadii.length * 0.5)]
+    : null;
 
   for (const startNodeIndex of sourceNodes) {
     for (const endNodeIndex of targetNodes) {
@@ -118,7 +125,10 @@ function proposalForCheckpoint(
         id: `TEMP-${String(proposalIndex + 1).padStart(2, "0")}`,
         startNodeIndex,
         endNodeIndex,
-        radius: Math.max(0.001, Math.min(start.radius, end.radius)),
+        // Keep a rejected route visually comparable to the completed network.
+        // Node radii can be much wider than members, so prefer nearby real edge
+        // radii while keeping this value entirely presentation-local.
+        radius: Math.max(0.001, presentationRadius ?? Math.min(start.radius, end.radius)),
       };
     }
   }
