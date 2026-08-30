@@ -168,11 +168,51 @@ export interface SpiderGraphTopologyPreservation {
   differences: string[];
 }
 
+/** Portable topology view of the shadow Candidate. Material radius and the
+ * current straight realization are deliberately stored outside this graph. */
+export interface SpiderCleanTopology {
+  nodes: Array<{
+    id: number;
+    position: Vector3Value;
+  }>;
+  edges: Array<{
+    id: number;
+    startNodeId: number;
+    endNodeId: number;
+  }>;
+}
+
+export interface SpiderCleanEdgeRealization {
+  id: string;
+  edgeId: number;
+  kind: "straight";
+  radius: number;
+}
+
+export interface SpiderGraphCleanupProvenance {
+  nodes: Array<{
+    cleanNodeId: number;
+    rawNodeIds: number[];
+  }>;
+  edges: Array<{
+    cleanEdgeId: number;
+    rawEdgeIds: number[];
+    collapsedRawNodeIds: number[];
+  }>;
+  discardedRawEdges: Array<{
+    rawEdgeIds: number[];
+    reason: "near-node-self-loop";
+  }>;
+}
+
 export interface SpiderGraphCleanupLabReport {
   policy: SpiderGraphCleanupPolicy;
   geometryKind: SpiderEdgeGeometryAdapter["kind"];
   rawGraph: InternalStructureGraph;
   cleanupCandidate: InternalStructureGraph;
+  cleanTopology: SpiderCleanTopology;
+  cleanEdgeRealizations: SpiderCleanEdgeRealization[];
+  provenance: SpiderGraphCleanupProvenance;
   rawStats: SpiderGraphStats;
   candidateStats: SpiderGraphStats;
   findings: SpiderGraphCleanupFindings;
@@ -182,6 +222,7 @@ export interface SpiderGraphCleanupLabReport {
 
 interface MutableEdge extends InternalStructureEdge {
   sourceEdgeIds: number[];
+  collapsedRawNodeIds: number[];
 }
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
@@ -728,7 +769,13 @@ function mutableCandidate(
   terminals: readonly SpiderGraphTerminal[],
   policy: SpiderGraphCleanupPolicy,
   geometry: SpiderEdgeGeometryAdapter,
-): { graph: InternalStructureGraph; operations: SpiderGraphCleanupOperation[] } {
+): {
+  graph: InternalStructureGraph;
+  topology: SpiderCleanTopology;
+  realizations: SpiderCleanEdgeRealization[];
+  provenance: SpiderGraphCleanupProvenance;
+  operations: SpiderGraphCleanupOperation[];
+} {
   const operations: SpiderGraphCleanupOperation[] = [];
   const protectedNodeIds = protectedNodes(raw, terminals, policy.nodeCoincidenceTolerance);
   const set = new DisjointSet(raw.nodes.map((node) => node.id));
@@ -751,19 +798,28 @@ function mutableCandidate(
   }
 
   const nodesByRetained = new Map<number, InternalStructureNode>();
+  const rawNodeIdsByRetained = new Map<number, number[]>();
   for (const node of raw.nodes) {
     const retainedId = set.find(node.id);
+    const rawNodeIds = rawNodeIdsByRetained.get(retainedId) ?? [];
+    rawNodeIds.push(node.id);
+    rawNodeIdsByRetained.set(retainedId, rawNodeIds);
     const existing = nodesByRetained.get(retainedId);
     if (!existing || node.id === retainedId) {
       nodesByRetained.set(retainedId, { ...node, id: retainedId, position: { ...node.position } });
     }
   }
-  const mutableEdges: MutableEdge[] = raw.edges.map((edge) => ({
+  const remappedEdges: MutableEdge[] = raw.edges.map((edge) => ({
     ...edge,
     start: set.find(edge.start),
     end: set.find(edge.end),
     sourceEdgeIds: [edge.id],
-  })).filter((edge) => edge.start !== edge.end);
+    collapsedRawNodeIds: [],
+  }));
+  const discardedRawEdges: SpiderGraphCleanupProvenance["discardedRawEdges"] = remappedEdges
+    .filter((edge) => edge.start === edge.end)
+    .map((edge) => ({ rawEdgeIds: [...edge.sourceEdgeIds], reason: "near-node-self-loop" }));
+  const mutableEdges = remappedEdges.filter((edge) => edge.start !== edge.end);
 
   const deduplicated: MutableEdge[] = [];
   const byEndpoint = new Map<string, MutableEdge[]>();
@@ -780,7 +836,11 @@ function mutableCandidate(
       deduplicated.push(...sorted);
       continue;
     }
-    const kept = { ...sorted[0], sourceEdgeIds: sorted.flatMap((edge) => edge.sourceEdgeIds).sort((a, b) => a - b) };
+    const kept = {
+      ...sorted[0],
+      sourceEdgeIds: sorted.flatMap((edge) => edge.sourceEdgeIds).sort((a, b) => a - b),
+      collapsedRawNodeIds: sorted.flatMap((edge) => edge.collapsedRawNodeIds).sort((a, b) => a - b),
+    };
     deduplicated.push(kept);
     for (const removed of sorted.slice(1)) {
       operations.push({
@@ -836,12 +896,18 @@ function mutableCandidate(
       edgeRecords.delete(second.id);
       nodeRecords.delete(node.id);
       const sourceEdgeIds = [...first.sourceEdgeIds, ...second.sourceEdgeIds].sort((a, b) => a - b);
+      const collapsedRawNodeIds = [
+        ...first.collapsedRawNodeIds,
+        ...(rawNodeIdsByRetained.get(node.id) ?? [node.id]),
+        ...second.collapsedRawNodeIds,
+      ].sort((a, b) => a - b);
       edgeRecords.set(nextEdgeId, {
         id: nextEdgeId,
         start: firstOther,
         end: secondOther,
         radius: first.radius,
         sourceEdgeIds,
+        collapsedRawNodeIds,
       });
       operations.push({
         kind: "collapse-degree2-collinear",
@@ -858,14 +924,35 @@ function mutableCandidate(
   const sortedNodes = [...nodeRecords.values()].sort((a, b) => a.id - b.id);
   const reindex = new Map(sortedNodes.map((node, index) => [node.id, index]));
   const nodes = sortedNodes.map((node, id) => ({ ...node, id, position: { ...node.position } }));
-  const edges = [...edgeRecords.values()]
-    .sort((a, b) => a.id - b.id)
-    .map((edge, id) => ({
+  const sortedEdges = [...edgeRecords.values()].sort((a, b) => a.id - b.id);
+  const edges = sortedEdges.map((edge, id) => ({
       id,
       start: reindex.get(edge.start)!,
       end: reindex.get(edge.end)!,
       radius: edge.radius,
     }));
+  const topology: SpiderCleanTopology = {
+    nodes: nodes.map((node) => ({ id: node.id, position: { ...node.position } })),
+    edges: edges.map((edge) => ({ id: edge.id, startNodeId: edge.start, endNodeId: edge.end })),
+  };
+  const realizations: SpiderCleanEdgeRealization[] = edges.map((edge) => ({
+    id: `clean-straight:${edge.id}`,
+    edgeId: edge.id,
+    kind: "straight",
+    radius: edge.radius,
+  }));
+  const provenance: SpiderGraphCleanupProvenance = {
+    nodes: sortedNodes.map((node, cleanNodeId) => ({
+      cleanNodeId,
+      rawNodeIds: [...(rawNodeIdsByRetained.get(node.id) ?? [node.id])].sort((a, b) => a - b),
+    })),
+    edges: sortedEdges.map((edge, cleanEdgeId) => ({
+      cleanEdgeId,
+      rawEdgeIds: [...edge.sourceEdgeIds],
+      collapsedRawNodeIds: [...edge.collapsedRawNodeIds],
+    })),
+    discardedRawEdges,
+  };
   return {
     graph: {
       kind: raw.kind,
@@ -879,6 +966,9 @@ function mutableCandidate(
         gridEdgeCount: edges.length,
       },
     },
+    topology,
+    realizations,
+    provenance,
     operations,
   };
 }
@@ -936,7 +1026,13 @@ export function analyzeSpiderGraphCleanupLab(
 ): SpiderGraphCleanupLabReport {
   const rawGraph = cloneGraph(inputGraph);
   const findings = findSpiderGraphCleanupCandidates(rawGraph, terminals, policy, geometry);
-  const { graph: cleanupCandidate, operations } = mutableCandidate(
+  const {
+    graph: cleanupCandidate,
+    topology: cleanTopology,
+    realizations: cleanEdgeRealizations,
+    provenance,
+    operations,
+  } = mutableCandidate(
     rawGraph,
     findings,
     terminals,
@@ -950,6 +1046,9 @@ export function analyzeSpiderGraphCleanupLab(
     geometryKind: geometry.kind,
     rawGraph,
     cleanupCandidate,
+    cleanTopology,
+    cleanEdgeRealizations,
+    provenance,
     rawStats,
     candidateStats,
     findings,

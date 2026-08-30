@@ -16,6 +16,26 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Raw / Clean Spider Graph visual comparison (development Lab)
+
+production入口とproduction build inputに接続しない`/skin-network-lab.html`を追加し、同梱baselineの
+Raw 251 node / 270 edge、Clean 101 node / 118 topological edgeを同じsurface-only context上で
+Raw（cyan）/ Clean（gold）/ Overlayとして実クリック比較できるようにした。retained node、collapsed
+degree-2 node、near-node merge、overlap、共有IDを持たないendpoint contact、Motif 38点とsupport target
+20点は独立layerで表示を切り替えられる。surface contextは`internalGraph=null`で作り、Raw/Cleanどちらも
+作品meshへunionしていない。
+
+Clean topologyはendpoint relationだけを持ち、現行straight/radiusは別realization、各Clean Edgeは
+Raw Edge IDsとcollapsed Raw Node IDsをlineageとして保持する。例としてClean Edge 8はRaw Edge
+20/21/28/29、collapsed Raw Node 56/63へ追跡できる。全270 Raw Edgeと251 Raw Nodeが、Clean lineageか
+明示discard reasonへ重複なく対応することをtestで固定した。
+
+実ブラウザのAxome初期視点ではRaw/Cleanの主要経路と38/38 Motif・20/20 support接続のfootprintは一致し、
+4重複区間を含むClean Edge 8周辺に目立つ穴は見えなかった。degree-2分割点が減るためnode表示は整理されるが、
+118本の経路自体は依然密であり、「クモの巣感が増したか／単純化されすぎたか」は作者判断として未決定。
+Raw/Clean/Overlay、diagnostic checkbox、provenance selectを実操作し、console warning/error 0を確認した。
+FKEI Save、STL/3MF export、production採用操作はLabに存在しない。
+
 ### 2026-08-30 — Spider Graph Cleanup laboratory (shadow only)
 
 同梱first-print `.fkei`の保存済みSpider 251 node / 270 edgeを読み取り、production

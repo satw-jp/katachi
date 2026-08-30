@@ -78,6 +78,18 @@ const subdivisionReport = analyzeSpiderGraphCleanupLab(subdivisionFixture, []);
 assert.deepEqual(subdivisionReport.findings.degree2CollinearNodes.map((finding) => finding.candidateAction), ["collapse"]);
 assert.equal(subdivisionReport.cleanupCandidate.nodes.length, 2);
 assert.equal(subdivisionReport.cleanupCandidate.edges.length, 1);
+assert.deepEqual(subdivisionReport.cleanTopology.edges, [{ id: 0, startNodeId: 0, endNodeId: 1 }]);
+assert.deepEqual(subdivisionReport.cleanEdgeRealizations, [{
+  id: "clean-straight:0",
+  edgeId: 0,
+  kind: "straight",
+  radius: 0.2,
+}]);
+assert.deepEqual(subdivisionReport.provenance.edges, [{
+  cleanEdgeId: 0,
+  rawEdgeIds: [0, 1],
+  collapsedRawNodeIds: [1],
+}]);
 assert.equal(subdivisionReport.topologyPreservation.ok, true);
 
 // A terminal at the same subdivision is deliberately retained, even though
@@ -135,6 +147,24 @@ assert.equal(report.candidateStats.nodeCount, 101);
 assert.equal(report.candidateStats.edgeCount, 118);
 assert.equal(report.candidateStats.connectedComponents, 1);
 assert.ok(Math.abs(report.candidateStats.totalEdgeLength - 123.79283631872248) <= 1e-12);
+assert.equal(report.cleanTopology.nodes.length, 101);
+assert.equal(report.cleanTopology.edges.length, 118);
+assert.equal(report.cleanEdgeRealizations.length, 118);
+assert.ok(report.cleanEdgeRealizations.every((realization) => realization.kind === "straight"));
+assert.deepEqual(
+  [...report.provenance.edges.flatMap((edge) => edge.rawEdgeIds),
+    ...report.provenance.discardedRawEdges.flatMap((edge) => edge.rawEdgeIds)].sort((a, b) => a - b),
+  project.lattice.edges.map((edge) => edge.id).sort((a, b) => a - b),
+  "every Raw Edge must remain traceable through Clean lineage or an explicit discard reason",
+);
+assert.deepEqual(
+  [...report.provenance.nodes.flatMap((node) => node.rawNodeIds),
+    ...report.provenance.edges.flatMap((edge) => edge.collapsedRawNodeIds)].sort((a, b) => a - b),
+  project.lattice.nodes.map((node) => node.id).sort((a, b) => a - b),
+  "every Raw Node must remain traceable as retained/merged or collapsed lineage",
+);
+assert.equal(report.provenance.discardedRawEdges.length, 0);
+assert.ok(report.provenance.edges.some((edge) => edge.rawEdgeIds.length >= 4));
 assert.deepEqual({
   nearlyCoincidentNodes: report.findings.nearlyCoincidentNodes.length,
   duplicateEdges: report.findings.duplicateEdges.length,
