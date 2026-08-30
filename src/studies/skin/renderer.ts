@@ -54,6 +54,8 @@ import {
   DEFAULT_SKIN_VIEW_DIRECTIONS,
   SKIN_EDITOR_VIEW_SCHEMA,
   SKIN_VIEW_DIRECTIONS,
+  skinAxomeRollDegrees,
+  skinAxomeUpForRoll,
   skinViewAxisLegend,
   skinViewDirectionLabel,
   skinViewportAtPoint,
@@ -1228,6 +1230,33 @@ export class SkinRenderer {
     slot.controls.update();
     if (notify) this.editorViewChangeCallback?.();
     this.requestViewportRender();
+  }
+
+  selectedAxomeRollDegrees(): number | null {
+    const slot = this.viewportSlots[this.selectedViewport];
+    if (!slot || slot.direction !== "axome") return null;
+    return skinAxomeRollDegrees(
+      [slot.camera.position.x, slot.camera.position.y, slot.camera.position.z],
+      [slot.camera.up.x, slot.camera.up.y, slot.camera.up.z],
+      [slot.controls.target.x, slot.controls.target.y, slot.controls.target.z],
+    );
+  }
+
+  setSelectedAxomeRollDegrees(rollDegrees: number, notify = false): boolean {
+    const slot = this.viewportSlots[this.selectedViewport];
+    if (!slot || slot.direction !== "axome") return false;
+    const up = skinAxomeUpForRoll(
+      [slot.camera.position.x, slot.camera.position.y, slot.camera.position.z],
+      [slot.controls.target.x, slot.controls.target.y, slot.controls.target.z],
+      rollDegrees,
+    );
+    if (!up) return false;
+    slot.camera.up.fromArray(up);
+    slot.camera.lookAt(slot.controls.target);
+    slot.controls.update();
+    if (notify) this.editorViewChangeCallback?.();
+    this.requestViewportRender();
+    return true;
   }
 
   setViewportDirection(index: number, direction: SkinViewDirection, notify = false): void {

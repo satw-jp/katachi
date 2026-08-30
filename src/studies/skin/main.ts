@@ -2649,6 +2649,7 @@ syncPhaseAVerticalControl();
 
 rightPaneBody.appendChild(ui.root);
 leftPaneBody.appendChild(ui.displayToolsRoot);
+let refreshSkinRebuildAxomeRollControl = () => {};
 if (isSkinRebuildApp) {
   const printPlateControl = document.createElement("section");
   printPlateControl.className = "skin-rebuild-print-plate-control";
@@ -2694,6 +2695,30 @@ if (isSkinRebuildApp) {
   printPlateToggle.checked = true;
   printPlateToggle.setAttribute("aria-label", "印刷プレート面を表示");
   printPlateLabel.append(printPlateToggle, document.createTextNode(" 印刷プレート面を表示"));
+  const axomeRollControl = document.createElement("div");
+  axomeRollControl.className = "skin-rebuild-axome-roll-control";
+  const axomeRollTitle = document.createElement("strong");
+  axomeRollTitle.textContent = "Axome roll調整";
+  const axomeRollRow = document.createElement("div");
+  axomeRollRow.className = "skin-rebuild-axome-roll-row";
+  const axomeRollInput = document.createElement("input");
+  axomeRollInput.type = "range";
+  axomeRollInput.min = "-180";
+  axomeRollInput.max = "180";
+  axomeRollInput.step = "1";
+  axomeRollInput.value = "0";
+  axomeRollInput.setAttribute("aria-label", "Axome roll角度");
+  const axomeRollOutput = document.createElement("output");
+  axomeRollOutput.textContent = "0°";
+  const axomeLevelButton = document.createElement("button");
+  axomeLevelButton.type = "button";
+  axomeLevelButton.textContent = "水平に戻す";
+  axomeLevelButton.title = "現在のAxome視線のまま印刷プレートを画面上で水平にします";
+  const axomeRollHint = document.createElement("small");
+  axomeRollHint.className = "hint";
+  axomeRollHint.textContent = "選択中のAxome camera.upだけを調整します。モデル・プレート座標・書き出しは変わりません。";
+  axomeRollRow.append(axomeRollInput, axomeRollOutput, axomeLevelButton);
+  axomeRollControl.append(axomeRollTitle, axomeRollRow, axomeRollHint);
   const spiderLatticeLabel = document.createElement("label");
   spiderLatticeLabel.className = "row";
   const spiderLatticeToggle = document.createElement("input");
@@ -2718,7 +2743,7 @@ if (isSkinRebuildApp) {
   const printPlateHint = document.createElement("small");
   printPlateHint.className = "hint";
   printPlateHint.textContent = "表示専用です。赤=未補強、緑=蜘蛛補強済み、水色=補強部材です。危険面診断はスライサーの完全な再現ではありません。";
-  printPlateControl.append(selectionControl, printPlateLabel, spiderLatticeLabel, printSupportLabel, overhangLabel, printPlateHint);
+  printPlateControl.append(selectionControl, printPlateLabel, axomeRollControl, spiderLatticeLabel, printSupportLabel, overhangLabel, printPlateHint);
   ui.displayToolsRoot.insertBefore(printPlateControl, ui.displayToolsRoot.children[1] ?? null);
   skinRebuildViewportSelectionStatus = selectionStatus;
   skinRebuildSpiderLatticeToggle = spiderLatticeToggle;
@@ -2734,10 +2759,35 @@ if (isSkinRebuildApp) {
     refreshSkinRebuildViewportSelectionStatus();
   };
   printPlateToggle.onchange = () => skinRenderer.setPrintPlateVisible(printPlateToggle.checked);
+  refreshSkinRebuildAxomeRollControl = () => {
+    const roll = skinRenderer.selectedAxomeRollDegrees();
+    const available = roll != null && Number.isFinite(roll);
+    axomeRollInput.disabled = !available;
+    axomeLevelButton.disabled = !available;
+    axomeRollControl.classList.toggle("is-disabled", !available);
+    if (available) {
+      const rounded = Math.round(roll);
+      axomeRollInput.value = String(rounded);
+      axomeRollOutput.value = `${rounded}°`;
+      axomeRollOutput.textContent = `${rounded}°`;
+    } else {
+      axomeRollOutput.value = "Axomeを選択";
+      axomeRollOutput.textContent = "Axomeを選択";
+    }
+  };
+  axomeRollInput.oninput = () => {
+    skinRenderer.setSelectedAxomeRollDegrees(Number(axomeRollInput.value), true);
+    refreshSkinRebuildAxomeRollControl();
+  };
+  axomeLevelButton.onclick = () => {
+    skinRenderer.setSelectedAxomeRollDegrees(0, true);
+    refreshSkinRebuildAxomeRollControl();
+  };
   spiderLatticeToggle.onchange = () => skinRenderer.setInternalStructureVisible(spiderLatticeToggle.checked);
   printSupportToggle.onchange = () => skinRenderer.setPrintSupportVisible(printSupportToggle.checked);
   overhangToggle.onchange = () => skinRenderer.setSkinRebuildOverhangVisible(overhangToggle.checked);
   skinRenderer.setPrintPlateVisible(true);
+  refreshSkinRebuildAxomeRollControl();
   refreshSkinRebuildViewportSelectionStatus();
   installSkinRebuildPipelinePanel();
 }
@@ -15345,6 +15395,7 @@ skinRenderer.setEditorViewChangeCallback(() => {
   persistEditorLayout();
   markSupportPaintDraftDirty();
   autosaveSupportPaintDraft();
+  refreshSkinRebuildAxomeRollControl();
   refreshBottomStatusPane();
   requestRenderFrame();
 });

@@ -4,6 +4,9 @@ import {
   DEFAULT_SKIN_VIEW_DIRECTIONS,
   SKIN_EDITOR_VIEW_SCHEMA,
   SKIN_VIEW_MENU_ITEMS,
+  skinAxomeHorizontalUp,
+  skinAxomeRollDegrees,
+  skinAxomeUpForRoll,
   skinViewAxisLegend,
   skinViewportAtPoint,
   skinViewportRects,
@@ -76,4 +79,17 @@ test("malformed editor camera state fails closed", () => {
   };
   assert.throws(() => validateSkinEditorViewDraft({ ...base, selectedViewport: 4 }), /selected viewport/);
   assert.throws(() => validateSkinEditorViewDraft({ ...base, viewports: base.viewports.map((view, i) => i === 0 ? { ...view, camera: { ...view.camera, zoom: 0 } } : view) }), /zoom/);
+});
+
+test("Axome roll is measured from a horizontal world-XY print plate", () => {
+  const position: [number, number, number] = [5, -5, 5];
+  const target: [number, number, number] = [0, 0, 0];
+  const horizontal = skinAxomeHorizontalUp(position, target);
+  assert.ok(horizontal);
+  assert.ok(Math.abs(skinAxomeRollDegrees(position, horizontal, target) ?? 999) < 1e-9);
+
+  const rolled = skinAxomeUpForRoll(position, target, 37);
+  assert.ok(rolled);
+  assert.ok(Math.abs((skinAxomeRollDegrees(position, rolled, target) ?? 0) - 37) < 1e-9);
+  assert.equal(skinAxomeHorizontalUp([0, 0, 5], target), null, "a Top view has no Axome plate-horizon roll");
 });

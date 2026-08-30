@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILDの左TOOLSにAxome roll調整と水平に戻すを追加。world +Zを現在のAxome view planeへ射影したcamera upを0°とし、既存Trackballがposition/upを回転した後も現在axisからrollを再計測する。選択中のAxome cameraだけを変更し、Top/Bottom/Front/Back/Left/Rightではdisabled。既存editor camera poseのup以外に保存fieldを増やさず、model、print plate実座標、Shape Recipe、.fkei形状、STL/OBJ/3MF出力は不変。unit testと実ブラウザの30°→水平0°、Top disabled、旧skin.html非表示、console issue 0を確認。"
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Print Test #001をprinting / result pendingとして記録。source checkpoint 1681a1d、同梱.fkei pathとSHA-256、generatorCommit 6f7b36f、printer/slicer追記欄、outer shellからprint failure locationまでの確認表を固定した。generatorCommitはscriptの固定SHAではなく生成時のgit HEADで、artifact格納checkpointとは意味が異なりclean-tree証明でもないため、historical factとして値を維持する。実機結果までは形状生成・判定・修復・出力座標を変更しない。"
     },
     {

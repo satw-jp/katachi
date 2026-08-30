@@ -25,6 +25,89 @@ export interface SkinViewportCameraPose {
   zoom: number;
 }
 
+type SkinVector3Tuple = [number, number, number];
+
+function subtractVector(a: SkinVector3Tuple, b: SkinVector3Tuple): SkinVector3Tuple {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function dotVector(a: SkinVector3Tuple, b: SkinVector3Tuple): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function crossVector(a: SkinVector3Tuple, b: SkinVector3Tuple): SkinVector3Tuple {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function normalizedVector(value: SkinVector3Tuple): SkinVector3Tuple | null {
+  const length = Math.hypot(value[0], value[1], value[2]);
+  if (!(Number.isFinite(length) && length > 1e-9)) return null;
+  return [value[0] / length, value[1] / length, value[2] / length];
+}
+
+/**
+ * Camera-up direction that makes the world XY print plate horizontal on
+ * screen for the current Axome viewing axis. This is editor presentation
+ * only; it never changes model or build-plate coordinates.
+ */
+export function skinAxomeHorizontalUp(
+  position: SkinVector3Tuple,
+  target: SkinVector3Tuple,
+): SkinVector3Tuple | null {
+  const forward = normalizedVector(subtractVector(target, position));
+  if (!forward) return null;
+  const worldUp: SkinVector3Tuple = [0, 0, 1];
+  const alongForward = dotVector(worldUp, forward);
+  return normalizedVector([
+    worldUp[0] - forward[0] * alongForward,
+    worldUp[1] - forward[1] * alongForward,
+    worldUp[2] - forward[2] * alongForward,
+  ]);
+}
+
+export function skinAxomeUpForRoll(
+  position: SkinVector3Tuple,
+  target: SkinVector3Tuple,
+  rollDegrees: number,
+): SkinVector3Tuple | null {
+  const forward = normalizedVector(subtractVector(target, position));
+  const horizontalUp = skinAxomeHorizontalUp(position, target);
+  if (!forward || !horizontalUp || !Number.isFinite(rollDegrees)) return null;
+  const radians = rollDegrees * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const turn = crossVector(forward, horizontalUp);
+  return normalizedVector([
+    horizontalUp[0] * cosine + turn[0] * sine,
+    horizontalUp[1] * cosine + turn[1] * sine,
+    horizontalUp[2] * cosine + turn[2] * sine,
+  ]);
+}
+
+export function skinAxomeRollDegrees(
+  position: SkinVector3Tuple,
+  up: SkinVector3Tuple,
+  target: SkinVector3Tuple,
+): number | null {
+  const forward = normalizedVector(subtractVector(target, position));
+  const horizontalUp = skinAxomeHorizontalUp(position, target);
+  if (!forward || !horizontalUp) return null;
+  const upAlongForward = dotVector(up, forward);
+  const projectedUp = normalizedVector([
+    up[0] - forward[0] * upAlongForward,
+    up[1] - forward[1] * upAlongForward,
+    up[2] - forward[2] * upAlongForward,
+  ]);
+  if (!projectedUp) return null;
+  const sine = dotVector(forward, crossVector(horizontalUp, projectedUp));
+  const cosine = Math.max(-1, Math.min(1, dotVector(horizontalUp, projectedUp)));
+  return Math.atan2(sine, cosine) * 180 / Math.PI;
+}
+
 export interface SkinEditorViewDraftV1 {
   schema: typeof SKIN_EDITOR_VIEW_SCHEMA;
   mode: SkinViewportMode;

@@ -3691,6 +3691,23 @@ details.mesh-export:not([open]) > :not(summary) {
 }
 .skin-rebuild-print-plate-control .row { justify-content: flex-start; font-weight: 700; }
 .skin-rebuild-print-plate-control .hint { display: block; margin-top: 4px; }
+.skin-rebuild-axome-roll-control {
+  display: grid;
+  gap: 5px;
+  margin: 7px 0;
+  padding: 7px 0;
+  border-block: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.skin-rebuild-axome-roll-control > strong { font-size: 10px; letter-spacing: .04em; }
+.skin-rebuild-axome-roll-control.is-disabled { opacity: .58; }
+.skin-rebuild-axome-roll-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) 42px auto;
+  gap: 6px;
+  align-items: center;
+}
+.skin-rebuild-axome-roll-row output { text-align: right; font-variant-numeric: tabular-nums; }
+.skin-rebuild-axome-roll-row button { min-height: 28px; white-space: nowrap; }
 .skin-rebuild-viewport-selection-control {
   display: grid;
   gap: 6px;

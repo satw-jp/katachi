@@ -16,6 +16,19 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Axome camera roll / horizontal print-plate view
+
+左TOOLSの印刷プレート表示付近へ`Axome roll調整`と`水平に戻す`を追加した。現在のAxome
+view axisへworld +Zを射影した方向をcamera upの0°とし、XY印刷プレートが画面上で水平になる。
+既存Trackballがpositionと`camera.up`を一緒に回した後も、現在のview axisからrollを再計測する。
+
+操作対象は選択中のAxome cameraだけで、Top / Bottom / Front / Back / Left / Rightではdisabledになる。
+新しい保存fieldは追加せず、既存editor camera poseの`up`だけを使う。model、print plate実座標、
+Shape Recipe、`.fkei`形状、STL / OBJ / 3MF出力へは値を渡さない。
+
+unit testでは0°の水平基準、37°round-trip、Top方向の適用不能を確認した。実ブラウザではAxome
+30°→水平0°、Topでdisabled、Axome復帰、旧`/skin.html`でcontrol 0件、console warning/error 0件を確認した。
+
 ### 2026-08-30 — Print Test #001 baseline record
 
 最初の実機造形を後から同定できるよう、`PRINT_LOG.md`へsource checkpoint、`.fkei` sourceと

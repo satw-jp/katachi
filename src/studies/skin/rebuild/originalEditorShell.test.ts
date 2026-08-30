@@ -37,6 +37,12 @@ assert.match(main, /skin-bottom-status-pane/);
 assert.match(main, /skin-rebuild-original-stage2\.fkei/);
 assert.match(main, /skin-rebuild-first-print\.fkei/);
 assert.match(main, /完成 Sample/);
+assert.match(main, /Axome roll調整/);
+assert.match(main, /水平に戻す/);
+assert.match(main, /camera\.upだけを調整します。モデル・プレート座標・書き出しは変わりません/);
+assert.match(renderer, /setSelectedAxomeRollDegrees/);
+assert.match(renderer, /slot\.direction !== "axome"/,
+  "roll adjustment must be unavailable for Top, Front, and side cameras");
 for (const label of [
   "3. Base Shape側をinsideとして判定",
   "4. オーバーハング部を検出",
