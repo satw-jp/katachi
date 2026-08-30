@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Windows local GeometryEngine transport compares localhost HTTP, WebSocket, WebTransport, native-helper deployment and full Electron/Tauri migration. The selected first boundary is a signed native helper bound only to one fixed loopback port, with job-oriented Fetch/JSON control, content-addressed binary artifacts, sequenced NDJSON progress streaming and idempotent DELETE cancellation. Public Cloudflare HTTPS requires browser Local Network Access permission plus exact-origin CORS and helper-side pairing; service absence, denial, version mismatch, crash or missing CUDA leaves the project intact and falls back to Web. FKEI stores no endpoint/token/job/native path/CUDA buffer. The first CUDA prototype is shadow-only radius-aware Spider containment behind evaluateContainment, compared with Web/CPU before any shape-affecting use. Design/Study record only; no runtime, FKEI schema, geometry, dependency or deployment setting change."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD migration regression harness locks the untouched first-print FKEI SHA before strict parse/restore, then fixes Base/Pattern/inside counts, Spider 251-node/270-edge topology, zero disconnected Patterns, 20/20 support claims, finalGraph statistics and separate print-support counts. Its resolution-68 Web reference records 59,524 triangles, 29,688 unique saved Float32-mm vertices, one closed consistently-wound component, zero open/non-manifold/degenerate/non-finite defects, 80 mm longest size and 14,302.041001524116 mm3 volume. A backend-neutral GeometryResultContract and parameterized compareGeometryResult support future Web/Windows CPU/CUDA candidate comparison; discrete reference topology/counts remain exact and only bounds/volume receive narrow tolerances. Test/helper/docs only; production geometry, FKEI schema and baseline are unchanged."
     },
     {

@@ -16,6 +16,21 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Windows local GeometryEngine transport (design only)
+
+Cloudflare公開UIを維持してWindows native計算へ接続する方式を比較し、固定loopbackへだけbindする
+native helperとjob-oriented localhost HTTP / Fetchを初期境界にした。小さいcontrolはJSON、大きいmesh/volumeは
+SHA-256付きbinary artifact、progressはFetch response streamの連番NDJSON、cancelはidempotent DELETEとする。
+
+公開HTTPS→loopbackには現行ブラウザのLocal Network Access許可とCORSが別々に必要なため、UIは常に
+`Compute: Web`から始め、作者の明示Detect後だけWindows CPU / RTX 3080を提示する。service不在、拒否、version不一致、
+crash、CUDA無しではprojectを変えずWebへfallbackする。helperはloopback限定、exact Origin、pairing token、bounded schema、
+任意path/command禁止とし、FKEIへendpoint/token/job/CUDA bufferを保存しない。
+
+最初のCUDA prototypeは`evaluateContainment`配下のSpider全半径Base内包batchをshadow-onlyで実行し、Web/CPUと
+分類・marginを比較する。`buildMesh`等でproduction geometryを変える前にtransport/security/cancel/crash/fallbackを通す。
+設計文書、Study記録のみでruntime、FKEI schema、geometry output、dependency、Cloudflare設定は変更していない。
+
 ### 2026-08-30 — migration regression harness
 
 `public/samples/skin-rebuild-first-print.fkei`を変更せず、SHA-256を入口で固定したtest-only回帰を追加した。
