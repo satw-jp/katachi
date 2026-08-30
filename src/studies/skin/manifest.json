@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "Cloudflare Workers Static Assets / Wrangler現行資料とWrangler 4.111.0でwrangler.jsoncを監査。assets.directory=./distは有効、production build後のdeploy --dry-runは121 assets・binding無しで成功。generic wrangler checkは無くalpha check startupだけ。whoami --jsonがloggedIn:falseのため、指定どおりproduction deploy、公開URL、公開Web FKEI Save/Restoreを保留しDEPLOYMENT.mdへ再開条件を記録。temporary deployへは迂回せず、compatibility dateもruntime freeze中のため不変。形状・UI runtime・schema変更無し。"
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD右ペインを棚卸しし、Base/Surface/FKEI/mesh/最終診断/exportをCURRENT、Artwork Graph/Dry Web/Spider networkをFUTUREとして通常表示、補助diagnostic・開発status・過去evidence・凍結実験を削除せず初期closedのAdvanced · Legacy / Researchへ分類した。旧skin.htmlは従来label/open状態のまま。恒久・移行・Legacy test契約を別リストで固定し、実ブラウザでCURRENT 5/FUTURE 3/Legacy 1、shelf実開閉、必須control残存、console issue 0を確認。形状生成・mesh・閾値・座標・保存schemaは不変。"
     },
     {

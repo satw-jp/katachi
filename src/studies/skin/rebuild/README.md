@@ -16,6 +16,17 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Cloudflare deploy audit (authentication hold)
+
+公式の現行Workers Static Assets / Wrangler資料とWrangler 4.111.0で`wrangler.jsonc`を監査した。
+`assets.directory=./dist`は現行構成のまま有効で、production build後の`wrangler deploy --dry-run`は
+121 assetsを読み取り成功した。現行`wrangler check`はgeneric config checkではなくalphaの`check startup`
+だけなので、deploy dry-runを構成検査に使った。compatibility dateは実機結果待ちのruntime freeze中のため更新しない。
+
+`wrangler whoami --json`が`loggedIn:false`を返したため、指定どおりproduction deployを保留した。
+temporary accountへは迂回していない。従って公開URLと公開Web版FKEI Save / Restore実操作も未完了で、
+再開条件と実行済みcheckを`DEPLOYMENT.md`へ記録した。形状・UI runtime・保存schemaは変更していない。
+
 ### 2026-08-30 — current / future / legacy right-pane inventory
 
 右ペインの既存controlを`RIGHT_PANE_INVENTORY.md`で棚卸しし、REBUILD表示だけを3分類した。
