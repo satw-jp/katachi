@@ -16,6 +16,32 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — NETWORK FORMATION presentation prototype
+
+NETWORK Phaseに、既存の完成`InternalStructureGraph`を約12.4秒で形成過程として見せる`FORMATION`を追加した。
+新しいgenerationや探索は行わない。完成Graphを連結順に読む表示専用timelineが、0 edgeから少数batchずつ
+既存edgeを増やす。2回のcheckpointでは、完成Graphに存在しない既存node間の`TEMP` edgeを専用overlayへだけ
+描き、`ROUTE UNRESOLVED / CLEARANCE FAILED / REJECT / REMOVE EDGE`を表示して消す。その直後に完成Graph内の
+次edgeを`ACCEPT`表示する。仮edgeはruntime graph、history、FKEI、mesh、save、exportへ渡らない。
+
+中間frameは参照nodeとedgeだけをremapした一時Graphである。stable frameは`networkFormationGraphAt()`が
+元の完成Graph参照をそのまま返すため、最終nodes / edges / ids / radiiは開始時のNetworkと一致する。
+unit testは10〜15秒のduration、edge全数一意、単調増加、TEMP edgeが完成Graphに不在、REJECT対応、
+入力Graph非変更、stable frameの参照同一性を固定した。
+
+rendererは通常scene objectのvisible stateを保存して隠し、専用FORMATION groupへnode / edge instance、
+黄proposal、赤reject、緑accept、monospace CanvasTexture spriteだけを置く。terminal spriteはcamera奥で
+depth testするためnetwork geometryの背後になる。Art shellはFORMATION中だけproject bar、左右rail、status、
+panel、card、border、4-view HUDを除き、単一fullscreen viewportと文字だけのExitを残す。開始前のEditor Viewを
+captureし、Exit時に1/4-view、camera、target、zoomをrestoreする。
+
+実ブラウザの同梱完成sampleは251 nodes / 270 edgesだった。0 edgeのempty start、84 edgeで`TEMP-01`を赤く
+REJECT、90 edgeで別edgeを緑にACCEPT、最終270 edgeで`NETWORK STABLE / COMPLETED GRAPH MATCHED`を確認した。
+FORMATION viewportは1280×720、panel/card 0、console error 0だった。開始前4-view、FORMATION中1-view、
+Exit後4-viewの復元も確認した。`test:skin-rebuild`は全件成功した。TypeScript compileと一時出力先へのVite
+production bundleは成功し、通常`dist/assets`のcleanupだけはGoogle Driveの既存file lockで停止した。
+geometry algorithm、DryWeb、Graph生成、FKEI schema、Base/Motif model、GeometryEngine、STL/3MF出力は変更していない。
+
 ### 2026-08-30 — SKIN ART UI v0 design system and application shell
 
 `/skin-rebuild.html`へ作品提示用のPresentation Layerを追加した。上部は`KATACHI / SKIN`と

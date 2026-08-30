@@ -1,5 +1,23 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN NETWORK FORMATION Prototype（2026-08-31）
+
+完成済み`InternalStructureGraph`を変更せず、表示だけを12.4秒の時間軸へ展開するFORMATION modeを
+`/skin-rebuild.html`のNETWORK Phaseへ追加した。開始frameは0 edge、途中frameは完成edgeの部分集合で、
+Presentation専用`TEMP` edgeを提案・赤い`REJECT`・削除した後、完成Graph内の別edgeを緑の`ACCEPT`として
+増やす。stable frameはコピーや再計算結果ではなく、開始時に取得した完成Graphそのものをrendererへ渡す。
+
+FORMATION中は通常sceneを保持したまま非表示にし、専用renderer groupだけを単一fullscreen viewportへ描く。
+薄いmonospace terminal textureはnetworkより奥に置き、geometryが文字を遮る。Project chrome、panels、cards、
+borders、4-view HUDは隠し、完了時は`NETWORK STABLE`を表示する。Exitでは通常sceneと開始前の1/4-view cameraを復元する。
+
+実ブラウザの完成sampleは251 nodes / 270 edgesだった。0 edge開始、84 edge時点のTEMP route REJECT、
+90 edgeでの代替ACCEPT、最終270 edgeと`NETWORK STABLE`、panel/card 0、console error 0を確認した。
+4-viewから開始してもFORMATION中は1-view、Exit後は4-viewへ戻る。`test:skin-rebuild`は全件成功し、
+TypeScript compileと一時出力先へのVite production bundleも成功した。既存`dist/assets`はGoogle Driveの
+削除lockで通常buildのcleanupだけが停止した。geometry、DryWeb、Graph生成、FKEI、GeometryEngine、
+STL/3MF output logicは変更していない。詳細は`rebuild/README.md`を正本とする。
+
 ## Observation — SKIN ART UI v0 application shell（2026-08-30）
 
 `/skin-rebuild.html`のPresentation Layerを、minimal project header、左Tools / View、中央Artwork View、
