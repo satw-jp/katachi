@@ -4371,6 +4371,139 @@ html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-vie
   bottom: 92px;
 }
 
+html.skin-art-ui .skin-network-formation-action {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+html.skin-art-ui .skin-network-formation-action[hidden] {
+  display: none;
+}
+
+html.skin-art-ui .skin-network-formation-trigger {
+  flex: 0 0 auto;
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: var(--skin-art-ink);
+  font: 700 8px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+}
+
+html.skin-art-ui .skin-network-formation-trigger:hover:not(:disabled) {
+  color: #547b00;
+}
+
+html.skin-art-ui .skin-network-formation-trigger:disabled {
+  color: var(--skin-art-muted);
+  cursor: not-allowed;
+}
+
+html.skin-art-ui .skin-network-formation-action > span {
+  color: var(--skin-art-muted);
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+html.skin-art-ui #app.is-network-formation {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  background: #0d120f;
+}
+
+html.skin-art-ui #app.is-network-formation > .skin-project-bar,
+html.skin-art-ui #app.is-network-formation > .skin-editor-pane,
+html.skin-art-ui #app.is-network-formation > .skin-pane-divider,
+html.skin-art-ui #app.is-network-formation > .skin-bottom-pane-divider,
+html.skin-art-ui #app.is-network-formation > .skin-bottom-status-pane {
+  display: none !important;
+}
+
+html.skin-art-ui #app.is-network-formation #viewport {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #0d120f;
+  box-shadow: none !important;
+}
+
+html.skin-art-ui #app.is-network-formation #viewport::after {
+  display: none;
+}
+
+html.skin-art-ui #app.is-network-formation #viewport > :not(canvas):not(.skin-network-formation-hud) {
+  display: none !important;
+}
+
+html.skin-art-ui .skin-network-formation-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 28px 32px;
+  color: rgba(241, 246, 235, .82);
+  font-family: var(--skin-art-sans);
+  pointer-events: none;
+}
+
+html.skin-art-ui .skin-network-formation-hud[hidden] {
+  display: none;
+}
+
+html.skin-art-ui .skin-network-formation-hud > div {
+  display: grid;
+  gap: 5px;
+}
+
+html.skin-art-ui .skin-network-formation-hud span {
+  color: rgba(184, 229, 194, .46);
+  font: 600 8px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .17em;
+}
+
+html.skin-art-ui .skin-network-formation-hud strong {
+  color: #eff5e8;
+  font: 500 18px/1.1 var(--skin-art-serif);
+  letter-spacing: .02em;
+}
+
+html.skin-art-ui .skin-network-formation-hud .skin-network-formation-progress {
+  margin-top: 3px;
+  color: rgba(200, 240, 90, .66);
+  letter-spacing: .11em;
+}
+
+html.skin-art-ui .skin-network-formation-exit {
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 1px solid rgba(241, 246, 235, .38);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(241, 246, 235, .64);
+  font: 700 8px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+  pointer-events: auto;
+}
+
+html.skin-art-ui .skin-network-formation-exit:hover,
+html.skin-art-ui .skin-network-formation-exit:focus-visible {
+  border-bottom-color: var(--skin-art-accent);
+  color: var(--skin-art-accent);
+  outline: 0;
+}
+
 @media (max-width: 900px) {
   html.skin-art-ui .skin-project-bar {
     gap: 9px;
@@ -4396,6 +4529,10 @@ html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-vie
 
   html.skin-art-ui .skin-right-pane .panel {
     padding: 14px;
+  }
+
+  html.skin-art-ui .skin-network-formation-hud {
+    padding: 22px;
   }
 }
 
@@ -4530,6 +4667,10 @@ html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-vie
 
   html.skin-art-ui .skin-bottom-workflow-summary {
     gap: 8px;
+  }
+
+  html.skin-art-ui .skin-network-formation-hud {
+    padding: 18px;
   }
 }
 

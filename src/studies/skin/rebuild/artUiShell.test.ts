@@ -35,5 +35,8 @@ for (const forbiddenImport of ["./model.ts", "./fkei.ts", "../renderer.ts"]) {
 assert.match(source, /target\?\.scrollIntoView/);
 assert.match(source, /stage\.hidden = !activeStageIds\.has\(stageId\)/);
 assert.match(source, /Research controls, diagnostics and retained experiments/);
+assert.match(source, /Start Network Formation presentation/);
+assert.match(source, /NETWORK STABLE/);
+assert.match(source, /app\.classList\.toggle\("is-network-formation"/);
 
 console.log("SKIN ART UI shell tests passed");

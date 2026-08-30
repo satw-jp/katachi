@@ -440,6 +440,38 @@ export class SkinRenderer {
     roughness: 0.82,
     metalness: 0,
   });
+  /** FORMATION is a presentation-only scene. It consumes temporary graph
+   * slices while the permanent internal graph and every runtime artifact stay
+   * mounted, hidden, and untouched behind this dedicated group. */
+  private readonly networkFormationGroup = new THREE.Group();
+  private readonly networkFormationMaterial = new THREE.MeshBasicMaterial({
+    color: 0xb8e5c2,
+    toneMapped: false,
+  });
+  private readonly networkFormationProposedMaterial = new THREE.MeshBasicMaterial({
+    color: 0xe8d56b,
+    transparent: true,
+    opacity: 0.94,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly networkFormationRejectedMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff625c,
+    transparent: true,
+    opacity: 0.96,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly networkFormationAcceptedMaterial = new THREE.MeshBasicMaterial({
+    color: 0xc8f05a,
+    transparent: true,
+    opacity: 1,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   private readonly printSupportMaterial = new THREE.MeshStandardMaterial({
     color: 0xd9823f,
     roughness: 0.86,
@@ -489,6 +521,13 @@ export class SkinRenderer {
   });
   private internalNodeMesh: THREE.InstancedMesh | null = null;
   private internalEdgeMesh: THREE.InstancedMesh | null = null;
+  private networkFormationActive = false;
+  private networkFormationNodeMesh: THREE.InstancedMesh | null = null;
+  private networkFormationEdgeMesh: THREE.InstancedMesh | null = null;
+  private networkFormationProposalMesh: THREE.Mesh | null = null;
+  private networkFormationTerminalSprite: THREE.Sprite | null = null;
+  private readonly networkFormationHiddenObjects = new Map<THREE.Object3D, boolean>();
+  private networkFormationPreviousClear: { color: THREE.Color; alpha: number } | null = null;
   private selectedInternalEdgeMesh: THREE.Mesh | null = null;
   private reinforcedInternalEdgeMesh: THREE.InstancedMesh | null = null;
   private internalStructureVisible = true;
@@ -901,6 +940,9 @@ export class SkinRenderer {
     const dir = new THREE.DirectionalLight(0xffffff, 0.9);
     dir.position.set(3, 5, 4);
     this.scene.add(dir);
+    this.networkFormationGroup.name = "skin-network-formation-presentation";
+    this.networkFormationGroup.visible = false;
+    this.scene.add(this.networkFormationGroup);
 
     const plateSurface = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1),
@@ -2201,6 +2243,226 @@ export class SkinRenderer {
     this.scene.add(edgeMesh);
     this.internalEdgeMesh = edgeMesh;
     this.applyLayerVisibility();
+  }
+
+  beginNetworkFormationPresentation(): void {
+    if (this.networkFormationActive) return;
+    this.networkFormationActive = true;
+    this.networkFormationHiddenObjects.clear();
+    for (const object of this.scene.children) {
+      if (object === this.networkFormationGroup) continue;
+      this.networkFormationHiddenObjects.set(object, object.visible);
+      object.visible = false;
+    }
+    const clearColor = new THREE.Color();
+    this.renderer.getClearColor(clearColor);
+    this.networkFormationPreviousClear = {
+      color: clearColor.clone(),
+      alpha: this.renderer.getClearAlpha(),
+    };
+    this.renderer.setClearColor(0x0d120f, 1);
+    this.networkFormationGroup.visible = true;
+    this.setOrbitEnabled(false);
+    this.requestViewportRender();
+  }
+
+  private disposeNetworkFormationGraph(): void {
+    if (this.networkFormationNodeMesh) {
+      this.networkFormationGroup.remove(this.networkFormationNodeMesh);
+      this.networkFormationNodeMesh.dispose();
+      this.networkFormationNodeMesh = null;
+    }
+    if (this.networkFormationEdgeMesh) {
+      this.networkFormationGroup.remove(this.networkFormationEdgeMesh);
+      this.networkFormationEdgeMesh.dispose();
+      this.networkFormationEdgeMesh = null;
+    }
+  }
+
+  setNetworkFormationGraph(graph: InternalStructureGraph | null): void {
+    this.disposeNetworkFormationGraph();
+    if (!graph || graph.edges.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+
+    if (graph.nodes.length > 0) {
+      const nodeMesh = new THREE.InstancedMesh(
+        this.internalNodeGeometry,
+        this.networkFormationMaterial,
+        graph.nodes.length,
+      );
+      const matrix = new THREE.Matrix4();
+      for (let index = 0; index < graph.nodes.length; index++) {
+        const node = graph.nodes[index];
+        matrix.makeScale(node.radius, node.radius, node.radius)
+          .setPosition(node.position.x, node.position.y, node.position.z);
+        nodeMesh.setMatrixAt(index, matrix);
+      }
+      nodeMesh.instanceMatrix.needsUpdate = true;
+      nodeMesh.position.z = this.phaseAObjectLiftSource;
+      nodeMesh.renderOrder = 8;
+      nodeMesh.name = "skin-network-formation-nodes";
+      this.networkFormationGroup.add(nodeMesh);
+      this.networkFormationNodeMesh = nodeMesh;
+    }
+
+    const edgeMesh = new THREE.InstancedMesh(
+      this.internalEdgeGeometry,
+      this.networkFormationMaterial,
+      graph.edges.length,
+    );
+    const matrix = new THREE.Matrix4();
+    const midpoint = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    for (let index = 0; index < graph.edges.length; index++) {
+      const edge = graph.edges[index];
+      const start = graph.nodes[edge.start]?.position;
+      const end = graph.nodes[edge.end]?.position;
+      if (!start || !end) continue;
+      direction.set(end.x - start.x, end.y - start.y, end.z - start.z);
+      const length = direction.length();
+      if (!(length > 0)) continue;
+      midpoint.set((start.x + end.x) * 0.5, (start.y + end.y) * 0.5, (start.z + end.z) * 0.5);
+      rotation.setFromUnitVectors(yAxis, direction.normalize());
+      matrix.compose(midpoint, rotation, new THREE.Vector3(edge.radius, length, edge.radius));
+      edgeMesh.setMatrixAt(index, matrix);
+    }
+    edgeMesh.instanceMatrix.needsUpdate = true;
+    edgeMesh.position.z = this.phaseAObjectLiftSource;
+    edgeMesh.renderOrder = 7;
+    edgeMesh.name = "skin-network-formation-edges";
+    this.networkFormationGroup.add(edgeMesh);
+    this.networkFormationEdgeMesh = edgeMesh;
+    this.requestViewportRender();
+  }
+
+  setNetworkFormationProposal(
+    graph: InternalStructureGraph | null,
+    proposal: { startNodeIndex: number; endNodeIndex: number; radius: number } | null,
+    state: "proposed" | "rejected" | "accepted" = "proposed",
+  ): void {
+    if (this.networkFormationProposalMesh) {
+      this.networkFormationGroup.remove(this.networkFormationProposalMesh);
+      this.networkFormationProposalMesh = null;
+    }
+    if (!graph || !proposal) {
+      this.requestViewportRender();
+      return;
+    }
+    const start = graph.nodes[proposal.startNodeIndex]?.position;
+    const end = graph.nodes[proposal.endNodeIndex]?.position;
+    if (!start || !end) return;
+    const direction = new THREE.Vector3(end.x - start.x, end.y - start.y, end.z - start.z);
+    const length = direction.length();
+    if (!(length > 0)) return;
+    const midpoint = new THREE.Vector3(
+      (start.x + end.x) * 0.5,
+      (start.y + end.y) * 0.5,
+      (start.z + end.z) * 0.5 + this.phaseAObjectLiftSource,
+    );
+    const rotation = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction.normalize(),
+    );
+    const material = state === "rejected"
+      ? this.networkFormationRejectedMaterial
+      : state === "accepted"
+        ? this.networkFormationAcceptedMaterial
+        : this.networkFormationProposedMaterial;
+    const mesh = new THREE.Mesh(this.internalEdgeGeometry, material);
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.compose(
+      midpoint,
+      rotation,
+      new THREE.Vector3(proposal.radius * 1.45, length, proposal.radius * 1.45),
+    );
+    mesh.renderOrder = 12;
+    mesh.name = `skin-network-formation-${state}-edge`;
+    this.networkFormationGroup.add(mesh);
+    this.networkFormationProposalMesh = mesh;
+    this.requestViewportRender();
+  }
+
+  setNetworkFormationTerminal(lines: readonly string[]): void {
+    if (this.networkFormationTerminalSprite) {
+      this.networkFormationGroup.remove(this.networkFormationTerminalSprite);
+      this.networkFormationTerminalSprite.material.map?.dispose();
+      this.networkFormationTerminalSprite.material.dispose();
+      this.networkFormationTerminalSprite = null;
+    }
+    if (lines.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 1400;
+    canvas.height = 900;
+    const context = canvas.getContext("2d")!;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.font = "600 25px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+    context.textBaseline = "top";
+    const visibleLines = lines.slice(-24);
+    const lineHeight = 34;
+    const startY = Math.max(34, canvas.height - visibleLines.length * lineHeight - 42);
+    for (const [index, line] of visibleLines.entries()) {
+      context.fillStyle = line === "REJECT" || line.startsWith("REMOVE EDGE")
+        ? "rgba(255, 98, 92, .72)"
+        : line === "ACCEPT" || line === "NETWORK STABLE"
+          ? "rgba(200, 240, 90, .78)"
+          : "rgba(184, 229, 194, .42)";
+      context.fillText(line, 48, startY + index * lineHeight);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.42,
+      depthTest: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.renderOrder = -20;
+    sprite.name = "skin-network-formation-terminal";
+    this.networkFormationGroup.add(sprite);
+    this.networkFormationTerminalSprite = sprite;
+    this.requestViewportRender();
+  }
+
+  private positionNetworkFormationTerminal(camera: THREE.OrthographicCamera): void {
+    const sprite = this.networkFormationTerminalSprite;
+    if (!sprite) return;
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    sprite.position.copy(camera.position).addScaledVector(direction, this.viewportDistance * 1.45);
+    const visibleWidth = (camera.right - camera.left) / Math.max(0.0001, camera.zoom);
+    const visibleHeight = (camera.top - camera.bottom) / Math.max(0.0001, camera.zoom);
+    sprite.scale.set(visibleWidth * 0.96, visibleHeight * 0.96, 1);
+  }
+
+  endNetworkFormationPresentation(): void {
+    if (!this.networkFormationActive) return;
+    this.networkFormationActive = false;
+    this.disposeNetworkFormationGraph();
+    this.setNetworkFormationProposal(null, null);
+    this.setNetworkFormationTerminal([]);
+    this.networkFormationGroup.visible = false;
+    for (const [object, visible] of this.networkFormationHiddenObjects) object.visible = visible;
+    this.networkFormationHiddenObjects.clear();
+    if (this.networkFormationPreviousClear) {
+      this.renderer.setClearColor(
+        this.networkFormationPreviousClear.color,
+        this.networkFormationPreviousClear.alpha,
+      );
+      this.networkFormationPreviousClear = null;
+    }
+    this.setOrbitEnabled(true);
+    this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   /** Highlight one author-selected permanent member without changing the
@@ -4312,6 +4574,7 @@ export class SkinRenderer {
       const slot = this.viewportSlots[rect.index];
       slot.controls.update();
       slot.camera.updateMatrixWorld();
+      if (this.networkFormationActive) this.positionNetworkFormationTerminal(slot.camera);
       this.material.uniforms.uCamPos.value.copy(slot.camera.position);
       this.material.uniforms.uCamInverseProjection.value.copy(slot.camera.projectionMatrixInverse);
       this.material.uniforms.uCamInverseView.value.copy(slot.camera.matrixWorld);

@@ -258,7 +258,16 @@ import {
   serializeSkinRebuildFkei,
   type SkinRebuildFkeiDocument,
 } from "./rebuild/fkei.ts";
-import { mountSkinArtUiShell } from "./rebuild/artUiShell.ts";
+import {
+  mountSkinArtUiShell,
+  type SkinArtUiShellController,
+} from "./rebuild/artUiShell.ts";
+import {
+  createNetworkFormationTimeline,
+  networkFormationGraphAt,
+  type NetworkFormationEvent,
+  type NetworkFormationTimeline,
+} from "./rebuild/networkFormation.ts";
 import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
@@ -2673,15 +2682,136 @@ if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPane
 else ui.root.appendChild(phaseASupportPanel);
 syncPhaseAVerticalControl();
 
+type NetworkFormationSession = {
+  readonly graph: InternalStructureGraph;
+  readonly timeline: NetworkFormationTimeline;
+  readonly viewDraft: ReturnType<SkinRenderer["captureEditorViewDraft"]>;
+  readonly terminalLines: string[];
+  startedAt: number;
+  eventIndex: number;
+  frameId: number;
+};
+
+let skinArtUiShellController: SkinArtUiShellController | null = null;
+let networkFormationSession: NetworkFormationSession | null = null;
+
+function applyNetworkFormationEvent(
+  session: NetworkFormationSession,
+  event: NetworkFormationEvent,
+): void {
+  if (event.kind === "reset" || event.kind === "accept" || event.kind === "stable") {
+    skinRenderer.setNetworkFormationGraph(networkFormationGraphAt(
+      session.graph,
+      session.timeline.edgeOrder,
+      event.visibleEdgeCount,
+    ));
+  }
+
+  session.terminalLines.push("", ...event.terminalLines);
+  if (session.terminalLines.length > 32) {
+    session.terminalLines.splice(0, session.terminalLines.length - 32);
+  }
+  skinRenderer.setNetworkFormationTerminal(session.terminalLines);
+
+  if ((event.kind === "propose" || event.kind === "reject") && event.proposal) {
+    skinRenderer.setNetworkFormationProposal(
+      session.graph,
+      event.proposal,
+      event.kind === "reject" ? "rejected" : "proposed",
+    );
+  } else if (event.kind === "accept") {
+    const edgeIndex = session.timeline.edgeOrder[Math.max(0, event.visibleEdgeCount - 1)];
+    const edge = session.graph.edges[edgeIndex];
+    skinRenderer.setNetworkFormationProposal(session.graph, edge ? {
+      startNodeIndex: edge.start,
+      endNodeIndex: edge.end,
+      radius: edge.radius,
+    } : null, "accepted");
+  } else if (event.kind === "reset" || event.kind === "stable") {
+    skinRenderer.setNetworkFormationProposal(null, null);
+  }
+
+  const progress = `${event.visibleEdgeCount} / ${session.graph.edges.length} EDGES`;
+  if (event.kind === "stable") {
+    skinArtUiShellController?.setNetworkFormationState("stable", "NETWORK STABLE", "COMPLETED GRAPH MATCHED");
+  } else {
+    const status = event.kind === "reject"
+      ? "REJECT / REROUTING"
+      : event.kind === "propose"
+        ? "ROUTE PROPOSAL"
+        : "NETWORK FORMATION";
+    skinArtUiShellController?.setNetworkFormationState("running", status, progress);
+  }
+}
+
+function runNetworkFormationFrame(now: number): void {
+  const session = networkFormationSession;
+  if (!session) return;
+  const elapsed = now - session.startedAt;
+  while (session.eventIndex < session.timeline.events.length) {
+    const event = session.timeline.events[session.eventIndex];
+    if (event.atMs > elapsed) break;
+    applyNetworkFormationEvent(session, event);
+    session.eventIndex++;
+  }
+  if (session.eventIndex < session.timeline.events.length) {
+    session.frameId = window.requestAnimationFrame(runNetworkFormationFrame);
+  } else {
+    session.frameId = 0;
+  }
+}
+
+function startNetworkFormation(): void {
+  const graph = internalStructureGraph;
+  if (!graph?.edges.length) {
+    skinArtUiShellController?.setNetworkFormationState(
+      "unavailable",
+      "Complete a Network before entering Formation.",
+    );
+    return;
+  }
+  if (networkFormationSession) exitNetworkFormation();
+  const timeline = createNetworkFormationTimeline(graph);
+  const viewDraft = skinRenderer.captureEditorViewDraft(editorLayoutState);
+  skinArtUiShellController?.setNetworkFormationState("running", "NETWORK FORMATION", `0 / ${graph.edges.length} EDGES`);
+  skinRenderer.setViewportMode("one");
+  skinRenderer.beginNetworkFormationPresentation();
+  const session: NetworkFormationSession = {
+    graph,
+    timeline,
+    viewDraft,
+    terminalLines: [],
+    startedAt: performance.now(),
+    eventIndex: 0,
+    frameId: 0,
+  };
+  networkFormationSession = session;
+  applyNetworkFormationEvent(session, timeline.events[0]);
+  session.eventIndex = 1;
+  session.frameId = window.requestAnimationFrame(runNetworkFormationFrame);
+}
+
+function exitNetworkFormation(): void {
+  const session = networkFormationSession;
+  if (!session) return;
+  if (session.frameId !== 0) window.cancelAnimationFrame(session.frameId);
+  networkFormationSession = null;
+  skinArtUiShellController?.setNetworkFormationState("idle");
+  skinRenderer.endNetworkFormationPresentation();
+  skinRenderer.restoreEditorViewDraft(session.viewDraft);
+}
+
 rightPaneBody.appendChild(ui.root);
 if (isSkinRebuildApp) {
-  mountSkinArtUiShell({
+  skinArtUiShellController = mountSkinArtUiShell({
     app,
     workflowRoot: ui.root,
     rightPaneBody,
     viewport,
     version: manifest.version,
     updatedAt: manifest.updatedAt,
+    onNetworkFormationRequest: startNetworkFormation,
+    onNetworkFormationExit: exitNetworkFormation,
   });
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
