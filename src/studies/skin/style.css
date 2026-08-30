@@ -3819,6 +3819,749 @@ details.mesh-export:not([open]) > :not(summary) {
 #viewport.skin-rebuild-region-drag-pick-mode canvas { cursor: crosshair; }
 #viewport.skin-rebuild-region-dragging canvas { cursor: cell; }
 
+/* --- SKIN ART UI v0: editorial application shell ----------------------- */
+html.skin-art-ui {
+  --skin-art-paper: #f2efe6;
+  --skin-art-paper-deep: #e8e3d7;
+  --skin-art-card: #fbf9f3;
+  --skin-art-ink: #171a17;
+  --skin-art-muted: #6e7169;
+  --skin-art-line: rgba(23, 26, 23, .14);
+  --skin-art-accent: #c8f05a;
+  --skin-art-accent-ink: #1c2a12;
+  --skin-art-viewport: #101410;
+  --skin-art-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --skin-art-sans: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color-scheme: dark light;
+}
+
+html.skin-art-ui body {
+  background: var(--skin-art-ink);
+  color: var(--skin-art-ink);
+}
+
+html.skin-art-ui #app {
+  background: var(--skin-art-paper);
+  font-family: var(--skin-art-sans);
+}
+
+html.skin-art-ui .skin-project-bar {
+  height: 100%;
+  gap: 18px;
+  padding: 10px 18px;
+  border-bottom: 0;
+  background: var(--skin-art-ink);
+  color: #f6f2e8;
+  font-family: var(--skin-art-sans);
+}
+
+html.skin-art-ui .skin-project-identity {
+  align-items: center;
+  gap: 10px;
+}
+
+html.skin-art-ui .skin-project-eyebrow {
+  color: var(--skin-art-accent);
+  font-size: 8px;
+  letter-spacing: .22em;
+}
+
+html.skin-art-ui .skin-project-name {
+  color: #fffdf7;
+  font-family: var(--skin-art-serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -.015em;
+}
+
+html.skin-art-ui .skin-project-format {
+  color: rgba(246, 242, 232, .52);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .14em;
+}
+
+html.skin-art-ui .skin-project-actions {
+  gap: 6px;
+}
+
+html.skin-art-ui .skin-project-action,
+html.skin-art-ui .skin-art-project-samples > summary {
+  min-height: 30px;
+  padding: 8px 12px;
+  border: 1px solid rgba(246, 242, 232, .2);
+  border-radius: 999px;
+  background: transparent;
+  color: #f6f2e8;
+  font: 600 9px/1 var(--skin-art-sans);
+  letter-spacing: .07em;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+html.skin-art-ui .skin-project-action:hover:not(:disabled),
+html.skin-art-ui .skin-art-project-samples > summary:hover {
+  border-color: var(--skin-art-accent);
+  background: var(--skin-art-accent);
+  color: var(--skin-art-accent-ink);
+}
+
+html.skin-art-ui .skin-project-action:focus-visible,
+html.skin-art-ui .skin-art-project-samples > summary:focus-visible {
+  outline: 2px solid var(--skin-art-accent);
+  outline-offset: 2px;
+}
+
+html.skin-art-ui .skin-project-action:disabled {
+  border-color: rgba(246, 242, 232, .1);
+  background: transparent;
+  color: rgba(246, 242, 232, .28);
+}
+
+html.skin-art-ui .skin-art-project-samples {
+  position: relative;
+}
+
+html.skin-art-ui .skin-art-project-samples > summary {
+  display: grid;
+  place-items: center;
+  min-width: 68px;
+  list-style: none;
+  cursor: pointer;
+}
+
+html.skin-art-ui .skin-art-project-samples > summary::-webkit-details-marker {
+  display: none;
+}
+
+html.skin-art-ui .skin-art-project-sample-actions {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 120;
+  display: grid;
+  gap: 6px;
+  min-width: 132px;
+  padding: 8px;
+  border: 1px solid rgba(246, 242, 232, .16);
+  border-radius: 14px;
+  background: #232722;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28);
+}
+
+html.skin-art-ui .skin-art-project-sample-actions .skin-project-action {
+  width: 100%;
+  color: #f6f2e8;
+}
+
+html.skin-art-ui .skin-project-meta {
+  color: rgba(246, 242, 232, .52);
+  font-size: 8px;
+  letter-spacing: .04em;
+}
+
+html.skin-art-ui .skin-art-build-signature {
+  flex: 0 0 auto;
+  color: rgba(246, 242, 232, .42);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+html.skin-art-ui .skin-editor-pane {
+  background: var(--skin-art-paper);
+  color: var(--skin-art-ink);
+}
+
+html.skin-art-ui .skin-left-pane {
+  border-right: 1px solid var(--skin-art-line);
+}
+
+html.skin-art-ui .skin-right-pane {
+  border-left: 1px solid var(--skin-art-line);
+}
+
+html.skin-art-ui .skin-pane-header {
+  height: 52px;
+  padding: 17px 18px 12px;
+  border-bottom: 0;
+  font-size: 9px;
+  letter-spacing: .18em;
+}
+
+html.skin-art-ui .skin-pane-header strong {
+  font-weight: 700;
+}
+
+html.skin-art-ui .skin-pane-header span {
+  color: var(--skin-art-muted);
+  font-size: 8px;
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
+html.skin-art-ui .skin-pane-body {
+  height: calc(100% - 52px);
+}
+
+html.skin-art-ui .skin-left-pane .skin-pane-body {
+  padding: 0 14px 20px;
+}
+
+html.skin-art-ui .skin-display-tools {
+  display: grid;
+  gap: 12px;
+}
+
+html.skin-art-ui .skin-display-tools-title {
+  padding: 10px 2px 6px;
+  color: var(--skin-art-muted);
+  font-size: 8px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+html.skin-art-ui .skin-display-tools > section,
+html.skin-art-ui .skin-display-tools > div {
+  border-color: var(--skin-art-line);
+  border-radius: 12px;
+}
+
+html.skin-art-ui .history-undo-dock {
+  padding: 12px;
+  border: 1px solid var(--skin-art-line);
+  background: rgba(255, 255, 255, .36);
+}
+
+html.skin-art-ui .skin-pane-divider,
+html.skin-art-ui .skin-bottom-pane-divider {
+  background: var(--skin-art-paper-deep);
+  border-color: var(--skin-art-line);
+}
+
+html.skin-art-ui .skin-pane-divider:hover,
+html.skin-art-ui .skin-bottom-pane-divider:hover {
+  background: #d9d2c3;
+}
+
+html.skin-art-ui #viewport {
+  margin: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 18px;
+  background: var(--skin-art-viewport);
+  box-shadow: 0 18px 40px rgba(23, 26, 23, .12);
+}
+
+html.skin-art-ui #viewport::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, .04);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+html.skin-art-ui .skin-art-viewport-caption {
+  position: absolute;
+  bottom: 22px;
+  left: 24px;
+  z-index: 18;
+  display: grid;
+  gap: 1px;
+  color: #f7f3e9;
+  pointer-events: none;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .5);
+}
+
+html.skin-art-ui .skin-art-viewport-caption span {
+  color: var(--skin-art-accent);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .24em;
+}
+
+html.skin-art-ui .skin-art-viewport-caption strong {
+  font-family: var(--skin-art-serif);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+html.skin-art-ui .skin-art-viewport-caption small {
+  color: rgba(247, 243, 233, .56);
+  font-size: 8px;
+  letter-spacing: .04em;
+}
+
+html.skin-art-ui .skin-right-pane .skin-pane-body {
+  background: var(--skin-art-paper);
+}
+
+html.skin-art-ui .skin-rebuild-phase-navigator.skin-art-phase-navigator {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+  padding: 4px 16px 14px;
+  border-bottom: 0;
+  background: var(--skin-art-paper);
+}
+
+html.skin-art-ui .skin-art-phase-kicker {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 10px 4px 10px 0;
+  border-right: 1px solid var(--skin-art-line);
+}
+
+html.skin-art-ui .skin-art-phase-kicker span,
+html.skin-art-ui .skin-art-phase-kicker strong {
+  font-size: 7px;
+  letter-spacing: .16em;
+}
+
+html.skin-art-ui .skin-art-phase-kicker span {
+  color: var(--skin-art-muted);
+}
+
+html.skin-art-ui .skin-art-phase-kicker strong {
+  writing-mode: vertical-rl;
+}
+
+html.skin-art-ui .skin-art-phase-list {
+  display: grid;
+  gap: 3px;
+}
+
+html.skin-art-ui .skin-rebuild-phase-navigator .skin-art-phase-button {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 35px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--skin-art-muted);
+  text-align: left;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+html.skin-art-ui .skin-rebuild-phase-navigator .skin-art-phase-button:hover {
+  background: rgba(255, 255, 255, .44);
+  color: var(--skin-art-ink);
+  transform: translateX(2px);
+}
+
+html.skin-art-ui .skin-rebuild-phase-navigator .skin-art-phase-button.is-active {
+  background: var(--skin-art-ink);
+  color: #f8f5ec;
+}
+
+html.skin-art-ui .skin-rebuild-phase-navigator .skin-art-phase-button:focus-visible {
+  outline: 2px solid var(--skin-art-ink);
+  outline-offset: 2px;
+}
+
+html.skin-art-ui .skin-art-phase-number {
+  color: currentColor;
+  font-family: var(--skin-art-serif);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+html.skin-art-ui .skin-art-phase-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+html.skin-art-ui .skin-art-phase-copy strong {
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .07em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.skin-art-ui .skin-art-phase-copy small {
+  color: currentColor;
+  font-size: 6px;
+  letter-spacing: .18em;
+  opacity: .55;
+}
+
+html.skin-art-ui .skin-art-phase-context {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 1px 12px;
+  padding: 16px 18px 14px;
+  border-block: 1px solid var(--skin-art-line);
+  background: var(--skin-art-card);
+}
+
+html.skin-art-ui .skin-art-phase-context > span {
+  grid-row: 1 / 3;
+  align-self: start;
+  color: var(--skin-art-muted);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .12em;
+}
+
+html.skin-art-ui .skin-art-phase-context > strong {
+  font-family: var(--skin-art-serif);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+html.skin-art-ui .skin-art-phase-context > p {
+  margin: 4px 0 0;
+  color: var(--skin-art-muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+html.skin-art-ui .skin-right-pane .panel {
+  padding: 18px;
+  background: var(--skin-art-paper);
+}
+
+html.skin-art-ui .skin-art-shell-legacy-heading {
+  display: none;
+}
+
+html.skin-art-ui .skin-author-workflow {
+  gap: 12px;
+}
+
+html.skin-art-ui .skin-author-stage {
+  overflow: hidden;
+  border: 1px solid var(--skin-art-line);
+  border-left: 0;
+  border-radius: 14px;
+  background: var(--skin-art-card);
+  box-shadow: 0 6px 22px rgba(35, 31, 23, .045);
+  scroll-margin-top: 18px;
+}
+
+html.skin-art-ui .skin-author-stage > summary {
+  min-height: 66px;
+  padding: 13px 14px;
+  background: transparent;
+}
+
+html.skin-art-ui .skin-author-stage-summary:hover {
+  background: rgba(200, 240, 90, .11);
+}
+
+html.skin-art-ui .skin-author-stage-number {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--skin-art-ink);
+  color: #f8f5ec;
+  font-family: var(--skin-art-serif);
+  font-size: 13px;
+}
+
+html.skin-art-ui .skin-author-stage-copy strong {
+  font-family: var(--skin-art-serif);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+html.skin-art-ui .skin-author-stage-copy small {
+  margin-top: 3px;
+  color: var(--skin-art-muted);
+  font-size: 8px;
+  line-height: 1.3;
+}
+
+html.skin-art-ui .skin-author-stage-state {
+  padding: 4px 7px;
+  border: 1px solid var(--skin-art-line);
+  border-radius: 999px;
+  color: var(--skin-art-muted);
+  font-size: 6px;
+  letter-spacing: .12em;
+}
+
+html.skin-art-ui .skin-author-stage-body {
+  gap: 12px;
+  padding: 4px 15px 18px;
+  border-top: 0;
+  background: transparent;
+}
+
+html.skin-art-ui .skin-author-stage-body button,
+html.skin-art-ui .skin-left-pane button {
+  border-radius: 999px;
+}
+
+html.skin-art-ui .skin-author-stage-body .primary-action,
+html.skin-art-ui .skin-author-stage-body button.primary,
+html.skin-art-ui .skin-author-stage-body button:not(:disabled):focus-visible {
+  outline-color: var(--skin-art-accent-ink);
+}
+
+html.skin-art-ui .skin-author-stage-body .primary-action {
+  border-color: var(--skin-art-ink);
+  background: var(--skin-art-ink);
+  color: #f8f5ec;
+}
+
+html.skin-art-ui .skin-author-stage-body input[type="range"] {
+  accent-color: var(--skin-art-ink);
+}
+
+html.skin-art-ui .skin-auxiliary-frozen.skin-art-lab {
+  margin-top: 18px;
+  border: 1px solid var(--skin-art-line);
+  border-radius: 14px;
+  background: var(--skin-art-paper-deep);
+}
+
+html.skin-art-ui .skin-auxiliary-frozen.skin-art-lab > summary {
+  padding: 13px 15px;
+  color: var(--skin-art-ink);
+  font-size: 8px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+html.skin-art-ui .skin-auxiliary-frozen.skin-art-lab[open] > summary {
+  border-bottom: 1px solid var(--skin-art-line);
+  background: var(--skin-art-ink);
+  color: #f8f5ec;
+}
+
+html.skin-art-ui .skin-art-lab-intro {
+  margin: 0 0 14px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--skin-art-line);
+  color: var(--skin-art-muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+html.skin-art-ui .skin-bottom-status-pane {
+  background: var(--skin-art-ink);
+  color: #f6f2e8;
+  font-family: var(--skin-art-sans);
+}
+
+html.skin-art-ui .skin-bottom-computation-label {
+  color: var(--skin-art-accent);
+}
+
+html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-viewport-caption {
+  bottom: 92px;
+}
+
+@media (max-width: 900px) {
+  html.skin-art-ui .skin-project-bar {
+    gap: 9px;
+    padding-inline: 12px;
+  }
+
+  html.skin-art-ui .skin-project-name {
+    font-size: 19px;
+  }
+
+  html.skin-art-ui .skin-rebuild-phase-navigator.skin-art-phase-navigator {
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding-inline: 12px;
+  }
+
+  html.skin-art-ui .skin-art-phase-copy small {
+    display: none;
+  }
+
+  html.skin-art-ui .skin-art-phase-context {
+    padding-inline: 14px;
+  }
+
+  html.skin-art-ui .skin-right-pane .panel {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  html.skin-art-ui #app {
+    grid-template-columns: 0 0 minmax(0, 1fr) 0 0 !important;
+  }
+
+  html.skin-art-ui .skin-project-bar {
+    gap: 8px;
+    overflow: visible;
+  }
+
+  html.skin-art-ui .skin-project-eyebrow {
+    font-size: 7px;
+  }
+
+  html.skin-art-ui .skin-project-name {
+    font-size: 18px;
+  }
+
+  html.skin-art-ui .skin-art-build-signature {
+    display: none;
+  }
+
+  html.skin-art-ui .skin-project-actions {
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  html.skin-art-ui .skin-project-action,
+  html.skin-art-ui .skin-art-project-samples > summary {
+    min-height: 28px;
+    max-width: none;
+    padding: 7px 9px;
+    font-size: 8px;
+  }
+
+  html.skin-art-ui .skin-editor-pane {
+    position: absolute;
+    top: 78px;
+    bottom: 66px;
+    z-index: 104;
+    grid-column: auto;
+    grid-row: auto;
+    width: min(88vw, 340px);
+    height: auto;
+    border: 0;
+    box-shadow: 0 22px 54px rgba(0, 0, 0, .28);
+  }
+
+  html.skin-art-ui .skin-left-pane {
+    left: 0;
+    border-right: 1px solid var(--skin-art-line);
+  }
+
+  html.skin-art-ui .skin-right-pane {
+    right: 0;
+    border-left: 1px solid var(--skin-art-line);
+  }
+
+  html.skin-art-ui .skin-pane-divider {
+    position: absolute;
+    top: calc(50% - 24px);
+    z-index: 112;
+    grid-column: auto;
+    grid-row: auto;
+    width: 0;
+    min-width: 0;
+    height: 48px;
+    border: 0;
+    background: transparent;
+    cursor: default;
+  }
+
+  html.skin-art-ui .skin-pane-divider.is-left {
+    left: 0;
+  }
+
+  html.skin-art-ui .skin-pane-divider.is-right {
+    right: 0;
+  }
+
+  html.skin-art-ui .skin-pane-collapse {
+    width: 24px;
+    height: 40px;
+    border-color: rgba(246, 242, 232, .3);
+    border-radius: 0 8px 8px 0;
+    background: var(--skin-art-ink);
+    color: #f8f5ec;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .24);
+  }
+
+  html.skin-art-ui .skin-pane-divider.is-left .skin-pane-collapse {
+    left: 12px;
+  }
+
+  html.skin-art-ui .skin-pane-divider.is-right .skin-pane-collapse {
+    left: -12px;
+    border-radius: 8px 0 0 8px;
+  }
+
+  html.skin-art-ui #viewport {
+    grid-column: 1 / -1;
+    margin: 8px;
+    border-radius: 14px;
+  }
+
+  html.skin-art-ui .skin-art-viewport-caption {
+    bottom: 20px;
+    left: 18px;
+  }
+
+  html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-viewport-caption {
+    bottom: 98px;
+  }
+
+  html.skin-art-ui .viewport-empty-hint {
+    bottom: 16px;
+    max-width: calc(100% - 40px);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 10px;
+  }
+
+  html.skin-art-ui .skin-bottom-status-pane {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 8px;
+    padding-inline: 10px;
+    font-size: 8px;
+  }
+
+  html.skin-art-ui .skin-bottom-workflow-summary {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 430px) {
+  html.skin-art-ui .skin-project-bar {
+    padding-inline: 8px;
+  }
+
+  html.skin-art-ui .skin-project-eyebrow,
+  html.skin-art-ui #skin-project-undo:disabled,
+  html.skin-art-ui #skin-project-redo:disabled {
+    display: none;
+  }
+
+  html.skin-art-ui .skin-project-actions {
+    min-width: 0;
+  }
+
+  html.skin-art-ui .skin-project-action,
+  html.skin-art-ui .skin-art-project-samples > summary {
+    padding-inline: 8px;
+  }
+
+  html.skin-art-ui .skin-art-viewport-caption strong {
+    font-size: 15px;
+  }
+
+  html.skin-art-ui .skin-art-viewport-caption small {
+    display: none;
+  }
+}
+
 /* SKIN REBUILD keeps the original editor shell; only the explicit Stage 5
    inside/lowest/lattice sequence receives a compact workflow treatment. */
 .skin-rebuild-pipeline-panel {

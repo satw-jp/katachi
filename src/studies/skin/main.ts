@@ -258,11 +258,7 @@ import {
   serializeSkinRebuildFkei,
   type SkinRebuildFkeiDocument,
 } from "./rebuild/fkei.ts";
-import {
-  SKIN_REBUILD_WORKFLOW_PHASES,
-  moveSkinRebuildWorkflowPhase,
-} from "./rebuild/workflowPhaseNavigator.ts";
-import { SKIN_REBUILD_STAGE_CLASSIFICATION } from "./rebuild/workflowInventory.ts";
+import { mountSkinArtUiShell } from "./rebuild/artUiShell.ts";
 import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
@@ -446,7 +442,14 @@ let localV088ReviewUrlViewApplied = false;
 
 const app = document.getElementById("app")!;
 const isSkinRebuildApp = document.documentElement.dataset.skinApp === "rebuild";
-let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
+function fitSkinEditorLayoutForApp(layout: SkinEditorLayoutDraftV1, workspaceWidth: number): SkinEditorLayoutDraftV1 {
+  if (!(isSkinRebuildApp && workspaceWidth <= 640)) return fitSkinEditorLayout(layout, workspaceWidth);
+  const overlayLayout = validateSkinEditorLayoutDraft(layout);
+  return !overlayLayout.leftCollapsed && !overlayLayout.rightCollapsed
+    ? { ...overlayLayout, leftCollapsed: true }
+    : overlayLayout;
+}
+let editorLayoutState = fitSkinEditorLayoutForApp(loadSkinEditorLayout(), window.innerWidth);
 let editorLayoutCommitCallback: () => void = () => {};
 
 // Editor-only project chrome. The .fkei actions and project-level Export are
@@ -476,6 +479,7 @@ projectActions.className = "skin-project-actions";
 projectActions.setAttribute("aria-label", "Project file and history actions");
 const projectOpenButton = document.createElement("button");
 projectOpenButton.type = "button";
+projectOpenButton.id = "skin-project-open";
 projectOpenButton.className = "skin-project-action";
 projectOpenButton.textContent = ".fkei Open";
 projectOpenButton.disabled = false;
@@ -486,12 +490,14 @@ projectOpenInput.accept = ".fkei,application/json,application/octet-stream";
 projectOpenInput.hidden = true;
 const projectSaveButton = document.createElement("button");
 projectSaveButton.type = "button";
+projectSaveButton.id = "skin-project-save";
 projectSaveButton.className = "skin-project-action";
 projectSaveButton.textContent = ".fkei Save";
 projectSaveButton.disabled = false;
 projectSaveButton.title = "現在のSKIN状態を.fkeiとして保存";
 const projectSampleButton = document.createElement("button");
 projectSampleButton.type = "button";
+projectSampleButton.id = "skin-project-stage-2-sample";
 projectSampleButton.className = "skin-project-action";
 projectSampleButton.textContent = "Stage 2 Sample";
 projectSampleButton.title = "元SKINのBase Shape / Surface Patternで作った同梱.fkeiを開く";
@@ -512,6 +518,7 @@ projectSampleButton.onclick = async () => {
 };
 const projectCompleteSampleButton = document.createElement("button");
 projectCompleteSampleButton.type = "button";
+projectCompleteSampleButton.id = "skin-project-complete-sample";
 projectCompleteSampleButton.className = "skin-project-action";
 projectCompleteSampleButton.textContent = "完成 Sample";
 projectCompleteSampleButton.title = "工程3〜6と蜘蛛の巣ラティスを含む初回プリント候補.fkeiを開く";
@@ -532,6 +539,7 @@ projectCompleteSampleButton.onclick = async () => {
 };
 const projectUndoButton = document.createElement("button");
 projectUndoButton.type = "button";
+projectUndoButton.id = "skin-project-undo";
 projectUndoButton.className = "skin-project-action";
 projectUndoButton.textContent = "Undo · Shape";
 projectUndoButton.disabled = true;
@@ -539,6 +547,7 @@ projectUndoButton.title = "Shape history Undo (Support Paint has its own Undo)";
 projectUndoButton.onclick = () => requestProjectUndo();
 const projectRedoButton = document.createElement("button");
 projectRedoButton.type = "button";
+projectRedoButton.id = "skin-project-redo";
 projectRedoButton.className = "skin-project-action is-placeholder";
 projectRedoButton.textContent = "Redo";
 projectRedoButton.disabled = true;
@@ -546,6 +555,7 @@ projectRedoButton.title = "Shape Redo is not implemented; Support Paint Redo app
 projectRedoButton.onclick = () => requestProjectRedo();
 const projectExportButton = document.createElement("button");
 projectExportButton.type = "button";
+projectExportButton.id = "skin-project-export";
 projectExportButton.className = "skin-project-action is-placeholder";
 projectExportButton.textContent = "Export";
 projectExportButton.disabled = true;
@@ -799,7 +809,16 @@ function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
   toggle.onclick = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (side === "left") editorLayoutState = { ...editorLayoutState, leftCollapsed: !editorLayoutState.leftCollapsed };
+    const workspaceWidth = app.clientWidth || window.innerWidth;
+    const overlayLayout = isSkinRebuildApp && workspaceWidth <= 640;
+    if (overlayLayout) {
+      const opening = side === "left" ? editorLayoutState.leftCollapsed : editorLayoutState.rightCollapsed;
+      editorLayoutState = {
+        ...editorLayoutState,
+        leftCollapsed: side === "left" ? !editorLayoutState.leftCollapsed : opening ? true : editorLayoutState.leftCollapsed,
+        rightCollapsed: side === "right" ? !editorLayoutState.rightCollapsed : opening ? true : editorLayoutState.rightCollapsed,
+      };
+    } else if (side === "left") editorLayoutState = { ...editorLayoutState, leftCollapsed: !editorLayoutState.leftCollapsed };
     else if (!editorLayoutState.rightCollapsed) {
       editorLayoutState = { ...editorLayoutState, rightCollapsed: true };
     } else {
@@ -808,7 +827,6 @@ function buildPaneDivider(side: "left" | "right"): HTMLDivElement {
       // Opening the right pane is still an explicit author action, so let it
       // take the available side width and collapse the opposite pane when
       // necessary. No new layout state or persistence contract is introduced.
-      const workspaceWidth = app.clientWidth || window.innerWidth;
       const candidate = fitSkinEditorLayout(
         { ...editorLayoutState, rightCollapsed: false },
         workspaceWidth,
@@ -843,12 +861,14 @@ skinRebuildRegionMarquee.setAttribute("aria-hidden", "true");
 viewport.appendChild(skinRebuildRegionMarquee);
 
 function applyEditorLayoutDom(): void {
-  const fitted = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
+  const fitted = fitSkinEditorLayoutForApp(editorLayoutState, app.clientWidth || window.innerWidth);
   editorLayoutState = fitted;
+  const workspaceWidth = app.clientWidth || window.innerWidth;
+  const projectHeaderHeight = isSkinRebuildApp ? (workspaceWidth <= 760 ? 78 : 62) : 42;
   const leftWidth = fitted.leftCollapsed ? 0 : fitted.leftWidthPx;
   const rightWidth = fitted.rightCollapsed ? 0 : fitted.rightWidthPx;
   app.style.gridTemplateColumns = `${leftWidth}px 8px minmax(360px, 1fr) 8px ${rightWidth}px`;
-  app.style.gridTemplateRows = `42px minmax(240px, 1fr) 8px ${fitted.bottomCollapsed ? 0 : fitted.bottomHeightPx}px`;
+  app.style.gridTemplateRows = `${projectHeaderHeight}px minmax(240px, 1fr) 8px ${fitted.bottomCollapsed ? 0 : fitted.bottomHeightPx}px`;
   leftPane.hidden = fitted.leftCollapsed;
   rightPane.hidden = fitted.rightCollapsed;
   leftPaneDivider.classList.toggle("is-collapsed", fitted.leftCollapsed);
@@ -2655,61 +2675,14 @@ syncPhaseAVerticalControl();
 
 rightPaneBody.appendChild(ui.root);
 if (isSkinRebuildApp) {
-  const phaseNavigator = document.createElement("nav");
-  phaseNavigator.className = "skin-rebuild-phase-navigator";
-  phaseNavigator.setAttribute("aria-label", "SKIN REBUILD phase navigation");
-  const previousPhaseButton = document.createElement("button");
-  previousPhaseButton.type = "button";
-  previousPhaseButton.textContent = "←";
-  previousPhaseButton.setAttribute("aria-label", "前の制作フェーズ");
-  const phaseOutput = document.createElement("output");
-  phaseOutput.setAttribute("aria-live", "polite");
-  const nextPhaseButton = document.createElement("button");
-  nextPhaseButton.type = "button";
-  nextPhaseButton.textContent = "→";
-  nextPhaseButton.setAttribute("aria-label", "次の制作フェーズ");
-  let currentPhaseIndex = 0;
-
-  const refreshPhaseNavigator = (): void => {
-    const phase = SKIN_REBUILD_WORKFLOW_PHASES[currentPhaseIndex];
-    phaseOutput.textContent = `${currentPhaseIndex + 1} / ${SKIN_REBUILD_WORKFLOW_PHASES.length} ${phase.label}`;
-    previousPhaseButton.disabled = currentPhaseIndex === 0;
-    nextPhaseButton.disabled = currentPhaseIndex === SKIN_REBUILD_WORKFLOW_PHASES.length - 1;
-  };
-  const movePhase = (direction: -1 | 1): void => {
-    currentPhaseIndex = moveSkinRebuildWorkflowPhase(currentPhaseIndex, direction);
-    const phase = SKIN_REBUILD_WORKFLOW_PHASES[currentPhaseIndex];
-    const target = ui.root.querySelector<HTMLElement>(`#${phase.targetId}`);
-    if (target instanceof HTMLDetailsElement) target.open = true;
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    refreshPhaseNavigator();
-  };
-
-  previousPhaseButton.addEventListener("click", () => movePhase(-1));
-  nextPhaseButton.addEventListener("click", () => movePhase(1));
-  phaseNavigator.append(previousPhaseButton, phaseOutput, nextPhaseButton);
-  rightPaneBody.insertBefore(phaseNavigator, ui.root);
-  refreshPhaseNavigator();
-
-  for (const [classification, stageIds] of Object.entries(SKIN_REBUILD_STAGE_CLASSIFICATION)) {
-    for (const stageId of stageIds) {
-      const stage = ui.root.querySelector<HTMLElement>(`#${stageId}`);
-      if (!stage) continue;
-      stage.dataset.workflowClass = classification;
-      stage.classList.add(`is-production-${classification}`);
-      const stateLabel = stage.querySelector<HTMLElement>(".skin-author-stage-state");
-      if (stateLabel) stateLabel.textContent = classification.toUpperCase();
-    }
-  }
-  const legacyShelf = ui.root.querySelector<HTMLDetailsElement>(".skin-auxiliary-frozen");
-  const legacySummary = legacyShelf?.querySelector<HTMLElement>(":scope > summary");
-  if (legacyShelf && legacySummary) {
-    legacyShelf.open = false;
-    legacyShelf.dataset.workflowClass = "legacy";
-    legacyShelf.classList.add("is-production-legacy");
-    legacySummary.textContent = "Advanced · Legacy / Research";
-    legacySummary.setAttribute("aria-label", "Advanced Legacy Research を開閉");
-  }
+  mountSkinArtUiShell({
+    app,
+    workflowRoot: ui.root,
+    rightPaneBody,
+    viewport,
+    version: manifest.version,
+    updatedAt: manifest.updatedAt,
+  });
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
 let refreshSkinRebuildAxomeRollControl = () => {};
@@ -2982,7 +2955,7 @@ window.addEventListener("resize", () => {
   if (layoutResizeFrame !== 0) return;
   layoutResizeFrame = requestAnimationFrame(() => {
     layoutResizeFrame = 0;
-    editorLayoutState = fitSkinEditorLayout(editorLayoutState, app.clientWidth || window.innerWidth);
+    editorLayoutState = fitSkinEditorLayoutForApp(editorLayoutState, app.clientWidth || window.innerWidth);
     applyEditorLayoutDom();
     skinRenderer.resize();
     persistEditorLayout();
@@ -15010,6 +14983,17 @@ function refreshQuadFlowGrid(): void {
 }
 
 function updateEmptyViewportHint(): void {
+  if (isSkinRebuildApp) {
+    emptyViewportHint.textContent = state.skinParams.surfaceGenerationMode === "quadFlow"
+      ? "Base Shape is visible. Review the grid, then generate the surface."
+      : state.skinParams.surfaceGenerationMode === "voronoi"
+        ? "Base Shape is visible. Set seeds and relaxation, then generate the surface."
+        : state.skinParams.surfaceGenerationMode === "goldberg"
+          ? "Base Shape is visible. Set subdivision density, then generate the surface."
+          : "Base Shape is visible. Choose a Surface Pattern, then generate the surface.";
+    emptyViewportHint.hidden = state.host.length === 0 || state.patches.length > 0;
+    return;
+  }
   emptyViewportHint.textContent = state.skinParams.surfaceGenerationMode === "quadFlow"
     ? "ベース形状を表示中｜格子を確認し、「この設定で表面を生成」を押します"
     : state.skinParams.surfaceGenerationMode === "voronoi"
