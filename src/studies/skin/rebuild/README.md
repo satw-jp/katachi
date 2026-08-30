@@ -53,6 +53,28 @@ unit testは1-edge疎Graph、複数component、1,000-edge dense Graphを追加�
 `NETWORK STABLE / COMPLETED GRAPH MATCHED`へ到達し、各Exit後に4-viewへ復元した。console errorは0件、
 `test:skin-rebuild`、`tsc -b`、`vite build --emptyOutDir false`（269 modules）は成功した。
 
+次のPresentation comparisonでは、完成Graphを変えずに読む順序とreveal tempoを10案へ分離した。
+
+- `TRACE` — lowest memberからconnected frontを伸ばす
+- `RADIAL BLOOM` — spatial coreから外へ開く
+- `BOUNDARY FROST` — outer cageから内へ結晶化する
+- `GEODESIC SIGNAL` — completed path costに沿って伝播する
+- `POLAR SCAN` — centroid周りを角度順に走査する
+- `MIRROR STITCH` — widest axisのcentral planeから両側を縫う
+- `THICKNESS` — 太く長いprimary memberを先に出す
+- `LOCAL WEAVE` — 短いlocal relationから長いbridgeへ進む
+- `HUB CASCADE` — high-degree junctionをstarburstとして連鎖させる
+- `CONFLUENCE` — low / high / farthestの3 frontを交互に収束させる
+
+各variantは完成edge indexの決定的なpermutationだけを返し、rendererとstable Graphの参照同一契約は共通である。
+NETWORK Phaseにはpanel/cardを増やさず、native radioの2列text indexと`PLAY SELECTED`だけを置いた。390 px以下は
+44 px行の1列indexになる。選択値はPresentation session内だけで、runtime Graph、FKEI、history、mesh、save、
+exportへ保存しない。unit testは全10案をempty / 1-edge / disconnected / fixture / 1,000-edge Graphへ通し、
+全edge一意、時刻・表示数の単調性、入力非変更、stable時の完成Graph参照同一性、同一入力での決定性を固定した。
+実ブラウザでは全10案の選択・開始・Exit・focus復帰を確認し、`RADIAL BLOOM`、`HUB CASCADE`、`CONFLUENCE`を
+251 nodes / 270 edgesのsampleで完走した。CONFLUENCEの`REJECT / REROUTING`後も最終表示は
+`NETWORK STABLE / COMPLETED GRAPH MATCHED`へ一致した。390×844では横overflow 0、console error 0だった。
+
 ### 2026-08-30 — SKIN ART UI v0 design system and application shell
 
 `/skin-rebuild.html`へ作品提示用のPresentation Layerを追加した。上部は`KATACHI / SKIN`と

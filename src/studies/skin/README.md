@@ -23,6 +23,14 @@ follow-upでは完成Graph参照が再生中に差し替わった場合の中断
 自動fitする。疎Graph、分断Graph、1,000-edge Graphのtimeline契約を追加し、実ブラウザでempty開始からEscape、
 REJECT中Exit、完走3回を連続確認した。全完走が`NETWORK STABLE`へ到達し、毎回4-viewへ復元、console error 0だった。
 
+比較用のPresentation studyを10案へ展開した。`TRACE`、`RADIAL BLOOM`、`BOUNDARY FROST`、
+`GEODESIC SIGNAL`、`POLAR SCAN`、`MIRROR STITCH`、`THICKNESS`、`LOCAL WEAVE`、
+`HUB CASCADE`、`CONFLUENCE`は、同じ完成Graphのedge順と表示tempoだけを決定的に変える。
+NETWORK Phaseの2列text indexから1案を選び、同じ単一fullscreen viewportで再生する。variant選択はsession内だけで、
+Graph、FKEI、history、mesh、save、exportへ保存しない。全10案をempty / sparse / disconnected / normal /
+1,000-edge Graphで契約testし、実ブラウザでは全案の開始・Exit・focus復帰、代表3案の完走、390 px幅の
+1列indexとfullscreen再生、横overflow 0、console error 0を確認した。
+
 ## Observation — SKIN ART UI v0 application shell（2026-08-30）
 
 `/skin-rebuild.html`のPresentation Layerを、minimal project header、左Tools / View、中央Artwork View、
