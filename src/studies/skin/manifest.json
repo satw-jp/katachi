@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Print Test #001をprinting / result pendingとして記録。source checkpoint 1681a1d、同梱.fkei pathとSHA-256、generatorCommit 6f7b36f、printer/slicer追記欄、outer shellからprint failure locationまでの確認表を固定した。generatorCommitはscriptの固定SHAではなく生成時のgit HEADで、artifact格納checkpointとは意味が異なりclean-tree証明でもないため、historical factとして値を維持する。実機結果までは形状生成・判定・修復・出力座標を変更しない。"
+    },
+    {
+      "date": "2026-08-30",
       "note": "v0.89.5: 工程5Aで赤面エリアを蜘蛛ラティスへ補強した直後、その診断triangle全体へ緑の表示専用overlayを重ねる。赤=未補強、緑=蜘蛛補強済み、水色=実際に追加された補強部材として同時に確認でき、補強済みエリアを再選択しても緑系の強調を維持する。工程4または5Bで最終meshを再診断した場合はregion IDが作り直されるため表示状態をresetし、新しい診断事実に従う。Graph、mesh、.fkei、STL/3MF、角度判定は変更せず、slicer・強度・実物印刷の証明ではないためprintApproval=false。"
     },
     {

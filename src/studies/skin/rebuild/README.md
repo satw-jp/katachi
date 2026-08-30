@@ -16,6 +16,17 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Print Test #001 baseline record
+
+最初の実機造形を後から同定できるよう、`PRINT_LOG.md`へsource checkpoint、`.fkei` sourceと
+SHA-256、`generatorCommit`、printer／slicer追記欄、外殻から失敗位置までの確認表を固定した。
+statusは`printing / result pending`で、結果が入るまで形状生成・判定・修復・出力座標を変更しない。
+
+sampleの`generatorCommit=6f7b36f...`は、artifactが格納されたcheckpoint `1681a1d...`とは
+役割が異なる。生成スクリプトは固定SHAではなく生成時の`git rev-parse HEAD`を記録しており、
+sampleとscriptは次のcheckpointで初めて追加された。この値は生成時のchecked-out baseを示す一方、
+clean working treeの証明ではないため、値を改変せずcheckpointとartifact SHA-256を併記する。
+
 ### 2026-08-30 — first printable-export checkpoint
 
 外殻、恒久蜘蛛ラティス、赤面補強、別体print support、工程6〜8のmesh／診断／3MF・STL・OBJ出力、編集可能な
