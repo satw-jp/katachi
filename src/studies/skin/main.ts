@@ -226,6 +226,7 @@ import {
   removeSkinRebuildLatticeEdge,
   retainConnectedSkinRebuildLatticeConnections,
   skinRebuildDisconnectedPatternIds,
+  skinRebuildSettingsChanged,
   skinRebuildRequiresSpiderSupport,
   skinRebuildSpiderSupportTargetIds,
   type SkinRebuildBase,
@@ -258,6 +259,10 @@ import {
   serializeSkinRebuildFkei,
   type SkinRebuildFkeiDocument,
 } from "./rebuild/fkei.ts";
+import {
+  skinRebuildPhysicalSettingsChanged,
+  skinRebuildTargetScaleChanged,
+} from "./rebuild/printScalePolicy.ts";
 import {
   SKIN_REBUILD_WORKFLOW_PHASES,
   moveSkinRebuildWorkflowPhase,
@@ -2365,7 +2370,25 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onCancelOpeningMap: () => cancelOpeningMap(),
   onClearOpeningMap: () => clearOpeningMapDisplay(),
   onOpeningMapDisplayCountChange: (count) => { openingMapDisplayCount = count; refreshOpeningMapDisplay(); },
+  onApplySkinRebuildScalePreset: () => {
+    if (skinRebuildDiameterInput) {
+      skinRebuildDiameterInput.value = String(DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm);
+    }
+    if (skinRebuildSupportDiameterInput) {
+      skinRebuildSupportDiameterInput.value = String(DEFAULT_SKIN_REBUILD_SETTINGS.supportDiameterMm);
+    }
+  },
   onOpeningMapConditionsChange: () => {
+    if (isSkinRebuildApp && skinRebuildPipeline) {
+      const currentSettings = currentSkinRebuildPipelineSettings();
+      if (skinRebuildPhysicalSettingsChanged(skinRebuildPipeline.settings, currentSettings)) {
+        invalidateSkinRebuildPipeline(
+          Number.isFinite(currentSettings.targetLongestMm) && currentSettings.targetLongestMm > 0
+            ? `最長辺を${currentSettings.targetLongestMm.toFixed(0)} mmへ変更したため、物理線径と診断を工程3から再計算してください`
+            : "最長辺の実寸が未入力または無効なため、工程3から再計算してください",
+        );
+      }
+    }
     if (stage7RedFaceReinforcementPlan || stage7ProvisionalRecheckIsActive() || stage7ProvisionalRecheckResult) {
       clearStage7RedFaceReinforcementPlan();
       stage7RedFaceReinforcementPlanMessage = "meshの実寸設定が変わったため、仮Graph計画と比較結果を破棄しました。";
@@ -6633,7 +6656,7 @@ function currentSkinRebuildPipelineSettings(): SkinRebuildSettings {
     patternCount: Math.max(1, state.patches.length),
     strutDiameterMm: Number(skinRebuildDiameterInput?.value ?? DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm),
     supportDiameterMm: Number(skinRebuildSupportDiameterInput?.value ?? DEFAULT_SKIN_REBUILD_SETTINGS.supportDiameterMm),
-    targetLongestMm: 80,
+    targetLongestMm: ui.getMeshOptions().targetLongestMm,
     surfaceThickness: state.skinParams.thickness,
     patternRadius: Math.max(0.18, Math.min(0.38, averageRadius)),
     roundK: state.skinParams.roundK,
@@ -7290,11 +7313,15 @@ function installSkinRebuildPipelinePanel(): void {
       lowest.status.dataset.ok = "false";
       return;
     }
-    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
-    const dryWeb = skinRebuildPipeline.dryWeb ?? createEmptySkinRebuildGraph();
-    cancelSkinRebuildLowestExtraction("新しい工程4を開始します");
     const pipeline = skinRebuildPipeline;
     const settings = currentSkinRebuildPipelineSettings();
+    if (skinRebuildPhysicalSettingsChanged(pipeline.settings, settings)) {
+      invalidateSkinRebuildPipeline("実寸または線径が工程3と一致しないため、工程3から再実行してください");
+      return;
+    }
+    const workflowBefore = captureSkinRebuildWorkflowSnapshot();
+    const dryWeb = pipeline.dryWeb ?? createEmptySkinRebuildGraph();
+    cancelSkinRebuildLowestExtraction("新しい工程4を開始します");
     pipeline.settings = settings;
     pipeline.lowestPoints = null;
     pipeline.overhang = null;
@@ -7396,8 +7423,9 @@ function installSkinRebuildPipelinePanel(): void {
         return;
       }
       if (!skinRebuildPipelineIsCurrent() || skinRebuildPipeline !== pipeline
+        || skinRebuildSettingsChanged(settings, currentSkinRebuildPipelineSettings())
         || currentOriginalDryWebForSkinRebuild() !== dryWeb) {
-        lowest.status.textContent = "工程4の計算中に形状またはDry Webが変わったため、結果を採用しませんでした";
+        lowest.status.textContent = "工程4の計算中に形状、設定またはDry Webが変わったため、結果を採用しませんでした";
         lowest.status.dataset.ok = "false";
         setSkinRebuildLowestBottomProgress("工程4 結果破棄", "入力が変更されました");
         return;
@@ -7519,7 +7547,13 @@ function installSkinRebuildPipelinePanel(): void {
   diameter.min = "1.6";
   diameter.max = "4";
   diameter.step = "0.1";
-  diameter.value = "2.6";
+  diameter.value = String(DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm);
+  diameter.addEventListener("change", () => {
+    if (skinRebuildPipeline
+      && skinRebuildPhysicalSettingsChanged(skinRebuildPipeline.settings, currentSkinRebuildPipelineSettings())) {
+      invalidateSkinRebuildPipeline("ラティス直径が変わったため、工程3から再実行してください");
+    }
+  });
   diameterRow.append(diameter, document.createTextNode(" mm"));
   const targetSelectionHint = document.createElement("p");
   targetSelectionHint.className = "hint skin-rebuild-target-selection-hint";
@@ -8164,6 +8198,12 @@ function installSkinRebuildPipelinePanel(): void {
   supportDiameter.max = "4";
   supportDiameter.step = "0.1";
   supportDiameter.value = String(DEFAULT_SKIN_REBUILD_SETTINGS.supportDiameterMm);
+  supportDiameter.addEventListener("change", () => {
+    if (skinRebuildPipeline
+      && skinRebuildPhysicalSettingsChanged(skinRebuildPipeline.settings, currentSkinRebuildPipelineSettings())) {
+      invalidateSkinRebuildPipeline("印刷サポート直径が変わったため、工程3から再実行してください");
+    }
+  });
   supportDiameterRow.append(supportDiameter, document.createTextNode(" mm"));
   const printSupportButton = document.createElement("button");
   printSupportButton.type = "button";
@@ -8439,6 +8479,16 @@ function skinRebuildPipelineOutputBlockReason(): string | null {
   if (!isSkinRebuildApp) return null;
   if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.project) {
     return "SKIN REBUILD工程3〜5（内外判定・最下端抽出・ラティス生成）を完了してください";
+  }
+  if (skinRebuildTargetScaleChanged(
+    skinRebuildPipeline.project.settings.targetLongestMm,
+    ui.getMeshOptions().targetLongestMm,
+  )) {
+    return "最長辺の実寸が工程3〜5と一致しません。工程3から再計算してください";
+  }
+  const currentSettings = currentSkinRebuildPipelineSettings();
+  if (skinRebuildPhysicalSettingsChanged(skinRebuildPipeline.project.settings, currentSettings)) {
+    return "ラティスまたは印刷サポートの直径が工程3〜5と一致しません。工程3から再計算してください";
   }
   if (skinRebuildPipeline.project.audit.unsupportedTargetCount > 0) {
     const unsupportedIds = skinRebuildUnsupportedSpiderTargetIds(skinRebuildPipeline.project);
@@ -11786,6 +11836,10 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
     if (skinRebuildThresholdInput) skinRebuildThresholdInput.value = String(project.settings.overhangThresholdDeg);
     if (skinRebuildDiameterInput) skinRebuildDiameterInput.value = String(project.settings.strutDiameterMm);
     if (skinRebuildSupportDiameterInput) skinRebuildSupportDiameterInput.value = String(project.settings.supportDiameterMm);
+    ui.setMeshOptions({
+      ...ui.getMeshOptions(),
+      targetLongestMm: project.settings.targetLongestMm,
+    });
     refreshSkinRebuildLatticeEdgeEditor();
     refreshSkinRebuildSelectedTarget();
     refreshSkinRebuildSelectedRegion();

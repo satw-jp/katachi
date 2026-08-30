@@ -194,6 +194,24 @@ assert.match(main, /preferredConnectivityPatchIds/, "selected non-spider red fac
 assert.match(main, /skinRebuildGateSafeMeshOptions/, "Stage 6 must raise under-resolved author settings before the Internal gate");
 assert.match(main, /mergeSkinRebuildGraphsAtSupportContacts/, "the gate must recognize physical support contacts along artwork members");
 assert.match(ui, /resolutionInput\.max = "256"/, "0.8 mm support needs a resolution-256 representation option");
+assert.match(ui, /defaultTargetLongestMmForSkinApp\(isSkinRebuildApp\)/,
+  "new SKIN REBUILD sessions must use the explicit 120 mm author scale policy");
+assert.match(ui, /dataset\.skinRebuildScalePreset/,
+  "REBUILD must expose an explicit 120 mm / 1.5x preset");
+assert.match(main, /targetLongestMm: ui\.getMeshOptions\(\)\.targetLongestMm/,
+  "the REBUILD pipeline must bind geometry diagnostics to the visible physical size");
+assert.match(main, /targetLongestMm: project\.settings\.targetLongestMm/,
+  "opening a legacy FKEI must restore its saved target size instead of silently applying 120 mm");
+assert.match(main, /onOpeningMapConditionsChange:[\s\S]*?skinRebuildPhysicalSettingsChanged\(skinRebuildPipeline\.settings[\s\S]*?invalidateSkinRebuildPipeline/,
+  "changing physical size must invalidate Stage 3-8 state even before a project exists");
+assert.match(main, /diameter\.addEventListener\("change"/,
+  "changing the permanent lattice diameter must invalidate stale project geometry");
+assert.match(main, /supportDiameter\.addEventListener\("change"/,
+  "changing the removable support diameter must invalidate stale project settings");
+assert.match(main, /ラティスまたは印刷サポートの直径が工程3〜5と一致しません/,
+  "exports must fail closed when visible diameter settings differ from the project");
+assert.match(main, /skinRebuildSettingsChanged\(settings, currentSkinRebuildPipelineSettings\(\)\)/,
+  "Stage 4 must discard an asynchronous result when any captured setting changed");
 assert.match(lowestWorker, /buildParallelSkinMesh/);
 assert.match(lowestWorker, /findSkinRebuildLowestPoints/);
 assert.match(lowestProtocol, /chooseSkinRebuildLowestWorkerCount/);

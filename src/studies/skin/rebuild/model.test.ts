@@ -412,6 +412,10 @@ const exported = exportSkinRebuildStl(project, "skin-rebuild-test.stl", 52);
 assert.ok(exported.stl.byteLength > 84);
 assert.ok(exported.mesh.triangles.length > 1_000);
 assert.equal(exported.mesh.mmBounds.min.z, 0, "saved STL must sit on the build plate");
+assert.equal(project.settings.targetLongestMm, 120, "new projects use the author's 1.5x physical baseline");
+assert.equal(project.settings.strutDiameterMm, 3.9, "permanent lattice scales with the new baseline");
+assert.equal(project.settings.supportDiameterMm, 1.6, "removable support keeps the author's thin breakaway baseline");
+assert.ok(Math.abs(exported.mesh.mmBounds.longest - 120) <= 1e-6, "new default STL longest dimension is 120 mm");
 assert.equal(skinRebuildTopologyPass(exported.topology), true);
 assert.equal(exported.topology.connectedComponents, 1);
 const withSavedCollinearNoise = {

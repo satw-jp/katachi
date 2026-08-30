@@ -10,6 +10,7 @@ dist-ssr
 /work/
 /public/samples/skin-rebuild-first-print.stl
 /public/samples/skin-rebuild-first-print-print-support.stl
+/tools/skin-local-engine/bin/*.exe
 
 # TypeScript/Vite generated files
 *.tsbuildinfo

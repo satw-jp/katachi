@@ -1013,6 +1013,18 @@ details.mesh-export:not([open]) > :not(summary) {
   width: 100%;
 }
 
+.mesh-row .skin-rebuild-scale-preset {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  margin-top: 5px;
+  padding: 5px 7px;
+  font-size: 10px;
+}
+
+.skin-rebuild-scale-hint {
+  margin-top: -2px;
+}
+
 .mesh-status {
   color: var(--muted);
   font-size: 11px;

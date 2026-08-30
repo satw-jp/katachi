@@ -16,6 +16,31 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — Windows CUDA local-engine boundary (shadow-only prototype)
+
+Web版をauthoritativeのまま維持し、固定loopback `127.0.0.1:47658`へversioned containment jobを渡せる
+isolated prototypeを追加した。helper不在、CUDA adapter不在、job失敗、数値・分類不一致では必ずWeb結果を返し、
+`productionApplied=false`を固定する。`main.ts`、FKEI、STL/3MF経路からはimportせず、geometry outputへ接続しない。
+
+このWindowsではRTX 3080 / driver 595.95 / driver CUDA compatibility 13.2を検出したが、`nvcc`、CMake、
+MSVC `cl`、compiled adapterは存在しない。このためCUDA kernelを実行したとは扱わず、capabilityは
+`compiled_executable_absent`を返す。固定executable adapter、Origin/Host制限、Web reference比較、
+capability/fallback/helper testと再開手順だけを先に固定した。
+
+### 2026-08-31 — 120 mm author baseline with legacy FKEI compatibility
+
+実機で初回80 mm作品が小さかったという作者判断を受け、新規SKIN REBUILD sessionの制作基準を最長辺
+120 mm（1.5倍）へ変更した。恒久Spider latticeも相対的な太さを保つ3.9 mmとする。取り外す印刷Supportは
+過去の作者判断「今の細さを維持」に従い1.6 mmのままとした。120 mmだけを適用して恒久線径を2.6 mmのままに
+すると回帰モデルの保存meshが16 connected componentsとなったため、その組合せは既定値に採用していない。
+
+既存`.fkei`は保存済みのtarget/恒久線径/Support線径をそのまま画面へ復元し、暗黙移行しない。最長辺または
+線径を変更した場合は工程3以降を失効し、画面値とproject設定が異なる状態の保存・出力をfail closedする。
+この比較はproject完成前の工程3 runtimeにも適用し、工程4 Workerは開始時の全settings snapshotと完了時の
+settingsが一致する場合だけ結果を採用する。0 mmや非有限の物理値も変更なしとは扱わない。
+同梱first-print baselineは80 / 2.6 / 1.6 mmのreference artifactとして不変であり、Migration Regression
+Harnessは従来の80 mm geometry contractを引き続き検証する。
+
 ### 2026-08-31 — Terminal-preserving Network Topology Study (development Lab)
 
 TASK 17でClean 101 nodeを維持したEdge削減が100 edgeのspanning-tree下限へ達したため、Cleanを

@@ -33,6 +33,10 @@ import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import type { SupportSiteClassification, SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
+import {
+  defaultTargetLongestMmForSkinApp,
+  SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM,
+} from "./rebuild/printScalePolicy.ts";
 import type { SupportPaintMode } from "./supportPaint.ts";
 import { invokeExclusiveSupportPaintUndo, supportPaintOperationLabel } from "./supportPaintUndoRouting.ts";
 import {
@@ -223,6 +227,7 @@ export interface UiCallbacks {
   onClearOpeningMap: () => void;
   onOpeningMapDisplayCountChange: (count: number | "all") => void;
   onOpeningMapConditionsChange: () => void;
+  onApplySkinRebuildScalePreset: () => void;
   /** Generate the current field as STL and send it directly to the local
    * Optimizer engine. No file hand-off or second screen is involved. */
   onPrintCheck: (options: MeshUiOptions) => void;
@@ -3874,11 +3879,35 @@ export function buildUi(
   sizeInput.min = "10";
   sizeInput.max = "240";
   sizeInput.step = "1";
-  sizeInput.value = "80";
+  const isSkinRebuildApp = document.documentElement.dataset.skinApp === "rebuild";
+  sizeInput.value = String(defaultTargetLongestMmForSkinApp(isSkinRebuildApp));
+  sizeInput.dataset.skinTargetLongestMm = "true";
   sizeInput.oninput = () => { refreshGaugesMm(); callbacks.onOpeningMapConditionsChange(); };
   sizeRow.appendChild(sizeLabel);
   sizeRow.appendChild(sizeInput);
+  if (isSkinRebuildApp) {
+    const scalePresetButton = document.createElement("button");
+    scalePresetButton.type = "button";
+    scalePresetButton.className = "skin-rebuild-scale-preset";
+    scalePresetButton.dataset.skinRebuildScalePreset = String(SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM);
+    scalePresetButton.textContent = `基準 ${SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM} mm（1.5×）`;
+    scalePresetButton.title = "初回プリント80 mmに対する新しい制作基準。既存FKEIは保存値を維持します。";
+    scalePresetButton.onclick = () => {
+      sizeInput.value = String(SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM);
+      refreshGaugesMm();
+      callbacks.onApplySkinRebuildScalePreset();
+      callbacks.onOpeningMapConditionsChange();
+    };
+    sizeRow.appendChild(scalePresetButton);
+  }
   meshPanel.appendChild(sizeRow);
+
+  if (isSkinRebuildApp) {
+    const scaleHint = document.createElement("div");
+    scaleHint.className = "hint skin-rebuild-scale-hint";
+    scaleHint.textContent = "新規制作は最長辺120 mmを基準にします。既存FKEIを開いた場合は保存済み寸法を維持し、変更時は工程3から再計算します。";
+    meshPanel.appendChild(scaleHint);
+  }
 
   const resolutionRow = document.createElement("div");
   resolutionRow.className = "row mesh-row";

@@ -36,6 +36,11 @@ import type {
   InternalStructureNode,
   Vector3Value,
 } from "../voronoi.ts";
+import {
+  SKIN_REBUILD_NEW_PROJECT_STRUT_DIAMETER_MM,
+  SKIN_REBUILD_NEW_PROJECT_SUPPORT_DIAMETER_MM,
+  SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM,
+} from "./printScalePolicy.ts";
 
 export const SKIN_REBUILD_ALGORITHM_VERSION = "skin-rebuild-first-print-v1";
 
@@ -59,9 +64,9 @@ export interface SkinRebuildSettings {
 export const DEFAULT_SKIN_REBUILD_SETTINGS: SkinRebuildSettings = {
   baseStretch: 2.8,
   patternCount: 38,
-  strutDiameterMm: 2.6,
-  supportDiameterMm: 1.6,
-  targetLongestMm: 80,
+  strutDiameterMm: SKIN_REBUILD_NEW_PROJECT_STRUT_DIAMETER_MM,
+  supportDiameterMm: SKIN_REBUILD_NEW_PROJECT_SUPPORT_DIAMETER_MM,
+  targetLongestMm: SKIN_REBUILD_NEW_PROJECT_TARGET_LONGEST_MM,
   surfaceThickness: 0.18,
   patternRadius: 0.27,
   roundK: 0.045,
@@ -69,6 +74,25 @@ export const DEFAULT_SKIN_REBUILD_SETTINGS: SkinRebuildSettings = {
   analysisResolution: 48,
   exportResolution: 68,
 };
+
+const SKIN_REBUILD_SETTING_KEYS = Object.freeze(
+  Object.keys(DEFAULT_SKIN_REBUILD_SETTINGS) as Array<keyof SkinRebuildSettings>,
+);
+
+/** Fail-closed equality for accepting asynchronous geometry computed from a settings snapshot. */
+export function skinRebuildSettingsChanged(
+  previous: SkinRebuildSettings,
+  current: SkinRebuildSettings,
+  tolerance = 1e-9,
+): boolean {
+  return SKIN_REBUILD_SETTING_KEYS.some((key) => {
+    const before = previous[key];
+    const after = current[key];
+    return !Number.isFinite(before)
+      || !Number.isFinite(after)
+      || Math.abs(before - after) > tolerance;
+  });
+}
 
 export interface SkinRebuildBase {
   kind: "metaball-capsule";

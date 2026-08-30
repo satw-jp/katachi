@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.90.6",
+  "version": "0.91.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-31",
   "params": [
@@ -81,6 +81,14 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-31",
+      "note": "SKIN REBUILD v0.91.0 changes only the new-session physical authoring baseline after the 80 mm first print was judged too small: target longest dimension 120 mm and permanent Spider diameter 3.9 mm preserve the 1.5x relationship, while removable print support stays at the previously requested thin 1.6 mm. A target-only 120/2.6 trial failed the saved-mesh gate with 16 connected components and is not the default. Existing FKEI restores its exact saved target and both diameters instead of silently migrating. Any target or diameter mismatch invalidates Stage 3 onward, including the project-null Stage 3 state; zero/non-finite values fail closed. Stage 4 accepts an asynchronous Worker result only when its complete settings snapshot is still current. Stale output remains blocked. The immutable first-print FKEI remains the 80/2.6/1.6 migration reference; its geometry and SHA are unchanged."
+    },
+    {
+      "date": "2026-08-31",
+      "note": "A shadow-only Windows local GeometryEngine prototype defines one fixed loopback endpoint, versioned capability/job/result contracts, immutable metaball-plus-Spider-sample containment batches, the current Web SDF as authoritative reference, strict candidate comparison and structured fallback for helper absence, CUDA unavailability, job failure or mismatch. A loopback helper restricts Host/Origin/schema and can invoke only one fixed future executable path with shell=false. The current machine probe sees RTX 3080 and driver CUDA compatibility 13.2, but nvcc, CMake, MSVC cl and the compiled adapter are absent, so CUDA is honestly advertised unavailable and no kernel is claimed. The prototype is not imported by main.ts and cannot modify FKEI, STL/3MF or production geometry."
+    },
     {
       "date": "2026-08-31",
       "note": "SKIN NETWORK LAB studies terminal-preserving topology after TASK 17 reached the edge-only spanning-tree limit. Clean Nodes classify as 38 absolute Motif terminals (20 also support-target), 28 inferred degree>=3 branch identities, 20 non-terminal critical endpoints and 43 degree-2 intermediates; the current graph has no explicit semantic Junction field. None/Low/Medium/High deterministically contract 0/16/35/43 intermediate Nodes by degree-2 series rewiring and produce 101/118, 85/102, 66/83 and 58/75. Removed topology Nodes remain ordered polyline control intent with source radius samples and full Clean/Raw Node/Edge provenance. Every trial preserves one component, Motif 38/38, support 20/20, all 703 terminal pairs, major-branch identity/degree, complete lineage and cycle rank 18. Twenty-eight nearby inferred-junction pairs are review-only because proximity cannot authorize a branch merge. The dev-only Lab switches Edge Density/Node Topology and visualizes removed Nodes, rewired chords, polyline paths and retained terminals with a provenance inspector. Real coordinate QA exercised all topology modes/levels plus TASK 17 compatibility; console warning/error 0. Production generator, finalGraph, FKEI, STL/3MF, baseline and production build inputs remain unchanged."
