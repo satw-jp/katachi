@@ -16,6 +16,25 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — SKIN ART UI v0 design system and application shell
+
+`/skin-rebuild.html`へ作品提示用のPresentation Layerを追加した。上部は`KATACHI / SKIN`と
+Open・Save・Undo・Redo・Sampleだけのproject header、左は`TOOLS / View & selection`、中央は余白を持つ
+大きな`ARTWORK VIEW`、右上は常時表示の4 Phase Navigatorとした。Phaseは`BASE SHAPE`、
+`SURFACE PATTERN`、`NETWORK`、`PRINT / EXPORT`で、選択中Phaseに属する既存Stageだけを見せる。
+
+新しいshellは既存Stage 1〜8のDOMを作り直さず、同じID、button、input、callbackを表示・移動・装飾する。
+Open / Save、Shape・Workflow Undo/Redo、1/4 viewport、camera、clipping、selection、Graph / DryWeb / Spider、
+mesh、diagnosis、FKEI、3MF / STL / OBJは既存runtimeのままである。補助diagnosticと凍結実験は削除せず、
+初期状態を閉じた`Advanced / Lab`へ分離した。内部の研究controlには日本語を残し、v0ではshellと制作の
+入口をEnglish-firstにした。
+
+1280 pxでは左右railと大きな中央viewport、760 pxでは片側railを優先、640 px以下ではTools / Phaseを
+viewport上の相互排他的drawerとして表示する。480 pxで左右drawerを実クリックし、viewport幅464 pxと
+document overflow 0を確認した。4 Phase、Advanced / Lab、Samples、1→4→1 viewportを実クリックし、
+Phase button中央の`elementFromPoint`が全4件とも対象button自身であること、console warning/error 0件を確認した。
+`test:skin-rebuild`とproduction buildは成功した。geometry、worker、FKEI schema、出力実装は変更していない。
+
 ### 2026-08-30 — Base / Motif source abstraction migration plan (design only)
 
 現行Baseの`Ball[] + hostK`がhistory、`main.ts`、renderer/picking、field/mesh、診断と多数のWorker protocolへ

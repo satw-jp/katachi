@@ -1,5 +1,17 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN ART UI v0 application shell（2026-08-30）
+
+`/skin-rebuild.html`のPresentation Layerを、minimal project header、左Tools / View、中央Artwork View、
+右の常設4 Phase Navigator、閉じたAdvanced / Labへ再構成した。新shellは既存Stage 1〜8、FKEI、
+1/4 viewport、camera、selection、Graph / DryWeb / Spider、mesh / diagnosis / exportのDOMとcallbackを
+そのまま再利用し、形状機能を独自実装していない。640 px以下は左右panelをviewport上のdrawerにする。
+
+実ブラウザで4 Phase、Advanced / Lab、Samples、1/4 viewport、480 pxのTools / Phase drawerを実クリックし、
+4 Phase buttonの実hit位置、overflow 0、console warning/error 0を確認した。`test:skin-rebuild`とproduction
+buildは成功した。geometry/runtime、FKEI schema、Base/Motif model、STL/3MF output logicは変更していない。
+設計境界と再利用表は`docs/architecture/skin-art-ui-v0-shell-20260830.md`、詳細は`rebuild/README.md`を正本とする。
+
 ## Observation — SKIN REBUILD original editor shell（2026-08-29）
 
 作者の修正指示を原文のまま記録する。
