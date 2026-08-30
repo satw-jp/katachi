@@ -16,6 +16,28 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — Terminal-preserving Network Topology Study (development Lab)
+
+TASK 17でClean 101 nodeを維持したEdge削減が100 edgeのspanning-tree下限へ達したため、Cleanを
+terminal/branch/critical endpoint/intermediateへ分類し、中間Topology Nodeを作者意図付きで縮約する別Studyを
+追加した。38 Motif terminalのうち20はsupport-targetとのmulti-role、degree 3以上のinferred branchは28、
+non-terminal critical endpointは20、degree-2 intermediateは43である。現行Graphにexplicit Junction fieldはない。
+
+実装する縮約はdegree-2 series rewiringだけで、近接距離mergeではない。中間Nodeをtopology identityから外しても、
+その位置、順序、radius sampleをreplacement Edgeのportable polyline controlとして保持する。Topology Edgeは
+Clean/Raw Edge、contracted Clean/Raw Nodeへ追跡でき、将来straight/curve/spline realizationへ渡せる。
+近接inferred junction pair 28件は検出表示だけとし、major branch identity/degreeを変える自動mergeは行わない。
+
+結果はNone 101/118、Low 85/102、Medium 66/83、High 58/75。全levelでcomponent 1、Motif 38/38、
+support 20/20、38 terminal間703/703 reachability、major branch identity/degree、全Clean/Raw provenance、
+cycle rank 18を維持した。Highは43 intermediateを全てpolyline controlへ移す観察限界であり推奨値ではない。
+
+development-only `/skin-network-lab.html`はEdge Density / Node Topologyを切替可能にし、Topology表示ではremoved
+Node、rewired chord、polyline realization、retained Motif/support terminalとNode decision provenanceを比較する。
+全level・全表示mode・TASK 17互換levelをelementFromPoint hit-test後の実座標clickで確認し、console
+warning/errorは0件だった。production generator、finalGraph、FKEI、STL/3MF、baseline fixture、production
+build inputには接続していない。
+
 ### 2026-08-31 — Spider Graph Simplification Study (development Lab)
 
 TASK 15のCleanup Candidateを不変入力とし、その後段へ作者操作のSimplificationを別module・別resultとして

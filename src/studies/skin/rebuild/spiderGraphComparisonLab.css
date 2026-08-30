@@ -27,15 +27,16 @@ input { font: inherit; }
 
 .lab-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
+  gap: 10px 14px;
   min-height: 64px;
   padding: 10px 16px;
   border-bottom: 1px solid #2b3038;
   background: rgba(15, 18, 23, 0.96);
 }
 
-.lab-title { min-width: 270px; }
+.lab-title { min-width: 250px; }
 .lab-title h1 { margin: 0; font-size: 16px; letter-spacing: 0.13em; }
 .lab-title p { margin: 4px 0 0; color: #929aa5; font-size: 11px; }
 
@@ -57,15 +58,18 @@ input { font: inherit; }
   box-shadow: 0 0 12px rgba(255, 112, 91, 0.7);
 }
 
-.mode-switch {
+.mode-switch,
+.study-switch {
   display: inline-grid;
-  grid-template-columns: repeat(5, minmax(72px, 1fr));
   gap: 4px;
   padding: 4px;
   border: 1px solid #343b45;
   border-radius: 8px;
   background: #11151b;
 }
+
+.mode-switch { grid-template-columns: repeat(5, minmax(72px, 1fr)); }
+.study-switch { grid-template-columns: repeat(2, minmax(84px, 1fr)); }
 
 .level-switch {
   display: inline-grid;
@@ -84,10 +88,11 @@ input { font: inherit; }
   letter-spacing: 0.1em;
   text-align: center;
   text-transform: uppercase;
-  content: "Author simplification";
+  content: "Selected study level";
 }
 
-.mode-switch button {
+.mode-switch button,
+.study-switch button {
   padding: 7px 12px;
   color: #9ba5b0;
   border: 0;
@@ -109,6 +114,11 @@ input { font: inherit; }
 .mode-switch button[aria-pressed="true"] {
   color: #101319;
   background: #e7d39a;
+}
+
+.study-switch button[aria-pressed="true"] {
+  color: #101319;
+  background: #c8b6ff;
 }
 
 .level-switch button[aria-pressed="true"] {
@@ -163,6 +173,27 @@ input { font: inherit; }
 .swatch.support { background: #78f0a7; }
 .swatch.simplified { background: #70e5a0; }
 .swatch.removed { background: #ff6b63; }
+.swatch.topology-path { background: #70e5a0; }
+.swatch.topology-removed { width: 8px; height: 8px; border-radius: 50%; background: #ff5fb4; }
+.swatch.topology-rewired { background: #ffa34d; }
+
+.result-legend {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #292f37;
+}
+
+.result-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d2d7dd;
+  font-size: 11px;
+}
+
+.result-legend .swatch { display: inline-block; flex: 0 0 auto; }
 
 .viewport-wrap { position: relative; min-width: 0; min-height: 0; }
 #network-lab-viewport { position: absolute; inset: 0; }
@@ -240,7 +271,6 @@ input { font: inherit; }
 .lab-status code { color: inherit; }
 
 @media (max-width: 920px) {
-  .lab-header { flex-wrap: wrap; }
   .lab-main { grid-template-columns: 240px minmax(300px, 1fr); }
   .lab-panel.is-right { display: none; }
 }

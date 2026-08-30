@@ -12,13 +12,20 @@ import {
 import {
   studySpiderGraphSimplification,
   type SpiderEdgeSimplificationDecision,
-  type SpiderGraphSimplificationStudy,
   type SpiderSimplificationLevel,
   type SpiderSimplificationLevelResult,
 } from "./spiderGraphSimplificationLab.ts";
+import {
+  studyTerminalPreservingNetworkTopology,
+  type SpiderTerminalTopologyLevelResult,
+  type SpiderTerminalTopologyStudy,
+  type SpiderTopologyLevel,
+  type SpiderTopologyNodeDecision,
+} from "./spiderGraphTerminalTopologyLab.ts";
 import "./spiderGraphComparisonLab.css";
 
-type ComparisonMode = "raw" | "clean" | "raw-clean" | "simplified" | "clean-simplified";
+type ComparisonMode = "raw" | "clean" | "raw-clean" | "result" | "clean-result";
+type NetworkStudyKind = "edge-removal" | "node-topology";
 type MarkerLayer = "retained" | "collapsed" | "merge" | "overlap" | "contact" | "motif";
 
 const BASELINE_SHA256 = "4bacfcced0fe311eef704a792d61f4a68531051ff408e26d5ff2937b8bbfadcf";
@@ -48,6 +55,16 @@ function edgeLinePositions(graph: InternalStructureGraph, edgeIds: ReadonlySet<n
     const end = graphNode(graph, edge.end);
     return [start.x, start.y, start.z, end.x, end.y, end.z];
   });
+}
+
+function polylinePositions(points: readonly Vector3Value[]): number[] {
+  const positions: number[] = [];
+  for (let index = 1; index < points.length; index++) {
+    const start = points[index - 1];
+    const end = points[index];
+    positions.push(start.x, start.y, start.z, end.x, end.y, end.z);
+  }
+  return positions;
 }
 
 function pointsGeometry(points: readonly Vector3Value[]): THREE.BufferGeometry {
@@ -120,7 +137,7 @@ class SpiderGraphComparisonRenderer {
   private readonly removedLayer = new THREE.Group();
   private readonly markerLayers = new Map<MarkerLayer, THREE.Group>();
   private readonly selectedLayer = new THREE.Group();
-  private mode: ComparisonMode = "clean-simplified";
+  private mode: ComparisonMode = "clean-result";
   private cleanGraph: InternalStructureGraph | null = null;
   private observer: ResizeObserver;
 
@@ -158,7 +175,7 @@ class SpiderGraphComparisonRenderer {
 
   install(
     report: SpiderGraphCleanupLabReport,
-    study: SpiderGraphSimplificationStudy,
+    topologyStudy: SpiderTerminalTopologyStudy,
     surface: MeshBuildResult,
     terminals: readonly SpiderGraphTerminal[],
   ): void {
@@ -245,7 +262,7 @@ class SpiderGraphComparisonRenderer {
     this.controls.minDistance = longest * 0.35;
     this.controls.maxDistance = longest * 8;
     this.controls.update();
-    this.setSimplification(study.levels.medium);
+    this.setTerminalTopology(topologyStudy.levels.medium, topologyStudy);
     this.setMode(this.mode);
   }
 
@@ -262,12 +279,52 @@ class SpiderGraphComparisonRenderer {
     this.setMode(this.mode);
   }
 
+  setTerminalTopology(
+    result: SpiderTerminalTopologyLevelResult,
+    study: SpiderTerminalTopologyStudy,
+  ): void {
+    this.simplifiedLayer.clear();
+    this.removedLayer.clear();
+    const realizationPositions = result.topology.edges.flatMap((edge) =>
+      polylinePositions(edge.realizationIntent.controlPoints));
+    this.simplifiedLayer.add(
+      lineSegments(realizationPositions, 0x70e5a0, 0.98),
+      pointCloud(result.topology.nodes.map((node) => node.position), 0xcaf7d8, 0.026, 0.82),
+    );
+
+    const cleanNodePositions = new Map(this.cleanGraph!.nodes.map((node) => [node.id, node.position]));
+    const removedPoints = result.contractedNodeIds.map((id) => cleanNodePositions.get(id)!).filter(Boolean);
+    const rewiredChords = result.topology.edges
+      .filter((edge) => edge.provenance.contractedCleanNodeIds.length > 0)
+      .flatMap((edge) => {
+        const start = result.topology.nodes.find((node) => node.id === edge.startNodeId)!.position;
+        const end = result.topology.nodes.find((node) => node.id === edge.endNodeId)!.position;
+        return [start.x, start.y, start.z, end.x, end.y, end.z];
+      });
+    const motifTerminals = result.topology.nodes.filter((node) =>
+      node.terminalRoles.includes("motif") && !node.terminalRoles.includes("support-target"));
+    const supportTerminals = result.topology.nodes.filter((node) => node.terminalRoles.includes("support-target"));
+    const nearbyJunctionLines = study.findings.nearbyJunctions.flatMap((finding) => {
+      const start = cleanNodePositions.get(finding.firstCleanNodeId)!;
+      const end = cleanNodePositions.get(finding.secondCleanNodeId)!;
+      return [start.x, start.y, start.z, end.x, end.y, end.z];
+    });
+    this.removedLayer.add(
+      lineSegments(rewiredChords, 0xffa34d, 0.82),
+      pointCloud(removedPoints, 0xff5fb4, 0.052, 1),
+      pointCloud(motifTerminals.map((node) => node.position), 0xffffff, 0.052, 1),
+      pointCloud(supportTerminals.map((node) => node.position), 0x78f0a7, 0.068, 1),
+      lineSegments(nearbyJunctionLines, 0xff8c42, 0.24),
+    );
+    this.setMode(this.mode);
+  }
+
   setMode(mode: ComparisonMode): void {
     this.mode = mode;
     this.rawLayer.visible = mode === "raw" || mode === "raw-clean";
-    this.cleanLayer.visible = mode === "clean" || mode === "raw-clean" || mode === "clean-simplified";
-    this.simplifiedLayer.visible = mode === "simplified" || mode === "clean-simplified";
-    this.removedLayer.visible = mode === "simplified" || mode === "clean-simplified";
+    this.cleanLayer.visible = mode === "clean" || mode === "raw-clean" || mode === "clean-result";
+    this.simplifiedLayer.visible = mode === "result" || mode === "clean-result";
+    this.removedLayer.visible = mode === "result" || mode === "clean-result";
     const rawMaterial = this.rawLayer.children[0] && (this.rawLayer.children[0] as THREE.LineSegments).material as THREE.LineBasicMaterial;
     if (rawMaterial) rawMaterial.opacity = mode === "raw" ? 0.9 : 0.28;
     const cleanMaterial = this.cleanLayer.children[0] && (this.cleanLayer.children[0] as THREE.LineSegments).material as THREE.LineBasicMaterial;
@@ -291,6 +348,14 @@ class SpiderGraphComparisonRenderer {
       0xffffff,
       1,
     ));
+  }
+
+  highlightCleanNode(nodeId: number, edge?: { controlPoints: Vector3Value[] }): void {
+    this.selectedLayer.clear();
+    const node = this.cleanGraph?.nodes.find((candidate) => candidate.id === nodeId);
+    if (!node) return;
+    this.selectedLayer.add(pointCloud([node.position], 0xffffff, 0.09, 1));
+    if (edge) this.selectedLayer.add(lineSegments(polylinePositions(edge.controlPoints), 0xffffff, 1));
   }
 
   private resize(): void {
@@ -319,15 +384,19 @@ function buildShell(app: HTMLElement): void {
       <header class="lab-header">
         <div class="lab-title">
           <h1>SKIN NETWORK LAB</h1>
-          <p>Cleanup / author Simplification visual study</p>
+          <p>Terminal-preserving topology / Edge density study</p>
         </div>
         <div class="lab-freeze-badge">SHADOW ONLY · production geometry unchanged</div>
+        <div class="study-switch" role="group" aria-label="Network laboratory study">
+          <button type="button" data-study="edge-removal" aria-pressed="false">Edge Density</button>
+          <button type="button" data-study="node-topology" aria-pressed="true">Node Topology</button>
+        </div>
         <div class="mode-switch" role="group" aria-label="Graph comparison mode">
           <button type="button" data-mode="raw" aria-pressed="false">Raw</button>
           <button type="button" data-mode="clean" aria-pressed="false">Clean</button>
           <button type="button" data-mode="raw-clean" aria-pressed="false">Raw / Clean</button>
-          <button type="button" data-mode="simplified" aria-pressed="false">Simplified</button>
-          <button type="button" data-mode="clean-simplified" aria-pressed="true">Clean / Simplified</button>
+          <button type="button" data-mode="result" id="result-mode-label" aria-pressed="false">Topology</button>
+          <button type="button" data-mode="clean-result" id="clean-result-mode-label" aria-pressed="true">Clean / Topology</button>
         </div>
         <div class="level-switch" role="group" aria-label="Author simplification level">
           <button type="button" data-level="none" aria-pressed="false">None</button>
@@ -340,7 +409,7 @@ function buildShell(app: HTMLElement): void {
         <aside class="lab-panel">
           <h2>Graph facts</h2>
           <div class="stat-grid" id="graph-stats">
-            <span></span><span class="head">Raw</span><span class="head">Clean</span><span class="head">Simplified</span>
+            <span></span><span class="head">Raw</span><span class="head">Clean</span><span class="head" id="result-stat-label">Topology</span>
             <span>Nodes</span><span class="raw" id="raw-nodes">—</span><span class="clean" id="clean-nodes">—</span><span class="simplified" id="simplified-nodes">—</span>
             <span>Edges</span><span class="raw" id="raw-edges">—</span><span class="clean" id="clean-edges">—</span><span class="simplified" id="simplified-edges">—</span>
             <span>Components</span><span class="raw" id="raw-components">—</span><span class="clean" id="clean-components">—</span><span class="simplified" id="simplified-components">—</span>
@@ -348,6 +417,7 @@ function buildShell(app: HTMLElement): void {
             <span>Support</span><span class="raw" id="raw-support">—</span><span class="clean" id="clean-support">—</span><span class="simplified" id="simplified-support">—</span>
           </div>
           <h2 style="margin-top: 16px">Layers</h2>
+          <div class="result-legend" id="result-legend"></div>
           <div class="legend">
             <label><input type="checkbox" data-layer="retained" checked /><span class="swatch retained"></span>retained nodes</label>
             <label><input type="checkbox" data-layer="collapsed" checked /><span class="swatch collapsed"></span>collapsed degree-2</label>
@@ -357,13 +427,13 @@ function buildShell(app: HTMLElement): void {
             <label><input type="checkbox" data-layer="motif" checked /><span class="swatch motif"></span>Motif <span class="swatch support"></span>support target</label>
           </div>
         </aside>
-        <section class="viewport-wrap" aria-label="Clean and Simplified Spider Graph comparison viewport">
+        <section class="viewport-wrap" aria-label="Clean and topology-simplified Spider Graph comparison viewport">
           <div id="network-lab-viewport"></div>
-          <div class="viewport-caption" id="mode-caption">Clean / Simplified · Clean gold / retained green / removed red. Drag to orbit, wheel to zoom.</div>
+          <div class="viewport-caption" id="mode-caption">Clean / Topology · Clean gold / realized path green / rewired chord orange. Drag to orbit, wheel to zoom.</div>
         </section>
         <aside class="lab-panel is-right">
-          <h2>Edge decision</h2>
-          <select class="provenance-select" id="decision-edge" aria-label="Simplification Edge decision"></select>
+          <h2 id="decision-title">Node decision</h2>
+          <select class="provenance-select" id="study-decision" aria-label="Network Study decision"></select>
           <div class="provenance-card" id="decision-detail">Loading…</div>
           <ul class="finding-list" id="finding-list"></ul>
         </aside>
@@ -408,7 +478,8 @@ async function start(): Promise<void> {
       })),
     ];
     const report = analyzeSpiderGraphCleanupLab(project.lattice, terminals);
-    const simplification = studySpiderGraphSimplification(report, terminals);
+    const edgeStudy = studySpiderGraphSimplification(report, terminals);
+    const topologyStudy = studyTerminalPreservingNetworkTopology(report, terminals);
     statusText.textContent = "Surface contextを作成しています…（Spiderは含めません）";
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     const surface = buildSkinMesh(
@@ -424,7 +495,7 @@ async function start(): Promise<void> {
       0,
       null,
     );
-    renderer.install(report, simplification, surface, terminals);
+    renderer.install(report, topologyStudy, surface, terminals);
 
     const setText = (id: string, value: string | number): void => {
       const element = document.getElementById(id);
@@ -441,21 +512,31 @@ async function start(): Promise<void> {
     setText("raw-support", `${report.rawStats.supportTargetConnectivity.connectedCount}/20`);
     setText("clean-support", `${report.candidateStats.supportTargetConnectivity.connectedCount}/20`);
 
-    const captions: Record<ComparisonMode, string> = {
-      raw: "Raw · cyan 251 nodes / 270 edges. Generator outputをそのまま観察。",
-      clean: "Clean · gold 101 nodes / 118 topological edges. straightは現在の表示realizationのみ。",
-      "raw-clean": "Raw / Clean · Raw cyan（薄） / Cleanup gold。TASK 16の対応を確認。",
-      simplified: "Simplified · retained green / author removal red。production未採用。",
-      "clean-simplified": "Clean / Simplified · Clean gold（薄） / retained green / removed red。",
+    let activeStudy: NetworkStudyKind = "node-topology";
+    let activeLevel: SpiderSimplificationLevel & SpiderTopologyLevel = "medium";
+    let activeMode: ComparisonMode = "clean-result";
+    const caption = (mode: ComparisonMode): string => {
+      if (mode === "raw") return "Raw · cyan 251 nodes / 270 edges. Generator outputをそのまま観察。";
+      if (mode === "clean") return "Clean · gold 101 nodes / 118 topological edges。";
+      if (mode === "raw-clean") return "Raw / Clean · Raw cyan（薄） / Cleanup gold。TASK 16の対応を確認。";
+      if (activeStudy === "edge-removal") {
+        return mode === "result"
+          ? "Edge Simplified · retained green / author removal red。production未採用。"
+          : "Clean / Edge Simplified · Clean gold（薄） / retained green / removed red。";
+      }
+      return mode === "result"
+        ? "Topology · realized polyline green / removed Node magenta / rewired chord orange / terminals white+green。"
+        : "Clean / Topology · Clean gold（薄） / realized path green / rewired chord orange。";
     };
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
       button.addEventListener("click", () => {
         const mode = button.dataset.mode as ComparisonMode;
+        activeMode = mode;
         renderer.setMode(mode);
         for (const candidate of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
           candidate.setAttribute("aria-pressed", String(candidate === button));
         }
-        document.getElementById("mode-caption")!.textContent = captions[mode];
+        document.getElementById("mode-caption")!.textContent = caption(mode);
         status.dataset.mode = mode;
       });
     }
@@ -465,10 +546,11 @@ async function start(): Promise<void> {
       });
     }
 
-    const select = document.getElementById("decision-edge") as HTMLSelectElement;
+    const select = document.getElementById("study-decision") as HTMLSelectElement;
     const detail = document.getElementById("decision-detail")!;
-    let activeResult = simplification.levels.medium;
-    const decisionOrder = (decisions: readonly SpiderEdgeSimplificationDecision[]): SpiderEdgeSimplificationDecision[] =>
+    let activeEdgeResult = edgeStudy.levels.medium;
+    let activeTopologyResult = topologyStudy.levels.medium;
+    const edgeDecisionOrder = (decisions: readonly SpiderEdgeSimplificationDecision[]): SpiderEdgeSimplificationDecision[] =>
       [...decisions].sort((first, second) => {
         const statusOrder = { removed: 0, "retained-by-level": 1, rejected: 2 } as const;
         return statusOrder[first.status] - statusOrder[second.status]
@@ -476,9 +558,23 @@ async function start(): Promise<void> {
           || second.removalScore - first.removalScore
           || first.edgeId - second.edgeId;
       });
-    const showDecision = (): void => {
+    const topologyDecisionOrder = (decisions: readonly SpiderTopologyNodeDecision[]): SpiderTopologyNodeDecision[] =>
+      [...decisions].sort((first, second) => {
+        const statusOrder = {
+          contracted: 0,
+          "retained-by-level": 1,
+          "rejected-cycle": 2,
+          "protected-terminal": 3,
+          "protected-junction": 4,
+          "protected-critical": 5,
+        } as const;
+        return statusOrder[first.status] - statusOrder[second.status]
+          || (first.contractionOrder ?? Infinity) - (second.contractionOrder ?? Infinity)
+          || first.cleanNodeId - second.cleanNodeId;
+      });
+    const showEdgeDecision = (): void => {
       const cleanEdgeId = Number(select.value);
-      const decision = activeResult.decisions.find((entry) => entry.edgeId === cleanEdgeId)!;
+      const decision = activeEdgeResult.decisions.find((entry) => entry.edgeId === cleanEdgeId)!;
       const lineage = report.provenance.edges.find((edge) => edge.cleanEdgeId === cleanEdgeId)!;
       const realization = report.cleanEdgeRealizations.find((entry) => entry.edgeId === cleanEdgeId)!;
       const edge = report.cleanTopology.edges.find((entry) => entry.id === cleanEdgeId)!;
@@ -496,9 +592,40 @@ async function start(): Promise<void> {
         + `Collapsed Raw Nodes: <code>${lineage.collapsedRawNodeIds.join(", ") || "none"}</code>`;
       renderer.highlightCleanEdge(cleanEdgeId);
     };
-    const installDecisionOptions = (): void => {
+    const showTopologyDecision = (): void => {
+      const cleanNodeId = Number(select.value);
+      const decision = activeTopologyResult.decisions.find((entry) => entry.cleanNodeId === cleanNodeId)!;
+      const classification = topologyStudy.classifications.find((entry) => entry.cleanNodeId === cleanNodeId)!;
+      const replacement = activeTopologyResult.topology.edges.find((edge) =>
+        edge.provenance.contractedCleanNodeIds.includes(cleanNodeId));
+      const metrics = decision.metrics
+        ? `bend <code>${decision.metrics.localBendDeg.toFixed(2)}°</code> · max <code>${decision.metrics.resultMaximumBendDeg.toFixed(2)}°</code><br />`
+          + `polyline/chord <code>${decision.metrics.resultDetourRatio.toFixed(3)}x</code> · intent cost <code>${decision.metrics.intentCost.toFixed(3)}</code>`
+        : "not evaluated (absolute terminal / junction / endpoint)";
+      const rewiring = replacement
+        ? `<strong>${replacement.id}</strong><br />`
+          + `${replacement.startNodeId} ↔ ${replacement.endNodeId}<br />`
+          + `realization: <code>${replacement.realizationIntent.kind}</code> · control Clean Nodes <code>${replacement.realizationIntent.controlCleanNodeIds.join(" → ")}</code><br />`
+          + `Clean Edges: <code>${replacement.provenance.cleanEdgeIds.join(", ")}</code><br />`
+          + `Raw Edges: <code>${replacement.provenance.rawEdgeIds.join(", ")}</code><br />`
+          + `Contracted Clean Nodes: <code>${replacement.provenance.contractedCleanNodeIds.join(", ")}</code>`
+        : "none; Node identity retained";
+      detail.innerHTML = `<strong>Clean Node ${cleanNodeId} · ${decision.status}</strong><br />`
+        + `classification: <code>${classification.kind}</code> · degree ${classification.degree} · articulation ${classification.articulation}<br />`
+        + `terminal roles: <code>${classification.terminalRoles.join("+") || "none"}</code><br />`
+        + `<span class="detail-label">contraction metrics</span><br />${metrics}<br />`
+        + `<span class="detail-label">decision</span><br />${decision.reasons.join("<br />")}<br />`
+        + `<span class="detail-label">rewiring / realization intent</span><br />${rewiring}<br />`
+        + `<span class="detail-label">Node provenance</span><br />Raw Nodes: <code>${decision.rawNodeIds.join(", ") || "none"}</code>`;
+      renderer.highlightCleanNode(cleanNodeId, replacement?.realizationIntent);
+    };
+    const showDecision = (): void => {
+      if (activeStudy === "edge-removal") showEdgeDecision();
+      else showTopologyDecision();
+    };
+    const installEdgeDecisionOptions = (): void => {
       select.innerHTML = "";
-      for (const decision of decisionOrder(activeResult.decisions)) {
+      for (const decision of edgeDecisionOrder(activeEdgeResult.decisions)) {
         const option = document.createElement("option");
         option.value = String(decision.edgeId);
         const state = decision.status === "removed" ? `removed #${decision.removalOrder}`
@@ -507,44 +634,107 @@ async function start(): Promise<void> {
         option.textContent = `Edge ${decision.edgeId} · ${state} · score ${decision.removalScore.toFixed(1)}`;
         select.appendChild(option);
       }
-      select.value = String(decisionOrder(activeResult.decisions)[0].edgeId);
+      select.value = String(edgeDecisionOrder(activeEdgeResult.decisions)[0].edgeId);
       showDecision();
     };
-    const renderLevel = (level: SpiderSimplificationLevel): void => {
-      activeResult = simplification.levels[level];
-      renderer.setSimplification(activeResult);
-      setText("simplified-nodes", activeResult.stats.nodeCount);
-      setText("simplified-edges", activeResult.stats.edgeCount);
-      setText("simplified-components", activeResult.stats.connectedComponents);
-      setText("simplified-motif", `${activeResult.stats.motifConnectivity.connectedCount}/38`);
-      setText("simplified-support", `${activeResult.stats.supportTargetConnectivity.connectedCount}/20`);
-      const rejected = activeResult.decisions.filter((decision) => decision.status === "rejected").length;
-      const optional = activeResult.decisions.filter((decision) => decision.status === "retained-by-level").length;
+    const installTopologyDecisionOptions = (): void => {
+      select.innerHTML = "";
+      for (const decision of topologyDecisionOrder(activeTopologyResult.decisions)) {
+        const option = document.createElement("option");
+        option.value = String(decision.cleanNodeId);
+        const state = decision.status === "contracted" ? `contracted #${decision.contractionOrder}` : decision.status;
+        option.textContent = `Node ${decision.cleanNodeId} · ${state}`;
+        select.appendChild(option);
+      }
+      select.value = String(topologyDecisionOrder(activeTopologyResult.decisions)[0].cleanNodeId);
+      showDecision();
+    };
+    const renderEdgeLevel = (level: SpiderSimplificationLevel): void => {
+      activeEdgeResult = edgeStudy.levels[level];
+      renderer.setSimplification(activeEdgeResult);
+      setText("simplified-nodes", activeEdgeResult.stats.nodeCount);
+      setText("simplified-edges", activeEdgeResult.stats.edgeCount);
+      setText("simplified-components", activeEdgeResult.stats.connectedComponents);
+      setText("simplified-motif", `${activeEdgeResult.stats.motifConnectivity.connectedCount}/38`);
+      setText("simplified-support", `${activeEdgeResult.stats.supportTargetConnectivity.connectedCount}/20`);
+      const rejected = activeEdgeResult.decisions.filter((decision) => decision.status === "rejected").length;
+      const optional = activeEdgeResult.decisions.filter((decision) => decision.status === "retained-by-level").length;
       document.getElementById("finding-list")!.innerHTML = `
-        <li>cycle budget <b>${activeResult.removedEdgeIds.length}/${simplification.cycleBudget}</b></li>
-        <li>accepted removals <b>${activeResult.removedEdgeIds.length}</b></li>
+        <li>cycle budget <b>${activeEdgeResult.removedEdgeIds.length}/${edgeStudy.cycleBudget}</b></li>
+        <li>accepted removals <b>${activeEdgeResult.removedEdgeIds.length}</b></li>
         <li>optional this level <b>${optional}</b></li>
         <li>constraint rejects <b>${rejected}</b></li>
-        <li>cycle rank remaining <b>${activeResult.cycleRank}</b></li>
+        <li>cycle rank remaining <b>${activeEdgeResult.cycleRank}</b></li>
         <li>graph criticality ≠ physical strength</li>`;
-      installDecisionOptions();
-      status.dataset.level = level;
-      statusText.textContent = `Ready · ${level} ${activeResult.stats.nodeCount} nodes / ${activeResult.stats.edgeCount} edges · component 1 · Motif 38/38 · support 20/20 · production未採用`;
+      document.getElementById("result-legend")!.innerHTML = `
+        <span><i class="swatch simplified"></i>retained Edge</span>
+        <span><i class="swatch removed"></i>removed Edge</span>`;
+      installEdgeDecisionOptions();
+      statusText.textContent = `Ready · Edge Density ${level} · ${activeEdgeResult.stats.nodeCount} nodes / ${activeEdgeResult.stats.edgeCount} edges · component 1 · Motif 38/38 · support 20/20 · production未採用`;
+    };
+    const renderTopologyLevel = (level: SpiderTopologyLevel): void => {
+      activeTopologyResult = topologyStudy.levels[level];
+      renderer.setTerminalTopology(activeTopologyResult, topologyStudy);
+      setText("simplified-nodes", activeTopologyResult.stats.nodeCount);
+      setText("simplified-edges", activeTopologyResult.stats.edgeCount);
+      setText("simplified-components", activeTopologyResult.stats.connectedComponents);
+      setText("simplified-motif", `${activeTopologyResult.stats.motifConnectivity.connectedCount}/38`);
+      setText("simplified-support", `${activeTopologyResult.stats.supportTargetConnectivity.connectedCount}/20`);
+      document.getElementById("finding-list")!.innerHTML = `
+        <li>absolute terminal Nodes <b>${topologyStudy.terminalSummary.uniqueTerminalNodeCount}</b>（multi-role ${topologyStudy.terminalSummary.multiRoleTerminalNodeCount}）</li>
+        <li>contracted Nodes <b>${activeTopologyResult.contractedNodeIds.length}</b></li>
+        <li>rewired topology Edges <b>${activeTopologyResult.rewiredEdgeIds.length}</b></li>
+        <li>inferred branch junctions <b>${topologyStudy.terminalSummary.inferredBranchJunctionCount}</b> / explicit <b>0</b></li>
+        <li>nearby junction pairs <b>${topologyStudy.findings.nearbyJunctions.length}</b>（review-only）</li>
+        <li>terminal reachability <b>${activeTopologyResult.audit.terminalReachability.reachableTerminalPairs}/${activeTopologyResult.audit.terminalReachability.requiredTerminalPairs}</b></li>
+        <li>cycle rank <b>${activeTopologyResult.cycleRank}</b> preserved</li>`;
+      document.getElementById("result-legend")!.innerHTML = `
+        <span><i class="swatch topology-path"></i>polyline realization</span>
+        <span><i class="swatch topology-removed"></i>removed Node</span>
+        <span><i class="swatch topology-rewired"></i>rewired chord</span>
+        <span><i class="swatch motif"></i>retained Motif terminal</span>
+        <span><i class="swatch support"></i>retained Support terminal</span>`;
+      installTopologyDecisionOptions();
+      statusText.textContent = `Ready · Node Topology ${level} · ${activeTopologyResult.stats.nodeCount} nodes / ${activeTopologyResult.stats.edgeCount} edges · terminal 38 · component 1 · Motif 38/38 · support 20/20 · production未採用`;
+    };
+    const renderActiveLevel = (): void => {
+      if (activeStudy === "edge-removal") renderEdgeLevel(activeLevel);
+      else renderTopologyLevel(activeLevel);
+      status.dataset.level = activeLevel;
+      status.dataset.study = activeStudy;
+      document.getElementById("mode-caption")!.textContent = caption(activeMode);
     };
     select.addEventListener("change", showDecision);
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-level]")) {
       button.addEventListener("click", () => {
-        const level = button.dataset.level as SpiderSimplificationLevel;
+        const level = button.dataset.level as SpiderSimplificationLevel & SpiderTopologyLevel;
+        activeLevel = level;
         for (const candidate of document.querySelectorAll<HTMLButtonElement>("[data-level]")) {
           candidate.setAttribute("aria-pressed", String(candidate === button));
         }
-        renderLevel(level);
+        renderActiveLevel();
       });
     }
-    renderLevel("medium");
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-study]")) {
+      button.addEventListener("click", () => {
+        activeStudy = button.dataset.study as NetworkStudyKind;
+        for (const candidate of document.querySelectorAll<HTMLButtonElement>("[data-study]")) {
+          candidate.setAttribute("aria-pressed", String(candidate === button));
+        }
+        const topologyMode = activeStudy === "node-topology";
+        document.getElementById("result-mode-label")!.textContent = topologyMode ? "Topology" : "Edge Simplified";
+        document.getElementById("clean-result-mode-label")!.textContent = topologyMode
+          ? "Clean / Topology"
+          : "Clean / Edge";
+        document.getElementById("result-stat-label")!.textContent = topologyMode ? "Topology" : "Edge Result";
+        document.getElementById("decision-title")!.textContent = topologyMode ? "Node decision" : "Edge decision";
+        renderActiveLevel();
+      });
+    }
+    renderActiveLevel();
 
     status.dataset.ready = "true";
-    status.dataset.mode = "clean-simplified";
+    status.dataset.mode = "clean-result";
   } catch (error) {
     status.dataset.ready = "error";
     statusText.textContent = error instanceof Error ? error.message : String(error);
