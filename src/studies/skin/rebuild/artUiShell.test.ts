@@ -38,5 +38,13 @@ assert.match(source, /Research controls, diagnostics and retained experiments/);
 assert.match(source, /Start Network Formation presentation/);
 assert.match(source, /NETWORK STABLE/);
 assert.match(source, /app\.classList\.toggle\("is-network-formation"/);
+assert.match(source, /networkFormationStudies/);
+assert.match(source, /initialNetworkFormationStudyId/);
+assert.match(source, /skin-network-formation-study/);
+assert.match(source, /input\.type = "radio"/);
+assert.match(source, /onNetworkFormationRequest\?\.\(selectedFormationStudyId\)/);
+assert.match(source, /formationExit\.focus/);
+assert.match(source, /formationButton\.focus/);
+assert.doesNotMatch(source, /formation-study-card|formation-viewport-grid/);
 
 console.log("SKIN ART UI shell tests passed");

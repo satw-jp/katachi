@@ -263,10 +263,15 @@ import {
   type SkinArtUiShellController,
 } from "./rebuild/artUiShell.ts";
 import {
+  DEFAULT_NETWORK_FORMATION_VARIANT_ID,
+  NETWORK_FORMATION_VARIANTS,
   createNetworkFormationTimeline,
+  isNetworkFormationVariantId,
   networkFormationGraphAt,
+  networkFormationVariant,
   type NetworkFormationEvent,
   type NetworkFormationTimeline,
+  type NetworkFormationVariantId,
 } from "./rebuild/networkFormation.ts";
 import {
   applySupportPaintToPolicyResult,
@@ -2684,6 +2689,8 @@ syncPhaseAVerticalControl();
 
 type NetworkFormationSession = {
   readonly id: number;
+  readonly variantId: NetworkFormationVariantId;
+  readonly variantLabel: string;
   readonly graph: InternalStructureGraph;
   readonly timeline: NetworkFormationTimeline;
   readonly viewDraft: ReturnType<SkinRenderer["captureEditorViewDraft"]>;
@@ -2735,14 +2742,19 @@ function applyNetworkFormationEvent(
 
   const progress = `${event.visibleEdgeCount} / ${session.graph.edges.length} EDGES`;
   if (event.kind === "stable") {
-    skinArtUiShellController?.setNetworkFormationState("stable", "NETWORK STABLE", "COMPLETED GRAPH MATCHED");
+    skinArtUiShellController?.setNetworkFormationState(
+      "stable",
+      "NETWORK STABLE",
+      "COMPLETED GRAPH MATCHED",
+      session.variantLabel,
+    );
   } else {
     const status = event.kind === "reject"
       ? "REJECT / REROUTING"
       : event.kind === "propose"
         ? "ROUTE PROPOSAL"
         : "NETWORK FORMATION";
-    skinArtUiShellController?.setNetworkFormationState("running", status, progress);
+    skinArtUiShellController?.setNetworkFormationState("running", status, progress, session.variantLabel);
   }
 }
 
@@ -2775,8 +2787,12 @@ function runNetworkFormationFrame(sessionId: number, now: number): void {
   }
 }
 
-function startNetworkFormation(): void {
+function startNetworkFormation(requestedVariantId: string = DEFAULT_NETWORK_FORMATION_VARIANT_ID): void {
   if (networkFormationSession) exitNetworkFormation();
+  const variantId = isNetworkFormationVariantId(requestedVariantId)
+    ? requestedVariantId
+    : DEFAULT_NETWORK_FORMATION_VARIANT_ID;
+  const variantLabel = networkFormationVariant(variantId).label;
   const graph = internalStructureGraph;
   if (!graph?.edges.length) {
     skinArtUiShellController?.setNetworkFormationState(
@@ -2785,14 +2801,12 @@ function startNetworkFormation(): void {
     );
     return;
   }
-  const timeline = createNetworkFormationTimeline(graph);
+  const timeline = createNetworkFormationTimeline(graph, variantId);
   const viewDraft = skinRenderer.captureEditorViewDraft(editorLayoutState);
-  skinArtUiShellController?.setNetworkFormationState("running", "NETWORK FORMATION", `0 / ${graph.edges.length} EDGES`);
-  skinRenderer.setViewportMode("one");
-  skinRenderer.beginNetworkFormationPresentation();
-  skinRenderer.frameNetworkFormationGraph(graph);
   const session: NetworkFormationSession = {
     id: nextNetworkFormationSessionId++,
+    variantId,
+    variantLabel,
     graph,
     timeline,
     viewDraft,
@@ -2802,9 +2816,27 @@ function startNetworkFormation(): void {
     frameId: 0,
   };
   networkFormationSession = session;
-  applyNetworkFormationEvent(session, timeline.events[0]);
-  session.eventIndex = 1;
-  scheduleNetworkFormationFrame(session);
+  try {
+    skinArtUiShellController?.setNetworkFormationState(
+      "running",
+      "NETWORK FORMATION",
+      `0 / ${graph.edges.length} EDGES`,
+      variantLabel,
+    );
+    skinRenderer.setViewportMode("one");
+    skinRenderer.beginNetworkFormationPresentation();
+    skinRenderer.frameNetworkFormationGraph(graph);
+    applyNetworkFormationEvent(session, timeline.events[0]);
+    session.eventIndex = 1;
+    scheduleNetworkFormationFrame(session);
+  } catch (error) {
+    exitNetworkFormation();
+    skinArtUiShellController?.setNetworkFormationState(
+      "unavailable",
+      "Formation presentation could not start.",
+    );
+    console.error("SKIN Network Formation presentation failed to start", error);
+  }
 }
 
 function exitNetworkFormation(): void {
@@ -2826,6 +2858,8 @@ if (isSkinRebuildApp) {
     viewport,
     version: manifest.version,
     updatedAt: manifest.updatedAt,
+    networkFormationStudies: NETWORK_FORMATION_VARIANTS,
+    initialNetworkFormationStudyId: DEFAULT_NETWORK_FORMATION_VARIANT_ID,
     onNetworkFormationRequest: startNetworkFormation,
     onNetworkFormationExit: exitNetworkFormation,
   });

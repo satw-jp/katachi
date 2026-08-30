@@ -62,8 +62,16 @@ export interface MountSkinArtUiShellOptions {
   readonly viewport: HTMLElement;
   readonly version: string;
   readonly updatedAt: string;
-  readonly onNetworkFormationRequest?: () => void;
+  readonly networkFormationStudies: readonly SkinNetworkFormationStudyChoice[];
+  readonly initialNetworkFormationStudyId: string;
+  readonly onNetworkFormationRequest?: (studyId: string) => void;
   readonly onNetworkFormationExit?: () => void;
+}
+
+export interface SkinNetworkFormationStudyChoice {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
 }
 
 export type SkinNetworkFormationUiState = "idle" | "running" | "stable" | "unavailable";
@@ -73,6 +81,7 @@ export interface SkinArtUiShellController {
     state: SkinNetworkFormationUiState,
     status?: string,
     progress?: string,
+    studyLabel?: string,
   ): void;
 }
 
@@ -168,6 +177,8 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
     viewport,
     version,
     updatedAt,
+    networkFormationStudies,
+    initialNetworkFormationStudyId,
     onNetworkFormationRequest,
     onNetworkFormationExit,
   } = options;
@@ -227,14 +238,53 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   const formationAction = document.createElement("div");
   formationAction.className = "skin-network-formation-action";
   formationAction.hidden = true;
+  const formationStudies = document.createElement("fieldset");
+  formationStudies.className = "skin-network-formation-studies";
+  const formationStudiesLegend = document.createElement("legend");
+  formationStudiesLegend.textContent = "FORMATION STUDY";
+  const formationStudyList = document.createElement("div");
+  formationStudyList.className = "skin-network-formation-study-list";
+  let selectedFormationStudyId = networkFormationStudies.some((study) => study.id === initialNetworkFormationStudyId)
+    ? initialNetworkFormationStudyId
+    : networkFormationStudies[0]?.id ?? "";
+  const formationStudyInputs: HTMLInputElement[] = [];
+  const formationHint = document.createElement("output");
+  formationHint.className = "skin-network-formation-study-summary";
+  formationHint.setAttribute("aria-live", "polite");
+  const syncFormationStudy = (studyId: string): void => {
+    const study = networkFormationStudies.find((candidate) => candidate.id === studyId);
+    if (!study) return;
+    selectedFormationStudyId = study.id;
+    formationHint.textContent = study.description;
+  };
+  networkFormationStudies.forEach((study, index) => {
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "skin-network-formation-study";
+    input.id = `skin-network-formation-study-${String(index + 1).padStart(2, "0")}`;
+    input.value = study.id;
+    input.checked = study.id === selectedFormationStudyId;
+    const label = document.createElement("label");
+    label.htmlFor = input.id;
+    const number = document.createElement("span");
+    number.textContent = String(index + 1).padStart(2, "0");
+    const name = document.createElement("strong");
+    name.textContent = study.label;
+    label.append(number, name);
+    input.addEventListener("change", () => {
+      if (input.checked) syncFormationStudy(study.id);
+    });
+    formationStudyInputs.push(input);
+    formationStudyList.append(input, label);
+  });
+  syncFormationStudy(selectedFormationStudyId);
   const formationButton = document.createElement("button");
   formationButton.type = "button";
   formationButton.className = "skin-network-formation-trigger";
-  formationButton.textContent = "FORMATION";
+  formationButton.textContent = "PLAY SELECTED";
   formationButton.setAttribute("aria-label", "Start Network Formation presentation");
-  const formationHint = document.createElement("span");
-  formationHint.textContent = "Replay the completed network as a 12 second formation.";
-  formationAction.append(formationButton, formationHint);
+  formationStudies.append(formationStudiesLegend, formationStudyList, formationHint, formationButton);
+  formationAction.append(formationStudies);
   context.append(contextIndex, contextTitle, contextDescription, formationAction);
 
   const formationHud = document.createElement("section");
@@ -243,13 +293,14 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   formationHud.hidden = true;
   const formationIdentity = document.createElement("div");
   const formationKicker = document.createElement("span");
-  formationKicker.textContent = "SKIN / NETWORK";
+  formationKicker.textContent = "SKIN / NETWORK / FORMATION STUDY";
   const formationState = document.createElement("strong");
   formationState.textContent = "NETWORK FORMATION";
+  formationState.setAttribute("aria-live", "polite");
+  formationState.setAttribute("aria-atomic", "true");
   const formationProgress = document.createElement("span");
   formationProgress.className = "skin-network-formation-progress";
   formationProgress.textContent = "0 / 0 EDGES";
-  formationProgress.setAttribute("aria-live", "polite");
   formationIdentity.append(formationKicker, formationState, formationProgress);
   const formationExit = document.createElement("button");
   formationExit.type = "button";
@@ -259,7 +310,7 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   formationHud.append(formationIdentity, formationExit);
   viewport.appendChild(formationHud);
 
-  formationButton.addEventListener("click", () => onNetworkFormationRequest?.());
+  formationButton.addEventListener("click", () => onNetworkFormationRequest?.(selectedFormationStudyId));
   formationExit.addEventListener("click", () => onNetworkFormationExit?.());
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && app.classList.contains("is-network-formation")) {
@@ -269,6 +320,7 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   });
   const buttons: HTMLButtonElement[] = [];
   let currentPhaseIndex = 0;
+  let formationWasActive = false;
 
   const activatePhase = (index: number, userInitiated: boolean): void => {
     currentPhaseIndex = Math.max(0, Math.min(SKIN_ART_UI_PHASES.length - 1, index));
@@ -338,19 +390,26 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   activatePhase(0, false);
 
   return {
-    setNetworkFormationState(state, status, progress): void {
+    setNetworkFormationState(state, status, progress, studyLabel): void {
       const active = state === "running" || state === "stable";
       app.classList.toggle("is-network-formation", active);
       formationHud.hidden = !active;
       formationButton.disabled = state === "running";
-      formationButton.textContent = state === "unavailable" ? "FORMATION UNAVAILABLE" : "FORMATION";
+      for (const input of formationStudyInputs) input.disabled = state === "running";
+      formationButton.textContent = state === "unavailable" ? "FORMATION UNAVAILABLE" : "PLAY SELECTED";
       formationHint.textContent = state === "unavailable"
         ? status ?? "Complete a Network before entering Formation."
-        : "Replay the completed network as a 12 second formation.";
+        : networkFormationStudies.find((study) => study.id === selectedFormationStudyId)?.description ?? "Replay the completed network.";
+      formationKicker.textContent = studyLabel
+        ? `SKIN / NETWORK / ${studyLabel}`
+        : "SKIN / NETWORK / FORMATION STUDY";
       formationState.textContent = state === "stable"
         ? "NETWORK STABLE"
         : status ?? "NETWORK FORMATION";
       formationProgress.textContent = progress ?? (state === "stable" ? "COMPLETED GRAPH MATCHED" : "READING COMPLETED GRAPH");
+      if (active && !formationWasActive) formationExit.focus({ preventScroll: true });
+      if (!active && formationWasActive) formationButton.focus({ preventScroll: true });
+      formationWasActive = active;
     },
   };
 }

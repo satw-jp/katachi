@@ -4372,10 +4372,8 @@ html.skin-art-ui #viewport:has(.viewport-empty-hint:not([hidden])) .skin-art-vie
 }
 
 html.skin-art-ui .skin-network-formation-action {
-  grid-column: 2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  grid-column: 1 / -1;
+  display: grid;
   margin-top: 11px;
 }
 
@@ -4383,8 +4381,91 @@ html.skin-art-ui .skin-network-formation-action[hidden] {
   display: none;
 }
 
+html.skin-art-ui .skin-network-formation-studies {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 8px;
+}
+
+html.skin-art-ui .skin-network-formation-studies > legend {
+  padding: 0;
+  color: var(--skin-art-muted);
+  font: 700 7px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+}
+
+html.skin-art-ui .skin-network-formation-study-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 12px;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: baseline;
+  min-width: 0;
+  padding: 3px 0;
+  color: var(--skin-art-muted);
+  cursor: pointer;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > label span {
+  font: 600 6px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .08em;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > label strong {
+  overflow: hidden;
+  font: 650 7px/1.2 var(--skin-art-sans);
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > input:checked + label {
+  color: var(--skin-art-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--skin-art-accent);
+  text-underline-offset: 3px;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > input:checked + label span::before {
+  content: "→";
+  color: #547b00;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > input:focus-visible + label {
+  outline: 1px solid #547b00;
+  outline-offset: 2px;
+}
+
+html.skin-art-ui .skin-network-formation-study-list > input:disabled + label {
+  cursor: default;
+  opacity: .55;
+}
+
+html.skin-art-ui .skin-network-formation-study-summary {
+  min-height: 19px;
+  color: var(--skin-art-muted);
+  font: 400 7px/1.35 var(--skin-art-sans);
+}
+
 html.skin-art-ui .skin-network-formation-trigger {
-  flex: 0 0 auto;
+  justify-self: start;
   padding: 0 0 3px;
   border: 0;
   border-bottom: 1px solid currentColor;
@@ -4402,12 +4483,6 @@ html.skin-art-ui .skin-network-formation-trigger:hover:not(:disabled) {
 html.skin-art-ui .skin-network-formation-trigger:disabled {
   color: var(--skin-art-muted);
   cursor: not-allowed;
-}
-
-html.skin-art-ui .skin-network-formation-action > span {
-  color: var(--skin-art-muted);
-  font-size: 7px;
-  line-height: 1.35;
 }
 
 html.skin-art-ui #app.is-network-formation {
@@ -4700,6 +4775,21 @@ html.skin-art-ui .skin-network-formation-exit:focus-visible {
 
   html.skin-art-ui .skin-art-viewport-caption small {
     display: none;
+  }
+
+  html.skin-art-ui .skin-network-formation-study-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.skin-art-ui .skin-network-formation-study-list > label {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  html.skin-art-ui .skin-network-formation-trigger {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
   }
 }
 
