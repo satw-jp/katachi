@@ -262,6 +262,7 @@ import {
   SKIN_REBUILD_WORKFLOW_PHASES,
   moveSkinRebuildWorkflowPhase,
 } from "./rebuild/workflowPhaseNavigator.ts";
+import { SKIN_REBUILD_STAGE_CLASSIFICATION } from "./rebuild/workflowInventory.ts";
 import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
@@ -2689,6 +2690,26 @@ if (isSkinRebuildApp) {
   phaseNavigator.append(previousPhaseButton, phaseOutput, nextPhaseButton);
   rightPaneBody.insertBefore(phaseNavigator, ui.root);
   refreshPhaseNavigator();
+
+  for (const [classification, stageIds] of Object.entries(SKIN_REBUILD_STAGE_CLASSIFICATION)) {
+    for (const stageId of stageIds) {
+      const stage = ui.root.querySelector<HTMLElement>(`#${stageId}`);
+      if (!stage) continue;
+      stage.dataset.workflowClass = classification;
+      stage.classList.add(`is-production-${classification}`);
+      const stateLabel = stage.querySelector<HTMLElement>(".skin-author-stage-state");
+      if (stateLabel) stateLabel.textContent = classification.toUpperCase();
+    }
+  }
+  const legacyShelf = ui.root.querySelector<HTMLDetailsElement>(".skin-auxiliary-frozen");
+  const legacySummary = legacyShelf?.querySelector<HTMLElement>(":scope > summary");
+  if (legacyShelf && legacySummary) {
+    legacyShelf.open = false;
+    legacyShelf.dataset.workflowClass = "legacy";
+    legacyShelf.classList.add("is-production-legacy");
+    legacySummary.textContent = "Advanced · Legacy / Research";
+    legacySummary.setAttribute("aria-label", "Advanced Legacy Research を開閉");
+  }
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
 let refreshSkinRebuildAxomeRollControl = () => {};

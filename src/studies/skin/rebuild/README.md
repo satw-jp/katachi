@@ -16,6 +16,19 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — current / future / legacy right-pane inventory
+
+右ペインの既存controlを`RIGHT_PANE_INVENTORY.md`で棚卸しし、REBUILD表示だけを3分類した。
+Base Shape、Surface Pattern、FKEI、Geometry / Mesh、最終診断、Print / Exportは`CURRENT`、
+Artwork Graph、Dry Web、Spider / integrated networkは`FUTURE`として通常表示を維持する。
+
+補助diagnostic、開発status、過去のprint assembly evidence、凍結実験は削除せず、初期状態を閉じた
+`Advanced · Legacy / Research`へまとめた。開けば同じDOMとhandlerが現れ、旧`/skin.html`では従来の
+labelとopen状態を維持する。恒久・移行・Legacyのテスト契約を別リストにして重複無しを回帰testで固定した。
+実ブラウザではCURRENT 5 stage、FUTURE 3 stage、Legacy 1 shelfを確認し、shelfを実クリックで開閉、
+Base / Surface / Graph / Dry Web / Spider / FKEI / 最終診断 / exportの残存とconsole issue 0件を確認した。
+形状生成、mesh、判定閾値、座標、保存schemaは変更していない。
+
 ### 2026-08-30 — four-phase production navigator
 
 右WORKFLOWの最上部に、常時表示する`← 1 / 4 BASE SHAPE →`型の制作フェーズナビを追加した。

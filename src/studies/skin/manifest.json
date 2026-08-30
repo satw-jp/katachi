@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD右ペインを棚卸しし、Base/Surface/FKEI/mesh/最終診断/exportをCURRENT、Artwork Graph/Dry Web/Spider networkをFUTUREとして通常表示、補助diagnostic・開発status・過去evidence・凍結実験を削除せず初期closedのAdvanced · Legacy / Researchへ分類した。旧skin.htmlは従来label/open状態のまま。恒久・移行・Legacy test契約を別リストで固定し、実ブラウザでCURRENT 5/FUTURE 3/Legacy 1、shelf実開閉、必須control残存、console issue 0を確認。形状生成・mesh・閾値・座標・保存schemaは不変。"
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD右WORKFLOW上部へ常時表示の4フェーズナビを追加。BASE SHAPE、SURFACE PATTERN、NETWORK、PRINT / EXPORTを左右矢印で移動し、既存Stage 1/2/3/6を開いてscrollするだけでDOM/callback/history/Graph/Dry Web/Spider/FKEI/診断/exportは保持する。端の矢印はdisabled。unit testと実ブラウザの1→4→1実クリック、既存control残存、console issue 0を確認。形状・座標・判定・出力値は不変。"
     },
     {

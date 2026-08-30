@@ -2880,6 +2880,22 @@ details.mesh-export:not([open]) > :not(summary) {
   border-left-color: #aaa8a1;
 }
 
+.skin-author-stage.is-production-current {
+  border-left-color: var(--ink);
+}
+
+.skin-author-stage.is-production-future {
+  border-left-color: #4f718a;
+}
+
+.skin-author-stage.is-production-current .skin-author-stage-state {
+  color: var(--ink);
+}
+
+.skin-author-stage.is-production-future .skin-author-stage-state {
+  color: #3f647e;
+}
+
 .skin-author-stage > summary {
   list-style: none;
 }
@@ -3191,6 +3207,23 @@ details.mesh-export:not([open]) > :not(summary) {
 .skin-auxiliary-frozen > summary:focus-visible {
   outline: 1px solid var(--ink);
   outline-offset: -1px;
+}
+
+.skin-auxiliary-frozen.is-production-legacy {
+  margin-top: 10px;
+  border: 1px solid rgba(28, 28, 26, .18);
+  background: rgba(220, 219, 214, .28);
+}
+
+.skin-auxiliary-frozen.is-production-legacy > summary {
+  padding: 9px;
+  color: #77746b;
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.skin-auxiliary-frozen.is-production-legacy[open] > summary {
+  border-bottom: 1px solid var(--hairline);
 }
 
 .skin-auxiliary-frozen-body {
