@@ -16,6 +16,27 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — Spider Graph Simplification Study (development Lab)
+
+TASK 15のCleanup Candidateを不変入力とし、その後段へ作者操作のSimplificationを別module・別resultとして
+追加した。Clean 101 node / 118 edgeはcycle rank 18であり、None/Low/Medium/Highはcycle余剰に対して
+0/4/9/18本を決定的に削減する。各roundでedgeを除いた最短alternative path、detour、short cycle、
+local density、degree、parallelism、terminal近接、graph criticalityを再計算し、alternative pathなし、
+component増加、Motifまたはsupport connectivity低下はrejectする。ランダム削除は行わない。
+
+結果はNone 101/118、Low 101/114、Medium 101/109、High 101/100で、すべてcomponent 1、Motif 38/38、
+support 20/20を維持した。Highは18 cycleを全て外すspanning-tree限界であり、推奨値でも強度評価でもない。
+`criticality`はgraph上の迂回性を観察するproxyに限り、stress/load/slicer/physical safetyを表さない。
+全levelはClean Edge ID→Raw Edge IDs lineageを保持し、removed edgeもscore、order、alternative path、
+accept/reject理由を持つため判断履歴から消えない。
+
+development-only `/skin-network-lab.html`へNone/Low/Medium/HighとRaw/Clean/Raw-Clean/Simplified/
+Clean-Simplified表示を追加した。Cleanはgold、retainedはgreen、作者削除はred、選択edgeはwhiteとし、
+edge inspectorでscore、criticality、alternative path、理由、Raw provenanceを確認できる。全levelと表示modeを
+elementFromPointでhit-testした実座標clickで操作し、Highのbridge rejectがcriticality 1 / alternative pathなし /
+components=1違反として見えること、console warning/error 0を確認した。production generator、FKEI、finalGraph、
+STL/3MF、baseline fixture、production build inputには接続していない。
+
 ### 2026-08-30 — Raw / Clean Spider Graph visual comparison (development Lab)
 
 production入口とproduction build inputに接続しない`/skin-network-lab.html`を追加し、同梱baselineの

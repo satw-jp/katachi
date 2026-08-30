@@ -9,9 +9,16 @@ import {
   type SpiderGraphCleanupLabReport,
   type SpiderGraphTerminal,
 } from "./spiderGraphCleanupLab.ts";
+import {
+  studySpiderGraphSimplification,
+  type SpiderEdgeSimplificationDecision,
+  type SpiderGraphSimplificationStudy,
+  type SpiderSimplificationLevel,
+  type SpiderSimplificationLevelResult,
+} from "./spiderGraphSimplificationLab.ts";
 import "./spiderGraphComparisonLab.css";
 
-type ComparisonMode = "raw" | "clean" | "overlay";
+type ComparisonMode = "raw" | "clean" | "raw-clean" | "simplified" | "clean-simplified";
 type MarkerLayer = "retained" | "collapsed" | "merge" | "overlap" | "contact" | "motif";
 
 const BASELINE_SHA256 = "4bacfcced0fe311eef704a792d61f4a68531051ff408e26d5ff2937b8bbfadcf";
@@ -29,6 +36,14 @@ function graphNode(graph: InternalStructureGraph, id: number): Vector3Value {
 
 function linePositions(graph: InternalStructureGraph): number[] {
   return graph.edges.flatMap((edge) => {
+    const start = graphNode(graph, edge.start);
+    const end = graphNode(graph, edge.end);
+    return [start.x, start.y, start.z, end.x, end.y, end.z];
+  });
+}
+
+function edgeLinePositions(graph: InternalStructureGraph, edgeIds: ReadonlySet<number>): number[] {
+  return graph.edges.filter((edge) => edgeIds.has(edge.id)).flatMap((edge) => {
     const start = graphNode(graph, edge.start);
     const end = graphNode(graph, edge.end);
     return [start.x, start.y, start.z, end.x, end.y, end.z];
@@ -101,9 +116,11 @@ class SpiderGraphComparisonRenderer {
   private readonly content = new THREE.Group();
   private readonly rawLayer = new THREE.Group();
   private readonly cleanLayer = new THREE.Group();
+  private readonly simplifiedLayer = new THREE.Group();
+  private readonly removedLayer = new THREE.Group();
   private readonly markerLayers = new Map<MarkerLayer, THREE.Group>();
   private readonly selectedLayer = new THREE.Group();
-  private mode: ComparisonMode = "overlay";
+  private mode: ComparisonMode = "clean-simplified";
   private cleanGraph: InternalStructureGraph | null = null;
   private observer: ResizeObserver;
 
@@ -121,7 +138,13 @@ class SpiderGraphComparisonRenderer {
     const key = new THREE.DirectionalLight(0xffffff, 1.7);
     key.position.set(4, 7, 6);
     this.scene.add(key, this.content);
-    this.content.add(this.rawLayer, this.cleanLayer, this.selectedLayer);
+    this.content.add(
+      this.rawLayer,
+      this.cleanLayer,
+      this.simplifiedLayer,
+      this.removedLayer,
+      this.selectedLayer,
+    );
     for (const name of ["retained", "collapsed", "merge", "overlap", "contact", "motif"] as const) {
       const layer = new THREE.Group();
       this.markerLayers.set(name, layer);
@@ -133,9 +156,16 @@ class SpiderGraphComparisonRenderer {
     this.animate();
   }
 
-  install(report: SpiderGraphCleanupLabReport, surface: MeshBuildResult, terminals: readonly SpiderGraphTerminal[]): void {
+  install(
+    report: SpiderGraphCleanupLabReport,
+    study: SpiderGraphSimplificationStudy,
+    surface: MeshBuildResult,
+    terminals: readonly SpiderGraphTerminal[],
+  ): void {
     this.rawLayer.clear();
     this.cleanLayer.clear();
+    this.simplifiedLayer.clear();
+    this.removedLayer.clear();
     this.selectedLayer.clear();
     for (const layer of this.markerLayers.values()) layer.clear();
     this.cleanGraph = report.cleanupCandidate;
@@ -215,15 +245,33 @@ class SpiderGraphComparisonRenderer {
     this.controls.minDistance = longest * 0.35;
     this.controls.maxDistance = longest * 8;
     this.controls.update();
+    this.setSimplification(study.levels.medium);
+    this.setMode(this.mode);
+  }
+
+  setSimplification(result: SpiderSimplificationLevelResult): void {
+    this.simplifiedLayer.clear();
+    this.removedLayer.clear();
+    const retained = new Set(result.retainedEdgeIds);
+    const removed = new Set(result.removedEdgeIds);
+    this.simplifiedLayer.add(
+      lineSegments(edgeLinePositions(result.graph, retained), 0x70e5a0, 0.98),
+      pointCloud(result.graph.nodes.map((node) => node.position), 0xd8ffe6, 0.027, 0.88),
+    );
+    this.removedLayer.add(lineSegments(edgeLinePositions(this.cleanGraph!, removed), 0xff6b63, 1));
     this.setMode(this.mode);
   }
 
   setMode(mode: ComparisonMode): void {
     this.mode = mode;
-    this.rawLayer.visible = mode === "raw" || mode === "overlay";
-    this.cleanLayer.visible = mode === "clean" || mode === "overlay";
+    this.rawLayer.visible = mode === "raw" || mode === "raw-clean";
+    this.cleanLayer.visible = mode === "clean" || mode === "raw-clean" || mode === "clean-simplified";
+    this.simplifiedLayer.visible = mode === "simplified" || mode === "clean-simplified";
+    this.removedLayer.visible = mode === "simplified" || mode === "clean-simplified";
     const rawMaterial = this.rawLayer.children[0] && (this.rawLayer.children[0] as THREE.LineSegments).material as THREE.LineBasicMaterial;
-    if (rawMaterial) rawMaterial.opacity = mode === "raw" ? 0.9 : 0.32;
+    if (rawMaterial) rawMaterial.opacity = mode === "raw" ? 0.9 : 0.28;
+    const cleanMaterial = this.cleanLayer.children[0] && (this.cleanLayer.children[0] as THREE.LineSegments).material as THREE.LineBasicMaterial;
+    if (cleanMaterial) cleanMaterial.opacity = mode === "clean" ? 0.94 : mode === "raw-clean" ? 0.74 : 0.32;
   }
 
   setMarkerVisible(layer: MarkerLayer, visible: boolean): void {
@@ -240,7 +288,7 @@ class SpiderGraphComparisonRenderer {
     const end = graphNode(graph, edge.end);
     this.selectedLayer.add(lineSegments(
       [start.x, start.y, start.z, end.x, end.y, end.z],
-      0x7dffba,
+      0xffffff,
       1,
     ));
   }
@@ -271,25 +319,33 @@ function buildShell(app: HTMLElement): void {
       <header class="lab-header">
         <div class="lab-title">
           <h1>SKIN NETWORK LAB</h1>
-          <p>Raw / Clean Spider Graph visual comparison</p>
+          <p>Cleanup / author Simplification visual study</p>
         </div>
         <div class="lab-freeze-badge">SHADOW ONLY · production geometry unchanged</div>
         <div class="mode-switch" role="group" aria-label="Graph comparison mode">
           <button type="button" data-mode="raw" aria-pressed="false">Raw</button>
           <button type="button" data-mode="clean" aria-pressed="false">Clean</button>
-          <button type="button" data-mode="overlay" aria-pressed="true">Overlay</button>
+          <button type="button" data-mode="raw-clean" aria-pressed="false">Raw / Clean</button>
+          <button type="button" data-mode="simplified" aria-pressed="false">Simplified</button>
+          <button type="button" data-mode="clean-simplified" aria-pressed="true">Clean / Simplified</button>
+        </div>
+        <div class="level-switch" role="group" aria-label="Author simplification level">
+          <button type="button" data-level="none" aria-pressed="false">None</button>
+          <button type="button" data-level="low" aria-pressed="false">Low</button>
+          <button type="button" data-level="medium" aria-pressed="true">Medium</button>
+          <button type="button" data-level="high" aria-pressed="false">High</button>
         </div>
       </header>
       <main class="lab-main">
         <aside class="lab-panel">
           <h2>Graph facts</h2>
           <div class="stat-grid" id="graph-stats">
-            <span></span><span class="head">Raw</span><span class="head">Clean</span>
-            <span>Nodes</span><span class="raw" id="raw-nodes">—</span><span class="clean" id="clean-nodes">—</span>
-            <span>Edges</span><span class="raw" id="raw-edges">—</span><span class="clean" id="clean-edges">—</span>
-            <span>Components</span><span class="raw" id="raw-components">—</span><span class="clean" id="clean-components">—</span>
-            <span>Motif</span><span class="raw" id="raw-motif">—</span><span class="clean" id="clean-motif">—</span>
-            <span>Support</span><span class="raw" id="raw-support">—</span><span class="clean" id="clean-support">—</span>
+            <span></span><span class="head">Raw</span><span class="head">Clean</span><span class="head">Simplified</span>
+            <span>Nodes</span><span class="raw" id="raw-nodes">—</span><span class="clean" id="clean-nodes">—</span><span class="simplified" id="simplified-nodes">—</span>
+            <span>Edges</span><span class="raw" id="raw-edges">—</span><span class="clean" id="clean-edges">—</span><span class="simplified" id="simplified-edges">—</span>
+            <span>Components</span><span class="raw" id="raw-components">—</span><span class="clean" id="clean-components">—</span><span class="simplified" id="simplified-components">—</span>
+            <span>Motif</span><span class="raw" id="raw-motif">—</span><span class="clean" id="clean-motif">—</span><span class="simplified" id="simplified-motif">—</span>
+            <span>Support</span><span class="raw" id="raw-support">—</span><span class="clean" id="clean-support">—</span><span class="simplified" id="simplified-support">—</span>
           </div>
           <h2 style="margin-top: 16px">Layers</h2>
           <div class="legend">
@@ -301,14 +357,14 @@ function buildShell(app: HTMLElement): void {
             <label><input type="checkbox" data-layer="motif" checked /><span class="swatch motif"></span>Motif <span class="swatch support"></span>support target</label>
           </div>
         </aside>
-        <section class="viewport-wrap" aria-label="Raw and Clean Spider Graph comparison viewport">
+        <section class="viewport-wrap" aria-label="Clean and Simplified Spider Graph comparison viewport">
           <div id="network-lab-viewport"></div>
-          <div class="viewport-caption" id="mode-caption">Overlay · Raw cyan / Clean gold. Drag to orbit, wheel to zoom.</div>
+          <div class="viewport-caption" id="mode-caption">Clean / Simplified · Clean gold / retained green / removed red. Drag to orbit, wheel to zoom.</div>
         </section>
         <aside class="lab-panel is-right">
-          <h2>Clean edge provenance</h2>
-          <select class="provenance-select" id="provenance-edge" aria-label="Clean Edge provenance"></select>
-          <div class="provenance-card" id="provenance-detail">Loading…</div>
+          <h2>Edge decision</h2>
+          <select class="provenance-select" id="decision-edge" aria-label="Simplification Edge decision"></select>
+          <div class="provenance-card" id="decision-detail">Loading…</div>
           <ul class="finding-list" id="finding-list"></ul>
         </aside>
       </main>
@@ -352,6 +408,7 @@ async function start(): Promise<void> {
       })),
     ];
     const report = analyzeSpiderGraphCleanupLab(project.lattice, terminals);
+    const simplification = studySpiderGraphSimplification(report, terminals);
     statusText.textContent = "Surface contextを作成しています…（Spiderは含めません）";
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     const surface = buildSkinMesh(
@@ -367,7 +424,7 @@ async function start(): Promise<void> {
       0,
       null,
     );
-    renderer.install(report, surface, terminals);
+    renderer.install(report, simplification, surface, terminals);
 
     const setText = (id: string, value: string | number): void => {
       const element = document.getElementById(id);
@@ -387,7 +444,9 @@ async function start(): Promise<void> {
     const captions: Record<ComparisonMode, string> = {
       raw: "Raw · cyan 251 nodes / 270 edges. Generator outputをそのまま観察。",
       clean: "Clean · gold 101 nodes / 118 topological edges. straightは現在の表示realizationのみ。",
-      overlay: "Overlay · Raw cyan（薄） / Clean gold。経路の一致と欠落を比較。",
+      "raw-clean": "Raw / Clean · Raw cyan（薄） / Cleanup gold。TASK 16の対応を確認。",
+      simplified: "Simplified · retained green / author removal red。production未採用。",
+      "clean-simplified": "Clean / Simplified · Clean gold（薄） / retained green / removed red。",
     };
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
       button.addEventListener("click", () => {
@@ -406,42 +465,86 @@ async function start(): Promise<void> {
       });
     }
 
-    const select = document.getElementById("provenance-edge") as HTMLSelectElement;
-    const detail = document.getElementById("provenance-detail")!;
-    for (const edge of report.provenance.edges) {
-      const option = document.createElement("option");
-      option.value = String(edge.cleanEdgeId);
-      option.textContent = `Clean Edge ${edge.cleanEdgeId} ← ${edge.rawEdgeIds.length} Raw`;
-      select.appendChild(option);
-    }
-    const showProvenance = (): void => {
+    const select = document.getElementById("decision-edge") as HTMLSelectElement;
+    const detail = document.getElementById("decision-detail")!;
+    let activeResult = simplification.levels.medium;
+    const decisionOrder = (decisions: readonly SpiderEdgeSimplificationDecision[]): SpiderEdgeSimplificationDecision[] =>
+      [...decisions].sort((first, second) => {
+        const statusOrder = { removed: 0, "retained-by-level": 1, rejected: 2 } as const;
+        return statusOrder[first.status] - statusOrder[second.status]
+          || (first.removalOrder ?? Infinity) - (second.removalOrder ?? Infinity)
+          || second.removalScore - first.removalScore
+          || first.edgeId - second.edgeId;
+      });
+    const showDecision = (): void => {
       const cleanEdgeId = Number(select.value);
+      const decision = activeResult.decisions.find((entry) => entry.edgeId === cleanEdgeId)!;
       const lineage = report.provenance.edges.find((edge) => edge.cleanEdgeId === cleanEdgeId)!;
       const realization = report.cleanEdgeRealizations.find((entry) => entry.edgeId === cleanEdgeId)!;
-      detail.innerHTML = `<strong>Clean Edge ${cleanEdgeId}</strong><br />`
-        + `topology: Node ${report.cleanTopology.edges[cleanEdgeId].startNodeId} ↔ ${report.cleanTopology.edges[cleanEdgeId].endNodeId}<br />`
+      const edge = report.cleanTopology.edges.find((entry) => entry.id === cleanEdgeId)!;
+      const path = decision.alternativePath
+        ? `Edges <code>${decision.alternativePath.edgeIds.join(" → ")}</code><br />`
+          + `${decision.alternativePath.hopCount} hops · ${decision.alternativePath.detourRatio.toFixed(2)}x detour`
+        : "none (bridge)";
+      detail.innerHTML = `<strong>Clean Edge ${cleanEdgeId} · ${decision.status}</strong><br />`
+        + `topology: Node ${edge.startNodeId} ↔ ${edge.endNodeId}<br />`
         + `realization: <code>${realization.kind}</code> · radius ${realization.radius}<br />`
-        + `Raw Edges: <code>${lineage.rawEdgeIds.join(", ")}</code><br />`
+        + `removal score: <code>${decision.removalScore.toFixed(1)}</code> / criticality: <code>${decision.criticality.toFixed(3)}</code><br />`
+        + `<span class="detail-label">alternative path</span><br />${path}<br />`
+        + `<span class="detail-label">decision</span><br />${decision.reasons.join("<br />")}<br />`
+        + `<span class="detail-label">provenance</span><br />Raw Edges: <code>${lineage.rawEdgeIds.join(", ")}</code><br />`
         + `Collapsed Raw Nodes: <code>${lineage.collapsedRawNodeIds.join(", ") || "none"}</code>`;
       renderer.highlightCleanEdge(cleanEdgeId);
     };
-    const mostDerived = [...report.provenance.edges].sort((first, second) =>
-      second.rawEdgeIds.length - first.rawEdgeIds.length || first.cleanEdgeId - second.cleanEdgeId)[0];
-    select.value = String(mostDerived.cleanEdgeId);
-    select.addEventListener("change", showProvenance);
-    showProvenance();
-
-    document.getElementById("finding-list")!.innerHTML = `
-      <li>near-node pairs <b>${report.findings.nearlyCoincidentNodes.length}</b></li>
-      <li>Raw endpoint duplicates <b>${report.findings.duplicateEdges.length}</b></li>
-      <li>collinear overlaps <b>${report.findings.collinearOverlaps.length}</b></li>
-      <li>endpoint contacts <b>${report.findings.edgeIntersections.length}</b></li>
-      <li>micro edges <b>${report.findings.microEdges.length}</b></li>
-      <li>degree-2 collinear <b>${report.findings.degree2CollinearNodes.length}</b></li>`;
+    const installDecisionOptions = (): void => {
+      select.innerHTML = "";
+      for (const decision of decisionOrder(activeResult.decisions)) {
+        const option = document.createElement("option");
+        option.value = String(decision.edgeId);
+        const state = decision.status === "removed" ? `removed #${decision.removalOrder}`
+          : decision.status === "rejected" ? "reject"
+            : "optional";
+        option.textContent = `Edge ${decision.edgeId} · ${state} · score ${decision.removalScore.toFixed(1)}`;
+        select.appendChild(option);
+      }
+      select.value = String(decisionOrder(activeResult.decisions)[0].edgeId);
+      showDecision();
+    };
+    const renderLevel = (level: SpiderSimplificationLevel): void => {
+      activeResult = simplification.levels[level];
+      renderer.setSimplification(activeResult);
+      setText("simplified-nodes", activeResult.stats.nodeCount);
+      setText("simplified-edges", activeResult.stats.edgeCount);
+      setText("simplified-components", activeResult.stats.connectedComponents);
+      setText("simplified-motif", `${activeResult.stats.motifConnectivity.connectedCount}/38`);
+      setText("simplified-support", `${activeResult.stats.supportTargetConnectivity.connectedCount}/20`);
+      const rejected = activeResult.decisions.filter((decision) => decision.status === "rejected").length;
+      const optional = activeResult.decisions.filter((decision) => decision.status === "retained-by-level").length;
+      document.getElementById("finding-list")!.innerHTML = `
+        <li>cycle budget <b>${activeResult.removedEdgeIds.length}/${simplification.cycleBudget}</b></li>
+        <li>accepted removals <b>${activeResult.removedEdgeIds.length}</b></li>
+        <li>optional this level <b>${optional}</b></li>
+        <li>constraint rejects <b>${rejected}</b></li>
+        <li>cycle rank remaining <b>${activeResult.cycleRank}</b></li>
+        <li>graph criticality ≠ physical strength</li>`;
+      installDecisionOptions();
+      status.dataset.level = level;
+      statusText.textContent = `Ready · ${level} ${activeResult.stats.nodeCount} nodes / ${activeResult.stats.edgeCount} edges · component 1 · Motif 38/38 · support 20/20 · production未採用`;
+    };
+    select.addEventListener("change", showDecision);
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-level]")) {
+      button.addEventListener("click", () => {
+        const level = button.dataset.level as SpiderSimplificationLevel;
+        for (const candidate of document.querySelectorAll<HTMLButtonElement>("[data-level]")) {
+          candidate.setAttribute("aria-pressed", String(candidate === button));
+        }
+        renderLevel(level);
+      });
+    }
+    renderLevel("medium");
 
     status.dataset.ready = "true";
-    status.dataset.mode = "overlay";
-    statusText.textContent = "Ready · component 1→1 · Motif 38/38 · support 20/20 · Candidateはproduction未採用";
+    status.dataset.mode = "clean-simplified";
   } catch (error) {
     status.dataset.ready = "error";
     statusText.textContent = error instanceof Error ? error.message : String(error);

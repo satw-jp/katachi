@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.90.6",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-30",
+  "updatedAt": "2026-08-31",
   "params": [
     "count",
     "radiusBase",
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-31",
+      "note": "SKIN NETWORK LAB keeps TASK 15 Cleanup immutable and studies author-controlled Simplification as a separate downstream result. Clean 101/118 has cycle rank 18; None/Low/Medium/High deterministically remove 0/4/9/18 cycle edges and produce 101/118, 101/114, 101/109 and 101/100 while preserving one component, Motif 38/38 and support 20/20. Every round recomputes alternative path/detour, short-cycle redundancy, local density, degree, parallel-route proxy, terminal proximity and graph criticality; bridges or any connectivity violation are rejected, never randomly deleted. Every retained/removed decision preserves Clean-to-Raw provenance, score, order, alternate path and reasons. The dev-only visual Lab retains Raw/Clean comparison and adds Simplified/Clean-Simplified modes, level controls and an edge decision inspector. Real coordinate clicks exercised every level/mode and a bridge rejection; console warning/error 0. Graph criticality is not physical strength. Production generator, finalGraph, FKEI, STL/3MF, baseline and production build inputs remain unchanged."
+    },
     {
       "date": "2026-08-30",
       "note": "SKIN NETWORK LAB adds a dev-only /skin-network-lab.html visual comparison that is absent from the production Vite input and production SKIN REBUILD UI. The frozen first-print Raw 251/270 and shadow Clean 101/118 graphs switch by real Raw/Clean/Overlay controls over the same surface-only context built with internalGraph=null. Independent layers show retained nodes, collapsed degree-2 nodes, two near-node merges, four overlap removals, four unshared-ID endpoint contacts, all 38 Motif anchors and 20 support targets. Clean endpoint topology is separate from straight/radius realization; every Clean Edge stores contributing Raw Edge IDs and collapsed Raw Node IDs. Clean Edge 8 traces to Raw 20/21/28/29 and Nodes 56/63. Browser comparison showed the same main route/attachment footprint and no obvious hole at that overlap, but whether the denser 'spider feeling' is aesthetically preferable remains an author decision. No Save/export/adopt action exists; production generator, FKEI, STL/3MF and geometry remain unchanged; browser console warning/error 0."
