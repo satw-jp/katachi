@@ -16,6 +16,20 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — future geometry architecture (design only)
+
+実装を変えず、`docs/architecture/skin-rebuild-future-geometry-architecture.md`へ将来境界を定義した。
+BASEはMetaball/SDF、STL/Mesh import、将来sourceを共通Geometry capabilityへ隠蔽し、MOTIFは
+Coin/Ring/Flower、一筆Flower、Curve/SVG/Polyline、Customをversioned definitionとして扱う。
+Surface distributionは現行randomを保持しつつ`Base → Surface Graph → graph-aware random`を追加可能にする。
+
+NETWORKはNode/Edge topologyとStraight/Curve/Spline/Custom edge geometryを分離し、JUNCTION/MORPHは
+平面Motif→がく状transition→stem/networkと、接続方向・本数・強度によるversioned morphを担う。
+UI/FKEI/projectはbackend-neutral request/resultだけを共有し、CPUをreference/fallback、BrowserのWebGPUを
+optional accelerator、Windows RTX 3080のCUDAを外部adapterとした。CUDA型やbufferはUI/data modelへ入れない。
+実機結果後の段階migration gate、backend conformance、FKEI互換、座標不変testまで記述しただけで、runtime、
+保存schema、形状出力は変更していない。
+
 ### 2026-08-30 — Cloudflare deploy audit (authentication hold)
 
 公式の現行Workers Static Assets / Wrangler資料とWrangler 4.111.0で`wrangler.jsonc`を監査した。

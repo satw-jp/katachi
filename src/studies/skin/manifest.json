@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "実装無しの将来geometry architectureを文書化。BASE sourceを共通Geometry capabilityへ隠蔽、Coin/Ring/Flower/一筆Flower/Curve/SVG/Polyline/Custom Motifをversioned定義、Base→Surface Graph→graph-aware random distribution、Network topologyとStraight/Curve/Spline/Custom edge geometryの分離、Motif→がく状Junction→stem/network morphを設計。UI/FKEI/projectはbackend-neutralで、CPU reference/fallback、Browser WebGPU optional、Windows RTX 3080 CUDA外部adapterとしCUDA依存をUI/data modelから隔離。実機結果後のmigration/conformance/FKEI/座標gateだけを定義しruntime/schema/geometry outputは不変。"
+    },
+    {
+      "date": "2026-08-30",
       "note": "Cloudflare Workers Static Assets / Wrangler現行資料とWrangler 4.111.0でwrangler.jsoncを監査。assets.directory=./distは有効、production build後のdeploy --dry-runは121 assets・binding無しで成功。generic wrangler checkは無くalpha check startupだけ。whoami --jsonがloggedIn:falseのため、指定どおりproduction deploy、公開URL、公開Web FKEI Save/Restoreを保留しDEPLOYMENT.mdへ再開条件を記録。temporary deployへは迂回せず、compatibility dateもruntime freeze中のため不変。形状・UI runtime・schema変更無し。"
     },
     {
