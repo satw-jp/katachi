@@ -16,6 +16,22 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Base / Motif source abstraction migration plan (design only)
+
+現行Baseの`Ball[] + hostK`がhistory、`main.ts`、renderer/picking、field/mesh、診断と多数のWorker protocolへ
+渡る経路、Motifの`Patch`がshape/params、配置・cell provenance、実現済み球群、fusion/contact/bridgeを同居させる
+構造を棚卸しした。`docs/architecture/skin-rebuild-base-motif-abstraction-20260830.md`へ、portableな
+`BaseSource → BaseGeometry capabilities`と`MotifSource → MotifDefinition → MotifInstance → derived realization`の
+段階移行を記録した。
+
+Base共通能力はbounds、nearest surface、normal、deterministic sampling、inside/outside、optional signed distance、
+mesh realization、Base Surface Graph sourceを明示的なsupport/精度付きcontractにする。STL/MeshはBVH等でnearestと
+samplingを提供し、閉じた向き整合meshだけが符号／insideを回答し、open/non-manifoldはunknownとしてfail closedする。
+
+既存Patchのpoint配列はregenerateせずcompatibility realizationとして保持し、将来Coin/Ring/Flower/一筆Flower/
+Curve/SVG/Polyline/Customをlocal coordinates、transform、surface binding、portable parametersで表す。配置はBase kindを
+分岐せず共通surface providerと別物の`BaseSurfaceGraph`を使う。設計文書とStudy記録だけでgeometry/FKEI v1は変更していない。
+
 ### 2026-08-30 — Spider Network / Junction data model (design only)
 
 `InternalStructureGraph`、`GraphBuilder`、`buildSkinRebuildLattice()`、Stage 5B補強、

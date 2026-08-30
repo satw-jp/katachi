@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Base/Motif abstraction inventory finds Ball[]+hostK exposed through history, main orchestration, renderer/picking, field/mesh/diagnosis and many Worker protocols, while Patch combines reusable shape parameters, placement/cell provenance, exact realized spheres, fusion/contact repair and bridges. The migration plan separates portable BaseSource from backend-local BaseGeometry capabilities (bounds, nearest surface, normals, deterministic sampling, guarded inside/outside, optional signed distance, mesh and Base Surface Graph source) and separates MotifSource/Definition/Instance/surface binding from derived realization. STL/Mesh uses canonical transforms, BVH nearest/sampling and fail-closed sign for open/non-manifold input. Placement consumes a common surface provider and distinct BaseSurfaceGraph, never Base kind. Current Patch points remain the authoritative compatibility realization; FKEI v1/runtime/geometry remain unchanged and migration proceeds operation-by-operation only after the physical-print gate."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Spider Network/Junction architecture maps current InternalStructureGraph, GraphBuilder/lattice generation, Stage 5B reinforcement, derived finalGraph and strict FKEI v1 persistence to a future portable model. Stable Node/Edge topology is separated from straight/polyline/Bezier/spline/custom realization, radius/profile, provenance, permanent/removable disposition and semantic roles. Deterministic Graph Cleanup preserves morphology and emits aliases/lineage/audits; author-controlled Graph Simplification is a separate structural operation. Junction intent stores Motif and Network identity, position/frame, incoming directions/count, influence radius, morph strength and transition type, while Web/CUDA GeometryEngine realizes curves, Calyx morphology, union and mesh. FKEI v1/runtime/geometry remain unchanged; future raw/cleaned topology, simplification and junction fields require a new versioned migration after the physical-print gate."
     },
     {
