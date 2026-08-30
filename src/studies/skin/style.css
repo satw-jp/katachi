@@ -2805,6 +2805,36 @@ details.mesh-export:not([open]) > :not(summary) {
   border-left: 0;
 }
 
+.skin-rebuild-phase-navigator {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--hairline);
+  background: #ebe9e2;
+  color: var(--ink);
+}
+
+.skin-rebuild-phase-navigator button {
+  min-width: 28px;
+  min-height: 26px;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+.skin-rebuild-phase-navigator output {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .skin-frozen-experiments {
   display: flex;
   flex: 0 0 auto;

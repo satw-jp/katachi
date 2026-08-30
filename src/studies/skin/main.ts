@@ -259,6 +259,10 @@ import {
   type SkinRebuildFkeiDocument,
 } from "./rebuild/fkei.ts";
 import {
+  SKIN_REBUILD_WORKFLOW_PHASES,
+  moveSkinRebuildWorkflowPhase,
+} from "./rebuild/workflowPhaseNavigator.ts";
+import {
   applySupportPaintToPolicyResult,
   assignOverhangSupportTargets,
   OVERHANG_SUPPORT_POLICY,
@@ -2649,6 +2653,43 @@ else ui.root.appendChild(phaseASupportPanel);
 syncPhaseAVerticalControl();
 
 rightPaneBody.appendChild(ui.root);
+if (isSkinRebuildApp) {
+  const phaseNavigator = document.createElement("nav");
+  phaseNavigator.className = "skin-rebuild-phase-navigator";
+  phaseNavigator.setAttribute("aria-label", "SKIN REBUILD phase navigation");
+  const previousPhaseButton = document.createElement("button");
+  previousPhaseButton.type = "button";
+  previousPhaseButton.textContent = "←";
+  previousPhaseButton.setAttribute("aria-label", "前の制作フェーズ");
+  const phaseOutput = document.createElement("output");
+  phaseOutput.setAttribute("aria-live", "polite");
+  const nextPhaseButton = document.createElement("button");
+  nextPhaseButton.type = "button";
+  nextPhaseButton.textContent = "→";
+  nextPhaseButton.setAttribute("aria-label", "次の制作フェーズ");
+  let currentPhaseIndex = 0;
+
+  const refreshPhaseNavigator = (): void => {
+    const phase = SKIN_REBUILD_WORKFLOW_PHASES[currentPhaseIndex];
+    phaseOutput.textContent = `${currentPhaseIndex + 1} / ${SKIN_REBUILD_WORKFLOW_PHASES.length} ${phase.label}`;
+    previousPhaseButton.disabled = currentPhaseIndex === 0;
+    nextPhaseButton.disabled = currentPhaseIndex === SKIN_REBUILD_WORKFLOW_PHASES.length - 1;
+  };
+  const movePhase = (direction: -1 | 1): void => {
+    currentPhaseIndex = moveSkinRebuildWorkflowPhase(currentPhaseIndex, direction);
+    const phase = SKIN_REBUILD_WORKFLOW_PHASES[currentPhaseIndex];
+    const target = ui.root.querySelector<HTMLElement>(`#${phase.targetId}`);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    refreshPhaseNavigator();
+  };
+
+  previousPhaseButton.addEventListener("click", () => movePhase(-1));
+  nextPhaseButton.addEventListener("click", () => movePhase(1));
+  phaseNavigator.append(previousPhaseButton, phaseOutput, nextPhaseButton);
+  rightPaneBody.insertBefore(phaseNavigator, ui.root);
+  refreshPhaseNavigator();
+}
 leftPaneBody.appendChild(ui.displayToolsRoot);
 let refreshSkinRebuildAxomeRollControl = () => {};
 if (isSkinRebuildApp) {

@@ -16,6 +16,17 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — four-phase production navigator
+
+右WORKFLOWの最上部に、常時表示する`← 1 / 4 BASE SHAPE →`型の制作フェーズナビを追加した。
+4フェーズは`BASE SHAPE`、`SURFACE PATTERN`、`NETWORK`、`PRINT / EXPORT`で、左右矢印は
+既存Stage 1、2、3、6の先頭を開いてスクロールする。端では矢印をdisabledにする。
+
+これは既存8工程を再実装せず、同じDOM、callback、history、Graph / Dry Web / Spider、mesh、診断、
+FKEI、export controlへ焦点を移すだけのUI層である。実ブラウザで1→4と4→1を実クリックし、ナビが
+右ペイン上部に残ること、Base / Surface / Network / Print controlが残ること、console issue 0件を確認した。
+形状・座標・判定・出力値は変更していない。
+
 ### 2026-08-30 — legacy JSON controls removed from REBUILD only
 
 上部PROJECTから旧`履歴を書き出す (Export JSON)`と`skin 履歴を読み込む`をSKIN REBUILDに
