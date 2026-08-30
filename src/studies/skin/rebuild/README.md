@@ -16,6 +16,22 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — Spider Graph Cleanup laboratory (shadow only)
+
+同梱first-print `.fkei`の保存済みSpider 251 node / 270 edgeを読み取り、production
+`buildSkinRebuildLattice()`へ戻さないshadow-only解析を追加した。Raw上のendpoint-ID duplicateは0件だが、
+距離`3.10e-17`と`5.55e-17`のnearly coincident nodeが2組あり、それぞれの周囲に計4組の
+equal-radius collinear overlapと、共有IDを持たないendpoint接触4件があった。micro edgeは0、
+equal-radiusの厳密collinear degree-2 route nodeは150件だった。
+
+Candidateは近接node 2組をmergeすると露出するduplicate edge 4本を除き、terminalでなく厳密collinearな
+degree-2 nodeを148件collapseした結果、101 node / 118 edgeとなった。componentは1→1、Motif terminalは
+38/38、support target terminalは20/20で同じcomponent partitionを維持した。総edge長は
+125.72856977474008→123.79283631872248（差-1.9357334560176014）で、差は4本の重複区間長と一致する。
+これはproduction geometry採用ではなく、Raw/Candidate分離、入力不変、terminal保護、合成fixture、baseline SHAを
+testで固定した観察である。near-collinear、protected/異径node、interior split、curve joinは自動Cleanupにせず
+Simplificationまたは将来の明示policyへ残す。
+
 ### 2026-08-30 — Base Surface Graph / graph-aware distribution (design only)
 
 現行`packPatchesGreedy()`のbounds乱数→SDF内判定→表面投影→Euclidean clearance→Motif実現という

@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-30",
+      "note": "SKIN REBUILD Spider Graph Cleanup laboratory reads the frozen first-print Spider as immutable Raw Graph and produces a separate shadow Candidate only. Raw 251/270/1 component becomes Candidate 101/118/1 after two same-component near-node merges, four duplicates exposed by those merges, and 148 exact equal-radius unprotected degree-2 collapses. Motif 38/38 and support targets 20/20 retain the same component partitions. Raw exact endpoint duplicates and micro edges are zero; findings include two near-node pairs, four equal-radius collinear overlaps, four unshared-ID endpoint contacts and 150 exact degree-2 nodes. The 1.9357334560176014 length reduction equals the four revealed duplicate spans. Intersections/overlaps and any near-collinear or protected case remain review-only; production lattice generation, UI, FKEI, export and baseline are unchanged."
+    },
+    {
+      "date": "2026-08-30",
       "note": "SKIN REBUILD Base Surface Graph / graph-aware distribution design maps current bounds-random SDF projection/clearance/realization and keeps it as legacy-random-pack-v1. The portable BaseSurfaceGraph is generated for Metaball/SDF or STL/Mesh by deterministic Poisson surface samples plus mutual local kNN and surface-plausibility filters; Nodes carry binding, position/normal/frame, scale/confidence-aware curvature, area/spacing, boundary and optional thickness/structural facts, while Edges carry local surface adjacency, geodesic-like distance, endpoint tangent directions and optional weights. The first new placement is seeded graph Poisson with independent candidate/position/orientation/scale/noise stochasticity, returning backend-neutral PlacementIntent before Motif realization. Base Surface, placed-Motif SurfaceGraph and Network remain distinct with explicit provenance links. Future FKEI/GeometryEngine and a Metaball-to-Flower vertical slice are specified; runtime, schema, geometry, dependency and baseline remain unchanged."
     },
     {
