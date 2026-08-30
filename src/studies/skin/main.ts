@@ -2451,10 +2451,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
 
 syncArtworkGraphStatus();
 
-// Move the existing history DOM nodes into PROJECT without rebuilding them or
-// registering a second set of handlers. The Properties root keeps all other
-// controls, including Shape/Paint Undo and the frozen experiment group.
-projectActions.appendChild(ui.historyIoRoot);
+// The REBUILD production shell keeps the shared journal, Undo/Redo, recipe and
+// FKEI callbacks, but does not expose the superseded raw JSON transfer controls.
+// The original SKIN entry point retains the exact existing nodes and handlers.
+if (isSkinRebuildApp) ui.historyIoRoot.remove();
+else projectActions.appendChild(ui.historyIoRoot);
 
 interface PhaseASupportPreviewSettings {
   supportMode: SupportForestMode;

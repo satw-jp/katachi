@@ -16,6 +16,15 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-30 — legacy JSON controls removed from REBUILD only
+
+上部PROJECTから旧`履歴を書き出す (Export JSON)`と`skin 履歴を読み込む`をSKIN REBUILDに
+限って非表示にした。削除対象は既存DOMのmountだけで、内部history journal、Undo / Redo、Shape Recipe、
+`.fkei` Open / Save、復元処理とcallbackはそのまま保持する。旧`/skin.html`では同じJSON入出力UIを維持した。
+
+実ブラウザでREBUILD側の旧control 0件、`.fkei Open`／`.fkei Save`／Undo／Redoの残存、旧SKIN側の
+JSON export／import残存、両ページのconsole warning/error 0件を確認した。形状生成・判定・修復・出力座標は変更していない。
+
 ### 2026-08-30 — Axome camera roll / horizontal print-plate view
 
 左TOOLSの印刷プレート表示付近へ`Axome roll調整`と`水平に戻す`を追加した。現在のAxome

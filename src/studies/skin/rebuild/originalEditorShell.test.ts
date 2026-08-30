@@ -40,6 +40,15 @@ assert.match(main, /完成 Sample/);
 assert.match(main, /Axome roll調整/);
 assert.match(main, /水平に戻す/);
 assert.match(main, /camera\.upだけを調整します。モデル・プレート座標・書き出しは変わりません/);
+assert.match(
+  main,
+  /if \(isSkinRebuildApp\) ui\.historyIoRoot\.remove\(\);[\s\S]{0,120}else projectActions\.appendChild\(ui\.historyIoRoot\);/,
+  "REBUILD must hide only the legacy JSON controls while the original SKIN entry point retains them",
+);
+assert.match(ui, /onExport: \(\) => void/,
+  "removing the REBUILD controls must not remove the shared internal history export callback");
+assert.match(ui, /onImportFile: \(file: File\) => void/,
+  "removing the REBUILD controls must not remove the shared internal history import callback");
 assert.match(renderer, /setSelectedAxomeRollDegrees/);
 assert.match(renderer, /slot\.direction !== "axome"/,
   "roll adjustment must be unavailable for Top, Front, and side cameras");
