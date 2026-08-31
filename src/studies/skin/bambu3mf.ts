@@ -302,6 +302,15 @@ export function buildBambu3mfPackageEntries(
   const ty = plateCenter.y - (bodyBounds.minY + bodyBounds.maxY) / 2;
   const tz = -Math.min(...allBounds.map((bounds) => bounds.minZ));
   const instanceTransform = `1 0 0 0 1 0 0 0 1 ${xmlNumber(tx)} ${xmlNumber(ty)} ${xmlNumber(tz)}`;
+  const hasEnforcer = sourceIndexed.some((item) => item.volume.role === "support_enforcer");
+  const hasScaffold = sourceIndexed.some((item) => item.volume.role === "printable_support");
+  const description = hasScaffold
+    ? (options.mergePrintableSupportIntoBody
+      ? "Katachi SKIN fused BODY and printable support"
+      : "Katachi SKIN artwork and printable support as separate parts")
+    : hasEnforcer
+      ? "Katachi SKIN BODY with Bambu support enforcer; no printable support part"
+      : "Katachi SKIN BODY-only; no printable support";
 
   const subModel: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>\n',
@@ -324,7 +333,7 @@ export function buildBambu3mfPackageEntries(
     ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n',
     ` <metadata name="Katachi:Generator">Katachi SKIN ${generatorVersion}</metadata>\n`,
     ` <metadata name="Title">${title}</metadata>\n`,
-    ` <metadata name="Description">${options.mergePrintableSupportIntoBody ? "Katachi SKIN fused BODY and scaffold" : "Katachi SKIN artwork and printable support as separate parts"}</metadata>\n`,
+    ` <metadata name="Description">${description}</metadata>\n`,
     ` <metadata name="CreationDate">${date}</metadata>\n <metadata name="ModificationDate">${date}</metadata>\n`,
     ` <resources>\n  <object id="${objectId}" p:UUID="00000001-61cb-4c03-9d28-80fed5dfa1dc" type="model">\n   <components>\n`,
     components,
@@ -335,8 +344,6 @@ export function buildBambu3mfPackageEntries(
   ].join("");
 
   const totalFaces = indexed.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
-  const hasEnforcer = sourceIndexed.some((item) => item.volume.role === "support_enforcer");
-  const hasScaffold = sourceIndexed.some((item) => item.volume.role === "printable_support");
   const parts = indexed.map(({ volume, mesh }, index) => [
     `    <part id="${index + 1}" subtype="${subtype(volume.role)}">\n`,
     `      <metadata key="name" value="${xmlEscape(volume.name)}"/>\n`,

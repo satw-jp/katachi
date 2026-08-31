@@ -16,6 +16,7 @@ import {
 } from "./fkei.ts";
 import {
   DEFAULT_SKIN_REBUILD_SETTINGS,
+  auditSkinRebuildPrintSupportBodyKeepOut,
   auditSkinRebuildLatticeBaseContainment,
   assembleSkinRebuildProject,
   buildSkinRebuildDryWeb,
@@ -557,6 +558,11 @@ const supportFixtureLowestPoints = (): SkinRebuildLowestPoint[] => [
     basis: "sourceSphere",
   },
 ];
+const supportFixturePatterns = () => [{
+  id: 2,
+  shape: "ring3d" as const,
+  points: [{ x: 0, y: 0, z: 3, r: 0.006 }],
+}];
 function supportFixtureArtwork(includeSeparatedObstruction: boolean, includeTerminalTarget: boolean): InternalStructureGraph {
   const graph = createEmptySkinRebuildGraph();
   const nodes = [] as InternalStructureGraph["nodes"];
@@ -580,7 +586,7 @@ function supportFixtureArtwork(includeSeparatedObstruction: boolean, includeTerm
 }
 const clearSupport = buildSkinRebuildPrintSupport(
   supportFixtureBase,
-  [],
+  supportFixturePatterns(),
   [],
   supportFixtureLowestPoints(),
   supportFixtureArtwork(false, false),
@@ -592,17 +598,17 @@ assert.equal(clearSupport.stats.rejectedByBodyIntersection, 0);
 assert.equal(clearSupport.stats.unsupportedCount, 0);
 const terminalSupport = buildSkinRebuildPrintSupport(
   supportFixtureBase,
-  [],
+  supportFixturePatterns(),
   [],
   supportFixtureLowestPoints(),
-  supportFixtureArtwork(false, true),
+  supportFixtureArtwork(false, false),
   supportFixtureSettings,
 );
 assert.equal(terminalSupport.stats.acceptedSupportCount, 1, "intended terminal Body contact must be allowed");
 assert.equal(terminalSupport.stats.rejectedByBodyIntersection, 0);
 const obstructedSupport = buildSkinRebuildPrintSupport(
   supportFixtureBase,
-  [],
+  supportFixturePatterns(),
   [],
   supportFixtureLowestPoints(),
   supportFixtureArtwork(true, true),
@@ -615,5 +621,55 @@ assert.equal(obstructedSupport.stats.unsupportedCount, 1);
 assert.equal(obstructedSupport.stats.unsupportedCount,
   obstructedSupport.stats.requestedTargets! - obstructedSupport.stats.acceptedSupportCount!,
   "no-reroute accounting must expose the rejected candidate as unsupported");
+
+const terminalTarget = (
+  position: { x: number; y: number; z: number },
+  radius: number,
+  targetSdf: (x: number, y: number, z: number) => number,
+  otherBodySdf: (x: number, y: number, z: number) => number,
+) => ({
+  kind: "surface" as const,
+  position,
+  radius,
+  targetSdf,
+  otherBodySdf,
+  maximumOverlapLength: 0.5,
+  maximumDepth: 0.5,
+});
+const hiddenBetweenSamples = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 1 },
+  1,
+  (_x, _y, z) => 1 + Math.abs(z - 0.1),
+);
+assert.equal(hiddenBetweenSamples.accepted, false, "a Lipschitz-tangent obstacle between old sample points must reject");
+assert.equal(hiddenBetweenSamples.rejectedByBodyIntersection, true);
+const nonLipschitzEndpointPair = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 1 },
+  0.1,
+  (_x, _y, z) => z === 0 ? 100 : 0,
+);
+assert.equal(nonLipschitzEndpointPair.accepted, false, "a non-Lipschitz endpoint pair must fail closed");
+assert.equal(nonLipschitzEndpointPair.rejectedByBodyIntersection, true);
+const intendedTargetSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 2) - 0.05;
+const wrongTerminalSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 1.9) - 0.04;
+const wrongTerminal = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 2 },
+  0.1,
+  (x, y, z) => Math.min(intendedTargetSdf(x, y, z), wrongTerminalSdf(x, y, z)),
+  terminalTarget({ x: 0, y: 0, z: 2 }, 0.05, intendedTargetSdf, wrongTerminalSdf),
+);
+assert.equal(wrongTerminal.accepted, false, "a wrong Body obstruction near the endpoint must not use the intended target allowance");
+assert.equal(wrongTerminal.rejectedByBodyIntersection, true);
+const intendedTerminal = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 2 },
+  0.1,
+  intendedTargetSdf,
+  terminalTarget({ x: 0, y: 0, z: 2 }, 0.05, intendedTargetSdf, () => 1e5),
+);
+assert.equal(intendedTerminal.accepted, true, "a legitimate intended terminal contact must remain accepted");
 
 console.log("skin-rebuild model tests passed", JSON.stringify(project.audit));

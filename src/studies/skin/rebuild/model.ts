@@ -165,6 +165,23 @@ export interface SkinRebuildPrintSupportBodyCheck {
   sampleCount: number;
 }
 
+/** Exact geometry used to justify the only permitted BODY overlap: the final
+ * contact of one removable pillar with its intended target.  The target and
+ * non-target evaluators are kept separate so a nearby wrong member cannot be
+ * hidden by the endpoint exception.  Both evaluators use signed-distance
+ * convention (negative inside) and must be conservative 1-Lipschitz fields. */
+export interface SkinRebuildPrintSupportTerminalTarget {
+  kind: "surface" | "node" | "edge";
+  position: Vector3Value;
+  /** Radius of the authored target primitive, not the support radius. */
+  radius: number;
+  targetSdf: (x: number, y: number, z: number) => number;
+  otherBodySdf: (x: number, y: number, z: number) => number;
+  /** Finite, target-specific bounds on the permitted terminal suffix. */
+  maximumOverlapLength: number;
+  maximumDepth: number;
+}
+
 export interface SkinRebuildOverhangReinforcement {
   lattice: InternalStructureGraph;
   /** Standalone copy of only the accepted face-to-web members.  Keeping this
@@ -246,8 +263,6 @@ const EPSILON = 1e-9;
 const PRINT_SUPPORT_KEEP_OUT_STEP_FACTOR = 0.2;
 const PRINT_SUPPORT_KEEP_OUT_MIN_STEP = 1e-5;
 const PRINT_SUPPORT_KEEP_OUT_MAX_INTERVALS = 32_768;
-const PRINT_SUPPORT_TERMINAL_OVERLAP_LENGTH_FACTOR = 1.5;
-const PRINT_SUPPORT_TERMINAL_OVERLAP_DEPTH_FACTOR = 1.5;
 const PRINT_SUPPORT_BODY_CLEARANCE_EPSILON = 1e-7;
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -288,6 +303,28 @@ function validateSettings(input: SkinRebuildSettings): SkinRebuildSettings {
 
 function length(a: Vector3Value, b: Vector3Value): number {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+function pointToCapsuleSignedDistance(
+  x: number,
+  y: number,
+  z: number,
+  start: Vector3Value,
+  end: Vector3Value,
+  radius: number,
+): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const dz = end.z - start.z;
+  const denominator = dx * dx + dy * dy + dz * dz;
+  const t = denominator > EPSILON
+    ? clamp(((x - start.x) * dx + (y - start.y) * dy + (z - start.z) * dz) / denominator, 0, 1)
+    : 0;
+  return Math.hypot(
+    x - (start.x + dx * t),
+    y - (start.y + dy * t),
+    z - (start.z + dz * t),
+  ) - radius;
 }
 
 function horizontalDistance(a: Vector3Value, b: Vector3Value): number {
@@ -2214,23 +2251,52 @@ export function mergeSkinRebuildGraphsAtSupportContacts(
   return mergeSkinRebuildGraphs(splitArtwork, support);
 }
 
+function oneLipschitzIntervalLowerBound(first: number, second: number, intervalLength: number): number {
+  if (!Number.isFinite(first) || !Number.isFinite(second) || !Number.isFinite(intervalLength) || intervalLength < 0) {
+    return Number.NaN;
+  }
+  // For a 1-Lipschitz SDF on [0, L], f(s) is bounded below by both cones
+  // f(0)-s and f(L)-(L-s).  Their intersection gives the tight endpoint-only
+  // lower bound; the `-L` term is the interval half-length contribution after
+  // the two cones are averaged.  A value at or below the support radius means
+  // tangency or a possible sub-sample capsule contact and is not clear.
+  const difference = Math.abs(first - second);
+  const tolerance = 1e-9 * Math.max(1, Math.abs(first), Math.abs(second), intervalLength);
+  // A larger endpoint jump cannot be produced by a 1-Lipschitz SDF over this
+  // interval.  Do not turn that contract violation into an apparently clear
+  // route: NaN is intentionally rejected by the caller.
+  if (difference > intervalLength + tolerance) return Number.NaN;
+  if (difference >= intervalLength) return Math.min(first, second);
+  return (first + second - intervalLength) * 0.5;
+}
+
 /** Screen one vertical removable-support candidate against the authoritative
- * finished-BODY field.  Samples are bounded and spaced at most 0.2 support
- * radii apart.  The only permitted Body overlap is a contiguous, radius-scale
- * suffix at the intended terminal endpoint; a separated obstruction or an
- * unbounded trip through Body material is rejected. */
+ * finished-BODY field.  The interval lower bound is conservative for every
+ * segment, so sparse samples cannot tunnel through a shallow Motif or Web
+ * member.  The only permitted Body overlap is a bounded contiguous suffix
+ * attributable to the exact terminal target; a separated or non-target
+ * obstruction rejects the candidate. */
 export function auditSkinRebuildPrintSupportBodyKeepOut(
   start: Vector3Value,
   end: Vector3Value,
   radius: number,
   bodySdf: (x: number, y: number, z: number) => number,
-  terminalTargetRadius = 0,
+  terminalTarget?: SkinRebuildPrintSupportTerminalTarget,
 ): SkinRebuildPrintSupportBodyCheck {
   const routeLength = Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
   if (![start.x, start.y, start.z, end.x, end.y, end.z, radius, routeLength].every(Number.isFinite)
-    || !(radius > EPSILON) || !(routeLength > EPSILON)
-    || !Number.isFinite(terminalTargetRadius) || terminalTargetRadius < 0) {
+    || !(radius > EPSILON) || !(routeLength > EPSILON)) {
     return { accepted: false, rejectedByBodyIntersection: false, sampleCount: 0 };
+  }
+  const target = terminalTarget;
+  if (target && (!target.position
+    || ![target.position.x, target.position.y, target.position.z, target.radius,
+      target.maximumOverlapLength, target.maximumDepth].every(Number.isFinite)
+    || target.radius < 0 || target.maximumOverlapLength < 0 || target.maximumDepth < 0
+    || !["surface", "node", "edge"].includes(target.kind)
+    || typeof target.targetSdf !== "function" || typeof target.otherBodySdf !== "function"
+    || length(target.position, end) > 1e-7)) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: 0 };
   }
   const maximumStep = Math.max(radius * PRINT_SUPPORT_KEEP_OUT_STEP_FACTOR, PRINT_SUPPORT_KEEP_OUT_MIN_STEP);
   const requiredIntervals = Math.max(2, Math.ceil(routeLength / maximumStep));
@@ -2242,8 +2308,12 @@ export function auditSkinRebuildPrintSupportBodyKeepOut(
   }
   const intervals = requiredIntervals;
   const intervalLength = routeLength / intervals;
+  if (!Number.isFinite(intervalLength) || !(intervalLength > 0)) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: 0 };
+  }
   const bodyDistances: number[] = [];
-  const intersectsBody: boolean[] = [];
+  const targetDistances: number[] = [];
+  const otherBodyDistances: number[] = [];
   for (let index = 0; index <= intervals; index++) {
     const t = index / intervals;
     const point = {
@@ -2252,49 +2322,62 @@ export function auditSkinRebuildPrintSupportBodyKeepOut(
       z: start.z + (end.z - start.z) * t,
     };
     const distance = bodySdf(point.x, point.y, point.z);
+    const targetDistance = target?.targetSdf(point.x, point.y, point.z) ?? 1e5;
+    const otherBodyDistance = target?.otherBodySdf(point.x, point.y, point.z) ?? 1e5;
+    if (![distance, targetDistance, otherBodyDistance].every(Number.isFinite)) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+    }
     bodyDistances.push(distance);
-    // A support capsule of radius r is outside the Body only when its
-    // centreline has at least r of positive Body-field clearance.  Treat
-    // tangency as a collision for every intermediate sample; only the
-    // intended terminal suffix receives the explicit contact allowance.
-    intersectsBody.push(!Number.isFinite(distance)
-      || distance <= radius + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON);
+    targetDistances.push(targetDistance);
+    otherBodyDistances.push(otherBodyDistance);
   }
   // The plate-side root is never an intended Body terminal.  If it already
   // overlaps, allowing a short suffix would hide a support born inside BODY.
-  if (intersectsBody[0]) {
+  if (bodyDistances[0] <= radius + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
     return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
   }
-  let firstIntersection = -1;
-  for (let index = 1; index <= intervals; index++) {
-    if (intersectsBody[index]) {
-      firstIntersection = index;
-      break;
+  const threshold = radius + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON;
+  const bodyLowerBounds: number[] = [];
+  let firstPossibleIntersection = -1;
+  for (let index = 0; index < intervals; index++) {
+    const bodyLowerBound = oneLipschitzIntervalLowerBound(
+      bodyDistances[index], bodyDistances[index + 1], intervalLength,
+    );
+    const otherBodyLowerBound = oneLipschitzIntervalLowerBound(
+      otherBodyDistances[index], otherBodyDistances[index + 1], intervalLength,
+    );
+    if (!Number.isFinite(bodyLowerBound) || !Number.isFinite(otherBodyLowerBound)) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+    }
+    // Any possible non-target capsule contact is always a rejection, including
+    // one near the intended endpoint.  This is the ownership check that keeps
+    // a wrong Motif/member from masquerading as terminal attachment.
+    if (otherBodyLowerBound <= threshold) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+    }
+    bodyLowerBounds.push(bodyLowerBound);
+    if (bodyLowerBound <= threshold && firstPossibleIntersection < 0) {
+      firstPossibleIntersection = index;
     }
   }
-  if (firstIntersection < 0) {
+  if (firstPossibleIntersection < 0) {
     return { accepted: true, rejectedByBodyIntersection: false, sampleCount: intervals + 1 };
   }
-  // Any clear sample after the first hit proves that the route leaves Body
-  // material before reaching its terminal target.  This is a separated
-  // obstruction, not a permitted terminal attachment.
-  for (let index = firstIntersection; index <= intervals; index++) {
-    if (!intersectsBody[index]) {
+  if (!target || targetDistances[intervals] > threshold) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+  }
+  // Every uncertain/possible interval after the first must remain a suffix to
+  // the endpoint and have a definite target-zone sample at its later end.
+  // A definitely clear gap therefore cannot be hidden by the endpoint rule.
+  for (let index = firstPossibleIntersection; index < intervals; index++) {
+    if (bodyLowerBounds[index] > threshold || targetDistances[index + 1] > threshold) {
       return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
     }
   }
-  const terminalOverlapLength = (intervals - firstIntersection) * intervalLength;
-  const terminalDepth = Math.max(0, -bodyDistances[intervals]);
-  // The endpoint can be embedded in the intended target's own finite body
-  // radius (for example a shallow Web member or the Surface thickness).  The
-  // support radius is still included; this allowance is passed per candidate
-  // and does not turn an intermediate collision into a valid route.
-  const maximumTerminalOverlap = terminalTargetRadius
-    + radius * PRINT_SUPPORT_TERMINAL_OVERLAP_LENGTH_FACTOR;
-  const maximumTerminalDepth = terminalTargetRadius
-    + radius * PRINT_SUPPORT_TERMINAL_OVERLAP_DEPTH_FACTOR;
-  if (terminalOverlapLength > maximumTerminalOverlap + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON
-    || terminalDepth > maximumTerminalDepth + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
+  const terminalOverlapLength = (intervals - firstPossibleIntersection) * intervalLength;
+  const terminalDepth = Math.max(0, -targetDistances[intervals]);
+  if (terminalOverlapLength > target.maximumOverlapLength + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON
+    || terminalDepth > target.maximumDepth + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
     return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
   }
   return { accepted: true, rejectedByBodyIntersection: false, sampleCount: intervals + 1 };
@@ -2449,6 +2532,105 @@ export function buildSkinRebuildPrintSupport(
     ...finishedBodyInput,
     internalGraph: artwork,
   });
+  const patchById = new Map(patterns.map((patch) => [patch.id, patch]));
+  const patchTargetSdfById = new Map<number, (x: number, y: number, z: number) => number>();
+  const patchOtherBodySdfById = new Map<number, (x: number, y: number, z: number) => number>();
+  for (const patch of patterns) {
+    patchTargetSdfById.set(patch.id, createFinishedSkinBodySdfEvaluator({
+      ...finishedBodyInput,
+      patches: [patch],
+      internalGraph: null,
+    }));
+    patchOtherBodySdfById.set(patch.id, createFinishedSkinBodySdfEvaluator({
+      ...finishedBodyInput,
+      patches: patterns.filter((candidate) => candidate.id !== patch.id),
+      internalGraph: artwork,
+    }));
+  }
+  const graphWithoutEdges = (removedEdgeIds: ReadonlySet<number>): InternalStructureGraph => ({
+    ...artwork,
+    edges: artwork.edges.filter((edge) => !removedEdgeIds.has(edge.id)),
+  });
+  const makeTerminalTarget = (
+    kind: SkinRebuildPrintSupportTerminalTarget["kind"],
+    position: Vector3Value,
+    targetRadius: number,
+    targetSdf: (x: number, y: number, z: number) => number,
+    otherBodySdf: (x: number, y: number, z: number) => number,
+    geometryRadius = targetRadius,
+  ): SkinRebuildPrintSupportTerminalTarget => ({
+    kind,
+    position: { ...position },
+    radius: targetRadius,
+    targetSdf,
+    otherBodySdf,
+    // The target field supplies the attribution; these finite bounds only
+    // stop an accepted contact from travelling an unbounded distance through
+    // a large target primitive.
+    maximumOverlapLength: Math.max(0, geometryRadius) + supportRadius * 2,
+    maximumDepth: Math.max(0, geometryRadius) + supportRadius * 2,
+  });
+  const makeSurfaceTarget = (point: SkinRebuildLowestPoint): SkinRebuildPrintSupportTerminalTarget => {
+    const patch = patchById.get(point.patchId);
+    const targetSdf = patchTargetSdfById.get(point.patchId);
+    const otherBodySdf = patchOtherBodySdfById.get(point.patchId);
+    if (patch && targetSdf && otherBodySdf) {
+      const geometryRadius = Math.max(
+        settings.surfaceThickness,
+        ...patch.points.map((patchPoint) => patchPoint.r),
+      );
+      return makeTerminalTarget(
+        "surface",
+        point.position,
+        settings.surfaceThickness,
+        targetSdf,
+        otherBodySdf,
+        geometryRadius,
+      );
+    }
+    // A malformed/legacy point with no matching Pattern has no attributable
+    // surface target.  Keep it fail-closed by treating the complete Body as
+    // non-target material instead of silently granting endpoint contact.
+    const fallbackTargetSdf = (x: number, y: number, z: number): number =>
+      Math.hypot(x - point.position.x, y - point.position.y, z - point.position.z) - settings.surfaceThickness;
+    return makeTerminalTarget("surface", point.position, settings.surfaceThickness, fallbackTargetSdf, bodySdf);
+  };
+  const makeNodeTarget = (
+    nodeIndex: number,
+    node: InternalStructureNode,
+  ): SkinRebuildPrintSupportTerminalTarget => {
+    const incidentEdges = artwork.edges.filter((edge) => edge.start === nodeIndex || edge.end === nodeIndex);
+    const targetSdf = (x: number, y: number, z: number): number => {
+      let distance = Math.hypot(x - node.position.x, y - node.position.y, z - node.position.z) - node.radius;
+      for (const edge of incidentEdges) {
+        const start = artwork.nodes[edge.start]?.position;
+        const end = artwork.nodes[edge.end]?.position;
+        if (start && end) distance = Math.min(distance, pointToCapsuleSignedDistance(x, y, z, start, end, edge.radius));
+      }
+      return distance;
+    };
+    const otherBodySdf = createFinishedSkinBodySdfEvaluator({
+      ...finishedBodyInput,
+      internalGraph: graphWithoutEdges(new Set(incidentEdges.map((edge) => edge.id))),
+    });
+    const geometryRadius = Math.max(node.radius, ...incidentEdges.map((edge) => edge.radius));
+    return makeTerminalTarget("node", node.position, node.radius, targetSdf, otherBodySdf, geometryRadius);
+  };
+  const makeEdgeTarget = (
+    edge: InternalStructureEdge,
+    position: Vector3Value,
+  ): SkinRebuildPrintSupportTerminalTarget | null => {
+    const start = artwork.nodes[edge.start]?.position;
+    const end = artwork.nodes[edge.end]?.position;
+    if (!start || !end) return null;
+    const targetSdf = (x: number, y: number, z: number): number =>
+      pointToCapsuleSignedDistance(x, y, z, start, end, edge.radius);
+    const otherBodySdf = createFinishedSkinBodySdfEvaluator({
+      ...finishedBodyInput,
+      internalGraph: graphWithoutEdges(new Set([edge.id])),
+    });
+    return makeTerminalTarget("edge", position, edge.radius, targetSdf, otherBodySdf, edge.radius);
+  };
   const neighbours = Array.from({ length: artwork.nodes.length }, () => [] as Array<{ nodeId: number; printableAngle: boolean }>);
   for (const edge of artwork.edges) {
     if (neighbours[edge.start] && neighbours[edge.end]) {
@@ -2469,18 +2651,24 @@ export function buildSkinRebuildPrintSupport(
     ? Math.min(...lowestPoints.map((point) => point.position.z))
     : Math.min(...patternFloor);
   const plateRootCenterZ = plateSurfaceZ + supportRadius;
-  const pillarContactByColumn = new Map<string, { position: Vector3Value; targetRadius: number }>();
-  const requestPillar = (contact: Vector3Value, targetRadius = 0): void => {
+  const pillarContactByColumn = new Map<string, {
+    position: Vector3Value;
+    target: SkinRebuildPrintSupportTerminalTarget;
+  }>();
+  const requestPillar = (
+    contact: Vector3Value,
+    target: SkinRebuildPrintSupportTerminalTarget,
+  ): void => {
     if (contact.z <= plateRootCenterZ + EPSILON) return;
-    if (!Number.isFinite(targetRadius) || targetRadius < 0) return;
+    if (!Number.isFinite(target.radius) || target.radius < 0) return;
     // The same Pattern-back point can also be a lattice local minimum. One
     // coincident vertical is sufficient; emitting both creates overlapping
     // closed cylinders and a non-manifold support STL.
     const key = `${Math.round(contact.x * 1e7)},${Math.round(contact.y * 1e7)}`;
     const current = pillarContactByColumn.get(key);
     if (!current || contact.z > current.position.z + EPSILON
-      || (Math.abs(contact.z - current.position.z) <= EPSILON && targetRadius > current.targetRadius)) {
-      pillarContactByColumn.set(key, { position: { ...contact }, targetRadius });
+      || (Math.abs(contact.z - current.position.z) <= EPSILON && target.radius > current.target.radius)) {
+      pillarContactByColumn.set(key, { position: { ...contact }, target });
     }
   };
   const sideByPatch = new Map(patternSides.map((side) => [side.patchId, side]));
@@ -2490,7 +2678,7 @@ export function buildSkinRebuildPrintSupport(
   for (const point of lowestPoints) {
     if (!point.needsSupport || skinRebuildRequiresSpiderSupport(point, sideByPatch.get(point.patchId))
       || point.position.z <= plateRootCenterZ + EPSILON) continue;
-    requestPillar(point.position, settings.surfaceThickness);
+    requestPillar(point.position, makeSurfaceTarget(point));
   }
   for (const [index, node] of artwork.nodes.entries()) {
     const surfaceAnchored = surfaceSdf(node.position.x, node.position.y, node.position.z)
@@ -2499,7 +2687,7 @@ export function buildSkinRebuildPrintSupport(
     const hasLowerPrintableNeighbour = neighbours[index].some((neighbour) =>
       neighbour.printableAngle && artwork.nodes[neighbour.nodeId].position.z < node.position.z - EPSILON);
     if (hasLowerPrintableNeighbour || node.position.z <= plateRootCenterZ + EPSILON) continue;
-    requestPillar(node.position, node.radius);
+    requestPillar(node.position, makeNodeTarget(index, node));
   }
   // A support landing on the middle of a long shallow member is a genuine
   // physical bridge break. Add enough contacts that no unsupported interval
@@ -2518,11 +2706,13 @@ export function buildSkinRebuildPrintSupport(
     const intervals = Math.max(2, Math.ceil(edgeLength / maximumBridgeSource));
     for (let index = 1; index < intervals; index++) {
       const t = index / intervals;
-      requestPillar({
+      const position = {
         x: start.x + (end.x - start.x) * t,
         y: start.y + (end.y - start.y) * t,
         z: start.z + (end.z - start.z) * t,
-      }, edge.radius);
+      };
+      const target = makeEdgeTarget(edge, position);
+      if (target) requestPillar(position, target);
     }
   }
   const contacts = [...pillarContactByColumn.values()].sort((first, second) =>
@@ -2536,7 +2726,7 @@ export function buildSkinRebuildPrintSupport(
       point,
       supportRadius,
       bodySdf,
-      contact.targetRadius,
+      contact.target,
     );
     if (!keepOut.accepted) {
       if (keepOut.rejectedByBodyIntersection) rejectedByBodyIntersection++;

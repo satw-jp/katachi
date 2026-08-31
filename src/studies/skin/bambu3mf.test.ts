@@ -99,8 +99,10 @@ test("printable external scaffold can merge into one normal BODY part and disabl
     { name: "BODY", role: "body", positions: ONE_TRIANGLE },
     { name: "EXTERNAL_SCAFFOLD", role: "printable_support", positions: ONE_TRIANGLE },
   ], { title: "Katachi scaffold", supportType: "normal(manual)", date: "2026-08-23", mergePrintableSupportIntoBody: true });
+  const root = textEntry(entries, "3D/3dmodel.model");
   const settings = textEntry(entries, "Metadata/model_settings.config");
   const submodel = textEntry(entries, "3D/Objects/object_1.model");
+  assert.match(root, /fused BODY and printable support/);
   assert.match(settings, /<part id="1" subtype="normal_part">/);
   assert.doesNotMatch(settings, /<part id="2"/);
   assert.match(settings, /key="name" value="BODY_WITH_SCAFFOLD"/);
@@ -112,6 +114,19 @@ test("printable external scaffold can merge into one normal BODY part and disabl
   assert.equal(stats.bodyFaces, 1);
   assert.equal(stats.scaffoldFaces, 1);
   assert.equal(stats.enforcerFaces, 0);
+});
+
+test("BODY-only 3MF description does not claim printable support", () => {
+  const { entries, stats } = buildBambu3mfPackageEntries([
+    { name: "BODY", role: "body", positions: ONE_TRIANGLE },
+  ], { title: "Katachi BODY-only", supportType: "normal(manual)", date: "2026-08-31", mergePrintableSupportIntoBody: false });
+  const root = textEntry(entries, "3D/3dmodel.model");
+  const settings = textEntry(entries, "Metadata/model_settings.config");
+  assert.match(root, /BODY-only; no printable support/);
+  assert.doesNotMatch(root, /fused BODY and printable support|artwork and printable support as separate parts/);
+  assert.doesNotMatch(settings, /key="enable_support"/);
+  assert.equal(stats.bodyFaces, 1);
+  assert.equal(stats.scaffoldFaces, 0);
 });
 
 test("SKIN REBUILD keeps artwork and printable support as two parts in one 3MF", () => {
