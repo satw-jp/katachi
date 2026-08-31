@@ -507,6 +507,19 @@ const shallowSupport = buildSkinRebuildPrintSupport(
 assert.ok(shallowSupport.nodes.some((node) =>
   node.position.x > 3.3 + 1e-6 && node.position.x < 3.9 - 1e-6 && Math.abs(node.position.z - 0.5) <= 1e-6),
 "Stage 5B must add a real intermediate plate contact beneath an overlong shallow member");
+const surfaceOnlySupport = buildSkinRebuildPrintSupport(
+  project.base,
+  project.patterns,
+  project.patternSides,
+  [],
+  shallowArtwork,
+  project.settings,
+  { targetSources: "surface-only" },
+);
+assert.equal(surfaceOnlySupport.stats.requestedTargets, 0,
+  "Outside-only Stage 8 input must not turn Permanent Web nodes or edges into removable support targets");
+assert.equal(surfaceOnlySupport.nodes.length, 0);
+assert.equal(surfaceOnlySupport.edges.length, 0);
 assert.ok(Math.abs(exported.mesh.plateShiftSourceZ ?? 0) > 1e-6, "BODY export must record its build-plate translation");
 const supportMesh = orientMeshForSavedStl(buildPrintSupportMesh(
   project.printSupport,

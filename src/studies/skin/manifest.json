@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.92.0",
+  "version": "0.93.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-31",
   "params": [
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-31",
+      "note": "SKIN Overhang Responsibility Contract keeps Stage 4 as the complete diagnosis SSOT, Stage 5B as Inside Overhang responsibility, and limits Stage 8 Automatic to Surface targets projected onto the retained Stage 4 Outside class. Stage 8 performs no new Inside/Outside field test: each Stage 7 Surface target only copies the class of its nearest classified Stage 4 triangle. Permanent Web nodes and edges are not removable-support target sources, but remain in the finished-BODY keep-out SDF. Print #002 rerun reported All 1,224 faces / 86 regions, Inside 735 / 73, Outside 489 / 53, Stage 5B input 735 / 73, and Stage 8 Automatic requested 5 / accepted 3 / rejected-by-Body 2 / unsupported 2 with Inside-derived targets 0. Off retained the same diagnosis and produced support nodes 0 / edges 0 / artifact 0 with BODY-only status. No support rerouting or hardening was added; TASK E remains separate. Geometry, FKEI schema/semantics, Print #002 artifacts, CUDA, Graph topology and Print #001 baseline are unchanged."
+    },
     {
       "date": "2026-08-31",
       "note": "Stage 4 retains the complete overhang diagnosis while projecting each attributed final-mesh face centre onto the stored Stage 3 motif surfacePosition/outwardNormal: the negative half-space is Inside and the positive half-space is Outside, without Base SDF resampling or a second Interior classifier. Inside is red and is the only selectable/reinforceable Stage 5B input; Outside stays in the same overlay as subdued blue-gray diagnostic evidence. Print #002 FKEI rerun reported total 1,224 faces / 86 regions, Inside 735 / 73, Outside 489 / 53, and Stage 5B target 735 / 73; region counts can overlap when one original connected region contains both classes. Axome showed both classes with no obvious wholesale reversal and console warning/error 0. Full-set Stage 5B Before/After timing was not run because it would mutate the browser runtime geometry; routing and containment algorithms were not changed. Geometry, FKEI schema/semantics, BODY artifacts, Automatic Support, CUDA, Graph topology and printApproval are unchanged."

@@ -238,7 +238,10 @@ import {
   type SkinRebuildSettings,
 } from "./rebuild/model.ts";
 import { buildInteriorClassificationDebugPresentation } from "./rebuild/interiorClassificationPresentation.ts";
-import type { SkinRebuildOverhangInteriorClassification } from "./rebuild/overhangInteriorClassification.ts";
+import {
+  partitionSkinRebuildLowestPointsByOverhangResponsibility,
+  type SkinRebuildOverhangInteriorClassification,
+} from "./rebuild/overhangInteriorClassification.ts";
 import {
   sampleSkinRebuildOverhangRegionSurface,
   type SkinRebuildOverhangRegion,
@@ -933,6 +936,8 @@ type SkinRebuildPipelineRuntime = {
   dryWeb: InternalStructureGraph | null;
   lowestPoints: SkinRebuildLowestPoint[] | null;
   overhang: SkinRebuildRuntimeOverhang | null;
+  /** Stage 4 responsibility SSOT retained after Stage 7 replaces the visible diagnosis. */
+  responsibilityOverhang: SkinRebuildRuntimeOverhang | null;
   project: SkinRebuildProject | null;
 };
 type SkinRebuildFinalArtworkDiagnosis = {
@@ -6964,7 +6969,7 @@ function skinRebuildPrintSupportDiagnostics(project: SkinRebuildProject): SkinRe
 
 function skinRebuildPrintSupportDiagnosticsText(project: SkinRebuildProject): string {
   const diagnostics = skinRebuildPrintSupportDiagnostics(project);
-  return `accepted ${diagnostics.acceptedSupportCount} / rejected-by-Body ${diagnostics.rejectedByBodyIntersection} / unsupported ${diagnostics.unsupportedCount}`;
+  return `requested ${diagnostics.requestedTargets} / accepted ${diagnostics.acceptedSupportCount} / rejected-by-Body ${diagnostics.rejectedByBodyIntersection} / unsupported ${diagnostics.unsupportedCount}`;
 }
 
 function skinRebuildPipelineIsCurrent(): boolean {
@@ -7173,6 +7178,15 @@ function skinRebuildStage7OverhangEvidence(diagnosis: SkinRebuildFinalArtworkDia
     : "Stage 7 overhang evidence unavailable";
 }
 
+function skinRebuildOverhangResponsibilityEvidence(
+  overhang: SkinRebuildRuntimeOverhang | null | undefined,
+): string {
+  const interior = overhang?.interior;
+  return interior
+    ? `Outside Overhang — Removable Support ${interior.outsideFaceCount.toLocaleString()} faces / ${interior.outsideRegionIds.length} regions · Inside Overhang — Permanent Web responsibility ${interior.insideFaceCount.toLocaleString()} faces / ${interior.insideRegionIds.length} regions`
+    : "Overhang responsibility unavailable · run Stage 4";
+}
+
 function syncSkinRebuildPrintSupportModeUi(): void {
   if (skinRebuildPrintSupportModeSelect) {
     skinRebuildPrintSupportModeSelect.value = skinRebuildPrintSupportMode;
@@ -7190,12 +7204,15 @@ function skinRebuildPrintSupportModeStatus(
     ? skinRebuildFinalArtworkDiagnosis
     : null;
   const evidence = skinRebuildStage7OverhangEvidence(diagnosis);
+  const responsibility = skinRebuildOverhangResponsibilityEvidence(
+    skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.responsibilityOverhang : null,
+  );
   if (skinRebuildPrintSupportMode === "off") {
-    return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${evidence} · ${confirmed
+    return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${responsibility} · ${evidence} · ${confirmed
       ? "Off confirmed · BODY only · removable support 0"
       : "Off selected · confirm Stage 8 before BODY export"}`;
   }
-  return `Removable support Automatic · ${evidence} · ${confirmed
+  return `Removable support Automatic · ${responsibility} · ${evidence} · ${confirmed
     ? "support graph confirmed"
     : "confirm Stage 8 to generate removable support"}`;
 }
@@ -7432,6 +7449,7 @@ function installSkinRebuildPipelinePanel(): void {
         dryWeb: currentOriginalDryWebForSkinRebuild() ?? createEmptySkinRebuildGraph(),
         lowestPoints: null,
         overhang: null,
+        responsibilityOverhang: null,
         project: null,
       };
       skinRebuildSelectedTargetPatchId = null;
@@ -7541,6 +7559,7 @@ function installSkinRebuildPipelinePanel(): void {
     pipeline.settings = settings;
     pipeline.lowestPoints = null;
     pipeline.overhang = null;
+    pipeline.responsibilityOverhang = null;
     pipeline.project = null;
     overhangInteriorStatus.textContent = "Overhang · Inside / Outsideを工程3結果から集計中…";
     skinRenderer.setSkinRebuildOverhangOverlay(null);
@@ -7651,7 +7670,7 @@ function installSkinRebuildPipelinePanel(): void {
       pipeline.settings = settings;
       pipeline.dryWeb = dryWeb;
       pipeline.lowestPoints = message.lowestPoints;
-      pipeline.overhang = {
+      const responsibilityOverhang: SkinRebuildRuntimeOverhang = {
         faceCount: message.overhangFaceCount,
         regionCount: message.overhangRegionCount,
         areaMm2: message.overhangAreaMm2,
@@ -7663,6 +7682,8 @@ function installSkinRebuildPipelinePanel(): void {
         regions: message.overhangRegions,
         interior: message.overhangInterior,
       };
+      pipeline.overhang = responsibilityOverhang;
+      pipeline.responsibilityOverhang = responsibilityOverhang;
       pipeline.project = assembleSkinRebuildProject(
         settings,
         pipeline.base,
@@ -8415,8 +8436,8 @@ function installSkinRebuildPipelinePanel(): void {
   finalDiagnosis.section.append(finalDiagnosisButton, finalDiagnosis.status);
 
   const printSupport = makeStep(
-    "8. 残っている赤に印刷サポートを生成",
-    "Removable Support = Off / Automatic。Automaticは工程7で残った赤面の最下側へ別体支柱を生成し、Offは支柱を生成せずBODYだけを保存します。",
+    "8. Outside Overhangに印刷サポートを生成",
+    "Removable Support = Off / Automatic。Automaticは工程4のOutside Overhangだけへ別体支柱を生成し、Inside OverhangはPermanent Webの責任として残します。Offは支柱を生成せずBODYだけを保存します。",
   );
   const supportModeRow = document.createElement("label");
   supportModeRow.className = "row skin-rebuild-pipeline-setting";
@@ -8454,7 +8475,7 @@ function installSkinRebuildPipelinePanel(): void {
   const printSupportButton = document.createElement("button");
   printSupportButton.type = "button";
   printSupportButton.className = "primary-action";
-  printSupportButton.textContent = "8. 残っている赤に印刷サポートを生成";
+  printSupportButton.textContent = "8. Outside Overhangに印刷サポートを生成";
   printSupportButton.disabled = true;
   printSupportButton.onclick = async () => {
     const pipeline = skinRebuildPipeline;
@@ -8468,19 +8489,34 @@ function installSkinRebuildPipelinePanel(): void {
       return;
     }
     const modeAtStart = skinRebuildPrintSupportMode;
+    const responsibilityOverhang = pipeline.responsibilityOverhang;
+    if (modeAtStart === "automatic" && !responsibilityOverhang?.interior) {
+      printSupport.status.textContent = "工程4のInside / Outside責任分類がありません。工程4から再実行してください";
+      printSupport.status.dataset.ok = "false";
+      return;
+    }
+    const targetResponsibility = responsibilityOverhang?.interior
+      ? partitionSkinRebuildLowestPointsByOverhangResponsibility(
+          diagnosis.lowestPoints,
+          responsibilityOverhang.positions,
+          responsibilityOverhang.interior,
+        )
+      : { inside: [], outside: [], unclassified: [] };
+    const insideSupportDemand = targetResponsibility.inside.filter((point) => point.needsSupport).length;
+    const outsideSupportDemand = targetResponsibility.outside.filter((point) => point.needsSupport).length;
     const workflowBefore = captureSkinRebuildWorkflowSnapshot();
     setSkinRebuildPipelineBusy(
       printSupportButton,
       true,
-      "8. 残っている赤に印刷サポートを生成",
+      "8. Outside Overhangに印刷サポートを生成",
       "印刷サポートを生成中…",
     );
     printSupport.status.textContent = modeAtStart === "automatic"
-      ? `工程7の残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面から支柱を生成中…`
+      ? `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Outside候補${outsideSupportDemand}点から支柱を生成中…`
       : `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Offを確定中…`;
     setSkinRebuildMeshBottomProgress(
       "工程8 Removable Support",
-      modeAtStart === "automatic" ? "残る赤面から別体支柱を生成" : REMOVABLE_SUPPORT_DISABLED_WARNING,
+      modeAtStart === "automatic" ? "Outside Overhangだけから別体支柱を生成" : REMOVABLE_SUPPORT_DISABLED_WARNING,
     );
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     try {
@@ -8495,9 +8531,10 @@ function installSkinRebuildPipelinePanel(): void {
             current.base,
             state.patches,
             current.patternSides,
-            diagnosis.lowestPoints,
+            targetResponsibility.outside,
             current.finalGraph,
             settings,
+            { targetSources: "surface-only" },
           )
         : createEmptySkinRebuildGraph();
       const project = assembleSkinRebuildProject(
@@ -8518,6 +8555,13 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildStage8CompletedProject = project;
       skinRebuildPrintSupportModeNeedsConfirmation = false;
       skinRenderer.setPrintSupport(project.printSupport);
+      if (responsibilityOverhang?.interior) {
+        skinRenderer.setSkinRebuildOverhangOverlay(
+          responsibilityOverhang.positions,
+          responsibilityOverhang.faceRegionIds,
+          responsibilityOverhang.interior.faceClasses,
+        );
+      }
       refreshSkinRebuildLowestPointMarkers(project);
       refreshSkinRebuildFinalStageButtons();
       invalidateInternalPrintGate("工程8で別体印刷サポートを更新しました。3D書き出し時に自動判定します");
@@ -8525,20 +8569,21 @@ function installSkinRebuildPipelinePanel(): void {
       const supportDiagnostics = skinRebuildPrintSupportDiagnostics(project);
       const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
       if (modeAtStart === "off") {
-        printSupport.status.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off confirmed · BODY only · 印刷サポート0`;
+        printSupport.status.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off confirmed · BODY only · support nodes 0 / edges 0 / artifact 0`;
         printSupport.status.dataset.ok = "true";
         setSkinRebuildMeshBottomProgress(
           "工程8 Off 完了",
-          `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · BODY only · 印刷サポート0 · printApproval=false`,
+          `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · BODY only · support nodes 0 / edges 0 / artifact 0 · printApproval=false`,
         );
       } else {
+        const responsibilityText = `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Stage 8 Surface targets Outside ${outsideSupportDemand} / Inside-derived 0${insideSupportDemand > 0 ? `（Inside ${insideSupportDemand}点は意図的にPermanent Web責任）` : ""}`;
         printSupport.status.textContent = count > 0
-          ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成 · ${supportDiagnosticsText}`
-          : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした · ${supportDiagnosticsText}`;
+          ? `${responsibilityText} · 橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本 · ${supportDiagnosticsText}`
+          : `${responsibilityText} · 追加支柱は0本でした · ${supportDiagnosticsText}`;
         printSupport.status.dataset.ok = String(supportDiagnostics.unsupportedCount === 0);
         setSkinRebuildMeshBottomProgress(
           "工程8 完了",
-          `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · ${supportDiagnosticsText} · 本体と別出力`,
+          `Outside ${outsideSupportDemand} targets / Inside-derived 0 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · ${supportDiagnosticsText} · 本体と別出力`,
         );
       }
       if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "保存可能 · 恒久ラティスと印刷サポートを別Graphで保持します";
@@ -8554,7 +8599,7 @@ function installSkinRebuildPipelinePanel(): void {
       setSkinRebuildPipelineBusy(
         printSupportButton,
         false,
-        "8. 残っている赤に印刷サポートを生成",
+        "8. Outside Overhangに印刷サポートを生成",
         "印刷サポートを生成中…",
       );
       refreshSkinRebuildFinalStageButtons();
@@ -12125,6 +12170,7 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       // Face-region buffers are runtime diagnostics. Stage 4 recreates them
       // from the restored final mesh and the current angle threshold.
       overhang: null,
+      responsibilityOverhang: null,
       project,
     };
     internalStructureGraph = project.finalGraph;

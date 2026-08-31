@@ -1,4 +1,4 @@
-import type { SkinRebuildPatternSide } from "./model.ts";
+import type { SkinRebuildLowestPoint, SkinRebuildPatternSide } from "./model.ts";
 
 export const SKIN_REBUILD_OVERHANG_INSIDE = 0;
 export const SKIN_REBUILD_OVERHANG_OUTSIDE = 1;
@@ -21,6 +21,59 @@ export interface SkinRebuildOverhangInteriorClassification {
   outsideRegionIds: number[];
   unclassifiedRegionIds: number[];
   mixedRegionCount: number;
+}
+
+export interface SkinRebuildOverhangTargetResponsibility {
+  inside: SkinRebuildLowestPoint[];
+  outside: SkinRebuildLowestPoint[];
+  unclassified: SkinRebuildLowestPoint[];
+}
+
+/**
+ * Attach Surface support targets to the nearest Stage 4 triangle and copy its
+ * already-established Stage 3 class.  This does not perform another
+ * Inside/Outside test: it only projects the Stage 4 SSOT onto Stage 8's
+ * lower-resolution target points.
+ */
+export function partitionSkinRebuildLowestPointsByOverhangResponsibility(
+  lowestPoints: readonly SkinRebuildLowestPoint[],
+  overhangPositions: Float32Array,
+  classification: SkinRebuildOverhangInteriorClassification,
+): SkinRebuildOverhangTargetResponsibility {
+  const faceCount = overhangPositions.length / 9;
+  if (overhangPositions.length % 9 !== 0 || classification.faceClasses.length !== faceCount) {
+    throw new Error("overhang target projection requires one Stage 4 class per triangle");
+  }
+  const result: SkinRebuildOverhangTargetResponsibility = {
+    inside: [],
+    outside: [],
+    unclassified: [],
+  };
+  for (const point of lowestPoints) {
+    let nearestFaceIndex = -1;
+    let nearestSquared = Number.POSITIVE_INFINITY;
+    for (let faceIndex = 0; faceIndex < faceCount; faceIndex++) {
+      const offset = faceIndex * 9;
+      const x = (overhangPositions[offset] + overhangPositions[offset + 3] + overhangPositions[offset + 6]) / 3;
+      const y = (overhangPositions[offset + 1] + overhangPositions[offset + 4] + overhangPositions[offset + 7]) / 3;
+      const z = (overhangPositions[offset + 2] + overhangPositions[offset + 5] + overhangPositions[offset + 8]) / 3;
+      const dx = point.position.x - x;
+      const dy = point.position.y - y;
+      const dz = point.position.z - z;
+      const distanceSquared = dx * dx + dy * dy + dz * dz;
+      if (distanceSquared < nearestSquared) {
+        nearestSquared = distanceSquared;
+        nearestFaceIndex = faceIndex;
+      }
+    }
+    const faceClass = nearestFaceIndex >= 0
+      ? classification.faceClasses[nearestFaceIndex]
+      : SKIN_REBUILD_OVERHANG_UNCLASSIFIED;
+    if (faceClass === SKIN_REBUILD_OVERHANG_INSIDE) result.inside.push(point);
+    else if (faceClass === SKIN_REBUILD_OVERHANG_OUTSIDE) result.outside.push(point);
+    else result.unclassified.push(point);
+  }
+  return result;
 }
 
 /**

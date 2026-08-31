@@ -4,6 +4,7 @@ import {
   SKIN_REBUILD_OVERHANG_INSIDE,
   SKIN_REBUILD_OVERHANG_OUTSIDE,
   classifySkinRebuildOverhangFromStage3,
+  partitionSkinRebuildLowestPointsByOverhangResponsibility,
 } from "./overhangInteriorClassification.ts";
 
 const stage3: SkinRebuildPatternSide = {
@@ -38,6 +39,30 @@ assert.deepEqual(classified.insideRegionIds, [3]);
 assert.deepEqual(classified.outsideRegionIds, [3]);
 assert.equal(classified.mixedRegionCount, 1);
 assert.equal(stage3.baseSideIsInside, true, "Stage 3 result must remain immutable");
+
+const projected = partitionSkinRebuildLowestPointsByOverhangResponsibility([
+  {
+    patchId: 1,
+    position: { x: 0.2, y: 0.2, z: -0.19 },
+    normal: { x: 0, y: 0, z: -1 },
+    overhangAngleDeg: 90,
+    plateContact: false,
+    needsSupport: true,
+    basis: "finalMesh",
+  },
+  {
+    patchId: 2,
+    position: { x: 0.2, y: 0.2, z: 0.19 },
+    normal: { x: 0, y: 0, z: -1 },
+    overhangAngleDeg: 90,
+    plateContact: false,
+    needsSupport: true,
+    basis: "finalMesh",
+  },
+], positions, classified);
+assert.deepEqual(projected.inside.map((point) => point.patchId), [1]);
+assert.deepEqual(projected.outside.map((point) => point.patchId), [2]);
+assert.deepEqual(projected.unclassified, []);
 
 const unavailable = classifySkinRebuildOverhangFromStage3(
   positions.subarray(0, 9),

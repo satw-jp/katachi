@@ -72,7 +72,7 @@ for (const label of [
   "5B. 選択赤面を面→点の水色立体で補強",
   "6. 作品をメッシュ化して確定",
   "7. 確定作品を診断して残る赤を表示",
-  "8. 残っている赤に印刷サポートを生成",
+  "8. Outside Overhangに印刷サポートを生成",
   "Removable Support",
   "Off",
   "Automatic",
@@ -144,6 +144,12 @@ assert.match(ui, /工程5Bの赤面補強を一体の作品メッシュへ合成
 assert.match(main, /printSupportGraph/, "removable print support must travel separately from BODY");
 assert.match(main, /const supportGraph = modeAtStart === "automatic"[\s\S]{0,600}buildSkinRebuildPrintSupport/,
   "Automatic must retain the existing removable-support builder path");
+assert.match(main, /partitionSkinRebuildLowestPointsByOverhangResponsibility\([\s\S]{0,300}?diagnosis\.lowestPoints[\s\S]{0,300}?responsibilityOverhang\.interior/,
+  "Stage 8 must project its targets from the retained Stage 4 responsibility SSOT");
+assert.match(main, /buildSkinRebuildPrintSupport\([\s\S]{0,300}?targetResponsibility\.outside[\s\S]{0,300}?targetSources: "surface-only"/,
+  "Automatic removable support must receive Outside Surface targets only");
+assert.match(main, /Inside-derived 0/,
+  "Stage 8 must expose that Inside-derived removable support stays zero");
 assert.match(main, /skinRebuildPrintSupportMode === "off"[\s\S]*?createEmptySkinRebuildGraph/,
   "Off must install an empty support graph without calling the builder");
 assert.match(main, /internalPrintGateAllowsSupportDisabledExport/,
@@ -180,8 +186,8 @@ assert.match(main, /requestProjectRedo[\s\S]*?redoSkinRebuildWorkflowOperation/,
 assert.match(main, /diagnoseSkinRebuildArtworkForPrintSupport/, "print support must use the edited artwork mesh diagnosis");
 assert.match(
   main,
-  /skinRebuildFinalArtworkDiagnosis = \{ \.\.\.diagnosedArtwork, project \}[\s\S]*?buildSkinRebuildPrintSupport\([\s\S]*?diagnosis\.lowestPoints/,
-  "Stage 7 diagnosis must be retained and consumed separately by Stage 8 support generation",
+  /skinRebuildFinalArtworkDiagnosis = \{ \.\.\.diagnosedArtwork, project \}[\s\S]*?partitionSkinRebuildLowestPointsByOverhangResponsibility\([\s\S]*?diagnosis\.lowestPoints[\s\S]*?buildSkinRebuildPrintSupport/,
+  "Stage 7 Surface targets must be projected onto the retained Stage 4 responsibility before Stage 8 generation",
 );
 assert.match(main, /工程7で残った赤面があります。工程8で別体印刷サポートを生成してください/);
 assert.match(main, /pickMotifLowestPointMarker/, "red lowest-point markers must be selectable in the main viewport");
