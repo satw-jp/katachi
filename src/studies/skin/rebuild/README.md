@@ -16,6 +16,26 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — CUDA Geometry Compute / Analysis cost map (shadow Lab)
+
+production SKIN、FKEI、BODY、Support、Web topologyへ接続しない独立Labで、120 mm deterministic projectを
+resolution 128まで実測した。final BODYは222,268 faces、実meshing gridは61×61×129 = 480,009 sampleだった。
+完成BODYと同じSurface Pattern＋恒久capsule fieldのCPU samplingは9.43秒、mesh assembly／orientation／topology／
+bounded repairを含む全buildは19.37秒で、field samplingが約49%を占めた。したがって最優先候補は
+finished-BODY SDF grid sampling、次点はstable face indexを使うcontinuous mesh analysis fieldとした。
+
+既存review済みRTX containment kernelをBase-metaball point evaluatorとして再利用し、222,268 face centroidと
+480,009 grid pointをWeb float64 referenceへ全件比較した。sample identity、classification、finite valuesは一致し、
+maximum signed-distance deltaはface `5.396e-7`、grid `2.697e-7`だった。kernelはそれぞれ0.853 ms、2.175 msだが、
+旧containment identity／semantic reconstructionを通す全観察時間は739.61 ms、1,690.28 msで、Web Base-onlyの
+67.35 ms、80.46 msより遅い。GPU計算ではなくrequest object／identity／semantic validationが支配している。
+
+この結果は「現kernelでproduction BODYが速くなった」という主張ではない。CUDAがまだ表現できるのはBase ballsだけで、
+Surface Pattern primitiveと恒久Web capsuleのimmutable snapshotが未設計である。overhang angleとthreshold、route採否、
+Support sparse selection、Graph topologyはWeb/CPU authorityに残す。Lab contractはcontinuous `insideScore`、
+`overhangAngleDeg`、ordered SDF grid、route collision／clearance observationを定義するが、CUDA resultは常にcandidate、
+`shadow=true`、`productionApplied=false`で、production geometryへ適用しない。
+
 ### 2026-08-31 — Windows system-tray launcher for the existing shadow helper
 
 既存`server.mjs`をSSOTのまま使う.NET 8 WinFormsの`Katachi Compute Helper`を追加した。launcherは
