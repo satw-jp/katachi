@@ -1,0 +1,236 @@
+{
+  "contract": "katachi.skin.cuda-geometry-compute-cost-map.v1",
+  "recordedAt": "2026-08-31T12:09:41.053Z",
+  "branch": "agent/skin-cuda-geometry",
+  "baseCommit": "13fe4d204041748d2782f29abec5c8474343a37b",
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "source": {
+    "source": "buildSkinRebuildProject() deterministic 120 mm project",
+    "targetLongestMm": 120,
+    "finalMeshResolution": 128,
+    "baseBallCount": 12,
+    "patternCount": 38,
+    "latticeNodeCount": 306,
+    "latticeEdgeCount": 325,
+    "routeContainmentSampleCount": 8159,
+    "finalFaceCount": 222268,
+    "finalPositionFloatCount": 2000412,
+    "gridShape": {
+      "nx": 60,
+      "ny": 60,
+      "nz": 128,
+      "step": 0.03937499999999999
+    },
+    "gridSampleCount": 480009,
+    "projectFingerprint": "sha256:9c78ae77dbc5aa052422e9ba13b40d511bec38a5b12c8422b9ad883cc242576c",
+    "topologyFingerprint": "sha256:70e8cf6b3166519724544e5851cc8e5c20442c5eb161acc7ff2dadb37422e900"
+  },
+  "timings": {
+    "projectBuildMilliseconds": 1200.1444,
+    "finalMeshMilliseconds": 19373.5433,
+    "meshAnalysisWebMilliseconds": 67.34820000000036,
+    "overhangGroupingMilliseconds": 93.35750000000189,
+    "baseGridWebMilliseconds": 80.45569999999861,
+    "finishedBodyCompositeGridWebMilliseconds": 9427.3174,
+    "inferredAssemblyTopologyRepairMilliseconds": 9946.225900000001
+  },
+  "meshAnalysis": {
+    "faceCount": 222268,
+    "insideCounts": {
+      "inside": 75037,
+      "boundary": 5,
+      "outside": 147226
+    },
+    "overhangMinimumDeg": 0,
+    "overhangMaximumDeg": 89.8722152709961,
+    "riskyFaceCount": 14008,
+    "overhangRegionCount": 851,
+    "web": {
+      "totalMilliseconds": 67.34820000000036,
+      "insideScorePrecision": "float64",
+      "overhangAnglePrecision": "float32 cache"
+    },
+    "cudaCandidate": {
+      "domain": "mesh-face",
+      "sampleCount": 222268,
+      "batchCount": 1,
+      "fullObservedMilliseconds": 739.6144999999997,
+      "requestConstructionMilliseconds": 163.10120000000097,
+      "clientTotalMilliseconds": 386.84449999999924,
+      "requestEncodingMilliseconds": 124.29910000000018,
+      "httpRoundTripMilliseconds": 40.69550000000163,
+      "helperDecodeMilliseconds": 5.6495,
+      "workerMilliseconds": 25.2013,
+      "responseEncodeMilliseconds": 0.0195,
+      "responseDecodeMilliseconds": 31.244800000000396,
+      "semanticValidationMilliseconds": 178.01970000000074,
+      "cudaEndToEndMilliseconds": 6.2262,
+      "cudaKernelMilliseconds": 0.853056013584137,
+      "requestBytes": 3556576,
+      "responseBytes": 3556464,
+      "maximumAbsoluteSignedDistanceDelta": 5.396190001505374e-7,
+      "identityMismatchCount": 0,
+      "classificationMismatchCount": 0,
+      "finite": true,
+      "deviceName": "NVIDIA GeForce RTX 3080",
+      "artifactSha256": "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA",
+      "shadow": true,
+      "productionApplied": false
+    },
+    "semanticCoverage": {
+      "insideScore": "existing RTX containment kernel, stable face-index reconstruction",
+      "overhangAngleDeg": "Web/CPU reference only in this prototype",
+      "thresholding": "browser cache; no backend recomputation"
+    }
+  },
+  "sdfGrid": {
+    "resolution": 128,
+    "shape": {
+      "nx": 60,
+      "ny": 60,
+      "nz": 128,
+      "step": 0.03937499999999999
+    },
+    "sampleCount": 480009,
+    "baseFieldWebMilliseconds": 80.45569999999861,
+    "baseFieldCudaCandidate": {
+      "domain": "sdf-grid",
+      "sampleCount": 480009,
+      "batchCount": 2,
+      "fullObservedMilliseconds": 1690.2763000000014,
+      "requestConstructionMilliseconds": 574.8496999999988,
+      "clientTotalMilliseconds": 686.7552999999934,
+      "requestEncodingMilliseconds": 241.77200000000084,
+      "httpRoundTripMilliseconds": 77.58549999999741,
+      "helperDecodeMilliseconds": 15.2059,
+      "workerMilliseconds": 49.7221,
+      "responseEncodeMilliseconds": 0.054099999999999995,
+      "responseDecodeMilliseconds": 63.1320999999989,
+      "semanticValidationMilliseconds": 283.7996999999996,
+      "cudaEndToEndMilliseconds": 12.1243,
+      "cudaKernelMilliseconds": 2.1750720739364624,
+      "requestBytes": 7680720,
+      "responseBytes": 7680496,
+      "maximumAbsoluteSignedDistanceDelta": 2.6966397614902604e-7,
+      "identityMismatchCount": 0,
+      "classificationMismatchCount": 0,
+      "finite": true,
+      "deviceName": "NVIDIA GeForce RTX 3080",
+      "artifactSha256": "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA",
+      "shadow": true,
+      "productionApplied": false
+    },
+    "finishedBodyCompositeWebMilliseconds": 9427.3174,
+    "semanticCoverage": {
+      "cuda": "metaball Base field only",
+      "missingForProductionBody": "Surface Pattern primitives plus permanent capsule graph encoding",
+      "cpuIsosurface": "unchanged marching-tetrahedra assembly and fail-closed topology/repair"
+    }
+  },
+  "routeEvaluation": {
+    "status": "contract and workload evaluated; not selected as one of the first two prototypes",
+    "currentReusablePrimitive": "radius-aware sampled Base containment",
+    "sampleCount": 8159,
+    "requiredNextFacts": [
+      "minimum finished-BODY clearance",
+      "minimum permanent-Web clearance",
+      "minimum neighbor clearance",
+      "first collision segment/t"
+    ],
+    "browserAuthority": "candidate route generation and acceptance remain CPU/browser-owned"
+  },
+  "inventory": [
+    {
+      "stage": "Stage 3 inside/outside",
+      "currentEvidence": "38 patterns plus 222268 face centroids",
+      "hotFunction": "fieldSdf",
+      "gpuSuitability": "excellent"
+    },
+    {
+      "stage": "Stage 4 overhang",
+      "currentEvidence": "14008 risky faces / 851 regions in 93.36 ms after mesh exists",
+      "hotFunction": "triangle normals + edge grouping",
+      "gpuSuitability": "possible; grouping stays CPU"
+    },
+    {
+      "stage": "Stage 5B reinforcement",
+      "currentEvidence": "existing UI evidence: bounded candidate route search can run for seconds",
+      "hotFunction": "Base containment and repeated route scoring",
+      "gpuSuitability": "high for facts, CPU for selection"
+    },
+    {
+      "stage": "Stage 6 BODY mesh",
+      "currentEvidence": "222268 faces in 19373.54 ms at resolution 128",
+      "hotFunction": "finished BODY SDF grid + marching tetrahedra + topology",
+      "gpuSuitability": "excellent for SDF grid"
+    },
+    {
+      "stage": "Stage 7 diagnosis",
+      "currentEvidence": "existing real browser evidence: 201,380 faces / about 2.5 s",
+      "hotFunction": "mesh scan, attribution and region grouping",
+      "gpuSuitability": "high for scalar fields"
+    },
+    {
+      "stage": "Stage 8 support",
+      "currentEvidence": "existing real browser evidence: 66 separate support members",
+      "hotFunction": "finished-BODY keep-out and candidate route collision",
+      "gpuSuitability": "high for batch facts, CPU for sparse selection"
+    },
+    {
+      "stage": "FKEI restore recompute",
+      "currentEvidence": "invalidated computed evidence re-enters Stage 3-7 paths",
+      "hotFunction": "same field/mesh/diagnosis operations",
+      "gpuSuitability": "inherits each operation"
+    },
+    {
+      "stage": "high-resolution preview",
+      "currentEvidence": "480009 field samples at current benchmark resolution",
+      "hotFunction": "SDF grid",
+      "gpuSuitability": "excellent"
+    }
+  ],
+  "priority": [
+    {
+      "rank": 1,
+      "operation": "finished-BODY SDF grid sampling",
+      "rationale": "largest repeatable data-parallel share; requires portable Pattern/capsule encoding before production use"
+    },
+    {
+      "rank": 2,
+      "operation": "mesh analysis continuous fields",
+      "rationale": "stable face-index mapping works now; insideScore matched RTX while threshold remains browser-owned"
+    },
+    {
+      "rank": 3,
+      "operation": "generic route collision/clearance",
+      "rationale": "shared by 5B/8/Web, but needs finished-BODY/Web field snapshots and candidate counts"
+    },
+    {
+      "rank": 4,
+      "operation": "structural coverage",
+      "rationale": "depends on route/clearance facts and a still-CPU semantic definition"
+    }
+  ],
+  "decision": {
+    "selectedPrototypes": [
+      "mesh analysis insideScore field",
+      "Base SDF grid sampling feasibility"
+    ],
+    "nextImplementation": [
+      "portable finished-BODY primitive snapshot",
+      "batched mesh analysis field result using stable indices"
+    ],
+    "notSelected": [
+      "graph topology",
+      "support sparse selection",
+      "Web topology",
+      "CUDA authority"
+    ],
+    "limitation": "The reviewed kernel proves Base metaball point evaluation only; it does not yet represent Pattern or permanent capsule geometry."
+  }
+}

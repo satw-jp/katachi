@@ -98,3 +98,19 @@ The launcher has no request-selected command or executable path. It inherits
 the existing exact review-origin environment setting and leaves the helper's
 production allowlist, loopback binding, shadow-only policy, Web authority and
 `productionApplied=false` unchanged.
+
+## Geometry Compute / Analysis laboratory
+
+`geometry-compute-lab/` inventories production-shaped SKIN compute cost and
+drafts portable mesh-field, SDF-grid and route-observation contracts. It is
+not imported by the helper or production application. The first two
+prototypes map stable mesh-face/grid indices onto the reviewed Base-metaball
+containment kernel and compare every value with the Web reference. The report
+also measures the existing finished-BODY composite field on CPU so the
+unimplemented Surface Pattern and permanent-capsule snapshot is explicit
+rather than hidden behind the faster Base-only kernel result.
+
+Run `npm run test:skin-cuda-geometry`; with the existing helper running on the
+RTX 3080 machine, run `npm run benchmark:skin-cuda-geometry`. Web remains
+authoritative and every candidate is required to report `shadow=true` and
+`productionApplied=false`.
