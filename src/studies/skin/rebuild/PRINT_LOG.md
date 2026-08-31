@@ -56,6 +56,39 @@ validation reportを組み合わせて参照する。
 - Breakage / failure sequence: _pending_
 - Decision for the next geometry iteration: **on hold until this result is recorded**
 
+## Print Test #002 — internal removable support free candidate
+
+| Field | Record |
+| --- | --- |
+| Status | **unprinted / unapproved** |
+| Source checkpoint | `pending TASK D checkpoint` |
+| Generator commit observed | `aaf2afd06227ba72796ca3af664dda8c3601af62` |
+| Generator | `scripts/build-skin-rebuild-support-free-print-002.ts` from `buildSkinRebuildProject()` + `DEFAULT_SKIN_REBUILD_SETTINGS` |
+| Settings | target 120 mm; permanent Web 3.9 mm; dormant removable-support setting 1.6 mm; export resolution 68 |
+| Motifs | 38 |
+| Permanent Web / finalGraph | 306 nodes / 325 edges / 1 connected component; 125.72856977473991 source-unit total length / 3330.832233693637 mm at BODY scale |
+| Project target audit | 20 overhang targets / 20 supported permanent targets / 0 unsupported permanent targets |
+| BODY | 59,292 triangles; bounds x -24.627120..24.307546 mm, y -24.629698..23.872749 mm, z 0..120.000000 mm; scale 26.492246270368643 mm/source-unit |
+| BODY topology | watertight; 1 component; 0 open edges; 0 non-manifold edges; 0 degenerate triangles; 0 winding-inconsistent edges |
+| Removable Support | mode `off`; 0 nodes / 0 edges / 0 triangles; support artifact absent |
+| BODY-only 3MF | generated; 1 part; 59,292 BODY faces; 0 scaffold/support faces; 0 enforcer faces; 0 blocker faces |
+| `.fkei` artifact | `outputs/skin-rebuild-print-002-support-free.fkei` — 249,547 bytes; SHA-256 `b53d4cfd11966618edf73d1c0eeb95959a757669959888e25535438bd08c16aa` |
+| BODY STL artifact | `outputs/skin-rebuild-print-002-support-free.stl` — 2,964,684 bytes; SHA-256 `458f9fad5d54789fd40548d8ab12b8d59b5004479c2b04ea79e3b49ca5c349aa` |
+| BODY-only 3MF artifact | `outputs/skin-rebuild-print-002-support-free.3mf` — 939,384 bytes; SHA-256 `53d15254290903649a63777658b6263f899b98dc004293be174ba49496dec6f2` |
+| Validation | `outputs/skin-rebuild-print-002-support-free.validation.json`; fixed `generatedAt=2026-08-31T00:00:00.000Z`; SHA-256 `63955c8bb7ef73efbe5cc59077e1d2db678e99ca40de9a7f4e6f39f6c3c85da8` |
+| Slicer / physical print | `slicerPreview=not-run`; `physicalPrint=not-run`; no approval claim |
+| `printApproval` | `false` |
+
+### Print #001 comparison (immutable validation source)
+
+The comparison is read from `public/samples/skin-rebuild-first-print.validation.json` and its
+immutable FKEI (`4bacfcced0fe311eef704a792d61f4a68531051ff408e26d5ff2937b8bbfadcf`): Print #001
+records 80 mm target scale, 2.6 mm permanent Web, 59,524 BODY triangles, 67 removable-support
+edges, and support present. Print #002 uses the current 120 mm / 3.9 mm default scale policy,
+59,292 BODY triangles, and explicitly has no removable-support graph or artifact. These are
+finite generated-artifact facts only; no slicer, physical-print, removal, strength, or safety
+conclusion is inferred. The candidate remains unprinted, unapproved, and `printApproval=false`.
+
 ### 2026-08-31 — Supplied Print #001 observation / TASK A diagnosis
 
 #### Observation (supplied by the author; not independently re-measured)
