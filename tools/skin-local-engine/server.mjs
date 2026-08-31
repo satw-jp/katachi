@@ -18,6 +18,15 @@ import {
   SHADOW_SESSION_PARAMETER_MEDIA_TYPE,
   ShadowGeometrySessionCache,
 } from "./shadow-session-cache.mjs";
+import { PersistentFinishedBodyCudaWorker } from "./finished-body-cuda-worker.mjs";
+import {
+  FINISHED_BODY_GRID_HEADER_BYTES,
+  FINISHED_BODY_GRID_MEDIA_TYPE,
+  FINISHED_BODY_RESULT_MEDIA_TYPE,
+  FINISHED_BODY_SNAPSHOT_MEDIA_TYPE,
+  validateFinishedBodyGridEnvelope,
+  validateFinishedBodySnapshotEnvelope,
+} from "./finished-body-shadow-transport.mjs";
 
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
@@ -27,6 +36,7 @@ export const ENGINE_VERSION = "0.5.0-shadow-session-cache";
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
 export const MAXIMUM_CONTAINMENT_SAMPLES = 250_000;
 export const REVIEW_ORIGIN_ENVIRONMENT_VARIABLE = "KATACHI_SHADOW_REVIEW_ORIGIN";
+export const FINISHED_BODY_SDF_ALGORITHM = "katachi.skin.finished-body-sdf-grid.v1";
 
 const BASE_ALLOWED_ORIGINS = [
   "https://katachi.a-8c3.workers.dev",
@@ -139,6 +149,9 @@ function corsHeadersForAllowedOrigins(allowedOrigins, origin) {
       "X-Katachi-Shadow-Session-Id",
       "X-Katachi-Geometry-Fingerprint",
       "X-Katachi-Session-Cache-Hit",
+      "X-Katachi-Finished-Body-Snapshot-Upload-Ms",
+      "X-Katachi-Finished-Body-Kernel-Ms",
+      "X-Katachi-Finished-Body-D2H-Ms",
     ].join(", "),
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
@@ -296,6 +309,7 @@ export function createLocalEngineServer({
   persistentWorker,
   runPackedContainment,
   shadowSessionCache,
+  finishedBodyWorker,
   workerTransport = PERSISTENT_JSON_TRANSPORT,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
   reviewOrigin,
@@ -316,6 +330,8 @@ export function createLocalEngineServer({
   const executePackedContainment = runPackedContainment
     ?? ((payload, options) => worker.evaluatePackedBinary(payload, options));
   const sessionCache = shadowSessionCache ?? new ShadowGeometrySessionCache();
+  const finishedBodyCuda = finishedBodyWorker ?? new PersistentFinishedBodyCudaWorker();
+  const finishedBodySessions = new Map();
   const pendingJobs = [];
   let drainingJobs = false;
 
@@ -423,6 +439,159 @@ export function createLocalEngineServer({
     }
     if (request.method === "GET" && url.pathname === "/v1/capabilities") {
       sendJson(response, 200, capabilities, origin);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/v1/lab/finished-body-sessions") {
+      if (!origin || !allowedOrigins.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      if (String(request.headers["content-type"] ?? "").toLowerCase() !== FINISHED_BODY_SNAPSHOT_MEDIA_TYPE) {
+        fail(response, 415, "finished_body_snapshot_content_type_required",
+          `snapshot upload requires ${FINISHED_BODY_SNAPSHOT_MEDIA_TYPE}`, origin);
+        return;
+      }
+      if (!probe.cudaBackend.available) {
+        fail(response, 503, probe.cudaBackend.reasonCode ?? "cuda_unavailable", "CUDA adapter is unavailable", origin);
+        return;
+      }
+      let projectFingerprint;
+      let snapshotRequest;
+      let envelope;
+      const helperDecodeStart = performance.now();
+      let helperDecodeMilliseconds = 0;
+      try {
+        projectFingerprint = requiredIdentityHeader(request, "x-katachi-project-fingerprint");
+        if (requiredIdentityHeader(request, "x-katachi-algorithm-contract") !== FINISHED_BODY_SDF_ALGORITHM) {
+          throw Object.assign(new Error("unsupported Finished BODY SDF algorithm contract"), { code: "invalid_job_contract" });
+        }
+        snapshotRequest = await readBoundedBuffer(request, 16 * 1024 * 1024);
+        envelope = validateFinishedBodySnapshotEnvelope(snapshotRequest.payload);
+        helperDecodeMilliseconds = performance.now() - helperDecodeStart;
+      } catch (error) {
+        fail(response, error.code === "job_too_large" ? 413 : 400,
+          error.code ?? "invalid_finished_body_snapshot", error.message, origin);
+        return;
+      }
+      try {
+        const timing = await finishedBodyCuda.uploadSnapshot(snapshotRequest.payload, envelope.geometryFingerprint);
+        const sessionId = randomUUID();
+        finishedBodySessions.clear();
+        finishedBodySessions.set(sessionId, {
+          sessionId,
+          projectFingerprint,
+          algorithmContract: FINISHED_BODY_SDF_ALGORITHM,
+          geometryFingerprint: envelope.geometryFingerprint,
+          geometryFingerprintText: envelope.geometryFingerprintText,
+          snapshotBytes: envelope.totalBytes,
+        });
+        sendJson(response, 201, {
+          contract: "katachi.geometry-finished-body-shadow-session.v1",
+          sessionId,
+          projectFingerprint,
+          geometryFingerprint: envelope.geometryFingerprintText,
+          snapshotBytes: envelope.totalBytes,
+          primitiveCounts: {
+            host: envelope.hostCount,
+            flatPoints: envelope.flatPointCount,
+            raisedPoints: envelope.raisedPointCount,
+            capsules: envelope.capsuleCount,
+          },
+          timing,
+          helperDecodeMilliseconds,
+          volatile: true,
+          shadow: true,
+          productionApplied: false,
+        }, origin, {
+          "X-Katachi-Shadow-Session-Id": sessionId,
+          "X-Katachi-Geometry-Fingerprint": envelope.geometryFingerprintText,
+          "X-Katachi-Finished-Body-Snapshot-Upload-Ms": timing.workerRoundTripMilliseconds.toFixed(6),
+          "X-Katachi-Helper-Decode-Ms": Math.max(0, helperDecodeMilliseconds).toFixed(6),
+          "X-Katachi-Shadow": "true",
+          "X-Katachi-Production-Applied": "false",
+        });
+      } catch (error) {
+        fail(response, 502, error.code ?? "cuda_candidate_failed",
+          error instanceof Error ? error.message : String(error), origin);
+      }
+      return;
+    }
+    const finishedBodyGridMatch = /^\/v1\/lab\/finished-body-sessions\/([^/]+)\/evaluate-grid$/.exec(url.pathname);
+    if (request.method === "POST" && finishedBodyGridMatch) {
+      if (!origin || !allowedOrigins.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      if (String(request.headers["content-type"] ?? "").toLowerCase() !== FINISHED_BODY_GRID_MEDIA_TYPE) {
+        fail(response, 415, "finished_body_grid_content_type_required",
+          `grid evaluation requires ${FINISHED_BODY_GRID_MEDIA_TYPE}`, origin);
+        return;
+      }
+      if (!probe.cudaBackend.available) {
+        fail(response, 503, probe.cudaBackend.reasonCode ?? "cuda_unavailable", "CUDA adapter is unavailable", origin);
+        return;
+      }
+      let session;
+      let gridRequest;
+      let gridEnvelope;
+      const helperDecodeStart = performance.now();
+      let helperDecodeMilliseconds = 0;
+      try {
+        const sessionId = decodeURIComponent(finishedBodyGridMatch[1]);
+        if (requiredIdentityHeader(request, "x-katachi-shadow-session-id") !== sessionId) {
+          throw Object.assign(new Error("Finished BODY session header does not match route"), { code: "stale_shadow_session" });
+        }
+        session = finishedBodySessions.get(sessionId);
+        if (!session) throw Object.assign(new Error("Finished BODY session is absent or replaced"), { code: "shadow_session_not_found" });
+        const projectFingerprint = requiredIdentityHeader(request, "x-katachi-project-fingerprint");
+        const algorithmContract = requiredIdentityHeader(request, "x-katachi-algorithm-contract");
+        if (projectFingerprint !== session.projectFingerprint || algorithmContract !== session.algorithmContract) {
+          throw Object.assign(new Error("Finished BODY session binding is stale"), { code: "stale_shadow_session" });
+        }
+        gridRequest = await readBoundedBuffer(request, FINISHED_BODY_GRID_HEADER_BYTES);
+        gridEnvelope = validateFinishedBodyGridEnvelope(gridRequest.payload, session.geometryFingerprint);
+        helperDecodeMilliseconds = performance.now() - helperDecodeStart;
+      } catch (error) {
+        const status = error.code === "shadow_session_not_found" ? 404
+          : error.code === "stale_shadow_session" ? 409
+            : error.code === "job_too_large" ? 413 : 400;
+        fail(response, status, error.code ?? "invalid_finished_body_grid", error.message, origin);
+        return;
+      }
+      try {
+        const executed = await finishedBodyCuda.evaluateGrid(
+          gridRequest.payload,
+          session.geometryFingerprint,
+          gridEnvelope.sampleCount,
+        );
+        response.writeHead(200, {
+          "Content-Type": FINISHED_BODY_RESULT_MEDIA_TYPE,
+          "Content-Length": String(executed.payload.length),
+          "Cache-Control": "no-store",
+          "X-Katachi-Shadow-Session-Id": session.sessionId,
+          "X-Katachi-Geometry-Fingerprint": session.geometryFingerprintText,
+          "X-Katachi-Session-Cache-Hit": "true",
+          "X-Katachi-Finished-Body-Kernel-Ms": executed.timing.kernelMilliseconds.toFixed(6),
+          "X-Katachi-Finished-Body-D2H-Ms": executed.timing.deviceToHostMilliseconds.toFixed(6),
+          "X-Katachi-Helper-Decode-Ms": helperDecodeMilliseconds.toFixed(6),
+          "X-Katachi-Worker-Roundtrip-Ms": executed.timing.workerRoundTripMilliseconds.toFixed(6),
+          "X-Katachi-Shadow": "true",
+          "X-Katachi-Production-Applied": "false",
+          ...corsHeaders(origin),
+        });
+        response.end(executed.payload);
+      } catch (error) {
+        fail(response, 502, error.code ?? "cuda_candidate_failed",
+          error instanceof Error ? error.message : String(error), origin);
+      }
       return;
     }
     const match = /^\/v1\/jobs\/([^/]+)$/.exec(url.pathname);
@@ -717,7 +886,10 @@ export function createLocalEngineServer({
     }
     fail(response, 404, "not_found", "unknown prototype route", origin);
   });
-  server.once("close", () => { void worker?.close(); });
+  server.once("close", () => {
+    void worker?.close();
+    void finishedBodyCuda?.close();
+  });
   return server;
 }
 

@@ -11,6 +11,7 @@ dist-ssr
 /public/samples/skin-rebuild-first-print.stl
 /public/samples/skin-rebuild-first-print-print-support.stl
 /tools/skin-local-engine/bin/*.exe
+/tools/skin-local-engine/native/build*/
 /tools/skin-local-engine/tray/artifacts/
 /tools/skin-local-engine/tray/**/bin/
 /tools/skin-local-engine/tray/**/obj/

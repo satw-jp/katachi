@@ -1,0 +1,315 @@
+.version 7.0
+.target sm_52
+.address_size 64
+
+// Shadow-only Finished BODY scalar-field evaluation.  The host, realized
+// motif points and permanent graph capsules are immutable worker-session
+// buffers; a repeat request supplies only the regular grid definition.
+.visible .entry evaluate_finished_body_sdf_kernel(
+    .param .u64 host_ptr,
+    .param .u32 host_count,
+    .param .f32 host_k,
+    .param .u64 flat_ptr,
+    .param .u32 flat_count,
+    .param .u64 raised_ptr,
+    .param .u32 raised_count,
+    .param .f32 round_k,
+    .param .f32 half_thickness,
+    .param .u64 capsules_ptr,
+    .param .u32 capsule_count,
+    .param .f32 capsule_blend,
+    .param .f32 grid_min_x,
+    .param .f32 grid_min_y,
+    .param .f32 grid_min_z,
+    .param .f32 grid_step,
+    .param .u32 grid_size_x,
+    .param .u32 grid_size_y,
+    .param .u32 sample_count,
+    .param .u64 outputs_ptr
+)
+{
+    .reg .pred %p<24>;
+    .reg .b32 %r<40>;
+    .reg .b64 %rd<32>;
+    .reg .f32 %f<96>;
+
+    ld.param.u64 %rd1, [host_ptr];
+    ld.param.u32 %r1, [host_count];
+    ld.param.f32 %f1, [host_k];
+    ld.param.u64 %rd2, [flat_ptr];
+    ld.param.u32 %r2, [flat_count];
+    ld.param.u64 %rd3, [raised_ptr];
+    ld.param.u32 %r3, [raised_count];
+    ld.param.f32 %f2, [round_k];
+    ld.param.f32 %f3, [half_thickness];
+    ld.param.u64 %rd4, [capsules_ptr];
+    ld.param.u32 %r4, [capsule_count];
+    ld.param.f32 %f4, [capsule_blend];
+    ld.param.f32 %f5, [grid_min_x];
+    ld.param.f32 %f6, [grid_min_y];
+    ld.param.f32 %f7, [grid_min_z];
+    ld.param.f32 %f8, [grid_step];
+    ld.param.u32 %r5, [grid_size_x];
+    ld.param.u32 %r6, [grid_size_y];
+    ld.param.u32 %r7, [sample_count];
+    ld.param.u64 %rd5, [outputs_ptr];
+
+    mov.u32 %r8, %ctaid.x;
+    mov.u32 %r9, %ntid.x;
+    mov.u32 %r10, %tid.x;
+    mad.lo.s32 %r11, %r8, %r9, %r10;
+    setp.ge.u32 %p1, %r11, %r7;
+    @%p1 bra DONE;
+
+    rem.u32 %r12, %r11, %r5;
+    div.u32 %r13, %r11, %r5;
+    rem.u32 %r14, %r13, %r6;
+    div.u32 %r15, %r13, %r6;
+    cvt.rn.f32.u32 %f9, %r12;
+    cvt.rn.f32.u32 %f10, %r14;
+    cvt.rn.f32.u32 %f11, %r15;
+    fma.rn.f32 %f12, %f9, %f8, %f5;
+    fma.rn.f32 %f13, %f10, %f8, %f6;
+    fma.rn.f32 %f14, %f11, %f8, %f7;
+
+    // Host smooth union. Snapshot validation guarantees host_count >= 1.
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd1];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f25, %f24, %f19;
+    mov.u32 %r16, 1;
+HOST_LOOP:
+    setp.ge.u32 %p2, %r16, %r1;
+    @%p2 bra HOST_DONE;
+    mul.wide.u32 %rd6, %r16, 16;
+    add.s64 %rd7, %rd1, %rd6;
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd7];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f26, %f24, %f19;
+    sub.f32 %f27, %f26, %f25;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f1;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f26, %f28;
+    fma.rn.f32 %f29, %f25, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f1, %f30;
+    sub.f32 %f25, %f29, %f30;
+    add.u32 %r16, %r16, 1;
+    bra HOST_LOOP;
+HOST_DONE:
+    abs.f32 %f31, %f25;
+    sub.f32 %f31, %f31, %f3;
+
+    // Flattened coin/flatRing points in original production order.
+    setp.eq.u32 %p3, %r2, 0;
+    @%p3 bra NO_FLAT;
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd2];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f32, %f24, %f19;
+    mov.u32 %r16, 1;
+FLAT_LOOP:
+    setp.ge.u32 %p4, %r16, %r2;
+    @%p4 bra FLAT_DONE;
+    mul.wide.u32 %rd6, %r16, 16;
+    add.s64 %rd7, %rd2, %rd6;
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd7];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f26, %f24, %f19;
+    sub.f32 %f27, %f26, %f32;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f2;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f26, %f28;
+    fma.rn.f32 %f29, %f32, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f2, %f30;
+    sub.f32 %f32, %f29, %f30;
+    add.u32 %r16, %r16, 1;
+    bra FLAT_LOOP;
+FLAT_DONE:
+    // opSmoothIntersection(shell, flat, roundK)
+    sub.f32 %f27, %f32, %f31;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f2;
+    sub.f32 %f27, 0f3F000000, %f27;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f33, %f32, %f28;
+    fma.rn.f32 %f33, %f31, %f27, %f33;
+    mul.f32 %f30, %f27, %f28;
+    fma.rn.f32 %f33, %f2, %f30, %f33;
+    mov.u32 %r17, 1;
+    bra FLAT_READY;
+NO_FLAT:
+    mov.f32 %f33, 0f47C35000;
+    mov.u32 %r17, 0;
+FLAT_READY:
+
+    // Raw ring3d/flower points, unioned with the plate field.
+    setp.eq.u32 %p5, %r3, 0;
+    @%p5 bra RAISED_DONE;
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd3];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f34, %f24, %f19;
+    mov.u32 %r16, 1;
+RAISED_LOOP:
+    setp.ge.u32 %p6, %r16, %r3;
+    @%p6 bra RAISED_FIELD_DONE;
+    mul.wide.u32 %rd6, %r16, 16;
+    add.s64 %rd7, %rd3, %rd6;
+    ld.global.v4.f32 {%f16, %f17, %f18, %f19}, [%rd7];
+    sub.f32 %f20, %f12, %f16;
+    sub.f32 %f21, %f13, %f17;
+    sub.f32 %f22, %f14, %f18;
+    mul.f32 %f23, %f22, %f22;
+    fma.rn.f32 %f23, %f21, %f21, %f23;
+    fma.rn.f32 %f23, %f20, %f20, %f23;
+    sqrt.rn.f32 %f24, %f23;
+    sub.f32 %f26, %f24, %f19;
+    sub.f32 %f27, %f26, %f34;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f2;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f26, %f28;
+    fma.rn.f32 %f29, %f34, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f2, %f30;
+    sub.f32 %f34, %f29, %f30;
+    add.u32 %r16, %r16, 1;
+    bra RAISED_LOOP;
+RAISED_FIELD_DONE:
+    setp.eq.u32 %p7, %r17, 0;
+    @%p7 mov.f32 %f33, %f34;
+    @%p7 bra RAISED_DONE;
+    sub.f32 %f27, %f34, %f33;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f2;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f34, %f28;
+    fma.rn.f32 %f29, %f33, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f2, %f30;
+    sub.f32 %f33, %f29, %f30;
+RAISED_DONE:
+
+    setp.eq.u32 %p8, %r4, 0;
+    @%p8 bra STORE;
+    // Permanent graph: ordered capsule union, then union with Surface.
+    mov.u32 %r16, 0;
+CAPSULE_LOOP:
+    setp.ge.u32 %p9, %r16, %r4;
+    @%p9 bra CAPSULE_DONE;
+    mul.wide.u32 %rd6, %r16, 32;
+    add.s64 %rd7, %rd4, %rd6;
+    ld.global.v4.f32 {%f35, %f36, %f37, %f38}, [%rd7];
+    ld.global.v4.f32 {%f39, %f40, %f41, %f42}, [%rd7+16];
+    sub.f32 %f43, %f39, %f35;
+    sub.f32 %f44, %f40, %f36;
+    sub.f32 %f45, %f41, %f37;
+    mul.f32 %f46, %f45, %f45;
+    fma.rn.f32 %f46, %f44, %f44, %f46;
+    fma.rn.f32 %f46, %f43, %f43, %f46;
+    sub.f32 %f47, %f12, %f35;
+    sub.f32 %f48, %f13, %f36;
+    sub.f32 %f49, %f14, %f37;
+    mul.f32 %f50, %f49, %f45;
+    fma.rn.f32 %f50, %f48, %f44, %f50;
+    fma.rn.f32 %f50, %f47, %f43, %f50;
+    setp.gt.f32 %p10, %f46, 0f25000000;
+    @%p10 div.rn.f32 %f51, %f50, %f46;
+    @!%p10 mov.f32 %f51, 0f00000000;
+    max.f32 %f51, %f51, 0f00000000;
+    min.f32 %f51, %f51, 0f3F800000;
+    fma.rn.f32 %f52, %f43, %f51, %f35;
+    fma.rn.f32 %f53, %f44, %f51, %f36;
+    fma.rn.f32 %f54, %f45, %f51, %f37;
+    sub.f32 %f52, %f12, %f52;
+    sub.f32 %f53, %f13, %f53;
+    sub.f32 %f54, %f14, %f54;
+    mul.f32 %f55, %f54, %f54;
+    fma.rn.f32 %f55, %f53, %f53, %f55;
+    fma.rn.f32 %f55, %f52, %f52, %f55;
+    sqrt.rn.f32 %f56, %f55;
+    sub.f32 %f56, %f56, %f38;
+    setp.eq.u32 %p11, %r16, 0;
+    @%p11 mov.f32 %f57, %f56;
+    @%p11 bra CAPSULE_NEXT;
+    sub.f32 %f27, %f56, %f57;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f4;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f56, %f28;
+    fma.rn.f32 %f29, %f57, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f4, %f30;
+    sub.f32 %f57, %f29, %f30;
+CAPSULE_NEXT:
+    add.u32 %r16, %r16, 1;
+    bra CAPSULE_LOOP;
+CAPSULE_DONE:
+    sub.f32 %f27, %f57, %f33;
+    mul.f32 %f27, %f27, 0f3F000000;
+    div.rn.f32 %f27, %f27, %f4;
+    add.f32 %f27, %f27, 0f3F000000;
+    max.f32 %f27, %f27, 0f00000000;
+    min.f32 %f27, %f27, 0f3F800000;
+    sub.f32 %f28, 0f3F800000, %f27;
+    mul.f32 %f29, %f57, %f28;
+    fma.rn.f32 %f29, %f33, %f27, %f29;
+    mul.f32 %f30, %f27, %f28;
+    mul.f32 %f30, %f4, %f30;
+    sub.f32 %f33, %f29, %f30;
+
+STORE:
+    mul.wide.u32 %rd8, %r11, 4;
+    add.s64 %rd9, %rd5, %rd8;
+    st.global.f32 [%rd9], %f33;
+DONE:
+    ret;
+}

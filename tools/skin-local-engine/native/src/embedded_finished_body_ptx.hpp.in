@@ -1,0 +1,5 @@
+#pragma once
+
+inline constexpr const char kKatachiFinishedBodyPtx[] = R"KATACHI_PTX(
+@KATACHI_FINISHED_BODY_PTX@
+)KATACHI_PTX";
