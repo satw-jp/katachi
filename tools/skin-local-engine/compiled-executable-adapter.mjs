@@ -1,7 +1,9 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { performance } from "node:perf_hooks";
 
 export const EXECUTABLE_CAPABILITIES_CONTRACT =
   "katachi.cuda-containment-executable-capabilities.v1";
@@ -9,6 +11,12 @@ export const EXECUTABLE_RESULT_CONTRACT =
   "katachi.cuda-containment-executable-result.v1";
 export const EVALUATE_CONTAINMENT_ALGORITHM =
   "katachi.skin.evaluate-containment.metaball-radius.v1";
+export const EXPECTED_CUDA_DEVICE_NAME = "NVIDIA GeForce RTX 3080";
+export const EXPECTED_COMPILED_EXECUTABLE_SHA256 =
+  "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA";
+export const PERSISTENT_JSON_TRANSPORT = "length-framed-json-v1";
+export const PERSISTENT_BINARY_TRANSPORT = "compact-binary-v1";
+export const MAXIMUM_COMPILED_RESULT_BYTES = 64 * 1024 * 1024;
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 export const FIXED_COMPILED_EXECUTABLE = join(
@@ -49,9 +57,19 @@ export function validateExecutableCapabilities(value) {
     throw new Error("compiled executable does not support the containment contract");
   }
   const device = object(capabilities.device, "executable capabilities.device");
-  nonEmpty(device.name, "executable capabilities.device.name");
-  if (!["float32", "float64", "mixed"].includes(capabilities.precisionMode)) {
-    throw new Error("compiled executable advertised an unsupported precision mode");
+  if (nonEmpty(device.name, "executable capabilities.device.name") !== EXPECTED_CUDA_DEVICE_NAME) {
+    throw new Error(`compiled executable must target ${EXPECTED_CUDA_DEVICE_NAME}`);
+  }
+  if (capabilities.precisionMode !== "float32") {
+    throw new Error("compiled executable must advertise float32 precision");
+  }
+  if (capabilities.shadow !== true || capabilities.productionApplied !== false) {
+    throw new Error("compiled executable must advertise shadow-only execution");
+  }
+  if (!Array.isArray(capabilities.workerTransports)
+    || !capabilities.workerTransports.includes(PERSISTENT_JSON_TRANSPORT)
+    || !capabilities.workerTransports.includes(PERSISTENT_BINARY_TRANSPORT)) {
+    throw new Error("compiled executable must advertise persistent JSON and compact binary transports");
   }
   nonEmpty(capabilities.engineVersion, "executable capabilities.engineVersion");
   return capabilities;
@@ -60,13 +78,38 @@ export function validateExecutableCapabilities(value) {
 export function inspectCompiledEngine({
   executablePath = FIXED_COMPILED_EXECUTABLE,
   platform = process.platform,
+  existsSyncImpl = existsSync,
+  readFileSyncImpl = readFileSync,
   spawnSyncImpl = spawnSync,
 } = {}) {
   if (platform !== "win32") {
     return { available: false, reasonCode: "windows_required", executablePath };
   }
-  if (!existsSync(executablePath)) {
+  if (!existsSyncImpl(executablePath)) {
     return { available: false, reasonCode: "compiled_executable_absent", executablePath };
+  }
+  let artifactSha256;
+  try {
+    artifactSha256 = createHash("sha256")
+      .update(readFileSyncImpl(executablePath))
+      .digest("hex")
+      .toUpperCase();
+  } catch (error) {
+    return {
+      available: false,
+      reasonCode: "compiled_executable_hash_failed",
+      detail: error instanceof Error ? error.message : String(error),
+      executablePath,
+    };
+  }
+  if (artifactSha256 !== EXPECTED_COMPILED_EXECUTABLE_SHA256) {
+    return {
+      available: false,
+      reasonCode: "compiled_executable_hash_mismatch",
+      detail: `expected reviewed SHA-256 ${EXPECTED_COMPILED_EXECUTABLE_SHA256}, received ${artifactSha256}`,
+      executablePath,
+      artifactSha256,
+    };
   }
   const child = spawnSyncImpl(executablePath, ["--capabilities-json"], {
     encoding: "utf8",
@@ -87,7 +130,7 @@ export function inspectCompiledEngine({
   }
   try {
     const capabilities = validateExecutableCapabilities(JSON.parse(child.stdout));
-    return { available: true, executablePath, capabilities };
+    return { available: true, executablePath, artifactSha256, capabilities };
   } catch (error) {
     return {
       available: false,
@@ -103,7 +146,9 @@ export function validateExecutableResult(value, request) {
   if (result.contract !== EXECUTABLE_RESULT_CONTRACT
     || result.clientRequestId !== request.clientRequestId
     || result.projectFingerprint !== request.projectFingerprint
-    || result.algorithmContract !== EVALUATE_CONTAINMENT_ALGORITHM) {
+    || result.algorithmContract !== EVALUATE_CONTAINMENT_ALGORITHM
+    || result.shadow !== true
+    || result.productionApplied !== false) {
     throw new Error("compiled executable result identity does not match the submitted job");
   }
   if (!Array.isArray(result.samples) || result.samples.length !== request.input.samples.length) {
@@ -127,6 +172,14 @@ export function validateExecutableResult(value, request) {
   if (expected.size !== 0) throw new Error("compiled result omitted requested sample identities");
   object(result.summary, "compiled executable result.summary");
   finite(result.timingMilliseconds, "compiled executable result.timingMilliseconds");
+  const timing = object(result.timing, "compiled executable result.timing");
+  finite(timing.endToEndMilliseconds, "compiled executable result.timing.endToEndMilliseconds");
+  finite(timing.setupMilliseconds, "compiled executable result.timing.setupMilliseconds");
+  finite(timing.kernelTotalMilliseconds, "compiled executable result.timing.kernelTotalMilliseconds");
+  finite(timing.kernelAverageMilliseconds, "compiled executable result.timing.kernelAverageMilliseconds");
+  if (!Number.isInteger(timing.iterations) || timing.iterations < 1) {
+    throw new Error("compiled executable result.timing.iterations must be a positive integer");
+  }
   return result;
 }
 
@@ -135,27 +188,52 @@ export function runCompiledContainment(request, {
   spawnSyncImpl = spawnSync,
   timeoutMilliseconds = 30_000,
 } = {}) {
+  const adapterStart = performance.now();
+  const inspectionStart = performance.now();
   const inspection = inspectCompiledEngine({ executablePath, spawnSyncImpl });
+  const capabilityInspectionMilliseconds = performance.now() - inspectionStart;
   if (!inspection.available) {
     const error = new Error(`CUDA adapter unavailable: ${inspection.reasonCode}`);
     error.code = inspection.reasonCode;
     throw error;
   }
+  const serializationStart = performance.now();
+  const serializedRequest = JSON.stringify(request);
+  const requestSerializeMilliseconds = performance.now() - serializationStart;
+  const executableProcessStart = performance.now();
   const child = spawnSyncImpl(executablePath, ["--evaluate-containment-json"], {
-    input: JSON.stringify(request),
+    input: serializedRequest,
     encoding: "utf8",
     windowsHide: true,
     timeout: timeoutMilliseconds,
-    maxBuffer: 16 * 1024 * 1024,
+    maxBuffer: MAXIMUM_COMPILED_RESULT_BYTES,
     shell: false,
   });
+  const executableProcessMilliseconds = performance.now() - executableProcessStart;
   if (child.error || child.status !== 0) {
     const error = new Error(child.error?.message ?? String(child.stderr ?? "compiled CUDA job failed").trim());
     error.code = child.error?.code === "ETIMEDOUT" ? "cuda_job_timeout" : "cuda_job_failed";
     throw error;
   }
+  const resultParseStart = performance.now();
+  const parsedResult = JSON.parse(child.stdout);
+  const resultParseMilliseconds = performance.now() - resultParseStart;
+  const resultValidationStart = performance.now();
+  const result = validateExecutableResult(parsedResult, request);
+  const resultValidationMilliseconds = performance.now() - resultValidationStart;
   return {
     capabilities: inspection.capabilities,
-    result: validateExecutableResult(JSON.parse(child.stdout), request),
+    artifactSha256: inspection.artifactSha256,
+    result,
+    adapterTiming: {
+      totalMilliseconds: performance.now() - adapterStart,
+      capabilityInspectionMilliseconds,
+      requestSerializeMilliseconds,
+      executableProcessMilliseconds,
+      resultParseMilliseconds,
+      resultValidationMilliseconds,
+      requestBytes: Buffer.byteLength(serializedRequest),
+      resultBytes: Buffer.byteLength(child.stdout),
+    },
   };
 }

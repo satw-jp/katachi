@@ -1,0 +1,38 @@
+{
+  "protocol": { "major": 1, "minor": 0 },
+  "clientRequestId": "cuda-bringup-conformance-1",
+  "operation": "evaluateContainment",
+  "algorithmContract": "katachi.skin.evaluate-containment.metaball-radius.v1",
+  "projectFingerprint": "sha256:katachi-cuda-bringup-fixture-v1",
+  "coordinateContract": {
+    "frame": "object",
+    "unitsPerMillimeter": 0.1,
+    "handedness": "right",
+    "buildAxis": "+z"
+  },
+  "quality": {
+    "purpose": "shadow-conformance",
+    "benchmarkIterations": 1
+  },
+  "input": {
+    "base": {
+      "kind": "metaball-smooth-union",
+      "contractVersion": 1,
+      "balls": [
+        { "id": 1, "x": 0.0, "y": 0.0, "z": 0.0, "r": 2.0 },
+        { "id": 2, "x": 1.2, "y": 0.2, "z": 0.0, "r": 1.1 },
+        { "id": 3, "x": -0.7, "y": 0.4, "z": 0.5, "r": 0.9 }
+      ],
+      "smoothness": 0.6
+    },
+    "samples": [
+      { "sampleId": "s-origin", "edgeId": "edge-a", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "radius": 0.25 },
+      { "sampleId": "s-seam", "edgeId": "edge-a", "position": { "x": 0.65, "y": 0.1, "z": 0.0 }, "radius": 0.2 },
+      { "sampleId": "s-boundary", "edgeId": "edge-b", "position": { "x": 2.0, "y": 0.0, "z": 0.0 }, "radius": 0.31928674 },
+      { "sampleId": "s-outside", "edgeId": "edge-c", "position": { "x": 2.3, "y": 0.0, "z": 0.0 }, "radius": 0.2 },
+      { "sampleId": "s-upper", "edgeId": "edge-d", "position": { "x": -0.7, "y": 0.4, "z": 1.0 }, "radius": 0.15 }
+    ],
+    "boundaryTolerance": 0.00005
+  },
+  "artifacts": []
+}
