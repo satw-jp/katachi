@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import {
   A1_MINI_PLA_04_02,
   evaluateInternalPrintGate,
+  internalPrintGateAllowsSupportDisabledExport,
   internalStructureOutputBlockReason,
   screenInternalStructureAngles,
 } from "./internalPrintGate.ts";
+import type { InternalPrintGateReport } from "./internalPrintGate.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
 import { mergeSkinRebuildGraphsAtSupportContacts } from "./rebuild/model.ts";
 
@@ -35,6 +37,45 @@ check(pass.ok, "a rooted 1 mm vertical strut passes the conservative profile");
 check(pass.surfaceAnchorNodes === 1 && pass.unsupportedNodes === 0, "support propagates upward from the surface root");
 check(pass.minDiameterMm === 1, "edge radius is converted to an actual diameter in millimetres");
 check(pass.voxelsAcrossDiameter >= A1_MINI_PLA_04_02.minVoxelsAcrossDiameter, "final mesh resolves the strut");
+
+const supportShortReport: InternalPrintGateReport = {
+  ...pass,
+  ok: false,
+  reasons: ["support demand only"],
+  unsupportedNodes: 2,
+  unsupportedEdges: 1,
+  overlongBridges: 1,
+};
+check(
+  internalPrintGateAllowsSupportDisabledExport(supportShortReport, "off"),
+  "explicit removable-support Off waives only support-demand facts",
+);
+check(
+  !internalPrintGateAllowsSupportDisabledExport(supportShortReport, "automatic"),
+  "Automatic remains fail-closed for a support-short report",
+);
+check(
+  internalPrintGateAllowsSupportDisabledExport(pass, "off")
+    && internalPrintGateAllowsSupportDisabledExport(pass, "automatic"),
+  "an ordinary OK report remains accepted in either support mode",
+);
+for (const [label, change] of [
+  ["non-watertight mesh", { watertight: false }],
+  ["multiple mesh components", { meshComponents: 2 }],
+  ["saved degenerate triangles", { removedDegenerateTriangles: 1 }],
+  ["no anchored graph", { surfaceAnchorNodes: 0, buildPlateAnchorNodes: 0 }],
+  ["floating graph component", { floatingGraphComponents: 1 }],
+  ["undersized strut", { minDiameterMm: 0.7 }],
+  ["under-resolved strut", { voxelsAcrossDiameter: 2.4 }],
+] as const) {
+  check(
+    !internalPrintGateAllowsSupportDisabledExport(
+      { ...supportShortReport, ...change },
+      "off",
+    ),
+    `support-disabled export still rejects ${label}`,
+  );
+}
 
 const plateRooted = evaluateInternalPrintGate({
   graph: vertical, mesh, resolution: 224, targetLongestMm: 80,

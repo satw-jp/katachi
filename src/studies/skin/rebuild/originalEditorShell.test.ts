@@ -14,6 +14,10 @@ const style = text("../style.css");
 const lowestWorker = text("./lowestPoint.worker.ts");
 const lowestProtocol = text("./lowestPointWorkerProtocol.ts");
 const parallelMesh = text("../parallelMeshBuffers.ts");
+const exportMeshSourceStart = main.indexOf("function exportMesh(");
+const exportMeshSourceEnd = main.indexOf("function cloneOpeningRequest(", exportMeshSourceStart);
+assert.ok(exportMeshSourceStart >= 0 && exportMeshSourceEnd > exportMeshSourceStart, "exportMesh source is present");
+const exportMeshSource = main.slice(exportMeshSourceStart, exportMeshSourceEnd);
 
 assert.match(html, /data-skin-app="rebuild"/);
 assert.match(html, /src="\/src\/studies\/skin\/main\.ts"/);
@@ -69,6 +73,12 @@ for (const label of [
   "6. 作品をメッシュ化して確定",
   "7. 確定作品を診断して残る赤を表示",
   "8. 残っている赤に印刷サポートを生成",
+  "Removable Support",
+  "Off",
+  "Automatic",
+  "Removable support disabled",
+  "unsupported regions may remain",
+  "BODY only",
   "サポート確定後の3Dデータを書き出す",
   "SKIN REBUILD完成.fkeiを保存",
 ]) assert.ok(main.includes(label), `SKIN REBUILD pipeline action is missing: ${label}`);
@@ -130,6 +140,26 @@ assert.match(parallelMesh, /positionsOnly: true[\s\S]*?flatNormalsFromTriangleSo
   "the parallel Stage 6 path must rebuild display normals after positions-only slice transfer");
 assert.match(ui, /工程5Bの赤面補強を一体の作品メッシュへ合成/);
 assert.match(main, /printSupportGraph/, "removable print support must travel separately from BODY");
+assert.match(main, /const supportGraph = modeAtStart === "automatic"[\s\S]{0,600}buildSkinRebuildPrintSupport/,
+  "Automatic must retain the existing removable-support builder path");
+assert.match(main, /skinRebuildPrintSupportMode === "off"[\s\S]*?createEmptySkinRebuildGraph/,
+  "Off must install an empty support graph without calling the builder");
+assert.match(main, /internalPrintGateAllowsSupportDisabledExport/,
+  "support-disabled export must use the explicit Internal-gate policy helper");
+assert.match(
+  main,
+  /function stopSkinRebuildStage8Export\(reason: string\): void \{[\s\S]{0,260}?textContent = `書き出し停止: \$\{reason\}`;[\s\S]{0,120}?dataset\.ok = "false";[\s\S]{0,120}?refreshSkinRebuildStage8ExportButton\(\);/,
+  "a Stage 8 export block must replace an in-progress status with a failed status and refresh the controls",
+);
+for (const [label, pattern] of [
+  ["pipeline output", /if \(rebuildBlockReason\)[\s\S]*?stopSkinRebuildStage8Export\(rebuildBlockReason\)[\s\S]*?return;/],
+  ["Internal readiness", /if \(readinessBlockReason\)[\s\S]*?stopSkinRebuildStage8Export\(readinessBlockReason\)[\s\S]*?return;/],
+  ["Internal gate", /if \(!internalPrintGateExportAllowed\(internalPrintGateCache\.report\)\)[\s\S]*?stopSkinRebuildStage8Export\(gateBlockReason\)[\s\S]*?return;/],
+] as const) {
+  assert.match(exportMeshSource, pattern, `Stage 8 export must stop visibly on ${label} blockers`);
+}
+assert.match(main, /getSkinRebuildPrintSupportGraph[\s\S]*?skinRebuildPrintSupportMode === "automatic"/,
+  "support artifacts must be omitted from output while Off is selected");
 assert.match(main, /acceptedSupportCount/, "Stage 8 must expose accepted support diagnostics");
 assert.match(main, /rejectedByBodyIntersection/, "Stage 8 must expose Body-intersection rejection diagnostics");
 assert.match(main, /unsupportedCount/, "Stage 8 must expose explicit unsupported diagnostics");

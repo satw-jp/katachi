@@ -91,6 +91,10 @@
     },
     {
       "date": "2026-08-31",
+      "note": "TASK C adds a session-only Removable Support Off | Automatic choice without changing SkinRebuildProject or FKEI. Automatic calls the existing radius-aware support builder; Off installs an empty runtime support Graph, preserves the permanent finalGraph and Stage 7 diagnosis, requires explicit Stage 8 confirmation, and emits BODY-only output with no support artifact. Off visibly warns 'Removable support disabled — unsupported regions may remain' with Stage 7 region/face evidence. Its pure export policy waives only unsupportedNodes, unsupportedEdges and overlongBridges; mesh/material/structure failures remain fail-closed. This is not slicer or physical-print proof, the author choice is unprinted/unapproved, printApproval remains false, and the immutable first-print FKEI is unchanged."
+    },
+    {
+      "date": "2026-08-31",
       "note": "SKIN REBUILD v0.91.0 changes only the new-session physical authoring baseline after the 80 mm first print was judged too small: target longest dimension 120 mm and permanent Spider diameter 3.9 mm preserve the 1.5x relationship, while removable print support stays at the previously requested thin 1.6 mm. A target-only 120/2.6 trial failed the saved-mesh gate with 16 connected components and is not the default. Existing FKEI restores its exact saved target and both diameters instead of silently migrating. Any target or diameter mismatch invalidates Stage 3 onward, including the project-null Stage 3 state; zero/non-finite values fail closed. Stage 4 accepts an asynchronous Worker result only when its complete settings snapshot is still current. Stale output remains blocked. The immutable first-print FKEI remains the 80/2.6/1.6 migration reference; its geometry and SHA are unchanged."
     },
     {

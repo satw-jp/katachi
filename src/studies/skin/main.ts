@@ -125,10 +125,12 @@ import type { GaugeBuildRequest, GaugeWorkerMessage } from "./gaugeWorkerProtoco
 import type { MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
 import {
   A1_MINI_PLA_04_02,
+  internalPrintGateAllowsSupportDisabledExport,
   internalStructureOutputBlockReason,
   screenInternalStructureAngles,
   type InternalAngleScreeningReport,
   type InternalPrintGateReport,
+  type RemovableSupportMode,
 } from "./internalPrintGate.ts";
 import type { InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
 import type {
@@ -948,6 +950,9 @@ let skinRebuildPipeline: SkinRebuildPipelineRuntime | null = null;
 let skinRebuildFinalizedArtworkProject: SkinRebuildProject | null = null;
 let skinRebuildFinalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null = null;
 let skinRebuildStage8CompletedProject: SkinRebuildProject | null = null;
+/** Session-only Stage 8 policy; it is intentionally absent from FKEI. */
+let skinRebuildPrintSupportMode: RemovableSupportMode = "automatic";
+let skinRebuildPrintSupportModeNeedsConfirmation = false;
 let skinRebuildInsideStatus: HTMLElement | null = null;
 let skinRebuildLowestStatus: HTMLElement | null = null;
 let skinRebuildLatticeStatus: HTMLElement | null = null;
@@ -965,6 +970,7 @@ let skinRebuildSaveButton: HTMLButtonElement | null = null;
 let skinRebuildThresholdInput: HTMLInputElement | null = null;
 let skinRebuildDiameterInput: HTMLInputElement | null = null;
 let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
+let skinRebuildPrintSupportModeSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeEdgeSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeDeleteButton: HTMLButtonElement | null = null;
 type SkinRebuildViewportSelectionMode = "pattern" | "lattice-edge";
@@ -1081,6 +1087,8 @@ type SkinRebuildWorkflowSnapshot = {
   finalizedArtworkProject: SkinRebuildProject | null;
   finalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null;
   stage8CompletedProject: SkinRebuildProject | null;
+  printSupportMode: RemovableSupportMode;
+  printSupportModeNeedsConfirmation: boolean;
   stage6BodyMeshCache: SkinRebuildStage6BodyMeshCache | null;
   reinforcementPreview: SkinRebuildReinforcementPreview | null;
   selectedTargetPatchId: number | null;
@@ -7117,7 +7125,100 @@ function skinRebuildFinalDiagnosisIsCurrent(): boolean {
     && skinRebuildFinalArtworkDiagnosis?.project === skinRebuildPipeline?.project;
 }
 
+const REMOVABLE_SUPPORT_DISABLED_WARNING = "Removable support disabled — unsupported regions may remain";
+
+function skinRebuildStage7OverhangEvidence(diagnosis: SkinRebuildFinalArtworkDiagnosis | null): string {
+  return diagnosis
+    ? `Stage 7 overhang evidence: ${diagnosis.overhangRegionCount} regions / ${diagnosis.overhangFaceCount.toLocaleString()} faces`
+    : "Stage 7 overhang evidence unavailable";
+}
+
+function syncSkinRebuildPrintSupportModeUi(): void {
+  if (skinRebuildPrintSupportModeSelect) {
+    skinRebuildPrintSupportModeSelect.value = skinRebuildPrintSupportMode;
+  }
+  if (skinRebuildSupportDiameterInput) {
+    skinRebuildSupportDiameterInput.disabled = skinRebuildPrintSupportMode === "off";
+  }
+}
+
+function skinRebuildPrintSupportModeStatus(
+  project: SkinRebuildProject | null,
+  confirmed: boolean,
+): string {
+  const diagnosis = project && skinRebuildFinalArtworkDiagnosis?.project === project
+    ? skinRebuildFinalArtworkDiagnosis
+    : null;
+  const evidence = skinRebuildStage7OverhangEvidence(diagnosis);
+  if (skinRebuildPrintSupportMode === "off") {
+    return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${evidence} · ${confirmed
+      ? "Off confirmed · BODY only · removable support 0"
+      : "Off selected · confirm Stage 8 before BODY export"}`;
+  }
+  return `Removable support Automatic · ${evidence} · ${confirmed
+    ? "support graph confirmed"
+    : "confirm Stage 8 to generate removable support"}`;
+}
+
+function skinRebuildPrintSupportExportSuffix(): string {
+  return isSkinRebuildApp && skinRebuildPrintSupportMode === "off"
+    ? ` · ${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)}`
+    : "";
+}
+
+function applySkinRebuildPrintSupportMode(nextMode: RemovableSupportMode): void {
+  if (nextMode === skinRebuildPrintSupportMode) {
+    syncSkinRebuildPrintSupportModeUi();
+    return;
+  }
+  const workflowBefore = isSkinRebuildApp ? captureSkinRebuildWorkflowSnapshot() : null;
+  const current = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  const previousFinalized = skinRebuildFinalizedArtworkProject;
+  const previousDiagnosis = skinRebuildFinalArtworkDiagnosis;
+  cancelMeshExport(false);
+  skinRebuildPrintSupportMode = nextMode;
+  skinRebuildPrintSupportModeNeedsConfirmation = true;
+  syncSkinRebuildPrintSupportModeUi();
+
+  skinRebuildStage8CompletedProject = null;
+  if (current) {
+    // This replacement preserves the exact permanent finalGraph and every
+    // Stage 6/7 fact while dropping only stale removable-support output.
+    const replacement: SkinRebuildProject = {
+      ...current,
+      printSupport: createEmptySkinRebuildGraph(),
+    };
+    if (skinRebuildPipeline) skinRebuildPipeline = { ...skinRebuildPipeline, project: replacement };
+    if (previousFinalized === current) skinRebuildFinalizedArtworkProject = replacement;
+    if (previousDiagnosis?.project === current) {
+      skinRebuildFinalArtworkDiagnosis = { ...previousDiagnosis, project: replacement };
+    }
+    internalStructureGraph = replacement.finalGraph;
+    skinRenderer.setInternalStructure(replacement.finalGraph);
+    skinRenderer.setPrintSupport(replacement.printSupport);
+    refreshSkinRebuildLowestPointMarkers(replacement);
+  } else {
+    skinRenderer.setPrintSupport(null);
+  }
+  invalidateInternalPrintGate("工程8のRemovable Supportモードが変わりました。新しいモードを確定してください");
+  if (skinRebuildPrintSupportStatus) {
+    skinRebuildPrintSupportStatus.textContent = skinRebuildPrintSupportModeStatus(
+      skinRebuildPipeline?.project ?? null,
+      false,
+    );
+    skinRebuildPrintSupportStatus.dataset.ok = "false";
+  }
+  setSkinRebuildMeshBottomProgress(
+    "工程8 モード変更",
+    skinRebuildPrintSupportModeStatus(skinRebuildPipeline?.project ?? null, false),
+  );
+  refreshSkinRebuildFinalStageButtons();
+  if (workflowBefore) commitSkinRebuildWorkflowHistory("工程8 Removable Supportモード変更", workflowBefore);
+  render();
+}
+
 function refreshSkinRebuildFinalStageButtons(): void {
+  syncSkinRebuildPrintSupportModeUi();
   const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
   if (skinRebuildFinalDiagnosisButton) {
     skinRebuildFinalDiagnosisButton.disabled = project === null || skinRebuildFinalizedArtworkProject !== project;
@@ -7144,10 +7245,19 @@ function refreshSkinRebuildStage8ExportButton(): void {
   }
 }
 
+function stopSkinRebuildStage8Export(reason: string): void {
+  if (skinRebuildStage8ExportStatus) {
+    skinRebuildStage8ExportStatus.textContent = `書き出し停止: ${reason}`;
+    skinRebuildStage8ExportStatus.dataset.ok = "false";
+  }
+  refreshSkinRebuildStage8ExportButton();
+}
+
 function invalidateSkinRebuildFinalStages(reason: string): void {
   skinRebuildFinalizedArtworkProject = null;
   skinRebuildFinalArtworkDiagnosis = null;
   skinRebuildStage8CompletedProject = null;
+  skinRebuildPrintSupportModeNeedsConfirmation = skinRebuildPrintSupportMode === "off";
   if (skinRebuildFinalDiagnosisStatus) {
     skinRebuildFinalDiagnosisStatus.textContent = reason;
     skinRebuildFinalDiagnosisStatus.dataset.ok = "false";
@@ -8216,8 +8326,25 @@ function installSkinRebuildPipelinePanel(): void {
 
   const printSupport = makeStep(
     "8. 残っている赤に印刷サポートを生成",
-    "工程7で残った赤面の最下側へ、造形プレートから取り外し可能な橙色支柱を生成します。作品とは結合せず、別STL / OBJ / 同梱3MFとして保存します。",
+    "Removable Support = Off / Automatic。Automaticは工程7で残った赤面の最下側へ別体支柱を生成し、Offは支柱を生成せずBODYだけを保存します。",
   );
+  const supportModeRow = document.createElement("label");
+  supportModeRow.className = "row skin-rebuild-pipeline-setting";
+  supportModeRow.append(document.createTextNode("Removable Support "));
+  const supportMode = document.createElement("select");
+  supportMode.setAttribute("aria-label", "Removable Support mode");
+  for (const [value, label] of [["off", "Off"], ["automatic", "Automatic"]] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    supportMode.append(option);
+  }
+  supportMode.value = skinRebuildPrintSupportMode;
+  supportMode.addEventListener("change", () => {
+    const nextMode: RemovableSupportMode = supportMode.value === "off" ? "off" : "automatic";
+    applySkinRebuildPrintSupportMode(nextMode);
+  });
+  supportModeRow.append(supportMode);
   const supportDiameterRow = document.createElement("label");
   supportDiameterRow.className = "row skin-rebuild-pipeline-setting";
   supportDiameterRow.append(document.createTextNode("印刷サポート直径 "));
@@ -8250,6 +8377,7 @@ function installSkinRebuildPipelinePanel(): void {
       printSupport.status.dataset.ok = "false";
       return;
     }
+    const modeAtStart = skinRebuildPrintSupportMode;
     const workflowBefore = captureSkinRebuildWorkflowSnapshot();
     setSkinRebuildPipelineBusy(
       printSupportButton,
@@ -8257,19 +8385,31 @@ function installSkinRebuildPipelinePanel(): void {
       "8. 残っている赤に印刷サポートを生成",
       "印刷サポートを生成中…",
     );
-    printSupport.status.textContent = `工程7の残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面から支柱を生成中…`;
-    setSkinRebuildMeshBottomProgress("工程8 印刷サポート", "残る赤面から別体支柱を生成");
+    printSupport.status.textContent = modeAtStart === "automatic"
+      ? `工程7の残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面から支柱を生成中…`
+      : `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Offを確定中…`;
+    setSkinRebuildMeshBottomProgress(
+      "工程8 Removable Support",
+      modeAtStart === "automatic" ? "残る赤面から別体支柱を生成" : REMOVABLE_SUPPORT_DISABLED_WARNING,
+    );
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     try {
+      if (skinRebuildPrintSupportMode !== modeAtStart || pipeline.project !== current) {
+        printSupport.status.textContent = "Removable Supportモードが変わったため、古い工程8結果を破棄しました";
+        printSupport.status.dataset.ok = "false";
+        return;
+      }
       const settings = currentSkinRebuildPipelineSettings();
-      const supportGraph = buildSkinRebuildPrintSupport(
-        current.base,
-        state.patches,
-        current.patternSides,
-        diagnosis.lowestPoints,
-        current.finalGraph,
-        settings,
-      );
+      const supportGraph = modeAtStart === "automatic"
+        ? buildSkinRebuildPrintSupport(
+            current.base,
+            state.patches,
+            current.patternSides,
+            diagnosis.lowestPoints,
+            current.finalGraph,
+            settings,
+          )
+        : createEmptySkinRebuildGraph();
       const project = assembleSkinRebuildProject(
         settings,
         pipeline.base,
@@ -8286,6 +8426,7 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildFinalizedArtworkProject = project;
       skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
       skinRebuildStage8CompletedProject = project;
+      skinRebuildPrintSupportModeNeedsConfirmation = false;
       skinRenderer.setPrintSupport(project.printSupport);
       refreshSkinRebuildLowestPointMarkers(project);
       refreshSkinRebuildFinalStageButtons();
@@ -8293,14 +8434,23 @@ function installSkinRebuildPipelinePanel(): void {
       const count = project.printSupport.edges.length;
       const supportDiagnostics = skinRebuildPrintSupportDiagnostics(project);
       const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
-      printSupport.status.textContent = count > 0
-        ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成 · ${supportDiagnosticsText}`
-        : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした · ${supportDiagnosticsText}`;
-      printSupport.status.dataset.ok = String(supportDiagnostics.unsupportedCount === 0);
-      setSkinRebuildMeshBottomProgress(
-        "工程8 完了",
-        `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · ${supportDiagnosticsText} · 本体と別出力`,
-      );
+      if (modeAtStart === "off") {
+        printSupport.status.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off confirmed · BODY only · 印刷サポート0`;
+        printSupport.status.dataset.ok = "true";
+        setSkinRebuildMeshBottomProgress(
+          "工程8 Off 完了",
+          `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · BODY only · 印刷サポート0 · printApproval=false`,
+        );
+      } else {
+        printSupport.status.textContent = count > 0
+          ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成 · ${supportDiagnosticsText}`
+          : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした · ${supportDiagnosticsText}`;
+        printSupport.status.dataset.ok = String(supportDiagnostics.unsupportedCount === 0);
+        setSkinRebuildMeshBottomProgress(
+          "工程8 完了",
+          `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · ${supportDiagnosticsText} · 本体と別出力`,
+        );
+      }
       if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "保存可能 · 恒久ラティスと印刷サポートを別Graphで保持します";
       refreshSkinRebuildStage8ExportButton();
       commitSkinRebuildWorkflowHistory("工程8 印刷サポート生成", workflowBefore);
@@ -8320,11 +8470,11 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildFinalStageButtons();
     }
   };
-  printSupport.section.append(supportDiameterRow, printSupportButton, printSupport.status);
+  printSupport.section.append(supportModeRow, supportDiameterRow, printSupportButton, printSupport.status);
 
   const stage8Export = makeStep(
     "サポート確定後の3Dデータ書き出し",
-    "必要な形式だけを選びます。3MFは作品と橙色サポートを同じ座標の別パーツで1ファイルへ入れます。STL / OBJは作品とサポートを別ファイルで保存します。",
+    "必要な形式だけを選びます。Automaticは作品と橙色サポートを別パーツ／別ファイルで保存し、Offは印刷サポート0のBODYだけを保存します。",
   );
   const exportFormats = document.createElement("div");
   exportFormats.className = "skin-rebuild-export-formats";
@@ -8353,8 +8503,9 @@ function installSkinRebuildPipelinePanel(): void {
       recipe: false,
     };
     if (!formats.threeMf && !formats.stl && !formats.obj) {
-      stage8Export.status.textContent = "3MF / STL / OBJのうち、少なくとも1形式を選んでください";
+      stage8Export.status.textContent = "書き出し停止: 3MF / STL / OBJのうち、少なくとも1形式を選んでください";
       stage8Export.status.dataset.ok = "false";
+      refreshSkinRebuildStage8ExportButton();
       return;
     }
     const names = [formats.threeMf ? "3MF" : "", formats.stl ? "STL" : "", formats.obj ? "OBJ" : ""]
@@ -8449,6 +8600,8 @@ function installSkinRebuildPipelinePanel(): void {
   skinRebuildThresholdInput = threshold;
   skinRebuildDiameterInput = diameter;
   skinRebuildSupportDiameterInput = supportDiameter;
+  skinRebuildPrintSupportModeSelect = supportMode;
+  syncSkinRebuildPrintSupportModeUi();
   skinRebuildLatticeEdgeSelect = latticeEdgeSelect;
   skinRebuildLatticeDeleteButton = latticeDeleteButton;
   skinRebuildSelectedTargetStatus = targetSelectionStatus;
@@ -8535,9 +8688,15 @@ function skinRebuildPipelineOutputBlockReason(): string | null {
   if (!skinRebuildFinalDiagnosisIsCurrent()) {
     return "工程6で作品形状を確定し、工程7で残っている赤面を最終診断してください";
   }
+  if (skinRebuildPrintSupportModeNeedsConfirmation
+    && skinRebuildStage8CompletedProject !== skinRebuildPipeline.project) {
+    return skinRebuildPrintSupportModeStatus(skinRebuildPipeline.project, false);
+  }
   if ((skinRebuildFinalArtworkDiagnosis?.overhangFaceCount ?? 0) > 0
     && skinRebuildStage8CompletedProject !== skinRebuildPipeline.project) {
-    return "工程7で残った赤面があります。工程8で別体印刷サポートを生成してください";
+    return skinRebuildPrintSupportMode === "off"
+      ? `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)} · 工程8でOffを確定してください`
+      : "工程7で残った赤面があります。工程8で別体印刷サポートを生成してください";
   }
   return null;
 }
@@ -10684,6 +10843,8 @@ function captureSkinRebuildWorkflowSnapshot(): SkinRebuildWorkflowSnapshot {
     finalizedArtworkProject: skinRebuildFinalizedArtworkProject,
     finalArtworkDiagnosis: skinRebuildFinalArtworkDiagnosis,
     stage8CompletedProject: skinRebuildStage8CompletedProject,
+    printSupportMode: skinRebuildPrintSupportMode,
+    printSupportModeNeedsConfirmation: skinRebuildPrintSupportModeNeedsConfirmation,
     stage6BodyMeshCache,
     reinforcementPreview: skinRebuildReinforcementPreview
       ? { graph: skinRebuildReinforcementPreview.graph, edgeIds: [...skinRebuildReinforcementPreview.edgeIds] }
@@ -10715,6 +10876,8 @@ function skinRebuildWorkflowSnapshotChanged(
     || before.finalizedArtworkProject !== after.finalizedArtworkProject
     || before.finalArtworkDiagnosis !== after.finalArtworkDiagnosis
     || before.stage8CompletedProject !== after.stage8CompletedProject
+    || before.printSupportMode !== after.printSupportMode
+    || before.printSupportModeNeedsConfirmation !== after.printSupportModeNeedsConfirmation
     || before.stage6BodyMeshCache !== after.stage6BodyMeshCache
     || before.reinforcementPreview?.graph !== after.reinforcementPreview?.graph;
 }
@@ -10752,6 +10915,9 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   skinRebuildFinalizedArtworkProject = snapshot.finalizedArtworkProject;
   skinRebuildFinalArtworkDiagnosis = snapshot.finalArtworkDiagnosis;
   skinRebuildStage8CompletedProject = snapshot.stage8CompletedProject;
+  skinRebuildPrintSupportMode = snapshot.printSupportMode;
+  skinRebuildPrintSupportModeNeedsConfirmation = snapshot.printSupportModeNeedsConfirmation;
+  syncSkinRebuildPrintSupportModeUi();
   stage6BodyMeshCache = snapshot.stage6BodyMeshCache;
   skinRebuildSelectedTargetPatchId = snapshot.selectedTargetPatchId;
   skinRebuildSelectedOverhangRegionIds = new Set(snapshot.selectedOverhangRegionIds);
@@ -11465,6 +11631,9 @@ type FkeiOpenRuntimeSnapshot = {
   readonly stage7ProvisionalRecheckTerminal: "missing" | "stale" | "error";
   readonly stage7ProvisionalRecheckMessage: string | null;
   readonly stage7ProvisionalAdoptionGateApproval: Stage7ProvisionalAdoptionGateApproval | null;
+  /** Session-only; never written into the FKEI document. */
+  readonly skinRebuildPrintSupportMode: RemovableSupportMode;
+  readonly skinRebuildPrintSupportModeNeedsConfirmation: boolean;
 };
 
 let restoringFkeiOpenRuntime = false;
@@ -11516,6 +11685,8 @@ function captureFkeiOpenRuntimeSnapshot(): FkeiOpenRuntimeSnapshot {
     stage7ProvisionalRecheckTerminal,
     stage7ProvisionalRecheckMessage,
     stage7ProvisionalAdoptionGateApproval,
+    skinRebuildPrintSupportMode,
+    skinRebuildPrintSupportModeNeedsConfirmation,
   };
 }
 
@@ -11651,6 +11822,9 @@ function restoreFkeiOpenRuntimeSnapshot(snapshot: FkeiOpenRuntimeSnapshot): void
   stage7ProvisionalRecheckTerminal = snapshot.stage7ProvisionalRecheckTerminal;
   stage7ProvisionalRecheckMessage = snapshot.stage7ProvisionalRecheckMessage;
   stage7ProvisionalAdoptionGateApproval = snapshot.stage7ProvisionalAdoptionGateApproval;
+  skinRebuildPrintSupportMode = snapshot.skinRebuildPrintSupportMode;
+  skinRebuildPrintSupportModeNeedsConfirmation = snapshot.skinRebuildPrintSupportModeNeedsConfirmation;
+  syncSkinRebuildPrintSupportModeUi();
   // Restore renderer-owned graph/overlay resources immediately as well as
   // restoring their variables.  The following redraw may throw; without this
   // explicit repair a failed Open could leave checkpoint geometry paired with
@@ -11716,7 +11890,10 @@ function redrawFkeiOpenRuntime(): void {
 }
 
 function getSkinRebuildPrintSupportGraph(): InternalStructureGraph | null {
-  return isSkinRebuildApp && skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.project
+  return isSkinRebuildApp
+    && skinRebuildPrintSupportMode === "automatic"
+    && skinRebuildPipelineIsCurrent()
+    && skinRebuildPipeline?.project
     ? skinRebuildPipeline.project.printSupport
     : null;
 }
@@ -11814,7 +11991,12 @@ function fallbackHistoryForSkinRebuildProject(document: SkinRebuildFkeiDocument)
 }
 
 function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
-  const project = projectFromSkinRebuildFkei(document);
+  let project = projectFromSkinRebuildFkei(document);
+  if (skinRebuildPrintSupportMode === "off") {
+    // FKEI keeps the support graph for compatibility, but an Off session
+    // must not install or preview that stale removable-support output.
+    project = { ...project, printSupport: createEmptySkinRebuildGraph() };
+  }
   const prepared = document.shapeRecipe
     ? prepareRecipeText(document.shapeRecipe)
     : (() => {
@@ -11889,11 +12071,16 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       skinRebuildLatticeStatus.dataset.ok = String(project.audit.unsupportedTargetCount === 0);
     }
     if (skinRebuildPrintSupportStatus) {
-      const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
-      skinRebuildPrintSupportStatus.textContent = project.printSupport.edges.length > 0
-        ? `復元済み · 橙の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · ${supportDiagnosticsText} · 再生成は工程6→7→8`
-        : `復元済み · 印刷サポート0本 · ${supportDiagnosticsText} · 工程6→7→8で生成できます`;
-      delete skinRebuildPrintSupportStatus.dataset.ok;
+      if (skinRebuildPrintSupportMode === "off") {
+        skinRebuildPrintSupportStatus.textContent = `${skinRebuildPrintSupportModeStatus(project, false)} · 復元済み`;
+        skinRebuildPrintSupportStatus.dataset.ok = "false";
+      } else {
+        const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
+        skinRebuildPrintSupportStatus.textContent = project.printSupport.edges.length > 0
+          ? `復元済み · 橙の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · ${supportDiagnosticsText} · 再生成は工程6→7→8`
+          : `復元済み · 印刷サポート0本 · ${supportDiagnosticsText} · 工程6→7→8で生成できます`;
+        delete skinRebuildPrintSupportStatus.dataset.ok;
+      }
     }
     if (skinRebuildSaveStatus) {
       skinRebuildSaveStatus.textContent = project.audit.unsupportedTargetCount === 0
@@ -12193,6 +12380,26 @@ function internalPrintGateIsRequiredForCurrentOutput(): boolean {
   return state.skinParams.internalStructure !== "none";
 }
 
+function internalPrintGateExportAllowed(report: InternalPrintGateReport): boolean {
+  return internalPrintGateAllowsSupportDisabledExport(
+    report,
+    isSkinRebuildApp ? skinRebuildPrintSupportMode : "automatic",
+    A1_MINI_PLA_04_02,
+  );
+}
+
+function internalPrintGateStatusMessage(
+  report: InternalPrintGateReport,
+  allowed: boolean,
+  allowedText: string,
+  rejectedText: string,
+): string {
+  if (allowed && !report.ok && isSkinRebuildApp && skinRebuildPrintSupportMode === "off") {
+    return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)} · BODY export allowed by Off policy · ${allowedText}`;
+  }
+  return allowed ? allowedText : rejectedText;
+}
+
 function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデータは書き出せません"): void {
   clearInternalPrintGateStatusTimer();
   internalPrintGateGeneration++;
@@ -12266,13 +12473,17 @@ function startInternalPrintGate(options: MeshUiOptions): void {
   const requestId = ++internalPrintGateRequestId;
   const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? graph);
   if (internalPrintGateCache?.fingerprint === fingerprint) {
+    const exportAllowed = internalPrintGateExportAllowed(internalPrintGateCache.report);
     ui.setInternalPrintGateReport(internalPrintGateCache.report);
-    ui.setInternalPrintGateExportAllowed(internalPrintGateCache.report.ok, true);
+    ui.setInternalPrintGateExportAllowed(exportAllowed, true);
     ui.setInternalPrintGateStatus(
-      internalPrintGateCache.report.ok
-        ? "内部構造：OK · 前回の同一mesh判定を再利用"
-        : `内部構造：NG · 前回の同一mesh判定を再利用（${internalPrintGateCache.report.reasons.length}項目）`,
-      internalPrintGateCache.report.ok,
+      internalPrintGateStatusMessage(
+        internalPrintGateCache.report,
+        exportAllowed,
+        "内部構造：OK · 前回の同一mesh判定を再利用",
+        `内部構造：NG · 前回の同一mesh判定を再利用（${internalPrintGateCache.report.reasons.length}項目）`,
+      ),
+      exportAllowed,
     );
     return;
   }
@@ -12401,21 +12612,30 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     };
     pendingInternalPrintGateFingerprint = "";
     ui.setInternalPrintGateReport(message.report);
-    ui.setInternalPrintGateExportAllowed(message.report.ok, true);
+    const exportAllowed = internalPrintGateExportAllowed(message.report);
+    ui.setInternalPrintGateExportAllowed(exportAllowed, true);
     ui.setInternalPrintGateStatus(
-      message.report.ok
-        ? `内部構造：OK${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復済み` : ""} · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`
-        : `内部構造：NG · ${message.report.reasons.length}項目を直してください · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
-      message.report.ok,
+      internalPrintGateStatusMessage(
+        message.report,
+        exportAllowed,
+        `内部構造：OK${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復済み` : ""} · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+        `内部構造：NG · ${message.report.reasons.length}項目を直してください · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+      ),
+      exportAllowed,
     );
     const pendingExport = pendingMeshExportAfterGate;
     if (pendingExport?.fingerprint === fingerprint) {
       pendingMeshExportAfterGate = null;
       ui.setMeshExportRunning(false);
-      if (message.report.ok) {
+      if (exportAllowed) {
+        const supportDisabledWaived = !message.report.ok
+          && isSkinRebuildApp
+          && skinRebuildPrintSupportMode === "off";
         setSkinRebuildMeshBottomProgress(
-          "工程6 自動判定完了",
-          `水密 · 1部品${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復` : ""} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+          supportDisabledWaived ? "工程6 OffポリシーでBODY export許可" : "工程6 自動判定完了",
+          supportDisabledWaived
+            ? `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`
+            : `水密 · 1部品${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復` : ""} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
         );
         window.setTimeout(() => exportMesh(pendingExport.options, pendingExport.formats), 0);
       } else {
@@ -12473,7 +12693,7 @@ function inspectMesh(options: MeshUiOptions): void {
   if (internalGraph?.edges.length) {
     const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? internalGraph);
     if (internalPrintGateCache?.fingerprint === fingerprint) {
-      const ok = internalPrintGateCache.report.ok;
+      const ok = internalPrintGateExportAllowed(internalPrintGateCache.report);
       if (bodyFingerprint && stage6BodyMeshCache?.fingerprint === bodyFingerprint) {
         showSkinRebuildStage6ArtworkMesh(stage6BodyMeshCache.positions, stage6BodyMeshCache.normals);
       } else if (bodyFingerprint
@@ -12481,7 +12701,10 @@ function inspectMesh(options: MeshUiOptions): void {
         && previewMeshCache.resolution === Math.max(16, Math.round(options.resolution))) {
         showSkinRebuildStage6ArtworkMesh(previewMeshCache.positions, previewMeshCache.normals);
       }
-      ui.setMeshStatus(`${internalPrintGateCache.summary} / 内部判定済みmeshを再利用`, ok);
+      ui.setMeshStatus(
+        `${internalPrintGateCache.summary} / 内部判定済みmeshを再利用${!internalPrintGateCache.report.ok && ok ? ` · ${REMOVABLE_SUPPORT_DISABLED_WARNING}` : ""}`,
+        ok,
+      );
       setSkinRebuildMeshBottomProgress(
         "工程6 検査完了",
         `判定済みmesh再利用 · 水密${internalPrintGateCache.report.watertight ? "OK" : "NG"} · 部品数${internalPrintGateCache.report.meshComponents} · 0.0秒`,
@@ -12670,20 +12893,16 @@ function exportMesh(
   const rebuildBlockReason = skinRebuildPipelineOutputBlockReason();
   if (rebuildBlockReason) {
     if ((skinRebuildPipeline?.project?.audit.unsupportedTargetCount ?? 0) > 0) {
-      const patchId = focusSkinRebuildUnsupportedTarget();
-      if (patchId !== null) {
-        if (skinRebuildStage8ExportStatus) {
-          skinRebuildStage8ExportStatus.textContent = `書き出し停止 · Pattern #${patchId}を大きい黄色＋白枠で強調しました`;
-          skinRebuildStage8ExportStatus.dataset.ok = "false";
-        }
-      }
+      focusSkinRebuildUnsupportedTarget();
     }
     ui.setMeshStatus(`書き出し停止: ${rebuildBlockReason}`, false);
+    stopSkinRebuildStage8Export(rebuildBlockReason);
     return;
   }
   const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
   if (readinessBlockReason) {
     ui.setMeshStatus(`書き出し停止: ${readinessBlockReason}`, false);
+    stopSkinRebuildStage8Export(readinessBlockReason);
     return;
   }
   if (internalGraph?.edges.length) {
@@ -12704,8 +12923,11 @@ function exportMesh(
       startInternalPrintGate(options);
       return;
     }
-    if (!internalPrintGateCache.report.ok) {
-      ui.setMeshStatus(`書き出し停止: ${internalPrintGateCache.report.reasons[0] ?? `内部構造がNGです（${internalPrintGateCache.report.reasons.length}項目）`}`, false);
+    if (!internalPrintGateExportAllowed(internalPrintGateCache.report)) {
+      const gateBlockReason = internalPrintGateCache.report.reasons[0]
+        ?? `内部構造がNGです（${internalPrintGateCache.report.reasons.length}項目）`;
+      ui.setMeshStatus(`書き出し停止: ${gateBlockReason}`, false);
+      stopSkinRebuildStage8Export(gateBlockReason);
       return;
     }
   }
@@ -12714,7 +12936,8 @@ function exportMesh(
   const baseName = makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance);
   const recipe = serializeRecipe(history);
   const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
-  const reusableGate = internalGraph?.edges.length && internalPrintGateCache?.report.ok
+  const reusableGate = internalGraph?.edges.length && internalPrintGateCache
+    && internalPrintGateExportAllowed(internalPrintGateCache.report)
     ? internalPrintGateCache
     : null;
   const request: MeshExportRequest = {
@@ -12822,10 +13045,11 @@ function exportMesh(
     const directFormats = [pending.formats.stl ? "STL" : "", pending.formats.obj ? "OBJ" : "", pending.formats.recipe ? "recipe" : ""]
       .filter(Boolean);
     const directSummary = directFormats.length > 0 ? `${directFormats.join("・")}保存済み` : "個別ファイルなし";
+    const supportPolicySuffix = skinRebuildPrintSupportExportSuffix();
     if (isSkinRebuildApp && pending.formats.threeMf) {
-      ui.setMeshStatus(`${savedSummary} / ${directSummary} / 分離3MFを梱包中…${cacheLabel}`, message.watertightOk);
-      if (skinRebuildStage8ExportStatus) skinRebuildStage8ExportStatus.textContent = `${directSummary} · 3MFを梱包中…`;
-      setSkinRebuildMeshBottomProgress("工程6 分離3MF", "作品＋印刷サポートを別パーツのまま梱包中");
+      ui.setMeshStatus(`${savedSummary} / ${directSummary} / 分離3MFを梱包中…${cacheLabel}${supportPolicySuffix}`, message.watertightOk);
+      if (skinRebuildStage8ExportStatus) skinRebuildStage8ExportStatus.textContent = `${directSummary} · 3MFを梱包中…${supportPolicySuffix}`;
+      setSkinRebuildMeshBottomProgress("工程6 分離3MF", `作品＋印刷サポートを別パーツのまま梱包中${supportPolicySuffix}`);
       const bodyPositions = parseBinaryStlPositions(message.stl);
       const supportPositions = message.supportStl ? parseBinaryStlPositions(message.supportStl) : null;
       void buildBambu3mf([
@@ -12843,15 +13067,15 @@ function exportMesh(
         const partSummary = supportPositions?.length
           ? `作品＋印刷サポートを共通Z座標の別パーツで保存 · Plate 0 · support ${result.stats.scaffoldFaces.toLocaleString()} faces`
           : "作品を1パーツで保存 · 印刷サポート0";
-        ui.setMeshStatus(`${savedSummary} / 3MF保存完了 · ${partSummary} / ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`, message.watertightOk);
+        ui.setMeshStatus(`${savedSummary} / 3MF保存完了 · ${partSummary} / ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`, message.watertightOk);
         if (skinRebuildStage8ExportStatus) {
-          skinRebuildStage8ExportStatus.textContent = `保存完了 · 3MF${directFormats.length > 0 ? ` + ${directFormats.join(" + ")}` : ""} · ${partSummary}`;
+          skinRebuildStage8ExportStatus.textContent = `保存完了 · 3MF${directFormats.length > 0 ? ` + ${directFormats.join(" + ")}` : ""} · ${partSummary}${supportPolicySuffix}`;
           skinRebuildStage8ExportStatus.dataset.ok = String(message.watertightOk);
         }
         refreshSkinRebuildStage8ExportButton();
         setSkinRebuildMeshBottomProgress(
           "工程6 保存完了",
-          `${partSummary} · BODY ${result.stats.bodyFaces.toLocaleString()} faces · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`,
+          `${partSummary} · BODY ${result.stats.bodyFaces.toLocaleString()} faces · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`,
           message.watertightOk ? undefined : "水密検査NG",
         );
       }).catch((error) => {
@@ -12866,15 +13090,15 @@ function exportMesh(
       });
     } else {
       const selectedSummary = directFormats.join("・") || "選択ファイルなし";
-      ui.setMeshStatus(`${savedSummary} / ${selectedSummary}保存完了 ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`, message.watertightOk);
+      ui.setMeshStatus(`${savedSummary} / ${selectedSummary}保存完了 ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`, message.watertightOk);
       if (skinRebuildStage8ExportStatus) {
-        skinRebuildStage8ExportStatus.textContent = `保存完了 · ${selectedSummary}`;
+        skinRebuildStage8ExportStatus.textContent = `保存完了 · ${selectedSummary}${supportPolicySuffix}`;
         skinRebuildStage8ExportStatus.dataset.ok = String(message.watertightOk);
       }
       refreshSkinRebuildStage8ExportButton();
       setSkinRebuildMeshBottomProgress(
         "工程6 保存完了",
-        `${selectedSummary} · ${savedSummary} · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}`,
+        `${selectedSummary} · ${savedSummary} · ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`,
         message.watertightOk ? undefined : "水密検査NG",
       );
     }
@@ -13275,7 +13499,8 @@ function exportBambu3mf(options: MeshUiOptions, supportType: BambuSupportType): 
   let bodyPositions: Float32Array | undefined;
   if (internalGraph?.edges.length) {
     const fingerprint = internalPrintGateFingerprint(options, internalGraph);
-    if (!internalPrintGateCache || internalPrintGateCache.fingerprint !== fingerprint || !internalPrintGateCache.report.ok) {
+    if (!internalPrintGateCache || internalPrintGateCache.fingerprint !== fingerprint
+      || !internalPrintGateExportAllowed(internalPrintGateCache.report)) {
       ui.setBambu3mfExportStatus("Internal付きBODYは、先にA1 mini条件の内部最終判定をOKにしてください", false);
       return;
     }
@@ -14503,7 +14728,8 @@ async function checkCurrentPrint(options: MeshUiOptions): Promise<void> {
     return;
   }
   const gateFingerprint = internalGraph?.edges.length ? internalPrintGateFingerprint(options, internalGraph) : null;
-  if (gateFingerprint && (!internalPrintGateCache || internalPrintGateCache.fingerprint !== gateFingerprint || !internalPrintGateCache.report.ok)) {
+  if (gateFingerprint && (!internalPrintGateCache || internalPrintGateCache.fingerprint !== gateFingerprint
+    || !internalPrintGateExportAllowed(internalPrintGateCache.report))) {
     ui.setPrintCheckStatus("先にA1 mini条件の内部最終判定をOKにしてください。OK時の同一STLを再利用します", false);
     return;
   }

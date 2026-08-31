@@ -88,6 +88,21 @@ rejected-by-Body／unsupported表示とFKEIの任意diagnosticsは、旧ファ�
 これは有限SDF／Graphの判定であり、slicer・実機の取り外しや印刷成功を主張しない。
 `printApproval=false`と同梱first-print FKEIは不変である。
 
+### 2026-08-31 — TASK C session-only removable-support policy
+
+Stage 8 now exposes exactly two runtime choices, `Removable Support = Off | Automatic`,
+without adding a persisted FKEI field. Automatic keeps the existing TASK B builder and
+radius-aware finished-BODY keep-out. Off replaces only the runtime removable-support
+Graph with an empty Graph, preserves `finalGraph` and the Stage 7 diagnosis, requires an
+explicit Stage 8 confirmation, and emits BODY-only output with no support artifact. Its
+visible warning is **“Removable support disabled — unsupported regions may remain”** and
+includes the current Stage 7 overhang region/face evidence. The export policy may waive
+only support-demand facts (`unsupportedNodes`, `unsupportedEdges`, `overlongBridges`);
+watertightness, components, degenerates, diameter/resolution, anchors, floating graphs
+and other structural/material failures remain fail-closed. This is a runtime/export-policy
+change, not slicer or physical-print evidence; the author choice is unprinted and
+unapproved and `printApproval=false` remains unchanged.
+
 ### 2026-08-31 — Windows CUDA local-engine boundary (shadow-only prototype)
 
 Web版をauthoritativeのまま維持し、固定loopback `127.0.0.1:47658`へversioned containment jobを渡せる

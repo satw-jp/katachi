@@ -54,6 +54,50 @@ export interface InternalPrintGateReport {
   maxObservedBridgeMm: number;
 }
 
+/** Runtime-only Stage 8 policy.  It is intentionally not part of FKEI. */
+export type RemovableSupportMode = "off" | "automatic";
+
+/**
+ * Decide whether an Internal-gate result may be used for BODY export while
+ * removable support is explicitly disabled.  A normal OK report is always
+ * accepted.  The disabled policy waives only the three support-demand facts;
+ * every structural/material metric that the current gate reports remains
+ * fail-closed.  Reasons are deliberately not inspected, so this stays
+ * independent of localized UI wording.
+ */
+export function internalPrintGateAllowsSupportDisabledExport(
+  report: InternalPrintGateReport,
+  mode: RemovableSupportMode,
+  profile: Pick<InternalPrintProfile, "minStrutDiameterMm" | "minVoxelsAcrossDiameter"> = A1_MINI_PLA_04_02,
+): boolean {
+  if (report.ok) return true;
+  if (mode !== "off") return false;
+  const finiteNonNegativeInteger = (value: number): boolean => Number.isInteger(value) && value >= 0;
+  return report.watertight
+    && report.meshComponents === 1
+    && report.removedDegenerateTriangles === 0
+    && finiteNonNegativeInteger(report.graphComponents)
+    && report.graphComponents > 0
+    && finiteNonNegativeInteger(report.surfaceAnchorNodes)
+    && finiteNonNegativeInteger(report.buildPlateAnchorNodes)
+    && report.surfaceAnchorNodes + report.buildPlateAnchorNodes > 0
+    && report.floatingGraphComponents === 0
+    && Number.isFinite(report.minDiameterMm)
+    && report.minDiameterMm + 1e-6 >= profile.minStrutDiameterMm
+    && Number.isFinite(report.voxelStepMm)
+    && report.voxelStepMm > 0
+    && Number.isFinite(report.voxelsAcrossDiameter)
+    && report.voxelsAcrossDiameter + 1e-6 >= profile.minVoxelsAcrossDiameter
+    && finiteNonNegativeInteger(report.unsupportedNodes)
+    && finiteNonNegativeInteger(report.unsupportedEdges)
+    && finiteNonNegativeInteger(report.overlongBridges)
+    && finiteNonNegativeInteger(report.bridgeEdges)
+    && Number.isFinite(report.maxBridgeMm)
+    && report.maxBridgeMm >= 0
+    && Number.isFinite(report.maxObservedBridgeMm)
+    && report.maxObservedBridgeMm >= 0;
+}
+
 export interface InternalPrintGateInput {
   graph: InternalStructureGraph | null;
   mesh: Pick<SkinMeshResult, "watertight" | "connectedComponents" | "scaleMmPerUnit" | "removedSavedDegenerateTriangleCount">;
