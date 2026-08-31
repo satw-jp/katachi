@@ -1,86 +1,64 @@
-# Windows local GeometryEngine — shadow-only prototype
+# Windows local GeometryEngine — RTX 3080 shadow-only
 
-This helper is a narrow TASK 13 transport and executable adapter. It binds to
-the fixed loopback address `127.0.0.1:47658`, never scans ports or the LAN, and
-accepts only the versioned `evaluateContainment` batch. It is not connected to
-`main.ts`, FKEI, production geometry, STL or 3MF.
+This helper is a narrow loopback transport and reviewed executable adapter. It
+binds only to `127.0.0.1:47658`, never scans ports or the LAN, and accepts only
+the versioned `evaluateContainment` batch. The Web result remains authoritative;
+the CUDA result is an observation and every completed response keeps
+`shadow: true` and `productionApplied: false`.
 
-Mutation requests require the explicit Cloudflare production origin or the
-Katachi development origin on its fixed Vite port `5174`; arbitrary webpages
-and missing-Origin requests cannot submit jobs.
+The helper is isolated from `main.ts`, FKEI, production geometry, STL and 3MF.
+Failure, timeout or comparison mismatch leaves the Web result unchanged.
 
-## Current machine result (2026-08-31)
+## Reviewed executable
 
-- `nvidia-smi` sees an NVIDIA GeForce RTX 3080 with driver 595.95 and reports
-  driver CUDA compatibility 13.2.
-- `nvcc`, CMake and MSVC `cl` are not available on PATH.
-- the `python.exe` names resolve only to Windows App Execution Alias stubs and
-  do not provide a working interpreter.
-- `bin/katachi-containment-cuda.exe` does not exist.
-
-The driver report does not mean that the CUDA Toolkit/compiler is installed.
-Consequently this prototype does not claim or execute a CUDA kernel. The
-capability endpoint honestly advertises CUDA as unavailable and the browser
-adapter keeps the Web reference result.
-
-Run the read-only machine probe:
-
-```text
-node tools/skin-local-engine/probe-windows-capability.mjs
-```
-
-Run the helper (it can expose capabilities while the compiled adapter is
-absent, but rejects jobs with a structured 503):
-
-```text
-node tools/skin-local-engine/server.mjs
-```
-
-Run focused helper tests:
-
-```text
-node --test tools/skin-local-engine/*.test.mjs
-```
-
-## Compiled executable insertion contract
-
-No install or build is performed by this prototype. After the author
-deliberately installs and verifies CUDA Toolkit, CMake and Visual Studio C++,
-place the separately reviewed executable at the one fixed path:
+The fixed path is:
 
 ```text
 tools/skin-local-engine/bin/katachi-containment-cuda.exe
 ```
 
-The helper launches that exact file with `shell: false`; requests cannot choose
-a command or filesystem path. The executable must implement:
+It is the artifact from `satw-jp/katachi-cuda-rtx3080-bringup` commit
+`205b69e58d3b4d99e07151ee76670b8b2ed496ed`, SHA-256
+`0AE5FA195E6FE9FE5831603E3AC075FFBCF1B0F174E3768273EDD578BE516726`.
+It uses `nvcuda.dll` Driver API and embedded PTX JIT; CUDA Toolkit and `nvcc`
+are not required. Requests cannot choose a command or executable path.
 
-1. `--capabilities-json`: write one JSON object with contract
-   `katachi.cuda-containment-executable-capabilities.v1`,
-   `executableProtocol: 1`, `engineVersion`, `precisionMode`, `device.name`, and
-   `algorithmContracts` containing
-   `katachi.skin.evaluate-containment.metaball-radius.v1`.
-2. `--evaluate-containment-json`: read one versioned GeometryJob request from
-   stdin and write one JSON object with contract
-   `katachi.cuda-containment-executable-result.v1`; echo `clientRequestId`,
-   `projectFingerprint` and `algorithmContract`; return every requested
-   `sampleId`/`edgeId` exactly once with Base signed distance,
-   radius-adjusted margin, clearance and classification; include the portable
-   summary and `timingMilliseconds`.
+Before advertising CUDA as available, the adapter requires:
 
-Resume in this order:
+- executable capability and result contract v1;
+- `NVIDIA GeForce RTX 3080` and `float32`;
+- algorithm `katachi.skin.evaluate-containment.metaball-radius.v1`;
+- exact request, project, sample and edge identity;
+- finite numeric results and timings;
+- `shadow: true` and `productionApplied: false`.
 
-1. rerun the capability probe and confirm `nvcc`, CMake and MSVC are real tools;
-2. build the executable outside the Web bundle and put it at the fixed path;
-3. run `--capabilities-json` directly and inspect the advertised device and
-   precision;
-4. run both focused test commands;
-5. start the helper and confirm `/v1/capabilities` advertises the algorithm;
-6. compare CUDA samples against the Web reference on frozen fixtures before
-   considering any runtime integration.
+## Loopback restrictions
 
-Even after a match, this prototype remains observational:
-`productionApplied` is always false. Pairing, signed distribution, full
-cancellation of an in-flight native process, artifact transfer and real
-Cloudflare-to-loopback browser permission QA remain required before any
-shape-affecting use.
+- exact Host `127.0.0.1:47658`;
+- mutation Origin limited to the Cloudflare production origin and fixed Vite
+  development origins;
+- mandatory `X-Katachi-Geometry-Prototype: shadow-only-v1` header;
+- 8 MiB request limit;
+- 250,000 containment sample limit.
+
+The capabilities document also advertises the policy as `shadow-only`, Web
+authoritative and `productionApplied: false`.
+
+## Run and verify
+
+Run the helper:
+
+```text
+node tools/skin-local-engine/server.mjs
+```
+
+Run the complete focused verification, including the frozen fixture through
+the real helper and CUDA executable:
+
+```text
+npm run test:skin-local-engine
+```
+
+The end-to-end report includes Web/CUDA match status, maximum margin delta,
+whole-path timing and CUDA kernel timing. Browser Local Network Access remains
+a user-mediated permission; do not bypass it with unsafe browser settings.

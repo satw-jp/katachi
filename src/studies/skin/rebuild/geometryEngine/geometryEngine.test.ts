@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   EVALUATE_CONTAINMENT_ALGORITHM,
+  EXPECTED_CUDA_EXECUTABLE_SHA256,
   GEOMETRY_CAPABILITIES_CONTRACT,
   GEOMETRY_ENGINE_API_BASE,
   GEOMETRY_JOB_RESULT_CONTRACT,
@@ -49,11 +50,17 @@ function capabilities(cudaAvailable: boolean): GeometryEngineCapabilities {
     protocol: GEOMETRY_PROTOCOL,
     engine: { id: "test-helper", version: "test" },
     endpoint: { host: "127.0.0.1", port: 47658, apiBase: "/v1" },
+    policy: {
+      executionMode: "shadow-only",
+      authoritativeBackend: "web",
+      productionApplied: false,
+    },
     backends: [{
       backendId: "test-cuda",
       kind: "cuda",
       status: cudaAvailable ? "available" : "unavailable",
       deviceName: "NVIDIA GeForce RTX 3080",
+      artifactSha256: EXPECTED_CUDA_EXECUTABLE_SHA256,
       precisionModes: cudaAvailable ? ["float32"] : [],
       ...(cudaAvailable ? {} : { reasonCode: "compiled_executable_absent" }),
     }],
@@ -81,6 +88,7 @@ function cudaCandidate(
       engineVersion: "test-cuda-1",
       deviceName: "NVIDIA GeForce RTX 3080",
       precisionMode: "float32",
+      artifactSha256: EXPECTED_CUDA_EXECUTABLE_SHA256,
     },
   };
   mutate?.(candidate);

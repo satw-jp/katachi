@@ -16,6 +16,22 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — RTX 3080 CUDA shadow helper integration
+
+`de9d25e`から分離した`agent/skin-cuda-shadow` worktreeだけで、review済みbring-up artifact
+`205b69e58d3b4d99e07151ee76670b8b2ed496ed`のexe（SHA-256
+`0AE5FA195E6FE9FE5831603E3AC075FFBCF1B0F174E3768273EDD578BE516726`）をhelperの固定pathへ配置した。
+adapterはRTX 3080、float32、algorithm v1、finite値、sample/edge identity、`shadow=true`、
+`productionApplied=false`をfail-closedで要求する。同じ5-sample fixtureをWeb reference→固定loopback
+helper→CUDAへ通し、identityと分類は完全一致、最大margin差`1.0178472137356565e-7`（許容`5e-5`）、
+全経路`270.309 ms`、CUDA exe内`125.1231 ms`、kernel平均`0.034816 ms`だった。Webはauthoritative、
+CUDAはcandidateのままで、production geometry、FKEI、STL/3MFには接続していない。
+
+公開SKIN originにはloopback probe UIがなく、Codex in-app Browserと接続済みChromeのBrowser Useは
+`http://127.0.0.1:47658`を`ERR_BLOCKED_BY_CLIENT`で遮断したため、Local Network Access許可promptには
+到達しなかった。回避設定は変更していない。helper側のCloudflare Origin CORS経路は実Web client harnessで
+成功し、Host、Origin、shadow-only header、8 MiB、250,000 sampleの回帰も成功した。
+
 ### 2026-08-31 — Windows CUDA local-engine boundary (shadow-only prototype)
 
 Web版をauthoritativeのまま維持し、固定loopback `127.0.0.1:47658`へversioned containment jobを渡せる

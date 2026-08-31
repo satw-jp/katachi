@@ -30,11 +30,17 @@ export function createCapabilitiesDocument(probe) {
     protocol: { major: 1, minor: 0 },
     engine: { id: "katachi-windows-loopback-shadow", version: ENGINE_VERSION },
     endpoint: { host: FIXED_HOST, port: FIXED_PORT, apiBase: "/v1" },
+    policy: {
+      executionMode: "shadow-only",
+      authoritativeBackend: "web",
+      productionApplied: false,
+    },
     backends: [{
       backendId,
       kind: "cuda",
       status: backendAvailable ? "available" : "unavailable",
       ...(executable.available ? { deviceName: executable.capabilities.device.name } : {}),
+      ...(executable.available ? { artifactSha256: executable.artifactSha256 } : {}),
       precisionModes: executable.available ? [executable.capabilities.precisionMode] : [],
       ...(!backendAvailable ? { reasonCode: probe.cudaBackend.reasonCode } : {}),
     }],
@@ -239,6 +245,8 @@ export function createLocalEngineServer({
               engineVersion: executed.capabilities.engineVersion,
               deviceName: executed.capabilities.device.name,
               precisionMode: executed.capabilities.precisionMode,
+              artifactSha256: executed.artifactSha256,
+              timing: executed.result.timing,
             },
             warnings: [{
               code: "shadow_only",

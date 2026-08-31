@@ -22,5 +22,13 @@ Run the focused browser-side contract tests from the repository root:
 npx tsx src/studies/skin/rebuild/geometryEngine/geometryEngine.test.ts
 ```
 
+The Windows end-to-end conformance harness starts the fixed loopback helper,
+uses this Web reference and client path, launches the reviewed RTX 3080 CUDA
+executable, and compares the candidate without applying it:
+
+```text
+npx tsx tools/skin-local-engine/cuda-shadow-e2e.mjs
+```
+
 The helper prototype and the later compiled-executable handoff are documented
 under `tools/skin-local-engine/README.md`.

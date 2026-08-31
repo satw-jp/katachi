@@ -1,5 +1,7 @@
 import {
   EVALUATE_CONTAINMENT_ALGORITHM,
+  EXPECTED_CUDA_DEVICE_NAME,
+  EXPECTED_CUDA_EXECUTABLE_SHA256,
   GEOMETRY_ENGINE_API_BASE,
   GEOMETRY_JOB_ACCEPTED_CONTRACT,
   GEOMETRY_JOB_STATUS_CONTRACT,
@@ -188,7 +190,11 @@ export class WindowsLocalGeometryEngineClient {
 
   supportsCudaContainment(capabilities: GeometryEngineCapabilities): boolean {
     const cudaBackendIds = new Set(capabilities.backends
-      .filter((backend) => backend.kind === "cuda" && backend.status === "available")
+      .filter((backend) => backend.kind === "cuda"
+        && backend.status === "available"
+        && backend.deviceName === EXPECTED_CUDA_DEVICE_NAME
+        && backend.artifactSha256 === EXPECTED_CUDA_EXECUTABLE_SHA256
+        && backend.precisionModes.includes("float32"))
       .map((backend) => backend.backendId));
     return capabilities.operations.some((operation) =>
       operation.operation === "evaluateContainment"
