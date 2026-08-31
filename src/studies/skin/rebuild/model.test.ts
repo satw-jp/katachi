@@ -36,7 +36,11 @@ import {
   skinRebuildRequiresSpiderSupport,
   skinRebuildSpiderSupportTargetIds,
   skinRebuildTopologyPass,
+  type SkinRebuildBase,
+  type SkinRebuildLowestPoint,
+  type SkinRebuildSettings,
 } from "./model.ts";
+import type { InternalStructureGraph } from "../voronoi.ts";
 
 function connectedNodeCount(nodes: number, edges: Array<{ start: number; end: number }>): number {
   if (nodes === 0) return 0;
@@ -476,8 +480,8 @@ const printGate = evaluateInternalPrintGate({
   surfaceSdf: (point) => surfaceSdf(point.x, point.y, point.z),
   buildPlateZSource: Math.min(...project.lowestPoints.map((point) => point.position.z)),
 });
-assert.equal(printGate.unsupportedNodes, 0, "separate support must make the permanent spider reachable in build order");
-assert.equal(printGate.unsupportedEdges, 0, "every spider edge must have a separate printable lower support");
+assert.ok(printGate.unsupportedNodes > 0, "a Body-crossing support rejection must remain visible to the fail-closed print gate");
+assert.ok(printGate.unsupportedEdges > 0, "rejected support candidates must not be treated as printable spider support");
 assert.ok(project.printSupport.edges.length > 0, "sample must generate removable support as a separate graph");
 assert.ok(printGate.buildPlateAnchorNodes > 0, "separate support must expose explicit plate roots");
 assert.ok(project.printSupport.edges.every((edge) => {
@@ -487,8 +491,8 @@ assert.ok(project.printSupport.edges.every((edge) => {
 }), "removable support members must be vertical and independent from the spider web");
 const shallowArtwork = createEmptySkinRebuildGraph();
 shallowArtwork.nodes = [
-  { id: 0, position: { x: -0.3, y: 0, z: 0.5 }, radius: 0.04 },
-  { id: 1, position: { x: 0.3, y: 0, z: 0.5 }, radius: 0.04 },
+  { id: 0, position: { x: 3.3, y: 3, z: 0.5 }, radius: 0.04 },
+  { id: 1, position: { x: 3.9, y: 3, z: 0.5 }, radius: 0.04 },
 ];
 shallowArtwork.edges = [{ id: 0, start: 0, end: 1, radius: 0.04 }];
 const shallowSupport = buildSkinRebuildPrintSupport(
@@ -500,7 +504,7 @@ const shallowSupport = buildSkinRebuildPrintSupport(
   project.settings,
 );
 assert.ok(shallowSupport.nodes.some((node) =>
-  node.position.x > -0.3 + 1e-6 && node.position.x < 0.3 - 1e-6 && Math.abs(node.position.z - 0.5) <= 1e-6),
+  node.position.x > 3.3 + 1e-6 && node.position.x < 3.9 - 1e-6 && Math.abs(node.position.z - 0.5) <= 1e-6),
 "Stage 5B must add a real intermediate plate contact beneath an overlong shallow member");
 assert.ok(Math.abs(exported.mesh.plateShiftSourceZ ?? 0) > 1e-6, "BODY export must record its build-plate translation");
 const supportMesh = orientMeshForSavedStl(buildPrintSupportMesh(
@@ -521,5 +525,95 @@ const expectedSupportMaxMm = (
 ) * exported.mesh.scaleMmPerUnit;
 assert.ok(Math.abs(supportMesh.mmBounds.max.z - expectedSupportMaxMm) <= 1e-6,
   "extending roots to the plate must not move artwork contact heights");
+
+const supportFixtureSettings: SkinRebuildSettings = {
+  ...DEFAULT_SKIN_REBUILD_SETTINGS,
+  patternCount: 2,
+  targetLongestMm: 20,
+  supportDiameterMm: 1.6,
+};
+const supportFixtureBase: SkinRebuildBase = {
+  kind: "metaball-capsule",
+  host: [{ id: 1, x: 0, y: 0, z: 0, r: 0.1 }],
+  hostK: 1,
+};
+const supportFixtureLowestPoints = (): SkinRebuildLowestPoint[] => [
+  {
+    patchId: 1,
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 },
+    overhangAngleDeg: 0,
+    plateContact: true,
+    needsSupport: false,
+    basis: "sourceSphere",
+  },
+  {
+    patchId: 2,
+    position: { x: 0, y: 0, z: 3 },
+    normal: { x: 0, y: 0, z: 1 },
+    overhangAngleDeg: 60,
+    plateContact: false,
+    needsSupport: true,
+    basis: "sourceSphere",
+  },
+];
+function supportFixtureArtwork(includeSeparatedObstruction: boolean, includeTerminalTarget: boolean): InternalStructureGraph {
+  const graph = createEmptySkinRebuildGraph();
+  const nodes = [] as InternalStructureGraph["nodes"];
+  const edges = [] as InternalStructureGraph["edges"];
+  const addMember = (startZ: number, endZ: number, radius: number): void => {
+    const start = nodes.length;
+    nodes.push({ id: start, position: { x: 0, y: 0, z: startZ }, radius });
+    const end = nodes.length;
+    nodes.push({ id: end, position: { x: 0, y: 0, z: endZ }, radius });
+    edges.push({ id: edges.length, start, end, radius });
+  };
+  if (includeSeparatedObstruction) addMember(1, 1.2, 0.08);
+  if (includeTerminalTarget) addMember(2.998, 3, 0.006);
+  graph.nodes = nodes;
+  graph.edges = edges;
+  graph.stats.inputPoints = nodes.length;
+  graph.stats.candidateEdges = edges.length;
+  graph.stats.gridNodeCount = nodes.length;
+  graph.stats.gridEdgeCount = edges.length;
+  return graph;
+}
+const clearSupport = buildSkinRebuildPrintSupport(
+  supportFixtureBase,
+  [],
+  [],
+  supportFixtureLowestPoints(),
+  supportFixtureArtwork(false, false),
+  supportFixtureSettings,
+);
+assert.equal(clearSupport.stats.requestedTargets, 1, "clear-route fixture must retain its one target candidate");
+assert.equal(clearSupport.stats.acceptedSupportCount, 1, "a clear vertical route must be accepted by the production keep-out path");
+assert.equal(clearSupport.stats.rejectedByBodyIntersection, 0);
+assert.equal(clearSupport.stats.unsupportedCount, 0);
+const terminalSupport = buildSkinRebuildPrintSupport(
+  supportFixtureBase,
+  [],
+  [],
+  supportFixtureLowestPoints(),
+  supportFixtureArtwork(false, true),
+  supportFixtureSettings,
+);
+assert.equal(terminalSupport.stats.acceptedSupportCount, 1, "intended terminal Body contact must be allowed");
+assert.equal(terminalSupport.stats.rejectedByBodyIntersection, 0);
+const obstructedSupport = buildSkinRebuildPrintSupport(
+  supportFixtureBase,
+  [],
+  [],
+  supportFixtureLowestPoints(),
+  supportFixtureArtwork(true, true),
+  supportFixtureSettings,
+);
+assert.equal(obstructedSupport.stats.requestedTargets, 1);
+assert.equal(obstructedSupport.stats.acceptedSupportCount, 0, "an intermediate Body obstruction must reject the candidate");
+assert.equal(obstructedSupport.stats.rejectedByBodyIntersection, 1);
+assert.equal(obstructedSupport.stats.unsupportedCount, 1);
+assert.equal(obstructedSupport.stats.unsupportedCount,
+  obstructedSupport.stats.requestedTargets! - obstructedSupport.stats.acceptedSupportCount!,
+  "no-reroute accounting must expose the rejected candidate as unsupported");
 
 console.log("skin-rebuild model tests passed", JSON.stringify(project.audit));

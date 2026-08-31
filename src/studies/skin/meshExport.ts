@@ -60,6 +60,16 @@ export interface SkinMeshFieldInput {
   scaffoldPillars?: SkinScaffoldPillar[];
 }
 
+/** The exact field which represents finished artwork before optional
+ * scaffold pillars are added.  Keep this input independent from sampling
+ * options so support keep-out checks can use the same Surface + permanent
+ * graph implementation as production BODY meshing. */
+export type FinishedSkinBodySdfInput = Pick<
+  SkinMeshFieldInput,
+  "mode" | "host" | "hostK" | "thickness" | "patches" | "roundK" | "coinBulge"
+    | "quadMeshJoinWidth" | "coinBulgeBalance" | "internalGraph"
+>;
+
 export interface SkinMeshSliceInput extends SkinMeshFieldInput {
   zStart: number;
   zEnd: number;
@@ -181,6 +191,28 @@ function combineWithInternalStructure(
   );
 }
 
+/** Build the authoritative finished-BODY distance field used by both
+ * production meshing and removable print-support keep-out checks.  Scaffold
+ * pillars are intentionally outside this helper: they are a separate output
+ * mode, while `internalGraph` is the permanent artwork (lattice plus any
+ * reinforcement) that a removable support must avoid. */
+export function createFinishedSkinBodySdfEvaluator(
+  input: FinishedSkinBodySdfInput,
+): (x: number, y: number, z: number) => number {
+  const reinforced = reinforceQuadConnectionsForMesh(input.patches, input.quadMeshJoinWidth ?? 0);
+  const surfaceSdf = createCompositeSdfEvaluator(
+    input.mode,
+    input.host,
+    input.hostK,
+    input.thickness,
+    reinforced.patches,
+    input.roundK,
+    input.coinBulge,
+    input.coinBulgeBalance ?? 0,
+  );
+  return combineWithInternalStructure(surfaceSdf, input.internalGraph ?? null, input.roundK);
+}
+
 function validateSkinMeshInput(input: SkinMeshFieldInput): void {
   if (input.host.length === 0) {
     throw new Error("実体（ホスト）が空です。まず育ててください。");
@@ -204,17 +236,7 @@ function prepareSkinMeshField(input: SkinMeshFieldInput): {
     scaffoldPillars,
     input.options.resolution,
   );
-  const surfaceSdf = createCompositeSdfEvaluator(
-    input.mode,
-    input.host,
-    input.hostK,
-    input.thickness,
-    reinforced.patches,
-    input.roundK,
-    input.coinBulge,
-    input.coinBulgeBalance ?? 0,
-  );
-  const bodySdf = combineWithInternalStructure(surfaceSdf, internalGraph, input.roundK);
+  const bodySdf = createFinishedSkinBodySdfEvaluator(input);
   return {
     grid: {
       bounds: samplingGrid.bounds,
@@ -295,10 +317,18 @@ export function buildSkinPreviewMeshSlice(
   const reinforced = reinforceQuadConnectionsForMesh(patches, quadMeshJoinWidth);
   const internalPatches = internalStructurePatches(internalGraph);
   const bounds = computeSkinSamplingBounds(host, hostK, thickness, [...reinforced.patches, ...internalPatches]);
-  const surfaceSdf = createCompositeSdfEvaluator(
-    mode, host, hostK, thickness, reinforced.patches, roundK, coinBulge, coinBulgeBalance,
-  );
-  const sdf = combineWithInternalStructure(surfaceSdf, internalGraph, roundK);
+  const sdf = createFinishedSkinBodySdfEvaluator({
+    mode,
+    host,
+    hostK,
+    thickness,
+    patches,
+    roundK,
+    coinBulge,
+    coinBulgeBalance,
+    quadMeshJoinWidth,
+    internalGraph,
+  });
   return buildMeshTrianglesFromFieldSlice(bounds, sdf, resolution, zStart, zEnd);
 }
 

@@ -249,12 +249,39 @@ function validateGraph(value: unknown, label: string): InternalStructureGraph {
   const stats = ownRecord(record.stats, `${label}.stats`);
   onlyKeys(stats, [
     "inputPoints", "delaunayTetrahedra", "candidateEdges", "clippedEdges", "removedShortEdges",
-    "removedOutsideEdges", "removedIsolatedEdges", "requestedTargets", "connectedTargets", "gridNodeCount", "gridEdgeCount",
+    "removedOutsideEdges", "removedIsolatedEdges", "requestedTargets", "connectedTargets",
+    "rejectedByBodyIntersection", "acceptedSupportCount", "unsupportedCount", "gridNodeCount", "gridEdgeCount",
   ], `${label}.stats`);
   const requiredStats = ["inputPoints", "delaunayTetrahedra", "candidateEdges", "clippedEdges", "removedShortEdges", "removedOutsideEdges", "removedIsolatedEdges"] as const;
   const resultStats: InternalStructureGraph["stats"] = Object.fromEntries(requiredStats.map((key) => [key, integer(stats[key], `${label}.stats.${key}`)])) as unknown as InternalStructureGraph["stats"];
-  for (const key of ["requestedTargets", "connectedTargets", "gridNodeCount", "gridEdgeCount"] as const) {
+  for (const key of [
+    "requestedTargets", "connectedTargets", "rejectedByBodyIntersection", "acceptedSupportCount",
+    "unsupportedCount", "gridNodeCount", "gridEdgeCount",
+  ] as const) {
     if (stats[key] !== undefined) resultStats[key] = integer(stats[key], `${label}.stats.${key}`);
+  }
+  const supportDiagnosticKeys = [
+    "rejectedByBodyIntersection", "acceptedSupportCount", "unsupportedCount",
+  ] as const;
+  const presentSupportDiagnosticKeys = supportDiagnosticKeys.filter((key) => stats[key] !== undefined);
+  if (presentSupportDiagnosticKeys.length > 0 && presentSupportDiagnosticKeys.length < supportDiagnosticKeys.length) {
+    throw new Error(`${label}.stats support diagnostics must be present together`);
+  }
+  if (label === "project.printSupport" && presentSupportDiagnosticKeys.length === supportDiagnosticKeys.length) {
+    const requestedTargets = resultStats.requestedTargets;
+    const connectedTargets = resultStats.connectedTargets;
+    if (requestedTargets === undefined || connectedTargets === undefined) {
+      throw new Error(`${label}.stats support diagnostics require requestedTargets and connectedTargets`);
+    }
+    if (resultStats.acceptedSupportCount !== connectedTargets) {
+      throw new Error(`${label}.stats.acceptedSupportCount is inconsistent`);
+    }
+    if (resultStats.unsupportedCount !== requestedTargets - resultStats.acceptedSupportCount) {
+      throw new Error(`${label}.stats.unsupportedCount is inconsistent`);
+    }
+    if ((resultStats.rejectedByBodyIntersection ?? 0) > requestedTargets) {
+      throw new Error(`${label}.stats.rejectedByBodyIntersection is inconsistent`);
+    }
   }
   return { kind: record.kind, nodes, edges, stats: resultStats };
 }

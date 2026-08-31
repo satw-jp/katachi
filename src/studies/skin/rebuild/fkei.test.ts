@@ -22,6 +22,32 @@ assert.deepEqual(restoredProject.finalGraph, project.finalGraph);
 assert.deepEqual(restoredProject.printSupport, project.printSupport);
 assert.equal(restoredProject.settings.supportDiameterMm, project.settings.supportDiameterMm);
 assert.equal(restoredDocument.printApproval, false);
+assert.equal(
+  project.printSupport.stats.acceptedSupportCount,
+  project.printSupport.stats.connectedTargets,
+  "new support diagnostics must identify accepted pillars as connected targets",
+);
+assert.equal(
+  project.printSupport.stats.unsupportedCount,
+  project.printSupport.stats.requestedTargets! - project.printSupport.stats.acceptedSupportCount!,
+  "new support diagnostics must account for every no-reroute candidate",
+);
+assert.ok(
+  project.printSupport.stats.rejectedByBodyIntersection! <= project.printSupport.stats.requestedTargets!,
+  "Body-intersection rejects cannot exceed requested candidates",
+);
+
+const legacyWithoutSupportDiagnostics = JSON.parse(serialized) as Record<string, any>;
+for (const key of ["rejectedByBodyIntersection", "acceptedSupportCount", "unsupportedCount"]) {
+  delete legacyWithoutSupportDiagnostics.project.printSupport.stats[key];
+}
+const legacyDiagnosticsDocument = parseSkinRebuildFkei(JSON.stringify(legacyWithoutSupportDiagnostics));
+const legacyDiagnosticsProject = projectFromSkinRebuildFkei(legacyDiagnosticsDocument);
+assert.equal(
+  legacyDiagnosticsProject.printSupport.stats.acceptedSupportCount,
+  undefined,
+  "legacy support graphs without optional diagnostics must remain readable",
+);
 
 const centroidLegacy = JSON.parse(serialized) as Record<string, any>;
 centroidLegacy.compatibility.appVersion = "0.87.0";

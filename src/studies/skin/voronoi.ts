@@ -48,6 +48,11 @@ export interface InternalStructureStats {
   removedIsolatedEdges: number;
   requestedTargets?: number;
   connectedTargets?: number;
+  /** Print-support keep-out accounting. Present on newly generated
+   * removable-support graphs; absent on legacy graphs for FKEI compatibility. */
+  rejectedByBodyIntersection?: number;
+  acceptedSupportCount?: number;
+  unsupportedCount?: number;
   gridNodeCount?: number;
   gridEdgeCount?: number;
 }

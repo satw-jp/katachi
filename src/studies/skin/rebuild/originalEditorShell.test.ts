@@ -130,6 +130,10 @@ assert.match(parallelMesh, /positionsOnly: true[\s\S]*?flatNormalsFromTriangleSo
   "the parallel Stage 6 path must rebuild display normals after positions-only slice transfer");
 assert.match(ui, /工程5Bの赤面補強を一体の作品メッシュへ合成/);
 assert.match(main, /printSupportGraph/, "removable print support must travel separately from BODY");
+assert.match(main, /acceptedSupportCount/, "Stage 8 must expose accepted support diagnostics");
+assert.match(main, /rejectedByBodyIntersection/, "Stage 8 must expose Body-intersection rejection diagnostics");
+assert.match(main, /unsupportedCount/, "Stage 8 must expose explicit unsupported diagnostics");
+assert.match(main, /rejected-by-Body/, "Stage 8 must label Body-intersection rejections");
 assert.match(main, /mergePrintableSupportIntoBody: false/, "SKIN REBUILD 3MF must keep artwork and print support as separate parts");
 assert.match(main, /skin-rebuild-export-formats/,
   "Stage 8 must offer explicit 3MF, STL and OBJ selections next to the final export action");

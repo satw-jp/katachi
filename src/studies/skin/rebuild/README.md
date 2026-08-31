@@ -75,6 +75,19 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
   search/別経路探索も行わない。lowestPoint、node、edge補間の全targetと、print gate/exportで同じ判定を
   使い、恒久Web・reinforcement・BODY生成の挙動はTASK Aでは変更しない。
 
+### 2026-08-31 — TASK B finished-BODY support keep-out (finite geometry implementation)
+
+`src/studies/skin/meshExport.ts`の`createFinishedSkinBodySdfEvaluator()`を、通常の
+`prepareSkinMeshField()`／slice previewと`src/studies/skin/rebuild/model.ts`の
+`buildSkinRebuildPrintSupport()`が共有する。Support側はSurface compositeと渡された恒久
+`finalGraph`（lattice／reinforcementを含む）のradius-aware fieldを、plate rootから意図した
+target endpointまでサンプルする。中間のBody交差は候補をrejectし、早期終端やrerouteをせず
+`unsupportedCount`へ明示的に記録する。終端だけはtarget radiusを含む有限・連続したsuffixに限り
+許可し、別の中間交差があればendpoint exceptionで隠せない。Stage 8のaccepted／
+rejected-by-Body／unsupported表示とFKEIの任意diagnosticsは、旧ファイルの欠落も読める形で追加した。
+これは有限SDF／Graphの判定であり、slicer・実機の取り外しや印刷成功を主張しない。
+`printApproval=false`と同梱first-print FKEIは不変である。
+
 ### 2026-08-31 — Windows CUDA local-engine boundary (shadow-only prototype)
 
 Web版をauthoritativeのまま維持し、固定loopback `127.0.0.1:47658`へversioned containment jobを渡せる

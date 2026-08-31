@@ -6917,6 +6917,35 @@ function refreshSkinRebuildLowestPointMarkers(project: SkinRebuildProject): void
   skinRenderer.setMotifLowestPointMarkers(markers, skinRebuildSelectedTargetPatchId);
 }
 
+interface SkinRebuildPrintSupportDiagnostics {
+  requestedTargets: number;
+  acceptedSupportCount: number;
+  rejectedByBodyIntersection: number;
+  unsupportedCount: number;
+}
+
+/** Keep Stage 8 readable for both newly generated support graphs and legacy
+ * .fkei files, which predate the optional keep-out diagnostics. */
+function skinRebuildPrintSupportDiagnostics(project: SkinRebuildProject): SkinRebuildPrintSupportDiagnostics {
+  const stats = project.printSupport.stats;
+  const requestedTargets = Math.max(0, stats.requestedTargets ?? project.printSupport.edges.length);
+  const acceptedSupportCount = Math.max(
+    0,
+    stats.acceptedSupportCount ?? stats.connectedTargets ?? project.printSupport.edges.length,
+  );
+  const rejectedByBodyIntersection = Math.max(0, stats.rejectedByBodyIntersection ?? 0);
+  const unsupportedCount = Math.max(
+    0,
+    stats.unsupportedCount ?? requestedTargets - acceptedSupportCount,
+  );
+  return { requestedTargets, acceptedSupportCount, rejectedByBodyIntersection, unsupportedCount };
+}
+
+function skinRebuildPrintSupportDiagnosticsText(project: SkinRebuildProject): string {
+  const diagnostics = skinRebuildPrintSupportDiagnostics(project);
+  return `accepted ${diagnostics.acceptedSupportCount} / rejected-by-Body ${diagnostics.rejectedByBodyIntersection} / unsupported ${diagnostics.unsupportedCount}`;
+}
+
 function skinRebuildPipelineIsCurrent(): boolean {
   return skinRebuildPipeline !== null && skinRebuildPipeline.shapeFingerprint === fkeiShapeFingerprint(state);
 }
@@ -8262,13 +8291,15 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildFinalStageButtons();
       invalidateInternalPrintGate("工程8で別体印刷サポートを更新しました。3D書き出し時に自動判定します");
       const count = project.printSupport.edges.length;
+      const supportDiagnostics = skinRebuildPrintSupportDiagnostics(project);
+      const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
       printSupport.status.textContent = count > 0
-        ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成`
-        : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした`;
-      printSupport.status.dataset.ok = "true";
+        ? `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面へ、橙の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本を生成 · ${supportDiagnosticsText}`
+        : `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面を確認 · 追加支柱は0本でした · ${supportDiagnosticsText}`;
+      printSupport.status.dataset.ok = String(supportDiagnostics.unsupportedCount === 0);
       setSkinRebuildMeshBottomProgress(
         "工程8 完了",
-        `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · 本体と別出力`,
+        `残る赤 ${diagnosis.overhangRegionCount}領域 / ${diagnosis.overhangFaceCount.toLocaleString()}面 · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · ${supportDiagnosticsText} · 本体と別出力`,
       );
       if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "保存可能 · 恒久ラティスと印刷サポートを別Graphで保持します";
       refreshSkinRebuildStage8ExportButton();
@@ -11858,9 +11889,10 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       skinRebuildLatticeStatus.dataset.ok = String(project.audit.unsupportedTargetCount === 0);
     }
     if (skinRebuildPrintSupportStatus) {
+      const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
       skinRebuildPrintSupportStatus.textContent = project.printSupport.edges.length > 0
-        ? `復元済み · 橙の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · 再生成は工程6→7→8`
-        : "復元済み · 印刷サポート0本 · 工程6→7→8で生成できます";
+        ? `復元済み · 橙の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · ${supportDiagnosticsText} · 再生成は工程6→7→8`
+        : `復元済み · 印刷サポート0本 · ${supportDiagnosticsText} · 工程6→7→8で生成できます`;
       delete skinRebuildPrintSupportStatus.dataset.ok;
     }
     if (skinRebuildSaveStatus) {
