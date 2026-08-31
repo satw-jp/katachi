@@ -22,6 +22,27 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private string? initializationError;
     private bool exiting;
 
+    internal bool IsNotifyIconVisible => notifyIcon.Visible;
+
+    internal HelperStatus? CurrentStatus => runtime?.Status;
+
+    internal bool StartCommandEnabled => startItem.Enabled;
+
+    internal IReadOnlyList<string> MenuLabels => notifyIcon.ContextMenuStrip?.Items
+        .OfType<ToolStripMenuItem>()
+        .Select(item => item.Text ?? string.Empty)
+        .ToArray() ?? [];
+
+    internal void ClickStartForTest() => startItem.PerformClick();
+
+    internal void ClickStopForTest() => stopItem.PerformClick();
+
+    internal void ClickRestartForTest() => restartItem.PerformClick();
+
+    internal void ClickStartupForTest() => startupItem.PerformClick();
+
+    internal void ClickExitForTest() => Exit();
+
     internal TrayApplicationContext()
     {
         log.Write($"Tray app start. version={Application.ProductVersion}; executable={Application.ExecutablePath}");

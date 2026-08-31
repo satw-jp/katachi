@@ -12,6 +12,7 @@ var tests = new (string Name, Action Run)[]
     ("round-trips the current-user startup registration", RoundTripStartupRegistration),
     ("starts, stops, and restarts the real fixed helper", RealHelperLifecycle),
     ("stops the managed helper when the tray context exits", TrayExitStopsHelper),
+    ("wires the visible tray menu to helper and startup lifecycle", TrayMenuLifecycle),
 };
 
 var failures = 0;
@@ -25,7 +26,7 @@ foreach (var test in tests)
     catch (Exception exception)
     {
         failures++;
-        Console.Error.WriteLine($"FAIL {test.Name}: {exception.Message}");
+        Console.Error.WriteLine($"FAIL {test.Name}: {exception}");
     }
 }
 
@@ -153,6 +154,74 @@ static void TrayExitStopsHelper()
     if (!thread.Join(TimeSpan.FromSeconds(20))) throw new Exception("Tray context exit test timed out.");
     if (threadError is not null) throw new Exception("Tray context exit failed.", threadError);
     WaitFor(() => !IsHelperListening(), "helper tree shutdown after tray exit");
+}
+
+static void TrayMenuLifecycle()
+{
+    Exception? threadError = null;
+    var thread = new Thread(() =>
+    {
+        string? priorStartup = null;
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(StartupRegistration.RunKeyPath, writable: true)
+                ?? throw new Exception("HKCU Run key is unavailable.");
+            priorStartup = key.GetValue(StartupRegistration.ValueName) as string;
+            using var context = new TrayApplicationContext();
+            WaitForWithEvents(IsHelperListening, "tray menu auto-start");
+            AssertEqual(true, context.IsNotifyIconVisible);
+            var expectedLabels = new[]
+            {
+                "Start Helper", "Stop Helper", "Restart Helper", "Open SKIN", "View Log", "Start with Windows", "Exit",
+            };
+            foreach (var label in expectedLabels)
+            {
+                if (!context.MenuLabels.Contains(label)) throw new Exception($"Tray menu is missing {label}.");
+            }
+
+            context.ClickStopForTest();
+            WaitForWithEvents(() => !IsHelperListening() && context.StartCommandEnabled, "tray menu Stop Helper");
+            context.ClickStartForTest();
+            WaitForWithEvents(IsHelperListening, "tray menu Start Helper");
+            var startPid = context.CurrentStatus?.ProcessId ?? throw new Exception("Tray menu start PID is unavailable.");
+            context.ClickRestartForTest();
+            WaitForWithEvents(() => IsHelperListening() && context.CurrentStatus?.ProcessId != startPid, "tray menu Restart Helper");
+
+            context.ClickStartupForTest();
+            AssertEqual(true, StartupRegistration.IsEnabled(Environment.ProcessPath!));
+            context.ClickStartupForTest();
+            AssertEqual(false, StartupRegistration.IsEnabled(Environment.ProcessPath!));
+
+            context.ClickExitForTest();
+            WaitForWithEvents(() => !IsHelperListening(), "tray menu Exit helper shutdown");
+        }
+        catch (Exception exception)
+        {
+            threadError = exception;
+        }
+        finally
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(StartupRegistration.RunKeyPath, writable: true);
+            if (priorStartup is null) key?.DeleteValue(StartupRegistration.ValueName, throwOnMissingValue: false);
+            else key?.SetValue(StartupRegistration.ValueName, priorStartup, RegistryValueKind.String);
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    if (!thread.Join(TimeSpan.FromSeconds(30))) throw new Exception("Tray menu lifecycle test timed out.");
+    if (threadError is not null) throw new Exception("Tray menu lifecycle failed.", threadError);
+}
+
+static void WaitForWithEvents(Func<bool> predicate, string operation)
+{
+    var deadline = DateTime.UtcNow.AddSeconds(12);
+    while (DateTime.UtcNow < deadline)
+    {
+        Application.DoEvents();
+        if (predicate()) return;
+        Thread.Sleep(50);
+    }
+    throw new Exception($"Timed out waiting for {operation}.");
 }
 
 static bool IsHelperListening() => IPGlobalProperties.GetIPGlobalProperties()
