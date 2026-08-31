@@ -35,6 +35,21 @@ buildを通した。Print #002のFKEI round-trip、BODY watertight / 1 component
 Removable Support Off / support artifact 0、immutable Print #001 baselineは既存contractのまま維持する。
 実Mac QAはこの統合のblockerにせず、**POST-DEPLOY FOLLOW-UP: Mac Web fallback QA**として残す。
 
+### 2026-08-31 — Stage 3 Interior Classification debug colors (presentation only)
+
+工程3が実際に保持する`SkinRebuildPatternSide`だけを、別の表示専用layerへ写す
+`Interior Classification: Normal / Debug Colors`を追加した。再判定やfield samplingは行わず、
+`insidePosition`を赤、`outsidePosition`を青、`surfacePosition`と既存の
+`baseSideIsInside=false`を黄、current工程3の行がないMotifを灰で表示する。Normalではlayerを外し、
+従来表示を維持する。geometry、FKEI schema/semantics、Support、5B、CUDA、Graph topology、
+Print #002成果物、`printApproval=false`は変更していない。
+
+Print #002 FKEIを開いて工程3を再実行した結果はInside 38 / Outside 38 / Boundary 38 /
+ambiguous 0 / 未判定0。Axomeの目視では、見えている各Motifで赤がBase側、青が外側、黄がその間に並び、
+明らかな局所反転やambiguousの一方向への偏りは見つからなかった。これは表示上の観察であり、
+連続場全域や印刷可能性の証明ではない。Normal↔Debug Colorsを`elementFromPoint`でhit-test後に
+実座標clickし、console warning/errorは0件だった。今回記録する`FOLLOW-UP`はない。
+
 ### 2026-08-31 — TASK A Print #001 removable-support/body collision diagnosis (documentation-only)
 
 #### Supplied physical observation

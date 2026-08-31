@@ -237,6 +237,7 @@ import {
   type SkinRebuildProject,
   type SkinRebuildSettings,
 } from "./rebuild/model.ts";
+import { buildInteriorClassificationDebugPresentation } from "./rebuild/interiorClassificationPresentation.ts";
 import {
   SkinRebuildShadowObserver,
 } from "./rebuild/geometryEngine/index.ts";
@@ -956,6 +957,10 @@ let skinRebuildStage8CompletedProject: SkinRebuildProject | null = null;
 /** Session-only Stage 8 policy; it is intentionally absent from FKEI. */
 let skinRebuildPrintSupportMode: RemovableSupportMode = "automatic";
 let skinRebuildPrintSupportModeNeedsConfirmation = false;
+type InteriorClassificationDebugMode = "normal" | "debug";
+let skinRebuildInteriorClassificationDebugMode: InteriorClassificationDebugMode = "normal";
+let skinRebuildInteriorClassificationDebugStatus: HTMLElement | null = null;
+const skinRebuildInteriorClassificationDebugButtons = new Map<InteriorClassificationDebugMode, HTMLButtonElement>();
 let skinRebuildInsideStatus: HTMLElement | null = null;
 let skinRebuildLowestStatus: HTMLElement | null = null;
 let skinRebuildLatticeStatus: HTMLElement | null = null;
@@ -6970,6 +6975,33 @@ function skinRebuildPipelineIsCurrent(): boolean {
   return skinRebuildPipeline !== null && skinRebuildPipeline.shapeFingerprint === fkeiShapeFingerprint(state);
 }
 
+function refreshSkinRebuildInteriorClassificationDebug(): void {
+  const currentSides = skinRebuildPipelineIsCurrent() && skinRebuildPipeline
+    ? skinRebuildPipeline.patternSides
+    : [];
+  const presentation = buildInteriorClassificationDebugPresentation(state.patches, currentSides);
+  const debugEnabled = skinRebuildInteriorClassificationDebugMode === "debug";
+  skinRenderer.setInteriorClassificationDebug(presentation.markers, debugEnabled);
+  for (const [mode, button] of skinRebuildInteriorClassificationDebugButtons) {
+    const active = mode === skinRebuildInteriorClassificationDebugMode;
+    button.classList.toggle("mode-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  if (!skinRebuildInteriorClassificationDebugStatus) return;
+  const counts = presentation.counts;
+  skinRebuildInteriorClassificationDebugStatus.textContent = debugEnabled
+    ? `Inside ${counts.inside} / Outside ${counts.outside} / Boundary ${counts.boundary} / ambiguous ${counts.ambiguous} / 未判定 ${counts.unclassified}`
+    : "Normal · debug colors off";
+  skinRebuildInteriorClassificationDebugStatus.dataset.ok = String(
+    !debugEnabled || (counts.ambiguous === 0 && counts.unclassified === 0),
+  );
+}
+
+function setSkinRebuildInteriorClassificationDebugMode(mode: InteriorClassificationDebugMode): void {
+  skinRebuildInteriorClassificationDebugMode = mode;
+  refreshSkinRebuildInteriorClassificationDebug();
+}
+
 function currentOriginalDryWebForSkinRebuild(): InternalStructureGraph | null {
   if (skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.dryWeb) return skinRebuildPipeline.dryWeb;
   return state.skinParams.internalStructure === "targetedGrid"
@@ -7574,6 +7606,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildSelectedRegion();
       inside.status.textContent = `inside確定 ${patternSides.length}/${state.patches.length} · 全Patternで内側SDF < 0 / 外側SDF > 0`;
       inside.status.dataset.ok = "true";
+      refreshSkinRebuildInteriorClassificationDebug();
       if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = false;
       if (skinRebuildLatticeButton) skinRebuildLatticeButton.disabled = true;
       if (skinRebuildBulkSupportButton) skinRebuildBulkSupportButton.disabled = true;
@@ -7590,11 +7623,44 @@ function installSkinRebuildPipelinePanel(): void {
       restoreSkinRebuildWorkflowSnapshot(workflowBefore);
       inside.status.textContent = `内外判定失敗: ${error instanceof Error ? error.message : String(error)}`;
       inside.status.dataset.ok = "false";
+      refreshSkinRebuildInteriorClassificationDebug();
     } finally {
       setSkinRebuildPipelineBusy(insideButton, false, "3. Base Shape側をinsideとして判定", "内外を判定中…");
     }
   };
-  inside.section.append(insideButton, inside.status);
+  const interiorClassificationLabel = document.createElement("strong");
+  interiorClassificationLabel.className = "skin-rebuild-interior-classification-label";
+  interiorClassificationLabel.textContent = "Interior Classification";
+  const interiorClassificationModes = document.createElement("div");
+  interiorClassificationModes.className = "mode-toggle skin-rebuild-interior-classification-modes";
+  interiorClassificationModes.setAttribute("role", "group");
+  interiorClassificationModes.setAttribute("aria-label", "Interior Classification display");
+  for (const [mode, label] of [["normal", "Normal"], ["debug", "Debug Colors"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.onclick = () => setSkinRebuildInteriorClassificationDebugMode(mode);
+    skinRebuildInteriorClassificationDebugButtons.set(mode, button);
+    interiorClassificationModes.append(button);
+  }
+  const interiorClassificationLegend = document.createElement("div");
+  interiorClassificationLegend.className = "skin-rebuild-interior-classification-legend";
+  interiorClassificationLegend.innerHTML =
+    '<span><i data-classification="inside"></i>Inside</span>' +
+    '<span><i data-classification="outside"></i>Outside</span>' +
+    '<span><i data-classification="boundary"></i>Boundary / ambiguous</span>' +
+    '<span><i data-classification="unclassified"></i>未判定</span>';
+  const interiorClassificationStatus = document.createElement("div");
+  interiorClassificationStatus.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-interior-classification-status";
+  skinRebuildInteriorClassificationDebugStatus = interiorClassificationStatus;
+  inside.section.append(
+    insideButton,
+    inside.status,
+    interiorClassificationLabel,
+    interiorClassificationModes,
+    interiorClassificationLegend,
+    interiorClassificationStatus,
+  );
 
   const lowest = makeStep(
     "4. オーバーハング部を検出",
@@ -8785,6 +8851,7 @@ function installSkinRebuildPipelinePanel(): void {
   skinRebuildCompleteSupportButton = completeSupportButton;
   skinRebuildUnsupportedFocusButton = unsupportedFocusButton;
   skinRebuildConnectAllButton = connectAllButton;
+  refreshSkinRebuildInteriorClassificationDebug();
   refreshSkinRebuildLatticeEdgeEditor();
   refreshSkinRebuildSelectedTarget();
   refreshSkinRebuildSelectedRegion();
@@ -8803,7 +8870,10 @@ function invalidateSkinRebuildPipeline(reason = "形状が変わったため、�
   if (skinRebuildWorkflowHistoryPast.length > 0 || skinRebuildWorkflowHistoryFuture.length > 0) {
     resetSkinRebuildWorkflowHistory();
   }
-  if (!skinRebuildPipeline) return;
+  if (!skinRebuildPipeline) {
+    refreshSkinRebuildInteriorClassificationDebug();
+    return;
+  }
   skinRebuildPipeline = null;
   skinRebuildSelectedTargetPatchId = null;
   skinRebuildSelectedOverhangRegionIds.clear();
@@ -8833,6 +8903,7 @@ function invalidateSkinRebuildPipeline(reason = "形状が変わったため、�
   if (skinRebuildPrintSupportButton) skinRebuildPrintSupportButton.disabled = true;
   if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = true;
   skinRenderer.setPrintSupport(null);
+  refreshSkinRebuildInteriorClassificationDebug();
 }
 
 function skinRebuildPipelineOutputBlockReason(): string | null {
@@ -12280,10 +12351,12 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
     );
     resetSkinRebuildWorkflowHistory();
     if (project.audit.unsupportedTargetCount > 0) focusSkinRebuildUnsupportedTarget();
+    refreshSkinRebuildInteriorClassificationDebug();
     render();
   } catch (error) {
     skinRebuildPipeline = previousPipeline;
     restoreFkeiOpenRuntimeSnapshot(previousRuntime);
+    refreshSkinRebuildInteriorClassificationDebug();
     redrawFkeiOpenRuntime();
     throw error;
   }

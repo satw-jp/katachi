@@ -92,6 +92,7 @@ import type {
 } from "./riskDrivenInternalLattice.ts";
 import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 import { normalizedScreenRect, screenTriangleIntersectsRect } from "./rebuild/screenRectSelection.ts";
+import type { InteriorClassificationDebugMarker } from "./rebuild/interiorClassificationPresentation.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -350,6 +351,9 @@ export class SkinRenderer {
   private artworkGraphOverlayGroup: THREE.Group | null = null;
   private artworkGraphOverlayEnabled = false;
   private readonly artworkGraphMarkerGeometry = new THREE.OctahedronGeometry(1, 0);
+  /** Stage 3 presentation-only samples. They mirror the stored classification
+   * result and never enter the field, recipe, FKEI, graph, or export paths. */
+  private interiorClassificationDebugGroup: THREE.Group | null = null;
   private dryWebContactFloorOverlayGroup: THREE.Group | null = null;
   private dryWebContactFloorOverlayEnabled = false;
   private dryWebInsufficientEdgeGroup: THREE.Group | null = null;
@@ -1605,6 +1609,101 @@ export class SkinRenderer {
     this.scene.add(group);
     this.artworkGraphOverlayGroup = group;
     this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  private disposeInteriorClassificationDebug(): void {
+    if (!this.interiorClassificationDebugGroup) return;
+    this.scene.remove(this.interiorClassificationDebugGroup);
+    this.interiorClassificationDebugGroup.traverse((object) => {
+      if (object instanceof THREE.Points || object instanceof THREE.LineSegments) {
+        object.geometry.dispose();
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          material.dispose();
+        }
+      }
+    });
+    this.interiorClassificationDebugGroup = null;
+  }
+
+  /** Display the exact positions retained by Stage 3. Red is its stored
+   * inside sample, blue its outside sample, yellow its projected boundary,
+   * and gray a current motif with no Stage 3 row. */
+  setInteriorClassificationDebug(
+    markers: readonly InteriorClassificationDebugMarker[],
+    enabled: boolean,
+  ): void {
+    this.disposeInteriorClassificationDebug();
+    if (!enabled || markers.length === 0) {
+      this.requestViewportRender();
+      return;
+    }
+    const colors: Record<InteriorClassificationDebugMarker["category"], THREE.Color> = {
+      inside: new THREE.Color(0xe5483f),
+      outside: new THREE.Color(0x3984ff),
+      boundary: new THREE.Color(0xffd23f),
+      unclassified: new THREE.Color(0x8b939c),
+    };
+    const group = new THREE.Group();
+    group.name = "skin-rebuild-interior-classification-debug";
+    const positions: number[] = [];
+    const vertexColors: number[] = [];
+    for (const marker of markers) {
+      positions.push(marker.position.x, marker.position.y, marker.position.z);
+      const color = colors[marker.category];
+      vertexColors.push(color.r, color.g, color.b);
+    }
+    const pointGeometry = new THREE.BufferGeometry();
+    pointGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    pointGeometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
+    const points = new THREE.Points(pointGeometry, new THREE.PointsMaterial({
+      size: 8,
+      sizeAttenuation: false,
+      vertexColors: true,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.96,
+      toneMapped: false,
+    }));
+    points.renderOrder = 70;
+    group.add(points);
+
+    const markersByPatch = new Map<number, Map<InteriorClassificationDebugMarker["category"], InteriorClassificationDebugMarker>>();
+    for (const marker of markers) {
+      const row = markersByPatch.get(marker.patchId) ?? new Map();
+      row.set(marker.category, marker);
+      markersByPatch.set(marker.patchId, row);
+    }
+    const linePositions: number[] = [];
+    for (const row of markersByPatch.values()) {
+      const inside = row.get("inside");
+      const boundary = row.get("boundary");
+      const outside = row.get("outside");
+      if (!inside || !boundary || !outside) continue;
+      linePositions.push(
+        inside.position.x, inside.position.y, inside.position.z,
+        boundary.position.x, boundary.position.y, boundary.position.z,
+        boundary.position.x, boundary.position.y, boundary.position.z,
+        outside.position.x, outside.position.y, outside.position.z,
+      );
+    }
+    if (linePositions.length > 0) {
+      const lineGeometry = new THREE.BufferGeometry();
+      lineGeometry.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
+      const lines = new THREE.LineSegments(lineGeometry, new THREE.LineBasicMaterial({
+        color: 0xd6d9dd,
+        transparent: true,
+        opacity: 0.55,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      }));
+      lines.renderOrder = 69;
+      group.add(lines);
+    }
+    this.scene.add(group);
+    this.interiorClassificationDebugGroup = group;
     this.requestViewportRender();
   }
 

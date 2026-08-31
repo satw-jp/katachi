@@ -3870,6 +3870,36 @@ details.mesh-export:not([open]) > :not(summary) {
 .skin-rebuild-compute-status[data-state="ready"] {
   color: var(--muted);
 }
+.skin-rebuild-interior-classification-label {
+  margin-top: 3px;
+  font-size: 11px;
+}
+.skin-rebuild-interior-classification-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.skin-rebuild-interior-classification-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.skin-rebuild-interior-classification-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.skin-rebuild-interior-classification-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b939c;
+}
+.skin-rebuild-interior-classification-legend i[data-classification="inside"] { background: #e5483f; }
+.skin-rebuild-interior-classification-legend i[data-classification="outside"] { background: #3984ff; }
+.skin-rebuild-interior-classification-legend i[data-classification="boundary"] { background: #ffd23f; }
+.skin-rebuild-interior-classification-status { min-height: auto; }
 .skin-rebuild-lattice-edit-label {
   margin-top: 4px;
   font-size: 11px;
