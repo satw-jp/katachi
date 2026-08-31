@@ -1,5 +1,22 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN Overhang Responsibility Contract（v0.93.0、2026-08-31）
+
+工程4の全Overhang診断と工程3由来のInside / Outside分類を正本として保持し、工程5BはInside、工程8の
+Removable Print SupportはOutsideだけを担当する。工程8では新しい内外判定を行わず、工程7のSurface targetへ
+最寄りの工程4 triangleが既に持つ分類を写すだけである。Inside由来のPermanent Web node / edgeは取り外し支柱の
+target sourceから除外する一方、完成BODY SDFのkeep-out対象としては従来どおり保持する。
+
+Print #002 FKEIの通常Chrome再実行では、工程4がAll 1,224 faces / 86 regions、Inside 735 / 73、Outside 489 / 53、
+工程5B入力がInside 735 / 73だった。工程8 AutomaticはOutside Surface候補6点からrequested 5、accepted 3、
+rejected-by-Body 2、unsupported 2を記録し、Inside-derived targetは0だった。Inside側23候補は意図的にPermanent Web責任へ残した。
+Offは同じInside / Outside診断を表示したままsupport node 0 / edge 0 / artifact 0、BODY-onlyになった。
+
+今回変更したのは工程8へ渡すtarget集合だけで、既存のBody衝突拒否、accepted / rejected / unsupported診断、export gate、
+Support生成アルゴリズムは変更していない。Automatic Supportのconservative collision hardeningはTASK Eのままである。
+工程5B再実行では42領域・98面接点・563部材を生成し、経路未作成22領域を観察したが、今回のDoDを阻害しない
+`FOLLOW-UP`として記録し、multi-contact / Junction / CUDA / geometry修正へ進めていない。
+
 ## Observation — SKIN REBUILD original editor shell（2026-08-29）
 
 作者の修正指示を原文のまま記録する。

@@ -2504,6 +2504,7 @@ export function buildSkinRebuildPrintSupport(
   lowestPoints: SkinRebuildLowestPoint[],
   artwork: InternalStructureGraph,
   settingsInput: SkinRebuildSettings,
+  options: { targetSources?: "all" | "surface-only" } = {},
 ): InternalStructureGraph {
   const settings = validateSettings(settingsInput);
   const scaleMmPerUnit = estimatedScaleMmPerUnit(base, patterns, settings);
@@ -2680,14 +2681,16 @@ export function buildSkinRebuildPrintSupport(
       || point.position.z <= plateRootCenterZ + EPSILON) continue;
     requestPillar(point.position, makeSurfaceTarget(point));
   }
-  for (const [index, node] of artwork.nodes.entries()) {
-    const surfaceAnchored = surfaceSdf(node.position.x, node.position.y, node.position.z)
-      <= -Math.min(node.radius * 0.25, overlapSource);
-    if (surfaceAnchored) continue;
-    const hasLowerPrintableNeighbour = neighbours[index].some((neighbour) =>
-      neighbour.printableAngle && artwork.nodes[neighbour.nodeId].position.z < node.position.z - EPSILON);
-    if (hasLowerPrintableNeighbour || node.position.z <= plateRootCenterZ + EPSILON) continue;
-    requestPillar(node.position, makeNodeTarget(index, node));
+  if (options.targetSources !== "surface-only") {
+    for (const [index, node] of artwork.nodes.entries()) {
+      const surfaceAnchored = surfaceSdf(node.position.x, node.position.y, node.position.z)
+        <= -Math.min(node.radius * 0.25, overlapSource);
+      if (surfaceAnchored) continue;
+      const hasLowerPrintableNeighbour = neighbours[index].some((neighbour) =>
+        neighbour.printableAngle && artwork.nodes[neighbour.nodeId].position.z < node.position.z - EPSILON);
+      if (hasLowerPrintableNeighbour || node.position.z <= plateRootCenterZ + EPSILON) continue;
+      requestPillar(node.position, makeNodeTarget(index, node));
+    }
   }
   // A support landing on the middle of a long shallow member is a genuine
   // physical bridge break. Add enough contacts that no unsupported interval
@@ -2695,24 +2698,26 @@ export function buildSkinRebuildPrintSupport(
   // later splits only its reachability graph at these exact contacts; BODY
   // geometry and its exported STL remain unchanged.
   const maximumBridgeSource = 4.8 / scaleMmPerUnit;
-  for (const edge of artwork.edges) {
-    const start = artwork.nodes[edge.start]?.position;
-    const end = artwork.nodes[edge.end]?.position;
-    if (!start || !end) continue;
-    const edgeLength = length(start, end);
-    if (edgeLength <= EPSILON) continue;
-    const angleFromVerticalDeg = Math.acos(Math.min(1, Math.abs(end.z - start.z) / edgeLength)) * 180 / Math.PI;
-    if (angleFromVerticalDeg <= 45 + 1e-6 || edgeLength <= maximumBridgeSource) continue;
-    const intervals = Math.max(2, Math.ceil(edgeLength / maximumBridgeSource));
-    for (let index = 1; index < intervals; index++) {
-      const t = index / intervals;
-      const position = {
-        x: start.x + (end.x - start.x) * t,
-        y: start.y + (end.y - start.y) * t,
-        z: start.z + (end.z - start.z) * t,
-      };
-      const target = makeEdgeTarget(edge, position);
-      if (target) requestPillar(position, target);
+  if (options.targetSources !== "surface-only") {
+    for (const edge of artwork.edges) {
+      const start = artwork.nodes[edge.start]?.position;
+      const end = artwork.nodes[edge.end]?.position;
+      if (!start || !end) continue;
+      const edgeLength = length(start, end);
+      if (edgeLength <= EPSILON) continue;
+      const angleFromVerticalDeg = Math.acos(Math.min(1, Math.abs(end.z - start.z) / edgeLength)) * 180 / Math.PI;
+      if (angleFromVerticalDeg <= 45 + 1e-6 || edgeLength <= maximumBridgeSource) continue;
+      const intervals = Math.max(2, Math.ceil(edgeLength / maximumBridgeSource));
+      for (let index = 1; index < intervals; index++) {
+        const t = index / intervals;
+        const position = {
+          x: start.x + (end.x - start.x) * t,
+          y: start.y + (end.y - start.y) * t,
+          z: start.z + (end.z - start.z) * t,
+        };
+        const target = makeEdgeTarget(edge, position);
+        if (target) requestPillar(position, target);
+      }
     }
   }
   const contacts = [...pillarContactByColumn.values()].sort((first, second) =>
