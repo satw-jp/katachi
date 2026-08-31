@@ -11,6 +11,8 @@ import {
 import {
   decodeCompactBinaryResponse,
   encodeCompactBinaryRequest,
+  validateCompactBinaryRequestEnvelope,
+  validateCompactBinaryResponseEnvelope,
 } from "./compact-binary-transport.mjs";
 
 export const FRAME_PROTOCOL_VERSION = 1;
@@ -81,6 +83,17 @@ export class PersistentCudaWorker {
         throw workerError("cuda_job_canceled", "CUDA job was canceled before worker execution");
       }
       return this.#evaluateSerial(request, transport);
+    });
+    this.tail = scheduled.catch(() => {});
+    return scheduled;
+  }
+
+  evaluatePackedBinary(payload, { signal } = {}) {
+    const scheduled = this.tail.then(() => {
+      if (signal?.aborted) {
+        throw workerError("cuda_job_canceled", "CUDA job was canceled before worker execution");
+      }
+      return this.#evaluatePackedBinarySerial(payload);
     });
     this.tail = scheduled.catch(() => {});
     return scheduled;
@@ -238,6 +251,83 @@ export class PersistentCudaWorker {
         resultFrameBytes: FRAME_HEADER_BYTES + responseFrame.payload.length,
         persistentProcess: true,
         transport,
+        workerPid: this.child.pid,
+        workerGeneration: this.generation,
+        workerRequestIndex: this.requestIndex,
+      },
+    };
+  }
+
+  async #evaluatePackedBinarySerial(payload) {
+    if (this.closed) throw workerError("cuda_worker_closed", "persistent CUDA worker is closed");
+    const adapterStart = performance.now();
+    const requestEnvelope = validateCompactBinaryRequestEnvelope(payload);
+    const workerStart = await this.#ensureWorker();
+    const requestFrame = encodeWorkerFrame(FRAME_KIND_BINARY_REQUEST, payload);
+    const responseWait = this.#nextFrame(this.requestTimeoutMilliseconds, "CUDA worker binary response");
+    const workerRoundTripStart = performance.now();
+    try {
+      await new Promise((resolve, reject) => {
+        this.child.stdin.write(requestFrame, (error) => error ? reject(error) : resolve());
+      });
+    } catch (error) {
+      responseWait.catch(() => {});
+      await this.terminateWorker();
+      throw workerError("cuda_worker_write_failed", error instanceof Error ? error.message : String(error));
+    }
+    let responseFrame;
+    try {
+      responseFrame = await responseWait;
+    } catch (error) {
+      await this.terminateWorker();
+      throw error;
+    }
+    const workerRoundTripMilliseconds = performance.now() - workerRoundTripStart;
+    if (responseFrame.kind === FRAME_KIND_ERROR) {
+      let detail = responseFrame.payload.toString("utf8");
+      try {
+        detail = JSON.parse(detail).detail ?? detail;
+      } catch {
+        // Preserve bounded raw worker detail.
+      }
+      await this.terminateWorker();
+      throw workerError("cuda_worker_request_failed", detail);
+    }
+    if (responseFrame.kind !== FRAME_KIND_BINARY_RESPONSE) {
+      await this.terminateWorker();
+      throw workerError("cuda_worker_malformed_response", `unexpected worker frame kind ${responseFrame.kind}`);
+    }
+    let responseEnvelope;
+    try {
+      responseEnvelope = validateCompactBinaryResponseEnvelope(responseFrame.payload, {
+        identityFingerprint: requestEnvelope.identityFingerprint,
+        sampleCount: requestEnvelope.sampleCount,
+      });
+    } catch (error) {
+      await this.terminateWorker();
+      throw error;
+    }
+    this.requestIndex += 1;
+    return {
+      capabilities: this.capabilities,
+      artifactSha256: this.artifactSha256,
+      payload: responseFrame.payload,
+      requestEnvelope,
+      responseEnvelope,
+      adapterTiming: {
+        totalMilliseconds: performance.now() - adapterStart,
+        workerStartupMilliseconds: workerStart.wallMilliseconds,
+        workerInitializationMilliseconds: workerStart.initializationMilliseconds,
+        workerRoundTripMilliseconds,
+        requestValidationMilliseconds: requestEnvelope.validationMilliseconds,
+        responseValidationMilliseconds: responseEnvelope.validationMilliseconds,
+        requestBytes: payload.length,
+        requestFrameBytes: requestFrame.length,
+        resultBytes: responseFrame.payload.length,
+        resultFrameBytes: FRAME_HEADER_BYTES + responseFrame.payload.length,
+        persistentProcess: true,
+        transport: PERSISTENT_BINARY_TRANSPORT,
+        rawPassThrough: true,
         workerPid: this.child.pid,
         workerGeneration: this.generation,
         workerRequestIndex: this.requestIndex,

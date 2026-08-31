@@ -17,6 +17,11 @@ import {
   probeWindowsCapability,
 } from "./probe-windows-capability.mjs";
 import {
+  BROWSER_HELPER_BINARY_MEDIA_TYPE,
+  COMPACT_BINARY_RESPONSE_HEADER_BYTES,
+  encodeCompactBinaryRequest,
+} from "./compact-binary-transport.mjs";
+import {
   MAXIMUM_CONTAINMENT_SAMPLES,
   MAXIMUM_JOB_BYTES,
   createCapabilitiesDocument,
@@ -64,7 +69,121 @@ test("Windows probe keeps CUDA unavailable when the driver exists but the compil
     workerLifecycle: "persistent",
     workerTransport: PERSISTENT_JSON_TRANSPORT,
     workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
+    browserHelperTransports: ["application/json", BROWSER_HELPER_BINARY_MEDIA_TYPE],
+    preferredBrowserHelperTransport: BROWSER_HELPER_BINARY_MEDIA_TYPE,
   });
+});
+
+test("binary browser/helper route preserves identity and shadow-only response headers", async (context) => {
+  const executableCapabilities = {
+    contract: EXECUTABLE_CAPABILITIES_CONTRACT,
+    executableProtocol: 1,
+    engineVersion: "test-binary",
+    precisionMode: "float32",
+    device: { name: EXPECTED_CUDA_DEVICE_NAME },
+    algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
+    shadow: true,
+    productionApplied: false,
+    workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
+  };
+  const probe = {
+    compiledExecutable: {
+      available: true,
+      capabilities: executableCapabilities,
+      artifactSha256: EXPECTED_COMPILED_EXECUTABLE_SHA256,
+    },
+    cudaBackend: { available: true },
+  };
+  const job = {
+    protocol: { major: 1, minor: 0 },
+    operation: "evaluateContainment",
+    algorithmContract: EVALUATE_CONTAINMENT_ALGORITHM,
+    clientRequestId: "binary-route-fixture",
+    projectFingerprint: "sha256:binary-route",
+    coordinateContract: {
+      frame: "object",
+      unitsPerMillimeter: 0.1,
+      handedness: "right",
+      buildAxis: "+z",
+    },
+    quality: {},
+    input: {
+      base: {
+        kind: "metaball-smooth-union",
+        contractVersion: 1,
+        balls: [{ id: 1, x: 0, y: 0, z: 0, r: 2 }],
+        smoothness: 0.6,
+      },
+      samples: [{
+        sampleId: "sample-1",
+        edgeId: "edge-1",
+        position: { x: 0, y: 0, z: 0 },
+        radius: 0.5,
+      }],
+      boundaryTolerance: 1e-6,
+    },
+    artifacts: [],
+  };
+  const encoded = encodeCompactBinaryRequest(job);
+  const binaryResult = Buffer.alloc(COMPACT_BINARY_RESPONSE_HEADER_BYTES + 16);
+  binaryResult.write("KBR1", 0, "ascii");
+  binaryResult.writeUInt16LE(1, 4);
+  binaryResult.writeUInt16LE(1, 6);
+  binaryResult.writeUInt32LE(COMPACT_BINARY_RESPONSE_HEADER_BYTES, 8);
+  encoded.identityFingerprint.copy(binaryResult, 16);
+  binaryResult.writeUInt32LE(1, 48);
+  binaryResult.writeUInt32LE(1, 52);
+  binaryResult.writeUInt32LE(COMPACT_BINARY_RESPONSE_HEADER_BYTES, 56);
+  binaryResult.writeUInt32LE(binaryResult.length, 60);
+  for (const offset of [64, 72, 80, 88, 96, 104, 112, 120, 152, 160]) {
+    binaryResult.writeDoubleLE(0, offset);
+  }
+  binaryResult.writeFloatLE(-2, COMPACT_BINARY_RESPONSE_HEADER_BYTES);
+  binaryResult.writeFloatLE(-1.5, COMPACT_BINARY_RESPONSE_HEADER_BYTES + 4);
+  binaryResult.writeFloatLE(1.5, COMPACT_BINARY_RESPONSE_HEADER_BYTES + 8);
+  binaryResult.writeUInt32LE(0, COMPACT_BINARY_RESPONSE_HEADER_BYTES + 12);
+
+  const server = createLocalEngineServer({
+    probe,
+    expectedHostHeader: null,
+    runContainment: () => { throw new Error("JSON execution was not expected"); },
+    runPackedContainment: async (payload) => {
+      assert.deepEqual(payload, encoded.payload);
+      return {
+        payload: binaryResult,
+        capabilities: executableCapabilities,
+        artifactSha256: EXPECTED_COMPILED_EXECUTABLE_SHA256,
+        adapterTiming: {
+          totalMilliseconds: 1,
+          workerRoundTripMilliseconds: 0.5,
+        },
+      };
+    },
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const response = await fetch(`http://127.0.0.1:${address.port}/v1/evaluate-containment-binary`, {
+    method: "POST",
+    headers: {
+      "Content-Type": BROWSER_HELPER_BINARY_MEDIA_TYPE,
+      Origin: "http://127.0.0.1:5174",
+      "X-Katachi-Geometry-Prototype": "shadow-only-v1",
+      "X-Katachi-Client-Request-Id": job.clientRequestId,
+      "X-Katachi-Project-Fingerprint": job.projectFingerprint,
+      "X-Katachi-Algorithm-Contract": job.algorithmContract,
+    },
+    body: encoded.payload,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), BROWSER_HELPER_BINARY_MEDIA_TYPE);
+  assert.equal(response.headers.get("x-katachi-shadow"), "true");
+  assert.equal(response.headers.get("x-katachi-production-applied"), "false");
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), binaryResult);
 });
 
 test("compiled adapter rejects a non-shadow or non-RTX capability document", () => {
@@ -219,6 +338,40 @@ test("fixed Host restriction rejects an alternate authority", async (context) =>
   const response = await fetch(`http://127.0.0.1:${address.port}/v1/capabilities`);
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error.code, "host_rejected");
+});
+
+test("allowlisted public origin receives scoped private-network preflight headers", async (context) => {
+  const probe = {
+    compiledExecutable: { available: false, reasonCode: "compiled_executable_absent" },
+    cudaBackend: { available: false, reasonCode: "compiled_executable_absent" },
+  };
+  const server = createLocalEngineServer({ probe, expectedHostHeader: null });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const response = await fetch(`http://127.0.0.1:${address.port}/v1/evaluate-containment-binary`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://katachi.a-8c3.workers.dev",
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": [
+        "content-type",
+        "x-katachi-geometry-prototype",
+        "x-katachi-client-request-id",
+        "x-katachi-project-fingerprint",
+        "x-katachi-algorithm-contract",
+      ].join(","),
+      "Access-Control-Request-Private-Network": "true",
+    },
+  });
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("access-control-allow-origin"), "https://katachi.a-8c3.workers.dev");
+  assert.equal(response.headers.get("access-control-allow-private-network"), "true");
+  assert.match(response.headers.get("access-control-allow-headers"), /X-Katachi-Project-Fingerprint/);
 });
 
 test("shadow header, sample limit and body limit remain fail-closed", async (context) => {

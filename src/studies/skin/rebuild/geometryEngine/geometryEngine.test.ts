@@ -15,6 +15,11 @@ import {
 import { evaluateContainmentShadow } from "./shadowEvaluateContainment.ts";
 import { evaluateContainmentOnWeb } from "./webGeometryEngine.ts";
 import { WindowsLocalGeometryEngineClient } from "./windowsLocalClient.ts";
+import {
+  COMPACT_BINARY_RESPONSE_HEADER_BYTES,
+  decodeBrowserBinaryResponse,
+  encodeBrowserBinaryRequest,
+} from "./browserBinaryTransport.ts";
 
 function request(): EvaluateContainmentJobRequest {
   return createEvaluateContainmentJob({
@@ -113,6 +118,59 @@ assert.deepEqual(web.result.summary.outsideEdgeIds, ["edge-b"]);
 assert.equal(web.result.summary.contained, false);
 assert.equal(web.shadow, true);
 assert.equal(web.productionApplied, false);
+
+const browserEncoded = await encodeBrowserBinaryRequest(fixture);
+assert.equal(new TextDecoder().decode(browserEncoded.payload.subarray(0, 4)), "KCB1");
+assert.equal(browserEncoded.payload.byteLength, 96 + 16 + fixture.input.samples.length * 16);
+const browserResponseBuffer = new ArrayBuffer(
+  COMPACT_BINARY_RESPONSE_HEADER_BYTES + fixture.input.samples.length * 16,
+);
+const browserResponseBytes = new Uint8Array(browserResponseBuffer);
+browserResponseBytes.set(new TextEncoder().encode("KBR1"), 0);
+browserResponseBytes.set(browserEncoded.identityFingerprint, 16);
+const browserResponseView = new DataView(browserResponseBuffer);
+browserResponseView.setUint16(4, 1, true);
+browserResponseView.setUint16(6, 1, true);
+browserResponseView.setUint32(8, COMPACT_BINARY_RESPONSE_HEADER_BYTES, true);
+browserResponseView.setUint32(48, fixture.input.samples.length, true);
+browserResponseView.setUint32(52, 1, true);
+browserResponseView.setUint32(56, COMPACT_BINARY_RESPONSE_HEADER_BYTES, true);
+browserResponseView.setUint32(60, browserResponseBytes.byteLength, true);
+for (const offset of [64, 72, 80, 88, 96, 104, 112, 120, 152, 160]) {
+  browserResponseView.setFloat64(offset, 0, true);
+}
+for (const [index, sample] of web.result.samples.entries()) {
+  const offset = COMPACT_BINARY_RESPONSE_HEADER_BYTES + index * 16;
+  browserResponseView.setFloat32(offset, sample.baseSignedDistance, true);
+  browserResponseView.setFloat32(offset + 4, sample.radiusAdjustedMargin, true);
+  browserResponseView.setFloat32(offset + 8, sample.radiusClearance, true);
+  browserResponseView.setUint32(
+    offset + 12,
+    sample.classification === "inside" ? 0 : sample.classification === "boundary" ? 1 : 2,
+    true,
+  );
+}
+const browserDecoded = decodeBrowserBinaryResponse(
+  browserResponseBuffer,
+  fixture,
+  browserEncoded.identityFingerprint,
+  {
+    jobId: "browser-binary-fixture",
+    engineVersion: "test-binary-1",
+    artifactSha256: EXPECTED_CUDA_EXECUTABLE_SHA256,
+  },
+);
+assert.deepEqual(
+  browserDecoded.result.result.samples.map(({ sampleId, edgeId, classification }) => ({
+    sampleId,
+    edgeId,
+    classification,
+  })),
+  web.result.samples.map(({ sampleId, edgeId, classification }) => ({ sampleId, edgeId, classification })),
+  "binary results must restore stable sample and edge identity by input index",
+);
+assert.equal(browserDecoded.result.shadow, true);
+assert.equal(browserDecoded.result.productionApplied, false);
 
 const invalid = structuredClone(fixture);
 invalid.input.samples[0].position.x = Number.NaN;

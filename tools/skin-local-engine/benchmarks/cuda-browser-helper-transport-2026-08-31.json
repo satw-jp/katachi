@@ -1,0 +1,927 @@
+{
+  "contract": "katachi.cuda-browser-helper-transport-benchmark.v1",
+  "recordedAt": "2026-08-31T07:01:44.372Z",
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "environment": {
+    "deviceName": "NVIDIA GeForce RTX 3080",
+    "artifactSha256": "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA",
+    "endpoint": "http://127.0.0.1:47658/v1",
+    "workerTransport": "compact-binary-v1"
+  },
+  "methodology": {
+    "sampleSizes": [
+      32768,
+      100000,
+      250000
+    ],
+    "warmupRuns": 1,
+    "measuredRuns": 3,
+    "jsonRoute": "/v1/jobs (reference)",
+    "binaryRoute": "/v1/evaluate-containment-binary (performance candidate)",
+    "comparison": "every run validates ordered sample/edge identity, exact classification, finite margins, and tolerance against authoritative Web"
+  },
+  "sizes": [
+    {
+      "sampleCount": 32768,
+      "warmup": [
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "json",
+          "timing": {
+            "requestEncoding": 27.78069999999991,
+            "httpRoundTrip": 451.79200000000003,
+            "helperDecode": 33.3788,
+            "worker": 290.4986,
+            "workerRoundTrip": 3.819500000000062,
+            "helperResponseEncode": 24.6481,
+            "browserResponseDecode": 54.19019999999989,
+            "semanticValidation": 18.365299999999934,
+            "clientTotal": 479.6042,
+            "fullApplication": 565.2696000000001,
+            "httpAndProtocolResidual": 103.26650000000001,
+            "cudaEndToEnd": 1.6838,
+            "cudaKernel": 0.06841599941253662,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 4804113,
+            "response": 7055137
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "binary",
+          "timing": {
+            "requestEncoding": 18.605999999999995,
+            "httpRoundTrip": 12.649800000000141,
+            "helperDecode": 3.3598,
+            "worker": 6.1416,
+            "workerRoundTrip": 3.6625,
+            "helperResponseEncode": 0.0281,
+            "browserResponseDecode": 7.9387000000001535,
+            "semanticValidation": 20.92509999999993,
+            "clientTotal": 62.18260000000009,
+            "fullApplication": 115.16139999999996,
+            "httpAndProtocolResidual": 3.1203000000001406,
+            "cudaEndToEnd": 1.3963,
+            "cudaKernel": 0.19286400079727173,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 524432,
+            "response": 524464
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "runs": {
+        "json": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 23.793699999999944,
+              "httpRoundTrip": 188.99120000000016,
+              "helperDecode": 33.6353,
+              "worker": 53.15120000000002,
+              "workerRoundTrip": 2.5170000000000528,
+              "helperResponseEncode": 23.3386,
+              "browserResponseDecode": 36.8741,
+              "semanticValidation": 14.95270000000005,
+              "clientTotal": 212.7920999999999,
+              "fullApplication": 253.43340000000012,
+              "httpAndProtocolResidual": 78.86610000000015,
+              "cudaEndToEnd": 0.8071,
+              "cudaKernel": 0.1836480051279068,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4804115,
+              "response": 7053123
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 23.47180000000003,
+              "httpRoundTrip": 180.2418,
+              "helperDecode": 32.1856,
+              "worker": 41.9369999999999,
+              "workerRoundTrip": 2.621299999999792,
+              "helperResponseEncode": 22.7834,
+              "browserResponseDecode": 41.45869999999991,
+              "semanticValidation": 13.994700000000194,
+              "clientTotal": 203.71899999999982,
+              "fullApplication": 243.52800000000002,
+              "httpAndProtocolResidual": 83.33580000000012,
+              "cudaEndToEnd": 0.7449,
+              "cudaKernel": 0.19836799800395966,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4804115,
+              "response": 7053121
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 28.338700000000017,
+              "httpRoundTrip": 197.15049999999997,
+              "helperDecode": 39.1642,
+              "worker": 47.2815999999998,
+              "workerRoundTrip": 3.520600000000286,
+              "helperResponseEncode": 23.9159,
+              "browserResponseDecode": 39.73180000000002,
+              "semanticValidation": 18.892899999999827,
+              "clientTotal": 225.4926999999998,
+              "fullApplication": 263.90340000000015,
+              "httpAndProtocolResidual": 86.78880000000018,
+              "cudaEndToEnd": 1.2282,
+              "cudaKernel": 0.25299200415611267,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4804115,
+              "response": 7053124
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "binary": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 27.87189999999987,
+              "httpRoundTrip": 16.34010000000012,
+              "helperDecode": 3.4097,
+              "worker": 9.1153,
+              "workerRoundTrip": 4.1767,
+              "helperResponseEncode": 0.0783,
+              "browserResponseDecode": 7.003600000000006,
+              "semanticValidation": 13.232300000000123,
+              "clientTotal": 65.80769999999984,
+              "fullApplication": 106.7228,
+              "httpAndProtocolResidual": 3.7368000000001214,
+              "cudaEndToEnd": 1.0318,
+              "cudaKernel": 0.1982399970293045,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 524432,
+              "response": 524464
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 13.36200000000008,
+              "httpRoundTrip": 9.62480000000005,
+              "helperDecode": 2.1431,
+              "worker": 5.3321,
+              "workerRoundTrip": 3.0751,
+              "helperResponseEncode": 0.0205,
+              "browserResponseDecode": 3.454100000000153,
+              "semanticValidation": 11.103399999999965,
+              "clientTotal": 39.74050000000011,
+              "fullApplication": 77.62360000000012,
+              "httpAndProtocolResidual": 2.129100000000051,
+              "cudaEndToEnd": 0.8135,
+              "cudaKernel": 0.20255999267101288,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 524432,
+              "response": 524464
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 16.27509999999984,
+              "httpRoundTrip": 7.383900000000267,
+              "helperDecode": 0.5589,
+              "worker": 4.533,
+              "workerRoundTrip": 2.7606,
+              "helperResponseEncode": 0.0322,
+              "browserResponseDecode": 9.245100000000093,
+              "semanticValidation": 10.78269999999975,
+              "clientTotal": 44.8752999999997,
+              "fullApplication": 82.57839999999987,
+              "httpAndProtocolResidual": 2.2598000000002667,
+              "cudaEndToEnd": 0.8307,
+              "cudaKernel": 0.20201599597930908,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 524432,
+              "response": 524464
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      },
+      "summary": {
+        "json": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 23.793699999999944,
+            "httpRoundTrip": 188.99120000000016,
+            "helperDecode": 33.6353,
+            "worker": 47.2815999999998,
+            "workerRoundTrip": 2.621299999999792,
+            "helperResponseEncode": 23.3386,
+            "browserResponseDecode": 39.73180000000002,
+            "semanticValidation": 14.95270000000005,
+            "clientTotal": 212.7920999999999,
+            "fullApplication": 253.43340000000012,
+            "httpAndProtocolResidual": 83.33580000000012,
+            "cudaEndToEnd": 0.8071,
+            "cudaKernel": 0.19836799800395966,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 4804115,
+          "responseBytes": 7053123,
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "allMatched": true
+        },
+        "binary": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 16.27509999999984,
+            "httpRoundTrip": 9.62480000000005,
+            "helperDecode": 2.1431,
+            "worker": 5.3321,
+            "workerRoundTrip": 3.0751,
+            "helperResponseEncode": 0.0322,
+            "browserResponseDecode": 7.003600000000006,
+            "semanticValidation": 11.103399999999965,
+            "clientTotal": 44.8752999999997,
+            "fullApplication": 82.57839999999987,
+            "httpAndProtocolResidual": 2.2598000000002667,
+            "cudaEndToEnd": 0.8307,
+            "cudaKernel": 0.20201599597930908,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 524432,
+          "responseBytes": 524464,
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "allMatched": true
+        }
+      }
+    },
+    {
+      "sampleCount": 100000,
+      "warmup": [
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "json",
+          "timing": {
+            "requestEncoding": 66.36499999999978,
+            "httpRoundTrip": 641.3858,
+            "helperDecode": 149.3959,
+            "worker": 131.70789999999988,
+            "workerRoundTrip": 9.862899999999627,
+            "helperResponseEncode": 76.1357,
+            "browserResponseDecode": 143.88450000000057,
+            "semanticValidation": 59.93060000000014,
+            "clientTotal": 707.7556,
+            "fullApplication": 868.3395,
+            "httpAndProtocolResidual": 284.14630000000017,
+            "cudaEndToEnd": 2.9126,
+            "cudaKernel": 0.15350399911403656,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 14810632,
+            "response": 21719070
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "binary",
+          "timing": {
+            "requestEncoding": 47.976500000000215,
+            "httpRoundTrip": 17.103599999999915,
+            "helperDecode": 1.8595,
+            "worker": 11.6079,
+            "workerRoundTrip": 6.5859,
+            "helperResponseEncode": 0.0421,
+            "browserResponseDecode": 16.78229999999985,
+            "semanticValidation": 36.35149999999976,
+            "clientTotal": 121.71439999999984,
+            "fullApplication": 238.3361,
+            "httpAndProtocolResidual": 3.594099999999914,
+            "cudaEndToEnd": 1.5687,
+            "cudaKernel": 0.162432000041008,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 1600144,
+            "response": 1600176
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "runs": {
+        "json": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 67.74189999999999,
+              "httpRoundTrip": 611.1433999999999,
+              "helperDecode": 130.9754,
+              "worker": 110.26369999999997,
+              "workerRoundTrip": 6.745300000000043,
+              "helperResponseEncode": 71.3558,
+              "browserResponseDecode": 144.35509999999977,
+              "semanticValidation": 60.11160000000018,
+              "clientTotal": 678.8901999999994,
+              "fullApplication": 815.8051999999998,
+              "httpAndProtocolResidual": 298.54849999999993,
+              "cudaEndToEnd": 1.5472,
+              "cudaKernel": 0.1555519998073578,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 14810634,
+              "response": 21718904
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 64.85080000000016,
+              "httpRoundTrip": 566.8356999999996,
+              "helperDecode": 125.3651,
+              "worker": 104.44490000000042,
+              "workerRoundTrip": 7.167099999999664,
+              "helperResponseEncode": 76.09089999999999,
+              "browserResponseDecode": 136.9347000000007,
+              "semanticValidation": 45.40800000000036,
+              "clientTotal": 631.6916000000001,
+              "fullApplication": 758.1437999999998,
+              "httpAndProtocolResidual": 260.93479999999926,
+              "cudaEndToEnd": 1.5455,
+              "cudaKernel": 0.15043200552463531,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 14810634,
+              "response": 21719078
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 66.58300000000054,
+              "httpRoundTrip": 549.5319,
+              "helperDecode": 102.5419,
+              "worker": 107.75950000000012,
+              "workerRoundTrip": 10.262099999999919,
+              "helperResponseEncode": 73.3849,
+              "browserResponseDecode": 136.0064999999995,
+              "semanticValidation": 47.45220000000063,
+              "clientTotal": 616.1187,
+              "fullApplication": 760.2755999999999,
+              "httpAndProtocolResidual": 265.8455999999998,
+              "cudaEndToEnd": 2.214,
+              "cudaKernel": 0.17312000691890717,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 14810634,
+              "response": 21718911
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "binary": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 51.237600000000384,
+              "httpRoundTrip": 17.083599999999933,
+              "helperDecode": 1.8303,
+              "worker": 11.915,
+              "workerRoundTrip": 6.5801,
+              "helperResponseEncode": 0.0152,
+              "browserResponseDecode": 14.200600000000122,
+              "semanticValidation": 36.31450000000041,
+              "clientTotal": 121.94989999999962,
+              "fullApplication": 234.6877999999997,
+              "httpAndProtocolResidual": 3.3230999999999344,
+              "cudaEndToEnd": 1.6399,
+              "cudaKernel": 0.14880000054836273,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 1600144,
+              "response": 1600176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 38.48500000000058,
+              "httpRoundTrip": 12.038300000000163,
+              "helperDecode": 1.5789,
+              "worker": 7.4847,
+              "workerRoundTrip": 6.5231,
+              "helperResponseEncode": 0.0116,
+              "browserResponseDecode": 11.090700000000652,
+              "semanticValidation": 36.92309999999998,
+              "clientTotal": 101.8123999999998,
+              "fullApplication": 190.38910000000033,
+              "httpAndProtocolResidual": 2.9631000000001624,
+              "cudaEndToEnd": 1.4488,
+              "cudaKernel": 0.15731200575828552,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 1600144,
+              "response": 1600176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 44.828700000000026,
+              "httpRoundTrip": 12.15980000000036,
+              "helperDecode": 1.5657,
+              "worker": 7.5299,
+              "workerRoundTrip": 6.5947,
+              "helperResponseEncode": 0.0133,
+              "browserResponseDecode": 12.784700000000157,
+              "semanticValidation": 32.762000000000626,
+              "clientTotal": 106.51780000000053,
+              "fullApplication": 185.1781000000001,
+              "httpAndProtocolResidual": 3.050900000000361,
+              "cudaEndToEnd": 1.4996,
+              "cudaKernel": 0.158720001578331,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 1600144,
+              "response": 1600176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      },
+      "summary": {
+        "json": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 66.58300000000054,
+            "httpRoundTrip": 566.8356999999996,
+            "helperDecode": 125.3651,
+            "worker": 107.75950000000012,
+            "workerRoundTrip": 7.167099999999664,
+            "helperResponseEncode": 73.3849,
+            "browserResponseDecode": 136.9347000000007,
+            "semanticValidation": 47.45220000000063,
+            "clientTotal": 631.6916000000001,
+            "fullApplication": 760.2755999999999,
+            "httpAndProtocolResidual": 265.8455999999998,
+            "cudaEndToEnd": 1.5472,
+            "cudaKernel": 0.1555519998073578,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 14810634,
+          "responseBytes": 21718911,
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "allMatched": true
+        },
+        "binary": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 44.828700000000026,
+            "httpRoundTrip": 12.15980000000036,
+            "helperDecode": 1.5789,
+            "worker": 7.5299,
+            "workerRoundTrip": 6.5801,
+            "helperResponseEncode": 0.0133,
+            "browserResponseDecode": 12.784700000000157,
+            "semanticValidation": 36.31450000000041,
+            "clientTotal": 106.51780000000053,
+            "fullApplication": 190.38910000000033,
+            "httpAndProtocolResidual": 3.050900000000361,
+            "cudaEndToEnd": 1.4996,
+            "cudaKernel": 0.15731200575828552,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 1600144,
+          "responseBytes": 1600176,
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "allMatched": true
+        }
+      }
+    },
+    {
+      "sampleCount": 250000,
+      "warmup": [
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "json",
+          "timing": {
+            "requestEncoding": 168.16720000000078,
+            "httpRoundTrip": 1514.0384999999997,
+            "helperDecode": 311.9216,
+            "worker": 287.89410000000044,
+            "workerRoundTrip": 18.213700000000244,
+            "helperResponseEncode": 195.80530000000002,
+            "browserResponseDecode": 384.89160000000084,
+            "semanticValidation": 138.89569999999912,
+            "clientTotal": 1682.2106000000003,
+            "fullApplication": 2067.8007,
+            "httpAndProtocolResidual": 718.4174999999992,
+            "cudaEndToEnd": 4.6361,
+            "cudaKernel": 0.14931200444698334,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 37236326,
+            "response": 54601467
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "index": 0,
+          "transport": "binary",
+          "timing": {
+            "requestEncoding": 114.25590000000011,
+            "httpRoundTrip": 30.204099999999016,
+            "helperDecode": 4.1198,
+            "worker": 20.2928,
+            "workerRoundTrip": 18.0022,
+            "helperResponseEncode": 0.0161,
+            "browserResponseDecode": 49.04750000000058,
+            "semanticValidation": 105.72800000000097,
+            "clientTotal": 306.46939999999995,
+            "fullApplication": 556.9902999999995,
+            "httpAndProtocolResidual": 5.775399999999017,
+            "cudaEndToEnd": 6.3862,
+            "cudaKernel": 0.7787200212478638,
+            "webAuthoritative": 0
+          },
+          "bytes": {
+            "request": 4000144,
+            "response": 4000176
+          },
+          "matched": true,
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "marginTolerance": 0.00005,
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "runs": {
+        "json": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 179.41870000000017,
+              "httpRoundTrip": 1520.8652000000002,
+              "helperDecode": 341.14,
+              "worker": 265.1923999999999,
+              "workerRoundTrip": 18.58519999999953,
+              "helperResponseEncode": 172.0017,
+              "browserResponseDecode": 398.1923999999981,
+              "semanticValidation": 145.6792000000005,
+              "clientTotal": 1700.2893999999997,
+              "fullApplication": 2047.1425999999992,
+              "httpAndProtocolResidual": 742.5311000000003,
+              "cudaEndToEnd": 7.1509,
+              "cudaKernel": 0.8747199773788452,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 37236328,
+              "response": 54601303
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 170.77269999999953,
+              "httpRoundTrip": 1450.0281999999988,
+              "helperDecode": 317.843,
+              "worker": 265.8173999999999,
+              "workerRoundTrip": 19.34310000000005,
+              "helperResponseEncode": 176.7815,
+              "browserResponseDecode": 359.4648999999954,
+              "semanticValidation": 137.70800000000054,
+              "clientTotal": 1620.8059999999987,
+              "fullApplication": 1972.2587999999996,
+              "httpAndProtocolResidual": 689.5862999999988,
+              "cudaEndToEnd": 6.0037,
+              "cudaKernel": 0.8084800243377686,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 37236328,
+              "response": 54601294
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "json",
+            "timing": {
+              "requestEncoding": 179.0671999999995,
+              "httpRoundTrip": 1503.8443000000007,
+              "helperDecode": 333.6202,
+              "worker": 266.07700000000114,
+              "workerRoundTrip": 18.359199999998964,
+              "helperResponseEncode": 194.1926,
+              "browserResponseDecode": 361.45150000000285,
+              "semanticValidation": 151.9951999999994,
+              "clientTotal": 1682.9146999999994,
+              "fullApplication": 2022.0771999999997,
+              "httpAndProtocolResidual": 709.9544999999995,
+              "cudaEndToEnd": 5.8862,
+              "cudaKernel": 0.7917439937591553,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 37236328,
+              "response": 54601302
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "binary": [
+          {
+            "phase": "measured",
+            "index": 1,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 122.51759999999922,
+              "httpRoundTrip": 31.06670000000122,
+              "helperDecode": 3.8174,
+              "worker": 21.5848,
+              "workerRoundTrip": 19.3558,
+              "helperResponseEncode": 0.0148,
+              "browserResponseDecode": 39.071500000000015,
+              "semanticValidation": 123.28069999999934,
+              "clientTotal": 322.6854000000003,
+              "fullApplication": 563.9408000000003,
+              "httpAndProtocolResidual": 5.649700000001218,
+              "cudaEndToEnd": 6.1687,
+              "cudaKernel": 0.8167679905891418,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4000144,
+              "response": 4000176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 2,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 100.10850000000028,
+              "httpRoundTrip": 48.11119999999937,
+              "helperDecode": 17.7089,
+              "worker": 24.4648,
+              "workerRoundTrip": 22.1333,
+              "helperResponseEncode": 0.0123,
+              "browserResponseDecode": 66.41389999999956,
+              "semanticValidation": 121.64999999999964,
+              "clientTotal": 345.84659999999894,
+              "fullApplication": 590.8684000000012,
+              "httpAndProtocolResidual": 5.925199999999371,
+              "cudaEndToEnd": 6.2657,
+              "cudaKernel": 0.7817280292510986,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4000144,
+              "response": 4000176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "index": 3,
+            "transport": "binary",
+            "timing": {
+              "requestEncoding": 115.58339999999953,
+              "httpRoundTrip": 31.897899999999936,
+              "helperDecode": 3.5289,
+              "worker": 22.94,
+              "workerRoundTrip": 20.7561,
+              "helperResponseEncode": 0.0132,
+              "browserResponseDecode": 41.88699999999881,
+              "semanticValidation": 107.27260000000024,
+              "clientTotal": 303.3832000000002,
+              "fullApplication": 598.7164000000012,
+              "httpAndProtocolResidual": 5.415799999999933,
+              "cudaEndToEnd": 6.3951,
+              "cudaKernel": 0.8823999762535095,
+              "webAuthoritative": 0
+            },
+            "bytes": {
+              "request": 4000144,
+              "response": 4000176
+            },
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      },
+      "summary": {
+        "json": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 179.0671999999995,
+            "httpRoundTrip": 1503.8443000000007,
+            "helperDecode": 333.6202,
+            "worker": 265.8173999999999,
+            "workerRoundTrip": 18.58519999999953,
+            "helperResponseEncode": 176.7815,
+            "browserResponseDecode": 361.45150000000285,
+            "semanticValidation": 145.6792000000005,
+            "clientTotal": 1682.9146999999994,
+            "fullApplication": 2022.0771999999997,
+            "httpAndProtocolResidual": 709.9544999999995,
+            "cudaEndToEnd": 6.0037,
+            "cudaKernel": 0.8084800243377686,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 37236328,
+          "responseBytes": 54601302,
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "allMatched": true
+        },
+        "binary": {
+          "runCount": 3,
+          "timingMedianMilliseconds": {
+            "requestEncoding": 115.58339999999953,
+            "httpRoundTrip": 31.897899999999936,
+            "helperDecode": 3.8174,
+            "worker": 22.94,
+            "workerRoundTrip": 20.7561,
+            "helperResponseEncode": 0.0132,
+            "browserResponseDecode": 41.88699999999881,
+            "semanticValidation": 121.64999999999964,
+            "clientTotal": 322.6854000000003,
+            "fullApplication": 590.8684000000012,
+            "httpAndProtocolResidual": 5.649700000001218,
+            "cudaEndToEnd": 6.2657,
+            "cudaKernel": 0.8167679905891418,
+            "webAuthoritative": 0
+          },
+          "requestBytes": 4000144,
+          "responseBytes": 4000176,
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "allMatched": true
+        }
+      }
+    }
+  ]
+}

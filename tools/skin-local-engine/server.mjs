@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
 import {
   EVALUATE_CONTAINMENT_ALGORITHM,
@@ -8,10 +9,14 @@ import {
 } from "./compiled-executable-adapter.mjs";
 import { probeWindowsCapability } from "./probe-windows-capability.mjs";
 import { PersistentCudaWorker } from "./persistent-cuda-worker.mjs";
+import {
+  BROWSER_HELPER_BINARY_MEDIA_TYPE,
+  validateCompactBinaryRequestEnvelope,
+} from "./compact-binary-transport.mjs";
 
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
-export const ENGINE_VERSION = "0.3.0-persistent-transport-shadow";
+export const ENGINE_VERSION = "0.4.0-browser-binary-shadow";
 // 250k deterministic containment samples serialize to roughly 35 MiB. Keep the
 // request bounded while allowing the advertised sample ceiling to be exercised.
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
@@ -43,6 +48,8 @@ export function createCapabilitiesDocument(probe, {
       workerLifecycle: "persistent",
       workerTransport,
       workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
+      browserHelperTransports: ["application/json", BROWSER_HELPER_BINARY_MEDIA_TYPE],
+      preferredBrowserHelperTransport: BROWSER_HELPER_BINARY_MEDIA_TYPE,
     },
     backends: [{
       backendId,
@@ -69,19 +76,52 @@ function corsHeaders(origin) {
   return origin && ALLOWED_ORIGINS.has(origin) ? {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Katachi-Geometry-Prototype",
+    "Access-Control-Allow-Headers": [
+      "Content-Type",
+      "X-Katachi-Geometry-Prototype",
+      "X-Katachi-Client-Request-Id",
+      "X-Katachi-Project-Fingerprint",
+      "X-Katachi-Algorithm-Contract",
+    ].join(", "),
+    "Access-Control-Expose-Headers": [
+      "X-Katachi-Job-Id",
+      "X-Katachi-Cuda-Engine-Version",
+      "X-Katachi-Artifact-Sha256",
+      "X-Katachi-Shadow",
+      "X-Katachi-Production-Applied",
+      "X-Katachi-Helper-Decode-Ms",
+      "X-Katachi-Worker-Roundtrip-Ms",
+      "X-Katachi-Worker-Total-Ms",
+      "X-Katachi-Helper-Response-Encode-Ms",
+      "X-Katachi-Response-Bytes",
+    ].join(", "),
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
   } : { Vary: "Origin" };
 }
 
-function sendJson(response, status, value, origin) {
+function privateNetworkCorsHeaders(request, origin) {
+  return request.headers["access-control-request-private-network"] === "true"
+    && origin
+    && ALLOWED_ORIGINS.has(origin)
+    ? { "Access-Control-Allow-Private-Network": "true" }
+    : {};
+}
+
+function sendJson(response, status, value, origin, extraHeaders = {}) {
+  const encodeStart = performance.now();
+  const payload = `${JSON.stringify(value)}\n`;
+  const encodeMilliseconds = performance.now() - encodeStart;
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": String(Buffer.byteLength(payload)),
     "Cache-Control": "no-store",
+    "X-Katachi-Helper-Response-Encode-Ms": encodeMilliseconds.toFixed(6),
+    "X-Katachi-Response-Bytes": String(Buffer.byteLength(payload)),
     ...corsHeaders(origin),
+    ...extraHeaders,
   });
-  response.end(`${JSON.stringify(value)}\n`);
+  response.end(payload);
 }
 
 function fail(response, status, code, detail, origin) {
@@ -89,6 +129,7 @@ function fail(response, status, code, detail, origin) {
 }
 
 function readBoundedJson(request) {
+  const readStart = performance.now();
   return new Promise((resolve, reject) => {
     const chunks = [];
     let byteLength = 0;
@@ -107,13 +148,57 @@ function readBoundedJson(request) {
     request.on("end", () => {
       if (rejected) return;
       try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+        const readMilliseconds = performance.now() - readStart;
+        const parseStart = performance.now();
+        const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        resolve({
+          value,
+          byteLength,
+          readMilliseconds,
+          parseMilliseconds: performance.now() - parseStart,
+        });
       } catch {
         reject(Object.assign(new Error("job body is not valid JSON"), { code: "invalid_json" }));
       }
     });
     request.on("error", reject);
   });
+}
+
+function readBoundedBuffer(request) {
+  const start = performance.now();
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let byteLength = 0;
+    let rejected = false;
+    request.on("data", (chunk) => {
+      byteLength += chunk.length;
+      if (byteLength > MAXIMUM_JOB_BYTES) {
+        if (!rejected) {
+          rejected = true;
+          reject(Object.assign(new Error("job body exceeds prototype limit"), { code: "job_too_large" }));
+        }
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => {
+      if (rejected) return;
+      resolve({
+        payload: Buffer.concat(chunks, byteLength),
+        readMilliseconds: performance.now() - start,
+      });
+    });
+    request.on("error", reject);
+  });
+}
+
+function requiredIdentityHeader(request, name, maximumLength = 512) {
+  const value = request.headers[name];
+  if (typeof value !== "string" || value.trim() === "" || value.length > maximumLength) {
+    throw Object.assign(new Error(`missing or invalid ${name} header`), { code: "invalid_identity_header" });
+  }
+  return value;
 }
 
 function validatePrototypeRequest(value) {
@@ -164,14 +249,17 @@ export function createLocalEngineServer({
   probe = probeWindowsCapability(),
   runContainment,
   persistentWorker,
+  runPackedContainment,
   workerTransport = PERSISTENT_JSON_TRANSPORT,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
 } = {}) {
   const capabilities = createCapabilitiesDocument(probe, { workerTransport });
   const jobs = new Map();
-  const worker = persistentWorker ?? (runContainment ? null : new PersistentCudaWorker());
+  const worker = persistentWorker ?? new PersistentCudaWorker();
   const executeContainment = runContainment
     ?? ((request) => worker.evaluate(request, { transport: workerTransport }));
+  const executePackedContainment = runPackedContainment
+    ?? ((payload, options) => worker.evaluatePackedBinary(payload, options));
   const pendingJobs = [];
   let drainingJobs = false;
 
@@ -241,7 +329,10 @@ export function createLocalEngineServer({
     }
     const url = new URL(request.url ?? "/", `http://${FIXED_HOST}:${FIXED_PORT}`);
     if (request.method === "OPTIONS") {
-      response.writeHead(204, corsHeaders(origin));
+      response.writeHead(204, {
+        ...corsHeaders(origin),
+        ...privateNetworkCorsHeaders(request, origin),
+      });
       response.end();
       return;
     }
@@ -253,7 +344,9 @@ export function createLocalEngineServer({
     if (request.method === "GET" && match) {
       const job = jobs.get(decodeURIComponent(match[1]));
       if (!job) fail(response, 404, "job_not_found", "unknown job id", origin);
-      else sendJson(response, 200, statusRecord(job), origin);
+      else sendJson(response, 200, statusRecord(job), origin, job.helperDecodeMilliseconds === undefined ? {} : {
+        "X-Katachi-Helper-Decode-Ms": job.helperDecodeMilliseconds.toFixed(6),
+      });
       return;
     }
     if (request.method === "DELETE" && match) {
@@ -293,8 +386,10 @@ export function createLocalEngineServer({
         return;
       }
       let jobRequest;
+      let decodedRequest;
       try {
-        jobRequest = validatePrototypeRequest(await readBoundedJson(request));
+        decodedRequest = await readBoundedJson(request);
+        jobRequest = validatePrototypeRequest(decodedRequest.value);
       } catch (error) {
         fail(response, error.code === "job_too_large" ? 413 : 400, error.code ?? "invalid_job", error.message, origin);
         return;
@@ -303,6 +398,7 @@ export function createLocalEngineServer({
         jobId: randomUUID(),
         clientRequestId: jobRequest.clientRequestId,
         status: "queued",
+        helperDecodeMilliseconds: decodedRequest.readMilliseconds + decodedRequest.parseMilliseconds,
       };
       jobs.set(job.jobId, job);
       sendJson(response, 202, {
@@ -313,6 +409,78 @@ export function createLocalEngineServer({
       }, origin);
       pendingJobs.push({ job, jobRequest });
       setImmediate(() => void drainJobs());
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/v1/evaluate-containment-binary") {
+      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      if (String(request.headers["content-type"] ?? "").toLowerCase() !== BROWSER_HELPER_BINARY_MEDIA_TYPE) {
+        fail(response, 415, "binary_content_type_required", `binary jobs require ${BROWSER_HELPER_BINARY_MEDIA_TYPE}`, origin);
+        return;
+      }
+      if (!probe.cudaBackend.available) {
+        fail(response, 503, probe.cudaBackend.reasonCode ?? "cuda_unavailable", "CUDA adapter is unavailable", origin);
+        return;
+      }
+      const controller = new AbortController();
+      request.once("aborted", () => controller.abort());
+      response.once("close", () => {
+        if (!response.writableEnded) controller.abort();
+      });
+      let clientRequestId;
+      let projectFingerprint;
+      let binaryRequest;
+      let envelope;
+      try {
+        clientRequestId = requiredIdentityHeader(request, "x-katachi-client-request-id", 256);
+        projectFingerprint = requiredIdentityHeader(request, "x-katachi-project-fingerprint");
+        if (requiredIdentityHeader(request, "x-katachi-algorithm-contract") !== EVALUATE_CONTAINMENT_ALGORITHM) {
+          throw Object.assign(new Error("binary request uses an unsupported algorithm contract"), {
+            code: "invalid_job_contract",
+          });
+        }
+        binaryRequest = await readBoundedBuffer(request);
+        envelope = validateCompactBinaryRequestEnvelope(binaryRequest.payload, {
+          maximumSamples: MAXIMUM_CONTAINMENT_SAMPLES,
+        });
+      } catch (error) {
+        fail(response, error.code === "job_too_large" ? 413 : 400, error.code ?? "invalid_binary_job", error.message, origin);
+        return;
+      }
+      try {
+        const executed = await executePackedContainment(binaryRequest.payload, { signal: controller.signal });
+        const responseEncodeStart = performance.now();
+        const jobId = randomUUID();
+        const headers = {
+          "Content-Type": BROWSER_HELPER_BINARY_MEDIA_TYPE,
+          "Content-Length": String(executed.payload.length),
+          "Cache-Control": "no-store",
+          "X-Katachi-Job-Id": jobId,
+          "X-Katachi-Client-Request-Id": clientRequestId,
+          "X-Katachi-Project-Fingerprint": projectFingerprint,
+          "X-Katachi-Cuda-Engine-Version": executed.capabilities.engineVersion,
+          "X-Katachi-Artifact-Sha256": executed.artifactSha256,
+          "X-Katachi-Shadow": "true",
+          "X-Katachi-Production-Applied": "false",
+          "X-Katachi-Helper-Decode-Ms": (binaryRequest.readMilliseconds + envelope.validationMilliseconds).toFixed(6),
+          "X-Katachi-Worker-Roundtrip-Ms": executed.adapterTiming.workerRoundTripMilliseconds.toFixed(6),
+          "X-Katachi-Worker-Total-Ms": executed.adapterTiming.totalMilliseconds.toFixed(6),
+          "X-Katachi-Helper-Response-Encode-Ms": (performance.now() - responseEncodeStart).toFixed(6),
+          ...corsHeaders(origin),
+        };
+        response.writeHead(200, headers);
+        response.end(executed.payload);
+      } catch (error) {
+        fail(response, error.code === "cuda_job_canceled" ? 499 : 502,
+          error.code ?? "cuda_candidate_failed",
+          error instanceof Error ? error.message : String(error), origin);
+      }
       return;
     }
     fail(response, 404, "not_found", "unknown prototype route", origin);

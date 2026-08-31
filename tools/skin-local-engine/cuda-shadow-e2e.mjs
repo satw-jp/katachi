@@ -61,6 +61,11 @@ try {
     workerLifecycle: "persistent",
     workerTransport: "length-framed-json-v1",
     workerTransports: ["length-framed-json-v1", "compact-binary-v1"],
+    browserHelperTransports: [
+      "application/json",
+      "application/vnd.katachi.geometry-binary-v1",
+    ],
+    preferredBrowserHelperTransport: "application/vnd.katachi.geometry-binary-v1",
   });
   assert.equal(localClient.supportsCudaContainment(capabilitiesProbe.capabilities), true);
 
@@ -117,6 +122,7 @@ try {
     endToEndMilliseconds,
     cudaExecutableEndToEndMilliseconds: timing.endToEndMilliseconds,
     cudaKernelAverageMilliseconds: timing.kernelAverageMilliseconds,
+    browserHelperTransport: localClient.getLastTransportTiming(),
     shadow: outcome.shadowOnly,
     productionApplied: outcome.productionApplied,
   }, null, 2)}\n`);

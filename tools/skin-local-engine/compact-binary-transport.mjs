@@ -7,6 +7,8 @@ import {
 
 export const COMPACT_BINARY_REQUEST_HEADER_BYTES = 96;
 export const COMPACT_BINARY_RESPONSE_HEADER_BYTES = 176;
+export const BROWSER_HELPER_BINARY_MEDIA_TYPE =
+  "application/vnd.katachi.geometry-binary-v1";
 
 const REQUEST_MAGIC = Buffer.from("KCB1", "ascii");
 const RESPONSE_MAGIC = Buffer.from("KBR1", "ascii");
@@ -139,6 +141,122 @@ export function encodeCompactBinaryRequest(request) {
 function finite(value, label) {
   if (!Number.isFinite(value)) throw protocolError(`${label} is non-finite`);
   return value;
+}
+
+export function validateCompactBinaryRequestEnvelope(payload, {
+  maximumSamples = 250_000,
+} = {}) {
+  const start = performance.now();
+  if (!Buffer.isBuffer(payload)
+    || payload.length < COMPACT_BINARY_REQUEST_HEADER_BYTES
+    || !payload.subarray(0, 4).equals(REQUEST_MAGIC)) {
+    throw protocolError("invalid compact binary request magic or header");
+  }
+  const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+  if (view.getUint16(4, true) !== PROTOCOL_VERSION
+    || view.getUint16(6, true) !== OPERATION_EVALUATE_CONTAINMENT
+    || view.getUint32(8, true) !== COMPACT_BINARY_REQUEST_HEADER_BYTES) {
+    throw protocolError("unsupported compact binary request contract");
+  }
+  const coordinateFrame = view.getUint32(12, true);
+  const unitsPerMillimeter = view.getFloat64(48, true);
+  const smoothness = view.getFloat32(56, true);
+  const boundaryTolerance = view.getFloat32(60, true);
+  const iterations = view.getUint32(64, true);
+  const ballCount = view.getUint32(68, true);
+  const sampleCount = view.getUint32(72, true);
+  const coordinateMetadata = view.getUint32(76, true);
+  const ballsOffset = view.getUint32(80, true);
+  const samplesOffset = view.getUint32(84, true);
+  const totalBytes = view.getUint32(88, true);
+  if ((coordinateFrame !== 0 && coordinateFrame !== 1)
+    || coordinateMetadata !== (coordinateFrame === 1 ? 2 : 1)
+    || !Number.isFinite(unitsPerMillimeter)
+    || !(unitsPerMillimeter > 0)
+    || !Number.isFinite(smoothness)
+    || !(smoothness > 0)
+    || !Number.isFinite(boundaryTolerance)
+    || boundaryTolerance < 0
+    || !Number.isInteger(iterations)
+    || iterations < 1
+    || iterations > 10_000
+    || ballCount < 1
+    || sampleCount > maximumSamples
+    || ballsOffset !== COMPACT_BINARY_REQUEST_HEADER_BYTES
+    || samplesOffset !== ballsOffset + ballCount * RECORD_BYTES
+    || totalBytes !== samplesOffset + sampleCount * RECORD_BYTES
+    || payload.length !== totalBytes) {
+    throw protocolError("compact binary request metadata, offsets, or length are invalid");
+  }
+  for (let offset = ballsOffset; offset < samplesOffset; offset += RECORD_BYTES) {
+    if (!Number.isFinite(view.getFloat32(offset, true))
+      || !Number.isFinite(view.getFloat32(offset + 4, true))
+      || !Number.isFinite(view.getFloat32(offset + 8, true))
+      || !Number.isFinite(view.getFloat32(offset + 12, true))
+      || !(view.getFloat32(offset + 12, true) > 0)) {
+      throw protocolError("compact binary request contains an invalid ball record");
+    }
+  }
+  for (let offset = samplesOffset; offset < totalBytes; offset += RECORD_BYTES) {
+    if (!Number.isFinite(view.getFloat32(offset, true))
+      || !Number.isFinite(view.getFloat32(offset + 4, true))
+      || !Number.isFinite(view.getFloat32(offset + 8, true))
+      || !Number.isFinite(view.getFloat32(offset + 12, true))
+      || !(view.getFloat32(offset + 12, true) > 0)) {
+      throw protocolError("compact binary request contains an invalid sample record");
+    }
+  }
+  return {
+    identityFingerprint: Buffer.from(payload.subarray(16, 48)),
+    coordinateFrame: coordinateFrame === 1 ? "millimeter" : "object",
+    unitsPerMillimeter,
+    smoothness,
+    boundaryTolerance,
+    iterations,
+    ballCount,
+    sampleCount,
+    totalBytes,
+    validationMilliseconds: performance.now() - start,
+  };
+}
+
+export function validateCompactBinaryResponseEnvelope(payload, {
+  identityFingerprint,
+  sampleCount,
+} = {}) {
+  const start = performance.now();
+  if (!Buffer.isBuffer(payload)
+    || payload.length < COMPACT_BINARY_RESPONSE_HEADER_BYTES
+    || !payload.subarray(0, 4).equals(RESPONSE_MAGIC)) {
+    throw protocolError("invalid compact binary response magic or header");
+  }
+  const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+  const responseSampleCount = view.getUint32(48, true);
+  const outputsOffset = view.getUint32(56, true);
+  const totalBytes = view.getUint32(60, true);
+  if (view.getUint16(4, true) !== PROTOCOL_VERSION
+    || view.getUint16(6, true) !== OPERATION_EVALUATE_CONTAINMENT
+    || view.getUint32(8, true) !== COMPACT_BINARY_RESPONSE_HEADER_BYTES
+    || (identityFingerprint && !payload.subarray(16, 48).equals(identityFingerprint))
+    || (sampleCount !== undefined && responseSampleCount !== sampleCount)
+    || outputsOffset !== COMPACT_BINARY_RESPONSE_HEADER_BYTES
+    || totalBytes !== outputsOffset + responseSampleCount * RECORD_BYTES
+    || payload.length !== totalBytes) {
+    throw protocolError("compact binary response identity, offsets, or length are invalid");
+  }
+  for (let offset = outputsOffset; offset < totalBytes; offset += RECORD_BYTES) {
+    if (!Number.isFinite(view.getFloat32(offset, true))
+      || !Number.isFinite(view.getFloat32(offset + 4, true))
+      || !Number.isFinite(view.getFloat32(offset + 8, true))
+      || view.getUint32(offset + 12, true) > 2) {
+      throw protocolError("compact binary response contains an invalid output record");
+    }
+  }
+  return {
+    sampleCount: responseSampleCount,
+    totalBytes,
+    validationMilliseconds: performance.now() - start,
+  };
 }
 
 export function decodeCompactBinaryResponse(payload, request, capabilities, identityFingerprint) {
