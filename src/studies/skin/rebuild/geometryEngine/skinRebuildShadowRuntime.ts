@@ -4,14 +4,18 @@ import type { SkinRebuildProject } from "../model.ts";
 import {
   createEvaluateContainmentJob,
   type EvaluateContainmentJobRequest,
+  type EvaluateContainmentJobResult,
 } from "./contracts.ts";
 import {
-  evaluateContainmentShadow,
   type ShadowEvaluateContainmentOutcome,
 } from "./shadowEvaluateContainment.ts";
+import { compareContainmentResults } from "./resultComparison.ts";
+import { evaluateContainmentOnWeb } from "./webGeometryEngine.ts";
 import {
   WindowsLocalGeometryEngineClient,
+  WindowsLocalGeometryEngineError,
   type LocalGeometryTransportTiming,
+  type ShadowContainmentSession,
 } from "./windowsLocalClient.ts";
 
 const BOUNDARY_TOLERANCE = 1e-6;
@@ -37,6 +41,7 @@ export interface SkinRebuildContainmentRequest {
 
 export interface SkinRebuildShadowObservation extends SkinRebuildContainmentRequest {
   outcome: ShadowEvaluateContainmentOutcome;
+  transportMode: "web-only" | "outer-binary" | "session-upload" | "session-reuse";
   requestGenerationMilliseconds: number;
   totalMilliseconds: number;
   transportTiming: LocalGeometryTransportTiming | null;
@@ -153,6 +158,149 @@ export async function createSkinRebuildContainmentRequest(
   };
 }
 
+function helperSupportsVolatileSessions(capabilities: {
+  policy: { executionMode: "shadow-only"; authoritativeBackend: "web"; productionApplied: false };
+}): boolean {
+  const policy = capabilities.policy as typeof capabilities.policy & {
+    shadowSessionCache?: { volatile?: boolean; persistedToProject?: boolean };
+  };
+  return policy.shadowSessionCache?.volatile === true
+    && policy.shadowSessionCache.persistedToProject === false;
+}
+
+export class SkinRebuildShadowObserver {
+  private readonly localClient: WindowsLocalGeometryEngineClient;
+  private session: ShadowContainmentSession | null = null;
+
+  constructor(options: { localClient?: WindowsLocalGeometryEngineClient } = {}) {
+    this.localClient = options.localClient
+      ?? new WindowsLocalGeometryEngineClient({ transport: "binary" });
+  }
+
+  private result(
+    generated: SkinRebuildContainmentRequest,
+    outcome: ShadowEvaluateContainmentOutcome,
+    transportMode: SkinRebuildShadowObservation["transportMode"],
+    requestGenerationMilliseconds: number,
+    totalStart: number,
+  ): SkinRebuildShadowObservation {
+    return {
+      ...generated,
+      outcome,
+      transportMode,
+      requestGenerationMilliseconds,
+      totalMilliseconds: performance.now() - totalStart,
+      transportTiming: this.localClient.getLastTransportTiming(),
+    };
+  }
+
+  async observe(
+    project: SkinRebuildProject,
+    preferWindowsCuda: boolean,
+  ): Promise<SkinRebuildShadowObservation> {
+    const totalStart = performance.now();
+    const requestStart = performance.now();
+    const generated = await createSkinRebuildContainmentRequest(project);
+    const requestGenerationMilliseconds = performance.now() - requestStart;
+    const authoritative = evaluateContainmentOnWeb(generated.request);
+    if (!preferWindowsCuda) {
+      return this.result(generated, {
+        authoritative,
+        candidateStatus: "not_requested",
+        shadowOnly: true,
+        productionApplied: false,
+      }, "web-only", requestGenerationMilliseconds, totalStart);
+    }
+
+    const probe = await this.localClient.probeCapabilities();
+    if (!probe.available) {
+      this.session = null;
+      return this.result(generated, {
+        authoritative,
+        candidateStatus: "helper_unavailable",
+        fallback: { code: probe.code, detail: probe.detail },
+        shadowOnly: true,
+        productionApplied: false,
+      }, "outer-binary", requestGenerationMilliseconds, totalStart);
+    }
+    if (!this.localClient.supportsCudaContainment(probe.capabilities)) {
+      this.session = null;
+      const cuda = probe.capabilities.backends.find((backend) => backend.kind === "cuda");
+      return this.result(generated, {
+        authoritative,
+        candidateStatus: "cuda_unavailable",
+        fallback: {
+          code: cuda?.reasonCode ?? "cuda_containment_not_advertised",
+          detail: "The helper does not advertise a compatible available CUDA containment backend.",
+        },
+        shadowOnly: true,
+        productionApplied: false,
+      }, "outer-binary", requestGenerationMilliseconds, totalStart);
+    }
+
+    let transportMode: SkinRebuildShadowObservation["transportMode"] = "outer-binary";
+    try {
+      let candidate: EvaluateContainmentJobResult | undefined;
+      if (helperSupportsVolatileSessions(probe.capabilities)) {
+        if (this.session?.projectFingerprint === generated.request.projectFingerprint) {
+          try {
+            candidate = (await this.localClient.evaluateContainmentShadowSession(this.session.sessionId, {
+              clientRequestId: generated.request.clientRequestId,
+              smoothness: generated.request.input.base.smoothness,
+              boundaryTolerance: generated.request.input.boundaryTolerance,
+              benchmarkIterations: 1,
+            })).result;
+            transportMode = "session-reuse";
+          } catch (error) {
+            if (!(error instanceof WindowsLocalGeometryEngineError)
+              || (error.code !== "shadow_session_not_found" && error.code !== "stale_shadow_session")) throw error;
+            this.session = null;
+          }
+        }
+        if (!candidate) {
+          const created = await this.localClient.createContainmentShadowSession(generated.request);
+          this.session = created.session;
+          candidate = created.result;
+          transportMode = "session-upload";
+        }
+      } else {
+        this.session = null;
+        candidate = await this.localClient.evaluateContainment(generated.request);
+      }
+      const comparison = compareContainmentResults(
+        generated.request,
+        authoritative,
+        candidate,
+        generated.request.input.boundaryTolerance,
+      );
+      return this.result(generated, {
+        authoritative,
+        candidate,
+        comparison,
+        candidateStatus: comparison.matched ? "candidate_matched" : "candidate_mismatched",
+        fallback: comparison.matched ? undefined : {
+          code: "candidate_comparison_failed",
+          detail: "CUDA candidate facts did not match the frozen Web reference within tolerance.",
+        },
+        shadowOnly: true,
+        productionApplied: false,
+      }, transportMode, requestGenerationMilliseconds, totalStart);
+    } catch (error) {
+      this.session = null;
+      return this.result(generated, {
+        authoritative,
+        candidateStatus: "candidate_failed",
+        fallback: {
+          code: "local_job_failed",
+          detail: error instanceof Error ? error.message : String(error),
+        },
+        shadowOnly: true,
+        productionApplied: false,
+      }, transportMode, requestGenerationMilliseconds, totalStart);
+    }
+  }
+}
+
 export async function observeSkinRebuildContainmentShadow(
   project: SkinRebuildProject,
   options: {
@@ -160,21 +308,6 @@ export async function observeSkinRebuildContainmentShadow(
     localClient?: WindowsLocalGeometryEngineClient;
   },
 ): Promise<SkinRebuildShadowObservation> {
-  const totalStart = performance.now();
-  const requestStart = performance.now();
-  const generated = await createSkinRebuildContainmentRequest(project);
-  const requestGenerationMilliseconds = performance.now() - requestStart;
-  const localClient = options.localClient ?? new WindowsLocalGeometryEngineClient({ transport: "binary" });
-  const outcome = await evaluateContainmentShadow(generated.request, {
-    preferWindowsCuda: options.preferWindowsCuda,
-    localClient,
-    comparisonMarginTolerance: generated.request.input.boundaryTolerance,
-  });
-  return {
-    ...generated,
-    outcome,
-    requestGenerationMilliseconds,
-    totalMilliseconds: performance.now() - totalStart,
-    transportTiming: localClient.getLastTransportTiming(),
-  };
+  const observer = new SkinRebuildShadowObserver({ localClient: options.localClient });
+  return observer.observe(project, options.preferWindowsCuda);
 }
