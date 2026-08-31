@@ -13,10 +13,15 @@ import {
   BROWSER_HELPER_BINARY_MEDIA_TYPE,
   validateCompactBinaryRequestEnvelope,
 } from "./compact-binary-transport.mjs";
+import {
+  SHADOW_SESSION_PARAMETER_BYTES,
+  SHADOW_SESSION_PARAMETER_MEDIA_TYPE,
+  ShadowGeometrySessionCache,
+} from "./shadow-session-cache.mjs";
 
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
-export const ENGINE_VERSION = "0.4.0-browser-binary-shadow";
+export const ENGINE_VERSION = "0.5.0-shadow-session-cache";
 // 250k deterministic containment samples serialize to roughly 35 MiB. Keep the
 // request bounded while allowing the advertised sample ceiling to be exercised.
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
@@ -50,6 +55,11 @@ export function createCapabilitiesDocument(probe, {
       workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
       browserHelperTransports: ["application/json", BROWSER_HELPER_BINARY_MEDIA_TYPE],
       preferredBrowserHelperTransport: BROWSER_HELPER_BINARY_MEDIA_TYPE,
+      shadowSessionCache: {
+        volatile: true,
+        persistedToProject: false,
+        maximumSessions: 4,
+      },
     },
     backends: [{
       backendId,
@@ -68,6 +78,7 @@ export function createCapabilitiesDocument(probe, {
     limits: {
       maximumJobBytes: MAXIMUM_JOB_BYTES,
       maximumContainmentSamples: MAXIMUM_CONTAINMENT_SAMPLES,
+      maximumShadowSessions: 4,
     },
   };
 }
@@ -82,6 +93,7 @@ function corsHeaders(origin) {
       "X-Katachi-Client-Request-Id",
       "X-Katachi-Project-Fingerprint",
       "X-Katachi-Algorithm-Contract",
+      "X-Katachi-Shadow-Session-Id",
     ].join(", "),
     "Access-Control-Expose-Headers": [
       "X-Katachi-Job-Id",
@@ -94,6 +106,9 @@ function corsHeaders(origin) {
       "X-Katachi-Worker-Total-Ms",
       "X-Katachi-Helper-Response-Encode-Ms",
       "X-Katachi-Response-Bytes",
+      "X-Katachi-Shadow-Session-Id",
+      "X-Katachi-Geometry-Fingerprint",
+      "X-Katachi-Session-Cache-Hit",
     ].join(", "),
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
@@ -165,7 +180,7 @@ function readBoundedJson(request) {
   });
 }
 
-function readBoundedBuffer(request) {
+function readBoundedBuffer(request, maximumBytes = MAXIMUM_JOB_BYTES) {
   const start = performance.now();
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -173,7 +188,7 @@ function readBoundedBuffer(request) {
     let rejected = false;
     request.on("data", (chunk) => {
       byteLength += chunk.length;
-      if (byteLength > MAXIMUM_JOB_BYTES) {
+      if (byteLength > maximumBytes) {
         if (!rejected) {
           rejected = true;
           reject(Object.assign(new Error("job body exceeds prototype limit"), { code: "job_too_large" }));
@@ -250,6 +265,7 @@ export function createLocalEngineServer({
   runContainment,
   persistentWorker,
   runPackedContainment,
+  shadowSessionCache,
   workerTransport = PERSISTENT_JSON_TRANSPORT,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
 } = {}) {
@@ -260,8 +276,38 @@ export function createLocalEngineServer({
     ?? ((request) => worker.evaluate(request, { transport: workerTransport }));
   const executePackedContainment = runPackedContainment
     ?? ((payload, options) => worker.evaluatePackedBinary(payload, options));
+  const sessionCache = shadowSessionCache ?? new ShadowGeometrySessionCache();
   const pendingJobs = [];
   let drainingJobs = false;
+
+  function sendPackedCandidate(response, origin, executed, {
+    clientRequestId,
+    projectFingerprint,
+    helperDecodeMilliseconds,
+    extraHeaders = {},
+  }) {
+    const responseEncodeStart = performance.now();
+    const headers = {
+      "Content-Type": BROWSER_HELPER_BINARY_MEDIA_TYPE,
+      "Content-Length": String(executed.payload.length),
+      "Cache-Control": "no-store",
+      "X-Katachi-Job-Id": randomUUID(),
+      "X-Katachi-Client-Request-Id": clientRequestId,
+      "X-Katachi-Project-Fingerprint": projectFingerprint,
+      "X-Katachi-Cuda-Engine-Version": executed.capabilities.engineVersion,
+      "X-Katachi-Artifact-Sha256": executed.artifactSha256,
+      "X-Katachi-Shadow": "true",
+      "X-Katachi-Production-Applied": "false",
+      "X-Katachi-Helper-Decode-Ms": helperDecodeMilliseconds.toFixed(6),
+      "X-Katachi-Worker-Roundtrip-Ms": executed.adapterTiming.workerRoundTripMilliseconds.toFixed(6),
+      "X-Katachi-Worker-Total-Ms": executed.adapterTiming.totalMilliseconds.toFixed(6),
+      "X-Katachi-Helper-Response-Encode-Ms": (performance.now() - responseEncodeStart).toFixed(6),
+      ...corsHeaders(origin),
+      ...extraHeaders,
+    };
+    response.writeHead(200, headers);
+    response.end(executed.payload);
+  }
 
   async function drainJobs() {
     if (drainingJobs) return;
@@ -411,6 +457,169 @@ export function createLocalEngineServer({
       setImmediate(() => void drainJobs());
       return;
     }
+    if (request.method === "POST" && url.pathname === "/v1/shadow-sessions") {
+      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      if (String(request.headers["content-type"] ?? "").toLowerCase() !== BROWSER_HELPER_BINARY_MEDIA_TYPE) {
+        fail(response, 415, "binary_content_type_required", `session upload requires ${BROWSER_HELPER_BINARY_MEDIA_TYPE}`, origin);
+        return;
+      }
+      if (!probe.cudaBackend.available) {
+        fail(response, 503, probe.cudaBackend.reasonCode ?? "cuda_unavailable", "CUDA adapter is unavailable", origin);
+        return;
+      }
+      const controller = new AbortController();
+      request.once("aborted", () => controller.abort());
+      response.once("close", () => {
+        if (!response.writableEnded) controller.abort();
+      });
+      let clientRequestId;
+      let projectFingerprint;
+      let binaryRequest;
+      let envelope;
+      try {
+        clientRequestId = requiredIdentityHeader(request, "x-katachi-client-request-id", 256);
+        projectFingerprint = requiredIdentityHeader(request, "x-katachi-project-fingerprint");
+        if (requiredIdentityHeader(request, "x-katachi-algorithm-contract") !== EVALUATE_CONTAINMENT_ALGORITHM) {
+          throw Object.assign(new Error("session upload uses an unsupported algorithm contract"), {
+            code: "invalid_job_contract",
+          });
+        }
+        binaryRequest = await readBoundedBuffer(request);
+        envelope = validateCompactBinaryRequestEnvelope(binaryRequest.payload, {
+          maximumSamples: MAXIMUM_CONTAINMENT_SAMPLES,
+        });
+      } catch (error) {
+        fail(response, error.code === "job_too_large" ? 413 : 400,
+          error.code ?? "invalid_shadow_session", error.message, origin);
+        return;
+      }
+      try {
+        const executed = await executePackedContainment(binaryRequest.payload, { signal: controller.signal });
+        const session = sessionCache.create(binaryRequest.payload, {
+          projectFingerprint,
+          algorithmContract: EVALUATE_CONTAINMENT_ALGORITHM,
+          envelope,
+        });
+        sendPackedCandidate(response, origin, executed, {
+          clientRequestId,
+          projectFingerprint,
+          helperDecodeMilliseconds: binaryRequest.readMilliseconds + envelope.validationMilliseconds,
+          extraHeaders: {
+            "X-Katachi-Shadow-Session-Id": session.sessionId,
+            "X-Katachi-Geometry-Fingerprint": session.geometryFingerprint.toString("hex").toUpperCase(),
+            "X-Katachi-Session-Cache-Hit": "false",
+          },
+        });
+      } catch (error) {
+        fail(response, error.code === "cuda_job_canceled" ? 499 : 502,
+          error.code ?? "cuda_candidate_failed",
+          error instanceof Error ? error.message : String(error), origin);
+      }
+      return;
+    }
+    const shadowSessionEvaluateMatch = /^\/v1\/shadow-sessions\/([^/]+)\/evaluate$/.exec(url.pathname);
+    if (request.method === "POST" && shadowSessionEvaluateMatch) {
+      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      if (String(request.headers["content-type"] ?? "").toLowerCase() !== SHADOW_SESSION_PARAMETER_MEDIA_TYPE) {
+        fail(response, 415, "session_parameter_content_type_required",
+          `session repeat requires ${SHADOW_SESSION_PARAMETER_MEDIA_TYPE}`, origin);
+        return;
+      }
+      if (!probe.cudaBackend.available) {
+        fail(response, 503, probe.cudaBackend.reasonCode ?? "cuda_unavailable", "CUDA adapter is unavailable", origin);
+        return;
+      }
+      const controller = new AbortController();
+      request.once("aborted", () => controller.abort());
+      response.once("close", () => {
+        if (!response.writableEnded) controller.abort();
+      });
+      const decodeStart = performance.now();
+      let clientRequestId;
+      let projectFingerprint;
+      let sessionId;
+      let session;
+      let jobPayload;
+      let parameterRequest;
+      let helperDecodeMilliseconds;
+      try {
+        sessionId = decodeURIComponent(shadowSessionEvaluateMatch[1]);
+        if (requiredIdentityHeader(request, "x-katachi-shadow-session-id") !== sessionId) {
+          throw Object.assign(new Error("shadow session header does not match route identity"), {
+            code: "stale_shadow_session",
+          });
+        }
+        clientRequestId = requiredIdentityHeader(request, "x-katachi-client-request-id", 256);
+        projectFingerprint = requiredIdentityHeader(request, "x-katachi-project-fingerprint");
+        const algorithmContract = requiredIdentityHeader(request, "x-katachi-algorithm-contract");
+        session = sessionCache.resolve(sessionId, { projectFingerprint, algorithmContract });
+        parameterRequest = await readBoundedBuffer(request, SHADOW_SESSION_PARAMETER_BYTES);
+        jobPayload = sessionCache.createJobPayload(session, parameterRequest.payload);
+        helperDecodeMilliseconds = performance.now() - decodeStart;
+      } catch (error) {
+        const status = error.code === "shadow_session_not_found" ? 404
+          : error.code === "stale_shadow_session" ? 409
+            : error.code === "job_too_large" ? 413 : 400;
+        fail(response, status, error.code ?? "invalid_shadow_session", error.message, origin);
+        return;
+      }
+      try {
+        const executed = await executePackedContainment(jobPayload.payload, { signal: controller.signal });
+        sendPackedCandidate(response, origin, executed, {
+          clientRequestId,
+          projectFingerprint,
+          helperDecodeMilliseconds,
+          extraHeaders: {
+            "X-Katachi-Shadow-Session-Id": session.sessionId,
+            "X-Katachi-Geometry-Fingerprint": session.geometryFingerprint.toString("hex").toUpperCase(),
+            "X-Katachi-Session-Cache-Hit": "true",
+          },
+        });
+      } catch (error) {
+        fail(response, error.code === "cuda_job_canceled" ? 499 : 502,
+          error.code ?? "cuda_candidate_failed",
+          error instanceof Error ? error.message : String(error), origin);
+      }
+      return;
+    }
+    const shadowSessionDeleteMatch = /^\/v1\/shadow-sessions\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "DELETE" && shadowSessionDeleteMatch) {
+      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+        fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
+        return;
+      }
+      if (request.headers["x-katachi-geometry-prototype"] !== "shadow-only-v1") {
+        fail(response, 400, "shadow_header_required", "missing shadow-only prototype header", origin);
+        return;
+      }
+      const sessionId = decodeURIComponent(shadowSessionDeleteMatch[1]);
+      if (!sessionCache.delete(sessionId)) {
+        fail(response, 404, "shadow_session_not_found", "shadow geometry session is absent or expired", origin);
+      } else {
+        sendJson(response, 200, {
+          contract: "katachi.geometry-shadow-session-release.v1",
+          sessionId,
+          released: true,
+          shadow: true,
+          productionApplied: false,
+        }, origin);
+      }
+      return;
+    }
     if (request.method === "POST" && url.pathname === "/v1/evaluate-containment-binary") {
       if (!origin || !ALLOWED_ORIGINS.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
@@ -455,27 +664,11 @@ export function createLocalEngineServer({
       }
       try {
         const executed = await executePackedContainment(binaryRequest.payload, { signal: controller.signal });
-        const responseEncodeStart = performance.now();
-        const jobId = randomUUID();
-        const headers = {
-          "Content-Type": BROWSER_HELPER_BINARY_MEDIA_TYPE,
-          "Content-Length": String(executed.payload.length),
-          "Cache-Control": "no-store",
-          "X-Katachi-Job-Id": jobId,
-          "X-Katachi-Client-Request-Id": clientRequestId,
-          "X-Katachi-Project-Fingerprint": projectFingerprint,
-          "X-Katachi-Cuda-Engine-Version": executed.capabilities.engineVersion,
-          "X-Katachi-Artifact-Sha256": executed.artifactSha256,
-          "X-Katachi-Shadow": "true",
-          "X-Katachi-Production-Applied": "false",
-          "X-Katachi-Helper-Decode-Ms": (binaryRequest.readMilliseconds + envelope.validationMilliseconds).toFixed(6),
-          "X-Katachi-Worker-Roundtrip-Ms": executed.adapterTiming.workerRoundTripMilliseconds.toFixed(6),
-          "X-Katachi-Worker-Total-Ms": executed.adapterTiming.totalMilliseconds.toFixed(6),
-          "X-Katachi-Helper-Response-Encode-Ms": (performance.now() - responseEncodeStart).toFixed(6),
-          ...corsHeaders(origin),
-        };
-        response.writeHead(200, headers);
-        response.end(executed.payload);
+        sendPackedCandidate(response, origin, executed, {
+          clientRequestId,
+          projectFingerprint,
+          helperDecodeMilliseconds: binaryRequest.readMilliseconds + envelope.validationMilliseconds,
+        });
       } catch (error) {
         fail(response, error.code === "cuda_job_canceled" ? 499 : 502,
           error.code ?? "cuda_candidate_failed",

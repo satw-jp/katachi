@@ -1,0 +1,364 @@
+{
+  "contract": "katachi.cuda-shadow-session-cache-benchmark.v1",
+  "recordedAt": "2026-08-31T07:15:24.372Z",
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "environment": {
+    "sampleCount": 250000,
+    "deviceName": "NVIDIA GeForce RTX 3080",
+    "artifactSha256": "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA",
+    "endpoint": "http://127.0.0.1:47658/v1"
+  },
+  "binding": {
+    "projectFingerprint": "sha256:session-cache-250k-v1",
+    "algorithmContract": "katachi.skin.evaluate-containment.metaball-radius.v1",
+    "volatile": true,
+    "persistedToFkei": false,
+    "invalidation": [
+      "helper restart",
+      "project fingerprint",
+      "algorithm contract",
+      "session identity",
+      "geometry fingerprint"
+    ]
+  },
+  "firstUpload": {
+    "phase": "first-upload-cold",
+    "index": 1,
+    "timing": {
+      "transport": "binary",
+      "requestEncodingMilliseconds": 141.53639999999996,
+      "httpRoundTripMilliseconds": 304.6956,
+      "helperDecodeMilliseconds": 9.4033,
+      "workerRoundTripMilliseconds": 21.8598,
+      "workerTotalMilliseconds": 254.9225,
+      "helperResponseEncodeMilliseconds": 0.0308,
+      "responseDecodeMilliseconds": 58.22440000000006,
+      "semanticValidationMilliseconds": 150.57279999999992,
+      "totalMilliseconds": 753.68,
+      "requestBytes": 4000144,
+      "responseBytes": 4000176
+    },
+    "webReferenceMilliseconds": 122.39289999999983,
+    "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+    "marginTolerance": 0.00005,
+    "matched": true,
+    "shadow": true,
+    "productionApplied": false
+  },
+  "parameterOnlyRepeats": [
+    {
+      "phase": "parameter-only",
+      "index": 1,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.21860000000015134,
+        "httpRoundTripMilliseconds": 26.44309999999996,
+        "helperDecodeMilliseconds": 1.037,
+        "workerRoundTripMilliseconds": 17.401,
+        "workerTotalMilliseconds": 20.8331,
+        "helperResponseEncodeMilliseconds": 0.0179,
+        "responseDecodeMilliseconds": 29.268299999999954,
+        "semanticValidationMilliseconds": 161.73890000000006,
+        "totalMilliseconds": 304.5581000000002,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 134.15239999999994,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "marginTolerance": 0.00006,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "parameter-only",
+      "index": 2,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.056599999999889405,
+        "httpRoundTripMilliseconds": 24.83919999999989,
+        "helperDecodeMilliseconds": 0.8934,
+        "workerRoundTripMilliseconds": 16.7855,
+        "workerTotalMilliseconds": 20.3392,
+        "helperResponseEncodeMilliseconds": 0.02,
+        "responseDecodeMilliseconds": 68.78989999999976,
+        "semanticValidationMilliseconds": 145.5056999999997,
+        "totalMilliseconds": 333.2296000000001,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 130.17339999999967,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "marginTolerance": 0.00006,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "parameter-only",
+      "index": 3,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.07169999999996435,
+        "httpRoundTripMilliseconds": 32.41359999999986,
+        "helperDecodeMilliseconds": 0.9389,
+        "workerRoundTripMilliseconds": 17.818,
+        "workerTotalMilliseconds": 28.834,
+        "helperResponseEncodeMilliseconds": 0.0289,
+        "responseDecodeMilliseconds": 25.8433,
+        "semanticValidationMilliseconds": 142.81420000000026,
+        "totalMilliseconds": 300.2536,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 121.17489999999998,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "marginTolerance": 0.00006,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "parameter-only",
+      "index": 4,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.039900000000216096,
+        "httpRoundTripMilliseconds": 24.44130000000041,
+        "helperDecodeMilliseconds": 1.0392,
+        "workerRoundTripMilliseconds": 17.8375,
+        "workerTotalMilliseconds": 21.1609,
+        "helperResponseEncodeMilliseconds": 0.0189,
+        "responseDecodeMilliseconds": 30.99440000000004,
+        "semanticValidationMilliseconds": 141.5023000000001,
+        "totalMilliseconds": 311.1417000000001,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 124.77880000000005,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "marginTolerance": 0.00006,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "parameter-only",
+      "index": 5,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.040199999999913416,
+        "httpRoundTripMilliseconds": 35.785699999999906,
+        "helperDecodeMilliseconds": 0.8774,
+        "workerRoundTripMilliseconds": 16.8169,
+        "workerTotalMilliseconds": 20.1296,
+        "helperResponseEncodeMilliseconds": 0.018,
+        "responseDecodeMilliseconds": 28.64930000000004,
+        "semanticValidationMilliseconds": 154.21889999999985,
+        "totalMilliseconds": 319.51029999999946,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 123.02010000000064,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "marginTolerance": 0.00006,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    }
+  ],
+  "unchangedRepeats": [
+    {
+      "phase": "unchanged",
+      "index": 1,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.03719999999975698,
+        "httpRoundTripMilliseconds": 22.53980000000047,
+        "helperDecodeMilliseconds": 0.7805,
+        "workerRoundTripMilliseconds": 16.1028,
+        "workerTotalMilliseconds": 19.7118,
+        "helperResponseEncodeMilliseconds": 0.0178,
+        "responseDecodeMilliseconds": 29.277399999999943,
+        "semanticValidationMilliseconds": 119.44889999999941,
+        "totalMilliseconds": 249.4965999999995,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 107.65059999999994,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "marginTolerance": 0.00005,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "unchanged",
+      "index": 2,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.04169999999976426,
+        "httpRoundTripMilliseconds": 34.19720000000052,
+        "helperDecodeMilliseconds": 0.8273,
+        "workerRoundTripMilliseconds": 15.7761,
+        "workerTotalMilliseconds": 19.2989,
+        "helperResponseEncodeMilliseconds": 0.0219,
+        "responseDecodeMilliseconds": 77.34650000000056,
+        "semanticValidationMilliseconds": 124.35729999999967,
+        "totalMilliseconds": 322.3895999999995,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 125.23559999999998,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "marginTolerance": 0.00005,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "unchanged",
+      "index": 3,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.05609999999978754,
+        "httpRoundTripMilliseconds": 30.469900000000052,
+        "helperDecodeMilliseconds": 0.8458,
+        "workerRoundTripMilliseconds": 16.0005,
+        "workerTotalMilliseconds": 26.9403,
+        "helperResponseEncodeMilliseconds": 0.0353,
+        "responseDecodeMilliseconds": 23.663400000000365,
+        "semanticValidationMilliseconds": 118.89600000000064,
+        "totalMilliseconds": 251.30429999999978,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 105.33110000000033,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "marginTolerance": 0.00005,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "unchanged",
+      "index": 4,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.05229999999937718,
+        "httpRoundTripMilliseconds": 22.189400000000205,
+        "helperDecodeMilliseconds": 0.8714,
+        "workerRoundTripMilliseconds": 15.8309,
+        "workerTotalMilliseconds": 19.2437,
+        "helperResponseEncodeMilliseconds": 0.0215,
+        "responseDecodeMilliseconds": 23.282599999999547,
+        "semanticValidationMilliseconds": 128.8203999999996,
+        "totalMilliseconds": 257.5678000000007,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 103.01230000000032,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "marginTolerance": 0.00005,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    },
+    {
+      "phase": "unchanged",
+      "index": 5,
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 0.05199999999967986,
+        "httpRoundTripMilliseconds": 34.556000000000495,
+        "helperDecodeMilliseconds": 0.8562,
+        "workerRoundTripMilliseconds": 16.0102,
+        "workerTotalMilliseconds": 19.349,
+        "helperResponseEncodeMilliseconds": 0.0121,
+        "responseDecodeMilliseconds": 23.629699999999502,
+        "semanticValidationMilliseconds": 129.4414999999999,
+        "totalMilliseconds": 272.1962000000003,
+        "requestBytes": 64,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 107.32660000000033,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "marginTolerance": 0.00005,
+      "matched": true,
+      "shadow": true,
+      "productionApplied": false
+    }
+  ],
+  "session": {
+    "sessionId": "14125a8d-7a99-43da-816f-5b411cf2fd13",
+    "geometryFingerprint": "59EA9331319C6966EAB7BEA31EE73CD3196398E59917A1E47D971260B2952A1E",
+    "projectFingerprint": "sha256:session-cache-250k-v1",
+    "sampleCount": 250000,
+    "shadow": true,
+    "productionApplied": false
+  },
+  "summary": {
+    "firstUpload": {
+      "timing": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 141.53639999999996,
+        "httpRoundTripMilliseconds": 304.6956,
+        "helperDecodeMilliseconds": 9.4033,
+        "workerRoundTripMilliseconds": 21.8598,
+        "workerTotalMilliseconds": 254.9225,
+        "helperResponseEncodeMilliseconds": 0.0308,
+        "responseDecodeMilliseconds": 58.22440000000006,
+        "semanticValidationMilliseconds": 150.57279999999992,
+        "totalMilliseconds": 753.68,
+        "requestBytes": 4000144,
+        "responseBytes": 4000176
+      },
+      "webReferenceMilliseconds": 122.39289999999983,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "matched": true
+    },
+    "parameterOnly": {
+      "runs": 5,
+      "timingMedianMilliseconds": {
+        "requestEncodingMilliseconds": 0.056599999999889405,
+        "httpRoundTripMilliseconds": 26.44309999999996,
+        "helperDecodeMilliseconds": 0.9389,
+        "workerRoundTripMilliseconds": 17.401,
+        "workerTotalMilliseconds": 20.8331,
+        "helperResponseEncodeMilliseconds": 0.0189,
+        "responseDecodeMilliseconds": 29.268299999999954,
+        "semanticValidationMilliseconds": 145.5056999999997,
+        "totalMilliseconds": 311.1417000000001
+      },
+      "requestBytes": 64,
+      "responseBytes": 4000176,
+      "webReferenceMilliseconds": 124.77880000000005,
+      "maximumAbsoluteMarginDelta": 6.05369456785354e-7,
+      "allMatched": true
+    },
+    "unchanged": {
+      "runs": 5,
+      "timingMedianMilliseconds": {
+        "requestEncodingMilliseconds": 0.05199999999967986,
+        "httpRoundTripMilliseconds": 30.469900000000052,
+        "helperDecodeMilliseconds": 0.8458,
+        "workerRoundTripMilliseconds": 16.0005,
+        "workerTotalMilliseconds": 19.349,
+        "helperResponseEncodeMilliseconds": 0.0215,
+        "responseDecodeMilliseconds": 23.663400000000365,
+        "semanticValidationMilliseconds": 124.35729999999967,
+        "totalMilliseconds": 257.5678000000007
+      },
+      "requestBytes": 64,
+      "responseBytes": 4000176,
+      "webReferenceMilliseconds": 107.32660000000033,
+      "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+      "allMatched": true
+    }
+  }
+}

@@ -19,8 +19,13 @@ import {
 import {
   BROWSER_HELPER_BINARY_MEDIA_TYPE,
   BROWSER_HELPER_BINARY_ROUTE,
+  SHADOW_SESSION_PARAMETER_MEDIA_TYPE,
+  SHADOW_SESSION_ROUTE,
+  binaryFingerprintFromHex,
+  binaryFingerprintToHex,
   decodeBrowserBinaryResponse,
   encodeBrowserBinaryRequest,
+  encodeShadowSessionParameters,
 } from "./browserBinaryTransport.ts";
 
 export type LocalProbeFailureCode =
@@ -68,6 +73,22 @@ export interface LocalGeometryTransportTiming {
   responseBytes: number;
 }
 
+export interface ShadowContainmentSession {
+  sessionId: string;
+  geometryFingerprint: string;
+  projectFingerprint: string;
+  sampleCount: number;
+  shadow: true;
+  productionApplied: false;
+}
+
+export interface ShadowContainmentSessionParameters {
+  clientRequestId: string;
+  smoothness?: number;
+  boundaryTolerance?: number;
+  benchmarkIterations?: number;
+}
+
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -88,6 +109,12 @@ export class WindowsLocalGeometryEngineClient {
   private readonly transport: "auto" | "json" | "binary";
   private lastCapabilities: GeometryEngineCapabilities | null = null;
   private lastTransportTiming: LocalGeometryTransportTiming | null = null;
+  private readonly sessions = new Map<string, {
+    request: EvaluateContainmentJobRequest;
+    identityFingerprint: Uint8Array;
+    geometryFingerprint: Uint8Array;
+    publicSession: ShadowContainmentSession;
+  }>();
 
   constructor(options: WindowsLocalGeometryEngineClientOptions = {}) {
     this.fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
@@ -155,6 +182,112 @@ export class WindowsLocalGeometryEngineClient {
 
   getLastTransportTiming(): LocalGeometryTransportTiming | null {
     return this.lastTransportTiming ? { ...this.lastTransportTiming } : null;
+  }
+
+  async createContainmentShadowSession(
+    requestValue: EvaluateContainmentJobRequest,
+  ): Promise<{ session: ShadowContainmentSession; result: EvaluateContainmentJobResult }> {
+    const operationStart = performance.now();
+    const request = validateEvaluateContainmentJobRequest(requestValue);
+    const encoded = await encodeBrowserBinaryRequest(request);
+    const posted = await this.postBinaryCandidate({
+      path: SHADOW_SESSION_ROUTE,
+      request,
+      payload: encoded.payload,
+      identityFingerprint: encoded.identityFingerprint,
+      contentType: BROWSER_HELPER_BINARY_MEDIA_TYPE,
+      requestEncodingMilliseconds: encoded.timing.totalMilliseconds,
+      operationStart,
+    });
+    const sessionId = posted.headers.get("x-katachi-shadow-session-id");
+    const geometryFingerprintHex = posted.headers.get("x-katachi-geometry-fingerprint");
+    if (!sessionId || !geometryFingerprintHex
+      || posted.headers.get("x-katachi-session-cache-hit") !== "false") {
+      throw new WindowsLocalGeometryEngineError("invalid_shadow_session", "helper omitted the new shadow session binding");
+    }
+    const geometryFingerprint = binaryFingerprintFromHex(geometryFingerprintHex);
+    const publicSession: ShadowContainmentSession = {
+      sessionId,
+      geometryFingerprint: binaryFingerprintToHex(geometryFingerprint),
+      projectFingerprint: request.projectFingerprint,
+      sampleCount: request.input.samples.length,
+      shadow: true,
+      productionApplied: false,
+    };
+    this.sessions.set(sessionId, {
+      request,
+      identityFingerprint: encoded.identityFingerprint,
+      geometryFingerprint,
+      publicSession,
+    });
+    return { session: publicSession, result: posted.result };
+  }
+
+  async evaluateContainmentShadowSession(
+    sessionId: string,
+    parameters: ShadowContainmentSessionParameters,
+  ): Promise<{ request: EvaluateContainmentJobRequest; result: EvaluateContainmentJobResult }> {
+    const operationStart = performance.now();
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new WindowsLocalGeometryEngineError("shadow_session_not_found", "shadow session is not owned by this client");
+    }
+    const smoothness = parameters.smoothness ?? session.request.input.base.smoothness;
+    const boundaryTolerance = parameters.boundaryTolerance ?? session.request.input.boundaryTolerance;
+    const benchmarkIterations = parameters.benchmarkIterations
+      ?? Number(session.request.quality.benchmarkIterations ?? 1);
+    const request = validateEvaluateContainmentJobRequest({
+      ...session.request,
+      clientRequestId: parameters.clientRequestId,
+      quality: { ...session.request.quality, benchmarkIterations },
+      input: {
+        ...session.request.input,
+        base: { ...session.request.input.base, smoothness },
+        boundaryTolerance,
+      },
+    });
+    const encodingStart = performance.now();
+    const payload = encodeShadowSessionParameters(session.geometryFingerprint, {
+      smoothness,
+      boundaryTolerance,
+      iterations: benchmarkIterations,
+    });
+    const requestEncodingMilliseconds = performance.now() - encodingStart;
+    const posted = await this.postBinaryCandidate({
+      path: `${SHADOW_SESSION_ROUTE}/${encodeURIComponent(sessionId)}/evaluate`,
+      request,
+      payload,
+      identityFingerprint: session.identityFingerprint,
+      contentType: SHADOW_SESSION_PARAMETER_MEDIA_TYPE,
+      requestEncodingMilliseconds,
+      operationStart,
+      extraHeaders: { "X-Katachi-Shadow-Session-Id": sessionId },
+    });
+    if (posted.headers.get("x-katachi-shadow-session-id") !== sessionId
+      || posted.headers.get("x-katachi-geometry-fingerprint") !== session.publicSession.geometryFingerprint
+      || posted.headers.get("x-katachi-session-cache-hit") !== "true") {
+      throw new WindowsLocalGeometryEngineError("stale_shadow_session", "helper returned a mismatched shadow session binding");
+    }
+    return { request, result: posted.result };
+  }
+
+  async releaseContainmentShadowSession(sessionId: string): Promise<void> {
+    if (!this.sessions.has(sessionId)) return;
+    try {
+      const response = await this.fetch(
+        `${GEOMETRY_ENGINE_API_BASE}${SHADOW_SESSION_ROUTE}/${encodeURIComponent(sessionId)}`,
+        {
+          method: "DELETE",
+          headers: { "X-Katachi-Geometry-Prototype": "shadow-only-v1" },
+          cache: "no-store",
+        },
+      );
+      if (!response.ok && response.status !== 404) {
+        throw new WindowsLocalGeometryEngineError("shadow_session_release_failed", `session release returned HTTP ${response.status}`);
+      }
+    } finally {
+      this.sessions.delete(sessionId);
+    }
   }
 
   private async evaluateContainmentJson(
@@ -282,23 +415,55 @@ export class WindowsLocalGeometryEngineClient {
   private async evaluateContainmentBinary(
     request: EvaluateContainmentJobRequest,
   ): Promise<EvaluateContainmentJobResult> {
-    const totalStart = performance.now();
+    const operationStart = performance.now();
     const encoded = await encodeBrowserBinaryRequest(request);
+    const posted = await this.postBinaryCandidate({
+      path: BROWSER_HELPER_BINARY_ROUTE,
+      request,
+      payload: encoded.payload,
+      identityFingerprint: encoded.identityFingerprint,
+      contentType: BROWSER_HELPER_BINARY_MEDIA_TYPE,
+      requestEncodingMilliseconds: encoded.timing.totalMilliseconds,
+      operationStart,
+    });
+    return posted.result;
+  }
+
+  private async postBinaryCandidate({
+    path,
+    request,
+    payload: requestPayload,
+    identityFingerprint,
+    contentType,
+    requestEncodingMilliseconds,
+    operationStart,
+    extraHeaders = {},
+  }: {
+    path: string;
+    request: EvaluateContainmentJobRequest;
+    payload: Uint8Array;
+    identityFingerprint: Uint8Array;
+    contentType: string;
+    requestEncodingMilliseconds: number;
+    operationStart: number;
+    extraHeaders?: Record<string, string>;
+  }): Promise<{ result: EvaluateContainmentJobResult; headers: Headers }> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.jobTimeoutMs);
     const httpStart = performance.now();
     let response: Response;
     try {
-      response = await this.fetch(`${GEOMETRY_ENGINE_API_BASE}${BROWSER_HELPER_BINARY_ROUTE}`, {
+      response = await this.fetch(`${GEOMETRY_ENGINE_API_BASE}${path}`, {
         method: "POST",
         headers: {
-          "Content-Type": BROWSER_HELPER_BINARY_MEDIA_TYPE,
+          "Content-Type": contentType,
           "X-Katachi-Geometry-Prototype": "shadow-only-v1",
           "X-Katachi-Client-Request-Id": request.clientRequestId,
           "X-Katachi-Project-Fingerprint": request.projectFingerprint,
           "X-Katachi-Algorithm-Contract": request.algorithmContract,
+          ...extraHeaders,
         },
-        body: encoded.payload.slice().buffer as ArrayBuffer,
+        body: requestPayload.slice().buffer as ArrayBuffer,
         signal: controller.signal,
       });
     } catch (error) {
@@ -312,8 +477,10 @@ export class WindowsLocalGeometryEngineClient {
     const httpRoundTripMilliseconds = performance.now() - httpStart;
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
+      const code = response.status === 404 ? "shadow_session_not_found"
+        : response.status === 409 ? "stale_shadow_session" : "job_rejected";
       throw new WindowsLocalGeometryEngineError(
-        "job_rejected",
+        code,
         `local helper rejected the binary shadow job with HTTP ${response.status}${detail ? `: ${detail.slice(0, 512)}` : ""}`,
       );
     }
@@ -330,7 +497,7 @@ export class WindowsLocalGeometryEngineClient {
       throw new WindowsLocalGeometryEngineError("invalid_binary_identity", "helper binary response omitted required shadow identity");
     }
     const payload = await response.arrayBuffer();
-    const decoded = decodeBrowserBinaryResponse(payload, request, encoded.identityFingerprint, {
+    const decoded = decodeBrowserBinaryResponse(payload, request, identityFingerprint, {
       jobId,
       engineVersion,
       artifactSha256,
@@ -346,7 +513,7 @@ export class WindowsLocalGeometryEngineClient {
     };
     this.lastTransportTiming = {
       transport: "binary",
-      requestEncodingMilliseconds: encoded.timing.totalMilliseconds,
+      requestEncodingMilliseconds,
       httpRoundTripMilliseconds,
       helperDecodeMilliseconds: numberHeader("x-katachi-helper-decode-ms"),
       workerRoundTripMilliseconds: numberHeader("x-katachi-worker-roundtrip-ms"),
@@ -354,11 +521,11 @@ export class WindowsLocalGeometryEngineClient {
       helperResponseEncodeMilliseconds: numberHeader("x-katachi-helper-response-encode-ms"),
       responseDecodeMilliseconds: decoded.timing.totalMilliseconds,
       semanticValidationMilliseconds,
-      totalMilliseconds: performance.now() - totalStart,
-      requestBytes: encoded.payload.byteLength,
+      totalMilliseconds: performance.now() - operationStart,
+      requestBytes: requestPayload.byteLength,
       responseBytes: payload.byteLength,
     };
-    return result;
+    return { result, headers: response.headers };
   }
 
   private supportsBrowserBinary(capabilities: GeometryEngineCapabilities | null): boolean {

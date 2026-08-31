@@ -71,6 +71,11 @@ test("Windows probe keeps CUDA unavailable when the driver exists but the compil
     workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
     browserHelperTransports: ["application/json", BROWSER_HELPER_BINARY_MEDIA_TYPE],
     preferredBrowserHelperTransport: BROWSER_HELPER_BINARY_MEDIA_TYPE,
+    shadowSessionCache: {
+      volatile: true,
+      persistedToProject: false,
+      maximumSessions: 4,
+    },
   });
 });
 

@@ -23,6 +23,8 @@
     "benchmark:skin-cuda-scaling": "tsx tools/skin-local-engine/cuda-shadow-scaling-benchmark.mjs",
     "benchmark:skin-cuda-persistent-json": "node --expose-gc ./node_modules/tsx/dist/cli.mjs tools/skin-local-engine/cuda-persistent-json-benchmark.mjs",
     "benchmark:skin-cuda-transport": "node --expose-gc ./node_modules/tsx/dist/cli.mjs tools/skin-local-engine/cuda-transport-benchmark.mjs",
+    "benchmark:skin-cuda-browser-helper": "node --expose-gc ./node_modules/tsx/dist/cli.mjs tools/skin-local-engine/cuda-browser-helper-transport-benchmark.mjs",
+    "benchmark:skin-cuda-session-cache": "node --expose-gc ./node_modules/tsx/dist/cli.mjs tools/skin-local-engine/cuda-shadow-session-benchmark.mjs",
     "build:skin-rebuild-sample": "tsx scripts/build-skin-rebuild-sample.ts public/samples",
     "build:skin-rebuild-original-stage2": "tsx scripts/build-skin-rebuild-original-stage2-sample.ts public/samples",
     "diagnose:ring-fusion": "tsx src/studies/interior-growth/ringFusionDiagnosis.report.ts",

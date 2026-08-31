@@ -9,6 +9,10 @@ import {
 export const BROWSER_HELPER_BINARY_MEDIA_TYPE =
   "application/vnd.katachi.geometry-binary-v1" as const;
 export const BROWSER_HELPER_BINARY_ROUTE = "/evaluate-containment-binary" as const;
+export const SHADOW_SESSION_ROUTE = "/shadow-sessions" as const;
+export const SHADOW_SESSION_PARAMETER_MEDIA_TYPE =
+  "application/vnd.katachi.geometry-session-parameters-v1" as const;
+export const SHADOW_SESSION_PARAMETER_BYTES = 64;
 export const COMPACT_BINARY_REQUEST_HEADER_BYTES = 96;
 export const COMPACT_BINARY_RESPONSE_HEADER_BYTES = 176;
 
@@ -74,6 +78,49 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
     if (left[index] !== right[index]) return false;
   }
   return true;
+}
+
+export function binaryFingerprintToHex(value: Uint8Array): string {
+  return [...value].map((byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+export function binaryFingerprintFromHex(value: string): Uint8Array {
+  if (!/^[0-9A-Fa-f]{64}$/.test(value)) throw protocolError("binary fingerprint must be 32-byte hexadecimal");
+  const result = new Uint8Array(32);
+  for (let index = 0; index < result.length; index += 1) {
+    result[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16);
+  }
+  return result;
+}
+
+export function encodeShadowSessionParameters(
+  geometryFingerprint: Uint8Array,
+  {
+    smoothness,
+    boundaryTolerance,
+    iterations = 1,
+  }: {
+    smoothness: number;
+    boundaryTolerance: number;
+    iterations?: number;
+  },
+): Uint8Array {
+  if (geometryFingerprint.byteLength !== 32) throw protocolError("session geometry fingerprint must be 32 bytes");
+  if (!Number.isInteger(iterations) || iterations < 1 || iterations > 10_000) {
+    throw protocolError("session benchmarkIterations must be an integer in [1,10000]");
+  }
+  const payload = new Uint8Array(SHADOW_SESSION_PARAMETER_BYTES);
+  const view = new DataView(payload.buffer);
+  setAscii(payload, 0, "KSP1");
+  view.setUint16(4, 1, true);
+  view.setUint16(6, 1, true);
+  view.setUint32(8, SHADOW_SESSION_PARAMETER_BYTES, true);
+  payload.set(geometryFingerprint, 16);
+  view.setFloat32(48, checkedFloat32(smoothness, "session smoothness", { positive: true }), true);
+  view.setFloat32(52, checkedFloat32(boundaryTolerance, "session boundaryTolerance", { nonNegative: true }), true);
+  view.setUint32(56, iterations, true);
+  view.setUint32(60, SHADOW_SESSION_PARAMETER_BYTES, true);
+  return payload;
 }
 
 function identityText(request: EvaluateContainmentJobRequest): string {

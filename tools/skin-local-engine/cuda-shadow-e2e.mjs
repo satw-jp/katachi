@@ -66,6 +66,11 @@ try {
       "application/vnd.katachi.geometry-binary-v1",
     ],
     preferredBrowserHelperTransport: "application/vnd.katachi.geometry-binary-v1",
+    shadowSessionCache: {
+      volatile: true,
+      persistedToProject: false,
+      maximumSessions: 4,
+    },
   });
   assert.equal(localClient.supportsCudaContainment(capabilitiesProbe.capabilities), true);
 
