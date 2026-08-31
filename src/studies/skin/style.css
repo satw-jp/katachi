@@ -3859,6 +3859,17 @@ details.mesh-export:not([open]) > :not(summary) {
   width: 68px;
   margin-left: auto;
 }
+.skin-rebuild-compute-setting select {
+  min-width: 0;
+  max-width: 190px;
+}
+.skin-rebuild-compute-status[data-state="matched"] {
+  border-color: rgba(91, 210, 167, .72);
+}
+.skin-rebuild-compute-status[data-state="web"],
+.skin-rebuild-compute-status[data-state="ready"] {
+  color: var(--muted);
+}
 .skin-rebuild-lattice-edit-label {
   margin-top: 4px;
   font-size: 11px;

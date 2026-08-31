@@ -238,6 +238,9 @@ import {
   type SkinRebuildSettings,
 } from "./rebuild/model.ts";
 import {
+  SkinRebuildShadowObserver,
+} from "./rebuild/geometryEngine/index.ts";
+import {
   sampleSkinRebuildOverhangRegionSurface,
   type SkinRebuildOverhangRegion,
 } from "./rebuild/overhangRegions.ts";
@@ -967,6 +970,15 @@ let skinRebuildFinalDiagnosisButton: HTMLButtonElement | null = null;
 let skinRebuildPrintSupportButton: HTMLButtonElement | null = null;
 let skinRebuildStage8ExportButton: HTMLButtonElement | null = null;
 let skinRebuildSaveButton: HTMLButtonElement | null = null;
+type SkinRebuildComputeMode = "web" | "windows-cuda-shadow";
+let skinRebuildComputeMode: SkinRebuildComputeMode = "web";
+let skinRebuildComputeSelect: HTMLSelectElement | null = null;
+let skinRebuildComputeButton: HTMLButtonElement | null = null;
+let skinRebuildComputeStatus: HTMLElement | null = null;
+let skinRebuildShadowObservationGeneration = 0;
+let skinRebuildShadowObservationRunning = false;
+let skinRebuildLastObservedProject: SkinRebuildProject | null = null;
+const skinRebuildShadowObserver = new SkinRebuildShadowObserver();
 let skinRebuildThresholdInput: HTMLInputElement | null = null;
 let skinRebuildDiameterInput: HTMLInputElement | null = null;
 let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
@@ -7226,6 +7238,7 @@ function refreshSkinRebuildFinalStageButtons(): void {
   if (skinRebuildPrintSupportButton) {
     skinRebuildPrintSupportButton.disabled = !skinRebuildFinalDiagnosisIsCurrent();
   }
+  refreshSkinRebuildComputeStatus();
   refreshSkinRebuildStage8ExportButton();
 }
 
@@ -7314,6 +7327,125 @@ function showSkinRebuildStage6ArtworkMesh(
   render();
 }
 
+function resetSkinRebuildComputeStatusMetadata(): void {
+  const status = skinRebuildComputeStatus;
+  if (!status) return;
+  for (const key of [
+    "state",
+    "device",
+    "sampleCount",
+    "targetLongestMm",
+    "totalMs",
+    "transportMode",
+    "transportMs",
+    "kernelMs",
+    "maximumMarginDelta",
+  ]) delete status.dataset[key];
+  status.dataset.authoritative = "web";
+  status.dataset.productionApplied = "false";
+}
+
+function refreshSkinRebuildComputeStatus(): void {
+  if (!skinRebuildComputeSelect || !skinRebuildComputeButton || !skinRebuildComputeStatus) return;
+  skinRebuildComputeSelect.value = skinRebuildComputeMode;
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  skinRebuildComputeButton.disabled = skinRebuildShadowObservationRunning
+    || skinRebuildComputeMode !== "windows-cuda-shadow"
+    || project === null
+    || project.lattice.edges.length === 0;
+  if (skinRebuildShadowObservationRunning) return;
+  if (skinRebuildComputeMode === "web") {
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.state = "web";
+    skinRebuildComputeStatus.dataset.ok = "true";
+    skinRebuildComputeStatus.textContent = "Web authoritative · CUDAは未実行 · productionApplied=false";
+    return;
+  }
+  if (!project || project.lattice.edges.length === 0) {
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.state = "waiting";
+    skinRebuildComputeStatus.dataset.ok = "false";
+    skinRebuildComputeStatus.textContent = "Web authoritative · 工程5Aの蜘蛛ラティス生成後にRTX Shadowを実行できます";
+    return;
+  }
+  if (skinRebuildLastObservedProject !== project) {
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.state = "ready";
+    delete skinRebuildComputeStatus.dataset.ok;
+    skinRebuildComputeStatus.textContent = `Web authoritative · ${project.lattice.edges.length.toLocaleString()} edgesをCUDAと比較できます`;
+  }
+}
+
+async function runSkinRebuildShadowObservation(): Promise<void> {
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  if (!project || project.lattice.edges.length === 0 || skinRebuildShadowObservationRunning) {
+    refreshSkinRebuildComputeStatus();
+    return;
+  }
+  const generation = ++skinRebuildShadowObservationGeneration;
+  skinRebuildShadowObservationRunning = true;
+  if (skinRebuildComputeButton) skinRebuildComputeButton.disabled = true;
+  if (skinRebuildComputeSelect) skinRebuildComputeSelect.disabled = true;
+  if (skinRebuildComputeStatus) {
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.state = "running";
+    delete skinRebuildComputeStatus.dataset.ok;
+    skinRebuildComputeStatus.textContent = "Web authoritativeで計算し、localhost RTX candidateと照合中…";
+  }
+  try {
+    const observation = await skinRebuildShadowObserver.observe(project, true);
+    if (generation !== skinRebuildShadowObservationGeneration
+      || skinRebuildComputeMode !== "windows-cuda-shadow"
+      || !skinRebuildPipelineIsCurrent()
+      || skinRebuildPipeline?.project !== project) return;
+    const { outcome, facts, transportTiming } = observation;
+    skinRebuildLastObservedProject = project;
+    if (!skinRebuildComputeStatus) return;
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.sampleCount = String(facts.sampleCount);
+    skinRebuildComputeStatus.dataset.targetLongestMm = facts.targetLongestMm.toFixed(3);
+    skinRebuildComputeStatus.dataset.totalMs = observation.totalMilliseconds.toFixed(3);
+    skinRebuildComputeStatus.dataset.transportMode = observation.transportMode;
+    if (transportTiming) {
+      skinRebuildComputeStatus.dataset.transportMs = transportTiming.totalMilliseconds.toFixed(3);
+    }
+    if (outcome.candidateStatus === "candidate_matched" && outcome.candidate && outcome.comparison?.matched) {
+      const kernelMilliseconds = outcome.candidate.backend.timing?.kernelAverageMilliseconds;
+      skinRebuildComputeStatus.dataset.state = "matched";
+      skinRebuildComputeStatus.dataset.ok = "true";
+      skinRebuildComputeStatus.dataset.device = outcome.candidate.backend.deviceName ?? "CUDA";
+      skinRebuildComputeStatus.dataset.maximumMarginDelta = outcome.comparison.maximumAbsoluteMarginDelta.toExponential(6);
+      if (kernelMilliseconds !== undefined) {
+        skinRebuildComputeStatus.dataset.kernelMs = kernelMilliseconds.toFixed(6);
+      }
+      const transportText = transportTiming ? ` · helper ${transportTiming.totalMilliseconds.toFixed(1)} ms` : "";
+      const transportModeText = observation.transportMode === "session-reuse"
+        ? " · cached topology"
+        : observation.transportMode === "session-upload" ? " · first topology upload" : "";
+      const kernelText = kernelMilliseconds === undefined ? "" : ` · kernel ${kernelMilliseconds.toFixed(3)} ms`;
+      skinRebuildComputeStatus.textContent = `${outcome.candidate.backend.deviceName ?? "RTX CUDA"} detected · CUDA matched Web · ${facts.targetLongestMm.toFixed(0)} mm / ${facts.sampleCount.toLocaleString()} samples · total ${observation.totalMilliseconds.toFixed(1)} ms${transportText}${transportModeText}${kernelText} · max Δ ${outcome.comparison.maximumAbsoluteMarginDelta.toExponential(2)} · Web authoritative · productionApplied=false`;
+      return;
+    }
+    skinRebuildComputeStatus.dataset.state = outcome.candidateStatus;
+    skinRebuildComputeStatus.dataset.ok = "false";
+    const detail = outcome.fallback?.code ?? outcome.candidateStatus;
+    const comparison = outcome.comparison
+      ? ` · mismatch ${outcome.comparison.discreteMismatchSampleIds.length} · max Δ ${outcome.comparison.maximumAbsoluteMarginDelta.toExponential(2)}`
+      : "";
+    skinRebuildComputeStatus.textContent = `CUDA candidate ${detail}${comparison} · Web authoritativeを維持 · productionApplied=false`;
+  } catch (error) {
+    if (generation !== skinRebuildShadowObservationGeneration || !skinRebuildComputeStatus) return;
+    resetSkinRebuildComputeStatusMetadata();
+    skinRebuildComputeStatus.dataset.state = "candidate_failed";
+    skinRebuildComputeStatus.dataset.ok = "false";
+    skinRebuildComputeStatus.textContent = `CUDA candidate failed (${error instanceof Error ? error.message : String(error)}) · Web authoritativeを維持 · productionApplied=false`;
+  } finally {
+    skinRebuildShadowObservationRunning = false;
+    if (skinRebuildComputeSelect) skinRebuildComputeSelect.disabled = false;
+    refreshSkinRebuildComputeStatus();
+  }
+}
+
 function installSkinRebuildPipelinePanel(): void {
   const stage3Body = ui.root.querySelector<HTMLElement>("#skin-stage-3-body");
   const stage4Body = ui.root.querySelector<HTMLElement>("#skin-stage-4-body");
@@ -7356,6 +7488,43 @@ function installSkinRebuildPipelinePanel(): void {
     section.append(stepTitle, stepCopy);
     return { section, status };
   };
+
+  const compute = makeStep(
+    "Compute",
+    "Webが常に形状の正本です。Windows RTX 3080は同じcontainmentを観察用に再計算し、identity / classification / marginだけを比較します。",
+  );
+  const computeRow = document.createElement("label");
+  computeRow.className = "row skin-rebuild-pipeline-setting skin-rebuild-compute-setting";
+  computeRow.append(document.createTextNode("Backend "));
+  const computeSelect = document.createElement("select");
+  computeSelect.setAttribute("aria-label", "SKIN containment compute backend");
+  for (const [value, label] of [
+    ["web", "Web"],
+    ["windows-cuda-shadow", "Windows RTX 3080 · Shadow"],
+  ] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    computeSelect.append(option);
+  }
+  computeSelect.value = skinRebuildComputeMode;
+  computeRow.append(computeSelect);
+  const computeButton = document.createElement("button");
+  computeButton.type = "button";
+  computeButton.className = "secondary-action skin-rebuild-compute-run";
+  computeButton.textContent = "RTX Shadowを実行";
+  computeButton.disabled = true;
+  computeSelect.addEventListener("change", () => {
+    skinRebuildComputeMode = computeSelect.value === "windows-cuda-shadow"
+      ? "windows-cuda-shadow"
+      : "web";
+    skinRebuildLastObservedProject = null;
+    refreshSkinRebuildComputeStatus();
+  });
+  computeButton.addEventListener("click", () => void runSkinRebuildShadowObservation());
+  compute.status.classList.add("skin-rebuild-compute-status");
+  compute.status.setAttribute("aria-live", "polite");
+  compute.section.append(computeRow, computeButton, compute.status);
 
   const inside = makeStep(
     "3. Surface Patternの内外を決める",
@@ -8565,6 +8734,7 @@ function installSkinRebuildPipelinePanel(): void {
     "5Aで蜘蛛の巣を作り、5Bで選択した赤面を面→点の明るい水色立体へ作り替えます。工程7では色の履歴ではなく完成形状を通常どおり再診断します。",
     lattice.section,
     reinforcement.section,
+    compute.section,
   ));
   const meshTitle = stage6Body.querySelector<HTMLElement>(".mesh-export-title");
   if (meshTitle) meshTitle.textContent = "6. 作品形状の確定 / Mesh化";
@@ -8597,6 +8767,9 @@ function installSkinRebuildPipelinePanel(): void {
   skinRebuildPrintSupportButton = printSupportButton;
   skinRebuildStage8ExportButton = stage8ExportButton;
   skinRebuildSaveButton = saveButton;
+  skinRebuildComputeSelect = computeSelect;
+  skinRebuildComputeButton = computeButton;
+  skinRebuildComputeStatus = compute.status;
   skinRebuildThresholdInput = threshold;
   skinRebuildDiameterInput = diameter;
   skinRebuildSupportDiameterInput = supportDiameter;
@@ -8615,11 +8788,14 @@ function installSkinRebuildPipelinePanel(): void {
   refreshSkinRebuildLatticeEdgeEditor();
   refreshSkinRebuildSelectedTarget();
   refreshSkinRebuildSelectedRegion();
+  refreshSkinRebuildComputeStatus();
   refreshSkinRebuildFinalStageButtons();
   refreshSkinRebuildStage8ExportButton();
 }
 
 function invalidateSkinRebuildPipeline(reason = "形状が変わったため、工程3から再実行してください"): void {
+  skinRebuildShadowObservationGeneration += 1;
+  skinRebuildLastObservedProject = null;
   cancelSkinRebuildLowestExtraction("形状が変わったため、工程4を停止しました");
   cancelSkinRebuildPrintSupportDiagnosis();
   stage6BodyMeshCache = null;
