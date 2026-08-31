@@ -84,3 +84,17 @@ Even after a match, this prototype remains observational:
 cancellation of an in-flight native process, artifact transfer and real
 Cloudflare-to-loopback browser permission QA remain required before any
 shape-affecting use.
+
+## Windows system-tray launcher
+
+`tray/Katachi.ComputeHelper.Tray` is a .NET 8 WinForms launcher for this exact
+runtime. It does not replace or proxy the helper. It starts the fixed
+`server.mjs` through `node.exe`, monitors the managed process, probes the fixed
+reviewed CUDA executable, and exposes Start/Stop/Restart/Open SKIN/View Log,
+per-user Start with Windows, and Exit from a `NotifyIcon` menu. See
+`tray/README.md` for build and publish commands.
+
+The launcher has no request-selected command or executable path. It inherits
+the existing exact review-origin environment setting and leaves the helper's
+production allowlist, loopback binding, shadow-only policy, Web authority and
+`productionApplied=false` unchanged.

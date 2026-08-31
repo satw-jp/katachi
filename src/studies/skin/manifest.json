@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-08-31",
+      "note": "A .NET 8 WinForms Katachi Compute Helper tray launcher manages the existing fixed server.mjs runtime without changing CUDA, transport, GeometryEngine, FKEI, production geometry, support or Print #002. It discovers only the co-located fixed server/probe/reviewed CUDA executable, starts node.exe without a shell, monitors PID/error/RTX and recent loopback SKIN connections, exposes Start/Stop/Restart/Open SKIN/View Log/current-user Start with Windows/Exit, performs no unbounded automatic restart, logs under LocalAppData, and publishes as a self-contained single-file win-x64 exe with an asInvoker manifest. RTX 3080 lifecycle tests replace the helper PID across Start/Stop/Restart and stop the managed process tree on tray disposal; HKCU startup ON/OFF round-trips without admin and restores prior state. Production Chrome matched Web for 120 mm / 7,740 samples / 321 edges at warm 78.1 ms, maximum margin delta 1.594769e-7; helper crash retained Web fallback and tray relaunch recovered RTX matched. Web remains authoritative, shadow=true and productionApplied=false."
+    },
+    {
+      "date": "2026-08-31",
       "note": "TASK A Print #001 diagnosis records the supplied observation that upper Motifs are embedded in removable support, supports pierce Motifs, one isolated ~1 mm support is removable, clustered supports are difficult to remove, and no support should remain inside the finished Body. buildSkinRebuildPrintSupport() selects lowest-point/node/long-edge contacts, uses a vertical root at lowest-point floor plus radius, and never checks the intermediate support capsule against the finished Body; existing Base containment, endpoint attachment, reachability and topology checks do not cover Motif/shell/Web/reinforcement collision. TASK B must permit only intended final endpoint contact with the target surface, reject and record as explicit unsupported any intermediate radius-aware capsule collision with the finished Body, and perform no early termination or alternate-path search; geometry and printApproval remain unchanged."
     },
     {

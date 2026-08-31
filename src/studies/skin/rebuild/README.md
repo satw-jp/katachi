@@ -16,6 +16,25 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — Windows system-tray launcher for the existing shadow helper
+
+既存`server.mjs`をSSOTのまま使う.NET 8 WinFormsの`Katachi Compute Helper`を追加した。launcherは
+自身から相対的に固定`server.mjs`、capability probe、review済みCUDA exeが同時に存在するruntimeだけを
+発見し、`node.exe`へscript pathを1引数で渡して`shell=false`相当で起動する。外部requestやcommand lineから
+別script/exe pathを選ぶ機能はない。helper異常終了はErrorとして残し、自動再起動loopは行わない。
+
+trayはHelper / RTX / SKINの状態、Start / Stop / Restart、production SKINを既定browserで開く操作、1 MiBで
+世代交代するlocal log、HKCU Runによる`Start with Windows`、Exitを持つ。startup登録はON/OFF round-trip後に
+元の値へ復元でき、manifestは`asInvoker`で管理者権限を要求しない。single-file self-contained win-x64 publishを
+確認した。実runtime testはRTX 3080 capability、helper PID差し替えを伴うStart→Stop→Start→Restart、tray context
+終了時のmanaged process tree停止を通した。
+
+通常Chromeのproduction SKINで120 mm / 7,740 samples / 321 edgesをtray起動helperへ通し、warm 78.1 ms、
+kernel 0.398 ms、maximum margin delta `1.594769e-7`でidentity / classification / marginが一致した。
+helper crashでは`helper_unavailable`へfallbackし、tray再起動後はRTX matchedへ復帰した。Web authoritative、
+`shadow=true`、`productionApplied=false`は不変で、CUDA kernel、transport、GeometryEngine、FKEI、geometry、
+support、Print #002を変更していない。
+
 ### 2026-08-31 — CUDA shadow integration final gate
 
 review済みCUDA runtimeを、Print #002の`model.ts`、FKEI、mesh export、support、production geometryを
