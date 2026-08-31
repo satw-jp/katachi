@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.91.0",
+  "version": "0.91.1",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-31",
   "params": [
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-31",
+      "note": "Stage 3 Interior Classification debug is presentation-only and reads the existing SkinRebuildPatternSide result without field sampling or a second classifier. Normal preserves the previous view; Debug Colors draws stored insidePosition red, outsidePosition blue, surfacePosition/boundary or an existing false baseSideIsInside verdict yellow, and motifs with no current Stage 3 row gray. Print #002 FKEI was reopened and Stage 3 rerun: Inside 38, Outside 38, Boundary 38, ambiguous 0, unclassified 0. Axome inspection showed red on the Base side, blue outside and yellow between for the visible motifs, with no obvious local reversal or concentrated ambiguous area; console warning/error 0. This is visual evidence only. Geometry, FKEI schema/semantics, Support, Stage 5B, CUDA, Graph topology, Print #002 artifacts and printApproval are unchanged."
+    },
     {
       "date": "2026-08-31",
       "note": "TASK A Print #001 diagnosis records the supplied observation that upper Motifs are embedded in removable support, supports pierce Motifs, one isolated ~1 mm support is removable, clustered supports are difficult to remove, and no support should remain inside the finished Body. buildSkinRebuildPrintSupport() selects lowest-point/node/long-edge contacts, uses a vertical root at lowest-point floor plus radius, and never checks the intermediate support capsule against the finished Body; existing Base containment, endpoint attachment, reachability and topology checks do not cover Motif/shell/Web/reinforcement collision. TASK B must permit only intended final endpoint contact with the target surface, reject and record as explicit unsupported any intermediate radius-aware capsule collision with the finished Body, and perform no early termination or alternate-path search; geometry and printApproval remain unchanged."
