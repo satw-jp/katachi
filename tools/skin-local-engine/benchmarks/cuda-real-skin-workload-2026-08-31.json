@@ -1,0 +1,794 @@
+{
+  "contract": "katachi.cuda-real-skin-workload-benchmark.v1",
+  "recordedAt": "2026-08-31T07:20:51.458Z",
+  "source": {
+    "source": "buildSkinRebuildProject(DEFAULT_SKIN_REBUILD_SETTINGS)",
+    "targetLongestMm": 120,
+    "strutDiameterMm": 3.9,
+    "algorithmVersion": "skin-rebuild-first-print-v1",
+    "hostBallCount": 12,
+    "patternCount": 38,
+    "latticeNodeCount": 306,
+    "latticeEdgeCount": 325,
+    "sampleCount": 8159,
+    "minimumSamplesPerEdge": 3,
+    "maximumSamplesPerEdge": 32,
+    "scaleMmPerUnit": 23.809523809523814,
+    "projectDigest": "edeba68cc425ff16eb04c2296d97e0f67dd520dd55ba37c8c883b610207fe7f1",
+    "projectAudit": {
+      "requestedPatternCount": 38,
+      "realizedPatternCount": 38,
+      "classifiedInsideCount": 38,
+      "dryWebNodeCount": 0,
+      "dryWebEdgeCount": 0,
+      "lowestPointCount": 38,
+      "overhangTargetCount": 20,
+      "supportedTargetCount": 20,
+      "unsupportedTargetCount": 0,
+      "maximumLatticeAngleDeg": 41.760299703897914
+    },
+    "requestGenerationMilliseconds": 467.52489999999995,
+    "samplingRule": "production sampledLatticeEdgeBaseExcess density: step=max(edge.radius*0.2,1e-4), intervals clamp [2,512], endpoints included",
+    "semanticDifference": "portable GeometryEngine request intentionally omits production attachment-site exemptions; it evaluates the complete cylinder radius against Base only"
+  },
+  "fixture": {
+    "path": "tools/skin-local-engine/fixtures/real-skin-120mm-containment-v1.json",
+    "requestSha256": "ab842c38a993a5993c5d78e6429dd6a00853cae1fc31f162e2226733ae63cec9"
+  },
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "webReference": {
+    "runCount": 10,
+    "medianMilliseconds": 4.090800000000058,
+    "classificationCounts": {
+      "inside": 8159,
+      "boundary": 0,
+      "outside": 0,
+      "unknown": 0
+    },
+    "contained": true,
+    "outsideEdgeCount": 0,
+    "outsideSampleCount": 0
+  },
+  "outerBinary": {
+    "cold": {
+      "index": 0,
+      "fullApplicationMilliseconds": 402.73710000000005,
+      "clientTiming": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 13.452999999999975,
+        "httpRoundTripMilliseconds": 322.6781000000001,
+        "helperDecodeMilliseconds": 3.4806,
+        "workerRoundTripMilliseconds": 2.8046,
+        "workerTotalMilliseconds": 307.0203,
+        "helperResponseEncodeMilliseconds": 0.5496,
+        "responseDecodeMilliseconds": 4.633800000000065,
+        "semanticValidationMilliseconds": 9.12070000000017,
+        "totalMilliseconds": 352.4845,
+        "requestBytes": 130832,
+        "responseBytes": 130720
+      },
+      "cudaTiming": {
+        "endToEndMilliseconds": 1.5581,
+        "setupMilliseconds": 1.397,
+        "kernelTotalMilliseconds": 0.0589120015501976,
+        "kernelAverageMilliseconds": 0.0589120015501976,
+        "iterations": 1
+      },
+      "matched": true,
+      "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+      "missingSampleCount": 0,
+      "mismatchSampleCount": 0,
+      "shadow": true,
+      "productionApplied": false
+    },
+    "warm": [
+      {
+        "index": 1,
+        "fullApplicationMilliseconds": 47.36959999999999,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 7.101100000000088,
+          "httpRoundTripMilliseconds": 6.32589999999982,
+          "helperDecodeMilliseconds": 1.0659,
+          "workerRoundTripMilliseconds": 1.2156,
+          "workerTotalMilliseconds": 2.025,
+          "helperResponseEncodeMilliseconds": 0.02,
+          "responseDecodeMilliseconds": 4.001099999999951,
+          "semanticValidationMilliseconds": 5.109299999999848,
+          "totalMilliseconds": 23.916099999999915,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.4068,
+          "setupMilliseconds": 0.1992,
+          "kernelTotalMilliseconds": 0.1265600025653839,
+          "kernelAverageMilliseconds": 0.1265600025653839,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 2,
+        "fullApplicationMilliseconds": 35.878799999999956,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 6.131099999999833,
+          "httpRoundTripMilliseconds": 4.387399999999843,
+          "helperDecodeMilliseconds": 0.3877,
+          "workerRoundTripMilliseconds": 0.9694,
+          "workerTotalMilliseconds": 1.2169,
+          "helperResponseEncodeMilliseconds": 0.021,
+          "responseDecodeMilliseconds": 0.6970999999998639,
+          "semanticValidationMilliseconds": 4.5301999999999225,
+          "totalMilliseconds": 16.47180000000003,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3165,
+          "setupMilliseconds": 0.1141,
+          "kernelTotalMilliseconds": 0.12044800072908401,
+          "kernelAverageMilliseconds": 0.12044800072908401,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 3,
+        "fullApplicationMilliseconds": 35.90599999999995,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 5.947000000000116,
+          "httpRoundTripMilliseconds": 5.1706000000001495,
+          "helperDecodeMilliseconds": 0.5981,
+          "workerRoundTripMilliseconds": 1.2788,
+          "workerTotalMilliseconds": 1.6058,
+          "helperResponseEncodeMilliseconds": 0.0209,
+          "responseDecodeMilliseconds": 2.3044000000002143,
+          "semanticValidationMilliseconds": 3.036600000000135,
+          "totalMilliseconds": 17.379500000000007,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3722,
+          "setupMilliseconds": 0.1364,
+          "kernelTotalMilliseconds": 0.13036799430847168,
+          "kernelAverageMilliseconds": 0.13036799430847168,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 4,
+        "fullApplicationMilliseconds": 39.02169999999978,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 7.790100000000166,
+          "httpRoundTripMilliseconds": 4.9728999999999814,
+          "helperDecodeMilliseconds": 0.449,
+          "workerRoundTripMilliseconds": 1.1198,
+          "workerTotalMilliseconds": 1.4114,
+          "helperResponseEncodeMilliseconds": 0.0211,
+          "responseDecodeMilliseconds": 1.3466000000000804,
+          "semanticValidationMilliseconds": 2.6916000000001077,
+          "totalMilliseconds": 17.80899999999997,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3239,
+          "setupMilliseconds": 0.1173,
+          "kernelTotalMilliseconds": 0.12246400117874146,
+          "kernelAverageMilliseconds": 0.12246400117874146,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 5,
+        "fullApplicationMilliseconds": 23.103700000000117,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 5.262299999999868,
+          "httpRoundTripMilliseconds": 3.9232999999999265,
+          "helperDecodeMilliseconds": 0.2395,
+          "workerRoundTripMilliseconds": 1.2937,
+          "workerTotalMilliseconds": 1.4947,
+          "helperResponseEncodeMilliseconds": 0.0275,
+          "responseDecodeMilliseconds": 1.182700000000068,
+          "semanticValidationMilliseconds": 2.9266999999999825,
+          "totalMilliseconds": 14.038900000000012,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3596,
+          "setupMilliseconds": 0.1373,
+          "kernelTotalMilliseconds": 0.1265919953584671,
+          "kernelAverageMilliseconds": 0.1265919953584671,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 6,
+        "fullApplicationMilliseconds": 26.3913,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 5.02819999999997,
+          "httpRoundTripMilliseconds": 3.819099999999935,
+          "helperDecodeMilliseconds": 0.3596,
+          "workerRoundTripMilliseconds": 1.0838,
+          "workerTotalMilliseconds": 1.3763,
+          "helperResponseEncodeMilliseconds": 0.0273,
+          "responseDecodeMilliseconds": 1.5208999999999833,
+          "semanticValidationMilliseconds": 3.629699999999957,
+          "totalMilliseconds": 14.892399999999952,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.2758,
+          "setupMilliseconds": 0.1391,
+          "kernelTotalMilliseconds": 0.04016000032424927,
+          "kernelAverageMilliseconds": 0.04016000032424927,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 7,
+        "fullApplicationMilliseconds": 26.673900000000003,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 4.84920000000011,
+          "httpRoundTripMilliseconds": 3.6230000000000473,
+          "helperDecodeMilliseconds": 0.3412,
+          "workerRoundTripMilliseconds": 1.0318,
+          "workerTotalMilliseconds": 1.2425,
+          "helperResponseEncodeMilliseconds": 0.0202,
+          "responseDecodeMilliseconds": 1.6402000000000498,
+          "semanticValidationMilliseconds": 2.7914999999998145,
+          "totalMilliseconds": 14.024599999999964,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3671,
+          "setupMilliseconds": 0.1409,
+          "kernelTotalMilliseconds": 0.12889599800109863,
+          "kernelAverageMilliseconds": 0.12889599800109863,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 8,
+        "fullApplicationMilliseconds": 31.771799999999985,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 6.63980000000015,
+          "httpRoundTripMilliseconds": 3.792500000000018,
+          "helperDecodeMilliseconds": 0.3292,
+          "workerRoundTripMilliseconds": 0.9682,
+          "workerTotalMilliseconds": 1.2342,
+          "helperResponseEncodeMilliseconds": 0.0344,
+          "responseDecodeMilliseconds": 1.9121999999999844,
+          "semanticValidationMilliseconds": 4.3508999999999105,
+          "totalMilliseconds": 17.481799999999794,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3193,
+          "setupMilliseconds": 0.1183,
+          "kernelTotalMilliseconds": 0.11913599818944931,
+          "kernelAverageMilliseconds": 0.11913599818944931,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 9,
+        "fullApplicationMilliseconds": 24.28780000000006,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 4.782100000000128,
+          "httpRoundTripMilliseconds": 4.189100000000053,
+          "helperDecodeMilliseconds": 0.3965,
+          "workerRoundTripMilliseconds": 1.1064,
+          "workerTotalMilliseconds": 1.443,
+          "helperResponseEncodeMilliseconds": 0.0595,
+          "responseDecodeMilliseconds": 1.632799999999861,
+          "semanticValidationMilliseconds": 2.615299999999934,
+          "totalMilliseconds": 14.288099999999986,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3647,
+          "setupMilliseconds": 0.139,
+          "kernelTotalMilliseconds": 0.1287360042333603,
+          "kernelAverageMilliseconds": 0.1287360042333603,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 10,
+        "fullApplicationMilliseconds": 38.094899999999825,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 9.793999999999869,
+          "httpRoundTripMilliseconds": 4.641499999999951,
+          "helperDecodeMilliseconds": 0.301,
+          "workerRoundTripMilliseconds": 1.5199,
+          "workerTotalMilliseconds": 1.8009,
+          "helperResponseEncodeMilliseconds": 0.0205,
+          "responseDecodeMilliseconds": 1.072400000000016,
+          "semanticValidationMilliseconds": 3.2765999999999167,
+          "totalMilliseconds": 19.818399999999883,
+          "requestBytes": 130832,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3862,
+          "setupMilliseconds": 0.1554,
+          "kernelTotalMilliseconds": 0.12678399682044983,
+          "kernelAverageMilliseconds": 0.12678399682044983,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "missingSampleCount": 0,
+        "mismatchSampleCount": 0,
+        "shadow": true,
+        "productionApplied": false
+      }
+    ]
+  },
+  "session": {
+    "firstUpload": {
+      "fullApplicationMilliseconds": 28.380999999999858,
+      "clientTiming": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 7.4909999999999854,
+        "httpRoundTripMilliseconds": 5.209800000000087,
+        "helperDecodeMilliseconds": 0.305,
+        "workerRoundTripMilliseconds": 1.1975,
+        "workerTotalMilliseconds": 1.4743,
+        "helperResponseEncodeMilliseconds": 0.0128,
+        "responseDecodeMilliseconds": 1.2431000000001404,
+        "semanticValidationMilliseconds": 3.4253000000001066,
+        "totalMilliseconds": 20.86519999999996,
+        "requestBytes": 130832,
+        "responseBytes": 130720
+      },
+      "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+      "matched": true
+    },
+    "warm": [
+      {
+        "index": 1,
+        "fullApplicationMilliseconds": 40.11429999999996,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.19489999999996144,
+          "httpRoundTripMilliseconds": 4.431800000000067,
+          "helperDecodeMilliseconds": 0.6515,
+          "workerRoundTripMilliseconds": 1.0369,
+          "workerTotalMilliseconds": 1.3299,
+          "helperResponseEncodeMilliseconds": 0.0148,
+          "responseDecodeMilliseconds": 8.419100000000071,
+          "semanticValidationMilliseconds": 6.9331999999999425,
+          "totalMilliseconds": 23.53410000000008,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3608,
+          "setupMilliseconds": 0.1443,
+          "kernelTotalMilliseconds": 0.12409599870443344,
+          "kernelAverageMilliseconds": 0.12409599870443344,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 2,
+        "fullApplicationMilliseconds": 34.25019999999995,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.048400000000128784,
+          "httpRoundTripMilliseconds": 9.783400000000256,
+          "helperDecodeMilliseconds": 0.5174,
+          "workerRoundTripMilliseconds": 1.1532,
+          "workerTotalMilliseconds": 1.9531,
+          "helperResponseEncodeMilliseconds": 0.0104,
+          "responseDecodeMilliseconds": 0.6759000000001834,
+          "semanticValidationMilliseconds": 2.951400000000376,
+          "totalMilliseconds": 22.389999999999873,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3708,
+          "setupMilliseconds": 0.1512,
+          "kernelTotalMilliseconds": 0.12880000472068787,
+          "kernelAverageMilliseconds": 0.12880000472068787,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 3,
+        "fullApplicationMilliseconds": 30.65440000000035,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.04989999999997963,
+          "httpRoundTripMilliseconds": 3.6954000000000633,
+          "helperDecodeMilliseconds": 0.2495,
+          "workerRoundTripMilliseconds": 1.041,
+          "workerTotalMilliseconds": 1.2418,
+          "helperResponseEncodeMilliseconds": 0.0106,
+          "responseDecodeMilliseconds": 1.4695999999999003,
+          "semanticValidationMilliseconds": 3.3159999999998035,
+          "totalMilliseconds": 14.527100000000246,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.348,
+          "setupMilliseconds": 0.1354,
+          "kernelTotalMilliseconds": 0.12284799665212631,
+          "kernelAverageMilliseconds": 0.12284799665212631,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 4,
+        "fullApplicationMilliseconds": 27.261799999999766,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.04820000000017899,
+          "httpRoundTripMilliseconds": 3.053100000000086,
+          "helperDecodeMilliseconds": 0.1877,
+          "workerRoundTripMilliseconds": 0.9962,
+          "workerTotalMilliseconds": 1.2618,
+          "helperResponseEncodeMilliseconds": 0.0115,
+          "responseDecodeMilliseconds": 1.8350000000000364,
+          "semanticValidationMilliseconds": 3.5903000000002976,
+          "totalMilliseconds": 14.803199999999833,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3133,
+          "setupMilliseconds": 0.1104,
+          "kernelTotalMilliseconds": 0.11974400281906128,
+          "kernelAverageMilliseconds": 0.11974400281906128,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 5,
+        "fullApplicationMilliseconds": 23.889300000000276,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.0650999999998021,
+          "httpRoundTripMilliseconds": 3.1383999999998196,
+          "helperDecodeMilliseconds": 0.2482,
+          "workerRoundTripMilliseconds": 1.0215,
+          "workerTotalMilliseconds": 1.2418,
+          "helperResponseEncodeMilliseconds": 0.0109,
+          "responseDecodeMilliseconds": 1.3460999999997512,
+          "semanticValidationMilliseconds": 2.55179999999973,
+          "totalMilliseconds": 17.4059000000002,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3359,
+          "setupMilliseconds": 0.1147,
+          "kernelTotalMilliseconds": 0.12256000190973282,
+          "kernelAverageMilliseconds": 0.12256000190973282,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 6,
+        "fullApplicationMilliseconds": 20.605399999999918,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.06399999999985084,
+          "httpRoundTripMilliseconds": 4.000500000000102,
+          "helperDecodeMilliseconds": 0.3485,
+          "workerRoundTripMilliseconds": 1.227,
+          "workerTotalMilliseconds": 1.5734,
+          "helperResponseEncodeMilliseconds": 0.0145,
+          "responseDecodeMilliseconds": 1.4583000000002357,
+          "semanticValidationMilliseconds": 2.584900000000289,
+          "totalMilliseconds": 10.910399999999754,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3872,
+          "setupMilliseconds": 0.1423,
+          "kernelTotalMilliseconds": 0.1343040019273758,
+          "kernelAverageMilliseconds": 0.1343040019273758,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 7,
+        "fullApplicationMilliseconds": 22.895300000000134,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.06410000000005311,
+          "httpRoundTripMilliseconds": 4.136599999999817,
+          "helperDecodeMilliseconds": 0.2433,
+          "workerRoundTripMilliseconds": 1.337,
+          "workerTotalMilliseconds": 1.6524,
+          "helperResponseEncodeMilliseconds": 0.0193,
+          "responseDecodeMilliseconds": 2.6765000000000327,
+          "semanticValidationMilliseconds": 4.438500000000204,
+          "totalMilliseconds": 15.525299999999788,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3308,
+          "setupMilliseconds": 0.166,
+          "kernelTotalMilliseconds": 0.04831999912858009,
+          "kernelAverageMilliseconds": 0.04831999912858009,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 8,
+        "fullApplicationMilliseconds": 17.964699999999993,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.05780000000004293,
+          "httpRoundTripMilliseconds": 3.39850000000024,
+          "helperDecodeMilliseconds": 0.2762,
+          "workerRoundTripMilliseconds": 1.0777,
+          "workerTotalMilliseconds": 1.2993,
+          "helperResponseEncodeMilliseconds": 0.0101,
+          "responseDecodeMilliseconds": 1.22629999999981,
+          "semanticValidationMilliseconds": 2.99350000000004,
+          "totalMilliseconds": 10.738800000000083,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3784,
+          "setupMilliseconds": 0.1457,
+          "kernelTotalMilliseconds": 0.13184000551700592,
+          "kernelAverageMilliseconds": 0.13184000551700592,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 9,
+        "fullApplicationMilliseconds": 17.48999999999978,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.07540000000017244,
+          "httpRoundTripMilliseconds": 2.9863000000000284,
+          "helperDecodeMilliseconds": 0.2195,
+          "workerRoundTripMilliseconds": 0.8548,
+          "workerTotalMilliseconds": 1.1028,
+          "helperResponseEncodeMilliseconds": 0.0107,
+          "responseDecodeMilliseconds": 1.7521999999999025,
+          "semanticValidationMilliseconds": 3.517500000000382,
+          "totalMilliseconds": 11.294399999999769,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.3099,
+          "setupMilliseconds": 0.1092,
+          "kernelTotalMilliseconds": 0.11923199892044067,
+          "kernelAverageMilliseconds": 0.11923199892044067,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      },
+      {
+        "index": 10,
+        "fullApplicationMilliseconds": 21.387199999999666,
+        "clientTiming": {
+          "transport": "binary",
+          "requestEncodingMilliseconds": 0.07169999999996435,
+          "httpRoundTripMilliseconds": 7.350199999999859,
+          "helperDecodeMilliseconds": 0.3514,
+          "workerRoundTripMilliseconds": 1.0961,
+          "workerTotalMilliseconds": 1.369,
+          "helperResponseEncodeMilliseconds": 0.0107,
+          "responseDecodeMilliseconds": 0.9506999999998698,
+          "semanticValidationMilliseconds": 4.605799999999817,
+          "totalMilliseconds": 16.342799999999897,
+          "requestBytes": 64,
+          "responseBytes": 130720
+        },
+        "cudaTiming": {
+          "endToEndMilliseconds": 0.2586,
+          "setupMilliseconds": 0.1217,
+          "kernelTotalMilliseconds": 0.04179200157523155,
+          "kernelAverageMilliseconds": 0.04179200157523155,
+          "iterations": 1
+        },
+        "matched": true,
+        "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+        "shadow": true,
+        "productionApplied": false
+      }
+    ],
+    "binding": {
+      "sessionId": "e8a7d475-8dcd-455a-ba3d-7550ad364888",
+      "geometryFingerprint": "2012A2E0571CB8087392A46DDED15FAC8D22843DF66991E8E4ACEEBFA2D8751D",
+      "projectFingerprint": "sha256:edeba68cc425ff16eb04c2296d97e0f67dd520dd55ba37c8c883b610207fe7f1",
+      "sampleCount": 8159,
+      "shadow": true,
+      "productionApplied": false
+    }
+  },
+  "fallback": {
+    "candidateStatus": "helper_unavailable",
+    "fallback": {
+      "code": "helper_unreachable",
+      "detail": "helper unavailable for fallback verification"
+    },
+    "authoritativeBackend": "web",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "summary": {
+    "outerBinaryCold": {
+      "index": 0,
+      "fullApplicationMilliseconds": 402.73710000000005,
+      "clientTiming": {
+        "transport": "binary",
+        "requestEncodingMilliseconds": 13.452999999999975,
+        "httpRoundTripMilliseconds": 322.6781000000001,
+        "helperDecodeMilliseconds": 3.4806,
+        "workerRoundTripMilliseconds": 2.8046,
+        "workerTotalMilliseconds": 307.0203,
+        "helperResponseEncodeMilliseconds": 0.5496,
+        "responseDecodeMilliseconds": 4.633800000000065,
+        "semanticValidationMilliseconds": 9.12070000000017,
+        "totalMilliseconds": 352.4845,
+        "requestBytes": 130832,
+        "responseBytes": 130720
+      },
+      "cudaTiming": {
+        "endToEndMilliseconds": 1.5581,
+        "setupMilliseconds": 1.397,
+        "kernelTotalMilliseconds": 0.0589120015501976,
+        "kernelAverageMilliseconds": 0.0589120015501976,
+        "iterations": 1
+      },
+      "matched": true,
+      "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+      "missingSampleCount": 0,
+      "mismatchSampleCount": 0,
+      "shadow": true,
+      "productionApplied": false
+    },
+    "outerBinaryWarm": {
+      "runCount": 10,
+      "fullApplicationMilliseconds": 33.82529999999997,
+      "clientTotalMilliseconds": 16.92565000000002,
+      "requestEncodingMilliseconds": 6.039049999999975,
+      "httpRoundTripMilliseconds": 4.288249999999948,
+      "workerMilliseconds": 1.4272,
+      "responseDecodeMilliseconds": 1.5768499999999221,
+      "semanticValidationMilliseconds": 3.156600000000026,
+      "cudaEndToEndMilliseconds": 0.36214999999999997,
+      "cudaKernelMilliseconds": 0.1265759989619255,
+      "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+      "allMatched": true
+    },
+    "sessionWarm": {
+      "runCount": 10,
+      "fullApplicationMilliseconds": 23.392300000000205,
+      "clientTotalMilliseconds": 15.16424999999981,
+      "requestEncodingMilliseconds": 0.06404999999995198,
+      "httpRoundTripMilliseconds": 3.8479500000000826,
+      "workerMilliseconds": 1.3146,
+      "responseDecodeMilliseconds": 1.463950000000068,
+      "semanticValidationMilliseconds": 3.4167500000000928,
+      "cudaEndToEndMilliseconds": 0.34195,
+      "cudaKernelMilliseconds": 0.12270399928092957,
+      "maximumAbsoluteMarginDelta": 1.5804941287667074e-7,
+      "allMatched": true
+    }
+  }
+}

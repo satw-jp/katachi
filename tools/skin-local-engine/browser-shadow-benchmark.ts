@@ -1,5 +1,6 @@
 import {
   createEvaluateContainmentJob,
+  validateEvaluateContainmentJobRequest,
 } from "../../src/studies/skin/rebuild/geometryEngine/contracts.ts";
 import { evaluateContainmentShadow } from "../../src/studies/skin/rebuild/geometryEngine/shadowEvaluateContainment.ts";
 import { WindowsLocalGeometryEngineClient } from "../../src/studies/skin/rebuild/geometryEngine/windowsLocalClient.ts";
@@ -13,6 +14,7 @@ declare global {
 const params = new URLSearchParams(location.search);
 const sampleCount = Number(params.get("samples") ?? "32768");
 const transport = params.get("transport") === "json" ? "json" : "binary";
+const fixture = params.get("fixture") === "real-skin" ? "real-skin" : "synthetic";
 const reportElement = document.querySelector<HTMLPreElement>("#report");
 
 function deterministicSamples(count: number) {
@@ -35,7 +37,12 @@ function deterministicSamples(count: number) {
 }
 
 async function run(): Promise<void> {
-  const request = createEvaluateContainmentJob({
+  const request = fixture === "real-skin"
+    ? validateEvaluateContainmentJobRequest((await (await fetch(
+      "./fixtures/real-skin-120mm-containment-v1.json",
+      { cache: "no-store" },
+    )).json() as { request: unknown }).request)
+    : createEvaluateContainmentJob({
     clientRequestId: `real-browser-${transport}-${sampleCount}`,
     projectFingerprint: `sha256:real-browser-${transport}-${sampleCount}`,
     coordinateContract: {
@@ -59,7 +66,7 @@ async function run(): Promise<void> {
       samples: deterministicSamples(sampleCount),
       boundaryTolerance: 0.00005,
     },
-  });
+    });
   const client = new WindowsLocalGeometryEngineClient({ transport, jobTimeoutMs: 30_000 });
   const start = performance.now();
   const outcome = await evaluateContainmentShadow(request, {
@@ -70,7 +77,8 @@ async function run(): Promise<void> {
   const report = {
     userAgent: navigator.userAgent,
     secureContext: isSecureContext,
-    sampleCount,
+    fixture,
+    sampleCount: request.input.samples.length,
     transport,
     elapsedMilliseconds: performance.now() - start,
     candidateStatus: outcome.candidateStatus,
