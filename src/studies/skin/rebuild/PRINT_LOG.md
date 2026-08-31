@@ -55,3 +55,33 @@ validation reportを組み合わせて参照する。
 - Visible defects: _pending_
 - Breakage / failure sequence: _pending_
 - Decision for the next geometry iteration: **on hold until this result is recorded**
+
+### 2026-08-31 — Supplied Print #001 observation / TASK A diagnosis
+
+#### Observation (supplied by the author; not independently re-measured)
+
+> many upper Motifs are embedded in removable support; supports pierce Motifs; one isolated ~1 mm support is removable; clustered supports are difficult to remove; prioritize leaving no support inside the finished Body.
+
+Printer, slicer, layer/Z, material, and photographs remain pending above. This entry does not infer a
+slicer or printer cause, and `printApproval` remains false.
+
+#### Interpretation (code trace)
+
+`main.ts` passes final artwork (`project.finalGraph`) and `lowestPoints` to
+`buildSkinRebuildPrintSupport()` in `rebuild/model.ts`. That function derives contacts from non-spider
+overhang lowest points, surface-unanchored artwork nodes without a lower printable neighbour, and
+long shallow edge interpolation. It sets `plateRootCenterZ` from the lowest-point floor plus support
+radius, then emits only vertical root-to-contact edges. `requestPillar()` never searches for the first
+BODY intersection or collision-free termination.
+
+The permanent lattice and reinforcement routes have sampled full-radius **Base** containment and a
+short Pattern-back endpoint attachment exception; those checks do not inspect a removable Support
+against Motif/shell/permanent Web/reinforcement. `buildSkinRebuildFinalMesh()` includes only the
+Surface composite and permanent `finalGraph`; `buildPrintSupportMesh()` exports capped Support
+cylinders separately. `mergeSkinRebuildGraphsAtSupportContacts()` (an exact collinear split only when a
+support node lies on an artwork edge) and the Internal Print Gate provide reachability/topology
+bookkeeping, not Support-vs-BODY collision checking. The missing TASK B predicate is therefore a
+radius-aware intermediate-route test against the finished BODY: only the intended final endpoint may
+contact the target surface; a candidate whose intermediate capsule intersects the finished BODY is
+rejected and recorded as explicit unsupported. TASK B does not terminate at an earlier collision or
+search an alternate path.

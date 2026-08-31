@@ -16,6 +16,65 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — TASK A Print #001 removable-support/body collision diagnosis (documentation-only)
+
+#### Supplied physical observation
+
+> many upper Motifs are embedded in removable support; supports pierce Motifs; one isolated ~1 mm support is removable; clustered supports are difficult to remove; prioritize leaving no support inside the finished Body.
+
+これは作者から受け取ったPrint #001の観察をそのまま記録したもので、ここでは再測定や
+スライサー・プリンターの推論を加えない。Printer、slicer、layer/Z、material、photoは
+`PRINT_LOG.md`の未記録項目として残し、`printApproval=false`も変更しない。
+
+#### Code-grounded interpretation
+
+- **入力と対象:** `src/studies/skin/main.ts`の
+  `diagnoseSkinRebuildArtworkForPrintSupport()`は、最終作品`project.finalGraph`
+  （Surface Pattern＋恒久Spider、必要なら保持DryWeb）を`dryWeb`として
+  `findSkinRebuildLowestPoints()`へ渡す。Stage 8は同じ`current.finalGraph`と診断済み
+  `lowestPoints`を`buildSkinRebuildPrintSupport()`へ渡す。したがってSupportは別Graphだが、
+  対象決定は完成作品の診断結果に依存する。
+- **Support targetの出所:** `findSkinRebuildLowestPoints()`の`plateContact`/
+  `needsSupport`判定（最終mesh由来の`findMotifMeshLowestPoints()`、source fallbackを含む）のうち、
+  `!point.needsSupport`または`skinRebuildRequiresSpiderSupport()`でない赤い最下点を
+  `buildSkinRebuildPrintSupport()`が候補にする。さらに`artwork.nodes`で、plateの
+  `surfaceSdf`中心値がsurface-anchoredでなく、45°以内の低い`artwork`隣接辺がないnodeを候補にし、
+  45°超かつ4.8 mm超の長い浅い`artwork.edges`には線形補間contactも追加する。
+- **Plate contactとtermination:** 同関数は`plateSurfaceZ = min(lowestPoints.position.z)`
+  （空なら`patternFloor = min(patch.points.z - point.r)`）とし、
+  `plateRootCenterZ = plateSurfaceZ + supportRadius`を計算する。`requestPillar()`は同じXY列を
+  最高Zへまとめ、各contactへ`{x, y, plateRootCenterZ}`からcontactまでの1本の垂直edgeだけを
+  作る。これはBODY境界を探索して止める処理ではなく、指定contactで終端する処理である。
+- **BODYとの分離:** `buildSkinRebuildFinalMesh()`→`buildSkinMesh()`→
+  `prepareSkinMeshField()`はSurface compositeと`combineWithInternalStructure()`の恒久Graph capsule
+  だけをBODYへ合成する。`buildPrintSupportMesh()`と`meshExport.worker.ts`はSupportを別の閉じた円柱
+  STL/OBJへ変換し、3MFも`mergePrintableSupportIntoBody:false`で別partにする。別partであることは、
+  同じ座標でBODYを貫通しないことの判定ではない。
+- **既存の衝突・接触チェックの範囲:** 恒久Web/latticeの
+  `pathWithContainedPrintableBridge()`、`sampledLatticeEdgeBaseExcess()`、および
+  `reinforceSkinRebuildOverhangRegion()`の`builderEdgeRangeStaysInsideBase()`は、線半径を含む
+  **Base内包**と、指定されたPattern-back/area attachmentの短いendpoint例外を確認するだけである。
+  `mergeSkinRebuildGraphsAtSupportContacts()`はSupport nodeが既存edge上にある場合の
+  print-reachability用の完全共線splitだけで、BODY geometryを変更しない。Internal Print Gateの
+  `surfaceAnchored`はnode中心、bridge判定はSurface SDF上のedge中心線だけであり、Support cylinderを
+  完成BODY（Motif/shell/Web/reinforcement）に対して検査しない。Support STLのtopology検査も交差を
+  見ない。
+- **直接原因と欠落predicate:** `buildSkinRebuildPrintSupport()`は、候補contactの中心値と
+  artwork隣接関係を見た後、root→contactの垂直Support capsuleを途中サンプルしない。
+  `surfaceSdf`はSurface compositeの中心点ヒューリスティックで、最終BODYの恒久Graph capsuleを
+  含まない。従って、候補として残ったpillar（特にlowestPoint、edge補間contact、surface外に
+  見えるartwork node）を上へ伸ばす途中でMotif/shellへ入っても、rejectやunsupported記録が無く、
+  観察された「MotifをpierceするSupport」となる。Support内のclusterもXY列dedup以外の
+  BODY-clearance判定を持たない。
+- **最小のTASK B correction:** `buildSkinRebuildPrintSupport()`のpillar受理時に、完成BODYと同じ
+  authoritative field（Surface composite＋`finalGraph` capsule）に対する**半径込みのroot→contact
+  capsuleの中間経路collision predicate**を追加する。許可するのは意図したtarget surfaceへの明示した
+  最終endpoint contact（境界/attachment）だけとし、そのendpoint例外を中間sampleへ拡張しない。
+  intermediate radius-aware capsuleが完成BODYに交差するcandidateはrejectし、explicit unsupportedとして
+  記録する。意図したtargetへ届かないcandidateを中間の衝突位置で早期終端せず、TASK Bではalternate-path
+  search/別経路探索も行わない。lowestPoint、node、edge補間の全targetと、print gate/exportで同じ判定を
+  使い、恒久Web・reinforcement・BODY生成の挙動はTASK Aでは変更しない。
+
 ### 2026-08-31 — Windows CUDA local-engine boundary (shadow-only prototype)
 
 Web版をauthoritativeのまま維持し、固定loopback `127.0.0.1:47658`へversioned containment jobを渡せる
