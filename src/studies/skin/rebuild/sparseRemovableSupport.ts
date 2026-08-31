@@ -9,6 +9,9 @@ import type {
 export interface SparseRemovableSupportFace {
   /** The retained Stage 4 Outside region id. */
   regionId: number;
+  /** The exact Stage 3 Pattern owner selected by Stage 4, or -1 when the
+   * stored responsibility has no owner. */
+  ownerPatchId: number;
   /** Representative point from the Stage 7 final-artwork triangle. */
   position: Vector3Value;
   /** Representative outward triangle normal. */
@@ -30,6 +33,8 @@ export type SparseSupportRejectReason =
 export interface SparseRemovableSupportTarget {
   id: string;
   regionId: number;
+  /** The exact Stage 3 Pattern owner copied through Stage 4/7 projection. */
+  ownerPatchId: number;
   position: Vector3Value;
   normal: Vector3Value;
   sourceFaceIndices: number[];
@@ -68,6 +73,7 @@ export interface SparseSupportRouteAttempt {
 export interface SparseSupportDebugCriticalTarget {
   id: string;
   regionId: number;
+  ownerPatchId: number;
   position: Vector3Value;
   sourceFaceIndices: number[];
 }
@@ -75,6 +81,7 @@ export interface SparseSupportDebugCriticalTarget {
 export interface SparseSupportDebugRejectedCandidate {
   id: string;
   regionId: number;
+  ownerPatchId: number;
   position: Vector3Value;
   reason: SparseSupportRejectReason;
   routeKind?: SparseSupportRouteKind;
@@ -133,8 +140,13 @@ export interface SparseRemovableSupportRequest {
   bodySdf?: (x: number, y: number, z: number) => number;
   /** Optional target field used only to attribute terminal contact.  It is
    * never subtracted from bodySdf and therefore is not treated as a BODY
-   * partition. */
+   * partition.  It must be the field for target.ownerPatchId; a missing or
+   * non-finite field fails closed when the terminal segment reaches BODY. */
   targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  /** Field for all non-owner BODY surfaces and the permanent finalGraph. It
+   * is checked independently of targetSdf; it is never inferred by
+   * subtracting targetSdf from bodySdf. */
+  otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   /** Source-unit spacing between accepted support capsules. */
   removalGap?: number;
   /** Physical gap convenience input. Requires scaleMmPerUnit. */
@@ -362,6 +374,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   outsideRegionCount: number;
   bodySdf?: (x: number, y: number, z: number) => number;
   targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   removalGap: number;
   neckLength: number;
   lowStartBand: number;
@@ -407,6 +420,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     neckRadius: input.neckRadius,
     bodySdf: input.bodySdf,
     targetSdf: input.targetSdf,
+    otherBodySdf: input.otherBodySdf,
     removalGap,
     neckLength,
     lowStartBand,
@@ -455,7 +469,9 @@ export function extractSparseRemovableSupportTargets(
   const maxPerRegion = Math.max(1, Math.min(3, Math.floor(options.maxCandidatesPerRegion ?? 3)));
   const groups = new Map<number, SparseRemovableSupportFace[]>();
   for (const face of faces) {
-    if (!Number.isInteger(face.regionId) || face.regionId < 0 || !finitePoint(face.position)) continue;
+    if (!Number.isInteger(face.regionId) || face.regionId < 0
+      || !Number.isInteger(face.ownerPatchId) || face.ownerPatchId < 0
+      || !finitePoint(face.position)) continue;
     const group = groups.get(face.regionId) ?? [];
     group.push(face);
     groups.set(face.regionId, group);
@@ -499,6 +515,7 @@ export function extractSparseRemovableSupportTargets(
       targets.push({
         id: candidateTargetId(regionId, index),
         regionId,
+        ownerPatchId: face.ownerPatchId,
         position: clonePoint(face.position),
         normal: clonePoint(face.normal),
         sourceFaceIndices: [face.faceIndex],
@@ -533,10 +550,18 @@ function makeCandidates(
 }
 
 function pointInsidePlateBounds(point: Vector3Value, bounds: SparseRemovableSupportRequest["plateBounds"]): boolean {
-  return !bounds || (finite(bounds.minX) && finite(bounds.maxX) && finite(bounds.minY) && finite(bounds.maxY)
+  if (!bounds) return false;
+  return finite(bounds.minX) && finite(bounds.maxX) && finite(bounds.minY) && finite(bounds.maxY)
     && bounds.minX <= bounds.maxX && bounds.minY <= bounds.maxY
     && point.x >= bounds.minX - EPSILON && point.x <= bounds.maxX + EPSILON
-    && point.y >= bounds.minY - EPSILON && point.y <= bounds.maxY + EPSILON);
+    && point.y >= bounds.minY - EPSILON && point.y <= bounds.maxY + EPSILON;
+}
+
+function finitePlateBounds(bounds: SparseRemovableSupportRequest["plateBounds"]): boolean {
+  if (!bounds) return false;
+  return finite(bounds.minX) && finite(bounds.maxX)
+    && finite(bounds.minY) && finite(bounds.maxY)
+    && bounds.minX <= bounds.maxX && bounds.minY <= bounds.maxY;
 }
 
 function buildRoute(
@@ -595,7 +620,9 @@ function buildLeaningRoutes(
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
 ): SparseRemovableSupportRoute[] {
-  if (request.maxLeaningRoutes <= 0) return [];
+  // The workflow currently records only plate Z. A leaning root needs an
+  // explicit finite physical XY plate proof; unknown bounds never grant it.
+  if (request.maxLeaningRoutes <= 0 || !finitePlateBounds(request.plateBounds)) return [];
   const rise = target.position.z - request.plateZ;
   const neckRise = Math.min(request.neckLength, Math.max(rise * 0.4, request.neckRadius * 1.5));
   const shaftRise = target.position.z - neckRise - request.plateZ;
@@ -630,7 +657,7 @@ function buildLeaningRoutes(
   return routes;
 }
 
-interface RouteAudit {
+export interface SparseSupportRouteAudit {
   accepted: boolean;
   reason?: SparseSupportRejectReason;
   detail: string;
@@ -643,8 +670,11 @@ function auditCapsuleAgainstBody(
   terminal: boolean,
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
-): RouteAudit {
+): SparseSupportRouteAudit {
   if (!bodySdf) return { accepted: false, reason: "body", detail: "authoritative finished BODY SDF is unavailable", sampleCount: 0 };
+  if (terminal && (!request.targetSdf || !request.otherBodySdf)) {
+    return { accepted: false, reason: "body", detail: "terminal owner-target and non-owner BODY SDFs are unavailable", sampleCount: 0 };
+  }
   const routeLength = distance(segment.start, segment.end);
   if (!(routeLength > EPSILON) || !finitePoint(segment.start) || !finitePoint(segment.end)) {
     return { accepted: false, reason: "removability", detail: "zero-length or non-finite segment", sampleCount: 0 };
@@ -658,7 +688,7 @@ function auditCapsuleAgainstBody(
   if (!finite(intervalLength) || !(intervalLength > 0)) {
     return { accepted: false, reason: "unsupported", detail: "keep-out interval is not finite", sampleCount: 0 };
   }
-  type KeepOutSample = { body: number; target: number };
+  type KeepOutSample = { body: number; target: number; other: number };
   type ContactRegion = { start: number; end: number };
   const samples = new Map<number, KeepOutSample>();
   let sampleCount = 0;
@@ -670,15 +700,19 @@ function auditCapsuleAgainstBody(
     const point = lerp(segment.start, segment.end, t);
     let bodyDistance: number;
     let targetDistance = 1e5;
+    let otherBodyDistance = 1e5;
     sampleCount++;
     try {
       bodyDistance = bodySdf(point.x, point.y, point.z);
-      if (terminal && request.targetSdf) targetDistance = request.targetSdf(target, point.x, point.y, point.z);
+      if (terminal) {
+        targetDistance = request.targetSdf!(target, point.x, point.y, point.z);
+        otherBodyDistance = request.otherBodySdf!(target, point.x, point.y, point.z);
+      }
     } catch {
       return null;
     }
-    if (!finite(bodyDistance) || !finite(targetDistance)) return null;
-    const sample = { body: bodyDistance, target: targetDistance };
+    if (!finite(bodyDistance) || !finite(targetDistance) || !finite(otherBodyDistance)) return null;
+    const sample = { body: bodyDistance, target: targetDistance, other: otherBodyDistance };
     samples.set(t, sample);
     return sample;
   };
@@ -696,10 +730,13 @@ function auditCapsuleAgainstBody(
   if (firstSample.body <= threshold) {
     return { accepted: false, reason: "body", detail: "plate root is born inside finished BODY", sampleCount };
   }
-  if (terminal && request.targetSdf && lastSample.target > threshold) {
+  if (terminal && lastSample.target > threshold) {
     return { accepted: false, reason: "body", detail: "terminal contact is not attributed to the target", sampleCount };
   }
-  const targetEndpointAllowance = terminal && request.targetSdf
+  if (terminal && (firstSample.other <= threshold || lastSample.other <= threshold)) {
+    return { accepted: false, reason: "body", detail: "non-owner BODY is not clear at a route endpoint", sampleCount };
+  }
+  const targetEndpointAllowance = terminal
     ? threshold - lastSample.target
     : Number.NaN;
   const certifyInterval = (
@@ -714,13 +751,26 @@ function auditCapsuleAgainstBody(
     const bodyLowerBound = oneLipschitzLowerBound(first.body, second.body, segmentLength);
     const targetLowerBound = oneLipschitzLowerBound(first.target, second.target, segmentLength);
     const targetUpperBound = oneLipschitzUpperBound(first.target, second.target, segmentLength);
-    if (![bodyLowerBound, targetLowerBound, targetUpperBound].every(finite)) return null;
+    const otherLowerBound = oneLipschitzLowerBound(first.other, second.other, segmentLength);
+    if (![bodyLowerBound, targetLowerBound, targetUpperBound, otherLowerBound].every(finite)) return null;
+    if (terminal) {
+      // This field is independently generated from every non-owner BODY
+      // surface and the permanent finalGraph.  A possible capsule overlap is
+      // a hard rejection, including at the terminal endpoint; it cannot be
+      // licensed by the owner target's endpoint cone.
+      const otherPossibleStart = Math.max(0, first.other - threshold);
+      const otherPossibleEnd = Math.min(segmentLength, segmentLength - second.other + threshold);
+      if (!finite(otherPossibleStart) || !finite(otherPossibleEnd)
+        || otherPossibleStart <= otherPossibleEnd + 1e-7) {
+        return null;
+      }
+    }
     if (bodyLowerBound > threshold) return [];
     // Any unresolved BODY overlap away from an explicitly target-attributed
     // terminal contact is a hard collision rejection. It is not safe to call
     // such a route merely "unsupported": the route has failed the BODY
     // keep-out screen even when no target SDF was supplied.
-    if (!terminal || !request.targetSdf || !finite(targetEndpointAllowance)
+    if (!terminal || !request.targetSdf || !request.otherBodySdf || !finite(targetEndpointAllowance)
       || targetEndpointAllowance < -1e-7) {
       return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
     }
@@ -777,6 +827,12 @@ function auditCapsuleAgainstBody(
   if (contactRegions.length === 0) {
     return { accepted: true, detail: "bounded BODY keep-out clear", sampleCount };
   }
+  if (!terminal) {
+    // A shaft is never an intended contact segment. Even when the possible
+    // overlap happens to form a suffix of this segment, only the explicit
+    // terminal/contact-neck segment may use target attribution.
+    return { accepted: false, reason: "body", detail: "BODY contact on a non-terminal shaft segment", sampleCount };
+  }
   contactRegions.sort((first, second) => first.start - second.start || first.end - second.end);
   for (let index = 1; index < contactRegions.length; index++) {
     if (contactRegions[index].start > contactRegions[index - 1].end + 1e-7) {
@@ -797,15 +853,33 @@ function auditCapsuleAgainstBody(
   return { accepted: true, detail: "terminal BODY contact is finite and target-attributed", sampleCount };
 }
 
+/** Focused pure audit entry point used by the sparse regression fixtures. It
+ * deliberately takes the same request fields as the builder, so tests exercise
+ * the actual target/remainder audit rather than a second collision algorithm. */
+export function auditSparseRemovableSupportCapsule(
+  segment: SparseSupportRouteSegment,
+  request: SparseRemovableSupportRequest,
+  target: SparseRemovableSupportTarget,
+  terminal = true,
+): SparseSupportRouteAudit {
+  const normalized = normalizeRequest(request);
+  return auditCapsuleAgainstBody(segment, normalized.bodySdf, terminal, target, normalized);
+}
+
 function auditRoute(
   route: SparseRemovableSupportRoute,
   request: ReturnType<typeof normalizeRequest>,
   acceptedSegments: readonly SparseSupportRouteSegment[],
   target: SparseRemovableSupportTarget,
-): RouteAudit {
+): SparseSupportRouteAudit {
+  const plateReachable = route.kind === "vertical"
+    ? (request.plateBounds === undefined || pointInsidePlateBounds(route.root, request.plateBounds))
+    : finitePlateBounds(request.plateBounds) && pointInsidePlateBounds(route.root, request.plateBounds);
   if (!finitePoint(route.root) || Math.abs(route.root.z - request.plateZ) > EPSILON
-    || !pointInsidePlateBounds(route.root, request.plateBounds)) {
-    return { accepted: false, reason: "removability", detail: "route is not build-plate reachable", sampleCount: 0 };
+    || !plateReachable) {
+    return { accepted: false, reason: "removability", detail: route.kind === "leaning"
+      ? "leaning route lacks explicit finite physical plate XY bounds"
+      : "route is not build-plate reachable", sampleCount: 0 };
   }
   if (route.segments.length === 0 || route.segments.some((segment) =>
     !finitePoint(segment.start) || !finitePoint(segment.end) || !(segment.radius > EPSILON)
@@ -925,6 +999,7 @@ export function buildSparseRemovableSupport(
       rejectedCandidates.push({
         id: candidate.id,
         regionId: candidate.target.regionId,
+        ownerPatchId: candidate.target.ownerPatchId,
         position: clonePoint(candidate.target.position),
         reason: lastAttempt?.reason ?? "unsupported",
         ...(lastAttempt?.kind ? { routeKind: lastAttempt.kind } : {}),
@@ -943,6 +1018,7 @@ export function buildSparseRemovableSupport(
     criticalTargets: targets.slice(0, request.maxDebugCandidates).map((target) => ({
       id: target.id,
       regionId: target.regionId,
+      ownerPatchId: target.ownerPatchId,
       position: clonePoint(target.position),
       sourceFaceIndices: [...target.sourceFaceIndices],
     })),

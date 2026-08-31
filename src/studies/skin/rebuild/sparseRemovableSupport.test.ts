@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { smoothMin } from "../../cloud-sculpt/field.ts";
 import {
   SKIN_REBUILD_OVERHANG_INSIDE,
   SKIN_REBUILD_OVERHANG_OUTSIDE,
   projectSkinRebuildFinalArtworkOverhangToStage4,
 } from "./overhangInteriorClassification.ts";
 import {
+  auditSparseRemovableSupportCapsule,
   buildSparseRemovableSupport,
   extractSparseRemovableSupportTargets,
   type SparseRemovableSupportFace,
@@ -16,8 +18,10 @@ const face = (
   y: number,
   z: number,
   faceIndex: number,
+  ownerPatchId = 1,
 ): SparseRemovableSupportFace => ({
   regionId,
+  ownerPatchId,
   position: { x, y, z },
   normal: { x: 0, y: 0, z: -1 },
   faceIndex,
@@ -32,6 +36,9 @@ const baseRequest = {
   maxCandidatesPerRegion: 3,
   maxLeaningRoutes: 4,
   bodySdf: () => 10,
+  targetSdf: (target: { position: { x: number; y: number; z: number } }, x: number, y: number, z: number) =>
+    Math.hypot(x - target.position.x, y - target.position.y, z - target.position.z) - 0.05,
+  otherBodySdf: () => 10,
 };
 
 // Stage 7's triangle positions move, while Stage 4 remains the exact source
@@ -52,6 +59,7 @@ const projected = projectSkinRebuildFinalArtworkOverhangToStage4(
   {
     faceClasses: new Int8Array([SKIN_REBUILD_OVERHANG_INSIDE, SKIN_REBUILD_OVERHANG_OUTSIDE]),
     faceRegionIds: new Int32Array([5, 9]),
+    faceOwnerPatchIds: new Int32Array([71, 72]),
   },
 );
 assert.equal(projected.insideFaceCount, 1);
@@ -60,6 +68,7 @@ assert.deepEqual([...projected.outsideByRegion.keys()], [9]);
 assert.equal(projected.outsideByRegion.get(9)?.[0].stage7FaceIndex, 1);
 assert.equal(projected.faces[0].responsibility, SKIN_REBUILD_OVERHANG_INSIDE);
 assert.equal(projected.faces[1].responsibilityRegionId, 9);
+assert.equal(projected.faces[1].responsibilityOwnerPatchId, 72);
 
 // A dense final-artwork diagnosis remains sparse: at most three low-band
 // representatives are retained for one Stage 4 responsibility region.
@@ -134,6 +143,7 @@ const leaning = buildSparseRemovableSupport({
   projectedOutsideFaces: [face(8, 0, 0, 2, 0)],
   outsideRegionCount: 1,
   maxLeaningRoutes: 2,
+  plateBounds: { minX: -2, maxX: 2, minY: -2, maxY: 2 },
   bodySdf: (x, y, z) => Math.hypot(x, y, z - 1) - 0.2,
 });
 assert.equal(leaning.diagnostics.verticalCount, 0);
@@ -153,6 +163,135 @@ const bodyRejected = buildSparseRemovableSupport({
 assert.equal(bodyRejected.diagnostics.generatedSupportCount, 0);
 assert.ok(bodyRejected.diagnostics.rejectedByBody > 0);
 assert.equal(bodyRejected.diagnostics.insideDerivedSupportCount, 0);
+
+// A shaft/body contact is never a licensable terminal suffix. The body is
+// placed exactly at the shaft's final point so the old contiguous-suffix bug
+// would have accepted this candidate before the contact neck was audited.
+const nonTerminalContact = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(12, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  bodySdf: (x, y, z) => Math.hypot(x, y, z - 1.925) - 0.06,
+});
+assert.equal(nonTerminalContact.diagnostics.generatedSupportCount, 0);
+assert.ok(nonTerminalContact.diagnostics.rejectedByBody > 0,
+  "a BODY contact on the non-terminal shaft must reject by BODY");
+assert.match(nonTerminalContact.debug.routeAttempts[0]?.attempts[0]?.detail ?? "", /non-terminal|BODY/);
+
+// Leaning roots are unavailable without an explicit finite physical plate
+// rectangle. Unknown XY bounds must not be treated as proof of reachability.
+const noBoundsLeaning = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(13, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 2,
+  bodySdf: (x, y, z) => Math.hypot(x, y, z - 1) - 0.2,
+});
+assert.equal(noBoundsLeaning.diagnostics.generatedSupportCount, 0);
+assert.equal(noBoundsLeaning.diagnostics.leaningCount, 0);
+assert.ok(noBoundsLeaning.diagnostics.rejectedByBody > 0);
+assert.ok(noBoundsLeaning.debug.routeAttempts[0]?.attempts.every((attempt) => attempt.kind === "vertical"),
+  "no-bounds routing must not claim a leaning attempt");
+
+// An explicit finite rectangle makes the same bounded leaning fallback
+// available, while a root outside that rectangle is a hard rejection.
+const plateOutside = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(14, 2, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  plateBounds: { minX: -1, maxX: 1, minY: -1, maxY: 1 },
+});
+assert.equal(plateOutside.diagnostics.generatedSupportCount, 0);
+assert.ok(plateOutside.diagnostics.rejectedByRemovability > 0,
+  "an explicit plate-outside vertical root must reject");
+
+const auditTarget = {
+  id: "audit-target",
+  regionId: 15,
+  ownerPatchId: 1,
+  position: { x: 0, y: 0, z: 2 },
+  normal: { x: 0, y: 0, z: -1 },
+  sourceFaceIndices: [0],
+};
+const auditSegment = (start: { x: number; y: number; z: number }, radius = 0.05) => ({
+  start,
+  end: auditTarget.position,
+  radius,
+});
+const auditRequest = (bodySdf: (x: number, y: number, z: number) => number,
+  targetSdf: (target: typeof auditTarget, x: number, y: number, z: number) => number,
+  otherBodySdf: (target: typeof auditTarget, x: number, y: number, z: number) => number) => ({
+  ...baseRequest,
+  projectedOutsideFaces: [face(15, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  bodySdf,
+  targetSdf,
+  otherBodySdf,
+  targetRadius: 0.05,
+  maximumOverlapLength: 0.5,
+  maximumDepth: 0.5,
+});
+
+// This is the TASK-E two-ring3d smooth-min fixture. The complete BODY field
+// is not an exact target/remainder partition; the independent other field
+// remains authoritative for wrong-terminal rejection.
+const ring3dTarget = (x: number, y: number, z: number): number => Math.hypot(x, y, z - 2) - 0.05;
+const ring3dOther = (x: number, y: number, z: number): number => Math.hypot(x - 0.135, y, z - 1.89) - 0.025;
+const ring3dSmoothMinBody = (x: number, y: number, z: number): number =>
+  smoothMin(ring3dTarget(x, y, z), ring3dOther(x, y, z), 0.045);
+const sparseSmoothMin = auditSparseRemovableSupportCapsule(
+  auditSegment({ x: 0.5, y: 0, z: 0 }),
+  auditRequest(
+    ring3dSmoothMinBody,
+    (_target, x, y, z) => ring3dTarget(x, y, z),
+    (_target, x, y, z) => ring3dOther(x, y, z),
+  ),
+  auditTarget,
+);
+assert.equal(sparseSmoothMin.accepted, false,
+  "Sparse audit must reject the two-ring3d smooth-min fixture");
+
+const intendedTargetSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 2) - 0.05;
+const wrongTerminalSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 1.9) - 0.04;
+const sparseWrongTerminal = auditSparseRemovableSupportCapsule(
+  auditSegment({ x: 0, y: 0, z: 0 }, 0.1),
+  auditRequest(
+    (x, y, z) => smoothMin(intendedTargetSdf(x, y, z), wrongTerminalSdf(x, y, z), 0.045),
+    (_target, x, y, z) => intendedTargetSdf(x, y, z),
+    (_target, x, y, z) => wrongTerminalSdf(x, y, z),
+  ),
+  auditTarget,
+);
+assert.equal(sparseWrongTerminal.accepted, false,
+  "Sparse audit must reject a wrong terminal owner even at the endpoint");
+
+const nonLipschitzTarget = (_x: number, _y: number, z: number): number => z >= 0.98 ? -0.4 : 0.09;
+const sparseNonLipschitzTarget = auditSparseRemovableSupportCapsule(
+  auditSegment({ x: 0, y: 0, z: 0 }, 0.1),
+  auditRequest(
+    () => 10,
+    (_target, x, y, z) => nonLipschitzTarget(x, y, z),
+    () => 10,
+  ),
+  auditTarget,
+);
+assert.equal(sparseNonLipschitzTarget.accepted, false,
+  "Sparse audit must reject a non-Lipschitz owner target field");
+
+const sparseLegitimateTerminal = auditSparseRemovableSupportCapsule(
+  auditSegment({ x: 0, y: 0, z: 0 }, 0.1),
+  auditRequest(
+    intendedTargetSdf,
+    (_target, x, y, z) => intendedTargetSdf(x, y, z),
+    () => 10,
+  ),
+  auditTarget,
+);
+assert.equal(sparseLegitimateTerminal.accepted, true,
+  "Sparse audit must retain a legitimate exact owner target contact");
 
 // The pure result is deterministic for identical inputs.
 assert.deepEqual(

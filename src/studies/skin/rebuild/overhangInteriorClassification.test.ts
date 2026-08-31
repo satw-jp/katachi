@@ -33,6 +33,7 @@ assert.deepEqual([...classified.faceClasses], [
   SKIN_REBUILD_OVERHANG_OUTSIDE,
 ]);
 assert.deepEqual([...classified.faceRegionIds], [3, 3]);
+assert.deepEqual([...classified.faceOwnerPatchIds], [7, 7]);
 assert.deepEqual([...classified.insideFaceRegionIds], [3, -1]);
 assert.equal(classified.insideFaceCount, 1);
 assert.equal(classified.outsideFaceCount, 1);
@@ -72,5 +73,6 @@ const unavailable = classifySkinRebuildOverhangFromStage3(
 );
 assert.equal(unavailable.unclassifiedFaceCount, 1, "an ambiguous Stage 3 row must fail closed for 5B");
 assert.deepEqual([...unavailable.insideFaceRegionIds], [-1]);
+assert.deepEqual([...unavailable.faceOwnerPatchIds], [-1]);
 
 console.log("overhangInteriorClassification: Stage 3 orientation projection and inside-only mask passed");

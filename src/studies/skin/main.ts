@@ -248,6 +248,7 @@ import {
   type SparseRemovableSupportDebug,
   type SparseRemovableSupportFace,
   type SparseRemovableSupportResult,
+  type SparseRemovableSupportTarget,
 } from "./rebuild/sparseRemovableSupport.ts";
 import {
   SkinRebuildShadowObserver,
@@ -8716,6 +8717,7 @@ function installSkinRebuildPipelinePanel(): void {
           && face.responsibilityRegionId >= 0)
         .map((face) => ({
           regionId: face.responsibilityRegionId,
+          ownerPatchId: face.responsibilityOwnerPatchId,
           position: face.position,
           normal: face.normal,
           faceIndex: face.stage7FaceIndex,
@@ -8760,7 +8762,7 @@ function installSkinRebuildPipelinePanel(): void {
           const shaftRadius = settings.supportDiameterMm * 0.5 / scaleMmPerUnit;
           const neckRadius = Math.min(0.3 / scaleMmPerUnit, shaftRadius * 0.85);
           const targetRadius = Math.max(settings.surfaceThickness, neckRadius * 2);
-          const bodySdf = createFinishedSkinBodySdfEvaluator({
+          const finishedBodyInput = {
             mode: "plate",
             host: current.base.host,
             hostK: current.base.hostK,
@@ -8771,9 +8773,33 @@ function installSkinRebuildPipelinePanel(): void {
             coinBulgeBalance: 0,
             quadMeshJoinWidth: 0,
             internalGraph: current.finalGraph,
-          });
-          const targetSdf = (target: { position: { x: number; y: number; z: number } }, x: number, y: number, z: number): number =>
-            Math.hypot(x - target.position.x, y - target.position.y, z - target.position.z) - targetRadius;
+          } as const;
+          const bodySdf = createFinishedSkinBodySdfEvaluator(finishedBodyInput);
+          const targetSdfByOwner = new Map<number, (x: number, y: number, z: number) => number>();
+          const otherBodySdfByOwner = new Map<number, (x: number, y: number, z: number) => number>();
+          for (const target of projectedOutsideFaces) {
+            if (targetSdfByOwner.has(target.ownerPatchId)) continue;
+            const ownerPatch = current.patterns.find((patch) => patch.id === target.ownerPatchId);
+            if (!ownerPatch) continue;
+            // Keep owner attribution and the non-owner remainder as separate
+            // evaluators.  The complete BODY SDF remains authoritative for
+            // keep-out; neither field is treated as an exact smooth-min
+            // partition of it.
+            targetSdfByOwner.set(target.ownerPatchId, createFinishedSkinBodySdfEvaluator({
+              ...finishedBodyInput,
+              patches: [ownerPatch],
+              internalGraph: null,
+            }));
+            otherBodySdfByOwner.set(target.ownerPatchId, createFinishedSkinBodySdfEvaluator({
+              ...finishedBodyInput,
+              patches: current.patterns.filter((patch) => patch.id !== target.ownerPatchId),
+              internalGraph: current.finalGraph,
+            }));
+          }
+          const targetSdf = (target: SparseRemovableSupportTarget, x: number, y: number, z: number): number =>
+            targetSdfByOwner.get(target.ownerPatchId)?.(x, y, z) ?? Number.NaN;
+          const otherBodySdf = (target: SparseRemovableSupportTarget, x: number, y: number, z: number): number =>
+            otherBodySdfByOwner.get(target.ownerPatchId)?.(x, y, z) ?? Number.NaN;
           const plateZ = diagnosis.lowestPoints.length > 0
             ? Math.min(...diagnosis.lowestPoints.map((point) => point.position.z))
             : bounds.min.z;
@@ -8785,6 +8811,7 @@ function installSkinRebuildPipelinePanel(): void {
             neckRadius,
             bodySdf,
             targetSdf,
+            otherBodySdf,
             removalGapMm: 0.35,
             scaleMmPerUnit,
             contactNeckDiameterMm: 0.6,
@@ -8792,10 +8819,9 @@ function installSkinRebuildPipelinePanel(): void {
             maximumOverlapLength: targetRadius + shaftRadius * 2,
             maximumDepth: targetRadius + shaftRadius * 2,
             // The current SKIN workflow stores the plate's Z only; the BODY
-            // sampling bounds are not a physical XY plate limit.  Keep the
-            // bounded route search finite while allowing a leaning root to
-            // land outside the artwork footprint when that is the only clear
-            // build-plate path.
+            // sampling bounds are not a physical XY plate limit.  Without an
+            // explicit finite plateBounds proof, leaning routes are therefore
+            // unavailable; vertical routes remain eligible.
           });
           return sparseResult.graph;
         })()

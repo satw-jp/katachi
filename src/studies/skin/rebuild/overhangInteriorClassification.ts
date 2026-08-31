@@ -14,6 +14,10 @@ export interface SkinRebuildOverhangInteriorClassification {
   faceClasses: Int8Array;
   /** The retained Stage 4 region id for every diagnosed overhang triangle. */
   faceRegionIds: Int32Array;
+  /** The selected Stage 3 Pattern owner for every diagnosed triangle, or -1
+   * when the Stage 4 responsibility is unavailable.  This is copied from the
+   * actual nearest SkinRebuildPatternSide; it is not a new classifier. */
+  faceOwnerPatchIds: Int32Array;
   /** Original region id for inside faces, -1 for every other face. */
   insideFaceRegionIds: Int32Array;
   insideFaceCount: number;
@@ -42,6 +46,8 @@ export interface SkinRebuildProjectedOverhangFace {
   responsibility: SkinRebuildOverhangInteriorClass;
   /** Exact Stage 4 region id copied with the responsibility class. */
   responsibilityRegionId: number;
+  /** Exact Stage 3 Pattern owner copied with the responsibility class. */
+  responsibilityOwnerPatchId: number;
 }
 
 export interface SkinRebuildFinalArtworkOverhangProjection {
@@ -147,13 +153,14 @@ export function projectSkinRebuildFinalArtworkOverhangToStage4(
   stage7Positions: Float32Array,
   stage7FaceRegionIds: Int32Array,
   stage4Positions: Float32Array,
-  stage4Classification: Pick<SkinRebuildOverhangInteriorClassification, "faceClasses" | "faceRegionIds">,
+  stage4Classification: Pick<SkinRebuildOverhangInteriorClassification, "faceClasses" | "faceRegionIds" | "faceOwnerPatchIds">,
 ): SkinRebuildFinalArtworkOverhangProjection {
   if (stage7Positions.length % 9 !== 0
     || stage7FaceRegionIds.length !== stage7Positions.length / 9
     || stage4Positions.length % 9 !== 0
     || stage4Classification.faceClasses.length !== stage4Positions.length / 9
-    || stage4Classification.faceRegionIds.length !== stage4Positions.length / 9) {
+    || stage4Classification.faceRegionIds.length !== stage4Positions.length / 9
+    || stage4Classification.faceOwnerPatchIds.length !== stage4Positions.length / 9) {
     throw new Error("Stage 7/Stage 4 overhang projection buffers are inconsistent");
   }
   const stage4Representatives = Array.from(
@@ -193,12 +200,14 @@ export function projectSkinRebuildFinalArtworkOverhangToStage4(
     }
     const responsibility = stage4Classification.faceClasses[nearestStage4Face] as SkinRebuildOverhangInteriorClass;
     const responsibilityRegionId = stage4Classification.faceRegionIds[nearestStage4Face];
+    const responsibilityOwnerPatchId = stage4Classification.faceOwnerPatchIds[nearestStage4Face];
     const projected: SkinRebuildProjectedOverhangFace = {
       stage7FaceIndex,
       position: representative.position,
       normal: representative.normal,
       responsibility,
       responsibilityRegionId,
+      responsibilityOwnerPatchId,
     };
     faces.push(projected);
     if (responsibility === SKIN_REBUILD_OVERHANG_INSIDE) insideFaceCount++;
@@ -233,6 +242,7 @@ export function classifySkinRebuildOverhangFromStage3(
   const faceCount = faceRegionIds.length;
   const faceClasses = new Int8Array(faceCount).fill(SKIN_REBUILD_OVERHANG_UNCLASSIFIED);
   const insideFaceRegionIds = new Int32Array(faceCount).fill(-1);
+  const faceOwnerPatchIds = new Int32Array(faceCount).fill(-1);
   const validSides = patternSides.filter((side) => side.baseSideIsInside);
   const insideRegions = new Set<number>();
   const outsideRegions = new Set<number>();
@@ -272,10 +282,12 @@ export function classifySkinRebuildOverhangFromStage3(
     if (alignment < 0) {
       faceClasses[faceIndex] = SKIN_REBUILD_OVERHANG_INSIDE;
       insideFaceRegionIds[faceIndex] = regionId;
+      faceOwnerPatchIds[faceIndex] = side.patchId;
       insideFaceCount++;
       insideRegions.add(regionId);
     } else {
       faceClasses[faceIndex] = SKIN_REBUILD_OVERHANG_OUTSIDE;
+      faceOwnerPatchIds[faceIndex] = side.patchId;
       outsideFaceCount++;
       outsideRegions.add(regionId);
     }
@@ -284,6 +296,7 @@ export function classifySkinRebuildOverhangFromStage3(
   return {
     faceClasses,
     faceRegionIds: new Int32Array(faceRegionIds),
+    faceOwnerPatchIds,
     insideFaceRegionIds,
     insideFaceCount,
     outsideFaceCount,

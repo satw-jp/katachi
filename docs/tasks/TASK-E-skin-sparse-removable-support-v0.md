@@ -18,10 +18,10 @@ Permanent Web responsibility and never become removable-support targets.
   start band is selected first, with at most three deterministic representatives per
   region. Greedy coverage is deliberately local; it is not global optimization.
 - A vertical needle is attempted first. A bounded deterministic set of leaning plate
-  roots is attempted only after vertical failure. Every stored segment is <=45 degrees;
-  there is no Y branching. The current workflow records the build-plate Z but no
-  physical XY plate extents, so the artwork sampling bbox is not treated as a
-  plate boundary; all roots remain finite and start on the known plate Z.
+  roots is attempted only after vertical failure and only when explicit finite physical
+  XY plate bounds are supplied. Every stored segment is <=45 degrees; there is no Y
+  branching. The current workflow records the build-plate Z but no physical XY plate
+  extents, so leaning routes are unavailable there; unknown bounds never grant proof.
 - Accepted support is a separate graph/part. Its final contact neck is initially 0.6 mm
   diameter and its shaft uses the existing support diameter.
 - BODY keep-out uses the authoritative finished smooth-min BODY SDF and radius-aware
@@ -36,14 +36,16 @@ Permanent Web responsibility and never become removable-support targets.
 ## Observations
 
 The focused pure-module regression confirms Stage 4 Inside-derived support is zero,
-489 dense faces collapse to a bounded target set, vertical routes win when clear,
-leaning routes stay within 45 degrees, BODY and capsule-spacing collisions reject,
+489 dense faces collapse to a bounded target set, owner Patch ids transfer with the
+responsibility facts, vertical routes win when clear, explicit bounds enable leaning
+routes while absent bounds disable them, BODY and capsule-spacing collisions reject,
 greedy coverage suppresses redundant routes, the neck is narrower than the shaft, and
-identical input is deterministic. Existing model fixtures confirm the adaptive
-collision screen rejects a 0.09 to -0.4 jump over a 0.02 interval, hidden tangency,
-wrong terminal obstruction and the two-ring3d smooth-min obstruction while retaining
-legitimate terminal contact. The finite subdivision-budget case is rejected as
-unsupported.
+identical input is deterministic. Sparse-path fixtures confirm non-terminal shaft
+contact, wrong-owner terminal obstruction, two-ring3d smooth-min attribution,
+non-Lipschitz target fields and plate-outside routes fail closed while legitimate owner
+contact remains accepted. Existing model fixtures also confirm the adaptive collision
+screen rejects a 0.09 to -0.4 jump over a 0.02 interval, hidden tangency and finite
+subdivision-budget exhaustion.
 
 The UI labels Automatic as `Sparse Automatic (experimental)`, reports Outside region
 and critical-target counts, support/rejection counts and vertical/leaning counts, and

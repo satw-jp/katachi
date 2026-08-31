@@ -150,6 +150,12 @@ assert.match(main, /projectSkinRebuildFinalArtworkOverhangToStage4\([\s\S]{0,500
   "Stage 8 must transfer current Stage 7 positions onto the retained Stage 4 responsibility SSOT");
 assert.match(main, /projectedOutsideFaces[\s\S]{0,400}?responsibilityRegionId/,
   "Automatic removable support must route only projected Stage 4 Outside faces grouped by region");
+assert.match(main, /projectedOutsideFaces[\s\S]{0,500}?ownerPatchId: face\.responsibilityOwnerPatchId/,
+  "Automatic removable support must preserve the selected Stage 3 owner Patch id");
+assert.match(main, /otherBodySdfByOwner[\s\S]{0,900}?internalGraph: current\.finalGraph/,
+  "Automatic removable support must screen the non-owner BODY plus permanent graph independently");
+assert.match(main, /Without an[\s\S]{0,180}?explicit finite plateBounds[\s\S]{0,180}?leaning routes are therefore[\s\S]{0,80}?unavailable/,
+  "Automatic must not infer physical plate XY bounds from sampling bounds");
 assert.match(main, /Inside-derived 0/,
   "Stage 8 must expose that Inside-derived removable support stays zero");
 assert.match(main, /Sparse Automatic \(experimental\)/,
