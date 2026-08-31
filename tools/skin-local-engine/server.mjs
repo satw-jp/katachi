@@ -3,13 +3,13 @@ import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import {
   EVALUATE_CONTAINMENT_ALGORITHM,
-  runCompiledContainment,
 } from "./compiled-executable-adapter.mjs";
 import { probeWindowsCapability } from "./probe-windows-capability.mjs";
+import { PersistentCudaWorker } from "./persistent-cuda-worker.mjs";
 
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
-export const ENGINE_VERSION = "0.1.0-shadow";
+export const ENGINE_VERSION = "0.2.0-persistent-shadow";
 // 250k deterministic containment samples serialize to roughly 35 MiB. Keep the
 // request bounded while allowing the advertised sample ceiling to be exercised.
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
@@ -36,6 +36,8 @@ export function createCapabilitiesDocument(probe) {
       executionMode: "shadow-only",
       authoritativeBackend: "web",
       productionApplied: false,
+      workerLifecycle: "persistent",
+      workerTransport: "length-framed-json-v1",
     },
     backends: [{
       backendId,
@@ -142,14 +144,85 @@ function statusRecord(job) {
   };
 }
 
+function releasedRecord(job) {
+  return {
+    contract: "katachi.geometry-job-status.v1",
+    jobId: job.jobId,
+    clientRequestId: job.clientRequestId,
+    status: job.status,
+    released: true,
+    ...(job.error ? { error: job.error } : {}),
+  };
+}
+
 export function createLocalEngineServer({
   probe = probeWindowsCapability(),
-  runContainment = runCompiledContainment,
+  runContainment,
+  persistentWorker,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
 } = {}) {
   const capabilities = createCapabilitiesDocument(probe);
   const jobs = new Map();
-  return createServer(async (request, response) => {
+  const worker = persistentWorker ?? (runContainment ? null : new PersistentCudaWorker());
+  const executeContainment = runContainment ?? ((request) => worker.evaluate(request));
+  const pendingJobs = [];
+  let drainingJobs = false;
+
+  async function drainJobs() {
+    if (drainingJobs) return;
+    drainingJobs = true;
+    try {
+      while (pendingJobs.length > 0) {
+        const { job, jobRequest } = pendingJobs.shift();
+        if (job.status === "canceled") continue;
+        job.status = "running";
+        try {
+          const executed = await executeContainment(jobRequest);
+          job.result = {
+            contract: "katachi.geometry-job-result.v1",
+            protocol: { major: 1, minor: 0 },
+            status: "completed",
+            shadow: true,
+            productionApplied: false,
+            jobId: job.jobId,
+            clientRequestId: job.clientRequestId,
+            operation: "evaluateContainment",
+            algorithmContract: EVALUATE_CONTAINMENT_ALGORITHM,
+            projectFingerprint: jobRequest.projectFingerprint,
+            backend: {
+              backendId: "windows-cuda-containment-v1",
+              backendKind: "cuda",
+              engineVersion: executed.capabilities.engineVersion,
+              deviceName: executed.capabilities.device.name,
+              precisionMode: executed.capabilities.precisionMode,
+              artifactSha256: executed.artifactSha256,
+              timing: executed.result.timing,
+              adapterTiming: executed.adapterTiming,
+            },
+            warnings: [{
+              code: "shadow_only",
+              detail: "Candidate result is observational and cannot update production geometry.",
+            }],
+            result: {
+              samples: executed.result.samples,
+              summary: executed.result.summary,
+            },
+          };
+          job.status = "completed";
+        } catch (error) {
+          job.status = "failed";
+          job.error = {
+            code: error.code ?? "compiled_executable_failed",
+            detail: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }
+    } finally {
+      drainingJobs = false;
+    }
+  }
+
+  const server = createServer(async (request, response) => {
     const origin = typeof request.headers.origin === "string" ? request.headers.origin : undefined;
     if (expectedHostHeader !== null && request.headers.host !== expectedHostHeader) {
       fail(response, 400, "host_rejected", "request Host does not match the fixed loopback endpoint", origin);
@@ -183,9 +256,15 @@ export function createLocalEngineServer({
       } else if (job.status === "queued") {
         job.status = "canceled";
         job.error = { code: "canceled", detail: "job canceled before executable launch" };
-        sendJson(response, 200, statusRecord(job), origin);
+        const record = releasedRecord(job);
+        jobs.delete(job.jobId);
+        sendJson(response, 200, record, origin);
       } else {
-        sendJson(response, 200, statusRecord(job), origin);
+        const record = releasedRecord(job);
+        if (job.status === "completed" || job.status === "failed" || job.status === "canceled") {
+          jobs.delete(job.jobId);
+        }
+        sendJson(response, 200, record, origin);
       }
       return;
     }
@@ -225,53 +304,14 @@ export function createLocalEngineServer({
         clientRequestId: job.clientRequestId,
         status: "queued",
       }, origin);
-      setImmediate(() => {
-        if (job.status === "canceled") return;
-        job.status = "running";
-        try {
-          const executed = runContainment(jobRequest);
-          job.result = {
-            contract: "katachi.geometry-job-result.v1",
-            protocol: { major: 1, minor: 0 },
-            status: "completed",
-            shadow: true,
-            productionApplied: false,
-            jobId: job.jobId,
-            clientRequestId: job.clientRequestId,
-            operation: "evaluateContainment",
-            algorithmContract: EVALUATE_CONTAINMENT_ALGORITHM,
-            projectFingerprint: jobRequest.projectFingerprint,
-            backend: {
-              backendId: "windows-cuda-containment-v1",
-              backendKind: "cuda",
-              engineVersion: executed.capabilities.engineVersion,
-              deviceName: executed.capabilities.device.name,
-              precisionMode: executed.capabilities.precisionMode,
-              artifactSha256: executed.artifactSha256,
-              timing: executed.result.timing,
-            },
-            warnings: [{
-              code: "shadow_only",
-              detail: "Candidate result is observational and cannot update production geometry.",
-            }],
-            result: {
-              samples: executed.result.samples,
-              summary: executed.result.summary,
-            },
-          };
-          job.status = "completed";
-        } catch (error) {
-          job.status = "failed";
-          job.error = {
-            code: error.code ?? "compiled_executable_failed",
-            detail: error instanceof Error ? error.message : String(error),
-          };
-        }
-      });
+      pendingJobs.push({ job, jobRequest });
+      setImmediate(() => void drainJobs());
       return;
     }
     fail(response, 404, "not_found", "unknown prototype route", origin);
   });
+  server.once("close", () => { void worker?.close(); });
+  return server;
 }
 
 const invokedAsScript = process.argv[1]

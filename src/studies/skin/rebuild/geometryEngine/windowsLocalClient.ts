@@ -167,9 +167,12 @@ export class WindowsLocalGeometryEngineClient {
       }
       if (status.status === "completed") {
         if (!status.result) throw new GeometryContractError("completed local job omitted its result");
-        return validateEvaluateContainmentJobResult(status.result, request);
+        const result = validateEvaluateContainmentJobResult(status.result, request);
+        await this.releaseTerminalJob(acceptedRecord.jobId);
+        return result;
       }
       if (status.status === "failed" || status.status === "canceled") {
+        await this.releaseTerminalJob(acceptedRecord.jobId);
         throw new WindowsLocalGeometryEngineError(
           status.error?.code ?? status.status,
           status.error?.detail ?? `local helper job ${status.status}`,
@@ -200,5 +203,17 @@ export class WindowsLocalGeometryEngineClient {
       operation.operation === "evaluateContainment"
       && operation.algorithmContracts.includes(EVALUATE_CONTAINMENT_ALGORITHM)
       && operation.backendIds.some((backendId) => cudaBackendIds.has(backendId)));
+  }
+
+  private async releaseTerminalJob(jobId: string): Promise<void> {
+    try {
+      await this.fetch(
+        `${GEOMETRY_ENGINE_API_BASE}/jobs/${encodeURIComponent(jobId)}`,
+        { method: "DELETE", cache: "no-store" },
+      );
+    } catch {
+      // The result is already validated. Cleanup is best effort and cannot make
+      // a CUDA candidate authoritative or alter the Web fallback.
+    }
   }
 }

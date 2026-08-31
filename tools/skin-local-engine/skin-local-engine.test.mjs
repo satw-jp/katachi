@@ -6,6 +6,7 @@ import {
   EXECUTABLE_RESULT_CONTRACT,
   EXPECTED_CUDA_DEVICE_NAME,
   EXPECTED_COMPILED_EXECUTABLE_SHA256,
+  PERSISTENT_JSON_TRANSPORT,
   inspectCompiledEngine,
   validateExecutableCapabilities,
   validateExecutableResult,
@@ -59,6 +60,8 @@ test("Windows probe keeps CUDA unavailable when the driver exists but the compil
     executionMode: "shadow-only",
     authoritativeBackend: "web",
     productionApplied: false,
+    workerLifecycle: "persistent",
+    workerTransport: PERSISTENT_JSON_TRANSPORT,
   });
 });
 
@@ -72,6 +75,7 @@ test("compiled adapter rejects a non-shadow or non-RTX capability document", () 
     algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
     shadow: true,
     productionApplied: false,
+    workerTransports: [PERSISTENT_JSON_TRANSPORT],
   };
   assert.equal(validateExecutableCapabilities(capabilities), capabilities);
   assert.throws(
@@ -225,6 +229,7 @@ test("shadow header, sample limit and body limit remain fail-closed", async (con
     algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
     shadow: true,
     productionApplied: false,
+    workerTransports: [PERSISTENT_JSON_TRANSPORT],
   };
   const probe = {
     compiledExecutable: { available: true, capabilities: executableCapabilities },
@@ -283,4 +288,111 @@ test("shadow header, sample limit and body limit remain fail-closed", async (con
   });
   assert.equal(tooLarge.status, 413);
   assert.equal((await tooLarge.json()).error.code, "job_too_large");
+});
+
+test("helper keeps later work queued and cancels it before persistent worker execution", async (context) => {
+  const executableCapabilities = {
+    contract: EXECUTABLE_CAPABILITIES_CONTRACT,
+    executableProtocol: 1,
+    engineVersion: "test-persistent",
+    precisionMode: "float32",
+    device: { name: EXPECTED_CUDA_DEVICE_NAME },
+    algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
+    shadow: true,
+    productionApplied: false,
+    workerTransports: [PERSISTENT_JSON_TRANSPORT],
+  };
+  const probe = {
+    compiledExecutable: {
+      available: true,
+      capabilities: executableCapabilities,
+      artifactSha256: EXPECTED_COMPILED_EXECUTABLE_SHA256,
+    },
+    cudaBackend: { available: true },
+  };
+  let releaseFirst;
+  let firstStarted;
+  const firstStartedPromise = new Promise((resolve) => { firstStarted = resolve; });
+  const firstHold = new Promise((resolve) => { releaseFirst = resolve; });
+  let invocationCount = 0;
+  const server = createLocalEngineServer({
+    probe,
+    expectedHostHeader: null,
+    runContainment: async () => {
+      invocationCount += 1;
+      if (invocationCount === 1) {
+        firstStarted();
+        await firstHold;
+      }
+      return {
+        capabilities: executableCapabilities,
+        artifactSha256: EXPECTED_COMPILED_EXECUTABLE_SHA256,
+        adapterTiming: { persistentProcess: true },
+        result: {
+          samples: [],
+          summary: {
+            contained: true,
+            checkedSampleCount: 0,
+            outsideSampleIds: [],
+            outsideEdgeIds: [],
+            maximumExcess: 0,
+            maximumExcessMm: 0,
+            minimumClearance: 0,
+          },
+          timing: {
+            endToEndMilliseconds: 0,
+            setupMilliseconds: 0,
+            kernelTotalMilliseconds: 0,
+            kernelAverageMilliseconds: 0,
+            iterations: 1,
+          },
+        },
+      };
+    },
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const base = `http://127.0.0.1:${address.port}/v1`;
+  const headers = {
+    "Content-Type": "application/json",
+    Origin: "https://katachi.a-8c3.workers.dev",
+    "X-Katachi-Geometry-Prototype": "shadow-only-v1",
+  };
+  const request = (id) => ({
+    protocol: { major: 1, minor: 0 },
+    operation: "evaluateContainment",
+    algorithmContract: EVALUATE_CONTAINMENT_ALGORITHM,
+    clientRequestId: id,
+    projectFingerprint: `sha256:${id}`,
+    input: {
+      base: { kind: "metaball-smooth-union", contractVersion: 1, balls: [] },
+      samples: [],
+    },
+    artifacts: [],
+  });
+  const firstAccepted = await (await fetch(`${base}/jobs`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(request("queue-first")),
+  })).json();
+  await firstStartedPromise;
+  const secondAccepted = await (await fetch(`${base}/jobs`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(request("queue-second")),
+  })).json();
+  const canceled = await (await fetch(`${base}/jobs/${secondAccepted.jobId}`, {
+    method: "DELETE",
+    headers: { Origin: headers.Origin },
+  })).json();
+  assert.equal(canceled.status, "canceled");
+  releaseFirst();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(invocationCount, 1, "canceled queued job must not enter the worker");
+  assert.equal(typeof firstAccepted.jobId, "string");
 });

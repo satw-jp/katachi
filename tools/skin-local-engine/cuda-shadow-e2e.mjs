@@ -58,6 +58,8 @@ try {
     executionMode: "shadow-only",
     authoritativeBackend: "web",
     productionApplied: false,
+    workerLifecycle: "persistent",
+    workerTransport: "length-framed-json-v1",
   });
   assert.equal(localClient.supportsCudaContainment(capabilitiesProbe.capabilities), true);
 

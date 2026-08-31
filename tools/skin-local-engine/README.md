@@ -1,6 +1,6 @@
 # Windows local GeometryEngine — RTX 3080 shadow-only
 
-This helper is a narrow loopback transport and reviewed executable adapter. It
+This helper is a narrow loopback transport and fixed executable adapter. It
 binds only to `127.0.0.1:47658`, never scans ports or the LAN, and accepts only
 the versioned `evaluateContainment` batch. The Web result remains authoritative;
 the CUDA result is an observation and every completed response keeps
@@ -17,11 +17,20 @@ The fixed path is:
 tools/skin-local-engine/bin/katachi-containment-cuda.exe
 ```
 
-It is the artifact from `satw-jp/katachi-cuda-rtx3080-bringup` commit
-`205b69e58d3b4d99e07151ee76670b8b2ed496ed`, SHA-256
-`0AE5FA195E6FE9FE5831603E3AC075FFBCF1B0F174E3768273EDD578BE516726`.
-It uses `nvcuda.dll` Driver API and embedded PTX JIT; CUDA Toolkit and `nvcc`
-are not required. Requests cannot choose a command or executable path.
+Its native source is checked in under `tools/skin-local-engine/native`. The
+embedded PTX and original contract come from
+`satw-jp/katachi-cuda-rtx3080-bringup` commit
+`205b69e58d3b4d99e07151ee76670b8b2ed496ed`. The current executable SHA-256 is
+`FF72A8BFE9B9FA4B8E1973FE9EE8681BDC9628D13E823C5BA0E67ACCFD611D73`.
+It uses the `nvcuda.dll` Driver API and embedded PTX JIT; CUDA Toolkit and
+`nvcc` are not required. Requests cannot choose a command or executable path.
+
+The helper lazily starts one persistent worker. The worker creates one CUDA
+context, loads/JITs one PTX module, resolves one kernel function, and then
+serves multiple requests over a 16-byte length-prefixed `KCF1` frame. JSON
+remains the payload in CUDA-3A. Ball, sample and output device buffers reuse
+capacity; ball contents are also reused when unchanged. A worker crash fails
+the active candidate closed, and the next job starts a new worker generation.
 
 Before advertising CUDA as available, the adapter requires:
 
@@ -38,8 +47,12 @@ Before advertising CUDA as available, the adapter requires:
 - mutation Origin limited to the Cloudflare production origin and fixed Vite
   development origins;
 - mandatory `X-Katachi-Geometry-Prototype: shadow-only-v1` header;
-- 8 MiB request limit;
+- 48 MiB request limit and 64 MiB worker frame/result limit;
 - 250,000 containment sample limit.
+
+Jobs are executed by one helper queue. A queued job can be canceled before it
+enters the worker. Running kernels are not forcibly canceled in CUDA-3A.
+Terminal job records are explicitly released after the client receives them.
 
 The capabilities document also advertises the policy as `shadow-only`, Web
 authoritative and `productionApplied: false`.
