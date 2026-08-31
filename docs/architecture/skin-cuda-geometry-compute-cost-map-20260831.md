@@ -78,11 +78,16 @@ The Lab contract defines three portable semantic operations:
    minimum BODY/Web/neighbor clearance plus first-collision facts. CUDA never
    accepts a route.
 
-The current reviewed executable represents only the metaball Base. Production
+At the time of this Cost Map, the reviewed executable represented only the metaball Base. Production
 BODY grid acceleration therefore requires an immutable portable snapshot for
 Surface Pattern primitives and permanent capsule edges, with the current
 smooth-min order and coordinate contract fixed. This prerequisite is not
 silently approximated by the Base-only result.
+
+CUDA-GEO-5 subsequently implemented and measured that prerequisite as a
+separate shadow Lab. See
+`skin-cuda-finished-body-sdf-prototype-20260831.md`; this does not alter the
+Cost Map measurements or authorize production integration.
 
 ## Priority
 
@@ -93,7 +98,8 @@ Using impact × GPU suitability ÷ integration complexity:
 3. generic route collision/clearance shared by Stage 5B, Stage 8 and Web;
 4. structural coverage built from the preceding facts.
 
-Only the first two received prototypes in this phase. Route evaluation was
+The first Cost Map phase prototyped the first two lower-level measurements;
+CUDA-GEO-5 then evaluated the Finished BODY prerequisite separately. Route evaluation was
 specified and its existing 8,159-sample Base-containment workload was counted,
 but no Support-specific kernel or selection behavior was added.
 
@@ -103,4 +109,3 @@ The Lab does not change CUDA authority, production geometry, FKEI, Stage 5B,
 Stage 8, Web topology, Motif placement, Print #002/#003 or authoring UI. The
 next task, if approved, should choose one of the top two prerequisites rather
 than expanding every GPU-looking operation at once.
-

@@ -684,3 +684,21 @@ floating region確認、実物印刷は作者が行う。
 - 作者が同梱STLを実スライサーで確認し、floating regionと初層を記録する
 - 実プリント後、糸径2.6 mmとbreakaway不要の永久内部構造としての扱いを再評価する
 - 元Stage 1 / 2からStage 3以降へ、作者の実形状で一周する
+
+### 2026-08-31 — CUDA-GEO-5 Finished BODY SDF shadow prototype
+
+完成BODYのproduction式を変えず、`createFinishedSkinBodySdfEvaluator()`の派生compute snapshotを
+RTX 3080へ送るshadow Labを追加した。snapshot v1は現Print #002のplate / coinBulge=0だけを厳密に扱い、
+Base 12球、Surface Pattern/Motifの実現点152、恒久Web＋reinforcement capsule 325、smooth-union値、
+座標単位とgeometry fingerprintを13,152 bytesへ固定する。Removable Support/scaffoldとFKEI情報は含めない。
+未対応modeやparameterは近似せずfail closedする。
+
+120 mm / resolution 128の480,009点で、Web/CPU float64は8,708.94 ms、CUDA warm full helper pathは
+10回median 28.36 ms、kernel 1.236 msだった。max SDF差3.182928e-7（許容1e-5）、sign/classification
+不一致0/0。同じsnapshotはvolatile sessionに保持し、repeatは96-byte grid定義だけ、H→D geometry再送0。
+CUDA fieldを既存CPU isosurfaceと同じ限定Final BODY repairへoffline入力すると222,268 triangle、
+1 component、watertight、saved-topology全項目が一致した。
+
+19,373.54 ms BODY baselineのうち9,427.32 ms samplingだけを置換する机上値は約9,974.58 ms（48.5%短縮）で、
+判定はStrong candidate。ただしWeb/CPU authoritative、`shadow=true`、`productionApplied=false`を維持し、
+production mesh、Marching Cubes、topology/repair、FKEI、Support、UI、deployは変更していない。
