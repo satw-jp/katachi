@@ -1,0 +1,1520 @@
+{
+  "contract": "katachi.cuda-shadow-scaling-benchmark.v1",
+  "recordedAt": "2026-08-31T04:20:41.335Z",
+  "environment": {
+    "deviceName": "NVIDIA GeForce RTX 3080",
+    "precisionMode": "float32",
+    "driverVersion": "595.95",
+    "cudaRuntimeReported": "13.2",
+    "artifactSha256": "0AE5FA195E6FE9FE5831603E3AC075FFBCF1B0F174E3768273EDD578BE516726",
+    "helperEndpoint": "http://127.0.0.1:47658/v1",
+    "maximumJobBytes": 50331648,
+    "maximumContainmentSamples": 250000
+  },
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "methodology": {
+    "sampleSizes": [
+      5,
+      32768,
+      100000,
+      250000
+    ],
+    "firstRunsPerSize": 1,
+    "warmRunsPerSize": 5,
+    "benchmarkIterationsPerExecutable": 1,
+    "firstRunDefinition": "first job for this sample size in this benchmark session",
+    "warmRunDefinition": "five immediately subsequent jobs; every job still launches a fresh process, CUDA context, and PTX module",
+    "transferTimingLimitation": "The reviewed hash-pinned executable combines sample allocation, H-to-D, event setup, D-to-H, and synchronization in the executable residual; transfer directions are not separately instrumented."
+  },
+  "sizes": [
+    {
+      "sampleCount": 5,
+      "deterministicFixture": {
+        "requestBytes": 1141,
+        "initialSerializeMilliseconds": 0.02149999999994634
+      },
+      "first": {
+        "run": 1,
+        "phase": "first",
+        "timing": {
+          "shadowPathEndToEndMilliseconds": 255.0426,
+          "capabilityProbeMilliseconds": 19.7192,
+          "clientHelperRoundTripMilliseconds": 234.51890000000003,
+          "helperJobMilliseconds": 226.0035999999999,
+          "adapterTotalMilliseconds": 225.8832,
+          "capabilityInspectionMilliseconds": 53.725900000000024,
+          "adapterRequestSerializeMilliseconds": 0.01639999999997599,
+          "executableProcessMilliseconds": 171.8107,
+          "executableEndToEndMilliseconds": 96.0392,
+          "cudaSetupContextPtxMilliseconds": 95.3454,
+          "cudaTransferAllocationResidualMilliseconds": 0.6610320000827272,
+          "cudaKernelMilliseconds": 0.03276799991726875,
+          "processProtocolResidualMilliseconds": 75.7715,
+          "adapterResultParseMilliseconds": 0.06110000000001037,
+          "adapterResultValidationMilliseconds": 0.24639999999999418,
+          "clientTransportPollJsonValidationResidualMilliseconds": 8.515300000000138
+        },
+        "bytes": {
+          "request": 1147,
+          "executableResult": 1965
+        },
+        "comparison": {
+          "matched": true,
+          "missingSampleCount": 0,
+          "discreteMismatchSampleCount": 0,
+          "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+          "marginTolerance": 0.00005
+        },
+        "authoritativeBackend": "web",
+        "candidateBackend": "cuda",
+        "shadow": true,
+        "productionApplied": false
+      },
+      "warm": {
+        "runCount": 5,
+        "timing": {
+          "shadowPathEndToEndMilliseconds": {
+            "mean": 218.01922,
+            "median": 212.68359999999984,
+            "minimum": 201.77880000000005,
+            "maximum": 243.4697000000001
+          },
+          "capabilityProbeMilliseconds": {
+            "mean": 1.1786399999999957,
+            "median": 1.1696000000001732,
+            "minimum": 0.8031999999998334,
+            "maximum": 1.491800000000012
+          },
+          "clientHelperRoundTripMilliseconds": {
+            "mean": 216.74020000000002,
+            "median": 211.77099999999996,
+            "minimum": 200.53430000000003,
+            "maximum": 242.26909999999998
+          },
+          "helperJobMilliseconds": {
+            "mean": 213.84516000000002,
+            "median": 209.70050000000015,
+            "minimum": 197.49360000000001,
+            "maximum": 239.94790000000012
+          },
+          "adapterTotalMilliseconds": {
+            "mean": 213.8321,
+            "median": 209.6880000000001,
+            "minimum": 197.48199999999997,
+            "maximum": 239.93529999999987
+          },
+          "capabilityInspectionMilliseconds": {
+            "mean": 51.89920000000004,
+            "median": 50.933100000000195,
+            "minimum": 44.53800000000001,
+            "maximum": 59.83389999999986
+          },
+          "adapterRequestSerializeMilliseconds": {
+            "mean": 0.015440000000012333,
+            "median": 0.015300000000024738,
+            "minimum": 0.014300000000048385,
+            "maximum": 0.01660000000015316
+          },
+          "executableProcessMilliseconds": {
+            "mean": 161.78979999999996,
+            "median": 158.68270000000007,
+            "minimum": 149.06499999999994,
+            "maximum": 180.02369999999996
+          },
+          "executableEndToEndMilliseconds": {
+            "mean": 84.66604,
+            "median": 84.8371,
+            "minimum": 78.1321,
+            "maximum": 93.2721
+          },
+          "cudaSetupContextPtxMilliseconds": {
+            "mean": 83.92626,
+            "median": 84.0527,
+            "minimum": 77.4719,
+            "maximum": 92.4936
+          },
+          "cudaTransferAllocationResidualMilliseconds": {
+            "mean": 0.6988200002896775,
+            "median": 0.7306800007760614,
+            "minimum": 0.6284560004293809,
+            "maximum": 0.745488001728063
+          },
+          "cudaKernelMilliseconds": {
+            "mean": 0.040959999710321424,
+            "median": 0.03379200026392937,
+            "minimum": 0.030719999223947525,
+            "maximum": 0.06963200122117996
+          },
+          "processProtocolResidualMilliseconds": {
+            "mean": 77.12375999999995,
+            "median": 73.84560000000006,
+            "minimum": 70.93289999999995,
+            "maximum": 86.75159999999997
+          },
+          "adapterResultParseMilliseconds": {
+            "mean": 0.04634000000000924,
+            "median": 0.029899999999997817,
+            "minimum": 0.02860000000009677,
+            "maximum": 0.07550000000014734
+          },
+          "adapterResultValidationMilliseconds": {
+            "mean": 0.054359999999996945,
+            "median": 0.04729999999995016,
+            "minimum": 0.01759999999990214,
+            "maximum": 0.11590000000001055
+          },
+          "clientTransportPollJsonValidationResidualMilliseconds": {
+            "mean": 2.895039999999949,
+            "median": 3.0407000000000153,
+            "minimum": 2.070499999999811,
+            "maximum": 3.9388000000001284
+          }
+        },
+        "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+        "allMatched": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "phase": "first",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 255.0426,
+            "capabilityProbeMilliseconds": 19.7192,
+            "clientHelperRoundTripMilliseconds": 234.51890000000003,
+            "helperJobMilliseconds": 226.0035999999999,
+            "adapterTotalMilliseconds": 225.8832,
+            "capabilityInspectionMilliseconds": 53.725900000000024,
+            "adapterRequestSerializeMilliseconds": 0.01639999999997599,
+            "executableProcessMilliseconds": 171.8107,
+            "executableEndToEndMilliseconds": 96.0392,
+            "cudaSetupContextPtxMilliseconds": 95.3454,
+            "cudaTransferAllocationResidualMilliseconds": 0.6610320000827272,
+            "cudaKernelMilliseconds": 0.03276799991726875,
+            "processProtocolResidualMilliseconds": 75.7715,
+            "adapterResultParseMilliseconds": 0.06110000000001037,
+            "adapterResultValidationMilliseconds": 0.24639999999999418,
+            "clientTransportPollJsonValidationResidualMilliseconds": 8.515300000000138
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 2,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 208.11220000000003,
+            "capabilityProbeMilliseconds": 1.3623000000000047,
+            "clientHelperRoundTripMilliseconds": 206.64229999999986,
+            "helperJobMilliseconds": 203.53829999999994,
+            "adapterTotalMilliseconds": 203.52449999999988,
+            "capabilityInspectionMilliseconds": 54.35610000000008,
+            "adapterRequestSerializeMilliseconds": 0.01490000000001146,
+            "executableProcessMilliseconds": 149.06499999999994,
+            "executableEndToEndMilliseconds": 78.1321,
+            "cudaSetupContextPtxMilliseconds": 77.4719,
+            "cudaTransferAllocationResidualMilliseconds": 0.6284560004293809,
+            "cudaKernelMilliseconds": 0.03174399957060814,
+            "processProtocolResidualMilliseconds": 70.93289999999995,
+            "adapterResultParseMilliseconds": 0.029499999999870852,
+            "adapterResultValidationMilliseconds": 0.04729999999995016,
+            "clientTransportPollJsonValidationResidualMilliseconds": 3.103999999999928
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 3,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 201.77880000000005,
+            "capabilityProbeMilliseconds": 1.1696000000001732,
+            "clientHelperRoundTripMilliseconds": 200.53430000000003,
+            "helperJobMilliseconds": 197.49360000000001,
+            "adapterTotalMilliseconds": 197.48199999999997,
+            "capabilityInspectionMilliseconds": 44.53800000000001,
+            "adapterRequestSerializeMilliseconds": 0.016099999999823922,
+            "executableProcessMilliseconds": 152.7231999999999,
+            "executableEndToEndMilliseconds": 79.7873,
+            "cudaSetupContextPtxMilliseconds": 79.0259,
+            "cudaTransferAllocationResidualMilliseconds": 0.7306800007760614,
+            "cudaKernelMilliseconds": 0.030719999223947525,
+            "processProtocolResidualMilliseconds": 72.9358999999999,
+            "adapterResultParseMilliseconds": 0.07550000000014734,
+            "adapterResultValidationMilliseconds": 0.11590000000001055,
+            "clientTransportPollJsonValidationResidualMilliseconds": 3.0407000000000153
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 4,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 224.05179999999996,
+            "capabilityProbeMilliseconds": 1.491800000000012,
+            "clientHelperRoundTripMilliseconds": 222.48430000000008,
+            "helperJobMilliseconds": 218.54549999999995,
+            "adapterTotalMilliseconds": 218.53070000000002,
+            "capabilityInspectionMilliseconds": 49.83490000000006,
+            "adapterRequestSerializeMilliseconds": 0.015300000000024738,
+            "executableProcessMilliseconds": 168.45439999999985,
+            "executableEndToEndMilliseconds": 87.3016,
+            "cudaSetupContextPtxMilliseconds": 86.5872,
+            "cudaTransferAllocationResidualMilliseconds": 0.6447679987788177,
+            "cudaKernelMilliseconds": 0.06963200122117996,
+            "processProtocolResidualMilliseconds": 81.15279999999986,
+            "adapterResultParseMilliseconds": 0.06819999999993342,
+            "adapterResultValidationMilliseconds": 0.07190000000014152,
+            "clientTransportPollJsonValidationResidualMilliseconds": 3.9388000000001284
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 5,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 243.4697000000001,
+            "capabilityProbeMilliseconds": 1.0662999999999556,
+            "clientHelperRoundTripMilliseconds": 242.26909999999998,
+            "helperJobMilliseconds": 239.94790000000012,
+            "adapterTotalMilliseconds": 239.93529999999987,
+            "capabilityInspectionMilliseconds": 59.83389999999986,
+            "adapterRequestSerializeMilliseconds": 0.01660000000015316,
+            "executableProcessMilliseconds": 180.02369999999996,
+            "executableEndToEndMilliseconds": 93.2721,
+            "cudaSetupContextPtxMilliseconds": 92.4936,
+            "cudaTransferAllocationResidualMilliseconds": 0.7447079997360646,
+            "cudaKernelMilliseconds": 0.03379200026392937,
+            "processProtocolResidualMilliseconds": 86.75159999999997,
+            "adapterResultParseMilliseconds": 0.029899999999997817,
+            "adapterResultValidationMilliseconds": 0.019099999999980355,
+            "clientTransportPollJsonValidationResidualMilliseconds": 2.3211999999998625
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 6,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 212.68359999999984,
+            "capabilityProbeMilliseconds": 0.8031999999998334,
+            "clientHelperRoundTripMilliseconds": 211.77099999999996,
+            "helperJobMilliseconds": 209.70050000000015,
+            "adapterTotalMilliseconds": 209.6880000000001,
+            "capabilityInspectionMilliseconds": 50.933100000000195,
+            "adapterRequestSerializeMilliseconds": 0.014300000000048385,
+            "executableProcessMilliseconds": 158.68270000000007,
+            "executableEndToEndMilliseconds": 84.8371,
+            "cudaSetupContextPtxMilliseconds": 84.0527,
+            "cudaTransferAllocationResidualMilliseconds": 0.745488001728063,
+            "cudaKernelMilliseconds": 0.03891199827194214,
+            "processProtocolResidualMilliseconds": 73.84560000000006,
+            "adapterResultParseMilliseconds": 0.02860000000009677,
+            "adapterResultValidationMilliseconds": 0.01759999999990214,
+            "clientTransportPollJsonValidationResidualMilliseconds": 2.070499999999811
+          },
+          "bytes": {
+            "request": 1147,
+            "executableResult": 1965
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 1.0178472137356565e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ]
+    },
+    {
+      "sampleCount": 32768,
+      "deterministicFixture": {
+        "requestBytes": 4607499,
+        "initialSerializeMilliseconds": 22.8770999999997
+      },
+      "first": {
+        "run": 1,
+        "phase": "first",
+        "timing": {
+          "shadowPathEndToEndMilliseconds": 1232.4018,
+          "capabilityProbeMilliseconds": 1.8403000000002976,
+          "clientHelperRoundTripMilliseconds": 1199.2356,
+          "helperJobMilliseconds": 1018.2148000000002,
+          "adapterTotalMilliseconds": 1012.3924999999999,
+          "capabilityInspectionMilliseconds": 48.68289999999979,
+          "adapterRequestSerializeMilliseconds": 22.229299999999967,
+          "executableProcessMilliseconds": 898.8148000000001,
+          "executableEndToEndMilliseconds": 83.7172,
+          "cudaSetupContextPtxMilliseconds": 83.1089,
+          "cudaTransferAllocationResidualMilliseconds": 0.5512760016500948,
+          "cudaKernelMilliseconds": 0.057023998349905014,
+          "processProtocolResidualMilliseconds": 815.0976,
+          "adapterResultParseMilliseconds": 23.123399999999947,
+          "adapterResultValidationMilliseconds": 19.515000000000327,
+          "clientTransportPollJsonValidationResidualMilliseconds": 181.02079999999978
+        },
+        "bytes": {
+          "request": 4607505,
+          "executableResult": 6752322
+        },
+        "comparison": {
+          "matched": true,
+          "missingSampleCount": 0,
+          "discreteMismatchSampleCount": 0,
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "marginTolerance": 0.00005
+        },
+        "authoritativeBackend": "web",
+        "candidateBackend": "cuda",
+        "shadow": true,
+        "productionApplied": false
+      },
+      "warm": {
+        "runCount": 5,
+        "timing": {
+          "shadowPathEndToEndMilliseconds": {
+            "mean": 1224.3503799999996,
+            "median": 1211.6256999999996,
+            "minimum": 1211.202299999999,
+            "maximum": 1266.1827999999996
+          },
+          "capabilityProbeMilliseconds": {
+            "mean": 2.7508399999997892,
+            "median": 1.5212000000001353,
+            "minimum": 1.066200000000208,
+            "maximum": 8.15309999999954
+          },
+          "clientHelperRoundTripMilliseconds": {
+            "mean": 1188.1751000000004,
+            "median": 1180.2847000000002,
+            "minimum": 1163.2396000000008,
+            "maximum": 1228.1579000000002
+          },
+          "helperJobMilliseconds": {
+            "mean": 1023.45998,
+            "median": 1023.1055999999999,
+            "minimum": 1000.2368000000006,
+            "maximum": 1049.7806999999993
+          },
+          "adapterTotalMilliseconds": {
+            "mean": 1017.43708,
+            "median": 1017.0428000000002,
+            "minimum": 994.4454999999998,
+            "maximum": 1043.6695
+          },
+          "capabilityInspectionMilliseconds": {
+            "mean": 51.41470000000008,
+            "median": 48.71849999999995,
+            "minimum": 47.45759999999973,
+            "maximum": 62.8744999999999
+          },
+          "adapterRequestSerializeMilliseconds": {
+            "mean": 23.76445999999969,
+            "median": 22.64139999999952,
+            "minimum": 22.015499999999975,
+            "maximum": 28.745100000000093
+          },
+          "executableProcessMilliseconds": {
+            "mean": 897.3234200000003,
+            "median": 895.219,
+            "minimum": 887.304900000001,
+            "maximum": 914.4573
+          },
+          "executableEndToEndMilliseconds": {
+            "mean": 81.98638,
+            "median": 82.1805,
+            "minimum": 79.894,
+            "maximum": 83.4283
+          },
+          "cudaSetupContextPtxMilliseconds": {
+            "mean": 81.40824,
+            "median": 81.4961,
+            "minimum": 79.3601,
+            "maximum": 82.8837
+          },
+          "cudaTransferAllocationResidualMilliseconds": {
+            "mean": 0.49551600043415933,
+            "median": 0.4856120011150864,
+            "minimum": 0.46606399896144524,
+            "maximum": 0.5323680013060681
+          },
+          "cudaKernelMilliseconds": {
+            "mean": 0.08262399956583977,
+            "median": 0.04899200052022934,
+            "minimum": 0.036031998693943024,
+            "maximum": 0.21833600103855133
+          },
+          "processProtocolResidualMilliseconds": {
+            "mean": 815.3370400000002,
+            "median": 813.2189000000008,
+            "minimum": 805.612300000001,
+            "maximum": 832.2768000000001
+          },
+          "adapterResultParseMilliseconds": {
+            "mean": 28.11258000000016,
+            "median": 29.72699999999986,
+            "minimum": 21.23370000000068,
+            "maximum": 35.40189999999984
+          },
+          "adapterResultValidationMilliseconds": {
+            "mean": 16.79373999999989,
+            "median": 15.55540000000019,
+            "minimum": 14.101999999998952,
+            "maximum": 21.94890000000032
+          },
+          "clientTransportPollJsonValidationResidualMilliseconds": {
+            "mean": 164.71512000000038,
+            "median": 163.0028000000002,
+            "minimum": 155.34659999999985,
+            "maximum": 178.3772000000008
+          }
+        },
+        "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+        "allMatched": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "phase": "first",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1232.4018,
+            "capabilityProbeMilliseconds": 1.8403000000002976,
+            "clientHelperRoundTripMilliseconds": 1199.2356,
+            "helperJobMilliseconds": 1018.2148000000002,
+            "adapterTotalMilliseconds": 1012.3924999999999,
+            "capabilityInspectionMilliseconds": 48.68289999999979,
+            "adapterRequestSerializeMilliseconds": 22.229299999999967,
+            "executableProcessMilliseconds": 898.8148000000001,
+            "executableEndToEndMilliseconds": 83.7172,
+            "cudaSetupContextPtxMilliseconds": 83.1089,
+            "cudaTransferAllocationResidualMilliseconds": 0.5512760016500948,
+            "cudaKernelMilliseconds": 0.057023998349905014,
+            "processProtocolResidualMilliseconds": 815.0976,
+            "adapterResultParseMilliseconds": 23.123399999999947,
+            "adapterResultValidationMilliseconds": 19.515000000000327,
+            "clientTransportPollJsonValidationResidualMilliseconds": 181.02079999999978
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752322
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 2,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1221.1578000000004,
+            "capabilityProbeMilliseconds": 1.3330000000000837,
+            "clientHelperRoundTripMilliseconds": 1190.2440000000001,
+            "helperJobMilliseconds": 1019.2386999999994,
+            "adapterTotalMilliseconds": 1013.2274000000002,
+            "capabilityInspectionMilliseconds": 48.71849999999995,
+            "adapterRequestSerializeMilliseconds": 22.015499999999975,
+            "executableProcessMilliseconds": 895.219,
+            "executableEndToEndMilliseconds": 79.894,
+            "cudaSetupContextPtxMilliseconds": 79.3601,
+            "cudaTransferAllocationResidualMilliseconds": 0.4856120011150864,
+            "cudaKernelMilliseconds": 0.048287998884916306,
+            "processProtocolResidualMilliseconds": 815.325,
+            "adapterResultParseMilliseconds": 31.691899999999805,
+            "adapterResultValidationMilliseconds": 15.55540000000019,
+            "clientTransportPollJsonValidationResidualMilliseconds": 171.00530000000072
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752322
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 3,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1266.1827999999996,
+            "capabilityProbeMilliseconds": 1.5212000000001353,
+            "clientHelperRoundTripMilliseconds": 1228.1579000000002,
+            "helperJobMilliseconds": 1049.7806999999993,
+            "adapterTotalMilliseconds": 1043.6695,
+            "capabilityInspectionMilliseconds": 62.8744999999999,
+            "adapterRequestSerializeMilliseconds": 28.745100000000093,
+            "executableProcessMilliseconds": 914.4573,
+            "executableEndToEndMilliseconds": 82.1805,
+            "cudaSetupContextPtxMilliseconds": 81.4961,
+            "cudaTransferAllocationResidualMilliseconds": 0.46606399896144524,
+            "cudaKernelMilliseconds": 0.21833600103855133,
+            "processProtocolResidualMilliseconds": 832.2768000000001,
+            "adapterResultParseMilliseconds": 22.50840000000062,
+            "adapterResultValidationMilliseconds": 15.054799999999886,
+            "clientTransportPollJsonValidationResidualMilliseconds": 178.3772000000008
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752320
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 4,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1211.6256999999996,
+            "capabilityProbeMilliseconds": 1.066200000000208,
+            "clientHelperRoundTripMilliseconds": 1178.9493000000002,
+            "helperJobMilliseconds": 1023.1055999999999,
+            "adapterTotalMilliseconds": 1017.0428000000002,
+            "capabilityInspectionMilliseconds": 48.67149999999947,
+            "adapterRequestSerializeMilliseconds": 22.980099999999766,
+            "executableProcessMilliseconds": 893.6804999999995,
+            "executableEndToEndMilliseconds": 83.4283,
+            "cudaSetupContextPtxMilliseconds": 82.8837,
+            "cudaTransferAllocationResidualMilliseconds": 0.4831280013084296,
+            "cudaKernelMilliseconds": 0.06147199869155884,
+            "processProtocolResidualMilliseconds": 810.2521999999994,
+            "adapterResultParseMilliseconds": 29.72699999999986,
+            "adapterResultValidationMilliseconds": 21.94890000000032,
+            "clientTransportPollJsonValidationResidualMilliseconds": 155.84370000000035
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752322
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 5,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1211.5833000000002,
+            "capabilityProbeMilliseconds": 8.15309999999954,
+            "clientHelperRoundTripMilliseconds": 1180.2847000000002,
+            "helperJobMilliseconds": 1024.9381000000003,
+            "adapterTotalMilliseconds": 1018.8002000000006,
+            "capabilityInspectionMilliseconds": 47.45759999999973,
+            "adapterRequestSerializeMilliseconds": 22.64139999999952,
+            "executableProcessMilliseconds": 895.9554000000007,
+            "executableEndToEndMilliseconds": 82.7365,
+            "cudaSetupContextPtxMilliseconds": 82.1681,
+            "cudaTransferAllocationResidualMilliseconds": 0.5323680013060681,
+            "cudaKernelMilliseconds": 0.036031998693943024,
+            "processProtocolResidualMilliseconds": 813.2189000000008,
+            "adapterResultParseMilliseconds": 35.40189999999984,
+            "adapterResultValidationMilliseconds": 17.307600000000093,
+            "clientTransportPollJsonValidationResidualMilliseconds": 155.34659999999985
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752322
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 6,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1211.202299999999,
+            "capabilityProbeMilliseconds": 1.6806999999989785,
+            "clientHelperRoundTripMilliseconds": 1163.2396000000008,
+            "helperJobMilliseconds": 1000.2368000000006,
+            "adapterTotalMilliseconds": 994.4454999999998,
+            "capabilityInspectionMilliseconds": 49.35140000000138,
+            "adapterRequestSerializeMilliseconds": 22.440199999999095,
+            "executableProcessMilliseconds": 887.304900000001,
+            "executableEndToEndMilliseconds": 81.6926,
+            "cudaSetupContextPtxMilliseconds": 81.1332,
+            "cudaTransferAllocationResidualMilliseconds": 0.5104079994797672,
+            "cudaKernelMilliseconds": 0.04899200052022934,
+            "processProtocolResidualMilliseconds": 805.612300000001,
+            "adapterResultParseMilliseconds": 21.23370000000068,
+            "adapterResultValidationMilliseconds": 14.101999999998952,
+            "clientTransportPollJsonValidationResidualMilliseconds": 163.0028000000002
+          },
+          "bytes": {
+            "request": 4607505,
+            "executableResult": 6752320
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ]
+    },
+    {
+      "sampleCount": 100000,
+      "deterministicFixture": {
+        "requestBytes": 14110626,
+        "initialSerializeMilliseconds": 65.3798999999999
+      },
+      "first": {
+        "run": 1,
+        "phase": "first",
+        "timing": {
+          "shadowPathEndToEndMilliseconds": 3260.8739000000005,
+          "capabilityProbeMilliseconds": 0.8657000000002881,
+          "clientHelperRoundTripMilliseconds": 3187.7111000000004,
+          "helperJobMilliseconds": 2646.4097,
+          "adapterTotalMilliseconds": 2628.5504999999994,
+          "capabilityInspectionMilliseconds": 47.5695999999989,
+          "adapterRequestSerializeMilliseconds": 65.759399999999,
+          "executableProcessMilliseconds": 2404.8232000000007,
+          "executableEndToEndMilliseconds": 82.5475,
+          "cudaSetupContextPtxMilliseconds": 81.576,
+          "cudaTransferAllocationResidualMilliseconds": 0.9259639997184337,
+          "cudaKernelMilliseconds": 0.04553600028157234,
+          "processProtocolResidualMilliseconds": 2322.2757000000006,
+          "adapterResultParseMilliseconds": 65.369200000001,
+          "adapterResultValidationMilliseconds": 44.970900000000256,
+          "clientTransportPollJsonValidationResidualMilliseconds": 541.3014000000003
+        },
+        "bytes": {
+          "request": 14110632,
+          "executableResult": 20634316
+        },
+        "comparison": {
+          "matched": true,
+          "missingSampleCount": 0,
+          "discreteMismatchSampleCount": 0,
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "marginTolerance": 0.00005
+        },
+        "authoritativeBackend": "web",
+        "candidateBackend": "cuda",
+        "shadow": true,
+        "productionApplied": false
+      },
+      "warm": {
+        "runCount": 5,
+        "timing": {
+          "shadowPathEndToEndMilliseconds": {
+            "mean": 3291.2876200000005,
+            "median": 3283.6319000000003,
+            "minimum": 3226.6233999999986,
+            "maximum": 3349.7132999999994
+          },
+          "capabilityProbeMilliseconds": {
+            "mean": 2.971539999999732,
+            "median": 3.3347000000030675,
+            "minimum": 1.1319000000003143,
+            "maximum": 3.781199999997625
+          },
+          "clientHelperRoundTripMilliseconds": {
+            "mean": 3201.55312,
+            "median": 3202.9244,
+            "minimum": 3138.104299999999,
+            "maximum": 3252.2788
+          },
+          "helperJobMilliseconds": {
+            "mean": 2662.40436,
+            "median": 2667.6209000000017,
+            "minimum": 2617.9188999999988,
+            "maximum": 2701.5573000000004
+          },
+          "adapterTotalMilliseconds": {
+            "mean": 2642.4032600000005,
+            "median": 2648.6592999999993,
+            "minimum": 2598.8914000000004,
+            "maximum": 2682.9913000000015
+          },
+          "capabilityInspectionMilliseconds": {
+            "mean": 53.749760000000244,
+            "median": 51.453300000001036,
+            "minimum": 50.695599999999104,
+            "maximum": 58.26929999999993
+          },
+          "adapterRequestSerializeMilliseconds": {
+            "mean": 65.75556000000033,
+            "median": 65.43000000000029,
+            "minimum": 64.73739999999998,
+            "maximum": 68.09200000000055
+          },
+          "executableProcessMilliseconds": {
+            "mean": 2404.3049400000004,
+            "median": 2413.402399999999,
+            "minimum": 2368.2358999999997,
+            "maximum": 2447.9444000000003
+          },
+          "executableEndToEndMilliseconds": {
+            "mean": 89.59094,
+            "median": 88.1554,
+            "minimum": 81.0104,
+            "maximum": 97.8365
+          },
+          "cudaSetupContextPtxMilliseconds": {
+            "mean": 88.7146,
+            "median": 87.2794,
+            "minimum": 80.1012,
+            "maximum": 96.9857
+          },
+          "cudaTransferAllocationResidualMilliseconds": {
+            "mean": 0.8277895998621005,
+            "median": 0.8293759988844442,
+            "minimum": 0.7974880014717627,
+            "maximum": 0.8608480006277546
+          },
+          "cudaKernelMilliseconds": {
+            "mean": 0.04855040013790131,
+            "median": 0.04745600000023842,
+            "minimum": 0.04620800167322159,
+            "maximum": 0.05411199852824211
+          },
+          "processProtocolResidualMilliseconds": {
+            "mean": 2314.7140000000004,
+            "median": 2319.178099999999,
+            "minimum": 2287.2254999999996,
+            "maximum": 2350.1079000000004
+          },
+          "adapterResultParseMilliseconds": {
+            "mean": 67.85373999999975,
+            "median": 67.66200000000026,
+            "minimum": 64.59889999999723,
+            "maximum": 72.89489999999932
+          },
+          "adapterResultValidationMilliseconds": {
+            "mean": 50.72420000000093,
+            "median": 49.75180000000182,
+            "minimum": 48.13539999999921,
+            "maximum": 54.69100000000253
+          },
+          "clientTransportPollJsonValidationResidualMilliseconds": {
+            "mean": 539.14876,
+            "median": 535.3034999999982,
+            "minimum": 520.1854000000003,
+            "maximum": 562.5757000000012
+          }
+        },
+        "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+        "allMatched": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "phase": "first",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3260.8739000000005,
+            "capabilityProbeMilliseconds": 0.8657000000002881,
+            "clientHelperRoundTripMilliseconds": 3187.7111000000004,
+            "helperJobMilliseconds": 2646.4097,
+            "adapterTotalMilliseconds": 2628.5504999999994,
+            "capabilityInspectionMilliseconds": 47.5695999999989,
+            "adapterRequestSerializeMilliseconds": 65.759399999999,
+            "executableProcessMilliseconds": 2404.8232000000007,
+            "executableEndToEndMilliseconds": 82.5475,
+            "cudaSetupContextPtxMilliseconds": 81.576,
+            "cudaTransferAllocationResidualMilliseconds": 0.9259639997184337,
+            "cudaKernelMilliseconds": 0.04553600028157234,
+            "processProtocolResidualMilliseconds": 2322.2757000000006,
+            "adapterResultParseMilliseconds": 65.369200000001,
+            "adapterResultValidationMilliseconds": 44.970900000000256,
+            "clientTransportPollJsonValidationResidualMilliseconds": 541.3014000000003
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634316
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 2,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3226.6233999999986,
+            "capabilityProbeMilliseconds": 3.3747999999995955,
+            "clientHelperRoundTripMilliseconds": 3138.104299999999,
+            "helperJobMilliseconds": 2617.9188999999988,
+            "adapterTotalMilliseconds": 2598.8914000000004,
+            "capabilityInspectionMilliseconds": 50.695599999999104,
+            "adapterRequestSerializeMilliseconds": 64.73739999999998,
+            "executableProcessMilliseconds": 2368.2358999999997,
+            "executableEndToEndMilliseconds": 81.0104,
+            "cudaSetupContextPtxMilliseconds": 80.1012,
+            "cudaTransferAllocationResidualMilliseconds": 0.8608480006277546,
+            "cudaKernelMilliseconds": 0.04835199937224388,
+            "processProtocolResidualMilliseconds": 2287.2254999999996,
+            "adapterResultParseMilliseconds": 65.71509999999944,
+            "adapterResultValidationMilliseconds": 49.492199999998775,
+            "clientTransportPollJsonValidationResidualMilliseconds": 520.1854000000003
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634316
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 3,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3337.890400000002,
+            "capabilityProbeMilliseconds": 1.1319000000003143,
+            "clientHelperRoundTripMilliseconds": 3247.813,
+            "helperJobMilliseconds": 2701.5573000000004,
+            "adapterTotalMilliseconds": 2682.9913000000015,
+            "capabilityInspectionMilliseconds": 51.453300000001036,
+            "adapterRequestSerializeMilliseconds": 65.43000000000029,
+            "executableProcessMilliseconds": 2447.9444000000003,
+            "executableEndToEndMilliseconds": 97.8365,
+            "cudaSetupContextPtxMilliseconds": 96.9857,
+            "cudaTransferAllocationResidualMilliseconds": 0.8033439999997682,
+            "cudaKernelMilliseconds": 0.04745600000023842,
+            "processProtocolResidualMilliseconds": 2350.1079000000004,
+            "adapterResultParseMilliseconds": 68.39780000000246,
+            "adapterResultValidationMilliseconds": 49.75180000000182,
+            "clientTransportPollJsonValidationResidualMilliseconds": 546.2556999999997
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634316
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 4,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3349.7132999999994,
+            "capabilityProbeMilliseconds": 3.781199999997625,
+            "clientHelperRoundTripMilliseconds": 3252.2788,
+            "helperJobMilliseconds": 2689.703099999999,
+            "adapterTotalMilliseconds": 2665.378199999999,
+            "capabilityInspectionMilliseconds": 58.26929999999993,
+            "adapterRequestSerializeMilliseconds": 65.5047999999988,
+            "executableProcessMilliseconds": 2413.9998000000014,
+            "executableEndToEndMilliseconds": 86.7281,
+            "cudaSetupContextPtxMilliseconds": 85.834,
+            "cudaTransferAllocationResidualMilliseconds": 0.847891998326773,
+            "cudaKernelMilliseconds": 0.04620800167322159,
+            "processProtocolResidualMilliseconds": 2327.2717000000016,
+            "adapterResultParseMilliseconds": 72.89489999999932,
+            "adapterResultValidationMilliseconds": 54.69100000000253,
+            "clientTransportPollJsonValidationResidualMilliseconds": 562.5757000000012
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634316
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 5,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3258.5791000000027,
+            "capabilityProbeMilliseconds": 3.235099999998056,
+            "clientHelperRoundTripMilliseconds": 3166.6451000000015,
+            "helperJobMilliseconds": 2635.2216000000008,
+            "adapterTotalMilliseconds": 2616.0961000000025,
+            "capabilityInspectionMilliseconds": 57.313600000001315,
+            "adapterRequestSerializeMilliseconds": 68.09200000000055,
+            "executableProcessMilliseconds": 2377.9422000000013,
+            "executableEndToEndMilliseconds": 88.1554,
+            "cudaSetupContextPtxMilliseconds": 87.2794,
+            "cudaTransferAllocationResidualMilliseconds": 0.8293759988844442,
+            "cudaKernelMilliseconds": 0.04662400111556053,
+            "processProtocolResidualMilliseconds": 2289.786800000001,
+            "adapterResultParseMilliseconds": 64.59889999999723,
+            "adapterResultValidationMilliseconds": 48.13539999999921,
+            "clientTransportPollJsonValidationResidualMilliseconds": 531.4235000000008
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634294
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 6,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3283.6319000000003,
+            "capabilityProbeMilliseconds": 3.3347000000030675,
+            "clientHelperRoundTripMilliseconds": 3202.9244,
+            "helperJobMilliseconds": 2667.6209000000017,
+            "adapterTotalMilliseconds": 2648.6592999999993,
+            "capabilityInspectionMilliseconds": 51.016999999999825,
+            "adapterRequestSerializeMilliseconds": 65.01360000000204,
+            "executableProcessMilliseconds": 2413.402399999999,
+            "executableEndToEndMilliseconds": 94.2243,
+            "cudaSetupContextPtxMilliseconds": 93.3727,
+            "cudaTransferAllocationResidualMilliseconds": 0.7974880014717627,
+            "cudaKernelMilliseconds": 0.05411199852824211,
+            "processProtocolResidualMilliseconds": 2319.178099999999,
+            "adapterResultParseMilliseconds": 67.66200000000026,
+            "adapterResultValidationMilliseconds": 51.550600000002305,
+            "clientTransportPollJsonValidationResidualMilliseconds": 535.3034999999982
+          },
+          "bytes": {
+            "request": 14110632,
+            "executableResult": 20634316
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ]
+    },
+    {
+      "sampleCount": 250000,
+      "deterministicFixture": {
+        "requestBytes": 35486320,
+        "initialSerializeMilliseconds": 175.77300000000105
+      },
+      "first": {
+        "run": 1,
+        "phase": "first",
+        "timing": {
+          "shadowPathEndToEndMilliseconds": 7763.218000000001,
+          "capabilityProbeMilliseconds": 1.3685999999979686,
+          "clientHelperRoundTripMilliseconds": 7497.409700000004,
+          "helperJobMilliseconds": 6169.199700000001,
+          "adapterTotalMilliseconds": 6123.137699999996,
+          "capabilityInspectionMilliseconds": 57.59530000000086,
+          "adapterRequestSerializeMilliseconds": 172.99529999999868,
+          "executableProcessMilliseconds": 5532.168100000003,
+          "executableEndToEndMilliseconds": 97.5894,
+          "cudaSetupContextPtxMilliseconds": 95.9707,
+          "cudaTransferAllocationResidualMilliseconds": 1.5654200003564398,
+          "cudaKernelMilliseconds": 0.053279999643564224,
+          "processProtocolResidualMilliseconds": 5434.578700000003,
+          "adapterResultParseMilliseconds": 214.02230000000418,
+          "adapterResultValidationMilliseconds": 146.34100000000035,
+          "clientTransportPollJsonValidationResidualMilliseconds": 1328.2100000000028
+        },
+        "bytes": {
+          "request": 35486326,
+          "executableResult": 51885624
+        },
+        "comparison": {
+          "matched": true,
+          "missingSampleCount": 0,
+          "discreteMismatchSampleCount": 0,
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "marginTolerance": 0.00005
+        },
+        "authoritativeBackend": "web",
+        "candidateBackend": "cuda",
+        "shadow": true,
+        "productionApplied": false
+      },
+      "warm": {
+        "runCount": 5,
+        "timing": {
+          "shadowPathEndToEndMilliseconds": {
+            "mean": 7603.879660000001,
+            "median": 7644.45410000001,
+            "minimum": 7508.204400000002,
+            "maximum": 7670.951399999998
+          },
+          "capabilityProbeMilliseconds": {
+            "mean": 7.905340000000433,
+            "median": 10.00159999999596,
+            "minimum": 2.172600000005332,
+            "maximum": 12.791900000003807
+          },
+          "clientHelperRoundTripMilliseconds": {
+            "mean": 7391.526219999998,
+            "median": 7431.527799999996,
+            "minimum": 7299.631800000003,
+            "maximum": 7468.547299999998
+          },
+          "helperJobMilliseconds": {
+            "mean": 6107.093779999997,
+            "median": 6110.598499999993,
+            "minimum": 6037.933599999997,
+            "maximum": 6171.025699999998
+          },
+          "adapterTotalMilliseconds": {
+            "mean": 6062.183119999999,
+            "median": 6065.766799999998,
+            "minimum": 5993.7383000000045,
+            "maximum": 6124.901299999998
+          },
+          "capabilityInspectionMilliseconds": {
+            "mean": 54.83295999999682,
+            "median": 54.43879999999626,
+            "minimum": 52.23159999999916,
+            "maximum": 57.34049999999115
+          },
+          "adapterRequestSerializeMilliseconds": {
+            "mean": 167.21744000000035,
+            "median": 165.95249999999942,
+            "minimum": 163.75730000000476,
+            "maximum": 173.6935999999987
+          },
+          "executableProcessMilliseconds": {
+            "mean": 5476.997880000003,
+            "median": 5483.538900000014,
+            "minimum": 5419.761899999998,
+            "maximum": 5536.536199999995
+          },
+          "executableEndToEndMilliseconds": {
+            "mean": 93.88,
+            "median": 95.1485,
+            "minimum": 87.3637,
+            "maximum": 96.5159
+          },
+          "cudaSetupContextPtxMilliseconds": {
+            "mean": 92.1799,
+            "median": 93.4086,
+            "minimum": 85.7629,
+            "maximum": 94.9218
+          },
+          "cudaTransferAllocationResidualMilliseconds": {
+            "mean": 1.6414440003991075,
+            "median": 1.5412359997987721,
+            "minimum": 1.517367999035116,
+            "maximum": 1.9391480003237689
+          },
+          "cudaKernelMilliseconds": {
+            "mean": 0.0586559996008873,
+            "median": 0.05475199967622757,
+            "minimum": 0.05286400020122528,
+            "maximum": 0.0700799971818924
+          },
+          "processProtocolResidualMilliseconds": {
+            "mean": 5383.1178800000025,
+            "median": 5388.390400000014,
+            "minimum": 5326.598600000003,
+            "maximum": 5441.900199999995
+          },
+          "adapterResultParseMilliseconds": {
+            "mean": 209.16690000000236,
+            "median": 209.64459999999963,
+            "minimum": 204.38320000001113,
+            "maximum": 211.95120000000315
+          },
+          "adapterResultValidationMilliseconds": {
+            "mean": 153.9529800000004,
+            "median": 153.05999999999767,
+            "minimum": 145.70000000000437,
+            "maximum": 166.28620000000228
+          },
+          "clientTransportPollJsonValidationResidualMilliseconds": {
+            "mean": 1284.4324400000012,
+            "median": 1277.2488999999914,
+            "minimum": 1261.6982000000062,
+            "maximum": 1320.9293000000034
+          }
+        },
+        "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+        "allMatched": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "phase": "first",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7763.218000000001,
+            "capabilityProbeMilliseconds": 1.3685999999979686,
+            "clientHelperRoundTripMilliseconds": 7497.409700000004,
+            "helperJobMilliseconds": 6169.199700000001,
+            "adapterTotalMilliseconds": 6123.137699999996,
+            "capabilityInspectionMilliseconds": 57.59530000000086,
+            "adapterRequestSerializeMilliseconds": 172.99529999999868,
+            "executableProcessMilliseconds": 5532.168100000003,
+            "executableEndToEndMilliseconds": 97.5894,
+            "cudaSetupContextPtxMilliseconds": 95.9707,
+            "cudaTransferAllocationResidualMilliseconds": 1.5654200003564398,
+            "cudaKernelMilliseconds": 0.053279999643564224,
+            "processProtocolResidualMilliseconds": 5434.578700000003,
+            "adapterResultParseMilliseconds": 214.02230000000418,
+            "adapterResultValidationMilliseconds": 146.34100000000035,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1328.2100000000028
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885624
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 2,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7670.951399999998,
+            "capabilityProbeMilliseconds": 12.791900000003807,
+            "clientHelperRoundTripMilliseconds": 7468.547299999998,
+            "helperJobMilliseconds": 6171.025699999998,
+            "adapterTotalMilliseconds": 6124.901299999998,
+            "capabilityInspectionMilliseconds": 56.83150000000023,
+            "adapterRequestSerializeMilliseconds": 168.79290000000037,
+            "executableProcessMilliseconds": 5522.037900000003,
+            "executableEndToEndMilliseconds": 95.7359,
+            "cudaSetupContextPtxMilliseconds": 94.1641,
+            "cudaTransferAllocationResidualMilliseconds": 1.517367999035116,
+            "cudaKernelMilliseconds": 0.05443200096487999,
+            "processProtocolResidualMilliseconds": 5426.302000000003,
+            "adapterResultParseMilliseconds": 210.93559999999707,
+            "adapterResultValidationMilliseconds": 166.28620000000228,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1297.5216
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885622
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 3,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7546.171399999999,
+            "capabilityProbeMilliseconds": 2.4962000000014086,
+            "clientHelperRoundTripMilliseconds": 7318.459300000002,
+            "helperJobMilliseconds": 6053.695099999997,
+            "adapterTotalMilliseconds": 6008.923799999997,
+            "capabilityInspectionMilliseconds": 53.32239999999729,
+            "adapterRequestSerializeMilliseconds": 165.95249999999942,
+            "executableProcessMilliseconds": 5419.761899999998,
+            "executableEndToEndMilliseconds": 87.3637,
+            "cudaSetupContextPtxMilliseconds": 85.7629,
+            "cudaTransferAllocationResidualMilliseconds": 1.5396480000197812,
+            "cudaKernelMilliseconds": 0.06115199998021126,
+            "processProtocolResidualMilliseconds": 5332.398199999998,
+            "adapterResultParseMilliseconds": 211.95120000000315,
+            "adapterResultValidationMilliseconds": 157.92220000000088,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1264.764200000005
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885624
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 4,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7508.204400000002,
+            "capabilityProbeMilliseconds": 10.00159999999596,
+            "clientHelperRoundTripMilliseconds": 7299.631800000003,
+            "helperJobMilliseconds": 6037.933599999997,
+            "adapterTotalMilliseconds": 5993.7383000000045,
+            "capabilityInspectionMilliseconds": 52.23159999999916,
+            "adapterRequestSerializeMilliseconds": 163.75730000000476,
+            "executableProcessMilliseconds": 5423.114500000003,
+            "executableEndToEndMilliseconds": 96.5159,
+            "cudaSetupContextPtxMilliseconds": 94.9218,
+            "cudaTransferAllocationResidualMilliseconds": 1.5412359997987721,
+            "cudaKernelMilliseconds": 0.05286400020122528,
+            "processProtocolResidualMilliseconds": 5326.598600000003,
+            "adapterResultParseMilliseconds": 208.91990000000078,
+            "adapterResultValidationMilliseconds": 145.70000000000437,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1261.6982000000062
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885624
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 5,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7644.45410000001,
+            "capabilityProbeMilliseconds": 12.064399999995658,
+            "clientHelperRoundTripMilliseconds": 7439.464899999992,
+            "helperJobMilliseconds": 6162.216,
+            "adapterTotalMilliseconds": 6117.585399999996,
+            "capabilityInspectionMilliseconds": 54.43879999999626,
+            "adapterRequestSerializeMilliseconds": 163.8908999999985,
+            "executableProcessMilliseconds": 5536.536199999995,
+            "executableEndToEndMilliseconds": 94.636,
+            "cudaSetupContextPtxMilliseconds": 92.6421,
+            "cudaTransferAllocationResidualMilliseconds": 1.9391480003237689,
+            "cudaKernelMilliseconds": 0.05475199967622757,
+            "processProtocolResidualMilliseconds": 5441.900199999995,
+            "adapterResultParseMilliseconds": 209.64459999999963,
+            "adapterResultValidationMilliseconds": 153.05999999999767,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1277.2488999999914
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885622
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "run": 6,
+          "phase": "warm",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 7649.616999999998,
+            "capabilityProbeMilliseconds": 2.172600000005332,
+            "clientHelperRoundTripMilliseconds": 7431.527799999996,
+            "helperJobMilliseconds": 6110.598499999993,
+            "adapterTotalMilliseconds": 6065.766799999998,
+            "capabilityInspectionMilliseconds": 57.34049999999115,
+            "adapterRequestSerializeMilliseconds": 173.6935999999987,
+            "executableProcessMilliseconds": 5483.538900000014,
+            "executableEndToEndMilliseconds": 95.1485,
+            "cudaSetupContextPtxMilliseconds": 93.4086,
+            "cudaTransferAllocationResidualMilliseconds": 1.6698200028180992,
+            "cudaKernelMilliseconds": 0.0700799971818924,
+            "processProtocolResidualMilliseconds": 5388.390400000014,
+            "adapterResultParseMilliseconds": 204.38320000001113,
+            "adapterResultValidationMilliseconds": 146.79649999999674,
+            "clientTransportPollJsonValidationResidualMilliseconds": 1320.9293000000034
+          },
+          "bytes": {
+            "request": 35486326,
+            "executableResult": 51885624
+          },
+          "comparison": {
+            "matched": true,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ]
+    }
+  ]
+}

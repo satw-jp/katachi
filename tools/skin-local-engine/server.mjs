@@ -10,7 +10,9 @@ import { probeWindowsCapability } from "./probe-windows-capability.mjs";
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
 export const ENGINE_VERSION = "0.1.0-shadow";
-export const MAXIMUM_JOB_BYTES = 8 * 1024 * 1024;
+// 250k deterministic containment samples serialize to roughly 35 MiB. Keep the
+// request bounded while allowing the advertised sample ceiling to be exercised.
+export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
 export const MAXIMUM_CONTAINMENT_SAMPLES = 250_000;
 
 const ALLOWED_ORIGINS = new Set([

@@ -43,12 +43,16 @@ export function evaluateContainmentOnWeb(
 
   const outside = results.filter((sample) => sample.classification === "outside");
   const unknown = results.filter((sample) => sample.classification === "unknown");
-  const maximumExcess = results.length === 0
-    ? 0
-    : Math.max(...results.map((sample) => sample.radiusAdjustedMargin));
-  const minimumClearance = results.length === 0
-    ? 0
-    : Math.min(...results.map((sample) => sample.radiusClearance));
+  let maximumExcess = 0;
+  let minimumClearance = 0;
+  if (results.length > 0) {
+    maximumExcess = -Infinity;
+    minimumClearance = Infinity;
+    for (const sample of results) {
+      maximumExcess = Math.max(maximumExcess, sample.radiusAdjustedMargin);
+      minimumClearance = Math.min(minimumClearance, sample.radiusClearance);
+    }
+  }
   const payload: EvaluateContainmentPayload = {
     samples: results,
     summary: {

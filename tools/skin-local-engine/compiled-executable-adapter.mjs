@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { performance } from "node:perf_hooks";
 
 export const EXECUTABLE_CAPABILITIES_CONTRACT =
   "katachi.cuda-containment-executable-capabilities.v1";
@@ -13,6 +14,7 @@ export const EVALUATE_CONTAINMENT_ALGORITHM =
 export const EXPECTED_CUDA_DEVICE_NAME = "NVIDIA GeForce RTX 3080";
 export const EXPECTED_COMPILED_EXECUTABLE_SHA256 =
   "0AE5FA195E6FE9FE5831603E3AC075FFBCF1B0F174E3768273EDD578BE516726";
+export const MAXIMUM_COMPILED_RESULT_BYTES = 64 * 1024 * 1024;
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 export const FIXED_COMPILED_EXECUTABLE = join(
@@ -179,28 +181,52 @@ export function runCompiledContainment(request, {
   spawnSyncImpl = spawnSync,
   timeoutMilliseconds = 30_000,
 } = {}) {
+  const adapterStart = performance.now();
+  const inspectionStart = performance.now();
   const inspection = inspectCompiledEngine({ executablePath, spawnSyncImpl });
+  const capabilityInspectionMilliseconds = performance.now() - inspectionStart;
   if (!inspection.available) {
     const error = new Error(`CUDA adapter unavailable: ${inspection.reasonCode}`);
     error.code = inspection.reasonCode;
     throw error;
   }
+  const serializationStart = performance.now();
+  const serializedRequest = JSON.stringify(request);
+  const requestSerializeMilliseconds = performance.now() - serializationStart;
+  const executableProcessStart = performance.now();
   const child = spawnSyncImpl(executablePath, ["--evaluate-containment-json"], {
-    input: JSON.stringify(request),
+    input: serializedRequest,
     encoding: "utf8",
     windowsHide: true,
     timeout: timeoutMilliseconds,
-    maxBuffer: 16 * 1024 * 1024,
+    maxBuffer: MAXIMUM_COMPILED_RESULT_BYTES,
     shell: false,
   });
+  const executableProcessMilliseconds = performance.now() - executableProcessStart;
   if (child.error || child.status !== 0) {
     const error = new Error(child.error?.message ?? String(child.stderr ?? "compiled CUDA job failed").trim());
     error.code = child.error?.code === "ETIMEDOUT" ? "cuda_job_timeout" : "cuda_job_failed";
     throw error;
   }
+  const resultParseStart = performance.now();
+  const parsedResult = JSON.parse(child.stdout);
+  const resultParseMilliseconds = performance.now() - resultParseStart;
+  const resultValidationStart = performance.now();
+  const result = validateExecutableResult(parsedResult, request);
+  const resultValidationMilliseconds = performance.now() - resultValidationStart;
   return {
     capabilities: inspection.capabilities,
     artifactSha256: inspection.artifactSha256,
-    result: validateExecutableResult(JSON.parse(child.stdout), request),
+    result,
+    adapterTiming: {
+      totalMilliseconds: performance.now() - adapterStart,
+      capabilityInspectionMilliseconds,
+      requestSerializeMilliseconds,
+      executableProcessMilliseconds,
+      resultParseMilliseconds,
+      resultValidationMilliseconds,
+      requestBytes: Buffer.byteLength(serializedRequest),
+      resultBytes: Buffer.byteLength(child.stdout),
+    },
   };
 }
