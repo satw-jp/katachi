@@ -13,6 +13,9 @@ export const GEOMETRY_JOB_STATUS_CONTRACT =
   "katachi.geometry-job-status.v1" as const;
 export const EVALUATE_CONTAINMENT_ALGORITHM =
   "katachi.skin.evaluate-containment.metaball-radius.v1" as const;
+export const EXPECTED_CUDA_DEVICE_NAME = "NVIDIA GeForce RTX 3080" as const;
+export const EXPECTED_CUDA_EXECUTABLE_SHA256 =
+  "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA" as const;
 
 export const GEOMETRY_OPERATIONS = [
   "buildMesh",
@@ -117,6 +120,16 @@ export interface GeometryBackendProvenance {
   engineVersion: string;
   deviceName: string | null;
   precisionMode: GeometryPrecisionMode;
+  artifactSha256?: string;
+  timing?: GeometryExecutionTiming;
+}
+
+export interface GeometryExecutionTiming {
+  endToEndMilliseconds: number;
+  setupMilliseconds: number;
+  kernelTotalMilliseconds: number;
+  kernelAverageMilliseconds: number;
+  iterations: number;
 }
 
 export interface GeometryJobResult<TPayload = Record<string, unknown>> {
@@ -145,6 +158,7 @@ export interface GeometryBackendCapability {
   kind: "cpu" | "cuda";
   status: "available" | "unavailable";
   deviceName?: string;
+  artifactSha256?: string;
   precisionModes: GeometryPrecisionMode[];
   reasonCode?: string;
 }
@@ -160,6 +174,11 @@ export interface GeometryEngineCapabilities {
   protocol: { major: number; minor: number };
   engine: { id: string; version: string };
   endpoint: { host: "127.0.0.1"; port: 47658; apiBase: "/v1" };
+  policy: {
+    executionMode: "shadow-only";
+    authoritativeBackend: "web";
+    productionApplied: false;
+  };
   backends: GeometryBackendCapability[];
   operations: GeometryOperationCapability[];
   limits: {
@@ -295,6 +314,12 @@ export function validateGeometryEngineCapabilities(value: unknown): GeometryEngi
   if (endpoint.host !== "127.0.0.1" || endpoint.port !== 47658 || endpoint.apiBase !== "/v1") {
     throw new GeometryContractError("helper did not advertise the fixed loopback endpoint");
   }
+  const policy = record(capabilities.policy, "capabilities.policy");
+  if (policy.executionMode !== "shadow-only"
+    || policy.authoritativeBackend !== "web"
+    || policy.productionApplied !== false) {
+    throw new GeometryContractError("helper must advertise Web-authoritative shadow-only policy");
+  }
   if (!Array.isArray(capabilities.backends) || !Array.isArray(capabilities.operations)) {
     throw new GeometryContractError("capabilities must advertise backend and operation arrays");
   }
@@ -316,6 +341,12 @@ export function validateGeometryEngineCapabilities(value: unknown): GeometryEngi
     if (!Array.isArray(backend.precisionModes)
       || backend.precisionModes.some((mode) => mode !== "float32" && mode !== "float64" && mode !== "mixed")) {
       throw new GeometryContractError(`capabilities.backends[${index}] has invalid precision modes`);
+    }
+    if (backend.kind === "cuda" && backend.status === "available"
+      && (backend.deviceName !== EXPECTED_CUDA_DEVICE_NAME
+        || !backend.precisionModes.includes("float32")
+        || backend.artifactSha256 !== EXPECTED_CUDA_EXECUTABLE_SHA256)) {
+      throw new GeometryContractError("available CUDA backend is not the reviewed RTX 3080 artifact");
     }
   }
   for (const [index, candidate] of capabilities.operations.entries()) {
@@ -360,11 +391,20 @@ export function validateEvaluateContainmentJobResult(
   }
   nonEmptyString(backend.backendId, "job result.backend.backendId");
   nonEmptyString(backend.engineVersion, "job result.backend.engineVersion");
-  if (backend.deviceName !== null) nonEmptyString(backend.deviceName, "job result.backend.deviceName");
-  if (backend.precisionMode !== "float32"
-    && backend.precisionMode !== "float64"
-    && backend.precisionMode !== "mixed") {
-    throw new GeometryContractError("job result has an unsupported precision mode");
+  if (backend.deviceName !== EXPECTED_CUDA_DEVICE_NAME
+    || backend.precisionMode !== "float32"
+    || backend.artifactSha256 !== EXPECTED_CUDA_EXECUTABLE_SHA256) {
+    throw new GeometryContractError("local candidate must report the reviewed RTX 3080 float32 artifact");
+  }
+  if (backend.timing !== undefined) {
+    const timing = record(backend.timing, "job result.backend.timing");
+    finite(timing.endToEndMilliseconds, "job result.backend.timing.endToEndMilliseconds", 0);
+    finite(timing.setupMilliseconds, "job result.backend.timing.setupMilliseconds", 0);
+    finite(timing.kernelTotalMilliseconds, "job result.backend.timing.kernelTotalMilliseconds", 0);
+    finite(timing.kernelAverageMilliseconds, "job result.backend.timing.kernelAverageMilliseconds", 0);
+    if (!Number.isInteger(timing.iterations) || Number(timing.iterations) < 1) {
+      throw new GeometryContractError("job result.backend.timing.iterations must be a positive integer");
+    }
   }
   if (!Array.isArray(response.warnings)) throw new GeometryContractError("job result.warnings must be an array");
   const payload = record(response.result, "job result.result");
