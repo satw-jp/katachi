@@ -35,6 +35,23 @@ buildを通した。Print #002のFKEI round-trip、BODY watertight / 1 component
 Removable Support Off / support artifact 0、immutable Print #001 baselineは既存contractのまま維持する。
 実Mac QAはこの統合のblockerにせず、**POST-DEPLOY FOLLOW-UP: Mac Web fallback QA**として残す。
 
+### 2026-08-31 — Stage 4 Inside Overhang routing to Stage 5B
+
+工程4の全Overhang診断を保持したまま、工程3で確定済みの各Motifの`surfacePosition / outwardNormal`を
+SSOTとして、最寄りMotifへ帰属した最終mesh面の中心が負側ならInside、正側ならOutsideとして表示へ投影する。
+Base SDFの再samplingや第二のInside / Outside判定は追加していない。Insideは赤、Outsideは薄い青灰色で
+同じ診断overlayに残し、選択・緑の補強済み表示・工程5Bのsurface sampleだけをInside面へ限定した。
+この分類と診断bufferはruntime-onlyで、geometry、FKEI schema/semantics、BODY STL/3MF、Automatic Support、
+CUDA、Graph topology algorithm、`printApproval=false`を変更しない。
+
+Print #002 FKEIを通常Chromeで開き、工程3（38/38、ambiguous 0）から工程4を再実行した。
+全Overhangは1,224 faces / 86 regions、Insideは735 faces / 73 regions、Outsideは489 faces / 53 regions、
+工程5B入力は735 faces / 73 regionsだった。region数は元の連続領域IDを各集合で数えるため、InsideとOutsideが
+同じ領域に含まれる場合は両方へ現れる。Axome目視では赤いInsideと薄いOutsideが同時に残り、明らかな一括反転は
+見つからなかった。console warning/errorは0件。5B時間のBefore/After比較は、全対象を処理するとruntime geometryを
+変更するため今回は実行していない。これは入力filterのDoDを妨げない計測未実施として記録し、
+5B routing/containment algorithmは変更していない。
+
 ### 2026-08-31 — Stage 3 Interior Classification debug colors (presentation only)
 
 工程3が実際に保持する`SkinRebuildPatternSide`だけを、別の表示専用layerへ写す

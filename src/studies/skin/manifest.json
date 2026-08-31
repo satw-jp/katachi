@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.91.1",
+  "version": "0.92.0",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-08-31",
   "params": [
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-08-31",
+      "note": "Stage 4 retains the complete overhang diagnosis while projecting each attributed final-mesh face centre onto the stored Stage 3 motif surfacePosition/outwardNormal: the negative half-space is Inside and the positive half-space is Outside, without Base SDF resampling or a second Interior classifier. Inside is red and is the only selectable/reinforceable Stage 5B input; Outside stays in the same overlay as subdued blue-gray diagnostic evidence. Print #002 FKEI rerun reported total 1,224 faces / 86 regions, Inside 735 / 73, Outside 489 / 53, and Stage 5B target 735 / 73; region counts can overlap when one original connected region contains both classes. Axome showed both classes with no obvious wholesale reversal and console warning/error 0. Full-set Stage 5B Before/After timing was not run because it would mutate the browser runtime geometry; routing and containment algorithms were not changed. Geometry, FKEI schema/semantics, BODY artifacts, Automatic Support, CUDA, Graph topology and printApproval are unchanged."
+    },
     {
       "date": "2026-08-31",
       "note": "Stage 3 Interior Classification debug is presentation-only and reads the existing SkinRebuildPatternSide result without field sampling or a second classifier. Normal preserves the previous view; Debug Colors draws stored insidePosition red, outsidePosition blue, surfacePosition/boundary or an existing false baseSideIsInside verdict yellow, and motifs with no current Stage 3 row gray. Print #002 FKEI was reopened and Stage 3 rerun: Inside 38, Outside 38, Boundary 38, ambiguous 0, unclassified 0. Axome inspection showed red on the Base side, blue outside and yellow between for the visible motifs, with no obvious local reversal or concentrated ambiguous area; console warning/error 0. This is visual evidence only. Geometry, FKEI schema/semantics, Support, Stage 5B, CUDA, Graph topology, Print #002 artifacts and printApproval are unchanged."

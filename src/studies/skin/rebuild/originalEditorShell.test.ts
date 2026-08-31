@@ -110,8 +110,10 @@ assert.match(
 );
 assert.match(main, /new Worker\(new URL\("\.\/rebuild\/lowestPoint\.worker\.ts"/);
 assert.match(main, /beginHeavyComputation\(`工程4 オーバーハング検出/);
-assert.match(main, /オーバーハング危険面を表示（赤／補強済みは緑）/);
-assert.match(main, /赤=未補強、緑=蜘蛛補強済み、水色=補強部材/);
+assert.match(main, /オーバーハング危険面を表示（Inside赤／Outside薄青灰）/);
+assert.match(main, /Inside赤=5B対象、Outside薄青灰=診断のみ、緑=Inside補強済み、水色=補強部材/);
+assert.match(main, /faceRegionIds: overhangInterior\.insideFaceRegionIds/,
+  "Stage 5B surface sampling must receive only the Stage 3-derived Inside Overhang mask");
 assert.match(renderer, /setSkinRebuildOverhangOverlay/);
 assert.match(renderer, /setReinforcedSkinRebuildOverhangRegions/);
 assert.match(renderer, /skin-rebuild-reinforced-overhang-regions/);
