@@ -1,7 +1,8 @@
 # Katachi — 運用憲章（AGENTS.md）
 
 このプロジェクトで作業するすべての AI・人間が従う。モデル非依存。
-`~/Projects/AGENTS.md`（ルート共通ルール）が上位にあり、矛盾する場合はルートが優先。
+`$CODEX_HOME/AGENTS.md` の共通ルールを土台とし、この文書で Katachi 固有の規律を追加する。
+同じ事項で本書の方が具体的な場合は、本書を適用する。
 
 ## 0. まず読む順
 
@@ -77,3 +78,21 @@ README の型: **Question**（この Study は何を知ろうとしているか�
 - 骨子（RESEARCH.md）の改訂は意図的に行い、版と日付を冒頭に残す。地図の書き直しは失敗ではなく研究の進行
 - 実装と文書がずれたら、ずれを放置しない（ルート共通ルール）
 - 大きな決定（技術選定・色スケール・ファイル形式）は README か骨子に「理由つきで」残す
+
+## 8. Scope Lock / Stop Rule
+
+- 開始時に今回の Definition of Done（DoD）を3〜7項目で固定し、必要十分な最小変更で満たしたら停止する
+- DoDを妨げないscope外の発見は修正せず `FOLLOW-UP` に送る。reviewerも今回のDoDだけを判定する
+- `review → fix → review` の修正サイクルは原則2周まで。以後は現状・未解決・次TASK案を報告して停止する
+- 指定外のrefactor、cleanup、abstraction、generalization、architecture変更、網羅的edge-case対応を「ついでに」行わない
+- 追加修正の前に「これを直さないと今回のDoDを満たせないか？」と判定し、Noなら修正しない
+- FOLLOW-UPを残して終了してよい。今回のDoDを満たして止めることを成功とする
+
+## 9. SKIN / Print 固有ルール
+
+- 物理試作とPrint実験を、理論的完全性の追求より優先する。理論上の不足は試作を無効にしない限りresearch findingとする
+- Print実験を、無関係なsupport hardeningで止めない。必要なら `FOLLOW-UP` に分離する
+- CUDAは明示的な統合タスク以外では隔離し、Print・production・既存CPU経路へ偶発的に結合しない
+- FKEIの意味、単位、符号、対応関係を不用意に変えない。変更には明示要件と移行・検証根拠を要する
+- immutable print baselineは上書き・再生成せず、比較用の読み取り専用基準として維持する。新結果は別versionまたは別pathへ出す
+- reviewではproduction blockerとresearch findingを分離する。要求未達、データ損失、重大な安全問題、production regression、破損・再現不能だけをblockerとする
