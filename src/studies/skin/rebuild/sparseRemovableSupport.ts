@@ -1,0 +1,979 @@
+import type {
+  InternalStructureEdge,
+  InternalStructureGraph,
+  InternalStructureNode,
+  Vector3Value,
+} from "../voronoi.ts";
+
+/** A current final-artwork face after Stage 4 responsibility projection. */
+export interface SparseRemovableSupportFace {
+  /** The retained Stage 4 Outside region id. */
+  regionId: number;
+  /** Representative point from the Stage 7 final-artwork triangle. */
+  position: Vector3Value;
+  /** Representative outward triangle normal. */
+  normal: Vector3Value;
+  /** Stable Stage 7 face identity for diagnostics. */
+  faceIndex: number;
+  /** Optional source area, used only for deterministic tie-breaking. */
+  area?: number;
+}
+
+export type SparseSupportRouteKind = "vertical" | "leaning";
+export type SparseSupportRejectReason =
+  | "body"
+  | "spacing"
+  | "removability"
+  | "unsupported"
+  | "coverage";
+
+export interface SparseRemovableSupportTarget {
+  id: string;
+  regionId: number;
+  position: Vector3Value;
+  normal: Vector3Value;
+  sourceFaceIndices: number[];
+}
+
+export interface SparseRemovableSupportCandidate {
+  id: string;
+  target: SparseRemovableSupportTarget;
+  /** Other critical targets reached by this same sparse contact footprint. */
+  coversCriticalTargetIds: string[];
+  /** Route priority is stable and lower is attempted first. */
+  priority: number;
+}
+
+export interface SparseSupportRouteSegment {
+  start: Vector3Value;
+  end: Vector3Value;
+  radius: number;
+}
+
+export interface SparseRemovableSupportRoute {
+  kind: SparseSupportRouteKind;
+  root: Vector3Value;
+  neckStart: Vector3Value;
+  target: Vector3Value;
+  segments: SparseSupportRouteSegment[];
+}
+
+export interface SparseSupportRouteAttempt {
+  kind: SparseSupportRouteKind;
+  accepted: boolean;
+  reason?: SparseSupportRejectReason;
+  detail?: string;
+}
+
+export interface SparseSupportDebugCriticalTarget {
+  id: string;
+  regionId: number;
+  position: Vector3Value;
+  sourceFaceIndices: number[];
+}
+
+export interface SparseSupportDebugRejectedCandidate {
+  id: string;
+  regionId: number;
+  position: Vector3Value;
+  reason: SparseSupportRejectReason;
+  routeKind?: SparseSupportRouteKind;
+  detail: string;
+}
+
+export interface SparseRemovableSupportDebug {
+  /** Bounded presentation facts for yellow critical-target markers. */
+  criticalTargets: SparseSupportDebugCriticalTarget[];
+  /** Bounded presentation facts for translucent-red rejected candidates. */
+  rejectedCandidates: SparseSupportDebugRejectedCandidate[];
+  /** Full bounded route-attempt facts for a text/debug inspector. */
+  routeAttempts: Array<{
+    candidateId: string;
+    regionId: number;
+    attempts: SparseSupportRouteAttempt[];
+  }>;
+}
+
+export interface SparseRemovableSupportDiagnostics {
+  /** Count of Stage 4 Outside responsibility regions represented in input. */
+  outsideRegionCount: number;
+  /** Number of Stage 7 faces projected to Outside before sparsification. */
+  rawCandidateCount: number;
+  /** Number of bounded critical representatives selected for routing. */
+  criticalTargetCount: number;
+  coveredTargetCount: number;
+  unsupportedTargetCount: number;
+  generatedSupportCount: number;
+  rejectedByBody: number;
+  rejectedBySpacing: number;
+  rejectedByRemovability: number;
+  /** Stage 4 Inside faces never enter this builder. */
+  insideDerivedSupportCount: 0;
+  verticalCount: number;
+  leaningCount: number;
+  /** Explicitly a finite diagnostic, never a print-success claim. */
+  experimental: true;
+  removalGap: number;
+  shaftRadius: number;
+  neckRadius: number;
+}
+
+export interface SparseRemovableSupportRequest {
+  /** Stage 7 representatives already projected to Stage 4 Outside regions. */
+  projectedOutsideFaces: readonly SparseRemovableSupportFace[];
+  /** Optional explicit Stage 4 count; otherwise distinct input ids are used. */
+  outsideRegionCount?: number;
+  /** Source-unit build-plate Z. Every accepted route starts exactly here. */
+  plateZ: number;
+  /** Existing support shaft radius in source units. */
+  shaftRadius: number;
+  /** Short final contact neck radius in source units. */
+  neckRadius: number;
+  /** Authoritative finished BODY SDF. Missing proof fails closed. */
+  bodySdf?: (x: number, y: number, z: number) => number;
+  /** Optional target field used only to attribute terminal contact.  It is
+   * never subtracted from bodySdf and therefore is not treated as a BODY
+   * partition. */
+  targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  /** Source-unit spacing between accepted support capsules. */
+  removalGap?: number;
+  /** Physical gap convenience input. Requires scaleMmPerUnit. */
+  removalGapMm?: number;
+  scaleMmPerUnit?: number;
+  /** Physical contact neck convenience input. Requires scaleMmPerUnit. */
+  contactNeckDiameterMm?: number;
+  /** Final contact suffix length. Defaults to a small radius-relative value. */
+  neckLength?: number;
+  /** Low-start-band width in source units. */
+  lowStartBand?: number;
+  /** Maximum representatives per Stage 4 region. Clamped to 3 in v0.1. */
+  maxCandidatesPerRegion?: number;
+  /** Maximum bounded leaning roots attempted after the vertical route. */
+  maxLeaningRoutes?: number;
+  /** Radius of a target footprint for greedy coverage. */
+  coverageRadius?: number;
+  /** Source radius used by the target attribution helper. */
+  targetRadius?: number;
+  /** Maximum target-owned suffix length/depth. */
+  maximumOverlapLength?: number;
+  maximumDepth?: number;
+  /** Optional rectangular plate boundary. Unknown bounds do not grant extra
+   * proof; they simply leave the finite plate-reachability check available. */
+  plateBounds?: { minX: number; maxX: number; minY: number; maxY: number };
+  /** Bound presentation payload size independently of geometry. */
+  maxDebugCandidates?: number;
+}
+
+export interface SparseRemovableSupportResult {
+  graph: InternalStructureGraph;
+  diagnostics: SparseRemovableSupportDiagnostics;
+  debug: SparseRemovableSupportDebug;
+  candidates: SparseRemovableSupportCandidate[];
+  acceptedRoutes: Array<{ candidateId: string; route: SparseRemovableSupportRoute }>;
+}
+
+const EPSILON = 1e-9;
+const MAX_INTERVALS = 32_768;
+const MAX_ADAPTIVE_DEPTH = 12;
+const MAX_ADAPTIVE_SAMPLES = 131_072;
+const DEFAULT_REMOVAL_GAP_MM = 0.35;
+const DEFAULT_NECK_DIAMETER_MM = 0.6;
+const DEFAULT_MAX_CANDIDATES_PER_REGION = 3;
+const DEFAULT_MAX_LEANING_ROUTES = 4;
+const DEFAULT_DEBUG_CANDIDATES = 96;
+
+function finite(value: number): boolean {
+  return Number.isFinite(value);
+}
+
+function finitePoint(point: Vector3Value): boolean {
+  return finite(point.x) && finite(point.y) && finite(point.z);
+}
+
+function clonePoint(point: Vector3Value): Vector3Value {
+  return { x: point.x, y: point.y, z: point.z };
+}
+
+function distance(a: Vector3Value, b: Vector3Value): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+function horizontalDistance(a: Vector3Value, b: Vector3Value): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function lerp(a: Vector3Value, b: Vector3Value, t: number): Vector3Value {
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    z: a.z + (b.z - a.z) * t,
+  };
+}
+
+function oneLipschitzLowerBound(first: number, second: number, intervalLength: number): number {
+  if (!finite(first) || !finite(second) || !finite(intervalLength) || intervalLength < 0) return Number.NaN;
+  const tolerance = 1e-9 * Math.max(1, Math.abs(first), Math.abs(second), intervalLength);
+  if (Math.abs(first - second) > intervalLength + tolerance) return Number.NaN;
+  if (Math.abs(first - second) >= intervalLength) return Math.min(first, second);
+  return (first + second - intervalLength) * 0.5;
+}
+
+function oneLipschitzUpperBound(first: number, second: number, intervalLength: number): number {
+  if (!finite(first) || !finite(second) || !finite(intervalLength) || intervalLength < 0) return Number.NaN;
+  const tolerance = 1e-9 * Math.max(1, Math.abs(first), Math.abs(second), intervalLength);
+  if (Math.abs(first - second) > intervalLength + tolerance) return Number.NaN;
+  if (Math.abs(first - second) >= intervalLength) return Math.max(first, second);
+  return (first + second + intervalLength) * 0.5;
+}
+
+function routeAngleFromVertical(start: Vector3Value, end: Vector3Value): number {
+  const routeLength = distance(start, end);
+  if (!(routeLength > EPSILON)) return 90;
+  return Math.atan2(horizontalDistance(start, end), Math.abs(end.z - start.z)) * 180 / Math.PI;
+}
+
+function segmentSegmentDistance(
+  firstStart: Vector3Value,
+  firstEnd: Vector3Value,
+  secondStart: Vector3Value,
+  secondEnd: Vector3Value,
+): number {
+  // Real-Time Collision Detection, Christer Ericson, closest points on two
+  // segments.  This exact segment distance is the hard support-spacing test;
+  // endpoints alone are deliberately insufficient.
+  const ux = firstEnd.x - firstStart.x;
+  const uy = firstEnd.y - firstStart.y;
+  const uz = firstEnd.z - firstStart.z;
+  const vx = secondEnd.x - secondStart.x;
+  const vy = secondEnd.y - secondStart.y;
+  const vz = secondEnd.z - secondStart.z;
+  const wx = firstStart.x - secondStart.x;
+  const wy = firstStart.y - secondStart.y;
+  const wz = firstStart.z - secondStart.z;
+  const a = ux * ux + uy * uy + uz * uz;
+  const b = ux * vx + uy * vy + uz * vz;
+  const c = vx * vx + vy * vy + vz * vz;
+  const d = ux * wx + uy * wy + uz * wz;
+  const e = vx * wx + vy * wy + vz * wz;
+  const denominator = a * c - b * b;
+  let s = 0;
+  let t = 0;
+  if (a <= EPSILON && c <= EPSILON) return distance(firstStart, secondStart);
+  if (a <= EPSILON) {
+    t = c > EPSILON ? Math.max(0, Math.min(1, e / c)) : 0;
+  } else if (c <= EPSILON) {
+    s = Math.max(0, Math.min(1, -d / a));
+  } else {
+    if (denominator > EPSILON) s = Math.max(0, Math.min(1, (b * e - c * d) / denominator));
+    const tNominal = b * s + e;
+    if (tNominal <= 0) {
+      t = 0;
+      s = Math.max(0, Math.min(1, -d / a));
+    } else if (tNominal >= c) {
+      t = 1;
+      s = Math.max(0, Math.min(1, (b - d) / a));
+    } else t = tNominal / c;
+  }
+  const dx = wx + s * ux - t * vx;
+  const dy = wy + s * uy - t * vy;
+  const dz = wz + s * uz - t * vz;
+  return Math.hypot(dx, dy, dz);
+}
+
+function emptyGraph(): InternalStructureGraph {
+  return {
+    kind: "targetedGrid",
+    nodes: [],
+    edges: [],
+    stats: {
+      inputPoints: 0,
+      delaunayTetrahedra: 0,
+      candidateEdges: 0,
+      clippedEdges: 0,
+      removedShortEdges: 0,
+      removedOutsideEdges: 0,
+      removedIsolatedEdges: 0,
+      requestedTargets: 0,
+      connectedTargets: 0,
+      rejectedByBodyIntersection: 0,
+      acceptedSupportCount: 0,
+      unsupportedCount: 0,
+      gridNodeCount: 0,
+      gridEdgeCount: 0,
+    },
+  };
+}
+
+class SparseGraphBuilder {
+  readonly nodes: InternalStructureNode[] = [];
+  readonly edges: InternalStructureEdge[] = [];
+  private readonly nodeByPosition = new Map<string, number>();
+  private readonly edgeKeys = new Set<string>();
+
+  private key(point: Vector3Value): string {
+    return `${point.x.toPrecision(16)},${point.y.toPrecision(16)},${point.z.toPrecision(16)}`;
+  }
+
+  addNode(point: Vector3Value, radius: number): number {
+    const key = this.key(point);
+    const existing = this.nodeByPosition.get(key);
+    if (existing !== undefined) {
+      this.nodes[existing].radius = Math.max(this.nodes[existing].radius, radius);
+      return existing;
+    }
+    const id = this.nodes.length;
+    this.nodes.push({ id, position: clonePoint(point), radius });
+    this.nodeByPosition.set(key, id);
+    return id;
+  }
+
+  addEdge(start: number, end: number, radius: number): boolean {
+    if (start === end || !this.nodes[start] || !this.nodes[end]) return false;
+    const key = start < end ? `${start}:${end}` : `${end}:${start}`;
+    if (this.edgeKeys.has(key)) return false;
+    this.edgeKeys.add(key);
+    this.edges.push({ id: this.edges.length, start, end, radius });
+    return true;
+  }
+
+  graph(): InternalStructureGraph {
+    return {
+      kind: "targetedGrid",
+      nodes: this.nodes.map((node) => ({ ...node, position: clonePoint(node.position) })),
+      edges: this.edges.map((edge) => ({ ...edge })),
+      stats: {
+        ...emptyGraph().stats,
+        inputPoints: this.nodes.length,
+        candidateEdges: this.edges.length,
+        requestedTargets: 0,
+        connectedTargets: 0,
+        gridNodeCount: this.nodes.length,
+        gridEdgeCount: this.edges.length,
+      },
+    };
+  }
+}
+
+function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
+  SparseRemovableSupportRequest,
+  "plateZ" | "shaftRadius" | "neckRadius"
+>> & {
+  projectedOutsideFaces: readonly SparseRemovableSupportFace[];
+  outsideRegionCount: number;
+  bodySdf?: (x: number, y: number, z: number) => number;
+  targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  removalGap: number;
+  neckLength: number;
+  lowStartBand: number;
+  maxCandidatesPerRegion: number;
+  maxLeaningRoutes: number;
+  coverageRadius: number;
+  targetRadius: number;
+  maximumOverlapLength: number;
+  maximumDepth: number;
+  plateBounds?: SparseRemovableSupportRequest["plateBounds"];
+  maxDebugCandidates: number;
+} {
+  const projectedOutsideFaces = input.projectedOutsideFaces ?? [];
+  const scale = input.scaleMmPerUnit;
+  const removalGap = input.removalGap
+    ?? (input.removalGapMm !== undefined && scale !== undefined && finite(scale) && scale > 0
+      ? input.removalGapMm / scale!
+      : DEFAULT_REMOVAL_GAP_MM / 100);
+  const neckLength = input.neckLength
+    ?? (input.contactNeckDiameterMm !== undefined && scale !== undefined && finite(scale) && scale > 0
+      ? input.contactNeckDiameterMm / scale!
+      : Math.max(input.neckRadius * 3, DEFAULT_NECK_DIAMETER_MM / 10));
+  const lowStartBand = input.lowStartBand ?? Math.max(input.shaftRadius * 3, 0.12);
+  const maxCandidatesPerRegion = Math.max(1, Math.min(3,
+    Math.floor(input.maxCandidatesPerRegion ?? DEFAULT_MAX_CANDIDATES_PER_REGION)));
+  const maxLeaningRoutes = Math.max(0, Math.min(8,
+    Math.floor(input.maxLeaningRoutes ?? DEFAULT_MAX_LEANING_ROUTES)));
+  const coverageRadius = input.coverageRadius ?? Math.max(input.shaftRadius * 2.5, removalGap * 2);
+  const targetRadius = input.targetRadius ?? Math.max(input.neckRadius * 2, input.shaftRadius);
+  const maximumOverlapLength = input.maximumOverlapLength ?? Math.max(neckLength * 1.5, input.shaftRadius * 3);
+  const maximumDepth = input.maximumDepth ?? Math.max(targetRadius + input.shaftRadius, neckLength);
+  const regionIds = new Set(projectedOutsideFaces
+    .filter((face) => Number.isInteger(face.regionId) && face.regionId >= 0)
+    .map((face) => face.regionId));
+  const outsideRegionCount = input.outsideRegionCount === undefined
+    ? regionIds.size
+    : Math.max(0, Math.floor(input.outsideRegionCount));
+  return {
+    projectedOutsideFaces,
+    outsideRegionCount,
+    plateZ: input.plateZ,
+    shaftRadius: input.shaftRadius,
+    neckRadius: input.neckRadius,
+    bodySdf: input.bodySdf,
+    targetSdf: input.targetSdf,
+    removalGap,
+    neckLength,
+    lowStartBand,
+    maxCandidatesPerRegion,
+    maxLeaningRoutes,
+    coverageRadius,
+    targetRadius,
+    maximumOverlapLength,
+    maximumDepth,
+    plateBounds: input.plateBounds,
+    maxDebugCandidates: Math.max(0, Math.min(256, Math.floor(input.maxDebugCandidates ?? DEFAULT_DEBUG_CANDIDATES))),
+  };
+}
+
+function validNormalizedRequest(request: ReturnType<typeof normalizeRequest>): boolean {
+  return finite(request.plateZ)
+    && finite(request.shaftRadius) && request.shaftRadius > EPSILON
+    && finite(request.neckRadius) && request.neckRadius > EPSILON
+    && finite(request.removalGap) && request.removalGap >= 0
+    && finite(request.neckLength) && request.neckLength > EPSILON
+    && finite(request.lowStartBand) && request.lowStartBand > 0
+    && finite(request.coverageRadius) && request.coverageRadius >= 0
+    && finite(request.targetRadius) && request.targetRadius >= 0
+    && finite(request.maximumOverlapLength) && request.maximumOverlapLength >= 0
+    && finite(request.maximumDepth) && request.maximumDepth >= 0;
+}
+
+function candidateTargetId(regionId: number, index: number): string {
+  return `outside-${regionId}-${index}`;
+}
+
+/**
+ * Deterministically reduce all projected Outside faces to at most three
+ * critical targets per Stage 4 region.  The lowest printable start band is
+ * always selected first.  Additional representatives are admitted only when
+ * that band has a meaningful spatial span, so a dense 489-face diagnosis does
+ * not become 489 support requests.
+ */
+export function extractSparseRemovableSupportTargets(
+  faces: readonly SparseRemovableSupportFace[],
+  options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion">,
+): { targets: SparseRemovableSupportTarget[]; rawCandidateCount: number; outsideRegionCount: number } {
+  const shaftRadius = options.shaftRadius;
+  const removalGap = options.removalGap ?? 0;
+  const lowStartBand = options.lowStartBand ?? Math.max(shaftRadius * 3, 0.12);
+  const maxPerRegion = Math.max(1, Math.min(3, Math.floor(options.maxCandidatesPerRegion ?? 3)));
+  const groups = new Map<number, SparseRemovableSupportFace[]>();
+  for (const face of faces) {
+    if (!Number.isInteger(face.regionId) || face.regionId < 0 || !finitePoint(face.position)) continue;
+    const group = groups.get(face.regionId) ?? [];
+    group.push(face);
+    groups.set(face.regionId, group);
+  }
+  const targetRegions = [...groups.keys()].sort((a, b) => a - b);
+  const targets: SparseRemovableSupportTarget[] = [];
+  const separation = Math.max(shaftRadius * 3, removalGap * 2, 0.08);
+  for (const regionId of targetRegions) {
+    const sorted = [...groups.get(regionId)!].sort((first, second) =>
+      first.position.z - second.position.z
+      || first.position.x - second.position.x
+      || first.position.y - second.position.y
+      || first.faceIndex - second.faceIndex);
+    const minimumZ = sorted[0].position.z;
+    const lowBand = sorted.filter((face) => face.position.z <= minimumZ + lowStartBand + EPSILON);
+    const pool = lowBand.length > 0 ? lowBand : [sorted[0]];
+    const selected: SparseRemovableSupportFace[] = [pool[0]];
+    while (selected.length < maxPerRegion && selected.length < pool.length) {
+      let best: SparseRemovableSupportFace | null = null;
+      let bestDistance = Number.NEGATIVE_INFINITY;
+      for (const face of pool) {
+        if (selected.includes(face)) continue;
+        const nearest = Math.min(...selected.map((other) => distance(face.position, other.position)));
+        if (nearest > bestDistance + EPSILON
+          || (Math.abs(nearest - bestDistance) <= EPSILON
+            && (!best || face.faceIndex < best.faceIndex))) {
+          best = face;
+          bestDistance = nearest;
+        }
+      }
+      // A low span that does not warrant spatial separation remains one
+      // critical target even when the region contains many faces.
+      if (!best || bestDistance < separation) break;
+      selected.push(best);
+    }
+    selected.sort((first, second) => first.position.z - second.position.z
+      || first.position.x - second.position.x
+      || first.position.y - second.position.y
+      || first.faceIndex - second.faceIndex);
+    selected.forEach((face, index) => {
+      targets.push({
+        id: candidateTargetId(regionId, index),
+        regionId,
+        position: clonePoint(face.position),
+        normal: clonePoint(face.normal),
+        sourceFaceIndices: [face.faceIndex],
+      });
+    });
+  }
+  return { targets, rawCandidateCount: faces.length, outsideRegionCount: targetRegions.length };
+}
+
+function targetCoverage(
+  targets: readonly SparseRemovableSupportTarget[],
+  target: SparseRemovableSupportTarget,
+  coverageRadius: number,
+): string[] {
+  return targets
+    .filter((candidate) => candidate.regionId === target.regionId
+      && distance(candidate.position, target.position) <= coverageRadius + EPSILON)
+    .map((candidate) => candidate.id)
+    .sort();
+}
+
+function makeCandidates(
+  targets: readonly SparseRemovableSupportTarget[],
+  coverageRadius: number,
+): SparseRemovableSupportCandidate[] {
+  return targets.map((target, index) => ({
+    id: target.id,
+    target,
+    coversCriticalTargetIds: targetCoverage(targets, target, coverageRadius),
+    priority: index,
+  }));
+}
+
+function pointInsidePlateBounds(point: Vector3Value, bounds: SparseRemovableSupportRequest["plateBounds"]): boolean {
+  return !bounds || (finite(bounds.minX) && finite(bounds.maxX) && finite(bounds.minY) && finite(bounds.maxY)
+    && bounds.minX <= bounds.maxX && bounds.minY <= bounds.maxY
+    && point.x >= bounds.minX - EPSILON && point.x <= bounds.maxX + EPSILON
+    && point.y >= bounds.minY - EPSILON && point.y <= bounds.maxY + EPSILON);
+}
+
+function buildRoute(
+  target: SparseRemovableSupportTarget,
+  plateZ: number,
+  shaftRadius: number,
+  neckRadius: number,
+  neckLength: number,
+  kind: SparseSupportRouteKind,
+  root: Vector3Value,
+): SparseRemovableSupportRoute | null {
+  const rise = target.position.z - plateZ;
+  if (!(rise > EPSILON) || !finitePoint(root)) return null;
+  const actualNeckLength = Math.min(neckLength, Math.max(rise * 0.4, neckRadius * 1.5));
+  const neckStartZ = target.position.z - actualNeckLength;
+  // A leaning route spends its horizontal displacement in the shaft. The
+  // final contact neck is short and vertical at the target XY, which keeps
+  // every serialized segment independently within the 45-degree limit.
+  const neckStart = {
+    x: kind === "leaning" ? target.position.x : root.x,
+    y: kind === "leaning" ? target.position.y : root.y,
+    z: neckStartZ,
+  };
+  if (!(neckStart.z > plateZ + EPSILON)) {
+    // Very short targets retain the contact neck, but do not fabricate a
+    // zero-length shaft edge.
+    return {
+      kind,
+      root: clonePoint(root),
+      neckStart: clonePoint(root),
+      target: clonePoint(target.position),
+      segments: [{ start: clonePoint(root), end: clonePoint(target.position), radius: neckRadius }],
+    };
+  }
+  return {
+    kind,
+    root: clonePoint(root),
+    neckStart,
+    target: clonePoint(target.position),
+    segments: [
+      { start: clonePoint(root), end: neckStart, radius: shaftRadius },
+      { start: neckStart, end: clonePoint(target.position), radius: neckRadius },
+    ],
+  };
+}
+
+function buildVerticalRoute(
+  target: SparseRemovableSupportTarget,
+  request: ReturnType<typeof normalizeRequest>,
+): SparseRemovableSupportRoute | null {
+  return buildRoute(target, request.plateZ, request.shaftRadius, request.neckRadius,
+    request.neckLength, "vertical", { x: target.position.x, y: target.position.y, z: request.plateZ });
+}
+
+function buildLeaningRoutes(
+  target: SparseRemovableSupportTarget,
+  request: ReturnType<typeof normalizeRequest>,
+): SparseRemovableSupportRoute[] {
+  if (request.maxLeaningRoutes <= 0) return [];
+  const rise = target.position.z - request.plateZ;
+  const neckRise = Math.min(request.neckLength, Math.max(rise * 0.4, request.neckRadius * 1.5));
+  const shaftRise = target.position.z - neckRise - request.plateZ;
+  if (!(shaftRise > EPSILON)) return [];
+  const maximumOffset = shaftRise * (1 - 1e-6);
+  const directions = [
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+    { x: 0, y: -1 },
+    { x: Math.SQRT1_2, y: Math.SQRT1_2 },
+    { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
+    { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
+    { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
+  ];
+  const routes: SparseRemovableSupportRoute[] = [];
+  const offsets = [0.38, 0.72, 0.94];
+  for (const direction of directions) {
+    for (const fraction of offsets) {
+      const offset = maximumOffset * fraction;
+      const root = {
+        x: target.position.x - direction.x * offset,
+        y: target.position.y - direction.y * offset,
+        z: request.plateZ,
+      };
+      const route = buildRoute(target, request.plateZ, request.shaftRadius, request.neckRadius,
+        request.neckLength, "leaning", root);
+      if (route && pointInsidePlateBounds(root, request.plateBounds)) routes.push(route);
+      if (routes.length >= request.maxLeaningRoutes) return routes;
+    }
+  }
+  return routes;
+}
+
+interface RouteAudit {
+  accepted: boolean;
+  reason?: SparseSupportRejectReason;
+  detail: string;
+  sampleCount: number;
+}
+
+function auditCapsuleAgainstBody(
+  segment: SparseSupportRouteSegment,
+  bodySdf: ((x: number, y: number, z: number) => number) | undefined,
+  terminal: boolean,
+  target: SparseRemovableSupportTarget,
+  request: ReturnType<typeof normalizeRequest>,
+): RouteAudit {
+  if (!bodySdf) return { accepted: false, reason: "body", detail: "authoritative finished BODY SDF is unavailable", sampleCount: 0 };
+  const routeLength = distance(segment.start, segment.end);
+  if (!(routeLength > EPSILON) || !finitePoint(segment.start) || !finitePoint(segment.end)) {
+    return { accepted: false, reason: "removability", detail: "zero-length or non-finite segment", sampleCount: 0 };
+  }
+  const maximumStep = Math.max(segment.radius * 0.2, 1e-5);
+  const intervals = Math.max(2, Math.ceil(routeLength / maximumStep));
+  if (intervals > MAX_INTERVALS) {
+    return { accepted: false, reason: "unsupported", detail: "keep-out subdivision budget exhausted", sampleCount: 0 };
+  }
+  const intervalLength = routeLength / intervals;
+  if (!finite(intervalLength) || !(intervalLength > 0)) {
+    return { accepted: false, reason: "unsupported", detail: "keep-out interval is not finite", sampleCount: 0 };
+  }
+  type KeepOutSample = { body: number; target: number };
+  type ContactRegion = { start: number; end: number };
+  const samples = new Map<number, KeepOutSample>();
+  let sampleCount = 0;
+  const evaluateAt = (t: number): KeepOutSample | null => {
+    if (!finite(t) || t < 0 || t > 1) return null;
+    const cached = samples.get(t);
+    if (cached) return cached;
+    if (sampleCount >= MAX_ADAPTIVE_SAMPLES) return null;
+    const point = lerp(segment.start, segment.end, t);
+    let bodyDistance: number;
+    let targetDistance = 1e5;
+    sampleCount++;
+    try {
+      bodyDistance = bodySdf(point.x, point.y, point.z);
+      if (terminal && request.targetSdf) targetDistance = request.targetSdf(target, point.x, point.y, point.z);
+    } catch {
+      return null;
+    }
+    if (!finite(bodyDistance) || !finite(targetDistance)) return null;
+    const sample = { body: bodyDistance, target: targetDistance };
+    samples.set(t, sample);
+    return sample;
+  };
+  for (let index = 0; index <= intervals; index++) {
+    if (!evaluateAt(index / intervals)) {
+      return { accepted: false, reason: "body", detail: "BODY/target SDF evaluation failed", sampleCount };
+    }
+  }
+  const firstSample = evaluateAt(0);
+  const lastSample = evaluateAt(1);
+  if (!firstSample || !lastSample) {
+    return { accepted: false, reason: "body", detail: "BODY/target SDF endpoint evaluation failed", sampleCount };
+  }
+  const threshold = segment.radius + 1e-7;
+  if (firstSample.body <= threshold) {
+    return { accepted: false, reason: "body", detail: "plate root is born inside finished BODY", sampleCount };
+  }
+  if (terminal && request.targetSdf && lastSample.target > threshold) {
+    return { accepted: false, reason: "body", detail: "terminal contact is not attributed to the target", sampleCount };
+  }
+  const targetEndpointAllowance = terminal && request.targetSdf
+    ? threshold - lastSample.target
+    : Number.NaN;
+  const certifyInterval = (
+    t0: number,
+    t1: number,
+    first: KeepOutSample,
+    second: KeepOutSample,
+    depth: number,
+  ): ContactRegion[] | null => {
+    const segmentLength = routeLength * (t1 - t0);
+    if (!finite(segmentLength) || !(segmentLength >= 0)) return null;
+    const bodyLowerBound = oneLipschitzLowerBound(first.body, second.body, segmentLength);
+    const targetLowerBound = oneLipschitzLowerBound(first.target, second.target, segmentLength);
+    const targetUpperBound = oneLipschitzUpperBound(first.target, second.target, segmentLength);
+    if (![bodyLowerBound, targetLowerBound, targetUpperBound].every(finite)) return null;
+    if (bodyLowerBound > threshold) return [];
+    // Any unresolved BODY overlap away from an explicitly target-attributed
+    // terminal contact is a hard collision rejection. It is not safe to call
+    // such a route merely "unsupported": the route has failed the BODY
+    // keep-out screen even when no target SDF was supplied.
+    if (!terminal || !request.targetSdf || !finite(targetEndpointAllowance)
+      || targetEndpointAllowance < -1e-7) {
+      return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
+    }
+    const bodyPossibleStart = Math.max(0, first.body - threshold);
+    const bodyPossibleEnd = Math.min(segmentLength, segmentLength - second.body + threshold);
+    if (bodyPossibleStart > bodyPossibleEnd + 1e-7) return [];
+    const possibleT0 = t0 + (segmentLength > 0 ? bodyPossibleStart / routeLength : 0);
+    const possibleT1 = t0 + (segmentLength > 0 ? bodyPossibleEnd / routeLength : 0);
+    if (!finite(possibleT0) || !finite(possibleT1)
+      || possibleT0 < t0 - 1e-7 || possibleT1 > t1 + 1e-7
+      || possibleT0 > possibleT1 + 1e-7) return null;
+    const possibleFirst = evaluateAt(Math.max(t0, Math.min(t1, possibleT0)));
+    const possibleSecond = evaluateAt(Math.max(t0, Math.min(t1, possibleT1)));
+    if (!possibleFirst || !possibleSecond) return null;
+    const possibleLength = routeLength * Math.max(0, possibleT1 - possibleT0);
+    const possibleTargetLowerBound = oneLipschitzLowerBound(
+      possibleFirst.target, possibleSecond.target, possibleLength,
+    );
+    const possibleTargetUpperBound = oneLipschitzUpperBound(
+      possibleFirst.target, possibleSecond.target, possibleLength,
+    );
+    if (!finite(possibleTargetLowerBound) || !finite(possibleTargetUpperBound)) return null;
+    const endpointConeOwnsContact = routeLength * (1 - possibleT0)
+      <= targetEndpointAllowance + 1e-7;
+    const intervalUpperOwnsContact = possibleTargetUpperBound <= threshold;
+    if (endpointConeOwnsContact || intervalUpperOwnsContact) {
+      return [{ start: possibleT0, end: possibleT1 }];
+    }
+    if (depth >= MAX_ADAPTIVE_DEPTH) return null;
+    const midpoint = (t0 + t1) * 0.5;
+    if (!(midpoint > t0) || !(midpoint < t1)) return null;
+    const middle = evaluateAt(midpoint);
+    if (!middle) return null;
+    const left = certifyInterval(t0, midpoint, first, middle, depth + 1);
+    if (!left) return null;
+    const right = certifyInterval(midpoint, t1, middle, second, depth + 1);
+    if (!right) return null;
+    return [...left, ...right];
+  };
+  const contactRegions: ContactRegion[] = [];
+  for (let index = 0; index <= intervals; index++) {
+    if (index >= intervals) break;
+    const first = evaluateAt(index / intervals);
+    const second = evaluateAt((index + 1) / intervals);
+    if (!first || !second) {
+      return { accepted: false, reason: "body", detail: "BODY/target SDF evaluation failed", sampleCount };
+    }
+    const regions = certifyInterval(index / intervals, (index + 1) / intervals, first, second, 0);
+    if (!regions) {
+      return { accepted: false, reason: "unsupported", detail: "keep-out subdivision proof exhausted", sampleCount };
+    }
+    contactRegions.push(...regions);
+  }
+  if (contactRegions.length === 0) {
+    return { accepted: true, detail: "bounded BODY keep-out clear", sampleCount };
+  }
+  contactRegions.sort((first, second) => first.start - second.start || first.end - second.end);
+  for (let index = 1; index < contactRegions.length; index++) {
+    if (contactRegions[index].start > contactRegions[index - 1].end + 1e-7) {
+      return { accepted: false, reason: "body", detail: "BODY overlap is separated from terminal suffix", sampleCount };
+    }
+  }
+  const firstPossible = contactRegions[0].start;
+  const lastPossible = contactRegions[contactRegions.length - 1].end;
+  if (lastPossible < 1 - 1e-7) {
+    return { accepted: false, reason: "body", detail: "BODY overlap is not a terminal suffix", sampleCount };
+  }
+  const overlapLength = routeLength * (1 - firstPossible);
+  const terminalDepth = Math.max(0, -lastSample.target);
+  if (overlapLength > request.maximumOverlapLength + 1e-7
+    || terminalDepth > request.maximumDepth + 1e-7) {
+    return { accepted: false, reason: "body", detail: "terminal overlap exceeds finite contact bounds", sampleCount };
+  }
+  return { accepted: true, detail: "terminal BODY contact is finite and target-attributed", sampleCount };
+}
+
+function auditRoute(
+  route: SparseRemovableSupportRoute,
+  request: ReturnType<typeof normalizeRequest>,
+  acceptedSegments: readonly SparseSupportRouteSegment[],
+  target: SparseRemovableSupportTarget,
+): RouteAudit {
+  if (!finitePoint(route.root) || Math.abs(route.root.z - request.plateZ) > EPSILON
+    || !pointInsidePlateBounds(route.root, request.plateBounds)) {
+    return { accepted: false, reason: "removability", detail: "route is not build-plate reachable", sampleCount: 0 };
+  }
+  if (route.segments.length === 0 || route.segments.some((segment) =>
+    !finitePoint(segment.start) || !finitePoint(segment.end) || !(segment.radius > EPSILON)
+    || routeAngleFromVertical(segment.start, segment.end) > 45 + 1e-6)) {
+    return { accepted: false, reason: "removability", detail: "route segment exceeds the 45-degree serialization limit", sampleCount: 0 };
+  }
+  let sampleCount = 0;
+  for (const [index, segment] of route.segments.entries()) {
+    const audited = auditCapsuleAgainstBody(segment, request.bodySdf, index === route.segments.length - 1,
+      target, request);
+    sampleCount += audited.sampleCount;
+    if (!audited.accepted) return { ...audited, sampleCount };
+  }
+  for (const segment of route.segments) {
+    for (const previous of acceptedSegments) {
+      const clearance = segment.radius + previous.radius + request.removalGap;
+      const actual = segmentSegmentDistance(segment.start, segment.end, previous.start, previous.end);
+      if (!finite(actual) || actual <= clearance + 1e-7) {
+        return { accepted: false, reason: "spacing", detail: `capsule spacing ${actual.toFixed(6)} is below ${clearance.toFixed(6)}`, sampleCount };
+      }
+    }
+  }
+  return { accepted: true, detail: "plate, BODY and capsule-spacing screens passed", sampleCount };
+}
+
+function appendRouteToGraph(builder: SparseGraphBuilder, route: SparseRemovableSupportRoute): void {
+  for (const segment of route.segments) {
+    const start = builder.addNode(segment.start, segment.radius);
+    const end = builder.addNode(segment.end, segment.radius);
+    builder.addEdge(start, end, segment.radius);
+  }
+}
+
+/**
+ * Build the Stage 8 v0.1 sparse removable support graph.  The implementation
+ * is intentionally pure: it consumes projected final-artwork facts and an
+ * authoritative BODY evaluator, then returns a separate graph, finite
+ * diagnostics and bounded debug facts.  No BODY or permanent-web geometry is
+ * modified and no mechanical, slicer, nipper-access or print-success claim is
+ * made.
+ */
+export function buildSparseRemovableSupport(
+  input: SparseRemovableSupportRequest,
+): SparseRemovableSupportResult {
+  const request = normalizeRequest(input);
+  const extracted = extractSparseRemovableSupportTargets(request.projectedOutsideFaces, request);
+  const targets = extracted.targets;
+  const candidates = makeCandidates(targets, request.coverageRadius)
+    .sort((first, second) => first.target.regionId - second.target.regionId || first.priority - second.priority);
+  const builder = new SparseGraphBuilder();
+  const acceptedSegments: SparseSupportRouteSegment[] = [];
+  const acceptedRoutes: Array<{ candidateId: string; route: SparseRemovableSupportRoute }> = [];
+  const coveredTargetIds = new Set<string>();
+  const rejectedCandidates: SparseSupportDebugRejectedCandidate[] = [];
+  const routeAttempts: SparseRemovableSupportDebug["routeAttempts"] = [];
+  let rejectedByBody = 0;
+  let rejectedBySpacing = 0;
+  let rejectedByRemovability = 0;
+  let verticalCount = 0;
+  let leaningCount = 0;
+  const anyFiniteFace = request.projectedOutsideFaces.some((face) => finitePoint(face.position));
+  const requestValid = validNormalizedRequest(request);
+
+  for (const candidate of candidates) {
+    const uncovered = candidate.coversCriticalTargetIds.filter((id) => !coveredTargetIds.has(id));
+    if (uncovered.length === 0) {
+      if (routeAttempts.length < request.maxDebugCandidates) {
+        routeAttempts.push({ candidateId: candidate.id, regionId: candidate.target.regionId, attempts: [{
+          kind: "vertical", accepted: false, reason: "coverage", detail: "coverage already supplied by an accepted support",
+        }] });
+      }
+      continue;
+    }
+    const attempts: SparseSupportRouteAttempt[] = [];
+    let accepted: SparseRemovableSupportRoute | null = null;
+    let bodyFailure = false;
+    let spacingFailure = false;
+    let removabilityFailure = false;
+    const routeOptions: SparseRemovableSupportRoute[] = requestValid
+      ? [
+        buildVerticalRoute(candidate.target, request),
+        ...buildLeaningRoutes(candidate.target, request),
+      ].filter((route): route is SparseRemovableSupportRoute => route !== null)
+      : [];
+    if (routeOptions.length === 0) {
+      attempts.push({ kind: "vertical", accepted: false, reason: "unsupported", detail: "support settings or target fields are not finite" });
+      removabilityFailure = true;
+    }
+    for (const route of routeOptions) {
+      const audited = auditRoute(route, request, acceptedSegments, candidate.target);
+      attempts.push({ kind: route.kind, accepted: audited.accepted, ...(audited.reason ? { reason: audited.reason } : {}), detail: audited.detail });
+      if (audited.accepted) {
+        accepted = route;
+        break;
+      }
+      if (audited.reason === "body") bodyFailure = true;
+      if (audited.reason === "spacing") spacingFailure = true;
+      if (audited.reason === "removability" || audited.reason === "unsupported") removabilityFailure = true;
+    }
+    if (routeAttempts.length < request.maxDebugCandidates) {
+      routeAttempts.push({ candidateId: candidate.id, regionId: candidate.target.regionId, attempts });
+    }
+    if (accepted) {
+      appendRouteToGraph(builder, accepted);
+      acceptedSegments.push(...accepted.segments);
+      acceptedRoutes.push({ candidateId: candidate.id, route: accepted });
+      for (const id of uncovered) coveredTargetIds.add(id);
+      if (accepted.kind === "vertical") verticalCount++;
+      else leaningCount++;
+      continue;
+    }
+    if (bodyFailure) rejectedByBody++;
+    if (spacingFailure) rejectedBySpacing++;
+    if (removabilityFailure || (!bodyFailure && !spacingFailure)) rejectedByRemovability++;
+    const lastAttempt = attempts[attempts.length - 1];
+    if (rejectedCandidates.length < request.maxDebugCandidates) {
+      rejectedCandidates.push({
+        id: candidate.id,
+        regionId: candidate.target.regionId,
+        position: clonePoint(candidate.target.position),
+        reason: lastAttempt?.reason ?? "unsupported",
+        ...(lastAttempt?.kind ? { routeKind: lastAttempt.kind } : {}),
+        detail: lastAttempt?.detail ?? "no bounded route was available",
+      });
+    }
+  }
+  const unsupportedTargetCount = Math.max(0, targets.length - coveredTargetIds.size);
+  const graph = builder.graph();
+  graph.stats.requestedTargets = targets.length;
+  graph.stats.connectedTargets = coveredTargetIds.size;
+  graph.stats.rejectedByBodyIntersection = rejectedByBody;
+  graph.stats.acceptedSupportCount = acceptedRoutes.length;
+  graph.stats.unsupportedCount = unsupportedTargetCount;
+  const debug: SparseRemovableSupportDebug = {
+    criticalTargets: targets.slice(0, request.maxDebugCandidates).map((target) => ({
+      id: target.id,
+      regionId: target.regionId,
+      position: clonePoint(target.position),
+      sourceFaceIndices: [...target.sourceFaceIndices],
+    })),
+    rejectedCandidates,
+    routeAttempts,
+  };
+  const diagnostics: SparseRemovableSupportDiagnostics = {
+    outsideRegionCount: request.outsideRegionCount,
+    rawCandidateCount: request.projectedOutsideFaces.length,
+    criticalTargetCount: targets.length,
+    coveredTargetCount: coveredTargetIds.size,
+    unsupportedTargetCount,
+    generatedSupportCount: acceptedRoutes.length,
+    rejectedByBody,
+    rejectedBySpacing,
+    rejectedByRemovability,
+    insideDerivedSupportCount: 0,
+    verticalCount,
+    leaningCount,
+    experimental: true,
+    removalGap: request.removalGap,
+    shaftRadius: request.shaftRadius,
+    neckRadius: request.neckRadius,
+  };
+  // Keep malformed/non-finite input visible as a fail-closed unsupported
+  // result even when there were no extractable faces to route.
+  if (!requestValid || (!anyFiniteFace && request.projectedOutsideFaces.length > 0)) {
+    diagnostics.rejectedByRemovability += diagnostics.criticalTargetCount === 0 ? 1 : 0;
+  }
+  return { graph, diagnostics, debug, candidates, acceptedRoutes };
+}
+
+/** Compatibility spelling used by callers that keep the Study prefix. */
+export const buildSkinRebuildSparseRemovableSupport = buildSparseRemovableSupport;

@@ -263,6 +263,8 @@ const EPSILON = 1e-9;
 const PRINT_SUPPORT_KEEP_OUT_STEP_FACTOR = 0.2;
 const PRINT_SUPPORT_KEEP_OUT_MIN_STEP = 1e-5;
 const PRINT_SUPPORT_KEEP_OUT_MAX_INTERVALS = 32_768;
+const PRINT_SUPPORT_KEEP_OUT_MAX_ADAPTIVE_DEPTH = 12;
+const PRINT_SUPPORT_KEEP_OUT_MAX_ADAPTIVE_SAMPLES = 131_072;
 const PRINT_SUPPORT_BODY_CLEARANCE_EPSILON = 1e-7;
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -2270,6 +2272,17 @@ function oneLipschitzIntervalLowerBound(first: number, second: number, intervalL
   return (first + second - intervalLength) * 0.5;
 }
 
+function oneLipschitzIntervalUpperBound(first: number, second: number, intervalLength: number): number {
+  if (!Number.isFinite(first) || !Number.isFinite(second) || !Number.isFinite(intervalLength) || intervalLength < 0) {
+    return Number.NaN;
+  }
+  const difference = Math.abs(first - second);
+  const tolerance = 1e-9 * Math.max(1, Math.abs(first), Math.abs(second), intervalLength);
+  if (difference > intervalLength + tolerance) return Number.NaN;
+  if (difference >= intervalLength) return Math.max(first, second);
+  return (first + second + intervalLength) * 0.5;
+}
+
 /** Screen one vertical removable-support candidate against the authoritative
  * finished-BODY field.  The interval lower bound is conservative for every
  * segment, so sparse samples cannot tunnel through a shallow Motif or Web
@@ -2311,76 +2324,168 @@ export function auditSkinRebuildPrintSupportBodyKeepOut(
   if (!Number.isFinite(intervalLength) || !(intervalLength > 0)) {
     return { accepted: false, rejectedByBodyIntersection: true, sampleCount: 0 };
   }
-  const bodyDistances: number[] = [];
-  const targetDistances: number[] = [];
-  const otherBodyDistances: number[] = [];
-  for (let index = 0; index <= intervals; index++) {
-    const t = index / intervals;
+  type KeepOutSample = { body: number; target: number; other: number };
+  type KeepOutContactRegion = { start: number; end: number };
+  const samples = new Map<number, KeepOutSample>();
+  let sampleCount = 0;
+  const evaluateAt = (t: number): KeepOutSample | null => {
+    if (!Number.isFinite(t) || t < 0 || t > 1) return null;
+    const cached = samples.get(t);
+    if (cached) return cached;
+    if (sampleCount >= PRINT_SUPPORT_KEEP_OUT_MAX_ADAPTIVE_SAMPLES) return null;
     const point = {
       x: start.x + (end.x - start.x) * t,
       y: start.y + (end.y - start.y) * t,
       z: start.z + (end.z - start.z) * t,
     };
-    const distance = bodySdf(point.x, point.y, point.z);
-    const targetDistance = target?.targetSdf(point.x, point.y, point.z) ?? 1e5;
-    const otherBodyDistance = target?.otherBodySdf(point.x, point.y, point.z) ?? 1e5;
-    if (![distance, targetDistance, otherBodyDistance].every(Number.isFinite)) {
-      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+    let distance: number;
+    let targetDistance: number;
+    let otherBodyDistance: number;
+    sampleCount++;
+    try {
+      distance = bodySdf(point.x, point.y, point.z);
+      targetDistance = target?.targetSdf(point.x, point.y, point.z) ?? 1e5;
+      otherBodyDistance = target?.otherBodySdf(point.x, point.y, point.z) ?? 1e5;
+    } catch {
+      return null;
     }
-    bodyDistances.push(distance);
-    targetDistances.push(targetDistance);
-    otherBodyDistances.push(otherBodyDistance);
+    if (![distance, targetDistance, otherBodyDistance].every(Number.isFinite)) return null;
+    const sample = { body: distance, target: targetDistance, other: otherBodyDistance };
+    samples.set(t, sample);
+    return sample;
+  };
+  for (let index = 0; index <= intervals; index++) {
+    if (!evaluateAt(index / intervals)) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
+    }
+  }
+  const firstSample = evaluateAt(0);
+  const lastSample = evaluateAt(1);
+  if (!firstSample || !lastSample) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
   }
   // The plate-side root is never an intended Body terminal.  If it already
   // overlaps, allowing a short suffix would hide a support born inside BODY.
-  if (bodyDistances[0] <= radius + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
-    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
-  }
   const threshold = radius + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON;
-  const bodyLowerBounds: number[] = [];
-  let firstPossibleIntersection = -1;
+  if (firstSample.body <= threshold) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
+  }
+  if (lastSample.body > threshold || (target && lastSample.target > threshold)) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
+  }
+
+  const targetEndpointAllowance = target ? threshold - lastSample.target : Number.NaN;
+  const certifyInterval = (
+    t0: number,
+    t1: number,
+    first: KeepOutSample,
+    second: KeepOutSample,
+    depth: number,
+  ): KeepOutContactRegion[] | null => {
+    const segmentLength = routeLength * (t1 - t0);
+    if (!Number.isFinite(segmentLength) || !(segmentLength >= 0)) return null;
+    const bodyLowerBound = oneLipschitzIntervalLowerBound(first.body, second.body, segmentLength);
+    const targetLowerBound = oneLipschitzIntervalLowerBound(first.target, second.target, segmentLength);
+    const targetUpperBound = oneLipschitzIntervalUpperBound(first.target, second.target, segmentLength);
+    const otherLowerBound = oneLipschitzIntervalLowerBound(first.other, second.other, segmentLength);
+    if (![bodyLowerBound, targetLowerBound, targetUpperBound, otherLowerBound].every(Number.isFinite)) return null;
+    // Any possible non-target capsule contact is a rejection, including one
+    // at the endpoint. This keeps a wrong Motif/member from masquerading as
+    // the intended terminal target.
+    const otherPossibleStart = Math.max(0, first.other - threshold);
+    const otherPossibleEnd = Math.min(segmentLength, segmentLength - second.other + threshold);
+    // The finished field is evaluated in floating source coordinates. Keep a
+    // small scale-relative terminal tolerance so a target-owned contact that
+    // lands exactly on the capsule boundary is not forced into an endless
+    // subdivision chase, while wrong-terminal gaps remain materially larger.
+    const contactTolerance = Math.max(
+      PRINT_SUPPORT_BODY_CLEARANCE_EPSILON,
+      1e-6 * Math.max(1, routeLength),
+    );
+    if (otherPossibleStart <= otherPossibleEnd + contactTolerance) return null;
+    if (bodyLowerBound > threshold) return [];
+
+    if (!target || !Number.isFinite(targetEndpointAllowance) || targetEndpointAllowance < -contactTolerance) return null;
+    // The endpoint cones also give the exact conservative interval in which
+    // BODY contact is still possible. This avoids treating an interval whose
+    // only possible contact is its target-owned endpoint as an unknown whole
+    // interval (for example, a capsule tangent at the terminal boundary).
+    const bodyPossibleStart = Math.max(0, first.body - threshold);
+    const bodyPossibleEnd = Math.min(segmentLength, segmentLength - second.body + threshold);
+    if (bodyPossibleStart > bodyPossibleEnd + contactTolerance) return [];
+    const possibleT0 = t0 + (segmentLength > 0 ? bodyPossibleStart / routeLength : 0);
+    const possibleT1 = t0 + (segmentLength > 0 ? bodyPossibleEnd / routeLength : 0);
+    if (!Number.isFinite(possibleT0) || !Number.isFinite(possibleT1)
+      || possibleT0 < t0 - contactTolerance || possibleT1 > t1 + contactTolerance
+      || possibleT0 > possibleT1 + contactTolerance) {
+      return null;
+    }
+    const possibleFirst = evaluateAt(Math.max(t0, Math.min(t1, possibleT0)));
+    const possibleSecond = evaluateAt(Math.max(t0, Math.min(t1, possibleT1)));
+    if (!possibleFirst || !possibleSecond) return null;
+    const possibleLength = routeLength * Math.max(0, possibleT1 - possibleT0);
+    const possibleTargetLowerBound = oneLipschitzIntervalLowerBound(
+      possibleFirst.target, possibleSecond.target, possibleLength,
+    );
+    const possibleTargetUpperBound = oneLipschitzIntervalUpperBound(
+      possibleFirst.target, possibleSecond.target, possibleLength,
+    );
+    if (!Number.isFinite(possibleTargetLowerBound) || !Number.isFinite(possibleTargetUpperBound)) return null;
+    // A point p is in the target-owned contact zone when the endpoint cone
+    // proves targetSdf(p) <= threshold. This is target-specific and does not
+    // rely on the independently regenerated remainder field.
+    const endpointConeOwnsContact = routeLength * (1 - possibleT0)
+      <= targetEndpointAllowance + contactTolerance;
+    const intervalUpperOwnsContact = possibleTargetUpperBound <= threshold + contactTolerance;
+    if (endpointConeOwnsContact || intervalUpperOwnsContact) {
+      return [{ start: possibleT0, end: possibleT1 }];
+    }
+    if (depth >= PRINT_SUPPORT_KEEP_OUT_MAX_ADAPTIVE_DEPTH) return null;
+    const midpoint = (t0 + t1) * 0.5;
+    if (!(midpoint > t0) || !(midpoint < t1)) return null;
+    const middle = evaluateAt(midpoint);
+    if (!middle) return null;
+    const left = certifyInterval(t0, midpoint, first, middle, depth + 1);
+    if (!left) return null;
+    const right = certifyInterval(midpoint, t1, middle, second, depth + 1);
+    if (!right) return null;
+    return [...left, ...right];
+  };
+
+  const contactRegions: KeepOutContactRegion[] = [];
   for (let index = 0; index < intervals; index++) {
-    const bodyLowerBound = oneLipschitzIntervalLowerBound(
-      bodyDistances[index], bodyDistances[index + 1], intervalLength,
-    );
-    const otherBodyLowerBound = oneLipschitzIntervalLowerBound(
-      otherBodyDistances[index], otherBodyDistances[index + 1], intervalLength,
-    );
-    if (!Number.isFinite(bodyLowerBound) || !Number.isFinite(otherBodyLowerBound)) {
-      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+    const t0 = index / intervals;
+    const t1 = (index + 1) / intervals;
+    const first = evaluateAt(t0);
+    const second = evaluateAt(t1);
+    if (!first || !second) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
     }
-    // Any possible non-target capsule contact is always a rejection, including
-    // one near the intended endpoint.  This is the ownership check that keeps
-    // a wrong Motif/member from masquerading as terminal attachment.
-    if (otherBodyLowerBound <= threshold) {
-      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
-    }
-    bodyLowerBounds.push(bodyLowerBound);
-    if (bodyLowerBound <= threshold && firstPossibleIntersection < 0) {
-      firstPossibleIntersection = index;
-    }
+    const regions = certifyInterval(t0, t1, first, second, 0);
+    if (!regions) return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
+    contactRegions.push(...regions);
   }
-  if (firstPossibleIntersection < 0) {
-    return { accepted: true, rejectedByBodyIntersection: false, sampleCount: intervals + 1 };
+  if (contactRegions.length === 0) {
+    return { accepted: true, rejectedByBodyIntersection: false, sampleCount };
   }
-  if (!target || targetDistances[intervals] > threshold) {
-    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
-  }
-  // Every uncertain/possible interval after the first must remain a suffix to
-  // the endpoint and have a definite target-zone sample at its later end.
-  // A definitely clear gap therefore cannot be hidden by the endpoint rule.
-  for (let index = firstPossibleIntersection; index < intervals; index++) {
-    if (bodyLowerBounds[index] > threshold || targetDistances[index + 1] > threshold) {
-      return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+  contactRegions.sort((first, second) => first.start - second.start || first.end - second.end);
+  for (let index = 1; index < contactRegions.length; index++) {
+    if (contactRegions[index].start > contactRegions[index - 1].end + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
+      return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
     }
   }
-  const terminalOverlapLength = (intervals - firstPossibleIntersection) * intervalLength;
-  const terminalDepth = Math.max(0, -targetDistances[intervals]);
-  if (terminalOverlapLength > target.maximumOverlapLength + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON
-    || terminalDepth > target.maximumDepth + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
-    return { accepted: false, rejectedByBodyIntersection: true, sampleCount: intervals + 1 };
+  const firstPossibleIntersection = contactRegions[0].start;
+  const lastPossibleIntersection = contactRegions[contactRegions.length - 1].end;
+  if (lastPossibleIntersection < 1 - PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
   }
-  return { accepted: true, rejectedByBodyIntersection: false, sampleCount: intervals + 1 };
+  const terminalOverlapLength = routeLength * (1 - firstPossibleIntersection);
+  const terminalDepth = Math.max(0, -lastSample.target);
+  if (terminalOverlapLength > target!.maximumOverlapLength + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON
+    || terminalDepth > target!.maximumDepth + PRINT_SUPPORT_BODY_CLEARANCE_EPSILON) {
+    return { accepted: false, rejectedByBodyIntersection: true, sampleCount };
+  }
+  return { accepted: true, rejectedByBodyIntersection: false, sampleCount };
 }
 
 /** Author edit: remove one permanent member and compact unreferenced route
@@ -2552,6 +2657,35 @@ export function buildSkinRebuildPrintSupport(
     ...artwork,
     edges: artwork.edges.filter((edge) => !removedEdgeIds.has(edge.id)),
   });
+  const graphWithoutNode = (removedNodeIndex: number): InternalStructureGraph => {
+    const nodes = artwork.nodes
+      .filter((_node, index) => index !== removedNodeIndex)
+      .map((node, index) => ({ ...node, id: index, position: { ...node.position } }));
+    const remap = new Map<number, number>();
+    artwork.nodes.forEach((_node, index) => {
+      if (index !== removedNodeIndex) remap.set(index, remap.size);
+    });
+    const edges = artwork.edges
+      .filter((edge) => edge.start !== removedNodeIndex && edge.end !== removedNodeIndex)
+      .map((edge, index) => ({
+        ...edge,
+        id: index,
+        start: remap.get(edge.start)!,
+        end: remap.get(edge.end)!,
+      }));
+    return {
+      ...artwork,
+      nodes,
+      edges,
+      stats: {
+        ...artwork.stats,
+        inputPoints: nodes.length,
+        candidateEdges: edges.length,
+        gridNodeCount: nodes.length,
+        gridEdgeCount: edges.length,
+      },
+    };
+  };
   const makeTerminalTarget = (
     kind: SkinRebuildPrintSupportTerminalTarget["kind"],
     position: Vector3Value,
@@ -2612,7 +2746,10 @@ export function buildSkinRebuildPrintSupport(
     };
     const otherBodySdf = createFinishedSkinBodySdfEvaluator({
       ...finishedBodyInput,
-      internalGraph: graphWithoutEdges(new Set(incidentEdges.map((edge) => edge.id))),
+      // Remove the target node as well as its incident edges. Leaving the
+      // target node in the remainder field would report every intended node
+      // contact as a wrong-terminal collision at the final sample.
+      internalGraph: graphWithoutNode(nodeIndex),
     });
     const geometryRadius = Math.max(node.radius, ...incidentEdges.map((edge) => edge.radius));
     return makeTerminalTarget("node", node.position, node.radius, targetSdf, otherBodySdf, geometryRadius);

@@ -32,6 +32,7 @@ assert.deepEqual([...classified.faceClasses], [
   SKIN_REBUILD_OVERHANG_INSIDE,
   SKIN_REBUILD_OVERHANG_OUTSIDE,
 ]);
+assert.deepEqual([...classified.faceRegionIds], [3, 3]);
 assert.deepEqual([...classified.insideFaceRegionIds], [3, -1]);
 assert.equal(classified.insideFaceCount, 1);
 assert.equal(classified.outsideFaceCount, 1);

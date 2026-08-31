@@ -16,6 +16,41 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — Stage 8 sparse removable support v0.1 (experimental)
+
+工程8のAutomaticを、工程4のInside / Outside責任とregion idを唯一のSSOTとして、工程7の
+最終作品mesh overhang triangle代表点へ転送する純粋な疎支柱生成へ置き換えた。転送は再分類を
+行わず、Inside面・未分類面は候補から捨てる。Outside regionごとに最下端のstart bandを先に
+選び、低い帯の空間的な広がりがある場合だけ最大3代表へ縮約するため、最終診断の489面を489本
+へ展開しない。選択は決定的なgreedy coverageで、vertical needleを先に試し、失敗時だけ有限個
+のleaning plate rootを試す。各保存segmentは45度以内で、Y branchingはない。現行workflowは
+build plateのZだけを保持し物理的なXY範囲を持たないため、作品のsampling bboxをplate境界とは
+みなさず、有限個のrootを既知のplate Zから試す。
+
+受理GraphはBODY / Permanent Webから分離したまま、短い0.6 mm研究用contact neck（shaftは既存
+supportDiameter）を持つ。完成BODYのauthoritative smooth-min SDFへ半径込みcapsuleのbounded
+subdivisionを適用し、非有限値、1-Lipschitz違反、非端末交差、target attribution不能、証明予算超過を
+fail closedする。既存の正当な端末接触は有限suffixとして残す。既存model側のcollision proofにも
+同じbounded adaptive screenを適用し、target / remainderの孤立SDFをBODYの分割とは扱わない。
+Support同士はendpointだけでなくcapsule-to-capsule距離を`r1 + r2 + 0.35 mm`（初期研究gap、
+heuristic/experimental）で検査する。
+
+Automatic画面は `Sparse Automatic (experimental)` と表示し、Outside regions / Critical targets /
+Supported / Unsupported / Supports / rejected BODY / spacing / removable / Inside-derived 0 と
+vertical / leaning数を表示する。黄色Critical Targetと半透明赤Rejected Candidateはboundedな
+presentation-only debug toggleで、通常のStage 3/4/5B色・BODY・export geometryを変えない。
+Offは従来どおりBODY-only、support nodes / edges / artifact = 0のままである。FKEI enum/schema/version、
+Print #001/#002 artifact、`shadow=true`、`productionApplied=false`、`printApproval=false`は不変。
+
+#### Boundary and limitations
+
+これはbuild plateから連続し、BODY/Web-clear（意図した接触を除く）、spacing-clearなrouteの有限
+geometric screenだけである。nipper/tool access、一般的な取り外し可能性、cavity/enclosure、
+slicer layer、material strength、print successは証明しない。current final-artwork coordinatesへ
+責任事実を移すnearest stored-triangle projectionにも、同一のtriangulationであるという仮定はない。
+Outside regionの支持不足は正直にUnsupportedとして残り、Automaticのexport approvalは常に人間の
+reviewへ委ねる。実機印刷・slicer・Mac QAはこのv0.1の完了条件に含めず、次の研究課題とする。
+
 ### 2026-08-31 — CUDA shadow integration final gate
 
 review済みCUDA runtimeを、Print #002の`model.ts`、FKEI、mesh export、support、production geometryを

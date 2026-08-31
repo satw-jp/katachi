@@ -3855,6 +3855,13 @@ details.mesh-export:not([open]) > :not(summary) {
   justify-content: space-between;
   gap: 8px;
 }
+.skin-rebuild-sparse-debug-toggle {
+  align-items: flex-start;
+  color: #ffe58b;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.skin-rebuild-sparse-debug-toggle input { margin-top: 2px; }
 .skin-rebuild-pipeline-setting input[type="number"] {
   width: 68px;
   margin-left: auto;

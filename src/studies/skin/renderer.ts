@@ -93,6 +93,7 @@ import type {
 import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 import { normalizedScreenRect, screenTriangleIntersectsRect } from "./rebuild/screenRectSelection.ts";
 import type { InteriorClassificationDebugMarker } from "./rebuild/interiorClassificationPresentation.ts";
+import type { SparseRemovableSupportDebug } from "./rebuild/sparseRemovableSupport.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -499,6 +500,24 @@ export class SkinRenderer {
   private printSupportNodeMesh: THREE.InstancedMesh | null = null;
   private printSupportEdgeMesh: THREE.InstancedMesh | null = null;
   private printSupportVisible = true;
+  /** Bounded Stage 8 presentation-only markers. They never participate in
+   * BODY/support geometry or export. */
+  private sparseRemovableSupportDebugGroup: THREE.Group | null = null;
+  private sparseRemovableSupportDebugEnabled = false;
+  private readonly sparseCriticalTargetMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffd23f,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly sparseRejectedCandidateMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff304d,
+    transparent: true,
+    opacity: 0.38,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   /** SKIN REBUILD final-mesh overhang candidates. This diagnostic overlay
    * is display-only and never changes BODY, support, history, or export. */
   private skinRebuildOverhangGroup: THREE.Group | null = null;
@@ -2127,6 +2146,11 @@ export class SkinRenderer {
         && visibility.surfaceDecorations
         && this.viewMode === "mesh";
     }
+    if (this.sparseRemovableSupportDebugGroup) {
+      this.sparseRemovableSupportDebugGroup.visible = this.sparseRemovableSupportDebugEnabled
+        && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
+    }
     if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
     if (this.surfaceAngleGroup) {
       this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
@@ -2538,6 +2562,50 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
+  /** Show bounded Stage 8 critical/rejected facts without touching the
+   * accepted orange support graph. Markers are deliberately presentation-only
+   * and are not included in any mesh or export path. */
+  setSparseRemovableSupportDebug(
+    debug: SparseRemovableSupportDebug | null,
+    enabled: boolean,
+  ): void {
+    if (this.sparseRemovableSupportDebugGroup) {
+      this.scene.remove(this.sparseRemovableSupportDebugGroup);
+      this.sparseRemovableSupportDebugGroup = null;
+    }
+    this.sparseRemovableSupportDebugEnabled = enabled;
+    if (!debug || !enabled) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+    const group = new THREE.Group();
+    group.name = "skin-rebuild-sparse-removable-support-debug";
+    const addMarker = (
+      position: Vector3Value,
+      radius: number,
+      material: THREE.Material,
+    ): void => {
+      if (![position.x, position.y, position.z, radius].every(Number.isFinite) || !(radius > 0)) return;
+      const marker = new THREE.Mesh(this.internalNodeGeometry, material);
+      marker.position.set(position.x, position.y, position.z);
+      marker.scale.setScalar(radius);
+      marker.renderOrder = 20;
+      group.add(marker);
+    };
+    for (const target of debug.criticalTargets) {
+      addMarker(target.position, 0.06, this.sparseCriticalTargetMaterial);
+    }
+    for (const candidate of debug.rejectedCandidates) {
+      addMarker(candidate.position, 0.045, this.sparseRejectedCandidateMaterial);
+    }
+    group.position.z = this.phaseAObjectLiftSource;
+    this.scene.add(group);
+    this.sparseRemovableSupportDebugGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
   /** Red face overlay from the REBUILD final-mesh build-direction diagnosis. */
   setSkinRebuildOverhangOverlay(
     positions: Float32Array | null,
@@ -2878,6 +2946,7 @@ export class SkinRenderer {
     if (this.printSupportNodeMesh) this.printSupportNodeMesh.position.z = bodyZ;
     if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.position.z = bodyZ;
     if (this.skinRebuildOverhangGroup) this.skinRebuildOverhangGroup.position.z = bodyZ;
+    if (this.sparseRemovableSupportDebugGroup) this.sparseRemovableSupportDebugGroup.position.z = bodyZ;
     if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
       this.applyLayerVisibility();
       return;

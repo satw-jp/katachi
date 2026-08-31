@@ -142,14 +142,22 @@ assert.match(parallelMesh, /positionsOnly: true[\s\S]*?flatNormalsFromTriangleSo
   "the parallel Stage 6 path must rebuild display normals after positions-only slice transfer");
 assert.match(ui, /工程5Bの赤面補強を一体の作品メッシュへ合成/);
 assert.match(main, /printSupportGraph/, "removable print support must travel separately from BODY");
-assert.match(main, /const supportGraph = modeAtStart === "automatic"[\s\S]{0,600}buildSkinRebuildPrintSupport/,
-  "Automatic must retain the existing removable-support builder path");
-assert.match(main, /partitionSkinRebuildLowestPointsByOverhangResponsibility\([\s\S]{0,300}?diagnosis\.lowestPoints[\s\S]{0,300}?responsibilityOverhang\.interior/,
-  "Stage 8 must project its targets from the retained Stage 4 responsibility SSOT");
-assert.match(main, /buildSkinRebuildPrintSupport\([\s\S]{0,300}?targetResponsibility\.outside[\s\S]{0,300}?targetSources: "surface-only"/,
-  "Automatic removable support must receive Outside Surface targets only");
+assert.match(main, /const supportGraph = modeAtStart === "automatic"/,
+  "Stage 8 must retain an explicit Automatic branch");
+assert.match(main, /buildSparseRemovableSupport\(/,
+  "Automatic must use the focused sparse removable-support builder path");
+assert.match(main, /projectSkinRebuildFinalArtworkOverhangToStage4\([\s\S]{0,500}?diagnosis\.overhangFacePositions[\s\S]{0,500}?responsibilityOverhang\.positions/,
+  "Stage 8 must transfer current Stage 7 positions onto the retained Stage 4 responsibility SSOT");
+assert.match(main, /projectedOutsideFaces[\s\S]{0,400}?responsibilityRegionId/,
+  "Automatic removable support must route only projected Stage 4 Outside faces grouped by region");
 assert.match(main, /Inside-derived 0/,
   "Stage 8 must expose that Inside-derived removable support stays zero");
+assert.match(main, /Sparse Automatic \(experimental\)/,
+  "Automatic must remain visibly experimental");
+assert.match(main, /Stage 8 debug（黄色=Critical Target \/ 赤=Rejected Candidate）/,
+  "Stage 8 must expose the bounded debug toggle");
+assert.match(renderer, /0xffd23f/, "Critical Target markers must remain yellow");
+assert.match(renderer, /0xff304d/, "Rejected Candidate markers must remain translucent red");
 assert.match(main, /skinRebuildPrintSupportMode === "off"[\s\S]*?createEmptySkinRebuildGraph/,
   "Off must install an empty support graph without calling the builder");
 assert.match(main, /internalPrintGateAllowsSupportDisabledExport/,
@@ -184,11 +192,12 @@ assert.match(main, /requestProjectUndo[\s\S]*?undoSkinRebuildWorkflowOperation/,
 assert.match(main, /requestProjectRedo[\s\S]*?redoSkinRebuildWorkflowOperation/,
   "the top Redo action must restore an undone SKIN REBUILD operation");
 assert.match(main, /diagnoseSkinRebuildArtworkForPrintSupport/, "print support must use the edited artwork mesh diagnosis");
-assert.match(
-  main,
-  /skinRebuildFinalArtworkDiagnosis = \{ \.\.\.diagnosedArtwork, project \}[\s\S]*?partitionSkinRebuildLowestPointsByOverhangResponsibility\([\s\S]*?diagnosis\.lowestPoints[\s\S]*?buildSkinRebuildPrintSupport/,
-  "Stage 7 Surface targets must be projected onto the retained Stage 4 responsibility before Stage 8 generation",
-);
+assert.match(main, /skinRebuildFinalArtworkDiagnosis = \{ \.\.\.diagnosedArtwork, project \}/,
+  "Stage 7 must retain the finalized artwork diagnosis");
+assert.match(main, /projectSkinRebuildFinalArtworkOverhangToStage4\([\s\S]*?diagnosis\.overhangFacePositions/,
+  "Stage 7 final-artwork targets must be transferred to the retained Stage 4 responsibility");
+assert.match(main, /buildSparseRemovableSupport\(/,
+  "Stage 8 must use the sparse builder after the Stage 7 transfer");
 assert.match(main, /工程7で残った赤面があります。工程8で別体印刷サポートを生成してください/);
 assert.match(main, /pickMotifLowestPointMarker/, "red lowest-point markers must be selectable in the main viewport");
 assert.match(main, /skinRebuildViewportSelectionMode === "lattice-edge"/,

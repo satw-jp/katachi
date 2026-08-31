@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { fieldSdf } from "../../cloud-sculpt/field.ts";
+import { fieldSdf, smoothMin } from "../../cloud-sculpt/field.ts";
 import { inspectSavedStlTopology, orientMeshForSavedStl } from "../../cloud-sculpt/meshExport.ts";
 import { createCompositeSdfEvaluator } from "../field.ts";
 import { evaluateInternalPrintGate } from "../internalPrintGate.ts";
@@ -657,6 +657,30 @@ const hiddenBetweenSamples = auditSkinRebuildPrintSupportBodyKeepOut(
 );
 assert.equal(hiddenBetweenSamples.accepted, false, "a Lipschitz-tangent obstacle between old sample points must reject");
 assert.equal(hiddenBetweenSamples.rejectedByBodyIntersection, true);
+const targetFieldJump = (_x: number, _y: number, z: number): number => z >= 0.98 ? -0.4 : 0.09;
+const jumpedTarget = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 1 },
+  0.1,
+  targetFieldJump,
+  terminalTarget({ x: 0, y: 0, z: 1 }, 0.05, targetFieldJump, () => 1e5),
+);
+assert.equal(jumpedTarget.accepted, false, "a 0.09 to -0.4 target jump over a 0.02 interval must fail closed");
+assert.equal(jumpedTarget.rejectedByBodyIntersection, true);
+const ring3dTarget = (x: number, y: number, z: number): number => Math.hypot(x, y, z - 2) - 0.05;
+const ring3dOther = (x: number, y: number, z: number): number => Math.hypot(x - 0.135, y, z - 1.89) - 0.025;
+const ring3dSmoothMinBody = (x: number, y: number, z: number): number =>
+  smoothMin(ring3dTarget(x, y, z), ring3dOther(x, y, z), 0.045);
+const smoothMinContact = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0.5, y: 0, z: 0 },
+  { x: 0, y: 0, z: 2 },
+  0.05,
+  ring3dSmoothMinBody,
+  terminalTarget({ x: 0, y: 0, z: 2 }, 0.05, ring3dTarget, ring3dOther),
+);
+assert.equal(smoothMinContact.accepted, false,
+  "the two-ring3d smooth-min field must not be treated as an exact target/remainder partition");
+assert.equal(smoothMinContact.rejectedByBodyIntersection, true);
 const nonLipschitzEndpointPair = auditSkinRebuildPrintSupportBodyKeepOut(
   { x: 0, y: 0, z: 0 },
   { x: 0, y: 0, z: 1 },
@@ -665,6 +689,15 @@ const nonLipschitzEndpointPair = auditSkinRebuildPrintSupportBodyKeepOut(
 );
 assert.equal(nonLipschitzEndpointPair.accepted, false, "a non-Lipschitz endpoint pair must fail closed");
 assert.equal(nonLipschitzEndpointPair.rejectedByBodyIntersection, true);
+const exhaustedSubdivisionBudget = auditSkinRebuildPrintSupportBodyKeepOut(
+  { x: 0, y: 0, z: 0 },
+  { x: 0, y: 0, z: 1 },
+  1e-7,
+  () => 100,
+);
+assert.equal(exhaustedSubdivisionBudget.accepted, false, "a route beyond the bounded keep-out budget must fail closed");
+assert.equal(exhaustedSubdivisionBudget.rejectedByBodyIntersection, false,
+  "budget exhaustion is unsupported rather than an observed BODY collision");
 const intendedTargetSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 2) - 0.05;
 const wrongTerminalSdf = (_x: number, _y: number, z: number): number => Math.abs(z - 1.9) - 0.04;
 const wrongTerminal = auditSkinRebuildPrintSupportBodyKeepOut(
