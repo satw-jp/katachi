@@ -238,6 +238,7 @@ import {
   type SkinRebuildSettings,
 } from "./rebuild/model.ts";
 import { buildInteriorClassificationDebugPresentation } from "./rebuild/interiorClassificationPresentation.ts";
+import type { SkinRebuildOverhangInteriorClassification } from "./rebuild/overhangInteriorClassification.ts";
 import {
   sampleSkinRebuildOverhangRegionSurface,
   type SkinRebuildOverhangRegion,
@@ -911,6 +912,19 @@ let lastPackResult: PackPatchesResult | null = null;
 let currentQuadGrid: QuadFlowGrid | null = null;
 let internalStructureGraph: InternalStructureGraph | null = null;
 let internalStructureFingerprint = "";
+type SkinRebuildRuntimeOverhang = {
+  faceCount: number;
+  regionCount: number;
+  areaMm2: number;
+  areaPercent: number;
+  meshPositions: Float32Array;
+  meshNormals: Float32Array;
+  positions: Float32Array;
+  faceRegionIds: Int32Array;
+  regions: SkinRebuildOverhangRegion[];
+  /** Stage 4-only projection of the stored Stage 3 verdict. */
+  interior: SkinRebuildOverhangInteriorClassification | null;
+};
 type SkinRebuildPipelineRuntime = {
   shapeFingerprint: string;
   settings: SkinRebuildSettings;
@@ -918,17 +932,7 @@ type SkinRebuildPipelineRuntime = {
   patternSides: SkinRebuildPatternSide[];
   dryWeb: InternalStructureGraph | null;
   lowestPoints: SkinRebuildLowestPoint[] | null;
-  overhang: {
-    faceCount: number;
-    regionCount: number;
-    areaMm2: number;
-    areaPercent: number;
-    meshPositions: Float32Array;
-    meshNormals: Float32Array;
-    positions: Float32Array;
-    faceRegionIds: Int32Array;
-    regions: SkinRebuildOverhangRegion[];
-  } | null;
+  overhang: SkinRebuildRuntimeOverhang | null;
   project: SkinRebuildProject | null;
 };
 type SkinRebuildFinalArtworkDiagnosis = {
@@ -2838,10 +2842,10 @@ if (isSkinRebuildApp) {
   overhangToggle.type = "checkbox";
   overhangToggle.checked = true;
   overhangToggle.setAttribute("aria-label", "オーバーハング危険面を表示");
-  overhangLabel.append(overhangToggle, document.createTextNode(" オーバーハング危険面を表示（赤／補強済みは緑）"));
+  overhangLabel.append(overhangToggle, document.createTextNode(" オーバーハング危険面を表示（Inside赤／Outside薄青灰）"));
   const printPlateHint = document.createElement("small");
   printPlateHint.className = "hint";
-  printPlateHint.textContent = "表示専用です。赤=未補強、緑=蜘蛛補強済み、水色=補強部材です。危険面診断はスライサーの完全な再現ではありません。";
+  printPlateHint.textContent = "表示専用です。Inside赤=5B対象、Outside薄青灰=診断のみ、緑=Inside補強済み、水色=補強部材です。危険面診断はスライサーの完全な再現ではありません。";
   printPlateControl.append(selectionControl, printPlateLabel, axomeRollControl, spiderLatticeLabel, printSupportLabel, overhangLabel, printPlateHint);
   ui.displayToolsRoot.insertBefore(printPlateControl, ui.displayToolsRoot.children[1] ?? null);
   skinRebuildViewportSelectionStatus = selectionStatus;
@@ -6685,7 +6689,10 @@ function refreshSkinRebuildViewportSelectionStatus(edgeId: number | null = null)
   const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
   const selectedRegions = overhang?.regions.filter((candidate) => skinRebuildSelectedOverhangRegionIds.has(candidate.id)) ?? [];
   if (selectedRegions.length > 0) {
-    const faceCount = selectedRegions.reduce((sum, region) => sum + region.faceCount, 0);
+    const selectedIds = new Set(selectedRegions.map((region) => region.id));
+    const faceCount = overhang?.interior
+      ? [...overhang.interior.insideFaceRegionIds].filter((regionId) => selectedIds.has(regionId)).length
+      : 0;
     const reinforcedCount = selectedRegions.filter((region) => skinRebuildReinforcedOverhangRegionIds.has(region.id)).length;
     status.textContent = `赤面エリア ${selectedRegions.length}領域（${faceCount.toLocaleString()}面）を黄色で選択中 · 補強済み${reinforcedCount} · Shift追加 / Ctrl除外${skinRebuildRegionDragSelectEnabled ? " / ドラッグ選択ON" : ""}`;
     status.dataset.mode = "overhang-region";
@@ -6710,7 +6717,7 @@ function refreshSkinRebuildViewportSelectionStatus(edgeId: number | null = null)
 function refreshSkinRebuildSelectedRegion(): void {
   const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
   const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
-  const validIds = new Set(overhang?.regions.map((region) => region.id) ?? []);
+  const validIds = new Set(overhang?.interior?.insideRegionIds ?? []);
   skinRebuildSelectedOverhangRegionIds = new Set(
     [...skinRebuildSelectedOverhangRegionIds].filter((regionId) => validIds.has(regionId)),
   );
@@ -6729,12 +6736,13 @@ function refreshSkinRebuildSelectedRegion(): void {
     refreshSkinRebuildViewportSelectionStatus();
     return;
   }
-  const totalSourceArea = overhang.regions.reduce((sum, candidate) => sum + candidate.areaSourceSquared, 0);
-  const selectedAreaSource = selectedRegions.reduce((sum, region) => sum + region.areaSourceSquared, 0);
-  const areaMm2 = totalSourceArea > 0 ? overhang.areaMm2 * selectedAreaSource / totalSourceArea : 0;
+  const selectedIds = new Set(selectedRegions.map((region) => region.id));
+  const selectedInsideFaceCount = overhang.interior
+    ? [...overhang.interior.insideFaceRegionIds].filter((regionId) => selectedIds.has(regionId)).length
+    : 0;
   const reinforcedCount = selectedRegions.filter((region) => skinRebuildReinforcedOverhangRegionIds.has(region.id)).length;
   const pendingCount = selectedRegions.length - reinforcedCount;
-  skinRebuildSelectedRegionStatus.textContent = `選択 ${selectedRegions.length}領域 · ${selectedRegions.reduce((sum, region) => sum + region.faceCount, 0).toLocaleString()}面 · 約${areaMm2.toFixed(1)} mm² · 未補強${pendingCount} / 緑表示${reinforcedCount}`;
+  skinRebuildSelectedRegionStatus.textContent = `Inside Overhang選択 ${selectedRegions.length}領域 · ${selectedInsideFaceCount.toLocaleString()}面 · 未補強${pendingCount} / 緑表示${reinforcedCount}`;
   skinRebuildSelectedRegionReinforceButton.disabled = pendingCount === 0 || !project?.lattice.edges.length;
   refreshSkinRebuildViewportSelectionStatus();
 }
@@ -6754,7 +6762,7 @@ function setSkinRebuildOverhangRegionSelections(
   operation: "replace" | "add" | "remove" = "replace",
 ): number {
   const overhang = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.overhang : null;
-  const validIds = new Set(overhang?.regions.map((region) => region.id) ?? []);
+  const validIds = new Set(overhang?.interior?.insideRegionIds ?? []);
   const selectedIds = [...new Set(regionIds)].filter((regionId) => validIds.has(regionId));
   if (operation === "replace") skinRebuildSelectedOverhangRegionIds.clear();
   for (const regionId of selectedIds) {
@@ -7495,7 +7503,7 @@ function installSkinRebuildPipelinePanel(): void {
 
   const lowest = makeStep(
     "4. オーバーハング部を検出",
-    "最終Surface meshの全三角面を造形方向から判定し、閾値以上の下面を隣接する危険領域にまとめて赤く表示します。同時に各Patternの最下端点も蜘蛛ラティス用に抽出します。",
+    "最終Surface meshの全三角面を造形方向から判定し、閾値以上の下面を連続領域にまとめます。工程3の確定方向を使い、5B対象のInsideを赤、診断だけに残すOutsideを薄色で表示します。",
   );
   const thresholdRow = document.createElement("label");
   thresholdRow.className = "row skin-rebuild-pipeline-setting";
@@ -7512,6 +7520,9 @@ function installSkinRebuildPipelinePanel(): void {
   lowestButton.className = "primary-action";
   lowestButton.textContent = "4. オーバーハング部を検出";
   lowestButton.disabled = true;
+  const overhangInteriorStatus = document.createElement("div");
+  overhangInteriorStatus.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-overhang-interior-status";
+  overhangInteriorStatus.textContent = "Overhang · 工程4未実行";
   lowestButton.onclick = () => {
     if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline) {
       lowest.status.textContent = "先に工程3の内外判定を実行してください";
@@ -7531,6 +7542,7 @@ function installSkinRebuildPipelinePanel(): void {
     pipeline.lowestPoints = null;
     pipeline.overhang = null;
     pipeline.project = null;
+    overhangInteriorStatus.textContent = "Overhang · Inside / Outsideを工程3結果から集計中…";
     skinRenderer.setSkinRebuildOverhangOverlay(null);
     skinRebuildSelectedTargetPatchId = null;
     skinRebuildSelectedOverhangRegionIds.clear();
@@ -7649,6 +7661,7 @@ function installSkinRebuildPipelinePanel(): void {
         positions: message.overhangFacePositions,
         faceRegionIds: message.overhangFaceRegionIds,
         regions: message.overhangRegions,
+        interior: message.overhangInterior,
       };
       pipeline.project = assembleSkinRebuildProject(
         settings,
@@ -7671,6 +7684,7 @@ function installSkinRebuildPipelinePanel(): void {
       skinRenderer.setSkinRebuildOverhangOverlay(
         message.overhangFacePositions,
         message.overhangFaceRegionIds,
+        message.overhangInterior.faceClasses,
       );
       viewMode = "mesh";
       skinRenderer.setViewMode(viewMode);
@@ -7680,6 +7694,8 @@ function installSkinRebuildPipelinePanel(): void {
       const execution = message.parallel ? `${message.workerCount}コア` : "背景Worker 1本";
       lowest.status.textContent = `危険領域 ${message.overhangRegionCount} · 赤mesh ${message.overhangFaceCount.toLocaleString()}面 / ${message.overhangAreaMm2.toFixed(1)} mm² (${message.overhangAreaPercent.toFixed(1)}%) · Pattern最下端 ${message.lowestPoints.length}点 · 蜘蛛支持 ${spiderTargets.length}点 · ${execution} · ${elapsed}秒`;
       lowest.status.dataset.ok = "true";
+      overhangInteriorStatus.textContent = `Overhang · Inside ${message.overhangInterior.insideFaceCount.toLocaleString()} faces / ${message.overhangInterior.insideRegionIds.length} regions · Outside ${message.overhangInterior.outsideFaceCount.toLocaleString()} faces / ${message.overhangInterior.outsideRegionIds.length} regions · 5B target ${message.overhangInterior.insideFaceCount.toLocaleString()} faces / ${message.overhangInterior.insideRegionIds.length} regions${message.overhangInterior.unclassifiedFaceCount > 0 ? ` · 未判定 ${message.overhangInterior.unclassifiedFaceCount.toLocaleString()} faces` : ""}`;
+      overhangInteriorStatus.dataset.ok = message.overhangInterior.unclassifiedFaceCount === 0 ? "true" : "false";
       setSkinRebuildLowestBottomProgress(
         "工程4 完了",
         `${execution} · 全${message.faceCount.toLocaleString()}面 / 危険${message.overhangFaceCount.toLocaleString()}面・${message.overhangRegionCount}領域・${message.overhangAreaPercent.toFixed(1)}% · ${elapsed}秒 · 蜘蛛支持${spiderTargets.length}点 · 非蜘蛛候補${removableSupportTargets}点`,
@@ -7738,7 +7754,7 @@ function installSkinRebuildPipelinePanel(): void {
     };
     worker.postMessage(request);
   };
-  lowest.section.append(thresholdRow, lowestButton, lowest.status);
+  lowest.section.append(thresholdRow, lowestButton, lowest.status, overhangInteriorStatus);
 
   const lattice = makeStep(
     "5A. 向かい合うPattern裏中央から蜘蛛の巣ラティスを作る",
@@ -7779,7 +7795,7 @@ function installSkinRebuildPipelinePanel(): void {
   unsupportedFocusButton.onclick = () => focusSkinRebuildUnsupportedTarget();
   const reinforcement = makeStep(
     "5B. 赤面エリアの補強",
-    "選んだ連続赤面を複数の実接点で覆い、最寄りの蜘蛛ラティス上の点へ45°以内の立体として絞ります。色だけを除外せず、工程7で再診断される恒久形状を作ります。補強前は緑、追加部材は明るい水色で確認できます。",
+    "選んだInside Overhangだけを複数の実接点で覆い、最寄りの蜘蛛ラティス上の点へ45°以内の立体として絞ります。Outside Overhangは診断表示に残しますが、補強入力には渡しません。追加部材は明るい水色で確認できます。",
   );
   const regionSelectionStatus = document.createElement("div");
   regionSelectionStatus.className = "mesh-status skin-rebuild-region-selection-status";
@@ -8018,8 +8034,9 @@ function installSkinRebuildPipelinePanel(): void {
     const overhang = skinRebuildPipeline?.overhang;
     const selectedRegions = overhang?.regions.filter((region) =>
       skinRebuildSelectedOverhangRegionIds.has(region.id)
+      && overhang.interior?.insideRegionIds.includes(region.id)
       && !skinRebuildReinforcedOverhangRegionIds.has(region.id)) ?? [];
-    if (!skinRebuildPipelineIsCurrent() || !current || selectedRegions.length === 0) return;
+    if (!skinRebuildPipelineIsCurrent() || !current || !overhang?.interior || selectedRegions.length === 0) return;
     const workflowBefore = captureSkinRebuildWorkflowSnapshot();
     activeSkinRebuildStage5BWorker?.terminate();
     activeSkinRebuildStage5BWorker = null;
@@ -8030,9 +8047,13 @@ function installSkinRebuildPipelinePanel(): void {
     const strutRadius = current.lattice.edges[0]?.radius
       ?? current.lattice.nodes[0]?.radius
       ?? 0.05;
+    const overhangInterior = overhang.interior;
     const regionTasks = selectedRegions.map((region) => {
       const surfaceSamples = sampleSkinRebuildOverhangRegionSurface(
-        overhang!,
+        {
+          positions: overhang.positions,
+          faceRegionIds: overhangInterior.insideFaceRegionIds,
+        },
         region.id,
         // A capsule covers a two-radius band.  Slightly-over-one-radius
         // spacing preserves overlap while avoiding redundant face contacts.
@@ -8081,9 +8102,11 @@ function installSkinRebuildPipelinePanel(): void {
       "5B. 選択赤面を面→点の水色立体で補強",
       "5B. 面→点補強を計算中…",
     );
-    reinforcement.status.textContent = `計算開始 · ${regionTasks.length}領域 · 面接点ごとに最寄りの到達可能な蜘蛛ラティスを探索中`;
+    const stage5BTargetFaceCount = [...overhangInterior.insideFaceRegionIds]
+      .filter((regionId) => skinRebuildSelectedOverhangRegionIds.has(regionId)).length;
+    reinforcement.status.textContent = `計算開始 · Inside Overhang ${stage5BTargetFaceCount.toLocaleString()}面 / ${regionTasks.length}領域 · 面接点ごとに最寄りの到達可能な蜘蛛ラティスを探索中`;
     reinforcement.status.dataset.ok = "true";
-    setSkinRebuildMeshBottomProgress("工程5B 赤面エリア補強", `${regionTasks.length}領域 · 背景計算を開始 · 0.0秒`);
+    setSkinRebuildMeshBottomProgress("工程5B 赤面エリア補強", `Inside Overhang ${stage5BTargetFaceCount.toLocaleString()}面 / ${regionTasks.length}領域 · 背景計算を開始 · 0.0秒`);
     heavy.updateActual(`${regionTasks.length}領域 · 準備中`, 1);
     worker.onmessage = (event: MessageEvent<SkinRebuildStage5BWorkerMessage>) => {
       const message = event.data;
@@ -8342,6 +8365,7 @@ function installSkinRebuildPipelinePanel(): void {
         positions: diagnosedArtwork.overhangFacePositions,
         faceRegionIds: diagnosedArtwork.overhangFaceRegionIds,
         regions: diagnosedArtwork.overhangRegions,
+        interior: null,
       };
       skinRebuildFinalizedArtworkProject = project;
       skinRebuildFinalArtworkDiagnosis = { ...diagnosedArtwork, project };
@@ -8623,7 +8647,7 @@ function installSkinRebuildPipelinePanel(): void {
   ));
   stage4Body.prepend(makePipelinePanel(
     "工程4 · オーバーハング部を検出",
-    "Surface Patternの危険面を赤く表示し、蜘蛛ラティス用の最下端も抽出します。",
+    "全Overhangを保持し、工程3の確定結果でInside（赤・5B対象）とOutside（薄色・診断のみ）を分けます。",
     lowest.section,
   ));
   stage5Body.prepend(makePipelinePanel(
@@ -11024,6 +11048,7 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
     skinRenderer.setSkinRebuildOverhangOverlay(
       skinRebuildPipeline.overhang.positions,
       skinRebuildPipeline.overhang.faceRegionIds,
+      skinRebuildPipeline.overhang.interior?.faceClasses ?? null,
     );
     viewMode = "mesh";
     skinRenderer.setViewMode(viewMode);

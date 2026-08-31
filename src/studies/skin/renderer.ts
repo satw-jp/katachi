@@ -505,6 +505,7 @@ export class SkinRenderer {
   private skinRebuildOverhangMesh: THREE.Mesh | null = null;
   private skinRebuildOverhangPositions: Float32Array | null = null;
   private skinRebuildOverhangFaceRegionIds: Int32Array | null = null;
+  private skinRebuildOverhangFaceInteriorClasses: Int8Array | null = null;
   private reinforcedSkinRebuildOverhangRegionMesh: THREE.Mesh | null = null;
   private reinforcedSkinRebuildOverhangRegionIds = new Set<number>();
   private selectedSkinRebuildOverhangRegionMesh: THREE.Mesh | null = null;
@@ -2541,6 +2542,7 @@ export class SkinRenderer {
   setSkinRebuildOverhangOverlay(
     positions: Float32Array | null,
     faceRegionIds: Int32Array | null = null,
+    faceInteriorClasses: Int8Array | null = null,
   ): void {
     if (this.skinRebuildOverhangGroup) {
       this.scene.remove(this.skinRebuildOverhangGroup);
@@ -2556,6 +2558,7 @@ export class SkinRenderer {
     this.skinRebuildOverhangMesh = null;
     this.skinRebuildOverhangPositions = null;
     this.skinRebuildOverhangFaceRegionIds = null;
+    this.skinRebuildOverhangFaceInteriorClasses = null;
     this.reinforcedSkinRebuildOverhangRegionMesh = null;
     this.reinforcedSkinRebuildOverhangRegionIds.clear();
     this.selectedSkinRebuildOverhangRegionMesh = null;
@@ -2566,9 +2569,26 @@ export class SkinRenderer {
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const classified = faceInteriorClasses?.length === positions.length / 9
+      ? faceInteriorClasses
+      : null;
+    if (classified) {
+      const colors = new Float32Array(positions.length);
+      const inside = new THREE.Color(0xff304d);
+      const outside = new THREE.Color(0x718296);
+      const unclassified = new THREE.Color(0xf2c94c);
+      for (let faceIndex = 0; faceIndex < classified.length; faceIndex++) {
+        const color = classified[faceIndex] === 0 ? inside
+          : classified[faceIndex] === 1 ? outside
+            : unclassified;
+        for (let vertex = 0; vertex < 3; vertex++) color.toArray(colors, faceIndex * 9 + vertex * 3);
+      }
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    }
     geometry.computeVertexNormals();
     const material = new THREE.MeshBasicMaterial({
-      color: 0xff304d,
+      color: classified ? 0xffffff : 0xff304d,
+      vertexColors: Boolean(classified),
       transparent: true,
       opacity: 0.88,
       side: THREE.DoubleSide,
@@ -2593,6 +2613,7 @@ export class SkinRenderer {
     this.skinRebuildOverhangFaceRegionIds = faceRegionIds?.length === positions.length / 9
       ? faceRegionIds
       : null;
+    this.skinRebuildOverhangFaceInteriorClasses = classified;
     this.applyLayerVisibility();
     this.requestViewportRender();
   }
@@ -2610,6 +2631,7 @@ export class SkinRenderer {
     this.reinforcedSkinRebuildOverhangRegionIds = new Set(regionIds);
     const positions = this.skinRebuildOverhangPositions;
     const faceRegionIds = this.skinRebuildOverhangFaceRegionIds;
+    const faceInteriorClasses = this.skinRebuildOverhangFaceInteriorClasses;
     const group = this.skinRebuildOverhangGroup;
     if (this.reinforcedSkinRebuildOverhangRegionIds.size === 0 || !positions || !faceRegionIds || !group) {
       this.requestViewportRender();
@@ -2618,6 +2640,7 @@ export class SkinRenderer {
     const reinforcedPositions: number[] = [];
     for (let faceIndex = 0; faceIndex < faceRegionIds.length; faceIndex++) {
       if (!this.reinforcedSkinRebuildOverhangRegionIds.has(faceRegionIds[faceIndex])) continue;
+      if (faceInteriorClasses && faceInteriorClasses[faceIndex] !== 0) continue;
       const offset = faceIndex * 9;
       for (let index = 0; index < 9; index++) reinforcedPositions.push(positions[offset + index]);
     }
@@ -2653,12 +2676,16 @@ export class SkinRenderer {
   pickSkinRebuildOverhangRegion(clientX: number, clientY: number): number | null {
     const mesh = this.skinRebuildOverhangMesh;
     const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    const faceInteriorClasses = this.skinRebuildOverhangFaceInteriorClasses;
     if (!this.skinRebuildOverhangVisible || !mesh || !regionIds) return null;
     const ray = this.screenToRayFromClient(clientX, clientY);
     const raycaster = new THREE.Raycaster(ray.origin, ray.dir, 0, Number.POSITIVE_INFINITY);
     mesh.updateMatrixWorld(true);
     const faceIndex = raycaster.intersectObject(mesh, false)[0]?.faceIndex;
-    return faceIndex === undefined || faceIndex === null ? null : regionIds[faceIndex] ?? null;
+    if (faceIndex === undefined || faceIndex === null) return null;
+    return faceInteriorClasses && faceInteriorClasses[faceIndex] !== 0
+      ? null
+      : regionIds[faceIndex] ?? null;
   }
 
   /** Return every connected red region whose projected triangles overlap the
@@ -2673,6 +2700,7 @@ export class SkinRenderer {
     const mesh = this.skinRebuildOverhangMesh;
     const positions = this.skinRebuildOverhangPositions;
     const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    const faceInteriorClasses = this.skinRebuildOverhangFaceInteriorClasses;
     if (!this.skinRebuildOverhangVisible || !mesh || !positions || !regionIds) return [];
     const canvasRect = this.renderer.domElement.getBoundingClientRect();
     const viewportRect = this.viewportRectFromClient(startClientX, startClientY);
@@ -2704,6 +2732,7 @@ export class SkinRenderer {
       };
     };
     for (let faceIndex = 0; faceIndex < regionIds.length; faceIndex++) {
+      if (faceInteriorClasses && faceInteriorClasses[faceIndex] !== 0) continue;
       const offset = faceIndex * 9;
       const first = projectPoint(offset);
       const second = projectPoint(offset + 3);
@@ -2729,6 +2758,7 @@ export class SkinRenderer {
     this.selectedSkinRebuildOverhangRegionMesh = null;
     const positions = this.skinRebuildOverhangPositions;
     const regionIds = this.skinRebuildOverhangFaceRegionIds;
+    const faceInteriorClasses = this.skinRebuildOverhangFaceInteriorClasses;
     const group = this.skinRebuildOverhangGroup;
     const selectedIds = new Set(selectedRegionIds);
     if (selectedIds.size === 0 || !positions || !regionIds || !group) {
@@ -2738,6 +2768,7 @@ export class SkinRenderer {
     const selectedPositions: number[] = [];
     for (let faceIndex = 0; faceIndex < regionIds.length; faceIndex++) {
       if (!selectedIds.has(regionIds[faceIndex])) continue;
+      if (faceInteriorClasses && faceInteriorClasses[faceIndex] !== 0) continue;
       const offset = faceIndex * 9;
       for (let index = 0; index < 9; index++) selectedPositions.push(positions[offset + index]);
     }

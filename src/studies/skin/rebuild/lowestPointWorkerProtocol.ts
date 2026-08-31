@@ -7,6 +7,7 @@ import type {
   SkinRebuildSettings,
 } from "./model.ts";
 import type { SkinRebuildOverhangRegion } from "./overhangRegions.ts";
+import type { SkinRebuildOverhangInteriorClassification } from "./overhangInteriorClassification.ts";
 
 export type SkinRebuildLowestProgressPhase =
   | "mesh"
@@ -48,6 +49,7 @@ export type SkinRebuildLowestPointWorkerMessage =
     overhangFacePositions: Float32Array;
     overhangFaceRegionIds: Int32Array;
     overhangRegions: SkinRebuildOverhangRegion[];
+    overhangInterior: SkinRebuildOverhangInteriorClassification;
     overhangFaceCount: number;
     overhangRegionCount: number;
     overhangAreaMm2: number;

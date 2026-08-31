@@ -2,6 +2,7 @@ import { buildParallelSkinMesh } from "../parallelMeshBuffers.ts";
 import type { SkinMeshResult } from "../meshExport.ts";
 import type { PreviewMeshRequest } from "../previewMeshWorkerProtocol.ts";
 import { findSkinRebuildLowestPoints } from "./model.ts";
+import { classifySkinRebuildOverhangFromStage3 } from "./overhangInteriorClassification.ts";
 import type {
   SkinRebuildLowestPointRequest,
   SkinRebuildLowestPointWorkerMessage,
@@ -92,6 +93,11 @@ self.onmessage = async (event: MessageEvent<SkinRebuildLowestPointRequest>) => {
     const overhangAreaPercent = diagnosed.overhang.totalAreaSourceSquared > 0
       ? diagnosed.overhang.areaSourceSquared / diagnosed.overhang.totalAreaSourceSquared * 100
       : 0;
+    const overhangInterior = classifySkinRebuildOverhangFromStage3(
+      diagnosed.overhang.positions,
+      diagnosed.overhang.faceRegionIds,
+      request.patternSides,
+    );
     progress("complete", 1, 1);
     const result: SkinRebuildLowestPointWorkerMessage = {
       type: "result",
@@ -102,6 +108,7 @@ self.onmessage = async (event: MessageEvent<SkinRebuildLowestPointRequest>) => {
       overhangFacePositions: diagnosed.overhang.positions,
       overhangFaceRegionIds: diagnosed.overhang.faceRegionIds,
       overhangRegions: diagnosed.overhang.regions,
+      overhangInterior,
       overhangFaceCount: diagnosed.overhang.faceCount,
       overhangRegionCount: diagnosed.overhang.regionCount,
       overhangAreaMm2,
@@ -116,6 +123,8 @@ self.onmessage = async (event: MessageEvent<SkinRebuildLowestPointRequest>) => {
       diagnosed.meshNormals.buffer,
       diagnosed.overhang.positions.buffer,
       diagnosed.overhang.faceRegionIds.buffer,
+      overhangInterior.faceClasses.buffer,
+      overhangInterior.insideFaceRegionIds.buffer,
     ].filter((buffer): buffer is ArrayBuffer => buffer instanceof ArrayBuffer);
     post(result, transfer);
   } catch (error) {
