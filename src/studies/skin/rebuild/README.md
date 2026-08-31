@@ -16,6 +16,25 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-08-31 — CUDA shadow integration final gate
+
+review済みCUDA runtimeを、Print #002の`model.ts`、FKEI、mesh export、support、production geometryを
+変更せずに選択的統合した。Web containmentをauthoritativeのまま保ち、Windows helperは固定loopback
+`127.0.0.1:47658`でのみ待機する。production originは固定allowlistに残し、Gate専用review originは
+`KATACHI_SHADOW_REVIEW_ORIGIN`でHTTPS originを1件だけ起動時に追加する。wildcard、HTTP、path付き、
+別account/nameのoriginは拒否する。
+
+通常Windows ChromeでLocal Network Accessを通常UIから許可した後、review HTTPS originから
+RTX 3080 helperへ到達した。120 mm / 7,740 samples / 321 edgesでsample identity、edge identity、
+classificationが一致し、maximum margin deltaは`1.594769e-7`だった。初回topology uploadは308.3 ms、
+同一sessionのwarm repeatは73.6 msだった。helper停止時は`helper_unavailable`としてWeb authoritativeを
+維持し、再起動後はRTX matchedへ復帰した。全経路で`shadow=true`、`productionApplied=false`を維持する。
+
+final integration branchではlocal-engine/RTX E2E、SKIN REBUILD、branching/support、partition、production
+buildを通した。Print #002のFKEI round-trip、BODY watertight / 1 component、BODY-only 3MF、
+Removable Support Off / support artifact 0、immutable Print #001 baselineは既存contractのまま維持する。
+実Mac QAはこの統合のblockerにせず、**POST-DEPLOY FOLLOW-UP: Mac Web fallback QA**として残す。
+
 ### 2026-08-31 — TASK A Print #001 removable-support/body collision diagnosis (documentation-only)
 
 #### Supplied physical observation
