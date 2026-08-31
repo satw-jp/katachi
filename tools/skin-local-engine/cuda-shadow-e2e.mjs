@@ -60,6 +60,7 @@ try {
     productionApplied: false,
     workerLifecycle: "persistent",
     workerTransport: "length-framed-json-v1",
+    workerTransports: ["length-framed-json-v1", "compact-binary-v1"],
   });
   assert.equal(localClient.supportsCudaContainment(capabilitiesProbe.capabilities), true);
 

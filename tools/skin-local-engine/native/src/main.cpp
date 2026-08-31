@@ -3,6 +3,7 @@
 #include <io.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -336,7 +337,7 @@ constexpr const char* kExecutableResultContract =
     "katachi.cuda-containment-executable-result.v1";
 constexpr const char* kAlgorithmContract =
     "katachi.skin.evaluate-containment.metaball-radius.v1";
-constexpr const char* kEngineVersion = "0.2.0-persistent-json-shadow";
+constexpr const char* kEngineVersion = "0.3.0-persistent-binary-shadow";
 constexpr std::size_t kMaximumSamples = 250'000;
 constexpr std::size_t kMaximumBalls = 65'536;
 constexpr std::uint64_t kMaximumFrameBytes = 64ull * 1024ull * 1024ull;
@@ -344,7 +345,13 @@ constexpr std::uint16_t kFrameProtocolVersion = 1;
 constexpr std::uint16_t kFrameReady = 0;
 constexpr std::uint16_t kFrameJsonRequest = 1;
 constexpr std::uint16_t kFrameJsonResponse = 2;
+constexpr std::uint16_t kFrameBinaryRequest = 3;
+constexpr std::uint16_t kFrameBinaryResponse = 4;
 constexpr std::uint16_t kFrameError = 255;
+constexpr std::uint16_t kBinaryProtocolVersion = 1;
+constexpr std::uint16_t kBinaryEvaluateContainment = 1;
+constexpr std::size_t kBinaryRequestHeaderBytes = 96;
+constexpr std::size_t kBinaryResponseHeaderBytes = 176;
 
 const json::Value& member(const json::Object& object, std::string_view key, std::string_view label) {
   const auto found = object.find(key);
@@ -884,6 +891,7 @@ json::Value capabilitiesDocument(const CudaDriver& cuda) {
   algorithms.emplace_back(kAlgorithmContract);
   json::Array workerTransports;
   workerTransports.emplace_back("length-framed-json-v1");
+  workerTransports.emplace_back("compact-binary-v1");
   return json::Object{
       {"algorithmContracts", std::move(algorithms)},
       {"contract", kExecutableCapabilitiesContract},
@@ -996,6 +1004,216 @@ json::Value resultDocument(
   };
 }
 
+std::uint16_t binaryU16(std::string_view payload, std::size_t offset) {
+  if (offset + 2 > payload.size()) throw std::runtime_error("compact binary payload is truncated");
+  const auto* bytes = reinterpret_cast<const unsigned char*>(payload.data() + offset);
+  return static_cast<std::uint16_t>(bytes[0] | (static_cast<std::uint16_t>(bytes[1]) << 8));
+}
+
+std::uint32_t binaryU32(std::string_view payload, std::size_t offset) {
+  if (offset + 4 > payload.size()) throw std::runtime_error("compact binary payload is truncated");
+  const auto* bytes = reinterpret_cast<const unsigned char*>(payload.data() + offset);
+  return static_cast<std::uint32_t>(bytes[0])
+      | (static_cast<std::uint32_t>(bytes[1]) << 8)
+      | (static_cast<std::uint32_t>(bytes[2]) << 16)
+      | (static_cast<std::uint32_t>(bytes[3]) << 24);
+}
+
+std::uint64_t binaryU64(std::string_view payload, std::size_t offset) {
+  if (offset + 8 > payload.size()) throw std::runtime_error("compact binary payload is truncated");
+  const auto* bytes = reinterpret_cast<const unsigned char*>(payload.data() + offset);
+  std::uint64_t value = 0;
+  for (std::size_t index = 0; index < 8; ++index) {
+    value |= static_cast<std::uint64_t>(bytes[index]) << (index * 8);
+  }
+  return value;
+}
+
+float binaryF32(std::string_view payload, std::size_t offset) {
+  const std::uint32_t bits = binaryU32(payload, offset);
+  float value = 0.0f;
+  std::memcpy(&value, &bits, sizeof(value));
+  return value;
+}
+
+double binaryF64(std::string_view payload, std::size_t offset) {
+  const std::uint64_t bits = binaryU64(payload, offset);
+  double value = 0.0;
+  std::memcpy(&value, &bits, sizeof(value));
+  return value;
+}
+
+void writeBinaryU16(std::string& payload, std::size_t offset, std::uint16_t value) {
+  payload[offset] = static_cast<char>(value & 0xff);
+  payload[offset + 1] = static_cast<char>((value >> 8) & 0xff);
+}
+
+void writeBinaryU32(std::string& payload, std::size_t offset, std::uint32_t value) {
+  for (std::size_t index = 0; index < 4; ++index) {
+    payload[offset + index] = static_cast<char>((value >> (index * 8)) & 0xff);
+  }
+}
+
+void writeBinaryU64(std::string& payload, std::size_t offset, std::uint64_t value) {
+  for (std::size_t index = 0; index < 8; ++index) {
+    payload[offset + index] = static_cast<char>((value >> (index * 8)) & 0xff);
+  }
+}
+
+void writeBinaryF64(std::string& payload, std::size_t offset, double value) {
+  std::uint64_t bits = 0;
+  std::memcpy(&bits, &value, sizeof(bits));
+  writeBinaryU64(payload, offset, bits);
+}
+
+struct BinaryRequest {
+  Request request;
+  std::array<unsigned char, 32> identityFingerprint{};
+};
+
+BinaryRequest validateBinaryRequest(std::string_view payload) {
+  if (payload.size() < kBinaryRequestHeaderBytes
+      || payload.substr(0, 4) != "KCB1") {
+    throw std::runtime_error("invalid compact binary request magic or header");
+  }
+  if (binaryU16(payload, 4) != kBinaryProtocolVersion
+      || binaryU16(payload, 6) != kBinaryEvaluateContainment
+      || binaryU32(payload, 8) != kBinaryRequestHeaderBytes) {
+    throw std::runtime_error("unsupported compact binary request contract");
+  }
+  const std::uint32_t flags = binaryU32(payload, 12);
+  if ((flags & ~1u) != 0) throw std::runtime_error("unsupported compact binary coordinate flags");
+  const double unitsPerMillimeter = binaryF64(payload, 48);
+  const float smoothness = binaryF32(payload, 56);
+  const float boundaryTolerance = binaryF32(payload, 60);
+  const std::uint32_t iterations = binaryU32(payload, 64);
+  const std::uint32_t ballCount = binaryU32(payload, 68);
+  const std::uint32_t sampleCount = binaryU32(payload, 72);
+  const std::uint32_t coordinateMetadata = binaryU32(payload, 76);
+  const std::uint32_t ballsOffset = binaryU32(payload, 80);
+  const std::uint32_t samplesOffset = binaryU32(payload, 84);
+  const std::uint32_t totalBytes = binaryU32(payload, 88);
+  if (!std::isfinite(unitsPerMillimeter) || !(unitsPerMillimeter > 0.0)
+      || !std::isfinite(smoothness) || !(smoothness > 0.0f)
+      || !std::isfinite(boundaryTolerance) || boundaryTolerance < 0.0f) {
+    throw std::runtime_error("invalid compact binary coordinate or field metadata");
+  }
+  if (coordinateMetadata != 1u && coordinateMetadata != 2u) {
+    throw std::runtime_error("unsupported compact binary coordinate metadata");
+  }
+  if (coordinateMetadata != ((flags & 1u) != 0 ? 2u : 1u)) {
+    throw std::runtime_error("compact binary coordinate flags and metadata disagree");
+  }
+  if (iterations < 1 || iterations > 10'000) {
+    throw std::runtime_error("compact binary benchmarkIterations must be in [1,10000]");
+  }
+  if (ballCount < 1 || ballCount > kMaximumBalls || sampleCount > kMaximumSamples) {
+    throw std::runtime_error("compact binary ball/sample count exceeds the fixed limit");
+  }
+  const std::uint64_t expectedSamplesOffset = kBinaryRequestHeaderBytes
+      + static_cast<std::uint64_t>(ballCount) * sizeof(Float4);
+  const std::uint64_t expectedTotalBytes = expectedSamplesOffset
+      + static_cast<std::uint64_t>(sampleCount) * sizeof(Float4);
+  if (ballsOffset != kBinaryRequestHeaderBytes
+      || samplesOffset != expectedSamplesOffset
+      || totalBytes != expectedTotalBytes
+      || payload.size() != expectedTotalBytes) {
+    throw std::runtime_error("compact binary request offsets or length are inconsistent");
+  }
+
+  BinaryRequest decoded;
+  std::memcpy(decoded.identityFingerprint.data(), payload.data() + 16, decoded.identityFingerprint.size());
+  decoded.request.algorithmContract = kAlgorithmContract;
+  decoded.request.unitsPerMillimeter = unitsPerMillimeter;
+  decoded.request.smoothness = smoothness;
+  decoded.request.boundaryTolerance = boundaryTolerance;
+  decoded.request.benchmarkIterations = iterations;
+  decoded.request.balls.reserve(ballCount);
+  decoded.request.samples.reserve(sampleCount);
+  for (std::uint32_t index = 0; index < ballCount; ++index) {
+    const std::size_t offset = ballsOffset + static_cast<std::size_t>(index) * sizeof(Float4);
+    Float4 ball{binaryF32(payload, offset), binaryF32(payload, offset + 4),
+        binaryF32(payload, offset + 8), binaryF32(payload, offset + 12)};
+    if (!std::isfinite(ball.x) || !std::isfinite(ball.y) || !std::isfinite(ball.z)
+        || !std::isfinite(ball.w) || !(ball.w > 0.0f)) {
+      throw std::runtime_error("compact binary ball contains invalid float32 data");
+    }
+    decoded.request.balls.push_back(ball);
+  }
+  for (std::uint32_t index = 0; index < sampleCount; ++index) {
+    const std::size_t offset = samplesOffset + static_cast<std::size_t>(index) * sizeof(Float4);
+    Sample sample;
+    sample.value = {binaryF32(payload, offset), binaryF32(payload, offset + 4),
+        binaryF32(payload, offset + 8), binaryF32(payload, offset + 12)};
+    if (!std::isfinite(sample.value.x) || !std::isfinite(sample.value.y)
+        || !std::isfinite(sample.value.z) || !std::isfinite(sample.value.w)
+        || !(sample.value.w > 0.0f)) {
+      throw std::runtime_error("compact binary sample contains invalid float32 data");
+    }
+    decoded.request.samples.push_back(std::move(sample));
+  }
+  return decoded;
+}
+
+std::string binaryResponse(
+    const BinaryRequest& decoded,
+    const std::vector<KernelOutput>& outputs,
+    const CudaDriver::Timing& timing,
+    double requestDecodeMilliseconds) {
+  const auto encodeStart = std::chrono::steady_clock::now();
+  if (outputs.size() != decoded.request.samples.size()) {
+    throw std::runtime_error("internal compact binary sample count mismatch");
+  }
+  for (const auto& output : outputs) {
+    if (!std::isfinite(output.baseSignedDistance)
+        || !std::isfinite(output.radiusAdjustedMargin)
+        || !std::isfinite(output.radiusClearance)
+        || output.classification > 2) {
+      throw std::runtime_error("CUDA kernel produced invalid compact binary output");
+    }
+  }
+  const std::size_t outputBytes = outputs.size() * sizeof(KernelOutput);
+  const std::size_t totalBytes = kBinaryResponseHeaderBytes + outputBytes;
+  if (totalBytes > kMaximumFrameBytes) throw std::runtime_error("compact binary response exceeds frame limit");
+  std::string response(totalBytes, '\0');
+  std::memcpy(response.data(), "KBR1", 4);
+  writeBinaryU16(response, 4, kBinaryProtocolVersion);
+  writeBinaryU16(response, 6, kBinaryEvaluateContainment);
+  writeBinaryU32(response, 8, static_cast<std::uint32_t>(kBinaryResponseHeaderBytes));
+  std::uint32_t flags = 0;
+  if (timing.contextReused) flags |= 1u << 0;
+  if (timing.moduleReused) flags |= 1u << 1;
+  if (timing.functionReused) flags |= 1u << 2;
+  if (timing.ballBufferReused) flags |= 1u << 3;
+  if (timing.sampleBufferReused) flags |= 1u << 4;
+  if (timing.outputBufferReused) flags |= 1u << 5;
+  writeBinaryU32(response, 12, flags);
+  std::memcpy(response.data() + 16, decoded.identityFingerprint.data(), decoded.identityFingerprint.size());
+  writeBinaryU32(response, 48, static_cast<std::uint32_t>(outputs.size()));
+  writeBinaryU32(response, 52, timing.iterations);
+  writeBinaryU32(response, 56, static_cast<std::uint32_t>(kBinaryResponseHeaderBytes));
+  writeBinaryU32(response, 60, static_cast<std::uint32_t>(totalBytes));
+  writeBinaryF64(response, 64, timing.setupMilliseconds);
+  writeBinaryF64(response, 72, timing.contextInitializationMilliseconds);
+  writeBinaryF64(response, 80, timing.bufferPreparationMilliseconds);
+  writeBinaryF64(response, 88, timing.hostToDeviceMilliseconds);
+  writeBinaryF64(response, 96, timing.kernelTotalMilliseconds);
+  writeBinaryF64(response, 104, timing.kernelAverageMilliseconds);
+  writeBinaryF64(response, 112, timing.deviceToHostMilliseconds);
+  writeBinaryF64(response, 120, timing.endToEndMilliseconds);
+  writeBinaryU64(response, 128, timing.ballBufferCapacityBytes);
+  writeBinaryU64(response, 136, timing.sampleBufferCapacityBytes);
+  writeBinaryU64(response, 144, timing.outputBufferCapacityBytes);
+  writeBinaryF64(response, 152, requestDecodeMilliseconds);
+  if (outputBytes > 0) {
+    std::memcpy(response.data() + kBinaryResponseHeaderBytes, outputs.data(), outputBytes);
+  }
+  const double responseEncodeMilliseconds = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - encodeStart).count();
+  writeBinaryF64(response, 160, responseEncodeMilliseconds);
+  return response;
+}
+
 struct Frame {
   std::uint16_t kind = 0;
   std::string payload;
@@ -1048,7 +1266,7 @@ void writeFrame(std::uint16_t kind, std::string_view payload) {
   if (!std::cout) throw std::runtime_error("worker failed to write a response frame");
 }
 
-int runFramedJsonWorker(CudaDriver& cuda) {
+int runFramedWorker(CudaDriver& cuda) {
   _setmode(_fileno(stdin), _O_BINARY);
   _setmode(_fileno(stdout), _O_BINARY);
   cuda.prepare();
@@ -1059,15 +1277,26 @@ int runFramedJsonWorker(CudaDriver& cuda) {
       {"productionApplied", false},
       {"shadow", true},
       {"transport", "length-framed-json-v1"},
+      {"transports", json::Array{"length-framed-json-v1", "compact-binary-v1"}},
   });
   writeFrame(kFrameReady, ready);
   Frame frame;
   while (readFrame(frame)) {
     try {
-      if (frame.kind != kFrameJsonRequest) throw std::runtime_error("worker expected a framed JSON request");
-      const Request request = validateRequest(json::Parser(frame.payload).parse());
-      auto [outputs, timing] = cuda.evaluate(request);
-      writeFrame(kFrameJsonResponse, json::stringify(resultDocument(request, outputs, timing, cuda)));
+      if (frame.kind == kFrameJsonRequest) {
+        const Request request = validateRequest(json::Parser(frame.payload).parse());
+        auto [outputs, timing] = cuda.evaluate(request);
+        writeFrame(kFrameJsonResponse, json::stringify(resultDocument(request, outputs, timing, cuda)));
+      } else if (frame.kind == kFrameBinaryRequest) {
+        const auto decodeStart = std::chrono::steady_clock::now();
+        const BinaryRequest request = validateBinaryRequest(frame.payload);
+        const double requestDecodeMilliseconds = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - decodeStart).count();
+        auto [outputs, timing] = cuda.evaluate(request.request);
+        writeFrame(kFrameBinaryResponse, binaryResponse(request, outputs, timing, requestDecodeMilliseconds));
+      } else {
+        throw std::runtime_error("worker expected a framed JSON or compact binary request");
+      }
     } catch (const std::exception& error) {
       writeFrame(kFrameError, json::stringify(json::Object{
           {"code", "cuda_worker_request_failed"},
@@ -1086,7 +1315,7 @@ int runFramedJsonWorker(CudaDriver& cuda) {
 int main(int argc, char** argv) {
   try {
     if (argc != 2) {
-      throw std::runtime_error("usage: katachi-containment-cuda.exe --capabilities-json | --evaluate-containment-json | --worker-framed-json");
+      throw std::runtime_error("usage: katachi-containment-cuda.exe --capabilities-json | --evaluate-containment-json | --worker-framed | --worker-framed-json");
     }
     CudaDriver cuda;
     cuda.initialize();
@@ -1095,7 +1324,7 @@ int main(int argc, char** argv) {
       std::cout << json::stringify(capabilitiesDocument(cuda)) << '\n';
       return 0;
     }
-    if (mode == "--worker-framed-json") return runFramedJsonWorker(cuda);
+    if (mode == "--worker-framed" || mode == "--worker-framed-json") return runFramedWorker(cuda);
     if (mode != "--evaluate-containment-json") {
       throw std::runtime_error("unsupported command-line mode");
     }

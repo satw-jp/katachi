@@ -21,16 +21,24 @@ Its native source is checked in under `tools/skin-local-engine/native`. The
 embedded PTX and original contract come from
 `satw-jp/katachi-cuda-rtx3080-bringup` commit
 `205b69e58d3b4d99e07151ee76670b8b2ed496ed`. The current executable SHA-256 is
-`FF72A8BFE9B9FA4B8E1973FE9EE8681BDC9628D13E823C5BA0E67ACCFD611D73`.
+`32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA`.
 It uses the `nvcuda.dll` Driver API and embedded PTX JIT; CUDA Toolkit and
 `nvcc` are not required. Requests cannot choose a command or executable path.
 
 The helper lazily starts one persistent worker. The worker creates one CUDA
 context, loads/JITs one PTX module, resolves one kernel function, and then
 serves multiple requests over a 16-byte length-prefixed `KCF1` frame. JSON
-remains the payload in CUDA-3A. Ball, sample and output device buffers reuse
-capacity; ball contents are also reused when unchanged. A worker crash fails
-the active candidate closed, and the next job starts a new worker generation.
+remains the reference/debug payload. CUDA-3B adds a compact binary performance
+candidate on separate request/response frame kinds; it does not remove JSON or
+change the outer GeometryEngine semantic contract. Ball, sample and output
+device buffers reuse capacity; ball contents are also reused when unchanged. A
+worker crash fails the active candidate closed, and the next job starts a new
+worker generation.
+
+The binary request uses a 96-byte header plus packed float32 ball/sample
+records. The response uses a 176-byte header plus 16-byte output records.
+Sample and edge strings remain in the helper's stable identity table and are
+restored by index after the worker echoes a SHA-256 identity fingerprint.
 
 Before advertising CUDA as available, the adapter requires:
 
@@ -70,6 +78,12 @@ the real helper and CUDA executable:
 
 ```text
 npm run test:skin-local-engine
+```
+
+Run the persistent JSON/binary transport study with exposed GC:
+
+```text
+node --expose-gc ./node_modules/tsx/dist/cli.mjs tools/skin-local-engine/cuda-transport-benchmark.mjs
 ```
 
 The end-to-end report includes Web/CUDA match status, maximum margin delta,

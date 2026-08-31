@@ -2,16 +2,23 @@ import { spawn } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import {
   FIXED_COMPILED_EXECUTABLE,
+  PERSISTENT_BINARY_TRANSPORT,
   PERSISTENT_JSON_TRANSPORT,
   inspectCompiledEngine,
   validateExecutableCapabilities,
   validateExecutableResult,
 } from "./compiled-executable-adapter.mjs";
+import {
+  decodeCompactBinaryResponse,
+  encodeCompactBinaryRequest,
+} from "./compact-binary-transport.mjs";
 
 export const FRAME_PROTOCOL_VERSION = 1;
 export const FRAME_KIND_READY = 0;
 export const FRAME_KIND_JSON_REQUEST = 1;
 export const FRAME_KIND_JSON_RESPONSE = 2;
+export const FRAME_KIND_BINARY_REQUEST = 3;
+export const FRAME_KIND_BINARY_RESPONSE = 4;
 export const FRAME_KIND_ERROR = 255;
 export const MAXIMUM_WORKER_FRAME_BYTES = 64 * 1024 * 1024;
 
@@ -44,12 +51,14 @@ export class PersistentCudaWorker {
     inspectImpl = inspectCompiledEngine,
     startupTimeoutMilliseconds = 5_000,
     requestTimeoutMilliseconds = 30_000,
+    defaultTransport = PERSISTENT_JSON_TRANSPORT,
   } = {}) {
     this.executablePath = executablePath;
     this.spawnImpl = spawnImpl;
     this.inspectImpl = inspectImpl;
     this.startupTimeoutMilliseconds = startupTimeoutMilliseconds;
     this.requestTimeoutMilliseconds = requestTimeoutMilliseconds;
+    this.defaultTransport = defaultTransport;
     this.child = null;
     this.capabilities = null;
     this.artifactSha256 = null;
@@ -66,12 +75,12 @@ export class PersistentCudaWorker {
     this.tail = Promise.resolve();
   }
 
-  evaluate(request, { signal } = {}) {
+  evaluate(request, { signal, transport = this.defaultTransport } = {}) {
     const scheduled = this.tail.then(() => {
       if (signal?.aborted) {
         throw workerError("cuda_job_canceled", "CUDA job was canceled before worker execution");
       }
-      return this.#evaluateSerial(request);
+      return this.#evaluateSerial(request, transport);
     });
     this.tail = scheduled.catch(() => {});
     return scheduled;
@@ -83,7 +92,8 @@ export class PersistentCudaWorker {
       pid: this.child?.pid ?? null,
       generation: this.generation,
       requestIndex: this.requestIndex,
-      transport: PERSISTENT_JSON_TRANSPORT,
+      transport: this.defaultTransport,
+      transports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
       initializationMilliseconds: this.ready?.initializationMilliseconds ?? null,
     };
   }
@@ -112,14 +122,40 @@ export class PersistentCudaWorker {
     await this.terminateWorker();
   }
 
-  async #evaluateSerial(request) {
+  async #evaluateSerial(request, transport) {
     if (this.closed) throw workerError("cuda_worker_closed", "persistent CUDA worker is closed");
+    if (transport !== PERSISTENT_JSON_TRANSPORT && transport !== PERSISTENT_BINARY_TRANSPORT) {
+      throw workerError("cuda_worker_transport_unsupported", `unsupported worker transport ${transport}`);
+    }
     const adapterStart = performance.now();
     const workerStart = await this.#ensureWorker();
-    const requestSerializeStart = performance.now();
-    const serializedRequest = JSON.stringify(request);
-    const requestSerializeMilliseconds = performance.now() - requestSerializeStart;
-    const requestFrame = encodeWorkerFrame(FRAME_KIND_JSON_REQUEST, serializedRequest);
+    let requestPayload;
+    let requestKind;
+    let expectedResponseKind;
+    let identityFingerprint = null;
+    let requestSerializeMilliseconds = 0;
+    let requestEncodeMilliseconds = 0;
+    let requestIdentityHashMilliseconds = 0;
+    let requestPayloadBuildMilliseconds = 0;
+    if (transport === PERSISTENT_JSON_TRANSPORT) {
+      const requestSerializeStart = performance.now();
+      requestPayload = Buffer.from(JSON.stringify(request));
+      requestSerializeMilliseconds = performance.now() - requestSerializeStart;
+      requestEncodeMilliseconds = requestSerializeMilliseconds;
+      requestPayloadBuildMilliseconds = requestSerializeMilliseconds;
+      requestKind = FRAME_KIND_JSON_REQUEST;
+      expectedResponseKind = FRAME_KIND_JSON_RESPONSE;
+    } else {
+      const encoded = encodeCompactBinaryRequest(request);
+      requestPayload = encoded.payload;
+      identityFingerprint = encoded.identityFingerprint;
+      requestEncodeMilliseconds = encoded.totalMilliseconds;
+      requestIdentityHashMilliseconds = encoded.identityHashMilliseconds;
+      requestPayloadBuildMilliseconds = encoded.payloadBuildMilliseconds;
+      requestKind = FRAME_KIND_BINARY_REQUEST;
+      expectedResponseKind = FRAME_KIND_BINARY_RESPONSE;
+    }
+    const requestFrame = encodeWorkerFrame(requestKind, requestPayload);
     const responseWait = this.#nextFrame(this.requestTimeoutMilliseconds, "CUDA worker response");
     const workerRoundTripStart = performance.now();
     try {
@@ -149,21 +185,35 @@ export class PersistentCudaWorker {
       await this.terminateWorker();
       throw workerError("cuda_worker_request_failed", detail);
     }
-    if (responseFrame.kind !== FRAME_KIND_JSON_RESPONSE) {
+    if (responseFrame.kind !== expectedResponseKind) {
       await this.terminateWorker();
       throw workerError("cuda_worker_malformed_response", `unexpected worker frame kind ${responseFrame.kind}`);
     }
-    const resultParseStart = performance.now();
-    let parsedResult;
+    let result;
+    let resultParseMilliseconds = 0;
+    let resultDecodeMilliseconds = 0;
     try {
-      parsedResult = JSON.parse(responseFrame.payload.toString("utf8"));
+      if (transport === PERSISTENT_JSON_TRANSPORT) {
+        const resultParseStart = performance.now();
+        result = JSON.parse(responseFrame.payload.toString("utf8"));
+        resultParseMilliseconds = performance.now() - resultParseStart;
+        resultDecodeMilliseconds = resultParseMilliseconds;
+      } else {
+        const decoded = decodeCompactBinaryResponse(
+          responseFrame.payload,
+          request,
+          this.capabilities,
+          identityFingerprint,
+        );
+        result = decoded.result;
+        resultDecodeMilliseconds = decoded.decodeMilliseconds;
+      }
     } catch (error) {
       await this.terminateWorker();
       throw workerError("cuda_worker_malformed_response", error instanceof Error ? error.message : String(error));
     }
-    const resultParseMilliseconds = performance.now() - resultParseStart;
     const resultValidationStart = performance.now();
-    const result = validateExecutableResult(parsedResult, request);
+    result = validateExecutableResult(result, request);
     const resultValidationMilliseconds = performance.now() - resultValidationStart;
     this.requestIndex += 1;
     return {
@@ -175,15 +225,19 @@ export class PersistentCudaWorker {
         workerStartupMilliseconds: workerStart.wallMilliseconds,
         workerInitializationMilliseconds: workerStart.initializationMilliseconds,
         requestSerializeMilliseconds,
+        requestEncodeMilliseconds,
+        requestIdentityHashMilliseconds,
+        requestPayloadBuildMilliseconds,
         workerRoundTripMilliseconds,
         resultParseMilliseconds,
+        resultDecodeMilliseconds,
         resultValidationMilliseconds,
-        requestBytes: Buffer.byteLength(serializedRequest),
+        requestBytes: requestPayload.length,
         requestFrameBytes: requestFrame.length,
         resultBytes: responseFrame.payload.length,
         resultFrameBytes: FRAME_HEADER_BYTES + responseFrame.payload.length,
         persistentProcess: true,
-        transport: PERSISTENT_JSON_TRANSPORT,
+        transport,
         workerPid: this.child.pid,
         workerGeneration: this.generation,
         workerRequestIndex: this.requestIndex,
@@ -200,7 +254,7 @@ export class PersistentCudaWorker {
     if (!inspection.available) {
       throw workerError(inspection.reasonCode, `CUDA worker unavailable: ${inspection.reasonCode}`);
     }
-    const child = this.spawnImpl(this.executablePath, ["--worker-framed-json"], {
+    const child = this.spawnImpl(this.executablePath, ["--worker-framed"], {
       windowsHide: true,
       shell: false,
       stdio: ["pipe", "pipe", "pipe"],
@@ -234,7 +288,9 @@ export class PersistentCudaWorker {
     try {
       ready = JSON.parse(readyFrame.payload.toString("utf8"));
       if (ready.contract !== "katachi.cuda-persistent-worker-ready.v1"
-        || ready.transport !== PERSISTENT_JSON_TRANSPORT
+        || !Array.isArray(ready.transports)
+        || !ready.transports.includes(PERSISTENT_JSON_TRANSPORT)
+        || !ready.transports.includes(PERSISTENT_BINARY_TRANSPORT)
         || ready.shadow !== true
         || ready.productionApplied !== false
         || !Number.isFinite(ready.initializationMilliseconds)) {

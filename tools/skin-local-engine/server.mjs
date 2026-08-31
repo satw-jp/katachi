@@ -3,13 +3,15 @@ import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import {
   EVALUATE_CONTAINMENT_ALGORITHM,
+  PERSISTENT_BINARY_TRANSPORT,
+  PERSISTENT_JSON_TRANSPORT,
 } from "./compiled-executable-adapter.mjs";
 import { probeWindowsCapability } from "./probe-windows-capability.mjs";
 import { PersistentCudaWorker } from "./persistent-cuda-worker.mjs";
 
 export const FIXED_HOST = "127.0.0.1";
 export const FIXED_PORT = 47658;
-export const ENGINE_VERSION = "0.2.0-persistent-shadow";
+export const ENGINE_VERSION = "0.3.0-persistent-transport-shadow";
 // 250k deterministic containment samples serialize to roughly 35 MiB. Keep the
 // request bounded while allowing the advertised sample ceiling to be exercised.
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
@@ -23,7 +25,9 @@ const ALLOWED_ORIGINS = new Set([
   "https://127.0.0.1:5174",
 ]);
 
-export function createCapabilitiesDocument(probe) {
+export function createCapabilitiesDocument(probe, {
+  workerTransport = PERSISTENT_JSON_TRANSPORT,
+} = {}) {
   const executable = probe.compiledExecutable;
   const backendAvailable = probe.cudaBackend.available === true;
   const backendId = "windows-cuda-containment-v1";
@@ -37,7 +41,8 @@ export function createCapabilitiesDocument(probe) {
       authoritativeBackend: "web",
       productionApplied: false,
       workerLifecycle: "persistent",
-      workerTransport: "length-framed-json-v1",
+      workerTransport,
+      workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
     },
     backends: [{
       backendId,
@@ -159,12 +164,14 @@ export function createLocalEngineServer({
   probe = probeWindowsCapability(),
   runContainment,
   persistentWorker,
+  workerTransport = PERSISTENT_JSON_TRANSPORT,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
 } = {}) {
-  const capabilities = createCapabilitiesDocument(probe);
+  const capabilities = createCapabilitiesDocument(probe, { workerTransport });
   const jobs = new Map();
   const worker = persistentWorker ?? (runContainment ? null : new PersistentCudaWorker());
-  const executeContainment = runContainment ?? ((request) => worker.evaluate(request));
+  const executeContainment = runContainment
+    ?? ((request) => worker.evaluate(request, { transport: workerTransport }));
   const pendingJobs = [];
   let drainingJobs = false;
 

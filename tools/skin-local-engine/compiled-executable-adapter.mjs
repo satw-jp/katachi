@@ -13,8 +13,9 @@ export const EVALUATE_CONTAINMENT_ALGORITHM =
   "katachi.skin.evaluate-containment.metaball-radius.v1";
 export const EXPECTED_CUDA_DEVICE_NAME = "NVIDIA GeForce RTX 3080";
 export const EXPECTED_COMPILED_EXECUTABLE_SHA256 =
-  "FF72A8BFE9B9FA4B8E1973FE9EE8681BDC9628D13E823C5BA0E67ACCFD611D73";
+  "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA";
 export const PERSISTENT_JSON_TRANSPORT = "length-framed-json-v1";
+export const PERSISTENT_BINARY_TRANSPORT = "compact-binary-v1";
 export const MAXIMUM_COMPILED_RESULT_BYTES = 64 * 1024 * 1024;
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
@@ -66,8 +67,9 @@ export function validateExecutableCapabilities(value) {
     throw new Error("compiled executable must advertise shadow-only execution");
   }
   if (!Array.isArray(capabilities.workerTransports)
-    || !capabilities.workerTransports.includes(PERSISTENT_JSON_TRANSPORT)) {
-    throw new Error("compiled executable must advertise the persistent framed JSON transport");
+    || !capabilities.workerTransports.includes(PERSISTENT_JSON_TRANSPORT)
+    || !capabilities.workerTransports.includes(PERSISTENT_BINARY_TRANSPORT)) {
+    throw new Error("compiled executable must advertise persistent JSON and compact binary transports");
   }
   nonEmpty(capabilities.engineVersion, "executable capabilities.engineVersion");
   return capabilities;

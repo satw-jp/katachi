@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import {
+  PERSISTENT_BINARY_TRANSPORT,
+  PERSISTENT_JSON_TRANSPORT,
+} from "./compiled-executable-adapter.mjs";
+import {
+  FRAME_KIND_BINARY_REQUEST,
   FRAME_KIND_JSON_REQUEST,
   PersistentCudaWorker,
   encodeWorkerFrame,
@@ -14,6 +19,9 @@ test("persistent worker frames use explicit magic, version, kind and uint64 leng
   assert.equal(frame.readUInt16LE(6), FRAME_KIND_JSON_REQUEST);
   assert.equal(frame.readBigUInt64LE(8), 2n);
   assert.equal(frame.subarray(16).toString("utf8"), "{}");
+  const binaryFrame = encodeWorkerFrame(FRAME_KIND_BINARY_REQUEST, Buffer.alloc(32));
+  assert.equal(binaryFrame.readUInt16LE(6), FRAME_KIND_BINARY_REQUEST);
+  assert.equal(binaryFrame.readBigUInt64LE(8), 32n);
 });
 
 test("real persistent CUDA worker reuses context and recovers after an active crash", {
@@ -26,18 +34,30 @@ test("real persistent CUDA worker reuses context and recovers after an active cr
   ));
   const worker = new PersistentCudaWorker();
   try {
-    const first = await worker.evaluate({ ...fixture, clientRequestId: "persistent-test-1" });
+    const first = await worker.evaluate(
+      { ...fixture, clientRequestId: "persistent-test-1" },
+      { transport: PERSISTENT_JSON_TRANSPORT },
+    );
     const firstState = worker.diagnostics();
-    const second = await worker.evaluate({ ...fixture, clientRequestId: "persistent-test-2" });
+    const second = await worker.evaluate(
+      { ...fixture, clientRequestId: "persistent-test-2" },
+      { transport: PERSISTENT_BINARY_TRANSPORT },
+    );
     const secondState = worker.diagnostics();
     assert.equal(firstState.pid, secondState.pid);
     assert.equal(firstState.generation, secondState.generation);
+    assert.equal(first.adapterTiming.transport, PERSISTENT_JSON_TRANSPORT);
+    assert.equal(second.adapterTiming.transport, PERSISTENT_BINARY_TRANSPORT);
     assert.equal(second.result.timing.contextReused, true);
     assert.equal(second.result.timing.moduleReused, true);
     assert.equal(second.result.timing.functionReused, true);
     assert.equal(second.result.timing.ballBufferReused, true);
     assert.equal(second.result.timing.sampleBufferReused, true);
     assert.equal(second.result.timing.outputBufferReused, true);
+    assert.deepEqual(
+      second.result.samples.map(({ sampleId, edgeId }) => ({ sampleId, edgeId })),
+      fixture.input.samples.map(({ sampleId, edgeId }) => ({ sampleId, edgeId })),
+    );
 
     const longRequest = {
       ...fixture,
@@ -49,7 +69,10 @@ test("real persistent CUDA worker reuses context and recovers after an active cr
     await worker.terminateWorker();
     await assert.rejects(interrupted, (error) => error?.code === "cuda_worker_crashed");
 
-    const recovered = await worker.evaluate({ ...fixture, clientRequestId: "persistent-test-recovered" });
+    const recovered = await worker.evaluate(
+      { ...fixture, clientRequestId: "persistent-test-recovered" },
+      { transport: PERSISTENT_BINARY_TRANSPORT },
+    );
     const recoveredState = worker.diagnostics();
     assert.notEqual(recoveredState.pid, secondState.pid);
     assert.equal(recoveredState.generation, secondState.generation + 1);

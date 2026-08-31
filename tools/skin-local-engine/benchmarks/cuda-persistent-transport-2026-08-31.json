@@ -1,0 +1,2768 @@
+{
+  "contract": "katachi.cuda-persistent-transport-benchmark.v1",
+  "recordedAt": "2026-08-31T05:59:39.177Z",
+  "environment": {
+    "deviceName": "NVIDIA GeForce RTX 3080",
+    "precisionMode": "float32",
+    "driverVersion": "595.95",
+    "cudaRuntimeReported": "13.2",
+    "artifactSha256": "32D62914ABA976639D125E0336E4298C5AA7F316DCB9A1C6664016F4B42C8ACA",
+    "helperEndpoint": "http://127.0.0.1:47658/v1",
+    "maximumJobBytes": 50331648,
+    "maximumContainmentSamples": 250000
+  },
+  "policy": {
+    "authoritativeBackend": "web",
+    "candidateBackend": "cuda",
+    "shadow": true,
+    "productionApplied": false
+  },
+  "protocol": {
+    "outerGeometryEngineTransport": "JSON HTTP (unchanged portable semantic contract)",
+    "framing": "KCF1 16-byte little-endian length frame",
+    "json": "length-framed-json-v1",
+    "binary": "compact-binary-v1",
+    "binaryRequest": "96-byte KCB1 header; SHA-256 identity fingerprint; unit/coordinate metadata; counts/offsets; packed ball/sample float32x4",
+    "binaryResponse": "176-byte KBR1 header; echoed identity fingerprint; reuse/timing/capacity metadata; packed float32 distance/margin/clearance + uint32 classification",
+    "identityMapping": "ordered host-side sampleId/edgeId table; strings never cross the worker boundary in binary mode"
+  },
+  "methodology": {
+    "persistentJsonCommit": "f0b37e35e2a767d77edf42eb41d6505f1d7e2826",
+    "sampleSizes": [
+      32768,
+      100000,
+      250000
+    ],
+    "warmupRunsPerTransport": 1,
+    "measuredRunsPerTransport": 5,
+    "benchmarkIterationsPerExecutable": 1,
+    "comparison": "every warmup and measured run checked ordered sample/edge identity, exact classification, finite values, and margin tolerance against Web",
+    "lifecycle": "JSON and binary alternate in the same worker PID/generation/context for each size"
+  },
+  "sizes": [
+    {
+      "sampleCount": 32768,
+      "outerRequestBytes": 4607505,
+      "worker": {
+        "pid": 38584,
+        "generation": 1
+      },
+      "warmups": [
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "length-framed-json-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 1508.5970000000002,
+            "clientHelperRoundTripMilliseconds": 1440.0586,
+            "helperJobMilliseconds": 1204.3496999999998,
+            "adapterTotalMilliseconds": 1203.9001999999998,
+            "requestEncodeMilliseconds": 34.91399999999999,
+            "requestIdentityHashMilliseconds": 0,
+            "requestPayloadBuildMilliseconds": 34.91399999999999,
+            "workerRoundTripMilliseconds": 891.2444,
+            "nativeRequestDecodeMilliseconds": 0,
+            "cudaEndToEndMilliseconds": 2.0372,
+            "cudaHostToDeviceMilliseconds": 0.9768,
+            "cudaKernelMilliseconds": 0.06796800345182419,
+            "cudaDeviceToHostMilliseconds": 0.1952,
+            "nativeResponseEncodeMilliseconds": 0,
+            "workerProtocolResidualMilliseconds": 889.2072000000001,
+            "resultDecodeMilliseconds": 29.56840000000011,
+            "resultValidationMilliseconds": 19.383499999999913,
+            "outerHttpJsonResidualMilliseconds": 235.7089000000003
+          },
+          "bytes": {
+            "request": 4607519,
+            "requestFrame": 4607535,
+            "result": 6752739,
+            "resultFrame": 6752755
+          },
+          "worker": {
+            "pid": 38584,
+            "generation": 1,
+            "requestIndex": 1,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": false,
+            "sampleBufferReused": false,
+            "outputBufferReused": false
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "compact-binary-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 356.0983000000001,
+            "clientHelperRoundTripMilliseconds": 315.3738999999996,
+            "helperJobMilliseconds": 103.96239999999989,
+            "adapterTotalMilliseconds": 103.85030000000006,
+            "requestEncodeMilliseconds": 37.11630000000014,
+            "requestIdentityHashMilliseconds": 16.389200000000073,
+            "requestPayloadBuildMilliseconds": 20.68690000000015,
+            "workerRoundTripMilliseconds": 4.50689999999986,
+            "nativeRequestDecodeMilliseconds": 1.6491,
+            "cudaEndToEndMilliseconds": 1.1631,
+            "cudaHostToDeviceMilliseconds": 0.1268,
+            "cudaKernelMilliseconds": 0.1273919939994812,
+            "cudaDeviceToHostMilliseconds": 0.1759,
+            "nativeResponseEncodeMilliseconds": 0.3354,
+            "workerProtocolResidualMilliseconds": 1.3592999999998596,
+            "resultDecodeMilliseconds": 21.18349999999964,
+            "resultValidationMilliseconds": 39.990800000000036,
+            "outerHttpJsonResidualMilliseconds": 211.4114999999997
+          },
+          "bytes": {
+            "request": 524432,
+            "requestFrame": 524448,
+            "result": 524464,
+            "resultFrame": 524480
+          },
+          "worker": {
+            "pid": 38584,
+            "generation": 1,
+            "requestIndex": 2,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": true,
+            "sampleBufferReused": true,
+            "outputBufferReused": true
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "transports": {
+        "length-framed-json-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 1128.8601199999998,
+              "median": 1124.4465999999993,
+              "minimum": 1115.5136000000002,
+              "maximum": 1158.3040999999998
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 1092.2991399999999,
+              "median": 1083.4233999999997,
+              "minimum": 1075.9128,
+              "maximum": 1131.3575999999998
+            },
+            "helperJobMilliseconds": {
+              "mean": 884.3555799999998,
+              "median": 880.2573000000002,
+              "minimum": 861.4157999999989,
+              "maximum": 909.308
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 884.2682599999998,
+              "median": 880.1617000000006,
+              "minimum": 861.3612999999987,
+              "maximum": 909.2401
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 32.60679999999993,
+              "median": 32.529599999999846,
+              "minimum": 31.0641999999998,
+              "maximum": 34.28160000000025
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 32.60679999999993,
+              "median": 32.529599999999846,
+              "minimum": 31.0641999999998,
+              "maximum": 34.28160000000025
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 796.5929400000001,
+              "median": 791.3233,
+              "minimum": 782.0610000000006,
+              "maximum": 830.9717
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 1.06758,
+              "median": 0.8663,
+              "minimum": 0.863,
+              "maximum": 1.6948
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 0.0956,
+              "median": 0.0956,
+              "minimum": 0.0936,
+              "maximum": 0.0981
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.2783616006374359,
+              "median": 0.17737600207328796,
+              "minimum": 0.17535999417304993,
+              "maximum": 0.58160001039505
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 0.16328,
+              "median": 0.1316,
+              "minimum": 0.1292,
+              "maximum": 0.254
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 795.5253600000001,
+              "median": 790.2742000000001,
+              "minimum": 780.6609000000001,
+              "maximum": 830.1070000000001
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 32.20546000000022,
+              "median": 29.97559999999976,
+              "minimum": 29.545200000000023,
+              "maximum": 36.018300000001545
+            },
+            "resultValidationMilliseconds": {
+              "mean": 21.599139999999988,
+              "median": 18.94760000000042,
+              "minimum": 14.921200000000226,
+              "maximum": 30.08519999999953
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 207.94356000000016,
+              "median": 209.7449999999999,
+              "minimum": 187.53049999999985,
+              "maximum": 222.04959999999983
+            }
+          },
+          "requestBytes": {
+            "mean": 4607521,
+            "median": 4607521,
+            "minimum": 4607521,
+            "maximum": 4607521
+          },
+          "resultBytes": {
+            "mean": 6752752.2,
+            "median": 6752751,
+            "minimum": 6752735,
+            "maximum": 6752769
+          },
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "allMatched": true
+        },
+        "compact-binary-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 296.66457999999983,
+              "median": 291.79079999999976,
+              "minimum": 281.8318999999992,
+              "maximum": 312.3157000000001
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 265.7971199999999,
+              "median": 258.1356000000005,
+              "minimum": 254.53039999999964,
+              "maximum": 287.46549999999934
+            },
+            "helperJobMilliseconds": {
+              "mean": 57.102640000000065,
+              "median": 59.127700000000004,
+              "minimum": 47.78070000000025,
+              "maximum": 68.19989999999962
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 57.04421999999977,
+              "median": 59.05059999999958,
+              "minimum": 47.73019999999997,
+              "maximum": 68.14750000000004
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 21.19513999999963,
+              "median": 20.43039999999928,
+              "minimum": 15.834199999999328,
+              "maximum": 26.434900000000198
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 10.366840000000048,
+              "median": 10.316499999999905,
+              "minimum": 10.087199999999939,
+              "maximum": 10.689900000000307
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 10.79010000000053,
+              "median": 10.340800000001764,
+              "minimum": 5.483000000000175,
+              "maximum": 16.0591000000004
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 3.288940000000184,
+              "median": 3.4438000000009197,
+              "minimum": 2.7507000000005064,
+              "maximum": 3.7020000000002256
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 1.02646,
+              "median": 0.9204,
+              "minimum": 0.7683,
+              "maximum": 1.5022
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 0.92106,
+              "median": 0.8196,
+              "minimum": 0.597,
+              "maximum": 1.5985
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 0.09529999999999998,
+              "median": 0.0955,
+              "minimum": 0.0899,
+              "maximum": 0.1016
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.23621120303869247,
+              "median": 0.17974400520324707,
+              "minimum": 0.10953599959611893,
+              "maximum": 0.5880640149116516
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 0.17172,
+              "median": 0.156,
+              "minimum": 0.1332,
+              "maximum": 0.2653
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 0.30106,
+              "median": 0.2998,
+              "minimum": 0.2831,
+              "maximum": 0.3287
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 1.0403600000001842,
+              "median": 0.9725999999995898,
+              "minimum": 0.7939000000009196,
+              "maximum": 1.44969999999968
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 12.201600000000507,
+              "median": 13.409600000000864,
+              "minimum": 4.102399999999761,
+              "maximum": 19.347000000000662
+            },
+            "resultValidationMilliseconds": {
+              "mean": 20.064400000000205,
+              "median": 23.914300000000367,
+              "minimum": 12.545800000000781,
+              "maximum": 26.033800000000156
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 208.69447999999983,
+              "median": 204.98260000000073,
+              "minimum": 193.03269999999975,
+              "maximum": 239.6847999999991
+            }
+          },
+          "requestBytes": {
+            "mean": 524432,
+            "median": 524432,
+            "minimum": 524432,
+            "maximum": 524432
+          },
+          "resultBytes": {
+            "mean": 524464,
+            "median": 524464,
+            "minimum": 524464,
+            "maximum": 524464
+          },
+          "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+          "allMatched": true
+        }
+      },
+      "runs": {
+        "length-framed-json-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 1158.3040999999998,
+              "clientHelperRoundTripMilliseconds": 1131.3575999999998,
+              "helperJobMilliseconds": 909.308,
+              "adapterTotalMilliseconds": 909.2401,
+              "requestEncodeMilliseconds": 32.529599999999846,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 32.529599999999846,
+              "workerRoundTripMilliseconds": 830.9717,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 0.8647,
+              "cudaHostToDeviceMilliseconds": 0.0965,
+              "cudaKernelMilliseconds": 0.17737600207328796,
+              "cudaDeviceToHostMilliseconds": 0.1316,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 830.1070000000001,
+              "resultDecodeMilliseconds": 29.545200000000023,
+              "resultValidationMilliseconds": 14.921200000000226,
+              "outerHttpJsonResidualMilliseconds": 222.04959999999983
+            },
+            "bytes": {
+              "request": 4607521,
+              "requestFrame": 4607537,
+              "result": 6752769,
+              "resultFrame": 6752785
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 3,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 1115.7559999999994,
+              "clientHelperRoundTripMilliseconds": 1090.0023,
+              "helperJobMilliseconds": 880.2573000000002,
+              "adapterTotalMilliseconds": 880.1617000000006,
+              "requestEncodeMilliseconds": 32.01760000000013,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 32.01760000000013,
+              "workerRoundTripMilliseconds": 782.0610000000006,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 0.863,
+              "cudaHostToDeviceMilliseconds": 0.0956,
+              "cudaKernelMilliseconds": 0.17577600479125977,
+              "cudaDeviceToHostMilliseconds": 0.1298,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 781.1980000000005,
+              "resultDecodeMilliseconds": 35.79869999999937,
+              "resultValidationMilliseconds": 29.070999999999913,
+              "outerHttpJsonResidualMilliseconds": 209.7449999999999
+            },
+            "bytes": {
+              "request": 4607521,
+              "requestFrame": 4607537,
+              "result": 6752735,
+              "resultFrame": 6752751
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 6,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 1124.4465999999993,
+              "clientHelperRoundTripMilliseconds": 1083.4233999999997,
+              "helperJobMilliseconds": 877.5276999999996,
+              "adapterTotalMilliseconds": 877.4157999999998,
+              "requestEncodeMilliseconds": 31.0641999999998,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 31.0641999999998,
+              "workerRoundTripMilliseconds": 796.2529999999997,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 0.8663,
+              "cudaHostToDeviceMilliseconds": 0.0981,
+              "cudaKernelMilliseconds": 0.17535999417304993,
+              "cudaDeviceToHostMilliseconds": 0.1292,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 795.3866999999997,
+              "resultDecodeMilliseconds": 29.97559999999976,
+              "resultValidationMilliseconds": 18.94760000000042,
+              "outerHttpJsonResidualMilliseconds": 205.89570000000003
+            },
+            "bytes": {
+              "request": 4607521,
+              "requestFrame": 4607537,
+              "result": 6752769,
+              "resultFrame": 6752785
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 7,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 1130.2803000000004,
+              "clientHelperRoundTripMilliseconds": 1080.7996000000003,
+              "helperJobMilliseconds": 893.2691000000004,
+              "adapterTotalMilliseconds": 893.1624000000002,
+              "requestEncodeMilliseconds": 34.28160000000025,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 34.28160000000025,
+              "workerRoundTripMilliseconds": 791.3233,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 1.0491,
+              "cudaHostToDeviceMilliseconds": 0.0942,
+              "cudaKernelMilliseconds": 0.28169599175453186,
+              "cudaDeviceToHostMilliseconds": 0.1718,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 790.2742000000001,
+              "resultDecodeMilliseconds": 36.018300000001545,
+              "resultValidationMilliseconds": 30.08519999999953,
+              "outerHttpJsonResidualMilliseconds": 187.53049999999985
+            },
+            "bytes": {
+              "request": 4607521,
+              "requestFrame": 4607537,
+              "result": 6752751,
+              "resultFrame": 6752767
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 10,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 1115.5136000000002,
+              "clientHelperRoundTripMilliseconds": 1075.9128,
+              "helperJobMilliseconds": 861.4157999999989,
+              "adapterTotalMilliseconds": 861.3612999999987,
+              "requestEncodeMilliseconds": 33.14099999999962,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 33.14099999999962,
+              "workerRoundTripMilliseconds": 782.3557000000001,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 1.6948,
+              "cudaHostToDeviceMilliseconds": 0.0936,
+              "cudaKernelMilliseconds": 0.58160001039505,
+              "cudaDeviceToHostMilliseconds": 0.254,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 780.6609000000001,
+              "resultDecodeMilliseconds": 29.689500000000407,
+              "resultValidationMilliseconds": 14.970699999999852,
+              "outerHttpJsonResidualMilliseconds": 214.4970000000012
+            },
+            "bytes": {
+              "request": 4607521,
+              "requestFrame": 4607537,
+              "result": 6752737,
+              "resultFrame": 6752753
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 11,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "compact-binary-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 306.9447,
+              "clientHelperRoundTripMilliseconds": 273.18250000000035,
+              "helperJobMilliseconds": 68.19989999999962,
+              "adapterTotalMilliseconds": 68.14750000000004,
+              "requestEncodeMilliseconds": 18.967899999999645,
+              "requestIdentityHashMilliseconds": 10.689900000000307,
+              "requestPayloadBuildMilliseconds": 8.208700000000135,
+              "workerRoundTripMilliseconds": 3.48949999999968,
+              "nativeRequestDecodeMilliseconds": 0.9204,
+              "cudaEndToEndMilliseconds": 0.8196,
+              "cudaHostToDeviceMilliseconds": 0.1016,
+              "cudaKernelMilliseconds": 0.17974400520324707,
+              "cudaDeviceToHostMilliseconds": 0.156,
+              "nativeResponseEncodeMilliseconds": 0.2998,
+              "workerProtocolResidualMilliseconds": 1.44969999999968,
+              "resultDecodeMilliseconds": 19.347000000000662,
+              "resultValidationMilliseconds": 26.033800000000156,
+              "outerHttpJsonResidualMilliseconds": 204.98260000000073
+            },
+            "bytes": {
+              "request": 524432,
+              "requestFrame": 524448,
+              "result": 524464,
+              "resultFrame": 524480
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 4,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 312.3157000000001,
+              "clientHelperRoundTripMilliseconds": 287.46549999999934,
+              "helperJobMilliseconds": 47.78070000000025,
+              "adapterTotalMilliseconds": 47.73019999999997,
+              "requestEncodeMilliseconds": 26.434900000000198,
+              "requestIdentityHashMilliseconds": 10.316499999999905,
+              "requestPayloadBuildMilliseconds": 16.0591000000004,
+              "workerRoundTripMilliseconds": 3.7020000000002256,
+              "nativeRequestDecodeMilliseconds": 1.5022,
+              "cudaEndToEndMilliseconds": 0.8411,
+              "cudaHostToDeviceMilliseconds": 0.0955,
+              "cudaKernelMilliseconds": 0.10953599959611893,
+              "cudaDeviceToHostMilliseconds": 0.1386,
+              "nativeResponseEncodeMilliseconds": 0.3074,
+              "workerProtocolResidualMilliseconds": 1.0513000000002255,
+              "resultDecodeMilliseconds": 4.102399999999761,
+              "resultValidationMilliseconds": 13.168899999999667,
+              "outerHttpJsonResidualMilliseconds": 239.6847999999991
+            },
+            "bytes": {
+              "request": 524432,
+              "requestFrame": 524448,
+              "result": 524464,
+              "resultFrame": 524480
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 5,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 291.79079999999976,
+              "clientHelperRoundTripMilliseconds": 258.1356000000005,
+              "helperJobMilliseconds": 48.90720000000056,
+              "adapterTotalMilliseconds": 48.843300000000454,
+              "requestEncodeMilliseconds": 24.30829999999969,
+              "requestIdentityHashMilliseconds": 10.437800000000607,
+              "requestPayloadBuildMilliseconds": 13.858900000000176,
+              "workerRoundTripMilliseconds": 3.0586999999995896,
+              "nativeRequestDecodeMilliseconds": 1.0507,
+              "cudaEndToEndMilliseconds": 0.7491,
+              "cudaHostToDeviceMilliseconds": 0.0899,
+              "cudaKernelMilliseconds": 0.18547199666500092,
+              "cudaDeviceToHostMilliseconds": 0.1332,
+              "nativeResponseEncodeMilliseconds": 0.2863,
+              "workerProtocolResidualMilliseconds": 0.9725999999995898,
+              "resultDecodeMilliseconds": 8.611400000000685,
+              "resultValidationMilliseconds": 12.545800000000781,
+              "outerHttpJsonResidualMilliseconds": 209.22839999999997
+            },
+            "bytes": {
+              "request": 524432,
+              "requestFrame": 524448,
+              "result": 524464,
+              "resultFrame": 524480
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 8,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 281.8318999999992,
+              "clientHelperRoundTripMilliseconds": 255.67159999999967,
+              "helperJobMilliseconds": 59.127700000000004,
+              "adapterTotalMilliseconds": 59.05059999999958,
+              "requestEncodeMilliseconds": 15.834199999999328,
+              "requestIdentityHashMilliseconds": 10.302799999999479,
+              "requestPayloadBuildMilliseconds": 5.483000000000175,
+              "workerRoundTripMilliseconds": 2.7507000000005064,
+              "nativeRequestDecodeMilliseconds": 0.8907,
+              "cudaEndToEndMilliseconds": 0.597,
+              "cudaHostToDeviceMilliseconds": 0.0931,
+              "cudaKernelMilliseconds": 0.11823999881744385,
+              "cudaDeviceToHostMilliseconds": 0.1655,
+              "nativeResponseEncodeMilliseconds": 0.3287,
+              "workerProtocolResidualMilliseconds": 0.9343000000005064,
+              "resultDecodeMilliseconds": 15.537600000000566,
+              "resultValidationMilliseconds": 24.659200000000055,
+              "outerHttpJsonResidualMilliseconds": 196.54389999999967
+            },
+            "bytes": {
+              "request": 524432,
+              "requestFrame": 524448,
+              "result": 524464,
+              "resultFrame": 524480
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 9,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 290.4398000000001,
+              "clientHelperRoundTripMilliseconds": 254.53039999999964,
+              "helperJobMilliseconds": 61.497699999999895,
+              "adapterTotalMilliseconds": 61.44949999999881,
+              "requestEncodeMilliseconds": 20.43039999999928,
+              "requestIdentityHashMilliseconds": 10.087199999999939,
+              "requestPayloadBuildMilliseconds": 10.340800000001764,
+              "workerRoundTripMilliseconds": 3.4438000000009197,
+              "nativeRequestDecodeMilliseconds": 0.7683,
+              "cudaEndToEndMilliseconds": 1.5985,
+              "cudaHostToDeviceMilliseconds": 0.0964,
+              "cudaKernelMilliseconds": 0.5880640149116516,
+              "cudaDeviceToHostMilliseconds": 0.2653,
+              "nativeResponseEncodeMilliseconds": 0.2831,
+              "workerProtocolResidualMilliseconds": 0.7939000000009196,
+              "resultDecodeMilliseconds": 13.409600000000864,
+              "resultValidationMilliseconds": 23.914300000000367,
+              "outerHttpJsonResidualMilliseconds": 193.03269999999975
+            },
+            "bytes": {
+              "request": 524432,
+              "requestFrame": 524448,
+              "result": 524464,
+              "resultFrame": 524480
+            },
+            "worker": {
+              "pid": 38584,
+              "generation": 1,
+              "requestIndex": 12,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.887843688157091e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      }
+    },
+    {
+      "sampleCount": 100000,
+      "outerRequestBytes": 14110632,
+      "worker": {
+        "pid": 19568,
+        "generation": 2
+      },
+      "warmups": [
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "length-framed-json-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 3781.3022,
+            "clientHelperRoundTripMilliseconds": 3671.8984999999993,
+            "helperJobMilliseconds": 3019.7907000000014,
+            "adapterTotalMilliseconds": 3019.730599999999,
+            "requestEncodeMilliseconds": 90.43549999999959,
+            "requestIdentityHashMilliseconds": 0,
+            "requestPayloadBuildMilliseconds": 90.43549999999959,
+            "workerRoundTripMilliseconds": 2540.3467,
+            "nativeRequestDecodeMilliseconds": 0,
+            "cudaEndToEndMilliseconds": 2.8033,
+            "cudaHostToDeviceMilliseconds": 0.7391,
+            "cudaKernelMilliseconds": 0.051872000098228455,
+            "cudaDeviceToHostMilliseconds": 0.3006,
+            "nativeResponseEncodeMilliseconds": 0,
+            "workerProtocolResidualMilliseconds": 2537.5434,
+            "resultDecodeMilliseconds": 119.84389999999985,
+            "resultValidationMilliseconds": 62.58190000000104,
+            "outerHttpJsonResidualMilliseconds": 652.107799999998
+          },
+          "bytes": {
+            "request": 14110646,
+            "requestFrame": 14110662,
+            "result": 20634761,
+            "resultFrame": 20634777
+          },
+          "worker": {
+            "pid": 19568,
+            "generation": 2,
+            "requestIndex": 1,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": false,
+            "sampleBufferReused": false,
+            "outputBufferReused": false
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "compact-binary-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 900.6365999999998,
+            "clientHelperRoundTripMilliseconds": 808.0493999999999,
+            "helperJobMilliseconds": 149.6959999999999,
+            "adapterTotalMilliseconds": 149.60909999999967,
+            "requestEncodeMilliseconds": 64.22930000000088,
+            "requestIdentityHashMilliseconds": 32.85980000000018,
+            "requestPayloadBuildMilliseconds": 31.36700000000019,
+            "workerRoundTripMilliseconds": 8.104400000000169,
+            "nativeRequestDecodeMilliseconds": 2.5772,
+            "cudaEndToEndMilliseconds": 1.8616,
+            "cudaHostToDeviceMilliseconds": 0.1738,
+            "cudaKernelMilliseconds": 0.15321600437164307,
+            "cudaDeviceToHostMilliseconds": 0.32,
+            "nativeResponseEncodeMilliseconds": 1.3163,
+            "workerProtocolResidualMilliseconds": 2.3493000000001687,
+            "resultDecodeMilliseconds": 20.52230000000054,
+            "resultValidationMilliseconds": 56.21340000000055,
+            "outerHttpJsonResidualMilliseconds": 658.3534
+          },
+          "bytes": {
+            "request": 1600144,
+            "requestFrame": 1600160,
+            "result": 1600176,
+            "resultFrame": 1600192
+          },
+          "worker": {
+            "pid": 19568,
+            "generation": 2,
+            "requestIndex": 2,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": true,
+            "sampleBufferReused": true,
+            "outputBufferReused": true
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "transports": {
+        "length-framed-json-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 3527.360059999999,
+              "median": 3539.1010000000006,
+              "minimum": 3488.077699999998,
+              "maximum": 3547.5036
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 3432.8138200000017,
+              "median": 3428.9176000000007,
+              "minimum": 3406.058000000001,
+              "maximum": 3466.8155000000006
+            },
+            "helperJobMilliseconds": {
+              "mean": 2805.74114,
+              "median": 2802.892200000002,
+              "minimum": 2781.4135000000006,
+              "maximum": 2827.5816000000013
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 2805.70712,
+              "median": 2802.8621999999996,
+              "minimum": 2781.368999999999,
+              "maximum": 2827.5543
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 96.51538000000036,
+              "median": 96.10810000000129,
+              "minimum": 93.36209999999846,
+              "maximum": 100.35349999999926
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 96.51538000000036,
+              "median": 96.10810000000129,
+              "minimum": 93.36209999999846,
+              "maximum": 100.35349999999926
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 2519.470639999999,
+              "median": 2516.5638,
+              "minimum": 2496.264399999998,
+              "maximum": 2550.6355000000003
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 2.97342,
+              "median": 3.2198,
+              "minimum": 1.8524,
+              "maximum": 3.3168
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 0.1936,
+              "median": 0.1911,
+              "minimum": 0.1847,
+              "maximum": 0.2051
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.533120009303093,
+              "median": 0.6110720038414001,
+              "minimum": 0.17286400496959686,
+              "maximum": 0.6634560227394104
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 0.54904,
+              "median": 0.6057,
+              "minimum": 0.2917,
+              "maximum": 0.637
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 2516.497219999999,
+              "median": 2513.2632,
+              "minimum": 2494.411999999998,
+              "maximum": 2547.4157000000005
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 118.47199999999793,
+              "median": 117.84989999999743,
+              "minimum": 114.9976999999999,
+              "maximum": 124.70969999999943
+            },
+            "resultValidationMilliseconds": {
+              "mean": 68.04978000000047,
+              "median": 65.47490000000107,
+              "minimum": 63.44310000000405,
+              "maximum": 78.11909999999989
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 627.0726800000011,
+              "median": 626.0253999999986,
+              "minimum": 609.1956000000027,
+              "maximum": 646.8595000000023
+            }
+          },
+          "requestBytes": {
+            "mean": 14110648,
+            "median": 14110648,
+            "minimum": 14110648,
+            "maximum": 14110648
+          },
+          "resultBytes": {
+            "mean": 20634726,
+            "median": 20634724,
+            "minimum": 20634705,
+            "maximum": 20634749
+          },
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "allMatched": true
+        },
+        "compact-binary-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 846.3616600000008,
+              "median": 851.3567000000003,
+              "minimum": 805.4089000000022,
+              "maximum": 892.1909000000014
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 750.8973999999995,
+              "median": 747.4539000000004,
+              "minimum": 723.5421999999962,
+              "maximum": 784.4723999999987
+            },
+            "helperJobMilliseconds": {
+              "mean": 118.9854800000001,
+              "median": 117.3859999999986,
+              "minimum": 112.57440000000133,
+              "maximum": 126.27629999999772
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 118.95063999999911,
+              "median": 117.35599999999977,
+              "minimum": 112.5467000000026,
+              "maximum": 126.24439999999959
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 46.41668000000063,
+              "median": 42.509100000002945,
+              "minimum": 40.13959999999861,
+              "maximum": 55.83520000000135
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 33.25345999999918,
+              "median": 32.127800000002026,
+              "minimum": 30.944899999998597,
+              "maximum": 36.128099999998085
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 13.160900000000401,
+              "median": 10.378199999999197,
+              "minimum": 8.648700000001554,
+              "maximum": 19.705200000000332
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 8.956960000000254,
+              "median": 8.817599999998492,
+              "minimum": 8.508900000000722,
+              "maximum": 9.558899999999994
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 2.42822,
+              "median": 2.4615,
+              "minimum": 2.2087,
+              "maximum": 2.5944
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 3.05632,
+              "median": 3.0526,
+              "minimum": 3.0006,
+              "maximum": 3.1062
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 0.1711,
+              "median": 0.1701,
+              "minimum": 0.1621,
+              "maximum": 0.1845
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.6023360013961792,
+              "median": 0.5935680270195007,
+              "minimum": 0.5586879849433899,
+              "maximum": 0.6786239743232727
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 0.59976,
+              "median": 0.5992,
+              "minimum": 0.5989,
+              "maximum": 0.6018
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 1.21806,
+              "median": 1.2193,
+              "minimum": 1.1633,
+              "maximum": 1.26
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 2.2543600000002537,
+              "median": 2.1012999999984916,
+              "minimum": 2.0307000000007225,
+              "maximum": 2.7038999999999938
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 9.389400000000752,
+              "median": 9.547199999997247,
+              "minimum": 8.272800000002462,
+              "maximum": 10.87670000000071
+            },
+            "resultValidationMilliseconds": {
+              "mean": 53.71074000000008,
+              "median": 53.47080000000278,
+              "minimum": 50.01499999999942,
+              "maximum": 58.39219999999841
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 631.9119199999993,
+              "median": 633.8148000000001,
+              "minimum": 609.8959999999934,
+              "maximum": 658.196100000001
+            }
+          },
+          "requestBytes": {
+            "mean": 1600144,
+            "median": 1600144,
+            "minimum": 1600144,
+            "maximum": 1600144
+          },
+          "resultBytes": {
+            "mean": 1600176,
+            "median": 1600176,
+            "minimum": 1600176,
+            "maximum": 1600176
+          },
+          "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+          "allMatched": true
+        }
+      },
+      "runs": {
+        "length-framed-json-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 3539.1010000000006,
+              "clientHelperRoundTripMilliseconds": 3416.7463000000007,
+              "helperJobMilliseconds": 2781.4135000000006,
+              "adapterTotalMilliseconds": 2781.368999999999,
+              "requestEncodeMilliseconds": 100.35349999999926,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 100.35349999999926,
+              "workerRoundTripMilliseconds": 2496.264399999998,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 1.8524,
+              "cudaHostToDeviceMilliseconds": 0.1893,
+              "cudaKernelMilliseconds": 0.17286400496959686,
+              "cudaDeviceToHostMilliseconds": 0.2917,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 2494.411999999998,
+              "resultDecodeMilliseconds": 117.84989999999743,
+              "resultValidationMilliseconds": 63.4516999999978,
+              "outerHttpJsonResidualMilliseconds": 635.3328000000001
+            },
+            "bytes": {
+              "request": 14110648,
+              "requestFrame": 14110664,
+              "result": 20634724,
+              "resultFrame": 20634740
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 3,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 3545.5253999999986,
+              "clientHelperRoundTripMilliseconds": 3466.8155000000006,
+              "helperJobMilliseconds": 2819.9559999999983,
+              "adapterTotalMilliseconds": 2819.920000000002,
+              "requestEncodeMilliseconds": 96.10810000000129,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 96.10810000000129,
+              "workerRoundTripMilliseconds": 2517.6497000000018,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 3.3168,
+              "cudaHostToDeviceMilliseconds": 0.2051,
+              "cudaKernelMilliseconds": 0.6213120222091675,
+              "cudaDeviceToHostMilliseconds": 0.6057,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 2514.3329000000017,
+              "resultDecodeMilliseconds": 124.70969999999943,
+              "resultValidationMilliseconds": 78.11909999999989,
+              "outerHttpJsonResidualMilliseconds": 646.8595000000023
+            },
+            "bytes": {
+              "request": 14110648,
+              "requestFrame": 14110664,
+              "result": 20634732,
+              "resultFrame": 20634748
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 6,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 3516.5926,
+              "clientHelperRoundTripMilliseconds": 3428.9176000000007,
+              "helperJobMilliseconds": 2802.892200000002,
+              "adapterTotalMilliseconds": 2802.8621999999996,
+              "requestEncodeMilliseconds": 95.39290000000256,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 95.39290000000256,
+              "workerRoundTripMilliseconds": 2516.5638,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 3.3006,
+              "cudaHostToDeviceMilliseconds": 0.1978,
+              "cudaKernelMilliseconds": 0.6634560227394104,
+              "cudaDeviceToHostMilliseconds": 0.6089,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 2513.2632,
+              "resultDecodeMilliseconds": 117.94419999999809,
+              "resultValidationMilliseconds": 69.76009999999951,
+              "outerHttpJsonResidualMilliseconds": 626.0253999999986
+            },
+            "bytes": {
+              "request": 14110648,
+              "requestFrame": 14110664,
+              "result": 20634705,
+              "resultFrame": 20634721
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 7,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 3547.5036,
+              "clientHelperRoundTripMilliseconds": 3445.531700000003,
+              "helperJobMilliseconds": 2827.5816000000013,
+              "adapterTotalMilliseconds": 2827.5543,
+              "requestEncodeMilliseconds": 93.36209999999846,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 93.36209999999846,
+              "workerRoundTripMilliseconds": 2550.6355000000003,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 3.2198,
+              "cudaHostToDeviceMilliseconds": 0.1911,
+              "cudaKernelMilliseconds": 0.6110720038414001,
+              "cudaDeviceToHostMilliseconds": 0.637,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 2547.4157000000005,
+              "resultDecodeMilliseconds": 114.9976999999999,
+              "resultValidationMilliseconds": 65.47490000000107,
+              "outerHttpJsonResidualMilliseconds": 617.9501000000018
+            },
+            "bytes": {
+              "request": 14110648,
+              "requestFrame": 14110664,
+              "result": 20634749,
+              "resultFrame": 20634765
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 10,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 3488.077699999998,
+              "clientHelperRoundTripMilliseconds": 3406.058000000001,
+              "helperJobMilliseconds": 2796.862399999998,
+              "adapterTotalMilliseconds": 2796.830099999999,
+              "requestEncodeMilliseconds": 97.36030000000028,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 97.36030000000028,
+              "workerRoundTripMilliseconds": 2516.2397999999957,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 3.1775,
+              "cudaHostToDeviceMilliseconds": 0.1847,
+              "cudaKernelMilliseconds": 0.5968959927558899,
+              "cudaDeviceToHostMilliseconds": 0.6019,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 2513.062299999996,
+              "resultDecodeMilliseconds": 116.85849999999482,
+              "resultValidationMilliseconds": 63.44310000000405,
+              "outerHttpJsonResidualMilliseconds": 609.1956000000027
+            },
+            "bytes": {
+              "request": 14110648,
+              "requestFrame": 14110664,
+              "result": 20634720,
+              "resultFrame": 20634736
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 11,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "compact-binary-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 851.3567000000003,
+              "clientHelperRoundTripMilliseconds": 758.8593000000001,
+              "helperJobMilliseconds": 125.04449999999997,
+              "adapterTotalMilliseconds": 124.99069999999847,
+              "requestEncodeMilliseconds": 55.83520000000135,
+              "requestIdentityHashMilliseconds": 36.128099999998085,
+              "requestPayloadBuildMilliseconds": 19.705200000000332,
+              "workerRoundTripMilliseconds": 9.09150000000227,
+              "nativeRequestDecodeMilliseconds": 2.4692,
+              "cudaEndToEndMilliseconds": 3.0526,
+              "cudaHostToDeviceMilliseconds": 0.1621,
+              "cudaKernelMilliseconds": 0.5935680270195007,
+              "cudaDeviceToHostMilliseconds": 0.5989,
+              "nativeResponseEncodeMilliseconds": 1.2055,
+              "workerProtocolResidualMilliseconds": 2.3642000000022705,
+              "resultDecodeMilliseconds": 9.588200000001962,
+              "resultValidationMilliseconds": 50.01499999999942,
+              "outerHttpJsonResidualMilliseconds": 633.8148000000001
+            },
+            "bytes": {
+              "request": 1600144,
+              "requestFrame": 1600160,
+              "result": 1600176,
+              "resultFrame": 1600192
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 4,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 892.1909000000014,
+              "clientHelperRoundTripMilliseconds": 784.4723999999987,
+              "helperJobMilliseconds": 126.27629999999772,
+              "adapterTotalMilliseconds": 126.24439999999959,
+              "requestEncodeMilliseconds": 53.09950000000026,
+              "requestIdentityHashMilliseconds": 35.21679999999833,
+              "requestPayloadBuildMilliseconds": 17.88000000000102,
+              "workerRoundTripMilliseconds": 9.558899999999994,
+              "nativeRequestDecodeMilliseconds": 2.5944,
+              "cudaEndToEndMilliseconds": 3.0006,
+              "cudaHostToDeviceMilliseconds": 0.1845,
+              "cudaKernelMilliseconds": 0.5586879849433899,
+              "cudaDeviceToHostMilliseconds": 0.5997,
+              "nativeResponseEncodeMilliseconds": 1.26,
+              "workerProtocolResidualMilliseconds": 2.7038999999999938,
+              "resultDecodeMilliseconds": 10.87670000000071,
+              "resultValidationMilliseconds": 52.14680000000226,
+              "outerHttpJsonResidualMilliseconds": 658.196100000001
+            },
+            "bytes": {
+              "request": 1600144,
+              "requestFrame": 1600160,
+              "result": 1600176,
+              "resultFrame": 1600192
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 5,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 824.0005000000019,
+              "clientHelperRoundTripMilliseconds": 740.1592000000019,
+              "helperJobMilliseconds": 117.3859999999986,
+              "adapterTotalMilliseconds": 117.35599999999977,
+              "requestEncodeMilliseconds": 40.13959999999861,
+              "requestIdentityHashMilliseconds": 30.944899999998597,
+              "requestPayloadBuildMilliseconds": 9.192399999999907,
+              "workerRoundTripMilliseconds": 8.817599999998492,
+              "nativeRequestDecodeMilliseconds": 2.4073,
+              "cudaEndToEndMilliseconds": 3.0897,
+              "cudaHostToDeviceMilliseconds": 0.1636,
+              "cudaKernelMilliseconds": 0.6185600161552429,
+              "cudaDeviceToHostMilliseconds": 0.5992,
+              "nativeResponseEncodeMilliseconds": 1.2193,
+              "workerProtocolResidualMilliseconds": 2.1012999999984916,
+              "resultDecodeMilliseconds": 9.547199999997247,
+              "resultValidationMilliseconds": 58.39219999999841,
+              "outerHttpJsonResidualMilliseconds": 622.7732000000033
+            },
+            "bytes": {
+              "request": 1600144,
+              "requestFrame": 1600160,
+              "result": 1600176,
+              "resultFrame": 1600192
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 8,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 858.8512999999984,
+              "clientHelperRoundTripMilliseconds": 747.4539000000004,
+              "helperJobMilliseconds": 112.57440000000133,
+              "adapterTotalMilliseconds": 112.5467000000026,
+              "requestEncodeMilliseconds": 40.5,
+              "requestIdentityHashMilliseconds": 31.849699999998847,
+              "requestPayloadBuildMilliseconds": 8.648700000001554,
+              "workerRoundTripMilliseconds": 8.80789999999979,
+              "nativeRequestDecodeMilliseconds": 2.4615,
+              "cudaEndToEndMilliseconds": 3.0325,
+              "cudaHostToDeviceMilliseconds": 0.1701,
+              "cudaKernelMilliseconds": 0.5622400045394897,
+              "cudaDeviceToHostMilliseconds": 0.6018,
+              "nativeResponseEncodeMilliseconds": 1.2422,
+              "workerProtocolResidualMilliseconds": 2.07169999999979,
+              "resultDecodeMilliseconds": 8.272800000002462,
+              "resultValidationMilliseconds": 54.52889999999752,
+              "outerHttpJsonResidualMilliseconds": 634.8794999999991
+            },
+            "bytes": {
+              "request": 1600144,
+              "requestFrame": 1600160,
+              "result": 1600176,
+              "resultFrame": 1600192
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 9,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 805.4089000000022,
+              "clientHelperRoundTripMilliseconds": 723.5421999999962,
+              "helperJobMilliseconds": 113.64620000000286,
+              "adapterTotalMilliseconds": 113.61539999999513,
+              "requestEncodeMilliseconds": 42.509100000002945,
+              "requestIdentityHashMilliseconds": 32.127800000002026,
+              "requestPayloadBuildMilliseconds": 10.378199999999197,
+              "workerRoundTripMilliseconds": 8.508900000000722,
+              "nativeRequestDecodeMilliseconds": 2.2087,
+              "cudaEndToEndMilliseconds": 3.1062,
+              "cudaHostToDeviceMilliseconds": 0.1752,
+              "cudaKernelMilliseconds": 0.6786239743232727,
+              "cudaDeviceToHostMilliseconds": 0.5992,
+              "nativeResponseEncodeMilliseconds": 1.1633,
+              "workerProtocolResidualMilliseconds": 2.0307000000007225,
+              "resultDecodeMilliseconds": 8.662100000001374,
+              "resultValidationMilliseconds": 53.47080000000278,
+              "outerHttpJsonResidualMilliseconds": 609.8959999999934
+            },
+            "bytes": {
+              "request": 1600144,
+              "requestFrame": 1600160,
+              "result": 1600176,
+              "resultFrame": 1600192
+            },
+            "worker": {
+              "pid": 19568,
+              "generation": 2,
+              "requestIndex": 12,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 5.53487271570674e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      }
+    },
+    {
+      "sampleCount": 250000,
+      "outerRequestBytes": 35486326,
+      "worker": {
+        "pid": 38328,
+        "generation": 3
+      },
+      "warmups": [
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "length-framed-json-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 9004.244999999995,
+            "clientHelperRoundTripMilliseconds": 8755.8684,
+            "helperJobMilliseconds": 7160.134300000005,
+            "adapterTotalMilliseconds": 7160.106800000001,
+            "requestEncodeMilliseconds": 242.31099999999424,
+            "requestIdentityHashMilliseconds": 0,
+            "requestPayloadBuildMilliseconds": 242.31099999999424,
+            "workerRoundTripMilliseconds": 6236.341200000003,
+            "nativeRequestDecodeMilliseconds": 0,
+            "cudaEndToEndMilliseconds": 5.1457,
+            "cudaHostToDeviceMilliseconds": 1.5724,
+            "cudaKernelMilliseconds": 0.06646399945020676,
+            "cudaDeviceToHostMilliseconds": 0.5984,
+            "nativeResponseEncodeMilliseconds": 0,
+            "workerProtocolResidualMilliseconds": 6231.1955000000025,
+            "resultDecodeMilliseconds": 288.1619000000064,
+            "resultValidationMilliseconds": 179.36699999999837,
+            "outerHttpJsonResidualMilliseconds": 1595.7340999999942
+          },
+          "bytes": {
+            "request": 35486340,
+            "requestFrame": 35486356,
+            "result": 51886056,
+            "resultFrame": 51886072
+          },
+          "worker": {
+            "pid": 38328,
+            "generation": 3,
+            "requestIndex": 1,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": false,
+            "sampleBufferReused": false,
+            "outputBufferReused": false
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        },
+        {
+          "phase": "warmup",
+          "run": 1,
+          "transport": "compact-binary-v1",
+          "timing": {
+            "shadowPathEndToEndMilliseconds": 2186.1484000000055,
+            "clientHelperRoundTripMilliseconds": 1947.1523000000016,
+            "helperJobMilliseconds": 302.2295000000013,
+            "adapterTotalMilliseconds": 302.2021999999997,
+            "requestEncodeMilliseconds": 106.95030000000406,
+            "requestIdentityHashMilliseconds": 81.43419999999605,
+            "requestPayloadBuildMilliseconds": 25.513999999995576,
+            "workerRoundTripMilliseconds": 19.796800000003714,
+            "nativeRequestDecodeMilliseconds": 5.8404,
+            "cudaEndToEndMilliseconds": 6.2018,
+            "cudaHostToDeviceMilliseconds": 1.0671,
+            "cudaKernelMilliseconds": 0.8426560163497925,
+            "cudaDeviceToHostMilliseconds": 1.391,
+            "nativeResponseEncodeMilliseconds": 2.8796,
+            "workerProtocolResidualMilliseconds": 4.8750000000037135,
+            "resultDecodeMilliseconds": 22.25460000000021,
+            "resultValidationMilliseconds": 152.2798000000039,
+            "outerHttpJsonResidualMilliseconds": 1644.9228000000003
+          },
+          "bytes": {
+            "request": 4000144,
+            "requestFrame": 4000160,
+            "result": 4000176,
+            "resultFrame": 4000192
+          },
+          "worker": {
+            "pid": 38328,
+            "generation": 3,
+            "requestIndex": 2,
+            "contextReused": true,
+            "moduleReused": true,
+            "functionReused": true,
+            "ballBufferReused": true,
+            "sampleBufferReused": true,
+            "outputBufferReused": true
+          },
+          "comparison": {
+            "matched": true,
+            "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+            "marginTolerance": 0.00005,
+            "missingSampleCount": 0,
+            "discreteMismatchSampleCount": 0
+          },
+          "authoritativeBackend": "web",
+          "candidateBackend": "cuda",
+          "shadow": true,
+          "productionApplied": false
+        }
+      ],
+      "transports": {
+        "length-framed-json-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 8671.45678,
+              "median": 8555.089200000002,
+              "minimum": 8408.234400000001,
+              "maximum": 9014.786
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 8406.8069,
+              "median": 8290.8949,
+              "minimum": 8173.391900000002,
+              "maximum": 8726.377499999995
+            },
+            "helperJobMilliseconds": {
+              "mean": 6771.764900000002,
+              "median": 6702.329900000012,
+              "minimum": 6538.099000000002,
+              "maximum": 7072.910199999998
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 6771.732900000001,
+              "median": 6702.297100000011,
+              "minimum": 6538.070399999997,
+              "maximum": 7072.877800000002
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 234.55074000000315,
+              "median": 234.79039999999804,
+              "minimum": 231.28620000000228,
+              "maximum": 237.8457000000053
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 234.55074000000315,
+              "median": 234.79039999999804,
+              "minimum": 231.28620000000228,
+              "maximum": 237.8457000000053
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 6045.753200000002,
+              "median": 5938.510600000009,
+              "minimum": 5828.178599999999,
+              "maximum": 6318.1783
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 6.419200000000001,
+              "median": 6.2747,
+              "minimum": 5.9892,
+              "maximum": 7.1143
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 1.0672000000000001,
+              "median": 1.0708,
+              "minimum": 0.8829,
+              "maximum": 1.2331
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.8044352054595947,
+              "median": 0.8021759986877441,
+              "minimum": 0.7654719948768616,
+              "maximum": 0.848800003528595
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 1.4265,
+              "median": 1.3768,
+              "minimum": 1.3626,
+              "maximum": 1.6029
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 0,
+              "median": 0,
+              "minimum": 0,
+              "maximum": 0
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 6039.334000000003,
+              "median": 5932.521400000009,
+              "minimum": 5821.510699999999,
+              "maximum": 6311.063999999999
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 293.2952199999985,
+              "median": 282.58720000000903,
+              "minimum": 274.97249999998894,
+              "maximum": 328.7647999999899
+            },
+            "resultValidationMilliseconds": {
+              "mean": 189.70076000000117,
+              "median": 181.4106000000029,
+              "minimum": 180.69860000000335,
+              "maximum": 215.7612000000081
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 1635.041999999997,
+              "median": 1635.2929000000004,
+              "minimum": 1588.5649999999878,
+              "maximum": 1673.5531999999948
+            }
+          },
+          "requestBytes": {
+            "mean": 35486342,
+            "median": 35486342,
+            "minimum": 35486342,
+            "maximum": 35486342
+          },
+          "resultBytes": {
+            "mean": 51886035.8,
+            "median": 51886039,
+            "minimum": 51886027,
+            "maximum": 51886043
+          },
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "allMatched": true
+        },
+        "compact-binary-v1": {
+          "runCount": 5,
+          "timing": {
+            "shadowPathEndToEndMilliseconds": {
+              "mean": 2166.1890199999993,
+              "median": 2162.676600000006,
+              "minimum": 2148.3104999999923,
+              "maximum": 2200.867299999998
+            },
+            "clientHelperRoundTripMilliseconds": {
+              "mean": 1916.1901599999997,
+              "median": 1918.7617000000027,
+              "minimum": 1871.7940999999992,
+              "maximum": 1942.0361000000048
+            },
+            "helperJobMilliseconds": {
+              "mean": 298.60721999999953,
+              "median": 300.9928,
+              "minimum": 290.5424999999959,
+              "maximum": 305.09070000000065
+            },
+            "adapterTotalMilliseconds": {
+              "mean": 298.5770800000013,
+              "median": 300.95930000000226,
+              "minimum": 290.51020000000426,
+              "maximum": 305.05860000000393
+            },
+            "requestEncodeMilliseconds": {
+              "mean": 102.38419999999897,
+              "median": 102.45040000000154,
+              "minimum": 97.98619999999937,
+              "maximum": 107.33879999999772
+            },
+            "requestIdentityHashMilliseconds": {
+              "mean": 78.44377999999706,
+              "median": 77.9878999999928,
+              "minimum": 74.64110000000073,
+              "maximum": 83.38899999999558
+            },
+            "requestPayloadBuildMilliseconds": {
+              "mean": 23.937999999997555,
+              "median": 23.947299999999814,
+              "minimum": 23.225399999995716,
+              "maximum": 24.66700000000128
+            },
+            "workerRoundTripMilliseconds": {
+              "mean": 19.774499999998078,
+              "median": 19.392399999996996,
+              "minimum": 19.057499999995343,
+              "maximum": 21.314699999995355
+            },
+            "nativeRequestDecodeMilliseconds": {
+              "mean": 5.50276,
+              "median": 5.4155,
+              "minimum": 5.3864,
+              "maximum": 5.7253
+            },
+            "cudaEndToEndMilliseconds": {
+              "mean": 6.38412,
+              "median": 6.2651,
+              "minimum": 6.1077,
+              "maximum": 6.8945
+            },
+            "cudaHostToDeviceMilliseconds": {
+              "mean": 1.05484,
+              "median": 1.0578,
+              "minimum": 0.8646,
+              "maximum": 1.1973
+            },
+            "cudaKernelMilliseconds": {
+              "mean": 0.8663680076599121,
+              "median": 0.8746880292892456,
+              "minimum": 0.7599999904632568,
+              "maximum": 0.9309759736061096
+            },
+            "cudaDeviceToHostMilliseconds": {
+              "mean": 1.44248,
+              "median": 1.394,
+              "minimum": 1.3615,
+              "maximum": 1.6802
+            },
+            "nativeResponseEncodeMilliseconds": {
+              "mean": 3.0866000000000002,
+              "median": 2.9117,
+              "minimum": 2.7984,
+              "maximum": 3.9342
+            },
+            "workerProtocolResidualMilliseconds": {
+              "mean": 4.801019999998079,
+              "median": 4.708500000000791,
+              "minimum": 4.640299999995344,
+              "maximum": 5.120999999995355
+            },
+            "resultDecodeMilliseconds": {
+              "mean": 20.681219999998575,
+              "median": 20.640999999995984,
+              "minimum": 19.57630000000063,
+              "maximum": 21.87340000000404
+            },
+            "resultValidationMilliseconds": {
+              "mean": 154.81015999999653,
+              "median": 155.08780000000115,
+              "minimum": 149.43439999999828,
+              "maximum": 157.59479999999166
+            },
+            "outerHttpJsonResidualMilliseconds": {
+              "mean": 1617.5829400000002,
+              "median": 1617.3726000000024,
+              "minimum": 1576.7730999999985,
+              "maximum": 1641.0433000000048
+            }
+          },
+          "requestBytes": {
+            "mean": 4000144,
+            "median": 4000144,
+            "minimum": 4000144,
+            "maximum": 4000144
+          },
+          "resultBytes": {
+            "mean": 4000176,
+            "median": 4000176,
+            "minimum": 4000176,
+            "maximum": 4000176
+          },
+          "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+          "allMatched": true
+        }
+      },
+      "runs": {
+        "length-framed-json-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 8861.978499999997,
+              "clientHelperRoundTripMilliseconds": 8605.144699999997,
+              "helperJobMilliseconds": 6931.591500000002,
+              "adapterTotalMilliseconds": 6931.558700000001,
+              "requestEncodeMilliseconds": 234.79039999999804,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 234.79039999999804,
+              "workerRoundTripMilliseconds": 6226.1512,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 6.0499,
+              "cudaHostToDeviceMilliseconds": 1.0509,
+              "cudaKernelMilliseconds": 0.7654719948768616,
+              "cudaDeviceToHostMilliseconds": 1.3626,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 6220.1013,
+              "resultDecodeMilliseconds": 281.20270000000164,
+              "resultValidationMilliseconds": 180.69860000000335,
+              "outerHttpJsonResidualMilliseconds": 1673.5531999999948
+            },
+            "bytes": {
+              "request": 35486342,
+              "requestFrame": 35486358,
+              "result": 51886043,
+              "resultFrame": 51886059
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 3,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 9014.786,
+              "clientHelperRoundTripMilliseconds": 8726.377499999995,
+              "helperJobMilliseconds": 7072.910199999998,
+              "adapterTotalMilliseconds": 7072.877800000002,
+              "requestEncodeMilliseconds": 232.21940000000177,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 232.21940000000177,
+              "workerRoundTripMilliseconds": 6318.1783,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 7.1143,
+              "cudaHostToDeviceMilliseconds": 1.2331,
+              "cudaKernelMilliseconds": 0.7757440209388733,
+              "cudaDeviceToHostMilliseconds": 1.4197,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 6311.063999999999,
+              "resultDecodeMilliseconds": 298.94890000000305,
+              "resultValidationMilliseconds": 215.7612000000081,
+              "outerHttpJsonResidualMilliseconds": 1653.4672999999966
+            },
+            "bytes": {
+              "request": 35486342,
+              "requestFrame": 35486358,
+              "result": 51886039,
+              "resultFrame": 51886055
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 6,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 8517.195800000001,
+              "clientHelperRoundTripMilliseconds": 8238.2255,
+              "helperJobMilliseconds": 6613.8938999999955,
+              "adapterTotalMilliseconds": 6613.860499999995,
+              "requestEncodeMilliseconds": 231.28620000000228,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 231.28620000000228,
+              "workerRoundTripMilliseconds": 5917.747300000003,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 6.2747,
+              "cudaHostToDeviceMilliseconds": 1.0708,
+              "cudaKernelMilliseconds": 0.8021759986877441,
+              "cudaDeviceToHostMilliseconds": 1.3768,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 5911.472600000003,
+              "resultDecodeMilliseconds": 274.97249999998894,
+              "resultValidationMilliseconds": 181.24659999999858,
+              "outerHttpJsonResidualMilliseconds": 1624.331600000005
+            },
+            "bytes": {
+              "request": 35486342,
+              "requestFrame": 35486358,
+              "result": 51886030,
+              "resultFrame": 51886046
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 7,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 8555.089200000002,
+              "clientHelperRoundTripMilliseconds": 8290.8949,
+              "helperJobMilliseconds": 6702.329900000012,
+              "adapterTotalMilliseconds": 6702.297100000011,
+              "requestEncodeMilliseconds": 236.61200000000827,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 236.61200000000827,
+              "workerRoundTripMilliseconds": 5938.510600000009,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 5.9892,
+              "cudaHostToDeviceMilliseconds": 0.8829,
+              "cudaKernelMilliseconds": 0.8299840092658997,
+              "cudaDeviceToHostMilliseconds": 1.3705,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 5932.521400000009,
+              "resultDecodeMilliseconds": 328.7647999999899,
+              "resultValidationMilliseconds": 189.38679999999295,
+              "outerHttpJsonResidualMilliseconds": 1588.5649999999878
+            },
+            "bytes": {
+              "request": 35486342,
+              "requestFrame": 35486358,
+              "result": 51886040,
+              "resultFrame": 51886056
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 10,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "length-framed-json-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 8408.234400000001,
+              "clientHelperRoundTripMilliseconds": 8173.391900000002,
+              "helperJobMilliseconds": 6538.099000000002,
+              "adapterTotalMilliseconds": 6538.070399999997,
+              "requestEncodeMilliseconds": 237.8457000000053,
+              "requestIdentityHashMilliseconds": 0,
+              "requestPayloadBuildMilliseconds": 237.8457000000053,
+              "workerRoundTripMilliseconds": 5828.178599999999,
+              "nativeRequestDecodeMilliseconds": 0,
+              "cudaEndToEndMilliseconds": 6.6679,
+              "cudaHostToDeviceMilliseconds": 1.0983,
+              "cudaKernelMilliseconds": 0.848800003528595,
+              "cudaDeviceToHostMilliseconds": 1.6029,
+              "nativeResponseEncodeMilliseconds": 0,
+              "workerProtocolResidualMilliseconds": 5821.510699999999,
+              "resultDecodeMilliseconds": 282.58720000000903,
+              "resultValidationMilliseconds": 181.4106000000029,
+              "outerHttpJsonResidualMilliseconds": 1635.2929000000004
+            },
+            "bytes": {
+              "request": 35486342,
+              "requestFrame": 35486358,
+              "result": 51886027,
+              "resultFrame": 51886043
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 11,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ],
+        "compact-binary-v1": [
+          {
+            "phase": "measured",
+            "run": 1,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 2163.6973,
+              "clientHelperRoundTripMilliseconds": 1942.0361000000048,
+              "helperJobMilliseconds": 300.9928,
+              "adapterTotalMilliseconds": 300.95930000000226,
+              "requestEncodeMilliseconds": 102.9297000000006,
+              "requestIdentityHashMilliseconds": 78.26009999999951,
+              "requestPayloadBuildMilliseconds": 24.66700000000128,
+              "workerRoundTripMilliseconds": 21.314699999995355,
+              "nativeRequestDecodeMilliseconds": 5.7253,
+              "cudaEndToEndMilliseconds": 6.5342,
+              "cudaHostToDeviceMilliseconds": 1.0975,
+              "cudaKernelMilliseconds": 0.8572800159454346,
+              "cudaDeviceToHostMilliseconds": 1.4078,
+              "nativeResponseEncodeMilliseconds": 3.9342,
+              "workerProtocolResidualMilliseconds": 5.120999999995355,
+              "resultDecodeMilliseconds": 20.640999999995984,
+              "resultValidationMilliseconds": 155.08780000000115,
+              "outerHttpJsonResidualMilliseconds": 1641.0433000000048
+            },
+            "bytes": {
+              "request": 4000144,
+              "requestFrame": 4000160,
+              "result": 4000176,
+              "resultFrame": 4000192
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 4,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 2,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 2155.393400000001,
+              "clientHelperRoundTripMilliseconds": 1871.7940999999992,
+              "helperJobMilliseconds": 295.02100000000064,
+              "adapterTotalMilliseconds": 294.9941000000035,
+              "requestEncodeMilliseconds": 97.98619999999937,
+              "requestIdentityHashMilliseconds": 74.64110000000073,
+              "requestPayloadBuildMilliseconds": 23.34309999999823,
+              "workerRoundTripMilliseconds": 19.80580000000191,
+              "nativeRequestDecodeMilliseconds": 5.3938,
+              "cudaEndToEndMilliseconds": 6.8945,
+              "cudaHostToDeviceMilliseconds": 1.1973,
+              "cudaKernelMilliseconds": 0.8746880292892456,
+              "cudaDeviceToHostMilliseconds": 1.6802,
+              "nativeResponseEncodeMilliseconds": 2.8757,
+              "workerProtocolResidualMilliseconds": 4.641800000001909,
+              "resultDecodeMilliseconds": 21.87340000000404,
+              "resultValidationMilliseconds": 154.43299999999726,
+              "outerHttpJsonResidualMilliseconds": 1576.7730999999985
+            },
+            "bytes": {
+              "request": 4000144,
+              "requestFrame": 4000160,
+              "result": 4000176,
+              "resultFrame": 4000192
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 5,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 3,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 2148.3104999999923,
+              "clientHelperRoundTripMilliseconds": 1918.7617000000027,
+              "helperJobMilliseconds": 301.3891000000003,
+              "adapterTotalMilliseconds": 301.3631999999925,
+              "requestEncodeMilliseconds": 102.45040000000154,
+              "requestIdentityHashMilliseconds": 77.94079999999667,
+              "requestPayloadBuildMilliseconds": 24.507199999992736,
+              "workerRoundTripMilliseconds": 19.30210000000079,
+              "nativeRequestDecodeMilliseconds": 5.4155,
+              "cudaEndToEndMilliseconds": 6.2651,
+              "cudaHostToDeviceMilliseconds": 1.0578,
+              "cudaKernelMilliseconds": 0.9088960289955139,
+              "cudaDeviceToHostMilliseconds": 1.3689,
+              "nativeResponseEncodeMilliseconds": 2.913,
+              "workerProtocolResidualMilliseconds": 4.708500000000791,
+              "resultDecodeMilliseconds": 21.083599999998114,
+              "resultValidationMilliseconds": 157.59479999999166,
+              "outerHttpJsonResidualMilliseconds": 1617.3726000000024
+            },
+            "bytes": {
+              "request": 4000144,
+              "requestFrame": 4000160,
+              "result": 4000176,
+              "resultFrame": 4000192
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 8,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 4,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 2200.867299999998,
+              "clientHelperRoundTripMilliseconds": 1918.3583999999973,
+              "helperJobMilliseconds": 305.09070000000065,
+              "adapterTotalMilliseconds": 305.05860000000393,
+              "requestEncodeMilliseconds": 107.33879999999772,
+              "requestIdentityHashMilliseconds": 83.38899999999558,
+              "requestPayloadBuildMilliseconds": 23.947299999999814,
+              "workerRoundTripMilliseconds": 19.057499999995343,
+              "nativeRequestDecodeMilliseconds": 5.3864,
+              "cudaEndToEndMilliseconds": 6.1191,
+              "cudaHostToDeviceMilliseconds": 0.8646,
+              "cudaKernelMilliseconds": 0.9309759736061096,
+              "cudaDeviceToHostMilliseconds": 1.3615,
+              "nativeResponseEncodeMilliseconds": 2.9117,
+              "workerProtocolResidualMilliseconds": 4.640299999995344,
+              "resultDecodeMilliseconds": 20.23179999999411,
+              "resultValidationMilliseconds": 157.50079999999434,
+              "outerHttpJsonResidualMilliseconds": 1613.2676999999967
+            },
+            "bytes": {
+              "request": 4000144,
+              "requestFrame": 4000160,
+              "result": 4000176,
+              "resultFrame": 4000192
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 9,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          },
+          {
+            "phase": "measured",
+            "run": 5,
+            "transport": "compact-binary-v1",
+            "timing": {
+              "shadowPathEndToEndMilliseconds": 2162.676600000006,
+              "clientHelperRoundTripMilliseconds": 1930.0004999999946,
+              "helperJobMilliseconds": 290.5424999999959,
+              "adapterTotalMilliseconds": 290.51020000000426,
+              "requestEncodeMilliseconds": 101.2158999999956,
+              "requestIdentityHashMilliseconds": 77.9878999999928,
+              "requestPayloadBuildMilliseconds": 23.225399999995716,
+              "workerRoundTripMilliseconds": 19.392399999996996,
+              "nativeRequestDecodeMilliseconds": 5.5928,
+              "cudaEndToEndMilliseconds": 6.1077,
+              "cudaHostToDeviceMilliseconds": 1.057,
+              "cudaKernelMilliseconds": 0.7599999904632568,
+              "cudaDeviceToHostMilliseconds": 1.394,
+              "nativeResponseEncodeMilliseconds": 2.7984,
+              "workerProtocolResidualMilliseconds": 4.893499999996995,
+              "resultDecodeMilliseconds": 19.57630000000063,
+              "resultValidationMilliseconds": 149.43439999999828,
+              "outerHttpJsonResidualMilliseconds": 1639.4579999999987
+            },
+            "bytes": {
+              "request": 4000144,
+              "requestFrame": 4000160,
+              "result": 4000176,
+              "resultFrame": 4000192
+            },
+            "worker": {
+              "pid": 38328,
+              "generation": 3,
+              "requestIndex": 12,
+              "contextReused": true,
+              "moduleReused": true,
+              "functionReused": true,
+              "ballBufferReused": true,
+              "sampleBufferReused": true,
+              "outputBufferReused": true
+            },
+            "comparison": {
+              "matched": true,
+              "maximumAbsoluteMarginDelta": 6.094441462600741e-7,
+              "marginTolerance": 0.00005,
+              "missingSampleCount": 0,
+              "discreteMismatchSampleCount": 0
+            },
+            "authoritativeBackend": "web",
+            "candidateBackend": "cuda",
+            "shadow": true,
+            "productionApplied": false
+          }
+        ]
+      }
+    }
+  ]
+}

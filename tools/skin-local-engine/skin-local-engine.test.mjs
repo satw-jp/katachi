@@ -6,6 +6,7 @@ import {
   EXECUTABLE_RESULT_CONTRACT,
   EXPECTED_CUDA_DEVICE_NAME,
   EXPECTED_COMPILED_EXECUTABLE_SHA256,
+  PERSISTENT_BINARY_TRANSPORT,
   PERSISTENT_JSON_TRANSPORT,
   inspectCompiledEngine,
   validateExecutableCapabilities,
@@ -62,6 +63,7 @@ test("Windows probe keeps CUDA unavailable when the driver exists but the compil
     productionApplied: false,
     workerLifecycle: "persistent",
     workerTransport: PERSISTENT_JSON_TRANSPORT,
+    workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
   });
 });
 
@@ -75,7 +77,7 @@ test("compiled adapter rejects a non-shadow or non-RTX capability document", () 
     algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
     shadow: true,
     productionApplied: false,
-    workerTransports: [PERSISTENT_JSON_TRANSPORT],
+    workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
   };
   assert.equal(validateExecutableCapabilities(capabilities), capabilities);
   assert.throws(
@@ -229,7 +231,7 @@ test("shadow header, sample limit and body limit remain fail-closed", async (con
     algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
     shadow: true,
     productionApplied: false,
-    workerTransports: [PERSISTENT_JSON_TRANSPORT],
+    workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
   };
   const probe = {
     compiledExecutable: { available: true, capabilities: executableCapabilities },
@@ -300,7 +302,7 @@ test("helper keeps later work queued and cancels it before persistent worker exe
     algorithmContracts: [EVALUATE_CONTAINMENT_ALGORITHM],
     shadow: true,
     productionApplied: false,
-    workerTransports: [PERSISTENT_JSON_TRANSPORT],
+    workerTransports: [PERSISTENT_JSON_TRANSPORT, PERSISTENT_BINARY_TRANSPORT],
   };
   const probe = {
     compiledExecutable: {
