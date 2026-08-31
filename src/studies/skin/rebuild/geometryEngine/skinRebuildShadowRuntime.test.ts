@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { buildSkinRebuildProject } from "../model.ts";
 import { evaluateContainmentOnWeb } from "./webGeometryEngine.ts";
-import { createSkinRebuildContainmentRequest } from "./skinRebuildShadowRuntime.ts";
+import {
+  createSkinRebuildContainmentRequest,
+  SkinRebuildShadowObserver,
+} from "./skinRebuildShadowRuntime.ts";
+import { WindowsLocalGeometryEngineClient } from "./windowsLocalClient.ts";
 
 const { project } = buildSkinRebuildProject();
 const first = await createSkinRebuildContainmentRequest(project);
@@ -27,5 +31,31 @@ assert.equal(web.backend.backendKind, "web");
 assert.equal(web.result.samples.length, first.facts.sampleCount);
 assert.equal(web.shadow, true);
 assert.equal(web.productionApplied, false);
+
+let webOnlyFetchCalled = false;
+const webOnlyObserver = new SkinRebuildShadowObserver({
+  localClient: new WindowsLocalGeometryEngineClient({
+    fetch: async () => {
+      webOnlyFetchCalled = true;
+      throw new TypeError("Web-only mode must not contact localhost");
+    },
+  }),
+});
+const webOnly = await webOnlyObserver.observe(project, false);
+assert.equal(webOnlyFetchCalled, false);
+assert.equal(webOnly.transportMode, "web-only");
+assert.equal(webOnly.outcome.candidateStatus, "not_requested");
+assert.equal(webOnly.outcome.authoritative.backend.backendKind, "web");
+assert.equal(webOnly.outcome.productionApplied, false);
+
+const helperMissing = await new SkinRebuildShadowObserver({
+  localClient: new WindowsLocalGeometryEngineClient({
+    fetch: async () => { throw new TypeError("helper absent"); },
+    probeTimeoutMs: 20,
+  }),
+}).observe(project, true);
+assert.equal(helperMissing.outcome.candidateStatus, "helper_unavailable");
+assert.equal(helperMissing.outcome.authoritative.backend.backendKind, "web");
+assert.equal(helperMissing.outcome.productionApplied, false);
 
 console.log("SKIN REBUILD production shadow request tests passed", JSON.stringify(first.facts));
