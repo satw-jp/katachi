@@ -26,14 +26,44 @@ export const ENGINE_VERSION = "0.5.0-shadow-session-cache";
 // request bounded while allowing the advertised sample ceiling to be exercised.
 export const MAXIMUM_JOB_BYTES = 48 * 1024 * 1024;
 export const MAXIMUM_CONTAINMENT_SAMPLES = 250_000;
+export const REVIEW_ORIGIN_ENVIRONMENT_VARIABLE = "KATACHI_SHADOW_REVIEW_ORIGIN";
 
-const ALLOWED_ORIGINS = new Set([
+const BASE_ALLOWED_ORIGINS = [
   "https://katachi.a-8c3.workers.dev",
   "http://localhost:5174",
   "https://localhost:5174",
   "http://127.0.0.1:5174",
   "https://127.0.0.1:5174",
-]);
+];
+const REVIEW_WORKERS_DEV_HOST_PATTERN = /^katachi-cuda-review-[a-z0-9]+(?:-[a-z0-9]+)*\.a-8c3\.workers\.dev$/;
+
+export function validateConfiguredReviewOrigin(value) {
+  if (value === undefined || value === "") return undefined;
+  if (typeof value !== "string" || value.includes("*")) {
+    throw new TypeError(`${REVIEW_ORIGIN_ENVIRONMENT_VARIABLE} must be one exact HTTPS origin`);
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError(`${REVIEW_ORIGIN_ENVIRONMENT_VARIABLE} must be a valid URL`);
+  }
+  if (parsed.origin !== value
+    || parsed.protocol !== "https:"
+    || !REVIEW_WORKERS_DEV_HOST_PATTERN.test(parsed.hostname)) {
+    throw new TypeError(
+      `${REVIEW_ORIGIN_ENVIRONMENT_VARIABLE} must be an exact katachi-cuda-review workers.dev origin`,
+    );
+  }
+  return value;
+}
+
+function createAllowedOrigins(reviewOrigin) {
+  const allowedOrigins = new Set(BASE_ALLOWED_ORIGINS);
+  const validatedReviewOrigin = validateConfiguredReviewOrigin(reviewOrigin);
+  if (validatedReviewOrigin) allowedOrigins.add(validatedReviewOrigin);
+  return allowedOrigins;
+}
 
 export function createCapabilitiesDocument(probe, {
   workerTransport = PERSISTENT_JSON_TRANSPORT,
@@ -83,8 +113,8 @@ export function createCapabilitiesDocument(probe, {
   };
 }
 
-function corsHeaders(origin) {
-  return origin && ALLOWED_ORIGINS.has(origin) ? {
+function corsHeadersForAllowedOrigins(allowedOrigins, origin) {
+  return origin && allowedOrigins.has(origin) ? {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": [
@@ -115,15 +145,15 @@ function corsHeaders(origin) {
   } : { Vary: "Origin" };
 }
 
-function privateNetworkCorsHeaders(request, origin) {
+function privateNetworkCorsHeadersForAllowedOrigins(allowedOrigins, request, origin) {
   return request.headers["access-control-request-private-network"] === "true"
     && origin
-    && ALLOWED_ORIGINS.has(origin)
+    && allowedOrigins.has(origin)
     ? { "Access-Control-Allow-Private-Network": "true" }
     : {};
 }
 
-function sendJson(response, status, value, origin, extraHeaders = {}) {
+function sendJsonForAllowedOrigins(allowedOrigins, response, status, value, origin, extraHeaders = {}) {
   const encodeStart = performance.now();
   const payload = `${JSON.stringify(value)}\n`;
   const encodeMilliseconds = performance.now() - encodeStart;
@@ -133,14 +163,14 @@ function sendJson(response, status, value, origin, extraHeaders = {}) {
     "Cache-Control": "no-store",
     "X-Katachi-Helper-Response-Encode-Ms": encodeMilliseconds.toFixed(6),
     "X-Katachi-Response-Bytes": String(Buffer.byteLength(payload)),
-    ...corsHeaders(origin),
+    ...corsHeadersForAllowedOrigins(allowedOrigins, origin),
     ...extraHeaders,
   });
   response.end(payload);
 }
 
-function fail(response, status, code, detail, origin) {
-  sendJson(response, status, { error: { code, detail } }, origin);
+function failForAllowedOrigins(allowedOrigins, response, status, code, detail, origin) {
+  sendJsonForAllowedOrigins(allowedOrigins, response, status, { error: { code, detail } }, origin);
 }
 
 function readBoundedJson(request) {
@@ -268,7 +298,16 @@ export function createLocalEngineServer({
   shadowSessionCache,
   workerTransport = PERSISTENT_JSON_TRANSPORT,
   expectedHostHeader = `${FIXED_HOST}:${FIXED_PORT}`,
+  reviewOrigin,
 } = {}) {
+  const allowedOrigins = createAllowedOrigins(reviewOrigin);
+  const corsHeaders = (origin) => corsHeadersForAllowedOrigins(allowedOrigins, origin);
+  const privateNetworkCorsHeaders = (request, origin) => (
+    privateNetworkCorsHeadersForAllowedOrigins(allowedOrigins, request, origin)
+  );
+  const sendJson = (...args) => sendJsonForAllowedOrigins(allowedOrigins, ...args);
+  const fail = (...args) => failForAllowedOrigins(allowedOrigins, ...args);
+
   const capabilities = createCapabilitiesDocument(probe, { workerTransport });
   const jobs = new Map();
   const worker = persistentWorker ?? new PersistentCudaWorker();
@@ -369,7 +408,7 @@ export function createLocalEngineServer({
       fail(response, 400, "host_rejected", "request Host does not match the fixed loopback endpoint", origin);
       return;
     }
-    if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    if (origin && !allowedOrigins.has(origin)) {
       fail(response, 403, "origin_rejected", "request Origin is not allowlisted", origin);
       return;
     }
@@ -415,7 +454,7 @@ export function createLocalEngineServer({
       return;
     }
     if (request.method === "POST" && url.pathname === "/v1/jobs") {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !allowedOrigins.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
         return;
       }
@@ -458,7 +497,7 @@ export function createLocalEngineServer({
       return;
     }
     if (request.method === "POST" && url.pathname === "/v1/shadow-sessions") {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !allowedOrigins.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
         return;
       }
@@ -526,7 +565,7 @@ export function createLocalEngineServer({
     }
     const shadowSessionEvaluateMatch = /^\/v1\/shadow-sessions\/([^/]+)\/evaluate$/.exec(url.pathname);
     if (request.method === "POST" && shadowSessionEvaluateMatch) {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !allowedOrigins.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
         return;
       }
@@ -598,7 +637,7 @@ export function createLocalEngineServer({
     }
     const shadowSessionDeleteMatch = /^\/v1\/shadow-sessions\/([^/]+)$/.exec(url.pathname);
     if (request.method === "DELETE" && shadowSessionDeleteMatch) {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !allowedOrigins.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
         return;
       }
@@ -621,7 +660,7 @@ export function createLocalEngineServer({
       return;
     }
     if (request.method === "POST" && url.pathname === "/v1/evaluate-containment-binary") {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !allowedOrigins.has(origin)) {
         fail(response, 403, "origin_required", "mutation requests require an allowlisted Origin", origin);
         return;
       }
@@ -686,9 +725,13 @@ const invokedAsScript = process.argv[1]
   && pathToFileURL(process.argv[1]).href === import.meta.url;
 if (invokedAsScript) {
   const probe = probeWindowsCapability();
-  const server = createLocalEngineServer({ probe });
+  const reviewOrigin = validateConfiguredReviewOrigin(process.env[REVIEW_ORIGIN_ENVIRONMENT_VARIABLE]);
+  const server = createLocalEngineServer({ probe, reviewOrigin });
   server.listen(FIXED_PORT, FIXED_HOST, () => {
     const state = probe.cudaBackend.available ? "CUDA adapter available" : `CUDA unavailable: ${probe.cudaBackend.reasonCode}`;
-    process.stdout.write(`Katachi shadow GeometryEngine listening on http://${FIXED_HOST}:${FIXED_PORT}/v1 (${state})\n`);
+    const reviewState = reviewOrigin ? `; exact review origin ${reviewOrigin}` : "; review origin disabled";
+    process.stdout.write(
+      `Katachi shadow GeometryEngine listening on http://${FIXED_HOST}:${FIXED_PORT}/v1 (${state}${reviewState})\n`,
+    );
   });
 }

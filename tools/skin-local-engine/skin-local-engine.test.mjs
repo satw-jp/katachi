@@ -24,9 +24,13 @@ import {
 import {
   MAXIMUM_CONTAINMENT_SAMPLES,
   MAXIMUM_JOB_BYTES,
+  REVIEW_ORIGIN_ENVIRONMENT_VARIABLE,
   createCapabilitiesDocument,
   createLocalEngineServer,
+  validateConfiguredReviewOrigin,
 } from "./server.mjs";
+
+const CUDA_GATE_REVIEW_ORIGIN = "https://katachi-cuda-review-7ebad90.a-8c3.workers.dev";
 
 test("nvidia-smi parsing does not confuse driver support with a compiler", () => {
   assert.deepEqual(
@@ -377,6 +381,67 @@ test("allowlisted public origin receives scoped private-network preflight header
   assert.equal(response.headers.get("access-control-allow-origin"), "https://katachi.a-8c3.workers.dev");
   assert.equal(response.headers.get("access-control-allow-private-network"), "true");
   assert.match(response.headers.get("access-control-allow-headers"), /X-Katachi-Project-Fingerprint/);
+});
+
+test("one configured review origin is exact and does not widen the fixed allowlist", async (context) => {
+  assert.equal(validateConfiguredReviewOrigin(undefined), undefined);
+  assert.equal(validateConfiguredReviewOrigin(CUDA_GATE_REVIEW_ORIGIN), CUDA_GATE_REVIEW_ORIGIN);
+  for (const invalid of [
+    "https://*.a-8c3.workers.dev",
+    `${CUDA_GATE_REVIEW_ORIGIN}/path`,
+    "https://unrelated.a-8c3.workers.dev",
+    "http://katachi-cuda-review-7ebad90.a-8c3.workers.dev",
+  ]) {
+    assert.throws(
+      () => validateConfiguredReviewOrigin(invalid),
+      new RegExp(REVIEW_ORIGIN_ENVIRONMENT_VARIABLE),
+    );
+  }
+
+  const probe = {
+    compiledExecutable: { available: false, reasonCode: "compiled_executable_absent" },
+    cudaBackend: { available: false, reasonCode: "compiled_executable_absent" },
+  };
+  const server = createLocalEngineServer({
+    probe,
+    expectedHostHeader: null,
+    reviewOrigin: CUDA_GATE_REVIEW_ORIGIN,
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const url = `http://127.0.0.1:${address.port}/v1/capabilities`;
+
+  const preflight = await fetch(url, {
+    method: "OPTIONS",
+    headers: {
+      Origin: CUDA_GATE_REVIEW_ORIGIN,
+      "Access-Control-Request-Method": "GET",
+      "Access-Control-Request-Private-Network": "true",
+    },
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), CUDA_GATE_REVIEW_ORIGIN);
+  assert.equal(preflight.headers.get("access-control-allow-private-network"), "true");
+
+  const reviewCapability = await fetch(url, { headers: { Origin: CUDA_GATE_REVIEW_ORIGIN } });
+  assert.equal(reviewCapability.status, 200);
+  assert.equal(reviewCapability.headers.get("access-control-allow-origin"), CUDA_GATE_REVIEW_ORIGIN);
+
+  const productionOrigin = "https://katachi.a-8c3.workers.dev";
+  const productionCapability = await fetch(url, { headers: { Origin: productionOrigin } });
+  assert.equal(productionCapability.status, 200);
+  assert.equal(productionCapability.headers.get("access-control-allow-origin"), productionOrigin);
+
+  const nearMiss = await fetch(url, {
+    headers: { Origin: "https://katachi-cuda-review-7ebad900.a-8c3.workers.dev" },
+  });
+  assert.equal(nearMiss.status, 403);
+  assert.equal((await nearMiss.json()).error.code, "origin_rejected");
 });
 
 test("shadow header, sample limit and body limit remain fail-closed", async (context) => {
