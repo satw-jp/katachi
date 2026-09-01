@@ -111,6 +111,57 @@ assert.ok(clear.acceptedRoutes.every(({ route }) => route.segments.every((segmen
 })));
 assert.ok(clear.graph.edges.some((edge) => edge.radius === baseRequest.neckRadius), "contact neck is narrower than shaft");
 
+// Production defaults use a 1.6 mm shaft and a separate 0.6 mm contact neck.
+// On a flat underside, the transition must move the shaft endpoint clear of
+// the BODY before the terminal neck is allowed to touch the owner target.
+const actualDefaultFlatUnderside = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(16, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  scaleMmPerUnit: 1,
+  shaftRadius: 0.8,
+  neckRadius: 0.3,
+  contactNeckDiameterMm: 0.6,
+  bodySdf: (_x, _y, z) => 2 - z,
+  targetSdf: (_target, _x, _y, z) => 2 - z,
+  otherBodySdf: () => 10,
+  targetRadius: 0.3,
+  maximumOverlapLength: 1.5,
+  maximumDepth: 1.5,
+});
+assert.equal(actualDefaultFlatUnderside.diagnostics.generatedSupportCount, 1,
+  "the actual default shaft/neck physical ratio must accept a flat-underside support");
+assert.equal(actualDefaultFlatUnderside.diagnostics.verticalCount, 1);
+assert.equal(actualDefaultFlatUnderside.acceptedRoutes[0]?.route.segments.at(-1)?.radius, 0.3);
+assert.ok((actualDefaultFlatUnderside.acceptedRoutes[0]?.route.segments[0]?.end.z ?? 0) < 2 - 0.8,
+  "the shaft endpoint must be strictly outside the flat BODY underside");
+
+// A projected Outside face without the Stage 4 owner patch remains visible
+// demand, but no owner target/contact route may be invented for it.
+const ownerlessOutside = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(17, 0, 0, 2, 0, -1)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+});
+assert.equal(ownerlessOutside.diagnostics.generatedSupportCount, 0);
+assert.ok(ownerlessOutside.diagnostics.unsupportedTargetCount > 0,
+  "ownerless Outside demand must be counted unsupported");
+assert.ok(ownerlessOutside.graph.stats.unsupportedCount > 0);
+assert.ok(ownerlessOutside.diagnostics.rejectedByRemovability > 0);
+assert.equal(ownerlessOutside.debug.rejectedCandidates[0]?.ownerPatchId, -1);
+assert.match(ownerlessOutside.debug.rejectedCandidates[0]?.detail ?? "", /owner Patch id unavailable/);
+
+// The diagnostic count follows distinct current projected region ids, even
+// when the historical Stage 4 responsibility set contains more regions.
+const currentRegionSubset = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(21, 0, 0, 2, 0), face(21, 0.1, 0, 2.02, 1)],
+  maxLeaningRoutes: 0,
+});
+assert.equal(currentRegionSubset.diagnostics.outsideRegionCount, 1);
+
 // Greedy coverage selects one candidate when its contact footprint covers the
 // second critical target; this is intentionally not a global optimization.
 const covered = buildSparseRemovableSupport({

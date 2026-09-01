@@ -8703,6 +8703,7 @@ function installSkinRebuildPipelinePanel(): void {
       return;
     }
     let projectedOutsideFaces: SparseRemovableSupportFace[] = [];
+    let currentProjectedOutsideRegionIds: number[] = [];
     let outsideSupportDemand = 0;
     let insideSupportDemand = 0;
     if (modeAtStart === "automatic" && responsibilityOverhang?.interior) {
@@ -8722,6 +8723,11 @@ function installSkinRebuildPipelinePanel(): void {
           normal: face.normal,
           faceIndex: face.stage7FaceIndex,
         }));
+      // Stage 8 reports only the distinct Outside responsibility regions
+      // represented by this current Stage 7 diagnosis. Historical Stage 4
+      // region totals remain evidence/UI context, not current demand.
+      currentProjectedOutsideRegionIds = [...new Set(projectedOutsideFaces
+        .map((face) => face.regionId))].sort((first, second) => first - second);
       outsideSupportDemand = projected.outsideFaceCount;
       // Stage 4 Inside faces are an authoritative Permanent Web responsibility;
       // they are intentionally never converted into this removable graph.
@@ -8761,6 +8767,7 @@ function installSkinRebuildPipelinePanel(): void {
           const scaleMmPerUnit = settings.targetLongestMm / Math.max(bounds.longest, 1e-9);
           const shaftRadius = settings.supportDiameterMm * 0.5 / scaleMmPerUnit;
           const neckRadius = Math.min(0.3 / scaleMmPerUnit, shaftRadius * 0.85);
+          const neckLength = Math.max(0.6 / scaleMmPerUnit, shaftRadius * 1.25);
           const targetRadius = Math.max(settings.surfaceThickness, neckRadius * 2);
           const finishedBodyInput = {
             mode: "plate",
@@ -8805,7 +8812,7 @@ function installSkinRebuildPipelinePanel(): void {
             : bounds.min.z;
           sparseResult = buildSparseRemovableSupport({
             projectedOutsideFaces,
-            outsideRegionCount: responsibilityOverhang?.interior?.outsideRegionIds.length ?? 0,
+            outsideRegionCount: currentProjectedOutsideRegionIds.length,
             plateZ,
             shaftRadius,
             neckRadius,
@@ -8815,6 +8822,7 @@ function installSkinRebuildPipelinePanel(): void {
             removalGapMm: 0.35,
             scaleMmPerUnit,
             contactNeckDiameterMm: 0.6,
+            neckLength,
             targetRadius,
             maximumOverlapLength: targetRadius + shaftRadius * 2,
             maximumDepth: targetRadius + shaftRadius * 2,

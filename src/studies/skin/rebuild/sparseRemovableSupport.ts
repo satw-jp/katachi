@@ -190,6 +190,7 @@ const MAX_ADAPTIVE_DEPTH = 12;
 const MAX_ADAPTIVE_SAMPLES = 131_072;
 const DEFAULT_REMOVAL_GAP_MM = 0.35;
 const DEFAULT_NECK_DIAMETER_MM = 0.6;
+const MIN_NECK_CLEARANCE_FACTOR = 1.25;
 const DEFAULT_MAX_CANDIDATES_PER_REGION = 3;
 const DEFAULT_MAX_LEANING_ROUTES = 4;
 const DEFAULT_DEBUG_CANDIDATES = 96;
@@ -393,10 +394,15 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     ?? (input.removalGapMm !== undefined && scale !== undefined && finite(scale) && scale > 0
       ? input.removalGapMm / scale!
       : DEFAULT_REMOVAL_GAP_MM / 100);
-  const neckLength = input.neckLength
+  const requestedNeckLength = input.neckLength
     ?? (input.contactNeckDiameterMm !== undefined && scale !== undefined && finite(scale) && scale > 0
       ? input.contactNeckDiameterMm / scale!
       : Math.max(input.neckRadius * 3, DEFAULT_NECK_DIAMETER_MM / 10));
+  // The shaft must finish outside the BODY before the narrower terminal neck
+  // begins. This is a source-unit transition bound, not a change to the
+  // serialized neck diameter; the neck remains the separate 0.6 mm research
+  // contact geometry while its length includes a bounded shaft-radius margin.
+  const neckLength = Math.max(requestedNeckLength, input.shaftRadius * MIN_NECK_CLEARANCE_FACTOR);
   const lowStartBand = input.lowStartBand ?? Math.max(input.shaftRadius * 3, 0.12);
   const maxCandidatesPerRegion = Math.max(1, Math.min(3,
     Math.floor(input.maxCandidatesPerRegion ?? DEFAULT_MAX_CANDIDATES_PER_REGION)));
@@ -462,16 +468,28 @@ function candidateTargetId(regionId: number, index: number): string {
 export function extractSparseRemovableSupportTargets(
   faces: readonly SparseRemovableSupportFace[],
   options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion">,
-): { targets: SparseRemovableSupportTarget[]; rawCandidateCount: number; outsideRegionCount: number } {
+): {
+  targets: SparseRemovableSupportTarget[];
+  rawCandidateCount: number;
+  outsideRegionCount: number;
+  /** Finite Outside demand whose Stage 4 owner patch was unavailable. */
+  unownedCandidateCount: number;
+} {
   const shaftRadius = options.shaftRadius;
   const removalGap = options.removalGap ?? 0;
   const lowStartBand = options.lowStartBand ?? Math.max(shaftRadius * 3, 0.12);
   const maxPerRegion = Math.max(1, Math.min(3, Math.floor(options.maxCandidatesPerRegion ?? 3)));
   const groups = new Map<number, SparseRemovableSupportFace[]>();
+  const representedRegionIds = new Set<number>();
+  let unownedCandidateCount = 0;
   for (const face of faces) {
-    if (!Number.isInteger(face.regionId) || face.regionId < 0
-      || !Number.isInteger(face.ownerPatchId) || face.ownerPatchId < 0
-      || !finitePoint(face.position)) continue;
+    if (!Number.isInteger(face.regionId) || face.regionId < 0) continue;
+    representedRegionIds.add(face.regionId);
+    if (!Number.isInteger(face.ownerPatchId) || face.ownerPatchId < 0) {
+      if (finitePoint(face.position)) unownedCandidateCount++;
+      continue;
+    }
+    if (!finitePoint(face.position)) continue;
     const group = groups.get(face.regionId) ?? [];
     group.push(face);
     groups.set(face.regionId, group);
@@ -522,7 +540,12 @@ export function extractSparseRemovableSupportTargets(
       });
     });
   }
-  return { targets, rawCandidateCount: faces.length, outsideRegionCount: targetRegions.length };
+  return {
+    targets,
+    rawCandidateCount: faces.length,
+    outsideRegionCount: representedRegionIds.size,
+    unownedCandidateCount,
+  };
 }
 
 function targetCoverage(
@@ -575,7 +598,14 @@ function buildRoute(
 ): SparseRemovableSupportRoute | null {
   const rise = target.position.z - plateZ;
   if (!(rise > EPSILON) || !finitePoint(root)) return null;
-  const actualNeckLength = Math.min(neckLength, Math.max(rise * 0.4, neckRadius * 1.5));
+  // Keep the shaft-to-neck transition outside the BODY by at least one shaft
+  // radius plus the bounded transition margin.  The previous rise*0.4 cap
+  // could leave the shaft endpoint inside a flat underside when the default
+  // 1.6 mm shaft met a 0.6 mm neck.  For short targets this intentionally
+  // falls through to the neck-only route below; it never licenses shaft BODY
+  // contact.
+  const actualNeckLength = Math.min(neckLength,
+    Math.max(shaftRadius * MIN_NECK_CLEARANCE_FACTOR, neckRadius * 1.5));
   const neckStartZ = target.position.z - actualNeckLength;
   // A leaning route spends its horizontal displacement in the shaft. The
   // final contact neck is short and vertical at the target XY, which keeps
@@ -937,11 +967,44 @@ export function buildSparseRemovableSupport(
   const routeAttempts: SparseRemovableSupportDebug["routeAttempts"] = [];
   let rejectedByBody = 0;
   let rejectedBySpacing = 0;
-  let rejectedByRemovability = 0;
+  let rejectedByRemovability = extracted.unownedCandidateCount;
   let verticalCount = 0;
   let leaningCount = 0;
   const anyFiniteFace = request.projectedOutsideFaces.some((face) => finitePoint(face.position));
   const requestValid = validNormalizedRequest(request);
+
+  // Ownerless projected Outside faces remain visible as unsupported demand,
+  // but cannot be given a target contact field. Keep these debug facts bounded
+  // and deterministic while ensuring no route is attempted.
+  for (const face of request.projectedOutsideFaces) {
+    if (!Number.isInteger(face.regionId) || face.regionId < 0
+      || (Number.isInteger(face.ownerPatchId) && face.ownerPatchId >= 0)
+      || !finitePoint(face.position)) continue;
+    const id = `unowned-${face.regionId}-${face.faceIndex}`;
+    if (routeAttempts.length < request.maxDebugCandidates) {
+      routeAttempts.push({
+        candidateId: id,
+        regionId: face.regionId,
+        attempts: [{
+          kind: "vertical",
+          accepted: false,
+          reason: "unsupported",
+          detail: "Stage 4 owner Patch id unavailable; no target contact attempted",
+        }],
+      });
+    }
+    if (rejectedCandidates.length < request.maxDebugCandidates) {
+      rejectedCandidates.push({
+        id,
+        regionId: face.regionId,
+        ownerPatchId: -1,
+        position: clonePoint(face.position),
+        reason: "unsupported",
+        routeKind: "vertical",
+        detail: "Stage 4 owner Patch id unavailable; no target contact attempted",
+      });
+    }
+  }
 
   for (const candidate of candidates) {
     const uncovered = candidate.coversCriticalTargetIds.filter((id) => !coveredTargetIds.has(id));
@@ -1007,7 +1070,8 @@ export function buildSparseRemovableSupport(
       });
     }
   }
-  const unsupportedTargetCount = Math.max(0, targets.length - coveredTargetIds.size);
+  const unsupportedTargetCount = Math.max(0,
+    targets.length + extracted.unownedCandidateCount - coveredTargetIds.size);
   const graph = builder.graph();
   graph.stats.requestedTargets = targets.length;
   graph.stats.connectedTargets = coveredTargetIds.size;
