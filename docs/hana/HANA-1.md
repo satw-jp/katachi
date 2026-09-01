@@ -1,6 +1,6 @@
 # HANA-1 — Stroke to 3D Stroke to Simple Field Stem
 
-Status: planning boundary; implementation has not started
+Status: HANA-1A input shell verified; 3D projection has not started
 Updated: 2026-09-01
 
 ## First destination
@@ -16,6 +16,12 @@ simple Field Stem
 ```
 
 The first destination is not a finished flower. Flower Head, `hana-taba`, SKIN Support, SKIN Web, Print integration, and CUDA are outside HANA-1.
+
+## HANA-1A result
+
+The Four View Input Shell passed its 2026-09-01 EasyCanvas / Apple Pencil check. Top / Axome / Front / Right, one/four layout, splitter, orthographic camera controls, per-viewport Draw/Edit/View modes, raw pressure/time capture, separate viewport strokes, JSON saving, and the Raw Gesture / Editor State boundary were verified without browser console errors.
+
+The author observed that strokes drawn in the lower Front and Right viewports do not move together. This is the intended HANA-1A boundary: they are still separate 2D Viewport Gestures. Declaring that two projections describe one Stroke, choosing the missing axis, and showing the resulting 3D Stroke across all viewports are HANA-1B questions. No linkage was added in HANA-1A.
 
 ## Viewport plan
 

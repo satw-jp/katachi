@@ -67,15 +67,15 @@ test("catalog hrefs are unique", () => {
   assert.equal(new Set(hrefs).size, hrefs.length, `duplicate href in ${hrefs.join(", ")}`);
 });
 
-// --- 13 Study が過不足なく載っている -----------------------------------------
+// --- 14 Study が過不足なく載っている -----------------------------------------
 
-test("catalog has exactly 13 entries", () => {
-  assert.equal(STUDY_CATALOG.length, 13);
+test("catalog has exactly 14 entries", () => {
+  assert.equal(STUDY_CATALOG.length, 14);
 });
 
 test("catalog ids match the directories under src/studies/", () => {
   const dirs = readStudyDirs();
-  assert.equal(dirs.length, 13, `expected 13 study dirs, found ${dirs.length}: ${dirs.join(", ")}`);
+  assert.equal(dirs.length, 14, `expected 14 study dirs, found ${dirs.length}: ${dirs.join(", ")}`);
   assert.deepEqual(sorted(STUDY_CATALOG.map((s) => s.id)), dirs);
 });
 
@@ -86,9 +86,9 @@ test("researchOrder is unique", () => {
   assert.equal(new Set(orders).size, orders.length, `duplicate researchOrder in ${orders.join(", ")}`);
 });
 
-test("researchOrder is exactly 1..13 with no gaps", () => {
+test("researchOrder is exactly 1..14 with no gaps", () => {
   const orders = [...STUDY_CATALOG.map((s) => s.researchOrder)].sort((a, b) => a - b);
-  assert.deepEqual(orders, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  assert.deepEqual(orders, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 });
 
 test("researchOrder follows the recorded research flow", () => {
@@ -109,6 +109,7 @@ test("researchOrder follows the recorded research flow", () => {
       "tangle",
       "flower-packing-spike",
       "flower-core-network",
+      "hana",
     ],
   );
 });

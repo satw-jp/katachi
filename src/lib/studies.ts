@@ -182,4 +182,15 @@ export const STUDY_CATALOG: readonly StudyCatalogEntry[] = [
     purposeTags: ["内部", "造形制約", "比較"],
     status: "active",
   },
+  {
+    id: "hana",
+    href: "hana.html",
+    titleJa: "一本の花を描く",
+    titleEn: "HANA Gesture Study",
+    principle:
+      "作者のApple Pencil Gestureを正本として保ったまま、複数の正投影Viewportを持つ編集環境へ安全に受け渡せるかを見る。",
+    researchOrder: 14,
+    purposeTags: ["Gesture", "入力", "比較"],
+    status: "active",
+  },
 ];

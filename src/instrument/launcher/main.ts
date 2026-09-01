@@ -32,7 +32,7 @@ import "./style.css";
  * Study の追加で一覧を変えた場合は上げる（各 Study の版は各 `manifest.json` が正本）。
  * launcher 独自の semver は作らない。持つのは更新日だけ。
  */
-const LAUNCHER_UPDATED_AT = "2026-08-11";
+const LAUNCHER_UPDATED_AT = "2026-09-01";
 
 const HIKARI_URL = "https://hikari.a-8c3.workers.dev/";
 

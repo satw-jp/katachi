@@ -1,0 +1,314 @@
+:root {
+  color: #15181c;
+  background: #eef0f2;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button {
+  min-height: 30px;
+  border: 1px solid #c8cdd3;
+  border-radius: 4px;
+  background: #fff;
+  color: #252a30;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #858d96;
+}
+
+button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+button[aria-pressed="true"] {
+  border-color: #30363d;
+  background: #30363d;
+  color: #fff;
+}
+
+.hana-shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 10px;
+  gap: 8px;
+}
+
+.hana-header,
+.hana-debug {
+  border: 1px solid #d0d5da;
+  background: #fff;
+}
+
+.hana-header {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.hana-heading h1 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.hana-heading p {
+  margin: 0.2rem 0 0;
+  color: #68717c;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.67rem;
+}
+
+.hana-toolbar,
+.hana-segmented {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hana-segmented {
+  padding-right: 0.35rem;
+  border-right: 1px solid #d7dbe0;
+}
+
+.hana-primary {
+  border-color: #30363d;
+  background: #30363d;
+  color: #fff;
+}
+
+.hana-workspace {
+  position: relative;
+  min-width: 0;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid #bfc5cc;
+  background: #f7f8fa;
+}
+
+#scene-canvas,
+#gesture-canvas,
+#viewport-chrome {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#scene-canvas {
+  z-index: 0;
+}
+
+#gesture-canvas {
+  z-index: 1;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+#viewport-chrome {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hana-viewport-pane {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid rgba(91, 99, 108, 0.38);
+}
+
+.hana-viewport-pane.is-selected {
+  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.62);
+}
+
+.hana-view-identity {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  gap: 1px;
+  padding: 4px 7px;
+  border: 1px solid rgba(192, 198, 204, 0.88);
+  background: rgba(255, 255, 255, 0.88);
+  color: #2b3036;
+  backdrop-filter: blur(3px);
+}
+
+.hana-view-identity strong {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hana-view-identity span {
+  color: #737c86;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.57rem;
+}
+
+.hana-mode-switch {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  pointer-events: auto;
+  border: 1px solid rgba(192, 198, 204, 0.9);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.hana-mode-switch button {
+  min-height: 24px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 0.48rem;
+  background: transparent;
+  font-size: 0.65rem;
+}
+
+.hana-mode-switch button + button {
+  border-left: 1px solid #cbd0d6;
+}
+
+.hana-mode-switch button[aria-pressed="true"] {
+  background: #30363d;
+  color: #fff;
+}
+
+.hana-draw-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #9aa2ab;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.22em;
+}
+
+.hana-splitter {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+  background: transparent;
+}
+
+.hana-splitter::after {
+  content: "";
+  position: absolute;
+  background: #858d96;
+  opacity: 0.42;
+}
+
+.hana-splitter:hover::after,
+.hana-splitter.is-dragging::after {
+  opacity: 0.9;
+}
+
+.hana-splitter-x {
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  margin-left: -6px;
+  cursor: col-resize;
+}
+
+.hana-splitter-x::after {
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+}
+
+.hana-splitter-y {
+  left: 0;
+  right: 0;
+  height: 12px;
+  margin-top: -6px;
+  cursor: row-resize;
+}
+
+.hana-splitter-y::after {
+  left: 0;
+  right: 0;
+  top: 5px;
+  height: 1px;
+}
+
+.hana-debug {
+  padding: 0.55rem 0.8rem 0.5rem;
+}
+
+.hana-debug dl {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+  font-family: Consolas, "Liberation Mono", monospace;
+}
+
+.hana-debug dt {
+  margin-bottom: 2px;
+  color: #7a838d;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hana-debug dd {
+  overflow: hidden;
+  margin: 0;
+  color: #242a31;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hana-debug p {
+  margin: 0.45rem 0 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid #e1e4e8;
+  color: #6b747e;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+}
+
+@media (max-width: 760px) {
+  .hana-shell {
+    padding: 5px;
+    gap: 5px;
+  }
+
+  .hana-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hana-debug dl {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
