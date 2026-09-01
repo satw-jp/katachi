@@ -17,6 +17,8 @@ The following are frozen until the physical print result returns:
 
 This document proposes boundaries and migration gates only. It does not rename existing runtime types, change saved schemas, introduce CUDA dependencies or move geometry code.
 
+See `skin-hana-bridge.md` for the design-only candidate boundary through which author-drawn Stroke, Graph, or author intent might reach SKIN in the future. That reference does not make HANA a current production input.
+
 ## 2. Architectural rules
 
 1. UI actions create backend-neutral project commands; they never invoke CUDA, WebGPU or a concrete SDF directly.
