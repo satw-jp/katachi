@@ -46,6 +46,11 @@ button[aria-pressed="true"] {
   color: #fff;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
 .hana-shell {
   height: 100%;
   display: grid;
@@ -265,7 +270,7 @@ button[aria-pressed="true"] {
 
 .hana-debug dl {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.8rem;
   margin: 0;
   font-family: Consolas, "Liberation Mono", monospace;

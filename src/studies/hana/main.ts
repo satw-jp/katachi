@@ -10,7 +10,6 @@ import { resolveRhinoViewportGesture, type RhinoViewportGesture } from "../skin/
 import manifest from "./manifest.json";
 import {
   HANA_VIEW_DIRECTIONS,
-  createGesturePayload,
   pointerTypeFromBrowser,
   pressureDisplayWidth,
   pressureStats,
@@ -22,6 +21,12 @@ import {
   type HanaViewportMode,
   type HanaViewportStroke,
 } from "./gesture.ts";
+import {
+  applyViewportEdit,
+  createHanaDocument,
+  deriveStroke3D,
+  type HanaStroke3D,
+} from "./stroke3d.ts";
 import { HanaViewportRenderer } from "./viewportRenderer.ts";
 import "./style.css";
 
@@ -32,22 +37,22 @@ app.innerHTML = `
   <main class="hana-shell">
     <header class="hana-header">
       <div class="hana-heading">
-        <h1>HANA — Four View Input Shell</h1>
-        <p>HANA-1A · v${manifest.version} · updated ${manifest.updatedAt}</p>
+        <h1>HANA — Shared 3D Stroke</h1>
+        <p>HANA-1B · v${manifest.version} · updated ${manifest.updatedAt}</p>
       </div>
-      <div class="hana-toolbar" aria-label="Viewport layout and gesture actions">
+      <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
           <button id="layout-four" type="button" aria-pressed="true">Four</button>
           <button id="layout-one" type="button" aria-pressed="false">One</button>
         </div>
-        <button id="clear-gesture" type="button">Clear</button>
-        <button id="save-gesture" type="button" class="hana-primary">Save JSON</button>
+        <button id="clear-document" type="button">Clear</button>
+        <button id="save-document" type="button" class="hana-primary">Save JSON</button>
       </div>
     </header>
 
-    <section class="hana-workspace" aria-label="HANA four viewport editor">
+    <section class="hana-workspace" aria-label="HANA shared 3D stroke editor">
       <canvas id="scene-canvas" aria-hidden="true"></canvas>
-      <canvas id="gesture-canvas" aria-label="HANA viewport gesture input"></canvas>
+      <canvas id="gesture-canvas" aria-label="HANA shared 3D stroke input"></canvas>
       <div id="viewport-chrome" aria-live="polite"></div>
       <div id="splitter-x" class="hana-splitter hana-splitter-x" role="separator" aria-label="Resize viewport columns" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"></div>
       <div id="splitter-y" class="hana-splitter hana-splitter-y" role="separator" aria-label="Resize viewport rows" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"></div>
@@ -59,11 +64,12 @@ app.innerHTML = `
         <div><dt>pressure</dt><dd id="debug-pressure">0.0000</dd></div>
         <div><dt>x / y</dt><dd id="debug-position">— / —</dd></div>
         <div><dt>viewport</dt><dd id="debug-viewport">Front</dd></div>
-        <div><dt>current points</dt><dd id="debug-points">0</dd></div>
-        <div><dt>all strokes</dt><dd id="debug-strokes">0</dd></div>
-        <div><dt>last pressure</dt><dd id="debug-range">—</dd></div>
+        <div><dt>raw points</dt><dd id="debug-points">0</dd></div>
+        <div><dt>3D controls</dt><dd id="debug-controls">0</dd></div>
+        <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
+        <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
       </dl>
-      <p id="input-state">READY · Raw Gesture is separate from camera and layout state</p>
+      <p id="input-state">READY · Draw one Stroke in Front, Right, or Top</p>
     </footer>
   </main>
 `;
@@ -82,8 +88,8 @@ const splitterX = requiredElement<HTMLElement>("#splitter-x");
 const splitterY = requiredElement<HTMLElement>("#splitter-y");
 const layoutFourButton = requiredElement<HTMLButtonElement>("#layout-four");
 const layoutOneButton = requiredElement<HTMLButtonElement>("#layout-one");
-const clearButton = requiredElement<HTMLButtonElement>("#clear-gesture");
-const saveButton = requiredElement<HTMLButtonElement>("#save-gesture");
+const clearButton = requiredElement<HTMLButtonElement>("#clear-document");
+const saveButton = requiredElement<HTMLButtonElement>("#save-document");
 
 const renderer = new HanaViewportRenderer(sceneCanvas, HANA_VIEW_DIRECTIONS);
 const gestureContext = gestureCanvas.getContext("2d") ?? (() => {
@@ -95,9 +101,11 @@ let viewportMode: HanaViewportMode = "four";
 let selectedViewport = 2;
 let split = { x: 0.5, y: 0.5 };
 const interactionModes: HanaInteractionMode[] = ["edit", "view", "draw", "edit"];
-const strokes: HanaViewportStroke[] = [];
-let strokeCounter = 0;
+const rawGestures: HanaViewportStroke[] = [];
+let stroke3D: HanaStroke3D | null = null;
+let selectedControlPoint: number | null = null;
 let gesturePixelRatio = 1;
+let stateMessage = "READY · Draw one Stroke in Front, Right, or Top";
 
 interface ActiveStroke {
   pointerId: number;
@@ -115,8 +123,17 @@ interface CameraDrag {
   rect: SkinViewportRect;
 }
 
+interface ControlDrag {
+  pointerId: number;
+  viewportIndex: number;
+  direction: Exclude<HanaViewDirection, "axome">;
+  controlIndex: number;
+  rect: SkinViewportRect;
+}
+
 let activeStroke: ActiveStroke | null = null;
 let cameraDrag: CameraDrag | null = null;
+let controlDrag: ControlDrag | null = null;
 
 function viewportId(index: number): string {
   const direction = directions[index];
@@ -125,16 +142,10 @@ function viewportId(index: number): string {
 }
 
 function currentRects(): SkinViewportRect[] {
-  return skinViewportRects(
-    workspace.clientWidth,
-    workspace.clientHeight,
-    viewportMode,
-    selectedViewport,
-    split,
-  );
+  return skinViewportRects(workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
 }
 
-function canvasPoint(event: PointerEvent): { x: number; y: number } {
+function canvasPoint(event: { clientX: number; clientY: number }): { x: number; y: number } {
   const bounds = gestureCanvas.getBoundingClientRect();
   return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
 }
@@ -144,88 +155,118 @@ function setDebugText(id: string, value: string): void {
   if (element) element.textContent = value;
 }
 
+function rawSignature(): string {
+  const stroke = rawGestures[0];
+  if (!stroke) return "empty";
+  let pressureTotal = 0;
+  let timeTotal = 0;
+  for (const point of stroke.points) {
+    pressureTotal += point.pressure;
+    timeTotal += point.time;
+  }
+  return `${stroke.id}:${stroke.points.length}:${pressureTotal.toFixed(8)}:${timeTotal.toFixed(3)}`;
+}
+
 function updateDebug(
-  point: HanaStrokePoint | null,
-  pointerType: HanaPointerType | null,
-  stroke: HanaViewportStroke | null,
+  point: HanaStrokePoint | null = null,
+  pointerType: HanaPointerType | null = null,
+  stroke: HanaViewportStroke | null = null,
 ): void {
-  setDebugText("debug-pointer", pointerType ?? "—");
+  const selected = selectedControlPoint === null ? null : stroke3D?.controlPoints[selectedControlPoint] ?? null;
+  setDebugText("debug-pointer", pointerType ?? rawGestures[0]?.pointerType ?? "—");
   setDebugText("debug-pressure", point ? point.pressure.toFixed(4) : "0.0000");
   setDebugText("debug-position", point ? `${point.x.toFixed(1)} / ${point.y.toFixed(1)}` : "— / —");
   setDebugText("debug-viewport", skinViewDirectionLabel(directions[selectedViewport]));
-  setDebugText("debug-points", String(stroke?.points.length ?? 0));
-  setDebugText("debug-strokes", String(strokes.length));
-  const stats = pressureStats(stroke ?? strokes[strokes.length - 1] ?? null);
-  setDebugText(
-    "debug-range",
-    stats ? `${stats.min.toFixed(4)}–${stats.max.toFixed(4)} · ${stats.distinct}` : "—",
-  );
-  setDebugText(
-    "input-state",
-    activeStroke
-      ? "RECORDING · camera input is disabled for this Draw stroke"
-      : "READY · Raw Gesture is separate from camera and layout state",
-  );
+  setDebugText("debug-points", String(stroke?.points.length ?? rawGestures[0]?.points.length ?? 0));
+  setDebugText("debug-controls", String(stroke3D?.controlPoints.length ?? 0));
+  setDebugText("debug-xyz", selected
+    ? `${selected.position.x.toFixed(3)}, ${selected.position.y.toFixed(3)}, ${selected.position.z.toFixed(3)}`
+    : "—");
+  const stats = pressureStats(stroke ?? rawGestures[0] ?? null);
+  setDebugText("debug-range", stats ? `${stats.min.toFixed(4)}–${stats.max.toFixed(4)} · ${stats.distinct}` : "—");
+  setDebugText("input-state", activeStroke
+    ? "RECORDING · camera input is disabled"
+    : controlDrag ? `EDITING · control ${controlDrag.controlIndex + 1} · Raw Gesture locked`
+      : stateMessage);
+  workspace.dataset.rawGestureCount = String(rawGestures.length);
+  workspace.dataset.rawPointCount = String(rawGestures[0]?.points.length ?? 0);
+  workspace.dataset.stroke3dCount = String(stroke3D ? 1 : 0);
+  workspace.dataset.controlPointCount = String(stroke3D?.controlPoints.length ?? 0);
+  workspace.dataset.selectedControlPoint = selectedControlPoint === null ? "" : String(selectedControlPoint);
+  workspace.dataset.selectedXyz = selected
+    ? `${selected.position.x},${selected.position.y},${selected.position.z}`
+    : "";
+  workspace.dataset.rawSignature = rawSignature();
 }
 
-function drawStroke(
-  context: CanvasRenderingContext2D,
-  stroke: HanaViewportStroke,
-  rect: SkinViewportRect,
-): void {
+function drawRawGesture(stroke: HanaViewportStroke, rect: SkinViewportRect): void {
   if (stroke.points.length === 0) return;
   const scaleX = rect.width / Math.max(1, stroke.viewportSize.width);
   const scaleY = rect.height / Math.max(1, stroke.viewportSize.height);
-
-  const position = (point: HanaStrokePoint) => ({
-    x: rect.x + point.x * scaleX,
-    y: rect.y + point.y * scaleY,
-  });
-
+  const position = (point: HanaStrokePoint) => ({ x: rect.x + point.x * scaleX, y: rect.y + point.y * scaleY });
+  gestureContext.strokeStyle = "rgba(37, 99, 235, 0.24)";
+  gestureContext.fillStyle = "rgba(37, 99, 235, 0.24)";
   const first = stroke.points[0];
   const firstPosition = position(first);
-  context.beginPath();
-  context.arc(firstPosition.x, firstPosition.y, pressureDisplayWidth(first.pressure) / 2, 0, Math.PI * 2);
-  context.fill();
-
+  gestureContext.beginPath();
+  gestureContext.arc(firstPosition.x, firstPosition.y, pressureDisplayWidth(first.pressure) / 2, 0, Math.PI * 2);
+  gestureContext.fill();
   for (let index = 1; index < stroke.points.length; index += 1) {
     const from = stroke.points[index - 1];
     const to = stroke.points[index];
     const fromPosition = position(from);
     const toPosition = position(to);
-    context.beginPath();
-    context.moveTo(fromPosition.x, fromPosition.y);
-    context.lineTo(toPosition.x, toPosition.y);
-    context.lineWidth = pressureDisplayWidth((from.pressure + to.pressure) / 2);
-    context.stroke();
+    gestureContext.beginPath();
+    gestureContext.moveTo(fromPosition.x, fromPosition.y);
+    gestureContext.lineTo(toPosition.x, toPosition.y);
+    gestureContext.lineWidth = pressureDisplayWidth((from.pressure + to.pressure) / 2);
+    gestureContext.stroke();
   }
 }
 
-function redrawGestures(): void {
+function drawSharedStroke(rect: SkinViewportRect): void {
+  if (!stroke3D || stroke3D.controlPoints.length === 0) return;
+  const projected = stroke3D.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
+  gestureContext.strokeStyle = "#111827";
+  gestureContext.lineWidth = 2;
+  gestureContext.beginPath();
+  gestureContext.moveTo(projected[0].x, projected[0].y);
+  for (let index = 1; index < projected.length; index += 1) gestureContext.lineTo(projected[index].x, projected[index].y);
+  gestureContext.stroke();
+  if (directions[rect.index] === "axome" || interactionModes[rect.index] !== "edit") return;
+  for (let index = 0; index < projected.length; index += 1) {
+    const point = projected[index];
+    gestureContext.beginPath();
+    gestureContext.arc(point.x, point.y, index === selectedControlPoint ? 5 : 3.5, 0, Math.PI * 2);
+    gestureContext.fillStyle = index === selectedControlPoint ? "#f59e0b" : "#ffffff";
+    gestureContext.fill();
+    gestureContext.strokeStyle = "#111827";
+    gestureContext.lineWidth = 1.25;
+    gestureContext.stroke();
+  }
+}
+
+function redrawOverlay(): void {
   const width = workspace.clientWidth;
   const height = workspace.clientHeight;
   gestureContext.setTransform(gesturePixelRatio, 0, 0, gesturePixelRatio, 0, 0);
   gestureContext.clearRect(0, 0, width, height);
-  gestureContext.strokeStyle = "#111827";
-  gestureContext.fillStyle = "#111827";
   gestureContext.lineCap = "round";
   gestureContext.lineJoin = "round";
-
   for (const rect of currentRects()) {
-    const id = viewportId(rect.index);
     gestureContext.save();
     gestureContext.beginPath();
     gestureContext.rect(rect.x, rect.y, rect.width, rect.height);
     gestureContext.clip();
-    for (const stroke of strokes) {
-      if (stroke.viewportId === id) drawStroke(gestureContext, stroke, rect);
-    }
+    const source = rawGestures[0];
+    if (source?.viewportId === viewportId(rect.index)) drawRawGesture(source, rect);
+    drawSharedStroke(rect);
     gestureContext.restore();
   }
 }
 
 function modeOptions(index: number): readonly HanaInteractionMode[] {
-  return directions[index] === "axome" ? ["view", "edit"] : ["draw", "edit"];
+  return directions[index] === "axome" ? ["view"] : ["draw", "edit"];
 }
 
 function renderViewportChrome(): void {
@@ -239,12 +280,10 @@ function renderViewportChrome(): void {
     pane.style.width = `${rect.width}px`;
     pane.style.height = `${rect.height}px`;
     pane.dataset.viewportId = viewportId(rect.index);
-
     const identity = document.createElement("div");
     identity.className = "hana-view-identity";
     identity.innerHTML = `<strong>${skinViewDirectionLabel(direction)}</strong><span>${skinViewAxisLegend(direction)}</span>`;
     pane.appendChild(identity);
-
     const modes = document.createElement("div");
     modes.className = "hana-mode-switch";
     modes.setAttribute("aria-label", `${skinViewDirectionLabel(direction)} interaction mode`);
@@ -255,21 +294,26 @@ function renderViewportChrome(): void {
       button.dataset.viewportIndex = String(rect.index);
       button.dataset.interactionMode = mode;
       button.setAttribute("aria-pressed", String(interactionModes[rect.index] === mode));
+      button.disabled = mode === "draw" && stroke3D !== null;
+      if (button.disabled) button.title = "HANA-1B supports one Stroke. Clear before drawing another.";
       button.addEventListener("pointerdown", (event) => event.stopPropagation());
       button.addEventListener("click", () => {
         interactionModes[rect.index] = mode;
         selectedViewport = rect.index;
+        selectedControlPoint = null;
+        stateMessage = mode === "draw"
+          ? `DRAW · ${skinViewDirectionLabel(direction)} creates a new Stroke3D`
+          : "EDIT · drag a control point; drag empty space to move camera";
         refreshLayout();
-        updateDebug(null, null, null);
+        updateDebug();
       });
       modes.appendChild(button);
     }
     pane.appendChild(modes);
-
-    if (interactionModes[rect.index] === "draw" && !strokes.some((stroke) => stroke.viewportId === viewportId(rect.index))) {
+    if (interactionModes[rect.index] === "draw" && !stroke3D) {
       const hint = document.createElement("span");
       hint.className = "hana-draw-hint";
-      hint.textContent = "DRAW HERE";
+      hint.textContent = "DRAW ONE STROKE";
       pane.appendChild(hint);
     }
     chrome.appendChild(pane);
@@ -298,7 +342,7 @@ function renderScene(): void {
 
 function refreshLayout(): void {
   renderScene();
-  redrawGestures();
+  redrawOverlay();
   renderViewportChrome();
   updateSplitters();
   updateLayoutButtons();
@@ -333,41 +377,115 @@ function appendSamples(event: PointerEvent): void {
     latest = pointFromSample(sample, activeStroke);
     activeStroke.stroke.points.push(latest);
   }
-  redrawGestures();
+  redrawOverlay();
   if (latest) updateDebug(latest, activeStroke.stroke.pointerType, activeStroke.stroke);
 }
 
 function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
-  if (!event.isPrimary || activeStroke || cameraDrag) return;
+  if (!event.isPrimary || activeStroke || cameraDrag || controlDrag || stroke3D) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
+  const direction = directions[rect.index];
+  if (direction === "axome") return;
   event.preventDefault();
   gestureCanvas.setPointerCapture(event.pointerId);
-  strokeCounter += 1;
-  const direction = directions[rect.index];
   const stroke: HanaViewportStroke = {
-    id: `stroke-${strokeCounter}`,
+    id: "gesture-1",
     viewportId: viewportId(rect.index),
     viewDirection: direction,
     pointerType: pointerTypeFromBrowser(event.pointerType),
     viewportSize: { width: rect.width, height: rect.height },
     points: [],
   };
-  strokes.push(stroke);
-  activeStroke = {
-    pointerId: event.pointerId,
-    startTime: event.timeStamp,
-    stroke,
-    rect: { ...rect },
-  };
+  rawGestures.push(stroke);
+  activeStroke = { pointerId: event.pointerId, startTime: event.timeStamp, stroke, rect: { ...rect } };
   const point = pointFromSample(event, activeStroke);
   stroke.points.push(point);
-  redrawGestures();
+  redrawOverlay();
   renderViewportChrome();
   updateDebug(point, stroke.pointerType, stroke);
 }
 
+function finishStroke(): void {
+  if (!activeStroke) return;
+  const finished = activeStroke;
+  const direction = finished.stroke.viewDirection;
+  if (direction === "axome") throw new Error("Axome Draw is outside HANA-1B");
+  stroke3D = deriveStroke3D(finished.stroke, (point) => {
+    const world = renderer.pointOnViewPlane(
+      finished.rect.index,
+      finished.rect.x + point.x,
+      finished.rect.y + point.y,
+      finished.rect,
+      direction,
+      0,
+    );
+    if (!world) throw new Error(`Could not project ${direction} gesture onto its initial plane`);
+    return world;
+  });
+  activeStroke = null;
+  interactionModes[0] = "edit";
+  interactionModes[2] = "edit";
+  interactionModes[3] = "edit";
+  selectedControlPoint = Math.floor(stroke3D.controlPoints.length / 2);
+  stateMessage = `STROKE3D READY · ${stroke3D.controlPoints.length} controls · switch to Right or Top Edit`;
+  refreshLayout();
+  updateDebug(
+    finished.stroke.points[finished.stroke.points.length - 1] ?? null,
+    finished.stroke.pointerType,
+    finished.stroke,
+  );
+}
+
+function nearestControlIndex(rect: SkinViewportRect, x: number, y: number): number | null {
+  if (!stroke3D) return null;
+  let bestIndex: number | null = null;
+  let bestDistance = 12;
+  stroke3D.controlPoints.forEach((point, index) => {
+    const projected = renderer.projectPoint(rect.index, point.position, rect);
+    const distance = Math.hypot(projected.x - x, projected.y - y);
+    if (distance <= bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
+
+function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIndex: number): void {
+  const direction = directions[rect.index];
+  if (direction === "axome" || !stroke3D) return;
+  event.preventDefault();
+  gestureCanvas.setPointerCapture(event.pointerId);
+  selectedControlPoint = controlIndex;
+  controlDrag = { pointerId: event.pointerId, viewportIndex: rect.index, direction, controlIndex, rect: { ...rect } };
+  updateDebug();
+  redrawOverlay();
+}
+
+function updateControlDrag(event: PointerEvent): void {
+  if (!controlDrag || !stroke3D || controlDrag.pointerId !== event.pointerId) return;
+  const point = stroke3D.controlPoints[controlDrag.controlIndex];
+  const planeValue = controlDrag.direction === "front"
+    ? point.position.y
+    : controlDrag.direction === "right" ? point.position.x : point.position.z;
+  const canvas = canvasPoint(event);
+  const world = renderer.pointOnViewPlane(
+    controlDrag.viewportIndex,
+    canvas.x,
+    canvas.y,
+    controlDrag.rect,
+    controlDrag.direction,
+    planeValue,
+  );
+  if (!world) return;
+  applyViewportEdit(point, controlDrag.direction, world);
+  stateMessage = `EDITED · control ${controlDrag.controlIndex + 1} updated in all four views`;
+  redrawOverlay();
+  updateDebug();
+}
+
 function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
-  if (!event.isPrimary || activeStroke || cameraDrag) return;
+  if (!event.isPrimary || activeStroke || cameraDrag || controlDrag) return;
   if (event.pointerType === "mouse" && event.button !== 0 && event.button !== 2) return;
   event.preventDefault();
   gestureCanvas.setPointerCapture(event.pointerId);
@@ -385,41 +503,47 @@ function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
 }
 
 function endPointer(pointerId: number, releaseCapture: boolean): void {
-  if (activeStroke?.pointerId === pointerId) {
-    const finished = activeStroke.stroke;
-    activeStroke = null;
-    updateDebug(finished.points[finished.points.length - 1] ?? null, finished.pointerType, finished);
-  }
+  if (activeStroke?.pointerId === pointerId) finishStroke();
   if (cameraDrag?.pointerId === pointerId) cameraDrag = null;
-  if (releaseCapture && gestureCanvas.hasPointerCapture(pointerId)) {
-    gestureCanvas.releasePointerCapture(pointerId);
+  if (controlDrag?.pointerId === pointerId) {
+    controlDrag = null;
+    updateDebug();
   }
+  if (releaseCapture && gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
 }
 
 gestureCanvas.addEventListener("pointerdown", (event) => {
   const point = canvasPoint(event);
-  const rect = skinViewportAtPoint(
-    point.x,
-    point.y,
-    workspace.clientWidth,
-    workspace.clientHeight,
-    viewportMode,
-    selectedViewport,
-    split,
-  );
+  const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
   if (!rect) return;
   selectedViewport = rect.index;
   renderViewportChrome();
   renderScene();
-  updateDebug(null, null, null);
-  if (interactionModes[rect.index] === "draw") startStroke(event, rect);
-  else startCameraDrag(event, rect);
+  redrawOverlay();
+  updateDebug();
+  if (interactionModes[rect.index] === "draw") {
+    startStroke(event, rect);
+    return;
+  }
+  if (interactionModes[rect.index] === "edit" && directions[rect.index] !== "axome") {
+    const controlIndex = nearestControlIndex(rect, point.x, point.y);
+    if (controlIndex !== null) {
+      startControlDrag(event, rect, controlIndex);
+      return;
+    }
+  }
+  startCameraDrag(event, rect);
 });
 
 gestureCanvas.addEventListener("pointermove", (event) => {
   if (activeStroke?.pointerId === event.pointerId) {
     event.preventDefault();
     appendSamples(event);
+    return;
+  }
+  if (controlDrag?.pointerId === event.pointerId) {
+    event.preventDefault();
+    updateControlDrag(event);
     return;
   }
   if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
@@ -435,6 +559,7 @@ gestureCanvas.addEventListener("pointermove", (event) => {
   cameraDrag.previousX = event.clientX;
   cameraDrag.previousY = event.clientY;
   renderScene();
+  redrawOverlay();
 });
 
 gestureCanvas.addEventListener("pointerup", (event) => endPointer(event.pointerId, true));
@@ -443,22 +568,15 @@ gestureCanvas.addEventListener("lostpointercapture", (event) => endPointer(event
 gestureCanvas.addEventListener("contextmenu", (event) => event.preventDefault());
 gestureCanvas.addEventListener("wheel", (event) => {
   event.preventDefault();
-  const point = { x: event.clientX - gestureCanvas.getBoundingClientRect().left, y: event.clientY - gestureCanvas.getBoundingClientRect().top };
-  const rect = skinViewportAtPoint(
-    point.x,
-    point.y,
-    workspace.clientWidth,
-    workspace.clientHeight,
-    viewportMode,
-    selectedViewport,
-    split,
-  );
+  const point = canvasPoint(event);
+  const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
   if (!rect || interactionModes[rect.index] === "draw") return;
   selectedViewport = rect.index;
   renderer.applyDrag(rect.index, "zoom", 0, event.deltaY * 0.12, rect.width, rect.height);
   renderScene();
+  redrawOverlay();
   renderViewportChrome();
-  updateDebug(null, null, null);
+  updateDebug();
 }, { passive: false });
 
 function beginSplitterDrag(event: PointerEvent, axis: "x" | "y"): void {
@@ -491,24 +609,23 @@ function beginSplitterDrag(event: PointerEvent, axis: "x" | "y"): void {
 splitterX.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "x"));
 splitterY.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "y"));
 
-layoutFourButton.addEventListener("click", () => {
-  viewportMode = "four";
-  refreshLayout();
-});
-
-layoutOneButton.addEventListener("click", () => {
-  viewportMode = "one";
-  refreshLayout();
-});
+layoutFourButton.addEventListener("click", () => { viewportMode = "four"; refreshLayout(); });
+layoutOneButton.addEventListener("click", () => { viewportMode = "one"; refreshLayout(); });
 
 clearButton.addEventListener("click", () => {
-  strokes.length = 0;
+  rawGestures.length = 0;
+  stroke3D = null;
   activeStroke = null;
   cameraDrag = null;
-  strokeCounter = 0;
-  redrawGestures();
-  renderViewportChrome();
-  updateDebug(null, null, null);
+  controlDrag = null;
+  selectedControlPoint = null;
+  interactionModes[0] = "edit";
+  interactionModes[1] = "view";
+  interactionModes[2] = "draw";
+  interactionModes[3] = "edit";
+  stateMessage = "READY · Draw one Stroke in Front, Right, or Top";
+  refreshLayout();
+  updateDebug();
 });
 
 function captureEditorState(): HanaEditorState {
@@ -526,7 +643,7 @@ function captureEditorState(): HanaEditorState {
 }
 
 function snapshot() {
-  return createGesturePayload(strokes, captureEditorState());
+  return createHanaDocument(rawGestures, stroke3D ? [stroke3D] : [], captureEditorState());
 }
 
 saveButton.addEventListener("click", () => {
@@ -535,20 +652,15 @@ saveButton.addEventListener("click", () => {
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   link.href = url;
-  link.download = `hana-1a-gesture-${timestamp}.json`;
+  link.download = `hana-1b-document-${timestamp}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 });
 
-type HanaProbeWindow = Window & {
-  __HANA_1A__?: {
-    snapshot: typeof snapshot;
-  };
-};
-
-(window as HanaProbeWindow).__HANA_1A__ = { snapshot };
+type HanaProbeWindow = Window & { __HANA_1B__?: { snapshot: typeof snapshot } };
+(window as HanaProbeWindow).__HANA_1B__ = { snapshot };
 
 const resizeObserver = new ResizeObserver(resize);
 resizeObserver.observe(workspace);
@@ -558,4 +670,4 @@ window.addEventListener("beforeunload", () => {
 });
 
 resize();
-updateDebug(null, null, null);
+updateDebug();

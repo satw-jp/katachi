@@ -2,9 +2,9 @@
 
 ## Question
 
-作者のApple Pencil Gestureを正本として保ったまま、複数の正投影Viewportを持つ編集環境へ安全に受け渡せるか。
+作者のApple Pencil Gestureを正本として保ったまま、一本の2D Gestureを共有3D Strokeへ派生し、別の正投影Viewportから奥行きを編集できるか。
 
-HANA-1Aで問うのは、Top / Axome / Front / Rightの4画面を見ながら、Apple Pencilの2D GestureをViewportごとに記録できるかだけである。2D Gestureを3D座標へ変換する問いはHANA-1Bへ送る。
+HANA-1Bで問うのは、Front / Right / Topのいずれかで描いた一本を初期平面上の`Stroke3D`へ変換し、4 Viewへ同じデータを投影し、別Viewから編集できるかだけである。Strokeを太らせる問いは後工程へ送る。
 
 ## Setup
 
@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-`http://localhost:5174/hana.html` をWindowsブラウザで開く。EasyCanvasでiPadを接続し、FrontをDrawにして弱い線と強い線、RightをDrawにして1本の線を描く。
+`http://localhost:5174/hana.html` をWindowsブラウザで開く。EasyCanvasでiPadを接続し、FrontをDrawにして一本描く。生成後はRightまたはTopのEditでcontrol pointをドラッグする。
 
 この確認に使ったWindows環境では、5174がOSのTCP除外範囲に含まれていたため、検証時だけ次の予約外portを使った。Katachiの既定port設定は変更していない。
 
@@ -21,12 +21,14 @@ npm run dev
 npx vite --host 127.0.0.1 --port 5480 --strictPort
 ```
 
-- Draw: PointerEventのStrokeを記録する。camera操作は止める。
-- Edit / View: cameraを操作する。Strokeは変更しない。
+- Draw: PointerEventのRaw Gestureを記録し、終了時に初期平面上の共有`Stroke3D`を生成する。camera操作は止める。
+- Edit: control pointをドラッグすると、そのViewで見える2軸だけを変更する。空白ドラッグはcamera操作に使う。
+- View: Axomeのcamera操作に使う。Axome Draw/EditはHANA-1Bの対象外。
 - Wheel: zoom
 - Drag: Top / Front / Rightではpan、Axomeではrotate
 - Shift + drag: Axomeでもpan
-- Save JSON: Raw GestureとEditor Stateを別のtop-level fieldで保存する
+- Save JSON: `rawGestures`、`strokes3D`、`editorState`を別のtop-level fieldで保存する
+- Clear: 一本目を消し、新しいRaw Gestureを描ける状態へ戻す。HANA-1Bは同時に一本だけを扱う。
 
 ## Observation
 
@@ -46,9 +48,23 @@ Top / Axome / Front / Right表示、one/four切替、列・行splitter、Top / F
 
 作者は下段のFrontとRightへ描いた線が相互に連動しないことを観察した。これはHANA-1Aの欠陥ではなく、2D Viewport Gestureを別々に保つStop Gateどおりの挙動である。両Viewを一つの3D Strokeへ拘束する規則はHANA-1Bで初めて扱う。
 
+### 2026-09-01 — HANA-1B implementation start
+
+一本のRaw Gestureを距離ベースで32 control pointsへ決定論的にresampleし、初期平面上の共有`Stroke3D`を生成する。FrontはX/Z・Y固定、RightはY/Z・X固定、TopはX/Y・Z固定とした。各control pointは`sourceStroke`、0–1の`sourceT`、対応Raw sample区間、補間pressure、補間timeを保持する。編集は3D位置だけへ適用し、Raw Gestureとprovenanceは変更しない。
+
+4 View表示は同じ`Stroke3D`を各cameraへ投影する。Front / Right / TopのEditではcontrol pointの背面軸を保持し、画面上の2軸だけを変更する。HANA-1Bは一本だけなので、生成後のDrawはClearまで無効にする。EasyCanvas / Apple PencilによるFront→Right Editの実機結果は確認後に追記する。
+
+### 2026-09-01 — HANA-1B EasyCanvas / Apple Pencil verification
+
+`hana-1b-document-2026-09-01T12-14-00-475Z.json`を保存し、HANA-1BのStop Gateを通過した。EasyCanvasでWindowsへ接続したApple Pencilから、Frontに`pointerType=pen`のRaw Gesture 1 stroke / 615 pointsを記録した。pressureは`0.1435546875–0.5703125`、241 distinct valuesで、615点すべてが0/1の二値ではなかった。timeは`0–3000.10000000149 ms`で単調増加した。
+
+Front Draw終了時にY=0の初期平面上へ32 control pointsの共有`Stroke3D`を生成し、Top / Front / Right / Axomeへ同じデータを投影した。Right Editから4 control pointsへ奥行きを加え、Y範囲は`-3.3140803106425–4.15162277910253`になった。編集後もRaw Gestureの615 samples、pressure、time、stroke orderは保存され、全control pointが元Gestureへのprovenanceを保持した。JSONは`rawGestures`、`strokes3D`、`editorState`をtop-levelで分離している。browser consoleのwarning/errorは0件だった。
+
+その前にSidecarを接続したMacへRDP経由で入力したデータでは`pointerType=mouse`、pressure一律`0.5`となった。この経路はHANA-1BのApple Pencil合格データには含めず、EasyCanvas→Windows Browserの直接経路だけを正本の実機結果とした。
+
 ## Hypothesis
 
-先に4画面の操作感とDraw/cameraの排他を確認すれば、不足軸を決めるHANA-1Bの議論を、抽象的な座標設計ではなく作者の実際の手つきから始められる。
+Raw Gestureを不変の作者入力として固定し、編集可能な派生Strokeだけを各正投影Viewの2軸拘束で更新すれば、元のpressure/timeを失わず一本の空間線を作れる。
 
 ## Related
 
@@ -60,8 +76,8 @@ Top / Axome / Front / Right表示、one/four切替、列・行splitter、Top / F
 
 ## Next
 
-- FrontとRightの2D Gestureを、どの操作で「同じStroke」と宣言するかを決める。
-- 先に描いたViewの不足軸を、次のViewが新規Strokeとして追加するのか、既存Strokeの編集拘束として更新するのかを決める。
-- HANA-1Bでは2D Gesture → 3D plane上のStroke → 4 View共有表示だけを扱い、Stem / Fieldへ進まない。
+- 32点の固定control budgetが作者の編集感覚に十分かをHANA-1C前に判断する。
+- 一点編集で鋭い折れが生じるため、Soft Editまたは局所補間が必要かを別TASKで決める。
+- HANA-1Bは共有3D Strokeの証明で停止し、Stem / Fieldへ進まない。
 
-HANA-1Aでは3D Stroke、Graph、resample、Stem、Field / SDF、Mesh、Flower Head、`hana-taba`、SKIN production連携を実装しない。
+HANA-1Bでは複数Stroke、Graph、Stemの太さ、Field / SDF、Mesh、Flower Head、`hana-taba`、SKIN production連携を実装しない。

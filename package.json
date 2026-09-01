@@ -15,7 +15,7 @@
     "test:interior-growth": "tsx src/studies/interior-growth/growth.test.ts && tsx src/studies/interior-growth/solidTopology.test.ts && tsx src/studies/interior-growth/sourceTetraDiagnostics.test.ts",
     "test:ring-union-policies": "tsx src/studies/interior-growth/ringUnionPolicies.test.ts",
     "test:studies": "tsx src/lib/studies.test.ts",
-    "test:hana": "tsx src/studies/hana/gesture.test.ts",
+    "test:hana": "tsx src/studies/hana/gesture.test.ts && tsx src/studies/hana/stroke3d.test.ts",
     "test:hikari-contracts": "tsx src/lib/hikari/contracts.test.ts",
     "test:flower-pack": "tsx src/studies/flower-packing-spike/packing.test.ts",
     "test:flower-core-network": "tsx src/studies/flower-core-network/flowerCoreNetwork.test.ts",

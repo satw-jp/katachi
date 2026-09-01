@@ -9,6 +9,7 @@ import type {
   HanaCameraState,
   HanaViewDirection,
 } from "./gesture.ts";
+import type { HanaVector3 } from "./stroke3d.ts";
 
 interface ViewCamera {
   direction: HanaViewDirection;
@@ -152,6 +153,45 @@ export class HanaViewportRenderer {
       width,
       height,
     );
+  }
+
+  projectPoint(
+    viewportIndex: number,
+    point: HanaVector3,
+    rect: SkinViewportRect,
+  ): { x: number; y: number; visible: boolean } {
+    const view = this.views[viewportIndex];
+    if (!view) throw new Error(`Unknown HANA viewport index: ${viewportIndex}`);
+    const projected = new THREE.Vector3(point.x, point.y, point.z).project(view.camera);
+    return {
+      x: rect.x + (projected.x + 1) * rect.width / 2,
+      y: rect.y + (1 - projected.y) * rect.height / 2,
+      visible: projected.z >= -1 && projected.z <= 1,
+    };
+  }
+
+  pointOnViewPlane(
+    viewportIndex: number,
+    canvasX: number,
+    canvasY: number,
+    rect: SkinViewportRect,
+    direction: Exclude<HanaViewDirection, "axome">,
+    planeValue: number,
+  ): HanaVector3 | null {
+    const view = this.views[viewportIndex];
+    if (!view) throw new Error(`Unknown HANA viewport index: ${viewportIndex}`);
+    const ndc = new THREE.Vector2(
+      ((canvasX - rect.x) / Math.max(1, rect.width)) * 2 - 1,
+      1 - ((canvasY - rect.y) / Math.max(1, rect.height)) * 2,
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(ndc, view.camera);
+    const normal = direction === "front"
+      ? new THREE.Vector3(0, 1, 0)
+      : direction === "right" ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const plane = new THREE.Plane(normal, -planeValue);
+    const hit = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+    return hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
   }
 
   cameraState(viewportIndex: number): HanaCameraState {

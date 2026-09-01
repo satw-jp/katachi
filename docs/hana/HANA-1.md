@@ -1,6 +1,6 @@
 # HANA-1 — Stroke to 3D Stroke to Simple Field Stem
 
-Status: HANA-1A input shell verified; 3D projection has not started
+Status: HANA-1B shared 3D Stroke PASS / FROZEN; Stem / Field not started
 Updated: 2026-09-01
 
 ## First destination
@@ -22,6 +22,24 @@ The first destination is not a finished flower. Flower Head, `hana-taba`, SKIN S
 The Four View Input Shell passed its 2026-09-01 EasyCanvas / Apple Pencil check. Top / Axome / Front / Right, one/four layout, splitter, orthographic camera controls, per-viewport Draw/Edit/View modes, raw pressure/time capture, separate viewport strokes, JSON saving, and the Raw Gesture / Editor State boundary were verified without browser console errors.
 
 The author observed that strokes drawn in the lower Front and Right viewports do not move together. This is the intended HANA-1A boundary: they are still separate 2D Viewport Gestures. Declaring that two projections describe one Stroke, choosing the missing axis, and showing the resulting 3D Stroke across all viewports are HANA-1B questions. No linkage was added in HANA-1A.
+
+## HANA-1B fixed decisions
+
+- Draw creates a new shared `Stroke3D`; HANA-1B holds one Stroke only and requires Clear before another Draw.
+- Front Draw sets Y=0 and derives X/Z, Right Draw sets X=0 and derives Y/Z, Top Draw sets Z=0 and derives X/Y.
+- The Raw Gesture remains unchanged. A deterministic arc-length resample creates 32 editable control points.
+- Every control point retains `sourceStroke`, normalized `sourceT`, source sample interval, interpolated raw pressure, and interpolated raw time.
+- Front Edit changes X/Z only, Right Edit changes Y/Z only, and Top Edit changes X/Y only. The hidden axis remains unchanged.
+- Top / Front / Right / Axome are projections of the same `Stroke3D`, not per-view copies.
+- Pressure is preserved as provenance and remains a diagnostic display value. It does not define radius or Field strength.
+- Save JSON separates `rawGestures`, `strokes3D`, and `editorState`.
+- Axome is a view/camera surface in HANA-1B. Axome Draw and direct Axome Edit are excluded.
+
+## HANA-1B result
+
+The 2026-09-01 EasyCanvas / Apple Pencil run passed with `pointerType=pen`, one Front Raw Gesture containing 615 ordered points, pressure range `0.1435546875–0.5703125` with 241 distinct non-binary values, monotonic time, one shared 32-control `Stroke3D`, four-view projection, and Right-side depth editing. Four edited controls changed Y from the initial Front plane value 0 to values spanning `-3.3140803106425–4.15162277910253`; X remained the hidden retained axis during Right editing. Raw Gesture samples and their pressure/time remained present after editing, all controls retained provenance, and the saved document separated `rawGestures`, `strokes3D`, and `editorState`. Browser console warnings/errors were zero.
+
+The accepted artifact is `hana-1b-document-2026-09-01T12-14-00-475Z.json`. An earlier Sidecar-to-Mac-over-RDP attempt produced `pointerType=mouse` and constant pressure `0.5`; it was intentionally rejected from the hardware gate.
 
 ## Viewport plan
 
@@ -59,18 +77,12 @@ The exact persistent schema is deliberately unresolved until the projection, res
 
 The existing SKIN renderer is large and coupled to SKIN-specific geometry, selection, clipping, Support Paint, and production UI. It is not a suitable whole-module dependency for HANA.
 
-## Decisions required before implementation
+## Open after HANA-1B
 
-1. **2D-to-3D projection:** how a stroke drawn in Top, Front, or Right establishes or updates the missing axis.
-2. **Cross-view edit conflicts:** what happens when edits from different views constrain the same 3D point inconsistently.
-3. **Resampling rule:** fixed count, distance tolerance, curvature-aware sampling, or another deterministic method; also the initial handle budget.
-4. **Pressure/time provenance:** how raw sample intervals and values map to resampled controls and remain traceable after edits.
-5. **Pressure meaning in 3D:** whether HANA-1 only preserves pressure or also maps it to the simple Field Stem radius, and with what reversible rule.
-6. **Coordinates and units:** canvas normalization, world axes, origin, scale, and the point at which millimeters become meaningful.
-7. **Reuse mechanism:** narrow imports from SKIN versus HANA-local adapters. No shared-library extraction is justified before the HANA experiment proves a stable common need.
-8. **Persistence:** versioned HANA-1 draft format, its link to the frozen `katachi.hana-gesture.v0` input, and whether edit history or undo is persisted.
-9. **Axome edit scope:** which edits are safe in Axome before Axome drawing is introduced.
-10. **Accepted devices:** whether HANA-1 accepts mouse/touch for editing while still preserving and visibly distinguishing the original `pen` author input.
-11. **Field diagnostic output:** the smallest Field Stem visualization needed to validate the computation without turning Mesh export into an HANA-1 deliverable.
-
-Implementation should begin only after these decisions are recorded. None requires a prior SKIN production refactor.
+1. Whether the fixed 32-point editing budget needs curvature-aware or adaptive sampling.
+2. Whether editing one control should deform only that point or a local neighborhood in a later Soft Edit stage.
+3. World units, document origin, and the point where millimeters become meaningful.
+4. Undo/history and loading the versioned HANA document; HANA-1B only saves it.
+5. Whether Axome direct editing is necessary after orthographic editing is tested.
+6. How preserved pressure should influence a later Stem/Field, if at all.
+7. The next Stop Gate for turning one shared Stroke3D into a simple Field Stem without entering Flower, Support, Web, Mesh, or print work.

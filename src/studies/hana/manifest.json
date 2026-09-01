@@ -2,13 +2,15 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "active",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "createdAt": "2026-09-01",
   "updatedAt": "2026-09-01",
   "params": [
     "viewportMode",
     "viewportInteractionMode",
-    "viewportSplit"
+    "viewportSplit",
+    "sharedStroke3D",
+    "selectedControlPoint"
   ],
   "related": ["skin"],
   "revisits": [
@@ -19,6 +21,14 @@
     {
       "date": "2026-09-01",
       "note": "EasyCanvas and Apple Pencil verification passed with three pen strokes across Front / Right / Front, 988 ordered points, continuous non-binary pressure, monotonic time, JSON export and zero browser console warnings or errors. Front and Right remain separate 2D gestures by the HANA-1A Stop Gate; cross-view 3D linkage is deferred to HANA-1B."
+    },
+    {
+      "date": "2026-09-01",
+      "note": "HANA-1B introduces one shared editable Stroke3D derived from one immutable viewport Raw Gesture. It uses 32 deterministic arc-length controls with sourceT, raw interval, pressure and time provenance; orthographic edits change only the two visible axes and update all four projections. Stem, Field, Mesh and multi-stroke work remain excluded."
+    },
+    {
+      "date": "2026-09-01",
+      "note": "HANA-1B passed its EasyCanvas and Apple Pencil hardware gate with one Front pen Gesture containing 615 points, 241 continuous pressure values, one shared 32-control Stroke3D, four-view projection, Right-side depth edits, complete raw/provenance retention, separated JSON document state and zero browser console warnings or errors. The study stops before Stem or Field generation."
     }
   ]
 }
