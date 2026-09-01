@@ -1,6 +1,7 @@
 import type { Ball } from "../cloud-sculpt/field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { InternalStructureGraph } from "./voronoi.ts";
+import type { Stage6MeshTopologyDiagnostics } from "./rebuild/stage6MeshTopologyDiagnostics.ts";
 
 export interface MeshExportRequest {
   type: "export";
@@ -73,6 +74,9 @@ export type MeshExportWorkerMessage =
       /** Flat display normals paired with inspection positions. Stage 6
        * uses these to show the exact meshed artwork, including 5B members. */
       normals?: Float32Array;
+      /** Display-only raw component/degenerate-face evidence for Stage 6.4.
+       * It never participates in repair, BODY generation, or export. */
+      topologyDiagnostics?: Stage6MeshTopologyDiagnostics;
       summary: string;
       watertightOk: boolean;
       cacheHit: boolean;

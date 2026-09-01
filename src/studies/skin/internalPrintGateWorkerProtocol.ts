@@ -25,6 +25,12 @@ export interface InternalPrintGateRequest {
   workerCount: number;
   /** Exact final preview triangles for the same fingerprint, when already built. */
   prebuiltPositions?: Float32Array;
+  /** Preserve the Stage 6 physical scale when prebuiltPositions is an
+   * export-only subset instead of rescaling that subset to targetLongestMm. */
+  prebuiltScaleMmPerUnit?: number;
+  prebuiltPlateShiftSourceZ?: number;
+  /** Exact number of explicitly kept, independently closed BODY components. */
+  expectedMeshComponents?: number;
   /** Keep the original-editor Stage 6 mesh identity equal to the standalone
    * SKIN REBUILD exporter, including its bounded tiny-island repair. */
   skinRebuildRepair?: boolean;
@@ -45,5 +51,5 @@ export type InternalPrintGateProgressPhase =
 
 export type InternalPrintGateWorkerMessage =
   | { type: "progress"; requestId: number; generation: number; phase: InternalPrintGateProgressPhase; completedSlices: number; totalSlices: number; faceCount: number; detail: string; elapsedMs: number }
-  | { type: "result"; requestId: number; generation: number; report: InternalPrintGateReport; stl: ArrayBuffer; summary: string; scaleMmPerUnit: number; plateShiftSourceZ: number; repairedSavedTriangleHoleCount: number; elapsedMs: number }
+  | { type: "result"; requestId: number; generation: number; report: InternalPrintGateReport; stl: ArrayBuffer; summary: string; scaleMmPerUnit: number; plateShiftSourceZ: number; repairedSavedTriangleHoleCount: number; diagnosticDegenerateFaceIndices?: Int32Array; elapsedMs: number }
   | { type: "error"; requestId: number; generation: number; message: string; elapsedMs: number };

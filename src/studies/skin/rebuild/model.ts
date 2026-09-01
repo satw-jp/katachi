@@ -3199,6 +3199,60 @@ function repairSingleTinySavedTriangleHole<T extends MeshBuildResult>(result: T)
   return after.ok && after.connectedComponents === 1 ? candidate : result;
 }
 
+/**
+ * Return the raw Stage 6 face ids removed by the final repair's two exact
+ * saved-coordinate degenerate filters. This replays only the existing repair
+ * staging for evidence; it does not mutate or replace the caller's mesh.
+ */
+export function diagnoseSkinRebuildFinalMeshDegenerateFaceIndices(
+  result: MeshBuildResult,
+): Int32Array {
+  const triangleKey = (triangle: Triangle): string => [triangle.a, triangle.b, triangle.c]
+    .map((point) => `${point.x},${point.y},${point.z}`)
+    .sort()
+    .join("|");
+  const rawIdsByKey = new Map<string, number[]>();
+  result.triangles.forEach((triangle, index) => {
+    const key = triangleKey(triangle);
+    const ids = rawIdsByKey.get(key) ?? [];
+    ids.push(index);
+    rawIdsByKey.set(key, ids);
+  });
+  const savedDegenerate = (triangle: Triangle): boolean => {
+    const saved = [triangle.a, triangle.b, triangle.c].map((point) =>
+      roundVertexToF32(point, result.scaleMmPerUnit));
+    const keys = saved.map((point) => `${point.x},${point.y},${point.z}`);
+    if (keys[0] === keys[1] || keys[0] === keys[2] || keys[1] === keys[2]) return true;
+    const abx = saved[1].x - saved[0].x; const aby = saved[1].y - saved[0].y; const abz = saved[1].z - saved[0].z;
+    const acx = saved[2].x - saved[0].x; const acy = saved[2].y - saved[0].y; const acz = saved[2].z - saved[0].z;
+    return aby * acz - abz * acy === 0
+      && abz * acx - abx * acz === 0
+      && abx * acy - aby * acx === 0;
+  };
+  const rawIds = new Set<number>();
+  const record = (triangle: Triangle, sourceShiftZ = 0): void => {
+    const sourceTriangle: Triangle = sourceShiftZ === 0 ? triangle : {
+      a: { ...triangle.a, z: triangle.a.z - sourceShiftZ },
+      b: { ...triangle.b, z: triangle.b.z - sourceShiftZ },
+      c: { ...triangle.c, z: triangle.c.z - sourceShiftZ },
+    };
+    for (const id of rawIdsByKey.get(triangleKey(sourceTriangle)) ?? []) rawIds.add(id);
+  };
+
+  const cavitiesRemoved = removeClosedNegativeVolumeCavities(result);
+  for (const triangle of cavitiesRemoved.triangles) {
+    if (savedDegenerate(triangle)) record(triangle);
+  }
+  const firstOriented = orientMeshForSavedStl(cavitiesRemoved);
+  const islandsRemoved = removeTinyClosedSurfaceIslands(firstOriented);
+  const dropped = dropSkinRebuildMeshToPlate(islandsRemoved);
+  const shiftZ = dropped.plateShiftSourceZ ?? 0;
+  for (const triangle of dropped.triangles) {
+    if (savedDegenerate(triangle)) record(triangle, shiftZ);
+  }
+  return Int32Array.from([...rawIds].sort((a, b) => a - b));
+}
+
 /** Apply the same narrowly bounded saved-mesh repairs in both the standalone
  * sample exporter and the original-editor Stage 6 Worker. A real detached
  * Pattern remains above the tiny-island limit and continues to fail. */

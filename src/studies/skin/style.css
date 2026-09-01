@@ -3907,6 +3907,70 @@ details.mesh-export:not([open]) > :not(summary) {
 .skin-rebuild-interior-classification-legend i[data-classification="outside"] { background: #3984ff; }
 .skin-rebuild-interior-classification-legend i[data-classification="boundary"] { background: #ffd23f; }
 .skin-rebuild-interior-classification-status { min-height: auto; }
+
+.skin-rebuild-topology-diagnostic-modes {
+  margin-top: 6px;
+}
+
+.skin-rebuild-topology-diagnostic-legend {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.skin-rebuild-topology-diagnostic-details {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.skin-rebuild-topology-component-row {
+  display: grid;
+  grid-template-columns: 10px auto 1fr;
+  gap: 6px;
+  align-items: start;
+  padding: 5px 6px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--paper) 96%, #27c5ff 4%);
+  font-size: 9px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.skin-rebuild-topology-component-row:hover,
+.skin-rebuild-topology-component-row.component-highlighted {
+  border-color: color-mix(in srgb, #27c5ff 65%, var(--hairline));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #27c5ff 30%, transparent);
+}
+
+.skin-rebuild-topology-component-row.component-remove {
+  opacity: .48;
+}
+
+.skin-rebuild-topology-component-keep {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.skin-rebuild-topology-export-selection-status {
+  margin-top: 5px;
+  padding: 5px 6px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--paper) 95%, #27c5ff 5%);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.skin-rebuild-topology-component-swatch {
+  width: 9px;
+  height: 9px;
+  margin-top: 2px;
+  border: 1px solid rgba(0, 0, 0, .28);
+  border-radius: 2px;
+}
 .skin-rebuild-lattice-edit-label {
   margin-top: 4px;
   font-size: 11px;

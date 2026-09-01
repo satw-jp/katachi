@@ -38,6 +38,19 @@ check(pass.surfaceAnchorNodes === 1 && pass.unsupportedNodes === 0, "support pro
 check(pass.minDiameterMm === 1, "edge radius is converted to an actual diameter in millimetres");
 check(pass.voxelsAcrossDiameter >= A1_MINI_PLA_04_02.minVoxelsAcrossDiameter, "final mesh resolves the strut");
 
+const explicitlySelectedTwoComponents = evaluateInternalPrintGate({
+  graph: vertical,
+  mesh: { ...mesh, connectedComponents: 2 },
+  resolution: 224,
+  targetLongestMm: 80,
+  surfaceSdf: (point) => point.z < 0.01 ? -0.05 : 1,
+  expectedMeshComponents: 2,
+});
+check(
+  explicitlySelectedTwoComponents.ok && explicitlySelectedTwoComponents.meshComponents === 2,
+  "an explicit two-component export selection may pass while topology defects remain fail-closed",
+);
+
 const supportShortReport: InternalPrintGateReport = {
   ...pass,
   ok: false,
@@ -58,6 +71,15 @@ check(
   internalPrintGateAllowsSupportDisabledExport(pass, "off")
     && internalPrintGateAllowsSupportDisabledExport(pass, "automatic"),
   "an ordinary OK report remains accepted in either support mode",
+);
+check(
+  internalPrintGateAllowsSupportDisabledExport(
+    { ...supportShortReport, meshComponents: 2 },
+    "off",
+    A1_MINI_PLA_04_02,
+    2,
+  ),
+  "support-disabled policy accepts the explicitly selected component count",
 );
 for (const [label, change] of [
   ["non-watertight mesh", { watertight: false }],

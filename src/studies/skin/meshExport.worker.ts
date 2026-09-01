@@ -3,6 +3,8 @@ import { buildPrintSupportMesh, buildSkinMesh, encodeObjFromBinaryStl, meshSumma
 import { buildParallelSkinMesh, buildSkinMeshResultFromPositions } from "./parallelMeshBuffers.ts";
 import { flatNormalsFromTriangleSoup, packPreviewMeshBuffers } from "./previewMeshBuffers.ts";
 import type { MeshExportProgressPhase, MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
+import { analyzeStage6MeshTopology } from "./rebuild/stage6MeshTopologyDiagnostics.ts";
+import { diagnoseSkinRebuildFinalMeshDegenerateFaceIndices } from "./rebuild/model.ts";
 
 self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
   const request = event.data;
@@ -139,6 +141,13 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
     const support = request.operation === "export"
       ? buildSupportArtifacts(result.scaleMmPerUnit, result.plateShiftSourceZ ?? 0)
       : {};
+    const topologyDiagnostics = request.operation === "inspect" && exactPositions
+      ? analyzeStage6MeshTopology(exactPositions, request.targetLongestMm)
+      : undefined;
+    if (topologyDiagnostics) {
+      topologyDiagnostics.degenerateFaceIndices =
+        diagnoseSkinRebuildFinalMeshDegenerateFaceIndices(result);
+    }
     const message: MeshExportWorkerMessage = {
       type: "result",
       requestId: request.requestId,
@@ -148,6 +157,7 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
       ...support,
       positions: request.operation === "inspect" ? exactPositions : undefined,
       normals: request.operation === "inspect" ? exactNormals : undefined,
+      topologyDiagnostics,
       summary: meshSummary(result),
       watertightOk: result.watertight.ok,
       cacheHit: false,
@@ -158,6 +168,10 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
       ...(support.supportStl ? [support.supportStl] : []),
       ...(exactPositions && request.operation === "inspect" ? [exactPositions.buffer] : []),
       ...(exactNormals && request.operation === "inspect" ? [exactNormals.buffer] : []),
+      ...(topologyDiagnostics ? [
+        topologyDiagnostics.faceComponentIds.buffer,
+        topologyDiagnostics.degenerateFaceIndices.buffer,
+      ] : []),
     ];
     (self as unknown as Worker).postMessage(message, transfers);
   } catch (error) {

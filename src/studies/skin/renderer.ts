@@ -446,7 +446,7 @@ export class SkinRenderer {
     metalness: 0,
   });
   private readonly printSupportMaterial = new THREE.MeshStandardMaterial({
-    color: 0xd9823f,
+    color: 0x39e75f,
     roughness: 0.86,
     metalness: 0,
   });
@@ -518,6 +518,20 @@ export class SkinRenderer {
     depthWrite: false,
     toneMapped: false,
   });
+  private readonly sparseRejectedRouteMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff304d,
+    transparent: true,
+    opacity: 0.24,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly sparseBendPointMaterial = new THREE.MeshBasicMaterial({
+    color: 0xb5ffbd,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   /** SKIN REBUILD final-mesh overhang candidates. This diagnostic overlay
    * is display-only and never changes BODY, support, history, or export. */
   private skinRebuildOverhangGroup: THREE.Group | null = null;
@@ -529,6 +543,8 @@ export class SkinRenderer {
   private reinforcedSkinRebuildOverhangRegionIds = new Set<number>();
   private selectedSkinRebuildOverhangRegionMesh: THREE.Mesh | null = null;
   private skinRebuildOverhangVisible = true;
+  /** Stage 6.4 analysis-only component and saved-degenerate evidence. */
+  private skinRebuildTopologyDiagnosticGroup: THREE.Group | null = null;
   private internalAngleScreening: InternalAngleScreeningReport | null = null;
   /** Phase A display geometry only. The same millimetre-space forest is
    * consumed here without regenerating or reclassifying Support Paint sites. */
@@ -2129,7 +2145,9 @@ export class SkinRenderer {
       this.viewMode, this.internalObservationMode, this.denseSampleActive,
     );
     this.raymarchQuad.visible = visibility.raymarch;
-    if (this.overlayMesh) this.overlayMesh.visible = visibility.overlay;
+    if (this.overlayMesh) {
+      this.overlayMesh.visible = visibility.overlay && this.skinRebuildTopologyDiagnosticGroup === null;
+    }
     if (this.hostBeadMesh) this.hostBeadMesh.visible = visibility.hostBeads;
     if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads;
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
@@ -2144,6 +2162,10 @@ export class SkinRenderer {
     if (this.skinRebuildOverhangGroup) {
       this.skinRebuildOverhangGroup.visible = this.skinRebuildOverhangVisible
         && visibility.surfaceDecorations
+        && this.viewMode === "mesh";
+    }
+    if (this.skinRebuildTopologyDiagnosticGroup) {
+      this.skinRebuildTopologyDiagnosticGroup.visible = visibility.surfaceDecorations
         && this.viewMode === "mesh";
     }
     if (this.sparseRemovableSupportDebugGroup) {
@@ -2563,7 +2585,7 @@ export class SkinRenderer {
   }
 
   /** Show bounded Stage 8 critical/rejected facts without touching the
-   * accepted orange support graph. Markers are deliberately presentation-only
+   * accepted green support graph. Markers are deliberately presentation-only
    * and are not included in any mesh or export path. */
   setSparseRemovableSupportDebug(
     debug: SparseRemovableSupportDebug | null,
@@ -2593,11 +2615,38 @@ export class SkinRenderer {
       marker.renderOrder = 20;
       group.add(marker);
     };
+    const addRouteSegment = (
+      segment: { start: Vector3Value; end: Vector3Value; radius: number },
+    ): void => {
+      const direction = new THREE.Vector3(
+        segment.end.x - segment.start.x,
+        segment.end.y - segment.start.y,
+        segment.end.z - segment.start.z,
+      );
+      const length = direction.length();
+      if (!(length > 1e-9) || !Number.isFinite(segment.radius) || !(segment.radius > 0)) return;
+      const mesh = new THREE.Mesh(this.internalEdgeGeometry, this.sparseRejectedRouteMaterial);
+      mesh.position.set(
+        (segment.start.x + segment.end.x) * 0.5,
+        (segment.start.y + segment.end.y) * 0.5,
+        (segment.start.z + segment.end.z) * 0.5,
+      );
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+      mesh.scale.set(segment.radius, length, segment.radius);
+      mesh.renderOrder = 19;
+      group.add(mesh);
+    };
     for (const target of debug.criticalTargets) {
       addMarker(target.position, 0.06, this.sparseCriticalTargetMaterial);
     }
     for (const candidate of debug.rejectedCandidates) {
       addMarker(candidate.position, 0.045, this.sparseRejectedCandidateMaterial);
+    }
+    for (const rejected of debug.rejectedCollisionRoutes) {
+      for (const segment of rejected.segments) addRouteSegment(segment);
+    }
+    for (const bendPoint of debug.acceptedBendPoints) {
+      addMarker(bendPoint, 0.012, this.sparseBendPointMaterial);
     }
     group.position.z = this.phaseAObjectLiftSource;
     this.scene.add(group);
@@ -2606,11 +2655,14 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
-  /** Red face overlay from the REBUILD final-mesh build-direction diagnosis. */
+  /** Red face overlay from the REBUILD final-mesh build-direction diagnosis.
+   * The default responsibility palette is intentionally unchanged for Stage 4
+   * and all existing callers. */
   setSkinRebuildOverhangOverlay(
     positions: Float32Array | null,
     faceRegionIds: Int32Array | null = null,
     faceInteriorClasses: Int8Array | null = null,
+    palette: "responsibility" | "debug" | "stage7-danger" | "stage65-stage7" = "responsibility",
   ): void {
     if (this.skinRebuildOverhangGroup) {
       this.scene.remove(this.skinRebuildOverhangGroup);
@@ -2642,13 +2694,29 @@ export class SkinRenderer {
       : null;
     if (classified) {
       const colors = new Float32Array(positions.length);
-      const inside = new THREE.Color(0xff304d);
-      const outside = new THREE.Color(0x718296);
-      const unclassified = new THREE.Color(0xf2c94c);
+      const inside = new THREE.Color(
+        palette === "stage7-danger" || palette === "debug" ? 0xe5483f : 0xff304d,
+      );
+      const outside = new THREE.Color(
+        palette === "stage7-danger" ? 0xff922e : palette === "debug" ? 0x3984ff : 0x718296,
+      );
+      const boundary = new THREE.Color(palette === "debug" ? 0xffd23f : 0xf2c94c);
+      const unclassified = new THREE.Color(
+        palette === "stage7-danger" || palette === "debug" ? 0x8b939c : 0xf2c94c,
+      );
       for (let faceIndex = 0; faceIndex < classified.length; faceIndex++) {
-        const color = classified[faceIndex] === 0 ? inside
+        const combinedColor = palette === "stage65-stage7"
+          ? classified[faceIndex] === 0 ? new THREE.Color(0x7a3e3e)
+            : classified[faceIndex] === 1 ? new THREE.Color(0x315a83)
+              : classified[faceIndex] === 2 ? new THREE.Color(0x8a7620)
+                : classified[faceIndex] === 4 ? new THREE.Color(0xff922e)
+                  : classified[faceIndex] === 5 ? new THREE.Color(0xff304d)
+                    : new THREE.Color(0x8b939c)
+          : null;
+        const color = combinedColor ?? (classified[faceIndex] === 0 ? inside
           : classified[faceIndex] === 1 ? outside
-            : unclassified;
+            : (palette === "stage7-danger" || (palette === "debug" && classified[faceIndex] === 3)) ? unclassified
+              : boundary);
         for (let vertex = 0; vertex < 3; vertex++) color.toArray(colors, faceIndex * 9 + vertex * 3);
       }
       geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
@@ -2682,6 +2750,167 @@ export class SkinRenderer {
       ? faceRegionIds
       : null;
     this.skinRebuildOverhangFaceInteriorClasses = classified;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  /**
+   * Paint the exact Stage 6 triangle soup by connected component. Saved-space
+   * degenerate faces are additionally marked in bright yellow so even a
+   * collapsed triangle remains findable. This layer is presentation-only.
+   */
+  setSkinRebuildTopologyDiagnosticOverlay(
+    positions: Float32Array | null,
+    faceComponentIds: Int32Array | null = null,
+    degenerateFaceIndices: Int32Array | null = null,
+    markerRadiusSource = 0.01,
+    keptComponentIds: ReadonlySet<number> | null = null,
+    highlightedComponentId: number | null = null,
+  ): void {
+    if (this.skinRebuildTopologyDiagnosticGroup) {
+      this.scene.remove(this.skinRebuildTopologyDiagnosticGroup);
+      this.skinRebuildTopologyDiagnosticGroup.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.geometry.dispose();
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          material.dispose();
+        }
+      });
+      this.skinRebuildTopologyDiagnosticGroup = null;
+    }
+    const faceCount = positions ? positions.length / 9 : 0;
+    if (!positions || positions.length === 0 || !faceComponentIds || faceComponentIds.length !== faceCount) {
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+    const componentPalette = [
+      0x27c5ff,
+      0xaf6cff,
+      0xff8a2b,
+      0x30df8c,
+      0xff4fa3,
+      0x7ed957,
+      0x4d74ff,
+      0xffd23f,
+    ].map((hex) => new THREE.Color(hex));
+    const degenerateFaces = new Set(degenerateFaceIndices ?? []);
+    const degenerateColor = new THREE.Color(0xfff200);
+    const group = new THREE.Group();
+    group.name = "skin-rebuild-stage6-topology-diagnostics";
+    group.position.z = this.phaseAObjectLiftSource;
+
+    const addFaceMesh = (
+      includeFace: (face: number) => boolean,
+      opacity: number,
+      depthTest: boolean,
+      renderOrder: number,
+      overrideColor: THREE.Color | null = null,
+    ): void => {
+      let selectedFaceCount = 0;
+      for (let face = 0; face < faceCount; face += 1) {
+        if (includeFace(face)) selectedFaceCount += 1;
+      }
+      if (selectedFaceCount === 0) return;
+      const selectedPositions = new Float32Array(selectedFaceCount * 9);
+      const colors = new Float32Array(selectedFaceCount * 9);
+      let selectedFace = 0;
+      for (let face = 0; face < faceCount; face += 1) {
+        if (!includeFace(face)) continue;
+        const outputOffset = selectedFace * 9;
+        selectedPositions.set(positions.subarray(face * 9, face * 9 + 9), outputOffset);
+        const color = overrideColor ?? (degenerateFaces.has(face)
+          ? degenerateColor
+          : componentPalette[Math.max(0, faceComponentIds[face]) % componentPalette.length]);
+        for (let vertex = 0; vertex < 3; vertex += 1) color.toArray(colors, outputOffset + vertex * 3);
+        selectedFace += 1;
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(selectedPositions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+        depthTest,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -5,
+        polygonOffsetUnits: -5,
+        toneMapped: false,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.renderOrder = renderOrder;
+      group.add(mesh);
+    };
+
+    // Component 1 is the dominant BODY. In this diagnostic mode only, hide
+    // the opaque production preview and draw BODY translucent so detached
+    // components remain visible without changing the inspected geometry.
+    addFaceMesh(
+      (face) => faceComponentIds[face] === 0
+        && (keptComponentIds === null || keptComponentIds.has(0))
+        && !degenerateFaces.has(face),
+      0.22,
+      true,
+      24,
+    );
+    addFaceMesh(
+      (face) => (faceComponentIds[face] !== 0
+        && (keptComponentIds === null || keptComponentIds.has(faceComponentIds[face])))
+        || degenerateFaces.has(face),
+      0.98,
+      false,
+      26,
+    );
+    addFaceMesh(
+      (face) => keptComponentIds !== null
+        && !keptComponentIds.has(faceComponentIds[face])
+        && !degenerateFaces.has(face),
+      0.08,
+      false,
+      25,
+      new THREE.Color(0x7f8790),
+    );
+    if (highlightedComponentId !== null) {
+      addFaceMesh(
+        (face) => faceComponentIds[face] === highlightedComponentId && !degenerateFaces.has(face),
+        highlightedComponentId === 0 ? 0.12 : 0.35,
+        false,
+        28,
+      );
+    }
+
+    if (degenerateFaces.size > 0) {
+      const sphere = new THREE.SphereGeometry(Math.max(1e-5, markerRadiusSource), 16, 10);
+      const markerMaterial = new THREE.MeshBasicMaterial({
+        color: 0xfff200,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      });
+      const markers = new THREE.InstancedMesh(sphere, markerMaterial, degenerateFaces.size);
+      const matrix = new THREE.Matrix4();
+      let instance = 0;
+      for (const face of degenerateFaces) {
+        const offset = face * 9;
+        const x = (positions[offset] + positions[offset + 3] + positions[offset + 6]) / 3;
+        const y = (positions[offset + 1] + positions[offset + 4] + positions[offset + 7]) / 3;
+        const z = (positions[offset + 2] + positions[offset + 5] + positions[offset + 8]) / 3;
+        matrix.makeTranslation(x, y, z);
+        markers.setMatrixAt(instance, matrix);
+        instance += 1;
+      }
+      markers.instanceMatrix.needsUpdate = true;
+      markers.renderOrder = 30;
+      markers.userData.stage6DegenerateFaceCount = degenerateFaces.size;
+      group.add(markers);
+    }
+    this.scene.add(group);
+    this.skinRebuildTopologyDiagnosticGroup = group;
     this.applyLayerVisibility();
     this.requestViewportRender();
   }
@@ -2946,6 +3175,7 @@ export class SkinRenderer {
     if (this.printSupportNodeMesh) this.printSupportNodeMesh.position.z = bodyZ;
     if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.position.z = bodyZ;
     if (this.skinRebuildOverhangGroup) this.skinRebuildOverhangGroup.position.z = bodyZ;
+    if (this.skinRebuildTopologyDiagnosticGroup) this.skinRebuildTopologyDiagnosticGroup.position.z = bodyZ;
     if (this.sparseRemovableSupportDebugGroup) this.sparseRemovableSupportDebugGroup.position.z = bodyZ;
     if (!forest || !(scaleMmPerUnit > 0) || forest.members.length + retainedVerticals.length === 0) {
       this.applyLayerVisibility();

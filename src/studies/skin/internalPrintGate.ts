@@ -69,12 +69,13 @@ export function internalPrintGateAllowsSupportDisabledExport(
   report: InternalPrintGateReport,
   mode: RemovableSupportMode,
   profile: Pick<InternalPrintProfile, "minStrutDiameterMm" | "minVoxelsAcrossDiameter"> = A1_MINI_PLA_04_02,
+  expectedMeshComponents = 1,
 ): boolean {
   if (report.ok) return true;
   if (mode !== "off") return false;
   const finiteNonNegativeInteger = (value: number): boolean => Number.isInteger(value) && value >= 0;
   return report.watertight
-    && report.meshComponents === 1
+    && report.meshComponents === expectedMeshComponents
     && report.removedDegenerateTriangles === 0
     && finiteNonNegativeInteger(report.graphComponents)
     && report.graphComponents > 0
@@ -110,6 +111,10 @@ export interface InternalPrintGateInput {
   /** Source-space Z of the build plate before the final mesh is translated
    * to Z=0. Nodes whose strut reaches this plane are printable roots. */
   buildPlateZSource?: number;
+  /** Export-only component selection may intentionally retain more than one
+   * independently closed BODY component. Defaults to the production contract
+   * of one component when no explicit selection exists. */
+  expectedMeshComponents?: number;
 }
 
 export type InternalAngleScreeningClassification = "selfSupportingAngle" | "angleRisk";
@@ -376,7 +381,12 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
   const removedDegenerateTriangles = input.mesh.removedSavedDegenerateTriangleCount ?? 0;
 
   if (!input.mesh.watertight.ok) reasons.push(`最終meshが水密ではありません（開いた辺${input.mesh.watertight.openEdges}）`);
-  if (input.mesh.connectedComponents !== 1) reasons.push(`最終meshが${input.mesh.connectedComponents}部品に分かれています`);
+  const expectedMeshComponents = Math.max(1, Math.round(input.expectedMeshComponents ?? 1));
+  if (input.mesh.connectedComponents !== expectedMeshComponents) {
+    reasons.push(expectedMeshComponents === 1
+      ? `最終meshが${input.mesh.connectedComponents}部品に分かれています`
+      : `最終meshの部品数${input.mesh.connectedComponents}がExport Component Selection ${expectedMeshComponents}部品と一致しません`);
+  }
   if (removedDegenerateTriangles > 0) reasons.push(`STL座標で退化する面が${removedDegenerateTriangles}枚あります`);
   if (minDiameterMm + 1e-6 < profile.minStrutDiameterMm) {
     reasons.push(`最低線径${minDiameterMm.toFixed(2)} mm < 合格値${profile.minStrutDiameterMm.toFixed(2)} mm`);

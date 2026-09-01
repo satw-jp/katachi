@@ -3,7 +3,11 @@ import { evaluateInternalPrintGate } from "./internalPrintGate.ts";
 import { encodeBinaryStl, inspectSavedStlTopology, orientMeshForSavedStl } from "../cloud-sculpt/meshExport.ts";
 import { buildSkinMesh, meshSummary, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
 import { buildParallelMeshBuffers, buildSkinMeshResultFromPositions } from "./parallelMeshBuffers.ts";
-import { mergeSkinRebuildGraphsAtSupportContacts, repairSkinRebuildFinalMesh } from "./rebuild/model.ts";
+import {
+  diagnoseSkinRebuildFinalMeshDegenerateFaceIndices,
+  mergeSkinRebuildGraphsAtSupportContacts,
+  repairSkinRebuildFinalMesh,
+} from "./rebuild/model.ts";
 import type { InternalPrintGateProgressPhase, InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
 
 self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
@@ -63,6 +67,34 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
               : `連結部品数を検査 · ${faces.toLocaleString()}面`);
         },
       );
+      if (request.prebuiltPositions?.length && request.prebuiltScaleMmPerUnit) {
+        const scale = request.prebuiltScaleMmPerUnit;
+        const zShift = request.prebuiltPlateShiftSourceZ ?? 0;
+        const sourceBounds = mesh.sourceBounds;
+        mesh = {
+          ...mesh,
+          scaleMmPerUnit: scale,
+          plateShiftSourceZ: zShift,
+          mmBounds: {
+            min: {
+              x: sourceBounds.min.x * scale,
+              y: sourceBounds.min.y * scale,
+              z: (sourceBounds.min.z + zShift) * scale,
+            },
+            max: {
+              x: sourceBounds.max.x * scale,
+              y: sourceBounds.max.y * scale,
+              z: (sourceBounds.max.z + zShift) * scale,
+            },
+            size: {
+              x: sourceBounds.size.x * scale,
+              y: sourceBounds.size.y * scale,
+              z: sourceBounds.size.z * scale,
+            },
+            longest: sourceBounds.longest * scale,
+          },
+        };
+      }
     } catch {
       reportProgress("sampling", "並列経路を使えないため背景Worker 1本へ切替");
       mesh = buildSkinMesh(
@@ -71,6 +103,9 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
         request.coinBulge, request.quadMeshJoinWidth, request.coinBulgeBalance, request.internalGraph,
       );
     }
+    const diagnosticDegenerateFaceIndices = request.skinRebuildRepair
+      ? diagnoseSkinRebuildFinalMeshDegenerateFaceIndices(mesh)
+      : undefined;
     if (request.skinRebuildRepair) {
       reportProgress("repair", `閉じた微小空洞だけを整理 · ${mesh.triangles.length.toLocaleString()}面`);
       mesh = repairSkinRebuildFinalMesh(mesh);
@@ -80,7 +115,11 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
     // are repairable. Any remaining saved-STL defect must stop here.
     reportProgress("saved-topology", `保存座標で水密・部品数を検査 · ${mesh.triangles.length.toLocaleString()}面`);
     const inputSavedTopology = inspectSavedStlTopology(mesh.triangles, mesh.scaleMmPerUnit);
-    if (!inputSavedTopology.closed || !inputSavedTopology.degenerateFree || inputSavedTopology.nonFiniteTriangleCount > 0 || inputSavedTopology.connectedComponents !== 1) {
+    const expectedMeshComponents = Math.max(1, Math.round(request.expectedMeshComponents ?? 1));
+    if (!inputSavedTopology.closed
+      || !inputSavedTopology.degenerateFree
+      || inputSavedTopology.nonFiniteTriangleCount > 0
+      || inputSavedTopology.connectedComponents !== expectedMeshComponents) {
       const componentHint = inputSavedTopology.connectedComponents > 1
         ? " · Surface Patternが蜘蛛の巣と物理的に分離しています。工程3→4→5A→5Bを再実行してください"
         : "";
@@ -99,7 +138,7 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
     const savedTopology = repairAlreadyOriented
       ? inputSavedTopology
       : inspectSavedStlTopology(repaired.triangles, repaired.scaleMmPerUnit);
-    if (!savedTopology.ok || savedTopology.connectedComponents !== 1) {
+    if (!savedTopology.ok || savedTopology.connectedComponents !== expectedMeshComponents) {
       throw new Error("Fail closed: 保存STL topology NG（closed=" + savedTopology.closed + ", winding=" + savedTopology.windingConsistent + ", degenerate=" + savedTopology.degenerateTriangleCount + ", nonFinite=" + savedTopology.nonFiniteTriangleCount + ", components=" + savedTopology.connectedComponents + ", open=" + savedTopology.openEdges + ", nonManifold=" + savedTopology.nonManifoldEdges + ", windingInconsistent=" + savedTopology.windingInconsistentEdges + "）");
     }
     mesh = {
@@ -125,6 +164,7 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
       targetLongestMm: request.targetLongestMm,
       surfaceSdf: (point) => surfaceSdf(point.x, point.y, point.z),
       buildPlateZSource: request.buildPlateZSource,
+      expectedMeshComponents,
     });
     reportProgress("encoding", `判定済み ${mesh.triangles.length.toLocaleString()}面をSTLへ変換`);
     const stl = encodeBinaryStl(mesh, request.baseName);
@@ -133,9 +173,13 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
       report, stl, summary: meshSummary(mesh), scaleMmPerUnit: mesh.scaleMmPerUnit,
       plateShiftSourceZ: mesh.plateShiftSourceZ ?? 0,
       repairedSavedTriangleHoleCount: mesh.repairedSavedTriangleHoleCount ?? 0,
+      diagnosticDegenerateFaceIndices,
       elapsedMs: performance.now() - started,
     };
-    (self as unknown as Worker).postMessage(message, [stl]);
+    (self as unknown as Worker).postMessage(message, [
+      stl,
+      ...(diagnosticDegenerateFaceIndices ? [diagnosticDegenerateFaceIndices.buffer] : []),
+    ]);
   } catch (error) {
     const message: InternalPrintGateWorkerMessage = {
       type: "error", requestId: request.requestId, generation: request.generation,
