@@ -8,6 +8,9 @@ import {
 import {
   auditSparseRemovableSupportCapsule,
   buildSparseRemovableSupport,
+  deriveA1MiniPlateBoundsFromBodyPositions,
+  enumerateSparseRemovableSupportLeaningDirections,
+  evaluateSparseExperimentalExportGate,
   extractSparseRemovableSupportTargets,
   type SparseRemovableSupportFace,
 } from "./sparseRemovableSupport.ts";
@@ -103,6 +106,7 @@ assert.ok(clear.diagnostics.criticalTargetCount <= 6);
 assert.equal(clear.diagnostics.generatedSupportCount, clear.diagnostics.verticalCount);
 assert.equal(clear.diagnostics.leaningCount, 0, "vertical routes are preferred when BODY-clear");
 assert.equal(clear.diagnostics.unsupportedTargetCount, 0);
+assert.equal(clear.diagnostics.acceptedBodyCollisionCount, 0);
 assert.ok(clear.acceptedRoutes.every(({ route }) => route.segments.every((segment) => segment.radius <= baseRequest.shaftRadius)));
 assert.ok(clear.acceptedRoutes.every(({ route }) => route.segments.every((segment) => {
   const horizontal = Math.hypot(segment.end.x - segment.start.x, segment.end.y - segment.start.y);
@@ -136,6 +140,106 @@ assert.equal(actualDefaultFlatUnderside.diagnostics.verticalCount, 1);
 assert.equal(actualDefaultFlatUnderside.acceptedRoutes[0]?.route.segments.at(-1)?.radius, 0.3);
 assert.ok((actualDefaultFlatUnderside.acceptedRoutes[0]?.route.segments[0]?.end.z ?? 0) < 2 - 0.8,
   "the shaft endpoint must be strictly outside the flat BODY underside");
+
+// The production 3MF contract centers the final BODY bbox on the A1 mini's
+// (90, 90) mm plate center. The support proof must derive its source XY bounds
+// from that exact BODY mesh, not from a larger artwork/sampling bbox.
+const derivedPlateBounds = deriveA1MiniPlateBoundsFromBodyPositions(
+  new Float32Array([-1, -2, 0, 3, 4, 10, 0, 1, 2]),
+  20,
+);
+assert.deepEqual(derivedPlateBounds, {
+  minX: -44,
+  maxX: 46,
+  minY: -44,
+  maxY: 46,
+});
+assert.equal(deriveA1MiniPlateBoundsFromBodyPositions(new Float32Array([0, 0]), 20), undefined);
+assert.equal(deriveA1MiniPlateBoundsFromBodyPositions(new Float32Array([0, 0, Number.NaN]), 20), undefined);
+
+// A bounded route set is outward-first and direction-diverse. The helper is
+// the same ordering consumed by the actual builder below, so no second route
+// search is introduced by this regression.
+const outwardDirections = enumerateSparseRemovableSupportLeaningDirections({ x: 1, y: 0 });
+assert.ok(Math.abs(outwardDirections[0].x - 1) < 1e-12 && Math.abs(outwardDirections[0].y) < 1e-12,
+  "the first leaning direction follows the target outward XY normal");
+assert.equal(new Set(outwardDirections.map((direction) =>
+  `${direction.x.toFixed(6)}:${direction.y.toFixed(6)}`)).size, outwardDirections.length,
+"the bounded leaning set must cover distinct directions");
+assert.ok(outwardDirections.every((direction) => Math.abs(Math.hypot(direction.x, direction.y) - 1) < 1e-12));
+
+// The outward-first route is selected when a local BODY obstruction blocks a
+// vertical drop. The existing BODY audit remains the authority for acceptance.
+const outwardFirst = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [{ ...face(18, 0, 0, 2, 0), normal: { x: 0.6, y: 0, z: -0.8 } }],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 1,
+  plateBounds: { minX: -2, maxX: 2, minY: -2, maxY: 2 },
+  bodySdf: (x, y, z) => Math.hypot(x, y, z - 1) - 0.2,
+});
+assert.equal(outwardFirst.diagnostics.verticalCount, 0);
+assert.equal(outwardFirst.diagnostics.leaningCount, 1);
+assert.ok((outwardFirst.acceptedRoutes[0]?.route.root.x ?? 0) > 0,
+  "the accepted fallback root must move outward from the target");
+const outwardBentRoute = outwardFirst.acceptedRoutes[0]?.route;
+assert.ok(outwardBentRoute);
+assert.equal(outwardBentRoute.segments.length, 3,
+  "the fallback must be vertical shaft -> upper bend -> unchanged contact neck");
+assert.equal(outwardBentRoute.segments[0]?.start.x, outwardBentRoute.segments[0]?.end.x,
+  "the main shaft stays vertical below the bend");
+assert.equal(outwardBentRoute.segments[0]?.start.y, outwardBentRoute.segments[0]?.end.y);
+assert.deepEqual(outwardBentRoute.segments.at(-1)?.end, face(18, 0, 0, 2, 0).position,
+  "offset routing must not move the support target");
+assert.equal(outwardBentRoute.segments.at(-1)?.radius, baseRequest.neckRadius,
+  "offset routing must retain the existing thin contact neck");
+assert.equal(outwardFirst.diagnostics.straightRejectedByBody, 1);
+assert.equal(outwardFirst.diagnostics.offsetBendCount, 1);
+assert.equal(outwardFirst.diagnostics.routeCandidateCount, 2);
+assert.deepEqual(outwardFirst.debug.acceptedBendPoints, [outwardBentRoute.segments[0].end]);
+assert.equal(outwardFirst.debug.rejectedCollisionRoutes.length, 1,
+  "the BODY-rejected straight route remains available for debug display");
+
+// A lower Outside target uses the same bounded outward/downward normal neck:
+// the vertical shaft is directly below that contact-start XY, then the
+// narrower terminal neck reaches the target.  The clear fixture must accept
+// the complete-radius route without a target-centred shortcut.
+const lowOutwardNormal = { x: 0.6, y: 0, z: -0.8 };
+const lowClear = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [{ ...face(19, 0, 0, 0.8, 0), normal: lowOutwardNormal }],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  bodySdf: () => 10,
+});
+assert.equal(lowClear.diagnostics.generatedSupportCount, 1,
+  "a lower clear target must accept the normal-aligned neck route");
+const lowClearRoute = lowClear.acceptedRoutes[0]?.route;
+assert.ok(lowClearRoute);
+assert.ok(lowClearRoute.neckStart.x > lowClearRoute.target.x,
+  "the contact start must be outside the target along its outward normal");
+assert.ok(lowClearRoute.neckStart.z < lowClearRoute.target.z);
+assert.equal(lowClearRoute.root.x, lowClearRoute.neckStart.x,
+  "the vertical shaft must descend directly below contact-start XY");
+assert.equal(lowClearRoute.root.y, lowClearRoute.neckStart.y);
+assert.equal(lowClearRoute.root.z, baseRequest.plateZ);
+assert.deepEqual(lowClearRoute.segments[0]?.end, lowClearRoute.neckStart);
+assert.deepEqual(lowClearRoute.segments.at(-1)?.end, lowClearRoute.target);
+
+// The same lower target is rejected when a nearby BODY obstruction crosses
+// the shaft.  Moving the neck outward must not weaken the non-terminal shaft
+// collision proof.
+const lowObstructed = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [{ ...face(20, 0, 0, 0.8, 0), normal: lowOutwardNormal }],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  bodySdf: (x, y, z) => Math.hypot(x - 0.0225, y, z - 0.37) - 0.08,
+});
+assert.equal(lowObstructed.diagnostics.generatedSupportCount, 0,
+  "a nearby BODY obstruction must reject the lower shaft route");
+assert.ok(lowObstructed.diagnostics.rejectedByBody > 0);
+assert.match(lowObstructed.debug.routeAttempts[0]?.attempts[0]?.detail ?? "", /non-terminal|BODY/);
 
 // A projected Outside face without the Stage 4 owner patch remains visible
 // demand, but no owner target/contact route may be invented for it.
@@ -214,6 +318,23 @@ const bodyRejected = buildSparseRemovableSupport({
 assert.equal(bodyRejected.diagnostics.generatedSupportCount, 0);
 assert.ok(bodyRejected.diagnostics.rejectedByBody > 0);
 assert.equal(bodyRejected.diagnostics.insideDerivedSupportCount, 0);
+
+// The explicit route-only revision preserves the already-reviewed owner neck
+// instead of re-proving its target attribution, but still screens the same
+// neck capsule against the independent non-owner BODY field.
+const preservedContactNeck = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(11, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  bodySdf: () => 10,
+  targetSdf: () => 10,
+  otherBodySdf: () => 10,
+  preserveContactNeck: true,
+});
+assert.equal(preservedContactNeck.diagnostics.generatedSupportCount, 1);
+assert.deepEqual(preservedContactNeck.acceptedRoutes[0]?.route.target, face(11, 0, 0, 2, 0).position);
+assert.equal(preservedContactNeck.acceptedRoutes[0]?.route.segments.at(-1)?.radius, baseRequest.neckRadius);
 
 // A shaft/body contact is never a licensable terminal suffix. The body is
 // placed exactly at the shaft's final point so the old contiguous-suffix bug
@@ -343,6 +464,39 @@ const sparseLegitimateTerminal = auditSparseRemovableSupportCapsule(
 );
 assert.equal(sparseLegitimateTerminal.accepted, true,
   "Sparse audit must retain a legitimate exact owner target contact");
+
+assert.deepEqual(evaluateSparseExperimentalExportGate({
+  stage4Current: false,
+  stage8Current: true,
+  diagnosticsAvailable: true,
+  acceptedBodyCollisionCount: 0,
+  unsupportedTargetCount: 10,
+  approvalCurrent: true,
+}), { state: "hard-block", message: "Stage 4 responsibility is unavailable or stale" });
+assert.equal(evaluateSparseExperimentalExportGate({
+  stage4Current: true,
+  stage8Current: true,
+  diagnosticsAvailable: true,
+  acceptedBodyCollisionCount: 0,
+  unsupportedTargetCount: 10,
+  approvalCurrent: false,
+}).state, "approval-required");
+assert.equal(evaluateSparseExperimentalExportGate({
+  stage4Current: true,
+  stage8Current: true,
+  diagnosticsAvailable: true,
+  acceptedBodyCollisionCount: 0,
+  unsupportedTargetCount: 10,
+  approvalCurrent: true,
+}).state, "ready");
+assert.equal(evaluateSparseExperimentalExportGate({
+  stage4Current: true,
+  stage8Current: true,
+  diagnosticsAvailable: true,
+  acceptedBodyCollisionCount: 1,
+  unsupportedTargetCount: 0,
+  approvalCurrent: true,
+}).state, "hard-block");
 
 // The pure result is deterministic for identical inputs.
 assert.deepEqual(

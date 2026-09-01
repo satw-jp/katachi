@@ -99,6 +99,14 @@ export interface SparseRemovableSupportDebug {
     regionId: number;
     attempts: SparseSupportRouteAttempt[];
   }>;
+  /** Accepted offset-route bend points. Presentation-only. */
+  acceptedBendPoints: Vector3Value[];
+  /** At most one BODY-rejected route per bounded debug candidate. */
+  rejectedCollisionRoutes: Array<{
+    candidateId: string;
+    segments: SparseSupportRouteSegment[];
+    bendPoint?: Vector3Value;
+  }>;
 }
 
 export interface SparseRemovableSupportDiagnostics {
@@ -118,11 +126,64 @@ export interface SparseRemovableSupportDiagnostics {
   insideDerivedSupportCount: 0;
   verticalCount: number;
   leaningCount: number;
+  /** Total straight + bounded offset/bend candidates evaluated. */
+  routeCandidateCount: number;
+  /** Straight routes that reproduced the former BODY collision. */
+  straightRejectedByBody: number;
+  /** Accepted routes with a vertical main shaft and upper bend. */
+  offsetBendCount: number;
+  /** Accepted routes are admitted only after the BODY audit. This explicit
+   * export-gate fact must remain zero; rejected candidate routes are counted
+   * separately by rejectedByBody. */
+  acceptedBodyCollisionCount: 0;
   /** Explicitly a finite diagnostic, never a print-success claim. */
   experimental: true;
   removalGap: number;
   shaftRadius: number;
   neckRadius: number;
+}
+
+export type SparseExperimentalExportGateDecision =
+  | { state: "hard-block"; message: string }
+  | { state: "approval-required"; message: string }
+  | { state: "ready"; message: string };
+
+export interface SparseExperimentalExportGateInput {
+  stage4Current: boolean;
+  stage8Current: boolean;
+  diagnosticsAvailable: boolean;
+  acceptedBodyCollisionCount: number;
+  unsupportedTargetCount: number;
+  approvalCurrent: boolean;
+}
+
+export function evaluateSparseExperimentalExportGate(
+  input: SparseExperimentalExportGateInput,
+): SparseExperimentalExportGateDecision {
+  if (!input.stage4Current) {
+    return { state: "hard-block", message: "Stage 4 responsibility is unavailable or stale" };
+  }
+  if (!input.stage8Current || !input.diagnosticsAvailable) {
+    return { state: "hard-block", message: "Current Stage 8 Sparse Support diagnostics are unavailable" };
+  }
+  if (!Number.isInteger(input.acceptedBodyCollisionCount) || input.acceptedBodyCollisionCount !== 0) {
+    return { state: "hard-block", message: "Accepted removable support still collides with BODY" };
+  }
+  if (!Number.isInteger(input.unsupportedTargetCount) || input.unsupportedTargetCount < 0) {
+    return { state: "hard-block", message: "Sparse Support unresolved-target diagnostics are invalid" };
+  }
+  if (input.unsupportedTargetCount > 0 && !input.approvalCurrent) {
+    return {
+      state: "approval-required",
+      message: `${input.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`,
+    };
+  }
+  return {
+    state: "ready",
+    message: input.unsupportedTargetCount > 0
+      ? `${input.unsupportedTargetCount} unresolved targets explicitly accepted for this experimental export.`
+      : "Sparse Support export diagnostics are current.",
+  };
 }
 
 export interface SparseRemovableSupportRequest {
@@ -174,6 +235,13 @@ export interface SparseRemovableSupportRequest {
   plateBounds?: { minX: number; maxX: number; minY: number; maxY: number };
   /** Bound presentation payload size independently of geometry. */
   maxDebugCandidates?: number;
+  /** Route-only revision: preserve the already-reviewed owner contact neck,
+   * while still checking it against every non-owner BODY surface. */
+  preserveContactNeck?: boolean;
+  /** Route-only revision for the reviewed 6.5+7 target set. BODY clearance
+   * remains a hard gate, while support-to-support spacing is used only as the
+   * final tie-breaker so the already-approved target count is not rewritten. */
+  spacingAsSelectionPreference?: boolean;
 }
 
 export interface SparseRemovableSupportResult {
@@ -192,8 +260,10 @@ const DEFAULT_REMOVAL_GAP_MM = 0.35;
 const DEFAULT_NECK_DIAMETER_MM = 0.6;
 const MIN_NECK_CLEARANCE_FACTOR = 1.25;
 const DEFAULT_MAX_CANDIDATES_PER_REGION = 3;
-const DEFAULT_MAX_LEANING_ROUTES = 4;
+const DEFAULT_MAX_LEANING_ROUTES = 30;
 const DEFAULT_DEBUG_CANDIDATES = 96;
+/** A1 mini's 180 mm XY build span, centered at (90, 90) by the existing 3MF export. */
+const A1_MINI_PLATE_HALF_SPAN_MM = 90;
 
 function finite(value: number): boolean {
   return Number.isFinite(value);
@@ -201,6 +271,57 @@ function finite(value: number): boolean {
 
 function finitePoint(point: Vector3Value): boolean {
   return finite(point.x) && finite(point.y) && finite(point.z);
+}
+
+/**
+ * Derive the physical A1 mini XY proof from the exact final BODY source mesh.
+ * The existing Bambu 3MF exporter centers that BODY bbox at the A1 mini plate
+ * center (90, 90) mm.  This deliberately does not use an artwork or sampling
+ * bbox as the plate boundary; invalid source positions or scale fail closed.
+ */
+export function deriveA1MiniPlateBoundsFromBodyPositions(
+  bodyPositions: Float32Array,
+  targetLongestMm: number,
+): NonNullable<SparseRemovableSupportRequest["plateBounds"]> | undefined {
+  if (!(bodyPositions instanceof Float32Array)
+    || bodyPositions.length < 3 || bodyPositions.length % 3 !== 0
+    || !finite(targetLongestMm) || !(targetLongestMm > EPSILON)) return undefined;
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < bodyPositions.length; index += 3) {
+    const x = bodyPositions[index];
+    const y = bodyPositions[index + 1];
+    const z = bodyPositions[index + 2];
+    if (!finite(x) || !finite(y) || !finite(z)) return undefined;
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  if (![minX, maxX, minY, maxY, minZ, maxZ].every(finite)
+    || minX > maxX || minY > maxY || minZ > maxZ) return undefined;
+  // Match the export contract: targetLongestMm is applied using the actual
+  // final BODY mesh longest XYZ extent, not the coarser sampling estimate.
+  const sourceLongest = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+  const scaleMmPerUnit = targetLongestMm / sourceLongest;
+  if (!finite(sourceLongest) || !(sourceLongest > EPSILON)
+    || !finite(scaleMmPerUnit) || !(scaleMmPerUnit > EPSILON)) return undefined;
+  const halfSpan = A1_MINI_PLATE_HALF_SPAN_MM / scaleMmPerUnit;
+  const centerX = (minX + maxX) * 0.5;
+  const centerY = (minY + maxY) * 0.5;
+  if (![halfSpan, centerX, centerY].every(finite)) return undefined;
+  return {
+    minX: centerX - halfSpan,
+    maxX: centerX + halfSpan,
+    minY: centerY - halfSpan,
+    maxY: centerY + halfSpan,
+  };
 }
 
 function clonePoint(point: Vector3Value): Vector3Value {
@@ -387,6 +508,8 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   maximumDepth: number;
   plateBounds?: SparseRemovableSupportRequest["plateBounds"];
   maxDebugCandidates: number;
+  preserveContactNeck: boolean;
+  spacingAsSelectionPreference: boolean;
 } {
   const projectedOutsideFaces = input.projectedOutsideFaces ?? [];
   const scale = input.scaleMmPerUnit;
@@ -406,7 +529,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   const lowStartBand = input.lowStartBand ?? Math.max(input.shaftRadius * 3, 0.12);
   const maxCandidatesPerRegion = Math.max(1, Math.min(3,
     Math.floor(input.maxCandidatesPerRegion ?? DEFAULT_MAX_CANDIDATES_PER_REGION)));
-  const maxLeaningRoutes = Math.max(0, Math.min(8,
+  const maxLeaningRoutes = Math.max(0, Math.min(30,
     Math.floor(input.maxLeaningRoutes ?? DEFAULT_MAX_LEANING_ROUTES)));
   const coverageRadius = input.coverageRadius ?? Math.max(input.shaftRadius * 2.5, removalGap * 2);
   const targetRadius = input.targetRadius ?? Math.max(input.neckRadius * 2, input.shaftRadius);
@@ -438,6 +561,8 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     maximumDepth,
     plateBounds: input.plateBounds,
     maxDebugCandidates: Math.max(0, Math.min(256, Math.floor(input.maxDebugCandidates ?? DEFAULT_DEBUG_CANDIDATES))),
+    preserveContactNeck: input.preserveContactNeck === true,
+    spacingAsSelectionPreference: input.spacingAsSelectionPreference === true,
   };
 }
 
@@ -587,6 +712,86 @@ function finitePlateBounds(bounds: SparseRemovableSupportRequest["plateBounds"])
     && bounds.minX <= bounds.maxX && bounds.minY <= bounds.maxY;
 }
 
+type SparseHorizontalDirection = { x: number; y: number };
+
+function normalizeHorizontalDirection(
+  direction: Pick<Vector3Value, "x" | "y">,
+): SparseHorizontalDirection | null {
+  const length = Math.hypot(direction.x, direction.y);
+  if (!finite(length) || !(length > EPSILON)) return null;
+  return { x: direction.x / length, y: direction.y / length };
+}
+
+/**
+ * Keep the bounded v0 route set spatially diverse. The first direction is the
+ * target triangle's outward XY normal (when available), so a root descends on
+ * the outside of a side overhang. Remaining directions cover both tangential
+ * sides, the opposite direction, and their diagonals. This is only candidate
+ * ordering; every route still passes the unchanged BODY/keep-out audit.
+ */
+export function enumerateSparseRemovableSupportLeaningDirections(
+  normal: Pick<Vector3Value, "x" | "y">,
+): SparseHorizontalDirection[] {
+  const outward = normalizeHorizontalDirection(normal) ?? { x: 1, y: 0 };
+  const requested = [
+    outward,
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+  ];
+  const unique: SparseHorizontalDirection[] = [];
+  for (const direction of requested) {
+    const normalized = normalizeHorizontalDirection(direction);
+    if (!normalized) continue;
+    if (unique.some((existing) => Math.abs(existing.x - normalized.x) < 1e-9
+      && Math.abs(existing.y - normalized.y) < 1e-9)) continue;
+    unique.push(normalized);
+  }
+  return unique;
+}
+
+function boundedContactNeckLength(
+  neckLength: number,
+  shaftRadius: number,
+  neckRadius: number,
+): number {
+  return Math.min(neckLength,
+    Math.max(shaftRadius * MIN_NECK_CLEARANCE_FACTOR, neckRadius * 1.5));
+}
+
+/**
+ * Place the terminal neck just outside the target along the already-resolved
+ * Stage 4/7 outward normal.  A support target is expected to be a lower
+ * overhang, so an upward or tangent normal cannot safely define a descending
+ * contact and is rejected instead of falling back to a target-centred neck.
+ */
+function contactStartForTarget(
+  target: SparseRemovableSupportTarget,
+  neckLength: number,
+  shaftRadius: number,
+  neckRadius: number,
+): Vector3Value | null {
+  if (!finitePoint(target.position) || !finitePoint(target.normal)) return null;
+  const normalLength = Math.hypot(target.normal.x, target.normal.y, target.normal.z);
+  if (!finite(normalLength) || !(normalLength > EPSILON)) return null;
+  const outward = {
+    x: target.normal.x / normalLength,
+    y: target.normal.y / normalLength,
+    z: target.normal.z / normalLength,
+  };
+  if (!finitePoint(outward) || !(outward.z < -EPSILON)) return null;
+  const actualNeckLength = boundedContactNeckLength(neckLength, shaftRadius, neckRadius);
+  if (!finite(actualNeckLength) || !(actualNeckLength > EPSILON)) return null;
+  const contactStart = {
+    x: target.position.x + outward.x * actualNeckLength,
+    y: target.position.y + outward.y * actualNeckLength,
+    z: target.position.z + outward.z * actualNeckLength,
+  };
+  if (!finitePoint(contactStart) || !(contactStart.z < target.position.z - EPSILON)) return null;
+  return contactStart;
+}
+
 function buildRoute(
   target: SparseRemovableSupportTarget,
   plateZ: number,
@@ -598,34 +803,11 @@ function buildRoute(
 ): SparseRemovableSupportRoute | null {
   const rise = target.position.z - plateZ;
   if (!(rise > EPSILON) || !finitePoint(root)) return null;
-  // Keep the shaft-to-neck transition outside the BODY by at least one shaft
-  // radius plus the bounded transition margin.  The previous rise*0.4 cap
-  // could leave the shaft endpoint inside a flat underside when the default
-  // 1.6 mm shaft met a 0.6 mm neck.  For short targets this intentionally
-  // falls through to the neck-only route below; it never licenses shaft BODY
-  // contact.
-  const actualNeckLength = Math.min(neckLength,
-    Math.max(shaftRadius * MIN_NECK_CLEARANCE_FACTOR, neckRadius * 1.5));
-  const neckStartZ = target.position.z - actualNeckLength;
-  // A leaning route spends its horizontal displacement in the shaft. The
-  // final contact neck is short and vertical at the target XY, which keeps
-  // every serialized segment independently within the 45-degree limit.
-  const neckStart = {
-    x: kind === "leaning" ? target.position.x : root.x,
-    y: kind === "leaning" ? target.position.y : root.y,
-    z: neckStartZ,
-  };
-  if (!(neckStart.z > plateZ + EPSILON)) {
-    // Very short targets retain the contact neck, but do not fabricate a
-    // zero-length shaft edge.
-    return {
-      kind,
-      root: clonePoint(root),
-      neckStart: clonePoint(root),
-      target: clonePoint(target.position),
-      segments: [{ start: clonePoint(root), end: clonePoint(target.position), radius: neckRadius }],
-    };
-  }
+  const neckStart = contactStartForTarget(target, neckLength, shaftRadius, neckRadius);
+  // A contact start below the plate cannot be reached by a supported shaft;
+  // retain the existing fail-closed route contract rather than serializing a
+  // non-normal-aligned neck-only shortcut.
+  if (!neckStart || !(neckStart.z > plateZ + EPSILON)) return null;
   return {
     kind,
     root: clonePoint(root),
@@ -642,46 +824,74 @@ function buildVerticalRoute(
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
 ): SparseRemovableSupportRoute | null {
+  const contactStart = contactStartForTarget(target, request.neckLength,
+    request.shaftRadius, request.neckRadius);
+  if (!contactStart) return null;
   return buildRoute(target, request.plateZ, request.shaftRadius, request.neckRadius,
-    request.neckLength, "vertical", { x: target.position.x, y: target.position.y, z: request.plateZ });
+    request.neckLength, "vertical", {
+      x: contactStart.x,
+      y: contactStart.y,
+      z: request.plateZ,
+    });
+}
+
+function buildOffsetBendRoute(
+  target: SparseRemovableSupportTarget,
+  request: ReturnType<typeof normalizeRequest>,
+  direction: SparseHorizontalDirection,
+  offset: number,
+  approachAngleDegrees = 35,
+): SparseRemovableSupportRoute | null {
+  const contactStart = contactStartForTarget(target, request.neckLength,
+    request.shaftRadius, request.neckRadius);
+  if (!contactStart || !finite(offset) || !(offset > EPSILON)) return null;
+  // A bounded 35/45-degree upper approach keeps the lower member vertical
+  // while changing only bend height. The final contact neck stays unchanged.
+  const approachAngleRadians = approachAngleDegrees * Math.PI / 180;
+  const approachRise = offset / Math.tan(approachAngleRadians);
+  const bendZ = contactStart.z - approachRise;
+  if (!finite(bendZ) || !(bendZ > request.plateZ + EPSILON)) return null;
+  const root = {
+    x: contactStart.x + direction.x * offset,
+    y: contactStart.y + direction.y * offset,
+    z: request.plateZ,
+  };
+  if (!pointInsidePlateBounds(root, request.plateBounds)) return null;
+  const bend = { x: root.x, y: root.y, z: bendZ };
+  return {
+    kind: "leaning",
+    root: clonePoint(root),
+    neckStart: clonePoint(contactStart),
+    target: clonePoint(target.position),
+    segments: [
+      { start: clonePoint(root), end: clonePoint(bend), radius: request.shaftRadius },
+      { start: clonePoint(bend), end: clonePoint(contactStart), radius: request.shaftRadius },
+      { start: clonePoint(contactStart), end: clonePoint(target.position), radius: request.neckRadius },
+    ],
+  };
 }
 
 function buildLeaningRoutes(
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
 ): SparseRemovableSupportRoute[] {
-  // The workflow currently records only plate Z. A leaning root needs an
-  // explicit finite physical XY plate proof; unknown bounds never grant it.
+  // A leaning root needs an explicit finite physical XY plate proof; unknown
+  // bounds never grant it. Direction selection below is only a bounded search
+  // ordering and does not relax any BODY or permanent-Web keep-out check.
   if (request.maxLeaningRoutes <= 0 || !finitePlateBounds(request.plateBounds)) return [];
-  const rise = target.position.z - request.plateZ;
-  const neckRise = Math.min(request.neckLength, Math.max(rise * 0.4, request.neckRadius * 1.5));
-  const shaftRise = target.position.z - neckRise - request.plateZ;
-  if (!(shaftRise > EPSILON)) return [];
-  const maximumOffset = shaftRise * (1 - 1e-6);
-  const directions = [
-    { x: 1, y: 0 },
-    { x: 0, y: 1 },
-    { x: -1, y: 0 },
-    { x: 0, y: -1 },
-    { x: Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
-    { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
-  ];
+  const directions = enumerateSparseRemovableSupportLeaningDirections(target.normal);
   const routes: SparseRemovableSupportRoute[] = [];
-  const offsets = [0.38, 0.72, 0.94];
-  for (const direction of directions) {
-    for (const fraction of offsets) {
-      const offset = maximumOffset * fraction;
-      const root = {
-        x: target.position.x - direction.x * offset,
-        y: target.position.y - direction.y * offset,
-        z: request.plateZ,
-      };
-      const route = buildRoute(target, request.plateZ, request.shaftRadius, request.neckRadius,
-        request.neckLength, "leaning", root);
-      if (route && pointInsidePlateBounds(root, request.plateBounds)) routes.push(route);
-      if (routes.length >= request.maxLeaningRoutes) return routes;
+  // Three small physical rings (6.4 / 9.6 / 12.8 mm with the existing
+  // 1.6 mm shaft) and two bend heights move the main shaft away from the BODY
+  // without changing target density or invoking a global path solver.
+  const offsets = [request.shaftRadius * 8, request.shaftRadius * 12, request.shaftRadius * 16];
+  for (const approachAngleDegrees of [35, 45]) {
+    for (const offset of offsets) {
+      for (const direction of directions) {
+        const route = buildOffsetBendRoute(target, request, direction, offset, approachAngleDegrees);
+        if (route) routes.push(route);
+        if (routes.length >= request.maxLeaningRoutes) return routes;
+      }
     }
   }
   return routes;
@@ -797,12 +1007,33 @@ function auditCapsuleAgainstBody(
     }
     if (bodyLowerBound > threshold) return [];
     // Any unresolved BODY overlap away from an explicitly target-attributed
-    // terminal contact is a hard collision rejection. It is not safe to call
-    // such a route merely "unsupported": the route has failed the BODY
-    // keep-out screen even when no target SDF was supplied.
+    // terminal contact is a hard collision rejection. Refine the conservative
+    // Lipschitz interval before declaring that overlap: a short, genuinely
+    // clear capsule can otherwise be false-rejected when its first interval's
+    // lower bound straddles the radius threshold. Exhaustion still returns a
+    // collision region (or an unsupported proof failure below), never an
+    // uncertain acceptance.
     if (!terminal || !request.targetSdf || !request.otherBodySdf || !finite(targetEndpointAllowance)
       || targetEndpointAllowance < -1e-7) {
-      return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
+      // A sampled endpoint already inside the radius is a witnessed contact;
+      // it does not need adaptive subdivision and remains a hard rejection.
+      if (first.body <= threshold || second.body <= threshold) {
+        return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
+      }
+      if (depth >= MAX_ADAPTIVE_DEPTH) {
+        return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
+      }
+      const midpoint = (t0 + t1) * 0.5;
+      if (!(midpoint > t0) || !(midpoint < t1)) {
+        return [{ start: Math.max(t0, 0), end: Math.min(t1, 1) }];
+      }
+      const middle = evaluateAt(midpoint);
+      if (!middle) return null;
+      const left = certifyInterval(t0, midpoint, first, middle, depth + 1);
+      if (!left) return null;
+      const right = certifyInterval(midpoint, t1, middle, second, depth + 1);
+      if (!right) return null;
+      return [...left, ...right];
     }
     const bodyPossibleStart = Math.max(0, first.body - threshold);
     const bodyPossibleEnd = Math.min(segmentLength, segmentLength - second.body + threshold);
@@ -918,8 +1149,18 @@ function auditRoute(
   }
   let sampleCount = 0;
   for (const [index, segment] of route.segments.entries()) {
-    const audited = auditCapsuleAgainstBody(segment, request.bodySdf, index === route.segments.length - 1,
-      target, request);
+    const terminal = index === route.segments.length - 1;
+    const audited = terminal && request.preserveContactNeck
+      ? auditCapsuleAgainstBody(
+        segment,
+        request.otherBodySdf
+          ? (x, y, z) => request.otherBodySdf!(target, x, y, z)
+          : undefined,
+        false,
+        target,
+        request,
+      )
+      : auditCapsuleAgainstBody(segment, request.bodySdf, terminal, target, request);
     sampleCount += audited.sampleCount;
     if (!audited.accepted) return { ...audited, sampleCount };
   }
@@ -933,6 +1174,29 @@ function auditRoute(
     }
   }
   return { accepted: true, detail: "plate, BODY and capsule-spacing screens passed", sampleCount };
+}
+
+function routeSpacingIsClear(
+  route: SparseRemovableSupportRoute,
+  acceptedSegments: readonly SparseSupportRouteSegment[],
+  removalGap: number,
+): boolean {
+  for (const segment of route.segments) {
+    for (const previous of acceptedSegments) {
+      const clearance = segment.radius + previous.radius + removalGap;
+      const actual = segmentSegmentDistance(segment.start, segment.end, previous.start, previous.end);
+      if (!finite(actual) || actual <= clearance + 1e-7) return false;
+    }
+  }
+  return true;
+}
+
+function routeMaximumAngle(route: SparseRemovableSupportRoute): number {
+  return Math.max(...route.segments.map((segment) => routeAngleFromVertical(segment.start, segment.end)));
+}
+
+function routeLength(route: SparseRemovableSupportRoute): number {
+  return route.segments.reduce((total, segment) => total + distance(segment.start, segment.end), 0);
 }
 
 function appendRouteToGraph(builder: SparseGraphBuilder, route: SparseRemovableSupportRoute): void {
@@ -965,11 +1229,15 @@ export function buildSparseRemovableSupport(
   const coveredTargetIds = new Set<string>();
   const rejectedCandidates: SparseSupportDebugRejectedCandidate[] = [];
   const routeAttempts: SparseRemovableSupportDebug["routeAttempts"] = [];
+  const rejectedCollisionRoutes: SparseRemovableSupportDebug["rejectedCollisionRoutes"] = [];
   let rejectedByBody = 0;
   let rejectedBySpacing = 0;
   let rejectedByRemovability = extracted.unownedCandidateCount;
   let verticalCount = 0;
   let leaningCount = 0;
+  let routeCandidateCount = 0;
+  let straightRejectedByBody = 0;
+  let offsetBendCount = 0;
   const anyFiniteFace = request.projectedOutsideFaces.some((face) => finitePoint(face.position));
   const requestValid = validNormalizedRequest(request);
 
@@ -1021,26 +1289,72 @@ export function buildSparseRemovableSupport(
     let bodyFailure = false;
     let spacingFailure = false;
     let removabilityFailure = false;
+    const preferenceCandidates: Array<{
+      route: SparseRemovableSupportRoute;
+      spacingClear: boolean;
+      order: number;
+    }> = [];
     const routeOptions: SparseRemovableSupportRoute[] = requestValid
       ? [
         buildVerticalRoute(candidate.target, request),
         ...buildLeaningRoutes(candidate.target, request),
       ].filter((route): route is SparseRemovableSupportRoute => route !== null)
       : [];
+    routeCandidateCount += routeOptions.length;
     if (routeOptions.length === 0) {
       attempts.push({ kind: "vertical", accepted: false, reason: "unsupported", detail: "support settings or target fields are not finite" });
       removabilityFailure = true;
     }
-    for (const route of routeOptions) {
-      const audited = auditRoute(route, request, acceptedSegments, candidate.target);
-      attempts.push({ kind: route.kind, accepted: audited.accepted, ...(audited.reason ? { reason: audited.reason } : {}), detail: audited.detail });
+    for (const [routeIndex, route] of routeOptions.entries()) {
+      const audited = auditRoute(
+        route,
+        request,
+        request.spacingAsSelectionPreference ? [] : acceptedSegments,
+        candidate.target,
+      );
+      const spacingClear = routeSpacingIsClear(route, acceptedSegments, request.removalGap);
+      attempts.push({
+        kind: route.kind,
+        accepted: audited.accepted,
+        ...(audited.reason ? { reason: audited.reason } : {}),
+        detail: request.spacingAsSelectionPreference && audited.accepted
+          ? `${audited.detail}; support spacing ${spacingClear ? "clear" : "used as final preference"}`
+          : audited.detail,
+      });
       if (audited.accepted) {
-        accepted = route;
-        break;
+        if (!request.spacingAsSelectionPreference) {
+          accepted = route;
+          break;
+        }
+        preferenceCandidates.push({ route, spacingClear, order: routeIndex });
+        continue;
       }
-      if (audited.reason === "body") bodyFailure = true;
+      if (audited.reason === "body") {
+        bodyFailure = true;
+        if (routeIndex === 0) straightRejectedByBody++;
+        if (rejectedCollisionRoutes.length < request.maxDebugCandidates
+          && !rejectedCollisionRoutes.some((entry) => entry.candidateId === candidate.id)) {
+          rejectedCollisionRoutes.push({
+            candidateId: candidate.id,
+            segments: route.segments.map((segment) => ({
+              start: clonePoint(segment.start),
+              end: clonePoint(segment.end),
+              radius: segment.radius,
+            })),
+            ...(route.segments.length > 2 ? { bendPoint: clonePoint(route.segments[0].end) } : {}),
+          });
+        }
+      }
       if (audited.reason === "spacing") spacingFailure = true;
       if (audited.reason === "removability" || audited.reason === "unsupported") removabilityFailure = true;
+    }
+    if (!accepted && preferenceCandidates.length > 0) {
+      preferenceCandidates.sort((first, second) =>
+        routeMaximumAngle(first.route) - routeMaximumAngle(second.route)
+        || routeLength(first.route) - routeLength(second.route)
+        || Number(second.spacingClear) - Number(first.spacingClear)
+        || first.order - second.order);
+      accepted = preferenceCandidates[0].route;
     }
     if (routeAttempts.length < request.maxDebugCandidates) {
       routeAttempts.push({ candidateId: candidate.id, regionId: candidate.target.regionId, attempts });
@@ -1051,7 +1365,10 @@ export function buildSparseRemovableSupport(
       acceptedRoutes.push({ candidateId: candidate.id, route: accepted });
       for (const id of uncovered) coveredTargetIds.add(id);
       if (accepted.kind === "vertical") verticalCount++;
-      else leaningCount++;
+      else {
+        leaningCount++;
+        if (accepted.segments.length > 2) offsetBendCount++;
+      }
       continue;
     }
     if (bodyFailure) rejectedByBody++;
@@ -1088,6 +1405,10 @@ export function buildSparseRemovableSupport(
     })),
     rejectedCandidates,
     routeAttempts,
+    acceptedBendPoints: acceptedRoutes
+      .filter(({ route }) => route.segments.length > 2)
+      .map(({ route }) => clonePoint(route.segments[0].end)),
+    rejectedCollisionRoutes,
   };
   const diagnostics: SparseRemovableSupportDiagnostics = {
     outsideRegionCount: request.outsideRegionCount,
@@ -1102,6 +1423,10 @@ export function buildSparseRemovableSupport(
     insideDerivedSupportCount: 0,
     verticalCount,
     leaningCount,
+    routeCandidateCount,
+    straightRejectedByBody,
+    offsetBendCount,
+    acceptedBodyCollisionCount: 0,
     experimental: true,
     removalGap: request.removalGap,
     shaftRadius: request.shaftRadius,
