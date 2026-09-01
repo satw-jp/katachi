@@ -1,5 +1,17 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Stage 6.4 Mesh Topology Diagnostics（2026-09-01）
+
+工程6のraw triangle soupを変更せず、connected componentごとの色、triangle数、符号付き体積から得た絶対volume、保存mm座標boundsを表示するStage 6.4を追加した。既存final repairと同じcavity／tiny-island／Plate shift順で保存座標退化face IDも追跡し、該当面は黄色markerで示す。診断はWorker内の表示用evidenceであり、triangleの削除・接続・repair・FKEI・exportには使わない。
+
+通常Chromeで旧`skin-rebuild-print-002-support-free.fkei`を再確認するとraw meshは222,636 triangles / 5 componentsだったが、現在の同一mesh上で追跡できる保存座標退化faceは0だった。各componentは222,268 / 204 / 116 / 24 / 24 triangles、volumeは49,476.02 / 9.73 / 0.958916 / 0.000973 / 0.038386 mm³だった。以前のexperimental export gateが記録した「退化2面」は、その未保存session状態に属し、再読込可能な旧FKEIからface IDを再現できなかった。別のfinal FKEIは217,540 triangles / 6 components / 退化0であり、5 componentsと同一ではない。2面を推測で着色せず、5 componentsを目視可能なまま停止した。geometryは変更していない。
+
+## Observation — Sparse Experimental Export Gate（2026-09-01）
+
+Stage 8 Sparse Automaticは、currentなStage 4 responsibilityとcurrentなStage 8診断、accepted routeのBODY collision 0をhard gateとして要求する。Unsupportedだけが残る場合は件数付き警告を表示し、現在のStage 4/8 evidenceに結び付いたsession-onlyの`Export Experimental Print`明示承認後だけexportを許可する。Stage 4再診断は既存Artwork latticeを保持し、BODY geometryを変えずにAll/Inside/OutsideとStage 5B/8 responsibilityを更新する。
+
+Print #002候補の実ブラウザ再確認ではAll 1,224 faces / 86 regions、Inside 736 / 73、Outside 488 / 53、Critical targets 166、Supported 156、Unsupported 10、accepted BODY collision 0、Support Graph 390 edges、Inside-derived 0を再現した。承認前はexport無効、明示承認後は有効になったが、既存のhard geometry gateが`STL座標で退化する面が2枚あります`で停止した。このため3MF生成とBambu Studio確認は行っていない。Unsupported 10を理由にした停止ではなく、要求どおり重大geometry failureをfail-closedで維持した結果である。geometry、support route、target selection、FKEI semantics、Stage 5B、CUDAは変更しておらず、`printApproval=false`を維持する。
+
 ## Observation — SKIN Overhang Responsibility Contract（v0.93.0、2026-08-31）
 
 工程4の全Overhang診断と工程3由来のInside / Outside分類を正本として保持し、工程5BはInside、工程8の
