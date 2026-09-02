@@ -264,14 +264,17 @@ import {
 } from "./rebuild/artUiShell.ts";
 import {
   DEFAULT_NETWORK_FORMATION_VARIANT_ID,
+  NETWORK_FORMATION_CHAPTER_LABELS,
   NETWORK_FORMATION_VARIANTS,
+  REPRESENTATIVE_NETWORK_FORMATION_ID,
+  createRepresentativeNetworkFormationTimeline,
   createNetworkFormationTimeline,
   isNetworkFormationVariantId,
   networkFormationGraphAt,
   networkFormationVariant,
   type NetworkFormationEvent,
   type NetworkFormationTimeline,
-  type NetworkFormationVariantId,
+  type NetworkFormationTimelineId,
 } from "./rebuild/networkFormation.ts";
 import {
   applySupportPaintToPolicyResult,
@@ -530,6 +533,7 @@ projectSampleButton.onclick = async () => {
     projectSampleButton.disabled = false;
   }
 };
+let skinArtAutoplayFormationAfterSample = false;
 const projectCompleteSampleButton = document.createElement("button");
 projectCompleteSampleButton.type = "button";
 projectCompleteSampleButton.id = "skin-project-complete-sample";
@@ -545,6 +549,10 @@ projectCompleteSampleButton.onclick = async () => {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const file = new File([await response.blob()], "skin-rebuild-first-print.fkei", { type: "application/json" });
     await openFkeiProject(file);
+    if (skinArtAutoplayFormationAfterSample && internalStructureGraph?.edges.length) {
+      skinArtAutoplayFormationAfterSample = false;
+      window.setTimeout(() => startNetworkFormation(), 700);
+    }
   } catch (error) {
     projectMeta.textContent = `完成Sample Open失敗: ${error instanceof Error ? error.message : String(error)}`;
   } finally {
@@ -2689,7 +2697,7 @@ syncPhaseAVerticalControl();
 
 type NetworkFormationSession = {
   readonly id: number;
-  readonly variantId: NetworkFormationVariantId;
+  readonly variantId: NetworkFormationTimelineId;
   readonly variantLabel: string;
   readonly graph: InternalStructureGraph;
   readonly timeline: NetworkFormationTimeline;
@@ -2741,6 +2749,9 @@ function applyNetworkFormationEvent(
   }
 
   const progress = `${event.visibleEdgeCount} / ${session.graph.edges.length} EDGES`;
+  const chapterLabel = event.chapter
+    ? NETWORK_FORMATION_CHAPTER_LABELS[event.chapter]
+    : session.variantLabel;
   if (event.kind === "stable") {
     skinArtUiShellController?.setNetworkFormationState(
       "stable",
@@ -2758,7 +2769,7 @@ function applyNetworkFormationEvent(
           : event.kind === "propose"
             ? "ROUTE PROPOSAL"
             : "NETWORK FORMATION";
-    skinArtUiShellController?.setNetworkFormationState("running", status, progress, session.variantLabel);
+    skinArtUiShellController?.setNetworkFormationState("running", status, progress, chapterLabel);
   }
 }
 
@@ -2791,12 +2802,11 @@ function runNetworkFormationFrame(sessionId: number, now: number): void {
   }
 }
 
-function startNetworkFormation(requestedVariantId: string = DEFAULT_NETWORK_FORMATION_VARIANT_ID): void {
+function startNetworkFormation(requestedVariantId?: string): void {
   if (networkFormationSession) exitNetworkFormation();
-  const variantId = isNetworkFormationVariantId(requestedVariantId)
-    ? requestedVariantId
-    : DEFAULT_NETWORK_FORMATION_VARIANT_ID;
-  const variantLabel = networkFormationVariant(variantId).label;
+  const isRepresentative = requestedVariantId === undefined || requestedVariantId === "";
+  let variantId: NetworkFormationTimelineId = REPRESENTATIVE_NETWORK_FORMATION_ID;
+  let variantLabel = "FORMATION";
   const graph = internalStructureGraph;
   if (!graph?.edges.length) {
     skinArtUiShellController?.setNetworkFormationState(
@@ -2805,7 +2815,17 @@ function startNetworkFormation(requestedVariantId: string = DEFAULT_NETWORK_FORM
     );
     return;
   }
-  const timeline = createNetworkFormationTimeline(graph, variantId);
+  let timeline: NetworkFormationTimeline;
+  if (isRepresentative) {
+    timeline = createRepresentativeNetworkFormationTimeline(graph);
+  } else {
+    const studyVariantId = isNetworkFormationVariantId(requestedVariantId)
+      ? requestedVariantId
+      : DEFAULT_NETWORK_FORMATION_VARIANT_ID;
+    variantId = studyVariantId;
+    variantLabel = networkFormationVariant(studyVariantId).label;
+    timeline = createNetworkFormationTimeline(graph, studyVariantId);
+  }
   const viewDraft = skinRenderer.captureEditorViewDraft(editorLayoutState);
   const session: NetworkFormationSession = {
     id: nextNetworkFormationSessionId++,
@@ -2865,8 +2885,20 @@ if (isSkinRebuildApp) {
     networkFormationStudies: NETWORK_FORMATION_VARIANTS,
     initialNetworkFormationStudyId: DEFAULT_NETWORK_FORMATION_VARIANT_ID,
     onNetworkFormationRequest: startNetworkFormation,
+    onNetworkFormationReplay: () => startNetworkFormation(),
     onNetworkFormationExit: exitNetworkFormation,
   });
+}
+if (isSkinRebuildApp) {
+  // The dedicated artwork route opens on the bundled completed graph so a
+  // gallery display can begin without editor setup. The existing .fkei open
+  // path remains the only source of the graph; Formation only presents it.
+  skinArtAutoplayFormationAfterSample = true;
+  window.setTimeout(() => {
+    if (skinArtAutoplayFormationAfterSample && !networkFormationSession) {
+      projectCompleteSampleButton.click();
+    }
+  }, 240);
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
 let refreshSkinRebuildAxomeRollControl = () => {};

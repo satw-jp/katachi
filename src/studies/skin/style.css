@@ -4381,6 +4381,47 @@ html.skin-art-ui .skin-network-formation-action[hidden] {
   display: none;
 }
 
+html.skin-art-ui .skin-network-formation-descriptor {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 9px;
+}
+
+html.skin-art-ui .skin-network-formation-descriptor span {
+  color: var(--skin-art-muted);
+  font: 700 7px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+}
+
+html.skin-art-ui .skin-network-formation-descriptor strong {
+  color: var(--skin-art-ink);
+  font: 500 17px/1.05 var(--skin-art-serif);
+  letter-spacing: .01em;
+}
+
+html.skin-art-ui .skin-network-formation-descriptor small {
+  color: var(--skin-art-muted);
+  font: 400 8px/1.35 var(--skin-art-sans);
+}
+
+html.skin-art-ui .skin-network-formation-study-archive {
+  margin-top: 16px;
+  border-top: 1px solid var(--skin-art-line);
+}
+
+html.skin-art-ui .skin-network-formation-study-archive > summary {
+  padding: 10px 0;
+  color: var(--skin-art-muted);
+  cursor: pointer;
+  font: 700 8px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+html.skin-art-ui .skin-network-formation-study-archive[open] > summary {
+  color: var(--skin-art-ink);
+}
+
 html.skin-art-ui .skin-network-formation-studies {
   display: grid;
   min-width: 0;
@@ -4570,6 +4611,25 @@ html.skin-art-ui .skin-network-formation-exit {
   font: 700 8px/1.2 var(--skin-art-sans);
   letter-spacing: .16em;
   pointer-events: auto;
+}
+
+html.skin-art-ui .skin-network-formation-replay {
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 1px solid rgba(200, 240, 90, .52);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(200, 240, 90, .86);
+  font: 700 8px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+  pointer-events: auto;
+}
+
+html.skin-art-ui .skin-network-formation-replay:hover,
+html.skin-art-ui .skin-network-formation-replay:focus-visible {
+  border-bottom-color: #eff5e8;
+  color: #eff5e8;
+  outline: 0;
 }
 
 html.skin-art-ui .skin-network-formation-exit:hover,

@@ -4,6 +4,8 @@ import {
   DEFAULT_NETWORK_FORMATION_VARIANT_ID,
   NETWORK_FORMATION_DURATION_MS,
   NETWORK_FORMATION_VARIANTS,
+  REPRESENTATIVE_NETWORK_FORMATION_ID,
+  createRepresentativeNetworkFormationTimeline,
   createNetworkFormationTimeline,
   networkFormationGraphAt,
   type NetworkFormationVariantId,
@@ -80,6 +82,38 @@ const graph: InternalStructureGraph = {
 const originalJson = JSON.stringify(graph);
 const timeline = createNetworkFormationTimeline(graph);
 assertTimelineContract(graph);
+const representativeTimeline = createRepresentativeNetworkFormationTimeline(graph);
+assert.equal(representativeTimeline.variantId, REPRESENTATIVE_NETWORK_FORMATION_ID);
+assert.equal(representativeTimeline.durationMs, NETWORK_FORMATION_DURATION_MS);
+assert.deepEqual(
+  [...representativeTimeline.edgeOrder].sort((left, right) => left - right),
+  graph.edges.map((_, index) => index),
+);
+assert.equal(new Set(representativeTimeline.edgeOrder).size, graph.edges.length);
+assert.equal(representativeTimeline.events[0]?.kind, "reset");
+assert.equal(representativeTimeline.events.at(-1)?.kind, "stable");
+assert.equal(representativeTimeline.events.at(-1)?.visibleEdgeCount, graph.edges.length);
+assert.ok(representativeTimeline.events.some((event) => event.chapter === "trace"));
+assert.ok(representativeTimeline.events.some((event) => event.chapter === "radial-bloom"));
+assert.ok(representativeTimeline.events.some((event) => event.chapter === "confluence"));
+assert.ok(representativeTimeline.events.some((event) => event.chapter === "thickness"));
+assert.ok(representativeTimeline.events.some((event) => event.kind === "reject"));
+const representativeTerminalText = representativeTimeline.events
+  .flatMap((event) => event.terminalLines)
+  .join("\n");
+for (const cue of ["TRACE", "RADIAL BLOOM", "CONFLUENCE", "THICKNESS", "PROPOSE", "EVALUATE", "REJECT", "REVISE", "NETWORK STABLE"]) {
+  assert.match(representativeTerminalText, new RegExp(cue));
+}
+assert.strictEqual(
+  networkFormationGraphAt(graph, representativeTimeline.edgeOrder, graph.edges.length),
+  graph,
+  "representative stable frame must reuse the exact completed graph",
+);
+assert.deepEqual(
+  createRepresentativeNetworkFormationTimeline(graph),
+  representativeTimeline,
+  "representative formation planning must be deterministic",
+);
 assert.equal(timeline.durationMs, NETWORK_FORMATION_DURATION_MS);
 assert.ok(timeline.durationMs >= 10_000 && timeline.durationMs <= 15_000);
 assert.deepEqual([...timeline.edgeOrder].sort((a, b) => a - b), graph.edges.map((_, index) => index));

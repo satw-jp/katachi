@@ -20,6 +20,26 @@ export const NETWORK_FORMATION_VARIANT_IDS = [
 
 export type NetworkFormationVariantId = typeof NETWORK_FORMATION_VARIANT_IDS[number];
 
+export const REPRESENTATIVE_NETWORK_FORMATION_ID = "representative" as const;
+export type NetworkFormationTimelineId = NetworkFormationVariantId | typeof REPRESENTATIVE_NETWORK_FORMATION_ID;
+
+export type NetworkFormationChapterId =
+  | "trace"
+  | "radial-bloom"
+  | "confluence"
+  | "decision"
+  | "thickness"
+  | "converge";
+
+export const NETWORK_FORMATION_CHAPTER_LABELS: Record<NetworkFormationChapterId, string> = {
+  trace: "TRACE",
+  "radial-bloom": "RADIAL BLOOM",
+  confluence: "CONFLUENCE",
+  decision: "PROPOSE / EVALUATE / REVISE",
+  thickness: "THICKNESS",
+  converge: "CONVERGE",
+};
+
 export interface NetworkFormationVariantOption {
   readonly id: NetworkFormationVariantId;
   readonly label: string;
@@ -65,11 +85,12 @@ export interface NetworkFormationEvent {
   readonly kind: NetworkFormationEventKind;
   readonly visibleEdgeCount: number;
   readonly proposal?: NetworkFormationProposal;
+  readonly chapter?: NetworkFormationChapterId;
   readonly terminalLines: readonly string[];
 }
 
 export interface NetworkFormationTimeline {
-  readonly variantId: NetworkFormationVariantId;
+  readonly variantId: NetworkFormationTimelineId;
   readonly durationMs: number;
   readonly edgeOrder: readonly number[];
   readonly events: readonly NetworkFormationEvent[];
@@ -427,27 +448,114 @@ function formationRevealFraction(variantId: NetworkFormationVariantId, fraction:
   }
 }
 
-export function createNetworkFormationTimeline(
+interface FormationTimelineConfig {
+  readonly timelineId: NetworkFormationTimelineId;
+  readonly label: string;
+  readonly cues: readonly string[];
+  readonly rejectFractions: readonly number[];
+  readonly revealFraction: (fraction: number) => number;
+  readonly chapterForEdge?: (edgeIndex: number) => NetworkFormationChapterId | undefined;
+  readonly chapterForDecision?: NetworkFormationChapterId;
+  readonly stableLines: readonly string[];
+  readonly initialPrefix: string;
+}
+
+function representativeNetworkFormationOrder(
   graph: InternalStructureGraph,
-  variantId: NetworkFormationVariantId = DEFAULT_NETWORK_FORMATION_VARIANT_ID,
+): { edgeOrder: number[]; chapterByEdge: Map<number, NetworkFormationChapterId> } {
+  const total = graph.edges.length;
+  const edgeOrder: number[] = [];
+  const chapterByEdge = new Map<number, NetworkFormationChapterId>();
+  const seen = new Set<number>();
+  const appendUntil = (
+    targetCount: number,
+    order: readonly number[],
+    chapter: NetworkFormationChapterId,
+  ): void => {
+    for (const edgeIndex of order) {
+      if (edgeOrder.length >= targetCount) break;
+      if (seen.has(edgeIndex)) continue;
+      seen.add(edgeIndex);
+      edgeOrder.push(edgeIndex);
+      chapterByEdge.set(edgeIndex, chapter);
+    }
+  };
+
+  // Borrow existing traversals for each visual front. The thresholds only
+  // partition the completed graph for presentation; they never create or
+  // reorder anything in the saved/runtime graph.
+  appendUntil(Math.max(1, Math.round(total * 0.18)), networkFormationEdgeOrder(graph, "trace"), "trace");
+  appendUntil(Math.max(1, Math.round(total * 0.44)), networkFormationEdgeOrder(graph, "radial-bloom"), "radial-bloom");
+  appendUntil(Math.max(1, Math.round(total * 0.67)), networkFormationEdgeOrder(graph, "multi-seed-confluence"), "confluence");
+  appendUntil(Math.max(1, Math.round(total * 0.86)), networkFormationEdgeOrder(graph, "thickness-hierarchy"), "thickness");
+  appendUntil(total, networkFormationEdgeOrder(graph, "geodesic-signal"), "converge");
+
+  // Defensive completion for an unexpected disconnected or malformed edge.
+  for (const edgeIndex of graph.edges.map((_, index) => index)) {
+    if (seen.has(edgeIndex)) continue;
+    seen.add(edgeIndex);
+    edgeOrder.push(edgeIndex);
+    chapterByEdge.set(edgeIndex, "converge");
+  }
+  return { edgeOrder, chapterByEdge };
+}
+
+function representativeChapterLines(
+  graph: InternalStructureGraph,
+  chapter: NetworkFormationChapterId,
+  edgeIndex: number,
+): string[] {
+  const edge = graph.edges[edgeIndex];
+  switch (chapter) {
+    case "trace":
+      return ["TRACE / CONNECTED FRONT", "LOW ROOT TOPOLOGY"];
+    case "radial-bloom":
+      return ["RADIAL BLOOM / SPATIAL CORE", "EXPANDING LOCALITY"];
+    case "confluence":
+      return ["CONFLUENCE / MULTI-SEED FRONT", "JUNCTIONS IN VIEW"];
+    case "thickness":
+      return [
+        "THICKNESS / MEMBER GAUGE",
+        ...(edge && Number.isFinite(edge.radius) ? [`RADIUS ${edge.radius.toFixed(3)} SOURCE UNITS`] : []),
+      ];
+    case "converge":
+      return ["CONVERGE / COMPLETED TOPOLOGY", "REMAINING EDGES RESOLVED"];
+    case "decision":
+      return ["PROPOSE / EVALUATE / REVISE", "PRESENTATION ROUTE ONLY"];
+  }
+}
+
+function createNetworkFormationTimelineFromOrder(
+  graph: InternalStructureGraph,
+  edgeOrder: readonly number[],
+  config: FormationTimelineConfig,
 ): NetworkFormationTimeline {
-  const edgeOrder = networkFormationEdgeOrder(graph, variantId);
-  const variant = networkFormationVariant(variantId);
   if (edgeOrder.length === 0) {
     return {
-      variantId,
+      variantId: config.timelineId,
       durationMs: NETWORK_FORMATION_DURATION_MS,
       edgeOrder,
       events: [
-        { atMs: 0, kind: "reset", visibleEdgeCount: 0, terminalLines: [`STUDY ${variant.label}`, "NO COMPLETED NETWORK"] },
-        { atMs: NETWORK_FORMATION_DURATION_MS, kind: "stable", visibleEdgeCount: 0, terminalLines: ["NETWORK STABLE", `STUDY ${variant.label}`] },
+        {
+          atMs: 0,
+          kind: "reset",
+          visibleEdgeCount: 0,
+          chapter: config.chapterForDecision,
+          terminalLines: [`${config.initialPrefix} ${config.label}`, "NO COMPLETED NETWORK"],
+        },
+        {
+          atMs: NETWORK_FORMATION_DURATION_MS,
+          kind: "stable",
+          visibleEdgeCount: 0,
+          chapter: "converge",
+          terminalLines: [...config.stableLines],
+        },
       ],
     };
   }
 
   const acceptEventCount = Math.min(edgeOrder.length, Math.max(18, Math.min(52, Math.ceil(edgeOrder.length / 7))));
-  const rejectFractions = acceptEventCount >= 10 ? formationRejectFractions(variantId) : [0.5];
-  const rejectSlots = new Set(rejectFractions.map((fraction) => Math.floor(acceptEventCount * fraction)));
+  const rejectSlots = new Set(config.rejectFractions.map((fraction) => Math.floor(acceptEventCount * fraction)));
   const rejectionWindowMs = 540;
   const startMs = 380;
   const revealWindowMs = 10_600;
@@ -456,27 +564,33 @@ export function createNetworkFormationTimeline(
     atMs: 0,
     kind: "reset",
     visibleEdgeCount: 0,
-    terminalLines: [`STUDY ${variant.label}`, ...NETWORK_FORMATION_VARIANT_CUES[variantId], "INITIALIZING EMPTY VIEW"],
+    chapter: config.chapterForDecision,
+    terminalLines: [`${config.initialPrefix} ${config.label}`, ...config.cues, "INITIALIZING EMPTY VIEW"],
   }];
   let timeMs = startMs;
   let previousCount = 0;
   let proposalIndex = 0;
+  let previousChapter: NetworkFormationChapterId | undefined;
 
   for (let step = 1; step <= acceptEventCount; step++) {
     const remainingSteps = acceptEventCount - step;
-    const desiredCount = Math.ceil(edgeOrder.length * formationRevealFraction(variantId, step / acceptEventCount));
+    const desiredCount = Math.ceil(edgeOrder.length * config.revealFraction(step / acceptEventCount));
     const visibleEdgeCount = step === acceptEventCount
       ? edgeOrder.length
       : Math.min(edgeOrder.length - remainingSteps, Math.max(previousCount + 1, desiredCount));
+    const focusEdgeIndex = edgeOrder[Math.max(0, visibleEdgeCount - 1)];
+    const focusChapter = config.chapterForEdge?.(focusEdgeIndex);
     if (rejectSlots.has(step - 1)) {
       const proposal = proposalForCheckpoint(graph, edgeOrder, previousCount, proposalIndex);
       if (proposal) {
         const target = graph.nodes[proposal.endNodeIndex]?.id ?? proposal.endNodeIndex;
+        const decisionChapter = config.chapterForDecision;
         events.push({
           atMs: Math.round(timeMs),
           kind: "propose",
           visibleEdgeCount: previousCount,
           proposal,
+          chapter: decisionChapter,
           terminalLines: [`TARGET ${String(target).padStart(2, "0")}`, `EDGE ${proposal.id} PROPOSED`, "ROUTE UNRESOLVED"],
         });
         events.push({
@@ -484,6 +598,7 @@ export function createNetworkFormationTimeline(
           kind: "evaluate",
           visibleEdgeCount: previousCount,
           proposal,
+          chapter: decisionChapter,
           terminalLines: ["TEMP EDGE ONLY", "COMPLETED GRAPH SET UNCHANGED", "EVALUATE"],
         });
         events.push({
@@ -491,6 +606,7 @@ export function createNetworkFormationTimeline(
           kind: "reject",
           visibleEdgeCount: previousCount,
           proposal,
+          chapter: decisionChapter,
           terminalLines: ["NOT IN COMPLETED GRAPH", "REJECT", `REMOVE EDGE ${proposal.id}`, `REROUTING TARGET ${String(target).padStart(2, "0")}`],
         });
         events.push({
@@ -498,19 +614,25 @@ export function createNetworkFormationTimeline(
           kind: "revise",
           visibleEdgeCount: previousCount,
           proposal,
+          chapter: decisionChapter,
           terminalLines: ["REVISE PRESENTATION ROUTE", "SELECT NEXT COMPLETED EDGE", "KEEP COMPLETED GRAPH INTACT"],
         });
         proposalIndex++;
         timeMs += rejectionWindowMs;
       }
     }
-    const focusEdgeIndex = edgeOrder[Math.max(0, visibleEdgeCount - 1)];
+    const chapterChanged = focusChapter !== undefined && focusChapter !== previousChapter;
     events.push({
       atMs: Math.round(timeMs),
       kind: "accept",
       visibleEdgeCount,
-      terminalLines: acceptTerminalLines(graph, focusEdgeIndex),
+      chapter: focusChapter,
+      terminalLines: [
+        ...(chapterChanged && focusChapter ? representativeChapterLines(graph, focusChapter, focusEdgeIndex) : []),
+        ...acceptTerminalLines(graph, focusEdgeIndex),
+      ],
     });
+    previousChapter = focusChapter;
     previousCount = visibleEdgeCount;
     timeMs += cadenceMs;
   }
@@ -519,14 +641,65 @@ export function createNetworkFormationTimeline(
     atMs: NETWORK_FORMATION_DURATION_MS,
     kind: "stable",
     visibleEdgeCount: edgeOrder.length,
-    terminalLines: [
+    chapter: "converge",
+    terminalLines: [...config.stableLines],
+  });
+  return { variantId: config.timelineId, durationMs: NETWORK_FORMATION_DURATION_MS, edgeOrder, events };
+}
+
+export function createNetworkFormationTimeline(
+  graph: InternalStructureGraph,
+  variantId: NetworkFormationVariantId = DEFAULT_NETWORK_FORMATION_VARIANT_ID,
+): NetworkFormationTimeline {
+  const variant = networkFormationVariant(variantId);
+  const edgeOrder = networkFormationEdgeOrder(graph, variantId);
+  return createNetworkFormationTimelineFromOrder(graph, edgeOrder, {
+    timelineId: variantId,
+    label: variant.label,
+    cues: NETWORK_FORMATION_VARIANT_CUES[variantId],
+    rejectFractions: edgeOrder.length >= 10 ? formationRejectFractions(variantId) : [0.5],
+    revealFraction: (fraction) => formationRevealFraction(variantId, fraction),
+    stableLines: [
       "NETWORK STABLE",
       `STUDY ${variant.label}`,
       `${graph.nodes.length} NODES / ${graph.edges.length} EDGES`,
       "COMPLETED GRAPH MATCHED",
     ],
+    initialPrefix: "STUDY",
   });
-  return { variantId, durationMs: NETWORK_FORMATION_DURATION_MS, edgeOrder, events };
+}
+
+/**
+ * Compose one artwork from four existing completed-graph traversals. This is
+ * deliberately a presentation plan: the final frame reuses the exact source
+ * graph object and no temporary route enters runtime or save state.
+ */
+export function createRepresentativeNetworkFormationTimeline(
+  graph: InternalStructureGraph,
+): NetworkFormationTimeline {
+  const composition = representativeNetworkFormationOrder(graph);
+  return createNetworkFormationTimelineFromOrder(graph, composition.edgeOrder, {
+    timelineId: REPRESENTATIVE_NETWORK_FORMATION_ID,
+    label: "FORMATION",
+    cues: [
+      "TRACE / CONNECTED FRONT",
+      "RADIAL BLOOM / SPATIAL CORE",
+      "CONFLUENCE / MULTI-SEED JUNCTION",
+      "THICKNESS / MEMBER GAUGE",
+    ],
+    rejectFractions: [0.27, 0.49, 0.72],
+    revealFraction: (fraction) => fraction ** 0.9,
+    chapterForEdge: (edgeIndex) => composition.chapterByEdge.get(edgeIndex),
+    chapterForDecision: "decision",
+    stableLines: [
+      "NETWORK STABLE",
+      "TRACE / RADIAL BLOOM / CONFLUENCE",
+      "THICKNESS / CONVERGE",
+      `${graph.nodes.length} NODES / ${graph.edges.length} EDGES`,
+      "COMPLETED GRAPH MATCHED",
+    ],
+    initialPrefix: "FORMATION",
+  });
 }
 
 /** Build an ephemeral renderer graph from accepted completed edges. */

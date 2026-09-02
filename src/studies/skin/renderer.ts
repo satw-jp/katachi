@@ -2463,10 +2463,10 @@ export class SkinRenderer {
     const startY = Math.max(34, canvas.height - visibleLines.length * lineHeight - 42);
     for (const [index, line] of visibleLines.entries()) {
       context.fillStyle = line === "REJECT" || line.startsWith("REMOVE EDGE")
-        ? "rgba(255, 98, 92, .72)"
+        ? "rgba(255, 98, 92, .86)"
         : line === "ACCEPT" || line === "NETWORK STABLE"
-          ? "rgba(200, 240, 90, .78)"
-          : "rgba(184, 229, 194, .42)";
+          ? "rgba(200, 240, 90, .90)"
+          : "rgba(184, 229, 194, .62)";
       context.fillText(line, 48, startY + index * lineHeight);
     }
     const texture = new THREE.CanvasTexture(canvas);
@@ -2474,7 +2474,7 @@ export class SkinRenderer {
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.54,
       depthTest: true,
       depthWrite: false,
       toneMapped: false,
