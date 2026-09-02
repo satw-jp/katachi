@@ -1,7 +1,7 @@
 # HANA-1 — Stroke to 3D Stroke to Simple Field Stem
 
-Status: HANA-1B shared 3D Stroke PASS / FROZEN; Stem / Field not started
-Updated: 2026-09-01
+Status: HANA-1C PASS / FROZEN; Stem / Field not started
+Updated: 2026-09-02
 
 ## First destination
 
@@ -41,6 +41,39 @@ The 2026-09-01 EasyCanvas / Apple Pencil run passed with `pointerType=pen`, one 
 
 The accepted artifact is `hana-1b-document-2026-09-01T12-14-00-475Z.json`. An earlier Sidecar-to-Mac-over-RDP attempt produced `pointerType=mouse` and constant pressure `0.5`; it was intentionally rejected from the hardware gate.
 
+## HANA-1C fixed decisions
+
+```text
+Raw Gesture
+immutable author input
+        ↓
+Control Stroke
+32 editable points
+        ↓
+Smooth Centerline
+regenerable Catmull-Rom display
+```
+
+- The open Smooth Centerline uses centripetal Catmull-Rom, `alpha=0.5`, and eight samples per control segment. With 32 controls it produces 249 derived samples and retains the first and last points.
+- Dense Smooth Centerline samples are not persisted as canonical data. The document persists the Control Stroke and fixed curve settings.
+- Soft Edit OFF affects one control. LOW affects the selected control and up to two neighbors on each side with weights `1 / 0.67 / 0.33`. MEDIUM affects up to four neighbors on each side with weights `1 / 0.8 / 0.6 / 0.4 / 0.2`.
+- Soft Edit applies only the two visible axes in each orthographic View. The hidden axis of every affected control remains fixed.
+- Control provenance remains unchanged after position editing. Smooth pressure/time/sourceT values are diagnostic interpolation from adjacent controls.
+- Pressure does not control Centerline width, radius, or Field strength.
+- Stroke identity color is deterministic editor presentation only and never enters Gesture, Field, Geometry, or Print data.
+- Axome remains View-only. Adaptive resampling, Undo, Load, units, multiple Stroke editing, Stem, and Field remain excluded.
+- Smoothness is a non-destructive 0.00–1.00 display control. It does not change the Control Stroke, control count, Catmull-Rom alpha, samples per segment, or the 249-sample count.
+- Smoothness derives four fixed passes of endpoint-preserving `0.25 / 0.50 / 0.25` relaxation, then interpolates original and fully relaxed positions. Missing smoothness in an older document means `0`.
+- The Smooth Centerline Stop Gate is: Smooth Centerline continuously interpolates the intended Control Stroke deformation and does not introduce a local kink, loop, or spike absent from the Control Stroke.
+- Soft Edit is displacement falloff to neighboring controls; it is not a shape-rounding function.
+- Pencil-first authoring: Apple Pencil is primarily a drawing instrument. Precise control-point editing is mouse-oriented. Future Pencil correction should prefer redraw / overdraw rather than point manipulation. Redraw / Overdraw is not implemented in HANA-1C.
+
+## HANA-1C hardware verification
+
+The EasyCanvas + Apple Pencil verification passed. Smoothness was usable continuously from `0.00` through `1.00`, including `1.00`, with no single optimum value selected; it remains an author-selected parameter for the intended expression. Apple Pencil was used primarily for Draw, while precise control-point editing remains mouse-oriented. The browser console had zero warnings and errors.
+
+HANA-1C is now PASS / FROZEN. Stem, Field, and every later materialization phase remain unstarted.
+
 ## Viewport plan
 
 Reuse SKIN's existing four-view behavior as narrowly as practical:
@@ -77,12 +110,12 @@ The exact persistent schema is deliberately unresolved until the projection, res
 
 The existing SKIN renderer is large and coupled to SKIN-specific geometry, selection, clipping, Support Paint, and production UI. It is not a suitable whole-module dependency for HANA.
 
-## Open after HANA-1B
+## Open after HANA-1C
 
 1. Whether the fixed 32-point editing budget needs curvature-aware or adaptive sampling.
-2. Whether editing one control should deform only that point or a local neighborhood in a later Soft Edit stage.
+2. Whether fixed index-distance Soft Edit needs a spatial or curvature-aware falloff.
 3. World units, document origin, and the point where millimeters become meaningful.
-4. Undo/history and loading the versioned HANA document; HANA-1B only saves it.
+4. Undo/history and loading the versioned HANA document; HANA-1C only saves it.
 5. Whether Axome direct editing is necessary after orthographic editing is tested.
-6. How preserved pressure should influence a later Stem/Field, if at all.
-7. The next Stop Gate for turning one shared Stroke3D into a simple Field Stem without entering Flower, Support, Web, Mesh, or print work.
+6. How preserved pressure should influence a later realization, if at all.
+7. How a Smooth 3D Stroke should be materialized. No next geometry phase is selected by HANA-1C.

@@ -6,6 +6,7 @@ export type HanaViewDirection = typeof HANA_VIEW_DIRECTIONS[number];
 export type HanaPointerType = "pen" | "mouse" | "touch";
 export type HanaViewportMode = "one" | "four";
 export type HanaInteractionMode = "draw" | "edit" | "view";
+export type HanaSoftEditStrength = "off" | "low" | "medium";
 
 export interface HanaStrokePoint {
   x: number;
@@ -37,6 +38,7 @@ export interface HanaEditorState {
   viewportMode: HanaViewportMode;
   selectedViewportId: string;
   split: { x: number; y: number };
+  softEditStrength?: HanaSoftEditStrength;
   viewports: Array<{
     id: string;
     viewDirection: HanaViewDirection;

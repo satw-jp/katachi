@@ -4,6 +4,7 @@ import test from "node:test";
 import type { HanaEditorState, HanaViewportStroke } from "./gesture.ts";
 import {
   HANA_CONTROL_POINT_COUNT,
+  HANA_CURVE_SETTINGS,
   HANA_DOCUMENT_FORMAT,
   applyViewportEdit,
   createHanaDocument,
@@ -32,6 +33,7 @@ function editorState(): HanaEditorState {
     viewportMode: "four",
     selectedViewportId: "viewport-front",
     split: { x: 0.5, y: 0.5 },
+    softEditStrength: "medium",
     viewports: [],
   };
 }
@@ -85,6 +87,9 @@ test("document export deep-clones raw gestures, Stroke3D and editor state", () =
   assert.equal(document.format, HANA_DOCUMENT_FORMAT);
   assert.equal(document.rawGestures.strokes.length, 1);
   assert.equal(document.strokes3D.length, 1);
+  assert.deepEqual(document.strokes3D[0].curve, HANA_CURVE_SETTINGS);
+  assert.equal("smoothCenterline" in document.strokes3D[0], false);
+  assert.equal(document.editorState.softEditStrength, "medium");
   document.rawGestures.strokes[0].points[0].pressure = 1;
   document.strokes3D[0].controlPoints[0].position.y = 42;
   document.editorState.split.x = 0.7;

@@ -2,15 +2,18 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "active",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "createdAt": "2026-09-01",
-  "updatedAt": "2026-09-01",
+  "updatedAt": "2026-09-02",
   "params": [
     "viewportMode",
     "viewportInteractionMode",
     "viewportSplit",
     "sharedStroke3D",
-    "selectedControlPoint"
+    "selectedControlPoint",
+    "smoothCenterline",
+    "smoothness",
+    "softEditStrength"
   ],
   "related": ["skin"],
   "revisits": [
@@ -29,6 +32,14 @@
     {
       "date": "2026-09-01",
       "note": "HANA-1B passed its EasyCanvas and Apple Pencil hardware gate with one Front pen Gesture containing 615 points, 241 continuous pressure values, one shared 32-control Stroke3D, four-view projection, Right-side depth edits, complete raw/provenance retention, separated JSON document state and zero browser console warnings or errors. The study stops before Stem or Field generation."
+    },
+    {
+      "date": "2026-09-01",
+      "note": "HANA-1C adds a regenerable open centripetal Catmull-Rom centerline with alpha 0.5 and eight samples per control segment, plus OFF / LOW / MEDIUM index-weighted Soft Edit. Raw Gesture and control provenance remain immutable; pressure is diagnostic data rather than line width or radius. Hardware verification remains required before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-1C adds non-destructive 0.00–1.00 Smoothness through fixed four-pass relaxed display positions while keeping Raw Gesture, Control Stroke, provenance, pressure/time, 32 controls, Catmull-Rom settings, and 249 samples intact. EasyCanvas + Apple Pencil verification passed across the continuous 0.00–1.00 range, including 1.00; no optimum value is fixed, and the author selects Smoothness for the intended expression. Pencil is reserved primarily for Draw; precise control-point editing is mouse-oriented. Browser console warnings/errors were zero. HANA-1C is PASS / FROZEN; Stem / Field remain unstarted."
     }
   ]
 }

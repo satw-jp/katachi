@@ -2,9 +2,11 @@
 
 ## Question
 
-作者のApple Pencil Gestureを正本として保ったまま、一本の2D Gestureを共有3D Strokeへ派生し、別の正投影Viewportから奥行きを編集できるか。
+作者のApple Pencil Gestureを正本として保ったまま、32点のControl Strokeを滑らかな3D Centerlineとして表示し、正投影Viewportから気持ちよくSoft Editできるか。
 
-HANA-1Bで問うのは、Front / Right / Topのいずれかで描いた一本を初期平面上の`Stroke3D`へ変換し、4 Viewへ同じデータを投影し、別Viewから編集できるかだけである。Strokeを太らせる問いは後工程へ送る。
+HANA-1Cで問うのは、32 control pointsを編集の正本として維持しながら、open centripetal Catmull-Romによる派生CenterlineとOFF / LOW / MEDIUM Soft Editを成立させられるかだけである。Strokeを太らせる問いは後工程へ送る。
+
+SmoothnessはControl Strokeを変更しない表示パラメータであり、Control Strokeから派生したrelaxed positionsだけをCatmull-Romへ渡す。0では従来表示と一致し、1では固定4-pass relaxationを最大適用する。Smoothnessを追加しても32 controls、alpha、samplesPerSegment、249 samplesは変えない。
 
 ## Setup
 
@@ -13,7 +15,7 @@ npm install
 npm run dev
 ```
 
-`http://localhost:5174/hana.html` をWindowsブラウザで開く。EasyCanvasでiPadを接続し、FrontをDrawにして一本描く。生成後はRightまたはTopのEditでcontrol pointをドラッグする。
+`http://localhost:5174/hana.html` をWindowsブラウザで開く。EasyCanvasでiPadを接続し、FrontをDrawにして一本描く。生成後はSoftのOFF / LOW / MEDIUMを切り替え、RightまたはTopのEditでcontrol pointをドラッグする。
 
 この確認に使ったWindows環境では、5174がOSのTCP除外範囲に含まれていたため、検証時だけ次の予約外portを使った。Katachiの既定port設定は変更していない。
 
@@ -22,13 +24,19 @@ npx vite --host 127.0.0.1 --port 5480 --strictPort
 ```
 
 - Draw: PointerEventのRaw Gestureを記録し、終了時に初期平面上の共有`Stroke3D`を生成する。camera操作は止める。
-- Edit: control pointをドラッグすると、そのViewで見える2軸だけを変更する。空白ドラッグはcamera操作に使う。
-- View: Axomeのcamera操作に使う。Axome Draw/EditはHANA-1Bの対象外。
+- Edit: control pointをドラッグすると、そのViewで見える2軸だけをSoft Editする。空白ドラッグはcamera操作に使う。
+- Soft OFF / LOW / MEDIUM: 選択点のみ / 前後2点 / 前後4点へ固定weightで移動量を配る。
+- Smoothness 0.00–1.00: Control Strokeを変更せず、派生Centerlineの局所的なガタつきの残し方を連続調整する。
+- View: Axomeのcamera操作に使う。Axome Draw/EditはHANA-1Cの対象外。
 - Wheel: zoom
 - Drag: Top / Front / Rightではpan、Axomeではrotate
 - Shift + drag: Axomeでもpan
-- Save JSON: `rawGestures`、`strokes3D`、`editorState`を別のtop-level fieldで保存する
-- Clear: 一本目を消し、新しいRaw Gestureを描ける状態へ戻す。HANA-1Bは同時に一本だけを扱う。
+- Save JSON: `rawGestures`、curve設定を持つ`strokes3D`、Soft設定を持つ`editorState`を分離して保存する。dense Centerlineは保存しない。
+- Clear: 一本目を消し、新しいRaw Gestureを描ける状態へ戻す。HANA-1CのStop Gateは一本だけを扱う。
+
+### Pencil-first authoring
+
+Apple Pencil is primarily a drawing instrument. Precise control-point editing is mouse-oriented. Future Pencil correction should prefer redraw / overdraw rather than point manipulation. HANA-1CではEdit modeのcontrol point操作をMouseに限定し、Redraw / Overdraw自体は実装しない。
 
 ## Observation
 
@@ -62,9 +70,21 @@ Front Draw終了時にY=0の初期平面上へ32 control pointsの共有`Stroke3
 
 その前にSidecarを接続したMacへRDP経由で入力したデータでは`pointerType=mouse`、pressure一律`0.5`となった。この経路はHANA-1BのApple Pencil合格データには含めず、EasyCanvas→Windows Browserの直接経路だけを正本の実機結果とした。
 
+### 2026-09-01 — HANA-1C implementation start
+
+Raw Gesture → 32-point Control Strokeの境界はHANA-1Bから変更しない。Control Stroke間を、open centripetal Catmull-Rom、`alpha=0.5`、各区間8 samplesで補間する。32 controlsから249 smooth samplesを毎回再生成し、dense Centerlineは保存の正本にしない。各smooth sampleの`sourceT`、pressure、timeは隣接control provenanceから観察用に補間する。
+
+Soft Editはcontrol index距離による固定presetとする。OFFは選択点のみ、LOWは前後2点へ`1 / 0.67 / 0.33`、MEDIUMは前後4点へ`1 / 0.8 / 0.6 / 0.4 / 0.2`を使う。FrontはX/Z、RightはY/Z、TopはX/Yだけへdeltaを配り、全対象点の固定軸を保持する。provenanceは現在位置ではなく元Gestureとの対応なので変更しない。
+
+Stroke識別色はeditor presentationからStroke IDに決定論的に割り当て、document、Field、Geometry、Printへ含めない。Pressureはnumeric debugへ残すが、CenterlineやRaw Gestureの線幅には使わない。EasyCanvas / Apple PencilによるOFF / LOW / MEDIUM比較は実機確認後に追記する。
+
+### 2026-09-02 — Non-destructive Smoothness refinement
+
+Smoothnessを0.00–1.00のUI sliderとして追加した。Control Strokeのposition、Raw Gesture、provenance、pressure、timeは変更せず、固定4-pass relaxationから派生したpositionだけをCatmull-Romへ渡す。既存のcurve設定、32 controls、249 smooth samplesは維持し、旧documentのsmoothness欠落は0として扱う。EasyCanvas実機Gateで0.00–1.00を連続的に確認し、特定の最適値は固定せず、表現ごとに作者が選ぶパラメータとして残す。Smoothness 1も問題なく、HANA-1CはPASS / FROZENとなった。
+
 ## Hypothesis
 
-Raw Gestureを不変の作者入力として固定し、編集可能な派生Strokeだけを各正投影Viewの2軸拘束で更新すれば、元のpressure/timeを失わず一本の空間線を作れる。
+Control pointsを操作ハンドル、centripetal Catmull-Rom Centerlineを再生成可能な表示として分け、局所的なindex falloffを使えば、Raw Gestureを失わず鋭い一点折れを減らせる。
 
 ## Related
 
@@ -76,8 +96,7 @@ Raw Gestureを不変の作者入力として固定し、編集可能な派生Str
 
 ## Next
 
-- 32点の固定control budgetが作者の編集感覚に十分かをHANA-1C前に判断する。
-- 一点編集で鋭い折れが生じるため、Soft Editまたは局所補間が必要かを別TASKで決める。
-- HANA-1Bは共有3D Strokeの証明で停止し、Stem / Fieldへ進まない。
+- HANA-1CのEasyCanvas実機Gateとconsole確認は完了した。Smoothnessは0.00–1.00から表現ごとに作者が選び、特定の最適値は固定しない。
+- 次の物質化工程（Stem / Field等）は、このtaskでは開始しない。
 
-HANA-1Bでは複数Stroke、Graph、Stemの太さ、Field / SDF、Mesh、Flower Head、`hana-taba`、SKIN production連携を実装しない。
+HANA-1CではUndo、Load、units、Axome直接編集、adaptive resample、複数Stroke編集、Graph、Stemの太さ、Field / SDF、Mesh、Flower Head、`hana-taba`、SKIN production連携を実装しない。

@@ -5,8 +5,23 @@ import type {
   HanaViewportStroke,
 } from "./gesture.ts";
 
-export const HANA_DOCUMENT_FORMAT = "katachi.hana-document.v1b" as const;
+export const HANA_DOCUMENT_FORMAT = "katachi.hana-document.v1c" as const;
 export const HANA_CONTROL_POINT_COUNT = 32;
+export const HANA_CURVE_SETTINGS = {
+  type: "catmull-rom",
+  parameterization: "centripetal",
+  alpha: 0.5,
+  samplesPerSegment: 8,
+  smoothness: 0,
+} as const;
+
+export interface HanaCurveSettings {
+  type: typeof HANA_CURVE_SETTINGS.type;
+  parameterization: typeof HANA_CURVE_SETTINGS.parameterization;
+  alpha: typeof HANA_CURVE_SETTINGS.alpha;
+  samplesPerSegment: typeof HANA_CURVE_SETTINGS.samplesPerSegment;
+  smoothness?: number;
+}
 
 export interface HanaVector3 {
   x: number;
@@ -35,6 +50,7 @@ export interface HanaStroke3D {
   sourceViewportId: string;
   sourceViewDirection: Exclude<HanaViewDirection, "axome">;
   initialPlaneValue: number;
+  curve: HanaCurveSettings;
   controlPoints: HanaStroke3DControlPoint[];
 }
 
@@ -69,6 +85,7 @@ function cloneGesture(stroke: HanaViewportStroke): HanaViewportStroke {
 function cloneStroke3D(stroke: HanaStroke3D): HanaStroke3D {
   return {
     ...stroke,
+    curve: { ...stroke.curve },
     controlPoints: stroke.controlPoints.map((point) => ({
       ...point,
       position: { ...point.position },
@@ -145,7 +162,7 @@ export function deriveStroke3D(
   targetCount = HANA_CONTROL_POINT_COUNT,
 ): HanaStroke3D {
   if (rawGesture.viewDirection === "axome") {
-    throw new Error("Axome Draw cannot create a HANA-1B Stroke3D");
+    throw new Error("Axome Draw cannot create a HANA Stroke3D");
   }
   const controlPoints = resampleRawGesture(rawGesture.points, targetCount).map((sample, index) => ({
     id: `control-${index + 1}`,
@@ -168,6 +185,7 @@ export function deriveStroke3D(
     sourceViewportId: rawGesture.viewportId,
     sourceViewDirection: rawGesture.viewDirection,
     initialPlaneValue: controlPoints[0]?.position[missingAxis] ?? 0,
+    curve: { ...HANA_CURVE_SETTINGS },
     controlPoints,
   };
 }

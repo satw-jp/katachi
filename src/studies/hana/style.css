@@ -89,7 +89,9 @@ button:disabled {
 }
 
 .hana-toolbar,
-.hana-segmented {
+.hana-segmented,
+.hana-soft-control,
+.hana-smooth-control {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -98,6 +100,58 @@ button:disabled {
 .hana-segmented {
   padding-right: 0.35rem;
   border-right: 1px solid #d7dbe0;
+}
+
+.hana-soft-control {
+  padding-right: 0.35rem;
+  border-right: 1px solid #d7dbe0;
+  color: #68717c;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.65rem;
+}
+
+.hana-soft-control .hana-segmented {
+  gap: 0;
+  padding-right: 0;
+  border: 1px solid #c8cdd3;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hana-soft-control button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 0.55rem;
+  font-size: 0.65rem;
+}
+
+.hana-soft-control button + button {
+  border-left: 1px solid #d7dbe0;
+}
+
+.hana-smooth-control {
+  padding-right: 0.35rem;
+  border-right: 1px solid #d7dbe0;
+  color: #68717c;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.65rem;
+}
+
+.hana-smooth-control input {
+  width: 112px;
+  accent-color: #30363d;
+}
+
+.hana-smooth-control output {
+  min-width: 2.3rem;
+  color: #242a31;
+  text-align: right;
+}
+
+.hana-smooth-bound {
+  color: #8a929a;
+  font-size: 0.56rem;
 }
 
 .hana-primary {
@@ -270,7 +324,7 @@ button:disabled {
 
 .hana-debug dl {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 0.8rem;
   margin: 0;
   font-family: Consolas, "Liberation Mono", monospace;

@@ -11,22 +11,28 @@ import manifest from "./manifest.json";
 import {
   HANA_VIEW_DIRECTIONS,
   pointerTypeFromBrowser,
-  pressureDisplayWidth,
   pressureStats,
   type HanaEditorState,
   type HanaInteractionMode,
   type HanaPointerType,
+  type HanaSoftEditStrength,
   type HanaStrokePoint,
   type HanaViewDirection,
   type HanaViewportMode,
   type HanaViewportStroke,
 } from "./gesture.ts";
 import {
-  applyViewportEdit,
   createHanaDocument,
   deriveStroke3D,
   type HanaStroke3D,
 } from "./stroke3d.ts";
+import {
+  applySoftViewportEdit,
+  editorStrokeColor,
+  sampleSmoothCenterline,
+  strokeBounds,
+  type HanaStrokeBounds,
+} from "./smoothCenterline.ts";
 import { HanaViewportRenderer } from "./viewportRenderer.ts";
 import "./style.css";
 
@@ -37,20 +43,35 @@ app.innerHTML = `
   <main class="hana-shell">
     <header class="hana-header">
       <div class="hana-heading">
-        <h1>HANA — Shared 3D Stroke</h1>
-        <p>HANA-1B · v${manifest.version} · updated ${manifest.updatedAt}</p>
+        <h1>HANA — Smooth 3D Stroke</h1>
+        <p>HANA-1C · v${manifest.version} · updated ${manifest.updatedAt}</p>
       </div>
       <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
           <button id="layout-four" type="button" aria-pressed="true">Four</button>
           <button id="layout-one" type="button" aria-pressed="false">One</button>
         </div>
+        <div class="hana-soft-control" aria-label="Soft Edit strength">
+          <span>Soft</span>
+          <div class="hana-segmented">
+            <button type="button" data-soft-edit="off" aria-pressed="false">OFF</button>
+            <button type="button" data-soft-edit="low" aria-pressed="false">LOW</button>
+            <button type="button" data-soft-edit="medium" aria-pressed="true">MEDIUM</button>
+          </div>
+        </div>
+        <label class="hana-smooth-control" for="smoothness-control">
+          <span>Smoothness</span>
+          <span class="hana-smooth-bound">0.00</span>
+          <input id="smoothness-control" type="range" min="0" max="1" step="0.01" value="0" aria-label="Smoothness" />
+          <span class="hana-smooth-bound">1.00</span>
+          <output id="smoothness-value" for="smoothness-control">0.00</output>
+        </label>
         <button id="clear-document" type="button">Clear</button>
         <button id="save-document" type="button" class="hana-primary">Save JSON</button>
       </div>
     </header>
 
-    <section class="hana-workspace" aria-label="HANA shared 3D stroke editor">
+    <section class="hana-workspace" aria-label="HANA smooth 3D stroke editor">
       <canvas id="scene-canvas" aria-hidden="true"></canvas>
       <canvas id="gesture-canvas" aria-label="HANA shared 3D stroke input"></canvas>
       <div id="viewport-chrome" aria-live="polite"></div>
@@ -66,6 +87,8 @@ app.innerHTML = `
         <div><dt>viewport</dt><dd id="debug-viewport">Front</dd></div>
         <div><dt>raw points</dt><dd id="debug-points">0</dd></div>
         <div><dt>3D controls</dt><dd id="debug-controls">0</dd></div>
+        <div><dt>smooth samples</dt><dd id="debug-smooth">0</dd></div>
+        <div><dt>soft / affected</dt><dd id="debug-soft">MEDIUM / 0</dd></div>
         <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
         <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
       </dl>
@@ -90,6 +113,9 @@ const layoutFourButton = requiredElement<HTMLButtonElement>("#layout-four");
 const layoutOneButton = requiredElement<HTMLButtonElement>("#layout-one");
 const clearButton = requiredElement<HTMLButtonElement>("#clear-document");
 const saveButton = requiredElement<HTMLButtonElement>("#save-document");
+const softEditButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-soft-edit]"));
+const smoothnessSlider = requiredElement<HTMLInputElement>("#smoothness-control");
+const smoothnessValue = requiredElement<HTMLOutputElement>("#smoothness-value");
 
 const renderer = new HanaViewportRenderer(sceneCanvas, HANA_VIEW_DIRECTIONS);
 const gestureContext = gestureCanvas.getContext("2d") ?? (() => {
@@ -104,6 +130,11 @@ const interactionModes: HanaInteractionMode[] = ["edit", "view", "draw", "edit"]
 const rawGestures: HanaViewportStroke[] = [];
 let stroke3D: HanaStroke3D | null = null;
 let selectedControlPoint: number | null = null;
+let softEditStrength: HanaSoftEditStrength = "medium";
+let smoothness = 0;
+let lastAffectedControlIndices: number[] = [];
+let lastEditBoundsBefore: HanaStrokeBounds | null = null;
+let lastEditBoundsAfter: HanaStrokeBounds | null = null;
 let gesturePixelRatio = 1;
 let stateMessage = "READY · Draw one Stroke in Front, Right, or Top";
 
@@ -129,6 +160,8 @@ interface ControlDrag {
   direction: Exclude<HanaViewDirection, "axome">;
   controlIndex: number;
   rect: SkinViewportRect;
+  boundsBefore: HanaStrokeBounds | null;
+  rawSignatureBefore: string;
 }
 
 let activeStroke: ActiveStroke | null = null;
@@ -167,6 +200,14 @@ function rawSignature(): string {
   return `${stroke.id}:${stroke.points.length}:${pressureTotal.toFixed(8)}:${timeTotal.toFixed(3)}`;
 }
 
+function boundsSignature(bounds: HanaStrokeBounds | null): string {
+  if (!bounds) return "";
+  return [
+    bounds.min.x, bounds.min.y, bounds.min.z,
+    bounds.max.x, bounds.max.y, bounds.max.z,
+  ].join(",");
+}
+
 function updateDebug(
   point: HanaStrokePoint | null = null,
   pointerType: HanaPointerType | null = null,
@@ -179,6 +220,8 @@ function updateDebug(
   setDebugText("debug-viewport", skinViewDirectionLabel(directions[selectedViewport]));
   setDebugText("debug-points", String(stroke?.points.length ?? rawGestures[0]?.points.length ?? 0));
   setDebugText("debug-controls", String(stroke3D?.controlPoints.length ?? 0));
+  setDebugText("debug-smooth", String(stroke3D ? sampleSmoothCenterline(stroke3D).length : 0));
+  setDebugText("debug-soft", `${softEditStrength.toUpperCase()} / ${lastAffectedControlIndices.length}`);
   setDebugText("debug-xyz", selected
     ? `${selected.position.x.toFixed(3)}, ${selected.position.y.toFixed(3)}, ${selected.position.z.toFixed(3)}`
     : "—");
@@ -192,6 +235,12 @@ function updateDebug(
   workspace.dataset.rawPointCount = String(rawGestures[0]?.points.length ?? 0);
   workspace.dataset.stroke3dCount = String(stroke3D ? 1 : 0);
   workspace.dataset.controlPointCount = String(stroke3D?.controlPoints.length ?? 0);
+  workspace.dataset.smoothPointCount = String(stroke3D ? sampleSmoothCenterline(stroke3D).length : 0);
+  workspace.dataset.softEditStrength = softEditStrength;
+  workspace.dataset.lastAffectedCount = String(lastAffectedControlIndices.length);
+  workspace.dataset.lastAffectedIndices = lastAffectedControlIndices.join(",");
+  workspace.dataset.lastEditBoundsBefore = boundsSignature(lastEditBoundsBefore);
+  workspace.dataset.lastEditBoundsAfter = boundsSignature(lastEditBoundsAfter);
   workspace.dataset.selectedControlPoint = selectedControlPoint === null ? "" : String(selectedControlPoint);
   workspace.dataset.selectedXyz = selected
     ? `${selected.position.x},${selected.position.y},${selected.position.z}`
@@ -204,12 +253,12 @@ function drawRawGesture(stroke: HanaViewportStroke, rect: SkinViewportRect): voi
   const scaleX = rect.width / Math.max(1, stroke.viewportSize.width);
   const scaleY = rect.height / Math.max(1, stroke.viewportSize.height);
   const position = (point: HanaStrokePoint) => ({ x: rect.x + point.x * scaleX, y: rect.y + point.y * scaleY });
-  gestureContext.strokeStyle = "rgba(37, 99, 235, 0.24)";
-  gestureContext.fillStyle = "rgba(37, 99, 235, 0.24)";
+  gestureContext.strokeStyle = "rgba(17, 24, 39, 0.18)";
+  gestureContext.fillStyle = "rgba(17, 24, 39, 0.18)";
   const first = stroke.points[0];
   const firstPosition = position(first);
   gestureContext.beginPath();
-  gestureContext.arc(firstPosition.x, firstPosition.y, pressureDisplayWidth(first.pressure) / 2, 0, Math.PI * 2);
+  gestureContext.arc(firstPosition.x, firstPosition.y, 1, 0, Math.PI * 2);
   gestureContext.fill();
   for (let index = 1; index < stroke.points.length; index += 1) {
     const from = stroke.points[index - 1];
@@ -219,29 +268,45 @@ function drawRawGesture(stroke: HanaViewportStroke, rect: SkinViewportRect): voi
     gestureContext.beginPath();
     gestureContext.moveTo(fromPosition.x, fromPosition.y);
     gestureContext.lineTo(toPosition.x, toPosition.y);
-    gestureContext.lineWidth = pressureDisplayWidth((from.pressure + to.pressure) / 2);
+    gestureContext.lineWidth = 1.5;
     gestureContext.stroke();
   }
 }
 
 function drawSharedStroke(rect: SkinViewportRect): void {
   if (!stroke3D || stroke3D.controlPoints.length === 0) return;
-  const projected = stroke3D.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
-  gestureContext.strokeStyle = "#111827";
-  gestureContext.lineWidth = 2;
+  const color = editorStrokeColor(stroke3D.id);
+  const smooth = sampleSmoothCenterline(stroke3D);
+  const smoothProjected = smooth.map((point) => renderer.projectPoint(rect.index, point.position, rect));
+  const controlProjected = stroke3D.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
+  gestureContext.strokeStyle = color;
+  gestureContext.lineWidth = 2.5;
   gestureContext.beginPath();
-  gestureContext.moveTo(projected[0].x, projected[0].y);
-  for (let index = 1; index < projected.length; index += 1) gestureContext.lineTo(projected[index].x, projected[index].y);
+  gestureContext.moveTo(smoothProjected[0].x, smoothProjected[0].y);
+  for (let index = 1; index < smoothProjected.length; index += 1) {
+    gestureContext.lineTo(smoothProjected[index].x, smoothProjected[index].y);
+  }
   gestureContext.stroke();
   if (directions[rect.index] === "axome" || interactionModes[rect.index] !== "edit") return;
-  for (let index = 0; index < projected.length; index += 1) {
-    const point = projected[index];
+
+  gestureContext.strokeStyle = `${color}38`;
+  gestureContext.lineWidth = 1;
+  gestureContext.beginPath();
+  gestureContext.moveTo(controlProjected[0].x, controlProjected[0].y);
+  for (let index = 1; index < controlProjected.length; index += 1) {
+    gestureContext.lineTo(controlProjected[index].x, controlProjected[index].y);
+  }
+  gestureContext.stroke();
+
+  for (let index = 0; index < controlProjected.length; index += 1) {
+    const point = controlProjected[index];
+    const selected = index === selectedControlPoint;
     gestureContext.beginPath();
-    gestureContext.arc(point.x, point.y, index === selectedControlPoint ? 5 : 3.5, 0, Math.PI * 2);
-    gestureContext.fillStyle = index === selectedControlPoint ? "#f59e0b" : "#ffffff";
+    gestureContext.arc(point.x, point.y, selected ? 5.5 : 3.5, 0, Math.PI * 2);
+    gestureContext.fillStyle = selected ? color : "#ffffff";
     gestureContext.fill();
-    gestureContext.strokeStyle = "#111827";
-    gestureContext.lineWidth = 1.25;
+    gestureContext.strokeStyle = selected ? "#ffffff" : color;
+    gestureContext.lineWidth = selected ? 2 : 1.25;
     gestureContext.stroke();
   }
 }
@@ -295,7 +360,7 @@ function renderViewportChrome(): void {
       button.dataset.interactionMode = mode;
       button.setAttribute("aria-pressed", String(interactionModes[rect.index] === mode));
       button.disabled = mode === "draw" && stroke3D !== null;
-      if (button.disabled) button.title = "HANA-1B supports one Stroke. Clear before drawing another.";
+      if (button.disabled) button.title = "HANA-1C supports one Stroke. Clear before drawing another.";
       button.addEventListener("pointerdown", (event) => event.stopPropagation());
       button.addEventListener("click", () => {
         interactionModes[rect.index] = mode;
@@ -303,7 +368,7 @@ function renderViewportChrome(): void {
         selectedControlPoint = null;
         stateMessage = mode === "draw"
           ? `DRAW · ${skinViewDirectionLabel(direction)} creates a new Stroke3D`
-          : "EDIT · drag a control point; drag empty space to move camera";
+          : `EDIT · Soft ${softEditStrength.toUpperCase()} · drag a control point`;
         refreshLayout();
         updateDebug();
       });
@@ -336,6 +401,12 @@ function updateLayoutButtons(): void {
   layoutOneButton.setAttribute("aria-pressed", String(viewportMode === "one"));
 }
 
+function updateSoftEditButtons(): void {
+  for (const button of softEditButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.softEdit === softEditStrength));
+  }
+}
+
 function renderScene(): void {
   renderer.render(currentRects(), selectedViewport);
 }
@@ -346,6 +417,7 @@ function refreshLayout(): void {
   renderViewportChrome();
   updateSplitters();
   updateLayoutButtons();
+  updateSoftEditButtons();
 }
 
 function resize(): void {
@@ -409,7 +481,7 @@ function finishStroke(): void {
   if (!activeStroke) return;
   const finished = activeStroke;
   const direction = finished.stroke.viewDirection;
-  if (direction === "axome") throw new Error("Axome Draw is outside HANA-1B");
+  if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
   stroke3D = deriveStroke3D(finished.stroke, (point) => {
     const world = renderer.pointOnViewPlane(
       finished.rect.index,
@@ -422,12 +494,16 @@ function finishStroke(): void {
     if (!world) throw new Error(`Could not project ${direction} gesture onto its initial plane`);
     return world;
   });
+  stroke3D.curve.smoothness = smoothness;
   activeStroke = null;
   interactionModes[0] = "edit";
   interactionModes[2] = "edit";
   interactionModes[3] = "edit";
   selectedControlPoint = Math.floor(stroke3D.controlPoints.length / 2);
-  stateMessage = `STROKE3D READY · ${stroke3D.controlPoints.length} controls · switch to Right or Top Edit`;
+  lastAffectedControlIndices = [];
+  lastEditBoundsBefore = null;
+  lastEditBoundsAfter = null;
+  stateMessage = `SMOOTH CENTERLINE READY · ${sampleSmoothCenterline(stroke3D).length} samples`;
   refreshLayout();
   updateDebug(
     finished.stroke.points[finished.stroke.points.length - 1] ?? null,
@@ -457,7 +533,18 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
   event.preventDefault();
   gestureCanvas.setPointerCapture(event.pointerId);
   selectedControlPoint = controlIndex;
-  controlDrag = { pointerId: event.pointerId, viewportIndex: rect.index, direction, controlIndex, rect: { ...rect } };
+  lastAffectedControlIndices = [];
+  lastEditBoundsBefore = strokeBounds(stroke3D);
+  lastEditBoundsAfter = lastEditBoundsBefore;
+  controlDrag = {
+    pointerId: event.pointerId,
+    viewportIndex: rect.index,
+    direction,
+    controlIndex,
+    rect: { ...rect },
+    boundsBefore: lastEditBoundsBefore,
+    rawSignatureBefore: rawSignature(),
+  };
   updateDebug();
   redrawOverlay();
 }
@@ -478,8 +565,20 @@ function updateControlDrag(event: PointerEvent): void {
     planeValue,
   );
   if (!world) return;
-  applyViewportEdit(point, controlDrag.direction, world);
-  stateMessage = `EDITED · control ${controlDrag.controlIndex + 1} updated in all four views`;
+  const edit = applySoftViewportEdit(
+    stroke3D,
+    controlDrag.controlIndex,
+    controlDrag.direction,
+    world,
+    softEditStrength,
+  );
+  if (rawSignature() !== controlDrag.rawSignatureBefore) {
+    throw new Error("Soft Edit changed the immutable Raw Gesture");
+  }
+  lastAffectedControlIndices = edit.affectedControlIndices;
+  lastEditBoundsBefore = controlDrag.boundsBefore;
+  lastEditBoundsAfter = strokeBounds(stroke3D);
+  stateMessage = `EDITED · ${softEditStrength.toUpperCase()} affected ${edit.affectedControlIndices.length} controls`;
   redrawOverlay();
   updateDebug();
 }
@@ -525,6 +624,7 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
     startStroke(event, rect);
     return;
   }
+  if (event.pointerType !== "mouse") return;
   if (interactionModes[rect.index] === "edit" && directions[rect.index] !== "axome") {
     const controlIndex = nearestControlIndex(rect, point.x, point.y);
     if (controlIndex !== null) {
@@ -611,6 +711,39 @@ splitterY.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "y
 
 layoutFourButton.addEventListener("click", () => { viewportMode = "four"; refreshLayout(); });
 layoutOneButton.addEventListener("click", () => { viewportMode = "one"; refreshLayout(); });
+for (const button of softEditButtons) {
+  button.addEventListener("click", () => {
+    const strength = button.dataset.softEdit;
+    if (strength !== "off" && strength !== "low" && strength !== "medium") return;
+    softEditStrength = strength;
+    lastAffectedControlIndices = [];
+    stateMessage = `SOFT EDIT · ${strength.toUpperCase()}`;
+    updateSoftEditButtons();
+    updateDebug();
+  });
+}
+
+function updateSmoothnessUI(): void {
+  const value = smoothness.toFixed(2);
+  smoothnessSlider.value = value;
+  smoothnessValue.value = value;
+  smoothnessValue.textContent = value;
+}
+
+function setSmoothness(value: number): void {
+  smoothness = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  if (stroke3D) {
+    stroke3D.curve.smoothness = smoothness;
+    stateMessage = `SMOOTHNESS · ${smoothness.toFixed(2)}`;
+    redrawOverlay();
+  }
+  updateSmoothnessUI();
+  updateDebug();
+}
+
+smoothnessSlider.addEventListener("input", () => {
+  setSmoothness(Number(smoothnessSlider.value));
+});
 
 clearButton.addEventListener("click", () => {
   rawGestures.length = 0;
@@ -619,6 +752,10 @@ clearButton.addEventListener("click", () => {
   cameraDrag = null;
   controlDrag = null;
   selectedControlPoint = null;
+  lastAffectedControlIndices = [];
+  lastEditBoundsBefore = null;
+  lastEditBoundsAfter = null;
+  setSmoothness(0);
   interactionModes[0] = "edit";
   interactionModes[1] = "view";
   interactionModes[2] = "draw";
@@ -633,6 +770,7 @@ function captureEditorState(): HanaEditorState {
     viewportMode,
     selectedViewportId: viewportId(selectedViewport),
     split: { ...split },
+    softEditStrength,
     viewports: directions.map((direction, index) => ({
       id: viewportId(index),
       viewDirection: direction,
@@ -652,15 +790,15 @@ saveButton.addEventListener("click", () => {
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   link.href = url;
-  link.download = `hana-1b-document-${timestamp}.json`;
+  link.download = `hana-1c-document-${timestamp}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 });
 
-type HanaProbeWindow = Window & { __HANA_1B__?: { snapshot: typeof snapshot } };
-(window as HanaProbeWindow).__HANA_1B__ = { snapshot };
+type HanaProbeWindow = Window & { __HANA_1C__?: { snapshot: typeof snapshot } };
+(window as HanaProbeWindow).__HANA_1C__ = { snapshot };
 
 const resizeObserver = new ResizeObserver(resize);
 resizeObserver.observe(workspace);
@@ -670,4 +808,5 @@ window.addEventListener("beforeunload", () => {
 });
 
 resize();
+updateSmoothnessUI();
 updateDebug();
