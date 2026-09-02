@@ -20,14 +20,15 @@ body,
 }
 
 button {
-  min-height: 30px;
+  min-height: 48px;
+  min-width: 48px;
   border: 1px solid #c8cdd3;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #fff;
   color: #252a30;
-  padding: 0 0.75rem;
+  padding: 0 0.9rem;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
@@ -66,17 +67,21 @@ button:disabled {
 }
 
 .hana-header {
-  min-height: 58px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.65rem 0.8rem;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.hana-heading {
+  flex: 0 0 auto;
 }
 
 .hana-heading h1 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.015em;
 }
@@ -91,10 +96,19 @@ button:disabled {
 .hana-toolbar,
 .hana-segmented,
 .hana-soft-control,
-.hana-smooth-control {
+.hana-smooth-control,
+.hana-display-control {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.hana-toolbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .hana-segmented {
@@ -103,11 +117,12 @@ button:disabled {
 }
 
 .hana-soft-control {
-  padding-right: 0.35rem;
+  min-height: 48px;
+  padding-right: 0.5rem;
   border-right: 1px solid #d7dbe0;
   color: #68717c;
   font-family: Consolas, "Liberation Mono", monospace;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
 }
 
 .hana-soft-control .hana-segmented {
@@ -119,11 +134,12 @@ button:disabled {
 }
 
 .hana-soft-control button {
-  min-height: 28px;
+  min-height: 44px;
+  min-width: 58px;
   border: 0;
   border-radius: 0;
-  padding: 0 0.55rem;
-  font-size: 0.65rem;
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
 }
 
 .hana-soft-control button + button {
@@ -131,33 +147,136 @@ button:disabled {
 }
 
 .hana-smooth-control {
-  padding-right: 0.35rem;
+  min-height: 48px;
+  padding-right: 0.5rem;
   border-right: 1px solid #d7dbe0;
   color: #68717c;
   font-family: Consolas, "Liberation Mono", monospace;
-  font-size: 0.65rem;
+  font-size: 0.82rem;
 }
 
-.hana-smooth-control input {
-  width: 112px;
+.hana-smooth-control > span:first-child {
+  color: #4e5761;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.hana-smooth-control input[type="range"] {
+  width: clamp(150px, 17vw, 220px);
+  min-width: 150px;
+  height: 44px;
+  margin: 0;
   accent-color: #30363d;
+  cursor: pointer;
+}
+
+.hana-smooth-control input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #cbd1d8;
+}
+
+.hana-smooth-control input[type="range"]::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -10px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid #30363d;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.hana-smooth-control input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #cbd1d8;
+}
+
+.hana-smooth-control input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #30363d;
+  border-radius: 50%;
+  background: #fff;
 }
 
 .hana-smooth-control output {
-  min-width: 2.3rem;
+  min-width: 3.1rem;
   color: #242a31;
+  font-size: 1.2rem;
+  font-weight: 600;
   text-align: right;
 }
 
 .hana-smooth-bound {
   color: #8a929a;
-  font-size: 0.56rem;
+  font-size: 0.72rem;
+}
+
+.hana-display-control {
+  min-height: 48px;
+  display: flex;
+  align-items: stretch;
+  padding-right: 0.5rem;
+  border-right: 1px solid #d7dbe0;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.88rem;
+  gap: 8px;
+}
+
+.hana-display-control button {
+  min-width: 112px;
+  min-height: 48px;
+  padding: 0 0.8rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.hana-display-control button[data-state="off"] {
+  border-color: #c8cdd3;
+  background: #f7f8fa;
+  color: #68717c;
+}
+
+.hana-surface-state {
+  min-width: 5.8rem;
+  min-height: 48px;
+  padding: 0 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #68717c;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.hana-surface-state[data-state="ready"] {
+  color: #147a43;
+}
+
+.hana-surface-state[data-state="stale"] {
+  color: #a15c00;
 }
 
 .hana-primary {
+  min-height: 48px;
   border-color: #30363d;
   background: #30363d;
   color: #fff;
+}
+
+.hana-secondary {
+  min-height: 48px;
+  border-color: #c8cdd3;
+  background: #f7f8fa;
+  color: #68717c;
+  font-size: 0.8rem;
 }
 
 .hana-workspace {
@@ -192,6 +311,80 @@ button:disabled {
 #viewport-chrome {
   z-index: 2;
   pointer-events: none;
+}
+
+#edit-diagnostic-markers {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  pointer-events: none;
+}
+
+#edit-diagnostic-markers.is-active {
+  display: block;
+}
+
+.hana-edit-diagnostic-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px rgba(31, 35, 40, 0.7), 0 1px 4px rgba(31, 35, 40, 0.45);
+  color: #fff;
+  font: 700 9px/12px Consolas, "Liberation Mono", monospace;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.hana-edit-diagnostic-marker.is-visible {
+  display: block;
+}
+
+.hana-edit-diagnostic-pointer {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d73545;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(215, 53, 69, 0.22), 0 1px 4px rgba(31, 35, 40, 0.35);
+}
+
+.hana-edit-diagnostic-pointer::after {
+  content: "POINTER";
+  position: absolute;
+  left: 12px;
+  top: -2px;
+  padding: 1px 4px;
+  border: 1px solid rgba(215, 53, 69, 0.55);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #b42332;
+  font: 700 10px/14px Consolas, "Liberation Mono", monospace;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.hana-edit-diagnostic-target {
+  background: #2463d4;
+}
+
+.hana-edit-diagnostic-target::after {
+  content: "T";
+}
+
+.hana-edit-diagnostic-proxy-tip {
+  background: #168451;
+}
+
+.hana-edit-diagnostic-proxy-tip::after {
+  content: "X";
 }
 
 .hana-viewport-pane {
@@ -241,12 +434,13 @@ button:disabled {
 }
 
 .hana-mode-switch button {
-  min-height: 24px;
+  min-height: 48px;
+  min-width: 64px;
   border: 0;
   border-radius: 0;
-  padding: 0 0.48rem;
+  padding: 0 0.8rem;
   background: transparent;
-  font-size: 0.65rem;
+  font-size: 0.85rem;
 }
 
 .hana-mode-switch button + button {
@@ -356,7 +550,7 @@ button:disabled {
   font-size: 0.62rem;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 960px) {
   .hana-shell {
     padding: 5px;
     gap: 5px;
@@ -365,6 +559,16 @@ button:disabled {
   .hana-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .hana-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .hana-smooth-control input[type="range"] {
+    width: min(40vw, 190px);
+    min-width: 120px;
   }
 
   .hana-debug dl {

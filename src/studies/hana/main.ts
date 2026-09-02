@@ -23,9 +23,17 @@ import {
 } from "./gesture.ts";
 import {
   createHanaDocument,
-  deriveStroke3D,
+  deriveStroke3DFromSamples,
+  deriveStroke3DFromRawIndices,
   type HanaStroke3D,
 } from "./stroke3d.ts";
+import type { HanaVector3 } from "./stroke3d.ts";
+import {
+  fitAdaptiveControlIndices,
+  HANA_ADAPTIVE_CONTROL_MAX_POINTS,
+  HANA_ADAPTIVE_CONTROL_TOLERANCE,
+  type HanaAdaptiveControlFitResult,
+} from "./adaptiveControl.ts";
 import {
   applySoftViewportEdit,
   editorStrokeColor,
@@ -33,18 +41,70 @@ import {
   strokeBounds,
   type HanaStrokeBounds,
 } from "./smoothCenterline.ts";
-import { HanaViewportRenderer } from "./viewportRenderer.ts";
+import {
+  HANA_SURFACE_RESOLUTION,
+  HANA_THICKNESS_DEFAULT,
+  HANA_THICKNESS_MAX,
+  HANA_THICKNESS_MIN,
+  buildPointField,
+  buildPointFieldMesh,
+  createPointFieldEvaluationStats,
+  diagnosePointField,
+  pointFieldEffectiveResolution,
+  sampleMaterialSamples,
+  sampleMaterialSamplesForPreview,
+  type HanaMaterialSample,
+  type HanaPointFieldEvaluationStats,
+  type HanaPointFieldDiagnostics,
+  type HanaPreviewSurface,
+} from "./materialField.ts";
+import {
+  HANA_LIVE_PROXY_MAX_SEGMENTS,
+  sampleLiveProxySegments,
+  type HanaLiveProxySegment,
+} from "./liveProxy.ts";
+import {
+  appendLiveWorkingPoint,
+  createLiveWorkingPath,
+  HANA_LIVE_WORKING_INITIAL_SPACING,
+  liveWorkingStrokeSamples,
+  type HanaLiveWorkingPath,
+} from "./liveWorkingPath.ts";
+import {
+  createBoundedStrokePreview,
+  HANA_MOUSE_EDIT_PREVIEW_MAX_CONTROLS,
+} from "./editPreview.ts";
+import {
+  HanaViewportRenderer,
+  type HanaRendererPresentationStats,
+  type HanaRendererRenderStats,
+  type HanaRendererResourceStats,
+} from "./viewportRenderer.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app was not found");
 
+let longTaskDurations: number[] = [];
+if (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")) {
+  try {
+    new PerformanceObserver((list) => {
+      longTaskDurations = [
+        ...longTaskDurations,
+        ...list.getEntries().map((entry) => entry.duration),
+      ].slice(-256);
+    }).observe({ type: "longtask", buffered: true });
+  } catch {
+    // Some browser builds expose the type but do not allow observing it.
+  }
+}
+
 app.innerHTML = `
   <main class="hana-shell">
     <header class="hana-header">
       <div class="hana-heading">
-        <h1>HANA — Smooth 3D Stroke</h1>
-        <p>HANA-1C · v${manifest.version} · updated ${manifest.updatedAt}</p>
+        <h1>HANA — Point Field Stem Preview</h1>
+        <p>HANA-2A · v${manifest.version} · updated ${manifest.updatedAt}</p>
       </div>
       <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
@@ -66,6 +126,20 @@ app.innerHTML = `
           <span class="hana-smooth-bound">1.00</span>
           <output id="smoothness-value" for="smoothness-control">0.00</output>
         </label>
+        <div class="hana-display-control" aria-label="HANA display layers">
+          <button id="show-centerline" type="button" aria-pressed="true">Centerline ON</button>
+          <button id="show-samples" type="button" aria-pressed="false">Samples OFF</button>
+          <button id="show-surface" type="button" aria-pressed="true">Surface ON</button>
+        </div>
+        <label class="hana-smooth-control" for="thickness-control">
+          <span>Thickness</span>
+          <span class="hana-smooth-bound">${HANA_THICKNESS_MIN.toFixed(2)}</span>
+          <input id="thickness-control" type="range" min="${HANA_THICKNESS_MIN}" max="${HANA_THICKNESS_MAX}" step="0.01" value="${HANA_THICKNESS_DEFAULT}" aria-label="Thickness" />
+          <span class="hana-smooth-bound">${HANA_THICKNESS_MAX.toFixed(2)}</span>
+          <output id="thickness-value" for="thickness-control">${HANA_THICKNESS_DEFAULT.toFixed(2)}</output>
+        </label>
+        <button id="rebuild-surface" class="hana-secondary" type="button">Rebuild Surface</button>
+        <span id="surface-state" class="hana-surface-state" role="status">NOT BUILT</span>
         <button id="clear-document" type="button">Clear</button>
         <button id="save-document" type="button" class="hana-primary">Save JSON</button>
       </div>
@@ -75,6 +149,11 @@ app.innerHTML = `
       <canvas id="scene-canvas" aria-hidden="true"></canvas>
       <canvas id="gesture-canvas" aria-label="HANA shared 3D stroke input"></canvas>
       <div id="viewport-chrome" aria-live="polite"></div>
+      <div id="edit-diagnostic-markers" aria-hidden="true">
+        <span id="edit-diagnostic-pointer" class="hana-edit-diagnostic-marker hana-edit-diagnostic-pointer"></span>
+        <span id="edit-diagnostic-target" class="hana-edit-diagnostic-marker hana-edit-diagnostic-target"></span>
+        <span id="edit-diagnostic-proxy-tip" class="hana-edit-diagnostic-marker hana-edit-diagnostic-proxy-tip"></span>
+      </div>
       <div id="splitter-x" class="hana-splitter hana-splitter-x" role="separator" aria-label="Resize viewport columns" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"></div>
       <div id="splitter-y" class="hana-splitter hana-splitter-y" role="separator" aria-label="Resize viewport rows" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"></div>
     </section>
@@ -87,7 +166,27 @@ app.innerHTML = `
         <div><dt>viewport</dt><dd id="debug-viewport">Front</dd></div>
         <div><dt>raw points</dt><dd id="debug-points">0</dd></div>
         <div><dt>3D controls</dt><dd id="debug-controls">0</dd></div>
+        <div><dt>control fit</dt><dd id="debug-control-fit">—</dd></div>
         <div><dt>smooth samples</dt><dd id="debug-smooth">0</dd></div>
+        <div><dt>material samples</dt><dd id="debug-material">0</dd></div>
+        <div><dt>proxy segments</dt><dd id="debug-proxy-segments">0</dd></div>
+        <div><dt>proxy update/render ms</dt><dd id="debug-proxy-timing">—</dd></div>
+        <div><dt>surface triangles</dt><dd id="debug-surface">—</dd></div>
+        <div><dt>surface build ms</dt><dd id="debug-surface-ms">—</dd></div>
+        <div><dt>preview build min/med/max</dt><dd id="debug-preview-build-stats">—</dd></div>
+        <div><dt>surface diagnostics</dt><dd id="debug-surface-diagnostics">—</dd></div>
+        <div><dt>pointerup stages</dt><dd id="debug-pointerup-stages">—</dd></div>
+         <div><dt>mouse edit stages</dt><dd id="debug-mouse-edit-stages">—</dd></div>
+         <div><dt>mouse edit e2e</dt><dd id="debug-mouse-edit-e2e">—</dd></div>
+         <div><dt>mouse edit resources</dt><dd id="debug-mouse-edit-resources">—</dd></div>
+         <div><dt>mouse edit caches</dt><dd id="debug-mouse-edit-caches">—</dd></div>
+         <div><dt>mouse edit sessions</dt><dd id="debug-mouse-edit-sessions">—</dd></div>
+         <div><dt>mouse edit hit test</dt><dd id="debug-mouse-edit-hit-test">—</dd></div>
+         <div><dt>mouse edit frame</dt><dd id="debug-mouse-edit-frame">—</dd></div>
+         <div><dt>mouse edit presentation</dt><dd id="debug-mouse-edit-presentation">—</dd></div>
+         <div><dt>mouse edit markers</dt><dd id="debug-mouse-edit-markers">—</dd></div>
+         <div><dt>mouse edit pipeline</dt><dd id="debug-mouse-edit-pipeline">—</dd></div>
+        <div><dt>thickness</dt><dd id="debug-thickness">0.18</dd></div>
         <div><dt>soft / affected</dt><dd id="debug-soft">MEDIUM / 0</dd></div>
         <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
         <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
@@ -107,6 +206,10 @@ const workspace = requiredElement<HTMLElement>(".hana-workspace");
 const sceneCanvas = requiredElement<HTMLCanvasElement>("#scene-canvas");
 const gestureCanvas = requiredElement<HTMLCanvasElement>("#gesture-canvas");
 const chrome = requiredElement<HTMLElement>("#viewport-chrome");
+const editDiagnosticMarkerLayer = requiredElement<HTMLElement>("#edit-diagnostic-markers");
+const editDiagnosticPointerMarker = requiredElement<HTMLElement>("#edit-diagnostic-pointer");
+const editDiagnosticTargetMarker = requiredElement<HTMLElement>("#edit-diagnostic-target");
+const editDiagnosticProxyTipMarker = requiredElement<HTMLElement>("#edit-diagnostic-proxy-tip");
 const splitterX = requiredElement<HTMLElement>("#splitter-x");
 const splitterY = requiredElement<HTMLElement>("#splitter-y");
 const layoutFourButton = requiredElement<HTMLButtonElement>("#layout-four");
@@ -116,11 +219,21 @@ const saveButton = requiredElement<HTMLButtonElement>("#save-document");
 const softEditButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-soft-edit]"));
 const smoothnessSlider = requiredElement<HTMLInputElement>("#smoothness-control");
 const smoothnessValue = requiredElement<HTMLOutputElement>("#smoothness-value");
+const centerlineToggle = requiredElement<HTMLButtonElement>("#show-centerline");
+const samplesToggle = requiredElement<HTMLButtonElement>("#show-samples");
+const surfaceToggle = requiredElement<HTMLButtonElement>("#show-surface");
+const thicknessSlider = requiredElement<HTMLInputElement>("#thickness-control");
+const thicknessValue = requiredElement<HTMLOutputElement>("#thickness-value");
+const rebuildSurfaceButton = requiredElement<HTMLButtonElement>("#rebuild-surface");
+const surfaceState = requiredElement<HTMLElement>("#surface-state");
 
 const renderer = new HanaViewportRenderer(sceneCanvas, HANA_VIEW_DIRECTIONS);
 const gestureContext = gestureCanvas.getContext("2d") ?? (() => {
   throw new Error("HANA gesture canvas 2D context is unavailable");
 })();
+let activeRawPath: Path2D | null = null;
+let activeRawPathStroke: HanaViewportStroke | null = null;
+let activeRawPathRect: SkinViewportRect | null = null;
 
 const directions = DEFAULT_SKIN_VIEW_DIRECTIONS as readonly HanaViewDirection[];
 let viewportMode: HanaViewportMode = "four";
@@ -128,10 +241,92 @@ let selectedViewport = 2;
 let split = { x: 0.5, y: 0.5 };
 const interactionModes: HanaInteractionMode[] = ["edit", "view", "draw", "edit"];
 const rawGestures: HanaViewportStroke[] = [];
+let rawPressureTotal = 0;
+let rawTimeTotal = 0;
 let stroke3D: HanaStroke3D | null = null;
+let provisionalStroke3D: HanaStroke3D | null = null;
+let editPreviewStroke3D: HanaStroke3D | null = null;
+let authoritativeCenterline: ReturnType<typeof sampleSmoothCenterline> = [];
+let provisionalCenterline: ReturnType<typeof sampleSmoothCenterline> = [];
+let editPreviewCenterline: ReturnType<typeof sampleSmoothCenterline> = [];
+let editPreviewMaterialSamples: HanaMaterialSample[] = [];
 let selectedControlPoint: number | null = null;
 let softEditStrength: HanaSoftEditStrength = "medium";
 let smoothness = 0;
+let thickness = HANA_THICKNESS_DEFAULT;
+let showCenterline = true;
+let showSamples = false;
+let showSurface = true;
+let materialSamples: HanaMaterialSample[] = [];
+let previewSurface: HanaPreviewSurface | null = null;
+let surfaceBuildSignature: string | null = null;
+let surfaceBuildMilliseconds: number | null = null;
+let surfacePreviewTimer: number | null = null;
+let surfaceBuildSource: "authoritative" | "provisional" | null = null;
+const SURFACE_PREVIEW_THROTTLE_MS = 100;
+const SURFACE_PREVIEW_RESOLUTION = 24;
+const SURFACE_PREVIEW_MAX_SAMPLES = 256;
+const editPresentationMode: "hide-final" | "final-visible" = new URLSearchParams(window.location.search).get("editPresentation") === "final-visible"
+  ? "final-visible"
+  : "hide-final";
+const editMarkersEnabled = new URLSearchParams(window.location.search).get("editMarkers") === "1";
+const editProxyMode: "bounded" | "direct" = new URLSearchParams(window.location.search).get("editProxy") === "direct"
+  ? "direct"
+  : "bounded";
+const hideFinalSurfaceDuringEdit = editPresentationMode === "hide-final";
+let surfacePreviewBuildCount = 0;
+let surfacePreviewLastStartMilliseconds: number | null = null;
+let surfacePreviewLastEndMilliseconds: number | null = null;
+let surfacePointerEndMilliseconds: number | null = null;
+let surfacePreviewBuildDurations: number[] = [];
+let surfaceDiagnostics: HanaPointFieldDiagnostics | null = null;
+let surfaceFieldEvaluationStats: HanaPointFieldEvaluationStats | null = null;
+let materialProxyFrame: number | null = null;
+let editPreviewMaterialProxyFrame: number | null = null;
+let materialProxyFrameCount = 0;
+let materialProxyUpdateDurations: number[] = [];
+let materialProxyRenderDurations: number[] = [];
+let mouseEditNearestDurations: number[] = [];
+let mouseEditHandlerDurations: number[] = [];
+let mouseEditControlUpdateDurations: number[] = [];
+let mouseEditSoftEditDurations: number[] = [];
+let mouseEditSmoothRebuildDurations: number[] = [];
+let mouseEditPreviewUpdateDurations: number[] = [];
+let mouseEditPreviewProcessDurations: number[] = [];
+let mouseEditInputQueueLatencies: number[] = [];
+let mouseEditEndToEndLatencies: number[] = [];
+let mouseEditRenderSubmissionDurations: number[] = [];
+let mouseEditPointerMoveCount = 0;
+let mouseEditPreviewFrameCount = 0;
+let mouseEditDroppedPointerMoves = 0;
+let mouseEditFirstPointerTimestamp: number | null = null;
+let mouseEditLastPointerTimestamp: number | null = null;
+let mouseEditFirstPreviewTimestamp: number | null = null;
+let mouseEditLastPreviewTimestamp: number | null = null;
+let mouseEditOldestPointerAge = 0;
+let mouseEditMaxPendingRaf = 0;
+let mouseEditLastEventTimestamp: number | null = null;
+let mouseEditLastHandlerStart: number | null = null;
+let mouseEditLastHandlerEnd: number | null = null;
+let mouseEditLastLatestStateUpdated: number | null = null;
+let mouseEditLastRafStart: number | null = null;
+let mouseEditLastPreviewUpdateEnd: number | null = null;
+let mouseEditLastRenderSubmission: number | null = null;
+let mouseEditFinalMaterialMilliseconds: number | null = null;
+let mouseEditFinalSurfaceMilliseconds: number | null = null;
+let mouseEditSessionNumber = 0;
+let mouseEditSessionResourceBefore: HanaRendererResourceStats | null = null;
+let mouseEditSessionHistory: MouseEditSessionReport[] = [];
+let mouseEditSessionGeometryBefore: HanaEditGeometrySnapshot | null = null;
+let mouseEditSessionRenderBefore: HanaRendererRenderStats | null = null;
+let mouseEditSessionReadyToEditMilliseconds: number | null = null;
+let lastFinalReadyTimestamp: number | null = null;
+let mouseEditRaycastDurations: number[] = [];
+let mouseEditRafAgeDurations: number[] = [];
+let mouseEditFrameIntervals: number[] = [];
+let mouseEditIntersectMeshCount = 0;
+let mouseEditPreviewRejectCount = 0;
+let mouseEditLastPreviewRejectReason = "";
 let lastAffectedControlIndices: number[] = [];
 let lastEditBoundsBefore: HanaStrokeBounds | null = null;
 let lastEditBoundsAfter: HanaStrokeBounds | null = null;
@@ -143,6 +338,9 @@ interface ActiveStroke {
   startTime: number;
   stroke: HanaViewportStroke;
   rect: SkinViewportRect;
+  pressureMin: number;
+  pressureMax: number;
+  pressures: Set<number>;
 }
 
 interface CameraDrag {
@@ -162,11 +360,166 @@ interface ControlDrag {
   rect: SkinViewportRect;
   boundsBefore: HanaStrokeBounds | null;
   rawSignatureBefore: string;
+  controlPositionsBefore: HanaVector3[];
+}
+
+interface PendingControlPointer {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  eventTimestamp: number;
+  handlerStart: number;
+  handlerEnd: number;
+  latestStateUpdated: number;
+}
+
+interface ControlPreviewTiming {
+  previewUpdateEnd: number;
+  controlUpdate: HanaEditStageTiming;
+  targetUpdatedAt: number;
+  targetPosition: HanaVector3;
+  targetScreen: EditDiagnosticPoint | null;
+  preview: EditPreviewPipelineTiming | null;
+}
+
+interface HanaEditStageTiming {
+  start: number | null;
+  end: number | null;
+}
+
+interface EditPreviewPipelineTiming {
+  boundedControl: HanaEditStageTiming;
+  smoothCenterline: HanaEditStageTiming;
+  materialSamples: HanaEditStageTiming;
+}
+
+interface MouseEditPipelineFrame {
+  frameNumber: number;
+  rafTimestamp: number;
+  inputTimestamp: number | null;
+  proxyMode: "bounded" | "direct";
+  targetPosition: HanaVector3 | null;
+  targetScreen: EditDiagnosticPoint | null;
+  targetUpdatedAt: number | null;
+  controlUpdate: HanaEditStageTiming;
+  boundedControl: HanaEditStageTiming;
+  smoothCenterline: HanaEditStageTiming;
+  materialSamples: HanaEditStageTiming;
+  proxySegments: HanaEditStageTiming;
+  proxyTransforms: HanaEditStageTiming;
+  proxyTip: HanaEditStageTiming;
+  renderSubmission: HanaEditStageTiming;
+  targetToProxyTipMilliseconds: number | null;
+}
+
+interface EditDiagnosticPoint {
+  x: number;
+  y: number;
+}
+
+interface EditDiagnosticMarkerSnapshot {
+  enabled: boolean;
+  frameNumber: number;
+  latestPointerEventCount: number;
+  domPointerMarkerFrameCount: number;
+  editTargetMarkerFrameCount: number;
+  webglPreviewFrameCount: number;
+  latestPointer: EditDiagnosticPoint | null;
+  editTarget: EditDiagnosticPoint | null;
+  proxyTip: EditDiagnosticPoint | null;
+  latestPointerRafTimestamp: number | null;
+  editTargetRafTimestamp: number | null;
+  proxyTipRafTimestamp: number | null;
+  webglPreviewRafTimestamp: number | null;
+}
+
+interface MouseEditSessionReport {
+  session: number;
+  pointerMoveCount: number;
+  previewFrameCount: number;
+  droppedPointerMoves: number;
+  inputQueue: ReturnType<typeof durationStats>;
+  endToEnd: ReturnType<typeof durationStats>;
+  renderSubmission: ReturnType<typeof durationStats>;
+  rafAge: ReturnType<typeof durationStats>;
+  frameInterval: ReturnType<typeof durationStats>;
+  raycast: ReturnType<typeof durationStats>;
+  readyToEditMilliseconds: number | null;
+  finalSurfaceMilliseconds: number | null;
+  resourcesBefore: HanaRendererResourceStats;
+  resourcesAfter: HanaRendererResourceStats;
+  geometryBefore: HanaEditGeometrySnapshot;
+  geometryAfter: HanaEditGeometrySnapshot;
+  renderBefore: HanaRendererRenderStats;
+  renderAfter: HanaRendererRenderStats;
+  previewRejectCount: number;
+  lastPreviewRejectReason: string;
+  diagnosticMarkers: EditDiagnosticMarkerSnapshot;
+  pipelineFrames: MouseEditPipelineFrame[];
+}
+
+interface HanaEditGeometrySnapshot {
+  rawCount: number;
+  controlCount: number;
+  smoothCount: number;
+  materialCount: number;
+  effectiveResolution: number;
+  triangleCount: number;
+  componentCount: number;
+  fieldQueryCount: number;
+  fieldCandidateEvaluationCount: number;
+  fieldMaxCandidateCount: number;
+  bounds: string;
 }
 
 let activeStroke: ActiveStroke | null = null;
+let liveWorkingPath: HanaLiveWorkingPath | null = null;
 let cameraDrag: CameraDrag | null = null;
 let controlDrag: ControlDrag | null = null;
+let pendingControlPointer: PendingControlPointer | null = null;
+let lastAdaptiveControlFit: HanaAdaptiveControlFitResult | null = null;
+let editDiagnosticFrameNumber = 0;
+let editDiagnosticLatestPointerEventCount = 0;
+let editDiagnosticDomPointerMarkerFrameCount = 0;
+let editDiagnosticTargetMarkerFrameCount = 0;
+let editDiagnosticWebglPreviewFrameCount = 0;
+let editDiagnosticLatestPointer: EditDiagnosticPoint | null = null;
+let editDiagnosticTarget: EditDiagnosticPoint | null = null;
+let editDiagnosticProxyTip: EditDiagnosticPoint | null = null;
+let editDiagnosticLatestPointerRafTimestamp: number | null = null;
+let editDiagnosticTargetRafTimestamp: number | null = null;
+let editDiagnosticProxyTipRafTimestamp: number | null = null;
+let editDiagnosticWebglPreviewRafTimestamp: number | null = null;
+let mouseEditPipelineFrames: MouseEditPipelineFrame[] = [];
+
+interface HanaPointerupStageTimings {
+  rawFinalization: number;
+  adaptiveControlFitting: number;
+  overshootSubdivision: number;
+  smoothCenterline: number;
+  materialSamples: number;
+  effectiveResolution: number;
+  fieldPreparation: number;
+  meshGeneration: number;
+  componentValidation: number;
+  gpuUpload: number;
+  total: number;
+  rawCount: number;
+  controlCount: number;
+  initialControlCount: number;
+  overshootControlCount: number;
+  smoothCount: number;
+  materialCount: number;
+  effectiveResolutionValue: number;
+  triangleCount: number;
+  componentCount: number;
+  fieldQueryCount: number;
+  fieldCandidateEvaluationCount: number;
+  fieldMaxCandidateCount: number;
+}
+
+let pendingPointerupStageTimings: HanaPointerupStageTimings | null = null;
+let lastPointerupStageTimings: HanaPointerupStageTimings | null = null;
 
 function viewportId(index: number): string {
   const direction = directions[index];
@@ -191,13 +544,12 @@ function setDebugText(id: string, value: string): void {
 function rawSignature(): string {
   const stroke = rawGestures[0];
   if (!stroke) return "empty";
-  let pressureTotal = 0;
-  let timeTotal = 0;
-  for (const point of stroke.points) {
-    pressureTotal += point.pressure;
-    timeTotal += point.time;
-  }
-  return `${stroke.id}:${stroke.points.length}:${pressureTotal.toFixed(8)}:${timeTotal.toFixed(3)}`;
+  return `${stroke.id}:${stroke.points.length}:${rawPressureTotal.toFixed(8)}:${rawTimeTotal.toFixed(3)}`;
+}
+
+function appendRawSignaturePoint(point: HanaStrokePoint): void {
+  rawPressureTotal += point.pressure;
+  rawTimeTotal += point.time;
 }
 
 function boundsSignature(bounds: HanaStrokeBounds | null): string {
@@ -208,24 +560,584 @@ function boundsSignature(bounds: HanaStrokeBounds | null): string {
   ].join(",");
 }
 
+function materializationSignature(): string {
+  return `${thickness.toFixed(4)}|${materialSamples.map((sample) => (
+    `${sample.position.x.toFixed(10)},${sample.position.y.toFixed(10)},${sample.position.z.toFixed(10)}`
+  )).join(";")}`;
+}
+
+function durationStats(values: readonly number[]): { min: number; median: number; p95: number; max: number } | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+  const p95Index = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
+  return { min: sorted[0], median, p95: sorted[p95Index], max: sorted[sorted.length - 1] };
+}
+
+function surfaceDiagnosticsText(diagnostics: HanaPointFieldDiagnostics | null): string {
+  if (!diagnostics) return "—";
+  const { bounds, gridShape, gridSpacing } = diagnostics;
+  return [
+    `bounds ${bounds.longest.toFixed(2)}`,
+    `samples ${diagnostics.sampleCount}`,
+    `spacing ${diagnostics.maxAdjacentSpacing.toFixed(3)} / ${diagnostics.medianAdjacentSpacing.toFixed(3)}`,
+    `r ${diagnostics.radius.toFixed(2)}`,
+    `grid ${gridShape.nx}×${gridShape.ny}×${gridShape.nz}`,
+    `step ${gridSpacing.x.toFixed(3)}/${gridSpacing.y.toFixed(3)}/${gridSpacing.z.toFixed(3)}`,
+    `negative ${diagnostics.gridScanSkipped ? "skipped" : diagnostics.negativeGridNodeCount}`,
+    `triangles ${diagnostics.triangleCount}`,
+    `components ${diagnostics.componentCount}`,
+  ].join(" · ");
+}
+
+function pointerupStagesText(timings: HanaPointerupStageTimings | null): string {
+  if (!timings) return "—";
+  return [
+    `total ${timings.total.toFixed(1)} ms`,
+    `raw ${timings.rawCount}`,
+    `controls ${timings.initialControlCount}+${timings.overshootControlCount}=${timings.controlCount}`,
+    `smooth ${timings.smoothCount}`,
+    `material ${timings.materialCount}`,
+    `res ${timings.effectiveResolutionValue}`,
+    `tri ${timings.triangleCount}`,
+    `comp ${timings.componentCount}`,
+    `field ${timings.fieldCandidateEvaluationCount}/${timings.fieldQueryCount} max ${timings.fieldMaxCandidateCount}`,
+    `ms raw ${timings.rawFinalization.toFixed(1)} · fit ${timings.adaptiveControlFitting.toFixed(1)} · refine ${timings.overshootSubdivision.toFixed(1)} · smooth ${timings.smoothCenterline.toFixed(1)} · material ${timings.materialSamples.toFixed(1)} · res ${timings.effectiveResolution.toFixed(1)} · field ${timings.fieldPreparation.toFixed(1)} · mesh ${timings.meshGeneration.toFixed(1)} · validate ${timings.componentValidation.toFixed(1)} · gpu ${timings.gpuUpload.toFixed(1)}`,
+  ].join(" · ");
+}
+
+function sampledDurationText(values: readonly number[]): string {
+  const stats = durationStats(values);
+  return stats
+    ? `${stats.median.toFixed(2)} / ${stats.p95.toFixed(2)} / ${stats.max.toFixed(2)}`
+    : "—";
+}
+
+function eventTimestampForPerformance(timestamp: number, now: number): number {
+  if (!Number.isFinite(timestamp)) return now;
+  if (timestamp > 1_000_000_000_000 && Number.isFinite(performance.timeOrigin)) {
+    return timestamp - performance.timeOrigin;
+  }
+  return timestamp;
+}
+
+function ratePerSecond(first: number | null, last: number | null, count: number): string {
+  if (first === null || last === null || last <= first || count < 2) return "—";
+  return (count * 1000 / (last - first)).toFixed(1);
+}
+
+function mouseEditStagesText(): string {
+  if (mouseEditHandlerDurations.length === 0 && mouseEditNearestDurations.length === 0) return "—";
+  return [
+    `nearest ${sampledDurationText(mouseEditNearestDurations)}`,
+    `handler ${sampledDurationText(mouseEditHandlerDurations)}`,
+    `control ${sampledDurationText(mouseEditControlUpdateDurations)}`,
+    `soft ${sampledDurationText(mouseEditSoftEditDurations)}`,
+    `smooth ${sampledDurationText(mouseEditSmoothRebuildDurations)}`,
+    `preview ${sampledDurationText(mouseEditPreviewUpdateDurations)}`,
+    `process ${sampledDurationText(mouseEditPreviewProcessDurations)}`,
+    `final material ${mouseEditFinalMaterialMilliseconds === null ? "—" : mouseEditFinalMaterialMilliseconds.toFixed(1)}`,
+    `final surface ${mouseEditFinalSurfaceMilliseconds === null ? "—" : mouseEditFinalSurfaceMilliseconds.toFixed(1)}`,
+  ].join(" · ");
+}
+
+function mouseEditLatencyText(): string {
+  if (mouseEditPointerMoveCount === 0 && mouseEditPreviewFrameCount === 0) return "—";
+  const queue = durationStats(mouseEditInputQueueLatencies);
+  const endToEnd = durationStats(mouseEditEndToEndLatencies);
+  const render = durationStats(mouseEditRenderSubmissionDurations);
+  return [
+    `events ${mouseEditPointerMoveCount} @ ${ratePerSecond(mouseEditFirstPointerTimestamp, mouseEditLastPointerTimestamp, mouseEditPointerMoveCount)}/s`,
+    `preview ${mouseEditPreviewFrameCount} @ ${ratePerSecond(mouseEditFirstPreviewTimestamp, mouseEditLastPreviewTimestamp, mouseEditPreviewFrameCount)}/s`,
+    `queue ${queue ? `${queue.median.toFixed(1)}/${queue.max.toFixed(1)}` : "—"}`,
+    `e2e ${endToEnd ? `${endToEnd.median.toFixed(1)}/${endToEnd.max.toFixed(1)}` : "—"}`,
+    `render ${render ? `${render.median.toFixed(1)}/${render.max.toFixed(1)}` : "—"}`,
+    `coalesced ${mouseEditDroppedPointerMoves}`,
+    `pending ${mouseEditMaxPendingRaf}`,
+    `oldest ${mouseEditOldestPointerAge.toFixed(1)}`,
+    `long ${longTaskDurations.filter((duration) => duration > 16).length}/${longTaskDurations.filter((duration) => duration > 33).length}/${longTaskDurations.filter((duration) => duration > 50).length}`,
+  ].join(" · ");
+}
+
+function mouseEditResourceText(stats: HanaRendererResourceStats): string {
+  return [
+    `scene ${stats.sceneObjectCount}`,
+    `surface ${stats.surfaceMeshCount}`,
+    `proxy ${stats.proxyObjectCount} (${stats.proxyInstanceCount}/${stats.proxyCapacity})`,
+    `geometry ${stats.bufferGeometryCount}`,
+    `material ${stats.materialCount}`,
+    `gpu ${stats.gpuGeometryCount}/${stats.gpuTextureCount}`,
+  ].join(" · ");
+}
+
+function mouseEditCacheText(): string {
+  return [
+    `raw ${rawGestures.length}`,
+    `stroke ${stroke3D ? 1 : 0}`,
+    `smooth ${authoritativeCenterline.length > 0 ? 1 : 0}`,
+    `material ${materialSamples.length > 0 ? 1 : 0}`,
+    `surface ${previewSurface ? 1 : 0}`,
+    `preview ${controlDrag ? 1 : 0}`,
+    `spatial-index 0`,
+    `active-pointer ${controlDrag ? 1 : 0}`,
+    `session-listeners 0`,
+  ].join(" · ");
+}
+
+function mouseEditSessionText(): string {
+  if (mouseEditSessionHistory.length === 0) return "—";
+  return mouseEditSessionHistory.map((report) => {
+    const e2e = report.endToEnd
+      ? `${report.endToEnd.median.toFixed(1)}/${report.endToEnd.p95.toFixed(1)}/${report.endToEnd.max.toFixed(1)}`
+      : "—";
+    const before = report.resourcesBefore;
+    const after = report.resourcesAfter;
+    const geometry = report.geometryBefore;
+    const geometryAfter = report.geometryAfter;
+    const rafAge = report.rafAge
+      ? `${report.rafAge.median.toFixed(1)}/${report.rafAge.p95.toFixed(1)}/${report.rafAge.max.toFixed(1)}`
+      : "—";
+    const frame = report.frameInterval
+      ? `${report.frameInterval.median.toFixed(1)}/${report.frameInterval.p95.toFixed(1)}/${report.frameInterval.max.toFixed(1)}`
+      : "—";
+    const markers = report.diagnosticMarkers;
+    const latestPipeline = report.pipelineFrames[report.pipelineFrames.length - 1];
+    const targetToProxy = latestPipeline?.targetToProxyTipMilliseconds === null || latestPipeline?.targetToProxyTipMilliseconds === undefined
+      ? "—"
+      : latestPipeline.targetToProxyTipMilliseconds.toFixed(2);
+    return `#${report.session} ready ${report.readyToEditMilliseconds === null ? "—" : report.readyToEditMilliseconds.toFixed(0)}ms · moves ${report.pointerMoveCount} · preview ${report.previewFrameCount} · markers ${markers.latestPointerEventCount}/${markers.domPointerMarkerFrameCount}/${markers.editTargetMarkerFrameCount}/${markers.webglPreviewFrameCount} · ${latestPipeline?.proxyMode ?? editProxyMode} T→X ${targetToProxy}ms · e2e ${e2e} · rAF ${rafAge} · frame ${frame} · tri ${geometry.triangleCount}→${geometryAfter.triangleCount} · res ${geometry.effectiveResolution}→${geometryAfter.effectiveResolution} · obj ${before.sceneObjectCount}→${after.sceneObjectCount} · geo ${before.bufferGeometryCount}→${after.bufferGeometryCount} · mat ${before.materialCount}→${after.materialCount} · surface ${before.surfaceMeshCount}→${after.surfaceMeshCount} · proxy ${before.proxyObjectCount}→${after.proxyObjectCount} · render ${report.renderAfter.calls}/${report.renderAfter.triangles}`;
+  }).join(" | ");
+}
+
+function editGeometrySnapshot(): HanaEditGeometrySnapshot {
+  const bounds = surfaceDiagnostics?.bounds;
+  const fallbackBounds = stroke3D ? strokeBounds(stroke3D) : null;
+  return {
+    rawCount: rawGestures[0]?.points.length ?? 0,
+    controlCount: stroke3D?.controlPoints.length ?? 0,
+    smoothCount: authoritativeCenterline.length,
+    materialCount: materialSamples.length,
+    effectiveResolution: lastPointerupStageTimings?.effectiveResolutionValue
+      ?? surfaceDiagnostics?.effectiveResolution
+      ?? 0,
+    triangleCount: previewSurface?.triangles.length ?? 0,
+    componentCount: surfaceDiagnostics?.componentCount ?? 0,
+    fieldQueryCount: surfaceFieldEvaluationStats?.queryCount ?? 0,
+    fieldCandidateEvaluationCount: surfaceFieldEvaluationStats?.candidateEvaluationCount ?? 0,
+    fieldMaxCandidateCount: surfaceFieldEvaluationStats?.maxCandidateCount ?? 0,
+    bounds: bounds
+      ? boundsSignature({
+        min: bounds.min,
+        max: bounds.max,
+      })
+      : boundsSignature(fallbackBounds),
+  };
+}
+
+function mouseEditHitTestText(): string {
+  const raycast = durationStats(mouseEditRaycastDurations);
+  const nearest = durationStats(mouseEditNearestDurations);
+  return [
+    `raycast ${raycast ? `${raycast.median.toFixed(2)}/${raycast.p95.toFixed(2)}/${raycast.max.toFixed(2)}` : "0.00/0.00/0.00"}`,
+    `meshes ${mouseEditIntersectMeshCount}`,
+    `nearest ${nearest ? `${nearest.median.toFixed(2)}/${nearest.p95.toFixed(2)}/${nearest.max.toFixed(2)}` : "—"}`,
+    `reject ${mouseEditPreviewRejectCount}${mouseEditLastPreviewRejectReason ? `:${mouseEditLastPreviewRejectReason}` : ""}`,
+  ].join(" · ");
+}
+
+function mouseEditFrameText(): string {
+  const rafAge = durationStats(mouseEditRafAgeDurations);
+  const intervals = durationStats(mouseEditFrameIntervals);
+  return [
+    `rAF age ${rafAge ? `${rafAge.median.toFixed(1)}/${rafAge.p95.toFixed(1)}/${rafAge.max.toFixed(1)}` : "—"}`,
+    `interval ${intervals ? `${intervals.median.toFixed(1)}/${intervals.p95.toFixed(1)}/${intervals.max.toFixed(1)}` : "—"}`,
+    `fps ${ratePerSecond(mouseEditFirstPreviewTimestamp, mouseEditLastPreviewTimestamp, mouseEditPreviewFrameCount)}`,
+  ].join(" · ");
+}
+
+function mouseEditPresentationText(presentation: HanaRendererPresentationStats): string {
+  return [
+    `${editPresentationMode}`,
+    `final ${presentation.finalSurface.visible ? "visible" : "hidden"}`,
+    `preview ${presentation.editPreview.visible ? "visible" : "hidden"}`,
+    `draw ${presentation.finalSurface.drawCalls}/${presentation.editPreview.drawCalls}`,
+    `order ${presentation.finalSurface.renderOrder ?? "—"}/${presentation.editPreview.renderOrder ?? "—"}`,
+    `depth ${presentation.finalSurface.depthTest === null ? "—" : `${presentation.finalSurface.depthTest}/${presentation.finalSurface.depthWrite}`}/${presentation.editPreview.depthTest === null ? "—" : `${presentation.editPreview.depthTest}/${presentation.editPreview.depthWrite}`}`,
+    `opacity ${presentation.finalSurface.opacity?.toFixed(2) ?? "—"}/${presentation.editPreview.opacity?.toFixed(2) ?? "—"}`,
+    `proxy ${presentation.editPreview.instanceCount}/${presentation.editPreview.capacity}`,
+  ].join(" · ");
+}
+
+function editDiagnosticMarkerText(): string {
+  if (!editMarkersEnabled) return "off · add ?editMarkers=1";
+  const pointText = (point: EditDiagnosticPoint | null): string => point
+    ? `${point.x.toFixed(0)}/${point.y.toFixed(0)}`
+    : "—";
+  const timestampText = (timestamp: number | null): string => timestamp === null
+    ? "—"
+    : timestamp.toFixed(1);
+  return [
+    `frame ${editDiagnosticFrameNumber}`,
+    `events/dom/target/webgl ${editDiagnosticLatestPointerEventCount}/${editDiagnosticDomPointerMarkerFrameCount}/${editDiagnosticTargetMarkerFrameCount}/${editDiagnosticWebglPreviewFrameCount}`,
+    `pointer ${pointText(editDiagnosticLatestPointer)}`,
+    `target ${pointText(editDiagnosticTarget)}`,
+    `proxy-tip ${pointText(editDiagnosticProxyTip)}`,
+    `rAF ${timestampText(editDiagnosticLatestPointerRafTimestamp)}/${timestampText(editDiagnosticTargetRafTimestamp)}/${timestampText(editDiagnosticProxyTipRafTimestamp)}/${timestampText(editDiagnosticWebglPreviewRafTimestamp)}`,
+  ].join(" · ");
+}
+
+function editDiagnosticSnapshot(): EditDiagnosticMarkerSnapshot {
+  return {
+    enabled: editMarkersEnabled,
+    frameNumber: editDiagnosticFrameNumber,
+    latestPointerEventCount: editDiagnosticLatestPointerEventCount,
+    domPointerMarkerFrameCount: editDiagnosticDomPointerMarkerFrameCount,
+    editTargetMarkerFrameCount: editDiagnosticTargetMarkerFrameCount,
+    webglPreviewFrameCount: editDiagnosticWebglPreviewFrameCount,
+    latestPointer: editDiagnosticLatestPointer ? { ...editDiagnosticLatestPointer } : null,
+    editTarget: editDiagnosticTarget ? { ...editDiagnosticTarget } : null,
+    proxyTip: editDiagnosticProxyTip ? { ...editDiagnosticProxyTip } : null,
+    latestPointerRafTimestamp: editDiagnosticLatestPointerRafTimestamp,
+    editTargetRafTimestamp: editDiagnosticTargetRafTimestamp,
+    proxyTipRafTimestamp: editDiagnosticProxyTipRafTimestamp,
+    webglPreviewRafTimestamp: editDiagnosticWebglPreviewRafTimestamp,
+  };
+}
+
+function stageMilliseconds(stage: HanaEditStageTiming): string {
+  return stage.start === null || stage.end === null
+    ? "—"
+    : `${(stage.end - stage.start).toFixed(2)}`;
+}
+
+function pipelineStageEnd(frame: MouseEditPipelineFrame): number | null {
+  return frame.proxyTip.end
+    ?? frame.proxyTransforms.end
+    ?? frame.proxySegments.end
+    ?? frame.materialSamples.end
+    ?? frame.smoothCenterline.end
+    ?? frame.boundedControl.end
+    ?? frame.controlUpdate.end;
+}
+
+function mouseEditPipelineText(): string {
+  const frame = mouseEditPipelineFrames[mouseEditPipelineFrames.length - 1];
+  if (!frame) return `— · mode ${editProxyMode}`;
+  const targetText = frame.targetScreen
+    ? `${frame.targetScreen.x.toFixed(0)}/${frame.targetScreen.y.toFixed(0)}`
+    : "—";
+  const end = pipelineStageEnd(frame);
+  const targetToProxy = frame.targetToProxyTipMilliseconds === null
+    ? "—"
+    : frame.targetToProxyTipMilliseconds.toFixed(2);
+  return [
+    `f${frame.frameNumber} rAF ${frame.rafTimestamp.toFixed(1)}`,
+    `input ${frame.inputTimestamp === null ? "—" : frame.inputTimestamp.toFixed(1)}`,
+    `T ${targetText}`,
+    `control ${stageMilliseconds(frame.controlUpdate)}`,
+    `bounded ${stageMilliseconds(frame.boundedControl)}`,
+    `smooth ${stageMilliseconds(frame.smoothCenterline)}`,
+    `material ${stageMilliseconds(frame.materialSamples)}`,
+    `segments ${stageMilliseconds(frame.proxySegments)}`,
+    `matrix ${stageMilliseconds(frame.proxyTransforms)}`,
+    `X ${stageMilliseconds(frame.proxyTip)}`,
+    `render ${stageMilliseconds(frame.renderSubmission)}`,
+    `T→X ${targetToProxy}`,
+    `end ${end === null ? "—" : end.toFixed(1)}`,
+  ].join(" · ");
+}
+
+function editDiagnosticWorkspacePoint(clientX: number, clientY: number): EditDiagnosticPoint {
+  const bounds = workspace.getBoundingClientRect();
+  return {
+    x: clientX - bounds.left,
+    y: clientY - bounds.top,
+  };
+}
+
+function setEditDiagnosticMarker(element: HTMLElement, point: EditDiagnosticPoint | null): void {
+  element.classList.toggle("is-visible", point !== null);
+  if (!point) return;
+  const pointerOffset = element === editDiagnosticPointerMarker ? 25 : 0;
+  element.style.transform = `translate(${(point.x + pointerOffset).toFixed(2)}px, ${point.y.toFixed(2)}px) translate(-50%, -50%)`;
+}
+
+function refreshEditDiagnosticMarkers(): void {
+  const visible = editMarkersEnabled && controlDrag !== null;
+  editDiagnosticMarkerLayer.classList.toggle("is-active", visible);
+  if (!visible) {
+    setEditDiagnosticMarker(editDiagnosticPointerMarker, null);
+    setEditDiagnosticMarker(editDiagnosticTargetMarker, null);
+    setEditDiagnosticMarker(editDiagnosticProxyTipMarker, null);
+    return;
+  }
+  setEditDiagnosticMarker(editDiagnosticPointerMarker, editDiagnosticLatestPointer);
+  setEditDiagnosticMarker(editDiagnosticTargetMarker, editDiagnosticTarget);
+  setEditDiagnosticMarker(editDiagnosticProxyTipMarker, editDiagnosticProxyTip);
+}
+
+function resetEditDiagnosticMarkers(): void {
+  editDiagnosticFrameNumber = 0;
+  editDiagnosticLatestPointerEventCount = 0;
+  editDiagnosticDomPointerMarkerFrameCount = 0;
+  editDiagnosticTargetMarkerFrameCount = 0;
+  editDiagnosticWebglPreviewFrameCount = 0;
+  editDiagnosticLatestPointer = null;
+  editDiagnosticTarget = null;
+  editDiagnosticProxyTip = null;
+  editDiagnosticLatestPointerRafTimestamp = null;
+  editDiagnosticTargetRafTimestamp = null;
+  editDiagnosticProxyTipRafTimestamp = null;
+  editDiagnosticWebglPreviewRafTimestamp = null;
+  refreshEditDiagnosticMarkers();
+}
+
+function updateEditDiagnosticFrame(
+  rafTimestamp: number,
+  proxySegments: readonly HanaLiveProxySegment[],
+): void {
+  if (!editMarkersEnabled || !controlDrag) return;
+  editDiagnosticFrameNumber += 1;
+  editDiagnosticDomPointerMarkerFrameCount += 1;
+  editDiagnosticLatestPointerRafTimestamp = rafTimestamp;
+
+  const control = stroke3D?.controlPoints[controlDrag.controlIndex];
+  const target = control
+    ? renderer.projectPoint(controlDrag.viewportIndex, control.position, controlDrag.rect)
+    : null;
+  editDiagnosticTarget = target?.visible ? { x: target.x, y: target.y } : null;
+  if (editDiagnosticTarget) {
+    editDiagnosticTargetMarkerFrameCount += 1;
+    editDiagnosticTargetRafTimestamp = rafTimestamp;
+  }
+
+  const proxyTip = proxySegments.length > 0
+    ? proxySegments[proxySegments.length - 1]?.end
+    : editPreviewCenterline[editPreviewCenterline.length - 1]?.position;
+  const projectedProxyTip = proxyTip
+    ? renderer.projectPoint(controlDrag.viewportIndex, proxyTip, controlDrag.rect)
+    : null;
+  editDiagnosticProxyTip = projectedProxyTip?.visible
+    ? { x: projectedProxyTip.x, y: projectedProxyTip.y }
+    : null;
+  if (editDiagnosticProxyTip) editDiagnosticProxyTipRafTimestamp = rafTimestamp;
+
+  refreshEditDiagnosticMarkers();
+}
+
+function recordEditDiagnosticWebglFrame(
+  rafTimestamp: number,
+  presentation: HanaRendererPresentationStats,
+): void {
+  if (!editMarkersEnabled || !controlDrag) return;
+  if (presentation.editPreview.visible && presentation.editPreview.drawCalls > 0) {
+    editDiagnosticWebglPreviewFrameCount += 1;
+    editDiagnosticWebglPreviewRafTimestamp = rafTimestamp;
+  }
+}
+
+function displayedStroke(): HanaStroke3D | null {
+  return activeStroke
+    ? provisionalStroke3D
+    : controlDrag
+      ? editPreviewStroke3D
+      : stroke3D;
+}
+
+function displayedCenterline(): ReturnType<typeof sampleSmoothCenterline> {
+  return activeStroke
+    ? provisionalCenterline
+    : controlDrag
+      ? editPreviewCenterline
+      : authoritativeCenterline;
+}
+
+function displayedMaterialSamples(): readonly HanaMaterialSample[] {
+  return controlDrag ? editPreviewMaterialSamples : materialSamples;
+}
+
+function currentSurfaceState(): string {
+  if (!previewSurface) return "NOT BUILT";
+  if (controlDrag) return "PREVIEW";
+  if (activeStroke && surfaceBuildSource === "provisional") return "PREVIEW";
+  return surfaceBuildSignature === materializationSignature() ? "READY" : "STALE";
+}
+
+function updateSurfaceUI(): void {
+  const state = currentSurfaceState();
+  const resources = renderer.resourceStats();
+  const geometry = editGeometrySnapshot();
+  const renderStats = renderer.renderStats();
+  const presentation = renderer.presentationStats();
+  surfaceState.textContent = state;
+  surfaceState.dataset.state = state.toLowerCase().replace(" ", "-");
+  rebuildSurfaceButton.disabled = !stroke3D || materialSamples.length === 0;
+  setDebugText("debug-material", String(displayedMaterialSamples().length));
+  setDebugText("debug-proxy-segments", workspace.dataset.materialProxySegmentCount ?? "0");
+  setDebugText("debug-surface", previewSurface ? String(previewSurface.triangles.length) : "—");
+  setDebugText("debug-surface-ms", surfaceBuildMilliseconds === null ? "—" : surfaceBuildMilliseconds.toFixed(1));
+  const previewStats = previewBuildDurationStats();
+  setDebugText("debug-preview-build-stats", previewStats
+    ? `${previewStats.min.toFixed(1)} / ${previewStats.median.toFixed(1)} / ${previewStats.max.toFixed(1)}`
+    : "—");
+  const proxyUpdateStats = durationStats(materialProxyUpdateDurations);
+  const proxyRenderStats = durationStats(materialProxyRenderDurations);
+  setDebugText("debug-proxy-timing", proxyUpdateStats && proxyRenderStats
+    ? `${proxyUpdateStats.median.toFixed(1)} / ${proxyRenderStats.median.toFixed(1)}`
+    : "—");
+  setDebugText("debug-surface-diagnostics", surfaceDiagnosticsText(surfaceDiagnostics));
+  setDebugText("debug-pointerup-stages", pointerupStagesText(lastPointerupStageTimings));
+  setDebugText("debug-mouse-edit-stages", mouseEditStagesText());
+  setDebugText("debug-mouse-edit-e2e", mouseEditLatencyText());
+  setDebugText("debug-mouse-edit-resources", mouseEditResourceText(resources));
+  setDebugText("debug-mouse-edit-caches", mouseEditCacheText());
+  setDebugText("debug-mouse-edit-sessions", mouseEditSessionText());
+  setDebugText("debug-mouse-edit-hit-test", mouseEditHitTestText());
+  setDebugText("debug-mouse-edit-frame", mouseEditFrameText());
+  setDebugText("debug-mouse-edit-presentation", mouseEditPresentationText(presentation));
+  setDebugText("debug-mouse-edit-markers", editDiagnosticMarkerText());
+  setDebugText("debug-mouse-edit-pipeline", mouseEditPipelineText());
+  setDebugText("debug-thickness", thickness.toFixed(2));
+  workspace.dataset.materialSampleCount = String(displayedMaterialSamples().length);
+  workspace.dataset.surfaceState = state;
+  workspace.dataset.surfaceTriangleCount = String(previewSurface?.triangles.length ?? 0);
+  workspace.dataset.surfaceBuildMilliseconds = surfaceBuildMilliseconds === null ? "" : String(surfaceBuildMilliseconds);
+  workspace.dataset.surfacePreviewBuildCount = String(surfacePreviewBuildCount);
+  workspace.dataset.surfacePreviewLastStart = surfacePreviewLastStartMilliseconds === null ? "" : String(surfacePreviewLastStartMilliseconds);
+  workspace.dataset.surfacePreviewLastEnd = surfacePreviewLastEndMilliseconds === null ? "" : String(surfacePreviewLastEndMilliseconds);
+  workspace.dataset.surfacePointerEnd = surfacePointerEndMilliseconds === null ? "" : String(surfacePointerEndMilliseconds);
+  workspace.dataset.surfacePreviewBuildMin = previewStats === null ? "" : String(previewStats.min);
+  workspace.dataset.surfacePreviewBuildMedian = previewStats === null ? "" : String(previewStats.median);
+  workspace.dataset.surfacePreviewBuildMax = previewStats === null ? "" : String(previewStats.max);
+  workspace.dataset.materialProxyFrameCount = String(materialProxyFrameCount);
+  workspace.dataset.materialProxySegmentCount = workspace.dataset.materialProxySegmentCount ?? "0";
+  workspace.dataset.materialProxyUpdateMedian = proxyUpdateStats === null ? "" : String(proxyUpdateStats.median);
+  workspace.dataset.materialProxyRenderMedian = proxyRenderStats === null ? "" : String(proxyRenderStats.median);
+  workspace.dataset.surfaceDiagnostics = surfaceDiagnosticsText(surfaceDiagnostics);
+  workspace.dataset.pointerupStages = pointerupStagesText(lastPointerupStageTimings);
+  workspace.dataset.mouseEditStages = mouseEditStagesText();
+  workspace.dataset.mouseEditE2e = mouseEditLatencyText();
+  workspace.dataset.mouseEditPointerMoveCount = String(mouseEditPointerMoveCount);
+  workspace.dataset.mouseEditPreviewFrameCount = String(mouseEditPreviewFrameCount);
+  workspace.dataset.mouseEditDroppedPointerMoves = String(mouseEditDroppedPointerMoves);
+  workspace.dataset.mouseEditPendingRaf = String(editPreviewMaterialProxyFrame === null ? 0 : 1);
+  workspace.dataset.mouseEditOldestPointerAge = String(mouseEditOldestPointerAge);
+  workspace.dataset.mouseEditLastEventTimestamp = mouseEditLastEventTimestamp === null ? "" : String(mouseEditLastEventTimestamp);
+  workspace.dataset.mouseEditLastHandlerStart = mouseEditLastHandlerStart === null ? "" : String(mouseEditLastHandlerStart);
+  workspace.dataset.mouseEditLastHandlerEnd = mouseEditLastHandlerEnd === null ? "" : String(mouseEditLastHandlerEnd);
+  workspace.dataset.mouseEditLastLatestStateUpdated = mouseEditLastLatestStateUpdated === null ? "" : String(mouseEditLastLatestStateUpdated);
+  workspace.dataset.mouseEditLastRafStart = mouseEditLastRafStart === null ? "" : String(mouseEditLastRafStart);
+  workspace.dataset.mouseEditLastPreviewUpdateEnd = mouseEditLastPreviewUpdateEnd === null ? "" : String(mouseEditLastPreviewUpdateEnd);
+  workspace.dataset.mouseEditLastRenderSubmission = mouseEditLastRenderSubmission === null ? "" : String(mouseEditLastRenderSubmission);
+  workspace.dataset.mouseEditResourceStats = JSON.stringify(resources);
+  workspace.dataset.mouseEditCacheStats = mouseEditCacheText();
+  workspace.dataset.mouseEditSessionCount = String(mouseEditSessionNumber);
+  workspace.dataset.mouseEditSessionHistory = JSON.stringify(mouseEditSessionHistory);
+  workspace.dataset.mouseEditPreviewRejectCount = String(mouseEditPreviewRejectCount);
+  workspace.dataset.mouseEditPreviewRejectReason = mouseEditLastPreviewRejectReason;
+  workspace.dataset.mouseEditGeometry = JSON.stringify(geometry);
+  workspace.dataset.mouseEditRenderStats = JSON.stringify(renderStats);
+  workspace.dataset.mouseEditPresentationMode = editPresentationMode;
+  workspace.dataset.mouseEditPresentation = JSON.stringify(presentation);
+  workspace.dataset.mouseEditDiagnosticMarkersEnabled = String(editMarkersEnabled);
+  workspace.dataset.mouseEditDiagnosticMarkers = JSON.stringify(editDiagnosticSnapshot());
+  workspace.dataset.mouseEditProxyMode = editProxyMode;
+  workspace.dataset.mouseEditPipeline = JSON.stringify(mouseEditPipelineFrames[mouseEditPipelineFrames.length - 1] ?? null);
+  workspace.dataset.fieldQueryCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.queryCount);
+  workspace.dataset.fieldCandidateEvaluationCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.candidateEvaluationCount);
+  workspace.dataset.fieldMaxCandidateCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.maxCandidateCount);
+  workspace.dataset.longTaskOver16Count = String(longTaskDurations.filter((duration) => duration > 16).length);
+  workspace.dataset.longTaskOver33Count = String(longTaskDurations.filter((duration) => duration > 33).length);
+  workspace.dataset.longTaskOver50Count = String(longTaskDurations.filter((duration) => duration > 50).length);
+}
+
+function refreshMaterialSamples(
+  source = activeStroke ? provisionalStroke3D : stroke3D,
+  timings: HanaPointerupStageTimings | null = null,
+): void {
+  const smoothStarted = performance.now();
+  const centerline = source ? sampleSmoothCenterline(source) : [];
+  if (timings) timings.smoothCenterline = performance.now() - smoothStarted;
+  if (source === stroke3D) authoritativeCenterline = centerline;
+  if (source === provisionalStroke3D) provisionalCenterline = centerline;
+  if (!source) provisionalCenterline = [];
+  const materialStarted = performance.now();
+  materialSamples = source
+    ? source === provisionalStroke3D && activeStroke
+      ? sampleMaterialSamplesForPreview(centerline, thickness, SURFACE_PREVIEW_MAX_SAMPLES)
+      : sampleMaterialSamples(centerline, thickness)
+    : [];
+  if (timings) {
+    timings.materialSamples = performance.now() - materialStarted;
+    timings.smoothCount = centerline.length;
+    timings.materialCount = materialSamples.length;
+  }
+  updateSurfaceUI();
+}
+
+function projectGesturePointToWorld(active: ActiveStroke, point: HanaStrokePoint) {
+  if (active.stroke.viewDirection === "axome") throw new Error("Axome Draw is outside HANA-1C");
+  const world = renderer.pointOnViewPlane(
+    active.rect.index,
+    active.rect.x + point.x,
+    active.rect.y + point.y,
+    active.rect,
+    active.stroke.viewDirection,
+    0,
+  );
+  if (!world) throw new Error(`Could not project ${active.stroke.viewDirection} gesture onto its initial plane`);
+  return world;
+}
+
+function updateProvisionalStroke(): void {
+  const active = activeStroke;
+  if (!active || !liveWorkingPath || active.stroke.points.length < 2) {
+    provisionalStroke3D = null;
+    refreshMaterialSamples(null);
+    return;
+  }
+  provisionalStroke3D = deriveStroke3DFromSamples(
+    active.stroke,
+    liveWorkingStrokeSamples(liveWorkingPath),
+    (point) => projectGesturePointToWorld(active, point),
+  );
+  provisionalStroke3D.curve.smoothness = smoothness;
+  refreshMaterialSamples(provisionalStroke3D);
+}
+
 function updateDebug(
   point: HanaStrokePoint | null = null,
   pointerType: HanaPointerType | null = null,
   stroke: HanaViewportStroke | null = null,
 ): void {
   const selected = selectedControlPoint === null ? null : stroke3D?.controlPoints[selectedControlPoint] ?? null;
+  const visibleStroke = displayedStroke();
+  const visibleCenterline = displayedCenterline();
   setDebugText("debug-pointer", pointerType ?? rawGestures[0]?.pointerType ?? "—");
   setDebugText("debug-pressure", point ? point.pressure.toFixed(4) : "0.0000");
   setDebugText("debug-position", point ? `${point.x.toFixed(1)} / ${point.y.toFixed(1)}` : "— / —");
   setDebugText("debug-viewport", skinViewDirectionLabel(directions[selectedViewport]));
   setDebugText("debug-points", String(stroke?.points.length ?? rawGestures[0]?.points.length ?? 0));
-  setDebugText("debug-controls", String(stroke3D?.controlPoints.length ?? 0));
-  setDebugText("debug-smooth", String(stroke3D ? sampleSmoothCenterline(stroke3D).length : 0));
+  setDebugText("debug-controls", String(visibleStroke?.controlPoints.length ?? 0));
+  setDebugText("debug-control-fit", lastAdaptiveControlFit
+    ? `${lastAdaptiveControlFit.indices.length} · tol ${lastAdaptiveControlFit.tolerance.toFixed(3)} · max C/S ${lastAdaptiveControlFit.maxControlDeviation.toFixed(3)}/${lastAdaptiveControlFit.maxSmoothDeviation.toFixed(3)}`
+    : "—");
+  setDebugText("debug-smooth", String(visibleCenterline.length));
   setDebugText("debug-soft", `${softEditStrength.toUpperCase()} / ${lastAffectedControlIndices.length}`);
   setDebugText("debug-xyz", selected
     ? `${selected.position.x.toFixed(3)}, ${selected.position.y.toFixed(3)}, ${selected.position.z.toFixed(3)}`
     : "—");
-  const stats = pressureStats(stroke ?? rawGestures[0] ?? null);
+  const activePressure = activeStroke && stroke === activeStroke.stroke
+    ? {
+      min: activeStroke.pressureMin,
+      max: activeStroke.pressureMax,
+      distinct: activeStroke.pressures.size,
+    }
+    : null;
+  const stats = activePressure ?? pressureStats(stroke ?? rawGestures[0] ?? null);
   setDebugText("debug-range", stats ? `${stats.min.toFixed(4)}–${stats.max.toFixed(4)} · ${stats.distinct}` : "—");
   setDebugText("input-state", activeStroke
     ? "RECORDING · camera input is disabled"
@@ -234,8 +1146,8 @@ function updateDebug(
   workspace.dataset.rawGestureCount = String(rawGestures.length);
   workspace.dataset.rawPointCount = String(rawGestures[0]?.points.length ?? 0);
   workspace.dataset.stroke3dCount = String(stroke3D ? 1 : 0);
-  workspace.dataset.controlPointCount = String(stroke3D?.controlPoints.length ?? 0);
-  workspace.dataset.smoothPointCount = String(stroke3D ? sampleSmoothCenterline(stroke3D).length : 0);
+  workspace.dataset.controlPointCount = String(visibleStroke?.controlPoints.length ?? 0);
+  workspace.dataset.smoothPointCount = String(visibleCenterline.length);
   workspace.dataset.softEditStrength = softEditStrength;
   workspace.dataset.lastAffectedCount = String(lastAffectedControlIndices.length);
   workspace.dataset.lastAffectedIndices = lastAffectedControlIndices.join(",");
@@ -246,6 +1158,28 @@ function updateDebug(
     ? `${selected.position.x},${selected.position.y},${selected.position.z}`
     : "";
   workspace.dataset.rawSignature = rawSignature();
+  workspace.dataset.adaptiveControlCount = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.indices.length);
+  workspace.dataset.adaptiveControlTolerance = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.tolerance);
+  workspace.dataset.adaptiveControlInitialCount = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.initialControlCount);
+  workspace.dataset.adaptiveControlRefinementIterations = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.refinementIterations);
+  workspace.dataset.adaptiveControlMaxDeviation = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.maxControlDeviation);
+  workspace.dataset.adaptiveSmoothMaxDeviation = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.maxSmoothDeviation);
+  workspace.dataset.adaptiveSmoothToleranceMet = lastAdaptiveControlFit === null
+    ? ""
+    : String(lastAdaptiveControlFit.smoothToleranceMet);
+  updateSurfaceUI();
 }
 
 function drawRawGesture(stroke: HanaViewportStroke, rect: SkinViewportRect): void {
@@ -260,33 +1194,55 @@ function drawRawGesture(stroke: HanaViewportStroke, rect: SkinViewportRect): voi
   gestureContext.beginPath();
   gestureContext.arc(firstPosition.x, firstPosition.y, 1, 0, Math.PI * 2);
   gestureContext.fill();
-  for (let index = 1; index < stroke.points.length; index += 1) {
-    const from = stroke.points[index - 1];
-    const to = stroke.points[index];
-    const fromPosition = position(from);
-    const toPosition = position(to);
-    gestureContext.beginPath();
-    gestureContext.moveTo(fromPosition.x, fromPosition.y);
-    gestureContext.lineTo(toPosition.x, toPosition.y);
-    gestureContext.lineWidth = 1.5;
-    gestureContext.stroke();
+  const sameRect = activeRawPathRect
+    && activeRawPathRect.index === rect.index
+    && activeRawPathRect.x === rect.x
+    && activeRawPathRect.y === rect.y
+    && activeRawPathRect.width === rect.width
+    && activeRawPathRect.height === rect.height;
+  if (activeRawPathStroke !== stroke || !sameRect || !activeRawPath) {
+    activeRawPath = new Path2D();
+    activeRawPath.moveTo(firstPosition.x, firstPosition.y);
+    for (let index = 1; index < stroke.points.length; index += 1) {
+      const point = position(stroke.points[index]);
+      activeRawPath.lineTo(point.x, point.y);
+    }
+    activeRawPathStroke = stroke;
+    activeRawPathRect = { ...rect };
   }
+  gestureContext.lineWidth = 1.5;
+  gestureContext.stroke(activeRawPath);
 }
 
 function drawSharedStroke(rect: SkinViewportRect): void {
-  if (!stroke3D || stroke3D.controlPoints.length === 0) return;
-  const color = editorStrokeColor(stroke3D.id);
-  const smooth = sampleSmoothCenterline(stroke3D);
+  const visibleStroke = displayedStroke();
+  if (!visibleStroke || visibleStroke.controlPoints.length === 0) return;
+  const color = editorStrokeColor(visibleStroke.id);
+  const smooth = displayedCenterline();
   const smoothProjected = smooth.map((point) => renderer.projectPoint(rect.index, point.position, rect));
-  const controlProjected = stroke3D.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
-  gestureContext.strokeStyle = color;
-  gestureContext.lineWidth = 2.5;
-  gestureContext.beginPath();
-  gestureContext.moveTo(smoothProjected[0].x, smoothProjected[0].y);
-  for (let index = 1; index < smoothProjected.length; index += 1) {
-    gestureContext.lineTo(smoothProjected[index].x, smoothProjected[index].y);
+  const controlProjected = visibleStroke.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
+  if (showCenterline) {
+    gestureContext.strokeStyle = color;
+    gestureContext.lineWidth = 2.5;
+    gestureContext.beginPath();
+    gestureContext.moveTo(smoothProjected[0].x, smoothProjected[0].y);
+    for (let index = 1; index < smoothProjected.length; index += 1) {
+      gestureContext.lineTo(smoothProjected[index].x, smoothProjected[index].y);
+    }
+    gestureContext.stroke();
   }
-  gestureContext.stroke();
+  if (showSamples) {
+    gestureContext.fillStyle = "#f59e0b";
+    gestureContext.strokeStyle = "#ffffff";
+    gestureContext.lineWidth = 1;
+    for (const sample of displayedMaterialSamples()) {
+      const point = renderer.projectPoint(rect.index, sample.position, rect);
+      gestureContext.beginPath();
+      gestureContext.arc(point.x, point.y, 2.6, 0, Math.PI * 2);
+      gestureContext.fill();
+      gestureContext.stroke();
+    }
+  }
   if (directions[rect.index] === "axome" || interactionModes[rect.index] !== "edit") return;
 
   gestureContext.strokeStyle = `${color}38`;
@@ -408,6 +1364,8 @@ function updateSoftEditButtons(): void {
 }
 
 function renderScene(): void {
+  renderer.setPreviewSurfaceVisible(showSurface && (controlDrag === null || !hideFinalSurfaceDuringEdit));
+  renderer.setMaterialProxyVisible(showSurface && (activeStroke !== null || controlDrag !== null));
   renderer.render(currentRects(), selectedViewport);
 }
 
@@ -418,6 +1376,7 @@ function refreshLayout(): void {
   updateSplitters();
   updateLayoutButtons();
   updateSoftEditButtons();
+  updateSurfaceUI();
 }
 
 function resize(): void {
@@ -440,6 +1399,10 @@ function pointFromSample(sample: PointerEvent, active: ActiveStroke): HanaStroke
   };
 }
 
+function previewBuildDurationStats(): { min: number; median: number; max: number } | null {
+  return durationStats(surfacePreviewBuildDurations);
+}
+
 function appendSamples(event: PointerEvent): void {
   if (!activeStroke || event.pointerId !== activeStroke.pointerId) return;
   const coalesced = event.getCoalescedEvents?.() ?? [];
@@ -448,7 +1411,36 @@ function appendSamples(event: PointerEvent): void {
   for (const sample of samples) {
     latest = pointFromSample(sample, activeStroke);
     activeStroke.stroke.points.push(latest);
+    appendRawSignaturePoint(latest);
+    activeStroke.pressureMin = Math.min(activeStroke.pressureMin, latest.pressure);
+    activeStroke.pressureMax = Math.max(activeStroke.pressureMax, latest.pressure);
+    activeStroke.pressures.add(latest.pressure);
+    if (activeRawPath) {
+      const scaleX = activeStroke.rect.width / Math.max(1, activeStroke.stroke.viewportSize.width);
+      const scaleY = activeStroke.rect.height / Math.max(1, activeStroke.stroke.viewportSize.height);
+      activeRawPath.lineTo(
+        activeStroke.rect.x + latest.x * scaleX,
+        activeStroke.rect.y + latest.y * scaleY,
+      );
+    }
+    if (!liveWorkingPath) {
+      liveWorkingPath = createLiveWorkingPath(
+        latest,
+        projectGesturePointToWorld(activeStroke, latest),
+        activeStroke.stroke.points.length - 1,
+      );
+    } else {
+      appendLiveWorkingPoint(
+        liveWorkingPath,
+        latest,
+        projectGesturePointToWorld(activeStroke, latest),
+        activeStroke.stroke.points.length - 1,
+      );
+    }
   }
+  updateProvisionalStroke();
+  scheduleSurfacePreview();
+  scheduleMaterialProxyFrame();
   redrawOverlay();
   if (latest) updateDebug(latest, activeStroke.stroke.pointerType, activeStroke.stroke);
 }
@@ -469,9 +1461,37 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
     points: [],
   };
   rawGestures.push(stroke);
-  activeStroke = { pointerId: event.pointerId, startTime: event.timeStamp, stroke, rect: { ...rect } };
+  rawPressureTotal = 0;
+  rawTimeTotal = 0;
+  activeStroke = {
+    pointerId: event.pointerId,
+    startTime: event.timeStamp,
+    stroke,
+    rect: { ...rect },
+    pressureMin: event.pressure,
+    pressureMax: event.pressure,
+    pressures: new Set([event.pressure]),
+  };
+  provisionalStroke3D = null;
+  provisionalCenterline = [];
+  materialSamples = [];
+  workspace.dataset.materialProxySegmentCount = "0";
+  surfacePointerEndMilliseconds = null;
+  renderer.setMaterialProxy(null);
   const point = pointFromSample(event, activeStroke);
   stroke.points.push(point);
+  appendRawSignaturePoint(point);
+  const scaleX = rect.width / Math.max(1, stroke.viewportSize.width);
+  const scaleY = rect.height / Math.max(1, stroke.viewportSize.height);
+  activeRawPath = new Path2D();
+  activeRawPath.moveTo(rect.x + point.x * scaleX, rect.y + point.y * scaleY);
+  activeRawPathStroke = stroke;
+  activeRawPathRect = { ...rect };
+  liveWorkingPath = createLiveWorkingPath(
+    point,
+    projectGesturePointToWorld(activeStroke, point),
+    0,
+  );
   redrawOverlay();
   renderViewportChrome();
   updateDebug(point, stroke.pointerType, stroke);
@@ -479,23 +1499,58 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
 
 function finishStroke(): void {
   if (!activeStroke) return;
+  const pointerupStarted = performance.now();
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  renderer.setMaterialProxy(null);
   const finished = activeStroke;
   const direction = finished.stroke.viewDirection;
   if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
-  stroke3D = deriveStroke3D(finished.stroke, (point) => {
-    const world = renderer.pointOnViewPlane(
-      finished.rect.index,
-      finished.rect.x + point.x,
-      finished.rect.y + point.y,
-      finished.rect,
-      direction,
-      0,
-    );
-    if (!world) throw new Error(`Could not project ${direction} gesture onto its initial plane`);
-    return world;
+  const pointToWorld = (point: HanaStrokePoint) => projectGesturePointToWorld(finished, point);
+  const timings: HanaPointerupStageTimings = {
+    rawFinalization: 0,
+    adaptiveControlFitting: 0,
+    overshootSubdivision: 0,
+    smoothCenterline: 0,
+    materialSamples: 0,
+    effectiveResolution: 0,
+    fieldPreparation: 0,
+    meshGeneration: 0,
+    componentValidation: 0,
+    gpuUpload: 0,
+    total: 0,
+    rawCount: finished.stroke.points.length,
+    controlCount: 0,
+    initialControlCount: 0,
+    overshootControlCount: 0,
+    smoothCount: 0,
+    materialCount: 0,
+    effectiveResolutionValue: 0,
+    triangleCount: 0,
+    componentCount: 0,
+    fieldQueryCount: 0,
+    fieldCandidateEvaluationCount: 0,
+    fieldMaxCandidateCount: 0,
+  };
+  const fitStarted = performance.now();
+  lastAdaptiveControlFit = fitAdaptiveControlIndices(finished.stroke, pointToWorld, {
+    tolerance: HANA_ADAPTIVE_CONTROL_TOLERANCE,
+    smoothness,
+    maxControlPoints: HANA_ADAPTIVE_CONTROL_MAX_POINTS,
   });
+  timings.adaptiveControlFitting = performance.now() - fitStarted;
+  timings.overshootSubdivision = lastAdaptiveControlFit.refinementMilliseconds;
+  timings.initialControlCount = lastAdaptiveControlFit.initialControlCount;
+  timings.overshootControlCount = lastAdaptiveControlFit.refinementIterations;
+  const rawFinalizationStarted = performance.now();
+  stroke3D = deriveStroke3DFromRawIndices(finished.stroke, pointToWorld, lastAdaptiveControlFit.indices);
+  timings.rawFinalization = performance.now() - rawFinalizationStarted;
   stroke3D.curve.smoothness = smoothness;
+  timings.controlCount = stroke3D.controlPoints.length;
+  provisionalStroke3D = null;
   activeStroke = null;
+  liveWorkingPath = null;
+  refreshMaterialSamples(stroke3D, timings);
   interactionModes[0] = "edit";
   interactionModes[2] = "edit";
   interactionModes[3] = "edit";
@@ -503,8 +1558,13 @@ function finishStroke(): void {
   lastAffectedControlIndices = [];
   lastEditBoundsBefore = null;
   lastEditBoundsAfter = null;
-  stateMessage = `SMOOTH CENTERLINE READY · ${sampleSmoothCenterline(stroke3D).length} samples`;
+  stateMessage = `SMOOTH CENTERLINE READY · ${stroke3D.controlPoints.length} controls · ${sampleSmoothCenterline(stroke3D).length} samples`;
   refreshLayout();
+  pendingPointerupStageTimings = timings;
+  if (showSurface && materialSamples.length > 0) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+  timings.total = performance.now() - pointerupStarted;
+  lastPointerupStageTimings = timings;
+  pendingPointerupStageTimings = null;
   updateDebug(
     finished.stroke.points[finished.stroke.points.length - 1] ?? null,
     finished.stroke.pointerType,
@@ -518,6 +1578,7 @@ function nearestControlIndex(rect: SkinViewportRect, x: number, y: number): numb
   let bestDistance = 12;
   stroke3D.controlPoints.forEach((point, index) => {
     const projected = renderer.projectPoint(rect.index, point.position, rect);
+    if (!projected.visible) return;
     const distance = Math.hypot(projected.x - x, projected.y - y);
     if (distance <= bestDistance) {
       bestDistance = distance;
@@ -527,13 +1588,564 @@ function nearestControlIndex(rect: SkinViewportRect, x: number, y: number): numb
   return bestIndex;
 }
 
+function nearestEditableControlIndex(rect: SkinViewportRect, x: number, y: number): number | null {
+  const direct = nearestControlIndex(rect, x, y);
+  if (direct !== null || !stroke3D || (!showCenterline && !showSamples && !showSurface)) return direct;
+  const centerline = authoritativeCenterline.length > 1
+    ? authoritativeCenterline
+    : sampleSmoothCenterline(stroke3D);
+  if (centerline.length < 2) return direct;
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+  centerline.forEach((sample, index) => {
+    const projected = renderer.projectPoint(rect.index, sample.position, rect);
+    if (!projected.visible) return;
+    const distance = Math.hypot(projected.x - x, projected.y - y);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  const direction = directions[rect.index];
+  const nearest = centerline[bestIndex].position;
+  const thicknessOffset = { ...nearest };
+  if (direction === "front") thicknessOffset.x += thickness;
+  else if (direction === "right") thicknessOffset.y += thickness;
+  else if (direction === "top") thicknessOffset.x += thickness;
+  const projectedThickness = renderer.projectPoint(rect.index, thicknessOffset, rect);
+  const projectedNearest = renderer.projectPoint(rect.index, nearest, rect);
+  const surfaceRadiusPixels = showSurface && previewSurface
+    ? Math.hypot(projectedThickness.x - projectedNearest.x, projectedThickness.y - projectedNearest.y) + 8
+    : 12;
+  if (bestDistance > Math.max(12, surfaceRadiusPixels)) return direct;
+  const targetSourceT = centerline[bestIndex].sourceT;
+  let nearestControl = 0;
+  let nearestSourceDistance = Number.POSITIVE_INFINITY;
+  stroke3D.controlPoints.forEach((control, index) => {
+    const sourceDistance = Math.abs(control.provenance.sourceT - targetSourceT);
+    if (sourceDistance < nearestSourceDistance) {
+      nearestSourceDistance = sourceDistance;
+      nearestControl = index;
+    }
+  });
+  return nearestControl;
+}
+
+function updateEditPreview(): EditPreviewPipelineTiming & { smoothMilliseconds: number; previewMilliseconds: number } {
+  if (!stroke3D) {
+    editPreviewStroke3D = null;
+    editPreviewCenterline = [];
+    editPreviewMaterialSamples = [];
+    return {
+      boundedControl: { start: null, end: null },
+      smoothCenterline: { start: null, end: null },
+      materialSamples: { start: null, end: null },
+      smoothMilliseconds: 0,
+      previewMilliseconds: 0,
+    };
+  }
+  const boundedStarted = performance.now();
+  const previewStroke = createBoundedStrokePreview(
+    stroke3D,
+    HANA_MOUSE_EDIT_PREVIEW_MAX_CONTROLS,
+  );
+  const boundedEnded = performance.now();
+  const smoothStarted = performance.now();
+  const centerline = sampleSmoothCenterline(previewStroke);
+  const smoothEnded = performance.now();
+  const previewStarted = performance.now();
+  const samples = sampleMaterialSamplesForPreview(
+    centerline,
+    thickness,
+    SURFACE_PREVIEW_MAX_SAMPLES,
+  );
+  const previewEnded = performance.now();
+  editPreviewStroke3D = previewStroke;
+  editPreviewCenterline = centerline;
+  editPreviewMaterialSamples = samples;
+  return {
+    boundedControl: { start: boundedStarted, end: boundedEnded },
+    smoothCenterline: { start: smoothStarted, end: smoothEnded },
+    materialSamples: { start: previewStarted, end: previewEnded },
+    smoothMilliseconds: smoothEnded - smoothStarted,
+    previewMilliseconds: previewEnded - previewStarted,
+  };
+}
+
+function cancelSurfacePreviewTimer(): void {
+  if (surfacePreviewTimer === null) return;
+  window.clearTimeout(surfacePreviewTimer);
+  surfacePreviewTimer = null;
+}
+
+function cancelMaterialProxyFrame(): void {
+  if (materialProxyFrame === null) return;
+  window.cancelAnimationFrame(materialProxyFrame);
+  materialProxyFrame = null;
+}
+
+function cancelEditPreviewFrame(): void {
+  if (editPreviewMaterialProxyFrame === null) return;
+  window.cancelAnimationFrame(editPreviewMaterialProxyFrame);
+  editPreviewMaterialProxyFrame = null;
+}
+
+function scheduleMaterialProxyFrame(): void {
+  const centerline = activeStroke ? provisionalCenterline : editPreviewCenterline;
+  const isPreviewActive = activeStroke !== null || controlDrag !== null;
+  const isEditPreviewOnly = !showSurface && controlDrag !== null;
+  const directEditPreview = editProxyMode === "direct" && controlDrag !== null;
+  if ((!showSurface && !isEditPreviewOnly) || !isPreviewActive || (!directEditPreview && centerline.length < 2)) {
+    cancelMaterialProxyFrame();
+    cancelEditPreviewFrame();
+    renderer.setMaterialProxy(null);
+    return;
+  }
+  const frameRef = activeStroke ? "live" : "edit";
+  if (frameRef === "live" && materialProxyFrame !== null) return;
+  if (frameRef === "edit" && editPreviewMaterialProxyFrame !== null) return;
+  const frame = window.requestAnimationFrame(() => {
+    if (frameRef === "live") materialProxyFrame = null;
+    else editPreviewMaterialProxyFrame = null;
+    const rafStarted = performance.now();
+    let pendingForFrame: PendingControlPointer | null = null;
+    let controlPreviewTiming: ControlPreviewTiming | null = null;
+    if (frameRef === "edit") {
+      pendingForFrame = pendingControlPointer;
+      pendingControlPointer = null;
+      mouseEditLastRafStart = rafStarted;
+      mouseEditPreviewFrameCount += 1;
+      mouseEditFirstPreviewTimestamp ??= rafStarted;
+      if (mouseEditLastPreviewTimestamp !== null) {
+        mouseEditFrameIntervals = [
+          ...mouseEditFrameIntervals,
+          Math.max(0, rafStarted - mouseEditLastPreviewTimestamp),
+        ].slice(-128);
+      }
+      mouseEditLastPreviewTimestamp = rafStarted;
+      if (pendingForFrame) {
+        mouseEditRafAgeDurations = [
+          ...mouseEditRafAgeDurations,
+          Math.max(0, rafStarted - pendingForFrame.eventTimestamp),
+        ].slice(-128);
+        controlPreviewTiming = processControlDragPointer(pendingForFrame);
+      }
+    }
+    const currentCenterline = activeStroke ? provisionalCenterline : editPreviewCenterline;
+    const directEditTarget = frameRef === "edit"
+      && editProxyMode === "direct"
+      && stroke3D !== null
+      && controlDrag !== null;
+    if ((!showSurface && !controlDrag) || (!activeStroke && !controlDrag) || (!directEditTarget && currentCenterline.length < 2)) {
+      renderer.setMaterialProxy(null);
+      renderScene();
+      return;
+    }
+    const proxyUpdateStarted = performance.now();
+    const proxySegments: HanaLiveProxySegment[] = showSurface
+      ? directEditTarget && stroke3D && controlDrag
+        ? [{
+          start: { ...stroke3D.controlPoints[controlDrag.controlIndex].position },
+          end: { ...stroke3D.controlPoints[controlDrag.controlIndex].position },
+          radius: thickness,
+        }]
+        : sampleLiveProxySegments(
+        currentCenterline,
+        thickness,
+        HANA_LIVE_PROXY_MAX_SEGMENTS,
+        )
+      : [];
+    const proxySegmentsEnded = performance.now();
+    const proxyTransformsStarted = performance.now();
+    renderer.setMaterialProxy(proxySegments);
+    const proxyTransformsEnded = performance.now();
+    if (frameRef === "edit") updateEditDiagnosticFrame(rafStarted, proxySegments);
+    const proxyTipEnded = performance.now();
+    if (showSurface) {
+      materialProxyUpdateDurations = [
+        ...materialProxyUpdateDurations,
+        performance.now() - proxyUpdateStarted,
+      ].slice(-128);
+      materialProxyFrameCount += 1;
+      workspace.dataset.materialProxyFrameCount = String(materialProxyFrameCount);
+      workspace.dataset.materialProxySegmentCount = String(proxySegments.length);
+      setDebugText("debug-proxy-segments", String(proxySegments.length));
+    }
+    const proxyRenderStarted = performance.now();
+    renderScene();
+    const renderSubmissionEnded = performance.now();
+    const renderSubmissionMilliseconds = renderSubmissionEnded - proxyRenderStarted;
+    const presentation = renderer.presentationStats();
+    if (frameRef === "edit") {
+      recordEditDiagnosticWebglFrame(rafStarted, presentation);
+      const targetPosition = controlPreviewTiming?.targetPosition
+        ?? (stroke3D && controlDrag
+          ? { ...stroke3D.controlPoints[controlDrag.controlIndex].position }
+          : null);
+      const targetScreen = controlPreviewTiming?.targetScreen
+        ?? (targetPosition && controlDrag
+          ? (() => {
+            const projected = renderer.projectPoint(controlDrag.viewportIndex, targetPosition, controlDrag.rect);
+            return projected.visible ? { x: projected.x, y: projected.y } : null;
+          })()
+          : null);
+      const pipelineFrame: MouseEditPipelineFrame = {
+        frameNumber: mouseEditPreviewFrameCount,
+        rafTimestamp: rafStarted,
+        inputTimestamp: pendingForFrame?.eventTimestamp ?? null,
+        proxyMode: editProxyMode,
+        targetPosition,
+        targetScreen,
+        targetUpdatedAt: controlPreviewTiming?.targetUpdatedAt ?? null,
+        controlUpdate: controlPreviewTiming?.controlUpdate ?? { start: null, end: null },
+        boundedControl: controlPreviewTiming?.preview?.boundedControl ?? { start: null, end: null },
+        smoothCenterline: controlPreviewTiming?.preview?.smoothCenterline ?? { start: null, end: null },
+        materialSamples: controlPreviewTiming?.preview?.materialSamples ?? { start: null, end: null },
+        proxySegments: { start: proxyUpdateStarted, end: proxySegmentsEnded },
+        proxyTransforms: { start: proxyTransformsStarted, end: proxyTransformsEnded },
+        proxyTip: { start: proxyTransformsEnded, end: proxyTipEnded },
+        renderSubmission: { start: proxyRenderStarted, end: renderSubmissionEnded },
+        targetToProxyTipMilliseconds: controlPreviewTiming?.targetUpdatedAt === undefined
+          ? null
+          : proxyTipEnded - controlPreviewTiming.targetUpdatedAt,
+      };
+      mouseEditPipelineFrames = [...mouseEditPipelineFrames, pipelineFrame].slice(-128);
+    }
+    if (showSurface) {
+      materialProxyRenderDurations = [
+        ...materialProxyRenderDurations,
+        renderSubmissionMilliseconds,
+      ].slice(-128);
+    }
+    if (frameRef === "edit" && pendingForFrame && controlPreviewTiming) {
+      mouseEditOldestPointerAge = Math.max(
+        mouseEditOldestPointerAge,
+        Math.max(0, rafStarted - pendingForFrame.eventTimestamp),
+      );
+      mouseEditLastPreviewUpdateEnd = controlPreviewTiming.previewUpdateEnd;
+      mouseEditEndToEndLatencies = [
+        ...mouseEditEndToEndLatencies,
+        Math.max(0, performance.now() - pendingForFrame.eventTimestamp),
+      ].slice(-128);
+      mouseEditRenderSubmissionDurations = [
+        ...mouseEditRenderSubmissionDurations,
+        renderSubmissionMilliseconds,
+      ].slice(-128);
+    }
+    if (frameRef === "edit") mouseEditLastRenderSubmission = performance.now();
+    updateSurfaceUI();
+    scheduleMaterialProxyFrame();
+  });
+  if (frameRef === "live") materialProxyFrame = frame;
+  else editPreviewMaterialProxyFrame = frame;
+}
+
+function scheduleSurfacePreview(): void {
+  const livePathWasCompacted = Boolean(
+    activeStroke
+    && liveWorkingPath
+    && liveWorkingPath.spacing > HANA_LIVE_WORKING_INITIAL_SPACING,
+  );
+  if (
+    !showSurface
+    || materialSamples.length === 0
+    || (activeStroke && materialSamples.length > SURFACE_PREVIEW_MAX_SAMPLES)
+    || livePathWasCompacted
+    || surfacePreviewTimer !== null
+  ) return;
+  surfacePreviewTimer = window.setTimeout(() => {
+    surfacePreviewTimer = null;
+    const previewCompacted = Boolean(
+      activeStroke
+      && liveWorkingPath
+      && liveWorkingPath.spacing > HANA_LIVE_WORKING_INITIAL_SPACING,
+    );
+    if (activeStroke && !previewCompacted && materialSamples.length <= SURFACE_PREVIEW_MAX_SAMPLES) {
+      rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional");
+    }
+    else if (stroke3D) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+  }, SURFACE_PREVIEW_THROTTLE_MS);
+}
+
+function processControlDragPointer(pointer: PendingControlPointer): ControlPreviewTiming | null {
+  if (!controlDrag) {
+    mouseEditPreviewRejectCount += 1;
+    mouseEditLastPreviewRejectReason = "no-control-drag";
+    return null;
+  }
+  if (!stroke3D) {
+    mouseEditPreviewRejectCount += 1;
+    mouseEditLastPreviewRejectReason = "no-stroke";
+    return null;
+  }
+  if (controlDrag.pointerId !== pointer.pointerId) {
+    mouseEditPreviewRejectCount += 1;
+    mouseEditLastPreviewRejectReason = "pointer-id";
+    return null;
+  }
+  const processStarted = performance.now();
+  const controlUpdateStarted = performance.now();
+  const point = controlDrag.controlPositionsBefore[controlDrag.controlIndex];
+  const planeValue = controlDrag.direction === "front"
+    ? point.y
+    : controlDrag.direction === "right" ? point.x : point.z;
+  const canvas = canvasPoint(pointer);
+  const world = renderer.pointOnViewPlane(
+    controlDrag.viewportIndex,
+    canvas.x,
+    canvas.y,
+    controlDrag.rect,
+    controlDrag.direction,
+    planeValue,
+  );
+  if (!world) {
+    mouseEditPreviewRejectCount += 1;
+    mouseEditLastPreviewRejectReason = [
+      "view-plane-miss",
+      controlDrag.direction,
+      `plane=${planeValue.toFixed(3)}`,
+      `canvas=${canvas.x.toFixed(1)}/${canvas.y.toFixed(1)}`,
+      `rect=${controlDrag.rect.index}:${controlDrag.rect.x.toFixed(1)},${controlDrag.rect.y.toFixed(1)},${controlDrag.rect.width.toFixed(1)},${controlDrag.rect.height.toFixed(1)}`,
+    ].join(":");
+    return null;
+  }
+  for (const index of lastAffectedControlIndices) {
+    stroke3D.controlPoints[index].position = { ...controlDrag.controlPositionsBefore[index] };
+  }
+  const controlUpdateMilliseconds = performance.now() - controlUpdateStarted;
+  const controlUpdateEnded = performance.now();
+  const softEditStarted = performance.now();
+  const edit = applySoftViewportEdit(
+    stroke3D,
+    controlDrag.controlIndex,
+    controlDrag.direction,
+    world,
+    softEditStrength,
+  );
+  const softEditMilliseconds = performance.now() - softEditStarted;
+  if (rawSignature() !== controlDrag.rawSignatureBefore) {
+    throw new Error("Soft Edit changed the immutable Raw Gesture");
+  }
+  lastAffectedControlIndices = edit.affectedControlIndices;
+  lastEditBoundsBefore = controlDrag.boundsBefore;
+  lastEditBoundsAfter = strokeBounds(stroke3D);
+  lastAdaptiveControlFit = null;
+  const targetUpdatedAt = performance.now();
+  const targetPosition = { ...stroke3D.controlPoints[controlDrag.controlIndex].position };
+  const projectedTarget = renderer.projectPoint(
+    controlDrag.viewportIndex,
+    targetPosition,
+    controlDrag.rect,
+  );
+  const targetScreen = projectedTarget.visible
+    ? { x: projectedTarget.x, y: projectedTarget.y }
+    : null;
+  const previewTimings = editProxyMode === "direct"
+    ? {
+      boundedControl: { start: null, end: null },
+      smoothCenterline: { start: null, end: null },
+      materialSamples: { start: null, end: null },
+      smoothMilliseconds: 0,
+      previewMilliseconds: 0,
+    }
+    : updateEditPreview();
+  const previewUpdateEnd = performance.now();
+  mouseEditControlUpdateDurations = [...mouseEditControlUpdateDurations, controlUpdateMilliseconds].slice(-128);
+  mouseEditSoftEditDurations = [...mouseEditSoftEditDurations, softEditMilliseconds].slice(-128);
+  mouseEditSmoothRebuildDurations = [...mouseEditSmoothRebuildDurations, previewTimings.smoothMilliseconds].slice(-128);
+  mouseEditPreviewUpdateDurations = [...mouseEditPreviewUpdateDurations, previewTimings.previewMilliseconds].slice(-128);
+  mouseEditPreviewProcessDurations = [
+    ...mouseEditPreviewProcessDurations,
+    performance.now() - processStarted,
+  ].slice(-128);
+  stateMessage = `EDITED · ${softEditStrength.toUpperCase()} affected ${edit.affectedControlIndices.length} controls`;
+  redrawOverlay();
+  updateDebug();
+  return {
+    previewUpdateEnd,
+    controlUpdate: { start: controlUpdateStarted, end: controlUpdateEnded },
+    targetUpdatedAt,
+    targetPosition,
+    targetScreen,
+    preview: previewTimings,
+  };
+}
+
+function queueControlDragPointer(event: PointerEvent): void {
+  if (!controlDrag || controlDrag.pointerId !== event.pointerId) return;
+  const handlerStarted = performance.now();
+  const eventTimestamp = eventTimestampForPerformance(event.timeStamp, handlerStarted);
+  if (pendingControlPointer) mouseEditDroppedPointerMoves += 1;
+  const pending: PendingControlPointer = {
+    pointerId: event.pointerId,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    eventTimestamp,
+    handlerStart: handlerStarted,
+    handlerEnd: handlerStarted,
+    latestStateUpdated: handlerStarted,
+  };
+  pendingControlPointer = pending;
+  const handlerEnded = performance.now();
+  pending.handlerEnd = handlerEnded;
+  pending.latestStateUpdated = handlerEnded;
+  mouseEditLastEventTimestamp = eventTimestamp;
+  mouseEditLastHandlerStart = handlerStarted;
+  mouseEditLastHandlerEnd = handlerEnded;
+  mouseEditLastLatestStateUpdated = handlerEnded;
+  mouseEditPointerMoveCount += 1;
+  editDiagnosticLatestPointerEventCount += editMarkersEnabled ? 1 : 0;
+  if (editMarkersEnabled) editDiagnosticLatestPointer = editDiagnosticWorkspacePoint(event.clientX, event.clientY);
+  mouseEditFirstPointerTimestamp ??= eventTimestamp;
+  mouseEditLastPointerTimestamp = eventTimestamp;
+  mouseEditInputQueueLatencies = [
+    ...mouseEditInputQueueLatencies,
+    Math.max(0, handlerStarted - eventTimestamp),
+  ].slice(-128);
+  mouseEditHandlerDurations = [
+    ...mouseEditHandlerDurations,
+    handlerEnded - handlerStarted,
+  ].slice(-128);
+  if (editPreviewMaterialProxyFrame === null) scheduleMaterialProxyFrame();
+  mouseEditMaxPendingRaf = Math.max(mouseEditMaxPendingRaf, editPreviewMaterialProxyFrame === null ? 0 : 1);
+}
+
+function finishControlDrag(pointerId: number): void {
+  if (!controlDrag || controlDrag.pointerId !== pointerId) return;
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  cancelEditPreviewFrame();
+  renderer.setMaterialProxy(null);
+  const pending = pendingControlPointer;
+  pendingControlPointer = null;
+  if (pending?.pointerId === pointerId) processControlDragPointer(pending);
+  const diagnosticMarkers = editDiagnosticSnapshot();
+  const editMessage = stateMessage;
+  if (stroke3D) {
+    const finalMaterialStarted = performance.now();
+    refreshMaterialSamples(stroke3D);
+    mouseEditFinalMaterialMilliseconds = performance.now() - finalMaterialStarted;
+  }
+  const shouldRebuild = Boolean(stroke3D && showSurface);
+  if (shouldRebuild) {
+    const finalSurfaceStarted = performance.now();
+    rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+    mouseEditFinalSurfaceMilliseconds = performance.now() - finalSurfaceStarted;
+  }
+  editPreviewStroke3D = null;
+  editPreviewCenterline = [];
+  editPreviewMaterialSamples = [];
+  controlDrag = null;
+  refreshEditDiagnosticMarkers();
+  if (shouldRebuild && currentSurfaceState() === "READY") stateMessage = editMessage;
+  renderScene();
+  const resourcesAfter = renderer.resourceStats();
+  const resourcesBefore = mouseEditSessionResourceBefore ?? resourcesAfter;
+  const geometryAfter = editGeometrySnapshot();
+  const renderAfter = renderer.renderStats();
+  mouseEditSessionHistory = [
+    ...mouseEditSessionHistory,
+    {
+      session: mouseEditSessionNumber,
+      pointerMoveCount: mouseEditPointerMoveCount,
+      previewFrameCount: mouseEditPreviewFrameCount,
+      droppedPointerMoves: mouseEditDroppedPointerMoves,
+      inputQueue: durationStats(mouseEditInputQueueLatencies),
+      endToEnd: durationStats(mouseEditEndToEndLatencies),
+      renderSubmission: durationStats(mouseEditRenderSubmissionDurations),
+      rafAge: durationStats(mouseEditRafAgeDurations),
+      frameInterval: durationStats(mouseEditFrameIntervals),
+      raycast: durationStats(mouseEditRaycastDurations),
+      readyToEditMilliseconds: mouseEditSessionReadyToEditMilliseconds,
+      finalSurfaceMilliseconds: mouseEditFinalSurfaceMilliseconds,
+      resourcesBefore,
+      resourcesAfter,
+      geometryBefore: mouseEditSessionGeometryBefore ?? geometryAfter,
+      geometryAfter,
+      renderBefore: mouseEditSessionRenderBefore ?? renderAfter,
+      renderAfter,
+      previewRejectCount: mouseEditPreviewRejectCount,
+      lastPreviewRejectReason: mouseEditLastPreviewRejectReason,
+      diagnosticMarkers,
+      pipelineFrames: [...mouseEditPipelineFrames],
+    },
+  ].slice(-10);
+  mouseEditSessionResourceBefore = null;
+  mouseEditSessionGeometryBefore = null;
+  mouseEditSessionRenderBefore = null;
+  mouseEditSessionReadyToEditMilliseconds = null;
+  redrawOverlay();
+  updateDebug();
+}
+
 function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIndex: number): void {
   const direction = directions[rect.index];
   if (direction === "axome" || !stroke3D) return;
   event.preventDefault();
   gestureCanvas.setPointerCapture(event.pointerId);
+  mouseEditSessionNumber += 1;
+  mouseEditSessionResourceBefore = renderer.resourceStats();
+  mouseEditSessionGeometryBefore = editGeometrySnapshot();
+  mouseEditSessionRenderBefore = renderer.renderStats();
+  mouseEditSessionReadyToEditMilliseconds = lastFinalReadyTimestamp === null
+    ? null
+    : Math.max(0, performance.now() - lastFinalReadyTimestamp);
   selectedControlPoint = controlIndex;
   lastAffectedControlIndices = [];
+  longTaskDurations = [];
+  pendingControlPointer = null;
+  mouseEditPointerMoveCount = 0;
+  mouseEditPreviewFrameCount = 0;
+  mouseEditDroppedPointerMoves = 0;
+  mouseEditFirstPointerTimestamp = null;
+  mouseEditLastPointerTimestamp = null;
+  mouseEditFirstPreviewTimestamp = null;
+  mouseEditLastPreviewTimestamp = null;
+  mouseEditOldestPointerAge = 0;
+  mouseEditMaxPendingRaf = 0;
+  mouseEditLastEventTimestamp = null;
+  mouseEditLastHandlerStart = null;
+  mouseEditLastHandlerEnd = null;
+  mouseEditLastLatestStateUpdated = null;
+  mouseEditLastRafStart = null;
+  mouseEditLastPreviewUpdateEnd = null;
+  mouseEditLastRenderSubmission = null;
+  mouseEditHandlerDurations = [];
+  mouseEditControlUpdateDurations = [];
+  mouseEditSoftEditDurations = [];
+  mouseEditSmoothRebuildDurations = [];
+  mouseEditPreviewUpdateDurations = [];
+  mouseEditPreviewProcessDurations = [];
+  mouseEditInputQueueLatencies = [];
+  mouseEditEndToEndLatencies = [];
+  mouseEditRenderSubmissionDurations = [];
+  mouseEditRafAgeDurations = [];
+  mouseEditFrameIntervals = [];
+  // Surface picking remains projection-based; the measured mesh-raycast path is zero work.
+  mouseEditRaycastDurations = [0];
+  mouseEditIntersectMeshCount = 0;
+  mouseEditPreviewRejectCount = 0;
+  mouseEditLastPreviewRejectReason = "";
+  mouseEditFinalMaterialMilliseconds = null;
+  mouseEditFinalSurfaceMilliseconds = null;
+  mouseEditPipelineFrames = [];
+  resetEditDiagnosticMarkers();
+  if (editProxyMode === "direct") {
+    editPreviewStroke3D = null;
+    editPreviewCenterline = [];
+    editPreviewMaterialSamples = [];
+  } else {
+    editPreviewStroke3D = createBoundedStrokePreview(
+      stroke3D,
+      HANA_MOUSE_EDIT_PREVIEW_MAX_CONTROLS,
+    );
+    editPreviewCenterline = sampleSmoothCenterline(editPreviewStroke3D);
+    editPreviewMaterialSamples = sampleMaterialSamplesForPreview(
+      editPreviewCenterline,
+      thickness,
+      SURFACE_PREVIEW_MAX_SAMPLES,
+    );
+  }
   lastEditBoundsBefore = strokeBounds(stroke3D);
   lastEditBoundsAfter = lastEditBoundsBefore;
   controlDrag = {
@@ -544,43 +2156,21 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
     rect: { ...rect },
     boundsBefore: lastEditBoundsBefore,
     rawSignatureBefore: rawSignature(),
+    controlPositionsBefore: stroke3D.controlPoints.map((control) => ({ ...control.position })),
   };
+  editDiagnosticLatestPointer = editDiagnosticWorkspacePoint(event.clientX, event.clientY);
+  const initialTarget = stroke3D.controlPoints[controlIndex]
+    ? renderer.projectPoint(rect.index, stroke3D.controlPoints[controlIndex].position, rect)
+    : null;
+  editDiagnosticTarget = initialTarget?.visible
+    ? { x: initialTarget.x, y: initialTarget.y }
+    : null;
+  refreshEditDiagnosticMarkers();
+  renderer.setPreviewSurfaceVisible(showSurface && !hideFinalSurfaceDuringEdit);
+  scheduleMaterialProxyFrame();
+  renderScene();
   updateDebug();
   redrawOverlay();
-}
-
-function updateControlDrag(event: PointerEvent): void {
-  if (!controlDrag || !stroke3D || controlDrag.pointerId !== event.pointerId) return;
-  const point = stroke3D.controlPoints[controlDrag.controlIndex];
-  const planeValue = controlDrag.direction === "front"
-    ? point.position.y
-    : controlDrag.direction === "right" ? point.position.x : point.position.z;
-  const canvas = canvasPoint(event);
-  const world = renderer.pointOnViewPlane(
-    controlDrag.viewportIndex,
-    canvas.x,
-    canvas.y,
-    controlDrag.rect,
-    controlDrag.direction,
-    planeValue,
-  );
-  if (!world) return;
-  const edit = applySoftViewportEdit(
-    stroke3D,
-    controlDrag.controlIndex,
-    controlDrag.direction,
-    world,
-    softEditStrength,
-  );
-  if (rawSignature() !== controlDrag.rawSignatureBefore) {
-    throw new Error("Soft Edit changed the immutable Raw Gesture");
-  }
-  lastAffectedControlIndices = edit.affectedControlIndices;
-  lastEditBoundsBefore = controlDrag.boundsBefore;
-  lastEditBoundsAfter = strokeBounds(stroke3D);
-  stateMessage = `EDITED · ${softEditStrength.toUpperCase()} affected ${edit.affectedControlIndices.length} controls`;
-  redrawOverlay();
-  updateDebug();
 }
 
 function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
@@ -602,12 +2192,12 @@ function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
 }
 
 function endPointer(pointerId: number, releaseCapture: boolean): void {
-  if (activeStroke?.pointerId === pointerId) finishStroke();
-  if (cameraDrag?.pointerId === pointerId) cameraDrag = null;
-  if (controlDrag?.pointerId === pointerId) {
-    controlDrag = null;
-    updateDebug();
+  if (activeStroke?.pointerId === pointerId) {
+    surfacePointerEndMilliseconds = performance.now();
+    finishStroke();
   }
+  if (cameraDrag?.pointerId === pointerId) cameraDrag = null;
+  finishControlDrag(pointerId);
   if (releaseCapture && gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
 }
 
@@ -620,13 +2210,25 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
   renderScene();
   redrawOverlay();
   updateDebug();
-  if (interactionModes[rect.index] === "draw") {
+  const pencilDraw = event.pointerType === "pen"
+    && directions[rect.index] !== "axome"
+    && stroke3D === null;
+  if (interactionModes[rect.index] === "draw" || pencilDraw) {
     startStroke(event, rect);
     return;
   }
   if (event.pointerType !== "mouse") return;
   if (interactionModes[rect.index] === "edit" && directions[rect.index] !== "axome") {
-    const controlIndex = nearestControlIndex(rect, point.x, point.y);
+    mouseEditNearestDurations = [];
+    // HANA Surface picking is projection-based; no Surface mesh raycast is used.
+    mouseEditRaycastDurations = [0];
+    mouseEditIntersectMeshCount = 0;
+    const nearestStarted = performance.now();
+    const controlIndex = nearestEditableControlIndex(rect, point.x, point.y);
+    mouseEditNearestDurations = [
+      ...mouseEditNearestDurations,
+      performance.now() - nearestStarted,
+    ].slice(-128);
     if (controlIndex !== null) {
       startControlDrag(event, rect, controlIndex);
       return;
@@ -643,7 +2245,7 @@ gestureCanvas.addEventListener("pointermove", (event) => {
   }
   if (controlDrag?.pointerId === event.pointerId) {
     event.preventDefault();
-    updateControlDrag(event);
+    queueControlDragPointer(event);
     return;
   }
   if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
@@ -735,8 +2337,14 @@ function setSmoothness(value: number): void {
   if (stroke3D) {
     stroke3D.curve.smoothness = smoothness;
     stateMessage = `SMOOTHNESS · ${smoothness.toFixed(2)}`;
-    redrawOverlay();
   }
+  if (provisionalStroke3D) provisionalStroke3D.curve.smoothness = smoothness;
+  if (stroke3D || provisionalStroke3D) refreshMaterialSamples();
+  if (showSurface) {
+    scheduleSurfacePreview();
+    scheduleMaterialProxyFrame();
+  }
+  redrawOverlay();
   updateSmoothnessUI();
   updateDebug();
 }
@@ -745,12 +2353,254 @@ smoothnessSlider.addEventListener("input", () => {
   setSmoothness(Number(smoothnessSlider.value));
 });
 
+function updateDisplayUI(): void {
+  const updateToggle = (button: HTMLButtonElement, label: string, enabled: boolean) => {
+    button.setAttribute("aria-pressed", String(enabled));
+    button.dataset.state = enabled ? "on" : "off";
+    button.textContent = `${label} ${enabled ? "ON" : "OFF"}`;
+  };
+  updateToggle(centerlineToggle, "Centerline", showCenterline);
+  updateToggle(samplesToggle, "Samples", showSamples);
+  updateToggle(surfaceToggle, "Surface", showSurface);
+}
+
+function updateThicknessUI(): void {
+  const value = thickness.toFixed(2);
+  thicknessSlider.value = value;
+  thicknessValue.value = value;
+  thicknessValue.textContent = value;
+}
+
+function setThickness(value: number): void {
+  thickness = Number.isFinite(value)
+    ? Math.min(HANA_THICKNESS_MAX, Math.max(HANA_THICKNESS_MIN, value))
+    : HANA_THICKNESS_DEFAULT;
+  if (stroke3D || provisionalStroke3D) refreshMaterialSamples();
+  if (stroke3D) stateMessage = `THICKNESS · ${thickness.toFixed(2)} · REBUILD SURFACE`;
+  updateThicknessUI();
+  if (showSurface) {
+    scheduleSurfacePreview();
+    scheduleMaterialProxyFrame();
+  }
+  updateDebug();
+}
+
+function rebuildSurface(
+  resolution = HANA_SURFACE_RESOLUTION,
+  source: "authoritative" | "provisional" = "authoritative",
+): void {
+  const sourceStroke = source === "provisional" ? provisionalStroke3D : stroke3D;
+  if (!sourceStroke || materialSamples.length === 0) {
+    stateMessage = "SURFACE · Draw one Stroke first";
+    updateDebug();
+    return;
+  }
+  rebuildSurfaceButton.disabled = true;
+  surfaceState.textContent = source === "provisional" ? "PREVIEWING..." : "REBUILDING...";
+  const started = performance.now();
+  if (source === "provisional") {
+    surfacePreviewBuildCount += 1;
+    surfacePreviewLastStartMilliseconds = started;
+  }
+  try {
+    const fieldStarted = performance.now();
+    const field = buildPointField(materialSamples, thickness);
+    const fieldPreparationMilliseconds = performance.now() - fieldStarted;
+    const effectiveResolutionStarted = performance.now();
+    const effectiveResolution = pointFieldEffectiveResolution(field, resolution);
+    const effectiveResolutionMilliseconds = performance.now() - effectiveResolutionStarted;
+    const evaluationStats = createPointFieldEvaluationStats();
+    const meshStarted = performance.now();
+    const built = buildPointFieldMesh(field, effectiveResolution, evaluationStats);
+    const meshGenerationMilliseconds = performance.now() - meshStarted;
+    if (built.triangles.length === 0) throw new Error("Point FieldからSurfaceを抽出できませんでした");
+    previewSurface = built;
+    surfaceBuildSource = source;
+    surfaceBuildSignature = materializationSignature();
+    surfaceBuildMilliseconds = performance.now() - started;
+    if (source === "provisional") {
+      surfacePreviewBuildDurations = [...surfacePreviewBuildDurations, surfaceBuildMilliseconds].slice(-128);
+    }
+    surfaceFieldEvaluationStats = evaluationStats;
+    const validationStarted = performance.now();
+    surfaceDiagnostics = source === "authoritative" && materialSamples.length > SURFACE_PREVIEW_MAX_SAMPLES
+      ? diagnosePointField(field, resolution, built, { scanGrid: false })
+      : null;
+    const componentValidationMilliseconds = performance.now() - validationStarted;
+    renderer.setPreviewSurface(built.triangles);
+    if (pendingPointerupStageTimings && source === "authoritative") {
+      pendingPointerupStageTimings.fieldPreparation = fieldPreparationMilliseconds;
+      pendingPointerupStageTimings.effectiveResolution = effectiveResolutionMilliseconds;
+      pendingPointerupStageTimings.meshGeneration = meshGenerationMilliseconds;
+      pendingPointerupStageTimings.componentValidation = componentValidationMilliseconds;
+      pendingPointerupStageTimings.effectiveResolutionValue = effectiveResolution;
+      pendingPointerupStageTimings.triangleCount = built.triangles.length;
+      pendingPointerupStageTimings.componentCount = surfaceDiagnostics?.componentCount ?? 0;
+      pendingPointerupStageTimings.fieldQueryCount = evaluationStats.queryCount;
+      pendingPointerupStageTimings.fieldCandidateEvaluationCount = evaluationStats.candidateEvaluationCount;
+      pendingPointerupStageTimings.fieldMaxCandidateCount = evaluationStats.maxCandidateCount;
+    }
+    stateMessage = source === "provisional"
+      ? `SURFACE PREVIEW · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`
+      : `SURFACE READY · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`;
+  } catch (error) {
+    previewSurface = null;
+    surfaceBuildSource = null;
+    surfaceBuildSignature = null;
+    surfaceBuildMilliseconds = null;
+    surfaceFieldEvaluationStats = null;
+    renderer.setPreviewSurface(null);
+    const message = error instanceof Error ? error.message : "unknown error";
+    stateMessage = `SURFACE ERROR · ${message}`;
+  }
+  if (source === "provisional") surfacePreviewLastEndMilliseconds = performance.now();
+  updateSurfaceUI();
+  const gpuUploadStarted = performance.now();
+  renderScene();
+  if (pendingPointerupStageTimings && source === "authoritative") {
+    pendingPointerupStageTimings.gpuUpload = performance.now() - gpuUploadStarted;
+  }
+  if (source === "authoritative" && currentSurfaceState() === "READY") {
+    lastFinalReadyTimestamp = performance.now();
+  }
+  redrawOverlay();
+  updateDebug();
+}
+
+function finalizeSurfaceParameterChange(): void {
+  cancelSurfacePreviewTimer();
+  if (!showSurface || materialSamples.length === 0) return;
+  if (activeStroke && provisionalStroke3D && materialSamples.length <= SURFACE_PREVIEW_MAX_SAMPLES) {
+    rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional");
+  }
+  else if (stroke3D) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+}
+
+centerlineToggle.addEventListener("click", () => {
+  showCenterline = !showCenterline;
+  updateDisplayUI();
+  redrawOverlay();
+  updateDebug();
+});
+samplesToggle.addEventListener("click", () => {
+  showSamples = !showSamples;
+  updateDisplayUI();
+  redrawOverlay();
+  updateDebug();
+});
+surfaceToggle.addEventListener("click", () => {
+  showSurface = !showSurface;
+  updateDisplayUI();
+  if (!showSurface) {
+    cancelSurfacePreviewTimer();
+    cancelMaterialProxyFrame();
+    cancelEditPreviewFrame();
+    renderer.setMaterialProxy(null);
+  }
+  else if (activeStroke) {
+    updateProvisionalStroke();
+    scheduleSurfacePreview();
+    scheduleMaterialProxyFrame();
+  } else if (stroke3D && materialSamples.length > 0) {
+    rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+  }
+  renderScene();
+  redrawOverlay();
+  updateDebug();
+});
+thicknessSlider.addEventListener("input", () => {
+  setThickness(Number(thicknessSlider.value));
+});
+smoothnessSlider.addEventListener("change", finalizeSurfaceParameterChange);
+thicknessSlider.addEventListener("change", finalizeSurfaceParameterChange);
+rebuildSurfaceButton.addEventListener("click", () => rebuildSurface());
+
 clearButton.addEventListener("click", () => {
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  cancelEditPreviewFrame();
   rawGestures.length = 0;
+  rawPressureTotal = 0;
+  rawTimeTotal = 0;
   stroke3D = null;
+  provisionalStroke3D = null;
+  editPreviewStroke3D = null;
+  lastAdaptiveControlFit = null;
+  authoritativeCenterline = [];
+  provisionalCenterline = [];
+  editPreviewCenterline = [];
+  editPreviewMaterialSamples = [];
   activeStroke = null;
+  liveWorkingPath = null;
+  activeRawPath = null;
+  activeRawPathStroke = null;
+  activeRawPathRect = null;
   cameraDrag = null;
   controlDrag = null;
+  previewSurface = null;
+  surfaceBuildSource = null;
+  surfaceBuildSignature = null;
+  surfaceBuildMilliseconds = null;
+  surfacePreviewBuildCount = 0;
+  surfacePreviewLastStartMilliseconds = null;
+  surfacePreviewLastEndMilliseconds = null;
+  surfacePointerEndMilliseconds = null;
+  surfacePreviewBuildDurations = [];
+  surfaceDiagnostics = null;
+  surfaceFieldEvaluationStats = null;
+  longTaskDurations = [];
+  pendingPointerupStageTimings = null;
+  lastPointerupStageTimings = null;
+  materialProxyFrameCount = 0;
+  materialProxyUpdateDurations = [];
+  materialProxyRenderDurations = [];
+  pendingControlPointer = null;
+  mouseEditNearestDurations = [];
+  mouseEditHandlerDurations = [];
+  mouseEditControlUpdateDurations = [];
+  mouseEditSoftEditDurations = [];
+  mouseEditSmoothRebuildDurations = [];
+  mouseEditPreviewUpdateDurations = [];
+  mouseEditPreviewProcessDurations = [];
+  mouseEditInputQueueLatencies = [];
+  mouseEditEndToEndLatencies = [];
+  mouseEditRenderSubmissionDurations = [];
+  mouseEditRafAgeDurations = [];
+  mouseEditFrameIntervals = [];
+  mouseEditRaycastDurations = [];
+  mouseEditIntersectMeshCount = 0;
+  mouseEditPointerMoveCount = 0;
+  mouseEditPreviewFrameCount = 0;
+  mouseEditDroppedPointerMoves = 0;
+  mouseEditFirstPointerTimestamp = null;
+  mouseEditLastPointerTimestamp = null;
+  mouseEditFirstPreviewTimestamp = null;
+  mouseEditLastPreviewTimestamp = null;
+  mouseEditOldestPointerAge = 0;
+  mouseEditMaxPendingRaf = 0;
+  mouseEditLastEventTimestamp = null;
+  mouseEditLastHandlerStart = null;
+  mouseEditLastHandlerEnd = null;
+  mouseEditLastLatestStateUpdated = null;
+  mouseEditLastRafStart = null;
+  mouseEditLastPreviewUpdateEnd = null;
+  mouseEditLastRenderSubmission = null;
+  mouseEditFinalMaterialMilliseconds = null;
+  mouseEditFinalSurfaceMilliseconds = null;
+  mouseEditSessionNumber = 0;
+  mouseEditSessionResourceBefore = null;
+  mouseEditSessionHistory = [];
+  mouseEditSessionGeometryBefore = null;
+  mouseEditSessionRenderBefore = null;
+  mouseEditSessionReadyToEditMilliseconds = null;
+  lastFinalReadyTimestamp = null;
+  mouseEditPreviewRejectCount = 0;
+  mouseEditLastPreviewRejectReason = "";
+  mouseEditPipelineFrames = [];
+  resetEditDiagnosticMarkers();
+  workspace.dataset.materialProxySegmentCount = "0";
+  renderer.setPreviewSurface(null);
+  renderer.setMaterialProxy(null);
   selectedControlPoint = null;
   lastAffectedControlIndices = [];
   lastEditBoundsBefore = null;
@@ -809,4 +2659,6 @@ window.addEventListener("beforeunload", () => {
 
 resize();
 updateSmoothnessUI();
+updateDisplayUI();
+updateThicknessUI();
 updateDebug();

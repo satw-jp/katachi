@@ -62,6 +62,23 @@ test("derived Stroke3D keeps pressure/time provenance separate from editable pos
   assert.ok(stroke.controlPoints[10].provenance.time > 0);
 });
 
+test("provisional Stroke3D can follow a short growing gesture without mutating Raw Gesture", () => {
+  const raw = rawStroke();
+  raw.points = raw.points.slice(0, 3);
+  const before = structuredClone(raw);
+  const provisional = deriveStroke3D(raw, (point) => ({ x: point.x, y: 0, z: -point.y }), raw.points.length);
+  assert.equal(provisional.controlPoints.length, 3);
+  assert.ok(provisional.controlPoints.every((point) => (
+    Number.isFinite(point.position.x)
+    && Number.isFinite(point.position.y)
+    && Number.isFinite(point.position.z)
+    && Number.isFinite(point.provenance.sourceT)
+    && Number.isFinite(point.provenance.pressure)
+    && Number.isFinite(point.provenance.time)
+  )));
+  assert.deepEqual(raw, before);
+});
+
 test("viewport edit changes only the two visible axes", () => {
   const makePoint = () => ({ id: "control-1", position: { x: 1, y: 2, z: 3 }, provenance: {
     sourceStroke: "gesture-1", sourceT: 0.5, sourcePointStart: 1, sourcePointEnd: 2, pressure: 0.4, time: 8,

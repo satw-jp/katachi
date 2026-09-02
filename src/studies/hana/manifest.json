@@ -2,7 +2,7 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "active",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "createdAt": "2026-09-01",
   "updatedAt": "2026-09-02",
   "params": [
@@ -13,7 +13,11 @@
     "selectedControlPoint",
     "smoothCenterline",
     "smoothness",
-    "softEditStrength"
+    "softEditStrength",
+    "materialSamples",
+    "pointField",
+    "previewSurface",
+    "surfaceThickness"
   ],
   "related": ["skin"],
   "revisits": [
@@ -40,6 +44,70 @@
     {
       "date": "2026-09-02",
       "note": "HANA-1C adds non-destructive 0.00–1.00 Smoothness through fixed four-pass relaxed display positions while keeping Raw Gesture, Control Stroke, provenance, pressure/time, 32 controls, Catmull-Rom settings, and 249 samples intact. EasyCanvas + Apple Pencil verification passed across the continuous 0.00–1.00 range, including 1.00; no optimum value is fixed, and the author selects Smoothness for the intended expression. Pencil is reserved primarily for Draw; precise control-point editing is mouse-oriented. Browser console warnings/errors were zero. HANA-1C is PASS / FROZEN; Stem / Field remain unstarted."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A implementation stage initially added a regenerable 64-point arc-length Material Sample layer, equal-radius sphere Point Field with fixed blendK = radius * 0.5, and a CPU Preview Surface using the existing buildMeshFromField core at requested resolution 48. The later Long Stroke Scale Robustness refinement supersedes the fixed sample count with Thickness-driven spacing. Samples, Surface, Thickness, and Rebuild Surface are study-only preview controls; Material Samples, Field grid, and Preview Mesh are not added to the HANA document schema. Hardware verification remains required before HANA-2A PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Long Stroke Scale Robustness replaces fixed 64-point Material Samples with ceil(centerline arc length / radius) + 1 endpoint-preserving adaptive samples. Material Proxy and Surface use the same spacing-driven layer; long drawing prioritizes the requestAnimationFrame Proxy and may skip provisional SDF above the preview sample threshold. Requested Surface resolution remains 48, with only a minimal effective grid-resolution floor when thin long bounds would otherwise miss negative grid nodes. Adaptive Control Stroke density remains a follow-up; hardware verification remains required before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A refinement keeps Surface visible during Mouse Right Edit: projected Surface/Centerline proximity selects the nearest Control Point parameter, existing Soft Edit updates the Control Stroke, and derived Centerline/Samples mark the previous Surface stale. Preview rebuilding is throttled to approximately 100ms during drag and finalized on mouseup. Apple Pencil remains Draw-only; hardware verification is still required before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Live Surface Drawing refinement adds a non-persistent provisional Stroke3D / Smooth Centerline / Material Sample / Surface path during Apple Pencil Draw. Surface preview uses resolution 24 with approximately 100ms throttle, while pointerup regenerates the authoritative 32-control data and resolution 48 Surface immediately. Surface OFF skips Surface calculation; Rebuild Surface remains a manual/debug fallback. Smoothness algorithm is unchanged, and the EasyCanvas hardware gate remains pending before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Smooth Live Material Preview adds a presentation-only Instanced Sphere Chain Material Proxy updated on requestAnimationFrame during Pencil Draw. The proxy follows provisional Material Samples at the current Thickness while the resolution 24 provisional SDF remains approximately 100ms-throttled. Pointerup removes the proxy and keeps the existing authoritative resolution 48 SDF pipeline. Provisional SDF min / median / max build durations are recorded for main-thread follow-up; Worker, WebGPU, CUDA, final Field, Smoothness, and pressure-radius changes remain out of scope. Hardware verification remains required before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Long Stroke Live Proxy Performance separates Final adaptive Material Samples from live presentation. The live path is derived directly from Smooth Centerline and bounded to 192 Instanced Cylinder Segments, while dense adaptive Samples remain authoritative for final SDF Surface. Prefix replay of the 6956-point / 32.3-second fixture measured provisional Stroke, Smooth Centerline, adaptive Samples, and prior sphere-transform stages independently; the long presentation draw cost remains a hardware follow-up. HANA UI is touch-first for iPad Pro 11-inch with 48px+ hit areas, readable Smoothness / Thickness / Surface values, larger sliders, and Surface ON by default. Hardware verification remains required before PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Raw Gesture fidelity diagnosis found the main shape loss in the former 32-control Raw → Control resample: on the 2296-point fixture, Raw → Control was median / p95 / max 0.2925 / 0.8746 / 1.3288 with 68.3% beyond radius 0.18, while downstream Material Samples stayed close to Smooth Centerline. Authoritative pointerup fitting now selects ordered Raw samples by geometry error at a fixed editing fidelity budget of 0.09, independent of material Thickness, and refines against the derived Smooth Centerline; the 2296-point fixture produces 139 controls and the 6956-point / 32.3-second fixture produces 318 controls, with all measured Raw → Control / Smooth / Material errors below radius 0.18. Raw, pressure, time, order, provenance, Mouse Edit / Soft Edit, derived Material / Field / Surface layers, and the 192-segment Live Proxy cap remain intact. Provisional drawing keeps its bounded lightweight path for input performance. HANA-2A remains pending the EasyCanvas hardware Gate and is not PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Long Stroke Live upstream / pointerup profiling keeps Raw Gesture authoritative and separates it from a bounded incremental live working path. New Raw points feed at most 192 live working samples plus a pen-tip tail; incremental Raw overlay and pressure statistics avoid full-Raw pointermove scans, Live preview Material is capped at 256 presentation samples, and the existing 192-segment Cylinder Proxy remains the live priority. Final adaptive Material Samples remain uncapped for fidelity. The latest 6970-point / 32.285-second fixture is recorded as 972 controls (957 initial + 15 refinement), 7769 Smooth samples, 7211 Material samples, effective resolution 131, 123288 triangles, and one component. A spatial KD-tree reduces the full 559688976 voxel×sample candidate budget to 2521108 measured local candidates with the same SDF within 1e-6 on fixture comparisons. Control fitting tolerance is now independent of material Thickness. Host profiling and automated tests pass; EasyCanvas long-duration fps / pointerup→READY / console Gate remains pending, so HANA-2A is not PASS / FROZEN and no commit/push was made."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Mouse Edit latency refinement separates authoritative edits from visual input handling. Pointermove keeps only the latest client position and event timestamp; a pending requestAnimationFrame applies that latest position to the adaptive Control Stroke, derives a deterministic maximum-128-control / maximum-256-sample preview, and reuses the existing maximum-192-segment Cylinder Proxy. Intermediate pointer positions are not displayed, while pointerup flushes the latest position before the authoritative Smooth → Material → Field → Surface rebuild. Nearest Centerline picking reuses the cached authoritative Centerline, and Raw overlay rendering uses a cached Path2D. Debug timing records event/handler/latest-state/rAF/preview/render timestamps, queue age, pointer and preview rates, coalesced moves, pending rAF, oldest pointer age, and Long Tasks. Surface / Centerline / Samples are whole-button touch toggles with 48px hit areas and ON / OFF state labels; defaults remain Surface ON, Centerline ON, Samples OFF. Hardware Gate remains pending; no PASS / FROZEN or commit / push."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A Mouse Edit session lifecycle diagnosis adds HANA-local resource telemetry for consecutive Edit sessions. Surface replacement disposes the previous Mesh, BufferGeometry, and Material; the bounded 192-instance Proxy is reused; Edit sessions add no pointer listeners or spatial index. Browser smoke across 11 consecutive sessions kept scene objects at 6, Surface Mesh at 1, Proxy object at 1, BufferGeometry at 5, Material at 5, GPU geometries at 5, and GPU textures at 0, without monotonic E2E or resource growth. Session history records pointer / preview counts, queue / E2E / render stats, and before/after resources. The host did not reproduce accumulation; if hardware still slows after the first Final rebuild, GPU command queue / presentation remains a FOLLOW-UP. HANA-2A remains pending hardware verification and is not PASS / FROZEN; no commit / push."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A A/B diagnosis compared immediate versus 5-second-delayed Edit #2 and Surface ON versus OFF on the same authoritative geometry. Host/browser Edit preview latency stayed similar; Surface OFF removed render triangles but did not reveal a large CPU edit difference. Resource counts and geometry counts showed no session-only monotonic growth, and the picker uses projection-based nearest queries rather than Surface Mesh raycast. The confirmed HANA-side issue was long-stroke Right-view hit testing of non-visible controls, which caused a view-plane-miss and stopped preview updates after a prior edit; nearest candidates now require projected visibility. EasyCanvas end-to-end latency and GPU presentation remain pending hardware verification; HANA-2A is not PASS / FROZEN and no commit / push."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A presentation A/B diagnosis records Edit-time render targets. The default hide-final path hides the previous Final Surface on pointerdown and shows only the bounded Edit Preview Proxy; the diagnostic final-visible URL keeps both visible. Browser inspection confirmed hide-final as final draw 0 / preview draw 4 and final-visible as final draw 4 / preview draw 4, with pointerup restoring Final Surface visible and Preview hidden. Host Edit #2 did not show a large latency difference between the paths; EasyCanvas end-to-end visual latency and GPU presentation remain pending. Raw Gesture, adaptive Control, tolerance 0.09, dense Final Material, Shape Fidelity, provenance, pressure/time/order, and the 192-segment Proxy cap remain unchanged. HANA-2A is not PASS / FROZEN; no commit / push."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "HANA-2A visual alignment diagnosis adds optional HANA-local DOM markers behind ?editMarkers=1. During Mouse Edit, red P shows the latest pointer event position, blue T shows the projected edit target Control Point, and green X shows the projected Live Proxy tip; all are latest-pointer-wins and updated without WebGL or geometry calculation in the same requestAnimationFrame path. Per-session event / marker / WebGL frame counts, coordinates, and final rAF timestamps are written to debug dataset and session history. Normal B presentation remains Final Surface hidden / Edit Preview visible during Edit, then Final visible / Preview hidden on pointerup. PC Mouse and EasyCanvas use the same diagnostic URLs. Raw Gesture, adaptive Control, tolerance 0.09, Final Material density, Shape Fidelity, provenance, pressure/time/order, Live Proxy 192 cap, and SKIN remain unchanged; hardware Case A/B/C/D classification is pending, so HANA-2A is not PASS / FROZEN and no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A T-to-X pipeline diagnosis adds per-rAF stage timing from Edit Target through preview Control / Smooth / Material, Proxy segment generation, instance matrix update, DOM Proxy tip, and render submission. The diagnostic default remains bounded preview; ?editMarkers=1&editProxy=direct bypasses preview geometry and sends one diagnostic segment directly from the authoritative Edit Target to the reused Proxy. Direct mode is diagnosis-only and does not change Raw Gesture, adaptive Control, Soft Edit, Final density, Shape Fidelity, provenance, or the 192-segment cap. Hardware Edit #1 / #2 / #3 / #10 comparison is still pending; HANA-2A remains FAIL / not PASS / FROZEN and no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA startup recovery prevents a missing WebGL2 context from aborting HANA before viewport chrome and pointer listeners initialize. A HANA-local no-op renderer fallback keeps 2D Raw Gesture, Pencil Draw, camera math, and diagnostics available; 3D Surface still requires a WebGL-capable browser. Pencil input now enters Draw on Front / Right / Top when no authoritative Stroke exists, while Mouse Edit / Camera behavior is unchanged. WebGL-capable browser smoke reached Raw 9, Control 2, Smooth 9, Material 48, and Surface READY with 3600 triangles. HANA-2A remains pending hardware Gate and is not PASS / FROZEN; no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Repeated hardware Surface Mouse Edit observation: Edit #1 is fast; after pointerup, Edit #2 catches briefly at the start and then remains markedly slow. Existing resource/session telemetry did not reproduce accumulation, and the cause remains unconfirmed. Combined with fast P / Edit Target and slow X / Proxy observations, the next comparison remains T → bounded preview → Proxy → render presentation on real hardware. HANA-2A stays FAIL / hardware recheck pending; Raw Gesture, adaptive Control, Final Material, Shape Fidelity, provenance, pressure/time/order, Live Proxy 192 cap, SKIN, and next Phase remain unchanged."
     }
   ]
 }

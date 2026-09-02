@@ -63,12 +63,14 @@ export interface HanaDocument {
   editorState: HanaEditorState;
 }
 
-interface ResampledPoint {
+export interface HanaStroke3DSourceSample {
   point: HanaStrokePoint;
   sourceT: number;
   sourcePointStart: number;
   sourcePointEnd: number;
 }
+
+type ResampledPoint = HanaStroke3DSourceSample;
 
 function lerp(a: number, b: number, amount: number): number {
   return a + (b - a) * amount;
@@ -156,15 +158,12 @@ export function resampleRawGesture(
   });
 }
 
-export function deriveStroke3D(
+function createStroke3DFromResampled(
   rawGesture: HanaViewportStroke,
+  samples: readonly ResampledPoint[],
   pointToWorld: (point: HanaStrokePoint) => HanaVector3,
-  targetCount = HANA_CONTROL_POINT_COUNT,
 ): HanaStroke3D {
-  if (rawGesture.viewDirection === "axome") {
-    throw new Error("Axome Draw cannot create a HANA Stroke3D");
-  }
-  const controlPoints = resampleRawGesture(rawGesture.points, targetCount).map((sample, index) => ({
+  const controlPoints = samples.map((sample, index) => ({
     id: `control-${index + 1}`,
     position: pointToWorld(sample.point),
     provenance: {
@@ -183,11 +182,85 @@ export function deriveStroke3D(
     id: "stroke3d-1",
     sourceGestureId: rawGesture.id,
     sourceViewportId: rawGesture.viewportId,
-    sourceViewDirection: rawGesture.viewDirection,
+    sourceViewDirection: rawGesture.viewDirection as Exclude<HanaViewDirection, "axome">,
     initialPlaneValue: controlPoints[0]?.position[missingAxis] ?? 0,
     curve: { ...HANA_CURVE_SETTINGS },
     controlPoints,
   };
+}
+
+/**
+ * Build a provisional or authoritative Stroke3D from an already-resampled
+ * ordered source stream. The caller owns the resampling policy; this helper
+ * only creates the normal editable Stroke3D representation and provenance.
+ */
+export function deriveStroke3DFromSamples(
+  rawGesture: HanaViewportStroke,
+  samples: readonly HanaStroke3DSourceSample[],
+  pointToWorld: (point: HanaStrokePoint) => HanaVector3,
+): HanaStroke3D {
+  if (rawGesture.viewDirection === "axome") {
+    throw new Error("Axome Draw cannot create a HANA Stroke3D");
+  }
+  return createStroke3DFromResampled(rawGesture, samples, pointToWorld);
+}
+
+export function deriveStroke3D(
+  rawGesture: HanaViewportStroke,
+  pointToWorld: (point: HanaStrokePoint) => HanaVector3,
+  targetCount = HANA_CONTROL_POINT_COUNT,
+): HanaStroke3D {
+  if (rawGesture.viewDirection === "axome") {
+    throw new Error("Axome Draw cannot create a HANA Stroke3D");
+  }
+  return createStroke3DFromResampled(
+    rawGesture,
+    resampleRawGesture(rawGesture.points, targetCount),
+    pointToWorld,
+  );
+}
+
+/**
+ * Build controls from exact ordered Raw Gesture samples selected by a fitting
+ * algorithm. This bypasses fixed-count resampling but keeps the same
+ * provenance and editable Stroke3D representation.
+ */
+export function deriveStroke3DFromRawIndices(
+  rawGesture: HanaViewportStroke,
+  pointToWorld: (point: HanaStrokePoint) => HanaVector3,
+  rawIndices: readonly number[],
+  rawCumulativeDistances?: readonly number[],
+): HanaStroke3D {
+  if (rawGesture.viewDirection === "axome") {
+    throw new Error("Axome Draw cannot create a HANA Stroke3D");
+  }
+  const points = rawGesture.points;
+  if (points.length === 0) return createStroke3DFromResampled(rawGesture, [], pointToWorld);
+
+  const cumulative = rawCumulativeDistances ? [...rawCumulativeDistances] : [0];
+  if (!rawCumulativeDistances) {
+    for (let index = 1; index < points.length; index += 1) {
+      cumulative.push(cumulative[index - 1] + Math.hypot(
+        points[index].x - points[index - 1].x,
+        points[index].y - points[index - 1].y,
+      ));
+    }
+  }
+  const totalLength = cumulative[cumulative.length - 1];
+  const normalizedIndices = [...new Set([
+    0,
+    ...rawIndices.map((index) => Math.trunc(index)),
+    points.length - 1,
+  ].filter((index) => index >= 0 && index < points.length))].sort((a, b) => a - b);
+  const samples: ResampledPoint[] = normalizedIndices.map((sourceIndex) => ({
+    point: { ...points[sourceIndex] },
+    sourceT: totalLength > Number.EPSILON
+      ? cumulative[sourceIndex] / totalLength
+      : sourceIndex / Math.max(1, points.length - 1),
+    sourcePointStart: sourceIndex,
+    sourcePointEnd: sourceIndex,
+  }));
+  return createStroke3DFromResampled(rawGesture, samples, pointToWorld);
 }
 
 export function applyViewportEdit(
