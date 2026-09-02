@@ -23,14 +23,14 @@ export interface VisualStudyChoice {
 }
 
 export const VISUAL_STUDIES: readonly VisualStudyChoice[] = [
-  { id: "field", number: "01", title: "FIELD", question: "Can the graph become a continuous influence field?" },
-  { id: "dust", number: "02", title: "DUST", question: "Can relation arrive as particles before it becomes a line?" },
-  { id: "growth", number: "03", title: "GROWTH", question: "Can support and connection grow out of the motifs?" },
-  { id: "volume", number: "04", title: "VOLUME", question: "Can the network read as a cloud of occupied space?" },
-  { id: "shadow", number: "05", title: "SHADOW", question: "How much form remains when the object withdraws?" },
-  { id: "scan", number: "06", title: "SCAN", question: "What does one moving slice know about the whole?" },
-  { id: "residue", number: "07", title: "RESIDUE", question: "Can rejected traces remain as visible process?" },
-  { id: "matter", number: "08", title: "MATTER", question: "What happens when relations become soft material?" },
+  { id: "field", number: "01", title: "FIELD", question: "What does the completed bouquet hold in common?" },
+  { id: "dust", number: "02", title: "DUST", question: "Can a relation arrive before it becomes a line?" },
+  { id: "growth", number: "03", title: "MUTUAL SUPPORT", question: "Can flowers remain while what supports them becomes visible?" },
+  { id: "volume", number: "04", title: "VOLUME", question: "How does a bouquet occupy air between its parts?" },
+  { id: "shadow", number: "05", title: "PERMANENT / CHANGING", question: "Can a permanent object keep changing through light?" },
+  { id: "scan", number: "06", title: "SCAN", question: "What can one moving encounter know about the whole?" },
+  { id: "residue", number: "07", title: "HAND REMAINS", question: "What of hesitation survives the completed graph?" },
+  { id: "matter", number: "08", title: "SUPPORT BECOMES FORM", question: "When support takes form, where does the flower end?" },
 ] as const;
 
 export interface VisualStudySource {

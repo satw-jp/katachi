@@ -24,7 +24,7 @@ root.innerHTML = `
     <a class="visual-studies-brand" href="../" aria-label="Back to SKIN ART index">
       <span>KATACHI</span><strong>SKIN ART</strong>
     </a>
-    <span class="visual-studies-heading">VISUAL STUDIES / ONE SOURCE</span>
+    <span class="visual-studies-heading">VISUAL STUDIES / HAND + STRUCTURE</span>
   </header>
   <section class="visual-studies-caption" aria-live="polite">
     <span class="visual-studies-kicker">VISUAL STUDY 01</span>
