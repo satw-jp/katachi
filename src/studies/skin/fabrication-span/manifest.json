@@ -1,0 +1,28 @@
+{
+  "id": "skin-fabrication-span",
+  "title": "SKIN Fabrication Span 0",
+  "status": "research",
+  "version": "0.1.0",
+  "createdAt": "2026-09-02",
+  "updatedAt": "2026-09-02",
+  "params": [
+    "nozzleDiameterMm",
+    "filamentDiameterMm",
+    "layerHeightMm",
+    "lineWidthMm",
+    "spanLengthMm",
+    "rowSpacingMm",
+    "railWidthMm",
+    "railDepthMm",
+    "railHeightMm",
+    "feedPresets",
+    "extrusionPresets"
+  ],
+  "related": ["skin"],
+  "revisits": [
+    {
+      "date": "2026-09-02",
+      "note": "Fabrication Span 0 prototype, eight pure model tests, and full build passed. Browser QA is held by the environment's EACCES refusal for local Node listen; no physical or printer execution was performed."
+    }
+  ]
+}
