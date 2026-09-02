@@ -2791,7 +2791,7 @@ function applyNetworkFormationEvent(
       event.proposal,
       event.kind === "reject" ? "rejected" : "proposed",
     );
-  } else if (event.kind === "accept") {
+  } else if (networkVisible && event.kind === "accept") {
     const edgeIndex = session.timeline.edgeOrder[Math.max(0, event.visibleEdgeCount - 1)];
     const edge = session.graph.edges[edgeIndex];
     skinRenderer.setNetworkFormationProposal(session.graph, edge ? {

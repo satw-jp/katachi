@@ -2332,14 +2332,19 @@ export class SkinRenderer {
       const baseMesh = new THREE.InstancedMesh(
         this.internalNodeGeometry,
         this.networkFormationTraceBaseMaterial,
-        host.length,
+        1,
       );
-      const matrix = new THREE.Matrix4();
-      for (let index = 0; index < host.length; index++) {
-        const ball = host[index];
-        matrix.makeScale(ball.r, ball.r, ball.r).setPosition(ball.x, ball.y, ball.z);
-        baseMesh.setMatrixAt(index, matrix);
+      const bounds = new THREE.Box3();
+      for (const ball of host) {
+        bounds.expandByPoint(new THREE.Vector3(ball.x - ball.r, ball.y - ball.r, ball.z - ball.r));
+        bounds.expandByPoint(new THREE.Vector3(ball.x + ball.r, ball.y + ball.r, ball.z + ball.r));
       }
+      const center = bounds.getCenter(new THREE.Vector3());
+      const size = bounds.getSize(new THREE.Vector3());
+      const matrix = new THREE.Matrix4();
+      matrix.makeScale(Math.max(size.x * 0.5, 0.01), Math.max(size.y * 0.5, 0.01), Math.max(size.z * 0.5, 0.01))
+        .setPosition(center.x, center.y, center.z);
+      baseMesh.setMatrixAt(0, matrix);
       baseMesh.instanceMatrix.needsUpdate = true;
       baseMesh.renderOrder = 5;
       baseMesh.name = "skin-network-formation-trace-base-shape";
