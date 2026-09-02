@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createPatchesSdfEvaluator, patchesSdf, type Patch } from "../field.ts";
-import { encodeObjFromBinaryStl } from "../meshExport.ts";
+import { countConnectedComponents, countConnectedComponentsFromPositions, encodeObjFromBinaryStl } from "../meshExport.ts";
 import { flatNormalsFromTriangleSoup } from "../previewMeshBuffers.ts";
 
 const stage6Triangle = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
@@ -8,6 +8,20 @@ const stage6Normals = flatNormalsFromTriangleSoup(stage6Triangle);
 assert.deepEqual([...stage6Normals], [0, 0, 1, 0, 0, 1, 0, 0, 1],
   "Stage 6 must return display normals for its exact meshed triangle soup");
 assert.throws(() => flatNormalsFromTriangleSoup(new Float32Array(3)), /not triangular/);
+
+const separatedTriangles = new Float32Array([
+  0, 0, 0, 1, 0, 0, 0, 1, 0,
+  10, 0, 0, 11, 0, 0, 10, 1, 0,
+]);
+const separatedTriangleObjects = [
+  { a: { x: 0, y: 0, z: 0 }, b: { x: 1, y: 0, z: 0 }, c: { x: 0, y: 1, z: 0 } },
+  { a: { x: 10, y: 0, z: 0 }, b: { x: 11, y: 0, z: 0 }, c: { x: 10, y: 1, z: 0 } },
+];
+assert.equal(
+  countConnectedComponentsFromPositions(separatedTriangles),
+  countConnectedComponents(separatedTriangleObjects),
+  "direct Float32 component counting must preserve the authoritative triangle-soup result",
+);
 
 const internalPatches: Patch[] = [
   {

@@ -347,6 +347,54 @@ export function countConnectedComponents(triangles: Triangle[]): number {
   return computeConnectedComponentsWithKey(triangles, keyOf);
 }
 
+/** Count components directly from the exact Float32 triangle buffer used by
+ * the parallel Stage 6 path. It preserves countConnectedComponents' 1e-5
+ * vertex quantization, but avoids materializing one Triangle object and one
+ * temporary vertex array for every face before union-find can start. */
+export function countConnectedComponentsFromPositions(positions: Float32Array): number {
+  if (positions.length === 0) return 0;
+  if (positions.length % 9 !== 0) throw new Error("mesh positions must contain complete triangles");
+  const idOf = new Map<string, number>();
+  const parent = new Int32Array(positions.length / 3);
+  let vertexCount = 0;
+  let componentCount = 0;
+  const idFor = (x: number, y: number, z: number): number => {
+    const key = `${Math.round(x * CONNECTED_COMPONENTS_QUANTUM)},${Math.round(y * CONNECTED_COMPONENTS_QUANTUM)},${Math.round(z * CONNECTED_COMPONENTS_QUANTUM)}`;
+    const existing = idOf.get(key);
+    if (existing !== undefined) return existing;
+    const id = vertexCount++;
+    parent[id] = id;
+    idOf.set(key, id);
+    componentCount++;
+    return id;
+  };
+  const find = (start: number): number => {
+    let root = start;
+    while (parent[root] !== root) root = parent[root];
+    while (parent[start] !== start) {
+      const next = parent[start];
+      parent[start] = root;
+      start = next;
+    }
+    return root;
+  };
+  const union = (first: number, second: number): void => {
+    const a = find(first);
+    const b = find(second);
+    if (a === b) return;
+    parent[a] = b;
+    componentCount--;
+  };
+  for (let offset = 0; offset < positions.length; offset += 9) {
+    const a = idFor(positions[offset], positions[offset + 1], positions[offset + 2]);
+    const b = idFor(positions[offset + 3], positions[offset + 4], positions[offset + 5]);
+    const c = idFor(positions[offset + 6], positions[offset + 7], positions[offset + 8]);
+    union(a, b);
+    union(b, c);
+  }
+  return componentCount;
+}
+
 export function meshSummary(result: SkinMeshResult): string {
   const reinforcement = result.reinforcedConnectionPoints > 0
     ? ` / 旧接合を補強 ${result.reinforcedConnectionPoints}点`

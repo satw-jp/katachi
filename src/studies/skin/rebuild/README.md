@@ -16,6 +16,43 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-09-02 — Stage 8 sparse support amount / coverage v0.2 (experimental)
+
+工程8 Sparse Removable Supportに、session-onlyの`SparseSupportAmount`（`low` / `medium` /
+`high`）を追加した。Lowはv0.1と同じくOutside regionあたり最大3 target、Mediumは6、Highは12。
+各regionでは既存の最下端start band、有限なtarget間隔、決定的なfarthest-nearest選択を維持し、
+amountだけでcollision screenやspacing screenを緩めない。default coverage radiusはLowを1.0、
+Mediumを0.75、Highを0.5倍として、unsupported範囲をより細かくtarget化する。明示的な低レベル上限は
+profile cap内だけ許可し、未知のamountはLowへfail-closedする。
+
+右ペインには既存Stage 8 controlsへ小さな`Support Amount / Coverage` select（Low / Medium / High）
+だけを追加した。変更時は既存support graphを空にしてStage 8の再生成・再確認を要求するが、Stage 7.5の
+Outside evidenceは保持する。設定とdiagnosticsはsession-onlyで、FKEI schema/snapshot、Inside
+Overhang、Stage 5B、Permanent Web、export gateは変更していない。
+
+固定された単一Outside region・12面のselection fixtureで、Low / Medium / Highを比較した結果は、
+Critical targets / Supported / Unsupported / Supports / candidates / vertical / bent がそれぞれ
+`3 / 3 / 0 / 3 / 3 / 3 / 0`、`6 / 6 / 0 / 6 / 6 / 6 / 0`、`12 / 12 / 0 / 12 / 12 / 12 / 0`。
+BODY rejects、accepted BODY collisions、support-support spacing rejectsは全段階0で、builder runtimeは
+それぞれ`7.403 ms`、`3.121 ms`、`5.241 ms`（Node process内の単発計測）だった。同一seed・settingsの
+再実行は既存のdeep-equal determinism regressionで確認し、Lowは最大3 targetのv0.1挙動を維持した。
+### 2026-09-02 — Stage 6 final mesh performance v0
+
+固定base `671227dd35985e0e87bb6e5b87b75a41ffc34456` の代表fixture
+`skin-rebuild-first-print.fkei` を16 Worker / resolution 128で実ブラウザ計測した。
+Stage 6ボタン押下から完了表示までのcoldはBefore 10.69秒 → After 4.92秒、warm 3回の中央値は
+8.85秒（9.80 / 8.85 / 7.71）→ 4.68秒（4.54 / 5.23 / 4.68）で47.2%短縮した。
+UI phase境界のwarm中央値は、SDF準備＋slice sampling＋結合が約3.1秒→2.5秒、辺共有＋水密が
+約0.9秒→0.6秒、components表示に含まれるStage 6.4診断が約4.5秒→1.2秒だった。
+
+支配的だった重複走査を削減した。Float32 triangle bufferから直接component union-findを行い、inspect時は
+同じbufferを使う`analyzeStage6MeshTopology`のcomponentCountを採用し、同診断が既に行う保存座標の
+degenerate判定を再実行しない。triangle soup、SDF、FKEI save/load/snapshot、UI、CUDAは変更していない。
+Before / Afterとも三角形222,984、bounds 32.6 x 32.4 x 80.0 mm、水密OK、部品数3、内部Voronoi
+270辺で一致し、同じfixtureの反復実行でも同一結果だった。`npm run test:skin-rebuild`、`npm run build`、
+`git diff --check`は成功した。これはブラウザwall time計測であり、FKEI保存やPrint-ready snapshotの
+性能評価ではない。
+
 ### 2026-08-31 — Stage 8 sparse removable support v0.1 (experimental)
 
 工程8のAutomaticを、工程4のInside / Outside責任・region id・選択済みPattern owner patch idを
