@@ -745,6 +745,16 @@ Internal Structureが揃うまで無効で、作者が`Internal Structureを確�
 ボタン操作を工程7から9へ進む明示境界とし、分類ledger、Internal graph、形状、出力、印刷判定は変更していない。
 `printApproval=false`を維持する。
 
+## Observation — SKIN ART public index and ten works（2026-09-02）
+
+`/skin-art/` is now the public Presentation Layer index. It keeps the existing
+Featured Formation first, then routes the ten existing Network traversals to
+fullscreen autoplay via `skin-rebuild.html?work=...`. Replay restarts the
+selected traversal and BACK TO INDEX returns to the catalogue. The public
+route presents only the completed graph through the existing runtime; no
+geometry, Graph, FKEI, save, export, STL or 3MF implementation changed.
+)
+
 Sol High受入レビューで、再診断中に旧ツリーが残る、Paint更新後に工程9要求済み状態が残る、Voronoi Edgeで
 工程9を押すとInternal表示がDry Webのnull表示へ置き換わる、という3つの一時UI状態を確認した。再診断開始時に
 旧ツリーと工程9状態を即時解除し、Paint／Dry Web更新も必ず工程7へ戻す。工程9はInternal表示と角度screenを

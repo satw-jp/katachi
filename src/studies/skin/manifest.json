@@ -1104,6 +1104,10 @@
     {
       "date": "2026-09-02",
       "note": "SKIN NETWORK FORMATION makes the presentation grammar explicit for all ten studies: each presentation-only rejected route now passes through PROPOSE, EVALUATE, REJECT, and REVISE before the next completed edge is ACCEPTED. The proposal overlay remains temporary and the completed InternalStructureGraph is unchanged; tests prove event order, deterministic timing, stable-graph identity and input immutability. No geometry, DryWeb, Graph generation, GeometryEngine, FKEI, history, mesh or output logic changed."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "SKIN ART is publicly catalogued at /skin-art/ with the Featured Formation and ten existing Network traversal works. Each work enters fullscreen autoplay through the existing completed graph runtime, supports REPLAY and BACK TO INDEX, and leaves geometry, Graph, FKEI, save, export, STL and 3MF logic unchanged."
     }
   ]
 }
