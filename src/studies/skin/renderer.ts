@@ -2483,8 +2483,8 @@ export class SkinRenderer {
         const node = graph.nodes[index];
         const densityWeight = thicknessProfile?.nodeWeightById.get(node.id) ?? 1;
         const densityScale = thicknessProfile
-          ? THREE.MathUtils.lerp(0.62, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
-          : 1;
+          ? THREE.MathUtils.lerp(0.35, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
+          : 0.58;
         matrix.makeScale(node.radius * densityScale, node.radius * densityScale, node.radius * densityScale)
           .setPosition(node.position.x, node.position.y, node.position.z);
         nodeMesh.setMatrixAt(index, matrix);
@@ -2519,8 +2519,8 @@ export class SkinRenderer {
       rotation.setFromUnitVectors(yAxis, direction.normalize());
       const densityWeight = thicknessProfile?.edgeWeightById.get(edge.id) ?? 1;
       const densityScale = thicknessProfile
-        ? THREE.MathUtils.lerp(0.24, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
-        : 1;
+        ? THREE.MathUtils.lerp(0.14, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
+        : 0.36;
       matrix.compose(midpoint, rotation, new THREE.Vector3(edge.radius * densityScale, length, edge.radius * densityScale));
       edgeMesh.setMatrixAt(index, matrix);
     }
