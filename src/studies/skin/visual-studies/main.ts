@@ -33,7 +33,7 @@ root.innerHTML = `
     <small class="visual-studies-stage-label">SOURCE / READY</small>
   </section>
   <nav class="visual-studies-navigation" aria-label="Visual studies">
-    <div class="visual-studies-navigation-heading"><span>STUDIES</span><small>08 DIRECTIONS</small></div>
+    <div class="visual-studies-navigation-heading"><span>STUDIES</span><small>09 DIRECTIONS</small></div>
     <div class="visual-studies-links"></div>
   </nav>
   <details class="visual-studies-mobile-navigation">

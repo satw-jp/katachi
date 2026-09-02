@@ -11,6 +11,7 @@ export const VISUAL_STUDY_IDS = [
   "scan",
   "residue",
   "matter",
+  "gaussian",
 ] as const;
 
 export type VisualStudyId = typeof VISUAL_STUDY_IDS[number];
@@ -31,6 +32,7 @@ export const VISUAL_STUDIES: readonly VisualStudyChoice[] = [
   { id: "scan", number: "06", title: "SCAN", question: "What can one moving encounter know about the whole?" },
   { id: "residue", number: "07", title: "HAND REMAINS", question: "What of hesitation survives the completed graph?" },
   { id: "matter", number: "08", title: "SUPPORT BECOMES FORM", question: "When support takes form, where does the flower end?" },
+  { id: "gaussian", number: "09", title: "GAUSSIAN LIGHT", question: "What light does a bouquet leave in the air?" },
 ] as const;
 
 export interface VisualStudySource {

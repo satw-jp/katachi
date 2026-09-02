@@ -3,10 +3,11 @@
 ## Question
 
 Can one completed SKIN be read as a permanent bouquet whose hand-made
-irregularity is still present? This isolated route compares eight presentation
-readings over the same completed FKEI source. Four are now concept-led:
-`MUTUAL SUPPORT`, `PERMANENT / CHANGING`, `HAND REMAINS`, and `SUPPORT BECOMES
-FORM`. The other four remain as quieter comparison lenses.
+irregularity is still present? This isolated route compares nine presentation
+readings over the same completed FKEI source. Five are now concept-led:
+`MUTUAL SUPPORT`, `PERMANENT / CHANGING`, `HAND REMAINS`, `SUPPORT BECOMES
+FORM`, and `GAUSSIAN LIGHT`. The other four remain as quieter comparison
+lenses.
 
 ## Setup
 
@@ -22,19 +23,22 @@ FORM`. The other four remain as quieter comparison lenses.
 
 ## Observation
 
-- **2026-09-02**: The route exposes eight visibly different readings from one
-  source. `MUTUAL SUPPORT` keeps the flower motifs present while source-near
-  stems search for graph junctions. `PERMANENT / CHANGING` holds the object
-  still and moves only its projected shadow. `HAND REMAINS` lets source-derived
-  hesitation affect line arrival, brightness, and persistence through propose /
-  hesitate / revise. `SUPPORT BECOMES FORM` grows denser source-junction paths
-  into muted material tubes. FIELD, DUST, VOLUME, and SCAN remain useful
-  particle, field, volume, and observation comparisons.
+- **2026-09-02**: The route exposes nine visibly different readings from one
+  source. `FIELD` and `DUST` now bleed beyond the source bounds as continuous
+  field and discrete particles. `MUTUAL SUPPORT` keeps the flower motifs
+  present while source-near stems move toward graph junctions. `VOLUME` has a
+  slow local breath. `PERMANENT / CHANGING` holds the object still and layers
+  two projections of the same structure under a moving light. `SCAN` combines
+  a depth trace with atmospheric volume and residue. `HAND REMAINS` reveals
+  source-derived hesitation one line at a time. `SUPPORT BECOMES FORM` varies
+  material thickness along source-junction paths. `GAUSSIAN LIGHT` is an
+  independent luminous-splat reading in which flower color and structural
+  overlap leak into surrounding space.
 
 ## Source boundary
 
 The completed FKEI used by this route does not contain HANA's Raw Gesture.
-The four concept-led readings therefore use a deterministic, bounded proxy
+The five concept-led readings therefore use a deterministic, bounded proxy
 derived from completed Graph geometry: edge length, endpoint connectivity, and
 directional change. It is not random noise, and it never changes the Graph,
 FKEI, save state, geometry, or export. When a future presentation source
@@ -46,7 +50,7 @@ signal without changing the study boundary.
 The source graph becomes more legible as a work when appearance carries the
 history of how a form is held together: uneven arrival, local concentration,
 muted support color, persistent residue, and a shadow that keeps changing
-around a stable object. The concept-led four are the strongest candidates for
+around a stable object. The concept-led five are the strongest candidates for
 the next artwork pass; the remaining studies are retained for comparison.
 
 ## Related
@@ -59,5 +63,5 @@ the next artwork pass; the remaining studies are retained for comparison.
 ## Next
 
 Compare stills and short recordings at the same camera and decide whether the
-concept-led four have moved beyond principle demonstrations. This route is a
+concept-led five have moved beyond principle demonstrations. This route is a
 research lens, not a replacement for the ten traversal works.

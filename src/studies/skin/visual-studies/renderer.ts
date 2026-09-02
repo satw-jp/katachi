@@ -14,6 +14,9 @@ interface PointDatum {
   readonly alpha: number;
   readonly color: THREE.Color;
   readonly phase?: number;
+  readonly stretch?: number;
+  readonly angle?: number;
+  readonly drift?: THREE.Vector3;
 }
 
 interface PointCloud {
@@ -47,6 +50,7 @@ interface ProfiledLine {
   readonly material: THREE.LineBasicMaterial;
   readonly profile: EdgeGestureProfile;
   readonly baseOpacity: number;
+  readonly phase: number;
 }
 
 interface EdgeGestureProfile {
@@ -61,18 +65,28 @@ const POINT_VERTEX_SHADER = /* glsl */ `
   attribute float aPointSize;
   attribute float aAlpha;
   attribute float aPhase;
+  attribute float aStretch;
+  attribute float aAngle;
+  attribute vec3 aDrift;
   attribute vec3 aColor;
   uniform float uPointScale;
   uniform float uProgress;
+  uniform float uTime;
   varying float vAlpha;
   varying float vPhase;
+  varying float vStretch;
+  varying float vAngle;
   varying vec3 vColor;
 
   void main() {
     vColor = aColor;
     vAlpha = aAlpha;
     vPhase = aPhase;
-    vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+    vStretch = aStretch;
+    vAngle = aAngle;
+    float breath = 0.82 + 0.18 * sin(uTime * 0.00065 * (0.75 + aPhase) + aPhase * 23.0);
+    vec3 animatedPosition = position + aDrift * breath;
+    vec4 modelViewPosition = modelViewMatrix * vec4(animatedPosition, 1.0);
     gl_Position = projectionMatrix * modelViewPosition;
     gl_PointSize = clamp(aPointSize * uPointScale * (120.0 / max(1.0, -modelViewPosition.z)), 1.0, 34.0);
   }
@@ -83,13 +97,22 @@ const POINT_FRAGMENT_SHADER = /* glsl */ `
   uniform float uTime;
   varying float vAlpha;
   varying float vPhase;
+  varying float vStretch;
+  varying float vAngle;
   varying vec3 vColor;
 
   void main() {
     vec2 point = gl_PointCoord * 2.0 - 1.0;
-    float distanceToCenter = length(point);
-    if (distanceToCenter > 1.0) discard;
-    float edge = smoothstep(1.0, 0.14, distanceToCenter);
+    float cosine = cos(vAngle);
+    float sine = sin(vAngle);
+    vec2 rotated = vec2(
+      point.x * cosine - point.y * sine,
+      point.x * sine + point.y * cosine
+    );
+    rotated.x /= max(0.55, vStretch);
+    float gaussianDistance = dot(rotated, rotated);
+    if (gaussianDistance > 2.9) discard;
+    float edge = exp(-gaussianDistance * 1.35);
     float arrival = smoothstep(vPhase - 0.16, vPhase + 0.05, uProgress);
     float shimmer = 0.92 + 0.08 * sin(uTime * 0.0017 + vPhase * 19.0);
     gl_FragColor = vec4(vColor, edge * vAlpha * arrival * shimmer);
@@ -201,10 +224,14 @@ export class VisualStudyRenderer {
   private animationFrame = 0;
   private destroyed = false;
   private fieldCloud: PointCloud | null = null;
+  private fieldBasePositions = new Float32Array();
+  private fieldSpillDirections: THREE.Vector3[] = [];
+  private fieldSpillAmounts: number[] = [];
   private dustCloud: PointCloud | null = null;
   private dustStart: THREE.Vector3[] = [];
   private dustEnd: THREE.Vector3[] = [];
   private dustBend: number[] = [];
+  private dustTempo: number[] = [];
   private volumeCloud: PointCloud | null = null;
   private volumeMassMaterials: THREE.MeshBasicMaterial[] = [];
   private growthStrokes: GrowthStroke[] = [];
@@ -213,8 +240,9 @@ export class VisualStudyRenderer {
   private shadowCanvas: HTMLCanvasElement | null = null;
   private shadowTexture: THREE.CanvasTexture | null = null;
   private scanCloud: PointCloud | null = null;
-  private scanPlane: THREE.Mesh | null = null;
   private scanBand: THREE.Line | null = null;
+  private scanAtmosphere: PointCloud | null = null;
+  private scanResidueLines: ProfiledLine[] = [];
   private residueProposalLines: ProfiledLine[] = [];
   private residueRejectedLines: ProfiledLine[] = [];
   private residueRevisedLines: ProfiledLine[] = [];
@@ -222,6 +250,7 @@ export class VisualStudyRenderer {
   private residueRemains: PointCloud | null = null;
   private matterTubes: MatterTube[] = [];
   private matterDust: PointCloud | null = null;
+  private gaussianCloud: PointCloud | null = null;
   private readonly onFrame: (frame: VisualStudyFrame) => void;
 
   constructor(root: HTMLElement, source: VisualStudySource, onFrame: (frame: VisualStudyFrame) => void) {
@@ -307,7 +336,7 @@ export class VisualStudyRenderer {
 
   private readonly tick = (now: number): void => {
     if (this.destroyed) return;
-    const duration = this.activeStudy === "shadow" ? 10_000 : 9_200;
+    const duration = this.activeStudy === "shadow" ? 10_000 : this.activeStudy === "growth" ? 7_600 : 9_200;
     const elapsed = (now - this.startedAt) % duration;
     const progress = elapsed / duration;
     this.updateStudy(progress, elapsed);
@@ -367,10 +396,14 @@ export class VisualStudyRenderer {
       disposeObject(child);
     }
     this.fieldCloud = null;
+    this.fieldBasePositions = new Float32Array();
+    this.fieldSpillDirections = [];
+    this.fieldSpillAmounts = [];
     this.dustCloud = null;
     this.dustStart = [];
     this.dustEnd = [];
     this.dustBend = [];
+    this.dustTempo = [];
     this.volumeCloud = null;
     this.volumeMassMaterials = [];
     this.growthStrokes = [];
@@ -379,8 +412,9 @@ export class VisualStudyRenderer {
     this.shadowCanvas = null;
     this.shadowTexture = null;
     this.scanCloud = null;
-    this.scanPlane = null;
     this.scanBand = null;
+    this.scanAtmosphere = null;
+    this.scanResidueLines = [];
     this.residueProposalLines = [];
     this.residueRejectedLines = [];
     this.residueRevisedLines = [];
@@ -388,6 +422,7 @@ export class VisualStudyRenderer {
     this.residueRemains = null;
     this.matterTubes = [];
     this.matterDust = null;
+    this.gaussianCloud = null;
   }
 
   private buildStudy(study: VisualStudyId): void {
@@ -400,6 +435,7 @@ export class VisualStudyRenderer {
       case "scan": this.buildScan(); break;
       case "residue": this.buildResidue(); break;
       case "matter": this.buildMatter(); break;
+      case "gaussian": this.buildGaussian(); break;
     }
   }
 
@@ -459,6 +495,9 @@ export class VisualStudyRenderer {
     const sizes = new Float32Array(points.length);
     const alphas = new Float32Array(points.length);
     const phases = new Float32Array(points.length);
+    const stretches = new Float32Array(points.length);
+    const angles = new Float32Array(points.length);
+    const drifts = new Float32Array(points.length * 3);
     const colors = new Float32Array(points.length * 3);
     for (const [index, point] of points.entries()) {
       positions[index * 3] = point.position.x;
@@ -467,6 +506,11 @@ export class VisualStudyRenderer {
       sizes[index] = point.size;
       alphas[index] = point.alpha;
       phases[index] = point.phase ?? 0;
+      stretches[index] = point.stretch ?? 1;
+      angles[index] = point.angle ?? 0;
+      drifts[index * 3] = point.drift?.x ?? 0;
+      drifts[index * 3 + 1] = point.drift?.y ?? 0;
+      drifts[index * 3 + 2] = point.drift?.z ?? 0;
       colors[index * 3] = point.color.r;
       colors[index * 3 + 1] = point.color.g;
       colors[index * 3 + 2] = point.color.b;
@@ -476,6 +520,9 @@ export class VisualStudyRenderer {
     geometry.setAttribute("aPointSize", new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute("aAlpha", new THREE.BufferAttribute(alphas, 1));
     geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute("aStretch", new THREE.BufferAttribute(stretches, 1));
+    geometry.setAttribute("aAngle", new THREE.BufferAttribute(angles, 1));
+    geometry.setAttribute("aDrift", new THREE.BufferAttribute(drifts, 3));
     geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
     const material = new THREE.ShaderMaterial({
       vertexShader: POINT_VERTEX_SHADER,
@@ -543,31 +590,65 @@ export class VisualStudyRenderer {
     const fieldPoints: PointDatum[] = [];
     const cool = new THREE.Color(0x6bbcb3);
     const warm = new THREE.Color(0xd8c779);
-    for (let index = 0; index < 3200; index++) {
-      const position = this.sampleWithinSource(index);
+    const bounds = this.sourceBounds();
+    const spillStart = 2400;
+    this.fieldSpillDirections = [];
+    this.fieldSpillAmounts = [];
+    for (let index = 0; index < 3600; index++) {
+      const isSpill = index >= spillStart;
+      const edgeIndex = index % Math.max(1, this.edgeMidpoints.length);
+      const profile = this.edgeProfiles[edgeIndex] ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+      const direction = isSpill
+        ? (this.edgeMidpoints[edgeIndex]?.clone().sub(bounds.center) ?? new THREE.Vector3(1, 0, 0))
+        : new THREE.Vector3();
+      if (direction.lengthSq() < 0.000001) direction.set(1, 0, 0);
+      direction.normalize();
+      const spillAmount = isSpill ? 0.14 + profile.lengthVariation * 0.2 + profile.junction * 0.16 : 0;
+      const position = isSpill
+        ? (this.edgeMidpoints[edgeIndex]?.clone() ?? bounds.center.clone()).addScaledVector(direction, spillAmount * 0.1)
+        : this.sampleWithinSource(index);
       const graphDistance = this.nearestDistance(position, this.graphPositions);
       const motifDistance = this.nearestDistance(position, this.motifCenters);
       const graphInfluence = Math.exp(-graphDistance * 3.9);
       const motifInfluence = Math.exp(-motifDistance * 5.4);
       const influence = clamp01(graphInfluence * 0.72 + motifInfluence * 0.28);
+      this.fieldSpillDirections.push(direction);
+      this.fieldSpillAmounts.push(spillAmount);
       fieldPoints.push({
         position,
-        size: 0.024 + influence * 0.07 + seeded(index, 11) * 0.028,
-        alpha: 0.09 + influence * 0.55,
+        size: 0.024 + influence * 0.07 + (isSpill ? profile.persistence * 0.025 : seeded(index, 11) * 0.028),
+        alpha: 0.09 + influence * 0.55 + (isSpill ? profile.persistence * 0.11 : 0),
         color: colorMix(cool, warm, influence),
-        phase: 0.08 + seeded(index, 12) * 0.72,
+        phase: isSpill ? 0.34 + (index - spillStart) / (3600 - spillStart) * 0.46 : 0.08 + seeded(index, 12) * 0.72,
+        stretch: isSpill ? 1.25 + profile.hesitation * 0.8 : 1,
+        angle: isSpill ? Math.atan2(direction.z, direction.x) : 0,
       });
     }
     this.fieldCloud = this.createPointCloud(fieldPoints, 9.2);
+    this.fieldBasePositions = this.fieldCloud.positions.slice();
   }
 
   private buildDust(): void {
     const dust: PointDatum[] = [];
     const count = Math.min(1800, Math.max(900, this.graph.nodes.length * 6));
     const originPool = this.motifCenters.length > 0 ? this.motifCenters : this.graphPositions;
+    const bounds = this.sourceBounds();
     for (let index = 0; index < count; index++) {
       const origin = originPool[index % originPool.length]?.clone() ?? new THREE.Vector3();
-      const target = this.graphPositions[(index * 7 + Math.floor(index / 11)) % Math.max(1, this.graphPositions.length)]?.clone() ?? origin.clone();
+      const edgeIndex = index % Math.max(1, this.edgeMidpoints.length);
+      const profile = this.edgeProfiles[edgeIndex] ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+      const target = index % 4 === 0
+        ? (() => {
+          const anchor = this.edgeMidpoints[edgeIndex]?.clone() ?? bounds.center.clone();
+          const direction = anchor.sub(bounds.center);
+          if (direction.lengthSq() < 0.000001) direction.set(1, 0, 0);
+          direction.normalize();
+          return (this.edgeMidpoints[edgeIndex]?.clone() ?? origin.clone()).addScaledVector(
+            direction,
+            0.2 + profile.persistence * 0.22 + profile.lengthVariation * 0.12,
+          );
+        })()
+        : this.graphPositions[(index * 7 + Math.floor(index / 11)) % Math.max(1, this.graphPositions.length)]?.clone() ?? origin.clone();
       const start = origin.add(new THREE.Vector3(
         (seeded(index, 20) - 0.5) * 0.42,
         (seeded(index, 21) - 0.5) * 0.42,
@@ -581,12 +662,14 @@ export class VisualStudyRenderer {
       this.dustStart.push(start);
       this.dustEnd.push(end);
       this.dustBend.push((seeded(index, 26) - 0.5) * 0.22);
+      this.dustTempo.push(profile.tempo);
       dust.push({
         position: start,
         size: 0.028 + seeded(index, 27) * 0.045,
         alpha: 0.24 + seeded(index, 28) * 0.58,
         color: colorMix(new THREE.Color(0xc4d9d2), new THREE.Color(0xe4c96d), seeded(index, 29)),
-        phase: 0.04 + (index / count) * 0.75,
+        phase: index % 4 === 0 ? 0.22 + (index / count) * 0.54 : 0.04 + (index / count) * 0.75,
+        stretch: index % 4 === 0 ? 1.15 + profile.lengthVariation * 0.8 : 1,
       });
     }
     this.dustCloud = this.createPointCloud(dust, 12.5);
@@ -679,6 +762,11 @@ export class VisualStudyRenderer {
       const end = this.graphPositions[edge.end] ?? start;
       const samples = 7;
       const localWeight = 0.35 + ((this.degree[edge.start] ?? 0) + (this.degree[edge.end] ?? 0)) * 0.025;
+      const profile = this.edgeProfiles[edgeIndex] ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+      const edgeDirection = end.clone().sub(start).normalize();
+      const flow = new THREE.Vector3(-edgeDirection.z, edgeDirection.y * 0.45, edgeDirection.x)
+        .normalize()
+        .multiplyScalar(0.012 + profile.hesitation * 0.02);
       for (let sample = 0; sample < samples; sample++) {
         const t = sample / (samples - 1);
         const position = start.clone().lerp(end, t);
@@ -692,6 +780,9 @@ export class VisualStudyRenderer {
           alpha: 0.14 + localWeight * 0.08,
           color: colorMix(new THREE.Color(0x86b7c1), new THREE.Color(0xb594d0), localWeight * 0.7),
           phase: 0.08 + edgeIndex / Math.max(1, this.graph.edges.length) * 0.78,
+          stretch: 1.1 + profile.junction * 0.8 + profile.lengthVariation * 0.35,
+          angle: Math.atan2(edgeDirection.z, edgeDirection.x),
+          drift: flow,
         });
       }
     }
@@ -756,20 +847,35 @@ export class VisualStudyRenderer {
       phase: 0,
     }));
     this.scanCloud = this.createPointCloud(points, 9.5);
+    const atmosphere: PointDatum[] = [];
+    for (const [edgeIndex, edge] of this.graph.edges.entries()) {
+      const start = this.graphPositions[edge.start] ?? new THREE.Vector3();
+      const end = this.graphPositions[edge.end] ?? start;
+      const direction = end.clone().sub(start).normalize();
+      const profile = this.edgeProfiles[edgeIndex] ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+      const drift = new THREE.Vector3(-direction.z, direction.y * 0.35, direction.x)
+        .normalize()
+        .multiplyScalar(0.008 + profile.persistence * 0.012);
+      for (let sample = 0; sample < 4; sample++) {
+        const t = (sample + 0.5) / 4;
+        atmosphere.push({
+          position: start.clone().lerp(end, t),
+          size: 0.03 + profile.junction * 0.05,
+          alpha: 0.06 + profile.persistence * 0.13,
+          color: colorMix(new THREE.Color(0x79b9b4), new THREE.Color(0xae91c8), profile.hesitation * 0.8),
+          phase: 0.12 + edgeIndex / Math.max(1, this.graph.edges.length) * 0.56,
+          stretch: 1.2 + profile.lengthVariation * 0.75,
+          angle: Math.atan2(direction.z, direction.x),
+          drift,
+        });
+      }
+    }
+    this.scanAtmosphere = this.createPointCloud(atmosphere, 8.6);
+    const residueIndices = [...this.graphEdgeOrder]
+      .sort((left, right) => (this.edgeProfiles[right]?.hesitation ?? 0) - (this.edgeProfiles[left]?.hesitation ?? 0) || left - right)
+      .slice(0, Math.max(24, Math.floor(this.graph.edges.length * 0.3)));
+    this.scanResidueLines = this.makeProfiledGraphLines(residueIndices, 0.18, 0x9b8dc0, "scan-residue");
     const bounds = this.sourceBounds();
-    const planeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x8dd6c8,
-      transparent: true,
-      opacity: 0.045,
-      side: THREE.DoubleSide,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-    });
-    this.scanPlane = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(2, bounds.size.x * 1.8), Math.max(1, bounds.size.y * 2.6)), planeMaterial);
-    this.scanPlane.position.set(bounds.center.x, bounds.center.y, bounds.min.z);
-    this.scanPlane.renderOrder = 3;
-    this.studyGroup.add(this.scanPlane);
     const bandGeometry = new THREE.BufferGeometry();
     bandGeometry.setAttribute("position", new THREE.Float32BufferAttribute([
       bounds.min.x - 0.3, bounds.center.y, bounds.min.z,
@@ -831,6 +937,7 @@ export class VisualStudyRenderer {
     for (let seedIndex = 0; seedIndex < seedCount; seedIndex++) {
       let nodeIndex = seedNodes[seedIndex]?.index ?? 0;
       const path: THREE.Vector3[] = [];
+      const pathProfiles: EdgeGestureProfile[] = [];
       const visited = new Set<number>();
       let pathHesitation = 0;
       let pathPersistence = 0.56;
@@ -845,6 +952,7 @@ export class VisualStudyRenderer {
         visited.add(edgeIndex);
         const profile = this.edgeProfiles[edgeIndex];
         if (profile) {
+          pathProfiles.push(profile);
           pathHesitation = Math.max(pathHesitation, profile.hesitation);
           pathPersistence = Math.max(pathPersistence, profile.persistence);
           pathTempo = Math.min(pathTempo, profile.tempo);
@@ -856,6 +964,20 @@ export class VisualStudyRenderer {
       const curve = new THREE.CatmullRomCurve3(path, false, "centripetal", 0.55);
       const radius = 0.014 + pathHesitation * 0.018 + pathPersistence * 0.008;
       const geometry = new THREE.TubeGeometry(curve, 42, radius, 6, false);
+      const tubePosition = geometry.getAttribute("position") as THREE.BufferAttribute;
+      for (let tubularIndex = 0; tubularIndex <= 42; tubularIndex++) {
+        const profile = pathProfiles[Math.min(pathProfiles.length - 1, Math.floor(tubularIndex / 42 * pathProfiles.length))]
+          ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+        const center = curve.getPointAt(tubularIndex / 42);
+        const radiusVariation = 0.62 + profile.lengthVariation * 0.22 + profile.junction * 0.62 + profile.hesitation * 0.45;
+        for (let radialIndex = 0; radialIndex <= 6; radialIndex++) {
+          const vertexIndex = tubularIndex * 7 + radialIndex;
+          const vertex = new THREE.Vector3().fromBufferAttribute(tubePosition, vertexIndex);
+          vertex.sub(center).multiplyScalar(radiusVariation).add(center);
+          tubePosition.setXYZ(vertexIndex, vertex.x, vertex.y, vertex.z);
+        }
+      }
+      tubePosition.needsUpdate = true;
       const material = new THREE.MeshBasicMaterial({
         color: profiledColor(0x72aaa2, {
           lengthVariation: 0.5,
@@ -896,6 +1018,65 @@ export class VisualStudyRenderer {
     this.matterDust = this.createPointCloud(granularPoints, 9);
   }
 
+  private buildGaussian(): void {
+    const bounds = this.sourceBounds();
+    const points: PointDatum[] = [];
+    const cool = new THREE.Color(0x67b9bc);
+    const warm = new THREE.Color(0xe2a06f);
+    const violet = new THREE.Color(0xa48ac8);
+    for (const [patchIndex, center] of this.motifCenters.entries()) {
+      const outward = center.clone().sub(bounds.center);
+      if (outward.lengthSq() < 0.000001) outward.set(1, 0, 0);
+      outward.normalize();
+      points.push({
+        position: center.clone(),
+        size: 0.14,
+        alpha: 0.78,
+        color: flowerColor(patchIndex, 0, 1),
+        phase: 0.06 + (patchIndex / Math.max(1, this.motifCenters.length)) * 0.28,
+        stretch: 1.55 + (patchIndex % 3) * 0.24,
+        angle: Math.atan2(outward.z, outward.x),
+        drift: outward.multiplyScalar(0.018),
+      });
+    }
+    for (const [edgeIndex, edge] of this.graph.edges.entries()) {
+      const start = this.graphPositions[edge.start] ?? new THREE.Vector3();
+      const end = this.graphPositions[edge.end] ?? start;
+      const midpoint = start.clone().lerp(end, 0.5);
+      const direction = end.clone().sub(start).normalize();
+      if (direction.lengthSq() < 0.000001) direction.set(1, 0, 0);
+      const profile = this.edgeProfiles[edgeIndex] ?? { lengthVariation: 0.5, junction: 0, hesitation: 0, tempo: 0.8, persistence: 0.6 };
+      const lightColor = colorMix(cool, violet, profile.hesitation * 0.9);
+      const drift = new THREE.Vector3(-direction.z, direction.y * 0.4, direction.x)
+        .normalize()
+        .multiplyScalar(0.008 + profile.hesitation * 0.014);
+      points.push({
+        position: midpoint,
+        size: 0.042 + profile.junction * 0.06 + profile.hesitation * 0.035,
+        alpha: 0.16 + profile.persistence * 0.26,
+        color: lightColor,
+        phase: 0.16 + edgeIndex / Math.max(1, this.graph.edges.length) * 0.5,
+        stretch: 1.28 + profile.lengthVariation * 1.2 + profile.junction * 0.5,
+        angle: Math.atan2(direction.z, direction.x),
+        drift,
+      });
+      const outward = midpoint.clone().sub(bounds.center);
+      if (outward.lengthSq() < 0.000001) outward.set(direction.z, 0, -direction.x);
+      outward.normalize();
+      points.push({
+        position: midpoint.clone().addScaledVector(outward, 0.18 + profile.persistence * 0.24),
+        size: 0.038 + profile.hesitation * 0.045,
+        alpha: 0.11 + profile.persistence * 0.2,
+        color: colorMix(warm, violet, profile.hesitation),
+        phase: 0.34 + edgeIndex / Math.max(1, this.graph.edges.length) * 0.48,
+        stretch: 1.4 + profile.hesitation * 1.2,
+        angle: Math.atan2(outward.z, outward.x),
+        drift: outward.multiplyScalar(0.012 + profile.persistence * 0.01),
+      });
+    }
+    this.gaussianCloud = this.createPointCloud(points, 14.5);
+  }
+
   private graphLinePositions(edgeIndices: readonly number[]): number[] {
     const positions: number[] = [];
     for (const edgeIndex of edgeIndices) {
@@ -930,7 +1111,7 @@ export class VisualStudyRenderer {
     name: string,
   ): ProfiledLine[] {
     const lines: ProfiledLine[] = [];
-    for (const edgeIndex of edgeIndices) {
+    for (const [lineIndex, edgeIndex] of edgeIndices.entries()) {
       const edge = this.graph.edges[edgeIndex];
       const start = edge ? this.graphPositions[edge.start] : undefined;
       const end = edge ? this.graphPositions[edge.end] : undefined;
@@ -952,14 +1133,20 @@ export class VisualStudyRenderer {
       line.name = `${name}-${edgeIndex}`;
       line.renderOrder = 11;
       this.studyGroup.add(line);
-      lines.push({ line, material, profile, baseOpacity: opacity });
+      lines.push({
+        line,
+        material,
+        profile,
+        baseOpacity: opacity,
+        phase: edgeIndices.length <= 1 ? 0 : lineIndex / (edgeIndices.length - 1),
+      });
     }
     return lines;
   }
 
   private updateStudy(progress: number, elapsed: number): void {
     this.baseMaterial.opacity = this.activeStudy === "shadow" ? 0.095 : 0.07;
-    const motifOpacity = this.activeStudy === "shadow" || this.activeStudy === "growth" || this.activeStudy === "matter" ? 0.6 : 0.34;
+    const motifOpacity = this.activeStudy === "shadow" || this.activeStudy === "growth" || this.activeStudy === "matter" ? 0.6 : this.activeStudy === "gaussian" ? 0.74 : 0.34;
     for (const material of this.motifMaterials) material.opacity = motifOpacity;
     switch (this.activeStudy) {
       case "field": this.updateField(progress, elapsed); break;
@@ -970,13 +1157,37 @@ export class VisualStudyRenderer {
       case "scan": this.updateScan(progress, elapsed); break;
       case "residue": this.updateResidue(progress); break;
       case "matter": this.updateMatter(progress, elapsed); break;
+      case "gaussian": this.updateGaussian(progress, elapsed); break;
     }
     const stable = progress > 0.88;
     this.onFrame({ progress, stage: this.stageLabel(this.activeStudy, progress), stable });
   }
 
   private updateField(progress: number, elapsed: number): void {
-    if (this.fieldCloud) this.updatePointCloud(this.fieldCloud, smooth(progress * 1.45), elapsed);
+    const cloud = this.fieldCloud;
+    if (!cloud) return;
+    const position = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
+    for (let index = 0; index < this.fieldSpillAmounts.length; index++) {
+      const amount = this.fieldSpillAmounts[index] ?? 0;
+      if (amount <= 0) continue;
+      const outward = smooth((progress - 0.14 - (index - 2400) / 1200 * 0.22) / 0.66);
+      const baseIndex = index * 3;
+      const base = new THREE.Vector3(
+        this.fieldBasePositions[baseIndex] ?? 0,
+        this.fieldBasePositions[baseIndex + 1] ?? 0,
+        this.fieldBasePositions[baseIndex + 2] ?? 0,
+      );
+      const direction = this.fieldSpillDirections[index] ?? new THREE.Vector3();
+      const breathing = Math.sin(elapsed * 0.00075 + index * 0.11) * 0.012 * outward;
+      position.setXYZ(
+        index,
+        base.x + direction.x * amount * outward + breathing * direction.z,
+        base.y + direction.y * amount * outward,
+        base.z + direction.z * amount * outward - breathing * direction.x,
+      );
+    }
+    position.needsUpdate = true;
+    this.updatePointCloud(cloud, smooth(progress * 1.45), elapsed);
   }
 
   private updateDust(progress: number, elapsed: number): void {
@@ -984,7 +1195,8 @@ export class VisualStudyRenderer {
     if (!cloud) return;
     const positions = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
     for (let index = 0; index < this.dustStart.length; index++) {
-      const travel = smooth((progress * 1.42 - (index / Math.max(1, this.dustStart.length)) * 0.62) / 0.72);
+      const tempo = this.dustTempo[index] ?? 0.8;
+      const travel = smooth((progress * (1.16 + tempo * 0.36) - (index / Math.max(1, this.dustStart.length)) * 0.58) / 0.68);
       const position = this.dustStart[index]!.clone().lerp(this.dustEnd[index]!, travel);
       position.z += Math.sin(elapsed * 0.0014 + index * 0.31) * this.dustBend[index]! * (0.3 + travel);
       position.x += Math.cos(elapsed * 0.0011 + index * 0.17) * 0.018 * travel;
@@ -1035,9 +1247,12 @@ export class VisualStudyRenderer {
       canvas.width * 0.5 + (point.x - bounds.center.x) * scaleX,
       canvas.height * 0.5 - (point.z - bounds.center.z) * scaleZ,
     ];
-    const lightAngle = -0.7 + progress * Math.PI * 2.1;
+    const lightCycle = progress * Math.PI * 2.1;
+    const lightAngle = -0.7 + lightCycle + Math.sin(lightCycle * 0.5) * 0.14;
     const offsetX = Math.cos(lightAngle) * canvas.width * 0.1;
     const offsetY = Math.sin(lightAngle) * canvas.height * 0.08;
+    const overlapOffsetX = offsetX * 0.78;
+    const overlapOffsetY = offsetY * 0.78;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.save();
     context.globalCompositeOperation = "source-over";
@@ -1054,8 +1269,8 @@ export class VisualStudyRenderer {
       const a = toCanvas(start);
       const b = toCanvas(end);
       context.beginPath();
-      context.moveTo(a[0] + offsetX, a[1] + offsetY);
-      context.lineTo(b[0] + offsetX, b[1] + offsetY);
+      context.moveTo(a[0] + overlapOffsetX, a[1] + overlapOffsetY);
+      context.lineTo(b[0] + overlapOffsetX, b[1] + overlapOffsetY);
       context.stroke();
     }
     context.filter = "none";
@@ -1091,13 +1306,12 @@ export class VisualStudyRenderer {
 
   private updateScan(progress: number, elapsed: number): void {
     const cloud = this.scanCloud;
-    const plane = this.scanPlane;
     const band = this.scanBand;
-    if (!cloud || !plane || !band) return;
+    const atmosphere = this.scanAtmosphere;
+    if (!cloud || !band || !atmosphere) return;
     const bounds = this.sourceBounds();
     const scanAmount = smooth(Math.min(1, progress / 0.78));
     const scanZ = lerpNumber(bounds.min.z - 0.12, bounds.max.z + 0.12, scanAmount);
-    plane.position.z = scanZ;
     const bandPosition = band.geometry.getAttribute("position") as THREE.BufferAttribute;
     bandPosition.setZ(0, scanZ);
     bandPosition.setZ(1, scanZ);
@@ -1130,21 +1344,34 @@ export class VisualStudyRenderer {
     }
     position.needsUpdate = true;
     alpha.needsUpdate = true;
+    this.updatePointCloud(atmosphere, smooth(progress * 1.18), elapsed);
+    for (const item of this.scanResidueLines) {
+      const reveal = smooth((progress - 0.16 - item.phase * 0.4) / 0.36);
+      const pulse = 0.88 + Math.sin(elapsed * (0.0009 + item.profile.tempo * 0.0008) + item.phase * 12) * 0.12;
+      item.material.opacity = item.baseOpacity * (0.18 + reveal * 0.82) * (0.65 + item.profile.persistence * 0.35) * pulse;
+    }
     this.updatePointCloud(cloud, 1, elapsed);
   }
 
   private updateResidue(progress: number): void {
-    const updateLines = (lines: readonly ProfiledLine[], amount: number, elapsed: number): void => {
+    const updateLines = (
+      lines: readonly ProfiledLine[],
+      start: number,
+      span: number,
+      amountScale: (reveal: number) => number,
+      elapsed: number,
+    ): void => {
       for (const item of lines) {
+        const reveal = smooth((progress - start - item.phase * span) / (0.08 + item.profile.hesitation * 0.06));
         const pulse = 0.9 + Math.sin(elapsed * (0.0012 + item.profile.tempo * 0.0007) + item.profile.hesitation * 13) * 0.1;
-        item.material.opacity = item.baseOpacity * amount * (0.7 + item.profile.persistence * 0.3) * pulse;
+        item.material.opacity = item.baseOpacity * amountScale(reveal) * (0.7 + item.profile.persistence * 0.3) * pulse;
       }
     };
-    updateLines(this.residueProposalLines, smooth((progress - 0.03) / 0.22), progress * 9000);
-    const rejectFade = progress < 0.28 ? 0 : 0.16 + (1 - smooth((progress - 0.3) / 0.22)) * 0.36;
-    updateLines(this.residueRejectedLines, rejectFade, progress * 9000);
-    updateLines(this.residueRevisedLines, smooth((progress - 0.34) / 0.25), progress * 9000);
-    updateLines(this.residueFinalLines, smooth((progress - 0.6) / 0.28), progress * 9000);
+    updateLines(this.residueProposalLines, 0.02, 0.27, (reveal) => reveal, progress * 9000);
+    const rejectFade = progress < 0.3 ? 0 : 0.16 + (1 - smooth((progress - 0.31) / 0.24)) * 0.36;
+    updateLines(this.residueRejectedLines, 0.2, 0.2, (reveal) => reveal * rejectFade, progress * 9000);
+    updateLines(this.residueRevisedLines, 0.32, 0.28, (reveal) => reveal, progress * 9000);
+    updateLines(this.residueFinalLines, 0.58, 0.3, (reveal) => reveal, progress * 9000);
     if (this.residueRemains) this.updatePointCloud(this.residueRemains, Math.max(0.38, progress * 1.25), progress * 9000);
   }
 
@@ -1158,18 +1385,23 @@ export class VisualStudyRenderer {
     if (this.matterDust) this.updatePointCloud(this.matterDust, progress, elapsed);
   }
 
+  private updateGaussian(progress: number, elapsed: number): void {
+    if (this.gaussianCloud) this.updatePointCloud(this.gaussianCloud, smooth(progress * 1.18), elapsed);
+  }
+
   private stageLabel(study: VisualStudyId, progress: number): string {
     if (progress > 0.88) return "STUDY STABLE";
     if (progress < 0.14) return "SOURCE / READY";
     switch (study) {
       case "field": return progress < 0.58 ? "FIELD / INFLUENCE RISING" : "FIELD / CONCENTRATION";
       case "dust": return progress < 0.58 ? "DUST / PARTICLES IN MOTION" : "DUST / RELATIONS GATHER";
-      case "growth": return progress < 0.28 ? "MUTUAL SUPPORT / FLOWERS REMAIN" : progress < 0.7 ? "MUTUAL SUPPORT / STEMS SEARCH" : "MUTUAL SUPPORT / HELD TOGETHER";
+      case "growth": return progress < 0.22 ? "MUTUAL SUPPORT / FLOWERS REMAIN" : progress < 0.62 ? "MUTUAL SUPPORT / STEMS SEARCH" : "MUTUAL SUPPORT / HELD TOGETHER";
       case "volume": return progress < 0.6 ? "VOLUME / OCCUPIED CLOUD" : "VOLUME / DENSITY SETTLES";
-      case "shadow": return progress < 0.35 ? "PERMANENT / OBJECT REMAINS" : progress < 0.72 ? "PERMANENT / CHANGING LIGHT" : "PERMANENT / SHADOW DRIFTS";
-      case "scan": return progress < 0.76 ? "SCAN / DEPTH SLICE" : "SCAN / LAST INTERSECTION";
-      case "residue": return progress < 0.32 ? "HAND REMAINS / PROPOSE" : progress < 0.48 ? "HAND REMAINS / HESITATE" : progress < 0.7 ? "HAND REMAINS / REVISE" : "HAND REMAINS / STILL THERE";
+      case "shadow": return progress < 0.35 ? "PERMANENT / OBJECT REMAINS" : progress < 0.72 ? "PERMANENT / OVERLAP ACCUMULATES" : "PERMANENT / LIGHT DRIFTS";
+      case "scan": return progress < 0.32 ? "SCAN / VOLUME OPENS" : progress < 0.76 ? "SCAN / DEPTH SLICE" : "SCAN / RESIDUE APPEARS";
+      case "residue": return progress < 0.28 ? "HAND REMAINS / PROPOSE" : progress < 0.46 ? "HAND REMAINS / HESITATE" : progress < 0.68 ? "HAND REMAINS / REVISE" : "HAND REMAINS / STILL THERE";
       case "matter": return progress < 0.55 ? "SUPPORT BECOMES FORM / FIBERS" : "SUPPORT BECOMES FORM / BOUNDARY SOFTENS";
+      case "gaussian": return progress < 0.26 ? "GAUSSIAN LIGHT / FLOWERS GLOW" : progress < 0.62 ? "GAUSSIAN LIGHT / OVERLAP DEEPENS" : "GAUSSIAN LIGHT / LIGHT LEAKS OUTWARD";
     }
   }
 }
