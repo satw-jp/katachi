@@ -671,6 +671,7 @@ export function buildUi(
   const growRow = document.createElement("div");
   growRow.className = "row";
   const growBtn = document.createElement("button");
+  growBtn.dataset.skinWorkflowGuideAction = "create-base";
   growBtn.textContent = "育て直す (Grow)";
   growBtn.onclick = () => callbacks.onGrowHost();
   const rerollBtn = document.createElement("button");
@@ -1572,6 +1573,7 @@ export function buildUi(
   const packBtnRow = document.createElement("div");
   packBtnRow.className = "row";
   const packBtn = document.createElement("button");
+  packBtn.dataset.skinWorkflowGuideAction = "generate-surface-pattern";
   packBtn.className = "primary-action";
   packBtn.textContent = "この設定で表面を生成";
   packBtn.title = "選んだ表面の組み方・形状・調整値で生成します";
@@ -3950,6 +3952,7 @@ export function buildUi(
   const meshButtonRow = document.createElement("div");
   meshButtonRow.className = "row";
   const inspectMeshBtn = document.createElement("button");
+  inspectMeshBtn.dataset.skinWorkflowGuideAction = "build-final-mesh";
   inspectMeshBtn.textContent = "メッシュを検査";
   inspectMeshBtn.onclick = () => callbacks.onMeshInspect(readMeshOptions());
   const exportMeshBtn = document.createElement("button");

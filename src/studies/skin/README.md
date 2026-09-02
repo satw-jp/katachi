@@ -5,6 +5,9 @@
 Stage 5Bの責務をInside Overhangに限定したまま、既存の候補探索、collision / containment、45°制約を再利用し、同じMotif上で空間的に離れたsurface contactが続く場合だけ別のweb landingを優先する。追加経路は恒久Webの一部として`lattice`へ入り、Outside removable support、Base位置、Motif位置、既存strut径は変更しない。Before / Afterではreinforced regions、surface contacts、members、partial、no-route、1点依存、弱いMotif（接点2以下）、3点以上の分散接触、disconnected component、minimum strut diameterを記録する。
 
 これはsingle-point dependencyを減らすための有限なgraph / geometry evidenceであり、機械強度、slicer、実物印刷の保証ではない。viewportのdebug overlayでは従来の恒久補強をcyan、今回の冗長経路をyellowで表示する。全Motifへの3接点強制や全Web生成algorithmの置換は行わない。
+## Observation — Workflow Guide v0（2026-09-02）
+
+`/skin-rebuild.html` の右WORKFLOW先頭に、Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを案内する読み取り専用Guideを追加した。current phase / 全体progress、blocker / current state、Primary Action、既存actionへのrouting、必要時の前工程への再循環を表示する。Print Snapshot restore済みのBODY / downstream evidenceは既存stateとして利用し、snapshotなしFKEI restoreでdownstream evidenceがない場合はIncompleteと断定せず`Needs verification`としてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。
 
 ## Observation — Thin Strut Experimental Export（2026-09-02）
 
