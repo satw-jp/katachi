@@ -30,10 +30,9 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
     };
     const buildSupportArtifacts = (scaleMmPerUnit: number, plateShiftSourceZ: number) => {
       if (!request.printSupportGraph?.edges.length) return {};
-      reportProgress("support", `別印刷サポート ${request.printSupportGraph.edges.length}本を閉じた円柱へ変換`);
+      reportProgress("support", `別印刷サポート ${request.printSupportGraph.edges.length}本を閉じた円柱/tubeへ変換`);
       const raw = buildPrintSupportMesh(request.printSupportGraph, scaleMmPerUnit, {
         sourceOffset: { x: 0, y: 0, z: plateShiftSourceZ },
-        extendVerticalRootsToPlateZ: 0,
       });
       const support = orientMeshForSavedStl(raw);
       const topology = inspectSavedStlTopology(support.triangles, support.scaleMmPerUnit);

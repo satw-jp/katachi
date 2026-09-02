@@ -1,5 +1,30 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Stage 8 exported Support / BODY collision parity（2026-09-02）
+
+Stage 8で受理したSparse Removable Supportの`root → vertical shaft → bend →
+contact neck → target` fixtureを、Support STLと分離3MFへ通した。修正前のexport callsiteは
+`buildPrintSupportMesh`へ`extendVerticalRootsToPlateZ`を渡していたため、vertical edgeを
+edgeの役割によらずPlate Zへ戻し、非rootのcontact neckまでPlateへ延長していた。これが、
+Stage 8側でBODY collision 0だったrouteをexport後にBODYへ貫通させる原因だった。
+
+Stage 8のcallsiteから追加Plate extensionを除去し、accepted graphのsource offset、各edgeの
+start/end、bend、neck長をそのままSupport meshへ渡すようにした。degree-2 routeはsegment ringを
+連続tubeとして閉じ、degree-1の明示root / terminalだけをcapする。分岐graphの従来出力と
+legacy明示extension optionは他用途互換のため残し、Stage 8は使用しない。新しい回帰は修正前の
+非root neck延長によるBODY SDF貫通を再現し、修正後はaccepted endpoint、neck長、Support STLと
+3MF verticesの一致、BODY / PRINT_SUPPORT分離、package validation、非target BODY overlap 0を
+確認する。これはgeometry serializationの回帰であり、slicer・Bambu Studio・実物印刷の保証ではない。
+
+## Observation — Stage 5B Permanent Reinforcement Redundancy（2026-09-02）
+
+Stage 5Bの責務をInside Overhangに限定したまま、既存の候補探索、collision / containment、45°制約を再利用し、同じMotif上で空間的に離れたsurface contactが続く場合だけ別のweb landingを優先する。追加経路は恒久Webの一部として`lattice`へ入り、Outside removable support、Base位置、Motif位置、既存strut径は変更しない。Before / Afterではreinforced regions、surface contacts、members、partial、no-route、1点依存、弱いMotif（接点2以下）、3点以上の分散接触、disconnected component、minimum strut diameterを記録する。
+
+これはsingle-point dependencyを減らすための有限なgraph / geometry evidenceであり、機械強度、slicer、実物印刷の保証ではない。viewportのdebug overlayでは従来の恒久補強をcyan、今回の冗長経路をyellowで表示する。全Motifへの3接点強制や全Web生成algorithmの置換は行わない。
+## Observation — Workflow Guide v0（2026-09-02）
+
+`/skin-rebuild.html` の右WORKFLOW先頭に、Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを案内する読み取り専用Guideを追加した。current phase / 全体progress、blocker / current state、Primary Action、既存actionへのrouting、必要時の前工程への再循環を表示する。Print Snapshot restore済みのBODY / downstream evidenceは既存stateとして利用し、snapshotなしFKEI restoreでdownstream evidenceがない場合はIncompleteと断定せず`Needs verification`としてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。
+
 ## Observation — Thin Strut Experimental Export（2026-09-02）
 
 既存の`0.80 mm`推奨基準と`最低線径0.76 mm < 合格値0.80 mm`の停止理由を変更せず、Stage 8の通常export UIへMinimum strut、Recommended minimum、Thin struts数を追加した。基準未満のPermanent Web / Reinforcementだけが残り、mesh水密・部品数・退化面・起点・積層順・bridge・voxelなど他のInternal print gate条件がすべて通る場合だけ、別ボタン`Allow Thin Strut Experimental Export`を表示する。明示承認後は`Thin strut risk explicitly accepted for this experimental export.`を表示し、既存のUnsupported support承認とは別に次の3MF gateへ進む。
