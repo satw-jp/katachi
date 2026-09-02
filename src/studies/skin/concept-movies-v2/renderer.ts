@@ -944,7 +944,7 @@ export class ConceptMovieV2Renderer {
     const density = smooth((progress - 0.2) / 0.42);
     const spill = smooth((progress - 0.46) / 0.34);
     const white = smooth((progress - 0.7) / 0.2);
-    this.animateCloud(cloud, progress, elapsed, 0.08 + density * 0.62 + spill * 0.12, 0.12 + arrival * 0.25 + density * 0.38 + spill * 0.42, white * 0.86, 0.85 + spill * 0.7, 0.62 + density * 1.08 + spill * 0.4);
+    this.animateCloud(cloud, progress, elapsed, 0.08 + density * 0.58 + spill * 0.1, 0.12 + arrival * 0.25 + density * 0.32 + spill * 0.34, white * 0.62, 0.85 + spill * 0.7, 0.62 + density * 0.98 + spill * 0.32);
     if (this.luminousThreads) (this.luminousThreads.material as THREE.LineBasicMaterial).opacity = spill * 0.045;
     this.sourceMaterial.opacity = 0;
   }
