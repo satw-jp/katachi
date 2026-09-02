@@ -332,7 +332,20 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 function base64ToBytes(value: unknown, declaredByteLength: number, label: string, budget: CodecBudget): Uint8Array {
-  if (typeof value !== "string" || value.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+  const validBase64 = typeof value === "string" && value.length % 4 === 0 && (() => {
+    const paddingStart = value.indexOf("=");
+    const dataEnd = paddingStart < 0 ? value.length : paddingStart;
+    const paddingLength = value.length - dataEnd;
+    if (paddingLength > 2 || (paddingLength > 0 && paddingStart < value.length - 2)) return false;
+    for (let index = 0; index < dataEnd; index += 1) {
+      if (BASE64.indexOf(value[index]) < 0) return false;
+    }
+    for (let index = dataEnd; index < value.length; index += 1) {
+      if (value[index] !== "=") return false;
+    }
+    return true;
+  })();
+  if (!validBase64) {
     throw new Error(`${label} is not valid base64`);
   }
   const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
