@@ -1,4 +1,8 @@
-import { computeSkinMeshSamplingGrid, countConnectedComponents, reinforceQuadConnectionsForMesh } from "./meshExport.ts";
+import {
+  computeSkinMeshSamplingGrid,
+  countConnectedComponentsFromPositions,
+  reinforceQuadConnectionsForMesh,
+} from "./meshExport.ts";
 import type { SkinMeshResult } from "./meshExport.ts";
 import { buildMeshResultFromTriangles, meshGridShape } from "../cloud-sculpt/meshExport.ts";
 import type { Triangle } from "../cloud-sculpt/meshExport.ts";
@@ -37,6 +41,7 @@ export function buildSkinMeshResultFromPositions(
   quadMeshJoinWidth: number,
   internalEdgeCount: number,
   onFinalizePhase?: (phase: ParallelMeshFinalizePhase, faceCount: number) => void,
+  computeComponents = true,
 ): SkinMeshResult {
   const faceCount = positions.length / 9;
   onFinalizePhase?.("assembling", faceCount);
@@ -44,10 +49,13 @@ export function buildSkinMeshResultFromPositions(
   onFinalizePhase?.("topology", triangles.length);
   const base = buildMeshResultFromTriangles(triangles, targetLongestMm);
   const reinforced = reinforceQuadConnectionsForMesh(patches, quadMeshJoinWidth);
+  const connectedComponents = computeComponents
+    ? countConnectedComponentsFromPositions(positions)
+    : 0;
   onFinalizePhase?.("components", triangles.length);
   return {
     ...base,
-    connectedComponents: countConnectedComponents(triangles),
+    connectedComponents,
     reinforcedConnectionPoints: reinforced.reinforcedPointCount,
     internalEdgeCount,
   };
@@ -138,6 +146,7 @@ export async function buildParallelSkinMesh(
   onSliceComplete?: (completed: number, total: number, faceCount: number) => void,
   onFinalizePhase?: (phase: ParallelMeshFinalizePhase, faceCount: number) => void,
   onPositionBuffer?: (positions: Float32Array, normals: Float32Array) => void,
+  computeComponents = true,
 ): Promise<SkinMeshResult> {
   const buffers = await buildParallelMeshBuffers({ ...request, positionsOnly: true }, onSliceComplete);
   // positionsOnly deliberately keeps the sixteen slice messages small, so
@@ -154,5 +163,6 @@ export async function buildParallelSkinMesh(
     request.quadMeshJoinWidth,
     request.internalGraph?.edges.length ?? 0,
     onFinalizePhase,
+    computeComponents,
   );
 }

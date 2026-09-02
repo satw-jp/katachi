@@ -4,7 +4,6 @@ import { buildParallelSkinMesh, buildSkinMeshResultFromPositions } from "./paral
 import { flatNormalsFromTriangleSoup, packPreviewMeshBuffers } from "./previewMeshBuffers.ts";
 import type { MeshExportProgressPhase, MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
 import { analyzeStage6MeshTopology } from "./rebuild/stage6MeshTopologyDiagnostics.ts";
-import { diagnoseSkinRebuildFinalMeshDegenerateFaceIndices } from "./rebuild/model.ts";
 
 self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
   const request = event.data;
@@ -94,6 +93,7 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
                 ? `辺共有と水密を検査 · ${faces.toLocaleString()}面`
                 : `連結部品数を検査 · ${faces.toLocaleString()}面`);
           },
+          request.operation !== "inspect",
         );
       } else {
         result = await buildParallelSkinMesh(
@@ -116,6 +116,7 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
             exactPositions = positions;
             exactNormals = normals;
           },
+          request.operation !== "inspect",
         );
       }
     } catch {
@@ -145,8 +146,7 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
       ? analyzeStage6MeshTopology(exactPositions, request.targetLongestMm)
       : undefined;
     if (topologyDiagnostics) {
-      topologyDiagnostics.degenerateFaceIndices =
-        diagnoseSkinRebuildFinalMeshDegenerateFaceIndices(result);
+      result = { ...result, connectedComponents: topologyDiagnostics.componentCount };
     }
     const message: MeshExportWorkerMessage = {
       type: "result",

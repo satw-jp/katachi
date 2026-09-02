@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.93.0",
+  "version": "0.93.1",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-09-02",
   "params": [
@@ -1180,6 +1180,10 @@
     {
       "date": "2026-09-02",
       "note": "SKIN REBUILD Stage 8 Sparse Removable Support v0.2 (experimental) adds a session-only Support Amount / Coverage contract with Low / Medium / High profiles. Low retains the v0.1 maximum of 3 spatially separated targets per Outside region; Medium and High raise the bounded profile caps to 6 and 12 and tighten only the default greedy coverage radius to 0.75x and 0.5x. Existing Outside-only transfer, start-band selection, deterministic spacing, vertical-first then bounded leaning routes, authoritative BODY/Permanent Web capsule screens, thin contact neck, exact support spacing and fail-closed behavior remain unchanged. The minimal Stage 8 select clears the prior support graph and requires regeneration while retaining current Stage 7.5 evidence; no FKEI/schema/snapshot, export gate, Inside Overhang, Stage 5B or Permanent Web change. In the fixed 12-face single-region selection fixture, Low / Medium / High measured Critical targets / Supported / Unsupported / Supports / candidates / vertical / bent as 3/3/0/3/3/3/0, 6/6/0/6/6/6/0, and 12/12/0/12/12/12/0 respectively; BODY rejects, accepted BODY collisions and spacing rejects stayed 0."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "Stage 6 final mesh performance v0 on fixed base 671227dd35985e0e87bb6e5b87b75a41ffc34456: representative 38-Pattern first-print fixture, 16 slice Workers, resolution 128, browser wall time cold 10.69s→4.92s and warm median 8.85s→4.68s (47.2% faster). The measured dominant tail was duplicate component/topology diagnosis work. The parallel path now counts components directly from the authoritative Float32 triangle buffer, and inspect uses the existing Stage 6 topology diagnostic's component count and saved-coordinate degenerate evidence without replaying the same analysis. Triangle count 222,984, bounds 32.6×32.4×80.0 mm, watertight status, component count 3, internal Voronoi 270 edges and deterministic repeated output matched Before/After. No FKEI save/load/snapshot, UI redesign, or CUDA production path changed; SKIN rebuild regression, production build and diff check passed."
     }
   ]
 }
