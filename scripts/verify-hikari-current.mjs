@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -8,7 +9,6 @@ import { fileURLToPath } from "node:url";
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MANIFEST = "src/studies/cloud-sculpt/manifest.json";
 const PORT = "5174";
-const runtimeRequired = process.argv.includes("--runtime");
 
 function run(command, args) {
   return execFileSync(command, args, {
@@ -18,14 +18,17 @@ function run(command, args) {
   }).trim();
 }
 
-function fail(message) {
-  process.stderr.write(`HIKARI_VERSION_GATE_FAILED: ${message}\n`);
+function fail(mode, message) {
+  const label = mode === "development"
+    ? "HIKARI_DEVELOPMENT_GATE_FAILED"
+    : "HIKARI_PRODUCTION_GATE_FAILED";
+  process.stderr.write(`${label}: ${message}\n`);
   process.exit(2);
 }
 
 function parseVersion(value) {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
-  if (!match) fail(`invalid manifest version ${JSON.stringify(value)}`);
+  if (!match) throw new Error(`invalid manifest version ${JSON.stringify(value)}`);
   return match.slice(1).map(Number);
 }
 
@@ -36,16 +39,39 @@ function compareVersion(a, b) {
   return 0;
 }
 
-function isAncestor(ancestor, descendant) {
+function resolveRef(ref) {
   try {
-    execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
-      cwd: REPO,
-      stdio: "ignore",
-    });
-    return true;
-  } catch {
-    return false;
+    return run("git", ["rev-parse", "--verify", `${ref}^{commit}`]);
+  } catch (error) {
+    throw new Error(`cannot resolve ref ${JSON.stringify(ref)}: ${error.message}`);
   }
+}
+
+function resolveDevelopmentCommit(targetRef, resolver = resolveRef) {
+  try {
+    const commit = resolver(targetRef);
+    if (!commit) throw new Error("resolved SHA is empty");
+    return commit;
+  } catch (error) {
+    throw new Error(`target ref ${JSON.stringify(targetRef)} does not exist or cannot resolve: ${error.message}`);
+  }
+}
+
+function readManifestAtCommit(commit) {
+  let manifest;
+  try {
+    manifest = JSON.parse(run("git", ["show", `${commit}:${MANIFEST}`]));
+  } catch (error) {
+    throw new Error(`cannot read ${MANIFEST} at ${commit}: ${error.message}`);
+  }
+  if (typeof manifest.version !== "string") {
+    throw new Error(`${MANIFEST} at ${commit} has no version string`);
+  }
+  return {
+    manifest,
+    version: manifest.version,
+    parsedVersion: parseVersion(manifest.version),
+  };
 }
 
 function branchCandidates() {
@@ -93,119 +119,50 @@ function worktrees() {
   return rows;
 }
 
-/**
- * Selects the highest manifest version without allowing stale, divergent
- * same-version topic refs to obscure accepted trunk. A higher divergent
- * version remains deliberately visible and therefore still blocks selection.
- */
-function selectCurrent(candidates, mainCommit, ancestor = isAncestor) {
-  candidates.sort((a, b) => compareVersion(b.parsedVersion, a.parsedVersion));
-  const highestVersion = candidates[0].version;
-  let highest = candidates.filter((candidate) => candidate.version === highestVersion);
-  const mainCandidate = mainCommit
-    ? candidates.find((candidate) => candidate.commit === mainCommit)
-    : undefined;
-  if (mainCandidate?.version === highestVersion) {
-    highest = highest.filter((candidate) =>
-      ancestor(candidate.commit, mainCommit) || ancestor(mainCommit, candidate.commit));
+function requireSingleWorktree(commit, label, entries = worktrees()) {
+  const matches = entries.filter((entry) => entry.commit === commit);
+  if (matches.length !== 1) {
+    throw new Error(`${label} must have exactly one worktree; found ${matches.length}`);
   }
-  let selected = highest[0];
-  if (highest.length > 1) {
-    const descendants = highest.filter((candidate) => highest.every((other) =>
-      candidate.commit === other.commit || ancestor(other.commit, candidate.commit)));
-    if (descendants.length !== 1) {
-      throw new Error(`version ${highestVersion} exists on divergent commits: ${highest.map((item) => `${item.branch}@${item.commit.slice(0, 8)}`).join(", ")}`);
-    }
-    [selected] = descendants;
-  }
-  return { highestVersion, selected };
+  return matches[0];
 }
 
-function runSelectionSelfTest() {
-  const candidate = (branch, commit, version) => ({
-    branch, commit, version, parsedVersion: parseVersion(version),
-  });
-  const assertSelected = (actual, expected, label) => {
-    if (actual.selected.commit !== expected) {
-      throw new Error(`${label}: expected ${expected}, got ${actual.selected.commit}`);
-    }
-  };
-  const trunkRelations = new Set(["old>main"]);
-  const trunkAncestor = (ancestor, descendant) =>
-    ancestor === descendant || trunkRelations.has(`${ancestor}>${descendant}`);
-  assertSelected(selectCurrent([
-    candidate("origin/main", "main", "0.32.1"),
-    candidate("old", "old", "0.32.1"),
-    candidate("draft", "draft", "0.32.1"),
-  ], "main", trunkAncestor), "main", "same-version divergent draft filtering");
-  assertSelected(selectCurrent([
-    candidate("origin/main", "main", "0.32.1"),
-    candidate("next", "next", "0.33.0"),
-  ], "main", trunkAncestor), "next", "higher divergent version remains visible");
-  const descendantRelations = new Set(["main>a", "main>b"]);
-  const descendantAncestor = (ancestor, descendant) =>
-    ancestor === descendant || descendantRelations.has(`${ancestor}>${descendant}`);
-  let rejected = false;
+function readWorkingManifest(targetWorktree) {
+  const path = resolve(targetWorktree.worktree, MANIFEST);
+  let manifest;
   try {
-    selectCurrent([
-      candidate("origin/main", "main", "0.32.1"),
-      candidate("feature-a", "a", "0.32.1"),
-      candidate("feature-b", "b", "0.32.1"),
-    ], "main", descendantAncestor);
-  } catch {
-    rejected = true;
+    manifest = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(`cannot read ${path}: ${error.message}`);
   }
-  if (!rejected) throw new Error("incomparable post-main heads must fail");
+  if (typeof manifest.version !== "string") {
+    throw new Error(`${path} has no version string`);
+  }
+  return {
+    version: manifest.version,
+    parsedVersion: parseVersion(manifest.version),
+  };
 }
 
-if (process.argv.includes("--self-test")) {
-  runSelectionSelfTest();
-  process.stdout.write("HIKARI_VERSION_GATE_SELF_TEST_OK\\n");
-  process.exit(0);
+function validateWorkingManifestVersion(workingVersion, commitVersion) {
+  const workingParsedVersion = parseVersion(workingVersion);
+  const commitParsedVersion = parseVersion(commitVersion);
+  if (compareVersion(workingParsedVersion, commitParsedVersion) < 0) {
+    throw new Error(`worktree manifest regressed to ${workingVersion}; commit version is ${commitVersion}`);
+  }
+  return workingVersion !== commitVersion;
 }
 
-const candidates = branchCandidates();
-if (candidates.length === 0) fail(`no branch contains ${MANIFEST}`);
-let mainCommit;
-try {
-  mainCommit = run("git", ["rev-parse", "origin/main"]);
-} catch {
-  mainCommit = undefined;
-}
-let selected;
-try {
-  ({ selected } = selectCurrent(candidates, mainCommit));
-} catch (error) {
-  fail(error.message);
-}
-
-const matchingWorktrees = worktrees().filter((worktree) => worktree.commit === selected.commit);
-if (matchingWorktrees.length !== 1) {
-  fail(`latest ${selected.version} (${selected.branch}@${selected.commit.slice(0, 8)}) must have exactly one worktree; found ${matchingWorktrees.length}`);
-}
-const target = matchingWorktrees[0];
-const workingManifestPath = resolve(target.worktree, MANIFEST);
-let workingVersion;
-try {
-  workingVersion = JSON.parse(readFileSync(workingManifestPath, "utf8")).version;
-} catch (error) {
-  fail(`cannot read ${workingManifestPath}: ${error.message}`);
-}
-const workingParsedVersion = parseVersion(workingVersion);
-if (compareVersion(workingParsedVersion, selected.parsedVersion) < 0) {
-  fail(`worktree manifest regressed to ${workingVersion}; branch commit is ${selected.version}`);
-}
-const workingManifestChanged = workingVersion !== selected.version;
-
-let runtime = "not-running";
-if (runtimeRequired) {
+function readRuntimeListener() {
   let pid;
   try {
     pid = run("lsof", [`-tiTCP:${PORT}`, "-sTCP:LISTEN"]);
   } catch {
-    fail(`nothing is listening on port ${PORT}`);
+    throw new Error(`nothing is listening on port ${PORT}`);
   }
-  if (!/^\d+$/.test(pid)) fail(`expected one listener on port ${PORT}; got ${JSON.stringify(pid)}`);
+  if (!/^\d+$/.test(pid)) {
+    throw new Error(`expected one listener on port ${PORT}; got ${JSON.stringify(pid)}`);
+  }
   let cwd;
   try {
     const cwdLine = run("lsof", ["-a", "-p", pid, "-d", "cwd", "-Fn"])
@@ -213,21 +170,206 @@ if (runtimeRequired) {
       .find((line) => line.startsWith("n"));
     cwd = cwdLine?.slice(1);
   } catch (error) {
-    fail(`cannot inspect listener ${pid}: ${error.message}`);
+    throw new Error(`cannot inspect listener ${pid}: ${error.message}`);
   }
-  if (resolve(cwd || "") !== resolve(target.worktree)) {
-    fail(`port ${PORT} serves ${cwd || "unknown"}; current Hikari is ${target.worktree}`);
-  }
-  runtime = `pid=${pid} cwd=${cwd}`;
+  if (!cwd) throw new Error(`cannot determine listener cwd for pid ${pid}`);
+  return { pid, cwd };
 }
 
-process.stdout.write([
-  "HIKARI_VERSION_GATE_OK",
-  `version=${workingVersion}`,
-  `commitVersion=${selected.version}`,
-  `workingManifestChanged=${workingManifestChanged}`,
-  `branch=${target.branch || selected.branch}`,
-  `commit=${selected.commit}`,
-  `worktree=${target.worktree}`,
-  `runtime=${runtime}`,
-].join("\n") + "\n");
+function validateRuntimeCwd(targetWorktree, probe = readRuntimeListener) {
+  const observed = probe();
+  const cwd = typeof observed === "string" ? observed : observed.cwd;
+  if (!cwd) throw new Error("runtime listener cwd is unavailable");
+  if (resolve(cwd || "") !== resolve(targetWorktree)) {
+    throw new Error(`runtime listener cwd ${cwd || "unknown"} does not match target worktree ${targetWorktree}`);
+  }
+  if (typeof observed === "string") return `cwd=${cwd}`;
+  return `pid=${observed.pid} cwd=${cwd}`;
+}
+
+function verifyTarget({ mode, commit, commitManifest, runtimeRequired, worktreeEntries }) {
+  const targetWorktree = requireSingleWorktree(commit, `${mode} commit ${commit}`, worktreeEntries);
+  const workingManifest = readWorkingManifest(targetWorktree);
+  const workingManifestChanged = validateWorkingManifestVersion(
+    workingManifest.version,
+    commitManifest.version,
+  );
+  const runtime = runtimeRequired
+    ? validateRuntimeCwd(targetWorktree.worktree)
+    : "not-running";
+  return { targetWorktree, workingManifestChanged, runtime };
+}
+
+function formatCandidates(candidates) {
+  if (candidates.length === 0) return "none";
+  return candidates
+    .map((candidate) => `${candidate.branch}@${candidate.commit.slice(0, 8)}:${candidate.version}`)
+    .join(",");
+}
+
+function selectProductionTarget(mainCommit, mainManifest, candidates) {
+  const mainCandidate = candidates.find((candidate) => candidate.commit === mainCommit);
+  if (!mainCandidate) {
+    throw new Error(`origin/main commit ${mainCommit} is not present in the scanned refs`);
+  }
+  const higherVersionCandidates = candidates.filter((candidate) =>
+    compareVersion(candidate.parsedVersion, mainManifest.parsedVersion) > 0);
+  const sameVersionNonMainCandidates = candidates.filter((candidate) =>
+    candidate.commit !== mainCommit &&
+    compareVersion(candidate.parsedVersion, mainManifest.parsedVersion) === 0);
+  return { mainCandidate, higherVersionCandidates, sameVersionNonMainCandidates };
+}
+
+function runProductionGate(runtimeRequired) {
+  const mainCommit = resolveRef("origin/main");
+  const mainManifest = readManifestAtCommit(mainCommit);
+  const selection = selectProductionTarget(mainCommit, mainManifest, branchCandidates());
+  const verification = verifyTarget({
+    mode: "production origin/main",
+    commit: mainCommit,
+    commitManifest: mainManifest,
+    runtimeRequired,
+  });
+  process.stdout.write([
+    "HIKARI_PRODUCTION_GATE_OK",
+    "mode=production",
+    "productionRef=origin/main",
+    `version=${mainManifest.version}`,
+    `commit=${mainCommit}`,
+    `worktree=${verification.targetWorktree.worktree}`,
+    `worktreeBranch=${verification.targetWorktree.branch || "detached"}`,
+    `workingManifestChanged=${verification.workingManifestChanged}`,
+    `higherVersionBranches=${formatCandidates(selection.higherVersionCandidates)}`,
+    `sameVersionNonMainBranches=${formatCandidates(selection.sameVersionNonMainCandidates)}`,
+    `runtime=${verification.runtime}`,
+  ].join("\n") + "\n");
+}
+
+function runDevelopmentGate(targetRef, runtimeRequired) {
+  const commit = resolveDevelopmentCommit(targetRef);
+  const commitManifest = readManifestAtCommit(commit);
+  const verification = verifyTarget({
+    mode: `development target ${targetRef}`,
+    commit,
+    commitManifest,
+    runtimeRequired,
+  });
+  process.stdout.write([
+    "HIKARI_DEVELOPMENT_GATE_OK",
+    "mode=development",
+    `target=${targetRef}`,
+    `commit=${commit}`,
+    `version=${commitManifest.version}`,
+    `worktree=${verification.targetWorktree.worktree}`,
+    `worktreeBranch=${verification.targetWorktree.branch || "detached"}`,
+    `workingManifestChanged=${verification.workingManifestChanged}`,
+    `runtime=${verification.runtime}`,
+  ].join("\n") + "\n");
+}
+
+function parseArgs(args) {
+  const runtimeRequired = args.includes("--runtime");
+  const productionRequested = args.includes("--production");
+  let targetRef;
+  const unknown = [];
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === "--runtime" || arg === "--production") continue;
+    if (arg === "--target") {
+      targetRef = args[++index];
+      if (!targetRef || targetRef.startsWith("--")) {
+        throw new Error("--target requires a ref or commit SHA");
+      }
+      continue;
+    }
+    if (arg.startsWith("--target=")) {
+      targetRef = arg.slice("--target=".length);
+      if (!targetRef || targetRef.startsWith("--")) {
+        throw new Error("--target requires a ref or commit SHA");
+      }
+      continue;
+    }
+    unknown.push(arg);
+  }
+  if (unknown.length > 0) throw new Error(`unknown argument ${unknown.join(", ")}`);
+  if (productionRequested && targetRef) {
+    throw new Error("--production cannot be combined with --target");
+  }
+  return { targetRef, runtimeRequired };
+}
+
+function runSelectionSelfTest() {
+  const candidate = (branch, commit, version) => ({
+    branch,
+    commit,
+    version,
+    parsedVersion: parseVersion(version),
+  });
+  const mainManifest = { version: "0.32.1", parsedVersion: parseVersion("0.32.1") };
+  const main = candidate("main", "main-sha", "0.32.1");
+  const docs = candidate("docs", "docs-sha", "0.32.1");
+  const integration = candidate("integration", "integration-sha", "0.32.1");
+
+  const parallel = selectProductionTarget("main-sha", mainManifest, [main, docs, integration]);
+  assert.equal(parallel.mainCandidate.commit, "main-sha");
+  assert.deepEqual(parallel.higherVersionCandidates, []);
+  assert.deepEqual(parallel.sameVersionNonMainCandidates, [docs, integration]);
+
+  const singleTopic = selectProductionTarget("main-sha", mainManifest, [main, integration]);
+  assert.equal(singleTopic.mainCandidate.commit, "main-sha");
+
+  const higher = candidate("next", "next-sha", "0.33.0");
+  const higherReport = selectProductionTarget("main-sha", mainManifest, [main, higher]);
+  assert.equal(higherReport.mainCandidate.commit, "main-sha");
+  assert.match(formatCandidates(higherReport.higherVersionCandidates), /next@next-sha:0\.33\.0/);
+
+  const resolver = (ref) => {
+    if (ref === "integration") return "integration-sha";
+    throw new Error("missing ref");
+  };
+  assert.equal(resolveDevelopmentCommit("integration", resolver), "integration-sha");
+  assert.throws(() => resolveDevelopmentCommit("missing", resolver), /target ref/);
+
+  const targetWorktree = { worktree: "C:/work/target", commit: "target-sha" };
+  assert.throws(() => requireSingleWorktree("target-sha", "development", []), /found 0/);
+  assert.throws(() => requireSingleWorktree("target-sha", "development", [targetWorktree, targetWorktree]), /found 2/);
+  assert.equal(requireSingleWorktree("target-sha", "development", [targetWorktree]), targetWorktree);
+
+  assert.throws(() => validateWorkingManifestVersion("0.32.0", "0.32.1"), /regressed/);
+  assert.equal(validateWorkingManifestVersion("0.32.1", "0.32.1"), false);
+  assert.equal(validateWorkingManifestVersion("0.33.0", "0.32.1"), true);
+
+  assert.throws(
+    () => validateRuntimeCwd("C:/work/target", () => ({ pid: "1", cwd: "C:/work/other" })),
+    /does not match/,
+  );
+  assert.equal(
+    validateRuntimeCwd("C:/work/target", () => ({ pid: "1", cwd: "C:/work/target" })),
+    "pid=1 cwd=C:/work/target",
+  );
+}
+
+if (process.argv.includes("--self-test")) {
+  try {
+    runSelectionSelfTest();
+    process.stdout.write("HIKARI_VERSION_GATE_SELF_TEST_OK\n");
+    process.exit(0);
+  } catch (error) {
+    fail("production", `self-test failed: ${error.message}`);
+  }
+}
+
+let cli;
+try {
+  cli = parseArgs(process.argv.slice(2));
+} catch (error) {
+  fail("production", error.message);
+}
+
+const mode = cli.targetRef ? "development" : "production";
+try {
+  if (cli.targetRef) runDevelopmentGate(cli.targetRef, cli.runtimeRequired);
+  else runProductionGate(cli.runtimeRequired);
+} catch (error) {
+  fail(mode, error.message);
+}
