@@ -11,6 +11,7 @@ const source = readFileSync(fileURLToPath(new URL("./artIndex.ts", import.meta.u
 assert.match(source, /FEATURED/);
 assert.match(source, /skin-rebuild\.html\?work=/);
 assert.match(source, /concepts\//);
+assert.match(source, /concepts-v2\//);
 assert.match(source, /AUTOPLAY \/ REPLAY \/ INDEX/);
 assert.match(source, /COPY LIST/);
 assert.match(source, /navigator\.clipboard/);
