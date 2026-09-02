@@ -33,7 +33,7 @@ import { createCompositeSdfEvaluator } from "./field.ts";
 import type { Patch, SkinMode } from "./field.ts";
 import type { SkinHistoryEntry } from "./history.ts";
 import { serializeRecipe } from "./history.ts";
-import type { InternalStructureGraph } from "./voronoi.ts";
+import type { InternalStructureEdge, InternalStructureGraph } from "./voronoi.ts";
 import { internalGraphToPatchPoints } from "./voronoi.ts";
 import { combineWithScaffoldSdf, expandScaffoldSamplingGrid } from "./scaffoldFusion.ts";
 import type { SkinScaffoldPillar } from "./scaffoldFusion.ts";
@@ -439,11 +439,11 @@ export function downloadSkinMeshBundle(
 }
 
 /**
- * Build a small, closed cylinder mesh for the independently removable print
- * support Graph. Unlike BODY meshing this does not sample the full 3D field,
- * so tens of vertical support pillars take milliseconds rather than another
- * resolution^3 marching pass. The caller supplies BODY's scale so both STL
- * files retain exactly the same coordinate system.
+ * Build a small, closed cylinder/tube mesh for the independently removable
+ * print support Graph. Unlike BODY meshing this does not sample the full 3D
+ * field, so support routes take milliseconds rather than another resolution^3
+ * marching pass. The caller supplies BODY's scale so both STL files retain
+ * exactly the same coordinate system.
  */
 export function buildPrintSupportMesh(
   graph: InternalStructureGraph,
@@ -453,9 +453,9 @@ export function buildPrintSupportMesh(
     /** Exact BODY build-plate translation. This preserves the authored
      * support-to-artwork contacts in separate STL/OBJ/3MF parts. */
     sourceOffset?: MeshVertex;
-    /** In the translated coordinate system, extend only the lower endpoint
-     * of a vertical pillar to this plate Z. The upper artwork contact stays
-     * fixed. */
+    /** Legacy explicit extension for callers that author independent root
+     * edges. Stage 8 must omit this because a graph route can contain
+     * vertical non-root edges whose accepted endpoints must remain fixed. */
     extendVerticalRootsToPlateZ?: number;
   } = {},
 ): MeshBuildResult {
@@ -478,6 +478,15 @@ export function buildPrintSupportMesh(
   });
   const add = (a: MeshVertex, b: MeshVertex): MeshVertex => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
   const multiply = (value: MeshVertex, amount: number): MeshVertex => ({ x: value.x * amount, y: value.y * amount, z: value.z * amount });
+  type Ring = { center: MeshVertex; vertices: MeshVertex[] };
+  type EdgeRings = { edge: InternalStructureEdge; start: Ring; end: Ring };
+  const edgeRings: EdgeRings[] = [];
+  const ringsByNode = new Map<number, Ring[]>();
+  const addRing = (nodeId: number, ring: Ring): void => {
+    const rings = ringsByNode.get(nodeId);
+    if (rings) rings.push(ring);
+    else ringsByNode.set(nodeId, [ring]);
+  };
   for (const edge of graph.edges) {
     const sourceStart = graph.nodes[edge.start]?.position;
     const sourceEnd = graph.nodes[edge.end]?.position;
@@ -497,24 +506,59 @@ export function buildPrintSupportMesh(
     const reference = Math.abs(axis.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
     const u = normalize(cross(reference, axis));
     const v = cross(axis, u);
-    const startRing: MeshVertex[] = [];
-    const endRing: MeshVertex[] = [];
+    const startRing: Ring = { center: start, vertices: [] };
+    const endRing: Ring = { center: end, vertices: [] };
     for (let index = 0; index < segments; index++) {
       const angle = index * Math.PI * 2 / segments;
       const radial = add(multiply(u, Math.cos(angle) * edge.radius), multiply(v, Math.sin(angle) * edge.radius));
-      startRing.push(add(start, radial));
-      endRing.push(add(end, radial));
+      startRing.vertices.push(add(start, radial));
+      endRing.vertices.push(add(end, radial));
     }
+    edgeRings.push({ edge, start: startRing, end: endRing });
+    addRing(edge.start, startRing);
+    addRing(edge.end, endRing);
+  }
+  const hasBranchingNode = [...ringsByNode.values()].some((rings) => rings.length > 2);
+  const addSideFaces = (startRing: Ring, endRing: Ring): void => {
     for (let index = 0; index < segments; index++) {
       const next = (index + 1) % segments;
-      const a0 = startRing[index]; const a1 = startRing[next];
-      const b0 = endRing[index]; const b1 = endRing[next];
+      const a0 = startRing.vertices[index]; const a1 = startRing.vertices[next];
+      const b0 = endRing.vertices[index]; const b1 = endRing.vertices[next];
       triangles.push(
         { a: a0, b: a1, c: b1 },
         { a: a0, b: b1, c: b0 },
-        { a: start, b: a1, c: a0 },
-        { a: end, b: b0, c: b1 },
       );
+    }
+  };
+  const addCap = (ring: Ring, reverse: boolean): void => {
+    for (let index = 0; index < segments; index++) {
+      const next = (index + 1) % segments;
+      triangles.push(reverse
+        ? { a: ring.center, b: ring.vertices[index], c: ring.vertices[next] }
+        : { a: ring.center, b: ring.vertices[next], c: ring.vertices[index] });
+    }
+  };
+  if (hasBranchingNode) {
+    // Preserve the historical per-edge output for graphs that branch at a
+    // node. Sparse removable routes are degree-2 paths; branching support
+    // graphs need a dedicated junction mesh rather than an implicit policy
+    // invented by this export helper.
+    for (const { start, end } of edgeRings) {
+      addSideFaces(start, end);
+      addCap(start, false);
+      addCap(end, true);
+    }
+  } else {
+    for (const { start, end } of edgeRings) addSideFaces(start, end);
+    for (const rings of ringsByNode.values()) {
+      if (rings.length === 1) {
+        addCap(rings[0], false);
+      } else if (rings.length === 2) {
+        // Join the two segment rings without a cap. This preserves both
+        // accepted center endpoints while making a bend or radius transition
+        // one closed printable tube instead of two non-manifold cylinders.
+        addSideFaces(rings[0], rings[1]);
+      }
     }
   }
   if (triangles.length === 0) throw new Error("print support graph is empty");

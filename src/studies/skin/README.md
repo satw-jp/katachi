@@ -1,5 +1,21 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Stage 8 exported Support / BODY collision parity（2026-09-02）
+
+Stage 8で受理したSparse Removable Supportの`root → vertical shaft → bend →
+contact neck → target` fixtureを、Support STLと分離3MFへ通した。修正前のexport callsiteは
+`buildPrintSupportMesh`へ`extendVerticalRootsToPlateZ`を渡していたため、vertical edgeを
+edgeの役割によらずPlate Zへ戻し、非rootのcontact neckまでPlateへ延長していた。これが、
+Stage 8側でBODY collision 0だったrouteをexport後にBODYへ貫通させる原因だった。
+
+Stage 8のcallsiteから追加Plate extensionを除去し、accepted graphのsource offset、各edgeの
+start/end、bend、neck長をそのままSupport meshへ渡すようにした。degree-2 routeはsegment ringを
+連続tubeとして閉じ、degree-1の明示root / terminalだけをcapする。分岐graphの従来出力と
+legacy明示extension optionは他用途互換のため残し、Stage 8は使用しない。新しい回帰は修正前の
+非root neck延長によるBODY SDF貫通を再現し、修正後はaccepted endpoint、neck長、Support STLと
+3MF verticesの一致、BODY / PRINT_SUPPORT分離、package validation、非target BODY overlap 0を
+確認する。これはgeometry serializationの回帰であり、slicer・Bambu Studio・実物印刷の保証ではない。
+
 ## Observation — Stage 5B Permanent Reinforcement Redundancy（2026-09-02）
 
 Stage 5Bの責務をInside Overhangに限定したまま、既存の候補探索、collision / containment、45°制約を再利用し、同じMotif上で空間的に離れたsurface contactが続く場合だけ別のweb landingを優先する。追加経路は恒久Webの一部として`lattice`へ入り、Outside removable support、Base位置、Motif位置、既存strut径は変更しない。Before / Afterではreinforced regions、surface contacts、members、partial、no-route、1点依存、弱いMotif（接点2以下）、3点以上の分散接触、disconnected component、minimum strut diameterを記録する。
