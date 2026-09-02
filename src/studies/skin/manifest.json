@@ -1196,6 +1196,10 @@
     {
       "date": "2026-09-02",
       "note": "Stage 6 final mesh performance v0 on fixed base 671227dd35985e0e87bb6e5b87b75a41ffc34456: representative 38-Pattern first-print fixture, 16 slice Workers, resolution 128, browser wall time cold 10.69s→4.92s and warm median 8.85s→4.68s (47.2% faster). The measured dominant tail was duplicate component/topology diagnosis work. The parallel path now counts components directly from the authoritative Float32 triangle buffer, and inspect uses the existing Stage 6 topology diagnostic's component count and saved-coordinate degenerate evidence without replaying the same analysis. Triangle count 222,984, bounds 32.6×32.4×80.0 mm, watertight status, component count 3, internal Voronoi 270 edges and deterministic repeated output matched Before/After. No FKEI save/load/snapshot, UI redesign, or CUDA production path changed; SKIN rebuild regression, production build and diff check passed."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "H exported Support / BODY collision parity: Stage 8's export call no longer requests the legacy vertical-edge-to-Plate rewrite, so accepted non-root shaft, bend and contact-neck endpoints remain unchanged. Degree-2 sparse routes are emitted as continuous closed tubes while explicit degree-1 roots/terminals are capped; the legacy option and branching behavior remain for other callers. A root→shaft→bend→neck→target regression reproduces the pre-fix non-target BODY SDF penetration, then proves accepted endpoints and neck length survive Support STL and separate BODY/PRINT_SUPPORT 3MF serialization, package validation passes, and post-export non-target BODY overlap is zero. This is an export-geometry regression, not slicer, Bambu Studio or physical-print proof; printApproval remains false."
     }
   ]
 }
