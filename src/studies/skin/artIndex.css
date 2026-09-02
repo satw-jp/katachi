@@ -1,0 +1,64 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #090d0b; color: #edf2e9; }
+* { box-sizing: border-box; }
+html, body { min-width: 0; min-height: 100%; margin: 0; overflow-x: hidden; background: #090d0b; }
+body { min-height: 100svh; }
+a { color: inherit; }
+.skin-art-index { position: relative; display: grid; grid-template-columns: minmax(30px, 1fr) minmax(0, 760px) minmax(30px, 1fr); grid-template-rows: auto auto auto 1fr auto; gap: 0 28px; width: 100%; min-height: 100svh; padding: 28px clamp(20px, 5vw, 80px) 24px; isolation: isolate; }
+.skin-art-index::before, .skin-art-index::after { position: fixed; z-index: -3; width: 70vw; height: 70vw; border: 1px solid rgba(169, 218, 152, .07); border-radius: 50%; content: ""; pointer-events: none; transform: translate(22vw, -12vw) rotate(-21deg) scaleY(.44); transition: border-color 500ms ease, transform 900ms cubic-bezier(.2, .7, .2, 1); }
+.skin-art-index::after { width: 52vw; height: 52vw; border-color: rgba(222, 239, 198, .05); transform: translate(-18vw, 30vh) rotate(33deg) scaleY(.48); }
+.skin-art-index[data-active-work]::before { border-color: rgba(200, 240, 90, .16); transform: translate(18vw, -13vw) rotate(-13deg) scaleY(.43); }
+.skin-art-index-field { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; opacity: .8; }
+.skin-art-index-field::before, .skin-art-index-field::after { position: absolute; top: 17%; left: 50%; width: min(62vw, 760px); height: min(62vw, 760px); border: 1px solid rgba(204, 238, 174, .08); border-radius: 50%; content: ""; transform: translate(-15%, -10%) rotate(18deg) scaleY(.18); }
+.skin-art-index-field::after { width: min(49vw, 620px); height: min(49vw, 620px); border-color: rgba(204, 238, 174, .06); transform: translate(-7%, 12%) rotate(-32deg) scaleY(.22); }
+.skin-art-index-field-number { position: absolute; top: 7vh; right: 5vw; color: rgba(216, 236, 205, .045); font-family: Georgia, "Times New Roman", serif; font-size: clamp(180px, 31vw, 460px); font-weight: 400; line-height: .8; letter-spacing: -.1em; transition: color 350ms ease; }
+.skin-art-index[data-active-work] .skin-art-index-field-number { color: rgba(200, 240, 90, .09); }
+.skin-art-index-field-rule { position: absolute; top: 28%; right: 0; width: 47vw; border-top: 1px solid rgba(200, 240, 90, .1); transform: rotate(-17deg); transform-origin: right center; }
+.skin-art-index-header, .skin-art-index-hero, .skin-art-index-featured, .skin-art-index-works, .skin-art-index-footer { grid-column: 2; }
+.skin-art-index-header { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; min-width: 0; }
+.skin-art-index-mark { display: inline-flex; align-items: baseline; gap: 12px; text-decoration: none; }
+.skin-art-index-mark-name, .skin-art-index-mark-subtitle, .skin-art-index-header-meta, .skin-art-index-eyebrow, .skin-art-index-featured-kicker, .skin-art-index-featured-detail, .skin-art-index-works-title, .skin-art-index-works-meta, .skin-art-index-work-description, .skin-art-index-footer-prompt, .skin-art-index-footer-meta { font-size: 8px; letter-spacing: .2em; line-height: 1.35; text-transform: uppercase; }
+.skin-art-index-mark-name { color: #f3f7ee; font-weight: 700; letter-spacing: .28em; }
+.skin-art-index-mark-subtitle, .skin-art-index-header-meta { color: rgba(204, 231, 192, .48); }
+.skin-art-index-header-meta { white-space: nowrap; }
+.skin-art-index-hero { display: grid; gap: 18px; margin-top: clamp(88px, 13vh, 150px); }
+.skin-art-index-eyebrow { color: #c8f05a; font-weight: 700; }
+.skin-art-index-hero h1 { max-width: 8ch; margin: 0; color: #f2f4ed; font-family: Georgia, "Times New Roman", serif; font-size: clamp(64px, 12vw, 158px); font-weight: 400; letter-spacing: -.075em; line-height: .77; }
+.skin-art-index-intro { max-width: 390px; margin: 0; color: rgba(219, 232, 213, .62); font-family: Georgia, "Times New Roman", serif; font-size: clamp(15px, 1.55vw, 19px); line-height: 1.35; }
+.skin-art-index-featured { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: end; gap: 20px; margin-top: 56px; padding: 16px 0 18px; border-block: 1px solid rgba(200, 240, 90, .22); text-decoration: none; transition: color 200ms ease, border-color 200ms ease, transform 240ms ease; }
+.skin-art-index-featured:hover, .skin-art-index-featured:focus-visible { border-color: rgba(200, 240, 90, .72); color: #c8f05a; outline: 0; transform: translateX(5px); }
+.skin-art-index-featured-number, .skin-art-index-work-number { color: rgba(200, 240, 90, .78); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-variant-numeric: tabular-nums; letter-spacing: .14em; }
+.skin-art-index-featured-copy { display: grid; gap: 5px; min-width: 0; }
+.skin-art-index-featured-kicker { color: rgba(200, 240, 90, .74); font-weight: 700; }
+.skin-art-index-featured-title { color: #eef3ea; font-family: Georgia, "Times New Roman", serif; font-size: clamp(24px, 3.4vw, 42px); letter-spacing: -.02em; line-height: .95; }
+.skin-art-index-featured-detail { overflow: hidden; color: rgba(218, 231, 208, .46); text-overflow: ellipsis; white-space: nowrap; }
+.skin-art-index-featured-arrow, .skin-art-index-work-arrow { color: rgba(200, 240, 90, .78); font-size: 10px; letter-spacing: .14em; }
+.skin-art-index-works { margin-top: 64px; }
+.skin-art-index-works-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding-bottom: 12px; border-bottom: 1px solid rgba(223, 237, 214, .13); }
+.skin-art-index-works-title { color: #edf2e9; font-weight: 700; }
+.skin-art-index-works-meta { color: rgba(218, 231, 208, .42); }
+.skin-art-index-work-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 34px; margin: 0; padding: 0; list-style: none; }
+.skin-art-index-work-link { display: grid; grid-template-columns: 30px minmax(0, 1fr) 18px; align-items: baseline; gap: 10px; min-width: 0; padding: 14px 0 13px; border-bottom: 1px solid rgba(223, 237, 214, .1); text-decoration: none; transition: color 180ms ease, border-color 180ms ease, transform 180ms ease; }
+.skin-art-index-work-link:hover, .skin-art-index-work-link:focus-visible { border-color: rgba(200, 240, 90, .55); color: #c8f05a; outline: 0; transform: translateX(4px); }
+.skin-art-index-work-title { min-width: 0; color: #e9efe5; font-family: Georgia, "Times New Roman", serif; font-size: 20px; letter-spacing: .005em; line-height: 1; }
+.skin-art-index-work-description { grid-column: 2 / 4; overflow: hidden; margin-top: 1px; color: rgba(212, 228, 204, .4); font-size: 7px; letter-spacing: .08em; text-overflow: ellipsis; white-space: nowrap; }
+.skin-art-index-work-arrow { justify-self: end; }
+.skin-art-index-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-top: 64px; padding-top: 16px; border-top: 1px solid rgba(223, 237, 214, .12); }
+.skin-art-index-footer-prompt { color: rgba(200, 240, 90, .74); }
+.skin-art-index-footer-meta { color: rgba(218, 231, 208, .38); text-align: right; }
+@media (max-width: 700px) {
+  .skin-art-index { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 20px 18px 18px; }
+  .skin-art-index-header, .skin-art-index-hero, .skin-art-index-featured, .skin-art-index-works, .skin-art-index-footer { grid-column: 1; }
+  .skin-art-index-header-meta { display: none; }
+  .skin-art-index-hero { gap: 15px; margin-top: 86px; }
+  .skin-art-index-hero h1 { font-size: clamp(68px, 22vw, 110px); }
+  .skin-art-index-intro { max-width: 310px; font-size: 16px; }
+  .skin-art-index-featured { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; margin-top: 42px; }
+  .skin-art-index-featured-detail { font-size: 7px; }
+  .skin-art-index-works { margin-top: 48px; }
+  .skin-art-index-work-list { grid-template-columns: 1fr; }
+  .skin-art-index-footer { display: grid; gap: 8px; margin-top: 48px; }
+  .skin-art-index-footer-meta { text-align: left; }
+  .skin-art-index-field-number { top: 15vh; right: -11vw; font-size: 56vw; }
+  .skin-art-index-field-rule { top: 31%; width: 78vw; }
+}
+@media (prefers-reduced-motion: reduce) { .skin-art-index::before, .skin-art-index::after, .skin-art-index-featured, .skin-art-index-work-link { transition: none; } }

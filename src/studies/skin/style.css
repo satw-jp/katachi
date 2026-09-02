@@ -4625,6 +4625,18 @@ html.skin-art-ui .skin-network-formation-replay {
   pointer-events: auto;
 }
 
+html.skin-art-ui .skin-network-formation-index {
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 1px solid rgba(241, 246, 235, .26);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(241, 246, 235, .58);
+  font: 700 8px/1.2 var(--skin-art-sans);
+  letter-spacing: .16em;
+  pointer-events: auto;
+}
+
 html.skin-art-ui .skin-network-formation-replay:hover,
 html.skin-art-ui .skin-network-formation-replay:focus-visible {
   border-bottom-color: #eff5e8;
@@ -4636,6 +4648,13 @@ html.skin-art-ui .skin-network-formation-exit:hover,
 html.skin-art-ui .skin-network-formation-exit:focus-visible {
   border-bottom-color: var(--skin-art-accent);
   color: var(--skin-art-accent);
+  outline: 0;
+}
+
+html.skin-art-ui .skin-network-formation-index:hover,
+html.skin-art-ui .skin-network-formation-index:focus-visible {
+  border-bottom-color: rgba(200, 240, 90, .74);
+  color: #eff5e8;
   outline: 0;
 }
 

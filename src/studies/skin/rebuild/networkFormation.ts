@@ -61,6 +61,22 @@ export const NETWORK_FORMATION_VARIANTS: readonly NetworkFormationVariantOption[
   { id: "multi-seed-confluence", label: "CONFLUENCE", description: "Three distant fronts form in parallel and converge." },
 ] as const;
 
+/** Presentation order for the public SKIN ART catalogue. The ids are the
+ * existing deterministic traversals; this list only gives them an artwork
+ * number and does not create a second traversal implementation. */
+export const NETWORK_FORMATION_ARTWORK_ORDER = [
+  "trace",
+  "thickness-hierarchy",
+  "multi-seed-confluence",
+  "radial-bloom",
+  "geodesic-signal",
+  "hub-cascade",
+  "local-weave",
+  "boundary-frost",
+  "polar-scan",
+  "mirror-stitch",
+] as const satisfies readonly NetworkFormationVariantId[];
+
 export function isNetworkFormationVariantId(value: string): value is NetworkFormationVariantId {
   return (NETWORK_FORMATION_VARIANT_IDS as readonly string[]).includes(value);
 }

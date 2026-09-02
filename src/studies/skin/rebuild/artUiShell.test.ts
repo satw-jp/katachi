@@ -38,6 +38,8 @@ assert.match(source, /Research controls, diagnostics and retained experiments/);
 assert.match(source, /Start Network Formation presentation/);
 assert.match(source, /PLAY FORMATION/);
 assert.match(source, /formationAction\.append\(formationDescriptor, formationButton\)/);
+assert.match(source, /BACK TO INDEX/);
+assert.match(source, /onNetworkFormationBackToIndex/);
 assert.match(source, /formationStudyArchive/);
 assert.match(source, /onNetworkFormationReplay/);
 assert.match(source, /formationReplay\.hidden = state !== "stable"/);

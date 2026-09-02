@@ -67,6 +67,7 @@ export interface MountSkinArtUiShellOptions {
   readonly onNetworkFormationRequest?: (studyId?: string) => void;
   readonly onNetworkFormationReplay?: () => void;
   readonly onNetworkFormationExit?: () => void;
+  readonly onNetworkFormationBackToIndex?: () => void;
 }
 
 export interface SkinNetworkFormationStudyChoice {
@@ -184,6 +185,7 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
     onNetworkFormationRequest,
     onNetworkFormationReplay,
     onNetworkFormationExit,
+    onNetworkFormationBackToIndex,
   } = options;
   document.documentElement.classList.add("skin-art-ui");
   document.body.classList.add("skin-art-ui-body");
@@ -332,15 +334,21 @@ export function mountSkinArtUiShell(options: MountSkinArtUiShellOptions): SkinAr
   formationReplay.textContent = "REPLAY";
   formationReplay.setAttribute("aria-label", "Replay Network Formation presentation");
   formationReplay.hidden = true;
+  const formationIndex = document.createElement("button");
+  formationIndex.type = "button";
+  formationIndex.className = "skin-network-formation-index";
+  formationIndex.textContent = "BACK TO INDEX";
+  formationIndex.setAttribute("aria-label", "Back to SKIN ART index");
   const formationHudActions = document.createElement("div");
   formationHudActions.className = "skin-network-formation-hud-actions";
-  formationHudActions.append(formationReplay, formationExit);
+  formationHudActions.append(formationReplay, formationIndex, formationExit);
   formationHud.append(formationIdentity, formationHudActions);
   viewport.appendChild(formationHud);
 
   formationButton.addEventListener("click", () => onNetworkFormationRequest?.());
   formationStudyButton.addEventListener("click", () => onNetworkFormationRequest?.(selectedFormationStudyId));
   formationReplay.addEventListener("click", () => onNetworkFormationReplay?.());
+  formationIndex.addEventListener("click", () => onNetworkFormationBackToIndex?.());
   formationExit.addEventListener("click", () => onNetworkFormationExit?.());
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && app.classList.contains("is-network-formation")) {
