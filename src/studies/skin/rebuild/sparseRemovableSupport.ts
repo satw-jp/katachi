@@ -23,6 +23,46 @@ export interface SparseRemovableSupportFace {
 }
 
 export type SparseSupportRouteKind = "vertical" | "leaning";
+export type SparseSupportAmount = "low" | "medium" | "high";
+
+export interface SparseSupportAmountProfile {
+  readonly amount: SparseSupportAmount;
+  /** Maximum spatially separated representatives retained per Outside region. */
+  readonly maxCandidatesPerRegion: number;
+  /** Multiplier applied only to the default greedy coverage radius. */
+  readonly coverageRadiusMultiplier: number;
+}
+
+export const SPARSE_SUPPORT_AMOUNT_PROFILES: Readonly<Record<
+  SparseSupportAmount,
+  SparseSupportAmountProfile
+>> = Object.freeze({
+  low: Object.freeze({
+    amount: "low" as const,
+    maxCandidatesPerRegion: 3,
+    coverageRadiusMultiplier: 1,
+  }),
+  medium: Object.freeze({
+    amount: "medium" as const,
+    maxCandidatesPerRegion: 6,
+    coverageRadiusMultiplier: 0.75,
+  }),
+  high: Object.freeze({
+    amount: "high" as const,
+    maxCandidatesPerRegion: 12,
+    coverageRadiusMultiplier: 0.5,
+  }),
+});
+
+const DEFAULT_SPARSE_SUPPORT_AMOUNT: SparseSupportAmount = "low";
+
+export function resolveSparseSupportAmountProfile(value: unknown = DEFAULT_SPARSE_SUPPORT_AMOUNT): SparseSupportAmountProfile {
+  const amount: SparseSupportAmount = value === "medium" || value === "high" || value === "low"
+    ? value
+    : DEFAULT_SPARSE_SUPPORT_AMOUNT;
+  return SPARSE_SUPPORT_AMOUNT_PROFILES[amount];
+}
+
 export type SparseSupportRejectReason =
   | "body"
   | "spacing"
@@ -141,6 +181,8 @@ export interface SparseRemovableSupportDiagnostics {
   removalGap: number;
   shaftRadius: number;
   neckRadius: number;
+  /** Session-only density profile; it never changes the safety screens. */
+  supportAmount: SparseSupportAmount;
 }
 
 export type SparseExperimentalExportGateDecision =
@@ -219,7 +261,9 @@ export interface SparseRemovableSupportRequest {
   neckLength?: number;
   /** Low-start-band width in source units. */
   lowStartBand?: number;
-  /** Maximum representatives per Stage 4 region. Clamped to 3 in v0.1. */
+  /** Session-only Stage 8 density profile. Low preserves the v0.1 behavior. */
+  supportAmount?: SparseSupportAmount;
+  /** Low-level override for adapters/tests; clamped to the bounded profile cap. */
   maxCandidatesPerRegion?: number;
   /** Maximum bounded leaning roots attempted after the vertical route. */
   maxLeaningRoutes?: number;
@@ -259,7 +303,7 @@ const MAX_ADAPTIVE_SAMPLES = 131_072;
 const DEFAULT_REMOVAL_GAP_MM = 0.35;
 const DEFAULT_NECK_DIAMETER_MM = 0.6;
 const MIN_NECK_CLEARANCE_FACTOR = 1.25;
-const DEFAULT_MAX_CANDIDATES_PER_REGION = 3;
+const MAX_CANDIDATES_PER_REGION = 12;
 const DEFAULT_MAX_LEANING_ROUTES = 30;
 const DEFAULT_DEBUG_CANDIDATES = 96;
 /** A1 mini's 180 mm XY build span, centered at (90, 90) by the existing 3MF export. */
@@ -500,6 +544,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   removalGap: number;
   neckLength: number;
   lowStartBand: number;
+  supportAmount: SparseSupportAmount;
   maxCandidatesPerRegion: number;
   maxLeaningRoutes: number;
   coverageRadius: number;
@@ -527,11 +572,13 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   // contact geometry while its length includes a bounded shaft-radius margin.
   const neckLength = Math.max(requestedNeckLength, input.shaftRadius * MIN_NECK_CLEARANCE_FACTOR);
   const lowStartBand = input.lowStartBand ?? Math.max(input.shaftRadius * 3, 0.12);
-  const maxCandidatesPerRegion = Math.max(1, Math.min(3,
-    Math.floor(input.maxCandidatesPerRegion ?? DEFAULT_MAX_CANDIDATES_PER_REGION)));
+  const supportAmount = resolveSparseSupportAmountProfile(input.supportAmount);
+  const maxCandidatesPerRegion = Math.max(1, Math.min(MAX_CANDIDATES_PER_REGION,
+    Math.floor(input.maxCandidatesPerRegion ?? supportAmount.maxCandidatesPerRegion)));
   const maxLeaningRoutes = Math.max(0, Math.min(30,
     Math.floor(input.maxLeaningRoutes ?? DEFAULT_MAX_LEANING_ROUTES)));
-  const coverageRadius = input.coverageRadius ?? Math.max(input.shaftRadius * 2.5, removalGap * 2);
+  const coverageRadius = input.coverageRadius
+    ?? Math.max(input.shaftRadius * 2.5, removalGap * 2) * supportAmount.coverageRadiusMultiplier;
   const targetRadius = input.targetRadius ?? Math.max(input.neckRadius * 2, input.shaftRadius);
   const maximumOverlapLength = input.maximumOverlapLength ?? Math.max(neckLength * 1.5, input.shaftRadius * 3);
   const maximumDepth = input.maximumDepth ?? Math.max(targetRadius + input.shaftRadius, neckLength);
@@ -553,6 +600,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     removalGap,
     neckLength,
     lowStartBand,
+    supportAmount: supportAmount.amount,
     maxCandidatesPerRegion,
     maxLeaningRoutes,
     coverageRadius,
@@ -584,15 +632,15 @@ function candidateTargetId(regionId: number, index: number): string {
 }
 
 /**
- * Deterministically reduce all projected Outside faces to at most three
- * critical targets per Stage 4 region.  The lowest printable start band is
- * always selected first.  Additional representatives are admitted only when
- * that band has a meaningful spatial span, so a dense 489-face diagnosis does
- * not become 489 support requests.
+ * Deterministically reduce all projected Outside faces to the selected
+ * amount profile's bounded critical-target count per Stage 4 region.
+ * The lowest printable start band is always selected first. Additional
+ * representatives are admitted only when that band has a meaningful spatial
+ * span, so a dense diagnosis does not become one support request per face.
  */
 export function extractSparseRemovableSupportTargets(
   faces: readonly SparseRemovableSupportFace[],
-  options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion">,
+  options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion" | "supportAmount">,
 ): {
   targets: SparseRemovableSupportTarget[];
   rawCandidateCount: number;
@@ -603,7 +651,9 @@ export function extractSparseRemovableSupportTargets(
   const shaftRadius = options.shaftRadius;
   const removalGap = options.removalGap ?? 0;
   const lowStartBand = options.lowStartBand ?? Math.max(shaftRadius * 3, 0.12);
-  const maxPerRegion = Math.max(1, Math.min(3, Math.floor(options.maxCandidatesPerRegion ?? 3)));
+  const supportAmount = resolveSparseSupportAmountProfile(options.supportAmount);
+  const maxPerRegion = Math.max(1, Math.min(MAX_CANDIDATES_PER_REGION,
+    Math.floor(options.maxCandidatesPerRegion ?? supportAmount.maxCandidatesPerRegion)));
   const groups = new Map<number, SparseRemovableSupportFace[]>();
   const representedRegionIds = new Set<number>();
   let unownedCandidateCount = 0;
@@ -1208,7 +1258,7 @@ function appendRouteToGraph(builder: SparseGraphBuilder, route: SparseRemovableS
 }
 
 /**
- * Build the Stage 8 v0.1 sparse removable support graph.  The implementation
+ * Build the Stage 8 sparse removable support graph.  The implementation
  * is intentionally pure: it consumes projected final-artwork facts and an
  * authoritative BODY evaluator, then returns a separate graph, finite
  * diagnostics and bounded debug facts.  No BODY or permanent-web geometry is
@@ -1431,6 +1481,7 @@ export function buildSparseRemovableSupport(
     removalGap: request.removalGap,
     shaftRadius: request.shaftRadius,
     neckRadius: request.neckRadius,
+    supportAmount: request.supportAmount,
   };
   // Keep malformed/non-finite input visible as a fail-closed unsupported
   // result even when there were no extractable faces to route.

@@ -12,6 +12,7 @@ import {
   enumerateSparseRemovableSupportLeaningDirections,
   evaluateSparseExperimentalExportGate,
   extractSparseRemovableSupportTargets,
+  SPARSE_SUPPORT_AMOUNT_PROFILES,
   type SparseRemovableSupportFace,
 } from "./sparseRemovableSupport.ts";
 
@@ -85,6 +86,51 @@ const denseTargets = extractSparseRemovableSupportTargets(denseFaces, {
 });
 assert.equal(denseTargets.rawCandidateCount, 489);
 assert.ok(denseTargets.targets.length <= 3);
+
+// Amount is a bounded density contract, not a route-safety override. A wide
+// single Outside region supplies enough span for each profile to retain more
+// deterministic targets; every accepted route still uses the same BODY and
+// capsule-spacing audits below.
+assert.deepEqual(
+  Object.values(SPARSE_SUPPORT_AMOUNT_PROFILES).map((profile) => profile.maxCandidatesPerRegion),
+  [3, 6, 12],
+);
+const amountFaces = Array.from({ length: 12 }, (_, index) =>
+  face(5, index * 0.4, 0, 2, index));
+const amountBaseRequest = { ...baseRequest, maxCandidatesPerRegion: undefined };
+const amountRuns = (["low", "medium", "high"] as const).map((supportAmount) => {
+  const startedAt = performance.now();
+  const result = buildSparseRemovableSupport({
+    ...amountBaseRequest,
+    projectedOutsideFaces: amountFaces,
+    outsideRegionCount: 1,
+    supportAmount,
+  });
+  return { result, runtimeMs: performance.now() - startedAt };
+});
+assert.deepEqual(amountRuns.map(({ result }) => result.diagnostics.supportAmount), ["low", "medium", "high"]);
+assert.deepEqual(amountRuns.map(({ result }) => result.diagnostics.criticalTargetCount), [3, 6, 12]);
+assert.deepEqual(amountRuns.map(({ result }) => result.diagnostics.coveredTargetCount), [3, 6, 12]);
+assert.deepEqual(amountRuns.map(({ result }) => result.diagnostics.generatedSupportCount), [3, 6, 12]);
+assert.ok(amountRuns[1].result.diagnostics.coveredTargetCount > amountRuns[0].result.diagnostics.coveredTargetCount);
+assert.ok(amountRuns[2].result.diagnostics.coveredTargetCount > amountRuns[1].result.diagnostics.coveredTargetCount);
+assert.ok(amountRuns.every(({ result }) => result.diagnostics.acceptedBodyCollisionCount === 0));
+assert.ok(amountRuns.every(({ result }) => result.diagnostics.rejectedBySpacing === 0));
+assert.ok(amountRuns.every(({ result }) => result.acceptedRoutes.every(({ route }) => route.kind === "vertical")));
+console.log("sparseRemovableSupport amount comparison", JSON.stringify(amountRuns.map(({ result, runtimeMs }) => ({
+  amount: result.diagnostics.supportAmount,
+  criticalTargets: result.diagnostics.criticalTargetCount,
+  supported: result.diagnostics.coveredTargetCount,
+  unsupported: result.diagnostics.unsupportedTargetCount,
+  supports: result.diagnostics.generatedSupportCount,
+  candidates: result.diagnostics.routeCandidateCount,
+  vertical: result.diagnostics.verticalCount,
+  bent: result.diagnostics.offsetBendCount,
+  bodyRejects: result.diagnostics.rejectedByBody,
+  acceptedBodyCollisions: result.diagnostics.acceptedBodyCollisionCount,
+  spacingRejects: result.diagnostics.rejectedBySpacing,
+  runtimeMs: Number(runtimeMs.toFixed(3)),
+}))));
 
 const sparseFaces = [
   face(0, 0, 0, 2, 0),

@@ -16,6 +16,27 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-09-02 — Stage 8 sparse support amount / coverage v0.2 (experimental)
+
+工程8 Sparse Removable Supportに、session-onlyの`SparseSupportAmount`（`low` / `medium` /
+`high`）を追加した。Lowはv0.1と同じくOutside regionあたり最大3 target、Mediumは6、Highは12。
+各regionでは既存の最下端start band、有限なtarget間隔、決定的なfarthest-nearest選択を維持し、
+amountだけでcollision screenやspacing screenを緩めない。default coverage radiusはLowを1.0、
+Mediumを0.75、Highを0.5倍として、unsupported範囲をより細かくtarget化する。明示的な低レベル上限は
+profile cap内だけ許可し、未知のamountはLowへfail-closedする。
+
+右ペインには既存Stage 8 controlsへ小さな`Support Amount / Coverage` select（Low / Medium / High）
+だけを追加した。変更時は既存support graphを空にしてStage 8の再生成・再確認を要求するが、Stage 7.5の
+Outside evidenceは保持する。設定とdiagnosticsはsession-onlyで、FKEI schema/snapshot、Inside
+Overhang、Stage 5B、Permanent Web、export gateは変更していない。
+
+固定された単一Outside region・12面のselection fixtureで、Low / Medium / Highを比較した結果は、
+Critical targets / Supported / Unsupported / Supports / candidates / vertical / bent がそれぞれ
+`3 / 3 / 0 / 3 / 3 / 3 / 0`、`6 / 6 / 0 / 6 / 6 / 6 / 0`、`12 / 12 / 0 / 12 / 12 / 12 / 0`。
+BODY rejects、accepted BODY collisions、support-support spacing rejectsは全段階0で、builder runtimeは
+それぞれ`7.403 ms`、`3.121 ms`、`5.241 ms`（Node process内の単発計測）だった。同一seed・settingsの
+再実行は既存のdeep-equal determinism regressionで確認し、Lowは最大3 targetのv0.1挙動を維持した。
+
 ### 2026-08-31 — Stage 8 sparse removable support v0.1 (experimental)
 
 工程8のAutomaticを、工程4のInside / Outside責任・region id・選択済みPattern owner patch idを
