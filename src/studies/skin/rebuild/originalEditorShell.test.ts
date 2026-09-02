@@ -251,6 +251,12 @@ assert.match(main, /Sparse Automatic \(experimental\)/,
   "Automatic must remain visibly experimental");
 assert.match(main, /Stage 8 debug（黄色=Target \/ 半透明赤=Collision route \/ 薄緑点=Bend）/,
   "Stage 8 must expose the bounded debug toggle");
+assert.match(main, /Support Amount \/ Coverage/,
+  "Stage 8 must expose the bounded support amount/coverage control");
+assert.match(main, /const supportAmountAtStart = skinRebuildSupportAmount/,
+  "Stage 8 must capture one stable amount setting for the support generation run");
+assert.match(main, /supportAmount: supportAmountAtStart/,
+  "Stage 8 must pass the captured amount setting to support generation");
 assert.match(renderer, /0xffd23f/, "Critical Target markers must remain yellow");
 assert.match(renderer, /0xff304d/, "Rejected Candidate markers must remain translucent red");
 assert.match(main, /skinRebuildPrintSupportMode === "off"[\s\S]*?createEmptySkinRebuildGraph/,

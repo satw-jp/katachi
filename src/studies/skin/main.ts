@@ -271,6 +271,7 @@ import {
   type SparseRemovableSupportDiagnostics,
   type SparseRemovableSupportResult,
   type SparseRemovableSupportTarget,
+  type SparseSupportAmount,
 } from "./rebuild/sparseRemovableSupport.ts";
 import {
   SkinRebuildShadowObserver,
@@ -1115,6 +1116,8 @@ let skinRebuildSparseSupportDebugEnabled = false;
 /** Session-only Stage 8 policy; it is intentionally absent from FKEI. */
 let skinRebuildPrintSupportMode: RemovableSupportMode = "automatic";
 let skinRebuildPrintSupportModeNeedsConfirmation = false;
+/** Session-only Stage 8 density profile; it is intentionally absent from FKEI. */
+let skinRebuildSupportAmount: SparseSupportAmount = "low";
 type InteriorClassificationDebugMode = "normal" | "debug";
 let skinRebuildInteriorClassificationDebugMode: InteriorClassificationDebugMode = "normal";
 let skinRebuildInteriorClassificationDebugStatus: HTMLElement | null = null;
@@ -1181,6 +1184,7 @@ let skinRebuildThresholdInput: HTMLInputElement | null = null;
 let skinRebuildDiameterInput: HTMLInputElement | null = null;
 let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
 let skinRebuildPrintSupportModeSelect: HTMLSelectElement | null = null;
+let skinRebuildSupportAmountSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeEdgeSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeDeleteButton: HTMLButtonElement | null = null;
 type SkinRebuildViewportSelectionMode = "pattern" | "lattice-edge";
@@ -1300,6 +1304,7 @@ type SkinRebuildWorkflowSnapshot = {
   stage8CompletedProject: SkinRebuildProject | null;
   printSupportMode: RemovableSupportMode;
   printSupportModeNeedsConfirmation: boolean;
+  supportAmount: SparseSupportAmount;
   stage6BodyMeshCache: SkinRebuildStage6BodyMeshCache | null;
   reinforcementPreview: SkinRebuildReinforcementPreview | null;
   selectedTargetPatchId: number | null;
@@ -8455,6 +8460,10 @@ function syncSkinRebuildPrintSupportModeUi(): void {
   if (skinRebuildPrintSupportModeSelect) {
     skinRebuildPrintSupportModeSelect.value = skinRebuildPrintSupportMode;
   }
+  if (skinRebuildSupportAmountSelect) {
+    skinRebuildSupportAmountSelect.value = skinRebuildSupportAmount;
+    skinRebuildSupportAmountSelect.disabled = skinRebuildPrintSupportMode === "off";
+  }
   if (skinRebuildSupportDiameterInput) {
     skinRebuildSupportDiameterInput.disabled = skinRebuildPrintSupportMode === "off";
   }
@@ -8476,7 +8485,7 @@ function skinRebuildPrintSupportModeStatus(
       ? "Off confirmed · BODY only · removable support 0"
       : "Off selected · confirm Stage 8 before BODY export"}`;
   }
-  return `Removable support Sparse Automatic (experimental) · ${responsibility} · ${evidence} · ${confirmed
+  return `Removable support Sparse Automatic (experimental) · Support Amount / Coverage ${skinRebuildSupportAmount} · ${responsibility} · ${evidence} · ${confirmed
     ? "support graph confirmed"
     : "confirm Stage 8 to generate removable support"}`;
 }
@@ -8543,6 +8552,61 @@ function applySkinRebuildPrintSupportMode(nextMode: RemovableSupportMode): void 
   );
   refreshSkinRebuildFinalStageButtons();
   if (workflowBefore) commitSkinRebuildWorkflowHistory("工程8 Removable Supportモード変更", workflowBefore);
+  render();
+}
+
+function applySkinRebuildSupportAmount(nextAmount: SparseSupportAmount): void {
+  if (nextAmount === skinRebuildSupportAmount) {
+    syncSkinRebuildPrintSupportModeUi();
+    return;
+  }
+  const workflowBefore = isSkinRebuildApp ? captureSkinRebuildWorkflowSnapshot() : null;
+  const current = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  const previousFinalized = skinRebuildFinalizedArtworkProject;
+  const previousDiagnosis = skinRebuildFinalArtworkDiagnosis;
+  cancelMeshExport(false);
+  skinRebuildSupportAmount = nextAmount;
+  skinRebuildPrintSupportModeNeedsConfirmation = true;
+  // Amount changes only Stage 8 density, so preserve the current 7.5 evidence
+  // while preventing the prior support graph from being reused.
+  syncSkinRebuildPrintSupportModeUi();
+
+  skinRebuildStage8CompletedProject = null;
+  skinRebuildSparseSupportResult = null;
+  skinRebuildExperimentalExportApproval = null;
+  skinRebuildThinStrutExperimentalExportApproval = null;
+  skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
+  if (current) {
+    const replacement: SkinRebuildProject = {
+      ...current,
+      printSupport: createEmptySkinRebuildGraph(),
+    };
+    if (skinRebuildPipeline) skinRebuildPipeline = { ...skinRebuildPipeline, project: replacement };
+    if (previousFinalized === current) skinRebuildFinalizedArtworkProject = replacement;
+    if (previousDiagnosis?.project === current) {
+      skinRebuildFinalArtworkDiagnosis = { ...previousDiagnosis, project: replacement };
+    }
+    internalStructureGraph = replacement.finalGraph;
+    skinRenderer.setInternalStructure(replacement.finalGraph);
+    skinRenderer.setPrintSupport(replacement.printSupport);
+    refreshSkinRebuildLowestPointMarkers(replacement);
+  } else {
+    skinRenderer.setPrintSupport(null);
+  }
+  invalidateInternalPrintGate("工程8のSupport Amount / Coverageが変わりました。新しい候補数で再生成してください");
+  if (skinRebuildPrintSupportStatus) {
+    skinRebuildPrintSupportStatus.textContent = skinRebuildPrintSupportModeStatus(
+      skinRebuildPipeline?.project ?? null,
+      false,
+    );
+    skinRebuildPrintSupportStatus.dataset.ok = "false";
+  }
+  setSkinRebuildMeshBottomProgress(
+    "工程8 Support Amount / Coverage変更",
+    skinRebuildPrintSupportModeStatus(skinRebuildPipeline?.project ?? null, false),
+  );
+  refreshSkinRebuildFinalStageButtons();
+  if (workflowBefore) commitSkinRebuildWorkflowHistory("工程8 Support Amount / Coverage変更", workflowBefore);
   render();
 }
 
@@ -10834,6 +10898,31 @@ function installSkinRebuildPipelinePanel(): void {
     }
   });
   supportDiameterRow.append(supportDiameter, document.createTextNode(" mm"));
+  const supportAmountRow = document.createElement("label");
+  supportAmountRow.className = "row skin-rebuild-pipeline-setting";
+  supportAmountRow.append(document.createTextNode("Support Amount / Coverage "));
+  const supportAmount = document.createElement("select");
+  supportAmount.setAttribute("aria-label", "Support Amount / Coverage");
+  for (const [value, label] of [
+    ["low", "Low · sparse"],
+    ["medium", "Medium · balanced"],
+    ["high", "High · more coverage"],
+  ] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    supportAmount.append(option);
+  }
+  supportAmount.value = skinRebuildSupportAmount;
+  supportAmount.addEventListener("change", () => {
+    const nextAmount = supportAmount.value;
+    if (nextAmount !== "low" && nextAmount !== "medium" && nextAmount !== "high") {
+      syncSkinRebuildPrintSupportModeUi();
+      return;
+    }
+    applySkinRebuildSupportAmount(nextAmount);
+  });
+  supportAmountRow.append(supportAmount, document.createTextNode("（同じOutside region内の候補量）"));
   const printSupportButton = document.createElement("button");
   printSupportButton.type = "button";
   printSupportButton.className = "primary-action";
@@ -10851,6 +10940,7 @@ function installSkinRebuildPipelinePanel(): void {
       return;
     }
     const modeAtStart = skinRebuildPrintSupportMode;
+    const supportAmountAtStart = skinRebuildSupportAmount;
     const responsibilityOverhang = pipeline.responsibilityOverhang;
     const artworkInteriorCheckpoint = skinRebuildArtworkInteriorClassificationCheckpoint;
     const combinedPresentationAtStart = skinRebuildStage7DangerPresentationState?.diagnosis === diagnosis
@@ -10928,6 +11018,7 @@ function installSkinRebuildPipelinePanel(): void {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     try {
       if (skinRebuildPrintSupportMode !== modeAtStart
+        || skinRebuildSupportAmount !== supportAmountAtStart
         || skinRebuildPipeline !== pipeline
         || pipeline.project !== current
         || (modeAtStart === "automatic" && (combinedExperimentalAtStart
@@ -11020,6 +11111,7 @@ function installSkinRebuildPipelinePanel(): void {
             maximumOverlapLength: targetRadius + shaftRadius * 2,
             maximumDepth: targetRadius + shaftRadius * 2,
             plateBounds,
+            supportAmount: supportAmountAtStart,
             preserveContactNeck: combinedExperimentalAtStart,
             spacingAsSelectionPreference: combinedExperimentalAtStart,
             // The current SKIN workflow stores the plate's Z only; the BODY
@@ -11109,7 +11201,7 @@ function installSkinRebuildPipelinePanel(): void {
         const sparseDiagnostics = skinRebuildSparseSupportResult?.diagnostics;
         const responsibilityText = `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Stage 8 Surface targets Outside ${outsideSupportDemand} / Inside-derived 0${insideSupportDemand > 0 ? `（Inside ${insideSupportDemand}点は意図的にPermanent Web責任）` : ""}`;
         const sparseStatus = sparseDiagnostics
-          ? `${combinedExperimentalAtStart ? "OFFSET-BEND 6.5+7" : "Outside"} regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
+          ? `Support Amount / Coverage ${sparseDiagnostics.supportAmount} · ${combinedExperimentalAtStart ? "OFFSET-BEND 6.5+7" : "Outside"} regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
           : "Outside regions 0 / Critical targets 0 / Supported 0 / Unsupported 0 / Supports 0 / rejected BODY 0 / spacing 0 / removable 0";
         const unresolvedWarning = (sparseDiagnostics?.unsupportedTargetCount ?? 0) > 0
           ? ` · ${sparseDiagnostics!.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`
@@ -11142,7 +11234,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildFinalStageButtons();
     }
   };
-  printSupport.section.append(supportModeRow, sparseDebugRow, supportDiameterRow, printSupportButton, printSupport.status);
+  printSupport.section.append(supportModeRow, sparseDebugRow, supportDiameterRow, supportAmountRow, printSupportButton, printSupport.status);
 
   const stage8Export = makeStep(
     "サポート確定後の3Dデータ書き出し",
@@ -11390,6 +11482,7 @@ function installSkinRebuildPipelinePanel(): void {
   skinRebuildDiameterInput = diameter;
   skinRebuildSupportDiameterInput = supportDiameter;
   skinRebuildPrintSupportModeSelect = supportMode;
+  skinRebuildSupportAmountSelect = supportAmount;
   syncSkinRebuildPrintSupportModeUi();
   skinRebuildLatticeEdgeSelect = latticeEdgeSelect;
   skinRebuildLatticeDeleteButton = latticeDeleteButton;
@@ -13654,6 +13747,7 @@ function captureSkinRebuildWorkflowSnapshot(): SkinRebuildWorkflowSnapshot {
     stage8CompletedProject: skinRebuildStage8CompletedProject,
     printSupportMode: skinRebuildPrintSupportMode,
     printSupportModeNeedsConfirmation: skinRebuildPrintSupportModeNeedsConfirmation,
+    supportAmount: skinRebuildSupportAmount,
     stage6BodyMeshCache,
     reinforcementPreview: skinRebuildReinforcementPreview
       ? { graph: skinRebuildReinforcementPreview.graph, edgeIds: [...skinRebuildReinforcementPreview.edgeIds] }
@@ -13687,6 +13781,7 @@ function skinRebuildWorkflowSnapshotChanged(
     || before.stage8CompletedProject !== after.stage8CompletedProject
     || before.printSupportMode !== after.printSupportMode
     || before.printSupportModeNeedsConfirmation !== after.printSupportModeNeedsConfirmation
+    || before.supportAmount !== after.supportAmount
     || before.stage6BodyMeshCache !== after.stage6BodyMeshCache
     || before.reinforcementPreview?.graph !== after.reinforcementPreview?.graph;
 }
@@ -13736,6 +13831,7 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
   skinRebuildPrintSupportMode = snapshot.printSupportMode;
   skinRebuildPrintSupportModeNeedsConfirmation = snapshot.printSupportModeNeedsConfirmation;
+  skinRebuildSupportAmount = snapshot.supportAmount;
   syncSkinRebuildPrintSupportModeUi();
   stage6BodyMeshCache = snapshot.stage6BodyMeshCache;
   skinRebuildSelectedTargetPatchId = snapshot.selectedTargetPatchId;
