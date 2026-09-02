@@ -143,21 +143,33 @@ export function createNetworkFormationThicknessProfile(
   const diagonal = Number.isFinite(min.x)
     ? Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z)
     : 1;
-  const localityScale = Math.max(0.001, diagonal * 0.18);
-  const edgeWeightById = new Map<number, number>();
-  for (let index = 0; index < graph.edges.length; index++) {
-    const edge = graph.edges[index];
-    const startDegree = degree[edge.start] ?? 0;
-    const endDegree = degree[edge.end] ?? 0;
-    let localBundle = 0;
+  const localityScale = Math.max(0.001, diagonal * 0.012);
+  const localBundleRaw: number[] = [];
+  for (let index = 0; index < midpoints.length; index++) {
+    const distances: number[] = [];
     for (let other = 0; other < midpoints.length; other++) {
       if (other === index) continue;
       const dx = midpoints[index].x - midpoints[other].x;
       const dy = midpoints[index].y - midpoints[other].y;
       const dz = midpoints[index].z - midpoints[other].z;
-      localBundle += Math.exp(-(dx * dx + dy * dy + dz * dz) / (localityScale * localityScale));
+      distances.push(Math.hypot(dx, dy, dz));
     }
-    const localBundleNormalized = Math.min(1, localBundle / 6);
+    distances.sort((left, right) => left - right);
+    localBundleRaw.push(distances.slice(0, 8).reduce(
+      (sum, distance) => sum + 1 / Math.max(localityScale, distance),
+      0,
+    ));
+  }
+  const sortedBundleRaw = [...localBundleRaw].sort((left, right) => left - right);
+  const bundleLow = sortedBundleRaw[Math.floor(sortedBundleRaw.length * 0.1)] ?? 0;
+  const bundleHigh = sortedBundleRaw[Math.floor(sortedBundleRaw.length * 0.9)] ?? bundleLow + 1;
+  const bundleRange = Math.max(0.0001, bundleHigh - bundleLow);
+  const edgeWeightById = new Map<number, number>();
+  for (let index = 0; index < graph.edges.length; index++) {
+    const edge = graph.edges[index];
+    const startDegree = degree[edge.start] ?? 0;
+    const endDegree = degree[edge.end] ?? 0;
+    const localBundleNormalized = Math.max(0, Math.min(1, (localBundleRaw[index] - bundleLow) / bundleRange));
     const junction = (startDegree + endDegree) / (2 * maxDegree);
     edgeWeightById.set(edge.id, 0.42 + junction * 0.62 + localBundleNormalized * 1.65);
   }
