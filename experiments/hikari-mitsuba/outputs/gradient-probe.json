@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "variant": "cuda_ad_rgb",
+  "parameter": {
+    "sceneKey": "host.vertex_positions",
+    "kind": "one uniform scale delta applied to the exported Hikari mesh",
+    "vertexScalarCount": 93024,
+    "deltaFraction": 0.01
+  },
+  "target": "positive receiver-coupling proxy × exported mesh second moment (not a rendered image target)",
+  "receiverCouplingProxy": 1.0438648637165962e-05,
+  "adGradient": 0.007835472002625465,
+  "finiteDifference": {
+    "minus": 0.0038397733587771654,
+    "baseline": 0.00391773646697402,
+    "plus": 0.0039964825846254826,
+    "centralSlope": 0.007835461292415857,
+    "direction": "positive"
+  },
+  "directionAgreement": true,
+  "rendererGradient": "not claimed: this installed wheel exposes no prb_reparam/plugin for visibility-aware mesh-image derivatives",
+  "note": "This is a bounded Dr.Jit geometry-proxy feasibility probe, not an optimizer and not a production Hikari control."
+}
