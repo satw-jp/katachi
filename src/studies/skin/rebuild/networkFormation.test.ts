@@ -5,9 +5,11 @@ import {
   NETWORK_FORMATION_DURATION_MS,
   NETWORK_FORMATION_VARIANTS,
   REPRESENTATIVE_NETWORK_FORMATION_ID,
+  createNetworkFormationThicknessProfile,
   createRepresentativeNetworkFormationTimeline,
   createNetworkFormationTimeline,
   networkFormationGraphAt,
+  networkFormationPresentationStage,
   type NetworkFormationVariantId,
 } from "./networkFormation.ts";
 
@@ -114,6 +116,16 @@ assert.deepEqual(
   representativeTimeline,
   "representative formation planning must be deterministic",
 );
+assert.equal(networkFormationPresentationStage("trace", 0), "base");
+assert.equal(networkFormationPresentationStage("trace", 2_800), "motifs");
+assert.equal(networkFormationPresentationStage("trace", 5_400), "network");
+assert.equal(networkFormationPresentationStage("radial-bloom", 0), "network");
+const thicknessProfile = createNetworkFormationThicknessProfile(graph);
+assert.equal(thicknessProfile.edgeWeightById.size, graph.edges.length);
+assert.equal(thicknessProfile.nodeWeightById.size, graph.nodes.length);
+assert.ok([...thicknessProfile.edgeWeightById.values()].every((weight) => weight > 0));
+assert.ok([...thicknessProfile.nodeWeightById.values()].every((weight) => weight > 0));
+assert.equal(JSON.stringify(graph), originalJson, "thickness reading must not mutate the completed graph");
 assert.equal(timeline.durationMs, NETWORK_FORMATION_DURATION_MS);
 assert.ok(timeline.durationMs >= 10_000 && timeline.durationMs <= 15_000);
 assert.deepEqual([...timeline.edgeOrder].sort((a, b) => a - b), graph.edges.map((_, index) => index));

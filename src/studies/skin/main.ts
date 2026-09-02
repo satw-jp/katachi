@@ -266,14 +266,17 @@ import {
   DEFAULT_NETWORK_FORMATION_VARIANT_ID,
   NETWORK_FORMATION_CHAPTER_LABELS,
   NETWORK_FORMATION_ARTWORK_ORDER,
-  NETWORK_FORMATION_VARIANTS,
   REPRESENTATIVE_NETWORK_FORMATION_ID,
+  createNetworkFormationThicknessProfile,
   createRepresentativeNetworkFormationTimeline,
   createNetworkFormationTimeline,
   isNetworkFormationVariantId,
   networkFormationGraphAt,
+  networkFormationPresentationStage,
   networkFormationVariant,
   type NetworkFormationEvent,
+  type NetworkFormationPresentationStage,
+  type NetworkFormationThicknessProfile,
   type NetworkFormationTimeline,
   type NetworkFormationTimelineId,
 } from "./rebuild/networkFormation.ts";
@@ -2709,10 +2712,13 @@ type NetworkFormationSession = {
   readonly variantLabel: string;
   readonly graph: InternalStructureGraph;
   readonly timeline: NetworkFormationTimeline;
+  readonly thicknessProfile: NetworkFormationThicknessProfile | null;
   readonly viewDraft: ReturnType<SkinRenderer["captureEditorViewDraft"]>;
   readonly terminalLines: string[];
   startedAt: number;
   eventIndex: number;
+  visibleEdgeCount: number;
+  traceStage: NetworkFormationPresentationStage;
   frameId: number;
 };
 
@@ -2720,16 +2726,57 @@ let skinArtUiShellController: SkinArtUiShellController | null = null;
 let networkFormationSession: NetworkFormationSession | null = null;
 let nextNetworkFormationSessionId = 1;
 
+function applyNetworkFormationTraceStage(
+  session: NetworkFormationSession,
+  stage: NetworkFormationPresentationStage,
+  force = false,
+): void {
+  if (!force && session.traceStage === stage) return;
+  session.traceStage = stage;
+  skinRenderer.setNetworkFormationTraceStage(stage, state.host, state.patches);
+  if (stage === "network") {
+    skinRenderer.setNetworkFormationGraph(
+      networkFormationGraphAt(session.graph, session.timeline.edgeOrder, session.visibleEdgeCount),
+      session.thicknessProfile ?? undefined,
+      session.graph.edges.length > 0 ? session.visibleEdgeCount / session.graph.edges.length : 1,
+    );
+  } else {
+    skinRenderer.setNetworkFormationGraph(null);
+    skinRenderer.setNetworkFormationProposal(null, null);
+  }
+  const stageLines = stage === "base"
+    ? ["BASE SHAPE", "HOST VOLUME READ / SOURCE FIELD"]
+    : stage === "motifs"
+      ? ["SURFACE MOTIFS", `${state.patches.length} AUTHORED MOTIF GROUPS / SURFACE LAYER`]
+      : ["INTERNAL NETWORK", "COMPLETED GRAPH / CONNECTION FRONT"];
+  session.terminalLines.push("", ...stageLines);
+  if (session.terminalLines.length > 32) {
+    session.terminalLines.splice(0, session.terminalLines.length - 32);
+  }
+  skinRenderer.setNetworkFormationTerminal(session.terminalLines);
+  skinArtUiShellController?.setNetworkFormationState(
+    "running",
+    stage === "base" ? "TRACE / BASE SHAPE" : stage === "motifs" ? "TRACE / SURFACE MOTIFS" : "TRACE / INTERNAL NETWORK",
+    `${session.visibleEdgeCount} / ${session.graph.edges.length} EDGES`,
+    session.variantLabel,
+    session.variantId === REPRESENTATIVE_NETWORK_FORMATION_ID ? undefined : session.variantId,
+  );
+}
+
 function applyNetworkFormationEvent(
   session: NetworkFormationSession,
   event: NetworkFormationEvent,
 ): void {
+  session.visibleEdgeCount = event.visibleEdgeCount;
+  const networkVisible = session.variantId !== "trace" || session.traceStage === "network";
   if (event.kind === "reset" || event.kind === "accept" || event.kind === "stable") {
-    skinRenderer.setNetworkFormationGraph(networkFormationGraphAt(
-      session.graph,
-      session.timeline.edgeOrder,
-      event.visibleEdgeCount,
-    ));
+    skinRenderer.setNetworkFormationGraph(
+      networkVisible
+        ? networkFormationGraphAt(session.graph, session.timeline.edgeOrder, event.visibleEdgeCount)
+        : null,
+      session.thicknessProfile ?? undefined,
+      session.graph.edges.length > 0 ? event.visibleEdgeCount / session.graph.edges.length : 1,
+    );
   }
 
   session.terminalLines.push("", ...event.terminalLines);
@@ -2738,7 +2785,7 @@ function applyNetworkFormationEvent(
   }
   skinRenderer.setNetworkFormationTerminal(session.terminalLines);
 
-  if ((event.kind === "propose" || event.kind === "evaluate" || event.kind === "reject" || event.kind === "revise") && event.proposal) {
+  if (networkVisible && (event.kind === "propose" || event.kind === "evaluate" || event.kind === "reject" || event.kind === "revise") && event.proposal) {
     skinRenderer.setNetworkFormationProposal(
       session.graph,
       event.proposal,
@@ -2757,7 +2804,9 @@ function applyNetworkFormationEvent(
   }
 
   const progress = `${event.visibleEdgeCount} / ${session.graph.edges.length} EDGES`;
-  const chapterLabel = event.chapter
+  const chapterLabel = session.variantId === "trace" && session.traceStage !== "network"
+    ? session.traceStage === "base" ? "BASE SHAPE" : "SURFACE MOTIFS"
+    : event.chapter
     ? NETWORK_FORMATION_CHAPTER_LABELS[event.chapter]
     : session.variantLabel;
   if (event.kind === "stable") {
@@ -2766,6 +2815,7 @@ function applyNetworkFormationEvent(
       "NETWORK STABLE",
       "COMPLETED GRAPH MATCHED",
       session.variantLabel,
+      session.variantId === REPRESENTATIVE_NETWORK_FORMATION_ID ? undefined : session.variantId,
     );
   } else {
     const status = event.kind === "reject"
@@ -2777,7 +2827,13 @@ function applyNetworkFormationEvent(
           : event.kind === "propose"
             ? "ROUTE PROPOSAL"
             : "NETWORK FORMATION";
-    skinArtUiShellController?.setNetworkFormationState("running", status, progress, chapterLabel);
+    skinArtUiShellController?.setNetworkFormationState(
+      "running",
+      status,
+      progress,
+      chapterLabel,
+      session.variantId === REPRESENTATIVE_NETWORK_FORMATION_ID ? undefined : session.variantId,
+    );
   }
 }
 
@@ -2797,6 +2853,10 @@ function runNetworkFormationFrame(sessionId: number, now: number): void {
     return;
   }
   const elapsed = now - session.startedAt;
+  applyNetworkFormationTraceStage(
+    session,
+    networkFormationPresentationStage(session.variantId, elapsed),
+  );
   while (session.eventIndex < session.timeline.events.length) {
     const event = session.timeline.events[session.eventIndex];
     if (event.atMs > elapsed) break;
@@ -2842,10 +2902,15 @@ function startNetworkFormation(requestedVariantId?: string): void {
     variantLabel,
     graph,
     timeline,
+    thicknessProfile: variantId === "thickness-hierarchy"
+      ? createNetworkFormationThicknessProfile(graph)
+      : null,
     viewDraft,
     terminalLines: [],
     startedAt: performance.now(),
     eventIndex: 0,
+    visibleEdgeCount: 0,
+    traceStage: "network",
     frameId: 0,
   };
   networkFormationSession = session;
@@ -2855,12 +2920,14 @@ function startNetworkFormation(requestedVariantId?: string): void {
       "NETWORK FORMATION",
       `0 / ${graph.edges.length} EDGES`,
       variantLabel,
+      variantId === REPRESENTATIVE_NETWORK_FORMATION_ID ? undefined : variantId,
     );
     skinRenderer.setViewportMode("one");
     skinRenderer.beginNetworkFormationPresentation();
     skinRenderer.frameNetworkFormationGraph(graph);
     applyNetworkFormationEvent(session, timeline.events[0]);
     session.eventIndex = 1;
+    if (variantId === "trace") applyNetworkFormationTraceStage(session, "base", true);
     scheduleNetworkFormationFrame(session);
   } catch (error) {
     exitNetworkFormation();
@@ -2891,7 +2958,7 @@ if (isSkinRebuildApp) {
     viewport,
     version: manifest.version,
     updatedAt: manifest.updatedAt,
-    networkFormationStudies: NETWORK_FORMATION_VARIANTS,
+    networkFormationStudies: NETWORK_FORMATION_ARTWORK_ORDER.map((id) => networkFormationVariant(id)),
     initialNetworkFormationStudyId: DEFAULT_NETWORK_FORMATION_VARIANT_ID,
     onNetworkFormationRequest: startNetworkFormation,
     onNetworkFormationReplay: () => startNetworkFormation(

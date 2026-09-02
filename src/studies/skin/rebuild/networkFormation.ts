@@ -5,6 +5,14 @@ import type {
 
 export const NETWORK_FORMATION_DURATION_MS = 12_400;
 
+/** TRACE has a short authored sequence before it enters the shared network
+ * traversal. These are presentation clocks only; the source field and graph
+ * remain unchanged throughout. */
+export const NETWORK_FORMATION_TRACE_BASE_DURATION_MS = 2_800;
+export const NETWORK_FORMATION_TRACE_MOTIFS_DURATION_MS = 2_600;
+
+export type NetworkFormationPresentationStage = "base" | "motifs" | "network";
+
 export const NETWORK_FORMATION_VARIANT_IDS = [
   "trace",
   "radial-bloom",
@@ -85,6 +93,79 @@ export function networkFormationVariant(
   id: NetworkFormationVariantId,
 ): NetworkFormationVariantOption {
   return NETWORK_FORMATION_VARIANTS.find((candidate) => candidate.id === id)!;
+}
+
+export function networkFormationPresentationStage(
+  variantId: NetworkFormationTimelineId,
+  elapsedMs: number,
+): NetworkFormationPresentationStage {
+  if (variantId !== "trace") return "network";
+  if (elapsedMs < NETWORK_FORMATION_TRACE_BASE_DURATION_MS) return "base";
+  if (elapsedMs < NETWORK_FORMATION_TRACE_BASE_DURATION_MS + NETWORK_FORMATION_TRACE_MOTIFS_DURATION_MS) return "motifs";
+  return "network";
+}
+
+export interface NetworkFormationThicknessProfile {
+  readonly edgeWeightById: ReadonlyMap<number, number>;
+  readonly nodeWeightById: ReadonlyMap<number, number>;
+}
+
+/** Read the completed graph as a display-only density field. Endpoint degree
+ * exposes junctions while midpoint proximity exposes local bundles. This is
+ * intentionally kept beside the traversal code so it cannot feed generation,
+ * validation, save, or export. */
+export function createNetworkFormationThicknessProfile(
+  graph: InternalStructureGraph,
+): NetworkFormationThicknessProfile {
+  const degree = Array.from({ length: graph.nodes.length }, () => 0);
+  for (const edge of graph.edges) {
+    if (degree[edge.start] !== undefined) degree[edge.start]++;
+    if (degree[edge.end] !== undefined) degree[edge.end]++;
+  }
+  const maxDegree = Math.max(1, ...degree);
+  const midpoints = graph.edges.map((edge) => {
+    const start = graph.nodes[edge.start]?.position;
+    const end = graph.nodes[edge.end]?.position;
+    return start && end
+      ? { x: (start.x + end.x) * 0.5, y: (start.y + end.y) * 0.5, z: (start.z + end.z) * 0.5 }
+      : { x: 0, y: 0, z: 0 };
+  });
+  const min = { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY, z: Number.POSITIVE_INFINITY };
+  const max = { x: Number.NEGATIVE_INFINITY, y: Number.NEGATIVE_INFINITY, z: Number.NEGATIVE_INFINITY };
+  for (const node of graph.nodes) {
+    min.x = Math.min(min.x, node.position.x);
+    min.y = Math.min(min.y, node.position.y);
+    min.z = Math.min(min.z, node.position.z);
+    max.x = Math.max(max.x, node.position.x);
+    max.y = Math.max(max.y, node.position.y);
+    max.z = Math.max(max.z, node.position.z);
+  }
+  const diagonal = Number.isFinite(min.x)
+    ? Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z)
+    : 1;
+  const localityScale = Math.max(0.001, diagonal * 0.18);
+  const edgeWeightById = new Map<number, number>();
+  for (let index = 0; index < graph.edges.length; index++) {
+    const edge = graph.edges[index];
+    const startDegree = degree[edge.start] ?? 0;
+    const endDegree = degree[edge.end] ?? 0;
+    let localBundle = 0;
+    for (let other = 0; other < midpoints.length; other++) {
+      if (other === index) continue;
+      const dx = midpoints[index].x - midpoints[other].x;
+      const dy = midpoints[index].y - midpoints[other].y;
+      const dz = midpoints[index].z - midpoints[other].z;
+      localBundle += Math.exp(-(dx * dx + dy * dy + dz * dz) / (localityScale * localityScale));
+    }
+    const localBundleNormalized = Math.min(1, localBundle / 6);
+    const junction = (startDegree + endDegree) / (2 * maxDegree);
+    edgeWeightById.set(edge.id, 0.42 + junction * 0.62 + localBundleNormalized * 1.65);
+  }
+  const nodeWeightById = new Map<number, number>();
+  for (let index = 0; index < graph.nodes.length; index++) {
+    nodeWeightById.set(graph.nodes[index].id, 0.72 + (degree[index] ?? 0) / maxDegree * 2.1);
+  }
+  return { edgeWeightById, nodeWeightById };
 }
 
 export type NetworkFormationEventKind = "reset" | "accept" | "propose" | "evaluate" | "reject" | "revise" | "stable";

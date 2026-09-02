@@ -296,6 +296,11 @@ const SUPPORT_MARKER_FRAGMENT_SHADER = /* glsl */ `
 `;
 
 
+interface NetworkFormationThicknessPresentationProfile {
+  readonly edgeWeightById: ReadonlyMap<number, number>;
+  readonly nodeWeightById: ReadonlyMap<number, number>;
+}
+
 export class SkinRenderer {
   readonly scene = new THREE.Scene();
   readonly renderer: THREE.WebGLRenderer;
@@ -472,6 +477,27 @@ export class SkinRenderer {
     depthWrite: false,
     toneMapped: false,
   });
+  /** TRACE's first two movements are display-only readings of the actual
+   * host/motif source arrays. Wire spheres keep the established fine-line
+   * language while making the order legible before the graph arrives. */
+  private readonly networkFormationTraceBaseMaterial = new THREE.MeshBasicMaterial({
+    color: 0xdbead4,
+    transparent: true,
+    opacity: 0.34,
+    wireframe: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private readonly networkFormationTraceMotifMaterial = new THREE.MeshBasicMaterial({
+    color: 0xe8d56b,
+    transparent: true,
+    opacity: 0.82,
+    wireframe: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
   private readonly printSupportMaterial = new THREE.MeshStandardMaterial({
     color: 0xd9823f,
     roughness: 0.86,
@@ -526,6 +552,9 @@ export class SkinRenderer {
   private networkFormationEdgeMesh: THREE.InstancedMesh | null = null;
   private networkFormationProposalMesh: THREE.Mesh | null = null;
   private networkFormationTerminalSprite: THREE.Sprite | null = null;
+  private networkFormationTraceGroup: THREE.Group | null = null;
+  private networkFormationTraceBaseMesh: THREE.InstancedMesh | null = null;
+  private networkFormationTraceMotifMesh: THREE.InstancedMesh | null = null;
   private readonly networkFormationHiddenObjects = new Map<THREE.Object3D, boolean>();
   private networkFormationPreviousClear: { color: THREE.Color; alpha: number } | null = null;
   private networkFormationPreviousOrbitEnabled: boolean | null = null;
@@ -2268,6 +2297,83 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
+  /** Show the real SKIN source layers during TRACE. The meshes created here
+   * are ephemeral presentation geometry; the source arrays are only read and
+   * are never fed back into the editor or export path. */
+  setNetworkFormationTraceStage(
+    stage: "base" | "motifs" | "network",
+    host: readonly Ball[],
+    patches: readonly Patch[],
+  ): void {
+    if (!this.networkFormationTraceGroup) {
+      this.networkFormationTraceGroup = new THREE.Group();
+      this.networkFormationTraceGroup.name = "skin-network-formation-trace-layers";
+      this.networkFormationTraceGroup.position.z = this.phaseAObjectLiftSource;
+      this.networkFormationGroup.add(this.networkFormationTraceGroup);
+    }
+    this.networkFormationTraceGroup.visible = stage !== "network";
+    if (stage === "network") {
+      this.requestViewportRender();
+      return;
+    }
+
+    if (this.networkFormationTraceBaseMesh) {
+      this.networkFormationTraceGroup.remove(this.networkFormationTraceBaseMesh);
+      this.networkFormationTraceBaseMesh.dispose();
+      this.networkFormationTraceBaseMesh = null;
+    }
+    if (this.networkFormationTraceMotifMesh) {
+      this.networkFormationTraceGroup.remove(this.networkFormationTraceMotifMesh);
+      this.networkFormationTraceMotifMesh.dispose();
+      this.networkFormationTraceMotifMesh = null;
+    }
+
+    if (host.length > 0) {
+      const baseMesh = new THREE.InstancedMesh(
+        this.internalNodeGeometry,
+        this.networkFormationTraceBaseMaterial,
+        host.length,
+      );
+      const matrix = new THREE.Matrix4();
+      for (let index = 0; index < host.length; index++) {
+        const ball = host[index];
+        matrix.makeScale(ball.r, ball.r, ball.r).setPosition(ball.x, ball.y, ball.z);
+        baseMesh.setMatrixAt(index, matrix);
+      }
+      baseMesh.instanceMatrix.needsUpdate = true;
+      baseMesh.renderOrder = 5;
+      baseMesh.name = "skin-network-formation-trace-base-shape";
+      this.networkFormationTraceGroup.add(baseMesh);
+      this.networkFormationTraceBaseMesh = baseMesh;
+    }
+
+    if (stage === "motifs") {
+      const points = patches.flatMap((patch) => patch.points);
+      if (points.length > 0) {
+        const motifMesh = new THREE.InstancedMesh(
+          this.internalNodeGeometry,
+          this.networkFormationTraceMotifMaterial,
+          points.length,
+        );
+        const matrix = new THREE.Matrix4();
+        for (let index = 0; index < points.length; index++) {
+          const point = points[index];
+          const radius = Math.max(0.012, point.r * 0.82);
+          matrix.makeScale(radius, radius, radius).setPosition(point.x, point.y, point.z);
+          motifMesh.setMatrixAt(index, matrix);
+        }
+        motifMesh.instanceMatrix.needsUpdate = true;
+        motifMesh.renderOrder = 6;
+        motifMesh.name = "skin-network-formation-trace-surface-motifs";
+        this.networkFormationTraceGroup.add(motifMesh);
+        this.networkFormationTraceMotifMesh = motifMesh;
+      }
+    }
+    this.networkFormationTraceBaseMaterial.opacity = stage === "base" ? 0.42 : 0.2;
+    this.networkFormationTraceMotifMaterial.opacity = 0.86;
+    this.requestViewportRender();
+  }
+
   /** Fit the completed graph into the temporary one-view presentation camera.
    * The ordinary editor pose is captured/restored by the caller; this method
    * only reframes that temporary camera and never changes graph/runtime data. */
@@ -2333,7 +2439,28 @@ export class SkinRenderer {
     }
   }
 
-  setNetworkFormationGraph(graph: InternalStructureGraph | null): void {
+  private disposeNetworkFormationTracePresentation(): void {
+    if (this.networkFormationTraceBaseMesh) {
+      this.networkFormationTraceGroup?.remove(this.networkFormationTraceBaseMesh);
+      this.networkFormationTraceBaseMesh.dispose();
+      this.networkFormationTraceBaseMesh = null;
+    }
+    if (this.networkFormationTraceMotifMesh) {
+      this.networkFormationTraceGroup?.remove(this.networkFormationTraceMotifMesh);
+      this.networkFormationTraceMotifMesh.dispose();
+      this.networkFormationTraceMotifMesh = null;
+    }
+    if (this.networkFormationTraceGroup) {
+      this.networkFormationGroup.remove(this.networkFormationTraceGroup);
+      this.networkFormationTraceGroup = null;
+    }
+  }
+
+  setNetworkFormationGraph(
+    graph: InternalStructureGraph | null,
+    thicknessProfile?: NetworkFormationThicknessPresentationProfile,
+    thicknessProgress = 1,
+  ): void {
     this.disposeNetworkFormationGraph();
     if (!graph || graph.edges.length === 0) {
       this.requestViewportRender();
@@ -2349,7 +2476,11 @@ export class SkinRenderer {
       const matrix = new THREE.Matrix4();
       for (let index = 0; index < graph.nodes.length; index++) {
         const node = graph.nodes[index];
-        matrix.makeScale(node.radius, node.radius, node.radius)
+        const densityWeight = thicknessProfile?.nodeWeightById.get(node.id) ?? 1;
+        const densityScale = thicknessProfile
+          ? THREE.MathUtils.lerp(0.62, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
+          : 1;
+        matrix.makeScale(node.radius * densityScale, node.radius * densityScale, node.radius * densityScale)
           .setPosition(node.position.x, node.position.y, node.position.z);
         nodeMesh.setMatrixAt(index, matrix);
       }
@@ -2381,7 +2512,11 @@ export class SkinRenderer {
       if (!(length > 0)) continue;
       midpoint.set((start.x + end.x) * 0.5, (start.y + end.y) * 0.5, (start.z + end.z) * 0.5);
       rotation.setFromUnitVectors(yAxis, direction.normalize());
-      matrix.compose(midpoint, rotation, new THREE.Vector3(edge.radius, length, edge.radius));
+      const densityWeight = thicknessProfile?.edgeWeightById.get(edge.id) ?? 1;
+      const densityScale = thicknessProfile
+        ? THREE.MathUtils.lerp(0.24, densityWeight, THREE.MathUtils.clamp(thicknessProgress, 0, 1))
+        : 1;
+      matrix.compose(midpoint, rotation, new THREE.Vector3(edge.radius * densityScale, length, edge.radius * densityScale));
       edgeMesh.setMatrixAt(index, matrix);
     }
     edgeMesh.instanceMatrix.needsUpdate = true;
@@ -2502,6 +2637,7 @@ export class SkinRenderer {
     if (!this.networkFormationActive) return;
     this.networkFormationActive = false;
     this.disposeNetworkFormationGraph();
+    this.disposeNetworkFormationTracePresentation();
     this.setNetworkFormationProposal(null, null);
     this.setNetworkFormationTerminal([]);
     this.networkFormationGroup.visible = false;
