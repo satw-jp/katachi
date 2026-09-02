@@ -92,6 +92,7 @@ import type {
 } from "./riskDrivenInternalLattice.ts";
 import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 import { normalizedScreenRect, screenTriangleIntersectsRect } from "./rebuild/screenRectSelection.ts";
+import type { SkinViewportOverlay } from "./viewportMode.ts";
 import type { InteriorClassificationDebugMarker } from "./rebuild/interiorClassificationPresentation.ts";
 import type { SparseRemovableSupportDebug } from "./rebuild/sparseRemovableSupport.ts";
 
@@ -436,6 +437,12 @@ export class SkinRenderer {
   } | null = null;
   private readonly denseSampleAtlas: HTMLImageElement;
   private viewMode: SkinViewMode = "raymarch";
+  /** Task F only gates existing presentation groups; it does not create a
+   * second geometry or diagnostic pipeline. */
+  private viewportOverlaySeparationEnabled = false;
+  private viewportOverlay: SkinViewportOverlay = "none";
+  private viewportOverlayAvailable = true;
+  private skinRebuildOverhangOverlayKind: "insideOutside" | "printRisk" | null = null;
   private displayStyle: SkinDisplayStyle = "solid";
   private internalObservationMode: InternalObservationMode = "normal";
   private readonly internalNodeGeometry = new THREE.SphereGeometry(1, 12, 8);
@@ -1583,6 +1590,22 @@ export class SkinRenderer {
     return this.viewMode;
   }
 
+  setViewportOverlay(overlay: SkinViewportOverlay, available = true): void {
+    const changed = !this.viewportOverlaySeparationEnabled
+      || this.viewportOverlay !== overlay
+      || this.viewportOverlayAvailable !== available;
+    this.viewportOverlaySeparationEnabled = true;
+    this.viewportOverlay = overlay;
+    this.viewportOverlayAvailable = available;
+    if (!changed) return;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  getViewportOverlay(): SkinViewportOverlay {
+    return this.viewportOverlay;
+  }
+
   private disposeArtworkGraphOverlay(): void {
     if (!this.artworkGraphOverlayGroup) return;
     this.scene.remove(this.artworkGraphOverlayGroup);
@@ -1914,7 +1937,7 @@ export class SkinRenderer {
    * Checkpoint 1 ranking overlay and never changes the field/history. */
   setRiskDrivenPermanentLatticeOverlay(artifact: FkeiRiskDrivenLatticeArtifact, enabled: boolean): void {
     this.disposeRiskDrivenPermanentLatticeOverlay();
-    if (!enabled) { this.requestViewportRender(); return; }
+    if (!enabled) { this.applyLayerVisibility(); this.requestViewportRender(); return; }
     const group = new THREE.Group(); group.name = "risk-driven-permanent-lattice-v0";
     const linePositions: number[] = [];
     for (const edge of artifact.graph.edges) {
@@ -1928,11 +1951,17 @@ export class SkinRenderer {
     for (const node of artifact.graph.nodes) { positions.push(node.position.x, node.position.y, node.position.z); const color = roleColor[node.role]; colors.push(color.r, color.g, color.b); }
     points.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3)); points.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     group.add(new THREE.Points(points, new THREE.PointsMaterial({ size: Math.max(0.016, artifact.graph.nodes[0]?.radius ?? 0.02), vertexColors: true, depthTest: false, sizeAttenuation: true })));
-    group.position.z = this.phaseAObjectLiftSource; this.scene.add(group); this.riskDrivenPermanentLatticeGroup = group; this.requestViewportRender();
+    group.position.z = this.phaseAObjectLiftSource;
+    this.scene.add(group);
+    this.riskDrivenPermanentLatticeGroup = group;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   clearRiskDrivenPermanentLatticeOverlay(): void {
-    this.disposeRiskDrivenPermanentLatticeOverlay(); this.requestViewportRender();
+    this.disposeRiskDrivenPermanentLatticeOverlay();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   private disposeDryWebContactFloorOverlay(): void {
@@ -2144,6 +2173,10 @@ export class SkinRenderer {
     const visibility = deriveSkinLayerVisibility(
       this.viewMode, this.internalObservationMode, this.denseSampleActive,
     );
+    const separated = this.viewportOverlaySeparationEnabled;
+    const overlayIs = (overlay: SkinViewportOverlay): boolean => !separated
+      || (this.viewportOverlayAvailable && this.viewportOverlay === overlay);
+    const diagnosticSurfaceVisible = visibility.surfaceDecorations && (separated || this.viewMode === "mesh");
     this.raymarchQuad.visible = visibility.raymarch;
     if (this.overlayMesh) {
       this.overlayMesh.visible = visibility.overlay && this.skinRebuildTopologyDiagnosticGroup === null;
@@ -2153,68 +2186,84 @@ export class SkinRenderer {
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
     const phaseAInternal = this.phaseADryWebVisible && this.viewMode === "mesh";
     const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive;
-    if (this.internalNodeMesh) this.internalNodeMesh.visible = this.internalStructureVisible && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal);
-    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = this.internalStructureVisible && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal);
-    if (this.selectedInternalEdgeMesh) this.selectedInternalEdgeMesh.visible = this.internalStructureVisible && !this.denseSampleActive;
-    if (this.reinforcedInternalEdgeMesh) this.reinforcedInternalEdgeMesh.visible = this.internalStructureVisible && !this.denseSampleActive;
-    if (this.printSupportNodeMesh) this.printSupportNodeMesh.visible = this.printSupportVisible && !this.denseSampleActive;
-    if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.visible = this.printSupportVisible && !this.denseSampleActive;
+    if (this.internalNodeMesh) this.internalNodeMesh.visible = this.internalStructureVisible
+      && overlayIs("reinforcement")
+      && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal || separated);
+    if (this.internalEdgeMesh) this.internalEdgeMesh.visible = this.internalStructureVisible
+      && overlayIs("reinforcement")
+      && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal || separated);
+    if (this.selectedInternalEdgeMesh) this.selectedInternalEdgeMesh.visible = this.internalStructureVisible
+      && overlayIs("reinforcement") && !this.denseSampleActive;
+    if (this.reinforcedInternalEdgeMesh) this.reinforcedInternalEdgeMesh.visible = this.internalStructureVisible
+      && overlayIs("reinforcement") && !this.denseSampleActive;
+    if (this.printSupportNodeMesh) this.printSupportNodeMesh.visible = this.printSupportVisible
+      && overlayIs("support") && !this.denseSampleActive;
+    if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.visible = this.printSupportVisible
+      && overlayIs("support") && !this.denseSampleActive;
     if (this.skinRebuildOverhangGroup) {
       this.skinRebuildOverhangGroup.visible = this.skinRebuildOverhangVisible
-        && visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && diagnosticSurfaceVisible
+        && overlayIs(this.skinRebuildOverhangOverlayKind ?? "insideOutside");
     }
     if (this.skinRebuildTopologyDiagnosticGroup) {
       this.skinRebuildTopologyDiagnosticGroup.visible = visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && (separated || this.viewMode === "mesh")
+        && overlayIs("components");
     }
     if (this.sparseRemovableSupportDebugGroup) {
       this.sparseRemovableSupportDebugGroup.visible = this.sparseRemovableSupportDebugEnabled
-        && visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && diagnosticSurfaceVisible
+        && overlayIs("support");
     }
     if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
     if (this.surfaceAngleGroup) {
-      this.surfaceAngleGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+      this.surfaceAngleGroup.visible = diagnosticSurfaceVisible && overlayIs("printRisk");
     }
     if (this.overhangSupportSiteGroup) {
-      this.overhangSupportSiteGroup.visible = overhangSupportSiteGroupVisible(
-        this.overhangSupportSiteVisibilityPolicy,
-        visibility,
-        this.viewMode,
-      );
+      this.overhangSupportSiteGroup.visible = separated
+        ? diagnosticSurfaceVisible && overlayIs("support")
+        : overhangSupportSiteGroupVisible(
+          this.overhangSupportSiteVisibilityPolicy,
+          visibility,
+          this.viewMode,
+        );
     }
     if (this.phaseASupportGroup) {
-      this.phaseASupportGroup.visible = visibility.surfaceDecorations && this.viewMode === "mesh";
+      this.phaseASupportGroup.visible = diagnosticSurfaceVisible && overlayIs("support");
     }
     if (this.motifLowestPointGroup) {
-      this.motifLowestPointGroup.visible = visibility.surfaceDecorations;
+      this.motifLowestPointGroup.visible = visibility.surfaceDecorations && overlayIs("printRisk");
     }
     if (this.artworkGraphOverlayGroup) {
       this.artworkGraphOverlayGroup.visible = this.artworkGraphOverlayEnabled && !this.denseSampleActive;
     }
     if (this.dryWebInsufficientEdgeGroup) {
       this.dryWebInsufficientEdgeGroup.visible = this.dryWebInsufficientEdgeOverlayEnabled
-        && visibility.surfaceDecorations;
+        && visibility.surfaceDecorations
+        && overlayIs("insideOutside");
     }
     if (this.dryWebContactFloorOverlayGroup) {
       this.dryWebContactFloorOverlayGroup.visible = this.dryWebContactFloorOverlayEnabled
-        && visibility.surfaceDecorations;
+        && visibility.surfaceDecorations
+        && overlayIs("insideOutside");
     }
     if (this.dryWebRedFaceLocatorGroup) {
       this.dryWebRedFaceLocatorGroup.visible = this.dryWebRedFaceLocatorEnabled
-        && visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && diagnosticSurfaceVisible
+        && overlayIs("printRisk");
     }
     if (this.dryWebRedFaceDryWebCandidateGroup) {
       this.dryWebRedFaceDryWebCandidateGroup.visible = this.dryWebRedFaceDryWebCandidateEnabled
-        && visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && diagnosticSurfaceVisible
+        && overlayIs("printRisk");
     }
     if (this.riskDrivenInternalLatticeGroup) {
       this.riskDrivenInternalLatticeGroup.visible = this.riskDrivenInternalLatticeOverlayEnabled
-        && visibility.surfaceDecorations
-        && this.viewMode === "mesh";
+        && diagnosticSurfaceVisible
+        && overlayIs("printRisk");
+    }
+    if (this.riskDrivenPermanentLatticeGroup) {
+      this.riskDrivenPermanentLatticeGroup.visible = visibility.surfaceDecorations && overlayIs("reinforcement");
     }
     if (this.endpointBadges.A) this.endpointBadges.A.visible = visibility.patchBeads;
     if (this.endpointBadges.B) this.endpointBadges.B.visible = visibility.patchBeads;
@@ -2663,6 +2712,8 @@ export class SkinRenderer {
     faceRegionIds: Int32Array | null = null,
     faceInteriorClasses: Int8Array | null = null,
     palette: "responsibility" | "debug" | "stage7-danger" | "stage65-stage7" = "responsibility",
+    overlayKind: "insideOutside" | "printRisk" = palette === "stage7-danger" || palette === "stage65-stage7"
+      ? "printRisk" : "insideOutside",
   ): void {
     if (this.skinRebuildOverhangGroup) {
       this.scene.remove(this.skinRebuildOverhangGroup);
@@ -2679,6 +2730,7 @@ export class SkinRenderer {
     this.skinRebuildOverhangPositions = null;
     this.skinRebuildOverhangFaceRegionIds = null;
     this.skinRebuildOverhangFaceInteriorClasses = null;
+    this.skinRebuildOverhangOverlayKind = null;
     this.reinforcedSkinRebuildOverhangRegionMesh = null;
     this.reinforcedSkinRebuildOverhangRegionIds.clear();
     this.selectedSkinRebuildOverhangRegionMesh = null;
@@ -2750,6 +2802,7 @@ export class SkinRenderer {
       ? faceRegionIds
       : null;
     this.skinRebuildOverhangFaceInteriorClasses = classified;
+    this.skinRebuildOverhangOverlayKind = overlayKind;
     this.applyLayerVisibility();
     this.requestViewportRender();
   }
