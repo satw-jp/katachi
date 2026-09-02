@@ -74,7 +74,41 @@ const worksSection = document.createElement("section");
 worksSection.className = "skin-art-index-works";
 const worksHeading = document.createElement("div");
 worksHeading.className = "skin-art-index-works-heading";
-worksHeading.append(makeLabel("THE WORKS", "skin-art-index-works-title"), makeLabel("TEN TRAVERSALS / ONE GRAPH", "skin-art-index-works-meta"));
+const worksHeadingTitle = makeLabel("THE WORKS", "skin-art-index-works-title");
+const worksHeadingMeta = makeLabel("TEN TRAVERSALS / ONE GRAPH", "skin-art-index-works-meta");
+const copyListButton = document.createElement("button");
+copyListButton.type = "button";
+copyListButton.className = "skin-art-index-copy-list";
+copyListButton.textContent = "COPY LIST";
+copyListButton.setAttribute("aria-label", "Copy the ten SKIN ART works");
+const copyListText = NETWORK_FORMATION_ARTWORK_ORDER.map((workId, index) => (
+  `${String(index + 1).padStart(2, "0")} ${networkFormationVariant(workId).label}`
+)).join("\n");
+copyListButton.addEventListener("click", async () => {
+  let copied = false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(copyListText);
+      copied = true;
+    }
+  } catch {
+    copied = false;
+  }
+  if (!copied) {
+    const textarea = document.createElement("textarea");
+    textarea.value = copyListText;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    copied = document.execCommand("copy");
+    textarea.remove();
+  }
+  copyListButton.textContent = copied ? "COPIED" : "COPY FAILED";
+  window.setTimeout(() => { copyListButton.textContent = "COPY LIST"; }, 1800);
+});
+worksHeading.append(worksHeadingTitle, worksHeadingMeta, copyListButton);
 const workList = document.createElement("ol");
 workList.className = "skin-art-index-work-list";
 
