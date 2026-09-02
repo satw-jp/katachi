@@ -1,5 +1,9 @@
 import { fieldSdf } from "../../cloud-sculpt/field.ts";
 import { FKEI_LIMITS, utf8ByteLength } from "../fkei.ts";
+import {
+  validateSkinRebuildPrintSnapshotMetadata,
+  type SkinRebuildPrintSnapshot,
+} from "./printSnapshot.ts";
 import type { Patch } from "../field.ts";
 import type { InternalStructureGraph, Vector3Value } from "../voronoi.ts";
 import {
@@ -51,6 +55,9 @@ export interface SkinRebuildFkeiDocument {
   /** Exact original-editor operation history. New integrated saves include
    * this so Stage 1/2 controls and every authored motif remain editable. */
   shapeRecipe?: string;
+  /** Optional derived print cache. It is never the source geometry SSOT and
+   * contains no session-only risk approvals. */
+  printSnapshot?: SkinRebuildPrintSnapshot;
   project: SkinRebuildProjectSnapshot;
 }
 
@@ -59,6 +66,7 @@ export interface CaptureSkinRebuildFkeiOptions {
   appVersion?: string;
   generatorCommit?: string;
   shapeRecipe?: string;
+  printSnapshot?: SkinRebuildPrintSnapshot;
 }
 
 function ownRecord(value: unknown, label: string): Record<string, unknown> {
@@ -436,7 +444,7 @@ function validateAudit(
 
 export function validateSkinRebuildFkei(value: unknown): SkinRebuildFkeiDocument {
   const root = ownRecord(value, "FKEI document");
-  onlyKeys(root, ["schema", "printApproval", "savedAt", "compatibility", "shapeRecipe", "project"], "FKEI document");
+  onlyKeys(root, ["schema", "printApproval", "savedAt", "compatibility", "shapeRecipe", "printSnapshot", "project"], "FKEI document");
   if (root.schema !== SKIN_REBUILD_FKEI_SCHEMA) throw new Error(`Unsupported FKEI schema: ${String(root.schema)}`);
   if (root.printApproval !== false) throw new Error("FKEI printApproval must remain false until human slice/print review");
   const savedAt = text(root.savedAt, "savedAt");
@@ -517,6 +525,7 @@ export function validateSkinRebuildFkei(value: unknown): SkinRebuildFkeiDocument
       ...(compatibility.generatorCommit === undefined ? {} : { generatorCommit: compatibility.generatorCommit as string }),
     },
     ...(root.shapeRecipe === undefined ? {} : { shapeRecipe: text(root.shapeRecipe, "shapeRecipe") }),
+    ...(root.printSnapshot === undefined ? {} : { printSnapshot: validateSkinRebuildPrintSnapshotMetadata(root.printSnapshot) }),
     project: {
       algorithmVersion: SKIN_REBUILD_ALGORITHM_VERSION,
       settings,
@@ -570,6 +579,7 @@ export function captureSkinRebuildFkei(
       ...(options.generatorCommit ? { generatorCommit: options.generatorCommit } : {}),
     },
     ...(options.shapeRecipe ? { shapeRecipe: options.shapeRecipe } : {}),
+    ...(options.printSnapshot === undefined ? {} : { printSnapshot: options.printSnapshot }),
     project: { ...snapshot, patterns },
   }));
 }

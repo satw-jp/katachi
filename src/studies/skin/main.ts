@@ -268,6 +268,7 @@ import {
   evaluateSparseExperimentalExportGate,
   type SparseRemovableSupportDebug,
   type SparseRemovableSupportFace,
+  type SparseRemovableSupportDiagnostics,
   type SparseRemovableSupportResult,
   type SparseRemovableSupportTarget,
 } from "./rebuild/sparseRemovableSupport.ts";
@@ -298,6 +299,13 @@ import {
   serializeSkinRebuildFkei,
   type SkinRebuildFkeiDocument,
 } from "./rebuild/fkei.ts";
+import {
+  createSkinRebuildPrintSnapshot,
+  decodeSkinRebuildPrintSnapshot,
+  evaluateSkinRebuildPrintSnapshotReuse,
+  skinRebuildPrintSnapshotGraphFingerprint,
+  type SkinRebuildPrintSnapshotData,
+} from "./rebuild/printSnapshot.ts";
 import {
   skinRebuildPhysicalSettingsChanged,
   skinRebuildTargetScaleChanged,
@@ -1042,6 +1050,24 @@ let skinRebuildFinalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null = 
 let skinRebuildStage8CompletedProject: SkinRebuildProject | null = null;
 let skinRebuildMeshInteriorClassificationCheckpoint: SkinRebuildMeshInteriorClassificationCheckpoint | null = null;
 let skinRebuildArtworkInteriorClassificationCheckpoint: SkinRebuildArtworkInteriorClassificationCheckpoint | null = null;
+type SkinRebuildPrintReadinessEvidence = {
+  project: SkinRebuildProject;
+  stage4?: SkinRebuildPrintSnapshotData["stage4"];
+  stage6_5?: SkinRebuildPrintSnapshotData["stage6_5"];
+  stage7?: SkinRebuildPrintSnapshotData["stage7"];
+  stage7_5?: SkinRebuildPrintSnapshotData["stage7_5"];
+  stage8?: SkinRebuildPrintSnapshotData["stage8"];
+};
+type SkinRebuildRestoredPrintSnapshot = {
+  sourceGeometryFingerprint: string;
+  pipelineFingerprint: string;
+  data: SkinRebuildPrintSnapshotData;
+};
+/** Small session-only readiness summaries retained long enough for a
+ * print-ready save. The derived snapshot itself is created only at Save. */
+let skinRebuildPrintReadinessEvidence: SkinRebuildPrintReadinessEvidence | null = null;
+let skinRebuildRestoredPrintSnapshot: SkinRebuildRestoredPrintSnapshot | null = null;
+let skinRebuildPrintSnapshotStatus: "none" | "restored" | "stale" | "corrupted" = "none";
 type SkinRebuildMeshInteriorClassificationDisplayMode = "normal" | "debug" | "combined";
 const SKIN_REBUILD_MESH_INTERIOR_DISPLAY_BOUNDARY = 2;
 const SKIN_REBUILD_MESH_INTERIOR_DISPLAY_UNCLASSIFIED = 3;
@@ -1109,6 +1135,7 @@ type SkinRebuildPrintPreparationPanelRefs = {
   status: HTMLElement;
   values: {
     fkei: HTMLElement;
+    snapshot: HTMLElement;
     stage4: HTMLElement;
     stage6: HTMLElement;
     components: HTMLElement;
@@ -2894,6 +2921,7 @@ if (isSkinRebuildApp) {
     printPreparationReadinessList.append(term, value);
   };
   addReadinessRow("fkei", "SKIN入力 / FKEI");
+  addReadinessRow("snapshot", "Print Snapshot");
   addReadinessRow("stage4", "Stage 4 diagnostics");
   addReadinessRow("stage6", "Stage 6 mesh / 6.4");
   addReadinessRow("components", "selected BODY components");
@@ -7447,7 +7475,194 @@ async function diagnoseSkinRebuildArtworkForPrintSupport(
 function skinRebuildFinalDiagnosisIsCurrent(): boolean {
   return skinRebuildPipelineIsCurrent()
     && skinRebuildPipeline?.project !== null
-    && skinRebuildFinalArtworkDiagnosis?.project === skinRebuildPipeline?.project;
+    && (skinRebuildFinalArtworkDiagnosis?.project === skinRebuildPipeline?.project
+      || (skinRebuildRestoredPrintSnapshot?.data.stage7.current === true
+        && skinRebuildRestoredPrintSnapshot.data.stage7.faceCount === skinRebuildRestoredPrintSnapshot.data.body.topologyDiagnostics.triangleCount
+        && skinRebuildRestoredPrintSnapshot.sourceGeometryFingerprint === skinRebuildPipeline?.shapeFingerprint));
+}
+
+function skinRebuildStage4SnapshotEvidence(
+  pipeline: SkinRebuildPipelineRuntime | null,
+): SkinRebuildPrintSnapshotData["stage4"] | null {
+  const interior = pipeline?.responsibilityOverhang?.interior;
+  if (!interior) return null;
+  return {
+    current: true,
+    faceCount: interior.faceClasses.length,
+    regionCount: interior.insideRegionIds.length + interior.outsideRegionIds.length + interior.unclassifiedRegionIds.length,
+    insideFaceCount: interior.insideFaceCount,
+    outsideFaceCount: interior.outsideFaceCount,
+    insideRegionCount: interior.insideRegionIds.length,
+    outsideRegionCount: interior.outsideRegionIds.length,
+    unclassifiedFaceCount: interior.unclassifiedFaceCount,
+  };
+}
+
+function rememberSkinRebuildPrintReadinessEvidence(
+  project: SkinRebuildProject,
+  update: Partial<Omit<SkinRebuildPrintReadinessEvidence, "project">>,
+): void {
+  const previous = skinRebuildPrintReadinessEvidence?.project === project
+    ? skinRebuildPrintReadinessEvidence
+    : { project };
+  skinRebuildPrintReadinessEvidence = { ...previous, ...update, project };
+}
+
+function clearSkinRebuildPrintSnapshotState(status: "none" | "stale" | "corrupted" = "none"): void {
+  skinRebuildPrintReadinessEvidence = null;
+  skinRebuildRestoredPrintSnapshot = null;
+  skinRebuildPrintSnapshotStatus = status;
+}
+
+function snapshotStage65Evidence(
+  checkpoint: SkinRebuildMeshInteriorClassificationCheckpoint,
+): SkinRebuildPrintSnapshotData["stage6_5"] {
+  return {
+    current: true,
+    faceCount: checkpoint.faceDisplayClasses.length,
+    insideFaceCount: checkpoint.insideFaceCount,
+    outsideFaceCount: checkpoint.outsideFaceCount,
+    boundaryFaceCount: checkpoint.boundaryFaceCount,
+    unclassifiedFaceCount: checkpoint.unclassifiedFaceCount,
+    boundaryRegionCount: checkpoint.boundaryRegionCount,
+    boundaryThicknessMm: checkpoint.boundaryThicknessMm,
+  };
+}
+
+function snapshotStage7Evidence(
+  diagnosis: SkinRebuildFinalArtworkDiagnosis,
+): SkinRebuildPrintSnapshotData["stage7"] {
+  return {
+    current: true,
+    faceCount: diagnosis.faceCount,
+    overhangFaceCount: diagnosis.overhangFaceCount,
+    overhangRegionCount: diagnosis.overhangRegionCount,
+    overhangAreaMm2: diagnosis.overhangAreaMm2,
+    overhangAreaPercent: diagnosis.overhangAreaPercent,
+  };
+}
+
+function snapshotStage75Evidence(
+  checkpoint: SkinRebuildArtworkInteriorClassificationCheckpoint,
+): SkinRebuildPrintSnapshotData["stage7_5"] {
+  return {
+    current: true,
+    insideFaceCount: checkpoint.insideFaceCount,
+    outsideFaceCount: checkpoint.outsideFaceCount,
+    ambiguousFaceCount: checkpoint.ambiguousFaceCount,
+    ambiguousRegionCount: checkpoint.ambiguousRegionCount,
+  };
+}
+
+function snapshotStage8Evidence(
+  project: SkinRebuildProject,
+  supportMode: RemovableSupportMode,
+  sparseDiagnostics: SparseRemovableSupportDiagnostics | null,
+): SkinRebuildPrintSnapshotData["stage8"] {
+  return {
+    current: true,
+    supportMode,
+    supportDiameterMm: project.settings.supportDiameterMm,
+    sparseSupportGenerated: supportMode === "automatic" && sparseDiagnostics !== null,
+    supportGraphFingerprint: skinRebuildPrintSnapshotGraphFingerprint(project.printSupport),
+    supportGraphNodeCount: project.printSupport.nodes.length,
+    supportGraphEdgeCount: project.printSupport.edges.length,
+    unresolvedSupportCount: sparseDiagnostics?.unsupportedTargetCount ?? 0,
+    acceptedBodyCollisionCount: sparseDiagnostics?.acceptedBodyCollisionCount ?? 0,
+    diagnostics: sparseDiagnostics,
+  };
+}
+
+function skinRebuildPrintSnapshotPipelineFingerprint(
+  settings: SkinRebuildSettings,
+  supportMode: RemovableSupportMode,
+  gateFingerprint: string,
+): string {
+  return JSON.stringify({
+    gateFingerprint,
+    supportMode,
+    settings: {
+      baseStretch: settings.baseStretch,
+      patternCount: settings.patternCount,
+      strutDiameterMm: settings.strutDiameterMm,
+      targetLongestMm: settings.targetLongestMm,
+      surfaceThickness: settings.surfaceThickness,
+      patternRadius: settings.patternRadius,
+      roundK: settings.roundK,
+      overhangThresholdDeg: settings.overhangThresholdDeg,
+      analysisResolution: settings.analysisResolution,
+      exportResolution: settings.exportResolution,
+      supportDiameterMm: settings.supportDiameterMm,
+    },
+  });
+}
+
+function createSkinRebuildPrintSnapshotForSave(): ReturnType<typeof createSkinRebuildPrintSnapshot> | undefined {
+  if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.project) return undefined;
+  const project = skinRebuildPipeline.project;
+  const evidence = skinRebuildPrintReadinessEvidence;
+  const topology = currentSkinRebuildTopologyCache();
+  const selection = skinRebuildExportSelectionDescriptor();
+  const gate = internalPrintGateCache;
+  const thinDecision = skinRebuildThinStrutExperimentalExportDecision();
+  const sparseDecision = skinRebuildSparseExperimentalExportDecision();
+  if (!evidence || evidence.project !== project || !evidence.stage4 || !evidence.stage6_5
+    || !evidence.stage7 || !evidence.stage7_5 || !evidence.stage8
+    || !topology?.topologyDiagnostics || !selection || !gate
+    || gate.fingerprint !== currentSkinRebuildInternalPrintGateFingerprint()
+    || thinDecision.state === "hard-block"
+    || sparseDecision.state === "hard-block") return undefined;
+  const readiness = skinRebuildPrintPreparationReadiness();
+  if (readiness.exportState === "blocked") return undefined;
+  const bodyPositions = topology.positions.slice();
+  const bodyNormals = topology.normals.slice();
+  const topologyDiagnostics: Stage6MeshTopologyDiagnostics = {
+    ...topology.topologyDiagnostics,
+    components: topology.topologyDiagnostics.components.map((component) => ({
+      ...component,
+      boundsMm: {
+        min: [...component.boundsMm.min] as [number, number, number],
+        max: [...component.boundsMm.max] as [number, number, number],
+        size: [...component.boundsMm.size] as [number, number, number],
+      },
+    })),
+    faceComponentIds: topology.topologyDiagnostics.faceComponentIds.slice(),
+    degenerateFaceIndices: topology.topologyDiagnostics.degenerateFaceIndices.slice(),
+  };
+  const data: SkinRebuildPrintSnapshotData = {
+    body: {
+      fingerprint: topology.fingerprint,
+      positions: bodyPositions,
+      normals: bodyNormals,
+      summary: topology.summary,
+      watertightOk: topology.watertightOk,
+      topologyDiagnostics,
+    },
+    componentSelection: {
+      explicit: skinRebuildExportComponentSelectionExplicit,
+      componentIds: selection.componentIds,
+      triangleCount: selection.triangleCount,
+      cacheFingerprint: selection.cache.fingerprint,
+    },
+    stage4: evidence.stage4,
+    stage6_5: evidence.stage6_5,
+    stage7: evidence.stage7,
+    stage7_5: evidence.stage7_5,
+    stage8: evidence.stage8,
+    internalPrintGate: {
+      fingerprint: gate.fingerprint,
+      report: { ...gate.report, reasons: [...gate.report.reasons] },
+      stl: gate.stl.slice(0),
+      summary: gate.summary,
+      scaleMmPerUnit: gate.scaleMmPerUnit,
+      plateShiftSourceZ: gate.plateShiftSourceZ,
+    },
+  };
+  return createSkinRebuildPrintSnapshot(
+    skinRebuildPipeline.shapeFingerprint,
+    skinRebuildPrintSnapshotPipelineFingerprint(project.settings, skinRebuildPrintSupportMode, gate.fingerprint),
+    data,
+  );
 }
 
 const REMOVABLE_SUPPORT_DISABLED_WARNING = "Removable support disabled — unsupported regions may remain";
@@ -7931,13 +8146,20 @@ function refreshSkinRebuildMeshInteriorClassificationCheckpoint(): void {
     && skinRebuildFinalizedArtworkProject === pipeline.project
     && stage6BodyMeshCache !== null;
   if (skinRebuildMeshInteriorClassificationButton) {
-    skinRebuildMeshInteriorClassificationButton.disabled = !stage6Ready;
+    skinRebuildMeshInteriorClassificationButton.disabled = !stage6Ready || skinRebuildRestoredPrintSnapshot !== null;
   }
   if (!skinRebuildMeshInteriorClassificationStatus) return;
   const checkpoint = skinRebuildMeshInteriorClassificationCheckpoint;
   if (!stage6Ready) {
     skinRebuildMeshInteriorClassificationStatus.textContent = "工程6の確定作品mesh待ち · 6.5 Mesh Interior Classificationは未実行";
     skinRebuildMeshInteriorClassificationStatus.dataset.ok = "false";
+    return;
+  }
+  if (skinRebuildRestoredPrintSnapshot) {
+    const evidence = skinRebuildRestoredPrintSnapshot.data.stage6_5;
+    skinRebuildMeshInteriorClassificationStatus.textContent =
+      `Print Snapshot Restored · 6.5 evidence current · all mesh faces ${evidence.faceCount.toLocaleString()} · Inside ${evidence.insideFaceCount.toLocaleString()} / Outside ${evidence.outsideFaceCount.toLocaleString()} / Boundary ${evidence.boundaryFaceCount.toLocaleString()} / unclassified ${evidence.unclassifiedFaceCount.toLocaleString()}`;
+    skinRebuildMeshInteriorClassificationStatus.dataset.ok = "true";
     return;
   }
   if (!checkpoint || !skinRebuildMeshInteriorClassificationBindingsAreCurrent()) {
@@ -8198,13 +8420,21 @@ function buildSkinRebuildArtworkInteriorClassificationCheckpoint(
 
 function refreshSkinRebuildArtworkInteriorClassificationCheckpoint(): void {
   if (skinRebuildArtworkInteriorClassificationButton) {
-    skinRebuildArtworkInteriorClassificationButton.disabled = !skinRebuildFinalDiagnosisIsCurrent();
+    skinRebuildArtworkInteriorClassificationButton.disabled = !skinRebuildFinalDiagnosisIsCurrent()
+      || skinRebuildRestoredPrintSnapshot !== null;
   }
   if (!skinRebuildArtworkInteriorClassificationStatus) return;
   const checkpoint = skinRebuildArtworkInteriorClassificationCheckpoint;
   if (!skinRebuildFinalDiagnosisIsCurrent()) {
     skinRebuildArtworkInteriorClassificationStatus.textContent = "工程7の最終診断待ち · Artwork Interior Classificationは未実行";
     skinRebuildArtworkInteriorClassificationStatus.dataset.ok = "false";
+    return;
+  }
+  if (skinRebuildRestoredPrintSnapshot) {
+    const evidence = skinRebuildRestoredPrintSnapshot.data.stage7_5;
+    skinRebuildArtworkInteriorClassificationStatus.textContent =
+      `Print Snapshot Restored · Stage 7.5 evidence current · Inside ${evidence.insideFaceCount.toLocaleString()} faces / Outside ${evidence.outsideFaceCount.toLocaleString()} faces · ambiguous/unclassified ${evidence.ambiguousFaceCount.toLocaleString()} faces / ${evidence.ambiguousRegionCount} regions`;
+    skinRebuildArtworkInteriorClassificationStatus.dataset.ok = "true";
     return;
   }
   if (!checkpoint || !skinRebuildArtworkInteriorClassificationCheckpointBindingsAreCurrent()) {
@@ -8453,20 +8683,30 @@ function refreshSkinRebuildStage8ExportButton(): void {
   skinRebuildStage8ExportButton.disabled = reason !== null || running;
   const experimentalDecision = skinRebuildSparseExperimentalExportDecision();
   const thinStrutDecision = skinRebuildThinStrutExperimentalExportDecision();
-  const thinStrutApprovalBlockedByOtherIssue = componentSelectionReason !== null
-    || (pipelineReason !== null && experimentalDecision.state !== "approval-required");
+  const approvalRiskMessage = experimentalDecision.state === "approval-required"
+    ? experimentalDecision.message
+    : thinStrutDecision.state === "approval-required"
+      ? thinStrutDecision.message
+      : null;
+  const approvalOnlyPipelineBlock = (experimentalDecision.state === "approval-required"
+    && pipelineReason === experimentalDecision.message)
+    || (thinStrutDecision.state === "approval-required"
+      && pipelineReason === thinStrutDecision.message);
+  const unrelatedPipelineBlock = pipelineReason !== null && !approvalOnlyPipelineBlock;
   if (skinRebuildExperimentalExportApprovalButton) {
     skinRebuildExperimentalExportApprovalButton.disabled = running
-      || experimentalDecision.state !== "approval-required";
-    skinRebuildExperimentalExportApprovalButton.textContent = experimentalDecision.state === "ready"
-      && skinRebuildPrintSupportMode === "automatic"
-      && (skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? 0) > 0
-      ? "Experimental Export Approved"
-      : "Export Experimental Print";
+      || componentSelectionReason !== null
+      || unrelatedPipelineBlock
+      || thinStrutDecision.state === "hard-block"
+      || approvalRiskMessage === null;
+    skinRebuildExperimentalExportApprovalButton.textContent = approvalRiskMessage === null
+      ? "Export Experimental Print"
+      : "Export Experimental 3MF · Confirm known risks";
   }
   if (skinRebuildThinStrutExperimentalExportApprovalButton) {
     skinRebuildThinStrutExperimentalExportApprovalButton.disabled = running
-      || thinStrutApprovalBlockedByOtherIssue
+      || componentSelectionReason !== null
+      || unrelatedPipelineBlock
       || thinStrutDecision.state !== "approval-required";
     skinRebuildThinStrutExperimentalExportApprovalButton.textContent = thinStrutDecision.state === "ready"
       ? "Thin Strut Experimental Export Approved"
@@ -8475,9 +8715,14 @@ function refreshSkinRebuildStage8ExportButton(): void {
   if (skinRebuildExperimentalExportWarning) {
     const unsupported = skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? 0;
     skinRebuildExperimentalExportWarning.hidden = skinRebuildPrintSupportMode !== "automatic"
-      || (experimentalDecision.state === "ready" && unsupported === 0);
-    skinRebuildExperimentalExportWarning.textContent = experimentalDecision.message;
-    skinRebuildExperimentalExportWarning.dataset.ok = String(experimentalDecision.state === "ready");
+      || (experimentalDecision.state === "ready" && unsupported === 0 && thinStrutDecision.state !== "approval-required");
+    skinRebuildExperimentalExportWarning.textContent = [
+      experimentalDecision.message,
+      thinStrutDecision.state === "approval-required" ? thinStrutDecision.message : "",
+    ].filter(Boolean).join(" · ");
+    skinRebuildExperimentalExportWarning.dataset.ok = String(
+      experimentalDecision.state === "ready" && thinStrutDecision.state !== "approval-required",
+    );
   }
   if (skinRebuildThinStrutExperimentalExportWarning) {
     const report = thinStrutDecision.report;
@@ -8514,6 +8759,7 @@ function stopSkinRebuildStage8Export(reason: string): void {
 }
 
 function invalidateSkinRebuildFinalStages(reason: string): void {
+  const hadRestoredSnapshot = skinRebuildRestoredPrintSnapshot !== null;
   skinRebuildFinalizedArtworkProject = null;
   skinRebuildFinalArtworkDiagnosis = null;
   skinRebuildStage8CompletedProject = null;
@@ -8525,6 +8771,7 @@ function invalidateSkinRebuildFinalStages(reason: string): void {
   skinRenderer.setSkinRebuildTopologyDiagnosticOverlay(null);
   skinRebuildExperimentalExportApproval = null;
   skinRebuildThinStrutExperimentalExportApproval = null;
+  clearSkinRebuildPrintSnapshotState(hadRestoredSnapshot ? "stale" : "none");
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
   skinRebuildPrintSupportModeNeedsConfirmation = skinRebuildPrintSupportMode === "off";
   if (skinRebuildFinalDiagnosisStatus) {
@@ -8665,9 +8912,10 @@ function skinRebuildExportComponentSelectionBlockReason(): string | null {
 function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationReadiness {
   const pipeline = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline : null;
   const project = pipeline?.project ?? null;
+  const restored = skinRebuildRestoredPrintSnapshot?.data;
   const topology = currentSkinRebuildTopologyCache();
   const selection = skinRebuildExportSelectionDescriptor();
-  const stage8Current = project !== null && skinRebuildStage8CompletedProject === project;
+  const stage8Current = project !== null && (skinRebuildStage8CompletedProject === project || restored?.stage8.current === true);
   const sparseResult = skinRebuildSparseSupportResult;
   const approvalCurrent = skinRebuildExperimentalExportApproval !== null
     && skinRebuildExperimentalExportApproval.project === project
@@ -8675,18 +8923,18 @@ function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationRead
     && skinRebuildExperimentalExportApproval.sparseResult === sparseResult;
   return evaluateSkinRebuildPrintPreparation({
     fkeiCurrent: project !== null,
-    stage4Current: project !== null && pipeline?.responsibilityOverhang?.interior !== null
-      && pipeline?.responsibilityOverhang?.interior !== undefined,
+    stage4Current: project !== null && (pipeline?.responsibilityOverhang?.interior !== null
+      && pipeline?.responsibilityOverhang?.interior !== undefined || restored?.stage4.current === true),
     stage6Current: topology !== null,
     componentCount: topology?.topologyDiagnostics?.componentCount ?? 0,
     selectedComponentCount: selection?.componentIds.length ?? 0,
     stage7Current: skinRebuildFinalDiagnosisIsCurrent(),
-    stage75Current: skinRebuildArtworkInteriorClassificationCheckpointIsCurrent(),
+    stage75Current: skinRebuildArtworkInteriorClassificationCheckpointIsCurrent() || restored?.stage7_5.current === true,
     stage8Current,
     supportMode: skinRebuildPrintSupportMode,
-    sparseSupportGenerated: stage8Current && sparseResult !== null,
-    unresolvedSupportCount: sparseResult?.diagnostics.unsupportedTargetCount ?? null,
-    acceptedBodyCollisionCount: sparseResult?.diagnostics.acceptedBodyCollisionCount ?? null,
+    sparseSupportGenerated: stage8Current && (sparseResult !== null || restored?.stage8.sparseSupportGenerated === true),
+    unresolvedSupportCount: sparseResult?.diagnostics.unsupportedTargetCount ?? restored?.stage8.unresolvedSupportCount ?? null,
+    acceptedBodyCollisionCount: sparseResult?.diagnostics.acceptedBodyCollisionCount ?? restored?.stage8.acceptedBodyCollisionCount ?? null,
     approvalCurrent,
   });
 }
@@ -8762,6 +9010,14 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   };
   const { diagnostics } = readiness;
   setValue(refs.values.fkei, `FKEI / SKIN入力 · ${diagnosticText(diagnostics.fkei)}`, diagnostics.fkei);
+  const snapshotText = skinRebuildPrintSnapshotStatus === "restored"
+    ? "Print Snapshot Restored · BODY / Components / Sparse Support ready"
+    : skinRebuildPrintSnapshotStatus === "corrupted"
+      ? "Print snapshot is stale — rebuild required · corrupted snapshot ignored"
+      : skinRebuildPrintSnapshotStatus === "stale"
+        ? "Print snapshot is stale — rebuild required"
+        : "not present · ordinary FKEI workflow";
+  setValue(refs.values.snapshot, snapshotText, skinRebuildPrintSnapshotStatus === "restored" ? "current" : "stale");
   setValue(refs.values.stage4, `Stage 4 diagnostics · ${diagnosticText(diagnostics.stage4)}`, diagnostics.stage4);
   setValue(
     refs.values.stage6,
@@ -10176,6 +10432,16 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildMeshInteriorClassificationDisplay(true);
       const checkpoint = skinRebuildMeshInteriorClassificationCheckpoint;
       if (checkpoint) {
+        const stage4 = skinRebuildStage4SnapshotEvidence(pipeline);
+        if (stage4) {
+          rememberSkinRebuildPrintReadinessEvidence(project, {
+            stage4,
+            stage6_5: snapshotStage65Evidence(checkpoint),
+            stage7: undefined,
+            stage7_5: undefined,
+            stage8: undefined,
+          });
+        }
         setSkinRebuildMeshBottomProgress(
           "工程6.5 完了",
           `all mesh faces ${checkpoint.faceDisplayClasses.length.toLocaleString()} · Inside ${checkpoint.insideFaceCount.toLocaleString()} · Outside ${checkpoint.outsideFaceCount.toLocaleString()} · Boundary ${checkpoint.boundaryFaceCount.toLocaleString()} faces / ${checkpoint.boundaryRegionCount.toLocaleString()} regions · unclassified ${checkpoint.unclassifiedFaceCount.toLocaleString()} · thickness ${checkpoint.boundaryThicknessMm.toFixed(1)}mm · 表示専用` ,
@@ -10352,6 +10618,19 @@ function installSkinRebuildPipelinePanel(): void {
         diagnosis: skinRebuildFinalArtworkDiagnosis,
         presentation: stage7DangerPresentation,
       };
+      const stage4 = skinRebuildStage4SnapshotEvidence(skinRebuildPipeline);
+      const stage65 = skinRebuildPrintReadinessEvidence?.project === current
+        ? skinRebuildPrintReadinessEvidence.stage6_5
+        : undefined;
+      if (stage4 && stage65) {
+        rememberSkinRebuildPrintReadinessEvidence(project, {
+          stage4,
+          stage6_5: stage65,
+          stage7: snapshotStage7Evidence(skinRebuildFinalArtworkDiagnosis),
+          stage7_5: undefined,
+          stage8: undefined,
+        });
+      }
       clearSkinRebuildMeshInteriorClassificationCheckpoint();
       skinRebuildArtworkInteriorClassificationCheckpoint = null;
       skinRenderer.setMeshOverlayBuffers(diagnosedArtwork.meshPositions, diagnosedArtwork.meshNormals);
@@ -10450,6 +10729,22 @@ function installSkinRebuildPipelinePanel(): void {
     try {
       skinRebuildArtworkInteriorClassificationCheckpoint =
         buildSkinRebuildArtworkInteriorClassificationCheckpoint(pipeline, diagnosis);
+      const stage4 = skinRebuildStage4SnapshotEvidence(pipeline);
+      const stage7 = skinRebuildPrintReadinessEvidence?.project === current
+        ? skinRebuildPrintReadinessEvidence.stage7
+        : undefined;
+      const stage65 = skinRebuildPrintReadinessEvidence?.project === current
+        ? skinRebuildPrintReadinessEvidence.stage6_5
+        : undefined;
+      if (stage4 && stage65 && stage7 && skinRebuildArtworkInteriorClassificationCheckpoint) {
+        rememberSkinRebuildPrintReadinessEvidence(current, {
+          stage4,
+          stage6_5: stage65,
+          stage7,
+          stage7_5: snapshotStage75Evidence(skinRebuildArtworkInteriorClassificationCheckpoint),
+          stage8: undefined,
+        });
+      }
       refreshSkinRebuildArtworkInteriorClassificationCheckpoint();
       const checkpoint = skinRebuildArtworkInteriorClassificationCheckpoint;
       if (checkpoint && checkpoint.ambiguousFaceCount === 0 && checkpoint.ambiguousRegionCount === 0) {
@@ -10753,6 +11048,19 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildFinalizedArtworkProject = project;
       skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
       skinRebuildStage8CompletedProject = project;
+      const previousEvidence = skinRebuildPrintReadinessEvidence?.project === current
+        ? skinRebuildPrintReadinessEvidence
+        : null;
+      const stage4 = skinRebuildStage4SnapshotEvidence(pipeline);
+      if (stage4 && previousEvidence?.stage6_5 && previousEvidence.stage7 && previousEvidence.stage7_5) {
+        rememberSkinRebuildPrintReadinessEvidence(project, {
+          stage4,
+          stage6_5: previousEvidence.stage6_5,
+          stage7: previousEvidence.stage7,
+          stage7_5: previousEvidence.stage7_5,
+          stage8: snapshotStage8Evidence(project, modeAtStart, sparseResult?.diagnostics ?? null),
+        });
+      }
       // Support generation replaces the project object. The consumed 7.5
       // evidence is therefore stale by identity and must be rerun for any
       // later Automatic generation.
@@ -10865,21 +11173,52 @@ function installSkinRebuildPipelinePanel(): void {
   experimentalExportApprovalButton.disabled = true;
   experimentalExportApprovalButton.onclick = () => {
     const decision = skinRebuildSparseExperimentalExportDecision();
+    const thinDecision = skinRebuildThinStrutExperimentalExportDecision();
     const pipeline = skinRebuildPipeline;
     const sparseResult = skinRebuildSparseSupportResult;
-    if (decision.state !== "approval-required" || !pipeline?.project
-      || !pipeline.responsibilityOverhang || !sparseResult) {
-      stage8Export.status.textContent = `Experimental export approval unavailable: ${decision.message}`;
+    const cache = internalPrintGateCache;
+    const pipelineReason = skinRebuildPipelineOutputBlockReason();
+    const componentReason = skinRebuildExportComponentSelectionBlockReason();
+    const approvalOnlyPipelineBlock = (decision.state === "approval-required"
+      && pipelineReason === decision.message)
+      || (thinDecision.state === "approval-required"
+        && pipelineReason === thinDecision.message);
+    const unrelatedPipelineBlock = pipelineReason !== null && !approvalOnlyPipelineBlock;
+    if (componentReason || unrelatedPipelineBlock
+      || thinDecision.state === "hard-block"
+      || (decision.state !== "approval-required" && thinDecision.state !== "approval-required")) {
+      stage8Export.status.textContent = `Experimental export approval unavailable: ${componentReason ?? pipelineReason ?? decision.message}`;
       stage8Export.status.dataset.ok = "false";
       refreshSkinRebuildStage8ExportButton();
       return;
     }
-    skinRebuildExperimentalExportApproval = {
-      project: pipeline.project,
-      responsibilityOverhang: pipeline.responsibilityOverhang,
-      sparseResult,
-    };
-    stage8Export.status.textContent = `${decision.message} · Explicit experimental export approval recorded for the current Stage 4/8 evidence.`;
+    if (decision.state === "approval-required") {
+      if (!pipeline?.project || !pipeline.responsibilityOverhang || !sparseResult) {
+        stage8Export.status.textContent = `Experimental export approval unavailable: ${decision.message}`;
+        stage8Export.status.dataset.ok = "false";
+        refreshSkinRebuildStage8ExportButton();
+        return;
+      }
+      skinRebuildExperimentalExportApproval = {
+        project: pipeline.project,
+        responsibilityOverhang: pipeline.responsibilityOverhang,
+        sparseResult,
+      };
+    }
+    if (thinDecision.state === "approval-required") {
+      if (!pipeline?.project || !cache) {
+        stage8Export.status.textContent = `Experimental export approval unavailable: ${thinDecision.message}`;
+        stage8Export.status.dataset.ok = "false";
+        refreshSkinRebuildStage8ExportButton();
+        return;
+      }
+      skinRebuildThinStrutExperimentalExportApproval = {
+        project: pipeline.project,
+        fingerprint: cache.fingerprint,
+        report: cache.report,
+      };
+    }
+    stage8Export.status.textContent = "Known export risks explicitly accepted for this experimental export.";
     stage8Export.status.dataset.ok = "true";
     refreshSkinRebuildStage8ExportButton();
   };
@@ -11173,13 +11512,20 @@ function saveCurrentSkinRebuildFkei(): string {
     appVersion: manifest.version,
     generatorCommit: RUNNING_APP_COMMIT,
     shapeRecipe: serializeRecipe(history),
+    printSnapshot: createSkinRebuildPrintSnapshotForSave(),
   });
   const text = serializeSkinRebuildFkei(document);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `skin-rebuild-complete-${stamp}.fkei`;
   downloadBlob(new Blob([text], { type: "application/json" }), filename);
   const unsupported = skinRebuildPipeline.project.audit.unsupportedTargetCount;
-  projectMeta.textContent = `.fkei 保存済み · SKIN REBUILD工程3〜8 · 未支持${unsupported}点を記録 · ${filename}`;
+  projectMeta.textContent = `.fkei 保存済み · SKIN REBUILD工程3〜8 · ${document.printSnapshot ? "Print Snapshot付き · " : ""}未支持${unsupported}点を記録 · ${filename}`;
+  if (skinRebuildSaveStatus) {
+    skinRebuildSaveStatus.textContent = document.printSnapshot
+      ? "保存済み · Print Snapshot付き · Open後にBODY / Component / Sparse Support readinessを復元できます"
+      : "保存済み · Print Snapshotなし（制作途中のFKEI）";
+    skinRebuildSaveStatus.dataset.ok = "true";
+  }
   return filename;
 }
 
@@ -14467,9 +14813,93 @@ function fallbackHistoryForSkinRebuildProject(document: SkinRebuildFkeiDocument)
   ];
 }
 
+function restoredSparseSupportResult(
+  project: SkinRebuildProject,
+  diagnostics: SparseRemovableSupportDiagnostics,
+): SparseRemovableSupportResult {
+  return {
+    graph: project.printSupport,
+    diagnostics,
+    debug: {
+      criticalTargets: [],
+      rejectedCandidates: [],
+      routeAttempts: [],
+      acceptedBendPoints: [],
+      rejectedCollisionRoutes: [],
+    },
+    candidates: [],
+    acceptedRoutes: [],
+  };
+}
+
+function restoredRuntimeOverhang(
+  stage4: SkinRebuildPrintSnapshotData["stage4"],
+): SkinRebuildRuntimeOverhang {
+  const unclassifiedRegionCount = Math.max(0, stage4.regionCount - stage4.insideRegionCount - stage4.outsideRegionCount);
+  const interior: SkinRebuildOverhangInteriorClassification = {
+    faceClasses: new Int8Array(0),
+    faceRegionIds: new Int32Array(0),
+    faceOwnerPatchIds: new Int32Array(0),
+    insideFaceRegionIds: new Int32Array(0),
+    insideFaceCount: stage4.insideFaceCount,
+    outsideFaceCount: stage4.outsideFaceCount,
+    unclassifiedFaceCount: stage4.unclassifiedFaceCount,
+    insideRegionIds: Array.from({ length: stage4.insideRegionCount }, (_, index) => index),
+    outsideRegionIds: Array.from({ length: stage4.outsideRegionCount }, (_, index) => index),
+    unclassifiedRegionIds: Array.from({ length: unclassifiedRegionCount }, (_, index) => index),
+    mixedRegionCount: 0,
+  };
+  return {
+    faceCount: stage4.faceCount,
+    regionCount: stage4.regionCount,
+    areaMm2: 0,
+    areaPercent: 0,
+    meshPositions: new Float32Array(0),
+    meshNormals: new Float32Array(0),
+    positions: new Float32Array(0),
+    faceRegionIds: new Int32Array(0),
+    regions: [],
+    interior,
+  };
+}
+
+function restoredFinalArtworkDiagnosis(
+  project: SkinRebuildProject,
+  data: SkinRebuildPrintSnapshotData,
+): SkinRebuildFinalArtworkDiagnosis {
+  return {
+    project,
+    lowestPoints: project.lowestPoints,
+    meshPositions: data.body.positions,
+    meshNormals: data.body.normals,
+    overhangFacePositions: new Float32Array(0),
+    overhangFaceRegionIds: new Int32Array(0),
+    overhangRegions: [],
+    overhangFaceCount: data.stage7.overhangFaceCount,
+    overhangRegionCount: data.stage7.overhangRegionCount,
+    overhangAreaMm2: data.stage7.overhangAreaMm2,
+    overhangAreaPercent: data.stage7.overhangAreaPercent,
+    faceCount: data.stage7.faceCount,
+    workerCount: 0,
+    elapsedMs: 0,
+  };
+}
+
 function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
+  let decodedSnapshot: SkinRebuildPrintSnapshotData | null = null;
+  let snapshotFailure: string | null = null;
+  let snapshotCorrupted = false;
+  if (document.printSnapshot) {
+    try {
+      decodedSnapshot = decodeSkinRebuildPrintSnapshot(document.printSnapshot);
+    } catch (error) {
+      snapshotCorrupted = true;
+      snapshotFailure = error instanceof Error ? error.message : String(error);
+    }
+  }
+  const modeForOpen = decodedSnapshot?.stage8.supportMode ?? skinRebuildPrintSupportMode;
   let project = projectFromSkinRebuildFkei(document);
-  if (skinRebuildPrintSupportMode === "off") {
+  if (modeForOpen === "off") {
     // FKEI keeps the support graph for compatibility, but an Off session
     // must not install or preview that stale removable-support output.
     project = { ...project, printSupport: createEmptySkinRebuildGraph() };
@@ -14487,6 +14917,8 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
   cancelWorkersForFkeiOpen();
   try {
     applyHistoryEntries(prepared.entries, prepared.state);
+    skinRebuildPrintSupportMode = modeForOpen;
+    syncSkinRebuildPrintSupportModeUi();
     importedRecipeText = serializeRecipe(prepared.entries);
     importedRecipeFilename = null;
     importedRecipeSha256 = null;
@@ -14531,9 +14963,115 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       ...ui.getMeshOptions(),
       targetLongestMm: project.settings.targetLongestMm,
     });
+    let restoredSnapshot = false;
+    if (decodedSnapshot && !snapshotFailure) {
+      const body = decodedSnapshot.body;
+      stage6BodyMeshCache = {
+        fingerprint: body.fingerprint,
+        positions: body.positions,
+        normals: body.normals,
+        summary: body.summary,
+        watertightOk: body.watertightOk,
+        topologyDiagnostics: body.topologyDiagnostics,
+      };
+      skinRebuildTopologySelectionCache = stage6BodyMeshCache;
+      skinRebuildKeptComponentIds = new Set(decodedSnapshot.componentSelection.componentIds);
+      skinRebuildExportComponentSelectionExplicit = decodedSnapshot.componentSelection.explicit;
+      skinRebuildTopologyHighlightedComponentId = null;
+      const currentGateFingerprint = internalPrintGateFingerprint(
+        ui.getMeshOptions(),
+        getInternalPrintReachabilityGraph(project.finalGraph) ?? project.finalGraph,
+      );
+      const currentSnapshotPipelineFingerprint = skinRebuildPrintSnapshotPipelineFingerprint(
+        currentSkinRebuildPipelineSettings(),
+        skinRebuildPrintSupportMode,
+        currentGateFingerprint,
+      );
+      const currentSupportSummary = skinRebuildPrintSupportDiagnostics(project);
+      const currentSparseSupportDiagnostics = decodedSnapshot.stage8.diagnostics
+        ? {
+          ...decodedSnapshot.stage8.diagnostics,
+          unsupportedTargetCount: currentSupportSummary.unsupportedCount,
+          generatedSupportCount: currentSupportSummary.acceptedSupportCount,
+          rejectedByBody: currentSupportSummary.rejectedByBodyIntersection,
+        }
+        : null;
+      const snapshotReuse = evaluateSkinRebuildPrintSnapshotReuse({
+        snapshot: document.printSnapshot!,
+        data: decodedSnapshot,
+        currentSourceGeometryFingerprint: skinRebuildPipeline.shapeFingerprint,
+        currentPipelineFingerprint: currentSnapshotPipelineFingerprint,
+        currentGateFingerprint,
+        currentSupportGraphFingerprint: skinRebuildPrintSnapshotGraphFingerprint(project.printSupport),
+        currentSupportGraphNodeCount: project.printSupport.nodes.length,
+        currentSupportGraphEdgeCount: project.printSupport.edges.length,
+        currentSupportMode: skinRebuildPrintSupportMode,
+        currentSparseSupportDiagnostics,
+      });
+      if (snapshotReuse.state === "reuse") {
+        internalPrintGateCache = {
+          fingerprint: decodedSnapshot.internalPrintGate.fingerprint,
+          report: decodedSnapshot.internalPrintGate.report,
+          stl: decodedSnapshot.internalPrintGate.stl,
+          summary: decodedSnapshot.internalPrintGate.summary,
+          scaleMmPerUnit: decodedSnapshot.internalPrintGate.scaleMmPerUnit,
+          plateShiftSourceZ: decodedSnapshot.internalPrintGate.plateShiftSourceZ,
+        };
+        skinRebuildFinalizedArtworkProject = project;
+        skinRebuildFinalArtworkDiagnosis = restoredFinalArtworkDiagnosis(project, decodedSnapshot);
+        skinRebuildStage8CompletedProject = project;
+        skinRebuildPipeline.overhang = restoredRuntimeOverhang(decodedSnapshot.stage4);
+        skinRebuildPipeline.responsibilityOverhang = restoredRuntimeOverhang(decodedSnapshot.stage4);
+        skinRebuildSparseSupportResult = decodedSnapshot.stage8.diagnostics
+          ? restoredSparseSupportResult(project, decodedSnapshot.stage8.diagnostics)
+          : null;
+        skinRebuildPrintReadinessEvidence = {
+          project,
+          stage4: decodedSnapshot.stage4,
+          stage6_5: decodedSnapshot.stage6_5,
+          stage7: decodedSnapshot.stage7,
+          stage7_5: decodedSnapshot.stage7_5,
+          stage8: decodedSnapshot.stage8,
+        };
+        skinRebuildRestoredPrintSnapshot = {
+          sourceGeometryFingerprint: document.printSnapshot!.sourceGeometryFingerprint,
+          pipelineFingerprint: document.printSnapshot!.pipelineFingerprint,
+          data: decodedSnapshot,
+        };
+        skinRebuildPrintSnapshotStatus = "restored";
+        restoredSnapshot = true;
+        showSkinRebuildStage6ArtworkMesh(body.positions, body.normals);
+      } else {
+        snapshotFailure = snapshotReuse.reason;
+        stage6BodyMeshCache = null;
+        skinRebuildTopologySelectionCache = null;
+        skinRebuildKeptComponentIds = new Set();
+        skinRebuildExportComponentSelectionExplicit = false;
+      }
+    }
+    if (!restoredSnapshot && document.printSnapshot) {
+      skinRebuildPrintSnapshotStatus = snapshotCorrupted ? "corrupted" : "stale";
+      skinRebuildPrintReadinessEvidence = null;
+      skinRebuildRestoredPrintSnapshot = null;
+    }
     refreshSkinRebuildLatticeEdgeEditor();
     refreshSkinRebuildSelectedTarget();
     refreshSkinRebuildSelectedRegion();
+    if (restoredSnapshot) {
+      skinRebuildPrintSupportModeNeedsConfirmation = false;
+      if (skinRebuildFinalDiagnosisStatus) {
+        skinRebuildFinalDiagnosisStatus.textContent = `Print Snapshot Restored · BODY ready · Stage 7 ${decodedSnapshot!.stage7.overhangFaceCount.toLocaleString()} overhang faces`;
+        skinRebuildFinalDiagnosisStatus.dataset.ok = "true";
+      }
+      ui.setMeshStatus(`Print Snapshot Restored · BODY ready · ${decodedSnapshot!.body.summary}`, true);
+    } else if (document.printSnapshot) {
+      const status = snapshotFailure ? "Print snapshot is stale — rebuild required" : "Print snapshot is stale — rebuild required";
+      if (skinRebuildFinalDiagnosisStatus) {
+        skinRebuildFinalDiagnosisStatus.textContent = `${status} · ${snapshotFailure ?? "snapshot was not reusable"}`;
+        skinRebuildFinalDiagnosisStatus.dataset.ok = "false";
+      }
+      ui.setMeshStatus(status, false);
+    }
     if (skinRebuildInsideStatus) {
       skinRebuildInsideStatus.textContent = `復元済み · inside ${project.audit.classifiedInsideCount}/${project.audit.realizedPatternCount}`;
       skinRebuildInsideStatus.dataset.ok = "true";
@@ -14549,7 +15087,14 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       skinRebuildLatticeStatus.dataset.ok = String(project.audit.unsupportedTargetCount === 0);
     }
     if (skinRebuildPrintSupportStatus) {
-      if (skinRebuildPrintSupportMode === "off") {
+      if (restoredSnapshot) {
+        const restoredData = decodedSnapshot!;
+        const sparseText = restoredData.stage8.supportMode === "automatic"
+          ? `Sparse Support ready · ${restoredData.stage8.supportGraphEdgeCount} edges · unresolved ${restoredData.stage8.unresolvedSupportCount}`
+          : "Sparse Support not generated · BODY-only snapshot";
+        skinRebuildPrintSupportStatus.textContent = `Print Snapshot Restored · BODY ready · Components ready · ${sparseText}`;
+        skinRebuildPrintSupportStatus.dataset.ok = "true";
+      } else if (skinRebuildPrintSupportMode === "off") {
         skinRebuildPrintSupportStatus.textContent = `${skinRebuildPrintSupportModeStatus(project, false)} · 復元済み`;
         skinRebuildPrintSupportStatus.dataset.ok = "false";
       } else {
@@ -14561,9 +15106,11 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       }
     }
     if (skinRebuildSaveStatus) {
-      skinRebuildSaveStatus.textContent = project.audit.unsupportedTargetCount === 0
-        ? "復元済み · 完成.fkeiを再保存できます"
-        : `復元済み · 未支持${project.audit.unsupportedTargetCount}点を保持して再保存できます`;
+      skinRebuildSaveStatus.textContent = restoredSnapshot
+        ? "復元済み · Print Snapshotを含めて再保存できます"
+        : project.audit.unsupportedTargetCount === 0
+          ? "復元済み · 完成.fkeiを再保存できます"
+          : `復元済み · 未支持${project.audit.unsupportedTargetCount}点を保持して再保存できます`;
       skinRebuildSaveStatus.dataset.ok = "true";
     }
     if (skinRebuildLowestButton) skinRebuildLowestButton.disabled = false;
@@ -14896,6 +15443,7 @@ function internalPrintGateStatusMessage(
 }
 
 function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデータは書き出せません"): void {
+  const hadRestoredSnapshot = skinRebuildRestoredPrintSnapshot !== null;
   clearInternalPrintGateStatusTimer();
   internalPrintGateGeneration++;
   internalPrintGateHeavyComputation?.finish();
@@ -14906,6 +15454,7 @@ function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデ
   pendingMeshExportAfterGate = null;
   internalPrintGateCache = null;
   skinRebuildThinStrutExperimentalExportApproval = null;
+  if (hadRestoredSnapshot) clearSkinRebuildPrintSnapshotState("stale");
   ui.setMeshExportRunning(false);
   ui.setInternalPrintGateRunning(false);
   ui.setInternalPrintGateReport(null);

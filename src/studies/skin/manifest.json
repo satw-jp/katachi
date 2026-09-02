@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-02",
+      "note": "SKIN REBUILD Print-ready FKEI Snapshot: Print準備完了時だけ、既存base64-binary-v1へFinal BODY export mesh、Stage 6 topology/component selection、Stage 4/6.5/7/7.5/8 readiness、Sparse Support graph/diagnostics、Internal print-gate evidenceを任意のderived printSnapshotとして保存する。payload SHA-256、source geometry fingerprint、pipeline/settings/support graphの一致をOpen時に確認し、validならStage 6 remeshとStage 4〜8の重い再診断を行わずBODY / Components / Sparse Supportを復元する。不一致、破損、非有限mesh、invalid topology/component、BODY collisionはstale/fail-closedで既存workflowへ戻す。unresolved/thin strutのsession-only承認は保存しない。既存FKEIはsnapshotなしで後方互換読込でき、最終3MF、視認形状判断、deployは未実施。"
+    },
+    {
+      "date": "2026-09-02",
       "note": "Thin Strut Experimental Export keeps the 0.80 mm recommendation and reports the measured Minimum strut, Recommended minimum and Thin struts count. Only a finite positive below-threshold Permanent Web/Reinforcement result with no other Internal print-gate reason can expose the separate Allow Thin Strut Experimental Export control; explicit approval shows the accepted-risk message and allows the existing BODY + Sparse Support export to continue. Approval is session-only and tied to the current gate fingerprint/report, so changed geometry, Web/Reinforcement, component selection or print diagnostics invalidate it. Invalid diameters, topology/component failures, support BODY collision and every other hard blocker remain fail-closed. No viewport thin-member highlight, geometry change, final 3MF or deploy was performed."
     },
     {

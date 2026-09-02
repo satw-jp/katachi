@@ -77,6 +77,10 @@ const printSupportSourceStart = main.indexOf("const printSupport = makeStep(");
 const printSupportSourceEnd = main.indexOf("const stage8Export = makeStep(", printSupportSourceStart);
 assert.ok(printSupportSourceStart >= 0 && printSupportSourceEnd > printSupportSourceStart, "Stage 8 support source is present");
 const printSupportSource = main.slice(printSupportSourceStart, printSupportSourceEnd);
+const restoreSourceStart = main.indexOf("function restoreSkinRebuildFkei(");
+const restoreSourceEnd = main.indexOf("function refreshPrintProfileSummary(", restoreSourceStart);
+assert.ok(restoreSourceStart >= 0 && restoreSourceEnd > restoreSourceStart, "FKEI restore source is present");
+const restoreSource = main.slice(restoreSourceStart, restoreSourceEnd);
 
 assert.match(html, /data-skin-app="rebuild"/);
 assert.match(html, /src="\/src\/studies\/skin\/main\.ts"/);
@@ -274,6 +278,26 @@ assert.match(main, /rejected-by-Body/, "Stage 8 must label Body-intersection rej
 assert.match(main, /mergePrintableSupportIntoBody: false/, "SKIN REBUILD 3MF must keep artwork and print support as separate parts");
 assert.match(main, /Export Experimental Print/,
   "Sparse export with unresolved targets must require an explicit author action");
+assert.match(main, /printSnapshot: createSkinRebuildPrintSnapshotForSave\(\)/,
+  "Print-ready FKEI save must attach only the optional derived snapshot");
+assert.match(main, /decodeSkinRebuildPrintSnapshot\(document\.printSnapshot\)/,
+  "FKEI Open must decode the compact print snapshot before deciding reuse");
+assert.match(main, /evaluateSkinRebuildPrintSnapshotReuse\(/,
+  "snapshot reuse must be gated by current fingerprints and support graph identity");
+assert.match(main, /Print Snapshot Restored · BODY ready · Components ready/,
+  "valid snapshot Open must expose restored BODY and component readiness");
+assert.match(main, /Sparse Support ready/,
+  "valid snapshot Open must expose restored Sparse Support readiness");
+assert.match(main, /Print snapshot is stale — rebuild required/,
+  "stale or corrupted snapshots must return to the existing workflow visibly");
+assert.match(main, /Export Experimental 3MF · Confirm known risks/,
+  "known snapshot risks must be confirmable from one combined experimental export action");
+assert.match(restoreSource, /stage6BodyMeshCache = \{/,
+  "snapshot restore must install the cached BODY mesh directly");
+assert.doesNotMatch(restoreSource, /new Worker\(|buildSkinRebuildMesh\(/,
+  "snapshot restore must not start a Stage 6 remesh worker or mesh build");
+assert.doesNotMatch(restoreSource, /diagnoseSkinRebuildArtworkForPrintSupport\(/,
+  "snapshot restore must not rerun the heavy Stage 7 artwork diagnosis");
 assert.match(main, /support targets remain unresolved\. Experimental print may fail\./,
   "Sparse export must show the unresolved experimental-print warning");
 assert.match(main, /evaluateSparseExperimentalExportGate/,
