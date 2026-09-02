@@ -192,13 +192,13 @@ export type FkeiImportResult =
   | { kind: "fkei"; document: FkeiDocument }
   | { kind: "legacy"; entries: SkinHistoryEntry[] };
 
-type EncodedValue =
+export type FkeiEncodedValue =
   | null
   | boolean
   | string
   | number
-  | { $fkei: "array"; items: EncodedValue[] }
-  | { $fkei: "object"; entries: Array<[string, EncodedValue]> }
+  | { $fkei: "array"; items: FkeiEncodedValue[] }
+  | { $fkei: "object"; entries: Array<[string, FkeiEncodedValue]> }
   | { $fkei: "typed-array"; name: TypedArrayName; length: number; byteLength: number; base64: string }
   | { $fkei: "array-buffer"; byteLength: number; base64: string };
 
@@ -354,7 +354,7 @@ function base64ToBytes(value: unknown, declaredByteLength: number, label: string
   return bytes;
 }
 
-function encodeTypedArray(value: ArrayBufferView, name: TypedArrayName, budget: CodecBudget): EncodedValue {
+function encodeTypedArray(value: ArrayBufferView, name: TypedArrayName, budget: CodecBudget): FkeiEncodedValue {
   const typed = value as unknown as { [index: number]: unknown; length: number };
   const length = typed.length;
   const byteLength = length * TYPED_ARRAY_CTORS[name].BYTES_PER_ELEMENT;
@@ -389,7 +389,7 @@ function typedArrayName(value: ArrayBufferView): TypedArrayName | null {
 }
 
 /** Encode a value recursively. This is exported for focused codec tests. */
-export function encodeFkeiValue(value: unknown, seen = new WeakSet<object>(), budget = newCodecBudget(), depth = 0): EncodedValue {
+export function encodeFkeiValue(value: unknown, seen = new WeakSet<object>(), budget = newCodecBudget(), depth = 0): FkeiEncodedValue {
   consumeNode(budget, depth);
   if (value === null || typeof value === "boolean" || typeof value === "string") return value as null | boolean | string;
   if (typeof value === "number") return finiteNumber(value, "FKEI number");
@@ -420,7 +420,7 @@ export function encodeFkeiValue(value: unknown, seen = new WeakSet<object>(), bu
         const descriptor = Object.getOwnPropertyDescriptor(value, key);
         if (!descriptor || !("value" in descriptor) || descriptor.enumerable !== true) throw new Error("FKEI array items must be enumerable data properties");
       }
-      const items: EncodedValue[] = [];
+      const items: FkeiEncodedValue[] = [];
       for (let index = 0; index < value.length; index += 1) {
         if (!Object.prototype.hasOwnProperty.call(value, index)) throw new Error("FKEI cannot encode sparse arrays");
         items.push(encodeFkeiValue(value[index], seen, budget, depth + 1));
@@ -435,7 +435,7 @@ export function encodeFkeiValue(value: unknown, seen = new WeakSet<object>(), bu
       if (!descriptor || descriptor.enumerable !== true || !("value" in descriptor)) throw new Error(`FKEI ${key} must be an enumerable data property`);
     }
     if (Object.getOwnPropertySymbols(value).length > 0) throw new Error("FKEI objects cannot contain symbol properties");
-    const entries: Array<[string, EncodedValue]> = [];
+    const entries: Array<[string, FkeiEncodedValue]> = [];
     for (const key of Object.keys(value)) {
       if (key === "$fkei") throw new Error("FKEI reserved key cannot be used in an object");
       const descriptor = Object.getOwnPropertyDescriptor(value, key);

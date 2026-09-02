@@ -4517,3 +4517,19 @@ area補強Graphが`.fkei` roundtrip後もnode／edgeをexact保持する回帰�
 赤表示は角度診断なので補強後も元triangle自体は赤いが、UIはareaを補強済みとして区別する。
 これは有限mesh角度、SDF sampleと45°contractの幾何検査であり、slicer layer、強度、実物の造形成功は未検証。
 `printApproval=false`を維持する。
+
+## Observation SKIN REBUILD Print-ready FKEI Snapshot（2026-09-02）
+
+Print直前まで確定したSKIN REBUILDのFKEIを、既存の`base64-binary-v1`へ載せる任意のderived
+`printSnapshot`として保存できるようにした。snapshotはsource geometryの正本ではなく、Final BODY mesh、
+Stage 6 topology/component選択、Stage 4/6.5/7/7.5/8のcurrent evidence、Sparse Support graphのfingerprintと
+diagnostics、Internal print-gateのexport対象STLを保持する。payloadには既存SHA-256の整合性印も付け、
+非有限mesh、topology不正、component不正、BODY collision、改変payloadは再利用せずfail-closedする。
+
+一致するsource/pipeline/settings/support graphだけをOpen時に復元し、Stage 6の重いmesh生成とStage 4〜8の
+重い再診断は再実行しない。UIは`Print Snapshot Restored`、`BODY ready`、`Components ready`、`Sparse Support ready`、
+unresolved countを表示し、fingerprint不一致は`Print snapshot is stale — rebuild required`として既存workflowへ戻す。
+unresolved supportとthin strutの承認はsnapshotへ保存せず、Open後もsession-onlyの明示確認を維持する。既存FKEIは
+snapshotなしで読み込める。Nodeのround-trip fixtureではFKEI 206,588 bytesから224,968 bytes（+18,380 bytes）となった。
+同じfixtureの今回のparse境界計測はlegacy 12.982 ms、snapshot parse＋decode 6.900 msで、実ブラウザのStage 6〜8所要時間ではない。
+これは保存形式と有限fixtureの検証であり、最終3MF生成、視認による形状判断、production deployは行っていない。
