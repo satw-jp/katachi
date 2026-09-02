@@ -1,5 +1,16 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Print準備からSparse Support exportまでの導線（2026-09-02）
+
+`/skin-rebuild.html` の右WORKFLOW先頭に、通常UIだけで `.fkei Open` → Stage 4診断 →
+Stage 6.4 Component Colors → Stage 8 Sparse Support → Experimental Export / 3MFへ進める
+Print準備パネルを追加した。パネルはFKEI/Stage 4/6/7/7.5/8のcurrent・stale、KeepしたBODY
+component数、Sparse Support生成状態、unresolved support数、Export gateのhard blocker理由と
+次の操作を表示する。Stage 4とStage 8への導線は既存ボタンを呼び、source geometry、FKEI geometry、
+Stage 5B、Web、Motif配置、Support targetを自動再生成しない。Component Selectionで選んだBODYだけを
+既存のexport bufferへ渡し、少なくとも1 componentをKeepする条件とUnsupported時の
+`Export Experimental Print`明示承認を維持する。画面の形状判断、最終3MF生成、deployは行っていない。
+
 ## Observation — Stage 6.4 Mesh Topology Diagnostics（2026-09-01）
 
 工程6のraw triangle soupを変更せず、connected componentごとの色、triangle数、符号付き体積から得た絶対volume、保存mm座標boundsを表示するStage 6.4を追加した。既存final repairと同じcavity／tiny-island／Plate shift順で保存座標退化face IDも追跡し、該当面は黄色markerで示す。診断はWorker内の表示用evidenceであり、triangleの削除・接続・repair・FKEI・exportには使わない。

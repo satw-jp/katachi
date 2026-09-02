@@ -131,6 +131,10 @@ import {
   type Stage6ComponentExportSelection,
 } from "./rebuild/stage6ComponentExportSelection.ts";
 import {
+  evaluateSkinRebuildPrintPreparation,
+  type SkinRebuildPrintPreparationReadiness,
+} from "./rebuild/printPreparationReadiness.ts";
+import {
   A1_MINI_PLA_04_02,
   internalPrintGateAllowsSupportDisabledExport,
   internalStructureOutputBlockReason,
@@ -1094,6 +1098,26 @@ let skinRebuildStage7DangerPresentationStatus: HTMLElement | null = null;
 let skinRebuildSaveStatus: HTMLElement | null = null;
 let skinRebuildReinforcementStatus: HTMLElement | null = null;
 let skinRebuildStage8ExportStatus: HTMLElement | null = null;
+type SkinRebuildPrintPreparationPanelRefs = {
+  status: HTMLElement;
+  values: {
+    fkei: HTMLElement;
+    stage4: HTMLElement;
+    stage6: HTMLElement;
+    components: HTMLElement;
+    stage7: HTMLElement;
+    stage75: HTMLElement;
+    stage8: HTMLElement;
+    sparseSupport: HTMLElement;
+    unresolved: HTMLElement;
+    gate: HTMLElement;
+  };
+  blocker: HTMLElement;
+  blockerState: HTMLElement;
+  blockerReason: HTMLElement;
+  blockerNextAction: HTMLElement;
+};
+let skinRebuildPrintPreparationPanelRefs: SkinRebuildPrintPreparationPanelRefs | null = null;
 let skinRebuildLowestButton: HTMLButtonElement | null = null;
 let skinRebuildLatticeButton: HTMLButtonElement | null = null;
 let skinRebuildFinalDiagnosisButton: HTMLButtonElement | null = null;
@@ -2833,6 +2857,102 @@ syncPhaseAVerticalControl();
 
 rightPaneBody.appendChild(ui.root);
 if (isSkinRebuildApp) {
+  const printPreparationPanel = document.createElement("section");
+  printPreparationPanel.id = "skin-print-preparation";
+  printPreparationPanel.className = "skin-rebuild-print-preparation";
+  printPreparationPanel.setAttribute("aria-label", "SKIN REBUILD Print preparation and export readiness");
+  const printPreparationTitle = document.createElement("strong");
+  printPreparationTitle.textContent = "Print準備 / Export readiness";
+  const printPreparationHint = document.createElement("p");
+  printPreparationHint.className = "hint";
+  printPreparationHint.textContent = "診断とreadinessだけを更新します。source geometry / FKEI geometry / Stage 5B / Web / Motif配置 / Support targetは自動変更しません。";
+  const printPreparationStatus = document.createElement("div");
+  printPreparationStatus.className = "mesh-status skin-rebuild-print-preparation-status";
+  printPreparationStatus.setAttribute("aria-live", "polite");
+  const printPreparationReadinessList = document.createElement("dl");
+  printPreparationReadinessList.className = "skin-rebuild-print-preparation-readiness";
+  const readinessValues = {} as SkinRebuildPrintPreparationPanelRefs["values"];
+  const addReadinessRow = (key: keyof SkinRebuildPrintPreparationPanelRefs["values"], labelText: string): void => {
+    const term = document.createElement("dt");
+    term.textContent = labelText;
+    const value = document.createElement("dd");
+    value.textContent = "stale";
+    readinessValues[key] = value;
+    printPreparationReadinessList.append(term, value);
+  };
+  addReadinessRow("fkei", "SKIN入力 / FKEI");
+  addReadinessRow("stage4", "Stage 4 diagnostics");
+  addReadinessRow("stage6", "Stage 6 mesh / 6.4");
+  addReadinessRow("components", "selected BODY components");
+  addReadinessRow("stage7", "Stage 7 final diagnosis");
+  addReadinessRow("stage75", "Stage 7.5 interior");
+  addReadinessRow("stage8", "Stage 8 confirmation");
+  addReadinessRow("sparseSupport", "Sparse Support generated");
+  addReadinessRow("unresolved", "unresolved support count");
+  addReadinessRow("gate", "Export gate");
+  const printPreparationBlocker = document.createElement("div");
+  printPreparationBlocker.className = "skin-rebuild-print-preparation-blocker";
+  const printPreparationBlockerState = document.createElement("strong");
+  printPreparationBlockerState.textContent = "Hard blocker";
+  const printPreparationBlockerReason = document.createElement("div");
+  const printPreparationBlockerNextAction = document.createElement("div");
+  printPreparationBlocker.append(
+    printPreparationBlockerState,
+    printPreparationBlockerReason,
+    printPreparationBlockerNextAction,
+  );
+  const printPreparationActions = document.createElement("nav");
+  printPreparationActions.className = "skin-rebuild-print-preparation-actions";
+  printPreparationActions.setAttribute("aria-label", "Print preparation actions");
+  const focusPrintPreparationTarget = (targetId: string): void => {
+    const target = ui.root.querySelector<HTMLElement>(`#${targetId}`);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const addPrintPreparationAction = (
+    label: string,
+    targetId: string,
+    action?: () => void,
+  ): void => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.dataset.printPreparationAction = targetId;
+    button.onclick = () => {
+      if (action) action();
+      else focusPrintPreparationTarget(targetId);
+    };
+    printPreparationActions.appendChild(button);
+  };
+  addPrintPreparationAction("1. FKEIを開く", "skin-stage-1", () => projectOpenInput.click());
+  addPrintPreparationAction("2. Print準備診断 / Stage 4", "skin-stage-4");
+  addPrintPreparationAction("3. Stage 6.4 Component診断", "skin-stage-6-4");
+  addPrintPreparationAction("4. Sparse Supportを生成・確認", "skin-stage-8-support", () => {
+    if (skinRebuildPrintSupportButton && !skinRebuildPrintSupportButton.disabled) {
+      skinRebuildPrintSupportButton.click();
+      return;
+    }
+    focusPrintPreparationTarget("skin-stage-8-support");
+  });
+  addPrintPreparationAction("5. Experimental Export / 3MF", "skin-stage-8-export");
+  printPreparationPanel.append(
+    printPreparationTitle,
+    printPreparationHint,
+    printPreparationStatus,
+    printPreparationReadinessList,
+    printPreparationBlocker,
+    printPreparationActions,
+  );
+  skinRebuildPrintPreparationPanelRefs = {
+    status: printPreparationStatus,
+    values: readinessValues,
+    blocker: printPreparationBlocker,
+    blockerState: printPreparationBlockerState,
+    blockerReason: printPreparationBlockerReason,
+    blockerNextAction: printPreparationBlockerNextAction,
+  };
+  rightPaneBody.insertBefore(printPreparationPanel, ui.root);
+
   const phaseNavigator = document.createElement("nav");
   phaseNavigator.className = "skin-rebuild-phase-navigator";
   phaseNavigator.setAttribute("aria-label", "SKIN REBUILD phase navigation");
@@ -8187,7 +8307,9 @@ function refreshSkinRebuildFinalStageButtons(): void {
       || !skinRebuildMeshInteriorClassificationBindingsAreCurrent();
   }
   if (skinRebuildPrintSupportButton) {
-    skinRebuildPrintSupportButton.disabled = !skinRebuildFinalDiagnosisIsCurrent();
+    skinRebuildPrintSupportButton.disabled = skinRebuildPrintSupportMode === "automatic"
+      ? !skinRebuildArtworkInteriorClassificationCheckpointIsCurrent()
+      : !skinRebuildFinalDiagnosisIsCurrent();
   }
   refreshSkinRebuildMeshInteriorClassificationCheckpoint();
   refreshSkinRebuildMeshInteriorClassificationDisplay();
@@ -8220,7 +8342,10 @@ function skinRebuildSparseExperimentalExportDecision() {
 }
 
 function refreshSkinRebuildStage8ExportButton(): void {
-  if (!skinRebuildStage8ExportButton) return;
+  if (!skinRebuildStage8ExportButton) {
+    refreshSkinRebuildPrintPreparationPanel();
+    return;
+  }
   const reason = skinRebuildPipelineOutputBlockReason()
     ?? skinRebuildExportComponentSelectionBlockReason();
   const running = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
@@ -8242,15 +8367,17 @@ function refreshSkinRebuildStage8ExportButton(): void {
     skinRebuildExperimentalExportWarning.textContent = experimentalDecision.message;
     skinRebuildExperimentalExportWarning.dataset.ok = String(experimentalDecision.state === "ready");
   }
-  if (!skinRebuildStage8ExportStatus) return;
-  if (reason && skinRebuildStage8ExportStatus.textContent === "未実行") {
-    skinRebuildStage8ExportStatus.textContent = `準備待ち · ${reason}`;
-    skinRebuildStage8ExportStatus.dataset.ok = "false";
-  } else if (!reason && !running && (skinRebuildStage8ExportStatus.textContent === "未実行"
-    || skinRebuildStage8ExportStatus.textContent?.startsWith("準備待ち"))) {
-    skinRebuildStage8ExportStatus.textContent = "準備完了 · 必要な形式を選んで書き出せます";
-    skinRebuildStage8ExportStatus.dataset.ok = "true";
+  if (skinRebuildStage8ExportStatus) {
+    if (reason && skinRebuildStage8ExportStatus.textContent === "未実行") {
+      skinRebuildStage8ExportStatus.textContent = `準備待ち · ${reason}`;
+      skinRebuildStage8ExportStatus.dataset.ok = "false";
+    } else if (!reason && !running && (skinRebuildStage8ExportStatus.textContent === "未実行"
+      || skinRebuildStage8ExportStatus.textContent?.startsWith("準備待ち"))) {
+      skinRebuildStage8ExportStatus.textContent = "準備完了 · 必要な形式を選んで書き出せます";
+      skinRebuildStage8ExportStatus.dataset.ok = "true";
+    }
   }
+  refreshSkinRebuildPrintPreparationPanel();
 }
 
 function stopSkinRebuildStage8Export(reason: string): void {
@@ -8407,6 +8534,163 @@ function skinRebuildExportComponentSelectionBlockReason(): string | null {
     return "Export Component Selectionで最低1 componentをKeepしてください";
   }
   return null;
+}
+
+function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationReadiness {
+  const pipeline = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline : null;
+  const project = pipeline?.project ?? null;
+  const topology = currentSkinRebuildTopologyCache();
+  const selection = skinRebuildExportSelectionDescriptor();
+  const stage8Current = project !== null && skinRebuildStage8CompletedProject === project;
+  const sparseResult = skinRebuildSparseSupportResult;
+  const approvalCurrent = skinRebuildExperimentalExportApproval !== null
+    && skinRebuildExperimentalExportApproval.project === project
+    && skinRebuildExperimentalExportApproval.responsibilityOverhang === pipeline?.responsibilityOverhang
+    && skinRebuildExperimentalExportApproval.sparseResult === sparseResult;
+  return evaluateSkinRebuildPrintPreparation({
+    fkeiCurrent: project !== null,
+    stage4Current: project !== null && pipeline?.responsibilityOverhang?.interior !== null
+      && pipeline?.responsibilityOverhang?.interior !== undefined,
+    stage6Current: topology !== null,
+    componentCount: topology?.topologyDiagnostics?.componentCount ?? 0,
+    selectedComponentCount: selection?.componentIds.length ?? 0,
+    stage7Current: skinRebuildFinalDiagnosisIsCurrent(),
+    stage75Current: skinRebuildArtworkInteriorClassificationCheckpointIsCurrent(),
+    stage8Current,
+    supportMode: skinRebuildPrintSupportMode,
+    sparseSupportGenerated: stage8Current && sparseResult !== null,
+    unresolvedSupportCount: sparseResult?.diagnostics.unsupportedTargetCount ?? null,
+    acceptedBodyCollisionCount: sparseResult?.diagnostics.acceptedBodyCollisionCount ?? null,
+    approvalCurrent,
+  });
+}
+
+function skinRebuildPrintPreparationNextAction(reason: string): string {
+  if (reason.includes("未支持") && reason.includes("蜘蛛支持")) {
+    return "Stage 5Aで蜘蛛支持を追加し、未支持0を確認してください";
+  }
+  if (reason.includes("未接続Pattern")) {
+    return "Stage 5Aで未接続Patternを接続し、未接続0を確認してください";
+  }
+  if (reason.includes("実寸") || reason.includes("直径")) {
+    return "表示中の実寸・線径を確認し、必要ならStage 3から再計算してください";
+  }
+  if (reason.includes("工程3〜5") || reason.includes("Stage 4 responsibility") || reason.includes("工程4")) {
+    return "Stage 4「オーバーハング部を検出」を実行し、diagnosticsをcurrentにしてください";
+  }
+  if (reason.includes("工程6") || reason.includes("作品形状")) {
+    return "Stage 6で作品meshを確定し、6.4 Component ColorsでBODYを選んでください";
+  }
+  if (reason.includes("7.5") || reason.includes("Interior Classification")) {
+    return "Stage 7.5で作品の内外を判定し、ambiguous/unclassified 0を確認してください";
+  }
+  if (reason.includes("工程7") || reason.includes("最終診断")) {
+    return "Stage 7「確定作品を診断して残る赤を表示」を実行してください";
+  }
+  if (reason.includes("工程8") || reason.includes("Sparse Support") || reason.includes("印刷サポート")) {
+    return "Stage 8でSparse Supportを生成・確認してください";
+  }
+  if (reason.includes("Experimental") || reason.includes("unresolved") || reason.includes("Unsupported")) {
+    return "警告を確認し、「Export Experimental Print」を明示承認してください";
+  }
+  if (reason.includes("BODY") || reason.includes("Internal")) {
+    return "Stage 8のexport gateに表示された理由を解消してから再試行してください";
+  }
+  return "表示されたhard blockerを解消してから次のStageへ進んでください";
+}
+
+function refreshSkinRebuildPrintPreparationPanel(): void {
+  const refs = skinRebuildPrintPreparationPanelRefs;
+  if (!refs) return;
+  const readiness = skinRebuildPrintPreparationReadiness();
+  const pipelineReason = skinRebuildPipelineOutputBlockReason();
+  let blocker = readiness.blocker;
+  if (!blocker && pipelineReason) {
+    blocker = {
+      kind: "hard-block",
+      reason: pipelineReason,
+      nextAction: skinRebuildPrintPreparationNextAction(pipelineReason),
+    };
+  }
+  if (!blocker && internalPrintGateCache && !internalPrintGateExportAllowed(internalPrintGateCache.report)) {
+    const reason = internalPrintGateCache.report.reasons[0] ?? "Internal print gateがNGです";
+    blocker = {
+      kind: "hard-block",
+      reason,
+      nextAction: skinRebuildPrintPreparationNextAction(reason),
+    };
+  }
+  const diagnosticText = (state: "current" | "stale"): string => state;
+  const setValue = (element: HTMLElement, text: string, state?: string): void => {
+    element.textContent = text;
+    if (state) element.dataset.state = state;
+    else delete element.dataset.state;
+  };
+  const { diagnostics } = readiness;
+  setValue(refs.values.fkei, `FKEI / SKIN入力 · ${diagnosticText(diagnostics.fkei)}`, diagnostics.fkei);
+  setValue(refs.values.stage4, `Stage 4 diagnostics · ${diagnosticText(diagnostics.stage4)}`, diagnostics.stage4);
+  setValue(
+    refs.values.stage6,
+    `Stage 6 mesh / 6.4 Component診断 · ${diagnosticText(diagnostics.stage6)}`,
+    diagnostics.stage6,
+  );
+  setValue(
+    refs.values.components,
+    `selected BODY components · Keep ${readiness.selectedComponentCount}/${readiness.componentCount}`
+      + (readiness.componentCount > 0 && !skinRebuildExportComponentSelectionExplicit ? " · 初期値・全てKeep" : ""),
+    readiness.selectedComponentCount > 0 ? "current" : "stale",
+  );
+  setValue(refs.values.stage7, `Stage 7 final diagnosis · ${diagnosticText(diagnostics.stage7)}`, diagnostics.stage7);
+  setValue(refs.values.stage75, `Stage 7.5 interior classification · ${diagnosticText(diagnostics.stage75)}`, diagnostics.stage75);
+  setValue(refs.values.stage8, `Stage 8 confirmation · ${diagnosticText(diagnostics.stage8)}`, diagnostics.stage8);
+  const supportText = skinRebuildPrintSupportMode === "off"
+    ? `${diagnostics.stage8} · Off confirmed / Sparse Support not generated · BODY only`
+    : `${readiness.sparseSupportGenerated ? "current · generated" : "stale · not generated"}`;
+  setValue(refs.values.sparseSupport, `Sparse Support · ${supportText}`, readiness.sparseSupportGenerated ? "current" : "stale");
+  const unresolvedText = readiness.unresolvedSupportCount === null
+    ? "未生成"
+    : `${readiness.unresolvedSupportCount}件${readiness.unresolvedSupportCount > 0 ? " · WARNING" : " · OK"}`;
+  setValue(
+    refs.values.unresolved,
+    `unresolved support count · ${unresolvedText}`,
+    readiness.unresolvedSupportCount === 0 ? "current" : "stale",
+  );
+  const effectiveState = blocker?.kind === "hard-block"
+    ? "blocked"
+    : blocker?.kind === "approval-required"
+      ? "approval-required"
+      : "ready";
+  const readyExportText = skinRebuildPrintSupportMode === "automatic"
+    ? "BODY + Sparse Support 3MF"
+    : "BODY-only 3MF（Removable Support Off）";
+  setValue(
+    refs.values.gate,
+    effectiveState === "ready"
+      ? `Export gate · ready · ${readyExportText}へ進めます`
+      : effectiveState === "approval-required"
+        ? "Export gate · approval required · Unsupported警告を確認してください"
+        : "Export gate · hard blocker",
+    effectiveState,
+  );
+  refs.status.textContent = effectiveState === "ready"
+    ? `Print準備 current · Stage 8の${readyExportText} exportへ進めます`
+    : effectiveState === "approval-required"
+      ? "Print準備 current · Unsupported警告あり · 明示承認が必要です"
+      : "Print準備 blocked · 次の操作を確認してください";
+  refs.status.dataset.state = effectiveState;
+  refs.blockerState.textContent = effectiveState === "ready"
+    ? "Hard blocker: なし"
+    : effectiveState === "approval-required"
+      ? "Approval required"
+      : "Hard blocker";
+  refs.blocker.dataset.state = effectiveState;
+  refs.blockerState.dataset.state = effectiveState;
+  refs.blockerReason.textContent = blocker
+    ? `理由: ${blocker.reason}`
+    : "理由: すべての必須diagnosticsがcurrentです";
+  refs.blockerNextAction.textContent = blocker
+    ? `次にすること: ${blocker.nextAction}`
+    : `次にすること: Stage 8で3MFを選び、${readyExportText}のexportボタンを押してください`;
 }
 
 function skinRebuildExpectedExportMeshComponents(): number {
@@ -9042,6 +9326,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildSelectedTarget();
       refreshSkinRebuildSelectedRegion();
       commitSkinRebuildWorkflowHistory("工程4 オーバーハング検出", workflowBefore);
+      refreshSkinRebuildFinalStageButtons();
       render();
     };
     worker.onerror = (event) => {
@@ -9625,6 +9910,7 @@ function installSkinRebuildPipelinePanel(): void {
     "6.4 Mesh Topology Diagnostics / 部品・退化面を見る",
     "工程6の確定meshを変更せず、raw connected componentsと保存座標で退化する面を色分けします。削除・接続・repairは行いません。",
   );
+  topologyDiagnostics.section.id = "skin-stage-6-4";
   const topologyDiagnosticModes = document.createElement("div");
   topologyDiagnosticModes.className = "mode-toggle skin-rebuild-topology-diagnostic-modes";
   topologyDiagnosticModes.setAttribute("role", "group");
@@ -10027,6 +10313,7 @@ function installSkinRebuildPipelinePanel(): void {
         "作品の内外を判定中…",
       );
       refreshSkinRebuildArtworkInteriorClassificationCheckpoint();
+      refreshSkinRebuildFinalStageButtons();
     }
   };
   artworkInteriorClassification.section.append(
@@ -10038,6 +10325,7 @@ function installSkinRebuildPipelinePanel(): void {
     "8. Outside Overhangに印刷サポートを生成",
     "Removable Support = Off / Sparse Automatic (experimental)。Automaticは工程4のOutside Overhangだけへ別体支柱を生成し、Inside OverhangはPermanent Webの責任として残します。Offは支柱を生成せずBODYだけを保存します。",
   );
+  printSupport.section.id = "skin-stage-8-support";
   const supportModeRow = document.createElement("label");
   supportModeRow.className = "row skin-rebuild-pipeline-setting";
   supportModeRow.append(document.createTextNode("Removable Support "));
@@ -10381,6 +10669,7 @@ function installSkinRebuildPipelinePanel(): void {
     "サポート確定後の3Dデータ書き出し",
     "必要な形式だけを選びます。Sparse Automatic (experimental)は作品と緑色サポートを別パーツ／別ファイルで保存し、Offは印刷サポート0のBODYだけを保存します。",
   );
+  stage8Export.section.id = "skin-stage-8-export";
   const exportFormats = document.createElement("div");
   exportFormats.className = "skin-rebuild-export-formats";
   const makeExportFormat = (labelText: string, checked: boolean) => {
@@ -14850,6 +15139,7 @@ function inspectMesh(options: MeshUiOptions): void {
       `${workerCount}コア · ${message.summary}${rebuildProjectAtStart ? ` · 5B補強込み${rebuildProjectAtStart.finalGraph.edges.length}辺をmesh表示` : ""} · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
       message.watertightOk ? undefined : "水密検査NG",
     );
+    refreshSkinRebuildFinalStageButtons();
     if (message.watertightOk
       && rebuildProjectAtStart
       && skinRebuildPipelineIsCurrent()
@@ -14929,6 +15219,7 @@ function exportMesh(
     stopSkinRebuildStage8Export(componentSelectionBlockReason);
     return;
   }
+  const exportComponentSelection = buildCurrentSkinRebuildExportComponentSelection();
   const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
   if (readinessBlockReason) {
     ui.setMeshStatus(`書き出し停止: ${readinessBlockReason}`, false);
@@ -14998,6 +15289,7 @@ function exportMesh(
     cachedScaleMmPerUnit: reusableGate?.scaleMmPerUnit,
     cachedPlateShiftSourceZ: reusableGate?.plateShiftSourceZ,
     printSupportGraph,
+    prebuiltPositions: exportComponentSelection?.positions,
   };
   pendingMeshExport = { requestId, generation, baseName, recipe, formats: { ...formats } };
   const worker = new Worker(new URL("./meshExport.worker.ts", import.meta.url), { type: "module" });

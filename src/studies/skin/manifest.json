@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.93.0",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-31",
+  "updatedAt": "2026-09-02",
   "params": [
     "count",
     "radiusBase",
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-09-02",
+      "note": "SKIN REBUILD Print preparation panel adds a normal UI route from .fkei Open through current Stage 4 diagnostics, Stage 6.4 Component Colors Keep/Remove, Stage 8 Sparse Support, Unsupported warning and explicit Export Experimental Print approval to the existing BODY + Sparse Support 3MF button. The panel displays current/stale diagnostics, selected BODY component count, generated support state, unresolved support count and hard-blocker reason/next action. Stage 4 and Stage 8 routes call existing controls only; source/FKEI geometry, Stage 5B, Web, Motif placement and Support targets are not regenerated. Selected BODY components are passed through the existing export buffer, at least one kept component remains required, and no final 3MF, visual shape decision or deploy was performed."
+    },
     {
       "date": "2026-09-01",
       "note": "Stage 6.4 adds presentation-only raw mesh topology evidence: per-component colors, triangle count, absolute volume, saved-mm bounds, and yellow markers for exact saved-coordinate degenerate faces traced through the existing repair staging. Chrome QA on the reloadable support-free Print #002 FKEI measured 222,636 triangles across 5 components (222,268 / 204 / 116 / 24 / 24), but exact current face tracing found 0 degenerate faces; the prior experimental gate's two-face blocker belonged to an unsaved session state and cannot be mapped honestly from this FKEI. The separate final FKEI measured 6 components and 0 degenerates. No face was deleted, connected, repaired, exported, or persisted; the browser remains on the five-component diagnostic for author judgment."

@@ -483,5 +483,25 @@ assert.match(renderer, /fourViewsButton\.textContent = "4"/);
 assert.match(style, /\.multi-viewport-layout-toggle/);
 assert.match(style, /\.skin-bottom-status-pane/);
 assert.match(style, /\.skin-rebuild-pipeline-panel/);
+assert.match(main, /skin-print-preparation/,
+  "SKIN REBUILD must expose a visible Print preparation readiness panel");
+assert.match(main, /evaluateSkinRebuildPrintPreparation/,
+  "Print preparation UI must use the pure readiness/button-state contract");
+assert.match(main, /1\. FKEIを開く/,
+  "Print preparation must offer a normal UI route to FKEI Open");
+assert.match(main, /2\. Print準備診断 \/ Stage 4/,
+  "Print preparation must offer a direct Stage 4 diagnostic route");
+assert.match(main, /3\. Stage 6\.4 Component診断/,
+  "Print preparation must offer a direct Stage 6.4 component route");
+assert.match(main, /4\. Sparse Supportを生成・確認/,
+  "Print preparation must offer a direct Stage 8 support route");
+assert.match(main, /5\. Experimental Export \/ 3MF/,
+  "Print preparation must offer a direct Stage 8 export route");
+assert.match(main, /selected BODY components/,
+  "Print preparation must expose the selected BODY component count");
+assert.match(main, /unresolved support count/,
+  "Print preparation must expose the unresolved support count");
+assert.match(main, /Hard blocker/,
+  "Print preparation must expose a hard-blocker reason and next action");
 
 console.log("SKIN REBUILD original editor shell tests passed");
