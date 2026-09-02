@@ -473,6 +473,7 @@ export class SkinRenderer {
   });
   private readonly reinforcedInternalEdgeMaterial = new THREE.MeshBasicMaterial({
     color: 0x32e6ff,
+    vertexColors: true,
     transparent: true,
     opacity: 1,
     depthTest: false,
@@ -2390,12 +2391,15 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
-  /** Keep the just-added red-area reinforcement unmistakable in mesh view.
-   * This is a bright-cyan display overlay; the actual printable cylinders are
+  /** Keep the red-area reinforcement unmistakable in mesh view. Cyan is the
+   * existing permanent route, yellow is an added redundant route, and red is
+   * a remaining single-point dependency. The actual printable cylinders are
    * already part of the permanent graph passed to setInternalStructure. */
   setReinforcedInternalStructureEdges(
     graph: InternalStructureGraph | null,
     edgeIds: readonly number[],
+    redundantEdgeIds: readonly number[] = [],
+    singlePointDependencyEdgeIds: readonly number[] = [],
   ): void {
     if (this.reinforcedInternalEdgeMesh) {
       this.scene.remove(this.reinforcedInternalEdgeMesh);
@@ -2422,6 +2426,11 @@ export class SkinRenderer {
     const direction = new THREE.Vector3();
     const rotation = new THREE.Quaternion();
     const yAxis = new THREE.Vector3(0, 1, 0);
+    const redundant = new Set(redundantEdgeIds);
+    const singlePointDependency = new Set(singlePointDependencyEdgeIds);
+    const cyan = new THREE.Color(0x32e6ff);
+    const yellow = new THREE.Color(0xffd23f);
+    const red = new THREE.Color(0xff5a5f);
     for (const [index, edge] of edges.entries()) {
       const start = graph.nodes[edge.start]?.position;
       const end = graph.nodes[edge.end]?.position;
@@ -2436,8 +2445,12 @@ export class SkinRenderer {
         new THREE.Vector3(edge.radius * 1.28, length * 1.02, edge.radius * 1.28),
       );
       mesh.setMatrixAt(index, matrix);
+      mesh.setColorAt(index, redundant.has(edge.id)
+        ? yellow
+        : singlePointDependency.has(edge.id) ? red : cyan);
     }
     mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.position.z = this.phaseAObjectLiftSource;
     mesh.renderOrder = 18;
     mesh.frustumCulled = false;

@@ -289,6 +289,7 @@ import {
   type SkinRebuildStage5BRequest,
   type SkinRebuildStage5BWorkerMessage,
 } from "./rebuild/stage5bReinforcementWorkerProtocol.ts";
+import type { SkinRebuildPermanentReinforcementRedundancyReport } from "./rebuild/permanentReinforcementRedundancy.ts";
 import { stage6MeshProgressPercent } from "./rebuild/stage6MeshProgress.ts";
 import {
   SKIN_REBUILD_FKEI_SCHEMA,
@@ -1178,7 +1179,12 @@ let skinRebuildBulkSupportButton: HTMLButtonElement | null = null;
 let skinRebuildCompleteSupportButton: HTMLButtonElement | null = null;
 let skinRebuildUnsupportedFocusButton: HTMLButtonElement | null = null;
 let skinRebuildConnectAllButton: HTMLButtonElement | null = null;
-type SkinRebuildReinforcementPreview = { graph: InternalStructureGraph; edgeIds: number[] };
+type SkinRebuildReinforcementPreview = {
+  graph: InternalStructureGraph;
+  edgeIds: number[];
+  redundantEdgeIds: number[];
+  singlePointDependencyEdgeIds: number[];
+};
 let skinRebuildReinforcementPreview: SkinRebuildReinforcementPreview | null = null;
 let activeSkinRebuildLowestWorker: Worker | null = null;
 let skinRebuildLowestRequestId = 0;
@@ -8557,14 +8563,35 @@ function markSkinRebuildArtworkFinalized(project: SkinRebuildProject, summary: s
 function setSkinRebuildReinforcementPreview(
   graph: InternalStructureGraph | null,
   edgeIds: readonly number[],
+  redundantEdgeIds: readonly number[] = [],
+  singlePointDependencyEdgeIds: readonly number[] = [],
 ): void {
   skinRebuildReinforcementPreview = graph && edgeIds.length > 0
-    ? { graph, edgeIds: [...edgeIds] }
+    ? {
+      graph,
+      edgeIds: [...edgeIds],
+      redundantEdgeIds: [...redundantEdgeIds],
+      singlePointDependencyEdgeIds: [...singlePointDependencyEdgeIds],
+    }
     : null;
   skinRenderer.setReinforcedInternalStructureEdges(
     skinRebuildReinforcementPreview?.graph ?? null,
     skinRebuildReinforcementPreview?.edgeIds ?? [],
+    skinRebuildReinforcementPreview?.redundantEdgeIds ?? [],
+    skinRebuildReinforcementPreview?.singlePointDependencyEdgeIds ?? [],
   );
+}
+
+function formatSkinRebuildPermanentReinforcementRedundancy(
+  report: SkinRebuildPermanentReinforcementRedundancyReport,
+): string {
+  const formatMetrics = (metrics: SkinRebuildPermanentReinforcementRedundancyReport["before"]): string =>
+    `R${metrics.reinforcedRegions} C${metrics.surfaceContacts} M${metrics.reinforcementMembers}`
+      + ` partial${metrics.partial} no-route${metrics.noRoute}`
+      + ` 1点依存${metrics.oneContactDependencyCount} 弱≤2${metrics.weakMotifCount}`
+      + ` 3+分散${metrics.distributedContactMotifCount}`
+      + ` comp${metrics.disconnectedComponentCount} minØ${metrics.minimumStrutDiameterMm.toFixed(2)}mm`;
+  return `冗長性 Before [${formatMetrics(report.before)}] → After [${formatMetrics(report.after)}] · 追加経路${report.redundantRouteCount}`;
 }
 
 /** Replace the stale Stage 4 surface-only preview with the exact Stage 6
@@ -9946,6 +9973,7 @@ function installSkinRebuildPipelinePanel(): void {
         (maximum, region) => Math.max(maximum, region.maximumEdgeAngleDeg),
         0,
       );
+      const redundancySummary = formatSkinRebuildPermanentReinforcementRedundancy(message.redundancy);
       const emptyPrintSupport = createEmptySkinRebuildGraph();
       const project = assembleSkinRebuildProject(
         settings,
@@ -9970,6 +9998,8 @@ function installSkinRebuildPipelinePanel(): void {
       setSkinRebuildReinforcementPreview(
         message.reinforcement,
         message.reinforcement.edges.map((edge) => edge.id),
+        message.redundancy.redundantPreviewEdgeIds,
+        message.redundancy.singlePointDependencyPreviewEdgeIds,
       );
       skinRenderer.setPrintSupport(emptyPrintSupport);
       invalidateInternalPrintGate("赤面エリアを蜘蛛ラティスへ補強しました。工程6〜8を再実行してください");
@@ -9979,7 +10009,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildSelectedTarget();
       refreshSkinRebuildSelectedRegion();
       if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = false;
-      reinforcement.status.textContent = `緑面 ${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色の面→点補強 ${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · 全edge ${project.lattice.edges.length} · ${(message.elapsedMs / 1000).toFixed(1)}秒${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}領域（残り面接点${uncoveredSurfaceContactCount}）は追加形状と黄色選択を保持` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}領域` : ""}`;
+      reinforcement.status.textContent = `緑面 ${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色の面→点補強 ${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · 全edge ${project.lattice.edges.length} · ${(message.elapsedMs / 1000).toFixed(1)}秒 · ${redundancySummary}${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}領域（残り面接点${uncoveredSurfaceContactCount}）は追加形状と黄色選択を保持` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}領域` : ""}`;
       reinforcement.status.dataset.ok = "true";
       if (skinRebuildPrintSupportStatus) {
         skinRebuildPrintSupportStatus.textContent = "補強後の工程6確定と工程7最終診断を待っています";
@@ -9991,7 +10021,7 @@ function installSkinRebuildPipelinePanel(): void {
       }
       setSkinRebuildMeshBottomProgress(
         "工程5B 赤面エリア補強",
-        `100% · 緑${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · Base内包OK · ${(message.elapsedMs / 1000).toFixed(1)}秒${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}/残り接点${uncoveredSurfaceContactCount}` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}` : ""}`,
+        `100% · 緑${reinforcedRegionIds.length}領域 · 面接点${surfaceContactCount}点 → 明るい水色${segmentCount}本 · 最大${maximumEdgeAngleDeg.toFixed(1)}° · Base内包OK · ${(message.elapsedMs / 1000).toFixed(1)}秒 · ${redundancySummary}${partialRegions.length > 0 ? ` · 部分補強${partialRegions.length}/残り接点${uncoveredSurfaceContactCount}` : ""}${message.failures.length > 0 ? ` · 経路未作成${message.failures.length}` : ""}`,
       );
       commitSkinRebuildWorkflowHistory("工程5B 赤面エリア補強", workflowBefore);
       render();
@@ -13310,7 +13340,12 @@ function captureSkinRebuildWorkflowSnapshot(): SkinRebuildWorkflowSnapshot {
     printSupportModeNeedsConfirmation: skinRebuildPrintSupportModeNeedsConfirmation,
     stage6BodyMeshCache,
     reinforcementPreview: skinRebuildReinforcementPreview
-      ? { graph: skinRebuildReinforcementPreview.graph, edgeIds: [...skinRebuildReinforcementPreview.edgeIds] }
+      ? {
+        graph: skinRebuildReinforcementPreview.graph,
+        edgeIds: [...skinRebuildReinforcementPreview.edgeIds],
+        redundantEdgeIds: [...skinRebuildReinforcementPreview.redundantEdgeIds],
+        singlePointDependencyEdgeIds: [...skinRebuildReinforcementPreview.singlePointDependencyEdgeIds],
+      }
       : null,
     selectedTargetPatchId: skinRebuildSelectedTargetPatchId,
     selectedOverhangRegionIds: new Set(skinRebuildSelectedOverhangRegionIds),
@@ -13342,7 +13377,11 @@ function skinRebuildWorkflowSnapshotChanged(
     || before.printSupportMode !== after.printSupportMode
     || before.printSupportModeNeedsConfirmation !== after.printSupportModeNeedsConfirmation
     || before.stage6BodyMeshCache !== after.stage6BodyMeshCache
-    || before.reinforcementPreview?.graph !== after.reinforcementPreview?.graph;
+    || before.reinforcementPreview?.graph !== after.reinforcementPreview?.graph
+    || before.reinforcementPreview?.redundantEdgeIds.join(",")
+      !== after.reinforcementPreview?.redundantEdgeIds.join(",")
+    || before.reinforcementPreview?.singlePointDependencyEdgeIds.join(",")
+      !== after.reinforcementPreview?.singlePointDependencyEdgeIds.join(",");
 }
 
 function commitSkinRebuildWorkflowHistory(label: string, before: SkinRebuildWorkflowSnapshot): void {
@@ -13438,6 +13477,8 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   setSkinRebuildReinforcementPreview(
     snapshot.reinforcementPreview?.graph ?? null,
     snapshot.reinforcementPreview?.edgeIds ?? [],
+    snapshot.reinforcementPreview?.redundantEdgeIds ?? [],
+    snapshot.reinforcementPreview?.singlePointDependencyEdgeIds ?? [],
   );
 
   refreshSkinRebuildLatticeEdgeEditor();

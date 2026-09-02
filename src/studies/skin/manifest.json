@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-02",
+      "note": "Stage 5B Permanent Reinforcement Redundancy keeps Inside Overhang as the only permanent-reinforcement responsibility and records finite Before/After evidence for reinforced regions, surface contacts, reinforcement members, partial/no-route outcomes, one-contact dependency, weak Motifs with at most two contacts, distributed three-plus contacts, disconnected components and minimum strut diameter. When spatially distinct samples map to the same Motif, the existing collision-safe and Base-contained route search prefers a different web landing; accepted redundant paths remain in the permanent lattice. The Base, Motif positions, existing diameter, Outside removable support, FKEI and Stage 8 are unchanged. Cyan shows existing permanent reinforcement and yellow identifies added redundant paths; this is geometry evidence, not mechanical, slicer or print proof."
+    },
+    {
+      "date": "2026-09-02",
       "note": "Thin Strut Experimental Export keeps the 0.80 mm recommendation and reports the measured Minimum strut, Recommended minimum and Thin struts count. Only a finite positive below-threshold Permanent Web/Reinforcement result with no other Internal print-gate reason can expose the separate Allow Thin Strut Experimental Export control; explicit approval shows the accepted-risk message and allows the existing BODY + Sparse Support export to continue. Approval is session-only and tied to the current gate fingerprint/report, so changed geometry, Web/Reinforcement, component selection or print diagnostics invalidate it. Invalid diameters, topology/component failures, support BODY collision and every other hard blocker remain fail-closed. No viewport thin-member highlight, geometry change, final 3MF or deploy was performed."
     },
     {
