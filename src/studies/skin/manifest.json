@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-02",
+      "note": "TASK E Workflow Guide v0をSKIN REBUILD右WORKFLOW最上部へ追加した。Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを既存workflow/stateから読み、current phase、progress、blocker/current state、Primary Action、既存actionへのrouting、前工程への再循環を表示する。FKEI restore時の欠落downstream evidenceはIncompleteと断定せずNeeds verificationとしてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。"
+    },
+    {
+      "date": "2026-09-02",
       "note": "Thin Strut Experimental Export keeps the 0.80 mm recommendation and reports the measured Minimum strut, Recommended minimum and Thin struts count. Only a finite positive below-threshold Permanent Web/Reinforcement result with no other Internal print-gate reason can expose the separate Allow Thin Strut Experimental Export control; explicit approval shows the accepted-risk message and allows the existing BODY + Sparse Support export to continue. Approval is session-only and tied to the current gate fingerprint/report, so changed geometry, Web/Reinforcement, component selection or print diagnostics invalidate it. Invalid diameters, topology/component failures, support BODY collision and every other hard blocker remain fail-closed. No viewport thin-member highlight, geometry change, final 3MF or deploy was performed."
     },
     {
