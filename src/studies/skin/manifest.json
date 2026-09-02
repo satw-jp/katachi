@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.93.0",
+  "version": "0.93.1",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-09-02",
   "params": [
@@ -1172,6 +1172,10 @@
     {
       "date": "2026-08-31",
       "note": "SKIN REBUILD Stage 8 Sparse Removable Support v0.1 (experimental): transfer Stage 4's stored Inside/Outside class, region id and selected Pattern owner patch id onto Stage 7 final-artwork overhang representatives without reclassification, reduce each Outside region to a deterministic low-start-band set of at most three critical targets, and greedily try vertical then bounded <=45-degree leaning plate routes. The workflow currently records plate Z but no physical XY plate extents, so the artwork sampling bbox is not used as a plate boundary and leaning routes are unavailable without explicit finite XY bounds; unknown bounds never grant proof. Accepted orange support remains a separate graph with a short 0.6 mm research contact neck; authoritative finished-BODY capsule keep-out independently checks owner target and non-owner BODY plus Permanent Web remainder, with finite/1-Lipschitz/adaptive proof limits and exact capsule-to-capsule spacing failing closed. The UI reports Outside regions, Critical targets, Supported/Unsupported, Supports, BODY/spacing/removable rejections, Inside-derived 0, and vertical/leaning counts; bounded yellow/red markers are presentation-only. Off remains BODY-only with support nodes/edges/artifact 0. This is a finite geometric screen and heuristic research gap, not nipper access, enclosure, slicer, strength, removability, or print-success evidence; FKEI/schema/version, Print #001/#002 artifacts, shadow semantics and printApproval=false remain unchanged."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "Stage 6 final mesh performance v0 on fixed base 671227dd35985e0e87bb6e5b87b75a41ffc34456: representative 38-Pattern first-print fixture, 16 slice Workers, resolution 128, browser wall time cold 10.69s→4.92s and warm median 8.85s→4.68s (47.2% faster). The measured dominant tail was duplicate component/topology diagnosis work. The parallel path now counts components directly from the authoritative Float32 triangle buffer, and inspect uses the existing Stage 6 topology diagnostic's component count and saved-coordinate degenerate evidence without replaying the same analysis. Triangle count 222,984, bounds 32.6×32.4×80.0 mm, watertight status, component count 3, internal Voronoi 270 edges and deterministic repeated output matched Before/After. No FKEI save/load/snapshot, UI redesign, or CUDA production path changed; SKIN rebuild regression, production build and diff check passed."
     }
   ]
 }
