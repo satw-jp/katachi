@@ -31,6 +31,11 @@ import type { PackPatchesResult } from "./field.ts";
 import { PACKING_MOTIF_PRESETS } from "../flower-packing-spike/packing.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import {
+  SKIN_VIEWPORT_OVERLAYS,
+  type SkinViewportOverlay,
+  type ViewportOverlayAvailability,
+} from "./viewportMode.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import type { SupportSiteClassification, SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
 import {
@@ -145,6 +150,8 @@ export interface UiCallbacks {
   onRepackFlowers: () => void;
   /** Switch the active viewport display (T12: raymarch / beads / full mesh). */
   onSetViewMode: (mode: SkinViewMode) => void;
+  /** Select the single session-only SKIN REBUILD diagnostic overlay. */
+  onSetViewportOverlay: (overlay: SkinViewportOverlay) => void;
   onSetDisplayStyle: (style: SkinDisplayStyle) => void;
   onSetInternalObservationMode: (mode: InternalObservationMode) => void;
   /** Stage 4 candidate-graph observation only; must preserve the frozen graph. */
@@ -378,8 +385,13 @@ export interface UiHandles {
     advanceMode: "confirm" | "next" | "none";
   }) => void;
   /** Update the three-way view toggle's active button + honest caption
-   * (approximation disclosure for beads, capacity note for raymarch). */
+   * (approximation disclosure for beads, capacity note for Field/SDF). */
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
+  setMeshViewAvailable: (available: boolean, reason: string) => void;
+  setViewportOverlay: (
+    overlay: SkinViewportOverlay,
+    availability: Readonly<Record<SkinViewportOverlay, ViewportOverlayAvailability>>,
+  ) => void;
   setDisplayStyle: (style: SkinDisplayStyle) => void;
   setInternalObservationMode: (mode: InternalObservationMode) => void;
   setViewportClippingState: (available: boolean, bounds: ViewportClippingBounds | null, state: ViewportClippingState) => void;
@@ -562,6 +574,7 @@ export function buildUi(
   version: string,
   updatedAt: string,
   callbacks: UiCallbacks,
+  options: { enableViewportOverlayControls?: boolean } = {},
 ): UiHandles {
   const root = document.createElement("div");
   root.className = "panel";
@@ -2656,26 +2669,56 @@ export function buildUi(
   // 通常の three.js シーンなのでオービット/ズームがそのままインタラクティブ。
   const viewDock = document.createElement("section");
   viewDock.className = "viewport-view-dock";
+  viewDock.dataset.role = "viewport-view-overlay-controls";
   const viewTitle = document.createElement("strong");
   viewTitle.className = "viewport-view-title";
-  viewTitle.textContent = "生成結果を見る";
+  viewTitle.textContent = "VIEW";
   viewDock.appendChild(viewTitle);
 
   const viewToggle = document.createElement("div");
   viewToggle.className = "mode-toggle viewport-view-toggle";
   const viewButtons: Record<SkinViewMode, HTMLButtonElement> = {} as Record<SkinViewMode, HTMLButtonElement>;
   const VIEW_LABELS: [SkinViewMode, string][] = [
-    ["raymarch", "レイマーチ"],
-    ["beads", "ビーズ"],
-    ["mesh", "段階メッシュ"],
+    ["raymarch", "Field / SDF"],
+    ["beads", "Beads"],
+    ["mesh", "Mesh"],
   ];
   for (const [mode, label] of VIEW_LABELS) {
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.textContent = label;
     btn.onclick = () => callbacks.onSetViewMode(mode);
     viewButtons[mode] = btn;
     viewToggle.appendChild(btn);
   }
+  const overlayRow = document.createElement("label");
+  overlayRow.className = "viewport-overlay-row";
+  overlayRow.hidden = !options.enableViewportOverlayControls;
+  const overlayLabel = document.createElement("span");
+  overlayLabel.textContent = "OVERLAY";
+  const overlaySelect = document.createElement("select");
+  overlaySelect.className = "viewport-overlay-select";
+  overlaySelect.setAttribute("aria-label", "SKIN診断overlayを選ぶ");
+  const OVERLAY_LABELS: Record<SkinViewportOverlay, string> = {
+    none: "None",
+    insideOutside: "Inside / Outside",
+    printRisk: "Print Risk",
+    components: "Components",
+    reinforcement: "Reinforcement",
+    support: "Support",
+  };
+  for (const overlay of SKIN_VIEWPORT_OVERLAYS) {
+    const option = document.createElement("option");
+    option.value = overlay;
+    option.textContent = OVERLAY_LABELS[overlay];
+    overlaySelect.appendChild(option);
+  }
+  const overlayStatus = document.createElement("small");
+  overlayStatus.className = "viewport-overlay-status";
+  overlayStatus.setAttribute("aria-live", "polite");
+  overlayStatus.textContent = "診断overlayなし";
+  overlaySelect.onchange = () => callbacks.onSetViewportOverlay(overlaySelect.value as SkinViewportOverlay);
+  overlayRow.append(overlayLabel, overlaySelect, overlayStatus);
   const displayStyleToggle = document.createElement("div");
   displayStyleToggle.className = "mode-toggle viewport-display-style";
   const displayStyleButtons = new Map<SkinDisplayStyle, HTMLButtonElement>();
@@ -2714,7 +2757,7 @@ export function buildUi(
     callbacks.onPreviewMeshResolutionChange(value);
   };
   quickResolutionRow.appendChild(quickResolutionInput);
-  viewDock.append(viewToggle, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
+  viewDock.append(viewToggle, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
   const viewportElement = container.querySelector("#viewport") ?? container;
   displayToolsRoot.appendChild(viewDock);
 
@@ -3233,19 +3276,39 @@ export function buildUi(
     if (mode === "raymarch") {
       viewCaption.textContent =
         totalPatchPoints > PATCH_MAX_POINTS
-          ? `レイマーチ: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「ビーズ」か「全体メッシュ」で全量を見てください）` +
+          ? `Field / SDF: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「Beads」か「Mesh」で全量を見てください）` +
             (coinBulge > 0 ? " ※容量内ならふくらみ比較もそのまま反映されます。" : "")
-          : "レイマーチ: 食い込みなしで滑らかな合成場をそのまま描画（この点数では容量内）。";
+          : "Field / SDF: 食い込みなしで滑らかな合成場をそのまま描画（この点数では容量内）。";
     } else if (mode === "beads") {
       viewCaption.textContent =
-        `ビーズ近似: ブレンド（smooth-min）省略・配置と密度は全量正確（全${totalPatchPoints}点）。リングは元々数珠なので見た目の乖離は小さいはずだが、コインの融合など見た目が変わる形状もある（README 参照）。容量の制約なしにオービット/ズームできる。` +
+        `Beads近似: ブレンド（smooth-min）省略・配置と密度は全量正確（全${totalPatchPoints}点）。リングは元々数珠なので見た目の乖離は小さいはずだが、コインの融合など見た目が変わる形状もある（README 参照）。容量の制約なしにオービット/ズームできる。` +
         (coinBulge > 0
-          ? " ⚠ ビーズは生のPatchPoint球をそのまま描くため、コインのふくらみ（shell clippingの差）を正しく表しません。ふくらみ比較には「全体メッシュ」を使ってください。"
+          ? " ⚠ Beadsは生のPatchPoint球をそのまま描くため、コインのふくらみ（shell clippingの差）を正しく表しません。ふくらみ比較には「Mesh」を使ってください。"
           : "");
     } else {
-      viewCaption.textContent = "段階メッシュ: まず粗い形を表示し、画面を動かせるまま設定解像度の形へ自動更新します。印刷・書き出しは別の検査経路です。";
+      viewCaption.textContent = "Mesh: Stage 6で確定したtriangle meshを表示します。印刷・書き出しは別の検査経路です。";
     }
     renderDryWebGraphViewButtons();
+  }
+
+  function renderMeshViewAvailability(available: boolean, reason: string): void {
+    viewButtons.mesh.disabled = !available;
+    if (!available && renderedViewMode === "mesh") {
+      meshPreviewStatus.textContent = `Mesh unavailable · ${reason}`;
+    }
+  }
+
+  function renderViewportOverlay(
+    overlay: SkinViewportOverlay,
+    availability: Readonly<Record<SkinViewportOverlay, ViewportOverlayAvailability>>,
+  ): void {
+    overlaySelect.value = overlay;
+    for (const option of Array.from(overlaySelect.options)) option.disabled = false;
+    const selected = availability[overlay];
+    overlayStatus.dataset.status = selected.status;
+    overlayStatus.textContent = overlay === "none"
+      ? "診断overlayなし"
+      : `${OVERLAY_LABELS[overlay]} · ${selected.status} · ${selected.reason}`;
   }
 
   function renderDisplayStyle(style: SkinDisplayStyle): void {
@@ -4715,6 +4778,8 @@ export function buildUi(
       addPatchToggle.textContent = active ? "パッチを手で追加 (有効・クリックで配置)" : "パッチを手で追加 (クリック)";
     },
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
+    setMeshViewAvailable: (available, reason) => renderMeshViewAvailability(available, reason),
+    setViewportOverlay: (overlay, availability) => renderViewportOverlay(overlay, availability),
     setDisplayStyle: (style) => renderDisplayStyle(style),
     setInternalObservationMode: (mode) => renderInternalObservation(mode),
     setViewportClippingState: (available, bounds, clippingState) => {

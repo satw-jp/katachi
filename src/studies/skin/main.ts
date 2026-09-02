@@ -62,6 +62,17 @@ import type { NPartitionResult } from "./nPartition.ts";
 import type { NPartitionBuildRequest, NPartitionWorkerMessage } from "./nPartitionWorkerProtocol.ts";
 import { encodeBinaryStl } from "../cloud-sculpt/meshExport.ts";
 import type { DenseSampleView, SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import {
+  createSkinViewportSessionState,
+  recommendSkinViewportOverlay,
+  recommendSkinViewportView,
+  selectSkinViewportOverlay,
+  selectSkinViewportView,
+  type SkinViewportOverlay,
+  type SkinViewportSessionState,
+  type ViewportEvidenceStatus,
+  type ViewportOverlayAvailability,
+} from "./viewportMode.ts";
 import { supportOverlayPickingIncludesBack, type SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
 import {
   createViewportClippingState,
@@ -1284,6 +1295,7 @@ let dryWebExactRecheckGeneration = 0;
 // rule (raymarch -> beads once the point count exceeds the shader's
 // PATCH_MAX_POINTS uniform budget -- "黙って先頭だけ描くのを廃止", T12 §2).
 let viewMode: SkinViewMode = "raymarch";
+let viewportSessionState: SkinViewportSessionState = createSkinViewportSessionState();
 let displayStyle: SkinDisplayStyle = "solid";
 let internalObservationMode: InternalObservationMode = "normal";
 let showElementNames = false;
@@ -1806,6 +1818,67 @@ let tutorialDisplayedStep: TutorialStepId | null = null;
 const skinRenderer = new SkinRenderer(viewport);
 skinRenderer.setFourViewSplit(editorLayoutState.fourSplitX, editorLayoutState.fourSplitY);
 
+type SkinViewportOverlayAvailabilityMap = Readonly<Record<SkinViewportOverlay, ViewportOverlayAvailability>>;
+
+function skinViewportEvidence(status: ViewportEvidenceStatus, reason: string): ViewportOverlayAvailability {
+  return { status, reason };
+}
+
+function skinViewportOverlayAvailability(): SkinViewportOverlayAvailabilityMap {
+  const pipeline = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline : null;
+  const hasPipeline = skinRebuildPipeline !== null;
+  const stage4Current = Boolean(pipeline?.responsibilityOverhang?.interior);
+  const stage4Status: ViewportEvidenceStatus = stage4Current
+    ? "current"
+    : hasPipeline ? "stale" : "unavailable";
+  const finalDiagnosisCurrent = skinRebuildFinalDiagnosisIsCurrent();
+  const finalDiagnosisStatus: ViewportEvidenceStatus = finalDiagnosisCurrent
+    ? "current"
+    : skinRebuildFinalArtworkDiagnosis !== null || stage4Current ? "stale" : "unavailable";
+  const project = pipeline?.project ?? null;
+  const stage8Current = project !== null && skinRebuildStage8CompletedProject === project;
+  const stage8Status: ViewportEvidenceStatus = stage8Current
+    ? "current"
+    : project !== null ? "stale" : "unavailable";
+  const topologyCurrent = currentSkinRebuildTopologyCache() !== null;
+  const reinforcementCurrent = project !== null && project.finalGraph.edges.length > 0;
+  const reinforcementStatus: ViewportEvidenceStatus = reinforcementCurrent
+    ? "current"
+    : project !== null ? "stale" : "unavailable";
+  return {
+    none: skinViewportEvidence("current", "診断overlayなし"),
+    insideOutside: skinViewportEvidence(stage4Status,
+      stage4Current ? "Stage 4 responsibility" : "Stage 4のInside / Outside結果を実行してください"),
+    printRisk: skinViewportEvidence(
+      finalDiagnosisStatus,
+      finalDiagnosisCurrent ? "Stage 7 final diagnosis" : "Stage 7のPrint Risk診断を実行してください",
+    ),
+    components: skinViewportEvidence(
+      topologyCurrent ? "current" : stage6BodyMeshCache !== null ? "stale" : "unavailable",
+      topologyCurrent ? "Stage 6 component diagnosis" : "Stage 6 component diagnosis unavailable",
+    ),
+    reinforcement: skinViewportEvidence(reinforcementStatus,
+      reinforcementCurrent ? "Permanent Reinforcement" : "Stage 5B reinforcement is not current"),
+    support: skinViewportEvidence(stage8Status,
+      stage8Current ? "Stage 8 Sparse Removable Support" : "Stage 8 Support結果を実行してください"),
+  };
+}
+
+function refreshSkinViewportControls(): void {
+  if (!isSkinRebuildApp) return;
+  const availability = skinViewportOverlayAvailability();
+  const selected = availability[viewportSessionState.overlay];
+  skinRenderer.setViewportOverlay(
+    viewportSessionState.overlay,
+    selected.status === "current",
+  );
+  ui.setMeshViewAvailable(
+    stage6BodyMeshCache !== null,
+    stage6BodyMeshCache !== null ? "Stage 6 final mesh" : "Stage 6 final mesh未生成",
+  );
+  ui.setViewportOverlay(viewportSessionState.overlay, availability);
+}
+
 function refreshBottomStatusPane(): void {
   const editorView = skinRenderer.captureEditorViewDraft(editorLayoutState);
   const direction = editorView.viewports[editorView.selectedViewport]?.direction;
@@ -2200,22 +2273,15 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     }
     afterMutation({ skipGauges: true });
   },
-  onSetViewMode: (mode) => {
-    releaseDryWebInsideTargetOverlayForCompetingView();
-    releaseDryWebInsufficientEdgeOverlayForCompetingView();
-    releaseDryWebSupportSeparationPresentationForCompetingView();
-    invalidateSurfaceAngleDiagnosis("通常の生成結果表示へ戻りました");
-    // A first-hit raymarch cannot reveal geometry behind the front surface.
-    // Choosing it explicitly therefore returns to honest opaque shading.
-    if (mode === "raymarch" && internalObservationMode !== "normal") {
-      setInternalObservationMode("normal");
+  onSetViewMode: (mode) => setViewMode(mode, "user"),
+  onSetViewportOverlay: (overlay) => {
+    viewportSessionState = selectSkinViewportOverlay(viewportSessionState, overlay);
+    if (overlay === "components") {
+      skinRebuildTopologyDiagnosticDisplayMode = "components";
+      refreshSkinRebuildTopologyDiagnosticDisplay();
     }
-    if (mode === "raymarch" && displayStyle === "ghost") {
-      displayStyle = "solid";
-      skinRenderer.setDisplayStyle(displayStyle);
-      ui.setDisplayStyle(displayStyle);
-    }
-    setViewMode(mode);
+    refreshSkinViewportControls();
+    render();
   },
   onSetDisplayStyle: (style) => {
     releaseDryWebInsideTargetOverlayForCompetingView();
@@ -2228,7 +2294,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     ui.setDisplayStyle(style);
     if (style === "ghost" && viewMode === "raymarch") {
       ui.setMeshPreviewStatus("ゴースト表示用の段階メッシュを準備しています", true);
-      setViewMode("mesh");
+      recommendViewMode("mesh");
     } else {
       render();
     }
@@ -2264,7 +2330,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
       refreshDryWebActions();
       return;
     }
-    setViewMode(option.viewMode);
+    recommendViewMode(option.viewMode);
     setInternalObservationMode(option.observationMode);
   },
   onSetDryWebInsideTargetVisible: (visible) => setDryWebInsideTargetOverlayVisible(visible),
@@ -2725,9 +2791,10 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialAdvance: () => tutorialAdvance(),
   onTutorialRestart: () => tutorialRestart(),
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
-});
+}, { enableViewportOverlayControls: isSkinRebuildApp });
 
 syncArtworkGraphStatus();
+refreshSkinViewportControls();
 
 // The REBUILD production shell keeps the shared journal, Undo/Redo, recipe and
 // FKEI callbacks, but does not expose the superseded raw JSON transfer controls.
@@ -3724,7 +3791,7 @@ function syncDryWebContactVisualization(facts = currentDryWebContactFacts()): vo
     state.skinParams.dryWebRequiredContacts,
   );
   const preservedViewState = preserveDryWebGraphViewState({ viewMode, internalObservationMode });
-  if (preservedViewState.viewMode !== viewMode) setViewMode(preservedViewState.viewMode);
+  if (preservedViewState.viewMode !== viewMode) recommendViewMode(preservedViewState.viewMode);
   if (preservedViewState.internalObservationMode !== internalObservationMode) {
     setInternalObservationMode(preservedViewState.internalObservationMode);
   }
@@ -5252,7 +5319,7 @@ function setDryWebSupportSeparationVisible(visible: boolean): void {
       if (restoreViewState.internalObservationMode !== internalObservationMode) {
         setInternalObservationMode(restoreViewState.internalObservationMode);
       }
-      if (restoreViewState.viewMode !== viewMode) setViewMode(restoreViewState.viewMode);
+      if (restoreViewState.viewMode !== viewMode) recommendViewMode(restoreViewState.viewMode);
     }
     if (restoreDiagnosisView) {
       showSurfaceAngleDiagnosisView(restoreDiagnosisView, true);
@@ -5274,10 +5341,11 @@ function setDryWebSupportSeparationVisible(visible: boolean): void {
   dryWebSupportSeparationRestoreDiagnosisView = installedSurfaceAngleDiagnosisView;
   dryWebSupportSeparationVisible = true;
   if (viewMode !== "mesh") {
-    viewMode = "mesh";
+    recommendViewMode("mesh");
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   }
+  if (isSkinRebuildApp) recommendViewportOverlay("support");
   if (internalObservationMode === "internalOnly") setInternalObservationMode("normal");
   skinRenderer.setSurfaceAngleOverlay(
     dryWebSupportSeparation.unresolvedPositions,
@@ -5316,7 +5384,7 @@ function setDryWebRedFaceLocatorVisible(visible: boolean): void {
       if (restoreViewState.internalObservationMode !== internalObservationMode) {
         setInternalObservationMode(restoreViewState.internalObservationMode);
       }
-      if (restoreViewState.viewMode !== viewMode) setViewMode(restoreViewState.viewMode);
+      if (restoreViewState.viewMode !== viewMode) recommendViewMode(restoreViewState.viewMode);
     }
     if (restoreDiagnosisView && !dryWebSupportSeparationVisible) {
       showSurfaceAngleDiagnosisView(restoreDiagnosisView, true);
@@ -5342,10 +5410,11 @@ function setDryWebRedFaceLocatorVisible(visible: boolean): void {
   dryWebRedFaceLocatorRestoreDiagnosisView = installedSurfaceAngleDiagnosisView;
   dryWebRedFaceLocatorVisible = true;
   if (viewMode !== "mesh") {
-    viewMode = "mesh";
+    recommendViewMode("mesh");
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   }
+  if (isSkinRebuildApp) recommendViewportOverlay("printRisk");
   if (internalObservationMode === "internalOnly") setInternalObservationMode("normal");
   skinRenderer.setDryWebRedFaceLocator(
     surfaceAngleCache.basePositions,
@@ -8914,6 +8983,7 @@ function setSkinRebuildReinforcementPreview(
     skinRebuildReinforcementPreview?.redundantEdgeIds ?? [],
     skinRebuildReinforcementPreview?.singlePointDependencyEdgeIds ?? [],
   );
+  if (skinRebuildReinforcementPreview) recommendViewportOverlay("reinforcement");
 }
 
 function formatSkinRebuildPermanentReinforcementRedundancy(
@@ -8937,13 +9007,17 @@ function showSkinRebuildStage6ArtworkMesh(
   normals: Float32Array,
 ): void {
   if (!isSkinRebuildApp || positions.length === 0 || normals.length !== positions.length) return;
+  if (stage6BodyMeshCache === null || stage6BodyMeshCache.positions !== positions) return;
   // The bright cyan Stage 5B layer is only an authoring confirmation. Once
   // the exact Stage 6 artwork mesh is visible, remove that duplicate overlay;
   // the reinforcement remains physically present in the fused mesh.
   setSkinRebuildReinforcementPreview(null, []);
   skinRenderer.setSkinRebuildOverhangOverlay(null);
   skinRenderer.setMeshOverlayBuffers(positions, normals);
-  viewMode = "mesh";
+  if (!viewportSessionState.userHasSelectedViewportMode || viewportSessionState.view === "mesh") {
+    viewportSessionState = recommendSkinViewportView(viewportSessionState, "mesh");
+    viewMode = "mesh";
+  }
   setInternalObservationMode("normal");
   skinRenderer.setViewMode(viewMode);
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
@@ -10074,7 +10148,7 @@ function installSkinRebuildPipelinePanel(): void {
         message.overhangFaceRegionIds,
         message.overhangInterior.faceClasses,
       );
-      viewMode = "mesh";
+      recommendViewportOverlay("insideOutside");
       skinRenderer.setViewMode(viewMode);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
       keepInternalGraphVisibleInMesh(getInternalStructureGraph());
@@ -10999,7 +11073,8 @@ function installSkinRebuildPipelinePanel(): void {
       skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
       skinRebuildSelectedOverhangRegionIds.clear();
       skinRebuildReinforcedOverhangRegionIds.clear();
-      viewMode = "mesh";
+      recommendViewMode("mesh");
+      recommendViewportOverlay("printRisk");
       skinRenderer.setViewMode(viewMode);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
       skinRenderer.setPrintSupport(emptyPrintSupport);
@@ -11469,6 +11544,7 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildThinStrutExperimentalExportApproval = null;
       skinRebuildPrintSupportModeNeedsConfirmation = false;
       skinRenderer.setPrintSupport(project.printSupport);
+      recommendViewportOverlay("support");
       skinRenderer.setSparseRemovableSupportDebug(
         skinRebuildSparseSupportResult?.debug ?? null,
         skinRebuildSparseSupportDebugEnabled,
@@ -13031,7 +13107,7 @@ function clearContactView(message?: string): void {
 function showContactReport(report: ContactReport, updateStatus = true): void {
   releaseDryWebSupportSeparationPresentationForCompetingView();
   lastContactReport = report;
-  if (viewMode !== "beads") setViewMode("beads");
+  if (viewMode !== "beads") recommendViewMode("beads");
   claimCompetingDryWebPresentation("contactStrength");
   skinRenderer.updateContactStrength(report.rows, state.skinParams.contactTarget);
   if (!updateStatus) return;
@@ -13051,7 +13127,7 @@ function showNPartitionGroups(groups: number[][]): void {
     claimCompetingDryWebPresentation("nPartition");
   } else releaseCompetingDryWebPresentation("nPartition");
   skinRenderer.updateNBeadGroups(groups.length > 0 ? groups.map((group) => new Set(group)) : null);
-  if (groups.length > 0 && viewMode !== "beads") setViewMode("beads");
+  if (groups.length > 0 && viewMode !== "beads") recommendViewMode("beads");
 }
 
 function proposeAndConfirmNPartition(requestedCount: number): void {
@@ -14162,6 +14238,8 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
       snapshot.finalArtworkDiagnosis.overhangFacePositions,
       snapshot.finalArtworkDiagnosis.overhangFaceRegionIds,
     );
+    recommendViewMode("mesh");
+    recommendViewportOverlay("printRisk");
   } else if (snapshot.stage6BodyMeshCache && snapshot.finalizedArtworkProject === project) {
     showSkinRebuildStage6ArtworkMesh(
       snapshot.stage6BodyMeshCache.positions,
@@ -14177,7 +14255,8 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
       skinRebuildPipeline.overhang.faceRegionIds,
       skinRebuildPipeline.overhang.interior?.faceClasses ?? null,
     );
-    viewMode = "mesh";
+    recommendViewMode("mesh");
+    recommendViewportOverlay("insideOutside");
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
     if (project?.finalGraph.edges.length) setInternalObservationMode("ghostSkin");
@@ -15011,7 +15090,15 @@ function restoreFkeiOpenRuntimeSnapshot(snapshot: FkeiOpenRuntimeSnapshot): void
   artworkGraphSourceKey = snapshot.artworkGraphSourceKey;
   artworkGraphLastError = snapshot.artworkGraphLastError;
   artworkGraphOverlayEnabled = snapshot.artworkGraphOverlayEnabled;
-  viewMode = snapshot.viewMode;
+  if (viewportSessionState.userHasSelectedViewportMode) {
+    viewMode = viewportSessionState.view === "field" ? "raymarch" : viewportSessionState.view;
+  } else {
+    viewMode = snapshot.viewMode;
+    viewportSessionState = {
+      ...viewportSessionState,
+      view: viewMode === "raymarch" ? "field" : viewMode,
+    };
+  }
   installedSurfaceAngleDiagnosisView = snapshot.installedSurfaceAngleDiagnosisView;
   ui.setMeshOptions(snapshot.meshOptions);
   ui.setSurfaceAngleThreshold(snapshot.surfaceAngleThresholdDeg);
@@ -15075,7 +15162,13 @@ function redrawFkeiOpenRuntime(): void {
   if (surfaceAngleCache) {
     skinRenderer.setMeshOverlayBuffers(surfaceAngleCache.basePositions, surfaceAngleCache.baseNormals);
     refreshRiskDrivenInternalLatticePresentation();
-    if (!restoringFkeiOpenRuntime) viewMode = "mesh";
+    if (!restoringFkeiOpenRuntime) {
+      if (isSkinRebuildApp) recommendViewMode("mesh");
+      else if (!viewportSessionState.userHasSelectedViewportMode) {
+        viewMode = "mesh";
+        viewportSessionState = { ...viewportSessionState, view: "mesh" };
+      }
+    }
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
     showSurfaceAngleDiagnosisView(restoringFkeiOpenRuntime && installedSurfaceAngleDiagnosisView
@@ -16697,7 +16790,8 @@ function measureOpeningMap(options: OpeningMapUiOptions): void {
       ? `オフセット ${message.result.offsetMm.toFixed(1)} mmで未被覆面が一続きになりました · 0 mmで再計測してください`
       : `計測完了 · ${message.result.openings.length}件 · ${message.result.automaticOffset ? `自動計測面 ${message.result.offsetMm.toFixed(1)} mm · ` : ""}経過 ${(message.elapsedMs / 1000).toFixed(1)}秒`,
     !message.result.likelyMergedByOffset);
-    viewMode = "mesh";
+    if (isSkinRebuildApp) recommendViewMode("mesh");
+    else viewMode = "mesh";
     skinRenderer.setMeshOverlay(message.result.meshTriangles);
     refreshOpeningMapDisplay();
     skinRenderer.setViewMode(viewMode);
@@ -16739,7 +16833,8 @@ async function openDenseFlowerSample(): Promise<void> {
     if (loadId !== denseFlowerSampleLoadId) return;
     releaseDryWebSupportSeparationPresentationForCompetingView();
     denseFlowerSampleActive = true;
-    viewMode = "mesh";
+    if (isSkinRebuildApp) recommendViewMode("mesh");
+    else viewMode = "mesh";
     skinRenderer.setDenseFlowerSample(sample);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
     ui.setDenseFlowerSampleActive(true, "3d");
@@ -17277,9 +17372,14 @@ function finishSurfaceAngleDiagnosis(
     if (completedViewState.internalObservationMode !== internalObservationMode) {
       setInternalObservationMode(completedViewState.internalObservationMode);
     }
-    if (completedViewState.viewMode !== viewMode) setViewMode(completedViewState.viewMode);
+    if (completedViewState.viewMode !== viewMode) recommendViewMode(completedViewState.viewMode);
   } else {
-    viewMode = "mesh";
+    if (isSkinRebuildApp) {
+      recommendViewMode("mesh");
+      recommendViewportOverlay("printRisk");
+    } else {
+      viewMode = "mesh";
+    }
     skinRenderer.setViewMode(viewMode);
     ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   }
@@ -18547,12 +18647,37 @@ function startPreviewMeshBuild(): void {
   startPreviewMeshStage(coarseResolution, finalResolution, options.targetLongestMm);
 }
 
+type ViewportModeChangeSource = "user" | "recommended" | "system";
+
 /** The screen mesh is a cancellable progressive Worker preview: a coarse
  * result appears first, then the exact author-selected resolution replaces
  * it. Export/inspection keep their separate audited build path. */
-function setViewMode(mode: SkinViewMode): void {
+function setViewMode(mode: SkinViewMode, source: ViewportModeChangeSource = "user"): void {
+  const viewportView = mode === "raymarch" ? "field" : mode;
+  if (source === "recommended" && viewportSessionState.userHasSelectedViewportMode
+    && viewportSessionState.view !== viewportView) return;
+  if (mode === "mesh" && isSkinRebuildApp && stage6BodyMeshCache === null) {
+    ui.setMeshPreviewStatus("Mesh unavailable · Stage 6 final mesh未生成");
+    refreshSkinViewportControls();
+    return;
+  }
+  if (source === "user") viewportSessionState = selectSkinViewportView(viewportSessionState, viewportView);
+  else if (source === "recommended") viewportSessionState = recommendSkinViewportView(viewportSessionState, viewportView);
+  else if (!viewportSessionState.userHasSelectedViewportMode) {
+    viewportSessionState = { ...viewportSessionState, view: viewportView };
+  }
   if (mode !== "mesh") cancelPreviewMeshBuild();
   if (mode === "mesh") {
+    if (isSkinRebuildApp && stage6BodyMeshCache) {
+      skinRenderer.setMeshOverlayBuffers(stage6BodyMeshCache.positions, stage6BodyMeshCache.normals);
+      viewMode = "mesh";
+      skinRenderer.setViewMode(viewMode);
+      ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+      ui.setMeshPreviewStatus("Stage 6 final mesh表示中");
+      refreshSkinViewportControls();
+      render();
+      return;
+    }
     if (openingMapResult) {
       skinRenderer.setMeshOverlay(openingMapResult.meshTriangles);
       refreshOpeningMapDisplay();
@@ -18572,6 +18697,18 @@ function setViewMode(mode: SkinViewMode): void {
   ui.setMeshPreviewStatus(mode === "raymarch" ? "レイマーチ表示" : "ビーズ表示");
 }
 
+function recommendViewMode(mode: SkinViewMode): void {
+  setViewMode(mode, "recommended");
+}
+
+function recommendViewportOverlay(overlay: SkinViewportOverlay): void {
+  const next = recommendSkinViewportOverlay(viewportSessionState, overlay);
+  if (next === viewportSessionState) return;
+  viewportSessionState = next;
+  refreshSkinViewportControls();
+  render();
+}
+
 function setInternalObservationMode(mode: InternalObservationMode): void {
   const rebuildGraphIsObservable = isSkinRebuildApp
     && skinRebuildPipelineIsCurrent()
@@ -18589,7 +18726,7 @@ function setInternalObservationMode(mode: InternalObservationMode): void {
   skinRenderer.setInternalObservationMode(mode);
   ui.setInternalObservationMode(mode);
   if (mode !== "normal" && viewMode === "raymarch") {
-    setViewMode("beads");
+    recommendViewMode("beads");
     ui.setMeshPreviewStatus(mode === "internalOnly"
       ? "Internal Structureのみ表示中"
       : "SKIN半透明 / Internal Structure観察中");
@@ -18667,9 +18804,22 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
     // Any mutation invalidates the cached triangle soup -- don't leave a
     // stale mesh on screen (T11's rule, kept for T12's three-way toggle).
     skinRenderer.setMeshOverlay(null);
-    viewMode = displayStyle === "ghost" || internalObservationMode !== "normal" ? "beads"
-      : totalPoints > PATCH_MAX_POINTS ? "beads" : "raymarch";
-    ui.setMeshPreviewStatus("形が変わりました。メッシュをもう一度選ぶと、粗表示から高精度化します");
+    if (!(viewportSessionState.userHasSelectedViewportMode && viewportSessionState.view === "mesh")) {
+      const fallback = displayStyle === "ghost" || internalObservationMode !== "normal" ? "beads"
+        : totalPoints > PATCH_MAX_POINTS ? "beads" : "raymarch";
+      viewMode = viewportSessionState.userHasSelectedViewportMode
+        ? viewportSessionState.view === "field" ? "raymarch" : "beads"
+        : fallback;
+      if (!viewportSessionState.userHasSelectedViewportMode) {
+        viewportSessionState = {
+          ...viewportSessionState,
+          view: viewMode === "raymarch" ? "field" : viewMode,
+        };
+      }
+      ui.setMeshPreviewStatus("形が変わりました。MeshはStage 6 final mesh更新後に利用できます");
+    } else {
+      ui.setMeshPreviewStatus("Mesh unavailable · 形が変わったためStage 6 final meshを再生成してください");
+    }
   }
   if (!opts.skipGauges) {
     // Host/patch mutations make any earlier triangle count/topology report
@@ -18692,8 +18842,10 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
     // け" bug) and switch to the uncapped bead view instead. Only fires
     // when currently ON raymarch -- a user who deliberately chose "全体メ
     // ッシュ" or already switched to beads is left alone.
-    if (totalPoints > PATCH_MAX_POINTS && viewMode === "raymarch") {
+    if (totalPoints > PATCH_MAX_POINTS && viewMode === "raymarch"
+      && !viewportSessionState.userHasSelectedViewportMode) {
       viewMode = "beads";
+      viewportSessionState = recommendSkinViewportView(viewportSessionState, "beads");
       ui.setAutoSwitchNotice(true);
     } else {
       ui.setAutoSwitchNotice(false);
@@ -18701,6 +18853,7 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
   }
   skinRenderer.setViewMode(viewMode);
   ui.setViewMode(viewMode, totalPoints, state.skinParams.coinBulge);
+  refreshSkinViewportControls();
   updateSelectionLabel();
   updateEmptyViewportHint();
   if (!opts.skipGauges) {
@@ -19242,6 +19395,7 @@ function requestRenderFrame(activeViewportOnly = false): void {
 
 function render(): void {
   refreshRestoredRiskDrivenLatticeCurrentness();
+  refreshSkinViewportControls();
   skinRenderer.update(
     state.host,
     state.hostParams.k,

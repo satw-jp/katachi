@@ -477,6 +477,11 @@
 .viewport-view-toggle { padding: 4px; gap: 4px; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
 .viewport-view-toggle button { min-width: 0; padding: 6px 5px; border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.84); background: rgba(0,0,0,0.18); font-size: 10px; }
 .viewport-view-toggle button.mode-active { border-color: #8ce7d8; color: #8ce7d8; background: rgba(30,90,82,0.34); }
+.viewport-overlay-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px; margin-top: 5px; color: rgba(255,255,255,0.8); font-size: 9px; }
+.viewport-overlay-select { min-width: 0; width: 100%; padding: 5px 6px; border: 1px solid rgba(255,255,255,0.32); background: rgba(0,0,0,0.22); color: #fff; font: inherit; }
+.viewport-overlay-status { grid-column: 1 / -1; color: rgba(255,255,255,0.62); line-height: 1.35; }
+.viewport-overlay-status[data-status="stale"],
+.viewport-overlay-status[data-status="unavailable"] { color: #f4c66b; }
 .viewport-display-style { margin-top: 5px; padding: 3px; gap: 4px; border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.035); }
 .viewport-display-style button { min-width: 0; padding: 5px; border-color: rgba(255,255,255,0.26); color: rgba(255,255,255,0.76); background: rgba(0,0,0,0.14); font-size: 9px; }
 .viewport-display-style button.mode-active { border-color: #8ce7d8; color: #8ce7d8; background: rgba(30,90,82,0.34); }
