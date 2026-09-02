@@ -11,6 +11,13 @@ import {
   decodeSkinRebuildPrintSnapshot,
   evaluateSkinRebuildPrintSnapshotReuse,
 } from "./printSnapshot.ts";
+import {
+  createSkinViewportSessionState,
+  recommendSkinViewportOverlay,
+  recommendSkinViewportView,
+  selectSkinViewportOverlay,
+  selectSkinViewportView,
+} from "../viewportMode.ts";
 
 const sampleBytes = readFileSync(new URL(
   "../../../../public/samples/skin-rebuild-completed-print-ready.fkei",
@@ -128,6 +135,54 @@ const stale = evaluateSkinRebuildPrintSnapshotReuse({
   currentSparseSupportDiagnostics: data.stage8.diagnostics,
 });
 assert.equal(stale.state, "stale", "a changed source fingerprint must fail closed");
+
+// Completed Sample entry state is explicit and session-only. Once selected,
+// normal Stage recommendations must not hide the restored Mesh or Support.
+let reviewState = createSkinViewportSessionState();
+reviewState = selectSkinViewportView(reviewState, "mesh");
+reviewState = selectSkinViewportOverlay(reviewState, "support");
+reviewState = recommendSkinViewportView(reviewState, "field");
+reviewState = recommendSkinViewportOverlay(reviewState, "none");
+assert.equal(reviewState.view, "mesh");
+assert.equal(reviewState.overlay, "support");
+assert.equal(reviewState.userHasSelectedViewportMode, true);
+assert.equal(reviewState.userHasSelectedOverlay, true);
+reviewState = selectSkinViewportView(reviewState, "field");
+reviewState = selectSkinViewportOverlay(reviewState, "printRisk");
+reviewState = recommendSkinViewportView(reviewState, "mesh");
+reviewState = recommendSkinViewportOverlay(reviewState, "support");
+assert.equal(reviewState.view, "field", "a later user View choice must survive Stage recommendations");
+assert.equal(reviewState.overlay, "printRisk", "a later user Overlay choice must survive Stage recommendations");
+
+const mainSource = readFileSync(new URL("../main.ts", import.meta.url), "utf8");
+const styleSource = readFileSync(new URL("../style.css", import.meta.url), "utf8");
+const restoreWorkerSource = readFileSync(new URL("./completedSampleRestore.worker.ts", import.meta.url), "utf8");
+assert.match(mainSource, /openCompletedSkinRebuildSample\(file\)/, "Completed Sample must use its dedicated restore path");
+assert.match(mainSource, /new Worker\(new URL\("\.\/rebuild\/completedSampleRestore\.worker\.ts"/, "Completed Sample restore must use a Worker");
+assert.match(mainSource, /applyCompletedSkinRebuildSampleReviewState\(\)/, "Completed Sample must set its initial review state");
+assert.match(mainSource, /snapshotRestored: result\.snapshot !== null/, "Completed Sample telemetry must report snapshot restoration");
+assert.match(mainSource, /assetFetchMs/, "Completed Sample telemetry must record asset fetch timing");
+assert.match(mainSource, /totalLoadRestoreMs/, "Completed Sample telemetry must record end-to-end restore timing");
+assert.match(restoreWorkerSource, /parseSkinRebuildFkei/);
+assert.match(restoreWorkerSource, /decodeSkinRebuildPrintSnapshot/);
+assert.match(restoreWorkerSource, /projectFromSkinRebuildFkei/);
+assert.match(restoreWorkerSource, /workerElapsedMs/);
+assert.match(styleSource, /\.skin-workflow-review-pane\s*\{\s*display: contents;/, "narrow layouts must retain the prior pane flow");
+assert.match(styleSource, /\.skin-right-pane \.skin-pane-body[\s\S]*?grid-template-rows: minmax\(0, 1fr\) minmax\(0, 1fr\)/, "desktop right pane must be exact 50/50");
+assert.match(styleSource, /\.skin-workflow-review-pane[\s\S]*?min-height: 0[\s\S]*?overflow: auto/, "workflow half must have bounded independent scrolling");
+
+// The synchronous fixture assertions above and the worker's shared parse /
+// normalize / decode functions are the old-vs-worker result parity boundary.
+// No Stage 4–8 rebuild is invoked while opening this completed snapshot.
+assert.equal(project.printSupport.edges.length, data.stage8.supportGraphEdgeCount);
+assert.equal(data.stage8.diagnostics?.generatedSupportCount, data.stage8.supportGraphEdgeCount);
+assert.equal(data.stage8.diagnostics?.acceptedBodyCollisionCount, 0);
+assert.equal(data.stage8.diagnostics?.insideDerivedSupportCount, 0);
+const restoreSource = mainSource.slice(
+  mainSource.indexOf("function restoreSkinRebuildFkei"),
+  mainSource.indexOf("async function openCompletedSkinRebuildSample"),
+);
+assert.doesNotMatch(restoreSource, /buildSkinMesh|buildSparseRemovableSupport|startSkinRebuildStage/, "snapshot restore must not rerun Stage 4–8 heavy builders");
 
 console.log("SKIN REBUILD completed Print-ready Sample tests passed", JSON.stringify({
   bytes: sampleBytes.byteLength,

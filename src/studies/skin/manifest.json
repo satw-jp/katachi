@@ -1200,6 +1200,10 @@
     {
       "date": "2026-09-02",
       "note": "H exported Support / BODY collision parity: Stage 8's export call no longer requests the legacy vertical-edge-to-Plate rewrite, so accepted non-root shaft, bend and contact-neck endpoints remain unchanged. Degree-2 sparse routes are emitted as continuous closed tubes while explicit degree-1 roots/terminals are capped; the legacy option and branching behavior remain for other callers. A root→shaft→bend→neck→target regression reproduces the pre-fix non-target BODY SDF penetration, then proves accepted endpoints and neck length survive Support STL and separate BODY/PRINT_SUPPORT 3MF serialization, package validation passes, and post-export non-target BODY overlap is zero. This is an export-geometry regression, not slicer, Bambu Studio or physical-print proof; printApproval remains false."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "I Completed Sample Review Readiness v0 adds a dedicated Completed Sample restore Worker after the existing asset read. It reports file-read, FKEI parse/integrity, project normalization and Print Snapshot decode milestones, then transfers the validated BODY/snapshot buffers into the existing restore state without Stage 6 remesh or heavy Stage 4–8 rediagnosis. The initial review state is explicitly Mesh + Support once per Completed Sample open, while later user View/Overlay choices survive stage recommendations. The SKIN REBUILD desktop right pane is an exact 50/50 WORKFLOW review half plus original operations half with independent scrolling; narrow layouts keep the prior flow. Browser QA restored 38 Patterns, BODY 222,936 triangles, Sparse Support 134 nodes / 67 edges, unresolved 0 and accepted BODY collision 0 with no console warnings/errors; static regressions cover snapshot parity, current-stage restoration, selection persistence, worker path, pane contract and zero heavy reruns. H's equivalent separate BODY/PRINT_SUPPORT 3MF fixture remains package-valid with export BODY overlap 0; printApproval=false and no deploy."
     }
   ]
 }
