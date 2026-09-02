@@ -7,6 +7,7 @@ import type {
   SkinRebuildSettings,
 } from "./model.ts";
 import type { SkinRebuildOverhangSurfaceSample } from "./overhangRegions.ts";
+import type { SkinRebuildPermanentReinforcementRedundancyReport } from "./permanentReinforcementRedundancy.ts";
 
 export interface SkinRebuildStage5BRegionTask {
   regionId: number;
@@ -34,6 +35,7 @@ export interface SkinRebuildStage5BRegionResult {
   uncoveredSurfaceContactCount: number;
   segmentCount: number;
   maximumEdgeAngleDeg: number;
+  redundantRouteCount: number;
 }
 
 export interface SkinRebuildStage5BRegionFailure {
@@ -58,6 +60,7 @@ export type SkinRebuildStage5BWorkerMessage =
     reinforcement: InternalStructureGraph;
     regions: SkinRebuildStage5BRegionResult[];
     failures: SkinRebuildStage5BRegionFailure[];
+    redundancy: SkinRebuildPermanentReinforcementRedundancyReport;
     elapsedMs: number;
   }
   | {
