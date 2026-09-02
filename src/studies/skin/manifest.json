@@ -84,7 +84,6 @@
     {
       "date": "2026-09-02",
       "note": "TASK A2 adds a real completed Print-ready FKEI sample with the optional compact printSnapshot. The existing Completed Sample button opens it through the normal FKEI parse, integrity, fingerprint validation and restore path. The valid snapshot restores BODY mesh, topology/component selection, Stage 4/6.5/7/7.5/8 readiness and Sparse Support without Stage 6 remesh or heavy Stage 4-8 reruns; snapshot mismatch/corruption fails closed and legacy FKEI remains readable. Fixture evidence is BODY 222,936 triangles / 1 component, Sparse Support 134 nodes / 67 edges, unresolved 0, BODY collision 0 and thin struts 0; printApproval remains false and no final 3MF or deploy was performed."
-      "note": "TASK A2 adds a real completed Print-ready FKEI sample with the optional compact printSnapshot. The existing Completed Sample button opens it through the normal FKEI parse, integrity, fingerprint validation and restore path. The valid snapshot restores BODY mesh, topology/component selection, Stage 4/6.5/7/7.5/8 readiness and Sparse Support without Stage 6 remesh or heavy Stage 4-8 reruns; snapshot mismatch/corruption fails closed and legacy FKEI remains readable. Fixture evidence is BODY 222,936 triangles / 1 component, Sparse Support 134 nodes / 67 edges, unresolved 0, BODY collision 0 and thin struts 0; printApproval remains false and no final 3MF or deploy was performed."
     },
     {
       "date": "2026-09-02",
