@@ -2585,6 +2585,47 @@ details.mesh-export:not([open]) > :not(summary) {
   overflow: hidden;
 }
 
+/* The completed-sample review keeps the upper workflow/guide and the
+   original operation panel as two independently scrollable halves on wide
+   screens. `display: contents` preserves the existing narrow-screen flow. */
+.skin-workflow-review-pane {
+  display: contents;
+}
+
+@media (min-width: 821px) {
+  .skin-right-pane .skin-pane-body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .skin-workflow-review-pane {
+    display: flex;
+    min-height: 0;
+    overflow: auto;
+    flex-direction: column;
+    overscroll-behavior: contain;
+  }
+
+  .skin-workflow-review-pane > .skin-workflow-guide,
+  .skin-workflow-review-pane > .skin-rebuild-phase-navigator {
+    flex: 0 0 auto;
+  }
+
+  .skin-workflow-review-pane > .skin-rebuild-print-preparation {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .skin-right-pane .skin-pane-body > .panel {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
 .skin-workflow-guide {
   display: grid;
   flex: 0 0 auto;

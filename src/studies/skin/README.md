@@ -16,6 +16,24 @@ legacy明示extension optionは他用途互換のため残し、Stage 8は使用
 3MF verticesの一致、BODY / PRINT_SUPPORT分離、package validation、非target BODY overlap 0を
 確認する。これはgeometry serializationの回帰であり、slicer・Bambu Studio・実物印刷の保証ではない。
 
+## Observation — I Completed Sample Review Readiness v0（2026-09-02）
+
+`完成 Sample` は通常のStage 2 sampleとは分離した専用restore Worker経路で、同梱のPrint-ready
+`.fkei`を開く。asset read後のFKEI parse / integrity、project normalize、Print Snapshot SHA / decodeをWorkerへ移し、
+main threadでは直ちにloading statusを表示して、validated project / snapshotを既存のrestore stateへ反映する。
+Stage 6 remeshとStage 4〜8の重い再診断は行わず、38 Patterns、BODY 222,936 triangles、Sparse Support
+134 nodes / 67 edges、unresolved 0、accepted BODY collision 0を復元する。
+
+Completed Sampleの初回表示は一度だけ`VIEW = Mesh` / `OVERLAY = Support`へ揃え、以後のStage推薦で
+ユーザーのView / Overlay選択を上書きしない。desktopの右WORKFLOWは上50%のGuide / Print準備、下50%の
+従来operations paneを独立スクロールで保持し、narrow layoutは従来flowへ戻る。実ブラウザではloading status、
+Mesh / Support選択、BODY / Sparse Support readiness、50/50の289px + 289px row、独立scroll、console warning / error 0を確認した。
+baselineのmain-thread restore計測はtotal 13,040ms（snapshot decode 8,651ms）で、Worker経路は同じfixtureで
+worker milestone 1,501 / 2,934 / 8,657ms、runtime apply約220ms、clickからUI同期約9.1sとなり、重いparse / decodeを
+interaction threadから分離した。これはUI responsivenessと有限snapshot parityの検証であり、slicer・Bambu Studio・
+実物印刷の保証ではない。既存のH export parity fixtureで別BODY / PRINT_SUPPORT 3MF生成とpackage validation、
+export後BODY overlap 0を再確認し、`printApproval=false`を維持する。
+
 ## Observation — Stage 5B Permanent Reinforcement Redundancy（2026-09-02）
 
 Stage 5Bの責務をInside Overhangに限定したまま、既存の候補探索、collision / containment、45°制約を再利用し、同じMotif上で空間的に離れたsurface contactが続く場合だけ別のweb landingを優先する。追加経路は恒久Webの一部として`lattice`へ入り、Outside removable support、Base位置、Motif位置、既存strut径は変更しない。Before / Afterではreinforced regions、surface contacts、members、partial、no-route、1点依存、弱いMotif（接点2以下）、3点以上の分散接触、disconnected component、minimum strut diameterを記録する。

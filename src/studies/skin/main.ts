@@ -318,7 +318,9 @@ import {
   evaluateSkinRebuildPrintSnapshotReuse,
   skinRebuildPrintSnapshotGraphFingerprint,
   type SkinRebuildPrintSnapshotData,
+  type SkinRebuildPrintSnapshotMetadata,
 } from "./rebuild/printSnapshot.ts";
+import type { CompletedSampleRestoreWorkerMessage } from "./rebuild/completedSampleRestoreProtocol.ts";
 import {
   evaluateSkinWorkflowGuide,
   SKIN_WORKFLOW_GUIDE_PHASES,
@@ -586,20 +588,31 @@ const projectCompleteSampleButton = document.createElement("button");
 projectCompleteSampleButton.type = "button";
 projectCompleteSampleButton.className = "skin-project-action";
 projectCompleteSampleButton.textContent = "完成 Sample";
-projectCompleteSampleButton.title = "Print Snapshot付きのPrint-ready FKEI sampleを通常のOpen/restore経路で開く";
+projectCompleteSampleButton.title = "Print Snapshot付きのPrint-ready FKEI sampleを専用restore Workerで開く";
 projectCompleteSampleButton.hidden = !isSkinRebuildApp;
 projectCompleteSampleButton.onclick = async () => {
   try {
     projectCompleteSampleButton.disabled = true;
+    projectOpenButton.disabled = true;
+    activeFkeiOpenAttempt += 1;
     projectMeta.textContent = "同梱SKIN REBUILD完成sampleを検証中…";
+    await yieldToSkinReviewPaint();
+    const assetFetchStartedAt = performance.now();
     const response = await fetch("./samples/skin-rebuild-completed-print-ready.fkei", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const file = new File([await response.blob()], "skin-rebuild-completed-print-ready.fkei", { type: "application/json" });
-    await openFkeiProject(file);
+    const blob = await response.blob();
+    const assetFetchMs = performance.now() - assetFetchStartedAt;
+    console.info("[SKIN Completed Sample performance] " + JSON.stringify({
+      assetFetchMs: Math.round(assetFetchMs),
+      assetBytes: blob.size,
+    }));
+    const file = new File([blob], "skin-rebuild-completed-print-ready.fkei", { type: "application/json" });
+    await openCompletedSkinRebuildSample(file);
   } catch (error) {
     projectMeta.textContent = `完成Sample Open失敗: ${error instanceof Error ? error.message : String(error)}`;
   } finally {
     projectCompleteSampleButton.disabled = false;
+    projectOpenButton.disabled = false;
   }
 };
 const projectUndoButton = document.createElement("button");
@@ -659,6 +672,7 @@ rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>8 author stages · p
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
 rightPane.append(rightPaneHeader, rightPaneBody);
+let skinWorkflowReviewPane: HTMLElement | null = null;
 
 const bottomPane = document.createElement("footer");
 bottomPane.className = "skin-bottom-status-pane";
@@ -2993,6 +3007,13 @@ if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPane
 else ui.root.appendChild(phaseASupportPanel);
 syncPhaseAVerticalControl();
 
+if (isSkinRebuildApp) {
+  const workflowReviewPane = document.createElement("section");
+  workflowReviewPane.className = "skin-workflow-review-pane";
+  workflowReviewPane.setAttribute("aria-label", "SKIN REBUILD workflow review");
+  skinWorkflowReviewPane = workflowReviewPane;
+  rightPaneBody.appendChild(workflowReviewPane);
+}
 rightPaneBody.appendChild(ui.root);
 if (isSkinRebuildApp) {
   const printPreparationPanel = document.createElement("section");
@@ -3094,7 +3115,7 @@ if (isSkinRebuildApp) {
     blockerReason: printPreparationBlockerReason,
     blockerNextAction: printPreparationBlockerNextAction,
   };
-  rightPaneBody.insertBefore(printPreparationPanel, ui.root);
+  skinWorkflowReviewPane?.appendChild(printPreparationPanel);
 
   const phaseNavigator = document.createElement("nav");
   phaseNavigator.className = "skin-rebuild-phase-navigator";
@@ -3129,7 +3150,7 @@ if (isSkinRebuildApp) {
   previousPhaseButton.addEventListener("click", () => movePhase(-1));
   nextPhaseButton.addEventListener("click", () => movePhase(1));
   phaseNavigator.append(previousPhaseButton, phaseOutput, nextPhaseButton);
-  rightPaneBody.insertBefore(phaseNavigator, ui.root);
+  skinWorkflowReviewPane?.appendChild(phaseNavigator);
   refreshPhaseNavigator();
 
   for (const [classification, stageIds] of Object.entries(SKIN_REBUILD_STAGE_CLASSIFICATION)) {
@@ -9024,6 +9045,19 @@ function showSkinRebuildStage6ArtworkMesh(
   render();
 }
 
+function applyCompletedSkinRebuildSampleReviewState(): void {
+  if (!isSkinRebuildApp || stage6BodyMeshCache === null) return;
+  // This is the one-time entry state for the bundled completed sample. Treat
+  // it as an explicit session choice so later Stage transitions cannot hide
+  // the restored BODY mesh or Support overlay behind a recommendation.
+  viewportSessionState = selectSkinViewportView(viewportSessionState, "mesh");
+  viewportSessionState = selectSkinViewportOverlay(viewportSessionState, "support");
+  viewMode = "mesh";
+  skinRenderer.setViewMode(viewMode);
+  ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  refreshSkinViewportControls();
+}
+
 const SKIN_REBUILD_TOPOLOGY_COMPONENT_COLORS = [
   "#27c5ff", "#af6cff", "#ff8a2b", "#30df8c", "#ff4fa3", "#7ed957", "#4d74ff", "#ffd23f",
 ];
@@ -9536,7 +9570,8 @@ function installSkinWorkflowGuide(): void {
     progress.appendChild(row);
   }
   panel.append(heading, phase, title, summary, context, blocker, actions, progress);
-  rightPaneBody.insertBefore(panel, rightPaneBody.firstElementChild);
+  const workflowPane = skinWorkflowReviewPane ?? rightPaneBody;
+  workflowPane.insertBefore(panel, workflowPane.firstElementChild);
   skinWorkflowGuideRefs = { panel, phase, title, summary, context, blocker, action, details, progress };
   refreshSkinWorkflowGuide();
 }
@@ -14851,6 +14886,8 @@ type FkeiOpenStage =
   | "file-read-started"
   | "file-read-complete"
   | "document-parsed"
+  | "project-normalized"
+  | "snapshot-decoded"
   | "restore-plan-created"
   | "restore-plan-validated"
   | "runtime-applied"
@@ -14863,6 +14900,8 @@ const FKEI_OPEN_STAGE_MESSAGE: Readonly<Record<FkeiOpenStage, string>> = {
   "file-read-started": ".fkeiを読み込んでいます",
   "file-read-complete": ".fkeiを検証しています",
   "document-parsed": ".fkeiを検証しています",
+  "project-normalized": ".fkeiを検証しています",
+  "snapshot-decoded": ".fkeiを検証しています",
   "restore-plan-created": ".fkeiを検証しています",
   "restore-plan-validated": ".fkeiを反映しています",
   "runtime-applied": ".fkeiを画面へ反映しています",
@@ -15248,9 +15287,8 @@ function skinRebuildGateSafeMeshOptions(options: MeshUiOptions): MeshUiOptions {
 
 function assertSkinRebuildRecipeMatchesProject(
   recipeState: ReturnType<typeof replay>,
-  document: SkinRebuildFkeiDocument,
+  project: Pick<SkinRebuildProject, "base" | "patterns">,
 ): void {
-  const project = document.project;
   if (recipeState.host.length !== project.base.host.length || recipeState.patches.length !== project.patterns.length) {
     throw new Error("shapeRecipeとSKIN REBUILD形状の要素数が一致しません");
   }
@@ -15281,8 +15319,9 @@ function assertSkinRebuildRecipeMatchesProject(
   }
 }
 
-function fallbackHistoryForSkinRebuildProject(document: SkinRebuildFkeiDocument): SkinHistoryEntry[] {
-  const project = document.project;
+function fallbackHistoryForSkinRebuildProject(
+  project: Pick<SkinRebuildProject, "base" | "patterns" | "settings">,
+): SkinHistoryEntry[] {
   const timestamp = Date.now();
   return [
     {
@@ -15383,32 +15422,37 @@ function restoredFinalArtworkDiagnosis(
   };
 }
 
-function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
-  let decodedSnapshot: SkinRebuildPrintSnapshotData | null = null;
+type CompletedSampleRestoreData = Extract<CompletedSampleRestoreWorkerMessage, { type: "result" }>;
+type SkinRebuildFkeiRestoreSource = SkinRebuildFkeiDocument | CompletedSampleRestoreData;
+
+function restoreSkinRebuildFkei(source: SkinRebuildFkeiRestoreSource): void {
+  const workerValidated = "snapshot" in source;
+  let decodedSnapshot: SkinRebuildPrintSnapshotData | null = workerValidated ? source.snapshot : null;
   let snapshotFailure: string | null = null;
   let snapshotCorrupted = false;
-  if (document.printSnapshot) {
+  const snapshotMetadata: SkinRebuildPrintSnapshotMetadata | undefined = source.printSnapshot;
+  if (!workerValidated && source.printSnapshot) {
     try {
-      decodedSnapshot = decodeSkinRebuildPrintSnapshot(document.printSnapshot);
+      decodedSnapshot = decodeSkinRebuildPrintSnapshot(source.printSnapshot);
     } catch (error) {
       snapshotCorrupted = true;
       snapshotFailure = error instanceof Error ? error.message : String(error);
     }
   }
   const modeForOpen = decodedSnapshot?.stage8.supportMode ?? skinRebuildPrintSupportMode;
-  let project = projectFromSkinRebuildFkei(document);
+  let project = workerValidated ? source.project : projectFromSkinRebuildFkei(source);
   if (modeForOpen === "off") {
     // FKEI keeps the support graph for compatibility, but an Off session
     // must not install or preview that stale removable-support output.
     project = { ...project, printSupport: createEmptySkinRebuildGraph() };
   }
-  const prepared = document.shapeRecipe
-    ? prepareRecipeText(document.shapeRecipe)
+  const prepared = source.shapeRecipe
+    ? prepareRecipeText(source.shapeRecipe)
     : (() => {
-      const entries = fallbackHistoryForSkinRebuildProject(document);
+      const entries = fallbackHistoryForSkinRebuildProject(project);
       return { entries, state: replay(entries) };
     })();
-  assertSkinRebuildRecipeMatchesProject(prepared.state, document);
+  assertSkinRebuildRecipeMatchesProject(prepared.state, project);
 
   const previousRuntime = captureFkeiOpenRuntimeSnapshot();
   const previousPipeline = skinRebuildPipeline;
@@ -15500,7 +15544,7 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
         }
         : null;
       const snapshotReuse = evaluateSkinRebuildPrintSnapshotReuse({
-        snapshot: document.printSnapshot!,
+        snapshot: snapshotMetadata!,
         data: decodedSnapshot,
         currentSourceGeometryFingerprint: skinRebuildPipeline.shapeFingerprint,
         currentPipelineFingerprint: currentSnapshotPipelineFingerprint,
@@ -15537,13 +15581,14 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
           stage8: decodedSnapshot.stage8,
         };
         skinRebuildRestoredPrintSnapshot = {
-          sourceGeometryFingerprint: document.printSnapshot!.sourceGeometryFingerprint,
-          pipelineFingerprint: document.printSnapshot!.pipelineFingerprint,
+          sourceGeometryFingerprint: snapshotMetadata!.sourceGeometryFingerprint,
+          pipelineFingerprint: snapshotMetadata!.pipelineFingerprint,
           data: decodedSnapshot,
         };
         skinRebuildPrintSnapshotStatus = "restored";
         restoredSnapshot = true;
         showSkinRebuildStage6ArtworkMesh(body.positions, body.normals);
+        if (workerValidated) applyCompletedSkinRebuildSampleReviewState();
       } else {
         snapshotFailure = snapshotReuse.reason;
         skinRebuildFinalizedArtworkProject = null;
@@ -15553,14 +15598,14 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
         skinRebuildExportComponentSelectionExplicit = false;
       }
     }
-    if (!restoredSnapshot && document.printSnapshot) {
+    if (!restoredSnapshot && snapshotMetadata) {
       skinRebuildPrintSnapshotStatus = snapshotCorrupted ? "corrupted" : "stale";
       skinRebuildPrintReadinessEvidence = null;
       skinRebuildRestoredPrintSnapshot = null;
     }
     skinRebuildFkeiRestoreState = restoredSnapshot
       ? "snapshot-restored"
-      : document.printSnapshot
+      : snapshotMetadata
         ? "snapshot-stale"
         : "missing-downstream-evidence";
     refreshSkinRebuildLatticeEdgeEditor();
@@ -15573,7 +15618,7 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
         skinRebuildFinalDiagnosisStatus.dataset.ok = "true";
       }
       ui.setMeshStatus(`Print Snapshot Restored · BODY ready · ${decodedSnapshot!.body.summary}`, true);
-    } else if (document.printSnapshot) {
+    } else if (snapshotMetadata) {
       const status = snapshotFailure ? "Print snapshot is stale — rebuild required" : "Print snapshot is stale — rebuild required";
       if (skinRebuildFinalDiagnosisStatus) {
         skinRebuildFinalDiagnosisStatus.textContent = `${status} · ${snapshotFailure ?? "snapshot was not reusable"}`;
@@ -15598,8 +15643,12 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
     if (skinRebuildPrintSupportStatus) {
       if (restoredSnapshot) {
         const restoredData = decodedSnapshot!;
+        const sparseDiagnostics = restoredData.stage8.diagnostics;
+        const sparseCounts = sparseDiagnostics
+          ? `generated ${sparseDiagnostics.generatedSupportCount} · vertical ${sparseDiagnostics.verticalCount} · leaning ${sparseDiagnostics.leaningCount} · offset-bend ${sparseDiagnostics.offsetBendCount}`
+          : "diagnostics unavailable";
         const sparseText = restoredData.stage8.supportMode === "automatic"
-          ? `Sparse Support ready · ${restoredData.stage8.supportGraphEdgeCount} edges · unresolved ${restoredData.stage8.unresolvedSupportCount}`
+          ? `Sparse Support ready · ${restoredData.stage8.supportGraphEdgeCount} edges · ${sparseCounts} · unresolved ${restoredData.stage8.unresolvedSupportCount}`
           : "Sparse Support not generated · BODY-only snapshot";
         skinRebuildPrintSupportStatus.textContent = `Print Snapshot Restored · BODY ready · Components ready · ${sparseText}`;
         skinRebuildPrintSupportStatus.dataset.ok = "true";
@@ -15646,6 +15695,126 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
     refreshSkinRebuildInteriorClassificationDebug();
     redrawFkeiOpenRuntime();
     throw error;
+  }
+}
+
+function yieldToSkinReviewPaint(): Promise<void> {
+  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+async function openCompletedSkinRebuildSample(file: File): Promise<void> {
+  const attempt = activeFkeiOpenAttempt;
+  const totalStartedAt = performance.now();
+  let lastCompletedStage: FkeiOpenStage = "file-selected";
+  let worker: Worker | null = null;
+  let fileReadMs = 0;
+  const terminateWorker = (): void => {
+    const activeWorker = worker;
+    worker = null;
+    activeWorker?.terminate();
+  };
+  projectOpenButton.disabled = true;
+  try {
+    reportFkeiOpenStage(attempt, "file-read-started", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      path: "validated-worker",
+    }, "Completed Sampleを読み込んでいます…");
+    await yieldToSkinReviewPaint();
+    const fileReadStartedAt = performance.now();
+    const text = await file.text();
+    fileReadMs = performance.now() - fileReadStartedAt;
+    lastCompletedStage = "file-read-complete";
+    reportFkeiOpenStage(attempt, lastCompletedStage, {
+      name: file.name,
+      size: file.size,
+      textLength: text.length,
+      path: "validated-worker",
+    }, "Completed Sampleの検証を開始しています…");
+    await yieldToSkinReviewPaint();
+
+    const result = await new Promise<CompletedSampleRestoreData>((resolve, reject) => {
+      const restoreWorker = new Worker(new URL("./rebuild/completedSampleRestore.worker.ts", import.meta.url), { type: "module" });
+      worker = restoreWorker;
+      restoreWorker.onmessage = (event: MessageEvent<CompletedSampleRestoreWorkerMessage>) => {
+        if (attempt !== activeFkeiOpenAttempt) {
+          reject(new Error("Completed Sample restore was superseded by another Open"));
+          return;
+        }
+        const message = event.data;
+        if (message.type === "progress") {
+          const details: Record<string, unknown> = {
+            workerElapsedMs: Math.round(message.elapsedMs),
+            path: "validated-worker",
+          };
+          if (message.patternCount !== undefined) details.patternCount = message.patternCount;
+          if (message.supportEdgeCount !== undefined) details.supportEdgeCount = message.supportEdgeCount;
+          reportFkeiOpenStage(
+            attempt,
+            message.stage,
+            details,
+            message.stage === "document-parsed"
+              ? "Completed SampleのFKEI / integrityを確認しました…"
+              : message.stage === "project-normalized"
+                ? "Stage 8 Sparse Supportを復元しています…"
+                : "Print Snapshotを復元しています…",
+          );
+          return;
+        }
+        if (message.type === "error") {
+          reject(new Error(message.message));
+          return;
+        }
+        resolve(message);
+      };
+      restoreWorker.onerror = (event) => reject(new Error(event.message || "Completed Sample worker failed"));
+      restoreWorker.postMessage({ type: "restore", text });
+    });
+    terminateWorker();
+    lastCompletedStage = "document-parsed";
+    reportFkeiOpenStage(attempt, lastCompletedStage, {
+      schema: SKIN_REBUILD_FKEI_SCHEMA,
+      patternCount: result.project.patterns.length,
+      overhangTargetCount: result.project.audit.overhangTargetCount,
+      path: "validated-worker",
+    });
+    const runtimeRestoreStartedAt = performance.now();
+    restoreSkinRebuildFkei(result);
+    const runtimeRestoreMs = performance.now() - runtimeRestoreStartedAt;
+    lastCompletedStage = "runtime-applied";
+    reportFkeiOpenStage(attempt, lastCompletedStage, { path: "validated-worker" }, "Completed Sampleを画面へ反映しています…");
+    lastCompletedStage = "ui-synchronized";
+    reportFkeiOpenStage(
+      attempt,
+      lastCompletedStage,
+      {
+        fileName: file.name,
+        schema: SKIN_REBUILD_FKEI_SCHEMA,
+        path: "validated-worker",
+        snapshotRestored: result.snapshot !== null,
+        view: "mesh",
+        overlay: "support",
+        fileReadMs: Math.round(fileReadMs),
+        workerElapsedMs: Math.round(result.workerElapsedMs),
+        runtimeRestoreMs: Math.round(runtimeRestoreMs),
+        totalLoadRestoreMs: Math.round(performance.now() - totalStartedAt),
+      },
+      `Completed Sample Open完了 · Mesh / Support · ${file.name}`,
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[SKIN Completed Sample] failed after ${lastCompletedStage}: ${errorMessage}`, { attempt, error });
+    reportFkeiOpenStage(
+      attempt,
+      "failed",
+      { lastCompletedStage, errorName: error instanceof Error ? error.name : typeof error, path: "validated-worker" },
+      `Completed Sampleを開けませんでした: ${errorMessage}`,
+    );
+  } finally {
+    terminateWorker();
+    projectOpenInput.value = "";
+    projectOpenButton.disabled = false;
   }
 }
 

@@ -78,7 +78,7 @@ const printSupportSourceEnd = main.indexOf("const stage8Export = makeStep(", pri
 assert.ok(printSupportSourceStart >= 0 && printSupportSourceEnd > printSupportSourceStart, "Stage 8 support source is present");
 const printSupportSource = main.slice(printSupportSourceStart, printSupportSourceEnd);
 const restoreSourceStart = main.indexOf("function restoreSkinRebuildFkei(");
-const restoreSourceEnd = main.indexOf("function refreshPrintProfileSummary(", restoreSourceStart);
+const restoreSourceEnd = main.indexOf("function yieldToSkinReviewPaint(", restoreSourceStart);
 assert.ok(restoreSourceStart >= 0 && restoreSourceEnd > restoreSourceStart, "FKEI restore source is present");
 const restoreSource = main.slice(restoreSourceStart, restoreSourceEnd);
 
@@ -288,7 +288,7 @@ assert.match(main, /Export Experimental Print/,
   "Sparse export with unresolved targets must require an explicit author action");
 assert.match(main, /printSnapshot: createSkinRebuildPrintSnapshotForSave\(\)/,
   "Print-ready FKEI save must attach only the optional derived snapshot");
-assert.match(main, /decodeSkinRebuildPrintSnapshot\(document\.printSnapshot\)/,
+assert.match(main, /decodeSkinRebuildPrintSnapshot\((?:document|source)\.printSnapshot\)/,
   "FKEI Open must decode the compact print snapshot before deciding reuse");
 assert.match(main, /evaluateSkinRebuildPrintSnapshotReuse\(/,
   "snapshot reuse must be gated by current fingerprints and support graph identity");

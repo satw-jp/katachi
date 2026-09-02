@@ -26,6 +26,9 @@ export interface SkinRebuildPrintSnapshot {
   payload: FkeiEncodedValue;
 }
 
+/** Metadata retained by a worker restore after the validated payload is decoded. */
+export type SkinRebuildPrintSnapshotMetadata = Omit<SkinRebuildPrintSnapshot, "payload">;
+
 export interface SkinRebuildPrintSnapshotData {
   body: {
     fingerprint: string;
@@ -104,7 +107,7 @@ export type SkinRebuildPrintSnapshotReuseDecision =
   | { state: "stale"; reason: string };
 
 export interface SkinRebuildPrintSnapshotReuseInput {
-  snapshot: SkinRebuildPrintSnapshot;
+  snapshot: SkinRebuildPrintSnapshotMetadata;
   data: SkinRebuildPrintSnapshotData;
   currentSourceGeometryFingerprint: string;
   currentPipelineFingerprint: string | null;
