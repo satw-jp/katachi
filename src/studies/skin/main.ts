@@ -307,6 +307,13 @@ import {
   type SkinRebuildPrintSnapshotData,
 } from "./rebuild/printSnapshot.ts";
 import {
+  evaluateSkinWorkflowGuide,
+  SKIN_WORKFLOW_GUIDE_PHASES,
+  type SkinWorkflowGuideAction,
+  type SkinWorkflowGuideInput,
+  type SkinWorkflowGuideResult,
+} from "./rebuild/workflowGuide.ts";
+import {
   skinRebuildPhysicalSettingsChanged,
   skinRebuildTargetScaleChanged,
 } from "./rebuild/printScalePolicy.ts";
@@ -1068,6 +1075,7 @@ type SkinRebuildRestoredPrintSnapshot = {
 let skinRebuildPrintReadinessEvidence: SkinRebuildPrintReadinessEvidence | null = null;
 let skinRebuildRestoredPrintSnapshot: SkinRebuildRestoredPrintSnapshot | null = null;
 let skinRebuildPrintSnapshotStatus: "none" | "restored" | "stale" | "corrupted" = "none";
+let skinRebuildFkeiRestoreState: "none" | "missing-downstream-evidence" | "snapshot-restored" | "snapshot-stale" = "none";
 type SkinRebuildMeshInteriorClassificationDisplayMode = "normal" | "debug" | "combined";
 const SKIN_REBUILD_MESH_INTERIOR_DISPLAY_BOUNDARY = 2;
 const SKIN_REBUILD_MESH_INTERIOR_DISPLAY_UNCLASSIFIED = 3;
@@ -1156,6 +1164,18 @@ type SkinRebuildPrintPreparationPanelRefs = {
   blockerNextAction: HTMLElement;
 };
 let skinRebuildPrintPreparationPanelRefs: SkinRebuildPrintPreparationPanelRefs | null = null;
+type SkinWorkflowGuideRefs = {
+  panel: HTMLElement;
+  phase: HTMLElement;
+  title: HTMLElement;
+  summary: HTMLElement;
+  context: HTMLElement;
+  blocker: HTMLElement;
+  action: HTMLButtonElement;
+  details: HTMLButtonElement;
+  progress: HTMLElement;
+};
+let skinWorkflowGuideRefs: SkinWorkflowGuideRefs | null = null;
 let skinRebuildLowestButton: HTMLButtonElement | null = null;
 let skinRebuildLatticeButton: HTMLButtonElement | null = null;
 let skinRebuildFinalDiagnosisButton: HTMLButtonElement | null = null;
@@ -8760,6 +8780,7 @@ function stopSkinRebuildStage8Export(reason: string): void {
 
 function invalidateSkinRebuildFinalStages(reason: string): void {
   const hadRestoredSnapshot = skinRebuildRestoredPrintSnapshot !== null;
+  skinRebuildFkeiRestoreState = "none";
   skinRebuildFinalizedArtworkProject = null;
   skinRebuildFinalArtworkDiagnosis = null;
   skinRebuildStage8CompletedProject = null;
@@ -9116,6 +9137,241 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   refs.blockerNextAction.textContent = blocker
     ? `次にすること: ${blocker.nextAction}`
     : `次にすること: Stage 8で3MFを選び、${readyExportText}のexportボタンを押してください`;
+  refreshSkinWorkflowGuide();
+}
+
+function currentSkinWorkflowGuideInput(): SkinWorkflowGuideInput {
+  const pipeline = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline : null;
+  const project = pipeline?.project ?? null;
+  const restoreState = skinRebuildFkeiRestoreState;
+  const restoredWithoutEvidence = restoreState === "missing-downstream-evidence";
+  const baseReady = state.host.length > 0;
+  const surfacePatternReady = state.patches.length > 0;
+  const insideOutsideCurrent = pipeline !== null
+    && pipeline.patternSides.length === state.patches.length
+    && pipeline.patternSides.length > 0;
+  const overhangCurrent = restoredWithoutEvidence || (project !== null
+    && pipeline?.lowestPoints !== null
+    && pipeline?.lowestPoints !== undefined
+    && pipeline.responsibilityOverhang?.interior !== null
+    && pipeline.responsibilityOverhang?.interior !== undefined);
+  const disconnectedPatternIds = project
+    ? skinRebuildDisconnectedPatternIds(project.patternSides, project.finalGraph)
+    : [];
+  const reinforcementRequired = project !== null
+    && (project.audit.unsupportedTargetCount > 0 || disconnectedPatternIds.length > 0);
+  const permanentReinforcementCurrent = project !== null
+    && overhangCurrent
+    && !reinforcementRequired;
+  const finalMeshCurrent = currentSkinRebuildTopologyCache() !== null;
+  const finalMeshState = finalMeshCurrent
+    ? "current"
+    : project !== null && (stage6BodyMeshCache !== null || skinRebuildFinalizedArtworkProject !== null)
+      ? "stale"
+      : "missing";
+  const finalDiagnosisCurrent = skinRebuildFinalDiagnosisIsCurrent();
+  const finalDiagnosisState = finalDiagnosisCurrent
+    ? "current"
+    : skinRebuildFinalArtworkDiagnosis !== null ? "stale" : "missing";
+  let finalDiagnosisBlocker: SkinWorkflowGuideInput["finalDiagnosisBlocker"] = null;
+  const dangerPresentation = skinRebuildStage7DangerPresentationState?.diagnosis === skinRebuildFinalArtworkDiagnosis
+    ? skinRebuildStage7DangerPresentationState.presentation
+    : null;
+  if (finalDiagnosisCurrent && dangerPresentation?.available && dangerPresentation.insideDangerFaceCount > 0) {
+    finalDiagnosisBlocker = {
+      phase: "permanent-reinforcement",
+      action: "regenerate-reinforcement",
+      reason: `Inside dangerが${dangerPresentation.insideDangerFaceCount.toLocaleString()}面残っています。Permanent Reinforcementへ戻ってください`,
+    };
+  }
+
+  const readiness = skinRebuildPrintPreparationReadiness();
+  const stage8Current = project !== null
+    && (skinRebuildStage8CompletedProject === project || skinRebuildRestoredPrintSnapshot?.data.stage8.current === true);
+  const stage75Current = skinRebuildArtworkInteriorClassificationCheckpointIsCurrent()
+    || skinRebuildRestoredPrintSnapshot?.data.stage7_5.current === true;
+  const pipelineReason = skinRebuildPipelineOutputBlockReason();
+  const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
+  const internalGateReason = skinRebuildCurrentInternalPrintGateBlockReason();
+  const sparseDecision = skinRebuildSparseExperimentalExportDecision();
+  let supportExportState: SkinWorkflowGuideInput["supportExportState"] = "not-ready";
+  let supportExportBlocker: string | null = null;
+  if (!finalDiagnosisCurrent) {
+    supportExportState = "not-ready";
+    supportExportBlocker = "先にFinal Diagnosisをcurrentにしてください";
+  } else if (skinRebuildPrintSupportMode === "automatic" && !stage75Current) {
+    supportExportState = "needs-interior-verification";
+    supportExportBlocker = "Inside / Outside evidenceがNeeds verificationです。既存の作品内外判定を確認してください";
+  } else if (skinRebuildPrintSupportMode === "off"
+    && (skinRebuildPrintSupportModeNeedsConfirmation || !stage8Current)) {
+    supportExportState = "needs-confirmation";
+    supportExportBlocker = skinRebuildPrintSupportModeStatus(project, false);
+  } else if (skinRebuildPrintSupportMode === "automatic" && !stage8Current) {
+    supportExportState = "needs-generation";
+    supportExportBlocker = "Sparse Supportが未生成です";
+  } else if (sparseDecision.state === "approval-required") {
+    supportExportState = "unresolved-approval";
+    supportExportBlocker = sparseDecision.message;
+  } else if (skinRebuildThinStrutExperimentalExportDecision().state === "approval-required") {
+    supportExportState = "thin-strut-approval";
+    supportExportBlocker = skinRebuildThinStrutExperimentalExportDecision().message;
+  } else if (pipelineReason || componentSelectionReason || internalGateReason || !readiness.canExport) {
+    supportExportState = "not-ready";
+    supportExportBlocker = pipelineReason
+      ?? componentSelectionReason
+      ?? internalGateReason
+      ?? readiness.blocker?.reason
+      ?? "Export gateがcurrentではありません";
+  } else {
+    supportExportState = "ready";
+  }
+  return {
+    baseReady,
+    surfacePatternReady,
+    insideOutsideCurrent,
+    overhangCurrent,
+    permanentReinforcementCurrent,
+    reinforcementRequired,
+    finalMeshState,
+    finalDiagnosisState,
+    finalDiagnosisBlocker,
+    supportExportState,
+    supportExportBlocker,
+    restoreState,
+  };
+}
+
+function focusSkinWorkflowGuideDetails(targetId: string): void {
+  const target = ui.root.querySelector<HTMLElement>(`#${targetId}`);
+  if (target instanceof HTMLDetailsElement) target.open = true;
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function skinWorkflowGuideActionButton(action: SkinWorkflowGuideAction): HTMLButtonElement | null {
+  const directAction = action === "verify-final-mesh" ? "build-final-mesh" : action;
+  if (action === "confirm-support-mode") {
+    return skinRebuildPrintSupportButton;
+  }
+  if (action === "regenerate-reinforcement") {
+    const candidates = [
+      skinRebuildCompleteSupportButton,
+      skinRebuildSelectedRegionReinforceButton,
+      skinRebuildLatticeButton,
+    ];
+    return candidates.find((button) => button !== null && !button.disabled) ?? candidates[0] ?? null;
+  }
+  if (action === "generate-reinforcement") {
+    return skinRebuildLatticeButton;
+  }
+  return document.querySelector<HTMLButtonElement>(
+    `button[data-skin-workflow-guide-action="${directAction}"]`,
+  );
+}
+
+function routeSkinWorkflowGuideAction(action: SkinWorkflowGuideAction, targetId: string): void {
+  const button = skinWorkflowGuideActionButton(action);
+  if (button && !button.disabled) {
+    button.click();
+    return;
+  }
+  focusSkinWorkflowGuideDetails(targetId);
+}
+
+function workflowGuideStatusLabel(status: SkinWorkflowGuideResult["phaseStatus"]): string {
+  return status === "needs-verification"
+    ? "Needs verification"
+    : status === "current"
+      ? "Current"
+      : status === "complete"
+        ? "Complete"
+        : "Future";
+}
+
+function refreshSkinWorkflowGuide(): void {
+  const refs = skinWorkflowGuideRefs;
+  if (!refs) return;
+  const result = evaluateSkinWorkflowGuide(currentSkinWorkflowGuideInput());
+  refs.panel.dataset.phase = result.phase;
+  refs.panel.dataset.state = result.phaseStatus;
+  refs.phase.textContent = `Current phase · ${result.progressText}`;
+  refs.title.textContent = result.phaseTitle;
+  refs.summary.textContent = `Status · ${workflowGuideStatusLabel(result.phaseStatus)}`;
+  refs.context.textContent = result.context ?? "";
+  refs.context.hidden = result.context === null;
+  refs.blocker.textContent = result.blocker
+    ? `Blocker / current state · ${result.blocker}`
+    : "Blocker / current state · なし。次の操作を実行できます";
+  refs.blocker.dataset.state = result.blocker ? "blocked" : "ready";
+  refs.action.textContent = result.primaryActionLabel;
+  refs.action.dataset.action = result.primaryAction;
+  refs.action.disabled = false;
+  refs.details.onclick = () => focusSkinWorkflowGuideDetails(result.detailsTargetId);
+  refs.action.onclick = () => routeSkinWorkflowGuideAction(result.primaryAction, result.detailsTargetId);
+  for (const item of result.progress) {
+    const row = refs.progress.querySelector<HTMLElement>(`[data-phase-id="${item.id}"]`);
+    if (!row) continue;
+    row.dataset.state = item.status;
+    const state = row.querySelector<HTMLElement>(".skin-workflow-guide-progress-state");
+    if (state) state.textContent = workflowGuideStatusLabel(item.status);
+  }
+}
+
+function installSkinWorkflowGuide(): void {
+  const panel = document.createElement("section");
+  panel.id = "skin-workflow-guide";
+  panel.className = "skin-workflow-guide";
+  panel.setAttribute("aria-label", "SKIN REBUILD Workflow Guide");
+  const heading = document.createElement("div");
+  heading.className = "skin-workflow-guide-heading";
+  const kicker = document.createElement("span");
+  kicker.textContent = "WORKFLOW GUIDE";
+  const hint = document.createElement("small");
+  hint.textContent = "state-based routing · read-only";
+  heading.append(kicker, hint);
+  const phase = document.createElement("span");
+  phase.className = "skin-workflow-guide-phase";
+  const title = document.createElement("strong");
+  title.className = "skin-workflow-guide-title";
+  const summary = document.createElement("span");
+  summary.className = "skin-workflow-guide-summary";
+  const context = document.createElement("p");
+  context.className = "skin-workflow-guide-context";
+  const blocker = document.createElement("p");
+  blocker.className = "skin-workflow-guide-blocker";
+  blocker.setAttribute("role", "status");
+  blocker.setAttribute("aria-live", "polite");
+  const actions = document.createElement("div");
+  actions.className = "skin-workflow-guide-actions";
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = "primary-action skin-workflow-guide-primary";
+  const details = document.createElement("button");
+  details.type = "button";
+  details.className = "secondary-action skin-workflow-guide-details";
+  details.textContent = "View details";
+  actions.append(action, details);
+  const progress = document.createElement("ol");
+  progress.className = "skin-workflow-guide-progress";
+  for (const [index, item] of SKIN_WORKFLOW_GUIDE_PHASES.entries()) {
+    const row = document.createElement("li");
+    row.dataset.phaseId = item.id;
+    const number = document.createElement("span");
+    number.className = "skin-workflow-guide-progress-number";
+    number.textContent = String(index + 1);
+    const copy = document.createElement("span");
+    copy.className = "skin-workflow-guide-progress-copy";
+    const label = document.createElement("strong");
+    label.textContent = item.title;
+    const state = document.createElement("small");
+    state.className = "skin-workflow-guide-progress-state";
+    copy.append(label, state);
+    row.append(number, copy);
+    progress.appendChild(row);
+  }
+  panel.append(heading, phase, title, summary, context, blocker, actions, progress);
+  rightPaneBody.insertBefore(panel, rightPaneBody.firstElementChild);
+  skinWorkflowGuideRefs = { panel, phase, title, summary, context, blocker, action, details, progress };
+  refreshSkinWorkflowGuide();
 }
 
 function skinRebuildExpectedExportMeshComponents(): number {
@@ -9430,6 +9686,7 @@ function installSkinRebuildPipelinePanel(): void {
     "各Patternの代表点をBase Shapeへ再投影し、法線の両側をSDFで測ります。Base Shapeが存在する側だけをinsideとして採用します。",
   );
   const insideButton = document.createElement("button");
+  insideButton.dataset.skinWorkflowGuideAction = "diagnose-inside-outside";
   insideButton.type = "button";
   insideButton.className = "primary-action";
   insideButton.textContent = "3. Base Shape側をinsideとして判定";
@@ -9545,6 +9802,7 @@ function installSkinRebuildPipelinePanel(): void {
   threshold.value = "45";
   thresholdRow.append(threshold, document.createTextNode("°"));
   const lowestButton = document.createElement("button");
+  lowestButton.dataset.skinWorkflowGuideAction = "diagnose-overhang";
   lowestButton.type = "button";
   lowestButton.className = "primary-action";
   lowestButton.textContent = "4. オーバーハング部を検出";
@@ -9841,6 +10099,7 @@ function installSkinRebuildPipelinePanel(): void {
   regionSelectionStatus.className = "mesh-status skin-rebuild-region-selection-status";
   regionSelectionStatus.textContent = "工程4を実行すると連続する赤面をエリア単位で選べます";
   const regionReinforceButton = document.createElement("button");
+  regionReinforceButton.dataset.skinWorkflowGuideAction = "regenerate-reinforcement";
   regionReinforceButton.type = "button";
   regionReinforceButton.className = "secondary-action skin-rebuild-region-reinforce";
   regionReinforceButton.textContent = "5B. 選択赤面を面→点の水色立体で補強";
@@ -9945,6 +10204,7 @@ function installSkinRebuildPipelinePanel(): void {
     render();
   };
   const latticeButton = document.createElement("button");
+  latticeButton.dataset.skinWorkflowGuideAction = "generate-reinforcement";
   latticeButton.type = "button";
   latticeButton.className = "primary-action";
   latticeButton.textContent = "5A. ラティスを1パス追加";
@@ -10508,6 +10768,7 @@ function installSkinRebuildPipelinePanel(): void {
     "工程6で確定した作品meshを再解析します。危険面のうち、Outside＋Boundaryはサポート対象として橙、Insideはサポートを付けない危険面として赤で表示します。",
   );
   const finalDiagnosisButton = document.createElement("button");
+  finalDiagnosisButton.dataset.skinWorkflowGuideAction = "run-final-diagnosis";
   finalDiagnosisButton.type = "button";
   finalDiagnosisButton.className = "primary-action";
   finalDiagnosisButton.textContent = "7. 確定作品を診断して残る赤を表示";
@@ -10704,6 +10965,7 @@ function installSkinRebuildPipelinePanel(): void {
     "工程3で確定したSurface Patternの内外方向と、工程4の責任分類を工程7の現在meshへ投影します。Automaticはこの確定済みOutsideだけを使います。",
   );
   const artworkInteriorClassificationButton = document.createElement("button");
+  artworkInteriorClassificationButton.dataset.skinWorkflowGuideAction = "verify-artwork-interior";
   artworkInteriorClassificationButton.type = "button";
   artworkInteriorClassificationButton.className = "primary-action";
   artworkInteriorClassificationButton.textContent = "7.5 作品の内外を判定 / Artwork Interior Classification";
@@ -10835,6 +11097,7 @@ function installSkinRebuildPipelinePanel(): void {
   });
   supportDiameterRow.append(supportDiameter, document.createTextNode(" mm"));
   const printSupportButton = document.createElement("button");
+  printSupportButton.dataset.skinWorkflowGuideAction = "generate-sparse-support";
   printSupportButton.type = "button";
   printSupportButton.className = "primary-action";
   printSupportButton.textContent = "8. Outside Overhangに印刷サポートを生成";
@@ -11167,6 +11430,7 @@ function installSkinRebuildPipelinePanel(): void {
   experimentalExportWarning.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-experimental-export-warning";
   experimentalExportWarning.hidden = true;
   const experimentalExportApprovalButton = document.createElement("button");
+  experimentalExportApprovalButton.dataset.skinWorkflowGuideAction = "approve-unresolved-support";
   experimentalExportApprovalButton.type = "button";
   experimentalExportApprovalButton.className = "secondary-action skin-rebuild-experimental-export-approval";
   experimentalExportApprovalButton.textContent = "Export Experimental Print";
@@ -11226,6 +11490,7 @@ function installSkinRebuildPipelinePanel(): void {
   thinStrutExperimentalExportWarning.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-thin-strut-export-warning";
   thinStrutExperimentalExportWarning.hidden = true;
   const thinStrutExperimentalExportApprovalButton = document.createElement("button");
+  thinStrutExperimentalExportApprovalButton.dataset.skinWorkflowGuideAction = "approve-thin-strut";
   thinStrutExperimentalExportApprovalButton.type = "button";
   thinStrutExperimentalExportApprovalButton.className = "secondary-action skin-rebuild-thin-strut-export-approval";
   thinStrutExperimentalExportApprovalButton.textContent = "Allow Thin Strut Experimental Export";
@@ -11257,6 +11522,7 @@ function installSkinRebuildPipelinePanel(): void {
     refreshSkinRebuildStage8ExportButton();
   };
   const stage8ExportButton = document.createElement("button");
+  stage8ExportButton.dataset.skinWorkflowGuideAction = "export-3mf";
   stage8ExportButton.type = "button";
   stage8ExportButton.className = "primary-action skin-rebuild-stage8-export";
   stage8ExportButton.textContent = "サポート確定後の3Dデータを書き出す";
@@ -15054,6 +15320,11 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       skinRebuildPrintReadinessEvidence = null;
       skinRebuildRestoredPrintSnapshot = null;
     }
+    skinRebuildFkeiRestoreState = restoredSnapshot
+      ? "snapshot-restored"
+      : document.printSnapshot
+        ? "snapshot-stale"
+        : "missing-downstream-evidence";
     refreshSkinRebuildLatticeEdgeEditor();
     refreshSkinRebuildSelectedTarget();
     refreshSkinRebuildSelectedRegion();
@@ -18325,6 +18596,7 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
   }
   artworkGraphLastError = null;
   syncArtworkGraphStatus();
+  refreshSkinWorkflowGuide();
   render();
 }
 
@@ -18870,6 +19142,8 @@ viewport.addEventListener("wheel", (event) => {
     requestRenderFrame();
   }
 }, { capture: true, passive: true });
+
+if (isSkinRebuildApp) installSkinWorkflowGuide();
 
 requestAnimationFrame(() => {
   skinShellInteractiveMs = performance.now() - skinBootStartedAt;

@@ -1,5 +1,9 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Workflow Guide v0（2026-09-02）
+
+`/skin-rebuild.html` の右WORKFLOW先頭に、Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを案内する読み取り専用Guideを追加した。current phase / 全体progress、blocker / current state、Primary Action、既存actionへのrouting、必要時の前工程への再循環を表示する。Print Snapshot restore済みのBODY / downstream evidenceは既存stateとして利用し、snapshotなしFKEI restoreでdownstream evidenceがない場合はIncompleteと断定せず`Needs verification`としてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。
+
 ## Observation — Thin Strut Experimental Export（2026-09-02）
 
 既存の`0.80 mm`推奨基準と`最低線径0.76 mm < 合格値0.80 mm`の停止理由を変更せず、Stage 8の通常export UIへMinimum strut、Recommended minimum、Thin struts数を追加した。基準未満のPermanent Web / Reinforcementだけが残り、mesh水密・部品数・退化面・起点・積層順・bridge・voxelなど他のInternal print gate条件がすべて通る場合だけ、別ボタン`Allow Thin Strut Experimental Export`を表示する。明示承認後は`Thin strut risk explicitly accepted for this experimental export.`を表示し、既存のUnsupported support承認とは別に次の3MF gateへ進む。

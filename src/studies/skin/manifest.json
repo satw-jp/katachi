@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-02",
+      "note": "TASK E Workflow Guide v0をSKIN REBUILD右WORKFLOW最上部へ追加した。Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを既存workflow/stateから読み、current phase、progress、blocker/current state、Primary Action、既存actionへのrouting、前工程への再循環を表示する。Print Snapshot restore済みのdownstream stateは再利用し、snapshotなしFKEI restoreの欠落downstream evidenceはIncompleteと断定せずNeeds verificationとしてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。"
+    },
+    {
+      "date": "2026-09-02",
       "note": "SKIN REBUILD Print-ready FKEI Snapshot: Print準備完了時だけ、既存base64-binary-v1へFinal BODY export mesh、Stage 6 topology/component selection、Stage 4/6.5/7/7.5/8 readiness、Sparse Support graph/diagnostics、Internal print-gate evidenceを任意のderived printSnapshotとして保存する。payload SHA-256、source geometry fingerprint、pipeline/settings/support graphの一致をOpen時に確認し、validならStage 6 remeshとStage 4〜8の重い再診断を行わずBODY / Components / Sparse Supportを復元する。不一致、破損、非有限mesh、invalid topology/component、BODY collisionはstale/fail-closedで既存workflowへ戻す。unresolved/thin strutのsession-only承認は保存しない。既存FKEIはsnapshotなしで後方互換読込でき、最終3MF、視認形状判断、deployは未実施。"
     },
     {
