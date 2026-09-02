@@ -146,7 +146,7 @@ R1で維持する。
 1. historical pre-fix R0.5差分は`f81e03d3b26b93479854faa9ae179f179183afb2`として履歴に保持した。
 2. reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`でtargeted 21 / 21、Hikari 111 / 111（R0.5固定10ケース全件）、TypeScript、build、`git diff --check`を確認した。version gateはowner-approved known parallel-branch divergenceだけによりexpected exit 2であり、candidateのversion gate PASSではない。
 3. Fresh Sol reviewは`ship`でOPT-0.5 review gateはGO、candidateはReadyである。既存のDraft PR #3〜#5 candidate履歴はそのまま保持し、このtaskは新しいR1実装またはAcceptanceを許可しない。
-4. PR #1は`main`へmerge済みである。PR #2は`main`をbaseとするDraft/unmergedであり、その正確なcurrent headはGitHub上のPRを正とする。downstream baseとreverificationは、current-head independent review（Fresh Sol `ship`を含む）、作者受入、Ready authorization、明示的に承認されたPR #2 merge後にmaster planのmerge gateに従う。
+4. PR #1とPR #2は`main`へmerge済みである。PR #2のmerge前gateは履歴として保持し、current state、PR #3〜#5のbase／head／Acceptanceは`master-plan.md` §0とGitHub上のPRを正とする。downstream baseとreverificationは、current-state entryのmerge gateに従う。
 
 ---
 
@@ -1436,7 +1436,7 @@ R1は`.hkr` schema、history、localStorage、manifestへdataを保存しない�
 
 ### 25.1 Operational preflight gate — resolved
 
-historical pre-fix baselineは`f81e03d3b26b93479854faa9ae179f179183afb2`として保持し、reviewed correction candidateは`4ccc83c7c51469972d78c474180daafa5bbdeea1`である。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持する。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。PR #2は`main`をbaseとするDraft/unmergedで、その正確なcurrent headはGitHub上のPRを正とする。downstream baseとreverificationは、current-head independent review（Fresh Sol `ship`を含む）、作者受入、Ready authorization、明示的に承認されたPR #2 merge後にmaster planのmerge gateに従う。
+historical pre-fix baselineは`f81e03d3b26b93479854faa9ae179f179183afb2`として保持し、reviewed correction candidateは`4ccc83c7c51469972d78c474180daafa5bbdeea1`である。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持する。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。PR #2はその後merge済みであり、現在のPR #3〜#5 statusとdownstream base／reverificationは`master-plan.md` §0とGitHub上のPRを正とする。
 
 HEADまたはworktreeがこの記録と異なる場合だけSTOPし、差分を一括commitしない。historical pre-fix baselineとreviewed correction candidateの履歴を消去・再ラベルせず、PR #1のmerge historyを越えてR0.5 authorityを推定しない。
 
@@ -1495,7 +1495,7 @@ R1では行わない:
 
 Lunaは本書をHikari R1の実装正本として扱い、次の順で実行すること。
 
-1. まずhistorical pre-fix baseline `f81e03d3b26b93479854faa9ae179f179183afb2`とreviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`の関係を確認する。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持する。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。PR #2は`main`をbaseとするDraft/unmergedで、その正確なcurrent headはGitHub上のPRを正とする。downstream baseとreverificationは、current-head independent review（Fresh Sol `ship`を含む）、作者受入、Ready authorization、明示的に承認されたPR #2 merge後にmaster planのmerge gateに従う。意図しない差分がある場合だけ変更せずSTOPして報告する。
+1. まずhistorical pre-fix baseline `f81e03d3b26b93479854faa9ae179f179183afb2`とreviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`の関係を確認する。PR #1とPR #2は`main`へmerge済みで、candidate履歴は保持する。既存のDraft PR #3〜#5 candidate履歴は変更せず、このtaskは新しいR1実装またはAcceptanceを許可しない。現在のPR status、base、current headは`master-plan.md` §0とGitHub上のPRを正とする。意図しない差分がある場合だけ変更せずSTOPして報告する。
 2. R1aだけを実装する。test/build/reportを揃え、独立reviewでGOを得るまでR1bへ進まない。
 3. R1bだけを実装する。CPU/GPU parityの全数値を報告し、独立reviewでGOを得るまでR1cへ進まない。
 4. R1cだけを実装する。Natural pixel gate、GL capability、M4 MBA 3分測定を報告し、独立reviewでGOを得るまでR1dへ進まない。

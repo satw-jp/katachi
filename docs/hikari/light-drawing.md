@@ -1,7 +1,7 @@
 # hikari — light drawing from the author's trace
 
 Status: core optical quality requirement
-UpdatedAt: 2026-08-01
+UpdatedAt: 2026-09-02
 
 ## Author observation
 
@@ -37,7 +37,7 @@ The first `筆跡` display detected changes in shadow coverage and delivered lig
 
 The correction leaves shadow coverage, ambient loss, receiver bounds, and physical transport unchanged. It transforms only delivered RGB light for display. Each deterministic 4 × 4 receiver-texel block gathers its delivered RGB sum, chooses one fixed horizontal, vertical, or diagonal four-texel mark, and divides the exact block sum equally across those four texels. Thus each RGB channel is conserved per block; the hash changes spatial arrangement but not quantity and does not animate between frames.
 
-Same-camera WebGPU and SAFE comparisons show the same gray shadow in Composite and Stroke, while the smooth delivered-light pool becomes many small marks. The detached plate is gone. This is still an explicitly expressive redistribution, not evidence that the current smooth ball geometry physically creates those small strokes. Response to 0.53° / 5° / 20° remains unverified, and long authored arcs still require LD1 real mid-scale geometry.
+Same-camera WebGPU and SAFE comparisons show the same gray shadow in Composite and Stroke, while the smooth delivered-light pool becomes many small marks. The detached plate is gone. This is still an explicitly expressive redistribution, not evidence that the current smooth ball geometry physically creates those small strokes. PR #6 records CPU/GPU parity as `0.53° PASS` and `20° PASS`; `5°` remains unresolved with a `41.84%` light-quantity difference. These results do not establish formal OPT-LD acceptance, and long authored arcs still require LD1 real mid-scale geometry.
 
 Evidence: [Composite, same camera](evidence/light-stroke-v0294-composite.png) / [Stroke, same camera](evidence/light-stroke-v0294-stroke.png).
 

@@ -1,9 +1,9 @@
-# hikari — project definition
+# hikari — project definition / current-state entry
 
-Status: design baseline
-UpdatedAt: 2026-08-09
+Status: product definition; current state is canonical in `master-plan.md` §0
+UpdatedAt: 2026-09-02
 
-Current integrated status, dependencies, accepted baseline, and candidate state are delegated to [Hikari integrated master plan R0](master-plan.md). The master plan remains a Draft SSOT until its `SSOT-0` gate is GO.
+Current integrated status, production baseline, accepted-but-unmerged work, HOLD candidates, and next decision are maintained in the [canonical current-state section of Hikari integrated master plan R0](master-plan.md#0-current-state-canonical). Do not infer current status from the dated pre-merge gate text elsewhere in that document; implementation, Acceptance, and `main` reflection remain separate axes.
 
 ## Purpose
 

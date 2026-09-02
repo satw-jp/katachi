@@ -1,22 +1,98 @@
-# Hikari 統合マスタープラン R0 — レビュー反映版
+# Hikari 統合マスタープラン R0 — current-state / plan
 
 作成日: 2026-08-03
-状態: **統合アーキテクチャGO／実行計画条件付きGO／SSOT昇格HOLD**
+CurrentStateUpdatedAt: 2026-09-02
+状態: **SSOT-0文書公開済み（PR #2 merge）／OPT-1a・1bは実装完了・Acceptance GO・Draft未merge／OPT-1cは実装完了・Acceptance HOLD・Draft未merge**
 対象リポジトリ: `satw-jp/katachi`
-SSOT昇格条件: 本書の`SSOT-0`完了とレビューGO
+Production baseline: `main` @ `76a02465b4379fdf4720d0e1d1c72e915f9df53c`
+
+## 0. Current state (canonical)
+
+この節をHikariの現在状態の入口とする（再確認日: 2026-09-02）。内容はGitHub `main`、PR #2〜#6、manifest、検証資産を再確認して正規化したものであり、merge済みかどうかはGit履歴を優先する。以下の計画・詳細契約にある日付付きのゲート記録は、明記された時点の履歴として読む。
+
+参照: [main](https://github.com/satw-jp/katachi/tree/main) / [PR #2](https://github.com/satw-jp/katachi/pull/2) / [PR #3](https://github.com/satw-jp/katachi/pull/3) / [PR #4](https://github.com/satw-jp/katachi/pull/4) / [PR #5](https://github.com/satw-jp/katachi/pull/5) / [PR #6](https://github.com/satw-jp/katachi/pull/6)
+
+### Production baseline
+
+- Repository: `satw-jp/katachi`
+- Baseline branch: `main`
+- Baseline HEAD: `76a02465b4379fdf4720d0e1d1c72e915f9df53c`（PR #6 merge commit）
+- Hikari manifest version: `0.32.1`（`src/studies/cloud-sculpt/manifest.json`）
+- Current production surface: 独立アプリではなく、`katachi` WorkerのCloud Sculpt root page内にあるHikari workspace。公開先は`https://katachi.a-8c3.workers.dev/`。
+- `docs/hikari/publishing.md`の最新release recordはv0.32.1（deploy commit `cbce8d8`）。したがって、PR #6が`main`へmerge済みであることと、PR #6の内容が公開環境へdeploy済みであることは同一視しない。
+
+### Implementation / Acceptance / main reflection
+
+| Work | Implementation | Acceptance / decision | `main` reflection |
+|---|---|---|---|
+| SSOT-0 / PR #2 | 文書セット完了 | PR本文のDraft時記録はAcceptance HOLD。これは当時の受入記録であり、現在のmerge事実とは別軸 | **merge済み**、merge commit `c33361bbea709397e01b68771725571a0e9fbbc5` |
+| Experimental Light Drawing / PR #6 | 実験workflow、CPU-only verification harness、回帰テスト、`?lightDrawing=1`接続を実装 | 実験機能。OPT-LD正式GO／Acceptanceを意味しない | **merge済み**、HEAD `76a02465b4379fdf4720d0e1d1c72e915f9df53c` |
+| OPT-1a / PR #3 | implementation complete | Acceptance GO | **Draft・未merge**、PR head `755f0b76db3796e40919edd06a5d69ee910c8e45` |
+| OPT-1b / PR #4 | implementation complete | Acceptance GO | **Draft・未merge**、PR head `a838de14f40cde7e8a6bb5a8e2e4a45be02cbc27` |
+| OPT-1c / PR #5 | implementation complete | Acceptance HOLD | **Draft・未merge**、PR head `60ad13c488bbfdfa7687f0d49bbb6fa1853ff7c8` |
+
+「実装完了」はコードが候補commitに存在すること、「Acceptance GO」は受入判断、「main反映」はmerge済みであることを表す。三つを相互に代用しない。
+
+### What works today
+
+- `main`のCloud Sculpt workspaceで、Hikariの透明body、屈折、吸収・透過色、有限光源の影、receiver field、CPU／WebGPU経路、SAFE CPU fallback、`.hkr`保存、Progressive Render Phase 1、Blender bundleを使える。
+- PR #6のexperimental Light Drawing workflowは`main`に存在し、通常URLや既存Katachi履歴を変えず、明示的な実験flagで有効化する。
+- Light Drawing CPU/GPU parityは`0.53° PASS`、`20° PASS`。`5°`は光量差`41.84%`で未解決であり、正式な物理Light Drawing acceptanceではない。
+
+### Accepted but unmerged work
+
+- PR #3 / OPT-1a: implementation complete、Acceptance GO、Draft・未merge。
+- PR #4 / OPT-1b: implementation complete、Acceptance GO、Draft・未merge。
+- PR #5 / OPT-1c: implementation complete、Acceptance HOLD、Draft・未merge。自動test/buildのPASSだけではHOLDを解除しない。
+
+### HOLD candidates and known unresolved problems
+
+- PR #5 / OPT-1cはEvidence Manifest、independent verification、fresh review、作者Acceptanceが揃うまでHOLD。
+- `5°` Light Drawing parityの光量差`41.84%`は未解決。定数調整やevidenceの書換えで解消しない。
+- CPU、WebGPU、view shaderの並列実装にはsemantic driftの余地があり、現在のparity結果を全ケースの一致とは扱わない。
+- 現行runtimeはCloud Sculptとの同居実装であり、独立Hikari app、generic multiple-inclusion mesh、room/window runtime、完全な多重内部反射はまだ成立していない。
+
+### Katachi / Hikari responsibility boundary
+
+Snapshot分離方針はaccepted directionである。Katachiは形状の定義・配置・変形・freeze・immutable geometry snapshotを担当し、Hikariはsnapshotを受けた後の`OpticalScene`、media/material、light、receiver、render、`.hkr` observationを担当する。ただし現在のproduction HikariはまだCloud Sculpt内でKatachiのshape fieldとcameraを同一メモリから読んでおり、分離済みの独立runtimeではない。
+
+### Snapshot handoff gate
+
+`HIKARI-BRIDGE-0`は未実装で、gate前である。次の全条件が揃うまで開始しない。
+
+1. Katachiが同一seedでRigid／Soft Flower packingを表示できる。
+2. 作者がHikariで開く価値のあるfreeze stateを少なくとも一つ選ぶ。
+3. Katachiがunversioned solverを再実行せずそのstateをreopenできる。
+4. snapshotがphysical scale provenanceとcollision／deformation diagnosticsを保持する。
+5. Flower固有でないことを、non-Flower motifまたはschema reviewで確認する。
+
+### Things that must not be changed yet
+
+- Hikariの光学実装とCPU/GPU `5°`差を変更しない。
+- PR #3〜#5をこの整理作業でmergeしない。
+- Snapshot adapter／`HIKARI-BRIDGE-0`を実装しない。
+- Hikari versionを上げない。deployしない。
+- 過去のevidence、候補SHA、Acceptance記録を書き換えない。
+- コード完了、Acceptance GO、`main`反映を混同しない。
+
+### Recommended next decision
+
+1. PR #3 → PR #4について、current `main`後のbase追従・差分review・mergeを進めるかを判断する（merge自体は別作業）。
+2. PR #5はHOLDを維持し、exact candidate SHAでEvidence Manifestを取得するか、保留するかを判断する。
+3. Katachi PACK-SPIKEがSnapshot handoff gateを満たした後にのみ、`HIKARI-BRIDGE-0`のadapter実装を判断する。
 
 ## 1. この文書の現在の権限
 
-本書は、OPT、KAT、GLOW、ARTを一つの制作系として統合する**正本候補**である。Draft PR stackへ収録しても、`main`へmergeされて`SSOT-0`がGOになるまでは、既存handoffやGit履歴の状態を上書きしない。
+本書の§0が現在状態のcanonical entryである。以下はOPT、KAT、GLOW、ARTを一つの制作系として扱う統合計画と詳細契約の索引であり、current stateの判断は§0へ戻る。GitHub `main`と各PRの現在状態に反する日付付き記述は、明記された時点のhistorical recordとして扱う。
 
-`SSOT-0`がGOになるまでは、次の運用とする。
+### PR #2 merge前のhistorical policy
 
 - accepted commitの事実はGit履歴と各stageの受入報告を優先する。
 - 詳細な実装契約は既存handoffを優先する。
 - stage間の名称、依存関係、次に着手可能な仕事は本書をレビュー案として使う。
-- 新しいproduction stageは開始しない。SSOT-0の文書作業と、既存OPT-1c candidateに対するread-only evidence取得だけを進められる。KAT-2a、GLOW-A1など準備laneの実装開始はSSOT-0 GO後とする。
+- 新しいproduction stageは開始しない、という当時の安全策を記録していた。現在も未merge候補の扱いは§0の表を優先する。
 
-SSOT昇格後は、現在状態、統合ID、依存関係、accepted baseline、candidate commit、blocking decisionを本書だけが決める。詳細仕様は各専門文書へ委譲する。
+統合ID、依存関係、accepted baseline、candidate commit、blocking decisionの詳細は本書の後続節と各専門文書へ委譲する。
 
 ## 2. 統合アーキテクチャ
 
@@ -72,7 +148,8 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 
 | Stage | Implementation | Acceptance | commit／根拠 | 次の判定 |
 |---|---|---|---|---|
-| OPT-0.5 | コード完了 | review gate GO | reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`、historical pre-fix `f81e03d3b26b93479854faa9ae179f179183afb2`、PR #1 merge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec` | PR #1は`main`へmerge済み。PR #2のcurrent-head independent review／受入／Ready／merge判断待ち |
+| SSOT-0 | 文書セット完了 | PR #2 merge済み（Draft時のPR本文Acceptance HOLDは履歴） | PR #2 merge commit `c33361bbea709397e01b68771725571a0e9fbbc5` | §0をcurrent-state entryとして使用 |
+| OPT-0.5 | コード完了 | review gate GO | reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`、historical pre-fix `f81e03d3b26b93479854faa9ae179f179183afb2`、PR #1 merge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec` | PR #1、PR #2とも`main`へmerge済み。次の候補は§0で確認する |
 | OPT-1a | コード完了 | GO | `a4f804f3` | accepted baseline |
 | OPT-1b | コード完了 | GO | `23ebcb3f` | 現在の安定baseline |
 | OPT-1c | コード完了 | **未検証／HOLD** | `e5c67e4` | Evidence Manifest実行 |
@@ -86,13 +163,13 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 
 `OPT-1c`はコード上のFAILではないため「総合NO-GO」と呼ばない。実装はコード完了、受入は必要証拠不足によるHOLDである。
 
-### 4.1 Draft公開前のGitHubとの差
+### 4.1 Draft公開前のGitHubとの差（2026-08-03 historical snapshot）
 
 - GitHub `main`: `837c19d564e3cd92d0af3fceefa3ea16cae09aef`
 - ローカル`agent/integrate-recovered-studies`: `e5c67e4`
 - 検証済み実装履歴とAfterglow設計はDraft公開前にはGitHub未掲載
 
-この差を解消するため、§5.1のDraft PR stackを公開する。Draft公開は再現可能性を作るための途中状態であり、`main`へのmergeやSSOT昇格を意味しない。公開後のPR番号、head SHA、base関係はGitHub上のPRを正とする。
+この差を解消するため、当時§5.1のDraft PR stackを公開した。Draft公開は再現可能性を作るための途中状態であり、当時の`main`へのmergeやSSOT昇格を意味しなかった。現在のPR番号、head SHA、base関係は§0とGitHub上のPRを正とする。
 
 ## 5. 既存commitとreviewed candidateのstage対応
 
@@ -106,11 +183,11 @@ Afterglowをreceiver hit、optical energy、`FrameTransportLedger`、OPT-1 layer
 | `23ebcb3f` | OPT-1b | Receiver Observation and Energy Split | GO | PR-OPT-1b |
 | `e5c67e4` | OPT-1c | View Reflection／Transmission Observation | HOLD | Draft PR-OPT-1c |
 
-### 5.1 PR戦略
+### 5.1 PR戦略と2026-08-03 historical snapshot
 
 「1 PR = 1 stage」を維持する。現在の直列commitは、source commitとの対応を保ったstacked PRとして提示する。stack構築時のcherry-pickでhead SHAが変わる場合、上表はsource commit、GitHub上の各PR head SHAは公開commitを表す。
 
-2026-08-03時点で、PR #1 `agent/stack-opt-05`はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みである。reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`はそのsecond parentとして保持される。candidateはReady candidate only（evidenceの状態）であり、当時のPR Ready authorizationを表すものではない。targeted 21 / 21、`npm run test:hikari` 111 / 111（R0.5固定10ケース全件）、TypeScript、build、`git diff --check`はPASSし、Fresh Sol reviewは`ship`である。ただしこれは独立task evidenceであり、GitHub reviewの投稿・approvalではない。PR #2は`main`をbaseとするDraft/unmergedのSSOT文書改訂であり、その正確なcurrent headはGitHub上のPRを正とする。current headの独立review（Fresh Sol `ship`を含む）、PR bodyと文書の一致、作者受入、Ready authorization、明示的なmerge authorizationは未了である。
+2026-08-03時点では、PR #1はmerge済みで、PR #2は`main`をbaseとするDraft/unmergedのSSOT文書改訂だった。これはPR #2 merge前のhistorical snapshotである。PR #2のmerge後を含む現在状態、current head、Acceptance、base関係は§0とGitHub上のPRを正とする。
 
 ```text
 Merged PR #1 / PR-OPT-0.5 correction (`main`)
@@ -120,14 +197,14 @@ Merged PR #1 / PR-OPT-0.5 correction (`main`)
   -> Draft PR-OPT-1c
 ```
 
-`PR-SSOT-0`だけは同一governance stageとして、`5516a97`、`a91756a`、master plan、Afterglow設計、README索引、旧Status委譲をまとめられる。PR #2のSSOT文書改訂はそのDraft構成要素であり、まだSSOTをpromoteしない。OPT-1cはevidenceが揃うまでDraftのままにする。
+`PR-SSOT-0`だけは同一governance stageとして、`5516a97`、`a91756a`、master plan、Afterglow設計、README索引、旧Status委譲をまとめられる。上記はPR #2 merge前の構成記録であり、現在の公開事実は§0に記録する。OPT-1cはevidenceが揃うまでDraftのままにする。
 
-### 5.2 公開時のmerge gate
+### 5.2 公開時のmerge gate（2026-08-03 historical, PR #2 merge前）
 
 PR #1のmerge後、PR #2以降はこの順序と条件でのみReady／mergeへ進める。
 
 1. PR #1 / `PR-OPT-0.5`: reviewed correction candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`のbounded verificationとFresh Sol `ship`により、OPT-0.5 review gateはGOでcandidateはReadyである。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、candidateはそのsecond parentとして保持する。
-2. PR #2 / `PR-SSOT-0`: `main`をbaseとするDraft/unmerged PRであり、正確なcurrent headはGitHub上のPRを正とする。Natural三状態・4ペア手順の作者承認は満たしたが、current headの独立review（Fresh Sol `ship`を含む）、PR bodyとmaster plan／R1 handoffの一致、README／旧Status／リンク確認、作者受入、Ready authorization、明示的なmerge authorizationはすべて未了である。これらの後に明示的に承認されたPR #2 mergeだけをmaster planのSSOT昇格点とする。
+2. PR #2 / `PR-SSOT-0`: 当時は`main`をbaseとするDraft/unmerged PRだった。Natural三状態・4ペア手順の作者承認後も、current head review、文書整合、作者受入、Ready authorization、merge authorizationを確認してからmergeするhistorical gateとして記録した。PR #2の現在のmerge事実は§0を参照する。
 3. `PR-OPT-1a`: `PR-SSOT-0` merge後のbaseへ追従し、テストと差分レビューを再確認してmergeする。stage AcceptanceはGO済み。
 4. `PR-OPT-1b`: `PR-OPT-1a` merge後のbaseへ追従し、テストと差分レビューを再確認してmergeする。stage AcceptanceはGO済み。
 5. `Draft PR-OPT-1c`: `<candidate-sha>`のEvidence Manifest全PASS、independent verification PASS、fresh review `ship`、作者のAcceptance GOが揃うまでDraft／HOLDを維持し、mergeしない。
@@ -199,9 +276,11 @@ Physical light-drawing lane:
 SSOT-0 -> OPT-LD-1 -> OPT-LD-2 -> OPT-LD-3 -> OPT-LD-4 -> OPT-LD-5
 ```
 
-## 7. SSOT-0 完了条件
+## 7. SSOT-0 完了条件（2026-08-03 historical gate）
 
 SSOT-0は新しいproduction機能を含まないgovernance stageである。
+
+この節はPR #2 merge前に定義・再計算した完了条件の履歴である。現在のSSOT-0公開事実や、OPT-1a〜1cのAcceptanceを決める入口ではない。
 
 1. 本レビューのblocking concernがmaster planへ反映されている。
 2. 本書を`docs/hikari/master-plan.md`へ収録する。
@@ -215,17 +294,17 @@ SSOT-0は新しいproduction機能を含まないgovernance stageである。
 10. README、master plan、handoff間のリンク切れと矛盾を確認する。
 11. 独立文書レビューがGOを返す。
 
-これらが完了するまでは、`docs/hikari/master-plan.md`を最上位SSOTとして運用開始しない。
+当時はこれらが完了するまで`docs/hikari/master-plan.md`を最上位SSOTとして運用開始しない方針だった。PR #2 merge後のcurrent-state入口は本書§0である。
 
-### 7.1 2026-08-03 SSOT-0 HOLDの再計算
+### 7.1 2026-08-03 SSOT-0 HOLDの再計算（PR #2 merge前の履歴）
 
 満たした事項は、Natural三状態・4ペア手順の作者承認、およびPR #1 candidateのbounded correction verificationとFresh Sol `ship`によるOPT-0.5 review gate GOである。後者の範囲はreceiver `deliveredFlux` accounting units、outcome/flux invariants、integration testsに限られ、renderer、UI、Naturalの変更を意味しない。PR #1はmerge commit `2b5475f7f8ab81a852025e2a8fe1a59f4f74f0ec`により`main`へmerge済みで、reviewed candidate `4ccc83c7c51469972d78c474180daafa5bbdeea1`はそのsecond parentとして保持する。
 
-`SSOT-0`全体は**HOLD**である。残る条件は次のとおりである。
+PR #2 merge前の時点では`SSOT-0`全体は**HOLD**であった。残る条件は次のとおりだった。
 
 - PR #2は`main`をbaseとするDraft/unmergedであり、正確なcurrent headはGitHub上のPRを正とする。
 - current headの独立review（Fresh Sol `ship`を含む）、PR bodyと文書の一致、作者受入、Ready authorization、明示的なmerge authorizationが未了である。
-- 明示的に承認されたPR #2 mergeによる`main`上のSSOT-0 promotionが未了である。
+- 明示的に承認されたPR #2 mergeによる`main`上のSSOT-0 promotionが当時は未了であった。
 
 PR #3〜#5はDraftのまま、GLOW-A1は未着手のままでなければならない。これはSSOT-0 HOLD中のrequired safety stateであり、これらを変更してHOLDを解消してはならない。
 
@@ -308,7 +387,7 @@ Natural比較で使う三状態を次に固定する。
 
 `flag-off`という別名は使わない。明示的な`false`とoption absentが内部実装上同じ経路でも、artifact名と判定は`candidate-absent`へ統一する。
 
-この三状態と§8.5の4比較ペアは、詳細handoffの「safe=0／1、debugLayersなし／あり」を機械判定可能にするための**SSOT-0提案手順**である。詳細handoffに比較ペアまでは明記されていないため、作者は2026-08-03にこの正確な手順だけを承認した。これはOPT-1c Acceptance、SSOT-0 GO、GLOW-A1開始の承認ではない。実機のcapability、pixel、capture、performance、automated、independent verification、fresh review、作者Acceptanceの各evidence gateはHOLDのままとする。
+この三状態と§8.5の4比較ペアは、詳細handoffの「safe=0／1、debugLayersなし／あり」を機械判定可能にするための**SSOT-0提案手順**である。詳細handoffに比較ペアまでは明記されていないため、作者は2026-08-03にこの正確な手順だけを承認した。この手順の承認は、当時もOPT-1c Acceptance、SSOT-0 GO、GLOW-A1開始の承認ではなかった。OPT-1cの各evidence gateは現在も§0どおりHOLDである。
 
 ### 8.3 固定環境
 
@@ -472,13 +551,13 @@ type ObservationClock = {
 
 ## 12. 矛盾のない実行順
 
-### Phase 0 — SSOT成立
+### Phase 0 — SSOT成立（PR #2 merge済み）
 
 1. 本書をレビューし、GLOW-A0としてAfterglow設計をレビュー・Git収録する。
 2. §5のstacked PRを用意する。
 3. READMEと旧Statusの委譲を更新する。
 4. OPT-1c evidence templateを収録する。
-5. 独立文書レビューGO後、master planをSSOTへ昇格する。
+5. PR #2のmerge commit `c33361bbea709397e01b68771725571a0e9fbbc5`により、SSOT-0の文書セットを`main`へ公開した。これはOPT-1a〜1cのAcceptanceやmergeを意味しない。
 
 ### Phase 1 — OPT-1cと準備lane
 
@@ -520,7 +599,8 @@ SSOT-0 GO後に並行可能:
 
 | 領域 | 詳細SSOT |
 |---|---|
-| 統合状態・依存・優先順位 | `docs/hikari/master-plan.md` |
+| 現在状態・production baseline・PR status | 本書§0 |
+| 統合計画・依存・優先順位 | 本書§§4–6, 12 |
 | OPT-0.5 | `r05-optical-event-contract-handoff.md` |
 | OPT-1 | `r1-optical-observation-implementation-handoff.md` |
 | ART | `light-layers-art-render-spec.md` |
@@ -536,8 +616,8 @@ SSOT-0 GO後に並行可能:
 
 最初の統合milestoneは次をすべて満たした時点でGOとする。
 
-- SSOT-0がレビューGOになり、GitHubからmaster planと詳細文書を辿れる。
-- OPT-0.5、OPT-1a、OPT-1bがaccepted PR／commitとして追跡できる。
+- SSOT-0の文書セットがPR #2 mergeとして`main`に反映され、GitHubからmaster planと詳細文書を辿れる。
+- OPT-0.5はmerge済み、OPT-1a／OPT-1bはAcceptance GOだがDraft・未mergeとして追跡できる。
 - OPT-1cがEvidence ManifestによりGO、FAIL、HOLDのいずれかへ一意に確定している。
 - KAT-2a fixtureが固定される。
 - GLOW-A0がGit管理され、GLOW-A1がproduction未接続で検証可能になる。
