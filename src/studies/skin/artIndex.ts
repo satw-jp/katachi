@@ -34,7 +34,11 @@ const visualStudiesLink = document.createElement("a");
 visualStudiesLink.className = "skin-art-index-studies-link";
 visualStudiesLink.href = "./studies/";
 visualStudiesLink.textContent = "VISUAL STUDIES ↗";
-header.append(mark, headerMeta, visualStudiesLink);
+const conceptMoviesLink = document.createElement("a");
+conceptMoviesLink.className = "skin-art-index-studies-link";
+conceptMoviesLink.href = "./concepts/";
+conceptMoviesLink.textContent = "CONCEPT MOVIES ↗";
+header.append(mark, headerMeta, visualStudiesLink, conceptMoviesLink);
 
 const field = document.createElement("div");
 field.className = "skin-art-index-field";

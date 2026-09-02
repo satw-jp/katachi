@@ -10,6 +10,7 @@ assert.deepEqual(NETWORK_FORMATION_ARTWORK_ORDER, [
 const source = readFileSync(fileURLToPath(new URL("./artIndex.ts", import.meta.url)), "utf8");
 assert.match(source, /FEATURED/);
 assert.match(source, /skin-rebuild\.html\?work=/);
+assert.match(source, /concepts\//);
 assert.match(source, /AUTOPLAY \/ REPLAY \/ INDEX/);
 assert.match(source, /COPY LIST/);
 assert.match(source, /navigator\.clipboard/);

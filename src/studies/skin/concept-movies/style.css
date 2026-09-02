@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap");
+
+:root { color-scheme: dark; font-family: "Manrope", "Helvetica Neue", Arial, sans-serif; background: #050808; color: #dce9df; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050808; }
+button, a { font: inherit; }
+a { color: inherit; }
+
+.concept-movies { position: relative; width: 100%; height: 100%; overflow: hidden; isolation: isolate; background: #050808; }
+.concept-movies-stage { position: absolute; inset: 0; z-index: 0; }
+.concept-movies-canvas { display: block; width: 100%; height: 100%; outline: none; }
+.concept-movies-loading { position: absolute; inset: 50% auto auto 50%; z-index: 10; transform: translate(-50%, -50%); color: rgba(216, 231, 220, .72); font: 500 10px/1.2 "DM Mono", monospace; letter-spacing: .16em; white-space: nowrap; }
+.concept-movies-loading[data-error="true"] { color: #e7a79d; white-space: normal; width: min(90vw, 560px); text-align: center; }
+.concept-movies-header, .concept-movies-caption, .concept-movies-movie-nav, .concept-movies-mobile-nav, .concept-movies-palette, .concept-movies-source-facts, .concept-movies-controls { position: absolute; z-index: 4; }
+.concept-movies-header { top: clamp(20px, 4vw, 48px); left: clamp(22px, 4vw, 60px); right: clamp(22px, 4vw, 60px); display: flex; align-items: baseline; justify-content: space-between; gap: 20px; pointer-events: none; }
+.concept-movies-brand, .concept-movies-route-links a { pointer-events: auto; text-decoration: none; }
+.concept-movies-brand { display: inline-flex; flex-direction: column; gap: 2px; }
+.concept-movies-brand span, .concept-movies-route-links, .concept-movies-movie-nav, .concept-movies-mobile-nav, .concept-movies-palette, .concept-movies-source-facts, .concept-movies-controls { font: 500 9px/1.25 "DM Mono", monospace; letter-spacing: .14em; text-transform: uppercase; }
+.concept-movies-brand span, .concept-movies-route-links { color: rgba(216, 231, 220, .48); }
+.concept-movies-brand strong { font-size: 12px; font-weight: 600; letter-spacing: .18em; }
+.concept-movies-route-links { display: flex; gap: 17px; align-items: baseline; }
+.concept-movies-route-links a:hover, .concept-movies-route-links a:focus-visible { color: #e4d57e; outline: none; }
+.concept-movies-caption { left: clamp(24px, 8vw, 150px); top: 50%; width: min(32vw, 410px); transform: translateY(-50%); pointer-events: none; text-shadow: 0 1px 18px rgba(0, 0, 0, .46); }
+.concept-movies-kicker, .concept-movies-stage-label { display: block; color: rgba(216, 231, 220, .54); font: 500 9px/1.3 "DM Mono", monospace; letter-spacing: .15em; }
+.concept-movies-caption h1 { max-width: 8ch; margin: 10px 0 10px; color: #e9f1e6; font-size: clamp(34px, 5vw, 72px); line-height: .88; font-weight: 500; letter-spacing: -.06em; }
+.concept-movies-caption p { max-width: 270px; margin: 0 0 18px; color: rgba(216, 231, 220, .68); font-family: Georgia, "Times New Roman", serif; font-size: 15px; line-height: 1.35; }
+.concept-movies-stage-label { color: #d8db83; }
+.concept-movies-movie-nav { top: 50%; right: clamp(22px, 4vw, 60px); width: min(27vw, 310px); transform: translateY(-50%); }
+.concept-movies-nav-heading { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px; color: rgba(216, 231, 220, .4); }
+.concept-movies-nav-heading small { font: inherit; letter-spacing: .05em; white-space: nowrap; }
+.concept-movies-links { display: grid; gap: 13px; }
+.concept-movies-links a, .concept-movies-mobile-links a { display: flex; align-items: baseline; gap: 15px; color: rgba(216, 231, 220, .43); text-decoration: none; transition: color .2s ease, transform .2s ease; }
+.concept-movies-links a span, .concept-movies-mobile-links a span { min-width: 18px; color: rgba(216, 231, 220, .26); }
+.concept-movies-links a strong, .concept-movies-mobile-links a strong { font: 500 13px/1.2 "Manrope", sans-serif; letter-spacing: .12em; }
+.concept-movies-links a:hover, .concept-movies-links a:focus-visible, .concept-movies-mobile-links a:hover, .concept-movies-mobile-links a:focus-visible { color: #eff5e8; transform: translateX(-4px); outline: none; }
+.concept-movies-links a.is-active, .concept-movies-mobile-links a.is-active { color: #e4d57e; }
+.concept-movies-links a.is-active strong, .concept-movies-mobile-links a.is-active strong { font-weight: 600; }
+.concept-movies-links a.is-active span, .concept-movies-mobile-links a.is-active span { color: rgba(228, 213, 126, .72); }
+.concept-movies-palette { left: clamp(24px, 8vw, 150px); bottom: 90px; display: flex; gap: 14px; color: rgba(216, 231, 220, .42); }
+.concept-movies-palette[hidden] { display: none !important; }
+.concept-movies-palette a { color: rgba(228, 213, 126, .72); text-decoration: none; }
+.concept-movies-palette a:hover, .concept-movies-palette a:focus-visible { color: #f3f6eb; outline: none; }
+.concept-movies-source-facts { left: clamp(24px, 4vw, 60px); bottom: 31px; display: flex; flex-wrap: wrap; gap: 11px 18px; color: rgba(216, 231, 220, .38); }
+.concept-movies-source-status { color: rgba(216, 231, 220, .58); }
+.concept-movies-source-counts { color: rgba(216, 231, 220, .3); }
+.concept-movies-controls { right: clamp(22px, 4vw, 60px); bottom: 30px; display: flex; gap: 19px; align-items: center; }
+.concept-movies-controls button, .concept-movies-controls a { padding: 0 0 4px; border: 0; border-bottom: 1px solid rgba(216, 231, 220, .25); color: rgba(216, 231, 220, .65); background: none; cursor: pointer; text-decoration: none; }
+.concept-movies-controls button:hover, .concept-movies-controls button:focus-visible, .concept-movies-controls a:hover, .concept-movies-controls a:focus-visible { border-bottom-color: #e4d57e; color: #e4d57e; outline: none; }
+.concept-movies-mobile-nav { display: none; }
+
+@media (max-width: 760px) {
+  .concept-movies-header { align-items: flex-start; }
+  .concept-movies-route-links { display: none; }
+  .concept-movies-caption { left: 24px; top: 91px; width: calc(100vw - 48px); transform: none; }
+  .concept-movies-caption h1 { max-width: 9ch; margin-top: 8px; font-size: 42px; }
+  .concept-movies-caption p { max-width: 230px; margin-bottom: 10px; font-size: 13px; }
+  .concept-movies-movie-nav { display: none; }
+  .concept-movies-mobile-nav { display: block; top: 24px; right: 24px; min-width: 124px; }
+  .concept-movies-mobile-nav summary { cursor: pointer; list-style: none; color: rgba(216, 231, 220, .78); text-align: right; }
+  .concept-movies-mobile-nav summary::-webkit-details-marker { display: none; }
+  .concept-movies-mobile-links { display: grid; gap: 12px; margin-top: 16px; padding: 4px 0 4px 12px; }
+  .concept-movies-mobile-links a { justify-content: flex-end; }
+  .concept-movies-mobile-links a strong { font-size: 11px; }
+  .concept-movies-palette { left: 24px; bottom: 90px; font-size: 8px; }
+  .concept-movies-source-facts { left: 24px; right: 24px; bottom: 70px; gap: 7px 12px; font-size: 8px; }
+  .concept-movies-controls { left: 24px; right: 24px; bottom: 25px; justify-content: space-between; gap: 10px; }
+  .concept-movies-controls button, .concept-movies-controls a { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .concept-movies-links a, .concept-movies-mobile-links a { transition: none; }
+}

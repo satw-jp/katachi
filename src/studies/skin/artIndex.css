@@ -20,7 +20,7 @@ a { color: inherit; }
 .skin-art-index-mark-name { color: #f3f7ee; font-weight: 700; letter-spacing: .28em; }
 .skin-art-index-mark-subtitle, .skin-art-index-header-meta { color: rgba(204, 231, 192, .48); }
 .skin-art-index-header-meta { white-space: nowrap; }
-.skin-art-index-studies-link { color: rgba(204, 231, 192, .48); text-decoration: none; transition: color 180ms ease; }
+.skin-art-index-studies-link { color: rgba(204, 231, 192, .48); text-decoration: none; transition: color 180ms ease; white-space: nowrap; }
 .skin-art-index-studies-link:hover, .skin-art-index-studies-link:focus-visible { color: var(--skin-art-ink); outline: none; }
 .skin-art-index-hero { display: grid; gap: 14px; margin-top: clamp(58px, 8vh, 92px); }
 .skin-art-index-eyebrow { color: #c8f05a; font-weight: 700; }
@@ -53,6 +53,8 @@ a { color: inherit; }
   .skin-art-index { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 20px 18px 18px; }
   .skin-art-index-header, .skin-art-index-hero, .skin-art-index-featured, .skin-art-index-works, .skin-art-index-footer { grid-column: 1; }
   .skin-art-index-header-meta { display: none; }
+  .skin-art-index-header { flex-wrap: wrap; row-gap: 8px; }
+  .skin-art-index-header .skin-art-index-studies-link { font-size: 7px; }
   .skin-art-index-hero { gap: 15px; margin-top: 86px; }
   .skin-art-index-hero h1 { font-size: clamp(68px, 22vw, 110px); }
   .skin-art-index-intro { max-width: 310px; font-size: 16px; }
