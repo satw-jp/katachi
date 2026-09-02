@@ -101,12 +101,21 @@ assert.ok(proposals.length >= 1, "formation should include a presentation-only r
 for (const proposalEvent of proposals) {
   const proposal = proposalEvent.proposal!;
   assert.ok(!permanentPairs.has([proposal.startNodeIndex, proposal.endNodeIndex].sort((a, b) => a - b).join(":")));
-  assert.ok(timeline.events.some((event) => event.kind === "reject" && event.proposal?.id === proposal.id));
+  const proposalIndex = timeline.events.indexOf(proposalEvent);
+  assert.equal(timeline.events[proposalIndex + 1]?.kind, "evaluate");
+  assert.equal(timeline.events[proposalIndex + 2]?.kind, "reject");
+  assert.equal(timeline.events[proposalIndex + 3]?.kind, "revise");
+  for (const event of timeline.events.slice(proposalIndex, proposalIndex + 4)) {
+    assert.equal(event.proposal?.id, proposal.id);
+    assert.equal(event.visibleEdgeCount, proposalEvent.visibleEdgeCount);
+  }
 }
 
 const terminalText = timeline.events.flatMap((event) => event.terminalLines).join("\n");
 assert.match(terminalText, /ACCEPT/);
+assert.match(terminalText, /EVALUATE/);
 assert.match(terminalText, /REJECT/);
+assert.match(terminalText, /REVISE/);
 assert.match(terminalText, /NETWORK STABLE/);
 
 const emptyFrame = networkFormationGraphAt(graph, timeline.edgeOrder, 0);

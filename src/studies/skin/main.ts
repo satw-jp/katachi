@@ -2722,7 +2722,7 @@ function applyNetworkFormationEvent(
   }
   skinRenderer.setNetworkFormationTerminal(session.terminalLines);
 
-  if ((event.kind === "propose" || event.kind === "reject") && event.proposal) {
+  if ((event.kind === "propose" || event.kind === "evaluate" || event.kind === "reject" || event.kind === "revise") && event.proposal) {
     skinRenderer.setNetworkFormationProposal(
       session.graph,
       event.proposal,
@@ -2751,9 +2751,13 @@ function applyNetworkFormationEvent(
   } else {
     const status = event.kind === "reject"
       ? "REJECT / REROUTING"
-      : event.kind === "propose"
-        ? "ROUTE PROPOSAL"
-        : "NETWORK FORMATION";
+      : event.kind === "revise"
+        ? "REVISE / NEXT EDGE"
+        : event.kind === "evaluate"
+          ? "EVALUATE / COMPLETED SET"
+          : event.kind === "propose"
+            ? "ROUTE PROPOSAL"
+            : "NETWORK FORMATION";
     skinArtUiShellController?.setNetworkFormationState("running", status, progress, session.variantLabel);
   }
 }

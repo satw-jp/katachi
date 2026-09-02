@@ -2,9 +2,9 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.90.6",
+  "version": "0.90.7",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-08-31",
+  "updatedAt": "2026-09-02",
   "params": [
     "count",
     "radiusBase",
@@ -1100,6 +1100,10 @@
     {
       "date": "2026-08-31",
       "note": "SKIN NETWORK FORMATION now provides ten deterministic Presentation studies over the same completed InternalStructureGraph: Trace, Radial Bloom, Boundary Frost, Geodesic Signal, Polar Scan, Mirror Stitch, Thickness, Local Weave, Hub Cascade and Confluence. The Network phase uses a card-free native-radio text index and one fullscreen playback; selection remains session-only and never enters FKEI, history, mesh, save or export. Every study passes empty, sparse, disconnected, fixture and 1,000-edge timeline contracts, while browser checks started and exited all ten, completed three representative studies to an exact stable graph match, exercised REJECT/REROUTING, and found no horizontal overflow at 390 px or console errors. No geometry, DryWeb, Graph generation, GeometryEngine or output logic changed."
+    },
+    {
+      "date": "2026-09-02",
+      "note": "SKIN NETWORK FORMATION makes the presentation grammar explicit for all ten studies: each presentation-only rejected route now passes through PROPOSE, EVALUATE, REJECT, and REVISE before the next completed edge is ACCEPTED. The proposal overlay remains temporary and the completed InternalStructureGraph is unchanged; tests prove event order, deterministic timing, stable-graph identity and input immutability. No geometry, DryWeb, Graph generation, GeometryEngine, FKEI, history, mesh or output logic changed."
     }
   ]
 }

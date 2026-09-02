@@ -31,6 +31,16 @@ Graph、FKEI、history、mesh、save、exportへ保存しない。全10案をemp
 1,000-edge Graphで契約testし、実ブラウザでは全案の開始・Exit・focus復帰、代表3案の完走、390 px幅の
 1列indexとfullscreen再生、横overflow 0、console error 0を確認した。
 
+## Observation — NETWORK FORMATION grammar refinement（2026-09-02）
+
+10案の比較を、表示順だけでなく形成の時間文法として読むため、presentation-onlyの拒否経路へ
+`PROPOSE → EVALUATE → REJECT → REVISE → ACCEPT`を明示した。`EVALUATE`では完成Graphへ加えずに
+TEMP edgeが完成Graphに存在しないことを比較し、`REVISE`では次の完成edgeを探すことと、完成Graphを保持することを
+terminalへ記録する。`TRACE`を因果の主軸、`THICKNESS`を物理の目、`CONFLUENCE`を並行する思考、
+`RADIAL BLOOM`を空間的な対照としてcanon候補に残し、`GEODESIC SIGNAL`はTRACE、`HUB CASCADE`と
+`LOCAL WEAVE`はCONFLUENCEの派生として統合候補に置いた。`BOUNDARY FROST` / `POLAR SCAN` /
+`MIRROR STITCH`は比較indexに保留する。runtime Graph、FKEI、history、mesh、save、exportは変更していない。
+
 ## Observation — SKIN ART UI v0 application shell（2026-08-30）
 
 `/skin-rebuild.html`のPresentation Layerを、minimal project header、左Tools / View、中央Artwork View、

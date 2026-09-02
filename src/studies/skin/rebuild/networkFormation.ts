@@ -51,7 +51,7 @@ export function networkFormationVariant(
   return NETWORK_FORMATION_VARIANTS.find((candidate) => candidate.id === id)!;
 }
 
-export type NetworkFormationEventKind = "reset" | "accept" | "propose" | "reject" | "stable";
+export type NetworkFormationEventKind = "reset" | "accept" | "propose" | "evaluate" | "reject" | "revise" | "stable";
 
 export interface NetworkFormationProposal {
   readonly id: string;
@@ -480,11 +480,25 @@ export function createNetworkFormationTimeline(
           terminalLines: [`TARGET ${String(target).padStart(2, "0")}`, `EDGE ${proposal.id} PROPOSED`, "ROUTE UNRESOLVED"],
         });
         events.push({
+          atMs: Math.round(timeMs + 120),
+          kind: "evaluate",
+          visibleEdgeCount: previousCount,
+          proposal,
+          terminalLines: ["TEMP EDGE ONLY", "COMPLETED GRAPH SET UNCHANGED", "EVALUATE"],
+        });
+        events.push({
           atMs: Math.round(timeMs + 280),
           kind: "reject",
           visibleEdgeCount: previousCount,
           proposal,
-          terminalLines: ["CLEARANCE FAILED", "REJECT", `REMOVE EDGE ${proposal.id}`, `REROUTING TARGET ${String(target).padStart(2, "0")}`],
+          terminalLines: ["NOT IN COMPLETED GRAPH", "REJECT", `REMOVE EDGE ${proposal.id}`, `REROUTING TARGET ${String(target).padStart(2, "0")}`],
+        });
+        events.push({
+          atMs: Math.round(timeMs + 420),
+          kind: "revise",
+          visibleEdgeCount: previousCount,
+          proposal,
+          terminalLines: ["REVISE PRESENTATION ROUTE", "SELECT NEXT COMPLETED EDGE", "KEEP COMPLETED GRAPH INTACT"],
         });
         proposalIndex++;
         timeMs += rejectionWindowMs;

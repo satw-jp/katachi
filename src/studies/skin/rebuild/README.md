@@ -75,6 +75,14 @@ exportへ保存しない。unit testは全10案をempty / 1-edge / disconnected 
 251 nodes / 270 edgesのsampleで完走した。CONFLUENCEの`REJECT / REROUTING`後も最終表示は
 `NETWORK STABLE / COMPLETED GRAPH MATCHED`へ一致した。390×844では横overflow 0、console error 0だった。
 
+### 2026-09-02 — explicit formation grammar
+
+比較studyの各reject checkpointへ、表示専用の`EVALUATE`と`REVISE`を追加した。TEMP routeは
+`PROPOSE`後に`EVALUATE`でTEMP edgeが完成Graphにないことを比較するが完成Graphへ入らず、`REJECT`で除去し、
+`REVISE`で次の完成edgeを探してから`ACCEPT`へ進む。これにより、完成状態からの再構成を作者の実操作履歴と
+偽装せず、FORMATIONの思考過程として画面へ出す。10案のedge permutation、tempo、stable frameの
+完成Graph参照同一性は維持し、geometry algorithm、DryWeb、Graph生成、FKEI、mesh、save/exportは変更していない。
+
 ### 2026-08-30 — SKIN ART UI v0 design system and application shell
 
 `/skin-rebuild.html`へ作品提示用のPresentation Layerを追加した。上部は`KATACHI / SKIN`と
