@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-02",
+      "note": "Thin Strut Experimental Export keeps the 0.80 mm recommendation and reports the measured Minimum strut, Recommended minimum and Thin struts count. Only a finite positive below-threshold Permanent Web/Reinforcement result with no other Internal print-gate reason can expose the separate Allow Thin Strut Experimental Export control; explicit approval shows the accepted-risk message and allows the existing BODY + Sparse Support export to continue. Approval is session-only and tied to the current gate fingerprint/report, so changed geometry, Web/Reinforcement, component selection or print diagnostics invalidate it. Invalid diameters, topology/component failures, support BODY collision and every other hard blocker remain fail-closed. No viewport thin-member highlight, geometry change, final 3MF or deploy was performed."
+    },
+    {
+      "date": "2026-09-02",
       "note": "SKIN REBUILD Print preparation panel adds a normal UI route from .fkei Open through current Stage 4 diagnostics, Stage 6.4 Component Colors Keep/Remove, Stage 8 Sparse Support, Unsupported warning and explicit Export Experimental Print approval to the existing BODY + Sparse Support 3MF button. The panel displays current/stale diagnostics, selected BODY component count, generated support state, unresolved support count and hard-blocker reason/next action. Stage 4 and Stage 8 routes call existing controls only; source/FKEI geometry, Stage 5B, Web, Motif placement and Support targets are not regenerated. Selected BODY components are passed through the existing export buffer, at least one kept component remains required, and no final 3MF, visual shape decision or deploy was performed."
     },
     {

@@ -48,10 +48,94 @@ export interface InternalPrintGateReport {
   overlongBridges: number;
   bridgeEdges: number;
   minDiameterMm: number;
+  thinStrutCount: number;
+  invalidDiameterCount: number;
   voxelStepMm: number;
   voxelsAcrossDiameter: number;
   maxBridgeMm: number;
   maxObservedBridgeMm: number;
+}
+
+export type ThinStrutExperimentalExportGateDecision =
+  | { state: "hard-block"; message: string }
+  | { state: "approval-required"; message: string }
+  | { state: "ready"; message: string };
+
+/**
+ * Allow only the narrow experimental exception for a finite, positive thin
+ * strut. Every other print-gate fact remains fail-closed. The caller owns
+ * the session identity check and passes its result as approvalCurrent.
+ */
+export function evaluateThinStrutExperimentalExportGate(
+  report: InternalPrintGateReport,
+  approvalCurrent: boolean,
+  profile: Pick<InternalPrintProfile, "minStrutDiameterMm" | "minVoxelsAcrossDiameter"> = A1_MINI_PLA_04_02,
+  expectedMeshComponents = 1,
+): ThinStrutExperimentalExportGateDecision {
+  const expectedComponents = Math.max(1, Math.round(expectedMeshComponents));
+  const onlyThinStrutRisk = !report.ok
+    && report.invalidDiameterCount === 0
+    && Number.isInteger(report.thinStrutCount)
+    && report.thinStrutCount > 0
+    && Number.isFinite(report.minDiameterMm)
+    && report.minDiameterMm > 0
+    && report.minDiameterMm + 1e-6 < profile.minStrutDiameterMm
+    && report.watertight
+    && report.meshComponents === expectedComponents
+    && report.removedDegenerateTriangles === 0
+    && Number.isInteger(report.graphComponents)
+    && report.graphComponents > 0
+    && Number.isInteger(report.surfaceAnchorNodes)
+    && Number.isInteger(report.buildPlateAnchorNodes)
+    && report.surfaceAnchorNodes + report.buildPlateAnchorNodes > 0
+    && report.floatingGraphComponents === 0
+    && Number.isFinite(report.voxelsAcrossDiameter)
+    && report.voxelsAcrossDiameter + 1e-6 >= profile.minVoxelsAcrossDiameter
+    && Number.isInteger(report.unsupportedNodes)
+    && report.unsupportedNodes === 0
+    && Number.isInteger(report.unsupportedEdges)
+    && report.unsupportedEdges === 0
+    && Number.isInteger(report.overlongBridges)
+    && report.overlongBridges === 0
+    && Number.isFinite(report.maxBridgeMm)
+    && report.maxBridgeMm >= 0
+    && Number.isFinite(report.maxObservedBridgeMm)
+    && report.maxObservedBridgeMm >= 0
+    && report.reasons.length === 1
+    && report.reasons[0].includes("最低線径");
+  if (!onlyThinStrutRisk) {
+    return {
+      state: "hard-block",
+      message: report.reasons.length > 0
+        ? `Thin Strut override unavailable: ${report.reasons.join(" / ")}`
+        : "Thin Strut override unavailable: report is not a finite positive sub-threshold-only failure",
+    };
+  }
+  if (!approvalCurrent) {
+    return {
+      state: "approval-required",
+      message: `Minimum strut ${report.minDiameterMm.toFixed(2)} mm < recommended ${profile.minStrutDiameterMm.toFixed(2)} mm (${report.thinStrutCount} thin struts). Explicit approval is required for this experimental export.`,
+    };
+  }
+  return {
+    state: "ready",
+    message: "Thin strut risk explicitly accepted for this experimental export.",
+  };
+}
+
+/** A stale report or a changed gate fingerprint can never retain approval. */
+export function thinStrutExperimentalApprovalIsCurrent(
+  approvalFingerprint: string | null,
+  approvalReport: InternalPrintGateReport | null,
+  currentFingerprint: string | null,
+  currentReport: InternalPrintGateReport | null,
+): boolean {
+  return approvalFingerprint !== null
+    && approvalReport !== null
+    && currentFingerprint !== null
+    && currentReport !== null
+    && approvalFingerprint === currentFingerprint
+    && approvalReport === currentReport;
 }
 
 /** Runtime-only Stage 8 policy.  It is intentionally not part of FKEI. */
@@ -269,6 +353,8 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
       overlongBridges: 0,
       bridgeEdges: 0,
       minDiameterMm: 0,
+      thinStrutCount: 0,
+      invalidDiameterCount: 0,
       voxelStepMm,
       voxelsAcrossDiameter: 0,
       maxBridgeMm: profile.maxBridgeMm,
@@ -277,8 +363,14 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
   }
 
   const nodeIndex = new Map(graph.nodes.map((node, index) => [node.id, index]));
-  const minimumRadius = Math.min(...graph.edges.map((edge) => edge.radius));
+  const invalidDiameterCount = graph.edges.filter((edge) => !Number.isFinite(edge.radius) || edge.radius <= 0).length;
+  const validRadii = graph.edges
+    .map((edge) => edge.radius)
+    .filter((radius) => Number.isFinite(radius) && radius > 0);
+  const minimumRadius = validRadii.length > 0 ? Math.min(...validRadii) : Number.NaN;
   const minDiameterMm = minimumRadius * 2 * scale;
+  const thinStrutCount = validRadii.filter((radius) =>
+    radius * 2 * scale + 1e-6 < profile.minStrutDiameterMm).length;
   const voxelsAcrossDiameter = minDiameterMm / voxelStepMm;
   const components = graphComponents(graph);
   const overlapSource = profile.minSurfaceOverlapMm / scale;
@@ -388,7 +480,11 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
       : `最終meshの部品数${input.mesh.connectedComponents}がExport Component Selection ${expectedMeshComponents}部品と一致しません`);
   }
   if (removedDegenerateTriangles > 0) reasons.push(`STL座標で退化する面が${removedDegenerateTriangles}枚あります`);
-  if (minDiameterMm + 1e-6 < profile.minStrutDiameterMm) {
+  if (invalidDiameterCount > 0) {
+    reasons.push(`線径が不正です（finiteかつ正のedgeが${invalidDiameterCount}本ありません）`);
+  } else if (!Number.isFinite(minDiameterMm) || minDiameterMm <= 0) {
+    reasons.push("最小線径がfiniteかつ正ではありません");
+  } else if (minDiameterMm + 1e-6 < profile.minStrutDiameterMm) {
     reasons.push(`最低線径${minDiameterMm.toFixed(2)} mm < 合格値${profile.minStrutDiameterMm.toFixed(2)} mm`);
   }
   if (voxelsAcrossDiameter + 1e-6 < profile.minVoxelsAcrossDiameter) {
@@ -416,6 +512,8 @@ export function evaluateInternalPrintGate(input: InternalPrintGateInput): Intern
     overlongBridges,
     bridgeEdges,
     minDiameterMm,
+    thinStrutCount,
+    invalidDiameterCount,
     voxelStepMm,
     voxelsAcrossDiameter,
     maxBridgeMm: profile.maxBridgeMm,

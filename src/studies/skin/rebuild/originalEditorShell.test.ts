@@ -261,7 +261,7 @@ assert.match(
 for (const [label, pattern] of [
   ["pipeline output", /if \(rebuildBlockReason\)[\s\S]*?stopSkinRebuildStage8Export\(rebuildBlockReason\)[\s\S]*?return;/],
   ["Internal readiness", /if \(readinessBlockReason\)[\s\S]*?stopSkinRebuildStage8Export\(readinessBlockReason\)[\s\S]*?return;/],
-  ["Internal gate", /if \(!internalPrintGateExportAllowed\(internalPrintGateCache\.report\)\)[\s\S]*?stopSkinRebuildStage8Export\(gateBlockReason\)[\s\S]*?return;/],
+  ["Internal gate", /if \(!internalPrintGateExportAllowed(?:ForCurrentSkinExport)?\(internalPrintGateCache\.report\)\)[\s\S]*?stopSkinRebuildStage8Export\(gateBlockReason\)[\s\S]*?return;/],
 ] as const) {
   assert.match(exportMeshSource, pattern, `Stage 8 export must stop visibly on ${label} blockers`);
 }
@@ -503,5 +503,17 @@ assert.match(main, /unresolved support count/,
   "Print preparation must expose the unresolved support count");
 assert.match(main, /Hard blocker/,
   "Print preparation must expose a hard-blocker reason and next action");
+assert.match(main, /Minimum strut/,
+  "Print preparation must expose the measured minimum strut diameter");
+assert.match(main, /Recommended: .*minStrutDiameterMm/,
+  "Thin Strut UI must keep the recommended minimum visible");
+assert.match(main, /Thin struts/,
+  "Print preparation must expose the number of below-threshold members");
+assert.match(main, /Allow Thin Strut Experimental Export/,
+  "Thin Strut must have a separate explicit approval control");
+assert.match(main, /thinStrutExperimentalApprovalIsCurrent/,
+  "Thin Strut approval must be tied to the current gate fingerprint and report");
+assert.match(ui, /Minimum strut: .*Recommended: .*Thin struts:/,
+  "Internal gate metrics must show minimum, recommended, and thin-member diagnostics");
 
 console.log("SKIN REBUILD original editor shell tests passed");

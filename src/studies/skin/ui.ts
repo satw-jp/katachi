@@ -53,7 +53,11 @@ import { PATCH_MAX_POINTS } from "./shaders.ts";
 import { EMPTY_ANNOTATION, type ElementAnnotationValue } from "../../lib/elementAnnotations.ts";
 import { matchesElementSearch } from "../../lib/elementLabels.ts";
 import type { PatchEditIntent } from "./elementTransform.ts";
-import type { InternalAngleScreeningReport, InternalPrintGateReport } from "./internalPrintGate.ts";
+import {
+  A1_MINI_PLA_04_02,
+  type InternalAngleScreeningReport,
+  type InternalPrintGateReport,
+} from "./internalPrintGate.ts";
 import type { BambuSupportType } from "./bambu3mf.ts";
 import { enableMotifPreview3D, renderFlowerConnectionPreview, renderMotifPreview } from "./motifPreview.ts";
 import { ring3dCenterlineDiameter } from "./motifReshape.ts";
@@ -5219,7 +5223,7 @@ export function buildUi(
       if (!report) return;
       const rows: Array<[string, string]> = [
         ["最終mesh", `${report.watertight ? "水密" : "非水密"} · ${report.meshComponents}部品 · 退化${report.removedDegenerateTriangles}面`],
-        ["実寸線径", `${report.minDiameterMm.toFixed(2)} mm · ${report.voxelsAcrossDiameter.toFixed(1)} voxel`],
+        ["実寸線径", `Minimum strut: ${report.minDiameterMm.toFixed(2)} mm · Recommended: ${A1_MINI_PLA_04_02.minStrutDiameterMm.toFixed(2)} mm · Thin struts: ${report.thinStrutCount} · ${report.voxelsAcrossDiameter.toFixed(1)} voxel`],
         ["外殻・プレート起点", `外殻${report.surfaceAnchorNodes} / plate ${report.buildPlateAnchorNodes} node · 浮遊連結群${report.floatingGraphComponents}`],
         ["積層順", `未支持 node ${report.unsupportedNodes} / edge ${report.unsupportedEdges}`],
         ["内部bridge", `${report.bridgeEdges}本 · 上限超過${report.overlongBridges} · 最長${report.maxObservedBridgeMm.toFixed(1)} mm`],

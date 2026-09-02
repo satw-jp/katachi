@@ -1,5 +1,11 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Thin Strut Experimental Export（2026-09-02）
+
+既存の`0.80 mm`推奨基準と`最低線径0.76 mm < 合格値0.80 mm`の停止理由を変更せず、Stage 8の通常export UIへMinimum strut、Recommended minimum、Thin struts数を追加した。基準未満のPermanent Web / Reinforcementだけが残り、mesh水密・部品数・退化面・起点・積層順・bridge・voxelなど他のInternal print gate条件がすべて通る場合だけ、別ボタン`Allow Thin Strut Experimental Export`を表示する。明示承認後は`Thin strut risk explicitly accepted for this experimental export.`を表示し、既存のUnsupported support承認とは別に次の3MF gateへ進む。
+
+承認はFKEIへ保存せず、現在のBODY / Web / Reinforcement / component selection / print diagnosticsを含むInternal gate fingerprintとreport identityにだけ結び付けた。fingerprintまたはreportが変わると承認を無効化し、non-finite / zero / negative径、open mesh、non-manifold、degenerate、component不整合、Support BODY collision、その他の既存hard blockerは迂回しない。該当部材のviewport強調は追加せず、既存Internal gateのdiagnostics表示と数値表示で停止した。geometry、Web、Reinforcement、Supportは変更せず、最終3MFとdeployは行っていない。
+
 ## Observation — Print準備からSparse Support exportまでの導線（2026-09-02）
 
 `/skin-rebuild.html` の右WORKFLOW先頭に、通常UIだけで `.fkei Open` → Stage 4診断 →

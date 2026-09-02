@@ -136,9 +136,11 @@ import {
 } from "./rebuild/printPreparationReadiness.ts";
 import {
   A1_MINI_PLA_04_02,
+  evaluateThinStrutExperimentalExportGate,
   internalPrintGateAllowsSupportDisabledExport,
   internalStructureOutputBlockReason,
   screenInternalStructureAngles,
+  thinStrutExperimentalApprovalIsCurrent,
   type InternalAngleScreeningReport,
   type InternalPrintGateReport,
   type RemovableSupportMode,
@@ -1078,6 +1080,11 @@ let skinRebuildExperimentalExportApproval: {
   responsibilityOverhang: SkinRebuildRuntimeOverhang;
   sparseResult: SparseRemovableSupportResult;
 } | null = null;
+let skinRebuildThinStrutExperimentalExportApproval: {
+  project: SkinRebuildProject;
+  fingerprint: string;
+  report: InternalPrintGateReport;
+} | null = null;
 let skinRebuildSparseSupportDebugEnabled = false;
 /** Session-only Stage 8 policy; it is intentionally absent from FKEI. */
 let skinRebuildPrintSupportMode: RemovableSupportMode = "automatic";
@@ -1110,6 +1117,10 @@ type SkinRebuildPrintPreparationPanelRefs = {
     stage8: HTMLElement;
     sparseSupport: HTMLElement;
     unresolved: HTMLElement;
+    minimumStrut: HTMLElement;
+    recommendedStrut: HTMLElement;
+    thinStruts: HTMLElement;
+    thinApproval: HTMLElement;
     gate: HTMLElement;
   };
   blocker: HTMLElement;
@@ -1127,6 +1138,8 @@ let skinRebuildArtworkInteriorClassificationButton: HTMLButtonElement | null = n
 let skinRebuildStage8ExportButton: HTMLButtonElement | null = null;
 let skinRebuildExperimentalExportApprovalButton: HTMLButtonElement | null = null;
 let skinRebuildExperimentalExportWarning: HTMLElement | null = null;
+let skinRebuildThinStrutExperimentalExportApprovalButton: HTMLButtonElement | null = null;
+let skinRebuildThinStrutExperimentalExportWarning: HTMLElement | null = null;
 let skinRebuildSaveButton: HTMLButtonElement | null = null;
 type SkinRebuildComputeMode = "web" | "windows-cuda-shadow";
 let skinRebuildComputeMode: SkinRebuildComputeMode = "web";
@@ -2889,6 +2902,10 @@ if (isSkinRebuildApp) {
   addReadinessRow("stage8", "Stage 8 confirmation");
   addReadinessRow("sparseSupport", "Sparse Support generated");
   addReadinessRow("unresolved", "unresolved support count");
+  addReadinessRow("minimumStrut", "Minimum strut");
+  addReadinessRow("recommendedStrut", "Recommended minimum");
+  addReadinessRow("thinStruts", "Thin struts");
+  addReadinessRow("thinApproval", "Thin Strut approval");
   addReadinessRow("gate", "Export gate");
   const printPreparationBlocker = document.createElement("div");
   printPreparationBlocker.className = "skin-rebuild-print-preparation-blocker";
@@ -8261,6 +8278,7 @@ function applySkinRebuildPrintSupportMode(nextMode: RemovableSupportMode): void 
   skinRebuildStage8CompletedProject = null;
   skinRebuildSparseSupportResult = null;
   skinRebuildExperimentalExportApproval = null;
+  skinRebuildThinStrutExperimentalExportApproval = null;
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
   if (current) {
     // This replacement preserves the exact permanent finalGraph and every
@@ -8341,16 +8359,102 @@ function skinRebuildSparseExperimentalExportDecision() {
   });
 }
 
+type SkinRebuildThinStrutExperimentalExportDecision = {
+  state: "not-applicable" | "unmeasured" | "hard-block" | "approval-required" | "ready";
+  message: string;
+  report: InternalPrintGateReport | null;
+  approvalCurrent: boolean;
+};
+
+function currentSkinRebuildInternalPrintGateFingerprint(): string | null {
+  const graph = getInternalPrintReachabilityGraph(getInternalStructureGraph());
+  return graph?.edges.length ? internalPrintGateFingerprint(ui.getMeshOptions(), graph) : null;
+}
+
+function skinRebuildThinStrutExperimentalExportDecision(): SkinRebuildThinStrutExperimentalExportDecision {
+  if (!isSkinRebuildApp
+    || skinRebuildPrintSupportMode !== "automatic"
+    || !internalPrintGateIsRequiredForCurrentOutput()) {
+    return {
+      state: "not-applicable",
+      message: "Thin Strut approval is not required for the current output.",
+      report: null,
+      approvalCurrent: false,
+    };
+  }
+  const cache = internalPrintGateCache;
+  if (!cache) {
+    return {
+      state: "unmeasured",
+      message: "Thin Strut is not measured yet. Run the Internal print gate once to measure the current BODY.",
+      report: null,
+      approvalCurrent: false,
+    };
+  }
+  const currentFingerprint = currentSkinRebuildInternalPrintGateFingerprint();
+  if (currentFingerprint === null || currentFingerprint !== cache.fingerprint) {
+    return {
+      state: "hard-block",
+      message: "Thin Strut diagnostics are stale. Re-run the current Internal print gate before approval.",
+      report: cache.report,
+      approvalCurrent: false,
+    };
+  }
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  const approval = skinRebuildThinStrutExperimentalExportApproval;
+  const approvalCurrent = project !== null
+    && thinStrutExperimentalApprovalIsCurrent(
+      approval?.project === project ? approval.fingerprint : null,
+      approval?.project === project ? approval.report : null,
+      cache.fingerprint,
+      cache.report,
+    );
+  if (internalPrintGateExportAllowed(cache.report)) {
+    return {
+      state: "not-applicable",
+      message: "No Thin Strut override is needed for the current Internal print gate result.",
+      report: cache.report,
+      approvalCurrent,
+    };
+  }
+  const decision = evaluateThinStrutExperimentalExportGate(
+    cache.report,
+    approvalCurrent,
+    A1_MINI_PLA_04_02,
+    skinRebuildExpectedExportMeshComponents(),
+  );
+  return { ...decision, report: cache.report, approvalCurrent };
+}
+
+function skinRebuildCurrentInternalPrintGateBlockReason(): string | null {
+  const decision = skinRebuildThinStrutExperimentalExportDecision();
+  return decision.state === "hard-block" || decision.state === "approval-required"
+    ? decision.message
+    : null;
+}
+
+function internalPrintGateExportAllowedForCurrentSkinExport(report: InternalPrintGateReport): boolean {
+  if (internalPrintGateExportAllowed(report)) return true;
+  const decision = skinRebuildThinStrutExperimentalExportDecision();
+  return decision.report === report && decision.state === "ready";
+}
+
 function refreshSkinRebuildStage8ExportButton(): void {
   if (!skinRebuildStage8ExportButton) {
     refreshSkinRebuildPrintPreparationPanel();
     return;
   }
-  const reason = skinRebuildPipelineOutputBlockReason()
-    ?? skinRebuildExportComponentSelectionBlockReason();
+  const pipelineReason = skinRebuildPipelineOutputBlockReason();
+  const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
+  const reason = pipelineReason
+    ?? componentSelectionReason
+    ?? skinRebuildCurrentInternalPrintGateBlockReason();
   const running = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
   skinRebuildStage8ExportButton.disabled = reason !== null || running;
   const experimentalDecision = skinRebuildSparseExperimentalExportDecision();
+  const thinStrutDecision = skinRebuildThinStrutExperimentalExportDecision();
+  const thinStrutApprovalBlockedByOtherIssue = componentSelectionReason !== null
+    || (pipelineReason !== null && experimentalDecision.state !== "approval-required");
   if (skinRebuildExperimentalExportApprovalButton) {
     skinRebuildExperimentalExportApprovalButton.disabled = running
       || experimentalDecision.state !== "approval-required";
@@ -8360,12 +8464,33 @@ function refreshSkinRebuildStage8ExportButton(): void {
       ? "Experimental Export Approved"
       : "Export Experimental Print";
   }
+  if (skinRebuildThinStrutExperimentalExportApprovalButton) {
+    skinRebuildThinStrutExperimentalExportApprovalButton.disabled = running
+      || thinStrutApprovalBlockedByOtherIssue
+      || thinStrutDecision.state !== "approval-required";
+    skinRebuildThinStrutExperimentalExportApprovalButton.textContent = thinStrutDecision.state === "ready"
+      ? "Thin Strut Experimental Export Approved"
+      : "Allow Thin Strut Experimental Export";
+  }
   if (skinRebuildExperimentalExportWarning) {
     const unsupported = skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? 0;
     skinRebuildExperimentalExportWarning.hidden = skinRebuildPrintSupportMode !== "automatic"
       || (experimentalDecision.state === "ready" && unsupported === 0);
     skinRebuildExperimentalExportWarning.textContent = experimentalDecision.message;
     skinRebuildExperimentalExportWarning.dataset.ok = String(experimentalDecision.state === "ready");
+  }
+  if (skinRebuildThinStrutExperimentalExportWarning) {
+    const report = thinStrutDecision.report;
+    skinRebuildThinStrutExperimentalExportWarning.hidden = report === null;
+    if (report) {
+      const minimumText = Number.isFinite(report.minDiameterMm)
+        ? `${report.minDiameterMm.toFixed(2)} mm`
+        : String(report.minDiameterMm);
+      skinRebuildThinStrutExperimentalExportWarning.textContent = `Minimum strut: ${minimumText} · Recommended: ${A1_MINI_PLA_04_02.minStrutDiameterMm.toFixed(2)} mm · Thin struts: ${report.thinStrutCount} · ${thinStrutDecision.message}`;
+      skinRebuildThinStrutExperimentalExportWarning.dataset.ok = String(
+        thinStrutDecision.state === "not-applicable" || thinStrutDecision.state === "ready",
+      );
+    }
   }
   if (skinRebuildStage8ExportStatus) {
     if (reason && skinRebuildStage8ExportStatus.textContent === "未実行") {
@@ -8399,6 +8524,7 @@ function invalidateSkinRebuildFinalStages(reason: string): void {
   skinRebuildTopologyDiagnosticDisplayMode = "normal";
   skinRenderer.setSkinRebuildTopologyDiagnosticOverlay(null);
   skinRebuildExperimentalExportApproval = null;
+  skinRebuildThinStrutExperimentalExportApproval = null;
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
   skinRebuildPrintSupportModeNeedsConfirmation = skinRebuildPrintSupportMode === "off";
   if (skinRebuildFinalDiagnosisStatus) {
@@ -8566,6 +8692,11 @@ function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationRead
 }
 
 function skinRebuildPrintPreparationNextAction(reason: string): string {
+  if (reason.includes("Thin Strut") || reason.includes("Minimum strut") || reason.includes("最低線径")) {
+    return reason.includes("approval") || reason.includes("required") || reason.includes("推奨")
+      ? "Thin Strutの警告を確認し、「Allow Thin Strut Experimental Export」を明示承認してください"
+      : "Internal print gateのThin Strut diagnosticsを再実行し、invalid/non-finite径や他のhard blockerを解消してください";
+  }
   if (reason.includes("未支持") && reason.includes("蜘蛛支持")) {
     return "Stage 5Aで蜘蛛支持を追加し、未支持0を確認してください";
   }
@@ -8604,18 +8735,21 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   if (!refs) return;
   const readiness = skinRebuildPrintPreparationReadiness();
   const pipelineReason = skinRebuildPipelineOutputBlockReason();
+  const sparseDecision = skinRebuildSparseExperimentalExportDecision();
+  const thinStrutDecision = skinRebuildThinStrutExperimentalExportDecision();
   let blocker = readiness.blocker;
   if (!blocker && pipelineReason) {
     blocker = {
-      kind: "hard-block",
+      kind: sparseDecision.state === "approval-required" ? "approval-required" : "hard-block",
       reason: pipelineReason,
       nextAction: skinRebuildPrintPreparationNextAction(pipelineReason),
     };
   }
-  if (!blocker && internalPrintGateCache && !internalPrintGateExportAllowed(internalPrintGateCache.report)) {
-    const reason = internalPrintGateCache.report.reasons[0] ?? "Internal print gateがNGです";
+  const currentInternalGateReason = skinRebuildCurrentInternalPrintGateBlockReason();
+  if (!blocker && currentInternalGateReason) {
+    const reason = currentInternalGateReason;
     blocker = {
-      kind: "hard-block",
+      kind: thinStrutDecision.state === "approval-required" ? "approval-required" : "hard-block",
       reason,
       nextAction: skinRebuildPrintPreparationNextAction(reason),
     };
@@ -8655,6 +8789,37 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
     `unresolved support count · ${unresolvedText}`,
     readiness.unresolvedSupportCount === 0 ? "current" : "stale",
   );
+  const thinReport = thinStrutDecision.report;
+  const minimumStrutText = thinReport && Number.isFinite(thinReport.minDiameterMm)
+    ? `${thinReport.minDiameterMm.toFixed(2)} mm`
+    : thinReport
+      ? String(thinReport.minDiameterMm)
+      : "未計測";
+  setValue(
+    refs.values.minimumStrut,
+    `Minimum strut: ${minimumStrutText}`,
+    thinReport ? "current" : "stale",
+  );
+  setValue(
+    refs.values.recommendedStrut,
+    `Recommended: ${A1_MINI_PLA_04_02.minStrutDiameterMm.toFixed(2)} mm`,
+    "current",
+  );
+  setValue(
+    refs.values.thinStruts,
+    `Thin struts: ${thinReport ? thinReport.thinStrutCount : "未計測"}`,
+    thinReport ? "current" : "stale",
+  );
+  const thinApprovalText = thinStrutDecision.state === "approval-required"
+    ? "required · Allow Thin Strut Experimental Export"
+    : thinStrutDecision.state === "ready"
+      ? "accepted · session-only"
+      : thinStrutDecision.state === "hard-block"
+        ? "unavailable · hard blocker"
+        : thinStrutDecision.state === "unmeasured"
+          ? "未計測"
+          : "not required";
+  setValue(refs.values.thinApproval, `Thin Strut approval · ${thinApprovalText}`, thinStrutDecision.state === "ready" ? "current" : thinStrutDecision.state === "approval-required" ? "stale" : undefined);
   const effectiveState = blocker?.kind === "hard-block"
     ? "blocked"
     : blocker?.kind === "approval-required"
@@ -8663,12 +8828,16 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   const readyExportText = skinRebuildPrintSupportMode === "automatic"
     ? "BODY + Sparse Support 3MF"
     : "BODY-only 3MF（Removable Support Off）";
+  const approvalLabels = [
+    sparseDecision.state === "approval-required" ? "Unsupported support" : "",
+    thinStrutDecision.state === "approval-required" ? "Thin Strut" : "",
+  ].filter(Boolean).join(" + ");
   setValue(
     refs.values.gate,
     effectiveState === "ready"
       ? `Export gate · ready · ${readyExportText}へ進めます`
       : effectiveState === "approval-required"
-        ? "Export gate · approval required · Unsupported警告を確認してください"
+        ? `Export gate · approval required · ${approvalLabels || "警告を確認してください"}`
         : "Export gate · hard blocker",
     effectiveState,
   );
@@ -10190,6 +10359,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildMeshInteriorClassificationDisplay(true);
       skinRebuildSparseSupportResult = null;
       skinRebuildExperimentalExportApproval = null;
+      skinRebuildThinStrutExperimentalExportApproval = null;
       skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
       skinRebuildSelectedOverhangRegionIds.clear();
       skinRebuildReinforcedOverhangRegionIds.clear();
@@ -10601,6 +10771,7 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildArtworkInteriorClassificationCheckpoint = null;
       skinRebuildSparseSupportResult = sparseResult;
       skinRebuildExperimentalExportApproval = null;
+      skinRebuildThinStrutExperimentalExportApproval = null;
       skinRebuildPrintSupportModeNeedsConfirmation = false;
       skinRenderer.setPrintSupport(project.printSupport);
       skinRenderer.setSparseRemovableSupportDebug(
@@ -10712,6 +10883,40 @@ function installSkinRebuildPipelinePanel(): void {
     stage8Export.status.dataset.ok = "true";
     refreshSkinRebuildStage8ExportButton();
   };
+  const thinStrutExperimentalExportWarning = document.createElement("div");
+  thinStrutExperimentalExportWarning.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-thin-strut-export-warning";
+  thinStrutExperimentalExportWarning.hidden = true;
+  const thinStrutExperimentalExportApprovalButton = document.createElement("button");
+  thinStrutExperimentalExportApprovalButton.type = "button";
+  thinStrutExperimentalExportApprovalButton.className = "secondary-action skin-rebuild-thin-strut-export-approval";
+  thinStrutExperimentalExportApprovalButton.textContent = "Allow Thin Strut Experimental Export";
+  thinStrutExperimentalExportApprovalButton.disabled = true;
+  thinStrutExperimentalExportApprovalButton.onclick = () => {
+    const decision = skinRebuildThinStrutExperimentalExportDecision();
+    const pipeline = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline : null;
+    const cache = internalPrintGateCache;
+    const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
+    const pipelineReason = skinRebuildPipelineOutputBlockReason();
+    const sparseDecision = skinRebuildSparseExperimentalExportDecision();
+    if (decision.state !== "approval-required"
+      || componentSelectionReason !== null
+      || (pipelineReason !== null && sparseDecision.state !== "approval-required")
+      || !pipeline?.project
+      || !cache) {
+      stage8Export.status.textContent = `Thin strut approval unavailable: ${decision.message}`;
+      stage8Export.status.dataset.ok = "false";
+      refreshSkinRebuildStage8ExportButton();
+      return;
+    }
+    skinRebuildThinStrutExperimentalExportApproval = {
+      project: pipeline.project,
+      fingerprint: cache.fingerprint,
+      report: cache.report,
+    };
+    stage8Export.status.textContent = "Thin strut risk explicitly accepted for this experimental export.";
+    stage8Export.status.dataset.ok = "true";
+    refreshSkinRebuildStage8ExportButton();
+  };
   const stage8ExportButton = document.createElement("button");
   stage8ExportButton.type = "button";
   stage8ExportButton.className = "primary-action skin-rebuild-stage8-export";
@@ -10741,6 +10946,8 @@ function installSkinRebuildPipelinePanel(): void {
     exportFormats,
     experimentalExportWarning,
     experimentalExportApprovalButton,
+    thinStrutExperimentalExportWarning,
+    thinStrutExperimentalExportApprovalButton,
     stage8ExportButton,
     stage8Export.status,
   );
@@ -10834,6 +11041,8 @@ function installSkinRebuildPipelinePanel(): void {
   skinRebuildStage8ExportButton = stage8ExportButton;
   skinRebuildExperimentalExportApprovalButton = experimentalExportApprovalButton;
   skinRebuildExperimentalExportWarning = experimentalExportWarning;
+  skinRebuildThinStrutExperimentalExportApprovalButton = thinStrutExperimentalExportApprovalButton;
+  skinRebuildThinStrutExperimentalExportWarning = thinStrutExperimentalExportWarning;
   skinRebuildSaveButton = saveButton;
   skinRebuildComputeSelect = computeSelect;
   skinRebuildComputeButton = computeButton;
@@ -13177,6 +13386,7 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   skinRebuildArtworkInteriorClassificationCheckpoint = null;
   skinRebuildSparseSupportResult = null;
   skinRebuildExperimentalExportApproval = null;
+  skinRebuildThinStrutExperimentalExportApproval = null;
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
   skinRebuildPrintSupportMode = snapshot.printSupportMode;
   skinRebuildPrintSupportModeNeedsConfirmation = snapshot.printSupportModeNeedsConfirmation;
@@ -14678,6 +14888,10 @@ function internalPrintGateStatusMessage(
   if (allowed && !report.ok && isSkinRebuildApp && skinRebuildPrintSupportMode === "off") {
     return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)} · BODY export allowed by Off policy · ${allowedText}`;
   }
+  if (allowed && !report.ok && isSkinRebuildApp && skinRebuildPrintSupportMode === "automatic") {
+    const thinDecision = skinRebuildThinStrutExperimentalExportDecision();
+    if (thinDecision.state === "ready") return `${thinDecision.message} · ${allowedText}`;
+  }
   return allowed ? allowedText : rejectedText;
 }
 
@@ -14691,6 +14905,7 @@ function invalidateInternalPrintGate(message = "未判定 · Internal付き3Dデ
   pendingInternalPrintGateFingerprint = "";
   pendingMeshExportAfterGate = null;
   internalPrintGateCache = null;
+  skinRebuildThinStrutExperimentalExportApproval = null;
   ui.setMeshExportRunning(false);
   ui.setInternalPrintGateRunning(false);
   ui.setInternalPrintGateReport(null);
@@ -14761,7 +14976,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
   const requestId = ++internalPrintGateRequestId;
   const fingerprint = internalPrintGateFingerprint(options, reachabilityGraph ?? graph);
   if (internalPrintGateCache?.fingerprint === fingerprint) {
-    const exportAllowed = internalPrintGateExportAllowed(internalPrintGateCache.report);
+    const exportAllowed = internalPrintGateExportAllowedForCurrentSkinExport(internalPrintGateCache.report);
     ui.setInternalPrintGateReport(internalPrintGateCache.report);
     ui.setInternalPrintGateExportAllowed(exportAllowed, true);
     ui.setInternalPrintGateStatus(
@@ -14924,7 +15139,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     }
     pendingInternalPrintGateFingerprint = "";
     ui.setInternalPrintGateReport(message.report);
-    const exportAllowed = internalPrintGateExportAllowed(message.report);
+    const exportAllowed = internalPrintGateExportAllowedForCurrentSkinExport(message.report);
     ui.setInternalPrintGateExportAllowed(exportAllowed, true);
     ui.setInternalPrintGateStatus(
       internalPrintGateStatusMessage(
@@ -14935,6 +15150,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       ),
       exportAllowed,
     );
+    refreshSkinRebuildStage8ExportButton();
     const pendingExport = pendingMeshExportAfterGate;
     if (pendingExport?.fingerprint === fingerprint) {
       pendingMeshExportAfterGate = null;
@@ -15244,8 +15460,9 @@ function exportMesh(
       startInternalPrintGate(options);
       return;
     }
-    if (!internalPrintGateExportAllowed(internalPrintGateCache.report)) {
-      const gateBlockReason = internalPrintGateCache.report.reasons[0]
+    if (!internalPrintGateExportAllowedForCurrentSkinExport(internalPrintGateCache.report)) {
+      const gateBlockReason = skinRebuildCurrentInternalPrintGateBlockReason()
+        ?? internalPrintGateCache.report.reasons[0]
         ?? `内部構造がNGです（${internalPrintGateCache.report.reasons.length}項目）`;
       ui.setMeshStatus(`書き出し停止: ${gateBlockReason}`, false);
       stopSkinRebuildStage8Export(gateBlockReason);
@@ -15258,7 +15475,7 @@ function exportMesh(
   const recipe = serializeRecipe(history);
   const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
   const reusableGate = internalGraph?.edges.length && internalPrintGateCache
-    && internalPrintGateExportAllowed(internalPrintGateCache.report)
+    && internalPrintGateExportAllowedForCurrentSkinExport(internalPrintGateCache.report)
     ? internalPrintGateCache
     : null;
   const request: MeshExportRequest = {
