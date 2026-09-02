@@ -30,7 +30,11 @@ mark.append(makeLabel("KATACHI", "skin-art-index-mark-name"), makeLabel("SKIN AR
 const headerMeta = document.createElement("span");
 headerMeta.className = "skin-art-index-header-meta";
 headerMeta.textContent = "PRESENTATION / NETWORK";
-header.append(mark, headerMeta);
+const visualStudiesLink = document.createElement("a");
+visualStudiesLink.className = "skin-art-index-studies-link";
+visualStudiesLink.href = "./studies/";
+visualStudiesLink.textContent = "VISUAL STUDIES ↗";
+header.append(mark, headerMeta, visualStudiesLink);
 
 const field = document.createElement("div");
 field.className = "skin-art-index-field";

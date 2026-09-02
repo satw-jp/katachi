@@ -1,0 +1,13 @@
+{
+  "id": "skin-visual-studies",
+  "title": "SKIN ART — Visual Studies",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-09-02",
+  "updatedAt": "2026-09-02",
+  "params": ["study", "completed FKEI source", "WebGL point / line / tube presentation"],
+  "related": ["skin-rebuild", "skin-art"],
+  "revisits": [
+    { "date": "2026-09-02", "note": "Initial isolated visual-research route: eight primitive-level readings over the existing completed SKIN graph; no geometry or runtime generation changes." }
+  ]
+}

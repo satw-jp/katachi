@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap");
+
+:root { color-scheme: dark; font-family: "Manrope", "Helvetica Neue", Arial, sans-serif; background: #050808; color: #dce9df; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050808; }
+button, a { font: inherit; }
+a { color: inherit; }
+
+.visual-studies {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(circle at 50% 47%, rgba(40, 77, 70, .16), transparent 42%), #050808;
+}
+.visual-studies-stage { position: absolute; inset: 0; z-index: 0; }
+.visual-studies-canvas { display: block; width: 100%; height: 100%; outline: none; }
+.visual-studies-loading {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+  color: rgba(216, 231, 220, .72);
+  font: 500 10px/1.2 "DM Mono", monospace;
+  letter-spacing: .16em;
+  white-space: nowrap;
+}
+.visual-studies-loading[data-error="true"] { color: #e7a79d; white-space: normal; width: min(90vw, 560px); text-align: center; }
+
+.visual-studies-header, .visual-studies-caption, .visual-studies-navigation, .visual-studies-source-facts, .visual-studies-controls, .visual-studies-mobile-navigation { position: absolute; z-index: 4; }
+.visual-studies-header { top: clamp(20px, 4vw, 48px); left: clamp(22px, 4vw, 60px); right: clamp(22px, 4vw, 60px); display: flex; align-items: baseline; justify-content: space-between; gap: 20px; pointer-events: none; }
+.visual-studies-brand, .visual-studies-header a { pointer-events: auto; text-decoration: none; }
+.visual-studies-brand { display: inline-flex; flex-direction: column; gap: 2px; }
+.visual-studies-brand span, .visual-studies-heading, .visual-studies-navigation-heading, .visual-studies-source-facts, .visual-studies-controls, .visual-studies-mobile-navigation { font: 500 9px/1.25 "DM Mono", monospace; letter-spacing: .14em; text-transform: uppercase; }
+.visual-studies-brand strong { font-size: 12px; font-weight: 600; letter-spacing: .18em; }
+.visual-studies-brand span, .visual-studies-heading { color: rgba(216, 231, 220, .48); }
+
+.visual-studies-caption { left: clamp(24px, 8vw, 150px); top: 50%; width: min(31vw, 370px); transform: translateY(-50%); pointer-events: none; text-shadow: 0 1px 18px rgba(0, 0, 0, .4); }
+.visual-studies-kicker, .visual-studies-stage-label { display: block; color: rgba(216, 231, 220, .5); font: 500 9px/1.3 "DM Mono", monospace; letter-spacing: .15em; }
+.visual-studies-caption h1 { margin: 10px 0 8px; font-size: clamp(32px, 5vw, 70px); line-height: .9; font-weight: 500; letter-spacing: -.055em; }
+.visual-studies-caption p { max-width: 260px; margin: 0 0 18px; color: rgba(216, 231, 220, .66); font-size: 12px; line-height: 1.55; }
+.visual-studies-stage-label { color: #c9d980; }
+
+.visual-studies-navigation { top: 50%; right: clamp(22px, 4vw, 60px); width: min(21vw, 230px); transform: translateY(-50%); }
+.visual-studies-navigation-heading { display: flex; justify-content: space-between; margin-bottom: 13px; color: rgba(216, 231, 220, .43); }
+.visual-studies-navigation-heading small { font: inherit; letter-spacing: .06em; }
+.visual-studies-links { display: grid; gap: 9px; }
+.visual-studies-links a, .visual-studies-mobile-links a { display: flex; align-items: baseline; gap: 13px; color: rgba(216, 231, 220, .43); text-decoration: none; transition: color .2s ease, transform .2s ease; }
+.visual-studies-links a span, .visual-studies-mobile-links a span { min-width: 18px; color: rgba(216, 231, 220, .27); font: inherit; }
+.visual-studies-links a strong, .visual-studies-mobile-links a strong { font: 500 12px/1.2 "Manrope", sans-serif; letter-spacing: .13em; }
+.visual-studies-links a:hover, .visual-studies-links a:focus-visible, .visual-studies-mobile-links a:hover, .visual-studies-mobile-links a:focus-visible { color: #e1efdf; transform: translateX(-4px); outline: none; }
+.visual-studies-links a.is-active, .visual-studies-mobile-links a.is-active { color: #e4d57e; }
+.visual-studies-links a.is-active strong, .visual-studies-mobile-links a.is-active strong { font-weight: 600; }
+.visual-studies-links a.is-active span, .visual-studies-mobile-links a.is-active span { color: rgba(228, 213, 126, .7); }
+
+.visual-studies-source-facts { left: clamp(24px, 4vw, 60px); bottom: 31px; display: flex; flex-wrap: wrap; gap: 11px 18px; color: rgba(216, 231, 220, .4); }
+.visual-studies-source-status { color: rgba(216, 231, 220, .58); }
+.visual-studies-source-counts { color: rgba(216, 231, 220, .32); }
+.visual-studies-controls { right: clamp(22px, 4vw, 60px); bottom: 30px; display: flex; gap: 19px; align-items: center; }
+.visual-studies-controls button, .visual-studies-controls a { padding: 0 0 4px; border: 0; border-bottom: 1px solid rgba(216, 231, 220, .25); color: rgba(216, 231, 220, .66); background: none; cursor: pointer; text-decoration: none; }
+.visual-studies-controls button:hover, .visual-studies-controls button:focus-visible, .visual-studies-controls a:hover, .visual-studies-controls a:focus-visible { border-bottom-color: #e4d57e; color: #e4d57e; outline: none; }
+.visual-studies-mobile-navigation { display: none; }
+
+@media (max-width: 760px) {
+  .visual-studies-header { align-items: flex-start; }
+  .visual-studies-heading { display: none; }
+  .visual-studies-caption { left: 24px; top: 91px; width: calc(100vw - 48px); transform: none; }
+  .visual-studies-caption h1 { margin-top: 8px; font-size: 42px; }
+  .visual-studies-caption p { max-width: 230px; margin-bottom: 10px; font-size: 11px; }
+  .visual-studies-navigation { display: none; }
+  .visual-studies-mobile-navigation { display: block; top: 24px; right: 24px; min-width: 112px; }
+  .visual-studies-mobile-navigation summary { cursor: pointer; list-style: none; color: rgba(216, 231, 220, .76); text-align: right; }
+  .visual-studies-mobile-navigation summary::-webkit-details-marker { display: none; }
+  .visual-studies-mobile-links { display: grid; gap: 11px; margin-top: 16px; padding: 4px 0 4px 12px; }
+  .visual-studies-mobile-links a { justify-content: flex-end; }
+  .visual-studies-mobile-links a strong { font-size: 11px; }
+  .visual-studies-source-facts { left: 24px; right: 24px; bottom: 70px; gap: 7px 12px; font-size: 8px; }
+  .visual-studies-controls { left: 24px; right: 24px; bottom: 25px; justify-content: space-between; }
+  .visual-studies-controls button, .visual-studies-controls a { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-studies-links a, .visual-studies-mobile-links a { transition: none; }
+}

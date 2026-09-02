@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => ({
         skin: "skin.html",
         skinRebuild: "skin-rebuild.html",
         skinArt: "skin-art/index.html",
+        skinArtStudies: "skin-art/studies/index.html",
         interiorGrowth: "interior-growth.html",
         hitsuji: "hitsuji.html",
         hitsujiField: "hitsuji-field.html",

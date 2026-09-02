@@ -20,6 +20,8 @@ a { color: inherit; }
 .skin-art-index-mark-name { color: #f3f7ee; font-weight: 700; letter-spacing: .28em; }
 .skin-art-index-mark-subtitle, .skin-art-index-header-meta { color: rgba(204, 231, 192, .48); }
 .skin-art-index-header-meta { white-space: nowrap; }
+.skin-art-index-studies-link { color: rgba(204, 231, 192, .48); text-decoration: none; transition: color 180ms ease; }
+.skin-art-index-studies-link:hover, .skin-art-index-studies-link:focus-visible { color: var(--skin-art-ink); outline: none; }
 .skin-art-index-hero { display: grid; gap: 14px; margin-top: clamp(58px, 8vh, 92px); }
 .skin-art-index-eyebrow { color: #c8f05a; font-weight: 700; }
 .skin-art-index-hero h1 { max-width: 8ch; margin: 0; color: #f2f4ed; font-family: Georgia, "Times New Roman", serif; font-size: clamp(56px, 10vw, 122px); font-weight: 400; letter-spacing: -.075em; line-height: .77; }
