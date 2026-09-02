@@ -735,6 +735,19 @@ review-only固定データ、旧UI、Bambu support/scaffold経路を外した独
 これはスライサーでも印刷成功保証でもない。`printApproval=false` を固定し、実Slice Preview、
 floating region確認、実物印刷は作者が行う。
 
+### 2026-09-02 — TASK A2 completed Print-ready FKEI sample
+
+`public/samples/skin-rebuild-completed-print-ready.fkei` は、既存のFKEI shape recipeから生成した
+実データに、既存のcompact `base64-binary-v1` codecを使う任意の `printSnapshot` を付けた
+Print-ready fixtureである。SnapshotにはFinal BODY mesh、topology/component selection、Stage 4/
+6.5/7/7.5/8 readiness、Sparse Support graph/diagnostics、Internal print-gate evidenceと一致用
+fingerprintだけを保存し、`printApproval=false` は維持する。Completed SampleボタンはこのFKEIを
+通常の Open → parse/integrity → snapshot validation → restore 経路で開くため、valid snapshotなら
+Stage 6 remeshとStage 4〜8の重い再診断を実行しない。不一致・破損・invalid topology/componentは
+`Print snapshot is stale — rebuild required` としてfail-closedし、旧snapshotなしFKEIも読める。
+fixtureはBODY 222,936 triangles / 1 component、Sparse Support 134 nodes / 67 edges、unresolved
+0、BODY collision 0、thin strut 0で、ブラウザでの形状判断、最終3MF、deployは未実施である。
+
 ## Hypothesis
 
 印刷候補を作る最短段階では、危険面の汎用最適化より、表面パターンの裏中央という既に作者が

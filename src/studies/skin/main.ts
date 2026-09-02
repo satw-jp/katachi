@@ -567,15 +567,15 @@ const projectCompleteSampleButton = document.createElement("button");
 projectCompleteSampleButton.type = "button";
 projectCompleteSampleButton.className = "skin-project-action";
 projectCompleteSampleButton.textContent = "完成 Sample";
-projectCompleteSampleButton.title = "工程3〜6と蜘蛛の巣ラティスを含む初回プリント候補.fkeiを開く";
+projectCompleteSampleButton.title = "Print Snapshot付きのPrint-ready FKEI sampleを通常のOpen/restore経路で開く";
 projectCompleteSampleButton.hidden = !isSkinRebuildApp;
 projectCompleteSampleButton.onclick = async () => {
   try {
     projectCompleteSampleButton.disabled = true;
     projectMeta.textContent = "同梱SKIN REBUILD完成sampleを検証中…";
-    const response = await fetch("./samples/skin-rebuild-first-print.fkei", { cache: "no-store" });
+    const response = await fetch("./samples/skin-rebuild-completed-print-ready.fkei", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const file = new File([await response.blob()], "skin-rebuild-first-print.fkei", { type: "application/json" });
+    const file = new File([await response.blob()], "skin-rebuild-completed-print-ready.fkei", { type: "application/json" });
     await openFkeiProject(file);
   } catch (error) {
     projectMeta.textContent = `完成Sample Open失敗: ${error instanceof Error ? error.message : String(error)}`;
@@ -15077,6 +15077,10 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
       skinRebuildKeptComponentIds = new Set(decodedSnapshot.componentSelection.componentIds);
       skinRebuildExportComponentSelectionExplicit = decodedSnapshot.componentSelection.explicit;
       skinRebuildTopologyHighlightedComponentId = null;
+      // The restored BODY cache is the finalized artwork for this project. Set
+      // this before rebuilding the gate fingerprint so the saved component
+      // selection participates in the same fingerprint as it did at Save.
+      skinRebuildFinalizedArtworkProject = project;
       const currentGateFingerprint = internalPrintGateFingerprint(
         ui.getMeshOptions(),
         getInternalPrintReachabilityGraph(project.finalGraph) ?? project.finalGraph,
@@ -15142,6 +15146,7 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
         showSkinRebuildStage6ArtworkMesh(body.positions, body.normals);
       } else {
         snapshotFailure = snapshotReuse.reason;
+        skinRebuildFinalizedArtworkProject = null;
         stage6BodyMeshCache = null;
         skinRebuildTopologySelectionCache = null;
         skinRebuildKeptComponentIds = new Set();

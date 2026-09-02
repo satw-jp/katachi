@@ -102,7 +102,7 @@ assert.match(main, /skin-left-pane/);
 assert.match(main, /skin-right-pane/);
 assert.match(main, /skin-bottom-status-pane/);
 assert.match(main, /skin-rebuild-original-stage2\.fkei/);
-assert.match(main, /skin-rebuild-first-print\.fkei/);
+assert.match(main, /skin-rebuild-completed-print-ready\.fkei/);
 assert.match(main, /完成 Sample/);
 assert.match(main, /Axome roll調整/);
 assert.match(main, /水平に戻す/);
