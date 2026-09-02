@@ -7563,10 +7563,12 @@ function snapshotStage8Evidence(
   project: SkinRebuildProject,
   supportMode: RemovableSupportMode,
   sparseDiagnostics: SparseRemovableSupportDiagnostics | null,
+  supportAmount: SparseSupportAmount,
 ): SkinRebuildPrintSnapshotData["stage8"] {
   return {
     current: true,
     supportMode,
+    supportAmount,
     supportDiameterMm: project.settings.supportDiameterMm,
     sparseSupportGenerated: supportMode === "automatic" && sparseDiagnostics !== null,
     supportGraphFingerprint: skinRebuildPrintSnapshotGraphFingerprint(project.printSupport),
@@ -11150,7 +11152,7 @@ function installSkinRebuildPipelinePanel(): void {
           stage6_5: previousEvidence.stage6_5,
           stage7: previousEvidence.stage7,
           stage7_5: previousEvidence.stage7_5,
-          stage8: snapshotStage8Evidence(project, modeAtStart, sparseResult?.diagnostics ?? null),
+          stage8: snapshotStage8Evidence(project, modeAtStart, sparseResult?.diagnostics ?? null, supportAmountAtStart),
         });
       }
       // Support generation replaces the project object. The consumed 7.5
@@ -15014,6 +15016,7 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
   try {
     applyHistoryEntries(prepared.entries, prepared.state);
     skinRebuildPrintSupportMode = modeForOpen;
+    skinRebuildSupportAmount = decodedSnapshot?.stage8.supportAmount ?? skinRebuildSupportAmount;
     syncSkinRebuildPrintSupportModeUi();
     importedRecipeText = serializeRecipe(prepared.entries);
     importedRecipeFilename = null;

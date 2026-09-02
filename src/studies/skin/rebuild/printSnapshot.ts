@@ -6,7 +6,10 @@ import {
 import { sha256HexSync } from "../../../lib/hash.ts";
 import type { InternalPrintGateReport } from "../internalPrintGate.ts";
 import type { InternalStructureGraph } from "../voronoi.ts";
-import type { SparseRemovableSupportDiagnostics } from "./sparseRemovableSupport.ts";
+import type {
+  SparseRemovableSupportDiagnostics,
+  SparseSupportAmount,
+} from "./sparseRemovableSupport.ts";
 import type {
   Stage6MeshBoundsMm,
   Stage6MeshComponentDiagnostic,
@@ -76,6 +79,7 @@ export interface SkinRebuildPrintSnapshotData {
   stage8: {
     current: boolean;
     supportMode: "automatic" | "off";
+    supportAmount: SparseSupportAmount;
     supportDiameterMm: number;
     sparseSupportGenerated: boolean;
     supportGraphFingerprint: string;
@@ -140,6 +144,12 @@ function integer(value: unknown, label: string, minimum = 0): number {
 
 function boolean(value: unknown, label: string): boolean {
   if (typeof value !== "boolean") throw new Error(`${label} must be boolean`);
+  return value;
+}
+
+function supportAmount(value: unknown, label: string, fallback: SparseSupportAmount = "low"): SparseSupportAmount {
+  if (value === undefined) return fallback;
+  if (value !== "low" && value !== "medium" && value !== "high") throw new Error(`${label} is unsupported`);
   return value;
 }
 
@@ -237,13 +247,14 @@ function validateSparseDiagnostics(value: unknown): SparseRemovableSupportDiagno
     "generatedSupportCount", "rejectedByBody", "rejectedBySpacing", "rejectedByRemovability", "insideDerivedSupportCount",
     "verticalCount", "leaningCount", "routeCandidateCount", "straightRejectedByBody", "offsetBendCount", "acceptedBodyCollisionCount",
   ] as const;
-  onlyKeys(root, [...integerKeys, "experimental", "removalGap", "shaftRadius", "neckRadius"], "snapshot.stage8.diagnostics");
+  onlyKeys(root, [...integerKeys, "experimental", "removalGap", "shaftRadius", "neckRadius", "supportAmount"], "snapshot.stage8.diagnostics");
   const result = {
     ...Object.fromEntries(integerKeys.map((key) => [key, integer(root[key], `snapshot.stage8.diagnostics.${key}`)])),
     experimental: root.experimental,
     removalGap: finite(root.removalGap, "snapshot.stage8.diagnostics.removalGap"),
     shaftRadius: finite(root.shaftRadius, "snapshot.stage8.diagnostics.shaftRadius"),
     neckRadius: finite(root.neckRadius, "snapshot.stage8.diagnostics.neckRadius"),
+    supportAmount: supportAmount(root.supportAmount, "snapshot.stage8.diagnostics.supportAmount"),
   } as SparseRemovableSupportDiagnostics;
   if (result.experimental !== true || result.acceptedBodyCollisionCount !== 0 || !(result.removalGap > 0) || !(result.shaftRadius > 0) || !(result.neckRadius > 0)) {
     throw new Error("snapshot Sparse Support diagnostics are invalid");
@@ -372,11 +383,13 @@ function validateSnapshotData(value: unknown): SkinRebuildPrintSnapshotData {
   const stage7 = validateStageSummary(root.stage7, "snapshot.stage7", ["current", "faceCount", "overhangFaceCount", "overhangRegionCount", "overhangAreaMm2", "overhangAreaPercent"]);
   const stage75 = validateStageSummary(root.stage7_5, "snapshot.stage7_5", ["current", "insideFaceCount", "outsideFaceCount", "ambiguousFaceCount", "ambiguousRegionCount"]);
   const stage8Root = record(root.stage8, "snapshot.stage8");
-  onlyKeys(stage8Root, ["current", "supportMode", "supportDiameterMm", "sparseSupportGenerated", "supportGraphFingerprint", "supportGraphNodeCount", "supportGraphEdgeCount", "unresolvedSupportCount", "acceptedBodyCollisionCount", "diagnostics"], "snapshot.stage8");
+  onlyKeys(stage8Root, ["current", "supportMode", "supportAmount", "supportDiameterMm", "sparseSupportGenerated", "supportGraphFingerprint", "supportGraphNodeCount", "supportGraphEdgeCount", "unresolvedSupportCount", "acceptedBodyCollisionCount", "diagnostics"], "snapshot.stage8");
   if (stage8Root.current !== true || stage8Root.supportMode !== "automatic" && stage8Root.supportMode !== "off") throw new Error("snapshot Stage 8 readiness is invalid");
   const sparseSupportGenerated = boolean(stage8Root.sparseSupportGenerated, "snapshot.stage8.sparseSupportGenerated");
   const diagnostics = stage8Root.diagnostics === null ? null : validateSparseDiagnostics(stage8Root.diagnostics);
   if (stage8Root.supportMode === "automatic" && (!sparseSupportGenerated || diagnostics === null)) throw new Error("snapshot automatic Sparse Support evidence is incomplete");
+  const snapshotSupportAmount = supportAmount(stage8Root.supportAmount, "snapshot.stage8.supportAmount");
+  if (diagnostics && diagnostics.supportAmount !== snapshotSupportAmount) throw new Error("snapshot support amount is inconsistent with Sparse Support diagnostics");
   if (diagnostics && integer(stage8Root.unresolvedSupportCount, "snapshot.stage8.unresolvedSupportCount") !== diagnostics.unsupportedTargetCount) throw new Error("snapshot unresolved support count is inconsistent");
   const gateRoot = record(root.internalPrintGate, "snapshot.internalPrintGate");
   onlyKeys(gateRoot, ["fingerprint", "report", "stl", "summary", "scaleMmPerUnit", "plateShiftSourceZ"], "snapshot.internalPrintGate");
@@ -400,6 +413,7 @@ function validateSnapshotData(value: unknown): SkinRebuildPrintSnapshotData {
   const snapshotStage8: SkinRebuildPrintSnapshotData["stage8"] = {
     current: true,
     supportMode: stage8Root.supportMode,
+    supportAmount: snapshotSupportAmount,
     supportDiameterMm: number(stage8Root, "supportDiameterMm", "snapshot.stage8"),
     sparseSupportGenerated,
     supportGraphFingerprint: text(stage8Root.supportGraphFingerprint, "snapshot.stage8.supportGraphFingerprint"),

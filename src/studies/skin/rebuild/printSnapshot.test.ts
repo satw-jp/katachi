@@ -70,6 +70,7 @@ function sparseDiagnostics(): SparseRemovableSupportDiagnostics {
     removalGap: 0.35,
     shaftRadius: 0.8,
     neckRadius: 0.3,
+    supportAmount: "high",
   };
 }
 
@@ -145,6 +146,7 @@ function snapshotData(graphFingerprint: string): SkinRebuildPrintSnapshotData {
     stage8: {
       current: true,
       supportMode: "automatic",
+      supportAmount: "high",
       supportDiameterMm: 1.6,
       sparseSupportGenerated: true,
       supportGraphFingerprint: graphFingerprint,
@@ -180,6 +182,7 @@ assert.deepEqual(decoded.body.normals, data.body.normals, "cached BODY normals m
 assert.deepEqual(decoded.body.topologyDiagnostics.faceComponentIds, data.body.topologyDiagnostics.faceComponentIds);
 assert.deepEqual(decoded.componentSelection.componentIds, [0], "component selection must round-trip");
 assert.equal(decoded.stage8.supportGraphFingerprint, graphFingerprint, "Sparse Support graph identity must round-trip");
+assert.equal(decoded.stage8.supportAmount, "high", "Sparse Support amount must round-trip");
 assert.equal(decoded.internalPrintGate.stl.byteLength, data.internalPrintGate.stl.byteLength, "gate STL must round-trip");
 assert.doesNotMatch(JSON.stringify(snapshot), /approval/i, "session-only approvals must not be stored in the snapshot");
 
