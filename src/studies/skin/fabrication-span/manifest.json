@@ -1,0 +1,28 @@
+{
+  "id": "skin-fabrication-span",
+  "title": "Material Span Coupon v0",
+  "status": "experimental",
+  "version": "0.1.0",
+  "createdAt": "2026-09-02",
+  "updatedAt": "2026-09-02",
+  "params": [
+    "nozzleDiameterMm",
+    "filamentDiameterMm",
+    "layerHeightMm",
+    "printSpeedMmPerSec",
+    "travelSpeedMmPerSec",
+    "extrusionMultiplier",
+    "nozzleTemperatureC",
+    "bedTemperatureC",
+    "fanPercent",
+    "spanLiftMm",
+    "sampleCount"
+  ],
+  "related": ["skin"],
+  "revisits": [
+    {
+      "date": "2026-09-02",
+      "note": "Fabrication Span v0 is an independent A1 / 0.8 mm nozzle / PLA coupon study. It generates five deterministic review-only G-code variants with separate anchor and span phases, explicit absolute-E and fail-closed safety validation. No physical print has been performed and production SKIN Stage 1–8 is not imported."
+    }
+  ]
+}

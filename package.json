@@ -24,9 +24,11 @@
     "build:skin-rebuild-sample": "tsx scripts/build-skin-rebuild-sample.ts public/samples",
     "build:skin-rebuild-completed-sample": "tsx scripts/build-skin-rebuild-completed-print-ready-sample.ts public/samples",
     "build:skin-rebuild-original-stage2": "tsx scripts/build-skin-rebuild-original-stage2-sample.ts public/samples",
+    "build:skin-fabrication-span": "node --experimental-strip-types scripts/build-skin-fabrication-span.ts",
     "diagnose:ring-fusion": "tsx src/studies/interior-growth/ringFusionDiagnosis.report.ts",
     "diagnose:ring-sampling": "tsx --max-old-space-size=12288 src/studies/interior-growth/ringSamplingDiagnosis.report.ts",
     "typecheck:partition-test": "tsc -p tsconfig.test.json",
+    "test:skin-fabrication-span": "node --experimental-strip-types src/studies/skin/fabrication-span/fabricationSpan.test.ts",
     "deploy": "npm run build && wrangler deploy",
     "deploy:hikari": "npm run build:hikari && wrangler deploy --config wrangler.hikari.jsonc",
     "preview": "vite preview"

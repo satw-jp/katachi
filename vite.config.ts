@@ -61,6 +61,7 @@ export default defineConfig(({ mode }) => ({
         flowerPackingSpike: "flower-packing-spike.html",
         flowerFormSpike: "flower-form-spike.html",
         flowerCoreNetwork: "flower-core-network.html",
+        fabricationSpan: "fabrication-span.html",
       },
     },
   },
