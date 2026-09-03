@@ -1,6 +1,7 @@
 import type { PaletteName } from "../conceptTypes.ts";
 import type { ParameterValue } from "../parameterStore.ts";
 import type { CameraState } from "../runtime/renderSurface.ts";
+import type { CameraManifestState } from "../camera/cameraManifest.ts";
 
 export interface CaptureManifest {
   readonly schemaVersion: 1;
@@ -10,7 +11,7 @@ export interface CaptureManifest {
   readonly timeMs: number;
   readonly palette: PaletteName;
   readonly parameters: Record<string, ParameterValue>;
-  readonly camera: CameraState;
+  readonly camera: CameraState | CameraManifestState;
   readonly viewport: { readonly width: number; readonly height: number };
   readonly gitCommit: string;
 }
@@ -25,6 +26,7 @@ export interface CaptureStateSource {
     camera: CameraState;
   };
   sourceFingerprint(): string;
+  cameraManifest?(): CameraManifestState | null;
 }
 
 export function createCaptureManifest(source: CaptureStateSource, width: number, height: number, gitCommit = "unknown"): CaptureManifest {
@@ -37,7 +39,7 @@ export function createCaptureManifest(source: CaptureStateSource, width: number,
     timeMs: Math.round(state.timeMs),
     palette: state.palette,
     parameters: { ...state.parameters },
-    camera: { ...state.camera },
+    camera: source.cameraManifest?.() ?? { ...state.camera },
     viewport: { width, height },
     gitCommit,
   };

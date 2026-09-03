@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ConceptBuildContext, ConceptFrameContext } from "../conceptTypes.ts";
 import type { ConceptEdge, ConceptMotif } from "../sourceAdapter.ts";
 import type { ParameterValue } from "../parameterStore.ts";
+import type { CameraVisualState } from "../camera/cameraTypes.ts";
 
 export type VisualQualityMode = "baseline" | "lifted";
 
@@ -77,6 +78,7 @@ interface QualityDatum {
 export interface QualityLayer {
   readonly object: THREE.Points;
   update(frame: ConceptFrameContext, params: Readonly<Record<string, ParameterValue>>): void;
+  updateCameraVisualState?(state: CameraVisualState): void;
 }
 
 const QUALITY_VERTEX = /* glsl */ `
@@ -99,6 +101,10 @@ const QUALITY_VERTEX = /* glsl */ `
   uniform float uScaleEcho;
   uniform float uParallax;
   uniform float uAmbiguity;
+  uniform float uCameraVelocity;
+  uniform float uCameraAngular;
+  uniform float uEnteringDepth;
+  uniform float uCameraFocusBias;
 
   varying float vAlpha;
   varying float vPhase;
@@ -152,12 +158,13 @@ const QUALITY_VERTEX = /* glsl */ `
 
     vColor = aColor;
     float voidWeight = aLayer > 1.5 ? (1.0 - uVoidRetention * 0.22) : 1.0;
-    vAlpha = aAlpha * hold * visibility * uOpacity * voidWeight;
+    float cameraMotion = min(1.0, uCameraVelocity * 0.025 + uCameraAngular * 0.04);
+    vAlpha = aAlpha * hold * visibility * uOpacity * voidWeight * (1.0 + cameraMotion * 0.035);
     vPhase = aPhase;
     vMorph = clamp(aMorph + max(0.0, motion) * 0.08 + uEnergy * 0.06, 0.0, 1.0);
     vAspect = aAspect;
     vAngle = aAngle + hesitation * 0.12;
-    vFocus = clamp(aFocus + motion * 0.06 + (aLayer - 1.0) * uFocusContradiction * 0.28, 0.0, 1.0);
+    vFocus = clamp(aFocus + motion * 0.06 + (aLayer - 1.0) * uFocusContradiction * 0.28 + uCameraFocusBias * 0.12 - uEnteringDepth * 0.025, 0.0, 1.0);
     vAccumulation = clamp(aLuminance * 0.75 + aMetric * 0.2 + uEnergy * 0.09, 0.0, 1.0);
     vVisibility = visibility;
   }
@@ -244,6 +251,10 @@ class GaussianLayerImpl implements QualityLayer {
         uScaleEcho: { value: 0.85 },
         uParallax: { value: 0.24 },
         uAmbiguity: { value: 0.68 },
+        uCameraVelocity: { value: 0 },
+        uCameraAngular: { value: 0 },
+        uEnteringDepth: { value: 0 },
+        uCameraFocusBias: { value: 0 },
       },
       transparent: true,
       depthTest: true,
@@ -271,6 +282,13 @@ class GaussianLayerImpl implements QualityLayer {
     this.material.uniforms.uScaleEcho.value = typeof params.scaleEcho === "number" ? params.scaleEcho : 0.85;
     this.material.uniforms.uParallax.value = typeof params.parallaxDisorder === "number" ? params.parallaxDisorder : 0.24;
     this.material.uniforms.uAmbiguity.value = typeof params.spatialAmbiguity === "number" ? params.spatialAmbiguity : 0.68;
+  }
+
+  updateCameraVisualState(state: CameraVisualState): void {
+    this.material.uniforms.uCameraVelocity.value = state.velocity;
+    this.material.uniforms.uCameraAngular.value = state.angularVelocity;
+    this.material.uniforms.uEnteringDepth.value = state.enteringDepth;
+    this.material.uniforms.uCameraFocusBias.value = state.focusBias;
   }
 }
 
@@ -438,9 +456,15 @@ export function attachQuality(group: THREE.Group, layer: QualityLayer | null): v
   group.children.forEach((child) => { child.visible = false; });
   group.add(layer.object);
   group.userData.v4QualityUpdate = (frame: ConceptFrameContext, params: Readonly<Record<string, ParameterValue>>) => layer.update(frame, params);
+  group.userData.v4QualityCameraUpdate = (state: CameraVisualState) => layer.updateCameraVisualState?.(state);
 }
 
 export function updateAttachedQuality(group: THREE.Group, frame: ConceptFrameContext, params: Readonly<Record<string, ParameterValue>>): void {
   const update = group.userData.v4QualityUpdate as ((nextFrame: ConceptFrameContext, nextParams: Readonly<Record<string, ParameterValue>>) => void) | undefined;
   update?.(frame, params);
+}
+
+export function updateAttachedQualityCamera(group: THREE.Group, state: CameraVisualState): void {
+  const update = group.userData.v4QualityCameraUpdate as ((nextState: CameraVisualState) => void) | undefined;
+  update?.(state);
 }

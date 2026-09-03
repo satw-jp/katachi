@@ -35,6 +35,16 @@ export interface GlobalAppearanceParams {
   voidRetention: number;
   scaleEcho: number;
   parallaxDisorder: number;
+  cameraMode: string;
+  cameraMotion: number;
+  orbit: number;
+  dolly: number;
+  targetDrift: number;
+  passThrough: number;
+  cameraHold: number;
+  cameraRoll: number;
+  fovBreath: number;
+  parallax: number;
   timeScale: number;
   eventDensity: number;
   pauseBias: number;
@@ -55,6 +65,16 @@ export const GLOBAL_PARAMETER_DEFINITIONS: readonly ParameterDefinition[] = [
   { id: "focusDisorder", label: "Focus Disorder", kind: "range", defaultValue: 0.6, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "cameraDrift", label: "Camera Drift", kind: "range", defaultValue: 0.22, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "fieldOfView", label: "Field of View", kind: "range", defaultValue: 46, min: 28, max: 70, step: 1, updateMode: "uniform" },
+  { id: "cameraMode", label: "Camera Mode", kind: "select", defaultValue: "AUTO", options: ["AUTO", "STILL", "DRIFT", "EXPLORE"], updateMode: "uniform" },
+  { id: "cameraMotion", label: "Camera Motion", kind: "range", defaultValue: 1, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
+  { id: "orbit", label: "Orbit", kind: "range", defaultValue: 0.45, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "dolly", label: "Dolly", kind: "range", defaultValue: 0.8, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
+  { id: "targetDrift", label: "Target Drift", kind: "range", defaultValue: 0.55, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "passThrough", label: "Pass Through", kind: "range", defaultValue: 0.45, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "cameraHold", label: "Camera Hold", kind: "range", defaultValue: 0.45, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "cameraRoll", label: "Camera Roll", kind: "range", defaultValue: 0.035, min: 0, max: 0.2, step: 0.005, updateMode: "uniform" },
+  { id: "fovBreath", label: "FOV Breath", kind: "range", defaultValue: 0.22, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "parallax", label: "Parallax", kind: "range", defaultValue: 0.55, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "spatialAmbiguity", label: "Spatial Ambiguity", kind: "range", defaultValue: 0.68, min: 0, max: 1, step: 0.02, updateMode: "rebuild" },
   { id: "foregroundIntrusion", label: "Foreground Intrusion", kind: "range", defaultValue: 1.05, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
   { id: "focusContradiction", label: "Focus Contradiction", kind: "range", defaultValue: 0.62, min: 0, max: 1, step: 0.02, updateMode: "uniform" },

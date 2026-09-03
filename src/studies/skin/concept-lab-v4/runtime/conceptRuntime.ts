@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { conceptDefinition } from "../conceptRegistry.ts";
 import { CONCEPT_DEFINITIONS } from "../conceptRegistry.ts";
 import type { ConceptInstance, PaletteColors, PaletteName } from "../conceptTypes.ts";
@@ -8,6 +9,8 @@ import { resolveConceptLabSeed } from "../seed.ts";
 import { EventScheduler } from "./eventScheduler.ts";
 import { RenderSurface, type CameraState } from "./renderSurface.ts";
 import type { VisualQualityMode } from "../visual/visualQuality.ts";
+import { CameraRuntime } from "../camera/cameraRuntime.ts";
+import type { CameraManifestState } from "../camera/cameraManifest.ts";
 
 export interface RuntimeFrame {
   readonly elapsedSeconds: number;
@@ -47,6 +50,7 @@ export class ConceptRuntime {
   private playing = true;
   private destroyed = false;
   private paletteColors: PaletteColors = V4_PALETTES.rich;
+  private cameraRuntime: CameraRuntime | null = null;
 
   constructor(artwork: HTMLElement, source: ConceptSource, onFrame: (frame: RuntimeFrame) => void) {
     this.surface = new RenderSurface(artwork, visualQuality());
@@ -68,9 +72,9 @@ export class ConceptRuntime {
     this.store = new ParameterStore([...GLOBAL_PARAMETER_DEFINITIONS, ...definition.parameters], { ...preset, ...options.initialParameters });
     this.elapsedSeconds = Math.max(0, (options.initialTimeMs ?? 0) / 1000);
     this.playing = true;
+    this.cameraRuntime = new CameraRuntime(this.surface, this.source, this.activeId, seed, this.store.snapshot());
     this.surface.camera.position.set(5.4, -8.2, 4.5);
     this.surface.camera.lookAt(0, 0.2, 0);
-    if (options.camera) this.applyCameraState(options.camera);
     this.instance = definition.create({
       source: this.source,
       scene: this.surface.scene,
@@ -83,6 +87,8 @@ export class ConceptRuntime {
       visualQuality: visualQuality(),
     });
     this.instance.applyUniformParameters(this.store.snapshot());
+    this.cameraRuntime.update(this.elapsedSeconds);
+    if (options.camera) this.applyCameraState(options.camera);
     this.emitFrame();
   }
 
@@ -103,6 +109,7 @@ export class ConceptRuntime {
     if (!definition || !this.store.set(id, value)) return false;
     this.instance?.applyUniformParameters(this.store.snapshot());
     this.surface.setFieldOfView(this.number("fieldOfView", 46));
+    this.cameraRuntime?.setParameters(this.store.snapshot());
     return definition.updateMode !== "rebuild";
   }
 
@@ -110,6 +117,7 @@ export class ConceptRuntime {
     for (const [id, value] of Object.entries(values)) this.store.set(id, value);
     this.instance?.applyUniformParameters(this.store.snapshot());
     this.surface.setFieldOfView(this.number("fieldOfView", 46));
+    this.cameraRuntime?.setParameters(this.store.snapshot());
   }
 
   remount(): void {
@@ -131,13 +139,19 @@ export class ConceptRuntime {
   setTimeScale(value: number): void { this.store.set("timeScale", value); }
 
   captureState(): { concept: string; seed: number; timeMs: number; palette: PaletteName; parameters: Record<string, ParameterValue>; camera: CameraState } {
-    return { concept: this.activeId, seed: this.activeSeed, timeMs: this.elapsedMs(), palette: this.activePalette, parameters: this.parameters(), camera: this.surface.cameraState() };
+    return { concept: this.activeId, seed: this.activeSeed, timeMs: this.elapsedMs(), palette: this.activePalette, parameters: this.parameters(), camera: this.cameraRuntime?.linkState() ?? this.surface.cameraState() };
+  }
+
+  cameraManifest(): CameraManifestState | null {
+    return this.cameraRuntime?.manifestState(this.elapsedMs()) ?? null;
   }
 
   applyCameraState(camera: CameraState): void {
     this.surface.camera.position.set(camera.x, camera.y, camera.z);
     this.surface.setFieldOfView(camera.fov);
-    this.surface.camera.lookAt(0, 0.2, 0);
+    if (camera.target) this.surface.camera.lookAt(new THREE.Vector3(camera.target[0], camera.target[1], camera.target[2]));
+    else this.surface.camera.lookAt(0, 0.2, 0);
+    if (typeof camera.roll === "number") this.surface.camera.rotateZ(camera.roll);
   }
 
   renderCapture(): void { this.surface.render(); }
@@ -167,8 +181,8 @@ export class ConceptRuntime {
     if (this.playing) this.elapsedSeconds += delta * timeScale;
     const density = this.number("eventDensity", 1);
     const pauseBias = this.number("pauseBias", 0.5);
-    this.applyCameraMotion();
     this.instance?.update({ elapsedSeconds: this.elapsedSeconds, deltaSeconds: this.playing ? delta : 0, localTime: this.elapsedSeconds, eventEnergy: this.scheduler.energy(this.elapsedSeconds, density, pauseBias), paused: !this.playing });
+    this.applyCameraMotion();
     this.surface.render();
     this.emitFrame();
     this.animationFrame = window.requestAnimationFrame(this.tick);
@@ -179,16 +193,8 @@ export class ConceptRuntime {
   }
 
   private applyCameraMotion(): void {
-    const depth = Math.max(0.5, this.number("cameraDepth", 1));
-    const drift = this.number("cameraDrift", 0.22);
-    const time = this.elapsedSeconds;
-    const scale = 1 / depth;
-    this.surface.camera.position.set(
-      5.4 * scale + Math.sin(time * 0.13) * drift,
-      -8.2 * scale + Math.cos(time * 0.11) * drift,
-      4.5 * scale + Math.sin(time * 0.17) * drift * 0.7,
-    );
-    this.surface.camera.lookAt(0, 0.2, 0);
-    this.surface.setFieldOfView(this.number("fieldOfView", 46));
+    if (!this.cameraRuntime) return;
+    const visual = this.cameraRuntime.update(this.elapsedSeconds);
+    this.instance?.applyCameraVisualState?.(visual);
   }
 }

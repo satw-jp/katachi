@@ -1,11 +1,19 @@
 import * as THREE from "three";
 import type { VisualQualityMode } from "../visual/visualQuality.ts";
+import type { CameraPose } from "../camera/cameraTypes.ts";
 
 export interface CameraState {
   readonly x: number;
   readonly y: number;
   readonly z: number;
   readonly fov: number;
+  readonly target?: readonly [number, number, number];
+  readonly roll?: number;
+  readonly focusDistance?: number;
+  readonly focusBias?: number;
+  readonly mode?: string;
+  readonly scoreId?: string;
+  readonly scoreSeed?: number;
 }
 
 export interface CaptureSurface {
@@ -58,6 +66,14 @@ export class RenderSurface {
 
   setFieldOfView(value: number): void {
     this.camera.fov = value;
+    this.camera.updateProjectionMatrix();
+  }
+
+  applyCameraPose(pose: CameraPose): void {
+    this.camera.position.copy(pose.position);
+    this.camera.fov = pose.fov;
+    this.camera.lookAt(pose.target);
+    if (Math.abs(pose.roll) > 0.0001) this.camera.rotateZ(pose.roll);
     this.camera.updateProjectionMatrix();
   }
 

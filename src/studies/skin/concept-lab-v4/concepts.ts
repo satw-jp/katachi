@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { makeSeededRandom } from "./seed.ts";
 import type { ConceptBuildContext, ConceptFrameContext, ConceptInstance } from "./conceptTypes.ts";
+import type { CameraVisualState } from "./camera/cameraTypes.ts";
 import type { ConceptEdge } from "./sourceAdapter.ts";
 import type { ParameterValue } from "./parameterStore.ts";
-import { attachQuality, createQualityOverlay, updateAttachedQuality } from "./visual/visualQuality.ts";
+import { attachQuality, createQualityOverlay, updateAttachedQuality, updateAttachedQualityCamera } from "./visual/visualQuality.ts";
 
 function numberParam(parameters: Readonly<Record<string, ParameterValue>>, id: string, fallback: number): number {
   const value = parameters[id];
@@ -90,6 +91,7 @@ class GroupInstance implements ConceptInstance {
     this.updateFn(frame, this.params);
   }
   applyUniformParameters(parameters: Readonly<Record<string, ParameterValue>>): void { Object.assign(this.params, parameters); }
+  applyCameraVisualState(state: CameraVisualState): void { updateAttachedQualityCamera(this.group, state); }
   captureState(): unknown { return { label: this.label, parameters: { ...this.params } }; }
   dispose(): void { this.group.parent?.remove(this.group); disposeObject(this.group); }
 }

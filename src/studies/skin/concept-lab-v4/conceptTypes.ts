@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { ConceptSource } from "./sourceAdapter.ts";
 import type { ParameterDefinition, ParameterValue } from "./parameterStore.ts";
+import type { CameraVisualState } from "./camera/cameraTypes.ts";
 
 export type PaletteName = "rich" | "red" | "blue" | "monochrome" | "custom";
 
@@ -43,6 +44,7 @@ export interface ConceptFrameContext {
 export interface ConceptInstance {
   update(frame: ConceptFrameContext): void;
   applyUniformParameters(parameters: Readonly<Record<string, ParameterValue>>): void;
+  applyCameraVisualState?(state: CameraVisualState): void;
   captureState(): unknown;
   dispose(): void;
 }

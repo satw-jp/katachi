@@ -145,7 +145,7 @@ function appearanceMarkup(): string {
 
 function spaceMarkup(): string {
   if (!runtime) return "";
-  const definitions = runtime.globalDefinitions().filter((definition) => ["cameraDepth", "depthSpread", "foregroundScale", "backgroundScale", "focusDisorder", "cameraDrift", "fieldOfView", "spatialAmbiguity", "foregroundIntrusion", "focusContradiction", "voidRetention", "scaleEcho", "parallaxDisorder"].includes(definition.id));
+  const definitions = runtime.globalDefinitions().filter((definition) => ["cameraDepth", "depthSpread", "foregroundScale", "backgroundScale", "focusDisorder", "cameraDrift", "fieldOfView", "spatialAmbiguity", "foregroundIntrusion", "focusContradiction", "voidRetention", "scaleEcho", "parallaxDisorder", "cameraMode", "cameraMotion", "orbit", "dolly", "targetDrift", "passThrough", "cameraHold", "cameraRoll", "fovBreath", "parallax"].includes(definition.id));
   return `${groupMarkup("SPACE", definitions)}<section class="v4-section"><div class="v4-actions"><button class="v4-button" data-action="spatial-preset" type="button">SPATIAL NORTH STAR</button></div><p class="v4-capture-note">CG-ONLY PERCEPTUAL SPACE / SOURCE ECHOES</p></section>`;
 }
 

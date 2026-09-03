@@ -4,7 +4,7 @@ import { parseConceptLabUrl, serializeConceptLabUrl } from "../urlState.ts";
 import { resolveConceptLabSeed } from "../seed.ts";
 
 test("V4 URL state round-trips fixed moment, parameters, and camera", () => {
-  const original = parseConceptLabUrl("?concept=mutual-rescue&seed=12345&t=12840&palette=blue&panel=1&p=%7B%22gravity%22%3A0.9%2C%22flag%22%3Atrue%7D&cam=%7B%22x%22%3A1%2C%22y%22%3A2%2C%22z%22%3A3%2C%22fov%22%3A46%7D", "weight-of-hesitation");
+  const original = parseConceptLabUrl("?concept=mutual-rescue&seed=12345&t=12840&palette=blue&panel=1&p=%7B%22gravity%22%3A0.9%2C%22flag%22%3Atrue%7D&cam=%7B%22x%22%3A1%2C%22y%22%3A2%2C%22z%22%3A3%2C%22fov%22%3A46%2C%22target%22%3A%5B0%2C0.2%2C0%5D%2C%22roll%22%3A0.03%2C%22mode%22%3A%22AUTO%22%2C%22scoreId%22%3A%22mutual-rescue-camera-v1%22%7D", "weight-of-hesitation");
   const encoded = serializeConceptLabUrl("https://example.test/skin-art/concepts-v4/", original);
   const restored = parseConceptLabUrl(new URL(encoded).search, "weight-of-hesitation");
   assert.equal(restored.concept, "mutual-rescue");

@@ -6,6 +6,13 @@ export interface CameraLinkState {
   readonly y: number;
   readonly z: number;
   readonly fov: number;
+  readonly target?: readonly [number, number, number];
+  readonly roll?: number;
+  readonly focusDistance?: number;
+  readonly focusBias?: number;
+  readonly mode?: string;
+  readonly scoreId?: string;
+  readonly scoreSeed?: number;
 }
 
 export interface ConceptLabUrlState {
@@ -36,7 +43,8 @@ function parseCamera(value: string | null): CameraLinkState | null {
   try {
     const camera = JSON.parse(value) as Partial<CameraLinkState>;
     if ([camera.x, camera.y, camera.z, camera.fov].every((item) => typeof item === "number" && Number.isFinite(item))) {
-      return { x: camera.x!, y: camera.y!, z: camera.z!, fov: camera.fov! };
+      const target = Array.isArray(camera.target) && camera.target.length === 3 && camera.target.every((item) => typeof item === "number" && Number.isFinite(item)) ? [camera.target[0]!, camera.target[1]!, camera.target[2]!] as const : undefined;
+      return { x: camera.x!, y: camera.y!, z: camera.z!, fov: camera.fov!, ...(target ? { target } : {}), ...(typeof camera.roll === "number" ? { roll: camera.roll } : {}), ...(typeof camera.focusDistance === "number" ? { focusDistance: camera.focusDistance } : {}), ...(typeof camera.focusBias === "number" ? { focusBias: camera.focusBias } : {}), ...(typeof camera.mode === "string" ? { mode: camera.mode } : {}), ...(typeof camera.scoreId === "string" ? { scoreId: camera.scoreId } : {}), ...(typeof camera.scoreSeed === "number" ? { scoreSeed: camera.scoreSeed } : {}) };
     }
   } catch { /* malformed URLs fall back to the live camera */ }
   return null;
