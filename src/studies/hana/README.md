@@ -33,6 +33,7 @@ Milestone 6: SOFTWARE PASS
 Milestone 7: SOFTWARE PASS
 Additional A: SOFTWARE PASS
 Additional B: SOFTWARE PASS
+Additional C: SOFTWARE PASS
 ```
 
 ## Question
@@ -132,6 +133,12 @@ SKIN production repositoryには変更を加えず、既存production behavior�
 将来のSurface上Stroke authoringに備え、projection UIを追加せず最小の`katachi.hana-surface-draw.v0` data contractだけを追加した。各anchorはsource Surface ID、ray hit position、local normal、local tangent / bitangent frame、source triangle index、barycentric position、Raw Gesture provenance、orderを保持する。anchor追加とJSON round-tripはimmutableで、Surface Meshは編集正本にならない。
 
 状態: `SOFTWARE PASS`。surface hit metadata、local frame、triangle / barycentric validation、provenance、serializationを確認済み。高度なProjection UI、raycast実装、SKIN production接続、実機Gateは`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Additional C: Silhouette / Section data contract
+
+Silhouette plane、projected view direction、2D contour、Section plane、Section curve、source Surface / Gesture provenance、point orderを保持する`katachi.hana-silhouette-section.v0` contractを追加した。representationとserialization、finite / provenance length / duplicate ID validationだけを実装し、輪郭抽出や高度なProjection UIは行わない。
+
+状態: `SOFTWARE PASS`。Silhouette / Sectionの追加、JSON round-trip、plane / contour / provenance validationを確認済み。実際のprojection・section抽出と実機確認は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 
