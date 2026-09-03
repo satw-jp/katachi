@@ -238,7 +238,7 @@ Windows workerのFinalization実行を明示的な`HanaComputeEngine` interface�
 
 AUTOのwork estimateを`hanaComputePolicy.ts`へ集約した。estimateはSmooth count、adaptive Material Sample count、bounds volume、estimated voxel count、local candidate count estimate、object / dependency countを重いField計算なしで決定論的に算出する。既存threshold（Material Samples `512`、estimated voxels `200,000`）は変更せず、軽いObjectはLocal、重いObjectはhealthyなWindows、unhealthy / unavailableまたはRemote failureはLocalへ選ぶ。直近healthを1秒cacheし、health回復後は再利用する。選択理由と最新generationのfallback理由をprogress / `lastDecision`へ記録し、古いgenerationをfallbackしない。
 
-状態: `SOFTWARE PASS`。local / windows / unavailable、health cache、選択理由、Remote failureからの安全なLocal fallback、既存short / medium / long benchmarkを確認済み。AUTOのiPad / Apple Pencil / EasyCanvas実機Gateは`IPAD REMOTE GATE PENDING`。
+状態: `SOFTWARE PASS`。local / windows / unavailable、health cache、選択理由、Remote failureからの安全なLocal fallbackを確認済み。benchmarkはshort / medium / long、Flower、Small Cluster、Multiple Objects、Surface Drawのwork estimateを出力し、short / mediumのCPU実測を任意で行う。AUTOのiPad / Apple Pencil / EasyCanvas実機Gateは`IPAD REMOTE GATE PENDING`。
 
 ### 2026-09-03 — Remote Compute v0 Milestone 12: GPU extension boundary
 

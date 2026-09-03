@@ -211,7 +211,7 @@
     },
     {
       "date": "2026-09-03",
-      "note": "Remote Compute v0 Milestone 11 centralizes deterministic AUTO policy in hanaComputePolicy.ts. Lightweight estimates include Smooth, adaptive Material Samples, bounds volume, estimated voxels, candidate estimate, object count, and dependency count; thresholds remain 512 Material Samples or 200,000 voxels. AUTO chooses Local for light or unhealthy Remote, Windows for heavy healthy work, caches recent health, reports selection reasons, and falls back to Local only for the current generation after a Remote failure. Software tests and the existing short/medium/long benchmark pass; iPad / Apple Pencil / EasyCanvas AUTO Gate remains pending."
+      "note": "Remote Compute v0 Milestone 11 centralizes deterministic AUTO policy in hanaComputePolicy.ts. Lightweight estimates include Smooth, adaptive Material Samples, bounds volume, estimated voxels, candidate estimate, object count, and dependency count; thresholds remain 512 Material Samples or 200,000 voxels. AUTO chooses Local for light or unhealthy Remote, Windows for heavy healthy work, caches recent health, reports selection reasons, and falls back to Local only for the current generation after a Remote failure. The benchmark covers short, medium, long, Flower, Small Cluster, Multiple Objects, and Surface Draw estimates, with optional short/medium CPU measurement; iPad / Apple Pencil / EasyCanvas AUTO Gate remains pending."
     },
     {
       "date": "2026-09-03",
