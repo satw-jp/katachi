@@ -31,6 +31,7 @@ Milestone 4: SOFTWARE PASS
 Milestone 5: SOFTWARE PASS
 Milestone 6: SOFTWARE PASS
 Milestone 7: SOFTWARE PASS
+Additional A: SOFTWARE PASS
 ```
 
 ## Question
@@ -118,6 +119,12 @@ SKIN production repositoryには変更を加えず、既存production behavior�
 通常のHANA URLにはHANA-localのAuthoring Study UIを追加した。`Load Study`はMeshを直接読み込まず、Raw GestureからDocument representationを生成する。`Save Study` / `Load JSON`はRaw / Control / authoring semanticsのみを扱い、`Export Bridge`はversioned semantic Bridgeを出力する。Undo / Redoはauthoring Document snapshotだけを対象とする。既存4 ViewのDraw / Edit / Surface経路とSKIN productionは変更していない。
 
 状態: `SOFTWARE PASS`。固定End-to-End fixture、save / reload、edit、Undo / Redo、Graph、Bridge、browser UI初期化、TypeScript、Vite build、consoleを確認済み。EasyCanvas / iPadでの複数Stroke Flower操作は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Additional A: Multiple Flowers / Small Cluster
+
+固定End-to-End Studyをsourceとして、3つのFlower placement、branch / junction、Flower単位のlocal Material Object、object selection、cluster save / load、Graph validation、Bridge exportを追加した。Flowerは同じauthoring Stroke provenanceを参照する配置として保持し、local registryはStroke 7個 + Flower 3個の10 objectを置換管理する。cluster JSONはRaw / Control / Flower / Graph / selectionだけを保存し、derived Material ObjectやSurfaceを保存しない。巨大Bouquetやglobal field unionには進んでいない。
+
+状態: `SOFTWARE PASS`。3 Flower、15 petal edge、3 connector branch、local registry、selection、semantic save / load、Bridgeを確認済み。複数FlowerのEasyCanvas実機操作は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 
