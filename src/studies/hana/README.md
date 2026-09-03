@@ -75,6 +75,12 @@ Soft EditにはControl Point indexではなくworld-space arc-lengthの影響半
 
 状態: `SOFTWARE PASS`。旧HANA-2A回帰、JSON migration / round-trip、arc-length密度比較、TypeScriptを確認済み。複数Strokeの実機操作は`HARDWARE RECHECK PENDING`として後続Gateに残す。
 
+### 2026-09-03 — Milestone 2: Gesture Material Mapping
+
+Raw Gestureのpressureとtime / distanceから、arc-lengthで参照できるderived Gesture Channelを生成する`gestureMaterial.ts`を追加した。zero / tiny delta time、重複点、外れ値を決定論的に扱い、pressure / speedを平滑化しつつsource point provenanceを保持する。Uniform、Pressure、Speed、Pressure + Speedの4 modeを実装し、base / min / max radiusと各influenceを設定可能にした。
+
+Mapping設定はauthoring Strokeへ保存できるが、Material Profile、dense radius列、Live Proxy、Field、Surfaceは保存しない。UniformはHANA-2Aの一定radiusと一致し、Live用profileには明示的な上限を設け、Final用profileの密度と分離する。状態: `SOFTWARE PASS`。実機でのpressure / speed表現確認は`HARDWARE RECHECK PENDING`として後続Gateに残す。
+
 ## Observation
 
 ### 2026-09-01 — HANA-1A implementation start
