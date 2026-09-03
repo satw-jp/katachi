@@ -204,6 +204,18 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 9 isolates the Windows worker behind the explicit HanaComputeEngine interface. CpuJsHanaComputeEngine is the only v0 implementation (hana-cpu-js-v0); its fixed capabilities are binaryMesh=true, cancellation=true, objectLevelFinalization=true, and gpu=false. Engine results match the shared Finalization Core, while GPU / WebGPU / CUDA implementation remains out of scope. Software milestones pass; iPad Pro / Apple Pencil / EasyCanvas Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 10 completes object-level Finalization on top of existing Authoring Document identity and revision. Dirty dependency resolution separates direct, dependent, and independent clean objects; same-object jobs carry documentRevision, objectRevision, snapshot generation as objectGenerationId, and algorithmVersion; coordinator cancellation is same-object only, priority is active/visible/background, and result application requires all identity fields to match. Presentation-only object results never become Authoring Document or Mesh authority. Software tests pass; multi-object iPad Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 11 centralizes deterministic AUTO policy in hanaComputePolicy.ts. Lightweight estimates include Smooth, adaptive Material Samples, bounds volume, estimated voxels, candidate estimate, object count, and dependency count; thresholds remain 512 Material Samples or 200,000 voxels. AUTO chooses Local for light or unhealthy Remote, Windows for heavy healthy work, caches recent health, reports selection reasons, and falls back to Local only for the current generation after a Remote failure. Software tests and the existing short/medium/long benchmark pass; iPad / Apple Pencil / EasyCanvas AUTO Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 12 formalizes the versioned hana-compute-capability.v0 CPU-only engine boundary: engineId, algorithmVersion, executionKind, gpu, cancellation/object-level support, and supported snapshot/protocol versions. Only CpuJsHanaComputeEngine (cpu-js-v0) is registered; unknown engine IDs are rejected explicitly, and compatibility is checked before computation and when applying results. No CUDA, WebGPU, DirectCompute, Vulkan, or GPU server is implemented. Software Gate passes; iPad Remote Gate remains pending."
     }
   ]
 }

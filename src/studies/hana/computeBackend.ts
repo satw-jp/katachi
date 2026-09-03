@@ -8,6 +8,13 @@ import {
   decodeHanaFinalizationResult,
   serializeHanaFinalizationRequest,
 } from "./computeProtocol.ts";
+import {
+  chooseHanaAutoCompute,
+  type HanaAutoComputeDecision,
+} from "./hanaComputePolicy.ts";
+
+export { HANA_AUTO_THRESHOLDS, estimateHanaComputeWork } from "./hanaComputePolicy.ts";
+export type { HanaComputeWorkEstimate } from "./hanaComputePolicy.ts";
 
 export type HanaComputeMode = "local" | "windows" | "auto";
 
@@ -220,71 +227,63 @@ export class WindowsWithLocalFallbackBackend implements HanaComputeBackend {
   }
 }
 
-export interface HanaComputeWorkEstimate {
-  controls: number;
-  smooth: number;
-  materialSamples: number;
-  estimatedVoxels: number;
-}
-
-export const HANA_AUTO_THRESHOLDS = {
-  materialSamplesForWindows: 512,
-  estimatedVoxelsForWindows: 200_000,
-} as const;
-
-export function estimateHanaComputeWork(snapshot: HanaFinalizationSnapshotV0): HanaComputeWorkEstimate {
-  const smooth = snapshot.controls.length <= 1
-    ? snapshot.controls.length
-    : (snapshot.controls.length - 1) * Math.max(1, Math.trunc(snapshot.curveSettings.samplesPerSegment)) + 1;
-  let length = 0;
-  for (let index = 1; index < snapshot.controls.length; index += 1) {
-    const from = snapshot.controls[index - 1].position;
-    const to = snapshot.controls[index].position;
-    length += Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
-  }
-  const radius = Math.max(Number.EPSILON, snapshot.materialSettings.baseRadius);
-  const materialSamples = snapshot.controls.length === 0 ? 0 : Math.max(2, Math.ceil(length / radius) + 1);
-  const longest = Math.max(radius * 2, length + radius * 2);
-  const resolution = Math.max(48, Math.ceil(longest / Math.max(radius * 0.9, Number.EPSILON)));
-  const estimatedVoxels = (resolution + 1) ** 3;
-  return { controls: snapshot.controls.length, smooth, materialSamples, estimatedVoxels };
-}
-
 export interface AutoHanaComputeBackendOptions {
-  windows: WindowsHanaComputeBackend;
+  windows: HanaAutoRemoteBackend;
   local?: LocalHanaComputeBackend;
+  healthCacheMilliseconds?: number;
+}
+
+export interface HanaAutoRemoteBackend extends HanaComputeBackend {
+  readonly strict: boolean;
 }
 
 export class AutoHanaComputeBackend implements HanaComputeBackend {
   readonly id = "auto";
   readonly capabilities = HANA_COMPUTE_CAPABILITIES;
   private readonly local: LocalHanaComputeBackend;
-  private readonly windows: WindowsHanaComputeBackend;
+  private readonly windows: HanaAutoRemoteBackend;
+  private readonly healthCacheMilliseconds: number;
+  private cachedHealth: { value: HanaComputeHealth; checkedAt: number } | null = null;
+  lastDecision: HanaAutoComputeDecision | null = null;
 
   constructor(options: AutoHanaComputeBackendOptions) {
     this.local = options.local ?? new LocalHanaComputeBackend();
     this.windows = options.windows;
+    this.healthCacheMilliseconds = Math.max(0, Math.trunc(options.healthCacheMilliseconds ?? 1_000));
+  }
+
+  private async recentHealth(): Promise<HanaComputeHealth> {
+    const now = Date.now();
+    if (this.cachedHealth && now - this.cachedHealth.checkedAt <= this.healthCacheMilliseconds) return this.cachedHealth.value;
+    const value = await this.windows.healthCheck();
+    this.cachedHealth = { value, checkedAt: Date.now() };
+    return value;
   }
 
   async healthCheck(): Promise<HanaComputeHealth> {
-    return this.windows.healthCheck();
-  }
-
-  private shouldUseWindows(snapshot: HanaFinalizationSnapshotV0, health: HanaComputeHealth): boolean {
-    const estimate = estimateHanaComputeWork(snapshot);
-    return health.status === "ready"
-      && (estimate.materialSamples >= HANA_AUTO_THRESHOLDS.materialSamplesForWindows
-        || estimate.estimatedVoxels >= HANA_AUTO_THRESHOLDS.estimatedVoxelsForWindows);
+    return this.recentHealth();
   }
 
   async finalize(snapshot: HanaFinalizationSnapshotV0, options: HanaComputeFinalizeOptions): Promise<HanaFinalizationResultV0> {
-    const health = await this.windows.healthCheck();
-    if (!this.shouldUseWindows(snapshot, health)) return this.local.finalize(snapshot, options);
+    const health = await this.recentHealth();
+    const decision = chooseHanaAutoCompute(snapshot, health);
+    this.lastDecision = decision;
+    options.onProgress?.({
+      phase: decision.choice === "windows" ? "remote" : "local",
+      stage: decision.reason,
+      fraction: 0,
+    });
+    if (decision.choice === "local") return this.local.finalize(snapshot, options);
     try {
       return await this.windows.finalize(snapshot, options);
     } catch (error) {
       if (this.windows.strict) throw error;
-      options.onProgress?.({ phase: "fallback", stage: error instanceof Error ? error.message : "remote failure", fraction: 0 });
+      const reason = error instanceof Error ? error.message : "remote failure";
+      options.onProgress?.({ phase: "fallback", stage: `AUTO fallback LOCAL · reason: ${reason}`, fraction: 0 });
+      this.cachedHealth = {
+        value: { ...health, status: "error", reason },
+        checkedAt: Date.now(),
+      };
       return this.local.finalize(snapshot, options);
     }
   }

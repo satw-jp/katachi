@@ -55,6 +55,9 @@ Milestone 6: SOFTWARE PASS
 Milestone 7: SOFTWARE PASS
 Milestone 8: SOFTWARE PASS
 Milestone 9: SOFTWARE PASS
+Milestone 10: SOFTWARE PASS
+Milestone 11: SOFTWARE PASS
+Milestone 12: SOFTWARE PASS
 ```
 
 LAN launcher default: `npm run dev:hana:lan`
@@ -224,6 +227,24 @@ AUTO modeはRemote healthが`ready`のときだけ、Material Sample数 `512`以
 ### 2026-09-03 — Remote Compute v0 Milestone 9: CPU engine boundary
 
 Windows workerのFinalization実行を明示的な`HanaComputeEngine` interfaceへ接続した。v0の実体は`CpuJsHanaComputeEngine`（`hana-cpu-js-v0`）だけで、capabilityは`binaryMesh: true`、`cancellation: true`、`objectLevelFinalization: true`、`gpu: false`を固定する。将来のGPU engineを追加できる境界だけを用意し、GPU実装、WebGPU、CUDA、native iPadへの展開は行わない。engine経由の結果がshared Finalization Coreとbyte/value単位で一致することをテストした。Remote Compute v0のsoftware milestonesは完了し、iPad Pro / Apple Pencil / EasyCanvasでの実機Remote Gateは引き続き`IPAD REMOTE GATE PENDING`とする。
+
+### 2026-09-03 — Remote Compute v0 Milestone 10: object-level finalization
+
+既存のAuthoring Document identity / revisionを使い、Object単位のRemote jobを対象選択できるようにした。`HanaRemoteObjectCoordinator`はObjectごとに`documentRevision`、`objectRevision`、`objectGenerationId`（snapshotの`generationId`）、`algorithmVersion`を照合し、同一Objectの古いjobだけをcancelする。active / visible / background priorityとbounded concurrencyを維持し、別Objectのjobは継続する。`deriveHanaRemoteObjectDirtySet`はdirect dirty、依存Objectのdependent dirty、無関係なcleanを分離し、`HanaRemoteObjectResultRegistry`は全identity一致時だけpresentation-only resultを適用する。Authoring Document、Raw Gesture、Mesh authorityの境界は変更しない。
+
+状態: `SOFTWARE PASS`。Stem / Connector / Flower依存、Petal / Surface Drawを含む独立Object fixture、同一Objectのstale拒否、A/B並列cancel、derived result独立適用をテスト済み。複数ObjectのiPad Remote Gateは`IPAD REMOTE GATE PENDING`。
+
+### 2026-09-03 — Remote Compute v0 Milestone 11: Auto mode
+
+AUTOのwork estimateを`hanaComputePolicy.ts`へ集約した。estimateはSmooth count、adaptive Material Sample count、bounds volume、estimated voxel count、local candidate count estimate、object / dependency countを重いField計算なしで決定論的に算出する。既存threshold（Material Samples `512`、estimated voxels `200,000`）は変更せず、軽いObjectはLocal、重いObjectはhealthyなWindows、unhealthy / unavailableまたはRemote failureはLocalへ選ぶ。直近healthを1秒cacheし、health回復後は再利用する。選択理由と最新generationのfallback理由をprogress / `lastDecision`へ記録し、古いgenerationをfallbackしない。
+
+状態: `SOFTWARE PASS`。local / windows / unavailable、health cache、選択理由、Remote failureからの安全なLocal fallback、既存short / medium / long benchmarkを確認済み。AUTOのiPad / Apple Pencil / EasyCanvas実機Gateは`IPAD REMOTE GATE PENDING`。
+
+### 2026-09-03 — Remote Compute v0 Milestone 12: GPU extension boundary
+
+`katachi.hana-compute-capability.v0`として、`engineId`、`algorithmVersion`、`executionKind`、`gpu`、cancel / object-level対応、supported snapshot / protocol versionを持つcapability contractを固定する。現在registryへ登録するengineは`cpu-js-v0`の`CpuJsHanaComputeEngine`だけで、未知engine IDは明示的に拒否する。Local / Windowsは同じPure Finalization Coreを使い、snapshot / protocol / algorithm compatibilityを事前およびresult適用時に確認する。CUDA、WebGPU、DirectCompute、Vulkan、GPU serverは実装していない。
+
+状態: `SOFTWARE PASS`。engine capability、registry生成、未知engine拒否、version compatibility、Local / Windows numerical parityを確認済み。実機は`IPAD REMOTE GATE PENDING`。
 
 ## Observation
 
