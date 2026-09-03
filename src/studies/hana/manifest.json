@@ -200,6 +200,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 8 documents and benchmarks AUTO policy. Short / medium / long deterministic fixtures expose controls, smooth, adaptive Material Samples, estimated voxels, and the documented Local versus Windows recommendation; optional --compute measures CPU Finalization without reducing fidelity. AUTO still requires a ready Remote health check and falls back to Local unless computeStrict=1. GPU remains false and iPad / EasyCanvas verification is pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 9 isolates the Windows worker behind the explicit HanaComputeEngine interface. CpuJsHanaComputeEngine is the only v0 implementation (hana-cpu-js-v0); its fixed capabilities are binaryMesh=true, cancellation=true, objectLevelFinalization=true, and gpu=false. Engine results match the shared Finalization Core, while GPU / WebGPU / CUDA implementation remains out of scope. Software milestones pass; iPad Pro / Apple Pencil / EasyCanvas Remote Gate remains pending."
     }
   ]
 }

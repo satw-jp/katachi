@@ -1,13 +1,14 @@
 import { parentPort } from "node:worker_threads";
 import {
-  computeHanaFinalization,
   parseHanaFinalizationSnapshot,
 } from "../../src/studies/hana/finalizationCore.ts";
 import { encodeHanaFinalizationResult } from "../../src/studies/hana/computeProtocol.ts";
+import { CpuJsHanaComputeEngine } from "../../src/studies/hana/computeEngine.ts";
 
 if (!parentPort) throw new Error("HANA compute worker requires parentPort");
 
 const cancelled = new Set();
+const engine = new CpuJsHanaComputeEngine();
 
 parentPort.on("message", async (message) => {
   if (message?.type === "cancel") {
@@ -18,7 +19,7 @@ parentPort.on("message", async (message) => {
   const requestId = message.requestId;
   try {
     const snapshot = parseHanaFinalizationSnapshot(message.snapshot);
-    const result = await computeHanaFinalization(snapshot, {
+    const result = await engine.finalize(snapshot, {
       isCancelled: () => cancelled.has(requestId),
     });
     if (cancelled.has(requestId)) {

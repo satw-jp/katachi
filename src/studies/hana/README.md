@@ -40,7 +40,7 @@ Additional D: SOFTWARE PASS
 ## Remote Compute v0 status
 
 ```yaml
-Status: SOFTWARE IN PROGRESS
+Status: SOFTWARE PASS
 IPAD REMOTE GATE: PENDING
 Branch: agent/hana-remote-compute-v0
 Base: 0cbb70f40b0e36db69f44c74e67dff6105c55682
@@ -53,6 +53,8 @@ Milestone 4: SOFTWARE PASS
 Milestone 5: SOFTWARE PASS
 Milestone 6: SOFTWARE PASS
 Milestone 7: SOFTWARE PASS
+Milestone 8: SOFTWARE PASS
+Milestone 9: SOFTWARE PASS
 ```
 
 LAN launcher default: `npm run dev:hana:lan`
@@ -218,6 +220,10 @@ Remote結果はbinary typed-arrayを受け取り、identity / generation / valid
 AUTO modeはRemote healthが`ready`のときだけ、Material Sample数 `512`以上または推定voxel数 `200,000`以上のFinalizationをWindowsへ候補化する。それ以外はLocalを使い、Remote失敗はLocalへfallbackする。`computeStrict=1`ではfallbackしない。`npm run benchmark:hana:remote`はshort / medium / longのwork estimateと選択候補を決定論的に表示し、`--compute`を付けた場合だけshort / mediumのCPU実測を追加する。Final geometryのdensityやShape Fidelityをbenchmarkのために下げない。
 
 状態: `SOFTWARE PASS`。AUTO threshold、短中長fixture、deterministic recommendation、optional CPU measurement、GPU falseを確認済み。実Windows CPU負荷、LAN、iPad / Apple Pencil / EasyCanvasのAUTO Gateは`IPAD REMOTE GATE PENDING`。
+
+### 2026-09-03 — Remote Compute v0 Milestone 9: CPU engine boundary
+
+Windows workerのFinalization実行を明示的な`HanaComputeEngine` interfaceへ接続した。v0の実体は`CpuJsHanaComputeEngine`（`hana-cpu-js-v0`）だけで、capabilityは`binaryMesh: true`、`cancellation: true`、`objectLevelFinalization: true`、`gpu: false`を固定する。将来のGPU engineを追加できる境界だけを用意し、GPU実装、WebGPU、CUDA、native iPadへの展開は行わない。engine経由の結果がshared Finalization Coreとbyte/value単位で一致することをテストした。Remote Compute v0のsoftware milestonesは完了し、iPad Pro / Apple Pencil / EasyCanvasでの実機Remote Gateは引き続き`IPAD REMOTE GATE PENDING`とする。
 
 ## Observation
 
