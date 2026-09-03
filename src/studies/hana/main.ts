@@ -89,7 +89,20 @@ import {
   type HanaRendererResourceStats,
   type HanaRendererSurfaceUpdateStats,
 } from "./viewportRenderer.ts";
+import {
+  createHanaComputeBackend,
+  type HanaComputeBackend,
+  type HanaComputeMode,
+} from "./computeBackend.ts";
+import {
+  createHanaFinalizationSnapshot,
+  finalizationResultToTriangles,
+  type HanaFinalizationResultV0,
+  type HanaFinalizationSnapshotV0,
+} from "./finalizationCore.ts";
+import { buildMeshResultFromTriangles } from "../cloud-sculpt/meshExport.ts";
 import { initializeHanaAuthoringStackUi } from "./authoringStackUi.ts";
+import { defaultHanaMaterialSettings } from "./authoringDocument.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -148,6 +161,15 @@ app.innerHTML = `
           <span class="hana-smooth-bound">${HANA_THICKNESS_MAX.toFixed(2)}</span>
           <output id="thickness-value" for="thickness-control">${HANA_THICKNESS_DEFAULT.toFixed(2)}</output>
         </label>
+        <div class="hana-compute-control" aria-label="Finalization compute backend">
+          <span>Compute</span>
+          <div class="hana-segmented">
+            <button type="button" data-compute-mode="local" aria-pressed="true">LOCAL</button>
+            <button type="button" data-compute-mode="windows" aria-pressed="false">WINDOWS</button>
+            <button type="button" data-compute-mode="auto" aria-pressed="false">AUTO</button>
+          </div>
+          <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
+        </div>
         <button id="rebuild-surface" class="hana-secondary" type="button">Rebuild Surface</button>
         <span id="surface-state" class="hana-surface-state" role="status">NOT BUILT</span>
         <button id="clear-document" type="button">Clear</button>
@@ -201,6 +223,7 @@ app.innerHTML = `
         <div><dt>soft / affected</dt><dd id="debug-soft">MEDIUM / 0</dd></div>
         <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
         <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
+        <div><dt>compute</dt><dd id="debug-compute">LOCAL · READY</dd></div>
       </dl>
       <p id="input-state">READY · Draw one Stroke in Front, Right, or Top</p>
     </footer>
@@ -237,6 +260,8 @@ const thicknessSlider = requiredElement<HTMLInputElement>("#thickness-control");
 const thicknessValue = requiredElement<HTMLOutputElement>("#thickness-value");
 const rebuildSurfaceButton = requiredElement<HTMLButtonElement>("#rebuild-surface");
 const surfaceState = requiredElement<HTMLElement>("#surface-state");
+const computeModeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-compute-mode]"));
+const computeStatus = requiredElement<HTMLElement>("#compute-status");
 
 const renderer = new HanaViewportRenderer(sceneCanvas, HANA_VIEW_DIRECTIONS);
 const gestureContext = gestureCanvas.getContext("2d") ?? (() => {
@@ -534,6 +559,26 @@ let finalizeReason = "—";
 let activeFinalization: HanaFinalizationTrace | null = null;
 let finalizationHistory: HanaFinalizationTrace[] = [];
 let uploadOnlyMeshCache: HanaPreviewSurface | null = null;
+const computeStrictRemote = new URLSearchParams(window.location.search).get("computeStrict") === "1";
+const computeDocumentId = "hana-browser-document-v0";
+
+function initialComputeMode(): HanaComputeMode {
+  const query = new URLSearchParams(window.location.search).get("compute");
+  if (query === "local" || query === "windows" || query === "auto") return query;
+  try {
+    const stored = window.localStorage.getItem("hana-compute-mode-v0");
+    if (stored === "local" || stored === "windows" || stored === "auto") return stored;
+  } catch {
+    // Storage is optional; Local is always the safe default.
+  }
+  return "local";
+}
+
+let computeMode: HanaComputeMode = initialComputeMode();
+let computeBackend: HanaComputeBackend = createHanaComputeBackend(computeMode, { strict: computeStrictRemote });
+let computeStatusText = computeMode === "local" ? "LOCAL · READY" : `${computeMode.toUpperCase()} · CHECKING`;
+let computeAbortController: AbortController | null = null;
+let computeSnapshot: HanaFinalizationSnapshotV0 | null = null;
 
 interface HanaPointerupStageTimings {
   rawFinalization: number;
@@ -582,6 +627,40 @@ function canvasPoint(event: { clientX: number; clientY: number }): { x: number; 
 function setDebugText(id: string, value: string): void {
   const element = document.getElementById(id);
   if (element) element.textContent = value;
+}
+
+function updateComputeUI(): void {
+  for (const button of computeModeButtons) {
+    const active = button.dataset.computeMode === computeMode;
+    button.setAttribute("aria-pressed", String(active));
+  }
+  computeStatus.textContent = computeStatusText;
+  setDebugText("debug-compute", computeStatusText);
+  workspace.dataset.computeMode = computeMode;
+  workspace.dataset.computeStatus = computeStatusText;
+}
+
+function setComputeStatus(status: string): void {
+  computeStatusText = status;
+  updateComputeUI();
+}
+
+async function refreshComputeHealth(): Promise<void> {
+  const backendAtRequest = computeBackend;
+  if (computeMode === "local") {
+    setComputeStatus("LOCAL · READY");
+    return;
+  }
+  setComputeStatus(`${computeMode.toUpperCase()} · CHECKING`);
+  const health = await backendAtRequest.healthCheck();
+  if (backendAtRequest !== computeBackend) return;
+  if (health.status === "ready") {
+    setComputeStatus(`${computeMode.toUpperCase()} · READY · W${health.workerCount}`);
+  } else if (computeMode === "auto") {
+    setComputeStatus(`AUTO · LOCAL FALLBACK · ${health.status.toUpperCase()}`);
+  } else {
+    setComputeStatus(`WINDOWS · ${health.status.toUpperCase()}`);
+  }
 }
 
 function rawSignature(): string {
@@ -778,6 +857,9 @@ function recordStaleFinalization(trace: HanaFinalizationTrace, reason: string): 
 function cancelPendingFinalizationForEdit(): void {
   const pending = activeFinalization;
   if (!pending || pending.status !== "pending") return;
+  const snapshot = computeSnapshot;
+  computeAbortController?.abort();
+  if (snapshot && computeBackend.cancel) void computeBackend.cancel(snapshot);
   recordStaleFinalization(pending, "cancelled-by-new-edit");
   finalizationState = "EDITING";
 }
@@ -1209,6 +1291,7 @@ function updateSurfaceUI(): void {
   const geometry = editGeometrySnapshot();
   const renderStats = renderer.renderStats();
   const presentation = renderer.presentationStats();
+  updateComputeUI();
   surfaceState.textContent = state;
   surfaceState.dataset.state = state.toLowerCase().replace(" ", "-");
   rebuildSurfaceButton.disabled = !stroke3D || materialSamples.length === 0;
@@ -2673,6 +2756,33 @@ smoothnessSlider.addEventListener("input", () => {
   setSmoothness(Number(smoothnessSlider.value));
 });
 
+function setComputeMode(mode: HanaComputeMode): void {
+  if (mode === computeMode) {
+    void refreshComputeHealth();
+    return;
+  }
+  cancelPendingFinalizationForEdit();
+  computeMode = mode;
+  computeBackend = createHanaComputeBackend(computeMode, { strict: computeStrictRemote });
+  try {
+    window.localStorage.setItem("hana-compute-mode-v0", computeMode);
+  } catch {
+    // Persisting the preference is optional.
+  }
+  setComputeStatus(computeMode === "local" ? "LOCAL · READY" : `${computeMode.toUpperCase()} · CHECKING`);
+  if (stroke3D && showSurface && materialSamples.length > 0) {
+    requestAuthoritativeSurfaceRebuild("compute-mode-change", false);
+  }
+  void refreshComputeHealth();
+}
+
+for (const button of computeModeButtons) {
+  button.addEventListener("click", () => {
+    const mode = button.dataset.computeMode;
+    if (mode === "local" || mode === "windows" || mode === "auto") setComputeMode(mode);
+  });
+}
+
 function updateDisplayUI(): void {
   const updateToggle = (button: HTMLButtonElement, label: string, enabled: boolean) => {
     button.setAttribute("aria-pressed", String(enabled));
@@ -2717,7 +2827,195 @@ function restoreDiagnosticFinalProxy(): void {
   renderScene();
 }
 
+function updateRemotePointerupTimings(result: HanaFinalizationResultV0): void {
+  const timings = pendingPointerupStageTimings ?? lastPointerupStageTimings;
+  if (!timings) return;
+  timings.smoothCenterline = result.timings.smoothCenterline;
+  timings.materialSamples = result.timings.materialSamples;
+  timings.fieldPreparation = result.timings.fieldPreparation;
+  timings.effectiveResolution = result.timings.effectiveResolution;
+  timings.meshGeneration = result.timings.meshGeneration;
+  timings.componentValidation = result.timings.validation;
+  timings.smoothCount = result.counts.smooth;
+  timings.materialCount = result.counts.materialSamples;
+  timings.effectiveResolutionValue = result.counts.effectiveResolution;
+  timings.triangleCount = result.counts.triangles;
+  timings.componentCount = result.counts.components;
+  timings.fieldCandidateEvaluationCount = result.counts.candidates;
+  timings.fieldQueryCount = result.counts.voxels;
+}
+
+function remoteResultToSurface(result: HanaFinalizationResultV0): HanaPreviewSurface {
+  return buildMeshResultFromTriangles(finalizationResultToTriangles(result), 1);
+}
+
+function updateRemoteFinalizationTrace(
+  trace: HanaFinalizationTrace,
+  result: HanaFinalizationResultV0,
+  rendererSurface: HanaRendererSurfaceUpdateStats | null,
+): void {
+  const previous = trace.counts;
+  trace.counts = {
+    ...previous,
+    rawCount: rawGestures[0]?.points.length ?? 0,
+    controlCount: result.counts.controls,
+    smoothCount: result.counts.smooth,
+    materialSampleCount: result.counts.materialSamples,
+    voxelCount: result.counts.voxels,
+    kdTreeCandidateCount: result.counts.candidates,
+    effectiveResolution: result.counts.effectiveResolution,
+    triangleCount: result.counts.triangles,
+    componentCount: result.counts.components,
+    positionBufferBytes: rendererSurface?.positionBufferBytes ?? 0,
+    normalBufferBytes: rendererSurface?.normalBufferBytes ?? 0,
+    indexBufferBytes: rendererSurface?.indexBufferBytes ?? 0,
+    fieldBufferBytes: result.counts.materialSamples * 40,
+    kdTreeNodeBytes: result.counts.materialSamples * 32,
+    remoteFinalization: 1,
+    remoteVoxelCount: result.counts.voxels,
+    remoteCandidateCount: result.counts.candidates,
+  };
+}
+
+async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void> {
+  if (!stroke3D) return;
+  const started = performance.now();
+  const snapshot = createHanaFinalizationSnapshot({
+    requestId: `hana-${trace.finalRequestId}-${trace.finalGenerationId}`,
+    documentId: computeDocumentId,
+    documentRevision: trace.documentRevision,
+    objectRevision: trace.finalGenerationId,
+    generationId: trace.finalGenerationId,
+    stroke: stroke3D,
+    materialSettings: defaultHanaMaterialSettings(thickness),
+  });
+  const abortController = new AbortController();
+  computeAbortController = abortController;
+  computeSnapshot = snapshot;
+  transitionFinalization(trace, "FINAL_BUILDING", started);
+  setFinalizationStage(trace, "requestToBuildStart", Math.max(0, started - (trace.timestamps.tPointerUp ?? started)));
+  setComputeStatus(`${computeMode.toUpperCase()} · COMPUTING`);
+  stateMessage = `${computeMode.toUpperCase()} FINALIZING · preview active`;
+  updateSurfaceUI();
+  updateDebug();
+  try {
+    const result = await computeBackend.finalize(snapshot, {
+      signal: abortController.signal,
+      onProgress: (progress) => {
+        if (isCurrentFinalization(trace)) {
+          setComputeStatus(`${computeMode.toUpperCase()} · ${progress.stage.toUpperCase()}`);
+        }
+      },
+    });
+    if (!isCurrentFinalization(trace)) {
+      recordStaleFinalization(trace, "stale-remote-generation");
+      return;
+    }
+    if (!result.validation.finite || !result.validation.nonEmpty) {
+      throw new Error(`Remote Finalization validation failed: ${result.validation.errors.join(", ") || "invalid result"}`);
+    }
+    const built = remoteResultToSurface(result);
+    const cpuReady = performance.now();
+    transitionFinalization(trace, "FINAL_CPU_READY", cpuReady);
+    trace.timestamps.tMeshReady = cpuReady;
+    trace.counts.heapAfterCpuBuildBytes = heapUsedBytes();
+    setFinalizationStage(trace, "smoothCenterline", result.timings.smoothCenterline);
+    setFinalizationStage(trace, "materialSamples", result.timings.materialSamples);
+    setFinalizationStage(trace, "fieldPreparation", result.timings.fieldPreparation);
+    setFinalizationStage(trace, "effectiveResolution", result.timings.effectiveResolution);
+    setFinalizationStage(trace, "fieldEvaluationAndMeshing", result.timings.meshGeneration);
+    setFinalizationStage(trace, "meshing", result.timings.meshGeneration);
+    setFinalizationStage(trace, "componentValidation", result.timings.validation);
+    updateRemotePointerupTimings(result);
+    lastCompletedGenerationId = trace.finalGenerationId;
+    const geometryStarted = performance.now();
+    const triangles = built.triangles;
+    renderer.setPreviewSurface(triangles);
+    const rendererSurface = renderer.surfaceUpdateStats();
+    const geometryReady = performance.now();
+    trace.timestamps.tGeometryReady = geometryReady;
+    setFinalizationStage(trace, "bufferGeometry", rendererSurface.bufferGeometryMilliseconds);
+    setFinalizationStage(trace, "bufferAttributes", rendererSurface.bufferAttributeMilliseconds);
+    setFinalizationStage(trace, "geometryPreparation", geometryReady - geometryStarted);
+    updateRemoteFinalizationTrace(trace, result, rendererSurface);
+    trace.counts.heapAfterCpuBuildBytes ??= heapUsedBytes();
+    trace.counts.meshPositionBytes = rendererSurface.positionBufferBytes;
+    trace.counts.meshNormalBytes = rendererSurface.normalBufferBytes;
+    trace.counts.meshIndexBytes = rendererSurface.indexBufferBytes;
+    previewSurface = built;
+    surfaceBuildSource = "authoritative";
+    surfaceBuildSignature = materializationSignature();
+    surfaceBuildMilliseconds = performance.now() - started;
+    surfaceDiagnostics = null;
+    surfaceFieldEvaluationStats = null;
+    const uploadSubmitted = performance.now();
+    transitionFinalization(trace, "FINAL_UPLOAD_SUBMITTED", uploadSubmitted);
+    trace.timestamps.tUploadSubmitted = uploadSubmitted;
+    trace.counts.finalRequests = 1;
+    trace.counts.finalStarts = 1;
+    trace.counts.finalCpuCompletions = 1;
+    trace.counts.finalUploadSubmissions = 1;
+    trace.counts.finalSurfaceApplies = 0;
+    trace.counts.staleResultDiscards = 0;
+    trace.counts.heapAfterUploadBytes = heapUsedBytes();
+    setFinalizationStage(trace, "uploadSubmission", uploadSubmitted - geometryReady);
+    updateSurfaceUI();
+    const renderStarted = performance.now();
+    renderScene();
+    const firstRender = performance.now();
+    trace.timestamps.tFirstRender = firstRender;
+    setFinalizationStage(trace, "renderSubmission", firstRender - renderStarted);
+    setFinalizationStage(trace, "geometryReadyToFirstRender", firstRender - geometryReady);
+    window.requestAnimationFrame(() => {
+      if (!isCurrentFinalization(trace)) {
+        recordStaleFinalization(trace, "stale-remote-generation");
+        return;
+      }
+      renderer.setMaterialProxy(null);
+      workspace.dataset.materialProxySegmentCount = "0";
+      trace.timestamps.tNextRAF = performance.now();
+      transitionFinalization(trace, "FINAL_PRESENTED", performance.now());
+      trace.timestamps.tReady = performance.now();
+      trace.status = "completed";
+      lastAppliedGenerationId = trace.finalGenerationId;
+      trace.counts.finalSurfaceApplies = 1;
+      trace.counts.heapAfterUploadBytes ??= heapUsedBytes();
+      lastFinalReadyTimestamp = trace.timestamps.tReady;
+      stateMessage = `SURFACE READY · ${result.counts.triangles} triangles · ${surfaceBuildMilliseconds?.toFixed(1) ?? "—"} ms`;
+      setComputeStatus(`${computeMode.toUpperCase()} · READY`);
+      renderScene();
+      recordFinalization(trace);
+      scheduleFinalizationHeapSamples(trace);
+      updateSurfaceUI();
+      redrawOverlay();
+      updateDebug();
+    });
+  } catch (error) {
+    if (!isCurrentFinalization(trace)) return;
+    if (error instanceof DOMException && error.name === "AbortError") {
+      recordStaleFinalization(trace, "cancelled-remote-generation");
+      return;
+    }
+    trace.status = "failed";
+    trace.error = error instanceof Error ? error.message : "Remote Finalization failed";
+    trace.timestamps.tReady = performance.now();
+    finalizationState = "IDLE";
+    setComputeStatus(`${computeMode.toUpperCase()} · ERROR`);
+    stateMessage = `SURFACE ERROR · ${trace.error}`;
+    recordFinalization(trace);
+    updateSurfaceUI();
+    updateDebug();
+  } finally {
+    if (computeAbortController === abortController) computeAbortController = null;
+    if (computeSnapshot === snapshot) computeSnapshot = null;
+  }
+}
+
 function runAuthoritativeFinalization(trace: HanaFinalizationTrace): void {
+  if (computeMode !== "local" && trace.finalProfile === "normal") {
+    void runRemoteFinalization(trace);
+    return;
+  }
   stateMessage = "FINALIZING SURFACE · preview active";
   renderScene();
   updateSurfaceUI();
@@ -3054,6 +3352,7 @@ thicknessSlider.addEventListener("change", finalizeSurfaceParameterChange);
 rebuildSurfaceButton.addEventListener("click", () => requestAuthoritativeSurfaceRebuild("manual-rebuild", false));
 
 clearButton.addEventListener("click", () => {
+  cancelPendingFinalizationForEdit();
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
   cancelEditPreviewFrame();
@@ -3212,3 +3511,4 @@ updateDisplayUI();
 updateThicknessUI();
 updateDebug();
 initializeHanaAuthoringStackUi();
+void refreshComputeHealth();

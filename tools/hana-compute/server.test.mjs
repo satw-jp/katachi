@@ -6,6 +6,7 @@ import { createHanaFinalizationSnapshot } from "../../src/studies/hana/finalizat
 import { defaultHanaMaterialSettings } from "../../src/studies/hana/authoringDocument.ts";
 import { deriveStroke3D } from "../../src/studies/hana/stroke3d.ts";
 import { decodeHanaFinalizationResult } from "../../src/studies/hana/computeProtocol.ts";
+import { WindowsHanaComputeBackend } from "../../src/studies/hana/computeBackend.ts";
 
 const port = 5583;
 let child;
@@ -81,6 +82,10 @@ test("compute server reports CPU capabilities and returns a binary mesh", async 
   assert.equal(result.objectId, source.objectId);
   assert.ok(result.positions.length > 0);
   assert.equal(result.validation.finite, true);
+  const backend = new WindowsHanaComputeBackend({ endpoint: `http://127.0.0.1:${port}/api/hana-compute/v0`, strict: true });
+  const delegated = await backend.finalize(source, { signal: new AbortController().signal });
+  assert.equal(delegated.requestId, source.requestId);
+  assert.deepEqual(Array.from(delegated.positions), Array.from(result.positions));
 });
 
 test("compute server rejects malformed snapshots before queueing", async () => {

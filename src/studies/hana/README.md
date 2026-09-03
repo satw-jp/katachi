@@ -50,7 +50,7 @@ Milestone 1: SOFTWARE PASS
 Milestone 2: SOFTWARE PASS
 Milestone 3: SOFTWARE PASS
 Milestone 4: SOFTWARE PASS
-Milestone 5: SOFTWARE IN PROGRESS
+Milestone 5: SOFTWARE PASS
 ```
 
 LAN launcher default: `npm run dev:hana:lan`
@@ -192,6 +192,12 @@ Milestone 2としてLocal / Windows / Autoの`HanaComputeBackend` interfaceを�
 `npm run dev:hana:lan`を追加し、Windows上でCompute ServiceとHANA Vite serverを同時起動する。HANA LAN serverは`0.0.0.0:5482`で待ち受け、Compute Serviceは`127.0.0.1:5483`に限定する。ブラウザからのcompute APIは同一originのVite proxyを経由し、launcherは利用可能なprivate IPv4 URL、local URL、compute engine、worker数を表示する。Ctrl+Cで両方を停止でき、portとworker数は環境変数で設定できる。
 
 状態: `SOFTWARE PASS`。launcher syntax、Vite LAN mode、same-origin proxy、loopback compute endpoint、既定local workflowのport維持を確認済み。実LAN接続、Windows Firewall、iPadからのRemote Finalization実機Gateは`IPAD REMOTE GATE PENDING`。Milestone 5でブラウザUIからRemote / Autoを選択し、pointerupの正式再生成へ接続する。
+
+### 2026-09-03 — Remote Compute v0 Milestone 5: Browser Remote Finalization
+
+HANA-local UIへ`LOCAL / WINDOWS / AUTO`のCompute toggleと接続状態を追加した。通常のlocal modeは既存のHANA-2A経路を維持し、WINDOWS modeではpointerup後の対象Strokeだけをversioned Finalization Snapshotとして同一originの`/api/hana-compute/v0/finalize`へ送る。LAN modeではVite proxyがloopback Compute Serviceへ転送する。AUTOはhealthとwork estimateに基づき、重いFinalizationだけWindowsへ送り、失敗時はLocalへ戻す。strict query (`computeStrict=1`)ではfallbackを許可しない。
+
+Remote結果はbinary typed-arrayを受け取り、identity / generation / validationを確認してからderived Surfaceへ適用する。編集中は従来どおりbounded Live Proxyを表示し、Final Surfaceはpointerup後の最新generationだけを表示する。Remote計算の途中で新しいEditが始まればAbort / cancelを送り、古い結果を表示しない。Surface Mesh、Material Samples、Raw Gesture、Authoring DocumentはRemoteへ保存しない。状態: `SOFTWARE PASS`。LAN launcher + Compute Service、Windows backend、pointerup remote path、Remote result parity、normal URLのconsole warning/error 0を確認済み。Apple Pencil / EasyCanvas / iPadからの実LAN Remote Gateは`IPAD REMOTE GATE PENDING`。
 
 ## Observation
 

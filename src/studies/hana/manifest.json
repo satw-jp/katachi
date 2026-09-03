@@ -184,6 +184,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 4 adds npm run dev:hana:lan. The Windows launcher starts the loopback-only CPU Compute Service on 5483 and the HANA LAN Vite server on 5482, prints a private IPv4 HANA URL, proxies /api/hana-compute through same-origin Vite, and stops both children on Ctrl+C. HANA_LAN_PORT, HANA_COMPUTE_PORT, and HANA_COMPUTE_WORKERS are configurable. Normal local Vite remains on 5174; Firewall, Wi-Fi, and iPad Remote Finalization verification remain pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 5 adds HANA-local LOCAL / WINDOWS / AUTO compute controls. Windows mode sends only the current Stroke's versioned Finalization Snapshot to the same-origin compute endpoint after pointerup, receives validated binary typed arrays, preserves bounded Live Preview, cancels stale generations, and restores the final Surface only for the newest result. AUTO uses the documented work estimate and falls back to Local unless strict mode is requested. Browser smoke through the LAN Vite proxy passed with console warning/error 0; iPad Pro / Apple Pencil / EasyCanvas Remote Gate remains pending."
     }
   ]
 }

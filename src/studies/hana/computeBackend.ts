@@ -138,7 +138,7 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
   async finalize(snapshot: HanaFinalizationSnapshotV0, options: HanaComputeFinalizeOptions): Promise<HanaFinalizationResultV0> {
     throwIfAborted(options.signal);
     const timeout = new AbortController();
-    const timer = window.setTimeout(() => timeout.abort(), this.requestTimeoutMilliseconds);
+    const timer = setTimeout(() => timeout.abort(), this.requestTimeoutMilliseconds);
     const abort = () => timeout.abort();
     options.signal.addEventListener("abort", abort, { once: true });
     try {
@@ -162,7 +162,7 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
       options.onProgress?.({ phase: "remote", stage: "ready", fraction: 1 });
       return result;
     } finally {
-      window.clearTimeout(timer);
+      clearTimeout(timer);
       options.signal.removeEventListener("abort", abort);
     }
   }
@@ -183,6 +183,40 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
     } catch {
       // Cancellation is best effort; the revision gate still rejects stale results.
     }
+  }
+}
+
+/** Windows mode still has a safe Local fallback unless strict mode is requested. */
+export class WindowsWithLocalFallbackBackend implements HanaComputeBackend {
+  readonly id = "windows";
+  readonly capabilities = HANA_COMPUTE_CAPABILITIES;
+  private readonly remote: WindowsHanaComputeBackend;
+  private readonly local: LocalHanaComputeBackend;
+
+  constructor(
+    remote: WindowsHanaComputeBackend,
+    local: LocalHanaComputeBackend = new LocalHanaComputeBackend(),
+  ) {
+    this.remote = remote;
+    this.local = local;
+  }
+
+  healthCheck(): Promise<HanaComputeHealth> {
+    return this.remote.healthCheck();
+  }
+
+  async finalize(snapshot: HanaFinalizationSnapshotV0, options: HanaComputeFinalizeOptions): Promise<HanaFinalizationResultV0> {
+    try {
+      return await this.remote.finalize(snapshot, options);
+    } catch (error) {
+      if (this.remote.strict) throw error;
+      options.onProgress?.({ phase: "fallback", stage: error instanceof Error ? error.message : "remote failure", fraction: 0 });
+      return this.local.finalize(snapshot, options);
+    }
+  }
+
+  cancel(snapshot: HanaFinalizationSnapshotV0): Promise<void> {
+    return this.remote.cancel(snapshot);
   }
 }
 
@@ -267,6 +301,6 @@ export function createHanaComputeBackend(
   const local = new LocalHanaComputeBackend();
   const windows = new WindowsHanaComputeBackend({ endpoint: options.endpoint, strict: options.strict });
   if (mode === "local") return local;
-  if (mode === "windows") return windows;
+  if (mode === "windows") return options.strict ? windows : new WindowsWithLocalFallbackBackend(windows, local);
   return new AutoHanaComputeBackend({ local, windows });
 }

@@ -242,6 +242,48 @@ button:disabled {
   color: #68717c;
 }
 
+.hana-compute-control {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  border-right: 1px solid #d7dbe0;
+  color: #4e5761;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.hana-compute-control > .hana-segmented {
+  gap: 0;
+  padding-right: 0;
+  border: 1px solid #c8cdd3;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.hana-compute-control button {
+  min-width: 62px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 8px;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.hana-compute-control button + button {
+  border-left: 1px solid #d7dbe0;
+}
+
+.hana-compute-status {
+  min-width: 7.5rem;
+  color: #147a43;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 .hana-surface-state {
   min-width: 5.8rem;
   min-height: 48px;
