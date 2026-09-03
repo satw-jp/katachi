@@ -16,6 +16,26 @@ export interface HanaRemoteObjectJob {
   priority: HanaRemoteObjectPriority;
 }
 
+export interface HanaRemoteObjectIdentity {
+  documentId: string;
+  documentRevision: number;
+  objectId: string;
+  objectRevision: number;
+  objectGenerationId: number;
+  algorithmVersion: string;
+}
+
+export function identityForHanaRemoteObjectJob(job: HanaRemoteObjectJob): HanaRemoteObjectIdentity {
+  return {
+    documentId: job.snapshot.documentId,
+    documentRevision: job.snapshot.documentRevision,
+    objectId: job.snapshot.objectId,
+    objectRevision: job.snapshot.objectRevision,
+    objectGenerationId: job.snapshot.generationId,
+    algorithmVersion: job.snapshot.algorithmVersion,
+  };
+}
+
 export interface HanaRemoteObjectCoordinatorState {
   queued: number;
   active: number;
@@ -156,7 +176,12 @@ export class HanaRemoteObjectCoordinator {
     try {
       const result = await this.backend.finalize(job.snapshot, options);
       const isLatest = this.active.get(job.objectId) === job
+        && result.requestId === job.snapshot.requestId
+        && result.documentRevision === job.snapshot.documentRevision
+        && result.objectId === job.snapshot.objectId
+        && result.objectRevision === job.snapshot.objectRevision
         && result.generationId === job.snapshot.generationId
+        && result.algorithmVersion === job.snapshot.algorithmVersion
         && !job.controller.signal.aborted;
       if (!isLatest) {
         this.stale += 1;

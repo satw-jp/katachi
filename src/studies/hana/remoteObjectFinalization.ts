@@ -27,6 +27,7 @@ function cloneStroke3D(stroke: HanaStroke): HanaStroke3D {
 
 export interface HanaRemoteObjectJobOptions {
   generationBase?: number;
+  objectIds?: readonly string[];
   priorityFor?: (stroke: HanaStroke, document: HanaAuthoringDocument) => HanaRemoteObjectPriority;
 }
 
@@ -41,7 +42,8 @@ export function createHanaRemoteObjectJobs(
   options: HanaRemoteObjectJobOptions = {},
 ): HanaRemoteObjectJob[] {
   const generationBase = Math.max(1, Math.trunc(options.generationBase ?? document.revision));
-  return document.strokes.map((stroke, index) => {
+  const selected = options.objectIds ? new Set(options.objectIds) : null;
+  return document.strokes.filter((stroke) => !selected || selected.has(stroke.id)).map((stroke, index) => {
     const generationId = generationBase + Math.max(0, stroke.revision) + index;
     const snapshot: HanaFinalizationSnapshotV0 = createHanaFinalizationSnapshot({
       requestId: `${document.documentId}:${stroke.id}:g${generationId}`,
