@@ -16,6 +16,17 @@ Base checkpoint: 047ea4eb0b8b5018b420af8bc924447e4e0062fa
 
 HANA-2Aの最終実機Gateでは、長尺Surfaceの連続Mouse Edit、Live Proxy追従、pointerup後のFinal Surface更新、古いFinal generationのキャンセル、最新Editのみの反映、Surface / Centerline / Samplesのtouch toggle、Right Viewの軸制約、Shape Fidelity、component、通常URLでの操作を確認した。HANA-2Aをこの実装でPASS / FROZENとして固定する。
 
+## Authoring stack v0 status
+
+このBranchはHANA-2A FROZEN commitから派生した、複数Stroke以降のauthoring stack v0である。新しいMilestoneは次の状態表記を使う。
+
+```yaml
+Milestone 1: SOFTWARE PASS
+Hardware recheck: PENDING
+Branch: agent/hana-authoring-stack-v0
+Base: 02fd52b96000fd89f412e089f85728341d049ba3
+```
+
 ## Question
 
 作者のApple Pencil Gestureを正本として保ったまま、編集可能なControl Strokeを滑らかな3D Centerlineとして表示し、正投影Viewportから気持ちよくSoft Editできるか。HANA-1Cでは32点を基準にしたが、HANA-2AではRaw Gestureの形状誤差を基準にControl密度を決める。
@@ -55,6 +66,14 @@ npx vite --host 127.0.0.1 --port 5480 --strictPort
 ### Pencil-first authoring
 
 Apple Pencil is primarily a drawing instrument. Precise control-point editing is mouse-oriented. Future Pencil correction should prefer redraw / overdraw rather than point manipulation. HANA-1CではEdit modeのcontrol point操作をMouseに限定し、Redraw / Overdraw自体は実装しない。
+
+### 2026-09-03 — Milestone 1: Stable Editing Kernel + Multi-Stroke Document
+
+HANA-2Aの一Stroke documentを破壊せず、`katachi.hana-document.v2`へ独立migrationできるauthoring document層を追加した。Raw GestureとControl Strokeを複数保持し、active / selected Stroke、role、revision、Strokeごとのmaterial設定をauthoring stateとして扱う。旧v1c / HANA-2A JSONはRaw Gesture、Control Point、provenanceを保持したままv2へ移行でき、derived Material / Field / Surface / Proxyは保存対象に含めない。
+
+Soft EditにはControl Point indexではなくworld-space arc-lengthの影響半径を使うpure kernelを追加した。初期値は`LOW=0.75`、`MEDIUM=1.50` world unitsで一箇所に定義し、smoothstep falloff、Raw / provenance不変、Viewの背面軸保持を満たす。authoring-only Undo / RedoはDocument snapshotだけを記録し、derived cacheは対象外とする。
+
+状態: `SOFTWARE PASS`。旧HANA-2A回帰、JSON migration / round-trip、arc-length密度比較、TypeScriptを確認済み。複数Strokeの実機操作は`HARDWARE RECHECK PENDING`として後続Gateに残す。
 
 ## Observation
 
