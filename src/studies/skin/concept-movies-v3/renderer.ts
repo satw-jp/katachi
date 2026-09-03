@@ -109,7 +109,7 @@ const VERTEX_SHADER = /* glsl */ `
     gl_PointSize = clamp(aSize * uPointScale * perspective * breathingSize, 1.0, 240.0);
 
     vColor = aColor;
-    vAlpha = aAlpha;
+    vAlpha = aAlpha * (0.74 + 0.26 * (0.5 + 0.5 * sin(wave * 7.0 + aPhase * 18.0)));
     vPhase = aPhase;
     vMorph = clamp(aMorph + wave * 0.16 + uEnergy * 0.12, 0.0, 1.0);
     vAspect = aAspect;
@@ -232,6 +232,7 @@ export class ConceptMovieV3Renderer {
   private readonly cameraForward = new THREE.Vector3();
   private readonly cameraUp = new THREE.Vector3(0, 0, 1);
   private readonly waveEmitters: WaveEmitter[] = [];
+  private readonly hairlineMaterials: Array<{ material: THREE.LineBasicMaterial; baseOpacity: number }> = [];
   private spriteLayer: SpriteLayer | null = null;
   private activePalette: ConceptMovieV3Palette;
   private presentationSeed: number;
@@ -313,6 +314,12 @@ export class ConceptMovieV3Renderer {
       this.spriteLayer.material.uniforms.uEnergy.value = clamp01(energy);
       this.spriteLayer.material.uniforms.uFocusShift.value = 0.13 * Math.sin(seconds * 0.083 + 1.7) + 0.06 * Math.sin(seconds * 0.19);
     }
+    const lineInterference = this.waveEmitters.reduce((sum, wave, index) => (
+      sum + Math.sin(seconds * wave.speed + index * 1.37) * wave.amplitude
+    ), 0);
+    for (const [index, entry] of this.hairlineMaterials.entries()) {
+      entry.material.opacity = entry.baseOpacity * (0.62 + 0.38 * (0.5 + 0.5 * Math.sin(lineInterference * (index + 1) + seconds * (0.15 + index * 0.07))));
+    }
     this.renderer.render(this.scene, this.camera);
     const bucket = Math.floor(elapsed / 240);
     if (bucket !== this.lastFrameBucket) {
@@ -352,6 +359,7 @@ export class ConceptMovieV3Renderer {
     }
     this.spriteLayer = null;
     this.waveEmitters.length = 0;
+    this.hairlineMaterials.length = 0;
   }
 
   private buildPresentation(): void {
@@ -721,6 +729,10 @@ export class ConceptMovieV3Renderer {
       blending: THREE.AdditiveBlending,
       toneMapped: false,
     });
+    this.hairlineMaterials.push(
+      { material: fineMaterial, baseOpacity: 0.095 },
+      { material: ghostMaterial, baseOpacity: 0.042 },
+    );
     const fineGeometry = new THREE.BufferGeometry();
     fineGeometry.setAttribute("position", new THREE.Float32BufferAttribute(finePositions, 3));
     const ghostGeometry = new THREE.BufferGeometry();
