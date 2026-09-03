@@ -37,6 +37,17 @@ Additional C: SOFTWARE PASS
 Additional D: SOFTWARE PASS
 ```
 
+## Remote Compute v0 status
+
+```yaml
+Status: SOFTWARE IN PROGRESS
+IPAD REMOTE GATE: PENDING
+Branch: agent/hana-remote-compute-v0
+Base: 0cbb70f40b0e36db69f44c74e67dff6105c55682
+Compute engine: cpu-js-v0
+GPU: false
+```
+
 ## Question
 
 作者のApple Pencil Gestureを正本として保ったまま、編集可能なControl Strokeを滑らかな3D Centerlineとして表示し、正投影Viewportから気持ちよくSoft Editできるか。HANA-1Cでは32点を基準にしたが、HANA-2AではRaw Gestureの形状誤差を基準にControl密度を決める。
@@ -146,6 +157,12 @@ Silhouette plane、projected view direction、2D contour、Section plane、Secti
 長尺・複数Material Objectを将来局所再生成するためのStudy専用`katachi.hana-chunked-field-prototype.v0`を追加した。固定サイズchunk、object-to-chunk reverse index、boundsを跨ぐobjectの隣接chunk登録、dirty chunkだけの決定論的cache再生成、chunk boundary coverage / forward-reverse index validation、JSON serializationを実装した。
 
 これはField / Surfaceの実運用経路へ接続していない隔離prototypeであり、既存のPoint Field / SDF、dense Material Samples、Surface Mesh、HANA-2Aの性能・形状契約は変更していない。chunk cacheとobject membershipは再index時に置換され、境界を跨ぐobjectも片側だけの欠落にならない。状態: `SOFTWARE PASS`。Chunked Fieldの実機確認と通常Fieldへの接続は`HARDWARE RECHECK PENDING`および別設計課題として残す。
+
+### 2026-09-03 — Remote Compute v0 Milestones 1–2
+
+Milestone 1として、DOM・Three.js・Pointer Eventから独立した`katachi.hana-finalization-snapshot.v0`とshared CPU Finalization Coreを追加した。Coreは既存のSmooth Centerline、Thickness-driven dense Material Samples、KD-tree Point Field、cooperative Z-slice Mesh、validationを一つの決定論的経路で実行し、MeshをFloat32 / Uint32 typed arraysとして返す。snapshotは対象objectだけを含み、Authoring Document全体、UI state、Meshは送信・保存しない。
+
+Milestone 2としてLocal / Windows / Autoの`HanaComputeBackend` interfaceを追加した。AbortSignal、generation identity、Remote health、work estimate、strict Remote、Remote失敗時のLocal fallbackを境界化した。初期Auto閾値はMaterial Samples 512点または推定voxel 200,000以上をWindows候補とし、設定可能なpolicyとして固定する。状態: `SOFTWARE PASS`。iPad Remote Gate、実LAN接続、Windows serverは後続Milestoneで確認する。
 
 ## Observation
 

@@ -23,6 +23,10 @@
   "revisits": [
     {
       "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 1 adds the pure katachi.hana-finalization-snapshot.v0 boundary and shared hana-cpu-js-v0 Finalization Core. It reuses the existing Smooth Centerline, dense Material Samples, KD-tree Point Field, cooperative Z-slice meshing, and validation path, returning typed-array Mesh data without DOM, Three.js, Pointer Event, or Authoring Document persistence. Milestone 2 adds the Local / Windows / Auto backend interface with AbortSignal, health/work estimation, identity checks, strict Remote diagnostics, and Local fallback. Auto initially selects Windows for 512+ Material Samples or 200,000+ estimated voxels; iPad Remote Gate and the Windows service remain pending."
+    },
+    {
+      "date": "2026-09-03",
       "note": "Authoring stack v0 Milestone 1 adds katachi.hana-document.v2 migration, immutable Raw / provenance-preserving multi-Stroke authoring state, active and selected Stroke roles, revision-aware updates, world-space arc-length Soft Edit (LOW 0.75 / MEDIUM 1.50), and authoring-only Undo / Redo. Derived Material / Field / Surface / Proxy data remains outside the saved document. Software checks pass; hardware recheck for multi-Stroke UI remains pending."
     },
     {
