@@ -34,6 +34,9 @@ export interface InternalPrintGateRequest {
   /** Keep the original-editor Stage 6 mesh identity equal to the standalone
    * SKIN REBUILD exporter, including its bounded tiny-island repair. */
   skinRebuildRepair?: boolean;
+  /** Export-only opt-in for the exact two-face saved-STL canonicalization.
+   * No non-export gate or geometry preview may set this flag. */
+  exportLocalDegenerateCanonicalization?: boolean;
   buildPlateZSource?: number;
   baseName: string;
 }
@@ -51,5 +54,5 @@ export type InternalPrintGateProgressPhase =
 
 export type InternalPrintGateWorkerMessage =
   | { type: "progress"; requestId: number; generation: number; phase: InternalPrintGateProgressPhase; completedSlices: number; totalSlices: number; faceCount: number; detail: string; elapsedMs: number }
-  | { type: "result"; requestId: number; generation: number; report: InternalPrintGateReport; stl: ArrayBuffer; summary: string; scaleMmPerUnit: number; plateShiftSourceZ: number; repairedSavedTriangleHoleCount: number; diagnosticDegenerateFaceIndices?: Int32Array; elapsedMs: number }
+  | { type: "result"; requestId: number; generation: number; report: InternalPrintGateReport; stl: ArrayBuffer; summary: string; scaleMmPerUnit: number; plateShiftSourceZ: number; repairedSavedTriangleHoleCount: number; canonicalizedSavedDegenerateTriangleCount: number; diagnosticDegenerateFaceIndices?: Int32Array; elapsedMs: number }
   | { type: "error"; requestId: number; generation: number; message: string; elapsedMs: number };

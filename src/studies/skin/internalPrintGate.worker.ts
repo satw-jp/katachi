@@ -9,6 +9,7 @@ import {
   repairSkinRebuildFinalMesh,
 } from "./rebuild/model.ts";
 import type { InternalPrintGateProgressPhase, InternalPrintGateRequest, InternalPrintGateWorkerMessage } from "./internalPrintGateWorkerProtocol.ts";
+import { canonicalizeSkinRebuildExportDegenerates } from "./rebuild/exportLocalDegenerateCanonicalization.ts";
 
 self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
   const request = event.data;
@@ -106,9 +107,17 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
     const diagnosticDegenerateFaceIndices = request.skinRebuildRepair
       ? diagnoseSkinRebuildFinalMeshDegenerateFaceIndices(mesh)
       : undefined;
+    let canonicalizedSavedDegenerateTriangleCount = 0;
     if (request.skinRebuildRepair) {
       reportProgress("repair", `閉じた微小空洞だけを整理 · ${mesh.triangles.length.toLocaleString()}面`);
       mesh = repairSkinRebuildFinalMesh(mesh);
+      faceCount = mesh.triangles.length;
+    }
+    if (request.exportLocalDegenerateCanonicalization) {
+      reportProgress("saved-topology", "export-local保存座標の完全退化面をcanonicalizeし、topologyを再検査");
+      const canonicalized = canonicalizeSkinRebuildExportDegenerates(mesh);
+      mesh = { ...mesh, ...canonicalized.mesh };
+      canonicalizedSavedDegenerateTriangleCount = canonicalized.canonicalizedSavedDegenerateTriangleCount;
       faceCount = mesh.triangles.length;
     }
     // Winding and the explicitly bounded SKIN REBUILD micro-island cleanup
@@ -173,6 +182,7 @@ self.onmessage = async (event: MessageEvent<InternalPrintGateRequest>) => {
       report, stl, summary: meshSummary(mesh), scaleMmPerUnit: mesh.scaleMmPerUnit,
       plateShiftSourceZ: mesh.plateShiftSourceZ ?? 0,
       repairedSavedTriangleHoleCount: mesh.repairedSavedTriangleHoleCount ?? 0,
+      canonicalizedSavedDegenerateTriangleCount,
       diagnosticDegenerateFaceIndices,
       elapsedMs: performance.now() - started,
     };

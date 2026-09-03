@@ -198,6 +198,7 @@ import {
   triangleSoupLongestExtent,
   type BambuSupportType,
 } from "./bambu3mf.ts";
+import { validateSkin3mf } from "./rebuild/threeMfValidation.ts";
 import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWorkerProtocol.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
@@ -1367,6 +1368,7 @@ let internalPrintGateCache: {
   summary: string;
   scaleMmPerUnit: number;
   plateShiftSourceZ: number;
+  canonicalizedSavedDegenerateTriangleCount: number;
 } | null = null;
 let internalPrintGateStatusTimer: number | null = null;
 let activeSurfaceAngleWorker: Worker | null = null;
@@ -15433,6 +15435,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
     prebuiltScaleMmPerUnit: exportSelectionDescriptor?.cache.topologyDiagnostics?.scaleMmPerUnit,
     prebuiltPlateShiftSourceZ: exportSelectionDescriptor?.cache.topologyDiagnostics?.plateShiftSourceZ,
     expectedMeshComponents: exportComponentSelection?.componentIds.length ?? 1,
+    exportLocalDegenerateCanonicalization: pendingMeshExportAfterGate?.fingerprint === fingerprint,
     skinRebuildRepair: !preserveDiagnosedComponents
       && !exportComponentSelection
       && isSkinRebuildApp
@@ -15494,6 +15497,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       summary: message.summary,
       scaleMmPerUnit: message.scaleMmPerUnit,
       plateShiftSourceZ: message.plateShiftSourceZ,
+      canonicalizedSavedDegenerateTriangleCount: message.canonicalizedSavedDegenerateTriangleCount,
     };
     if (stage6BodyMeshCache?.topologyDiagnostics && message.diagnosticDegenerateFaceIndices) {
       const faceCount = stage6BodyMeshCache.positions.length / 9;
@@ -15513,7 +15517,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
       internalPrintGateStatusMessage(
         message.report,
         exportAllowed,
-        `内部構造：OK${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復済み` : ""} · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+        `内部構造：OK${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復済み` : ""}${message.canonicalizedSavedDegenerateTriangleCount > 0 ? ` · export-local退化${message.canonicalizedSavedDegenerateTriangleCount}面をcanonicalize済み` : ""} · 通常の3D書き出しを許可 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
         `内部構造：NG · ${message.report.reasons.length}項目を直してください · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
       ),
       exportAllowed,
@@ -15531,7 +15535,7 @@ function startInternalPrintGate(options: MeshUiOptions): void {
           supportDisabledWaived ? "工程6 OffポリシーでBODY export許可" : "工程6 自動判定完了",
           supportDisabledWaived
             ? `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(skinRebuildFinalArtworkDiagnosis)} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`
-            : `水密 · Export対象 ${message.report.meshComponents}部品${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復` : ""} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
+            : `水密 · Export対象 ${message.report.meshComponents}部品${message.repairedSavedTriangleHoleCount > 0 ? ` · 微小三角穴 ${message.repairedSavedTriangleHoleCount}面を自動修復` : ""}${message.canonicalizedSavedDegenerateTriangleCount > 0 ? ` · export-local退化${message.canonicalizedSavedDegenerateTriangleCount}面をcanonicalize` : ""} · 判定済みSTLを再利用して保存準備 · ${(message.elapsedMs / 1000).toFixed(1)}秒`,
         );
         window.setTimeout(() => exportMesh(pendingExport.options, pendingExport.formats), 0);
       } else {
@@ -15969,14 +15973,22 @@ function exportMesh(
         generatorVersion: manifest.version,
         supportType: "normal(manual)",
         mergePrintableSupportIntoBody: false,
-      }).then((result) => {
+      }).then(async (result) => {
+        const validation = await validateSkin3mf(result.archive, {
+          expectedUnit: "millimeter",
+          expectedSupportPresent: Boolean(supportPositions && supportPositions.length > 0),
+          expectedTriangleCount: result.stats.bodyFaces + result.stats.scaffoldFaces + result.stats.enforcerFaces + result.stats.blockerFaces,
+        });
+        if (!validation.valid) {
+          throw new Error(`3MF validator NG: ${validation.errors.join(" / ")}`);
+        }
         downloadBlob(new Blob([result.archive], { type: "model/3mf" }), `${pending.baseName}.3mf`);
         const partSummary = supportPositions?.length
           ? `作品＋印刷サポートを共通Z座標の別パーツで保存 · Plate 0 · support ${result.stats.scaffoldFaces.toLocaleString()} faces`
           : "作品を1パーツで保存 · 印刷サポート0";
-        ui.setMeshStatus(`${savedSummary} / 3MF保存完了 · ${partSummary} / ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`, message.watertightOk);
+        ui.setMeshStatus(`${savedSummary} / 3MF保存完了 · validator PASS · ${partSummary} / ${(message.elapsedMs / 1000).toFixed(1)}秒${cacheLabel}${supportPolicySuffix}`, message.watertightOk);
         if (skinRebuildStage8ExportStatus) {
-          skinRebuildStage8ExportStatus.textContent = `保存完了 · 3MF${directFormats.length > 0 ? ` + ${directFormats.join(" + ")}` : ""} · ${partSummary}${supportPolicySuffix}`;
+          skinRebuildStage8ExportStatus.textContent = `保存完了 · 3MF · validator PASS${directFormats.length > 0 ? ` + ${directFormats.join(" + ")}` : ""} · ${partSummary}${supportPolicySuffix}`;
           skinRebuildStage8ExportStatus.dataset.ok = String(message.watertightOk);
         }
         refreshSkinRebuildStage8ExportButton();
