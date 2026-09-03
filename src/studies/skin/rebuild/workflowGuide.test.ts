@@ -29,9 +29,9 @@ assert.equal(guide({ insideOutsideCurrent: false }).primaryAction, "diagnose-ins
 assert.equal(guide({ overhangCurrent: false }).primaryAction, "diagnose-overhang");
 assert.equal(guide({ reinforcementRequired: true }).primaryAction, "regenerate-reinforcement");
 assert.equal(guide({ finalMeshState: "stale" }).primaryAction, "build-final-mesh");
-assert.equal(guide({ finalDiagnosisState: "stale" }).primaryAction, "run-final-diagnosis");
+assert.equal(guide({ finalDiagnosisState: "stale" }).primaryAction, "prepare-generate-support");
 assert.equal(guide({ supportExportState: "needs-generation" }).primaryAction, "generate-sparse-support");
-assert.equal(guide({ supportExportState: "needs-interior-verification" }).primaryAction, "verify-artwork-interior");
+assert.equal(guide({ supportExportState: "needs-interior-verification" }).primaryAction, "prepare-generate-support");
 assert.equal(guide({ supportExportState: "unresolved-approval" }).primaryAction, "approve-unresolved-support");
 assert.equal(guide({ supportExportState: "thin-strut-approval" }).primaryAction, "approve-thin-strut");
 assert.equal(guide().primaryAction, "export-3mf");

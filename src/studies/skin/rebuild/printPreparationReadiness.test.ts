@@ -50,9 +50,9 @@ const staleStage75 = evaluateSkinRebuildPrintPreparation({
   ...complete,
   stage75Current: false,
 });
-assert.equal(staleStage75.exportState, "blocked");
+assert.equal(staleStage75.exportState, "ready");
 assert.equal(staleStage75.canGenerateSparseSupport, false);
-assert.match(staleStage75.blocker?.nextAction ?? "", /7\.5/);
+assert.equal(staleStage75.blocker, null);
 
 const unresolved = evaluateSkinRebuildPrintPreparation({
   ...complete,

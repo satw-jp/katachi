@@ -2653,15 +2653,46 @@ details.mesh-export:not([open]) > :not(summary) {
 
 .skin-right-upper-stack {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 0 var(--skin-right-pane-upper-height, 42%);
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  max-height: 50vh;
+  height: var(--skin-right-pane-upper-height, 42%);
+  max-height: none;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.skin-right-pane-divider {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 8px;
+  min-height: 8px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: #d7d4ca;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.skin-right-pane-divider::after {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 34px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: #77736a;
+  content: "";
+}
+
+.skin-right-pane-divider.is-dragging,
+.skin-right-pane-divider:focus-visible {
+  background: #c6c1b4;
+  outline: 2px solid #151515;
+  outline-offset: -2px;
 }
 
 .skin-right-upper-stack > .skin-workflow-guide,

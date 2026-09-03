@@ -96,12 +96,18 @@ for (const label of [
 assert.match(main, /skin-project-bar/);
 assert.match(main, /skin-left-pane/);
 assert.match(main, /skin-right-pane/);
-assert.match(main, /rightPaneBody\.append\(rightPaneUpperStack, rightPaneLower\)/,
-  "right pane must have explicit upper and lower stacks");
+assert.match(main, /rightPaneBody\.append\(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower\)/,
+  "right pane must have explicit upper, divider, and lower stacks");
+assert.match(main, /RIGHT_PANE_RATIO_STORAGE_KEY/);
+assert.match(main, /pointerdown/);
+assert.match(main, /dblclick/);
+assert.match(main, /window\.addEventListener\("resize", syncRightPaneLayout\)/);
 assert.match(main, /rightPaneUpperStack\.appendChild\(printPreparationPanel\)/,
   "Print readiness must remain in the upper stack");
 assert.match(main, /rightPaneUpperStack\.insertBefore\(panel/,
   "Workflow Guide must remain in the upper stack");
+assert.match(main, /advancedSupportDetails\.append\(advancedSupportSummary, artworkInteriorClassification\.section, phaseASupportPanel\)/,
+  "legacy Outside / Stage 7.5 preview must remain behind Advanced / Legacy");
 assert.match(main, /skin-bottom-status-pane/);
 assert.match(main, /skin-rebuild-original-stage2\.fkei/);
 assert.match(main, /projectCompleteSampleButton\.onclick/,
@@ -110,8 +116,9 @@ assert.doesNotMatch(main, /loadSkinRebuildSupportPreview/,
   "startup support preview loader must be removed");
 assert.match(main, /完成 Sample/);
 assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*overflow-y: hidden/);
-assert.match(style, /\.skin-right-upper-stack[\s\S]*max-height: 50vh[\s\S]*overflow-y: auto[\s\S]*min-height: 0/,
-  "upper Guide + Print readiness stack must own the 50vh limit");
+assert.match(style, /\.skin-right-upper-stack[\s\S]*flex: 0 0 var\(--skin-right-pane-upper-height, 42%\)[\s\S]*overflow-y: auto[\s\S]*min-height: 0/,
+  "upper Guide + Print readiness stack must use the adjustable split");
+assert.match(style, /\.skin-right-pane-divider[\s\S]*cursor: row-resize/);
 assert.match(style, /\.skin-right-pane-lower[\s\S]*overflow-y: auto/);
 assert.match(style, /\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);
 assert.doesNotMatch(style, /\.skin-workflow-guide\s*\{[\s\S]*max-height: 50vh/,
@@ -152,7 +159,7 @@ for (const label of [
   "6.5 メッシュの内外を表示 / Mesh Interior Classification",
   "7. 確定作品を診断して残る赤を表示",
   "7.5 作品の内外を判定 / Artwork Interior Classification",
-  "8. Outside Overhangに印刷サポートを生成",
+  "8. Removable Support",
   "Removable Support",
   "Off",
   "Automatic",
@@ -173,6 +180,11 @@ for (const label of [
   "残っている赤へ印刷サポート",
 ]) assert.ok(main.includes(label), `SKIN REBUILD author stage is missing: ${label}`);
 assert.match(main, /skinRebuildPipelineOutputBlockReason/);
+assert.match(main, /Prepare & Generate Support/);
+assert.match(main, /Generate \/ Update Support/);
+assert.match(main, /Details · Support diagnostics/);
+assert.match(main, /Stage 6\.5 \+ Stage 7 support evidence/);
+assert.match(main, /Support could not be generated/);
 assert.match(main, /keepInternalGraphVisibleInMesh\(message\.graph\)/, "Dry Web completion must preserve the graph in an already-active mesh view");
 assert.match(main, /keepInternalGraphVisibleInMesh\(getInternalStructureGraph\(\)\)/, "mesh installation must preserve an existing Dry Web");
 assert.match(
@@ -252,6 +264,8 @@ assert.match(printSupportSource, /stage8SupportGraph !== sparseResult\.graph[\s\
   "Stage 8 must fail closed if the Sparse Support graph identity changes");
 assert.match(printSupportSource, /skinRebuildSparseSupportResult = sparseResult[\s\S]*?skinRenderer\.setPrintSupport\(stage8SupportGraph\)/,
   "Stage 8 must publish the same Sparse Support graph to runtime and renderer");
+assert.doesNotMatch(printSupportSource, /stage75|artworkInteriorClassificationCheckpoint/,
+  "production Stage 8 must not fall back to the legacy Stage 7.5 path");
 assert.match(
   main.slice(main.indexOf("function replaceRuntimeWithFkeiPlan"), main.indexOf("function restoreFkeiOpenRuntimeSnapshot")),
   /skinRenderer\.setPrintSupport\(null\)/,
@@ -389,14 +403,14 @@ assert.match(artworkInteriorCheckpointSource, /skinRebuildArtworkInteriorClassif
   "the 7.5 checkpoint must store session-only evidence");
 assert.match(artworkInteriorCheckpointSource, /ambiguous\/unclassified/,
   "the 7.5 checkpoint must expose ambiguous/unclassified face and region counts");
-assert.match(printSupportSource, /skinRebuildArtworkInteriorClassificationCheckpointIsCurrent\(\)/,
-  "Automatic must fail closed when the 7.5 checkpoint is missing or stale");
-assert.match(printSupportSource, /artworkInteriorCheckpoint\.outsideFaces/,
-  "Automatic must consume only the stored Outside faces from the 7.5 checkpoint");
+assert.match(printSupportSource, /currentSkinRebuildStage65And7SupportPresentation\(\)/,
+  "Automatic must fail closed when the current 6.5 + 7 evidence is missing");
+assert.match(printSupportSource, /stage65And7PresentationAtStart\.supportTargetFaces/,
+  "Automatic must consume only current 6.5 + 7 support targets");
 assert.doesNotMatch(printSupportSource, /projectSkinRebuildFinalArtworkOverhangToStage4\(/,
   "Stage 8 must not re-run the Stage 7→Stage 4 projection inline");
-assert.match(main, /function skinRebuildArtworkInteriorClassificationBlockReason[\s\S]*ambiguous\/unclassified/,
-  "Automatic must refuse an ambiguous/unclassified checkpoint");
+assert.match(main, /prepareCurrentSkinRebuildSupportEvidence[\s\S]*Finding outside overhang[\s\S]*Preparing BODY[\s\S]*Finding support targets/,
+  "Prepare & Generate Support must expose short non-destructive progress");
 assert.match(printSupportSource, /const stage8SupportGraph = modeAtStart === "automatic"[\s\S]*?createEmptySkinRebuildGraph\(\)/,
   "Off must continue to use an empty removable-support graph");
 assert.match(printSupportSource, /modeAtStart === "off"[\s\S]*?BODY only[\s\S]*?support nodes 0 \/ edges 0 \/ artifact 0/,
@@ -452,8 +466,8 @@ assert.match(main, /\["combined", "6\.5 \+ 7"\]/,
   "the mesh classification UI must expose the combined 6.5 + 7 mode");
 assert.match(main, /SKIN_REBUILD_COMBINED_SUPPORT_TARGET/,
   "the combined display must promote only the exact danger/interior intersection to a support target");
-assert.match(main, /preserveContactNeck: combinedExperimentalAtStart[\s\S]{0,120}?spacingAsSelectionPreference: combinedExperimentalAtStart/,
-  "the combined research path must retain the reviewed neck while BODY-screening offset/bend routes");
+assert.match(main, /preserveContactNeck: true[\s\S]{0,120}?spacingAsSelectionPreference: true/,
+  "the production path must retain the reviewed neck while BODY-screening offset/bend routes");
 assert.match(renderer, /palette === "stage65-stage7"/,
   "the combined display must use its own full-mesh palette");
 assert.match(artworkInteriorDisplaySource, /skinRebuildMeshInteriorClassificationDisplayBlockReason\(\)/,

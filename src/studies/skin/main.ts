@@ -333,6 +333,13 @@ import {
   type SkinWorkflowGuideResult,
 } from "./rebuild/workflowGuide.ts";
 import {
+  clampRightPaneRatio,
+  RIGHT_PANE_DEFAULT_RATIO,
+  RIGHT_PANE_MAX_RATIO,
+  RIGHT_PANE_MIN_RATIO,
+  rightPaneSplitHeights,
+} from "./rightPaneSplit.ts";
+import {
   skinRebuildPhysicalSettingsChanged,
   skinRebuildTargetScaleChanged,
 } from "./rebuild/printScalePolicy.ts";
@@ -666,10 +673,98 @@ const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
 const rightPaneUpperStack = document.createElement("div");
 rightPaneUpperStack.className = "skin-right-upper-stack";
+const rightPaneSplitDivider = document.createElement("div");
+rightPaneSplitDivider.className = "skin-right-pane-divider";
+rightPaneSplitDivider.setAttribute("role", "separator");
+rightPaneSplitDivider.setAttribute("aria-orientation", "horizontal");
+rightPaneSplitDivider.setAttribute("aria-label", "Workflow / Properties split");
+rightPaneSplitDivider.tabIndex = 0;
+rightPaneSplitDivider.setAttribute("aria-valuemin", String(RIGHT_PANE_MIN_RATIO));
+rightPaneSplitDivider.setAttribute("aria-valuemax", String(RIGHT_PANE_MAX_RATIO));
 const rightPaneLower = document.createElement("div");
 rightPaneLower.className = "skin-right-pane-lower";
-rightPaneBody.append(rightPaneUpperStack, rightPaneLower);
+rightPaneBody.append(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower);
 rightPane.append(rightPaneHeader, rightPaneBody);
+
+const RIGHT_PANE_RATIO_STORAGE_KEY = "katachi.skin.rebuild.right-pane-ratio";
+let rightPaneRatio = RIGHT_PANE_DEFAULT_RATIO;
+try {
+  const savedRatioText = localStorage.getItem(RIGHT_PANE_RATIO_STORAGE_KEY);
+  if (savedRatioText !== null) {
+    const savedRatio = Number.parseFloat(savedRatioText);
+    if (Number.isFinite(savedRatio)) rightPaneRatio = clampRightPaneRatio(savedRatio);
+  }
+} catch {
+  // Private browsing or a blocked storage area should not disable the editor.
+}
+
+function persistRightPaneRatio(): void {
+  try {
+    localStorage.setItem(RIGHT_PANE_RATIO_STORAGE_KEY, String(rightPaneRatio));
+  } catch {
+    // The ratio remains active for this session when storage is unavailable.
+  }
+}
+
+function syncRightPaneLayout(): void {
+  const bodyHeight = rightPaneBody.getBoundingClientRect().height;
+  const dividerHeight = rightPaneSplitDivider.getBoundingClientRect().height || 8;
+  const split = rightPaneSplitHeights(bodyHeight, dividerHeight, rightPaneRatio);
+  rightPaneUpperStack.style.setProperty("--skin-right-pane-upper-height", `${split.upperHeightPx}px`);
+  rightPaneSplitDivider.setAttribute("aria-valuenow", String(rightPaneRatio));
+}
+
+function setRightPaneRatio(nextRatio: number, persist = true): void {
+  rightPaneRatio = clampRightPaneRatio(nextRatio);
+  if (persist) persistRightPaneRatio();
+  syncRightPaneLayout();
+}
+
+let rightPaneDividerDragging = false;
+const updateRightPaneRatioFromPointer = (clientY: number, persist = false): void => {
+  const bodyRect = rightPaneBody.getBoundingClientRect();
+  const dividerHeight = rightPaneSplitDivider.getBoundingClientRect().height || 8;
+  const availableHeight = Math.max(1, bodyRect.height - dividerHeight);
+  const nextRatio = ((clientY - bodyRect.top) / availableHeight) * 100;
+  setRightPaneRatio(nextRatio, persist);
+};
+rightPaneSplitDivider.addEventListener("pointerdown", (event) => {
+  rightPaneDividerDragging = true;
+  rightPaneSplitDivider.setPointerCapture?.(event.pointerId);
+  rightPaneSplitDivider.classList.add("is-dragging");
+  updateRightPaneRatioFromPointer(event.clientY);
+});
+rightPaneSplitDivider.addEventListener("pointermove", (event) => {
+  if (!rightPaneDividerDragging) return;
+  updateRightPaneRatioFromPointer(event.clientY);
+});
+const finishRightPaneDividerDrag = (event?: PointerEvent): void => {
+  if (!rightPaneDividerDragging) return;
+  rightPaneDividerDragging = false;
+  if (event && rightPaneSplitDivider.hasPointerCapture?.(event.pointerId)) {
+    rightPaneSplitDivider.releasePointerCapture(event.pointerId);
+  }
+  rightPaneSplitDivider.classList.remove("is-dragging");
+  persistRightPaneRatio();
+  syncRightPaneLayout();
+};
+rightPaneSplitDivider.addEventListener("pointerup", finishRightPaneDividerDrag);
+rightPaneSplitDivider.addEventListener("pointercancel", finishRightPaneDividerDrag);
+rightPaneSplitDivider.addEventListener("dblclick", () => setRightPaneRatio(RIGHT_PANE_DEFAULT_RATIO));
+rightPaneSplitDivider.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+    event.preventDefault();
+    setRightPaneRatio(rightPaneRatio + (event.key === "ArrowUp" ? -1 : 1));
+  } else if (event.key === "Home") {
+    event.preventDefault();
+    setRightPaneRatio(RIGHT_PANE_MIN_RATIO);
+  } else if (event.key === "End") {
+    event.preventDefault();
+    setRightPaneRatio(RIGHT_PANE_MAX_RATIO);
+  }
+});
+window.addEventListener("resize", syncRightPaneLayout);
+requestAnimationFrame(syncRightPaneLayout);
 
 const bottomPane = document.createElement("footer");
 bottomPane.className = "skin-bottom-status-pane";
@@ -938,6 +1033,7 @@ function applyEditorLayoutDom(): void {
   rightPaneDivider.classList.toggle("is-collapsed", fitted.rightCollapsed);
   leftPaneDivider.querySelector("button")!.textContent = fitted.leftCollapsed ? "›" : "‹";
   rightPaneDivider.querySelector("button")!.textContent = fitted.rightCollapsed ? "‹" : "›";
+  syncRightPaneLayout();
   bottomPane.hidden = fitted.bottomCollapsed;
   bottomPaneDivider.classList.toggle("is-collapsed", fitted.bottomCollapsed);
   bottomPaneToggle.textContent = fitted.bottomCollapsed ? "STATUS ▲" : "STATUS ▼";
@@ -1108,7 +1204,6 @@ const skinRebuildTopologyDiagnosticButtons = new Map<
   SkinRebuildTopologyDiagnosticDisplayMode,
   HTMLButtonElement
 >();
-let skinRebuildCombinedExperimentalSupportEnabled = false;
 let skinRebuildMeshInteriorClassificationDisplayStatus: HTMLElement | null = null;
 const skinRebuildMeshInteriorClassificationDisplayButtons = new Map<
   SkinRebuildMeshInteriorClassificationDisplayMode,
@@ -1171,6 +1266,7 @@ type SkinRebuildPrintPreparationPanelRefs = {
   blockerNextAction: HTMLElement;
 };
 let skinRebuildPrintPreparationPanelRefs: SkinRebuildPrintPreparationPanelRefs | null = null;
+let skinRebuildStage7DangerPresentationState: SkinRebuildStage7DangerPresentationState | null = null;
 type SkinWorkflowGuideRefs = {
   panel: HTMLElement;
   phase: HTMLElement;
@@ -1185,6 +1281,7 @@ type SkinWorkflowGuideRefs = {
 let skinWorkflowGuideRefs: SkinWorkflowGuideRefs | null = null;
 let skinRebuildLowestButton: HTMLButtonElement | null = null;
 let skinRebuildLatticeButton: HTMLButtonElement | null = null;
+let skinRebuildStage6Button: HTMLButtonElement | null = null;
 let skinRebuildFinalDiagnosisButton: HTMLButtonElement | null = null;
 let skinRebuildMeshInteriorClassificationButton: HTMLButtonElement | null = null;
 let skinRebuildPrintSupportButton: HTMLButtonElement | null = null;
@@ -1243,6 +1340,7 @@ let skinRebuildStage5BRequestId = 0;
 let skinRebuildStage5BHeavyComputation: HeavyComputationHandle | null = null;
 let activeSkinRebuildPrintSupportWorker: Worker | null = null;
 let skinRebuildPrintSupportRequestId = 0;
+let skinRebuildSupportPreparationRunning = false;
 let internalAngleScreeningEnabled = false;
 let internalAngleScreeningGraph: InternalStructureGraph | null = null;
 let internalAngleScreening: InternalAngleScreeningReport | null = null;
@@ -2997,8 +3095,10 @@ phaseARefreshButton.addEventListener("click", () => {
 });
 phaseASupportPanel.append(phaseATitle, phaseANote, phaseAControls, phaseARefreshButton, phaseASupportStatus);
 const phaseASupportStageBody = ui.root.querySelector<HTMLElement>("#skin-stage-8-body");
-if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPanel);
-else ui.root.appendChild(phaseASupportPanel);
+if (!isSkinRebuildApp) {
+  if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPanel);
+  else ui.root.appendChild(phaseASupportPanel);
+}
 syncPhaseAVerticalControl();
 
 rightPaneLower.appendChild(ui.root);
@@ -3015,6 +3115,10 @@ if (isSkinRebuildApp) {
   const printPreparationStatus = document.createElement("div");
   printPreparationStatus.className = "mesh-status skin-rebuild-print-preparation-status";
   printPreparationStatus.setAttribute("aria-live", "polite");
+  const printPreparationDetails = document.createElement("details");
+  printPreparationDetails.className = "skin-rebuild-print-preparation-details";
+  const printPreparationDetailsSummary = document.createElement("summary");
+  printPreparationDetailsSummary.textContent = "Details · Print diagnostics";
   const printPreparationReadinessList = document.createElement("dl");
   printPreparationReadinessList.className = "skin-rebuild-print-preparation-readiness";
   const readinessValues = {} as SkinRebuildPrintPreparationPanelRefs["values"];
@@ -3031,7 +3135,7 @@ if (isSkinRebuildApp) {
   addReadinessRow("stage6", "Stage 6 mesh / 6.4");
   addReadinessRow("components", "selected BODY components");
   addReadinessRow("stage7", "Stage 7 final diagnosis");
-  addReadinessRow("stage75", "Stage 7.5 interior");
+  addReadinessRow("stage75", "Stage 6.5 + Stage 7 support evidence");
   addReadinessRow("stage8", "Stage 8 confirmation");
   addReadinessRow("sparseSupport", "Sparse Support generated");
   addReadinessRow("unresolved", "unresolved support count");
@@ -3085,13 +3189,17 @@ if (isSkinRebuildApp) {
     focusPrintPreparationTarget("skin-stage-8-support");
   });
   addPrintPreparationAction("5. Experimental Export / 3MF", "skin-stage-8-export");
+  printPreparationDetails.append(
+    printPreparationDetailsSummary,
+    printPreparationReadinessList,
+    printPreparationBlocker,
+    printPreparationActions,
+  );
   printPreparationPanel.append(
     printPreparationTitle,
     printPreparationHint,
     printPreparationStatus,
-    printPreparationReadinessList,
-    printPreparationBlocker,
-    printPreparationActions,
+    printPreparationDetails,
   );
   skinRebuildPrintPreparationPanelRefs = {
     status: printPreparationStatus,
@@ -7707,8 +7815,6 @@ function buildSkinRebuildStage7DangerPresentation(
   return { ...mapping, combinedFaceClasses, supportTargetFaces };
 }
 
-let skinRebuildStage7DangerPresentationState: SkinRebuildStage7DangerPresentationState | null = null;
-
 function clearSkinRebuildStage7DangerPresentation(): void {
   skinRebuildStage7DangerPresentationState = null;
 }
@@ -7756,6 +7862,15 @@ function refreshSkinRebuildStage7DangerPresentation(
     ? `Stage 7 danger responsibility · support target (Outside + Boundary) ${presentation.supportTargetFaceCount.toLocaleString()} faces / ${presentation.supportTargetRegionCount} regions · Inside danger (no removable support) ${presentation.insideDangerFaceCount.toLocaleString()} faces / ${presentation.insideDangerRegionCount} regions · unclassified/invalid ${presentation.unclassifiedFaceCount.toLocaleString()} faces / ${presentation.unclassifiedRegionCount} regions`
     : `Stage 7 danger responsibility unavailable/fail-closed · ${presentation.reason ?? "classification evidence is unavailable"} · unclassified/invalid ${presentation.unclassifiedFaceCount.toLocaleString()} faces`;
   skinRebuildStage7DangerPresentationStatus.dataset.ok = String(presentation.available);
+}
+
+function currentSkinRebuildStage65And7SupportPresentation(): SkinRebuildStage7DangerPresentation | null {
+  const diagnosis = skinRebuildFinalDiagnosisIsCurrent() ? skinRebuildFinalArtworkDiagnosis : null;
+  const presentationState = skinRebuildStage7DangerPresentationState;
+  if (!diagnosis || presentationState?.diagnosis !== diagnosis || !presentationState.presentation.available) {
+    return null;
+  }
+  return presentationState.presentation;
 }
 
 function skinRebuildOverhangResponsibilityEvidence(
@@ -8119,7 +8234,6 @@ function refreshSkinRebuildMeshInteriorClassificationDisplay(forceOverlay = fals
   if (skinRebuildMeshInteriorClassificationDisplayMode === "combined") {
     if (!combinedPresentation || !diagnosis) {
       skinRebuildMeshInteriorClassificationDisplayMode = "normal";
-      skinRebuildCombinedExperimentalSupportEnabled = false;
       if (skinRebuildMeshInteriorClassificationDisplayStatus) {
         skinRebuildMeshInteriorClassificationDisplayStatus.textContent =
           "6.5 + 7 unavailable/stale · run current Stage 6.5 and Stage 7";
@@ -8199,14 +8313,12 @@ function setSkinRebuildMeshInteriorClassificationDisplayMode(
   mode: SkinRebuildMeshInteriorClassificationDisplayMode,
 ): void {
   skinRebuildMeshInteriorClassificationDisplayMode = mode;
-  skinRebuildCombinedExperimentalSupportEnabled = mode === "combined";
   refreshSkinRebuildMeshInteriorClassificationDisplay(true);
 }
 
 function clearSkinRebuildMeshInteriorClassificationCheckpoint(): void {
   skinRebuildMeshInteriorClassificationCheckpoint = null;
   skinRebuildMeshInteriorClassificationDisplayMode = "normal";
-  skinRebuildCombinedExperimentalSupportEnabled = false;
 }
 
 /** The checkpoint is valid only while all three source facts are the live
@@ -8232,19 +8344,6 @@ function skinRebuildArtworkInteriorClassificationCheckpointIsCurrent(): boolean 
     && checkpoint !== null
     && checkpoint.ambiguousFaceCount === 0
     && checkpoint.ambiguousRegionCount === 0;
-}
-
-function skinRebuildArtworkInteriorClassificationBlockReason(): string | null {
-  if (!skinRebuildFinalDiagnosisIsCurrent()) return "先に工程7で確定作品を診断してください";
-  const checkpoint = skinRebuildArtworkInteriorClassificationCheckpoint;
-  if (!checkpoint) return "先に7.5 Artwork Interior Classification / 作品の内外を判定してください";
-  if (!skinRebuildArtworkInteriorClassificationCheckpointBindingsAreCurrent()) {
-    return "7.5 Artwork Interior Classificationの証拠が古いため、現在の工程7/工程4で再判定してください";
-  }
-  if (checkpoint.ambiguousFaceCount > 0 || checkpoint.ambiguousRegionCount > 0) {
-    return `7.5 Artwork Interior Classificationが未確定です · ambiguous/unclassified ${checkpoint.ambiguousFaceCount} faces / ${checkpoint.ambiguousRegionCount} regions`;
-  }
-  return null;
 }
 
 function buildSkinRebuildArtworkInteriorClassificationCheckpoint(
@@ -8352,13 +8451,93 @@ function skinRebuildPrintSupportModeStatus(
     skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.responsibilityOverhang : null,
   );
   if (skinRebuildPrintSupportMode === "off") {
-    return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${responsibility} · ${evidence} · ${confirmed
+  return `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${responsibility} · ${evidence} · ${confirmed
       ? "Off confirmed · BODY only · removable support 0"
       : "Off selected · confirm Stage 8 before BODY export"}`;
   }
   return `Removable support Sparse Automatic (experimental) · ${responsibility} · ${evidence} · ${confirmed
     ? "support graph confirmed"
     : "confirm Stage 8 to generate removable support"}`;
+}
+
+async function waitForSkinRebuildEvidence(
+  predicate: () => boolean,
+  onProgress: () => void,
+  timeoutMs = 120_000,
+): Promise<boolean> {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline) {
+    if (predicate()) return true;
+    onProgress();
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 50));
+  }
+  return predicate();
+}
+
+async function prepareCurrentSkinRebuildSupportEvidence(
+  setProgress: (label: string) => void,
+): Promise<string | null> {
+  const invoke = async (button: HTMLButtonElement | null): Promise<boolean> => {
+    if (!button || button.disabled || !button.onclick) return false;
+    const result = button.onclick(new PointerEvent("click"));
+    if (result instanceof Promise) await result;
+    return true;
+  };
+
+  if (!skinRebuildPipelineIsCurrent() || !skinRebuildPipeline?.responsibilityOverhang?.interior) {
+    setProgress("Finding outside overhang…");
+    if (!await invoke(skinRebuildLowestButton)
+      || !await waitForSkinRebuildEvidence(
+        () => Boolean(skinRebuildPipelineIsCurrent() && skinRebuildPipeline?.responsibilityOverhang?.interior),
+        () => setProgress("Finding outside overhang…"),
+      )) {
+      return "Stage 4 Outside / Boundary evidence could not be prepared";
+    }
+  }
+
+  const project = skinRebuildPipeline?.project;
+  if (project && (project.audit.unsupportedTargetCount > 0
+    || skinRebuildDisconnectedPatternIds(project.patternSides, project.finalGraph).length > 0)) {
+    return "Action required: Permanent Reinforcement needs review";
+  }
+
+  if (!currentSkinRebuildTopologyCache()) {
+    setProgress("Preparing BODY…");
+    if (!await invoke(skinRebuildStage6Button)
+      || !await waitForSkinRebuildEvidence(
+        () => currentSkinRebuildTopologyCache() !== null,
+        () => setProgress("Preparing BODY…"),
+      )) {
+      return "Stage 6 BODY evidence could not be prepared";
+    }
+  }
+
+  if (!skinRebuildMeshInteriorClassificationCheckpoint
+    || !skinRebuildMeshInteriorClassificationBindingsAreCurrent()) {
+    setProgress("Finding support targets…");
+    if (!await invoke(skinRebuildMeshInteriorClassificationButton)
+      || !await waitForSkinRebuildEvidence(
+        () => Boolean(
+          skinRebuildMeshInteriorClassificationCheckpoint
+          && skinRebuildMeshInteriorClassificationBindingsAreCurrent(),
+        ),
+        () => setProgress("Finding support targets…"),
+      )) {
+      return "Stage 6.5 Outside / Boundary evidence could not be prepared";
+    }
+  }
+
+  if (currentSkinRebuildStage65And7SupportPresentation() === null) {
+    setProgress("Finding support targets…");
+    if (!await invoke(skinRebuildFinalDiagnosisButton)
+      || !await waitForSkinRebuildEvidence(
+        () => currentSkinRebuildStage65And7SupportPresentation() !== null,
+        () => setProgress("Finding support targets…"),
+      )) {
+      return "Stage 7 danger evidence could not be prepared";
+    }
+  }
+  return null;
 }
 
 function skinRebuildPrintSupportExportSuffix(): string {
@@ -8437,9 +8616,16 @@ function refreshSkinRebuildFinalStageButtons(): void {
       || !skinRebuildMeshInteriorClassificationBindingsAreCurrent();
   }
   if (skinRebuildPrintSupportButton) {
+    const hasAuthoringInput = state.host.length > 0 || skinRebuildPipeline?.project != null;
     skinRebuildPrintSupportButton.disabled = skinRebuildPrintSupportMode === "automatic"
-      ? !skinRebuildArtworkInteriorClassificationCheckpointIsCurrent()
-      : !skinRebuildFinalDiagnosisIsCurrent();
+      ? !hasAuthoringInput || skinRebuildSupportPreparationRunning
+      : !skinRebuildFinalDiagnosisIsCurrent() || skinRebuildSupportPreparationRunning;
+    skinRebuildPrintSupportButton.textContent = skinRebuildPrintSupportMode === "automatic"
+      && currentSkinRebuildStage65And7SupportPresentation() !== null
+      ? "Generate / Update Support"
+      : skinRebuildPrintSupportMode === "automatic"
+        ? "Prepare & Generate Support"
+        : "Confirm Support Mode";
   }
   refreshSkinRebuildMeshInteriorClassificationCheckpoint();
   refreshSkinRebuildMeshInteriorClassificationDisplay();
@@ -8802,6 +8988,7 @@ function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationRead
   const selection = skinRebuildExportSelectionDescriptor();
   const stage8Current = project !== null && skinRebuildStage8CompletedProject === project;
   const sparseResult = skinRebuildSparseSupportResult;
+  const stage65And7Current = currentSkinRebuildStage65And7SupportPresentation() !== null;
   const approvalCurrent = skinRebuildExperimentalExportApproval !== null
     && skinRebuildExperimentalExportApproval.project === project
     && skinRebuildExperimentalExportApproval.responsibilityOverhang === pipeline?.responsibilityOverhang
@@ -8814,7 +9001,7 @@ function skinRebuildPrintPreparationReadiness(): SkinRebuildPrintPreparationRead
     componentCount: topology?.topologyDiagnostics?.componentCount ?? 0,
     selectedComponentCount: selection?.componentIds.length ?? 0,
     stage7Current: skinRebuildFinalDiagnosisIsCurrent(),
-    stage75Current: skinRebuildArtworkInteriorClassificationCheckpointIsCurrent(),
+    stage75Current: stage65And7Current,
     stage8Current,
     supportMode: skinRebuildPrintSupportMode,
     sparseSupportGenerated: stage8Current && sparseResult !== null,
@@ -8846,7 +9033,7 @@ function skinRebuildPrintPreparationNextAction(reason: string): string {
     return "Stage 6で作品meshを確定し、6.4 Component ColorsでBODYを選んでください";
   }
   if (reason.includes("7.5") || reason.includes("Interior Classification")) {
-    return "Stage 7.5で作品の内外を判定し、ambiguous/unclassified 0を確認してください";
+    return "Stage 6.5 + Stage 7のcurrent evidenceを準備してからSupportを生成してください";
   }
   if (reason.includes("工程7") || reason.includes("最終診断")) {
     return "Stage 7「確定作品を診断して残る赤を表示」を実行してください";
@@ -8891,7 +9078,7 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
     readiness.selectedComponentCount > 0 ? "current" : "stale",
   );
   setValue(refs.values.stage7, `Stage 7 final diagnosis · ${diagnosticText(diagnostics.stage7)}`, diagnostics.stage7);
-  setValue(refs.values.stage75, `Stage 7.5 interior classification · ${diagnosticText(diagnostics.stage75)}`, diagnostics.stage75);
+  setValue(refs.values.stage75, `Stage 6.5 + Stage 7 support evidence · ${diagnosticText(diagnostics.stage75)}`, diagnostics.stage75);
   setValue(refs.values.stage8, `Stage 8 confirmation · ${diagnosticText(diagnostics.stage8)}`, diagnostics.stage8);
   const supportText = skinRebuildPrintSupportMode === "off"
     ? `${diagnostics.stage8} · Off confirmed / Sparse Support not generated · BODY only`
@@ -9016,7 +9203,7 @@ function currentSkinWorkflowGuideInput(): SkinWorkflowGuideInput {
 
   const readiness = skinRebuildPrintPreparationReadiness();
   const stage8Current = project !== null && skinRebuildStage8CompletedProject === project;
-  const stage75Current = skinRebuildArtworkInteriorClassificationCheckpointIsCurrent();
+  const stage65And7Current = currentSkinRebuildStage65And7SupportPresentation() !== null;
   const pipelineReason = skinRebuildPipelineOutputBlockReason();
   const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
   const internalGateReason = skinRebuildCurrentInternalPrintGateBlockReason();
@@ -9026,9 +9213,9 @@ function currentSkinWorkflowGuideInput(): SkinWorkflowGuideInput {
   if (!finalDiagnosisCurrent) {
     supportExportState = "not-ready";
     supportExportBlocker = "先にFinal Diagnosisをcurrentにしてください";
-  } else if (skinRebuildPrintSupportMode === "automatic" && !stage75Current) {
-    supportExportState = "needs-interior-verification";
-    supportExportBlocker = "Inside / Outside evidenceがNeeds verificationです。既存の作品内外判定を確認してください";
+  } else if (skinRebuildPrintSupportMode === "automatic" && !stage65And7Current) {
+    supportExportState = "not-ready";
+    supportExportBlocker = "Stage 6.5 + Stage 7のcurrent support evidenceがありません。準備してから生成してください";
   } else if (skinRebuildPrintSupportMode === "off"
     && (skinRebuildPrintSupportModeNeedsConfirmation || !stage8Current)) {
     supportExportState = "needs-confirmation";
@@ -9076,7 +9263,7 @@ function focusSkinWorkflowGuideDetails(targetId: string): void {
 
 function skinWorkflowGuideActionButton(action: SkinWorkflowGuideAction): HTMLButtonElement | null {
   const directAction = action === "verify-final-mesh" ? "build-final-mesh" : action;
-  if (action === "confirm-support-mode") {
+  if (action === "confirm-support-mode" || action === "prepare-generate-support") {
     return skinRebuildPrintSupportButton;
   }
   if (action === "regenerate-reinforcement") {
@@ -10838,8 +11025,8 @@ function installSkinRebuildPipelinePanel(): void {
   );
 
   const printSupport = makeStep(
-    "8. Outside Overhangに印刷サポートを生成",
-    "Removable Support = Off / Sparse Automatic (experimental)。Automaticは工程4のOutside Overhangだけへ別体支柱を生成し、Inside OverhangはPermanent Webの責任として残します。Offは支柱を生成せずBODYだけを保存します。",
+    "8. Removable Support",
+    "現在のStage 6.5 + Stage 7 evidenceから、作品と分離したoffset-bend Supportを生成します。",
   );
   printSupport.section.id = "skin-stage-8-support";
   const supportModeRow = document.createElement("label");
@@ -10889,47 +11076,72 @@ function installSkinRebuildPipelinePanel(): void {
   printSupportButton.dataset.skinWorkflowGuideAction = "generate-sparse-support";
   printSupportButton.type = "button";
   printSupportButton.className = "primary-action";
-  printSupportButton.textContent = "8. Outside Overhangに印刷サポートを生成";
+  printSupportButton.textContent = "Prepare & Generate Support";
   printSupportButton.disabled = true;
+  const printSupportDetails = document.createElement("details");
+  printSupportDetails.className = "skin-rebuild-support-details";
+  const printSupportDetailsSummary = document.createElement("summary");
+  printSupportDetailsSummary.textContent = "Details · Support diagnostics";
+  const printSupportDiagnostics = document.createElement("div");
+  printSupportDiagnostics.className = "mesh-status skin-rebuild-support-diagnostics";
+  printSupportDiagnostics.textContent = "Support diagnostics are not available";
+  printSupportDetails.append(printSupportDetailsSummary, printSupportDiagnostics);
   printSupportButton.onclick = async () => {
+    if (skinRebuildSupportPreparationRunning) return;
+    const modeAtStart = skinRebuildPrintSupportMode;
+    if (modeAtStart === "automatic" && currentSkinRebuildStage65And7SupportPresentation() === null) {
+      skinRebuildSupportPreparationRunning = true;
+      printSupportButton.disabled = true;
+      printSupport.status.textContent = "Preparing support…";
+      printSupportDiagnostics.textContent = "Preparing BODY…";
+      setSkinRebuildMeshBottomProgress("Removable Support", "Preparing BODY…");
+      const preparationError = await prepareCurrentSkinRebuildSupportEvidence((label) => {
+        printSupport.status.textContent = label;
+        printSupportDiagnostics.textContent = label;
+        setSkinRebuildMeshBottomProgress("Removable Support", label);
+      });
+      skinRebuildSupportPreparationRunning = false;
+      if (preparationError) {
+        printSupport.status.textContent = preparationError.startsWith("Action required:")
+          ? preparationError
+          : "Support could not be generated";
+        printSupport.status.dataset.ok = "false";
+        printSupportDiagnostics.textContent = preparationError;
+        setSkinRebuildMeshBottomProgress("Removable Support", printSupport.status.textContent);
+        refreshSkinRebuildFinalStageButtons();
+        return;
+      }
+      refreshSkinRebuildFinalStageButtons();
+    }
     const pipeline = skinRebuildPipeline;
     const current = pipeline?.project;
     const lowestPoints = pipeline?.lowestPoints;
     const diagnosis = skinRebuildFinalArtworkDiagnosis;
     if (!skinRebuildPipelineIsCurrent() || !pipeline || !current || !lowestPoints
       || !diagnosis || diagnosis.project !== current) {
-      printSupport.status.textContent = "先に工程7で確定作品を診断してください";
+      printSupport.status.textContent = "Support could not be generated";
+      printSupportDiagnostics.textContent = "Current Stage 6.5 + Stage 7 evidence is unavailable";
       printSupport.status.dataset.ok = "false";
       return;
     }
-    const modeAtStart = skinRebuildPrintSupportMode;
     const responsibilityOverhang = pipeline.responsibilityOverhang;
-    const artworkInteriorCheckpoint = skinRebuildArtworkInteriorClassificationCheckpoint;
-    const combinedPresentationAtStart = skinRebuildStage7DangerPresentationState?.diagnosis === diagnosis
-      && skinRebuildStage7DangerPresentationState.presentation.available
-      ? skinRebuildStage7DangerPresentationState.presentation
-      : null;
-    const combinedExperimentalAtStart = modeAtStart === "automatic"
-      && skinRebuildCombinedExperimentalSupportEnabled
-      && combinedPresentationAtStart !== null;
-    if (modeAtStart === "automatic" && !combinedExperimentalAtStart) {
-      const blockReason = skinRebuildArtworkInteriorClassificationBlockReason();
-      if (blockReason) {
-        printSupport.status.textContent = `印刷サポート生成停止: ${blockReason}`;
-        printSupport.status.dataset.ok = "false";
-        return;
-      }
+    const stage65And7PresentationAtStart = currentSkinRebuildStage65And7SupportPresentation();
+    if (modeAtStart === "automatic" && !stage65And7PresentationAtStart) {
+      printSupport.status.textContent = "Support could not be generated";
+      printSupportDiagnostics.textContent = "Current Stage 6.5 + Stage 7 evidence is unavailable";
+      printSupport.status.dataset.ok = "false";
+      return;
     }
     let projectedOutsideFaces: SparseRemovableSupportFace[] = [];
     let currentProjectedOutsideRegionIds: number[] = [];
     let outsideSupportDemand = 0;
     let insideSupportDemand = 0;
     if (modeAtStart === "automatic") {
-      if (combinedExperimentalAtStart && combinedPresentationAtStart) {
-        // The selected 6.5 + 7 mode is already the exact intersection of
-        // Stage 7 danger with 6.5 Outside/Boundary. No second classifier or
-        // legacy Stage 4/7.5 target substitution is allowed here.
-        projectedOutsideFaces = combinedPresentationAtStart.supportTargetFaces.map((face) => ({
+      if (stage65And7PresentationAtStart) {
+        // Production authoring consumes the exact Stage 6.5 Outside/Boundary
+        // intersection with current Stage 7 danger. No Stage 7.5 or legacy
+        // target substitution is allowed here.
+        projectedOutsideFaces = stage65And7PresentationAtStart.supportTargetFaces.map((face) => ({
           ...face,
           position: { ...face.position },
           normal: { ...face.normal },
@@ -10938,20 +11150,10 @@ function installSkinRebuildPipelinePanel(): void {
           .sort((first, second) => first - second);
         outsideSupportDemand = projectedOutsideFaces.length;
       } else {
-        if (!artworkInteriorCheckpoint || !skinRebuildArtworkInteriorClassificationCheckpointIsCurrent()) {
-          const blockReason = skinRebuildArtworkInteriorClassificationBlockReason()
-            ?? "7.5 Artwork Interior Classificationの現在証拠がありません";
-          printSupport.status.textContent = `印刷サポート生成停止: ${blockReason}`;
-          printSupport.status.dataset.ok = "false";
-          return;
-        }
-        projectedOutsideFaces = artworkInteriorCheckpoint.outsideFaces.map((face) => ({
-          ...face,
-          position: { ...face.position },
-          normal: { ...face.normal },
-        }));
-        currentProjectedOutsideRegionIds = artworkInteriorCheckpoint.outsideRegionIds.slice();
-        outsideSupportDemand = artworkInteriorCheckpoint.outsideFaceCount;
+        printSupport.status.textContent = "Support could not be generated";
+        printSupportDiagnostics.textContent = "Current Stage 6.5 + Stage 7 evidence is unavailable";
+        printSupport.status.dataset.ok = "false";
+        return;
       }
       // Stage 4 Inside faces are an authoritative Permanent Web responsibility;
       // they are intentionally never converted into this removable graph.
@@ -10961,20 +11163,17 @@ function installSkinRebuildPipelinePanel(): void {
     setSkinRebuildPipelineBusy(
       printSupportButton,
       true,
-      "8. Outside Overhangに印刷サポートを生成",
-      "印刷サポートを生成中…",
+      "Generate / Update Support",
+      "Generating support…",
     );
-    printSupport.status.textContent = modeAtStart === "automatic"
-      ? combinedExperimentalAtStart
-        ? `6.5 + 7 intersection ${outsideSupportDemand.toLocaleString()} facesから未審査の実験支柱を生成中…`
-        : `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Outside候補${outsideSupportDemand}点から支柱を生成中…`
-      : `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Offを確定中…`;
+    printSupport.status.textContent = modeAtStart === "automatic" ? "Generating support…" : "Confirming support mode…";
+    printSupportDiagnostics.textContent = modeAtStart === "automatic"
+      ? `Stage 6.5 Outside/Boundary ∩ Stage 7 danger · ${outsideSupportDemand.toLocaleString()} target faces`
+      : `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off`;
     setSkinRebuildMeshBottomProgress(
       "工程8 Removable Support",
       modeAtStart === "automatic"
-        ? combinedExperimentalAtStart
-          ? "6.5 Outside/Boundary ∩ Stage 7 danger · BODY-screened offset/bend routes"
-          : "Outside Overhangだけから別体支柱を生成"
+        ? "Stage 6.5 Outside/Boundary ∩ Stage 7 danger · offset-bend routes"
         : REMOVABLE_SUPPORT_DISABLED_WARNING,
     );
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -10982,12 +11181,12 @@ function installSkinRebuildPipelinePanel(): void {
       if (skinRebuildPrintSupportMode !== modeAtStart
         || skinRebuildPipeline !== pipeline
         || pipeline.project !== current
-        || (modeAtStart === "automatic" && (combinedExperimentalAtStart
-          ? skinRebuildStage7DangerPresentationState?.presentation !== combinedPresentationAtStart
-          : !skinRebuildArtworkInteriorClassificationCheckpointIsCurrent()))) {
+        || (modeAtStart === "automatic"
+          && currentSkinRebuildStage65And7SupportPresentation() !== stage65And7PresentationAtStart)) {
         printSupport.status.textContent = modeAtStart === "automatic"
-          ? "7.5 Artwork Interior Classificationの証拠が変わったため、古い工程8結果を破棄しました"
+          ? "Support could not be generated"
           : "Removable Supportモードが変わったため、古い工程8結果を破棄しました";
+        printSupportDiagnostics.textContent = "Current Stage 6.5 + Stage 7 evidence changed; the old result was discarded";
         printSupport.status.dataset.ok = "false";
         return;
       }
@@ -11072,8 +11271,8 @@ function installSkinRebuildPipelinePanel(): void {
             maximumOverlapLength: targetRadius + shaftRadius * 2,
             maximumDepth: targetRadius + shaftRadius * 2,
             plateBounds,
-            preserveContactNeck: combinedExperimentalAtStart,
-            spacingAsSelectionPreference: combinedExperimentalAtStart,
+            preserveContactNeck: true,
+            spacingAsSelectionPreference: true,
             // The current SKIN workflow stores the plate's Z only; the BODY
             // sampling bounds are not a physical XY plate limit. Without an
             // explicit finite plateBounds proof, leaning routes are therefore
@@ -11107,16 +11306,14 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
       skinRebuildSparseSupportResult = sparseResult;
       skinRebuildStage8CompletedProject = project;
-      // Support generation replaces the project object. The consumed 7.5
-      // evidence is therefore stale by identity and must be rerun for any
-      // later Automatic generation.
-      if (combinedExperimentalAtStart && combinedPresentationAtStart) {
+      // Support generation replaces the project object. Rebind the same
+      // current Stage 6.5 + 7 presentation to the new project identity so
+      // the displayed graph and the export graph remain one current result.
+      if (stage65And7PresentationAtStart) {
         skinRebuildMeshInteriorClassificationCheckpoint = null;
-        skinRebuildMeshInteriorClassificationDisplayMode = "combined";
-        skinRebuildCombinedExperimentalSupportEnabled = true;
         skinRebuildStage7DangerPresentationState = {
           diagnosis: skinRebuildFinalArtworkDiagnosis,
-          presentation: combinedPresentationAtStart,
+          presentation: stage65And7PresentationAtStart,
         };
       } else {
         clearSkinRebuildMeshInteriorClassificationCheckpoint();
@@ -11145,28 +11342,28 @@ function installSkinRebuildPipelinePanel(): void {
       invalidateInternalPrintGate("工程8で別体印刷サポートを更新しました。3D書き出し時に自動判定します");
       const count = stage8SupportGraph.edges.length;
       if (modeAtStart === "off") {
-        printSupport.status.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off confirmed · BODY only · support nodes 0 / edges 0 / artifact 0`;
+        printSupport.status.textContent = "Removable Support · Off · BODY only";
+        printSupportDiagnostics.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · support nodes 0 / edges 0 / artifact 0`;
         printSupport.status.dataset.ok = "true";
         setSkinRebuildMeshBottomProgress(
-          "工程8 Off 完了",
-          `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · BODY only · support nodes 0 / edges 0 / artifact 0 · printApproval=false`,
+          "Removable Support",
+          "Off · BODY only",
         );
       } else {
         const sparseDiagnostics = skinRebuildSparseSupportResult?.diagnostics;
         const responsibilityText = `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Stage 8 Surface targets Outside ${outsideSupportDemand} / Inside-derived 0${insideSupportDemand > 0 ? `（Inside ${insideSupportDemand}点は意図的にPermanent Web責任）` : ""}`;
         const sparseStatus = sparseDiagnostics
-          ? `${combinedExperimentalAtStart ? "OFFSET-BEND 6.5+7" : "Outside"} regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / acceptedSupportCount ${stage8SupportGraph.stats.acceptedSupportCount ?? 0} / rejectedByBodyIntersection ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / rejected-by-Body ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / unsupportedCount ${stage8SupportGraph.stats.unsupportedCount ?? sparseDiagnostics.unsupportedTargetCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
+          ? `OFFSET-BEND 6.5+7 regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / acceptedSupportCount ${stage8SupportGraph.stats.acceptedSupportCount ?? 0} / rejectedByBodyIntersection ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / rejected-by-Body ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / unsupportedCount ${stage8SupportGraph.stats.unsupportedCount ?? sparseDiagnostics.unsupportedTargetCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
           : "Outside regions 0 / Critical targets 0 / Supported 0 / Unsupported 0 / Supports 0 / rejected BODY 0 / spacing 0 / removable 0";
         const unresolvedWarning = (sparseDiagnostics?.unsupportedTargetCount ?? 0) > 0
           ? ` · ${sparseDiagnostics!.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`
           : "";
-        printSupport.status.textContent = count > 0
-          ? `${responsibilityText} · Sparse Automatic (experimental) · ${sparseStatus} · 緑の別Graph ${settings.supportDiameterMm.toFixed(1)} mm × ${count}本${unresolvedWarning}`
-          : `${responsibilityText} · Sparse Automatic (experimental) · ${sparseStatus} · 追加支柱は0本でした${unresolvedWarning}`;
-        printSupport.status.dataset.ok = String((sparseDiagnostics?.unsupportedTargetCount ?? 0) === 0);
+        printSupportDiagnostics.textContent = `${responsibilityText} · Sparse Automatic (experimental) · ${sparseStatus} · ${count} edges · 3MF/STL/report use this same graph${unresolvedWarning}`;
+        printSupport.status.textContent = `Removable Support · ${sparseDiagnostics?.coveredTargetCount ?? 0} supported · ${sparseDiagnostics?.unsupportedTargetCount ?? 0} unresolved · BODY collision ${sparseDiagnostics?.acceptedBodyCollisionCount ?? 0}`;
+        printSupport.status.dataset.ok = "true";
         setSkinRebuildMeshBottomProgress(
-          "工程8 完了",
-          `${sparseStatus} · 印刷サポート直径${settings.supportDiameterMm.toFixed(1)}mm · ${count}本 · 本体と別出力 · printApproval=false`,
+          "Removable Support",
+          printSupport.status.textContent,
         );
       }
       if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = "保存可能 · 恒久ラティスと印刷サポートを別Graphで保持します";
@@ -11175,20 +11372,21 @@ function installSkinRebuildPipelinePanel(): void {
       render();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      printSupport.status.textContent = `印刷サポート生成失敗: ${message}`;
+      printSupport.status.textContent = "Support could not be generated";
+      printSupportDiagnostics.textContent = message;
       printSupport.status.dataset.ok = "false";
-      setSkinRebuildMeshBottomProgress("工程8 失敗", "印刷サポートを生成できませんでした", message);
+      setSkinRebuildMeshBottomProgress("Removable Support", "Support could not be generated", message);
     } finally {
       setSkinRebuildPipelineBusy(
         printSupportButton,
         false,
-        "8. Outside Overhangに印刷サポートを生成",
-        "印刷サポートを生成中…",
+        "Generate / Update Support",
+        "Generating support…",
       );
       refreshSkinRebuildFinalStageButtons();
     }
   };
-  printSupport.section.append(supportModeRow, sparseDebugRow, supportDiameterRow, printSupportButton, printSupport.status);
+  printSupport.section.append(supportModeRow, sparseDebugRow, supportDiameterRow, printSupportButton, printSupport.status, printSupportDetails);
 
   const stage8Export = makeStep(
     "サポート確定後の3Dデータ書き出し",
@@ -11382,16 +11580,22 @@ function installSkinRebuildPipelinePanel(): void {
   const inspectButton = Array.from(stage6Body.querySelectorAll<HTMLButtonElement>("button"))
     .find((button) => button.textContent === "メッシュを検査");
   if (inspectButton) inspectButton.textContent = "6. 作品をメッシュ化して確定";
+  skinRebuildStage6Button = inspectButton ?? null;
   stage6Body.append(topologyDiagnostics.section, meshInteriorClassification.section);
   stage7Body.prepend(makePipelinePanel(
     "工程7 · 作品の最終診断",
     "工程6の確定meshにまだ残る危険面だけを赤表示します。",
     finalDiagnosis.section,
   ));
+  const advancedSupportDetails = document.createElement("details");
+  advancedSupportDetails.className = "skin-rebuild-advanced-support-details";
+  const advancedSupportSummary = document.createElement("summary");
+  advancedSupportSummary.textContent = "Advanced / Legacy · 7.5 / Outside preview";
+  advancedSupportDetails.append(advancedSupportSummary, artworkInteriorClassification.section, phaseASupportPanel);
   stage8Body.prepend(makePipelinePanel(
     "工程8 · 残っている赤へ印刷サポート",
     "最終診断の赤面へ、作品と分離した緑色サポートを生成します。",
-    artworkInteriorClassification.section,
+    advancedSupportDetails,
     printSupport.section,
     stage8Export.section,
     save.section,
@@ -19472,6 +19676,8 @@ function renderFrame(): void {
   if (elapsed > 0) ui.setFps(1000 / elapsed);
 }
 
+if (isSkinRebuildApp) installSkinWorkflowGuide();
+
 skinRenderer.setRenderRequestCallback(requestRenderFrame);
 skinRenderer.setEditorViewChangeCallback(() => {
   const split = skinRenderer.getFourViewSplit();
@@ -19491,8 +19697,6 @@ viewport.addEventListener("wheel", (event) => {
     requestRenderFrame();
   }
 }, { capture: true, passive: true });
-
-if (isSkinRebuildApp) installSkinWorkflowGuide();
 
 requestAnimationFrame(() => {
   skinShellInteractiveMs = performance.now() - skinBootStartedAt;

@@ -22,6 +22,7 @@ export type SkinWorkflowGuideAction =
   | "build-final-mesh"
   | "verify-final-mesh"
   | "run-final-diagnosis"
+  | "prepare-generate-support"
   | "generate-sparse-support"
   | "confirm-support-mode"
   | "approve-unresolved-support"
@@ -98,6 +99,7 @@ const ACTION_LABELS: Record<SkinWorkflowGuideAction, string> = {
   "build-final-mesh": "Build Final Mesh",
   "verify-final-mesh": "Build / Verify Final Mesh",
   "run-final-diagnosis": "Run Final Diagnosis",
+  "prepare-generate-support": "Prepare & Generate Support",
   "generate-sparse-support": "Generate Sparse Support",
   "confirm-support-mode": "Confirm Support Mode",
   "approve-unresolved-support": "Approve Unresolved Support",
@@ -185,20 +187,20 @@ export function evaluateSkinWorkflowGuide(input: SkinWorkflowGuideInput): SkinWo
     );
   } else if (input.finalDiagnosisState !== "current") {
     selected = current(
-      "final-diagnosis",
-      "run-final-diagnosis",
-      input.finalDiagnosisState === "stale" ? "Final Diagnosisがstaleです" : "Final Diagnosisがまだ実行されていません",
+      "support-export",
+      "prepare-generate-support",
+      "Support evidenceが不足しています。準備してから生成してください",
     );
   } else if (input.supportExportState === "needs-interior-verification") {
     selected = current(
-      "final-diagnosis",
-      "verify-artwork-interior",
-      input.supportExportBlocker ?? "Inside / Outside evidenceがNeeds verificationです",
+      "support-export",
+      "prepare-generate-support",
+      input.supportExportBlocker ?? "Support evidenceが不足しています。準備してから生成してください",
     );
   } else if (input.supportExportState === "not-ready") {
     selected = current(
       "support-export",
-      "generate-sparse-support",
+      "prepare-generate-support",
       input.supportExportBlocker ?? "Removable Support / Exportがまだ準備できていません",
     );
   } else if (input.supportExportState === "needs-confirmation") {

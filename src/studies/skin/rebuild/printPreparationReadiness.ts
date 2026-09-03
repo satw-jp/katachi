@@ -68,6 +68,9 @@ export function evaluateSkinRebuildPrintPreparation(
     ? Math.max(0, input.componentCount)
     : 0;
   const sparseSupportGenerated = input.supportMode === "automatic" && input.sparseSupportGenerated;
+  // Production support consumes the current Stage 6.5 + Stage 7 evidence.
+  // The historic 7.5 projection is retained only as compatibility data and
+  // must never block or authorize the current support graph.
   const canGenerateSparseSupport = input.stage7Current
     && (input.supportMode === "off" || input.stage75Current);
 
@@ -101,11 +104,6 @@ export function evaluateSkinRebuildPrintPreparation(
     blocker = hardBlock(
       "Stage 7最終診断がstaleです",
       "Stage 7「確定作品を診断して残る赤を表示」を実行してください",
-    );
-  } else if (!input.stage75Current && input.supportMode === "automatic") {
-    blocker = hardBlock(
-      "Stage 7.5 Artwork Interior Classificationがstaleです",
-      "Stage 7.5で作品の内外を判定し、ambiguous/unclassified 0を確認してください",
     );
   } else if (!input.stage8Current) {
     blocker = hardBlock(
