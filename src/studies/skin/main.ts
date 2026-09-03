@@ -664,6 +664,9 @@ rightPaneHeader.className = "skin-pane-header";
 rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>8 author stages · properties below</span>";
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
+const rightPaneLower = document.createElement("div");
+rightPaneLower.className = "skin-right-pane-lower";
+rightPaneBody.appendChild(rightPaneLower);
 rightPane.append(rightPaneHeader, rightPaneBody);
 
 const bottomPane = document.createElement("footer");
@@ -2996,7 +2999,7 @@ if (phaseASupportStageBody) phaseASupportStageBody.appendChild(phaseASupportPane
 else ui.root.appendChild(phaseASupportPanel);
 syncPhaseAVerticalControl();
 
-rightPaneBody.appendChild(ui.root);
+rightPaneLower.appendChild(ui.root);
 if (isSkinRebuildApp) {
   const printPreparationPanel = document.createElement("section");
   printPreparationPanel.id = "skin-print-preparation";
@@ -3096,7 +3099,7 @@ if (isSkinRebuildApp) {
     blockerReason: printPreparationBlockerReason,
     blockerNextAction: printPreparationBlockerNextAction,
   };
-  rightPaneBody.insertBefore(printPreparationPanel, ui.root);
+  rightPaneLower.insertBefore(printPreparationPanel, ui.root);
 
   const phaseNavigator = document.createElement("nav");
   phaseNavigator.className = "skin-rebuild-phase-navigator";
@@ -3131,7 +3134,7 @@ if (isSkinRebuildApp) {
   previousPhaseButton.addEventListener("click", () => movePhase(-1));
   nextPhaseButton.addEventListener("click", () => movePhase(1));
   phaseNavigator.append(previousPhaseButton, phaseOutput, nextPhaseButton);
-  rightPaneBody.insertBefore(phaseNavigator, ui.root);
+  rightPaneLower.insertBefore(phaseNavigator, ui.root);
   refreshPhaseNavigator();
 
   for (const [classification, stageIds] of Object.entries(SKIN_REBUILD_STAGE_CLASSIFICATION)) {

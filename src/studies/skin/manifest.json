@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-03",
+      "note": "WORKFLOW Guideの既存max-height: 50vh / overflow-y: auto契約を維持し、右ペインをGuideと下側のStage / Properties領域へ分離した。親のflex / overflow競合で下側が押し出される回帰を修正し、Print準備とPropertiesを独立スクロール領域として残り高さを共有する。viewport 50%上限、Guide内部scroll、下側領域可視性を数値ベースの回帰テストと実ブラウザのresize計測で確認した。geometry、Support、Stage 8、export、3MF / STL / report parity、f542f84d384fcdda30a815ddfb7b8162af1cf4f1の印刷基準は変更していない。今回もdeployは行わない。"
+    },
+    {
+      "date": "2026-09-03",
       "note": "SKIN Authoring Restoration R2 reconnects the retained Surface Pattern authoring workflow to a visible Stage 2 Current panel: generation, Pattern selection, manual add, move/refine, delete, Undo/Redo and .fkei Save remain on the existing main.ts/history.ts authoring state. Manual controls are separated from collapsed Graph screening. Normal Shape Redo now uses a dedicated in-memory future of replayable authoring entries, while Support Paint and SKIN REBUILD workflow histories remain separate. Browser smoke and focused authoring/history tests cover the route; Stage 8 support, BODY, export geometry and the frozen f542f84d print baseline are unchanged. This task intentionally does not deploy."
     },
     {
