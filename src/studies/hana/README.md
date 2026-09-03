@@ -29,6 +29,7 @@ Milestone 2: SOFTWARE PASS
 Milestone 3: SOFTWARE PASS
 Milestone 4: SOFTWARE PASS
 Milestone 5: SOFTWARE PASS
+Milestone 6: SOFTWARE PASS
 ```
 
 ## Question
@@ -102,6 +103,12 @@ Strokeごとにlocal bounds、Material Sample cache、local candidate query、so
 Flower、Stem、Connectorをsemantic node / edgeとして接続するauthoring graphを追加した。junctionを明示的なnodeとして保持し、stem / petal / connector / surface-strand / gesture-strokeのedge role、source object、provenance、revision、protected属性を失わない。cyclesは許可し、connect / disconnectはimmutableに更新する。overlayはGraph edgeから派生し、validatorは参照切れ、重複、欠落node、ゼロ長edgeを検出する。
 
 状態: `SOFTWARE PASS`。junction接続、cycle、overlay、disconnect、validator、source referenceをtestsとTypeScriptで確認済み。Graphを既存SKINへ反映するadapterやproduction geometry変更は行っていない。複数Stroke Graphの実機操作は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Milestone 6: HANA → SKIN Semantic Bridge v0
+
+HANA authoring stateからSKIN側が受け取れるversioned semantic export `katachi.hana-skin-bridge.v0`を追加した。BridgeはRaw Gesture ID、adaptive Control Stroke、pressure / time / order / provenance、Stroke role、material mapping intent、Flower、Authoring Graph、protected authoring featuresを含む。units、source document format、source revisionを明示し、JSON round-tripと参照validatorを備える。Material Samples、Field、Surface Meshなどのderived geometryはBridgeへ出力しない。
+
+SKIN production repositoryには変更を加えず、既存production behaviorを呼び出すadapterもまだ追加していない。状態: `SOFTWARE PASS`。version check、semantic reference validation、derived geometry exclusion、deterministic JSON round-trip、TypeScriptを確認済み。SKIN側統合と実機操作は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 
