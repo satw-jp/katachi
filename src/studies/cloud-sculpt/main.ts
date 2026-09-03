@@ -24,8 +24,6 @@ import {
   encodeBinaryStl,
   encodeObj,
   meshSummary,
-  orientMeshForSavedStl,
-  rescaleMeshResult,
 } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
@@ -62,13 +60,9 @@ import {
 import { resolveDaylight } from "./daylight.ts";
 import { cameraPositionForSunBacklight, cameraSunAngleDeg } from "./sunBacklight.ts";
 import { deriveExperimentalLightBand } from "./lightDrawingBand.ts";
-import {
-  PhysicalRefineController,
-  physicalRefineIdentityFromCurrentScene,
-  withPhysicalRefineLightSize,
-  type PhysicalRefineIdentity,
-  type PhysicalRefineScene,
-} from "./physicalRefine.ts";
+// TEMPORARY D1 DIAGNOSTIC ONLY: include the module in the browser graph
+// without constructing or wiring any Physical Refine runtime.
+import "./physicalRefine.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -83,11 +77,6 @@ const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
 const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
-const REFINE_PROVENANCE_COMMIT = /^[0-9a-f]{40}$/i.test(APP_COMMIT)
-  ? APP_COMMIT
-  : "7edd92e93139a5b0246334ddf8069726fbf7c113";
-const REFINE_PROVENANCE_REF = import.meta.env.VITE_GIT_REF || "main";
-const PHYSICAL_REFINE_MESH_RESOLUTION = 64;
 /** The saved experiment is deliberately inert unless this explicit URL is used. */
 const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
 let workspaceView: WorkspaceView =
@@ -110,7 +99,6 @@ let activeHikariDocumentId = `hikari-${new Date().toISOString().slice(0, 10)}`;
 let hikariDocumentCreatedAt = new Date().toISOString();
 let cameraOrbit: CameraOrbitSettings = { ...DEFAULT_CAMERA_ORBIT };
 const hikariMpmDriver = new HikariMpmDriver();
-let physicalRefineController: PhysicalRefineController | null = null;
 let hikariMpmActive = false;
 let hikariMpmLastStepAt = 0;
 let hikariMpmAdoptedBallCount = 0;
@@ -233,6 +221,51 @@ function summarizeReceiverParity(
   };
 }
 
+const PHYSICAL_REFINE_SETTINGS = [
+  "hostPreset",
+  "hostTransmissionColor",
+  "inclusionEnabled",
+  "inclusionMode",
+  "inclusionSeed",
+  "inclusionCount",
+  "inclusionShapeFamily",
+  "inclusionSizeMinMm",
+  "inclusionSizeMaxMm",
+  "inclusionPlacement",
+  "inclusionMinimumWallMm",
+  "inclusionMinimumGapMm",
+  "inclusionIor",
+  "inclusionTransmissionColor",
+  "inclusionAbsorption",
+  "inclusionOffsetX",
+  "inclusionOffsetY",
+  "inclusionOffsetZ",
+  "inclusionRadius",
+  "ior",
+  "daylightMode",
+  "daylightDate",
+  "daylightMinutes",
+  "lightAngle",
+  "absorption",
+  "skyIntensity",
+  "sunIntensity",
+  "sunSize",
+  "groundReflectance",
+  "surfaceRoughness",
+] as const satisfies readonly (keyof HikariSettings)[];
+
+function physicalRefineSettingsChanged(
+  previous: HikariSettings,
+  next: HikariSettings,
+): boolean {
+  return PHYSICAL_REFINE_SETTINGS.some((key) => previous[key] !== next[key])
+    || previous.lightDrawingBand.position !== next.lightDrawingBand.position;
+}
+
+function markPhysicalRefineStale(): void {
+  // TEMPORARY D1 DIAGNOSTIC: stale invalidation is intentionally inactive.
+}
+
 // Seed the initial cloud so the app opens with something to look at
 // (an empty field is a legitimate but uninteresting state).
 record(history, state, "grow", { params: { ...DEFAULT_FIELD_PARAMS } });
@@ -242,6 +275,7 @@ function regrowCurrentField(): void {
   selectedBallId = null;
   ui.setHistoryCount(history.length);
   updateSelectionLabel();
+  markPhysicalRefineStale();
   render();
 }
 
@@ -263,6 +297,7 @@ const ui = buildUi(
       return;
     }
     ui.setHistoryCount(history.length);
+    markPhysicalRefineStale();
     render();
   },
   onGrow: () => {
@@ -275,6 +310,7 @@ const ui = buildUi(
     ui.syncParams(state.params);
     ui.setHistoryCount(history.length);
     updateSelectionLabel();
+    markPhysicalRefineStale();
     render();
   },
   onClear: () => {
@@ -282,6 +318,7 @@ const ui = buildUi(
     selectedBallId = null;
     ui.setHistoryCount(history.length);
     updateSelectionLabel();
+    markPhysicalRefineStale();
     render();
   },
   onDeleteSelected: () => deleteSelected(),
@@ -290,6 +327,7 @@ const ui = buildUi(
     record(history, state, "setBallRadius", { id: selectedBallId, r });
     ui.setHistoryCount(history.length);
     updateSelectionLabel();
+    markPhysicalRefineStale();
     render();
   },
   onBallPositionChange: (axis, value) => {
@@ -299,6 +337,7 @@ const ui = buildUi(
     const next = { x: ball.x, y: ball.y, z: ball.z, [axis]: value };
     record(history, state, "moveBall", { id: ball.id, ...next });
     ui.setHistoryCount(history.length);
+    markPhysicalRefineStale();
     render();
   },
   onExport: () => exportHistory(),
@@ -312,13 +351,10 @@ const ui = buildUi(
   onImageExport: () => exportViewportPng(),
   onHikariMpmStart: () => startHikariMpmPreview(),
   onHikariMpmAdopt: () => adoptHikariMpmPreview(),
-  onPhysicalRefineProbe: () => {
-    void physicalRefineController?.probe();
-  },
-  onPhysicalRefineRender: (purpose) => {
-    void renderPhysicalRefine(purpose);
-  },
-  onPhysicalRefineCancel: () => physicalRefineController?.cancel(),
+  // TEMPORARY D1 DIAGNOSTIC: Physical callbacks are intentionally inactive.
+  onPhysicalRefineProbe: () => {},
+  onPhysicalRefineRender: () => {},
+  onPhysicalRefineCancel: () => {},
   onReceiverParityRun: async () => {
     const effective = effectiveHikariShape(state.balls);
     if (!lightDrawingExperimentEnabled) {
@@ -373,11 +409,19 @@ const ui = buildUi(
     syncProgressiveRenderStatus(true);
   },
   onCameraOrbitChange: (settings) => {
+    const previous = cameraOrbit;
     cameraOrbit = {
       running: settings.running,
       durationSeconds: Math.min(180, Math.max(10, settings.durationSeconds)),
       direction: settings.direction,
     };
+    if (
+      previous.running !== cameraOrbit.running
+      || previous.durationSeconds !== cameraOrbit.durationSeconds
+      || previous.direction !== cameraOrbit.direction
+    ) {
+      markPhysicalRefineStale();
+    }
     if (cameraOrbit.running) {
       cloudRenderer.invalidateProgressiveRender(
         "自動回転を開始したためリアルタイムへ戻りました",
@@ -405,11 +449,15 @@ const ui = buildUi(
     window.location.assign(url);
   },
   onHikariChange: (settings) => {
+    const previous = hikariSettings;
     const normalized = normalizeHikariSettings(settings);
     hikariSettings = hikariMpmActive
       ? normalizeHikariSettings({ ...normalized, phenomenon: "optics" })
       : normalized;
     localStorage.setItem(HIKARI_SETTINGS_KEY, JSON.stringify(hikariSettings));
+    if (physicalRefineSettingsChanged(previous, hikariSettings)) {
+      markPhysicalRefineStale();
+    }
     if (hikariMpmActive) {
       if (normalized.phenomenon !== "optics") ui.syncHikariSettings(hikariSettings);
       renderHikariMpmBody(
@@ -441,10 +489,6 @@ const ui = buildUi(
   onHikariViewActivate: (viewId) => activateHikariView(viewId),
   },
 );
-physicalRefineController = new PhysicalRefineController({
-  onStateChange: (next) => ui.setPhysicalRefineState(next),
-});
-ui.setPhysicalRefineState(physicalRefineController.getState());
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
@@ -458,11 +502,11 @@ cloudRenderer.controls.addEventListener("start", () => {
   cloudRenderer.invalidateProgressiveRender(
     "視点が変わったためリアルタイムへ戻りました",
   );
-  physicalRefineController?.markStale();
+  markPhysicalRefineStale();
   syncProgressiveRenderStatus(true);
 });
 cloudRenderer.controls.addEventListener("change", () => {
-  physicalRefineController?.markStale();
+  markPhysicalRefineStale();
   const progressive = cloudRenderer.getProgressiveRenderState();
   if (progressive.kind === "realtime") return;
   cloudRenderer.invalidateProgressiveRender(
@@ -517,6 +561,7 @@ viewport.addEventListener("pointermove", (e) => {
     record(history, state, "moveBall", { id: ball.id, x: target.x, y: target.y, z: target.z });
     ui.setHistoryCount(history.length);
     updateSelectionLabel(); // keep the X/Y/Z fields in sync while dragging
+    markPhysicalRefineStale();
     render();
   }
 });
@@ -575,6 +620,7 @@ function handleClick(e: PointerEvent): void {
   selectedBallId = newBall.id;
   ui.setHistoryCount(history.length);
   updateSelectionLabel();
+  markPhysicalRefineStale();
   render();
 }
 
@@ -597,6 +643,7 @@ function deleteSelected(): void {
   selectedBallId = null;
   ui.setHistoryCount(history.length);
   updateSelectionLabel();
+  markPhysicalRefineStale();
   render();
 }
 
@@ -640,6 +687,7 @@ function applyHikariCaseValue(
   ui.syncHikariCaseDetails({ caseId: documentId, observation: value.observation });
   ui.setHistoryCount(history.length);
   cloudRenderer.restoreCamera(value.camera);
+  markPhysicalRefineStale();
   workspaceView = "hikari";
   localStorage.setItem(WORKSPACE_VIEW_KEY, workspaceView);
   updateSelectionLabel();
@@ -751,6 +799,7 @@ function applyRecipeText(text: string): void {
   ui.syncParams(state.params);
   ui.setHistoryCount(history.length);
   updateSelectionLabel();
+  markPhysicalRefineStale();
   render();
 }
 
@@ -991,6 +1040,7 @@ function alignCameraToSun(): string {
   cloudRenderer.setRealtimeMotionMode(hikariMpmActive);
   cloudRenderer.camera.position.set(next.x, next.y, next.z);
   cloudRenderer.controls.update();
+  markPhysicalRefineStale();
   ui.setCameraOrbitState(cameraOrbit);
   cloudRenderer.invalidateProgressiveRender(
     "太陽をカメラ中心へ合わせたためリアルタイムへ戻りました",
@@ -1065,9 +1115,11 @@ function adoptHikariMpmPreview(): void {
     selectedBallId = null;
     ui.setHistoryCount(history.length);
     updateSelectionLabel();
+    markPhysicalRefineStale();
     render();
   } else {
     state = replay(history);
+    markPhysicalRefineStale();
     render();
     ui.setHikariMpmState({
       running: false,
@@ -1099,7 +1151,6 @@ function renderHikariMpmBody(preview: typeof state.balls): void {
   cloudRenderer.update(effective.balls, state.params.k, null);
   cloudRenderer.setOptics(hikariSettings);
   const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
-  observePhysicalRefineIdentity(effective.balls, opticalScene);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
@@ -1196,78 +1247,12 @@ function downloadFile(blob: Blob, filename: string): void {
 
 // --- Render loop ------------------------------------------------------
 
-function currentPhysicalRefineIdentity(
-  balls: typeof state.balls,
-  opticalScene: ReturnType<typeof buildCloudOpticalScene>,
-): PhysicalRefineIdentity {
-  return withPhysicalRefineLightSize(
-    physicalRefineIdentityFromCurrentScene({
-      balls,
-      smoothness: state.params.k,
-      camera: cloudRenderer.captureCamera(),
-      opticalScene: opticalScene.scene,
-      receiverReflectance: hikariSettings.groundReflectance,
-      environmentRadiance: {
-        r: hikariSettings.skyIntensity,
-        g: hikariSettings.skyIntensity,
-        b: hikariSettings.skyIntensity,
-      },
-    }),
-    hikariSettings.sunSize,
-  );
-}
-
-function observePhysicalRefineIdentity(
-  balls: typeof state.balls,
-  opticalScene: ReturnType<typeof buildCloudOpticalScene>,
-): void {
-  physicalRefineController?.observe(currentPhysicalRefineIdentity(balls, opticalScene));
-}
-
-function makePhysicalRefineScene(): PhysicalRefineScene {
-  if (state.balls.length === 0) throw new Error("先にHikariの形を作ってください");
-  const effective = effectiveHikariShape(state.balls);
-  const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
-  if (opticalScene.issues.length > 0) throw new Error(opticalSceneIssueText(opticalScene.issues));
-  const mesh = orientMeshForSavedStl(rescaleMeshResult(
-    buildCloudMesh(effective.balls, state.params.k, {
-      resolution: PHYSICAL_REFINE_MESH_RESOLUTION,
-      targetLongestMm: 1,
-    }),
-    opticalScene.scene.physicalScale.mmPerShapeUnit,
-  ));
-  if (!mesh.watertight.ok) {
-    throw new Error("Physical renderを開始できません — 現在の派生メッシュが水密ではありません");
-  }
-  const identity = currentPhysicalRefineIdentity(effective.balls, opticalScene);
-  return {
-    ...identity,
-    caseId: "hikari-physical-refine",
-    caseLabel: "Hikari Physical / Refine",
-    sourceCommit: REFINE_PROVENANCE_COMMIT,
-    sourceRef: REFINE_PROVENANCE_REF,
-    canonicalMesh: new TextEncoder().encode(encodeObj(mesh)),
-  };
-}
-
-async function renderPhysicalRefine(purpose: "body" | "receiver"): Promise<void> {
-  if (!physicalRefineController) return;
-  try {
-    const scene = makePhysicalRefineScene();
-    physicalRefineController.observe(scene);
-    await physicalRefineController.render(scene, purpose);
-  } catch (error) {
-    physicalRefineController.fail(error);
-  }
-}
-
 function render(): void {
   cloudRenderer.invalidateProgressiveRender(
     "設定が変わったためリアルタイムへ戻りました",
   );
   const effective = effectiveHikariShape(state.balls);
   const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
-  observePhysicalRefineIdentity(effective.balls, opticalScene);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
@@ -1321,6 +1306,7 @@ function renderFrame(now: number): void {
       hikariMpmLastPreview = preview.map((ball) => ({ ...ball }));
       state.balls = hikariMpmLastPreview;
       selectedBallId = null;
+      markPhysicalRefineStale();
       renderHikariMpmBody(hikariMpmLastPreview);
       ui.setHikariMpmState({
         running: true,

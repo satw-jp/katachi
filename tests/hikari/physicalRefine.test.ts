@@ -13,6 +13,7 @@ import {
   type PhysicalRefineClient,
   type PhysicalRefineIdentity,
   type PhysicalRefineScene,
+  type PhysicalRefineState,
 } from "../../src/studies/cloud-sculpt/physicalRefine.ts";
 
 const READY_CAPABILITIES: HikariMitsubaCapabilities = {
@@ -185,7 +186,20 @@ test("relevant changes become STALE while irrelevant UI data and same state do n
   assert.notEqual(physicalRefineIdentityKey(different), physicalRefineIdentityKey(current));
 });
 
-test("a relevant change after a valid result marks it STALE and reverting restores CURRENT", async () => {
+test("authoring invalidation needs no identity snapshot and repeated stale state publishes once", () => {
+  const changes: PhysicalRefineState[] = [];
+  const controller = new PhysicalRefineController({
+    client: new FakeClient(),
+    onStateChange: (next) => changes.push(next),
+  });
+  controller.markStale();
+  controller.markStale();
+  assert.equal(controller.getState().status, "OFFLINE");
+  assert.equal(controller.getState().currentFingerprint, null);
+  assert.equal(changes.length, 0);
+});
+
+test("a relevant change after a valid result marks it STALE until explicit re-refine", async () => {
   const client = new FakeClient();
   const controller = new PhysicalRefineController({ client });
   await controller.probe();
@@ -195,14 +209,16 @@ test("a relevant change after a valid result marks it STALE and reverting restor
   const pending = client.pending.shift()!;
   pending.resolve({ metadata: metadata(pending.request, "receiver"), artifact: new Uint8Array([4]) });
   await renderPromise;
-  controller.observe({ ...current, uiOnly: "selection-highlight" } as unknown as PhysicalRefineIdentity);
   assert.equal(controller.getState().status, "CURRENT");
-  const changed = { ...current, camera: { ...current.camera, fovDeg: 46 } };
-  controller.observe(changed);
+  controller.markStale();
   assert.equal(controller.getState().status, "STALE");
-  controller.observe(current);
+  const reRefine = controller.render(current, "receiver");
+  await waitForPending(client);
+  const reRefinePending = client.pending.shift()!;
+  reRefinePending.resolve({ metadata: metadata(reRefinePending.request, "receiver"), artifact: new Uint8Array([5]) });
+  await reRefine;
   assert.equal(controller.getState().status, "CURRENT");
-  assert.deepEqual([...controller.getState().lastResult!.artifact], [4]);
+  assert.deepEqual([...controller.getState().lastResult!.artifact], [5]);
 });
 
 test("older race results cannot become current after a newer explicit render", async () => {
