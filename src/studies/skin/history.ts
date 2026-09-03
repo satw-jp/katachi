@@ -434,6 +434,11 @@ export interface UndoHistoryResult {
   undone: SkinHistoryEntry | null;
 }
 
+export interface RedoHistoryResult {
+  history: SkinHistoryEntry[];
+  state: SkinState;
+}
+
 /**
  * Return a replayed copy with the most recent author operation removed.
  *
@@ -453,6 +458,12 @@ export function undoLastHistoryEntry(entries: SkinHistoryEntry[]): UndoHistoryRe
     state: replay(history),
     undone: entries[entries.length - 1] ?? null,
   };
+}
+
+/** Reapply one previously undone authoring operation without mutating input. */
+export function redoHistoryEntry(entries: SkinHistoryEntry[], entry: SkinHistoryEntry): RedoHistoryResult {
+  const history = [...entries, entry];
+  return { history, state: replay(history) };
 }
 
 export function serializeRecipe(entries: SkinHistoryEntry[]): string {

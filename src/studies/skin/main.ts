@@ -24,6 +24,7 @@ import {
   replay,
   syncReplayIdCounters,
   serializeRecipe,
+  redoHistoryEntry,
   undoLastHistoryEntry,
 } from "./history.ts";
 import {
@@ -968,6 +969,8 @@ viewport.appendChild(supportPaintCssBrush);
 
 // --- State -------------------------------------------------------------
 let history: SkinHistoryEntry[] = [];
+let shapeHistoryFuture: SkinHistoryEntry[] = [];
+let preservingShapeHistoryFuture = false;
 let state = createEmptyState();
 let artworkGraphSnapshot: ArtworkGraph | null = null;
 let artworkGraphSourceKey: string | null = null;
@@ -13562,6 +13565,7 @@ function exportHistory(): void {
 }
 
 function applyHistoryEntries(entries: SkinHistoryEntry[], replayedState = replay(entries)): void {
+  if (!preservingShapeHistoryFuture) shapeHistoryFuture = [];
   const previousState = state;
   const restoreDryWebContactPresentation = dryWebContactPresentationCanReapply(dryWebContactPresentationOwner);
   const preserveDryWebPreview = isDryWebRequiredContactsOnlyChange(previousState, replayedState)
@@ -13909,7 +13913,11 @@ function requestProjectRedo(): void {
     redoOneSupportPaintOperation();
     return;
   }
-  if (skinRebuildWorkflowHistoryFuture.length > 0) redoSkinRebuildWorkflowOperation();
+  if (skinRebuildWorkflowHistoryFuture.length > 0) {
+    redoSkinRebuildWorkflowOperation();
+    return;
+  }
+  redoLastOperation();
 }
 
 function requestShapeUndo(): void {
@@ -13937,7 +13945,13 @@ function undoLastOperation(): void {
   importedRecipeSha256 = null;
   importedRecipeFilename = null;
   importedRecipeText = null;
-  applyHistoryEntries(result.history);
+  shapeHistoryFuture.push(result.undone);
+  preservingShapeHistoryFuture = true;
+  try {
+    applyHistoryEntries(result.history, result.state);
+  } finally {
+    preservingShapeHistoryFuture = false;
+  }
   ui.setUndoStatus("直前の操作を戻しました");
 }
 
@@ -13952,8 +13966,34 @@ function undoSeveralOperations(requestedSteps: number): void {
   importedRecipeSha256 = null;
   importedRecipeFilename = null;
   importedRecipeText = null;
-  applyHistoryEntries(history.slice(0, history.length - actual));
+  const removed = history.slice(history.length - actual);
+  shapeHistoryFuture.push(...removed.reverse());
+  preservingShapeHistoryFuture = true;
+  try {
+    applyHistoryEntries(history.slice(0, history.length - actual));
+  } finally {
+    preservingShapeHistoryFuture = false;
+  }
   ui.setUndoStatus(`${actual}操作前まで戻しました`);
+}
+
+function redoLastOperation(): void {
+  const entry = shapeHistoryFuture.pop();
+  if (!entry) {
+    ui.setUndoStatus("これ以上やり直せません");
+    return;
+  }
+  const result = redoHistoryEntry(history, entry);
+  preservingShapeHistoryFuture = true;
+  try {
+    applyHistoryEntries(result.history, result.state);
+  } catch (error) {
+    shapeHistoryFuture.push(entry);
+    throw error;
+  } finally {
+    preservingShapeHistoryFuture = false;
+  }
+  ui.setUndoStatus("直前の操作をやり直しました");
 }
 
 function describeHistoryEntry(entry: SkinHistoryEntry): string {
@@ -13990,6 +14030,7 @@ function syncProjectBar(): void {
   const canPaintUndo = supportPaintEnabled && supportPaintSession.history.past.length > 0 && !paintBusy;
   const canShapeUndo = !supportPaintEnabled && history.length > 1;
   const canPaintRedo = supportPaintEnabled && supportPaintSession.history.future.length > 0 && !paintBusy;
+  const canShapeRedo = !supportPaintEnabled && shapeHistoryFuture.length > 0;
   const workflowUndo = !supportPaintEnabled
     ? skinRebuildWorkflowHistoryPast[skinRebuildWorkflowHistoryPast.length - 1] ?? null
     : null;
@@ -14004,13 +14045,15 @@ function syncProjectBar(): void {
   projectUndoButton.title = supportPaintEnabled
     ? "Support Paint Undo（右のPaint履歴と同じ）"
     : workflowUndo ? `SKIN REBUILD工程履歴を戻す: ${workflowUndo.label}` : "Shape history Undo（既存の形状履歴）";
-  projectRedoButton.disabled = !(canPaintRedo || workflowRedo);
+  projectRedoButton.disabled = !(canPaintRedo || workflowRedo || canShapeRedo);
   projectRedoButton.textContent = supportPaintEnabled
     ? "Redo · Paint"
-    : workflowRedo ? `Redo · ${workflowRedo.label}` : "Redo";
+    : workflowRedo ? `Redo · ${workflowRedo.label}` : canShapeRedo ? "Redo · Shape" : "Redo";
   projectRedoButton.title = supportPaintEnabled
     ? "Support Paint Redo（右のPaint履歴と同じ）"
-    : workflowRedo ? `SKIN REBUILD工程履歴をやり直す: ${workflowRedo.label}` : "Shape Redoは未実装です";
+    : workflowRedo
+      ? `SKIN REBUILD工程履歴をやり直す: ${workflowRedo.label}`
+      : canShapeRedo ? "Shape history Redo（既存の形状履歴）" : "Shape Redo（Undo後に利用できます）";
 }
 
 async function importHistory(file: File): Promise<void> {
@@ -18650,6 +18693,7 @@ function installSkinRebuildPermanentLatticePreview(
 }
 
 function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}): void {
+  if (!preservingShapeHistoryFuture) shapeHistoryFuture = [];
   // Every field/host/patch mutation reaches this common path.  The display
   // count control bypasses it, so it can redraw without recomputing.
   if (isSkinRebuildApp) invalidateSkinRebuildPipeline();

@@ -3323,6 +3323,8 @@ export function buildUi(
   manualRow.dataset.owner = "surface-pattern";
   manualRow.dataset.role = "manual-surface-edit";
   const addPatchToggle = document.createElement("button");
+  addPatchToggle.type = "button";
+  addPatchToggle.id = "skin-surface-pattern-add";
   addPatchToggle.textContent = "パッチを手で追加 (クリック)";
   let addPatchActive = false;
   addPatchToggle.onclick = () => {
@@ -3348,6 +3350,8 @@ export function buildUi(
   root.appendChild(hint);
 
   const deletePatchBtn = document.createElement("button");
+  deletePatchBtn.type = "button";
+  deletePatchBtn.id = "skin-surface-pattern-delete";
   deletePatchBtn.dataset.owner = "surface-pattern";
   deletePatchBtn.dataset.role = "manual-surface-edit-delete";
   deletePatchBtn.textContent = "選択したパッチを削除 (Delete)";
@@ -3358,6 +3362,8 @@ export function buildUi(
   selectionInfo.className = "selection-info";
   selectionInfo.dataset.owner = "surface-pattern";
   selectionInfo.dataset.role = "manual-surface-selection-status";
+  selectionInfo.setAttribute("role", "status");
+  selectionInfo.setAttribute("aria-live", "polite");
   selectionInfo.textContent = "選択なし";
   root.appendChild(selectionInfo);
 
@@ -3467,13 +3473,6 @@ export function buildUi(
   resultToolsSummary.textContent = "Graph screening / connection gauges（互換サブ機能）";
   resultTools.appendChild(resultToolsSummary);
   resultTools.append(
-    autoSwitchNotice,
-    viewCaption,
-    manualRow,
-    manualRadiusBuilt.row,
-    hint,
-    deletePatchBtn,
-    selectionInfo,
     gaugesPanel,
     linkingPanel,
   );
@@ -4374,14 +4373,32 @@ export function buildUi(
   surfaceResultStatus.dataset.owner = "surface-pattern";
   surfaceResultStatus.dataset.role = "surface-result-status";
   surfaceResultStatus.append(autoSwitchNotice, viewCaption);
-  stage2.body.append(
-    surfaceResultStatus,
+  const surfaceAuthoringPanel = document.createElement("section");
+  surfaceAuthoringPanel.id = "skin-surface-pattern-authoring";
+  surfaceAuthoringPanel.className = "surface-authoring-panel";
+  surfaceAuthoringPanel.dataset.owner = "surface-pattern";
+  surfaceAuthoringPanel.dataset.role = "current-authoring-workflow";
+  surfaceAuthoringPanel.setAttribute("aria-label", "Surface Pattern authoring");
+  const surfaceAuthoringTitle = document.createElement("strong");
+  surfaceAuthoringTitle.className = "surface-authoring-title";
+  surfaceAuthoringTitle.textContent = "Surface Pattern / CREATE & REFINE";
+  const surfaceAuthoringFlow = document.createElement("div");
+  surfaceAuthoringFlow.className = "surface-authoring-flow";
+  surfaceAuthoringFlow.textContent = "生成 → 選択 → 追加 → 移動・微調整 → 削除 → Undo / Redo → .fkei Save";
+  const surfaceAuthoringHint = document.createElement("div");
+  surfaceAuthoringHint.className = "hint surface-authoring-selection-hint";
+  surfaceAuthoringHint.textContent = "Patternをメイン画面でクリックして選択。選択後は3D上のドラッグまたは画面左下の矢印で移動・微調整できます。";
+  surfaceAuthoringPanel.append(
+    surfaceAuthoringTitle,
+    surfaceAuthoringFlow,
+    surfaceAuthoringHint,
     manualRow,
     manualRadiusBuilt.row,
     hint,
     deletePatchBtn,
     selectionInfo,
   );
+  stage2.body.append(surfaceResultStatus, surfaceAuthoringPanel);
 
   const stage3Panel = document.createElement("section");
   stage3Panel.className = "skin-artwork-graph-panel";
