@@ -213,6 +213,12 @@ Remote結果はbinary typed-arrayを受け取り、identity / generation / valid
 
 状態: `SOFTWARE PASS`。2 object以上のbounded parallel queue、同一objectの世代置換、priority、cancel、authoring Documentからのsemantic snapshot生成、derived geometry非保存を確認済み。複数Stroke / Flower clusterのiPad Remote Gateは`IPAD REMOTE GATE PENDING`。
 
+### 2026-09-03 — Remote Compute v0 Milestone 8: Auto policy and benchmark
+
+AUTO modeはRemote healthが`ready`のときだけ、Material Sample数 `512`以上または推定voxel数 `200,000`以上のFinalizationをWindowsへ候補化する。それ以外はLocalを使い、Remote失敗はLocalへfallbackする。`computeStrict=1`ではfallbackしない。`npm run benchmark:hana:remote`はshort / medium / longのwork estimateと選択候補を決定論的に表示し、`--compute`を付けた場合だけshort / mediumのCPU実測を追加する。Final geometryのdensityやShape Fidelityをbenchmarkのために下げない。
+
+状態: `SOFTWARE PASS`。AUTO threshold、短中長fixture、deterministic recommendation、optional CPU measurement、GPU falseを確認済み。実Windows CPU負荷、LAN、iPad / Apple Pencil / EasyCanvasのAUTO Gateは`IPAD REMOTE GATE PENDING`。
+
 ## Observation
 
 ### 2026-09-01 — HANA-1A implementation start

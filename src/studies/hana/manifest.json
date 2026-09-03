@@ -196,6 +196,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 7 adds HANA-local object-level finalization. HanaRemoteObjectCoordinator schedules independent authoring objects by active / visible / background priority with bounded concurrency, same-object cancellation, latest-generation checks, stale result rejection, and result/error callbacks. Authoring Document Stroke jobs preserve Raw Gesture ID, Control provenance, curve, material mapping intent, and object revisions without saving derived geometry. Flower / cluster and iPad Remote Gate remain pending; no global union or SKIN production connection was added."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 8 documents and benchmarks AUTO policy. Short / medium / long deterministic fixtures expose controls, smooth, adaptive Material Samples, estimated voxels, and the documented Local versus Windows recommendation; optional --compute measures CPU Finalization without reducing fidelity. AUTO still requires a ready Remote health check and falls back to Local unless computeStrict=1. GPU remains false and iPad / EasyCanvas verification is pending."
     }
   ]
 }
