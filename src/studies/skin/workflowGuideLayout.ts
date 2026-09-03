@@ -1,40 +1,41 @@
 export interface WorkflowGuideLayoutMetrics {
   viewportHeightPx: number;
-  contentHeightPx: number;
+  upperContentHeightPx: number;
   paneHeightPx: number;
   maxHeightPx: number;
-  guideHeightPx: number;
-  guideScrolls: boolean;
+  upperStackHeightPx: number;
+  upperStackScrolls: boolean;
   lowerHeightPx: number;
   lowerRegionVisible: boolean;
 }
 
 /**
  * Numeric model for the browser layout contract:
- * the Guide is capped at half the viewport and the lower workflow region
- * receives the remaining pane height instead of being displaced by it.
+ * the combined Guide + Print Readiness stack is capped at half the viewport
+ * and the lower workflow region receives the remaining pane height instead of
+ * being displaced by it.
  */
 export function measureWorkflowGuideLayout(
   viewportHeightPx: number,
-  contentHeightPx: number,
+  upperContentHeightPx: number,
   paneHeightPx: number,
 ): WorkflowGuideLayoutMetrics {
-  if (![viewportHeightPx, contentHeightPx, paneHeightPx].every(Number.isFinite)) {
+  if (![viewportHeightPx, upperContentHeightPx, paneHeightPx].every(Number.isFinite)) {
     throw new Error("workflow guide layout inputs must be finite");
   }
-  if (viewportHeightPx < 0 || contentHeightPx < 0 || paneHeightPx < 0) {
+  if (viewportHeightPx < 0 || upperContentHeightPx < 0 || paneHeightPx < 0) {
     throw new Error("workflow guide layout inputs must be non-negative");
   }
   const maxHeightPx = viewportHeightPx * 0.5;
-  const guideHeightPx = Math.min(contentHeightPx, maxHeightPx);
-  const lowerHeightPx = Math.max(0, paneHeightPx - guideHeightPx);
+  const upperStackHeightPx = Math.min(upperContentHeightPx, maxHeightPx);
+  const lowerHeightPx = Math.max(0, paneHeightPx - upperStackHeightPx);
   return {
     viewportHeightPx,
-    contentHeightPx,
+    upperContentHeightPx,
     paneHeightPx,
     maxHeightPx,
-    guideHeightPx,
-    guideScrolls: contentHeightPx > guideHeightPx,
+    upperStackHeightPx,
+    upperStackScrolls: upperContentHeightPx > upperStackHeightPx,
     lowerHeightPx,
     lowerRegionVisible: lowerHeightPx > 0,
   };

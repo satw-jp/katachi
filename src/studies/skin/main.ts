@@ -664,9 +664,11 @@ rightPaneHeader.className = "skin-pane-header";
 rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>8 author stages · properties below</span>";
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
+const rightPaneUpperStack = document.createElement("div");
+rightPaneUpperStack.className = "skin-right-upper-stack";
 const rightPaneLower = document.createElement("div");
 rightPaneLower.className = "skin-right-pane-lower";
-rightPaneBody.appendChild(rightPaneLower);
+rightPaneBody.append(rightPaneUpperStack, rightPaneLower);
 rightPane.append(rightPaneHeader, rightPaneBody);
 
 const bottomPane = document.createElement("footer");
@@ -3099,7 +3101,7 @@ if (isSkinRebuildApp) {
     blockerReason: printPreparationBlockerReason,
     blockerNextAction: printPreparationBlockerNextAction,
   };
-  rightPaneLower.insertBefore(printPreparationPanel, ui.root);
+  rightPaneUpperStack.appendChild(printPreparationPanel);
 
   const phaseNavigator = document.createElement("nav");
   phaseNavigator.className = "skin-rebuild-phase-navigator";
@@ -7350,35 +7352,6 @@ function refreshSkinRebuildLowestPointMarkers(project: SkinRebuildProject): void
   skinRenderer.setMotifLowestPointMarkers(markers, skinRebuildSelectedTargetPatchId);
 }
 
-interface SkinRebuildPrintSupportDiagnostics {
-  requestedTargets: number;
-  acceptedSupportCount: number;
-  rejectedByBodyIntersection: number;
-  unsupportedCount: number;
-}
-
-/** Keep Stage 8 readable for both newly generated support graphs and legacy
- * .fkei files, which predate the optional keep-out diagnostics. */
-function skinRebuildPrintSupportDiagnostics(project: SkinRebuildProject): SkinRebuildPrintSupportDiagnostics {
-  const stats = project.printSupport.stats;
-  const requestedTargets = Math.max(0, stats.requestedTargets ?? project.printSupport.edges.length);
-  const acceptedSupportCount = Math.max(
-    0,
-    stats.acceptedSupportCount ?? stats.connectedTargets ?? project.printSupport.edges.length,
-  );
-  const rejectedByBodyIntersection = Math.max(0, stats.rejectedByBodyIntersection ?? 0);
-  const unsupportedCount = Math.max(
-    0,
-    stats.unsupportedCount ?? requestedTargets - acceptedSupportCount,
-  );
-  return { requestedTargets, acceptedSupportCount, rejectedByBodyIntersection, unsupportedCount };
-}
-
-function skinRebuildPrintSupportDiagnosticsText(project: SkinRebuildProject): string {
-  const diagnostics = skinRebuildPrintSupportDiagnostics(project);
-  return `requested ${diagnostics.requestedTargets} / accepted ${diagnostics.acceptedSupportCount} / rejected-by-Body ${diagnostics.rejectedByBodyIntersection} / unsupported ${diagnostics.unsupportedCount}`;
-}
-
 function skinRebuildPipelineIsCurrent(): boolean {
   return skinRebuildPipeline !== null && skinRebuildPipeline.shapeFingerprint === fkeiShapeFingerprint(state);
 }
@@ -8431,7 +8404,9 @@ function applySkinRebuildPrintSupportMode(nextMode: RemovableSupportMode): void 
     }
     internalStructureGraph = replacement.finalGraph;
     skinRenderer.setInternalStructure(replacement.finalGraph);
-    skinRenderer.setPrintSupport(replacement.printSupport);
+    // A mode change invalidates Stage 8. Keep the compatibility graph on the
+    // project, but never present it as current removable support.
+    skinRenderer.setPrintSupport(null);
     refreshSkinRebuildLowestPointMarkers(replacement);
   } else {
     skinRenderer.setPrintSupport(null);
@@ -9221,7 +9196,7 @@ function installSkinWorkflowGuide(): void {
     progress.appendChild(row);
   }
   panel.append(heading, phase, title, summary, context, blocker, actions, progress);
-  rightPaneBody.insertBefore(panel, rightPaneBody.firstElementChild);
+  rightPaneUpperStack.insertBefore(panel, rightPaneUpperStack.firstElementChild);
   skinWorkflowGuideRefs = { panel, phase, title, summary, context, blocker, action, details, progress };
   refreshSkinWorkflowGuide();
 }
@@ -10339,7 +10314,7 @@ function installSkinRebuildPipelinePanel(): void {
         message.reinforcement,
         message.reinforcement.edges.map((edge) => edge.id),
       );
-      skinRenderer.setPrintSupport(emptyPrintSupport);
+      skinRenderer.setPrintSupport(null);
       invalidateInternalPrintGate("赤面エリアを蜘蛛ラティスへ補強しました。工程6〜8を再実行してください");
       refreshSkinRebuildLatticeEdgeEditor();
       setSkinRebuildLatticeEdgeSelection(null);
@@ -10736,7 +10711,7 @@ function installSkinRebuildPipelinePanel(): void {
       recommendViewportOverlay("printRisk");
       skinRenderer.setViewMode(viewMode);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-      skinRenderer.setPrintSupport(emptyPrintSupport);
+      skinRenderer.setPrintSupport(null);
       refreshSkinRebuildSelectedRegion();
       refreshSkinRebuildFinalStageButtons();
       invalidateInternalPrintGate("工程7で確定作品を再診断しました。工程8の印刷サポート生成後に最終判定します");
@@ -11180,7 +11155,7 @@ function installSkinRebuildPipelinePanel(): void {
         const sparseDiagnostics = skinRebuildSparseSupportResult?.diagnostics;
         const responsibilityText = `${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · Stage 8 Surface targets Outside ${outsideSupportDemand} / Inside-derived 0${insideSupportDemand > 0 ? `（Inside ${insideSupportDemand}点は意図的にPermanent Web責任）` : ""}`;
         const sparseStatus = sparseDiagnostics
-          ? `${combinedExperimentalAtStart ? "OFFSET-BEND 6.5+7" : "Outside"} regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
+          ? `${combinedExperimentalAtStart ? "OFFSET-BEND 6.5+7" : "Outside"} regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / acceptedSupportCount ${stage8SupportGraph.stats.acceptedSupportCount ?? 0} / rejectedByBodyIntersection ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / rejected-by-Body ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / unsupportedCount ${stage8SupportGraph.stats.unsupportedCount ?? sparseDiagnostics.unsupportedTargetCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
           : "Outside regions 0 / Critical targets 0 / Supported 0 / Unsupported 0 / Supports 0 / rejected BODY 0 / spacing 0 / removable 0";
         const unresolvedWarning = (sparseDiagnostics?.unsupportedTargetCount ?? 0) > 0
           ? ` · ${sparseDiagnostics!.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`
@@ -13804,7 +13779,10 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   internalStructureGraph = project?.finalGraph ?? null;
   internalStructureFingerprint = "";
   skinRenderer.setInternalStructure(internalStructureGraph);
-  skinRenderer.setPrintSupport(snapshot.printSupportMode === "off" ? project?.printSupport ?? null : null);
+  // Workflow snapshots do not carry a paired Sparse Stage 8 result. Any
+  // restored project support is compatibility data until Stage 8 regenerates
+  // and republishes one graph to project, sparseResult, and renderer.
+  skinRenderer.setPrintSupport(null);
   if (project) refreshSkinRebuildLowestPointMarkers(project);
   else skinRenderer.setMotifLowestPointMarkers(null, null);
 
@@ -14693,6 +14671,7 @@ function replaceRuntimeWithFkeiPlan(plan: FkeiRestorePlan): void {
   stage7RedFaceReinforcementPlanMessage = null;
   stage7CanonicalCandidateAdoptionUndo = null;
   skinRenderer.setInternalStructure(internalStructureGraph);
+  skinRenderer.setPrintSupport(null);
   skinRenderer.clearRiskDrivenPermanentLatticeOverlay();
   refreshInternalAngleScreening(null);
   syncPhaseASupportPreviewAvailability(null);
@@ -15167,7 +15146,9 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
     internalStructureFingerprint = "";
     stage6BodyMeshCache = null;
     skinRenderer.setInternalStructure(project.finalGraph);
-    skinRenderer.setPrintSupport(project.printSupport);
+    // The FKEI support field is retained for compatibility, but it is not a
+    // current Stage 8 result and must not be installed in the renderer.
+    skinRenderer.setPrintSupport(null);
     setSkinRebuildReinforcementPreview(null, []);
     skinRenderer.setSkinRebuildOverhangOverlay(null);
     skinRebuildSelectedTargetPatchId = null;
@@ -15208,10 +15189,9 @@ function restoreSkinRebuildFkei(document: SkinRebuildFkeiDocument): void {
         skinRebuildPrintSupportStatus.textContent = `${skinRebuildPrintSupportModeStatus(project, false)} · 復元済み`;
         skinRebuildPrintSupportStatus.dataset.ok = "false";
       } else {
-        const supportDiagnosticsText = skinRebuildPrintSupportDiagnosticsText(project);
         skinRebuildPrintSupportStatus.textContent = project.printSupport.edges.length > 0
-          ? `復元済み · Sparse Automatic (experimental) · 緑の別Graph ${project.settings.supportDiameterMm.toFixed(1)} mm × ${project.printSupport.edges.length}本 · ${supportDiagnosticsText} · 再生成は工程6→7→8`
-          : `復元済み · Sparse Automatic (experimental) · 印刷サポート0本 · ${supportDiagnosticsText} · 工程6→7→8で生成できます`;
+          ? "復元済み · 保存済みlegacy removable supportは互換保持のみ · current Stage 8で再生成してください"
+          : "復元済み · current Stage 8で印刷サポートを生成できます";
         delete skinRebuildPrintSupportStatus.dataset.ok;
       }
     }
@@ -15341,23 +15321,6 @@ async function openFkeiProject(file: File): Promise<void> {
   } finally {
     projectOpenInput.value = "";
     projectOpenButton.disabled = false;
-  }
-}
-
-async function loadSkinRebuildSupportPreview(): Promise<void> {
-  if (!isSkinRebuildApp) return;
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("supportPreview") === "0" || params.has("reviewCase") || params.has("reviewFixture")) return;
-  try {
-    projectMeta.textContent = "SUPPORT PREVIEW · 同梱完成sampleを読み込んでいます…";
-    const response = await fetch("./samples/skin-rebuild-first-print.fkei", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const file = new File([await response.blob()], "skin-rebuild-first-print.fkei", { type: "application/json" });
-    await openFkeiProject(file);
-    skinRenderer.setPrintSupportVisible(true);
-    projectMeta.textContent = "SUPPORT PREVIEW · 印刷サポート付き完成sample · .fkei Openで別状態を開けます";
-  } catch (error) {
-    projectMeta.textContent = `Support preview Open失敗: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
 
@@ -19187,11 +19150,13 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
     const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
     const sparseResult = skinRebuildSparseSupportResult;
     const sparseGraph = sparseResult?.graph ?? null;
+    const currentStage8 = Boolean(project && sparseGraph
+      && skinRebuildStage8CompletedProject === project
+      && project.printSupport === sparseGraph
+      && skinRenderer.getPrintSupportGraph() === sparseGraph);
     return {
-      source: sparseGraph ? "sparseResult.graph" : "none",
-      stage8Current: Boolean(project && sparseGraph
-        && skinRebuildStage8CompletedProject === project
-        && project.printSupport === sparseGraph),
+      source: currentStage8 ? "current-stage8:sparseResult.graph" : "none",
+      stage8Current: currentStage8,
       projectPrintSupportEdges: project?.printSupport.edges.length ?? 0,
       sparseGraphEdges: sparseGraph?.edges.length ?? 0,
       rendererGraphEdges: skinRenderer.getPrintSupportGraph()?.edges.length ?? 0,
@@ -19535,7 +19500,6 @@ requestAnimationFrame(() => {
   window.setTimeout(() => {
     afterMutation();
     refreshPartitionTutorial();
-    void loadSkinRebuildSupportPreview();
     void loadLocalV088ReviewFixture();
   }, 0);
 });

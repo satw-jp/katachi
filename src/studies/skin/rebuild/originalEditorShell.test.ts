@@ -96,16 +96,26 @@ for (const label of [
 assert.match(main, /skin-project-bar/);
 assert.match(main, /skin-left-pane/);
 assert.match(main, /skin-right-pane/);
+assert.match(main, /rightPaneBody\.append\(rightPaneUpperStack, rightPaneLower\)/,
+  "right pane must have explicit upper and lower stacks");
+assert.match(main, /rightPaneUpperStack\.appendChild\(printPreparationPanel\)/,
+  "Print readiness must remain in the upper stack");
+assert.match(main, /rightPaneUpperStack\.insertBefore\(panel/,
+  "Workflow Guide must remain in the upper stack");
 assert.match(main, /skin-bottom-status-pane/);
 assert.match(main, /skin-rebuild-original-stage2\.fkei/);
-assert.match(main, /skin-rebuild-first-print\.fkei/);
-assert.match(main, /loadSkinRebuildSupportPreview/);
+assert.match(main, /projectCompleteSampleButton\.onclick/,
+  "the first-print sample may remain an explicit user action only");
+assert.doesNotMatch(main, /loadSkinRebuildSupportPreview/,
+  "startup support preview loader must be removed");
 assert.match(main, /完成 Sample/);
 assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*overflow-y: hidden/);
+assert.match(style, /\.skin-right-upper-stack[\s\S]*max-height: 50vh[\s\S]*overflow-y: auto[\s\S]*min-height: 0/,
+  "upper Guide + Print readiness stack must own the 50vh limit");
 assert.match(style, /\.skin-right-pane-lower[\s\S]*overflow-y: auto/);
-assert.match(style, /\.skin-right-pane-lower > \.skin-rebuild-print-preparation,[\s\S]*\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);
 assert.match(style, /\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);
-assert.match(style, /\.skin-workflow-guide[\s\S]*max-height: 50vh[\s\S]*overflow-y: auto/);
+assert.doesNotMatch(style, /\.skin-workflow-guide\s*\{[\s\S]*max-height: 50vh/,
+  "Workflow Guide alone must not own the 50vh limit");
 assert.match(main, /Axome roll調整/);
 assert.match(main, /水平に戻す/);
 assert.match(main, /camera\.upだけを調整します。モデル・プレート座標・書き出しは変わりません/);
@@ -242,6 +252,22 @@ assert.match(printSupportSource, /stage8SupportGraph !== sparseResult\.graph[\s\
   "Stage 8 must fail closed if the Sparse Support graph identity changes");
 assert.match(printSupportSource, /skinRebuildSparseSupportResult = sparseResult[\s\S]*?skinRenderer\.setPrintSupport\(stage8SupportGraph\)/,
   "Stage 8 must publish the same Sparse Support graph to runtime and renderer");
+assert.match(
+  main.slice(main.indexOf("function replaceRuntimeWithFkeiPlan"), main.indexOf("function restoreFkeiOpenRuntimeSnapshot")),
+  /skinRenderer\.setPrintSupport\(null\)/,
+  "ordinary FKEI Open must clear removable Support from the renderer",
+);
+assert.match(
+  main.slice(main.indexOf("function restoreSkinRebuildFkei"), main.indexOf("async function openFkeiProject")),
+  /skinRenderer\.setPrintSupport\(null\)/,
+  "SKIN REBUILD FKEI Open must not install legacy removable Support",
+);
+assert.doesNotMatch(main, /skinRenderer\.setPrintSupport\(project\.printSupport\)/,
+  "saved FKEI printSupport must remain compatibility data only");
+assert.doesNotMatch(main, /skinRenderer\.setPrintSupport\(snapshot\.printSupportMode === "off"/,
+  "workflow snapshots must not restore removable Support without Stage 8 evidence");
+assert.match(main, /source: currentStage8 \? "current-stage8:sparseResult\.graph" : "none"/,
+  "runtime diagnostics must name current Stage 8 Sparse Support explicitly");
 assert.match(main, /projectSkinRebuildFinalArtworkOverhangToStage4\([\s\S]{0,500}?diagnosis\.overhangFacePositions[\s\S]{0,500}?responsibilityOverhang\.positions/,
   "Stage 8 must transfer current Stage 7 positions onto the retained Stage 4 responsibility SSOT");
 assert.match(artworkInteriorCheckpointBuilderSource, /outsideFaces[\s\S]*?regionId: face\.responsibilityRegionId/,
