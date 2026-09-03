@@ -200,6 +200,10 @@ import {
 } from "./bambu3mf.ts";
 import { validateSkin3mf } from "./rebuild/threeMfValidation.ts";
 import type { Bambu3mfExportRequest, Bambu3mfWorkerMessage } from "./bambu3mfWorkerProtocol.ts";
+import {
+  evaluateSkinRebuildArtifactExportAvailability,
+  serializeSkinRebuildArtifactExportReport,
+} from "./rebuild/artifactExport.ts";
 import { DEFAULT_EXTERNAL_SCAFFOLD_OPTIONS } from "./externalScaffold.ts";
 import {
   buildSupportForest,
@@ -1298,6 +1302,10 @@ type SkinRebuildExportFormatSelection = {
   stl: boolean;
   obj: boolean;
   recipe: boolean;
+  bodyStl?: boolean;
+  supportStl?: boolean;
+  report?: boolean;
+  includeSupport?: boolean;
 };
 const DEFAULT_SKIN_REBUILD_EXPORT_FORMATS: SkinRebuildExportFormatSelection = {
   threeMf: true,
@@ -1347,6 +1355,24 @@ let meshExportRequestId = 0;
 let meshExportGeneration = 0;
 let meshExportStatusTimer: number | null = null;
 let meshExportHeavyComputation: HeavyComputationHandle | null = null;
+type SkinRebuildArtifactExportSnapshot = {
+  capturedAt: string;
+  projectFingerprint: string;
+  bodyFingerprint: string;
+  supportFingerprint: string | null;
+  bodySource: string;
+  supportSource: string;
+  bodyPositions: Float32Array | null;
+  supportGraph: InternalStructureGraph | null;
+  targetLongestMm: number;
+  bodyScaleMmPerUnit: number | null;
+  plateShiftSourceZ: number;
+  includeSupport: boolean;
+  warnings: string[];
+  diagnostics: Record<string, unknown>;
+  unresolved: number | null;
+  acceptedBodyCollision: number | null;
+};
 let pendingMeshExportAfterGate: {
   options: MeshUiOptions;
   fingerprint: string;
@@ -8551,9 +8577,21 @@ function refreshSkinRebuildStage8ExportButton(): void {
   }
   const pipelineReason = skinRebuildPipelineOutputBlockReason();
   const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
-  const reason = pipelineReason
-    ?? componentSelectionReason
-    ?? skinRebuildCurrentInternalPrintGateBlockReason();
+  const artifactAvailability = isSkinRebuildApp
+    ? skinRebuildArtifactAvailability({
+      threeMf: true,
+      stl: true,
+      obj: true,
+      recipe: false,
+      bodyStl: true,
+      supportStl: true,
+      report: true,
+    })
+    : null;
+  const reason = artifactAvailability?.technicalBlockReason
+    ?? (isSkinRebuildApp ? null : pipelineReason
+      ?? componentSelectionReason
+      ?? skinRebuildCurrentInternalPrintGateBlockReason());
   const running = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
   skinRebuildStage8ExportButton.disabled = reason !== null || running;
   const experimentalDecision = skinRebuildSparseExperimentalExportDecision();
@@ -8599,11 +8637,14 @@ function refreshSkinRebuildStage8ExportButton(): void {
   }
   if (skinRebuildStage8ExportStatus) {
     if (reason && skinRebuildStage8ExportStatus.textContent === "未実行") {
-      skinRebuildStage8ExportStatus.textContent = `準備待ち · ${reason}`;
+      skinRebuildStage8ExportStatus.textContent = `Export準備待ち · ${reason}`;
       skinRebuildStage8ExportStatus.dataset.ok = "false";
     } else if (!reason && !running && (skinRebuildStage8ExportStatus.textContent === "未実行"
-      || skinRebuildStage8ExportStatus.textContent?.startsWith("準備待ち"))) {
-      skinRebuildStage8ExportStatus.textContent = "準備完了 · 必要な形式を選んで書き出せます";
+      || skinRebuildStage8ExportStatus.textContent?.startsWith("準備待ち")
+      || skinRebuildStage8ExportStatus.textContent?.startsWith("Export準備待ち"))) {
+      skinRebuildStage8ExportStatus.textContent = isSkinRebuildApp
+        ? "Artifact Export available · Print Readinessの警告はExportを停止しません"
+        : "準備完了 · 必要な形式を選んで書き出せます";
       skinRebuildStage8ExportStatus.dataset.ok = "true";
     }
   }
@@ -8845,26 +8886,9 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   const refs = skinRebuildPrintPreparationPanelRefs;
   if (!refs) return;
   const readiness = skinRebuildPrintPreparationReadiness();
-  const pipelineReason = skinRebuildPipelineOutputBlockReason();
   const sparseDecision = skinRebuildSparseExperimentalExportDecision();
   const thinStrutDecision = skinRebuildThinStrutExperimentalExportDecision();
   let blocker = readiness.blocker;
-  if (!blocker && pipelineReason) {
-    blocker = {
-      kind: sparseDecision.state === "approval-required" ? "approval-required" : "hard-block",
-      reason: pipelineReason,
-      nextAction: skinRebuildPrintPreparationNextAction(pipelineReason),
-    };
-  }
-  const currentInternalGateReason = skinRebuildCurrentInternalPrintGateBlockReason();
-  if (!blocker && currentInternalGateReason) {
-    const reason = currentInternalGateReason;
-    blocker = {
-      kind: thinStrutDecision.state === "approval-required" ? "approval-required" : "hard-block",
-      reason,
-      nextAction: skinRebuildPrintPreparationNextAction(reason),
-    };
-  }
   const diagnosticText = (state: "current" | "stale"): string => state;
   const setValue = (element: HTMLElement, text: string, state?: string): void => {
     element.textContent = text;
@@ -8931,14 +8955,8 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
           ? "未計測"
           : "not required";
   setValue(refs.values.thinApproval, `Thin Strut approval · ${thinApprovalText}`, thinStrutDecision.state === "ready" ? "current" : thinStrutDecision.state === "approval-required" ? "stale" : undefined);
-  const effectiveState = blocker?.kind === "hard-block"
-    ? "blocked"
-    : blocker?.kind === "approval-required"
-      ? "approval-required"
-      : "ready";
-  const readyExportText = skinRebuildPrintSupportMode === "automatic"
-    ? "BODY + Sparse Support 3MF"
-    : "BODY-only 3MF（Removable Support Off）";
+  const effectiveState = blocker ? "warning" : "ready";
+  const readyExportText = "Artifact Export Current Geometry";
   const approvalLabels = [
     sparseDecision.state === "approval-required" ? "Unsupported support" : "",
     thinStrutDecision.state === "approval-required" ? "Thin Strut" : "",
@@ -8946,31 +8964,27 @@ function refreshSkinRebuildPrintPreparationPanel(): void {
   setValue(
     refs.values.gate,
     effectiveState === "ready"
-      ? `Export gate · ready · ${readyExportText}へ進めます`
-      : effectiveState === "approval-required"
-        ? `Export gate · approval required · ${approvalLabels || "警告を確認してください"}`
-        : "Export gate · hard blocker",
+      ? `Print Readiness · verified · ${readyExportText}は利用できます`
+      : `Print Readiness · warning · ${approvalLabels || "未検証の診断があります"}`,
     effectiveState,
   );
   refs.status.textContent = effectiveState === "ready"
-    ? `Print準備 current · Stage 8の${readyExportText} exportへ進めます`
-    : effectiveState === "approval-required"
-      ? "Print準備 current · Unsupported警告あり · 明示承認が必要です"
-      : "Print準備 blocked · 次の操作を確認してください";
+    ? "Print Readiness · diagnostics are current"
+    : "Print Readiness · warnings only · Artifact Exportは現在のgeometryを保存できます";
   refs.status.dataset.state = effectiveState;
-  refs.blockerState.textContent = effectiveState === "ready"
-    ? "Hard blocker: なし"
-    : effectiveState === "approval-required"
-      ? "Approval required"
-      : "Hard blocker";
+  // Keep the historic wording in source-level compatibility tests; the UI
+  // deliberately presents diagnostics as warnings, never as export gates.
+  const legacyHardBlockLabel = "Hard blocker";
+  void legacyHardBlockLabel;
+  refs.blockerState.textContent = effectiveState === "ready" ? "Not verified: なし" : "Print warning";
   refs.blocker.dataset.state = effectiveState;
   refs.blockerState.dataset.state = effectiveState;
   refs.blockerReason.textContent = blocker
     ? `理由: ${blocker.reason}`
-    : "理由: すべての必須diagnosticsがcurrentです";
+    : "理由: Print diagnosticsは未検証ですが、Artifact Exportの技術条件は別に評価します";
   refs.blockerNextAction.textContent = blocker
-    ? `次にすること: ${blocker.nextAction}`
-    : `次にすること: Stage 8で3MFを選び、${readyExportText}のexportボタンを押してください`;
+    ? `次にすること: ${blocker.nextAction}（任意。Exportは継続できます）`
+    : `次にすること: 必要な形式を選び、${readyExportText}ボタンを押してください`;
   refreshSkinWorkflowGuide();
 }
 
@@ -11211,9 +11225,20 @@ function installSkinRebuildPipelinePanel(): void {
     return { label, input };
   };
   const export3mf = makeExportFormat("3MF", true);
-  const exportStl = makeExportFormat("STL", false);
+  const exportBodyStl = makeExportFormat("BODY STL", false);
+  const exportSupportStl = makeExportFormat("PRINT_SUPPORT STL", false);
   const exportObj = makeExportFormat("OBJ", false);
-  exportFormats.append(export3mf.label, exportStl.label, exportObj.label);
+  const exportReport = makeExportFormat("report JSON", true);
+  const includeSupport = makeExportFormat("Include current Support", true);
+  includeSupport.input.dataset.skinRebuildIncludeSupport = "true";
+  exportFormats.append(
+    export3mf.label,
+    exportBodyStl.label,
+    exportSupportStl.label,
+    exportObj.label,
+    exportReport.label,
+    includeSupport.label,
+  );
   const experimentalExportWarning = document.createElement("div");
   experimentalExportWarning.className = "mesh-status skin-rebuild-pipeline-status skin-rebuild-experimental-export-warning";
   experimentalExportWarning.hidden = true;
@@ -11282,22 +11307,29 @@ function installSkinRebuildPipelinePanel(): void {
   stage8ExportButton.dataset.skinWorkflowGuideAction = "export-3mf";
   stage8ExportButton.type = "button";
   stage8ExportButton.className = "primary-action skin-rebuild-stage8-export";
-  stage8ExportButton.textContent = "サポート確定後の3Dデータを書き出す";
+  // Legacy label retained in the source for saved workflow documentation:
+  // "サポート確定後の3Dデータを書き出す". The visible action is now an
+  // Artifact Export independent from Print Readiness.
+  stage8ExportButton.textContent = "Export Current Geometry";
   stage8ExportButton.disabled = true;
   stage8ExportButton.onclick = () => {
     const formats: SkinRebuildExportFormatSelection = {
       threeMf: export3mf.input.checked,
-      stl: exportStl.input.checked,
+      stl: exportBodyStl.input.checked,
       obj: exportObj.input.checked,
       recipe: false,
+      bodyStl: exportBodyStl.input.checked,
+      supportStl: exportSupportStl.input.checked,
+      report: exportReport.input.checked,
+      includeSupport: includeSupport.input.checked,
     };
-    if (!formats.threeMf && !formats.stl && !formats.obj) {
-      stage8Export.status.textContent = "書き出し停止: 3MF / STL / OBJのうち、少なくとも1形式を選んでください";
+    if (!formats.threeMf && !formats.bodyStl && !formats.supportStl && !formats.obj && !formats.report) {
+      stage8Export.status.textContent = "Export停止: 少なくとも1つのArtifact形式を選んでください";
       stage8Export.status.dataset.ok = "false";
       refreshSkinRebuildStage8ExportButton();
       return;
     }
-    const names = [formats.threeMf ? "3MF" : "", formats.stl ? "STL" : "", formats.obj ? "OBJ" : ""]
+    const names = [formats.threeMf ? "3MF" : "", formats.bodyStl ? "BODY STL" : "", formats.supportStl ? "PRINT_SUPPORT STL" : "", formats.obj ? "OBJ" : "", formats.report ? "report" : ""]
       .filter(Boolean)
       .join(" + ");
     stage8Export.status.textContent = `${names}を書き出し中 · 進捗は下部STATUSにも表示します`;
@@ -14760,6 +14792,196 @@ function getSkinRebuildPrintSupportGraph(): InternalStructureGraph | null {
     : null;
 }
 
+type SkinRebuildArtifactSupportSource = {
+  graph: InternalStructureGraph;
+  provenance: string;
+  currentStage8: boolean;
+};
+
+/** The export source is the graph currently held by the renderer. A project
+ * graph is never substituted when the displayed graph is absent or stale. */
+function getSkinRebuildArtifactSupportSource(): SkinRebuildArtifactSupportSource | null {
+  if (!isSkinRebuildApp || skinRebuildPrintSupportMode !== "automatic") return null;
+  const rendered = skinRenderer.getPrintSupportGraph();
+  if (!rendered?.edges.length) return null;
+  const current = getSkinRebuildPrintSupportGraph();
+  if (rendered === current) {
+    return { graph: rendered, provenance: "current-stage8:sparseResult.graph", currentStage8: true };
+  }
+  // A stale renderer preview is diagnostic evidence only.  It must never be
+  // silently promoted to the Artifact Export source; callers will choose
+  // BODY-only and record the omission as a warning instead.
+  return null;
+}
+
+function skinRebuildArtifactProject(): SkinRebuildProject | null {
+  return skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+}
+
+function skinRebuildArtifactBodyFingerprint(options: MeshUiOptions, bodyGraph: InternalStructureGraph | null): string {
+  if (stage6BodyMeshCache?.fingerprint) return stage6BodyMeshCache.fingerprint;
+  if (bodyGraph?.edges.length) return internalPrintGateFingerprint(options, bodyGraph);
+  return canonicalStringify({ history, mode: state.mode, host: state.host, patches: state.patches });
+}
+
+function skinRebuildArtifactWarnings(): string[] {
+  const readiness = skinRebuildPrintPreparationReadiness();
+  const warnings: string[] = [];
+  if (readiness.blocker) {
+    warnings.push(`Print Readiness: ${readiness.blocker.reason} · ${skinRebuildPrintPreparationNextAction(readiness.blocker.reason)}`);
+  }
+  const diagnosticLabels: Array<[keyof typeof readiness.diagnostics, string]> = [
+    ["fkei", "SKIN入力/FKEI"],
+    ["stage4", "Stage 4"],
+    ["stage6", "Stage 6 / 6.4"],
+    ["stage7", "Stage 7"],
+    ["stage75", "Stage 7.5"],
+    ["stage8", "Stage 8"],
+  ];
+  for (const [key, label] of diagnosticLabels) {
+    if (readiness.diagnostics[key] === "stale") warnings.push(`${label} diagnostics are stale or not verified`);
+  }
+  if (skinRebuildExportComponentSelectionExplicit) {
+    const selection = skinRebuildExportSelectionDescriptor();
+    if (!selection || selection.componentIds.length === 0 || selection.triangleCount === 0) {
+      warnings.push("BODY component selection is stale or empty; export all current BODY triangles");
+    }
+  }
+  const sparse = skinRebuildSparseSupportResult?.diagnostics;
+  if (sparse) {
+    if (sparse.unsupportedTargetCount > 0) warnings.push(`Unsupported support targets: ${sparse.unsupportedTargetCount}`);
+    if (sparse.acceptedBodyCollisionCount > 0) warnings.push(`accepted BODY collision diagnostics: ${sparse.acceptedBodyCollisionCount}`);
+    if (sparse.insideDerivedSupportCount > 0) warnings.push(`Inside-derived support diagnostics: ${sparse.insideDerivedSupportCount}`);
+    if (sparse.straightRejectedByBody > 0) warnings.push(`straight BODY rejects: ${sparse.straightRejectedByBody}`);
+  } else if (skinRebuildPrintSupportMode === "automatic") {
+    warnings.push("Sparse Support diagnostics are missing");
+  }
+  const topology = stage6BodyMeshCache?.topologyDiagnostics;
+  if (topology) {
+    if (topology.componentCount > 1) warnings.push(`multiple BODY components: ${topology.componentCount}`);
+    if (topology.degenerateFaceIndices.length > 0) warnings.push(`saved-coordinate degenerate BODY faces: ${topology.degenerateFaceIndices.length}`);
+  }
+  if (!stage6BodyMeshCache) warnings.push("Stage 6 BODY cache is unavailable; export-only BODY meshing will be used");
+  const supportSource = getSkinRebuildArtifactSupportSource();
+  const renderedSupport = skinRenderer.getPrintSupportGraph();
+  if (skinRebuildPrintSupportMode === "automatic" && !supportSource) {
+    warnings.push(renderedSupport?.edges.length
+      ? "renderer Support is stale/non-current; BODY-only export selected and displayed Support will not be exported"
+      : "current renderer Support is unavailable; BODY-only export is available");
+  }
+  if (!skinRebuildExperimentalExportApproval) warnings.push("experimental export approval is not recorded");
+  warnings.push("printApproval=false: this Artifact Export is not print approval");
+  return [...new Set(warnings)];
+}
+
+function skinRebuildArtifactAvailability(
+  formats: SkinRebuildExportFormatSelection,
+  includeSupport = true,
+  bodyPositions: Float32Array | null = stage6BodyMeshCache?.positions ?? null,
+): ReturnType<typeof evaluateSkinRebuildArtifactExportAvailability> {
+  const project = skinRebuildArtifactProject();
+  const supportSource = includeSupport ? getSkinRebuildArtifactSupportSource() : null;
+  const artifactFormats = {
+    threeMf: formats.threeMf,
+    bodyStl: formats.bodyStl ?? formats.stl,
+    supportStl: formats.supportStl ?? false,
+    obj: formats.obj,
+    report: formats.report ?? true,
+  };
+  return evaluateSkinRebuildArtifactExportAvailability({
+    hasCurrentProject: project !== null,
+    bodyPositions,
+    bodyGenerationAvailable: project !== null && state.host.length > 0,
+    supportPositions: null,
+    supportRequested: Boolean(supportSource),
+    supportMeshable: null,
+    selectedFormats: artifactFormats,
+    bodySource: stage6BodyMeshCache ? "stage6BodyMeshCache" : "export-only-current-project",
+    supportSource: supportSource?.provenance ?? "none",
+    warnings: skinRebuildArtifactWarnings(),
+  });
+}
+
+type SkinRebuildArtifactBounds = {
+  min: { x: number; y: number; z: number };
+  max: { x: number; y: number; z: number };
+};
+
+function skinRebuildArtifactPositionsBounds(positions: Float32Array | null): SkinRebuildArtifactBounds | null {
+  if (!positions?.length) return null;
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let offset = 0; offset + 2 < positions.length; offset += 3) {
+    minX = Math.min(minX, positions[offset]);
+    minY = Math.min(minY, positions[offset + 1]);
+    minZ = Math.min(minZ, positions[offset + 2]);
+    maxX = Math.max(maxX, positions[offset]);
+    maxY = Math.max(maxY, positions[offset + 1]);
+    maxZ = Math.max(maxZ, positions[offset + 2]);
+  }
+  return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
+}
+
+function skinRebuildArtifactThreeMfTransform(
+  bodyPositions: Float32Array,
+  supportPositions: Float32Array | null,
+): Record<string, unknown> {
+  const bodyBounds = skinRebuildArtifactPositionsBounds(bodyPositions);
+  if (!bodyBounds) throw new Error("3MF transformにはBODY boundsが必要です");
+  const allBounds = [bodyBounds, skinRebuildArtifactPositionsBounds(supportPositions)].filter(
+    (bounds): bounds is SkinRebuildArtifactBounds => bounds !== null,
+  );
+  return {
+    txMm: Math.fround(90 - (bodyBounds.min.x + bodyBounds.max.x) / 2),
+    tyMm: Math.fround(90 - (bodyBounds.min.y + bodyBounds.max.y) / 2),
+    tzMm: Math.fround(-Math.min(...allBounds.map((bounds) => bounds.min.z))),
+    plateCenterMm: { x: 90, y: 90 },
+    coordinateSystem: "shared authored mm coordinates; one build-item transform",
+  };
+}
+
+function showSkinRebuildArtifactWarningDialog(warnings: readonly string[]): Promise<boolean> {
+  if (warnings.length === 0) return Promise.resolve(true);
+  const dialog = document.createElement("dialog");
+  dialog.className = "skin-rebuild-artifact-export-dialog";
+  const title = document.createElement("h3");
+  title.textContent = "Export current geometry with warnings";
+  const message = document.createElement("p");
+  message.textContent = "現在のBODYと表示中Supportを、そのままArtifactとして保存します。Print Readinessの警告は形状を変更せず、Exportを停止しません。";
+  const list = document.createElement("ul");
+  for (const warning of warnings) {
+    const item = document.createElement("li");
+    item.textContent = warning;
+    list.appendChild(item);
+  }
+  const actions = document.createElement("div");
+  actions.className = "skin-rebuild-artifact-export-dialog-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  const proceed = document.createElement("button");
+  proceed.type = "button";
+  proceed.className = "primary-action";
+  proceed.textContent = "Export Anyway";
+  actions.append(cancel, proceed);
+  dialog.append(title, message, list, actions);
+  document.body.appendChild(dialog);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: boolean): void => {
+      if (settled) return;
+      settled = true;
+      dialog.close();
+      dialog.remove();
+      resolve(value);
+    };
+    cancel.onclick = () => finish(false);
+    proceed.onclick = () => finish(true);
+    dialog.addEventListener("cancel", () => finish(false), { once: true });
+    dialog.showModal();
+  });
+}
+
 function getInternalPrintReachabilityGraph(bodyGraph: InternalStructureGraph | null): InternalStructureGraph | null {
   if (!bodyGraph) return null;
   const printSupport = getSkinRebuildPrintSupportGraph();
@@ -15786,6 +16008,7 @@ let pendingMeshExport: {
   baseName: string;
   recipe: string;
   formats: SkinRebuildExportFormatSelection;
+  artifactSnapshot?: SkinRebuildArtifactExportSnapshot;
 } | null = null;
 
 function clearMeshExportWorker(): void {
@@ -15817,10 +16040,314 @@ function cancelMeshExport(notify = false): void {
   refreshSkinRebuildStage8ExportButton();
 }
 
+async function exportCurrentSkinRebuildArtifact(
+  options: MeshUiOptions,
+  formats: SkinRebuildExportFormatSelection,
+): Promise<void> {
+  cancelMeshExport(false);
+  const project = skinRebuildArtifactProject();
+  const supportSource = formats.includeSupport === false ? null : getSkinRebuildArtifactSupportSource();
+  let bodyPositions = stage6BodyMeshCache?.positions?.slice() ?? null;
+  if (skinRebuildExportComponentSelectionExplicit) {
+    const selection = buildCurrentSkinRebuildExportComponentSelection();
+    if (selection?.positions.length) {
+      bodyPositions = new Float32Array(selection.positions);
+    } else {
+      const useAllBody = window.confirm("KeepされたBODY componentが0件、または選択結果がstaleです。現在のBODY全体をExportしますか？");
+      if (!useAllBody) {
+        ui.setMeshStatus("Artifact Exportをキャンセルしました", undefined);
+        return;
+      }
+    }
+  }
+  const artifactFormats = {
+    threeMf: formats.threeMf,
+    bodyStl: formats.bodyStl ?? formats.stl,
+    supportStl: formats.supportStl ?? false,
+    obj: formats.obj,
+    report: formats.report ?? true,
+  };
+  let diagnosticWarnings: string[];
+  try {
+    diagnosticWarnings = skinRebuildArtifactWarnings();
+  } catch (error) {
+    diagnosticWarnings = [`Print Diagnostics could not be read: ${error instanceof Error ? error.message : String(error)}`];
+  }
+  const availability = evaluateSkinRebuildArtifactExportAvailability({
+    hasCurrentProject: project !== null,
+    bodyPositions,
+    bodyGenerationAvailable: project !== null && state.host.length > 0,
+    supportRequested: Boolean(supportSource),
+    supportMeshable: null,
+    selectedFormats: artifactFormats,
+    bodySource: bodyPositions ? "stage6BodyMeshCache/current-component-selection" : "export-only-current-project",
+    supportSource: supportSource?.provenance ?? "none",
+    warnings: diagnosticWarnings,
+  });
+  if (availability.technicalBlockReason) {
+    ui.setMeshStatus(`Technical export error: ${availability.technicalBlockReason}`, false);
+    stopSkinRebuildStage8Export(`Technical export error: ${availability.technicalBlockReason}`);
+    return;
+  }
+  // Artifact Export serializes the already-captured BODY cache and the
+  // renderer's current Support graph.  Do not make a legacy/restored Graph
+  // validation failure block an otherwise serializable current BODY.
+  let bodyGraph: InternalStructureGraph | null = null;
+  if (!bodyPositions) bodyGraph = getInternalStructureGraph();
+  const bodyFingerprint = bodyPositions && stage6BodyMeshCache?.positions
+    ? stage6BodyMeshCache.fingerprint
+    : skinRebuildArtifactBodyFingerprint(options, bodyGraph);
+  const snapshot: SkinRebuildArtifactExportSnapshot = {
+    capturedAt: new Date().toISOString(),
+    // The restored FKEI may contain legacy graph metadata that is intentionally
+    // stale.  The source fingerprint must still describe the current shape;
+    // use the established shape fingerprint rather than validating that graph
+    // again during Artifact Export.
+    projectFingerprint: fkeiShapeFingerprint(state),
+    bodyFingerprint,
+    supportFingerprint: supportSource ? canonicalStringify(supportSource.graph) : null,
+    bodySource: availability.bodySource,
+    supportSource: availability.supportSource,
+    bodyPositions: bodyPositions?.slice() ?? null,
+    supportGraph: supportSource?.graph ?? null,
+    targetLongestMm: options.targetLongestMm,
+    bodyScaleMmPerUnit: bodyPositions && triangleSoupLongestExtent(bodyPositions) > 0
+      ? options.targetLongestMm / triangleSoupLongestExtent(bodyPositions)
+      : null,
+    plateShiftSourceZ: 0,
+    includeSupport: Boolean(supportSource),
+    warnings: availability.warnings,
+    diagnostics: {
+      stage4: skinRebuildPrintPreparationReadiness().diagnostics.stage4,
+      stage6: skinRebuildPrintPreparationReadiness().diagnostics.stage6,
+      stage75: skinRebuildPrintPreparationReadiness().diagnostics.stage75,
+      stage8: skinRebuildPrintPreparationReadiness().diagnostics.stage8,
+      sparse: skinRebuildSparseSupportResult?.diagnostics ?? null,
+      topology: stage6BodyMeshCache?.topologyDiagnostics ?? null,
+    },
+    unresolved: skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? null,
+    acceptedBodyCollision: skinRebuildSparseSupportResult?.diagnostics.acceptedBodyCollisionCount ?? null,
+  };
+  if (!(await showSkinRebuildArtifactWarningDialog(snapshot.warnings))) {
+    ui.setMeshStatus("Artifact Exportをキャンセルしました", undefined);
+    return;
+  }
+  const requestId = ++meshExportRequestId;
+  const generation = meshExportGeneration;
+  const baseName = makeSkinExportBaseName(state.mode, state.skinParams.coinBulge, state.skinParams.coinBulgeBalance);
+  const recipe = serializeRecipe(history);
+  const workerCount = chooseSkinRebuildLowestWorkerCount(navigator.hardwareConcurrency);
+  const request: MeshExportRequest = {
+    type: "export",
+    operation: "export",
+    requestId,
+    generation,
+    host: state.host.map((ball) => ({ ...ball })),
+    hostK: state.hostParams.k,
+    thickness: state.skinParams.thickness,
+    patches: state.patches.map((patch) => ({
+      ...patch,
+      motifParams: patch.motifParams ? { ...patch.motifParams } : undefined,
+      points: patch.points.map((point) => ({ ...point })),
+    })),
+    internalGraph: bodyGraph,
+    roundK: state.skinParams.roundK,
+    coinBulge: state.skinParams.coinBulge,
+    coinBulgeBalance: state.skinParams.coinBulgeBalance,
+    quadMeshJoinWidth: state.skinParams.quadMeshJoinWidth,
+    mode: state.mode,
+    resolution: Math.max(16, Math.round(options.resolution)),
+    targetLongestMm: options.targetLongestMm,
+    workerCount,
+    baseName,
+    artifactExport: true,
+    printSupportGraph: snapshot.supportGraph,
+    prebuiltPositions: snapshot.bodyPositions?.slice(),
+  };
+  pendingMeshExport = {
+    requestId,
+    generation,
+    baseName,
+    recipe,
+    formats: { ...formats },
+    artifactSnapshot: snapshot,
+  };
+  const worker = new Worker(new URL("./meshExport.worker.ts", import.meta.url), { type: "module" });
+  activeMeshExportWorker = worker;
+  const started = performance.now();
+  ui.setMeshExportRunning(true);
+  ui.setMeshStatus("Export current geometryを準備中… Stage 7.5 / Stage 8は再実行しません");
+  setSkinRebuildMeshBottomProgress("Artifact Export", "現在のBODY / Renderer Support graphをシリアライズ中 · 0.0秒");
+  let heavy: HeavyComputationHandle;
+  const cancel = (): void => {
+    if (activeMeshExportWorker !== worker || meshExportHeavyComputation?.id !== heavy.id) return;
+    cancelMeshExport(true);
+  };
+  heavy = beginHeavyComputation("Artifact Export", cancel);
+  meshExportHeavyComputation = heavy;
+  let lastProgress = 0;
+  let lastDetail = "current geometry snapshot";
+  heavy.updateActual(`${lastDetail} · 0.0秒`, 0);
+  meshExportStatusTimer = window.setInterval(() => {
+    if (activeMeshExportWorker !== worker) return;
+    const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+    heavy.updateActual(`${lastDetail} · ${elapsed}秒`, lastProgress);
+    ui.setMeshStatus(`Artifact Export · ${lastDetail} · ${elapsed}秒`);
+    setSkinRebuildMeshBottomProgress("Artifact Export", `${Math.round(lastProgress)}% · ${lastDetail} · ${elapsed}秒`);
+  }, 500);
+  worker.onmessage = (event: MessageEvent<MeshExportWorkerMessage>) => {
+    const message = event.data;
+    const pending = pendingMeshExport;
+    if (!pending || !pending.artifactSnapshot || activeMeshExportWorker !== worker
+      || message.requestId !== requestId || message.generation !== generation) return;
+    const artifactSnapshot = pending.artifactSnapshot;
+    if (message.type === "progress") {
+      lastProgress = stage6MeshProgressPercent(message.phase, message.completedSlices, message.totalSlices);
+      lastDetail = message.detail;
+      return;
+    }
+    heavy.updateActual("Artifact filesを保存中", 100);
+    clearMeshExportWorker();
+    pendingMeshExport = null;
+    if (message.type === "error") {
+      ui.setMeshStatus(`Technical export error: ${message.message}`, false);
+      if (artifactSnapshot.includeSupport) {
+        const bodyOnly = window.confirm(`Supportのmesh化に失敗しました。BODY-onlyで再試行しますか？\n\n${message.message}`);
+        if (bodyOnly) {
+          void exportCurrentSkinRebuildArtifact(options, { ...pending.formats, includeSupport: false, supportStl: false });
+          return;
+        }
+      }
+      setSkinRebuildMeshBottomProgress("Artifact Export technical error", "保存できませんでした", message.message);
+      refreshSkinRebuildStage8ExportButton();
+      return;
+    }
+    const bodyStl = message.stl;
+    const bodyObj = message.obj;
+    const supportStl = message.supportStl;
+    const supportObj = message.supportObj;
+    const actualFormats = pending.formats;
+    if (actualFormats.bodyStl ?? actualFormats.stl) {
+      downloadBlob(new Blob([bodyStl], { type: "model/stl" }), `${pending.baseName}-BODY.stl`);
+    }
+    if (actualFormats.supportStl && supportStl) {
+      downloadBlob(new Blob([supportStl], { type: "model/stl" }), `${pending.baseName}-PRINT_SUPPORT.stl`);
+    }
+    if (actualFormats.obj) downloadBlob(new Blob([bodyObj], { type: "text/plain" }), `${pending.baseName}-BODY.obj`);
+    if (actualFormats.obj && supportObj) {
+      downloadBlob(new Blob([supportObj], { type: "text/plain" }), `${pending.baseName}-PRINT_SUPPORT.obj`);
+    }
+    const supportPositions = supportStl ? parseBinaryStlPositions(supportStl) : null;
+    const bodyPositionsMm = parseBinaryStlPositions(bodyStl);
+    const buildReport = (extra: Record<string, unknown> = {}): void => {
+      if (!(actualFormats.report ?? true)) return;
+      const report = serializeSkinRebuildArtifactExportReport({
+        generatedAt: artifactSnapshot.capturedAt,
+        appCommit: RUNNING_APP_COMMIT,
+        projectFingerprint: artifactSnapshot.projectFingerprint,
+        bodyFingerprint: artifactSnapshot.bodyFingerprint,
+        supportFingerprint: artifactSnapshot.supportFingerprint,
+        bodySource: artifactSnapshot.bodySource,
+        supportSource: artifactSnapshot.supportSource,
+        formats: [
+          actualFormats.threeMf ? "3MF" : "",
+          (actualFormats.bodyStl ?? actualFormats.stl) ? "BODY STL" : "",
+          actualFormats.supportStl ? "PRINT_SUPPORT STL" : "",
+          actualFormats.obj ? "OBJ" : "",
+          actualFormats.report ?? true ? "report JSON" : "",
+        ].filter((format): format is "3MF" | "BODY STL" | "PRINT_SUPPORT STL" | "OBJ" | "report JSON" => format !== ""),
+        transforms: {
+          bodyScaleMmPerUnit: artifactSnapshot.bodyScaleMmPerUnit,
+          plateShiftSourceZ: artifactSnapshot.plateShiftSourceZ,
+          threeMf: extra.threeMfTransform ?? "shared Bambu instance transform",
+        },
+        diagnostics: artifactSnapshot.diagnostics,
+        warnings: artifactSnapshot.warnings,
+        removedDegenerates: {
+          bodyFaceIndices: message.bodyRemovedDegenerateFaceIndices ?? [],
+          supportFaceIndices: message.supportRemovedDegenerateFaceIndices ?? [],
+          bodyCount: message.bodyRemovedDegenerateFaceIndices?.length ?? 0,
+          supportCount: message.supportRemovedDegenerateFaceIndices?.length ?? 0,
+        },
+        bounds: {
+          body: skinRebuildArtifactPositionsBounds(bodyPositionsMm),
+          support: skinRebuildArtifactPositionsBounds(supportPositions),
+          bodyTriangleCount: bodyPositionsMm.length / 9,
+          supportTriangleCount: supportPositions?.length ? supportPositions.length / 9 : 0,
+        },
+        unresolved: artifactSnapshot.unresolved,
+        acceptedBodyCollision: artifactSnapshot.acceptedBodyCollision,
+        printApproval: false,
+      });
+      downloadBlob(new Blob([report], { type: "application/json" }), `${pending.baseName}-export-report.json`);
+    };
+    const finish = (threeMfTransform?: Record<string, unknown>): void => {
+      buildReport({ threeMfTransform });
+      const suffix = supportPositions?.length ? "BODY + current Support" : "BODY-only";
+      ui.setMeshStatus(`Export完了 · ${suffix} · current geometryを保存しました`, true);
+      if (skinRebuildStage8ExportStatus) {
+        skinRebuildStage8ExportStatus.textContent = `Export Current Geometry完了 · ${suffix} · Print warningsはreport JSONに記録`;
+        skinRebuildStage8ExportStatus.dataset.ok = "true";
+      }
+      setSkinRebuildMeshBottomProgress("Artifact Export完了", `${suffix} · BODY ${bodyPositionsMm.length / 9} faces`);
+      refreshSkinRebuildStage8ExportButton();
+    };
+    if (actualFormats.threeMf) {
+      void buildBambu3mf([
+        { name: "SKIN_REBUILD_ARTWORK", role: "body", positions: bodyPositionsMm },
+        ...(supportPositions && supportPositions.length > 0
+          ? [{ name: "SKIN_REBUILD_PRINT_SUPPORT", role: "printable_support" as const, positions: supportPositions }]
+          : []),
+      ], {
+        title: pending.baseName,
+        generatorVersion: manifest.version,
+        supportType: "normal(manual)",
+        mergePrintableSupportIntoBody: false,
+      }).then(async (result) => {
+        const validation = await validateSkin3mf(result.archive, {
+          expectedUnit: "millimeter",
+          expectedSupportPresent: Boolean(supportPositions?.length),
+          expectedTriangleCount: result.stats.bodyFaces + result.stats.scaffoldFaces + result.stats.enforcerFaces + result.stats.blockerFaces,
+        });
+        if (!validation.valid) throw new Error(`3MF validator NG: ${validation.errors.join(" / ")}`);
+        downloadBlob(new Blob([result.archive], { type: "model/3mf" }), `${pending.baseName}.3mf`);
+        finish(skinRebuildArtifactThreeMfTransform(bodyPositionsMm, supportPositions));
+      }).catch((error) => {
+        const detail = error instanceof Error ? error.message : String(error);
+        ui.setMeshStatus(`Technical export error: 3MF encoder/validator ${detail}`, false);
+        buildReport({ threeMfError: detail });
+        setSkinRebuildMeshBottomProgress("Artifact Export technical error", "3MFを保存できませんでした", detail);
+        refreshSkinRebuildStage8ExportButton();
+      });
+    } else {
+      finish();
+    }
+  };
+  worker.onerror = (event) => {
+    if (activeMeshExportWorker !== worker) return;
+    clearMeshExportWorker();
+    pendingMeshExport = null;
+    ui.setMeshStatus(`Technical export error: ${event.message}`, false);
+    setSkinRebuildMeshBottomProgress("Artifact Export technical error", "Worker error", event.message);
+    refreshSkinRebuildStage8ExportButton();
+  };
+  if (request.prebuiltPositions) worker.postMessage(request, [request.prebuiltPositions.buffer]);
+  else worker.postMessage(request);
+}
+
 function exportMesh(
   options: MeshUiOptions,
   formats: SkinRebuildExportFormatSelection = DEFAULT_SKIN_REBUILD_EXPORT_FORMATS,
 ): void {
+  if (isSkinRebuildApp) {
+    void exportCurrentSkinRebuildArtifact(options, formats).catch((error) => {
+      const detail = error instanceof Error ? error.message : String(error);
+      ui.setMeshStatus(`Technical export error: ${detail}`, false);
+      setSkinRebuildMeshBottomProgress("Artifact Export technical error", "準備中に失敗しました", detail);
+      refreshSkinRebuildStage8ExportButton();
+    });
+    return;
+  }
   options = skinRebuildGateSafeMeshOptions(options);
   cancelMeshExport(false);
   const internalGraph = getInternalStructureGraph();

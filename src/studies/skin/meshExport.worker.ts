@@ -4,6 +4,7 @@ import { buildParallelSkinMesh, buildSkinMeshResultFromPositions } from "./paral
 import { flatNormalsFromTriangleSoup, packPreviewMeshBuffers } from "./previewMeshBuffers.ts";
 import type { MeshExportProgressPhase, MeshExportRequest, MeshExportWorkerMessage } from "./meshExportWorkerProtocol.ts";
 import { analyzeStage6MeshTopology } from "./rebuild/stage6MeshTopologyDiagnostics.ts";
+import { canonicalizeSkinRebuildArtifactMesh } from "./rebuild/artifactExport.ts";
 
 self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
   const request = event.data;
@@ -33,13 +34,17 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
       const raw = buildPrintSupportMesh(request.printSupportGraph, scaleMmPerUnit, {
         sourceOffset: { x: 0, y: 0, z: plateShiftSourceZ },
       });
-      const support = orientMeshForSavedStl(raw);
+      let support = orientMeshForSavedStl(raw);
+      const canonicalized = request.artifactExport
+        ? canonicalizeSkinRebuildArtifactMesh(support)
+        : null;
+      if (canonicalized) support = canonicalized.mesh;
       const topology = inspectSavedStlTopology(support.triangles, support.scaleMmPerUnit);
-      if (!topology.ok) throw new Error(`print support STL topology NG（open=${topology.openEdges}, nonManifold=${topology.nonManifoldEdges}, winding=${topology.windingInconsistentEdges}）`);
       return {
         supportStl: encodeBinaryStl(support, `${request.baseName}-print-support`),
         supportObj: encodeObj(support),
         supportSummary: `印刷サポート ${request.printSupportGraph.edges.length}本 / ${support.triangles.length.toLocaleString()}面 / ${topology.connectedComponents}部品 / BODY共通Z・Plate 0`,
+        supportRemovedDegenerateFaceIndices: canonicalized?.removedFaceIndices,
       };
     };
     if (request.operation === "export" && request.cachedStl) {
@@ -135,6 +140,16 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
     if (request.operation === "inspect" && exactPositions && !exactNormals) {
       exactNormals = flatNormalsFromTriangleSoup(exactPositions);
     }
+    let bodyCanonicalized: ReturnType<typeof canonicalizeSkinRebuildArtifactMesh> | null = null;
+    if (request.artifactExport && request.operation !== "inspect") {
+      bodyCanonicalized = canonicalizeSkinRebuildArtifactMesh(result);
+      result = {
+        ...result,
+        triangles: bodyCanonicalized.mesh.triangles,
+        watertight: bodyCanonicalized.mesh.watertight,
+        removedSavedDegenerateTriangleCount: 0,
+      };
+    }
     if (request.operation !== "inspect") reportProgress("encoding", "BODY STL / OBJを直列化");
     const stl = request.operation === "inspect" ? new ArrayBuffer(0) : encodeBinaryStl(result, request.baseName);
     const obj = request.operation === "export" ? encodeObj(result) : "";
@@ -154,6 +169,7 @@ self.onmessage = async (event: MessageEvent<MeshExportRequest>) => {
       stl,
       obj,
       ...support,
+      bodyRemovedDegenerateFaceIndices: bodyCanonicalized?.removedFaceIndices,
       positions: request.operation === "inspect" ? exactPositions : undefined,
       normals: request.operation === "inspect" ? exactNormals : undefined,
       topologyDiagnostics,

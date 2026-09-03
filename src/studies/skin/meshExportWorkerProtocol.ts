@@ -33,6 +33,9 @@ export interface MeshExportRequest {
   cachedPlateShiftSourceZ?: number;
   /** Removable support is exported as its own aligned STL/OBJ pair. */
   printSupportGraph?: InternalStructureGraph | null;
+  /** Artifact Export reuses the captured geometry and treats print checks as
+   * warnings. It never starts Stage 7.5/8 or the Internal Print Gate. */
+  artifactExport?: boolean;
   /** Exact BODY triangles already sampled by a matching final preview or
    * mesh inspection. Reusing them skips the resolution³ field pass. */
   prebuiltPositions?: Float32Array;
@@ -68,6 +71,8 @@ export type MeshExportWorkerMessage =
       supportStl?: ArrayBuffer;
       supportObj?: string;
       supportSummary?: string;
+      bodyRemovedDegenerateFaceIndices?: number[];
+      supportRemovedDegenerateFaceIndices?: number[];
       /** Returned only by mesh inspection so the later Internal gate can
        * reuse the exact triangles without sampling the field again. */
       positions?: Float32Array;
