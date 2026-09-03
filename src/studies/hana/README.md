@@ -34,6 +34,7 @@ Milestone 7: SOFTWARE PASS
 Additional A: SOFTWARE PASS
 Additional B: SOFTWARE PASS
 Additional C: SOFTWARE PASS
+Additional D: SOFTWARE PASS
 ```
 
 ## Question
@@ -139,6 +140,12 @@ SKIN production repositoryには変更を加えず、既存production behavior�
 Silhouette plane、projected view direction、2D contour、Section plane、Section curve、source Surface / Gesture provenance、point orderを保持する`katachi.hana-silhouette-section.v0` contractを追加した。representationとserialization、finite / provenance length / duplicate ID validationだけを実装し、輪郭抽出や高度なProjection UIは行わない。
 
 状態: `SOFTWARE PASS`。Silhouette / Sectionの追加、JSON round-trip、plane / contour / provenance validationを確認済み。実際のprojection・section抽出と実機確認は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Additional D: Chunked Field prototype
+
+長尺・複数Material Objectを将来局所再生成するためのStudy専用`katachi.hana-chunked-field-prototype.v0`を追加した。固定サイズchunk、object-to-chunk reverse index、boundsを跨ぐobjectの隣接chunk登録、dirty chunkだけの決定論的cache再生成、chunk boundary coverage / forward-reverse index validation、JSON serializationを実装した。
+
+これはField / Surfaceの実運用経路へ接続していない隔離prototypeであり、既存のPoint Field / SDF、dense Material Samples、Surface Mesh、HANA-2Aの性能・形状契約は変更していない。chunk cacheとobject membershipは再index時に置換され、境界を跨ぐobjectも片側だけの欠落にならない。状態: `SOFTWARE PASS`。Chunked Fieldの実機確認と通常Fieldへの接続は`HARDWARE RECHECK PENDING`および別設計課題として残す。
 
 ## Observation
 
