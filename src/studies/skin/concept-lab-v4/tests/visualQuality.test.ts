@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
-import { createQualityOverlay, qualityProfile, type SpatialEcho } from "../visual/visualQuality.ts";
+import { conceptQualityProfile, createQualityOverlay, qualityProfile, type SpatialEcho } from "../visual/visualQuality.ts";
 import { V4_PALETTES } from "../conceptTypes.ts";
 import type { ConceptBuildContext } from "../conceptTypes.ts";
 import type { ConceptSource } from "../sourceAdapter.ts";
@@ -31,6 +31,7 @@ test("spatial quality has a lifted profile and a no-op baseline profile", () => 
   const baseline = qualityProfile("baseline", "desktop");
   assert.ok(lifted.pointScale > 0 && lifted.atmosphere > 0);
   assert.equal(baseline.pointScale, 0);
+  assert.notEqual(conceptQualityProfile("void-bouquet").atmosphere, conceptQualityProfile("shadow-room").atmosphere);
 });
 
 test("lifted quality builds a source-seeded Gaussian layer while baseline stays unchanged", () => {

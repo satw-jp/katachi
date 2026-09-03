@@ -38,6 +38,23 @@ export function qualityProfile(mode: VisualQualityMode = "lifted", viewport: "mo
   };
 }
 
+export function conceptQualityProfile(conceptId: string, mode: VisualQualityMode = "lifted", viewport: "mobile" | "desktop" | "capture" = "desktop"): VisualQualityProfile {
+  const base = qualityProfile(mode, viewport);
+  const tuning: Record<string, Partial<VisualQualityProfile>> = {
+    "weight-of-hesitation": { pointScale: base.pointScale * 1.06, bloom: base.bloom * 1.08, depth: base.depth * 1.08 },
+    "mutual-rescue": { density: base.density * 1.08, bloom: base.bloom * 1.14, atmosphere: base.atmosphere * 1.04 },
+    "void-bouquet": { density: base.density * 0.88, bloom: base.bloom * 0.86, atmosphere: base.atmosphere * 1.22, depth: base.depth * 1.18 },
+    "inside-out": { pointScale: base.pointScale * 1.04, bloom: base.bloom * 1.1, atmosphere: base.atmosphere * 1.12 },
+    "one-hand-many-flowers": { pointScale: base.pointScale * 0.82, density: base.density * 0.92, atmosphere: base.atmosphere * 0.96 },
+    "craft-strata": { pointScale: base.pointScale * 0.98, density: base.density * 1.04, bloom: base.bloom * 1.06 },
+    "shadow-room": { pointScale: base.pointScale * 0.9, bloom: base.bloom * 0.78, atmosphere: base.atmosphere * 1.3, depth: base.depth * 1.26 },
+    "micro-landscape": { pointScale: base.pointScale * 0.9, density: base.density * 1.1, atmosphere: base.atmosphere * 1.16, depth: base.depth * 1.12 },
+    "visible-mending": { pointScale: base.pointScale * 1.02, bloom: base.bloom * 1.1, atmosphere: base.atmosphere * 1.08 },
+    "structural-choir": { pointScale: base.pointScale * 0.96, density: base.density * 1.06, atmosphere: base.atmosphere * 1.05 },
+  };
+  return { ...base, ...tuning[conceptId] };
+}
+
 interface QualityDatum {
   readonly position: THREE.Vector3;
   readonly size: number;
@@ -408,7 +425,7 @@ function createQualityData(ctx: ConceptBuildContext, conceptId: string, profile:
 export function createQualityOverlay(ctx: ConceptBuildContext, conceptId: string): QualityLayer | null {
   const mode = ctx.visualQuality ?? "lifted";
   if (mode === "baseline") return null;
-  const profile = qualityProfile(mode, ctx.quality);
+  const profile = conceptQualityProfile(conceptId, mode, ctx.quality);
   const data = createQualityData(ctx, conceptId, profile);
   return new GaussianLayerImpl(data, profile);
 }

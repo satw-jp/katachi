@@ -64,7 +64,7 @@ export class ConceptRuntime {
     this.scheduler = new EventScheduler(seed);
     this.paletteColors = palette === "custom" ? options.customColors ?? V4_PALETTES.rich : V4_PALETTES[palette];
     const definition = conceptDefinition(this.activeId);
-    const preset = new URLSearchParams(window.location.search).get("quality") === "spatial-north-star" ? SPATIAL_NORTH_STAR_PARAMETERS : {};
+    const preset = visualQuality() === "lifted" ? SPATIAL_NORTH_STAR_PARAMETERS : {};
     this.store = new ParameterStore([...GLOBAL_PARAMETER_DEFINITIONS, ...definition.parameters], { ...preset, ...options.initialParameters });
     this.elapsedSeconds = Math.max(0, (options.initialTimeMs ?? 0) / 1000);
     this.playing = true;
