@@ -17,7 +17,8 @@ const root: HTMLElement = rootElement;
 root.className = "concept-lab-v4";
 const isBaseline = window.location.pathname.includes("concepts-v4-baseline") || new URLSearchParams(window.location.search).get("baseline") === "1";
 root.dataset.version = isBaseline ? "baseline" : "lifted";
-root.innerHTML = `<main class="concept-lab-v4-artwork"></main><aside class="concept-lab-v4-inspector" aria-label="Concept Lab inspector"></aside>`;
+root.innerHTML = `<aside id="concept-lab-v4-work-nav" class="concept-lab-v4-work-nav" aria-label="Ten V4 works"></aside><button class="concept-lab-v4-work-toggle" data-action="toggle-work-nav" type="button" aria-controls="concept-lab-v4-work-nav" aria-expanded="false">WORKS</button><main class="concept-lab-v4-artwork"></main><aside class="concept-lab-v4-inspector" aria-label="Concept Lab inspector"></aside>`;
+const workNav = root.querySelector<HTMLElement>(".concept-lab-v4-work-nav")!;
 const artwork = root.querySelector<HTMLElement>(".concept-lab-v4-artwork")!;
 const inspector = root.querySelector<HTMLElement>(".concept-lab-v4-inspector")!;
 const initialUrl = parseConceptLabUrl(window.location.search, CONCEPT_DEFINITIONS[0]!.id);
@@ -49,6 +50,26 @@ function setPanel(open: boolean): void {
 }
 
 function isPanelOpen(): boolean { return root.dataset.panel === "open"; }
+
+function setWorkNav(open: boolean, syncUrl = true): void {
+  root.dataset.workNav = open ? "open" : "closed";
+  const toggle = root.querySelector<HTMLButtonElement>("[data-action=toggle-work-nav]");
+  if (toggle) toggle.setAttribute("aria-expanded", String(open));
+  if (!syncUrl) return;
+  const url = new URL(window.location.href);
+  if (open) url.searchParams.set("works", "1"); else url.searchParams.delete("works");
+  window.history.replaceState(null, "", url);
+}
+
+function workNavMarkup(activeId: string): string {
+  const basePath = isBaseline ? "../concepts-v4-baseline/" : "../concepts-v4/";
+  return `<div class="v4-work-nav-head"><span class="v4-work-nav-kicker">${isBaseline ? "V4 BASELINE" : "CONCEPT LAB V4.1"}</span><button class="v4-work-nav-close" data-action="close-work-nav" type="button">CLOSE</button></div><div class="v4-work-nav-title">10 WORKS</div><nav class="v4-work-list" aria-label="V4 works">${CONCEPT_DEFINITIONS.map((definition) => `<a class="v4-work-link" data-active="${definition.id === activeId}" href="${basePath}?concept=${definition.id}&panel=0"><span class="v4-work-number">${definition.number}</span><span>${definition.title}</span></a>`).join("")}</nav><a class="v4-work-archive" href="../">SKIN ART INDEX ↗</a>`;
+}
+
+function renderWorkNav(activeId = initialConcept): void {
+  workNav.innerHTML = workNavMarkup(activeId);
+  workNav.querySelector<HTMLButtonElement>("[data-action=close-work-nav]")?.addEventListener("click", () => setWorkNav(false));
+}
 
 function formatValue(value: ParameterValue): string {
   if (typeof value === "boolean") return value ? "ON" : "OFF";
@@ -234,16 +255,21 @@ function loadSource(): Promise<VisualStudySource> {
 }
 
 const panelQuery = new URLSearchParams(window.location.search).get("panel");
+renderWorkNav();
+const worksQuery = new URLSearchParams(window.location.search).get("works");
+setWorkNav(window.innerWidth > 760 || worksQuery === "1", false);
 setPanel(window.innerWidth > 760 ? panelQuery !== "0" : initialUrl.panel);
+root.querySelector<HTMLButtonElement>("[data-action=toggle-work-nav]")?.addEventListener("click", () => setWorkNav(root.dataset.workNav !== "open"));
 renderInspector();
 window.addEventListener("keydown", (event) => { if (event.key.toLowerCase() === "p") setPanel(!isPanelOpen()); else if (event.key === "Escape" && !isPanelOpen()) setPanel(true); });
-window.addEventListener("resize", () => { if (window.innerWidth <= 760 && !new URLSearchParams(window.location.search).has("panel")) setPanel(false); });
+window.addEventListener("resize", () => { if (window.innerWidth <= 760 && !new URLSearchParams(window.location.search).has("panel")) setPanel(false); if (window.innerWidth > 760) setWorkNav(true, false); });
 
 void loadSource().then((source) => {
   const mapped = adaptConceptSource(source);
   runtime = new ConceptRuntime(artwork, mapped, updateFrame);
   runtime.mount(initialConcept, activePalette, initialUrl.seed, { initialTimeMs: initialUrl.timeMs, initialParameters: initialUrl.parameters, camera: initialUrl.camera, customColors });
   statusMessage = `READY / ${mapped.nodes.length} NODES / ${mapped.edges.length} EDGES / ${mapped.motifs.length} MOTIFS`;
+  renderWorkNav(runtime.concept());
   renderInspector();
 }).catch((error: unknown) => { setStatus(`SOURCE UNAVAILABLE / ${error instanceof Error ? error.message : String(error)}`, true); renderInspector(); });
 
