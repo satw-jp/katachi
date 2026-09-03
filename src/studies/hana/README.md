@@ -25,6 +25,9 @@ Milestone 1: SOFTWARE PASS
 Hardware recheck: PENDING
 Branch: agent/hana-authoring-stack-v0
 Base: 02fd52b96000fd89f412e089f85728341d049ba3
+Milestone 2: SOFTWARE PASS
+Milestone 3: SOFTWARE PASS
+Milestone 4: SOFTWARE PASS
 ```
 
 ## Question
@@ -86,6 +89,12 @@ Mapping設定はauthoring Strokeへ保存できるが、Material Profile、dense
 Strokeごとにlocal bounds、Material Sample cache、local candidate query、source revision、generation ID、derived mesh cacheを持つ`HanaMaterialObjectRegistry`を追加した。編集・再生成のdirty範囲はobject ID単位で管理し、無関係なStrokeを再生成しない。generationは同一object内でlatest-onlyとし、古い結果はapplyされず、object / cacheの個数が編集回数に比例して増えない。
 
 既存HANA-2AのZ-slice協調生成とPreview優先の境界は維持し、完全なSparse Voxel Systemや通常経路のCapsule SDF置換は行わない。状態: `SOFTWARE PASS`。2本以上のobject isolation、generation cancellation、local candidate query、既存Field回帰をsoftwareで確認済み。実機の複数object操作は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Milestone 4: Flower Authoring v0
+
+複数のauthoring Strokeから、petalとcoreを持つgesture-authored Flowerを生成するpure authoring kernelを追加した。選択Strokeの順序、Raw Gesture ID、Control Stroke ID、sourceT、local frame、provenanceを保持し、Flowerのmove / rotate、stem attachment、core Stroke追加をimmutableな更新として扱う。materializationはFlower単位のlocal Material Objectへ派生し、global unionやMeshのauthoritative化は行わない。random variationは使用しない。
+
+状態: `SOFTWARE PASS`。5 petals + coreの選択、role更新、provenance、local materialization、move / rotate / stem attachment、既存Documentとの分離をtestsとTypeScriptで確認済み。複数Stroke Flowerの実機操作は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 

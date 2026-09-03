@@ -34,6 +34,10 @@
       "note": "Authoring stack v0 Milestone 3 adds local Material Objects with bounds, sample cache, local candidate query, source revision and latest-only generation identity. Dirty invalidation is object-scoped, old generations are rejected, and the registry replaces rather than accumulates derived caches. Existing HANA-2A cooperative generation and sphere field baseline remain unchanged. Software checks pass; multi-object hardware recheck remains pending."
     },
     {
+      "date": "2026-09-03",
+      "note": "Authoring stack v0 Milestone 4 adds deterministic gesture-authored Flower authoring from selected petal/core Strokes, local frame and provenance, immutable move / rotate / stem attachment, core Stroke addition, and Flower-scoped Material Object materialization. No random variation, global union, Mesh authority, or SKIN production change was introduced. Software checks pass; multi-Stroke Flower hardware recheck remains pending."
+    },
+    {
       "date": "2026-09-01",
       "note": "HANA-1A starts an independent Four View Input Shell. It preserves viewport-local PointerEvent strokes, raw pressure, time, pointer identity and stroke order separately from camera/layout state. It deliberately does not create 3D Stroke, Graph, Field, Stem or Mesh data."
     },
