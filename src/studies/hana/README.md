@@ -51,6 +51,8 @@ Milestone 2: SOFTWARE PASS
 Milestone 3: SOFTWARE PASS
 Milestone 4: SOFTWARE PASS
 Milestone 5: SOFTWARE PASS
+Milestone 6: SOFTWARE PASS
+Milestone 7: SOFTWARE PASS
 ```
 
 LAN launcher default: `npm run dev:hana:lan`
@@ -204,6 +206,12 @@ Remote結果はbinary typed-arrayを受け取り、identity / generation / valid
 `computeProtocol.test.ts`でheader / typed-array alignment / truncation / size limitを検証し、base64を使わないbinary resultのdecodeを固定した。shared Finalization CoreのLocal resultをwire encode/decodeして、positions、normals、indices、counts、validationがbyte / value単位で一致することを確認する。Node Compute Serviceとのbackend integrationも同じbinary resultを比較する。実装はCPU engine `hana-cpu-js-v0`に限定し、GPUや別精度経路は追加しない。
 
 `npm run test:hana:remote`でRemote protocol、server、parityを実行できる。状態: `SOFTWARE PASS`。Remote実LAN、iPad Pro / Apple Pencil / EasyCanvasからの確認は`IPAD REMOTE GATE PENDING`。
+
+### 2026-09-03 — Remote Compute v0 Milestone 7: object-level finalization
+
+`HanaRemoteObjectCoordinator`はauthoring objectごとにFinalization Snapshotをqueueへ登録し、active / visible / background priority、最大同時実行数、同一objectのcancel / latest-only、stale result拒否を共通化する。`createHanaRemoteObjectJobs`は複数Strokeのauthoring Documentから、各StrokeのRaw Gesture ID、Control provenance、curve、material mapping intentを保持した独立jobを作る。Flower / clusterの各local Material Objectはこのqueueへ個別に渡せるが、global union、Mesh authority、SKIN production接続は行わない。
+
+状態: `SOFTWARE PASS`。2 object以上のbounded parallel queue、同一objectの世代置換、priority、cancel、authoring Documentからのsemantic snapshot生成、derived geometry非保存を確認済み。複数Stroke / Flower clusterのiPad Remote Gateは`IPAD REMOTE GATE PENDING`。
 
 ## Observation
 

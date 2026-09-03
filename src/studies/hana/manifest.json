@@ -192,6 +192,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 6 fixes protocol and parity coverage. Binary Finalization results use a bounded aligned header + raw Float32 / Uint32 payload without base64; truncation, size limits, array descriptors, and deterministic Local/Core wire round-trip are tested. Node Windows backend integration matches the service result. CPU engine hana-cpu-js-v0 remains the only implementation and iPad Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 7 adds HANA-local object-level finalization. HanaRemoteObjectCoordinator schedules independent authoring objects by active / visible / background priority with bounded concurrency, same-object cancellation, latest-generation checks, stale result rejection, and result/error callbacks. Authoring Document Stroke jobs preserve Raw Gesture ID, Control provenance, curve, material mapping intent, and object revisions without saving derived geometry. Flower / cluster and iPad Remote Gate remain pending; no global union or SKIN production connection was added."
     }
   ]
 }
