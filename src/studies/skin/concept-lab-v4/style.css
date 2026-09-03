@@ -1,0 +1,65 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap");
+
+:root { color-scheme: dark; font-family: "Manrope", "Helvetica Neue", Arial, sans-serif; background: #000; color: #e4ebe5; }
+* { box-sizing: border-box; }
+html, body, #concept-lab-v4-root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+button, input, select { font: inherit; }
+button, select { color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+
+.concept-lab-v4 { display: grid; grid-template-columns: minmax(0, 1fr) 348px; width: 100%; height: 100%; overflow: hidden; background: #000; }
+.concept-lab-v4-artwork { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+.concept-lab-v4-canvas { display: block; width: 100%; height: 100%; outline: none; }
+.concept-lab-v4-inspector { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 17px 17px 30px; background: #080a09; border-left: 1px solid rgba(228, 235, 229, .12); color: rgba(228, 235, 229, .78); scrollbar-width: thin; scrollbar-color: rgba(228, 235, 229, .18) transparent; }
+.concept-lab-v4[data-panel="closed"] { grid-template-columns: minmax(0, 1fr) 0px; }
+.concept-lab-v4[data-panel="closed"] .concept-lab-v4-inspector { padding: 0; overflow: hidden; border: 0; }
+
+.v4-inspector-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.v4-brand, .v4-eyebrow, .v4-section h2, .v4-label, .v4-status, .v4-meta, .v4-button, .v4-link, .v4-concept-button, .v4-control output, .v4-video-preview { font-family: "DM Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .11em; }
+.v4-brand { font-size: 10px; color: #f0d4a1; text-decoration: none; white-space: nowrap; }
+.v4-brand:hover, .v4-brand:focus-visible, .v4-link:hover, .v4-link:focus-visible, .v4-concept-button:hover, .v4-concept-button:focus-visible { color: #fff3d3; outline: none; }
+.v4-presentation, .v4-button, .v4-link, .v4-concept-button { border: 0; padding: 0; background: none; }
+.v4-presentation { color: rgba(228, 235, 229, .47); font-size: 8px; letter-spacing: .12em; }
+.v4-presentation:hover, .v4-presentation:focus-visible, .v4-button:hover, .v4-button:focus-visible { color: #fff3d3; outline: none; }
+.v4-status { min-height: 31px; padding: 9px 0 11px; margin-bottom: 4px; border-top: 1px solid rgba(228, 235, 229, .1); border-bottom: 1px solid rgba(228, 235, 229, .1); font-size: 8px; line-height: 1.6; color: rgba(228, 235, 229, .56); }
+.v4-status[data-state="error"] { color: #eea59e; }
+.v4-section { padding: 15px 0 13px; border-bottom: 1px solid rgba(228, 235, 229, .08); }
+.v4-section h2 { margin: 0 0 11px; font-size: 8px; font-weight: 500; color: rgba(228, 235, 229, .42); }
+.v4-archive, .v4-concepts { display: grid; gap: 7px; }
+.v4-link, .v4-concept-button { width: 100%; text-align: left; font-size: 9px; line-height: 1.25; color: rgba(228, 235, 229, .58); text-decoration: none; }
+.v4-concept-button { display: flex; align-items: baseline; gap: 9px; }
+.v4-concept-button .v4-number { width: 19px; color: rgba(228, 235, 229, .3); }
+.v4-concept-button[data-active="true"] { color: #f5d895; font-weight: 500; }
+.v4-concept-button[data-active="true"] .v4-number { color: #f5d895; }
+.v4-statement { margin: -3px 0 12px 28px; font-size: 9px; line-height: 1.45; color: rgba(228, 235, 229, .38); }
+.v4-actions { display: flex; flex-wrap: wrap; gap: 11px 15px; align-items: baseline; }
+.v4-button { font-size: 8px; line-height: 1.2; color: rgba(228, 235, 229, .66); }
+.v4-button[data-primary="true"] { color: #f5d895; }
+.v4-button:disabled { cursor: not-allowed; opacity: .3; }
+.v4-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 9px; align-items: center; margin: 10px 0 0; }
+.v4-label { min-width: 0; font-size: 8px; color: rgba(228, 235, 229, .45); }
+.v4-control output { min-width: 42px; text-align: right; font-size: 8px; color: rgba(228, 235, 229, .58); }
+.v4-control input[type="range"] { grid-column: 1 / -1; width: 100%; height: 12px; margin: 0; accent-color: #d5ad6f; }
+.v4-control select { grid-column: 1 / -1; width: 100%; border: 0; border-bottom: 1px solid rgba(228, 235, 229, .16); border-radius: 0; padding: 4px 0; background: transparent; font: 8px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.v4-color-row { display: grid; grid-template-columns: 1fr 27px; gap: 8px; align-items: center; margin: 9px 0 0; }
+.v4-color-row input[type="color"] { width: 27px; height: 19px; padding: 0; border: 0; background: transparent; }
+.v4-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.v4-select-row .v4-control { display: block; }
+.v4-select-row .v4-label { display: block; margin-bottom: 4px; }
+.v4-capture-note { margin: 12px 0 0; font: 8px/1.5 "DM Mono", monospace; letter-spacing: .06em; color: rgba(228, 235, 229, .32); }
+.v4-video-preview { display: block; width: 100%; margin-top: 12px; max-height: 120px; background: #000; }
+.v4-source-note { margin: 10px 0 0; font: 8px/1.5 "DM Mono", monospace; letter-spacing: .08em; color: rgba(228, 235, 229, .3); }
+
+@media (max-width: 760px) {
+  .concept-lab-v4 { display: block; position: relative; }
+  .concept-lab-v4-artwork { position: absolute; inset: 0; }
+  .concept-lab-v4-inspector { position: absolute; z-index: 3; top: 0; right: 0; bottom: 0; width: min(88vw, 348px); transform: translateX(100%); transition: transform .25s ease; box-shadow: -20px 0 60px rgba(0,0,0,.32); }
+  .concept-lab-v4[data-panel="open"] .concept-lab-v4-inspector { transform: translateX(0); }
+  .concept-lab-v4[data-panel="closed"] .concept-lab-v4-inspector { padding: 17px; overflow: auto; border-left: 1px solid rgba(228, 235, 229, .12); }
+  .concept-lab-v4[data-panel="closed"] .concept-lab-v4-inspector > * { visibility: hidden; }
+  .v4-presentation { position: fixed; z-index: 4; top: 17px; right: 17px; padding: 7px 0; color: rgba(228, 235, 229, .6); }
+  .v4-inspector-head { padding-right: 63px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .concept-lab-v4-inspector { transition: none; } }

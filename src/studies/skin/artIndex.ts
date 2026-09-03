@@ -46,7 +46,11 @@ const conceptMoviesV3Link = document.createElement("a");
 conceptMoviesV3Link.className = "skin-art-index-studies-link";
 conceptMoviesV3Link.href = "./concepts-v3/";
 conceptMoviesV3Link.textContent = "CONCEPT MOVIES V3 ↗";
-header.append(mark, headerMeta, visualStudiesLink, conceptMoviesLink, conceptMoviesV2Link, conceptMoviesV3Link);
+const conceptLabV4Link = document.createElement("a");
+conceptLabV4Link.className = "skin-art-index-studies-link";
+conceptLabV4Link.href = "./concepts-v4/";
+conceptLabV4Link.textContent = "CONCEPT LAB V4 ↗";
+header.append(mark, headerMeta, visualStudiesLink, conceptMoviesLink, conceptMoviesV2Link, conceptMoviesV3Link, conceptLabV4Link);
 
 const field = document.createElement("div");
 field.className = "skin-art-index-field";
