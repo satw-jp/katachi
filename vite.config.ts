@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { execFileSync } from "node:child_process";
-import { cwd } from "node:process";
+import { cwd, env } from "node:process";
 
 function exactRunningCommit(): string {
   // Codex may build a workspace owned by its sandbox account from the signed-
@@ -21,17 +21,28 @@ function exactRunningCommit(): string {
 // http://192.168.x.x で開くと navigator.gpu が存在せず MPM が CPU に落ちる
 // （2026-07-10 作者の Windows/RTX3080 で実害。ブラウザフラグ回避は不安定だった）。
 // 「Katachi を別のPCから見る.command」が `--mode https` を渡す。普段の localhost は素の HTTP のまま。
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const hanaLanMode = mode === "hana-lan";
+  const frontendPort = Number(env.HANA_LAN_PORT ?? (hanaLanMode ? 5482 : 5174));
+  const computePort = Number(env.HANA_COMPUTE_PORT ?? 5483);
+  return {
   base: "./",
   define: {
     "import.meta.env.VITE_GIT_COMMIT": JSON.stringify(exactRunningCommit()),
   },
   plugins: mode === "https" ? [basicSsl()] : [],
   server: {
-    // Katachi は常に 5174。docs/launcher-spec.md のポート台帳で一意に固定。
-    // Morpho(5173)・Yomu(5175) と衝突させない。strictPort で別ポートに逃げない。
-    port: 5174,
+    // Normal Katachi stays on 5174. The HANA LAN launcher uses a separate
+    // mode so the existing local workflow and port ledger remain unchanged.
+    host: hanaLanMode ? "0.0.0.0" : undefined,
+    port: frontendPort,
     strictPort: true,
+    proxy: {
+      "/api/hana-compute": {
+        target: `http://127.0.0.1:${computePort}`,
+        changeOrigin: false,
+      },
+    },
   },
   build: {
     rollupOptions: {
@@ -65,4 +76,5 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-}));
+  };
+});

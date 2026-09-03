@@ -6,6 +6,7 @@
   "description": "Katachi — a research platform and sculpting tool for the two margins of form",
   "scripts": {
     "dev": "vite",
+    "dev:hana:lan": "node scripts/hana-lan-launcher.mjs",
     "dev:hikari": "vite --config vite.hikari.config.ts",
     "build": "tsc -b && vite build",
     "build:hikari": "tsc -b && vite build --config vite.hikari.config.ts",

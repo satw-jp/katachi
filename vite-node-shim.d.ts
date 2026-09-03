@@ -8,4 +8,5 @@ declare module "node:child_process" {
 
 declare module "node:process" {
   export function cwd(): string;
+  export const env: Record<string, string | undefined>;
 }

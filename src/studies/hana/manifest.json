@@ -180,6 +180,10 @@
     {
       "date": "2026-09-03",
       "note": "HANA-2A final real-device Gate passed on iPad Pro 11-inch with Apple Pencil through EasyCanvas into Windows Browser. Long Surface strokes supported repeated Mouse Edit without accumulating latency; Live Proxy remained smooth; pointerup returned to READY without a long whole-screen stop; finalization could be superseded by a new Edit; stale Final generations did not interrupt newer results; Surface / Centerline / Samples touch toggles, normal and diagnostic URLs, Shape Fidelity, Right View axis constraints, component validity, and continuous Surface presentation all passed. HANA-2A is now PASS / FROZEN. Frozen hierarchy is Raw Gesture → adaptive geometry-error-bounded Control Stroke (tolerance 0.09, Thickness-independent) → Smooth Centerline → dense adaptive Material Samples → KD-tree Point Field / SDF → derived Surface Mesh. Raw metadata, Final density, Live Proxy 192 cap, and JSON authoritative boundaries remain unchanged. Known limitations are documented: very dense long Final generation takes time but remains cooperative, minor late long-stroke live follow-up may remain, Soft Edit is control-count based pending arc-length follow-up, environment-specific uv_os_get_passwd ENOMEM is not an implementation failure, and Chrome command-line warnings are not HANA console errors. HANA tests 33/33, TypeScript, full Vite build, browser smoke, manifest validation, diff check, and console warning/error 0 passed; src/studies/skin diff is 0. No next Phase, Flower, Worker, WebGPU, CUDA, or SKIN Bridge work is included."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 4 adds npm run dev:hana:lan. The Windows launcher starts the loopback-only CPU Compute Service on 5483 and the HANA LAN Vite server on 5482, prints a private IPv4 HANA URL, proxies /api/hana-compute through same-origin Vite, and stops both children on Ctrl+C. HANA_LAN_PORT, HANA_COMPUTE_PORT, and HANA_COMPUTE_WORKERS are configurable. Normal local Vite remains on 5174; Firewall, Wi-Fi, and iPad Remote Finalization verification remain pending."
     }
   ]
 }

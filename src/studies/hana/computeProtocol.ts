@@ -79,10 +79,10 @@ export function encodeHanaFinalizationResult(result: HanaFinalizationResultV0): 
   };
   const encodedHeader = textEncoder.encode(JSON.stringify(header));
   const payloadLength = positions.byteLength + normals.byteLength + indices.byteLength;
-  const encoded = new Uint8Array(4 + encodedHeader.byteLength + payloadLength);
+  const payloadOffset = (4 + encodedHeader.byteLength + 3) & ~3;
+  const encoded = new Uint8Array(payloadOffset + payloadLength);
   new DataView(encoded.buffer).setUint32(0, encodedHeader.byteLength, false);
   encoded.set(encodedHeader, 4);
-  const payloadOffset = 4 + encodedHeader.byteLength;
   copyBytes(encoded, payloadOffset + positions.offset, result.positions);
   copyBytes(encoded, payloadOffset + normals.offset, result.normals);
   copyBytes(encoded, payloadOffset + indices.offset, result.indices);
@@ -152,7 +152,7 @@ export function decodeHanaFinalizationResult(value: ArrayBuffer | Uint8Array, ma
   const positions = validateDescriptor(arrays.positions, "positions", "Float32");
   const normals = validateDescriptor(arrays.normals, "normals", "Float32");
   const indices = validateDescriptor(arrays.indices, "indices", "Uint32");
-  const payloadOffset = 4 + headerLength;
+  const payloadOffset = (4 + headerLength + 3) & ~3;
   const payloadLength = bytes.byteLength - payloadOffset;
   const descriptors = [positions, normals, indices].sort((a, b) => a.offset - b.offset);
   let cursor = 0;

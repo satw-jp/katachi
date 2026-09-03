@@ -49,7 +49,19 @@ GPU: false
 Milestone 1: SOFTWARE PASS
 Milestone 2: SOFTWARE PASS
 Milestone 3: SOFTWARE PASS
+Milestone 4: SOFTWARE PASS
+Milestone 5: SOFTWARE IN PROGRESS
 ```
+
+LAN launcher default: `npm run dev:hana:lan`
+
+The launcher starts the loopback Windows CPU Compute Service on port `5483` and
+the HANA Vite server on port `5482`. It prints the private IPv4 URL to open in
+the Windows browser or iPad browser on the same private network. The Vite
+server proxies only `/api/hana-compute/*` to `127.0.0.1:5483`; the compute
+service itself remains loopback-only. `HANA_LAN_PORT`, `HANA_COMPUTE_PORT`, and
+`HANA_COMPUTE_WORKERS` are configurable. Firewall / Wi-Fi reachability is a
+machine setup concern and is not silently changed by the launcher.
 
 ## Question
 
@@ -174,6 +186,12 @@ Milestone 2としてLocal / Windows / Autoの`HanaComputeBackend` interfaceを�
 `/api/hana-compute/v0/health`、`/capabilities`、`/finalize`、`/cancel`を実装した。Finalization Snapshotだけを受け取り、`katachi.hana-compute-wire.v0`の4-byte header length + UTF-8 header + raw Float32 / Uint32 typed-array payloadでMeshを返す。base64、file access、Document保存、任意コード実行はない。capabilityは`engine=cpu-js-v0`、`gpu=false`、`cancellation=true`、`objectLevelFinalization=true`を明示する。
 
 状態: `SOFTWARE PASS`。health / capability、Worker Finalization、binary decode、malformed request拒否、Node syntax、既存HANA回帰を確認済み。iPad Remote Gate、LAN Firewall、Windows実環境のCPU負荷確認は`IPAD REMOTE GATE PENDING`。
+
+### 2026-09-03 — Remote Compute v0 Milestone 4: LAN launcher
+
+`npm run dev:hana:lan`を追加し、Windows上でCompute ServiceとHANA Vite serverを同時起動する。HANA LAN serverは`0.0.0.0:5482`で待ち受け、Compute Serviceは`127.0.0.1:5483`に限定する。ブラウザからのcompute APIは同一originのVite proxyを経由し、launcherは利用可能なprivate IPv4 URL、local URL、compute engine、worker数を表示する。Ctrl+Cで両方を停止でき、portとworker数は環境変数で設定できる。
+
+状態: `SOFTWARE PASS`。launcher syntax、Vite LAN mode、same-origin proxy、loopback compute endpoint、既定local workflowのport維持を確認済み。実LAN接続、Windows Firewall、iPadからのRemote Finalization実機Gateは`IPAD REMOTE GATE PENDING`。Milestone 5でブラウザUIからRemote / Autoを選択し、pointerupの正式再生成へ接続する。
 
 ## Observation
 
