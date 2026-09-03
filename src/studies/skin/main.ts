@@ -7292,12 +7292,16 @@ function selectSkinRebuildTarget(patchId: number | null): boolean {
 function refreshSkinRebuildLowestPointMarkers(project: SkinRebuildProject): void {
   const sideByPatch = new Map(project.patternSides.map((side) => [side.patchId, side]));
   const spiderSupported = new Set(project.latticeConnections.map((connection) => connection.targetPatchId));
-  const removableSupported = (point: SkinRebuildLowestPoint): boolean => project.printSupport.nodes.some((node) =>
+  const currentPrintSupport = project === skinRebuildStage8CompletedProject
+    && skinRebuildSparseSupportResult?.graph === project.printSupport
+    ? skinRebuildSparseSupportResult.graph
+    : null;
+  const removableSupported = (point: SkinRebuildLowestPoint): boolean => currentPrintSupport?.nodes.some((node) =>
     Math.hypot(
       node.position.x - point.position.x,
       node.position.y - point.position.y,
       node.position.z - point.position.z,
-    ) <= 1e-6);
+    ) <= 1e-6) ?? false;
   const markers: MotifLowestPoint[] = project.lowestPoints.map((point) => {
     const requiresSpider = skinRebuildRequiresSpiderSupport(point, sideByPatch.get(point.patchId));
     return {
@@ -10994,7 +10998,7 @@ function installSkinRebuildPipelinePanel(): void {
       }
       const settings = currentSkinRebuildPipelineSettings();
       let sparseResult: SparseRemovableSupportResult | null = null;
-      const supportGraph = modeAtStart === "automatic"
+      const stage8SupportGraph = modeAtStart === "automatic"
         ? (() => {
           const bounds = computeSkinSamplingBounds(
             current.base.host,
@@ -11094,12 +11098,19 @@ function installSkinRebuildPipelinePanel(): void {
         lowestPoints,
         current.lattice,
         current.latticeConnections,
-        supportGraph,
+        stage8SupportGraph,
       );
+      if (modeAtStart === "automatic"
+        && (sparseResult === null
+          || stage8SupportGraph !== sparseResult.graph
+          || project.printSupport !== sparseResult.graph)) {
+        throw new Error("工程8のSparse Support graph identityが一致しません");
+      }
       pipeline.settings = settings;
       pipeline.project = project;
       skinRebuildFinalizedArtworkProject = project;
       skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
+      skinRebuildSparseSupportResult = sparseResult;
       skinRebuildStage8CompletedProject = project;
       // Support generation replaces the project object. The consumed 7.5
       // evidence is therefore stale by identity and must be rerun for any
@@ -11117,11 +11128,10 @@ function installSkinRebuildPipelinePanel(): void {
         clearSkinRebuildStage7DangerPresentation();
       }
       skinRebuildArtworkInteriorClassificationCheckpoint = null;
-      skinRebuildSparseSupportResult = sparseResult;
       skinRebuildExperimentalExportApproval = null;
       skinRebuildThinStrutExperimentalExportApproval = null;
       skinRebuildPrintSupportModeNeedsConfirmation = false;
-      skinRenderer.setPrintSupport(project.printSupport);
+      skinRenderer.setPrintSupport(stage8SupportGraph);
       recommendViewportOverlay("support");
       skinRenderer.setSparseRemovableSupportDebug(
         skinRebuildSparseSupportResult?.debug ?? null,
@@ -11138,7 +11148,7 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildLowestPointMarkers(project);
       refreshSkinRebuildFinalStageButtons();
       invalidateInternalPrintGate("工程8で別体印刷サポートを更新しました。3D書き出し時に自動判定します");
-      const count = project.printSupport.edges.length;
+      const count = stage8SupportGraph.edges.length;
       if (modeAtStart === "off") {
         printSupport.status.textContent = `${REMOVABLE_SUPPORT_DISABLED_WARNING} · ${skinRebuildOverhangResponsibilityEvidence(responsibilityOverhang)} · ${skinRebuildStage7OverhangEvidence(diagnosis)} · Off confirmed · BODY only · support nodes 0 / edges 0 / artifact 0`;
         printSupport.status.dataset.ok = "true";
@@ -13729,10 +13739,13 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
     : null;
   skinRebuildFinalizedArtworkProject = snapshot.finalizedArtworkProject;
   skinRebuildFinalArtworkDiagnosis = snapshot.finalArtworkDiagnosis;
-  skinRebuildStage8CompletedProject = snapshot.stage8CompletedProject;
   // Workflow history snapshots do not persist session-only 6.5/7.5
   // evidence; require an explicit re-check after undo/redo to avoid stale
-  // reuse.
+  // reuse. In particular, a restored Automatic support graph has no paired
+  // Sparse result, so it must not be presented as current Stage 8 output.
+  skinRebuildStage8CompletedProject = snapshot.printSupportMode === "off"
+    ? snapshot.stage8CompletedProject
+    : null;
   clearSkinRebuildMeshInteriorClassificationCheckpoint();
   clearSkinRebuildStage7DangerPresentation();
   skinRebuildArtworkInteriorClassificationCheckpoint = null;
@@ -13752,7 +13765,7 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   internalStructureGraph = project?.finalGraph ?? null;
   internalStructureFingerprint = "";
   skinRenderer.setInternalStructure(internalStructureGraph);
-  skinRenderer.setPrintSupport(project?.printSupport ?? null);
+  skinRenderer.setPrintSupport(snapshot.printSupportMode === "off" ? project?.printSupport ?? null : null);
   if (project) refreshSkinRebuildLowestPointMarkers(project);
   else skinRenderer.setMotifLowestPointMarkers(null, null);
 
@@ -14736,11 +14749,14 @@ function redrawFkeiOpenRuntime(): void {
 }
 
 function getSkinRebuildPrintSupportGraph(): InternalStructureGraph | null {
-  return isSkinRebuildApp
-    && skinRebuildPrintSupportMode === "automatic"
-    && skinRebuildPipelineIsCurrent()
-    && skinRebuildPipeline?.project
-    ? skinRebuildPipeline.project.printSupport
+  if (!isSkinRebuildApp || skinRebuildPrintSupportMode !== "automatic") return null;
+  const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+  const sparseResult = skinRebuildSparseSupportResult;
+  return project
+    && skinRebuildStage8CompletedProject === project
+    && sparseResult
+    && project.printSupport === sparseResult.graph
+    ? sparseResult.graph
     : null;
 }
 
@@ -14753,9 +14769,10 @@ function getInternalPrintReachabilityGraph(bodyGraph: InternalStructureGraph | n
 function skinRebuildGateSafeMeshOptions(options: MeshUiOptions): MeshUiOptions {
   const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project : null;
   if (!isSkinRebuildApp || !project) return options;
+  const printSupport = getSkinRebuildPrintSupportGraph();
   const minimumDiameterMm = Math.min(
     project.settings.strutDiameterMm,
-    project.printSupport.edges.length > 0 ? project.settings.supportDiameterMm : Number.POSITIVE_INFINITY,
+    printSupport?.edges.length ? project.settings.supportDiameterMm : Number.POSITIVE_INFINITY,
   );
   if (!Number.isFinite(minimumDiameterMm) || minimumDiameterMm <= 0) return options;
   const requiredResolution = Math.min(256, Math.max(16,
@@ -18592,6 +18609,26 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
   getPartitionGate: () => partitionResult?.gate ?? null,
   getImportedRecipeInfo: () => ({ filename: importedRecipeFilename, sha256: importedRecipeSha256 }),
   getSkinRebuildGoldenSnapshot: () => captureSkinRebuildGoldenSnapshot(),
+  getSkinRebuildSupportRuntime: () => {
+    const project = skinRebuildPipelineIsCurrent() ? skinRebuildPipeline?.project ?? null : null;
+    const sparseResult = skinRebuildSparseSupportResult;
+    const sparseGraph = sparseResult?.graph ?? null;
+    return {
+      source: sparseGraph ? "sparseResult.graph" : "none",
+      stage8Current: Boolean(project && sparseGraph
+        && skinRebuildStage8CompletedProject === project
+        && project.printSupport === sparseGraph),
+      projectPrintSupportEdges: project?.printSupport.edges.length ?? 0,
+      sparseGraphEdges: sparseGraph?.edges.length ?? 0,
+      rendererGraphEdges: skinRenderer.getPrintSupportGraph()?.edges.length ?? 0,
+      identity: {
+        projectPrintSupport: Boolean(sparseGraph && project?.printSupport === sparseGraph),
+        stage8CompletedProject: Boolean(project && skinRebuildStage8CompletedProject === project),
+        renderer: Boolean(sparseGraph && skinRenderer.getPrintSupportGraph() === sparseGraph),
+      },
+      diagnostics: sparseResult?.diagnostics ?? null,
+    };
+  },
   getSurfacePersistentCacheDebug: () => ({
     meshKey: activeSurfacePersistentCacheKeys?.meshKey ?? null,
     diagnosisKey: activeSurfacePersistentCacheKeys?.diagnosisKey ?? null,

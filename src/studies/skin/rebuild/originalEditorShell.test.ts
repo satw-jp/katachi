@@ -231,10 +231,14 @@ assert.match(parallelMesh, /positionsOnly: true[\s\S]*?flatNormalsFromTriangleSo
   "the parallel Stage 6 path must rebuild display normals after positions-only slice transfer");
 assert.match(ui, /工程5Bの赤面補強を一体の作品メッシュへ合成/);
 assert.match(main, /printSupportGraph/, "removable print support must travel separately from BODY");
-assert.match(main, /const supportGraph = modeAtStart === "automatic"/,
+assert.match(main, /const stage8SupportGraph = modeAtStart === "automatic"/,
   "Stage 8 must retain an explicit Automatic branch");
 assert.match(main, /buildSparseRemovableSupport\(/,
   "Automatic must use the focused sparse removable-support builder path");
+assert.match(printSupportSource, /stage8SupportGraph !== sparseResult\.graph[\s\S]*?project\.printSupport !== sparseResult\.graph/,
+  "Stage 8 must fail closed if the Sparse Support graph identity changes");
+assert.match(printSupportSource, /skinRebuildSparseSupportResult = sparseResult[\s\S]*?skinRenderer\.setPrintSupport\(stage8SupportGraph\)/,
+  "Stage 8 must publish the same Sparse Support graph to runtime and renderer");
 assert.match(main, /projectSkinRebuildFinalArtworkOverhangToStage4\([\s\S]{0,500}?diagnosis\.overhangFacePositions[\s\S]{0,500}?responsibilityOverhang\.positions/,
   "Stage 8 must transfer current Stage 7 positions onto the retained Stage 4 responsibility SSOT");
 assert.match(artworkInteriorCheckpointBuilderSource, /outsideFaces[\s\S]*?regionId: face\.responsibilityRegionId/,
@@ -271,6 +275,19 @@ for (const [label, pattern] of [
 }
 assert.match(main, /getSkinRebuildPrintSupportGraph[\s\S]*?skinRebuildPrintSupportMode === "automatic"/,
   "support artifacts must be omitted from output while Off is selected");
+assert.ok(main.includes("function getSkinRebuildPrintSupportGraph")
+  && main.includes("skinRebuildStage8CompletedProject === project")
+  && main.includes("project.printSupport === sparseResult.graph")
+  && main.includes("? sparseResult.graph"),
+  "support artifacts must use only the current Stage 8 Sparse Support graph");
+assert.doesNotMatch(exportMeshSource, /buildSparseRemovableSupport\(/,
+  "export must not regenerate the Stage 8 support graph");
+assert.doesNotMatch(exportMeshSource, /extendVerticalRootsToPlateZ/,
+  "export must not extend accepted support endpoints to the plate");
+assert.match(renderer, /private printSupportGraph: InternalStructureGraph \| null/,
+  "renderer must retain the graph identity used for its support meshes");
+assert.match(renderer, /getPrintSupportGraph\(\): InternalStructureGraph \| null/,
+  "renderer support graph identity must be inspectable");
 assert.match(main, /acceptedSupportCount/, "Stage 8 must expose accepted support diagnostics");
 assert.match(main, /rejectedByBodyIntersection/, "Stage 8 must expose Body-intersection rejection diagnostics");
 assert.match(main, /unsupportedCount/, "Stage 8 must expose explicit unsupported diagnostics");
@@ -351,7 +368,7 @@ assert.doesNotMatch(printSupportSource, /projectSkinRebuildFinalArtworkOverhangT
   "Stage 8 must not re-run the Stage 7→Stage 4 projection inline");
 assert.match(main, /function skinRebuildArtworkInteriorClassificationBlockReason[\s\S]*ambiguous\/unclassified/,
   "Automatic must refuse an ambiguous/unclassified checkpoint");
-assert.match(printSupportSource, /const supportGraph = modeAtStart === "automatic"[\s\S]*?createEmptySkinRebuildGraph\(\)/,
+assert.match(printSupportSource, /const stage8SupportGraph = modeAtStart === "automatic"[\s\S]*?createEmptySkinRebuildGraph\(\)/,
   "Off must continue to use an empty removable-support graph");
 assert.match(printSupportSource, /modeAtStart === "off"[\s\S]*?BODY only[\s\S]*?support nodes 0 \/ edges 0 \/ artifact 0/,
   "Off must remain usable without an Artwork Interior Classification checkpoint");

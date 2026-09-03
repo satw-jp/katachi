@@ -506,6 +506,7 @@ export class SkinRenderer {
   private internalStructureVisible = true;
   private printSupportNodeMesh: THREE.InstancedMesh | null = null;
   private printSupportEdgeMesh: THREE.InstancedMesh | null = null;
+  private printSupportGraph: InternalStructureGraph | null = null;
   private printSupportVisible = true;
   /** Bounded Stage 8 presentation-only markers. They never participate in
    * BODY/support geometry or export. */
@@ -2576,6 +2577,7 @@ export class SkinRenderer {
   /** Orange, removable SKIN REBUILD print support. It deliberately owns a
    * separate pair of meshes from the permanent cyan Internal Graph. */
   setPrintSupport(graph: InternalStructureGraph | null): void {
+    this.printSupportGraph = graph;
     if (this.printSupportNodeMesh) {
       this.scene.remove(this.printSupportNodeMesh);
       this.printSupportNodeMesh.dispose();
@@ -2628,6 +2630,10 @@ export class SkinRenderer {
     this.scene.add(edges);
     this.printSupportEdgeMesh = edges;
     this.applyLayerVisibility();
+  }
+
+  getPrintSupportGraph(): InternalStructureGraph | null {
+    return this.printSupportGraph;
   }
 
   setPrintSupportVisible(visible: boolean): void {
