@@ -38,6 +38,10 @@
       "note": "Authoring stack v0 Milestone 4 adds deterministic gesture-authored Flower authoring from selected petal/core Strokes, local frame and provenance, immutable move / rotate / stem attachment, core Stroke addition, and Flower-scoped Material Object materialization. No random variation, global union, Mesh authority, or SKIN production change was introduced. Software checks pass; multi-Stroke Flower hardware recheck remains pending."
     },
     {
+      "date": "2026-09-03",
+      "note": "Authoring stack v0 Milestone 5 adds an immutable semantic Authoring Graph with typed nodes, typed edges, junctions, cycles, connect / disconnect, graph overlay segments, source provenance, revision and protected flags. Validation detects missing endpoints, duplicate identifiers or connections, zero-length edges, and stale source object references. The graph remains HANA-local; no SKIN production behavior or Mesh authority was changed. Software checks pass; multi-Stroke Graph hardware recheck remains pending."
+    },
+    {
       "date": "2026-09-01",
       "note": "HANA-1A starts an independent Four View Input Shell. It preserves viewport-local PointerEvent strokes, raw pressure, time, pointer identity and stroke order separately from camera/layout state. It deliberately does not create 3D Stroke, Graph, Field, Stem or Mesh data."
     },

@@ -28,6 +28,7 @@ Base: 02fd52b96000fd89f412e089f85728341d049ba3
 Milestone 2: SOFTWARE PASS
 Milestone 3: SOFTWARE PASS
 Milestone 4: SOFTWARE PASS
+Milestone 5: SOFTWARE PASS
 ```
 
 ## Question
@@ -95,6 +96,12 @@ Strokeごとにlocal bounds、Material Sample cache、local candidate query、so
 複数のauthoring Strokeから、petalとcoreを持つgesture-authored Flowerを生成するpure authoring kernelを追加した。選択Strokeの順序、Raw Gesture ID、Control Stroke ID、sourceT、local frame、provenanceを保持し、Flowerのmove / rotate、stem attachment、core Stroke追加をimmutableな更新として扱う。materializationはFlower単位のlocal Material Objectへ派生し、global unionやMeshのauthoritative化は行わない。random variationは使用しない。
 
 状態: `SOFTWARE PASS`。5 petals + coreの選択、role更新、provenance、local materialization、move / rotate / stem attachment、既存Documentとの分離をtestsとTypeScriptで確認済み。複数Stroke Flowerの実機操作は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Milestone 5: Authoring Graph v0
+
+Flower、Stem、Connectorをsemantic node / edgeとして接続するauthoring graphを追加した。junctionを明示的なnodeとして保持し、stem / petal / connector / surface-strand / gesture-strokeのedge role、source object、provenance、revision、protected属性を失わない。cyclesは許可し、connect / disconnectはimmutableに更新する。overlayはGraph edgeから派生し、validatorは参照切れ、重複、欠落node、ゼロ長edgeを検出する。
+
+状態: `SOFTWARE PASS`。junction接続、cycle、overlay、disconnect、validator、source referenceをtestsとTypeScriptで確認済み。Graphを既存SKINへ反映するadapterやproduction geometry変更は行っていない。複数Stroke Graphの実機操作は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 
