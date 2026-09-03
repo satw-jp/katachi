@@ -13,6 +13,9 @@ assert.equal(resizedRight.rightWidthPx, 470);
 const narrow = fitSkinEditorLayout({ ...DEFAULT_SKIN_EDITOR_LAYOUT, leftWidthPx: 500, rightWidthPx: 700 }, 760);
 assert.ok(narrow.leftCollapsed || narrow.rightCollapsed, "narrow layouts preserve the center by collapsing a side");
 
+const wide = fitSkinEditorLayout({ ...DEFAULT_SKIN_EDITOR_LAYOUT, rightWidthPx: 760 }, 1400);
+assert.equal(wide.rightWidthPx, 700, "Workflow width is capped at half the editor width");
+
 const clamped = validateSkinEditorLayoutDraft({ ...DEFAULT_SKIN_EDITOR_LAYOUT, fourSplitX: 0.01, fourSplitY: 0.99 });
 assert.equal(clamped.fourSplitX, 0.2);
 assert.equal(clamped.fourSplitY, 0.8);

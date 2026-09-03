@@ -15059,6 +15059,23 @@ async function openFkeiProject(file: File): Promise<void> {
   }
 }
 
+async function loadSkinRebuildSupportPreview(): Promise<void> {
+  if (!isSkinRebuildApp) return;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("supportPreview") === "0" || params.has("reviewCase") || params.has("reviewFixture")) return;
+  try {
+    projectMeta.textContent = "SUPPORT PREVIEW · 同梱完成sampleを読み込んでいます…";
+    const response = await fetch("./samples/skin-rebuild-first-print.fkei", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const file = new File([await response.blob()], "skin-rebuild-first-print.fkei", { type: "application/json" });
+    await openFkeiProject(file);
+    skinRenderer.setPrintSupportVisible(true);
+    projectMeta.textContent = "SUPPORT PREVIEW · 印刷サポート付き完成sample · .fkei Openで別状態を開けます";
+  } catch (error) {
+    projectMeta.textContent = `Support preview Open失敗: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
 projectOpenInput.onchange = () => {
   const file = projectOpenInput.files?.[0];
   if (!file) {
@@ -18907,6 +18924,7 @@ requestAnimationFrame(() => {
   window.setTimeout(() => {
     afterMutation();
     refreshPartitionTutorial();
+    void loadSkinRebuildSupportPreview();
     void loadLocalV088ReviewFixture();
   }, 0);
 });

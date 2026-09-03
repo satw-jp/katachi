@@ -57,6 +57,11 @@ export function fitSkinEditorLayout(
   minimumCenterWidth = 360,
 ): SkinEditorLayoutDraftV1 {
   const next = validateSkinEditorLayoutDraft(layout);
+  // Keep the Workflow pane from taking over the editor on wide screens while
+  // preserving the existing minimum width needed for its controls.
+  if (!next.rightCollapsed) {
+    next.rightWidthPx = Math.min(next.rightWidthPx, Math.max(280, Math.floor(workspaceWidth * 0.5)));
+  }
   const available = Math.max(0, workspaceWidth - dividerWidth * 2 - minimumCenterWidth);
   const wantedLeft = next.leftCollapsed ? 0 : next.leftWidthPx;
   const wantedRight = next.rightCollapsed ? 0 : next.rightWidthPx;

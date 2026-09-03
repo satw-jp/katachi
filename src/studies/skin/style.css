@@ -2582,17 +2582,23 @@ details.mesh-export:not([open]) > :not(summary) {
 .skin-right-pane .skin-pane-body {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .skin-workflow-guide {
   display: grid;
   flex: 0 0 auto;
+  max-height: 50vh;
   gap: 4px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--hairline);
   background: #ebe9e2;
   color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .skin-workflow-guide-heading,
