@@ -2196,10 +2196,13 @@ export class SkinRenderer {
       && overlayIs("reinforcement") && !this.denseSampleActive;
     if (this.reinforcedInternalEdgeMesh) this.reinforcedInternalEdgeMesh.visible = this.internalStructureVisible
       && overlayIs("reinforcement") && !this.denseSampleActive;
+    // The explicit green-support checkbox owns accepted Stage 8 support
+    // visibility. The diagnostic overlay selector must not hide it when the
+    // selected overlay is None or another diagnostic layer.
     if (this.printSupportNodeMesh) this.printSupportNodeMesh.visible = this.printSupportVisible
-      && overlayIs("support") && !this.denseSampleActive;
+      && !this.denseSampleActive;
     if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.visible = this.printSupportVisible
-      && overlayIs("support") && !this.denseSampleActive;
+      && !this.denseSampleActive;
     if (this.skinRebuildOverhangGroup) {
       this.skinRebuildOverhangGroup.visible = this.skinRebuildOverhangVisible
         && diagnosticSurfaceVisible

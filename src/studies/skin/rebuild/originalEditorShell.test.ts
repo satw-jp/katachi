@@ -116,6 +116,7 @@ assert.match(ui, /onExport: \(\) => void/,
 assert.match(ui, /onImportFile: \(file: File\) => void/,
   "removing the REBUILD controls must not remove the shared internal history import callback");
 assert.match(renderer, /setSelectedAxomeRollDegrees/);
+assert.match(renderer, /printSupportNodeMesh\.visible = this\.printSupportVisible[\s\S]*!this\.denseSampleActive/);
 assert.match(renderer, /slot\.direction !== "axome"/,
   "roll adjustment must be unavailable for Top, Front, and side cameras");
 for (const label of [
