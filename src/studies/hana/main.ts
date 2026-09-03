@@ -46,8 +46,10 @@ import {
   HANA_THICKNESS_DEFAULT,
   HANA_THICKNESS_MAX,
   HANA_THICKNESS_MIN,
+  HanaPointFieldMeshCancelledError,
   buildPointField,
   buildPointFieldMesh,
+  buildPointFieldMeshCooperative,
   createPointFieldEvaluationStats,
   diagnosePointField,
   pointFieldEffectiveResolution,
@@ -75,10 +77,17 @@ import {
   HANA_MOUSE_EDIT_PREVIEW_MAX_CONTROLS,
 } from "./editPreview.ts";
 import {
+  createHanaFinalizationTrace,
+  transitionHanaFinalization,
+  type HanaFinalizationState,
+  type HanaFinalizationTrace,
+} from "./finalization.ts";
+import {
   HanaViewportRenderer,
   type HanaRendererPresentationStats,
   type HanaRendererRenderStats,
   type HanaRendererResourceStats,
+  type HanaRendererSurfaceUpdateStats,
 } from "./viewportRenderer.ts";
 import "./style.css";
 
@@ -184,8 +193,9 @@ app.innerHTML = `
          <div><dt>mouse edit hit test</dt><dd id="debug-mouse-edit-hit-test">—</dd></div>
          <div><dt>mouse edit frame</dt><dd id="debug-mouse-edit-frame">—</dd></div>
          <div><dt>mouse edit presentation</dt><dd id="debug-mouse-edit-presentation">—</dd></div>
-         <div><dt>mouse edit markers</dt><dd id="debug-mouse-edit-markers">—</dd></div>
-         <div><dt>mouse edit pipeline</dt><dd id="debug-mouse-edit-pipeline">—</dd></div>
+        <div><dt>mouse edit markers</dt><dd id="debug-mouse-edit-markers">—</dd></div>
+        <div><dt>mouse edit pipeline</dt><dd id="debug-mouse-edit-pipeline">—</dd></div>
+        <div><dt>finalization</dt><dd id="debug-finalization">—</dd></div>
         <div><dt>thickness</dt><dd id="debug-thickness">0.18</dd></div>
         <div><dt>soft / affected</dt><dd id="debug-soft">MEDIUM / 0</dd></div>
         <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
@@ -266,6 +276,7 @@ let surfaceBuildSource: "authoritative" | "provisional" | null = null;
 const SURFACE_PREVIEW_THROTTLE_MS = 100;
 const SURFACE_PREVIEW_RESOLUTION = 24;
 const SURFACE_PREVIEW_MAX_SAMPLES = 256;
+const HANA_EDIT_TRACE_CAPACITY = 120;
 const editPresentationMode: "hide-final" | "final-visible" = new URLSearchParams(window.location.search).get("editPresentation") === "final-visible"
   ? "final-visible"
   : "hide-final";
@@ -273,6 +284,12 @@ const editMarkersEnabled = new URLSearchParams(window.location.search).get("edit
 const editProxyMode: "bounded" | "direct" = new URLSearchParams(window.location.search).get("editProxy") === "direct"
   ? "direct"
   : "bounded";
+const finalProfile: HanaFinalizationTrace["finalProfile"] = (() => {
+  const value = new URLSearchParams(window.location.search).get("finalProfile");
+  return value === "skip" || value === "cpu-only" || value === "upload-only" || value === "normal"
+    ? value
+    : "normal";
+})();
 const hideFinalSurfaceDuringEdit = editPresentationMode === "hide-final";
 let surfacePreviewBuildCount = 0;
 let surfacePreviewLastStartMilliseconds: number | null = null;
@@ -365,6 +382,7 @@ interface ControlDrag {
 
 interface PendingControlPointer {
   pointerId: number;
+  pointerRevision: number;
   clientX: number;
   clientY: number;
   eventTimestamp: number;
@@ -374,6 +392,7 @@ interface PendingControlPointer {
 }
 
 interface ControlPreviewTiming {
+  pointerRevision: number;
   previewUpdateEnd: number;
   controlUpdate: HanaEditStageTiming;
   targetUpdatedAt: number;
@@ -394,7 +413,16 @@ interface EditPreviewPipelineTiming {
 }
 
 interface MouseEditPipelineFrame {
+  session: number;
   frameNumber: number;
+  pointerRevision: number | null;
+  targetRevision: number | null;
+  previewControlRevision: number | null;
+  previewSmoothRevision: number | null;
+  previewMaterialRevision: number | null;
+  proxyRevision: number | null;
+  renderRevision: number | null;
+  sameRafRevision: boolean;
   rafTimestamp: number;
   inputTimestamp: number | null;
   proxyMode: "bounded" | "direct";
@@ -456,6 +484,7 @@ interface MouseEditSessionReport {
   lastPreviewRejectReason: string;
   diagnosticMarkers: EditDiagnosticMarkerSnapshot;
   pipelineFrames: MouseEditPipelineFrame[];
+  finalization: HanaFinalizationTrace | null;
 }
 
 interface HanaEditGeometrySnapshot {
@@ -477,6 +506,7 @@ let liveWorkingPath: HanaLiveWorkingPath | null = null;
 let cameraDrag: CameraDrag | null = null;
 let controlDrag: ControlDrag | null = null;
 let pendingControlPointer: PendingControlPointer | null = null;
+let mouseEditPointerRevision = 0;
 let lastAdaptiveControlFit: HanaAdaptiveControlFitResult | null = null;
 let editDiagnosticFrameNumber = 0;
 let editDiagnosticLatestPointerEventCount = 0;
@@ -491,6 +521,18 @@ let editDiagnosticTargetRafTimestamp: number | null = null;
 let editDiagnosticProxyTipRafTimestamp: number | null = null;
 let editDiagnosticWebglPreviewRafTimestamp: number | null = null;
 let mouseEditPipelineFrames: MouseEditPipelineFrame[] = [];
+
+const HANA_FINALIZATION_HISTORY_CAPACITY = 10;
+let documentRevision = 0;
+let finalRequestId = 0;
+let finalGenerationId = 0;
+let lastCompletedGenerationId = 0;
+let lastAppliedGenerationId = 0;
+let finalizationState: HanaFinalizationState = "IDLE";
+let finalizeReason = "—";
+let activeFinalization: HanaFinalizationTrace | null = null;
+let finalizationHistory: HanaFinalizationTrace[] = [];
+let uploadOnlyMeshCache: HanaPreviewSurface | null = null;
 
 interface HanaPointerupStageTimings {
   rawFinalization: number;
@@ -575,6 +617,197 @@ function durationStats(values: readonly number[]): { min: number; median: number
     : sorted[middle];
   const p95Index = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
   return { min: sorted[0], median, p95: sorted[p95Index], max: sorted[sorted.length - 1] };
+}
+
+function transitionFinalization(
+  trace: HanaFinalizationTrace,
+  state: HanaFinalizationState,
+  timestamp = performance.now(),
+): void {
+  Object.assign(trace, transitionHanaFinalization(trace, state, timestamp));
+  finalizationState = state;
+}
+
+function setFinalizationStage(trace: HanaFinalizationTrace, name: string, milliseconds: number | null): void {
+  trace.stages[name] = milliseconds;
+}
+
+function elapsedMilliseconds(start: number | null, end: number | null): number | null {
+  return start === null || end === null ? null : Math.max(0, end - start);
+}
+
+function heapUsedBytes(): number | null {
+  const performanceWithMemory = performance as Performance & {
+    memory?: { usedJSHeapSize?: number };
+  };
+  const value = performanceWithMemory.memory?.usedJSHeapSize;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function finalizationStageSummary(trace: HanaFinalizationTrace): string {
+  const timestamps = trace.timestamps;
+  const pointerupToReady = elapsedMilliseconds(timestamps.tPointerUp, timestamps.tReady);
+  const buildToMesh = elapsedMilliseconds(timestamps.tFinalBuildStart, timestamps.tMeshReady);
+  const meshToUpload = elapsedMilliseconds(timestamps.tMeshReady, timestamps.tUploadSubmitted);
+  const uploadToRender = elapsedMilliseconds(timestamps.tUploadSubmitted, timestamps.tFirstRender);
+  const renderToPresented = elapsedMilliseconds(timestamps.tFirstRender, timestamps.tFinalPresented);
+  return [
+    `#${trace.editSessionId || "draw"} g${trace.finalGenerationId}`,
+    `${trace.finalProfile}/${trace.status}/${trace.state}`,
+    `req ${trace.finalRequestId} rev ${trace.documentRevision}`,
+    `reason ${trace.finalizeReason}`,
+    `build ${buildToMesh === null ? "—" : buildToMesh.toFixed(1)}`,
+    `mesh→upload ${meshToUpload === null ? "—" : meshToUpload.toFixed(1)}`,
+    `upload→render ${uploadToRender === null ? "—" : uploadToRender.toFixed(1)}`,
+    `render→present ${renderToPresented === null ? "—" : renderToPresented.toFixed(1)}`,
+    `pointerup→READY ${pointerupToReady === null ? "—" : pointerupToReady.toFixed(1)}`,
+  ].join(" · ");
+}
+
+function finalizationText(): string {
+  const latest = finalizationHistory[finalizationHistory.length - 1] ?? activeFinalization;
+  if (!latest) return `state ${finalizationState} · profile ${finalProfile}`;
+  return `state ${finalizationState} · profile ${finalProfile} · ${finalizationStageSummary(latest)}`;
+}
+
+function updateFinalizationCounts(
+  trace: HanaFinalizationTrace,
+  fieldStats: HanaPointFieldEvaluationStats | null,
+  effectiveResolution: number,
+  rendererSurface: HanaRendererSurfaceUpdateStats | null,
+  mesh: HanaPreviewSurface | null = null,
+): void {
+  const previous = trace.counts;
+  const grid = fieldStats?.gridShape;
+  const gridX = grid?.nx ?? 0;
+  const gridY = grid?.ny ?? 0;
+  const gridZ = grid?.nz ?? 0;
+  const voxelCount = grid ? (gridX + 1) * (gridY + 1) * (gridZ + 1) : 0;
+  const queryCount = fieldStats?.queryCount ?? 0;
+  const candidateCount = fieldStats?.candidateEvaluationCount ?? 0;
+  const geometry = rendererSurface;
+  trace.counts = {
+    rawCount: rawGestures[0]?.points.length ?? 0,
+    controlCount: stroke3D?.controlPoints.length ?? 0,
+    refinementAddedControls: lastAdaptiveControlFit?.refinementIterations ?? 0,
+    smoothCount: authoritativeCenterline.length,
+    materialSampleCount: materialSamples.length,
+    fieldBounds: fieldStats?.bounds ? boundsSignature(fieldStats.bounds) : null,
+    gridX,
+    gridY,
+    gridZ,
+    voxelCount,
+    effectiveResolution,
+    kdTreeCandidateCount: candidateCount,
+    averageCandidatesPerVoxel: queryCount > 0 ? candidateCount / queryCount : 0,
+    maxCandidatesPerVoxel: fieldStats?.maxCandidateCount ?? 0,
+    triangleCount: mesh?.triangles.length ?? previewSurface?.triangles.length ?? 0,
+    componentCount: surfaceDiagnostics?.componentCount ?? 0,
+    positionBufferBytes: geometry?.positionBufferBytes ?? 0,
+    indexBufferBytes: geometry?.indexBufferBytes ?? 0,
+    normalBufferBytes: geometry?.normalBufferBytes ?? 0,
+    fieldBufferBytes: materialSamples.length * 40,
+    candidateScratchBytes: 0,
+    kdTreeNodeBytes: materialSamples.length * 32,
+    finalRequests: previous.finalRequests ?? 1,
+    finalStarts: previous.finalStarts ?? 1,
+    finalCpuCompletions: previous.finalCpuCompletions ?? 1,
+    finalUploadSubmissions: previous.finalUploadSubmissions ?? 0,
+    finalSurfaceApplies: previous.finalSurfaceApplies ?? 0,
+    staleResultDiscards: previous.staleResultDiscards ?? 0,
+    heapBeforeBytes: previous.heapBeforeBytes ?? heapUsedBytes(),
+    heapAfterCpuBuildBytes: previous.heapAfterCpuBuildBytes ?? null,
+    heapAfterUploadBytes: previous.heapAfterUploadBytes ?? null,
+    heapReady500msBytes: previous.heapReady500msBytes ?? null,
+    heapReady2000msBytes: previous.heapReady2000msBytes ?? null,
+  };
+}
+
+function scheduleFinalizationHeapSamples(trace: HanaFinalizationTrace): void {
+  window.setTimeout(() => {
+    trace.counts.heapReady500msBytes = heapUsedBytes();
+    updateDebug();
+  }, 500);
+  window.setTimeout(() => {
+    trace.counts.heapReady2000msBytes = heapUsedBytes();
+    updateDebug();
+  }, 2000);
+}
+
+function recordFinalization(trace: HanaFinalizationTrace): void {
+  const timestamps = trace.timestamps;
+  setFinalizationStage(trace, "pointerupToBuildStart", elapsedMilliseconds(timestamps.tPointerUp, timestamps.tFinalBuildStart));
+  setFinalizationStage(trace, "buildStartToCpuMeshReady", elapsedMilliseconds(timestamps.tFinalBuildStart, timestamps.tMeshReady));
+  setFinalizationStage(trace, "cpuMeshReadyToUpload", elapsedMilliseconds(timestamps.tMeshReady, timestamps.tUploadSubmitted));
+  setFinalizationStage(trace, "uploadToFirstRender", elapsedMilliseconds(timestamps.tUploadSubmitted, timestamps.tFirstRender));
+  setFinalizationStage(trace, "firstRenderToPresented", elapsedMilliseconds(timestamps.tFirstRender, timestamps.tFinalPresented));
+  setFinalizationStage(trace, "pointerupToReady", elapsedMilliseconds(timestamps.tPointerUp, timestamps.tReady));
+  setFinalizationStage(trace, "finalBuildTotal", elapsedMilliseconds(timestamps.tFinalBuildStart, timestamps.tReady));
+  setFinalizationStage(trace, "longTaskOver16Count", longTaskDurations.filter((duration) => duration > 16).length);
+  setFinalizationStage(trace, "longTaskOver33Count", longTaskDurations.filter((duration) => duration > 33).length);
+  setFinalizationStage(trace, "longTaskOver50Count", longTaskDurations.filter((duration) => duration > 50).length);
+  finalizationHistory = [...finalizationHistory, trace].slice(-HANA_FINALIZATION_HISTORY_CAPACITY);
+  activeFinalization = trace;
+  updateDebug();
+}
+
+function isCurrentFinalization(trace: HanaFinalizationTrace): boolean {
+  return activeFinalization === trace && trace.status === "pending";
+}
+
+function recordStaleFinalization(trace: HanaFinalizationTrace, reason: string): void {
+  const wasActive = activeFinalization === trace;
+  trace.status = "failed";
+  trace.skipReason = reason;
+  trace.timestamps.tReady ??= performance.now();
+  trace.counts.staleResultDiscards = Math.max(
+    1,
+    Number(trace.counts.staleResultDiscards ?? 0),
+  );
+  if (!finalizationHistory.includes(trace)) {
+    finalizationHistory = [...finalizationHistory, trace].slice(-HANA_FINALIZATION_HISTORY_CAPACITY);
+  }
+  if (wasActive) {
+    activeFinalization = null;
+    finalizationState = "IDLE";
+  }
+  updateDebug();
+}
+
+function cancelPendingFinalizationForEdit(): void {
+  const pending = activeFinalization;
+  if (!pending || pending.status !== "pending") return;
+  recordStaleFinalization(pending, "cancelled-by-new-edit");
+  finalizationState = "EDITING";
+}
+
+function beginAuthoritativeFinalization(
+  reason: string,
+  pointerUpTimestamp: number | null,
+  documentChanged = true,
+): HanaFinalizationTrace {
+  if (documentChanged || documentRevision === 0) documentRevision += 1;
+  const trace = createHanaFinalizationTrace({
+    documentRevision,
+    editSessionId: mouseEditSessionNumber,
+    finalRequestId: finalRequestId + 1,
+    finalGenerationId: finalGenerationId + 1,
+    finalizeReason: reason,
+    finalProfile,
+    pointerUpTimestamp,
+  });
+  finalRequestId = trace.finalRequestId;
+  finalGenerationId = trace.finalGenerationId;
+  trace.counts.heapBeforeBytes = heapUsedBytes();
+  activeFinalization = trace;
+  finalizeReason = reason;
+  transitionFinalization(trace, "FINAL_REQUESTED");
+  return trace;
+}
+
+function markFinalizationEditing(reason: string): void {
+  finalizeReason = reason;
+  finalizationState = "EDITING";
 }
 
 function surfaceDiagnosticsText(diagnostics: HanaPointFieldDiagnostics | null): string {
@@ -705,10 +938,11 @@ function mouseEditSessionText(): string {
       : "—";
     const markers = report.diagnosticMarkers;
     const latestPipeline = report.pipelineFrames[report.pipelineFrames.length - 1];
+    const final = report.finalization;
     const targetToProxy = latestPipeline?.targetToProxyTipMilliseconds === null || latestPipeline?.targetToProxyTipMilliseconds === undefined
       ? "—"
       : latestPipeline.targetToProxyTipMilliseconds.toFixed(2);
-    return `#${report.session} ready ${report.readyToEditMilliseconds === null ? "—" : report.readyToEditMilliseconds.toFixed(0)}ms · moves ${report.pointerMoveCount} · preview ${report.previewFrameCount} · markers ${markers.latestPointerEventCount}/${markers.domPointerMarkerFrameCount}/${markers.editTargetMarkerFrameCount}/${markers.webglPreviewFrameCount} · ${latestPipeline?.proxyMode ?? editProxyMode} T→X ${targetToProxy}ms · e2e ${e2e} · rAF ${rafAge} · frame ${frame} · tri ${geometry.triangleCount}→${geometryAfter.triangleCount} · res ${geometry.effectiveResolution}→${geometryAfter.effectiveResolution} · obj ${before.sceneObjectCount}→${after.sceneObjectCount} · geo ${before.bufferGeometryCount}→${after.bufferGeometryCount} · mat ${before.materialCount}→${after.materialCount} · surface ${before.surfaceMeshCount}→${after.surfaceMeshCount} · proxy ${before.proxyObjectCount}→${after.proxyObjectCount} · render ${report.renderAfter.calls}/${report.renderAfter.triangles}`;
+    return `#${report.session} ready ${report.readyToEditMilliseconds === null ? "—" : report.readyToEditMilliseconds.toFixed(0)}ms · moves ${report.pointerMoveCount} · preview ${report.previewFrameCount} · markers ${markers.latestPointerEventCount}/${markers.domPointerMarkerFrameCount}/${markers.editTargetMarkerFrameCount}/${markers.webglPreviewFrameCount} · ${latestPipeline?.proxyMode ?? editProxyMode} T→X ${targetToProxy}ms · e2e ${e2e} · rAF ${rafAge} · frame ${frame} · tri ${geometry.triangleCount}→${geometryAfter.triangleCount} · res ${geometry.effectiveResolution}→${geometryAfter.effectiveResolution} · obj ${before.sceneObjectCount}→${after.sceneObjectCount} · geo ${before.bufferGeometryCount}→${after.bufferGeometryCount} · mat ${before.materialCount}→${after.materialCount} · surface ${before.surfaceMeshCount}→${after.surfaceMeshCount} · proxy ${before.proxyObjectCount}→${after.proxyObjectCount} · final ${final ? `req${final.finalRequestId}/g${final.finalGenerationId}/${final.status}` : "—"} · render ${report.renderAfter.calls}/${report.renderAfter.triangles}`;
   }).join(" | ");
 }
 
@@ -834,7 +1068,9 @@ function mouseEditPipelineText(): string {
     ? "—"
     : frame.targetToProxyTipMilliseconds.toFixed(2);
   return [
-    `f${frame.frameNumber} rAF ${frame.rafTimestamp.toFixed(1)}`,
+    `S${frame.session} f${frame.frameNumber} rAF ${frame.rafTimestamp.toFixed(1)}`,
+    `rev ptr/${frame.pointerRevision ?? "—"} T/${frame.targetRevision ?? "—"} C/${frame.previewControlRevision ?? "—"} S/${frame.previewSmoothRevision ?? "—"} M/${frame.previewMaterialRevision ?? "—"} X/${frame.proxyRevision ?? "—"} R/${frame.renderRevision ?? "—"}`,
+    `same-rAF ${frame.sameRafRevision ? "yes" : "NO"}`,
     `input ${frame.inputTimestamp === null ? "—" : frame.inputTimestamp.toFixed(1)}`,
     `T ${targetText}`,
     `control ${stageMilliseconds(frame.controlUpdate)}`,
@@ -1000,6 +1236,7 @@ function updateSurfaceUI(): void {
   setDebugText("debug-mouse-edit-presentation", mouseEditPresentationText(presentation));
   setDebugText("debug-mouse-edit-markers", editDiagnosticMarkerText());
   setDebugText("debug-mouse-edit-pipeline", mouseEditPipelineText());
+  setDebugText("debug-finalization", finalizationText());
   setDebugText("debug-thickness", thickness.toFixed(2));
   workspace.dataset.materialSampleCount = String(displayedMaterialSamples().length);
   workspace.dataset.surfaceState = state;
@@ -1046,6 +1283,19 @@ function updateSurfaceUI(): void {
   workspace.dataset.mouseEditDiagnosticMarkers = JSON.stringify(editDiagnosticSnapshot());
   workspace.dataset.mouseEditProxyMode = editProxyMode;
   workspace.dataset.mouseEditPipeline = JSON.stringify(mouseEditPipelineFrames[mouseEditPipelineFrames.length - 1] ?? null);
+  workspace.dataset.finalProfile = finalProfile;
+  workspace.dataset.documentRevision = String(documentRevision);
+  workspace.dataset.finalRequestId = String(finalRequestId);
+  workspace.dataset.finalGenerationId = String(finalGenerationId);
+  workspace.dataset.lastCompletedGenerationId = String(lastCompletedGenerationId);
+  workspace.dataset.lastAppliedGenerationId = String(lastAppliedGenerationId);
+  workspace.dataset.finalizationState = finalizationState;
+  workspace.dataset.finalizeReason = finalizeReason;
+  workspace.dataset.finalization = JSON.stringify({
+    state: finalizationState,
+    active: activeFinalization,
+    history: finalizationHistory,
+  });
   workspace.dataset.fieldQueryCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.queryCount);
   workspace.dataset.fieldCandidateEvaluationCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.candidateEvaluationCount);
   workspace.dataset.fieldMaxCandidateCount = surfaceFieldEvaluationStats === null ? "" : String(surfaceFieldEvaluationStats.maxCandidateCount);
@@ -1057,10 +1307,16 @@ function updateSurfaceUI(): void {
 function refreshMaterialSamples(
   source = activeStroke ? provisionalStroke3D : stroke3D,
   timings: HanaPointerupStageTimings | null = null,
+  finalization: HanaFinalizationTrace | null = null,
 ): void {
   const smoothStarted = performance.now();
   const centerline = source ? sampleSmoothCenterline(source) : [];
-  if (timings) timings.smoothCenterline = performance.now() - smoothStarted;
+  const smoothReady = performance.now();
+  if (timings) timings.smoothCenterline = smoothReady - smoothStarted;
+  if (finalization) {
+    finalization.timestamps.tSmoothReady = smoothReady;
+    setFinalizationStage(finalization, "smoothCenterline", smoothReady - smoothStarted);
+  }
   if (source === stroke3D) authoritativeCenterline = centerline;
   if (source === provisionalStroke3D) provisionalCenterline = centerline;
   if (!source) provisionalCenterline = [];
@@ -1074,6 +1330,11 @@ function refreshMaterialSamples(
     timings.materialSamples = performance.now() - materialStarted;
     timings.smoothCount = centerline.length;
     timings.materialCount = materialSamples.length;
+  }
+  if (finalization) {
+    const materialReady = performance.now();
+    finalization.timestamps.tMaterialReady = materialReady;
+    setFinalizationStage(finalization, "materialSamples", materialReady - materialStarted);
   }
   updateSurfaceUI();
 }
@@ -1364,8 +1625,12 @@ function updateSoftEditButtons(): void {
 }
 
 function renderScene(): void {
-  renderer.setPreviewSurfaceVisible(showSurface && (controlDrag === null || !hideFinalSurfaceDuringEdit));
-  renderer.setMaterialProxyVisible(showSurface && (activeStroke !== null || controlDrag !== null));
+  const diagnosticFinalProxy = (finalProfile === "skip" || finalProfile === "cpu-only")
+    && activeFinalization?.status === (finalProfile === "skip" ? "skipped" : "completed");
+  const finalizationPending = activeFinalization?.status === "pending"
+    && activeFinalization.finalProfile === "normal";
+  renderer.setPreviewSurfaceVisible(showSurface && !diagnosticFinalProxy && !finalizationPending && (controlDrag === null || !hideFinalSurfaceDuringEdit));
+  renderer.setMaterialProxyVisible(showSurface && (activeStroke !== null || controlDrag !== null || finalizationPending || diagnosticFinalProxy));
   renderer.render(currentRects(), selectedViewport);
 }
 
@@ -1451,6 +1716,7 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
   const direction = directions[rect.index];
   if (direction === "axome") return;
   event.preventDefault();
+  markFinalizationEditing("draw");
   gestureCanvas.setPointerCapture(event.pointerId);
   const stroke: HanaViewportStroke = {
     id: "gesture-1",
@@ -1502,7 +1768,6 @@ function finishStroke(): void {
   const pointerupStarted = performance.now();
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
-  renderer.setMaterialProxy(null);
   const finished = activeStroke;
   const direction = finished.stroke.viewDirection;
   if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
@@ -1550,7 +1815,13 @@ function finishStroke(): void {
   provisionalStroke3D = null;
   activeStroke = null;
   liveWorkingPath = null;
-  refreshMaterialSamples(stroke3D, timings);
+  pendingPointerupStageTimings = timings;
+  const finalization = showSurface && materialSamples.length > 0
+    ? beginAuthoritativeFinalization("draw-pointerup", pointerupStarted)
+    : null;
+  if (finalization) finalization.timestamps.tProxyFrozen = performance.now();
+  if (!finalization) renderer.setMaterialProxy(null);
+  refreshMaterialSamples(stroke3D, timings, finalization);
   interactionModes[0] = "edit";
   interactionModes[2] = "edit";
   interactionModes[3] = "edit";
@@ -1560,8 +1831,9 @@ function finishStroke(): void {
   lastEditBoundsAfter = null;
   stateMessage = `SMOOTH CENTERLINE READY · ${stroke3D.controlPoints.length} controls · ${sampleSmoothCenterline(stroke3D).length} samples`;
   refreshLayout();
-  pendingPointerupStageTimings = timings;
-  if (showSurface && materialSamples.length > 0) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+  if (finalization) {
+    runAuthoritativeFinalization(finalization);
+  } else finalizationState = "IDLE";
   timings.total = performance.now() - pointerupStarted;
   lastPointerupStageTimings = timings;
   pendingPointerupStageTimings = null;
@@ -1756,6 +2028,32 @@ function scheduleMaterialProxyFrame(): void {
         )
       : [];
     const proxySegmentsEnded = performance.now();
+    const pointerRevision = pendingForFrame?.pointerRevision ?? null;
+    const targetRevision = controlPreviewTiming?.pointerRevision ?? null;
+    const previewControlRevision = editProxyMode === "direct"
+      ? null
+      : controlPreviewTiming?.pointerRevision ?? null;
+    const previewSmoothRevision = editProxyMode === "direct"
+      ? null
+      : controlPreviewTiming?.pointerRevision ?? null;
+    const previewMaterialRevision = editProxyMode === "direct"
+      ? null
+      : controlPreviewTiming?.pointerRevision ?? null;
+    const proxyRevision = frameRef === "edit"
+      ? (controlPreviewTiming?.pointerRevision ?? null)
+      : null;
+    const renderRevision = proxyRevision;
+    const revisionStages = [
+      pointerRevision,
+      targetRevision,
+      previewControlRevision,
+      previewSmoothRevision,
+      previewMaterialRevision,
+      proxyRevision,
+      renderRevision,
+    ].filter((revision): revision is number => revision !== null);
+    const sameRafRevision = revisionStages.length <= 1
+      || revisionStages.every((revision) => revision === revisionStages[0]);
     const proxyTransformsStarted = performance.now();
     renderer.setMaterialProxy(proxySegments);
     const proxyTransformsEnded = performance.now();
@@ -1790,7 +2088,16 @@ function scheduleMaterialProxyFrame(): void {
           })()
           : null);
       const pipelineFrame: MouseEditPipelineFrame = {
+        session: mouseEditSessionNumber,
         frameNumber: mouseEditPreviewFrameCount,
+        pointerRevision,
+        targetRevision,
+        previewControlRevision,
+        previewSmoothRevision,
+        previewMaterialRevision,
+        proxyRevision,
+        renderRevision,
+        sameRafRevision,
         rafTimestamp: rafStarted,
         inputTimestamp: pendingForFrame?.eventTimestamp ?? null,
         proxyMode: editProxyMode,
@@ -1809,7 +2116,7 @@ function scheduleMaterialProxyFrame(): void {
           ? null
           : proxyTipEnded - controlPreviewTiming.targetUpdatedAt,
       };
-      mouseEditPipelineFrames = [...mouseEditPipelineFrames, pipelineFrame].slice(-128);
+      mouseEditPipelineFrames = [...mouseEditPipelineFrames, pipelineFrame].slice(-HANA_EDIT_TRACE_CAPACITY);
     }
     if (showSurface) {
       materialProxyRenderDurations = [
@@ -1863,7 +2170,7 @@ function scheduleSurfacePreview(): void {
     if (activeStroke && !previewCompacted && materialSamples.length <= SURFACE_PREVIEW_MAX_SAMPLES) {
       rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional");
     }
-    else if (stroke3D) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+    else if (stroke3D) requestAuthoritativeSurfaceRebuild("preview-fallback", false);
   }, SURFACE_PREVIEW_THROTTLE_MS);
 }
 
@@ -1962,6 +2269,7 @@ function processControlDragPointer(pointer: PendingControlPointer): ControlPrevi
   redrawOverlay();
   updateDebug();
   return {
+    pointerRevision: pointer.pointerRevision,
     previewUpdateEnd,
     controlUpdate: { start: controlUpdateStarted, end: controlUpdateEnded },
     targetUpdatedAt,
@@ -1978,6 +2286,7 @@ function queueControlDragPointer(event: PointerEvent): void {
   if (pendingControlPointer) mouseEditDroppedPointerMoves += 1;
   const pending: PendingControlPointer = {
     pointerId: event.pointerId,
+    pointerRevision: mouseEditPointerRevision + 1,
     clientX: event.clientX,
     clientY: event.clientY,
     eventTimestamp,
@@ -1985,6 +2294,7 @@ function queueControlDragPointer(event: PointerEvent): void {
     handlerEnd: handlerStarted,
     latestStateUpdated: handlerStarted,
   };
+  mouseEditPointerRevision = pending.pointerRevision;
   pendingControlPointer = pending;
   const handlerEnded = performance.now();
   pending.handlerEnd = handlerEnded;
@@ -2012,10 +2322,15 @@ function queueControlDragPointer(event: PointerEvent): void {
 
 function finishControlDrag(pointerId: number): void {
   if (!controlDrag || controlDrag.pointerId !== pointerId) return;
+  const pointerupStarted = performance.now();
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
   cancelEditPreviewFrame();
-  renderer.setMaterialProxy(null);
+  const finalization = stroke3D && showSurface
+    ? beginAuthoritativeFinalization("mouse-edit-pointerup", pointerupStarted)
+    : null;
+  if (!finalization) renderer.setMaterialProxy(null);
+  if (finalization) finalization.timestamps.tProxyFrozen = performance.now();
   const pending = pendingControlPointer;
   pendingControlPointer = null;
   if (pending?.pointerId === pointerId) processControlDragPointer(pending);
@@ -2023,13 +2338,13 @@ function finishControlDrag(pointerId: number): void {
   const editMessage = stateMessage;
   if (stroke3D) {
     const finalMaterialStarted = performance.now();
-    refreshMaterialSamples(stroke3D);
+    refreshMaterialSamples(stroke3D, null, finalization);
     mouseEditFinalMaterialMilliseconds = performance.now() - finalMaterialStarted;
   }
-  const shouldRebuild = Boolean(stroke3D && showSurface);
-  if (shouldRebuild) {
+  const shouldRebuild = Boolean(finalization);
+  if (finalization) {
     const finalSurfaceStarted = performance.now();
-    rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+    runAuthoritativeFinalization(finalization);
     mouseEditFinalSurfaceMilliseconds = performance.now() - finalSurfaceStarted;
   }
   editPreviewStroke3D = null;
@@ -2068,6 +2383,7 @@ function finishControlDrag(pointerId: number): void {
       lastPreviewRejectReason: mouseEditLastPreviewRejectReason,
       diagnosticMarkers,
       pipelineFrames: [...mouseEditPipelineFrames],
+      finalization,
     },
   ].slice(-10);
   mouseEditSessionResourceBefore = null;
@@ -2082,6 +2398,8 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
   const direction = directions[rect.index];
   if (direction === "axome" || !stroke3D) return;
   event.preventDefault();
+  cancelPendingFinalizationForEdit();
+  markFinalizationEditing("mouse-edit");
   gestureCanvas.setPointerCapture(event.pointerId);
   mouseEditSessionNumber += 1;
   mouseEditSessionResourceBefore = renderer.resourceStats();
@@ -2129,6 +2447,7 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
   mouseEditFinalMaterialMilliseconds = null;
   mouseEditFinalSurfaceMilliseconds = null;
   mouseEditPipelineFrames = [];
+  mouseEditPointerRevision = 0;
   resetEditDiagnosticMarkers();
   if (editProxyMode === "direct") {
     editPreviewStroke3D = null;
@@ -2385,49 +2704,211 @@ function setThickness(value: number): void {
   updateDebug();
 }
 
-function rebuildSurface(
+function restoreDiagnosticFinalProxy(): void {
+  if ((finalProfile !== "skip" && finalProfile !== "cpu-only") || !showSurface || authoritativeCenterline.length < 2) return;
+  const segments = sampleLiveProxySegments(
+    authoritativeCenterline,
+    thickness,
+    HANA_LIVE_PROXY_MAX_SEGMENTS,
+  );
+  renderer.setMaterialProxy(segments);
+  workspace.dataset.materialProxySegmentCount = String(segments.length);
+  renderScene();
+}
+
+function runAuthoritativeFinalization(trace: HanaFinalizationTrace): void {
+  stateMessage = "FINALIZING SURFACE · preview active";
+  renderScene();
+  updateSurfaceUI();
+  updateDebug();
+  void rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative", trace).then(() => {
+    if ((trace.finalProfile === "skip" || trace.finalProfile === "cpu-only")
+      && activeFinalization?.finalGenerationId === trace.finalGenerationId) {
+      restoreDiagnosticFinalProxy();
+    }
+  });
+}
+
+async function rebuildSurface(
   resolution = HANA_SURFACE_RESOLUTION,
   source: "authoritative" | "provisional" = "authoritative",
-): void {
+  finalization: HanaFinalizationTrace | null = null,
+): Promise<void> {
   const sourceStroke = source === "provisional" ? provisionalStroke3D : stroke3D;
   if (!sourceStroke || materialSamples.length === 0) {
     stateMessage = "SURFACE · Draw one Stroke first";
+    if (finalization) {
+      finalization.status = "failed";
+      finalization.error = "missing stroke or material samples";
+      finalization.timestamps.tReady = performance.now();
+      finalizationState = "IDLE";
+      recordFinalization(finalization);
+    }
     updateDebug();
     return;
   }
   rebuildSurfaceButton.disabled = true;
   surfaceState.textContent = source === "provisional" ? "PREVIEWING..." : "REBUILDING...";
   const started = performance.now();
+  if (finalization) {
+    transitionFinalization(finalization, "FINAL_BUILDING", started);
+    setFinalizationStage(finalization, "requestToBuildStart", Math.max(0, started - (finalization.timestamps.tPointerUp ?? started)));
+  }
   if (source === "provisional") {
     surfacePreviewBuildCount += 1;
     surfacePreviewLastStartMilliseconds = started;
   }
+
+  if (finalization?.finalProfile === "skip") {
+    const cpuReady = performance.now();
+    transitionFinalization(finalization, "FINAL_CPU_READY", cpuReady);
+    finalization.status = "skipped";
+    finalization.skipReason = "final-profile-skip";
+    finalization.timestamps.tReady = cpuReady;
+    finalization.counts = {
+      rawCount: rawGestures[0]?.points.length ?? 0,
+      controlCount: stroke3D?.controlPoints.length ?? 0,
+      smoothCount: authoritativeCenterline.length,
+      materialSampleCount: materialSamples.length,
+      finalRequests: 1,
+      finalStarts: 0,
+      finalCpuCompletions: 0,
+      finalUploadSubmissions: 0,
+      finalSurfaceApplies: 0,
+      staleResultDiscards: 0,
+      heapBeforeBytes: finalization.counts.heapBeforeBytes ?? heapUsedBytes(),
+    };
+    finalizationState = "FINAL_CPU_READY";
+    recordFinalization(finalization);
+    updateSurfaceUI();
+    updateDebug();
+    return;
+  }
+
   try {
-    const fieldStarted = performance.now();
-    const field = buildPointField(materialSamples, thickness);
-    const fieldPreparationMilliseconds = performance.now() - fieldStarted;
-    const effectiveResolutionStarted = performance.now();
-    const effectiveResolution = pointFieldEffectiveResolution(field, resolution);
-    const effectiveResolutionMilliseconds = performance.now() - effectiveResolutionStarted;
-    const evaluationStats = createPointFieldEvaluationStats();
-    const meshStarted = performance.now();
-    const built = buildPointFieldMesh(field, effectiveResolution, evaluationStats);
-    const meshGenerationMilliseconds = performance.now() - meshStarted;
-    if (built.triangles.length === 0) throw new Error("Point FieldからSurfaceを抽出できませんでした");
+    let field: ReturnType<typeof buildPointField> | null = null;
+    let evaluationStats: HanaPointFieldEvaluationStats | null = null;
+    let effectiveResolution = 0;
+    let built: HanaPreviewSurface | null = null;
+    let fieldPreparationMilliseconds = 0;
+    let effectiveResolutionMilliseconds = 0;
+    let meshGenerationMilliseconds = 0;
+    let componentValidationMilliseconds = 0;
+
+    if (finalization?.finalProfile === "upload-only") {
+      built = uploadOnlyMeshCache;
+      if (!built) {
+        finalization.status = "skipped";
+        finalization.skipReason = "upload-only-cache-missing";
+        finalization.timestamps.tReady = performance.now();
+        finalizationState = "FINAL_CPU_READY";
+        recordFinalization(finalization);
+        updateDebug();
+        return;
+      }
+      effectiveResolution = resolution;
+    } else {
+      const fieldStarted = performance.now();
+      field = buildPointField(materialSamples, thickness);
+      const fieldReady = performance.now();
+      fieldPreparationMilliseconds = fieldReady - fieldStarted;
+      evaluationStats = createPointFieldEvaluationStats();
+      if (finalization) {
+        finalization.timestamps.tKDTreeReady = fieldReady;
+        finalization.timestamps.tFieldReady = fieldReady;
+        setFinalizationStage(finalization, "fieldPreparation", fieldPreparationMilliseconds);
+        setFinalizationStage(finalization, "kdTreeBuild", fieldPreparationMilliseconds);
+      }
+      const effectiveResolutionStarted = performance.now();
+      effectiveResolution = pointFieldEffectiveResolution(field, resolution);
+      effectiveResolutionMilliseconds = performance.now() - effectiveResolutionStarted;
+      if (finalization) setFinalizationStage(finalization, "effectiveResolution", effectiveResolutionMilliseconds);
+      const meshStarted = performance.now();
+      built = finalization?.finalProfile === "normal" || finalization?.finalProfile === "cpu-only"
+        ? await buildPointFieldMeshCooperative(field, effectiveResolution, evaluationStats, {
+          shouldContinue: finalization
+            ? () => isCurrentFinalization(finalization)
+            : undefined,
+        })
+        : buildPointFieldMesh(field, effectiveResolution, evaluationStats);
+      const meshReady = performance.now();
+      meshGenerationMilliseconds = meshReady - meshStarted;
+      if (finalization) {
+        finalization.timestamps.tMeshReady = meshReady;
+        setFinalizationStage(finalization, "fieldEvaluationAndMeshing", meshGenerationMilliseconds);
+        setFinalizationStage(finalization, "meshing", meshGenerationMilliseconds);
+      }
+      if (built.triangles.length === 0) throw new Error("Point FieldからSurfaceを抽出できませんでした");
+      if (finalization && !isCurrentFinalization(finalization)) {
+        recordStaleFinalization(finalization, "stale-generation-discard");
+        return;
+      }
+      surfaceFieldEvaluationStats = evaluationStats;
+      const validationStarted = performance.now();
+      surfaceDiagnostics = source === "authoritative" && (materialSamples.length > SURFACE_PREVIEW_MAX_SAMPLES || finalization !== null)
+        ? diagnosePointField(field, resolution, built, { scanGrid: false })
+        : null;
+      componentValidationMilliseconds = performance.now() - validationStarted;
+      if (finalization) setFinalizationStage(finalization, "componentValidation", componentValidationMilliseconds);
+    }
+
+    if (!built) throw new Error("Final Surface mesh is unavailable");
+    const cpuReady = performance.now();
+    if (finalization) {
+      const measuredMeshReady = finalization.timestamps.tMeshReady;
+      transitionFinalization(finalization, "FINAL_CPU_READY", cpuReady);
+      finalization.timestamps.tMeshReady = measuredMeshReady ?? cpuReady;
+      finalization.counts.heapAfterCpuBuildBytes = heapUsedBytes();
+      lastCompletedGenerationId = finalization.finalGenerationId;
+      finalization.counts.finalRequests = 1;
+      finalization.counts.finalStarts = 1;
+      finalization.counts.finalCpuCompletions = 1;
+      finalization.counts.finalUploadSubmissions = 0;
+      finalization.counts.finalSurfaceApplies = 0;
+      finalization.counts.staleResultDiscards = 0;
+    }
+
+    if (finalization?.finalProfile === "cpu-only") {
+      updateFinalizationCounts(finalization, evaluationStats, effectiveResolution, null, built);
+      finalization.status = "completed";
+      finalization.timestamps.tReady = cpuReady;
+      finalizationState = "FINAL_CPU_READY";
+      stateMessage = `FINAL CPU READY · ${built.triangles.length} triangles`;
+      recordFinalization(finalization);
+      updateSurfaceUI();
+      updateDebug();
+      return;
+    }
+
+    const geometryStarted = performance.now();
+    renderer.setPreviewSurface(built.triangles);
+    const rendererSurface = renderer.surfaceUpdateStats();
+    const geometryReady = performance.now();
+    if (finalization) {
+      finalization.timestamps.tGeometryReady = geometryReady;
+      setFinalizationStage(finalization, "bufferGeometry", rendererSurface.bufferGeometryMilliseconds);
+      setFinalizationStage(finalization, "bufferAttributes", rendererSurface.bufferAttributeMilliseconds);
+      setFinalizationStage(finalization, "geometryPreparation", geometryReady - geometryStarted);
+      updateFinalizationCounts(finalization, evaluationStats, effectiveResolution, rendererSurface, built);
+      finalization.counts.heapAfterCpuBuildBytes ??= heapUsedBytes();
+      finalization.counts.meshPositionBytes = rendererSurface.positionBufferBytes;
+      finalization.counts.meshNormalBytes = rendererSurface.normalBufferBytes;
+      finalization.counts.meshIndexBytes = rendererSurface.indexBufferBytes;
+    }
     previewSurface = built;
     surfaceBuildSource = source;
     surfaceBuildSignature = materializationSignature();
     surfaceBuildMilliseconds = performance.now() - started;
     if (source === "provisional") {
       surfacePreviewBuildDurations = [...surfacePreviewBuildDurations, surfaceBuildMilliseconds].slice(-128);
+      if (!uploadOnlyMeshCache) uploadOnlyMeshCache = built;
     }
-    surfaceFieldEvaluationStats = evaluationStats;
-    const validationStarted = performance.now();
-    surfaceDiagnostics = source === "authoritative" && materialSamples.length > SURFACE_PREVIEW_MAX_SAMPLES
-      ? diagnosePointField(field, resolution, built, { scanGrid: false })
-      : null;
-    const componentValidationMilliseconds = performance.now() - validationStarted;
-    renderer.setPreviewSurface(built.triangles);
+    if (finalization?.finalProfile === "normal") uploadOnlyMeshCache = built;
+    if (source === "provisional" && finalization === null) {
+      stateMessage = `SURFACE PREVIEW · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`;
+    } else {
+      stateMessage = `SURFACE READY · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`;
+    }
     if (pendingPointerupStageTimings && source === "authoritative") {
       pendingPointerupStageTimings.fieldPreparation = fieldPreparationMilliseconds;
       pendingPointerupStageTimings.effectiveResolution = effectiveResolutionMilliseconds;
@@ -2436,14 +2917,59 @@ function rebuildSurface(
       pendingPointerupStageTimings.effectiveResolutionValue = effectiveResolution;
       pendingPointerupStageTimings.triangleCount = built.triangles.length;
       pendingPointerupStageTimings.componentCount = surfaceDiagnostics?.componentCount ?? 0;
-      pendingPointerupStageTimings.fieldQueryCount = evaluationStats.queryCount;
-      pendingPointerupStageTimings.fieldCandidateEvaluationCount = evaluationStats.candidateEvaluationCount;
-      pendingPointerupStageTimings.fieldMaxCandidateCount = evaluationStats.maxCandidateCount;
+      pendingPointerupStageTimings.fieldQueryCount = evaluationStats?.queryCount ?? 0;
+      pendingPointerupStageTimings.fieldCandidateEvaluationCount = evaluationStats?.candidateEvaluationCount ?? 0;
+      pendingPointerupStageTimings.fieldMaxCandidateCount = evaluationStats?.maxCandidateCount ?? 0;
     }
-    stateMessage = source === "provisional"
-      ? `SURFACE PREVIEW · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`
-      : `SURFACE READY · ${built.triangles.length} triangles · ${surfaceBuildMilliseconds.toFixed(1)} ms`;
+    if (finalization) {
+      const uploadSubmitted = performance.now();
+      transitionFinalization(finalization, "FINAL_UPLOAD_SUBMITTED", uploadSubmitted);
+      finalization.timestamps.tUploadSubmitted = uploadSubmitted;
+      finalization.counts.finalUploadSubmissions = 1;
+      finalization.counts.heapAfterUploadBytes = heapUsedBytes();
+      setFinalizationStage(finalization, "uploadSubmission", uploadSubmitted - geometryReady);
+    }
+    updateSurfaceUI();
+    const gpuUploadStarted = performance.now();
+    renderScene();
+    const firstRender = performance.now();
+    if (pendingPointerupStageTimings && source === "authoritative") {
+      pendingPointerupStageTimings.gpuUpload = firstRender - gpuUploadStarted;
+    }
+    if (finalization) {
+      finalization.timestamps.tFirstRender = firstRender;
+      finalization.timestamps.tProxyFrozenPresented = firstRender;
+      setFinalizationStage(finalization, "renderSubmission", firstRender - gpuUploadStarted);
+      setFinalizationStage(finalization, "geometryReadyToFirstRender", firstRender - (finalization.timestamps.tGeometryReady ?? firstRender));
+      window.requestAnimationFrame(() => {
+        if (!isCurrentFinalization(finalization)) {
+          recordStaleFinalization(finalization, "stale-generation-discard");
+          return;
+        }
+        renderer.setMaterialProxy(null);
+        workspace.dataset.materialProxySegmentCount = "0";
+        finalization.timestamps.tNextRAF = performance.now();
+        transitionFinalization(finalization, "FINAL_PRESENTED", performance.now());
+        finalization.timestamps.tReady = performance.now();
+        finalization.status = "completed";
+        lastAppliedGenerationId = finalization.finalGenerationId;
+        finalization.counts.finalSurfaceApplies = 1;
+        finalization.counts.heapAfterUploadBytes ??= heapUsedBytes();
+        lastFinalReadyTimestamp = finalization.timestamps.tReady;
+        recordFinalization(finalization);
+        scheduleFinalizationHeapSamples(finalization);
+        updateSurfaceUI();
+        redrawOverlay();
+        updateDebug();
+      });
+    } else if (source === "authoritative" && currentSurfaceState() === "READY") {
+      lastFinalReadyTimestamp = performance.now();
+    }
   } catch (error) {
+    if (finalization && error instanceof HanaPointFieldMeshCancelledError) {
+      recordStaleFinalization(finalization, "cancelled-by-newer-generation");
+      return;
+    }
     previewSurface = null;
     surfaceBuildSource = null;
     surfaceBuildSignature = null;
@@ -2452,19 +2978,29 @@ function rebuildSurface(
     renderer.setPreviewSurface(null);
     const message = error instanceof Error ? error.message : "unknown error";
     stateMessage = `SURFACE ERROR · ${message}`;
+    if (finalization) {
+      finalization.status = "failed";
+      finalization.error = message;
+      finalization.timestamps.tReady = performance.now();
+      finalizationState = "IDLE";
+      recordFinalization(finalization);
+    }
   }
   if (source === "provisional") surfacePreviewLastEndMilliseconds = performance.now();
   updateSurfaceUI();
-  const gpuUploadStarted = performance.now();
-  renderScene();
-  if (pendingPointerupStageTimings && source === "authoritative") {
-    pendingPointerupStageTimings.gpuUpload = performance.now() - gpuUploadStarted;
-  }
-  if (source === "authoritative" && currentSurfaceState() === "READY") {
-    lastFinalReadyTimestamp = performance.now();
-  }
   redrawOverlay();
   updateDebug();
+}
+
+function requestAuthoritativeSurfaceRebuild(reason: string, documentChanged = true): void {
+  if (!stroke3D || materialSamples.length === 0) {
+    stateMessage = "SURFACE · Draw one Stroke first";
+    updateDebug();
+    return;
+  }
+  const trace = beginAuthoritativeFinalization(reason, null, documentChanged);
+  refreshMaterialSamples(stroke3D, null, trace);
+  runAuthoritativeFinalization(trace);
 }
 
 function finalizeSurfaceParameterChange(): void {
@@ -2472,8 +3008,9 @@ function finalizeSurfaceParameterChange(): void {
   if (!showSurface || materialSamples.length === 0) return;
   if (activeStroke && provisionalStroke3D && materialSamples.length <= SURFACE_PREVIEW_MAX_SAMPLES) {
     rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional");
+  } else if (stroke3D) {
+    requestAuthoritativeSurfaceRebuild("parameter-change");
   }
-  else if (stroke3D) rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
 }
 
 centerlineToggle.addEventListener("click", () => {
@@ -2502,7 +3039,7 @@ surfaceToggle.addEventListener("click", () => {
     scheduleSurfacePreview();
     scheduleMaterialProxyFrame();
   } else if (stroke3D && materialSamples.length > 0) {
-    rebuildSurface(HANA_SURFACE_RESOLUTION, "authoritative");
+    requestAuthoritativeSurfaceRebuild("surface-toggle-on", false);
   }
   renderScene();
   redrawOverlay();
@@ -2513,7 +3050,7 @@ thicknessSlider.addEventListener("input", () => {
 });
 smoothnessSlider.addEventListener("change", finalizeSurfaceParameterChange);
 thicknessSlider.addEventListener("change", finalizeSurfaceParameterChange);
-rebuildSurfaceButton.addEventListener("click", () => rebuildSurface());
+rebuildSurfaceButton.addEventListener("click", () => requestAuthoritativeSurfaceRebuild("manual-rebuild", false));
 
 clearButton.addEventListener("click", () => {
   cancelSurfacePreviewTimer();
@@ -2597,6 +3134,17 @@ clearButton.addEventListener("click", () => {
   mouseEditPreviewRejectCount = 0;
   mouseEditLastPreviewRejectReason = "";
   mouseEditPipelineFrames = [];
+  mouseEditPointerRevision = 0;
+  documentRevision = 0;
+  finalRequestId = 0;
+  finalGenerationId = 0;
+  lastCompletedGenerationId = 0;
+  lastAppliedGenerationId = 0;
+  finalizationState = "IDLE";
+  finalizeReason = "—";
+  activeFinalization = null;
+  finalizationHistory = [];
+  uploadOnlyMeshCache = null;
   resetEditDiagnosticMarkers();
   workspace.dataset.materialProxySegmentCount = "0";
   renderer.setPreviewSurface(null);

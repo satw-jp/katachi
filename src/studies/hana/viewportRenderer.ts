@@ -37,6 +37,16 @@ export interface HanaRendererRenderStats {
   lines: number;
 }
 
+export interface HanaRendererSurfaceUpdateStats {
+  totalMilliseconds: number;
+  bufferGeometryMilliseconds: number;
+  bufferAttributeMilliseconds: number;
+  normalGenerationMilliseconds: number;
+  positionBufferBytes: number;
+  normalBufferBytes: number;
+  indexBufferBytes: number;
+}
+
 export interface HanaRendererPresentationStats {
   finalSurface: {
     objectId: string | null;
@@ -163,6 +173,15 @@ export class HanaViewportRenderer {
   private materialProxyCapacity = 0;
   private materialProxyVisible = false;
   private lastPresentationDrawCalls = { surface: 0, proxy: 0 };
+  private lastSurfaceUpdate: HanaRendererSurfaceUpdateStats = {
+    totalMilliseconds: 0,
+    bufferGeometryMilliseconds: 0,
+    bufferAttributeMilliseconds: 0,
+    normalGenerationMilliseconds: 0,
+    positionBufferBytes: 0,
+    normalBufferBytes: 0,
+    indexBufferBytes: 0,
+  };
   private readonly materialProxyMatrix = new THREE.Matrix4();
   private readonly materialProxyPosition = new THREE.Vector3();
   private readonly materialProxyStart = new THREE.Vector3();
@@ -203,6 +222,7 @@ export class HanaViewportRenderer {
   }
 
   setPreviewSurface(triangles: readonly HanaPreviewTriangle[] | null): void {
+    const started = performance.now();
     if (this.previewSurface) {
       this.scene.remove(this.previewSurface);
       this.previewSurface.geometry.dispose();
@@ -211,7 +231,19 @@ export class HanaViewportRenderer {
       else material.dispose();
       this.previewSurface = null;
     }
-    if (!triangles || triangles.length === 0) return;
+    if (!triangles || triangles.length === 0) {
+      this.lastSurfaceUpdate = {
+        totalMilliseconds: performance.now() - started,
+        bufferGeometryMilliseconds: 0,
+        bufferAttributeMilliseconds: 0,
+        normalGenerationMilliseconds: 0,
+        positionBufferBytes: 0,
+        normalBufferBytes: 0,
+        indexBufferBytes: 0,
+      };
+      return;
+    }
+    const geometryStarted = performance.now();
     const positions = new Float32Array(triangles.length * 9);
     let offset = 0;
     for (const triangle of triangles) {
@@ -223,7 +255,10 @@ export class HanaViewportRenderer {
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const attributeCreated = performance.now();
+    const normalStarted = attributeCreated;
     geometry.computeVertexNormals();
+    const normalGenerated = performance.now();
     const surface = new THREE.Mesh(
       geometry,
       new THREE.MeshNormalMaterial({
@@ -240,6 +275,21 @@ export class HanaViewportRenderer {
     surface.renderOrder = 0;
     this.previewSurface = surface;
     this.scene.add(surface);
+    const normal = geometry.getAttribute("normal");
+    const index = geometry.getIndex();
+    this.lastSurfaceUpdate = {
+      totalMilliseconds: performance.now() - started,
+      bufferGeometryMilliseconds: attributeCreated - geometryStarted,
+      bufferAttributeMilliseconds: attributeCreated - geometryStarted,
+      normalGenerationMilliseconds: normalGenerated - normalStarted,
+      positionBufferBytes: positions.byteLength,
+      normalBufferBytes: normal?.array.byteLength ?? 0,
+      indexBufferBytes: index?.array.byteLength ?? 0,
+    };
+  }
+
+  surfaceUpdateStats(): HanaRendererSurfaceUpdateStats {
+    return { ...this.lastSurfaceUpdate };
   }
 
   setPreviewSurfaceVisible(visible: boolean): void {

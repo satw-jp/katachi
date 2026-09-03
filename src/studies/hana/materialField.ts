@@ -1,6 +1,8 @@
 import { smoothMin, type Ball } from "../cloud-sculpt/field.ts";
 import {
   buildMeshFromField,
+  buildMeshResultFromTriangles,
+  buildMeshTrianglesFromFieldSlice,
   computeSamplingBounds,
   meshGridShape,
   type Bounds,
@@ -34,9 +36,28 @@ export interface HanaPointFieldEvaluationStats {
   candidateEvaluationCount: number;
   maxCandidateCount: number;
   effectiveResolution?: number;
+  bounds?: Bounds;
+  gridShape?: { nx: number; ny: number; nz: number };
+  gridSpacing?: { x: number; y: number; z: number };
 }
 
 export type HanaPreviewSurface = MeshBuildResult;
+
+export interface HanaPointFieldMeshCooperativeOptions {
+  /** Number of Z cells processed before yielding back to the browser. */
+  zSlicesPerYield?: number;
+  /** Test hook; production uses requestAnimationFrame/setTimeout. */
+  yieldToBrowser?: () => Promise<void>;
+  /** Stop before doing more work when a newer final generation supersedes this one. */
+  shouldContinue?: () => boolean;
+}
+
+export class HanaPointFieldMeshCancelledError extends Error {
+  constructor() {
+    super("Point Field mesh generation was superseded by a newer generation.");
+    this.name = "HanaPointFieldMeshCancelledError";
+  }
+}
 
 export interface HanaPointFieldDiagnostics {
   bounds: Bounds;
@@ -415,11 +436,74 @@ export function buildPointFieldMesh(
   }
   const bounds = pointFieldBounds(field);
   const effectiveResolution = pointFieldEffectiveResolution(field, resolution);
-  if (evaluationStats) evaluationStats.effectiveResolution = effectiveResolution;
+  if (evaluationStats) {
+    const grid = meshGridShape(bounds, effectiveResolution);
+    evaluationStats.effectiveResolution = effectiveResolution;
+    evaluationStats.bounds = bounds;
+    evaluationStats.gridShape = { nx: grid.nx, ny: grid.ny, nz: grid.nz };
+    evaluationStats.gridSpacing = { x: grid.step, y: grid.step, z: grid.step };
+  }
   return buildMeshFromField(bounds, (x, y, z) => pointFieldSdf(field, x, y, z, evaluationStats), {
     resolution: effectiveResolution,
     targetLongestMm: 1,
   });
+}
+
+function yieldToBrowser(): Promise<void> {
+  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+    return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+  }
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
+ * Final-only cooperative extraction. It evaluates the same field at the same
+ * grid points and polygonizes the same contiguous Z-cell ranges as
+ * buildPointFieldMesh, but yields between slices so pointerup does not own one
+ * long main-thread task. The returned mesh remains authoritative; this is not
+ * a lower-resolution or lower-density path.
+ */
+export async function buildPointFieldMeshCooperative(
+  field: HanaPointField,
+  resolution = HANA_SURFACE_RESOLUTION,
+  evaluationStats?: HanaPointFieldEvaluationStats,
+  options: HanaPointFieldMeshCooperativeOptions = {},
+): Promise<HanaPreviewSurface> {
+  if (field.samples.length === 0) {
+    throw new Error("Material Samplesが空のためSurfaceを生成できません。");
+  }
+  const bounds = pointFieldBounds(field);
+  const effectiveResolution = pointFieldEffectiveResolution(field, resolution);
+  const grid = meshGridShape(bounds, effectiveResolution);
+  if (evaluationStats) {
+    evaluationStats.effectiveResolution = effectiveResolution;
+    evaluationStats.bounds = bounds;
+    evaluationStats.gridShape = { nx: grid.nx, ny: grid.ny, nz: grid.nz };
+    evaluationStats.gridSpacing = { x: grid.step, y: grid.step, z: grid.step };
+  }
+
+  const zSlicesPerYield = Math.max(1, Math.trunc(options.zSlicesPerYield ?? 1));
+  const yieldFunction = options.yieldToBrowser ?? yieldToBrowser;
+  const shouldContinue = options.shouldContinue ?? (() => true);
+  await yieldFunction();
+  if (!shouldContinue()) throw new HanaPointFieldMeshCancelledError();
+  const triangles = [] as ReturnType<typeof buildMeshTrianglesFromFieldSlice>;
+  for (let zStart = 0; zStart < grid.nz; zStart += zSlicesPerYield) {
+    if (!shouldContinue()) throw new HanaPointFieldMeshCancelledError();
+    const zEnd = Math.min(grid.nz, zStart + zSlicesPerYield);
+    triangles.push(...buildMeshTrianglesFromFieldSlice(
+      bounds,
+      (x, y, z) => pointFieldSdf(field, x, y, z, evaluationStats),
+      effectiveResolution,
+      zStart,
+      zEnd,
+    ));
+    if (zEnd < grid.nz) {
+      await yieldFunction();
+      if (!shouldContinue()) throw new HanaPointFieldMeshCancelledError();
+    }
+  }
+  return buildMeshResultFromTriangles(triangles, 1);
 }
 
 function triangleVertexKey(point: HanaVector3): string {

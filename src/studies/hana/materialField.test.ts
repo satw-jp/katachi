@@ -5,8 +5,10 @@ import type { HanaSmoothCenterlinePoint } from "./smoothCenterline.ts";
 import {
   buildPointField,
   buildPointFieldMesh,
+  buildPointFieldMeshCooperative,
   createPointFieldEvaluationStats,
   diagnosePointField,
+  HanaPointFieldMeshCancelledError,
   materialSampleCount,
   pointFieldSdf,
   pointFieldSdfBruteForce,
@@ -166,6 +168,26 @@ test("Point Field CPU surface is a finite non-empty mesh", () => {
   ))));
   assert.ok(Number.isFinite(mesh.sourceBounds.longest));
   assert.ok(Number.isFinite(mesh.mmBounds.longest));
+});
+
+test("Cooperative final surface extraction preserves the synchronous mesh", async () => {
+  const field = buildPointField(surfaceSamples(), 0.18);
+  const synchronous = buildPointFieldMesh(field, 24);
+  const cooperative = await buildPointFieldMeshCooperative(field, 24, undefined, {
+    yieldToBrowser: async () => {},
+  });
+  assert.deepEqual(cooperative, synchronous);
+});
+
+test("Cooperative final surface extraction stops when superseded", async () => {
+  const field = buildPointField(surfaceSamples(), 0.18);
+  await assert.rejects(
+    () => buildPointFieldMeshCooperative(field, 24, undefined, {
+      yieldToBrowser: async () => {},
+      shouldContinue: () => false,
+    }),
+    HanaPointFieldMeshCancelledError,
+  );
 });
 
 test("Point Field spatial queries preserve the smooth-union result", () => {

@@ -1,5 +1,21 @@
 # HANA — Gesture to Flower Study
 
+## HANA-2A status
+
+```yaml
+Status: PASS / FROZEN
+Real-device Gate: PASS
+Platform:
+  - iPad Pro 11-inch
+  - Apple Pencil
+  - EasyCanvas
+  - Windows Browser
+Branch: agent/hana-2a-point-field-stem
+Base checkpoint: 047ea4eb0b8b5018b420af8bc924447e4e0062fa
+```
+
+HANA-2Aの最終実機Gateでは、長尺Surfaceの連続Mouse Edit、Live Proxy追従、pointerup後のFinal Surface更新、古いFinal generationのキャンセル、最新Editのみの反映、Surface / Centerline / Samplesのtouch toggle、Right Viewの軸制約、Shape Fidelity、component、通常URLでの操作を確認した。HANA-2Aをこの実装でPASS / FROZENとして固定する。
+
 ## Question
 
 作者のApple Pencil Gestureを正本として保ったまま、編集可能なControl Strokeを滑らかな3D Centerlineとして表示し、正投影Viewportから気持ちよくSoft Editできるか。HANA-1Cでは32点を基準にしたが、HANA-2AではRaw Gestureの形状誤差を基準にControl密度を決める。
@@ -28,7 +44,7 @@ npx vite --host 127.0.0.1 --port 5480 --strictPort
 - Soft OFF / LOW / MEDIUM: 選択点のみ / 前後2点 / 前後4点へ固定weightで移動量を配る。
 - Smoothness 0.00–1.00: Control Strokeを変更せず、派生Centerlineの局所的なガタつきの残し方を連続調整する。
 - Samples: Smooth Centerlineを弧長方向へThickness基準で再sampleしたderived表示。隣接sample spacingはradius以下を目標にし、長さとThicknessで点数が変わる。Control StrokeとSmooth Centerlineは変更しない。
-- Surface: Material Samplesを一定半径のsphere SDFとしてsmooth unionし、CPUの既存Field→Mesh coreでPreview Surfaceを生成する。Surface ONで描画中はprovisional samplesからThickness一致のpresentation-only Material Proxy（Instanced Sphere Chain）をrequestAnimationFrameで更新し、並行してresolution 24のprovisional SDFを約100ms throttleで更新する。pointerupではProxyを消し、resolution 48の正式Surfaceへ再生成する。Thickness / Smoothness変更もthrottleし、Rebuild Surfaceはmanual/debug fallbackとして残す。
+- Surface: Material Samplesを一定半径のsphere SDFとしてsmooth unionし、CPUの既存Field→Mesh coreでPreview Surfaceを生成する。Surface ONで描画中はprovisional samplesからThickness一致のpresentation-only Material Proxy（Instanced Sphere Chain）をrequestAnimationFrameで更新し、並行してresolution 24のprovisional SDFを約100ms throttleで更新する。pointerupではFinal Surfaceを一時的に隠し、preview Proxyを維持したままresolution 48の正式Surfaceを協調的に再生成する。完成後にProxyを消してFinal Surfaceを表示する。Thickness / Smoothness変更もthrottleし、Rebuild Surfaceはmanual/debug fallbackとして残す。
 - View: Axomeのcamera操作に使う。Axome Draw/EditはHANA-1Cの対象外。
 - Wheel: zoom
 - Drag: Top / Front / Rightではpan、Axomeではrotate
@@ -233,6 +249,90 @@ WebGL contextを取得できないブラウザでもThree.js renderer初期化�
 
 同じSurfaceに対する実機追加確認では、Edit #1は速く、pointerup後のEdit #2は開始直後に一瞬だけ引っかかり、その後は明確に大きな遅延が続いた。これは入力開始時の一過性の引っかかりと、Edit session中の継続的なVisual Preview遅延を分けて記録する。既存のresource count診断ではsession蓄積は再現しておらず、今回も原因は未確定である。T / Edit Targetは速く、X / Proxyが遅いという前回観察と合わせ、T→bounded preview→Proxy→render presentationの実機測定を継続する。HANA-2AはFAIL / hardware recheck pendingのままで、Raw Gesture、adaptive Control、Final Material、Shape Fidelity、provenance、pressure/time/order、Live Proxy 192 cap、SKIN、次Phaseは変更しない。
 
+### 2026-09-03 — T-to-X revision trace and direct Proxy A/B preparation
+
+T / Edit TargetからX / Proxyまでの遅延箇所を同一rAF内で照合できるよう、Edit sessionごとにpointer revisionを発行し、Target、bounded Control、Smooth、Material、Proxy、Renderが消費したrevisionを最大120フレームのリングバッファへ記録する診断を追加した。診断表示にはsession、frame、各revision、同一rAF判定、既存の段階別durationを出し、session historyと`data-mouse-edit-pipeline`から取得できる。中間pointer位置を表示する経路やauthoritative dataは追加していない。
+
+既存のA/B経路も維持し、通常の`?editMarkers=1`はbounded preview経路、`?editMarkers=1&editProxy=direct`はauthoritative Edit Targetから再利用Proxyへ1 segmentだけを渡す直接経路である。browser smokeではbounded経路が各frameで`ptr/T/C/S/M/X/R`を同じrevisionとして記録し、direct経路は`ptr/T/X/R`を同じrevisionとして記録した。これは診断経路の成立確認であり、P / T / Xの実機速度判定ではない。HANA-2AはFAIL / hardware recheck pendingのまま、Raw Gesture、adaptive Control、Soft Edit、Final density、Shape Fidelity、provenance、pressure/time/order、Live Proxy 192 cap、SKIN、次Phaseを変更せず停止する。
+
+### 2026-09-03 — Final Surface finalization state and cooperative extraction refinement
+
+pointerup後の遅延をInteractive Edit（P / T / X）から分離するため、Final Surfaceの要求から次フレーム表示までをHANA-localのgeneration traceとして記録するようにした。各traceは`documentRevision`、`editSessionId`、`finalRequestId`、`finalGenerationId`、`lastCompletedGenerationId`、`lastAppliedGenerationId`、`finalizationState`、`finalizeReason`を持ち、`IDLE`、`EDITING`、`FINAL_REQUESTED`、`FINAL_BUILDING`、`FINAL_CPU_READY`、`FINAL_UPLOAD_SUBMITTED`、`FINAL_PRESENTED`を区別する。pointerup、Proxy freeze、Smooth、Material、KD-tree、Field、Mesh、BufferGeometry、Upload、最初のrender、次のrAF、Final presented、READYのtimestampと、request/start/CPU completion/upload/apply/stale discardのcountをdatasetへ保存する。
+
+Final traceのcountsにはRaw / Control / refinement-added / Smooth / Material、Field bounds、grid X/Y/Z、voxel count、effective resolution、KD-tree candidate平均・最大、triangle / component、position / normal / index / field / candidate / KD-treeの概算byte数を記録する。Chromiumで`performance.memory`が提供される場合はCPU build直後、upload直後、READY後500ms / 2000msのheapも記録する。renderer側ではBufferGeometry、BufferAttribute、normal生成、position / normal / index bufferの計測値を取得する。通常経路に`gl.finish()`や強制GCは追加していない。
+
+診断用query parameterとして`finalProfile=normal`（通常のCPU→Geometry→GPU→presentation）、`finalProfile=skip`（Final SurfaceなしでProxyを維持）、`finalProfile=cpu-only`（Field / Mesh / validationまででrendererを更新しない）、`finalProfile=upload-only`（診断cacheのmeshを使いSDF / KD-tree / meshingを省略してupload経路だけを測る）を追加した。upload-only cacheとProxyは診断用であり、JSONのauthoritative dataには保存しない。通常のFinal pipelineは変更せず、adaptive Control、tolerance `0.09`、dense Material Samples、Shape Fidelity、provenance、pressure/time/order、Live Proxy `192` capを維持する。
+
+Browser smokeでは通常profileのdrawが`request 1 / start 1 / CPU complete 1 / upload 1 / apply 1`、Edit後がgeneration `2`の単一完了となり、console warning/errorは0件だった。skip / cpu-only / upload-onlyも各々Surface生成なし・CPUのみ・uploadのみの状態を確認した。実機ではMouse drag中は遅延せず、pointerup直後に停止し、Surface OFFでは停止しないことを確認したため、今回の最小修正として通常FinalのField / SDF / mesh計算内容を変更せず、Z slice単位で`buildPointFieldMeshCooperative`へ分割し、slice間をbrowserへyieldする経路を追加した。pointerup handlerはpreviewを表示したまま戻り、通常profileではFinal生成中に旧Finalを隠し、完了後の次のrAFでProxyを消して新Finalを表示する。短いbrowser smokeではpointerup handler 6.7ms、最終Surface READYまで476.5msを記録し、同期メッシュと協調メッシュの結果一致テストも通過した。これはhost/browser確認であり、EasyCanvas実機のEdit #1〜#10およびpointerup→READYの再確認は未実施である。HANA-2AはFAIL / hardware recheck pending、PASS / FROZENなし、commit / pushなしで停止する。長尺Final生成のWorker化はFOLLOW-UPとして記録する。
+
+### 2026-09-03 — Repeated Edit finalization cancellation refinement
+
+実機では協調Final後に遅延が大幅に軽減した一方、連続してEditすると少しずつ遅くなる観察が残った。これは各Editのpointerupで開始した古いFinal生成が完了前に次のEditと並走する可能性があるため、次のEdit開始時にpending Final generationをHANA-localに無効化し、協調抽出を次のZ slice境界で停止するようにした。新しいFinal要求だけがField / SDF / mesh uploadへ進み、古い結果は適用せず履歴へstaleとして記録する。
+
+この変更はFinalの解像度、adaptive Material Samples、Control Stroke、Shape Fidelity、provenance、pressure/time/order、Live Proxy `192` capを変更しない。同期抽出と協調抽出のmesh一致、およびsuperseded generationの停止テストを追加した。ブラウザSmokeはHANA tests 33件、TypeScript、Vite build、console warning/error 0で通過した。EasyCanvasでの連続Edit再確認は未実施のため、HANA-2AはFAIL / hardware recheck pendingのまま、PASS / FROZEN、commit / pushは行わない。
+
+### 2026-09-03 — HANA-2A final real-device Gate / PASS / FROZEN
+
+上記refinement後のEasyCanvas実機Gateを完了した。iPad Pro 11-inchへApple Pencilを接続し、EasyCanvas経由のWindows Browserで長尺Surfaceを複数回連続Editした結果、Edit回数による遅延の再蓄積はなく、Mouse Edit中のLive Proxyは滑らかに追従した。pointerup後も画面全体は長時間停止せず、Final Surfaceは毎回`READY`へ戻った。Final生成中の次Edit開始、古いFinal generationのキャンセル、古いSurfaceが後から割り込まないこと、最新EditだけがFinal Surfaceへ反映されることを確認した。通常URLでも診断URLでも正常に操作でき、Surface / Centerline / Samples toggle、Shape Fidelity、Right View軸制約、component、Surface連続性を確認した。
+
+#### Frozen authoring hierarchy
+
+```text
+Raw Gesture
+↓
+Adaptive Control Stroke
+↓
+Smooth Centerline
+↓
+Dense Adaptive Material Samples
+↓
+Field / SDF
+↓
+Surface Mesh
+```
+
+- Raw Gestureは全点、pressure、time、order、provenanceを保持するauthoritative inputとする。
+- Control Strokeはgeometry-error bounded adaptive representation、authoring tolerance `0.09`、Thickness非依存とする。Mouse Editのauthoritative representationである。
+- Draw中のworking pathはbounded incrementalとし、Live Materialは最大256、Live Proxyは最大192 segmentsとする。長尺ではProxyを優先し、Raw Gesture全体を毎frame走査しない。
+- Mouse Edit中はbounded Live Proxyをprimary visualとし、Final SDF / meshはpointermove中に再生成しない。pointerup後だけFinal Surfaceを生成し、Z slice単位の協調処理でUI応答を維持する。
+- Final生成中はPreviewを維持し、新しいEdit開始時に古いFinal generationをキャンセルする。stale generationはupload / presentationせず、最新generationだけをSurfaceへ反映する。
+- Finalはdense adaptive Material SamplesとKD-tree局所候補探索を使う。brute-forceとの差は`1e-6`以内とし、Shape Fidelityのための密度削減は行わない。
+- Material / Field / Surface Meshはderived dataであり、JSONの正本には保存しない。
+- Surface / Centerline / Samplesは全面toggle、touch target 48px、Surface default ON、Centerline default ON、Samples default OFFとする。Rebuild Surfaceはsecondary fallbackとする。
+
+#### Known limitations
+
+- 非常に長く高密度なGestureではFinal Surface生成に相応の時間を要するが、協調処理中もUIとLive Previewは応答する。
+- 古いFinal generationはキャンセルされる。
+- 長尺Live Drawing後半には軽微な追従低下が残る場合がある。
+- adaptive Control密度に対し、Soft Editは現在も`±control count`基準である。Soft Editのarc-length化はFOLLOW-UPとする。
+- 標準HANAテストコマンドで発生した環境固有の`uv_os_get_passwd ENOMEM`は実装FAILではない。
+- Chrome起動オプション警告はHANA console errorではない。
+
+#### Diagnostics retained
+
+以下はHANA-local診断として残すが、通常URLへ影響しない。通常URLでは診断マーカー非表示、診断DOMによる操作阻害なし、通常UI正常を確認した。
+
+- `?editMarkers=1`
+- `?editProxy=direct`
+- `?editPresentation=final-visible`
+- Final generation / revision trace系診断
+
+`editProxy=direct`、`editPresentation=final-visible`、DOM marker、generation traceは原因切り分け用で、authoritative geometryや通常操作の仕様ではない。
+
+#### Final verification
+
+```yaml
+HANA tests: 33/33 PASS
+TypeScript: PASS
+Vite build: PASS
+browser smoke: PASS
+manifest JSON: PASS
+diff check: PASS
+console warning/error: 0
+src/studies/skin diff: 0
+```
+
 ## Hypothesis
 
 Control pointsを操作ハンドル、centripetal Catmull-Rom Centerlineを再生成可能な表示として分け、局所的なindex falloffを使えば、Raw Gestureを失わず鋭い一点折れを減らせる。
@@ -250,6 +350,6 @@ Control pointsを操作ハンドル、centripetal Catmull-Rom Centerlineを再�
 - HANA-1CのEasyCanvas実機Gateとconsole確認は完了した。Smoothnessは0.00–1.00から表現ごとに作者が選び、特定の最適値は固定しない。
 - HANA-2AのEasyCanvas実機Gateで、Surface ONのApple Pencil Draw中にprovisional Surfaceが追従し、pointerupでresolution 48のfinal Surfaceへ更新されること、Centerline → Samples → Field → Surfaceの関係、Thickness / Smoothness変更後のthrottle、Mouse Soft Edit後のstale追従を確認する。
 - 長尺Live Proxy Gateで、30秒級のDraw中もProxyが最大192 segmentの連続形状として追従し、Pencil入力を遅延させないことを確認する。iPad 11-inchでは大きいhit area / 数値 / slider、Surface ONの起動、4 Viewの余裕も確認する。
-- Gate通過まではHANA-2AをPASS / FROZENにせず、commit / pushもしない。
+- HANA-2AはPASS / FROZENとして停止する。次Phase、Flower、Gesture Material、Soft Edit再設計、Worker、WebGPU、CUDA、SKIN Bridgeへは進まない。
 
 HANA-2AではUndo、Load、units、Axome直接編集、複数Stroke編集、Graph、pressure-based radius、Surface Draw、Silhouette Draw、Section Draw、Mesh export、STL、Print、Support、Web、`hana-taba`、CUDA、WebGPU、iPad Native、SKIN production連携を実装しない。adaptive Control Strokeの上限、Smoothnessの再fit、長尺pointerupのWorker化はFOLLOW-UPであり、今回のGateへ持ち込まない。

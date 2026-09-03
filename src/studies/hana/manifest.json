@@ -1,10 +1,10 @@
 {
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
-  "status": "active",
+  "status": "frozen",
   "version": "0.4.0",
   "createdAt": "2026-09-01",
-  "updatedAt": "2026-09-02",
+  "updatedAt": "2026-09-03",
   "params": [
     "viewportMode",
     "viewportInteractionMode",
@@ -108,6 +108,26 @@
     {
       "date": "2026-09-03",
       "note": "Repeated hardware Surface Mouse Edit observation: Edit #1 is fast; after pointerup, Edit #2 catches briefly at the start and then remains markedly slow. Existing resource/session telemetry did not reproduce accumulation, and the cause remains unconfirmed. Combined with fast P / Edit Target and slow X / Proxy observations, the next comparison remains T → bounded preview → Proxy → render presentation on real hardware. HANA-2A stays FAIL / hardware recheck pending; Raw Gesture, adaptive Control, Final Material, Shape Fidelity, provenance, pressure/time/order, Live Proxy 192 cap, SKIN, and next Phase remain unchanged."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A T-to-X diagnosis adds per-session pointer revisions and a 120-frame ring-buffer trace for Target, bounded Control, Smooth, Material, Proxy, and Render, with same-rAF validation. The existing bounded path remains the default; editMarkers=1&editProxy=direct remains a diagnosis-only one-segment Target → Proxy A/B path. Browser smoke confirmed matching revisions within each consumed rAF for both paths; hardware latency classification remains pending. Raw Gesture, adaptive Control, Soft Edit, Final density, Shape Fidelity, provenance, pressure/time/order, Live Proxy 192 cap, SKIN, and next Phase remain unchanged; HANA-2A is not PASS / FROZEN."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A Final Surface finalization diagnosis adds explicit generation identity and state transitions from pointerup through CPU-ready, renderer upload submission, first render, next-rAF presentation, and READY. Per-generation stage timestamps, geometry / Field workload counts, renderer BufferGeometry / attribute bytes, heap samples when available, and request/start/CPU/upload/apply/stale counts are exposed in HANA-local debug data. finalProfile=normal, skip, cpu-only, and upload-only provide deterministic CPU / upload / presentation A/B paths; no fidelity, adaptive Control, Material density, Proxy 192 cap, or SKIN changes were made. Browser smoke passed all four profile paths with console warning/error 0; EasyCanvas Edit #1–#10 and pointerup→READY hardware recheck remain pending, so HANA-2A is not PASS / FROZEN and no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A Final Surface pointerup refinement keeps the authoritative Field / SDF / mesh semantics and dense adaptive Material fidelity unchanged, but extracts the final mesh cooperatively in contiguous Z slices with browser yields between slices. During normal finalization the previous Final Surface is hidden while the live Preview Proxy remains visible; after the new mesh is uploaded, the next requestAnimationFrame presents Final and removes the Proxy. Browser smoke recorded a 6.7ms pointerup handler and 476.5ms pointerup→READY for a short stroke, and the cooperative mesh matched the synchronous mesh exactly in tests. EasyCanvas hardware recheck is still required; HANA-2A remains FAIL / not PASS / FROZEN and no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A repeated-Edit refinement cancels a pending older Final generation when a new Mouse Edit starts. Cooperative extraction stops at the next Z slice boundary, stale mesh results are not uploaded or presented, and only the newest Final request proceeds. Final resolution, adaptive Material density, Raw / Control / Smooth fidelity, provenance, pressure/time/order, and Live Proxy 192 cap are unchanged. HANA tests 33, TypeScript, Vite build, and browser console warning/error 0 passed; EasyCanvas repeated-Edit recheck remains pending, so HANA-2A stays FAIL / not PASS / FROZEN with no commit / push."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "HANA-2A final real-device Gate passed on iPad Pro 11-inch with Apple Pencil through EasyCanvas into Windows Browser. Long Surface strokes supported repeated Mouse Edit without accumulating latency; Live Proxy remained smooth; pointerup returned to READY without a long whole-screen stop; finalization could be superseded by a new Edit; stale Final generations did not interrupt newer results; Surface / Centerline / Samples touch toggles, normal and diagnostic URLs, Shape Fidelity, Right View axis constraints, component validity, and continuous Surface presentation all passed. HANA-2A is now PASS / FROZEN. Frozen hierarchy is Raw Gesture → adaptive geometry-error-bounded Control Stroke (tolerance 0.09, Thickness-independent) → Smooth Centerline → dense adaptive Material Samples → KD-tree Point Field / SDF → derived Surface Mesh. Raw metadata, Final density, Live Proxy 192 cap, and JSON authoritative boundaries remain unchanged. Known limitations are documented: very dense long Final generation takes time but remains cooperative, minor late long-stroke live follow-up may remain, Soft Edit is control-count based pending arc-length follow-up, environment-specific uv_os_get_passwd ENOMEM is not an implementation failure, and Chrome command-line warnings are not HANA console errors. HANA tests 33/33, TypeScript, full Vite build, browser smoke, manifest validation, diff check, and console warning/error 0 passed; src/studies/skin diff is 0. No next Phase, Flower, Worker, WebGPU, CUDA, or SKIN Bridge work is included."
     }
   ]
 }
