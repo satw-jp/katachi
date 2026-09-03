@@ -1,5 +1,4 @@
 import {
-  computeHanaFinalization,
   type HanaComputeCancellation,
   type HanaFinalizationResultV0,
   type HanaFinalizationSnapshotV0,
@@ -8,6 +7,12 @@ import {
   decodeHanaFinalizationResult,
   serializeHanaFinalizationRequest,
 } from "./computeProtocol.ts";
+import {
+  HANA_CPU_ENGINE_CAPABILITIES,
+  assertHanaComputeEngineCompatibility,
+  createHanaComputeEngine,
+  type HanaComputeEngineCapabilities,
+} from "./computeEngine.ts";
 import {
   chooseHanaAutoCompute,
   type HanaAutoComputeDecision,
@@ -18,13 +23,7 @@ export type { HanaComputeWorkEstimate } from "./hanaComputePolicy.ts";
 
 export type HanaComputeMode = "local" | "windows" | "auto";
 
-export interface HanaComputeCapabilities {
-  engine: "cpu-js-v0";
-  binaryMesh: boolean;
-  cancellation: boolean;
-  objectLevelFinalization: boolean;
-  gpu: false;
-}
+export type HanaComputeCapabilities = HanaComputeEngineCapabilities;
 
 export interface HanaComputeHealth {
   status: "ready" | "unavailable" | "busy" | "error";
@@ -35,6 +34,12 @@ export interface HanaComputeHealth {
   activeJobs: number;
   queuedJobs: number;
   uptime: number;
+  capabilityVersion?: string;
+  snapshotVersion?: string;
+  executionKind?: string;
+  gpu?: boolean;
+  supportsCancellation?: boolean;
+  supportsObjectLevel?: boolean;
   reason?: string;
 }
 
@@ -57,13 +62,37 @@ export interface HanaComputeBackend {
   cancel?(snapshot: HanaFinalizationSnapshotV0): Promise<void>;
 }
 
-export const HANA_COMPUTE_CAPABILITIES: HanaComputeCapabilities = {
-  engine: "cpu-js-v0",
-  binaryMesh: true,
-  cancellation: true,
-  objectLevelFinalization: true,
-  gpu: false,
-};
+export const HANA_COMPUTE_CAPABILITIES: HanaComputeCapabilities = HANA_CPU_ENGINE_CAPABILITIES;
+
+function capabilityHealthFields(capabilities: HanaComputeCapabilities): Pick<
+  HanaComputeHealth,
+  "capabilityVersion" | "snapshotVersion" | "executionKind" | "gpu" | "supportsCancellation" | "supportsObjectLevel"
+> {
+  return {
+    capabilityVersion: capabilities.capabilityVersion,
+    snapshotVersion: capabilities.supportedSnapshotVersion,
+    executionKind: capabilities.executionKind,
+    gpu: capabilities.gpu,
+    supportsCancellation: capabilities.supportsCancellation,
+    supportsObjectLevel: capabilities.supportsObjectLevel,
+  };
+}
+
+function assertHealthCompatibility(health: HanaComputeHealth, capabilities: HanaComputeCapabilities): void {
+  if (health.capabilityVersion !== capabilities.capabilityVersion
+    || health.snapshotVersion !== capabilities.supportedSnapshotVersion
+    || health.executionKind !== capabilities.executionKind
+    || health.gpu !== capabilities.gpu
+    || health.supportsCancellation !== capabilities.supportsCancellation
+    || health.supportsObjectLevel !== capabilities.supportsObjectLevel) {
+    throw new Error("Remote compute capability contract is incompatible");
+  }
+  assertHanaComputeEngineCompatibility(capabilities, {
+    protocolVersion: health.protocolVersion,
+    algorithmVersion: health.algorithmVersion,
+    engineId: health.engine,
+  });
+}
 
 function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) throw new DOMException("Compute request was aborted", "AbortError");
@@ -75,7 +104,8 @@ function cancellationFor(signal: AbortSignal): HanaComputeCancellation {
 
 export class LocalHanaComputeBackend implements HanaComputeBackend {
   readonly id = "local";
-  readonly capabilities = HANA_COMPUTE_CAPABILITIES;
+  private readonly engine = createHanaComputeEngine();
+  readonly capabilities = this.engine.capabilities;
 
   async healthCheck(): Promise<HanaComputeHealth> {
     return {
@@ -87,13 +117,18 @@ export class LocalHanaComputeBackend implements HanaComputeBackend {
       activeJobs: 0,
       queuedJobs: 0,
       uptime: 0,
+      ...capabilityHealthFields(this.capabilities),
     };
   }
 
   async finalize(snapshot: HanaFinalizationSnapshotV0, options: HanaComputeFinalizeOptions): Promise<HanaFinalizationResultV0> {
     throwIfAborted(options.signal);
+    assertHanaComputeEngineCompatibility(this.capabilities, {
+      snapshotVersion: snapshot.format,
+      algorithmVersion: snapshot.algorithmVersion,
+    });
     options.onProgress?.({ phase: "local", stage: "compute", fraction: 0 });
-    const result = await computeHanaFinalization(snapshot, cancellationFor(options.signal));
+    const result = await this.engine.finalize(snapshot, cancellationFor(options.signal));
     throwIfAborted(options.signal);
     options.onProgress?.({ phase: "local", stage: "ready", fraction: 1 });
     return result;
@@ -123,7 +158,9 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
     try {
       const response = await fetch(`${this.endpoint}/health`, { cache: "no-store" });
       if (!response.ok) return { ...this.unavailableHealth(), status: response.status === 429 ? "busy" : "error", reason: `HTTP ${response.status}` };
-      return await response.json() as HanaComputeHealth;
+      const health = await response.json() as HanaComputeHealth;
+      assertHealthCompatibility(health, this.capabilities);
+      return health;
     } catch (error) {
       return { ...this.unavailableHealth(), reason: error instanceof Error ? error.message : "unavailable" };
     }
@@ -139,11 +176,18 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
       activeJobs: 0,
       queuedJobs: 0,
       uptime: 0,
+      ...capabilityHealthFields(this.capabilities),
     };
   }
 
   async finalize(snapshot: HanaFinalizationSnapshotV0, options: HanaComputeFinalizeOptions): Promise<HanaFinalizationResultV0> {
     throwIfAborted(options.signal);
+    assertHanaComputeEngineCompatibility(this.capabilities, {
+      snapshotVersion: snapshot.format,
+      protocolVersion: this.capabilities.supportedProtocolVersion,
+      algorithmVersion: snapshot.algorithmVersion,
+      engineId: this.capabilities.engineId,
+    });
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), this.requestTimeoutMilliseconds);
     const abort = () => timeout.abort();
@@ -158,6 +202,12 @@ export class WindowsHanaComputeBackend implements HanaComputeBackend {
       });
       if (!response.ok) throw new Error(`Remote Finalization HTTP ${response.status}`);
       const result = decodeHanaFinalizationResult(await response.arrayBuffer());
+      assertHanaComputeEngineCompatibility(this.capabilities, {
+        snapshotVersion: snapshot.format,
+        protocolVersion: this.capabilities.supportedProtocolVersion,
+        algorithmVersion: result.algorithmVersion,
+        engineId: this.capabilities.engineId,
+      });
       if (result.requestId !== snapshot.requestId
         || result.documentRevision !== snapshot.documentRevision
         || result.objectId !== snapshot.objectId

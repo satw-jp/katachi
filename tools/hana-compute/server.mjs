@@ -7,6 +7,7 @@ import {
   parseHanaFinalizationSnapshot,
 } from "../../src/studies/hana/finalizationCore.ts";
 import { HANA_COMPUTE_PROTOCOL_VERSION } from "../../src/studies/hana/computeProtocol.ts";
+import { HANA_CPU_ENGINE_CAPABILITIES } from "../../src/studies/hana/computeEngine.ts";
 
 const DEFAULT_PORT = 5483;
 const REQUEST_LIMIT_BYTES = 2 * 1024 * 1024;
@@ -215,23 +216,23 @@ export function createHanaComputeServer(options = {}) {
         jsonResponse(response, 200, {
           status: queue.length > 0 ? "busy" : "ready",
           protocolVersion: HANA_COMPUTE_PROTOCOL_VERSION,
-          algorithmVersion: HANA_FINALIZATION_ALGORITHM_VERSION,
-          engine: "cpu-js-v0",
+          algorithmVersion: HANA_CPU_ENGINE_CAPABILITIES.algorithmVersion,
+          engine: HANA_CPU_ENGINE_CAPABILITIES.engineId,
           workerCount,
           activeJobs: active,
           queuedJobs: queue.length,
           uptime: Math.max(0, (Date.now() - startedAt) / 1000),
+          capabilityVersion: HANA_CPU_ENGINE_CAPABILITIES.capabilityVersion,
+          snapshotVersion: HANA_CPU_ENGINE_CAPABILITIES.supportedSnapshotVersion,
+          executionKind: HANA_CPU_ENGINE_CAPABILITIES.executionKind,
+          gpu: HANA_CPU_ENGINE_CAPABILITIES.gpu,
+          supportsCancellation: HANA_CPU_ENGINE_CAPABILITIES.supportsCancellation,
+          supportsObjectLevel: HANA_CPU_ENGINE_CAPABILITIES.supportsObjectLevel,
         });
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/hana-compute/v0/capabilities") {
-        jsonResponse(response, 200, {
-          engine: "cpu-js-v0",
-          binaryMesh: true,
-          cancellation: true,
-          objectLevelFinalization: true,
-          gpu: false,
-        });
+        jsonResponse(response, 200, HANA_CPU_ENGINE_CAPABILITIES);
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/hana-compute/v0/finalize") {

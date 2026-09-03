@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultHanaMaterialSettings } from "./authoringDocument.ts";
-import { CpuJsHanaComputeEngine, HANA_CPU_ENGINE_CAPABILITIES } from "./computeEngine.ts";
+import {
+  CpuJsHanaComputeEngine,
+  HANA_COMPUTE_CAPABILITY_VERSION,
+  HANA_CPU_ENGINE_CAPABILITIES,
+  assertHanaComputeEngineCompatibility,
+  createHanaComputeEngine,
+  registeredHanaComputeEngineIds,
+} from "./computeEngine.ts";
 import { computeHanaFinalization, createHanaFinalizationSnapshot } from "./finalizationCore.ts";
 import { deriveStroke3D } from "./stroke3d.ts";
 
@@ -37,4 +44,20 @@ test("v0 exposes only the deterministic CPU compute engine", async () => {
   const direct = await computeHanaFinalization(snapshot(), undefined, { zSlicesPerYield: 8, yieldToBrowser: async () => undefined });
   assert.deepEqual(Array.from(result.positions), Array.from(direct.positions));
   assert.deepEqual(result.counts, direct.counts);
+});
+
+test("engine registry and capability compatibility reject unknown or mismatched versions", () => {
+  assert.deepEqual(registeredHanaComputeEngineIds(), ["cpu-js-v0"]);
+  assert.equal(createHanaComputeEngine().id, "cpu-js-v0");
+  assert.equal(HANA_CPU_ENGINE_CAPABILITIES.capabilityVersion, HANA_COMPUTE_CAPABILITY_VERSION);
+  assert.doesNotThrow(() => assertHanaComputeEngineCompatibility(HANA_CPU_ENGINE_CAPABILITIES, {
+    snapshotVersion: HANA_CPU_ENGINE_CAPABILITIES.supportedSnapshotVersion,
+    protocolVersion: HANA_CPU_ENGINE_CAPABILITIES.supportedProtocolVersion,
+    algorithmVersion: HANA_CPU_ENGINE_CAPABILITIES.algorithmVersion,
+    engineId: HANA_CPU_ENGINE_CAPABILITIES.engineId,
+  }));
+  assert.throws(() => createHanaComputeEngine("not-registered"), /Unknown HANA compute engine/);
+  assert.throws(() => assertHanaComputeEngineCompatibility(HANA_CPU_ENGINE_CAPABILITIES, {
+    protocolVersion: "katachi.hana-compute-wire.v999",
+  }), /Unsupported protocol version/);
 });

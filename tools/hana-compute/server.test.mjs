@@ -68,7 +68,11 @@ test("compute server reports CPU capabilities and returns a binary mesh", async 
   const capabilities = await (await fetch(`http://127.0.0.1:${port}/api/hana-compute/v0/capabilities`)).json();
   assert.equal(health.status, "ready");
   assert.equal(health.engine, "cpu-js-v0");
+  assert.equal(health.capabilityVersion, "katachi.hana-compute-capability.v0");
+  assert.equal(health.snapshotVersion, "katachi.hana-finalization-snapshot.v0");
   assert.equal(capabilities.gpu, false);
+  assert.equal(capabilities.engineId, "cpu-js-v0");
+  assert.equal(capabilities.supportedProtocolVersion, "katachi.hana-compute-wire.v0");
   const source = snapshot();
   const response = await fetch(`http://127.0.0.1:${port}/api/hana-compute/v0/finalize`, {
     method: "POST",
