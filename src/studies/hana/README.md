@@ -199,6 +199,12 @@ HANA-local UIへ`LOCAL / WINDOWS / AUTO`のCompute toggleと接続状態を追�
 
 Remote結果はbinary typed-arrayを受け取り、identity / generation / validationを確認してからderived Surfaceへ適用する。編集中は従来どおりbounded Live Proxyを表示し、Final Surfaceはpointerup後の最新generationだけを表示する。Remote計算の途中で新しいEditが始まればAbort / cancelを送り、古い結果を表示しない。Surface Mesh、Material Samples、Raw Gesture、Authoring DocumentはRemoteへ保存しない。状態: `SOFTWARE PASS`。LAN launcher + Compute Service、Windows backend、pointerup remote path、Remote result parity、normal URLのconsole warning/error 0を確認済み。Apple Pencil / EasyCanvas / iPadからの実LAN Remote Gateは`IPAD REMOTE GATE PENDING`。
 
+### 2026-09-03 — Remote Compute v0 Milestone 6: protocol and parity
+
+`computeProtocol.test.ts`でheader / typed-array alignment / truncation / size limitを検証し、base64を使わないbinary resultのdecodeを固定した。shared Finalization CoreのLocal resultをwire encode/decodeして、positions、normals、indices、counts、validationがbyte / value単位で一致することを確認する。Node Compute Serviceとのbackend integrationも同じbinary resultを比較する。実装はCPU engine `hana-cpu-js-v0`に限定し、GPUや別精度経路は追加しない。
+
+`npm run test:hana:remote`でRemote protocol、server、parityを実行できる。状態: `SOFTWARE PASS`。Remote実LAN、iPad Pro / Apple Pencil / EasyCanvasからの確認は`IPAD REMOTE GATE PENDING`。
+
 ## Observation
 
 ### 2026-09-01 — HANA-1A implementation start

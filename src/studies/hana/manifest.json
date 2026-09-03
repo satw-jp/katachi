@@ -188,6 +188,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 5 adds HANA-local LOCAL / WINDOWS / AUTO compute controls. Windows mode sends only the current Stroke's versioned Finalization Snapshot to the same-origin compute endpoint after pointerup, receives validated binary typed arrays, preserves bounded Live Preview, cancels stale generations, and restores the final Surface only for the newest result. AUTO uses the documented work estimate and falls back to Local unless strict mode is requested. Browser smoke through the LAN Vite proxy passed with console warning/error 0; iPad Pro / Apple Pencil / EasyCanvas Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 6 fixes protocol and parity coverage. Binary Finalization results use a bounded aligned header + raw Float32 / Uint32 payload without base64; truncation, size limits, array descriptors, and deterministic Local/Core wire round-trip are tested. Node Windows backend integration matches the service result. CPU engine hana-cpu-js-v0 remains the only implementation and iPad Remote Gate remains pending."
     }
   ]
 }

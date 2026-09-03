@@ -17,6 +17,7 @@
     "test:ring-union-policies": "tsx src/studies/interior-growth/ringUnionPolicies.test.ts",
     "test:studies": "tsx src/lib/studies.test.ts",
     "test:hana": "node --test --experimental-strip-types src/studies/hana/*.test.ts",
+    "test:hana:remote": "node --test --experimental-strip-types src/studies/hana/computeProtocol.test.ts tools/hana-compute/*.test.mjs",
     "test:hikari-contracts": "tsx src/lib/hikari/contracts.test.ts",
     "test:flower-pack": "tsx src/studies/flower-packing-spike/packing.test.ts",
     "test:flower-core-network": "tsx src/studies/flower-core-network/flowerCoreNetwork.test.ts",
