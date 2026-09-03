@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.93.1",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-02",
+  "updatedAt": "2026-09-03",
   "params": [
     "count",
     "radiusBase",
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-09-03",
+      "note": "SKIN Authoring Restoration R2 reconnects the retained Surface Pattern authoring workflow to a visible Stage 2 Current panel: generation, Pattern selection, manual add, move/refine, delete, Undo/Redo and .fkei Save remain on the existing main.ts/history.ts authoring state. Manual controls are separated from collapsed Graph screening. Normal Shape Redo now uses a dedicated in-memory future of replayable authoring entries, while Support Paint and SKIN REBUILD workflow histories remain separate. Browser smoke and focused authoring/history tests cover the route; Stage 8 support, BODY, export geometry and the frozen f542f84d print baseline are unchanged. This task intentionally does not deploy."
+    },
     {
       "date": "2026-09-02",
       "note": "TASK E Workflow Guide v0をSKIN REBUILD右WORKFLOW最上部へ追加した。Base、Surface Pattern、Inside / Outside、Overhang、Permanent Reinforcement、Final Mesh、Final Diagnosis、Removable Support / Exportの8 user phaseを既存workflow/stateから読み、current phase、progress、blocker/current state、Primary Action、既存actionへのrouting、前工程への再循環を表示する。FKEI restore時の欠落downstream evidenceはIncompleteと断定せずNeeds verificationとしてFinal Meshへ案内する。geometry、diagnosis、reinforcement、Sparse Support、export semantics、viewport state、FKEI schemaは変更していない。自動テスト、build、ブラウザ確認を実施し、deployは行っていない。"

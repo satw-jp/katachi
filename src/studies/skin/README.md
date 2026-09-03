@@ -1,5 +1,20 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN Authoring Restoration R2 Surface Pattern workflow（2026-09-03）
+
+R1 inventoryで確認した既存のSurface Pattern操作を、Stage 2のCurrent authoring panelへ戻した。
+生成、Pattern選択、手動追加、選択後の移動・微調整、削除、Undo / Redo、`.fkei Save`の導線を
+同じ既存の`history.ts` / `main.ts` authoring stateへ集約し、Graph screeningの折りたたみ領域から
+manual controlsを分離した。通常のShape Undo後はreplay可能なhistory entryを専用futureへ保持し、
+Shape Redoで同じSurface Pattern操作を再適用する。Support PaintとSKIN REBUILD工程Undo / Redoは
+それぞれの既存履歴を維持する。
+
+実ブラウザではauthoring worktreeの`/skin-rebuild.html`でStage 2 Sampleを開き、Pattern選択、
+手動追加、移動、削除、Undo / Redoを確認する。`.fkei`の保存・復元と編集可能性は既存の
+runtime round-tripテストで確認する。Stage 8のSupport source、BODY、export geometry、
+`f542f84d384fcdda30a815ddfb7b8162af1cf4f1`の印刷基準は変更しない。これはUI/historyの復元確認であり、
+slicer・強度・実物造形の保証ではない。今回の範囲ではdeployを行わない。
+
 ## Observation — Stage 8 exported Support / BODY collision parity（2026-09-02）
 
 Stage 8で受理したSparse Removable Supportの`root → vertical shaft → bend →

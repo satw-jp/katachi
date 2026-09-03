@@ -5,6 +5,7 @@ import {
   createEmptyState,
   DEFAULT_SKIN_HOST_PARAMS,
   parseRecipe,
+  redoHistoryEntry,
   record,
   replay,
   serializeRecipe,
@@ -53,6 +54,27 @@ test("undo stops at the initial host baseline", () => {
   assert.equal(result.undone, null);
   assert.equal(result.history.length, 1);
   assert.equal(result.state.host.length, state.host.length);
+});
+
+test("redo reapplies an undone Surface Pattern operation exactly", () => {
+  resetBallIdCounter(1);
+  resetPatchIdCounter(1);
+  const history: SkinHistoryEntry[] = [];
+  const state = createEmptyState();
+  record(history, state, "growHost", { params: { ...DEFAULT_SKIN_HOST_PARAMS } });
+  record(history, state, "packPatches", {
+    identity: "replace",
+    patches: [{ id: 1, shape: "coin", points: [{ id: 1, x: 0, y: 0, z: 0, r: 0.2 }] }],
+  });
+  record(history, state, "removePatch", { id: 1 });
+
+  const undone = undoLastHistoryEntry(history);
+  assert.equal(undone.undone?.op, "removePatch");
+  const redone = redoHistoryEntry(undone.history, undone.undone!);
+
+  assert.deepEqual(redone.history, history);
+  assert.deepEqual(redone.state, state);
+  assert.deepEqual(history, [history[0], history[1], history[2]], "redo must not mutate the source history");
 });
 
 test("current SkinParams recipe export parses and replays losslessly", () => {
