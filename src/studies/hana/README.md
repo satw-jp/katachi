@@ -30,6 +30,7 @@ Milestone 3: SOFTWARE PASS
 Milestone 4: SOFTWARE PASS
 Milestone 5: SOFTWARE PASS
 Milestone 6: SOFTWARE PASS
+Milestone 7: SOFTWARE PASS
 ```
 
 ## Question
@@ -109,6 +110,14 @@ Flower、Stem、Connectorをsemantic node / edgeとして接続するauthoring g
 HANA authoring stateからSKIN側が受け取れるversioned semantic export `katachi.hana-skin-bridge.v0`を追加した。BridgeはRaw Gesture ID、adaptive Control Stroke、pressure / time / order / provenance、Stroke role、material mapping intent、Flower、Authoring Graph、protected authoring featuresを含む。units、source document format、source revisionを明示し、JSON round-tripと参照validatorを備える。Material Samples、Field、Surface Meshなどのderived geometryはBridgeへ出力しない。
 
 SKIN production repositoryには変更を加えず、既存production behaviorを呼び出すadapterもまだ追加していない。状態: `SOFTWARE PASS`。version check、semantic reference validation、derived geometry exclusion、deterministic JSON round-trip、TypeScriptを確認済み。SKIN側統合と実機操作は`HARDWARE RECHECK PENDING`。
+
+### 2026-09-03 — Milestone 7: End-to-End Authoring Study
+
+固定fixture `hana-authoring-study-v0`を追加した。Stem 1本、Core 1個、Petal 5枚から、pressure-based variable radius profile、Raw / Control provenance、Flower、Stem attachment、junction / Graph、Stroke単位のlocal Material Objectsを決定論的に生成する。Document JSON save / reload、Mouse Soft Edit、authoring-only Undo / Redo、Bridge export / validationまでを一つのStudyとして通す。
+
+通常のHANA URLにはHANA-localのAuthoring Study UIを追加した。`Load Study`はMeshを直接読み込まず、Raw GestureからDocument representationを生成する。`Save Study` / `Load JSON`はRaw / Control / authoring semanticsのみを扱い、`Export Bridge`はversioned semantic Bridgeを出力する。Undo / Redoはauthoring Document snapshotだけを対象とする。既存4 ViewのDraw / Edit / Surface経路とSKIN productionは変更していない。
+
+状態: `SOFTWARE PASS`。固定End-to-End fixture、save / reload、edit、Undo / Redo、Graph、Bridge、browser UI初期化、TypeScript、Vite build、consoleを確認済み。EasyCanvas / iPadでの複数Stroke Flower操作は`HARDWARE RECHECK PENDING`。
 
 ## Observation
 

@@ -279,6 +279,38 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.hana-authoring-stack {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 8px;
+  border-left: 1px solid #d7dbe0;
+}
+
+.hana-authoring-title {
+  color: #4e5761;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hana-authoring-stack button {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+.hana-authoring-status {
+  max-width: 27rem;
+  overflow: hidden;
+  color: #68717c;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .hana-workspace {
   position: relative;
   min-width: 0;

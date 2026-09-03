@@ -89,6 +89,7 @@ import {
   type HanaRendererResourceStats,
   type HanaRendererSurfaceUpdateStats,
 } from "./viewportRenderer.ts";
+import { initializeHanaAuthoringStackUi } from "./authoringStackUi.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -3210,3 +3211,4 @@ updateSmoothnessUI();
 updateDisplayUI();
 updateThicknessUI();
 updateDebug();
+initializeHanaAuthoringStackUi();
