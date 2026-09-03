@@ -27,6 +27,10 @@
     },
     {
       "date": "2026-09-03",
+      "note": "Remote Compute v0 Milestone 3 adds a Windows Node CPU service on loopback with bounded worker_threads, bounded request / queue / output limits, health and capability endpoints, finalize / cancel endpoints, worker crash replacement, and the versioned katachi.hana-compute-wire.v0 binary typed-array Mesh response. The service reuses the same hana-cpu-js-v0 core, stores no Authoring Document, exposes gpu=false, and provides no file or code execution surface. Software server, binary protocol, cancellation boundary, malformed-request, and existing HANA checks pass; iPad Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-03",
       "note": "Authoring stack v0 Milestone 1 adds katachi.hana-document.v2 migration, immutable Raw / provenance-preserving multi-Stroke authoring state, active and selected Stroke roles, revision-aware updates, world-space arc-length Soft Edit (LOW 0.75 / MEDIUM 1.50), and authoring-only Undo / Redo. Derived Material / Field / Surface / Proxy data remains outside the saved document. Software checks pass; hardware recheck for multi-Stroke UI remains pending."
     },
     {

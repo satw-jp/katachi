@@ -46,6 +46,9 @@ Branch: agent/hana-remote-compute-v0
 Base: 0cbb70f40b0e36db69f44c74e67dff6105c55682
 Compute engine: cpu-js-v0
 GPU: false
+Milestone 1: SOFTWARE PASS
+Milestone 2: SOFTWARE PASS
+Milestone 3: SOFTWARE PASS
 ```
 
 ## Question
@@ -163,6 +166,14 @@ Silhouette plane、projected view direction、2D contour、Section plane、Secti
 Milestone 1として、DOM・Three.js・Pointer Eventから独立した`katachi.hana-finalization-snapshot.v0`とshared CPU Finalization Coreを追加した。Coreは既存のSmooth Centerline、Thickness-driven dense Material Samples、KD-tree Point Field、cooperative Z-slice Mesh、validationを一つの決定論的経路で実行し、MeshをFloat32 / Uint32 typed arraysとして返す。snapshotは対象objectだけを含み、Authoring Document全体、UI state、Meshは送信・保存しない。
 
 Milestone 2としてLocal / Windows / Autoの`HanaComputeBackend` interfaceを追加した。AbortSignal、generation identity、Remote health、work estimate、strict Remote、Remote失敗時のLocal fallbackを境界化した。初期Auto閾値はMaterial Samples 512点または推定voxel 200,000以上をWindows候補とし、設定可能なpolicyとして固定する。状態: `SOFTWARE PASS`。iPad Remote Gate、実LAN接続、Windows serverは後続Milestoneで確認する。
+
+### 2026-09-03 — Remote Compute v0 Milestone 3: Windows CPU Compute Service
+
+`tools/hana-compute/server.mjs`にloopback専用のWindows CPU Compute Serviceを追加した。`127.0.0.1`の初期portは`5483`、`HANA_COMPUTE_PORT`で変更でき、Node HTTP event loopではFinal計算せずbounded `worker_threads` pool（初期値は`max(1, min(4, logicalCPU - 1))`、`HANA_COMPUTE_WORKERS`で変更）へ委譲する。queueはbounded、requestは2MiB、binary Mesh outputは64MiBを上限とし、worker crash時はreplacement workerを起動する。
+
+`/api/hana-compute/v0/health`、`/capabilities`、`/finalize`、`/cancel`を実装した。Finalization Snapshotだけを受け取り、`katachi.hana-compute-wire.v0`の4-byte header length + UTF-8 header + raw Float32 / Uint32 typed-array payloadでMeshを返す。base64、file access、Document保存、任意コード実行はない。capabilityは`engine=cpu-js-v0`、`gpu=false`、`cancellation=true`、`objectLevelFinalization=true`を明示する。
+
+状態: `SOFTWARE PASS`。health / capability、Worker Finalization、binary decode、malformed request拒否、Node syntax、既存HANA回帰を確認済み。iPad Remote Gate、LAN Firewall、Windows実環境のCPU負荷確認は`IPAD REMOTE GATE PENDING`。
 
 ## Observation
 
