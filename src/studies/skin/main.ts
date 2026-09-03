@@ -272,6 +272,16 @@ import {
   type SparseRemovableSupportTarget,
 } from "./rebuild/sparseRemovableSupport.ts";
 import {
+  goldenBounds,
+  goldenFingerprintPayload,
+  goldenVector,
+  assertSkinRebuildGoldenSnapshot,
+  SKIN_REBUILD_GOLDEN_FKEI,
+  SKIN_REBUILD_GOLDEN_EXPECTED,
+  type GoldenRouteFacts,
+  type SkinRebuildGoldenSnapshot,
+} from "./rebuild/goldenOffsetBendRegression.ts";
+import {
   SkinRebuildShadowObserver,
 } from "./rebuild/geometryEngine/index.ts";
 import {
@@ -17871,6 +17881,124 @@ function updateEmptyViewportHint(): void {
   emptyViewportHint.hidden = state.host.length === 0 || state.patches.length > 0;
 }
 
+async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnapshot> {
+  const pipeline = skinRebuildPipeline;
+  const responsibility = pipeline?.responsibilityOverhang ?? null;
+  const stage4 = responsibility?.interior ?? null;
+  const diagnosis = skinRebuildFinalDiagnosisIsCurrent() ? skinRebuildFinalArtworkDiagnosis : null;
+  const presentationState = skinRebuildStage7DangerPresentationState;
+  const presentation = presentationState?.diagnosis === diagnosis && presentationState.presentation.available
+    ? presentationState.presentation
+    : null;
+  const sparseResult = skinRebuildSparseSupportResult;
+  if (!pipeline || !pipeline.project || !responsibility || !stage4 || !diagnosis || !presentation || !sparseResult) {
+    throw new Error("SKIN golden snapshot requires current Stage 4, Stage 7, and Stage 8 state");
+  }
+
+  const routeFacts = (entry: SparseRemovableSupportResult["acceptedRoutes"][number]): GoldenRouteFacts => ({
+    candidateId: entry.candidateId,
+    kind: entry.route.kind,
+    root: goldenVector(entry.route.root),
+    lowerShaftEnd: entry.route.segments[0] ? goldenVector(entry.route.segments[0].end) : null,
+    bend: entry.route.segments.length >= 3 ? goldenVector(entry.route.segments[1].end) : null,
+    neckStart: goldenVector(entry.route.neckStart),
+    target: goldenVector(entry.route.target),
+  });
+  const verticalEntry = sparseResult.acceptedRoutes.find(({ route }) => route.kind === "vertical") ?? null;
+  const offsetBendEntry = sparseResult.acceptedRoutes.find(({ route }) => route.segments.length >= 3) ?? null;
+  const allRoutes = sparseResult.acceptedRoutes.map(({ candidateId, route }) => ({
+    candidateId,
+    kind: route.kind,
+    root: goldenVector(route.root),
+    neckStart: goldenVector(route.neckStart),
+    target: goldenVector(route.target),
+    segments: route.segments.map((segment) => ({
+      start: goldenVector(segment.start),
+      end: goldenVector(segment.end),
+      radius: segment.radius,
+    })),
+  }));
+  const classification = {
+    faceClasses: [...stage4.faceClasses],
+    faceRegionIds: [...stage4.faceRegionIds],
+    faceOwnerPatchIds: [...stage4.faceOwnerPatchIds],
+    insideFaceRegionIds: [...stage4.insideFaceRegionIds],
+    insideRegionIds: [...stage4.insideRegionIds],
+    outsideRegionIds: [...stage4.outsideRegionIds],
+    unclassifiedRegionIds: [...stage4.unclassifiedRegionIds],
+  };
+  const criticalTargets = sparseResult.debug.criticalTargets.map((target) => ({
+    id: target.id,
+    regionId: target.regionId,
+    ownerPatchId: target.ownerPatchId,
+    position: goldenVector(target.position),
+    sourceFaceIndices: [...target.sourceFaceIndices],
+  }));
+  const graph = {
+    kind: sparseResult.graph.kind,
+    nodes: sparseResult.graph.nodes.map((node) => ({
+      id: node.id,
+      position: goldenVector(node.position),
+      radius: node.radius,
+    })),
+    edges: sparseResult.graph.edges.map((edge) => ({ ...edge })),
+    stats: { ...sparseResult.graph.stats },
+  };
+  const [settingsFingerprint, classificationFingerprint, positionsFingerprint, criticalTargetFingerprint,
+    supportGraphFingerprint, routeFingerprint] = await Promise.all([
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-settings-v1", pipeline.settings)),
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-stage4-classification-v1", classification)),
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-body-positions-v1", [...diagnosis.meshPositions])),
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-critical-targets-v1", criticalTargets)),
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-support-graph-v1", graph)),
+    sha256Hex(goldenFingerprintPayload("skin-rebuild-golden-routes-v1", allRoutes)),
+  ]);
+  return {
+    fkei: SKIN_REBUILD_GOLDEN_FKEI,
+    settingsFingerprint,
+    stage4: {
+      allFaceCount: responsibility.faceCount,
+      allRegionCount: responsibility.regionCount,
+      insideFaceCount: stage4.insideFaceCount,
+      insideRegionCount: stage4.insideRegionIds.length,
+      outsideFaceCount: stage4.outsideFaceCount,
+      outsideRegionCount: stage4.outsideRegionIds.length,
+      classificationFingerprint,
+    },
+    body: {
+      faceCount: diagnosis.faceCount,
+      positionsFingerprint,
+      bounds: goldenBounds(diagnosis.meshPositions),
+    },
+    criticalTargets: {
+      count: sparseResult.diagnostics.criticalTargetCount,
+      fingerprint: criticalTargetFingerprint,
+    },
+    supportGraph: {
+      nodeCount: sparseResult.graph.nodes.length,
+      edgeCount: sparseResult.graph.edges.length,
+      fingerprint: supportGraphFingerprint,
+    },
+    diagnostics: {
+      supportedTargetCount: sparseResult.diagnostics.coveredTargetCount,
+      unsupportedTargetCount: sparseResult.diagnostics.unsupportedTargetCount,
+      generatedSupportCount: sparseResult.diagnostics.generatedSupportCount,
+      straightRejectedByBody: sparseResult.diagnostics.straightRejectedByBody,
+      acceptedBodyCollisionCount: sparseResult.diagnostics.acceptedBodyCollisionCount,
+      insideDerivedSupportCount: sparseResult.diagnostics.insideDerivedSupportCount,
+      verticalCount: sparseResult.diagnostics.verticalCount,
+      leaningCount: sparseResult.diagnostics.leaningCount,
+      offsetBendCount: sparseResult.diagnostics.offsetBendCount,
+      routeCandidateCount: sparseResult.diagnostics.routeCandidateCount,
+      routeFingerprint,
+    },
+    representativeRoutes: {
+      vertical: verticalEntry ? routeFacts(verticalEntry) : null,
+      offsetBend: offsetBendEntry ? routeFacts(offsetBendEntry) : null,
+    },
+  };
+}
+
 // Debug / verification handle (used by automated checks and the "same shape
 // after import" test in README). Read state, or feed a recipe directly.
 (window as unknown as Record<string, unknown>).__skin = {
@@ -18015,6 +18143,7 @@ function updateEmptyViewportHint(): void {
   getPartitionResult: () => partitionResult,
   getPartitionGate: () => partitionResult?.gate ?? null,
   getImportedRecipeInfo: () => ({ filename: importedRecipeFilename, sha256: importedRecipeSha256 }),
+  getSkinRebuildGoldenSnapshot: () => captureSkinRebuildGoldenSnapshot(),
   getSurfacePersistentCacheDebug: () => ({
     meshKey: activeSurfacePersistentCacheKeys?.meshKey ?? null,
     diagnosisKey: activeSurfacePersistentCacheKeys?.diagnosisKey ?? null,
@@ -18137,6 +18266,22 @@ function updateEmptyViewportHint(): void {
   tutorialRestart: () => tutorialRestart(),
   tutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 };
+
+if (isSkinRebuildApp && import.meta.env.DEV) {
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "F9") return;
+    void captureSkinRebuildGoldenSnapshot()
+      .then((snapshot) => {
+        assertSkinRebuildGoldenSnapshot(snapshot, SKIN_REBUILD_GOLDEN_EXPECTED);
+        document.documentElement.dataset.skinRebuildGoldenSnapshot = JSON.stringify(snapshot);
+        delete document.documentElement.dataset.skinRebuildGoldenSnapshotError;
+      })
+      .catch((error) => {
+        document.documentElement.dataset.skinRebuildGoldenSnapshotError =
+          error instanceof Error ? error.message : String(error);
+      });
+  });
+}
 
 function installLocalV088ReviewNavigation(selection: NonNullable<typeof localV088ReviewSelection>): void {
   document.querySelector(".local-v088-review-navigation")?.remove();
