@@ -29,6 +29,12 @@ export interface GlobalAppearanceParams {
   focusDisorder: number;
   cameraDrift: number;
   fieldOfView: number;
+  spatialAmbiguity: number;
+  foregroundIntrusion: number;
+  focusContradiction: number;
+  voidRetention: number;
+  scaleEcho: number;
+  parallaxDisorder: number;
   timeScale: number;
   eventDensity: number;
   pauseBias: number;
@@ -49,10 +55,33 @@ export const GLOBAL_PARAMETER_DEFINITIONS: readonly ParameterDefinition[] = [
   { id: "focusDisorder", label: "Focus Disorder", kind: "range", defaultValue: 0.6, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "cameraDrift", label: "Camera Drift", kind: "range", defaultValue: 0.22, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "fieldOfView", label: "Field of View", kind: "range", defaultValue: 46, min: 28, max: 70, step: 1, updateMode: "uniform" },
+  { id: "spatialAmbiguity", label: "Spatial Ambiguity", kind: "range", defaultValue: 0.68, min: 0, max: 1, step: 0.02, updateMode: "rebuild" },
+  { id: "foregroundIntrusion", label: "Foreground Intrusion", kind: "range", defaultValue: 1.05, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
+  { id: "focusContradiction", label: "Focus Contradiction", kind: "range", defaultValue: 0.62, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "voidRetention", label: "Void Retention", kind: "range", defaultValue: 0.55, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
+  { id: "scaleEcho", label: "Scale Echo", kind: "range", defaultValue: 0.85, min: 0, max: 2, step: 0.05, updateMode: "rebuild" },
+  { id: "parallaxDisorder", label: "Parallax Disorder", kind: "range", defaultValue: 0.24, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
   { id: "timeScale", label: "Time Scale", kind: "range", defaultValue: 1, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
   { id: "eventDensity", label: "Event Density", kind: "range", defaultValue: 1, min: 0, max: 2, step: 0.05, updateMode: "uniform" },
   { id: "pauseBias", label: "Pause Bias", kind: "range", defaultValue: 0.5, min: 0, max: 1, step: 0.02, updateMode: "uniform" },
 ] as const;
+
+export const SPATIAL_NORTH_STAR_PARAMETERS: Readonly<Record<string, ParameterValue>> = {
+  cameraDepth: 0.82,
+  depthSpread: 1.55,
+  foregroundScale: 1.48,
+  backgroundScale: 0.82,
+  focusDisorder: 0.88,
+  localContrast: 1.5,
+  blackRetention: 0.58,
+  blurAmount: 1.05,
+  spatialAmbiguity: 0.84,
+  foregroundIntrusion: 1.35,
+  focusContradiction: 0.82,
+  voidRetention: 0.62,
+  scaleEcho: 1.25,
+  parallaxDisorder: 0.34,
+};
 
 export function defaultParameters(definitions: readonly ParameterDefinition[]): Record<string, ParameterValue> {
   return Object.fromEntries(definitions.map((definition) => [definition.id, definition.defaultValue]));

@@ -17,6 +17,7 @@ export interface ConceptLabUrlState {
   readonly panel: boolean;
   readonly parameters: Record<string, ParameterValue>;
   readonly camera: CameraLinkState | null;
+  readonly quality?: "spatial-north-star";
 }
 
 function parseParameters(value: string | null): Record<string, ParameterValue> {
@@ -54,6 +55,7 @@ export function parseConceptLabUrl(search: string, defaultConcept: string): Conc
     panel: params.get("panel") === "1",
     parameters: parseParameters(params.get("p")),
     camera: parseCamera(params.get("cam")),
+    quality: params.get("quality") === "spatial-north-star" ? "spatial-north-star" : undefined,
   };
 }
 
@@ -66,5 +68,6 @@ export function serializeConceptLabUrl(baseUrl: string, state: Omit<ConceptLabUr
   if (state.panel) url.searchParams.set("panel", "1"); else url.searchParams.delete("panel");
   if (Object.keys(state.parameters).length > 0) url.searchParams.set("p", JSON.stringify(state.parameters));
   if (state.camera) url.searchParams.set("cam", JSON.stringify(state.camera));
+  if (state.quality === "spatial-north-star") url.searchParams.set("quality", state.quality);
   return url.toString();
 }

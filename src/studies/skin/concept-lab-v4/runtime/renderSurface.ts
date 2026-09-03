@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { VisualQualityMode } from "../visual/visualQuality.ts";
 
 export interface CameraState {
   readonly x: number;
@@ -26,17 +27,19 @@ export class RenderSurface {
   readonly camera = new THREE.PerspectiveCamera(46, 1, 0.01, 100);
   private readonly artwork: HTMLElement;
 
-  constructor(artwork: HTMLElement) {
+  constructor(artwork: HTMLElement, visualQuality: VisualQualityMode = "lifted") {
     this.artwork = artwork;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x000000, 1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.18;
     this.renderer.domElement.setAttribute("aria-label", "SKIN ART Concept Lab artwork");
     this.renderer.domElement.className = "concept-lab-v4-canvas";
     this.artwork.appendChild(this.renderer.domElement);
     this.camera.up.set(0, 0, 1);
-    this.scene.scale.setScalar(1.6);
+    this.scene.scale.setScalar(visualQuality === "baseline" ? 1.6 : 1.86);
     this.camera.position.set(5.4, -8.2, 4.5);
     this.camera.lookAt(0, 0.2, 0);
     this.resize();
@@ -71,6 +74,8 @@ export class RenderSurface {
     renderer.setSize(width, height, false);
     renderer.setClearColor(0x000000, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
     const camera = cloneCamera(this.camera, width, height);
     return {
       canvas,

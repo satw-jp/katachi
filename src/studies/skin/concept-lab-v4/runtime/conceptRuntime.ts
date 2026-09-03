@@ -2,11 +2,12 @@ import { conceptDefinition } from "../conceptRegistry.ts";
 import { CONCEPT_DEFINITIONS } from "../conceptRegistry.ts";
 import type { ConceptInstance, PaletteColors, PaletteName } from "../conceptTypes.ts";
 import { V4_PALETTES } from "../conceptTypes.ts";
-import { GLOBAL_PARAMETER_DEFINITIONS, ParameterStore, type ParameterValue } from "../parameterStore.ts";
+import { GLOBAL_PARAMETER_DEFINITIONS, ParameterStore, SPATIAL_NORTH_STAR_PARAMETERS, type ParameterValue } from "../parameterStore.ts";
 import type { ConceptSource } from "../sourceAdapter.ts";
 import { resolveConceptLabSeed } from "../seed.ts";
 import { EventScheduler } from "./eventScheduler.ts";
 import { RenderSurface, type CameraState } from "./renderSurface.ts";
+import type { VisualQualityMode } from "../visual/visualQuality.ts";
 
 export interface RuntimeFrame {
   readonly elapsedSeconds: number;
@@ -24,6 +25,10 @@ export interface RuntimeOptions {
 
 function quality(): "mobile" | "desktop" | "capture" {
   return window.innerWidth <= 760 ? "mobile" : "desktop";
+}
+
+function visualQuality(): VisualQualityMode {
+  return window.location.pathname.includes("concepts-v4-baseline") || new URLSearchParams(window.location.search).get("baseline") === "1" ? "baseline" : "lifted";
 }
 
 export class ConceptRuntime {
@@ -44,7 +49,7 @@ export class ConceptRuntime {
   private paletteColors: PaletteColors = V4_PALETTES.rich;
 
   constructor(artwork: HTMLElement, source: ConceptSource, onFrame: (frame: RuntimeFrame) => void) {
-    this.surface = new RenderSurface(artwork);
+    this.surface = new RenderSurface(artwork, visualQuality());
     this.source = source;
     this.onFrame = onFrame;
     this.tick = this.tick.bind(this);
@@ -59,7 +64,8 @@ export class ConceptRuntime {
     this.scheduler = new EventScheduler(seed);
     this.paletteColors = palette === "custom" ? options.customColors ?? V4_PALETTES.rich : V4_PALETTES[palette];
     const definition = conceptDefinition(this.activeId);
-    this.store = new ParameterStore([...GLOBAL_PARAMETER_DEFINITIONS, ...definition.parameters], options.initialParameters);
+    const preset = new URLSearchParams(window.location.search).get("quality") === "spatial-north-star" ? SPATIAL_NORTH_STAR_PARAMETERS : {};
+    this.store = new ParameterStore([...GLOBAL_PARAMETER_DEFINITIONS, ...definition.parameters], { ...preset, ...options.initialParameters });
     this.elapsedSeconds = Math.max(0, (options.initialTimeMs ?? 0) / 1000);
     this.playing = true;
     this.surface.camera.position.set(5.4, -8.2, 4.5);
@@ -74,6 +80,7 @@ export class ConceptRuntime {
       parameters: this.store.snapshot(),
       palette,
       colors: this.paletteColors,
+      visualQuality: visualQuality(),
     });
     this.instance.applyUniformParameters(this.store.snapshot());
     this.emitFrame();

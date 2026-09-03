@@ -4,7 +4,7 @@ import type { VisualStudySource } from "../visual-studies/catalog.ts";
 import { adaptConceptSource } from "./sourceAdapter.ts";
 import { CONCEPT_DEFINITIONS, conceptDefinition } from "./conceptRegistry.ts";
 import { V4_PALETTES, type PaletteColors, type PaletteName } from "./conceptTypes.ts";
-import { defaultParameters, type ParameterDefinition, type ParameterValue } from "./parameterStore.ts";
+import { defaultParameters, SPATIAL_NORTH_STAR_PARAMETERS, type ParameterDefinition, type ParameterValue } from "./parameterStore.ts";
 import { parseConceptLabUrl, serializeConceptLabUrl } from "./urlState.ts";
 import { ConceptRuntime } from "./runtime/conceptRuntime.ts";
 import { saveStillCapture } from "./capture/stillCapture.ts";
@@ -15,6 +15,8 @@ const rootElement = document.getElementById("concept-lab-v4-root");
 if (!rootElement) throw new Error("Concept Lab V4 root is missing");
 const root: HTMLElement = rootElement;
 root.className = "concept-lab-v4";
+const isBaseline = window.location.pathname.includes("concepts-v4-baseline") || new URLSearchParams(window.location.search).get("baseline") === "1";
+root.dataset.version = isBaseline ? "baseline" : "lifted";
 root.innerHTML = `<main class="concept-lab-v4-artwork"></main><aside class="concept-lab-v4-inspector" aria-label="Concept Lab inspector"></aside>`;
 const artwork = root.querySelector<HTMLElement>(".concept-lab-v4-artwork")!;
 const inspector = root.querySelector<HTMLElement>(".concept-lab-v4-inspector")!;
@@ -91,6 +93,7 @@ function archiveMarkup(): string {
     <a class="v4-link" href="../concepts/">CONCEPT V1 ↗</a>
     <a class="v4-link" href="../concepts-v2/">CONCEPT V2 ↗</a>
     <a class="v4-link" href="../concepts-v3/">CONCEPT V3 ↗</a>
+    <a class="v4-link" href="../concepts-v4-baseline/">V4 BASELINE ↗</a>
   </nav></section>`;
 }
 
@@ -121,8 +124,8 @@ function appearanceMarkup(): string {
 
 function spaceMarkup(): string {
   if (!runtime) return "";
-  const definitions = runtime.globalDefinitions().filter((definition) => ["cameraDepth", "depthSpread", "foregroundScale", "backgroundScale", "focusDisorder", "cameraDrift", "fieldOfView"].includes(definition.id));
-  return groupMarkup("SPACE", definitions);
+  const definitions = runtime.globalDefinitions().filter((definition) => ["cameraDepth", "depthSpread", "foregroundScale", "backgroundScale", "focusDisorder", "cameraDrift", "fieldOfView", "spatialAmbiguity", "foregroundIntrusion", "focusContradiction", "voidRetention", "scaleEcho", "parallaxDisorder"].includes(definition.id));
+  return `${groupMarkup("SPACE", definitions)}<section class="v4-section"><div class="v4-actions"><button class="v4-button" data-action="spatial-preset" type="button">SPATIAL NORTH STAR</button></div><p class="v4-capture-note">CG-ONLY PERCEPTUAL SPACE / SOURCE ECHOES</p></section>`;
 }
 
 function momentMarkup(): string {
@@ -195,6 +198,10 @@ function bindActions(): void {
   inspector.querySelector<HTMLButtonElement>("[data-action=play]")?.addEventListener("click", () => { runtime!.togglePlaying(); updateUrl(true); });
   inspector.querySelector<HTMLButtonElement>("[data-action=new]")?.addEventListener("click", () => { runtime!.newRealization(); updateUrl(); setStatus("NEW REALIZATION / PRESENTATION SEED CHANGED"); });
   inspector.querySelector<HTMLButtonElement>("[data-action=restart]")?.addEventListener("click", () => { runtime!.restartSameSeed(); updateUrl(true); setStatus("RESTART SAME SEED / TIME 0"); });
+  inspector.querySelector<HTMLButtonElement>("[data-action=spatial-preset]")?.addEventListener("click", () => {
+    runtime!.mount(runtime!.concept(), activePalette, runtime!.seed(), { initialParameters: { ...runtime!.parameters(), ...SPATIAL_NORTH_STAR_PARAMETERS }, camera: runtime!.surface.cameraState(), customColors });
+    const url = new URL(window.location.href); url.searchParams.set("quality", "spatial-north-star"); window.history.replaceState(null, "", url); renderInspector(); setStatus("SPATIAL NORTH STAR / CG-ONLY SPACE");
+  });
   inspector.querySelector<HTMLButtonElement>("[data-action=freeze]")?.addEventListener("click", () => { runtime!.togglePlaying(); setStatus(runtime!.isPlaying() ? "PLAYING / LIVE MOMENT" : "FROZEN / READY FOR CAPTURE"); });
   inspector.querySelector<HTMLButtonElement>("[data-action=png]")?.addEventListener("click", async () => { try { const size = readCaptureSize(); const result = await saveStillCapture(runtime!, { ...size, includeManifest: false, gitCommit: import.meta.env.VITE_GIT_COMMIT }); setStatus(`PNG SAVED / ${result.filename} / ${result.blob.size} BYTES`); } catch (error) { setStatus(`PNG FAILED / ${error instanceof Error ? error.message : String(error)}`, true); } });
   inspector.querySelector<HTMLButtonElement>("[data-action=manifest]")?.addEventListener("click", async () => { try { const size = readCaptureSize(); const result = await saveStillCapture(runtime!, { ...size, includeManifest: true, gitCommit: import.meta.env.VITE_GIT_COMMIT }); setStatus(`PNG + MANIFEST SAVED / ${result.blob.size} BYTES`); } catch (error) { setStatus(`CAPTURE FAILED / ${error instanceof Error ? error.message : String(error)}`, true); } });
@@ -216,7 +223,7 @@ function bindActions(): void {
 
 function renderInspector(): void {
   const definition = runtime?.currentDefinition();
-  inspector.innerHTML = `<div class="v4-inspector-head"><a class="v4-brand" href="../">SKIN ART / LAB V4</a><button class="v4-presentation" data-action="presentation" type="button">PRESENTATION</button></div><div class="v4-status" data-status>${statusMessage}</div>${runtime && definition ? `<section class="v4-section"><h2>${definition.number} / ${definition.title}</h2><p class="v4-statement">${definition.statement}</p></section>${archiveMarkup()}${conceptsMarkup()}${momentMarkup()}${appearanceMarkup()}${spaceMarkup()}${groupMarkup("CONCEPT PARAMETERS", definition.parameters)}${paletteMarkup()}${captureMarkup()}${presetMarkup()}` : `<section class="v4-section"><h2>SOURCE</h2><p class="v4-statement">${statusMessage}</p></section>`}`;
+  inspector.innerHTML = `<div class="v4-inspector-head"><a class="v4-brand" href="../">SKIN ART / ${isBaseline ? "V4 BASELINE" : "LAB V4.1"}</a><button class="v4-presentation" data-action="presentation" type="button">PRESENTATION</button></div><div class="v4-status" data-status>${statusMessage}</div>${runtime && definition ? `<section class="v4-section"><h2>${definition.number} / ${definition.title}</h2><p class="v4-statement">${definition.statement}</p></section>${archiveMarkup()}${conceptsMarkup()}${momentMarkup()}${appearanceMarkup()}${spaceMarkup()}${groupMarkup("CONCEPT PARAMETERS", definition.parameters)}${paletteMarkup()}${captureMarkup()}${presetMarkup()}` : `<section class="v4-section"><h2>SOURCE</h2><p class="v4-statement">${statusMessage}</p></section>`}`;
   if (runtime) { bindParameterControls(); bindActions(); updateFrame({ elapsedSeconds: runtime.elapsedMs() / 1000, paused: !runtime.isPlaying(), seed: runtime.seed(), concept: runtime.concept() }); }
   inspector.querySelector<HTMLButtonElement>("[data-action=presentation]")?.addEventListener("click", () => setPanel(false));
 }

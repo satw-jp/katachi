@@ -3,6 +3,7 @@ import { makeSeededRandom } from "./seed.ts";
 import type { ConceptBuildContext, ConceptFrameContext, ConceptInstance } from "./conceptTypes.ts";
 import type { ConceptEdge } from "./sourceAdapter.ts";
 import type { ParameterValue } from "./parameterStore.ts";
+import { attachQuality, createQualityOverlay, updateAttachedQuality } from "./visual/visualQuality.ts";
 
 function numberParam(parameters: Readonly<Record<string, ParameterValue>>, id: string, fallback: number): number {
   const value = parameters[id];
@@ -84,7 +85,10 @@ class GroupInstance implements ConceptInstance {
     this.params = { ...initial };
   }
 
-  update(frame: ConceptFrameContext): void { this.updateFn(frame, this.params); }
+  update(frame: ConceptFrameContext): void {
+    updateAttachedQuality(this.group, frame, this.params);
+    this.updateFn(frame, this.params);
+  }
   applyUniformParameters(parameters: Readonly<Record<string, ParameterValue>>): void { Object.assign(this.params, parameters); }
   captureState(): unknown { return { label: this.label, parameters: { ...this.params } }; }
   dispose(): void { this.group.parent?.remove(this.group); disposeObject(this.group); }
@@ -130,6 +134,7 @@ function makeWeightOfHesitation(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, phase: random() };
   });
+  attachQuality(group, createQualityOverlay(ctx, "weight-of-hesitation"));
   ctx.scene.add(group);
   return new GroupInstance(group, "weight-of-hesitation", ctx.parameters, (frame, params) => {
     const gravity = numberParam(params, "gravity", 0.9);
@@ -180,6 +185,7 @@ function makeMutualRescue(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, phase: random() };
   });
+  attachQuality(group, createQualityOverlay(ctx, "mutual-rescue"));
   ctx.scene.add(group);
   return new GroupInstance(group, "mutual-rescue", ctx.parameters, (frame, params) => {
     const gravity = numberParam(params, "gravity", 0.65);
@@ -234,6 +240,8 @@ function makeVoidBouquet(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     rings.push({ object, material, phase: random(), base });
   }
+  if (ctx.visualQuality !== "baseline") rings.forEach((ring) => { ring.object.visible = false; });
+  attachQuality(group, createQualityOverlay(ctx, "void-bouquet"));
   ctx.scene.add(group);
   return new GroupInstance(group, "void-bouquet", ctx.parameters, (frame, params) => {
     const scatter = numberParam(params, "scattering", 0.9);
@@ -269,6 +277,7 @@ function makeInsideOut(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, base: motif.center.clone(), phase: (index * 0.13) % 1 };
   });
+  attachQuality(group, createQualityOverlay(ctx, "inside-out"));
   ctx.scene.add(group);
   return new GroupInstance(group, "inside-out", ctx.parameters, (frame, params) => {
     const expansion = numberParam(params, "supportExpansion", 1.6);
@@ -311,6 +320,7 @@ function makeOneHandManyFlowers(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, base: points, deformation: 0.3 + random() * 0.8, phase: random(), motif };
   });
+  attachQuality(group, createQualityOverlay(ctx, "one-hand-many-flowers"));
   ctx.scene.add(group);
   return new GroupInstance(group, "one-hand-many-flowers", ctx.parameters, (frame, params) => {
     const deformation = numberParam(params, "localDeformation", 0.85);
@@ -359,6 +369,7 @@ function makeCraftStrata(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, phase: random() };
   });
+  attachQuality(group, createQualityOverlay(ctx, "craft-strata"));
   ctx.scene.add(group);
   return new GroupInstance(group, "craft-strata", ctx.parameters, (frame, params) => {
     const speed = numberParam(params, "depositionSpeed", 1);
@@ -408,6 +419,8 @@ function makeShadowRoom(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, base: object.position.clone(), phase: (index * 0.19) % 1 };
   });
+  if (ctx.visualQuality !== "baseline") shadows.forEach((shadow) => { shadow.object.visible = false; });
+  attachQuality(group, createQualityOverlay(ctx, "shadow-room"));
   ctx.scene.add(group);
   return new GroupInstance(group, "shadow-room", ctx.parameters, (frame, params) => {
     const speed = numberParam(params, "sunSpeed", 0.35);
@@ -450,6 +463,7 @@ function makeMicroLandscape(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     macroLines.push(object);
   }
+  attachQuality(group, createQualityOverlay(ctx, "micro-landscape"));
   ctx.scene.add(group);
   return new GroupInstance(group, "micro-landscape", ctx.parameters, (frame, params) => {
     const journey = numberParam(params, "journeySpeed", 0.7);
@@ -492,6 +506,7 @@ function makeVisibleMending(ctx: ConceptBuildContext): ConceptInstance {
     return { edge, scar, stitch, material, beads, points, phase: index * 0.22 };
   });
   group.scale.setScalar(1.8);
+  attachQuality(group, createQualityOverlay(ctx, "visible-mending"));
   ctx.scene.add(group);
   return new GroupInstance(group, "visible-mending", ctx.parameters, (frame, params) => {
     const speed = numberParam(params, "growthSpeed", 0.85);
@@ -530,6 +545,7 @@ function makeStructuralChoir(ctx: ConceptBuildContext): ConceptInstance {
     group.add(object);
     return { object, material, index };
   });
+  attachQuality(group, createQualityOverlay(ctx, "structural-choir"));
   ctx.scene.add(group);
   let solverAccumulator = 0;
   return new GroupInstance(group, "structural-choir", ctx.parameters, (frame, params) => {

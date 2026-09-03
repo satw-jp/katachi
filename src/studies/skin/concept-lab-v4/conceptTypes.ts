@@ -28,6 +28,8 @@ export interface ConceptBuildContext {
   readonly parameters: Readonly<Record<string, ParameterValue>>;
   readonly palette: PaletteName;
   readonly colors: PaletteColors;
+  /** Presentation-only switch. Baseline keeps the pre-lift V4 renderer intact. */
+  readonly visualQuality?: "baseline" | "lifted";
 }
 
 export interface ConceptFrameContext {
