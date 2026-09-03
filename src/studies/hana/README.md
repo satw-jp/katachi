@@ -81,6 +81,12 @@ Raw Gestureのpressureとtime / distanceから、arc-lengthで参照できるder
 
 Mapping設定はauthoring Strokeへ保存できるが、Material Profile、dense radius列、Live Proxy、Field、Surfaceは保存しない。UniformはHANA-2Aの一定radiusと一致し、Live用profileには明示的な上限を設け、Final用profileの密度と分離する。状態: `SOFTWARE PASS`。実機でのpressure / speed表現確認は`HARDWARE RECHECK PENDING`として後続Gateに残す。
 
+### 2026-09-03 — Milestone 3: Local Material Object Architecture
+
+Strokeごとにlocal bounds、Material Sample cache、local candidate query、source revision、generation ID、derived mesh cacheを持つ`HanaMaterialObjectRegistry`を追加した。編集・再生成のdirty範囲はobject ID単位で管理し、無関係なStrokeを再生成しない。generationは同一object内でlatest-onlyとし、古い結果はapplyされず、object / cacheの個数が編集回数に比例して増えない。
+
+既存HANA-2AのZ-slice協調生成とPreview優先の境界は維持し、完全なSparse Voxel Systemや通常経路のCapsule SDF置換は行わない。状態: `SOFTWARE PASS`。2本以上のobject isolation、generation cancellation、local candidate query、既存Field回帰をsoftwareで確認済み。実機の複数object操作は`HARDWARE RECHECK PENDING`。
+
 ## Observation
 
 ### 2026-09-01 — HANA-1A implementation start
