@@ -1,5 +1,9 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — Workflow Guide viewport sizing regression（2026-09-03）
+
+右WORKFLOWのGuideは既存の`max-height: 50vh` / `overflow-y: auto`契約を維持したまま、右ペインのDOMをGuideと下側領域へ分離した。親のflex / overflow競合で下側のStage / Propertiesが押し出されていたため、下側のPrint準備とPropertiesも独立スクロール領域として残り高さを共有する。小さいviewport、1920×1080、通常サイズ、resize後の実ブラウザ計測でGuide高さ、内部scroll、下側領域の可視性を数値確認した。geometry、Support、Stage 8、export、3MF / STL / report parity、f542f84d384fcdda30a815ddfb7b8162af1cf4f1の印刷基準は変更しない。
+
 ## Observation — Stage 8 exported Support / BODY collision parity（2026-09-02）
 
 Stage 8で受理したSparse Removable Supportの`root → vertical shaft → bend →

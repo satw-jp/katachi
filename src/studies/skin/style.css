@@ -2616,13 +2616,32 @@ details.mesh-export:not([open]) > :not(summary) {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.skin-right-pane-lower {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.skin-right-pane-lower > .skin-rebuild-print-preparation,
+.skin-right-pane-lower > .panel {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .skin-workflow-guide {
   display: grid;
   flex: 0 0 auto;
+  min-height: 0;
   max-height: 50vh;
   gap: 4px;
   padding: 10px 12px;
@@ -3018,9 +3037,9 @@ details.mesh-export:not([open]) > :not(summary) {
 }
 
 .skin-right-pane .panel {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
   padding: 12px;
   overflow-x: hidden;
@@ -3028,6 +3047,10 @@ details.mesh-export:not([open]) > :not(summary) {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   border-left: 0;
+}
+
+.skin-right-pane-lower > .panel {
+  flex: 1 1 0;
 }
 
 .skin-rebuild-phase-navigator {
