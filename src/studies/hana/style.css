@@ -1133,9 +1133,10 @@ button:disabled {
   flex: none;
 }
 
-.hana-left-upper .hana-toolbar > .hana-document-command-bar {
+.hana-left-upper .hana-header > .hana-document-command-bar {
   display: flex;
   width: 100%;
+  min-width: 0;
   min-height: 48px;
   padding: 0 0 8px;
   border-bottom: 1px solid #d7dbe0;
@@ -1280,10 +1281,7 @@ button:disabled {
   min-height: 44px;
 }
 
-.hana-left-upper .hana-toolbar > #rebuild-surface,
-.hana-left-upper .hana-toolbar > #clear-document,
-.hana-left-upper .hana-toolbar > #load-document,
-.hana-left-upper .hana-toolbar > #save-document {
+.hana-left-upper .hana-toolbar > #rebuild-surface {
   width: 100%;
 }
 

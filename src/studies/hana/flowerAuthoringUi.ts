@@ -70,6 +70,7 @@ export function initializeHanaFlowerAuthoringUi(
   pane.appendChild(panel);
 
   const multiSelectButton = panel.querySelector<HTMLButtonElement>("#hana-flower-multi-select")!;
+  multiSelectButton.title = "Touch fallback for keyboard-less multi-select. With a hardware keyboard, Shift+tap adds or removes Strokes instead.";
   const clearCoreButton = panel.querySelector<HTMLButtonElement>("#hana-flower-clear-core")!;
   const createButton = panel.querySelector<HTMLButtonElement>("#hana-flower-create")!;
   const deleteSelectedButton = document.createElement("button");
@@ -109,7 +110,10 @@ export function initializeHanaFlowerAuthoringUi(
         item.className = `hana-flower-stroke${selected.has(stroke.id) ? " is-selected" : ""}`;
         item.textContent = `${stroke.id}${stroke.role !== "free" ? ` · ${stroke.role}` : ""}`;
         item.setAttribute("aria-pressed", String(selected.has(stroke.id)));
-        item.addEventListener("click", () => actions.selectStroke(stroke.id, actions.getState().multiSelect));
+        item.addEventListener("click", (event) => actions.selectStroke(
+          stroke.id,
+          actions.getState().multiSelect || event.shiftKey,
+        ));
         return item;
       }));
 

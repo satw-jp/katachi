@@ -175,6 +175,8 @@ import {
 import {
   classifyHanaPointerIntent,
   pointerMovementExceedsThreshold,
+  resolveHanaSelection,
+  resolveHanaTapAdditive,
   type HanaPendingPointerIntent,
 } from "./interactionRouting.ts";
 import {
@@ -283,16 +285,16 @@ app.innerHTML = `
             <h1>HANA — Point Field Stem Preview</h1>
             <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt} · ${hanaRuntimeShortLabel(hanaRuntime)}</p>
           </div>
+          <nav class="hana-document-command-bar" aria-label="Document commands">
+            <button id="new-document" type="button">New</button>
+            <button id="save-document" type="button" class="hana-primary">Save</button>
+            <button id="load-document" type="button">Load</button>
+            <button id="export-document" type="button">Export</button>
+            <button id="undo-document" type="button" disabled>Undo</button>
+            <button id="redo-document" type="button" disabled>Redo</button>
+            <button id="clear-document" type="button">Clear</button>
+          </nav>
           <div class="hana-toolbar" aria-label="HANA authoring controls">
-        <nav class="hana-document-command-bar" aria-label="Document commands">
-          <button id="new-document" type="button">New</button>
-          <button id="save-document" type="button" class="hana-primary">Save</button>
-          <button id="load-document" type="button">Load</button>
-          <button id="export-document" type="button">Export</button>
-          <button id="undo-document" type="button" disabled>Undo</button>
-          <button id="redo-document" type="button" disabled>Redo</button>
-          <button id="clear-document" type="button">Clear</button>
-        </nav>
         <div class="hana-soft-control" aria-label="Soft Edit strength">
           <span>Soft</span>
           <div class="hana-segmented">
@@ -2599,11 +2601,7 @@ function finishStroke(): void {
 
 function selectAuthoringStroke(strokeId: string, additive = flowerMultiSelect): void {
   if (activeStroke || !authoringStrokes.some((stroke) => stroke.id === strokeId)) return;
-  const nextSelection = additive
-    ? selectedStrokeIds.includes(strokeId)
-      ? selectedStrokeIds.filter((id) => id !== strokeId)
-      : [...selectedStrokeIds, strokeId]
-    : [strokeId];
+  const nextSelection = resolveHanaSelection({ current: selectedStrokeIds, clicked: strokeId, additive });
   const selectedDocument = selectHanaStrokes(authoringDocumentFromCurrentState(), nextSelection);
   selectedStrokeIds = [...selectedDocument.selectedStrokeIds];
   activeAuthoringStrokeId = selectedDocument.activeStrokeId;
@@ -2732,23 +2730,7 @@ function deleteSelectedAuthoringStrokes(): boolean {
     activeFlowerId: null,
   };
   commitGlobalAuthoringSnapshot(next, "Delete Selected Strokes");
-  cancelPendingFinalizationForEdit();
-  cancelSurfacePreviewTimer();
-  cancelMaterialProxyFrame();
-  cancelEditPreviewFrame();
-  previewSurface = null;
-  surfaceBuildSource = null;
-  surfaceBuildSignature = null;
-  surfaceBuildMilliseconds = null;
-  surfaceDiagnostics = null;
-  surfaceFieldEvaluationStats = null;
-  uploadOnlyMeshCache = null;
-  renderer.setPreviewSurface(null);
-  renderer.setMaterialProxy(null);
-  applySemanticAuthoringSnapshot(next, `DELETED · ${deletedIds.length} Stroke${deletedIds.length === 1 ? "" : "s"}`);
-  if (showSurface && stroke3D && materialSamples.length > 0) {
-    requestAuthoritativeSurfaceRebuild("delete-selected", false);
-  }
+  applyAuthoringSnapshot(next, `DELETED · ${deletedIds.length} Stroke${deletedIds.length === 1 ? "" : "s"}`, false, "delete-selected");
   scheduleRecoveryCheckpoint("delete selected");
   flowerUi?.refresh();
   return true;
@@ -3123,6 +3105,54 @@ function resetGlobalAuthoringHistory(): void {
   updateHistoryUI();
 }
 
+/**
+ * Shared derived-state boundary for every semantic snapshot apply
+ * (Undo / Redo / Delete / Clear / Load / Recovery).
+ *
+ * History snapshots hold semantic authoring state only — never Surface Mesh,
+ * Field grids, or Material Samples. Applying a snapshot must therefore hide
+ * the old derived Surface immediately (Centerline-only is correct while the
+ * new Surface builds) and cancel in-flight builds so stale async results can
+ * never land on the restored state. Callers regenerate the Surface from the
+ * restored semantic state via refreshAuthoritativeSurfaceAfterSemanticChange.
+ */
+function invalidateDerivedState(): void {
+  cancelPendingFinalizationForEdit();
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  cancelEditPreviewFrame();
+  editPreviewCenterline = [];
+  editPreviewMaterialSamples = [];
+  previewSurface = null;
+  surfaceBuildSource = null;
+  surfaceBuildSignature = null;
+  surfaceBuildMilliseconds = null;
+  surfaceDiagnostics = null;
+  surfaceFieldEvaluationStats = null;
+  uploadOnlyMeshCache = null;
+  renderer.setPreviewSurface(null);
+  renderer.setMaterialProxy(null);
+}
+
+function refreshAuthoritativeSurfaceAfterSemanticChange(reason: string): void {
+  if (showSurface && stroke3D && materialSamples.length > 0) {
+    requestAuthoritativeSurfaceRebuild(reason, false);
+  } else {
+    updateSurfaceUI();
+  }
+}
+
+function applyAuthoringSnapshot(
+  next: HanaAuthoringHistorySnapshot,
+  message: string,
+  preserveSelection: boolean,
+  rebuildReason: string,
+): void {
+  invalidateDerivedState();
+  applySemanticAuthoringSnapshot(next, message, preserveSelection);
+  refreshAuthoritativeSurfaceAfterSemanticChange(rebuildReason);
+}
+
 function commitGlobalAuthoringMutation(label: string): void {
   commitGlobalAuthoringSnapshot(semanticAuthoringSnapshot(), label);
 }
@@ -3139,12 +3169,7 @@ function commitGlobalAuthoringSnapshot(next: HanaAuthoringHistorySnapshot, label
 function undoGlobalAuthoring(): boolean {
   const next = globalAuthoringHistory?.undo();
   if (!next) return false;
-  cancelPendingFinalizationForEdit();
-  cancelSurfacePreviewTimer();
-  cancelMaterialProxyFrame();
-  cancelEditPreviewFrame();
-  applySemanticAuthoringSnapshot(next, "UNDO", true);
-  if (showSurface && stroke3D && materialSamples.length > 0) requestAuthoritativeSurfaceRebuild("undo", false);
+  applyAuthoringSnapshot(next, "UNDO", true, "undo");
   scheduleRecoveryCheckpoint("undo");
   updateHistoryUI();
   return true;
@@ -3153,12 +3178,7 @@ function undoGlobalAuthoring(): boolean {
 function redoGlobalAuthoring(): boolean {
   const next = globalAuthoringHistory?.redo();
   if (!next) return false;
-  cancelPendingFinalizationForEdit();
-  cancelSurfacePreviewTimer();
-  cancelMaterialProxyFrame();
-  cancelEditPreviewFrame();
-  applySemanticAuthoringSnapshot(next, "REDO", true);
-  if (showSurface && stroke3D && materialSamples.length > 0) requestAuthoritativeSurfaceRebuild("redo", false);
+  applyAuthoringSnapshot(next, "REDO", true, "redo");
   scheduleRecoveryCheckpoint("redo");
   updateHistoryUI();
   return true;
@@ -3992,7 +4012,12 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
   }
   if (intent === "select-drag") {
     pendingAuthoringPointer = null;
-    if (pendingIntent.candidateStrokeId) selectAuthoringStroke(pendingIntent.candidateStrokeId, false);
+    if (pendingIntent.candidateStrokeId) {
+      selectAuthoringStroke(
+        pendingIntent.candidateStrokeId,
+        resolveHanaTapAdditive({ shiftKey: event.shiftKey, touchFallback: flowerMultiSelect }),
+      );
+    }
     releaseGesturePointer(event.pointerId);
     return true;
   }
@@ -4019,7 +4044,10 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
     pendingAuthoringPointer = null;
     if (finalEvent?.type === "pointerup" && pending.candidateStrokeId !== null) {
       finalEvent.preventDefault();
-      selectAuthoringStroke(pending.candidateStrokeId, flowerMultiSelect);
+      selectAuthoringStroke(
+        pending.candidateStrokeId,
+        resolveHanaTapAdditive({ shiftKey: finalEvent.shiftKey, touchFallback: flowerMultiSelect }),
+      );
     }
     if (releaseCapture) releaseGesturePointer(pointerId);
     return;
@@ -4990,6 +5018,8 @@ function resetDocumentContent(newDocument: boolean): void {
   cancelEditPreviewFrame();
   cancelLiveDiagnosticsUpdate();
   rawGestures.length = 0;
+  authoringStrokes = [];
+  materialSamples = [];
   hanaFlowers = [];
   hanaGraph = createAuthoringGraph();
   selectedStrokeIds = [];
@@ -5254,6 +5284,7 @@ async function restoreRecoveryCheckpoint(): Promise<void> {
   interactionModes[0] = "edit";
   interactionModes[2] = "edit";
   selectedControlPoint = Math.floor(stroke3D.controlPoints.length / 2);
+  invalidateDerivedState();
   resetGlobalAuthoringHistory();
   stateMessage = `RECOVERED · ${authoringStrokes.length} Strokes · ${hanaFlowers.length} Flowers · revision ${document.revision}`;
   recoveryStatusText = `Local recovery: restored · rev ${document.revision}`;
@@ -5263,9 +5294,7 @@ async function restoreRecoveryCheckpoint(): Promise<void> {
   updateRecoveryUI();
   refreshLayout();
   updateDebug();
-  if (showSurface && materialSamples.length > 0) {
-    requestAuthoritativeSurfaceRebuild("recovery-restore", false);
-  }
+  refreshAuthoritativeSurfaceAfterSemanticChange("recovery-restore");
   flowerUi?.refresh();
 }
 
@@ -5358,17 +5387,16 @@ loadFileInput.addEventListener("change", async () => {
     const restoredThickness = Number(savedStroke?.materialSettings.baseRadius);
     thickness = Number.isFinite(restoredThickness) ? restoredThickness : HANA_THICKNESS_DEFAULT;
     authoringIdentity = cloneHanaAuthoringIdentity(document.identity);
-    applySemanticAuthoringSnapshot({
+    applyAuthoringSnapshot({
       document,
       flowers,
       graph,
       activeFlowerId: typeof source.activeFlowerId === "string" ? source.activeFlowerId : null,
-    }, `LOADED · ${document.strokes.length} Strokes · ${flowers.length} Flowers`);
+    }, `LOADED · ${document.strokes.length} Strokes · ${flowers.length} Flowers`, false, "load");
     updateSmoothnessUI();
     updateThicknessUI();
     resetGlobalAuthoringHistory();
     scheduleRecoveryCheckpoint("load");
-    if (showSurface && materialSamples.length > 0) requestAuthoritativeSurfaceRebuild("load", false);
     flowerUi?.refresh();
   } catch (error) {
     stateMessage = `LOAD ERROR · ${error instanceof Error ? error.message : "invalid JSON"}`;
