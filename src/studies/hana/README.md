@@ -1,5 +1,7 @@
 # HANA — Gesture to Flower Study
 
+[ROADMAP.md](ROADMAP.md) — long-term authoring direction and planned architecture
+
 ## HANA-2A status
 
 ```yaml
