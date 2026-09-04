@@ -154,6 +154,7 @@ import {
   evaluateSkinRebuildPrintPreparation,
   type SkinRebuildPrintPreparationReadiness,
 } from "./rebuild/printPreparationReadiness.ts";
+import { describeSkinRebuildArtifactTopBar } from "./rebuild/artifactExportUi.ts";
 import {
   A1_MINI_PLA_04_02,
   evaluateThinStrutExperimentalExportGate,
@@ -550,10 +551,11 @@ const isSkinRebuildApp = document.documentElement.dataset.skinApp === "rebuild";
 let editorLayoutState = fitSkinEditorLayout(loadSkinEditorLayout(), window.innerWidth);
 let editorLayoutCommitCallback: () => void = () => {};
 
-// Editor-only project chrome. The .fkei actions and project-level Export are
-// intentionally visible placeholders until their file/state contracts exist.
-// Existing recipe-history controls are attached below after buildUi creates
-// their nodes; their callbacks and JSON contract remain unchanged.
+// Editor-only project chrome. Existing recipe-history controls are attached
+// below after buildUi creates their nodes; their callbacks and JSON contract
+// remain unchanged. SKIN REBUILD's Export delegates to the same Artifact
+// Export action exposed in Stage 8, so there is still one snapshot/export
+// implementation and one support-source policy.
 const projectBar = document.createElement("header");
 projectBar.className = "skin-project-bar";
 projectBar.setAttribute("aria-label", "Project actions");
@@ -647,10 +649,17 @@ projectRedoButton.title = "Shape Redo is not implemented; Support Paint Redo app
 projectRedoButton.onclick = () => requestProjectRedo();
 const projectExportButton = document.createElement("button");
 projectExportButton.type = "button";
-projectExportButton.className = "skin-project-action is-placeholder";
+projectExportButton.className = "skin-project-action";
+projectExportButton.dataset.skinProjectAction = "artifact-export";
 projectExportButton.textContent = "Export";
 projectExportButton.disabled = true;
-projectExportButton.title = "Project export is reserved for the export task";
+projectExportButton.title = "現在のArtifact Exportを同じsnapshotで実行";
+projectExportButton.onclick = () => {
+  if (!isSkinRebuildApp) return;
+  // Delegate to the existing Stage 8 handler. This keeps format selection,
+  // warning confirmation, snapshot capture, and export parity in one path.
+  skinRebuildStage8ExportButton?.click();
+};
 projectActions.append(
   projectOpenButton,
   projectOpenInput,
@@ -667,8 +676,18 @@ projectMeta.setAttribute("aria-live", "polite");
 projectMeta.textContent = isSkinRebuildApp
   ? "ORIGINAL UI · Base Shape / Surface Pattern preserved"
   : "UI SHELL · author review";
+const projectArtifactCandidate = document.createElement("span");
+projectArtifactCandidate.className = "skin-project-artifact-candidate";
+projectArtifactCandidate.dataset.skinProjectStatus = "candidate";
+projectArtifactCandidate.setAttribute("aria-live", "polite");
+projectArtifactCandidate.hidden = !isSkinRebuildApp;
+const projectArtifactStatus = document.createElement("span");
+projectArtifactStatus.className = "skin-project-artifact-status";
+projectArtifactStatus.dataset.skinProjectStatus = "export";
+projectArtifactStatus.setAttribute("aria-live", "polite");
+projectArtifactStatus.hidden = !isSkinRebuildApp;
 projectSaveButton.onclick = () => saveCurrentFkeiProject();
-projectBar.append(projectIdentity, projectActions, projectMeta);
+projectBar.append(projectIdentity, projectActions, projectArtifactCandidate, projectArtifactStatus, projectMeta);
 
 const leftPane = document.createElement("aside");
 leftPane.className = "skin-editor-pane skin-left-pane";
@@ -9006,11 +9025,42 @@ function internalPrintGateExportAllowedForCurrentSkinExport(report: InternalPrin
   return decision.report === report && decision.state === "ready";
 }
 
-function refreshSkinRebuildStage8ExportButton(): void {
-  if (!skinRebuildStage8ExportButton) {
-    refreshSkinRebuildPrintPreparationPanel();
+function refreshSkinRebuildArtifactTopBar(
+  artifactAvailability: { canExportArtifact: boolean; warnings: readonly string[] } | null,
+  technicalBlockReason: string | null,
+  running: boolean,
+): void {
+  if (!isSkinRebuildApp) {
+    projectExportButton.disabled = true;
     return;
   }
+  const project = skinRebuildArtifactProject();
+  const supportSource = getSkinRebuildArtifactSupportSource();
+  const sparseDiagnostics = skinRebuildSparseSupportResult?.diagnostics ?? null;
+  const previewAvailability = skinViewLayerAvailability()["print-preview"];
+  const presentation = describeSkinRebuildArtifactTopBar({
+    hasProject: project !== null,
+    bodyCurrent: currentSkinRebuildTopologyCache() !== null,
+    supportCurrent: supportSource !== null,
+    supportProvenance: supportSource?.provenance ?? null,
+    previewCurrent: previewAvailability.status === "current",
+    supportedCount: sparseDiagnostics?.coveredTargetCount ?? null,
+    unresolvedCount: sparseDiagnostics?.unsupportedTargetCount ?? null,
+    exportAvailable: artifactAvailability?.canExportArtifact === true && technicalBlockReason === null,
+    exportRunning: running,
+    warningCount: artifactAvailability?.warnings.length ?? 0,
+  });
+  projectArtifactCandidate.textContent = presentation.candidateLabel;
+  projectArtifactStatus.textContent = presentation.statusLabel;
+  projectArtifactStatus.dataset.state = presentation.statusState;
+  projectExportButton.disabled = skinRebuildStage8ExportButton === null
+    || skinRebuildStage8ExportButton.disabled;
+  projectExportButton.title = projectExportButton.disabled
+    ? technicalBlockReason ?? "現在のArtifact Export sourceを準備してください"
+    : "現在のArtifact Exportを同じsnapshotで実行。Print ReadinessのwarningはExportを停止しません";
+}
+
+function refreshSkinRebuildStage8ExportButton(): void {
   const pipelineReason = skinRebuildPipelineOutputBlockReason();
   const componentSelectionReason = skinRebuildExportComponentSelectionBlockReason();
   const artifactAvailability = isSkinRebuildApp
@@ -9029,6 +9079,11 @@ function refreshSkinRebuildStage8ExportButton(): void {
       ?? componentSelectionReason
       ?? skinRebuildCurrentInternalPrintGateBlockReason());
   const running = activeMeshExportWorker !== null || pendingMeshExportAfterGate !== null;
+  if (!skinRebuildStage8ExportButton) {
+    refreshSkinRebuildArtifactTopBar(artifactAvailability, reason, running);
+    refreshSkinRebuildPrintPreparationPanel();
+    return;
+  }
   skinRebuildStage8ExportButton.disabled = reason !== null || running;
   const experimentalDecision = skinRebuildSparseExperimentalExportDecision();
   const thinStrutDecision = skinRebuildThinStrutExperimentalExportDecision();
@@ -9084,6 +9139,7 @@ function refreshSkinRebuildStage8ExportButton(): void {
       skinRebuildStage8ExportStatus.dataset.ok = "true";
     }
   }
+  refreshSkinRebuildArtifactTopBar(artifactAvailability, reason, running);
   refreshSkinRebuildPrintPreparationPanel();
 }
 

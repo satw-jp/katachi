@@ -2520,10 +2520,32 @@ details.mesh-export:not([open]) > :not(summary) {
 }
 
 .skin-project-format,
-.skin-project-meta {
+.skin-project-meta,
+.skin-project-artifact-candidate,
+.skin-project-artifact-status {
   color: var(--muted);
   font-size: 9px;
 }
+
+.skin-project-artifact-candidate,
+.skin-project-artifact-status {
+  min-width: 0;
+  max-width: 290px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: .04em;
+}
+
+.skin-project-artifact-candidate {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.skin-project-artifact-status[data-state="current"] { color: #267348; }
+.skin-project-artifact-status[data-state="warning"] { color: #95601b; }
+.skin-project-artifact-status[data-state="unavailable"] { color: #9c3026; }
+.skin-project-artifact-status[data-state="running"] { color: #315b91; }
 
 .skin-project-actions {
   display: flex;
@@ -4253,7 +4275,9 @@ details.mesh-export:not([open]) > :not(summary) {
   .skin-project-bar { gap: 5px; padding-inline: 6px; }
   .skin-project-identity { gap: 4px; }
   .skin-project-format,
-  .skin-project-meta { display: none; }
+  .skin-project-meta,
+  .skin-project-artifact-candidate,
+  .skin-project-artifact-status { display: none; }
   .skin-project-actions { flex: 1 1 0; gap: 2px; }
   .skin-project-action {
     flex: 0 1 auto;
