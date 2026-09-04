@@ -358,6 +358,14 @@ import {
   skinRebuildTargetScaleChanged,
 } from "./rebuild/printScalePolicy.ts";
 import {
+  evaluateOutputScalePreparation,
+  OUTPUT_SCALE_PRESET_MM,
+  outputScalePresetLabel,
+  physicalArtifactFingerprint,
+  physicalSettingsFingerprint,
+  toPhysicalBoundsMm,
+} from "./rebuild/outputScale.ts";
+import {
   SKIN_REBUILD_WORKFLOW_PHASES,
   moveSkinRebuildWorkflowPhase,
 } from "./rebuild/workflowPhaseNavigator.ts";
@@ -1328,6 +1336,12 @@ const skinRebuildShadowObserver = new SkinRebuildShadowObserver();
 let skinRebuildThresholdInput: HTMLInputElement | null = null;
 let skinRebuildDiameterInput: HTMLInputElement | null = null;
 let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
+/** SKIN Golden LUNA Output Scale v0: Physical Output section (Stage 8). */
+let skinRebuildOutputSizeInput: HTMLInputElement | null = null;
+let skinRebuildOutputStrutInput: HTMLInputElement | null = null;
+let skinRebuildOutputSupportInput: HTMLInputElement | null = null;
+let skinRebuildOutputStatus: HTMLElement | null = null;
+let skinRebuildOutputPrepareButton: HTMLButtonElement | null = null;
 let skinRebuildPrintSupportModeSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeEdgeSelect: HTMLSelectElement | null = null;
 let skinRebuildLatticeDeleteButton: HTMLButtonElement | null = null;
@@ -1516,6 +1530,16 @@ type SkinRebuildArtifactExportSnapshot = {
   diagnostics: Record<string, unknown>;
   unresolved: number | null;
   acceptedBodyCollision: number | null;
+  /**
+   * SKIN Golden LUNA Output Scale v0: the physical settings the exported
+   * geometry was prepared at (pipeline project settings when available,
+   * otherwise the current UI settings the export worker rebuilds from).
+   * Shape Scale != Member Diameter is recorded explicitly in the report.
+   */
+  strutDiameterMm: number;
+  supportDiameterMm: number;
+  physicalSettingsFingerprint: string;
+  artifactFingerprint: string;
 };
 let pendingMeshExportAfterGate: {
   options: MeshUiOptions;
@@ -9004,9 +9028,202 @@ function internalPrintGateExportAllowedForCurrentSkinExport(report: InternalPrin
   return decision.report === report && decision.state === "ready";
 }
 
+/**
+ * SKIN Golden LUNA Output Scale v0 — Physical Output section.
+ * Shape Scale != Member Diameter: Overall Size scales the whole authored
+ * geometry by one ratio, while Permanent member and Removable Support stay
+ * absolute mm values. Editing any of the three marks the physical
+ * preparation STALE; re-preparation is always an explicit user action
+ * (Prepare navigates to the Stage 3 rerun entry, never auto-runs stages).
+ */
+function currentSkinRebuildOutputPhysical(): {
+  prepared: { targetLongestMm: number; strutDiameterMm: number; supportDiameterMm: number } | null;
+  current: { targetLongestMm: number; strutDiameterMm: number; supportDiameterMm: number };
+} {
+  const preparedSettings = skinRebuildPipeline?.project?.settings ?? null;
+  const currentSettings = currentSkinRebuildPipelineSettings();
+  return {
+    prepared: preparedSettings
+      ? {
+        targetLongestMm: preparedSettings.targetLongestMm,
+        strutDiameterMm: preparedSettings.strutDiameterMm,
+        supportDiameterMm: preparedSettings.supportDiameterMm,
+      }
+      : null,
+    current: {
+      targetLongestMm: currentSettings.targetLongestMm,
+      strutDiameterMm: currentSettings.strutDiameterMm,
+      supportDiameterMm: currentSettings.supportDiameterMm,
+    },
+  };
+}
+
+function refreshSkinRebuildOutputScaleSection(): void {
+  if (!skinRebuildOutputSizeInput || !skinRebuildOutputStatus || !skinRebuildOutputPrepareButton) return;
+  const section = skinRebuildOutputSizeInput.closest("[data-skin-output-scale-section]");
+  if (section instanceof HTMLElement) section.hidden = !isSkinRebuildApp;
+  if (!isSkinRebuildApp) return;
+  const { prepared, current } = currentSkinRebuildOutputPhysical();
+  const active = document.activeElement;
+  if (active !== skinRebuildOutputSizeInput && Number.isFinite(current.targetLongestMm)) {
+    skinRebuildOutputSizeInput.value = String(current.targetLongestMm);
+  }
+  if (skinRebuildOutputStrutInput && active !== skinRebuildOutputStrutInput
+    && Number.isFinite(current.strutDiameterMm)) {
+    skinRebuildOutputStrutInput.value = String(current.strutDiameterMm);
+  }
+  if (skinRebuildOutputSupportInput && active !== skinRebuildOutputSupportInput
+    && Number.isFinite(current.supportDiameterMm)) {
+    skinRebuildOutputSupportInput.value = String(current.supportDiameterMm);
+  }
+  const preparation = evaluateOutputScalePreparation(prepared, current);
+  const preset = outputScalePresetLabel(current.targetLongestMm);
+  const lines = [
+    `OUTPUT Overall Size ${current.targetLongestMm} mm (${preset}) · STRUCTURE Permanent member ${current.strutDiameterMm} mm · FABRICATION Removable Support ${current.supportDiameterMm} mm`,
+    `Geometry ${preparation.geometry} · Support ${preparation.support} · Export ${preparation.export}`,
+  ];
+  if (prepared && prepared.targetLongestMm !== current.targetLongestMm) {
+    lines.push(`Output Size changed · Print geometry needs update (prepared at ${prepared.targetLongestMm} mm)`);
+  }
+  for (const reason of preparation.reasons) lines.push(reason);
+  skinRebuildOutputStatus.textContent = lines.join(" · ");
+  skinRebuildOutputStatus.dataset.ok = String(preparation.export === "AVAILABLE");
+  const outputChanged = prepared !== null && prepared.targetLongestMm !== current.targetLongestMm;
+  skinRebuildOutputPrepareButton.textContent = outputChanged
+    ? `Prepare at ${current.targetLongestMm} mm`
+    : "Update Print Geometry";
+  skinRebuildOutputPrepareButton.disabled = preparation.export === "AVAILABLE";
+}
+
+function buildSkinRebuildOutputScaleSection(): HTMLElement {
+  const section = document.createElement("div");
+  section.className = "skin-rebuild-output-scale";
+  section.dataset.skinOutputScaleSection = "true";
+  section.hidden = !isSkinRebuildApp;
+  const title = document.createElement("strong");
+  title.textContent = "Physical Output — Overall Size / Member Diameters";
+  const hint = document.createElement("p");
+  hint.className = "hint";
+  hint.textContent = "Shape Scale != Member Diameter. Overall Size scales Base / Motif / authored geometry together; Permanent member and Removable Support stay absolute mm and are re-realized by an explicit Prepare.";
+  const outputRow = document.createElement("label");
+  outputRow.className = "row skin-rebuild-pipeline-setting";
+  outputRow.append(document.createTextNode("OUTPUT · Overall Size (Longest dimension) "));
+  const outputInput = document.createElement("input");
+  outputInput.type = "number";
+  outputInput.min = "10";
+  outputInput.max = "240";
+  outputInput.step = "1";
+  outputInput.value = String(ui.getMeshOptions().targetLongestMm);
+  outputInput.setAttribute("aria-label", "Overall Size longest dimension in mm");
+  outputInput.addEventListener("change", () => {
+    const value = Number(outputInput.value);
+    if (!(value > 0) || !Number.isFinite(value)) {
+      refreshSkinRebuildOutputScaleSection();
+      return;
+    }
+    const canonical = document.querySelector<HTMLInputElement>("[data-skin-target-longest-mm]");
+    if (canonical) {
+      canonical.value = String(value);
+      canonical.dispatchEvent(new Event("input", { bubbles: true }));
+    } else {
+      ui.setMeshOptions({ ...ui.getMeshOptions(), targetLongestMm: value });
+    }
+    refreshSkinRebuildOutputScaleSection();
+  });
+  outputRow.append(outputInput, document.createTextNode(" mm"));
+  const presetRow = document.createElement("div");
+  presetRow.className = "row skin-rebuild-output-scale-presets";
+  for (const presetMm of OUTPUT_SCALE_PRESET_MM) {
+    const presetButton = document.createElement("button");
+    presetButton.type = "button";
+    presetButton.className = "secondary-action";
+    presetButton.textContent = `${presetMm} mm`;
+    presetButton.title = "Historical reference preset. Diameters are left unchanged.";
+    presetButton.onclick = () => {
+      outputInput.value = String(presetMm);
+      outputInput.dispatchEvent(new Event("change"));
+    };
+    presetRow.appendChild(presetButton);
+  }
+  const presetNote = document.createElement("span");
+  presetNote.className = "hint";
+  presetNote.textContent = "presets only · diameters unchanged";
+  presetRow.appendChild(presetNote);
+  const structureRow = document.createElement("label");
+  structureRow.className = "row skin-rebuild-pipeline-setting";
+  structureRow.append(document.createTextNode("STRUCTURE · Permanent member "));
+  const strutInput = document.createElement("input");
+  strutInput.type = "number";
+  strutInput.min = "1.6";
+  strutInput.max = "4";
+  strutInput.step = "0.1";
+  strutInput.value = String(currentSkinRebuildPipelineSettings().strutDiameterMm);
+  strutInput.setAttribute("aria-label", "Permanent member diameter in mm");
+  strutInput.addEventListener("change", () => {
+    if (!skinRebuildDiameterInput) {
+      refreshSkinRebuildOutputScaleSection();
+      return;
+    }
+    skinRebuildDiameterInput.value = strutInput.value;
+    skinRebuildDiameterInput.dispatchEvent(new Event("change", { bubbles: true }));
+    refreshSkinRebuildOutputScaleSection();
+  });
+  structureRow.append(strutInput, document.createTextNode(" mm"));
+  const fabricationRow = document.createElement("label");
+  fabricationRow.className = "row skin-rebuild-pipeline-setting";
+  fabricationRow.append(document.createTextNode("FABRICATION · Removable Support "));
+  const supportInput = document.createElement("input");
+  supportInput.type = "number";
+  supportInput.min = "0.8";
+  supportInput.max = "4";
+  supportInput.step = "0.1";
+  supportInput.value = String(currentSkinRebuildPipelineSettings().supportDiameterMm);
+  supportInput.setAttribute("aria-label", "Removable Support diameter in mm");
+  supportInput.addEventListener("change", () => {
+    if (!skinRebuildSupportDiameterInput) {
+      refreshSkinRebuildOutputScaleSection();
+      return;
+    }
+    skinRebuildSupportDiameterInput.value = supportInput.value;
+    skinRebuildSupportDiameterInput.dispatchEvent(new Event("change", { bubbles: true }));
+    refreshSkinRebuildOutputScaleSection();
+  });
+  fabricationRow.append(supportInput, document.createTextNode(" mm"));
+  const status = document.createElement("div");
+  status.className = "mesh-status skin-rebuild-output-scale-status";
+  status.setAttribute("aria-live", "polite");
+  const prepareButton = document.createElement("button");
+  prepareButton.type = "button";
+  prepareButton.className = "primary-action skin-rebuild-output-scale-prepare";
+  prepareButton.textContent = "Update Print Geometry";
+  prepareButton.onclick = () => {
+    const rerun = document.querySelector<HTMLElement>("[data-skin-workflow-guide-action=\"diagnose-inside-outside\"]");
+    if (rerun) {
+      rerun.scrollIntoView({ block: "center" });
+      if (rerun instanceof HTMLButtonElement) rerun.focus({ preventScroll: true });
+    }
+    refreshSkinRebuildOutputScaleSection();
+  };
+  skinRebuildOutputSizeInput = outputInput;
+  skinRebuildOutputStrutInput = strutInput;
+  skinRebuildOutputSupportInput = supportInput;
+  skinRebuildOutputStatus = status;
+  skinRebuildOutputPrepareButton = prepareButton;
+  const details = document.createElement("details");
+  details.className = "skin-rebuild-output-scale-details";
+  const summary = document.createElement("summary");
+  summary.textContent = "Details / Advanced";
+  details.append(summary, structureRow, fabricationRow);
+  section.append(title, hint, outputRow, presetRow, status, prepareButton, details);
+  refreshSkinRebuildOutputScaleSection();
+  return section;
+}
+
+
 function refreshSkinRebuildStage8ExportButton(): void {
   if (!skinRebuildStage8ExportButton) {
     refreshSkinRebuildPrintPreparationPanel();
+    refreshSkinRebuildOutputScaleSection();
     return;
   }
   const pipelineReason = skinRebuildPipelineOutputBlockReason();
@@ -9083,6 +9300,7 @@ function refreshSkinRebuildStage8ExportButton(): void {
     }
   }
   refreshSkinRebuildPrintPreparationPanel();
+  refreshSkinRebuildOutputScaleSection();
 }
 
 function stopSkinRebuildStage8Export(reason: string): void {
@@ -11919,6 +12137,7 @@ function installSkinRebuildPipelinePanel(): void {
     exportMesh(ui.getMeshOptions(), formats);
   };
   stage8Export.section.append(
+    buildSkinRebuildOutputScaleSection(),
     exportFormats,
     experimentalExportWarning,
     experimentalExportApprovalButton,
@@ -16728,26 +16947,65 @@ async function exportCurrentSkinRebuildArtifact(
   const bodyFingerprint = bodyPositions && stage6BodyMeshCache?.positions
     ? stage6BodyMeshCache.fingerprint
     : skinRebuildArtifactBodyFingerprint(options, bodyGraph);
+  // Output Scale v0: record the physical settings the geometry was prepared
+  // at. Never silently rescale a finished 3MF (which would also rescale the
+  // diameters): when the support preparation is STALE, fall back to BODY-only
+  // and say so in the warnings dialog instead of shipping old-diameter
+  // support as the current artifact. Export itself never re-runs Stages 3-8.
+  const pipelinePreparedSettings = skinRebuildPipeline?.project?.settings ?? null;
+  const currentPhysical = currentSkinRebuildPipelineSettings();
+  const exportPhysicalSettings = {
+    targetLongestMm: options.targetLongestMm,
+    strutDiameterMm: pipelinePreparedSettings?.strutDiameterMm ?? currentPhysical.strutDiameterMm,
+    supportDiameterMm: pipelinePreparedSettings?.supportDiameterMm ?? currentPhysical.supportDiameterMm,
+  };
+  const outputScalePreparation = evaluateOutputScalePreparation(
+    pipelinePreparedSettings
+      ? {
+        targetLongestMm: pipelinePreparedSettings.targetLongestMm,
+        strutDiameterMm: pipelinePreparedSettings.strutDiameterMm,
+        supportDiameterMm: pipelinePreparedSettings.supportDiameterMm,
+      }
+      : null,
+    {
+      targetLongestMm: options.targetLongestMm,
+      strutDiameterMm: currentPhysical.strutDiameterMm,
+      supportDiameterMm: currentPhysical.supportDiameterMm,
+    },
+  );
+  let effectiveSupportSource = supportSource;
+  if (supportSource && outputScalePreparation.support === "STALE") {
+    effectiveSupportSource = null;
+    diagnosticWarnings.push(
+      `Removable Support is STALE (${outputScalePreparation.reasons.join(" ")}). Exporting BODY-only; regenerate Stage 8 support after Prepare instead of shipping old-diameter support as current.`,
+    );
+  }
+  if (outputScalePreparation.geometry === "STALE") {
+    diagnosticWarnings.push(
+      `Print geometry is STALE (${outputScalePreparation.reasons.join(" ")}). The report records the prepared-at physical settings.`,
+    );
+  }
+  const projectFingerprintForArtifact = fkeiShapeFingerprint(state);
   const snapshot: SkinRebuildArtifactExportSnapshot = {
     capturedAt: new Date().toISOString(),
     // The restored FKEI may contain legacy graph metadata that is intentionally
     // stale.  The source fingerprint must still describe the current shape;
     // use the established shape fingerprint rather than validating that graph
     // again during Artifact Export.
-    projectFingerprint: fkeiShapeFingerprint(state),
+    projectFingerprint: projectFingerprintForArtifact,
     bodyFingerprint,
-    supportFingerprint: supportSource ? canonicalStringify(supportSource.graph) : null,
+    supportFingerprint: effectiveSupportSource ? canonicalStringify(effectiveSupportSource.graph) : null,
     bodySource: availability.bodySource,
-    supportSource: availability.supportSource,
+    supportSource: effectiveSupportSource ? availability.supportSource : "none (STALE support excluded · BODY-only)",
     bodyPositions: bodyPositions?.slice() ?? null,
-    supportGraph: supportSource?.graph ?? null,
+    supportGraph: effectiveSupportSource?.graph ?? null,
     targetLongestMm: options.targetLongestMm,
     bodyScaleMmPerUnit: bodyPositions && triangleSoupLongestExtent(bodyPositions) > 0
       ? options.targetLongestMm / triangleSoupLongestExtent(bodyPositions)
       : null,
     plateShiftSourceZ: 0,
-    includeSupport: Boolean(supportSource),
-    warnings: availability.warnings,
+    includeSupport: Boolean(effectiveSupportSource),
+    warnings: [...new Set([...availability.warnings, ...diagnosticWarnings])],
     diagnostics: {
       stage4: skinRebuildPrintPreparationReadiness().diagnostics.stage4,
       stage6: skinRebuildPrintPreparationReadiness().diagnostics.stage6,
@@ -16759,6 +17017,10 @@ async function exportCurrentSkinRebuildArtifact(
     },
     unresolved: skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? null,
     acceptedBodyCollision: skinRebuildSparseSupportResult?.diagnostics.acceptedBodyCollisionCount ?? null,
+    strutDiameterMm: exportPhysicalSettings.strutDiameterMm,
+    supportDiameterMm: exportPhysicalSettings.supportDiameterMm,
+    physicalSettingsFingerprint: physicalSettingsFingerprint(exportPhysicalSettings),
+    artifactFingerprint: physicalArtifactFingerprint(projectFingerprintForArtifact, exportPhysicalSettings),
   };
   if (!(await showSkinRebuildArtifactWarningDialog(snapshot.warnings))) {
     ui.setMeshStatus("Artifact Exportをキャンセルしました", undefined);
@@ -16910,6 +17172,14 @@ async function exportCurrentSkinRebuildArtifact(
         unresolved: artifactSnapshot.unresolved,
         acceptedBodyCollision: artifactSnapshot.acceptedBodyCollision,
         printApproval: false,
+        targetLongestMm: artifactSnapshot.targetLongestMm,
+        bodyScaleMmPerUnit: artifactSnapshot.bodyScaleMmPerUnit,
+        strutDiameterMm: artifactSnapshot.strutDiameterMm,
+        supportDiameterMm: artifactSnapshot.supportDiameterMm,
+        physicalBoundsMm: toPhysicalBoundsMm(skinRebuildArtifactPositionsBounds(bodyPositionsMm)),
+        sourceFingerprint: artifactSnapshot.projectFingerprint,
+        artifactFingerprint: artifactSnapshot.artifactFingerprint,
+        physicalSettingsFingerprint: artifactSnapshot.physicalSettingsFingerprint,
       });
       downloadBlob(new Blob([report], { type: "application/json" }), `${pending.baseName}-export-report.json`);
     };

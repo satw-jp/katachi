@@ -4571,3 +4571,11 @@ Stage 8のaccepted graphを物理フィードバックの唯一の入力とし�
 実ブラウザの現行fixtureではStage 8の再生成結果が132 supported / 19 unresolved、physical feedback後が537 nodes / 370 edges、long-unbraced 3、brace 35、braced supports 70、point 61 / crown 4 / patch candidate 67となり、BODY collision / plate / invalid / zero / duplicate / extremeはすべて0だった。旧Goldenの166 / 156 / 10、546 nodes / 390 edgesはPRE-PHYSICAL-PRINT GOLDEN BASELINEとして凍結し、physical graphの受入条件には流用しない。
 
 default、thinner contact、small nonzero gapの比較用3MFは出力経路の同一Stage 8 sourceを使う。STL / reportとのfingerprint parityおよびview切替の非変異は既存契約と回帰で確認する。Bambu / Prusaでの手動slicer確認はWAITINGであり、`printApproval=false`を維持する。
+
+## Observation SKIN Golden LUNA Output Scale / Physical Diameter Separation v0（2026-09-04）
+
+Shape Scale != Member DiameterをUIとreportに明示した。Stage 8の書き出し工程にPhysical Output欄を追加し、OUTPUT Overall Size（80/120 presetは直径不変）・STRUCTURE Permanent member・FABRICATION Removable Support・Geometry/Support CURRENT/STALE・Export AVAILABLE/NEEDS PREP・Prepare at N mm / Update Print Geometryボタンを置いた。欄の入力は既存の正本control（mesh最長辺・ラティス直径・印刷サポート直径）へevent経由で反映し、既存invalidate経路を再利用する。復元FKEIの保存済み寸法はsyncのみで移行しない。
+
+Output Size変更で完成3MFを単純scaleしない。physical settingsのどれか（targetLongestMm/strutDiameterMm/supportDiameterMm）がpreparedと違えばSTALEとし、理由をUIとwarnings dialogに表示する。Export clickはStage 3〜8を再実行せず、supportがSTALEならBODY-onlyへ落として明示する。report JSONはtargetLongestMm・bodyScaleMmPerUnit・strutDiameterMm・supportDiameterMm・physicalBoundsMm{x,y,z,longest}・sourceFingerprint・artifactFingerprint・physicalSettingsFingerprintをtop-levelに記録し、同じauthoringでも120mm版と180mm版を別Physical Artifactとして区別できる。
+
+見たままの範囲では、tsc -b・typecheck:partition-test・build・差分checkが通り、outputScale focused test 11件とskin-rebuild suite（base既存失敗を除く）が通った。`vite preview`でskin-rebuild.htmlが200応答し、bundle内に新欄の文言を含む。実ブラウザの実座標クリック／elementFromPoint確認（A〜H）とconsole 0は作者機WAITING。Print #2 candidateはFROZENのまま触っていない。`printApproval=false`を維持する。

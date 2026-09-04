@@ -1200,6 +1200,10 @@
     {
       "date": "2026-09-04",
       "note": "SKIN Golden Support Physical Feedback v1 keeps current Stage 8 sparseResult.graph as the sole source and adds session-only unbraced-length measurement, minimal nearby mutual braces, and evidence-based point/crown/critical patch-candidate contact tiers. Default interface values are maxUnbracedLengthMm 18 (provisional observation), tip diameter 0.60 mm, neck length 0.60 mm and contact gap 0; critical patch candidates are non-exportable and no FKEI/schema or Permanent Reinforcement change is made. Browser fixture physical feedback measured 132 supported / 19 unresolved, 537 nodes / 370 edges, 35 braces and BODY/plate/invalid/zero/duplicate/extreme safety counts 0; the prior 166/156/10 and 546/390 result remains the frozen PRE-PHYSICAL-PRINT GOLDEN BASELINE. Comparison 3MF output uses the same current Stage 8 graph; manual Bambu/Prusa slicer inspection remains waiting and printApproval remains false."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "SKIN Golden LUNA Output Scale v0 separates Overall Size from member diameters: Stage 8 Physical Output section with CURRENT/STALE + explicit Prepare, prepared-at settings and physicalBoundsMm in the export report, source-vs-artifact fingerprints, focused outputScale tests; Print #2 candidate untouched, printApproval=false."
     }
   ]
 }

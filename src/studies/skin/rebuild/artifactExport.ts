@@ -242,6 +242,23 @@ export interface SkinRebuildArtifactExportReportInput {
   unresolved: number | null;
   acceptedBodyCollision: number | null;
   printApproval: false;
+  /**
+   * SKIN Golden LUNA Output Scale v0 (additive): explicit physical output
+   * identity. Shape Scale != Member Diameter — the overall artwork size and
+   * the material diameters are independent physical controls recorded here so
+   * that "same source SHA but different physical size" is immediately
+   * detectable (e.g. Print #1 / Print #2 comparisons).
+   */
+  targetLongestMm?: number;
+  bodyScaleMmPerUnit?: number | null;
+  strutDiameterMm?: number;
+  supportDiameterMm?: number;
+  physicalBoundsMm?: { x: number; y: number; z: number; longest: number } | null;
+  /** Authoring source identity (same for 120 mm and 180 mm of one geometry). */
+  sourceFingerprint?: string;
+  /** Physical artifact identity (differs per output size / diameters). */
+  artifactFingerprint?: string;
+  physicalSettingsFingerprint?: string;
 }
 
 export function serializeSkinRebuildArtifactExportReport(
