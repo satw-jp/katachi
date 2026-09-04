@@ -229,7 +229,7 @@ function requireOptions(options: SupportBootstrapFootingOptions): Required<
 }
 
 /** Walk the route polyline; return the point at height hMm, or null. */
-function routePointAtHeight(
+export function routePointAtHeight(
   route: SparseRemovableSupportRoute,
   plateZ: number,
   scale: number,
@@ -336,7 +336,7 @@ function classifyBootstrap(bootstrapMm: number, options: SupportBootstrapFooting
 }
 
 /** Sampled capsule audit: every sample must keep radius clearance from BODY. */
-function auditCapsuleFree(
+export function auditCapsuleFree(
   start: Vector3Value,
   end: Vector3Value,
   radiusSource: number,

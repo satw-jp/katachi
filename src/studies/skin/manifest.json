@@ -1204,6 +1204,10 @@
     {
       "date": "2026-09-04",
       "note": "SKIN Support v2 Experimental Footing v0 adds session-only bootstrap stability analysis (per-trunk bootstrap length, first stable junction, selective root thickening with taper/shrink safety, low diagonal braces, A/B/C/D fixture comparison) plus a standalone diagnostics viewer; Print #2 candidate, BODY, Permanent Graph, FKEI, DryWeb and Output Scale untouched, printApproval=false."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "SKIN Support v2 Experimental Branched Tree v0 shares lower corridors as temporary trees (baseline + corridor scoring + shared trunk/junction + failure-domain caps + A/B/C comparison) with a standalone diagnostics viewer; Print #2, BODY, Permanent Graph, FKEI, DryWeb and Output Scale untouched, printApproval=false."
     }
   ]
 }
