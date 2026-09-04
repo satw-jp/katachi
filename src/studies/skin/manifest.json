@@ -1196,6 +1196,10 @@
     {
       "date": "2026-09-02",
       "note": "H exported Support / BODY collision parity: Stage 8's export call no longer requests the legacy vertical-edge-to-Plate rewrite, so accepted non-root shaft, bend and contact-neck endpoints remain unchanged. Degree-2 sparse routes are emitted as continuous closed tubes while explicit degree-1 roots/terminals are capped; the legacy option and branching behavior remain for other callers. A root→shaft→bend→neck→target regression reproduces the pre-fix non-target BODY SDF penetration, then proves accepted endpoints and neck length survive Support STL and separate BODY/PRINT_SUPPORT 3MF serialization, package validation passes, and post-export non-target BODY overlap is zero. This is an export-geometry regression, not slicer, Bambu Studio or physical-print proof; printApproval remains false."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "SKIN Golden Support Physical Feedback v1 keeps current Stage 8 sparseResult.graph as the sole source and adds session-only unbraced-length measurement, minimal nearby mutual braces, and evidence-based point/crown/critical patch-candidate contact tiers. Default interface values are maxUnbracedLengthMm 18 (provisional observation), tip diameter 0.60 mm, neck length 0.60 mm and contact gap 0; critical patch candidates are non-exportable and no FKEI/schema or Permanent Reinforcement change is made. Browser fixture physical feedback measured 132 supported / 19 unresolved, 537 nodes / 370 edges, 35 braces and BODY/plate/invalid/zero/duplicate/extreme safety counts 0; the prior 166/156/10 and 546/390 result remains the frozen PRE-PHYSICAL-PRINT GOLDEN BASELINE. Comparison 3MF output uses the same current Stage 8 graph; manual Bambu/Prusa slicer inspection remains waiting and printApproval remains false."
     }
   ]
 }

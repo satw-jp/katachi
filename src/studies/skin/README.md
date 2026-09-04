@@ -4561,3 +4561,13 @@ area補強Graphが`.fkei` roundtrip後もnode／edgeをexact保持する回帰�
 赤表示は角度診断なので補強後も元triangle自体は赤いが、UIはareaを補強済みとして区別する。
 これは有限mesh角度、SDF sampleと45°contractの幾何検査であり、slicer layer、強度、実物の造形成功は未検証。
 `printApproval=false`を維持する。
+
+## Observation SKIN Golden Support Physical Feedback v1（2026-09-04）
+
+Stage 8のaccepted graphを物理フィードバックの唯一の入力として、支持材のunbraced長を測定し、近傍のaccepted shaft同士に限って最小相互braceを追加できるsession-only経路を実装した。BODY、Permanent Reinforcement、FKEI、Stage 4〜7のtarget条件は変更しない。braceはBODY capsule auditを通過したものだけを採用し、plate violation、invalid/NaN、zero length、near duplicate、extreme spanを別々に検査する。
+
+作者向け入力は暫定観察値のmaxUnbracedLengthMm=18、tip diameter=0.60 mm、neck length=0.60 mm、contact gap=0 mmを初期値とする。gap=0は従来形状を保持し、gap>0は比較用のsession-only変形として扱う。moderate contactはpoint、高coverageはcrown、critical coverageは非exportable patch candidateへ分離し、slicerや実物強度の合格は主張しない。
+
+実ブラウザの現行fixtureではStage 8の再生成結果が132 supported / 19 unresolved、physical feedback後が537 nodes / 370 edges、long-unbraced 3、brace 35、braced supports 70、point 61 / crown 4 / patch candidate 67となり、BODY collision / plate / invalid / zero / duplicate / extremeはすべて0だった。旧Goldenの166 / 156 / 10、546 nodes / 390 edgesはPRE-PHYSICAL-PRINT GOLDEN BASELINEとして凍結し、physical graphの受入条件には流用しない。
+
+default、thinner contact、small nonzero gapの比較用3MFは出力経路の同一Stage 8 sourceを使う。STL / reportとのfingerprint parityおよびview切替の非変異は既存契約と回帰で確認する。Bambu / Prusaでの手動slicer確認はWAITINGであり、`printApproval=false`を維持する。

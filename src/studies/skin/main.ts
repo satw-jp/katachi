@@ -297,6 +297,11 @@ import {
   type SparseRemovableSupportTarget,
 } from "./rebuild/sparseRemovableSupport.ts";
 import {
+  applySupportPhysicalFeedback,
+  DEFAULT_SUPPORT_MAX_UNBRACED_LENGTH_MM,
+  type SupportPhysicalFeedbackMetrics,
+} from "./rebuild/supportPhysicalFeedback.ts";
+import {
   goldenBounds,
   goldenFingerprintPayload,
   goldenVector,
@@ -1221,6 +1226,16 @@ const skinRebuildMeshInteriorClassificationDisplayButtons = new Map<
 /** Stage 8 diagnostics/debug are session-only; the accepted graph remains in
  * the ordinary project/FKEI graph fields and is still exported separately. */
 let skinRebuildSparseSupportResult: SparseRemovableSupportResult | null = null;
+/** The untouched Stage 8 result is retained only as the pre-physical-print
+ * comparison baseline. It is never installed in the renderer or exported. */
+let skinRebuildSparseSupportPrePhysicalResult: SparseRemovableSupportResult | null = null;
+/** Session-only physical feedback; never serialized into FKEI or the project
+ * graph. The current Stage 8 graph itself remains the sole export source. */
+let skinRebuildSupportPhysicalFeedback: SupportPhysicalFeedbackMetrics | null = null;
+let skinRebuildSupportPhysicalBraceEnabled = true;
+let skinRebuildSupportMaxUnbracedLengthMm = DEFAULT_SUPPORT_MAX_UNBRACED_LENGTH_MM;
+let skinRebuildSupportTipDiameterMm = 0.6;
+let skinRebuildSupportContactGapMm = 0;
 let skinRebuildExperimentalExportApproval: {
   project: SkinRebuildProject;
   responsibilityOverhang: SkinRebuildRuntimeOverhang;
@@ -8816,6 +8831,8 @@ function applySkinRebuildPrintSupportMode(nextMode: RemovableSupportMode): void 
 
   skinRebuildStage8CompletedProject = null;
   skinRebuildSparseSupportResult = null;
+  skinRebuildSparseSupportPrePhysicalResult = null;
+  skinRebuildSupportPhysicalFeedback = null;
   skinRebuildExperimentalExportApproval = null;
   skinRebuildThinStrutExperimentalExportApproval = null;
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
@@ -9085,6 +9102,8 @@ function invalidateSkinRebuildFinalStages(reason: string): void {
   clearSkinRebuildStage7DangerPresentation();
   skinRebuildArtworkInteriorClassificationCheckpoint = null;
   skinRebuildSparseSupportResult = null;
+  skinRebuildSparseSupportPrePhysicalResult = null;
+  skinRebuildSupportPhysicalFeedback = null;
   skinRebuildTopologyDiagnosticDisplayMode = "normal";
   skinRenderer.setSkinRebuildTopologyDiagnosticOverlay(null);
   skinRebuildExperimentalExportApproval = null;
@@ -11164,6 +11183,8 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildStage7DangerPresentation(true);
       refreshSkinRebuildMeshInteriorClassificationDisplay(true);
       skinRebuildSparseSupportResult = null;
+      skinRebuildSparseSupportPrePhysicalResult = null;
+      skinRebuildSupportPhysicalFeedback = null;
       skinRebuildExperimentalExportApproval = null;
       skinRebuildThinStrutExperimentalExportApproval = null;
       skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
@@ -11347,6 +11368,57 @@ function installSkinRebuildPipelinePanel(): void {
     }
   });
   supportDiameterRow.append(supportDiameter, document.createTextNode(" mm"));
+  const physicalBraceRow = document.createElement("label");
+  physicalBraceRow.className = "row skin-rebuild-pipeline-setting";
+  const physicalBrace = document.createElement("input");
+  physicalBrace.type = "checkbox";
+  physicalBrace.checked = skinRebuildSupportPhysicalBraceEnabled;
+  physicalBrace.setAttribute("aria-label", "Enable minimal mutual support braces");
+  physicalBrace.addEventListener("change", () => {
+    skinRebuildSupportPhysicalBraceEnabled = physicalBrace.checked;
+  });
+  physicalBraceRow.append(physicalBrace, document.createTextNode(" 最小相互brace（実験）"));
+  const maxUnbracedRow = document.createElement("label");
+  maxUnbracedRow.className = "row skin-rebuild-pipeline-setting";
+  maxUnbracedRow.append(document.createTextNode("最大unbraced長 "));
+  const maxUnbraced = document.createElement("input");
+  maxUnbraced.type = "number";
+  maxUnbraced.min = "1";
+  maxUnbraced.max = "100";
+  maxUnbraced.step = "1";
+  maxUnbraced.value = String(skinRebuildSupportMaxUnbracedLengthMm);
+  maxUnbraced.addEventListener("change", () => {
+    const value = Number(maxUnbraced.value);
+    if (Number.isFinite(value) && value > 0) skinRebuildSupportMaxUnbracedLengthMm = value;
+    maxUnbraced.value = String(skinRebuildSupportMaxUnbracedLengthMm);
+  });
+  maxUnbracedRow.append(maxUnbraced, document.createTextNode(" mm（暫定観察値）"));
+  const contactInterfaceRow = document.createElement("label");
+  contactInterfaceRow.className = "row skin-rebuild-pipeline-setting";
+  contactInterfaceRow.append(document.createTextNode("先端径 / contact gap "));
+  const tipDiameter = document.createElement("input");
+  tipDiameter.type = "number";
+  tipDiameter.min = "0.1";
+  tipDiameter.max = "1.6";
+  tipDiameter.step = "0.05";
+  tipDiameter.value = String(skinRebuildSupportTipDiameterMm);
+  tipDiameter.addEventListener("change", () => {
+    const value = Number(tipDiameter.value);
+    if (Number.isFinite(value) && value > 0) skinRebuildSupportTipDiameterMm = value;
+    tipDiameter.value = String(skinRebuildSupportTipDiameterMm);
+  });
+  const contactGap = document.createElement("input");
+  contactGap.type = "number";
+  contactGap.min = "0";
+  contactGap.max = "1";
+  contactGap.step = "0.05";
+  contactGap.value = String(skinRebuildSupportContactGapMm);
+  contactGap.addEventListener("change", () => {
+    const value = Number(contactGap.value);
+    if (Number.isFinite(value) && value >= 0) skinRebuildSupportContactGapMm = value;
+    contactGap.value = String(skinRebuildSupportContactGapMm);
+  });
+  contactInterfaceRow.append(tipDiameter, document.createTextNode(" mm / "), contactGap, document.createTextNode(" mm gap"));
   const printSupportButton = document.createElement("button");
   printSupportButton.dataset.skinWorkflowGuideAction = "generate-sparse-support";
   printSupportButton.type = "button";
@@ -11467,6 +11539,7 @@ function installSkinRebuildPipelinePanel(): void {
       }
       const settings = currentSkinRebuildPipelineSettings();
       let sparseResult: SparseRemovableSupportResult | null = null;
+      skinRebuildSupportPhysicalFeedback = null;
       const stage8SupportGraph = modeAtStart === "automatic"
         ? (() => {
           const bounds = computeSkinSamplingBounds(
@@ -11529,7 +11602,7 @@ function installSkinRebuildPipelinePanel(): void {
             diagnosis.meshPositions,
             settings.targetLongestMm,
           );
-          sparseResult = buildSparseRemovableSupport({
+          const baseSparseResult = buildSparseRemovableSupport({
             projectedOutsideFaces,
             outsideRegionCount: currentProjectedOutsideRegionIds.length,
             plateZ,
@@ -11555,6 +11628,44 @@ function installSkinRebuildPipelinePanel(): void {
             // supplied here. If it is unavailable, vertical routes remain
             // eligible and leaning remains fail-closed.
           });
+          skinRebuildSparseSupportPrePhysicalResult = baseSparseResult;
+          const physicalFeedback = applySupportPhysicalFeedback(
+            baseSparseResult,
+            {
+              projectedOutsideFaces,
+              outsideRegionCount: currentProjectedOutsideRegionIds.length,
+              plateZ,
+              shaftRadius,
+              neckRadius,
+              bodySdf,
+              targetSdf,
+              otherBodySdf,
+              removalGapMm: 0.35,
+              scaleMmPerUnit,
+              contactNeckDiameterMm: 0.6,
+              neckLength,
+              targetRadius,
+              maximumOverlapLength: targetRadius + shaftRadius * 2,
+              maximumDepth: targetRadius + shaftRadius * 2,
+              plateBounds,
+              preserveContactNeck: true,
+              spacingAsSelectionPreference: true,
+            },
+            {
+              maxUnbracedLengthMm: skinRebuildSupportMaxUnbracedLengthMm,
+              scaleMmPerUnit,
+              braceEnabled: skinRebuildSupportPhysicalBraceEnabled,
+              tipDiameterMm: skinRebuildSupportTipDiameterMm,
+              neckLengthMm: 0.6,
+              contactGapMm: skinRebuildSupportContactGapMm,
+            },
+          );
+          skinRebuildSupportPhysicalFeedback = physicalFeedback.metrics;
+          sparseResult = {
+            ...baseSparseResult,
+            graph: physicalFeedback.graph,
+            acceptedRoutes: physicalFeedback.acceptedRoutes,
+          };
           return sparseResult.graph;
         })()
         : createEmptySkinRebuildGraph();
@@ -11631,10 +11742,14 @@ function installSkinRebuildPipelinePanel(): void {
         const sparseStatus = sparseDiagnostics
           ? `OFFSET-BEND 6.5+7 regions ${sparseDiagnostics.outsideRegionCount} / Critical targets ${sparseDiagnostics.criticalTargetCount} / Supported ${sparseDiagnostics.coveredTargetCount} / Unsupported ${sparseDiagnostics.unsupportedTargetCount} / Supports ${sparseDiagnostics.generatedSupportCount} / acceptedSupportCount ${stage8SupportGraph.stats.acceptedSupportCount ?? 0} / rejectedByBodyIntersection ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / rejected-by-Body ${stage8SupportGraph.stats.rejectedByBodyIntersection ?? 0} / unsupportedCount ${stage8SupportGraph.stats.unsupportedCount ?? sparseDiagnostics.unsupportedTargetCount} / straight BODY collisions ${sparseDiagnostics.straightRejectedByBody} / final BODY rejects ${sparseDiagnostics.rejectedByBody} / spacing ${sparseDiagnostics.rejectedBySpacing} / removable ${sparseDiagnostics.rejectedByRemovability} / candidates ${sparseDiagnostics.routeCandidateCount} / vertical ${sparseDiagnostics.verticalCount} / bent ${sparseDiagnostics.offsetBendCount}`
           : "Outside regions 0 / Critical targets 0 / Supported 0 / Unsupported 0 / Supports 0 / rejected BODY 0 / spacing 0 / removable 0";
+        const physical = skinRebuildSupportPhysicalFeedback;
+        const physicalStatus = physical
+          ? `physical feedback · targets ${physical.targetCount} / trunks ${physical.trunkCount} / nodes ${physical.nodeCount} / edges ${physical.edgeCount} / longest unbraced ${physical.longestUnbracedLengthMm.toFixed(2)} mm / long-unbraced ${physical.longUnbracedCount} / braces ${physical.braceCount} / braced supports ${physical.bracedSupportCount} / contacts point ${physical.pointContactCount} crown ${physical.crownContactCount} patch-candidate ${physical.patchCandidateCount} / critical without enhanced contact ${physical.criticalRegionsWithoutEnhancedContact} / tip ${physical.tipDiameterMm.toFixed(2)} mm / neck ${physical.neckLengthMm.toFixed(2)} mm / gap ${physical.contactGapMm.toFixed(2)} mm / safety BODY ${physical.safety.acceptedBodyCollisionCount} plate ${physical.safety.plateViolationCount} invalid ${physical.safety.invalidGeometryCount} zero ${physical.safety.zeroLengthEdgeCount} duplicate ${physical.safety.nearDuplicateEdgeCount} extreme ${physical.safety.extremeSpanCount}`
+          : "physical feedback unavailable";
         const unresolvedWarning = (sparseDiagnostics?.unsupportedTargetCount ?? 0) > 0
           ? ` · ${sparseDiagnostics!.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`
           : "";
-        printSupportDiagnostics.textContent = `${responsibilityText} · Sparse Automatic (experimental) · ${sparseStatus} · ${count} edges · 3MF/STL/report use this same graph${unresolvedWarning}`;
+        printSupportDiagnostics.textContent = `${responsibilityText} · Sparse Automatic (experimental) · ${sparseStatus} · ${physicalStatus} · ${count} edges · 3MF/STL/report use this same graph${unresolvedWarning}`;
         printSupport.status.textContent = `Removable Support · ${sparseDiagnostics?.coveredTargetCount ?? 0} supported · ${sparseDiagnostics?.unsupportedTargetCount ?? 0} unresolved · BODY collision ${sparseDiagnostics?.acceptedBodyCollisionCount ?? 0}`;
         printSupport.status.dataset.ok = "true";
         setSkinRebuildMeshBottomProgress(
@@ -11647,6 +11762,8 @@ function installSkinRebuildPipelinePanel(): void {
       commitSkinRebuildWorkflowHistory("工程8 印刷サポート生成", workflowBefore);
       render();
     } catch (error) {
+      skinRebuildSparseSupportPrePhysicalResult = null;
+      skinRebuildSupportPhysicalFeedback = null;
       const message = error instanceof Error ? error.message : String(error);
       printSupport.status.textContent = "Support could not be generated";
       printSupportDiagnostics.textContent = message;
@@ -11662,7 +11779,17 @@ function installSkinRebuildPipelinePanel(): void {
       refreshSkinRebuildFinalStageButtons();
     }
   };
-  printSupport.section.append(supportModeRow, sparseDebugRow, supportDiameterRow, printSupportButton, printSupport.status, printSupportDetails);
+  printSupport.section.append(
+    supportModeRow,
+    sparseDebugRow,
+    supportDiameterRow,
+    physicalBraceRow,
+    maxUnbracedRow,
+    contactInterfaceRow,
+    printSupportButton,
+    printSupport.status,
+    printSupportDetails,
+  );
 
   const stage8Export = makeStep(
     "サポート確定後の3Dデータ書き出し",
@@ -14255,6 +14382,8 @@ function restoreSkinRebuildWorkflowSnapshot(snapshot: SkinRebuildWorkflowSnapsho
   clearSkinRebuildStage7DangerPresentation();
   skinRebuildArtworkInteriorClassificationCheckpoint = null;
   skinRebuildSparseSupportResult = null;
+  skinRebuildSparseSupportPrePhysicalResult = null;
+  skinRebuildSupportPhysicalFeedback = null;
   skinRebuildExperimentalExportApproval = null;
   skinRebuildThinStrutExperimentalExportApproval = null;
   skinRenderer.setSparseRemovableSupportDebug(null, skinRebuildSparseSupportDebugEnabled);
@@ -16625,6 +16754,7 @@ async function exportCurrentSkinRebuildArtifact(
       stage75: skinRebuildPrintPreparationReadiness().diagnostics.stage75,
       stage8: skinRebuildPrintPreparationReadiness().diagnostics.stage8,
       sparse: skinRebuildSparseSupportResult?.diagnostics ?? null,
+      physicalFeedback: skinRebuildSupportPhysicalFeedback,
       topology: stage6BodyMeshCache?.topologyDiagnostics ?? null,
     },
     unresolved: skinRebuildSparseSupportResult?.diagnostics.unsupportedTargetCount ?? null,
@@ -19417,7 +19547,10 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
   const presentation = presentationState?.diagnosis === diagnosis && presentationState.presentation.available
     ? presentationState.presentation
     : null;
-  const sparseResult = skinRebuildSparseSupportResult;
+  // The frozen Golden snapshot intentionally measures the untouched Stage 8
+  // graph. Physical feedback is a separate post-print observation and must be
+  // reported as before/after rather than silently rewriting this baseline.
+  const sparseResult = skinRebuildSparseSupportPrePhysicalResult ?? skinRebuildSparseSupportResult;
   if (!pipeline || !pipeline.project || !responsibility || !stage4 || !diagnosis || !presentation || !sparseResult) {
     throw new Error("SKIN golden snapshot requires current Stage 4, Stage 7, and Stage 8 state");
   }
@@ -19685,12 +19818,28 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
       projectPrintSupportEdges: project?.printSupport.edges.length ?? 0,
       sparseGraphEdges: sparseGraph?.edges.length ?? 0,
       rendererGraphEdges: skinRenderer.getPrintSupportGraph()?.edges.length ?? 0,
+      prePhysicalGraph: skinRebuildSparseSupportPrePhysicalResult
+        ? {
+            nodeCount: skinRebuildSparseSupportPrePhysicalResult.graph.nodes.length,
+            edgeCount: skinRebuildSparseSupportPrePhysicalResult.graph.edges.length,
+            generatedSupportCount: skinRebuildSparseSupportPrePhysicalResult.diagnostics.generatedSupportCount,
+            supportedTargetCount: skinRebuildSparseSupportPrePhysicalResult.diagnostics.coveredTargetCount,
+            unsupportedTargetCount: skinRebuildSparseSupportPrePhysicalResult.diagnostics.unsupportedTargetCount,
+          }
+        : null,
       identity: {
         projectPrintSupport: Boolean(sparseGraph && project?.printSupport === sparseGraph),
         stage8CompletedProject: Boolean(project && skinRebuildStage8CompletedProject === project),
         renderer: Boolean(sparseGraph && skinRenderer.getPrintSupportGraph() === sparseGraph),
       },
       diagnostics: sparseResult?.diagnostics ?? null,
+      physicalFeedback: skinRebuildSupportPhysicalFeedback,
+      physicalSettings: {
+        braceEnabled: skinRebuildSupportPhysicalBraceEnabled,
+        maxUnbracedLengthMm: skinRebuildSupportMaxUnbracedLengthMm,
+        tipDiameterMm: skinRebuildSupportTipDiameterMm,
+        contactGapMm: skinRebuildSupportContactGapMm,
+      },
     };
   },
   getSurfacePersistentCacheDebug: () => ({
