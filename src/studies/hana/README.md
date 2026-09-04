@@ -543,3 +543,49 @@ Control pointsを操作ハンドル、centripetal Catmull-Rom Centerlineを再�
 - HANA-2AはPASS / FROZENとして停止する。次Phase、Flower、Gesture Material、Soft Edit再設計、Worker、WebGPU、CUDA、SKIN Bridgeへは進まない。
 
 HANA-2AではUndo、Load、units、Axome直接編集、複数Stroke編集、Graph、pressure-based radius、Surface Draw、Silhouette Draw、Section Draw、Mesh export、STL、Print、Support、Web、`hana-taba`、CUDA、WebGPU、iPad Native、SKIN production連携を実装しない。adaptive Control Strokeの上限、Smoothnessの再fit、長尺pointerupのWorker化はFOLLOW-UPであり、今回のGateへ持ち込まない。
+
+## HANA Authoring Stack v0 — iPad Interaction and Resume Durability
+
+Current branch: `agent/hana-ipad-interaction-v0`
+Base: HANA-2A frozen checkpoint
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+
+Platform target:
+
+- iPad Pro 11-inch
+- Apple Pencil through EasyCanvas
+- Windows Browser
+
+### M13–M19 implemented scope
+
+- M13: compact left-pane, touch-first controls with 48px-class targets, readable Smoothness / Thickness values, and Surface ON / Centerline ON / Samples OFF defaults. `Rebuild Surface` remains a secondary fallback.
+- M14–M15: bounded live-path profiling and latest-frame Pencil preview processing. Raw Gesture capture remains immediate and authoritative; provisional Control / Smooth / Material / Proxy work is driven from the bounded working path and is not saved.
+- M16–M17: `visibilitychange`, `pagehide`, `pageshow`, `freeze`, `resume`, and WebGL context loss/restoration handling. A versioned `katachi.hana-recovery-checkpoint.v0` is saved to IndexedDB after completed authoring changes and lifecycle transitions. Invalid, incompatible, or mismatched checkpoints are rejected; recovery never makes a derived Mesh authoritative.
+- M18: touch camera navigation, pinch zoom, pan, Front / Side / Top / Iso presets, Fit View, and Auto Rotate. Camera interactions stop Auto Rotate; Pencil remains Draw and Mouse remains the precise editing instrument.
+- M19: integrated regression coverage for bounded profiling, checkpoint round-trip/validation, touch deltas, build, and HANA browser smoke.
+
+The frozen authoring hierarchy remains:
+
+```text
+Raw Gesture
+↓
+Adaptive Control Stroke
+↓
+Smooth Centerline
+↓
+Dense Adaptive Material Samples
+↓
+Field / SDF
+↓
+Surface Mesh
+```
+
+Raw points, pressure, time, order, provenance, adaptive Control tolerance `0.09`, Shape Fidelity, dense Final Material density, Remote Compute v0, and Live Proxy maximum `192` are unchanged. IndexedDB stores only a cloned semantic authoring document plus recovery metadata; Material Samples, Field, Surface Mesh, and Live Proxy remain derived.
+
+### Known limitations / follow-up
+
+- Hardware recheck of the new iPad interaction and resume paths is pending; this branch must not be called hardware PASS / FROZEN until that gate is completed.
+- A very long live gesture can still show a small late-stage preview reduction; the working path and Proxy remain bounded and Raw capture is preserved.
+- Very dense Final Surface generation remains cooperative but can take noticeable time. Worker, WebGPU, CUDA, native iPad, and Service Worker work are out of scope.
+- Soft Edit remains control-count based; arc-length Soft Edit is a follow-up.
+- Browser and Chrome command-line warnings are not HANA console errors; environment-specific `uv_os_get_passwd ENOMEM` remains a test-environment follow-up.

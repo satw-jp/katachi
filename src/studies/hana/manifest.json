@@ -2,9 +2,9 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "implemented",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "createdAt": "2026-09-01",
-  "updatedAt": "2026-09-03",
+  "updatedAt": "2026-09-04",
   "params": [
     "viewportMode",
     "viewportInteractionMode",
@@ -17,7 +17,13 @@
     "materialSamples",
     "pointField",
     "previewSurface",
-    "surfaceThickness"
+    "surfaceThickness",
+    "livePathProfiler",
+    "lifecycleRecovery",
+    "indexedDbCheckpoint",
+    "touchNavigation",
+    "viewPresets",
+    "autoRotate"
   ],
   "related": ["skin"],
   "revisits": [
@@ -216,6 +222,10 @@
     {
       "date": "2026-09-03",
       "note": "Remote Compute v0 Milestone 12 formalizes the versioned hana-compute-capability.v0 CPU-only engine boundary: engineId, algorithmVersion, executionKind, gpu, cancellation/object-level support, and supported snapshot/protocol versions. Only CpuJsHanaComputeEngine (cpu-js-v0) is registered; unknown engine IDs are rejected explicitly, and compatibility is checked before computation and when applying results. No CUDA, WebGPU, DirectCompute, Vulkan, or GPU server is implemented. Software Gate passes; iPad Remote Gate remains pending."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "HANA Authoring Stack v0 interaction layer adds a compact touch-first control pane for iPad Pro 11-inch, bounded live-path profiling, latest-frame Pencil preview processing, lifecycle and WebGL context diagnostics, versioned IndexedDB local recovery checkpoints, touch pan/pinch navigation, view presets, Fit View, and stoppable Auto Rotate. Raw Gesture fidelity, adaptive Control tolerance 0.09, dense Final Material / Field / Surface semantics, Remote Compute v0, and Live Proxy 192 cap remain unchanged. Software verification is required before the iPad hardware recheck; HANA-local only, with no SKIN production changes."
     }
   ]
 }
