@@ -3311,9 +3311,15 @@ function refreshAuthoritativeSurfaceAfterSemanticChange(reason: string): void {
   });
   if (targetId !== null && stroke3D?.id === targetId) {
     requestAuthoritativeSurfaceRebuild(reason, false);
-  } else {
-    updateSurfaceUI();
+    return;
   }
+  // Invariant alarm: Strokes exist and Surface display is on, yet no rebuild
+  // target resolved (no samples, or target/current mismatch). Without this the
+  // skipped request is invisible in the next hardware gate trace.
+  if (authoringStrokes.length > 0 && showSurface) {
+    stateMessage = `SURFACE · no rebuild target after ${reason} · strokes ${authoringStrokes.length} · samples ${materialSamples.length} · active ${activeAuthoringStrokeId ?? "—"} · current ${stroke3D?.id ?? "—"}`;
+  }
+  updateSurfaceUI();
 }
 
 function applyAuthoringSnapshot(
@@ -4784,6 +4790,7 @@ async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void
       stateMessage = `SURFACE READY · ${result.counts.triangles} triangles · ${surfaceBuildMilliseconds?.toFixed(1) ?? "—"} ms`;
       setComputeStatus(`${computeMode.toUpperCase()} · READY`);
       renderScene();
+      trace.counts.presentedTriangles = previewSurface?.triangles.length ?? 0;
       recordFinalization(trace);
       scheduleFinalizationHeapSamples(trace);
       updateSurfaceUI();
@@ -5072,6 +5079,7 @@ async function rebuildSurface(
         // Surface stays hidden until it is presented here (the remote path
         // already re-renders at this point; keep both paths symmetric).
         renderScene();
+        finalization.counts.presentedTriangles = previewSurface?.triangles.length ?? 0;
         updateSurfaceUI();
         redrawOverlay();
         updateDebug();
