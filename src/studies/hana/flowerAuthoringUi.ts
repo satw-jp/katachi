@@ -6,7 +6,6 @@ export interface HanaFlowerUiState {
   flowers: readonly HanaFlower[];
   activeFlowerId: string | null;
   coreStrokeId: string | null;
-  selectionMode: boolean;
   multiSelect: boolean;
   materializedFlowerId: string | null;
   materializedSampleCount: number;
@@ -16,7 +15,6 @@ export interface HanaFlowerUiState {
 
 export interface HanaFlowerUiActions {
   getState: () => HanaFlowerUiState;
-  setSelectionMode: (enabled: boolean) => void;
   setMultiSelect: (enabled: boolean) => void;
   selectStroke: (strokeId: string, additive: boolean) => void;
   setCoreStroke: (strokeId: string | null) => void;
@@ -28,7 +26,6 @@ export interface HanaFlowerUiActions {
 
 export interface HanaFlowerUiHandle {
   refresh: () => void;
-  isSelectionMode: () => boolean;
   isMultiSelect: () => boolean;
 }
 
@@ -39,8 +36,8 @@ function button(label: string, id: string, className = ""): string {
 export function initializeHanaFlowerAuthoringUi(
   actions: HanaFlowerUiActions,
 ): HanaFlowerUiHandle {
-  const workspace = document.querySelector<HTMLElement>(".hana-workspace");
-  if (!workspace) throw new Error("HANA workspace is required for Flower Authoring UI");
+  const pane = document.querySelector<HTMLElement>(".hana-left-lower");
+  if (!pane) throw new Error("HANA lower authoring pane is required for Flower Authoring UI");
   const existing = document.getElementById("hana-flower-section");
   if (existing) existing.remove();
 
@@ -54,7 +51,6 @@ export function initializeHanaFlowerAuthoringUi(
       <span id="hana-flower-selection-count">Selected Strokes: 0</span>
     </div>
     <div class="hana-flower-actions">
-      ${button("Stroke Select OFF", "hana-flower-selection-mode")}
       ${button("Multi Select OFF", "hana-flower-multi-select")}
     </div>
     <div class="hana-flower-subsection">
@@ -78,9 +74,8 @@ export function initializeHanaFlowerAuthoringUi(
     </div>
     <div id="hana-flower-status" class="hana-flower-status" role="status">Select Strokes to author a Flower</div>
   `;
-  workspace.appendChild(panel);
+  pane.appendChild(panel);
 
-  const selectionModeButton = panel.querySelector<HTMLButtonElement>("#hana-flower-selection-mode")!;
   const multiSelectButton = panel.querySelector<HTMLButtonElement>("#hana-flower-multi-select")!;
   const clearCoreButton = panel.querySelector<HTMLButtonElement>("#hana-flower-clear-core")!;
   const createButton = panel.querySelector<HTMLButtonElement>("#hana-flower-create")!;
@@ -103,8 +98,6 @@ export function initializeHanaFlowerAuthoringUi(
       const state = actions.getState();
       const selected = new Set(state.document.selectedStrokeIds);
       selectionCount.textContent = `Selected Strokes: ${state.document.selectedStrokeIds.length}`;
-      selectionModeButton.textContent = `Stroke Select ${state.selectionMode ? "ON" : "OFF"}`;
-      selectionModeButton.setAttribute("aria-pressed", String(state.selectionMode));
       multiSelectButton.textContent = `Multi Select ${state.multiSelect ? "ON" : "OFF"}`;
       multiSelectButton.setAttribute("aria-pressed", String(state.multiSelect));
       clearCoreButton.disabled = state.coreStrokeId === null;
@@ -159,14 +152,9 @@ export function initializeHanaFlowerAuthoringUi(
           ? "Select Strokes, set an optional Core, then Create Flower"
           : `${state.flowers.length} Flower${state.flowers.length === 1 ? "" : "s"} · source Strokes remain editable`;
     },
-    isSelectionMode: () => actions.getState().selectionMode,
     isMultiSelect: () => actions.getState().multiSelect,
   };
 
-  selectionModeButton.addEventListener("click", () => {
-    actions.setSelectionMode(!actions.getState().selectionMode);
-    handle.refresh();
-  });
   multiSelectButton.addEventListener("click", () => {
     actions.setMultiSelect(!actions.getState().multiSelect);
     handle.refresh();

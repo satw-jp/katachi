@@ -1047,3 +1047,299 @@ button:disabled {
     grid-row: 3;
   }
 }
+
+/* Selection / Flower authoring lives in a rail beside the canvas, never over it. */
+.hana-shell {
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.hana-left-rail {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, var(--hana-left-upper-fr, 0.6fr)) 14px minmax(0, var(--hana-left-lower-fr, 0.4fr));
+  gap: 0;
+  border: 1px solid #d0d5da;
+  background: #fff;
+}
+
+.hana-left-upper,
+.hana-left-lower {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hana-left-upper .hana-header {
+  height: 100%;
+  min-height: 0;
+  display: block;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 10px;
+}
+
+.hana-left-upper .hana-heading {
+  margin-bottom: 10px;
+}
+
+.hana-left-upper .hana-heading h1 {
+  font-size: 0.95rem;
+}
+
+.hana-left-upper .hana-heading p {
+  line-height: 1.35;
+}
+
+.hana-left-upper .hana-toolbar {
+  display: grid;
+  align-items: stretch;
+  justify-content: stretch;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.hana-left-upper .hana-toolbar > * {
+  width: 100%;
+  min-width: 0;
+  flex: none;
+}
+
+.hana-left-upper .hana-toolbar > .hana-segmented,
+.hana-left-upper .hana-toolbar > .hana-display-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 0 8px;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-left-upper .hana-soft-control,
+.hana-left-upper .hana-compute-control,
+.hana-left-upper .hana-view-control {
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  padding: 0 0 8px;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-left-upper .hana-soft-control {
+  grid-template-columns: auto 1fr;
+}
+
+.hana-left-upper .hana-soft-control .hana-segmented,
+.hana-left-upper .hana-compute-control .hana-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  padding: 0;
+}
+
+.hana-left-upper .hana-soft-control .hana-segmented {
+  grid-column: 1 / -1;
+}
+
+.hana-left-upper .hana-soft-control button,
+.hana-left-upper .hana-compute-control button {
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.hana-left-upper .hana-smooth-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 6px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px 0;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-left-upper .hana-smooth-control input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.hana-left-upper .hana-smooth-control output {
+  font-size: 1.15rem;
+}
+
+.hana-left-upper .hana-display-control {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 0 8px;
+}
+
+.hana-left-upper .hana-display-control button {
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 0.75rem;
+}
+
+.hana-left-upper .hana-compute-control {
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+}
+
+.hana-left-upper .hana-compute-control .hana-segmented {
+  grid-column: 1 / -1;
+}
+
+.hana-left-upper .hana-compute-status {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.hana-left-upper .hana-view-control {
+  grid-template-columns: 1fr;
+}
+
+.hana-left-upper .hana-view-presets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.hana-left-upper .hana-view-presets button,
+.hana-left-upper .hana-view-control > #auto-rotate {
+  min-width: 0;
+  width: 100%;
+  padding: 0 3px;
+}
+
+.hana-left-upper .hana-authoring-context {
+  padding: 0 0 8px;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-left-upper .hana-authoring-stack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  height: auto;
+  padding: 0 0 8px;
+  border-left: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-left-upper .hana-authoring-title,
+.hana-left-upper .hana-authoring-status {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+
+.hana-left-upper .hana-authoring-stack button {
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 0.72rem;
+}
+
+.hana-left-upper .hana-recovery-status {
+  width: 100%;
+  min-height: 44px;
+}
+
+.hana-left-upper .hana-toolbar > #rebuild-surface,
+.hana-left-upper .hana-toolbar > #clear-document,
+.hana-left-upper .hana-toolbar > #load-document,
+.hana-left-upper .hana-toolbar > #save-document {
+  width: 100%;
+}
+
+.hana-left-pane-splitter {
+  min-height: 14px;
+  border-top: 1px solid #bfc5cc;
+  border-bottom: 1px solid #bfc5cc;
+  background: #eef0f2;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.hana-left-pane-splitter::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 4px;
+  margin: 4px auto 0;
+  border-radius: 4px;
+  background: #8a929a;
+}
+
+.hana-left-pane-splitter.is-dragging,
+.hana-left-pane-splitter:hover {
+  background: #dfe4e8;
+}
+
+.hana-left-lower {
+  overflow: auto;
+  border-top: 0;
+}
+
+.hana-left-lower .hana-flower-section {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 10px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.hana-workspace {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.hana-debug {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 960px) {
+  .hana-shell {
+    grid-template-columns: minmax(220px, 30vw) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .hana-left-rail {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .hana-workspace {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hana-debug {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .hana-left-upper .hana-header {
+    display: block;
+  }
+}
+
+@media (max-width: 700px) {
+  .hana-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}

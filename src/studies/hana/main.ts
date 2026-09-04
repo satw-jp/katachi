@@ -147,6 +147,18 @@ import {
   type HanaTouchPoint,
   type HanaViewPreset,
 } from "./viewNavigation.ts";
+import {
+  HANA_LEFT_PANE_DEFAULT_RATIO,
+  HANA_LEFT_PANE_MAX_RATIO,
+  HANA_LEFT_PANE_MIN_RATIO,
+  clampLeftPaneRatio,
+  parseLeftPaneRatio,
+} from "./authoringLayout.ts";
+import {
+  classifyHanaPointerIntent,
+  pointerMovementExceedsThreshold,
+  type HanaPendingPointerIntent,
+} from "./interactionRouting.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -202,12 +214,14 @@ let liveIsolationMode = liveIsolationModeFromQuery();
 
 app.innerHTML = `
   <main class="hana-shell">
-    <header class="hana-header">
-      <div class="hana-heading">
-        <h1>HANA — Point Field Stem Preview</h1>
-        <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt}</p>
-      </div>
-      <div class="hana-toolbar" aria-label="Viewport layout and document actions">
+    <section class="hana-left-rail" aria-label="HANA authoring controls">
+      <div id="hana-left-upper" class="hana-left-upper">
+        <header class="hana-header">
+          <div class="hana-heading">
+            <h1>HANA — Point Field Stem Preview</h1>
+            <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt}</p>
+          </div>
+          <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
           <button id="layout-four" type="button" aria-pressed="true">Four</button>
           <button id="layout-one" type="button" aria-pressed="false">One</button>
@@ -273,7 +287,11 @@ app.innerHTML = `
         <input id="load-document-file" type="file" accept="application/json" hidden />
         <button id="save-document" type="button" class="hana-primary">Save JSON</button>
       </div>
-    </header>
+        </header>
+      </div>
+      <div id="left-pane-splitter" class="hana-left-pane-splitter" role="separator" aria-label="Resize authoring panes" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="60" tabindex="0"></div>
+      <div id="hana-left-lower" class="hana-left-lower" aria-label="Selection and Flower authoring"></div>
+    </section>
 
     <section class="hana-workspace" aria-label="HANA smooth 3D stroke editor">
       <canvas id="scene-canvas" aria-hidden="true"></canvas>
@@ -355,6 +373,8 @@ function requiredElement<T extends Element>(selector: string): T {
 }
 
 const workspace = requiredElement<HTMLElement>(".hana-workspace");
+const leftRail = requiredElement<HTMLElement>(".hana-left-rail");
+const leftPaneSplitter = requiredElement<HTMLElement>("#left-pane-splitter");
 const sceneCanvas = requiredElement<HTMLCanvasElement>("#scene-canvas");
 const gestureCanvas = requiredElement<HTMLCanvasElement>("#gesture-canvas");
 const chrome = requiredElement<HTMLElement>("#viewport-chrome");
@@ -400,6 +420,13 @@ const directions = DEFAULT_SKIN_VIEW_DIRECTIONS as readonly HanaViewDirection[];
 let viewportMode: HanaViewportMode = "four";
 let selectedViewport = 2;
 let split = { x: 0.5, y: 0.5 };
+const HANA_LEFT_PANE_SPLIT_STORAGE_KEY = "hana.leftPaneSplitRatio";
+let leftPaneSplitRatio = HANA_LEFT_PANE_DEFAULT_RATIO;
+try {
+  leftPaneSplitRatio = parseLeftPaneRatio(localStorage.getItem(HANA_LEFT_PANE_SPLIT_STORAGE_KEY));
+} catch {
+  leftPaneSplitRatio = HANA_LEFT_PANE_DEFAULT_RATIO;
+}
 const interactionModes: HanaInteractionMode[] = ["edit", "view", "draw", "edit"];
 const rawGestures: HanaViewportStroke[] = [];
 let authoringStrokes: HanaStroke3D[] = [];
@@ -408,13 +435,13 @@ let selectedStrokeIds: string[] = [];
 let activeAuthoringStrokeId: string | null = null;
 let activeFlowerId: string | null = null;
 let flowerCoreStrokeId: string | null = null;
-let flowerSelectionMode = false;
 let flowerMultiSelect = false;
 let flowerMaterializedId: string | null = null;
 let flowerMaterializedSampleCount = 0;
 let flowerHistory: HanaUndoRedo<{ document: HanaAuthoringDocument; flowers: HanaFlower[]; activeFlowerId: string | null }> | null = null;
 let flowerUi: HanaFlowerUiHandle | null = null;
 const authoringStrokeRoles = new Map<string, HanaStrokeRole>();
+let pendingAuthoringPointer: HanaPendingPointerIntent | null = null;
 let rawPressureTotal = 0;
 let rawTimeTotal = 0;
 let lastRawCaptureDiagnostics: HanaRawGestureCaptureDiagnostics | null = null;
@@ -1878,7 +1905,6 @@ function updateDebug(
   setDebugText("input-state", activeStroke
     ? "RECORDING · camera input is disabled"
       : controlDrag ? `EDITING · control ${controlDrag.controlIndex + 1} · Raw Gesture locked`
-        : flowerSelectionMode ? "SELECTING · Mouse / Touch selects Strokes"
       : stateMessage);
   workspace.dataset.rawGestureCount = String(rawGestures.length);
   workspace.dataset.rawPointCount = String(rawGestureForStroke()?.points.length ?? 0);
@@ -1898,7 +1924,6 @@ function updateDebug(
   workspace.dataset.flowerCount = String(hanaFlowers.length);
   workspace.dataset.selectedStrokeIds = selectedStrokeIds.join(",");
   workspace.dataset.activeFlowerId = activeFlowerId ?? "";
-  workspace.dataset.flowerSelectionMode = String(flowerSelectionMode);
   workspace.dataset.adaptiveControlCount = lastAdaptiveControlFit === null
     ? ""
     : String(lastAdaptiveControlFit.indices.length);
@@ -2112,6 +2137,13 @@ function updateSplitters(): void {
   splitterY.setAttribute("aria-valuenow", String(Math.round(split.y * 100)));
 }
 
+function updateLeftPaneLayout(): void {
+  leftPaneSplitRatio = clampLeftPaneRatio(leftPaneSplitRatio);
+  leftRail.style.setProperty("--hana-left-upper-fr", `${leftPaneSplitRatio}`);
+  leftRail.style.setProperty("--hana-left-lower-fr", `${1 - leftPaneSplitRatio}`);
+  leftPaneSplitter.setAttribute("aria-valuenow", String(Math.round(leftPaneSplitRatio * 100)));
+}
+
 function updateLayoutButtons(): void {
   layoutFourButton.setAttribute("aria-pressed", String(viewportMode === "four"));
   layoutOneButton.setAttribute("aria-pressed", String(viewportMode === "one"));
@@ -2142,6 +2174,7 @@ function refreshLayout(): void {
   redrawOverlay();
   renderViewportChrome();
   updateSplitters();
+  updateLeftPaneLayout();
   updateLayoutButtons();
   updateSoftEditButtons();
   updateSurfaceUI();
@@ -2401,6 +2434,10 @@ function finishStroke(): void {
   authoringStrokes.push(stroke3D);
   activeAuthoringStrokeId = stroke3D.id;
   selectedStrokeIds = [stroke3D.id];
+  activeFlowerId = null;
+  flowerCoreStrokeId = null;
+  flowerMaterializedId = null;
+  flowerMaterializedSampleCount = 0;
   authoringStrokeRoles.set(stroke3D.id, "free");
   resetFlowerHistory();
   stateMessage = `SMOOTH CENTERLINE READY · ${stroke3D.controlPoints.length} controls · ${sampleSmoothCenterline(stroke3D).length} samples · ${authoringStrokes.length} Stroke${authoringStrokes.length === 1 ? "" : "s"}`;
@@ -2865,7 +2902,6 @@ function flowerUiState() {
     flowers: hanaFlowers,
     activeFlowerId,
     coreStrokeId: flowerCoreStrokeId,
-    selectionMode: flowerSelectionMode,
     multiSelect: flowerMultiSelect,
     materializedFlowerId: flowerMaterializedId,
     materializedSampleCount: flowerMaterializedSampleCount,
@@ -3481,7 +3517,12 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
   redrawOverlay();
 }
 
-function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
+function startCameraDrag(
+  event: PointerEvent,
+  rect: SkinViewportRect,
+  previousX = event.clientX,
+  previousY = event.clientY,
+): void {
   if (!event.isPrimary || activeStroke || cameraDrag || controlDrag) return;
   if (event.pointerType === "mouse" && event.button !== 0 && event.button !== 2) return;
   event.preventDefault();
@@ -3494,10 +3535,27 @@ function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
       shiftKey: event.shiftKey,
       metaKey: event.metaKey || event.ctrlKey,
     }),
-    previousX: event.clientX,
-    previousY: event.clientY,
+    previousX,
+    previousY,
     rect: { ...rect },
   };
+}
+
+function updateCameraDrag(event: PointerEvent): void {
+  if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
+  event.preventDefault();
+  renderer.applyDrag(
+    cameraDrag.viewportIndex,
+    cameraDrag.gesture,
+    event.clientX - cameraDrag.previousX,
+    event.clientY - cameraDrag.previousY,
+    cameraDrag.rect.width,
+    cameraDrag.rect.height,
+  );
+  cameraDrag.previousX = event.clientX;
+  cameraDrag.previousY = event.clientY;
+  renderScene();
+  redrawOverlay();
 }
 
 function currentTouchPoints(): HanaTouchPoint[] {
@@ -3569,7 +3627,128 @@ function endTouchNavigation(pointerId: number): void {
   if (gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
 }
 
+function releaseGesturePointer(pointerId: number): void {
+  if (gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
+}
+
+function activateAuthoringStrokeForEdit(strokeId: string): boolean {
+  const next = authoringStrokes.find((stroke) => stroke.id === strokeId);
+  if (!next) return false;
+  activeAuthoringStrokeId = next.id;
+  stroke3D = next;
+  selectedControlPoint = null;
+  authoritativeCenterline = sampleSmoothCenterline(next);
+  materialSamples = sampleMaterialSamples(authoritativeCenterline, thickness);
+  return true;
+}
+
+function beginPendingAuthoringPointer(
+  event: PointerEvent,
+  rect: SkinViewportRect,
+  point: { x: number; y: number },
+): boolean {
+  if ((event.pointerType !== "mouse" && event.pointerType !== "touch")
+    || directions[rect.index] === "axome"
+    || interactionModes[rect.index] === "draw") return false;
+  const candidateStrokeId = nearestAuthoringStrokeId(rect, point.x, point.y);
+  const candidateSelected = candidateStrokeId !== null && selectedStrokeIds.includes(candidateStrokeId);
+  const controlIndex = candidateSelected && candidateStrokeId === activeAuthoringStrokeId
+    ? nearestEditableControlIndex(rect, point.x, point.y)
+    : null;
+  pendingAuthoringPointer = {
+    pointerId: event.pointerId,
+    pointerType: event.pointerType,
+    viewportIndex: rect.index,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startCanvasX: point.x,
+    startCanvasY: point.y,
+    candidateStrokeId,
+    candidateSelected,
+    editEnabled: interactionModes[rect.index] === "edit",
+    controlIndex,
+  };
+  event.preventDefault();
+  stopAutoRotate();
+  gestureCanvas.setPointerCapture(event.pointerId);
+  return true;
+}
+
+function promotePendingTouchToNavigation(): void {
+  const pending = pendingAuthoringPointer;
+  if (!pending || pending.pointerType !== "touch") return;
+  touchPointers.set(pending.pointerId, {
+    id: pending.pointerId,
+    x: pending.startCanvasX,
+    y: pending.startCanvasY,
+  });
+  pendingAuthoringPointer = null;
+  previousTouchPoints = currentTouchPoints();
+}
+
+function updatePendingAuthoringPointer(event: PointerEvent): boolean {
+  const pending = pendingAuthoringPointer;
+  if (!pending || pending.pointerId !== event.pointerId) return false;
+  event.preventDefault();
+  if (!pointerMovementExceedsThreshold(
+    pending.startClientX,
+    pending.startClientY,
+    event.clientX,
+    event.clientY,
+  )) return true;
+
+  const pendingIntent = pending.candidateSelected && pending.candidateStrokeId !== activeAuthoringStrokeId
+    ? { ...pending, controlIndex: null }
+    : pending;
+  if (pendingIntent.candidateSelected && pendingIntent.candidateStrokeId !== activeAuthoringStrokeId) {
+    activateAuthoringStrokeForEdit(pendingIntent.candidateStrokeId!);
+    pendingIntent.controlIndex = nearestEditableControlIndex(
+      currentRects().find((rect) => rect.index === pendingIntent.viewportIndex) ?? pendingIntentRect(pendingIntent),
+      canvasPoint(event).x,
+      canvasPoint(event).y,
+    );
+  }
+  const intent = classifyHanaPointerIntent(pendingIntent, true);
+  if (intent === "edit-drag" && pendingIntent.controlIndex !== null) {
+    pendingAuthoringPointer = null;
+    const rect = currentRects().find((candidate) => candidate.index === pendingIntent.viewportIndex);
+    if (rect) startControlDrag(event, rect, pendingIntent.controlIndex);
+    return true;
+  }
+  if (intent === "select-drag") {
+    pendingAuthoringPointer = null;
+    if (pendingIntent.candidateStrokeId) selectAuthoringStroke(pendingIntent.candidateStrokeId, false);
+    releaseGesturePointer(event.pointerId);
+    return true;
+  }
+  if (intent === "camera-pan") {
+    pendingAuthoringPointer = null;
+    const rect = currentRects().find((candidate) => candidate.index === pendingIntent.viewportIndex);
+    if (rect) {
+      startCameraDrag(event, rect, pendingIntent.startClientX, pendingIntent.startClientY);
+      updateCameraDrag(event);
+    }
+    return true;
+  }
+  return true;
+}
+
+function pendingIntentRect(pending: HanaPendingPointerIntent): SkinViewportRect {
+  return currentRects().find((rect) => rect.index === pending.viewportIndex)
+    ?? currentRects()[0];
+}
+
 function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: PointerEvent | null = null): void {
+  if (pendingAuthoringPointer?.pointerId === pointerId) {
+    const pending = pendingAuthoringPointer;
+    pendingAuthoringPointer = null;
+    if (finalEvent?.type === "pointerup" && pending.candidateStrokeId !== null) {
+      finalEvent.preventDefault();
+      selectAuthoringStroke(pending.candidateStrokeId, flowerMultiSelect);
+    }
+    if (releaseCapture) releaseGesturePointer(pointerId);
+    return;
+  }
   if (touchPointers.has(pointerId)) {
     endTouchNavigation(pointerId);
     return;
@@ -3593,13 +3772,33 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
   renderScene();
   redrawOverlay();
   updateDebug();
-  if (flowerUi?.isSelectionMode() && (event.pointerType === "mouse" || event.pointerType === "touch")) {
-    const strokeId = nearestAuthoringStrokeId(rect, point.x, point.y);
-    if (strokeId) {
-      event.preventDefault();
-      selectAuthoringStroke(strokeId, flowerUi.isMultiSelect());
-      return;
-    }
+  if (event.pointerType === "touch" && pendingAuthoringPointer?.pointerType === "touch") {
+    promotePendingTouchToNavigation();
+    startTouchNavigation(event, rect);
+    return;
+  }
+  if (event.pointerType === "touch" && touchPointers.size === 0 && cameraDrag !== null) {
+    const existingCamera = cameraDrag;
+    const existingPoint = canvasPoint({
+      clientX: existingCamera.previousX,
+      clientY: existingCamera.previousY,
+    });
+    touchPointers.set(existingCamera.pointerId, {
+      id: existingCamera.pointerId,
+      x: existingPoint.x,
+      y: existingPoint.y,
+    });
+    cameraDrag = null;
+    previousTouchPoints = currentTouchPoints();
+    startTouchNavigation(event, rect);
+    return;
+  }
+  if (event.pointerType === "touch" && touchPointers.size > 0) {
+    startTouchNavigation(event, rect);
+    return;
+  }
+  if (beginPendingAuthoringPointer(event, rect, point)) {
+    return;
   }
   const pencilDraw = event.pointerType === "pen"
     && directions[rect.index] !== "axome";
@@ -3642,24 +3841,13 @@ gestureCanvas.addEventListener("pointermove", (event) => {
     queueControlDragPointer(event);
     return;
   }
+  if (updatePendingAuthoringPointer(event)) return;
   if (touchPointers.has(event.pointerId)) {
     updateTouchNavigation(event);
     return;
   }
   if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
-  event.preventDefault();
-  renderer.applyDrag(
-    cameraDrag.viewportIndex,
-    cameraDrag.gesture,
-    event.clientX - cameraDrag.previousX,
-    event.clientY - cameraDrag.previousY,
-    cameraDrag.rect.width,
-    cameraDrag.rect.height,
-  );
-  cameraDrag.previousX = event.clientX;
-  cameraDrag.previousY = event.clientY;
-  renderScene();
-  redrawOverlay();
+  updateCameraDrag(event);
 });
 
 gestureCanvas.addEventListener("pointerup", (event) => endPointer(event.pointerId, true, event));
@@ -3709,6 +3897,52 @@ function beginSplitterDrag(event: PointerEvent, axis: "x" | "y"): void {
 
 splitterX.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "x"));
 splitterY.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "y"));
+
+function persistLeftPaneRatio(): void {
+  try {
+    localStorage.setItem(HANA_LEFT_PANE_SPLIT_STORAGE_KEY, String(leftPaneSplitRatio));
+  } catch {
+    // UI preference persistence is optional when storage is unavailable.
+  }
+}
+
+function beginLeftPaneSplitterDrag(event: PointerEvent): void {
+  event.preventDefault();
+  leftPaneSplitter.classList.add("is-dragging");
+  leftPaneSplitter.setPointerCapture(event.pointerId);
+  const move = (moveEvent: PointerEvent) => {
+    if (moveEvent.pointerId !== event.pointerId) return;
+    const bounds = leftRail.getBoundingClientRect();
+    leftPaneSplitRatio = clampLeftPaneRatio(
+      (moveEvent.clientY - bounds.top) / Math.max(1, bounds.height),
+      leftPaneSplitRatio,
+    );
+    updateLeftPaneLayout();
+  };
+  const end = (endEvent: PointerEvent) => {
+    if (endEvent.pointerId !== event.pointerId) return;
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    leftPaneSplitter.classList.remove("is-dragging");
+    persistLeftPaneRatio();
+    if (leftPaneSplitter.hasPointerCapture(event.pointerId)) leftPaneSplitter.releasePointerCapture(event.pointerId);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", end);
+}
+
+leftPaneSplitter.addEventListener("pointerdown", beginLeftPaneSplitterDrag);
+leftPaneSplitter.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowUp" && event.key !== "ArrowDown" && event.key !== "Home" && event.key !== "End") return;
+  event.preventDefault();
+  if (event.key === "Home") leftPaneSplitRatio = HANA_LEFT_PANE_MIN_RATIO;
+  else if (event.key === "End") leftPaneSplitRatio = HANA_LEFT_PANE_MAX_RATIO;
+  else leftPaneSplitRatio = clampLeftPaneRatio(leftPaneSplitRatio + (event.key === "ArrowUp" ? -0.05 : 0.05));
+  updateLeftPaneLayout();
+  persistLeftPaneRatio();
+});
 
 layoutFourButton.addEventListener("click", () => { viewportMode = "four"; refreshLayout(); });
 layoutOneButton.addEventListener("click", () => { viewportMode = "one"; refreshLayout(); });
@@ -4839,11 +5073,6 @@ updateDebug();
 initializeHanaAuthoringStackUi();
 flowerUi = initializeHanaFlowerAuthoringUi({
   getState: flowerUiState,
-  setSelectionMode: (enabled) => {
-    flowerSelectionMode = enabled;
-    if (enabled) stateMessage = "SELECT · tap a Stroke with Mouse / Touch";
-    updateDebug();
-  },
   setMultiSelect: (enabled) => {
     flowerMultiSelect = enabled;
     updateDebug();
