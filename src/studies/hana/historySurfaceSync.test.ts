@@ -14,7 +14,7 @@ import {
   type HanaAuthoringDocument,
 } from "./authoringDocument.ts";
 import { createAuthoringGraph } from "./authoringGraph.ts";
-import { HanaAuthoringHistory, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
+import { HanaAuthoringHistory, emptyHanaAuthoringHistoryRoot, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
 import type { HanaViewportStroke } from "./gesture.ts";
 import type { HanaStroke3D } from "./stroke3d.ts";
 
@@ -168,4 +168,39 @@ test("Undo keeps the identity high-water so the next Draw allocates stroke-3", (
   );
   assert.equal(allocateHanaAuthoringId(merged, "stroke"), "stroke-3");
   assert.equal(allocateHanaAuthoringId(merged, "gesture"), "gesture-3");
+});
+
+test("fallback history root preserves the namespace but holds no authoring content", () => {
+  let drawn = emptyDocument("hana-fallback-namespace");
+  drawn = addHanaStroke(drawn, raw("gesture-1"), stroke("stroke-1", "gesture-1"));
+  const root = emptyHanaAuthoringHistoryRoot(snapshotFor(drawn));
+  assert.equal(root.document.documentId, "hana-fallback-namespace");
+  assert.deepEqual(root.document.identity, drawn.identity);
+  assert.equal(root.document.rawGestures.strokes.length, 0);
+  assert.equal(root.document.strokes.length, 0);
+  assert.deepEqual(root.document.selectedStrokeIds, []);
+  assert.equal(root.document.activeStrokeId, null);
+  assert.equal(root.flowers.length, 0);
+  assert.deepEqual(root.graph.nodes, []);
+  assert.deepEqual(root.graph.edges, []);
+  assert.equal(root.activeFlowerId, null);
+});
+
+test("first mutation without a session history still keeps its Undo boundary", () => {
+  let drawn = emptyDocument("hana-first-mutation");
+  drawn = addHanaStroke(drawn, raw("gesture-1"), stroke("stroke-1", "gesture-1"));
+  const first = snapshotFor(drawn);
+  const history = new HanaAuthoringHistory(emptyHanaAuthoringHistoryRoot(first));
+  assert.equal(history.canUndo, false);
+  history.commit(first, "Draw Stroke");
+  assert.equal(history.canUndo, true);
+
+  const undone = history.undo();
+  assert.equal(undone?.document.rawGestures.strokes.length, 0);
+  assert.equal(undone?.document.strokes.length, 0);
+  assert.equal(history.canUndo, false);
+
+  const redone = history.redo();
+  assert.deepEqual(redone?.document.strokes.map((item) => item.id), ["stroke-1"]);
+  assert.deepEqual(redone?.document.rawGestures.strokes.map((item) => item.id), ["gesture-1"]);
 });

@@ -109,7 +109,7 @@ import {
 } from "./finalizationCore.ts";
 import { buildMeshResultFromTriangles } from "../cloud-sculpt/meshExport.ts";
 import { initializeHanaFlowerAuthoringUi, type HanaFlowerUiHandle } from "./flowerAuthoringUi.ts";
-import { HanaAuthoringHistory, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
+import { HanaAuthoringHistory, emptyHanaAuthoringHistoryRoot, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
 import {
   allocateHanaAuthoringId,
   createHanaAuthoringIdentity,
@@ -3161,8 +3161,10 @@ function commitGlobalAuthoringSnapshot(next: HanaAuthoringHistorySnapshot, label
   const normalized = structuredClone(next);
   normalized.document.selectedStrokeIds = [];
   normalized.document.activeStrokeId = null;
-  if (!globalAuthoringHistory) globalAuthoringHistory = new HanaAuthoringHistory(normalized);
-  else globalAuthoringHistory.commit(normalized, label);
+  if (!globalAuthoringHistory) {
+    globalAuthoringHistory = new HanaAuthoringHistory(emptyHanaAuthoringHistoryRoot(normalized));
+  }
+  globalAuthoringHistory.commit(normalized, label);
   updateHistoryUI();
 }
 

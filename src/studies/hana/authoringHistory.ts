@@ -49,3 +49,26 @@ export class HanaAuthoringHistory {
     this.history = new HanaUndoRedo(root, this.maxDepth);
   }
 }
+
+/**
+ * Last-resort history root when a mutation commits without a session history.
+ * Startup, New, Load and Recovery always initialize first, so this only fires
+ * if that ordering ever regresses. The root preserves the document namespace
+ * (documentId, identity high-water, editor state) but holds no authoring
+ * content, so the first Draw keeps its Undo boundary back to empty instead of
+ * rooting the session at the post-mutation snapshot.
+ */
+export function emptyHanaAuthoringHistoryRoot(
+  next: HanaAuthoringHistorySnapshot,
+): HanaAuthoringHistorySnapshot {
+  const root = structuredClone(next);
+  root.document.rawGestures = { strokes: [] };
+  root.document.strokes = [];
+  root.document.selectedStrokeIds = [];
+  root.document.activeStrokeId = null;
+  root.document.revision = 0;
+  root.flowers = [];
+  root.graph = { nodes: [], edges: [], revision: 0 };
+  root.activeFlowerId = null;
+  return root;
+}
