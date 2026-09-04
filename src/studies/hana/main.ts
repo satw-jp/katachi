@@ -167,11 +167,45 @@ import {
   pointerMovementExceedsThreshold,
   type HanaPendingPointerIntent,
 } from "./interactionRouting.ts";
+import { isHanaDeleteKey, shouldIgnoreHanaDeleteForTarget } from "./keyboardRouting.ts";
+import {
+  createHanaRuntimeProvenance,
+  hanaRuntimeDiagnosticText,
+  hanaRuntimeShortLabel,
+  type HanaRuntimeProvenance,
+} from "./runtimeProvenance.ts";
 import { shouldShowActiveStrokeControls } from "./selectionPresentation.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
 if (!app) throw new Error("#app was not found");
+
+interface HanaRuntimeWindow extends Window {
+  __HANA_RUNTIME__?: HanaRuntimeProvenance;
+}
+
+const hanaRuntime = createHanaRuntimeProvenance(import.meta.env.VITE_GIT_COMMIT, manifest.version);
+(window as HanaRuntimeWindow).__HANA_RUNTIME__ = hanaRuntime;
+
+interface HanaKeyboardDiagnostic {
+  type: "keydown" | "keyup";
+  key: string;
+  code: string;
+  keyCode: number;
+  which: number;
+  location: number;
+  repeat: boolean;
+  isComposing: boolean;
+  targetTag: string;
+  targetId: string;
+  activeTag: string;
+  activeId: string;
+  defaultPrevented: boolean;
+}
+
+let keyboardEventCount = 0;
+let lastKeyboardEvent: HanaKeyboardDiagnostic | null = null;
+let lastKeyboardKeydown: HanaKeyboardDiagnostic | null = null;
 
 let longTaskDurations: number[] = [];
 let liveLongTaskDurations: number[] = [];
@@ -228,7 +262,7 @@ app.innerHTML = `
         <header class="hana-header">
           <div class="hana-heading">
             <h1>HANA — Point Field Stem Preview</h1>
-            <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt}</p>
+            <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt} · ${hanaRuntimeShortLabel(hanaRuntime)}</p>
           </div>
           <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
@@ -304,7 +338,7 @@ app.innerHTML = `
 
     <section class="hana-workspace" aria-label="HANA smooth 3D stroke editor">
       <canvas id="scene-canvas" aria-hidden="true"></canvas>
-      <canvas id="gesture-canvas" aria-label="HANA shared 3D stroke input"></canvas>
+      <canvas id="gesture-canvas" tabindex="0" aria-label="HANA shared 3D stroke input"></canvas>
       <div id="viewport-chrome" aria-live="polite"></div>
       <div id="edit-diagnostic-markers" aria-hidden="true">
         <span id="edit-diagnostic-pointer" class="hana-edit-diagnostic-marker hana-edit-diagnostic-pointer"></span>
@@ -367,6 +401,8 @@ app.innerHTML = `
         <div><dt>event-loop lag</dt><dd id="debug-event-loop">—</dd></div>
         <div><dt>lifecycle</dt><dd id="debug-lifecycle">—</dd></div>
         <div><dt>recovery</dt><dd id="debug-recovery">—</dd></div>
+        <div><dt>runtime</dt><dd id="debug-runtime">—</dd></div>
+        <div><dt>keyboard</dt><dd id="debug-keyboard">—</dd></div>
         <div><dt>view</dt><dd id="debug-view">—</dd></div>
       </dl>
       <p id="input-state">READY · Draw Strokes in Front, Right, or Top</p>
@@ -841,6 +877,49 @@ function canvasPoint(event: { clientX: number; clientY: number }): { x: number; 
 function setDebugText(id: string, value: string): void {
   const element = document.getElementById(id);
   if (element) element.textContent = value;
+}
+
+function keyboardTargetTag(target: EventTarget | null): string {
+  return target instanceof HTMLElement ? target.tagName : "—";
+}
+
+function keyboardTargetId(target: EventTarget | null): string {
+  return target instanceof HTMLElement && target.id ? target.id : "—";
+}
+
+function recordKeyboardEvent(event: KeyboardEvent): HanaKeyboardDiagnostic {
+  const diagnostic: HanaKeyboardDiagnostic = {
+    type: event.type as "keydown" | "keyup",
+    key: event.key || "—",
+    code: event.code || "—",
+    keyCode: event.keyCode,
+    which: event.which,
+    location: event.location,
+    repeat: event.repeat,
+    isComposing: event.isComposing,
+    targetTag: keyboardTargetTag(event.target),
+    targetId: keyboardTargetId(event.target),
+    activeTag: document.activeElement?.tagName ?? "—",
+    activeId: document.activeElement instanceof HTMLElement && document.activeElement.id
+      ? document.activeElement.id
+      : "—",
+    defaultPrevented: event.defaultPrevented,
+  };
+  keyboardEventCount += 1;
+  lastKeyboardEvent = diagnostic;
+  if (diagnostic.type === "keydown") lastKeyboardKeydown = diagnostic;
+  return diagnostic;
+}
+
+function keyboardDiagnosticText(): string {
+  if (!lastKeyboardEvent && !lastKeyboardKeydown) return "—";
+  const keydown = lastKeyboardKeydown
+    ? `down ${lastKeyboardKeydown.key}/${lastKeyboardKeydown.code} kc ${lastKeyboardKeydown.keyCode}/${lastKeyboardKeydown.which} target ${lastKeyboardKeydown.targetTag}#${lastKeyboardKeydown.targetId} active ${lastKeyboardKeydown.activeTag}#${lastKeyboardKeydown.activeId} default ${lastKeyboardKeydown.defaultPrevented}`
+    : "down —";
+  const latest = lastKeyboardEvent
+    ? `last ${lastKeyboardEvent.type} ${lastKeyboardEvent.key}/${lastKeyboardEvent.code} loc ${lastKeyboardEvent.location} repeat ${lastKeyboardEvent.repeat} composing ${lastKeyboardEvent.isComposing} default ${lastKeyboardEvent.defaultPrevented}`
+    : "last —";
+  return `${keydown} · ${latest} · events ${keyboardEventCount}`;
 }
 
 function updateRecoveryUI(): void {
@@ -1704,6 +1783,8 @@ function updateSurfaceUI(): void {
   setDebugText("debug-event-loop", eventLoopLagText());
   setDebugText("debug-lifecycle", lifecycleText());
   setDebugText("debug-recovery", recoveryStatusText);
+  setDebugText("debug-runtime", hanaRuntimeDiagnosticText(hanaRuntime));
+  setDebugText("debug-keyboard", keyboardDiagnosticText());
   setDebugText("debug-view", `${viewportMode} · ${directions[selectedViewport]} · auto ${autoRotateEnabled ? "on" : "off"}`);
   setDebugText("debug-finalization", finalizationText());
   setDebugText("debug-thickness", thickness.toFixed(2));
@@ -2620,13 +2701,25 @@ function deleteSelectedAuthoringStrokes(): boolean {
 
 function isKeyboardTextTarget(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
-  return Boolean(element?.closest("input, textarea, select, [contenteditable='true']"));
+  return shouldIgnoreHanaDeleteForTarget(
+    element?.tagName ?? null,
+    Boolean(element?.isContentEditable || element?.closest("[contenteditable]")),
+  );
 }
 
-window.addEventListener("keydown", (event) => {
-  if ((event.key !== "Delete" && event.key !== "Backspace") || isKeyboardTextTarget(event.target)) return;
-  if (deleteSelectedAuthoringStrokes()) event.preventDefault();
-});
+document.addEventListener("keydown", (event) => {
+  const diagnostic = recordKeyboardEvent(event);
+  if (isHanaDeleteKey(event.key) && !isKeyboardTextTarget(event.target)) {
+    if (deleteSelectedAuthoringStrokes()) event.preventDefault();
+  }
+  diagnostic.defaultPrevented = event.defaultPrevented;
+  updateDebug();
+}, { capture: true });
+
+document.addEventListener("keyup", (event) => {
+  recordKeyboardEvent(event);
+  updateDebug();
+}, { capture: true });
 
 function undoFlowerAuthoring(): void {
   const next = flowerHistory?.undo();
@@ -3822,6 +3915,7 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
 }
 
 gestureCanvas.addEventListener("pointerdown", (event) => {
+  gestureCanvas.focus({ preventScroll: true });
   const point = canvasPoint(event);
   const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
   if (!rect) return;
@@ -5005,6 +5099,10 @@ saveButton.addEventListener("click", () => {
   scheduleRecoveryCheckpoint("manual save");
   const payload = {
     format: "katachi.hana-authoring-study.v0",
+    runtime: {
+      gitSha: hanaRuntime.gitSha,
+      version: hanaRuntime.version,
+    },
     document: savedDocument,
     flowers: hanaFlowers,
     graph: createAuthoringGraph(),

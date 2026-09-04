@@ -736,3 +736,27 @@ Apple Pencil remains the Draw / Create instrument. Mouse and Touch remain the Se
 ### Verification and limitations
 
 The HANA suite covers identity allocation, save / reload migration, duplicate rejection, cross-view active-control presentation, multi-Stroke deletion, Raw reference retention, Flower cleanup, Graph cleanup, protected Graph references, and Delete → Undo → Redo semantics. Software verification remains required for the iPad hardware recheck of the new global selection and delete interactions. Existing long-stroke, Remote Compute, Pencil capture, Shape Fidelity, and Live Proxy 192-cap contracts remain unchanged. No main merge or deploy is included.
+
+## HANA Runtime Provenance / Identity Gate / iPad Keyboard Delete v0
+
+This HANA-local diagnostic refinement is based on `agent/hana-authoring-identity-selection-v0` at `6c0092fbc3e9c924f330feb0fb7ad6e854fea47d` and is implemented on `agent/hana-runtime-identity-keyboard-v0`.
+
+The HANA page exposes a runtime fingerprint derived from the Vite-injected build SHA rather than a hand-written source constant. The header and Diagnostics show `Runtime · <short SHA>`, the manifest version, and the loaded timestamp. The same `{ gitSha, version, loadedAt }` object is available as `window.__HANA_RUNTIME__`; it is not part of the authoring document or HANA → SKIN Bridge. Normal HANA Save JSON may carry only non-authoritative `runtime.gitSha` / `runtime.version` beside the semantic payload.
+
+The existing monotonic authoring identity allocator is deliberately unchanged in this gate. Desktop and iPad diagnosis must first confirm that the runtime fingerprint matches the expected commit before treating duplicate `gesture-*` / `stroke-*` IDs as an implementation failure. Duplicate validation remains strict and no corrupt payload is silently repaired.
+
+Diagnostics capture keyboard `keydown` and `keyup` in the capture phase, including key, code, legacy numeric fields, location, repeat/composition state, target, active element, and default-prevention state. Delete / Backspace routing reuses the existing `deleteSelectedAuthoringStrokes` command, supports multi-selection as one Undo transaction, and ignores input, textarea, select, range, and contenteditable targets. The authoring canvas is focusable and receives focus on pointer interaction without opening a text keyboard; no unverified keyCode or `beforeinput` fallback was added.
+
+### Gate status
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Runtime provenance: available in header, Diagnostics, and window.__HANA_RUNTIME__
+Cross-view Edit: HARDWARE PASS from the preceding gate
+Identity uniqueness: requires fresh-runtime iPad recheck
+Keyboard Delete / Backspace: requires fresh-runtime iPad event evidence
+Port provenance: 5482 HANA LAN frontend / 5483 loopback compute, started from this clean Branch for recheck
+SKIN production: unchanged
+```
+
+The required hardware sequence remains: confirm the displayed short SHA, draw three Strokes, delete the middle Stroke, draw a fourth Stroke, Save and confirm identity metadata with no duplicates, then Multi Select two Strokes, tap the authoring canvas, and test iPad hardware Delete followed by Undo. Projection Redraw, Raw capture changes, Long-Stroke changes, Adaptive Control changes, Material / Surface changes, Remote Compute redesign, and SKIN changes remain out of scope.
