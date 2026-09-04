@@ -92,9 +92,10 @@ import type {
 } from "./riskDrivenInternalLattice.ts";
 import type { FkeiRiskDrivenLatticeArtifact } from "./fkeiRiskDrivenLattice.ts";
 import { normalizedScreenRect, screenTriangleIntersectsRect } from "./rebuild/screenRectSelection.ts";
-import type { SkinViewportOverlay } from "./viewportMode.ts";
+import type { SkinViewLayerId, SkinViewportOverlay } from "./viewportMode.ts";
 import type { InteriorClassificationDebugMarker } from "./rebuild/interiorClassificationPresentation.ts";
 import type { SparseRemovableSupportDebug } from "./rebuild/sparseRemovableSupport.ts";
+import type { GraphLayer, GraphViewGraph, GraphViewOptions } from "./graphViewLayers.ts";
 
 // Note: the raymarch shader path's selection highlight color
 // (uSelectedPatchOwner) is hardcoded inside shaders.ts's GLSL fragment
@@ -437,6 +438,15 @@ export class SkinRenderer {
   } | null = null;
   private readonly denseSampleAtlas: HTMLImageElement;
   private viewMode: SkinViewMode = "raymarch";
+  private activeViewLayer: SkinViewLayerId = "field";
+  private graphViewGroup: THREE.Group | null = null;
+  private graphViewOptions: GraphViewOptions = {
+    nodes: true,
+    edges: true,
+    contacts: true,
+    provenance: false,
+  };
+  private graphViewLayers: readonly GraphLayer[] = [];
   /** Task F only gates existing presentation groups; it does not create a
    * second geometry or diagnostic pipeline. */
   private viewportOverlaySeparationEnabled = false;
@@ -1579,16 +1589,180 @@ export class SkinRenderer {
     this.appliedViewportClipPlaneCount = this.viewportClippingPlanes.length;
   }
 
-  /** Switch which of the three views is visible. Does not itself supply new
-   * data -- call setMeshOverlay/updateBeads first (or they were already
-   * populated from a previous call) to have something to show. */
+  /** Switch the established Field / Beads / Mesh presentation. Does not
+   * supply new data or regenerate any geometry. */
   setViewMode(mode: SkinViewMode): void {
     this.viewMode = mode;
+    this.activeViewLayer = mode === "raymarch" ? "field" : mode;
     this.applyLayerVisibility();
   }
 
   getViewMode(): SkinViewMode {
     return this.viewMode;
+  }
+
+  /** Switch a top-level author-facing presentation layer. This is deliberately
+   * separate from the stored graph and mesh sources: a view change only
+   * changes Object3D visibility and never runs a worker or mutates a graph. */
+  setViewLayer(layer: SkinViewLayerId): void {
+    this.activeViewLayer = layer;
+    if (layer === "beads") this.viewMode = "beads";
+    else if (layer === "field") this.viewMode = "raymarch";
+    else if (layer === "mesh" || layer === "diagnostics" || layer === "print-preview") this.viewMode = "mesh";
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  getViewLayer(): SkinViewLayerId {
+    return this.activeViewLayer;
+  }
+
+  private disposeGraphView(): void {
+    if (!this.graphViewGroup) return;
+    this.scene.remove(this.graphViewGroup);
+    this.graphViewGroup.traverse((object) => {
+      const candidate = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+      };
+      candidate.geometry?.dispose();
+      if (candidate.material) {
+        for (const material of Array.isArray(candidate.material) ? candidate.material : [candidate.material]) {
+          material.dispose();
+        }
+      }
+    });
+    this.graphViewGroup = null;
+  }
+
+  private graphViewLayerColor(layer: GraphLayer): number {
+    return {
+      surface: 0x4fc3d6,
+      internal: 0x6d9e8f,
+      reinforcement: 0x32e6ff,
+      dryWeb: 0xd5b14a,
+      removableSupport: 0x39e75f,
+    }[layer.id];
+  }
+
+  private graphViewPoints(
+    graph: GraphViewGraph,
+    roles: readonly ("major" | "terminal" | "contact")[],
+    color: number,
+    name: string,
+  ): THREE.Points | null {
+    const wanted = new Set(roles);
+    const nodes = graph.nodes.filter((node) => wanted.has(node.role));
+    if (nodes.length === 0) return null;
+    const positions = new Float32Array(nodes.length * 3);
+    for (const [index, node] of nodes.entries()) {
+      positions[index * 3] = node.position.x;
+      positions[index * 3 + 1] = node.position.y;
+      positions[index * 3 + 2] = node.position.z;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const maxRadius = Math.max(...nodes.map((node) => node.radius), 0.025);
+    const material = new THREE.PointsMaterial({
+      color,
+      size: Math.max(0.035, maxRadius * 2.4),
+      sizeAttenuation: true,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      opacity: name.includes("contact") ? 1 : 0.92,
+    });
+    const points = new THREE.Points(geometry, material);
+    points.name = name;
+    points.renderOrder = name.includes("contact") ? 62 : 60;
+    points.frustumCulled = false;
+    points.userData.graphViewKind = name.includes("contact") ? "contacts" : "nodes";
+    return points;
+  }
+
+  private graphViewLines(
+    graph: GraphViewGraph,
+    roles: readonly ("edge" | "contact")[],
+    color: number,
+    name: string,
+  ): THREE.LineSegments | null {
+    const wanted = new Set(roles);
+    const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+    const positions: number[] = [];
+    for (const edge of graph.edges) {
+      if (!wanted.has(edge.role)) continue;
+      const start = nodeById.get(edge.start);
+      const end = nodeById.get(edge.end);
+      if (!start || !end) continue;
+      positions.push(
+        start.position.x, start.position.y, start.position.z,
+        end.position.x, end.position.y, end.position.z,
+      );
+    }
+    if (positions.length === 0) return null;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const material = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: name.includes("contact") ? 1 : 0.82,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const lines = new THREE.LineSegments(geometry, material);
+    lines.name = name;
+    lines.renderOrder = name.includes("contact") ? 61 : 59;
+    lines.frustumCulled = false;
+    lines.userData.graphViewKind = name.includes("contact") ? "contact-edges" : "edges";
+    return lines;
+  }
+
+  /** Install already-derived graph snapshots as separate presentation groups.
+   * No layer is merged into another and the supplied graph references remain
+   * the provenance/identity source used by the authoring and export paths. */
+  setGraphViewLayers(layers: readonly GraphLayer[], options: GraphViewOptions = this.graphViewOptions): void {
+    this.graphViewLayers = layers;
+    this.graphViewOptions = { ...options };
+    this.disposeGraphView();
+    const root = new THREE.Group();
+    root.name = "skin-graph-view-layers";
+    root.position.z = this.phaseAObjectLiftSource;
+    root.userData.graphViewLayerCount = layers.length;
+    for (const layer of layers) {
+      const layerGroup = new THREE.Group();
+      layerGroup.name = `skin-graph-layer-${layer.id}`;
+      layerGroup.userData.graphLayerId = layer.id;
+      layerGroup.userData.provenance = layer.provenance;
+      layerGroup.userData.generated = layer.graph !== null;
+      layerGroup.userData.editable = layer.editable;
+      if (layer.graph) {
+        const color = this.graphViewLayerColor(layer);
+        const nodes = this.graphViewPoints(layer.graph, ["major"], color, `${layer.id}-nodes`);
+        const contacts = this.graphViewPoints(layer.graph, ["terminal", "contact"], 0xffd45c, `${layer.id}-contacts`);
+        const edges = this.graphViewLines(layer.graph, ["edge"], color, `${layer.id}-edges`);
+        const contactEdges = this.graphViewLines(layer.graph, ["contact"], 0xffd45c, `${layer.id}-contact-edges`);
+        if (nodes) layerGroup.add(nodes);
+        if (contacts) layerGroup.add(contacts);
+        if (edges) layerGroup.add(edges);
+        if (contactEdges) layerGroup.add(contactEdges);
+      }
+      root.add(layerGroup);
+    }
+    this.scene.add(root);
+    this.graphViewGroup = root;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  setGraphViewOptions(options: GraphViewOptions): void {
+    this.graphViewOptions = { ...options };
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+  }
+
+  getGraphViewLayers(): readonly GraphLayer[] {
+    return this.graphViewLayers;
   }
 
   setViewportOverlay(overlay: SkinViewportOverlay, available = true): void {
@@ -2171,115 +2345,159 @@ export class SkinRenderer {
   }
 
   private applyLayerVisibility(): void {
+    const graphViewActive = this.activeViewLayer === "graph";
+    const displayMode: SkinViewMode = this.activeViewLayer === "field"
+      ? "raymarch"
+      : this.activeViewLayer === "beads"
+        ? "beads"
+        : "mesh";
     const visibility = deriveSkinLayerVisibility(
-      this.viewMode, this.internalObservationMode, this.denseSampleActive,
+      displayMode, this.internalObservationMode, this.denseSampleActive,
     );
     const separated = this.viewportOverlaySeparationEnabled;
     const overlayIs = (overlay: SkinViewportOverlay): boolean => !separated
       || (this.viewportOverlayAvailable && this.viewportOverlay === overlay);
-    const diagnosticSurfaceVisible = visibility.surfaceDecorations && (separated || this.viewMode === "mesh");
-    this.raymarchQuad.visible = visibility.raymarch;
+    const diagnosticSurfaceVisible = visibility.surfaceDecorations && (
+      separated
+      || this.activeViewLayer === "mesh"
+      || this.activeViewLayer === "diagnostics"
+      || this.activeViewLayer === "print-preview"
+    );
+    this.raymarchQuad.visible = visibility.raymarch && !graphViewActive;
     if (this.overlayMesh) {
-      this.overlayMesh.visible = visibility.overlay && this.skinRebuildTopologyDiagnosticGroup === null;
+      this.overlayMesh.visible = visibility.overlay && !graphViewActive && this.skinRebuildTopologyDiagnosticGroup === null;
     }
-    if (this.hostBeadMesh) this.hostBeadMesh.visible = visibility.hostBeads;
-    if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads;
-    const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.viewMode === "mesh";
-    const phaseAInternal = this.phaseADryWebVisible && this.viewMode === "mesh";
-    const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive;
+    if (this.hostBeadMesh) this.hostBeadMesh.visible = visibility.hostBeads && !graphViewActive;
+    if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads && !graphViewActive;
+    const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.activeViewLayer === "mesh";
+    const phaseAInternal = this.phaseADryWebVisible && this.activeViewLayer === "mesh";
+    const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive && !graphViewActive;
     if (this.internalNodeMesh) this.internalNodeMesh.visible = this.internalStructureVisible
+      && !graphViewActive
       && overlayIs("reinforcement")
       && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal || separated);
     if (this.internalEdgeMesh) this.internalEdgeMesh.visible = this.internalStructureVisible
+      && !graphViewActive
       && overlayIs("reinforcement")
       && (visibility.internalGraph || diagnosticInternal || phaseAInternal || angleScreeningInternal || separated);
     if (this.selectedInternalEdgeMesh) this.selectedInternalEdgeMesh.visible = this.internalStructureVisible
+      && !graphViewActive
       && overlayIs("reinforcement") && !this.denseSampleActive;
     if (this.reinforcedInternalEdgeMesh) this.reinforcedInternalEdgeMesh.visible = this.internalStructureVisible
+      && !graphViewActive
       && overlayIs("reinforcement") && !this.denseSampleActive;
     // The explicit green-support checkbox owns accepted Stage 8 support
     // visibility. The diagnostic overlay selector must not hide it when the
     // selected overlay is None or another diagnostic layer.
     if (this.printSupportNodeMesh) this.printSupportNodeMesh.visible = this.printSupportVisible
+      && !graphViewActive
       && !this.denseSampleActive;
     if (this.printSupportEdgeMesh) this.printSupportEdgeMesh.visible = this.printSupportVisible
+      && !graphViewActive
       && !this.denseSampleActive;
     if (this.skinRebuildOverhangGroup) {
       this.skinRebuildOverhangGroup.visible = this.skinRebuildOverhangVisible
+        && !graphViewActive
         && diagnosticSurfaceVisible
         && overlayIs(this.skinRebuildOverhangOverlayKind ?? "insideOutside");
     }
     if (this.skinRebuildTopologyDiagnosticGroup) {
       this.skinRebuildTopologyDiagnosticGroup.visible = visibility.surfaceDecorations
+        && !graphViewActive
         && (separated || this.viewMode === "mesh")
         && overlayIs("components");
     }
     if (this.sparseRemovableSupportDebugGroup) {
       this.sparseRemovableSupportDebugGroup.visible = this.sparseRemovableSupportDebugEnabled
+        && !graphViewActive
         && diagnosticSurfaceVisible
         && overlayIs("support");
     }
-    if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations;
+    if (this.quadFlowGridLines) this.quadFlowGridLines.visible = visibility.surfaceDecorations && !graphViewActive;
     if (this.surfaceAngleGroup) {
-      this.surfaceAngleGroup.visible = diagnosticSurfaceVisible && overlayIs("printRisk");
+      this.surfaceAngleGroup.visible = diagnosticSurfaceVisible && !graphViewActive && overlayIs("printRisk");
     }
     if (this.overhangSupportSiteGroup) {
-      this.overhangSupportSiteGroup.visible = separated
+      this.overhangSupportSiteGroup.visible = !graphViewActive && (separated
         ? diagnosticSurfaceVisible && overlayIs("support")
         : overhangSupportSiteGroupVisible(
           this.overhangSupportSiteVisibilityPolicy,
           visibility,
           this.viewMode,
-        );
+        ));
     }
     if (this.phaseASupportGroup) {
-      this.phaseASupportGroup.visible = diagnosticSurfaceVisible && overlayIs("support");
+      this.phaseASupportGroup.visible = diagnosticSurfaceVisible && !graphViewActive && overlayIs("support");
     }
     if (this.motifLowestPointGroup) {
-      this.motifLowestPointGroup.visible = visibility.surfaceDecorations && overlayIs("printRisk");
+      this.motifLowestPointGroup.visible = visibility.surfaceDecorations && !graphViewActive && overlayIs("printRisk");
     }
     if (this.artworkGraphOverlayGroup) {
-      this.artworkGraphOverlayGroup.visible = this.artworkGraphOverlayEnabled && !this.denseSampleActive;
+      this.artworkGraphOverlayGroup.visible = this.artworkGraphOverlayEnabled && !graphViewActive && !this.denseSampleActive;
     }
     if (this.dryWebInsufficientEdgeGroup) {
       this.dryWebInsufficientEdgeGroup.visible = this.dryWebInsufficientEdgeOverlayEnabled
+        && !graphViewActive
         && visibility.surfaceDecorations
         && overlayIs("insideOutside");
     }
     if (this.dryWebContactFloorOverlayGroup) {
       this.dryWebContactFloorOverlayGroup.visible = this.dryWebContactFloorOverlayEnabled
+        && !graphViewActive
         && visibility.surfaceDecorations
         && overlayIs("insideOutside");
     }
     if (this.dryWebRedFaceLocatorGroup) {
       this.dryWebRedFaceLocatorGroup.visible = this.dryWebRedFaceLocatorEnabled
+        && !graphViewActive
         && diagnosticSurfaceVisible
         && overlayIs("printRisk");
     }
     if (this.dryWebRedFaceDryWebCandidateGroup) {
       this.dryWebRedFaceDryWebCandidateGroup.visible = this.dryWebRedFaceDryWebCandidateEnabled
+        && !graphViewActive
         && diagnosticSurfaceVisible
         && overlayIs("printRisk");
     }
     if (this.riskDrivenInternalLatticeGroup) {
       this.riskDrivenInternalLatticeGroup.visible = this.riskDrivenInternalLatticeOverlayEnabled
+        && !graphViewActive
         && diagnosticSurfaceVisible
         && overlayIs("printRisk");
     }
     if (this.riskDrivenPermanentLatticeGroup) {
-      this.riskDrivenPermanentLatticeGroup.visible = visibility.surfaceDecorations && overlayIs("reinforcement");
+      this.riskDrivenPermanentLatticeGroup.visible = visibility.surfaceDecorations && !graphViewActive && overlayIs("reinforcement");
     }
-    if (this.endpointBadges.A) this.endpointBadges.A.visible = visibility.patchBeads;
-    if (this.endpointBadges.B) this.endpointBadges.B.visible = visibility.patchBeads;
+    if (this.endpointBadges.A) this.endpointBadges.A.visible = visibility.patchBeads && !graphViewActive;
+    if (this.endpointBadges.B) this.endpointBadges.B.visible = visibility.patchBeads && !graphViewActive;
     if (this.dragPreviewMesh && !visibility.surfaceDecorations) this.dragPreviewMesh.visible = false;
     this.elementLabelLayer.style.display = visibility.surfaceDecorations ? "" : "none";
 
     const showOpeningLabels = this.openingGroup !== null && visibility.surfaceDecorations && (
-      this.denseSampleActive ? this.denseSampleView === "3d" : this.viewMode === "mesh"
+      !graphViewActive && (this.denseSampleActive ? this.denseSampleView === "3d" : this.activeViewLayer === "mesh")
     );
     if (this.openingGroup) this.openingGroup.visible = showOpeningLabels;
     this.openingLabelLayer.hidden = !showOpeningLabels;
     this.openingLineLayer.style.display = showOpeningLabels ? "" : "none";
+    if (this.printPlateGroup) this.printPlateGroup.visible = this.printPlateVisible && !graphViewActive;
+    if (this.graphViewGroup) {
+      this.graphViewGroup.visible = graphViewActive;
+      const layerById = new Map(this.graphViewLayers.map((layer) => [layer.id, layer]));
+      for (const layerGroup of this.graphViewGroup.children) {
+        const layer = layerById.get(layerGroup.userData.graphLayerId as GraphLayer["id"]);
+        layerGroup.visible = graphViewActive && (layer?.visibility ?? false);
+        for (const child of layerGroup.children) {
+          const kind = child.userData.graphViewKind;
+          child.visible = kind === "nodes"
+            ? this.graphViewOptions.nodes
+            : kind === "edges"
+              ? this.graphViewOptions.edges
+              : kind === "contacts" || kind === "contact-edges"
+                ? this.graphViewOptions.contacts && (kind === "contact-edges" ? this.graphViewOptions.edges : true)
+                : true;
+        }
+      }
+    }
     this.updateSelectionHighlight();
   }
 
@@ -3232,6 +3450,7 @@ export class SkinRenderer {
     if (this.dryWebRedFaceLocatorGroup) this.dryWebRedFaceLocatorGroup.position.z = bodyZ;
     if (this.dryWebRedFaceDryWebCandidateGroup) this.dryWebRedFaceDryWebCandidateGroup.position.z = bodyZ;
     if (this.riskDrivenInternalLatticeGroup) this.riskDrivenInternalLatticeGroup.position.z = bodyZ;
+    if (this.graphViewGroup) this.graphViewGroup.position.z = bodyZ;
     if (this.internalNodeMesh) this.internalNodeMesh.position.z = bodyZ;
     if (this.internalEdgeMesh) this.internalEdgeMesh.position.z = bodyZ;
     if (this.printSupportNodeMesh) this.printSupportNodeMesh.position.z = bodyZ;

@@ -32,10 +32,20 @@ import { PACKING_MOTIF_PRESETS } from "../flower-packing-spike/packing.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
 import {
+  SKIN_VIEW_LAYERS,
   SKIN_VIEWPORT_OVERLAYS,
+  type SkinViewLayerId,
   type SkinViewportOverlay,
   type ViewportOverlayAvailability,
+  type SkinViewLayerAvailability,
 } from "./viewportMode.ts";
+import {
+  DEFAULT_GRAPH_VIEW_OPTIONS,
+  SKIN_GRAPH_LAYER_IDS,
+  type GraphLayer,
+  type GraphViewOptions,
+  type SkinGraphLayerId,
+} from "./graphViewLayers.ts";
 import type { InternalObservationMode } from "./previewMeshBuffers.ts";
 import type { SupportSiteClassification, SupportSiteDepthMode } from "./supportOverlayPresentation.ts";
 import {
@@ -150,6 +160,12 @@ export interface UiCallbacks {
   onRepackFlowers: () => void;
   /** Switch the active viewport display (T12: raymarch / beads / full mesh). */
   onSetViewMode: (mode: SkinViewMode) => void;
+  /** Switch a presentation-only top-level View Layer. */
+  onSetViewLayer: (layer: SkinViewLayerId) => void;
+  /** Toggle only the visibility of an existing, provenance-bound Graph layer. */
+  onSetGraphLayerVisibility: (layer: SkinGraphLayerId, visible: boolean) => void;
+  /** Toggle only Graph presentation cues; graph data remains untouched. */
+  onSetGraphViewOptions: (options: GraphViewOptions) => void;
   /** Select the single session-only SKIN REBUILD diagnostic overlay. */
   onSetViewportOverlay: (overlay: SkinViewportOverlay) => void;
   onSetDisplayStyle: (style: SkinDisplayStyle) => void;
@@ -282,6 +298,7 @@ export interface UiCallbacks {
 export interface UiHandles {
   root: HTMLElement;
   displayToolsRoot: HTMLElement;
+  viewLayerRoot: HTMLElement;
   historyIoRoot: HTMLElement;
   setHistoryCount: (n: number) => void;
   setHistoryImportStatus: (text: string, ok?: boolean) => void;
@@ -387,6 +404,9 @@ export interface UiHandles {
   /** Update the three-way view toggle's active button + honest caption
    * (approximation disclosure for beads, capacity note for Field/SDF). */
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
+  setViewLayer: (layer: SkinViewLayerId) => void;
+  setViewLayerAvailability: (availability: Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>>) => void;
+  setGraphViewState: (layers: readonly GraphLayer[], options: GraphViewOptions) => void;
   setMeshViewAvailable: (available: boolean, reason: string) => void;
   setViewportOverlay: (
     overlay: SkinViewportOverlay,
@@ -2672,25 +2692,151 @@ export function buildUi(
   viewDock.dataset.role = "viewport-view-overlay-controls";
   const viewTitle = document.createElement("strong");
   viewTitle.className = "viewport-view-title";
-  viewTitle.textContent = "VIEW";
+  viewTitle.textContent = "VIEW LAYERS";
   viewDock.appendChild(viewTitle);
 
   const viewToggle = document.createElement("div");
-  viewToggle.className = "mode-toggle viewport-view-toggle";
-  const viewButtons: Record<SkinViewMode, HTMLButtonElement> = {} as Record<SkinViewMode, HTMLButtonElement>;
-  const VIEW_LABELS: [SkinViewMode, string][] = [
-    ["raymarch", "Field / SDF"],
-    ["beads", "Beads"],
-    ["mesh", "Mesh"],
-  ];
-  for (const [mode, label] of VIEW_LABELS) {
+  viewToggle.className = "mode-toggle viewport-view-toggle viewport-view-layer-toggle";
+  const viewLayerButtons: Record<SkinViewLayerId, HTMLButtonElement> = {} as Record<SkinViewLayerId, HTMLButtonElement>;
+  const viewLayerStatuses: Record<SkinViewLayerId, HTMLElement> = {} as Record<SkinViewLayerId, HTMLElement>;
+  const viewLayerAvailability: Record<SkinViewLayerId, SkinViewLayerAvailability> = {} as Record<SkinViewLayerId, SkinViewLayerAvailability>;
+  const VIEW_LAYER_LABELS: Record<SkinViewLayerId, string> = {
+    beads: "BEADS",
+    field: "FIELD",
+    graph: "GRAPH",
+    mesh: "MESH",
+    diagnostics: "DIAGNOSTICS",
+    "print-preview": "PRINT PREVIEW",
+  };
+  for (const layer of SKIN_VIEW_LAYERS) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = label;
-    btn.onclick = () => callbacks.onSetViewMode(mode);
-    viewButtons[mode] = btn;
+    btn.dataset.viewLayer = layer;
+    btn.setAttribute("aria-pressed", "false");
+    const label = document.createElement("span");
+    label.textContent = VIEW_LAYER_LABELS[layer];
+    const status = document.createElement("small");
+    status.className = "viewport-view-layer-status";
+    status.textContent = "○ unavailable";
+    btn.append(label, status);
+    btn.onclick = () => callbacks.onSetViewLayer(layer);
+    viewLayerButtons[layer] = btn;
+    viewLayerStatuses[layer] = status;
+    viewLayerAvailability[layer] = {
+      status: "unavailable",
+      source: "not prepared",
+      reason: "Not prepared",
+    };
     viewToggle.appendChild(btn);
   }
+
+  const graphViewPanel = document.createElement("section");
+  graphViewPanel.className = "graph-view-panel";
+  graphViewPanel.dataset.role = "graph-view-controls";
+  graphViewPanel.hidden = true;
+  const graphViewTitle = document.createElement("strong");
+  graphViewTitle.textContent = "GRAPH LAYERS";
+  const graphLayerToggle = document.createElement("div");
+  graphLayerToggle.className = "mode-toggle graph-layer-toggle";
+  const graphLayerButtons = new Map<SkinGraphLayerId, HTMLButtonElement>();
+  const graphLayerStatuses = new Map<SkinGraphLayerId, HTMLElement>();
+  const GRAPH_LAYER_LABELS: Record<SkinGraphLayerId, string> = {
+    surface: "Surface",
+    internal: "Internal",
+    reinforcement: "Reinforcement",
+    dryWeb: "DryWeb",
+    removableSupport: "Removable Support",
+  };
+  for (const layer of SKIN_GRAPH_LAYER_IDS) {
+    const row = document.createElement("div");
+    row.className = "graph-layer-row";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = GRAPH_LAYER_LABELS[layer];
+    button.dataset.graphLayer = layer;
+    button.setAttribute("aria-pressed", "false");
+    const status = document.createElement("small");
+    status.className = "graph-layer-status";
+    status.textContent = "Not generated";
+    button.onclick = () => {
+      if (button.disabled) return;
+      callbacks.onSetGraphLayerVisibility(layer, button.getAttribute("aria-pressed") !== "true");
+    };
+    row.append(button, status);
+    graphLayerToggle.appendChild(row);
+    graphLayerButtons.set(layer, button);
+    graphLayerStatuses.set(layer, status);
+  }
+  const graphPresentationToggle = document.createElement("div");
+  graphPresentationToggle.className = "mode-toggle graph-presentation-toggle";
+  const graphPresentationButtons = new Map<keyof GraphViewOptions, HTMLButtonElement>();
+  const GRAPH_PRESENTATION_LABELS: Record<keyof GraphViewOptions, string> = {
+    nodes: "Nodes",
+    edges: "Edges",
+    contacts: "Contacts",
+    provenance: "Provenance",
+  };
+  for (const key of ["nodes", "edges", "contacts", "provenance"] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = GRAPH_PRESENTATION_LABELS[key];
+    button.onclick = () => {
+      const current = button.getAttribute("aria-pressed") === "true";
+      callbacks.onSetGraphViewOptions({ ...DEFAULT_GRAPH_VIEW_OPTIONS, ...lastGraphViewOptions, [key]: !current });
+    };
+    graphPresentationButtons.set(key, button);
+    graphPresentationToggle.appendChild(button);
+  }
+  const graphProvenance = document.createElement("div");
+  graphProvenance.className = "graph-view-provenance";
+  graphViewPanel.append(graphViewTitle, graphLayerToggle, graphPresentationToggle, graphProvenance);
+
+  let lastGraphViewOptions: GraphViewOptions = { ...DEFAULT_GRAPH_VIEW_OPTIONS };
+  let renderedViewLayer: SkinViewLayerId = "field";
+  function renderViewLayer(layer: SkinViewLayerId): void {
+    renderedViewLayer = layer;
+    for (const [candidate, button] of Object.entries(viewLayerButtons) as [SkinViewLayerId, HTMLButtonElement][]) {
+      const active = candidate === layer;
+      button.classList.toggle("mode-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+    graphViewPanel.hidden = layer !== "graph";
+  }
+  function renderGraphViewState(layers: readonly GraphLayer[], options: GraphViewOptions): void {
+    lastGraphViewOptions = { ...options };
+    graphProvenance.replaceChildren();
+    for (const layer of layers) {
+      const button = graphLayerButtons.get(layer.id);
+      const status = graphLayerStatuses.get(layer.id);
+      if (!button || !status) continue;
+      const generated = layer.graph !== null;
+      button.disabled = !generated;
+      button.setAttribute("aria-pressed", String(generated && layer.visibility));
+      button.classList.toggle("mode-active", generated && layer.visibility);
+      const graph = layer.graph;
+      status.textContent = graph ? `${graph.nodes.length} nodes · ${graph.edges.length} edges` : "Not generated";
+      if (options.provenance && generated) {
+        const provenance = document.createElement("div");
+        provenance.textContent = `${layer.label}: source: ${layer.provenance}`;
+        graphProvenance.appendChild(provenance);
+      }
+    }
+    for (const layer of SKIN_GRAPH_LAYER_IDS) {
+      if (layers.some((candidate) => candidate.id === layer)) continue;
+      const button = graphLayerButtons.get(layer);
+      const status = graphLayerStatuses.get(layer);
+      if (button) { button.disabled = true; button.setAttribute("aria-pressed", "false"); button.classList.remove("mode-active"); }
+      if (status) status.textContent = "Not generated";
+    }
+    for (const [key, button] of graphPresentationButtons) {
+      const active = options[key];
+      button.classList.toggle("mode-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+  }
+  renderViewLayer("field");
+  renderGraphViewState([], DEFAULT_GRAPH_VIEW_OPTIONS);
+
   const overlayRow = document.createElement("label");
   overlayRow.className = "viewport-overlay-row";
   overlayRow.hidden = !options.enableViewportOverlayControls;
@@ -2734,6 +2880,40 @@ export function buildUi(
   const meshPreviewStatus = document.createElement("div");
   meshPreviewStatus.className = "viewport-view-status";
   meshPreviewStatus.textContent = "最初から切り替えられます";
+  const meshViewAction = document.createElement("button");
+  meshViewAction.type = "button";
+  meshViewAction.className = "secondary-action viewport-view-action";
+  meshViewAction.hidden = true;
+  meshViewAction.textContent = "Build Preview";
+  meshViewAction.onclick = () => callbacks.onSetViewMode("mesh");
+  const viewLayerStatusGlyph: Record<SkinViewLayerAvailability["status"], string> = {
+    current: "●",
+    partial: "△",
+    stale: "△",
+    unavailable: "○",
+  };
+  function renderViewLayerAvailability(
+    availability: Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>>,
+  ): void {
+    for (const layer of SKIN_VIEW_LAYERS) {
+      const state = availability[layer] ?? viewLayerAvailability[layer];
+      if (!state) continue;
+      viewLayerAvailability[layer] = { ...state };
+      const button = viewLayerButtons[layer];
+      const status = viewLayerStatuses[layer];
+      button.disabled = false;
+      button.dataset.viewStatus = state.status;
+      button.title = `${VIEW_LAYER_LABELS[layer]} · ${state.source} · ${state.reason}`;
+      status.textContent = `${viewLayerStatusGlyph[state.status]} ${state.status}`;
+      status.dataset.status = state.status;
+    }
+    const selectedLayer = renderedViewLayer;
+    const selected = viewLayerAvailability[selectedLayer];
+    if (selected) meshPreviewStatus.textContent = `${selected.source} · ${selected.reason}`;
+    const mesh = viewLayerAvailability.mesh;
+    meshViewAction.hidden = selectedLayer !== "mesh" || mesh.status !== "unavailable";
+    meshViewAction.textContent = mesh.actionLabel ?? "Build Preview";
+  }
   const quickResolutionRow = document.createElement("label");
   quickResolutionRow.className = "viewport-mesh-resolution";
   quickResolutionRow.appendChild(document.createTextNode("最終精度"));
@@ -2757,9 +2937,9 @@ export function buildUi(
     callbacks.onPreviewMeshResolutionChange(value);
   };
   quickResolutionRow.appendChild(quickResolutionInput);
-  viewDock.append(viewToggle, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus);
+  viewDock.append(viewToggle, graphViewPanel, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus, meshViewAction);
   const viewportElement = container.querySelector("#viewport") ?? container;
-  displayToolsRoot.appendChild(viewDock);
+  renderViewLayerAvailability(viewLayerAvailability);
 
   const clippingHud = document.createElement("section");
   clippingHud.className = "viewport-clipping-hud";
@@ -3266,13 +3446,12 @@ export function buildUi(
 
   const viewCaption = document.createElement("div");
   viewCaption.className = "hint";
+  viewCaption.dataset.role = "view-layer-caption";
   root.appendChild(viewCaption);
 
   function renderViewMode(mode: SkinViewMode, totalPatchPoints: number, coinBulge: number): void {
     renderedViewMode = mode;
-    for (const [m, btn] of Object.entries(viewButtons) as [SkinViewMode, HTMLButtonElement][]) {
-      btn.classList.toggle("mode-active", m === mode);
-    }
+    renderViewLayer(mode === "raymarch" ? "field" : mode);
     if (mode === "raymarch") {
       viewCaption.textContent =
         totalPatchPoints > PATCH_MAX_POINTS
@@ -3292,10 +3471,15 @@ export function buildUi(
   }
 
   function renderMeshViewAvailability(available: boolean, reason: string): void {
-    viewButtons.mesh.disabled = !available;
-    if (!available && renderedViewMode === "mesh") {
-      meshPreviewStatus.textContent = `Mesh unavailable · ${reason}`;
-    }
+    renderViewLayerAvailability({
+      ...viewLayerAvailability,
+      mesh: {
+        status: available ? "current" : "unavailable",
+        source: available ? "Stage 6 · current" : "No mesh",
+        reason,
+        actionLabel: available ? undefined : "Build Preview",
+      },
+    });
   }
 
   function renderViewportOverlay(
@@ -4610,6 +4794,7 @@ export function buildUi(
   return {
     root,
     displayToolsRoot,
+    viewLayerRoot: viewDock,
     historyIoRoot: historyIo,
     setElementRegistry: (rows, selectedId) => { registryRows = rows; registrySelected = selectedId; renderRegistry(); },
     setElementEditStatus: (text, ok) => { editorStatus.textContent = text; editorStatus.classList.toggle("warn", ok === false); },
@@ -4795,6 +4980,9 @@ export function buildUi(
       addPatchToggle.textContent = active ? "パッチを手で追加 (有効・クリックで配置)" : "パッチを手で追加 (クリック)";
     },
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
+    setViewLayer: (layer) => renderViewLayer(layer),
+    setViewLayerAvailability: (availability) => renderViewLayerAvailability(availability),
+    setGraphViewState: (layers, options) => renderGraphViewState(layers, options),
     setMeshViewAvailable: (available, reason) => renderMeshViewAvailability(available, reason),
     setViewportOverlay: (overlay, availability) => renderViewportOverlay(overlay, availability),
     setDisplayStyle: (style) => renderDisplayStyle(style),

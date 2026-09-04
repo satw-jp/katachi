@@ -69,8 +69,10 @@ import {
   recommendSkinViewportView,
   selectSkinViewportOverlay,
   selectSkinViewportView,
+  type SkinViewLayerId,
   type SkinViewportOverlay,
   type SkinViewportSessionState,
+  type SkinViewLayerAvailability,
   type ViewportEvidenceStatus,
   type ViewportOverlayAvailability,
 } from "./viewportMode.ts";
@@ -91,6 +93,12 @@ import { buildUi } from "./ui.ts";
 import { canonicalStringify } from "./graphCore.ts";
 import { createSurfaceGraph } from "./surfaceGraph.ts";
 import { createArtworkGraph, type ArtworkGraph } from "./artworkGraph.ts";
+import {
+  createGraphLayer,
+  DEFAULT_GRAPH_VIEW_OPTIONS,
+  type GraphViewGraph,
+  type GraphViewOptions,
+} from "./graphViewLayers.ts";
 import {
   cloneDryWebArtworkGraphPatches,
   DRY_WEB_ARTWORK_GRAPH_REFRESH_PROMPT,
@@ -1379,6 +1387,15 @@ let dryWebExactRecheckGeneration = 0;
 // rule (raymarch -> beads once the point count exceeds the shader's
 // PATCH_MAX_POINTS uniform budget -- "黙って先頭だけ描くのを廃止", T12 §2).
 let viewMode: SkinViewMode = "raymarch";
+let activeViewLayer: SkinViewLayerId = "field";
+let graphViewOptions: GraphViewOptions = { ...DEFAULT_GRAPH_VIEW_OPTIONS };
+const graphViewLayerVisibility: Record<"surface" | "internal" | "reinforcement" | "dryWeb" | "removableSupport", boolean> = {
+  surface: true,
+  internal: true,
+  reinforcement: true,
+  dryWeb: true,
+  removableSupport: true,
+};
 let viewportSessionState: SkinViewportSessionState = createSkinViewportSessionState();
 let displayStyle: SkinDisplayStyle = "solid";
 let internalObservationMode: InternalObservationMode = "normal";
@@ -1839,6 +1856,102 @@ function syncArtworkGraphStatus(): void {
     status: overlay.status,
     nodeCount: artworkGraphSnapshot?.surfaceDraft.nodes.length ?? 0,
   });
+  syncSkinGraphView();
+}
+
+function graphViewFromInternalGraph(
+  graph: InternalStructureGraph | null,
+  edgeIds?: readonly number[],
+): GraphViewGraph | null {
+  if (!graph || graph.nodes.length === 0) return null;
+  const wanted = edgeIds ? new Set(edgeIds) : null;
+  const selectedEdges = graph.edges.filter((edge) => wanted === null || wanted.has(edge.id));
+  const degree = new Map<number, number>();
+  for (const edge of selectedEdges) {
+    degree.set(edge.start, (degree.get(edge.start) ?? 0) + 1);
+    degree.set(edge.end, (degree.get(edge.end) ?? 0) + 1);
+  }
+  return {
+    nodes: graph.nodes.map((node) => ({
+      id: String(node.id),
+      position: { ...node.position },
+      radius: node.radius,
+      role: (degree.get(node.id) ?? 0) <= 1 ? "terminal" : "major",
+      label: `Node ${node.id}`,
+    })),
+    edges: selectedEdges.map((edge) => ({
+      id: String(edge.id),
+      start: String(edge.start),
+      end: String(edge.end),
+      radius: edge.radius,
+      role: "edge",
+    })),
+  };
+}
+
+function graphViewFromSurfaceGraph(
+  graph: ArtworkGraph["surfaceDraft"] | null,
+): GraphViewGraph | null {
+  if (!graph || graph.nodes.length === 0) return null;
+  const degree = new Map<string, number>();
+  for (const edge of graph.edges) {
+    degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1);
+    degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
+  }
+  const nodes = graph.nodes.map((node) => {
+    const points = node.patch.points;
+    const inv = points.length > 0 ? 1 / points.length : 0;
+    return {
+      id: node.id,
+      position: points.length > 0
+        ? {
+          x: points.reduce((sum, point) => sum + point.x, 0) * inv,
+          y: points.reduce((sum, point) => sum + point.y, 0) * inv,
+          z: points.reduce((sum, point) => sum + point.z, 0) * inv,
+        }
+        : { x: 0, y: 0, z: 0 },
+      radius: points.reduce((max, point) => Math.max(max, point.r), 0.025),
+      role: (degree.get(node.id) ?? 0) <= 1 ? "terminal" as const : "major" as const,
+      label: `Surface ${node.authorElementId}`,
+    };
+  });
+  return {
+    nodes,
+    edges: graph.edges.map((edge) => ({
+      id: edge.id,
+      start: edge.from,
+      end: edge.to,
+      radius: 0.025,
+      role: edge.relation === "contact" ? "contact" as const : "edge" as const,
+    })),
+  };
+}
+
+function syncSkinGraphView(): void {
+  const artworkBoundary = currentDryWebArtworkGraphBoundary();
+  const surfaceGraph = artworkBoundary.status === "current"
+    ? graphViewFromSurfaceGraph(artworkGraphSnapshot?.surfaceDraft ?? null)
+    : null;
+  const rebuildProject = isSkinRebuildApp && skinRebuildPipelineIsCurrent()
+    ? skinRebuildPipeline?.project ?? null
+    : null;
+  const permanentGraph = graphViewFromInternalGraph(rebuildProject?.finalGraph ?? internalStructureGraph);
+  const reinforcementGraph = skinRebuildReinforcementPreview
+    ? graphViewFromInternalGraph(skinRebuildReinforcementPreview.graph, skinRebuildReinforcementPreview.edgeIds)
+    : null;
+  const dryWebGraph = dryWebPreviewIsCurrent()
+    ? graphViewFromInternalGraph(phaseADryWebPreview?.graph ?? null)
+    : null;
+  const supportGraph = graphViewFromInternalGraph(getSkinRebuildPrintSupportGraph());
+  const layers = [
+    createGraphLayer("surface", "Surface", "Stage 3 / Artwork", surfaceGraph, graphViewLayerVisibility.surface),
+    createGraphLayer("internal", "Internal", "finalGraph", permanentGraph, graphViewLayerVisibility.internal),
+    createGraphLayer("reinforcement", "Reinforcement", "Permanent Reinforcement", reinforcementGraph, graphViewLayerVisibility.reinforcement),
+    createGraphLayer("dryWeb", "DryWeb", "Stage 4 / DryWeb", dryWebGraph, graphViewLayerVisibility.dryWeb),
+    createGraphLayer("removableSupport", "Removable Support", "current-stage8:sparseResult.graph", supportGraph, graphViewLayerVisibility.removableSupport),
+  ];
+  skinRenderer.setGraphViewLayers(layers, graphViewOptions);
+  ui.setGraphViewState(layers, graphViewOptions);
 }
 
 function deriveCurrentArtworkGraph(): void {
@@ -1970,18 +2083,134 @@ function skinViewportOverlayAvailability(): SkinViewportOverlayAvailabilityMap {
   };
 }
 
+type SkinMeshViewCandidate = SkinViewLayerAvailability & {
+  kind: "buffers" | "opening-map";
+  positions?: Float32Array;
+  normals?: Float32Array;
+};
+
+function bestAvailableSkinMeshCandidate(): SkinMeshViewCandidate | null {
+  const currentGraph = getInternalStructureGraph();
+  const currentFingerprint = currentGraph?.edges.length
+    ? internalPrintGateFingerprint(ui.getMeshOptions(), currentGraph)
+    : "";
+  const stage6Current = stage6BodyMeshCache !== null && (
+    currentSkinRebuildTopologyCache() !== null
+    || (currentFingerprint.length > 0 && stage6BodyMeshCache.fingerprint === currentFingerprint)
+  );
+  if (stage6Current && stage6BodyMeshCache) {
+    return {
+      kind: "buffers",
+      positions: stage6BodyMeshCache.positions,
+      normals: stage6BodyMeshCache.normals,
+      status: "current",
+      source: "Stage 6 · current",
+      reason: "Final BODY mesh is available",
+    };
+  }
+  if (stage6BodyMeshCache) {
+    return {
+      kind: "buffers",
+      positions: stage6BodyMeshCache.positions,
+      normals: stage6BodyMeshCache.normals,
+      status: "stale",
+      source: "Cached Stage 6 · stale",
+      reason: "Cached BODY mesh is available",
+    };
+  }
+  if (previewMeshCache?.generation === previewMeshGeneration) {
+    return {
+      kind: "buffers",
+      positions: previewMeshCache.positions,
+      normals: previewMeshCache.normals,
+      status: "partial",
+      source: "Preview · current",
+      reason: `${previewMeshCache.faceCount.toLocaleString()} faces available`,
+    };
+  }
+  if (previewMeshCache) {
+    return {
+      kind: "buffers",
+      positions: previewMeshCache.positions,
+      normals: previewMeshCache.normals,
+      status: "stale",
+      source: "Preview · stale",
+      reason: `${previewMeshCache.faceCount.toLocaleString()} faces from an earlier shape`,
+    };
+  }
+  if (openingMapResult?.meshTriangles.length) {
+    return {
+      kind: "opening-map",
+      status: "partial",
+      source: "Opening preview · current",
+      reason: "Preview measurement mesh is available",
+    };
+  }
+  return null;
+}
+
+function skinViewLayerAvailability(): Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>> {
+  const mesh = bestAvailableSkinMeshCandidate();
+  const generatedGraphLayers = skinRenderer.getGraphViewLayers().filter((layer) => layer.graph !== null).length;
+  const graphStatus = generatedGraphLayers === 0
+    ? "unavailable" as const
+    : generatedGraphLayers === skinRenderer.getGraphViewLayers().length
+      ? "current" as const
+      : "partial" as const;
+  const finalDiagnosisCurrent = isSkinRebuildApp && skinRebuildFinalDiagnosisIsCurrent();
+  const hasDiagnosis = isSkinRebuildApp && skinRebuildFinalArtworkDiagnosis !== null;
+  const currentSupport = isSkinRebuildApp
+    && skinRebuildStage8CompletedProject !== null
+    && getSkinRebuildPrintSupportGraph()?.edges.length
+      ? true
+      : false;
+  return {
+    beads: {
+      status: state.host.length > 0 || state.patches.length > 0 ? "current" : "unavailable",
+      source: state.host.length > 0 || state.patches.length > 0 ? "Live beads" : "No shape",
+      reason: state.host.length > 0 || state.patches.length > 0 ? "Authoring points are available" : "Open or create a shape",
+    },
+    field: {
+      status: state.host.length > 0 ? "current" : "unavailable",
+      source: state.host.length > 0 ? "Live field · current" : "No field",
+      reason: state.host.length > 0 ? "SDF field is available" : "Host has not been generated",
+    },
+    graph: {
+      status: graphStatus,
+      source: generatedGraphLayers > 0 ? `Graph layers · ${generatedGraphLayers}/${skinRenderer.getGraphViewLayers().length}` : "No graph",
+      reason: generatedGraphLayers > 0 ? "Generated layers can be inspected" : "Graph layers are not generated",
+    },
+    mesh: mesh ?? {
+      status: "unavailable",
+      source: "No mesh",
+      reason: "No displayable mesh is available",
+      actionLabel: "Build Preview",
+    },
+    diagnostics: {
+      status: finalDiagnosisCurrent ? "current" : hasDiagnosis ? "stale" : "unavailable",
+      source: finalDiagnosisCurrent ? "Stage 7 · current" : hasDiagnosis ? "Stage 7 · stale" : "Diagnostics",
+      reason: finalDiagnosisCurrent ? "Current diagnosis is available" : hasDiagnosis ? "Previous diagnosis is viewable" : "Diagnostics not prepared",
+    },
+    "print-preview": {
+      status: currentSupport ? "current" : "unavailable",
+      source: currentSupport ? "Export snapshot · current" : "No export snapshot",
+      reason: currentSupport ? "Current export geometry is available" : "Prepare an export snapshot to preview output",
+    },
+  };
+}
+
 function refreshSkinViewportControls(): void {
-  if (!isSkinRebuildApp) return;
+  if (!isSkinRebuildApp) {
+    ui.setViewLayerAvailability(skinViewLayerAvailability());
+    return;
+  }
   const availability = skinViewportOverlayAvailability();
   const selected = availability[viewportSessionState.overlay];
   skinRenderer.setViewportOverlay(
     viewportSessionState.overlay,
     selected.status === "current",
   );
-  ui.setMeshViewAvailable(
-    stage6BodyMeshCache !== null,
-    stage6BodyMeshCache !== null ? "Stage 6 final mesh" : "Stage 6 final mesh未生成",
-  );
+  ui.setViewLayerAvailability(skinViewLayerAvailability());
   ui.setViewportOverlay(viewportSessionState.overlay, availability);
 }
 
@@ -2380,6 +2609,16 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     afterMutation({ skipGauges: true });
   },
   onSetViewMode: (mode) => setViewMode(mode, "user"),
+  onSetViewLayer: (layer) => setViewLayer(layer),
+  onSetGraphLayerVisibility: (layer, visible) => {
+    graphViewLayerVisibility[layer] = visible;
+    syncSkinGraphView();
+  },
+  onSetGraphViewOptions: (options) => {
+    graphViewOptions = { ...options };
+    skinRenderer.setGraphViewOptions(graphViewOptions);
+    ui.setGraphViewState(skinRenderer.getGraphViewLayers(), graphViewOptions);
+  },
   onSetViewportOverlay: (overlay) => {
     viewportSessionState = selectSkinViewportOverlay(viewportSessionState, overlay);
     if (overlay === "components") {
@@ -2898,6 +3137,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialRestart: () => tutorialRestart(),
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 }, { enableViewportOverlayControls: isSkinRebuildApp });
+
+// View Layers are an always-on authoring control. Keep them in the right
+// upper pane so the presentation switch remains available while the lower
+// Stage / Properties pane scrolls independently.
+rightPaneUpperStack.appendChild(ui.viewLayerRoot);
 
 syncArtworkGraphStatus();
 refreshSkinViewportControls();
@@ -8879,6 +9123,7 @@ function setSkinRebuildReinforcementPreview(
     skinRebuildReinforcementPreview?.graph ?? null,
     skinRebuildReinforcementPreview?.edgeIds ?? [],
   );
+  syncSkinGraphView();
   if (skinRebuildReinforcementPreview) recommendViewportOverlay("reinforcement");
 }
 
@@ -9383,7 +9628,7 @@ function installSkinWorkflowGuide(): void {
     progress.appendChild(row);
   }
   panel.append(heading, phase, title, summary, context, blocker, actions, progress);
-  rightPaneUpperStack.insertBefore(panel, rightPaneUpperStack.firstElementChild);
+  rightPaneUpperStack.insertBefore(panel, ui.viewLayerRoot.nextSibling);
   skinWorkflowGuideRefs = { panel, phase, title, summary, context, blocker, action, details, progress };
   refreshSkinWorkflowGuide();
 }
@@ -11324,6 +11569,7 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildThinStrutExperimentalExportApproval = null;
       skinRebuildPrintSupportModeNeedsConfirmation = false;
       skinRenderer.setPrintSupport(stage8SupportGraph);
+      syncSkinGraphView();
       recommendViewportOverlay("support");
       skinRenderer.setSparseRemovableSupportDebug(
         skinRebuildSparseSupportResult?.debug ?? null,
@@ -11848,6 +12094,7 @@ function refreshInternalStructure(): void {
     const graph = getInternalStructureGraph();
     skinRenderer.setInternalStructure(graph);
     refreshInternalAngleScreening(graph);
+    syncSkinGraphView();
     syncPhaseASupportPreviewAvailability(graph);
     if (!graph) {
       ui.setInternalStructureStatus(state.skinParams.internalStructure === "targetedGrid"
@@ -11873,6 +12120,7 @@ function refreshInternalStructure(): void {
     internalStructureFingerprint = "";
     skinRenderer.setInternalStructure(null);
     refreshInternalAngleScreening(null);
+    syncSkinGraphView();
     syncPhaseASupportPreviewAvailability(null);
     ui.setInternalStructureStatus(`生成失敗: ${(error as Error).message}`, false);
   }
@@ -18626,6 +18874,7 @@ function installPreviewMesh(cache: NonNullable<typeof previewMeshCache>): void {
   skinRenderer.setViewMode(viewMode);
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   keepInternalGraphVisibleInMesh(getInternalStructureGraph());
+  refreshSkinViewportControls();
 }
 
 function startPreviewMeshStage(resolution: number, finalResolution: number, targetLongestMm: number): void {
@@ -18745,18 +18994,45 @@ function startPreviewMeshBuild(): void {
 
 type ViewportModeChangeSource = "user" | "recommended" | "system";
 
+function installBestAvailableSkinMeshForView(): SkinMeshViewCandidate | null {
+  const candidate = bestAvailableSkinMeshCandidate();
+  if (!candidate) return null;
+  if (candidate.kind === "buffers" && candidate.positions && candidate.normals) {
+    skinRenderer.setMeshOverlayBuffers(candidate.positions, candidate.normals);
+  } else if (candidate.kind === "opening-map" && openingMapResult) {
+    skinRenderer.setMeshOverlay(openingMapResult.meshTriangles);
+  }
+  viewMode = "mesh";
+  skinRenderer.setViewMode(viewMode);
+  ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  ui.setMeshPreviewStatus(`${candidate.source} · ${candidate.reason}`);
+  return candidate;
+}
+
+function setViewLayer(layer: SkinViewLayerId): void {
+  activeViewLayer = layer;
+  if (layer === "field") setViewMode("raymarch", "user");
+  else if (layer === "beads") setViewMode("beads", "user");
+  else {
+    if (layer === "mesh") installBestAvailableSkinMeshForView();
+    skinRenderer.setViewLayer(layer);
+    ui.setViewLayer(layer);
+    refreshSkinViewportControls();
+    render();
+  }
+}
+
 /** The screen mesh is a cancellable progressive Worker preview: a coarse
  * result appears first, then the exact author-selected resolution replaces
  * it. Export/inspection keep their separate audited build path. */
 function setViewMode(mode: SkinViewMode, source: ViewportModeChangeSource = "user"): void {
   const viewportView = mode === "raymarch" ? "field" : mode;
+  const specialLayerActive = activeViewLayer === "graph"
+    || activeViewLayer === "diagnostics"
+    || activeViewLayer === "print-preview";
+  if (source === "user" || !specialLayerActive) activeViewLayer = viewportView;
   if (source === "recommended" && viewportSessionState.userHasSelectedViewportMode
     && viewportSessionState.view !== viewportView) return;
-  if (mode === "mesh" && isSkinRebuildApp && stage6BodyMeshCache === null) {
-    ui.setMeshPreviewStatus("Mesh unavailable · Stage 6 final mesh未生成");
-    refreshSkinViewportControls();
-    return;
-  }
   if (source === "user") viewportSessionState = selectSkinViewportView(viewportSessionState, viewportView);
   else if (source === "recommended") viewportSessionState = recommendSkinViewportView(viewportSessionState, viewportView);
   else if (!viewportSessionState.userHasSelectedViewportMode) {
@@ -18767,8 +19043,9 @@ function setViewMode(mode: SkinViewMode, source: ViewportModeChangeSource = "use
     if (isSkinRebuildApp && stage6BodyMeshCache) {
       skinRenderer.setMeshOverlayBuffers(stage6BodyMeshCache.positions, stage6BodyMeshCache.normals);
       viewMode = "mesh";
-      skinRenderer.setViewMode(viewMode);
+      skinRenderer.setViewLayer(activeViewLayer);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+      ui.setViewLayer(activeViewLayer);
       ui.setMeshPreviewStatus("Stage 6 final mesh表示中");
       refreshSkinViewportControls();
       render();
@@ -18778,8 +19055,9 @@ function setViewMode(mode: SkinViewMode, source: ViewportModeChangeSource = "use
       skinRenderer.setMeshOverlay(openingMapResult.meshTriangles);
       refreshOpeningMapDisplay();
       viewMode = "mesh";
-      skinRenderer.setViewMode(viewMode);
+      skinRenderer.setViewLayer(activeViewLayer);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+      ui.setViewLayer(activeViewLayer);
       ui.setMeshPreviewStatus("空隙マップと同じ計測メッシュを表示中");
       return;
     }
@@ -18788,8 +19066,9 @@ function setViewMode(mode: SkinViewMode, source: ViewportModeChangeSource = "use
   }
   viewMode = mode;
   if (mode === "beads") skinRenderer.updateBeads(state.host, state.patches, selectedPatchId);
-  skinRenderer.setViewMode(viewMode);
+  skinRenderer.setViewLayer(activeViewLayer);
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
+  ui.setViewLayer(activeViewLayer);
   ui.setMeshPreviewStatus(mode === "raymarch" ? "レイマーチ表示" : "ビーズ表示");
 }
 
@@ -18948,8 +19227,9 @@ function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}
       ui.setAutoSwitchNotice(false);
     }
   }
-  skinRenderer.setViewMode(viewMode);
+  skinRenderer.setViewLayer(activeViewLayer);
   ui.setViewMode(viewMode, totalPoints, state.skinParams.coinBulge);
+  ui.setViewLayer(activeViewLayer);
   refreshSkinViewportControls();
   updateSelectionLabel();
   updateEmptyViewportHint();

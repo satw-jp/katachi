@@ -1,6 +1,18 @@
 export const SKIN_VIEWPORT_VIEWS = ["beads", "field", "mesh"] as const;
 export type SkinViewportView = (typeof SKIN_VIEWPORT_VIEWS)[number];
 
+/** Presentation-only top-level layers. Selecting one must not run a worker,
+ * advance a Stage, regenerate support, or write an FKEI. */
+export const SKIN_VIEW_LAYERS = [
+  "beads",
+  "field",
+  "graph",
+  "mesh",
+  "diagnostics",
+  "print-preview",
+] as const;
+export type SkinViewLayerId = (typeof SKIN_VIEW_LAYERS)[number];
+
 export const SKIN_VIEWPORT_OVERLAYS = [
   "none",
   "insideOutside",
@@ -12,6 +24,15 @@ export const SKIN_VIEWPORT_OVERLAYS = [
 export type SkinViewportOverlay = (typeof SKIN_VIEWPORT_OVERLAYS)[number];
 
 export type ViewportEvidenceStatus = "current" | "stale" | "unavailable";
+
+export type SkinViewLayerStatus = "current" | "partial" | "stale" | "unavailable";
+
+export interface SkinViewLayerAvailability {
+  status: SkinViewLayerStatus;
+  source: string;
+  reason: string;
+  actionLabel?: string;
+}
 
 export interface ViewportOverlayAvailability {
   status: ViewportEvidenceStatus;

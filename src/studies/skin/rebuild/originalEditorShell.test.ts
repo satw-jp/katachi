@@ -93,6 +93,26 @@ for (const label of [
   "パッチを手で追加 (クリック)",
 ]) assert.ok(ui.includes(label), `original Stage 1/2 control is missing: ${label}`);
 
+for (const label of ["BEADS", "FIELD", "GRAPH", "MESH", "DIAGNOSTICS", "PRINT PREVIEW"])
+  assert.ok(ui.includes(`\"${label}\"`), `View Layer control is missing: ${label}`);
+for (const label of ["Surface", "Internal", "Reinforcement", "DryWeb", "Removable Support", "Nodes", "Edges", "Contacts", "Provenance"])
+  assert.ok(ui.includes(`\"${label}\"`), `GRAPH presentation control is missing: ${label}`);
+assert.match(ui, /graph-view-controls/);
+assert.match(ui, /viewLayerRoot: viewDock/,
+  "View Layers must be returned as a movable pane section");
+assert.doesNotMatch(ui, /displayToolsRoot\.appendChild\(viewDock\)/,
+  "View Layers must not remain in the left TOOLS pane");
+assert.match(ui, /button\.disabled = false/,
+  "top-level View Layer buttons must remain clickable when data is unavailable");
+assert.match(ui, /setViewLayerAvailability/,
+  "View Layer availability must be reported independently from button enabled state");
+assert.ok(main.includes("onSetViewLayer: (layer) => setViewLayer(layer)"));
+assert.ok(main.includes("setGraphViewLayers(layers, graphViewOptions)"));
+assert.match(renderer, /skin-graph-layer-\$\{layer\.id\}/);
+assert.match(renderer, /userData\.provenance = layer\.provenance/);
+assert.match(renderer, /userData\.editable = layer\.editable/);
+assert.match(renderer, /graphViewKind = name\.includes\("contact"\) \? "contact-edges" : "edges"/);
+
 assert.match(main, /skin-project-bar/);
 assert.match(main, /skin-left-pane/);
 assert.match(main, /skin-right-pane/);
@@ -104,7 +124,9 @@ assert.match(main, /dblclick/);
 assert.match(main, /window\.addEventListener\("resize", syncRightPaneLayout\)/);
 assert.match(main, /rightPaneUpperStack\.appendChild\(printPreparationPanel\)/,
   "Print readiness must remain in the upper stack");
-assert.match(main, /rightPaneUpperStack\.insertBefore\(panel/,
+assert.match(main, /rightPaneUpperStack\.appendChild\(ui\.viewLayerRoot\)/,
+  "View Layers must be mounted in the upper stack");
+assert.match(main, /rightPaneUpperStack\.insertBefore\(panel, ui\.viewLayerRoot\.nextSibling\)/,
   "Workflow Guide must remain in the upper stack");
 assert.match(main, /advancedSupportDetails\.append\(advancedSupportSummary, artworkInteriorClassification\.section, phaseASupportPanel\)/,
   "legacy Outside / Stage 7.5 preview must remain behind Advanced / Legacy");
@@ -118,6 +140,8 @@ assert.match(main, /完成 Sample/);
 assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*overflow-y: hidden/);
 assert.match(style, /\.skin-right-upper-stack[\s\S]*flex: 0 0 var\(--skin-right-pane-upper-height, 42%\)[\s\S]*overflow-y: auto[\s\S]*min-height: 0/,
   "upper Guide + Print readiness stack must use the adjustable split");
+assert.match(style, /\.skin-right-upper-stack > \.viewport-view-dock[\s\S]*position: sticky[\s\S]*top: 0/,
+  "View Layers must remain visible at the top while the upper stack scrolls");
 assert.match(style, /\.skin-right-pane-divider[\s\S]*cursor: row-resize/);
 assert.match(style, /\.skin-right-pane-lower[\s\S]*overflow-y: auto/);
 assert.match(style, /\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);

@@ -6,6 +6,7 @@ import {
   recommendSkinViewportView,
   selectSkinViewportOverlay,
   selectSkinViewportView,
+  SKIN_VIEW_LAYERS,
   SKIN_VIEWPORT_OVERLAYS,
   viewportEvidenceCanRender,
 } from "./viewportMode.ts";
@@ -17,6 +18,12 @@ test("viewport defaults to Field / SDF with no overlay", () => {
     userHasSelectedViewportMode: false,
     userHasSelectedOverlay: false,
   });
+});
+
+test("View Layers keep the author-facing presentation order", () => {
+  assert.deepEqual(SKIN_VIEW_LAYERS, [
+    "beads", "field", "graph", "mesh", "diagnostics", "print-preview",
+  ]);
 });
 
 test("explicit Mesh selection survives a stage view recommendation", () => {
