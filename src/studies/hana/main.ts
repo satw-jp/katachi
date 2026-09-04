@@ -2292,12 +2292,15 @@ function drawMoveGizmo(rect: SkinViewportRect): void {
   if (!world) return;
   const gizmo = moveGizmoScreenTips(rect, world);
   if (!gizmo) return;
+  const activeAxis = controlDrag?.gizmoAxis ?? null;
   gestureContext.save();
   gestureContext.lineWidth = 2;
   gestureContext.lineCap = "round";
   for (const axis of hanaViewportGizmoAxes(directions[rect.index])) {
     const tip = gizmo.tips[axis];
     if (!tip) continue;
+    const isActive = axis === activeAxis;
+    const tipRadius = isActive ? 6 : 4;
     gestureContext.strokeStyle = HANA_GIZMO_AXIS_COLORS[axis];
     gestureContext.beginPath();
     gestureContext.moveTo(gizmo.origin.x, gizmo.origin.y);
@@ -2305,7 +2308,7 @@ function drawMoveGizmo(rect: SkinViewportRect): void {
     gestureContext.stroke();
     gestureContext.fillStyle = HANA_GIZMO_AXIS_COLORS[axis];
     gestureContext.beginPath();
-    gestureContext.arc(tip.x, tip.y, 4, 0, Math.PI * 2);
+    gestureContext.arc(tip.x, tip.y, tipRadius, 0, Math.PI * 2);
     gestureContext.fill();
   }
   gestureContext.fillStyle = "#ffffff";
