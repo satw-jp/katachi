@@ -1,6 +1,6 @@
 # SKIN Golden / Rebuild Roadmap v1
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Purpose
 
@@ -165,13 +165,81 @@ Record at minimum:
 
 The physical print is evidence, not an automatic approval of the current design.
 
+### 3.6 Print #2 physical evidence checkpoint — 2026-09-05
+
+Print #2 materially changes how support and Permanent Web should be interpreted.
+
+Important comparison constraint:
+
+- Print #2 BODY/output scale differed from Print #1, so Print #1 vs Print #2 is **not a strict physical A/B comparison**.
+- Source geometry/fingerprint equality alone is insufficient to establish equal physical print size; future comparisons must preserve `targetLongestMm` / physical scale metadata as well as BODY and Permanent Graph identity.
+
+Observed Print #2 evidence:
+
+- the print largely completed rather than failing globally
+- obvious BODY print failures were limited to approximately two locations and were concentrated in the lower region
+- only approximately one removable-support member was visibly/clearly broken, on the outer side
+- the upper Permanent/Internal network survived substantially better than a simple angle-based printability rule would predict
+- several short, near-horizontal permanent members were physically formed; surface quality was imperfect, but they appear structurally viable as internal members
+- once the structure entered a more connected network, the upper region was markedly more stable than the lower bootstrap region
+
+Current interpretation:
+
+- do **not** classify a permanent member as invalid only because it is horizontal or near-horizontal
+- unsupported span length, distance to first stable junction, local branching, neighboring support and time-to-network-entry are more informative than member angle alone
+- the lower bootstrap region remains the dominant physical risk zone
+- BODY failure is increasingly consistent with local support/bootstrap failure propagating into BODY failure, rather than with the BODY/Internal structure being globally unprintable
+- this support-causality interpretation is a strengthened hypothesis, **not yet a proof**, because the changed physical scale prevents a strict Print #1 / Print #2 A/B conclusion
+
+Design consequence for Removable Support experiments:
+
+```text
+Plate
+↓
+early stable Root / Trunk
+↓
+share safe lower corridors where possible
+↓
+branch early enough to reduce unbraced length
+↓
+Offset-bend / local approach
+↓
+distributed BODY contact
+```
+
+Current experimental priority:
+
+1. Shared Trunk / Branched Tree
+2. Low diagonal bootstrap stabilization
+3. Root thickening only as an isolated-support fallback
+
+These remain **experimental**, not production defaults, until they are tested against matched physical scale and then against an author-made organic fixture.
+
+Design consequence for Permanent Web:
+
+```text
+angle alone
+    ↓ no longer sufficient
+unsupported length
++ first stable junction distance
++ branching / mutual support
++ junction spacing
++ network entry timing
+    ↓
+physical viability
+```
+
+Short horizontal members may therefore be valid Permanent Web vocabulary when they quickly enter a mutually supporting network.
+
 ---
 
-## 4. Golden Stage 8 support is frozen as a regression contract
+## 4. Pre-physical Golden Stage 8 support baseline is frozen as a regression contract
 
-Current Removable Support is treated as complete unless physical evidence justifies a later change.
+The following Stage 8 result is preserved as the **pre-physical-print Golden regression baseline**. It is no longer an absolute acceptance target for later evidence-based support experiments.
 
-Golden invariants:
+Physical evidence may justify intentional changes, but a changed metric must never drift silently and must remain attributable to a named experimental or promoted support policy.
+
+Pre-physical Golden invariants:
 
 ```text
 Critical targets      166
@@ -494,18 +562,25 @@ Until then, Rebuild is shadow or experimental.
 
 ## 12. Immediate next actions
 
-### Golden
+### Physical evidence / Support
 
 ```text
-1. Permanent Reinforcement
-2. minimum Internal Graph cleanup
-3. current DryWeb / permanent network
-4. Bouquet integration
-5. Final Mesh / Diagnosis
-6. current offset-bend Stage 8 Support
-7. 3MF / slicer review
-8. physical print
-9. record physical observations
+1. Preserve Print #2 as a physical-evidence checkpoint, including its physical scale metadata
+2. Treat short horizontal Permanent/Internal members as candidates, not automatic failures
+3. Continue Shared Trunk / Branched Tree and Low-Diagonal support as experimental candidates
+4. Use Root thickening only as an isolated fallback candidate
+5. Require a matched-scale physical comparison before production promotion
+6. Test the same principles against an author-made organic fixture before assuming generality
+```
+
+### Golden / next authoring cycle
+
+```text
+1. Keep current production BODY / Permanent structure / FKEI semantics stable while evidence is compared
+2. Finish the authoring infrastructure needed for the next Author Organic / Motif Aggregate shape
+3. Author creates the organic fixture / next form; do not synthesize it as a substitute
+4. Compare Synthetic Vertical Stress Fixture + Author Organic Fixture under the same Support analysis
+5. Prepare the next physical candidate with explicit output size and independent Permanent/Support diameters
 ```
 
 ### Rebuild in parallel
@@ -519,7 +594,7 @@ Until then, Rebuild is shadow or experimental.
 6. migration inspector
 ```
 
-Stop Rebuild at this boundary until the physical Print Gate is recorded.
+Rebuild remains shadow/experimental until the relevant physical and parity gates are recorded.
 
 ---
 
