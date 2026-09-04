@@ -4425,7 +4425,7 @@ function beginPendingAuthoringPointer(
     candidateSelected,
     editEnabled,
     controlIndex,
-    gizmoAxis: isGizmoOnly ? gizmoAxis : null,
+    gizmoAxis: gizmoAxis,
     pickedStrokeId: picked?.strokeId ?? null,
     pickedControlId: picked?.controlPointId ?? null,
     pickedControlIndex: picked?.controlIndex ?? null,
@@ -4476,7 +4476,7 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
     pendingAuthoringPointer = null;
     if (setControlPointSelection(pending.pickedStrokeId, pending.pickedControlId, "point grab")) {
       const rect = currentRects().find((candidate) => candidate.index === pending.viewportIndex);
-      if (rect) startControlDrag(event, rect, pending.pickedControlIndex ?? 0);
+      if (rect) startControlDrag(event, rect, pending.pickedControlIndex ?? 0, pending.gizmoAxis);
     } else {
       releaseGesturePointer(event.pointerId);
     }
