@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   HANA_POINTER_DRAG_THRESHOLD,
+  classifyHanaEmptyDrag,
   classifyHanaPointerIntent,
   pointerMovementExceedsThreshold,
   resolveHanaSelection,
@@ -48,4 +49,18 @@ test("Shift enables additive selection and the Multi Select toggle stays as touc
     resolveHanaSelection({ current: ["stroke-a"], clicked: "stroke-b", additive: resolveHanaTapAdditive({ shiftKey: false, touchFallback: true }) }),
     ["stroke-a", "stroke-b"],
   );
+});
+
+test("empty-space drag routes mouse primary to range select and keeps camera elsewhere", () => {
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "mouse", mouseButton: 0, candidateStrokeId: null }), "range-select");
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "mouse", mouseButton: 2, candidateStrokeId: null }), "camera-pan");
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "mouse", mouseButton: 1, candidateStrokeId: null }), "camera-pan");
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "touch", mouseButton: 0, candidateStrokeId: null }), "camera-pan");
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "pen", mouseButton: 0, candidateStrokeId: null }), "none");
+  assert.equal(classifyHanaEmptyDrag({ pointerType: "mouse", mouseButton: 0, candidateStrokeId: "stroke-1" }), "none");
+});
+
+test("tap stays tap below the drag threshold", () => {
+  assert.equal(pointerMovementExceedsThreshold(100, 100, 100 + HANA_POINTER_DRAG_THRESHOLD - 1, 100), false);
+  assert.equal(classifyHanaPointerIntent({ candidateStrokeId: null, candidateSelected: false, editEnabled: true, controlIndex: null }, false), "pending");
 });

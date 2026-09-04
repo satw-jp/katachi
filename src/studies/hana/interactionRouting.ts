@@ -3,6 +3,7 @@ export const HANA_POINTER_DRAG_THRESHOLD = 6;
 export interface HanaPendingPointerIntent {
   pointerId: number;
   pointerType: "mouse" | "touch";
+  mouseButton: number;
   viewportIndex: number;
   startClientX: number;
   startClientY: number;
@@ -58,4 +59,23 @@ export function resolveHanaSelection(input: {
   return input.current.includes(input.clicked)
     ? input.current.filter((id) => id !== input.clicked)
     : [...input.current, input.clicked];
+}
+
+export type HanaEmptyDragRoute = "range-select" | "camera-pan" | "none";
+
+/**
+ * Route a drag that starts on empty Viewport space (no Stroke, no Control
+ * Point). Mouse/trackpad primary drags open a Rhino-style range selection;
+ * right/middle mouse drags keep camera navigation; touch keeps navigation;
+ * Apple Pencil never reaches this router (it always Draws).
+ */
+export function classifyHanaEmptyDrag(input: {
+  pointerType: "mouse" | "touch" | "pen";
+  mouseButton: number;
+  candidateStrokeId: string | null;
+}): HanaEmptyDragRoute {
+  if (input.candidateStrokeId !== null) return "none";
+  if (input.pointerType === "pen") return "none";
+  if (input.pointerType === "touch") return "camera-pan";
+  return input.mouseButton === 0 ? "range-select" : "camera-pan";
 }

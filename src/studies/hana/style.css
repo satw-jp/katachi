@@ -1076,12 +1076,36 @@ button:disabled {
 /* Selection / Flower authoring lives in a rail beside the canvas, never over it. */
 .hana-shell {
   grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/* Document commands span the full application width above rail and workspace. */
+.hana-top-pane {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #d0d5da;
+  background: #fff;
+}
+
+.hana-top-pane .hana-document-command-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
 }
 
 .hana-left-rail {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -1131,15 +1155,6 @@ button:disabled {
   width: 100%;
   min-width: 0;
   flex: none;
-}
-
-.hana-left-upper .hana-header > .hana-document-command-bar {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  min-height: 48px;
-  padding: 0 0 8px;
-  border-bottom: 1px solid #d7dbe0;
 }
 
 .hana-left-upper .hana-toolbar > .hana-segmented,
@@ -1330,7 +1345,7 @@ button:disabled {
 
 .hana-workspace {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -1338,7 +1353,7 @@ button:disabled {
 
 .hana-debug {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 3;
   min-width: 0;
   min-height: 0;
 }
@@ -1346,22 +1361,22 @@ button:disabled {
 @media (max-width: 960px) {
   .hana-shell {
     grid-template-columns: minmax(220px, 30vw) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   .hana-left-rail {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 2;
   }
 
   .hana-workspace {
     grid-column: 2;
-    grid-row: 1;
+    grid-row: 2;
   }
 
   .hana-debug {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 3;
   }
 
   .hana-left-upper .hana-header {

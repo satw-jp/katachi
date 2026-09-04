@@ -19,3 +19,30 @@ export function parseLeftPaneRatio(
 ): number {
   return clampLeftPaneRatio(value === null ? Number.NaN : Number(value), fallback);
 }
+
+export interface HanaDocumentCommand {
+  id: string;
+  label: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+/** Canonical Top Pane document commands. Order is fixed: New Save Load Export Undo Redo Clear. */
+export const HANA_DOCUMENT_COMMANDS: readonly HanaDocumentCommand[] = [
+  { id: "new-document", label: "New" },
+  { id: "save-document", label: "Save", className: "hana-primary" },
+  { id: "load-document", label: "Load" },
+  { id: "export-document", label: "Export" },
+  { id: "undo-document", label: "Undo", disabled: true },
+  { id: "redo-document", label: "Redo", disabled: true },
+  { id: "clear-document", label: "Clear" },
+];
+
+export function renderHanaDocumentCommandBar(): string {
+  const buttons = HANA_DOCUMENT_COMMANDS.map((command) => {
+    const classAttribute = command.className ? ` class="${command.className}"` : "";
+    const disabledAttribute = command.disabled ? " disabled" : "";
+    return `<button id="${command.id}" type="button"${classAttribute}${disabledAttribute}>${command.label}</button>`;
+  });
+  return `<nav class="hana-document-command-bar" aria-label="Document commands">${buttons.join("")}</nav>`;
+}

@@ -110,6 +110,7 @@ import {
 import { buildMeshResultFromTriangles } from "../cloud-sculpt/meshExport.ts";
 import { initializeHanaFlowerAuthoringUi, type HanaFlowerUiHandle } from "./flowerAuthoringUi.ts";
 import { HanaAuthoringHistory, emptyHanaAuthoringHistoryRoot, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
+import { resolveHanaRestoredSelection, resolveHanaSurfaceTarget } from "./surfaceTarget.ts";
 import {
   allocateHanaAuthoringId,
   createHanaAuthoringIdentity,
@@ -171,14 +172,22 @@ import {
   HANA_LEFT_PANE_MIN_RATIO,
   clampLeftPaneRatio,
   parseLeftPaneRatio,
+  renderHanaDocumentCommandBar,
 } from "./authoringLayout.ts";
 import {
+  classifyHanaEmptyDrag,
   classifyHanaPointerIntent,
   pointerMovementExceedsThreshold,
   resolveHanaSelection,
   resolveHanaTapAdditive,
   type HanaPendingPointerIntent,
 } from "./interactionRouting.ts";
+import {
+  mergeHanaRangeSelection,
+  normalizeHanaRangeRect,
+  selectHanaStrokesInRange,
+  type HanaRangeRect,
+} from "./rangeSelection.ts";
 import {
   isHanaViewportDoubleTap,
   nextHanaViewportMode,
@@ -278,6 +287,9 @@ let liveIsolationMode = liveIsolationModeFromQuery();
 
 app.innerHTML = `
   <main class="hana-shell">
+    <div id="hana-top-pane" class="hana-top-pane" aria-label="HANA document commands">
+      ${renderHanaDocumentCommandBar()}
+    </div>
     <section class="hana-left-rail" aria-label="HANA authoring controls">
       <div id="hana-left-upper" class="hana-left-upper">
         <header class="hana-header">
@@ -285,15 +297,6 @@ app.innerHTML = `
             <h1>HANA — Point Field Stem Preview</h1>
             <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt} · ${hanaRuntimeShortLabel(hanaRuntime)}</p>
           </div>
-          <nav class="hana-document-command-bar" aria-label="Document commands">
-            <button id="new-document" type="button">New</button>
-            <button id="save-document" type="button" class="hana-primary">Save</button>
-            <button id="load-document" type="button">Load</button>
-            <button id="export-document" type="button">Export</button>
-            <button id="undo-document" type="button" disabled>Undo</button>
-            <button id="redo-document" type="button" disabled>Redo</button>
-            <button id="clear-document" type="button">Clear</button>
-          </nav>
           <div class="hana-toolbar" aria-label="HANA authoring controls">
         <div class="hana-soft-control" aria-label="Soft Edit strength">
           <span>Soft</span>
@@ -515,6 +518,16 @@ let globalAuthoringHistory: HanaAuthoringHistory | null = null;
 let parameterHistoryBefore: HanaAuthoringHistorySnapshot | null = null;
 const authoringStrokeRoles = new Map<string, HanaStrokeRole>();
 let pendingAuthoringPointer: HanaPendingPointerIntent | null = null;
+interface HanaRangeSelectionDrag {
+  pointerId: number;
+  viewportIndex: number;
+  viewportRect: SkinViewportRect;
+  startCanvasX: number;
+  startCanvasY: number;
+  currentCanvasX: number;
+  currentCanvasY: number;
+}
+let rangeSelection: HanaRangeSelectionDrag | null = null;
 let rawPressureTotal = 0;
 let rawTimeTotal = 0;
 let lastRawCaptureDiagnostics: HanaRawGestureCaptureDiagnostics | null = null;
@@ -2163,6 +2176,28 @@ function drawSharedStroke(
   }
 }
 
+/** Selection rectangle presentation, clipped to the drag-start viewport. */
+function drawRangeSelectionRect(rect: SkinViewportRect): void {
+  const selection = rangeSelectionRect();
+  if (!selection || !rangeSelection) return;
+  const left = Math.max(selection.left, rangeSelection.viewportRect.x);
+  const top = Math.max(selection.top, rangeSelection.viewportRect.y);
+  const right = Math.min(selection.right, rangeSelection.viewportRect.x + rangeSelection.viewportRect.width);
+  const bottom = Math.min(selection.bottom, rangeSelection.viewportRect.y + rangeSelection.viewportRect.height);
+  if (right <= left || bottom <= top) return;
+  gestureContext.save();
+  gestureContext.beginPath();
+  gestureContext.rect(rect.x, rect.y, rect.width, rect.height);
+  gestureContext.clip();
+  gestureContext.beginPath();
+  gestureContext.rect(left, top, right - left, bottom - top);
+  gestureContext.strokeStyle = selection.direction === "window" ? "rgba(37, 99, 235, 0.9)" : "rgba(22, 163, 74, 0.9)";
+  gestureContext.lineWidth = 1.5;
+  gestureContext.setLineDash(selection.direction === "window" ? [] : [6, 4]);
+  gestureContext.stroke();
+  gestureContext.restore();
+}
+
 function redrawOverlay(): void {
   const width = workspace.clientWidth;
   const height = workspace.clientHeight;
@@ -2189,6 +2224,9 @@ function redrawOverlay(): void {
     }
     if (activeStroke && provisionalStroke3D) {
       drawSharedStroke(rect, provisionalStroke3D, provisionalCenterline, materialSamples, false);
+    }
+    if (rangeSelection && rangeSelection.viewportIndex === rect.index) {
+      drawRangeSelectionRect(rect);
     }
     gestureContext.restore();
   }
@@ -2625,6 +2663,112 @@ function selectAuthoringStroke(strokeId: string, additive = flowerMultiSelect): 
   scheduleRecoveryCheckpoint("selection");
 }
 
+function rangeSelectionRect(): HanaRangeRect | null {
+  if (!rangeSelection) return null;
+  return normalizeHanaRangeRect(
+    { x: rangeSelection.startCanvasX, y: rangeSelection.startCanvasY },
+    { x: rangeSelection.currentCanvasX, y: rangeSelection.currentCanvasY },
+  );
+}
+
+function beginRangeSelection(event: PointerEvent, pending: HanaPendingPointerIntent): boolean {
+  const rect = currentRects().find((candidate) => candidate.index === pending.viewportIndex);
+  if (!rect) return false;
+  rangeSelection = {
+    pointerId: event.pointerId,
+    viewportIndex: pending.viewportIndex,
+    viewportRect: { ...rect },
+    startCanvasX: pending.startCanvasX,
+    startCanvasY: pending.startCanvasY,
+    currentCanvasX: pending.startCanvasX,
+    currentCanvasY: pending.startCanvasY,
+  };
+  pendingAuthoringPointer = null;
+  event.preventDefault();
+  stopAutoRotate();
+  gestureCanvas.setPointerCapture(event.pointerId);
+  stateMessage = "RANGE · drag to select";
+  redrawOverlay();
+  updateDebug();
+  return true;
+}
+
+function updateRangeSelection(event: PointerEvent): void {
+  if (!rangeSelection || rangeSelection.pointerId !== event.pointerId) return;
+  event.preventDefault();
+  const point = canvasPoint(event);
+  rangeSelection.currentCanvasX = point.x;
+  rangeSelection.currentCanvasY = point.y;
+  const rect = rangeSelectionRect();
+  stateMessage = rect
+    ? `RANGE · ${rect.direction === "window" ? "WINDOW" : "CROSSING"} · ${Math.round(rect.right - rect.left)}×${Math.round(rect.bottom - rect.top)}`
+    : "RANGE · drag to select";
+  redrawOverlay();
+  updateDebug();
+}
+
+function cancelRangeSelection(): void {
+  if (!rangeSelection) return;
+  rangeSelection = null;
+  stateMessage = "SELECT · range cancelled";
+  redrawOverlay();
+  updateDebug();
+}
+
+/** Range selection changes the selection set only — never authoring history. */
+function commitRangeSelection(shiftKey: boolean): boolean {
+  const drag = rangeSelection;
+  rangeSelection = null;
+  if (!drag || activeStroke) {
+    redrawOverlay();
+    return false;
+  }
+  const rect = normalizeHanaRangeRect(
+    { x: drag.startCanvasX, y: drag.startCanvasY },
+    { x: drag.currentCanvasX, y: drag.currentCanvasY },
+  );
+  const projected = authoringStrokes.map((source) => {
+    const centerline = source === stroke3D && authoritativeCenterline.length > 1
+      ? authoritativeCenterline
+      : sampleSmoothCenterline(source);
+    return {
+      id: source.id,
+      polyline: centerline
+        .map((sample) => renderer.projectPoint(drag.viewportIndex, sample.position, drag.viewportRect))
+        .filter((point) => point.visible)
+        .map((point) => ({ x: point.x, y: point.y })),
+    };
+  }).filter((stroke) => stroke.polyline.length > 1);
+  const hits = selectHanaStrokesInRange(projected, rect);
+  const merged = mergeHanaRangeSelection({
+    current: selectedStrokeIds,
+    hits,
+    additive: resolveHanaTapAdditive({ shiftKey, touchFallback: flowerMultiSelect }),
+  });
+  const selectedDocument = selectHanaStrokes(authoringDocumentFromCurrentState(), merged);
+  selectedStrokeIds = [...selectedDocument.selectedStrokeIds];
+  activeAuthoringStrokeId = selectedDocument.activeStrokeId;
+  stroke3D = authoringStrokes.find((stroke) => stroke.id === activeAuthoringStrokeId)
+    ?? authoringStrokes[authoringStrokes.length - 1]
+    ?? null;
+  selectedControlPoint = null;
+  flowerCoreStrokeId = flowerCoreStrokeId && selectedStrokeIds.includes(flowerCoreStrokeId)
+    ? flowerCoreStrokeId
+    : null;
+  if (stroke3D) {
+    authoritativeCenterline = sampleSmoothCenterline(stroke3D);
+    materialSamples = sampleMaterialSamples(authoritativeCenterline, thickness);
+  }
+  stateMessage = selectedStrokeIds.length === 0
+    ? `RANGE · ${rect.direction === "window" ? "WINDOW" : "CROSSING"} · no hits`
+    : `RANGE · ${rect.direction === "window" ? "WINDOW" : "CROSSING"} · ${selectedStrokeIds.length} Stroke${selectedStrokeIds.length === 1 ? "" : "s"}`;
+  redrawOverlay();
+  updateDebug();
+  flowerUi?.refresh();
+  scheduleRecoveryCheckpoint("range selection");
+  return true;
+}
+
 function nearestAuthoringStrokeId(rect: SkinViewportRect, x: number, y: number): string | null {
   let bestId: string | null = null;
   let bestDistance = 18;
@@ -3028,15 +3172,17 @@ function applySemanticAuthoringSnapshot(
   message: string,
   preserveSelection = false,
 ): void {
-  const preservedSelection = preserveSelection
-    ? selectedStrokeIds.filter((id) => next.document.strokes.some((stroke) => stroke.id === id))
-    : [];
-  const preservedActiveFlowerId = preserveSelection ? activeFlowerId : null;
-  const preservedActiveStrokeId = preserveSelection
-    && activeAuthoringStrokeId
-    && next.document.strokes.some((stroke) => stroke.id === activeAuthoringStrokeId)
-    ? activeAuthoringStrokeId
+  const restoredStrokeIds = next.document.strokes.map((stroke) => stroke.id);
+  const restoredSelection = preserveSelection
+    ? resolveHanaRestoredSelection({
+      liveSelectedStrokeIds: selectedStrokeIds,
+      liveActiveStrokeId: activeAuthoringStrokeId,
+      restoredStrokeIds,
+    })
     : null;
+  const preservedSelection = restoredSelection?.selectedStrokeIds ?? [];
+  const preservedActiveFlowerId = preserveSelection ? activeFlowerId : null;
+  const preservedActiveStrokeId = restoredSelection?.activeStrokeId ?? null;
   authoringIdentity = mergeHanaAuthoringIdentity(authoringIdentity, next.document.identity);
   rawGestures.length = 0;
   authoringStrokes = [];
@@ -3135,7 +3281,13 @@ function invalidateDerivedState(): void {
 }
 
 function refreshAuthoritativeSurfaceAfterSemanticChange(reason: string): void {
-  if (showSurface && stroke3D && materialSamples.length > 0) {
+  const targetId = resolveHanaSurfaceTarget({
+    showSurface,
+    strokeIds: authoringStrokes.map((stroke) => stroke.id),
+    activeStrokeId: activeAuthoringStrokeId,
+    materialSampleCount: materialSamples.length,
+  });
+  if (targetId !== null && stroke3D?.id === targetId) {
     requestAuthoritativeSurfaceRebuild(reason, false);
   } else {
     updateSurfaceUI();
@@ -3955,6 +4107,7 @@ function beginPendingAuthoringPointer(
   pendingAuthoringPointer = {
     pointerId: event.pointerId,
     pointerType: event.pointerType,
+    mouseButton: event.button,
     viewportIndex: rect.index,
     startClientX: event.clientX,
     startClientY: event.clientY,
@@ -3994,6 +4147,14 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
     event.clientY,
   )) return true;
 
+  if (classifyHanaEmptyDrag({
+    pointerType: pending.pointerType,
+    mouseButton: pending.mouseButton,
+    candidateStrokeId: pending.candidateStrokeId,
+  }) === "range-select") {
+    beginRangeSelection(event, pending);
+    return true;
+  }
   const pendingIntent = pending.candidateSelected && pending.candidateStrokeId !== activeAuthoringStrokeId
     ? { ...pending, controlIndex: null }
     : pending;
@@ -4041,6 +4202,16 @@ function pendingIntentRect(pending: HanaPendingPointerIntent): SkinViewportRect 
 }
 
 function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: PointerEvent | null = null): void {
+  if (rangeSelection?.pointerId === pointerId) {
+    if (finalEvent?.type === "pointerup") {
+      finalEvent.preventDefault();
+      commitRangeSelection(finalEvent.shiftKey);
+    } else {
+      cancelRangeSelection();
+    }
+    if (releaseCapture) releaseGesturePointer(pointerId);
+    return;
+  }
   if (pendingAuthoringPointer?.pointerId === pointerId) {
     const pending = pendingAuthoringPointer;
     pendingAuthoringPointer = null;
@@ -4070,6 +4241,7 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
 
 gestureCanvas.addEventListener("pointerdown", (event) => {
   gestureCanvas.focus({ preventScroll: true });
+  if (rangeSelection && rangeSelection.pointerId !== event.pointerId) cancelRangeSelection();
   const point = canvasPoint(event);
   const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
   if (!rect) return;
@@ -4137,6 +4309,10 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
 });
 
 gestureCanvas.addEventListener("pointermove", (event) => {
+  if (rangeSelection?.pointerId === event.pointerId) {
+    updateRangeSelection(event);
+    return;
+  }
   if (activeStroke?.pointerId === event.pointerId) {
     event.preventDefault();
     appendSamples(event);
@@ -4866,6 +5042,10 @@ async function rebuildSurface(
         lastFinalReadyTimestamp = finalization.timestamps.tReady;
         recordFinalization(finalization);
         scheduleFinalizationHeapSamples(finalization);
+        // The upload-time render runs while the build is still pending, so the
+        // Surface stays hidden until it is presented here (the remote path
+        // already re-renders at this point; keep both paths symmetric).
+        renderScene();
         updateSurfaceUI();
         redrawOverlay();
         updateDebug();
