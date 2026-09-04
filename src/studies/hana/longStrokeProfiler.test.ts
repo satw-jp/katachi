@@ -29,6 +29,9 @@ test("long-stroke profiler records stage checkpoints and the preceding gap", () 
   });
   profiler.recordEventLoopLag(51);
   profiler.recordEventLoopLag(101);
+  profiler.recordLongTask(17);
+  profiler.recordLongTask(34);
+  profiler.recordLongTask(51);
 
   const summary = profiler.summary();
   assert.equal(summary.mode, "raw-control-smooth-proxy");
@@ -36,6 +39,9 @@ test("long-stroke profiler records stage checkpoints and the preceding gap", () 
   assert.equal(summary.largestRawGap?.precedingStages?.proxy, 0.2);
   assert.equal(summary.eventLoopLagOver50, 2);
   assert.equal(summary.eventLoopLagOver100, 1);
+  assert.equal(summary.longTaskOver16, 3);
+  assert.equal(summary.longTaskOver33, 2);
+  assert.equal(summary.longTaskOver50, 1);
   assert.equal(summary.checkpoints[0]?.threshold, 50);
   assert.equal(summary.checkpoints[1]?.threshold, 100);
   assert.equal(summary.checkpoints[1]?.processedRawPrefixLength, 192);

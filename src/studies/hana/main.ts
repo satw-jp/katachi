@@ -140,15 +140,18 @@ const app = document.getElementById("app");
 if (!app) throw new Error("#app was not found");
 
 let longTaskDurations: number[] = [];
+let liveLongTaskDurations: number[] = [];
+let liveStrokeMeasuring = false;
 let eventLoopLagDurations: number[] = [];
 let eventLoopLagTimer: number | null = null;
 if (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")) {
   try {
     new PerformanceObserver((list) => {
-      longTaskDurations = [
-        ...longTaskDurations,
-        ...list.getEntries().map((entry) => entry.duration),
-      ].slice(-256);
+      const durations = list.getEntries().map((entry) => entry.duration);
+      longTaskDurations = [...longTaskDurations, ...durations].slice(-256);
+      if (!liveStrokeMeasuring) return;
+      liveLongTaskDurations = [...liveLongTaskDurations, ...durations].slice(-256);
+      for (const duration of durations) longStrokeProfiler.recordLongTask(duration);
     }).observe({ type: "longtask", buffered: true });
   } catch {
     // Some browser builds expose the type but do not allow observing it.
@@ -404,6 +407,8 @@ let previewSurface: HanaPreviewSurface | null = null;
 let surfaceBuildSignature: string | null = null;
 let surfaceBuildMilliseconds: number | null = null;
 let surfacePreviewTimer: number | null = null;
+let surfacePreviewBuildActive = false;
+let surfacePreviewBuildToken = 0;
 let surfaceBuildSource: "authoritative" | "provisional" | null = null;
 const SURFACE_PREVIEW_THROTTLE_MS = 100;
 const SURFACE_PREVIEW_RESOLUTION = 24;
@@ -2145,7 +2150,10 @@ function appendSamples(event: PointerEvent): void {
     }
   }
   const rawEnded = performance.now();
-  if (latest) livePathDirty = true;
+  if (latest) {
+    livePathDirty = true;
+    surfacePreviewBuildToken += 1;
+  }
   liveLastEventTimestamp = eventTimestampForPerformance(event.timeStamp, rawEnded);
   const pointerCallbackEnded = performance.now();
   longStrokeProfiler.recordEvent({
@@ -2216,6 +2224,8 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
   liveGrowthCheckpoints = [];
   liveGapPrecedingText = "—";
   eventLoopLagDurations = [];
+  liveLongTaskDurations = [];
+  liveStrokeMeasuring = true;
   longStrokeProfiler.start(liveIsolationMode);
   startEventLoopLagProbe();
   cancelLiveDiagnosticsUpdate();
@@ -2249,6 +2259,8 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
 function finishStroke(): void {
   if (!activeStroke) return;
   const pointerupStarted = performance.now();
+  liveStrokeMeasuring = false;
+  liveLongTaskDurations = [];
   stopEventLoopLagProbe();
   cancelLiveDiagnosticsUpdate();
   cancelSurfacePreviewTimer();
@@ -2437,9 +2449,11 @@ function updateEditPreview(): EditPreviewPipelineTiming & { smoothMilliseconds: 
 }
 
 function cancelSurfacePreviewTimer(): void {
-  if (surfacePreviewTimer === null) return;
-  window.clearTimeout(surfacePreviewTimer);
-  surfacePreviewTimer = null;
+  if (surfacePreviewTimer !== null) {
+    window.clearTimeout(surfacePreviewTimer);
+    surfacePreviewTimer = null;
+  }
+  surfacePreviewBuildToken += 1;
 }
 
 function cancelMaterialProxyFrame(): void {
@@ -2781,19 +2795,25 @@ function scheduleSurfacePreview(): void {
     || materialSamples.length === 0
     || (activeStroke && materialSamples.length > SURFACE_PREVIEW_MAX_SAMPLES)
     || livePathWasCompacted
+    || surfacePreviewBuildActive
     || surfacePreviewTimer !== null
   ) return;
   surfacePreviewTimer = window.setTimeout(() => {
     surfacePreviewTimer = null;
+    const previewToken = surfacePreviewBuildToken;
     const previewCompacted = Boolean(
       activeStroke
       && liveWorkingPath
       && liveWorkingPath.spacing > HANA_LIVE_WORKING_INITIAL_SPACING,
     );
     if (activeStroke && !previewCompacted && materialSamples.length <= SURFACE_PREVIEW_MAX_SAMPLES) {
-      rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional");
+      surfacePreviewBuildActive = true;
+      void rebuildSurface(SURFACE_PREVIEW_RESOLUTION, "provisional", null, previewToken).finally(() => {
+        surfacePreviewBuildActive = false;
+        if (activeStroke && liveIsolationMode === "full" && livePathDirty) scheduleSurfacePreview();
+      });
     }
-    else if (stroke3D) requestAuthoritativeSurfaceRebuild("preview-fallback", false);
+    else if (!activeStroke && stroke3D) requestAuthoritativeSurfaceRebuild("preview-fallback", false);
   }, SURFACE_PREVIEW_THROTTLE_MS);
 }
 
@@ -3716,7 +3736,11 @@ async function rebuildSurface(
   resolution = HANA_SURFACE_RESOLUTION,
   source: "authoritative" | "provisional" = "authoritative",
   finalization: HanaFinalizationTrace | null = null,
+  previewToken: number | null = null,
 ): Promise<void> {
+  const previewTokenForBuild = source === "provisional"
+    ? previewToken ?? surfacePreviewBuildToken
+    : null;
   const sourceStroke = source === "provisional" ? provisionalStroke3D : stroke3D;
   if (!sourceStroke || materialSamples.length === 0) {
     stateMessage = "SURFACE · Draw one Stroke first";
@@ -3807,7 +3831,11 @@ async function rebuildSurface(
       effectiveResolutionMilliseconds = performance.now() - effectiveResolutionStarted;
       if (finalization) setFinalizationStage(finalization, "effectiveResolution", effectiveResolutionMilliseconds);
       const meshStarted = performance.now();
-      built = finalization?.finalProfile === "normal" || finalization?.finalProfile === "cpu-only"
+      built = source === "provisional"
+        ? await buildPointFieldMeshCooperative(field, effectiveResolution, evaluationStats, {
+          shouldContinue: () => activeStroke !== null && previewTokenForBuild === surfacePreviewBuildToken,
+        })
+        : finalization?.finalProfile === "normal" || finalization?.finalProfile === "cpu-only"
         ? await buildPointFieldMeshCooperative(field, effectiveResolution, evaluationStats, {
           shouldContinue: finalization
             ? () => isCurrentFinalization(finalization)
@@ -3822,6 +3850,8 @@ async function rebuildSurface(
         setFinalizationStage(finalization, "meshing", meshGenerationMilliseconds);
       }
       if (built.triangles.length === 0) throw new Error("Point FieldからSurfaceを抽出できませんでした");
+      if (source === "provisional"
+        && (activeStroke === null || previewTokenForBuild !== surfacePreviewBuildToken)) return;
       if (finalization && !isCurrentFinalization(finalization)) {
         recordStaleFinalization(finalization, "stale-generation-discard");
         return;
@@ -3954,6 +3984,7 @@ async function rebuildSurface(
       recordStaleFinalization(finalization, "cancelled-by-newer-generation");
       return;
     }
+    if (source === "provisional" && error instanceof HanaPointFieldMeshCancelledError) return;
     previewSurface = null;
     surfaceBuildSource = null;
     surfaceBuildSignature = null;
@@ -4101,6 +4132,8 @@ clearButton.addEventListener("click", () => {
   surfaceDiagnostics = null;
   surfaceFieldEvaluationStats = null;
   longTaskDurations = [];
+  liveLongTaskDurations = [];
+  liveStrokeMeasuring = false;
   eventLoopLagDurations = [];
   liveGrowthCheckpoints = [];
   liveGapPrecedingText = "—";

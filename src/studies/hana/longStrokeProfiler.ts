@@ -54,6 +54,9 @@ export interface HanaLongStrokeProfileSummary {
   mode: HanaLiveIsolationMode;
   eventCount: number;
   frameCount: number;
+  longTaskOver16: number;
+  longTaskOver33: number;
+  longTaskOver50: number;
   maxEventLoopLag: number;
   eventLoopLagOver50: number;
   eventLoopLagOver100: number;
@@ -93,6 +96,9 @@ export class HanaLongStrokeProfiler {
   private mode: HanaLiveIsolationMode = "full";
   private eventCount = 0;
   private frameCount = 0;
+  private longTaskOver16 = 0;
+  private longTaskOver33 = 0;
+  private longTaskOver50 = 0;
   private lastEventTimestamp: number | null = null;
   private lastFrameStages: HanaLongStrokeStageTimings | null = null;
   private largestRawGap: HanaLongStrokeGap | null = null;
@@ -110,6 +116,9 @@ export class HanaLongStrokeProfiler {
   reset(): void {
     this.eventCount = 0;
     this.frameCount = 0;
+    this.longTaskOver16 = 0;
+    this.longTaskOver33 = 0;
+    this.longTaskOver50 = 0;
     this.lastEventTimestamp = null;
     this.lastFrameStages = null;
     this.largestRawGap = null;
@@ -181,11 +190,21 @@ export class HanaLongStrokeProfiler {
     if (lag > 100) this.eventLoopLagOver100 += 1;
   }
 
+  recordLongTask(durationMilliseconds: number): void {
+    const duration = finite(durationMilliseconds);
+    if (duration > 16) this.longTaskOver16 += 1;
+    if (duration > 33) this.longTaskOver33 += 1;
+    if (duration > 50) this.longTaskOver50 += 1;
+  }
+
   summary(): HanaLongStrokeProfileSummary {
     return {
       mode: this.mode,
       eventCount: this.eventCount,
       frameCount: this.frameCount,
+      longTaskOver16: this.longTaskOver16,
+      longTaskOver33: this.longTaskOver33,
+      longTaskOver50: this.longTaskOver50,
       maxEventLoopLag: this.maxEventLoopLag,
       eventLoopLagOver50: this.eventLoopLagOver50,
       eventLoopLagOver100: this.eventLoopLagOver100,
@@ -221,6 +240,7 @@ export function formatHanaLongStrokeProfile(summary: HanaLongStrokeProfileSummar
     liveIsolationModeLabel(summary.mode),
     `events ${summary.eventCount}`,
     `frames ${summary.frameCount}`,
+    `long >16/>33/>50 ${summary.longTaskOver16}/${summary.longTaskOver33}/${summary.longTaskOver50}`,
     `loop max ${summary.maxEventLoopLag.toFixed(1)}ms`+
       ` >50/>100 ${summary.eventLoopLagOver50}/${summary.eventLoopLagOver100}`,
     gapText,

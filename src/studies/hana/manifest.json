@@ -233,6 +233,10 @@
     {
       "date": "2026-09-04",
       "note": "Raw Gesture Capture Integrity v0 separates authoritative Pointer / coalesced sample capture from the bounded latest-frame preview scheduler. The capture boundary keeps every coalesced sample, adds the parent PointerEvent when it is not already represented by the final coalesced sample, and suppresses only exact duplicate samples by pointerId, x, y, pressure, and timestamp. Pointerup / cancel samples use the same boundary. HANA-local diagnostics report Raw count, unique count, remaining and suppressed exact duplicates, interval median / p95 / max, >50ms and >100ms gaps, largest spatial jump, monotonic time, and parent/coalesced source counts. No interpolation, proximity decimation, Raw mutation, Control / Material fidelity reduction, Remote Compute redesign, or SKIN change was introduced."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "HANA Long-Stroke Main-Thread Starvation Diagnosis / Fix v0 adds development-only RAW ONLY, RAW + CONTROL, RAW + CONTROL + SMOOTH, RAW + CONTROL + SMOOTH + LIVE PROXY, and FULL CURRENT LIVE PATH + RENDER isolation modes. Raw capture remains synchronous and authoritative; live diagnostics refresh at most 250ms and no longer run on every PointerEvent. FULL provisional Surface preview uses cooperative Z-slice meshing with single-flight and generation invalidation, while Final Surface remains an existing pointerup operation. Per-stage timing, 50/100/200/400/800/1600/3200/5000/10000 checkpoints, event-loop lag, live-stroke-only long-task counts, and gap correlation are exposed locally. HANA-2A, Remote Compute, SKIN production, geometry fidelity, and the 192-segment Live Proxy cap remain unchanged; iPad 5/10/20-second hardware recheck remains pending."
     }
   ]
 }
