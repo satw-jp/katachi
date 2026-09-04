@@ -4137,7 +4137,9 @@ function startControlDrag(
   gizmoStartPointer: { x: number; y: number } | null = null,
 ): void {
   const direction = directions[rect.index];
-  if (direction === "axome" || !stroke3D) return;
+  const isGizmoDrag = gizmoAxis !== null;
+  if (!isGizmoDrag && direction === "axome") return;
+  if (!stroke3D) return;
   event.preventDefault();
   stopAutoRotate();
   cancelPendingFinalizationForEdit();
@@ -4216,7 +4218,7 @@ function startControlDrag(
   controlDrag = {
     pointerId: event.pointerId,
     viewportIndex: rect.index,
-    direction,
+    direction: direction as Exclude<HanaViewDirection, "axome">,
     controlIndex,
     rect: { ...rect },
     boundsBefore: lastEditBoundsBefore,
@@ -4375,15 +4377,18 @@ function beginPendingAuthoringPointer(
   point: { x: number; y: number },
 ): boolean {
   if ((event.pointerType !== "mouse" && event.pointerType !== "touch")
-    || directions[rect.index] === "axome"
     || interactionModes[rect.index] === "draw") return false;
+  const direction = directions[rect.index];
   const candidateStrokeId = nearestAuthoringStrokeId(rect, point.x, point.y);
   const candidateSelected = candidateStrokeId !== null && selectedStrokeIds.includes(candidateStrokeId);
+  const gizmoAxis = hitTestMoveGizmo(rect, point.x, point.y);
+  const picked = nearestAuthoringControlPoint(rect, point.x, point.y);
+  const isGizmoOnly = direction === "axome" && gizmoAxis !== null;
+  if (!isGizmoOnly && direction === "axome") return false;
+  const editEnabled = interactionModes[rect.index] === "edit";
   const controlIndex = candidateSelected && candidateStrokeId === activeAuthoringStrokeId
     ? nearestEditableControlIndex(rect, point.x, point.y)
     : null;
-  const gizmoAxis = hitTestMoveGizmo(rect, point.x, point.y);
-  const picked = nearestAuthoringControlPoint(rect, point.x, point.y);
   pendingAuthoringPointer = {
     pointerId: event.pointerId,
     pointerType: event.pointerType,
@@ -4395,9 +4400,9 @@ function beginPendingAuthoringPointer(
     startCanvasY: point.y,
     candidateStrokeId,
     candidateSelected,
-    editEnabled: interactionModes[rect.index] === "edit",
+    editEnabled,
     controlIndex,
-    gizmoAxis,
+    gizmoAxis: isGizmoOnly ? gizmoAxis : null,
     pickedStrokeId: picked?.strokeId ?? null,
     pickedControlId: picked?.controlPointId ?? null,
     pickedControlIndex: picked?.controlIndex ?? null,
