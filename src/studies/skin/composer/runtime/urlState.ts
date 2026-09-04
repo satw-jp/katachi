@@ -3,8 +3,10 @@ import { DEFAULT_COMPOSER_STATE, mergeComposerState, type ComposerState, type Co
 function finite(value: unknown, fallback: number): number { return typeof value === "number" && Number.isFinite(value) ? value : fallback; }
 function normalizedState(value: ComposerStatePatch): ComposerState {
   const state = mergeComposerState(DEFAULT_COMPOSER_STATE, value);
-  const mode = (state.camera.mode as string) === "STILL" ? "MANUAL" : state.camera.mode;
-  return { ...state, seed: Math.round(finite(state.seed, DEFAULT_COMPOSER_STATE.seed)), camera: { ...state.camera, mode } };
+  const rawMode = state.camera.mode as string;
+  const mode = rawMode === "STILL" ? "MANUAL" : rawMode;
+  const validMode = mode === "MANUAL" || mode === "DRIFT" || mode === "EXPLORE" || mode === "AUTO" ? mode : DEFAULT_COMPOSER_STATE.camera.mode;
+  return { ...state, seed: Math.round(finite(state.seed, DEFAULT_COMPOSER_STATE.seed)), camera: { ...state.camera, mode: validMode } };
 }
 
 export function parseComposerState(search: string): ComposerState {

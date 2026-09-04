@@ -5,6 +5,8 @@ export interface ComposerBudget {
   readonly gaussian: number;
   readonly cloud: number;
   readonly ribbonSamples: number;
+  readonly micro: number;
+  readonly trail: number;
   readonly complexityScale: number;
 }
 
@@ -19,6 +21,8 @@ export function composerBudget(source: ComposerSource): ComposerBudget {
     gaussian: Math.round(clamp(2300 * complexityScale, 1400, 9000)),
     cloud: Math.round(clamp(900 * complexityScale, 480, 3200)),
     ribbonSamples: Math.round(clamp(720 * complexityScale, 420, 2600)),
+    micro: Math.round(clamp(5200 * complexityScale, 2600, 16000)),
+    trail: Math.round(clamp(1800 * complexityScale, 900, 7000)),
     complexityScale,
   };
 }
