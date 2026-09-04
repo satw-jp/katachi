@@ -9,8 +9,10 @@ export interface HanaPendingPointerIntent {
   startCanvasX: number;
   startCanvasY: number;
   candidateStrokeId: string | null;
+  candidateFlowerId?: string | null;
   candidateSelected: boolean;
   editEnabled: boolean;
+  selectionMode?: boolean;
   controlIndex: number | null;
 }
 
@@ -27,11 +29,14 @@ export function pointerMovementExceedsThreshold(
 }
 
 export function classifyHanaPointerIntent(
-  pending: Pick<HanaPendingPointerIntent, "candidateStrokeId" | "candidateSelected" | "editEnabled" | "controlIndex">,
+  pending: Pick<HanaPendingPointerIntent, "candidateStrokeId" | "candidateSelected" | "editEnabled" | "controlIndex">
+    & Pick<Partial<HanaPendingPointerIntent>, "candidateFlowerId" | "selectionMode">,
   moved: boolean,
 ): HanaPointerIntent {
   if (!moved) return "pending";
-  if (pending.candidateStrokeId === null) return "camera-pan";
+  const hasCandidate = pending.candidateStrokeId !== null || pending.candidateFlowerId != null;
+  if (!hasCandidate) return "camera-pan";
+  if (pending.selectionMode) return "select-drag";
   if (pending.candidateSelected && pending.editEnabled && pending.controlIndex !== null) return "edit-drag";
   if (pending.candidateSelected && !pending.editEnabled) return "camera-pan";
   return "select-drag";

@@ -112,6 +112,8 @@ import { initializeHanaAuthoringStackUi } from "./authoringStackUi.ts";
 import { initializeHanaFlowerAuthoringUi, type HanaFlowerUiHandle } from "./flowerAuthoringUi.ts";
 import {
   createHanaAuthoringDocument,
+  createHanaDocumentId,
+  deleteHanaStrokes,
   defaultHanaMaterialSettings,
   migrateHanaDocument,
   selectHanaStrokes,
@@ -123,6 +125,7 @@ import {
   createHanaFlowerFromSelection,
   materializeHanaFlower,
   nextHanaFlowerId,
+  removeHanaStrokeReferences,
   type HanaFlower,
 } from "./flowerAuthoring.ts";
 import { createMaterialObject } from "./materialObjects.ts";
@@ -159,6 +162,11 @@ import {
   pointerMovementExceedsThreshold,
   type HanaPendingPointerIntent,
 } from "./interactionRouting.ts";
+import {
+  chooseHanaSelectionCandidate,
+  type HanaSelectionCandidate,
+  type HanaSelectionElementKind,
+} from "./selectionHitTest.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -282,6 +290,7 @@ app.innerHTML = `
         <span id="recovery-status" class="hana-recovery-status" role="status">Local recovery: ready</span>
         <button id="rebuild-surface" class="hana-secondary" type="button">Rebuild Surface</button>
         <span id="surface-state" class="hana-surface-state" role="status">NOT BUILT</span>
+        <button id="new-document" type="button" class="hana-secondary">New File</button>
         <button id="clear-document" type="button">Clear</button>
         <button id="load-document" type="button" class="hana-secondary">Load JSON</button>
         <input id="load-document-file" type="file" accept="application/json" hidden />
@@ -386,6 +395,7 @@ const splitterX = requiredElement<HTMLElement>("#splitter-x");
 const splitterY = requiredElement<HTMLElement>("#splitter-y");
 const layoutFourButton = requiredElement<HTMLButtonElement>("#layout-four");
 const layoutOneButton = requiredElement<HTMLButtonElement>("#layout-one");
+const newFileButton = requiredElement<HTMLButtonElement>("#new-document");
 const clearButton = requiredElement<HTMLButtonElement>("#clear-document");
 const loadButton = requiredElement<HTMLButtonElement>("#load-document");
 const loadFileInput = requiredElement<HTMLInputElement>("#load-document-file");
@@ -432,6 +442,8 @@ const rawGestures: HanaViewportStroke[] = [];
 let authoringStrokes: HanaStroke3D[] = [];
 let hanaFlowers: HanaFlower[] = [];
 let selectedStrokeIds: string[] = [];
+let selectedFlowerIds: string[] = [];
+let selectedElementKind: HanaSelectionElementKind | null = null;
 let activeAuthoringStrokeId: string | null = null;
 let activeFlowerId: string | null = null;
 let flowerCoreStrokeId: string | null = null;
@@ -715,7 +727,7 @@ let recoveryStatusText = "Local recovery: ready";
 let recoveryRestoreAttempted = false;
 let recoveryWriteChain: Promise<void> = Promise.resolve();
 const recoveryStore = createIndexedDbHanaRecoveryStore();
-const recoveryDocumentId = "hana-document-1";
+let recoveryDocumentId = "hana-document-1";
 const livePathProfiler = new HanaLivePathProfiler();
 const longStrokeProfiler = new HanaLongStrokeProfiler();
 const HANA_LIVE_GROWTH_TARGETS = [100, 500, 1000, 2000, 5000, 10000] as const;
@@ -875,9 +887,9 @@ function scheduleRecoveryCheckpoint(reason: string): void {
     });
 }
 
-function clearRecoveryCheckpoint(): void {
+function clearRecoveryCheckpoint(documentId = recoveryDocumentId): void {
   recoveryWriteChain = recoveryWriteChain
-    .then(() => recoveryStore.clear(recoveryDocumentId))
+    .then(() => recoveryStore.clear(documentId))
     .then(() => {
       recoveryStatusText = "Local recovery: cleared";
       updateRecoveryUI();
@@ -1873,8 +1885,10 @@ function updateDebug(
   const selected = selectedControlPoint === null ? null : stroke3D?.controlPoints[selectedControlPoint] ?? null;
   selectionStatusElement.textContent = selected
     ? `Control ${selectedControlPoint! + 1}`
-    : selectedStrokeIds.length > 0
-      ? `${selectedStrokeIds.length} Stroke${selectedStrokeIds.length === 1 ? "" : "s"}`
+    : selectedElementKind === "flower"
+      ? `${selectedFlowerIds.length} Flower${selectedFlowerIds.length === 1 ? "" : "s"}`
+      : selectedElementKind === "stroke" && selectedStrokeIds.length > 0
+        ? `${selectedStrokeIds.length} Stroke${selectedStrokeIds.length === 1 ? "" : "s"}`
       : stroke3D ? "Stroke" : "None";
   const visibleStroke = displayedStroke();
   const visibleCenterline = displayedCenterline();
@@ -1923,6 +1937,8 @@ function updateDebug(
   workspace.dataset.rawSignature = rawSignature();
   workspace.dataset.flowerCount = String(hanaFlowers.length);
   workspace.dataset.selectedStrokeIds = selectedStrokeIds.join(",");
+  workspace.dataset.selectedFlowerIds = selectedFlowerIds.join(",");
+  workspace.dataset.selectedElementKind = selectedElementKind ?? "";
   workspace.dataset.activeFlowerId = activeFlowerId ?? "";
   workspace.dataset.adaptiveControlCount = lastAdaptiveControlFit === null
     ? ""
@@ -1992,11 +2008,12 @@ function drawSharedStroke(
   const flowerHighlight = activeFlowerId !== null
     && hanaFlowers.some((flower) => flower.id === activeFlowerId
       && [...flower.petalStrokeIds, ...flower.coreStrokeIds].includes(visibleStroke.id));
+  const strokeHighlight = selectedElementKind === "stroke" && selectedStrokeIds.includes(visibleStroke.id);
   const smoothProjected = smooth.map((point) => renderer.projectPoint(rect.index, point.position, rect));
   const controlProjected = visibleStroke.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
   if (showCenterline && smoothProjected.length >= 2) {
     gestureContext.strokeStyle = color;
-    gestureContext.lineWidth = flowerHighlight ? 3.5 : 2.5;
+    gestureContext.lineWidth = flowerHighlight || strokeHighlight ? 3.5 : 2.5;
     gestureContext.beginPath();
     gestureContext.moveTo(smoothProjected[0].x, smoothProjected[0].y);
     for (let index = 1; index < smoothProjected.length; index += 1) {
@@ -2072,7 +2089,7 @@ function redrawOverlay(): void {
 }
 
 function modeOptions(index: number): readonly HanaInteractionMode[] {
-  return directions[index] === "axome" ? ["view"] : ["draw", "edit"];
+  return directions[index] === "axome" ? ["view"] : ["draw", "select", "edit"];
 }
 
 function renderViewportChrome(): void {
@@ -2109,7 +2126,9 @@ function renderViewportChrome(): void {
         selectedControlPoint = null;
         stateMessage = mode === "draw"
           ? `DRAW · ${skinViewDirectionLabel(direction)} creates a new Stroke3D`
-          : `EDIT · Soft ${softEditStrength.toUpperCase()} · drag a control point`;
+          : mode === "select"
+            ? `SELECT · ${skinViewDirectionLabel(direction)} · tap an authoring element`
+            : `EDIT · Soft ${softEditStrength.toUpperCase()} · drag a control point`;
         refreshLayout();
         updateDebug();
       });
@@ -2434,6 +2453,8 @@ function finishStroke(): void {
   authoringStrokes.push(stroke3D);
   activeAuthoringStrokeId = stroke3D.id;
   selectedStrokeIds = [stroke3D.id];
+  selectedFlowerIds = [];
+  selectedElementKind = "stroke";
   activeFlowerId = null;
   flowerCoreStrokeId = null;
   flowerMaterializedId = null;
@@ -2466,6 +2487,9 @@ function selectAuthoringStroke(strokeId: string, additive = flowerMultiSelect): 
     : [strokeId];
   const selectedDocument = selectHanaStrokes(authoringDocumentFromCurrentState(), nextSelection);
   selectedStrokeIds = [...selectedDocument.selectedStrokeIds];
+  selectedFlowerIds = [];
+  selectedElementKind = "stroke";
+  activeFlowerId = null;
   activeAuthoringStrokeId = selectedDocument.activeStrokeId;
   stroke3D = authoringStrokes.find((stroke) => stroke.id === activeAuthoringStrokeId)
     ?? authoringStrokes[authoringStrokes.length - 1]
@@ -2488,6 +2512,59 @@ function selectAuthoringStroke(strokeId: string, additive = flowerMultiSelect): 
   scheduleRecoveryCheckpoint("selection");
 }
 
+function selectAuthoringFlower(flowerId: string, additive = flowerMultiSelect): void {
+  if (activeStroke) return;
+  const flower = hanaFlowers.find((item) => item.id === flowerId);
+  if (!flower) return;
+  selectedFlowerIds = additive
+    ? selectedFlowerIds.includes(flowerId)
+      ? selectedFlowerIds.filter((id) => id !== flowerId)
+      : [...selectedFlowerIds, flowerId]
+    : [flowerId];
+  selectedElementKind = selectedFlowerIds.length > 0 ? "flower" : null;
+  activeFlowerId = selectedFlowerIds[selectedFlowerIds.length - 1] ?? null;
+  const active = hanaFlowers.find((item) => item.id === activeFlowerId);
+  const memberIds = active ? [...active.petalStrokeIds, ...active.coreStrokeIds] : [];
+  selectedStrokeIds = memberIds;
+  activeAuthoringStrokeId = memberIds[memberIds.length - 1] ?? null;
+  stroke3D = authoringStrokes.find((stroke) => stroke.id === activeAuthoringStrokeId) ?? stroke3D;
+  selectedControlPoint = null;
+  flowerCoreStrokeId = active?.coreStrokeIds[0] ?? null;
+  flowerMaterializedId = active?.id ?? null;
+  flowerMaterializedSampleCount = active ? materializeFlowerForUi(active) : 0;
+  if (stroke3D) {
+    authoritativeCenterline = sampleSmoothCenterline(stroke3D);
+    materialSamples = sampleMaterialSamples(authoritativeCenterline, thickness);
+  }
+  resetFlowerHistory();
+  stateMessage = selectedFlowerIds.length === 0
+    ? "SELECT · no elements"
+    : `SELECT · ${selectedFlowerIds.length} Flower${selectedFlowerIds.length === 1 ? "" : "s"}`;
+  redrawOverlay();
+  updateDebug();
+  flowerUi?.refresh();
+  scheduleRecoveryCheckpoint("selection");
+}
+
+function clearAuthoringSelection(): void {
+  if (activeStroke) return;
+  selectedStrokeIds = [];
+  selectedFlowerIds = [];
+  selectedElementKind = null;
+  activeAuthoringStrokeId = null;
+  activeFlowerId = null;
+  flowerCoreStrokeId = null;
+  flowerMaterializedId = null;
+  flowerMaterializedSampleCount = 0;
+  selectedControlPoint = null;
+  resetFlowerHistory();
+  stateMessage = "SELECT · no elements";
+  redrawOverlay();
+  updateDebug();
+  flowerUi?.refresh();
+  scheduleRecoveryCheckpoint("selection clear");
+}
+
 function nearestAuthoringStrokeId(rect: SkinViewportRect, x: number, y: number): string | null {
   let bestId: string | null = null;
   let bestDistance = 18;
@@ -2506,6 +2583,63 @@ function nearestAuthoringStrokeId(rect: SkinViewportRect, x: number, y: number):
     }
   }
   return bestId;
+}
+
+function nearestAuthoringFlowerId(rect: SkinViewportRect, x: number, y: number): string | null {
+  const candidates: HanaSelectionCandidate[] = [];
+  for (const flower of hanaFlowers) {
+    const memberIds = new Set([...flower.petalStrokeIds, ...flower.coreStrokeIds]);
+    let bestDistance = Infinity;
+    for (const source of authoringStrokes) {
+      if (!memberIds.has(source.id)) continue;
+      const centerline = source === stroke3D && authoritativeCenterline.length > 1
+        ? authoritativeCenterline
+        : sampleSmoothCenterline(source);
+      for (const sample of centerline) {
+        const projected = renderer.projectPoint(rect.index, sample.position, rect);
+        if (!projected.visible) continue;
+        bestDistance = Math.min(bestDistance, Math.hypot(projected.x - x, projected.y - y));
+      }
+    }
+    if (Number.isFinite(bestDistance)) candidates.push({ kind: "flower", id: flower.id, distance: bestDistance });
+  }
+  return chooseHanaSelectionCandidate(candidates, 22)?.id ?? null;
+}
+
+function nearestAuthoringElement(rect: SkinViewportRect, x: number, y: number): HanaSelectionCandidate | null {
+  const candidates: HanaSelectionCandidate[] = [];
+  const strokeId = nearestAuthoringStrokeId(rect, x, y);
+  if (strokeId) {
+    const source = authoringStrokes.find((stroke) => stroke.id === strokeId);
+    if (source) {
+      const centerline = source === stroke3D && authoritativeCenterline.length > 1
+        ? authoritativeCenterline
+        : sampleSmoothCenterline(source);
+      const distance = centerline.reduce((best, sample) => {
+        const projected = renderer.projectPoint(rect.index, sample.position, rect);
+        return projected.visible ? Math.min(best, Math.hypot(projected.x - x, projected.y - y)) : best;
+      }, Infinity);
+      candidates.push({ kind: "stroke", id: strokeId, distance });
+    }
+  }
+  const flowerId = nearestAuthoringFlowerId(rect, x, y);
+  if (flowerId) {
+    const flower = hanaFlowers.find((item) => item.id === flowerId);
+    if (flower) {
+      const memberIds = new Set([...flower.petalStrokeIds, ...flower.coreStrokeIds]);
+      const distance = authoringStrokes
+        .filter((source) => memberIds.has(source.id))
+        .flatMap((source) => (source === stroke3D && authoritativeCenterline.length > 1
+          ? authoritativeCenterline
+          : sampleSmoothCenterline(source)))
+        .reduce((best, sample) => {
+          const projected = renderer.projectPoint(rect.index, sample.position, rect);
+          return projected.visible ? Math.min(best, Math.hypot(projected.x - x, projected.y - y)) : best;
+        }, Infinity);
+      candidates.push({ kind: "flower", id: flowerId, distance });
+    }
+  }
+  return chooseHanaSelectionCandidate(candidates, 22);
 }
 
 function setFlowerCoreStroke(strokeId: string | null): void {
@@ -2543,6 +2677,8 @@ function createFlowerFromCurrentSelection(): void {
     activeFlowerId: result.flower.id,
   }, "Create Flower");
   applySemanticAuthoringSnapshot(committed, `FLOWER CREATED · ${result.flower.id}`);
+  selectedFlowerIds = [result.flower.id];
+  selectedElementKind = "flower";
   flowerCoreStrokeId = coreStrokeIds[0] ?? null;
   flowerMaterializedId = result.flower.id;
   flowerMaterializedSampleCount = materializeFlowerForUi(result.flower);
@@ -2553,6 +2689,8 @@ function createFlowerFromCurrentSelection(): void {
 function selectFlowerForUi(flowerId: string | null): void {
   const flower = flowerId ? hanaFlowers.find((item) => item.id === flowerId) : null;
   activeFlowerId = flower?.id ?? null;
+  selectedFlowerIds = flower ? [flower.id] : [];
+  selectedElementKind = flower ? "flower" : null;
   if (flower) {
     selectedStrokeIds = [...new Set([...flower.petalStrokeIds, ...flower.coreStrokeIds])];
     activeAuthoringStrokeId = selectedStrokeIds[selectedStrokeIds.length - 1] ?? null;
@@ -2561,6 +2699,8 @@ function selectFlowerForUi(flowerId: string | null): void {
     flowerMaterializedId = flower.id;
     flowerMaterializedSampleCount = materializeFlowerForUi(flower);
   } else {
+    selectedStrokeIds = [];
+    activeAuthoringStrokeId = null;
     flowerCoreStrokeId = null;
     flowerMaterializedId = null;
     flowerMaterializedSampleCount = 0;
@@ -2569,6 +2709,42 @@ function selectFlowerForUi(flowerId: string | null): void {
   redrawOverlay();
   updateDebug();
   flowerUi?.refresh();
+}
+
+function deleteSelectedAuthoringStrokes(): void {
+  if (activeStroke || selectedElementKind !== "stroke" || selectedStrokeIds.length === 0) return;
+  const deletedIds = [...selectedStrokeIds];
+  const before = semanticAuthoringSnapshot();
+  const document = deleteHanaStrokes(authoringDocumentFromCurrentState(), deletedIds);
+  const flowers = removeHanaStrokeReferences(hanaFlowers, deletedIds, document.strokes);
+  const next = {
+    document: {
+      ...document,
+      selectedStrokeIds: [],
+      activeStrokeId: document.activeStrokeId && !deletedIds.includes(document.activeStrokeId)
+        ? document.activeStrokeId
+        : null,
+    },
+    flowers,
+    activeFlowerId: null,
+  };
+  flowerHistory = new HanaUndoRedo(before);
+  const committed = flowerHistory.commit(next, "Delete Selected Strokes");
+  cancelPendingFinalizationForEdit();
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  cancelEditPreviewFrame();
+  previewSurface = null;
+  surfaceBuildSource = null;
+  surfaceBuildSignature = null;
+  surfaceBuildMilliseconds = null;
+  surfaceDiagnostics = null;
+  surfaceFieldEvaluationStats = null;
+  renderer.setPreviewSurface(null);
+  renderer.setMaterialProxy(null);
+  applySemanticAuthoringSnapshot(committed, `DELETED · ${deletedIds.length} Stroke${deletedIds.length === 1 ? "" : "s"}`);
+  if (showSurface && materialSamples.length > 0) requestAuthoritativeSurfaceRebuild("delete-selected", false);
+  scheduleRecoveryCheckpoint("delete selected");
 }
 
 function undoFlowerAuthoring(): void {
@@ -2779,9 +2955,7 @@ function authoringDocumentFromCurrentState(): HanaAuthoringDocument {
   document.activeStrokeId = activeAuthoringStrokeId
     && document.strokes.some((stroke) => stroke.id === activeAuthoringStrokeId)
     ? activeAuthoringStrokeId
-    : document.selectedStrokeIds[document.selectedStrokeIds.length - 1]
-      ?? document.strokes[document.strokes.length - 1]?.id
-      ?? null;
+    : null;
   for (const stroke of document.strokes) {
     stroke.role = authoringStrokeRoles.get(stroke.id) ?? "free";
     stroke.materialSettings = {
@@ -2839,13 +3013,14 @@ function applySemanticAuthoringSnapshot(
   authoringStrokes = [];
   hanaFlowers = [];
   selectedStrokeIds = [];
+  selectedFlowerIds = [];
+  selectedElementKind = null;
   activeAuthoringStrokeId = null;
   activeFlowerId = null;
   flowerCoreStrokeId = null;
   flowerMaterializedId = null;
   flowerMaterializedSampleCount = 0;
   authoringStrokeRoles.clear();
-  flowerHistory = null;
   rawGestures.push(...next.document.rawGestures.strokes);
   authoringStrokes = next.document.strokes.map(stroke3DFromHanaStroke);
   authoringStrokeRoles.clear();
@@ -2876,6 +3051,8 @@ function applySemanticAuthoringSnapshot(
     },
   }));
   activeFlowerId = next.activeFlowerId;
+  selectedFlowerIds = activeFlowerId ? [activeFlowerId] : [];
+  selectedElementKind = activeFlowerId ? "flower" : selectedStrokeIds.length > 0 ? "stroke" : null;
   flowerCoreStrokeId = activeFlowerId
     ? hanaFlowers.find((flower) => flower.id === activeFlowerId)?.coreStrokeIds[0] ?? null
     : null;
@@ -2901,6 +3078,8 @@ function flowerUiState() {
     document: authoringDocumentFromCurrentState(),
     flowers: hanaFlowers,
     activeFlowerId,
+    selectedElementKind,
+    selectedElementIds: selectedElementKind === "flower" ? selectedFlowerIds : selectedStrokeIds,
     coreStrokeId: flowerCoreStrokeId,
     multiSelect: flowerMultiSelect,
     materializedFlowerId: flowerMaterializedId,
@@ -3650,8 +3829,17 @@ function beginPendingAuthoringPointer(
   if ((event.pointerType !== "mouse" && event.pointerType !== "touch")
     || directions[rect.index] === "axome"
     || interactionModes[rect.index] === "draw") return false;
-  const candidateStrokeId = nearestAuthoringStrokeId(rect, point.x, point.y);
-  const candidateSelected = candidateStrokeId !== null && selectedStrokeIds.includes(candidateStrokeId);
+  const selectionMode = interactionModes[rect.index] === "select";
+  const candidate = selectionMode ? nearestAuthoringElement(rect, point.x, point.y) : null;
+  const candidateStrokeId = selectionMode
+    ? candidate?.kind === "stroke" ? candidate.id : null
+    : nearestAuthoringStrokeId(rect, point.x, point.y);
+  const candidateFlowerId = selectionMode
+    ? candidate?.kind === "flower" ? candidate.id : null
+    : null;
+  const candidateSelected = candidateFlowerId !== null
+    ? selectedFlowerIds.includes(candidateFlowerId)
+    : candidateStrokeId !== null && selectedStrokeIds.includes(candidateStrokeId);
   const controlIndex = candidateSelected && candidateStrokeId === activeAuthoringStrokeId
     ? nearestEditableControlIndex(rect, point.x, point.y)
     : null;
@@ -3664,8 +3852,10 @@ function beginPendingAuthoringPointer(
     startCanvasX: point.x,
     startCanvasY: point.y,
     candidateStrokeId,
+    candidateFlowerId,
     candidateSelected,
     editEnabled: interactionModes[rect.index] === "edit",
+    selectionMode,
     controlIndex,
   };
   event.preventDefault();
@@ -3697,10 +3887,15 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
     event.clientY,
   )) return true;
 
-  const pendingIntent = pending.candidateSelected && pending.candidateStrokeId !== activeAuthoringStrokeId
+  const pendingIntent = !pending.selectionMode
+    && pending.candidateSelected
+    && pending.candidateStrokeId !== activeAuthoringStrokeId
     ? { ...pending, controlIndex: null }
     : pending;
-  if (pendingIntent.candidateSelected && pendingIntent.candidateStrokeId !== activeAuthoringStrokeId) {
+  if (!pendingIntent.selectionMode
+    && pendingIntent.candidateSelected
+    && pendingIntent.candidateStrokeId !== null
+    && pendingIntent.candidateStrokeId !== activeAuthoringStrokeId) {
     activateAuthoringStrokeForEdit(pendingIntent.candidateStrokeId!);
     pendingIntent.controlIndex = nearestEditableControlIndex(
       currentRects().find((rect) => rect.index === pendingIntent.viewportIndex) ?? pendingIntentRect(pendingIntent),
@@ -3717,7 +3912,8 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
   }
   if (intent === "select-drag") {
     pendingAuthoringPointer = null;
-    if (pendingIntent.candidateStrokeId) selectAuthoringStroke(pendingIntent.candidateStrokeId, false);
+    if (pendingIntent.candidateFlowerId) selectAuthoringFlower(pendingIntent.candidateFlowerId, false);
+    else if (pendingIntent.candidateStrokeId) selectAuthoringStroke(pendingIntent.candidateStrokeId, false);
     releaseGesturePointer(event.pointerId);
     return true;
   }
@@ -3742,9 +3938,13 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
   if (pendingAuthoringPointer?.pointerId === pointerId) {
     const pending = pendingAuthoringPointer;
     pendingAuthoringPointer = null;
-    if (finalEvent?.type === "pointerup" && pending.candidateStrokeId !== null) {
+    if (finalEvent?.type === "pointerup" && (pending.candidateStrokeId !== null || pending.candidateFlowerId !== null)) {
       finalEvent.preventDefault();
-      selectAuthoringStroke(pending.candidateStrokeId, flowerMultiSelect);
+      if (pending.candidateFlowerId) selectAuthoringFlower(pending.candidateFlowerId, flowerMultiSelect);
+      else if (pending.candidateStrokeId) selectAuthoringStroke(pending.candidateStrokeId, flowerMultiSelect);
+    } else if (finalEvent?.type === "pointerup" && pending.selectionMode) {
+      finalEvent.preventDefault();
+      clearAuthoringSelection();
     }
     if (releaseCapture) releaseGesturePointer(pointerId);
     return;
@@ -4687,6 +4887,16 @@ clearButton.addEventListener("click", () => {
   cancelEditPreviewFrame();
   cancelLiveDiagnosticsUpdate();
   rawGestures.length = 0;
+  authoringStrokes = [];
+  hanaFlowers = [];
+  selectedStrokeIds = [];
+  activeAuthoringStrokeId = null;
+  activeFlowerId = null;
+  flowerCoreStrokeId = null;
+  flowerMaterializedId = null;
+  flowerMaterializedSampleCount = 0;
+  authoringStrokeRoles.clear();
+  flowerHistory = null;
   rawPressureTotal = 0;
   rawTimeTotal = 0;
   lastRawCaptureDiagnostics = null;
@@ -4793,6 +5003,8 @@ clearButton.addEventListener("click", () => {
   lastAffectedControlIndices = [];
   lastEditBoundsBefore = null;
   lastEditBoundsAfter = null;
+  selectedFlowerIds = [];
+  selectedElementKind = null;
   showSurface = true;
   showCenterline = true;
   showSamples = false;
@@ -4807,6 +5019,47 @@ clearButton.addEventListener("click", () => {
   refreshLayout();
   updateDebug();
   flowerUi?.refresh();
+});
+
+newFileButton.addEventListener("click", () => {
+  const hasAuthoringContent = activeStroke !== null
+    || rawGestures.length > 0
+    || authoringStrokes.length > 0
+    || hanaFlowers.length > 0;
+  if (hasAuthoringContent && !window.confirm("Start a new HANA file? Unsaved authoring content will be cleared.")) return;
+
+  const preservedUi = {
+    viewportMode,
+    selectedViewport,
+    split: { ...split },
+    interactionModes: [...interactionModes],
+    softEditStrength,
+    smoothness,
+    showSurface,
+    showCenterline,
+    showSamples,
+  };
+  const previousDocumentId = recoveryDocumentId;
+  recoveryDocumentId = createHanaDocumentId();
+  clearButton.click();
+  viewportMode = preservedUi.viewportMode;
+  selectedViewport = preservedUi.selectedViewport;
+  split = { ...preservedUi.split };
+  interactionModes.splice(0, interactionModes.length, ...preservedUi.interactionModes);
+  softEditStrength = preservedUi.softEditStrength;
+  setSmoothness(preservedUi.smoothness);
+  showSurface = preservedUi.showSurface;
+  showCenterline = preservedUi.showCenterline;
+  showSamples = preservedUi.showSamples;
+  updateSmoothnessUI();
+  updateDisplayUI();
+  updateSoftEditButtons();
+  refreshLayout();
+  stateMessage = `NEW FILE · ${recoveryDocumentId}`;
+  recoveryStatusText = "Local recovery: new document";
+  updateRecoveryUI();
+  updateDebug();
+  clearRecoveryCheckpoint(previousDocumentId);
 });
 
 function captureEditorState(): HanaEditorState {
@@ -4869,6 +5122,8 @@ async function restoreRecoveryCheckpoint(): Promise<void> {
     },
   })) ?? [];
   activeFlowerId = checkpoint.activeFlowerId ?? null;
+  selectedFlowerIds = activeFlowerId ? [activeFlowerId] : [];
+  selectedElementKind = activeFlowerId ? "flower" : selectedStrokeIds.length > 0 ? "stroke" : null;
   flowerCoreStrokeId = activeFlowerId
     ? hanaFlowers.find((flower) => flower.id === activeFlowerId)?.coreStrokeIds[0] ?? null
     : null;
@@ -5081,6 +5336,7 @@ flowerUi = initializeHanaFlowerAuthoringUi({
   setCoreStroke: (strokeId) => setFlowerCoreStroke(strokeId),
   createFlower: createFlowerFromCurrentSelection,
   selectFlower: selectFlowerForUi,
+  deleteSelectedStrokes: deleteSelectedAuthoringStrokes,
   undo: undoFlowerAuthoring,
   redo: redoFlowerAuthoring,
 });

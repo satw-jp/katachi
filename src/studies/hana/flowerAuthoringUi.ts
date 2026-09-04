@@ -1,5 +1,6 @@
 import type { HanaAuthoringDocument } from "./authoringDocument.ts";
 import { validateHanaFlower, type HanaFlower } from "./flowerAuthoring.ts";
+import type { HanaSelectionElementKind } from "./selectionHitTest.ts";
 
 export interface HanaFlowerUiState {
   document: HanaAuthoringDocument;
@@ -9,6 +10,8 @@ export interface HanaFlowerUiState {
   multiSelect: boolean;
   materializedFlowerId: string | null;
   materializedSampleCount: number;
+  selectedElementKind: HanaSelectionElementKind | null;
+  selectedElementIds: readonly string[];
   canUndo: boolean;
   canRedo: boolean;
 }
@@ -20,6 +23,7 @@ export interface HanaFlowerUiActions {
   setCoreStroke: (strokeId: string | null) => void;
   createFlower: () => void;
   selectFlower: (flowerId: string | null) => void;
+  deleteSelectedStrokes: () => void;
   undo: () => void;
   redo: () => void;
 }
@@ -56,6 +60,7 @@ export function initializeHanaFlowerAuthoringUi(
     <div class="hana-flower-subsection">
       <span class="hana-flower-label">Strokes</span>
       <div id="hana-flower-stroke-list" class="hana-flower-list"></div>
+      ${button("Delete Selected", "hana-flower-delete-selected", "hana-flower-delete-action")}
     </div>
     <div class="hana-flower-core-row">
       <span id="hana-flower-core-status">Core: None</span>
@@ -80,6 +85,7 @@ export function initializeHanaFlowerAuthoringUi(
   const clearCoreButton = panel.querySelector<HTMLButtonElement>("#hana-flower-clear-core")!;
   const createButton = panel.querySelector<HTMLButtonElement>("#hana-flower-create")!;
   const strokeList = panel.querySelector<HTMLElement>("#hana-flower-stroke-list")!;
+  const deleteSelectedButton = panel.querySelector<HTMLButtonElement>("#hana-flower-delete-selected")!;
   const coreList = panel.querySelector<HTMLElement>("#hana-flower-core-list")!;
   const flowerList = panel.querySelector<HTMLElement>("#hana-flower-list")!;
   const activeFlower = panel.querySelector<HTMLElement>("#hana-flower-active")!;
@@ -97,12 +103,20 @@ export function initializeHanaFlowerAuthoringUi(
     refresh: () => {
       const state = actions.getState();
       const selected = new Set(state.document.selectedStrokeIds);
-      selectionCount.textContent = `Selected Strokes: ${state.document.selectedStrokeIds.length}`;
+      selectionCount.textContent = state.selectedElementKind === "flower"
+        ? `Selected Flowers: ${state.selectedElementIds.length} · ${state.selectedElementIds.join(", ")}`
+        : state.selectedElementKind === "stroke"
+          ? `Selected Strokes: ${state.document.selectedStrokeIds.length} · ${state.document.selectedStrokeIds.join(", ")}`
+          : "Selected: None";
       multiSelectButton.textContent = `Multi Select ${state.multiSelect ? "ON" : "OFF"}`;
       multiSelectButton.setAttribute("aria-pressed", String(state.multiSelect));
       clearCoreButton.disabled = state.coreStrokeId === null;
       coreStatus.textContent = `Core: ${state.coreStrokeId ?? "None"}`;
       createButton.disabled = state.document.selectedStrokeIds.length === 0;
+      deleteSelectedButton.disabled = state.selectedElementKind !== "stroke" || state.document.selectedStrokeIds.length === 0;
+      deleteSelectedButton.textContent = state.document.selectedStrokeIds.length > 0 && state.selectedElementKind === "stroke"
+        ? `Delete Selected (${state.document.selectedStrokeIds.length})`
+        : "Delete Selected";
       undoButton.disabled = !state.canUndo;
       redoButton.disabled = !state.canRedo;
 
@@ -165,6 +179,10 @@ export function initializeHanaFlowerAuthoringUi(
   });
   createButton.addEventListener("click", () => {
     actions.createFlower();
+    handle.refresh();
+  });
+  deleteSelectedButton.addEventListener("click", () => {
+    actions.deleteSelectedStrokes();
     handle.refresh();
   });
   undoButton.addEventListener("click", () => {

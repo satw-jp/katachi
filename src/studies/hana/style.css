@@ -476,6 +476,13 @@ button:disabled {
   color: #fff;
 }
 
+.hana-flower-delete-action {
+  width: 100%;
+  margin-top: 6px;
+  border-color: #b63b3b;
+  color: #8e2424;
+}
+
 .hana-flower-active {
   margin-top: 8px;
   line-height: 1.45;
@@ -1248,6 +1255,7 @@ button:disabled {
 }
 
 .hana-left-upper .hana-toolbar > #rebuild-surface,
+.hana-left-upper .hana-toolbar > #new-document,
 .hana-left-upper .hana-toolbar > #clear-document,
 .hana-left-upper .hana-toolbar > #load-document,
 .hana-left-upper .hana-toolbar > #save-document {

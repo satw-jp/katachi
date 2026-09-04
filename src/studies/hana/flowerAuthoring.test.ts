@@ -11,6 +11,7 @@ import {
   materializeHanaFlower,
   moveHanaFlower,
   nextHanaFlowerId,
+  removeHanaStrokeReferences,
   rotateHanaFlower,
   validateHanaFlower,
 } from "./flowerAuthoring.ts";
@@ -83,4 +84,15 @@ test("Flower ids are deterministic and validation catches dangling membership", 
   assert.equal(nextHanaFlowerId([first]), "flower-2");
   const invalid = { ...first, petalStrokeIds: ["missing"] };
   assert.equal(validateHanaFlower(invalid, [stroke("a")]).valid, false);
+});
+
+test("Stroke deletion removes deleted Flower members and empty Flowers", () => {
+  const strokes = [stroke("a"), stroke("b")];
+  const flower = createHanaFlowerFromSelection("flower-1", strokes, ["a", "b"], { coreStrokeIds: ["b"] }).flower;
+  const remaining = removeHanaStrokeReferences([flower], ["a"], [strokes[1]]);
+  assert.equal(remaining.length, 1);
+  assert.deepEqual(remaining[0].petalStrokeIds, []);
+  assert.deepEqual(remaining[0].coreStrokeIds, ["b"]);
+  assert.deepEqual(remaining[0].provenance.sourceStrokeIds, ["b"]);
+  assert.equal(removeHanaStrokeReferences([flower], ["a", "b"], []).length, 0);
 });

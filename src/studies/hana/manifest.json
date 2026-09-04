@@ -2,7 +2,7 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "implemented",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "createdAt": "2026-09-01",
   "updatedAt": "2026-09-04",
   "params": [
@@ -36,7 +36,11 @@
     "selectionEditCoexistence",
     "tapDragRouting",
     "leftPaneRail",
-    "leftPaneSplitRatio"
+    "leftPaneSplitRatio",
+    "newFile",
+    "deleteSelectedStroke",
+    "viewportAuthoringSelect",
+    "semanticSelectionHitTest"
   ],
   "related": ["skin"],
   "revisits": [

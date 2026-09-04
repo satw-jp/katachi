@@ -6,6 +6,8 @@ import {
   HANA_AUTHORING_DOCUMENT_FORMAT,
   addHanaStroke,
   createHanaAuthoringDocument,
+  createHanaDocumentId,
+  deleteHanaStrokes,
   migrateHanaDocument,
   removeHanaStroke,
   selectHanaStrokes,
@@ -82,4 +84,37 @@ test("authoring Undo/Redo does not retain derived state", () => {
   history.commit({ strokes: ["stroke-1", "stroke-2"], derivedMesh: { triangles: 24 } }, "Draw Stroke");
   assert.deepEqual(history.undo(), { strokes: ["stroke-1"], derivedMesh: { triangles: 12 } });
   assert.deepEqual(history.redo(), { strokes: ["stroke-1", "stroke-2"], derivedMesh: { triangles: 24 } });
+});
+
+test("New File identity is fresh and multi-Stroke deletion keeps non-selected content", () => {
+  const first = createHanaDocumentId(100);
+  const second = createHanaDocumentId(100);
+  assert.notEqual(first, second);
+  let document = createHanaAuthoringDocument([], [], { editorState: createDefaultHanaEditorState() });
+  document = addHanaStroke(document, raw("raw-1"), stroke("stroke-1", "raw-1"));
+  document = addHanaStroke(document, raw("raw-2"), stroke("stroke-2", "raw-2", 20));
+  document = selectHanaStrokes(document, ["stroke-1"]);
+  const deleted = deleteHanaStrokes(document, ["stroke-1"]);
+  assert.deepEqual(deleted.strokes.map((item) => item.id), ["stroke-2"]);
+  assert.deepEqual(deleted.rawGestures.strokes.map((item) => item.id), ["raw-2"]);
+  assert.deepEqual(deleted.selectedStrokeIds, []);
+  assert.equal(deleted.activeStrokeId, null);
+  const history = new HanaUndoRedo(document);
+  history.commit(deleted, "Delete Selected Strokes");
+  assert.deepEqual(history.undo()?.strokes.map((item) => item.id), ["stroke-1", "stroke-2"]);
+  assert.deepEqual(history.redo()?.strokes.map((item) => item.id), ["stroke-2"]);
+  const reloaded = migrateHanaDocument(JSON.parse(serializeHanaAuthoringDocument(deleted)));
+  assert.deepEqual(reloaded.strokes, deleted.strokes);
+  assert.deepEqual(reloaded.rawGestures, deleted.rawGestures);
+});
+
+test("multi-Stroke deletion removes only the selected IDs", () => {
+  let document = createHanaAuthoringDocument([], [], { editorState: createDefaultHanaEditorState(), documentId: "hana-document-test" });
+  for (const index of [1, 2, 3]) {
+    document = addHanaStroke(document, raw(`raw-${index}`, index * 20), stroke(`stroke-${index}`, `raw-${index}`, index * 20));
+  }
+  document = selectHanaStrokes(document, ["stroke-1", "stroke-3"]);
+  const deleted = deleteHanaStrokes(document, document.selectedStrokeIds);
+  assert.deepEqual(deleted.strokes.map((item) => item.id), ["stroke-2"]);
+  assert.deepEqual(deleted.rawGestures.strokes.map((item) => item.id), ["raw-2"]);
 });

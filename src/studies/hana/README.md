@@ -708,3 +708,31 @@ SKIN production: unchanged
 ```
 
 The iPad slow / fast / continuous long-stroke gate remains pending for this refinement. If RAW ONLY also shows long input gaps, the result must be treated as browser / iPad input supply evidence; HANA must not invent points or change geometry algorithms to conceal it. Worker, WebGPU, CUDA, Remote Compute redesign, Flower, and SKIN integration remain out of scope.
+
+## HANA Document Selection Actions v0
+
+Branch: `agent/hana-document-selection-actions-v0`
+Base: `a028c434ed12c1105b7019ccb48a05896137d0b0`
+Status: `SOFTWARE PASS / HARDWARE RECHECK PENDING`
+
+This HANA-local increment adds three small document and interaction actions:
+
+- `New File` creates a fresh document identity and clears Raw Gestures, Strokes, Flowers, semantic selection, authoring history, pending Finalization, Live Proxy, Surface and derived caches. It reuses the existing empty-document/reset path and preserves browser/UI preferences such as the left-pane split and compute mode. A populated document asks for confirmation before clearing.
+- `Delete Selected` is available in the lower Selection / Flower pane for Stroke selections only. It reuses the existing immutable `removeHanaStroke` policy through `deleteHanaStrokes`, removes the associated Raw Gesture and semantic Flower source references, invalidates derived presentation, and remains Undo / Redo-capable through the existing authoring history.
+- Orthographic Viewports expose `Draw`, `Select`, and `Edit`. Select-mode Mouse / Touch taps resolve projected Stroke or Flower candidates to semantic IDs with deterministic nearest / front-most / stable-ID tie breaking. Blank taps clear selection; element drags never edit geometry, while blank drags retain camera navigation. Apple Pencil continues to route to Draw with Raw pressure, time, order, and provenance intact.
+
+Selection remains presentation/editor state; Surface triangles and Mesh IDs are never authoritative. The frozen HANA-2A hierarchy, adaptive Control tolerance `0.09`, dense Material / Field / Surface pipeline, Live Proxy cap `192`, Remote Compute boundary, and `src/studies/skin` production behavior are unchanged. Graph selection is intentionally not expanded in this increment.
+
+Platform target for hardware recheck:
+
+```yaml
+Platform:
+  - iPad Pro 11-inch
+  - Apple Pencil
+  - EasyCanvas
+  - Windows Browser
+```
+
+Software acceptance covers New File reset and preference preservation, single / multi-Stroke deletion with Undo / Redo and Flower-reference cleanup, deterministic Stroke / Flower hit selection, Select-versus-Edit routing, Pencil Draw regression, JSON save/load round-trip, TypeScript, Vite build, browser smoke, manifest validation, console checks, and `src/studies/skin` diff `0`.
+
+Known limitation: Select-mode Flower hit testing uses the projected member centerlines as the existing safe semantic representation; Graph Node / Edge viewport selection is not included.

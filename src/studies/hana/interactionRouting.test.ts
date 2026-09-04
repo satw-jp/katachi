@@ -18,3 +18,30 @@ test("selected Stroke drag routes to Edit while empty drag pans", () => {
   assert.equal(classifyHanaPointerIntent({ candidateStrokeId: "stroke-2", candidateSelected: false, editEnabled: true, controlIndex: null }, true), "select-drag");
   assert.equal(classifyHanaPointerIntent({ candidateStrokeId: null, candidateSelected: false, editEnabled: true, controlIndex: null }, true), "camera-pan");
 });
+
+test("Select mode consumes element drags without entering Stroke Edit", () => {
+  assert.equal(classifyHanaPointerIntent({
+    candidateStrokeId: "stroke-1",
+    candidateFlowerId: null,
+    candidateSelected: true,
+    editEnabled: true,
+    selectionMode: true,
+    controlIndex: 2,
+  }, true), "select-drag");
+  assert.equal(classifyHanaPointerIntent({
+    candidateStrokeId: null,
+    candidateFlowerId: "flower-1",
+    candidateSelected: false,
+    editEnabled: false,
+    selectionMode: true,
+    controlIndex: null,
+  }, true), "select-drag");
+  assert.equal(classifyHanaPointerIntent({
+    candidateStrokeId: null,
+    candidateFlowerId: null,
+    candidateSelected: false,
+    editEnabled: false,
+    selectionMode: true,
+    controlIndex: null,
+  }, true), "camera-pan");
+});

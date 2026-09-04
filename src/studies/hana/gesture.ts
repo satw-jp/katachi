@@ -5,7 +5,7 @@ export const HANA_VIEW_DIRECTIONS = ["top", "axome", "front", "right"] as const;
 export type HanaViewDirection = typeof HANA_VIEW_DIRECTIONS[number];
 export type HanaPointerType = "pen" | "mouse" | "touch";
 export type HanaViewportMode = "one" | "four";
-export type HanaInteractionMode = "draw" | "edit" | "view";
+export type HanaInteractionMode = "draw" | "select" | "edit" | "view";
 export type HanaSoftEditStrength = "off" | "low" | "medium";
 
 export interface HanaStrokePoint {

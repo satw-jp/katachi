@@ -152,6 +152,31 @@ export function validateHanaFlower(
   return { valid: issues.length === 0, issues };
 }
 
+/** Apply the existing semantic source-reference cleanup after Stroke deletion. */
+export function removeHanaStrokeReferences(
+  flowers: readonly HanaFlower[],
+  deletedStrokeIds: readonly string[],
+  remainingStrokes: readonly HanaStroke[],
+): HanaFlower[] {
+  const deleted = new Set(deletedStrokeIds);
+  const strokesById = new Map(remainingStrokes.map((stroke) => [stroke.id, stroke]));
+  return flowers.flatMap((flower) => {
+    const next = cloneFlower(flower);
+    next.petalStrokeIds = next.petalStrokeIds.filter((id) => !deleted.has(id) && strokesById.has(id));
+    next.coreStrokeIds = next.coreStrokeIds.filter((id) => !deleted.has(id) && strokesById.has(id));
+    const memberIds = [...next.petalStrokeIds, ...next.coreStrokeIds];
+    if (memberIds.length === 0) return [];
+    if (memberIds.length !== flower.petalStrokeIds.length + flower.coreStrokeIds.length) {
+      next.provenance = {
+        sourceStrokeIds: memberIds,
+        sourceGestureIds: memberIds.map((id) => strokesById.get(id)!.rawGestureId),
+      };
+      next.revision += 1;
+    }
+    return [next];
+  });
+}
+
 export const HANA_IDENTITY_QUATERNION: HanaQuaternion = { x: 0, y: 0, z: 0, w: 1 };
 
 export function createHanaFlowerFromSelection(

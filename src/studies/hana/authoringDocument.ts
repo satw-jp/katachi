@@ -220,6 +220,14 @@ export function createHanaAuthoringDocument(
   };
 }
 
+let hanaDocumentSequence = 0;
+
+/** Create a fresh semantic document identity without touching UI preferences. */
+export function createHanaDocumentId(now = Date.now()): string {
+  hanaDocumentSequence += 1;
+  return `hana-document-${now}-${hanaDocumentSequence}`;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
@@ -298,6 +306,7 @@ export function migrateHanaDocument(input: unknown): HanaAuthoringDocument {
   const activeStrokeId = typeof source.activeStrokeId === "string" && strokes.some((stroke) => stroke.id === source.activeStrokeId)
     ? source.activeStrokeId
     : strokes.length > 0 ? strokes[strokes.length - 1].id : null;
+  const hasSelectionField = Array.isArray(source.selectedStrokeIds);
   return {
     format: HANA_AUTHORING_DOCUMENT_FORMAT,
     documentId: typeof source.documentId === "string" ? source.documentId : "hana-document-1",
@@ -305,7 +314,7 @@ export function migrateHanaDocument(input: unknown): HanaAuthoringDocument {
     rawGestures: { strokes: rawGestures },
     strokes,
     activeStrokeId,
-    selectedStrokeIds: selected.length > 0 ? selected : activeStrokeId ? [activeStrokeId] : [],
+    selectedStrokeIds: hasSelectionField ? selected : activeStrokeId ? [activeStrokeId] : [],
     editorState: migratedEditorState(source.editorState),
   };
 }
@@ -346,6 +355,21 @@ export function removeHanaStroke(document: HanaAuthoringDocument, strokeId: stri
     ? (next.strokes.length > 0 ? next.strokes[next.strokes.length - 1].id : null)
     : next.activeStrokeId;
   return nextRevision(next);
+}
+
+/** Delete only the requested Strokes, reusing the single-Stroke deletion policy. */
+export function deleteHanaStrokes(
+  document: HanaAuthoringDocument,
+  strokeIds: readonly string[],
+): HanaAuthoringDocument {
+  const requested = [...new Set(strokeIds)];
+  const activeWasDeleted = document.activeStrokeId !== null && requested.includes(document.activeStrokeId);
+  let next = document;
+  for (const strokeId of requested) next = removeHanaStroke(next, strokeId);
+  if (!requested.some((strokeId) => document.strokes.some((stroke) => stroke.id === strokeId))) return next;
+  if (activeWasDeleted) next.activeStrokeId = null;
+  next.selectedStrokeIds = next.selectedStrokeIds.filter((id) => !requested.includes(id));
+  return next;
 }
 
 export function selectHanaStrokes(document: HanaAuthoringDocument, strokeIds: readonly string[]): HanaAuthoringDocument {
