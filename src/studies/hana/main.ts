@@ -38,6 +38,7 @@ import {
   editorStrokeColor,
   sampleSmoothCenterline,
   strokeBounds,
+  type HanaSoftEditResult,
   type HanaStrokeBounds,
 } from "./smoothCenterline.ts";
 import {
@@ -2264,22 +2265,23 @@ function hitTestMoveGizmo(rect: SkinViewportRect, x: number, y: number): HanaWor
   return hitTestHanaGizmoAxis({ x, y }, gizmo.origin, gizmo.tips, HANA_GIZMO_HIT_PIXELS);
 }
 
-/** Selected-point ring for cross-view display, including non-active Strokes. */
 function drawSelectedControlPointMarker(rect: SkinViewportRect): void {
   const world = selectedControlPointWorld();
   if (!world) return;
   const projected = renderer.projectPoint(rect.index, world, rect);
   if (!projected.visible) return;
+  const isGizmoDragActive = controlDrag !== null && controlDrag.gizmoAxis !== null;
+  const ringRadius = isGizmoDragActive ? 12 : 8.5;
   gestureContext.save();
   gestureContext.strokeStyle = "#ffffff";
-  gestureContext.lineWidth = 2.5;
+  gestureContext.lineWidth = isGizmoDragActive ? 3 : 2.5;
   gestureContext.beginPath();
-  gestureContext.arc(projected.x, projected.y, 8.5, 0, Math.PI * 2);
+  gestureContext.arc(projected.x, projected.y, ringRadius, 0, Math.PI * 2);
   gestureContext.stroke();
   gestureContext.strokeStyle = "#1f2937";
-  gestureContext.lineWidth = 1.25;
+  gestureContext.lineWidth = isGizmoDragActive ? 1.5 : 1.25;
   gestureContext.beginPath();
-  gestureContext.arc(projected.x, projected.y, 8.5, 0, Math.PI * 2);
+  gestureContext.arc(projected.x, projected.y, ringRadius, 0, Math.PI * 2);
   gestureContext.stroke();
   gestureContext.restore();
 }
@@ -3947,15 +3949,36 @@ function processControlDragPointer(pointer: PendingControlPointer): ControlPrevi
   }
   const controlUpdateMilliseconds = performance.now() - controlUpdateStarted;
   const controlUpdateEnded = performance.now();
-  const softEditStarted = performance.now();
-  const edit = applySoftViewportEdit(
-    stroke3D,
-    controlDrag.controlIndex,
-    controlDrag.direction,
-    world,
-    softEditStrength,
-  );
-  const softEditMilliseconds = performance.now() - softEditStarted;
+  let edit: HanaSoftEditResult;
+  let softEditMilliseconds: number;
+  if (controlDrag.gizmoAxis) {
+    // Gizmo axis drag: world already has axis constraint, apply directly without viewport plane
+    const selected = stroke3D.controlPoints[controlDrag.controlIndex];
+    const delta = {
+      x: world.x - selected.position.x,
+      y: world.y - selected.position.y,
+      z: world.z - selected.position.z,
+    };
+    const affectedControlIndices = [controlDrag.controlIndex];
+    for (const index of affectedControlIndices) {
+      const point = stroke3D.controlPoints[index].position;
+      point.x += delta.x;
+      point.y += delta.y;
+      point.z += delta.z;
+    }
+    edit = { affectedControlIndices, weights: [1], delta };
+    softEditMilliseconds = performance.now() - performance.now(); // gizmo drag has no soft edit timing
+  } else {
+    const softEditStarted = performance.now();
+    edit = applySoftViewportEdit(
+      stroke3D,
+      controlDrag.controlIndex,
+      controlDrag.direction,
+      world,
+      softEditStrength,
+    );
+    softEditMilliseconds = performance.now() - softEditStarted;
+  }
   if (rawSignature() !== controlDrag.rawSignatureBefore) {
     throw new Error("Soft Edit changed the immutable Raw Gesture");
   }
