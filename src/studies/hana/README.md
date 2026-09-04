@@ -708,3 +708,31 @@ SKIN production: unchanged
 ```
 
 The iPad slow / fast / continuous long-stroke gate remains pending for this refinement. If RAW ONLY also shows long input gaps, the result must be treated as browser / iPad input supply evidence; HANA must not invent points or change geometry algorithms to conceal it. Worker, WebGPU, CUDA, Remote Compute redesign, Flower, and SKIN integration remain out of scope.
+
+## HANA Authoring Identity / Cross-View Selection / Delete v0
+
+This HANA-local interaction layer is based on `agent/hana-selection-edit-layout-v0` at `a028c434ed12c1105b7019ccb48a05896137d0b0` and is implemented on `agent/hana-authoring-identity-selection-v0`.
+
+### Software status
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Real-device Gate: PENDING
+Platform:
+  - iPad Pro 11-inch
+  - Apple Pencil
+  - EasyCanvas
+  - Windows Browser
+```
+
+Raw Gesture and Stroke identifiers now use document-local monotonic high-water metadata (`identity.nextGestureOrdinal` / `identity.nextStrokeOrdinal`). Allocation does not use array length or Undo / Redo state, so Clear, deletion, and history traversal cannot reuse an identifier. Save / reload and legacy migration preserve or derive the high-water values. Duplicate Raw Gesture or Stroke IDs are reported as validation errors; load and save do not silently repair a corrupt document.
+
+Selection is semantic and global across the Top, Front, and Right orthographic views. A selected Stroke remains the same authoring Stroke when the active viewport changes, and its Control Point markers are shown in every orthographic view. Surface and other derived presentation may assist proximity picking, but Surface Mesh triangles are never stored as selection authority. Axome remains a view-only projection for this v0 selection presentation.
+
+`Delete Selected` removes selected Strokes through one semantic Undo transaction and is also available through `Delete` / `Backspace` when focus is not in a text or range input. The action removes a Raw Gesture only when no surviving Stroke references it, cleans Flower membership and provenance, and uses the same protected-reference policy for Authoring Graph cleanup. Derived Surface / Field / Preview state is invalidated and stale finalization is cancelled. Undo / Redo restores semantic state without lowering the identifier high-water counters.
+
+Apple Pencil remains the Draw / Create instrument. Mouse and Touch remain the Select / Edit / Camera instruments. This change does not add Projection Redraw, does not make a Mesh authoritative, and does not modify SKIN production behavior or the Remote Compute boundary.
+
+### Verification and limitations
+
+The HANA suite covers identity allocation, save / reload migration, duplicate rejection, cross-view active-control presentation, multi-Stroke deletion, Raw reference retention, Flower cleanup, Graph cleanup, protected Graph references, and Delete → Undo → Redo semantics. Software verification remains required for the iPad hardware recheck of the new global selection and delete interactions. Existing long-stroke, Remote Compute, Pencil capture, Shape Fidelity, and Live Proxy 192-cap contracts remain unchanged. No main merge or deploy is included.

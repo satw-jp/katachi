@@ -4,13 +4,17 @@ import test from "node:test";
 import { createDefaultHanaEditorState } from "./authoringDocument.ts";
 import {
   HANA_AUTHORING_DOCUMENT_FORMAT,
+  allocateHanaAuthoringId,
   addHanaStroke,
+  createHanaAuthoringIdentity,
   createHanaAuthoringDocument,
+  deleteHanaStrokes,
   migrateHanaDocument,
   removeHanaStroke,
   selectHanaStrokes,
   serializeHanaAuthoringDocument,
   setHanaStrokeRole,
+  validateHanaAuthoringDocument,
 } from "./authoringDocument.ts";
 import { HanaUndoRedo } from "./undoRedo.ts";
 import type { HanaViewportStroke } from "./gesture.ts";
@@ -82,4 +86,82 @@ test("authoring Undo/Redo does not retain derived state", () => {
   history.commit({ strokes: ["stroke-1", "stroke-2"], derivedMesh: { triangles: 24 } }, "Draw Stroke");
   assert.deepEqual(history.undo(), { strokes: ["stroke-1"], derivedMesh: { triangles: 12 } });
   assert.deepEqual(history.redo(), { strokes: ["stroke-1", "stroke-2"], derivedMesh: { triangles: 24 } });
+});
+
+test("authoring identity allocates monotonically across deletion and undo", () => {
+  const identity = createHanaAuthoringIdentity(
+    [{ id: "gesture-1" }, { id: "gesture-3" }],
+    [{ id: "stroke-1" }, { id: "stroke-3" }],
+  );
+  assert.equal(allocateHanaAuthoringId(identity, "gesture"), "gesture-4");
+  assert.equal(allocateHanaAuthoringId(identity, "stroke"), "stroke-4");
+  assert.equal(identity.nextGestureOrdinal, 5);
+  assert.equal(identity.nextStrokeOrdinal, 5);
+});
+
+test("identity metadata survives authoring document save and legacy migration", () => {
+  const document = createHanaAuthoringDocument(
+    [raw("gesture-1"), raw("gesture-5")],
+    [stroke("stroke-1", "gesture-1"), stroke("stroke-5", "gesture-5")],
+    {
+      documentId: "identity-document",
+      editorState: createDefaultHanaEditorState(),
+      identity: { nextGestureOrdinal: 9, nextStrokeOrdinal: 11 },
+    },
+  );
+  const roundTrip = migrateHanaDocument(JSON.parse(serializeHanaAuthoringDocument(document)));
+  assert.deepEqual(roundTrip.identity, { nextGestureOrdinal: 9, nextStrokeOrdinal: 11 });
+  const legacy = migrateHanaDocument({
+    rawGestures: { strokes: [raw("gesture-1"), raw("gesture-8")] },
+    strokes: [stroke("stroke-2", "gesture-1"), stroke("stroke-9", "gesture-8")],
+    editorState: createDefaultHanaEditorState(),
+  });
+  assert.deepEqual(legacy.identity, { nextGestureOrdinal: 9, nextStrokeOrdinal: 10 });
+});
+
+test("duplicate authoring identities fail validation without silent repair", () => {
+  const document = migrateHanaDocument({
+    rawGestures: { strokes: [raw("gesture-3"), raw("gesture-3")] },
+    strokes: [stroke("stroke-3", "gesture-3"), stroke("stroke-3", "gesture-3")],
+    editorState: createDefaultHanaEditorState(),
+  });
+  const validation = validateHanaAuthoringDocument(document);
+  assert.equal(validation.valid, false);
+  assert.deepEqual(validation.issues, [
+    "Duplicate Raw Gesture id: gesture-3",
+    "Duplicate Stroke id: stroke-3",
+  ]);
+  assert.equal(document.rawGestures.strokes.length, 2);
+  assert.equal(document.strokes.length, 2);
+});
+
+test("delete retains a Raw Gesture that a surviving Stroke still references", () => {
+  const sharedRaw = raw("gesture-shared");
+  let document = createHanaAuthoringDocument(
+    [sharedRaw],
+    [stroke("stroke-1", sharedRaw.id), stroke("stroke-2", sharedRaw.id)],
+    { editorState: createDefaultHanaEditorState() },
+  );
+  document = selectHanaStrokes(document, ["stroke-1"]);
+  document = removeHanaStroke(document, "stroke-1");
+  assert.deepEqual(document.strokes.map((item) => item.id), ["stroke-2"]);
+  assert.deepEqual(document.rawGestures.strokes.map((item) => item.id), ["gesture-shared"]);
+  assert.equal(document.identity.nextStrokeOrdinal, 3);
+});
+
+test("Delete Selected is one semantic transaction and identity high-water survives undo/redo", () => {
+  let document = createHanaAuthoringDocument(
+    [raw("gesture-1"), raw("gesture-2")],
+    [stroke("stroke-1", "gesture-1"), stroke("stroke-2", "gesture-2")],
+    { editorState: createDefaultHanaEditorState() },
+  );
+  document = selectHanaStrokes(document, ["stroke-1"]);
+  const history = new HanaUndoRedo({ document });
+  const deleted = deleteHanaStrokes(document, ["stroke-1"]);
+  history.commit({ document: deleted }, "Delete Selected Strokes");
+  const undone = history.undo();
+  const redone = history.redo();
+  assert.deepEqual(undone?.document.strokes.map((item) => item.id), ["stroke-1", "stroke-2"]);
+  assert.deepEqual(redone?.document.strokes.map((item) => item.id), ["stroke-2"]);
+  assert.equal(redone?.document.identity.nextStrokeOrdinal, 3);
 });

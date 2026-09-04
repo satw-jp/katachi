@@ -11,6 +11,7 @@ import {
   materializeHanaFlower,
   moveHanaFlower,
   nextHanaFlowerId,
+  removeHanaStrokeReferences,
   rotateHanaFlower,
   validateHanaFlower,
 } from "./flowerAuthoring.ts";
@@ -83,4 +84,25 @@ test("Flower ids are deterministic and validation catches dangling membership", 
   assert.equal(nextHanaFlowerId([first]), "flower-2");
   const invalid = { ...first, petalStrokeIds: ["missing"] };
   assert.equal(validateHanaFlower(invalid, [stroke("a")]).valid, false);
+});
+
+test("deleting Flower member Strokes cleans membership, provenance, and attachments", () => {
+  const petal = stroke("petal");
+  const core = stroke("core", "core");
+  const { flower } = createHanaFlowerFromSelection("flower-1", [petal, core], [petal.id, core.id], { coreStrokeIds: [core.id] });
+  const attached = attachHanaFlowerToStem(flower, {
+    id: "attachment-1",
+    sourceStrokeId: petal.id,
+    normalizedT: 0.5,
+    position: { x: 0, y: 0, z: 0 },
+  });
+  const next = removeHanaStrokeReferences([attached], [petal.id], [core]);
+  assert.equal(next.length, 1);
+  assert.deepEqual(next[0]?.petalStrokeIds, []);
+  assert.deepEqual(next[0]?.coreStrokeIds, [core.id]);
+  assert.deepEqual(next[0]?.provenance.sourceStrokeIds, [core.id]);
+  assert.deepEqual(next[0]?.provenance.sourceGestureIds, [core.rawGestureId]);
+  assert.equal(next[0]?.stemAttachment, null);
+  assert.equal(validateHanaFlower(next[0]!, [core]).valid, true);
+  assert.deepEqual(removeHanaStrokeReferences([attached], [petal.id, core.id], []), []);
 });

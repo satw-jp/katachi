@@ -20,6 +20,7 @@ export interface HanaFlowerUiActions {
   setCoreStroke: (strokeId: string | null) => void;
   createFlower: () => void;
   selectFlower: (flowerId: string | null) => void;
+  deleteSelectedStrokes: () => void;
   undo: () => void;
   redo: () => void;
 }
@@ -79,6 +80,12 @@ export function initializeHanaFlowerAuthoringUi(
   const multiSelectButton = panel.querySelector<HTMLButtonElement>("#hana-flower-multi-select")!;
   const clearCoreButton = panel.querySelector<HTMLButtonElement>("#hana-flower-clear-core")!;
   const createButton = panel.querySelector<HTMLButtonElement>("#hana-flower-create")!;
+  const deleteSelectedButton = document.createElement("button");
+  deleteSelectedButton.id = "hana-flower-delete-selected";
+  deleteSelectedButton.type = "button";
+  deleteSelectedButton.className = "hana-flower-delete-action";
+  deleteSelectedButton.textContent = "Delete Selected";
+  panel.querySelector(".hana-flower-core-row")?.insertAdjacentElement("afterend", deleteSelectedButton);
   const strokeList = panel.querySelector<HTMLElement>("#hana-flower-stroke-list")!;
   const coreList = panel.querySelector<HTMLElement>("#hana-flower-core-list")!;
   const flowerList = panel.querySelector<HTMLElement>("#hana-flower-list")!;
@@ -103,6 +110,8 @@ export function initializeHanaFlowerAuthoringUi(
       clearCoreButton.disabled = state.coreStrokeId === null;
       coreStatus.textContent = `Core: ${state.coreStrokeId ?? "None"}`;
       createButton.disabled = state.document.selectedStrokeIds.length === 0;
+      deleteSelectedButton.textContent = `Delete Selected${state.document.selectedStrokeIds.length > 0 ? ` (${state.document.selectedStrokeIds.length})` : ""}`;
+      deleteSelectedButton.disabled = state.document.selectedStrokeIds.length === 0;
       undoButton.disabled = !state.canUndo;
       redoButton.disabled = !state.canRedo;
 
@@ -165,6 +174,10 @@ export function initializeHanaFlowerAuthoringUi(
   });
   createButton.addEventListener("click", () => {
     actions.createFlower();
+    handle.refresh();
+  });
+  deleteSelectedButton.addEventListener("click", () => {
+    actions.deleteSelectedStrokes();
     handle.refresh();
   });
   undoButton.addEventListener("click", () => {

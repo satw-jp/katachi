@@ -246,3 +246,28 @@ export function materializeHanaFlower(
 export function cloneHanaFlower(flower: HanaFlower): HanaFlower {
   return cloneFlower(flower);
 }
+
+/** Remove deleted Stroke references without leaving dangling Flower provenance. */
+export function removeHanaStrokeReferences(
+  flowers: readonly HanaFlower[],
+  deletedStrokeIds: readonly string[],
+  remainingStrokes: readonly HanaStroke[],
+): HanaFlower[] {
+  const deleted = new Set(deletedStrokeIds);
+  const remainingById = new Map(remainingStrokes.map((stroke) => [stroke.id, stroke]));
+  return flowers.flatMap((flower) => {
+    const next = cloneFlower(flower);
+    next.petalStrokeIds = next.petalStrokeIds.filter((id) => !deleted.has(id) && remainingById.has(id));
+    next.coreStrokeIds = next.coreStrokeIds.filter((id) => !deleted.has(id) && remainingById.has(id));
+    const memberIds = [...next.petalStrokeIds, ...next.coreStrokeIds];
+    if (memberIds.length === 0) return [];
+    next.provenance.sourceStrokeIds = memberIds;
+    next.provenance.sourceGestureIds = memberIds.map((id) => remainingById.get(id)!.rawGestureId);
+    if (next.stemAttachment && deleted.has(next.stemAttachment.sourceStrokeId)) next.stemAttachment = null;
+    if (memberIds.length !== flower.petalStrokeIds.length + flower.coreStrokeIds.length
+      || next.stemAttachment?.sourceStrokeId !== flower.stemAttachment?.sourceStrokeId) {
+      next.revision += 1;
+    }
+    return [next];
+  });
+}

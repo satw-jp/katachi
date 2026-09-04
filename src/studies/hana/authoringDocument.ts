@@ -52,12 +52,20 @@ export interface HanaStroke {
   visible: boolean;
 }
 
+export interface HanaAuthoringIdentity {
+  nextGestureOrdinal: number;
+  nextStrokeOrdinal: number;
+}
+
+export type HanaAuthoringIdKind = "gesture" | "stroke";
+
 export interface HanaAuthoringDocument {
   format: typeof HANA_AUTHORING_DOCUMENT_FORMAT;
   documentId: string;
   revision: number;
   rawGestures: { strokes: HanaViewportStroke[] };
   strokes: HanaStroke[];
+  identity: HanaAuthoringIdentity;
   activeStrokeId: string | null;
   selectedStrokeIds: string[];
   editorState: HanaEditorState;
@@ -66,6 +74,7 @@ export interface HanaAuthoringDocument {
 export interface HanaAuthoringDocumentOptions {
   documentId?: string;
   editorState: HanaEditorState;
+  identity?: Partial<HanaAuthoringIdentity>;
 }
 
 export interface HanaDerivedCacheState {
@@ -153,6 +162,88 @@ function cloneRawGesture(stroke: HanaViewportStroke): HanaViewportStroke {
   };
 }
 
+function idOrdinal(id: string, prefix: string): number {
+  const match = new RegExp(`^${prefix}-(\\d+)$`).exec(id);
+  return match ? Math.max(0, Number.parseInt(match[1], 10)) : 0;
+}
+
+function nextOrdinal(ids: readonly string[], prefix: string): number {
+  return ids.reduce((maximum, id) => Math.max(maximum, idOrdinal(id, prefix)), 0) + 1;
+}
+
+function safeNextOrdinal(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(1, Math.trunc(value), fallback)
+    : fallback;
+}
+
+export function createHanaAuthoringIdentity(
+  rawGestures: readonly Pick<HanaViewportStroke, "id">[] = [],
+  strokes: readonly Pick<HanaStroke, "id">[] = [],
+  requested: Partial<HanaAuthoringIdentity> = {},
+): HanaAuthoringIdentity {
+  return {
+    nextGestureOrdinal: safeNextOrdinal(
+      requested.nextGestureOrdinal,
+      nextOrdinal(rawGestures.map((gesture) => gesture.id), "gesture"),
+    ),
+    nextStrokeOrdinal: safeNextOrdinal(
+      requested.nextStrokeOrdinal,
+      nextOrdinal(strokes.map((stroke) => stroke.id), "stroke"),
+    ),
+  };
+}
+
+export function cloneHanaAuthoringIdentity(identity: HanaAuthoringIdentity): HanaAuthoringIdentity {
+  return {
+    nextGestureOrdinal: Math.max(1, Math.trunc(identity.nextGestureOrdinal)),
+    nextStrokeOrdinal: Math.max(1, Math.trunc(identity.nextStrokeOrdinal)),
+  };
+}
+
+export function mergeHanaAuthoringIdentity(
+  current: HanaAuthoringIdentity,
+  incoming: HanaAuthoringIdentity,
+): HanaAuthoringIdentity {
+  return {
+    nextGestureOrdinal: Math.max(current.nextGestureOrdinal, incoming.nextGestureOrdinal),
+    nextStrokeOrdinal: Math.max(current.nextStrokeOrdinal, incoming.nextStrokeOrdinal),
+  };
+}
+
+/** Allocate a document-local ID without consulting array length or undo state. */
+export function allocateHanaAuthoringId(
+  identity: HanaAuthoringIdentity,
+  kind: HanaAuthoringIdKind,
+): string {
+  const key = kind === "gesture" ? "nextGestureOrdinal" : "nextStrokeOrdinal";
+  const ordinal = Math.max(1, Math.trunc(identity[key]));
+  identity[key] = ordinal + 1;
+  return `${kind}-${ordinal}`;
+}
+
+export interface HanaAuthoringIdentityValidation {
+  valid: boolean;
+  issues: string[];
+}
+
+export function validateHanaAuthoringDocument(
+  document: Pick<HanaAuthoringDocument, "rawGestures" | "strokes">,
+): HanaAuthoringIdentityValidation {
+  const issues: string[] = [];
+  const rawIds = new Set<string>();
+  for (const gesture of document.rawGestures.strokes) {
+    if (rawIds.has(gesture.id)) issues.push(`Duplicate Raw Gesture id: ${gesture.id}`);
+    rawIds.add(gesture.id);
+  }
+  const strokeIds = new Set<string>();
+  for (const stroke of document.strokes) {
+    if (strokeIds.has(stroke.id)) issues.push(`Duplicate Stroke id: ${stroke.id}`);
+    strokeIds.add(stroke.id);
+  }
+  return { valid: issues.length === 0, issues };
+}
+
 function cloneEditorState(editorState: HanaEditorState): HanaEditorState {
   return {
     ...editorState,
@@ -165,10 +256,16 @@ function cloneEditorState(editorState: HanaEditorState): HanaEditorState {
 }
 
 export function cloneHanaAuthoringDocument(document: HanaAuthoringDocument): HanaAuthoringDocument {
+  const identity = createHanaAuthoringIdentity(
+    document.rawGestures.strokes,
+    document.strokes,
+    document.identity,
+  );
   return {
     ...document,
     rawGestures: { strokes: document.rawGestures.strokes.map(cloneRawGesture) },
     strokes: document.strokes.map(cloneStroke),
+    identity,
     selectedStrokeIds: [...document.selectedStrokeIds],
     editorState: cloneEditorState(document.editorState),
   };
@@ -214,6 +311,7 @@ export function createHanaAuthoringDocument(
     revision: 0,
     rawGestures: { strokes: rawGestures.map(cloneRawGesture) },
     strokes: strokes3D.map((stroke) => hanaStrokeFromStroke3D(stroke)),
+    identity: createHanaAuthoringIdentity(rawGestures, strokes3D, options.identity),
     activeStrokeId: strokes3D.length > 0 ? strokes3D[strokes3D.length - 1].id : null,
     selectedStrokeIds: strokes3D.length > 0 ? [strokes3D[strokes3D.length - 1].id] : [],
     editorState: cloneEditorState(options.editorState),
@@ -294,6 +392,7 @@ export function migrateHanaDocument(input: unknown): HanaAuthoringDocument {
   const strokes = sourceStrokes
     .map((stroke, index) => migratedStroke(stroke, index, rawGestures))
     .filter((stroke): stroke is HanaStroke => stroke !== null);
+  const requestedIdentity = asRecord(source.identity);
   const selected = asArray<string>(source.selectedStrokeIds).filter((id) => strokes.some((stroke) => stroke.id === id));
   const activeStrokeId = typeof source.activeStrokeId === "string" && strokes.some((stroke) => stroke.id === source.activeStrokeId)
     ? source.activeStrokeId
@@ -304,6 +403,7 @@ export function migrateHanaDocument(input: unknown): HanaAuthoringDocument {
     revision: typeof source.revision === "number" ? source.revision : 0,
     rawGestures: { strokes: rawGestures },
     strokes,
+    identity: createHanaAuthoringIdentity(rawGestures, strokes, requestedIdentity),
     activeStrokeId,
     selectedStrokeIds: selected.length > 0 ? selected : activeStrokeId ? [activeStrokeId] : [],
     editorState: migratedEditorState(source.editorState),
@@ -330,21 +430,37 @@ export function addHanaStroke(
   if (next.strokes.some((stroke) => stroke.id === stroke3D.id)) throw new Error(`Duplicate Stroke id: ${stroke3D.id}`);
   next.rawGestures.strokes.push(cloneRawGesture(rawGesture));
   next.strokes.push(hanaStrokeFromStroke3D(stroke3D, role));
+  next.identity = createHanaAuthoringIdentity(next.rawGestures.strokes, next.strokes, next.identity);
   next.activeStrokeId = stroke3D.id;
   next.selectedStrokeIds = [stroke3D.id];
   return nextRevision(next);
 }
 
 export function removeHanaStroke(document: HanaAuthoringDocument, strokeId: string): HanaAuthoringDocument {
+  return deleteHanaStrokes(document, [strokeId]);
+}
+
+/** Delete one or more Strokes while retaining Raw Gestures still referenced by survivors. */
+export function deleteHanaStrokes(
+  document: HanaAuthoringDocument,
+  strokeIds: readonly string[],
+): HanaAuthoringDocument {
   const next = cloneHanaAuthoringDocument(document);
-  const removed = next.strokes.find((stroke) => stroke.id === strokeId);
-  if (!removed) return next;
-  next.strokes = next.strokes.filter((stroke) => stroke.id !== strokeId);
-  next.rawGestures.strokes = next.rawGestures.strokes.filter((stroke) => stroke.id !== removed.rawGestureId);
-  next.selectedStrokeIds = next.selectedStrokeIds.filter((id) => id !== strokeId);
-  next.activeStrokeId = next.activeStrokeId === strokeId
-    ? (next.strokes.length > 0 ? next.strokes[next.strokes.length - 1].id : null)
-    : next.activeStrokeId;
+  const deleted = new Set(strokeIds);
+  const removed = next.strokes.filter((stroke) => deleted.has(stroke.id));
+  if (removed.length === 0) return next;
+  const removedRawGestureIds = new Set(removed.map((stroke) => stroke.rawGestureId));
+  next.strokes = next.strokes.filter((stroke) => !deleted.has(stroke.id));
+  const remainingRawGestureIds = new Set(next.strokes.map((stroke) => stroke.rawGestureId));
+  next.rawGestures.strokes = next.rawGestures.strokes.filter((gesture) => (
+    !removedRawGestureIds.has(gesture.id) || remainingRawGestureIds.has(gesture.id)
+  ));
+  next.selectedStrokeIds = next.selectedStrokeIds.filter((id) => !deleted.has(id));
+  next.activeStrokeId = next.activeStrokeId && !deleted.has(next.activeStrokeId)
+    ? next.activeStrokeId
+    : next.selectedStrokeIds[next.selectedStrokeIds.length - 1]
+      ?? next.strokes[next.strokes.length - 1]?.id
+      ?? null;
   return nextRevision(next);
 }
 
@@ -353,7 +469,7 @@ export function selectHanaStrokes(document: HanaAuthoringDocument, strokeIds: re
   next.selectedStrokeIds = [...new Set(strokeIds)].filter((id) => next.strokes.some((stroke) => stroke.id === id));
   next.activeStrokeId = next.selectedStrokeIds.length > 0
     ? next.selectedStrokeIds[next.selectedStrokeIds.length - 1]
-    : next.activeStrokeId;
+    : null;
   return nextRevision(next);
 }
 

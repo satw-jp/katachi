@@ -7,6 +7,7 @@ import {
   createJunctionNode,
   disconnectAuthoringEdge,
   graphOverlaySegments,
+  removeAuthoringGraphReferences,
   validateAuthoringGraph,
 } from "./authoringGraph.ts";
 
@@ -112,4 +113,48 @@ test("Disconnect is immutable and removes only the requested edge", () => {
   assert.equal(graph.edges.length, 1);
   assert.equal(disconnected.edges.length, 0);
   assert.equal(disconnected.nodes.length, graph.nodes.length);
+});
+
+test("Graph references are cleaned when a non-protected Stroke is deleted", () => {
+  let graph = baseGraph();
+  graph = addAuthoringNode(graph, {
+    id: "petal-node",
+    role: "anchor",
+    sourceObjectId: "stroke-petal",
+    position: point(1, 0, 0),
+    protected: false,
+    provenance: { sourceObjectIds: ["stroke-petal"], sourceGestureIds: ["gesture-petal"] },
+  });
+  graph = connectAuthoringNodes(graph, {
+    id: "petal-edge",
+    role: "petal",
+    sourceObjectId: "stroke-petal",
+    fromNodeId: "stem-start",
+    toNodeId: "petal-node",
+    protected: false,
+    provenance: { sourceObjectIds: ["stroke-petal"], sourceGestureIds: ["gesture-petal"] },
+  });
+  const cleaned = removeAuthoringGraphReferences(
+    graph,
+    ["stroke-petal"],
+    ["gesture-petal"],
+    ["stem"],
+    ["gesture-stem"],
+  );
+  assert.deepEqual(cleaned.nodes.map((node) => node.id), ["stem-start", "flower-center"]);
+  assert.deepEqual(cleaned.edges, []);
+});
+
+test("Protected Graph references reject semantic deletion", () => {
+  const graph = addAuthoringNode(baseGraph(), {
+    id: "protected-petal",
+    role: "anchor",
+    sourceObjectId: "stroke-petal",
+    position: point(1, 0, 0),
+    protected: true,
+  });
+  assert.throws(
+    () => removeAuthoringGraphReferences(graph, ["stroke-petal"]),
+    /Cannot delete protected Graph reference: protected-petal/,
+  );
 });

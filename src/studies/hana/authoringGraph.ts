@@ -263,3 +263,69 @@ export function validateAuthoringGraph(
 export function cloneAuthoringGraph(graph: HanaAuthoringGraph): HanaAuthoringGraph {
   return cloneGraph(graph);
 }
+
+/**
+ * Remove safe references to deleted authoring objects while refusing to leave a
+ * protected graph entity in an ambiguous state.
+ */
+export function removeAuthoringGraphReferences(
+  graph: HanaAuthoringGraph,
+  deletedObjectIds: readonly string[],
+  deletedGestureIds: readonly string[] = [],
+  remainingObjectIds: Iterable<string> = [],
+  remainingGestureIds: Iterable<string> = [],
+): HanaAuthoringGraph {
+  const deletedObjects = new Set(deletedObjectIds);
+  const deletedGestures = new Set(deletedGestureIds);
+  const remainingObjects = new Set(remainingObjectIds);
+  const remainingGestures = new Set(remainingGestureIds);
+  const referencesDeleted = (entity: HanaAuthoringNode | HanaAuthoringEdge): boolean => (
+    (entity.sourceObjectId !== null && deletedObjects.has(entity.sourceObjectId))
+    || entity.provenance.sourceObjectIds.some((id) => deletedObjects.has(id))
+    || entity.provenance.sourceGestureIds.some((id) => deletedGestures.has(id))
+  );
+  for (const entity of [...graph.nodes, ...graph.edges]) {
+    if (entity.protected && referencesDeleted(entity)) {
+      throw new Error(`Cannot delete protected Graph reference: ${entity.id}`);
+    }
+  }
+  const removedNodeIds = new Set(
+    graph.nodes
+      .filter((node) => !node.protected && referencesDeleted(node))
+      .map((node) => node.id),
+  );
+  for (const edge of graph.edges) {
+    if (edge.protected && (removedNodeIds.has(edge.fromNodeId) || removedNodeIds.has(edge.toNodeId))) {
+      throw new Error(`Cannot delete protected Graph reference: ${edge.id}`);
+    }
+  }
+  const next = cloneGraph(graph);
+  next.nodes = next.nodes
+    .filter((node) => !removedNodeIds.has(node.id))
+    .map((node) => ({
+      ...node,
+      sourceObjectId: node.sourceObjectId && deletedObjects.has(node.sourceObjectId)
+        ? null
+        : node.sourceObjectId,
+      provenance: {
+        sourceObjectIds: node.provenance.sourceObjectIds.filter((id) => !deletedObjects.has(id) && (!remainingObjects.size || remainingObjects.has(id))),
+        sourceGestureIds: node.provenance.sourceGestureIds.filter((id) => !deletedGestures.has(id) && (!remainingGestures.size || remainingGestures.has(id))),
+      },
+    }));
+  const survivingNodeIds = new Set(next.nodes.map((node) => node.id));
+  next.edges = next.edges
+    .filter((edge) => survivingNodeIds.has(edge.fromNodeId) && survivingNodeIds.has(edge.toNodeId))
+    .filter((edge) => !referencesDeleted(edge))
+    .map((edge) => ({
+      ...edge,
+      sourceObjectId: edge.sourceObjectId && deletedObjects.has(edge.sourceObjectId)
+        ? null
+        : edge.sourceObjectId,
+      provenance: {
+        sourceObjectIds: edge.provenance.sourceObjectIds.filter((id) => !deletedObjects.has(id) && (!remainingObjects.size || remainingObjects.has(id))),
+        sourceGestureIds: edge.provenance.sourceGestureIds.filter((id) => !deletedGestures.has(id) && (!remainingGestures.size || remainingGestures.has(id))),
+      },
+    }));
+  if (next.nodes.length !== graph.nodes.length || next.edges.length !== graph.edges.length) next.revision += 1;
+  return next;
+}
