@@ -1,0 +1,9 @@
+import type { ComposerStatePatch } from "../runtime/state.ts";
+
+export const ARCHIVE_COMPOSER_PRESETS: Record<string, ComposerStatePatch> = {
+  "study-gaussian": { visual: { points: 0.22, gaussian: 0.92, hairlines: 0.08, softLines: 0.2, cloud: 0.72, void: 0.08 }, motion: { wave: 0.38, accumulation: 0.7 }, space: { spatialEcho: 0.76, depthSpread: 1.3 }, color: { palette: "rich", source: "MOTIF" } },
+  "study-field": { visual: { points: 0.18, gaussian: 0.5, hairlines: 0.12, softLines: 0.18, cloud: 0.9, void: 0.08 }, motion: { drift: 0.46, wave: 0.24, oscillation: 0.52 }, space: { spatialEcho: 0.7, depthSpread: 1.35 }, color: { palette: "blue", source: "DENSITY" } },
+  "study-dust": { visual: { points: 0.9, gaussian: 0.36, hairlines: 0.08, softLines: 0.12, cloud: 0.24, void: 0.08 }, motion: { drift: 0.62, wave: 0.36, tremor: 0.3 }, space: { spatialEcho: 0.8, depthSpread: 1.4 }, color: { palette: "rich", source: "DIRECTION" } },
+  "v4-visible-mending": { visual: { points: 0.32, gaussian: 0.56, hairlines: 0.82, softLines: 0.64, cloud: 0.3, void: 0.12 }, motion: { growth: 0.58, tremor: 0.28, accumulation: 0.5 }, color: { palette: "red", source: "SUPPORT" } },
+  "v4-shadow-room": { visual: { points: 0.1, gaussian: 0.42, hairlines: 0.16, softLines: 0.12, cloud: 0.46, void: 0.7 }, motion: { wave: 0.6, oscillation: 0.38 }, space: { voidRetention: 0.82, spatialEcho: 0.54 }, color: { palette: "blue", blackRetention: 0.86, source: "CONNECTIVITY" } },
+};
