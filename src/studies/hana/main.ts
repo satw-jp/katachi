@@ -808,11 +808,15 @@ function rawCaptureText(): string {
     return `recording ${activeStroke.stroke.points.length} · source parent/coalesced ${sources.parentPointerEvent}/${sources.coalescedEvent}`;
   }
   const gap = diagnostics.largestGap;
+  const gapStatus = diagnostics.intervalOver100Milliseconds > 0
+    ? "INPUT GAP"
+    : "no >100ms gap";
   return [
     `RAW ${diagnostics.sampleCount} · unique ${diagnostics.uniqueSampleCount} · dup ${diagnostics.exactDuplicateCount}`,
     `suppressed ${diagnostics.suppressedExactDuplicateCount}`,
     `dt ${diagnostics.medianSampleInterval.toFixed(1)}/${diagnostics.p95SampleInterval.toFixed(1)}/${diagnostics.maxSampleInterval.toFixed(1)}ms`,
     `>50/>100 ${diagnostics.intervalOver50Milliseconds}/${diagnostics.intervalOver100Milliseconds}`,
+    gapStatus,
     `jump ${diagnostics.maxSpatialJump.toFixed(1)} · source ${diagnostics.parentPointerSamples}/${diagnostics.coalescedSamples}`,
     gap ? `largest ${gap.fromTime.toFixed(0)}→${gap.toTime.toFixed(0)}ms Δ${gap.deltaTime.toFixed(0)} (${gap.fromX.toFixed(1)},${gap.fromY.toFixed(1)})→(${gap.toX.toFixed(1)},${gap.toY.toFixed(1)})` : "largest —",
     `time ${diagnostics.monotonicTime ? "monotonic" : "NON-MONOTONIC"}`,
