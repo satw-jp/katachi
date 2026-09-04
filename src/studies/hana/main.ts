@@ -72,6 +72,14 @@ import {
   type HanaLiveWorkingPath,
 } from "./liveWorkingPath.ts";
 import {
+  collectPointerEventSamples,
+  dedupeExactPointerSamples,
+  summarizeRawGestureCapture,
+  type HanaPointerSampleLike,
+  type HanaRawGestureCaptureDiagnostics,
+  type HanaRawCaptureSourceCounts,
+} from "./rawGestureCapture.ts";
+import {
   createBoundedStrokePreview,
   HANA_MOUSE_EDIT_PREVIEW_MAX_CONTROLS,
 } from "./editPreview.ts";
@@ -233,6 +241,7 @@ app.innerHTML = `
         <div><dt>x / y</dt><dd id="debug-position">— / —</dd></div>
         <div><dt>viewport</dt><dd id="debug-viewport">Front</dd></div>
         <div><dt>raw points</dt><dd id="debug-points">0</dd></div>
+        <div><dt>raw capture</dt><dd id="debug-raw-capture">—</dd></div>
         <div><dt>3D controls</dt><dd id="debug-controls">0</dd></div>
         <div><dt>control fit</dt><dd id="debug-control-fit">—</dd></div>
         <div><dt>smooth samples</dt><dd id="debug-smooth">0</dd></div>
@@ -324,6 +333,7 @@ const interactionModes: HanaInteractionMode[] = ["edit", "view", "draw", "edit"]
 const rawGestures: HanaViewportStroke[] = [];
 let rawPressureTotal = 0;
 let rawTimeTotal = 0;
+let lastRawCaptureDiagnostics: HanaRawGestureCaptureDiagnostics | null = null;
 let stroke3D: HanaStroke3D | null = null;
 let provisionalStroke3D: HanaStroke3D | null = null;
 let editPreviewStroke3D: HanaStroke3D | null = null;
@@ -429,6 +439,9 @@ interface ActiveStroke {
   pressureMin: number;
   pressureMax: number;
   pressures: Set<number>;
+  lastCapturedInputSample: HanaPointerSampleLike | null;
+  captureSourceCounts: HanaRawCaptureSourceCounts;
+  suppressedExactDuplicateCount: number;
 }
 
 interface CameraDrag {
@@ -785,6 +798,25 @@ function rawSignature(): string {
 function appendRawSignaturePoint(point: HanaStrokePoint): void {
   rawPressureTotal += point.pressure;
   rawTimeTotal += point.time;
+}
+
+function rawCaptureText(): string {
+  const diagnostics = lastRawCaptureDiagnostics;
+  if (!diagnostics) {
+    if (!activeStroke) return "—";
+    const sources = activeStroke.captureSourceCounts;
+    return `recording ${activeStroke.stroke.points.length} · source parent/coalesced ${sources.parentPointerEvent}/${sources.coalescedEvent}`;
+  }
+  const gap = diagnostics.largestGap;
+  return [
+    `RAW ${diagnostics.sampleCount} · unique ${diagnostics.uniqueSampleCount} · dup ${diagnostics.exactDuplicateCount}`,
+    `suppressed ${diagnostics.suppressedExactDuplicateCount}`,
+    `dt ${diagnostics.medianSampleInterval.toFixed(1)}/${diagnostics.p95SampleInterval.toFixed(1)}/${diagnostics.maxSampleInterval.toFixed(1)}ms`,
+    `>50/>100 ${diagnostics.intervalOver50Milliseconds}/${diagnostics.intervalOver100Milliseconds}`,
+    `jump ${diagnostics.maxSpatialJump.toFixed(1)} · source ${diagnostics.parentPointerSamples}/${diagnostics.coalescedSamples}`,
+    gap ? `largest ${gap.fromTime.toFixed(0)}→${gap.toTime.toFixed(0)}ms Δ${gap.deltaTime.toFixed(0)} (${gap.fromX.toFixed(1)},${gap.fromY.toFixed(1)})→(${gap.toX.toFixed(1)},${gap.toY.toFixed(1)})` : "largest —",
+    `time ${diagnostics.monotonicTime ? "monotonic" : "NON-MONOTONIC"}`,
+  ].join(" · ");
 }
 
 function boundsSignature(bounds: HanaStrokeBounds | null): string {
@@ -1598,6 +1630,7 @@ function updateDebug(
   setDebugText("debug-position", point ? `${point.x.toFixed(1)} / ${point.y.toFixed(1)}` : "— / —");
   setDebugText("debug-viewport", skinViewDirectionLabel(directions[selectedViewport]));
   setDebugText("debug-points", String(stroke?.points.length ?? rawGestures[0]?.points.length ?? 0));
+  setDebugText("debug-raw-capture", rawCaptureText());
   setDebugText("debug-controls", String(visibleStroke?.controlPoints.length ?? 0));
   setDebugText("debug-control-fit", lastAdaptiveControlFit
     ? `${lastAdaptiveControlFit.indices.length} · tol ${lastAdaptiveControlFit.tolerance.toFixed(3)} · max C/S ${lastAdaptiveControlFit.maxControlDeviation.toFixed(3)}/${lastAdaptiveControlFit.maxSmoothDeviation.toFixed(3)}`
@@ -1870,7 +1903,7 @@ function resize(): void {
   refreshLayout();
 }
 
-function pointFromSample(sample: PointerEvent, active: ActiveStroke): HanaStrokePoint {
+function pointFromSample(sample: HanaPointerSampleLike, active: ActiveStroke): HanaStrokePoint {
   const bounds = gestureCanvas.getBoundingClientRect();
   return {
     x: sample.clientX - bounds.left - active.rect.x,
@@ -1888,15 +1921,21 @@ function appendSamples(event: PointerEvent): void {
   if (!activeStroke || event.pointerId !== activeStroke.pointerId) return;
   const rawStarted = performance.now();
   const coalesced = event.getCoalescedEvents?.() ?? [];
-  const samples = coalesced.length > 0 ? coalesced : [event];
+  const candidates = collectPointerEventSamples(event, coalesced);
+  const deduplicated = dedupeExactPointerSamples(candidates, activeStroke.lastCapturedInputSample);
+  activeStroke.lastCapturedInputSample = deduplicated.lastCaptured;
+  activeStroke.suppressedExactDuplicateCount += deduplicated.suppressedExactDuplicateCount;
   let latest: HanaStrokePoint | null = null;
-  for (const sample of samples) {
+  for (const candidate of deduplicated.accepted) {
+    const sample = candidate.event;
     latest = pointFromSample(sample, activeStroke);
     activeStroke.stroke.points.push(latest);
     appendRawSignaturePoint(latest);
     activeStroke.pressureMin = Math.min(activeStroke.pressureMin, latest.pressure);
     activeStroke.pressureMax = Math.max(activeStroke.pressureMax, latest.pressure);
     activeStroke.pressures.add(latest.pressure);
+    if (candidate.source === "parent-pointer-event") activeStroke.captureSourceCounts.parentPointerEvent += 1;
+    else activeStroke.captureSourceCounts.coalescedEvent += 1;
     if (activeRawPath) {
       const scaleX = activeStroke.rect.width / Math.max(1, activeStroke.stroke.viewportSize.width);
       const scaleY = activeStroke.rect.height / Math.max(1, activeStroke.stroke.viewportSize.height);
@@ -1960,7 +1999,11 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
     pressureMin: event.pressure,
     pressureMax: event.pressure,
     pressures: new Set([event.pressure]),
+    lastCapturedInputSample: event,
+    captureSourceCounts: { parentPointerEvent: 1, coalescedEvent: 0 },
+    suppressedExactDuplicateCount: 0,
   };
+  lastRawCaptureDiagnostics = null;
   provisionalStroke3D = null;
   provisionalCenterline = [];
   materialSamples = [];
@@ -1994,6 +2037,11 @@ function finishStroke(): void {
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
   const finished = activeStroke;
+  lastRawCaptureDiagnostics = summarizeRawGestureCapture(
+    finished.stroke.points,
+    finished.captureSourceCounts,
+    finished.suppressedExactDuplicateCount,
+  );
   const direction = finished.stroke.viewDirection;
   if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
   const pointToWorld = (point: HanaStrokePoint) => projectGesturePointToWorld(finished, point);
@@ -2830,12 +2878,13 @@ function endTouchNavigation(pointerId: number): void {
   if (gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
 }
 
-function endPointer(pointerId: number, releaseCapture: boolean): void {
+function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: PointerEvent | null = null): void {
   if (touchPointers.has(pointerId)) {
     endTouchNavigation(pointerId);
     return;
   }
   if (activeStroke?.pointerId === pointerId) {
+    if (finalEvent) appendSamples(finalEvent);
     surfacePointerEndMilliseconds = performance.now();
     finishStroke();
   }
@@ -2915,8 +2964,8 @@ gestureCanvas.addEventListener("pointermove", (event) => {
   redrawOverlay();
 });
 
-gestureCanvas.addEventListener("pointerup", (event) => endPointer(event.pointerId, true));
-gestureCanvas.addEventListener("pointercancel", (event) => endPointer(event.pointerId, true));
+gestureCanvas.addEventListener("pointerup", (event) => endPointer(event.pointerId, true, event));
+gestureCanvas.addEventListener("pointercancel", (event) => endPointer(event.pointerId, true, event));
 gestureCanvas.addEventListener("lostpointercapture", (event) => endPointer(event.pointerId, false));
 gestureCanvas.addEventListener("contextmenu", (event) => event.preventDefault());
 gestureCanvas.addEventListener("wheel", (event) => {
@@ -3674,6 +3723,7 @@ clearButton.addEventListener("click", () => {
   rawGestures.length = 0;
   rawPressureTotal = 0;
   rawTimeTotal = 0;
+  lastRawCaptureDiagnostics = null;
   stroke3D = null;
   provisionalStroke3D = null;
   editPreviewStroke3D = null;
@@ -3829,6 +3879,7 @@ async function restoreRecoveryCheckpoint(): Promise<void> {
   if (rawGestures.length > 0 || stroke3D || activeStroke) return;
   const document = migrateHanaDocument(checkpoint.document);
   rawGestures.push(...document.rawGestures.strokes);
+  lastRawCaptureDiagnostics = summarizeRawGestureCapture(rawGestures[0]?.points ?? []);
   rawPressureTotal = rawGestures[0]?.points.reduce((total, point) => total + point.pressure, 0) ?? 0;
   rawTimeTotal = rawGestures[0]?.points.reduce((total, point) => total + point.time, 0) ?? 0;
   documentRevision = document.revision;

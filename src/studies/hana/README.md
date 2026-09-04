@@ -589,3 +589,11 @@ Raw points, pressure, time, order, provenance, adaptive Control tolerance `0.09`
 - Very dense Final Surface generation remains cooperative but can take noticeable time. Worker, WebGPU, CUDA, native iPad, and Service Worker work are out of scope.
 - Soft Edit remains control-count based; arc-length Soft Edit is a follow-up.
 - Browser and Chrome command-line warnings are not HANA console errors; environment-specific `uv_os_get_passwd ENOMEM` remains a test-environment follow-up.
+
+## Raw Gesture Capture Integrity v0
+
+The authoritative Raw Gesture capture path is separate from the bounded live-preview scheduler. Pointer and coalesced samples are appended immediately without rAF throttling, latest-only replacement, distance decimation, pressure filtering, time filtering, or Control tolerance. Every coalesced sample is retained, and the parent PointerEvent is added only when it is not already represented by the final coalesced sample. A strict capture boundary suppresses only exact adjacent duplicates matching pointer id, x, y, pressure, and timestamp; nearby samples and same-time samples with different values remain Raw data. Pointerup and pointercancel use the same capture path so the final received input is not omitted.
+
+After a stroke, HANA-local Diagnostics can report Raw count, unique count, remaining and suppressed exact duplicates, median / p95 / maximum sample interval, intervals over 50ms and 100ms, maximum spatial jump, the largest gap with its endpoints, monotonic time, and parent/coalesced source counts. An observed gap is reported as `INPUT GAP`; HANA does not invent points or interpolate a missing author gesture. Raw Gesture remains authoritative and preserves pressure, time, order, and provenance; the bounded live path, Live Material limit, and Live Proxy limit remain independent derived presentation data.
+
+The regression fixture covers parent/coalesced overlap, multiple coalesced samples, preview decoupling, strict exact deduplication, monotonic-time diagnostics, and no accidental proximity deduplication. The latest iPad hardware gate remains pending for confirming that long gaps are absent during slow and fast Apple Pencil loops; this software change does not freeze or alter HANA-2A's prior checkpoint.

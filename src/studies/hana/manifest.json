@@ -23,7 +23,8 @@
     "indexedDbCheckpoint",
     "touchNavigation",
     "viewPresets",
-    "autoRotate"
+    "autoRotate",
+    "rawCaptureIntegrity"
   ],
   "related": ["skin"],
   "revisits": [
@@ -226,6 +227,10 @@
     {
       "date": "2026-09-04",
       "note": "HANA Authoring Stack v0 interaction layer adds a compact touch-first control pane for iPad Pro 11-inch, bounded live-path profiling, latest-frame Pencil preview processing, lifecycle and WebGL context diagnostics, versioned IndexedDB local recovery checkpoints, touch pan/pinch navigation, view presets, Fit View, and stoppable Auto Rotate. Raw Gesture fidelity, adaptive Control tolerance 0.09, dense Final Material / Field / Surface semantics, Remote Compute v0, and Live Proxy 192 cap remain unchanged. Software verification is required before the iPad hardware recheck; HANA-local only, with no SKIN production changes."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "Raw Gesture Capture Integrity v0 separates authoritative Pointer / coalesced sample capture from the bounded latest-frame preview scheduler. The capture boundary keeps every coalesced sample, adds the parent PointerEvent when it is not already represented by the final coalesced sample, and suppresses only exact duplicate samples by pointerId, x, y, pressure, and timestamp. Pointerup / cancel samples use the same boundary. HANA-local diagnostics report Raw count, unique count, remaining and suppressed exact duplicates, interval median / p95 / max, >50ms and >100ms gaps, largest spatial jump, monotonic time, and parent/coalesced source counts. No interpolation, proximity decimation, Raw mutation, Control / Material fidelity reduction, Remote Compute redesign, or SKIN change was introduced."
     }
   ]
 }
