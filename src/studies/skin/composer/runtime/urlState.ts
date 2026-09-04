@@ -8,9 +8,13 @@ function normalizedState(value: ComposerStatePatch): ComposerState {
 }
 
 export function parseComposerState(search: string): ComposerState {
-  const raw = new URLSearchParams(search).get("state");
-  if (!raw) return DEFAULT_COMPOSER_STATE;
-  try { return normalizedState(JSON.parse(raw) as ComposerStatePatch); } catch { return DEFAULT_COMPOSER_STATE; }
+  const params = new URLSearchParams(search);
+  const raw = params.get("state");
+  const seedRaw = params.get("seed");
+  const seedValue = seedRaw === null ? Number.NaN : Number(seedRaw);
+  const seedPatch = Number.isFinite(seedValue) ? { seed: Math.round(seedValue) } : {};
+  if (!raw) return normalizedState(seedPatch);
+  try { return normalizedState({ ...(JSON.parse(raw) as ComposerStatePatch), ...seedPatch }); } catch { return normalizedState(seedPatch); }
 }
 
 export function serializeComposerState(baseUrl: string, state: ComposerState): string {

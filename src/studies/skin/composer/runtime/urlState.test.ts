@@ -15,4 +15,5 @@ test("composer state keeps the camera pose and maps the former STILL mode to MAN
   assert.deepEqual(parseComposerState(new URL(serialized).search), state);
   const legacy = new URLSearchParams({ state: JSON.stringify({ camera: { mode: "STILL" } }) });
   assert.equal(parseComposerState(`?${legacy}`).camera.mode, "MANUAL");
+  assert.equal(parseComposerState("?seed=12345").seed, 12345);
 });
