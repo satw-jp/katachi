@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => ({
         pack: "pack.html",
         skin: "skin.html",
         skinRebuild: "skin-rebuild.html",
+        skinGoldenRebuildLuna: "skin-golden-rebuild-luna.html",
         interiorGrowth: "interior-growth.html",
         hitsuji: "hitsuji.html",
         hitsujiField: "hitsuji-field.html",
