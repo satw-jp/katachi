@@ -46,3 +46,25 @@ test("Live working compaction is deterministic and does not change Raw input", (
   assert.deepEqual(second, first);
 });
 
+test("Long-stroke live prefixes keep the working representation bounded", () => {
+  const prefixCounts = [100, 500, 1000, 2000, 5000, 10000];
+  for (const prefixCount of prefixCounts) {
+    const makePoint = (index: number): HanaStrokePoint => ({
+      x: index * 10 / Math.max(1, prefixCount - 1),
+      y: Math.sin(index * 0.02),
+      pressure: 0.5,
+      time: index,
+    });
+    const position = (point: HanaStrokePoint) => ({ x: point.x, y: point.y, z: 0 });
+    const first = makePoint(0);
+    const path = createLiveWorkingPath(first, position(first), 0);
+    for (let index = 1; index < prefixCount; index += 1) {
+      const point = makePoint(index);
+      appendLiveWorkingPoint(path, point, position(point), index);
+    }
+    const samples = liveWorkingStrokeSamples(path);
+    assert.ok(samples.length <= HANA_LIVE_WORKING_MAX_POINTS + 1);
+    assert.equal(samples.at(-1)?.sourcePointStart, prefixCount - 1);
+    assert.equal(samples.at(-1)?.sourceT, 1);
+  }
+});

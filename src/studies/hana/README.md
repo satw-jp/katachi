@@ -597,3 +597,36 @@ The authoritative Raw Gesture capture path is separate from the bounded live-pre
 After a stroke, HANA-local Diagnostics can report Raw count, unique count, remaining and suppressed exact duplicates, median / p95 / maximum sample interval, intervals over 50ms and 100ms, maximum spatial jump, the largest gap with its endpoints, monotonic time, and parent/coalesced source counts. An observed gap is reported as `INPUT GAP`; HANA does not invent points or interpolate a missing author gesture. Raw Gesture remains authoritative and preserves pressure, time, order, and provenance; the bounded live path, Live Material limit, and Live Proxy limit remain independent derived presentation data.
 
 The regression fixture covers parent/coalesced overlap, multiple coalesced samples, preview decoupling, strict exact deduplication, monotonic-time diagnostics, and no accidental proximity deduplication. The latest iPad hardware gate remains pending for confirming that long gaps are absent during slow and fast Apple Pencil loops; this software change does not freeze or alter HANA-2A's prior checkpoint.
+
+## HANA Long-Stroke Main-Thread Starvation Diagnosis / Fix v0
+
+This HANA-local refinement isolates and profiles the live Pencil path without changing the authoritative authoring hierarchy or final geometry. The development-only `liveIsolation` diagnostic selects five paths:
+
+```text
+A RAW ONLY
+B RAW + CONTROL
+C RAW + CONTROL + SMOOTH
+D RAW + CONTROL + SMOOTH + LIVE PROXY
+E FULL CURRENT LIVE PATH + RENDER
+```
+
+Raw Gesture capture remains synchronous and authoritative. Pointer and coalesced samples are appended immediately; the live path uses the existing incremental working representation and does not rescan or copy the full Raw Gesture on every frame. Live Control / Centerline / Material / Proxy data are derived presentation only. Live Proxy remains capped at 192 segments and the live working path remains bounded. Full Surface / SDF work is not part of modes A–D; Final Surface generation still uses the existing authoritative dense adaptive Material pipeline after pointerup.
+
+The Diagnostics panel records per-mode stage timings for Pointer callback, Raw append, Control, Smooth, Material, Proxy, buffer / transform update, render, and total frame work. It also records growth checkpoints, processed Raw prefix, event-loop lag (median / p95 / max and >50 / >100ms counts), long-task counts, and the largest Raw interval with the preceding live frame stages. Diagnostics refresh at most four times per second during a stroke, and no recovery checkpoint or JSON serialization is scheduled while Raw capture is active.
+
+Synthetic long-stroke checks cover 100 / 500 / 1000 / 2000 / 5000 / 10000 Raw-point prefixes, bounded live representation, endpoint retention, deterministic output, and the 192-segment Proxy cap. These checks are algorithmic invariants rather than strict CI timing thresholds. No Raw decimation, invented point interpolation, tolerance relaxation, Control coarsening, Material density reduction, or Shape Fidelity reduction was introduced.
+
+### Software status
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Platform:
+  - iPad Pro 11-inch
+  - Apple Pencil
+  - EasyCanvas
+  - Windows Browser
+HANA-2A: PASS / FROZEN baseline unchanged
+SKIN production: unchanged
+```
+
+The iPad slow / fast / continuous long-stroke gate remains pending for this refinement. If RAW ONLY also shows long input gaps, the result must be treated as browser / iPad input supply evidence; HANA must not invent points or change geometry algorithms to conceal it. Worker, WebGPU, CUDA, Remote Compute redesign, Flower, and SKIN integration remain out of scope.

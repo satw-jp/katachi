@@ -120,7 +120,14 @@ import {
   createIndexedDbHanaRecoveryStore,
   isNewerHanaRecoveryCheckpoint,
 } from "./recoveryCheckpoint.ts";
-import { HanaLivePathProfiler, formatHanaLivePathSummary } from "./livePathProfiler.ts";
+import { HanaLivePathProfiler, formatHanaLivePathSummary, type HanaLivePathSample } from "./livePathProfiler.ts";
+import {
+  HANA_LIVE_ISOLATION_MODES,
+  HanaLongStrokeProfiler,
+  formatHanaLongStrokeProfile,
+  liveIsolationModeLabel,
+  type HanaLiveIsolationMode,
+} from "./longStrokeProfiler.ts";
 import {
   HANA_VIEW_PRESETS,
   touchGestureDelta,
@@ -133,6 +140,8 @@ const app = document.getElementById("app");
 if (!app) throw new Error("#app was not found");
 
 let longTaskDurations: number[] = [];
+let eventLoopLagDurations: number[] = [];
+let eventLoopLagTimer: number | null = null;
 if (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")) {
   try {
     new PerformanceObserver((list) => {
@@ -145,6 +154,35 @@ if (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedE
     // Some browser builds expose the type but do not allow observing it.
   }
 }
+
+function startEventLoopLagProbe(): void {
+  if (eventLoopLagTimer !== null) return;
+  let expected = performance.now() + 100;
+  const tick = (): void => {
+    const now = performance.now();
+    const lag = Math.max(0, now - expected);
+    eventLoopLagDurations = [...eventLoopLagDurations, lag].slice(-256);
+    longStrokeProfiler.recordEventLoopLag(lag);
+    expected = now + 100;
+    eventLoopLagTimer = window.setTimeout(tick, 100);
+  };
+  eventLoopLagTimer = window.setTimeout(tick, 100);
+}
+
+function stopEventLoopLagProbe(): void {
+  if (eventLoopLagTimer === null) return;
+  window.clearTimeout(eventLoopLagTimer);
+  eventLoopLagTimer = null;
+}
+
+function liveIsolationModeFromQuery(): HanaLiveIsolationMode {
+  const value = new URLSearchParams(window.location.search).get("liveIsolation");
+  return HANA_LIVE_ISOLATION_MODES.includes(value as HanaLiveIsolationMode)
+    ? value as HanaLiveIsolationMode
+    : "full";
+}
+
+let liveIsolationMode = liveIsolationModeFromQuery();
 
 app.innerHTML = `
   <main class="hana-shell">
@@ -235,6 +273,15 @@ app.innerHTML = `
     <details class="hana-debug">
       <summary>Diagnostics</summary>
       <div class="hana-debug-content">
+      <label>Live isolation mode
+        <select id="live-isolation-mode" aria-label="Live isolation mode">
+          <option value="raw-only"${liveIsolationMode === "raw-only" ? " selected" : ""}>A · RAW ONLY</option>
+          <option value="raw-control"${liveIsolationMode === "raw-control" ? " selected" : ""}>B · RAW + CONTROL</option>
+          <option value="raw-control-smooth"${liveIsolationMode === "raw-control-smooth" ? " selected" : ""}>C · RAW + CONTROL + SMOOTH</option>
+          <option value="raw-control-smooth-proxy"${liveIsolationMode === "raw-control-smooth-proxy" ? " selected" : ""}>D · RAW + CONTROL + SMOOTH + LIVE PROXY</option>
+          <option value="full"${liveIsolationMode === "full" ? " selected" : ""}>E · FULL CURRENT LIVE PATH + RENDER</option>
+        </select>
+      </label>
       <dl>
         <div><dt>pointerType</dt><dd id="debug-pointer">—</dd></div>
         <div><dt>pressure</dt><dd id="debug-pressure">0.0000</dd></div>
@@ -242,6 +289,8 @@ app.innerHTML = `
         <div><dt>viewport</dt><dd id="debug-viewport">Front</dd></div>
         <div><dt>raw points</dt><dd id="debug-points">0</dd></div>
         <div><dt>raw capture</dt><dd id="debug-raw-capture">—</dd></div>
+        <div><dt>live mode</dt><dd id="debug-live-mode">FULL LIVE PATH</dd></div>
+        <div><dt>live growth</dt><dd id="debug-live-growth">—</dd></div>
         <div><dt>3D controls</dt><dd id="debug-controls">0</dd></div>
         <div><dt>control fit</dt><dd id="debug-control-fit">—</dd></div>
         <div><dt>smooth samples</dt><dd id="debug-smooth">0</dd></div>
@@ -270,6 +319,7 @@ app.innerHTML = `
         <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
         <div><dt>compute</dt><dd id="debug-compute">LOCAL · READY</dd></div>
         <div><dt>live profile</dt><dd id="debug-live-profile">—</dd></div>
+        <div><dt>event-loop lag</dt><dd id="debug-event-loop">—</dd></div>
         <div><dt>lifecycle</dt><dd id="debug-lifecycle">—</dd></div>
         <div><dt>recovery</dt><dd id="debug-recovery">—</dd></div>
         <div><dt>view</dt><dd id="debug-view">—</dd></div>
@@ -306,6 +356,7 @@ const smoothnessValue = requiredElement<HTMLOutputElement>("#smoothness-value");
 const centerlineToggle = requiredElement<HTMLButtonElement>("#show-centerline");
 const samplesToggle = requiredElement<HTMLButtonElement>("#show-samples");
 const surfaceToggle = requiredElement<HTMLButtonElement>("#show-surface");
+const liveIsolationModeSelect = requiredElement<HTMLSelectElement>("#live-isolation-mode");
 const thicknessSlider = requiredElement<HTMLInputElement>("#thickness-control");
 const thicknessValue = requiredElement<HTMLOutputElement>("#thickness-value");
 const rebuildSurfaceButton = requiredElement<HTMLButtonElement>("#rebuild-surface");
@@ -604,6 +655,23 @@ let recoveryWriteChain: Promise<void> = Promise.resolve();
 const recoveryStore = createIndexedDbHanaRecoveryStore();
 const recoveryDocumentId = "hana-document-1";
 const livePathProfiler = new HanaLivePathProfiler();
+const longStrokeProfiler = new HanaLongStrokeProfiler();
+const HANA_LIVE_GROWTH_TARGETS = [100, 500, 1000, 2000, 5000, 10000] as const;
+interface HanaLiveGrowthCheckpoint {
+  targetRawCount: number;
+  actualRawCount: number;
+  controlMilliseconds: number;
+  smoothMilliseconds: number;
+  materialMilliseconds: number;
+  proxyMilliseconds: number;
+  renderMilliseconds: number;
+  totalMilliseconds: number;
+}
+
+let liveGrowthCheckpoints: HanaLiveGrowthCheckpoint[] = [];
+let liveGapPrecedingText = "—";
+let liveDiagnosticsTimer: number | null = null;
+let livePathDirty = false;
 let liveLastEventTimestamp: number | null = null;
 let pendingControlPointer: PendingControlPointer | null = null;
 let mouseEditPointerRevision = 0;
@@ -819,6 +887,7 @@ function rawCaptureText(): string {
     gapStatus,
     `jump ${diagnostics.maxSpatialJump.toFixed(1)} · source ${diagnostics.parentPointerSamples}/${diagnostics.coalescedSamples}`,
     gap ? `largest ${gap.fromTime.toFixed(0)}→${gap.toTime.toFixed(0)}ms Δ${gap.deltaTime.toFixed(0)} (${gap.fromX.toFixed(1)},${gap.fromY.toFixed(1)})→(${gap.toX.toFixed(1)},${gap.toY.toFixed(1)})` : "largest —",
+    `live ${liveGapPrecedingText}`,
     `time ${diagnostics.monotonicTime ? "monotonic" : "NON-MONOTONIC"}`,
   ].join(" · ");
 }
@@ -846,6 +915,85 @@ function durationStats(values: readonly number[]): { min: number; median: number
     : sorted[middle];
   const p95Index = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
   return { min: sorted[0], median, p95: sorted[p95Index], max: sorted[sorted.length - 1] };
+}
+
+function scheduleLiveDiagnosticsUpdate(): void {
+  if (liveDiagnosticsTimer !== null) return;
+  liveDiagnosticsTimer = window.setTimeout(() => {
+    liveDiagnosticsTimer = null;
+    updateDebug();
+  }, 250);
+}
+
+function cancelLiveDiagnosticsUpdate(): void {
+  if (liveDiagnosticsTimer === null) return;
+  window.clearTimeout(liveDiagnosticsTimer);
+  liveDiagnosticsTimer = null;
+}
+
+function recordLiveGrowthCheckpoint(input: {
+  rawCount: number;
+  controlMilliseconds: number;
+  smoothMilliseconds: number;
+  materialMilliseconds: number;
+  proxyMilliseconds: number;
+  renderMilliseconds: number;
+  totalMilliseconds: number;
+}): void {
+  for (const targetRawCount of HANA_LIVE_GROWTH_TARGETS) {
+    if (input.rawCount < targetRawCount || liveGrowthCheckpoints.some((item) => item.targetRawCount === targetRawCount)) continue;
+    liveGrowthCheckpoints.push({
+      targetRawCount,
+      actualRawCount: input.rawCount,
+      controlMilliseconds: input.controlMilliseconds,
+      smoothMilliseconds: input.smoothMilliseconds,
+      materialMilliseconds: input.materialMilliseconds,
+      proxyMilliseconds: input.proxyMilliseconds,
+      renderMilliseconds: input.renderMilliseconds,
+      totalMilliseconds: input.totalMilliseconds,
+    });
+  }
+}
+
+function liveGrowthText(): string {
+  if (liveGrowthCheckpoints.length === 0) return "—";
+  return liveGrowthCheckpoints.map((checkpoint) => [
+    `${checkpoint.targetRawCount}@${checkpoint.actualRawCount}`,
+    `c${checkpoint.controlMilliseconds.toFixed(1)}`,
+    `s${checkpoint.smoothMilliseconds.toFixed(1)}`,
+    `m${checkpoint.materialMilliseconds.toFixed(1)}`,
+    `p${checkpoint.proxyMilliseconds.toFixed(1)}`,
+    `r${checkpoint.renderMilliseconds.toFixed(1)}`,
+    `t${checkpoint.totalMilliseconds.toFixed(1)}`,
+  ].join("/")).join(" · ");
+}
+
+function eventLoopLagText(): string {
+  const stats = durationStats(eventLoopLagDurations);
+  if (!stats) return "—";
+  return `ms ${stats.median.toFixed(1)}/${stats.p95.toFixed(1)}/${stats.max.toFixed(1)} · >50 ${eventLoopLagDurations.filter((value) => value > 50).length} · >100 ${eventLoopLagDurations.filter((value) => value > 100).length}`;
+}
+
+function liveGapPrecedingTextFor(
+  finished: ActiveStroke,
+  diagnostics: HanaRawGestureCaptureDiagnostics,
+): string {
+  const gap = diagnostics.largestGap;
+  if (!gap || diagnostics.intervalOver100Milliseconds === 0) return "no >100ms gap";
+  const startPerformance = finished.startTime > 1_000_000_000_000
+    ? finished.startTime - performance.timeOrigin
+    : finished.startTime;
+  const gapEndPerformance = startPerformance + gap.toTime;
+  const precedingFrames = [...livePathProfiler.recentSamples]
+    .filter((sample) => sample.kind === "frame" && sample.frameTimestamp !== null && sample.frameTimestamp <= gapEndPerformance);
+  const precedingFrame = precedingFrames[precedingFrames.length - 1];
+  if (!precedingFrame) return `gap ${gap.deltaTime.toFixed(0)}ms · preceding no live frame`;
+  const stage = (name: keyof HanaLivePathSample["stages"]): string => (
+    typeof precedingFrame.stages[name] === "number"
+      ? (precedingFrame.stages[name] as number).toFixed(1)
+      : "0.0"
+  );
+  return `gap ${gap.deltaTime.toFixed(0)}ms · preceding c/s/m/p/r/t ${stage("controlUpdate")}/${stage("smoothUpdate")}/${stage("materialUpdate")}/${stage("proxyUpdate")}/${stage("render")}/${stage("totalUpdate")}ms`;
 }
 
 function transitionFinalization(
@@ -1469,7 +1617,10 @@ function updateSurfaceUI(): void {
   setDebugText("debug-mouse-edit-presentation", mouseEditPresentationText(presentation));
   setDebugText("debug-mouse-edit-markers", editDiagnosticMarkerText());
   setDebugText("debug-mouse-edit-pipeline", mouseEditPipelineText());
-  setDebugText("debug-live-profile", formatHanaLivePathSummary(livePathProfiler.summarize()));
+  setDebugText("debug-live-mode", liveIsolationModeLabel(liveIsolationMode));
+  setDebugText("debug-live-growth", liveGrowthText());
+  setDebugText("debug-live-profile", `${formatHanaLivePathSummary(livePathProfiler.summarize())} · ${formatHanaLongStrokeProfile(longStrokeProfiler.summary())}`);
+  setDebugText("debug-event-loop", eventLoopLagText());
   setDebugText("debug-lifecycle", lifecycleText());
   setDebugText("debug-recovery", recoveryStatusText);
   setDebugText("debug-view", `${viewportMode} · ${directions[selectedViewport]} · auto ${autoRotateEnabled ? "on" : "off"}`);
@@ -1520,6 +1671,10 @@ function updateSurfaceUI(): void {
   workspace.dataset.mouseEditDiagnosticMarkers = JSON.stringify(editDiagnosticSnapshot());
   workspace.dataset.mouseEditProxyMode = editProxyMode;
   workspace.dataset.mouseEditPipeline = JSON.stringify(mouseEditPipelineFrames[mouseEditPipelineFrames.length - 1] ?? null);
+  workspace.dataset.liveIsolationMode = liveIsolationMode;
+  workspace.dataset.liveGrowth = JSON.stringify(liveGrowthCheckpoints);
+  workspace.dataset.longStrokeProfile = JSON.stringify(longStrokeProfiler.summary());
+  workspace.dataset.eventLoopLag = eventLoopLagText();
   workspace.dataset.finalProfile = finalProfile;
   workspace.dataset.documentRevision = String(documentRevision);
   workspace.dataset.finalRequestId = String(finalRequestId);
@@ -1578,7 +1733,6 @@ function refreshMaterialSamples(
     finalization.timestamps.tMaterialReady = materialReady;
     setFinalizationStage(finalization, "materialSamples", materialReady - materialStarted);
   }
-  updateSurfaceUI();
   return {
     smoothMilliseconds: smoothReady - smoothStarted,
     materialMilliseconds: materialEnded - materialStarted,
@@ -1601,10 +1755,11 @@ function projectGesturePointToWorld(active: ActiveStroke, point: HanaStrokePoint
 
 function updateProvisionalStroke(): { controlMilliseconds: number; smoothMilliseconds: number; materialMilliseconds: number } {
   const active = activeStroke;
-  if (!active || !liveWorkingPath || active.stroke.points.length < 2) {
-    provisionalStroke3D = null;
-    const refresh = refreshMaterialSamples(null);
-    return { controlMilliseconds: 0, ...refresh };
+  provisionalStroke3D = null;
+  provisionalCenterline = [];
+  materialSamples = [];
+  if (liveIsolationMode === "raw-only" || !active || !liveWorkingPath || active.stroke.points.length < 2) {
+    return { controlMilliseconds: 0, smoothMilliseconds: 0, materialMilliseconds: 0 };
   }
   const controlStarted = performance.now();
   provisionalStroke3D = deriveStroke3DFromSamples(
@@ -1614,8 +1769,29 @@ function updateProvisionalStroke(): { controlMilliseconds: number; smoothMillise
   );
   provisionalStroke3D.curve.smoothness = smoothness;
   const controlMilliseconds = performance.now() - controlStarted;
-  const refresh = refreshMaterialSamples(provisionalStroke3D);
-  return { controlMilliseconds, ...refresh };
+  if (liveIsolationMode === "raw-control") {
+    return { controlMilliseconds, smoothMilliseconds: 0, materialMilliseconds: 0 };
+  }
+  const smoothStarted = performance.now();
+  provisionalCenterline = sampleSmoothCenterline(provisionalStroke3D);
+  const smoothMilliseconds = performance.now() - smoothStarted;
+  if (liveIsolationMode === "raw-control-smooth") {
+    return { controlMilliseconds, smoothMilliseconds, materialMilliseconds: 0 };
+  }
+  if (liveIsolationMode === "raw-control-smooth-proxy") {
+    return { controlMilliseconds, smoothMilliseconds, materialMilliseconds: 0 };
+  }
+  const materialStarted = performance.now();
+  materialSamples = sampleMaterialSamplesForPreview(
+    provisionalCenterline,
+    thickness,
+    SURFACE_PREVIEW_MAX_SAMPLES,
+  );
+  return {
+    controlMilliseconds,
+    smoothMilliseconds,
+    materialMilliseconds: performance.now() - materialStarted,
+  };
 }
 
 function updateDebug(
@@ -1735,7 +1911,7 @@ function drawSharedStroke(rect: SkinViewportRect): void {
   const smooth = displayedCenterline();
   const smoothProjected = smooth.map((point) => renderer.projectPoint(rect.index, point.position, rect));
   const controlProjected = visibleStroke.controlPoints.map((point) => renderer.projectPoint(rect.index, point.position, rect));
-  if (showCenterline) {
+  if (showCenterline && smoothProjected.length >= 2) {
     gestureContext.strokeStyle = color;
     gestureContext.lineWidth = 2.5;
     gestureContext.beginPath();
@@ -1882,8 +2058,12 @@ function renderScene(): void {
     && activeFinalization?.status === (finalProfile === "skip" ? "skipped" : "completed");
   const finalizationPending = activeFinalization?.status === "pending"
     && activeFinalization.finalProfile === "normal";
-  renderer.setPreviewSurfaceVisible(showSurface && !diagnosticFinalProxy && !finalizationPending && (controlDrag === null || !hideFinalSurfaceDuringEdit));
-  renderer.setMaterialProxyVisible(showSurface && (activeStroke !== null || controlDrag !== null || finalizationPending || diagnosticFinalProxy));
+  const liveSurfacePreviewAllowed = activeStroke === null || liveIsolationMode === "full";
+  renderer.setPreviewSurfaceVisible(showSurface && liveSurfacePreviewAllowed && !diagnosticFinalProxy && !finalizationPending && (controlDrag === null || !hideFinalSurfaceDuringEdit));
+  const liveProxyAllowed = activeStroke === null
+    || liveIsolationMode === "raw-control-smooth-proxy"
+    || liveIsolationMode === "full";
+  renderer.setMaterialProxyVisible(showSurface && liveProxyAllowed && (activeStroke !== null || controlDrag !== null || finalizationPending || diagnosticFinalProxy));
   renderer.render(currentRects(), selectedViewport);
 }
 
@@ -1923,6 +2103,7 @@ function previewBuildDurationStats(): { min: number; median: number; max: number
 
 function appendSamples(event: PointerEvent): void {
   if (!activeStroke || event.pointerId !== activeStroke.pointerId) return;
+  const pointerCallbackStarted = performance.now();
   const rawStarted = performance.now();
   const coalesced = event.getCoalescedEvents?.() ?? [];
   const candidates = collectPointerEventSamples(event, coalesced);
@@ -1964,15 +2145,39 @@ function appendSamples(event: PointerEvent): void {
     }
   }
   const rawEnded = performance.now();
+  if (latest) livePathDirty = true;
   liveLastEventTimestamp = eventTimestampForPerformance(event.timeStamp, rawEnded);
+  const pointerCallbackEnded = performance.now();
+  longStrokeProfiler.recordEvent({
+    timestamp: liveLastEventTimestamp,
+    rawCount: activeStroke.stroke.points.length,
+    stages: {
+      pointerCallback: pointerCallbackEnded - pointerCallbackStarted,
+      rawAppend: rawEnded - rawStarted,
+    },
+  });
   livePathProfiler.record({
     kind: "event",
     eventTimestamp: liveLastEventTimestamp,
     stages: { rawAppend: rawEnded - rawStarted },
   });
-  scheduleMaterialProxyFrame();
+  if (liveIsolationMode === "raw-only") {
+    recordLiveGrowthCheckpoint({
+      rawCount: activeStroke.stroke.points.length,
+      controlMilliseconds: 0,
+      smoothMilliseconds: 0,
+      materialMilliseconds: 0,
+      proxyMilliseconds: 0,
+      renderMilliseconds: 0,
+      totalMilliseconds: rawEnded - rawStarted,
+    });
+    cancelMaterialProxyFrame();
+    renderer.setMaterialProxy(null);
+  } else {
+    scheduleMaterialProxyFrame();
+  }
   redrawOverlay();
-  if (latest) updateDebug(latest, activeStroke.stroke.pointerType, activeStroke.stroke);
+  scheduleLiveDiagnosticsUpdate();
 }
 
 function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
@@ -2008,6 +2213,12 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
     suppressedExactDuplicateCount: 0,
   };
   lastRawCaptureDiagnostics = null;
+  liveGrowthCheckpoints = [];
+  liveGapPrecedingText = "—";
+  eventLoopLagDurations = [];
+  longStrokeProfiler.start(liveIsolationMode);
+  startEventLoopLagProbe();
+  cancelLiveDiagnosticsUpdate();
   provisionalStroke3D = null;
   provisionalCenterline = [];
   materialSamples = [];
@@ -2038,6 +2249,8 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
 function finishStroke(): void {
   if (!activeStroke) return;
   const pointerupStarted = performance.now();
+  stopEventLoopLagProbe();
+  cancelLiveDiagnosticsUpdate();
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
   const finished = activeStroke;
@@ -2046,6 +2259,7 @@ function finishStroke(): void {
     finished.captureSourceCounts,
     finished.suppressedExactDuplicateCount,
   );
+  liveGapPrecedingText = liveGapPrecedingTextFor(finished, lastRawCaptureDiagnostics);
   const direction = finished.stroke.viewDirection;
   if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
   const pointToWorld = (point: HanaStrokePoint) => projectGesturePointToWorld(finished, point);
@@ -2093,7 +2307,7 @@ function finishStroke(): void {
   activeStroke = null;
   liveWorkingPath = null;
   pendingPointerupStageTimings = timings;
-  const finalization = showSurface && materialSamples.length > 0
+  const finalization = showSurface && stroke3D !== null
     ? beginAuthoritativeFinalization("draw-pointerup", pointerupStarted)
     : null;
   if (finalization) finalization.timestamps.tProxyFrozen = performance.now();
@@ -2240,6 +2454,68 @@ function cancelEditPreviewFrame(): void {
   editPreviewMaterialProxyFrame = null;
 }
 
+function recordLiveFrameTiming(input: {
+  rafStarted: number;
+  liveProcessing: { controlMilliseconds: number; smoothMilliseconds: number; materialMilliseconds: number } | null;
+  proxyMilliseconds: number;
+  bufferMilliseconds: number;
+  renderMilliseconds: number;
+  totalMilliseconds: number;
+  proxySegmentCount: number;
+}): void {
+  const controlMilliseconds = input.liveProcessing?.controlMilliseconds ?? 0;
+  const smoothMilliseconds = input.liveProcessing?.smoothMilliseconds ?? 0;
+  const materialMilliseconds = input.liveProcessing?.materialMilliseconds ?? 0;
+  const liveWorkingSamples = liveWorkingPath?.samples ?? [];
+  const lastLiveWorkingSample = liveWorkingSamples[liveWorkingSamples.length - 1];
+  livePathProfiler.record({
+    kind: "frame",
+    eventTimestamp: liveLastEventTimestamp ?? input.rafStarted,
+    frameTimestamp: input.rafStarted,
+    stages: {
+      controlUpdate: controlMilliseconds,
+      smoothUpdate: smoothMilliseconds,
+      materialUpdate: materialMilliseconds,
+      proxyUpdate: input.proxyMilliseconds,
+      gpuUpload: input.bufferMilliseconds,
+      render: input.renderMilliseconds,
+      totalUpdate: input.totalMilliseconds,
+    },
+  });
+  longStrokeProfiler.recordFrame({
+    rawCount: activeStroke?.stroke.points.length ?? 0,
+    liveSampleCount: liveWorkingPath
+      ? liveWorkingPath.samples.length + (liveWorkingPath.tail ? 1 : 0)
+      : 0,
+    liveProxySegmentCount: input.proxySegmentCount,
+    processedRawPrefixLength: lastLiveWorkingSample
+      ? lastLiveWorkingSample.sourcePointEnd + 1
+      : liveWorkingPath?.tail
+        ? liveWorkingPath.tail.sourcePointEnd + 1
+        : 0,
+    stages: {
+      pointerCallback: 0,
+      rawAppend: 0,
+      control: controlMilliseconds,
+      smooth: smoothMilliseconds,
+      material: materialMilliseconds,
+      proxy: input.proxyMilliseconds,
+      buffer: input.bufferMilliseconds,
+      render: input.renderMilliseconds,
+      total: input.totalMilliseconds,
+    },
+  });
+  recordLiveGrowthCheckpoint({
+    rawCount: activeStroke?.stroke.points.length ?? 0,
+    controlMilliseconds,
+    smoothMilliseconds,
+    materialMilliseconds,
+    proxyMilliseconds: input.proxyMilliseconds,
+    renderMilliseconds: input.renderMilliseconds,
+    totalMilliseconds: input.totalMilliseconds,
+  });
+}
+
 function scheduleMaterialProxyFrame(): void {
   const centerline = activeStroke ? provisionalCenterline : editPreviewCenterline;
   const isPreviewActive = activeStroke !== null || controlDrag !== null;
@@ -2259,12 +2535,16 @@ function scheduleMaterialProxyFrame(): void {
     if (frameRef === "live") materialProxyFrame = null;
     else editPreviewMaterialProxyFrame = null;
     const rafStarted = performance.now();
+    if (frameRef === "live") {
+      if (!livePathDirty || !activeStroke) return;
+      livePathDirty = false;
+    }
     let pendingForFrame: PendingControlPointer | null = null;
     let controlPreviewTiming: ControlPreviewTiming | null = null;
     let liveProcessing: { controlMilliseconds: number; smoothMilliseconds: number; materialMilliseconds: number } | null = null;
     if (frameRef === "live" && activeStroke) {
       liveProcessing = updateProvisionalStroke();
-      scheduleSurfacePreview();
+      if (liveIsolationMode === "full") scheduleSurfacePreview();
     }
     if (frameRef === "edit") {
       pendingForFrame = pendingControlPointer;
@@ -2292,13 +2572,52 @@ function scheduleMaterialProxyFrame(): void {
       && editProxyMode === "direct"
       && stroke3D !== null
       && controlDrag !== null;
+    const liveRenderEnabled = frameRef !== "live"
+      || liveIsolationMode === "raw-control-smooth-proxy"
+      || liveIsolationMode === "full";
+    if (frameRef === "live" && !liveRenderEnabled) {
+      renderer.setMaterialProxy(null);
+      recordLiveFrameTiming({
+        rafStarted,
+        liveProcessing,
+        proxyMilliseconds: 0,
+        bufferMilliseconds: 0,
+        renderMilliseconds: 0,
+        totalMilliseconds: performance.now() - rafStarted,
+        proxySegmentCount: 0,
+      });
+      redrawOverlay();
+      scheduleLiveDiagnosticsUpdate();
+      if (activeStroke && livePathDirty) scheduleMaterialProxyFrame();
+      return;
+    }
     if ((!showSurface && !controlDrag) || (!activeStroke && !controlDrag) || (!directEditTarget && currentCenterline.length < 2)) {
       renderer.setMaterialProxy(null);
+      if (frameRef === "live") {
+        recordLiveFrameTiming({
+          rafStarted,
+          liveProcessing,
+          proxyMilliseconds: 0,
+          bufferMilliseconds: 0,
+          renderMilliseconds: 0,
+          totalMilliseconds: performance.now() - rafStarted,
+          proxySegmentCount: 0,
+        });
+        redrawOverlay();
+        scheduleLiveDiagnosticsUpdate();
+        if (activeStroke && livePathDirty) scheduleMaterialProxyFrame();
+        return;
+      }
       renderScene();
+      updateSurfaceUI();
+      scheduleMaterialProxyFrame();
       return;
     }
     const proxyUpdateStarted = performance.now();
-    const proxySegments: HanaLiveProxySegment[] = showSurface
+    const liveProxyEnabled = frameRef !== "live"
+      || liveIsolationMode === "raw-control-smooth-proxy"
+      || liveIsolationMode === "full";
+    const proxySegments: HanaLiveProxySegment[] = showSurface && liveProxyEnabled
       ? directEditTarget && stroke3D && controlDrag
         ? [{
           start: { ...stroke3D.controlPoints[controlDrag.controlIndex].position },
@@ -2424,30 +2743,34 @@ function scheduleMaterialProxyFrame(): void {
       ].slice(-128);
     }
     if (frameRef === "live") {
-      livePathProfiler.record({
-        kind: "frame",
-        eventTimestamp: liveLastEventTimestamp ?? rafStarted,
-        frameTimestamp: rafStarted,
-        stages: {
-          controlUpdate: liveProcessing?.controlMilliseconds ?? 0,
-          smoothUpdate: liveProcessing?.smoothMilliseconds ?? 0,
-          materialUpdate: liveProcessing?.materialMilliseconds ?? 0,
-          proxyUpdate: proxySegmentsEnded - proxyUpdateStarted,
-          gpuUpload: proxyTransformsEnded - proxyTransformsStarted,
-          render: renderSubmissionMilliseconds,
-          totalUpdate: performance.now() - rafStarted,
-        },
+      const totalMilliseconds = performance.now() - rafStarted;
+      const proxyMilliseconds = proxySegmentsEnded - proxyUpdateStarted;
+      const renderMilliseconds = renderSubmissionMilliseconds;
+      recordLiveFrameTiming({
+        rafStarted,
+        liveProcessing,
+        proxyMilliseconds,
+        bufferMilliseconds: proxyTransformsEnded - proxyTransformsStarted,
+        renderMilliseconds,
+        totalMilliseconds,
+        proxySegmentCount: proxySegments.length,
       });
     }
     if (frameRef === "edit") mouseEditLastRenderSubmission = performance.now();
-    updateSurfaceUI();
-    scheduleMaterialProxyFrame();
+    if (frameRef === "live") {
+      scheduleLiveDiagnosticsUpdate();
+      if (activeStroke && livePathDirty) scheduleMaterialProxyFrame();
+    } else {
+      updateSurfaceUI();
+      scheduleMaterialProxyFrame();
+    }
   });
   if (frameRef === "live") materialProxyFrame = frame;
   else editPreviewMaterialProxyFrame = frame;
 }
 
 function scheduleSurfacePreview(): void {
+  if (activeStroke && liveIsolationMode !== "full") return;
   const livePathWasCompacted = Boolean(
     activeStroke
     && liveWorkingPath
@@ -3589,7 +3912,8 @@ async function rebuildSurface(
       finalization.counts.heapAfterUploadBytes = heapUsedBytes();
       setFinalizationStage(finalization, "uploadSubmission", uploadSubmitted - geometryReady);
     }
-    updateSurfaceUI();
+    if (activeStroke) scheduleLiveDiagnosticsUpdate();
+    else updateSurfaceUI();
     const gpuUploadStarted = performance.now();
     renderScene();
     const firstRender = performance.now();
@@ -3647,9 +3971,11 @@ async function rebuildSurface(
     }
   }
   if (source === "provisional") surfacePreviewLastEndMilliseconds = performance.now();
-  updateSurfaceUI();
+  if (activeStroke) scheduleLiveDiagnosticsUpdate();
+  else updateSurfaceUI();
   redrawOverlay();
-  updateDebug();
+  if (activeStroke) scheduleLiveDiagnosticsUpdate();
+  else updateDebug();
 }
 
 function requestAuthoritativeSurfaceRebuild(reason: string, documentChanged = true): void {
@@ -3705,6 +4031,24 @@ surfaceToggle.addEventListener("click", () => {
   redrawOverlay();
   updateDebug();
 });
+liveIsolationModeSelect.addEventListener("change", () => {
+  const requested = liveIsolationModeSelect.value as HanaLiveIsolationMode;
+  if (!HANA_LIVE_ISOLATION_MODES.includes(requested)) return;
+  liveIsolationMode = requested;
+  cancelSurfacePreviewTimer();
+  cancelMaterialProxyFrame();
+  provisionalStroke3D = null;
+  provisionalCenterline = [];
+  materialSamples = [];
+  renderer.setMaterialProxy(null);
+  if (activeStroke && liveIsolationMode !== "raw-only") {
+    livePathDirty = true;
+    scheduleMaterialProxyFrame();
+  }
+  renderScene();
+  redrawOverlay();
+  updateDebug();
+});
 thicknessSlider.addEventListener("input", () => {
   stopAutoRotate();
   setThickness(Number(thicknessSlider.value));
@@ -3720,10 +4064,12 @@ thicknessSlider.addEventListener("change", () => {
 rebuildSurfaceButton.addEventListener("click", () => requestAuthoritativeSurfaceRebuild("manual-rebuild", false));
 
 clearButton.addEventListener("click", () => {
+  stopEventLoopLagProbe();
   cancelPendingFinalizationForEdit();
   cancelSurfacePreviewTimer();
   cancelMaterialProxyFrame();
   cancelEditPreviewFrame();
+  cancelLiveDiagnosticsUpdate();
   rawGestures.length = 0;
   rawPressureTotal = 0;
   rawTimeTotal = 0;
@@ -3755,6 +4101,11 @@ clearButton.addEventListener("click", () => {
   surfaceDiagnostics = null;
   surfaceFieldEvaluationStats = null;
   longTaskDurations = [];
+  eventLoopLagDurations = [];
+  liveGrowthCheckpoints = [];
+  liveGapPrecedingText = "—";
+  longStrokeProfiler.reset();
+  livePathDirty = false;
   pendingPointerupStageTimings = null;
   lastPointerupStageTimings = null;
   materialProxyFrameCount = 0;
@@ -4019,6 +4370,8 @@ const resizeObserver = new ResizeObserver(resize);
 resizeObserver.observe(workspace);
 window.addEventListener("beforeunload", () => {
   resizeObserver.disconnect();
+  cancelLiveDiagnosticsUpdate();
+  stopEventLoopLagProbe();
   renderer.dispose();
 });
 

@@ -2,7 +2,7 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "implemented",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "createdAt": "2026-09-01",
   "updatedAt": "2026-09-04",
   "params": [
@@ -24,7 +24,9 @@
     "touchNavigation",
     "viewPresets",
     "autoRotate",
-    "rawCaptureIntegrity"
+    "rawCaptureIntegrity",
+    "longStrokeIsolationProfiler",
+    "eventLoopLagProbe"
   ],
   "related": ["skin"],
   "revisits": [
