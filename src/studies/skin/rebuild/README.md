@@ -16,6 +16,16 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-09-04 — Physical Print #1 observation and Print #2 bootstrap candidate
+
+Physical Print #1 completed and all Removable Support was removed. The upper Permanent/Internal structure mostly held its shape; failures were concentrated in the lower and middle-lower area. The supplied observation was waviness and local collapse in long thin independent removable Supports, with nearby floating extrusion, sag, and stringing. This is recorded as a long-independent-support / lower-bootstrap delivery hypothesis, not as evidence that Internal Structure broadly failed.
+
+The Print #1 comparison candidate was 151 critical targets, 132 supported, 19 unresolved, 537 Support nodes, 370 edges, BODY collision 0, and Inside-derived 0 with the existing `OFFSET-BEND 6.5+7` route. The historical 166 / 156 / 10 and 546 / 390 values remain a frozen comparison baseline only.
+
+Print #2 keeps BODY, Surface Pattern, Permanent Internal Graph, Permanent Reinforcement, artwork geometry, permanent diameters, FKEI schema, `contactGapMm = 0`, and the existing offset-bend route generation unchanged. Support-only physical feedback now measures each trunk by path length and records bootstrap length, first brace height, subsequent brace spacing, residual unbraced run, nearest eligible Support, local inclination, BODY contact height, and contact tier. Accepted short mutual braces are added only after the current Stage 8 route is built and BODY-audited; critical patch candidates remain OFF in the production candidate.
+
+The browser-measured Print #2 candidate kept 151 / 132 / 19 and 61 vertical / 71 bent routes, with 685 nodes / 714 edges, 161 braces, 2 long-unbraced trunks, 0 isolated long trunks, maximum residual unbraced run 34.18 mm, maximum bootstrap / first-brace height 17.86 mm, BODY collision 0, Inside-derived 0, invalid/zero/duplicate/extreme 0, patch 0, and gap 0. This is a preparation candidate for slicer review, not a printability or physical safety claim. Bambu Studio layer/junction review and the actual Print #2 remain human gates.
+
 ### 2026-09-02 — Stage 8 sparse support amount / coverage v0.2 (experimental)
 
 工程8 Sparse Removable Supportに、session-onlyの`SparseSupportAmount`（`low` / `medium` /

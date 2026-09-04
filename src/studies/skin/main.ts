@@ -298,6 +298,8 @@ import {
 } from "./rebuild/sparseRemovableSupport.ts";
 import {
   applySupportPhysicalFeedback,
+  DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM,
+  DEFAULT_SUPPORT_MAX_BRACE_SPAN_MM,
   DEFAULT_SUPPORT_MAX_UNBRACED_LENGTH_MM,
   type SupportPhysicalFeedbackMetrics,
 } from "./rebuild/supportPhysicalFeedback.ts";
@@ -11653,11 +11655,14 @@ function installSkinRebuildPipelinePanel(): void {
             },
             {
               maxUnbracedLengthMm: skinRebuildSupportMaxUnbracedLengthMm,
+              maxBraceDistanceMm: DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM,
+              maxBraceSpanMm: DEFAULT_SUPPORT_MAX_BRACE_SPAN_MM,
               scaleMmPerUnit,
               braceEnabled: skinRebuildSupportPhysicalBraceEnabled,
               tipDiameterMm: skinRebuildSupportTipDiameterMm,
               neckLengthMm: 0.6,
               contactGapMm: skinRebuildSupportContactGapMm,
+              patchEnabled: false,
             },
           );
           skinRebuildSupportPhysicalFeedback = physicalFeedback.metrics;
@@ -11744,7 +11749,7 @@ function installSkinRebuildPipelinePanel(): void {
           : "Outside regions 0 / Critical targets 0 / Supported 0 / Unsupported 0 / Supports 0 / rejected BODY 0 / spacing 0 / removable 0";
         const physical = skinRebuildSupportPhysicalFeedback;
         const physicalStatus = physical
-          ? `physical feedback · targets ${physical.targetCount} / trunks ${physical.trunkCount} / nodes ${physical.nodeCount} / edges ${physical.edgeCount} / longest unbraced ${physical.longestUnbracedLengthMm.toFixed(2)} mm / long-unbraced ${physical.longUnbracedCount} / braces ${physical.braceCount} / braced supports ${physical.bracedSupportCount} / contacts point ${physical.pointContactCount} crown ${physical.crownContactCount} patch-candidate ${physical.patchCandidateCount} / critical without enhanced contact ${physical.criticalRegionsWithoutEnhancedContact} / tip ${physical.tipDiameterMm.toFixed(2)} mm / neck ${physical.neckLengthMm.toFixed(2)} mm / gap ${physical.contactGapMm.toFixed(2)} mm / safety BODY ${physical.safety.acceptedBodyCollisionCount} plate ${physical.safety.plateViolationCount} invalid ${physical.safety.invalidGeometryCount} zero ${physical.safety.zeroLengthEdgeCount} duplicate ${physical.safety.nearDuplicateEdgeCount} extreme ${physical.safety.extremeSpanCount}`
+          ? `physical feedback · targets ${physical.targetCount} / trunks ${physical.trunkCount} / nodes ${physical.nodeCount} / edges ${physical.edgeCount} / longest unbraced ${physical.longestUnbracedLengthMm.toFixed(2)} mm / long-unbraced ${physical.longUnbracedCount} / isolated ${physical.isolatedTrunkCount} / isolated-long ${physical.isolatedLongTrunkCount} / braces ${physical.braceCount} / braced supports ${physical.bracedSupportCount} / components ${physical.connectedComponentCount} / brace max/mean ${physical.longestBraceLengthMm.toFixed(2)}/${physical.meanBraceLengthMm.toFixed(2)} mm / bootstrap ${physical.trunks.length > 0 ? Math.max(...physical.trunks.map((trunk) => trunk.bootstrapLengthMm)).toFixed(2) : "0.00"} mm / contacts point ${physical.pointContactCount} crown ${physical.crownContactCount} patch-candidate ${physical.patchCandidateCount} / critical without enhanced contact ${physical.criticalRegionsWithoutEnhancedContact} / tip ${physical.tipDiameterMm.toFixed(2)} mm / neck ${physical.neckLengthMm.toFixed(2)} mm / gap ${physical.contactGapMm.toFixed(2)} mm / safety BODY ${physical.safety.acceptedBodyCollisionCount} plate ${physical.safety.plateViolationCount} invalid ${physical.safety.invalidGeometryCount} zero ${physical.safety.zeroLengthEdgeCount} duplicate ${physical.safety.nearDuplicateEdgeCount} extreme ${physical.safety.extremeSpanCount}`
           : "physical feedback unavailable";
         const unresolvedWarning = (sparseDiagnostics?.unsupportedTargetCount ?? 0) > 0
           ? ` · ${sparseDiagnostics!.unsupportedTargetCount} support targets remain unresolved. Experimental print may fail.`
@@ -19837,8 +19842,11 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
       physicalSettings: {
         braceEnabled: skinRebuildSupportPhysicalBraceEnabled,
         maxUnbracedLengthMm: skinRebuildSupportMaxUnbracedLengthMm,
+        maxBraceDistanceMm: DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM,
+        maxBraceSpanMm: DEFAULT_SUPPORT_MAX_BRACE_SPAN_MM,
         tipDiameterMm: skinRebuildSupportTipDiameterMm,
         contactGapMm: skinRebuildSupportContactGapMm,
+        patchEnabled: false,
       },
     };
   },

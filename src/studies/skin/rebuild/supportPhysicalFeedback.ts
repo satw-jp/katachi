@@ -31,6 +31,8 @@ export interface SupportPhysicalFeedbackOptions {
   tipDiameterMm?: number;
   neckLengthMm?: number;
   contactGapMm?: number;
+  /** Critical patch candidates remain diagnostic-only unless explicitly enabled. */
+  patchEnabled?: boolean;
 }
 
 export interface SupportPhysicalContact {
@@ -59,16 +61,44 @@ export interface SupportPhysicalSafetyMetrics {
   braceRejectedByBody: number;
 }
 
+export interface SupportPhysicalTrunkMetrics {
+  candidateId: string;
+  supportContactType: SupportContactTier;
+  shaftLengthMm: number;
+  bootstrapLengthMm: number;
+  firstBraceHeightMm: number;
+  subsequentBraceSpacingMm: number;
+  longestUnbracedRunMm: number;
+  longUnbracedRunCount: number;
+  braceCount: number;
+  isolated: boolean;
+  nearestEligibleSupportDistanceMm: number;
+  localInclinationDegrees: number;
+  bodyContactHeightMm: number;
+  stableConnection: boolean;
+}
+
 export interface SupportPhysicalFeedbackMetrics {
   targetCount: number;
   trunkCount: number;
   nodeCount: number;
   edgeCount: number;
   maxUnbracedLengthMm: number;
+  maxBraceDistanceMm: number;
+  maxBraceSpanMm: number;
   longestUnbracedLengthMm: number;
   longUnbracedCount: number;
   braceCount: number;
   bracedSupportCount: number;
+  isolatedTrunkCount: number;
+  longTrunkCount: number;
+  isolatedLongTrunkCount: number;
+  bracedTrunkCount: number;
+  connectedComponentCount: number;
+  longestBraceLengthMm: number;
+  meanBraceLengthMm: number;
+  singlePointDependencyCount: number;
+  criticalSinglePointDependencyCount: number;
   pointContactCount: number;
   crownContactCount: number;
   patchCandidateCount: number;
@@ -78,8 +108,10 @@ export interface SupportPhysicalFeedbackMetrics {
   neckLengthMm: number;
   contactGapMm: number;
   gapEnabledCount: number;
+  patchEnabled: boolean;
   contacts: SupportPhysicalContact[];
   patchCandidates: SupportPatchCandidate[];
+  trunks: SupportPhysicalTrunkMetrics[];
   safety: SupportPhysicalSafetyMetrics;
 }
 
@@ -90,7 +122,10 @@ export interface SupportPhysicalFeedbackResult {
 }
 
 export const DEFAULT_SUPPORT_MAX_UNBRACED_LENGTH_MM = 18;
-export const DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM = 12;
+/** Print #2 candidate: allow a short brace to reach the nearest viable shaft
+ * while keeping the brace itself capped at 18 mm. */
+export const DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM = 16;
+export const DEFAULT_SUPPORT_MAX_BRACE_SPAN_MM = 18;
 
 const EPSILON = 1e-9;
 
@@ -289,8 +324,51 @@ function graphEdgeExists(graph: InternalStructureGraph, start: number, end: numb
 
 function addGraphEdge(graph: InternalStructureGraph, start: number, end: number, radius: number): boolean {
   if (start === end || graphEdgeExists(graph, start, end)) return false;
-  graph.edges.push({ id: graph.edges.length, start, end, radius });
+  const nextId = graph.edges.reduce((max, edge) => Math.max(max, edge.id), -1) + 1;
+  graph.edges.push({ id: nextId, start, end, radius });
   return true;
+}
+
+function pointToSegmentParameter(point: Vector3Value, start: Vector3Value, end: Vector3Value): number | null {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const dz = end.z - start.z;
+  const lengthSq = dx * dx + dy * dy + dz * dz;
+  if (!(lengthSq > EPSILON)) return null;
+  const t = ((point.x - start.x) * dx + (point.y - start.y) * dy + (point.z - start.z) * dz) / lengthSq;
+  if (t <= EPSILON || t >= 1 - EPSILON) return null;
+  const projected = lerp(start, end, t);
+  return distance(point, projected) <= 1e-7 ? t : null;
+}
+
+/** Keep brace endpoints in the route topology as well as in the cylinder
+ * geometry. This does not alter the route path: it only splits the existing
+ * shaft edge at the exact brace attachment point. */
+function splitGraphEdgeAtPoint(
+  graph: InternalStructureGraph,
+  point: Vector3Value,
+  nodeId: number,
+  nextEdgeId: { value: number },
+): void {
+  for (let index = 0; index < graph.edges.length; index += 1) {
+    const edge = graph.edges[index]!;
+    const start = graph.nodes[edge.start]?.position;
+    const end = graph.nodes[edge.end]?.position;
+    if (!start || !end) continue;
+    if (edge.start === nodeId || edge.end === nodeId) return;
+    if (pointToSegmentParameter(point, start, end) === null) continue;
+    const second: InternalStructureEdge = {
+      id: nextEdgeId.value++,
+      start: nodeId,
+      end: edge.end,
+      radius: edge.radius,
+    };
+    graph.edges.splice(index, 1, {
+      ...edge,
+      end: nodeId,
+    }, second);
+    return;
+  }
 }
 
 function findGraphEdge(graph: InternalStructureGraph, start: Vector3Value, end: Vector3Value): InternalStructureEdge | null {
@@ -320,16 +398,104 @@ function makeContactTarget(target: SparseRemovableSupportTarget, position: Vecto
   };
 }
 
-function candidateBraceSegment(
-  first: SparseSupportRouteSegment,
-  second: SparseSupportRouteSegment,
+type SupportShaftPath = {
+  segments: SparseSupportRouteSegment[];
+  lengths: number[];
+  totalLength: number;
+};
+
+function supportShaftPath(route: SparseRemovableSupportRoute): SupportShaftPath {
+  const segments = route.segments.slice(0, -1);
+  const lengths = segments.map(segmentLength);
+  return {
+    segments,
+    lengths,
+    totalLength: lengths.reduce((sum, length) => sum + length, 0),
+  };
+}
+
+function pointAtPath(path: SupportShaftPath, fraction: number): Vector3Value | null {
+  if (!(path.totalLength > EPSILON) || path.segments.length === 0) return null;
+  const distanceAlongPath = Math.max(0, Math.min(1, fraction)) * path.totalLength;
+  let offset = 0;
+  for (let index = 0; index < path.segments.length; index += 1) {
+    const segment = path.segments[index]!;
+    const length = path.lengths[index]!;
+    if (distanceAlongPath <= offset + length || index === path.segments.length - 1) {
+      const t = length > EPSILON ? (distanceAlongPath - offset) / length : 0;
+      return lerp(segment.start, segment.end, Math.max(0, Math.min(1, t)));
+    }
+    offset += length;
+  }
+  return clonePoint(path.segments[path.segments.length - 1]!.end);
+}
+
+function pathDistanceForPoint(path: SupportShaftPath, point: Vector3Value): number {
+  let offset = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  let bestPathDistance = 0;
+  for (let index = 0; index < path.segments.length; index += 1) {
+    const segment = path.segments[index]!;
+    const length = path.lengths[index]!;
+    if (!(length > EPSILON)) continue;
+    const dx = segment.end.x - segment.start.x;
+    const dy = segment.end.y - segment.start.y;
+    const dz = segment.end.z - segment.start.z;
+    const t = Math.max(0, Math.min(1, (
+      (point.x - segment.start.x) * dx
+      + (point.y - segment.start.y) * dy
+      + (point.z - segment.start.z) * dz
+    ) / (length * length)));
+    const projected = lerp(segment.start, segment.end, t);
+    const projectedDistance = distance(point, projected);
+    if (projectedDistance < bestDistance) {
+      bestDistance = projectedDistance;
+      bestPathDistance = offset + length * t;
+    }
+    offset += length;
+  }
+  return bestPathDistance;
+}
+
+function routeShaftDistance(first: SupportShaftPath, second: SupportShaftPath): number {
+  let closest = Number.POSITIVE_INFINITY;
+  for (const firstSegment of first.segments) {
+    for (const secondSegment of second.segments) {
+      closest = Math.min(closest, segmentSegmentDistance(
+        firstSegment.start,
+        firstSegment.end,
+        secondSegment.start,
+        secondSegment.end,
+      ));
+    }
+  }
+  return closest;
+}
+
+function braceFractions(totalLength: number, maxUnbracedLength: number): number[] {
+  if (!(totalLength > EPSILON) || !(maxUnbracedLength > EPSILON)) return [];
+  // A production trunk receives only the number of levels needed to break up
+  // its observed free run. The cap keeps the physical feedback sparse while
+  // retaining a lower bootstrap brace and one subsequent interval where the
+  // measured shaft is long enough to need it.
+  const levelCount = Math.min(3, Math.max(1, Math.ceil(totalLength / maxUnbracedLength) - 1));
+  return Array.from({ length: levelCount }, (_, index) => (index + 1) / (levelCount + 1));
+}
+
+function candidateBraceAtFraction(
+  first: SupportShaftPath,
+  second: SupportShaftPath,
+  fraction: number,
   radius: number,
   scaleMmPerUnit: number,
   maxSpanMm: number,
 ): SparseSupportRouteSegment | null {
-  for (const t of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-    const start = lerp(first.start, first.end, t);
-    const end = lerp(second.start, second.end, t);
+  const candidates = [fraction, fraction - 0.05, fraction + 0.05, fraction - 0.1, fraction + 0.1]
+    .filter((value, index, values) => value > EPSILON && value < 1 - EPSILON && values.indexOf(value) === index);
+  for (const t of candidates) {
+    const start = pointAtPath(first, t);
+    const end = pointAtPath(second, t);
+    if (!start || !end) continue;
     const length = distance(start, end);
     if (!finite(length) || !(length > Math.max(EPSILON, radius * 0.1)) || length * scaleMmPerUnit > maxSpanMm + EPSILON) continue;
     return { start, end, radius };
@@ -337,12 +503,38 @@ function candidateBraceSegment(
   return null;
 }
 
+function connectedComponentCount(graph: InternalStructureGraph): number {
+  const adjacency = graph.nodes.map(() => [] as number[]);
+  for (const edge of graph.edges) {
+    if (!adjacency[edge.start] || !adjacency[edge.end]) continue;
+    adjacency[edge.start]!.push(edge.end);
+    adjacency[edge.end]!.push(edge.start);
+  }
+  const visited = new Set<number>();
+  let count = 0;
+  for (const node of graph.nodes) {
+    if (visited.has(node.id)) continue;
+    count += 1;
+    const queue = [node.id];
+    visited.add(node.id);
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      for (const next of adjacency[current] ?? []) {
+        if (visited.has(next)) continue;
+        visited.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return count;
+}
+
 function safetyMetrics(
   graph: InternalStructureGraph,
   plateZ: number,
   scaleMmPerUnit: number,
   maxSpanMm: number,
-  braceEdgeIds: ReadonlySet<number>,
+  braceEdgeKeys: ReadonlySet<string>,
 ): Omit<SupportPhysicalSafetyMetrics, "braceRejectedByBody"> {
   let plateViolationCount = 0;
   let invalidGeometryCount = 0;
@@ -361,8 +553,8 @@ function safetyMetrics(
     const length = distance(start, end);
     if (!(length > EPSILON)) zeroLengthEdgeCount++;
     if (Math.min(start.z, end.z) < plateZ - EPSILON) plateViolationCount++;
-    if (braceEdgeIds.has(edge.id) && length * scaleMmPerUnit > maxSpanMm + EPSILON) extremeSpanCount++;
     const key = edgeKey(start, end);
+    if (braceEdgeKeys.has(key) && length * scaleMmPerUnit > maxSpanMm + EPSILON) extremeSpanCount++;
     if (edgeKeys.has(key) || seenEdges.some((seen) => edgesNear(start, end, seen.start, seen.end))) nearDuplicateEdgeCount++;
     edgeKeys.add(key);
     seenEdges.push({ start, end });
@@ -402,10 +594,11 @@ export function applySupportPhysicalFeedback(
     : DEFAULT_SUPPORT_MAX_BRACE_DISTANCE_MM;
   const maxBraceSpanMm = finite(options.maxBraceSpanMm ?? NaN) && (options.maxBraceSpanMm ?? 0) > 0
     ? options.maxBraceSpanMm!
-    : maxUnbracedLengthMm;
+    : DEFAULT_SUPPORT_MAX_BRACE_SPAN_MM;
   const highThreshold = Math.max(1, Math.floor(options.highCoverageFaceCount ?? 8));
   const criticalThreshold = Math.max(highThreshold + 1, Math.floor(options.criticalCoverageFaceCount ?? 20));
   const contactGapMm = finite(options.contactGapMm ?? NaN) && (options.contactGapMm ?? 0) >= 0 ? options.contactGapMm! : 0;
+  const patchEnabled = options.patchEnabled === true;
   const tipDiameterMm = finite(options.tipDiameterMm ?? NaN) && (options.tipDiameterMm ?? 0) > 0
     ? options.tipDiameterMm!
     : Math.max(0.01, (result.diagnostics.neckRadius * 2) * scale);
@@ -462,15 +655,18 @@ export function applySupportPhysicalFeedback(
     if (tier === "point") pointContactCount++;
     if (tier === "crown") crownContactCount++;
     if (tier === "patch") {
-      if (Number.isInteger(target.regionId) && target.regionId >= 0) criticalRegionIds.add(target.regionId);
-      patchCandidates.push({
-        targetId: entry.candidateId,
-        center: clonePoint(target.position),
-        normal: clonePoint(target.normal),
-        radius: Math.max(result.diagnostics.neckRadius * 2, 0.01),
-        sourceFaceIndices: [...target.sourceFaceIndices],
-        exportable: false,
-      });
+      if (patchEnabled) {
+        patchCandidates.push({
+          targetId: entry.candidateId,
+          center: clonePoint(target.position),
+          normal: clonePoint(target.normal),
+          radius: Math.max(result.diagnostics.neckRadius * 2, 0.01),
+          sourceFaceIndices: [...target.sourceFaceIndices],
+          exportable: false,
+        });
+      } else if (Number.isInteger(target.regionId) && target.regionId >= 0) {
+        criticalRegionIds.add(target.regionId);
+      }
     }
     if (graphEdge && options.tipDiameterMm !== undefined) graphEdge.radius = finalSegment?.radius ?? graphEdge.radius;
     if (tier === "crown" && contactGapMm <= EPSILON && finalSegment) {
@@ -503,60 +699,152 @@ export function applySupportPhysicalFeedback(
     updatedRoutes.push({ candidateId: entry.candidateId, route });
   }
 
-  const longSegments = updatedRoutes.map((entry) => {
-    const segments = entry.route.segments.slice(0, -1);
-    const longest = segments.reduce<{ segment: SparseSupportRouteSegment; length: number } | null>((best, segment) => {
-      const length = segmentLength(segment);
-      return !best || length > best.length ? { segment, length } : best;
-    }, null);
-    return longest ? { candidateId: entry.candidateId, segment: longest.segment, length: longest.length } : null;
-  }).filter((value): value is { candidateId: string; segment: SparseSupportRouteSegment; length: number } => value !== null)
-    .filter((value) => value.length * scale > maxUnbracedLengthMm + EPSILON)
-    .sort((first, second) => second.length - first.length || first.candidateId.localeCompare(second.candidateId));
+  const trunkPaths = updatedRoutes.map((entry) => ({
+    ...entry,
+    path: supportShaftPath(entry.route),
+  })).filter((entry) => entry.path.totalLength > EPSILON);
+  const trunkById = new Map(trunkPaths.map((entry) => [entry.candidateId, entry]));
+  const braceAttachments = new Map<string, Array<{
+    partnerId: string;
+    distanceMm: number;
+    heightMm: number;
+    lengthMm: number;
+  }>>();
   const bracedSupportIds = new Set<string>();
   let braceCount = 0;
   let braceRejectedByBody = 0;
-  const braceEdgeIds = new Set<number>();
+  const braceLengthsMm: number[] = [];
+  const braceEdgeKeys = new Set<string>();
+  const nextGraphEdgeId = {
+    value: graph.edges.reduce((max, edge) => Math.max(max, edge.id), -1) + 1,
+  };
   if (options.braceEnabled !== false) {
-    for (const first of longSegments) {
-      if (bracedSupportIds.has(first.candidateId)) continue;
-      const partners = longSegments
-        .filter((second) => second.candidateId !== first.candidateId && !bracedSupportIds.has(second.candidateId))
-        .map((second) => ({ second, distance: segmentSegmentDistance(first.segment.start, first.segment.end, second.segment.start, second.segment.end) }))
+    const braceCandidates = trunkPaths
+      .filter((entry) => entry.path.totalLength * scale > maxUnbracedLengthMm + EPSILON)
+      .sort((first, second) => second.path.totalLength - first.path.totalLength
+        || first.candidateId.localeCompare(second.candidateId));
+    const processedAsPrimary = new Set<string>();
+    const usedPairKeys = new Set<string>();
+    const partnerUseCount = new Map<string, number>();
+    for (const first of braceCandidates) {
+      if (processedAsPrimary.has(first.candidateId)) continue;
+      const partners = braceCandidates
+        .filter((second) => second.candidateId !== first.candidateId
+          && !usedPairKeys.has([first.candidateId, second.candidateId].sort().join("|")))
+        .map((second) => ({ second, distance: routeShaftDistance(first.path, second.path) }))
         .filter(({ distance }) => distance * scale <= maxBraceDistanceMm + EPSILON)
-        .sort((a, b) => a.distance - b.distance || a.second.candidateId.localeCompare(b.second.candidateId));
+        .sort((a, b) => (partnerUseCount.get(a.second.candidateId) ?? 0) - (partnerUseCount.get(b.second.candidateId) ?? 0)
+          || a.distance - b.distance || a.second.candidateId.localeCompare(b.second.candidateId));
       for (const { second } of partners) {
-        const brace = candidateBraceSegment(first.segment, second.segment, result.diagnostics.shaftRadius, scale, maxBraceSpanMm);
-        if (!brace) continue;
-        const braceTarget: SparseRemovableSupportTarget = {
-          id: `brace-${first.candidateId}-${second.candidateId}`,
-          regionId: -1,
-          ownerPatchId: -1,
-          position: clonePoint(brace.end),
-          normal: { x: 0, y: 0, z: -1 },
-          sourceFaceIndices: [],
-        };
-        const audit = auditSparseRemovableSupportCapsule(brace, request, braceTarget, false);
-        if (!audit.accepted) {
-          if (audit.reason === "body") braceRejectedByBody++;
-          continue;
+        const fractions = braceFractions(
+          Math.max(first.path.totalLength, second.path.totalLength),
+          maxUnbracedLengthMm / scale,
+        );
+        let pairBraceCount = 0;
+        for (const fraction of fractions) {
+          const brace = candidateBraceAtFraction(
+            first.path,
+            second.path,
+            fraction,
+            result.diagnostics.shaftRadius,
+            scale,
+            maxBraceSpanMm,
+          );
+          if (!brace) continue;
+          const braceTarget: SparseRemovableSupportTarget = {
+            id: `brace-${first.candidateId}-${second.candidateId}-${pairBraceCount}`,
+            regionId: -1,
+            ownerPatchId: -1,
+            position: clonePoint(brace.end),
+            normal: { x: 0, y: 0, z: -1 },
+            sourceFaceIndices: [],
+          };
+          const audit = auditSparseRemovableSupportCapsule(brace, request, braceTarget, false);
+          if (!audit.accepted) {
+            if (audit.reason === "body") braceRejectedByBody++;
+            continue;
+          }
+          const start = graphNodeForPoint(graph, brace.start, brace.radius);
+          const end = graphNodeForPoint(graph, brace.end, brace.radius);
+          splitGraphEdgeAtPoint(graph, brace.start, start, nextGraphEdgeId);
+          splitGraphEdgeAtPoint(graph, brace.end, end, nextGraphEdgeId);
+          if (!addGraphEdge(graph, start, end, brace.radius)) continue;
+          braceEdgeKeys.add(edgeKey(brace.start, brace.end));
+          const lengthMm = distance(brace.start, brace.end) * scale;
+          braceLengthsMm.push(lengthMm);
+          braceCount++;
+          pairBraceCount++;
+          for (const [candidateId, point] of [[first.candidateId, brace.start], [second.candidateId, brace.end]] as const) {
+            const path = trunkById.get(candidateId)?.path;
+            if (!path) continue;
+            const attachment = braceAttachments.get(candidateId) ?? [];
+            attachment.push({
+              partnerId: candidateId === first.candidateId ? second.candidateId : first.candidateId,
+              distanceMm: pathDistanceForPoint(path, point) * scale,
+              heightMm: Math.max(0, point.z - request.plateZ) * scale,
+              lengthMm,
+            });
+            braceAttachments.set(candidateId, attachment);
+          }
         }
-        const start = graphNodeForPoint(graph, brace.start, brace.radius);
-        const end = graphNodeForPoint(graph, brace.end, brace.radius);
-        if (!addGraphEdge(graph, start, end, brace.radius)) continue;
-        braceEdgeIds.add(graph.edges[graph.edges.length - 1]!.id);
-        braceCount++;
-        bracedSupportIds.add(first.candidateId);
-        bracedSupportIds.add(second.candidateId);
-        break;
+        if (pairBraceCount > 0) {
+          processedAsPrimary.add(first.candidateId);
+          usedPairKeys.add([first.candidateId, second.candidateId].sort().join("|"));
+          partnerUseCount.set(second.candidateId, (partnerUseCount.get(second.candidateId) ?? 0) + 1);
+          bracedSupportIds.add(first.candidateId);
+          bracedSupportIds.add(second.candidateId);
+        }
+        if (pairBraceCount > 0) break;
       }
     }
   }
 
   updateGraphStats(graph);
-  const longestUnbracedLengthMm = longSegments.length > 0 ? longSegments[0].length * scale : 0;
-  const longUnbracedCount = longSegments.filter((entry) => !bracedSupportIds.has(entry.candidateId)).length;
-  const safetyBase = safetyMetrics(graph, request.plateZ, scale, maxBraceSpanMm, braceEdgeIds);
+  const contactById = new Map(contacts.map((contact) => [contact.targetId, contact.tier]));
+  const trunks: SupportPhysicalTrunkMetrics[] = trunkPaths.map((entry) => {
+    const shaftLengthMm = entry.path.totalLength * scale;
+    const attachments = [...(braceAttachments.get(entry.candidateId) ?? [])]
+      .sort((first, second) => first.distanceMm - second.distanceMm || first.partnerId.localeCompare(second.partnerId));
+    const runBoundaries = [0, ...attachments.map((attachment) => attachment.distanceMm), shaftLengthMm]
+      .filter((value, index, values) => index === 0 || value - values[index - 1]! > EPSILON);
+    const runs = runBoundaries.slice(1).map((value, index) => value - runBoundaries[index]!);
+    const longestRunMm = runs.length > 0 ? Math.max(...runs) : shaftLengthMm;
+    const longRunCount = runs.filter((value) => value > maxUnbracedLengthMm + EPSILON).length;
+    const first = attachments[0];
+    const subsequentBraceSpacingMm = attachments.length > 1
+      ? Math.min(...attachments.slice(1).map((attachment, index) => attachment.distanceMm - attachments[index]!.distanceMm))
+      : 0;
+    const terminalSegment = entry.route.segments[entry.route.segments.length - 2];
+    const terminalLength = terminalSegment ? segmentLength(terminalSegment) : 0;
+    const localInclinationDegrees = terminalSegment && terminalLength > EPSILON
+      ? Math.acos(Math.min(1, Math.abs(terminalSegment.end.z - terminalSegment.start.z) / terminalLength)) * 180 / Math.PI
+      : 0;
+    const supportContactType = contactById.get(entry.candidateId) ?? "point";
+    return {
+      candidateId: entry.candidateId,
+      supportContactType,
+      shaftLengthMm,
+      bootstrapLengthMm: first?.distanceMm ?? shaftLengthMm,
+      firstBraceHeightMm: first?.heightMm ?? 0,
+      subsequentBraceSpacingMm,
+      longestUnbracedRunMm: longestRunMm,
+      longUnbracedRunCount: longRunCount,
+      braceCount: attachments.length,
+      isolated: attachments.length === 0,
+      nearestEligibleSupportDistanceMm: attachments.length > 0 ? Math.min(...attachments.map((attachment) => attachment.lengthMm)) : 0,
+      localInclinationDegrees,
+      bodyContactHeightMm: Math.max(0, entry.route.target.z - request.plateZ) * scale,
+      stableConnection: attachments.length > 0,
+    };
+  });
+  const longestUnbracedLengthMm = trunks.length > 0 ? Math.max(...trunks.map((trunk) => trunk.longestUnbracedRunMm)) : 0;
+  const longUnbracedCount = trunks.filter((trunk) => trunk.longestUnbracedRunMm > maxUnbracedLengthMm + EPSILON).length;
+  const isolatedTrunkCount = trunks.filter((trunk) => trunk.isolated).length;
+  const longTrunkCount = trunks.filter((trunk) => trunk.shaftLengthMm > maxUnbracedLengthMm + EPSILON).length;
+  const isolatedLongTrunkCount = trunks.filter((trunk) => trunk.isolated && trunk.shaftLengthMm > maxUnbracedLengthMm + EPSILON).length;
+  const singlePointDependencyCount = trunks.filter((trunk) => trunk.supportContactType === "point" && trunk.isolated).length;
+  const criticalSinglePointDependencyCount = trunks.filter((trunk) => trunk.supportContactType === "patch" && trunk.isolated).length;
+  const safetyBase = safetyMetrics(graph, request.plateZ, scale, maxBraceSpanMm, braceEdgeKeys);
   const neckLengthMm = finite(options.neckLengthMm ?? NaN) && (options.neckLengthMm ?? 0) > 0
     ? options.neckLengthMm!
     : updatedRoutes.length > 0
@@ -571,10 +859,23 @@ export function applySupportPhysicalFeedback(
       nodeCount: graph.nodes.length,
       edgeCount: graph.edges.length,
       maxUnbracedLengthMm,
+      maxBraceDistanceMm,
+      maxBraceSpanMm,
       longestUnbracedLengthMm,
       longUnbracedCount,
       braceCount,
       bracedSupportCount: bracedSupportIds.size,
+      isolatedTrunkCount,
+      longTrunkCount,
+      isolatedLongTrunkCount,
+      bracedTrunkCount: trunks.length - isolatedTrunkCount,
+      connectedComponentCount: connectedComponentCount(graph),
+      longestBraceLengthMm: braceLengthsMm.length > 0 ? Math.max(...braceLengthsMm) : 0,
+      meanBraceLengthMm: braceLengthsMm.length > 0
+        ? braceLengthsMm.reduce((sum, length) => sum + length, 0) / braceLengthsMm.length
+        : 0,
+      singlePointDependencyCount,
+      criticalSinglePointDependencyCount,
       pointContactCount,
       crownContactCount,
       patchCandidateCount: patchCandidates.length,
@@ -584,8 +885,10 @@ export function applySupportPhysicalFeedback(
       neckLengthMm,
       contactGapMm,
       gapEnabledCount,
+      patchEnabled,
       contacts,
       patchCandidates,
+      trunks,
       safety: {
         ...safetyBase,
         braceRejectedByBody,

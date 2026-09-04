@@ -102,9 +102,27 @@ No micro-gap value is adopted as Golden policy. The current application default 
 
 ## Physical Print #1
 
-Status: **WAITING / IN PROGRESS**
+Status: **DONE — observation supplied by author on 2026-09-04**
 
-No physical printer result, photograph, measured adhesion, collapse, tip-fusion, or removal observation was supplied or available during this run. The following fields remain unknown:
+The earlier WAITING status is superseded by the author's later physical observation. Print #1 completed, all Removable Support was removed, and the upper Permanent/Internal structure mostly held its shape. Failures were concentrated in the lower and middle-lower area.
+
+The observed failure pattern was waviness and local collapse in long thin independent Removable Supports, with nearby floating extrusion, sag, and stringing. The working hypothesis is a long-independent-support instability that makes the intended BODY contact unstable and causes a lower/bootstrap delivery failure with local BODY/Internal disturbance. This is not evidence that Internal Structure broadly failed.
+
+Print #1 candidate facts retained for comparison:
+
+| Metric | Print #1 candidate |
+| --- | ---: |
+| Critical targets | 151 |
+| Supported / unresolved | 132 / 19 |
+| Support graph | 537 nodes / 370 edges |
+| Accepted BODY collision / Inside-derived | 0 / 0 |
+| Route | `OFFSET-BEND 6.5+7` |
+| Longest unbraced / long-unbraced | 57.21 mm / 3 |
+| Braces / braced supports | 35 / 70 |
+
+The frozen 166 / 156 / 10 and 546 / 390 values remain historical baseline only. BODY geometry, Permanent/Internal graph, Surface Pattern, and permanent diameters are not to be changed for Print #2.
+
+The following physical details remain unmeasured by the browser and require slicer/print observation:
 
 | Observation | State |
 | --- | --- |
@@ -119,6 +137,32 @@ No physical printer result, photograph, measured adhesion, collapse, tip-fusion,
 | Printed part count / failed parts | Unknown |
 
 No collapse threshold, tip threshold, gap threshold, or removal threshold is adopted from the browser geometry.
+
+The Print #2 production candidate keeps `maxUnbracedLengthMm = 18`, `contactGapMm = 0`, the existing tip/neck interface, and patch candidates OFF. It uses the existing Stage 8 routes and adds only sparse, BODY-audited mutual braces. The 16 mm nearest-shaft eligibility distance was chosen from the current candidate's 57.21 mm longest run and the post-feedback 34.18 mm residual run: it gives a short reach to a viable neighboring trunk while the brace itself remains capped at 18 mm. This is a code candidate, not a physical threshold inferred from photographs.
+
+## Print #2 bootstrap stability candidate
+
+The implementation measures each accepted Stage 8 trunk by centerline path rather than absolute Z: shaft length, bootstrap length until the first accepted mutual connection, first-brace height, subsequent-brace spacing, residual longest unbraced run, nearest eligible support distance, local approach inclination, BODY contact height, and contact tier. Brace endpoints are split into the existing shaft graph topology, so the graph and the exported support cylinders describe the same network.
+
+The browser candidate was generated from the same completed sample and current 6.5 + 7 evidence:
+
+| Metric | Print #2 candidate |
+| --- | ---: |
+| Critical / supported / unresolved | 151 / 132 / 19 |
+| Support graph | 685 nodes / 714 edges |
+| Vertical / bent routes | 61 / 71 |
+| Braces / braced supports | 161 / 86 |
+| Longest residual unbraced / long-unbraced trunks | 34.18 mm / 2 |
+| Isolated trunks / isolated long trunks | 46 / 0 |
+| Bootstrap maximum / first-brace height maximum | 17.86 / 17.86 mm |
+| Brace maximum / mean | 17.87 / 7.51 mm |
+| Connected components | 58 |
+| BODY collision / plate / invalid / zero / duplicate / extreme | 0 / 0 / 0 / 0 / 0 / 0 |
+| Inside-derived / patch candidates / contact gap | 0 / 0 / 0 mm |
+
+The browser result is an improvement candidate, not a slicer or physical PASS. The production path remains current Stage 6.5 Outside/Boundary ∩ Stage 7 danger → Stage 8 offset-bend. No legacy or stale Support is used, and the current project/renderer/export source identity remains the existing Stage 8 contract.
+
+Print #2 acceptance is therefore: preserve the same BODY and Permanent Structure fingerprints, keep BODY collision and Inside-derived at zero, keep invalid/NaN/zero-length at zero, keep the long-run and isolated-long counts below Print #1, and pass slicer inspection of the lower network, junctions, crowns, and floating extrusion before printing.
 
 ## Measured versus inference
 
@@ -149,12 +193,12 @@ Inference or not yet measured:
 
 ## Next physical test
 
-Open the three same-BODY artifacts in the same slicer profile, record layer-preview findings for A/B/C, then print one selected variant as Physical Print #1. Return with the slicer version/profile and photographs or measured observations before deciding whether any contact or gap policy should change.
+Open the Print #2 candidate artifact in Bambu Studio with the same printer profile used for Print #1. Record first-layer plate attachment, lower bootstrap network, brace junctions, bend/angled approach, short neck, crown size, floating extrusion, and Support removal direction. Do not start the physical Print #2 until that human slicer gate is acceptable.
 
 ## Repository state
 
-- Code changes for this gate: **NO**
-- New code branch: **NO**
-- Candidate source commit: `6032b4708fd2d674702d27bead126663861727ff`
+- Code changes for this gate: **Print #2 support-only candidate**
+- New code branch: `agent/skin-golden-support-print2-v1`
+- Source checkpoint: `f4f3114f9fa21c9a5d70803aafcb91bf23f2437e`
 - Golden merge: **NO**
 - Deploy: **NO**

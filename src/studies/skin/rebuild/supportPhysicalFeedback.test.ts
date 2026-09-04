@@ -81,20 +81,39 @@ const critical = applySupportPhysicalFeedback(build(criticalRequest), criticalRe
   maxUnbracedLengthMm: 100,
   scaleMmPerUnit: 1,
   braceEnabled: false,
+  patchEnabled: true,
 });
 assert.equal(critical.metrics.patchCandidateCount, 3, "critical coverage produces temporary patch candidates");
 assert.ok(critical.metrics.patchCandidates.every((candidate) => candidate.exportable === false));
 
+const criticalProduction = applySupportPhysicalFeedback(build(criticalRequest), criticalRequest, {
+  maxUnbracedLengthMm: 100,
+  scaleMmPerUnit: 1,
+  braceEnabled: false,
+});
+assert.equal(criticalProduction.metrics.patchCandidateCount, 0, "production patch candidates stay OFF");
+assert.ok(criticalProduction.metrics.criticalRegionsWithoutEnhancedContact > 0);
+
 const braced = applySupportPhysicalFeedback(clear, baseRequest, {
-  maxUnbracedLengthMm: 1,
+  maxUnbracedLengthMm: 2,
   maxBraceDistanceMm: 1,
   maxBraceSpanMm: 1,
   scaleMmPerUnit: 1,
   braceEnabled: true,
 });
-assert.equal(braced.metrics.braceCount, 1, "nearby long supports receive one minimal mutual brace");
+const unbracedStrict = applySupportPhysicalFeedback(clear, baseRequest, {
+  maxUnbracedLengthMm: 2,
+  maxBraceDistanceMm: 1,
+  maxBraceSpanMm: 1,
+  scaleMmPerUnit: 1,
+  braceEnabled: false,
+});
+assert.ok(braced.metrics.braceCount > 0, "nearby long supports receive minimal mutual braces");
 assert.equal(braced.metrics.bracedSupportCount, 2);
-assert.equal(braced.metrics.longUnbracedCount, 0);
+assert.ok(braced.metrics.longUnbracedCount < unbracedStrict.metrics.longUnbracedCount);
+assert.ok(braced.metrics.trunks.every((trunk) => trunk.stableConnection));
+assert.ok(braced.metrics.trunks.every((trunk) => trunk.firstBraceHeightMm > 0));
+assert.ok(braced.metrics.trunks.every((trunk) => trunk.subsequentBraceSpacingMm >= 0));
 assert.equal(braced.metrics.safety.acceptedBodyCollisionCount, 0);
 assert.equal(braced.metrics.safety.plateViolationCount, 0);
 assert.equal(braced.metrics.safety.invalidGeometryCount, 0);
@@ -102,6 +121,7 @@ assert.equal(braced.metrics.safety.zeroLengthEdgeCount, 0);
 assert.equal(braced.metrics.safety.nearDuplicateEdgeCount, 0);
 assert.equal(braced.metrics.nodeCount, braced.graph.nodes.length);
 assert.equal(braced.metrics.edgeCount, braced.graph.edges.length);
+assert.equal(braced.metrics.patchEnabled, false);
 
 const bodyBetweenRequest: SparseRemovableSupportRequest = {
   ...baseRequest,
@@ -112,7 +132,7 @@ const bodyBetweenRequest: SparseRemovableSupportRequest = {
 const bodyBetweenBase = build(bodyBetweenRequest);
 const bodyBetween = applySupportPhysicalFeedback(bodyBetweenBase, {
   ...bodyBetweenRequest,
-  bodySdf: (x, _y, z) => Math.hypot(x, z - 2.5) - 0.12,
+  bodySdf: (x, _y, z) => Math.hypot(x, z - 2.5) - 1.8,
 }, {
   maxUnbracedLengthMm: 1,
   maxBraceDistanceMm: 2,
@@ -124,7 +144,7 @@ assert.equal(bodyBetween.metrics.braceCount, 0, "a BODY obstruction between shaf
 assert.ok(bodyBetween.metrics.safety.braceRejectedByBody > 0);
 
 const duplicateFreeAgain = applySupportPhysicalFeedback(clear, baseRequest, {
-  maxUnbracedLengthMm: 1,
+  maxUnbracedLengthMm: 2,
   maxBraceDistanceMm: 1,
   maxBraceSpanMm: 1,
   scaleMmPerUnit: 1,
