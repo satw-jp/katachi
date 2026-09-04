@@ -9,8 +9,6 @@ export interface HanaFlowerUiState {
   multiSelect: boolean;
   materializedFlowerId: string | null;
   materializedSampleCount: number;
-  canUndo: boolean;
-  canRedo: boolean;
 }
 
 export interface HanaFlowerUiActions {
@@ -21,8 +19,6 @@ export interface HanaFlowerUiActions {
   createFlower: () => void;
   selectFlower: (flowerId: string | null) => void;
   deleteSelectedStrokes: () => void;
-  undo: () => void;
-  redo: () => void;
 }
 
 export interface HanaFlowerUiHandle {
@@ -69,10 +65,6 @@ export function initializeHanaFlowerAuthoringUi(
       <div id="hana-flower-list" class="hana-flower-list"></div>
     </div>
     <div id="hana-flower-active" class="hana-flower-active">Active Flower: None</div>
-    <div class="hana-flower-history">
-      ${button("Undo", "hana-flower-undo", "hana-flower-small-action")}
-      ${button("Redo", "hana-flower-redo", "hana-flower-small-action")}
-    </div>
     <div id="hana-flower-status" class="hana-flower-status" role="status">Select Strokes to author a Flower</div>
   `;
   pane.appendChild(panel);
@@ -93,8 +85,6 @@ export function initializeHanaFlowerAuthoringUi(
   const selectionCount = panel.querySelector<HTMLElement>("#hana-flower-selection-count")!;
   const coreStatus = panel.querySelector<HTMLElement>("#hana-flower-core-status")!;
   const status = panel.querySelector<HTMLElement>("#hana-flower-status")!;
-  const undoButton = panel.querySelector<HTMLButtonElement>("#hana-flower-undo")!;
-  const redoButton = panel.querySelector<HTMLButtonElement>("#hana-flower-redo")!;
 
   const stopPanelPointer = (event: Event) => event.stopPropagation();
   panel.addEventListener("pointerdown", stopPanelPointer);
@@ -112,8 +102,6 @@ export function initializeHanaFlowerAuthoringUi(
       createButton.disabled = state.document.selectedStrokeIds.length === 0;
       deleteSelectedButton.textContent = `Delete Selected${state.document.selectedStrokeIds.length > 0 ? ` (${state.document.selectedStrokeIds.length})` : ""}`;
       deleteSelectedButton.disabled = state.document.selectedStrokeIds.length === 0;
-      undoButton.disabled = !state.canUndo;
-      redoButton.disabled = !state.canRedo;
 
       strokeList.replaceChildren(...state.document.strokes.map((stroke) => {
         const item = document.createElement("button");
@@ -180,15 +168,6 @@ export function initializeHanaFlowerAuthoringUi(
     actions.deleteSelectedStrokes();
     handle.refresh();
   });
-  undoButton.addEventListener("click", () => {
-    actions.undo();
-    handle.refresh();
-  });
-  redoButton.addEventListener("click", () => {
-    actions.redo();
-    handle.refresh();
-  });
-
   handle.refresh();
   return handle;
 }

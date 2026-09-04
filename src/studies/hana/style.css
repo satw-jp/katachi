@@ -111,6 +111,27 @@ button:disabled {
   gap: 8px;
 }
 
+.hana-document-command-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  min-height: 48px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  white-space: nowrap;
+}
+
+.hana-document-command-bar button {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 0.7rem;
+  white-space: nowrap;
+}
+
 .hana-segmented {
   padding-right: 0.35rem;
   border-right: 1px solid #d7dbe0;
@@ -611,6 +632,10 @@ button:disabled {
   background: rgba(255, 255, 255, 0.88);
   color: #2b3036;
   backdrop-filter: blur(3px);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .hana-view-identity strong {
@@ -1106,6 +1131,14 @@ button:disabled {
   width: 100%;
   min-width: 0;
   flex: none;
+}
+
+.hana-left-upper .hana-toolbar > .hana-document-command-bar {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid #d7dbe0;
 }
 
 .hana-left-upper .hana-toolbar > .hana-segmented,

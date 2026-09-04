@@ -10,6 +10,7 @@ import {
 } from "./recoveryCheckpoint.ts";
 import { createDefaultHanaEditorState, createHanaAuthoringDocument } from "./authoringDocument.ts";
 import { createHanaFlowerFromSelection } from "./flowerAuthoring.ts";
+import { addAuthoringNode, connectAuthoringNodes, createAuthoringGraph } from "./authoringGraph.ts";
 
 function documentFixture() {
   return createHanaAuthoringDocument([], [], {
@@ -67,4 +68,36 @@ test("recovery checkpoint preserves optional Flower semantics without storing de
   assert.deepEqual(roundTrip.flowers?.[0], flower);
   assert.equal(roundTrip.activeFlowerId, "flower-1");
   assert.equal("materialSamples" in roundTrip, false);
+});
+
+test("recovery checkpoint preserves optional Authoring Graph semantics", () => {
+  let graph = createAuthoringGraph();
+  graph = addAuthoringNode(graph, {
+    id: "node-a",
+    role: "anchor",
+    sourceObjectId: "stroke-a",
+    position: { x: 0, y: 0, z: 0 },
+    protected: false,
+    provenance: { sourceObjectIds: ["stroke-a"], sourceGestureIds: ["raw-a"] },
+  });
+  graph = addAuthoringNode(graph, {
+    id: "node-b",
+    role: "free-end",
+    sourceObjectId: "stroke-a",
+    position: { x: 1, y: 0, z: 0 },
+    protected: false,
+  });
+  graph = connectAuthoringNodes(graph, {
+    id: "edge-a-b",
+    role: "gesture-stroke",
+    sourceObjectId: "stroke-a",
+    fromNodeId: "node-a",
+    toNodeId: "node-b",
+    protected: false,
+    provenance: { sourceObjectIds: ["stroke-a"], sourceGestureIds: ["raw-a"] },
+  });
+
+  const checkpoint = createHanaRecoveryCheckpoint(documentFixture(), { graph });
+  const roundTrip = parseHanaRecoveryCheckpoint(JSON.parse(JSON.stringify(checkpoint)));
+  assert.deepEqual(roundTrip.graph, graph);
 });

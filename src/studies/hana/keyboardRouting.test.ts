@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  hanaHistoryShortcut,
   isHanaDeleteKey,
   shouldIgnoreHanaDeleteForTarget,
 } from "./keyboardRouting.ts";
+
+test("keyboard history shortcuts support Meta and Ctrl without Alt", () => {
+  assert.equal(hanaHistoryShortcut({ key: "z", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false }), "undo");
+  assert.equal(hanaHistoryShortcut({ key: "z", metaKey: true, ctrlKey: false, shiftKey: true, altKey: false }), "redo");
+  assert.equal(hanaHistoryShortcut({ key: "y", metaKey: false, ctrlKey: true, shiftKey: false, altKey: false }), "redo");
+  assert.equal(hanaHistoryShortcut({ key: "z", metaKey: true, ctrlKey: false, shiftKey: false, altKey: true }), null);
+  assert.equal(hanaHistoryShortcut({ key: "z", metaKey: false, ctrlKey: false, shiftKey: false, altKey: false }), null);
+});
 
 test("keyboard Delete routing recognizes only the standard delete keys", () => {
   assert.equal(isHanaDeleteKey("Delete"), true);

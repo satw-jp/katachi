@@ -2,7 +2,7 @@
   "id": "hana",
   "title": "一本の花を描く (HANA Gesture Study)",
   "status": "implemented",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "createdAt": "2026-09-01",
   "updatedAt": "2026-09-04",
   "params": [
@@ -44,7 +44,11 @@
     "keyboardDelete",
     "runtimeProvenance",
     "keyboardEventDiagnostics",
-    "authoringKeyboardFocus"
+    "authoringKeyboardFocus",
+    "globalAuthoringHistory",
+    "documentCommandBar",
+    "viewportTitleLayoutToggle",
+    "graphSaveLoadPreservation"
   ],
   "related": ["skin"],
   "revisits": [
@@ -255,6 +259,10 @@
     {
       "date": "2026-09-04",
       "note": "HANA Long-Stroke Main-Thread Starvation Diagnosis / Fix v0 adds development-only RAW ONLY, RAW + CONTROL, RAW + CONTROL + SMOOTH, RAW + CONTROL + SMOOTH + LIVE PROXY, and FULL CURRENT LIVE PATH + RENDER isolation modes. Raw capture remains synchronous and authoritative; live diagnostics refresh at most 250ms and no longer run on every PointerEvent. FULL provisional Surface preview uses cooperative Z-slice meshing with single-flight and generation invalidation, while Final Surface remains an existing pointerup operation. Per-stage timing, 50/100/200/400/800/1600/3200/5000/10000 checkpoints, event-loop lag, live-stroke-only long-task counts, and gap correlation are exposed locally. HANA-2A, Remote Compute, SKIN production, geometry fidelity, and the 192-segment Live Proxy cap remain unchanged; iPad 5/10/20-second hardware recheck remains pending."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "HANA Global History / Document Command Bar / Viewport Toggle v0 replaces the separate Flower / Authoring Study Undo / Redo owners with one HANA-local semantic authoring history covering Document, Flower, Graph, and active Flower state while excluding derived geometry, runtime, UI, camera, and selection. Draw, Edit, Delete Selected, Create Flower, parameter changes, Clear, Undo, and Redo share that history; New File creates a fresh document identity and history boundary, while Clear keeps the document identity and remains undoable. The unified touch-sized command bar provides New / Save / Load / Export / Undo / Redo / Clear, Save/Load preserve Authoring Graph semantics, and Export emits the existing semantic HANA → SKIN Bridge. Four / One is removed from the top toolbar and is now toggled from the viewport title badge by mouse double-click or same-viewport touch double-tap; pen input remains Draw-only. Software verification is required before the iPad hardware recheck; HANA-local only, with no SKIN production changes."
     }
   ]
 }

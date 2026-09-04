@@ -4,6 +4,7 @@ import {
   type HanaAuthoringDocument,
 } from "./authoringDocument.ts";
 import { cloneHanaFlower, type HanaFlower } from "./flowerAuthoring.ts";
+import { cloneAuthoringGraph, type HanaAuthoringGraph } from "./authoringGraph.ts";
 
 export const HANA_RECOVERY_CHECKPOINT_FORMAT = "katachi.hana-recovery-checkpoint.v0" as const;
 export const HANA_RECOVERY_SCHEMA_VERSION = 1 as const;
@@ -23,6 +24,8 @@ export interface HanaRecoveryCheckpoint {
   /** Optional semantic extension; absent in legacy document-only checkpoints. */
   flowers?: HanaFlower[];
   activeFlowerId?: string | null;
+  /** Optional semantic Graph extension; absent in legacy checkpoints. */
+  graph?: HanaAuthoringGraph;
 }
 
 export interface HanaRecoveryValidation {
@@ -45,12 +48,13 @@ function cloneCheckpoint(checkpoint: HanaRecoveryCheckpoint): HanaRecoveryCheckp
     ...checkpoint,
     document: cloneHanaAuthoringDocument(checkpoint.document),
     flowers: checkpoint.flowers?.map(cloneHanaFlower),
+    graph: checkpoint.graph ? cloneAuthoringGraph(checkpoint.graph) : undefined,
   };
 }
 
 export function createHanaRecoveryCheckpoint(
   document: HanaAuthoringDocument,
-  options: { savedAt?: string; algorithmVersion?: string; flowers?: readonly HanaFlower[]; activeFlowerId?: string | null } = {},
+  options: { savedAt?: string; algorithmVersion?: string; flowers?: readonly HanaFlower[]; activeFlowerId?: string | null; graph?: HanaAuthoringGraph } = {},
 ): HanaRecoveryCheckpoint {
   return {
     format: HANA_RECOVERY_CHECKPOINT_FORMAT,
@@ -63,6 +67,7 @@ export function createHanaRecoveryCheckpoint(
     document: cloneHanaAuthoringDocument(document),
     flowers: options.flowers?.map(cloneHanaFlower),
     activeFlowerId: options.activeFlowerId ?? null,
+    graph: options.graph ? cloneAuthoringGraph(options.graph) : undefined,
   };
 }
 
@@ -109,6 +114,9 @@ export function parseHanaRecoveryCheckpoint(value: unknown): HanaRecoveryCheckpo
       ? source.flowers.map((flower) => flower as HanaFlower).map(cloneHanaFlower)
       : undefined,
     activeFlowerId: typeof source.activeFlowerId === "string" ? source.activeFlowerId : null,
+    graph: source.graph && typeof source.graph === "object" && !Array.isArray(source.graph)
+      ? cloneAuthoringGraph(source.graph as HanaAuthoringGraph)
+      : undefined,
   };
 }
 

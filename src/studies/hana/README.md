@@ -760,3 +760,50 @@ SKIN production: unchanged
 ```
 
 The required hardware sequence remains: confirm the displayed short SHA, draw three Strokes, delete the middle Stroke, draw a fourth Stroke, Save and confirm identity metadata with no duplicates, then Multi Select two Strokes, tap the authoring canvas, and test iPad hardware Delete followed by Undo. Projection Redraw, Raw capture changes, Long-Stroke changes, Adaptive Control changes, Material / Surface changes, Remote Compute redesign, and SKIN changes remain out of scope.
+
+## HANA Global History / Document Command Bar / Viewport Toggle v0
+
+Base checkpoint: `07a4a3ddd98de946c352038babf769a5341417f6`
+Current branch: `agent/hana-global-history-toolbar-v0`
+
+### Status
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Real-device Gate: PENDING
+Platform:
+  - iPad Pro 11-inch
+  - Apple Pencil
+  - EasyCanvas
+  - Windows Browser
+HANA-2A frozen checkpoint: unchanged
+SKIN production: unchanged
+```
+
+### M57–M66 — implementation
+
+HANA now has one `HanaAuthoringHistory` owner for semantic authoring snapshots. A snapshot contains the HANA Document, Flowers, Authoring Graph, and active Flower identity. It excludes Raw-derived presentation caches, runtime / generation state, camera / layout preferences, and selection. Draw Stroke, committed Stroke Edit, Delete Selected, Create Flower, authoring parameter changes, and Clear create one semantic boundary per operation; Undo / Redo restores the semantic snapshot and regenerates derived Centerline / Material / Surface state as needed. The existing identity high-water allocator, Raw Gesture metadata, adaptive Control Stroke tolerance `0.09`, Shape Fidelity, Remote Compute boundary, and Live Proxy maximum `192` remain unchanged.
+
+`New File` uses the existing empty-document initialization boundary, creates a fresh document ID and authoring identity allocator, clears semantic and derived state, cancels pending generation / preview work, and resets history. It asks for confirmation only when authoring content exists. `Clear` keeps the current document ID and identity high-water while clearing semantic content and adding an undoable Clear entry. Browser UI preferences such as `hana.leftPaneSplitRatio` remain separate and are preserved.
+
+The normal HANA UI now has one touch-sized document command bar: `New`, `Save`, `Load`, `Export`, `Undo`, `Redo`, and `Clear`. Save / Load retain semantic Authoring Graph data in the existing HANA envelope, and Export uses the existing `katachi.hana-skin-bridge.v0` semantic bridge without exporting Material Samples, Field, or Surface Mesh as authority. The separate Flower / Authoring Study Undo / Redo controls are no longer mounted in the normal UI; their HANA-local fixture modules remain available for tests and development.
+
+`Four` / `One` is no longer a top-toolbar command. The viewport title badge toggles between Four and One on a mouse double-click or a same-viewport touch double-tap within the bounded tap interval. Pen pointer input is ignored by this gesture so Apple Pencil remains Draw / Create. The selected viewport, camera, split, semantic selection, and authoring data are preserved.
+
+Keyboard `Cmd/Ctrl+Z`, `Shift+Cmd/Ctrl+Z`, and `Cmd/Ctrl+Y` route to the same global semantic history with text / range / contenteditable focus guards. Selection and camera navigation remain outside the authoring history. HANA Graph Save / Load preservation is covered by semantic tests and no `src/studies/skin` file is changed.
+
+### Verification
+
+```yaml
+HANA tests: 121/121 PASS
+Remote Compute tests: 5/5 PASS
+TypeScript: PASS
+Vite build: PENDING FINAL RUN
+browser smoke: PENDING FINAL RUN
+manifest JSON: PASS
+diff check: PENDING FINAL RUN
+console warning/error: PENDING FINAL RUN
+src/studies/skin diff: 0
+```
+
+The iPad Pro 11-inch / Apple Pencil / EasyCanvas hardware recheck must confirm the command bar, New / Clear semantics, global Undo / Redo, Graph-preserving Save / Load, Export, and viewport-title Four / One toggle. No next Phase, Flower expansion, Worker, WebGPU, CUDA, SKIN Bridge integration, main merge, or deploy is included in this milestone.

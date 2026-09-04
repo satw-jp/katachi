@@ -11,3 +11,19 @@ export function shouldIgnoreHanaDeleteForTarget(
 ): boolean {
   return isContentEditable || (tagName !== null && HANA_TEXT_TARGET_TAGS.has(tagName.toUpperCase()));
 }
+
+export type HanaHistoryShortcut = "undo" | "redo" | null;
+
+export function hanaHistoryShortcut(input: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}): HanaHistoryShortcut {
+  if (input.altKey || (!input.metaKey && !input.ctrlKey)) return null;
+  const key = input.key.toLowerCase();
+  if (key === "z") return input.shiftKey ? "redo" : "undo";
+  if (key === "y" && !input.shiftKey) return "redo";
+  return null;
+}
