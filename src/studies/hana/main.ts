@@ -22,7 +22,6 @@ import {
   type HanaViewportStroke,
 } from "./gesture.ts";
 import {
-  createHanaDocument,
   deriveStroke3DFromSamples,
   deriveStroke3DFromRawIndices,
   type HanaStroke3D,
@@ -102,7 +101,24 @@ import {
 } from "./finalizationCore.ts";
 import { buildMeshResultFromTriangles } from "../cloud-sculpt/meshExport.ts";
 import { initializeHanaAuthoringStackUi } from "./authoringStackUi.ts";
-import { defaultHanaMaterialSettings } from "./authoringDocument.ts";
+import {
+  createHanaAuthoringDocument,
+  defaultHanaMaterialSettings,
+  migrateHanaDocument,
+  stroke3DFromHanaStroke,
+} from "./authoringDocument.ts";
+import {
+  createHanaRecoveryCheckpoint,
+  createIndexedDbHanaRecoveryStore,
+  isNewerHanaRecoveryCheckpoint,
+} from "./recoveryCheckpoint.ts";
+import { HanaLivePathProfiler, formatHanaLivePathSummary } from "./livePathProfiler.ts";
+import {
+  HANA_VIEW_PRESETS,
+  touchGestureDelta,
+  type HanaTouchPoint,
+  type HanaViewPreset,
+} from "./viewNavigation.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -127,7 +143,7 @@ app.innerHTML = `
     <header class="hana-header">
       <div class="hana-heading">
         <h1>HANA — Point Field Stem Preview</h1>
-        <p>HANA-2A · v${manifest.version} · updated ${manifest.updatedAt}</p>
+        <p>HANA Authoring Stack v0 · v${manifest.version} · updated ${manifest.updatedAt}</p>
       </div>
       <div class="hana-toolbar" aria-label="Viewport layout and document actions">
         <div class="hana-segmented" aria-label="Viewport layout">
@@ -170,6 +186,24 @@ app.innerHTML = `
           </div>
           <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
         </div>
+        <div class="hana-view-control" aria-label="View navigation">
+          <span>View</span>
+          <div class="hana-view-presets">
+            <button type="button" data-view-preset="front">Front</button>
+            <button type="button" data-view-preset="side">Side</button>
+            <button type="button" data-view-preset="top">Top</button>
+            <button type="button" data-view-preset="iso">Iso</button>
+            <button type="button" data-view-preset="fit">Fit</button>
+          </div>
+          <button id="auto-rotate" type="button" aria-pressed="false">Auto Rotate OFF</button>
+        </div>
+        <div class="hana-authoring-context" aria-label="Authoring context">
+          <span class="hana-context-label">Document</span><strong>HANA local</strong>
+          <span class="hana-context-label">Tool</span><strong>Stroke</strong>
+          <span class="hana-context-label">Selection</span><strong id="selection-status">Stroke</strong>
+          <span class="hana-context-label">Mapping</span><strong>Uniform</strong>
+        </div>
+        <span id="recovery-status" class="hana-recovery-status" role="status">Local recovery: ready</span>
         <button id="rebuild-surface" class="hana-secondary" type="button">Rebuild Surface</button>
         <span id="surface-state" class="hana-surface-state" role="status">NOT BUILT</span>
         <button id="clear-document" type="button">Clear</button>
@@ -190,7 +224,9 @@ app.innerHTML = `
       <div id="splitter-y" class="hana-splitter hana-splitter-y" role="separator" aria-label="Resize viewport rows" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"></div>
     </section>
 
-    <footer class="hana-debug">
+    <details class="hana-debug">
+      <summary>Diagnostics</summary>
+      <div class="hana-debug-content">
       <dl>
         <div><dt>pointerType</dt><dd id="debug-pointer">—</dd></div>
         <div><dt>pressure</dt><dd id="debug-pressure">0.0000</dd></div>
@@ -224,9 +260,14 @@ app.innerHTML = `
         <div><dt>selected XYZ</dt><dd id="debug-xyz">—</dd></div>
         <div><dt>raw pressure</dt><dd id="debug-range">—</dd></div>
         <div><dt>compute</dt><dd id="debug-compute">LOCAL · READY</dd></div>
+        <div><dt>live profile</dt><dd id="debug-live-profile">—</dd></div>
+        <div><dt>lifecycle</dt><dd id="debug-lifecycle">—</dd></div>
+        <div><dt>recovery</dt><dd id="debug-recovery">—</dd></div>
+        <div><dt>view</dt><dd id="debug-view">—</dd></div>
       </dl>
       <p id="input-state">READY · Draw one Stroke in Front, Right, or Top</p>
-    </footer>
+      </div>
+    </details>
   </main>
 `;
 
@@ -262,6 +303,10 @@ const rebuildSurfaceButton = requiredElement<HTMLButtonElement>("#rebuild-surfac
 const surfaceState = requiredElement<HTMLElement>("#surface-state");
 const computeModeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-compute-mode]"));
 const computeStatus = requiredElement<HTMLElement>("#compute-status");
+const viewPresetButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-preset]"));
+const autoRotateButton = requiredElement<HTMLButtonElement>("#auto-rotate");
+const recoveryStatusElement = requiredElement<HTMLElement>("#recovery-status");
+const selectionStatusElement = requiredElement<HTMLElement>("#selection-status");
 
 const renderer = new HanaViewportRenderer(sceneCanvas, HANA_VIEW_DIRECTIONS);
 const gestureContext = gestureCanvas.getContext("2d") ?? (() => {
@@ -531,6 +576,22 @@ let activeStroke: ActiveStroke | null = null;
 let liveWorkingPath: HanaLiveWorkingPath | null = null;
 let cameraDrag: CameraDrag | null = null;
 let controlDrag: ControlDrag | null = null;
+const touchPointers = new Map<number, HanaTouchPoint>();
+let previousTouchPoints: HanaTouchPoint[] = [];
+let autoRotateEnabled = false;
+let autoRotateFrame: number | null = null;
+let lifecycleVisibility = document.visibilityState;
+let lifecyclePagehideCount = 0;
+let lifecycleResumeCount = 0;
+let lifecycleContextLost = false;
+let lifecycleLastEvent = "—";
+let recoveryStatusText = "Local recovery: ready";
+let recoveryRestoreAttempted = false;
+let recoveryWriteChain: Promise<void> = Promise.resolve();
+const recoveryStore = createIndexedDbHanaRecoveryStore();
+const recoveryDocumentId = "hana-document-1";
+const livePathProfiler = new HanaLivePathProfiler();
+let liveLastEventTimestamp: number | null = null;
 let pendingControlPointer: PendingControlPointer | null = null;
 let mouseEditPointerRevision = 0;
 let lastAdaptiveControlFit: HanaAdaptiveControlFitResult | null = null;
@@ -627,6 +688,58 @@ function canvasPoint(event: { clientX: number; clientY: number }): { x: number; 
 function setDebugText(id: string, value: string): void {
   const element = document.getElementById(id);
   if (element) element.textContent = value;
+}
+
+function updateRecoveryUI(): void {
+  recoveryStatusElement.textContent = recoveryStatusText;
+  workspace.dataset.recoveryStatus = recoveryStatusText;
+  setDebugText("debug-recovery", recoveryStatusText);
+}
+
+function lifecycleText(): string {
+  return [
+    lifecycleVisibility,
+    `pagehide ${lifecyclePagehideCount}`,
+    `resume ${lifecycleResumeCount}`,
+    `context ${lifecycleContextLost ? "lost" : "ready"}`,
+    lifecycleLastEvent,
+  ].join(" · ");
+}
+
+function updateLifecycleUI(): void {
+  const value = lifecycleText();
+  setDebugText("debug-lifecycle", value);
+  workspace.dataset.lifecycle = value;
+}
+
+function scheduleRecoveryCheckpoint(reason: string): void {
+  if (activeStroke) return;
+  const checkpoint = createHanaRecoveryCheckpoint(snapshot());
+  recoveryStatusText = `Local recovery: saving · rev ${checkpoint.documentRevision}`;
+  updateRecoveryUI();
+  recoveryWriteChain = recoveryWriteChain
+    .then(() => recoveryStore.save(checkpoint))
+    .then(() => {
+      recoveryStatusText = `Local recovery: saved · rev ${checkpoint.documentRevision} · ${reason}`;
+      updateRecoveryUI();
+    })
+    .catch(() => {
+      recoveryStatusText = "Local recovery: unavailable";
+      updateRecoveryUI();
+    });
+}
+
+function clearRecoveryCheckpoint(): void {
+  recoveryWriteChain = recoveryWriteChain
+    .then(() => recoveryStore.clear(recoveryDocumentId))
+    .then(() => {
+      recoveryStatusText = "Local recovery: cleared";
+      updateRecoveryUI();
+    })
+    .catch(() => {
+      recoveryStatusText = "Local recovery: unavailable";
+      updateRecoveryUI();
+    });
 }
 
 function updateComputeUI(): void {
@@ -1320,6 +1433,10 @@ function updateSurfaceUI(): void {
   setDebugText("debug-mouse-edit-presentation", mouseEditPresentationText(presentation));
   setDebugText("debug-mouse-edit-markers", editDiagnosticMarkerText());
   setDebugText("debug-mouse-edit-pipeline", mouseEditPipelineText());
+  setDebugText("debug-live-profile", formatHanaLivePathSummary(livePathProfiler.summarize()));
+  setDebugText("debug-lifecycle", lifecycleText());
+  setDebugText("debug-recovery", recoveryStatusText);
+  setDebugText("debug-view", `${viewportMode} · ${directions[selectedViewport]} · auto ${autoRotateEnabled ? "on" : "off"}`);
   setDebugText("debug-finalization", finalizationText());
   setDebugText("debug-thickness", thickness.toFixed(2));
   workspace.dataset.materialSampleCount = String(displayedMaterialSamples().length);
@@ -1386,13 +1503,17 @@ function updateSurfaceUI(): void {
   workspace.dataset.longTaskOver16Count = String(longTaskDurations.filter((duration) => duration > 16).length);
   workspace.dataset.longTaskOver33Count = String(longTaskDurations.filter((duration) => duration > 33).length);
   workspace.dataset.longTaskOver50Count = String(longTaskDurations.filter((duration) => duration > 50).length);
+  workspace.dataset.livePathProfile = JSON.stringify(livePathProfiler.summarize());
+  workspace.dataset.lifecycle = lifecycleText();
+  workspace.dataset.recoveryStatus = recoveryStatusText;
+  workspace.dataset.autoRotate = String(autoRotateEnabled);
 }
 
 function refreshMaterialSamples(
   source = activeStroke ? provisionalStroke3D : stroke3D,
   timings: HanaPointerupStageTimings | null = null,
   finalization: HanaFinalizationTrace | null = null,
-): void {
+): { smoothMilliseconds: number; materialMilliseconds: number } {
   const smoothStarted = performance.now();
   const centerline = source ? sampleSmoothCenterline(source) : [];
   const smoothReady = performance.now();
@@ -1410,17 +1531,22 @@ function refreshMaterialSamples(
       ? sampleMaterialSamplesForPreview(centerline, thickness, SURFACE_PREVIEW_MAX_SAMPLES)
       : sampleMaterialSamples(centerline, thickness)
     : [];
+  const materialEnded = performance.now();
   if (timings) {
-    timings.materialSamples = performance.now() - materialStarted;
+    timings.materialSamples = materialEnded - materialStarted;
     timings.smoothCount = centerline.length;
     timings.materialCount = materialSamples.length;
   }
   if (finalization) {
-    const materialReady = performance.now();
+    const materialReady = materialEnded;
     finalization.timestamps.tMaterialReady = materialReady;
     setFinalizationStage(finalization, "materialSamples", materialReady - materialStarted);
   }
   updateSurfaceUI();
+  return {
+    smoothMilliseconds: smoothReady - smoothStarted,
+    materialMilliseconds: materialEnded - materialStarted,
+  };
 }
 
 function projectGesturePointToWorld(active: ActiveStroke, point: HanaStrokePoint) {
@@ -1437,20 +1563,23 @@ function projectGesturePointToWorld(active: ActiveStroke, point: HanaStrokePoint
   return world;
 }
 
-function updateProvisionalStroke(): void {
+function updateProvisionalStroke(): { controlMilliseconds: number; smoothMilliseconds: number; materialMilliseconds: number } {
   const active = activeStroke;
   if (!active || !liveWorkingPath || active.stroke.points.length < 2) {
     provisionalStroke3D = null;
-    refreshMaterialSamples(null);
-    return;
+    const refresh = refreshMaterialSamples(null);
+    return { controlMilliseconds: 0, ...refresh };
   }
+  const controlStarted = performance.now();
   provisionalStroke3D = deriveStroke3DFromSamples(
     active.stroke,
     liveWorkingStrokeSamples(liveWorkingPath),
     (point) => projectGesturePointToWorld(active, point),
   );
   provisionalStroke3D.curve.smoothness = smoothness;
-  refreshMaterialSamples(provisionalStroke3D);
+  const controlMilliseconds = performance.now() - controlStarted;
+  const refresh = refreshMaterialSamples(provisionalStroke3D);
+  return { controlMilliseconds, ...refresh };
 }
 
 function updateDebug(
@@ -1459,6 +1588,9 @@ function updateDebug(
   stroke: HanaViewportStroke | null = null,
 ): void {
   const selected = selectedControlPoint === null ? null : stroke3D?.controlPoints[selectedControlPoint] ?? null;
+  selectionStatusElement.textContent = selected
+    ? `Control ${selectedControlPoint! + 1}`
+    : stroke3D ? "Stroke" : "None";
   const visibleStroke = displayedStroke();
   const visibleCenterline = displayedCenterline();
   setDebugText("debug-pointer", pointerType ?? rawGestures[0]?.pointerType ?? "—");
@@ -1754,6 +1886,7 @@ function previewBuildDurationStats(): { min: number; median: number; max: number
 
 function appendSamples(event: PointerEvent): void {
   if (!activeStroke || event.pointerId !== activeStroke.pointerId) return;
+  const rawStarted = performance.now();
   const coalesced = event.getCoalescedEvents?.() ?? [];
   const samples = coalesced.length > 0 ? coalesced : [event];
   let latest: HanaStrokePoint | null = null;
@@ -1787,8 +1920,13 @@ function appendSamples(event: PointerEvent): void {
       );
     }
   }
-  updateProvisionalStroke();
-  scheduleSurfacePreview();
+  const rawEnded = performance.now();
+  liveLastEventTimestamp = eventTimestampForPerformance(event.timeStamp, rawEnded);
+  livePathProfiler.record({
+    kind: "event",
+    eventTimestamp: liveLastEventTimestamp,
+    stages: { rawAppend: rawEnded - rawStarted },
+  });
   scheduleMaterialProxyFrame();
   redrawOverlay();
   if (latest) updateDebug(latest, activeStroke.stroke.pointerType, activeStroke.stroke);
@@ -1800,6 +1938,7 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
   const direction = directions[rect.index];
   if (direction === "axome") return;
   event.preventDefault();
+  stopAutoRotate();
   markFinalizationEditing("draw");
   gestureCanvas.setPointerCapture(event.pointerId);
   const stroke: HanaViewportStroke = {
@@ -1827,6 +1966,8 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
   materialSamples = [];
   workspace.dataset.materialProxySegmentCount = "0";
   surfacePointerEndMilliseconds = null;
+  livePathProfiler.reset();
+  liveLastEventTimestamp = null;
   renderer.setMaterialProxy(null);
   const point = pointFromSample(event, activeStroke);
   stroke.points.push(point);
@@ -1926,6 +2067,7 @@ function finishStroke(): void {
     finished.stroke.pointerType,
     finished.stroke,
   );
+  scheduleRecoveryCheckpoint("draw");
 }
 
 function nearestControlIndex(rect: SkinViewportRect, x: number, y: number): number | null {
@@ -2051,7 +2193,8 @@ function scheduleMaterialProxyFrame(): void {
   const isPreviewActive = activeStroke !== null || controlDrag !== null;
   const isEditPreviewOnly = !showSurface && controlDrag !== null;
   const directEditPreview = editProxyMode === "direct" && controlDrag !== null;
-  if ((!showSurface && !isEditPreviewOnly) || !isPreviewActive || (!directEditPreview && centerline.length < 2)) {
+  const livePathPending = activeStroke !== null && liveWorkingPath !== null;
+  if ((!showSurface && !isEditPreviewOnly) || !isPreviewActive || (!directEditPreview && centerline.length < 2 && !livePathPending)) {
     cancelMaterialProxyFrame();
     cancelEditPreviewFrame();
     renderer.setMaterialProxy(null);
@@ -2066,6 +2209,11 @@ function scheduleMaterialProxyFrame(): void {
     const rafStarted = performance.now();
     let pendingForFrame: PendingControlPointer | null = null;
     let controlPreviewTiming: ControlPreviewTiming | null = null;
+    let liveProcessing: { controlMilliseconds: number; smoothMilliseconds: number; materialMilliseconds: number } | null = null;
+    if (frameRef === "live" && activeStroke) {
+      liveProcessing = updateProvisionalStroke();
+      scheduleSurfacePreview();
+    }
     if (frameRef === "edit") {
       pendingForFrame = pendingControlPointer;
       pendingControlPointer = null;
@@ -2222,6 +2370,22 @@ function scheduleMaterialProxyFrame(): void {
         ...mouseEditRenderSubmissionDurations,
         renderSubmissionMilliseconds,
       ].slice(-128);
+    }
+    if (frameRef === "live") {
+      livePathProfiler.record({
+        kind: "frame",
+        eventTimestamp: liveLastEventTimestamp ?? rafStarted,
+        frameTimestamp: rafStarted,
+        stages: {
+          controlUpdate: liveProcessing?.controlMilliseconds ?? 0,
+          smoothUpdate: liveProcessing?.smoothMilliseconds ?? 0,
+          materialUpdate: liveProcessing?.materialMilliseconds ?? 0,
+          proxyUpdate: proxySegmentsEnded - proxyUpdateStarted,
+          gpuUpload: proxyTransformsEnded - proxyTransformsStarted,
+          render: renderSubmissionMilliseconds,
+          totalUpdate: performance.now() - rafStarted,
+        },
+      });
     }
     if (frameRef === "edit") mouseEditLastRenderSubmission = performance.now();
     updateSurfaceUI();
@@ -2476,12 +2640,14 @@ function finishControlDrag(pointerId: number): void {
   mouseEditSessionReadyToEditMilliseconds = null;
   redrawOverlay();
   updateDebug();
+  scheduleRecoveryCheckpoint("edit");
 }
 
 function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIndex: number): void {
   const direction = directions[rect.index];
   if (direction === "axome" || !stroke3D) return;
   event.preventDefault();
+  stopAutoRotate();
   cancelPendingFinalizationForEdit();
   markFinalizationEditing("mouse-edit");
   gestureCanvas.setPointerCapture(event.pointerId);
@@ -2580,6 +2746,7 @@ function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
   if (!event.isPrimary || activeStroke || cameraDrag || controlDrag) return;
   if (event.pointerType === "mouse" && event.button !== 0 && event.button !== 2) return;
   event.preventDefault();
+  stopAutoRotate();
   gestureCanvas.setPointerCapture(event.pointerId);
   cameraDrag = {
     pointerId: event.pointerId,
@@ -2594,7 +2761,80 @@ function startCameraDrag(event: PointerEvent, rect: SkinViewportRect): void {
   };
 }
 
+function currentTouchPoints(): HanaTouchPoint[] {
+  return [...touchPointers.values()].sort((a, b) => a.id - b.id);
+}
+
+function startTouchNavigation(event: PointerEvent, rect: SkinViewportRect): void {
+  if (activeStroke || controlDrag) return;
+  event.preventDefault();
+  stopAutoRotate();
+  gestureCanvas.setPointerCapture(event.pointerId);
+  const point = canvasPoint(event);
+  touchPointers.set(event.pointerId, { id: event.pointerId, x: point.x, y: point.y });
+  previousTouchPoints = currentTouchPoints();
+  cameraDrag = touchPointers.size === 1
+    ? {
+      pointerId: event.pointerId,
+      viewportIndex: rect.index,
+      gesture: resolveRhinoViewportGesture(directions[rect.index], { shiftKey: false, metaKey: false }),
+      previousX: event.clientX,
+      previousY: event.clientY,
+      rect: { ...rect },
+    }
+    : null;
+}
+
+function updateTouchNavigation(event: PointerEvent): void {
+  const current = touchPointers.get(event.pointerId);
+  if (!current) return;
+  event.preventDefault();
+  stopAutoRotate();
+  const point = canvasPoint(event);
+  current.x = point.x;
+  current.y = point.y;
+  const nextPoints = currentTouchPoints();
+  const rect = currentRects().find((item) => item.index === (cameraDrag?.viewportIndex ?? selectedViewport));
+  if (!rect) {
+    previousTouchPoints = nextPoints;
+    return;
+  }
+  if (nextPoints.length >= 2 && previousTouchPoints.length >= 2) {
+    const delta = touchGestureDelta(previousTouchPoints, nextPoints);
+    if (delta) {
+      renderer.applyDrag(rect.index, "pan", delta.deltaX, delta.deltaY, rect.width, rect.height);
+      renderer.applyDrag(rect.index, "zoom", 0, delta.zoomDelta, rect.width, rect.height);
+    }
+  } else if (cameraDrag && cameraDrag.pointerId === event.pointerId) {
+    renderer.applyDrag(
+      cameraDrag.viewportIndex,
+      cameraDrag.gesture,
+      event.clientX - cameraDrag.previousX,
+      event.clientY - cameraDrag.previousY,
+      cameraDrag.rect.width,
+      cameraDrag.rect.height,
+    );
+    cameraDrag.previousX = event.clientX;
+    cameraDrag.previousY = event.clientY;
+  }
+  previousTouchPoints = nextPoints;
+  renderScene();
+  redrawOverlay();
+}
+
+function endTouchNavigation(pointerId: number): void {
+  if (!touchPointers.has(pointerId)) return;
+  touchPointers.delete(pointerId);
+  previousTouchPoints = currentTouchPoints();
+  if (cameraDrag?.pointerId === pointerId) cameraDrag = null;
+  if (gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
+}
+
 function endPointer(pointerId: number, releaseCapture: boolean): void {
+  if (touchPointers.has(pointerId)) {
+    endTouchNavigation(pointerId);
+    return;
+  }
   if (activeStroke?.pointerId === pointerId) {
     surfacePointerEndMilliseconds = performance.now();
     finishStroke();
@@ -2616,6 +2856,10 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
   const pencilDraw = event.pointerType === "pen"
     && directions[rect.index] !== "axome"
     && stroke3D === null;
+  if (event.pointerType === "touch") {
+    startTouchNavigation(event, rect);
+    return;
+  }
   if (interactionModes[rect.index] === "draw" || pencilDraw) {
     startStroke(event, rect);
     return;
@@ -2651,6 +2895,10 @@ gestureCanvas.addEventListener("pointermove", (event) => {
     queueControlDragPointer(event);
     return;
   }
+  if (touchPointers.has(event.pointerId)) {
+    updateTouchNavigation(event);
+    return;
+  }
   if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
   event.preventDefault();
   renderer.applyDrag(
@@ -2673,6 +2921,7 @@ gestureCanvas.addEventListener("lostpointercapture", (event) => endPointer(event
 gestureCanvas.addEventListener("contextmenu", (event) => event.preventDefault());
 gestureCanvas.addEventListener("wheel", (event) => {
   event.preventDefault();
+  stopAutoRotate();
   const point = canvasPoint(event);
   const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
   if (!rect || interactionModes[rect.index] === "draw") return;
@@ -2716,6 +2965,64 @@ splitterY.addEventListener("pointerdown", (event) => beginSplitterDrag(event, "y
 
 layoutFourButton.addEventListener("click", () => { viewportMode = "four"; refreshLayout(); });
 layoutOneButton.addEventListener("click", () => { viewportMode = "one"; refreshLayout(); });
+
+function updateAutoRotateUI(): void {
+  autoRotateButton.setAttribute("aria-pressed", String(autoRotateEnabled));
+  autoRotateButton.textContent = `Auto Rotate ${autoRotateEnabled ? "ON" : "OFF"}`;
+  workspace.dataset.autoRotate = String(autoRotateEnabled);
+}
+
+function stopAutoRotate(): void {
+  autoRotateEnabled = false;
+  if (autoRotateFrame !== null) {
+    window.cancelAnimationFrame(autoRotateFrame);
+    autoRotateFrame = null;
+  }
+  updateAutoRotateUI();
+}
+
+function autoRotateTick(_timestamp: number): void {
+  autoRotateFrame = null;
+  if (!autoRotateEnabled) return;
+  if (!activeStroke && !controlDrag && !cameraDrag) {
+    renderer.applyAutoRotate(selectedViewport, 16);
+    renderScene();
+    redrawOverlay();
+  }
+  autoRotateFrame = window.requestAnimationFrame(autoRotateTick);
+}
+
+function startAutoRotate(): void {
+  if (autoRotateFrame !== null) return;
+  autoRotateFrame = window.requestAnimationFrame(autoRotateTick);
+}
+
+autoRotateButton.addEventListener("click", () => {
+  autoRotateEnabled = !autoRotateEnabled;
+  updateAutoRotateUI();
+  if (autoRotateEnabled) startAutoRotate();
+  else if (autoRotateFrame !== null) {
+    window.cancelAnimationFrame(autoRotateFrame);
+    autoRotateFrame = null;
+  }
+  updateDebug();
+});
+
+for (const button of viewPresetButtons) {
+  button.addEventListener("click", () => {
+    stopAutoRotate();
+    const preset = button.dataset.viewPreset;
+    if (!preset) return;
+    if (preset === "fit") {
+      renderer.fitView(selectedViewport, displayedCenterline().map((point) => point.position));
+    } else if ((HANA_VIEW_PRESETS as readonly string[]).includes(preset)) {
+      renderer.setViewPreset(selectedViewport, preset as HanaViewPreset);
+    }
+    refreshLayout();
+    updateDebug();
+  });
+}
+
 for (const button of softEditButtons) {
   button.addEventListener("click", () => {
     const strength = button.dataset.softEdit;
@@ -2753,6 +3060,7 @@ function setSmoothness(value: number): void {
 }
 
 smoothnessSlider.addEventListener("input", () => {
+  stopAutoRotate();
   setSmoothness(Number(smoothnessSlider.value));
 });
 
@@ -3345,10 +3653,17 @@ surfaceToggle.addEventListener("click", () => {
   updateDebug();
 });
 thicknessSlider.addEventListener("input", () => {
+  stopAutoRotate();
   setThickness(Number(thicknessSlider.value));
 });
-smoothnessSlider.addEventListener("change", finalizeSurfaceParameterChange);
-thicknessSlider.addEventListener("change", finalizeSurfaceParameterChange);
+smoothnessSlider.addEventListener("change", () => {
+  finalizeSurfaceParameterChange();
+  scheduleRecoveryCheckpoint("smoothness");
+});
+thicknessSlider.addEventListener("change", () => {
+  finalizeSurfaceParameterChange();
+  scheduleRecoveryCheckpoint("thickness");
+});
 rebuildSurfaceButton.addEventListener("click", () => requestAuthoritativeSurfaceRebuild("manual-rebuild", false));
 
 clearButton.addEventListener("click", () => {
@@ -3446,6 +3761,8 @@ clearButton.addEventListener("click", () => {
   finalizationHistory = [];
   uploadOnlyMeshCache = null;
   resetEditDiagnosticMarkers();
+  livePathProfiler.reset();
+  liveLastEventTimestamp = null;
   workspace.dataset.materialProxySegmentCount = "0";
   renderer.setPreviewSurface(null);
   renderer.setMaterialProxy(null);
@@ -3453,12 +3770,17 @@ clearButton.addEventListener("click", () => {
   lastAffectedControlIndices = [];
   lastEditBoundsBefore = null;
   lastEditBoundsAfter = null;
+  showSurface = true;
+  showCenterline = true;
+  showSamples = false;
   setSmoothness(0);
   interactionModes[0] = "edit";
   interactionModes[1] = "view";
   interactionModes[2] = "draw";
   interactionModes[3] = "edit";
   stateMessage = "READY · Draw one Stroke in Front, Right, or Top";
+  clearRecoveryCheckpoint();
+  updateDisplayUI();
   refreshLayout();
   updateDebug();
 });
@@ -3479,11 +3801,89 @@ function captureEditorState(): HanaEditorState {
 }
 
 function snapshot() {
-  return createHanaDocument(rawGestures, stroke3D ? [stroke3D] : [], captureEditorState());
+  const document = createHanaAuthoringDocument(
+    rawGestures,
+    stroke3D ? [stroke3D] : [],
+    { documentId: recoveryDocumentId, editorState: captureEditorState() },
+  );
+  document.revision = documentRevision;
+  if (document.strokes[0]) {
+    document.strokes[0].materialSettings = defaultHanaMaterialSettings(thickness);
+    document.strokes[0].curveSettings.smoothness = smoothness;
+  }
+  return document;
+}
+
+async function restoreRecoveryCheckpoint(): Promise<void> {
+  if (recoveryRestoreAttempted) return;
+  recoveryRestoreAttempted = true;
+  let checkpoint: Awaited<ReturnType<typeof recoveryStore.load>>;
+  try {
+    checkpoint = await recoveryStore.load(recoveryDocumentId);
+  } catch {
+    recoveryStatusText = "Local recovery: unavailable";
+    updateRecoveryUI();
+    return;
+  }
+  if (!checkpoint || !isNewerHanaRecoveryCheckpoint(checkpoint, recoveryDocumentId, documentRevision)) return;
+  if (rawGestures.length > 0 || stroke3D || activeStroke) return;
+  const document = migrateHanaDocument(checkpoint.document);
+  rawGestures.push(...document.rawGestures.strokes);
+  rawPressureTotal = rawGestures[0]?.points.reduce((total, point) => total + point.pressure, 0) ?? 0;
+  rawTimeTotal = rawGestures[0]?.points.reduce((total, point) => total + point.time, 0) ?? 0;
+  documentRevision = document.revision;
+  viewportMode = document.editorState.viewportMode;
+  const selected = directions.findIndex((direction) => `viewport-${direction}` === document.editorState.selectedViewportId);
+  selectedViewport = selected >= 0 ? selected : 2;
+  split = { ...document.editorState.split };
+  if (document.editorState.softEditStrength === "off"
+    || document.editorState.softEditStrength === "low"
+    || document.editorState.softEditStrength === "medium") {
+    softEditStrength = document.editorState.softEditStrength;
+  }
+  document.editorState.viewports.forEach((viewport, index) => {
+    if (index < interactionModes.length && modeOptions(index).includes(viewport.interactionMode)) {
+      interactionModes[index] = viewport.interactionMode;
+    }
+  });
+  const savedStroke = document.strokes[0];
+  if (!savedStroke) {
+    recoveryStatusText = `Local recovery: empty checkpoint · rev ${document.revision}`;
+    updateRecoveryUI();
+    refreshLayout();
+    updateDebug();
+    return;
+  }
+  const restoredStroke3D = stroke3DFromHanaStroke(savedStroke);
+  stroke3D = restoredStroke3D;
+  const restoredSmoothness = Number(restoredStroke3D.curve.smoothness);
+  smoothness = Number.isFinite(restoredSmoothness) ? Math.max(0, Math.min(1, restoredSmoothness)) : 0;
+  const restoredThickness = Number(savedStroke.materialSettings.baseRadius);
+  thickness = Number.isFinite(restoredThickness)
+    ? restoredThickness
+    : HANA_THICKNESS_DEFAULT;
+  authoritativeCenterline = sampleSmoothCenterline(restoredStroke3D);
+  refreshMaterialSamples(stroke3D);
+  interactionModes[0] = "edit";
+  interactionModes[2] = "edit";
+  selectedControlPoint = Math.floor(stroke3D.controlPoints.length / 2);
+  stateMessage = `RECOVERED · ${stroke3D.controlPoints.length} controls · revision ${document.revision}`;
+  recoveryStatusText = `Local recovery: restored · rev ${document.revision}`;
+  updateSmoothnessUI();
+  updateThicknessUI();
+  updateSoftEditButtons();
+  updateRecoveryUI();
+  refreshLayout();
+  updateDebug();
+  if (showSurface && materialSamples.length > 0) {
+    requestAuthoritativeSurfaceRebuild("recovery-restore", false);
+  }
 }
 
 saveButton.addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type: "application/json" });
+  const savedDocument = snapshot();
+  scheduleRecoveryCheckpoint("manual save");
+  const blob = new Blob([JSON.stringify(savedDocument, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -3493,6 +3893,68 @@ saveButton.addEventListener("click", () => {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+});
+
+document.addEventListener("visibilitychange", () => {
+  lifecycleVisibility = document.visibilityState;
+  lifecycleLastEvent = `visibility:${document.visibilityState}`;
+  if (document.visibilityState === "hidden") {
+    stopAutoRotate();
+    scheduleRecoveryCheckpoint("visibility");
+  } else {
+    lifecycleResumeCount += 1;
+  }
+  updateLifecycleUI();
+  updateDebug();
+});
+
+window.addEventListener("pagehide", () => {
+  lifecyclePagehideCount += 1;
+  lifecycleLastEvent = "pagehide";
+  scheduleRecoveryCheckpoint("pagehide");
+  updateLifecycleUI();
+});
+
+window.addEventListener("pageshow", () => {
+  lifecycleResumeCount += 1;
+  lifecycleLastEvent = "pageshow";
+  updateLifecycleUI();
+  updateDebug();
+  void restoreRecoveryCheckpoint();
+});
+
+window.addEventListener("freeze", () => {
+  lifecycleLastEvent = "freeze";
+  scheduleRecoveryCheckpoint("freeze");
+  updateLifecycleUI();
+});
+
+window.addEventListener("resume", () => {
+  lifecycleResumeCount += 1;
+  lifecycleLastEvent = "resume";
+  updateLifecycleUI();
+  updateDebug();
+  void restoreRecoveryCheckpoint();
+});
+
+sceneCanvas.addEventListener("webglcontextlost", (event) => {
+  event.preventDefault();
+  lifecycleContextLost = true;
+  lifecycleLastEvent = "webglcontextlost";
+  stateMessage = "RENDERER PAUSED · authoring document retained";
+  updateLifecycleUI();
+  updateDebug();
+});
+
+sceneCanvas.addEventListener("webglcontextrestored", () => {
+  lifecycleContextLost = false;
+  lifecycleLastEvent = "webglcontextrestored";
+  renderer.setPreviewSurface(previewSurface?.triangles ?? null);
+  renderer.setMaterialProxy(null);
+  renderScene();
+  redrawOverlay();
+  updateLifecycleUI();
+  updateDebug();
 });
 
 type HanaProbeWindow = Window & { __HANA_1C__?: { snapshot: typeof snapshot } };
@@ -3509,6 +3971,10 @@ resize();
 updateSmoothnessUI();
 updateDisplayUI();
 updateThicknessUI();
+updateAutoRotateUI();
+updateRecoveryUI();
+updateLifecycleUI();
 updateDebug();
 initializeHanaAuthoringStackUi();
 void refreshComputeHealth();
+void restoreRecoveryCheckpoint();

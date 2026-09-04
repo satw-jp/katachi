@@ -11,6 +11,7 @@ import type {
 } from "./gesture.ts";
 import type { HanaLiveProxySegment } from "./liveProxy.ts";
 import type { HanaVector3 } from "./stroke3d.ts";
+import type { HanaViewPreset } from "./viewNavigation.ts";
 
 interface HanaPreviewTriangle {
   a: HanaVector3;
@@ -111,6 +112,28 @@ function makeCamera(direction: HanaViewDirection): ViewCamera {
   camera.lookAt(target);
   camera.updateMatrixWorld();
   return { direction, camera, target };
+}
+
+function applyPreset(view: ViewCamera, preset: HanaViewPreset): void {
+  const distance = CAMERA_DISTANCE;
+  const eye = preset === "top"
+    ? new THREE.Vector3(0, 0, distance)
+    : preset === "side"
+      ? new THREE.Vector3(distance, 0, 0)
+      : preset === "iso"
+        ? new THREE.Vector3(8, -8, 7).normalize().multiplyScalar(distance)
+        : new THREE.Vector3(0, -distance, 0);
+  const up = preset === "top"
+    ? new THREE.Vector3(0, 1, 0)
+    : preset === "iso"
+      ? new THREE.Vector3(-0.38, 0.38, 0.84).normalize()
+      : new THREE.Vector3(0, 0, 1);
+  view.camera.position.copy(view.target).add(eye);
+  view.camera.up.copy(up);
+  view.camera.zoom = 1;
+  view.camera.lookAt(view.target);
+  view.camera.updateProjectionMatrix();
+  view.camera.updateMatrixWorld();
 }
 
 function makeReferenceScene(): THREE.Scene {
@@ -512,6 +535,62 @@ export class HanaViewportRenderer {
       width,
       height,
     );
+  }
+
+  setViewPreset(viewportIndex: number, preset: HanaViewPreset): void {
+    const view = this.views[viewportIndex];
+    if (!view) return;
+    view.target.set(0, 0, 0);
+    applyPreset(view, preset);
+  }
+
+  fitView(viewportIndex: number, points: readonly HanaVector3[]): void {
+    const view = this.views[viewportIndex];
+    if (!view || points.length === 0) {
+      if (view) applyPreset(view, "iso");
+      return;
+    }
+    const minimum = new THREE.Vector3(Infinity, Infinity, Infinity);
+    const maximum = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+    for (const point of points) {
+      minimum.min(new THREE.Vector3(point.x, point.y, point.z));
+      maximum.max(new THREE.Vector3(point.x, point.y, point.z));
+    }
+    view.target.copy(minimum).add(maximum).multiplyScalar(0.5);
+    const span = Math.max(maximum.x - minimum.x, maximum.y - minimum.y, maximum.z - minimum.z, 0.1);
+    const direction = view.direction === "top"
+      ? "top"
+      : view.direction === "right"
+        ? "side"
+        : view.direction === "axome"
+          ? "iso"
+          : "front";
+    applyPreset(view, direction);
+    view.camera.zoom = Math.max(0.15, Math.min(8, VIEW_HEIGHT / span * 0.82));
+    view.camera.updateProjectionMatrix();
+  }
+
+  applyAutoRotate(viewportIndex: number, milliseconds: number): void {
+    const view = this.views[viewportIndex];
+    if (!view || !Number.isFinite(milliseconds) || milliseconds <= 0) return;
+    const angle = milliseconds * 0.00012;
+    const axis = new THREE.Vector3(0, 1, 0);
+    view.camera.position.sub(view.target).applyAxisAngle(axis, angle).add(view.target);
+    view.camera.up.applyAxisAngle(axis, angle);
+    view.camera.lookAt(view.target);
+    view.camera.updateMatrixWorld();
+  }
+
+  setCameraState(viewportIndex: number, state: HanaCameraState): void {
+    const view = this.views[viewportIndex];
+    if (!view) return;
+    view.camera.position.fromArray(state.position);
+    view.camera.up.fromArray(state.up);
+    view.target.fromArray(state.target);
+    view.camera.zoom = Number.isFinite(state.zoom) ? Math.max(0.05, state.zoom) : 1;
+    view.camera.lookAt(view.target);
+    view.camera.updateProjectionMatrix();
+    view.camera.updateMatrixWorld();
   }
 
   projectPoint(

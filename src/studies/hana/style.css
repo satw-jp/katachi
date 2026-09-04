@@ -649,3 +649,272 @@ button:disabled {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* M13: the authoring controls live in a compact, touch-first iPad landscape pane. */
+.hana-shell {
+  grid-template-columns: minmax(248px, 292px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.hana-header {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  align-items: stretch;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.hana-heading h1 {
+  font-size: 1.02rem;
+}
+
+.hana-toolbar {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.hana-toolbar > * {
+  flex: 0 0 auto;
+}
+
+.hana-segmented {
+  width: 100%;
+  justify-content: stretch;
+  padding: 0 0 6px;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-segmented button {
+  flex: 1 1 0;
+}
+
+.hana-soft-control,
+.hana-compute-control,
+.hana-view-control,
+.hana-authoring-context {
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 0;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-soft-control,
+.hana-compute-control,
+.hana-view-control {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.hana-soft-control .hana-segmented,
+.hana-compute-control > .hana-segmented {
+  padding: 0;
+  border: 1px solid #c8cdd3;
+}
+
+.hana-soft-control button,
+.hana-compute-control button {
+  min-height: 48px;
+}
+
+.hana-smooth-control {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  min-height: 72px;
+  padding: 8px 0;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+  gap: 5px;
+}
+
+.hana-smooth-control > span:first-child {
+  font-size: 0.9rem;
+}
+
+.hana-smooth-control input[type="range"] {
+  width: 100%;
+  min-width: 0;
+}
+
+.hana-smooth-control output {
+  min-width: 3.2rem;
+  font-size: 1.2rem;
+}
+
+.hana-display-control {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  padding: 6px 0;
+  border-right: 0;
+  border-bottom: 1px solid #d7dbe0;
+}
+
+.hana-display-control button {
+  width: 100%;
+}
+
+.hana-view-presets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.hana-view-presets button {
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 0.72rem;
+}
+
+.hana-view-control > #auto-rotate {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.hana-authoring-context {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 8px;
+  color: #4e5761;
+  font-size: 0.78rem;
+}
+
+.hana-context-label {
+  color: #7a838d;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.hana-recovery-status {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: #147a43;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.hana-toolbar > .hana-secondary,
+.hana-toolbar > #clear-document,
+.hana-toolbar > #save-document {
+  width: 100%;
+}
+
+.hana-workspace {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.hana-debug {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 0;
+  padding: 0.35rem 0.65rem;
+}
+
+.hana-debug summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  color: #68717c;
+  cursor: pointer;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  user-select: none;
+}
+
+.hana-debug-content {
+  max-height: 22vh;
+  overflow: auto;
+}
+
+@media (max-width: 960px) {
+  .hana-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .hana-header {
+    grid-column: 1;
+    grid-row: 1;
+    max-height: 38vh;
+  }
+
+  .hana-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .hana-toolbar > * {
+    width: auto;
+  }
+
+  .hana-segmented,
+  .hana-soft-control,
+  .hana-compute-control,
+  .hana-view-control,
+  .hana-authoring-context,
+  .hana-smooth-control,
+  .hana-display-control {
+    width: auto;
+    min-height: 48px;
+    display: flex;
+    border-right: 1px solid #d7dbe0;
+    border-bottom: 0;
+    padding: 0 6px 0 0;
+  }
+
+  .hana-smooth-control input[type="range"] {
+    width: min(40vw, 190px);
+    min-width: 120px;
+  }
+
+  .hana-display-control {
+    align-items: stretch;
+  }
+
+  .hana-view-presets {
+    display: flex;
+  }
+
+  .hana-view-control > #auto-rotate {
+    width: auto;
+  }
+
+  .hana-authoring-context {
+    display: none;
+  }
+
+  .hana-recovery-status {
+    min-height: 48px;
+  }
+
+  .hana-workspace {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .hana-debug {
+    grid-column: 1;
+    grid-row: 3;
+  }
+}
