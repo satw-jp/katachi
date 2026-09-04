@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => ({
         skin: "skin.html",
         skinRebuild: "skin-rebuild.html",
         skinArt: "skin-art/index.html",
+        skinArtLegacy: "skin-art/index-legacy/index.html",
         skinArtStudies: "skin-art/studies/index.html",
         skinArtConcepts: "skin-art/concepts/index.html",
         skinArtConceptsV2: "skin-art/concepts-v2/index.html",
