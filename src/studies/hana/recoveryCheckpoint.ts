@@ -3,6 +3,7 @@ import {
   migrateHanaDocument,
   type HanaAuthoringDocument,
 } from "./authoringDocument.ts";
+import { cloneHanaFlower, type HanaFlower } from "./flowerAuthoring.ts";
 
 export const HANA_RECOVERY_CHECKPOINT_FORMAT = "katachi.hana-recovery-checkpoint.v0" as const;
 export const HANA_RECOVERY_SCHEMA_VERSION = 1 as const;
@@ -19,6 +20,9 @@ export interface HanaRecoveryCheckpoint {
   strokeRevision: number;
   algorithmVersion: typeof HANA_RECOVERY_ALGORITHM_VERSION;
   document: HanaAuthoringDocument;
+  /** Optional semantic extension; absent in legacy document-only checkpoints. */
+  flowers?: HanaFlower[];
+  activeFlowerId?: string | null;
 }
 
 export interface HanaRecoveryValidation {
@@ -40,12 +44,13 @@ function cloneCheckpoint(checkpoint: HanaRecoveryCheckpoint): HanaRecoveryCheckp
   return {
     ...checkpoint,
     document: cloneHanaAuthoringDocument(checkpoint.document),
+    flowers: checkpoint.flowers?.map(cloneHanaFlower),
   };
 }
 
 export function createHanaRecoveryCheckpoint(
   document: HanaAuthoringDocument,
-  options: { savedAt?: string; algorithmVersion?: string } = {},
+  options: { savedAt?: string; algorithmVersion?: string; flowers?: readonly HanaFlower[]; activeFlowerId?: string | null } = {},
 ): HanaRecoveryCheckpoint {
   return {
     format: HANA_RECOVERY_CHECKPOINT_FORMAT,
@@ -56,6 +61,8 @@ export function createHanaRecoveryCheckpoint(
     strokeRevision: document.strokes.reduce((maximum, stroke) => Math.max(maximum, finiteInteger(stroke.revision)), 0),
     algorithmVersion: (options.algorithmVersion ?? HANA_RECOVERY_ALGORITHM_VERSION) as typeof HANA_RECOVERY_ALGORITHM_VERSION,
     document: cloneHanaAuthoringDocument(document),
+    flowers: options.flowers?.map(cloneHanaFlower),
+    activeFlowerId: options.activeFlowerId ?? null,
   };
 }
 
@@ -98,6 +105,10 @@ export function parseHanaRecoveryCheckpoint(value: unknown): HanaRecoveryCheckpo
     strokeRevision: finiteInteger(source.strokeRevision),
     algorithmVersion: HANA_RECOVERY_ALGORITHM_VERSION,
     document: migrateHanaDocument(source.document),
+    flowers: Array.isArray(source.flowers)
+      ? source.flowers.map((flower) => flower as HanaFlower).map(cloneHanaFlower)
+      : undefined,
+    activeFlowerId: typeof source.activeFlowerId === "string" ? source.activeFlowerId : null,
   };
 }
 

@@ -7,9 +7,12 @@ import {
   addFlowerCoreStroke,
   attachHanaFlowerToStem,
   createHanaFlowerFromSelection,
+  hanaFlowerSelectionCenter,
   materializeHanaFlower,
   moveHanaFlower,
+  nextHanaFlowerId,
   rotateHanaFlower,
+  validateHanaFlower,
 } from "./flowerAuthoring.ts";
 import type { HanaMaterialSample } from "./materialField.ts";
 
@@ -61,4 +64,23 @@ test("Flower materialization is a local derived object and does not require a gl
   assert.equal(flowerObject.materialSamples.length, 1);
   const withCore = addFlowerCoreStroke(flower, stroke("core"));
   assert.deepEqual(withCore.coreStrokeIds, ["core"]);
+});
+
+test("Flower creation derives a deterministic center from selected Control geometry", () => {
+  const strokes = [
+    { ...stroke("a"), controlPoints: [{ ...stroke("a").controlPoints[0], position: { x: -2, y: 1, z: 4 } }] },
+    { ...stroke("b"), controlPoints: [{ ...stroke("b").controlPoints[0], position: { x: 6, y: 5, z: -2 } }] },
+  ];
+  assert.deepEqual(hanaFlowerSelectionCenter(strokes, ["a", "b"]), { x: 2, y: 3, z: 1 });
+  const result = createHanaFlowerFromSelection("flower-1", strokes, ["a", "b"], { coreStrokeIds: ["b"] });
+  assert.deepEqual(result.flower.center, { x: 2, y: 3, z: 1 });
+  assert.equal(validateHanaFlower(result.flower, result.updatedStrokes).valid, true);
+});
+
+test("Flower ids are deterministic and validation catches dangling membership", () => {
+  const first = createHanaFlowerFromSelection("flower-1", [stroke("a")], ["a"]).flower;
+  assert.equal(nextHanaFlowerId([]), "flower-1");
+  assert.equal(nextHanaFlowerId([first]), "flower-2");
+  const invalid = { ...first, petalStrokeIds: ["missing"] };
+  assert.equal(validateHanaFlower(invalid, [stroke("a")]).valid, false);
 });

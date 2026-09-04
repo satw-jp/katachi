@@ -50,6 +50,11 @@ export interface HanaFlowerCreationResult {
   updatedStrokes: HanaStroke[];
 }
 
+export interface HanaFlowerValidation {
+  valid: boolean;
+  issues: string[];
+}
+
 function cloneVector(value: HanaVector3): HanaVector3 {
   return { x: value.x, y: value.y, z: value.z };
 }
@@ -90,6 +95,63 @@ function defaultFrame(center: HanaVector3): HanaLocalFrame {
   };
 }
 
+/**
+ * Derive a stable Flower center from the selected authoring geometry.
+ * The center is semantic state; it never mutates Raw Gesture or Control data.
+ */
+export function hanaFlowerSelectionCenter(
+  strokes: readonly HanaStroke[],
+  selectedStrokeIds: readonly string[],
+): HanaVector3 {
+  const selected = new Set(selectedStrokeIds);
+  const points = strokes
+    .filter((stroke) => selected.has(stroke.id))
+    .flatMap((stroke) => stroke.controlPoints.map((point) => point.position));
+  if (points.length === 0) return { x: 0, y: 0, z: 0 };
+  const minimum = { x: Infinity, y: Infinity, z: Infinity };
+  const maximum = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const point of points) {
+    minimum.x = Math.min(minimum.x, point.x);
+    minimum.y = Math.min(minimum.y, point.y);
+    minimum.z = Math.min(minimum.z, point.z);
+    maximum.x = Math.max(maximum.x, point.x);
+    maximum.y = Math.max(maximum.y, point.y);
+    maximum.z = Math.max(maximum.z, point.z);
+  }
+  return {
+    x: (minimum.x + maximum.x) * 0.5,
+    y: (minimum.y + maximum.y) * 0.5,
+    z: (minimum.z + maximum.z) * 0.5,
+  };
+}
+
+/** Return the first deterministic flower-N identifier not already in use. */
+export function nextHanaFlowerId(flowers: readonly HanaFlower[]): string {
+  const used = new Set(flowers.map((flower) => flower.id));
+  let index = 1;
+  while (used.has(`flower-${index}`)) index += 1;
+  return `flower-${index}`;
+}
+
+export function validateHanaFlower(
+  flower: HanaFlower,
+  strokes: readonly HanaStroke[],
+): HanaFlowerValidation {
+  const issues: string[] = [];
+  const strokeIds = new Set(strokes.map((stroke) => stroke.id));
+  const members = [...flower.petalStrokeIds, ...flower.coreStrokeIds];
+  if (flower.id.length === 0) issues.push("flower id is required");
+  if (!Number.isFinite(flower.center.x) || !Number.isFinite(flower.center.y) || !Number.isFinite(flower.center.z)) {
+    issues.push("flower center is not finite");
+  }
+  if (new Set(members).size !== members.length) issues.push("flower member ids must be unique");
+  if (flower.petalStrokeIds.some((id) => flower.coreStrokeIds.includes(id))) issues.push("petal/core membership overlaps");
+  if (members.some((id) => !strokeIds.has(id))) issues.push("flower references an unknown Stroke");
+  if (flower.provenance.sourceStrokeIds.length !== members.length) issues.push("flower provenance length is invalid");
+  if (flower.provenance.sourceGestureIds.length !== members.length) issues.push("gesture provenance length is invalid");
+  return { valid: issues.length === 0, issues };
+}
+
 export const HANA_IDENTITY_QUATERNION: HanaQuaternion = { x: 0, y: 0, z: 0, w: 1 };
 
 export function createHanaFlowerFromSelection(
@@ -109,7 +171,7 @@ export function createHanaFlowerFromSelection(
   const coreStrokeIds = [...new Set(options.coreStrokeIds ?? [])];
   if (coreStrokeIds.some((strokeId) => !byId.has(strokeId))) throw new Error("Flower core contains an unknown Stroke");
   const petalStrokeIds = selected.filter((strokeId) => !coreStrokeIds.includes(strokeId));
-  const center = cloneVector(options.center ?? { x: 0, y: 0, z: 0 });
+  const center = cloneVector(options.center ?? hanaFlowerSelectionCenter(strokes, selected));
   const sourceStrokes = [...petalStrokeIds, ...coreStrokeIds].map((strokeId) => byId.get(strokeId) as HanaStroke);
   const flower: HanaFlower = {
     id,

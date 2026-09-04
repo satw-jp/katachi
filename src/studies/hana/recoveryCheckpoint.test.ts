@@ -9,6 +9,7 @@ import {
   validateHanaRecoveryCheckpoint,
 } from "./recoveryCheckpoint.ts";
 import { createDefaultHanaEditorState, createHanaAuthoringDocument } from "./authoringDocument.ts";
+import { createHanaFlowerFromSelection } from "./flowerAuthoring.ts";
 
 function documentFixture() {
   return createHanaAuthoringDocument([], [], {
@@ -38,4 +39,32 @@ test("recovery checkpoint rejects incompatible or stale schema data", () => {
   assert.throws(() => parseHanaRecoveryCheckpoint(wrongAlgorithm), /algorithm version/);
   assert.equal(isNewerHanaRecoveryCheckpoint(checkpoint, "other-document", 0), false);
   assert.equal(HANA_RECOVERY_ALGORITHM_VERSION, "hana-authoring-stack-v0");
+});
+
+test("recovery checkpoint preserves optional Flower semantics without storing derived geometry", () => {
+  const document = createHanaAuthoringDocument([], [], {
+    documentId: "flower-recovery-fixture",
+    editorState: createDefaultHanaEditorState(),
+  });
+  const source = {
+    id: "stroke-1",
+    rawGestureId: "raw-1",
+    controlPoints: [{
+      id: "control-1",
+      position: { x: 1, y: 2, z: 3 },
+      provenance: { sourceStroke: "raw-1", sourceT: 0, sourcePointStart: 0, sourcePointEnd: 0, pressure: 0.5, time: 0 },
+    }],
+    curveSettings: { type: "catmull-rom", parameterization: "centripetal", alpha: 0.5, samplesPerSegment: 8, smoothness: 0 },
+    materialSettings: { mapping: "uniform", baseRadius: 0.18, minRadius: 0.05, maxRadius: 0.5, pressureInfluence: 0, speedInfluence: 0 },
+    revision: 0,
+    role: "free" as const,
+    visible: true,
+  };
+  const withSource = { ...document, strokes: [source], rawGestures: { strokes: [] } };
+  const flower = createHanaFlowerFromSelection("flower-1", withSource.strokes, ["stroke-1"]).flower;
+  const checkpoint = createHanaRecoveryCheckpoint(withSource, { flowers: [flower], activeFlowerId: flower.id, savedAt: "2026-09-04T00:00:00.000Z" });
+  const roundTrip = parseHanaRecoveryCheckpoint(JSON.parse(JSON.stringify(checkpoint)));
+  assert.deepEqual(roundTrip.flowers?.[0], flower);
+  assert.equal(roundTrip.activeFlowerId, "flower-1");
+  assert.equal("materialSamples" in roundTrip, false);
 });
