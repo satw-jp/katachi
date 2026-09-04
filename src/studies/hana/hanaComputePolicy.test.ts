@@ -71,7 +71,7 @@ test("AUTO returns deterministic reason for local, remote, and unavailable choic
   assert.match(light.reason, /AUTO chose LOCAL/);
   const heavy = chooseHanaAutoCompute(snapshot(0.01), health("ready"));
   assert.equal(heavy.choice, "windows");
-  assert.match(heavy.reason, /AUTO chose WINDOWS/);
+  assert.match(heavy.reason, /AUTO chose REMOTE/);
   const offline = chooseHanaAutoCompute(snapshot(0.01), health("unavailable"));
   assert.equal(offline.choice, "local");
   assert.match(offline.reason, /remote unavailable/);

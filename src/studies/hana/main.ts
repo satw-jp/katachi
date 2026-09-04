@@ -102,6 +102,13 @@ import {
   type HanaComputeMode,
 } from "./computeBackend.ts";
 import {
+  HANA_COMPUTE_MODE_STORAGE_KEY,
+  formatHanaAutoComputeStatus,
+  formatHanaComputeStatus,
+  hanaComputeModeLabel,
+  resolveHanaComputeModePreference,
+} from "./computePreference.ts";
+import {
   createHanaFinalizationSnapshot,
   finalizationResultToTriangles,
   type HanaFinalizationResultV0,
@@ -295,7 +302,7 @@ app.innerHTML = `
         <span>Compute</span>
         <div class="hana-segmented">
           <button type="button" data-compute-mode="local" aria-pressed="true">LOCAL</button>
-          <button type="button" data-compute-mode="windows" aria-pressed="false">WINDOWS</button>
+          <button type="button" data-compute-mode="windows" aria-pressed="false">REMOTE</button>
           <button type="button" data-compute-mode="auto" aria-pressed="false">AUTO</button>
         </div>
         <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
@@ -859,19 +866,17 @@ const computeDocumentId = "hana-browser-document-v0";
 
 function initialComputeMode(): HanaComputeMode {
   const query = new URLSearchParams(window.location.search).get("compute");
-  if (query === "local" || query === "windows" || query === "auto") return query;
   try {
-    const stored = window.localStorage.getItem("hana-compute-mode-v0");
-    if (stored === "local" || stored === "windows" || stored === "auto") return stored;
+    return resolveHanaComputeModePreference(query, window.localStorage.getItem(HANA_COMPUTE_MODE_STORAGE_KEY));
   } catch {
     // Storage is optional; Local is always the safe default.
+    return resolveHanaComputeModePreference(query, null);
   }
-  return "local";
 }
 
 let computeMode: HanaComputeMode = initialComputeMode();
 let computeBackend: HanaComputeBackend = createHanaComputeBackend(computeMode, { strict: computeStrictRemote });
-let computeStatusText = computeMode === "local" ? "LOCAL · READY" : `${computeMode.toUpperCase()} · CHECKING`;
+let computeStatusText = formatHanaComputeStatus(computeMode, computeMode === "local" ? "READY" : "CHECKING");
 let computeAbortController: AbortController | null = null;
 let computeSnapshot: HanaFinalizationSnapshotV0 | null = null;
 
@@ -1048,18 +1053,18 @@ function rawGestureForStroke(stroke: HanaStroke3D | null = stroke3D): HanaViewpo
 async function refreshComputeHealth(): Promise<void> {
   const backendAtRequest = computeBackend;
   if (computeMode === "local") {
-    setComputeStatus("LOCAL · READY");
+    setComputeStatus(formatHanaComputeStatus(computeMode, "READY"));
     return;
   }
-  setComputeStatus(`${computeMode.toUpperCase()} · CHECKING`);
+  setComputeStatus(formatHanaComputeStatus(computeMode, "CHECKING"));
   const health = await backendAtRequest.healthCheck();
   if (backendAtRequest !== computeBackend) return;
   if (health.status === "ready") {
-    setComputeStatus(`${computeMode.toUpperCase()} · READY · W${health.workerCount}`);
+    setComputeStatus(formatHanaComputeStatus(computeMode, `READY · W${health.workerCount}`));
   } else if (computeMode === "auto") {
-    setComputeStatus(`AUTO · LOCAL FALLBACK · ${health.status.toUpperCase()}`);
+    setComputeStatus(formatHanaAutoComputeStatus("local", `FALLBACK · ${health.status.toUpperCase()}`));
   } else {
-    setComputeStatus(`WINDOWS · ${health.status.toUpperCase()}`);
+    setComputeStatus(formatHanaComputeStatus(computeMode, health.status.toUpperCase()));
   }
 }
 
@@ -4566,11 +4571,11 @@ function setComputeMode(mode: HanaComputeMode): void {
   computeMode = mode;
   computeBackend = createHanaComputeBackend(computeMode, { strict: computeStrictRemote });
   try {
-    window.localStorage.setItem("hana-compute-mode-v0", computeMode);
+    window.localStorage.setItem(HANA_COMPUTE_MODE_STORAGE_KEY, computeMode);
   } catch {
     // Persisting the preference is optional.
   }
-  setComputeStatus(computeMode === "local" ? "LOCAL · READY" : `${computeMode.toUpperCase()} · CHECKING`);
+  setComputeStatus(formatHanaComputeStatus(computeMode, computeMode === "local" ? "READY" : "CHECKING"));
   if (stroke3D && showSurface && materialSamples.length > 0) {
     requestAuthoritativeSurfaceRebuild("compute-mode-change", false);
   }
@@ -4683,9 +4688,20 @@ function updateRemoteFinalizationTrace(
   };
 }
 
+/** Executed AUTO backend choice when known, for the user-facing status line. */
+function lastAutoComputeChoice(): HanaComputeMode | null {
+  if (computeMode !== "auto") return null;
+  const choice = (computeBackend as Partial<{ lastDecision: { choice: HanaComputeMode } | null }>).lastDecision?.choice;
+  return choice === "local" || choice === "windows" ? choice : null;
+}
+
+function remoteReadyStatus(detail = "READY"): string {
+  if (computeMode === "auto") return formatHanaAutoComputeStatus(lastAutoComputeChoice(), detail);
+  return formatHanaComputeStatus(computeMode, detail);
+}
+
 async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void> {
-  if (!stroke3D) return;
-  const started = performance.now();
+  if (!stroke3D) return;  const started = performance.now();
   const snapshot = createHanaFinalizationSnapshot({
     requestId: `hana-${trace.finalRequestId}-${trace.finalGenerationId}`,
     documentId: computeDocumentId,
@@ -4700,8 +4716,8 @@ async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void
   computeSnapshot = snapshot;
   transitionFinalization(trace, "FINAL_BUILDING", started);
   setFinalizationStage(trace, "requestToBuildStart", Math.max(0, started - (trace.timestamps.tPointerUp ?? started)));
-  setComputeStatus(`${computeMode.toUpperCase()} · COMPUTING`);
-  stateMessage = `${computeMode.toUpperCase()} FINALIZING · preview active`;
+  setComputeStatus(formatHanaComputeStatus(computeMode, "COMPUTING"));
+  stateMessage = `${hanaComputeModeLabel(computeMode)} FINALIZING · preview active`;
   updateSurfaceUI();
   updateDebug();
   try {
@@ -4709,7 +4725,7 @@ async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void
       signal: abortController.signal,
       onProgress: (progress) => {
         if (isCurrentFinalization(trace)) {
-          setComputeStatus(`${computeMode.toUpperCase()} · ${progress.stage.toUpperCase()}`);
+          setComputeStatus(formatHanaComputeStatus(computeMode, progress.stage.toUpperCase()));
         }
       },
     });
@@ -4788,7 +4804,7 @@ async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void
       trace.counts.heapAfterUploadBytes ??= heapUsedBytes();
       lastFinalReadyTimestamp = trace.timestamps.tReady;
       stateMessage = `SURFACE READY · ${result.counts.triangles} triangles · ${surfaceBuildMilliseconds?.toFixed(1) ?? "—"} ms`;
-      setComputeStatus(`${computeMode.toUpperCase()} · READY`);
+      setComputeStatus(remoteReadyStatus());
       renderScene();
       trace.counts.presentedTriangles = previewSurface?.triangles.length ?? 0;
       recordFinalization(trace);
@@ -4807,7 +4823,7 @@ async function runRemoteFinalization(trace: HanaFinalizationTrace): Promise<void
     trace.error = error instanceof Error ? error.message : "Remote Finalization failed";
     trace.timestamps.tReady = performance.now();
     finalizationState = "IDLE";
-    setComputeStatus(`${computeMode.toUpperCase()} · ERROR`);
+    setComputeStatus(remoteReadyStatus("ERROR"));
     stateMessage = `SURFACE ERROR · ${trace.error}`;
     recordFinalization(trace);
     updateSurfaceUI();

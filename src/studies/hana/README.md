@@ -807,3 +807,34 @@ src/studies/skin diff: 0
 ```
 
 The iPad Pro 11-inch / Apple Pencil / EasyCanvas hardware recheck must confirm the command bar, New / Clear semantics, global Undo / Redo, Graph-preserving Save / Load, Export, and viewport-title Four / One toggle. No next Phase, Flower expansion, Worker, WebGPU, CUDA, SKIN Bridge integration, main merge, or deploy is included in this milestone.
+
+## HANA Authoring UI Finalize v0 — Hardware Gate / Compute Semantics
+
+### Hardware findings (recorded 2026-09-04, observed on current iPad test setup)
+
+```yaml
+New: HARDWARE PASS
+First Draw Undo/Redo: HARDWARE PASS
+Edit Undo (geometry + Surface): HARDWARE PASS
+Edit Redo (geometry + Surface): HARDWARE PASS
+Surface rebuild latency LOCAL: ~9 sec observed
+Surface rebuild latency REMOTE endpoint: ~1 sec observed
+Shift selection: HARDWARE PASS
+Window Selection: HARDWARE PASS
+Crossing Selection: HARDWARE PASS
+Four/One: HARDWARE PASS
+Long Stroke: HARDWARE PASS / no observed regression
+```
+
+Surface correctness is CLOSED. LOCAL ~9 sec vs REMOTE endpoint ~1 sec is a performance backlog: no absolute hardware guarantee is claimed, and no LOCAL optimization or AUTO policy tuning starts here.
+
+### Compute UI semantics
+
+The author-facing compute labels are `LOCAL` / `REMOTE` / `AUTO`. `REMOTE` addresses the remote compute endpoint (`/api/hana-compute/v0`); the endpoint may run on the same machine, a LAN machine, a Windows workstation, or any other compatible host, so the UI no longer claims a physical Windows PC. Internal values (`local` / `windows` / `auto`), `data-compute-mode` attributes, the wire protocol, serialization, health contract, and backend classes are unchanged. AUTO shows the executed choice (`AUTO → REMOTE` / `AUTO → LOCAL`) when the backend decision is known.
+
+The selected compute mode persists as the local UI preference `hana-compute-mode-v0` (query `?compute=` still overrides; invalid values fall back to Local). It is never stored in the HANA Document, Save JSON, history, Undo / Redo, or the HANA→SKIN bridge.
+
+### Deferred backlog
+
+- LOCAL Surface performance optimization (observed ~9 sec rebuild on current setup).
+- AUTO policy tuning (thresholds / default strategy need benchmarks first).

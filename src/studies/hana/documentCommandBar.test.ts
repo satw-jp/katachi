@@ -62,3 +62,15 @@ test("Compute and View live in the Top Pane without left-upper duplicates", () =
   assert.equal(leftUpperMarkup.includes("hana-view-control"), false);
   assert.equal(leftUpperMarkup.includes('id="export-document"'), false);
 });
+
+test("Top Pane shows REMOTE and never WINDOWS while keeping the internal value", () => {
+  const main = readFileSync(sourceUrl("main.ts"), "utf8");
+  const topPaneOpen = main.indexOf('id="hana-top-pane"');
+  const leftRailOpen = main.indexOf('class="hana-left-rail"');
+  const topPaneMarkup = main.slice(topPaneOpen, leftRailOpen);
+  assert.ok(topPaneMarkup.includes('data-compute-mode="windows"'));
+  assert.ok(topPaneMarkup.includes(">REMOTE<"));
+  assert.ok(topPaneMarkup.includes(">LOCAL<"));
+  assert.ok(topPaneMarkup.includes(">AUTO<"));
+  assert.equal(topPaneMarkup.includes("WINDOWS"), false);
+});

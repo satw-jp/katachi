@@ -263,6 +263,10 @@
     {
       "date": "2026-09-04",
       "note": "HANA Global History / Document Command Bar / Viewport Toggle v0 replaces the separate Flower / Authoring Study Undo / Redo owners with one HANA-local semantic authoring history covering Document, Flower, Graph, and active Flower state while excluding derived geometry, runtime, UI, camera, and selection. Draw, Edit, Delete Selected, Create Flower, parameter changes, Clear, Undo, and Redo share that history; New File creates a fresh document identity and history boundary, while Clear keeps the document identity and remains undoable. The unified touch-sized command bar provides New / Save / Load / Export / Undo / Redo / Clear, Save/Load preserve Authoring Graph semantics, and Export emits the existing semantic HANA → SKIN Bridge. Four / One is removed from the top toolbar and is now toggled from the viewport title badge by mouse double-click or same-viewport touch double-tap; pen input remains Draw-only. Software verification is required before the iPad hardware recheck; HANA-local only, with no SKIN production changes."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "HANA Authoring UI Finalize v0 records the iPad hardware gate: New, First Draw Undo/Redo, Edit Undo/Redo geometry+Surface, Shift/Window/Crossing selection, Four/One, and Long Stroke all HARDWARE PASS. Observed Surface rebuild is ~9 sec LOCAL vs ~1 sec REMOTE endpoint on the current test setup; correctness is CLOSED and local-performance optimization plus AUTO policy tuning are deferred backlog. Author-facing compute labels are LOCAL/REMOTE/AUTO (REMOTE = remote compute endpoint, any compatible host); internal local/windows/auto values, protocol, and backends are unchanged, and the mode persists as local UI preference hana-compute-mode-v0 outside Document/History/Bridge."
     }
   ]
 }

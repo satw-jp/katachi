@@ -109,7 +109,7 @@ export function chooseHanaAutoCompute(
   return {
     choice: heavy ? "windows" : "local",
     reason: heavy
-      ? "AUTO chose WINDOWS · reason: estimated voxel/sample workload above threshold"
+      ? "AUTO chose REMOTE · reason: estimated voxel/sample workload above threshold"
       : "AUTO chose LOCAL · reason: estimated work below threshold",
     healthStatus: health.status,
     estimate,
