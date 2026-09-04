@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja" data-skin-app="bootstrap-footing-lab">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SKIN Support v2 Experimental — Bootstrap Footing Lab</title>
+    <meta name="description" content="Removable Supportの足元〜最初の安定接続までのbootstrap stabilityをSynthetic Vertical Stress Fixtureで比較する実験表示。Print #2 candidateはFROZEN。production geometryには適用しない。" />
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #101418; color: #e8ecef; }
+      header { padding: 12px 16px; border-bottom: 1px solid #2a3238; }
+      header h1 { font-size: 16px; margin: 0 0 4px; }
+      header p { font-size: 12px; margin: 2px 0; color: #9aa6ad; }
+      #modes { padding: 10px 16px; display: flex; gap: 8px; align-items: center; }
+      #modes button { padding: 6px 14px; font-size: 13px; cursor: pointer; }
+      #modes button[aria-pressed="true"] { outline: 2px solid #22d3ee; }
+      #stage { display: flex; gap: 16px; padding: 0 16px 16px; flex-wrap: wrap; }
+      #viewport { width: 640px; height: 480px; background: #0a0d10; border: 1px solid #2a3238; }
+      #panels { font-size: 12px; max-width: 560px; }
+      table { border-collapse: collapse; margin: 8px 0; }
+      th, td { border: 1px solid #2a3238; padding: 3px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+      th:first-child, td:first-child { text-align: left; }
+      .legend span { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: baseline; }
+      #status { padding: 0 16px 16px; font-size: 12px; color: #9aa6ad; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SKIN Support v2 Experimental — Footing / Bootstrap Stability v0</h1>
+      <p>EXPERIMENTAL diagnostics only. Print #2 candidate is FROZEN and untouched; nothing here is a production default.</p>
+      <p>Drag to orbit · wheel to zoom. Mode switching only changes visibility of precomputed candidates (geometry mutation 0).</p>
+    </header>
+    <div id="modes" role="group" aria-label="Compare modes"></div>
+    <div id="stage">
+      <canvas id="viewport" width="640" height="480"></canvas>
+      <div id="panels">
+        <div class="legend" id="legend"></div>
+        <h3>Current mode metrics</h3>
+        <div id="metrics"></div>
+        <h3>A / B / C / D comparison</h3>
+        <div id="comparison"></div>
+      </div>
+    </div>
+    <div id="status" aria-live="polite"></div>
+    <script type="module" src="/src/studies/skin/rebuild/supportBootstrapFootingViewer.ts"></script>
+  </body>
+</html>

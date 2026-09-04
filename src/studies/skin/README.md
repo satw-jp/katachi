@@ -4571,3 +4571,11 @@ Stage 8のaccepted graphを物理フィードバックの唯一の入力とし�
 実ブラウザの現行fixtureではStage 8の再生成結果が132 supported / 19 unresolved、physical feedback後が537 nodes / 370 edges、long-unbraced 3、brace 35、braced supports 70、point 61 / crown 4 / patch candidate 67となり、BODY collision / plate / invalid / zero / duplicate / extremeはすべて0だった。旧Goldenの166 / 156 / 10、546 nodes / 390 edgesはPRE-PHYSICAL-PRINT GOLDEN BASELINEとして凍結し、physical graphの受入条件には流用しない。
 
 default、thinner contact、small nonzero gapの比較用3MFは出力経路の同一Stage 8 sourceを使う。STL / reportとのfingerprint parityおよびview切替の非変異は既存契約と回帰で確認する。Bambu / Prusaでの手動slicer確認はWAITINGであり、`printApproval=false`を維持する。
+
+## Observation SKIN Support v2 Experimental Footing / Bootstrap Stability v0（2026-09-04）
+
+Print #2実物観察（全体はPrint #1より良好だがSupport足元が造形初期に折れる、brace到達前に根元が不安定になる）を受け、Root→First stable junctionを独立したcritical phaseとして測る実験層を追加した。Print #2 candidateはFROZENのまま触らず、次回candidate用のEXPERIMENTALである。
+
+純粋module `supportBootstrapFooting.ts`がtrunkごとのbootstrap unbraced length・first stable junction height・nearest root neighbor・brace/low-brace count等を測り、EARLY-STABLE / MID / LONG-BOOTSTRAPへ分類する。MID以上だけ根元を選択的に太くし（lower section＋taper、BODY接触時は決定的shrink ladderで縮小かreject）、LONGは近傍rootへplate近傍の低い斜めbraceを候補にする（45°は初期ceilingでproduction ruleにしない）。BODY collision 0・意図せぬ融合reject・plate violation 0を safety gateで守り、意図的junctionだけ許可する。Synthetic Vertical Stress FixtureでA current / B root / C brace / D combinedを比較すると、brace 1本（43.6°）でmean bootstrap 21.0→10.6 mm・long 3→1、combined追加体積約160 mm³、accepted collision 0・removal-risk 0だった。
+
+表示は独立viewer `support-bootstrap-footing.html`で行い、mode切替はprecomputed meshの表示切替だけでgeometry mutation 0。通常PRINT PREVIEW・BODY・Permanent Graph・FKEI・DryWeb・Output Scaleには触っていない。focused test 10件と既存support系回帰・tsc・buildは通り、実ブラウザの実座標確認とconsole 0は作者機WAITING。分類thresholdはPrint #2実物結果までGolden化しない。`printApproval=false`を維持する。
