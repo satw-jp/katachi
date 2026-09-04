@@ -8,6 +8,7 @@ import {
   detectSkinRebuildOverhangRegions,
   sampleSkinRebuildOverhangRegionSurface,
 } from "./overhangRegions.ts";
+import { analyzeSkinRebuildPermanentReinforcementRedundancy } from "./permanentReinforcementRedundancy.ts";
 import {
   captureSkinRebuildFkei,
   parseSkinRebuildFkei,
@@ -64,6 +65,8 @@ function connectedNodeCount(nodes: number, edges: Array<{ start: number; end: nu
 
 const base = createSkinRebuildBase(DEFAULT_SKIN_REBUILD_SETTINGS);
 const first = createSkinRebuildPatterns(base, DEFAULT_SKIN_REBUILD_SETTINGS);
+const baseBeforeReinforcement = structuredClone(base);
+const patternsBeforeReinforcement = structuredClone(first.patterns);
 const second = createSkinRebuildPatterns(base, DEFAULT_SKIN_REBUILD_SETTINGS);
 assert.deepEqual(second, first, "surface placement must be deterministic");
 assert.equal(first.patterns.length, DEFAULT_SKIN_REBUILD_SETTINGS.patternCount);
@@ -124,10 +127,50 @@ assert.ok(reinforcedRegion.segmentCount > 0);
 assert.equal(reinforcedRegion.reinforcementEdgeIds.length, reinforcedRegion.segmentCount);
 assert.ok(reinforcedRegion.reinforcementEdgeIds.every((edgeId) =>
   reinforcedRegion.lattice.edges.some((edge) => edge.id === edgeId)));
+assert.equal(reinforcedRegion.routes.length, reinforcedRegion.surfaceContactCount);
+assert.equal(
+  reinforcedRegion.redundantRouteCount,
+  reinforcedRegion.routes.filter((route) => route.redundant).length,
+);
+assert.ok(reinforcedRegion.routes.every((route) => route.latticeEdgeIds.length > 0));
 assert.ok(reinforcedRegion.maximumEdgeAngleDeg <= 45 + 1e-5);
 assert.equal(reinforcedRegion.surfaceContactCount, reinforcementSurfaceSamples.length);
 assert.deepEqual(reinforcedRegion.uncoveredSurfaceContactIndices, []);
 assert.equal(reinforcedRegion.containment.contained, true);
+const actualRedundancyReport = analyzeSkinRebuildPermanentReinforcementRedundancy({
+  beforeGraph: latticeBuild.lattice,
+  afterGraph: reinforcedRegion.lattice,
+  reinforcementGraph: reinforcedRegion.reinforcement,
+  motifPatchIds: first.patternSides.map((side) => side.patchId),
+  routes: reinforcedRegion.routes,
+  regions: [{
+    complete: reinforcedRegion.uncoveredSurfaceContactIndices.length === 0,
+    surfaceContactCount: reinforcedRegion.surfaceContactCount,
+    uncoveredSurfaceContactCount: reinforcedRegion.uncoveredSurfaceContactIndices.length,
+  }],
+  surfaceSampleCount: reinforcementSurfaceSamples.length,
+  minimumStrutDiameterMm: DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm,
+});
+assert.deepEqual(
+  analyzeSkinRebuildPermanentReinforcementRedundancy({
+    beforeGraph: latticeBuild.lattice,
+    afterGraph: reinforcedRegion.lattice,
+    reinforcementGraph: reinforcedRegion.reinforcement,
+    motifPatchIds: first.patternSides.map((side) => side.patchId),
+    routes: reinforcedRegion.routes,
+    regions: [{
+      complete: reinforcedRegion.uncoveredSurfaceContactIndices.length === 0,
+      surfaceContactCount: reinforcedRegion.surfaceContactCount,
+      uncoveredSurfaceContactCount: reinforcedRegion.uncoveredSurfaceContactIndices.length,
+    }],
+    surfaceSampleCount: reinforcementSurfaceSamples.length,
+    minimumStrutDiameterMm: DEFAULT_SKIN_REBUILD_SETTINGS.strutDiameterMm,
+  }),
+  actualRedundancyReport,
+  "Stage 5B redundancy metrics must be deterministic",
+);
+assert.deepEqual(base, baseBeforeReinforcement, "permanent reinforcement must not move Base geometry");
+assert.deepEqual(first.patterns, patternsBeforeReinforcement, "permanent reinforcement must not move Motif geometry");
 const reinforcedProject = assembleSkinRebuildProject(
   DEFAULT_SKIN_REBUILD_SETTINGS,
   base,
@@ -718,4 +761,7 @@ const intendedTerminal = auditSkinRebuildPrintSupportBodyKeepOut(
 );
 assert.equal(intendedTerminal.accepted, true, "a legitimate intended terminal contact must remain accepted");
 
-console.log("skin-rebuild model tests passed", JSON.stringify(project.audit));
+console.log("skin-rebuild model tests passed", JSON.stringify({
+  audit: project.audit,
+  redundancy: actualRedundancyReport,
+}));

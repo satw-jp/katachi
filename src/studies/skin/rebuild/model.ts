@@ -29,6 +29,7 @@ import {
   type SkinRebuildOverhangDetection,
   type SkinRebuildOverhangSurfaceSample,
 } from "./overhangRegions.ts";
+import type { SkinRebuildPermanentReinforcementRoute } from "./permanentReinforcementRedundancy.ts";
 import { surfaceOverhangAngleDeg } from "../surfaceAngleDiagnosis.ts";
 import type { SurfaceAngleDiagnosisProgress } from "../surfaceAngleDiagnosis.ts";
 import type {
@@ -203,6 +204,10 @@ export interface SkinRebuildOverhangReinforcement {
   uncoveredSurfaceContactIndices: number[];
   segmentCount: number;
   maximumEdgeAngleDeg: number;
+  /** Per-contact evidence used to detect single-point Motif dependency and
+   * to identify the small set of intentionally redundant routes. */
+  routes: SkinRebuildPermanentReinforcementRoute[];
+  redundantRouteCount: number;
   containment: SkinRebuildLatticeBaseContainment;
 }
 
@@ -1760,7 +1765,8 @@ function appendReinforcementPreviewEdges(
   preview: InternalStructureGraph,
   builder: GraphBuilder,
   firstEdgeIndex: number,
-): void {
+): number[] {
+  const addedPreviewEdgeIds: number[] = [];
   for (let edgeIndex = firstEdgeIndex; edgeIndex < builder.edges.length; edgeIndex++) {
     const edge = builder.edges[edgeIndex];
     const start = builder.nodes[edge.start];
@@ -1770,17 +1776,20 @@ function appendReinforcementPreviewEdges(
     preview.nodes.push({ id: startId, position: { ...start.position }, radius: edge.radius });
     const endId = preview.nodes.length;
     preview.nodes.push({ id: endId, position: { ...end.position }, radius: edge.radius });
+    const previewEdgeId = preview.edges.length;
     preview.edges.push({
-      id: preview.edges.length,
+      id: previewEdgeId,
       start: startId,
       end: endId,
       radius: edge.radius,
     });
+    addedPreviewEdgeIds.push(previewEdgeId);
   }
   preview.stats.inputPoints = preview.nodes.length;
   preview.stats.candidateEdges = preview.edges.length;
   preview.stats.gridNodeCount = preview.nodes.length;
   preview.stats.gridEdgeCount = preview.edges.length;
+  return addedPreviewEdgeIds;
 }
 
 /** Connect one selected red final-mesh region to the nearest viable point on
@@ -1830,11 +1839,25 @@ export function reinforceSkinRebuildOverhangRegion(
     ? suppliedSamples
     : [{ point: { ...surfacePoint }, normal: { ...normal }, faceIndex: -1 }];
   const contactDepth = Math.max(strutRadius * 0.28, 0.012);
+  const motifPatchIdForSurfacePoint = (point: Vector3Value): number => {
+    let bestPatchId = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const side of patternSides) {
+      const distance = length(point, side.surfacePosition);
+      if (distance < bestDistance - 1e-12
+        || (Math.abs(distance - bestDistance) <= 1e-12 && side.patchId < bestPatchId)) {
+        bestDistance = distance;
+        bestPatchId = side.patchId;
+      }
+    }
+    return bestPatchId;
+  };
   const areaContactRoutes = surfaceSamples.map((sample) => {
     const sampleNormal = normalize(sample.normal);
     return {
       sample,
       normal: sampleNormal,
+      motifPatchId: motifPatchIdForSurfacePoint(sample.point),
       contact: {
         x: sample.point.x - sampleNormal.x * contactDepth,
         y: sample.point.y - sampleNormal.y * contactDepth,
@@ -1865,6 +1888,8 @@ export function reinforceSkinRebuildOverhangRegion(
   let maximumEdgeAngleDeg = 0;
   let coveredContactCount = 0;
   const uncoveredSurfaceContactIndices: number[] = [];
+  const routes: SkinRebuildPermanentReinforcementRoute[] = [];
+  const routesByMotif = new Map<number, SkinRebuildPermanentReinforcementRoute[]>();
   let lastFailureMessage = "";
   for (let contactIndex = 0; contactIndex < areaContactRoutes.length; contactIndex++) {
     const contactRoute = areaContactRoutes[contactIndex];
@@ -1931,7 +1956,36 @@ export function reinforceSkinRebuildOverhangRegion(
       }))
       .sort((first, second) => first.distance - second.distance || first.node.id - second.node.id)
       .slice(0, 24);
-    const candidateCount = nodeCandidates.length + edgeCandidates.length;
+    const candidates = [
+      ...nodeCandidates.map((candidate) => ({
+        kind: "node" as const,
+        position: candidate.node.position,
+        sourceEdgeId: candidate.sourceEdgeId,
+        node: candidate,
+      })),
+      ...edgeCandidates.map((candidate) => ({
+        kind: "edge" as const,
+        position: candidate.point,
+        sourceEdgeId: candidate.edge.id,
+        edge: candidate,
+      })),
+    ];
+    const previousMotifRoutes = routesByMotif.get(contactRoute.motifPatchId) ?? [];
+    const landingSpacing = Math.max(strutRadius * 1.25, 1e-4);
+    const surfaceIsDistinct = previousMotifRoutes.some((route) =>
+      length(route.surfaceContact, contactRoute.sample.point) > strutRadius * 0.75);
+    const preferDistinctLanding = contactRoute.motifPatchId >= 0
+      && previousMotifRoutes.length > 0
+      && surfaceIsDistinct;
+    const orderedCandidates = preferDistinctLanding
+      ? [
+        ...candidates.filter((candidate) => previousMotifRoutes.every((route) =>
+          length(route.latticeContact, candidate.position) > landingSpacing)),
+        ...candidates.filter((candidate) => previousMotifRoutes.some((route) =>
+          length(route.latticeContact, candidate.position) <= landingSpacing)),
+      ]
+      : candidates;
+    const candidateCount = orderedCandidates.length;
     options.onProgress?.({
       phase: "routing",
       completedContactCount: contactIndex,
@@ -2035,10 +2089,9 @@ export function reinforceSkinRebuildOverhangRegion(
         candidateIndex: candidateIndex + 1,
         candidateCount,
       });
-      const nodeCandidate = candidateIndex < nodeCandidates.length
-        ? nodeCandidates[candidateIndex]
-        : null;
-      const edgeCandidate = nodeCandidate ? null : edgeCandidates[candidateIndex - nodeCandidates.length];
+      const candidate = orderedCandidates[candidateIndex];
+      const nodeCandidate = candidate.kind === "node" ? candidate.node : null;
+      const edgeCandidate = candidate.kind === "edge" ? candidate.edge : null;
       const split = edgeCandidate ? splitSkinRebuildLatticeEdgeAt(
         workingLattice,
         edgeCandidate.edge.id,
@@ -2050,7 +2103,30 @@ export function reinforceSkinRebuildOverhangRegion(
       if (!target || !sourceGraph || length(contact, target) <= strutRadius * 0.25) continue;
       const routed = tryRouteToTarget(sourceGraph, target);
       if (!routed) continue;
-      appendReinforcementPreviewEdges(reinforcement, routed.builder, routed.checkpoint.edgeCount);
+      const routeEdgeIds = routed.builder.edges
+        .slice(routed.checkpoint.edgeCount)
+        .map((edge) => edge.id);
+      const previewEdgeIds = appendReinforcementPreviewEdges(
+        reinforcement,
+        routed.builder,
+        routed.checkpoint.edgeCount,
+      );
+      const redundant = preferDistinctLanding && previousMotifRoutes.every((route) =>
+        length(route.latticeContact, target) > landingSpacing);
+      const acceptedRoute: SkinRebuildPermanentReinforcementRoute = {
+        motifPatchId: contactRoute.motifPatchId,
+        surfaceContact: { ...contactRoute.sample.point },
+        latticeContact: { ...target },
+        latticeEdgeIds: routeEdgeIds,
+        previewEdgeIds,
+        redundant,
+      };
+      routes.push(acceptedRoute);
+      if (acceptedRoute.motifPatchId >= 0) {
+        const motifRoutes = routesByMotif.get(acceptedRoute.motifPatchId) ?? [];
+        motifRoutes.push(acceptedRoute);
+        routesByMotif.set(acceptedRoute.motifPatchId, motifRoutes);
+      }
       workingLattice = routed.builder.graph();
       workingLattice.stats.requestedTargets = lattice.stats.requestedTargets ?? 0;
       workingLattice.stats.connectedTargets = lattice.stats.connectedTargets ?? 0;
@@ -2113,6 +2189,8 @@ export function reinforceSkinRebuildOverhangRegion(
     uncoveredSurfaceContactIndices,
     segmentCount: reinforcement.edges.length,
     maximumEdgeAngleDeg,
+    routes,
+    redundantRouteCount: routes.filter((route) => route.redundant).length,
     containment,
   };
 }
