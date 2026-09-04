@@ -1,3 +1,5 @@
+import type { HanaWorldAxis } from "./moveGizmo.ts";
+
 export const HANA_POINTER_DRAG_THRESHOLD = 6;
 
 export interface HanaPendingPointerIntent {
@@ -13,6 +15,12 @@ export interface HanaPendingPointerIntent {
   candidateSelected: boolean;
   editEnabled: boolean;
   controlIndex: number | null;
+  /** World-axis Gizmo arrow hit at pointerdown (null when missed or unavailable). */
+  gizmoAxis: HanaWorldAxis | null;
+  /** Cross-Stroke Control Point hit at pointerdown (any authoring Stroke). */
+  pickedStrokeId: string | null;
+  pickedControlId: string | null;
+  pickedControlIndex: number | null;
 }
 
 export type HanaPointerIntent = "pending" | "tap-select" | "edit-drag" | "select-drag" | "camera-pan";

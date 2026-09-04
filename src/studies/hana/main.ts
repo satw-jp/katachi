@@ -119,6 +119,19 @@ import { initializeHanaFlowerAuthoringUi, type HanaFlowerUiHandle } from "./flow
 import { HanaAuthoringHistory, emptyHanaAuthoringHistoryRoot, type HanaAuthoringHistorySnapshot } from "./authoringHistory.ts";
 import { resolveHanaRestoredSelection, resolveHanaSurfaceTarget } from "./surfaceTarget.ts";
 import {
+  reconcileHanaControlPointSelection,
+  type HanaControlPointSelection,
+} from "./controlSelection.ts";
+import {
+  applyHanaAxisConstraint,
+  hanaGizmoArrowTip,
+  hanaGizmoAxisScreenDelta,
+  hanaViewportGizmoAxes,
+  hanaWorldAxisVector,
+  hitTestHanaGizmoAxis,
+  type HanaWorldAxis,
+} from "./moveGizmo.ts";
+import {
   allocateHanaAuthoringId,
   createHanaAuthoringIdentity,
   createHanaAuthoringDocument,
@@ -549,6 +562,8 @@ let provisionalCenterline: ReturnType<typeof sampleSmoothCenterline> = [];
 let editPreviewCenterline: ReturnType<typeof sampleSmoothCenterline> = [];
 let editPreviewMaterialSamples: HanaMaterialSample[] = [];
 let selectedControlPoint: number | null = null;
+/** Global single Control Point selection: parent Stroke + point identity. Survives viewport switches. */
+let selectedControlPointRef: HanaControlPointSelection | null = null;
 let softEditStrength: HanaSoftEditStrength = "medium";
 let smoothness = 0;
 let thickness = HANA_THICKNESS_DEFAULT;
@@ -672,6 +687,10 @@ interface ControlDrag {
   rawSignatureBefore: string;
   controlPositionsBefore: HanaVector3[];
   historyBefore: HanaAuthoringHistorySnapshot;
+  /** World-axis Gizmo constraint (null for direct planar drags). */
+  gizmoAxis: HanaWorldAxis | null;
+  gizmoStartWorld: HanaVector3 | null;
+  gizmoStartPointer: { x: number; y: number } | null;
 }
 
 interface PendingControlPointer {
@@ -2207,6 +2226,96 @@ function drawRangeSelectionRect(rect: SkinViewportRect): void {
   gestureContext.restore();
 }
 
+const HANA_GIZMO_ARROW_PIXELS = 46;
+const HANA_GIZMO_HIT_PIXELS = 14;
+const HANA_GIZMO_AXIS_COLORS: Record<HanaWorldAxis, string> = {
+  x: "#e5484d",
+  y: "#46a758",
+  z: "#3e63dd",
+};
+
+/** Screen-space Gizmo tips for one viewport (null when the origin is hidden). */
+function moveGizmoScreenTips(
+  rect: SkinViewportRect,
+  world: { x: number; y: number; z: number },
+): { origin: { x: number; y: number }; tips: Partial<Record<HanaWorldAxis, { x: number; y: number }>> } | null {
+  const origin = renderer.projectPoint(rect.index, world, rect);
+  if (!origin.visible) return null;
+  const originScreen = { x: origin.x, y: origin.y };
+  const tips: Partial<Record<HanaWorldAxis, { x: number; y: number }>> = {};
+  for (const axis of hanaViewportGizmoAxes(directions[rect.index])) {
+    const vector = hanaWorldAxisVector(axis);
+    const unit = renderer.projectPoint(rect.index, {
+      x: world.x + vector.x,
+      y: world.y + vector.y,
+      z: world.z + vector.z,
+    }, rect);
+    if (!unit.visible) continue;
+    tips[axis] = hanaGizmoArrowTip(originScreen, { x: unit.x, y: unit.y }, HANA_GIZMO_ARROW_PIXELS);
+  }
+  return { origin: originScreen, tips };
+}
+
+function hitTestMoveGizmo(rect: SkinViewportRect, x: number, y: number): HanaWorldAxis | null {
+  const world = selectedControlPointWorld();
+  if (!world) return null;
+  const gizmo = moveGizmoScreenTips(rect, world);
+  if (!gizmo) return null;
+  return hitTestHanaGizmoAxis({ x, y }, gizmo.origin, gizmo.tips, HANA_GIZMO_HIT_PIXELS);
+}
+
+/** Selected-point ring for cross-view display, including non-active Strokes. */
+function drawSelectedControlPointMarker(rect: SkinViewportRect): void {
+  const world = selectedControlPointWorld();
+  if (!world) return;
+  const projected = renderer.projectPoint(rect.index, world, rect);
+  if (!projected.visible) return;
+  gestureContext.save();
+  gestureContext.strokeStyle = "#ffffff";
+  gestureContext.lineWidth = 2.5;
+  gestureContext.beginPath();
+  gestureContext.arc(projected.x, projected.y, 8.5, 0, Math.PI * 2);
+  gestureContext.stroke();
+  gestureContext.strokeStyle = "#1f2937";
+  gestureContext.lineWidth = 1.25;
+  gestureContext.beginPath();
+  gestureContext.arc(projected.x, projected.y, 8.5, 0, Math.PI * 2);
+  gestureContext.stroke();
+  gestureContext.restore();
+}
+
+/** Compact world-axis Move Gizmo around the selected Control Point. */
+function drawMoveGizmo(rect: SkinViewportRect): void {
+  const world = selectedControlPointWorld();
+  if (!world) return;
+  const gizmo = moveGizmoScreenTips(rect, world);
+  if (!gizmo) return;
+  gestureContext.save();
+  gestureContext.lineWidth = 2;
+  gestureContext.lineCap = "round";
+  for (const axis of hanaViewportGizmoAxes(directions[rect.index])) {
+    const tip = gizmo.tips[axis];
+    if (!tip) continue;
+    gestureContext.strokeStyle = HANA_GIZMO_AXIS_COLORS[axis];
+    gestureContext.beginPath();
+    gestureContext.moveTo(gizmo.origin.x, gizmo.origin.y);
+    gestureContext.lineTo(tip.x, tip.y);
+    gestureContext.stroke();
+    gestureContext.fillStyle = HANA_GIZMO_AXIS_COLORS[axis];
+    gestureContext.beginPath();
+    gestureContext.arc(tip.x, tip.y, 4, 0, Math.PI * 2);
+    gestureContext.fill();
+  }
+  gestureContext.fillStyle = "#ffffff";
+  gestureContext.strokeStyle = "#1f2937";
+  gestureContext.lineWidth = 2;
+  gestureContext.beginPath();
+  gestureContext.arc(gizmo.origin.x, gizmo.origin.y, 6, 0, Math.PI * 2);
+  gestureContext.fill();
+  gestureContext.stroke();
+  gestureContext.restore();
+}
+
 function redrawOverlay(): void {
   const width = workspace.clientWidth;
   const height = workspace.clientHeight;
@@ -2237,6 +2346,8 @@ function redrawOverlay(): void {
     if (rangeSelection && rangeSelection.viewportIndex === rect.index) {
       drawRangeSelectionRect(rect);
     }
+    drawSelectedControlPointMarker(rect);
+    drawMoveGizmo(rect);
     gestureContext.restore();
   }
 }
@@ -2301,7 +2412,7 @@ function renderViewportChrome(): void {
       button.addEventListener("click", () => {
         interactionModes[rect.index] = mode;
         selectedViewport = rect.index;
-        selectedControlPoint = null;
+        reconcileControlPointSelection();
         stateMessage = mode === "draw"
           ? `DRAW · ${skinViewDirectionLabel(direction)} creates a new Stroke3D`
           : `EDIT · Soft ${softEditStrength.toUpperCase()} · drag a control point`;
@@ -2623,6 +2734,10 @@ function finishStroke(): void {
   authoringStrokes.push(stroke3D);
   activeAuthoringStrokeId = stroke3D.id;
   selectedStrokeIds = [stroke3D.id];
+  const drawnControl = selectedControlPoint !== null ? stroke3D.controlPoints[selectedControlPoint] : undefined;
+  selectedControlPointRef = drawnControl
+    ? { strokeId: stroke3D.id, controlPointId: drawnControl.id }
+    : null;
   activeFlowerId = null;
   flowerCoreStrokeId = null;
   flowerMaterializedId = null;
@@ -2656,6 +2771,9 @@ function selectAuthoringStroke(strokeId: string, additive = flowerMultiSelect): 
     ?? authoringStrokes[authoringStrokes.length - 1]
     ?? null;
   selectedControlPoint = null;
+  if (selectedControlPointRef && selectedControlPointRef.strokeId !== activeAuthoringStrokeId) {
+    selectedControlPointRef = null;
+  }
   flowerCoreStrokeId = flowerCoreStrokeId && selectedStrokeIds.includes(flowerCoreStrokeId)
     ? flowerCoreStrokeId
     : null;
@@ -2761,6 +2879,9 @@ function commitRangeSelection(shiftKey: boolean): boolean {
     ?? authoringStrokes[authoringStrokes.length - 1]
     ?? null;
   selectedControlPoint = null;
+  if (selectedControlPointRef && selectedControlPointRef.strokeId !== activeAuthoringStrokeId) {
+    selectedControlPointRef = null;
+  }
   flowerCoreStrokeId = flowerCoreStrokeId && selectedStrokeIds.includes(flowerCoreStrokeId)
     ? flowerCoreStrokeId
     : null;
@@ -2783,14 +2904,56 @@ function commitRangeSelection(shiftKey: boolean): boolean {
  * target are separate concepts. */
 function deselectAllAuthoring(reason: string): boolean {
   if (activeStroke || controlDrag || rangeSelection) return false;
-  if (selectedStrokeIds.length === 0 && selectedControlPoint === null) return false;
+  if (selectedStrokeIds.length === 0 && selectedControlPoint === null && selectedControlPointRef === null) return false;
   selectedStrokeIds = [];
-  selectedControlPoint = null;
+  clearControlPointSelection();
   stateMessage = `SELECT · none · ${reason}`;
   redrawOverlay();
   updateDebug();
   flowerUi?.refresh();
   scheduleRecoveryCheckpoint("deselect");
+  return true;
+}
+
+function clearControlPointSelection(): void {
+  selectedControlPointRef = null;
+  selectedControlPoint = null;
+}
+
+/** Reconcile the global Control Point selection against live authoring state. */
+function reconcileControlPointSelection(): void {
+  const sources = authoringStrokes.map((stroke) => ({
+    id: stroke.id,
+    controlPointIds: stroke.controlPoints.map((point) => point.id),
+  }));
+  const reconciled = reconcileHanaControlPointSelection(selectedControlPointRef, sources);
+  selectedControlPointRef = reconciled.selection;
+  selectedControlPoint = stroke3D && reconciled.selection?.strokeId === stroke3D.id
+    ? reconciled.controlIndex
+    : null;
+}
+
+/**
+ * Select one Control Point globally: the parent Stroke becomes the current
+ * authoring target (without touching the multi-Stroke selection set), the
+ * point stays selected across Top / Front / Right, and derived state follows.
+ * History, Raw Gesture, and the Surface Mesh are untouched by selection alone.
+ */
+function setControlPointSelection(strokeId: string, controlPointId: string, reason: string): boolean {
+  const parent = authoringStrokes.find((stroke) => stroke.id === strokeId);
+  const index = parent?.controlPoints.findIndex((point) => point.id === controlPointId) ?? -1;
+  if (!parent || index < 0 || activeStroke) return false;
+  activeAuthoringStrokeId = parent.id;
+  stroke3D = parent;
+  selectedControlPointRef = { strokeId: parent.id, controlPointId };
+  selectedControlPoint = index;
+  authoritativeCenterline = sampleSmoothCenterline(parent);
+  materialSamples = sampleMaterialSamples(authoritativeCenterline, thickness);
+  stateMessage = `CONTROL · ${parent.id} ${controlPointId} · ${reason}`;
+  redrawOverlay();
+  updateDebug();
+  flowerUi?.refresh();
+  scheduleRecoveryCheckpoint("control selection");
   return true;
 }
 
@@ -2957,6 +3120,42 @@ function nearestControlIndex(rect: SkinViewportRect, x: number, y: number): numb
     }
   });
   return bestIndex;
+}
+
+interface HanaPickedControlPoint {
+  strokeId: string;
+  controlPointId: string;
+  controlIndex: number;
+}
+
+/** Nearest Control Point across every authoring Stroke (cross-view picking). */
+function nearestAuthoringControlPoint(
+  rect: SkinViewportRect,
+  x: number,
+  y: number,
+): HanaPickedControlPoint | null {
+  let best: HanaPickedControlPoint | null = null;
+  let bestDistance = 12;
+  for (const source of authoringStrokes) {
+    source.controlPoints.forEach((point, index) => {
+      const projected = renderer.projectPoint(rect.index, point.position, rect);
+      if (!projected.visible) return;
+      const distance = Math.hypot(projected.x - x, projected.y - y);
+      if (distance <= bestDistance) {
+        bestDistance = distance;
+        best = { strokeId: source.id, controlPointId: point.id, controlIndex: index };
+      }
+    });
+  }
+  return best;
+}
+
+/** Resolve the selected Control Point world position for overlay and Gizmo. */
+function selectedControlPointWorld(): { x: number; y: number; z: number } | null {
+  if (!selectedControlPointRef) return null;
+  const parent = authoringStrokes.find((stroke) => stroke.id === selectedControlPointRef!.strokeId);
+  const point = parent?.controlPoints.find((candidate) => candidate.id === selectedControlPointRef!.controlPointId);
+  return point ? { ...point.position } : null;
 }
 
 function nearestEditableControlIndex(rect: SkinViewportRect, x: number, y: number): number | null {
@@ -3263,6 +3462,7 @@ function applySemanticAuthoringSnapshot(
   flowerMaterializedSampleCount = 0;
   authoritativeCenterline = stroke3D ? sampleSmoothCenterline(stroke3D) : [];
   materialSamples = stroke3D ? sampleMaterialSamples(authoritativeCenterline, thickness) : [];
+  reconcileControlPointSelection();
   stateMessage = message;
   lastAdaptiveControlFit = null;
   renderScene();
@@ -3670,6 +3870,34 @@ function scheduleSurfacePreview(): void {
   }, SURFACE_PREVIEW_THROTTLE_MS);
 }
 
+/** World target for a Gizmo axis drag: pointer travel mapped onto the axis. */
+function gizmoAxisDragTarget(
+  drag: ControlDrag,
+  pointerCanvas: { x: number; y: number },
+): { x: number; y: number; z: number } | null {
+  if (!drag.gizmoAxis || !drag.gizmoStartWorld || !drag.gizmoStartPointer) return null;
+  const axisVector = hanaWorldAxisVector(drag.gizmoAxis);
+  const originScreen = renderer.projectPoint(drag.viewportIndex, drag.gizmoStartWorld, drag.rect);
+  const unitScreen = renderer.projectPoint(drag.viewportIndex, {
+    x: drag.gizmoStartWorld.x + axisVector.x,
+    y: drag.gizmoStartWorld.y + axisVector.y,
+    z: drag.gizmoStartWorld.z + axisVector.z,
+  }, drag.rect);
+  if (!originScreen.visible || !unitScreen.visible) return null;
+  const deltaWorld = hanaGizmoAxisScreenDelta({
+    startPointer: drag.gizmoStartPointer,
+    currentPointer: pointerCanvas,
+    axisOriginScreen: originScreen,
+    axisUnitTipScreen: unitScreen,
+  });
+  const target = {
+    x: drag.gizmoStartWorld.x + axisVector.x * deltaWorld,
+    y: drag.gizmoStartWorld.y + axisVector.y * deltaWorld,
+    z: drag.gizmoStartWorld.z + axisVector.z * deltaWorld,
+  };
+  return applyHanaAxisConstraint(drag.gizmoStartWorld, target, drag.gizmoAxis);
+}
+
 function processControlDragPointer(pointer: PendingControlPointer): ControlPreviewTiming | null {
   if (!controlDrag) {
     mouseEditPreviewRejectCount += 1;
@@ -3693,14 +3921,16 @@ function processControlDragPointer(pointer: PendingControlPointer): ControlPrevi
     ? point.y
     : controlDrag.direction === "right" ? point.x : point.z;
   const canvas = canvasPoint(pointer);
-  const world = renderer.pointOnViewPlane(
-    controlDrag.viewportIndex,
-    canvas.x,
-    canvas.y,
-    controlDrag.rect,
-    controlDrag.direction,
-    planeValue,
-  );
+  const world = controlDrag.gizmoAxis
+    ? gizmoAxisDragTarget(controlDrag, canvas)
+    : renderer.pointOnViewPlane(
+      controlDrag.viewportIndex,
+      canvas.x,
+      canvas.y,
+      controlDrag.rect,
+      controlDrag.direction,
+      planeValue,
+    );
   if (!world) {
     mouseEditPreviewRejectCount += 1;
     mouseEditLastPreviewRejectReason = [
@@ -3899,7 +4129,13 @@ function finishControlDrag(pointerId: number): void {
   scheduleRecoveryCheckpoint("edit");
 }
 
-function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIndex: number): void {
+function startControlDrag(
+  event: PointerEvent,
+  rect: SkinViewportRect,
+  controlIndex: number,
+  gizmoAxis: HanaWorldAxis | null = null,
+  gizmoStartPointer: { x: number; y: number } | null = null,
+): void {
   const direction = directions[rect.index];
   if (direction === "axome" || !stroke3D) return;
   event.preventDefault();
@@ -3915,6 +4151,10 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
     ? null
     : Math.max(0, performance.now() - lastFinalReadyTimestamp);
   selectedControlPoint = controlIndex;
+  const draggedPoint = stroke3D?.controlPoints[controlIndex];
+  if (stroke3D && draggedPoint) {
+    selectedControlPointRef = { strokeId: stroke3D.id, controlPointId: draggedPoint.id };
+  }
   lastAffectedControlIndices = [];
   longTaskDurations = [];
   pendingControlPointer = null;
@@ -3983,6 +4223,11 @@ function startControlDrag(event: PointerEvent, rect: SkinViewportRect, controlIn
     rawSignatureBefore: rawSignature(),
     controlPositionsBefore: stroke3D.controlPoints.map((control) => ({ ...control.position })),
     historyBefore: semanticAuthoringSnapshot(),
+    gizmoAxis,
+    gizmoStartWorld: gizmoAxis && stroke3D.controlPoints[controlIndex]
+      ? { ...stroke3D.controlPoints[controlIndex].position }
+      : null,
+    gizmoStartPointer: gizmoAxis && gizmoStartPointer ? { ...gizmoStartPointer } : null,
   };
   editDiagnosticLatestPointer = editDiagnosticWorkspacePoint(event.clientX, event.clientY);
   const initialTarget = stroke3D.controlPoints[controlIndex]
@@ -4118,7 +4363,7 @@ function activateAuthoringStrokeForEdit(strokeId: string): boolean {
   if (!next) return false;
   activeAuthoringStrokeId = next.id;
   stroke3D = next;
-  selectedControlPoint = null;
+  reconcileControlPointSelection();
   authoritativeCenterline = sampleSmoothCenterline(next);
   materialSamples = sampleMaterialSamples(authoritativeCenterline, thickness);
   return true;
@@ -4137,6 +4382,8 @@ function beginPendingAuthoringPointer(
   const controlIndex = candidateSelected && candidateStrokeId === activeAuthoringStrokeId
     ? nearestEditableControlIndex(rect, point.x, point.y)
     : null;
+  const gizmoAxis = hitTestMoveGizmo(rect, point.x, point.y);
+  const picked = nearestAuthoringControlPoint(rect, point.x, point.y);
   pendingAuthoringPointer = {
     pointerId: event.pointerId,
     pointerType: event.pointerType,
@@ -4150,6 +4397,10 @@ function beginPendingAuthoringPointer(
     candidateSelected,
     editEnabled: interactionModes[rect.index] === "edit",
     controlIndex,
+    gizmoAxis,
+    pickedStrokeId: picked?.strokeId ?? null,
+    pickedControlId: picked?.controlPointId ?? null,
+    pickedControlIndex: picked?.controlIndex ?? null,
   };
   event.preventDefault();
   stopAutoRotate();
@@ -4180,6 +4431,29 @@ function updatePendingAuthoringPointer(event: PointerEvent): boolean {
     event.clientY,
   )) return true;
 
+  if (pending.gizmoAxis && selectedControlPointRef) {
+    const axis = pending.gizmoAxis;
+    const ref = selectedControlPointRef;
+    pendingAuthoringPointer = null;
+    if (setControlPointSelection(ref.strokeId, ref.controlPointId, "gizmo grab")) {
+      const rect = currentRects().find((candidate) => candidate.index === pending.viewportIndex);
+      const index = selectedControlPoint ?? 0;
+      if (rect) startControlDrag(event, rect, index, axis, { x: pending.startCanvasX, y: pending.startCanvasY });
+    } else {
+      releaseGesturePointer(event.pointerId);
+    }
+    return true;
+  }
+  if (pending.pickedStrokeId && pending.pickedControlId !== null && pending.editEnabled) {
+    pendingAuthoringPointer = null;
+    if (setControlPointSelection(pending.pickedStrokeId, pending.pickedControlId, "point grab")) {
+      const rect = currentRects().find((candidate) => candidate.index === pending.viewportIndex);
+      if (rect) startControlDrag(event, rect, pending.pickedControlIndex ?? 0);
+    } else {
+      releaseGesturePointer(event.pointerId);
+    }
+    return true;
+  }
   if (classifyHanaEmptyDrag({
     pointerType: pending.pointerType,
     mouseButton: pending.mouseButton,
@@ -4250,7 +4524,11 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
     pendingAuthoringPointer = null;
     if (finalEvent?.type === "pointerup") {
       finalEvent.preventDefault();
-      if (pending.candidateStrokeId !== null) {
+      if (pending.gizmoAxis && selectedControlPointRef) {
+        setControlPointSelection(selectedControlPointRef.strokeId, selectedControlPointRef.controlPointId, "gizmo tap");
+      } else if (pending.pickedStrokeId && pending.pickedControlId !== null) {
+        setControlPointSelection(pending.pickedStrokeId, pending.pickedControlId, "point tap");
+      } else if (pending.candidateStrokeId !== null) {
         selectAuthoringStroke(
           pending.candidateStrokeId,
           resolveHanaTapAdditive({ shiftKey: finalEvent.shiftKey, touchFallback: flowerMultiSelect }),
@@ -5367,6 +5645,7 @@ function resetDocumentContent(newDocument: boolean): void {
   renderer.setPreviewSurface(null);
   renderer.setMaterialProxy(null);
   selectedControlPoint = null;
+  selectedControlPointRef = null;
   lastAffectedControlIndices = [];
   lastEditBoundsBefore = null;
   lastEditBoundsAfter = null;
@@ -5519,6 +5798,10 @@ async function restoreRecoveryCheckpoint(): Promise<void> {
   interactionModes[0] = "edit";
   interactionModes[2] = "edit";
   selectedControlPoint = Math.floor(stroke3D.controlPoints.length / 2);
+  const restoredControl = selectedControlPoint !== null ? stroke3D.controlPoints[selectedControlPoint] : undefined;
+  selectedControlPointRef = restoredControl
+    ? { strokeId: stroke3D.id, controlPointId: restoredControl.id }
+    : null;
   invalidateDerivedState();
   resetGlobalAuthoringHistory();
   stateMessage = `RECOVERED · ${authoringStrokes.length} Strokes · ${hanaFlowers.length} Flowers · revision ${document.revision}`;
