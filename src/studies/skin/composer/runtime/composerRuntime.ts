@@ -883,6 +883,16 @@ export class ComposerRuntime {
     this.lastAutoRotateSeconds = this.elapsedSeconds;
     this.cameraPositionWork.copy(this.userPosition).add(this.smoothPositionOffset);
     this.cameraTargetWork.copy(this.userTarget).add(this.smoothTargetOffset);
+    // Clamp camera distance to prevent getting too close or too far from source
+    const minDist = this.source.span * 0.5;
+    const maxDist = this.source.span * 3;
+    const currentPos = this.cameraPositionWork.clone();
+    const currentTarget = this.cameraTargetWork.clone();
+    const toCurrent = currentPos.clone().sub(currentTarget);
+    const currentDist = toCurrent.length();
+    const clampedDist = THREE.MathUtils.clamp(currentDist, minDist, maxDist);
+    const direction = toCurrent.normalize();
+    this.cameraPositionWork.copy(currentTarget).addScaledVector(direction, clampedDist);
     if (autoRotate && this.smoothPauseGate > 0.001) {
       const offset = this.cameraPositionWork.sub(this.userTarget);
       offset.applyAxisAngle(this.cameraAxis.set(0, 0, 1), this.yawAngle);
