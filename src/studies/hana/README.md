@@ -64,7 +64,7 @@ Flower center is derived from the world-space bounds center of the selected Cont
 
 Save JSON reuses the existing `katachi.hana-authoring-study.v0` semantic envelope with the HANA Document and Flowers; Load JSON accepts that envelope and legacy HANA Document JSON. IndexedDB recovery checkpoints retain optional Flower semantics while remaining backward-compatible with document-only checkpoints. Create Flower has authoring-only Undo / Redo; source Stroke geometry and Raw Gesture data are restored together with membership. Clear removes Strokes and Flowers together. Flower materialization uses the existing local `materializeHanaFlower` path and is derived; Material Samples, Field, Surface Mesh and Live Proxy are not persisted or made authoritative.
 
-The UI is a compact HANA-local overlay in the workspace so the four-view canvas remains primary. Its touch targets are at least 48px for the main actions, while Apple Pencil remains Draw/Create and Mouse/Touch remains Refine/Edit/Camera/Selection. Flower work is event-driven on selection, Core designation, Create, Load, recovery and semantic history; it is not added to the Pencil pointermove path. No procedural petals, random variation, symmetry, automatic naturalness, Flower physics, global union, Remote Compute protocol change, SKIN production change, or next-phase integration was introduced.
+The UI is a compact HANA-local control panel so the four-view canvas remains primary. Its touch targets are at least 48px for the main actions, while Apple Pencil remains Draw/Create and Mouse/Touch remains Refine/Edit/Camera/Selection. Flower work is event-driven on selection, Core designation, Create, Load, recovery and semantic history; it is not added to the Pencil pointermove path. No procedural petals, random variation, symmetry, automatic naturalness, Flower physics, global union, Remote Compute protocol change, SKIN production change, or next-phase integration was introduced.
 
 ```yaml
 M26: SOFTWARE PASS / hardware observation recorded
@@ -76,6 +76,43 @@ M31: SOFTWARE PASS
 M32: SOFTWARE PASS
 Multi-Stroke hardware Gate: PENDING
 Flower hardware Gate: PENDING
+```
+
+## HANA Selection / Edit Coexistence + Split Left Pane v0
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Branch: agent/hana-selection-edit-layout-v0
+Base: a7a7ae2671420540c5ce555958a0a943ea908858
+Platform:
+  - iPad Pro
+  - Apple Pencil
+  - Chrome
+  - HANA LAN
+```
+
+### M33 — latest iPad observation
+
+Flower Stroke Selection and selection responsiveness passed on the prior iPad check. Stroke Edit was not reachable while the Flower Selection routing intercepted pointerdown; this is recorded as `Selection / Edit interaction conflict`, not an Edit-kernel failure. The Flower panel overlapped the Top View and obscured the viewport. The current branch addresses only that routing and layout issue. Flower Create / persistence remains hardware recheck pending because the latest saved snapshot had `flowers: []`.
+
+### M34–M39 — implementation
+
+Mouse / Touch taps now select Strokes without a hard Selection mode. A short movement threshold separates tap from drag. A selected Stroke drag enters the existing orthographic Edit path and keeps Multi Select membership unchanged; an unselected Stroke drag selects it for the next Edit; an empty drag retains Camera pan. Multi Select ON uses tap add / remove and never treats a selected Stroke drag as a selection toggle. Apple Pencil still enters the existing Draw path only, including Raw Gesture capture, coalesced capture, bounded live processing, Live Proxy and Final Surface.
+
+The HANA-local Flower / Selection UI is moved from the workspace overlay into a left rail beside the Canvas. The upper pane contains the existing general controls and the lower pane contains Selection / Flower controls. The rail has independent upper/lower scrolling, a touch-sized horizontal splitter with a 20%–80% clamp, a 60% / 40% default, and a `localStorage` preference containing only `hana.leftPaneSplitRatio`. Viewport `split.x` / `split.y` and all Canvas-local coordinate / hit-test calculations remain independent and continue to use the remaining workspace rectangle.
+
+Selection, Flower semantics, authoring Undo / Redo, Save / Load, IndexedDB recovery, Remote Compute, Touch Pan / Pinch, view presets, Auto Rotate, Surface / Centerline / Samples, long-stroke performance and `src/studies/skin` behavior remain unchanged. Projection Redraw, new Flower generation, Stem UX, Graph expansion, GPU work and SKIN changes are out of scope.
+
+```yaml
+M33: SOFTWARE PASS / latest hardware observation recorded
+M34: SOFTWARE PASS
+M35: SOFTWARE PASS
+M36: SOFTWARE PASS
+M37: SOFTWARE PASS
+M38: SOFTWARE PASS
+M39: SOFTWARE PASS
+Selection/Edit coexistence hardware Gate: PENDING
+Flower Create / persistence hardware Gate: PENDING
 ```
 
 ## Remote Compute v0 status
