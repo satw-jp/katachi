@@ -1,6 +1,7 @@
 import type { ComposerStatePatch } from "../runtime/state.ts";
 
 export const ARCHIVE_COMPOSER_PRESETS: Record<string, ComposerStatePatch> = {
+  "dense-light": { visual: { points: 0.72, gaussian: 1, hairlines: 0.04, softLines: 0.18, cloud: 1, light: 1, void: 0.18 }, density: { amount: 2.7, compression: 0.78, splatScale: 1.7, lightAccumulation: 2.2 }, motion: { elementMotionScale: 1.15, timeScale: 0.72, drift: 0.22, wave: 0.42, growth: 0.18, tremor: 0.12, accumulation: 0.82, oscillation: 0.12 }, space: { depthSpread: 1.15, foregroundScale: 1.28, backgroundScale: 0.72, focusDisorder: 0.7, spatialEcho: 0.7, parallax: 0.34, voidRetention: 0.72 }, color: { palette: "rich", saturation: 0.86, localContrast: 0.72, highlight: 0.9, blackRetention: 0.78, source: "MOTIF" } },
   "study-gaussian": { visual: { points: 0.22, gaussian: 0.92, hairlines: 0.08, softLines: 0.2, cloud: 0.72, void: 0.08 }, motion: { wave: 0.38, accumulation: 0.7 }, space: { spatialEcho: 0.76, depthSpread: 1.3 }, color: { palette: "rich", source: "MOTIF" } },
   "study-field": { visual: { points: 0.18, gaussian: 0.5, hairlines: 0.12, softLines: 0.18, cloud: 0.9, void: 0.08 }, motion: { drift: 0.46, wave: 0.24, oscillation: 0.52 }, space: { spatialEcho: 0.7, depthSpread: 1.35 }, color: { palette: "blue", source: "DENSITY" } },
   "study-dust": { visual: { points: 0.9, gaussian: 0.36, hairlines: 0.08, softLines: 0.12, cloud: 0.24, void: 0.08 }, motion: { drift: 0.62, wave: 0.36, tremor: 0.3 }, space: { spatialEcho: 0.8, depthSpread: 1.4 }, color: { palette: "rich", source: "DIRECTION" } },

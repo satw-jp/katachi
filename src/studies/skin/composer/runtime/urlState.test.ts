@@ -17,3 +17,9 @@ test("composer state keeps the camera pose and maps the former STILL mode to MAN
   assert.equal(parseComposerState(`?${legacy}`).camera.mode, "MANUAL");
   assert.equal(parseComposerState("?seed=12345").seed, 12345);
 });
+
+test("composer state round-trips density, motion range, and auto rotate", () => {
+  const state = { ...DEFAULT_COMPOSER_STATE, density: { amount: 2.7, compression: 0.78, splatScale: 1.7, lightAccumulation: 2.2 }, motion: { ...DEFAULT_COMPOSER_STATE.motion, elementMotionScale: 4, timeScale: 0.25 }, camera: { ...DEFAULT_COMPOSER_STATE.camera, autoRotate: true, autoRotateSpeed: 8.4, autoRotateDirection: "CCW" as const } };
+  const serialized = serializeComposerState("https://example.test/skin-art/composer/", state);
+  assert.deepEqual(parseComposerState(new URL(serialized).search), state);
+});
