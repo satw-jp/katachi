@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => ({
         pack: "pack.html",
         skin: "skin.html",
         skinRebuild: "skin-rebuild.html",
+        fixtureLab: "skin-support-v2-fixture-lab.html",
         branchedTree: "skin-support-v2-branched-tree.html",
         supportBootstrapFooting: "support-bootstrap-footing.html",
         interiorGrowth: "interior-growth.html",

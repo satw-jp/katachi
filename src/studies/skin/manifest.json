@@ -1208,6 +1208,10 @@
     {
       "date": "2026-09-04",
       "note": "SKIN Support v2 Experimental Branched Tree v0 shares lower corridors as temporary trees (baseline + corridor scoring + shared trunk/junction + failure-domain caps + A/B/C comparison) with a standalone diagnostics viewer; Print #2, BODY, Permanent Graph, FKEI, DryWeb and Output Scale untouched, printApproval=false."
+    },
+    {
+      "date": "2026-09-04",
+      "note": "Support v2 fixture intake v0 adds a portable experiment fixture contract with fail-closed validation, 7adb9f2-parity synthetic adapter, local author import slot (NOT LOADED until supplied, nothing synthesized), same-path 3-mode analysis, cross-fixture comparison and a fixture lab viewer; FKEI unchanged, Print #2 frozen, printApproval=false."
     }
   ]
 }
