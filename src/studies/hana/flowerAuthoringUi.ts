@@ -47,9 +47,6 @@ export function initializeHanaFlowerAuthoringUi(
       <strong>FLOWER</strong>
       <span id="hana-flower-selection-count">Selected Strokes: 0</span>
     </div>
-    <div class="hana-flower-actions">
-      ${button("Multi Select OFF", "hana-flower-multi-select")}
-    </div>
     <div class="hana-flower-subsection">
       <span class="hana-flower-label">Strokes</span>
       <div id="hana-flower-stroke-list" class="hana-flower-list"></div>
@@ -69,8 +66,6 @@ export function initializeHanaFlowerAuthoringUi(
   `;
   pane.appendChild(panel);
 
-  const multiSelectButton = panel.querySelector<HTMLButtonElement>("#hana-flower-multi-select")!;
-  multiSelectButton.title = "Touch fallback for keyboard-less multi-select. With a hardware keyboard, Shift+tap adds or removes Strokes instead.";
   const clearCoreButton = panel.querySelector<HTMLButtonElement>("#hana-flower-clear-core")!;
   const createButton = panel.querySelector<HTMLButtonElement>("#hana-flower-create")!;
   const deleteSelectedButton = document.createElement("button");
@@ -96,8 +91,6 @@ export function initializeHanaFlowerAuthoringUi(
       const state = actions.getState();
       const selected = new Set(state.document.selectedStrokeIds);
       selectionCount.textContent = `Selected Strokes: ${state.document.selectedStrokeIds.length}`;
-      multiSelectButton.textContent = `Multi Select ${state.multiSelect ? "ON" : "OFF"}`;
-      multiSelectButton.setAttribute("aria-pressed", String(state.multiSelect));
       clearCoreButton.disabled = state.coreStrokeId === null;
       coreStatus.textContent = `Core: ${state.coreStrokeId ?? "None"}`;
       createButton.disabled = state.document.selectedStrokeIds.length === 0;
@@ -156,10 +149,6 @@ export function initializeHanaFlowerAuthoringUi(
     isMultiSelect: () => actions.getState().multiSelect,
   };
 
-  multiSelectButton.addEventListener("click", () => {
-    actions.setMultiSelect(!actions.getState().multiSelect);
-    handle.refresh();
-  });
   clearCoreButton.addEventListener("click", () => {
     actions.setCoreStroke(null);
     handle.refresh();

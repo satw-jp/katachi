@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  hanaDeselectShortcut,
   hanaHistoryShortcut,
   isHanaDeleteKey,
   shouldIgnoreHanaDeleteForTarget,
@@ -29,4 +30,14 @@ test("keyboard Delete routing guards text and range controls but permits authori
   assert.equal(shouldIgnoreHanaDeleteForTarget("button", false), false);
   assert.equal(shouldIgnoreHanaDeleteForTarget("canvas", false), false);
   assert.equal(shouldIgnoreHanaDeleteForTarget(null, false), false);
+});
+
+test("deselect shortcuts cover Esc and Cmd/Ctrl period only", () => {
+  assert.equal(hanaDeselectShortcut({ key: "Escape", metaKey: false, ctrlKey: false }), true);
+  assert.equal(hanaDeselectShortcut({ key: "Escape", metaKey: true, ctrlKey: false }), false);
+  assert.equal(hanaDeselectShortcut({ key: ".", metaKey: true, ctrlKey: false }), true);
+  assert.equal(hanaDeselectShortcut({ key: ".", metaKey: false, ctrlKey: true }), true);
+  assert.equal(hanaDeselectShortcut({ key: ".", metaKey: false, ctrlKey: false }), false);
+  assert.equal(hanaDeselectShortcut({ key: "z", metaKey: true, ctrlKey: false }), false);
+  assert.equal(hanaDeselectShortcut({ key: "Enter", metaKey: false, ctrlKey: false }), false);
 });

@@ -27,12 +27,11 @@ export interface HanaDocumentCommand {
   disabled?: boolean;
 }
 
-/** Canonical Top Pane document commands. Order is fixed: New Save Load Export Undo Redo Clear. */
+/** Canonical Top Pane document commands. Order is fixed: New Save Load Undo Redo Clear. */
 export const HANA_DOCUMENT_COMMANDS: readonly HanaDocumentCommand[] = [
   { id: "new-document", label: "New" },
   { id: "save-document", label: "Save", className: "hana-primary" },
   { id: "load-document", label: "Load" },
-  { id: "export-document", label: "Export" },
   { id: "undo-document", label: "Undo", disabled: true },
   { id: "redo-document", label: "Redo", disabled: true },
   { id: "clear-document", label: "Clear" },

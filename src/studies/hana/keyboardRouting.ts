@@ -27,3 +27,18 @@ export function hanaHistoryShortcut(input: {
   if (key === "y" && !input.shiftKey) return "redo";
   return null;
 }
+
+/**
+ * Deselect-all shortcuts: bare Esc, or Cmd/Ctrl+. (iPad/Mac/Windows).
+ * Plain "." alone never deselects. Text editing targets are excluded by the
+ * caller via shouldIgnoreHanaDeleteForTarget.
+ */
+export function hanaDeselectShortcut(input: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+}): boolean {
+  if (input.key === "Escape" && !input.metaKey && !input.ctrlKey) return true;
+  if (input.key === "." && (input.metaKey || input.ctrlKey)) return true;
+  return false;
+}

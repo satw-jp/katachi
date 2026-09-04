@@ -194,6 +194,7 @@ import {
   type HanaTouchTap,
 } from "./viewportLayoutToggle.ts";
 import {
+  hanaDeselectShortcut,
   hanaHistoryShortcut,
   isHanaDeleteKey,
   shouldIgnoreHanaDeleteForTarget,
@@ -289,6 +290,28 @@ app.innerHTML = `
   <main class="hana-shell">
     <div id="hana-top-pane" class="hana-top-pane" aria-label="HANA document commands">
       ${renderHanaDocumentCommandBar()}
+      <span class="hana-top-divider" aria-hidden="true"></span>
+      <div class="hana-compute-control" aria-label="Finalization compute backend">
+        <span>Compute</span>
+        <div class="hana-segmented">
+          <button type="button" data-compute-mode="local" aria-pressed="true">LOCAL</button>
+          <button type="button" data-compute-mode="windows" aria-pressed="false">WINDOWS</button>
+          <button type="button" data-compute-mode="auto" aria-pressed="false">AUTO</button>
+        </div>
+        <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
+      </div>
+      <span class="hana-top-divider" aria-hidden="true"></span>
+      <div class="hana-view-control" aria-label="View navigation">
+        <span>View</span>
+        <div class="hana-view-presets">
+          <button type="button" data-view-preset="front">Front</button>
+          <button type="button" data-view-preset="side">Side</button>
+          <button type="button" data-view-preset="top">Top</button>
+          <button type="button" data-view-preset="iso">Iso</button>
+          <button type="button" data-view-preset="fit">Fit</button>
+        </div>
+        <button id="auto-rotate" type="button" aria-pressed="false">Auto Rotate OFF</button>
+      </div>
     </div>
     <section class="hana-left-rail" aria-label="HANA authoring controls">
       <div id="hana-left-upper" class="hana-left-upper">
@@ -325,26 +348,6 @@ app.innerHTML = `
           <span class="hana-smooth-bound">${HANA_THICKNESS_MAX.toFixed(2)}</span>
           <output id="thickness-value" for="thickness-control">${HANA_THICKNESS_DEFAULT.toFixed(2)}</output>
         </label>
-        <div class="hana-compute-control" aria-label="Finalization compute backend">
-          <span>Compute</span>
-          <div class="hana-segmented">
-            <button type="button" data-compute-mode="local" aria-pressed="true">LOCAL</button>
-            <button type="button" data-compute-mode="windows" aria-pressed="false">WINDOWS</button>
-            <button type="button" data-compute-mode="auto" aria-pressed="false">AUTO</button>
-          </div>
-          <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
-        </div>
-        <div class="hana-view-control" aria-label="View navigation">
-          <span>View</span>
-          <div class="hana-view-presets">
-            <button type="button" data-view-preset="front">Front</button>
-            <button type="button" data-view-preset="side">Side</button>
-            <button type="button" data-view-preset="top">Top</button>
-            <button type="button" data-view-preset="iso">Iso</button>
-            <button type="button" data-view-preset="fit">Fit</button>
-          </div>
-          <button id="auto-rotate" type="button" aria-pressed="false">Auto Rotate OFF</button>
-        </div>
         <div class="hana-authoring-context" aria-label="Authoring context">
           <span class="hana-context-label">Document</span><strong>HANA local</strong>
           <span class="hana-context-label">Tool</span><strong>Stroke</strong>
@@ -460,7 +463,7 @@ const clearButton = requiredElement<HTMLButtonElement>("#clear-document");
 const loadButton = requiredElement<HTMLButtonElement>("#load-document");
 const loadFileInput = requiredElement<HTMLInputElement>("#load-document-file");
 const saveButton = requiredElement<HTMLButtonElement>("#save-document");
-const exportButton = requiredElement<HTMLButtonElement>("#export-document");
+const exportButton = document.querySelector<HTMLButtonElement>("#export-document");
 const undoButton = requiredElement<HTMLButtonElement>("#undo-document");
 const redoButton = requiredElement<HTMLButtonElement>("#redo-document");
 const softEditButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-soft-edit]"));
@@ -1236,6 +1239,7 @@ function finalizationStageSummary(trace: HanaFinalizationTrace): string {
     `${trace.finalProfile}/${trace.status}/${trace.state}`,
     `req ${trace.finalRequestId} rev ${trace.documentRevision}`,
     `reason ${trace.finalizeReason}`,
+    `target ${trace.counts.requestStrokeId ?? "—"}`,
     `build ${buildToMesh === null ? "—" : buildToMesh.toFixed(1)}`,
     `mesh→upload ${meshToUpload === null ? "—" : meshToUpload.toFixed(1)}`,
     `upload→render ${uploadToRender === null ? "—" : uploadToRender.toFixed(1)}`,
@@ -2769,6 +2773,22 @@ function commitRangeSelection(shiftKey: boolean): boolean {
   return true;
 }
 
+/** Deselect-all: clears the selection set only. Geometry, Surface target and
+ * history are untouched — selection state and the current authoring / Surface
+ * target are separate concepts. */
+function deselectAllAuthoring(reason: string): boolean {
+  if (activeStroke || controlDrag || rangeSelection) return false;
+  if (selectedStrokeIds.length === 0 && selectedControlPoint === null) return false;
+  selectedStrokeIds = [];
+  selectedControlPoint = null;
+  stateMessage = `SELECT · none · ${reason}`;
+  redrawOverlay();
+  updateDebug();
+  flowerUi?.refresh();
+  scheduleRecoveryCheckpoint("deselect");
+  return true;
+}
+
 function nearestAuthoringStrokeId(rect: SkinViewportRect, x: number, y: number): string | null {
   let bestId: string | null = null;
   let bestDistance = 18;
@@ -2898,13 +2918,15 @@ document.addEventListener("keydown", (event) => {
       shiftKey: event.shiftKey,
       altKey: event.altKey,
     });
-    const handled = shortcut === "undo"
-      ? undoGlobalAuthoring()
-      : shortcut === "redo"
-        ? redoGlobalAuthoring()
-        : isHanaDeleteKey(event.key)
-          ? deleteSelectedAuthoringStrokes()
-          : false;
+    const handled = hanaDeselectShortcut({ key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey })
+      ? deselectAllAuthoring(event.key === "Escape" ? "Esc" : "Cmd/Ctrl+.")
+      : shortcut === "undo"
+        ? undoGlobalAuthoring()
+        : shortcut === "redo"
+          ? redoGlobalAuthoring()
+          : isHanaDeleteKey(event.key)
+            ? deleteSelectedAuthoringStrokes()
+            : false;
     if (handled) event.preventDefault();
   }
   diagnostic.defaultPrevented = event.defaultPrevented;
@@ -4215,12 +4237,16 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
   if (pendingAuthoringPointer?.pointerId === pointerId) {
     const pending = pendingAuthoringPointer;
     pendingAuthoringPointer = null;
-    if (finalEvent?.type === "pointerup" && pending.candidateStrokeId !== null) {
+    if (finalEvent?.type === "pointerup") {
       finalEvent.preventDefault();
-      selectAuthoringStroke(
-        pending.candidateStrokeId,
-        resolveHanaTapAdditive({ shiftKey: finalEvent.shiftKey, touchFallback: flowerMultiSelect }),
-      );
+      if (pending.candidateStrokeId !== null) {
+        selectAuthoringStroke(
+          pending.candidateStrokeId,
+          resolveHanaTapAdditive({ shiftKey: finalEvent.shiftKey, touchFallback: flowerMultiSelect }),
+        );
+      } else {
+        deselectAllAuthoring(finalEvent.shiftKey ? "empty Shift tap" : "empty tap");
+      }
     }
     if (releaseCapture) releaseGesturePointer(pointerId);
     return;
@@ -5090,6 +5116,9 @@ function requestAuthoritativeSurfaceRebuild(reason: string, documentChanged = tr
     return;
   }
   const trace = beginAuthoritativeFinalization(reason, null, documentChanged);
+  trace.counts.requestStrokeId = stroke3D.id;
+  trace.counts.requestMaterialSamples = materialSamples.length;
+  trace.counts.requestSignature = materializationSignature();
   refreshMaterialSamples(stroke3D, null, trace);
   runAuthoritativeFinalization(trace);
 }
@@ -5512,7 +5541,9 @@ saveButton.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-exportButton.addEventListener("click", () => {
+// The Export button is hidden from the normal Top Pane (§22 keeps the bridge
+// implementation for future "Send to SKIN" reuse). Wire it only if present.
+exportButton?.addEventListener("click", () => {
   const bridge = exportHanaSkinBridge({
     document: snapshot(),
     flowers: hanaFlowers,
