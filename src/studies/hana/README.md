@@ -37,6 +37,47 @@ Additional C: SOFTWARE PASS
 Additional D: SOFTWARE PASS
 ```
 
+## HANA Authoring Flower UI v0
+
+```yaml
+Status: SOFTWARE PASS / HARDWARE RECHECK PENDING
+Branch: agent/hana-flower-authoring-ui-v0
+Base: 6f7ebe0a38077bb0d76a340ccc03b6883d598b8c
+Real-device Gate: PENDING
+Platform:
+  - iPad Pro
+  - Apple Pencil
+  - Chrome
+  - HANA LAN
+  - Windows Remote Compute
+```
+
+### M26 — iPad Interaction v0 close record
+
+The recorded iPad Interaction v0 result is: Raw Gesture Integrity `PASS`, Long-Stroke Live Drawing `PASS`, iPad Editing `PASS with observation`, Remote Compute `PASS`, and Long-Stroke Performance `PASS`. A single light hitch was observed at the second edit; the third and later edits were smooth. This is recorded as an observation only because it was not reproducible, and no new performance fix was started. Lifecycle hardware recheck for app switch / full reload was `NOT RECHECKED`.
+
+### M27–M32 — Flower Authoring UI v0
+
+The normal HANA Document now accepts multiple Apple Pencil-created Strokes. The existing `selectedStrokeIds` / `activeStrokeId` representation is used by a HANA-local FLOWER section. Mouse / Touch can enter Stroke Select mode, single-select or multi-select Strokes, choose one selected Stroke as Core, and create a deterministic `flower-N` semantic grouping through the existing `createHanaFlowerFromSelection` kernel. Unselected members become Petals; the source Raw Gesture, Control Stroke, Smooth Centerline and derived material path remain separate and editable.
+
+Flower center is derived from the world-space bounds center of the selected Control Points. Flower identity, Petal/Core membership, source Gesture provenance, local frame and revision are semantic authoring state. Flower selection highlights source Strokes and exposes an editor-only center/member inspection state; it does not write presentation colors or overlays into geometry.
+
+Save JSON reuses the existing `katachi.hana-authoring-study.v0` semantic envelope with the HANA Document and Flowers; Load JSON accepts that envelope and legacy HANA Document JSON. IndexedDB recovery checkpoints retain optional Flower semantics while remaining backward-compatible with document-only checkpoints. Create Flower has authoring-only Undo / Redo; source Stroke geometry and Raw Gesture data are restored together with membership. Clear removes Strokes and Flowers together. Flower materialization uses the existing local `materializeHanaFlower` path and is derived; Material Samples, Field, Surface Mesh and Live Proxy are not persisted or made authoritative.
+
+The UI is a compact HANA-local overlay in the workspace so the four-view canvas remains primary. Its touch targets are at least 48px for the main actions, while Apple Pencil remains Draw/Create and Mouse/Touch remains Refine/Edit/Camera/Selection. Flower work is event-driven on selection, Core designation, Create, Load, recovery and semantic history; it is not added to the Pencil pointermove path. No procedural petals, random variation, symmetry, automatic naturalness, Flower physics, global union, Remote Compute protocol change, SKIN production change, or next-phase integration was introduced.
+
+```yaml
+M26: SOFTWARE PASS / hardware observation recorded
+M27: SOFTWARE PASS
+M28: SOFTWARE PASS
+M29: SOFTWARE PASS
+M30: SOFTWARE PASS
+M31: SOFTWARE PASS
+M32: SOFTWARE PASS
+Multi-Stroke hardware Gate: PENDING
+Flower hardware Gate: PENDING
+```
+
 ## Remote Compute v0 status
 
 ```yaml
