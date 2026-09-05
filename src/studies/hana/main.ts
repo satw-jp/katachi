@@ -227,6 +227,10 @@ import {
   type HanaRuntimeProvenance,
 } from "./runtimeProvenance.ts";
 import { shouldShowActiveStrokeControls } from "./selectionPresentation.ts";
+import {
+  applyHanaProjectionRedraw,
+  createHanaProjectionRedrawIntent,
+} from "./projectionRedraw.ts";
 import "./style.css";
 
 const app = document.getElementById("app");
@@ -362,6 +366,7 @@ app.innerHTML = `
           <button id="show-samples" type="button" aria-pressed="false">Samples OFF</button>
           <button id="show-surface" type="button" aria-pressed="true">Surface ON</button>
         </div>
+        <button id="redraw-stroke" class="hana-secondary" type="button" disabled>Redraw</button>
         <label class="hana-smooth-control" for="thickness-control">
           <span>Thickness</span>
           <span class="hana-smooth-bound">${HANA_THICKNESS_MIN.toFixed(2)}</span>
@@ -493,6 +498,7 @@ const smoothnessValue = requiredElement<HTMLOutputElement>("#smoothness-value");
 const centerlineToggle = requiredElement<HTMLButtonElement>("#show-centerline");
 const samplesToggle = requiredElement<HTMLButtonElement>("#show-samples");
 const surfaceToggle = requiredElement<HTMLButtonElement>("#show-surface");
+const redrawButton = requiredElement<HTMLButtonElement>("#redraw-stroke");
 const liveIsolationModeSelect = requiredElement<HTMLSelectElement>("#live-isolation-mode");
 const thicknessSlider = requiredElement<HTMLInputElement>("#thickness-control");
 const thicknessValue = requiredElement<HTMLOutputElement>("#thickness-value");
@@ -655,6 +661,7 @@ let lastEditBoundsBefore: HanaStrokeBounds | null = null;
 let lastEditBoundsAfter: HanaStrokeBounds | null = null;
 let gesturePixelRatio = 1;
 let stateMessage = "READY · Draw Strokes in Front, Right, or Top";
+let projectionRedrawActive = false;
 
 interface ActiveStroke {
   pointerId: number;
@@ -667,6 +674,8 @@ interface ActiveStroke {
   lastCapturedInputSample: HanaPointerSampleLike | null;
   captureSourceCounts: HanaRawCaptureSourceCounts;
   suppressedExactDuplicateCount: number;
+  purpose: "draw" | "projection-redraw";
+  targetStrokeId: string | null;
 }
 
 interface CameraDrag {
@@ -1825,6 +1834,15 @@ function updateSurfaceUI(): void {
   surfaceState.textContent = state;
   surfaceState.dataset.state = state.toLowerCase().replace(" ", "-");
   rebuildSurfaceButton.disabled = !stroke3D || materialSamples.length === 0;
+  const redrawDirection = directions[selectedViewport];
+  const redrawAvailable = stroke3D !== null
+    && redrawDirection !== "axome"
+    && !activeStroke
+    && !controlDrag
+    && !rangeSelection;
+  redrawButton.disabled = !(redrawAvailable || projectionRedrawActive);
+  redrawButton.setAttribute("aria-pressed", String(projectionRedrawActive));
+  redrawButton.textContent = projectionRedrawActive ? "Redraw · draw" : "Redraw";
   setDebugText("debug-material", String(displayedMaterialSamples().length));
   setDebugText("debug-proxy-segments", workspace.dataset.materialProxySegmentCount ?? "0");
   setDebugText("debug-surface", previewSurface ? String(previewSurface.triangles.length) : "—");
@@ -1933,6 +1951,7 @@ function updateSurfaceUI(): void {
   workspace.dataset.lifecycle = lifecycleText();
   workspace.dataset.recoveryStatus = recoveryStatusText;
   workspace.dataset.autoRotate = String(autoRotateEnabled);
+  workspace.dataset.projectionRedraw = projectionRedrawActive ? "active" : "idle";
 }
 
 function refreshMaterialSamples(
@@ -2591,14 +2610,20 @@ function appendSamples(event: PointerEvent): void {
   scheduleLiveDiagnosticsUpdate();
 }
 
-function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
+function startStroke(
+  event: PointerEvent,
+  rect: SkinViewportRect,
+  purpose: "draw" | "projection-redraw" = "draw",
+): void {
   if (!event.isPrimary || activeStroke || cameraDrag || controlDrag) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
   const direction = directions[rect.index];
   if (direction === "axome") return;
+  if (purpose === "projection-redraw" && !stroke3D) return;
   event.preventDefault();
   stopAutoRotate();
-  markFinalizationEditing("draw");
+  if (purpose === "projection-redraw") cancelPendingFinalizationForEdit();
+  markFinalizationEditing(purpose === "projection-redraw" ? "projection-redraw" : "draw");
   gestureCanvas.setPointerCapture(event.pointerId);
   const stroke: HanaViewportStroke = {
     id: allocateHanaAuthoringId(authoringIdentity, "gesture"),
@@ -2622,6 +2647,8 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
     lastCapturedInputSample: event,
     captureSourceCounts: { parentPointerEvent: 1, coalescedEvent: 0 },
     suppressedExactDuplicateCount: 0,
+    purpose,
+    targetStrokeId: purpose === "projection-redraw" ? stroke3D?.id ?? null : null,
   };
   lastRawCaptureDiagnostics = null;
   liveGrowthCheckpoints = [];
@@ -2659,7 +2686,125 @@ function startStroke(event: PointerEvent, rect: SkinViewportRect): void {
   updateDebug(point, stroke.pointerType, stroke);
 }
 
-function finishStroke(): void {
+function removeRawGesture(rawGestureId: string): void {
+  const index = rawGestures.findIndex((gesture) => gesture.id === rawGestureId);
+  if (index >= 0) rawGestures.splice(index, 1);
+}
+
+function finishProjectionRedraw(finished: ActiveStroke, pointerupStarted: number, cancelled = false): void {
+  const targetId = finished.targetStrokeId;
+  const targetIndex = targetId === null
+    ? -1
+    : authoringStrokes.findIndex((stroke) => stroke.id === targetId);
+  const target = targetIndex >= 0 ? authoringStrokes[targetIndex] : null;
+  const direction = finished.stroke.viewDirection;
+  const reject = (reason: string): void => {
+    removeRawGesture(finished.stroke.id);
+    activeStroke = null;
+    liveWorkingPath = null;
+    activeRawPath = null;
+    activeRawPathStroke = null;
+    activeRawPathRect = null;
+    projectionRedrawActive = false;
+    renderer.setMaterialProxy(null);
+    finalizationState = "IDLE";
+    stateMessage = `REDRAW REJECTED · ${reason}`;
+    refreshLayout();
+    updateDebug(
+      finished.stroke.points[finished.stroke.points.length - 1] ?? null,
+      finished.stroke.pointerType,
+      finished.stroke,
+    );
+  };
+  if (cancelled) {
+    reject("pointer cancelled");
+    return;
+  }
+  if (!target || direction === "axome") {
+    reject("no orthographic active Stroke");
+    return;
+  }
+  try {
+    const result = applyHanaProjectionRedraw(target, finished.stroke, {
+      pointToWorld: (point, hiddenAxisValue) => renderer.pointOnViewPlane(
+        finished.rect.index,
+        finished.rect.x + point.x,
+        finished.rect.y + point.y,
+        finished.rect,
+        direction,
+        hiddenAxisValue,
+      ),
+      pointToView: (position) => {
+        const projected = renderer.projectPoint(finished.rect.index, position, finished.rect);
+        return projected.visible ? { x: projected.x, y: projected.y } : null;
+      },
+    });
+    const intent = createHanaProjectionRedrawIntent(
+      `redraw-${finished.stroke.id}`,
+      target.id,
+      finished.stroke.id,
+      direction,
+      result,
+    );
+    const nextStroke: HanaStroke3D = {
+      ...result.stroke,
+      projectionRedraws: [...(result.stroke.projectionRedraws ?? []), intent],
+    };
+    authoringStrokes[targetIndex] = nextStroke;
+    stroke3D = nextStroke;
+    activeAuthoringStrokeId = nextStroke.id;
+    projectionRedrawActive = false;
+    activeStroke = null;
+    liveWorkingPath = null;
+    activeRawPath = null;
+    activeRawPathStroke = null;
+    activeRawPathRect = null;
+    lastAdaptiveControlFit = null;
+    lastAffectedControlIndices = [];
+    lastEditBoundsBefore = strokeBounds(target);
+    lastEditBoundsAfter = strokeBounds(nextStroke);
+    const selectedControlIndex = selectedControlPointRef?.strokeId === nextStroke.id
+      ? nextStroke.controlPoints.findIndex((point) => point.id === selectedControlPointRef?.controlPointId)
+      : selectedControlPoint !== null
+        ? Math.min(selectedControlPoint, Math.max(0, nextStroke.controlPoints.length - 1))
+        : -1;
+    selectedControlPoint = selectedControlIndex >= 0 ? selectedControlIndex : null;
+    const selected = selectedControlPoint !== null ? nextStroke.controlPoints[selectedControlPoint] : undefined;
+    selectedControlPointRef = selected
+      ? { strokeId: nextStroke.id, controlPointId: selected.id }
+      : null;
+    rawPressureTotal = finished.stroke.points.reduce((total, point) => total + point.pressure, 0);
+    rawTimeTotal = finished.stroke.points.reduce((total, point) => total + point.time, 0);
+    const finalization = showSurface
+      ? beginAuthoritativeFinalization("projection-redraw-pointerup", pointerupStarted)
+      : null;
+    if (!finalization) {
+      documentRevision += 1;
+      finalizationState = "IDLE";
+    } else {
+      finalization.timestamps.tProxyFrozen = performance.now();
+    }
+    refreshMaterialSamples(nextStroke, null, finalization);
+    interactionModes[0] = "edit";
+    interactionModes[2] = "edit";
+    interactionModes[3] = "edit";
+    stateMessage = `REDRAW APPLIED · ${direction.toUpperCase()} · ${nextStroke.controlPoints.length} controls${result.reversed ? " · reversed" : ""}`;
+    commitGlobalAuthoringMutation("Projection Redraw");
+    refreshLayout();
+    if (finalization) runAuthoritativeFinalization(finalization);
+    updateDebug(
+      finished.stroke.points[finished.stroke.points.length - 1] ?? null,
+      finished.stroke.pointerType,
+      finished.stroke,
+    );
+    scheduleRecoveryCheckpoint("projection redraw");
+    flowerUi?.refresh();
+  } catch (error) {
+    reject(error instanceof Error ? error.message : "invalid gesture");
+  }
+}
+
+function finishStroke(cancelled = false): void {
   if (!activeStroke) return;
   const pointerupStarted = performance.now();
   liveStrokeMeasuring = false;
@@ -2675,6 +2820,10 @@ function finishStroke(): void {
     finished.suppressedExactDuplicateCount,
   );
   liveGapPrecedingText = liveGapPrecedingTextFor(finished, lastRawCaptureDiagnostics);
+  if (finished.purpose === "projection-redraw") {
+    finishProjectionRedraw(finished, pointerupStarted, cancelled);
+    return;
+  }
   const direction = finished.stroke.viewDirection;
   if (direction === "axome") throw new Error("Axome Draw is outside HANA-1C");
   const pointToWorld = (point: HanaStrokePoint) => projectGesturePointToWorld(finished, point);
@@ -3420,6 +3569,7 @@ function applySemanticAuthoringSnapshot(
   hanaFlowers = [];
   selectedStrokeIds = [];
   activeAuthoringStrokeId = null;
+  projectionRedrawActive = false;
   activeFlowerId = null;
   flowerCoreStrokeId = null;
   flowerMaterializedId = null;
@@ -4578,7 +4728,7 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
   if (activeStroke?.pointerId === pointerId) {
     if (finalEvent) appendSamples(finalEvent);
     surfacePointerEndMilliseconds = performance.now();
-    finishStroke();
+    finishStroke(finalEvent?.type !== "pointerup");
   }
   if (cameraDrag?.pointerId === pointerId) cameraDrag = null;
   finishControlDrag(pointerId);
@@ -4621,6 +4771,13 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
     startTouchNavigation(event, rect);
     return;
   }
+  const projectionRedrawDraw = projectionRedrawActive
+    && event.pointerType === "pen"
+    && directions[rect.index] !== "axome";
+  if (projectionRedrawDraw) {
+    startStroke(event, rect, "projection-redraw");
+    return;
+  }
   if (beginPendingAuthoringPointer(event, rect, point)) {
     return;
   }
@@ -4631,7 +4788,7 @@ gestureCanvas.addEventListener("pointerdown", (event) => {
     return;
   }
   if (interactionModes[rect.index] === "draw" || pencilDraw) {
-    startStroke(event, rect);
+    startStroke(event, rect, projectionRedrawActive ? "projection-redraw" : "draw");
     return;
   }
   if (event.pointerType !== "mouse") return;
@@ -5544,6 +5701,29 @@ thicknessSlider.addEventListener("change", () => {
 });
 rebuildSurfaceButton.addEventListener("click", () => requestAuthoritativeSurfaceRebuild("manual-rebuild", false));
 
+function toggleProjectionRedraw(): void {
+  if (projectionRedrawActive) {
+    projectionRedrawActive = false;
+    stateMessage = "REDRAW · cancelled";
+    refreshLayout();
+    updateDebug();
+    return;
+  }
+  const direction = directions[selectedViewport];
+  if (!stroke3D || activeStroke || controlDrag || rangeSelection || direction === "axome") {
+    stateMessage = "REDRAW · select an active Stroke in Front, Right, or Top";
+    updateDebug();
+    return;
+  }
+  stopAutoRotate();
+  projectionRedrawActive = true;
+  stateMessage = `REDRAW · ${direction.toUpperCase()} · draw the whole Stroke with Apple Pencil`;
+  refreshLayout();
+  updateDebug();
+}
+
+redrawButton.addEventListener("click", toggleProjectionRedraw);
+
 function createNewHanaDocumentId(): string {
   const uuid = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
@@ -5568,6 +5748,7 @@ function resetDocumentContent(newDocument: boolean): void {
   hanaGraph = createAuthoringGraph();
   selectedStrokeIds = [];
   activeAuthoringStrokeId = null;
+  projectionRedrawActive = false;
   activeFlowerId = null;
   flowerCoreStrokeId = null;
   flowerMaterializedId = null;

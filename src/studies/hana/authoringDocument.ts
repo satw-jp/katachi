@@ -7,6 +7,7 @@ import type {
 import { HANA_VIEW_DIRECTIONS } from "./gesture.ts";
 import {
   HANA_CURVE_SETTINGS,
+  type HanaProjectionRedrawIntent,
   type HanaCurveSettings,
   type HanaStroke3D,
   type HanaStroke3DControlPoint,
@@ -50,6 +51,7 @@ export interface HanaStroke {
   revision: number;
   role: HanaStrokeRole;
   visible: boolean;
+  projectionRedraws?: HanaProjectionRedrawIntent[];
 }
 
 export interface HanaAuthoringIdentity {
@@ -151,6 +153,15 @@ function cloneStroke(stroke: HanaStroke): HanaStroke {
     controlPoints: stroke.controlPoints.map(cloneControlPoint),
     curveSettings: cloneCurveSettings(stroke.curveSettings),
     materialSettings: { ...defaultHanaMaterialSettings(), ...stroke.materialSettings },
+    ...(stroke.projectionRedraws
+      ? {
+        projectionRedraws: stroke.projectionRedraws.map((intent) => ({
+          ...intent,
+          visibleAxes: [...intent.visibleAxes],
+          controlPointIds: [...intent.controlPointIds],
+        })),
+      }
+      : {}),
   };
 }
 
@@ -240,6 +251,17 @@ export function validateHanaAuthoringDocument(
   for (const stroke of document.strokes) {
     if (strokeIds.has(stroke.id)) issues.push(`Duplicate Stroke id: ${stroke.id}`);
     strokeIds.add(stroke.id);
+    for (const intent of stroke.projectionRedraws ?? []) {
+      if (!rawIds.has(intent.rawGestureId)) {
+        issues.push(`Projection Redraw ${intent.id} references missing Raw Gesture: ${intent.rawGestureId}`);
+      }
+      if (intent.sourceStrokeId !== stroke.id) {
+        issues.push(`Projection Redraw ${intent.id} references wrong Stroke: ${intent.sourceStrokeId}`);
+      }
+      if (intent.controlPointIds.length !== stroke.controlPoints.length) {
+        issues.push(`Projection Redraw ${intent.id} control identity count mismatch`);
+      }
+    }
   }
   return { valid: issues.length === 0, issues };
 }
@@ -285,6 +307,15 @@ export function hanaStrokeFromStroke3D(
     revision: 0,
     role,
     visible: true,
+    ...(stroke3D.projectionRedraws
+      ? {
+        projectionRedraws: stroke3D.projectionRedraws.map((intent) => ({
+          ...intent,
+          visibleAxes: [...intent.visibleAxes],
+          controlPointIds: [...intent.controlPointIds],
+        })),
+      }
+      : {}),
   };
 }
 
@@ -297,6 +328,15 @@ export function stroke3DFromHanaStroke(stroke: HanaStroke): HanaStroke3D {
     initialPlaneValue: stroke.controlPoints[0]?.position.y ?? 0,
     curve: cloneCurveSettings(stroke.curveSettings),
     controlPoints: stroke.controlPoints.map(cloneControlPoint),
+    ...(stroke.projectionRedraws
+      ? {
+        projectionRedraws: stroke.projectionRedraws.map((intent) => ({
+          ...intent,
+          visibleAxes: [...intent.visibleAxes],
+          controlPointIds: [...intent.controlPointIds],
+        })),
+      }
+      : {}),
   };
 }
 
@@ -365,6 +405,18 @@ function migratedStroke(value: unknown, index: number, rawGestures: readonly Han
   if (controlPoints.length === 0) return null;
   const material = asRecord(source.materialSettings);
   const curve = (asRecord(source.curveSettings).type ? source.curveSettings : source.curve) as HanaCurveSettings | undefined;
+  const projectionRedraws = asArray<Record<string, unknown>>(source.projectionRedraws)
+    .filter((intent) => typeof intent.id === "string" && typeof intent.rawGestureId === "string")
+    .map((intent) => ({
+      id: intent.id as string,
+      sourceStrokeId: typeof intent.sourceStrokeId === "string" ? intent.sourceStrokeId : (typeof source.id === "string" ? source.id : `stroke-${index + 1}`),
+      rawGestureId: intent.rawGestureId as string,
+      viewDirection: intent.viewDirection as HanaProjectionRedrawIntent["viewDirection"],
+      visibleAxes: asArray<string>(intent.visibleAxes).filter((axis): axis is HanaProjectionRedrawIntent["visibleAxes"][number] => axis === "x" || axis === "y" || axis === "z"),
+      inheritedAxis: intent.inheritedAxis as HanaProjectionRedrawIntent["inheritedAxis"],
+      reversed: intent.reversed === true,
+      controlPointIds: asArray<string>(intent.controlPointIds),
+    }));
   return {
     id: typeof source.id === "string" ? source.id : `stroke-${index + 1}`,
     rawGestureId,
@@ -380,6 +432,7 @@ function migratedStroke(value: unknown, index: number, rawGestures: readonly Han
     revision: typeof source.revision === "number" ? source.revision : 0,
     role: HANA_STROKE_ROLES.includes(source.role as HanaStrokeRole) ? source.role as HanaStrokeRole : "free",
     visible: source.visible !== false,
+    ...(projectionRedraws.length > 0 ? { projectionRedraws } : {}),
   };
 }
 

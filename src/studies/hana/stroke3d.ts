@@ -44,6 +44,20 @@ export interface HanaStroke3DControlPoint {
   provenance: HanaControlPointProvenance;
 }
 
+export type HanaStrokeAxis = "x" | "y" | "z";
+
+/** Semantic provenance for a full-stroke orthographic redraw. */
+export interface HanaProjectionRedrawIntent {
+  id: string;
+  sourceStrokeId: string;
+  rawGestureId: string;
+  viewDirection: Exclude<HanaViewDirection, "axome">;
+  visibleAxes: HanaStrokeAxis[];
+  inheritedAxis: HanaStrokeAxis;
+  reversed: boolean;
+  controlPointIds: string[];
+}
+
 export interface HanaStroke3D {
   id: string;
   sourceGestureId: string;
@@ -52,6 +66,8 @@ export interface HanaStroke3D {
   initialPlaneValue: number;
   curve: HanaCurveSettings;
   controlPoints: HanaStroke3DControlPoint[];
+  /** Additive authoring provenance; derived geometry is intentionally absent. */
+  projectionRedraws?: HanaProjectionRedrawIntent[];
 }
 
 export interface HanaDocument {
@@ -93,6 +109,15 @@ function cloneStroke3D(stroke: HanaStroke3D): HanaStroke3D {
       position: { ...point.position },
       provenance: { ...point.provenance },
     })),
+    ...(stroke.projectionRedraws
+      ? {
+        projectionRedraws: stroke.projectionRedraws.map((intent) => ({
+          ...intent,
+          visibleAxes: [...intent.visibleAxes],
+          controlPointIds: [...intent.controlPointIds],
+        })),
+      }
+      : {}),
   };
 }
 
