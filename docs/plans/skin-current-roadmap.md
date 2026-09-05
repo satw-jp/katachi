@@ -51,16 +51,14 @@ context.
 ## Current status
 
 External Host Phase 6 Persistence / Save-Reopen is DONE on the controlled
-Rabbit gate. The v1 FKEI path remains compatible and the new External Host
-project uses the explicit `katachi.skin.fkei.v2` envelope. The next author gate
-is Host ON → V6 → Host OFF confirmation before consulting Astra; no Permanent
-Artwork structure has been invented.
+Rabbit gate, including Host ON → V6 → Host OFF. The v1 FKEI path remains
+compatible and the new External Host project uses the explicit
+`katachi.skin.fkei.v2` envelope. The next action is to STOP and consult Astra;
+no Permanent Artwork structure has been invented.
 
 ## Immediate next phase
 
 ```text
-Host ON → V6 → Host OFF Author Gate
-↓
 STOP and consult Astra before inventing new Permanent Artwork structure
 ```
 
