@@ -59,6 +59,13 @@ export interface ParsedHostMesh {
   readonly coordinateFrame: "right-handed-y-up-mm";
 }
 
+export interface ParsedRawStlMesh {
+  /** Triangle soup in the original STL coordinate units. */
+  readonly positions: Float64Array;
+  readonly triangleCount: number;
+  readonly bounds: HostBounds;
+}
+
 export interface HostSurfaceQuery {
   closestSurface(point: HostVec3): HostSurfaceHit | null;
   raycast(ray: HostRay): HostSurfaceHit | null;
@@ -241,10 +248,8 @@ function boundsFromPositions(positions: Float64Array): HostBounds {
   });
 }
 
-function parseGeometry(source: ImportedHostSource): ParsedHostMesh {
-  const interpretation = source.interpretation;
-  const transform = createSourceInterpretationTransform(interpretation);
-  const geometry = new STLLoader().parse(source.bytes);
+export function parseRawStlMesh(input: ArrayBuffer | ArrayBufferView): ParsedRawStlMesh {
+  const geometry = new STLLoader().parse(copyBytes(input));
   try {
     const attribute = geometry.getAttribute("position");
     if (!attribute || attribute.itemSize !== 3 || attribute.count === 0 || attribute.count % 3 !== 0) {
@@ -252,47 +257,69 @@ function parseGeometry(source: ImportedHostSource): ParsedHostMesh {
     }
     const positions = new Float64Array(attribute.count * 3);
     for (let index = 0; index < attribute.count; index += 1) {
-      const point = applyMatrix(transform, {
-        x: attribute.getX(index),
-        y: attribute.getY(index),
-        z: attribute.getZ(index),
-      });
-      positions[index * 3] = finite(point.x, "parsed Host x");
-      positions[index * 3 + 1] = finite(point.y, "parsed Host y");
-      positions[index * 3 + 2] = finite(point.z, "parsed Host z");
+      positions[index * 3] = finite(attribute.getX(index), "parsed raw Host x");
+      positions[index * 3 + 1] = finite(attribute.getY(index), "parsed raw Host y");
+      positions[index * 3 + 2] = finite(attribute.getZ(index), "parsed raw Host z");
     }
-    const triangleCount = attribute.count / 3;
-    const normals = new Float64Array(triangleCount * 3);
-    const validTriangleIndices: number[] = [];
-    for (let triangle = 0; triangle < triangleCount; triangle += 1) {
-      const offset = triangle * 9;
-      const ax = positions[offset]; const ay = positions[offset + 1]; const az = positions[offset + 2];
-      const bx = positions[offset + 3]; const by = positions[offset + 4]; const bz = positions[offset + 5];
-      const cx = positions[offset + 6]; const cy = positions[offset + 7]; const cz = positions[offset + 8];
-      const e1x = bx - ax; const e1y = by - ay; const e1z = bz - az;
-      const e2x = cx - ax; const e2y = cy - ay; const e2z = cz - az;
-      const nx = e1y * e2z - e1z * e2y;
-      const ny = e1z * e2x - e1x * e2z;
-      const nz = e1x * e2y - e1y * e2x;
-      const length = Math.hypot(nx, ny, nz);
-      if (!(length > EPSILON)) continue;
-      normals[triangle * 3] = nx / length;
-      normals[triangle * 3 + 1] = ny / length;
-      normals[triangle * 3 + 2] = nz / length;
-      validTriangleIndices.push(triangle);
-    }
-    if (validTriangleIndices.length === 0) throw new Error("STL parser returned no non-degenerate triangles");
     return Object.freeze({
       positions,
-      geometricNormals: normals,
-      triangleCount,
-      validTriangleIndices: Object.freeze(validTriangleIndices),
+      triangleCount: attribute.count / 3,
       bounds: boundsFromPositions(positions),
-      coordinateFrame: "right-handed-y-up-mm",
     });
   } finally {
     geometry.dispose();
   }
+}
+
+function parseGeometry(source: ImportedHostSource): ParsedHostMesh {
+  const interpretation = source.interpretation;
+  const transform = createSourceInterpretationTransform(interpretation);
+  const raw = parseRawStlMesh(source.bytes);
+  const positions = new Float64Array(raw.positions.length);
+  for (let index = 0; index < raw.positions.length; index += 3) {
+    const point = applyMatrix(transform, {
+      x: raw.positions[index],
+      y: raw.positions[index + 1],
+      z: raw.positions[index + 2],
+    });
+    positions[index] = finite(point.x, "parsed Host x");
+    positions[index + 1] = finite(point.y, "parsed Host y");
+    positions[index + 2] = finite(point.z, "parsed Host z");
+  }
+  const triangleCount = raw.triangleCount;
+  const normals = new Float64Array(triangleCount * 3);
+  const validTriangleIndices: number[] = [];
+  const basis = sourceBasis(interpretation);
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const offset = triangle * 9;
+    const ax = raw.positions[offset]; const ay = raw.positions[offset + 1]; const az = raw.positions[offset + 2];
+    const bx = raw.positions[offset + 3]; const by = raw.positions[offset + 4]; const bz = raw.positions[offset + 5];
+    const cx = raw.positions[offset + 6]; const cy = raw.positions[offset + 7]; const cz = raw.positions[offset + 8];
+    const e1x = bx - ax; const e1y = by - ay; const e1z = bz - az;
+    const e2x = cx - ax; const e2y = cy - ay; const e2z = cz - az;
+    const rawNx = e1y * e2z - e1z * e2y;
+    const rawNy = e1z * e2x - e1x * e2z;
+    const rawNz = e1x * e2y - e1y * e2x;
+    const rawLength = Math.hypot(rawNx, rawNy, rawNz);
+    const nx = basis.x.x * rawNx + basis.y.x * rawNy + basis.z.x * rawNz;
+    const ny = basis.x.y * rawNx + basis.y.y * rawNy + basis.z.y * rawNz;
+    const nz = basis.x.z * rawNx + basis.y.z * rawNy + basis.z.z * rawNz;
+    const length = Math.hypot(nx, ny, nz);
+    if (!(rawLength > EPSILON) || !(length > EPSILON)) continue;
+    normals[triangle * 3] = nx / length;
+    normals[triangle * 3 + 1] = ny / length;
+    normals[triangle * 3 + 2] = nz / length;
+    validTriangleIndices.push(triangle);
+  }
+  if (validTriangleIndices.length === 0) throw new Error("STL parser returned no non-degenerate triangles");
+  return Object.freeze({
+    positions,
+    geometricNormals: normals,
+    triangleCount,
+    validTriangleIndices: Object.freeze(validTriangleIndices),
+    bounds: boundsFromPositions(positions),
+    coordinateFrame: "right-handed-y-up-mm",
+  });
 }
 
 function transformMesh(mesh: ParsedHostMesh, transform: HostInstanceTransform): ParsedHostMesh {
@@ -647,6 +674,10 @@ export class ImportedHostSource {
 
   parseMesh(): ParsedHostMesh {
     return parseGeometry(this);
+  }
+
+  parseRawMesh(): ParsedRawStlMesh {
+    return parseRawStlMesh(this.bytes);
   }
 
   static fromParts(

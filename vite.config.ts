@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => ({
         hitsuji: "hitsuji.html",
         hitsujiField: "hitsuji-field.html",
         tangle: "tangle.html",
+        externalStlHostLab: "skin-external-stl-host-lab.html",
         flowerPackingSpike: "flower-packing-spike.html",
         flowerFormSpike: "flower-form-spike.html",
         flowerCoreNetwork: "flower-core-network.html",
