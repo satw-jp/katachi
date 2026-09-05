@@ -674,6 +674,10 @@ class HostTriangleQuery implements HostSurfaceQuery {
   }
 }
 
+export function createHostSurfaceQuery(mesh: ParsedHostMesh): HostSurfaceQuery {
+  return new HostTriangleQuery(mesh);
+}
+
 export class ImportedHostSource {
   private constructor(
     private readonly originalBytes: ArrayBuffer,
@@ -728,8 +732,19 @@ export function createImportedHostInstance(
   transform: HostInstanceTransform,
 ): ImportedHostInstance {
   const checkedTransform = normalizeInstanceTransform(transform);
-  const mesh = transformMesh(source.parseMesh(), checkedTransform);
-  const query = new HostTriangleQuery(mesh);
+  return createImportedHostInstanceFromMesh(source, checkedTransform, transformMesh(source.parseMesh(), checkedTransform));
+}
+
+/** Create an instance around an explicitly derived mesh while retaining the
+ * original source identity and instance transform. This is the only supported
+ * path for an approved repair; the original source parser remains unchanged. */
+export function createImportedHostInstanceFromMesh(
+  source: ImportedHostSource,
+  transform: HostInstanceTransform,
+  mesh: ParsedHostMesh,
+): ImportedHostInstance {
+  const checkedTransform = normalizeInstanceTransform(transform);
+  const query = createHostSurfaceQuery(mesh);
   const volumePreflight = preflightHostVolume(mesh);
   const signedVolumeQuery = createSignedVolumeQuery(mesh, query, volumePreflight);
   return Object.freeze({

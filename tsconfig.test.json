@@ -28,6 +28,8 @@
     "src/studies/skin/externalStlHost.test.ts",
     "src/studies/skin/externalStlHostDiagnostics.test.ts",
     "src/studies/skin/externalStlHostVolume.test.ts",
+    "src/studies/skin/externalStlHostRepair.test.ts",
+    "src/studies/skin/externalStlHostV6Adapter.test.ts",
     "src/studies/skin/voronoi.test.ts",
     "src/studies/skin/targetedGrid.test.ts",
     "src/studies/skin/surfaceAnglePersistentCache.test.ts",

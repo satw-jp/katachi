@@ -9,3 +9,7 @@ declare module "node:child_process" {
 declare module "node:process" {
   export function cwd(): string;
 }
+
+declare module "node:fs" {
+  export function readFileSync(path: string): Uint8Array;
+}

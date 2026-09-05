@@ -21,6 +21,12 @@ export type HostBoundaryFillability = "PLAUSIBLE_LOCAL" | "NOT_PLAUSIBLE" | "UNK
 export interface HostBoundaryLoopDiagnostic {
   readonly loopIndex: number;
   readonly edgeCount: number;
+  /** Welded vertex ids in deterministic ascending order. */
+  readonly vertexIndices: readonly number[];
+  /** Boundary-edge directions as emitted by the existing triangle winding. */
+  readonly directedEdges: readonly (readonly [number, number])[];
+  /** Positions corresponding to vertexIndices, retained for explicit repair. */
+  readonly vertexPositions: readonly HostVec3[];
   readonly perimeter: number;
   readonly bounds: HostBounds;
   readonly center: HostVec3;
@@ -48,6 +54,7 @@ export interface HostNormalStatistics {
 export interface HostMeshDiagnostics {
   readonly sourceBounds: HostBounds;
   readonly topology: HostTopologyDiagnostics;
+  readonly validTriangleIndices: readonly number[];
   readonly boundaryLoops: readonly HostBoundaryLoopDiagnostic[];
   readonly normals: HostNormalStatistics;
 }
@@ -56,10 +63,12 @@ interface EdgeRecord {
   readonly triangles: number[];
   readonly directions: number[];
   readonly vertices: readonly [number, number];
+  readonly directedVertices: Array<readonly [number, number]>;
 }
 
 interface WeldedTopology {
   readonly topology: HostTopologyDiagnostics;
+  readonly validTriangleIndices: readonly number[];
   readonly edges: ReadonlyMap<string, EdgeRecord>;
   readonly weldedVertices: readonly HostVec3[];
   readonly boundaryLoops: readonly HostBoundaryLoopDiagnostic[];
@@ -186,11 +195,13 @@ function recordEdge(edges: Map<string, EdgeRecord>, left: number, right: number,
   if (record) {
     record.triangles.push(triangle);
     record.directions.push(direction);
+    record.directedVertices.push([left, right]);
   } else {
     edges.set(key, {
       triangles: [triangle],
       directions: [direction],
       vertices: [Math.min(left, right), Math.max(left, right)],
+      directedVertices: [[left, right]],
     });
   }
 }
@@ -277,6 +288,8 @@ function characterizeBoundaryLoops(
       }
     }
     const vertices = Array.from(componentVertices, (index) => weldedVertices[index]);
+    const vertexIndices = Array.from(componentVertices).sort((left, right) => left - right);
+    const directedEdges = componentEdges.map((edgeIndex) => boundaryEdges[edgeIndex].directedVertices[0]);
     const bounds = loopBounds(vertices);
     const span = longestDimension(bounds);
     const perimeter = componentEdges.reduce((sum, edgeIndex) => {
@@ -292,6 +305,9 @@ function characterizeBoundaryLoops(
     loops.push({
       loopIndex: loops.length,
       edgeCount: componentEdges.length,
+      vertexIndices: Object.freeze(vertexIndices),
+      directedEdges: Object.freeze(directedEdges),
+      vertexPositions: Object.freeze(vertexIndices.map((index) => weldedVertices[index])),
       perimeter,
       bounds,
       center: {
@@ -389,6 +405,7 @@ function analyzeWeldedTopology(positions: Float64Array, triangleCount: number, t
       orientationInconsistencyEdgeCount,
       watertightDiagnostic,
     },
+    validTriangleIndices: Object.freeze(validTriangles),
     edges,
     weldedVertices: welded.vertices,
     boundaryLoops,
@@ -452,6 +469,7 @@ export function characterizeHostMesh(
   return {
     sourceBounds: finiteBounds(mesh.positions),
     topology: welded.topology,
+    validTriangleIndices: welded.validTriangleIndices,
     boundaryLoops: welded.boundaryLoops,
     normals,
   };

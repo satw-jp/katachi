@@ -32,6 +32,7 @@ declare module "node:fs" {
   export function readdirSync(path: string, options: { withFileTypes: true }): Dirent[];
   export function readdirSync(path: string): string[];
   export function readFileSync(path: string, encoding: "utf8"): string;
+  export function readFileSync(path: string): Uint8Array;
   export function existsSync(path: string): boolean;
 }
 

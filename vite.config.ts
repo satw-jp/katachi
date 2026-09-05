@@ -1,7 +1,28 @@
 import { defineConfig } from "vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { cwd } from "node:process";
+
+function phase5RabbitSourcePlugin() {
+  return {
+    name: "phase5-rabbit-source",
+    apply: "serve" as const,
+    configureServer(server: { middlewares: { use: (path: string, handler: (request: unknown, response: { statusCode: number; setHeader(name: string, value: string): void; end(body: Uint8Array): void }, next: () => void) => void) => void } }) {
+      server.middlewares.use("/__phase5/rabbit_230223.stl", (_request, response, next) => {
+        try {
+          const bytes = readFileSync("C:/dev/samples/rabbit_230223.stl");
+          response.statusCode = 200;
+          response.setHeader("Content-Type", "model/stl");
+          response.setHeader("Cache-Control", "no-store");
+          response.end(bytes);
+        } catch {
+          next();
+        }
+      });
+    },
+  };
+}
 
 function exactRunningCommit(): string {
   // Codex may build a workspace owned by its sandbox account from the signed-
@@ -26,7 +47,10 @@ export default defineConfig(({ mode }) => ({
   define: {
     "import.meta.env.VITE_GIT_COMMIT": JSON.stringify(exactRunningCommit()),
   },
-  plugins: mode === "https" ? [basicSsl()] : [],
+  plugins: [
+    ...(mode === "https" ? [basicSsl()] : []),
+    phase5RabbitSourcePlugin(),
+  ],
   server: {
     // Katachi は常に 5174。docs/launcher-spec.md のポート台帳で一意に固定。
     // Morpho(5173)・Yomu(5175) と衝突させない。strictPort で別ポートに逃げない。
@@ -59,6 +83,7 @@ export default defineConfig(({ mode }) => ({
         hitsujiField: "hitsuji-field.html",
         tangle: "tangle.html",
         externalStlHostLab: "skin-external-stl-host-lab.html",
+        externalStlHostV6: "skin-external-stl-host-v6.html",
         flowerPackingSpike: "flower-packing-spike.html",
         flowerFormSpike: "flower-form-spike.html",
         flowerCoreNetwork: "flower-core-network.html",

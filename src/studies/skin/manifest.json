@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-05",
+      "note": "SKIN External STL Host Phase 5: applied the author-approved stl-host-boundary-fill-v0 repair only to the immutable rabbit_230223.stl source (SHA-256 c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8). Fixed 1 mm/source, +Y, right-handed and uniformScale 20 produced a deterministic derived Host with 204326 valid triangles, zero boundary/non-manifold/orientation issues, one component, selfIntersection NOT_PROVEN, Signed Volume AVAILABLE, seven removed degenerate triangles, 21 local fan triangles and fingerprint 90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6. The existing V6 Flower path is reused through a thin deterministic triangle-area sampler with GEOMETRIC normals, clearance and printable=false motifs. Windows Chrome actual-rabbit gate passed for 32 and 128 motifs; Host OFF reported motif positions unchanged PASS and host group only PASS; console errors/warnings 0. No FKEI, export, Support/FAB, G-code, final BODY or deploy work was performed."
+    },
+    {
+      "date": "2026-09-05",
       "note": "SKIN FIELD vNextを実Golden FIELD viewportへcontrolled integrationした。session-onlyでdefault LegacyのLegacy / vNextを選べ、同じPatch / Host stateをFieldPrimitiveStoreからuncapped FieldGpuPayloadへ詰め、geometry / metadata DataTextureとsemantic GPU shaderで表示する。patchIndex owner、plate / window、shape grouping、coinBulge、clipping、選択 identityを保持し、WebGL2 / float texture / texture unit / payload capacityを確認できない場合は理由付きLegacy fallbackへ戻す。vNext material / quad / DataTextureはLegacy切替とpagehideでdisposeし、Spatial Gridは有効化していない。Windows Chrome実Golden Case Aで257 / 512 / 1024 / 2048 primitive境界と2048の反復Legacy↔vNext切替を確認し、focused FIELD tests、両tsc、production build、diff checkを通した。FKEI、authoring/history、mesh、export、Support、STL、実物印刷は変更せず、deployも行っていない。"
     },
     {
