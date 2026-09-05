@@ -1,5 +1,9 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN External STL Host Phase 7 Author Gate（2026-09-05）
+
+`skin-external-stl-host-v6.html`のAuthor Gateに、solid / wireframe / surface points-normals debugのHost表示、32 / 128 / 256 / 512と32–512のcustom count、uniform / varied motif size、base sizeとvarianceを追加した。Host表示は三角形normalを表示用頂点へ正しく展開し、2000%の大きな深度範囲を詰めたことでrabbitの姿勢・輪郭・体積感を確認できる。配置は決定的な面積層別順と正しいbarycentricサンプリングへ修正し、triangle外の誤付着を除去した。size variationはsource hashとmotif idから決めたscalarでanchorまわりに0.65–1.55倍の範囲で適用する。v2保存にはcount / sizeMode / baseSize / sizeVarianceを最小追加し、旧v2文書は従来通り読める。実rabbitのChromeで32 / 128 / 256 / 512、512 varied、save → reopen、Host OFF不変、console error/warning 0を確認した。Reference Host printable=false、source identity/hash、repair fingerprint、1 mm/source-unit・+Y・right-handed・uniformScale 20は不変。これは作品判断用の表示・配置evidenceであり、Permanent / FAB / G-code / 実物印刷の保証ではない。
+
 ## Observation — SKIN FIELD vNext Controlled Golden Integration（2026-09-05）
 
 Goldenの実FIELD viewportに、session-only・default Legacyの`Legacy / vNext`選択を追加した。vNextは同じPatch / Host stateから`FieldPrimitiveStore → FieldGpuPayload → geometry / metadata DataTexture`を作り、uncapped primitive順序と`patchIndex` ownerを保ったままsemantic GPU shaderへ渡す。WebGL2 / float-texture / texture-unit / payload容量を起動時と切替時に確認し、非対応・resource failureは理由付きでLegacyへfail-safe fallbackする。vNextのDataTexture、quad、materialは切替とpagehideで明示disposeし、Spatial Gridは使用しない。

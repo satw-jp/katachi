@@ -30,6 +30,7 @@
     "src/studies/skin/externalStlHostVolume.test.ts",
     "src/studies/skin/externalStlHostRepair.test.ts",
     "src/studies/skin/externalStlHostV6Adapter.test.ts",
+    "src/studies/skin/externalStlHostAuthorGate.test.ts",
     "src/studies/skin/externalStlHostPersistence.test.ts",
     "src/studies/skin/voronoi.test.ts",
     "src/studies/skin/targetedGrid.test.ts",

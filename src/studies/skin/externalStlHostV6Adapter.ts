@@ -194,18 +194,19 @@ export class ExternalStlHostV6Adapter {
     return this.weightedTriangles[low];
   }
 
-  private candidate(sampleIndex: number, poolSize: number, rng: () => number): HostPlacementCandidate {
-    const areaTarget = ((sampleIndex + 0.5) / poolSize) * this.totalTriangleArea;
+  private candidate(sampleIndex: number, areaIndex: number, poolSize: number, rng: () => number): HostPlacementCandidate {
+    const areaTarget = ((areaIndex + 0.5) / poolSize) * this.totalTriangleArea;
     const weighted = this.triangleForArea(areaTarget);
     const triangle = weighted.triangleIndex;
     const a = triangleVertex(this.host, triangle, 0);
     const b = triangleVertex(this.host, triangle, 1);
     const c = triangleVertex(this.host, triangle, 2);
     const root = Math.sqrt(rng());
+    const split = rng();
     const barycentric: readonly [number, number, number] = [
       1 - root,
-      root * (1 - rng()),
-      root * rng(),
+      root * (1 - split),
+      root * split,
     ];
     const position = add(add(scale(a, barycentric[0]), scale(b, barycentric[1])), scale(c, barycentric[2]));
     const normalOffset = triangle * 3;
@@ -232,11 +233,17 @@ export class ExternalStlHostV6Adapter {
     if (!(minimumClearance >= 0) || !Number.isFinite(minimumClearance)) throw new Error("V6 Host minimumClearance must be finite and non-negative");
     if (count === 0) return [];
     const poolSize = Math.max(count, count * 8);
-    const rng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:${count}`));
+    const sequenceRng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:${count}:stratified`));
+    const permutationOffset = Math.floor(sequenceRng() * poolSize);
+    const permutationStep = poolSize - 1;
     const candidates: HostPlacementCandidate[] = [];
     const minimumClearanceSquared = minimumClearance * minimumClearance;
     for (let sampleIndex = 0; sampleIndex < poolSize && candidates.length < count; sampleIndex += 1) {
-      const candidate = this.candidate(sampleIndex, poolSize, rng);
+      // A coprime permutation removes STL triangle-order bias from the
+      // clearance accept/reject pass while retaining deterministic area strata.
+      const areaIndex = (sampleIndex * permutationStep + permutationOffset) % poolSize;
+      const rng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:${count}:candidate:${sampleIndex}`));
+      const candidate = this.candidate(sampleIndex, areaIndex, poolSize, rng);
       if (minimumClearance > 0 && candidates.some((existing) => squaredDistance(existing.position, candidate.position) < minimumClearanceSquared)) continue;
       candidates.push(candidate);
     }

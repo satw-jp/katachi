@@ -14,6 +14,7 @@ import {
   USAGI_SOURCE_SHA256,
 } from "./externalStlHostRepair.ts";
 import { createExternalStlHostV6Adapter } from "./externalStlHostV6Adapter.ts";
+import { generateAuthorGateMotifs } from "./externalStlHostAuthorGate.ts";
 import {
   captureExternalHostProject,
   EXTERNAL_HOST_FKEI_SCHEMA,
@@ -60,14 +61,19 @@ test("External Host v2 embeds the exact rabbit source and restores authored moti
     approvedBoundaryLoopIndices: APPROVED_USAGI_BOUNDARY_LOOPS,
   });
   const adapter = createExternalStlHostV6Adapter(repaired.repaired, { seed: "usagi-v6-golden" });
-  const motifs = adapter.placeFlowers(32, undefined, 2.4, { seed: "usagi-v6-golden", minimumClearance: 4.6 });
-  const document = captureExternalHostProject({ source, original, repaired, motifs, hostVisible: true, seed: "usagi-v6-golden", savedAt: "2026-09-05T00:00:00.000Z" });
+  const motifSettings = { sizeMode: "varied" as const, baseSize: 2.4, sizeVariance: 0.35 };
+  const motifs = generateAuthorGateMotifs(adapter, 32, { ...motifSettings, minimumClearance: 4.6 });
+  const document = captureExternalHostProject({ source, original, repaired, motifs, hostVisible: true, seed: "usagi-v6-golden", motifSettings, savedAt: "2026-09-05T00:00:00.000Z" });
   assert.equal(document.schema, EXTERNAL_HOST_FKEI_SCHEMA);
   assert.equal(document.referenceHost.printable, false);
   assert.equal(Object.prototype.hasOwnProperty.call(document.authoredMotifs[0], "printable"), false);
   const serialized = serializeExternalHostProject(document);
   assert.match(serialized, /"kind": "array-buffer"/);
   const parsed = parseExternalHostProject(serialized);
+  assert.deepEqual(parsed.motifGeneration.count, 32);
+  assert.equal(parsed.motifGeneration.sizeMode, "varied");
+  assert.equal(parsed.motifGeneration.baseSize, 2.4);
+  assert.equal(parsed.motifGeneration.sizeVariance, 0.35);
   assert.equal(parsed.referenceHost.source.bytes.byteLength, sourceBytes.byteLength);
   assert.deepEqual(Array.from(new Uint8Array(parsed.referenceHost.source.bytes)), Array.from(sourceBytes));
   const restored = await hydrateExternalHostProject(serialized);

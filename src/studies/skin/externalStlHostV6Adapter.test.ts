@@ -67,6 +67,8 @@ test("V6 adapter samples the transformed Host deterministically and uses geometr
   assert.equal(first.length, 32);
   assert.equal(adapter.triangleAreaTotal, 24 * 400);
   for (const candidate of first) {
+    assert.ok(Math.abs(candidate.barycentric[0] + candidate.barycentric[1] + candidate.barycentric[2] - 1) < 1e-12);
+    assert.ok(candidate.barycentric.every((value) => value >= 0 && value <= 1));
     const normalOffset = candidate.triangleIndex * 3;
     assert.ok(Math.abs(instance.mesh.geometricNormals[normalOffset] - candidate.placementNormal.x) < 1e-12);
     assert.ok(Math.abs(instance.mesh.geometricNormals[normalOffset + 1] - candidate.placementNormal.y) < 1e-12);

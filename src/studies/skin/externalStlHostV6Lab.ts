@@ -14,6 +14,7 @@ import {
   type ApprovedRepairedHost,
 } from "./externalStlHostRepair.ts";
 import { createExternalStlHostV6Adapter, type ExternalStlHostV6Adapter, type HostAuthoredFlowerMotif } from "./externalStlHostV6Adapter.ts";
+import { generateAuthorGateMotifs, type AuthorGateMotifSettings } from "./externalStlHostAuthorGate.ts";
 import {
   captureExternalHostProject,
   restoreExternalHostProjectAtomically,
@@ -26,10 +27,17 @@ type Elements = {
   apply: HTMLButtonElement;
   count32: HTMLButtonElement;
   count128: HTMLButtonElement;
+  count256: HTMLButtonElement;
+  count512: HTMLButtonElement;
+  customCount: HTMLInputElement;
+  customGenerate: HTMLButtonElement;
   saveProject: HTMLButtonElement;
   reopenProject: HTMLButtonElement;
   hostVisible: HTMLInputElement;
-  wireframe: HTMLInputElement;
+  hostView: HTMLSelectElement;
+  sizeMode: HTMLSelectElement;
+  baseSize: HTMLInputElement;
+  sizeVariance: HTMLInputElement;
   status: HTMLElement;
   metadata: HTMLElement;
   preflight: HTMLElement;
@@ -56,8 +64,10 @@ renderer.domElement.id = "viewport";
 main?.append(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+const hostDebugRoot = new THREE.Group();
 const hostRoot = new THREE.Group();
 const motifRoot = new THREE.Group();
+hostRoot.add(hostDebugRoot);
 scene.add(hostRoot, motifRoot);
 scene.add(new THREE.HemisphereLight(0xdcefff, 0x263038, 2.2));
 const directional = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -71,6 +81,8 @@ let adapter: ExternalStlHostV6Adapter | null = null;
 let motifs: readonly HostAuthoredFlowerMotif[] = [];
 let hostMesh: THREE.Mesh | null = null;
 let motifMesh: THREE.InstancedMesh | null = null;
+let hostDebugPoints: THREE.Points | null = null;
+let hostDebugNormals: THREE.LineSegments | null = null;
 let sourceBytes: ArrayBuffer | null = null;
 let savedProjectText: string | null = null;
 const consoleErrors: string[] = [];
@@ -90,6 +102,17 @@ elements.loadLocal.addEventListener("click", () => { void loadLocalSource(); });
 elements.apply.addEventListener("click", () => { void applyRepairAndActivate(); });
 elements.count32.addEventListener("click", () => generateMotifs(32));
 elements.count128.addEventListener("click", () => generateMotifs(128));
+elements.count256.addEventListener("click", () => generateMotifs(256));
+elements.count512.addEventListener("click", () => generateMotifs(512));
+elements.customGenerate.addEventListener("click", () => {
+  const count = Number(elements.customCount.value);
+  if (!Number.isInteger(count) || count < 32 || count > 512) {
+    elements.status.className = "status error";
+    elements.status.textContent = "Custom count must be an integer from 32 to 512.";
+    return;
+  }
+  generateMotifs(count);
+});
 elements.saveProject.addEventListener("click", () => { saveProject(); });
 elements.reopenProject.addEventListener("click", () => { void reopenProject(); });
 elements.hostVisible.addEventListener("change", () => {
@@ -103,7 +126,7 @@ elements.hostVisible.addEventListener("change", () => {
     `motifs: ${motifs.length}`,
   ].join("\n");
 });
-elements.wireframe.addEventListener("change", () => { if (hostMesh) (hostMesh.material as THREE.MeshStandardMaterial).wireframe = elements.wireframe.checked; });
+elements.hostView.addEventListener("change", () => { refreshPresentation(); });
 
 function buildUi(root: HTMLElement): Elements {
   root.innerHTML = `
@@ -120,8 +143,13 @@ function buildUi(root: HTMLElement): Elements {
       <p>Fixed interpretation: 1 mm/source unit, +Y, right-handed, uniformScale 20 (2000%).</p>
       <h2>V6 Flower / Motif placement</h2>
       <div class="row"><button id="count32" type="button">Generate 32 motifs</button><button id="count128" type="button">Generate 128 motifs</button></div>
+      <div class="row"><button id="count256" type="button">Generate 256 motifs</button><button id="count512" type="button">Generate 512 motifs</button></div>
+      <div class="row"><input id="custom-count" type="number" min="32" max="512" step="1" value="256" aria-label="Custom motif count" /><button id="custom-generate" type="button">Generate custom (32–512)</button></div>
       <label class="check"><input id="host-visible" type="checkbox" checked /> Host ON</label>
-      <label class="check"><input id="wireframe" type="checkbox" /> Host wireframe</label>
+      <label>Host view<select id="host-view"><option value="solid">solid preview</option><option value="wireframe">wireframe</option><option value="debug">surface points / normals debug</option></select></label>
+      <label>Motif size<select id="size-mode"><option value="uniform">uniform size</option><option value="varied">size variation ON</option></select></label>
+      <label>Base size (mm)<input id="base-size" type="number" min="0.5" max="8" step="0.1" value="2.4" /></label>
+      <label>Size variance (0–1)<input id="size-variance" type="number" min="0" max="1" step="0.05" value="0.35" /></label>
       <pre id="motifs" class="meta">No repaired Host active.</pre>
       <h2>Persistence / Save-Reopen</h2>
       <div class="row"><button id="save-project" type="button">Save embedded v2 project</button><button id="reopen-project" class="secondary" type="button" disabled>Reopen embedded bytes</button></div>
@@ -139,10 +167,17 @@ function buildUi(root: HTMLElement): Elements {
     apply: root.querySelector<HTMLButtonElement>("#apply")!,
     count32: root.querySelector<HTMLButtonElement>("#count32")!,
     count128: root.querySelector<HTMLButtonElement>("#count128")!,
+    count256: root.querySelector<HTMLButtonElement>("#count256")!,
+    count512: root.querySelector<HTMLButtonElement>("#count512")!,
+    customCount: root.querySelector<HTMLInputElement>("#custom-count")!,
+    customGenerate: root.querySelector<HTMLButtonElement>("#custom-generate")!,
     saveProject: root.querySelector<HTMLButtonElement>("#save-project")!,
     reopenProject: root.querySelector<HTMLButtonElement>("#reopen-project")!,
     hostVisible: root.querySelector<HTMLInputElement>("#host-visible")!,
-    wireframe: root.querySelector<HTMLInputElement>("#wireframe")!,
+    hostView: root.querySelector<HTMLSelectElement>("#host-view")!,
+    sizeMode: root.querySelector<HTMLSelectElement>("#size-mode")!,
+    baseSize: root.querySelector<HTMLInputElement>("#base-size")!,
+    sizeVariance: root.querySelector<HTMLInputElement>("#size-variance")!,
     status: root.querySelector<HTMLElement>("#status")!,
     metadata: root.querySelector<HTMLElement>("#metadata")!,
     preflight: root.querySelector<HTMLElement>("#preflight")!,
@@ -241,26 +276,86 @@ async function applyRepairAndActivate(): Promise<void> {
   }
 }
 
+function currentMotifSettings(): AuthorGateMotifSettings {
+  const baseSize = Number(elements.baseSize.value);
+  const sizeVariance = Number(elements.sizeVariance.value);
+  if (!Number.isFinite(baseSize) || baseSize <= 0 || !Number.isFinite(sizeVariance) || sizeVariance < 0 || sizeVariance > 1) {
+    throw new Error("Base size must be positive and variance must be between 0 and 1.");
+  }
+  const sizeMode = elements.sizeMode.value;
+  if (sizeMode !== "uniform" && sizeMode !== "varied") throw new Error("Unknown motif size mode.");
+  return { sizeMode, baseSize, sizeVariance };
+}
+
+function minimumClearanceForCount(count: number): number {
+  // Preserve the Phase 6 spacing at 32/128; denser Author Gate views use a
+  // deterministic bounded reduction so 256/512 can read as a field.
+  return count <= 128 ? 4.6 : Math.max(2.6, 4.6 * Math.sqrt(128 / count));
+}
+
+function placementSummary(): string {
+  if (motifs.length === 0) return "placement coverage: n/a";
+  const positions = motifs.map((motif) => motif.hostPlacement.position);
+  const min = { x: Math.min(...positions.map((point) => point.x)), y: Math.min(...positions.map((point) => point.y)), z: Math.min(...positions.map((point) => point.z)) };
+  const max = { x: Math.max(...positions.map((point) => point.x)), y: Math.max(...positions.map((point) => point.y)), z: Math.max(...positions.map((point) => point.z)) };
+  const center = { x: (min.x + max.x) / 2, y: (min.y + max.y) / 2, z: (min.z + max.z) / 2 };
+  const octants = new Array<number>(8).fill(0);
+  for (const point of positions) {
+    const index = (point.x >= center.x ? 1 : 0) | (point.y >= center.y ? 2 : 0) | (point.z >= center.z ? 4 : 0);
+    octants[index] += 1;
+  }
+  const spans = ["x", "y", "z"].map((axis) => {
+    const range = max[axis as "x" | "y" | "z"] - min[axis as "x" | "y" | "z"];
+    return `${axis}:${range.toFixed(1)}`;
+  }).join(" ");
+  return `placement coverage mm: ${spans}\noctant counts: ${octants.join(",")} (deterministic balance check)`;
+}
+
+function motifRadiusSummary(): string {
+  if (motifs.length === 0) return "motif radius range: n/a";
+  const means = motifs.map((motif) => motif.points.reduce((sum, point) => sum + point.r, 0) / motif.points.length);
+  return `motif radius mean range: ${Math.min(...means).toFixed(3)}–${Math.max(...means).toFixed(3)} mm`;
+}
+
+function applyMotifSettings(settings: Partial<AuthorGateMotifSettings> & { readonly count?: number }): void {
+  if (settings.sizeMode === "uniform" || settings.sizeMode === "varied") elements.sizeMode.value = settings.sizeMode;
+  if (settings.baseSize !== undefined && Number.isFinite(settings.baseSize)) elements.baseSize.value = String(settings.baseSize);
+  if (settings.sizeVariance !== undefined && Number.isFinite(settings.sizeVariance)) elements.sizeVariance.value = String(settings.sizeVariance);
+  if (settings.count !== undefined && Number.isInteger(settings.count) && settings.count >= 32 && settings.count <= 512) elements.customCount.value = String(settings.count);
+}
+
 function generateMotifs(count: number): void {
   if (!adapter) {
     elements.status.className = "status error";
     elements.status.textContent = "Activate the repaired Host before generating V6 motifs.";
     return;
   }
-  motifs = adapter.placeFlowers(count, undefined, 2.4, { seed: "usagi-v6-golden", minimumClearance: 4.6 });
-  savedProjectText = null;
-  elements.reopenProject.disabled = true;
-  refreshMotifs();
-  elements.motifs.textContent = [
-    `requested motifs: ${count}`,
-    `authored motifs: ${motifs.length}`,
-    "shape source: existing-v6-flower-generator",
-    "placement normal: GEOMETRIC",
-    "sampling: deterministic triangle-area weighted",
-    "Reference Host printable: false",
-    "authored motifs: permanent artwork candidates",
-  ].join("\n");
-  elements.gate.textContent = `Host ON; motifs visible: ${motifs.length}; toggle Host OFF for the visibility-only check.`;
+  try {
+    const settings = currentMotifSettings();
+    const minimumClearance = minimumClearanceForCount(count);
+    motifs = generateAuthorGateMotifs(adapter, count, { ...settings, minimumClearance });
+    savedProjectText = null;
+    elements.reopenProject.disabled = true;
+    elements.customCount.value = String(count);
+    refreshMotifs();
+    elements.motifs.textContent = [
+      `requested motifs: ${count}`,
+      `authored motifs: ${motifs.length}`,
+      `size mode: ${settings.sizeMode} · base ${settings.baseSize} mm · variance ${settings.sizeVariance}`,
+      `placement clearance: ${minimumClearance.toFixed(2)} mm`,
+      "shape source: existing-v6-flower-generator",
+      "placement normal: GEOMETRIC",
+      "sampling: deterministic stratified triangle-area weighted",
+      placementSummary(),
+      motifRadiusSummary(),
+      "Reference Host printable: false",
+      "authored motifs: permanent artwork candidates",
+    ].join("\n");
+    elements.gate.textContent = `Host ON; motifs visible: ${motifs.length}; toggle Host OFF for the visibility-only check.`;
+  } catch (error) {
+    elements.status.className = "status error";
+    elements.status.textContent = `Motif generation failed closed: ${error instanceof Error ? error.message : String(error)}`;
+  }
 }
 
 function liveSnapshot() {
@@ -275,6 +370,12 @@ function replaceFromPlan(plan: Awaited<ReturnType<typeof restoreExternalHostProj
   motifs = plan.motifs;
   sourceBytes = plan.source.bytes;
   elements.hostVisible.checked = plan.hostVisible;
+  applyMotifSettings({
+    count: plan.document.motifGeneration.count,
+    sizeMode: plan.document.motifGeneration.sizeMode,
+    baseSize: plan.document.motifGeneration.baseSize,
+    sizeVariance: plan.document.motifGeneration.sizeVariance,
+  });
 }
 
 function redrawLiveProject(): void {
@@ -299,6 +400,7 @@ function saveProject(): void {
       motifs,
       hostVisible: elements.hostVisible.checked,
       seed: adapter.seed,
+      motifSettings: currentMotifSettings(),
     });
     savedProjectText = serializeExternalHostProject(document);
     elements.reopenProject.disabled = false;
@@ -309,6 +411,8 @@ function saveProject(): void {
       `embedded source SHA-256: ${document.referenceHost.source.sha256}`,
       `repair fingerprint: ${document.referenceHost.repair.expectedRepairedMeshFingerprint}`,
       `authored motifs: ${document.authoredMotifs.length}`,
+      `size mode: ${document.motifGeneration.sizeMode ?? "uniform"}`,
+      `base / variance: ${document.motifGeneration.baseSize ?? 2.4} / ${document.motifGeneration.sizeVariance ?? 0}`,
       "Reference Host printable: false",
       "authored motifs printable field: absent",
       "reopen source path required: NO",
@@ -408,6 +512,19 @@ function clearPreview(): void {
     hostRoot.remove(hostMesh);
     hostMesh = null;
   }
+  if (hostDebugPoints) {
+    hostDebugPoints.geometry.dispose();
+    (hostDebugPoints.material as THREE.Material).dispose();
+    hostDebugRoot.remove(hostDebugPoints);
+    hostDebugPoints = null;
+  }
+  if (hostDebugNormals) {
+    hostDebugNormals.geometry.dispose();
+    (hostDebugNormals.material as THREE.Material).dispose();
+    hostDebugRoot.remove(hostDebugNormals);
+    hostDebugNormals = null;
+  }
+  hostDebugRoot.visible = false;
   if (motifMesh) {
     motifMesh.geometry.dispose();
     (motifMesh.material as THREE.Material).dispose();
@@ -420,21 +537,68 @@ function refreshPresentation(): void {
   clearPreview();
   if (!repaired) return;
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(repaired.repaired.mesh.positions), 3));
-  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(new Float32Array(repaired.repaired.mesh.geometricNormals), 3));
+  const positions = repaired.repaired.mesh.positions;
+  const triangleNormals = repaired.repaired.mesh.geometricNormals;
+  const vertexNormals = new Float32Array(positions.length);
+  for (let triangle = 0; triangle < positions.length / 9; triangle += 1) {
+    const normalOffset = triangle * 3;
+    for (let vertex = 0; vertex < 3; vertex += 1) {
+      const vertexOffset = triangle * 9 + vertex * 3;
+      vertexNormals[vertexOffset] = triangleNormals[normalOffset];
+      vertexNormals[vertexOffset + 1] = triangleNormals[normalOffset + 1];
+      vertexNormals[vertexOffset + 2] = triangleNormals[normalOffset + 2];
+    }
+  }
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(positions), 3));
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(vertexNormals, 3));
+  const view = elements.hostView.value;
+  const solid = view === "solid";
   hostMesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-    color: 0x8e9fa8,
+    color: solid ? 0x8e9fa8 : 0x6f8a96,
     roughness: 0.82,
     metalness: 0.04,
-    transparent: true,
-    opacity: 0.34,
-    depthWrite: false,
-    wireframe: elements.wireframe.checked,
+    transparent: !solid,
+    opacity: solid ? 1 : view === "wireframe" ? 0.78 : 0.16,
+    depthWrite: solid,
+    wireframe: view === "wireframe",
     side: THREE.DoubleSide,
   }));
   hostRoot.add(hostMesh);
+  if (view === "debug") buildHostDebugOverlay(repaired);
+  hostDebugRoot.visible = view === "debug";
   hostRoot.visible = elements.hostVisible.checked;
   refreshMotifs();
+}
+
+function buildHostDebugOverlay(host: ApprovedRepairedHost): void {
+  const positions = host.repaired.mesh.positions;
+  const normals = host.repaired.mesh.geometricNormals;
+  const triangleCount = Math.floor(positions.length / 9);
+  const stride = Math.max(1, Math.ceil(triangleCount / 1800));
+  const pointValues: number[] = [];
+  const lineValues: number[] = [];
+  const size = Math.max(host.repaired.mesh.bounds.max.x - host.repaired.mesh.bounds.min.x, host.repaired.mesh.bounds.max.y - host.repaired.mesh.bounds.min.y, host.repaired.mesh.bounds.max.z - host.repaired.mesh.bounds.min.z);
+  const normalLength = Math.max(size * 0.018, 1.2);
+  for (let triangle = 0; triangle < triangleCount; triangle += stride) {
+    const offset = triangle * 9;
+    const cx = (positions[offset] + positions[offset + 3] + positions[offset + 6]) / 3;
+    const cy = (positions[offset + 1] + positions[offset + 4] + positions[offset + 7]) / 3;
+    const cz = (positions[offset + 2] + positions[offset + 5] + positions[offset + 8]) / 3;
+    pointValues.push(cx, cy, cz);
+    const normalOffset = triangle * 3;
+    const nx = normals[normalOffset];
+    const ny = normals[normalOffset + 1];
+    const nz = normals[normalOffset + 2];
+    lineValues.push(cx, cy, cz, cx + nx * normalLength, cy + ny * normalLength, cz + nz * normalLength);
+  }
+  const pointsGeometry = new THREE.BufferGeometry();
+  pointsGeometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(pointValues), 3));
+  hostDebugPoints = new THREE.Points(pointsGeometry, new THREE.PointsMaterial({ color: 0x58d7ff, size: Math.max(size * 0.006, 0.8), sizeAttenuation: false }));
+  hostDebugRoot.add(hostDebugPoints);
+  const normalsGeometry = new THREE.BufferGeometry();
+  normalsGeometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(lineValues), 3));
+  hostDebugNormals = new THREE.LineSegments(normalsGeometry, new THREE.LineBasicMaterial({ color: 0xffd166 }));
+  hostDebugRoot.add(hostDebugNormals);
 }
 
 function refreshMotifs(): void {
@@ -476,8 +640,11 @@ function framePreview(): void {
   const size = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);
   controls.target.copy(center);
   camera.position.copy(center).add(new THREE.Vector3(size * 1.2, size * 0.78, size * 1.38));
-  camera.near = Math.max(size / 10000, 0.001);
-  camera.far = Math.max(size * 100, 100);
+  // Keep the depth range tight enough for the large 2000% instance; the
+  // previous 1e6-ish far/near ratio produced false striped self-overlap in
+  // the preview even though the Host query and repair data were unchanged.
+  camera.near = Math.max(size / 1000, 0.01);
+  camera.far = Math.max(size * 10, 1000);
   camera.updateProjectionMatrix();
 }
 

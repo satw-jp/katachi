@@ -17,6 +17,7 @@ import {
   V6_PLACEMENT_NORMAL_POLICY,
   type HostAuthoredFlowerMotif,
 } from "./externalStlHostV6Adapter.ts";
+import type { AuthorGateMotifSettings } from "./externalStlHostAuthorGate.ts";
 import type { HostCapabilityAvailability, HostCapabilityReason } from "./externalStlHostVolume.ts";
 
 /**
@@ -77,6 +78,10 @@ export interface ExternalHostProjectDocument {
     readonly placementNormalPolicy: typeof V6_PLACEMENT_NORMAL_POLICY;
     readonly seed: string;
     readonly source: "existing-v6-flower-generator";
+    readonly count?: number;
+    readonly sizeMode?: AuthorGateMotifSettings["sizeMode"];
+    readonly baseSize?: number;
+    readonly sizeVariance?: number;
   };
   /** Permanent artwork candidates. No printable=false field is allowed here. */
   readonly authoredMotifs: readonly HostAuthoredFlowerMotif[];
@@ -209,6 +214,20 @@ function finiteRecord(value: unknown, label: string): void {
     else if (Array.isArray(item)) item.forEach((entry, index) => integer(entry, `${label}.${key}[${index}]`));
     else fail(`${label}.${key} has an unsupported value`);
   }
+}
+
+function motifGenerationSettings(value: UnknownRecord): Pick<ExternalHostProjectDocument["motifGeneration"], "count" | "sizeMode" | "baseSize" | "sizeVariance"> {
+  const present = ["count", "sizeMode", "baseSize", "sizeVariance"].some((key) => value[key] !== undefined);
+  if (!present) return {};
+  if (value.count === undefined || value.sizeMode === undefined || value.baseSize === undefined || value.sizeVariance === undefined) fail("motifGeneration settings must be complete");
+  const count = integer(value.count, "motifGeneration.count");
+  if (count < 0 || count > 1024) fail("motifGeneration.count is outside the supported range");
+  if (value.sizeMode !== "uniform" && value.sizeMode !== "varied") fail("motifGeneration.sizeMode is invalid");
+  const baseSize = finiteNumber(value.baseSize, "motifGeneration.baseSize");
+  if (!(baseSize > 0)) fail("motifGeneration.baseSize must be positive");
+  const sizeVariance = finiteNumber(value.sizeVariance, "motifGeneration.sizeVariance");
+  if (sizeVariance < 0 || sizeVariance > 1) fail("motifGeneration.sizeVariance must be between 0 and 1");
+  return { count, sizeMode: value.sizeMode, baseSize, sizeVariance };
 }
 
 function motifParams(value: unknown): NonNullable<HostAuthoredFlowerMotif["motifParams"]> {
@@ -410,14 +429,16 @@ function validateDocument(value: unknown, runtimeBytes = false): ExternalHostPro
   const originalCapabilities = capability(value.referenceHost.expectedCapabilities.original, "referenceHost.expectedCapabilities.original");
   const repairedCapabilities = capability(value.referenceHost.expectedCapabilities.repaired, "referenceHost.expectedCapabilities.repaired");
   if (!isRecord(value.motifGeneration)) fail("motifGeneration must be an object");
-  exactKeys(value.motifGeneration, ["adapterVersion", "placementNormalPolicy", "seed", "source"], "motifGeneration");
+  exactKeys(value.motifGeneration, ["adapterVersion", "placementNormalPolicy", "seed", "source", "count", "sizeMode", "baseSize", "sizeVariance"], "motifGeneration");
   if (value.motifGeneration.placementNormalPolicy !== V6_PLACEMENT_NORMAL_POLICY || value.motifGeneration.source !== "existing-v6-flower-generator") fail("motifGeneration policy/source is invalid");
   const adapterVersion = nonEmptyString(value.motifGeneration.adapterVersion, "motifGeneration.adapterVersion");
   const seed = nonEmptyString(value.motifGeneration.seed, "motifGeneration.seed");
+  const generationSettings = motifGenerationSettings(value.motifGeneration);
   if (!Array.isArray(value.authoredMotifs)) fail("authoredMotifs must be an array");
   const motifs = value.authoredMotifs.map((item, index) => validateMotif(item, index));
   const ids = motifs.map((motif) => motif.id);
   if (new Set(ids).size !== ids.length) fail("authoredMotifs ids must be unique");
+  if (generationSettings.count !== undefined && generationSettings.count !== motifs.length) fail("motifGeneration.count does not match authoredMotifs");
   if (!isRecord(value.presentation)) fail("presentation must be an object");
   exactKeys(value.presentation, ["hostVisible"], "presentation");
   if (typeof value.presentation.hostVisible !== "boolean") fail("presentation.hostVisible must be boolean");
@@ -435,7 +456,7 @@ function validateDocument(value: unknown, runtimeBytes = false): ExternalHostPro
       repair: { originalSourceSha256: repairSourceHash, repairPolicyVersion: nonEmptyString(value.referenceHost.repair.repairPolicyVersion, "repair.repairPolicyVersion"), approvedBoundaryLoopIndices: loops, repairParameters: value.referenceHost.repair.repairParameters as Readonly<Record<string, string | number | boolean | readonly number[]>>, expectedRepairedMeshFingerprint: expectedFingerprint },
       expectedCapabilities: { original: originalCapabilities, repaired: repairedCapabilities },
     },
-    motifGeneration: { adapterVersion, placementNormalPolicy: V6_PLACEMENT_NORMAL_POLICY, seed, source: "existing-v6-flower-generator" },
+    motifGeneration: { adapterVersion, placementNormalPolicy: V6_PLACEMENT_NORMAL_POLICY, seed, source: "existing-v6-flower-generator", ...generationSettings },
     authoredMotifs: motifs,
     presentation: { hostVisible: value.presentation.hostVisible },
   };
@@ -448,6 +469,7 @@ export function captureExternalHostProject(input: {
   readonly motifs: readonly HostAuthoredFlowerMotif[];
   readonly hostVisible: boolean;
   readonly seed: string;
+  readonly motifSettings?: AuthorGateMotifSettings;
   readonly savedAt?: string;
 }): ExternalHostProjectDocument {
   if (input.original.source !== input.source || input.repaired.original.source !== input.source || input.repaired.repaired.source !== input.source) fail("source identity is not shared by the Host instances");
@@ -471,7 +493,18 @@ export function captureExternalHostProject(input: {
       },
       expectedCapabilities: { original: capabilitySnapshot(input.original), repaired: capabilitySnapshot(input.repaired.repaired) },
     },
-    motifGeneration: { adapterVersion: V6_HOST_ADAPTER_VERSION, placementNormalPolicy: V6_PLACEMENT_NORMAL_POLICY, seed: input.seed, source: "existing-v6-flower-generator" },
+    motifGeneration: {
+      adapterVersion: V6_HOST_ADAPTER_VERSION,
+      placementNormalPolicy: V6_PLACEMENT_NORMAL_POLICY,
+      seed: input.seed,
+      source: "existing-v6-flower-generator",
+      ...(input.motifSettings === undefined ? {} : {
+        count: input.motifs.length,
+        sizeMode: input.motifSettings.sizeMode,
+        baseSize: input.motifSettings.baseSize,
+        sizeVariance: input.motifSettings.sizeVariance,
+      }),
+    },
     authoredMotifs: cloneMotifs(input.motifs),
     presentation: { hostVisible: input.hostVisible },
   };
