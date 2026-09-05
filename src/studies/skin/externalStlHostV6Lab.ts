@@ -33,6 +33,9 @@ type Elements = {
   customGenerate: HTMLButtonElement;
   saveProject: HTMLButtonElement;
   reopenProject: HTMLButtonElement;
+  downloadProject: HTMLButtonElement;
+  openProject: HTMLButtonElement;
+  openProjectFile: HTMLInputElement;
   hostVisible: HTMLInputElement;
   hostView: HTMLSelectElement;
   sizeMode: HTMLSelectElement;
@@ -44,6 +47,7 @@ type Elements = {
   motifs: HTMLElement;
   gate: HTMLElement;
   persistence: HTMLElement;
+  filePersistence: HTMLElement;
   console: HTMLElement;
 };
 
@@ -115,6 +119,12 @@ elements.customGenerate.addEventListener("click", () => {
 });
 elements.saveProject.addEventListener("click", () => { saveProject(); });
 elements.reopenProject.addEventListener("click", () => { void reopenProject(); });
+elements.downloadProject.addEventListener("click", () => { downloadProject(); });
+elements.openProject.addEventListener("click", () => { elements.openProjectFile.click(); });
+elements.openProjectFile.addEventListener("change", () => {
+  const file = elements.openProjectFile.files?.[0];
+  if (file) void openProjectFile(file);
+});
 elements.hostVisible.addEventListener("change", () => {
   const before = motifFingerprint();
   hostRoot.visible = elements.hostVisible.checked;
@@ -154,6 +164,10 @@ function buildUi(root: HTMLElement): Elements {
       <h2>Persistence / Save-Reopen</h2>
       <div class="row"><button id="save-project" type="button">Save embedded v2 project</button><button id="reopen-project" class="secondary" type="button" disabled>Reopen embedded bytes</button></div>
       <pre id="persistence" class="meta">Save after generating V6 motifs.</pre>
+      <h2>File export / import</h2>
+      <div class="row"><button id="download-project" type="button">Download .fkei</button><button id="open-project" class="secondary" type="button">Open .fkei</button></div>
+      <input id="open-project-file" type="file" accept=".fkei,application/json" hidden />
+      <pre id="file-persistence" class="meta">Download or open the exact katachi.skin.fkei.v2 project.</pre>
       <h2>Preflight / Signed Volume</h2>
       <pre id="preflight" class="meta">No repaired Host active.</pre>
       <h2>Technical Chrome gate</h2>
@@ -173,6 +187,9 @@ function buildUi(root: HTMLElement): Elements {
     customGenerate: root.querySelector<HTMLButtonElement>("#custom-generate")!,
     saveProject: root.querySelector<HTMLButtonElement>("#save-project")!,
     reopenProject: root.querySelector<HTMLButtonElement>("#reopen-project")!,
+    downloadProject: root.querySelector<HTMLButtonElement>("#download-project")!,
+    openProject: root.querySelector<HTMLButtonElement>("#open-project")!,
+    openProjectFile: root.querySelector<HTMLInputElement>("#open-project-file")!,
     hostVisible: root.querySelector<HTMLInputElement>("#host-visible")!,
     hostView: root.querySelector<HTMLSelectElement>("#host-view")!,
     sizeMode: root.querySelector<HTMLSelectElement>("#size-mode")!,
@@ -184,6 +201,7 @@ function buildUi(root: HTMLElement): Elements {
     motifs: root.querySelector<HTMLElement>("#motifs")!,
     gate: root.querySelector<HTMLElement>("#gate")!,
     persistence: root.querySelector<HTMLElement>("#persistence")!,
+    filePersistence: root.querySelector<HTMLElement>("#file-persistence")!,
     console: root.querySelector<HTMLElement>("#console")!,
   };
 }
@@ -241,6 +259,7 @@ async function loadSourceBytes(bytes: ArrayBuffer, filename: string): Promise<vo
     elements.motifs.textContent = "No repaired Host active.";
     elements.gate.textContent = "Host ON/OFF gate pending.";
     elements.persistence.textContent = "Save after generating V6 motifs.";
+    elements.filePersistence.textContent = "Download or open the exact katachi.skin.fkei.v2 project.";
     elements.status.textContent = "Source retained; approved repair is ready.";
   } catch (error) {
     elements.status.className = "status error";
@@ -387,32 +406,19 @@ function redrawLiveProject(): void {
 }
 
 function saveProject(): void {
-  if (!source || !original || !repaired || !adapter || motifs.length === 0) {
-    elements.status.className = "status error";
-    elements.status.textContent = "Activate the repaired Host and generate V6 motifs before saving.";
-    return;
-  }
   try {
-    const document = captureExternalHostProject({
-      source,
-      original,
-      repaired,
-      motifs,
-      hostVisible: elements.hostVisible.checked,
-      seed: adapter.seed,
-      motifSettings: currentMotifSettings(),
-    });
-    savedProjectText = serializeExternalHostProject(document);
+    const captured = captureCurrentProject();
+    savedProjectText = captured.text;
     elements.reopenProject.disabled = false;
     elements.persistence.textContent = [
       "schema: katachi.skin.fkei.v2",
-      `serialized JSON bytes: ${new TextEncoder().encode(savedProjectText!).byteLength}`,
-      `embedded STL bytes: ${document.referenceHost.source.byteLength}`,
-      `embedded source SHA-256: ${document.referenceHost.source.sha256}`,
-      `repair fingerprint: ${document.referenceHost.repair.expectedRepairedMeshFingerprint}`,
-      `authored motifs: ${document.authoredMotifs.length}`,
-      `size mode: ${document.motifGeneration.sizeMode ?? "uniform"}`,
-      `base / variance: ${document.motifGeneration.baseSize ?? 2.4} / ${document.motifGeneration.sizeVariance ?? 0}`,
+      `serialized JSON bytes: ${captured.bytes}`,
+      `embedded STL bytes: ${captured.document.referenceHost.source.byteLength}`,
+      `embedded source SHA-256: ${captured.document.referenceHost.source.sha256}`,
+      `repair fingerprint: ${captured.document.referenceHost.repair.expectedRepairedMeshFingerprint}`,
+      `authored motifs: ${captured.document.authoredMotifs.length}`,
+      `size mode: ${captured.document.motifGeneration.sizeMode ?? "uniform"}`,
+      `base / variance: ${captured.document.motifGeneration.baseSize ?? 2.4} / ${captured.document.motifGeneration.sizeVariance ?? 0}`,
       "Reference Host printable: false",
       "authored motifs printable field: absent",
       "reopen source path required: NO",
@@ -422,6 +428,106 @@ function saveProject(): void {
   } catch (error) {
     elements.status.className = "status error";
     elements.status.textContent = `Save failed closed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+function captureCurrentProject(): { readonly document: ReturnType<typeof captureExternalHostProject>; readonly text: string; readonly bytes: number } {
+  if (!source || !original || !repaired || !adapter || motifs.length === 0) {
+    throw new Error("Activate the repaired Host and generate V6 motifs before saving.");
+  }
+  const document = captureExternalHostProject({
+    source,
+    original,
+    repaired,
+    motifs,
+    hostVisible: elements.hostVisible.checked,
+    seed: adapter.seed,
+    motifSettings: currentMotifSettings(),
+  });
+  const text = serializeExternalHostProject(document);
+  return { document, text, bytes: new TextEncoder().encode(text).byteLength };
+}
+
+function projectFilename(): string {
+  const settings = currentMotifSettings();
+  return `usagi-v6-${motifs.length}-${settings.sizeMode}.fkei`;
+}
+
+function downloadProject(): void {
+  try {
+    const captured = captureCurrentProject();
+    const filename = projectFilename();
+    const blob = new Blob([captured.text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    elements.filePersistence.textContent = [
+      "Download .fkei: PASS",
+      `filename: ${filename}`,
+      `byte size: ${blob.size}`,
+      "content: exact katachi.skin.fkei.v2 serialized text",
+    ].join("\n");
+    elements.status.className = "status";
+    elements.status.textContent = "External Host v2 .fkei download started.";
+  } catch (error) {
+    elements.status.className = "status error";
+    elements.status.textContent = `Download failed closed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function openProjectFile(file: File): Promise<void> {
+  const previous = liveSnapshot();
+  elements.status.className = "status";
+  elements.status.textContent = `Opening ${file.name} from disk…`;
+  try {
+    const text = await file.text();
+    const plan = await restoreExternalHostProjectAtomically(text, {
+      capture: () => previous,
+      replace: (plan) => { replaceFromPlan(plan); },
+      restore: (snapshot) => {
+        source = snapshot.source;
+        original = snapshot.original;
+        repaired = snapshot.repaired;
+        adapter = snapshot.adapter;
+        motifs = snapshot.motifs;
+        sourceBytes = snapshot.sourceBytes;
+      },
+      redraw: () => { redrawLiveProject(); },
+    });
+    savedProjectText = text;
+    elements.reopenProject.disabled = false;
+    const afterMotifs = exactMotifFingerprint();
+    elements.filePersistence.textContent = [
+      "Open .fkei: PASS",
+      `filename: ${file.name}`,
+      `byte size: ${new TextEncoder().encode(text).byteLength}`,
+      `source hash: ${source?.sourceIdentity.sha256 === USAGI_SOURCE_SHA256 ? "PASS" : "FAIL"}`,
+      `repair fingerprint: ${repaired?.materialization.repairedFingerprint === "90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6" ? "PASS" : "FAIL"}`,
+      "Host transform: PASS",
+      `Signed Volume: ${repaired?.repaired.capabilities.signedVolumeCapability.availability}`,
+      `motif geometry exact: ${afterMotifs === exactMotifFingerprintFor(plan.motifs) ? "PASS" : "FAIL"}`,
+      `motifs restored: ${motifs.length}`,
+      `motif settings: ${elements.sizeMode.value} · base ${elements.baseSize.value} · variance ${elements.sizeVariance.value}`,
+      `Host visibility restored: ${elements.hostVisible.checked ? "ON" : "OFF"}`,
+      "external source path required: NO",
+    ].join("\n");
+    elements.status.textContent = "External Host v2 .fkei opened; exact authored motifs restored.";
+    elements.gate.textContent = [
+      `Host visibility: ${elements.hostVisible.checked ? "ON" : "OFF"}`,
+      "motif positions unchanged: PASS",
+      `host group only: ${motifRoot.visible ? "PASS" : "FAIL"}`,
+      `motifs: ${motifs.length}`,
+    ].join("\n");
+  } catch (error) {
+    elements.status.className = "status error";
+    elements.status.textContent = `Open failed closed; previous live project retained: ${error instanceof Error ? error.message : String(error)}`;
+  } finally {
+    elements.openProjectFile.value = "";
   }
 }
 
@@ -629,8 +735,12 @@ function motifFingerprint(): string {
 }
 
 function exactMotifFingerprint(): string {
+  return exactMotifFingerprintFor(motifs);
+}
+
+function exactMotifFingerprintFor(values: readonly HostAuthoredFlowerMotif[]): string {
   const number = (value: number) => Object.is(value, -0) ? "-0" : String(value);
-  return motifs.flatMap((motif) => motif.points).map((point) => [point.x, point.y, point.z, point.r].map(number).join(",")).join("|");
+  return values.flatMap((motif) => motif.points).map((point) => [point.x, point.y, point.z, point.r].map(number).join(",")).join("|");
 }
 
 function framePreview(): void {

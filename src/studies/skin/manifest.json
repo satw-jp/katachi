@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-05",
+      "note": "SKIN External Host v2 actual file export: retained the in-memory Save/Reopen gate and added Download .fkei / Open .fkei around the existing katachi.skin.fkei.v2 capture, serialization and atomic hydration path. Actual Chrome downloaded usagi-v6-512-varied.fkei at 18,357,594 bytes with the exact embedded rabbit bytes, source SHA c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8, repair fingerprint 90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6, 512 varied motifs, base 2.4 and variance 0.35. Opening that file passed source hash, repair fingerprint, Signed Volume AVAILABLE, exact motif geometry, Host visibility restoration and no external source path; Host OFF passed motif invariance and host-group-only, existing Save/Reopen passed, console errors/warnings 0/0. v1, v2 schema, golden-ratio placement and current Author Gate state remain unchanged. No Astra, Permanent, Support/FAB, G-code or deploy work was performed."
+    },
+    {
+      "date": "2026-09-05",
       "note": "SKIN External STL Host Phase 7 Author Gate: added solid / wireframe / surface-points-normals debug presentation, 32/128/256/512 plus bounded custom count, uniform/varied deterministic motif size controls, and minimal v2 persistence fields for count/size settings. The Host preview fixed display-side triangle-normal expansion and a tight 2000% camera depth range; deterministic triangle-area strata removed STL-order acceptance bias, and barycentric sampling now sums to one so motifs remain on the rabbit surface. Actual rabbit Windows Chrome checks passed for all four counts, 512 varied motifs (mean radius 0.241–0.500 mm), save/reopen exact geometry, source rehash, repair fingerprint, Host OFF motif invariance and zero console errors/warnings. Source identity/hash, repair fingerprint, 1 mm/source-unit/+Y/right-handed/uniformScale 20, v1 FKEI and v2 external-host semantics remain preserved. No Permanent/FAB/G-code/STL editor/Astra/FIELD work or deploy was performed."
     },
     {
