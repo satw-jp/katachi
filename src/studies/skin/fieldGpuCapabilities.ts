@@ -1,28 +1,4 @@
-/**
- * Runtime GPU capability probe for FIELD vNext.
- *
- * No WebGL creation, no renderer modification, no global configuration changes.
- * Reads only from the existing WebGL context (gl) that the caller provides.
- * Returns a snapshot; the caller decides what to do with it.
- *
- * This phase does NOT attempt a Legacy/vNext backend switch.
- * It only reports what the current GPU can support for the Phase 2A payload format.
- */
-export type FieldGpuCapabilities = {
-  /** WebGL version string, e.g. "WebGL 2.0" or "WebGL 1.0" */
-  webglVersion: string;
-  /** MAX_TEXTURE_SIZE from gl.getParameter */
-  maxTextureSize: number;
-  /** MAX_TEXTURE_IMAGE_UNITS from gl.getParameter */
-  maxTextureImageUnits: number;
-  /** Whether float texture sampling is supported */
-  floatTextureSampling: boolean;
-  /** Whether the GPU supports the required features for FIELD vNext */
-  supported: boolean;
-  /** Human-readable reasons if not supported */
-  reasons: string[];
-};
-
+import * as THREE from "three";
 /**
  * Probe WebGL capabilities from a given WebGL context.
  * Caller must ensure gl is a valid WebGL2 context or a WebGL1 context
@@ -31,8 +7,10 @@ export type FieldGpuCapabilities = {
  * @param gl - Existing WebGL context (not created by this function)
  * @returns FieldGpuCapabilities snapshot
  */
-export function probeFieldGpuCapabilities(gl: WebGL2RenderingContext | WebGLRenderingContext): FieldGpuCapabilities {
-  // WebGL version
+export type FieldGpuCapabilities = {
+  gl: THREE.WebGL2RenderingContext | THREE.WebGLRenderingContext,
+): FieldGpuCapabilities {
+  // WebGL version string
   const webglVersion = gl.getParameter(gl.VERSION) || "Unknown";
 
   // Max texture size
@@ -45,9 +23,20 @@ export function probeFieldGpuCapabilities(gl: WebGL2RenderingContext | WebGLRend
   let floatTextureSampling = false;
   let reasons: string[] = [];
 
-  // Check for OES_texture_float in WebGL1, or assume WebGL2 supports it
-  const isWebGL2 = webglVersion.startsWith("WebGL2");
+  // -------- WebGL2 detection ----------
+  // Preferred: detect from actual context type where available
+  const isWebGL2Ctx =
+    typeof WebGL2RenderingContext !== "undefined" &&
+    gl instanceof WebGL2RenderingContext;
+
+  // Fallback: accept version strings "WebGL 2" or "WebGL 2.0"
+  const isWebGL2Version = /^WebGL\s+2(\.0)?$/.test(webglVersion);
+
+  const isWebGL2 = isWebGL2Ctx || isWebGL2Version;
+
+  // -------- Float texture sampling --------
   if (isWebGL2) {
+    // WebGL2: float texture sampling is always available (by spec)
     floatTextureSampling = true;
   } else {
     // WebGL1: check for OES_texture_float extension
@@ -68,7 +57,9 @@ export function probeFieldGpuCapabilities(gl: WebGL2RenderingContext | WebGLRend
   // payload width/height will be validated later against maxTextureSize;
   // here we just report the raw capability
 
-  const supported = floatTextureSampling && hasEnoughUnits && webglVersion.startsWith("WebGL2") || (floatTextureSampling && hasEnoughUnits);
+  // Explicit and readable: supported = floatTextureSampling && hasEnoughUnits
+  // WebGL1 + OES_texture_float is acceptable; no WebGL2 gate required.
+  const supported = floatTextureSampling && hasEnoughUnits;
 
   return {
     webglVersion,
@@ -76,51 +67,6 @@ export function probeFieldGpuCapabilities(gl: WebGL2RenderingContext | WebGLRend
     maxTextureImageUnits: Number(maxTextureImageUnits),
     floatTextureSampling,
     supported,
-    reasons,
-  };
-}
-
-/**
- * Minimal capability check for the Phase 2A FieldGpuPayload.
- *
- * A FieldGpuPayload is considered supportable if:
- * - float texture sampling is available
- * - at least 2 fragment texture units exist
- * - payload width <= maxTextureSize
- * - payload height <= maxTextureSize
- *
- * This is a pure assessment; it does NOT create textures or switch renderers.
- *
- * @param caps - result from probeFieldGpuCapabilities
- * @param payload - the FieldGpuPayload to check
- * @returns { supported, reasons }
- */
-export function assessFieldGpuPayload(caps: FieldGpuCapabilities, payload: FieldGpuPayload): {
-  supported: boolean;
-  reasons: string[];
-} {
-  const reasons: string[] = [];
-
-  // Float texture sampling
-  if (!caps.floatTextureSampling) {
-    reasons.push("float texture sampling not supported");
-  }
-
-  // At least 2 fragment texture units
-  if (caps.maxTextureImageUnits < 2) {
-    reasons.push(`only ${caps.maxTextureImageUnits} fragment texture unit(s), need at least 2`);
-  }
-
-  // Payload fits within maxTextureSize
-  if (payload.width > caps.maxTextureSize) {
-    reasons.push(`payload width (${payload.width}) exceeds maxTextureSize (${caps.maxTextureSize})`);
-  }
-  if (payload.height > caps.maxTextureSize) {
-    reasons.push(`payload height (${payload.height}) exceeds maxTextureSize (${caps.maxTextureSize})`);
-  }
-
-  return {
-    supported: reasons.length === 0,
     reasons,
   };
 }
