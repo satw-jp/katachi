@@ -34,7 +34,7 @@ The Signed Volume query is fail-closed and follows the existing convention: outs
 
 `externalStlHostV6Adapter.ts` wraps the existing `generateShapePoints("flower", …)` path. It does not create an STL-specific Flower generator. It exposes Host facts needed by V6: transformed `closestSurface`, geometric placement normals, tangents, Signed Volume classification, deterministic triangle-area-weighted sampling, and clearance-aware candidate selection.
 
-Authored motifs retain their placement facts and host transform at authoring time, are deterministic for the same source/transform/seed/count, and remain `printable=false`. The adapter uses `GEOMETRIC` placement normals for v0.
+Authored motifs retain their placement facts and host transform at authoring time, are deterministic for the same source/transform/seed/count. The Reference Host remains `printable=false`; authored motifs are permanent artwork candidates and carry no `printable` field. The adapter uses `GEOMETRIC` placement normals for v0.
 
 ## Browser gate
 

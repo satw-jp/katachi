@@ -25,11 +25,15 @@ current execution order.
    - source hash / topology / normals / query gate
    - Phase 2 characterization scale vs author reference instance-scale clarification
 
-4. `docs/plans/hana-skin-art-astra-fab-relationship-v1.md`
+4. `docs/plans/skin-external-stl-host-phase6-persistence-save-reopen.md`
+   - current v2 embedded-source persistence and save/reopen gate
+   - exact authored motif restore and atomic hydration contract
+
+5. `docs/plans/hana-skin-art-astra-fab-relationship-v1.md`
    - current role split among HANA / SKIN / ART / ASTRA / FAB
    - Astra semantic artifact vs derived SKIN/FKEI compatibility output
 
-5. `docs/plans/skin-to-fab-roadmap-v1.md`
+6. `docs/plans/skin-to-fab-roadmap-v1.md`
    - current production order from Reference Host through Astra, SKIN diagnostics,
      Removable Support and later FAB
 
@@ -44,20 +48,17 @@ The following remain useful history but are superseded for current execution:
 Do not delete them; they contain earlier physical/support and architecture
 context.
 
+## Current status
+
+External Host Phase 6 Persistence / Save-Reopen is DONE on the controlled
+Rabbit gate. The v1 FKEI path remains compatible and the new External Host
+project uses the explicit `katachi.skin.fkei.v2` envelope. The next author gate
+is Host ON → V6 → Host OFF confirmation before consulting Astra; no Permanent
+Artwork structure has been invented.
+
 ## Immediate next phase
 
 ```text
-External Host Phase 4
-Signed Volume capability / fail-closed validation
-↓
-characterize Usagi boundary loops
-↓
-explicit author approval before any repaired rabbit becomes active
-↓
-V6 Motif Placement Adapter
-↓
-Persistence / Save-Reopen
-↓
 Host ON → V6 → Host OFF Author Gate
 ↓
 STOP and consult Astra before inventing new Permanent Artwork structure

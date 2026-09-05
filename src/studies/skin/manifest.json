@@ -2,7 +2,7 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.93.1",
+  "version": "0.93.2",
   "createdAt": "2026-07-13",
   "updatedAt": "2026-09-05",
   "params": [
@@ -83,7 +83,11 @@
   "revisits": [
     {
       "date": "2026-09-05",
-      "note": "SKIN External STL Host Phase 5: applied the author-approved stl-host-boundary-fill-v0 repair only to the immutable rabbit_230223.stl source (SHA-256 c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8). Fixed 1 mm/source, +Y, right-handed and uniformScale 20 produced a deterministic derived Host with 204326 valid triangles, zero boundary/non-manifold/orientation issues, one component, selfIntersection NOT_PROVEN, Signed Volume AVAILABLE, seven removed degenerate triangles, 21 local fan triangles and fingerprint 90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6. The existing V6 Flower path is reused through a thin deterministic triangle-area sampler with GEOMETRIC normals, clearance and printable=false motifs. Windows Chrome actual-rabbit gate passed for 32 and 128 motifs; Host OFF reported motif positions unchanged PASS and host group only PASS; console errors/warnings 0. No FKEI, export, Support/FAB, G-code, final BODY or deploy work was performed."
+      "note": "SKIN External STL Host Phase 5: applied the author-approved stl-host-boundary-fill-v0 repair only to the immutable rabbit_230223.stl source (SHA-256 c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8). Fixed 1 mm/source, +Y, right-handed and uniformScale 20 produced a deterministic derived Host with 204326 valid triangles, zero boundary/non-manifold/orientation issues, one component, selfIntersection NOT_PROVEN, Signed Volume AVAILABLE, seven removed degenerate triangles, 21 local fan triangles and fingerprint 90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6. The existing V6 Flower path is reused through a thin deterministic triangle-area sampler with GEOMETRIC normals and clearance. The Reference Host remains printable=false; authored motifs are permanent artwork candidates with no printable field. Windows Chrome actual-rabbit gate passed for 32 and 128 motifs; Host OFF reported motif positions unchanged PASS and host group only PASS; console errors/warnings 0. No FKEI, export, Support/FAB, G-code, final BODY or deploy work was performed."
+    },
+    {
+      "date": "2026-09-05",
+      "note": "SKIN External STL Host Phase 6 Persistence / Save-Reopen v0: added explicit katachi.skin.fkei.v2 while preserving katachi.skin.fkei.v1. The project embeds the exact original rabbit STL bytes, source identity and interpretation, uniformScale 20 instance transform, approved repair provenance and expected repaired fingerprint, capability facts, and exact authored V6 motif geometry/ids/shape parameters/Host placement/authored transform/adapter version/GEOMETRIC normal policy. The Reference Host remains printable=false; authored motifs are permanent artwork candidates with no printable field. Reopen rehashes embedded bytes, rebuilds original and repaired Host state, rechecks capabilities/fingerprint and restores motifs without regeneration; BVH/cache/Three objects and source-path access are not serialized. Actual Chrome gate saved 14,761,406 JSON bytes containing 10,215,684 STL bytes, reopened 128 motifs from embedded bytes only, passed hash/fingerprint/exact geometry/Signed Volume checks, and Host OFF reported motif positions unchanged PASS and host group only PASS with console errors/warnings 0. v1 regression, atomic rollback and focused TypeScript/build/diff verification passed. No Astra, Permanent Connection, Web/Internal, Support/FAB, G-code, final BODY or deploy work was performed."
     },
     {
       "date": "2026-09-05",

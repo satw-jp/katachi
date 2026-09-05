@@ -14,6 +14,11 @@ import {
   type ApprovedRepairedHost,
 } from "./externalStlHostRepair.ts";
 import { createExternalStlHostV6Adapter, type ExternalStlHostV6Adapter, type HostAuthoredFlowerMotif } from "./externalStlHostV6Adapter.ts";
+import {
+  captureExternalHostProject,
+  restoreExternalHostProjectAtomically,
+  serializeExternalHostProject,
+} from "./externalStlHostPersistence.ts";
 
 type Elements = {
   file: HTMLInputElement;
@@ -21,6 +26,8 @@ type Elements = {
   apply: HTMLButtonElement;
   count32: HTMLButtonElement;
   count128: HTMLButtonElement;
+  saveProject: HTMLButtonElement;
+  reopenProject: HTMLButtonElement;
   hostVisible: HTMLInputElement;
   wireframe: HTMLInputElement;
   status: HTMLElement;
@@ -28,6 +35,7 @@ type Elements = {
   preflight: HTMLElement;
   motifs: HTMLElement;
   gate: HTMLElement;
+  persistence: HTMLElement;
   console: HTMLElement;
 };
 
@@ -64,6 +72,7 @@ let motifs: readonly HostAuthoredFlowerMotif[] = [];
 let hostMesh: THREE.Mesh | null = null;
 let motifMesh: THREE.InstancedMesh | null = null;
 let sourceBytes: ArrayBuffer | null = null;
+let savedProjectText: string | null = null;
 const consoleErrors: string[] = [];
 const consoleWarnings: string[] = [];
 const originalConsoleError = console.error.bind(console);
@@ -81,6 +90,8 @@ elements.loadLocal.addEventListener("click", () => { void loadLocalSource(); });
 elements.apply.addEventListener("click", () => { void applyRepairAndActivate(); });
 elements.count32.addEventListener("click", () => generateMotifs(32));
 elements.count128.addEventListener("click", () => generateMotifs(128));
+elements.saveProject.addEventListener("click", () => { saveProject(); });
+elements.reopenProject.addEventListener("click", () => { void reopenProject(); });
 elements.hostVisible.addEventListener("change", () => {
   const before = motifFingerprint();
   hostRoot.visible = elements.hostVisible.checked;
@@ -98,7 +109,7 @@ function buildUi(root: HTMLElement): Elements {
   root.innerHTML = `
     <aside>
       <h1>SKIN External STL Host · V6 gate</h1>
-      <p>Actual Usagi repair plus the existing V6 Flower generator. Derived Host is printable=false. Host OFF must hide only the rabbit; authored motifs remain unchanged.</p>
+      <p>Actual Usagi repair plus the existing V6 Flower generator. Reference Host is printable=false; authored motifs are permanent artwork candidates. Host OFF must hide only the rabbit.</p>
       <h2>Source</h2>
       <label>Select the author-provided rabbit STL<input id="stl-file" type="file" accept=".stl,model/stl" /></label>
       <button id="load-local" class="secondary" type="button">Load exact local rabbit source</button>
@@ -112,6 +123,9 @@ function buildUi(root: HTMLElement): Elements {
       <label class="check"><input id="host-visible" type="checkbox" checked /> Host ON</label>
       <label class="check"><input id="wireframe" type="checkbox" /> Host wireframe</label>
       <pre id="motifs" class="meta">No repaired Host active.</pre>
+      <h2>Persistence / Save-Reopen</h2>
+      <div class="row"><button id="save-project" type="button">Save embedded v2 project</button><button id="reopen-project" class="secondary" type="button" disabled>Reopen embedded bytes</button></div>
+      <pre id="persistence" class="meta">Save after generating V6 motifs.</pre>
       <h2>Preflight / Signed Volume</h2>
       <pre id="preflight" class="meta">No repaired Host active.</pre>
       <h2>Technical Chrome gate</h2>
@@ -125,6 +139,8 @@ function buildUi(root: HTMLElement): Elements {
     apply: root.querySelector<HTMLButtonElement>("#apply")!,
     count32: root.querySelector<HTMLButtonElement>("#count32")!,
     count128: root.querySelector<HTMLButtonElement>("#count128")!,
+    saveProject: root.querySelector<HTMLButtonElement>("#save-project")!,
+    reopenProject: root.querySelector<HTMLButtonElement>("#reopen-project")!,
     hostVisible: root.querySelector<HTMLInputElement>("#host-visible")!,
     wireframe: root.querySelector<HTMLInputElement>("#wireframe")!,
     status: root.querySelector<HTMLElement>("#status")!,
@@ -132,6 +148,7 @@ function buildUi(root: HTMLElement): Elements {
     preflight: root.querySelector<HTMLElement>("#preflight")!,
     motifs: root.querySelector<HTMLElement>("#motifs")!,
     gate: root.querySelector<HTMLElement>("#gate")!,
+    persistence: root.querySelector<HTMLElement>("#persistence")!,
     console: root.querySelector<HTMLElement>("#console")!,
   };
 }
@@ -181,11 +198,14 @@ async function loadSourceBytes(bytes: ArrayBuffer, filename: string): Promise<vo
     repaired = null;
     adapter = null;
     motifs = [];
+    savedProjectText = null;
+    elements.reopenProject.disabled = true;
     clearPreview();
     refreshMetadata();
     elements.preflight.textContent = "Source retained. Apply the approved repair to promote Signed Volume.";
     elements.motifs.textContent = "No repaired Host active.";
     elements.gate.textContent = "Host ON/OFF gate pending.";
+    elements.persistence.textContent = "Save after generating V6 motifs.";
     elements.status.textContent = "Source retained; approved repair is ready.";
   } catch (error) {
     elements.status.className = "status error";
@@ -213,7 +233,7 @@ async function applyRepairAndActivate(): Promise<void> {
     refreshPreflight();
     refreshPresentation();
     framePreview();
-    elements.status.textContent = "Approved repaired Host active; Signed Volume promoted; printable=false.";
+    elements.status.textContent = "Approved repaired Host active; Signed Volume promoted; Reference Host printable=false.";
     elements.gate.textContent = "Host ON/OFF gate pending. Generate motifs, then toggle Host OFF.";
   } catch (error) {
     elements.status.className = "status error";
@@ -228,6 +248,8 @@ function generateMotifs(count: number): void {
     return;
   }
   motifs = adapter.placeFlowers(count, undefined, 2.4, { seed: "usagi-v6-golden", minimumClearance: 4.6 });
+  savedProjectText = null;
+  elements.reopenProject.disabled = true;
   refreshMotifs();
   elements.motifs.textContent = [
     `requested motifs: ${count}`,
@@ -235,9 +257,111 @@ function generateMotifs(count: number): void {
     "shape source: existing-v6-flower-generator",
     "placement normal: GEOMETRIC",
     "sampling: deterministic triangle-area weighted",
-    "printable: false",
+    "Reference Host printable: false",
+    "authored motifs: permanent artwork candidates",
   ].join("\n");
   elements.gate.textContent = `Host ON; motifs visible: ${motifs.length}; toggle Host OFF for the visibility-only check.`;
+}
+
+function liveSnapshot() {
+  return { source, original, repaired, adapter, motifs, sourceBytes };
+}
+
+function replaceFromPlan(plan: Awaited<ReturnType<typeof restoreExternalHostProjectAtomically>>): void {
+  source = plan.source;
+  original = plan.original;
+  repaired = plan.repaired;
+  adapter = createExternalStlHostV6Adapter(plan.repaired.repaired, { seed: plan.document.motifGeneration.seed });
+  motifs = plan.motifs;
+  sourceBytes = plan.source.bytes;
+  elements.hostVisible.checked = plan.hostVisible;
+}
+
+function redrawLiveProject(): void {
+  refreshMetadata();
+  refreshPreflight();
+  refreshPresentation();
+  framePreview();
+  refreshMotifs();
+}
+
+function saveProject(): void {
+  if (!source || !original || !repaired || !adapter || motifs.length === 0) {
+    elements.status.className = "status error";
+    elements.status.textContent = "Activate the repaired Host and generate V6 motifs before saving.";
+    return;
+  }
+  try {
+    const document = captureExternalHostProject({
+      source,
+      original,
+      repaired,
+      motifs,
+      hostVisible: elements.hostVisible.checked,
+      seed: adapter.seed,
+    });
+    savedProjectText = serializeExternalHostProject(document);
+    elements.reopenProject.disabled = false;
+    elements.persistence.textContent = [
+      "schema: katachi.skin.fkei.v2",
+      `serialized JSON bytes: ${new TextEncoder().encode(savedProjectText!).byteLength}`,
+      `embedded STL bytes: ${document.referenceHost.source.byteLength}`,
+      `embedded source SHA-256: ${document.referenceHost.source.sha256}`,
+      `repair fingerprint: ${document.referenceHost.repair.expectedRepairedMeshFingerprint}`,
+      `authored motifs: ${document.authoredMotifs.length}`,
+      "Reference Host printable: false",
+      "authored motifs printable field: absent",
+      "reopen source path required: NO",
+    ].join("\n");
+    elements.status.className = "status";
+    elements.status.textContent = "Embedded v2 project saved in memory; reopen is ready.";
+  } catch (error) {
+    elements.status.className = "status error";
+    elements.status.textContent = `Save failed closed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function reopenProject(): Promise<void> {
+  if (!savedProjectText) {
+    elements.status.className = "status error";
+    elements.status.textContent = "Save the embedded v2 project first.";
+    return;
+  }
+  const beforeMotifs = exactMotifFingerprint();
+  const previous = liveSnapshot();
+  elements.status.className = "status";
+  elements.status.textContent = "Reopening from embedded source bytes only…";
+  try {
+    await restoreExternalHostProjectAtomically(savedProjectText, {
+      capture: () => previous,
+      replace: (plan) => { replaceFromPlan(plan); },
+      restore: (snapshot) => {
+        source = snapshot.source;
+        original = snapshot.original;
+        repaired = snapshot.repaired;
+        adapter = snapshot.adapter;
+        motifs = snapshot.motifs;
+        sourceBytes = snapshot.sourceBytes;
+      },
+      redraw: () => { redrawLiveProject(); },
+    });
+    const afterMotifs = exactMotifFingerprint();
+    elements.persistence.textContent += [
+      "",
+      "save → reopen: PASS",
+      "reopen source path required: NO",
+      `embedded source rehash: ${source?.sourceIdentity.sha256 === USAGI_SOURCE_SHA256 ? "PASS" : "FAIL"}`,
+      `repair fingerprint recheck: ${repaired?.materialization.repairedFingerprint === "90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6" ? "PASS" : "FAIL"}`,
+      `motif geometry exact: ${beforeMotifs === afterMotifs ? "PASS" : "FAIL"}`,
+      `motifs restored: ${motifs.length}`,
+      `Signed Volume: ${repaired?.repaired.capabilities.signedVolumeCapability.availability}`,
+    ].join("\n");
+    elements.status.textContent = "Embedded v2 project reopened; exact authored motifs restored. Toggle Host OFF for the final gate.";
+    elements.gate.textContent = `Host ON; motifs visible: ${motifs.length}; toggle Host OFF for the visibility-only check.`;
+  } catch (error) {
+    elements.status.className = "status error";
+    elements.status.textContent = `Reopen failed closed; previous live project retained: ${error instanceof Error ? error.message : String(error)}`;
+  }
 }
 
 function refreshMetadata(): void {
@@ -338,6 +462,11 @@ function refreshMotifs(): void {
 
 function motifFingerprint(): string {
   return motifs.flatMap((motif) => motif.points).map((point) => `${point.x.toFixed(9)},${point.y.toFixed(9)},${point.z.toFixed(9)},${point.r.toFixed(9)}`).join("|");
+}
+
+function exactMotifFingerprint(): string {
+  const number = (value: number) => Object.is(value, -0) ? "-0" : String(value);
+  return motifs.flatMap((motif) => motif.points).map((point) => [point.x, point.y, point.z, point.r].map(number).join(",")).join("|");
 }
 
 function framePreview(): void {
