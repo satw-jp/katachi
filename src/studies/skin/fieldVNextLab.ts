@@ -24,7 +24,7 @@ renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 renderer.setPixelRatio(window.devicePixelRatio);
 
 // ----- GPU Capability Probe (real WebGL context) -----
-const gl = renderer.getContext('webgl2') || renderer.getContext('webgl');
+const gl = renderer.getContext();
 if (!gl) throw new Error('WebGL2 not supported');
 const caps = probeFieldGpuCapabilities(gl as THREE.WebGL2RenderingContext);
 const assessed = assessFieldGpuPayload(caps, {} as any); // payload will be set later; capability check first

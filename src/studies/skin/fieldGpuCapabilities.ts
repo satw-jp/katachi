@@ -8,6 +8,7 @@
  * This phase does NOT attempt a Legacy/vNext backend switch.
  * It only reports what the current GPU can support for the Phase 2A payload format.
  */
+import type { FieldGpuPayload } from "./fieldGpuPayload";
 export type FieldGpuCapabilities = {
   /** WebGL version string, e.g. "WebGL 2.0" or "WebGL 1.0" */
   webglVersion: string;
