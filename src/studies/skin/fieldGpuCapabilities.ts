@@ -1,4 +1,28 @@
-import * as THREE from "three";
+/**
+ * Runtime GPU capability probe for FIELD vNext.
+ *
+ * No WebGL creation, no renderer modification, no global configuration changes.
+ * Reads only from the existing WebGL context (gl) that the caller provides.
+ * Returns a snapshot; the caller decides what to do with it.
+ *
+ * This phase does NOT attempt a Legacy/vNext backend switch.
+ * It only reports what the current GPU can support for the Phase 2A payload format.
+ */
+export type FieldGpuCapabilities = {
+  /** WebGL version string, e.g. "WebGL 2.0" or "WebGL 1.0" */
+  webglVersion: string;
+  /** MAX_TEXTURE_SIZE from gl.getParameter */
+  maxTextureSize: number;
+  /** MAX_TEXTURE_IMAGE_UNITS from gl.getParameter */
+  maxTextureImageUnits: number;
+  /** Whether float texture sampling is supported */
+  floatTextureSampling: boolean;
+  /** Whether the GPU supports the required features for FIELD vNext */
+  supported: boolean;
+  /** Human-readable reasons if not supported */
+  reasons: string[];
+};
+
 /**
  * Probe WebGL capabilities from a given WebGL context.
  * Caller must ensure gl is a valid WebGL2 context or a WebGL1 context
@@ -7,10 +31,10 @@ import * as THREE from "three";
  * @param gl - Existing WebGL context (not created by this function)
  * @returns FieldGpuCapabilities snapshot
  */
-export type FieldGpuCapabilities = {
-  gl: THREE.WebGL2RenderingContext | THREE.WebGLRenderingContext,
+export function probeFieldGpuCapabilities(
+  gl: WebGL2RenderingContext | WebGLRenderingContext,
 ): FieldGpuCapabilities {
-  // WebGL version string
+  // WebGL version
   const webglVersion = gl.getParameter(gl.VERSION) || "Unknown";
 
   // Max texture size
@@ -23,18 +47,16 @@ export type FieldGpuCapabilities = {
   let floatTextureSampling = false;
   let reasons: string[] = [];
 
-  // -------- WebGL2 detection ----------
+  // Check for OES_texture_float in WebGL1, or assume WebGL2 supports it
   // Preferred: detect from actual context type where available
   const isWebGL2Ctx =
     typeof WebGL2RenderingContext !== "undefined" &&
     gl instanceof WebGL2RenderingContext;
-
-  // Fallback: accept version strings "WebGL 2" or "WebGL 2.0"
-  const isWebGL2Version = /^WebGL\s+2(\.0)?$/.test(webglVersion);
-
+  // Fallback: accept suffix-bearing real version strings
+  const isWebGL2Version =
+    /^WebGL\s+2(?:\.0)?(?:\s|$)/.test(String(webglVersion));
   const isWebGL2 = isWebGL2Ctx || isWebGL2Version;
 
-  // -------- Float texture sampling --------
   if (isWebGL2) {
     // WebGL2: float texture sampling is always available (by spec)
     floatTextureSampling = true;
@@ -58,7 +80,7 @@ export type FieldGpuCapabilities = {
   // here we just report the raw capability
 
   // Explicit and readable: supported = floatTextureSampling && hasEnoughUnits
-  // WebGL1 + OES_texture_float is acceptable; no WebGL2 gate required.
+  // WebGL1 + OES_texture_float remains valid; no WebGL2 gate required.
   const supported = floatTextureSampling && hasEnoughUnits;
 
   return {
@@ -67,6 +89,51 @@ export type FieldGpuCapabilities = {
     maxTextureImageUnits: Number(maxTextureImageUnits),
     floatTextureSampling,
     supported,
+    reasons,
+  };
+}
+
+/**
+ * Minimal capability check for the Phase 2A FieldGpuPayload.
+ *
+ * A FieldGpuPayload is considered supportable if:
+ * - float texture sampling is available
+ * - at least 2 fragment texture units exist
+ * - payload width <= maxTextureSize
+ * - payload height <= maxTextureSize
+ *
+ * This is a pure assessment; it does NOT create textures or switch renderers.
+ *
+ * @param caps - result from probeFieldGpuCapabilities
+ * @param payload - the FieldGpuPayload to check
+ * @returns { supported, reasons }
+ */
+export function assessFieldGpuPayload(caps: FieldGpuCapabilities, payload: FieldGpuPayload): {
+  supported: boolean;
+  reasons: string[];
+} {
+  const reasons: string[] = [];
+
+  // Float texture sampling
+  if (!caps.floatTextureSampling) {
+    reasons.push("float texture sampling not supported");
+  }
+
+  // At least 2 fragment texture units
+  if (caps.maxTextureImageUnits < 2) {
+    reasons.push(`only ${caps.maxTextureImageUnits} fragment texture unit(s), need at least 2`);
+  }
+
+  // Payload fits within maxTextureSize
+  if (payload.width > caps.maxTextureSize) {
+    reasons.push(`payload width (${payload.width}) exceeds maxTextureSize (${caps.maxTextureSize})`);
+  }
+  if (payload.height > caps.maxTextureSize) {
+    reasons.push(`payload height (${payload.height}) exceeds maxTextureSize (${caps.maxTextureSize})`);
+  }
+
+  return {
+    supported: reasons.length === 0,
     reasons,
   };
 }
