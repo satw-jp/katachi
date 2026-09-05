@@ -17,6 +17,7 @@ import type {
 
 export const V6_HOST_ADAPTER_VERSION = "skin-v6-host-adapter-v0";
 export const V6_PLACEMENT_NORMAL_POLICY = "GEOMETRIC" as const;
+const GOLDEN_RATIO_CONJUGATE = 0.6180339887498949;
 
 export interface HostPlacementCandidate {
   readonly sampleIndex: number;
@@ -194,8 +195,7 @@ export class ExternalStlHostV6Adapter {
     return this.weightedTriangles[low];
   }
 
-  private candidate(sampleIndex: number, areaIndex: number, poolSize: number, rng: () => number): HostPlacementCandidate {
-    const areaTarget = ((areaIndex + 0.5) / poolSize) * this.totalTriangleArea;
+  private candidate(sampleIndex: number, areaTarget: number, rng: () => number): HostPlacementCandidate {
     const weighted = this.triangleForArea(areaTarget);
     const triangle = weighted.triangleIndex;
     const a = triangleVertex(this.host, triangle, 0);
@@ -233,17 +233,17 @@ export class ExternalStlHostV6Adapter {
     if (!(minimumClearance >= 0) || !Number.isFinite(minimumClearance)) throw new Error("V6 Host minimumClearance must be finite and non-negative");
     if (count === 0) return [];
     const poolSize = Math.max(count, count * 8);
-    const sequenceRng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:${count}:stratified`));
-    const permutationOffset = Math.floor(sequenceRng() * poolSize);
-    const permutationStep = poolSize - 1;
+    const sequenceRng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:surface-area-golden-v0`));
+    const sequenceOffset = sequenceRng();
     const candidates: HostPlacementCandidate[] = [];
     const minimumClearanceSquared = minimumClearance * minimumClearance;
     for (let sampleIndex = 0; sampleIndex < poolSize && candidates.length < count; sampleIndex += 1) {
-      // A coprime permutation removes STL triangle-order bias from the
-      // clearance accept/reject pass while retaining deterministic area strata.
-      const areaIndex = (sampleIndex * permutationStep + permutationOffset) % poolSize;
+      // Irrational rotation disperses every useful prefix over the complete
+      // cumulative-area domain instead of walking one contiguous band.
+      const areaUnit = (sequenceOffset + sampleIndex * GOLDEN_RATIO_CONJUGATE) % 1;
+      const areaTarget = areaUnit * this.totalTriangleArea;
       const rng = makeRng(hashSeed(`${this.host.source.sourceIdentity.sha256}:${this.seed}:${count}:candidate:${sampleIndex}`));
-      const candidate = this.candidate(sampleIndex, areaIndex, poolSize, rng);
+      const candidate = this.candidate(sampleIndex, areaTarget, rng);
       if (minimumClearance > 0 && candidates.some((existing) => squaredDistance(existing.position, candidate.position) < minimumClearanceSquared)) continue;
       candidates.push(candidate);
     }

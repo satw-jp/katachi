@@ -50,6 +50,10 @@ function asciiStl(triangles: readonly Triangle[]): ArrayBuffer {
   return new TextEncoder().encode(text).buffer;
 }
 
+function cubeFaceKey(normal: HostVec3): string {
+  return `${Math.round(normal.x)},${Math.round(normal.y)},${Math.round(normal.z)}`;
+}
+
 test("V6 adapter samples the transformed Host deterministically and uses geometric normals", async () => {
   const source = await createImportedHostSource(asciiStl(cubeTriangles), {
     filename: "cube.stl",
@@ -82,6 +86,27 @@ test("V6 adapter samples the transformed Host deterministically and uses geometr
   assert.equal(adapter.insideOutside({ x: 10, y: 20, z: 30 }), "inside");
   assert.equal(adapter.insideOutside({ x: 70, y: 20, z: 30 }), "outside");
   assert.ok((adapter.signedDistance({ x: 70, y: 20, z: 30 }) ?? -1) > 0);
+});
+
+test("V6 adapter disperses every useful prefix across grouped surface faces", async () => {
+  const source = await createImportedHostSource(asciiStl(cubeTriangles), {
+    filename: "grouped-cube.stl",
+    interpretation,
+  });
+  const instance = createImportedHostInstance(source, {
+    translation: { x: 0, y: 0, z: 0 },
+    rotation: [0, 0, 0, 1],
+    uniformScale: 1,
+  });
+  const adapter = createExternalStlHostV6Adapter(instance, { seed: "distribution-regression" });
+
+  // The fixture is intentionally triangle-ordered by spatially grouped cube
+  // faces. The former poolSize-1 traversal would keep a 32-sample prefix in
+  // one contiguous cumulative-area band and fail this coverage check.
+  for (const count of [32, 128, 256, 512]) {
+    const occupiedFaces = new Set(adapter.sample(count, 0).map((candidate) => cubeFaceKey(candidate.placementNormal)));
+    assert.ok(occupiedFaces.size >= 4, `count=${count} occupied only ${occupiedFaces.size} cube faces`);
+  }
 });
 
 test("V6 adapter reuses the existing Flower generator and keeps authored motifs stable", async () => {

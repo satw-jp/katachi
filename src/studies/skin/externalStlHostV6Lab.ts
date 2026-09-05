@@ -345,7 +345,7 @@ function generateMotifs(count: number): void {
       `placement clearance: ${minimumClearance.toFixed(2)} mm`,
       "shape source: existing-v6-flower-generator",
       "placement normal: GEOMETRIC",
-      "sampling: deterministic stratified triangle-area weighted",
+      "sampling: deterministic golden-ratio triangle-area weighted",
       placementSummary(),
       motifRadiusSummary(),
       "Reference Host printable: false",
