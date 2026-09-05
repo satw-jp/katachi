@@ -1,4 +1,5 @@
-import { FieldGpuPayload, FieldGpuCapabilities } from "./fieldGpuPayload.ts";
+import * as THREE from "three";
+import { FieldGpuPayload } from "./fieldGpuPayload.ts";
 import { probeFieldGpuCapabilities, assessFieldGpuPayload } from "./fieldGpuCapabilities.ts";
 
 /**
