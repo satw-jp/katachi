@@ -216,7 +216,7 @@ function stableGeometryDescriptor(
   });
 }
 
-async function geometryFingerprint(
+export async function makeCandidateGeometryFingerprint(
   sourceSha256: string,
   positions: Float32Array,
   transform: CandidatePrintTransform,
@@ -224,7 +224,7 @@ async function geometryFingerprint(
   // Typed-array bytes are the browser's canonical little-endian Float32
   // representation. Hash the exact print-space soup first, then bind the
   // explicit transform/version metadata into the authority fingerprint.
-  const positionSha256 = await sha256Hex(positions.slice().buffer);
+  const positionSha256 = await sha256Hex(positions.buffer as ArrayBuffer);
   return sha256Hex(stableGeometryDescriptor(sourceSha256, transform, positionSha256));
 }
 
@@ -304,7 +304,7 @@ export async function loadArtworkCandidate(
   }
   const transform = identityPrintTransform();
   return createCandidateSnapshot(candidateId, source, sourceInstance, positions, transform,
-    await geometryFingerprint(source.sourceIdentity.sha256, positions, transform));
+    await makeCandidateGeometryFingerprint(source.sourceIdentity.sha256, positions, transform));
 }
 
 function createCandidateSnapshot(
@@ -372,7 +372,7 @@ export async function applyCommonCandidatePrintTransform(
     uniformScale: 1,
     rule: transform.rule,
   });
-  const fingerprint = await geometryFingerprint(candidate.sourceSha256, clonePositions(sourcePositions, transform), transform);
+  const fingerprint = await makeCandidateGeometryFingerprint(candidate.sourceSha256, clonePositions(sourcePositions, transform), transform);
   return createCandidateSnapshot(candidate.candidateId, candidate.source, candidate.sourceInstance,
     sourcePositions, transform, fingerprint);
 }

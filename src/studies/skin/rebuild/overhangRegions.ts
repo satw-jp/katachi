@@ -250,6 +250,107 @@ export function detectSkinRebuildOverhangRegions(
   };
 }
 
+/**
+ * Large-candidate equivalent of detectSkinRebuildOverhangRegions().  It reads
+ * the authoritative Float32 triangle soup directly and only materializes the
+ * already-diagnosed overhang subset needed for exact edge-connected region
+ * construction.  The threshold, plate-band rule, face order and region sort
+ * are intentionally identical to the Triangle[] path above.
+ */
+export function detectSkinRebuildOverhangRegionsFromPositions(
+  positions: Float32Array,
+  thresholdDeg: number,
+  plateFloor: number,
+  plateBand: number,
+): SkinRebuildOverhangDetection {
+  if (positions.length % 9 !== 0) throw new Error("overhang positions must contain complete triangles");
+  if (![thresholdDeg, plateFloor, plateBand].every(Number.isFinite)) {
+    throw new Error("overhang-region settings must be finite");
+  }
+  const threshold = Math.max(0, Math.min(90, thresholdDeg));
+  const directPlateLimit = plateFloor + Math.max(0, plateBand);
+  type PackedRiskFace = {
+    faceIndex: number;
+    values: [number, number, number, number, number, number, number, number, number];
+    area: number;
+    normal: Vector3Value;
+    vertexKeys: [string, string, string];
+  };
+  const riskFaces: PackedRiskFace[] = [];
+  let totalAreaSourceSquared = 0;
+  const key = (x: number, y: number, z: number): string => `${Math.fround(x)},${Math.fround(y)},${Math.fround(z)}`;
+  for (let offset = 0, faceIndex = 0; offset < positions.length; offset += 9, faceIndex += 1) {
+    const ax = positions[offset]; const ay = positions[offset + 1]; const az = positions[offset + 2];
+    const bx = positions[offset + 3]; const by = positions[offset + 4]; const bz = positions[offset + 5];
+    const cx = positions[offset + 6]; const cy = positions[offset + 7]; const cz = positions[offset + 8];
+    if (![ax, ay, az, bx, by, bz, cx, cy, cz].every(Number.isFinite)) continue;
+    const abx = bx - ax; const aby = by - ay; const abz = bz - az;
+    const acx = cx - ax; const acy = cy - ay; const acz = cz - az;
+    const nx = aby * acz - abz * acy; const ny = abz * acx - abx * acz; const nz = abx * acy - aby * acx;
+    const magnitude = Math.hypot(nx, ny, nz);
+    if (!(magnitude > EPSILON)) continue;
+    const area = magnitude * 0.5;
+    totalAreaSourceSquared += area;
+    if (Math.max(az, bz, cz) <= directPlateLimit + 1e-9) continue;
+    const normal = { x: nx / magnitude, y: ny / magnitude, z: nz / magnitude };
+    if (surfaceOverhangAngleDeg(normal) + 1e-6 < threshold) continue;
+    riskFaces.push({ faceIndex, values: [ax, ay, az, bx, by, bz, cx, cy, cz], area, normal,
+      vertexKeys: [key(ax, ay, az), key(bx, by, bz), key(cx, cy, cz)] });
+  }
+  const detectedPositions = new Float32Array(riskFaces.length * 9);
+  for (let index = 0; index < riskFaces.length; index += 1) detectedPositions.set(riskFaces[index].values, index * 9);
+  if (riskFaces.length === 0) return {
+    positions: detectedPositions, faceCount: 0, regionCount: 0, areaSourceSquared: 0,
+    totalAreaSourceSquared, regions: [], faceRegionIds: new Int32Array(0),
+  };
+  const sets = new DisjointSet(riskFaces.length);
+  const ownerByEdge = new Map<string, number>();
+  const edge = (first: string, second: string): string => first < second ? `${first}|${second}` : `${second}|${first}`;
+  for (let index = 0; index < riskFaces.length; index += 1) {
+    const [a, b, c] = riskFaces[index].vertexKeys;
+    for (const edgeKey of [edge(a, b), edge(b, c), edge(c, a)]) {
+      const previous = ownerByEdge.get(edgeKey);
+      if (previous === undefined) ownerByEdge.set(edgeKey, index); else sets.union(previous, index);
+    }
+  }
+  const membersByRoot = new Map<number, number[]>();
+  for (let index = 0; index < riskFaces.length; index += 1) {
+    const root = sets.find(index); const members = membersByRoot.get(root);
+    if (members) members.push(index); else membersByRoot.set(root, [index]);
+  }
+  const rawRegions = [...membersByRoot.values()].map((members) => {
+    let areaSourceSquared = 0; let minimumZ = Infinity; let maximumZ = -Infinity;
+    let lowestPoint: Vector3Value = { x: 0, y: 0, z: Infinity };
+    let supportFace = riskFaces[members[0]]; let supportFaceMinimumZ = Infinity;
+    for (const index of members) {
+      const face = riskFaces[index]; const values = face.values;
+      areaSourceSquared += face.area;
+      const faceMinimumZ = Math.min(values[2], values[5], values[8]);
+      if (faceMinimumZ < supportFaceMinimumZ) { supportFace = face; supportFaceMinimumZ = faceMinimumZ; }
+      for (const point of [[values[0], values[1], values[2]], [values[3], values[4], values[5]], [values[6], values[7], values[8]]]) {
+        if (point[2] < lowestPoint.z) lowestPoint = { x: point[0], y: point[1], z: point[2] };
+        minimumZ = Math.min(minimumZ, point[2]); maximumZ = Math.max(maximumZ, point[2]);
+      }
+    }
+    const values = supportFace.values;
+    return { members, faceCount: members.length, areaSourceSquared, minimumZ, maximumZ, lowestPoint,
+      supportPoint: { x: (values[0] + values[3] + values[6]) / 3, y: (values[1] + values[4] + values[7]) / 3, z: (values[2] + values[5] + values[8]) / 3 },
+      supportNormal: { ...supportFace.normal } };
+  });
+  rawRegions.sort((a, b) => a.minimumZ - b.minimumZ || b.areaSourceSquared - a.areaSourceSquared
+    || a.lowestPoint.x - b.lowestPoint.x || a.lowestPoint.y - b.lowestPoint.y);
+  const faceRegionIds = new Int32Array(riskFaces.length);
+  const regions = rawRegions.map((region, id) => {
+    for (const index of region.members) faceRegionIds[index] = id;
+    return { id, faceCount: region.faceCount, areaSourceSquared: region.areaSourceSquared,
+      minimumZ: region.minimumZ, maximumZ: region.maximumZ, lowestPoint: region.lowestPoint,
+      supportPoint: region.supportPoint, supportNormal: region.supportNormal };
+  });
+  return { positions: detectedPositions, faceCount: riskFaces.length, regionCount: regions.length,
+    areaSourceSquared: riskFaces.reduce((sum, face) => sum + face.area, 0), totalAreaSourceSquared,
+    regions, faceRegionIds };
+}
+
 /** Pick deterministic, spatially spread triangle contacts for one connected
  * red region.  The first sample is the face closest to the region's area
  * centroid and becomes the hub contact; the remaining samples cover the

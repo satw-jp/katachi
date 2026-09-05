@@ -251,3 +251,125 @@ export function createSupportReachabilityIndex(finalSurfacePositionsMm: Float32A
     surfaceTriangleCount, invalidSurfaceTriangleCount, classifyTriangle, classifyPoint, diagnosePoint, diagnoseTriangle,
   };
 }
+
+/**
+ * Packed large-mesh variant of createSupportReachabilityIndex().  It keeps
+ * the same four samples, -Z lower-envelope rule, epsilon and unresolved
+ * semantics, but stores grid buckets as typed triangle indices rather than
+ * allocating one Triangle object for every final-surface face.
+ */
+export function createPackedSupportReachabilityIndex(finalSurfacePositionsMm: Float32Array): SupportReachabilityIndex {
+  if (finalSurfacePositionsMm.length % 9 !== 0) throw new Error("最終Surface bufferの長さが9の倍数ではありません");
+  if (finalSurfacePositionsMm.length === 0) throw new Error("Fail closed: 最終Surface occlusion meshが空です");
+  const meshScaleMm = meshExtent(finalSurfacePositionsMm);
+  const lowerIntersectionEpsilonMm = Math.max(0.001, meshScaleMm * 1e-6);
+  const gridCellSizeMm = Math.max(0.25, meshScaleMm / 64 || 0.25);
+  const cellIds = new Map<string, number>();
+  const ranges = (triangle: number): [number, number, number, number] => {
+    const offset = triangle * 9;
+    const minX = Math.floor(Math.min(finalSurfacePositionsMm[offset], finalSurfacePositionsMm[offset + 3], finalSurfacePositionsMm[offset + 6]) / gridCellSizeMm);
+    const maxX = Math.floor(Math.max(finalSurfacePositionsMm[offset], finalSurfacePositionsMm[offset + 3], finalSurfacePositionsMm[offset + 6]) / gridCellSizeMm);
+    const minY = Math.floor(Math.min(finalSurfacePositionsMm[offset + 1], finalSurfacePositionsMm[offset + 4], finalSurfacePositionsMm[offset + 7]) / gridCellSizeMm);
+    const maxY = Math.floor(Math.max(finalSurfacePositionsMm[offset + 1], finalSurfacePositionsMm[offset + 4], finalSurfacePositionsMm[offset + 7]) / gridCellSizeMm);
+    return [minX, maxX, minY, maxY];
+  };
+  const idFor = (x: number, y: number): number => {
+    const key = cellKey(x, y); const existing = cellIds.get(key);
+    if (existing !== undefined) return existing;
+    const id = cellIds.size; cellIds.set(key, id); return id;
+  };
+  const triangleCount = finalSurfacePositionsMm.length / 9;
+  let surfaceTriangleCount = 0; let invalidSurfaceTriangleCount = 0;
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const offset = triangle * 9;
+    const values = finalSurfacePositionsMm.subarray(offset, offset + 9);
+    if (!values.every(Number.isFinite)) { invalidSurfaceTriangleCount++; continue; }
+    const abx = values[3] - values[0]; const aby = values[4] - values[1]; const abz = values[5] - values[2];
+    const acx = values[6] - values[0]; const acy = values[7] - values[1]; const acz = values[8] - values[2];
+    const nx = aby * acz - abz * acy; const ny = abz * acx - abx * acz; const nz = abx * acy - aby * acx;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny) || !Number.isFinite(nz) || (nx === 0 && ny === 0 && nz === 0)) { invalidSurfaceTriangleCount++; continue; }
+    surfaceTriangleCount++;
+    const [minX, maxX, minY, maxY] = ranges(triangle);
+    for (let x = minX; x <= maxX; x += 1) for (let y = minY; y <= maxY; y += 1) idFor(x, y);
+  }
+  if (invalidSurfaceTriangleCount > 0) throw new Error(`Fail closed: 最終Surface occlusion meshに無効面が${invalidSurfaceTriangleCount}枚あります`);
+  if (surfaceTriangleCount === 0) throw new Error("Fail closed: 最終Surface occlusion meshに有効面がありません");
+  const counts = new Uint32Array(cellIds.size);
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const offset = triangle * 9; const values = finalSurfacePositionsMm.subarray(offset, offset + 9);
+    const abx = values[3] - values[0]; const aby = values[4] - values[1]; const abz = values[5] - values[2];
+    const acx = values[6] - values[0]; const acy = values[7] - values[1]; const acz = values[8] - values[2];
+    const nx = aby * acz - abz * acy; const ny = abz * acx - abx * acz; const nz = abx * acy - aby * acx;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny) || !Number.isFinite(nz) || (nx === 0 && ny === 0 && nz === 0)) continue;
+    const [minX, maxX, minY, maxY] = ranges(triangle);
+    for (let x = minX; x <= maxX; x += 1) for (let y = minY; y <= maxY; y += 1) counts[idFor(x, y)]++;
+  }
+  const offsets = new Uint32Array(cellIds.size + 1);
+  for (let index = 0; index < counts.length; index += 1) {
+    const next = offsets[index] + counts[index];
+    if (next > 0xffff_ffff) throw new Error("Fail closed: packed reachability index exceeds Uint32 capacity");
+    offsets[index + 1] = next;
+  }
+  const indices = new Uint32Array(offsets[offsets.length - 1]);
+  const cursors = new Uint32Array(offsets.length - 1); cursors.set(offsets.subarray(0, -1));
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const offset = triangle * 9; const values = finalSurfacePositionsMm.subarray(offset, offset + 9);
+    const abx = values[3] - values[0]; const aby = values[4] - values[1]; const abz = values[5] - values[2];
+    const acx = values[6] - values[0]; const acy = values[7] - values[1]; const acz = values[8] - values[2];
+    const nx = aby * acz - abz * acy; const ny = abz * acx - abx * acz; const nz = abx * acy - aby * acx;
+    if (!Number.isFinite(nx) || !Number.isFinite(ny) || !Number.isFinite(nz) || (nx === 0 && ny === 0 && nz === 0)) continue;
+    const [minX, maxX, minY, maxY] = ranges(triangle);
+    for (let x = minX; x <= maxX; x += 1) for (let y = minY; y <= maxY; y += 1) {
+      const id = idFor(x, y); indices[cursors[id]++] = triangle;
+    }
+  }
+  const zAt = (triangle: number, x: number, y: number): number | null => {
+    const offset = triangle * 9;
+    const ax = finalSurfacePositionsMm[offset]; const ay = finalSurfacePositionsMm[offset + 1]; const az = finalSurfacePositionsMm[offset + 2];
+    const bx = finalSurfacePositionsMm[offset + 3]; const by = finalSurfacePositionsMm[offset + 4]; const bz = finalSurfacePositionsMm[offset + 5];
+    const cx = finalSurfacePositionsMm[offset + 6]; const cy = finalSurfacePositionsMm[offset + 7]; const cz = finalSurfacePositionsMm[offset + 8];
+    const denominator = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (!Number.isFinite(denominator) || denominator === 0) return null;
+    const u = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / denominator;
+    const v = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / denominator;
+    const w = 1 - u - v;
+    if (u < -BARYCENTRIC_BOUNDARY_TOLERANCE || v < -BARYCENTRIC_BOUNDARY_TOLERANCE || w < -BARYCENTRIC_BOUNDARY_TOLERANCE) return null;
+    return u * az + v * bz + w * cz;
+  };
+  const diagnosePoint = (x: number, y: number, z: number): SupportReachabilitySampleDiagnosis | null => {
+    if (![x, y, z].every(Number.isFinite)) return null;
+    const id = cellIds.get(cellKey(Math.floor(x / gridCellSizeMm), Math.floor(y / gridCellSizeMm)));
+    let nearest = Infinity;
+    if (id !== undefined) for (let cursor = offsets[id]; cursor < offsets[id + 1]; cursor += 1) {
+      const hitZ = zAt(indices[cursor], x, y);
+      if (hitZ !== null && hitZ < z - lowerIntersectionEpsilonMm) nearest = Math.min(nearest, z - hitZ);
+    }
+    return { xMm: x, yMm: y, zMm: z,
+      classification: Number.isFinite(nearest) ? "inside" : "outside",
+      nearestLowerIntersectionDistanceMm: Number.isFinite(nearest) ? nearest : null };
+  };
+  const diagnoseTriangle = (positions: Float32Array, offset = 0): SupportReachabilityTriangleDiagnosis => {
+    const triangle = finiteTriangle(positions, offset);
+    if (!triangle) return { classification: "unresolved", samples: [], blockedSampleCount: 0, openSampleCount: 0 };
+    const vertices: Array<[number, number, number]> = [[triangle.ax, triangle.ay, triangle.az], [triangle.bx, triangle.by, triangle.bz], [triangle.cx, triangle.cy, triangle.cz]];
+    const samples: Array<[number, number, number]> = [[(triangle.ax + triangle.bx + triangle.cx) / 3, (triangle.ay + triangle.by + triangle.cy) / 3, (triangle.az + triangle.bz + triangle.cz) / 3]];
+    for (let vertex = 0; vertex < 3; vertex += 1) {
+      const otherA = vertices[(vertex + 1) % 3]; const otherB = vertices[(vertex + 2) % 3]; const point = vertices[vertex];
+      samples.push([point[0] * VERTEX_BIASED_WEIGHT + (otherA[0] + otherB[0]) * (1 - VERTEX_BIASED_WEIGHT) / 2,
+        point[1] * VERTEX_BIASED_WEIGHT + (otherA[1] + otherB[1]) * (1 - VERTEX_BIASED_WEIGHT) / 2,
+        point[2] * VERTEX_BIASED_WEIGHT + (otherA[2] + otherB[2]) * (1 - VERTEX_BIASED_WEIGHT) / 2]);
+    }
+    const diagnosedSamples: SupportReachabilitySampleDiagnosis[] = [];
+    for (const sample of samples) { const diagnosis = diagnosePoint(sample[0], sample[1], sample[2]); if (!diagnosis) return { classification: "unresolved", samples: diagnosedSamples, blockedSampleCount: 0, openSampleCount: 0 }; diagnosedSamples.push(diagnosis); }
+    const blockedSampleCount = diagnosedSamples.filter((sample) => sample.classification === "inside").length;
+    const openSampleCount = diagnosedSamples.length - blockedSampleCount;
+    return { classification: blockedSampleCount === 0 ? "outside" : openSampleCount === 0 ? "inside" : "unresolved", samples: diagnosedSamples, blockedSampleCount, openSampleCount };
+  };
+  return {
+    meshScaleMm, lowerIntersectionEpsilonMm, gridCellSizeMm, gridCellCount: cellIds.size,
+    surfaceTriangleCount, invalidSurfaceTriangleCount,
+    classifyTriangle: (positions, offset = 0) => diagnoseTriangle(positions, offset).classification,
+    classifyPoint: (x, y, z) => diagnosePoint(x, y, z)?.classification ?? "unresolved",
+    diagnosePoint, diagnoseTriangle,
+  };
+}

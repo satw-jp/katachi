@@ -1224,6 +1224,10 @@
     {
       "date": "2026-09-02",
       "note": "H exported Support / BODY collision parity: Stage 8's export call no longer requests the legacy vertical-edge-to-Plate rewrite, so accepted non-root shaft, bend and contact-neck endpoints remain unchanged. Degree-2 sparse routes are emitted as continuous closed tubes while explicit degree-1 roots/terminals are capped; the legacy option and branching behavior remain for other callers. A root→shaft→bend→neck→target regression reproduces the pre-fix non-target BODY SDF penetration, then proves accepted endpoints and neck length survive Support STL and separate BODY/PRINT_SUPPORT 3MF serialization, package validation passes, and post-export non-target BODY overlap is zero. This is an export-geometry regression, not slicer, Bambu Studio or physical-print proof; printApproval remains false."
+    },
+    {
+      "date": "2026-09-06",
+      "note": "SKIN Astra Large Candidate Execution v0 keeps candidate File references and compact summaries on the main thread, streams binary STL through a dedicated Worker into one active packed Float32 Candidate, uses typed-array query/diagnostic paths, and releases the Candidate before the next activation. Real Chrome A2_BODY.stl inventory/activation reached packed Overhang detection at 839,603 faces with source SHA-256 2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c and 5,934,046 triangles, then stopped at the existing fail-closed Support reachability contract because the final Surface occlusion mesh contained 8 invalid faces. This is a measured geometry blocker, not a Worker memory-exhaustion result; G/H/J were not started. Rabbit Reference Host source/repair identity and Signed Volume remained approved, console errors/warnings were 0/0, runtime topology stayed NOT_RECOMPUTED, and no Support/3MF/production or physical-print claim was made."
     }
   ]
 }
