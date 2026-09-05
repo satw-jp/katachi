@@ -1,5 +1,9 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN FIELD vNext Browser Gate（2026-09-05）
+
+Shadow Labを、shader内のsentinel判定をDOMへ推測転記する方式から、1×1 `WebGLRenderTarget`へ描画して`readRenderTargetPixels()`でCPUが読む方式へ修正した。最終`FieldPrimitive`のpatchIndex、shapeCode、radiusをJavaScript側の実データからuniformへ渡し、geometry / metadataの両方が同一のrow-major texel UVを使う。Windows Chromeの実ブラウザでWebGL capability、CPU packed、GPU patchIndex / shapeCode / radius、GPU last-texel fetch、Browser Gateを64 / 256 / 257 / 512 / 1024 / 2048の全件でPASS確認した。257は256×2、1024は256×4、2048は256×8となり、コンソールのerror / warningは0だった。これはDataTextureのCPU/GPUデータ経路と境界readbackの証拠であり、Legacy FIELD semantic parity、production rendererへの切替、Spatial Gridの有効化、Golden統合、実物印刷の証拠ではない。
+
 ## Observation — Workflow Guide viewport sizing regression（2026-09-03）
 
 右WORKFLOWのGuideは既存の`max-height: 50vh` / `overflow-y: auto`契約を維持したまま、右ペインのDOMをGuideと下側領域へ分離した。親のflex / overflow競合で下側のStage / Propertiesが押し出されていたため、下側のPrint準備とPropertiesも独立スクロール領域として残り高さを共有する。小さいviewport、1920×1080、通常サイズ、resize後の実ブラウザ計測でGuide高さ、内部scroll、下側領域の可視性を数値確認した。geometry、Support、Stage 8、export、3MF / STL / report parity、f542f84d384fcdda30a815ddfb7b8162af1cf4f1の印刷基準は変更しない。

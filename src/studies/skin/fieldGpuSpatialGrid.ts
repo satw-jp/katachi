@@ -16,6 +16,7 @@
  * - Device-style capacity only via maxTextureSize input
  * - Empty store returns explicit empty payload (helper rejects empty input)
  */
+import type { FieldPrimitive } from "./fieldPrimitiveStore.ts";
 export type FieldGpuSpatialGridPayload = {
   /** Number of primitives indexed */
   primitiveCount: number;
@@ -150,10 +151,12 @@ export function buildFieldGpuSpatialGridPayload(
 
   // Build sorted list of cells in row-major order.
   // Linear index: x + dimX * (y + dimY * z)
-  const cellEntries: [string, number[]][] = [];
+  const cellEntries: [string, number[], number][] = [];
   for (const [key, indices] of cellMap) {
     const parts = key.split("|").map(Number);
-    const [x, y, z] = parts;
+    const x = parts[0] ?? 0;
+    const y = parts[1] ?? 0;
+    const z = parts[2] ?? 0;
     const linearIndex = x + dimX * (y + dimY * z);
     cellEntries.push([key, indices, linearIndex]);
   }
@@ -215,55 +218,60 @@ export function isValidFieldGpuSpatialGridPayload(p: unknown): p is FieldGpuSpat
   const pc = Number(q.primitiveCount);
   const cc = Number(q.cellCount);
   const cs = Number(q.cellSize);
-  const min = q.bounds?.min;
-  const max = q.bounds?.max;
+  const bounds = q.bounds;
+  const min = typeof bounds === "object" && bounds !== null
+    ? (bounds as Record<string, unknown>).min
+    : undefined;
+  const max = typeof bounds === "object" && bounds !== null
+    ? (bounds as Record<string, unknown>).max
+    : undefined;
   const dims = q.dimensions;
-  const ct = q.cellTable;
-  const pi = q.primitiveIndices;
-  const mr = q.maxRadius;
+  const cellTable = q.cellTable;
+  const primitiveIndices = q.primitiveIndices;
 
   if (
     typeof pc !== "number" || pc < 0 ||
     typeof cs !== "number" || cs < 0 ||
     typeof cc !== "number" || cc < 0 ||
-    !ArrayBuffer.isView(q.cellTable) ||
-    !ArrayBuffer.isView(q.primitiveIndices) ||
-    q.cellTable.byteLength !== cc * 2 * 4 ||
-    q.primitiveIndices.byteLength !== pc * 4
+    !(cellTable instanceof Float32Array) ||
+    !(primitiveIndices instanceof Float32Array) ||
+    cellTable.byteLength !== cc * 2 * 4 ||
+    primitiveIndices.byteLength !== pc * 4
   ) {
     return false;
   }
   if (pc < 0 || cc < 0 || cs < 0) return false;
   if (pc === 0 && cc !== 0) return false;
   if (pc > 0 && cc === 0) return false;
-  if (min === undefined || max === undefined || typeof min?.x !== "number" || typeof min?.y !== "number" || typeof min?.z !== "number" || typeof max?.x !== "number" || typeof max?.y !== "number" || typeof max?.z !== "number") return false;
-  if (dims === undefined || typeof dims?.x !== "number" || typeof dims?.y !== "number" || typeof dims?.z !== "number") return false;
-  if (pc > 0 && q.cellTable.byteLength !== cc * 2 * 4) return false;
-  if (pc > 0 && q.primitiveIndices.byteLength !== pc * 4) return false;
-
-  // Check bounds
-  if (typeof min?.x !== "number" || typeof min?.y !== "number" || typeof min?.z !== "number" ||
-      typeof max?.x !== "number" || typeof max?.y !== "number" || typeof max?.z !== "number") return false;
-
-  // Check dimensions
-  if (typeof dims?.x !== "number" || typeof dims?.y !== "number" || typeof dims?.z !== "number") return false;
+  if (!isNumericVec3(min) || !isNumericVec3(max) || !isNumericVec3(dims)) return false;
+  if (typeof q.maxRadius !== "number" || !Number.isFinite(q.maxRadius)) return false;
 
   // Check cellTable entries (start offset + count)
   for (let i = 0; i < cc; i++) {
-    const start = q.cellTable[2 * i];
-    const count = q.cellTable[2 * i + 1];
-    if (typeof start !== "number" || typeof count !== "number" || start < 0 || start + count > pc) return false;
+    const start = cellTable[2 * i];
+    const count = cellTable[2 * i + 1];
+    if (!Number.isFinite(start) || !Number.isFinite(count) || start < 0 || count < 0 || start + count > pc) return false;
   }
 
   // Check primitive indices: in-range, no duplicates
   if (pc > 0) {
     const seen = new Set<number>();
     for (let i = 0; i < pc; i++) {
-      const idx = q.primitiveIndices[i];
-      if (typeof idx !== "number" || idx < 0 || idx >= pc || seen.has(idx)) return false;
+      const idx = primitiveIndices[i];
+      if (!Number.isFinite(idx) || idx < 0 || idx >= pc || !Number.isInteger(idx) || seen.has(idx)) return false;
       seen.add(idx);
     }
   }
 
   return true;
+}
+
+function isNumericVec3(value: unknown): value is { x: number; y: number; z: number } {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.x === "number" && Number.isFinite(record.x) &&
+    typeof record.y === "number" && Number.isFinite(record.y) &&
+    typeof record.z === "number" && Number.isFinite(record.z)
+  );
 }

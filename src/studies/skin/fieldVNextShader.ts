@@ -16,6 +16,9 @@
  * - No neighbour / radius expansion in this phase.
  * - Parity with legacy shader for <=256 points is the acceptance target.
  */
+import type { FieldGpuCapabilities } from './fieldGpuCapabilities.ts';
+import type { FieldGpuPayload } from './fieldGpuPayload.ts';
+
 export type VNextShaderEval = {
   /** Signed distance at the sample point */
   sdf: number;
@@ -43,6 +46,7 @@ export function evaluateVNextShader(
   payload: FieldGpuPayload,
   caps?: FieldGpuCapabilities,
 ): VNextShaderEval {
+  void caps;
   // Determine primitive count from payload
   const N = payload.primitiveCount;
 
@@ -81,44 +85,14 @@ export function evaluateVNextShader(
     const mOff = i * 4;
     const mp = payload.metadata[mOff + 0]; // patchIndex
     const ms = payload.metadata[mOff + 1]; // shapeCode
-    const mp2 = payload.metadata[mOff + 2]; // pointIndex (unused in eval)
-    // const mr = payload.metadata[mOff + 3]; // reserved
-
-    // Shape code decoding (matches Phase 2A/2B conventions)
-    // coin=0, flatRing=1, ring3d=2, flower=3
-    const shape: "coin" | "flatRing" | "ring3d" | "flower" =
-      ms === 0 ? "coin" :
-      ms === 1 ? "flatRing" :
-      ms === 2 ? "ring3d" :
-      ms === 3 ? "flower" : "coin";
-
-    // Radius for SDF computation
-    const r = gr;
-
-    // Position of this primitive's center
-    const p = { x: gx, y: gy, z: gz };
 
     // === Legacy shader math (mirrored exactly) ===
 
     // Helper: smooth minimum
     function smoothMinG(a: number, b: number, k: number): number {
       if (k <= 0.0) return Math.min(a, b);
-      const h = Math.clamp(0.5 + 0.5 * (b - a) / k, 0, 1);
-      return Math.mix(b, a, h) - k * h * (1 - h);
-    }
-
-    // Helper: smooth subtraction
-    function smoothSub(a: number, b: number, k: number): number {
-      if (k <= 0.0) return Math.max(-a, b);
-      const h = Math.clamp(0.5 - 0.5 * (b + a) / k, 0, 1);
-      return Math.mix(b, -a, h) + k * h * (1 - h);
-    }
-
-    // Helper: smooth intersection
-    function smoothIntersection(a: number, b: number, k: number): number {
-      if (k <= 0.0) return Math.max(a, b);
-      const h = Math.clamp(0.5 - 0.5 * (b - a) / k, 0, 1);
-      return Math.mix(b, a, h) + k * h * (1 - h);
+      const h = Math.max(0, Math.min(1, 0.5 + 0.5 * (b - a) / k));
+      return b + (a - b) * h - k * h * (1 - h);
     }
 
     // === Field primitive SDF ===
@@ -137,13 +111,6 @@ export function evaluateVNextShader(
     // === Patch field: union of sphere SDFs ===
     // In the legacy shader, patchField iterates over all patch points
     // and does smoothMinG. Here we do the same.
-    let patchSdf = 1e5;
-    let anyHit = false;
-
-    // Determine if this is a flat (coin/flatRing) or raised (ring3d/flower)
-    // patch group based on shapeCode
-    const isFlatGroup = ms < 2; // coin(0) and flatRing(1) are flat
-
     // For the shadow lab, we evaluate each primitive individually.
     // The legacy shader has more complex grouping (coinBulge, etc.),
     // but the shadow lab's immediate goal is to prove 257+ rendering

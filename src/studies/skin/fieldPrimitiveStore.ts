@@ -1,4 +1,4 @@
-import { Patch, PatchShape, PatchPoint } from "./field.ts";
+import { Patch, PatchShape } from "./field.ts";
 
 /**
  * A portable, uncapped FIELD-preview primitive.
@@ -173,12 +173,12 @@ export function isValidFieldPrimitive(p: unknown): p is FieldPrimitive {
   if (
     typeof pos !== "object" ||
     pos === null ||
-    typeof pos.x !== "number" ||
-    typeof pos.y !== "number" ||
-    typeof pos.z !== "number" ||
-    !isFinite(pos.x) ||
-    !isFinite(pos.y) ||
-    !isFinite(pos.z)
+    typeof (pos as Record<string, unknown>).x !== "number" ||
+    typeof (pos as Record<string, unknown>).y !== "number" ||
+    typeof (pos as Record<string, unknown>).z !== "number" ||
+    !Number.isFinite((pos as Record<string, unknown>).x as number) ||
+    !Number.isFinite((pos as Record<string, unknown>).y as number) ||
+    !Number.isFinite((pos as Record<string, unknown>).z as number)
   ) {
     return false;
   }

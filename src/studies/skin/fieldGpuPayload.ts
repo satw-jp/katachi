@@ -22,6 +22,9 @@
  * - Row-major layout: width = min(maxTextureSize, max(1, primitiveCount)),
  *   height = ceil(primitiveCount / width).
  */
+import type { PatchShape } from "./field.ts";
+import type { FieldPrimitive } from "./fieldPrimitiveStore.ts";
+
 export type FieldGpuPayload = {
   /** Number of primitives packed (exact; may be 0) */
   primitiveCount: number;
@@ -43,7 +46,7 @@ export type FieldGpuPayload = {
 export type PatchShapeCode = 0 | 1 | 2 | 3;
 
 /** Shape code mapping – vNext only; does NOT affect legacy shader encoding. */
-export const GpuShapeCode: Record<PatchShapeKind, PatchShapeCode> = {
+export const GpuShapeCode: Record<PatchShape, PatchShapeCode> = {
   coin: 0,
   flatRing: 1,
   ring3d: 2,
@@ -51,7 +54,7 @@ export const GpuShapeCode: Record<PatchShapeKind, PatchShapeCode> = {
 };
 
 /** Decode a vNext GPU shape code back to PatchShapeKind. */
-export const GpuShapeDecode: Record<PatchShapeCode, PatchShapeKind> = {
+export const GpuShapeDecode: Record<PatchShapeCode, PatchShape> = {
   0: "coin",
   1: "flatRing",
   2: "ring3d",
@@ -59,12 +62,12 @@ export const GpuShapeDecode: Record<PatchShapeCode, PatchShapeKind> = {
 };
 
 /** Encode PatchShape → GPU shape code. */
-export function encodeGpuShapeCode(shape: PatchShapeKind): PatchShapeCode {
+export function encodeGpuShapeCode(shape: PatchShape): PatchShapeCode {
   return GpuShapeCode[shape];
 }
 
 /** Decode GPU shape code → PatchShapeKind (throws if unknown). */
-export function decodeGpuShapeCode(code: PatchShapeCode): PatchShapeKind {
+export function decodeGpuShapeCode(code: PatchShapeCode): PatchShape {
   return GpuShapeDecode[code];
 }
 
@@ -104,20 +107,11 @@ export function packFieldGpuPayload(
   const geometry = new Float32Array(texelCount * 4);
   const metadata = new Float32Array(texelCount * 4);
 
-  // Shape code lookup
-  const shapeCodeMap: Record<string, PatchShapeCode> = {
-    coin: 0,
-    flatRing: 1,
-    ring3d: 2,
-    flower: 3,
-  };
-
   // Pack each primitive
   for (let i = 0; i < primitiveCount; i++) {
     const prim = primitives[i];
 
     // Geometry texel offset
-    const geoOffset = (i * 4) & 0x3; // i*4 modulo 4, but we use linear index
     const geoBase = i * 4;
     geometry[geoBase + 0] = prim.position.x;
     geometry[geoBase + 1] = prim.position.y;
@@ -127,17 +121,9 @@ export function packFieldGpuPayload(
     // Metadata texel
     const metaBase = i * 4;
     metadata[metaBase + 0] = prim.patchIndex; // owner = patchIndex
-    metadata[metaBase + 1] = shapeCodeMap[prim.shape] ?? 0; // shape code
+    metadata[metaBase + 1] = encodeGpuShapeCode(prim.shape); // shape code
     metadata[metaBase + 2] = prim.pointIndex; // point index
     metadata[metaBase + 3] = 0; // reserved
-  }
-
-  // Pad remaining texels with zeros (deterministic, never count as primitives)
-  for (let i = primitiveCount; i < texelCount; i++) {
-    const base = i * 4;
-    // geometry already zero-initialized via Float32Array constructor
-    // metadata already zero-initialized via Float32Array constructor
-    // Just ensure we don't write beyond – the arrays are already correct size
   }
 
   return {

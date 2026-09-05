@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { FieldGpuPayload } from "./fieldGpuPayload.ts";
-import { probeFieldGpuCapabilities, assessFieldGpuPayload } from "./fieldGpuCapabilities.ts";
+import type { FieldGpuPayload } from "./fieldGpuPayload.ts";
+import type { FieldGpuCapabilities } from "./fieldGpuCapabilities.ts";
 
 /**
  * Resources created from a FieldGpuPayload and a WebGL context.
@@ -71,7 +71,7 @@ export function createFieldGpuTextures(
   // Create geometry texture: RGBA float, stores position.xyz + radius
   const geometryData = payload.geometry;
   const geometryTex = new THREE.DataTexture(
-    geometryData,
+    geometryData as unknown as BufferSource,
     payload.width,
     payload.height,
     THREE.RGBAFormat,
@@ -87,7 +87,7 @@ export function createFieldGpuTextures(
   // Create metadata texture: RGBA float, stores patchIndex, shapeCode, pointIndex, reserved
   const metadataData = payload.metadata;
   const metadataTex = new THREE.DataTexture(
-    metadataData,
+    metadataData as unknown as BufferSource,
     payload.width,
     payload.height,
     THREE.RGBAFormat,
