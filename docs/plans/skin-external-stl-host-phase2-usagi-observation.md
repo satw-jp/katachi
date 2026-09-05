@@ -36,18 +36,20 @@ size = ( 6.447234,  5.535820,  7.283705)
 
 The lab required an explicit interpretation before activating the metric Host. The browser-gate candidate used for characterization was:
 
-- `mmPerSourceUnit = 10` — explicit candidate only; author acceptance is pending
+- `mmPerSourceUnit = 10` — explicit characterization candidate only; this was not a final author scale decision
 - up-axis: `+Y`
 - handedness: `right`
 - instance transform: identity
 
-Interpreted bounds, in millimetres:
+Interpreted bounds for that characterization candidate, in millimetres:
 
 ```text
 min = (-23.650458, -7.963584, -19.986558)
 max = ( 40.821886, 47.394619,  52.850490)
-size = ( 64.472344, 55.358203,  72.837048)
+size = ( 64.472344, 55.358203, 72.837048)
 ```
+
+This Phase 2 metric interpretation was used only to exercise the runtime Host and diagnostics. It does not collapse source-unit interpretation and author-controlled instance scale into one number.
 
 ## C. Topology characterization
 
@@ -74,7 +76,7 @@ The result is therefore a single-component, consistently oriented, non-manifold-
 - `>45°`: `13` (`0.00424%`)
 - `>60°`: `7` (`0.00228%`)
 
-Phase 2 policy evidence is `GEOMETRIC candidate`: the distribution is overwhelmingly low-angle, while a very small set of local transitions reaches 90°. No smoothing or motif-normal substitution was introduced. Phase 3 must inspect whether those local transitions coincide with authorial motif boundaries before choosing a final normal policy.
+Phase 2 policy evidence is `GEOMETRIC candidate`: the distribution is overwhelmingly low-angle, while a very small set of local transitions reaches 90°. No smoothing or motif-normal substitution was introduced. The later V6 adapter must inspect whether those local transitions coincide with authorial motif boundaries before choosing a final placement-normal policy.
 
 ## E. Host query and browser gate
 
@@ -88,4 +90,37 @@ The external Host lab ran deterministic probes against the interpreted instance:
 
 ## F. Scope boundary
 
-This is characterization only. No persistence, FKEI placement, V6 placement, shell generation, BODY generation, FIELD integration, or STL Host Phase 3 work was performed.
+This is characterization only. No persistence, FKEI placement, V6 placement, shell generation, BODY generation, FIELD integration, permanent structure or support work was performed.
+
+## G. Post-Phase-2 author premise — reference instance scale
+
+After the characterization gate, the author clarified the current physical-reference usage of this rabbit in Bambu Studio:
+
+```text
+uniform 2000% = 20.0x
+```
+
+This must be represented as **Host Instance `uniformScale = 20.0`**, not baked into the original STL and not folded into `mmPerSourceUnit`.
+
+The authoritative separation is therefore:
+
+```text
+Original Source Asset
+- exact rabbit STL bytes
+- source hash
+- raw source bounds
+
+Source Interpretation
+- explicit mmPerSourceUnit
+- up-axis / handedness
+
+Host Instance
+- position
+- rotation
+- uniformScale
+- current rabbit reference scale = 20.0
+```
+
+All future surface queries, optional signed-volume queries, Motif placement and diagnostics must use the same effective Host Instance transform. No auto-normalization is allowed.
+
+This clarification does not change the Phase 2 topology finding: the source remains `OPEN` with 21 boundary edges, so Surface Host is available while trusted Signed Volume Host remains unavailable until a later explicit validation/repair decision.
