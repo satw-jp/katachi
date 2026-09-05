@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SKIN · Astra candidate physical comparison</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #10161b; color: #edf3f6; }
+      body { margin: 0; } #app { display: grid; grid-template-columns: 410px 1fr; min-height: 100vh; }
+      aside { padding: 18px; background: #192128; border-right: 1px solid #34414a; overflow: auto; } main { padding: 18px; overflow: auto; }
+      h1 { font-size: 18px; margin: 0 0 8px; } h2 { font-size: 12px; color: #a8d3df; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .08em; }
+      p, label, button, input, td, th { font-size: 12px; } p { color: #b9c5cb; line-height: 1.45; }
+      button, input { box-sizing: border-box; width: 100%; border: 1px solid #4b5b64; border-radius: 4px; background: #10161a; color: #edf3f6; padding: 7px; margin: 4px 0; } button { cursor: pointer; background: #284b5a; } button:disabled { opacity: .45; cursor: not-allowed; }
+      label { display: block; margin: 8px 0; } .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .meta { white-space: pre-wrap; word-break: break-word; font: 11px/1.45 ui-monospace, monospace; color: #cbd7dc; background: #10161a; border: 1px solid #2c3941; border-radius: 4px; padding: 9px; } .status { color: #91dda0; min-height: 18px; } .error { color: #ff9e9e; }
+      .candidate { border: 1px solid #34414a; padding: 8px; margin: 8px 0; border-radius: 4px; } .candidate span { color: #b9c5cb; } .row-status { display: block; color: #91dda0 !important; word-break: break-word; } table { width: 100%; border-collapse: collapse; min-width: 900px; } th, td { border: 1px solid #34414a; padding: 7px; vertical-align: top; text-align: left; } th { color: #cfeaf2; background: #192128; } main h2 { margin-top: 0; }
+      @media (max-width: 900px) { #app { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid #34414a; } }
+    </style>
+  </head>
+  <body><div id="app"></div><script type="module" src="/src/studies/skin/astraCandidatePrintLaneLab.ts"></script></body>
+</html>

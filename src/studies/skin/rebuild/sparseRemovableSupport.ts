@@ -25,6 +25,7 @@ export interface SparseRemovableSupportFace {
 export type SparseSupportRouteKind = "vertical" | "leaning";
 export type SparseSupportRejectReason =
   | "body"
+  | "forbidden"
   | "spacing"
   | "removability"
   | "unsupported"
@@ -120,6 +121,8 @@ export interface SparseRemovableSupportDiagnostics {
   unsupportedTargetCount: number;
   generatedSupportCount: number;
   rejectedByBody: number;
+  /** Routes rejected by an independent forbidden-volume SDF. */
+  rejectedByForbiddenVolume: number;
   rejectedBySpacing: number;
   rejectedByRemovability: number;
   /** Stage 4 Inside faces never enter this builder. */
@@ -136,6 +139,8 @@ export interface SparseRemovableSupportDiagnostics {
    * export-gate fact must remain zero; rejected candidate routes are counted
    * separately by rejectedByBody. */
   acceptedBodyCollisionCount: 0;
+  /** Explicit export-gate fact for the independent forbidden volume. */
+  acceptedForbiddenCollisionCount: 0;
   /** Explicitly a finite diagnostic, never a print-success claim. */
   experimental: true;
   removalGap: number;
@@ -208,6 +213,15 @@ export interface SparseRemovableSupportRequest {
    * is checked independently of targetSdf; it is never inferred by
    * subtracting targetSdf from bodySdf. */
   otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  /** Existing callers remain patch-owned. Imported artwork uses the additive
+   * single-body policy and permits ownerPatchId=-1 without inventing a Patch. */
+  contactPolicy?: "patch-owned" | "single-body";
+  /** Independent signed-distance keep-out, negative inside. The capsule
+   * radius is included in the gate; this is never folded into bodySdf. */
+  forbiddenSdf?: (x: number, y: number, z: number) => number;
+  /** Additional common clearance outside the forbidden volume, in mm/source
+   * units after the caller's explicit transform. */
+  forbiddenClearanceMm?: number;
   /** Source-unit spacing between accepted support capsules. */
   removalGap?: number;
   /** Physical gap convenience input. Requires scaleMmPerUnit. */
@@ -497,6 +511,9 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   bodySdf?: (x: number, y: number, z: number) => number;
   targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
+  contactPolicy: "patch-owned" | "single-body";
+  forbiddenSdf?: (x: number, y: number, z: number) => number;
+  forbiddenClearanceMm: number;
   removalGap: number;
   neckLength: number;
   lowStartBand: number;
@@ -550,6 +567,9 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     bodySdf: input.bodySdf,
     targetSdf: input.targetSdf,
     otherBodySdf: input.otherBodySdf,
+    contactPolicy: input.contactPolicy === "single-body" ? "single-body" : "patch-owned",
+    forbiddenSdf: input.forbiddenSdf,
+    forbiddenClearanceMm: input.forbiddenClearanceMm ?? 0,
     removalGap,
     neckLength,
     lowStartBand,
@@ -576,7 +596,8 @@ function validNormalizedRequest(request: ReturnType<typeof normalizeRequest>): b
     && finite(request.coverageRadius) && request.coverageRadius >= 0
     && finite(request.targetRadius) && request.targetRadius >= 0
     && finite(request.maximumOverlapLength) && request.maximumOverlapLength >= 0
-    && finite(request.maximumDepth) && request.maximumDepth >= 0;
+    && finite(request.maximumDepth) && request.maximumDepth >= 0
+    && finite(request.forbiddenClearanceMm) && request.forbiddenClearanceMm >= 0;
 }
 
 function candidateTargetId(regionId: number, index: number): string {
@@ -592,7 +613,7 @@ function candidateTargetId(regionId: number, index: number): string {
  */
 export function extractSparseRemovableSupportTargets(
   faces: readonly SparseRemovableSupportFace[],
-  options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion">,
+  options: Pick<SparseRemovableSupportRequest, "shaftRadius" | "removalGap" | "lowStartBand" | "maxCandidatesPerRegion" | "contactPolicy">,
 ): {
   targets: SparseRemovableSupportTarget[];
   rawCandidateCount: number;
@@ -610,7 +631,8 @@ export function extractSparseRemovableSupportTargets(
   for (const face of faces) {
     if (!Number.isInteger(face.regionId) || face.regionId < 0) continue;
     representedRegionIds.add(face.regionId);
-    if (!Number.isInteger(face.ownerPatchId) || face.ownerPatchId < 0) {
+    if (options.contactPolicy !== "single-body"
+      && (!Number.isInteger(face.ownerPatchId) || face.ownerPatchId < 0)) {
       if (finitePoint(face.position)) unownedCandidateCount++;
       continue;
     }
@@ -911,8 +933,16 @@ function auditCapsuleAgainstBody(
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
 ): SparseSupportRouteAudit {
+  const forbiddenAudit = auditCapsuleAgainstForbiddenVolume(segment, request);
+  if (!forbiddenAudit.accepted) return forbiddenAudit;
   if (!bodySdf) return { accepted: false, reason: "body", detail: "authoritative finished BODY SDF is unavailable", sampleCount: 0 };
-  if (terminal && (!request.targetSdf || !request.otherBodySdf)) {
+  const targetSdf = request.targetSdf ?? (request.contactPolicy === "single-body"
+    ? (_target: SparseRemovableSupportTarget, x: number, y: number, z: number) => bodySdf(x, y, z)
+    : undefined);
+  const otherBodySdf = request.otherBodySdf ?? (request.contactPolicy === "single-body"
+    ? (_target: SparseRemovableSupportTarget, _x: number, _y: number, _z: number) => 1_000_000
+    : undefined);
+  if (terminal && (!targetSdf || !otherBodySdf)) {
     return { accepted: false, reason: "body", detail: "terminal owner-target and non-owner BODY SDFs are unavailable", sampleCount: 0 };
   }
   const routeLength = distance(segment.start, segment.end);
@@ -945,8 +975,8 @@ function auditCapsuleAgainstBody(
     try {
       bodyDistance = bodySdf(point.x, point.y, point.z);
       if (terminal) {
-        targetDistance = request.targetSdf!(target, point.x, point.y, point.z);
-        otherBodyDistance = request.otherBodySdf!(target, point.x, point.y, point.z);
+        targetDistance = targetSdf!(target, point.x, point.y, point.z);
+        otherBodyDistance = otherBodySdf!(target, point.x, point.y, point.z);
       }
     } catch {
       return null;
@@ -1013,7 +1043,7 @@ function auditCapsuleAgainstBody(
     // lower bound straddles the radius threshold. Exhaustion still returns a
     // collision region (or an unsupported proof failure below), never an
     // uncertain acceptance.
-    if (!terminal || !request.targetSdf || !request.otherBodySdf || !finite(targetEndpointAllowance)
+    if (!terminal || !targetSdf || !otherBodySdf || !finite(targetEndpointAllowance)
       || targetEndpointAllowance < -1e-7) {
       // A sampled endpoint already inside the radius is a witnessed contact;
       // it does not need adaptive subdivision and remains a hard rejection.
@@ -1112,6 +1142,68 @@ function auditCapsuleAgainstBody(
     return { accepted: false, reason: "body", detail: "terminal overlap exceeds finite contact bounds", sampleCount };
   }
   return { accepted: true, detail: "terminal BODY contact is finite and target-attributed", sampleCount };
+}
+
+/**
+ * Audit an independent signed-distance keep-out with the same bounded,
+ * fail-closed one-Lipschitz subdivision used by the BODY gate.  The SDF is
+ * evaluated at the support centreline, while the capsule radius and common
+ * clearance form the required threshold.
+ */
+function auditCapsuleAgainstForbiddenVolume(
+  segment: SparseSupportRouteSegment,
+  request: ReturnType<typeof normalizeRequest>,
+): SparseSupportRouteAudit {
+  if (!request.forbiddenSdf) return { accepted: true, detail: "no forbidden volume configured", sampleCount: 0 };
+  if (!finite(request.forbiddenClearanceMm) || request.forbiddenClearanceMm < 0) {
+    return { accepted: false, reason: "forbidden", detail: "forbidden clearance is invalid", sampleCount: 0 };
+  }
+  const routeLength = distance(segment.start, segment.end);
+  if (!(routeLength > EPSILON) || !finitePoint(segment.start) || !finitePoint(segment.end)) {
+    return { accepted: false, reason: "forbidden", detail: "forbidden-volume segment is non-finite", sampleCount: 0 };
+  }
+  const maximumStep = Math.max(segment.radius * 0.2, 1e-5);
+  const intervals = Math.max(2, Math.ceil(routeLength / maximumStep));
+  if (intervals > MAX_INTERVALS) {
+    return { accepted: false, reason: "forbidden", detail: "forbidden-volume subdivision budget exhausted", sampleCount: 0 };
+  }
+  const threshold = segment.radius + request.forbiddenClearanceMm + 1e-7;
+  let sampleCount = 0;
+  const values = new Map<number, number>();
+  const evaluateAt = (t: number): number | null => {
+    const cached = values.get(t);
+    if (cached !== undefined) return cached;
+    if (!finite(t) || t < 0 || t > 1 || sampleCount >= MAX_ADAPTIVE_SAMPLES) return null;
+    const point = lerp(segment.start, segment.end, t);
+    let value: number;
+    try { value = request.forbiddenSdf!(point.x, point.y, point.z); } catch { return null; }
+    sampleCount++;
+    if (!finite(value)) return null;
+    values.set(t, value);
+    return value;
+  };
+  const certify = (t0: number, t1: number, first: number, second: number, depth: number): boolean => {
+    const lower = oneLipschitzLowerBound(first, second, routeLength * (t1 - t0));
+    if (!finite(lower)) return false;
+    if (lower > threshold) return true;
+    if (first <= threshold || second <= threshold || depth >= MAX_ADAPTIVE_DEPTH) return false;
+    const midpoint = (t0 + t1) * 0.5;
+    if (!(midpoint > t0) || !(midpoint < t1)) return false;
+    const middle = evaluateAt(midpoint);
+    return middle !== null
+      && certify(t0, midpoint, first, middle, depth + 1)
+      && certify(midpoint, t1, middle, second, depth + 1);
+  };
+  for (let index = 0; index < intervals; index++) {
+    const t0 = index / intervals;
+    const t1 = (index + 1) / intervals;
+    const first = evaluateAt(t0);
+    const second = evaluateAt(t1);
+    if (first === null || second === null || !certify(t0, t1, first, second, 0)) {
+      return { accepted: false, reason: "forbidden", detail: "support capsule enters or cannot certify clearance from forbidden volume", sampleCount };
+    }
+  }
+  return { accepted: true, detail: "forbidden-volume capsule keep-out clear", sampleCount };
 }
 
 /** Focused pure audit entry point used by the sparse regression fixtures. It
@@ -1231,6 +1323,7 @@ export function buildSparseRemovableSupport(
   const routeAttempts: SparseRemovableSupportDebug["routeAttempts"] = [];
   const rejectedCollisionRoutes: SparseRemovableSupportDebug["rejectedCollisionRoutes"] = [];
   let rejectedByBody = 0;
+  let rejectedByForbiddenVolume = 0;
   let rejectedBySpacing = 0;
   let rejectedByRemovability = extracted.unownedCandidateCount;
   let verticalCount = 0;
@@ -1245,6 +1338,7 @@ export function buildSparseRemovableSupport(
   // but cannot be given a target contact field. Keep these debug facts bounded
   // and deterministic while ensuring no route is attempted.
   for (const face of request.projectedOutsideFaces) {
+    if (request.contactPolicy === "single-body") continue;
     if (!Number.isInteger(face.regionId) || face.regionId < 0
       || (Number.isInteger(face.ownerPatchId) && face.ownerPatchId >= 0)
       || !finitePoint(face.position)) continue;
@@ -1372,6 +1466,7 @@ export function buildSparseRemovableSupport(
       continue;
     }
     if (bodyFailure) rejectedByBody++;
+    if (attempts.some((attempt) => attempt.reason === "forbidden")) rejectedByForbiddenVolume++;
     if (spacingFailure) rejectedBySpacing++;
     if (removabilityFailure || (!bodyFailure && !spacingFailure)) rejectedByRemovability++;
     const lastAttempt = attempts[attempts.length - 1];
@@ -1418,6 +1513,7 @@ export function buildSparseRemovableSupport(
     unsupportedTargetCount,
     generatedSupportCount: acceptedRoutes.length,
     rejectedByBody,
+    rejectedByForbiddenVolume,
     rejectedBySpacing,
     rejectedByRemovability,
     insideDerivedSupportCount: 0,
@@ -1427,6 +1523,7 @@ export function buildSparseRemovableSupport(
     straightRejectedByBody,
     offsetBendCount,
     acceptedBodyCollisionCount: 0,
+    acceptedForbiddenCollisionCount: 0,
     experimental: true,
     removalGap: request.removalGap,
     shaftRadius: request.shaftRadius,

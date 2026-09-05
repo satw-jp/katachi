@@ -84,6 +84,7 @@ export default defineConfig(({ mode }) => ({
         tangle: "tangle.html",
         externalStlHostLab: "skin-external-stl-host-lab.html",
         externalStlHostV6: "skin-external-stl-host-v6.html",
+        astraCandidatePrintLane: "skin-astra-candidate-print-lane.html",
         flowerPackingSpike: "flower-packing-spike.html",
         flowerFormSpike: "flower-form-spike.html",
         flowerCoreNetwork: "flower-core-network.html",
