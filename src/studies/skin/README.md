@@ -1,5 +1,9 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN FIELD vNext Legacy semantic parity（2026-09-05）
+
+FIELD vNextに、Legacy `field.ts` の host / shell / smooth boolean、plate / window、coin / flatRing / ring3d / flowerの形状分岐、patch順序・owner、coinBulgeとcoinBulgeBalanceを、uncapped `FieldGpuPayload` のrow-major順序から評価する純粋なsemantic evaluatorを追加した。独立比較は空payload、混在shape、hard / smooth union、coinBulge balance -1 / intermediate / 0 / +1、windowのcoinBulge無効化、所有権・順序、255 / 256点を実行した。Float32 payloadを含む明示的tolerance `1e-5` に対し、全サンプル mismatch 0、最大絶対誤差 `8.951646734978169e-8`、平均絶対誤差は各caseで `3.1e-8` 未満だった。focused FIELD tests、両tsc、build、diff checkを通し、production renderer / shaders、FKEI、export、Support、Golden、Spatial Gridは変更・有効化していない。これはLegacy semantic parityの証拠であり、Golden統合、STL、実物印刷の証拠ではない。
+
 ## Observation — SKIN FIELD vNext Browser Gate（2026-09-05）
 
 Shadow Labを、shader内のsentinel判定をDOMへ推測転記する方式から、1×1 `WebGLRenderTarget`へ描画して`readRenderTargetPixels()`でCPUが読む方式へ修正した。最終`FieldPrimitive`のpatchIndex、shapeCode、radiusをJavaScript側の実データからuniformへ渡し、geometry / metadataの両方が同一のrow-major texel UVを使う。Windows Chromeの実ブラウザでWebGL capability、CPU packed、GPU patchIndex / shapeCode / radius、GPU last-texel fetch、Browser Gateを64 / 256 / 257 / 512 / 1024 / 2048の全件でPASS確認した。257は256×2、1024は256×4、2048は256×8となり、コンソールのerror / warningは0だった。これはDataTextureのCPU/GPUデータ経路と境界readbackの証拠であり、Legacy FIELD semantic parity、production rendererへの切替、Spatial Gridの有効化、Golden統合、実物印刷の証拠ではない。

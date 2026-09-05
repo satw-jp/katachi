@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.93.1",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-03",
+  "updatedAt": "2026-09-05",
   "params": [
     "count",
     "radiusBase",
@@ -81,6 +81,10 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-09-05",
+      "note": "SKIN FIELD vNext Legacy semantic parity: a pure payload-driven evaluator now mirrors Legacy field.ts host/shell, smooth booleans, plate/window, coin/flatRing/ring3d/flower grouping, canonical point order and owner slots, coinBulge and coinBulgeBalance. Deterministic comparisons cover empty payload, mixed shapes, hard/smooth union, balances -1/intermediate/0/+1, window coinBulge invariance and 255/256 points. With explicit tolerance 1e-5, all samples have mismatchCount=0; maximum absolute error is 8.951646734978169e-8. Focused FIELD tests, both TypeScript checks, build and diff check pass. Production renderer/shaders, FKEI/export/Support, Golden and Spatial Grid remain untouched or disabled; no Golden or physical-print claim is made."
+    },
     {
       "date": "2026-09-05",
       "note": "SKIN FIELD vNext Browser Gate: Shadow Lab now renders a minimal sentinel shader to a 1x1 WebGLRenderTarget and verifies the GPU result with readRenderTargetPixels(), using the final FieldPrimitive values as expected uniforms and one shared row-major UV for geometry and metadata. Windows Chrome real-browser evidence passed CPU packed, GPU patchIndex, shapeCode, radius, last-texel fetch and Browser Gate for 64 / 256 / 257 / 512 / 1024 / 2048 (257=256x2, 1024=256x4, 2048=256x8), with no console errors or warnings. This closes the DataTexture boundary-readback gate only; Legacy semantic parity, production renderer switch, Spatial Grid activation, Golden integration and physical print remain out of scope."
