@@ -1,5 +1,11 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN FIELD vNext Controlled Golden Integration（2026-09-05）
+
+Goldenの実FIELD viewportに、session-only・default Legacyの`Legacy / vNext`選択を追加した。vNextは同じPatch / Host stateから`FieldPrimitiveStore → FieldGpuPayload → geometry / metadata DataTexture`を作り、uncapped primitive順序と`patchIndex` ownerを保ったままsemantic GPU shaderへ渡す。WebGL2 / float-texture / texture-unit / payload容量を起動時と切替時に確認し、非対応・resource failureは理由付きでLegacyへfail-safe fallbackする。vNextのDataTexture、quad、materialは切替とpagehideで明示disposeし、Spatial Gridは使用しない。
+
+Windows Chromeの実Golden Case A（418 patches / 10,450 primitives）でFIELD UIをLegacyからvNextへ切替え、257 / 512 / 1024 / 2048 primitive境界を同じGolden lifecycleの実viewportで表示確認し、2048でLegacy↔vNextの反復切替も確認した。初期defaultはLegacy、vNextはsemantic full-scan表示、captionは256点Legacy上限との差を明示する。選択・patchIndex identity、authoring/history、FKEI、mesh、export、Support、Spatial Gridはこのdisplay-only切替から変更しない。focused FIELD tests、両tsc、production build、diff checkを通し、今回のdeployとSTL Host作業は行っていない。これはGolden preview integrationの証拠であり、authoring/export/physical-printの証拠ではない。
+
 ## Observation — SKIN FIELD vNext Legacy semantic parity（2026-09-05）
 
 FIELD vNextに、Legacy `field.ts` の host / shell / smooth boolean、plate / window、coin / flatRing / ring3d / flowerの形状分岐、patch順序・owner、coinBulgeとcoinBulgeBalanceを、uncapped `FieldGpuPayload` のrow-major順序から評価する純粋なsemantic evaluatorを追加した。独立比較は空payload、混在shape、hard / smooth union、coinBulge balance -1 / intermediate / 0 / +1、windowのcoinBulge無効化、所有権・順序、255 / 256点を実行した。Float32 payloadを含む明示的tolerance `1e-5` に対し、全サンプル mismatch 0、最大絶対誤差 `8.951646734978169e-8`、平均絶対誤差は各caseで `3.1e-8` 未満だった。focused FIELD tests、両tsc、build、diff checkを通し、production renderer / shaders、FKEI、export、Support、Golden、Spatial Gridは変更・有効化していない。これはLegacy semantic parityの証拠であり、Golden統合、STL、実物印刷の証拠ではない。

@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-05",
+      "note": "SKIN FIELD vNextを実Golden FIELD viewportへcontrolled integrationした。session-onlyでdefault LegacyのLegacy / vNextを選べ、同じPatch / Host stateをFieldPrimitiveStoreからuncapped FieldGpuPayloadへ詰め、geometry / metadata DataTextureとsemantic GPU shaderで表示する。patchIndex owner、plate / window、shape grouping、coinBulge、clipping、選択 identityを保持し、WebGL2 / float texture / texture unit / payload capacityを確認できない場合は理由付きLegacy fallbackへ戻す。vNext material / quad / DataTextureはLegacy切替とpagehideでdisposeし、Spatial Gridは有効化していない。Windows Chrome実Golden Case Aで257 / 512 / 1024 / 2048 primitive境界と2048の反復Legacy↔vNext切替を確認し、focused FIELD tests、両tsc、production build、diff checkを通した。FKEI、authoring/history、mesh、export、Support、STL、実物印刷は変更せず、deployも行っていない。"
+    },
+    {
+      "date": "2026-09-05",
       "note": "SKIN FIELD vNext Legacy semantic parity: a pure payload-driven evaluator now mirrors Legacy field.ts host/shell, smooth booleans, plate/window, coin/flatRing/ring3d/flower grouping, canonical point order and owner slots, coinBulge and coinBulgeBalance. Deterministic comparisons cover empty payload, mixed shapes, hard/smooth union, balances -1/intermediate/0/+1, window coinBulge invariance and 255/256 points. With explicit tolerance 1e-5, all samples have mismatchCount=0; maximum absolute error is 8.951646734978169e-8. Focused FIELD tests, both TypeScript checks, build and diff check pass. Production renderer/shaders, FKEI/export/Support, Golden and Spatial Grid remain untouched or disabled; no Golden or physical-print claim is made."
     },
     {

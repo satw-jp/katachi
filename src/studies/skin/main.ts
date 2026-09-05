@@ -62,7 +62,13 @@ import { proposeNGroups } from "./nPartition.ts";
 import type { NPartitionResult } from "./nPartition.ts";
 import type { NPartitionBuildRequest, NPartitionWorkerMessage } from "./nPartitionWorkerProtocol.ts";
 import { encodeBinaryStl } from "../cloud-sculpt/meshExport.ts";
-import type { DenseSampleView, SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import type {
+  DenseSampleView,
+  FieldPreviewBackend,
+  FieldPreviewBackendStatus,
+  SkinDisplayStyle,
+  SkinViewMode,
+} from "./renderer.ts";
 import {
   createSkinViewportSessionState,
   recommendSkinViewportOverlay,
@@ -2609,6 +2615,11 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     afterMutation({ skipGauges: true });
   },
   onSetViewMode: (mode) => setViewMode(mode, "user"),
+  onSetFieldPreviewBackend: (backend: FieldPreviewBackend) => {
+    const status = skinRenderer.setFieldPreviewBackend(backend);
+    ui.setFieldPreviewBackendStatus(status);
+    render();
+  },
   onSetViewLayer: (layer) => setViewLayer(layer),
   onSetGraphLayerVisibility: (layer, visible) => {
     graphViewLayerVisibility[layer] = visible;
@@ -3137,6 +3148,10 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
   onTutorialRestart: () => tutorialRestart(),
   onTutorialReturnToCurrent: () => tutorialReturnToCurrent(),
 }, { enableViewportOverlayControls: isSkinRebuildApp });
+
+skinRenderer.setFieldPreviewBackendStatusCallback((status: FieldPreviewBackendStatus) => {
+  ui.setFieldPreviewBackendStatus(status);
+});
 
 // View Layers are an always-on authoring control. Keep them in the right
 // upper pane so the presentation switch remains available while the lower
@@ -19941,6 +19956,7 @@ function render(): void {
     state.skinParams.coinBulge,
     state.skinParams.coinBulgeBalance,
   );
+  ui.setFieldPreviewBackendStatus(skinRenderer.getFieldPreviewBackendStatus());
   requestRenderFrame();
 }
 
@@ -19969,6 +19985,7 @@ skinRenderer.setEditorViewChangeCallback(() => {
   refreshBottomStatusPane();
   requestRenderFrame();
 });
+window.addEventListener("pagehide", () => skinRenderer.dispose(), { once: true });
 window.addEventListener("pointermove", () => { if (!supportPaintEnabled) requestRenderFrame(); }, { passive: true });
 window.addEventListener("pointerup", () => { if (!supportPaintEnabled) requestRenderFrame(); }, { passive: true });
 viewport.addEventListener("wheel", (event) => {

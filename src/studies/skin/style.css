@@ -513,6 +513,14 @@
 .viewport-view-layer-toggle button { white-space: nowrap; }
 .viewport-view-toggle button.mode-active { border-color: #8ce7d8; color: #8ce7d8; background: rgba(30,90,82,0.34); }
 .viewport-view-toggle button:disabled { cursor: not-allowed; opacity: .42; }
+.viewport-field-backend-control { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,.2); }
+.viewport-field-backend-control > strong { display: block; margin-bottom: 5px; font-size: 9px; letter-spacing: .08em; }
+.viewport-field-backend-toggle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.035); }
+.viewport-field-backend-toggle button { min-width: 0; padding: 5px 4px; border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.8); background: rgba(0,0,0,.16); font-size: 9px; }
+.viewport-field-backend-toggle button.mode-active { border-color: #8ce7d8; color: #8ce7d8; background: rgba(30,90,82,.3); }
+.viewport-field-backend-status { display: block; margin-top: 4px; color: rgba(255,255,255,.68); font-size: 8px; line-height: 1.35; }
+.viewport-field-backend-status.warn { color: #f4c66b; }
+.viewport-field-backend-hint { display: block; margin-top: 4px; font-size: 8px; line-height: 1.35; }
 .graph-view-panel { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,.2); }
 .graph-view-panel > strong { display: block; margin-bottom: 5px; font-size: 9px; letter-spacing: .08em; }
 .graph-layer-toggle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.035); }
@@ -3844,7 +3852,8 @@ details.mesh-export:not([open]) > :not(summary) {
 }
 
 .viewport-view-toggle,
-.viewport-display-style {
+.viewport-display-style,
+.viewport-field-backend-toggle {
   border-color: var(--hairline);
   background: rgba(28,28,26,.025);
 }
@@ -3853,6 +3862,10 @@ details.mesh-export:not([open]) > :not(summary) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.viewport-field-backend-control > strong { letter-spacing: normal; }
+.viewport-field-backend-status { color: var(--muted); }
+.viewport-field-backend-status.warn { color: #b06a00; }
+.viewport-field-backend-hint { color: var(--muted); }
 
 .viewport-view-layer-toggle button {
   padding-inline: 2px;

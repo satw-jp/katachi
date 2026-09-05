@@ -9,6 +9,19 @@ import * as THREE from "three";
 import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
 import { deriveSkinLayerVisibility, selectedBeadWireScale, type InternalObservationMode } from "./previewMeshBuffers.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_POINTS, fragmentShader, vertexShader } from "./shaders.ts";
+import { fieldVNextFragmentShader, fieldVNextVertexShader } from "./fieldVNextGpuShader.ts";
+import { buildFieldPrimitiveStore } from "./fieldPrimitiveStore.ts";
+import { packFieldGpuPayload, type FieldGpuPayload } from "./fieldGpuPayload.ts";
+import {
+  assessFieldGpuPayload,
+  probeFieldGpuCapabilities,
+  type FieldGpuCapabilities,
+} from "./fieldGpuCapabilities.ts";
+import {
+  createFieldGpuTextures,
+  disposeFieldGpuTextures,
+  type FieldGpuTextureResources,
+} from "./fieldGpuTextures.ts";
 import type { Ball, Patch, SkinMode } from "./field.ts";
 import type { QuadFlowGrid } from "./quadFlow.ts";
 import type { OpeningMeasurement } from "./openingMapWorkerProtocol.ts";
@@ -159,6 +172,14 @@ const RISK_TOP_CANDIDATE_COLOR = 0xffffff;
 export type SkinViewMode = "raymarch" | "beads" | "mesh";
 export type SkinDisplayStyle = "solid" | "ghost";
 export type DenseSampleView = "3d" | "sixViews";
+export type FieldPreviewBackend = "legacy" | "vnext";
+export type FieldPreviewBackendStatus = {
+  requested: FieldPreviewBackend;
+  active: FieldPreviewBackend;
+  available: boolean;
+  reason: string;
+  primitiveCount: number;
+};
 
 interface OpeningLabelDatum {
   id: string;
@@ -349,6 +370,19 @@ export class SkinRenderer {
   private material: THREE.ShaderMaterial;
   private container: HTMLElement;
   private raymarchQuad!: THREE.Mesh;
+  private readonly fieldVNextCapabilities: FieldGpuCapabilities;
+  private fieldPreviewBackend: FieldPreviewBackend = "legacy";
+  private fieldPreviewBackendStatus: FieldPreviewBackendStatus = {
+    requested: "legacy",
+    active: "legacy",
+    available: true,
+    reason: "Legacy FIELD",
+    primitiveCount: 0,
+  };
+  private fieldPreviewBackendStatusCallback: ((status: FieldPreviewBackendStatus) => void) | null = null;
+  private vNextMaterial: THREE.ShaderMaterial | null = null;
+  private vNextQuad: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> | null = null;
+  private vNextTextures: FieldGpuTextureResources | null = null;
   private overlayMaterial!: THREE.MeshStandardMaterial;
   private overlayMesh: THREE.Mesh | null = null;
   private artworkGraphOverlayGroup: THREE.Group | null = null;
@@ -755,9 +789,194 @@ export class SkinRenderer {
     this.updateSelectionHighlight();
   }
 
+  setFieldPreviewBackendStatusCallback(
+    callback: ((status: FieldPreviewBackendStatus) => void) | null,
+  ): void {
+    this.fieldPreviewBackendStatusCallback = callback;
+    callback?.(this.getFieldPreviewBackendStatus());
+  }
+
+  getFieldPreviewBackendStatus(): FieldPreviewBackendStatus {
+    return { ...this.fieldPreviewBackendStatus };
+  }
+
+  setFieldPreviewBackend(requested: FieldPreviewBackend): FieldPreviewBackendStatus {
+    this.fieldPreviewBackendStatus = {
+      ...this.fieldPreviewBackendStatus,
+      requested,
+    };
+    if (requested === "legacy") {
+      this.fieldPreviewBackend = "legacy";
+      this.raymarchQuad.visible = true;
+      this.disposeVNextResources();
+      this.fieldPreviewBackendStatus = {
+        requested,
+        active: "legacy",
+        available: true,
+        reason: "Legacy FIELD",
+        primitiveCount: this.fieldPreviewBackendStatus.primitiveCount,
+      };
+      this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
+      return this.getFieldPreviewBackendStatus();
+    }
+
+    const capabilityReason = this.fieldVNextCapabilityFailureReason();
+    if (capabilityReason) {
+      this.activateLegacyFallback(capabilityReason, this.fieldPreviewBackendStatus.primitiveCount);
+      return this.getFieldPreviewBackendStatus();
+    }
+
+    try {
+      this.ensureVNextMaterial();
+      this.fieldPreviewBackend = "vnext";
+      this.raymarchQuad.visible = false;
+      if (this.vNextQuad) this.vNextQuad.visible = true;
+      this.fieldPreviewBackendStatus = {
+        requested,
+        active: "vnext",
+        available: true,
+        reason: "FIELD vNext semantic DataTexture preview",
+        primitiveCount: this.fieldPreviewBackendStatus.primitiveCount,
+      };
+    } catch (error) {
+      this.activateLegacyFallback(
+        `vNext material unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        this.fieldPreviewBackendStatus.primitiveCount,
+      );
+    }
+    this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
+    return this.getFieldPreviewBackendStatus();
+  }
+
+  private fieldVNextCapabilityFailureReason(): string | null {
+    if (!this.fieldVNextCapabilities.supported) {
+      return this.fieldVNextCapabilities.reasons.length > 0
+        ? this.fieldVNextCapabilities.reasons.join("; ")
+        : "FIELD vNext GPU capability probe failed";
+    }
+    if (!/^WebGL\s+2(?:\.0)?(?:\s|$)/.test(this.fieldVNextCapabilities.webglVersion)) {
+      return "WebGL2 required for the semantic FIELD vNext shader";
+    }
+    return null;
+  }
+
+  private activateLegacyFallback(reason: string, primitiveCount: number): void {
+    this.fieldPreviewBackend = "legacy";
+    this.raymarchQuad.visible = true;
+    this.disposeVNextResources();
+    this.fieldPreviewBackendStatus = {
+      requested: "vnext",
+      active: "legacy",
+      available: false,
+      reason: `vNext unavailable · Legacy fallback: ${reason}`,
+      primitiveCount,
+    };
+    this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
+  }
+
+  private ensureVNextMaterial(): void {
+    if (this.vNextMaterial && this.vNextQuad) return;
+    this.vNextMaterial = new THREE.ShaderMaterial({
+      glslVersion: THREE.GLSL3,
+      vertexShader: fieldVNextVertexShader,
+      fragmentShader: fieldVNextFragmentShader,
+      uniforms: {
+        uGeometry: { value: null },
+        uMetadata: { value: null },
+        uTextureSize: { value: new THREE.Vector2(1, 1) },
+        uPrimitiveCount: { value: 0 },
+        uHostPos: { value: Array.from({ length: HOST_MAX_BALLS }, () => new THREE.Vector3()) },
+        uHostRadius: { value: new Float32Array(HOST_MAX_BALLS) },
+        uHostCount: { value: 0 },
+        uHostK: { value: 0.6 },
+        uThickness: { value: 0.12 },
+        uRoundK: { value: 0.05 },
+        uMode: { value: 0 },
+        uSelectedPatchOwner: { value: -1 },
+        uCoinBulge: { value: 0 },
+        uCoinBulgeBalance: { value: 0 },
+        uCamPos: { value: new THREE.Vector3() },
+        uCamInverseProjection: { value: new THREE.Matrix4() },
+        uCamInverseView: { value: new THREE.Matrix4() },
+        uCameraOrthographic: { value: 1 },
+        uResolution: { value: new THREE.Vector2(1, 1) },
+        uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
+        uClipEnabled: { value: new THREE.Vector3() },
+        uClipPosition: { value: new THREE.Vector3() },
+        uClipDirection: { value: new THREE.Vector3(1, 1, 1) },
+      },
+    });
+    this.vNextQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.vNextMaterial);
+    this.vNextQuad.frustumCulled = false;
+    this.vNextQuad.visible = false;
+    this.scene.add(this.vNextQuad);
+    this.syncVNextClippingUniforms();
+  }
+
+  private syncVNextClippingUniforms(): void {
+    if (!this.vNextMaterial) return;
+    const enabled = this.vNextMaterial.uniforms.uClipEnabled.value as THREE.Vector3;
+    const position = this.vNextMaterial.uniforms.uClipPosition.value as THREE.Vector3;
+    const direction = this.vNextMaterial.uniforms.uClipDirection.value as THREE.Vector3;
+    for (const [index, axis] of VIEWPORT_CLIP_AXES.entries()) {
+      const clip = this.viewportClippingState?.[axis];
+      enabled.setComponent(index, clip?.enabled ? 1 : 0);
+      position.setComponent(index, clip?.position ?? 0);
+      direction.setComponent(index, clip?.direction ?? 1);
+    }
+  }
+
+  private disposeVNextResources(): void {
+    if (this.vNextTextures) {
+      disposeFieldGpuTextures(this.vNextTextures);
+      this.vNextTextures = null;
+    }
+    if (this.vNextQuad) {
+      this.scene.remove(this.vNextQuad);
+      this.vNextQuad.geometry.dispose();
+      this.vNextQuad = null;
+    }
+    if (this.vNextMaterial) {
+      this.vNextMaterial.dispose();
+      this.vNextMaterial = null;
+    }
+  }
+
+  private updateVNextPayload(patches: Patch[]): FieldGpuPayload | null {
+    const capabilityReason = this.fieldVNextCapabilityFailureReason();
+    if (capabilityReason) {
+      this.activateLegacyFallback(capabilityReason, patches.reduce((sum, patch) => sum + patch.points.length, 0));
+      return null;
+    }
+    try {
+      const store = buildFieldPrimitiveStore(patches);
+      const payload = packFieldGpuPayload(store.primitives, Math.max(1, this.fieldVNextCapabilities.maxTextureSize));
+      const assessment = assessFieldGpuPayload(this.fieldVNextCapabilities, payload);
+      if (!assessment.supported) {
+        this.activateLegacyFallback(assessment.reasons.join("; "), payload.primitiveCount);
+        return null;
+      }
+      const resources = createFieldGpuTextures(payload, this.fieldVNextCapabilities);
+      if (payload.primitiveCount > 0 && (!resources.geometryTexture || !resources.metadataTexture)) {
+        this.activateLegacyFallback("DataTexture resources could not be created", payload.primitiveCount);
+        return null;
+      }
+      if (this.vNextTextures) disposeFieldGpuTextures(this.vNextTextures);
+      this.vNextTextures = resources;
+      return payload;
+    } catch (error) {
+      this.activateLegacyFallback(
+        `payload unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        patches.reduce((sum, patch) => sum + patch.points.length, 0),
+      );
+      return null;
+    }
+  }
+
   constructor(container: HTMLElement) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.fieldVNextCapabilities = probeFieldGpuCapabilities(this.renderer.getContext());
     this.renderer.localClippingEnabled = false;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(this.renderer.domElement);
@@ -4914,6 +5133,7 @@ export class SkinRenderer {
     const h = Math.max(1, this.container.clientHeight);
     this.renderer.setSize(w, h);
     this.material.uniforms.uResolution.value.set(w, h);
+    this.vNextMaterial?.uniforms.uResolution.value.set(w, h);
     const pixelRatio = this.renderer.getPixelRatio();
     this.overhangSupportSiteGroup?.traverse((object) => {
       const material = (object as THREE.Points).material as THREE.ShaderMaterial | undefined;
@@ -4975,6 +5195,48 @@ export class SkinRenderer {
     this.material.uniforms.uSelectedPatchOwner.value = selectedOwner;
     this.material.uniforms.uCoinBulge.value = coinBulge;
     this.material.uniforms.uCoinBulgeBalance.value = coinBulgeBalance;
+    const primitiveCount = patches.reduce((sum, patch) => sum + patch.points.length, 0);
+    if (this.fieldPreviewBackend === "vnext") {
+      const payload = this.updateVNextPayload(patches);
+      if (payload && this.vNextMaterial && this.vNextQuad) {
+        const uniforms = this.vNextMaterial.uniforms;
+        const vNextHostPos = uniforms.uHostPos.value as THREE.Vector3[];
+        const vNextHostRadius = uniforms.uHostRadius.value as Float32Array;
+        for (let index = 0; index < nh; index++) {
+          vNextHostPos[index].set(host[index].x, host[index].y, host[index].z);
+          vNextHostRadius[index] = host[index].r;
+        }
+        uniforms.uGeometry.value = this.vNextTextures?.geometryTexture ?? null;
+        uniforms.uMetadata.value = this.vNextTextures?.metadataTexture ?? null;
+        (uniforms.uTextureSize.value as THREE.Vector2).set(payload.width, payload.height);
+        uniforms.uPrimitiveCount.value = payload.primitiveCount;
+        uniforms.uHostCount.value = nh;
+        uniforms.uHostK.value = hostK;
+        uniforms.uThickness.value = thickness;
+        uniforms.uRoundK.value = roundK;
+        uniforms.uMode.value = mode === "plate" ? 0 : 1;
+        uniforms.uSelectedPatchOwner.value = selectedOwner;
+        uniforms.uCoinBulge.value = coinBulge;
+        uniforms.uCoinBulgeBalance.value = coinBulgeBalance;
+        this.raymarchQuad.visible = false;
+        this.vNextQuad.visible = true;
+        this.fieldPreviewBackendStatus = {
+          ...this.fieldPreviewBackendStatus,
+          active: "vnext",
+          available: true,
+          primitiveCount: payload.primitiveCount,
+        };
+        this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
+      }
+    } else {
+      this.raymarchQuad.visible = true;
+      if (this.vNextQuad) this.vNextQuad.visible = false;
+      this.fieldPreviewBackendStatus = {
+        ...this.fieldPreviewBackendStatus,
+        active: "legacy",
+        primitiveCount,
+      };
+    }
     if (this.printPlateVisible) this.updatePrintPlatePlacement(host, patches);
   }
 
@@ -5022,11 +5284,14 @@ export class SkinRenderer {
       const slot = this.viewportSlots[rect.index];
       slot.controls.update();
       slot.camera.updateMatrixWorld();
-      this.material.uniforms.uCamPos.value.copy(slot.camera.position);
-      this.material.uniforms.uCamInverseProjection.value.copy(slot.camera.projectionMatrixInverse);
-      this.material.uniforms.uCamInverseView.value.copy(slot.camera.matrixWorld);
-      this.material.uniforms.uCameraOrthographic.value = 1;
-      this.material.uniforms.uResolution.value.set(rect.width, rect.height);
+      const activeMaterial = this.fieldPreviewBackend === "vnext" && this.vNextMaterial
+        ? this.vNextMaterial
+        : this.material;
+      activeMaterial.uniforms.uCamPos.value.copy(slot.camera.position);
+      activeMaterial.uniforms.uCamInverseProjection.value.copy(slot.camera.projectionMatrixInverse);
+      activeMaterial.uniforms.uCamInverseView.value.copy(slot.camera.matrixWorld);
+      activeMaterial.uniforms.uCameraOrthographic.value = 1;
+      activeMaterial.uniforms.uResolution.value.set(rect.width, rect.height);
       const glY = height - rect.y - rect.height;
       this.renderer.setViewport(rect.x, glY, rect.width, rect.height);
       this.renderer.setScissor(rect.x, glY, rect.width, rect.height);
@@ -5114,5 +5379,11 @@ export class SkinRenderer {
     this.controls.target.copy(center);
     this.camera.position.copy(center.clone().add(direction.multiplyScalar(3.2)));
     this.controls.update();
+  }
+
+  dispose(): void {
+    this.disposeVNextResources();
+    this.material.dispose();
+    this.renderer.dispose();
   }
 }

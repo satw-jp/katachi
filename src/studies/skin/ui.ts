@@ -30,7 +30,12 @@ import { captureMotifShapeParams } from "./field.ts";
 import type { PackPatchesResult } from "./field.ts";
 import { PACKING_MOTIF_PRESETS } from "../flower-packing-spike/packing.ts";
 import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
-import type { SkinDisplayStyle, SkinViewMode } from "./renderer.ts";
+import type {
+  FieldPreviewBackend,
+  FieldPreviewBackendStatus,
+  SkinDisplayStyle,
+  SkinViewMode,
+} from "./renderer.ts";
 import {
   SKIN_VIEW_LAYERS,
   SKIN_VIEWPORT_OVERLAYS,
@@ -160,6 +165,8 @@ export interface UiCallbacks {
   onRepackFlowers: () => void;
   /** Switch the active viewport display (T12: raymarch / beads / full mesh). */
   onSetViewMode: (mode: SkinViewMode) => void;
+  /** Switch only the FIELD viewport backend; session-only and display-only. */
+  onSetFieldPreviewBackend: (backend: FieldPreviewBackend) => void;
   /** Switch a presentation-only top-level View Layer. */
   onSetViewLayer: (layer: SkinViewLayerId) => void;
   /** Toggle only the visibility of an existing, provenance-bound Graph layer. */
@@ -404,6 +411,7 @@ export interface UiHandles {
   /** Update the three-way view toggle's active button + honest caption
    * (approximation disclosure for beads, capacity note for Field/SDF). */
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
+  setFieldPreviewBackendStatus: (status: FieldPreviewBackendStatus) => void;
   setViewLayer: (layer: SkinViewLayerId) => void;
   setViewLayerAvailability: (availability: Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>>) => void;
   setGraphViewState: (layers: readonly GraphLayer[], options: GraphViewOptions) => void;
@@ -2015,6 +2023,16 @@ export function buildUi(
   internalPanel.appendChild(dryWebAuthorActions);
 
   let renderedViewMode: SkinViewMode = "raymarch";
+  let renderedFieldBackendStatus: FieldPreviewBackendStatus = {
+    requested: "legacy",
+    active: "legacy",
+    available: true,
+    reason: "Legacy FIELD",
+    primitiveCount: 0,
+  };
+  let renderedFieldTotalPatchPoints = 0;
+  let renderedFieldCoinBulge = 0;
+  let fieldBackendCaptionReady = false;
   let renderedInternalObservationMode: InternalObservationMode = "normal";
   let dryWebGraphViewAvailable = false;
 
@@ -2730,6 +2748,55 @@ export function buildUi(
     viewToggle.appendChild(btn);
   }
 
+  const fieldBackendControl = document.createElement("section");
+  fieldBackendControl.className = "viewport-field-backend-control";
+  fieldBackendControl.dataset.role = "field-preview-backend-control";
+  const fieldBackendTitle = document.createElement("strong");
+  fieldBackendTitle.textContent = "FIELD Preview";
+  const fieldBackendToggle = document.createElement("div");
+  fieldBackendToggle.className = "mode-toggle viewport-field-backend-toggle";
+  const fieldBackendButtons = new Map<FieldPreviewBackend, HTMLButtonElement>();
+  for (const [backend, label] of [["legacy", "Legacy"], ["vnext", "vNext"]] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.dataset.backend = backend;
+    button.onclick = () => callbacks.onSetFieldPreviewBackend(backend);
+    fieldBackendButtons.set(backend, button);
+    fieldBackendToggle.appendChild(button);
+  }
+  const fieldBackendStatus = document.createElement("small");
+  fieldBackendStatus.className = "viewport-field-backend-status";
+  fieldBackendStatus.setAttribute("aria-live", "polite");
+  const fieldBackendHint = document.createElement("small");
+  fieldBackendHint.className = "hint viewport-field-backend-hint";
+  fieldBackendHint.textContent = "表示専用のsession設定。authoring、mesh、export、FKEIは変更しません。";
+  fieldBackendControl.append(fieldBackendTitle, fieldBackendToggle, fieldBackendStatus, fieldBackendHint);
+
+  function renderFieldPreviewBackendStatus(status: FieldPreviewBackendStatus): void {
+    renderedFieldBackendStatus = { ...status };
+    for (const [backend, button] of fieldBackendButtons) {
+      const active = status.active === backend;
+      button.classList.toggle("mode-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+    const count = status.primitiveCount > 0 ? ` · ${status.primitiveCount} primitives` : "";
+    fieldBackendStatus.textContent = `${status.active === "vnext" ? "vNext" : "Legacy"} active${count} · ${status.reason}`;
+    fieldBackendStatus.classList.toggle("warn", !status.available);
+    fieldBackendControl.dataset.activeBackend = status.active;
+    fieldBackendControl.dataset.available = String(status.available);
+    if (fieldBackendCaptionReady && renderedViewMode === "raymarch") {
+      renderViewMode(renderedViewMode, renderedFieldTotalPatchPoints, renderedFieldCoinBulge);
+    }
+  }
+  renderFieldPreviewBackendStatus({
+    requested: "legacy",
+    active: "legacy",
+    available: true,
+    reason: "Legacy FIELD",
+    primitiveCount: 0,
+  });
+
   const graphViewPanel = document.createElement("section");
   graphViewPanel.className = "graph-view-panel";
   graphViewPanel.dataset.role = "graph-view-controls";
@@ -2801,6 +2868,7 @@ export function buildUi(
       button.setAttribute("aria-pressed", String(active));
     }
     graphViewPanel.hidden = layer !== "graph";
+    fieldBackendControl.hidden = layer !== "field";
   }
   function renderGraphViewState(layers: readonly GraphLayer[], options: GraphViewOptions): void {
     lastGraphViewOptions = { ...options };
@@ -2937,7 +3005,7 @@ export function buildUi(
     callbacks.onPreviewMeshResolutionChange(value);
   };
   quickResolutionRow.appendChild(quickResolutionInput);
-  viewDock.append(viewToggle, graphViewPanel, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus, meshViewAction);
+  viewDock.append(viewToggle, fieldBackendControl, graphViewPanel, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus, meshViewAction);
   const viewportElement = container.querySelector("#viewport") ?? container;
   renderViewLayerAvailability(viewLayerAvailability);
 
@@ -3448,16 +3516,20 @@ export function buildUi(
   viewCaption.className = "hint";
   viewCaption.dataset.role = "view-layer-caption";
   root.appendChild(viewCaption);
+  fieldBackendCaptionReady = true;
 
   function renderViewMode(mode: SkinViewMode, totalPatchPoints: number, coinBulge: number): void {
     renderedViewMode = mode;
+    renderedFieldTotalPatchPoints = totalPatchPoints;
+    renderedFieldCoinBulge = coinBulge;
     renderViewLayer(mode === "raymarch" ? "field" : mode);
     if (mode === "raymarch") {
-      viewCaption.textContent =
-        totalPatchPoints > PATCH_MAX_POINTS
-          ? `Field / SDF: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「Beads」か「Mesh」で全量を見てください）` +
+      viewCaption.textContent = renderedFieldBackendStatus.active === "vnext"
+        ? `Field / vNext: semantic DataTexture full-scan（全${totalPatchPoints}点。Legacyの256点上限なし）`
+        : totalPatchPoints > PATCH_MAX_POINTS
+          ? `Field / Legacy SDF: 食い込みなしで滑らかだが表示容量に上限あり（画面は先頭${PATCH_MAX_POINTS}点まで。全${totalPatchPoints}点は超過中 -- 「Beads」か「Mesh」で全量を見てください）` +
             (coinBulge > 0 ? " ※容量内ならふくらみ比較もそのまま反映されます。" : "")
-          : "Field / SDF: 食い込みなしで滑らかな合成場をそのまま描画（この点数では容量内）。";
+          : "Field / Legacy SDF: 食い込みなしで滑らかな合成場をそのまま描画（この点数では容量内）。";
     } else if (mode === "beads") {
       viewCaption.textContent =
         `Beads近似: ブレンド（smooth-min）省略・配置と密度は全量正確（全${totalPatchPoints}点）。リングは元々数珠なので見た目の乖離は小さいはずだが、コインの融合など見た目が変わる形状もある（README 参照）。容量の制約なしにオービット/ズームできる。` +
@@ -4980,6 +5052,7 @@ export function buildUi(
       addPatchToggle.textContent = active ? "パッチを手で追加 (有効・クリックで配置)" : "パッチを手で追加 (クリック)";
     },
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
+    setFieldPreviewBackendStatus: (status) => renderFieldPreviewBackendStatus(status),
     setViewLayer: (layer) => renderViewLayer(layer),
     setViewLayerAvailability: (availability) => renderViewLayerAvailability(availability),
     setGraphViewState: (layers, options) => renderGraphViewState(layers, options),
