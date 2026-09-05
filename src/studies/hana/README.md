@@ -641,7 +641,7 @@ Platform target:
 - M13: compact left-pane, touch-first controls with 48px-class targets, readable Smoothness / Thickness values, and Surface ON / Centerline ON / Samples OFF defaults. `Rebuild Surface` remains a secondary fallback.
 - M14–M15: bounded live-path profiling and latest-frame Pencil preview processing. Raw Gesture capture remains immediate and authoritative; provisional Control / Smooth / Material / Proxy work is driven from the bounded working path and is not saved.
 - M16–M17: `visibilitychange`, `pagehide`, `pageshow`, `freeze`, `resume`, and WebGL context loss/restoration handling. A versioned `katachi.hana-recovery-checkpoint.v0` is saved to IndexedDB after completed authoring changes and lifecycle transitions. Invalid, incompatible, or mismatched checkpoints are rejected; recovery never makes a derived Mesh authoritative.
-- M18: touch camera navigation, pinch zoom, pan, Front / Side / Top / Iso presets, Fit View, and Auto Rotate. Camera interactions stop Auto Rotate; Pencil remains Draw and Mouse remains the precise editing instrument.
+- M18: touch camera navigation, pinch zoom, pan, and per-viewport context-menu camera presets (Front / Back / Left / Right / Top / Iso), Fit, and Auto Rotate. Camera interactions stop Auto Rotate; Pencil remains Draw and Mouse remains the precise editing instrument.
 - M19: integrated regression coverage for bounded profiling, checkpoint round-trip/validation, touch deltas, build, and HANA browser smoke.
 
 The frozen authoring hierarchy remains:

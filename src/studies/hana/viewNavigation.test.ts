@@ -19,5 +19,5 @@ test("touch navigation derives pan and pinch deltas without authoring state", ()
 });
 
 test("view preset contract is explicit and finite", () => {
-  assert.deepEqual(HANA_VIEW_PRESETS, ["front", "side", "top", "iso"]);
+  assert.deepEqual(HANA_VIEW_PRESETS, ["front", "back", "left", "right", "top", "iso"]);
 });

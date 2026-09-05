@@ -5,6 +5,7 @@ import {
   skinViewportAtPoint,
   skinViewportRects,
   type SkinViewportRect,
+  type SkinViewDirection,
 } from "../skin/multiViewport.ts";
 import { resolveRhinoViewportGesture, type RhinoViewportGesture } from "../skin/rhinoViewportControls.ts";
 import manifest from "./manifest.json";
@@ -182,11 +183,18 @@ import {
   type HanaLiveIsolationMode,
 } from "./longStrokeProfiler.ts";
 import {
-  HANA_VIEW_PRESETS,
   touchGestureDelta,
   type HanaTouchPoint,
-  type HanaViewPreset,
 } from "./viewNavigation.ts";
+import {
+  HANA_CONTEXT_MENU_LONG_PRESS_MS,
+  HANA_CONTEXT_MENU_VIEW_PRESETS,
+  hanaContextMenuPresetLabel,
+  hanaContextMenuTouchMoved,
+  isHanaContextMenuRightMouse,
+  shouldStartHanaContextLongPress,
+  type HanaViewPreset,
+} from "./viewportContextMenu.ts";
 import {
   HANA_LEFT_PANE_DEFAULT_RATIO,
   HANA_LEFT_PANE_MAX_RATIO,
@@ -316,6 +324,8 @@ app.innerHTML = `
     <div id="hana-top-pane" class="hana-top-pane" aria-label="HANA document commands">
       ${renderHanaDocumentCommandBar()}
       <span class="hana-top-divider" aria-hidden="true"></span>
+      <button id="redraw-stroke" class="hana-secondary" type="button" disabled>Redraw</button>
+      <span class="hana-top-divider" aria-hidden="true"></span>
       <div class="hana-compute-control" aria-label="Finalization compute backend">
         <span>Compute</span>
         <div class="hana-segmented">
@@ -324,18 +334,6 @@ app.innerHTML = `
           <button type="button" data-compute-mode="auto" aria-pressed="false">AUTO</button>
         </div>
         <span id="compute-status" class="hana-compute-status" role="status">LOCAL · READY</span>
-      </div>
-      <span class="hana-top-divider" aria-hidden="true"></span>
-      <div class="hana-view-control" aria-label="View navigation">
-        <span>View</span>
-        <div class="hana-view-presets">
-          <button type="button" data-view-preset="front">Front</button>
-          <button type="button" data-view-preset="side">Side</button>
-          <button type="button" data-view-preset="top">Top</button>
-          <button type="button" data-view-preset="iso">Iso</button>
-          <button type="button" data-view-preset="fit">Fit</button>
-        </div>
-        <button id="auto-rotate" type="button" aria-pressed="false">Auto Rotate OFF</button>
       </div>
     </div>
     <section class="hana-left-rail" aria-label="HANA authoring controls">
@@ -366,7 +364,6 @@ app.innerHTML = `
           <button id="show-samples" type="button" aria-pressed="false">Samples OFF</button>
           <button id="show-surface" type="button" aria-pressed="true">Surface ON</button>
         </div>
-        <button id="redraw-stroke" class="hana-secondary" type="button" disabled>Redraw</button>
         <label class="hana-smooth-control" for="thickness-control">
           <span>Thickness</span>
           <span class="hana-smooth-bound">${HANA_THICKNESS_MIN.toFixed(2)}</span>
@@ -506,8 +503,6 @@ const rebuildSurfaceButton = requiredElement<HTMLButtonElement>("#rebuild-surfac
 const surfaceState = requiredElement<HTMLElement>("#surface-state");
 const computeModeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-compute-mode]"));
 const computeStatus = requiredElement<HTMLElement>("#compute-status");
-const viewPresetButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-view-preset]"));
-const autoRotateButton = requiredElement<HTMLButtonElement>("#auto-rotate");
 const recoveryStatusElement = requiredElement<HTMLElement>("#recovery-status");
 const selectionStatusElement = requiredElement<HTMLElement>("#selection-status");
 
@@ -830,7 +825,7 @@ let cameraDrag: CameraDrag | null = null;
 let controlDrag: ControlDrag | null = null;
 const touchPointers = new Map<number, HanaTouchPoint>();
 let previousTouchPoints: HanaTouchPoint[] = [];
-let autoRotateEnabled = false;
+const autoRotateEnabledByViewport = [false, false, false, false];
 let autoRotateFrame: number | null = null;
 let lifecycleVisibility = document.visibilityState;
 let lifecyclePagehideCount = 0;
@@ -843,6 +838,22 @@ let recoveryWriteChain: Promise<void> = Promise.resolve();
 const recoveryStore = createIndexedDbHanaRecoveryStore();
 let recoveryDocumentId = "hana-document-1";
 let lastViewportTitleTouch: HanaTouchTap | null = null;
+interface HanaContextMenuState {
+  viewportIndex: number;
+  clientX: number;
+  clientY: number;
+}
+
+interface HanaContextMenuLongPress {
+  pointerId: number;
+  viewportIndex: number;
+  startClientX: number;
+  startClientY: number;
+  timer: number;
+}
+
+let contextMenuState: HanaContextMenuState | null = null;
+let contextMenuLongPress: HanaContextMenuLongPress | null = null;
 const livePathProfiler = new HanaLivePathProfiler();
 const longStrokeProfiler = new HanaLongStrokeProfiler();
 const HANA_LIVE_GROWTH_TARGETS = [100, 500, 1000, 2000, 5000, 10000] as const;
@@ -946,6 +957,10 @@ function viewportId(index: number): string {
 
 function currentRects(): SkinViewportRect[] {
   return skinViewportRects(workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
+}
+
+function anyAutoRotateEnabled(): boolean {
+  return autoRotateEnabledByViewport.some(Boolean);
 }
 
 function canvasPoint(event: { clientX: number; clientY: number }): { x: number; y: number } {
@@ -1876,7 +1891,7 @@ function updateSurfaceUI(): void {
   setDebugText("debug-recovery", recoveryStatusText);
   setDebugText("debug-runtime", hanaRuntimeDiagnosticText(hanaRuntime));
   setDebugText("debug-keyboard", keyboardDiagnosticText());
-  setDebugText("debug-view", `${viewportMode} · ${directions[selectedViewport]} · auto ${autoRotateEnabled ? "on" : "off"}`);
+  setDebugText("debug-view", `${viewportMode} · ${directions[selectedViewport]} · auto ${anyAutoRotateEnabled() ? "on" : "off"}`);
   setDebugText("debug-finalization", finalizationText());
   setDebugText("debug-thickness", thickness.toFixed(2));
   workspace.dataset.materialSampleCount = String(displayedMaterialSamples().length);
@@ -1950,7 +1965,7 @@ function updateSurfaceUI(): void {
   workspace.dataset.livePathProfile = JSON.stringify(livePathProfiler.summarize());
   workspace.dataset.lifecycle = lifecycleText();
   workspace.dataset.recoveryStatus = recoveryStatusText;
-  workspace.dataset.autoRotate = String(autoRotateEnabled);
+  workspace.dataset.autoRotate = String(anyAutoRotateEnabled());
   workspace.dataset.projectionRedraw = projectionRedrawActive ? "active" : "idle";
 }
 
@@ -2381,15 +2396,153 @@ function modeOptions(index: number): readonly HanaInteractionMode[] {
 }
 
 function toggleViewportLayoutFromTitle(index: number): void {
+  if (contextMenuState) {
+    contextMenuState = null;
+    delete workspace.dataset.contextMenuViewport;
+  }
   selectedViewport = index;
   viewportMode = nextHanaViewportMode(viewportMode);
   refreshLayout();
+}
+
+function cameraDirectionForPreset(preset: HanaViewPreset): SkinViewDirection {
+  return preset === "iso" ? "axome" : preset;
+}
+
+function clearContextMenuState(): void {
+  contextMenuState = null;
+  delete workspace.dataset.contextMenuViewport;
+}
+
+function closeContextMenu(): void {
+  if (!contextMenuState) return;
+  clearContextMenuState();
+  renderViewportChrome();
+}
+
+function cancelContextMenuLongPress(): void {
+  if (!contextMenuLongPress) return;
+  window.clearTimeout(contextMenuLongPress.timer);
+  contextMenuLongPress = null;
+}
+
+function openContextMenu(viewportIndex: number, clientX: number, clientY: number): void {
+  if (activeStroke) return;
+  cancelContextMenuLongPress();
+  selectedViewport = viewportIndex;
+  contextMenuState = { viewportIndex, clientX, clientY };
+  workspace.dataset.contextMenuViewport = String(viewportIndex);
+  renderScene();
+  redrawOverlay();
+  renderViewportChrome();
+  updateDebug();
+}
+
+function startContextMenuLongPress(event: PointerEvent, rect: SkinViewportRect): void {
+  cancelContextMenuLongPress();
+  const timer = window.setTimeout(() => {
+    const pending = contextMenuLongPress;
+    if (!pending || pending.pointerId !== event.pointerId) return;
+    contextMenuLongPress = null;
+    pendingAuthoringPointer = null;
+    cameraDrag = null;
+    touchPointers.delete(event.pointerId);
+    if (gestureCanvas.hasPointerCapture(event.pointerId)) gestureCanvas.releasePointerCapture(event.pointerId);
+    openContextMenu(rect.index, event.clientX, event.clientY);
+  }, HANA_CONTEXT_MENU_LONG_PRESS_MS);
+  contextMenuLongPress = {
+    pointerId: event.pointerId,
+    viewportIndex: rect.index,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    timer,
+  };
+}
+
+function applyContextMenuAction(viewportIndex: number, action: HanaViewPreset | "fit" | "auto-rotate"): void {
+  selectedViewport = viewportIndex;
+  if (action === "auto-rotate") {
+    autoRotateEnabledByViewport[viewportIndex] = !autoRotateEnabledByViewport[viewportIndex];
+    if (anyAutoRotateEnabled()) startAutoRotate();
+    else if (autoRotateFrame !== null) {
+      window.cancelAnimationFrame(autoRotateFrame);
+      autoRotateFrame = null;
+    }
+  } else {
+    stopAutoRotate();
+    if (action === "fit") {
+      renderer.fitView(viewportIndex, displayedCenterline().map((point) => point.position));
+    } else {
+      renderer.setViewPreset(viewportIndex, action);
+    }
+  }
+  clearContextMenuState();
+  refreshLayout();
+  updateDebug();
+}
+
+function renderContextMenu(state: HanaContextMenuState): void {
+  const menu = document.createElement("div");
+  menu.className = "hana-viewport-context-menu";
+  menu.dataset.viewportIndex = String(state.viewportIndex);
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", "Viewport camera menu");
+  menu.addEventListener("pointerdown", (event) => event.stopPropagation());
+
+  const title = document.createElement("strong");
+  title.className = "hana-viewport-context-menu-title";
+  title.textContent = `View · ${hanaContextMenuPresetLabel(renderer.viewPreset(state.viewportIndex))}`;
+  menu.appendChild(title);
+
+  for (const preset of HANA_CONTEXT_MENU_VIEW_PRESETS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.role = "menuitem";
+    button.dataset.contextMenuPreset = preset;
+    button.textContent = hanaContextMenuPresetLabel(preset);
+    button.setAttribute("aria-pressed", String(renderer.viewPreset(state.viewportIndex) === preset));
+    button.addEventListener("click", () => applyContextMenuAction(state.viewportIndex, preset));
+    menu.appendChild(button);
+  }
+
+  const separator = document.createElement("div");
+  separator.className = "hana-viewport-context-menu-separator";
+  separator.setAttribute("role", "separator");
+  menu.appendChild(separator);
+
+  const fit = document.createElement("button");
+  fit.type = "button";
+  fit.role = "menuitem";
+  fit.dataset.contextMenuAction = "fit";
+  fit.textContent = "Fit";
+  fit.addEventListener("click", () => applyContextMenuAction(state.viewportIndex, "fit"));
+  menu.appendChild(fit);
+
+  const autoRotate = document.createElement("button");
+  autoRotate.type = "button";
+  autoRotate.role = "menuitem";
+  autoRotate.dataset.contextMenuAction = "auto-rotate";
+  const autoRotateEnabled = autoRotateEnabledByViewport[state.viewportIndex] ?? false;
+  autoRotate.textContent = `Auto Rotate ${autoRotateEnabled ? "Off" : "On"}`;
+  autoRotate.setAttribute("aria-pressed", String(autoRotateEnabled));
+  autoRotate.addEventListener("click", () => applyContextMenuAction(state.viewportIndex, "auto-rotate"));
+  menu.appendChild(autoRotate);
+
+  chrome.appendChild(menu);
+  const bounds = workspace.getBoundingClientRect();
+  const maxLeft = Math.max(8, workspace.clientWidth - menu.offsetWidth - 8);
+  const maxTop = Math.max(8, workspace.clientHeight - menu.offsetHeight - 8);
+  menu.style.left = `${Math.max(8, Math.min(maxLeft, state.clientX - bounds.left))}px`;
+  menu.style.top = `${Math.max(8, Math.min(maxTop, state.clientY - bounds.top))}px`;
 }
 
 function renderViewportChrome(): void {
   chrome.textContent = "";
   for (const rect of currentRects()) {
     const direction = directions[rect.index];
+    const cameraPreset = renderer.viewPreset(rect.index);
+    const cameraDirection = cameraDirectionForPreset(cameraPreset);
+    const cameraLabel = hanaContextMenuPresetLabel(cameraPreset);
     const pane = document.createElement("section");
     pane.className = `hana-viewport-pane${rect.index === selectedViewport ? " is-selected" : ""}`;
     pane.style.left = `${rect.x}px`;
@@ -2401,7 +2554,8 @@ function renderViewportChrome(): void {
     identity.className = "hana-view-identity";
     identity.dataset.viewportIndex = String(rect.index);
     identity.title = "Double-click or double-tap to switch Four / One";
-    identity.innerHTML = `<strong>${skinViewDirectionLabel(direction)}</strong><span>${skinViewAxisLegend(direction)}</span>`;
+    identity.dataset.cameraPreset = cameraPreset;
+    identity.innerHTML = `<strong>${cameraLabel}</strong><span>${skinViewAxisLegend(cameraDirection)}</span>`;
     identity.addEventListener("dblclick", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -2454,6 +2608,7 @@ function renderViewportChrome(): void {
     }
     chrome.appendChild(pane);
   }
+  if (contextMenuState) renderContextMenu(contextMenuState);
 }
 
 function updateSplitters(): void {
@@ -3232,6 +3387,13 @@ function isKeyboardTextTarget(target: EventTarget | null): boolean {
 
 document.addEventListener("keydown", (event) => {
   const diagnostic = recordKeyboardEvent(event);
+  if (contextMenuState && event.key === "Escape") {
+    closeContextMenu();
+    event.preventDefault();
+    diagnostic.defaultPrevented = event.defaultPrevented;
+    updateDebug();
+    return;
+  }
   if (!isKeyboardTextTarget(event.target)) {
     const shortcut = hanaHistoryShortcut({
       key: event.key,
@@ -4735,6 +4897,62 @@ function endPointer(pointerId: number, releaseCapture: boolean, finalEvent: Poin
   if (releaseCapture && gestureCanvas.hasPointerCapture(pointerId)) gestureCanvas.releasePointerCapture(pointerId);
 }
 
+function isViewportContextMenuTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(".hana-viewport-context-menu") !== null;
+}
+
+document.addEventListener("pointerdown", (event) => {
+  if (contextMenuState && !isViewportContextMenuTarget(event.target)) closeContextMenu();
+}, { capture: true });
+
+workspace.addEventListener("pointerdown", (event) => {
+  const point = canvasPoint(event);
+  const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
+  if (!rect || isViewportContextMenuTarget(event.target)) return;
+  if (isHanaContextMenuRightMouse(event.pointerType, event.button)) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!activeStroke) openContextMenu(rect.index, event.clientX, event.clientY);
+    return;
+  }
+  if (event.pointerType !== "touch") return;
+  if (contextMenuLongPress && contextMenuLongPress.pointerId !== event.pointerId) cancelContextMenuLongPress();
+  if (event.isPrimary && touchPointers.size === 0 && pendingAuthoringPointer === null && shouldStartHanaContextLongPress({
+    pointerType: event.pointerType,
+    activeStroke: activeStroke !== null,
+    controlDrag: controlDrag !== null,
+    rangeSelection: rangeSelection !== null,
+  })) {
+    startContextMenuLongPress(event, rect);
+  }
+}, { capture: true });
+
+workspace.addEventListener("pointermove", (event) => {
+  const pending = contextMenuLongPress;
+  if (pending?.pointerId === event.pointerId
+    && hanaContextMenuTouchMoved(pending.startClientX, pending.startClientY, event.clientX, event.clientY)) {
+    cancelContextMenuLongPress();
+  }
+}, { capture: true });
+
+workspace.addEventListener("pointerup", (event) => {
+  if (contextMenuLongPress?.pointerId === event.pointerId) cancelContextMenuLongPress();
+}, { capture: true });
+
+workspace.addEventListener("pointercancel", (event) => {
+  if (contextMenuLongPress?.pointerId === event.pointerId) cancelContextMenuLongPress();
+}, { capture: true });
+
+workspace.addEventListener("lostpointercapture", (event) => {
+  if (contextMenuLongPress?.pointerId === event.pointerId) cancelContextMenuLongPress();
+}, { capture: true });
+
+workspace.addEventListener("contextmenu", (event) => {
+  const point = canvasPoint(event);
+  const rect = skinViewportAtPoint(point.x, point.y, workspace.clientWidth, workspace.clientHeight, viewportMode, selectedViewport, split);
+  if (rect) event.preventDefault();
+});
+
 gestureCanvas.addEventListener("pointerdown", (event) => {
   gestureCanvas.focus({ preventScroll: true });
   if (rangeSelection && rangeSelection.pointerId !== event.pointerId) cancelRangeSelection();
@@ -4838,7 +5056,6 @@ gestureCanvas.addEventListener("pointermove", (event) => {
 gestureCanvas.addEventListener("pointerup", (event) => endPointer(event.pointerId, true, event));
 gestureCanvas.addEventListener("pointercancel", (event) => endPointer(event.pointerId, true, event));
 gestureCanvas.addEventListener("lostpointercapture", (event) => endPointer(event.pointerId, false));
-gestureCanvas.addEventListener("contextmenu", (event) => event.preventDefault());
 gestureCanvas.addEventListener("wheel", (event) => {
   event.preventDefault();
   stopAutoRotate();
@@ -4929,26 +5146,22 @@ leftPaneSplitter.addEventListener("keydown", (event) => {
   persistLeftPaneRatio();
 });
 
-function updateAutoRotateUI(): void {
-  autoRotateButton.setAttribute("aria-pressed", String(autoRotateEnabled));
-  autoRotateButton.textContent = `Auto Rotate ${autoRotateEnabled ? "ON" : "OFF"}`;
-  workspace.dataset.autoRotate = String(autoRotateEnabled);
-}
-
 function stopAutoRotate(): void {
-  autoRotateEnabled = false;
+  autoRotateEnabledByViewport.fill(false);
   if (autoRotateFrame !== null) {
     window.cancelAnimationFrame(autoRotateFrame);
     autoRotateFrame = null;
   }
-  updateAutoRotateUI();
+  workspace.dataset.autoRotate = "false";
 }
 
 function autoRotateTick(_timestamp: number): void {
   autoRotateFrame = null;
-  if (!autoRotateEnabled) return;
+  if (!anyAutoRotateEnabled()) return;
   if (!activeStroke && !controlDrag && !cameraDrag) {
-    renderer.applyAutoRotate(selectedViewport, 16);
+    autoRotateEnabledByViewport.forEach((enabled, viewportIndex) => {
+      if (enabled) renderer.applyAutoRotate(viewportIndex, 16);
+    });
     renderScene();
     redrawOverlay();
   }
@@ -4958,32 +5171,6 @@ function autoRotateTick(_timestamp: number): void {
 function startAutoRotate(): void {
   if (autoRotateFrame !== null) return;
   autoRotateFrame = window.requestAnimationFrame(autoRotateTick);
-}
-
-autoRotateButton.addEventListener("click", () => {
-  autoRotateEnabled = !autoRotateEnabled;
-  updateAutoRotateUI();
-  if (autoRotateEnabled) startAutoRotate();
-  else if (autoRotateFrame !== null) {
-    window.cancelAnimationFrame(autoRotateFrame);
-    autoRotateFrame = null;
-  }
-  updateDebug();
-});
-
-for (const button of viewPresetButtons) {
-  button.addEventListener("click", () => {
-    stopAutoRotate();
-    const preset = button.dataset.viewPreset;
-    if (!preset) return;
-    if (preset === "fit") {
-      renderer.fitView(selectedViewport, displayedCenterline().map((point) => point.position));
-    } else if ((HANA_VIEW_PRESETS as readonly string[]).includes(preset)) {
-      renderer.setViewPreset(selectedViewport, preset as HanaViewPreset);
-    }
-    refreshLayout();
-    updateDebug();
-  });
 }
 
 for (const button of softEditButtons) {
@@ -5732,6 +5919,8 @@ function createNewHanaDocumentId(): string {
 }
 
 function resetDocumentContent(newDocument: boolean): void {
+  closeContextMenu();
+  cancelContextMenuLongPress();
   const hadContent = rawGestures.length > 0 || authoringStrokes.length > 0 || hanaFlowers.length > 0
     || hanaGraph.nodes.length > 0 || hanaGraph.edges.length > 0;
   const previousDocumentId = recoveryDocumentId;
@@ -6092,6 +6281,8 @@ loadFileInput.addEventListener("change", async () => {
   const file = loadFileInput.files?.[0];
   loadFileInput.value = "";
   if (!file) return;
+  closeContextMenu();
+  cancelContextMenuLongPress();
   try {
     const source = JSON.parse(await file.text()) as Record<string, unknown>;
     const document = migrateHanaDocument(source.document ?? source);
@@ -6214,7 +6405,6 @@ resize();
 updateSmoothnessUI();
 updateDisplayUI();
 updateThicknessUI();
-updateAutoRotateUI();
 updateRecoveryUI();
 updateLifecycleUI();
 globalAuthoringHistory = new HanaAuthoringHistory(semanticAuthoringSnapshot());

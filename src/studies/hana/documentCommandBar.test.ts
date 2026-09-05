@@ -47,20 +47,34 @@ test("top pane keeps the command bar on one row", () => {
   assert.ok(css.includes("grid-column: 1 / -1"));
 });
 
-test("Compute and View live in the Top Pane without left-upper duplicates", () => {
+test("Redraw and Compute live in the Top Pane without left-upper duplicates", () => {
   const main = readFileSync(sourceUrl("main.ts"), "utf8");
   const topPaneOpen = main.indexOf('id="hana-top-pane"');
   const leftRailOpen = main.indexOf('class="hana-left-rail"');
   const computeOpen = main.indexOf('class="hana-compute-control"');
-  const viewOpen = main.indexOf('class="hana-view-control"');
+  const redrawOpen = main.indexOf('id="redraw-stroke"');
   assert.ok(computeOpen > topPaneOpen && computeOpen < leftRailOpen);
-  assert.ok(viewOpen > topPaneOpen && viewOpen < leftRailOpen);
+  assert.ok(redrawOpen > topPaneOpen && redrawOpen < leftRailOpen);
   const leftUpperOpen = main.indexOf('id="hana-left-upper"');
   const leftUpperClose = main.indexOf('id="left-pane-splitter"');
   const leftUpperMarkup = main.slice(leftUpperOpen, leftUpperClose);
   assert.equal(leftUpperMarkup.includes("hana-compute-control"), false);
   assert.equal(leftUpperMarkup.includes("hana-view-control"), false);
+  assert.equal(leftUpperMarkup.includes('id="redraw-stroke"'), false);
   assert.equal(leftUpperMarkup.includes('id="export-document"'), false);
+});
+
+test("Top Pane keeps the required one-row command and compute contract", () => {
+  const main = readFileSync(sourceUrl("main.ts"), "utf8");
+  const topPaneOpen = main.indexOf('id="hana-top-pane"');
+  const leftRailOpen = main.indexOf('class="hana-left-rail"');
+  const topPaneMarkup = main.slice(topPaneOpen, leftRailOpen);
+  assert.ok(topPaneMarkup.includes("renderHanaDocumentCommandBar()"));
+  for (const label of ["Redraw", "LOCAL", "REMOTE", "AUTO"]) assert.ok(topPaneMarkup.includes(label), label);
+  for (const label of ["Front", "Side", "Top", "Iso", "Fit", "Auto Rotate"]) {
+    assert.equal(topPaneMarkup.includes(label), false, label);
+  }
+  assert.equal((main.match(/id="redraw-stroke"/g) ?? []).length, 1);
 });
 
 test("Top Pane shows REMOTE and never WINDOWS while keeping the internal value", () => {

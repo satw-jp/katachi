@@ -1,5 +1,18 @@
-export const HANA_VIEW_PRESETS = ["front", "side", "top", "iso"] as const;
+export const HANA_VIEW_PRESETS = ["front", "back", "left", "right", "top", "iso"] as const;
 export type HanaViewPreset = typeof HANA_VIEW_PRESETS[number];
+
+const HANA_VIEW_PRESET_LABELS: Record<HanaViewPreset, string> = {
+  front: "Front",
+  back: "Back",
+  left: "Left",
+  right: "Right",
+  top: "Top",
+  iso: "Iso",
+};
+
+export function hanaViewPresetLabel(preset: HanaViewPreset): string {
+  return HANA_VIEW_PRESET_LABELS[preset];
+}
 
 export interface HanaTouchPoint {
   id: number;

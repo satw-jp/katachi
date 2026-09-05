@@ -83,6 +83,7 @@ export interface HanaRendererPresentationStats {
 
 interface ViewCamera {
   direction: HanaViewDirection;
+  preset: HanaViewPreset;
   camera: THREE.OrthographicCamera;
   target: THREE.Vector3;
 }
@@ -111,15 +112,26 @@ function makeCamera(direction: HanaViewDirection): ViewCamera {
 
   camera.lookAt(target);
   camera.updateMatrixWorld();
-  return { direction, camera, target };
+  const preset: HanaViewPreset = direction === "top"
+    ? "top"
+    : direction === "front"
+      ? "front"
+      : direction === "right"
+        ? "right"
+        : "iso";
+  return { direction, preset, camera, target };
 }
 
 function applyPreset(view: ViewCamera, preset: HanaViewPreset): void {
   const distance = CAMERA_DISTANCE;
   const eye = preset === "top"
     ? new THREE.Vector3(0, 0, distance)
-    : preset === "side"
+    : preset === "right"
       ? new THREE.Vector3(distance, 0, 0)
+      : preset === "left"
+        ? new THREE.Vector3(-distance, 0, 0)
+        : preset === "back"
+          ? new THREE.Vector3(0, distance, 0)
       : preset === "iso"
         ? new THREE.Vector3(8, -8, 7).normalize().multiplyScalar(distance)
         : new THREE.Vector3(0, -distance, 0);
@@ -541,6 +553,7 @@ export class HanaViewportRenderer {
     const view = this.views[viewportIndex];
     if (!view) return;
     view.target.set(0, 0, 0);
+    view.preset = preset;
     applyPreset(view, preset);
   }
 
@@ -558,16 +571,15 @@ export class HanaViewportRenderer {
     }
     view.target.copy(minimum).add(maximum).multiplyScalar(0.5);
     const span = Math.max(maximum.x - minimum.x, maximum.y - minimum.y, maximum.z - minimum.z, 0.1);
-    const direction = view.direction === "top"
-      ? "top"
-      : view.direction === "right"
-        ? "side"
-        : view.direction === "axome"
-          ? "iso"
-          : "front";
-    applyPreset(view, direction);
+    applyPreset(view, view.preset);
     view.camera.zoom = Math.max(0.15, Math.min(8, VIEW_HEIGHT / span * 0.82));
     view.camera.updateProjectionMatrix();
+  }
+
+  viewPreset(viewportIndex: number): HanaViewPreset {
+    const view = this.views[viewportIndex];
+    if (!view) throw new Error(`Unknown HANA viewport index: ${viewportIndex}`);
+    return view.preset;
   }
 
   applyAutoRotate(viewportIndex: number, milliseconds: number): void {
