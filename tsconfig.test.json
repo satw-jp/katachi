@@ -25,6 +25,7 @@
     "src/studies/skin/voronoiFlow.test.ts",
     "src/studies/skin/goldbergFlow.test.ts",
     "src/studies/skin/fieldVNextSemanticParity.test.ts",
+    "src/studies/skin/externalStlHost.test.ts",
     "src/studies/skin/voronoi.test.ts",
     "src/studies/skin/targetedGrid.test.ts",
     "src/studies/skin/surfaceAnglePersistentCache.test.ts",
