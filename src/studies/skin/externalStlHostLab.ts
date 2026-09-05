@@ -10,6 +10,7 @@ import {
   type ImportedHostSource,
 } from "./externalStlHost.ts";
 import { characterizeHostMesh, type HostMeshDiagnostics } from "./externalStlHostDiagnostics.ts";
+import { proposeBoundaryRepair } from "./externalStlHostVolume.ts";
 
 type Elements = {
   file: HTMLInputElement;
@@ -91,14 +92,14 @@ function buildUi(root: HTMLElement): Elements {
   root.innerHTML = `
     <aside>
       <h1>SKIN External STL Host Lab</h1>
-      <p>Phase 2 diagnostic preview. The STL is Host / Shape Intent only. No persistence, V6 placement, shell, or BODY generation.</p>
+      <p>Phase 4 Host validation preview. Reference Host is printable=false; Host OFF changes visibility only. No persistence, V6 placement, shell, or BODY generation.</p>
       <h2>Source</h2>
       <label>Select STL<input id="stl-file" type="file" accept=".stl,model/stl" /></label>
       <div id="status" class="status">Select the author-provided Usagi STL.</div>
       <pre id="metadata" class="meta">No source loaded.</pre>
       <h2>Explicit interpretation</h2>
       <div class="row">
-        <label>mm / source unit<input id="mm" type="number" min="0.0000001" step="any" placeholder="required" /></label>
+        <label>mm / source unit<input id="mm" type="number" min="0.0000001" step="any" value="1" /></label>
         <label>up axis<select id="up-axis"><option value="y">+Y</option><option value="z">+Z</option><option value="x">+X</option></select></label>
       </div>
       <div class="row">
@@ -114,7 +115,7 @@ function buildUi(root: HTMLElement): Elements {
         <label>translation Z<input id="tz" type="number" step="any" value="0" /></label>
         <label>rotation Z°<input id="rotation-z" type="number" step="any" value="0" /></label>
       </div>
-      <label>uniform scale<input id="scale" type="number" min="0.000001" step="any" value="1" /></label>
+      <label>uniform scale (rabbit 2000% reference)<input id="scale" type="number" min="0.000001" step="any" value="20" /></label>
       <h2>Preview</h2>
       <label class="check"><input id="host-visible" type="checkbox" checked /> Host ON</label>
       <label class="check"><input id="wireframe" type="checkbox" /> wireframe</label>
@@ -197,7 +198,7 @@ async function activateMetricHost(): Promise<void> {
       },
     });
     instance = createImportedHostInstance(source, readInstanceTransform());
-    metricDiagnostics = characterizeHostMesh(instance.mesh);
+    metricDiagnostics = instance.volumePreflight.diagnostics;
     refreshMetadata();
     refreshPresentation();
     framePreview();
@@ -260,7 +261,18 @@ function refreshDiagnostics(diagnostics: HostMeshDiagnostics, activeInstance: Im
   const normals = diagnostics.normals;
   const closest = runClosestProbes(activeInstance);
   const rays = runRayProbes(activeInstance);
+  const volume = activeInstance.volumePreflight;
+  const signed = activeInstance.capabilities.signedVolumeCapability;
+  const repairProposal = proposeBoundaryRepair(activeInstance.source.sourceIdentity, volume);
   const thresholds = normals.thresholds.map((item) => `>${item.thresholdDeg}°: ${item.count} (${(item.fraction * 100).toFixed(2)}%)`).join("; ");
+  const boundaryLines = volume.boundaryLoops.map((loop) => {
+    const span = Math.max(
+      loop.bounds.max.x - loop.bounds.min.x,
+      loop.bounds.max.y - loop.bounds.min.y,
+      loop.bounds.max.z - loop.bounds.min.z,
+    );
+    return `loop ${loop.loopIndex}: edges=${loop.edgeCount}, perimeter=${loop.perimeter.toExponential(3)}, center=(${loop.center.x.toFixed(3)}, ${loop.center.y.toFixed(3)}, ${loop.center.z.toFixed(3)}), span=${span.toExponential(3)}, fill=${loop.fillability}, local=${loop.localMinimal}, silhouette=${loop.silhouetteImpact}`;
+  });
   elements.diagnostics.textContent = [
     `triangles: ${topology.triangleCount}`,
     `valid: ${topology.validTriangleCount}`,
@@ -269,6 +281,7 @@ function refreshDiagnostics(diagnostics: HostMeshDiagnostics, activeInstance: Im
     `weld tolerance: ${topology.weldTolerance}`,
     `components: ${topology.connectedComponentCount}`,
     `boundary edges: ${topology.boundaryEdgeCount}`,
+    `boundary loops: ${topology.boundaryLoopCount}`,
     `non-manifold edges: ${topology.nonManifoldEdgeCount}`,
     `orientation issues: ${topology.orientationInconsistencyEdgeCount}`,
     `watertight diagnostic: ${topology.watertightDiagnostic}`,
@@ -280,6 +293,13 @@ function refreshDiagnostics(diagnostics: HostMeshDiagnostics, activeInstance: Im
     "",
     `closestSurface: ${closest.pass ? "PASS" : "FAIL"} (${closest.hits}/${closest.total} probes)`,
     `raycast: ${rays.pass ? "PASS" : "FAIL"} (${rays.hits}/${rays.total} camera probes hit)`,
+    "",
+    `surface Host: ${activeInstance.capabilities.surfaceCapability.availability}`,
+    `signed Volume Host: ${signed.availability}${signed.reason ? ` (${signed.reason})` : ""}`,
+    `signedDistance / insideOutside: ${activeInstance.signedVolumeQuery ? "AVAILABLE" : "UNAVAILABLE (fail-closed)"}`,
+    `self-intersection validation: ${volume.selfIntersection}`,
+    `repair proposal: ${repairProposal.status} (inactive; explicit approval required)`,
+    ...boundaryLines,
   ].join("\n");
 }
 

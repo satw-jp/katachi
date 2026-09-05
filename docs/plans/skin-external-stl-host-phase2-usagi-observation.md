@@ -4,6 +4,12 @@ Date: 2026-09-05
 Branch: `agent/skin-external-stl-host-v0`  
 Source checkpoint: `3398b48cefe6f6c87d61b06d13771bb32708f5d8`
 
+Phase 4 calibration note: the author's Bambu Studio reference is the source
+unit at `1 mm/source-unit` with `uniformScale = 20.0` (2000%). This supersedes
+the Phase 2 provisional `10 mm/source-unit` characterization for the rabbit
+reference instance; the historical Phase 2 measurements are retained below,
+and no source bytes or source coordinates are changed.
+
 ## A. Selected source
 
 The author-selected candidate was loaded from:

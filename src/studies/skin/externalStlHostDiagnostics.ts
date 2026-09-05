@@ -10,9 +10,24 @@ export interface HostTopologyDiagnostics {
   readonly weldTolerance: number;
   readonly connectedComponentCount: number;
   readonly boundaryEdgeCount: number;
+  readonly boundaryLoopCount: number;
   readonly nonManifoldEdgeCount: number;
   readonly orientationInconsistencyEdgeCount: number;
   readonly watertightDiagnostic: HostWatertightDiagnostic;
+}
+
+export type HostBoundaryFillability = "PLAUSIBLE_LOCAL" | "NOT_PLAUSIBLE" | "UNKNOWN";
+
+export interface HostBoundaryLoopDiagnostic {
+  readonly loopIndex: number;
+  readonly edgeCount: number;
+  readonly perimeter: number;
+  readonly bounds: HostBounds;
+  readonly center: HostVec3;
+  readonly planarDeviation: number;
+  readonly fillability: HostBoundaryFillability;
+  readonly localMinimal: "YES" | "NO" | "UNKNOWN";
+  readonly silhouetteImpact: "NOT_ASSESSED";
 }
 
 export interface HostNormalThresholdStatistic {
@@ -33,17 +48,21 @@ export interface HostNormalStatistics {
 export interface HostMeshDiagnostics {
   readonly sourceBounds: HostBounds;
   readonly topology: HostTopologyDiagnostics;
+  readonly boundaryLoops: readonly HostBoundaryLoopDiagnostic[];
   readonly normals: HostNormalStatistics;
 }
 
 interface EdgeRecord {
   readonly triangles: number[];
   readonly directions: number[];
+  readonly vertices: readonly [number, number];
 }
 
 interface WeldedTopology {
   readonly topology: HostTopologyDiagnostics;
   readonly edges: ReadonlyMap<string, EdgeRecord>;
+  readonly weldedVertices: readonly HostVec3[];
+  readonly boundaryLoops: readonly HostBoundaryLoopDiagnostic[];
 }
 
 interface UnionFind {
@@ -122,7 +141,7 @@ function squaredDistance(left: HostVec3, right: HostVec3): number {
   return dx * dx + dy * dy + dz * dz;
 }
 
-function weldPositions(positions: Float64Array, tolerance: number): { indices: Int32Array; count: number } {
+function weldPositions(positions: Float64Array, tolerance: number): { indices: Int32Array; count: number; vertices: readonly HostVec3[] } {
   const toleranceSquared = tolerance * tolerance;
   const vertices: HostVec3[] = [];
   const buckets = new Map<string, number[]>();
@@ -153,7 +172,7 @@ function weldPositions(positions: Float64Array, tolerance: number): { indices: I
   for (let index = 0; index < indices.length; index += 1) {
     indices[index] = add({ x: positions[index * 3], y: positions[index * 3 + 1], z: positions[index * 3 + 2] });
   }
-  return { indices, count: vertices.length };
+  return { indices, count: vertices.length, vertices };
 }
 
 function edgeKey(left: number, right: number): string {
@@ -168,8 +187,125 @@ function recordEdge(edges: Map<string, EdgeRecord>, left: number, right: number,
     record.triangles.push(triangle);
     record.directions.push(direction);
   } else {
-    edges.set(key, { triangles: [triangle], directions: [direction] });
+    edges.set(key, {
+      triangles: [triangle],
+      directions: [direction],
+      vertices: [Math.min(left, right), Math.max(left, right)],
+    });
   }
+}
+
+function distance(left: HostVec3, right: HostVec3): number {
+  return Math.sqrt(squaredDistance(left, right));
+}
+
+function loopBounds(vertices: readonly HostVec3[]): HostBounds {
+  return finiteBounds(Float64Array.from(vertices.flatMap((point) => [point.x, point.y, point.z])));
+}
+
+function loopPlanarDeviation(vertices: readonly HostVec3[], tolerance: number): number {
+  if (vertices.length < 3) return Infinity;
+  const first = vertices[0];
+  let normal: HostVec3 | null = null;
+  for (let left = 1; left < vertices.length && !normal; left += 1) {
+    const ab = {
+      x: vertices[left].x - first.x,
+      y: vertices[left].y - first.y,
+      z: vertices[left].z - first.z,
+    };
+    for (let right = left + 1; right < vertices.length; right += 1) {
+      const ac = {
+        x: vertices[right].x - first.x,
+        y: vertices[right].y - first.y,
+        z: vertices[right].z - first.z,
+      };
+      const cross = {
+        x: ab.y * ac.z - ab.z * ac.y,
+        y: ab.z * ac.x - ab.x * ac.z,
+        z: ab.x * ac.y - ab.y * ac.x,
+      };
+      const length = Math.hypot(cross.x, cross.y, cross.z);
+      if (length > tolerance * tolerance) {
+        normal = { x: cross.x / length, y: cross.y / length, z: cross.z / length };
+        break;
+      }
+    }
+  }
+  if (!normal) return Infinity;
+  let maximum = 0;
+  for (const point of vertices) {
+    maximum = Math.max(maximum, Math.abs(
+      (point.x - first.x) * normal.x
+      + (point.y - first.y) * normal.y
+      + (point.z - first.z) * normal.z,
+    ));
+  }
+  return maximum;
+}
+
+function characterizeBoundaryLoops(
+  edges: ReadonlyMap<string, EdgeRecord>,
+  weldedVertices: readonly HostVec3[],
+  modelScale: number,
+  tolerance: number,
+): HostBoundaryLoopDiagnostic[] {
+  const boundaryEdges = Array.from(edges.values()).filter((edge) => edge.triangles.length === 1);
+  const adjacency = new Map<number, number[]>();
+  boundaryEdges.forEach((edge, index) => {
+    for (const vertex of edge.vertices) {
+      const list = adjacency.get(vertex);
+      if (list) list.push(index);
+      else adjacency.set(vertex, [index]);
+    }
+  });
+  const visited = new Set<number>();
+  const loops: HostBoundaryLoopDiagnostic[] = [];
+  for (let seed = 0; seed < boundaryEdges.length; seed += 1) {
+    if (visited.has(seed)) continue;
+    const queue = [seed];
+    const componentEdges: number[] = [];
+    const componentVertices = new Set<number>();
+    while (queue.length > 0) {
+      const edgeIndex = queue.pop()!;
+      if (visited.has(edgeIndex)) continue;
+      visited.add(edgeIndex);
+      componentEdges.push(edgeIndex);
+      const edge = boundaryEdges[edgeIndex];
+      for (const vertex of edge.vertices) {
+        componentVertices.add(vertex);
+        for (const adjacent of adjacency.get(vertex) ?? []) if (!visited.has(adjacent)) queue.push(adjacent);
+      }
+    }
+    const vertices = Array.from(componentVertices, (index) => weldedVertices[index]);
+    const bounds = loopBounds(vertices);
+    const span = longestDimension(bounds);
+    const perimeter = componentEdges.reduce((sum, edgeIndex) => {
+      const edge = boundaryEdges[edgeIndex];
+      return sum + distance(weldedVertices[edge.vertices[0]], weldedVertices[edge.vertices[1]]);
+    }, 0);
+    const planarDeviation = loopPlanarDeviation(vertices, tolerance);
+    const closed = vertices.every((vertex) => (adjacency.get(weldedVertices.indexOf(vertex))?.length ?? 0) === 2);
+    const planar = Number.isFinite(planarDeviation) && planarDeviation <= Math.max(tolerance * 4, span * 1e-4);
+    const fillability: HostBoundaryFillability = closed && vertices.length >= 3 && planar
+      ? "PLAUSIBLE_LOCAL"
+      : closed ? "UNKNOWN" : "NOT_PLAUSIBLE";
+    loops.push({
+      loopIndex: loops.length,
+      edgeCount: componentEdges.length,
+      perimeter,
+      bounds,
+      center: {
+        x: (bounds.min.x + bounds.max.x) / 2,
+        y: (bounds.min.y + bounds.max.y) / 2,
+        z: (bounds.min.z + bounds.max.z) / 2,
+      },
+      planarDeviation,
+      fillability,
+      localMinimal: fillability === "PLAUSIBLE_LOCAL" && span <= modelScale * 0.1 ? "YES" : "UNKNOWN",
+      silhouetteImpact: "NOT_ASSESSED",
+    });
+  }
+  return loops;
 }
 
 function triangleCrossSquared(positions: Float64Array, triangle: number): number {
@@ -231,6 +367,7 @@ function analyzeWeldedTopology(positions: Float64Array, triangleCount: number, t
   }
   const roots = new Set<number>();
   for (let index = 0; index < validTriangles.length; index += 1) roots.add(components.find(index));
+  const boundaryLoops = characterizeBoundaryLoops(edges, welded.vertices, scale, tolerance);
   const watertightDiagnostic = validTriangles.length === 0
     ? "UNKNOWN"
     : nonManifoldEdgeCount > 0
@@ -247,11 +384,14 @@ function analyzeWeldedTopology(positions: Float64Array, triangleCount: number, t
       weldTolerance: tolerance,
       connectedComponentCount: roots.size,
       boundaryEdgeCount,
+      boundaryLoopCount: boundaryLoops.length,
       nonManifoldEdgeCount,
       orientationInconsistencyEdgeCount,
       watertightDiagnostic,
     },
     edges,
+    weldedVertices: welded.vertices,
+    boundaryLoops,
   };
 }
 
@@ -312,6 +452,7 @@ export function characterizeHostMesh(
   return {
     sourceBounds: finiteBounds(mesh.positions),
     topology: welded.topology,
+    boundaryLoops: welded.boundaryLoops,
     normals,
   };
 }

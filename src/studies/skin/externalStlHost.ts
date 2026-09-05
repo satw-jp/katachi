@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { sha256Hex } from "../../lib/hash.ts";
+import {
+  createSignedVolumeQuery,
+  preflightHostVolume,
+  type HostCapabilities,
+  type HostSignedVolumeQuery,
+  type HostVolumePreflight,
+} from "./externalStlHostVolume.ts";
 
 export type HostAxis = "x" | "y" | "z";
 export type HostHandedness = "right" | "left";
@@ -68,6 +75,7 @@ export interface ParsedRawStlMesh {
 
 export interface HostSurfaceQuery {
   closestSurface(point: HostVec3): HostSurfaceHit | null;
+  normal(point: HostVec3): HostVec3 | null;
   raycast(ray: HostRay): HostSurfaceHit | null;
 }
 
@@ -87,6 +95,10 @@ export interface ImportedHostInstance {
   /** Parsed geometry after source interpretation and instance transform. */
   readonly mesh: ParsedHostMesh;
   readonly query: HostSurfaceQuery;
+  readonly capabilities: HostCapabilities;
+  readonly volumePreflight: HostVolumePreflight;
+  /** Null when the mesh has not passed the signed-volume validation gate. */
+  readonly signedVolumeQuery: HostSignedVolumeQuery | null;
 }
 
 const EPSILON = 1e-10;
@@ -561,6 +573,10 @@ class HostTriangleQuery implements HostSurfaceQuery {
     return best;
   }
 
+  normal(point: HostVec3): HostVec3 | null {
+    return this.closestSurface(point)?.geometricNormal ?? null;
+  }
+
   private rayBoundsHit(node: BvhNode, ray: HostRay, maximum: number): boolean {
     let near = 0;
     let far = maximum;
@@ -713,11 +729,20 @@ export function createImportedHostInstance(
 ): ImportedHostInstance {
   const checkedTransform = normalizeInstanceTransform(transform);
   const mesh = transformMesh(source.parseMesh(), checkedTransform);
+  const query = new HostTriangleQuery(mesh);
+  const volumePreflight = preflightHostVolume(mesh);
+  const signedVolumeQuery = createSignedVolumeQuery(mesh, query, volumePreflight);
   return Object.freeze({
     source,
     transform: checkedTransform,
     mesh,
-    query: new HostTriangleQuery(mesh),
+    query,
+    capabilities: Object.freeze({
+      surfaceCapability: volumePreflight.surfaceCapability,
+      signedVolumeCapability: volumePreflight.signedVolumeCapability,
+    }),
+    volumePreflight,
+    signedVolumeQuery,
   });
 }
 
