@@ -6,6 +6,7 @@ import {
 } from "../../cloud-sculpt/meshExport.ts";
 import {
   createFinishedSkinBodySdfEvaluator,
+  buildSkinMesh,
   type SkinMeshResult,
 } from "../meshExport.ts";
 import type { Patch } from "../field.ts";
@@ -17,20 +18,49 @@ import type {
 import {
   DEFAULT_SKIN_REBUILD_SETTINGS,
   assembleSkinRebuildProject,
-  buildSkinRebuildDryWeb,
-  buildSkinRebuildFinalMesh,
-  buildSkinRebuildLattice,
   buildSkinRebuildPrintSupport,
+  createEmptySkinRebuildGraph,
   createSkinRebuildBase,
   createSkinRebuildPatterns,
   findSkinRebuildLowestPoints,
-  mergeSkinRebuildGraphs,
+  repairSkinRebuildFinalMesh,
   skinRebuildBaseCentroid,
   type SkinRebuildProject,
   type SkinRebuildSettings,
 } from "./model.ts";
 
-export const SKIN_PRODUCTION_V0_POLICY_VERSION = "skin-production-v0-local-relay-graph-repair-v1";
+export const SKIN_PRODUCTION_V0_POLICY_VERSION = "skin-production-v0-local-relay-geometry-fidelity-v2";
+
+/** Explicit Production v0 BODY contract recovered from Research M / M-R.
+ * Values stay together here so the runtime never depends on C0-only tuning or
+ * on the legacy Stage 5A lattice sizing policy. */
+export interface SkinProductionV0GeometryPolicy {
+  memberRadiusSource: number;
+  anchorDepthSource: number;
+  candidateMaximumSource: number;
+  routeSubdivisionSource: number;
+  routeInsetBaseSource: number;
+  routeInsetSpanSource: number;
+  cycleRank: number;
+  maximumMotifDegree: number;
+  quadMeshJoinWidthSource: number;
+  meshResolution: number;
+  sourceToMmScale: number;
+}
+
+export const DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY: Readonly<SkinProductionV0GeometryPolicy> = Object.freeze({
+  memberRadiusSource: 0.06,
+  anchorDepthSource: 0.10,
+  candidateMaximumSource: 1.50,
+  routeSubdivisionSource: 0.15,
+  routeInsetBaseSource: 0.12,
+  routeInsetSpanSource: 0.10,
+  cycleRank: 20,
+  maximumMotifDegree: 5,
+  quadMeshJoinWidthSource: 0.12,
+  meshResolution: 128,
+  sourceToMmScale: 17.653632343033113,
+});
 
 export interface SkinProductionV0RepairPolicy {
   /** Explicit upper bound for graph-only repair passes. */
@@ -161,12 +191,13 @@ export interface SkinProductionV0Provenance {
     transformHash: string;
   }>;
   generatedNetwork: {
-    source: "pattern-side-inside-positions";
+    source: "research-m-local-route-contract";
     nodeCount: number;
     edgeCount: number;
     nodeIds: number[];
     edgeIds: number[];
   };
+  geometryPolicy: SkinProductionV0GeometryPolicy;
   repair: {
     policy: SkinProductionV0RepairPolicy;
     passes: SkinProductionV0RepairPass[];
@@ -183,6 +214,8 @@ export interface SkinProductionV0Provenance {
 export interface SkinProductionV0RuntimeBuild {
   project: SkinRebuildProject;
   analysisMesh: MeshBuildResult;
+  projectBeforeRepair: SkinRebuildProject;
+  analysisMeshBeforeRepair: MeshBuildResult;
   diagnosticsBefore: SkinProductionV0Diagnostics;
   diagnosticsAfter: SkinProductionV0Diagnostics;
   provenance: SkinProductionV0Provenance;
@@ -191,6 +224,13 @@ export interface SkinProductionV0RuntimeBuild {
 interface GeneratedCandidate {
   project: SkinRebuildProject;
   body: MeshBuildResult;
+}
+
+interface LocalRouteCandidate {
+  start: number;
+  end: number;
+  length: number;
+  path: Vector3Value[];
 }
 
 const EPSILON = 1e-9;
@@ -213,6 +253,157 @@ function edgeAngleDeg(a: Vector3Value, b: Vector3Value): number {
 
 function midpoint(a: Vector3Value, b: Vector3Value): Vector3Value {
   return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5, z: (a.z + b.z) * 0.5 };
+}
+
+function projectToHostDepth(
+  project: Pick<SkinRebuildProject, "base">,
+  seed: Vector3Value,
+  depth: number,
+): Vector3Value {
+  const point = cloneVector(seed);
+  const epsilon = 0.0001;
+  for (let iteration = 0; iteration < 12; iteration++) {
+    const signedDistance = fieldSdf(project.base.host, project.base.hostK, point.x, point.y, point.z) + depth;
+    if (Math.abs(signedDistance) < 1e-7) break;
+    const gx = (fieldSdf(project.base.host, project.base.hostK, point.x + epsilon, point.y, point.z)
+      - fieldSdf(project.base.host, project.base.hostK, point.x - epsilon, point.y, point.z)) / (epsilon * 2);
+    const gy = (fieldSdf(project.base.host, project.base.hostK, point.x, point.y + epsilon, point.z)
+      - fieldSdf(project.base.host, project.base.hostK, point.x, point.y - epsilon, point.z)) / (epsilon * 2);
+    const gz = (fieldSdf(project.base.host, project.base.hostK, point.x, point.y, point.z + epsilon)
+      - fieldSdf(project.base.host, project.base.hostK, point.x, point.y, point.z - epsilon)) / (epsilon * 2);
+    const gradientLength = Math.max(Math.hypot(gx, gy, gz), 1e-10);
+    point.x -= signedDistance * gx / gradientLength;
+    point.y -= signedDistance * gy / gradientLength;
+    point.z -= signedDistance * gz / gradientLength;
+  }
+  return point;
+}
+
+function localRoutePath(
+  project: Pick<SkinRebuildProject, "base">,
+  start: Vector3Value,
+  end: Vector3Value,
+  policy: SkinProductionV0GeometryPolicy,
+): Vector3Value[] {
+  const span = distance(start, end);
+  const segments = Math.max(3, Math.ceil(span / policy.routeSubdivisionSource));
+  const depth = policy.routeInsetBaseSource
+    + policy.routeInsetSpanSource * Math.min(span / policy.candidateMaximumSource, 1);
+  const result: Vector3Value[] = [];
+  for (let index = 0; index <= segments; index++) {
+    const t = index / segments;
+    const chord = {
+      x: start.x + (end.x - start.x) * t,
+      y: start.y + (end.y - start.y) * t,
+      z: start.z + (end.z - start.z) * t,
+    };
+    const inset = projectToHostDepth(project, chord, depth);
+    result.push(index === 0 ? cloneVector(start) : index === segments ? cloneVector(end) : {
+      x: chord.x * 0.4 + inset.x * 0.6,
+      y: chord.y * 0.4 + inset.y * 0.6,
+      z: chord.z * 0.4 + inset.z * 0.6,
+    });
+  }
+  return result;
+}
+
+/** Motif-conditioned Local Relay generator matching the Research M family.
+ * It derives every route from the current authored Motifs; no Research edge
+ * list, coordinate, or C0-specific pair is embedded here. */
+export function buildSkinProductionV0LocalRelayGraph(
+  project: Pick<SkinRebuildProject, "base" | "patternSides">,
+  policyInput: SkinProductionV0GeometryPolicy = DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY,
+): InternalStructureGraph {
+  const policy = { ...policyInput };
+  const anchors = project.patternSides.map((side) =>
+    projectToHostDepth(project as Pick<SkinRebuildProject, "base">, side.surfacePosition, policy.anchorDepthSource));
+  if (anchors.length === 0) return createEmptySkinRebuildGraph();
+  const candidates: LocalRouteCandidate[] = [];
+  for (let start = 0; start < anchors.length; start++) {
+    for (let end = start + 1; end < anchors.length; end++) {
+      const span = distance(anchors[start], anchors[end]);
+      if (span > policy.candidateMaximumSource + EPSILON) continue;
+      const path = localRoutePath(project as Pick<SkinRebuildProject, "base">, anchors[start], anchors[end], policy);
+      const length = path.slice(1).reduce((sum, point, index) => sum + distance(path[index], point), 0);
+      candidates.push({ start, end, length, path });
+    }
+  }
+  candidates.sort((a, b) => a.length - b.length || a.start - b.start || a.end - b.end);
+
+  const parent = anchors.map((_, index) => index);
+  const find = (node: number): number => {
+    let root = node;
+    while (parent[root] !== root) root = parent[root];
+    while (parent[node] !== node) {
+      const next = parent[node];
+      parent[node] = root;
+      node = next;
+    }
+    return root;
+  };
+  const selected = new Map<string, LocalRouteCandidate>();
+  const degrees = anchors.map(() => 0);
+  const select = (candidate: LocalRouteCandidate): void => {
+    const key = `${candidate.start}:${candidate.end}`;
+    if (selected.has(key)) return;
+    selected.set(key, candidate);
+    degrees[candidate.start]++;
+    degrees[candidate.end]++;
+  };
+  for (const candidate of candidates) {
+    const first = find(candidate.start);
+    const second = find(candidate.end);
+    if (first === second) continue;
+    select(candidate);
+    parent[second] = first;
+  }
+  if (new Set(anchors.map((_, index) => find(index))).size !== 1) {
+    throw new Error("Production v0 Local Relay candidates do not connect every Motif");
+  }
+  for (const candidate of candidates) {
+    if (degrees[candidate.start] < 2 || degrees[candidate.end] < 2) select(candidate);
+  }
+  const targetLogicalRoutes = Math.max(anchors.length - 1, anchors.length - 1 + Math.max(0, Math.floor(policy.cycleRank)));
+  for (const candidate of candidates) {
+    if (selected.size >= targetLogicalRoutes) break;
+    if (degrees[candidate.start] >= policy.maximumMotifDegree || degrees[candidate.end] >= policy.maximumMotifDegree) continue;
+    select(candidate);
+  }
+
+  const nodes = anchors.map((position, id) => ({
+    id,
+    position: cloneVector(position),
+    radius: policy.memberRadiusSource,
+  }));
+  const edges: InternalStructureEdge[] = [];
+  for (const candidate of [...selected.values()].sort((a, b) => a.start - b.start || a.end - b.end)) {
+    let previous = candidate.start;
+    for (const point of candidate.path.slice(1, -1)) {
+      const relay = nodes.length;
+      nodes.push({ id: relay, position: cloneVector(point), radius: policy.memberRadiusSource });
+      edges.push({ id: edges.length, start: previous, end: relay, radius: policy.memberRadiusSource });
+      previous = relay;
+    }
+    edges.push({ id: edges.length, start: previous, end: candidate.end, radius: policy.memberRadiusSource });
+  }
+  return {
+    kind: "targetedGrid",
+    nodes,
+    edges,
+    stats: {
+      inputPoints: nodes.length,
+      delaunayTetrahedra: 0,
+      candidateEdges: candidates.length,
+      clippedEdges: 0,
+      removedShortEdges: 0,
+      removedOutsideEdges: 0,
+      removedIsolatedEdges: 0,
+      requestedTargets: anchors.length,
+      connectedTargets: anchors.length,
+      gridNodeCount: nodes.length,
+      gridEdgeCount: edges.length,
+    },
+  };
 }
 
 function median(values: number[]): number {
@@ -543,6 +734,7 @@ function sampleSpatialDiagnostics(
   project: SkinRebuildProject,
   mesh: SkinMeshResult | MeshBuildResult,
   policy: SkinProductionV0RepairPolicy,
+  geometryPolicy: SkinProductionV0GeometryPolicy,
 ): SkinProductionV0SpatialDiagnostics {
   const evaluator = createFinishedSkinBodySdfEvaluator({
     mode: "plate",
@@ -552,6 +744,7 @@ function sampleSpatialDiagnostics(
     patches: project.patterns,
     roundK: project.settings.roundK,
     coinBulge: 0,
+    quadMeshJoinWidth: geometryPolicy.quadMeshJoinWidthSource,
     internalGraph: project.finalGraph,
   });
   const resolution = Math.max(6, Math.min(24, Math.round(policy.diagnosticGridResolution)));
@@ -658,6 +851,7 @@ function bodyDiagnostics(
   mesh: MeshBuildResult,
   motifBaselineHash: string,
   policy: SkinProductionV0RepairPolicy,
+  geometryPolicy: SkinProductionV0GeometryPolicy,
 ): SkinProductionV0Diagnostics {
   const topology = inspectSavedStlTopology(mesh.triangles, mesh.scaleMmPerUnit);
   const body: SkinProductionV0BodyDiagnostics = {
@@ -676,10 +870,41 @@ function bodyDiagnostics(
   };
   return {
     body,
-    spatial: sampleSpatialDiagnostics(project, mesh, policy),
+    spatial: sampleSpatialDiagnostics(project, mesh, policy, geometryPolicy),
     graph: graphDiagnostics(project, graph, mesh.scaleMmPerUnit),
     motif: motifDiagnostics(project, graph, motifBaselineHash),
   };
+}
+
+function buildProductionV0Body(
+  project: SkinRebuildProject,
+  geometryPolicy: SkinProductionV0GeometryPolicy,
+): MeshBuildResult {
+  const built = buildSkinMesh(
+    "plate",
+    project.base.host,
+    project.base.hostK,
+    project.settings.surfaceThickness,
+    project.patterns,
+    project.settings.roundK,
+    { resolution: geometryPolicy.meshResolution, targetLongestMm: project.settings.targetLongestMm },
+    0,
+    geometryPolicy.quadMeshJoinWidthSource,
+    0,
+    project.finalGraph,
+  );
+  const scale = geometryPolicy.sourceToMmScale;
+  const scaled = {
+    ...built,
+    scaleMmPerUnit: scale,
+    mmBounds: {
+      min: { x: built.sourceBounds.min.x * scale, y: built.sourceBounds.min.y * scale, z: built.sourceBounds.min.z * scale },
+      max: { x: built.sourceBounds.max.x * scale, y: built.sourceBounds.max.y * scale, z: built.sourceBounds.max.z * scale },
+      size: { x: built.sourceBounds.size.x * scale, y: built.sourceBounds.size.y * scale, z: built.sourceBounds.size.z * scale },
+      longest: built.sourceBounds.longest * scale,
+    },
+  };
+  return repairSkinRebuildFinalMesh(scaled);
 }
 
 function cloneGraph(graph: InternalStructureGraph): InternalStructureGraph {
@@ -819,15 +1044,20 @@ function repairDryWebGraph(
   return { graph: repaired, changedEdgeIds };
 }
 
-function generateProject(settingsInput: SkinRebuildSettings): GeneratedCandidate {
+function generateProject(
+  settingsInput: SkinRebuildSettings,
+  geometryPolicy: SkinProductionV0GeometryPolicy,
+): GeneratedCandidate {
   const settings = { ...settingsInput };
   const base = createSkinRebuildBase(settings);
   const { patterns, patternSides } = createSkinRebuildPatterns(base, settings);
-  const dryWeb = buildSkinRebuildDryWeb(base, patterns, patternSides, settings);
+  const dryWeb = buildSkinProductionV0LocalRelayGraph(
+    { base, patternSides } as Pick<SkinRebuildProject, "base" | "patternSides">,
+    geometryPolicy,
+  );
   const diagnosed = findSkinRebuildLowestPoints(base, patterns, patternSides, dryWeb, settings);
-  const { lattice, connections } = buildSkinRebuildLattice(base, patterns, patternSides, diagnosed.lowestPoints, settings);
-  const finalGraph = mergeSkinRebuildGraphs(dryWeb, lattice);
-  const printSupport = buildSkinRebuildPrintSupport(base, patterns, patternSides, diagnosed.lowestPoints, finalGraph, settings);
+  const lattice = createEmptySkinRebuildGraph();
+  const printSupport = buildSkinRebuildPrintSupport(base, patterns, patternSides, diagnosed.lowestPoints, dryWeb, settings);
   const project = assembleSkinRebuildProject(
     settings,
     base,
@@ -836,21 +1066,30 @@ function generateProject(settingsInput: SkinRebuildSettings): GeneratedCandidate
     dryWeb,
     diagnosed.lowestPoints,
     lattice,
-    connections,
+    [],
     printSupport,
   );
-  return { project, body: buildSkinRebuildFinalMesh(project, settings.analysisResolution) };
+  return { project, body: buildProductionV0Body(project, geometryPolicy) };
 }
 
 function runProductionV0(
   generated: GeneratedCandidate,
   settingsInput: SkinRebuildSettings,
   repairPolicyInput: SkinProductionV0RepairPolicy,
+  geometryPolicyInput: SkinProductionV0GeometryPolicy,
 ): SkinProductionV0RuntimeBuild {
   const settings = { ...settingsInput };
   const policy = effectivePolicy(settings, repairPolicyInput);
+  const geometryPolicy = { ...geometryPolicyInput };
   const motifBaselineHash = hashValue(generated.project.patterns);
-  const diagnosticsBefore = bodyDiagnostics(generated.project, generated.project.finalGraph, generated.body, motifBaselineHash, policy);
+  const diagnosticsBefore = bodyDiagnostics(
+    generated.project,
+    generated.project.finalGraph,
+    generated.body,
+    motifBaselineHash,
+    policy,
+    geometryPolicy,
+  );
   let active = generated;
   let activeDiagnostics = diagnosticsBefore;
   const passes: SkinProductionV0RepairPass[] = [];
@@ -861,8 +1100,15 @@ function runProductionV0(
       break;
     }
     const project = candidateProject(active.project, repaired.graph);
-    const candidate = { project, body: buildSkinRebuildFinalMesh(project, settings.analysisResolution) };
-    const candidateDiagnostics = bodyDiagnostics(candidate.project, candidate.project.finalGraph, candidate.body, motifBaselineHash, policy);
+    const candidate = { project, body: buildProductionV0Body(project, geometryPolicy) };
+    const candidateDiagnostics = bodyDiagnostics(
+      candidate.project,
+      candidate.project.finalGraph,
+      candidate.body,
+      motifBaselineHash,
+      policy,
+      geometryPolicy,
+    );
     const rejectionReasons = candidatePassAccepted(activeDiagnostics, candidateDiagnostics, policy);
     const accepted = rejectionReasons.length === 0;
     passes.push({ pass: pass + 1, changedEdgeIds: repaired.changedEdgeIds, accepted, candidateDiagnostics, rejectionReasons });
@@ -881,12 +1127,13 @@ function runProductionV0(
     hostIdentity: { query: "authored-host" as const, hostK: active.project.base.hostK, geometryHash: hostGeometryHash(active.project) },
     motifIdentity: motifIdentity(active.project),
     generatedNetwork: {
-      source: "pattern-side-inside-positions" as const,
+      source: "research-m-local-route-contract" as const,
       nodeCount: generated.project.dryWeb.nodes.length,
       edgeCount: generated.project.dryWeb.edges.length,
       nodeIds: generated.project.dryWeb.nodes.map((node) => node.id),
       edgeIds: generated.project.dryWeb.edges.map((edge) => edge.id),
     },
+    geometryPolicy,
     repair: { policy, passes, motifRelocationCount },
     diagnostics: {
       beforeHash: diagnosticsHash(diagnosticsBefore),
@@ -896,11 +1143,13 @@ function runProductionV0(
   };
   const provenance: SkinProductionV0Provenance = {
     ...provenanceBase,
-    deterministicKey: hashValue({ settings, policy, host: provenanceBase.hostIdentity, motifs: provenanceBase.motifIdentity }),
+    deterministicKey: hashValue({ settings, policy, geometryPolicy, host: provenanceBase.hostIdentity, motifs: provenanceBase.motifIdentity }),
   };
   return {
     project: active.project,
     analysisMesh: active.body,
+    projectBeforeRepair: generated.project,
+    analysisMeshBeforeRepair: generated.body,
     diagnosticsBefore,
     diagnosticsAfter,
     provenance,
@@ -981,29 +1230,41 @@ export function productionV0Fingerprint(runtime: SkinProductionV0RuntimeBuild): 
 export function buildSkinProductionV0(
   settingsInput: SkinRebuildSettings = DEFAULT_SKIN_REBUILD_SETTINGS,
   repairPolicyInput: SkinProductionV0RepairPolicy = DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
+  geometryPolicyInput: SkinProductionV0GeometryPolicy = DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY,
 ): SkinProductionV0RuntimeBuild {
   const settings = { ...settingsInput };
-  return runProductionV0(generateProject(settings), settings, repairPolicyInput);
+  return runProductionV0(
+    generateProject(settings, geometryPolicyInput),
+    settings,
+    repairPolicyInput,
+    geometryPolicyInput,
+  );
 }
 
 /** Run production v0 against an already authored SKIN REBUILD project.
- * Host and Motif geometry are copied as inputs; only the derived DryWeb graph
- * and the separate diagnostics/provenance runtime may change. Existing
- * lattice and removable-support fields remain separate and are preserved. */
+ * Host and Motif geometry are copied as inputs. The legacy Stage 5A lattice
+ * is replaced by the Production v0 Local Relay permanent network; removable
+ * support remains a separate, unchanged project field. */
 export function buildSkinProductionV0FromProject(
   projectInput: SkinRebuildProject,
   repairPolicyInput: SkinProductionV0RepairPolicy = DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
+  geometryPolicyInput: SkinProductionV0GeometryPolicy = DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY,
 ): SkinProductionV0RuntimeBuild {
-  const dryWeb = buildSkinRebuildDryWeb(
+  const dryWeb = buildSkinProductionV0LocalRelayGraph(projectInput, geometryPolicyInput);
+  const project = assembleSkinRebuildProject(
+    projectInput.settings,
     projectInput.base,
     projectInput.patterns,
     projectInput.patternSides,
-    projectInput.settings,
+    dryWeb,
+    projectInput.lowestPoints,
+    createEmptySkinRebuildGraph(),
+    [],
+    projectInput.printSupport,
   );
-  const project = candidateProject(projectInput, dryWeb);
   const generated: GeneratedCandidate = {
     project,
-    body: buildSkinRebuildFinalMesh(project, project.settings.analysisResolution),
+    body: buildProductionV0Body(project, geometryPolicyInput),
   };
-  return runProductionV0(generated, project.settings, repairPolicyInput);
+  return runProductionV0(generated, project.settings, repairPolicyInput, geometryPolicyInput);
 }

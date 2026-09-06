@@ -16,6 +16,26 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-09-06 — Production v0 Research M / M-R geometry fidelity correction
+
+The Production v0 permanent network now applies the Research M local-route
+contract to the current authored Motif positions instead of layering the
+legacy Stage 5A lattice onto a direct-neighbour DryWeb. The explicit BODY
+policy records the Research member radius, Host-depth anchors, local candidate
+limit, relay subdivision/inset contract, cycle budget, quad mesh join width,
+resolution, and source-to-mm scale. No Research edge list or coordinate is
+copied; Host and all 38 Motifs remain the runtime inputs.
+
+The immutable C0 replay produced P1 at 249 nodes / 268 edges / cycle rank 20,
+142,580 faces, and 6,844.291 mm³. The existing bounded Graph-only repair
+produced P3 at 253 nodes / 272 edges / cycle rank 20, 143,416 faces, and
+6,885.716 mm³. Both BODYs were closed, single-component, winding-consistent,
+and free of non-manifold, degenerate, and non-finite triangles. A second replay
+matched graph, BODY, diagnostics, and runtime fingerprints. Host, Motif
+geometry, Motif transforms, and removable Support fingerprints remained
+unchanged; Motif relocation remained zero. Same-view Research M / M-R / P1 /
+P3 images are evidence for C SOL and Author review, not an artwork PASS.
+
 ### 2026-09-06 — SKIN C production v0 native network
 
 The default `/skin-rebuild.html` generation path now uses a separate production

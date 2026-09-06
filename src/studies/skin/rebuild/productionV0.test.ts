@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { fieldSdf } from "../../cloud-sculpt/field.ts";
 import {
   DEFAULT_SKIN_REBUILD_SETTINGS,
 } from "./model.ts";
 import {
+  DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY,
   DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
   buildSkinProductionV0,
   buildSkinProductionV0FromProject,
@@ -37,25 +39,37 @@ const settings = {
   exportResolution: 36,
 };
 
+const testGeometryPolicy = {
+  ...DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY,
+  meshResolution: 36,
+};
+
 const first = buildSkinProductionV0(settings, {
   ...DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
   maxPasses: 1,
   maxEdgeChangesPerPass: 1,
   diagnosticGridResolution: 8,
-});
+}, testGeometryPolicy);
 
 assert.equal(first.provenance.seedPolicy, "motif-conditioned");
 assert.equal(first.provenance.networkCore, "local-relay-permanent-network");
 assert.equal(first.provenance.repairMechanism, "bounded-graph-only");
 assert.equal(first.provenance.coEvolution, "not-implemented");
-for (const side of first.project.patternSides) {
-  assert.ok(first.project.dryWeb.nodes.some((node) =>
-    Math.hypot(
-      node.position.x - side.insidePosition.x,
-      node.position.y - side.insidePosition.y,
-      node.position.z - side.insidePosition.z,
-    ) <= 1e-12,
-  ), "every Motif anchor must remain in the Local Relay graph");
+assert.equal(first.provenance.generatedNetwork.source, "research-m-local-route-contract");
+assert.deepEqual(first.provenance.geometryPolicy, testGeometryPolicy);
+assert.equal(first.analysisMesh.scaleMmPerUnit, DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY.sourceToMmScale);
+assert.equal(first.analysisMeshBeforeRepair.scaleMmPerUnit, DEFAULT_SKIN_PRODUCTION_V0_GEOMETRY_POLICY.sourceToMmScale);
+for (let index = 0; index < first.project.patternSides.length; index++) {
+  const anchor = first.project.dryWeb.nodes[index];
+  assert.ok(anchor, "every Motif has a stable leading Local Relay anchor");
+  assert.ok(Math.abs(fieldSdf(
+    first.project.base.host,
+    first.project.base.hostK,
+    anchor.position.x,
+    anchor.position.y,
+    anchor.position.z,
+  ) + testGeometryPolicy.anchorDepthSource) <= 2e-6,
+  "every Motif anchor follows the Research M Host-depth contract");
 }
 assert.ok(first.project.dryWeb.nodes.length >= first.project.patterns.length);
 assert.equal(
@@ -64,6 +78,13 @@ assert.equal(
   "Motif-conditioned Local Relay graph must connect every Motif",
 );
 assert.ok(first.project.dryWeb.edges.length >= first.project.dryWeb.nodes.length - 1);
+assert.equal(first.project.dryWeb.edges.length - first.project.dryWeb.nodes.length + 1, 20,
+  "Research M family retains the explicit cycle-rank contract");
+assert.equal(first.project.lattice.edges.length, 0,
+  "legacy Stage 5A lattice is not layered onto the Production v0 Local Relay network");
+assert.deepEqual(first.project.finalGraph.nodes, first.project.dryWeb.nodes);
+assert.deepEqual(first.project.finalGraph.edges, first.project.dryWeb.edges);
+assert.ok(first.project.dryWeb.edges.every((edge) => edge.radius === 0.06));
 assert.equal(first.provenance.repair.motifRelocationCount, 0);
 assert.equal(first.diagnosticsBefore.motif.relocationCount, 0);
 assert.equal(first.diagnosticsAfter.motif.relocationCount, 0);
@@ -78,7 +99,7 @@ const second = buildSkinProductionV0(settings, {
   maxPasses: 1,
   maxEdgeChangesPerPass: 1,
   diagnosticGridResolution: 8,
-});
+}, testGeometryPolicy);
 assert.equal(productionV0Fingerprint(second), productionV0Fingerprint(first),
   "same inputs, policy, and deterministic seed must reproduce the production graph/BODY contract");
 assert.deepEqual(second.project.finalGraph, first.project.finalGraph);
@@ -88,13 +109,13 @@ const authoredAdapter = buildSkinProductionV0FromProject(first.project, {
   ...DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
   maxPasses: 0,
   diagnosticGridResolution: 8,
-});
+}, testGeometryPolicy);
 assert.deepEqual(authoredAdapter.project.base.host, first.project.base.host,
   "authored Host geometry must be preserved by the root-production adapter");
 assert.deepEqual(authoredAdapter.project.patterns, first.project.patterns,
   "authored Motif geometry must be preserved by the root-production adapter");
-assert.deepEqual(authoredAdapter.project.lattice, first.project.lattice,
-  "existing permanent lattice remains separate from Local Relay generation");
+assert.equal(authoredAdapter.project.lattice.edges.length, 0,
+  "Production adapter replaces legacy permanent lattice with Local Relay");
 assert.deepEqual(authoredAdapter.project.printSupport, first.project.printSupport,
   "existing removable support remains unchanged by production v0");
 assert.equal(authoredAdapter.provenance.repair.motifRelocationCount, 0);
