@@ -13,7 +13,7 @@ Last verified: 2026-09-06
 - support source: `current-stage8:sparseResult.graph`
 
 ## Current phase
-First Physical Print has completed and author photo evidence was received on 2026-09-06. As-printed completion is PASS: the object reached full height, remained standing, and no catastrophic collapse / large spaghetti failure is visible in the supplied views. The outer support forest contains many continuous full-height trunks and the upper BODY/motif region remains present. Support removal, artwork damage after removal, physical strength/handling, and final Air / Void / sight-line quality remain unverified. Physical removal review now has priority. UI IA v0A Fix 1 remains active but does not supersede the Physical Gate.
+First Physical Print is PASS / CLOSED for the intended current print semantics: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support at author-identified fragile regions. The print reached full height without catastrophic collapse; author post-removal photo/video evidence shows the Removable Support was removed cleanly and the artwork network remained intact without observed collapse. Printed open voids are visibly retained after removal. This does NOT prove SKIN-support-alone full printability because supplemental slicer support was intentionally used. UI IA v0A Fix 1 remains the active implementation task.
 
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
@@ -38,21 +38,23 @@ First Physical Print has completed and author photo evidence was received on 202
 - Output Scale semantics PRESENT under current C mm contract
 - current Stage8 Artifact Export authority confirmed: `exportCurrentSkinRebuildArtifact`
 - legacy v088 export reviewed: `COMPATIBILITY_ONLY`
-- First Physical Print as-printed completion: PASS from author photo evidence on 2026-09-06; removal/final-artwork gate remains open
+- First Physical Print as-printed completion PASS
+- First Physical Print support-removal / BODY-survival gate PASS
+- First Physical Gate for current print semantics PASS / CLOSED on 2026-09-06
 
 ## Current blocker
 - No Production geometry / support / export blocker.
-- First Physical Print support-removal / post-removal artwork gate is OPEN and has priority.
 - UI IA v0A is `FIX REQUIRED`, not CLOSED, at checkpoint `c5f817664dcc25cc0ced1b404504ed192a015ec0`.
 - Exact Production parity evidence for that UI checkpoint is incomplete in GitHub review evidence.
 - External STL Host + FKEI persistence are `MISSING_CURRENT` but require a separate Host architecture; HOLD, not a UI IA blocker.
+- SKIN-support-alone full printability remains UNVERIFIED; this is not a blocker for the closed First Physical Gate because the accepted First Print semantics included limited manual supplemental support.
 
 ## Next gate
-1. Author performs controlled Removable Support removal and returns post-removal photo/handling evidence; C SOL reviews breakage, removal quality, BODY survival, strength/handling, and final Air / Void / sight-lines.
-2. C LUNA may continue `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` under `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`; C SOL review of that checkpoint follows the Physical Gate evidence when both are available.
-3. Do not claim SKIN-support-alone full printability from this print because current First Print provenance includes limited Bambu Studio manual supplemental support.
+1. C LUNA continues `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` under `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`.
+2. C SOL reviews the pushed Fix 1 checkpoint, actual five-step Inspector behavior, and exact Production parity evidence.
+3. Physical follow-up may study where manual supplemental support was still needed, but do not convert that observation into a support-algorithm change without a separate bounded C task.
 4. P0-B authoring resources are verified only as needed; no large restore merely for inventory completeness.
-5. Usagi + V6 parameter-locked C validation remains HOLD until First Physical Gate closes.
+5. Because First Physical Gate is now closed, Usagi + V6 parameter-locked C validation is no longer blocked by that gate; it may be scoped separately after the active UI IA task or when C SOL explicitly prioritizes it.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -69,14 +71,14 @@ First Physical Print has completed and author photo evidence was received on 202
 - bulk merge of historical feature branches
 
 ## Relevant artifacts
-- First Physical Print author photo evidence received 2026-09-06: three as-printed views before support removal; as-printed completion PASS, removal gate pending
+- First Physical Print author evidence received 2026-09-06: three as-printed views before support removal plus post-removal photo/video evidence
+- First Physical Print provenance: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support at fragile regions
 - UI IA v0A reviewed checkpoint: `c5f817664dcc25cc0ced1b404504ed192a015ec0` — `FIX REQUIRED`, not Production baseline
 - UI IA Fix 1 task: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`
 - Known Support Graph: 577 nodes / 395 edges
 - FIELD vNext historical source: `8bf46150f0278794cac8061d26f01737c8fb1ff0`
 - FIELD vNext current checkpoint: `349e1a854d7e3699ac29afd167fc22e8131406d7`
 - historical External STL Host head: `bdca7e91274920809d51c4e5681cbbea486f1642` — reference only
-- First Print provenance includes limited Bambu Studio manual supplemental support; SKIN-support-alone full printability is NOT CLAIMED.
 
 ## Evidence boundary
 ### Proven / supported
@@ -88,19 +90,18 @@ First Physical Print has completed and author photo evidence was received on 202
 - current Stage8 Artifact Export uses `current-stage8:sparseResult.graph`.
 - legacy v088 export is reachable but intentionally compatibility-only because artifact/support semantics differ.
 - UI IA checkpoint `c5f817...` changes a bounded presentation shell and preserves the locked Production branch ancestry; no architecture expansion was found in the reviewed diff.
-- First Physical Print reached full height and remained standing without visible catastrophic collapse in the supplied as-printed author photos.
-- Many long outer support members survived through the print, and upper artwork geometry is visibly present before support removal.
+- First Physical Print reached full height and remained standing without visible catastrophic collapse in supplied as-printed author photos.
+- Removable Support was reported by the author to remove cleanly; supplied post-removal views show the artwork network surviving removal without observed global collapse.
+- open Air / Void regions remain visibly present after support removal.
+- basic post-removal handling survival is supported by the object remaining coherent through removal and repositioning for multiple views.
 
 ### Not yet proven
-- support removal quality / accessibility
-- artwork survival and surface damage after support removal
-- physical strength / handling after removal
-- final printed Air / Void / sight-line quality
-- corrected Production physical printability without supplemental slicer support
-- SKIN-support-alone full printability
+- SKIN-support-alone full printability without supplemental slicer support
+- strength margin / durability under deliberate load or repeated handling
+- final artwork superiority or final artistic judgment
+- exact final sight-line quality beyond the supplied photographic viewpoints
 - UI IA v0A completion at `c5f817...`
 - exact BODY / Graph / Support / 3MF parity for the reviewed UI checkpoint as recorded GitHub evidence
-- final artwork superiority
 - cross-host / cross-motif generality
 - generic External STL Host on current C architecture
 - Usagi validation
