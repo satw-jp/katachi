@@ -12,11 +12,37 @@ export interface PackedCandidateQueryStats {
   readonly totalTypedArrayBytes: number;
 }
 
+export interface PackedCandidateQueryTelemetry {
+  readonly enabled: boolean;
+  readonly closestSurfaceCalls: number;
+  readonly signedDistanceCalls: number;
+  readonly rayIntersectionCalls: number;
+  readonly closestSurfaceNodesVisited: number;
+  readonly closestSurfaceTrianglesTested: number;
+  readonly rayIntersectionNodesVisited: number;
+  readonly rayIntersectionTrianglesTested: number;
+  readonly closestSurfaceMaxNodesVisited: number;
+  readonly closestSurfaceMaxTrianglesTested: number;
+  readonly rayIntersectionMaxNodesVisited: number;
+  readonly rayIntersectionMaxTrianglesTested: number;
+  /** Histogram-derived upper bounds; telemetry is intentionally bounded. */
+  readonly closestSurfaceP50NodesVisited: number;
+  readonly closestSurfaceP95NodesVisited: number;
+  readonly closestSurfaceP50TrianglesTested: number;
+  readonly closestSurfaceP95TrianglesTested: number;
+  readonly rayIntersectionP50NodesVisited: number;
+  readonly rayIntersectionP95NodesVisited: number;
+  readonly rayIntersectionP50TrianglesTested: number;
+  readonly rayIntersectionP95TrianglesTested: number;
+}
+
 export interface PackedCandidateQuery {
   readonly stats: PackedCandidateQueryStats;
   readonly positions: Float32Array;
   closestSurface(point: HostVec3): { distance: number; triangleIndex: number } | null;
   signedDistance(point: HostVec3): number;
+  resetTelemetry(): void;
+  readTelemetry(): PackedCandidateQueryTelemetry;
   release(): void;
 }
 
@@ -109,6 +135,7 @@ function rayIntersectsTriangle(point: HostVec3, positions: Float32Array, triangl
 export function buildPackedCandidateQuery(
   positions: Float32Array,
   onProgress?: (stage: string, completed: number, total: number) => void,
+  options: { telemetry?: boolean } = {},
 ): PackedCandidateQuery {
   if (positions.length === 0 || positions.length % 9 !== 0) throw new Error("Packed candidate positions must contain triangles");
   const triangleCount = positions.length / 9;
@@ -116,18 +143,86 @@ export function buildPackedCandidateQuery(
   const nodeCount = leafCount * 2 - 1;
   const triangleOrder = new Uint32Array(triangleCount);
   for (let index = 0; index < triangleCount; index += 1) triangleOrder[index] = index;
+  let centroids: Float32Array | null = new Float32Array(triangleCount * 3);
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    const source = triangle * 9;
+    const centroid = triangle * 3;
+    centroids[centroid] = (positions[source] + positions[source + 3] + positions[source + 6]) / 3;
+    centroids[centroid + 1] = (positions[source + 1] + positions[source + 4] + positions[source + 7]) / 3;
+    centroids[centroid + 2] = (positions[source + 2] + positions[source + 5] + positions[source + 8]) / 3;
+  }
   const bounds = new Float32Array(nodeCount * 6);
   const left = new Int32Array(nodeCount); left.fill(-1);
   const right = new Int32Array(nodeCount); right.fill(-1);
   const start = new Uint32Array(nodeCount);
   const count = new Uint32Array(nodeCount);
-  for (let leaf = 0; leaf < leafCount; leaf += 1) {
-    const node = leafCount - 1 + leaf;
-    const first = leaf * LEAF_SIZE;
-    const last = Math.min(triangleCount, first + LEAF_SIZE);
+  const subtreeLeafCounts = new Uint32Array(nodeCount);
+  for (let leaf = 0; leaf < leafCount; leaf += 1) subtreeLeafCounts[leafCount - 1 + leaf] = 1;
+  for (let node = leafCount - 2; node >= 0; node -= 1) {
+    subtreeLeafCounts[node] = subtreeLeafCounts[node * 2 + 1] + subtreeLeafCounts[node * 2 + 2];
+  }
+  const compareTriangles = (first: number, second: number, axis: number): number => {
+    const centroidData = centroids!;
+    const difference = centroidData[first * 3 + axis] - centroidData[second * 3 + axis];
+    return difference !== 0 ? difference : first - second;
+  };
+  const selectKth = (first: number, last: number, kth: number, axis: number): void => {
+    let low = first;
+    let high = last - 1;
+    while (low < high) {
+      const pivot = triangleOrder[low + ((high - low) >> 1)];
+      let leftIndex = low;
+      let rightIndex = high;
+      while (leftIndex <= rightIndex) {
+        while (compareTriangles(triangleOrder[leftIndex], pivot, axis) < 0) leftIndex += 1;
+        while (compareTriangles(triangleOrder[rightIndex], pivot, axis) > 0) rightIndex -= 1;
+        if (leftIndex <= rightIndex) {
+          const value = triangleOrder[leftIndex];
+          triangleOrder[leftIndex] = triangleOrder[rightIndex];
+          triangleOrder[rightIndex] = value;
+          leftIndex += 1;
+          rightIndex -= 1;
+        }
+      }
+      if (kth <= rightIndex) high = rightIndex;
+      else if (kth >= leftIndex) low = leftIndex;
+      else return;
+    }
+  };
+  let leavesBuilt = 0;
+  const buildNode = (node: number, first: number, last: number): void => {
+    const leaf = node >= leafCount - 1;
+    if (!leaf) {
+      const childLeft = node * 2 + 1;
+      const childRight = childLeft + 1;
+      left[node] = childLeft;
+      right[node] = childRight;
+      const leftCapacity = subtreeLeafCounts[childLeft] * LEAF_SIZE;
+      const middle = Math.min(last - 1, first + leftCapacity);
+      let minX = Infinity; let minY = Infinity; let minZ = Infinity;
+      let maxX = -Infinity; let maxY = -Infinity; let maxZ = -Infinity;
+      for (let index = first; index < last; index += 1) {
+        const triangle = triangleOrder[index];
+        const centroid = triangle * 3;
+        minX = Math.min(minX, centroids![centroid]); maxX = Math.max(maxX, centroids![centroid]);
+        minY = Math.min(minY, centroids![centroid + 1]); maxY = Math.max(maxY, centroids![centroid + 1]);
+        minZ = Math.min(minZ, centroids![centroid + 2]); maxZ = Math.max(maxZ, centroids![centroid + 2]);
+      }
+      const spanX = maxX - minX; const spanY = maxY - minY; const spanZ = maxZ - minZ;
+      const axis = spanY > spanX && spanY >= spanZ ? 1 : spanZ > spanX && spanZ > spanY ? 2 : 0;
+      if (middle > first && middle < last) selectKth(first, last, middle, axis);
+      buildNode(childLeft, first, middle);
+      buildNode(childRight, middle, last);
+      const output = node * 6; const a = childLeft * 6; const b = childRight * 6;
+      bounds[output] = Math.min(bounds[a], bounds[b]); bounds[output + 1] = Math.min(bounds[a + 1], bounds[b + 1]); bounds[output + 2] = Math.min(bounds[a + 2], bounds[b + 2]);
+      bounds[output + 3] = Math.max(bounds[a + 3], bounds[b + 3]); bounds[output + 4] = Math.max(bounds[a + 4], bounds[b + 4]); bounds[output + 5] = Math.max(bounds[a + 5], bounds[b + 5]);
+      start[node] = Math.min(start[childLeft], start[childRight]);
+      count[node] = count[childLeft] + count[childRight];
+      return;
+    }
+    const output = node * 6;
     start[node] = first;
     count[node] = last - first;
-    const output = node * 6;
     bounds[output] = Infinity; bounds[output + 1] = Infinity; bounds[output + 2] = Infinity;
     bounds[output + 3] = -Infinity; bounds[output + 4] = -Infinity; bounds[output + 5] = -Infinity;
     for (let index = first; index < last; index += 1) {
@@ -136,29 +231,93 @@ export function buildPackedCandidateQuery(
       bounds[output] = Math.min(bounds[output], values[0]); bounds[output + 1] = Math.min(bounds[output + 1], values[1]); bounds[output + 2] = Math.min(bounds[output + 2], values[2]);
       bounds[output + 3] = Math.max(bounds[output + 3], values[3]); bounds[output + 4] = Math.max(bounds[output + 4], values[4]); bounds[output + 5] = Math.max(bounds[output + 5], values[5]);
     }
-    if (leaf % 1024 === 0) onProgress?.("Building Candidate query", leaf, leafCount);
-  }
-  for (let node = leafCount - 2; node >= 0; node -= 1) {
-    const childLeft = node * 2 + 1; const childRight = childLeft + 1;
-    left[node] = childLeft; right[node] = childRight;
-    start[node] = Math.min(start[childLeft], start[childRight]);
-    count[node] = count[childLeft] + count[childRight];
-    const output = node * 6; const a = childLeft * 6; const b = childRight * 6;
-    bounds[output] = Math.min(bounds[a], bounds[b]); bounds[output + 1] = Math.min(bounds[a + 1], bounds[b + 1]); bounds[output + 2] = Math.min(bounds[a + 2], bounds[b + 2]);
-    bounds[output + 3] = Math.max(bounds[a + 3], bounds[b + 3]); bounds[output + 4] = Math.max(bounds[a + 4], bounds[b + 4]); bounds[output + 5] = Math.max(bounds[a + 5], bounds[b + 5]);
-  }
+    leavesBuilt += 1;
+    if (leavesBuilt % 1024 === 0 || leavesBuilt === leafCount) onProgress?.("Building Candidate query", leavesBuilt, leafCount);
+  };
+  buildNode(0, 0, triangleCount);
+  centroids = null;
   onProgress?.("Building Candidate query", leafCount, leafCount);
   let released = false;
+  const telemetryEnabled = options.telemetry === true;
+  const telemetry = {
+    closestSurfaceCalls: 0,
+    signedDistanceCalls: 0,
+    rayIntersectionCalls: 0,
+    closestSurfaceNodesVisited: 0,
+    closestSurfaceTrianglesTested: 0,
+    rayIntersectionNodesVisited: 0,
+    rayIntersectionTrianglesTested: 0,
+    closestSurfaceMaxNodesVisited: 0,
+    closestSurfaceMaxTrianglesTested: 0,
+    rayIntersectionMaxNodesVisited: 0,
+    rayIntersectionMaxTrianglesTested: 0,
+    closestSurfaceNodeHistogram: new Uint32Array(32),
+    closestSurfaceTriangleHistogram: new Uint32Array(32),
+    rayIntersectionNodeHistogram: new Uint32Array(32),
+    rayIntersectionTriangleHistogram: new Uint32Array(32),
+  };
+  const resetTelemetry = (): void => {
+    telemetry.closestSurfaceCalls = 0;
+    telemetry.signedDistanceCalls = 0;
+    telemetry.rayIntersectionCalls = 0;
+    telemetry.closestSurfaceNodesVisited = 0;
+    telemetry.closestSurfaceTrianglesTested = 0;
+    telemetry.rayIntersectionNodesVisited = 0;
+    telemetry.rayIntersectionTrianglesTested = 0;
+    telemetry.closestSurfaceMaxNodesVisited = 0;
+    telemetry.closestSurfaceMaxTrianglesTested = 0;
+    telemetry.rayIntersectionMaxNodesVisited = 0;
+    telemetry.rayIntersectionMaxTrianglesTested = 0;
+    telemetry.closestSurfaceNodeHistogram.fill(0);
+    telemetry.closestSurfaceTriangleHistogram.fill(0);
+    telemetry.rayIntersectionNodeHistogram.fill(0);
+    telemetry.rayIntersectionTriangleHistogram.fill(0);
+  };
+  const histogramBin = (value: number): number => Math.min(31, 31 - Math.clz32(Math.max(1, value)));
+  const percentileUpperBound = (histogram: Uint32Array, calls: number, fraction: number): number => {
+    if (calls <= 0) return 0;
+    const target = Math.max(1, Math.ceil(calls * fraction));
+    let cumulative = 0;
+    for (let index = 0; index < histogram.length; index += 1) {
+      cumulative += histogram[index];
+      if (cumulative >= target) return index >= 31 ? 2 ** 31 : 2 ** index;
+    }
+    return 2 ** 31;
+  };
+  const readTelemetry = (): PackedCandidateQueryTelemetry => ({
+    enabled: telemetryEnabled,
+    closestSurfaceCalls: telemetry.closestSurfaceCalls,
+    signedDistanceCalls: telemetry.signedDistanceCalls,
+    rayIntersectionCalls: telemetry.rayIntersectionCalls,
+    closestSurfaceNodesVisited: telemetry.closestSurfaceNodesVisited,
+    closestSurfaceTrianglesTested: telemetry.closestSurfaceTrianglesTested,
+    rayIntersectionNodesVisited: telemetry.rayIntersectionNodesVisited,
+    rayIntersectionTrianglesTested: telemetry.rayIntersectionTrianglesTested,
+    closestSurfaceMaxNodesVisited: telemetry.closestSurfaceMaxNodesVisited,
+    closestSurfaceMaxTrianglesTested: telemetry.closestSurfaceMaxTrianglesTested,
+    rayIntersectionMaxNodesVisited: telemetry.rayIntersectionMaxNodesVisited,
+    rayIntersectionMaxTrianglesTested: telemetry.rayIntersectionMaxTrianglesTested,
+    closestSurfaceP50NodesVisited: percentileUpperBound(telemetry.closestSurfaceNodeHistogram, telemetry.closestSurfaceCalls, 0.5),
+    closestSurfaceP95NodesVisited: percentileUpperBound(telemetry.closestSurfaceNodeHistogram, telemetry.closestSurfaceCalls, 0.95),
+    closestSurfaceP50TrianglesTested: percentileUpperBound(telemetry.closestSurfaceTriangleHistogram, telemetry.closestSurfaceCalls, 0.5),
+    closestSurfaceP95TrianglesTested: percentileUpperBound(telemetry.closestSurfaceTriangleHistogram, telemetry.closestSurfaceCalls, 0.95),
+    rayIntersectionP50NodesVisited: percentileUpperBound(telemetry.rayIntersectionNodeHistogram, telemetry.rayIntersectionCalls, 0.5),
+    rayIntersectionP95NodesVisited: percentileUpperBound(telemetry.rayIntersectionNodeHistogram, telemetry.rayIntersectionCalls, 0.95),
+    rayIntersectionP50TrianglesTested: percentileUpperBound(telemetry.rayIntersectionTriangleHistogram, telemetry.rayIntersectionCalls, 0.5),
+    rayIntersectionP95TrianglesTested: percentileUpperBound(telemetry.rayIntersectionTriangleHistogram, telemetry.rayIntersectionCalls, 0.95),
+  });
   const assertLive = (): void => { if (released) throw new Error("Packed Candidate query has been released"); };
   const closestSurface = (point: HostVec3): { distance: number; triangleIndex: number } | null => {
     assertLive();
-    let bestSquared = Infinity; let bestTriangle = -1;
+    let bestSquared = Infinity; let bestTriangle = -1; let nodesVisited = 0; let trianglesTested = 0;
     const stack: number[] = [0];
     while (stack.length > 0) {
       const node = stack.pop()!;
+      nodesVisited += 1;
       if (pointAabbDistanceSquared(point, bounds, node * 6) > bestSquared + EPSILON) continue;
       if (count[node] > 0 && left[node] < 0) {
         for (let index = start[node]; index < start[node] + count[node]; index += 1) {
+          trianglesTested += 1;
           const triangle = triangleOrder[index];
           const distanceSquared = pointTriangleDistanceSquared(point, positions, triangle);
           if (distanceSquared < bestSquared - EPSILON || (Math.abs(distanceSquared - bestSquared) <= EPSILON && triangle < bestTriangle)) {
@@ -174,25 +333,45 @@ export function buildPackedCandidateQuery(
         }
       }
     }
+    if (telemetryEnabled) {
+      telemetry.closestSurfaceCalls += 1;
+      telemetry.closestSurfaceNodesVisited += nodesVisited;
+      telemetry.closestSurfaceTrianglesTested += trianglesTested;
+      telemetry.closestSurfaceMaxNodesVisited = Math.max(telemetry.closestSurfaceMaxNodesVisited, nodesVisited);
+      telemetry.closestSurfaceMaxTrianglesTested = Math.max(telemetry.closestSurfaceMaxTrianglesTested, trianglesTested);
+      telemetry.closestSurfaceNodeHistogram[histogramBin(nodesVisited)] += 1;
+      telemetry.closestSurfaceTriangleHistogram[histogramBin(trianglesTested)] += 1;
+    }
     return bestTriangle < 0 ? null : { distance: Math.sqrt(bestSquared), triangleIndex: bestTriangle };
   };
   const rayIntersections = (point: HostVec3): number => {
-    let hits = 0;
+    let hits = 0; let nodesVisited = 0; let trianglesTested = 0;
     const stack: number[] = [0];
     while (stack.length > 0) {
       const node = stack.pop()!;
+      nodesVisited += 1;
       const box = node * 6;
       if (point.y < bounds[box + 1] - EPSILON || point.y > bounds[box + 4] + EPSILON
         || point.z < bounds[box + 2] - EPSILON || point.z > bounds[box + 5] + EPSILON
         || bounds[box + 3] <= point.x + EPSILON) continue;
       if (count[node] > 0 && left[node] < 0) {
         for (let index = start[node]; index < start[node] + count[node]; index += 1) {
+          trianglesTested += 1;
           if (rayIntersectsTriangle(point, positions, triangleOrder[index])) hits += 1;
         }
       } else {
         if (left[node] >= 0) stack.push(left[node]);
         if (right[node] >= 0) stack.push(right[node]);
       }
+    }
+    if (telemetryEnabled) {
+      telemetry.rayIntersectionCalls += 1;
+      telemetry.rayIntersectionNodesVisited += nodesVisited;
+      telemetry.rayIntersectionTrianglesTested += trianglesTested;
+      telemetry.rayIntersectionMaxNodesVisited = Math.max(telemetry.rayIntersectionMaxNodesVisited, nodesVisited);
+      telemetry.rayIntersectionMaxTrianglesTested = Math.max(telemetry.rayIntersectionMaxTrianglesTested, trianglesTested);
+      telemetry.rayIntersectionNodeHistogram[histogramBin(nodesVisited)] += 1;
+      telemetry.rayIntersectionTriangleHistogram[histogramBin(trianglesTested)] += 1;
     }
     return hits;
   };
@@ -210,11 +389,14 @@ export function buildPackedCandidateQuery(
       return closestSurface(point);
     },
     signedDistance(point) {
+      if (telemetryEnabled) telemetry.signedDistanceCalls += 1;
       const closest = closestSurface(point);
       if (!closest || !Number.isFinite(closest.distance)) return Number.NaN;
       if (closest.distance <= 1e-5) return 0;
       return rayIntersections(point) % 2 === 1 ? -closest.distance : closest.distance;
     },
+    resetTelemetry,
+    readTelemetry,
     release() {
       released = true;
     },

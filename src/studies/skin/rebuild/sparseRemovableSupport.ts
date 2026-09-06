@@ -148,6 +148,33 @@ export interface SparseRemovableSupportDiagnostics {
   neckRadius: number;
 }
 
+export interface SparseSupportProgress {
+  targetsProcessed: number;
+  totalTargets: number;
+  routeOptionsTested: number;
+  routeAudits: number;
+  acceptedSupportCount: number;
+  elapsedMs: number;
+}
+
+export interface SparseSupportPerformance {
+  state: "COMPLETE" | "PROFILE_INCOMPLETE";
+  targetsProcessed: number;
+  totalTargets: number;
+  routeOptionsTested: number;
+  routeAudits: number;
+  targetExtractionMs: number;
+  targetCoverageMs: number;
+  routeGenerationMs: number;
+  routeAuditMs: number;
+  verticalAuditMs: number;
+  leaningAuditMs: number;
+  spacingMs: number;
+  graphFinalizationMs: number;
+  debugPayloadMs: number;
+  totalMs: number;
+}
+
 export type SparseExperimentalExportGateDecision =
   | { state: "hard-block"; message: string }
   | { state: "approval-required"; message: string }
@@ -256,6 +283,14 @@ export interface SparseRemovableSupportRequest {
    * remains a hard gate, while support-to-support spacing is used only as the
    * final tie-breaker so the already-approved target count is not rewritten. */
   spacingAsSelectionPreference?: boolean;
+  /** Optional bounded profile gate. It can never claim a complete graph. */
+  profile?: {
+    enabled?: boolean;
+    maxProcessedTargets?: number;
+    maxRouteAudits?: number;
+  };
+  /** Presentation-only progress; it must not affect route decisions. */
+  onProgress?: (progress: SparseSupportProgress) => void;
 }
 
 export interface SparseRemovableSupportResult {
@@ -264,6 +299,7 @@ export interface SparseRemovableSupportResult {
   debug: SparseRemovableSupportDebug;
   candidates: SparseRemovableSupportCandidate[];
   acceptedRoutes: Array<{ candidateId: string; route: SparseRemovableSupportRoute }>;
+  performance: SparseSupportPerformance;
 }
 
 const EPSILON = 1e-9;
@@ -278,6 +314,12 @@ const DEFAULT_MAX_LEANING_ROUTES = 30;
 const DEFAULT_DEBUG_CANDIDATES = 96;
 /** A1 mini's 180 mm XY build span, centered at (90, 90) by the existing 3MF export. */
 const A1_MINI_PLATE_HALF_SPAN_MM = 90;
+
+function monotonicNow(): number {
+  return typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
 
 function finite(value: number): boolean {
   return Number.isFinite(value);
@@ -527,6 +569,12 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   maxDebugCandidates: number;
   preserveContactNeck: boolean;
   spacingAsSelectionPreference: boolean;
+  profile?: {
+    enabled: boolean;
+    maxProcessedTargets?: number;
+    maxRouteAudits?: number;
+  };
+  onProgress?: (progress: SparseSupportProgress) => void;
 } {
   const projectedOutsideFaces = input.projectedOutsideFaces ?? [];
   const scale = input.scaleMmPerUnit;
@@ -583,6 +631,16 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     maxDebugCandidates: Math.max(0, Math.min(256, Math.floor(input.maxDebugCandidates ?? DEFAULT_DEBUG_CANDIDATES))),
     preserveContactNeck: input.preserveContactNeck === true,
     spacingAsSelectionPreference: input.spacingAsSelectionPreference === true,
+    profile: input.profile?.enabled === true ? {
+      enabled: true,
+      ...(Number.isFinite(input.profile.maxProcessedTargets) && input.profile.maxProcessedTargets! > 0
+        ? { maxProcessedTargets: Math.floor(input.profile.maxProcessedTargets!) }
+        : {}),
+      ...(Number.isFinite(input.profile.maxRouteAudits) && input.profile.maxRouteAudits! > 0
+        ? { maxRouteAudits: Math.floor(input.profile.maxRouteAudits!) }
+        : {}),
+    } : undefined,
+    onProgress: input.onProgress,
   };
 }
 
@@ -1310,11 +1368,25 @@ function appendRouteToGraph(builder: SparseGraphBuilder, route: SparseRemovableS
 export function buildSparseRemovableSupport(
   input: SparseRemovableSupportRequest,
 ): SparseRemovableSupportResult {
+  const buildStarted = monotonicNow();
   const request = normalizeRequest(input);
+  let targetExtractionMs = 0;
+  let targetCoverageMs = 0;
+  let routeGenerationMs = 0;
+  let routeAuditMs = 0;
+  let verticalAuditMs = 0;
+  let leaningAuditMs = 0;
+  let spacingMs = 0;
+  let graphFinalizationMs = 0;
+  let debugPayloadMs = 0;
+  const targetExtractionStarted = monotonicNow();
   const extracted = extractSparseRemovableSupportTargets(request.projectedOutsideFaces, request);
+  targetExtractionMs = monotonicNow() - targetExtractionStarted;
   const targets = extracted.targets;
+  const targetCoverageStarted = monotonicNow();
   const candidates = makeCandidates(targets, request.coverageRadius)
     .sort((first, second) => first.target.regionId - second.target.regionId || first.priority - second.priority);
+  targetCoverageMs = monotonicNow() - targetCoverageStarted;
   const builder = new SparseGraphBuilder();
   const acceptedSegments: SparseSupportRouteSegment[] = [];
   const acceptedRoutes: Array<{ candidateId: string; route: SparseRemovableSupportRoute }> = [];
@@ -1329,10 +1401,25 @@ export function buildSparseRemovableSupport(
   let verticalCount = 0;
   let leaningCount = 0;
   let routeCandidateCount = 0;
+  let routeAuditCount = 0;
   let straightRejectedByBody = 0;
   let offsetBendCount = 0;
+  let targetsProcessed = 0;
+  let profileIncomplete = false;
   const anyFiniteFace = request.projectedOutsideFaces.some((face) => finitePoint(face.position));
   const requestValid = validNormalizedRequest(request);
+  const reportProgress = (force = false): void => {
+    if (!request.onProgress) return;
+    if (!force && targetsProcessed !== 0 && targetsProcessed % 256 !== 0) return;
+    request.onProgress({
+      targetsProcessed,
+      totalTargets: candidates.length,
+      routeOptionsTested: routeCandidateCount,
+      routeAudits: routeAuditCount,
+      acceptedSupportCount: acceptedRoutes.length,
+      elapsedMs: monotonicNow() - buildStarted,
+    });
+  };
 
   // Ownerless projected Outside faces remain visible as unsupported demand,
   // but cannot be given a target contact field. Keep these debug facts bounded
@@ -1368,7 +1455,12 @@ export function buildSparseRemovableSupport(
     }
   }
 
-  for (const candidate of candidates) {
+  candidateLoop: for (const candidate of candidates) {
+    if (request.profile?.maxProcessedTargets !== undefined
+      && targetsProcessed >= request.profile.maxProcessedTargets) {
+      profileIncomplete = true;
+      break candidateLoop;
+    }
     const uncovered = candidate.coversCriticalTargetIds.filter((id) => !coveredTargetIds.has(id));
     if (uncovered.length === 0) {
       if (routeAttempts.length < request.maxDebugCandidates) {
@@ -1376,6 +1468,8 @@ export function buildSparseRemovableSupport(
           kind: "vertical", accepted: false, reason: "coverage", detail: "coverage already supplied by an accepted support",
         }] });
       }
+      targetsProcessed += 1;
+      reportProgress();
       continue;
     }
     const attempts: SparseSupportRouteAttempt[] = [];
@@ -1388,25 +1482,40 @@ export function buildSparseRemovableSupport(
       spacingClear: boolean;
       order: number;
     }> = [];
+    const routeGenerationStarted = monotonicNow();
     const routeOptions: SparseRemovableSupportRoute[] = requestValid
       ? [
         buildVerticalRoute(candidate.target, request),
         ...buildLeaningRoutes(candidate.target, request),
       ].filter((route): route is SparseRemovableSupportRoute => route !== null)
       : [];
+    routeGenerationMs += monotonicNow() - routeGenerationStarted;
     routeCandidateCount += routeOptions.length;
     if (routeOptions.length === 0) {
       attempts.push({ kind: "vertical", accepted: false, reason: "unsupported", detail: "support settings or target fields are not finite" });
       removabilityFailure = true;
     }
     for (const [routeIndex, route] of routeOptions.entries()) {
+      if (request.profile?.maxRouteAudits !== undefined
+        && routeAuditCount >= request.profile.maxRouteAudits) {
+        profileIncomplete = true;
+        break candidateLoop;
+      }
+      routeAuditCount += 1;
+      const routeAuditStarted = monotonicNow();
       const audited = auditRoute(
         route,
         request,
         request.spacingAsSelectionPreference ? [] : acceptedSegments,
         candidate.target,
       );
+      const elapsedRouteAudit = monotonicNow() - routeAuditStarted;
+      routeAuditMs += elapsedRouteAudit;
+      if (route.kind === "vertical") verticalAuditMs += elapsedRouteAudit;
+      else leaningAuditMs += elapsedRouteAudit;
+      const spacingStarted = monotonicNow();
       const spacingClear = routeSpacingIsClear(route, acceptedSegments, request.removalGap);
+      spacingMs += monotonicNow() - spacingStarted;
       attempts.push({
         kind: route.kind,
         accepted: audited.accepted,
@@ -1463,6 +1572,8 @@ export function buildSparseRemovableSupport(
         leaningCount++;
         if (accepted.segments.length > 2) offsetBendCount++;
       }
+      targetsProcessed += 1;
+      reportProgress();
       continue;
     }
     if (bodyFailure) rejectedByBody++;
@@ -1481,15 +1592,21 @@ export function buildSparseRemovableSupport(
         detail: lastAttempt?.detail ?? "no bounded route was available",
       });
     }
+    targetsProcessed += 1;
+    reportProgress();
   }
+  reportProgress(true);
   const unsupportedTargetCount = Math.max(0,
     targets.length + extracted.unownedCandidateCount - coveredTargetIds.size);
+  const graphFinalizationStarted = monotonicNow();
   const graph = builder.graph();
+  graphFinalizationMs = monotonicNow() - graphFinalizationStarted;
   graph.stats.requestedTargets = targets.length;
   graph.stats.connectedTargets = coveredTargetIds.size;
   graph.stats.rejectedByBodyIntersection = rejectedByBody;
   graph.stats.acceptedSupportCount = acceptedRoutes.length;
   graph.stats.unsupportedCount = unsupportedTargetCount;
+  const debugPayloadStarted = monotonicNow();
   const debug: SparseRemovableSupportDebug = {
     criticalTargets: targets.slice(0, request.maxDebugCandidates).map((target) => ({
       id: target.id,
@@ -1505,6 +1622,7 @@ export function buildSparseRemovableSupport(
       .map(({ route }) => clonePoint(route.segments[0].end)),
     rejectedCollisionRoutes,
   };
+  debugPayloadMs = monotonicNow() - debugPayloadStarted;
   const diagnostics: SparseRemovableSupportDiagnostics = {
     outsideRegionCount: request.outsideRegionCount,
     rawCandidateCount: request.projectedOutsideFaces.length,
@@ -1534,7 +1652,24 @@ export function buildSparseRemovableSupport(
   if (!requestValid || (!anyFiniteFace && request.projectedOutsideFaces.length > 0)) {
     diagnostics.rejectedByRemovability += diagnostics.criticalTargetCount === 0 ? 1 : 0;
   }
-  return { graph, diagnostics, debug, candidates, acceptedRoutes };
+  const performanceSummary: SparseSupportPerformance = {
+    state: profileIncomplete ? "PROFILE_INCOMPLETE" : "COMPLETE",
+    targetsProcessed,
+    totalTargets: candidates.length,
+    routeOptionsTested: routeCandidateCount,
+    routeAudits: routeAuditCount,
+    targetExtractionMs,
+    targetCoverageMs,
+    routeGenerationMs,
+    routeAuditMs,
+    verticalAuditMs,
+    leaningAuditMs,
+    spacingMs,
+    graphFinalizationMs,
+    debugPayloadMs,
+    totalMs: monotonicNow() - buildStarted,
+  };
+  return { graph, diagnostics, debug, candidates, acceptedRoutes, performance: performanceSummary };
 }
 
 /** Compatibility spelling used by callers that keep the Study prefix. */

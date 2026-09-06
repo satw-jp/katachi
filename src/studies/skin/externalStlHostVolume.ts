@@ -152,8 +152,9 @@ function normalized(point: HostVec3): HostVec3 {
   return { x: point.x / length, y: point.y / length, z: point.z / length };
 }
 
-function parityInside(point: HostVec3, direction: HostVec3, mesh: ParsedHostMesh): boolean {
+function parityInside(point: HostVec3, direction: HostVec3, mesh: ParsedHostMesh, surfaceQuery: HostSurfaceQuery): boolean {
   const rayDirection = normalized(direction);
+  if (surfaceQuery.rayIntersectionCount) return surfaceQuery.rayIntersectionCount({ origin: point, direction: rayDirection }) % 2 === 1;
   let crossings = 0;
   for (const triangle of mesh.validTriangleIndices) {
     if (rayTriangleDistance(point, rayDirection, mesh, triangle) !== null) crossings += 1;
@@ -174,7 +175,7 @@ export function createSignedVolumeQuery(
       const surface = surfaceQuery.closestSurface(point);
       if (!surface) throw new Error("Signed volume query has no closest surface result");
       if (surface.distance <= surfaceTolerance) return "surface";
-      const votes = PARITY_DIRECTIONS.map((direction) => parityInside(point, direction, mesh));
+      const votes = PARITY_DIRECTIONS.map((direction) => parityInside(point, direction, mesh, surfaceQuery));
       if (votes.every((value) => value === votes[0])) return votes[0] ? "inside" : "outside";
       return "unknown";
     },

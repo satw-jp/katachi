@@ -60,6 +60,7 @@ interface ActiveCandidate {
   diagnosticsFingerprint: string | null;
   support: SparseRemovableSupportResult | null;
   supportFingerprint: string | null;
+  performance: NonNullable<LargeCandidateCompactSummary["performance"]> | null;
 }
 
 let referenceHost: ImportedHostInstance | null = null;
@@ -165,7 +166,18 @@ async function sha256Fingerprint(value: string): Promise<string> { const { sha25
 async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUILD_SUPPORT" }>, started: number): Promise<void> {
   const candidate = activeCandidate;
   if (!candidate || !referenceHost?.signedVolumeQuery || candidate.candidateId !== command.candidateId || candidate.sourceSha256 !== command.sourceSha256 || candidate.geometryFingerprint !== command.geometryFingerprint || candidate.diagnosticsFingerprint !== command.diagnosticsFingerprint || !candidate.outsideFaces) throw new Error("Support currentness/reference mismatch");
-  const forbidden = (x: number, y: number, z: number): number => referenceHost!.signedVolumeQuery!.signedDistance({ x, y, z });
+  let candidateBodySignedDistanceCalls = 0;
+  let rabbitSignedDistanceCalls = 0;
+  let candidateBodyAuditMs = 0;
+  let rabbitAuditMs = 0;
+  const measureQueryTimings = candidate.query.readTelemetry().enabled;
+  const forbidden = (x: number, y: number, z: number): number => {
+    rabbitSignedDistanceCalls += 1;
+    const queryStarted = measureQueryTimings ? now() : 0;
+    const result = referenceHost!.signedVolumeQuery!.signedDistance({ x, y, z });
+    if (measureQueryTimings) rabbitAuditMs += now() - queryStarted;
+    return result;
+  };
   const bounds = triangleSoupBounds(candidate.positions); const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);
   const request = {
     projectedOutsideFaces: candidate.outsideFaces,
@@ -173,7 +185,13 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     plateZ: candidate.placement.sourcePlateZMm,
     shaftRadius: command.settings.shaftDiameterMm * 0.5,
     neckRadius: command.settings.neckDiameterMm * 0.5,
-    bodySdf: (x: number, y: number, z: number) => candidate.query.signedDistance({ x, y, z }),
+    bodySdf: (x: number, y: number, z: number) => {
+      candidateBodySignedDistanceCalls += 1;
+      const queryStarted = measureQueryTimings ? now() : 0;
+      const result = candidate.query.signedDistance({ x, y, z });
+      if (measureQueryTimings) candidateBodyAuditMs += now() - queryStarted;
+      return result;
+    },
     contactPolicy: "single-body" as const,
     forbiddenSdf: forbidden,
     forbiddenClearanceMm: command.settings.hostClearanceMm,
@@ -185,16 +203,37 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     plateBounds: deriveA1MiniPlateBoundsFromBodyPositions(candidate.positions, extent),
     maximumOverlapLength: command.settings.neckDiameterMm + command.settings.shaftDiameterMm,
     maximumDepth: command.settings.neckDiameterMm + command.settings.shaftDiameterMm,
+    ...(command.profile ? { profile: command.profile } : {}),
+    onProgress: (progress: { targetsProcessed: number; totalTargets: number; routeOptionsTested: number; routeAudits: number; acceptedSupportCount: number; elapsedMs: number }) => postProgress(
+      command,
+      "Sparse Support",
+      started,
+      `targets ${progress.targetsProcessed.toLocaleString()} / ${progress.totalTargets.toLocaleString()} · routes ${progress.routeOptionsTested.toLocaleString()} · audits ${progress.routeAudits.toLocaleString()} · accepted ${progress.acceptedSupportCount.toLocaleString()}`,
+      progress.targetsProcessed,
+      progress.totalTargets,
+    ),
   };
-  candidate.support = buildSparseRemovableSupport(request); candidate.supportFingerprint = await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, diagnostics: candidate.diagnosticsFingerprint, rabbitSourceSha256: ASTRA_RABBIT_SOURCE_SHA256, rabbitRepairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT, settings: command.settings, graph: candidate.support.graph }));
+  candidate.support = buildSparseRemovableSupport(request); candidate.supportFingerprint = candidate.support.performance.state === "COMPLETE"
+    ? await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, diagnostics: candidate.diagnosticsFingerprint, rabbitSourceSha256: ASTRA_RABBIT_SOURCE_SHA256, rabbitRepairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT, settings: command.settings, graph: candidate.support.graph }))
+    : null;
   if (candidate.support.diagnostics.acceptedBodyCollisionCount !== 0 || candidate.support.diagnostics.acceptedForbiddenCollisionCount !== 0) {
     throw new Error("Fail closed: Sparse Support accepted a BODY or Rabbit forbidden-volume collision");
   }
   candidate.timings.support = now() - started;
   const diagnostics = candidate.detection;
+  const performance = {
+    support: candidate.support.performance,
+    candidateQuery: candidate.query.readTelemetry(),
+    candidateBodySignedDistanceCalls,
+    rabbitSignedDistanceCalls,
+    candidateBodyAuditMs,
+    rabbitAuditMs,
+  };
+  candidate.performance = performance;
   const summary = compactSummary(candidate, {
     overhangFaces: diagnostics?.faceCount ?? 0, overhangRegions: diagnostics?.regionCount ?? 0, outside: candidate.outsideFaces.length, insideExcluded: 0, unresolved: 0, criticalTargets: candidate.support.diagnostics.criticalTargetCount,
     support: { critical: candidate.support.diagnostics.criticalTargetCount, supported: candidate.support.diagnostics.criticalTargetCount - candidate.support.diagnostics.unsupportedTargetCount, unsupported: candidate.support.diagnostics.unsupportedTargetCount, bodyReject: candidate.support.diagnostics.rejectedByBody, rabbitReject: candidate.support.diagnostics.rejectedByForbiddenVolume, vertical: candidate.support.diagnostics.verticalCount, offsetBend: candidate.support.diagnostics.offsetBendCount, nodes: candidate.support.graph.nodes.length, edges: candidate.support.graph.edges.length, acceptedBodyCollision: candidate.support.diagnostics.acceptedBodyCollisionCount, acceptedRabbitCollision: candidate.support.diagnostics.acceptedForbiddenCollisionCount },
+    performance,
   });
   post({ type: "SUPPORT", requestId: command.requestId, generation: command.generation, summary });
 }
@@ -225,8 +264,9 @@ async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT
   post({ type: "EXPORT", requestId: command.requestId, generation: command.generation, summary }, [result.archive]);
 }
 
-function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; export?: { archive: ArrayBuffer; archiveBytes: number; supportTriangleCount: number; validator: "PASS" | "FAIL"; exportFingerprint: string; expectedPackageTranslationZ: number; actualPackageTranslationZ: number; packagePlacementParity: boolean; bodyRemovedDegenerateTriangles: number } }): LargeCandidateCompactSummary {
-  return { candidateId: candidate.candidateId, sourceSha256: candidate.sourceSha256, geometryFingerprint: candidate.geometryFingerprint, ...(candidate.diagnosticsFingerprint ? { diagnosticsFingerprint: candidate.diagnosticsFingerprint } : {}), ...(candidate.supportFingerprint ? { supportFingerprint: candidate.supportFingerprint } : {}), timings: { ...candidate.timings }, telemetry: { peakJsHeapBytes: null, largestTypedArrayBytes: Math.max(candidate.positions.byteLength, candidate.query.stats.totalTypedArrayBytes), residentTypedArrayBytes: candidate.positions.byteLength + candidate.query.stats.totalTypedArrayBytes }, inventory: candidate.inventory, diagnostics: { overhangFaces: facts.overhangFaces, overhangRegions: facts.overhangRegions, outside: facts.outside, insideExcluded: facts.insideExcluded, unresolved: facts.unresolved, reachabilityInvalidSurfaceTriangles: 0, criticalTargets: facts.criticalTargets, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" }, ...(facts.support ? { support: facts.support } : {}), ...(facts.export ? { export: facts.export } : {}) };
+function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; performance?: NonNullable<LargeCandidateCompactSummary["performance"]>; export?: { archive: ArrayBuffer; archiveBytes: number; supportTriangleCount: number; validator: "PASS" | "FAIL"; exportFingerprint: string; expectedPackageTranslationZ: number; actualPackageTranslationZ: number; packagePlacementParity: boolean; bodyRemovedDegenerateTriangles: number } }): LargeCandidateCompactSummary {
+  const performance = facts.performance ?? candidate.performance;
+  return { candidateId: candidate.candidateId, sourceSha256: candidate.sourceSha256, geometryFingerprint: candidate.geometryFingerprint, ...(candidate.diagnosticsFingerprint ? { diagnosticsFingerprint: candidate.diagnosticsFingerprint } : {}), ...(candidate.supportFingerprint ? { supportFingerprint: candidate.supportFingerprint } : {}), timings: { ...candidate.timings }, telemetry: { peakJsHeapBytes: null, largestTypedArrayBytes: Math.max(candidate.positions.byteLength, candidate.query.stats.totalTypedArrayBytes), residentTypedArrayBytes: candidate.positions.byteLength + candidate.query.stats.totalTypedArrayBytes }, inventory: candidate.inventory, ...(performance ? { performance } : {}), diagnostics: { overhangFaces: facts.overhangFaces, overhangRegions: facts.overhangRegions, outside: facts.outside, insideExcluded: facts.insideExcluded, unresolved: facts.unresolved, reachabilityInvalidSurfaceTriangles: 0, criticalTargets: facts.criticalTargets, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" }, ...(facts.support ? { support: facts.support } : {}), ...(facts.export ? { export: facts.export } : {}) };
 }
 
 async function handle(command: LargeCandidateCommand): Promise<void> {
@@ -268,9 +308,9 @@ async function handle(command: LargeCandidateCommand): Promise<void> {
         placement: command.placement,
         sourceInterpretationVersion: "astra-round-2-export-mm-20x-v0",
       });
-      const queryStarted = now(); const query = buildPackedCandidateQuery(result.positions, (stage, completed, total) => postProgress(command, "Building Candidate query", queryStarted, stage, completed, total));
+      const queryStarted = now(); const query = buildPackedCandidateQuery(result.positions, (stage, completed, total) => postProgress(command, "Building Candidate query", queryStarted, stage, completed, total), { telemetry: command.telemetry === true });
       const inventory = makeInventory(command.candidateId, command.filename, result);
-      activeCandidate = { candidateId: command.candidateId, filename: command.filename, sourceSha256: result.sourceSha256, geometryFingerprint, placement: command.placement, inventory, positions: result.positions, executionSourceFaceIndices: result.executionSourceFaceIndices, query, timings: { ingest: now() - started, hash: 0, parse: now() - started, query: now() - queryStarted }, detection: null, outsideFaces: null, diagnosticsFingerprint: null, support: null, supportFingerprint: null };
+      activeCandidate = { candidateId: command.candidateId, filename: command.filename, sourceSha256: result.sourceSha256, geometryFingerprint, placement: command.placement, inventory, positions: result.positions, executionSourceFaceIndices: result.executionSourceFaceIndices, query, timings: { ingest: now() - started, hash: 0, parse: now() - started, query: now() - queryStarted }, detection: null, outsideFaces: null, diagnosticsFingerprint: null, support: null, supportFingerprint: null, performance: null };
       post({ type: "INVENTORY", requestId: command.requestId, generation: command.generation, candidateId: command.candidateId, sourceSha256: result.sourceSha256, geometryFingerprint, inventory });
       return;
     }

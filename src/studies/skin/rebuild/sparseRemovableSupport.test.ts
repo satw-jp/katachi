@@ -499,9 +499,37 @@ assert.equal(evaluateSparseExperimentalExportGate({
 }).state, "hard-block");
 
 // The pure result is deterministic for identical inputs.
-assert.deepEqual(
-  buildSparseRemovableSupport({ ...baseRequest, projectedOutsideFaces: sparseFaces, outsideRegionCount: 2, coverageRadius: 0 }),
-  clear,
-);
+const deterministic = buildSparseRemovableSupport({ ...baseRequest, projectedOutsideFaces: sparseFaces, outsideRegionCount: 2, coverageRadius: 0 });
+assert.deepEqual({ graph: deterministic.graph, diagnostics: deterministic.diagnostics, debug: deterministic.debug, candidates: deterministic.candidates, acceptedRoutes: deterministic.acceptedRoutes }, { graph: clear.graph, diagnostics: clear.diagnostics, debug: clear.debug, candidates: clear.candidates, acceptedRoutes: clear.acceptedRoutes });
+
+// Profiling and progress are observational only: the semantic graph and all
+// route decisions must remain byte-for-byte equivalent on the same fixture.
+const progressUpdates: Array<{ targetsProcessed: number; routeAudits: number }> = [];
+const profiled = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: sparseFaces,
+  outsideRegionCount: 2,
+  coverageRadius: 0,
+  profile: { enabled: true },
+  onProgress: (progress) => progressUpdates.push({ targetsProcessed: progress.targetsProcessed, routeAudits: progress.routeAudits }),
+});
+assert.equal(profiled.performance.state, "COMPLETE");
+assert.ok(progressUpdates.length >= 1);
+assert.deepEqual(profiled.graph, clear.graph);
+assert.deepEqual(profiled.diagnostics, clear.diagnostics);
+assert.deepEqual(profiled.debug, clear.debug);
+assert.deepEqual(profiled.candidates, clear.candidates);
+assert.deepEqual(profiled.acceptedRoutes, clear.acceptedRoutes);
+
+const boundedProfile = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: sparseFaces,
+  outsideRegionCount: 2,
+  coverageRadius: 0,
+  profile: { enabled: true, maxProcessedTargets: 1 },
+});
+assert.equal(boundedProfile.performance.state, "PROFILE_INCOMPLETE");
+assert.equal(boundedProfile.performance.targetsProcessed, 1);
+assert.ok(boundedProfile.performance.targetsProcessed < boundedProfile.performance.totalTargets);
 
 console.log("sparseRemovableSupport: Stage 4 projection, sparse greedy routing, keep-out, spacing, and determinism passed");

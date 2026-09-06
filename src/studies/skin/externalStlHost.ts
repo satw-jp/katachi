@@ -77,6 +77,8 @@ export interface HostSurfaceQuery {
   closestSurface(point: HostVec3): HostSurfaceHit | null;
   normal(point: HostVec3): HostVec3 | null;
   raycast(ray: HostRay): HostSurfaceHit | null;
+  /** Counts the same strict interior ray crossings used by Signed Volume when available. */
+  rayIntersectionCount?(ray: HostRay): number;
 }
 
 export interface ImportedHostSourceOptions {
@@ -638,6 +640,59 @@ class HostTriangleQuery implements HostSurfaceQuery {
       barycentric: [1 - u - v, u, v],
       distance,
     };
+  }
+
+  private rayTriangleCrossingDistance(triangle: number, ray: HostRay): number | null {
+    const offset = triangle * 9;
+    const ax = this.mesh.positions[offset]; const ay = this.mesh.positions[offset + 1]; const az = this.mesh.positions[offset + 2];
+    const bx = this.mesh.positions[offset + 3]; const by = this.mesh.positions[offset + 4]; const bz = this.mesh.positions[offset + 5];
+    const cx = this.mesh.positions[offset + 6]; const cy = this.mesh.positions[offset + 7]; const cz = this.mesh.positions[offset + 8];
+    const e1x = bx - ax; const e1y = by - ay; const e1z = bz - az;
+    const e2x = cx - ax; const e2y = cy - ay; const e2z = cz - az;
+    const px = ray.direction.y * e2z - ray.direction.z * e2y;
+    const py = ray.direction.z * e2x - ray.direction.x * e2z;
+    const pz = ray.direction.x * e2y - ray.direction.y * e2x;
+    const determinant = e1x * px + e1y * py + e1z * pz;
+    if (Math.abs(determinant) <= 1e-12) return null;
+    const inverse = 1 / determinant;
+    const tx = ray.origin.x - ax; const ty = ray.origin.y - ay; const tz = ray.origin.z - az;
+    const u = (tx * px + ty * py + tz * pz) * inverse;
+    if (u <= 1e-10 || u >= 1 - 1e-10) return null;
+    const qx = ty * e1z - tz * e1y;
+    const qy = tz * e1x - tx * e1z;
+    const qz = tx * e1y - ty * e1x;
+    const v = (ray.direction.x * qx + ray.direction.y * qy + ray.direction.z * qz) * inverse;
+    if (v <= 1e-10 || u + v >= 1 - 1e-10) return null;
+    const distance = (e2x * qx + e2y * qy + e2z * qz) * inverse;
+    return distance > 1e-10 ? distance : null;
+  }
+
+  rayIntersectionCount(rayInput: HostRay): number {
+    const origin = cloneVec3(rayInput.origin, "ray intersection origin");
+    const directionLength = Math.hypot(rayInput.direction.x, rayInput.direction.y, rayInput.direction.z);
+    if (!(directionLength > EPSILON)) throw new Error("ray intersection direction must be non-zero");
+    const ray: HostRay = {
+      origin,
+      direction: {
+        x: rayInput.direction.x / directionLength,
+        y: rayInput.direction.y / directionLength,
+        z: rayInput.direction.z / directionLength,
+      },
+    };
+    let crossings = 0;
+    const stack = [0];
+    while (stack.length > 0) {
+      const node = this.nodes[stack.pop()!];
+      if (!this.rayBoundsHit(node, ray, Infinity)) continue;
+      if (node.count > 0) {
+        for (let cursor = node.start; cursor < node.start + node.count; cursor += 1) {
+          if (this.rayTriangleCrossingDistance(this.triangleOrder[cursor], ray) !== null) crossings += 1;
+        }
+      } else {
+        stack.push(node.right, node.left);
+      }
+    }
+    return crossings;
   }
 
   raycast(rayInput: HostRay): HostSurfaceHit | null {

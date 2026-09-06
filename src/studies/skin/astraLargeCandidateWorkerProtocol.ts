@@ -1,5 +1,7 @@
 import type { CandidateDiagnosticSettings, CandidateSupportSettings } from "./astraCandidatePrintLane.ts";
+import type { PackedCandidateQueryTelemetry } from "./astraPackedCandidateQuery.ts";
 import type { DeferredPrintPlacement } from "./astraLargeCandidateSourceSpace.ts";
+import type { SparseSupportPerformance } from "./rebuild/sparseRemovableSupport.ts";
 
 export type LargeCandidateId = "A" | "G" | "H" | "J";
 
@@ -24,6 +26,7 @@ export type LargeCandidateCommand = {
   filename: string;
   file: Blob;
   placement: DeferredPrintPlacement;
+  telemetry?: boolean;
 } | {
   type: "DIAGNOSE";
   requestId: number;
@@ -41,6 +44,11 @@ export type LargeCandidateCommand = {
   geometryFingerprint: string;
   diagnosticsFingerprint: string;
   settings: CandidateSupportSettings;
+  profile?: {
+    enabled: boolean;
+    maxProcessedTargets?: number;
+    maxRouteAudits?: number;
+  };
 } | {
   type: "EXPORT_3MF";
   requestId: number;
@@ -105,6 +113,14 @@ export interface LargeCandidateCompactSummary {
     readonly peakJsHeapBytes: number | null;
     readonly largestTypedArrayBytes: number;
     readonly residentTypedArrayBytes: number;
+  };
+  readonly performance?: {
+    readonly support: SparseSupportPerformance;
+    readonly candidateQuery: PackedCandidateQueryTelemetry;
+    readonly candidateBodySignedDistanceCalls: number;
+    readonly rabbitSignedDistanceCalls: number;
+    readonly candidateBodyAuditMs: number;
+    readonly rabbitAuditMs: number;
   };
   readonly inventory: LargeCandidateInventory;
   readonly diagnostics?: Record<string, number | string>;

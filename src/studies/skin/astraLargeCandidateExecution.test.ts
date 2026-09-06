@@ -104,13 +104,17 @@ test("source face provenance and execution fingerprint are deterministic", async
   assert.notEqual(first, third);
 });
 
-test("packed Candidate query matches External Host closest distance and signed sign", async () => {
-  const bytes = cubeStl(); const source = await createImportedHostSource(bytes, { filename: "cube.stl", interpretation }); const host = createImportedHostInstance(source, { translation: { x: 0, y: 0, z: 0 }, rotation: [0, 0, 0, 1], uniformScale: 1 }); const positions = parseBinaryStlPositions(bytes); const packed = buildPackedCandidateQuery(positions);
+test("packed Candidate spatial query preserves parity, telemetry, and release", async () => {
+  const bytes = cubeStl(); const source = await createImportedHostSource(bytes, { filename: "cube.stl", interpretation }); const host = createImportedHostInstance(source, { translation: { x: 0, y: 0, z: 0 }, rotation: [0, 0, 0, 1], uniformScale: 1 }); const positions = parseBinaryStlPositions(bytes); const packed = buildPackedCandidateQuery(positions); const profiled = buildPackedCandidateQuery(positions, undefined, { telemetry: true });
+  assert.equal(packed.readTelemetry().enabled, false);
+  assert.equal(profiled.readTelemetry().enabled, true);
+  assert.equal(packed.stats.totalTypedArrayBytes, profiled.stats.totalTypedArrayBytes);
   for (const point of [{ x: 0, y: 0, z: 1 }, { x: 3, y: 0, z: 1 }, { x: 0, y: 0, z: 3 }]) {
-    const expected = host.query.closestSurface(point); const actual = packed.closestSurface(point); assert.ok(expected && actual); assert.ok(Math.abs(expected.distance - actual.distance) < 1e-5);
+    const expected = host.query.closestSurface(point); const actual = packed.closestSurface(point); const instrumented = profiled.closestSurface(point); assert.ok(expected && actual && instrumented); assert.ok(Math.abs(expected.distance - actual.distance) < 1e-5); assert.deepEqual(instrumented, actual);
   }
   assert.ok(host.signedVolumeQuery); assert.ok(packed.signedDistance({ x: 0, y: 0, z: 1 }) < 0); assert.ok(packed.signedDistance({ x: 3, y: 0, z: 1 }) > 0); assert.ok(Math.abs(Math.abs(packed.signedDistance({ x: 0, y: 0, z: 1 })) - Math.abs(host.signedVolumeQuery.signedDistance({ x: 0, y: 0, z: 1 }))) < 1e-5);
-  packed.release(); assert.throws(() => packed.closestSurface({ x: 0, y: 0, z: 1 }), /released/);
+  profiled.signedDistance({ x: 0, y: 0, z: 1 }); const telemetry = profiled.readTelemetry(); assert.equal(telemetry.signedDistanceCalls, 1); assert.equal(telemetry.rayIntersectionCalls, 1); assert.ok(telemetry.closestSurfaceTrianglesTested > 0); profiled.resetTelemetry(); assert.equal(profiled.readTelemetry().signedDistanceCalls, 0);
+  packed.release(); profiled.release(); assert.throws(() => packed.closestSurface({ x: 0, y: 0, z: 1 }), /released/); assert.throws(() => profiled.closestSurface({ x: 0, y: 0, z: 1 }), /released/);
 });
 
 test("buffer-native overhang detector is exact-parity on fixture", () => {
