@@ -19,6 +19,34 @@ import {
 import type { SkinRebuildProject } from "../skin/rebuild/model.ts";
 import { analyzeVoid, type VoidAnalysisResult } from "./voidAnalysis.ts";
 
+function shiftBoundsZ(bounds: MeshBuildResult["sourceBounds"], zOffset: number): MeshBuildResult["sourceBounds"] {
+  return {
+    min: { ...bounds.min, z: bounds.min.z + zOffset },
+    max: { ...bounds.max, z: bounds.max.z + zOffset },
+    size: { ...bounds.size },
+    longest: bounds.longest,
+  };
+}
+
+/** Production BODY is moved to the build plate for export and records that
+ * source-space translation. Restore only the Viewer copy so Surface can share
+ * the canonical FKEI world-space frame with Geometry, Graph, and Void. */
+export function canonicalizeSurfaceForViewer(mesh: MeshBuildResult): MeshBuildResult {
+  const plateShiftSourceZ = mesh.plateShiftSourceZ ?? 0;
+  if (Math.abs(plateShiftSourceZ) <= 1e-12) return mesh;
+  return {
+    ...mesh,
+    triangles: mesh.triangles.map((triangle) => ({
+      a: { ...triangle.a, z: triangle.a.z - plateShiftSourceZ },
+      b: { ...triangle.b, z: triangle.b.z - plateShiftSourceZ },
+      c: { ...triangle.c, z: triangle.c.z - plateShiftSourceZ },
+    })),
+    sourceBounds: shiftBoundsZ(mesh.sourceBounds, -plateShiftSourceZ),
+    mmBounds: shiftBoundsZ(mesh.mmBounds, -plateShiftSourceZ * mesh.scaleMmPerUnit),
+    plateShiftSourceZ: 0,
+  };
+}
+
 export interface ViewerArtifact {
   filename: string;
   schema: typeof SKIN_REBUILD_FKEI_SCHEMA;
@@ -51,7 +79,7 @@ export function buildViewerArtifact(
   const document = parseSkinRebuildFkei(sourceText);
   const sourceProject = projectFromSkinRebuildFkei(document);
   const runtime = buildSkinProductionV0FromProject(sourceProject);
-  const surface = runtime.analysisMesh;
+  const surface = canonicalizeSurfaceForViewer(runtime.analysisMesh);
   const hostBounds = computeSamplingBounds(runtime.project.base.host, runtime.project.base.hostK);
   const bodySdf = createFinishedSkinBodySdfEvaluator({
     mode: "plate",

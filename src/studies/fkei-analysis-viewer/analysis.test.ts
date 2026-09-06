@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeVoid } from "./voidAnalysis.ts";
-import { buildViewerArtifact, verifyReadOnlyIdentity } from "./fkeiAdapter.ts";
+import { buildViewerArtifact, canonicalizeSurfaceForViewer, verifyReadOnlyIdentity } from "./fkeiAdapter.ts";
+import type { MeshBuildResult } from "../cloud-sculpt/meshExport.ts";
 import { graphMetrics, permanentGraphOnly } from "./analysis.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +22,33 @@ for (const representation of ["Geometry", "Graph", "Surface", "Void", "Geometry"
 }
 assert.equal(artifact.canonicalSerialization, identityBefore, "view derivations must not rewrite canonical FKEI serialization");
 assert.equal(verifyReadOnlyIdentity(artifact), true, "canonical identity must remain unchanged after all view derivations");
+assert.ok(Math.abs(artifact.runtime.analysisMesh.plateShiftSourceZ ?? 0) > 1e-6, "fixture must exercise the Production BODY plate shift");
+assert.equal(artifact.surface.plateShiftSourceZ, 0, "Viewer Surface must be restored to canonical source space");
+
+// T1b — the Viewer reverses the recorded Production plate shift without
+// changing XY, scale, or the source mesh owned by the Production runtime.
+const shiftedSurface = {
+  triangles: [{
+    a: { x: 0, y: 0, z: 4 },
+    b: { x: 1, y: 0, z: 4 },
+    c: { x: 0, y: 1, z: 5 },
+  }],
+  sourceBounds: { min: { x: 0, y: 0, z: 4 }, max: { x: 1, y: 1, z: 5 }, size: { x: 1, y: 1, z: 1 }, longest: 1 },
+  mmBounds: { min: { x: 0, y: 0, z: 8 }, max: { x: 2, y: 2, z: 10 }, size: { x: 2, y: 2, z: 2 }, longest: 2 },
+  scaleMmPerUnit: 2,
+  watertight: {} as MeshBuildResult["watertight"],
+  plateShiftSourceZ: 4,
+} satisfies MeshBuildResult;
+const canonicalSurface = canonicalizeSurfaceForViewer(shiftedSurface);
+assert.deepEqual(canonicalSurface.triangles, [{
+  a: { x: 0, y: 0, z: 0 },
+  b: { x: 1, y: 0, z: 0 },
+  c: { x: 0, y: 1, z: 1 },
+}], "Viewer Surface must reverse only the recorded Z plate shift");
+assert.equal(canonicalSurface.sourceBounds.min.z, 0, "canonical source bounds must follow the Surface transform");
+assert.equal(canonicalSurface.mmBounds.max.z, 2, "canonical mm bounds must follow the Surface transform");
+assert.equal(canonicalSurface.plateShiftSourceZ, 0, "canonical Viewer Surface has no pending plate shift");
+assert.notStrictEqual(canonicalSurface, shiftedSurface, "Viewer normalization must not mutate the Production mesh object");
 
 // T2 — Permanent Graph excludes the source FKEI's removable Support graph.
 assert.ok(artifact.sourceProject.printSupport.edges.length > 0, "fixture must contain removable support for the isolation test");
