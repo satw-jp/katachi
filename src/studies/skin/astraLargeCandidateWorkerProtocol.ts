@@ -1,4 +1,5 @@
 import type { CandidateDiagnosticSettings, CandidateSupportSettings } from "./astraCandidatePrintLane.ts";
+import type { DeferredPrintPlacement } from "./astraLargeCandidateSourceSpace.ts";
 
 export type LargeCandidateId = "A" | "G" | "H" | "J";
 
@@ -22,7 +23,7 @@ export type LargeCandidateCommand = {
   candidateId: LargeCandidateId;
   filename: string;
   file: Blob;
-  translationZ: number;
+  placement: DeferredPrintPlacement;
 } | {
   type: "DIAGNOSE";
   requestId: number;
@@ -64,7 +65,7 @@ export type LargeCandidateCommand = {
 export type LargeCandidateProgressStage =
   | "Reading STL"
   | "Hashing"
-  | "Parsing packed positions"
+  | "Parsing source-space positions"
   | "Topology preflight"
   | "Building Candidate query"
   | "Overhang detection"
@@ -80,9 +81,14 @@ export interface LargeCandidateInventory {
   readonly filename: string;
   readonly sourceByteLength: number;
   readonly sourceSha256: string;
+  readonly sourceGeometrySha256: string;
+  readonly executionGeometrySha256: string;
   readonly triangleCount: number;
+  readonly executionTriangleCount: number;
   readonly finite: boolean;
-  readonly degenerateTriangleCount: number;
+  readonly nearDegenerateCount: number;
+  readonly exactZeroTriangleCount: number;
+  readonly removedExactZeroSourceFaceIndices: readonly number[];
   readonly bounds: { readonly min: { x: number; y: number; z: number }; readonly max: { x: number; y: number; z: number } };
   readonly topologyStatus: "NOT_RECOMPUTED";
   readonly astraRound2Evidence: "PASS";
@@ -103,7 +109,17 @@ export interface LargeCandidateCompactSummary {
   readonly inventory: LargeCandidateInventory;
   readonly diagnostics?: Record<string, number | string>;
   readonly support?: Record<string, number>;
-  readonly export?: { readonly archive: ArrayBuffer; readonly archiveBytes: number; readonly supportTriangleCount: number; readonly validator: "PASS" | "FAIL"; readonly exportFingerprint: string };
+  readonly export?: {
+    readonly archive: ArrayBuffer;
+    readonly archiveBytes: number;
+    readonly supportTriangleCount: number;
+    readonly validator: "PASS" | "FAIL";
+    readonly exportFingerprint: string;
+    readonly expectedPackageTranslationZ: number;
+    readonly actualPackageTranslationZ: number;
+    readonly packagePlacementParity: boolean;
+    readonly bodyRemovedDegenerateTriangles: number;
+  };
 }
 
 export type LargeCandidateWorkerMessage = {

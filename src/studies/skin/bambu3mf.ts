@@ -46,6 +46,8 @@ export interface Bambu3mfStats {
   enforcerFaces: number;
   blockerFaces: number;
   removedDegenerateTriangles: number;
+  bodyRemovedDegenerateTriangles: number;
+  placementTranslationMm: { x: number; y: number; z: number };
   uncompressedBytes: number;
   archiveBytes: number;
 }
@@ -388,6 +390,8 @@ export function buildBambu3mfPackageEntries(
       enforcerFaces: sourceIndexed.filter((item) => item.volume.role === "support_enforcer").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
       blockerFaces: sourceIndexed.filter((item) => item.volume.role === "support_blocker").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
       removedDegenerateTriangles: indexed.reduce((sum, item) => sum + item.mesh.removedDegenerateTriangles, 0),
+      bodyRemovedDegenerateTriangles: sourceIndexed.find((item) => item.volume.role === "body")?.mesh.removedDegenerateTriangles ?? 0,
+      placementTranslationMm: { x: Math.fround(tx), y: Math.fround(ty), z: Math.fround(tz) },
       uncompressedBytes,
     },
   };

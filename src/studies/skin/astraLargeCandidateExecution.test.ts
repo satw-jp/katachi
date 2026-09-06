@@ -8,6 +8,7 @@ import { parseBinaryStlPositions } from "./bambu3mf.ts";
 import { createPackedSupportReachabilityIndex, createSupportReachabilityIndex } from "./supportReachability.ts";
 import { detectSkinRebuildOverhangRegions, detectSkinRebuildOverhangRegionsFromPositions } from "./rebuild/overhangRegions.ts";
 import { isLargeCandidateMessageCurrent } from "./astraLargeCandidateWorkerProtocol.ts";
+import { makeDeferredPrintPlacement, makeSourceSpaceExecutionFingerprint, sourceFaceIndexForExecutionFace } from "./astraLargeCandidateSourceSpace.ts";
 
 function cubeStl(): ArrayBuffer {
   const vertices = [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0], [-1, -1, 2], [1, -1, 2], [1, 1, 2], [-1, 1, 2]];
@@ -17,19 +18,90 @@ function cubeStl(): ArrayBuffer {
   return buffer;
 }
 
+function stlFromTriangles(triangles: readonly (readonly (readonly [number, number, number])[])[]): ArrayBuffer {
+  const buffer = new ArrayBuffer(84 + triangles.length * 50);
+  const view = new DataView(buffer);
+  view.setUint32(80, triangles.length, true);
+  triangles.forEach((triangle, face) => triangle.forEach((vertex, vertexIndex) => vertex.forEach((value, axis) => {
+    view.setFloat32(84 + face * 50 + 12 + vertexIndex * 12 + axis * 4, value, true);
+  })));
+  return buffer;
+}
+
+function crossMagnitudeOfTriangle(positions: Float32Array, offset = 0): number {
+  const abx = positions[offset + 3] - positions[offset]; const aby = positions[offset + 4] - positions[offset + 1]; const abz = positions[offset + 5] - positions[offset + 2];
+  const acx = positions[offset + 6] - positions[offset]; const acy = positions[offset + 7] - positions[offset + 1]; const acz = positions[offset + 8] - positions[offset + 2];
+  return Math.hypot(aby * acz - abz * acy, abz * acx - abx * acz, abx * acy - aby * acx);
+}
+
 const interpretation = { unitStatus: "explicit" as const, mmPerSourceUnit: 1, upAxis: "y" as const, handedness: "right" as const, importPolicyVersion: "large-candidate-test-v0" };
 
-test("chunked binary STL reader preserves exact Float32 positions and source SHA", async () => {
-  const bytes = cubeStl(); const result = await readLargeBinaryStl(new Blob([bytes]), { retainPositions: true, translationZ: 3, chunkBytes: 100 });
-  const expected = parseBinaryStlPositions(bytes); for (let index = 2; index < expected.length; index += 3) expected[index] += 3;
+test("chunked source-space binary STL reader preserves exact Float32 positions and source SHA", async () => {
+  const bytes = cubeStl(); const result = await readLargeBinaryStl(new Blob([bytes]), { retainPositions: true, chunkBytes: 100 });
+  const expected = parseBinaryStlPositions(bytes);
   assert.deepEqual(Array.from(result.positions!), Array.from(expected));
-  assert.equal(result.sourceSha256, await sha256Hex(bytes)); assert.equal(result.triangleCount, 12); assert.equal(result.finite, true); assert.equal(result.degenerateTriangleCount, 0);
-  assert.deepEqual(result.bounds.min, { x: -1, y: -1, z: 3 }); assert.deepEqual(result.bounds.max, { x: 1, y: 1, z: 5 });
+  assert.equal(result.sourceSha256, await sha256Hex(bytes)); assert.equal(result.triangleCount, 12); assert.equal(result.executionTriangleCount, 12); assert.equal(result.finite, true); assert.equal(result.nearDegenerateCount, 0); assert.equal(result.exactZeroTriangleCount, 0);
+  assert.deepEqual(result.executionSourceFaceIndices && Array.from(result.executionSourceFaceIndices.slice(0, 3)), [0, 1, 2]);
+  assert.deepEqual(result.bounds.min, { x: -1, y: -1, z: 0 }); assert.deepEqual(result.bounds.max, { x: 1, y: 1, z: 2 });
 });
 
 test("chunked binary STL header rejects byte-length mismatch", () => {
   const bytes = cubeStl(); const header = bytes.slice(0, 84); new DataView(header).setUint32(80, 13, true);
   assert.throws(() => validateLargeBinaryStlHeader(header, bytes.byteLength), /byte-length mismatch/);
+});
+
+test("source exact-zero canonicalization removes exact duplicate and collinear faces only", async () => {
+  const bytes = stlFromTriangles([
+    [[0, 0, 0], [1, 0, 0], [0, 0, 0]],
+    [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+    [[0, 0, 0], [1, 0, 0], [0, 1e-12, 0]],
+  ]);
+  const result = await readLargeBinaryStl(new Blob([bytes]), { retainPositions: true, chunkBytes: 100 });
+  assert.equal(result.finite, true);
+  assert.equal(result.nearDegenerateCount, 3);
+  assert.equal(result.exactZeroTriangleCount, 2);
+  assert.deepEqual(result.removedExactZeroSourceFaceIndices, [0, 1]);
+  assert.equal(result.executionTriangleCount, 1);
+  assert.deepEqual(Array.from(result.executionSourceFaceIndices!), [2]);
+  assert.ok(crossMagnitudeOfTriangle(result.positions!) > 0);
+});
+
+test("non-finite source triangles fail closed and are not canonicalized away", async () => {
+  const bytes = stlFromTriangles([[[Number.NaN, 0, 0], [1, 0, 0], [0, 1, 0]]]);
+  const result = await readLargeBinaryStl(new Blob([bytes]), { retainPositions: true });
+  assert.equal(result.finite, false);
+  assert.equal(result.exactZeroTriangleCount, 0);
+  assert.equal(result.executionTriangleCount, 1);
+  assert.deepEqual(result.removedExactZeroSourceFaceIndices, []);
+});
+
+test("source-space execution preserves the six-class tiny face under translation collapse", async () => {
+  const bytes = stlFromTriangles([[
+    [49.439998626708984, 22.32000160217285, 32.63999938964844],
+    [49.439998626708984, 22.32000160217285, 32.64000701904297],
+    [49.439998626708984, 22.079999923706055, 32.86864471435547],
+  ]]);
+  const result = await readLargeBinaryStl(new Blob([bytes]), { retainPositions: true });
+  const translated = Float32Array.from(result.positions!, (value, index) => index % 3 === 2 ? Math.fround(value + 48.029293060302734) : value);
+  assert.ok(crossMagnitudeOfTriangle(result.positions!) > 0);
+  assert.equal(crossMagnitudeOfTriangle(translated), 0);
+  assert.equal(result.exactZeroTriangleCount, 0);
+  assert.equal(result.executionTriangleCount, 1);
+  assert.equal(result.executionSourceFaceIndices![0], 0);
+});
+
+test("source face provenance and execution fingerprint are deterministic", async () => {
+  assert.equal(sourceFaceIndexForExecutionFace(0, [1, 4]), 0);
+  assert.equal(sourceFaceIndexForExecutionFace(1, [1, 4]), 2);
+  assert.equal(sourceFaceIndexForExecutionFace(3, [1, 4]), 5);
+  const placement = makeDeferredPrintPlacement(48.029293060302734);
+  const input = { sourceSha256: "source", sourceGeometrySha256: "source-geometry", executionGeometrySha256: "execution-geometry", sourceTriangleCount: 3, executionTriangleCount: 1, removedExactZeroSourceFaceIndices: [0, 1], placement, sourceInterpretationVersion: "test" };
+  const first = await makeSourceSpaceExecutionFingerprint(input);
+  const second = await makeSourceSpaceExecutionFingerprint({ ...input, removedExactZeroSourceFaceIndices: [0, 2] });
+  const third = await makeSourceSpaceExecutionFingerprint({ ...input, placement: makeDeferredPrintPlacement(49) });
+  assert.equal(first, await makeSourceSpaceExecutionFingerprint(input));
+  assert.notEqual(first, second);
+  assert.notEqual(first, third);
 });
 
 test("packed Candidate query matches External Host closest distance and signed sign", async () => {

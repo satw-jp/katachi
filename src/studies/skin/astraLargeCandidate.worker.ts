@@ -3,8 +3,6 @@
 import {
   ASTRA_RABBIT_REPAIR_FINGERPRINT,
   ASTRA_RABBIT_SOURCE_SHA256,
-  makeCandidateGeometryFingerprint,
-  type CandidatePrintTransform,
 } from "./astraCandidatePrintLane.ts";
 import {
   applyApprovedBoundaryRepair,
@@ -25,6 +23,7 @@ import {
 import { buildPrintSupportMesh } from "./meshExport.ts";
 import { buildBambu3mf } from "./bambu3mf.ts";
 import { validateSkin3mf } from "./rebuild/threeMfValidation.ts";
+import { makeSourceSpaceExecutionFingerprint, type DeferredPrintPlacement } from "./astraLargeCandidateSourceSpace.ts";
 import type {
   LargeCandidateCommand,
   LargeCandidateCompactSummary,
@@ -38,7 +37,7 @@ const EXPECTED_CANDIDATE_SHA256: Readonly<Record<LargeCandidateId, string>> = Ob
   A: "2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c",
   G: "69977b9376988ee4c260022a9f527fda3a12c90877db20293d19c15f0c90adfc",
   H: "e7a0c13c49a1dea82085cb2cbd090a316c26e11b592761ad6d6144869f9f5469",
-  J: "48e429e6b6d5de488e1a41d902b6d8d36ac33293c32f3250bb5ec0367dbbdbf61",
+  J: "48e429e6b6d5de4881a41d902b6d8d36ac33293c32f3250bb5ec0367dbbdbf61",
 });
 
 type Timings = Record<string, number>;
@@ -50,9 +49,10 @@ interface ActiveCandidate {
   readonly filename: string;
   readonly sourceSha256: string;
   readonly geometryFingerprint: string;
-  readonly transform: CandidatePrintTransform;
+  readonly placement: DeferredPrintPlacement;
   readonly inventory: LargeCandidateInventory;
   readonly positions: Float32Array;
+  readonly executionSourceFaceIndices: Uint32Array;
   readonly query: PackedCandidateQuery;
   readonly timings: Timings;
   detection: SkinRebuildOverhangDetection | null;
@@ -88,26 +88,40 @@ function postProgress(
   total?: number,
 ): void {
   const candidateId = "candidateId" in command ? command.candidateId : undefined;
-  post({ type: "PROGRESS", ...candidateTag(command), sourceSha256: activeCandidate?.sourceSha256 ?? (candidateId ? EXPECTED_CANDIDATE_SHA256[candidateId] : ""), geometryFingerprint: activeCandidate?.geometryFingerprint ?? (candidateId ? "pending-packed-geometry" : ""), stage, completed, total, detail, elapsedMs: now() - started });
+  post({ type: "PROGRESS", ...candidateTag(command), sourceSha256: activeCandidate?.sourceSha256 ?? (candidateId ? EXPECTED_CANDIDATE_SHA256[candidateId] : ""), geometryFingerprint: activeCandidate?.geometryFingerprint ?? (candidateId ? "pending-source-space-execution" : ""), stage, completed, total, detail, elapsedMs: now() - started });
 }
 
 async function ingestBinaryStl(
   file: Blob,
   retainPositions: boolean,
-  translationZ: number,
   command: LargeCandidateCommand,
   started: number,
 ): Promise<LargeIngestResult> {
   return readLargeBinaryStl(file, {
     retainPositions,
-    translationZ,
     onProgress: (stage, completed, total) => postProgress(command, stage, started, undefined, completed, total),
     isCancelled: () => isCancelled(command.generation),
   });
 }
 
 function makeInventory(candidateId: LargeCandidateId, filename: string, result: LargeIngestResult): LargeCandidateInventory {
-  return Object.freeze({ candidateId, filename, sourceByteLength: result.byteLength, sourceSha256: result.sourceSha256, triangleCount: result.triangleCount, finite: result.finite, degenerateTriangleCount: result.degenerateTriangleCount, bounds: result.bounds, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" });
+  return Object.freeze({
+    candidateId,
+    filename,
+    sourceByteLength: result.byteLength,
+    sourceSha256: result.sourceSha256,
+    sourceGeometrySha256: result.sourceGeometrySha256,
+    executionGeometrySha256: result.executionGeometrySha256,
+    triangleCount: result.triangleCount,
+    executionTriangleCount: result.executionTriangleCount,
+    finite: result.finite,
+    nearDegenerateCount: result.nearDegenerateCount,
+    exactZeroTriangleCount: result.exactZeroTriangleCount,
+    removedExactZeroSourceFaceIndices: result.removedExactZeroSourceFaceIndices,
+    bounds: result.bounds,
+    topologyStatus: "NOT_RECOMPUTED",
+    astraRound2Evidence: "PASS",
+  });
 }
 
 function faceFromDetection(detection: SkinRebuildOverhangDetection, faceIndex: number): SparseRemovableSupportFace | null {
@@ -151,13 +165,12 @@ async function sha256Fingerprint(value: string): Promise<string> { const { sha25
 async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUILD_SUPPORT" }>, started: number): Promise<void> {
   const candidate = activeCandidate;
   if (!candidate || !referenceHost?.signedVolumeQuery || candidate.candidateId !== command.candidateId || candidate.sourceSha256 !== command.sourceSha256 || candidate.geometryFingerprint !== command.geometryFingerprint || candidate.diagnosticsFingerprint !== command.diagnosticsFingerprint || !candidate.outsideFaces) throw new Error("Support currentness/reference mismatch");
-  const transform = candidate.transform;
-  const forbidden = (x: number, y: number, z: number): number => referenceHost!.signedVolumeQuery!.signedDistance({ x: x - transform.translationMm.x, y: y - transform.translationMm.y, z: z - transform.translationMm.z });
+  const forbidden = (x: number, y: number, z: number): number => referenceHost!.signedVolumeQuery!.signedDistance({ x, y, z });
   const bounds = triangleSoupBounds(candidate.positions); const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);
   const request = {
     projectedOutsideFaces: candidate.outsideFaces,
     outsideRegionCount: candidate.detection?.regionCount ?? 0,
-    plateZ: 0,
+    plateZ: candidate.placement.sourcePlateZMm,
     shaftRadius: command.settings.shaftDiameterMm * 0.5,
     neckRadius: command.settings.neckDiameterMm * 0.5,
     bodySdf: (x: number, y: number, z: number) => candidate.query.signedDistance({ x, y, z }),
@@ -174,6 +187,9 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     maximumDepth: command.settings.neckDiameterMm + command.settings.shaftDiameterMm,
   };
   candidate.support = buildSparseRemovableSupport(request); candidate.supportFingerprint = await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, diagnostics: candidate.diagnosticsFingerprint, rabbitSourceSha256: ASTRA_RABBIT_SOURCE_SHA256, rabbitRepairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT, settings: command.settings, graph: candidate.support.graph }));
+  if (candidate.support.diagnostics.acceptedBodyCollisionCount !== 0 || candidate.support.diagnostics.acceptedForbiddenCollisionCount !== 0) {
+    throw new Error("Fail closed: Sparse Support accepted a BODY or Rabbit forbidden-volume collision");
+  }
   candidate.timings.support = now() - started;
   const diagnostics = candidate.detection;
   const summary = compactSummary(candidate, {
@@ -188,19 +204,29 @@ async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT
   if (!candidate || !candidate.support || candidate.candidateId !== command.candidateId || candidate.sourceSha256 !== command.sourceSha256 || candidate.geometryFingerprint !== command.geometryFingerprint || candidate.supportFingerprint !== command.supportFingerprint) throw new Error("Export currentness mismatch");
   const supportMesh = candidate.support.graph.edges.length > 0 ? buildPrintSupportMesh(candidate.support.graph, 1, { radialSegments: 12 }) : null;
   const supportPositions = supportMesh ? Float32Array.from(supportMesh.triangles.flatMap((triangle) => [triangle.a.x, triangle.a.y, triangle.a.z, triangle.b.x, triangle.b.y, triangle.b.z, triangle.c.x, triangle.c.y, triangle.c.z])) : new Float32Array(0);
+  const bodyBounds = triangleSoupBounds(candidate.positions);
+  const expectedPackageTranslationZ = candidate.placement.translationMm.z;
+  const placementTolerance = Math.max(1e-5, Math.abs(expectedPackageTranslationZ) * 1e-7);
+  if (supportPositions.length === 0 && Math.abs(bodyBounds.min.z - candidate.placement.sourcePlateZMm) > placementTolerance) {
+    throw new Error("common deferred plate placement cannot be proven for body-only candidate");
+  }
   const result = await buildBambu3mf([
     { name: `ASTRA_${candidate.candidateId}_ARTWORK`, role: "body", positions: candidate.positions },
     { name: `SKIN_${candidate.candidateId}_PRINT_SUPPORT`, role: "printable_support", positions: supportPositions },
   ], { title: `Astra ${candidate.candidateId} candidate physical comparison`, supportType: "normal(manual)", mergePrintableSupportIntoBody: false });
   const validation = await validateSkin3mf(result.archive); candidate.timings["3MF"] = now() - started;
   if (!validation.valid) throw new Error(validation.errors.join("; ") || "3MF validator failed");
+  const actualPackageTranslationZ = result.stats.placementTranslationMm.z;
+  const packagePlacementParity = Math.abs(actualPackageTranslationZ - expectedPackageTranslationZ) <= placementTolerance;
+  if (!packagePlacementParity) throw new Error("3MF package placement translation does not match deferred common placement");
+  if (result.stats.bodyRemovedDegenerateTriangles !== 0) throw new Error("3MF BODY indexing removed an unexpected degenerate triangle");
   const exportFingerprint = await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, support: candidate.supportFingerprint, package: "candidate-body-plus-separate-print-support-v0" }));
-  const summary = compactSummary(candidate, { overhangFaces: candidate.detection?.faceCount ?? 0, overhangRegions: candidate.detection?.regionCount ?? 0, outside: candidate.outsideFaces?.length ?? 0, insideExcluded: 0, unresolved: 0, criticalTargets: candidate.support.diagnostics.criticalTargetCount, support: { critical: candidate.support.diagnostics.criticalTargetCount, supported: candidate.support.diagnostics.criticalTargetCount - candidate.support.diagnostics.unsupportedTargetCount, unsupported: candidate.support.diagnostics.unsupportedTargetCount, bodyReject: candidate.support.diagnostics.rejectedByBody, rabbitReject: candidate.support.diagnostics.rejectedByForbiddenVolume, vertical: candidate.support.diagnostics.verticalCount, offsetBend: candidate.support.diagnostics.offsetBendCount, nodes: candidate.support.graph.nodes.length, edges: candidate.support.graph.edges.length, acceptedBodyCollision: candidate.support.diagnostics.acceptedBodyCollisionCount, acceptedRabbitCollision: candidate.support.diagnostics.acceptedForbiddenCollisionCount }, export: { archive: result.archive, archiveBytes: result.stats.archiveBytes, supportTriangleCount: supportPositions.length / 9, validator: "PASS", exportFingerprint } });
+  const summary = compactSummary(candidate, { overhangFaces: candidate.detection?.faceCount ?? 0, overhangRegions: candidate.detection?.regionCount ?? 0, outside: candidate.outsideFaces?.length ?? 0, insideExcluded: 0, unresolved: 0, criticalTargets: candidate.support.diagnostics.criticalTargetCount, support: { critical: candidate.support.diagnostics.criticalTargetCount, supported: candidate.support.diagnostics.criticalTargetCount - candidate.support.diagnostics.unsupportedTargetCount, unsupported: candidate.support.diagnostics.unsupportedTargetCount, bodyReject: candidate.support.diagnostics.rejectedByBody, rabbitReject: candidate.support.diagnostics.rejectedByForbiddenVolume, vertical: candidate.support.diagnostics.verticalCount, offsetBend: candidate.support.diagnostics.offsetBendCount, nodes: candidate.support.graph.nodes.length, edges: candidate.support.graph.edges.length, acceptedBodyCollision: candidate.support.diagnostics.acceptedBodyCollisionCount, acceptedRabbitCollision: candidate.support.diagnostics.acceptedForbiddenCollisionCount }, export: { archive: result.archive, archiveBytes: result.stats.archiveBytes, supportTriangleCount: supportPositions.length / 9, validator: "PASS", exportFingerprint, expectedPackageTranslationZ, actualPackageTranslationZ, packagePlacementParity, bodyRemovedDegenerateTriangles: result.stats.bodyRemovedDegenerateTriangles } });
   post({ type: "EXPORT", requestId: command.requestId, generation: command.generation, summary }, [result.archive]);
 }
 
-function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; export?: { archive: ArrayBuffer; archiveBytes: number; supportTriangleCount: number; validator: "PASS" | "FAIL"; exportFingerprint: string } }): LargeCandidateCompactSummary {
-  return { candidateId: candidate.candidateId, sourceSha256: candidate.sourceSha256, geometryFingerprint: candidate.geometryFingerprint, ...(candidate.diagnosticsFingerprint ? { diagnosticsFingerprint: candidate.diagnosticsFingerprint } : {}), ...(candidate.supportFingerprint ? { supportFingerprint: candidate.supportFingerprint } : {}), timings: { ...candidate.timings }, telemetry: { peakJsHeapBytes: null, largestTypedArrayBytes: Math.max(candidate.positions.byteLength, candidate.query.stats.totalTypedArrayBytes), residentTypedArrayBytes: candidate.positions.byteLength + candidate.query.stats.totalTypedArrayBytes }, inventory: candidate.inventory, diagnostics: { overhangFaces: facts.overhangFaces, overhangRegions: facts.overhangRegions, outside: facts.outside, insideExcluded: facts.insideExcluded, unresolved: facts.unresolved, criticalTargets: facts.criticalTargets, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" }, ...(facts.support ? { support: facts.support } : {}), ...(facts.export ? { export: facts.export } : {}) };
+function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; export?: { archive: ArrayBuffer; archiveBytes: number; supportTriangleCount: number; validator: "PASS" | "FAIL"; exportFingerprint: string; expectedPackageTranslationZ: number; actualPackageTranslationZ: number; packagePlacementParity: boolean; bodyRemovedDegenerateTriangles: number } }): LargeCandidateCompactSummary {
+  return { candidateId: candidate.candidateId, sourceSha256: candidate.sourceSha256, geometryFingerprint: candidate.geometryFingerprint, ...(candidate.diagnosticsFingerprint ? { diagnosticsFingerprint: candidate.diagnosticsFingerprint } : {}), ...(candidate.supportFingerprint ? { supportFingerprint: candidate.supportFingerprint } : {}), timings: { ...candidate.timings }, telemetry: { peakJsHeapBytes: null, largestTypedArrayBytes: Math.max(candidate.positions.byteLength, candidate.query.stats.totalTypedArrayBytes), residentTypedArrayBytes: candidate.positions.byteLength + candidate.query.stats.totalTypedArrayBytes }, inventory: candidate.inventory, diagnostics: { overhangFaces: facts.overhangFaces, overhangRegions: facts.overhangRegions, outside: facts.outside, insideExcluded: facts.insideExcluded, unresolved: facts.unresolved, reachabilityInvalidSurfaceTriangles: 0, criticalTargets: facts.criticalTargets, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" }, ...(facts.support ? { support: facts.support } : {}), ...(facts.export ? { export: facts.export } : {}) };
 }
 
 async function handle(command: LargeCandidateCommand): Promise<void> {
@@ -220,21 +246,31 @@ async function handle(command: LargeCandidateCommand): Promise<void> {
       return;
     }
     if (command.type === "INVENTORY_CANDIDATE") {
-      const result = await ingestBinaryStl(command.file, false, 0, command, started);
-      if (result.sourceSha256 !== EXPECTED_CANDIDATE_SHA256[command.candidateId]) throw new Error(`Candidate ${command.candidateId} SHA-256 differs from the inventoried Round-2 artifact`);
-      post({ type: "INVENTORY", requestId: command.requestId, generation: command.generation, candidateId: command.candidateId, sourceSha256: result.sourceSha256, geometryFingerprint: "pending-packed-geometry", inventory: makeInventory(command.candidateId, command.filename, result) });
+      const result = await ingestBinaryStl(command.file, false, command, started);
+      if (result.sourceSha256 !== EXPECTED_CANDIDATE_SHA256[command.candidateId]) throw new Error(`Candidate ${command.candidateId} SHA-256 differs from the inventoried Round-2 artifact: actual ${result.sourceSha256}, expected ${EXPECTED_CANDIDATE_SHA256[command.candidateId]}`);
+      post({ type: "INVENTORY", requestId: command.requestId, generation: command.generation, candidateId: command.candidateId, sourceSha256: result.sourceSha256, geometryFingerprint: "pending-source-space-execution", inventory: makeInventory(command.candidateId, command.filename, result) });
       return;
     }
     if (command.type === "ACTIVATE_CANDIDATE") {
       if (activeCandidate) throw new Error("Release the previous Candidate before activation");
-      const result = await ingestBinaryStl(command.file, true, command.translationZ, command, started);
+      const result = await ingestBinaryStl(command.file, true, command, started);
       if (!result.positions) throw new Error("Packed positions were not retained");
-      if (result.sourceSha256 !== EXPECTED_CANDIDATE_SHA256[command.candidateId]) throw new Error(`Candidate ${command.candidateId} SHA-256 differs from the inventoried Round-2 artifact`);
-      const transform: CandidatePrintTransform = { translationMm: { x: 0, y: 0, z: command.translationZ }, rotation: [0, 0, 0, 1], uniformScale: 1, rule: "common-lowest-candidate-point-to-plate-z0" };
-      const geometryFingerprint = await makeCandidateGeometryFingerprint(result.sourceSha256, result.positions, transform);
+      if (!result.executionSourceFaceIndices) throw new Error("Source face provenance was not retained");
+      if (!result.finite) throw new Error("Fail closed: Candidate source geometry contains non-finite coordinates");
+      if (result.sourceSha256 !== EXPECTED_CANDIDATE_SHA256[command.candidateId]) throw new Error(`Candidate ${command.candidateId} SHA-256 differs from the inventoried Round-2 artifact: actual ${result.sourceSha256}, expected ${EXPECTED_CANDIDATE_SHA256[command.candidateId]}`);
+      const geometryFingerprint = await makeSourceSpaceExecutionFingerprint({
+        sourceSha256: result.sourceSha256,
+        sourceGeometrySha256: result.sourceGeometrySha256,
+        executionGeometrySha256: result.executionGeometrySha256,
+        sourceTriangleCount: result.triangleCount,
+        executionTriangleCount: result.executionTriangleCount,
+        removedExactZeroSourceFaceIndices: result.removedExactZeroSourceFaceIndices,
+        placement: command.placement,
+        sourceInterpretationVersion: "astra-round-2-export-mm-20x-v0",
+      });
       const queryStarted = now(); const query = buildPackedCandidateQuery(result.positions, (stage, completed, total) => postProgress(command, "Building Candidate query", queryStarted, stage, completed, total));
       const inventory = makeInventory(command.candidateId, command.filename, result);
-      activeCandidate = { candidateId: command.candidateId, filename: command.filename, sourceSha256: result.sourceSha256, geometryFingerprint, transform, inventory, positions: result.positions, query, timings: { ingest: now() - started, hash: 0, parse: now() - started, query: now() - queryStarted }, detection: null, outsideFaces: null, diagnosticsFingerprint: null, support: null, supportFingerprint: null };
+      activeCandidate = { candidateId: command.candidateId, filename: command.filename, sourceSha256: result.sourceSha256, geometryFingerprint, placement: command.placement, inventory, positions: result.positions, executionSourceFaceIndices: result.executionSourceFaceIndices, query, timings: { ingest: now() - started, hash: 0, parse: now() - started, query: now() - queryStarted }, detection: null, outsideFaces: null, diagnosticsFingerprint: null, support: null, supportFingerprint: null };
       post({ type: "INVENTORY", requestId: command.requestId, generation: command.generation, candidateId: command.candidateId, sourceSha256: result.sourceSha256, geometryFingerprint, inventory });
       return;
     }
