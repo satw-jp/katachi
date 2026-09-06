@@ -102,6 +102,32 @@ test("signed distance reuses its closest-surface result for classification", asy
   assert.equal(closestSurfaceCalls - callsBefore, 1);
 });
 
+test("signed volume telemetry is optional, resettable, and query-coarse", async () => {
+  const source = await createImportedHostSource(asciiStl("cube", cubeTriangles), {
+    filename: "cube.stl",
+    interpretation,
+  });
+  const instance = createImportedHostInstance(source, identity);
+  assert.ok(instance.signedVolumeQuery);
+  assert.equal(instance.signedVolumeQuery.readTelemetry().enabled, false);
+  instance.signedVolumeQuery.signedDistance({ x: 3, y: 0, z: 0 });
+  assert.equal(instance.signedVolumeQuery.readTelemetry().signedDistanceCalls, 0);
+  instance.signedVolumeQuery.setTelemetryEnabled(true);
+  instance.signedVolumeQuery.resetTelemetry();
+  assert.ok(instance.signedVolumeQuery.signedDistance({ x: 3, y: 0, z: 0 }) > 0);
+  instance.signedVolumeQuery.signedDistance({ x: 1, y: 0, z: 0 });
+  const telemetry = instance.signedVolumeQuery.readTelemetry();
+  assert.equal(telemetry.signedDistanceCalls, 2);
+  assert.equal(telemetry.closestSurfaceCalls, 2);
+  assert.deepEqual(telemetry.parityDirectionCalls, [1, 1, 1]);
+  assert.equal(telemetry.unknownCount, 0);
+  assert.equal(telemetry.surfaceReturnCount, 1);
+  assert.ok(telemetry.closestSurfaceTotalMs >= 0);
+  assert.ok(telemetry.parityDirectionTotalMs.every((value) => value >= 0));
+  instance.signedVolumeQuery.resetTelemetry();
+  assert.equal(instance.signedVolumeQuery.readTelemetry().signedDistanceCalls, 0);
+});
+
 test("uniformScale 20 preserves query semantics and scales distances", async () => {
   const source = await createImportedHostSource(asciiStl("cube", cubeTriangles), {
     filename: "cube.stl",

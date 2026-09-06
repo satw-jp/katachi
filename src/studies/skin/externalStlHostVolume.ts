@@ -46,10 +46,24 @@ export interface HostVolumePreflight {
 
 export type HostInsideOutside = "inside" | "outside" | "surface" | "unknown";
 
+export interface HostSignedVolumeQueryTelemetry {
+  readonly enabled: boolean;
+  readonly signedDistanceCalls: number;
+  readonly closestSurfaceCalls: number;
+  readonly closestSurfaceTotalMs: number;
+  readonly parityDirectionCalls: readonly [number, number, number];
+  readonly parityDirectionTotalMs: readonly [number, number, number];
+  readonly unknownCount: number;
+  readonly surfaceReturnCount: number;
+}
+
 export interface HostSignedVolumeQuery {
   insideOutside(point: HostVec3): HostInsideOutside;
   /** Negative inside, zero at the surface, positive outside. */
   signedDistance(point: HostVec3): number;
+  setTelemetryEnabled(enabled: boolean): void;
+  resetTelemetry(): void;
+  readTelemetry(): HostSignedVolumeQueryTelemetry;
 }
 
 export interface HostRepairProvenance {
@@ -152,6 +166,12 @@ function normalized(point: HostVec3): HostVec3 {
   return { x: point.x / length, y: point.y / length, z: point.z / length };
 }
 
+function monotonicNow(): number {
+  return typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
 function parityInside(point: HostVec3, direction: HostVec3, mesh: ParsedHostMesh, surfaceQuery: HostSurfaceQuery): boolean {
   const rayDirection = normalized(direction);
   if (surfaceQuery.rayIntersectionCount) return surfaceQuery.rayIntersectionCount({ origin: point, direction: rayDirection }) % 2 === 1;
@@ -169,28 +189,82 @@ export function createSignedVolumeQuery(
 ): HostSignedVolumeQuery | null {
   if (preflight.signedVolumeCapability.availability !== "AVAILABLE") return null;
   const surfaceTolerance = Math.max(longestDimension(mesh) * 1e-9, 1e-9);
+  let telemetryEnabled = false;
+  let signedDistanceCalls = 0;
+  let closestSurfaceCalls = 0;
+  let closestSurfaceTotalMs = 0;
+  const parityDirectionCalls = [0, 0, 0];
+  const parityDirectionTotalMs = [0, 0, 0];
+  let unknownCount = 0;
+  let surfaceReturnCount = 0;
+  const closestSurface = (point: HostVec3): { distance: number } | null => {
+    const started = telemetryEnabled ? monotonicNow() : 0;
+    const surface = surfaceQuery.closestSurface(point);
+    if (telemetryEnabled) {
+      closestSurfaceCalls += 1;
+      closestSurfaceTotalMs += monotonicNow() - started;
+    }
+    return surface;
+  };
   const classify = (point: HostVec3, surface: { distance: number }): HostInsideOutside => {
-    if (surface.distance <= surfaceTolerance) return "surface";
-    const votes = PARITY_DIRECTIONS.map((direction) => parityInside(point, direction, mesh, surfaceQuery));
+    if (surface.distance <= surfaceTolerance) {
+      if (telemetryEnabled) surfaceReturnCount += 1;
+      return "surface";
+    }
+    const votes = PARITY_DIRECTIONS.map((direction, index) => {
+      const started = telemetryEnabled ? monotonicNow() : 0;
+      const result = parityInside(point, direction, mesh, surfaceQuery);
+      if (telemetryEnabled) {
+        parityDirectionCalls[index] += 1;
+        parityDirectionTotalMs[index] += monotonicNow() - started;
+      }
+      return result;
+    });
     if (votes.every((value) => value === votes[0])) return votes[0] ? "inside" : "outside";
+    if (telemetryEnabled) unknownCount += 1;
     return "unknown";
   };
   return {
     insideOutside(pointInput: HostVec3): HostInsideOutside {
       const point = clonePoint(pointInput);
-      const surface = surfaceQuery.closestSurface(point);
+      const surface = closestSurface(point);
       if (!surface) throw new Error("Signed volume query has no closest surface result");
       return classify(point, surface);
     },
     signedDistance(pointInput: HostVec3): number {
+      if (telemetryEnabled) signedDistanceCalls += 1;
       const point = clonePoint(pointInput);
-      const surface = surfaceQuery.closestSurface(point);
+      const surface = closestSurface(point);
       if (!surface) throw new Error("Signed volume query has no closest surface result");
       const relation = classify(point, surface);
       if (relation === "surface") return 0;
       if (relation === "inside") return -surface.distance;
       if (relation === "outside") return surface.distance;
       throw new Error(`Signed volume classification is ${relation}; refusing an untrusted sign`);
+    },
+    setTelemetryEnabled(enabled: boolean): void {
+      telemetryEnabled = enabled;
+    },
+    resetTelemetry(): void {
+      signedDistanceCalls = 0;
+      closestSurfaceCalls = 0;
+      closestSurfaceTotalMs = 0;
+      parityDirectionCalls.fill(0);
+      parityDirectionTotalMs.fill(0);
+      unknownCount = 0;
+      surfaceReturnCount = 0;
+    },
+    readTelemetry(): HostSignedVolumeQueryTelemetry {
+      return Object.freeze({
+        enabled: telemetryEnabled,
+        signedDistanceCalls,
+        closestSurfaceCalls,
+        closestSurfaceTotalMs,
+        parityDirectionCalls: Object.freeze([parityDirectionCalls[0], parityDirectionCalls[1], parityDirectionCalls[2]] as const),
+        parityDirectionTotalMs: Object.freeze([parityDirectionTotalMs[0], parityDirectionTotalMs[1], parityDirectionTotalMs[2]] as const),
+        unknownCount,
+        surfaceReturnCount,
+      });
     },
   };
 }

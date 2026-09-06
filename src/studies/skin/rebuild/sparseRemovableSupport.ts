@@ -317,6 +317,10 @@ export interface SparseRemovableSupportRequest {
   /** Independent signed-distance keep-out, negative inside. The capsule
    * radius is included in the gate; this is never folded into bodySdf. */
   forbiddenSdf?: (x: number, y: number, z: number) => number;
+  /** Optional execution-only accelerator. Returns exact unsigned distance to
+   * the same proven-closed boundary as forbiddenSdf. forbiddenSdf remains the
+   * sign authority; absence preserves the legacy signed audit exactly. */
+  forbiddenClosedSurfaceDistance?: (x: number, y: number, z: number) => number;
   /** Additional common clearance outside the forbidden volume, in mm/source
    * units after the caller's explicit transform. */
   forbiddenClearanceMm?: number;
@@ -640,6 +644,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   contactPolicy: "patch-owned" | "single-body";
   forbiddenSdf?: (x: number, y: number, z: number) => number;
+  forbiddenClosedSurfaceDistance?: (x: number, y: number, z: number) => number;
   forbiddenClearanceMm: number;
   removalGap: number;
   neckLength: number;
@@ -702,6 +707,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     otherBodySdf: input.otherBodySdf,
     contactPolicy: input.contactPolicy === "single-body" ? "single-body" : "patch-owned",
     forbiddenSdf: input.forbiddenSdf,
+    forbiddenClosedSurfaceDistance: input.forbiddenClosedSurfaceDistance,
     forbiddenClearanceMm: input.forbiddenClearanceMm ?? 0,
     removalGap,
     neckLength,
@@ -1315,15 +1321,28 @@ function auditCapsuleAgainstForbiddenVolume(
   }
   const threshold = segment.radius + request.forbiddenClearanceMm + 1e-7;
   let sampleCount = 0;
+  let adaptiveSampleCount = 0;
   const values = new Map<number, number>();
+  if (request.forbiddenClosedSurfaceDistance) {
+    let signedStart: number;
+    try { signedStart = request.forbiddenSdf(segment.start.x, segment.start.y, segment.start.z); } catch {
+      return { accepted: false, reason: "forbidden", detail: "support capsule enters or cannot certify clearance from forbidden volume", sampleCount: 1 };
+    }
+    sampleCount += 1;
+    if (!finite(signedStart) || signedStart <= threshold) {
+      return { accepted: false, reason: "forbidden", detail: "support capsule enters or cannot certify clearance from forbidden volume", sampleCount };
+    }
+  }
+  const distanceQuery = request.forbiddenClosedSurfaceDistance ?? request.forbiddenSdf;
   const evaluateAt = (t: number): number | null => {
     const cached = values.get(t);
     if (cached !== undefined) return cached;
-    if (!finite(t) || t < 0 || t > 1 || sampleCount >= MAX_ADAPTIVE_SAMPLES) return null;
+    if (!finite(t) || t < 0 || t > 1 || adaptiveSampleCount >= MAX_ADAPTIVE_SAMPLES) return null;
     const point = lerp(segment.start, segment.end, t);
     let value: number;
-    try { value = request.forbiddenSdf!(point.x, point.y, point.z); } catch { return null; }
+    try { value = distanceQuery!(point.x, point.y, point.z); } catch { return null; }
     sampleCount++;
+    adaptiveSampleCount++;
     if (!finite(value)) return null;
     values.set(t, value);
     return value;
@@ -1428,6 +1447,15 @@ function auditRoute(
     auditRouteSpacingComparisons: spacingComparisons,
     auditRouteSpacingMs: monotonicNow() - spacingStarted,
   };
+}
+
+/** Focused forbidden-volume oracle entry point. Tests use this exact production
+ * audit for legacy-vs-continuity semantic parity. */
+export function auditSparseRemovableSupportForbiddenCapsule(
+  segment: SparseSupportRouteSegment,
+  request: SparseRemovableSupportRequest,
+): SparseSupportRouteAudit {
+  return auditCapsuleAgainstForbiddenVolume(segment, normalizeRequest(request));
 }
 
 function routeSpacingIsClear(

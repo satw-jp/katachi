@@ -168,8 +168,12 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
   if (!candidate || !referenceHost?.signedVolumeQuery || candidate.candidateId !== command.candidateId || candidate.sourceSha256 !== command.sourceSha256 || candidate.geometryFingerprint !== command.geometryFingerprint || candidate.diagnosticsFingerprint !== command.diagnosticsFingerprint || !candidate.outsideFaces) throw new Error("Support currentness/reference mismatch");
   let candidateBodySignedDistanceCalls = 0;
   let rabbitSignedDistanceCalls = 0;
+  let rabbitUnsignedSurfaceDistanceCalls = 0;
+  let rabbitUnsignedSurfaceDistanceMs = 0;
   let candidateBodyAuditMs = 0;
   let rabbitAuditMs = 0;
+  referenceHost.signedVolumeQuery.setTelemetryEnabled(true);
+  referenceHost.signedVolumeQuery.resetTelemetry();
   const measureQueryTimings = candidate.query.readTelemetry().enabled;
   const tailWindowEnds = new Set([512, 1024, 1536, 2048, 2304, 2560, 3072, 3584, 4096, 4561]);
   const tailWindowSnapshots = new Map<number, {
@@ -219,6 +223,17 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     if (measureQueryTimings) rabbitAuditMs += now() - queryStarted;
     return result;
   };
+  const forbiddenClosedSurfaceDistance = (x: number, y: number, z: number): number => {
+    rabbitUnsignedSurfaceDistanceCalls += 1;
+    const queryStarted = measureQueryTimings ? now() : 0;
+    const result = referenceHost!.query.closestSurface({ x, y, z })?.distance ?? Number.NaN;
+    if (measureQueryTimings) {
+      const elapsed = now() - queryStarted;
+      rabbitUnsignedSurfaceDistanceMs += elapsed;
+      rabbitAuditMs += elapsed;
+    }
+    return result;
+  };
   const bounds = triangleSoupBounds(candidate.positions); const extent = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);
   const request = {
     projectedOutsideFaces: candidate.outsideFaces,
@@ -235,6 +250,7 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     },
     contactPolicy: "single-body" as const,
     forbiddenSdf: forbidden,
+    forbiddenClosedSurfaceDistance,
     forbiddenClearanceMm: command.settings.hostClearanceMm,
     removalGapMm: command.settings.removalGapMm,
     lowStartBand: command.settings.lowStartBandMm,
@@ -260,6 +276,16 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
   candidate.support = buildSparseRemovableSupport(request); candidate.supportFingerprint = candidate.support.performance.state === "COMPLETE"
     ? await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, diagnostics: candidate.diagnosticsFingerprint, rabbitSourceSha256: ASTRA_RABBIT_SOURCE_SHA256, rabbitRepairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT, settings: command.settings, graph: candidate.support.graph }))
     : null;
+  const boundedSemanticDigest = command.profile?.enabled === true
+    && (command.profile.maxProcessedTargets !== undefined || command.profile.maxRouteAudits !== undefined)
+    ? await sha256Fingerprint(JSON.stringify({
+      candidates: candidate.support.candidates,
+      acceptedRoutes: candidate.support.acceptedRoutes,
+      graph: candidate.support.graph,
+      diagnostics: candidate.support.diagnostics,
+      debug: candidate.support.debug,
+    }))
+    : undefined;
   if (candidate.support.diagnostics.acceptedBodyCollisionCount !== 0 || candidate.support.diagnostics.acceptedForbiddenCollisionCount !== 0) {
     throw new Error("Fail closed: Sparse Support accepted a BODY or Rabbit forbidden-volume collision");
   }
@@ -301,6 +327,10 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     candidateQuery: candidate.query.readTelemetry(),
     candidateBodySignedDistanceCalls,
     rabbitSignedDistanceCalls,
+    rabbitSignedQuery: referenceHost.signedVolumeQuery.readTelemetry(),
+    rabbitUnsignedSurfaceDistanceCalls,
+    rabbitUnsignedSurfaceDistanceMs,
+    ...(boundedSemanticDigest ? { boundedSemanticDigest } : {}),
     candidateBodyAuditMs,
     rabbitAuditMs,
   };
