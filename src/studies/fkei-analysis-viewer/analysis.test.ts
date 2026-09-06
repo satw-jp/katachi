@@ -48,7 +48,7 @@ assert.deepEqual(
   "graph metrics must match the known topology",
 );
 
-// T4 — analytic Host cube minus full-height slab: two void components.
+// T4 — analytic Host cube minus full-height slab: two Host/Base-boundary-connected components.
 const cubeBounds = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 }, size: { x: 1, y: 1, z: 1 }, longest: 1 };
 const analyticVoid = analyzeVoid({
   bounds: cubeBounds,
@@ -57,7 +57,7 @@ const analyticVoid = analyzeVoid({
   insideFinalBody: (x, y, z) => x >= 0.375 && x <= 0.625 && y >= 0 && y <= 1 && z >= 0 && z <= 1,
 });
 assert.equal(analyticVoid.componentCount, 2, "analytic slab must split the Void into two components");
-assert.equal(analyticVoid.boundaryConnectedComponentCount, 2, "both slab-side void components touch the envelope boundary");
+assert.equal(analyticVoid.boundaryConnectedComponentCount, 2, "both slab-side void components touch the Host/Base boundary");
 
 // T5 — fixed-grid Void is deterministic.
 const analyticVoidAgain = analyzeVoid({
@@ -67,6 +67,18 @@ const analyticVoidAgain = analyzeVoid({
   insideFinalBody: (x, y, z) => x >= 0.375 && x <= 0.625 && y >= 0 && y <= 1 && z >= 0 && z <= 1,
 });
 assert.deepEqual(analyticVoidAgain, analyticVoid, "same artifact functions and grid must produce identical Void analysis");
+
+// T6 — Host boundary inside the sampling box: the old envelope-edge check would report 0,
+// while the Host/Base-boundary definition must report the interior Host component.
+const interiorHostBounds = { min: { x: -1, y: -1, z: -1 }, max: { x: 2, y: 2, z: 2 }, size: { x: 3, y: 3, z: 3 }, longest: 3 };
+const interiorHostVoid = analyzeVoid({
+  bounds: interiorHostBounds,
+  resolution: 12,
+  insideHost: (x, y, z) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && z >= 0 && z <= 1,
+  insideFinalBody: () => false,
+});
+assert.equal(interiorHostVoid.componentCount, 1, "interior Host fixture must contain one Void component");
+assert.equal(interiorHostVoid.boundaryConnectedComponentCount, 1, "interior Host boundary must be detected away from the sampling-box edge");
 
 console.log("FKEI Analysis Viewer analysis tests passed", {
   schema: artifact.schema,

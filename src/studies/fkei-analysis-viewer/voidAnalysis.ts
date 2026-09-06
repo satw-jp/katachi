@@ -27,8 +27,34 @@ function indexOf(x: number, y: number, z: number, resolution: number): number {
   return x + resolution * (y + resolution * z);
 }
 
-function isBoundary(x: number, y: number, z: number, resolution: number): boolean {
-  return x === 0 || y === 0 || z === 0 || x === resolution - 1 || y === resolution - 1 || z === resolution - 1;
+const SIX_NEIGHBOURS = [
+  [-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1],
+] as const;
+
+function isHostBoundaryAdjacent(
+  x: number,
+  y: number,
+  z: number,
+  resolution: number,
+  bounds: Bounds,
+  cellSize: { x: number; y: number; z: number },
+  hostMask: Uint8Array,
+  insideHost: (x: number, y: number, z: number) => boolean,
+): boolean {
+  for (const [dx, dy, dz] of SIX_NEIGHBOURS) {
+    const nx = x + dx;
+    const ny = y + dy;
+    const nz = z + dz;
+    const px = bounds.min.x + (nx + 0.5) * cellSize.x;
+    const py = bounds.min.y + (ny + 0.5) * cellSize.y;
+    const pz = bounds.min.z + (nz + 0.5) * cellSize.z;
+    if (nx >= 0 && ny >= 0 && nz >= 0 && nx < resolution && ny < resolution && nz < resolution) {
+      if (hostMask[indexOf(nx, ny, nz, resolution)] === 0) return true;
+      continue;
+    }
+    if (!insideHost(px, py, pz)) return true;
+  }
+  return false;
 }
 
 function pushTriangle(
@@ -105,6 +131,7 @@ export function analyzeVoid(input: VoidAnalysisInput): VoidAnalysisResult {
   };
   const total = resolution * resolution * resolution;
   const mask = new Uint8Array(total);
+  const hostMask = new Uint8Array(total);
   const visited = new Uint8Array(total);
   let hostCellCount = 0;
   let bodyCellCount = 0;
@@ -117,6 +144,7 @@ export function analyzeVoid(input: VoidAnalysisInput): VoidAnalysisResult {
         const px = input.bounds.min.x + (x + 0.5) * cellSize.x;
         const host = input.insideHost(px, py, pz);
         const body = input.insideFinalBody(px, py, pz);
+        hostMask[indexOf(x, y, z, resolution)] = host ? 1 : 0;
         if (host) hostCellCount++;
         if (body) bodyCellCount++;
         if (host && !body) {
@@ -131,9 +159,6 @@ export function analyzeVoid(input: VoidAnalysisInput): VoidAnalysisResult {
   let largestComponent = 0;
   let boundaryConnectedComponentCount = 0;
   const queue = new Int32Array(total);
-  const neighborOffsets = [
-    [-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1],
-  ] as const;
   for (let z = 0; z < resolution; z++) {
     for (let y = 0; y < resolution; y++) {
       for (let x = 0; x < resolution; x++) {
@@ -152,8 +177,17 @@ export function analyzeVoid(input: VoidAnalysisInput): VoidAnalysisResult {
           const cy = Math.floor(current / resolution) % resolution;
           const cz = Math.floor(current / (resolution * resolution));
           size++;
-          if (isBoundary(cx, cy, cz, resolution)) touchesBoundary = true;
-          for (const [dx, dy, dz] of neighborOffsets) {
+          if (!touchesBoundary && isHostBoundaryAdjacent(
+            cx,
+            cy,
+            cz,
+            resolution,
+            input.bounds,
+            cellSize,
+            hostMask,
+            input.insideHost,
+          )) touchesBoundary = true;
+          for (const [dx, dy, dz] of SIX_NEIGHBOURS) {
             const nx = cx + dx;
             const ny = cy + dy;
             const nz = cz + dz;

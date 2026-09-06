@@ -73,7 +73,7 @@ function updateSummary(): void {
     ["Grid", `${voidResult.resolution}³ approximate`],
     ["Components", number(voidResult.componentCount)],
     ["Largest component", `${number(voidResult.largestComponentFraction * 100, 1)}%`],
-    ["Boundary-connected", number(voidResult.boundaryConnectedComponentCount)],
+    ["Host/Base-boundary-connected", number(voidResult.boundaryConnectedComponentCount)],
   ], note);
 }
 

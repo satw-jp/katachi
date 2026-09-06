@@ -17,10 +17,12 @@ Browser Gate, 2026-09-06, using the bundled C0 fixture (`skin-rebuild-first-prin
 - Geometry loaded the canonical schema `katachi.skin-rebuild.fkei.v1`, with 12 Host / Base metaballs, 38 authored Motifs, and a Permanent Artwork Structure of 253 nodes / 272 edges.
 - Graph reported 253 nodes, 272 edges, 27 junctions, 1 component, and cycle rank β1 = 20. Removable Support was not included.
 - Surface reported 143,448 triangles and bounds of 32.6 × 32.4 × 80.0 mm from the canonical Production BODY path.
-- Void used the fixed 64³ grid inside the Host / Base envelope. It reported 1 component, largest component 100.0%, and 0 boundary-connected components; the final BODY extended outside the Host / Base sampling envelope.
+- Void used the fixed 64³ grid inside the Host / Base envelope. It reported 1 component, largest component 100.0%, and 1 Host/Base-boundary-connected component; the final BODY extended outside the Host / Base sampling envelope.
 - Orbiting the camera, then switching Geometry → Graph → Surface → Void, preserved the camera and read-only canonical identity. No save/export/edit control was exposed.
 
 These are observations only; author interpretation remains open.
+
+`Host/Base-boundary-connected` means that a Void component has a 6-neighbour grid path to outside-Host space, including a neighbour reached by leaving the analysis grid. It is not a test for touching the outer sampling-box cells.
 
 ## Hypothesis
 
