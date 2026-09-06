@@ -237,16 +237,27 @@ test("invalid 3MF fixtures fail closed for container, XML, mesh, reference, rela
   await assertInvalid(storedZip(replaceEntry(entries, "3D/_rels/3dmodel.model.rels", () => "<Relationships/>")), /model relationships do not reference/);
 });
 
-test("forced streaming preserves the complete legacy report across arbitrary input boundaries", async () => {
+test("forced streaming preserves the complete legacy report across every small input boundary", async () => {
+  const commentAndCdata = replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace(
+    "<model ",
+    "<!-- boundary-safe comment --><![CDATA[ \n ]]><model ",
+  ));
+  const splitEntity = replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace('x="0"', 'x="&#48;"'));
+  const wrongRoot = replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text
+    .replace("<model ", "<wrong ")
+    .replace("</model>", "</wrong>"));
   const archives = [
     storedZip(baseEntries(true)),
+    storedZip(commentAndCdata),
+    storedZip(splitEntity),
+    storedZip(wrongRoot),
     storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace('v3="2"', 'v3="3"'))),
     storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace('x="0"', 'x="NaN"'))),
     storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.slice(0, -9))),
     storedZip(withInvalidUtf8(baseEntries())),
     corruptStoredPayloadCrc(storedZip(baseEntries()), "3D/Objects/object_1.model"),
   ];
-  for (const chunkBytes of [7, 31, 64]) {
+  for (let chunkBytes = 1; chunkBytes <= 64; chunkBytes++) {
     for (const archive of archives) {
       const { legacy, streaming } = await reportsByMode(archive, chunkBytes);
       assert.deepEqual(streaming, legacy, `report mismatch at ${chunkBytes}-byte chunks`);

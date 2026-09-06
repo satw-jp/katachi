@@ -585,6 +585,10 @@ class IncrementalXmlParser {
         cursor = end + 2;
         continue;
       }
+      if (!final) {
+        const pending = this.buffer.slice(cursor);
+        if ("<!--".startsWith(pending) || "<![CDATA[".startsWith(pending)) break;
+      }
       if (this.buffer.startsWith("<!", cursor)) throw new Error("unsupported XML declaration");
 
       let tagEnd = cursor + 1;
@@ -798,7 +802,7 @@ async function parseModelStreaming(
   if (((crc ^ 0xffffffff) >>> 0) !== entry.expectedCrc) throw new Error(`ZIP CRC mismatch for ${entry.name}`);
   archive.validated.add(entry.name);
   const result = model.result();
-  if (!result) throw new Error(`${path} does not have a model root element`);
+  if (!result) throw new ModelRootMismatchError(`${path} does not have a model root element`);
   options.onTelemetry?.({
     mode: "streaming", entry: path, compressedBytes: entry.compressedSize, uncompressedBytes,
     largestCompressedInputChunkBytes: Math.min(chunkBytes, entry.compressedSize), largestInflatedChunkBytes,
@@ -806,6 +810,8 @@ async function parseModelStreaming(
   });
   return result;
 }
+
+class ModelRootMismatchError extends Error {}
 
 async function parseModelEntry(
   archive: ZipArchive,
@@ -831,7 +837,8 @@ async function parseModelEntry(
     return model;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    errors.push(`${message.startsWith("ZIP ") ? "invalid 3MF ZIP container" : `malformed XML in ${path}`}: ${message}`);
+    if (error instanceof ModelRootMismatchError) errors.push(message);
+    else errors.push(`${message.startsWith("ZIP ") ? "invalid 3MF ZIP container" : `malformed XML in ${path}`}: ${message}`);
     return null;
   }
 }
