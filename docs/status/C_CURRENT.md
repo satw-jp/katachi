@@ -8,21 +8,19 @@ Last verified: 2026-09-06
 - current Production Capability Baseline: `349e1a854d7e3699ac29afd167fc22e8131406d7`
 - geometry fidelity checkpoint: `73bba117c1d09bf14735b1ad71938b086b165cf8`
 - Permanent BODY fingerprint: `c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501`
-- production 3MF SHA-256: `bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c`
+- Permanent Graph: 253 nodes / 272 edges / `5cb659849d694beaae6443a4828031b5b6471b836bbe5e78aede5aece1c34435`
+- Removable Support: 577 nodes / 395 edges / `ef1d3eaec4146e171316a81e441797526fef6c8921d88a7689b68ac9c5892121`
 - support source: `current-stage8:sparseResult.graph`
+- production 3MF SHA-256: `bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c`
+- UI IA v0A reviewed implementation checkpoint: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
+- UI IA v0A final evidence checkpoint: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 
 ## Current phase
-First Physical Gate is PASS / CLOSED for the accepted current print semantics: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support. UI IA v0A implementation checkpoint `22ef22bcc327e048ed994c8fa8c3964ad20b324c` passes C SOL structural review: VIEW is separated, exactly five FLOW phases control phase-specific Inspector presentation, Permanent Structure and Removable Support are distinct, and current Export is separated from legacy compatibility material. Final UI IA closure is waiting only on exact current-Production parity evidence.
+First Physical Gate is PASS / CLOSED for the accepted current print semantics: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support. SKIN Production UI IA v0A is also PASS / CLOSED after C SOL review: the five-phase author-facing UI is implemented and exact current Production BODY / Graph / Support / 3MF parity is proven by deterministic replay x2. No implementation task is currently active.
 
 ## Active implementation instruction
-- owner: C SOL -> C LUNA
-- task: `SKIN Production UI IA v0A Fix 2 · Current Production Parity Evidence`
-- purpose: verify the already-reviewed UI checkpoint against the locked current C Production BODY / Graph / Support / 3MF identities.
-- allowed scope: evidence generation using existing verification paths, evidence/docs update, branch-local CURRENT factual correction.
-- source-code changes: NONE expected; stop and report if a verification harness change would be required.
-- protected scope: all UI architecture already accepted; BODY / Permanent Graph / Local Relay / Graph Repair / Stage8 Support / supportSource / source-to-mm / Output Scale / FKEI / FIELD vNext / export semantics / state architecture / External STL Host / Usagi / research algorithms.
-- done when: deterministic current Production replay x2 plus exact BODY / Graph / Support / 3MF parity are recorded for `22ef22...`.
-- instruction source: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX2_PARITY_EVIDENCE.md`
+- NONE.
+- C SOL must define a new bounded task before further implementation starts.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -40,20 +38,21 @@ First Physical Gate is PASS / CLOSED for the accepted current print semantics: c
 - First Physical Gate for current print semantics PASS / CLOSED on 2026-09-06
 - First Physical Print author-edited Bambu 3MF local archive verification PASS
 - UI IA v0A structural implementation PASS at `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
+- UI IA v0A exact Production parity PASS at `c64cf091b1c66294ca885759e5a5a9069eb398af`
+- UI IA v0A PASS / CLOSED on 2026-09-06
 
 ## Current blocker
 - No Production geometry / support / export blocker.
-- UI IA final closure is blocked only by missing exact current-baseline parity evidence.
-- The evidence package committed with `22ef22...` (`docs/evidence/skin-production-v0-geometry-fidelity-fix1/`) proves deterministic historical geometry-fidelity replay but does not prove the locked current BODY fingerprint `c9ed...`, current Support exactness, or current 3MF exactness; it is not sufficient for this gate.
+- No UI IA blocker.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 - SKIN-support-alone full printability remains UNVERIFIED; accepted First Physical Gate included limited manual supplemental support.
 - First Physical Print 3MF Google Drive cloud visibility remains UNVERIFIED; local synced-drive copy/hash verification is PASS.
 
 ## Next gate
-1. C LUNA runs `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX2_PARITY_EVIDENCE.md` on `agent/skin-production-ui-ia-v0` from `22ef22...` without changing UI/Production source.
-2. C SOL reviews exact current BODY / Graph / Support / 3MF parity and deterministic replay x2.
-3. If exact, close UI IA v0A and define the next bounded C gate.
-4. Usagi + V6 parameter-locked C validation is no longer blocked by the Physical Gate, but remains unscheduled until the active UI IA evidence gate closes or C SOL explicitly reprioritizes.
+1. C SOL selects and scopes the next bounded C task before implementation starts.
+2. Usagi + V6 parameter-locked C validation is now eligible for scoping because the First Physical Gate and UI IA v0A are both closed; it is not yet active.
+3. P0-B authoring-resource retention may be checked only as needed; do not perform a broad historical restore for inventory completeness.
+4. Any follow-up on manually added Bambu supplemental support requires a separate bounded support task; do not mutate the locked support algorithm implicitly.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -66,27 +65,29 @@ First Physical Gate is PASS / CLOSED for the accepted current print semantics: c
 - legacy v088 compatibility semantics
 - External STL Host / triangle-mesh Host architecture
 - Co-evolution; Graph-conditioned default; D / F1 / F2 / F3 / C+D Hybrid
-- new C research
+- new C research unless separately scoped
 - bulk merge of historical feature branches
 
 ## Relevant artifacts
-- UI IA v0A Fix 1 checkpoint: `22ef22bcc327e048ed994c8fa8c3964ad20b324c` — UI STRUCTURAL PASS / final parity evidence pending
-- UI IA Fix 2 task: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX2_PARITY_EVIDENCE.md`
+- UI IA v0A implementation: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
+- UI IA v0A parity evidence: `c64cf091b1c66294ca885759e5a5a9069eb398af`
+- parity report: `docs/evidence/skin-production-ui-ia-v0-fix2/PARITY_REPORT.md`
+- deterministic comparison: `docs/evidence/skin-production-ui-ia-v0-fix2/replay-comparison.json`
 - First Physical Print author-edited Bambu 3MF local archive: `J:\My Drive\ChatGPT\SKIN\_C\Physical Evidence\2026-09-06_First_Physical_Print\3MF\SKIN-C-production-v0-support-fixed.3mf`
 - archived 3MF size: `2,066,585 bytes`
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
-- Known Support Graph: 577 nodes / 395 edges
 
 ## Evidence boundary
 ### Proven / supported
 - locked Production architecture and current Stage8 Support/export semantics remain authoritative.
 - First Physical Gate for the accepted print semantics is closed.
-- UI IA at `22ef22...` now implements actual five-phase Inspector presentation rather than Stage1–8 scroll navigation.
-- reviewed diff from `349e1a85...` to `22ef22...` contains UI/presentation/tests/docs changes and no separate Production algorithm module change.
+- UI IA implements actual five-phase Inspector presentation: SHAPE / COMPOSE / STRUCTURE / SUPPORT / EXPORT.
+- Permanent Structure and Removable Support are distinct in the primary IA; legacy v088 remains compatibility-only.
+- Fix 2 changed evidence/docs only; no UI or Production source changed from the reviewed UI checkpoint.
+- deterministic replay x2 matches across Host, Motifs/transforms, Permanent Graph, BODY, Removable Support, supportSource, 3MF Artwork BODY, 3MF Support, validation, and production 3MF SHA-256.
 
 ### Not yet proven
-- exact current-baseline BODY / Graph / Support / 3MF parity recorded for `22ef22...`
-- SKIN-support-alone full printability
+- SKIN-support-alone full printability without supplemental slicer support
 - generic External STL Host on current C architecture
-- Usagi validation
+- Usagi + V6 parameter-locked validation
 - P0-B authoring-resource retention where not yet checked
