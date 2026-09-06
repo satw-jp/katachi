@@ -16,6 +16,36 @@ A2 adds a second, distinct author criterion. Its form is not volumetric, but the
 
 Taken together, A and C now appear to share one deeper problem: the Permanent Structure itself should become a more genuinely three-dimensional internal web, and that same permanent web should increasingly carry print-time support/load-path responsibility instead of relying on a large independent temporary scaffold.
 
+## Shared definition — what "internal structure" means
+
+Across all lanes, **internal structure does not mean merely adding material inside the Host so that the object becomes printable or mechanically stronger.**
+
+A proposal counts as progress toward the desired internal structure only when it treats the interior as a coupled **Solid + Void** spatial system.
+
+The intended internal structure should simultaneously consider:
+
+- **Volumetric occupation** — permanent members enter and traverse multiple depths of the Host rather than remaining in a surface band.
+- **Void / porosity** — meaningful empty space remains; internal material must not simply fill the Host.
+- **Sight-line permeability** — changing viewpoints should retain openings and visual paths through the work.
+- **Void continuity** — air space should remain spatially connected where artistically useful rather than being fragmented into incidental trapped pockets by over-densification.
+- **Depth legibility** — foreground, middle-depth, and deeper structure should read as distinct spatial layers.
+- **Outer-shell / Host presence** — the originating shape should remain perceptible even though the permanent structure is not merely tracing its surface.
+- **Solid–Void coexistence** — neither solid structure nor empty space is secondary; both contribute to the form.
+- **Computational specificity** — retain fine, irregular, causally generated motif/connection behavior that does not read as an easily hand-built or generic GH lattice.
+- **Print causality** — where artistically compatible, permanent members should also create useful lower-to-higher fabrication/load paths.
+
+Therefore:
+
+> A structure that is highly printable but blocks sight-lines, collapses Void continuity, fills the center, or turns the work into a generic dense scaffold is **not** a successful solution to the internal-structure problem.
+
+Likewise, high porosity alone is not sufficient if the permanent network remains surface-biased and does not materially occupy the interior volume.
+
+Short shared formulation:
+
+> **Internal structure = a permanent volumetric web that makes Solid and Void together, preserves air and sight-lines, keeps the Host legible, and can also participate in printability without being reduced to a fabrication scaffold.**
+
+This definition is authoritative for future cross-lane discussion unless the author explicitly revises it.
+
 ## Desired direction
 
 The target is closer to a **three-dimensional spider-web inside the volume** than a network that mainly follows or reinforces the outer surface.
@@ -50,6 +80,8 @@ Add the following author questions:
 5. Does the result avoid both extremes: a superficial shell-network and a congested central mass?
 6. Does the form retain a level of fine irregularity / motif complexity that feels computationally specific rather than easily hand- or GH-constructed?
 7. Does the Permanent Structure itself reduce unsupported/floating conditions by providing useful print-causal paths, rather than merely adding independent temporary Support afterward?
+8. Does the Host / outer shape remain perceptible without the internal network merely tracing the shell?
+9. Does the resulting Void have spatial structure and continuity of its own, rather than being only leftover empty volume?
 
 ## Fabrication / support consequence
 
@@ -68,7 +100,7 @@ Consequences:
 - do not inherit `Outside-only / Outside -> Outside` removable-Support constraints as unquestioned rules for future Permanent Structure; permanent artwork material may intentionally remain inside the volume;
 - do not make "fully self-supporting with no final print gate" an immediate primary design goal;
 - a final slicer / physical print gate may remain if it preserves greater geometric freedom;
-- do not sacrifice volumetric occupation or computational specificity merely to eliminate all supplementary Support in one step;
+- do not sacrifice volumetric occupation, Void continuity, sight-line permeability, Host legibility, or computational specificity merely to eliminate all supplementary Support in one step;
 - authored removable Support should remain removable, non-destructive to important form, and reasonably reviewable before print;
 - supplementary slicer Support is acceptable as fabrication assistance when explicitly recorded, but it must not be mistaken for proof that authored SKIN Support alone is sufficient;
 - Bambu Studio supplementary Support generation currently has a very high time cost on A2, so total iteration time must consider slicer-support generation as well as AB/SKIN compute time;
@@ -97,13 +129,13 @@ Existing C physical PASS remains valid as fabrication evidence for the tested sh
 
 C support-removal evidence is positive: authored removable Support was easy to remove. Future structure work therefore does not need to contort itself toward zero-support printing if a bounded print gate remains acceptable.
 
-The deeper C question is now the same as AB's: can Permanent Structure move inward, gain redundancy and print-causal connectivity, and thereby reduce the amount of separate temporary support without becoming a dense generic engineering lattice?
+The deeper C question is now the same as AB's: can Permanent Structure move inward, gain redundancy and print-causal connectivity, and thereby reduce the amount of separate temporary support without becoming a dense generic engineering lattice or destroying Void / sight-line quality?
 
 ## Viewer consequence
 
 Viewer v0 is already technically closed and waiting on Author Review.
 
-Use Graph / Surface / Void to ask whether the current C artifact reveals the same surface-bias and whether Void can make interior depth / retained air legible.
+Use Graph / Surface / Void to ask whether the current C artifact reveals the same surface-bias and whether Void can make interior depth / retained air / sight-line continuity legible.
 
 Do not add new Viewer metrics before the Author Review.
 
@@ -136,5 +168,7 @@ Relevant lanes:
 - Team C SOL
 - Research SOL / Astra
 - FKEI Viewer SOL
+- HANA SOL when authoring / Host-derived structure semantics are discussed
+- ART SOL when visual studies interpret Solid / Void / permeability principles
 
 This file is an author observation / cross-lane criterion, not an implementation task. Each Team SOL decides whether and when it should produce a bounded implementation or research instruction.
