@@ -8,7 +8,8 @@
 1. [STATEMENT.md](STATEMENT.md) — 原点。方針に迷ったらここへ
 2. [RESEARCH.md](RESEARCH.md) — 骨子。用語（二つの余白・場・三つの手・三層）はすべてここで定義済み
 3. この文書
-4. 作業対象のタスク指示書（`docs/tasks/`）と、対象 Study の README + manifest
+4. [docs/TEAM_REPORTING_RULES.md](docs/TEAM_REPORTING_RULES.md) — active implementation lane の current-state / reporting SSOT 運用
+5. 作業対象のタスク指示書（`docs/tasks/`）と、対象 Study の README + manifest
 
 ### Hikari の最新版ゲート
 
