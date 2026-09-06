@@ -1,0 +1,13 @@
+{
+  "id": "fkei-analysis-viewer",
+  "title": "FKEI分析ビューア / FKEI Analysis Viewer (Geometry Foundations / Research Instrument)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-09-06",
+  "updatedAt": "2026-09-06",
+  "params": ["representation", "voidGridResolution"],
+  "related": ["skin"],
+  "revisits": [
+    "2026-09-06 Browser Gate: C0 loaded with 253/272 Permanent Graph, 143448 Surface triangles, and 1-component 64³ Void observation; camera and read-only identity remained unchanged across all four representations."
+  ]
+}

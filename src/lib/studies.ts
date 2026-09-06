@@ -182,4 +182,15 @@ export const STUDY_CATALOG: readonly StudyCatalogEntry[] = [
     purposeTags: ["内部", "造形制約", "比較"],
     status: "active",
   },
+  {
+    id: "fkei-analysis-viewer",
+    href: "fkei-analysis-viewer.html",
+    titleJa: "FKEI分析ビューア",
+    titleEn: "FKEI Analysis Viewer",
+    principle:
+      "同じFKEIをGeometry・Graph・Surface・Voidの4表現で観察し、表現を変えることで新しい理解が生まれるかを見る。",
+    researchOrder: 14,
+    purposeTags: ["比較", "幾何", "Void"],
+    status: "active",
+  },
 ];
