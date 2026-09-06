@@ -16,6 +16,15 @@ Last verified: 2026-09-06
 ## Current phase
 C Production geometry / support / 3MF semantics remain locked. FIELD vNext retention is restored and checkpointed. P0-A capability retention review is now classified: External STL Host + persistence are missing from current C but require a separate triangle-mesh Host architecture and are HOLD, Output Scale semantics are already retained by the current C mm contract, and legacy v088 export is an explicit compatibility-only path rather than current Production export authority. First Physical Print evidence remains pending and has priority when available.
 
+## Active implementation instruction
+- owner: C SOL -> C LUNA / bounded implementation worker
+- task: `SKIN Production UI IA v0`
+- purpose: reorganize the verified current Production capability set into an author-facing workflow now that the P0-A capability baseline is known.
+- allowed scope: information architecture, layout, navigation, labels, panel grouping/visibility, and reuse of existing callbacks/controls on the verified current capability baseline.
+- protected scope: Production generation algorithms, Permanent BODY, Stage8 Removable Support semantics, source-to-mm / Output Scale contract, FKEI semantics, FIELD vNext display-only semantics, and legacy v088 compatibility behavior must not change. Do not invent External STL Host controls while that capability remains HOLD.
+- done when: C SOL can verify the UI reorganization without Production semantic/fingerprint regressions; implementation evidence returns to C SOL before acceptance.
+- instruction source: this CURRENT plus `docs/TEAM_REPORTING_RULES.md`; if C SOL defines a more detailed bounded UI task, link that task spec here rather than hiding the scope in chat.
+
 ## PASS / CLOSED
 - C Research closed enough for v0
 - Production architecture PASS / LOCKED
