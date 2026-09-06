@@ -49,12 +49,41 @@ export interface Bambu3mfStats {
   bodyRemovedDegenerateTriangles: number;
   placementTranslationMm: { x: number; y: number; z: number };
   uncompressedBytes: number;
+  modelUncompressedBytes: number;
+  compressedModelBytes: number;
+  bodyIndexedVertexBytes: number;
+  bodyIndexedIndexBytes: number;
+  supportIndexedBytes: number;
+  largestSerializationChunkBytes: number;
+  peakJsHeapBytes: number | null;
   archiveBytes: number;
 }
 
 export interface Bambu3mfResult {
   archive: ArrayBuffer;
   stats: Bambu3mfStats;
+}
+
+export type Bambu3mfProgressStage =
+  | "Indexing BODY"
+  | "Indexing Support"
+  | "Writing vertices"
+  | "Writing triangles"
+  | "Compressing model XML"
+  | "Assembling ZIP";
+
+export interface Bambu3mfProgress {
+  readonly stage: Bambu3mfProgressStage;
+  readonly completed?: number;
+  readonly total?: number;
+  readonly uncompressedBytes?: number;
+  readonly compressedBytes?: number;
+}
+
+export interface Bambu3mfExecutionOptions {
+  /** Execution-only serialization bound. It is not part of package identity. */
+  readonly serializationChunkBytes?: number;
+  readonly onProgress?: (progress: Bambu3mfProgress) => void;
 }
 
 export const DEFAULT_SUPPORT_ENFORCER_OPTIONS: SupportEnforcerOptions = {
@@ -64,6 +93,8 @@ export const DEFAULT_SUPPORT_ENFORCER_OPTIONS: SupportEnforcerOptions = {
 };
 
 const textEncoder = new TextEncoder();
+export const DEFAULT_3MF_SERIALIZATION_CHUNK_BYTES = 1024 * 1024;
+export const ZIP32_MAX = 0xffffffff;
 const IDENTITY_3MF = "1 0 0 0 1 0 0 0 1 0 0 0";
 const IDENTITY_4X4 = "1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1";
 
@@ -230,19 +261,37 @@ export function buildSupportEnforcerTriangleSoup(
   return new Float32Array(triangles);
 }
 
-function meshXml(id: number, role: BambuVolumeRole, mesh: IndexedTriangleMesh): string {
+function* meshXmlParts(
+  id: number,
+  role: BambuVolumeRole,
+  mesh: IndexedTriangleMesh,
+  onProgress?: (progress: Bambu3mfProgress) => void,
+): Generator<string> {
   const type = role === "body" || role === "printable_support" ? "model" : "other";
   const uuid = `0001000${id - 1}-b206-40ff-9872-83e8017abed1`;
-  const output: string[] = [`  <object id="${id}" p:UUID="${uuid}" type="${type}">\n   <mesh>\n    <vertices>\n`];
+  yield `  <object id="${id}" p:UUID="${uuid}" type="${type}">\n   <mesh>\n    <vertices>\n`;
+  const vertexTotal = mesh.vertices.length / 3;
   for (let offset = 0; offset < mesh.vertices.length; offset += 3) {
-    output.push(`     <vertex x="${xmlNumber(mesh.vertices[offset])}" y="${xmlNumber(mesh.vertices[offset + 1])}" z="${xmlNumber(mesh.vertices[offset + 2])}"/>\n`);
+    yield `     <vertex x="${xmlNumber(mesh.vertices[offset])}" y="${xmlNumber(mesh.vertices[offset + 1])}" z="${xmlNumber(mesh.vertices[offset + 2])}"/>\n`;
+    const completed = offset / 3 + 1;
+    if (onProgress && (completed % 65536 === 0 || completed === vertexTotal)) {
+      onProgress({ stage: "Writing vertices", completed, total: vertexTotal });
+    }
   }
-  output.push("    </vertices>\n    <triangles>\n");
+  yield "    </vertices>\n    <triangles>\n";
+  const triangleTotal = mesh.indices.length / 3;
   for (let offset = 0; offset < mesh.indices.length; offset += 3) {
-    output.push(`     <triangle v1="${mesh.indices[offset]}" v2="${mesh.indices[offset + 1]}" v3="${mesh.indices[offset + 2]}"/>\n`);
+    yield `     <triangle v1="${mesh.indices[offset]}" v2="${mesh.indices[offset + 1]}" v3="${mesh.indices[offset + 2]}"/>\n`;
+    const completed = offset / 3 + 1;
+    if (onProgress && (completed % 65536 === 0 || completed === triangleTotal)) {
+      onProgress({ stage: "Writing triangles", completed, total: triangleTotal });
+    }
   }
-  output.push("    </triangles>\n   </mesh>\n  </object>\n");
-  return output.join("");
+  yield "    </triangles>\n   </mesh>\n  </object>\n";
+}
+
+function meshXml(id: number, role: BambuVolumeRole, mesh: IndexedTriangleMesh): string {
+  return Array.from(meshXmlParts(id, role, mesh)).join("");
 }
 
 function subtype(role: BambuVolumeRole): string {
@@ -262,10 +311,16 @@ function boundsOf(vertices: Float32Array): { minX: number; minY: number; minZ: n
   return { minX, minY, minZ, maxX, maxY, maxZ };
 }
 
-export function buildBambu3mfPackageEntries(
+function prepareBambu3mfPackageEntries(
   volumes: TriangleSoupVolume[],
   options: Bambu3mfOptions,
-): { entries: Array<{ name: string; data: Uint8Array }>; stats: Omit<Bambu3mfStats, "archiveBytes"> } {
+  includeLargeModel: boolean,
+  execution: Bambu3mfExecutionOptions = {},
+): {
+  entries: Array<{ name: string; data: Uint8Array }>;
+  indexed: Array<{ volume: TriangleSoupVolume; mesh: IndexedTriangleMesh }>;
+  stats: Omit<Bambu3mfStats, "archiveBytes">;
+} {
   if (options.supportType !== "normal(manual)") {
     throw new Error("Tree supportはporous interiorへの経路を制限できないため書き出せません。normal(manual)を使用してください");
   }
@@ -273,7 +328,13 @@ export function buildBambu3mfPackageEntries(
   if (bodyIndex < 0) throw new Error("BODY volumeがありません");
   if (volumes[bodyIndex].positions.length === 0) throw new Error("BODY meshが空です");
   const ordered = [volumes[bodyIndex], ...volumes.filter((_, index) => index !== bodyIndex && _.positions.length > 0)];
-  const sourceIndexed = ordered.map((volume) => ({ volume, mesh: indexTriangleSoup(volume.positions) }));
+  const sourceIndexed = ordered.map((volume) => {
+    const stage: Bambu3mfProgressStage = volume.role === "body" ? "Indexing BODY" : "Indexing Support";
+    execution.onProgress?.({ stage, completed: 0, total: volume.positions.length / 9 });
+    const mesh = indexTriangleSoup(volume.positions);
+    execution.onProgress?.({ stage, completed: volume.positions.length / 9, total: volume.positions.length / 9 });
+    return { volume, mesh };
+  });
   let indexed: Array<{ volume: TriangleSoupVolume; mesh: IndexedTriangleMesh }> = sourceIndexed;
   if (options.mergePrintableSupportIntoBody && sourceIndexed.some((item) => item.volume.role === "printable_support")) {
     const mergedSources = sourceIndexed.filter((item) => item.volume.role === "body" || item.volume.role === "printable_support");
@@ -314,13 +375,15 @@ export function buildBambu3mfPackageEntries(
       ? "Katachi SKIN BODY with Bambu support enforcer; no printable support part"
       : "Katachi SKIN BODY-only; no printable support";
 
-  const subModel: string[] = [
+  const subModelHeader = [
     '<?xml version="1.0" encoding="UTF-8"?>\n',
     '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:BambuStudio="http://schemas.bambulab.com/package/2021" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">\n',
     ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n <resources>\n',
   ];
-  indexed.forEach(({ volume, mesh }, index) => subModel.push(meshXml(index + 1, volume.role, mesh)));
-  subModel.push(" </resources>\n <build/>\n</model>\n");
+  const subModelFooter = " </resources>\n <build/>\n</model>\n";
+  const subModel = includeLargeModel
+    ? [...subModelHeader, ...indexed.map(({ volume, mesh }, index) => meshXml(index + 1, volume.role, mesh)), subModelFooter].join("")
+    : null;
 
   const components = indexed.map((_, index) =>
     `    <component p:path="/3D/Objects/object_1.model" objectid="${index + 1}" p:UUID="0001000${index}-b206-40ff-9872-83e8017abed1" transform="${IDENTITY_3MF}"/>\n`,
@@ -376,13 +439,19 @@ export function buildBambu3mfPackageEntries(
     { name: "_rels/.rels", text: rootRelationships },
     { name: "3D/3dmodel.model", text: rootModel },
     { name: "3D/_rels/3dmodel.model.rels", text: modelRelationships },
-    { name: "3D/Objects/object_1.model", text: subModel.join("") },
+    ...(subModel === null ? [] : [{ name: "3D/Objects/object_1.model", text: subModel }]),
     { name: "Metadata/model_settings.config", text: modelSettings },
   ];
   const entries = rawEntries.map((entry) => ({ name: entry.name, data: textEncoder.encode(entry.text) }));
   const uncompressedBytes = entries.reduce((sum, entry) => sum + entry.data.byteLength, 0);
+  const modelUncompressedBytes = entries.find((entry) => entry.name === "3D/Objects/object_1.model")?.data.byteLength ?? 0;
+  const bodyIndexed = sourceIndexed.find((item) => item.volume.role === "body")!;
+  const supportIndexedBytes = sourceIndexed
+    .filter((item) => item.volume.role === "printable_support")
+    .reduce((sum, item) => sum + item.mesh.vertices.byteLength + item.mesh.indices.byteLength, 0);
   return {
     entries,
+    indexed,
     stats: {
       bodyFaces: sourceIndexed.filter((item) => item.volume.role === "body").reduce((sum, item) => sum + item.mesh.indices.length / 3, 0),
       bodyVertices: indexed.filter((item) => item.volume.role === "body").reduce((sum, item) => sum + item.mesh.vertices.length / 3, 0),
@@ -393,8 +462,23 @@ export function buildBambu3mfPackageEntries(
       bodyRemovedDegenerateTriangles: sourceIndexed.find((item) => item.volume.role === "body")?.mesh.removedDegenerateTriangles ?? 0,
       placementTranslationMm: { x: Math.fround(tx), y: Math.fround(ty), z: Math.fround(tz) },
       uncompressedBytes,
+      modelUncompressedBytes,
+      compressedModelBytes: 0,
+      bodyIndexedVertexBytes: bodyIndexed.mesh.vertices.byteLength,
+      bodyIndexedIndexBytes: bodyIndexed.mesh.indices.byteLength,
+      supportIndexedBytes,
+      largestSerializationChunkBytes: modelUncompressedBytes,
+      peakJsHeapBytes: null,
     },
   };
+}
+
+export function buildBambu3mfPackageEntries(
+  volumes: TriangleSoupVolume[],
+  options: Bambu3mfOptions,
+): { entries: Array<{ name: string; data: Uint8Array }>; stats: Omit<Bambu3mfStats, "archiveBytes"> } {
+  const prepared = prepareBambu3mfPackageEntries(volumes, options, true);
+  return { entries: prepared.entries, stats: prepared.stats };
 }
 
 const CRC_TABLE = (() => {
@@ -407,10 +491,28 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
-function crc32(bytes: Uint8Array): number {
+export function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff;
   for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
+}
+
+function updateCrc32(state: number, bytes: Uint8Array): number {
+  let crc = state;
+  for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return crc >>> 0;
+}
+
+export function crc32Chunks(chunks: Iterable<Uint8Array>): number {
+  let state = 0xffffffff;
+  for (const chunk of chunks) state = updateCrc32(state, chunk);
+  return (state ^ 0xffffffff) >>> 0;
+}
+
+export function assertClassicZip32Value(value: number, label: string): void {
+  if (!Number.isSafeInteger(value) || value < 0 || value > ZIP32_MAX) {
+    throw new Error(`${label} exceeds classic ZIP32 limit; ZIP64 is required`);
+  }
 }
 
 function writeUint16(target: Uint8Array, offset: number, value: number): void {
@@ -433,34 +535,184 @@ async function deflateRaw(bytes: Uint8Array): Promise<Uint8Array | null> {
   }
 }
 
-async function createZip(entries: Array<{ name: string; data: Uint8Array }>): Promise<ArrayBuffer> {
-  const encoded = await Promise.all(entries.map(async (entry) => {
-    const compressed = await deflateRaw(entry.data);
-    return {
-      ...entry,
-      nameBytes: textEncoder.encode(entry.name),
-      method: compressed ? 8 : 0,
-      payload: compressed ?? entry.data,
-      crc: crc32(entry.data),
-    };
-  }));
+type IndexedModelPart = { volume: TriangleSoupVolume; mesh: IndexedTriangleMesh };
+
+function* objectModelXmlParts(
+  indexed: readonly IndexedModelPart[],
+  onProgress?: (progress: Bambu3mfProgress) => void,
+): Generator<string> {
+  yield '<?xml version="1.0" encoding="UTF-8"?>\n';
+  yield '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:BambuStudio="http://schemas.bambulab.com/package/2021" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">\n';
+  yield ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n <resources>\n';
+  for (let index = 0; index < indexed.length; index++) {
+    const { volume, mesh } = indexed[index];
+    yield* meshXmlParts(index + 1, volume.role, mesh, onProgress);
+  }
+  yield " </resources>\n <build/>\n</model>\n";
+}
+
+/** Bounded UTF-8 encoding used by the large object entry and its parity tests. */
+export function* boundedUtf8Chunks(parts: Iterable<string>, requestedChunkBytes = DEFAULT_3MF_SERIALIZATION_CHUNK_BYTES): Generator<Uint8Array> {
+  const chunkBytes = Math.max(64, Math.min(8 * 1024 * 1024, Math.floor(requestedChunkBytes)));
+  let buffer = "";
+  for (const part of parts) {
+    // object_1.model is deliberately ASCII-only, so UTF-16 code-unit and UTF-8
+    // byte boundaries are identical and can be split without changing bytes.
+    for (let offset = 0; offset < part.length;) {
+      const available = chunkBytes - buffer.length;
+      const take = Math.min(available, part.length - offset);
+      buffer += part.slice(offset, offset + take);
+      offset += take;
+      if (buffer.length === chunkBytes) {
+        yield textEncoder.encode(buffer);
+        buffer = "";
+      }
+    }
+  }
+  if (buffer.length > 0) yield textEncoder.encode(buffer);
+}
+
+class BoundedByteCollector {
+  readonly chunks: Uint8Array[] = [];
+  private buffer: Uint8Array;
+  private used = 0;
+  totalBytes = 0;
+
+  constructor(private readonly chunkBytes: number) {
+    this.buffer = new Uint8Array(chunkBytes);
+  }
+
+  append(source: Uint8Array): void {
+    let offset = 0;
+    while (offset < source.byteLength) {
+      const take = Math.min(this.buffer.byteLength - this.used, source.byteLength - offset);
+      this.buffer.set(source.subarray(offset, offset + take), this.used);
+      this.used += take;
+      offset += take;
+      this.totalBytes += take;
+      assertClassicZip32Value(this.totalBytes, "compressed entry size");
+      if (this.used === this.buffer.byteLength) this.flush(false);
+    }
+  }
+
+  finish(): readonly Uint8Array[] {
+    this.flush(true);
+    return this.chunks;
+  }
+
+  private flush(trim: boolean): void {
+    if (this.used === 0) return;
+    this.chunks.push(trim && this.used < this.buffer.byteLength ? this.buffer.slice(0, this.used) : this.buffer);
+    this.buffer = new Uint8Array(this.chunkBytes);
+    this.used = 0;
+  }
+}
+
+type EncodedZipEntry = {
+  name: string;
+  nameBytes: Uint8Array;
+  method: number;
+  payloadChunks: readonly Uint8Array[];
+  compressedSize: number;
+  uncompressedSize: number;
+  crc: number;
+};
+
+async function compressModelXml(
+  indexed: readonly IndexedModelPart[],
+  execution: Bambu3mfExecutionOptions,
+  sampleHeap: () => void,
+): Promise<{ entry: EncodedZipEntry; largestSerializationChunkBytes: number }> {
+  if (typeof CompressionStream === "undefined") throw new Error("Streaming deflate is unavailable; refusing unbounded 3MF fallback");
+  const requested = execution.serializationChunkBytes ?? DEFAULT_3MF_SERIALIZATION_CHUNK_BYTES;
+  const serializationChunkBytes = Math.max(64, Math.min(8 * 1024 * 1024, Math.floor(requested)));
+  const compressor = new CompressionStream("deflate-raw" as never);
+  const collector = new BoundedByteCollector(serializationChunkBytes);
+  const reader = compressor.readable.getReader();
+  const reading = (async () => {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      collector.append(result.value);
+      sampleHeap();
+      execution.onProgress?.({ stage: "Compressing model XML", compressedBytes: collector.totalBytes });
+    }
+  })();
+  const writer = compressor.writable.getWriter();
+  let crcState = 0xffffffff;
+  let uncompressedSize = 0;
+  let largestSerializationChunkBytes = 0;
+  for (const chunk of boundedUtf8Chunks(objectModelXmlParts(indexed, execution.onProgress), serializationChunkBytes)) {
+    largestSerializationChunkBytes = Math.max(largestSerializationChunkBytes, chunk.byteLength);
+    uncompressedSize += chunk.byteLength;
+    assertClassicZip32Value(uncompressedSize, "uncompressed model entry size");
+    crcState = updateCrc32(crcState, chunk);
+    await writer.write(chunk as Uint8Array<ArrayBuffer>);
+    sampleHeap();
+    execution.onProgress?.({
+      stage: "Compressing model XML",
+      uncompressedBytes: uncompressedSize,
+      compressedBytes: collector.totalBytes,
+    });
+  }
+  await writer.close();
+  await reading;
+  const payloadChunks = collector.finish();
+  return {
+    entry: {
+      name: "3D/Objects/object_1.model",
+      nameBytes: textEncoder.encode("3D/Objects/object_1.model"),
+      method: 8,
+      payloadChunks,
+      compressedSize: collector.totalBytes,
+      uncompressedSize,
+      crc: (crcState ^ 0xffffffff) >>> 0,
+    },
+    largestSerializationChunkBytes,
+  };
+}
+
+async function encodeSmallZipEntry(entry: { name: string; data: Uint8Array }): Promise<EncodedZipEntry> {
+  assertClassicZip32Value(entry.data.byteLength, `${entry.name} uncompressed size`);
+  const compressed = await deflateRaw(entry.data);
+  const payload = compressed ?? entry.data;
+  assertClassicZip32Value(payload.byteLength, `${entry.name} compressed size`);
+  return {
+    name: entry.name,
+    nameBytes: textEncoder.encode(entry.name),
+    method: compressed ? 8 : 0,
+    payloadChunks: [payload],
+    compressedSize: payload.byteLength,
+    uncompressedSize: entry.data.byteLength,
+    crc: crc32(entry.data),
+  };
+}
+
+function assembleZip(entries: readonly EncodedZipEntry[]): ArrayBuffer {
+  if (entries.length >= 0xffff) throw new Error("ZIP entry count exceeds classic ZIP32 limit; ZIP64 is required");
   let localBytes = 0;
-  for (const entry of encoded) localBytes += 30 + entry.nameBytes.length + entry.payload.length;
+  for (const entry of entries) {
+    assertClassicZip32Value(localBytes, `${entry.name} local header offset`);
+    localBytes += 30 + entry.nameBytes.length + entry.compressedSize;
+    assertClassicZip32Value(localBytes, "ZIP local area size");
+  }
   let centralBytes = 0;
-  for (const entry of encoded) centralBytes += 46 + entry.nameBytes.length;
+  for (const entry of entries) centralBytes += 46 + entry.nameBytes.length;
+  assertClassicZip32Value(centralBytes, "ZIP central directory size");
+  assertClassicZip32Value(localBytes + centralBytes + 22, "ZIP archive size");
   const output = new Uint8Array(localBytes + centralBytes + 22);
   let cursor = 0;
-  const central: Array<{ entry: typeof encoded[number]; offset: number }> = [];
-  for (const entry of encoded) {
+  const central: Array<{ entry: EncodedZipEntry; offset: number }> = [];
+  for (const entry of entries) {
     const offset = cursor;
     writeUint32(output, cursor, 0x04034b50); writeUint16(output, cursor + 4, 20);
     writeUint16(output, cursor + 6, 0x0800); writeUint16(output, cursor + 8, entry.method);
     writeUint16(output, cursor + 10, 0); writeUint16(output, cursor + 12, 0);
-    writeUint32(output, cursor + 14, entry.crc); writeUint32(output, cursor + 18, entry.payload.length);
-    writeUint32(output, cursor + 22, entry.data.length); writeUint16(output, cursor + 26, entry.nameBytes.length);
+    writeUint32(output, cursor + 14, entry.crc); writeUint32(output, cursor + 18, entry.compressedSize);
+    writeUint32(output, cursor + 22, entry.uncompressedSize); writeUint16(output, cursor + 26, entry.nameBytes.length);
     writeUint16(output, cursor + 28, 0); cursor += 30;
     output.set(entry.nameBytes, cursor); cursor += entry.nameBytes.length;
-    output.set(entry.payload, cursor); cursor += entry.payload.length;
+    for (const chunk of entry.payloadChunks) { output.set(chunk, cursor); cursor += chunk.byteLength; }
     central.push({ entry, offset });
   }
   const centralOffset = cursor;
@@ -469,21 +721,101 @@ async function createZip(entries: Array<{ name: string; data: Uint8Array }>): Pr
     writeUint32(output, cursor, 0x02014b50); writeUint16(output, cursor + 4, 20); writeUint16(output, cursor + 6, 20);
     writeUint16(output, cursor + 8, 0x0800); writeUint16(output, cursor + 10, entry.method);
     writeUint16(output, cursor + 12, 0); writeUint16(output, cursor + 14, 0);
-    writeUint32(output, cursor + 16, entry.crc); writeUint32(output, cursor + 20, entry.payload.length);
-    writeUint32(output, cursor + 24, entry.data.length); writeUint16(output, cursor + 28, entry.nameBytes.length);
+    writeUint32(output, cursor + 16, entry.crc); writeUint32(output, cursor + 20, entry.compressedSize);
+    writeUint32(output, cursor + 24, entry.uncompressedSize); writeUint16(output, cursor + 28, entry.nameBytes.length);
     writeUint16(output, cursor + 30, 0); writeUint16(output, cursor + 32, 0); writeUint16(output, cursor + 34, 0);
     writeUint16(output, cursor + 36, 0); writeUint32(output, cursor + 38, 0); writeUint32(output, cursor + 42, item.offset);
     cursor += 46; output.set(entry.nameBytes, cursor); cursor += entry.nameBytes.length;
   }
   writeUint32(output, cursor, 0x06054b50); writeUint16(output, cursor + 4, 0); writeUint16(output, cursor + 6, 0);
-  writeUint16(output, cursor + 8, encoded.length); writeUint16(output, cursor + 10, encoded.length);
+  writeUint16(output, cursor + 8, entries.length); writeUint16(output, cursor + 10, entries.length);
   writeUint32(output, cursor + 12, cursor - centralOffset); writeUint32(output, cursor + 16, centralOffset);
   writeUint16(output, cursor + 20, 0);
   return output.buffer;
 }
 
-export async function buildBambu3mf(volumes: TriangleSoupVolume[], options: Bambu3mfOptions): Promise<Bambu3mfResult> {
-  const prepared = buildBambu3mfPackageEntries(volumes, options);
-  const archive = await createZip(prepared.entries);
-  return { archive, stats: { ...prepared.stats, archiveBytes: archive.byteLength } };
+/** Synthetic-gate hook: exercises the exact production XML chunking,
+ * streaming compression, CRC, ZIP32 guards, and ZIP assembly without a
+ * triangle-soup allocation or package metadata duplication. */
+export async function buildIndexedObjectModelStreamingFixture(
+  parts: readonly { role: BambuVolumeRole; mesh: IndexedTriangleMesh }[],
+  execution: Bambu3mfExecutionOptions = {},
+): Promise<{
+  archive: ArrayBuffer;
+  xmlBytes: number;
+  compressedBytes: number;
+  largestSerializationChunkBytes: number;
+  crc: number;
+}> {
+  const indexed: IndexedModelPart[] = parts.map((part, index) => ({
+    volume: { name: `FIXTURE_${index + 1}`, role: part.role, positions: new Float32Array(0) },
+    mesh: part.mesh,
+  }));
+  const model = await compressModelXml(indexed, execution, () => undefined);
+  const archive = assembleZip([model.entry]);
+  return {
+    archive,
+    xmlBytes: model.entry.uncompressedSize,
+    compressedBytes: model.entry.compressedSize,
+    largestSerializationChunkBytes: model.largestSerializationChunkBytes,
+    crc: model.entry.crc,
+  };
+}
+
+function readHeapBytes(): number | null {
+  const memory = (typeof performance === "undefined" ? undefined : (performance as Performance & { memory?: { usedJSHeapSize?: number } }).memory);
+  return Number.isFinite(memory?.usedJSHeapSize) ? memory!.usedJSHeapSize! : null;
+}
+
+export async function buildBambu3mf(
+  volumes: TriangleSoupVolume[],
+  options: Bambu3mfOptions,
+  execution: Bambu3mfExecutionOptions = {},
+): Promise<Bambu3mfResult> {
+  let peakJsHeapBytes = readHeapBytes();
+  const sampleHeap = (): void => {
+    const value = readHeapBytes();
+    if (value !== null) peakJsHeapBytes = peakJsHeapBytes === null ? value : Math.max(peakJsHeapBytes, value);
+  };
+  const prepared = prepareBambu3mfPackageEntries(volumes, options, false, execution);
+  sampleHeap();
+  const model = await compressModelXml(prepared.indexed, execution, sampleHeap);
+  const smallByName = new Map(prepared.entries.map((entry) => [entry.name, entry]));
+  const orderedNames = [
+    "[Content_Types].xml",
+    "_rels/.rels",
+    "3D/3dmodel.model",
+    "3D/_rels/3dmodel.model.rels",
+    "3D/Objects/object_1.model",
+    "Metadata/model_settings.config",
+  ];
+  const encoded: EncodedZipEntry[] = [];
+  for (const name of orderedNames) {
+    if (name === model.entry.name) encoded.push(model.entry);
+    else {
+      const entry = smallByName.get(name);
+      if (!entry) throw new Error(`Missing 3MF package entry ${name}`);
+      encoded.push(await encodeSmallZipEntry(entry));
+    }
+  }
+  execution.onProgress?.({
+    stage: "Assembling ZIP",
+    uncompressedBytes: model.entry.uncompressedSize,
+    compressedBytes: model.entry.compressedSize,
+  });
+  const archive = assembleZip(encoded);
+  sampleHeap();
+  const uncompressedBytes = encoded.reduce((sum, entry) => sum + entry.uncompressedSize, 0);
+  return {
+    archive,
+    stats: {
+      ...prepared.stats,
+      uncompressedBytes,
+      modelUncompressedBytes: model.entry.uncompressedSize,
+      compressedModelBytes: model.entry.compressedSize,
+      largestSerializationChunkBytes: model.largestSerializationChunkBytes,
+      peakJsHeapBytes,
+      archiveBytes: archive.byteLength,
+    },
+  };
 }

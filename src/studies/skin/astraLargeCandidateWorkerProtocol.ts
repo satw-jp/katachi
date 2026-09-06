@@ -81,6 +81,12 @@ export type LargeCandidateProgressStage =
   | "Outside classification"
   | "Sparse Support"
   | "Support mesh"
+  | "Indexing BODY"
+  | "Indexing Support"
+  | "Writing vertices"
+  | "Writing triangles"
+  | "Compressing model XML"
+  | "Assembling ZIP"
   | "3MF"
   | "Validation"
   | "Release";
@@ -140,6 +146,16 @@ export interface LargeCandidateCompactSummary {
     readonly actualPackageTranslationZ: number;
     readonly packagePlacementParity: boolean;
     readonly bodyRemovedDegenerateTriangles: number;
+    readonly bodyVertices: number;
+    readonly bodyFaces: number;
+    readonly modelUncompressedBytes: number;
+    readonly compressedModelBytes: number;
+    readonly largestSerializationChunkBytes: number;
+    readonly bodyIndexedVertexBytes: number;
+    readonly bodyIndexedIndexBytes: number;
+    readonly supportIndexedBytes: number;
+    readonly peakJsHeapBytes: number | null;
+    readonly exportElapsedMs: number;
   };
 }
 

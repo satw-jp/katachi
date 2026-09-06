@@ -346,6 +346,7 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
 async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT_3MF" }>, started: number): Promise<void> {
   const candidate = activeCandidate;
   if (!candidate || !candidate.support || candidate.candidateId !== command.candidateId || candidate.sourceSha256 !== command.sourceSha256 || candidate.geometryFingerprint !== command.geometryFingerprint || candidate.supportFingerprint !== command.supportFingerprint) throw new Error("Export currentness mismatch");
+  postProgress(command, "Support mesh", started, "Building unchanged printable support mesh");
   const supportMesh = candidate.support.graph.edges.length > 0 ? buildPrintSupportMesh(candidate.support.graph, 1, { radialSegments: 12 }) : null;
   const supportPositions = supportMesh ? Float32Array.from(supportMesh.triangles.flatMap((triangle) => [triangle.a.x, triangle.a.y, triangle.a.z, triangle.b.x, triangle.b.y, triangle.b.z, triangle.c.x, triangle.c.y, triangle.c.z])) : new Float32Array(0);
   const bodyBounds = triangleSoupBounds(candidate.positions);
@@ -354,10 +355,22 @@ async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT
   if (supportPositions.length === 0 && Math.abs(bodyBounds.min.z - candidate.placement.sourcePlateZMm) > placementTolerance) {
     throw new Error("common deferred plate placement cannot be proven for body-only candidate");
   }
+  const exportStarted = now();
   const result = await buildBambu3mf([
     { name: `ASTRA_${candidate.candidateId}_ARTWORK`, role: "body", positions: candidate.positions },
     { name: `SKIN_${candidate.candidateId}_PRINT_SUPPORT`, role: "printable_support", positions: supportPositions },
-  ], { title: `Astra ${candidate.candidateId} candidate physical comparison`, supportType: "normal(manual)", mergePrintableSupportIntoBody: false });
+  ], { title: `Astra ${candidate.candidateId} candidate physical comparison`, supportType: "normal(manual)", mergePrintableSupportIntoBody: false }, {
+    onProgress: (progress) => postProgress(
+      command,
+      progress.stage,
+      started,
+      `uncompressed ${(progress.uncompressedBytes ?? 0).toLocaleString()} · compressed ${(progress.compressedBytes ?? 0).toLocaleString()} bytes`,
+      progress.completed,
+      progress.total,
+    ),
+  });
+  const exportElapsedMs = now() - exportStarted;
+  postProgress(command, "Validation", started, "Validating streamed 3MF package");
   const validation = await validateSkin3mf(result.archive); candidate.timings["3MF"] = now() - started;
   if (!validation.valid) throw new Error(validation.errors.join("; ") || "3MF validator failed");
   const actualPackageTranslationZ = result.stats.placementTranslationMm.z;
@@ -365,11 +378,11 @@ async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT
   if (!packagePlacementParity) throw new Error("3MF package placement translation does not match deferred common placement");
   if (result.stats.bodyRemovedDegenerateTriangles !== 0) throw new Error("3MF BODY indexing removed an unexpected degenerate triangle");
   const exportFingerprint = await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, support: candidate.supportFingerprint, package: "candidate-body-plus-separate-print-support-v0" }));
-  const summary = compactSummary(candidate, { overhangFaces: candidate.detection?.faceCount ?? 0, overhangRegions: candidate.detection?.regionCount ?? 0, outside: candidate.outsideFaces?.length ?? 0, insideExcluded: 0, unresolved: 0, criticalTargets: candidate.support.diagnostics.criticalTargetCount, support: { critical: candidate.support.diagnostics.criticalTargetCount, supported: candidate.support.diagnostics.criticalTargetCount - candidate.support.diagnostics.unsupportedTargetCount, unsupported: candidate.support.diagnostics.unsupportedTargetCount, bodyReject: candidate.support.diagnostics.rejectedByBody, rabbitReject: candidate.support.diagnostics.rejectedByForbiddenVolume, vertical: candidate.support.diagnostics.verticalCount, offsetBend: candidate.support.diagnostics.offsetBendCount, nodes: candidate.support.graph.nodes.length, edges: candidate.support.graph.edges.length, acceptedBodyCollision: candidate.support.diagnostics.acceptedBodyCollisionCount, acceptedRabbitCollision: candidate.support.diagnostics.acceptedForbiddenCollisionCount }, export: { archive: result.archive, archiveBytes: result.stats.archiveBytes, supportTriangleCount: supportPositions.length / 9, validator: "PASS", exportFingerprint, expectedPackageTranslationZ, actualPackageTranslationZ, packagePlacementParity, bodyRemovedDegenerateTriangles: result.stats.bodyRemovedDegenerateTriangles } });
+  const summary = compactSummary(candidate, { overhangFaces: candidate.detection?.faceCount ?? 0, overhangRegions: candidate.detection?.regionCount ?? 0, outside: candidate.outsideFaces?.length ?? 0, insideExcluded: 0, unresolved: 0, criticalTargets: candidate.support.diagnostics.criticalTargetCount, support: { critical: candidate.support.diagnostics.criticalTargetCount, supported: candidate.support.diagnostics.criticalTargetCount - candidate.support.diagnostics.unsupportedTargetCount, unsupported: candidate.support.diagnostics.unsupportedTargetCount, bodyReject: candidate.support.diagnostics.rejectedByBody, rabbitReject: candidate.support.diagnostics.rejectedByForbiddenVolume, vertical: candidate.support.diagnostics.verticalCount, offsetBend: candidate.support.diagnostics.offsetBendCount, nodes: candidate.support.graph.nodes.length, edges: candidate.support.graph.edges.length, acceptedBodyCollision: candidate.support.diagnostics.acceptedBodyCollisionCount, acceptedRabbitCollision: candidate.support.diagnostics.acceptedForbiddenCollisionCount }, export: { archive: result.archive, archiveBytes: result.stats.archiveBytes, supportTriangleCount: supportPositions.length / 9, validator: "PASS", exportFingerprint, expectedPackageTranslationZ, actualPackageTranslationZ, packagePlacementParity, bodyRemovedDegenerateTriangles: result.stats.bodyRemovedDegenerateTriangles, bodyVertices: result.stats.bodyVertices, bodyFaces: result.stats.bodyFaces, modelUncompressedBytes: result.stats.modelUncompressedBytes, compressedModelBytes: result.stats.compressedModelBytes, largestSerializationChunkBytes: result.stats.largestSerializationChunkBytes, bodyIndexedVertexBytes: result.stats.bodyIndexedVertexBytes, bodyIndexedIndexBytes: result.stats.bodyIndexedIndexBytes, supportIndexedBytes: result.stats.supportIndexedBytes, peakJsHeapBytes: result.stats.peakJsHeapBytes, exportElapsedMs } });
   post({ type: "EXPORT", requestId: command.requestId, generation: command.generation, summary }, [result.archive]);
 }
 
-function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; performance?: NonNullable<LargeCandidateCompactSummary["performance"]>; export?: { archive: ArrayBuffer; archiveBytes: number; supportTriangleCount: number; validator: "PASS" | "FAIL"; exportFingerprint: string; expectedPackageTranslationZ: number; actualPackageTranslationZ: number; packagePlacementParity: boolean; bodyRemovedDegenerateTriangles: number } }): LargeCandidateCompactSummary {
+function compactSummary(candidate: ActiveCandidate, facts: { overhangFaces: number; overhangRegions: number; outside: number; insideExcluded: number; unresolved: number; criticalTargets: number; support?: Record<string, number>; performance?: NonNullable<LargeCandidateCompactSummary["performance"]>; export?: LargeCandidateCompactSummary["export"] }): LargeCandidateCompactSummary {
   const performance = facts.performance ?? candidate.performance;
   return { candidateId: candidate.candidateId, sourceSha256: candidate.sourceSha256, geometryFingerprint: candidate.geometryFingerprint, ...(candidate.diagnosticsFingerprint ? { diagnosticsFingerprint: candidate.diagnosticsFingerprint } : {}), ...(candidate.supportFingerprint ? { supportFingerprint: candidate.supportFingerprint } : {}), timings: { ...candidate.timings }, telemetry: { peakJsHeapBytes: null, largestTypedArrayBytes: Math.max(candidate.positions.byteLength, candidate.query.stats.totalTypedArrayBytes), residentTypedArrayBytes: candidate.positions.byteLength + candidate.query.stats.totalTypedArrayBytes }, inventory: candidate.inventory, ...(performance ? { performance } : {}), diagnostics: { overhangFaces: facts.overhangFaces, overhangRegions: facts.overhangRegions, outside: facts.outside, insideExcluded: facts.insideExcluded, unresolved: facts.unresolved, reachabilityInvalidSurfaceTriangles: 0, criticalTargets: facts.criticalTargets, topologyStatus: "NOT_RECOMPUTED", astraRound2Evidence: "PASS" }, ...(facts.support ? { support: facts.support } : {}), ...(facts.export ? { export: facts.export } : {}) };
 }
