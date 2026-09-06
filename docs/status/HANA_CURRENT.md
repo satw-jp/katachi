@@ -12,6 +12,12 @@ Last verified: 2026-09-06
 ## Current phase
 Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Software / desktop gates are already passing. Research-derived growth / field ideas remain HOLD until the current UI phase closes.
 
+## Operating routing
+- HANA SOL owns architecture, scope, next gate, and the bounded instruction for HANA LUNA / implementation worker.
+- The author does not need to rewrite or relay SOL implementation instructions.
+- Implementation workers execute only the current bounded instruction and return evidence for SOL review; they do not self-approve global closure.
+- Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
+
 ## PASS / CLOSED
 - HANA tests: 181/181 PASS
 - Remote tests: 5/5 PASS
