@@ -262,15 +262,21 @@ Owns:
 - next gate
 - acceptance / rejection
 - keeping CURRENT semantics correct
+- writing the bounded instruction for LUNA / Implementation SOL
+- deciding when an implementation checkpoint is accepted into the canonical CURRENT state
 
 ### LUNA / Implementation SOL
 
 Owns:
 
-- bounded implementation
+- bounded implementation given by its SOL
 - tests
 - artifacts
-- updating implementation facts in CURRENT
+- checkpoint commit / push when permitted by the task
+- updating implementation facts in CURRENT when the task branch contains that document
+- returning only the short implementation pointer needed for SOL review
+
+LUNA / Implementation SOL does not independently expand architecture, redefine gates, or self-approve a task as globally CLOSED.
 
 ### Astra
 
@@ -282,6 +288,45 @@ Use primarily for:
 - difficult architecture questions
 
 Do not require Astra to write routine production status prose when the repo already contains the facts.
+
+### SOL → implementation routing
+
+The default routing is:
+
+```text
+Author / Overall SOL asks for a goal
+↓
+Team SOL reads CURRENT + evidence
+↓
+Team SOL writes a bounded implementation instruction
+↓
+LUNA / Implementation SOL executes only that scope
+↓
+checkpoint + tests + artifacts
+↓
+Team SOL reviews
+↓
+Team SOL accepts / rejects / defines next gate
+```
+
+The author should not need to manually rewrite the SOL instruction for LUNA.
+
+When an old LUNA chat is reused, the Team SOL must include the current branch / authority / protected scope in its first instruction so stale chat context cannot become authority.
+
+### CURRENT across old task branches
+
+Some active task branches may predate `docs/TEAM_REPORTING_RULES.md` or `docs/status/*_CURRENT.md`.
+
+Do **not** merge, rebase, or otherwise alter production lineage merely to obtain these documentation files.
+
+Instead:
+
+- read the reporting rules from `main` / `origin/main` / GitHub;
+- keep implementation work on the task's authorized lineage;
+- if practical, add/update the lane CURRENT in the task branch as documentation only;
+- regardless, the Team SOL is responsible for ensuring the canonical CURRENT state reflects the accepted checkpoint after review.
+
+A worker's status edit is evidence input, not automatic SOL acceptance.
 
 ---
 
@@ -319,21 +364,21 @@ Rules:
 ## 13. Default operating loop
 
 ```text
-SOL defines bounded task
+SOL reads CURRENT and defines bounded task
+↓
+SOL sends the implementation instruction to LUNA / Implementation SOL
 ↓
 LUNA / Implementation SOL executes
 ↓
 tests / artifact gate
 ↓
-commit
+checkpoint commit + push when permitted
 ↓
-CURRENT update
+short implementation pointer
 ↓
-push branch
+SOL reviews code / tests / artifacts
 ↓
-short chat pointer
-↓
-SOL / overall reviewer reads GitHub
+SOL ensures canonical CURRENT is correct
 ↓
 next decision
 ```
