@@ -139,7 +139,9 @@ export interface LargeCandidateCompactSummary {
   readonly export?: {
     readonly archive: ArrayBuffer;
     readonly archiveBytes: number;
-    readonly supportTriangleCount: number;
+    readonly generatedSupportTriangleCount: number;
+    readonly indexedSupportFaceCount: number;
+    readonly supportRemovedDegenerateTriangles: number;
     readonly validator: "PASS" | "FAIL";
     readonly exportFingerprint: string;
     readonly expectedPackageTranslationZ: number;

@@ -12,6 +12,7 @@ import {
   scaleTriangleSoup,
   supportEnforcerPositionsForDiagnosis,
 } from "./bambu3mf.ts";
+import { validateSkin3mf } from "./rebuild/threeMfValidation.ts";
 
 const ONE_TRIANGLE = new Float32Array([
   0, 0, 0,
@@ -114,6 +115,31 @@ test("printable external scaffold can merge into one normal BODY part and disabl
   assert.equal(stats.bodyFaces, 1);
   assert.equal(stats.scaffoldFaces, 1);
   assert.equal(stats.enforcerFaces, 0);
+});
+
+test("printable Support reporting distinguishes generated, indexed, and removed counts", async () => {
+  const collapsedSupportTriangle = new Float32Array([
+    2, 0, 0,
+    2, 0, 0,
+    2, 1, 0,
+  ]);
+  const supportPositions = new Float32Array([...ONE_TRIANGLE, ...collapsedSupportTriangle]);
+  const generatedSupportTriangleCount = supportPositions.length / 9;
+  const result = await buildBambu3mf([
+    { name: "BODY", role: "body", positions: ONE_TRIANGLE },
+    { name: "PRINT_SUPPORT", role: "printable_support", positions: supportPositions },
+  ], { title: "Support indexing reporting", supportType: "normal(manual)", date: "2026-09-06" });
+  const supportRemovedDegenerateTriangles = result.stats.removedDegenerateTriangles - result.stats.bodyRemovedDegenerateTriangles;
+  const validation = await validateSkin3mf(result.archive);
+
+  assert.equal(generatedSupportTriangleCount, 2);
+  assert.equal(result.stats.scaffoldFaces, 1);
+  assert.equal(supportRemovedDegenerateTriangles, 1);
+  assert.equal(generatedSupportTriangleCount - result.stats.scaffoldFaces, supportRemovedDegenerateTriangles);
+  assert.equal(result.stats.bodyFaces, 1);
+  assert.equal(result.stats.bodyRemovedDegenerateTriangles, 0);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.triangleCount, result.stats.bodyFaces + result.stats.scaffoldFaces);
 });
 
 test("BODY-only 3MF description does not claim printable support", () => {
