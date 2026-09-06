@@ -1,6 +1,6 @@
 # Viewer Current Status
 
-Last verified: 2026-09-06
+Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
@@ -13,14 +13,18 @@ Last verified: 2026-09-06
 - deploy: NO
 
 ## Current phase
-Viewer v0 technical implementation is PASS / CLOSED at `1972cd34627b82aa6bd203ea5cb3c229732e109e`. The bounded `Boundary-connected` semantic fix has been reviewed from GitHub and accepted. The lane is now at Author Review. No implementation is active.
+Viewer v0 technical implementation remains PASS / CLOSED at `1972cd34627b82aa6bd203ea5cb3c229732e109e`. Author Review has now produced useful observations: Graph reads as non-volumetric / tube-like, motifs make Surface less structurally generic, and Void reads as one simple mass rather than a spatially articulated retained-air structure. However, the author also observed that Surface is spatially misaligned relative to the other representations. That display inconsistency prevents a clean Graph → Surface comparison and is now the only active Viewer fix.
 
 ## Active implementation instruction
-- owner: NONE — waiting on Author Review
-- task: NONE
-- purpose: do not expand Viewer v0 before the author decides whether the four representations reveal genuinely new understanding.
-- protected scope: no FKEI schema change; no SKIN Production source/semantics change; no BODY/Graph/Support change; no new Void metrics; no clearance, visibility, portal, Field, State, History, Scenario, split view, candidate comparison, merge, or deploy.
-- next implementation instruction: only after Author Review and a separate SOL decision.
+- owner: V_LUNA / Viewer implementation worker
+- task: `Surface representation spatial-alignment fix for Author Review`
+- purpose: make Surface occupy the same canonical world-space position/orientation/scale as Geometry, Graph, and Void so representation switching compares the same artifact rather than a shifted presentation.
+- start point: `agent/fkei-analysis-viewer-v0` at `1972cd34627b82aa6bd203ea5cb3c229732e109e`.
+- allowed scope: Viewer-only representation transform / renderer adapter / camera-preserving display logic, focused regression test or deterministic evidence for alignment, README/Browser Gate evidence if needed.
+- required diagnosis: identify whether the mismatch comes from Surface mesh coordinates, Viewer transform, renderer object transform, bounds/centering logic, or camera framing. Fix the earliest Viewer-only cause. Do not compensate with an arbitrary visual offset if canonical coordinates are available.
+- protected scope: no FKEI schema change; no SKIN Production source or geometry semantics change; no Production BODY generation change; no Permanent Graph / Removable Support / Void analysis change; no motif geometry change; no new metrics; no clearance, visibility, portal, Field, State, History, Scenario, split view, candidate comparison, merge, or deploy.
+- done when: with the same FKEI and unchanged camera state, Geometry → Graph → Surface → Void occupy the same canonical artifact frame; Surface no longer visibly translates/scales/rotates relative to the other representations; existing Viewer/FKEI/Production tests and build remain PASS; Browser Gate and console remain clean; read-only identity and camera preservation remain PASS; branch is pushed for Research SOL review.
+- instruction source: this CURRENT file; shared routing authority is `docs/TEAM_REPORTING_RULES.md` on `main`.
 
 ## PASS / CLOSED
 - Remote publication blocker: CLOSED.
@@ -35,21 +39,22 @@ Viewer v0 technical implementation is PASS / CLOSED at `1972cd34627b82aa6bd203ea
 - Void domain definition `V = Host/Base interior \ Final Production BODY`: PASS by code review.
 - Final BODY out-of-domain warning: PASS by code review.
 - Host/Base boundary-connected semantics: PASS at `1972cd34627b82aa6bd203ea5cb3c229732e109e`.
-- Interior-Host regression fixture: PASS by code review; the fixture places the Host boundary inside the sampling box so the old envelope-edge implementation would fail.
-- Viewer v0 technical implementation: PASS / CLOSED.
+- Interior-Host regression fixture: PASS by code review.
+- Viewer v0 technical implementation before Author Review: PASS / CLOSED.
+- Author Review partial value evidence:
+  - Graph exposes that the current Permanent Structure reads as tube-like / insufficiently volumetric.
+  - Surface with motifs reads as less structurally generic than Graph alone.
+  - Void reads as one simple retained-air mass rather than an articulated internal spatial structure.
 
 ## Current blocker
-- No technical implementation blocker.
-- Author value gate is pending: usefulness of Geometry / Graph / Surface / Void as a research instrument is not yet proven.
+- Surface representation is visibly spatially misaligned relative to Geometry / Graph / Void in Author Review, so Graph → Surface materialization comparison is not yet trustworthy.
 
 ## Next gate
-Author Review only:
-1. Does Geometry → Graph reveal a new understanding of the artifact?
-2. Does Graph → Surface reveal something about materialization that Graph alone does not?
-3. Most importantly, does Graph → Void reveal something that Graph could not show?
-4. Does Void read as the form of the air retained by the artwork, rather than only as a numeric porosity-style metric?
-
-Do not expand v0 before this gate.
+1. V_LUNA fixes only Surface spatial alignment and pushes the bounded checkpoint.
+2. Research SOL reviews actual diff / tests / Browser evidence from GitHub.
+3. If PASS, Author Review resumes with the same artifact and camera.
+4. Author then confirms whether Graph → Surface adds trustworthy materialization insight after alignment.
+5. Existing Graph / Void observations remain valid as author observations, but do not expand Viewer metrics before this display fix closes.
 
 ## HOLD / DO NOT CHANGE
 - no SKIN Production integration
@@ -57,8 +62,8 @@ Do not expand v0 before this gate.
 - no Save / Export / Edit / Repair
 - no State / Field / History / Scenario expansion
 - no Split View / candidate comparison expansion
-- no Void metric expansion beyond the existing v0 metrics before Author Review
-- no shared analysis/Diagnostics refactor before demonstrated value
+- no Void metric expansion
+- no shared analysis/Diagnostics refactor
 - no merge to Production
 - no deploy
 
@@ -67,13 +72,7 @@ Reviewed initial implementation commit: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8
 
 Reviewed semantic-fix commit: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 
-Reviewed semantic-fix scope:
-- `src/studies/fkei-analysis-viewer/voidAnalysis.ts`
-- `src/studies/fkei-analysis-viewer/analysis.test.ts`
-- `src/studies/fkei-analysis-viewer/main.ts`
-- `src/studies/fkei-analysis-viewer/README.md`
-
-Accepted C0 checkpoint at reviewed HEAD:
+Accepted C0 checkpoint at reviewed HEAD before Surface display correction:
 - Graph: 253 nodes / 272 edges / 1 component / beta1 20
 - Surface: 143,448 triangles
 - Void: 1 component / largest 100.0%
@@ -81,25 +80,18 @@ Accepted C0 checkpoint at reviewed HEAD:
 
 ## Evidence boundary
 ### Proven / supported
-- Remote branch `agent/fkei-analysis-viewer-v0` resolves to reviewed HEAD `1972cd34627b82aa6bd203ea5cb3c229732e109e`.
-- The semantic-fix commit is a direct child of the initial Viewer checkpoint and changes only Viewer README/test/UI-label/Void-analysis files.
-- `voidAnalysis.ts` now classifies a Void component as Host/Base-boundary-connected when a Void cell is 6-neighbour adjacent to outside-Host space, including an outside-grid neighbour evaluated through `insideHost`.
-- The deterministic interior-Host regression fixture would distinguish the corrected definition from the old sampling-box-edge definition.
-- UI wording now says `Host/Base-boundary-connected`.
-- README records the corrected C0 value and defines the metric explicitly.
-- Existing canonical parser / Production BODY / renderer reuse remains intact in the reviewed fix diff.
+- Remote branch `agent/fkei-analysis-viewer-v0` resolves to reviewed HEAD `1972cd34627b82aa6bd203ea5cb3c229732e109e` before the new alignment task.
+- Boundary-connected semantics and regression are accepted.
+- Existing canonical parser / Production BODY / renderer reuse remain intact at the reviewed checkpoint.
 
-### Worker-reported / not independently rerun by SOL
-- `npm run build`: PASS
-- Viewer analysis tests: PASS
-- existing FKEI / Production v0 tests: PASS
-- Browser Gate: PASS
-- console warning/error: 0
-- read-only identity: PASS
-- camera preservation: PASS
-- no GitHub Actions / commit-status CI evidence is attached to the reviewed commit.
+### Author observation
+- Graph: current Permanent Graph does not read as a volumetric internal structure; it reads as tube-like.
+- Surface: motifs reduce the impression of a simple generic structure, but the representation is spatially offset relative to the other views.
+- Void: current retained air reads as a simple single mass; the author associates this with insufficient volumetric articulation in the Permanent Structure.
 
 ### Not yet proven
-- author value gate: whether Geometry / Graph / Surface / Void actually reveal new understanding
+- exact root cause of Surface spatial misalignment
+- corrected Surface alignment
+- trustworthy final Graph → Surface author comparison after correction
 - any SKIN Diagnostics integration value
 - value of any future shared analysis boundary / refactor
