@@ -9,6 +9,15 @@ Last verified: 2026-09-06
 ## Current phase
 ART SOL / ART LUNA are implementing a small, independent Research Principle Visualization track. ART remains an independent generative / interactive audiovisual environment, not a SKIN presentation layer.
 
+## Active implementation instruction
+- owner: ART SOL -> ART LUNA / implementation worker
+- task: first 3 `Research Principle Visualization Studies`
+- purpose: test whether selected research principles can become visually understandable and artistically interesting without expanding into a large simulation or production rewrite.
+- allowed scope: exactly the first small set of three studies selected by ART SOL; one relationship per study; minimal interaction/visual behavior needed for author review.
+- protected scope: no automatic expansion beyond three studies, no SKIN/HANA production integration, no naturalistic morphology imitation as the goal, no full scientific simulation, and no final ART artwork selection.
+- done when: three reviewable studies exist and the author can judge both principle legibility and artistic value; then STOP for author review before any additional studies.
+- instruction source: this CURRENT plus the Research Astra First Sprint / Research SOL review. ART SOL must replace the unverified branch/HEAD and, if needed, record the exact three selected principles before further implementation checkpointing.
+
 ## Operating routing
 - ART SOL owns architecture, scope, next gate, and the bounded instruction for ART LUNA / implementation worker.
 - The author does not need to rewrite or relay SOL implementation instructions.
@@ -21,6 +30,7 @@ ART SOL / ART LUNA are implementing a small, independent Research Principle Visu
 
 ## Current blocker
 - No cross-project blocker recorded here.
+- Implementation authority fields are still UNVERIFIED in this bootstrap and must be corrected by ART at the next pushed checkpoint.
 - The next important gate is author review of the first small set of studies.
 
 ## Next gate
@@ -44,6 +54,7 @@ Priority candidates include flow-conditioned path adaptation, anastomosis, const
 - Research principles have been reviewed and separated from scientific claims / computational analogies at the Research SOL layer.
 
 ### Not yet proven
+- exact current ART implementation branch / HEAD in this bootstrap
 - that the ART studies actually improve author understanding
 - that the studies have independent artwork potential
 - that any principle should enter ART production
