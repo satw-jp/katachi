@@ -12,6 +12,7 @@ Last verified: 2026-09-06
 - archive SHA-256: `C6D46BF59CF06BF14520C91A1327DDC752A864AF78DA05C72AD0D0D7A086E491`
 - archive bytes: `75,491,879`
 - retained path reported by implementation: `J:/My Drive/codex/2026-09-06/files-pasted-by-the-user-team/outputs/ASTRA_A_candidate-print-lane.3mf`
+- shared author observation / Support hypothesis: `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`
 
 ## Current phase
 A2 software/export gates are closed sufficiently for the first physical feasibility print. Bambu Studio preview shows many floating islands beyond the authored sparse removable Support, so the author selected supplementary Bambu Studio **automatic Tree Support at 45 deg** for this print.
@@ -20,6 +21,8 @@ This print is classified as:
 `A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`.
 
 It is valid physical-feasibility evidence, but not proof that authored SKIN Support alone is sufficient.
+
+The author's visual impression and the future Outside-only body-anchored removable Support hypothesis are preserved for cross-chat sharing in `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`.
 
 G/H/J remain HOLD until the author explicitly resumes the equal-condition comparison lane.
 
@@ -93,6 +96,8 @@ If supplementary slicer Support is later used for A/G/H/J comparison, freeze the
 ## Future Support architecture hypothesis — HOLD / not active
 Author observation: current SKIN removable Support appears easy to remove. A promising future direction is `Outside-only body-anchored removable Support`: allow a lower, already-printable exterior BODY region to act as an explicit removable-Support anchor for a higher Outside target.
 
+Shared note: `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`
+
 A future bounded design gate must preserve:
 - Outside/exterior reachability for target and anchor
 - lower anchor already has a valid printable load path
@@ -132,6 +137,7 @@ This hypothesis does not change the current A/G/H/J baseline.
 
 ### AUTHOR OBSERVATION
 - A2 form is visually very attractive / promising; this is not winner selection.
+- current SKIN removable Support appears easy to remove; Outside-only body-anchored removable Support is a future hypothesis, not a current baseline change.
 
 ### NOT YET PROVEN / HOLD
 - A2 physical print completion
