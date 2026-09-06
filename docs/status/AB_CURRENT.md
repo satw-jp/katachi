@@ -1,11 +1,11 @@
 # Team AB Current Status
 
-Last verified: 2026-09-06
+Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
-- reviewed implementation branch: `agent/skin-astra-large-3mf-validator-v0`
-- reviewed implementation HEAD: `0d6f176969c5e612f11623efb5423d21b6b3875b`
+- accepted implementation checkpoint: `agent/skin-astra-large-3mf-validator-v0`
+- accepted HEAD: `0d6f176969c5e612f11623efb5423d21b6b3875b`
 - A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
 - Rabbit source SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 - retained A2 artifact: `ASTRA_A_candidate-print-lane.3mf`
@@ -15,26 +15,34 @@ Last verified: 2026-09-06
 - shared author observation / Support hypothesis: `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`
 
 ## Current phase
-A2 software/export gates are closed sufficiently for the first physical feasibility print. Bambu Studio preview shows many floating islands beyond the authored sparse removable Support, so the author selected supplementary Bambu Studio **automatic Tree Support at 45 deg** for this print.
+Two bounded activities may proceed without changing each other:
 
-This print is classified as:
-`A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`.
+1. **Author/manual physical gate:** first A2 physical feasibility print using the exact retained artifact plus Bambu Studio automatic Tree Support at `45 deg`.
+2. **Implementation performance gate:** optimize the existing A2 Full Sparse Support pipeline with exact semantic parity. No new Support architecture is allowed in this performance task.
 
-It is valid physical-feasibility evidence, but not proof that authored SKIN Support alone is sufficient.
-
-The author's visual impression and the future Outside-only body-anchored removable Support hypothesis are preserved for cross-chat sharing in `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`.
-
-G/H/J remain HOLD until the author explicitly resumes the equal-condition comparison lane.
+G/H/J remain HOLD until the author explicitly resumes the equal-condition comparison lane and the required pre-comparison infrastructure gates are closed.
 
 ## Active implementation instruction
-No implementation task is active while waiting on the author/manual A2 physical-print gate.
+- owner: Team AB / SKIN SOL -> Temporary AB Implementation SOL / LUNA
+- task: `A2 Sparse Support Performance v0`
+- purpose: reduce the current approximately `43m36s` Full Sparse Support runtime without changing Candidate, Support, Rabbit, export, FKEI, or comparison semantics.
+- allowed scope: fixed A2 benchmark, profiling/instrumentation, then at most one or two measured hotspots; exact caching/pruning/data-layout/allocation/redundant-work improvements only when semantic equivalence is preserved.
+- protected scope: all geometry authority, source-space Float32 execution, exact-zero canonicalization, Outside-only target semantics, route generation/order/tie-breaking, BODY/Rabbit collision semantics, spacing/coverage, physical settings, exporter/validator, FKEI, A/G/H/J comparison contract.
+- done when: full A2 completes faster on the fixed benchmark and geometry/diagnostics/Support fingerprints plus all canonical Support results remain exactly equal; tests/build PASS; G/H/J not run.
+- instruction source: `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V0.md`
+- authorized code-lineage base: `0d6f176969c5e612f11623efb5423d21b6b3875b`
 
-Queued before G/H/J:
-- `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
-  - durable artifact identity / SHA before release
-  - preferred persisted Support checkpoint for exact re-export without repeating Full Sparse Support
+### Explicit performance-task exclusions
+Do not implement in this task:
+- Outside-only body-anchored removable Support
+- Permanent Structure / Support convergence
+- CUDA / WebGPU / native migration
+- approximate SDF / collision semantics
+- Bambu slicer Support changes
+- G/H/J execution
+- merge / deploy
 
-`docs/tasks/AB_SUPPORT_INDEXING_REPORTING_PARITY_V0.md` is CLOSED / PASS.
+Bambu Support timing may be recorded as a separate physical observation only.
 
 ## PASS / CLOSED
 - Candidate geometry / source-space Float32 execution
@@ -42,74 +50,74 @@ Queued before G/H/J:
 - A2 diagnostics / reachability
 - Candidate packed BVH performance
 - Rabbit forbidden-audit performance
-- A2 Full Sparse Support: COMPLETE
+- A2 Full Sparse Support correctness: COMPLETE
 - Support mesh generation
 - large 3MF streaming serialization / compression / ZIP
 - streaming validator scalability
-- validator legacy/streaming XML parity at `1cf17eb7021a049269da76dc12f83524a52d2cf3`
+- validator legacy/streaming XML parity: PASS at `1cf17eb7021a049269da76dc12f83524a52d2cf3`
 - regenerated A2 archive retained with SHA-256 identity
 - regenerated A2 validator PASS, errors/warnings `0/0`
 - placement parity PASS; package Z `48.029293060302734`
 - BODY indexing retention PASS (`0` removed)
-- Support indexing reporting parity at `0d6f176969c5e612f11623efb5423d21b6b3875b`
-  - generated / pre-index triangles explicitly reported
-  - indexed / serialized faces explicitly reported
-  - removed degenerate triangles explicitly reported
-  - Support reporting mismatch fail-closed
-  - focused regression reported `14/14 PASS`; build PASS
+- Support indexing reporting parity: PASS at `0d6f176969c5e612f11623efb5423d21b6b3875b`
 
-## Canonical A2 export facts
+## Canonical A2 Support / export facts
+Performance work must reproduce these semantic facts exactly:
 - Full Sparse Support targets: `4,561 / 4,561`
-- supported / unsupported: `654 / 3,907`
+- route candidates: `102,193`
+- route audits: `90,921`
+- accepted / unsupported: `654 / 3,907`
+- vertical / leaning-offset-bend: `466 / 188`
+- BODY rejects: `3,257`
+- Rabbit rejects: `1,502`
 - graph nodes / edges: `2,150 / 1,496`
-- accepted BODY collision: `0`
-- accepted Rabbit collision: `0`
+- accepted BODY / Rabbit collisions: `0 / 0`
 - BODY serialized faces: `5,934,044`
 - BODY removed during indexing: `0`
 - generated Support pre-index triangles: `71,808`
-- Support degenerate triangles removed during indexing: `80`
+- Support degenerate removed during indexing: `80`
 - indexed / serialized Support faces: `71,728`
 - validator total archive triangles: `6,005,772`
 - archive bytes: `75,491,879`
-- archive SHA-256: `C6D46BF59CF06BF14520C91A1327DDC752A864AF78DA05C72AD0D0D7A086E491`
 
-The old wording `71,808 Support faces / 6,005,852 total` is SUPERSEDED when describing serialized archive contents. `71,808` remains the valid generated pre-index Support triangle count.
+Known observed Full Sparse Support runtime: approximately `43m36s`; this is a performance cost, not a correctness blocker.
 
-## Next gate — A2 physical feasibility print
-Print the exact retained A2 archive with:
+## Physical A2 gate — manual / parallel
+Current print classification:
+
+`A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`
+
+This is valid physical-feasibility evidence, but not proof that authored SKIN Support alone is sufficient.
+
+For the current print:
 - no rescale / reposition
 - authored SKIN Support unchanged and present
-- supplementary Bambu automatic Tree Support at `45 deg`
+- Bambu automatic Tree Support at `45 deg`
 - no candidate-specific hidden tuning
 
-Record before/relevant to comparison reuse:
-- printer / nozzle / process / material profile
-- Bambu Support settings
-- first-layer / adhesion behavior
-- completion or exact failure point
-- Bambu Tree Support removal behavior
-- authored SKIN Support removal behavior / BODY damage
-- visible physical defects
+Record printer / nozzle / process / material profile, first layer, completion/failure, Bambu Tree removal, authored-Support removal, BODY damage and visible physical defects.
 
-If supplementary slicer Support is later used for A/G/H/J comparison, freeze the same slicer Support policy/profile across all candidates.
+If slicer-generated Support is later used for A/G/H/J comparison, freeze the same slicer policy/profile across every candidate.
+
+## Queued before G/H/J
+- `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
+  - durable archive identity / SHA before release
+  - preferred persisted Support checkpoint for exact re-export without repeating Full Sparse Support
+
+G/H/J should not run unattended until this retention gate is closed.
 
 ## Future Support architecture hypothesis — HOLD / not active
-Author observation: current SKIN removable Support appears easy to remove. A promising future direction is `Outside-only body-anchored removable Support`: allow a lower, already-printable exterior BODY region to act as an explicit removable-Support anchor for a higher Outside target.
-
 Shared note: `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`
 
-A future bounded design gate must preserve:
-- Outside/exterior reachability for target and anchor
-- lower anchor already has a valid printable load path
-- layer-causal/buildable route from anchor to target
-- no unsupported island anchoring another unsupported island
-- no BODY-interior traversal
-- explicit bounded removable contact zones only
-- non-contact route outside BODY and Rabbit forbidden volume
-- no Inside-derived target/anchor and no internal removable-support rescue
-- Candidate BODY unchanged; Support remains separate/removable
+Promising future direction: `Outside-only body-anchored removable Support` using a lower already-printable exterior BODY region as an explicit removable-Support anchor for a higher Outside target.
 
-This hypothesis does not change the current A/G/H/J baseline.
+This is research/design input only. It is explicitly excluded from the active performance task and does not change the current A/G/H/J baseline.
+
+## Next gates
+1. Author: complete / observe the A2 physical feasibility print.
+2. Implementation: complete `AB_A2_SPARSE_SUPPORT_PERFORMANCE_V0.md` and return exact before/after + parity evidence for SOL review.
+3. Before G/H/J: close candidate artifact-retention checkpoint.
+4. G/H/J remain HOLD until author explicitly resumes them.
 
 ## HOLD / DO NOT CHANGE
 - G/H/J execution until author explicitly resumes
@@ -124,27 +132,26 @@ This hypothesis does not change the current A/G/H/J baseline.
 - FKEI / authoring semantics
 - no remesh / decimation
 - no hidden candidate-specific tuning
+- no internal removable-support rescue
 - no winner before physical comparison
 - no Astra production implementation
-- no deploy from this gate
+- no deploy from these gates
 
 ## Evidence boundary
 ### PASS / PROVEN
-- A2 software geometry / diagnostics / Support / export / validation chain under locked conditions
-- durable regenerated A2 archive identity
-- exact pre-index vs serialized Support-count semantics
+- A2 software geometry / diagnostics / Support / export / validation chain under locked semantics
+- durable A2 archive identity
+- Support indexing / reporting semantics
 - Bambu Studio import / slice preview
 
 ### AUTHOR OBSERVATION
-- A2 form is visually very attractive / promising; this is not winner selection.
-- current SKIN removable Support appears easy to remove; Outside-only body-anchored removable Support is a future hypothesis, not a current baseline change.
+- A2 form is visually very attractive / promising; not winner selection.
+- current SKIN removable Support appears easy to remove; body-anchored removable Support remains a future hypothesis.
 
-### NOT YET PROVEN / HOLD
+### ACTIVE / NOT YET PROVEN
+- A2 Sparse Support performance improvement with exact parity
 - A2 physical print completion
-- authored Support alone as sufficient physical support
 - full physical profile frozen for A/G/H/J
 - artifact-retention checkpoint before G/H/J
 - body-anchored removable Support hypothesis
-- G/H/J execution
-- A/G/H/J physical comparison
-- winner
+- G/H/J execution / physical comparison / winner
