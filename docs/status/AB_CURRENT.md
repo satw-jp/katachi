@@ -11,7 +11,7 @@ Last verified: 2026-09-06
 - Rabbit source SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 
 ## Current phase
-The author has paused G/H/J until after an overnight break and wants to physically print A2 first. The previously generated `ASTRA_A_candidate-print-lane.3mf` cannot be found in browser download history / local search and is not retained in ChatGPT files or GitHub. The previous run's measured A2 evidence remains valid, but the exact archive bytes are unavailable for printing or fix-commit revalidation.
+The author has paused G/H/J until after an overnight break and wants to physically print A2 first. The previously generated `ASTRA_A_candidate-print-lane.3mf` cannot be found in local search and is not retained in ChatGPT files or GitHub. The previous run's measured A2 evidence remains valid, but the exact archive bytes are unavailable for printing or fix-commit revalidation.
 
 The validator parity fix is pushed at `1cf17eb7021a049269da76dc12f83524a52d2cf3`. Implementation handoff reports comment / CDATA boundary safety, wrong-root report parity, 1-64-byte differential parity corpus, representative malformed parity, 538,792,408-byte synthetic validation, 24 related regressions and build PASS. Actual A2 archive revalidation on the fix commit is still pending only because the prior archive bytes are unavailable.
 
@@ -62,12 +62,12 @@ The previous archive measured `75,491,879` bytes with `575,613,609` model XML by
 - prior actual A2 large streaming validation: PASS
 - prior actual A2 package placement parity: PASS
 - prior actual A2 BODY indexing retention: PASS (`0` removed)
-- prior actual A2 download path: PASS
+- prior browser download initiation path: PASS; filesystem persistence: NOT PROVEN
 - prior actual A2 candidate release: PASS
 - validator parity fix small / synthetic regression evidence at `1cf17eb...`: SUPPORTED by implementation handoff; pending SOL exact-commit review with regenerated A2 artifact
 
 ## Current blocker
-The exact previously downloaded A2 3MF archive is unavailable. Because Support state was intentionally released and not persisted, the archive cannot be reconstructed without rerunning A2 full Sparse Support under the locked settings.
+The exact previously generated A2 3MF archive is unavailable. The browser-side code proves that the download action was initiated, but not that Windows successfully persisted the file. Because Support state was intentionally released and not persisted, the archive cannot be reconstructed without rerunning A2 full Sparse Support under the locked settings.
 
 This is an artifact-retention / regeneration cost, not a newly discovered geometry or Support correctness failure.
 
@@ -128,13 +128,14 @@ Record:
 - compressed model: 75,489,493 bytes
 - archive: 75,491,879 bytes
 - package translation Z: `48.029293060302734`
-- prior actual A2 validator / placement / download / release: PASS
+- prior actual A2 validator / placement / release: PASS
+- browser download initiation: PASS; local file persistence: NOT PROVEN
 - browser console errors / warnings: 0 / 0 at prior actual gate
 - Full Sparse Support runtime was about 43m36s; regeneration therefore has a substantial but known execution cost.
 
 ## Evidence boundary
 ### Proven / supported
-- Prior A2 geometry, diagnostics, full Sparse Support, export, validation, placement, download and release reached the measured facts above.
+- Prior A2 geometry, diagnostics, full Sparse Support, export, validation, placement, browser download initiation and release reached the measured facts above.
 - Validator parity fix exists remotely at `1cf17eb7021a049269da76dc12f83524a52d2cf3` and changes validator/parity-test behavior only according to the implementation handoff.
 - The previous A2 archive bytes are unavailable; no claim is made that the exact prior file can still be printed.
 - G/H/J were not run and no winner was selected.
