@@ -13,20 +13,16 @@ Last verified: 2026-09-06
 - Rabbit source SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 
 ## Current phase
-A2 has produced a real large 3MF that passes the new streaming validator, placement, download and release path. SOL review accepts that actual-scale execution evidence, but does **not** yet close the validator task or canonical A2 end-to-end gate because legacy/streaming XML-semantic parity has two bounded review findings that must be fixed before G/H/J execution.
+Author has chosen to pause G/H/J until after an overnight break and prioritize the first physical A2 print. The reviewed A2 archive has already passed actual-scale streaming validation, placement parity, BODY indexing retention, download and candidate release. The remaining validator parity closure is a software-semantic cleanup and is not considered a blocker to physically printing this exact reviewed A2 archive.
 
 ## Active implementation instruction
-- owner: Team AB / SKIN SOL -> Temporary AB Implementation SOL / LUNA
-- task: `A2 Large 3MF Validator Parity Closure v0`
-- purpose: close the remaining validator-semantic parity gap without rerunning or changing Candidate geometry / Support.
-- allowed scope: validator and validator-parity tests; minimum read-only gate/assertion changes needed to expose fingerprint continuity.
-- protected scope: Candidate Geometry, Support semantics/parameters, Rabbit, exporter semantics/schema/order, FKEI/authoring, production SKIN, A/G/H/J comparison contract.
-- done when: legacy/streaming full-report parity is boundary-safe for the reviewed XML cases, bounded telemetry remains PASS, and the fix commit validates the existing actual A2 archive with placement and fingerprint continuity PASS.
-- instruction source: `docs/tasks/AB_A2_LARGE_3MF_VALIDATOR_PARITY_CLOSURE_V0.md`
+- no implementation task is active while waiting on the author/manual A2 physical-print gate.
+- queued software closure after the physical gate / author decision: `docs/tasks/AB_A2_LARGE_3MF_VALIDATOR_PARITY_CLOSURE_V0.md`.
+- G/H/J execution remains HOLD until the author resumes the equal-condition comparison lane.
 
 ## Operating routing
 - Team AB / SKIN SOL owns architecture, scope, next gate and acceptance.
-- Implementation workers execute only the current bounded GitHub instruction and return evidence for SOL review; they do not self-approve global closure.
+- Implementation workers execute only an explicitly active bounded GitHub instruction and return evidence for SOL review; they do not self-approve global closure.
 - Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
 
 ## PASS / CLOSED
@@ -45,23 +41,42 @@ A2 has produced a real large 3MF that passes the new streaming validator, placem
 - Actual A2 download: PASS
 - Actual A2 candidate release: PASS
 
-## SOL review finding / current blocker
+## Queued software review finding
 Reviewed commit `948c676fa966c9881d13971b4761636c5fe77d83` is one fast-forward commit from the authorized base and stays within validator/test/progress/evidence scope.
 
-Two validator-parity issues remain:
+Two validator-parity issues remain queued for later closure:
 
 1. Incremental XML handling can reject a valid legacy-supported comment / CDATA opener when `<!...` is split before the complete opener is available. Streaming behavior must be independent of chunk boundaries.
 2. A non-`model` submodel root can produce a different full error report between legacy and streaming because the streaming path wraps the model-root condition as malformed XML.
 
-These do not invalidate the measured A2 archive PASS, because the generated A2 object-model XML passed the actual streaming gate. They do prevent claiming complete legacy-semantic parity and therefore keep canonical A2 end-to-end closure on HOLD until fixed.
+These do not invalidate the measured A2 archive PASS and do not block printing the exact reviewed A2 archive. They do prevent claiming complete legacy-semantic parity and canonical software end-to-end closure until fixed.
 
-## Next gate
-- Implement and test `docs/tasks/AB_A2_LARGE_3MF_VALIDATOR_PARITY_CLOSURE_V0.md`.
-- Revalidate the existing A2 archive on the fix commit; do not rerun full Sparse Support unless strictly necessary.
-- Team AB / SKIN SOL reviews the exact fix commit.
-- Only after canonical A2 end-to-end PASS: run G -> H -> J sequentially under equal conditions.
+## Next gate — author/manual physical A2 print
+Print the exact downloaded reviewed artifact:
+- `ASTRA_A_candidate-print-lane.3mf`
+- measured archive size: `75,491,879` bytes
+- package translation Z: `48.029293060302734`
+
+For this first physical gate, preserve the candidate comparison state:
+- do not rescale or reposition the model
+- do not regenerate or replace the authored printable-support geometry
+- do not add candidate-specific hidden tuning
+- do not alter Candidate geometry, Rabbit policy or Support geometry as part of this gate
+
+Before starting the print, the author may inspect slicer preview and printer/material settings. Any slicer-required change that would alter geometry/support/comparison conditions should be reported before treating the result as comparison evidence.
+
+Record physical observations, especially:
+- slicer import / preview succeeds or fails
+- BODY and separate support appear as expected
+- print starts successfully or exact failure point
+- visible support/body collision or detachment
+- first-layer / adhesion behavior
+- completion or failure
+- support removal behavior and resulting BODY damage
+- any obvious physical defect relevant to the next A/G/H/J comparison decision
 
 ## HOLD / DO NOT CHANGE
+- G/H/J execution until author resumes after overnight consideration
 - Candidate geometry
 - Support semantics / physical parameters
 - Rabbit forbidden-volume policy
@@ -100,14 +115,13 @@ These do not invalidate the measured A2 archive PASS, because the generated A2 o
 - Change scope is limited to validator/tests/progress/evidence files.
 - The actual A2 archive reached and passed streaming validation at the measured scale.
 - Actual A2 placement parity, BODY indexing retention, download and release passed.
-- Candidate geometry, Support settings/semantics, Rabbit, FKEI and production SKIN were not changed by this commit.
+- Candidate geometry, Support settings/semantics, Rabbit, FKEI and production SKIN were not changed by the reviewed validator commit.
 - G/H/J were not run and no winner was selected.
 
-### HOLD / not yet canonical PASS
+### HOLD / not yet proven
+- A2 physical print
 - complete legacy/streaming report parity for all legacy-supported bounded XML cases
-- boundary-safe comment / CDATA prefix handling
-- non-model-root report parity
-- canonical A2 end-to-end closure after the parity fix
+- canonical software end-to-end closure after the queued parity fix
 - G/H/J execution
-- physical comparison
+- physical comparison across A/G/H/J
 - winner
