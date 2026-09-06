@@ -116,6 +116,6 @@ assert.deepEqual(authoredAdapter.project.patterns, first.project.patterns,
   "authored Motif geometry must be preserved by the root-production adapter");
 assert.equal(authoredAdapter.project.lattice.edges.length, 0,
   "Production adapter replaces legacy permanent lattice with Local Relay");
-assert.deepEqual(authoredAdapter.project.printSupport, first.project.printSupport,
-  "existing removable support remains unchanged by production v0");
+assert.equal(authoredAdapter.project.printSupport.edges.length, 0,
+  "Production v0 must not inherit a legacy removable-support graph before current Stage 8 generation");
 assert.equal(authoredAdapter.provenance.repair.motifRelocationCount, 0);

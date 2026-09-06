@@ -284,10 +284,16 @@ assert.match(main, /const stage8SupportGraph = modeAtStart === "automatic"/,
   "Stage 8 must retain an explicit Automatic branch");
 assert.match(main, /buildSparseRemovableSupport\(/,
   "Automatic must use the focused sparse removable-support builder path");
+assert.match(printSupportSource, /productionRuntimeCurrent\?\.analysisMesh\.scaleMmPerUnit/,
+  "Production v0 Stage 8 must use the locked Production BODY scale");
+assert.match(printSupportSource, /productionRuntimeCurrent\?\.provenance\.geometryPolicy\.quadMeshJoinWidthSource/,
+  "Production v0 Stage 8 must audit routes against the locked Production BODY field policy");
 assert.match(printSupportSource, /stage8SupportGraph !== sparseResult\.graph[\s\S]*?project\.printSupport !== sparseResult\.graph/,
   "Stage 8 must fail closed if the Sparse Support graph identity changes");
 assert.match(printSupportSource, /skinRebuildSparseSupportResult = sparseResult[\s\S]*?skinRenderer\.setPrintSupport\(stage8SupportGraph\)/,
   "Stage 8 must publish the same Sparse Support graph to runtime and renderer");
+assert.match(printSupportSource, /skinProductionV0Runtime = \{ \.\.\.skinProductionV0Runtime, project \}/,
+  "Stage 8 must bind the current Sparse Support project back to the Production v0 runtime");
 assert.doesNotMatch(printSupportSource, /stage75|artworkInteriorClassificationCheckpoint/,
   "production Stage 8 must not fall back to the legacy Stage 7.5 path");
 assert.match(

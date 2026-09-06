@@ -1243,8 +1243,9 @@ export function buildSkinProductionV0(
 
 /** Run production v0 against an already authored SKIN REBUILD project.
  * Host and Motif geometry are copied as inputs. The legacy Stage 5A lattice
- * is replaced by the Production v0 Local Relay permanent network; removable
- * support remains a separate, unchanged project field. */
+ * is replaced by the Production v0 Local Relay permanent network. Removable
+ * support is deliberately cleared: Stage 8 must generate a current graph
+ * against this exact Production BODY instead of inheriting an FKEI-era graph. */
 export function buildSkinProductionV0FromProject(
   projectInput: SkinRebuildProject,
   repairPolicyInput: SkinProductionV0RepairPolicy = DEFAULT_SKIN_PRODUCTION_V0_REPAIR_POLICY,
@@ -1260,7 +1261,7 @@ export function buildSkinProductionV0FromProject(
     projectInput.lowestPoints,
     createEmptySkinRebuildGraph(),
     [],
-    projectInput.printSupport,
+    createEmptySkinRebuildGraph(),
   );
   const generated: GeneratedCandidate = {
     project,

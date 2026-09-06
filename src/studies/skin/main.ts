@@ -11555,7 +11555,11 @@ function installSkinRebuildPipelinePanel(): void {
             settings.surfaceThickness,
             current.patterns,
           );
-          const scaleMmPerUnit = settings.targetLongestMm / Math.max(bounds.longest, 1e-9);
+          const productionRuntimeCurrent = skinProductionV0Runtime?.project.finalGraph === current.finalGraph
+            ? skinProductionV0Runtime
+            : null;
+          const scaleMmPerUnit = productionRuntimeCurrent?.analysisMesh.scaleMmPerUnit
+            ?? settings.targetLongestMm / Math.max(bounds.longest, 1e-9);
           const shaftRadius = settings.supportDiameterMm * 0.5 / scaleMmPerUnit;
           const neckRadius = Math.min(0.3 / scaleMmPerUnit, shaftRadius * 0.85);
           const neckLength = Math.max(0.6 / scaleMmPerUnit, shaftRadius * 1.25);
@@ -11569,7 +11573,7 @@ function installSkinRebuildPipelinePanel(): void {
             roundK: settings.roundK,
             coinBulge: 0,
             coinBulgeBalance: 0,
-            quadMeshJoinWidth: 0,
+            quadMeshJoinWidth: productionRuntimeCurrent?.provenance.geometryPolicy.quadMeshJoinWidthSource ?? 0,
             internalGraph: current.finalGraph,
           } as const;
           const bodySdf = createFinishedSkinBodySdfEvaluator(finishedBodyInput);
@@ -11699,6 +11703,12 @@ function installSkinRebuildPipelinePanel(): void {
       skinRebuildFinalArtworkDiagnosis = { ...diagnosis, project };
       skinRebuildSparseSupportResult = sparseResult;
       skinRebuildStage8CompletedProject = project;
+      if (skinProductionV0Runtime && skinProductionV0Runtime.project.finalGraph === current.finalGraph) {
+        // Production v0 starts with no removable support. Once Stage 8 has
+        // generated the reviewed current graph, bind that exact project and
+        // graph identity back to the runtime used by diagnostics/artifacts.
+        skinProductionV0Runtime = { ...skinProductionV0Runtime, project };
+      }
       // Support generation replaces the project object. Rebind the same
       // current Stage 6.5 + 7 presentation to the new project identity so
       // the displayed graph and the export graph remain one current result.

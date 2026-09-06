@@ -148,7 +148,11 @@ const deterministic = {
 };
 
 assert.equal(inputFingerprint, "791e47f7b94cdd667516f44d0c2f731d6326fb7949a47cd785189e2eb3963276");
-assert.deepEqual(outputIdentity, inputIdentity, "Host, Motifs, transforms, and removable Support must be immutable");
+assert.equal(outputIdentity.host, inputIdentity.host, "Host must be immutable");
+assert.equal(outputIdentity.motifs, inputIdentity.motifs, "Motifs must be immutable");
+assert.equal(outputIdentity.motifTransforms, inputIdentity.motifTransforms, "Motif transforms must be immutable");
+assert.equal(first.project.printSupport.edges.length, 0,
+  "Production Stage 6 must clear legacy removable Support before current Stage 8 generation");
 assert.equal(first.provenance.repair.motifRelocationCount, 0);
 assert.ok(Object.values(deterministic).every(Boolean), "Production v0 replay must be deterministic");
 assert.equal(first.diagnosticsBefore.body.connectedComponents, 1);
@@ -189,7 +193,7 @@ const manifest = {
     motifIdentity: inputIdentity.motifs === outputIdentity.motifs,
     motifTransforms: inputIdentity.motifTransforms === outputIdentity.motifTransforms,
     motifRelocation: first.provenance.repair.motifRelocationCount,
-    removableSupportIdentity: inputIdentity.support === outputIdentity.support,
+    legacyRemovableSupportCleared: first.project.printSupport.edges.length === 0,
   },
   deterministic,
   research: {
@@ -232,7 +236,7 @@ const rows: Array<Record<string, unknown>> = [
 writeFileSync(`${OUT}/comparison.csv`, csv(rows));
 writeFileSync(`${OUT}/REPORT.md`, `# C Production v0 Geometry Fidelity Fix Evidence\n\n` +
   `Generated 2026-09-06 from the immutable C0 FKEI. This report records geometry evidence only; artwork acceptance remains with C SOL / Author.\n\n` +
-  `- Host identity: PASS\n- Motif identity and transforms: PASS\n- Motif relocation: 0\n- Removable Support identity: PASS (not used in BODY)\n- Deterministic replay: PASS\n` +
+  `- Host identity: PASS\n- Motif identity and transforms: PASS\n- Motif relocation: 0\n- Legacy Removable Support cleared: PASS (current Stage 8 required)\n- Deterministic replay: PASS\n` +
   `- P1: ${p1Body.faces} faces, ${p1Body.volumeMm3.toFixed(6)} mm³, ${p1Graph.nodes}/${p1Graph.edges}, fingerprint ${p1Body.bodyFingerprint}\n` +
   `- P3: ${p3Body.faces} faces, ${p3Body.volumeMm3.toFixed(6)} mm³, ${p3Graph.nodes}/${p3Graph.edges}, fingerprint ${p3Body.bodyFingerprint}\n\n` +
   `Research M and M-R are compared in comparison.csv and the same-view images. Exact byte identity is not required. Support, 3MF export, deployment, and physical gates were not touched.\n`);
