@@ -15,6 +15,12 @@ Last verified: 2026-09-06
 ## Current phase
 C Production geometry / support / 3MF semantics are locked and the first physical print is in progress / awaiting author evidence. In parallel, UI IA is held while FIELD vNext and historical capability retention are audited against current Production.
 
+## Operating routing
+- C SOL owns architecture, scope, next gate, and the bounded instruction for C LUNA / Temporary Implementation SOL.
+- The author does not need to rewrite or relay SOL implementation instructions.
+- Implementation workers execute only the current bounded instruction and return evidence for SOL review; they do not self-approve global closure.
+- Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
+
 ## PASS / CLOSED
 - C Research closed enough for v0
 - Production architecture PASS / LOCKED
