@@ -154,7 +154,71 @@ export interface SparseSupportProgress {
   routeOptionsTested: number;
   routeAudits: number;
   acceptedSupportCount: number;
+  acceptedSegmentCount: number;
+  routeAuditMs: number;
+  verticalAuditMs: number;
+  leaningAuditMs: number;
+  spacingMs: number;
+  auditRouteSpacingComparisons: number;
+  postAuditSpacingComparisons: number;
   elapsedMs: number;
+}
+
+export interface SparseSupportTailWindow {
+  startTarget: number;
+  endTarget: number;
+  targetsProcessed: number;
+  elapsedMs: number;
+  msPerTarget: number;
+  routeOptionsTested: number;
+  routeAudits: number;
+  acceptedSupportCount: number;
+  acceptedSegmentsStart: number;
+  acceptedSegmentsEnd: number;
+  auditRouteSpacingComparisons: number;
+  postAuditSpacingComparisons: number;
+  spacingComparisons: number;
+  spacingMs: number;
+  auditRouteSpacingMs: number;
+  postAuditSpacingMs: number;
+  routeAuditMs: number;
+  verticalAuditMs: number;
+  leaningAuditMs: number;
+  bodySdfCalls: number;
+  rabbitSdfCalls: number;
+  candidateBvhNodesVisited: number;
+  candidateBvhTrianglesTested: number;
+}
+
+export interface SparseSupportSlowTarget {
+  candidateId: string;
+  targetIndex: number;
+  regionId: number;
+  elapsedMs: number;
+  routeOptionCount: number;
+  routeAuditCount: number;
+  acceptedSegmentsStart: number;
+  finalResult: string;
+}
+
+export interface SparseSupportSlowRoute {
+  candidateId: string;
+  kind: SparseSupportRouteKind;
+  routeIndex: number;
+  segmentCount: number;
+  elapsedMs: number;
+  result: string;
+  sampleCount: number;
+}
+
+export interface SparseSupportTailProfile {
+  spacingAsSelectionPreference: boolean;
+  windows: SparseSupportTailWindow[];
+  slowestTargets: SparseSupportSlowTarget[];
+  slowestRoutes: SparseSupportSlowRoute[];
+  completedThroughTarget: number;
+  stopTargetIndex?: number;
+  stopRouteAuditCount?: number;
 }
 
 export interface SparseSupportPerformance {
@@ -170,6 +234,13 @@ export interface SparseSupportPerformance {
   verticalAuditMs: number;
   leaningAuditMs: number;
   spacingMs: number;
+  auditRouteSpacingComparisons: number;
+  postAuditSpacingComparisons: number;
+  spacingComparisons: number;
+  auditRouteSpacingMs: number;
+  postAuditSpacingMs: number;
+  spacingAsSelectionPreference: boolean;
+  tailProfile?: SparseSupportTailProfile;
   graphFinalizationMs: number;
   debugPayloadMs: number;
   totalMs: number;
@@ -312,6 +383,20 @@ const MIN_NECK_CLEARANCE_FACTOR = 1.25;
 const DEFAULT_MAX_CANDIDATES_PER_REGION = 3;
 const DEFAULT_MAX_LEANING_ROUTES = 30;
 const DEFAULT_DEBUG_CANDIDATES = 96;
+const SPARSE_SUPPORT_TAIL_WINDOWS: ReadonlyArray<readonly [number, number]> = [
+  [0, 512],
+  [512, 1024],
+  [1024, 1536],
+  [1536, 2048],
+  [2048, 2304],
+  [2304, 2560],
+  [2560, 3072],
+  [3072, 3584],
+  [3584, 4096],
+  [4096, 4561],
+];
+const SPARSE_SUPPORT_PROFILE_PROGRESS_INTERVAL = 64;
+const SPARSE_SUPPORT_SLOW_RECORD_LIMIT = 8;
 /** A1 mini's 180 mm XY build span, centered at (90, 90) by the existing 3MF export. */
 const A1_MINI_PLATE_HALF_SPAN_MM = 90;
 
@@ -982,6 +1067,9 @@ export interface SparseSupportRouteAudit {
   reason?: SparseSupportRejectReason;
   detail: string;
   sampleCount: number;
+  /** Profiling-only cost of the authoritative spacing pass inside auditRoute. */
+  auditRouteSpacingComparisons?: number;
+  auditRouteSpacingMs?: number;
 }
 
 function auditCapsuleAgainstBody(
@@ -1314,31 +1402,52 @@ function auditRoute(
     sampleCount += audited.sampleCount;
     if (!audited.accepted) return { ...audited, sampleCount };
   }
+  const spacingStarted = monotonicNow();
+  let spacingComparisons = 0;
   for (const segment of route.segments) {
     for (const previous of acceptedSegments) {
+      spacingComparisons += 1;
       const clearance = segment.radius + previous.radius + request.removalGap;
       const actual = segmentSegmentDistance(segment.start, segment.end, previous.start, previous.end);
       if (!finite(actual) || actual <= clearance + 1e-7) {
-        return { accepted: false, reason: "spacing", detail: `capsule spacing ${actual.toFixed(6)} is below ${clearance.toFixed(6)}`, sampleCount };
+        return {
+          accepted: false,
+          reason: "spacing",
+          detail: `capsule spacing ${actual.toFixed(6)} is below ${clearance.toFixed(6)}`,
+          sampleCount,
+          auditRouteSpacingComparisons: spacingComparisons,
+          auditRouteSpacingMs: monotonicNow() - spacingStarted,
+        };
       }
     }
   }
-  return { accepted: true, detail: "plate, BODY and capsule-spacing screens passed", sampleCount };
+  return {
+    accepted: true,
+    detail: "plate, BODY and capsule-spacing screens passed",
+    sampleCount,
+    auditRouteSpacingComparisons: spacingComparisons,
+    auditRouteSpacingMs: monotonicNow() - spacingStarted,
+  };
 }
 
 function routeSpacingIsClear(
   route: SparseRemovableSupportRoute,
   acceptedSegments: readonly SparseSupportRouteSegment[],
   removalGap: number,
-): boolean {
+): { clear: boolean; comparisons: number; elapsedMs: number } {
+  const started = monotonicNow();
+  let comparisons = 0;
   for (const segment of route.segments) {
     for (const previous of acceptedSegments) {
+      comparisons += 1;
       const clearance = segment.radius + previous.radius + removalGap;
       const actual = segmentSegmentDistance(segment.start, segment.end, previous.start, previous.end);
-      if (!finite(actual) || actual <= clearance + 1e-7) return false;
+      if (!finite(actual) || actual <= clearance + 1e-7) {
+        return { clear: false, comparisons, elapsedMs: monotonicNow() - started };
+      }
     }
   }
-  return true;
+  return { clear: true, comparisons, elapsedMs: monotonicNow() - started };
 }
 
 function routeMaximumAngle(route: SparseRemovableSupportRoute): number {
@@ -1365,8 +1474,9 @@ function appendRouteToGraph(builder: SparseGraphBuilder, route: SparseRemovableS
  * modified and no mechanical, slicer, nipper-access or print-success claim is
  * made.
  */
-export function buildSparseRemovableSupport(
+function buildSparseRemovableSupportInternal(
   input: SparseRemovableSupportRequest,
+  skipDuplicateSpacingPass: boolean,
 ): SparseRemovableSupportResult {
   const buildStarted = monotonicNow();
   const request = normalizeRequest(input);
@@ -1377,6 +1487,10 @@ export function buildSparseRemovableSupport(
   let verticalAuditMs = 0;
   let leaningAuditMs = 0;
   let spacingMs = 0;
+  let auditRouteSpacingComparisons = 0;
+  let postAuditSpacingComparisons = 0;
+  let auditRouteSpacingMs = 0;
+  let postAuditSpacingMs = 0;
   let graphFinalizationMs = 0;
   let debugPayloadMs = 0;
   const targetExtractionStarted = monotonicNow();
@@ -1408,15 +1522,121 @@ export function buildSparseRemovableSupport(
   let profileIncomplete = false;
   const anyFiniteFace = request.projectedOutsideFaces.some((face) => finitePoint(face.position));
   const requestValid = validNormalizedRequest(request);
+  const tailProfileEnabled = request.profile?.enabled === true;
+  const slowestTargets: SparseSupportSlowTarget[] = [];
+  const slowestRoutes: SparseSupportSlowRoute[] = [];
+  const tailWindows = SPARSE_SUPPORT_TAIL_WINDOWS.map(([startTarget, endTarget]) => ({
+    startTarget,
+    endTarget,
+    targetsProcessed: 0,
+    elapsedMs: 0,
+    msPerTarget: 0,
+    routeOptionsTested: 0,
+    routeAudits: 0,
+    acceptedSupportCount: 0,
+    acceptedSegmentsStart: 0,
+    acceptedSegmentsEnd: 0,
+    auditRouteSpacingComparisons: 0,
+    postAuditSpacingComparisons: 0,
+    spacingComparisons: 0,
+    spacingMs: 0,
+    auditRouteSpacingMs: 0,
+    postAuditSpacingMs: 0,
+    routeAuditMs: 0,
+    verticalAuditMs: 0,
+    leaningAuditMs: 0,
+    bodySdfCalls: 0,
+    rabbitSdfCalls: 0,
+    candidateBvhNodesVisited: 0,
+    candidateBvhTrianglesTested: 0,
+  } satisfies SparseSupportTailWindow));
+  const tailProfileStarted = monotonicNow();
+  let completedTailWindowCount = 0;
+  let previousTailSnapshot = {
+    elapsedMs: 0,
+    routeOptionsTested: 0,
+    routeAudits: 0,
+    acceptedSupportCount: 0,
+    acceptedSegmentCount: 0,
+    auditRouteSpacingComparisons: 0,
+    postAuditSpacingComparisons: 0,
+    spacingMs: 0,
+    auditRouteSpacingMs: 0,
+    postAuditSpacingMs: 0,
+    routeAuditMs: 0,
+    verticalAuditMs: 0,
+    leaningAuditMs: 0,
+  };
+  const recordCompletedTailWindows = (): void => {
+    if (!tailProfileEnabled) return;
+    while (completedTailWindowCount < tailWindows.length
+      && targetsProcessed >= tailWindows[completedTailWindowCount].endTarget) {
+      const current = {
+        elapsedMs: monotonicNow() - tailProfileStarted,
+        routeOptionsTested: routeCandidateCount,
+        routeAudits: routeAuditCount,
+        acceptedSupportCount: acceptedRoutes.length,
+        acceptedSegmentCount: acceptedSegments.length,
+        auditRouteSpacingComparisons,
+        postAuditSpacingComparisons,
+        spacingMs,
+        auditRouteSpacingMs,
+        postAuditSpacingMs,
+        routeAuditMs,
+        verticalAuditMs,
+        leaningAuditMs,
+      };
+      const window = tailWindows[completedTailWindowCount];
+      window.targetsProcessed = targetsProcessed - window.startTarget;
+      window.elapsedMs = current.elapsedMs - previousTailSnapshot.elapsedMs;
+      window.msPerTarget = window.targetsProcessed > 0 ? window.elapsedMs / window.targetsProcessed : 0;
+      window.routeOptionsTested = current.routeOptionsTested - previousTailSnapshot.routeOptionsTested;
+      window.routeAudits = current.routeAudits - previousTailSnapshot.routeAudits;
+      window.acceptedSupportCount = current.acceptedSupportCount - previousTailSnapshot.acceptedSupportCount;
+      window.acceptedSegmentsStart = previousTailSnapshot.acceptedSegmentCount;
+      window.acceptedSegmentsEnd = current.acceptedSegmentCount;
+      window.auditRouteSpacingComparisons = current.auditRouteSpacingComparisons - previousTailSnapshot.auditRouteSpacingComparisons;
+      window.postAuditSpacingComparisons = current.postAuditSpacingComparisons - previousTailSnapshot.postAuditSpacingComparisons;
+      window.spacingComparisons = window.auditRouteSpacingComparisons + window.postAuditSpacingComparisons;
+      window.spacingMs = current.spacingMs - previousTailSnapshot.spacingMs;
+      window.auditRouteSpacingMs = current.auditRouteSpacingMs - previousTailSnapshot.auditRouteSpacingMs;
+      window.postAuditSpacingMs = current.postAuditSpacingMs - previousTailSnapshot.postAuditSpacingMs;
+      window.routeAuditMs = current.routeAuditMs - previousTailSnapshot.routeAuditMs;
+      window.verticalAuditMs = current.verticalAuditMs - previousTailSnapshot.verticalAuditMs;
+      window.leaningAuditMs = current.leaningAuditMs - previousTailSnapshot.leaningAuditMs;
+      previousTailSnapshot = current;
+      completedTailWindowCount += 1;
+    }
+  };
+  const recordSlowTarget = (record: SparseSupportSlowTarget): void => {
+    if (!tailProfileEnabled) return;
+    slowestTargets.push(record);
+    slowestTargets.sort((first, second) => second.elapsedMs - first.elapsedMs || first.targetIndex - second.targetIndex);
+    if (slowestTargets.length > SPARSE_SUPPORT_SLOW_RECORD_LIMIT) slowestTargets.length = SPARSE_SUPPORT_SLOW_RECORD_LIMIT;
+  };
+  const recordSlowRoute = (record: SparseSupportSlowRoute): void => {
+    if (!tailProfileEnabled) return;
+    slowestRoutes.push(record);
+    slowestRoutes.sort((first, second) => second.elapsedMs - first.elapsedMs || first.routeIndex - second.routeIndex);
+    if (slowestRoutes.length > SPARSE_SUPPORT_SLOW_RECORD_LIMIT) slowestRoutes.length = SPARSE_SUPPORT_SLOW_RECORD_LIMIT;
+  };
   const reportProgress = (force = false): void => {
     if (!request.onProgress) return;
-    if (!force && targetsProcessed !== 0 && targetsProcessed % 256 !== 0) return;
+    if (!force && targetsProcessed !== 0
+      && targetsProcessed % (tailProfileEnabled ? SPARSE_SUPPORT_PROFILE_PROGRESS_INTERVAL : 256) !== 0) return;
     request.onProgress({
       targetsProcessed,
       totalTargets: candidates.length,
       routeOptionsTested: routeCandidateCount,
       routeAudits: routeAuditCount,
       acceptedSupportCount: acceptedRoutes.length,
+      acceptedSegmentCount: acceptedSegments.length,
+      routeAuditMs,
+      verticalAuditMs,
+      leaningAuditMs,
+      spacingMs,
+      auditRouteSpacingComparisons,
+      postAuditSpacingComparisons,
       elapsedMs: monotonicNow() - buildStarted,
     });
   };
@@ -1455,12 +1675,16 @@ export function buildSparseRemovableSupport(
     }
   }
 
-  candidateLoop: for (const candidate of candidates) {
+  candidateLoop: for (const [targetIndex, candidate] of candidates.entries()) {
     if (request.profile?.maxProcessedTargets !== undefined
       && targetsProcessed >= request.profile.maxProcessedTargets) {
       profileIncomplete = true;
       break candidateLoop;
     }
+    const targetStarted = monotonicNow();
+    const acceptedSegmentsStart = acceptedSegments.length;
+    const targetRouteOptionsStart = routeCandidateCount;
+    const targetRouteAuditsStart = routeAuditCount;
     const uncovered = candidate.coversCriticalTargetIds.filter((id) => !coveredTargetIds.has(id));
     if (uncovered.length === 0) {
       if (routeAttempts.length < request.maxDebugCandidates) {
@@ -1469,6 +1693,17 @@ export function buildSparseRemovableSupport(
         }] });
       }
       targetsProcessed += 1;
+      recordSlowTarget({
+        candidateId: candidate.id,
+        targetIndex,
+        regionId: candidate.target.regionId,
+        elapsedMs: monotonicNow() - targetStarted,
+        routeOptionCount: 0,
+        routeAuditCount: 0,
+        acceptedSegmentsStart,
+        finalResult: "coverage",
+      });
+      recordCompletedTailWindows();
       reportProgress();
       continue;
     }
@@ -1513,9 +1748,30 @@ export function buildSparseRemovableSupport(
       routeAuditMs += elapsedRouteAudit;
       if (route.kind === "vertical") verticalAuditMs += elapsedRouteAudit;
       else leaningAuditMs += elapsedRouteAudit;
-      const spacingStarted = monotonicNow();
-      const spacingClear = routeSpacingIsClear(route, acceptedSegments, request.removalGap);
-      spacingMs += monotonicNow() - spacingStarted;
+      const authoritativeSpacingComparisons = audited.auditRouteSpacingComparisons ?? 0;
+      const authoritativeSpacingMs = audited.auditRouteSpacingMs ?? 0;
+      auditRouteSpacingComparisons += authoritativeSpacingComparisons;
+      auditRouteSpacingMs += authoritativeSpacingMs;
+      let spacingClear = true;
+      let postAuditSpacingMsForRoute = 0;
+      const shouldRunPostAuditSpacing = request.spacingAsSelectionPreference || !skipDuplicateSpacingPass;
+      if (shouldRunPostAuditSpacing) {
+        const postAuditSpacing = routeSpacingIsClear(route, acceptedSegments, request.removalGap);
+        spacingClear = postAuditSpacing.clear;
+        postAuditSpacingComparisons += postAuditSpacing.comparisons;
+        postAuditSpacingMs += postAuditSpacing.elapsedMs;
+        postAuditSpacingMsForRoute = postAuditSpacing.elapsedMs;
+      }
+      spacingMs += authoritativeSpacingMs + postAuditSpacingMsForRoute;
+      recordSlowRoute({
+        candidateId: candidate.id,
+        kind: route.kind,
+        routeIndex,
+        segmentCount: route.segments.length,
+        elapsedMs: elapsedRouteAudit,
+        result: audited.reason ?? (audited.accepted ? "accepted" : "rejected"),
+        sampleCount: audited.sampleCount,
+      });
       attempts.push({
         kind: route.kind,
         accepted: audited.accepted,
@@ -1573,6 +1829,17 @@ export function buildSparseRemovableSupport(
         if (accepted.segments.length > 2) offsetBendCount++;
       }
       targetsProcessed += 1;
+      recordSlowTarget({
+        candidateId: candidate.id,
+        targetIndex,
+        regionId: candidate.target.regionId,
+        elapsedMs: monotonicNow() - targetStarted,
+        routeOptionCount: routeCandidateCount - targetRouteOptionsStart,
+        routeAuditCount: routeAuditCount - targetRouteAuditsStart,
+        acceptedSegmentsStart,
+        finalResult: `accepted:${accepted.kind}`,
+      });
+      recordCompletedTailWindows();
       reportProgress();
       continue;
     }
@@ -1593,6 +1860,17 @@ export function buildSparseRemovableSupport(
       });
     }
     targetsProcessed += 1;
+    recordSlowTarget({
+      candidateId: candidate.id,
+      targetIndex,
+      regionId: candidate.target.regionId,
+      elapsedMs: monotonicNow() - targetStarted,
+      routeOptionCount: routeCandidateCount - targetRouteOptionsStart,
+      routeAuditCount: routeAuditCount - targetRouteAuditsStart,
+      acceptedSegmentsStart,
+      finalResult: `rejected:${lastAttempt?.reason ?? "unsupported"}`,
+    });
+    recordCompletedTailWindows();
     reportProgress();
   }
   reportProgress(true);
@@ -1652,6 +1930,16 @@ export function buildSparseRemovableSupport(
   if (!requestValid || (!anyFiniteFace && request.projectedOutsideFaces.length > 0)) {
     diagnostics.rejectedByRemovability += diagnostics.criticalTargetCount === 0 ? 1 : 0;
   }
+  const tailProfile = tailProfileEnabled ? {
+    spacingAsSelectionPreference: request.spacingAsSelectionPreference,
+    windows: tailWindows.slice(0, completedTailWindowCount),
+    slowestTargets: [...slowestTargets],
+    slowestRoutes: [...slowestRoutes],
+    completedThroughTarget: completedTailWindowCount > 0
+      ? tailWindows[completedTailWindowCount - 1].endTarget
+      : 0,
+    ...(profileIncomplete ? { stopTargetIndex: targetsProcessed, stopRouteAuditCount: routeAuditCount } : {}),
+  } satisfies SparseSupportTailProfile : undefined;
   const performanceSummary: SparseSupportPerformance = {
     state: profileIncomplete ? "PROFILE_INCOMPLETE" : "COMPLETE",
     targetsProcessed,
@@ -1665,11 +1953,35 @@ export function buildSparseRemovableSupport(
     verticalAuditMs,
     leaningAuditMs,
     spacingMs,
+    auditRouteSpacingComparisons,
+    postAuditSpacingComparisons,
+    spacingComparisons: auditRouteSpacingComparisons + postAuditSpacingComparisons,
+    auditRouteSpacingMs,
+    postAuditSpacingMs,
+    spacingAsSelectionPreference: request.spacingAsSelectionPreference,
+    ...(tailProfile ? { tailProfile } : {}),
     graphFinalizationMs,
     debugPayloadMs,
     totalMs: monotonicNow() - buildStarted,
   };
   return { graph, diagnostics, debug, candidates, acceptedRoutes, performance: performanceSummary };
+}
+
+/** Production builder: false-mode spacing is authoritative inside auditRoute. */
+export function buildSparseRemovableSupport(
+  input: SparseRemovableSupportRequest,
+): SparseRemovableSupportResult {
+  return buildSparseRemovableSupportInternal(input, true);
+}
+
+/**
+ * Test-only semantic oracle retaining the pre-optimization duplicate spacing
+ * pass. It is never used by the worker or export path.
+ */
+export function buildSparseRemovableSupportReferenceForTests(
+  input: SparseRemovableSupportRequest,
+): SparseRemovableSupportResult {
+  return buildSparseRemovableSupportInternal(input, false);
 }
 
 /** Compatibility spelling used by callers that keep the Study prefix. */

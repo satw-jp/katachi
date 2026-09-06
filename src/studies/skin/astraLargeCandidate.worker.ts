@@ -171,6 +171,47 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
   let candidateBodyAuditMs = 0;
   let rabbitAuditMs = 0;
   const measureQueryTimings = candidate.query.readTelemetry().enabled;
+  const tailWindowEnds = new Set([512, 1024, 1536, 2048, 2304, 2560, 3072, 3584, 4096, 4561]);
+  const tailWindowSnapshots = new Map<number, {
+    bodySdfCalls: number;
+    rabbitSdfCalls: number;
+    candidateBvhNodesVisited: number;
+    candidateBvhTrianglesTested: number;
+  }>();
+  const tailStartQueryTelemetry = candidate.query.readTelemetry();
+  type TailQuerySnapshot = {
+    bodySdfCalls: number;
+    rabbitSdfCalls: number;
+    candidateBvhNodesVisited: number;
+    candidateBvhTrianglesTested: number;
+  };
+  const tailWindowCumulativeSnapshots = new Map<number, TailQuerySnapshot>();
+  const tailInitialSnapshot: TailQuerySnapshot = {
+    bodySdfCalls: 0,
+    rabbitSdfCalls: 0,
+    candidateBvhNodesVisited: tailStartQueryTelemetry.closestSurfaceNodesVisited + tailStartQueryTelemetry.rayIntersectionNodesVisited,
+    candidateBvhTrianglesTested: tailStartQueryTelemetry.closestSurfaceTrianglesTested + tailStartQueryTelemetry.rayIntersectionTrianglesTested,
+  };
+  tailWindowCumulativeSnapshots.set(0, tailInitialSnapshot);
+  let previousTailSnapshot = tailInitialSnapshot;
+  const captureTailWindow = (progress: { targetsProcessed: number }): void => {
+    if (!command.profile?.enabled || !tailWindowEnds.has(progress.targetsProcessed)) return;
+    const telemetry = candidate.query.readTelemetry();
+    const current: TailQuerySnapshot = {
+      bodySdfCalls: candidateBodySignedDistanceCalls,
+      rabbitSdfCalls: rabbitSignedDistanceCalls,
+      candidateBvhNodesVisited: telemetry.closestSurfaceNodesVisited + telemetry.rayIntersectionNodesVisited,
+      candidateBvhTrianglesTested: telemetry.closestSurfaceTrianglesTested + telemetry.rayIntersectionTrianglesTested,
+    };
+    tailWindowCumulativeSnapshots.set(progress.targetsProcessed, current);
+    tailWindowSnapshots.set(progress.targetsProcessed, {
+      bodySdfCalls: current.bodySdfCalls - previousTailSnapshot.bodySdfCalls,
+      rabbitSdfCalls: current.rabbitSdfCalls - previousTailSnapshot.rabbitSdfCalls,
+      candidateBvhNodesVisited: current.candidateBvhNodesVisited - previousTailSnapshot.candidateBvhNodesVisited,
+      candidateBvhTrianglesTested: current.candidateBvhTrianglesTested - previousTailSnapshot.candidateBvhTrianglesTested,
+    });
+    previousTailSnapshot = current;
+  };
   const forbidden = (x: number, y: number, z: number): number => {
     rabbitSignedDistanceCalls += 1;
     const queryStarted = measureQueryTimings ? now() : 0;
@@ -204,20 +245,54 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     maximumOverlapLength: command.settings.neckDiameterMm + command.settings.shaftDiameterMm,
     maximumDepth: command.settings.neckDiameterMm + command.settings.shaftDiameterMm,
     ...(command.profile ? { profile: command.profile } : {}),
-    onProgress: (progress: { targetsProcessed: number; totalTargets: number; routeOptionsTested: number; routeAudits: number; acceptedSupportCount: number; elapsedMs: number }) => postProgress(
-      command,
-      "Sparse Support",
-      started,
-      `targets ${progress.targetsProcessed.toLocaleString()} / ${progress.totalTargets.toLocaleString()} · routes ${progress.routeOptionsTested.toLocaleString()} · audits ${progress.routeAudits.toLocaleString()} · accepted ${progress.acceptedSupportCount.toLocaleString()}`,
-      progress.targetsProcessed,
-      progress.totalTargets,
-    ),
+    onProgress: (progress: { targetsProcessed: number; totalTargets: number; routeOptionsTested: number; routeAudits: number; acceptedSupportCount: number; elapsedMs: number }) => {
+      captureTailWindow(progress);
+      postProgress(
+        command,
+        "Sparse Support",
+        started,
+        `targets ${progress.targetsProcessed.toLocaleString()} / ${progress.totalTargets.toLocaleString()} · routes ${progress.routeOptionsTested.toLocaleString()} · audits ${progress.routeAudits.toLocaleString()} · accepted ${progress.acceptedSupportCount.toLocaleString()}`,
+        progress.targetsProcessed,
+        progress.totalTargets,
+      );
+    },
   };
   candidate.support = buildSparseRemovableSupport(request); candidate.supportFingerprint = candidate.support.performance.state === "COMPLETE"
     ? await sha256Fingerprint(JSON.stringify({ candidate: candidate.geometryFingerprint, diagnostics: candidate.diagnosticsFingerprint, rabbitSourceSha256: ASTRA_RABBIT_SOURCE_SHA256, rabbitRepairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT, settings: command.settings, graph: candidate.support.graph }))
     : null;
   if (candidate.support.diagnostics.acceptedBodyCollisionCount !== 0 || candidate.support.diagnostics.acceptedForbiddenCollisionCount !== 0) {
     throw new Error("Fail closed: Sparse Support accepted a BODY or Rabbit forbidden-volume collision");
+  }
+  if (candidate.support.performance.tailProfile) {
+    const finalTelemetry = candidate.query.readTelemetry();
+    const finalSnapshot: TailQuerySnapshot = {
+      bodySdfCalls: candidateBodySignedDistanceCalls,
+      rabbitSdfCalls: rabbitSignedDistanceCalls,
+      candidateBvhNodesVisited: finalTelemetry.closestSurfaceNodesVisited + finalTelemetry.rayIntersectionNodesVisited,
+      candidateBvhTrianglesTested: finalTelemetry.closestSurfaceTrianglesTested + finalTelemetry.rayIntersectionTrianglesTested,
+    };
+    for (const window of candidate.support.performance.tailProfile.windows) {
+      const measured = tailWindowSnapshots.get(window.endTarget);
+      const measuredQueryWork = measured
+        ? measured.bodySdfCalls + measured.rabbitSdfCalls + measured.candidateBvhNodesVisited + measured.candidateBvhTrianglesTested
+        : 0;
+      if (measured && (window.routeAudits === 0 || measuredQueryWork > 0)) {
+        Object.assign(window, measured);
+        continue;
+      }
+      const start = tailWindowCumulativeSnapshots.get(window.startTarget) ?? tailInitialSnapshot;
+      const cumulativeEnd = tailWindowCumulativeSnapshots.get(window.endTarget);
+      const cumulativeEndQueryWork = cumulativeEnd
+        ? cumulativeEnd.bodySdfCalls + cumulativeEnd.rabbitSdfCalls + cumulativeEnd.candidateBvhNodesVisited + cumulativeEnd.candidateBvhTrianglesTested
+        : 0;
+      const end = cumulativeEnd && (window.routeAudits === 0 || cumulativeEndQueryWork > 0) ? cumulativeEnd : finalSnapshot;
+      Object.assign(window, {
+        bodySdfCalls: end.bodySdfCalls - start.bodySdfCalls,
+        rabbitSdfCalls: end.rabbitSdfCalls - start.rabbitSdfCalls,
+        candidateBvhNodesVisited: end.candidateBvhNodesVisited - start.candidateBvhNodesVisited,
+        candidateBvhTrianglesTested: end.candidateBvhTrianglesTested - start.candidateBvhTrianglesTested,
+      });
+    }
   }
   candidate.timings.support = now() - started;
   const diagnostics = candidate.detection;

@@ -8,6 +8,7 @@ import {
 import {
   auditSparseRemovableSupportCapsule,
   buildSparseRemovableSupport,
+  buildSparseRemovableSupportReferenceForTests,
   deriveA1MiniPlateBoundsFromBodyPositions,
   enumerateSparseRemovableSupportLeaningDirections,
   evaluateSparseExperimentalExportGate,
@@ -318,6 +319,65 @@ const bodyRejected = buildSparseRemovableSupport({
 assert.equal(bodyRejected.diagnostics.generatedSupportCount, 0);
 assert.ok(bodyRejected.diagnostics.rejectedByBody > 0);
 assert.equal(bodyRejected.diagnostics.insideDerivedSupportCount, 0);
+
+// Duplicate-spacing removal is compared against the retained pre-optimization
+// oracle across the route families and rejection paths that can reach it. The
+// performance object is intentionally excluded; graph, attempts, diagnostics
+// and authored route facts must remain exact.
+const sparseSemanticDigest = (result: ReturnType<typeof buildSparseRemovableSupport>) => ({
+  graph: result.graph,
+  diagnostics: result.diagnostics,
+  debug: result.debug,
+  candidates: result.candidates,
+  acceptedRoutes: result.acceptedRoutes,
+});
+const spacingParityFixtures = [
+  {
+    name: "no accepted supports",
+    request: { ...baseRequest, projectedOutsideFaces: [face(30, 0, 0, 2, 0)], outsideRegionCount: 1, maxLeaningRoutes: 0, bodySdf: () => -1 },
+  },
+  {
+    name: "one accepted support far away",
+    request: { ...baseRequest, projectedOutsideFaces: [face(31, 0, 0, 2, 0)], outsideRegionCount: 1, maxLeaningRoutes: 0 },
+  },
+  {
+    name: "one spacing collision",
+    request: { ...baseRequest, removalGap: 0.08, projectedOutsideFaces: [face(32, 0, 0, 2, 0), face(32, 0.17, 0, 2, 1)], outsideRegionCount: 1, coverageRadius: 0 },
+  },
+  {
+    name: "multiple accepted segments",
+    request: { ...baseRequest, projectedOutsideFaces: sparseFaces, outsideRegionCount: 2, coverageRadius: 0 },
+  },
+  {
+    name: "vertical route",
+    request: { ...baseRequest, projectedOutsideFaces: [face(33, 0, 0, 2, 0)], outsideRegionCount: 1, maxLeaningRoutes: 0 },
+  },
+  {
+    name: "leaning route",
+    request: { ...baseRequest, projectedOutsideFaces: [{ ...face(34, 0, 0, 2, 0), normal: { x: 0.6, y: 0, z: -0.8 } }], outsideRegionCount: 1, maxLeaningRoutes: 1, plateBounds: { minX: -2, maxX: 2, minY: -2, maxY: 2 }, bodySdf: (x: number, y: number, z: number) => Math.hypot(x, y, z - 1) - 0.2 },
+  },
+  {
+    name: "BODY rejection",
+    request: { ...baseRequest, projectedOutsideFaces: [face(35, 0, 0, 2, 0)], outsideRegionCount: 1, maxLeaningRoutes: 0, bodySdf: (x: number, y: number, z: number) => Math.hypot(x, y, z - 1) - 0.2 },
+  },
+  {
+    name: "Rabbit rejection before spacing",
+    request: { ...baseRequest, projectedOutsideFaces: [face(36, 0, 0, 2, 0)], outsideRegionCount: 1, maxLeaningRoutes: 0, forbiddenSdf: () => -1 },
+  },
+] as const;
+for (const fixture of spacingParityFixtures) {
+  for (const spacingAsSelectionPreference of [false, true]) {
+    const request = { ...fixture.request, spacingAsSelectionPreference };
+    const reference = buildSparseRemovableSupportReferenceForTests(request);
+    const optimized = buildSparseRemovableSupport(request);
+    assert.deepEqual(sparseSemanticDigest(optimized), sparseSemanticDigest(reference),
+      `${fixture.name} parity failed for spacingAsSelectionPreference=${spacingAsSelectionPreference}`);
+    assert.equal(optimized.performance.spacingAsSelectionPreference, spacingAsSelectionPreference);
+    if (spacingAsSelectionPreference) {
+      assert.equal(optimized.performance.postAuditSpacingComparisons, reference.performance.postAuditSpacingComparisons);
+    }
+  }
+}
 
 // The explicit route-only revision preserves the already-reviewed owner neck
 // instead of re-proving its target attribution, but still screens the same

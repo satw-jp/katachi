@@ -169,22 +169,25 @@ export function createSignedVolumeQuery(
 ): HostSignedVolumeQuery | null {
   if (preflight.signedVolumeCapability.availability !== "AVAILABLE") return null;
   const surfaceTolerance = Math.max(longestDimension(mesh) * 1e-9, 1e-9);
+  const classify = (point: HostVec3, surface: { distance: number }): HostInsideOutside => {
+    if (surface.distance <= surfaceTolerance) return "surface";
+    const votes = PARITY_DIRECTIONS.map((direction) => parityInside(point, direction, mesh, surfaceQuery));
+    if (votes.every((value) => value === votes[0])) return votes[0] ? "inside" : "outside";
+    return "unknown";
+  };
   return {
     insideOutside(pointInput: HostVec3): HostInsideOutside {
       const point = clonePoint(pointInput);
       const surface = surfaceQuery.closestSurface(point);
       if (!surface) throw new Error("Signed volume query has no closest surface result");
-      if (surface.distance <= surfaceTolerance) return "surface";
-      const votes = PARITY_DIRECTIONS.map((direction) => parityInside(point, direction, mesh, surfaceQuery));
-      if (votes.every((value) => value === votes[0])) return votes[0] ? "inside" : "outside";
-      return "unknown";
+      return classify(point, surface);
     },
     signedDistance(pointInput: HostVec3): number {
       const point = clonePoint(pointInput);
       const surface = surfaceQuery.closestSurface(point);
       if (!surface) throw new Error("Signed volume query has no closest surface result");
-      if (surface.distance <= surfaceTolerance) return 0;
-      const relation = this.insideOutside(point);
+      const relation = classify(point, surface);
+      if (relation === "surface") return 0;
       if (relation === "inside") return -surface.distance;
       if (relation === "outside") return surface.distance;
       throw new Error(`Signed volume classification is ${relation}; refusing an untrusted sign`);

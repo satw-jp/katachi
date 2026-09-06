@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   createDerivedRepairArtifact,
+  createSignedVolumeQuery,
   proposeBoundaryRepair,
 } from "./externalStlHostVolume.ts";
 import {
@@ -78,6 +79,27 @@ test("closed cube exposes signed volume capability and signed distance", async (
   assert.ok(instance.signedVolumeQuery.signedDistance({ x: 0, y: 0, z: 0 }) < 0);
   assert.equal(instance.signedVolumeQuery.signedDistance({ x: 1, y: 0, z: 0 }), 0);
   assert.ok(instance.signedVolumeQuery.signedDistance({ x: 3, y: 0, z: 0 }) > 0);
+});
+
+test("signed distance reuses its closest-surface result for classification", async () => {
+  const source = await createImportedHostSource(asciiStl("cube", cubeTriangles), {
+    filename: "cube.stl",
+    interpretation,
+  });
+  const instance = createImportedHostInstance(source, identity);
+  let closestSurfaceCalls = 0;
+  const countingQuery = {
+    ...instance.query,
+    closestSurface(point: HostVec3) {
+      closestSurfaceCalls += 1;
+      return instance.query.closestSurface(point);
+    },
+  };
+  const signed = createSignedVolumeQuery(instance.mesh, countingQuery, instance.volumePreflight);
+  assert.ok(signed);
+  const callsBefore = closestSurfaceCalls;
+  assert.ok(signed.signedDistance({ x: 0, y: 0, z: 0 }) < 0);
+  assert.equal(closestSurfaceCalls - callsBefore, 1);
 });
 
 test("uniformScale 20 preserves query semantics and scales distances", async () => {
