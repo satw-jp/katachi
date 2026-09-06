@@ -305,7 +305,7 @@ studySelect.addEventListener("change", () => setStudy(studySelect.value as Study
 playButton.addEventListener("click", () => { clock.playing = !clock.playing; status.textContent = clock.playing ? "PLAYING" : "PAUSED"; render(); });
 restartButton.addEventListener("click", resetStudy);
 speedInput.addEventListener("input", () => { clock.setSpeed(Number(speedInput.value)); status.textContent = `SPEED ${clock.speed.toFixed(2)}×`; render(); });
-seedInput.addEventListener("change", () => {
+seedInput.addEventListener("input", () => {
   const nextSeed = Number(seedInput.value);
   if (!Number.isFinite(nextSeed)) {
     seedInput.value = String(seed);
