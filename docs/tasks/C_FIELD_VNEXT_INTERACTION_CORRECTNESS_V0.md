@@ -30,6 +30,23 @@ Preferred branch:
 
 Do not merge/rebase main merely to obtain docs.
 
+## 2026-09-07 execution boundary
+
+For today's C work, this is the **only** authorized implementation task.
+
+Before starting:
+
+- if an existing clean/safe J: worktree for this exact task/base is available, prefer that worktree;
+- verify its branch, HEAD/base, and clean working tree before modifying anything;
+- do not reuse an ambiguous/stale J: directory merely because it exists;
+- if no safe J: worktree is available, report the environment state before creating or switching worktrees rather than guessing.
+
+After this task is reviewed and PASS / CLOSED:
+
+- **STOP C work for the day**;
+- do not automatically start `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`;
+- the durability audit remains queued for a later explicit C SOL start.
+
 ## Confirmed code boundary
 
 Current renderer behavior has multiple visibility authorities:
@@ -183,3 +200,5 @@ Ready for C SOL review when:
 - tests/build/diff checks pass;
 - Production parity remains exact;
 - branch is pushed and compact C SOL review handoff is returned.
+
+C LUNA does not start the queued durability audit after completion. C SOL reviews this checkpoint first; after PASS / CLOSED, C stops for the day unless the author explicitly reopens another task.
