@@ -9,6 +9,12 @@ Last verified: 2026-09-06
 ## Current phase
 ART SOL / ART LUNA are implementing a small, independent Research Principle Visualization track. ART remains an independent generative / interactive audiovisual environment, not a SKIN presentation layer.
 
+## Operating routing
+- ART SOL owns architecture, scope, next gate, and the bounded instruction for ART LUNA / implementation worker.
+- The author does not need to rewrite or relay SOL implementation instructions.
+- Implementation workers execute only the current bounded instruction and return evidence for SOL review; they do not self-approve global closure.
+- Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
+
 ## PASS / CLOSED
 - Research Astra First Sprint and Research SOL review have been used as source material for ART interpretation.
 - Scope is bounded to small principle studies rather than full natural-system simulation.
