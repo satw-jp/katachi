@@ -4571,3 +4571,7 @@ Stage 8のaccepted graphを物理フィードバックの唯一の入力とし�
 実ブラウザの現行fixtureではStage 8の再生成結果が132 supported / 19 unresolved、physical feedback後が537 nodes / 370 edges、long-unbraced 3、brace 35、braced supports 70、point 61 / crown 4 / patch candidate 67となり、BODY collision / plate / invalid / zero / duplicate / extremeはすべて0だった。旧Goldenの166 / 156 / 10、546 nodes / 390 edgesはPRE-PHYSICAL-PRINT GOLDEN BASELINEとして凍結し、physical graphの受入条件には流用しない。
 
 default、thinner contact、small nonzero gapの比較用3MFは出力経路の同一Stage 8 sourceを使う。STL / reportとのfingerprint parityおよびview切替の非変異は既存契約と回帰で確認する。Bambu / Prusaでの手動slicer確認はWAITINGであり、`printApproval=false`を維持する。
+
+## Observation — FIELD vNext Restore (2026-09-06)
+
+Authoritative C production checkpoint 2b64cebc09f8e11e5d9f78993d82f7239deb6823へ、GitHub上のhistorical FIELD vNext source 8bf46150f0278794cac8061d26f01737c8fb1ff0をdisplay/runtime限定でportした。FIELDはdefault Legacyのまま、session-onlyのLegacy / vNext selectorを持つ。vNextは同じHost / Patch stateからuncapped semantic DataTexture payloadを作り、primitive orderとpatch owner identityを保持する。WebGL capability / payload capacity / resource failureはLegacyへfail-safe fallbackし、DataTexture / quad / materialは切替とpagehideでdisposeする。Authoring、Permanent Graph、BODY、Support、FKEI、export、3MF、Physical Gateは変更していない。Stage 2 Sampleの266 primitivesでLegacy/vNext切替と再切替を実ブラウザ確認し、build・SKIN REBUILD regression・production replay x2を通過した。commit/push/deployは行っていない。

@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-06",
+      "note": "FIELD vNextをauthoritative C production checkpoint 2b64cebc09f8e11e5d9f78993d82f7239deb6823へdisplay/runtime限定でportした。default Legacyのsession-only selector、uncapped semantic DataTexture payload、primitive order / patch owner identity、capability/capacity fallback、GPU resource disposalを追加した。Permanent Graph、BODY、Support、supportSource、FKEI、export、3MF、Physical Gateは変更していない。266 primitivesの実ブラウザ切替、build、SKIN REBUILD regression、production replay x2を確認し、commit/push/deployは行っていない。"
+    },
+    {
+      "date": "2026-09-06",
       "note": "Production v0 geometry fidelity correction aligns the Motif-conditioned Local Relay and native BODY construction with the Research M / M-R contract through one explicit policy: Host-depth anchors, local route candidates, bounded degree/cycle budget, subdivided inset routes, finite member radius, quad join width, resolution 128, and fixed C0 source-to-mm scale. It removes the unintended legacy Stage 5A lattice overlap from the Production permanent network without copying Research edge lists or coordinates. Immutable C0 P1 replay was 249 nodes / 268 edges / cycle rank 20, 142580 faces, 6844.291 mm3; bounded Graph-only repair P3 was 253 / 272 / 20, 143416 faces, 6885.716 mm3. Both were closed single-shell BODYs. Host, 38 Motifs, Motif transforms, and removable Support fingerprints were unchanged; Motif relocation stayed 0; two-run Graph, BODY, diagnostics, and runtime fingerprints matched. Support and 3MF export code were not changed. Same-view evidence requires C SOL / Author review; no deploy, commit, push, or physical approval is part of this revisit."
     },
     {
