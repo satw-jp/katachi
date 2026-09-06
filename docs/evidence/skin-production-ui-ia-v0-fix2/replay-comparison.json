@@ -1,0 +1,25 @@
+{
+  "schema": "katachi.skin-production-ui-ia-v0.fix2.replay-comparison.v1",
+  "uiCheckpoint": "22ef22bcc327e048ed994c8fa8c3964ad20b324c",
+  "replay1": {
+    "bodyFingerprint": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "permanentGraphFingerprint": "5cb659849d694beaae6443a4828031b5b6471b836bbe5e78aede5aece1c34435",
+    "supportGraphFingerprint": "ef1d3eaec4146e171316a81e441797526fef6c8921d88a7689b68ac9c5892121",
+    "threeMfSha256": "bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c",
+    "supportSource": "current-stage8:sparseResult.graph"
+  },
+  "replay2": {
+    "bodyFingerprint": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "permanentGraphFingerprint": "5cb659849d694beaae6443a4828031b5b6471b836bbe5e78aede5aece1c34435",
+    "supportGraphFingerprint": "ef1d3eaec4146e171316a81e441797526fef6c8921d88a7689b68ac9c5892121",
+    "threeMfSha256": "bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c",
+    "supportSource": "current-stage8:sparseResult.graph"
+  },
+  "completeResultSetMatch": true,
+  "hostIdentityMatch": true,
+  "motifIdentityAndTransformMatch": true,
+  "permanentGraphMatch": true,
+  "bodyMatch": true,
+  "supportMatch": true,
+  "threeMfMatch": true
+}

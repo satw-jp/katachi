@@ -1,0 +1,3114 @@
+{
+  "outsideRegionCount": 109,
+  "rawCandidateCount": 6796,
+  "criticalTargetCount": 152,
+  "coveredTargetCount": 137,
+  "unsupportedTargetCount": 15,
+  "generatedSupportCount": 137,
+  "rejectedByBody": 15,
+  "rejectedBySpacing": 0,
+  "rejectedByRemovability": 0,
+  "insideDerivedSupportCount": 0,
+  "verticalCount": 61,
+  "leaningCount": 76,
+  "routeCandidateCount": 4172,
+  "straightRejectedByBody": 91,
+  "offsetBendCount": 76,
+  "acceptedBodyCollisionCount": 0,
+  "experimental": true,
+  "removalGap": 0.019825948178768156,
+  "shaftRadius": 0.045316452980041506,
+  "neckRadius": 0.016993669867515562,
+  "requestedTargets": 152,
+  "criticalTargets": 152,
+  "supportedTargets": 137,
+  "unsupportedTargets": 15,
+  "unresolved": 15,
+  "generatedSupports": 137,
+  "verticalOnlyRoutes": 61,
+  "leaningRoutes": 76,
+  "offsetBendRoutes": 76,
+  "bodyRejects": 15,
+  "insideDerived": 0,
+  "physicalFeedback": {
+    "targetCount": 152,
+    "trunkCount": 137,
+    "nodeCount": 577,
+    "edgeCount": 395,
+    "maxUnbracedLengthMm": 18,
+    "longestUnbracedLengthMm": 64.0434785626486,
+    "longUnbracedCount": 3,
+    "braceCount": 45,
+    "bracedSupportCount": 90,
+    "pointContactCount": 56,
+    "crownContactCount": 3,
+    "patchCandidateCount": 78,
+    "criticalRegionsWithoutEnhancedContact": 39,
+    "totalContactCount": 137,
+    "tipDiameterMm": 0.6,
+    "neckLengthMm": 0.6,
+    "contactGapMm": 0,
+    "gapEnabledCount": 0,
+    "contacts": [
+      {
+        "targetId": "outside-0-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.3255031804243724,
+          "y": 0.36650940775871277,
+          "z": -2.100912888844808
+        },
+        "sourceFaceIndices": [
+          91
+        ]
+      },
+      {
+        "targetId": "outside-0-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.3766205608844757,
+          "y": 0.5382752617200216,
+          "z": -1.9882744948069255
+        },
+        "sourceFaceIndices": [
+          994
+        ]
+      },
+      {
+        "targetId": "outside-0-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.5506556828816732,
+          "y": 0.3498997191588084,
+          "z": -1.984828035036723
+        },
+        "sourceFaceIndices": [
+          982
+        ]
+      },
+      {
+        "targetId": "outside-1-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.10710474848747253,
+          "y": -0.474910447994868,
+          "z": -2.100646654764811
+        },
+        "sourceFaceIndices": [
+          25
+        ]
+      },
+      {
+        "targetId": "outside-1-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.11177778989076614,
+          "y": -0.4847053786118825,
+          "z": -2.092327912648519
+        },
+        "sourceFaceIndices": [
+          0
+        ]
+      },
+      {
+        "targetId": "outside-1-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.0014517844344178836,
+          "y": -0.5677784283955892,
+          "z": -2.0361313819885254
+        },
+        "sourceFaceIndices": [
+          421
+        ]
+      },
+      {
+        "targetId": "outside-4-0",
+        "tier": "point",
+        "center": {
+          "x": -0.38117395838101703,
+          "y": 0.24992293616135916,
+          "z": -2.079805612564087
+        },
+        "sourceFaceIndices": [
+          321
+        ]
+      },
+      {
+        "targetId": "outside-7-0",
+        "tier": "point",
+        "center": {
+          "x": -0.4769363800684611,
+          "y": 0.42165064811706543,
+          "z": -2.0094573497772217
+        },
+        "sourceFaceIndices": [
+          692
+        ]
+      },
+      {
+        "targetId": "outside-10-0",
+        "tier": "point",
+        "center": {
+          "x": -0.5384953022003174,
+          "y": 0.3167532483736674,
+          "z": -2.000443379084269
+        },
+        "sourceFaceIndices": [
+          988
+        ]
+      },
+      {
+        "targetId": "outside-12-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.679302970568339,
+          "y": -0.15591485798358917,
+          "z": -1.8483461538950603
+        },
+        "sourceFaceIndices": [
+          1356
+        ]
+      },
+      {
+        "targetId": "outside-12-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.651009718577067,
+          "y": -0.03269338173170885,
+          "z": -1.790396769841512
+        },
+        "sourceFaceIndices": [
+          1489
+        ]
+      },
+      {
+        "targetId": "outside-12-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.7361069321632385,
+          "y": 0.07298718268672626,
+          "z": -1.760443131128947
+        },
+        "sourceFaceIndices": [
+          1613
+        ]
+      },
+      {
+        "targetId": "outside-13-0",
+        "tier": "point",
+        "center": {
+          "x": -0.571169396241506,
+          "y": 0.3213326334953308,
+          "z": -1.9666392803192139
+        },
+        "sourceFaceIndices": [
+          1117
+        ]
+      },
+      {
+        "targetId": "outside-26-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.5473354061444601,
+          "y": -0.522513190905253,
+          "z": -1.5910471677780151
+        },
+        "sourceFaceIndices": [
+          1657
+        ]
+      },
+      {
+        "targetId": "outside-26-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.6575137774149576,
+          "y": -0.4643651445706685,
+          "z": -1.5231820344924927
+        },
+        "sourceFaceIndices": [
+          1780
+        ]
+      },
+      {
+        "targetId": "outside-26-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.7110261718432108,
+          "y": -0.3468698561191559,
+          "z": -1.4600987434387207
+        },
+        "sourceFaceIndices": [
+          1849
+        ]
+      },
+      {
+        "targetId": "outside-30-0",
+        "tier": "point",
+        "center": {
+          "x": -0.4657892982165019,
+          "y": -0.594382107257843,
+          "z": -1.5417708555857341
+        },
+        "sourceFaceIndices": [
+          1703
+        ]
+      },
+      {
+        "targetId": "outside-40-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.19652258356412253,
+          "y": 0.7830102443695068,
+          "z": -1.3529265721638997
+        },
+        "sourceFaceIndices": [
+          1977
+        ]
+      },
+      {
+        "targetId": "outside-44-0",
+        "tier": "point",
+        "center": {
+          "x": 0.1758433332045873,
+          "y": 0.8579713304837545,
+          "z": -1.3214906851450603
+        },
+        "sourceFaceIndices": [
+          2179
+        ]
+      },
+      {
+        "targetId": "outside-47-0",
+        "tier": "point",
+        "center": {
+          "x": 0.13244198759396872,
+          "y": 0.8423816363016764,
+          "z": -1.32053538163503
+        },
+        "sourceFaceIndices": [
+          2178
+        ]
+      },
+      {
+        "targetId": "outside-49-0",
+        "tier": "point",
+        "center": {
+          "x": 0.12572131802638373,
+          "y": 0.8653363982836405,
+          "z": -1.301547368367513
+        },
+        "sourceFaceIndices": [
+          2172
+        ]
+      },
+      {
+        "targetId": "outside-50-0",
+        "tier": "point",
+        "center": {
+          "x": 0.2838124632835388,
+          "y": 0.7469428380330404,
+          "z": -1.3009366194407146
+        },
+        "sourceFaceIndices": [
+          2119
+        ]
+      },
+      {
+        "targetId": "outside-51-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.7561643719673157,
+          "y": 0.3144444425900777,
+          "z": -1.3006171385447185
+        },
+        "sourceFaceIndices": [
+          2068
+        ]
+      },
+      {
+        "targetId": "outside-51-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.7387714982032776,
+          "y": 0.4571859538555145,
+          "z": -1.2698966264724731
+        },
+        "sourceFaceIndices": [
+          2637
+        ]
+      },
+      {
+        "targetId": "outside-51-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.6019798318545023,
+          "y": 0.5017352898915609,
+          "z": -1.2528888781865437
+        },
+        "sourceFaceIndices": [
+          3047
+        ]
+      },
+      {
+        "targetId": "outside-55-0",
+        "tier": "point",
+        "center": {
+          "x": 0.08790511389573415,
+          "y": 0.8240512609481812,
+          "z": -1.2984718879063923
+        },
+        "sourceFaceIndices": [
+          2673
+        ]
+      },
+      {
+        "targetId": "outside-56-0",
+        "tier": "point",
+        "center": {
+          "x": 0.0884302407503128,
+          "y": 0.830099364121755,
+          "z": -1.2953838507334392
+        },
+        "sourceFaceIndices": [
+          2676
+        ]
+      },
+      {
+        "targetId": "outside-58-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.4661518136660258,
+          "y": -0.637397825717926,
+          "z": -1.28327743212382
+        },
+        "sourceFaceIndices": [
+          2281
+        ]
+      },
+      {
+        "targetId": "outside-58-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.3725518782933553,
+          "y": -0.7577483256657919,
+          "z": -1.2395491202672322
+        },
+        "sourceFaceIndices": [
+          2756
+        ]
+      },
+      {
+        "targetId": "outside-58-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.2117992639541626,
+          "y": -0.7711875041325887,
+          "z": -1.2184150218963623
+        },
+        "sourceFaceIndices": [
+          3092
+        ]
+      },
+      {
+        "targetId": "outside-62-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8081473708152771,
+          "y": 0.24355148275693259,
+          "z": -1.2631525198618572
+        },
+        "sourceFaceIndices": [
+          2415
+        ]
+      },
+      {
+        "targetId": "outside-70-0",
+        "tier": "point",
+        "center": {
+          "x": 0.04865178590019544,
+          "y": 0.7875540455182394,
+          "z": -1.259177525838216
+        },
+        "sourceFaceIndices": [
+          3079
+        ]
+      },
+      {
+        "targetId": "outside-71-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.26233572761217755,
+          "y": -0.7195077538490295,
+          "z": -1.2539213101069133
+        },
+        "sourceFaceIndices": [
+          2779
+        ]
+      },
+      {
+        "targetId": "outside-72-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.03683049914737543,
+          "y": 0.8208917379379272,
+          "z": -1.242971142133077
+        },
+        "sourceFaceIndices": [
+          3071
+        ]
+      },
+      {
+        "targetId": "outside-73-0",
+        "tier": "point",
+        "center": {
+          "x": 0.050580150137344994,
+          "y": 0.834267278512319,
+          "z": -1.250265638033549
+        },
+        "sourceFaceIndices": [
+          3088
+        ]
+      },
+      {
+        "targetId": "outside-75-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.7476890484491984,
+          "y": 0.19251452386379242,
+          "z": -1.2332791884740193
+        },
+        "sourceFaceIndices": [
+          3013
+        ]
+      },
+      {
+        "targetId": "outside-81-0",
+        "tier": "point",
+        "center": {
+          "x": -0.8236959973971049,
+          "y": 0.16626947124799094,
+          "z": -1.2103458642959595
+        },
+        "sourceFaceIndices": [
+          3187
+        ]
+      },
+      {
+        "targetId": "outside-85-0",
+        "tier": "point",
+        "center": {
+          "x": -0.35494856039683026,
+          "y": -0.6746110518773397,
+          "z": -1.1991244951883953
+        },
+        "sourceFaceIndices": [
+          3100
+        ]
+      },
+      {
+        "targetId": "outside-88-0",
+        "tier": "point",
+        "center": {
+          "x": -0.7796460588773092,
+          "y": 0.2747543652852376,
+          "z": -1.1826541026433308
+        },
+        "sourceFaceIndices": [
+          3211
+        ]
+      },
+      {
+        "targetId": "outside-91-0",
+        "tier": "point",
+        "center": {
+          "x": -0.02962321788072586,
+          "y": 0.8642294804255167,
+          "z": -1.1789203484853108
+        },
+        "sourceFaceIndices": [
+          3677
+        ]
+      },
+      {
+        "targetId": "outside-96-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.26806212464968365,
+          "y": 0.7473485668500265,
+          "z": -1.143875241279602
+        },
+        "sourceFaceIndices": [
+          3661
+        ]
+      },
+      {
+        "targetId": "outside-96-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.42579633990923565,
+          "y": 0.751667320728302,
+          "z": -1.0671102205912273
+        },
+        "sourceFaceIndices": [
+          4459
+        ]
+      },
+      {
+        "targetId": "outside-96-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.49984846512476605,
+          "y": 0.5978799859682719,
+          "z": -1.0225987434387207
+        },
+        "sourceFaceIndices": [
+          4838
+        ]
+      },
+      {
+        "targetId": "outside-101-0",
+        "tier": "point",
+        "center": {
+          "x": -0.41926875710487366,
+          "y": -0.6805065075556437,
+          "z": -1.1316440105438232
+        },
+        "sourceFaceIndices": [
+          3681
+        ]
+      },
+      {
+        "targetId": "outside-105-0",
+        "tier": "point",
+        "center": {
+          "x": -0.3333970208962758,
+          "y": 0.8042544921239217,
+          "z": -1.1064043045043945
+        },
+        "sourceFaceIndices": [
+          4125
+        ]
+      },
+      {
+        "targetId": "outside-111-0",
+        "tier": "point",
+        "center": {
+          "x": -0.3837249279022217,
+          "y": 0.7529787222544352,
+          "z": -1.0962932507197063
+        },
+        "sourceFaceIndices": [
+          4464
+        ]
+      },
+      {
+        "targetId": "outside-124-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.7642576893170675,
+          "y": -0.3016475439071655,
+          "z": -0.9653939406077067
+        },
+        "sourceFaceIndices": [
+          4962
+        ]
+      },
+      {
+        "targetId": "outside-124-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.7506359020868937,
+          "y": -0.45855127771695453,
+          "z": -0.87871781984965
+        },
+        "sourceFaceIndices": [
+          5124
+        ]
+      },
+      {
+        "targetId": "outside-124-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.6303828954696655,
+          "y": -0.552742063999176,
+          "z": -0.8301584124565125
+        },
+        "sourceFaceIndices": [
+          5198
+        ]
+      },
+      {
+        "targetId": "outside-136-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.7378045916557312,
+          "y": -0.19475961724917093,
+          "z": -0.8239107131958008
+        },
+        "sourceFaceIndices": [
+          5373
+        ]
+      },
+      {
+        "targetId": "outside-150-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6648710568745931,
+          "y": -0.3124587933222453,
+          "z": -0.7025190989176432
+        },
+        "sourceFaceIndices": [
+          5553
+        ]
+      },
+      {
+        "targetId": "outside-151-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.7366600235303243,
+          "y": -0.34961440165837604,
+          "z": -0.6993535161018372
+        },
+        "sourceFaceIndices": [
+          5548
+        ]
+      },
+      {
+        "targetId": "outside-154-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6610010464986166,
+          "y": -0.35433632135391235,
+          "z": -0.6689070661862692
+        },
+        "sourceFaceIndices": [
+          5616
+        ]
+      },
+      {
+        "targetId": "outside-155-0",
+        "tier": "point",
+        "center": {
+          "x": -0.662686824798584,
+          "y": -0.3978460629781087,
+          "z": -0.6372554500897726
+        },
+        "sourceFaceIndices": [
+          5604
+        ]
+      },
+      {
+        "targetId": "outside-157-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.1724791278441747,
+          "y": -0.7972108324368795,
+          "z": -0.6220732728640238
+        },
+        "sourceFaceIndices": [
+          5686
+        ]
+      },
+      {
+        "targetId": "outside-165-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.3310287495454152,
+          "y": 0.7521820863087972,
+          "z": -0.5809137026468912
+        },
+        "sourceFaceIndices": [
+          6222
+        ]
+      },
+      {
+        "targetId": "outside-165-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.4804871678352356,
+          "y": 0.7461416125297546,
+          "z": -0.5503239035606384
+        },
+        "sourceFaceIndices": [
+          6631
+        ]
+      },
+      {
+        "targetId": "outside-165-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.5490704973538717,
+          "y": 0.5988317728042603,
+          "z": -0.5319334268569946
+        },
+        "sourceFaceIndices": [
+          6612
+        ]
+      },
+      {
+        "targetId": "outside-167-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.5931935509045919,
+          "y": 0.5193356275558472,
+          "z": -0.5686137278874716
+        },
+        "sourceFaceIndices": [
+          5984
+        ]
+      },
+      {
+        "targetId": "outside-167-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.7426789800326029,
+          "y": 0.445645272731781,
+          "z": -0.5212616721789042
+        },
+        "sourceFaceIndices": [
+          6544
+        ]
+      },
+      {
+        "targetId": "outside-167-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.7350211143493652,
+          "y": 0.2947554091612498,
+          "z": -0.502839724222819
+        },
+        "sourceFaceIndices": [
+          6912
+        ]
+      },
+      {
+        "targetId": "outside-170-0",
+        "tier": "point",
+        "center": {
+          "x": 0.25075459480285645,
+          "y": 0.8159821033477783,
+          "z": -0.5368959903717041
+        },
+        "sourceFaceIndices": [
+          6633
+        ]
+      },
+      {
+        "targetId": "outside-176-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.7941622138023376,
+          "y": 0.15254988769690195,
+          "z": -0.5196306506792704
+        },
+        "sourceFaceIndices": [
+          6346
+        ]
+      },
+      {
+        "targetId": "outside-181-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.5799775123596191,
+          "y": -0.574326237042745,
+          "z": -0.5070529182751974
+        },
+        "sourceFaceIndices": [
+          6689
+        ]
+      },
+      {
+        "targetId": "outside-181-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.5233298937479655,
+          "y": -0.7067376573880514,
+          "z": -0.42462913195292157
+        },
+        "sourceFaceIndices": [
+          7268
+        ]
+      },
+      {
+        "targetId": "outside-181-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.36801378925641376,
+          "y": -0.744197408358256,
+          "z": -0.37448233366012573
+        },
+        "sourceFaceIndices": [
+          7671
+        ]
+      },
+      {
+        "targetId": "outside-190-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8721937537193298,
+          "y": 0.07983606060345967,
+          "z": -0.4693554739157359
+        },
+        "sourceFaceIndices": [
+          7089
+        ]
+      },
+      {
+        "targetId": "outside-191-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6200981338818868,
+          "y": -0.6278972029685974,
+          "z": -0.4721136192480723
+        },
+        "sourceFaceIndices": [
+          7014
+        ]
+      },
+      {
+        "targetId": "outside-197-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8681472539901733,
+          "y": 0.05479092647631963,
+          "z": -0.44538866480191547
+        },
+        "sourceFaceIndices": [
+          7086
+        ]
+      },
+      {
+        "targetId": "outside-203-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8721558451652527,
+          "y": 0.040174382428328194,
+          "z": -0.4306276837984721
+        },
+        "sourceFaceIndices": [
+          7467
+        ]
+      },
+      {
+        "targetId": "outside-214-0",
+        "tier": "point",
+        "center": {
+          "x": -0.49373005827267963,
+          "y": -0.7451326648394266,
+          "z": -0.3926196297009786
+        },
+        "sourceFaceIndices": [
+          7663
+        ]
+      },
+      {
+        "targetId": "outside-215-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8738934000333151,
+          "y": 0.00017579984463130435,
+          "z": -0.39286723732948303
+        },
+        "sourceFaceIndices": [
+          7844
+        ]
+      },
+      {
+        "targetId": "outside-218-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8857961495717367,
+          "y": -0.032532876978317894,
+          "z": -0.3575906654198964
+        },
+        "sourceFaceIndices": [
+          7843
+        ]
+      },
+      {
+        "targetId": "outside-223-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8436471422513326,
+          "y": -0.07672246793905894,
+          "z": -0.343740314245224
+        },
+        "sourceFaceIndices": [
+          8065
+        ]
+      },
+      {
+        "targetId": "outside-226-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.1103491485118866,
+          "y": 0.7868295113245646,
+          "z": -0.3167284627755483
+        },
+        "sourceFaceIndices": [
+          8128
+        ]
+      },
+      {
+        "targetId": "outside-226-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.015339880560835203,
+          "y": 0.8679115176200867,
+          "z": -0.23873972396055856
+        },
+        "sourceFaceIndices": [
+          8442
+        ]
+      },
+      {
+        "targetId": "outside-226-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.16701358060042062,
+          "y": 0.826971431573232,
+          "z": -0.19719360768795013
+        },
+        "sourceFaceIndices": [
+          8629
+        ]
+      },
+      {
+        "targetId": "outside-240-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.5753873785336813,
+          "y": -0.5895752708117167,
+          "z": -0.15454965829849243
+        },
+        "sourceFaceIndices": [
+          8753
+        ]
+      },
+      {
+        "targetId": "outside-268-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.820322593053182,
+          "y": 0.1525009274482727,
+          "z": 0.0713380699356397
+        },
+        "sourceFaceIndices": [
+          9025
+        ]
+      },
+      {
+        "targetId": "outside-268-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.9044929345448812,
+          "y": 0.03530868453284105,
+          "z": 0.10304879148801167
+        },
+        "sourceFaceIndices": [
+          9212
+        ]
+      },
+      {
+        "targetId": "outside-268-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.8484193285306295,
+          "y": -0.10747204224268596,
+          "z": 0.11226567129294078
+        },
+        "sourceFaceIndices": [
+          9161
+        ]
+      },
+      {
+        "targetId": "outside-272-0",
+        "tier": "point",
+        "center": {
+          "x": -0.8997061252593994,
+          "y": -0.047198791056871414,
+          "z": 0.10361762344837189
+        },
+        "sourceFaceIndices": [
+          9170
+        ]
+      },
+      {
+        "targetId": "outside-274-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.5904326637585958,
+          "y": 0.5075576404730479,
+          "z": 0.10359044124682744
+        },
+        "sourceFaceIndices": [
+          9358
+        ]
+      },
+      {
+        "targetId": "outside-277-0",
+        "tier": "point",
+        "center": {
+          "x": -0.8532654643058777,
+          "y": 0.24320641160011292,
+          "z": 0.11526415745417277
+        },
+        "sourceFaceIndices": [
+          9330
+        ]
+      },
+      {
+        "targetId": "outside-285-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.467592587073644,
+          "y": 0.6612139940261841,
+          "z": 0.14536630113919577
+        },
+        "sourceFaceIndices": [
+          9627
+        ]
+      },
+      {
+        "targetId": "outside-287-0",
+        "tier": "point",
+        "center": {
+          "x": 0.6761255065600077,
+          "y": 0.4688924749692281,
+          "z": 0.15182811518510184
+        },
+        "sourceFaceIndices": [
+          9556
+        ]
+      },
+      {
+        "targetId": "outside-292-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.17391683161258698,
+          "y": -0.8194596966107687,
+          "z": 0.177414541443189
+        },
+        "sourceFaceIndices": [
+          9733
+        ]
+      },
+      {
+        "targetId": "outside-292-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.07110023250182469,
+          "y": -0.9081109166145325,
+          "z": 0.232007697224617
+        },
+        "sourceFaceIndices": [
+          9977
+        ]
+      },
+      {
+        "targetId": "outside-292-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.07926440238952637,
+          "y": -0.88023841381073,
+          "z": 0.25339844822883606
+        },
+        "sourceFaceIndices": [
+          10316
+        ]
+      },
+      {
+        "targetId": "outside-294-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.2751235365867615,
+          "y": 0.7930465340614319,
+          "z": 0.31442562739054364
+        },
+        "sourceFaceIndices": [
+          11102
+        ]
+      },
+      {
+        "targetId": "outside-303-0",
+        "tier": "point",
+        "center": {
+          "x": 0.7068991263707479,
+          "y": 0.398967703183492,
+          "z": 0.2495503971974055
+        },
+        "sourceFaceIndices": [
+          10654
+        ]
+      },
+      {
+        "targetId": "outside-308-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.7604243357976278,
+          "y": -0.20812555650870004,
+          "z": 0.24105258782704672
+        },
+        "sourceFaceIndices": [
+          10477
+        ]
+      },
+      {
+        "targetId": "outside-308-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.8317181070645651,
+          "y": -0.08962226907412212,
+          "z": 0.31967543562253314
+        },
+        "sourceFaceIndices": [
+          11329
+        ]
+      },
+      {
+        "targetId": "outside-308-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.7878174384435018,
+          "y": 0.05017308642466863,
+          "z": 0.37594060103098553
+        },
+        "sourceFaceIndices": [
+          11844
+        ]
+      },
+      {
+        "targetId": "outside-321-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.6888659199078878,
+          "y": -0.4901441733042399,
+          "z": 0.3083457946777344
+        },
+        "sourceFaceIndices": [
+          10767
+        ]
+      },
+      {
+        "targetId": "outside-321-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.8146360516548157,
+          "y": -0.4181926449139913,
+          "z": 0.3948335250218709
+        },
+        "sourceFaceIndices": [
+          11979
+        ]
+      },
+      {
+        "targetId": "outside-321-2",
+        "tier": "patch",
+        "center": {
+          "x": -0.8247198859850565,
+          "y": -0.23851286371548971,
+          "z": 0.42967836062113446
+        },
+        "sourceFaceIndices": [
+          12050
+        ]
+      },
+      {
+        "targetId": "outside-323-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6040088733037313,
+          "y": -0.540613571802775,
+          "z": 0.34904293219248456
+        },
+        "sourceFaceIndices": [
+          11215
+        ]
+      },
+      {
+        "targetId": "outside-324-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6382603247960409,
+          "y": -0.5750387907028198,
+          "z": 0.3503645757834117
+        },
+        "sourceFaceIndices": [
+          11179
+        ]
+      },
+      {
+        "targetId": "outside-335-0",
+        "tier": "point",
+        "center": {
+          "x": -0.85917596022288,
+          "y": -0.2767217655976613,
+          "z": 0.4297406077384949
+        },
+        "sourceFaceIndices": [
+          12007
+        ]
+      },
+      {
+        "targetId": "outside-342-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.27798740069071454,
+          "y": 0.7213240067164103,
+          "z": 0.49133673310279846
+        },
+        "sourceFaceIndices": [
+          12289
+        ]
+      },
+      {
+        "targetId": "outside-345-0",
+        "tier": "point",
+        "center": {
+          "x": 0.21724959214528403,
+          "y": 0.8063392639160156,
+          "z": 0.5442449450492859
+        },
+        "sourceFaceIndices": [
+          12425
+        ]
+      },
+      {
+        "targetId": "outside-346-0",
+        "tier": "point",
+        "center": {
+          "x": 0.1974251667658488,
+          "y": 0.782725195089976,
+          "z": 0.535948654015859
+        },
+        "sourceFaceIndices": [
+          12415
+        ]
+      },
+      {
+        "targetId": "outside-348-0",
+        "tier": "point",
+        "center": {
+          "x": 0.3610260585943858,
+          "y": 0.6654811898867289,
+          "z": 0.5454354683558146
+        },
+        "sourceFaceIndices": [
+          12384
+        ]
+      },
+      {
+        "targetId": "outside-352-0",
+        "tier": "point",
+        "center": {
+          "x": 0.1281078557173411,
+          "y": 0.7802539865175883,
+          "z": 0.6332938472429911
+        },
+        "sourceFaceIndices": [
+          12546
+        ]
+      },
+      {
+        "targetId": "outside-353-0",
+        "tier": "point",
+        "center": {
+          "x": 0.12962912519772848,
+          "y": 0.7975540558497111,
+          "z": 0.6423837542533875
+        },
+        "sourceFaceIndices": [
+          12549
+        ]
+      },
+      {
+        "targetId": "outside-363-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.2895796100298564,
+          "y": -0.7456657290458679,
+          "z": 0.7555367350578308
+        },
+        "sourceFaceIndices": [
+          12674
+        ]
+      },
+      {
+        "targetId": "outside-363-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.44109974304835003,
+          "y": -0.7474952936172485,
+          "z": 0.7877392768859863
+        },
+        "sourceFaceIndices": [
+          12883
+        ]
+      },
+      {
+        "targetId": "outside-363-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.5139753023783366,
+          "y": -0.6073048313458761,
+          "z": 0.799871563911438
+        },
+        "sourceFaceIndices": [
+          12895
+        ]
+      },
+      {
+        "targetId": "outside-369-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.7508344848950704,
+          "y": 0.1838191250960032,
+          "z": 0.8068953355153402
+        },
+        "sourceFaceIndices": [
+          12942
+        ]
+      },
+      {
+        "targetId": "outside-369-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.7620979944864908,
+          "y": 0.33266372481981915,
+          "z": 0.8616704146067301
+        },
+        "sourceFaceIndices": [
+          13376
+        ]
+      },
+      {
+        "targetId": "outside-369-2",
+        "tier": "patch",
+        "center": {
+          "x": 0.6481179396311442,
+          "y": 0.4485994080702464,
+          "z": 0.9006160100301107
+        },
+        "sourceFaceIndices": [
+          13786
+        ]
+      },
+      {
+        "targetId": "outside-373-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.18113170067469278,
+          "y": 0.774616519610087,
+          "z": 0.8074822227160136
+        },
+        "sourceFaceIndices": [
+          13131
+        ]
+      },
+      {
+        "targetId": "outside-378-0",
+        "tier": "point",
+        "center": {
+          "x": 0.8142095406850179,
+          "y": 0.12495304147402446,
+          "z": 0.8501894275347391
+        },
+        "sourceFaceIndices": [
+          13207
+        ]
+      },
+      {
+        "targetId": "outside-379-0",
+        "tier": "point",
+        "center": {
+          "x": 0.7906332612037659,
+          "y": 0.10717396189769109,
+          "z": 0.8455353577931722
+        },
+        "sourceFaceIndices": [
+          13195
+        ]
+      },
+      {
+        "targetId": "outside-381-0",
+        "tier": "point",
+        "center": {
+          "x": -0.2597242146730423,
+          "y": 0.8038685321807861,
+          "z": 0.8548828363418579
+        },
+        "sourceFaceIndices": [
+          13499
+        ]
+      },
+      {
+        "targetId": "outside-383-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.7474592526753744,
+          "y": 0.3110206921895345,
+          "z": 0.853047251701355
+        },
+        "sourceFaceIndices": [
+          13270
+        ]
+      },
+      {
+        "targetId": "outside-387-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.43408921360969543,
+          "y": 0.7039264241854349,
+          "z": 0.964395006497701
+        },
+        "sourceFaceIndices": [
+          14668
+        ]
+      },
+      {
+        "targetId": "outside-391-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.3168146312236786,
+          "y": -0.753217359383901,
+          "z": 0.8887860973676046
+        },
+        "sourceFaceIndices": [
+          13532
+        ]
+      },
+      {
+        "targetId": "outside-391-1",
+        "tier": "patch",
+        "center": {
+          "x": -0.506268322467804,
+          "y": -0.6263548930486044,
+          "z": 1.0228320757548015
+        },
+        "sourceFaceIndices": [
+          14757
+        ]
+      },
+      {
+        "targetId": "outside-392-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.6810625592867533,
+          "y": -0.3753119508425395,
+          "z": 0.9137172301610311
+        },
+        "sourceFaceIndices": [
+          14154
+        ]
+      },
+      {
+        "targetId": "outside-392-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.676115612188975,
+          "y": -0.5203187068303426,
+          "z": 0.9804897507031759
+        },
+        "sourceFaceIndices": [
+          14498
+        ]
+      },
+      {
+        "targetId": "outside-404-0",
+        "tier": "point",
+        "center": {
+          "x": -0.22929449379444122,
+          "y": -0.7906512419382731,
+          "z": 0.9401775598526001
+        },
+        "sourceFaceIndices": [
+          13887
+        ]
+      },
+      {
+        "targetId": "outside-405-0",
+        "tier": "point",
+        "center": {
+          "x": -0.42284255226453143,
+          "y": -0.7214830915133158,
+          "z": 0.9481423298517863
+        },
+        "sourceFaceIndices": [
+          14351
+        ]
+      },
+      {
+        "targetId": "outside-406-0",
+        "tier": "point",
+        "center": {
+          "x": -0.4221327602863312,
+          "y": 0.7156057953834534,
+          "z": 0.9549837311108907
+        },
+        "sourceFaceIndices": [
+          14680
+        ]
+      },
+      {
+        "targetId": "outside-409-0",
+        "tier": "point",
+        "center": {
+          "x": -0.4468209544817607,
+          "y": -0.7144238750139872,
+          "z": 0.9732852180798849
+        },
+        "sourceFaceIndices": [
+          14349
+        ]
+      },
+      {
+        "targetId": "outside-416-0",
+        "tier": "point",
+        "center": {
+          "x": -0.6639668544133505,
+          "y": 0.4639221727848053,
+          "z": 0.9886246124903361
+        },
+        "sourceFaceIndices": [
+          15263
+        ]
+      },
+      {
+        "targetId": "outside-433-0",
+        "tier": "point",
+        "center": {
+          "x": -0.5425729552904764,
+          "y": -0.5908889571825663,
+          "z": 1.0628067255020142
+        },
+        "sourceFaceIndices": [
+          15403
+        ]
+      },
+      {
+        "targetId": "outside-448-0",
+        "tier": "patch",
+        "center": {
+          "x": -0.7804808219273885,
+          "y": -0.13539843012889227,
+          "z": 1.1357051531473796
+        },
+        "sourceFaceIndices": [
+          15631
+        ]
+      },
+      {
+        "targetId": "outside-450-0",
+        "tier": "point",
+        "center": {
+          "x": -0.7790495355923971,
+          "y": -0.23656567434469858,
+          "z": 1.1805373430252075
+        },
+        "sourceFaceIndices": [
+          15737
+        ]
+      },
+      {
+        "targetId": "outside-460-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.5210579435030619,
+          "y": 0.5792541106541952,
+          "z": 1.4968376954396565
+        },
+        "sourceFaceIndices": [
+          16196
+        ]
+      },
+      {
+        "targetId": "outside-460-1",
+        "tier": "patch",
+        "center": {
+          "x": 0.3284013470013936,
+          "y": 0.7412714958190918,
+          "z": 1.5455452998479207
+        },
+        "sourceFaceIndices": [
+          16393
+        ]
+      },
+      {
+        "targetId": "outside-468-0",
+        "tier": "patch",
+        "center": {
+          "x": 0.04439065853754679,
+          "y": -0.6989610393842062,
+          "z": 1.6885439554850261
+        },
+        "sourceFaceIndices": [
+          16430
+        ]
+      },
+      {
+        "targetId": "outside-473-0",
+        "tier": "point",
+        "center": {
+          "x": 0.12640525897343954,
+          "y": -0.7098419268925985,
+          "z": 1.7309752702713013
+        },
+        "sourceFaceIndices": [
+          16508
+        ]
+      },
+      {
+        "targetId": "outside-478-0",
+        "tier": "crown",
+        "center": {
+          "x": -0.10298342754443486,
+          "y": -0.6268917918205261,
+          "z": 1.783771276473999
+        },
+        "sourceFaceIndices": [
+          16663
+        ]
+      },
+      {
+        "targetId": "outside-480-0",
+        "tier": "crown",
+        "center": {
+          "x": -0.36987602710723877,
+          "y": 0.4260128140449524,
+          "z": 1.9257562160491943
+        },
+        "sourceFaceIndices": [
+          17499
+        ]
+      },
+      {
+        "targetId": "outside-480-1",
+        "tier": "crown",
+        "center": {
+          "x": -0.46682899196942645,
+          "y": 0.2095563461383184,
+          "z": 1.9602192640304565
+        },
+        "sourceFaceIndices": [
+          17796
+        ]
+      }
+    ],
+    "patchCandidates": [
+      {
+        "targetId": "outside-0-0",
+        "center": {
+          "x": -0.3255031804243724,
+          "y": 0.36650940775871277,
+          "z": -2.100912888844808
+        },
+        "normal": {
+          "x": 0.28914555120069735,
+          "y": 0.237885747976592,
+          "z": -0.9272568258742894
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          91
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-0-1",
+        "center": {
+          "x": -0.3766205608844757,
+          "y": 0.5382752617200216,
+          "z": -1.9882744948069255
+        },
+        "normal": {
+          "x": -0.2822702026293366,
+          "y": 0.6431522604950825,
+          "z": -0.7118136712143557
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          994
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-0-2",
+        "center": {
+          "x": -0.5506556828816732,
+          "y": 0.3498997191588084,
+          "z": -1.984828035036723
+        },
+        "normal": {
+          "x": -0.695845262691517,
+          "y": 0.11554023828516888,
+          "z": -0.708836951440019
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          982
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-1-0",
+        "center": {
+          "x": 0.10710474848747253,
+          "y": -0.474910447994868,
+          "z": -2.100646654764811
+        },
+        "normal": {
+          "x": 0.23182930874300026,
+          "y": -0.5660272122777776,
+          "z": -0.7911184276508735
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          25
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-1-1",
+        "center": {
+          "x": -0.11177778989076614,
+          "y": -0.4847053786118825,
+          "z": -2.092327912648519
+        },
+        "normal": {
+          "x": -0.247825633323505,
+          "y": -0.6118170834193499,
+          "z": -0.7511739558211824
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          0
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-1-2",
+        "center": {
+          "x": 0.0014517844344178836,
+          "y": -0.5677784283955892,
+          "z": -2.0361313819885254
+        },
+        "normal": {
+          "x": -0.017580765422166373,
+          "y": -0.6839700208797375,
+          "z": -0.7292982429876971
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          421
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-12-0",
+        "center": {
+          "x": 0.679302970568339,
+          "y": -0.15591485798358917,
+          "z": -1.8483461538950603
+        },
+        "normal": {
+          "x": 0.27152091338690687,
+          "y": 0.21431603180604003,
+          "z": -0.9382670366715717
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1356
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-12-1",
+        "center": {
+          "x": 0.651009718577067,
+          "y": -0.03269338173170885,
+          "z": -1.790396769841512
+        },
+        "normal": {
+          "x": -0.5128367663770773,
+          "y": 0.2970559431414416,
+          "z": -0.8054540444347222
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1489
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-12-2",
+        "center": {
+          "x": 0.7361069321632385,
+          "y": 0.07298718268672626,
+          "z": -1.760443131128947
+        },
+        "normal": {
+          "x": 0.06394450003816515,
+          "y": 0.6597173406343055,
+          "z": -0.748788442339536
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1613
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-26-0",
+        "center": {
+          "x": -0.5473354061444601,
+          "y": -0.522513190905253,
+          "z": -1.5910471677780151
+        },
+        "normal": {
+          "x": -0.12220882375848244,
+          "y": -0.0084517252544563,
+          "z": -0.9924684235459541
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1657
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-26-1",
+        "center": {
+          "x": -0.6575137774149576,
+          "y": -0.4643651445706685,
+          "z": -1.5231820344924927
+        },
+        "normal": {
+          "x": -0.49962646077051887,
+          "y": 0.18491661759951838,
+          "z": -0.8462737407207427
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1780
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-26-2",
+        "center": {
+          "x": -0.7110261718432108,
+          "y": -0.3468698561191559,
+          "z": -1.4600987434387207
+        },
+        "normal": {
+          "x": -0.49019669299843055,
+          "y": 0.5043400438782865,
+          "z": -0.7108785566566561
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1849
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-40-0",
+        "center": {
+          "x": 0.19652258356412253,
+          "y": 0.7830102443695068,
+          "z": -1.3529265721638997
+        },
+        "normal": {
+          "x": -0.019547912336950735,
+          "y": -0.1319831993032291,
+          "z": -0.9910591880533428
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          1977
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-51-0",
+        "center": {
+          "x": 0.7561643719673157,
+          "y": 0.3144444425900777,
+          "z": -1.3006171385447185
+        },
+        "normal": {
+          "x": -0.026466219246420675,
+          "y": -0.1076686851923981,
+          "z": -0.9938344899769482
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          2068
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-51-1",
+        "center": {
+          "x": 0.7387714982032776,
+          "y": 0.4571859538555145,
+          "z": -1.2698966264724731
+        },
+        "normal": {
+          "x": 0.4901002799052434,
+          "y": 0.2530502991862242,
+          "z": -0.8341266460907267
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          2637
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-51-2",
+        "center": {
+          "x": 0.6019798318545023,
+          "y": 0.5017352898915609,
+          "z": -1.2528888781865437
+        },
+        "normal": {
+          "x": -0.6041144284024742,
+          "y": 0.3340907527467365,
+          "z": -0.7234840193985426
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          3047
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-58-0",
+        "center": {
+          "x": 0.4661518136660258,
+          "y": -0.637397825717926,
+          "z": -1.28327743212382
+        },
+        "normal": {
+          "x": -0.0141874513602606,
+          "y": -0.10378144167634679,
+          "z": -0.9944989334270194
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          2281
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-58-1",
+        "center": {
+          "x": 0.3725518782933553,
+          "y": -0.7577483256657919,
+          "z": -1.2395491202672322
+        },
+        "normal": {
+          "x": 0.26697556876701317,
+          "y": -0.5390093445507518,
+          "z": -0.7988698092733876
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          2756
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-58-2",
+        "center": {
+          "x": 0.2117992639541626,
+          "y": -0.7711875041325887,
+          "z": -1.2184150218963623
+        },
+        "normal": {
+          "x": -0.6002953293036304,
+          "y": -0.35506306811665,
+          "z": -0.7166419854263613
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          3092
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-71-0",
+        "center": {
+          "x": -0.26233572761217755,
+          "y": -0.7195077538490295,
+          "z": -1.2539213101069133
+        },
+        "normal": {
+          "x": 0.13895496897385873,
+          "y": -0.05107913105969687,
+          "z": -0.9889805048471179
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          2779
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-72-0",
+        "center": {
+          "x": 0.03683049914737543,
+          "y": 0.8208917379379272,
+          "z": -1.242971142133077
+        },
+        "normal": {
+          "x": -0.6926748265333791,
+          "y": 0.056137649708349883,
+          "z": -0.7190619924402734
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          3071
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-75-0",
+        "center": {
+          "x": -0.7476890484491984,
+          "y": 0.19251452386379242,
+          "z": -1.2332791884740193
+        },
+        "normal": {
+          "x": -0.005062938065014952,
+          "y": -0.008171628635368453,
+          "z": -0.999953794504324
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          3013
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-96-0",
+        "center": {
+          "x": -0.26806212464968365,
+          "y": 0.7473485668500265,
+          "z": -1.143875241279602
+        },
+        "normal": {
+          "x": -0.05431493314721735,
+          "y": -0.12995179714570543,
+          "z": -0.9900315239707342
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          3661
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-96-1",
+        "center": {
+          "x": -0.42579633990923565,
+          "y": 0.751667320728302,
+          "z": -1.0671102205912273
+        },
+        "normal": {
+          "x": -0.46214293704557496,
+          "y": 0.49067408896360404,
+          "z": -0.738689951304759
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          4459
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-96-2",
+        "center": {
+          "x": -0.49984846512476605,
+          "y": 0.5978799859682719,
+          "z": -1.0225987434387207
+        },
+        "normal": {
+          "x": -0.5021057240971675,
+          "y": -0.45920229331323653,
+          "z": -0.7328185966831926
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          4838
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-124-0",
+        "center": {
+          "x": 0.7642576893170675,
+          "y": -0.3016475439071655,
+          "z": -0.9653939406077067
+        },
+        "normal": {
+          "x": 0.12383443288530217,
+          "y": 0.12343199256492171,
+          "z": -0.9845961489074739
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          4962
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-124-1",
+        "center": {
+          "x": 0.7506359020868937,
+          "y": -0.45855127771695453,
+          "z": -0.87871781984965
+        },
+        "normal": {
+          "x": 0.04530623211710067,
+          "y": -0.6769936014335246,
+          "z": -0.7345930907307919
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5124
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-124-2",
+        "center": {
+          "x": 0.6303828954696655,
+          "y": -0.552742063999176,
+          "z": -0.8301584124565125
+        },
+        "normal": {
+          "x": -0.43277785109257266,
+          "y": -0.5568760540081036,
+          "z": -0.708937509288413
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5198
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-136-0",
+        "center": {
+          "x": -0.7378045916557312,
+          "y": -0.19475961724917093,
+          "z": -0.8239107131958008
+        },
+        "normal": {
+          "x": 0.3447860970635928,
+          "y": 0.15588303766369382,
+          "z": -0.9256473550118285
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5373
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-151-0",
+        "center": {
+          "x": -0.7366600235303243,
+          "y": -0.34961440165837604,
+          "z": -0.6993535161018372
+        },
+        "normal": {
+          "x": 0.16197687062815436,
+          "y": -0.67151329490702,
+          "z": -0.7230721873676429
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5548
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-157-0",
+        "center": {
+          "x": 0.1724791278441747,
+          "y": -0.7972108324368795,
+          "z": -0.6220732728640238
+        },
+        "normal": {
+          "x": 0.2825359866779683,
+          "y": -0.0734853948078189,
+          "z": -0.9564378249430779
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5686
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-165-0",
+        "center": {
+          "x": 0.3310287495454152,
+          "y": 0.7521820863087972,
+          "z": -0.5809137026468912
+        },
+        "normal": {
+          "x": 0.13766353351096805,
+          "y": 0.24786569785196094,
+          "z": -0.958963684072361
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6222
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-165-1",
+        "center": {
+          "x": 0.4804871678352356,
+          "y": 0.7461416125297546,
+          "z": -0.5503239035606384
+        },
+        "normal": {
+          "x": 0.07485909989055874,
+          "y": 0.6953889453106864,
+          "z": -0.714723953637533
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6631
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-165-2",
+        "center": {
+          "x": 0.5490704973538717,
+          "y": 0.5988317728042603,
+          "z": -0.5319334268569946
+        },
+        "normal": {
+          "x": 0.46860838811873795,
+          "y": -0.5262466803891783,
+          "z": -0.7095566291453617
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6612
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-167-0",
+        "center": {
+          "x": -0.5931935509045919,
+          "y": 0.5193356275558472,
+          "z": -0.5686137278874716
+        },
+        "normal": {
+          "x": -0.004357156275644864,
+          "y": 0.05658508425535356,
+          "z": -0.9983882728823512
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          5984
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-167-1",
+        "center": {
+          "x": -0.7426789800326029,
+          "y": 0.445645272731781,
+          "z": -0.5212616721789042
+        },
+        "normal": {
+          "x": -0.5666668598436121,
+          "y": 0.351472480407136,
+          "z": -0.7452219571855322
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6544
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-167-2",
+        "center": {
+          "x": -0.7350211143493652,
+          "y": 0.2947554091612498,
+          "z": -0.502839724222819
+        },
+        "normal": {
+          "x": -0.16997941698083052,
+          "y": -0.6469710749781306,
+          "z": -0.7433272670530114
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6912
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-176-0",
+        "center": {
+          "x": 0.7941622138023376,
+          "y": 0.15254988769690195,
+          "z": -0.5196306506792704
+        },
+        "normal": {
+          "x": -0.20818583201220917,
+          "y": -0.14329792116518056,
+          "z": -0.9675352009819188
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6346
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-181-0",
+        "center": {
+          "x": -0.5799775123596191,
+          "y": -0.574326237042745,
+          "z": -0.5070529182751974
+        },
+        "normal": {
+          "x": 0.14157865304742595,
+          "y": -0.005886717756094774,
+          "z": -0.9899095067506608
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          6689
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-181-1",
+        "center": {
+          "x": -0.5233298937479655,
+          "y": -0.7067376573880514,
+          "z": -0.42462913195292157
+        },
+        "normal": {
+          "x": -0.10015817917194386,
+          "y": -0.6295227407228168,
+          "z": -0.7704994860853536
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          7268
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-181-2",
+        "center": {
+          "x": -0.36801378925641376,
+          "y": -0.744197408358256,
+          "z": -0.37448233366012573
+        },
+        "normal": {
+          "x": 0.6312997467089623,
+          "y": -0.26575591231898527,
+          "z": -0.7285838488964078
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          7671
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-226-0",
+        "center": {
+          "x": -0.1103491485118866,
+          "y": 0.7868295113245646,
+          "z": -0.3167284627755483
+        },
+        "normal": {
+          "x": -0.14562890945586657,
+          "y": -0.1666846951250225,
+          "z": -0.9751966125565518
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          8128
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-226-1",
+        "center": {
+          "x": 0.015339880560835203,
+          "y": 0.8679115176200867,
+          "z": -0.23873972396055856
+        },
+        "normal": {
+          "x": 0.38131180315782054,
+          "y": 0.5876307909465406,
+          "z": -0.713646524761436
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          8442
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-226-2",
+        "center": {
+          "x": 0.16701358060042062,
+          "y": 0.826971431573232,
+          "z": -0.19719360768795013
+        },
+        "normal": {
+          "x": 0.5979003535372872,
+          "y": 0.2888355705068736,
+          "z": -0.7477226627901257
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          8629
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-240-0",
+        "center": {
+          "x": 0.5753873785336813,
+          "y": -0.5895752708117167,
+          "z": -0.15454965829849243
+        },
+        "normal": {
+          "x": -0.012753824825438355,
+          "y": 0.22460343155323811,
+          "z": -0.9743667884769225
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          8753
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-268-0",
+        "center": {
+          "x": -0.820322593053182,
+          "y": 0.1525009274482727,
+          "z": 0.0713380699356397
+        },
+        "normal": {
+          "x": -0.10557096106052498,
+          "y": -0.020534702057399417,
+          "z": -0.994199727515639
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9025
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-268-1",
+        "center": {
+          "x": -0.9044929345448812,
+          "y": 0.03530868453284105,
+          "z": 0.10304879148801167
+        },
+        "normal": {
+          "x": -0.6795926594129168,
+          "y": 0.026763820320334395,
+          "z": -0.733101299408165
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9212
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-268-2",
+        "center": {
+          "x": -0.8484193285306295,
+          "y": -0.10747204224268596,
+          "z": 0.11226567129294078
+        },
+        "normal": {
+          "x": -0.04997212395512384,
+          "y": -0.7012311540594406,
+          "z": -0.7111804661292934
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9161
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-274-0",
+        "center": {
+          "x": 0.5904326637585958,
+          "y": 0.5075576404730479,
+          "z": 0.10359044124682744
+        },
+        "normal": {
+          "x": -0.11970192441132008,
+          "y": -0.19732857284039737,
+          "z": -0.9730019956983635
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9358
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-285-0",
+        "center": {
+          "x": -0.467592587073644,
+          "y": 0.6612139940261841,
+          "z": 0.14536630113919577
+        },
+        "normal": {
+          "x": -0.02872584761975893,
+          "y": -0.023488809264270123,
+          "z": -0.9993113136144677
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9627
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-292-0",
+        "center": {
+          "x": -0.17391683161258698,
+          "y": -0.8194596966107687,
+          "z": 0.177414541443189
+        },
+        "normal": {
+          "x": 0.10905296850380493,
+          "y": 0.1229602938450903,
+          "z": -0.9864016505450695
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9733
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-292-1",
+        "center": {
+          "x": -0.07110023250182469,
+          "y": -0.9081109166145325,
+          "z": 0.232007697224617
+        },
+        "normal": {
+          "x": 0.09266892540476232,
+          "y": -0.5853052835776773,
+          "z": -0.8054999660337556
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          9977
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-292-2",
+        "center": {
+          "x": 0.07926440238952637,
+          "y": -0.88023841381073,
+          "z": 0.25339844822883606
+        },
+        "normal": {
+          "x": 0.4197585344834909,
+          "y": -0.4272812842440575,
+          "z": -0.8007705519454501
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          10316
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-294-1",
+        "center": {
+          "x": -0.2751235365867615,
+          "y": 0.7930465340614319,
+          "z": 0.31442562739054364
+        },
+        "normal": {
+          "x": 0.3681713942111086,
+          "y": 0.573341654638881,
+          "z": -0.7319352235960492
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          11102
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-308-0",
+        "center": {
+          "x": 0.7604243357976278,
+          "y": -0.20812555650870004,
+          "z": 0.24105258782704672
+        },
+        "normal": {
+          "x": 0.040039873373365675,
+          "y": -0.05536350520297124,
+          "z": -0.9976631148999574
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          10477
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-308-1",
+        "center": {
+          "x": 0.8317181070645651,
+          "y": -0.08962226907412212,
+          "z": 0.31967543562253314
+        },
+        "normal": {
+          "x": 0.3593897770723708,
+          "y": 0.534209927443884,
+          "z": -0.765152757007561
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          11329
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-308-2",
+        "center": {
+          "x": 0.7878174384435018,
+          "y": 0.05017308642466863,
+          "z": 0.37594060103098553
+        },
+        "normal": {
+          "x": -0.06709940065326585,
+          "y": 0.6443969017692178,
+          "z": -0.7617416251080187
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          11844
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-321-0",
+        "center": {
+          "x": -0.6888659199078878,
+          "y": -0.4901441733042399,
+          "z": 0.3083457946777344
+        },
+        "normal": {
+          "x": 0.015523352673643713,
+          "y": 0.004391640910502646,
+          "z": -0.9998698610378666
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          10767
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-321-1",
+        "center": {
+          "x": -0.8146360516548157,
+          "y": -0.4181926449139913,
+          "z": 0.3948335250218709
+        },
+        "normal": {
+          "x": -0.5730962967551438,
+          "y": -0.14072374169181343,
+          "z": -0.8073149714763104
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          11979
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-321-2",
+        "center": {
+          "x": -0.8247198859850565,
+          "y": -0.23851286371548971,
+          "z": 0.42967836062113446
+        },
+        "normal": {
+          "x": -0.5236315528684914,
+          "y": 0.4402885548113672,
+          "z": -0.7293531280132073
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12050
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-342-0",
+        "center": {
+          "x": 0.27798740069071454,
+          "y": 0.7213240067164103,
+          "z": 0.49133673310279846
+        },
+        "normal": {
+          "x": -0.08212443526187996,
+          "y": 0.002417837088355072,
+          "z": -0.9966191505267853
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12289
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-363-0",
+        "center": {
+          "x": 0.2895796100298564,
+          "y": -0.7456657290458679,
+          "z": 0.7555367350578308
+        },
+        "normal": {
+          "x": 0.06959239157299968,
+          "y": 0.05452026186396728,
+          "z": -0.9960845546847088
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12674
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-363-1",
+        "center": {
+          "x": 0.44109974304835003,
+          "y": -0.7474952936172485,
+          "z": 0.7877392768859863
+        },
+        "normal": {
+          "x": 0.35838493845509467,
+          "y": -0.5552631646476123,
+          "z": -0.7504952057635391
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12883
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-363-2",
+        "center": {
+          "x": 0.5139753023783366,
+          "y": -0.6073048313458761,
+          "z": 0.799871563911438
+        },
+        "normal": {
+          "x": 0.5481349955285083,
+          "y": 0.4186758662703999,
+          "z": -0.7240570044407362
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12895
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-369-0",
+        "center": {
+          "x": 0.7508344848950704,
+          "y": 0.1838191250960032,
+          "z": 0.8068953355153402
+        },
+        "normal": {
+          "x": -0.10378191273718071,
+          "y": -0.05143160519555533,
+          "z": -0.993269401811825
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          12942
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-369-1",
+        "center": {
+          "x": 0.7620979944864908,
+          "y": 0.33266372481981915,
+          "z": 0.8616704146067301
+        },
+        "normal": {
+          "x": 0.44823101585871433,
+          "y": 0.303031371028113,
+          "z": -0.8409880763691523
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          13376
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-369-2",
+        "center": {
+          "x": 0.6481179396311442,
+          "y": 0.4485994080702464,
+          "z": 0.9006160100301107
+        },
+        "normal": {
+          "x": -0.18950181151493742,
+          "y": 0.6066213288993664,
+          "z": -0.7720748841640453
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          13786
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-373-0",
+        "center": {
+          "x": -0.18113170067469278,
+          "y": 0.774616519610087,
+          "z": 0.8074822227160136
+        },
+        "normal": {
+          "x": 0.0380434344228012,
+          "y": -0.030576166886089145,
+          "z": -0.9988081873492387
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          13131
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-383-0",
+        "center": {
+          "x": -0.7474592526753744,
+          "y": 0.3110206921895345,
+          "z": 0.853047251701355
+        },
+        "normal": {
+          "x": -0.14458788204441012,
+          "y": -0.16667336422937618,
+          "z": -0.9753534405652002
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          13270
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-387-1",
+        "center": {
+          "x": -0.43408921360969543,
+          "y": 0.7039264241854349,
+          "z": 0.964395006497701
+        },
+        "normal": {
+          "x": -0.6884795715679362,
+          "y": -0.15263767032481057,
+          "z": -0.7090117214344525
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          14668
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-391-0",
+        "center": {
+          "x": -0.3168146312236786,
+          "y": -0.753217359383901,
+          "z": 0.8887860973676046
+        },
+        "normal": {
+          "x": -0.07468226193950225,
+          "y": -0.1762030534488125,
+          "z": -0.9815167057706733
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          13532
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-391-1",
+        "center": {
+          "x": -0.506268322467804,
+          "y": -0.6263548930486044,
+          "z": 1.0228320757548015
+        },
+        "normal": {
+          "x": -0.5191862330045132,
+          "y": 0.3158012934211837,
+          "z": -0.7941757982538191
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          14757
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-392-0",
+        "center": {
+          "x": 0.6810625592867533,
+          "y": -0.3753119508425395,
+          "z": 0.9137172301610311
+        },
+        "normal": {
+          "x": 0.06937336431331356,
+          "y": -0.0035439177178192317,
+          "z": -0.9975844710955869
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          14154
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-392-1",
+        "center": {
+          "x": 0.676115612188975,
+          "y": -0.5203187068303426,
+          "z": 0.9804897507031759
+        },
+        "normal": {
+          "x": 0.21060812672883628,
+          "y": -0.5511215059817544,
+          "z": -0.8074090057710365
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          14498
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-448-0",
+        "center": {
+          "x": -0.7804808219273885,
+          "y": -0.13539843012889227,
+          "z": 1.1357051531473796
+        },
+        "normal": {
+          "x": -0.17263787178610743,
+          "y": 0.004015184511631653,
+          "z": -0.9849771791866556
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          15631
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-460-0",
+        "center": {
+          "x": 0.5210579435030619,
+          "y": 0.5792541106541952,
+          "z": 1.4968376954396565
+        },
+        "normal": {
+          "x": 0.2455204440942711,
+          "y": 0.02174034546999631,
+          "z": -0.9691475991357545
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          16196
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-460-1",
+        "center": {
+          "x": 0.3284013470013936,
+          "y": 0.7412714958190918,
+          "z": 1.5455452998479207
+        },
+        "normal": {
+          "x": -0.1374394828752054,
+          "y": 0.6202064297118597,
+          "z": -0.7723045856985857
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          16393
+        ],
+        "exportable": false
+      },
+      {
+        "targetId": "outside-468-0",
+        "center": {
+          "x": 0.04439065853754679,
+          "y": -0.6989610393842062,
+          "z": 1.6885439554850261
+        },
+        "normal": {
+          "x": -0.11926993292317897,
+          "y": -0.2694292535728026,
+          "z": -0.9556058603941809
+        },
+        "radius": 0.033987339735031125,
+        "sourceFaceIndices": [
+          16430
+        ],
+        "exportable": false
+      }
+    ],
+    "safety": {
+      "acceptedBodyCollisionCount": 0,
+      "plateViolationCount": 0,
+      "invalidGeometryCount": 0,
+      "zeroLengthEdgeCount": 0,
+      "nearDuplicateEdgeCount": 0,
+      "extremeSpanCount": 0,
+      "braceRejectedByBody": 0
+    }
+  }
+}

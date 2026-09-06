@@ -1,0 +1,57 @@
+{
+  "schema": "katachi.skin-production-v0.support-source-trace.v1",
+  "geometryCheckpoint": "73bba117c1d09bf14735b1ad71938b086b165cf8",
+  "branch": "agent/skin-production-v0-support-wiring-fix-v0",
+  "input": {
+    "path": "C:\\Users\\as\\Downloads\\skin-rebuild-complete-2026-09-06T01-16-12-040Z.fkei",
+    "sha256": "791e47f7b94cdd667516f44d0c2f731d6326fb7949a47cd785189e2eb3963276",
+    "legacyPrintSupport": {
+      "nodes": 134,
+      "edges": 67,
+      "fingerprint": "1eea2621b73a1ed59d9faa444f652565716de0f361e710c105ce39a636890ba9"
+    }
+  },
+  "stages": [
+    {
+      "stage": "Production Stage 6",
+      "supportSource": "none",
+      "reason": "legacy project.printSupport cleared before P3 BODY"
+    },
+    {
+      "stage": "diagnostics",
+      "supportSource": "Production P3 actual BODY mesh",
+      "faces": 143416
+    },
+    {
+      "stage": "target extraction",
+      "supportSource": "Stage 6.5 Outside/Boundary intersection with Stage 7 danger",
+      "faces": 6796,
+      "regions": 109
+    },
+    {
+      "stage": "sparse generation",
+      "supportSource": "current-stage8:sparseResult.graph",
+      "nodes": 577,
+      "edges": 395,
+      "fingerprint": "ef1d3eaec4146e171316a81e441797526fef6c8921d88a7689b68ac9c5892121"
+    },
+    {
+      "stage": "project state",
+      "supportSource": "current-stage8:sparseResult.graph",
+      "identity": true
+    },
+    {
+      "stage": "3MF export",
+      "supportSource": "current-stage8:sparseResult.graph",
+      "fingerprint": "5607ff4654ecefe38867a645afc8f4e55f591584054a3615318acce21c1eee29"
+    }
+  ],
+  "previousSupportSource": "legacy project.printSupport inherited by buildSkinProductionV0FromProject",
+  "correctedSupportSource": "current-stage8:sparseResult.graph generated from Production P3 BODY",
+  "rootCauseClass": [
+    "A. wrong support source",
+    "B. legacy project.printSupport fallback",
+    "C. Stage 8 current graph not connected to Production runtime",
+    "E. wrong support graph selected after Production v0 rebuild"
+  ]
+}

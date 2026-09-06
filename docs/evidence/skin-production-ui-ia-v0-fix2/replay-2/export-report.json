@@ -1,0 +1,59 @@
+{
+  "schema": "katachi.skin-production-v0.support-export.v1",
+  "threeMf": "C:\\dev\\worktrees\\skin-c-production-ui-ia-v0\\docs\\evidence\\skin-production-ui-ia-v0-fix2\\replay-2/3MF/SKIN-C-production-v0-support-fixed.3mf",
+  "bytes": 2547069,
+  "sha256": "bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c",
+  "validation": {
+    "valid": true,
+    "unit": "millimeter",
+    "objectCount": 2,
+    "componentCount": 2,
+    "buildItemCount": 1,
+    "vertexCount": 81428,
+    "triangleCount": 162308,
+    "bounds": {
+      "x": 47.00342559814453,
+      "y": 48.8671932220459,
+      "z": 80
+    },
+    "boundsMin": {
+      "x": -24.348363876342773,
+      "y": -21.543479919433594,
+      "z": 0
+    },
+    "boundsMax": {
+      "x": 22.655061721801758,
+      "y": 27.323713302612305,
+      "z": 80
+    },
+    "supportPresent": true,
+    "errors": [],
+    "warnings": []
+  },
+  "semanticSeparation": {
+    "artworkObject": 1,
+    "removableSupportObject": 2,
+    "mergePrintableSupportIntoBody": false
+  },
+  "body": {
+    "triangles": 143416,
+    "canonicalFingerprint": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "threeMfFingerprint": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "identity": true
+  },
+  "support": {
+    "triangles": 18892,
+    "graphFingerprint": "ef1d3eaec4146e171316a81e441797526fef6c8921d88a7689b68ac9c5892121",
+    "canonicalFingerprint": "5607ff4654ecefe38867a645afc8f4e55f591584054a3615318acce21c1eee29",
+    "threeMfFingerprint": "5607ff4654ecefe38867a645afc8f4e55f591584054a3615318acce21c1eee29",
+    "identity": true
+  },
+  "permanentBody": {
+    "before": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "after": "c9ed4d69512aa20cb994083239afc5d26ce0402abbdb5a79e2165ca521cdb501",
+    "runtimeGeometryHashBefore": "5da665c6",
+    "runtimeGeometryHashAfter": "5da665c6",
+    "identity": true
+  },
+  "printApproval": false
+}
