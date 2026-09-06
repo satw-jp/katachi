@@ -17,6 +17,8 @@ The validator parity fix is pushed at `1cf17eb7021a049269da76dc12f83524a52d2cf3`
 
 The Astra large-candidate worker does not persist Candidate / Support state. `SparseRemovableSupportResult` and `supportFingerprint` live only under the in-memory `activeCandidate`; `RELEASE_CANDIDATE` releases the Candidate query and sets `activeCandidate = null`. Therefore the lost 3MF cannot be regenerated from a persisted Support graph. A new exact-condition A2 execution through full Sparse Support is required to regenerate a printable archive.
 
+The same artifact-retention risk applies to G/H/J because they use the same Candidate → Support → export → browser-download → release pattern. A dedicated queued checkpoint specification now exists at `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md` and must be satisfied before unattended / sequential G/H/J execution.
+
 ## Active implementation / execution instruction
 - owner: Team AB / SKIN SOL -> Temporary AB Implementation SOL / LUNA
 - task: `A2 archive regeneration + fix-commit validation + physical print package`
@@ -26,6 +28,15 @@ The Astra large-candidate worker does not persist Candidate / Support state. `Sp
 - exact physical settings: overhang `45 deg`; shaft `1.6 mm`; neck `0.6 mm`; removal gap `0.35 mm`; Rabbit clearance `0 mm`.
 - do not run G/H/J, merge, deploy, remesh, decimate, tune per-candidate, or add slicer-generated replacement support.
 - instruction source: this `AB_CURRENT.md` plus `docs/tasks/AB_A2_LARGE_3MF_VALIDATOR_PARITY_CLOSURE_V0.md` for validator closure semantics.
+
+## Queued before G/H/J
+- task: `Team AB — Candidate Artifact Retention / Checkpoint v0`
+- path: `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
+- purpose: prevent a completed A/G/H/J Candidate from becoming unrecoverable after release merely because the browser download did not produce a durable local artifact.
+- minimum gate: durable archive path, filesystem existence / byte verification, archive SHA-256, Candidate / geometry / diagnostics / support / export fingerprints, placement / validator / BODY indexing evidence before release.
+- preferred recovery: persist a deterministic Support checkpoint sufficient for exact re-export without rebuilding full Sparse Support.
+- this is infrastructure / artifact recovery only; it must not change Candidate geometry, Support semantics, Rabbit, FKEI or equal-condition comparison semantics.
+- G/H/J should not be run unattended under the current release-after-browser-download behavior.
 
 ## Regeneration gate
 The regenerated A2 run must preserve the known locked facts or stop for SOL review:
@@ -78,6 +89,7 @@ This is an artifact-retention / regeneration cost, not a newly discovered geomet
 4. Validate on `1cf17eb...`; placement and fingerprint/currentness continuity PASS.
 5. Team AB / SKIN SOL reviews the compact handoff.
 6. The author opens that exact saved archive in Bambu Studio and proceeds to the physical A2 print gate.
+7. Before G/H/J sequential execution, satisfy `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`.
 
 G/H/J remain HOLD until the author explicitly resumes them.
 
@@ -145,6 +157,7 @@ Record:
 - actual A2 validation on validator fix `1cf17eb...`
 - first A2 physical print
 - canonical A2 software closure after regenerated-artifact review
+- artifact-retention checkpoint implementation before G/H/J
 - G/H/J execution
 - physical comparison across A/G/H/J
 - winner
