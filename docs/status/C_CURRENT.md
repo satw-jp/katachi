@@ -14,28 +14,22 @@ Last verified: 2026-09-07
 - production 3MF SHA-256: `bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c`
 - UI IA v0A reviewed implementation checkpoint: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
 - UI IA v0A final evidence checkpoint: `c64cf091b1c66294ca885759e5a5a9069eb398af`
+- FIELD vNext Interaction Correctness v0 accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 
 ## Current phase
-First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closure author runtime evidence shows FIELD vNext is present and can render the dense current state, but its interaction behavior is not yet acceptable: exact vNext rendering is slow during camera interaction, and switching from FIELD(vNext) to BEADS can leave the vNext fullscreen result visible. This is classified as a display/interactivity correctness issue, not a Production or FIELD-semantic failure.
+First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. FIELD vNext Interaction Correctness v0 is also PASS / CLOSED after C SOL review at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`.
 
-Additional post-print handling evidence now identifies a localized Permanent Structure durability weakness: an appendage/subgraph that the author describes as supported by a single connection to the main artwork detached during casual play/handling. The detached subgraph remained substantially coherent while the root connection failed. A mirrored/opposite-side analogue is suspected to share the same weakness but has not been deliberately broken. This does not reopen the completed print/support-removal gate; it changes the durability evidence boundary and justifies a queued single-attachment graph audit.
+The accepted FIELD interaction fix centralizes FIELD/BEADS/MESH visibility policy, prevents stale vNext fullscreen visibility outside FIELD, uses the existing beads presentation as a temporary camera-interaction proxy, and restores exact vNext after interaction. FIELD semantic shader/math and Production generation/support/export semantics were not changed.
+
+Additional post-print handling evidence identifies a localized Permanent Structure durability weakness: an appendage/subgraph supported by a single connection to the main artwork detached during casual handling. The detached subgraph remained substantially coherent while the root connection failed. A mirrored/opposite-side analogue is suspected to share the same weakness but remains intact for comparison.
 
 Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
 
-For 2026-09-07, C is authorized to run only the active FIELD vNext interaction task. If a clean/safe J: worktree exists for the exact task/base, prefer it after verifying branch/HEAD/clean status. After this task is reviewed PASS / CLOSED, C stops for the day; the queued durability audit does not auto-start.
+For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext interaction task. Do not auto-start the queued durability audit or any other C implementation task today unless the author explicitly reopens C work.
 
 ## Active implementation instruction
-- owner: C SOL -> C LUNA
-- task: `FIELD vNext Interaction Correctness v0`
-- purpose: make top-level view switching authoritative and keep vNext camera interaction responsive without changing FIELD or Production semantics.
-- start point: exact accepted UI/evidence checkpoint `c64cf091b1c66294ca885759e5a5a9069eb398af`
-- preferred branch: `agent/skin-field-vnext-interaction-v0`
-- preferred execution environment: an already-existing clean/safe J: worktree for this exact task/base, if available; verify before use and do not guess from stale/ambiguous directories.
-- allowed scope: renderer/view visibility authority, session-only backend presentation state, camera-interaction lightweight proxy, focused tests and evidence.
-- protected scope: FIELD semantic shader/math and payload semantics; BODY / Permanent Graph / Local Relay / Graph Repair / Support / supportSource / Output Scale / FKEI / Export / External STL Host / Usagi / research algorithms.
-- done when: FIELD(vNext) <-> BEADS/MESH/etc switching is correct, active camera interaction does not continuously render the expensive exact vNext path, exact vNext restores after interaction, tests/browser gate pass, and Production parity remains exact.
-- instruction source: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
-- stop condition: after C SOL accepts this task, STOP C work for 2026-09-07 unless the author explicitly starts another task.
+- NONE for 2026-09-07.
+- C is STOPPED for the day by author instruction.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -55,23 +49,39 @@ For 2026-09-07, C is authorized to run only the active FIELD vNext interaction t
 - UI IA v0A structural implementation PASS at `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
 - UI IA v0A exact Production parity PASS at `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - UI IA v0A PASS / CLOSED on 2026-09-06
+- FIELD vNext Interaction Correctness v0 PASS / CLOSED at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453` on 2026-09-07
 
-## Current blocker
+## FIELD vNext interaction review
+- reviewed branch: `agent/skin-field-vnext-interaction-v0`
+- accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
+- parent: `c64cf091b1c66294ca885759e5a5a9069eb398af`
+- branch is exactly one commit ahead of the accepted base
+- changed scope: `src/studies/skin/renderer.ts`, `src/studies/skin/fieldPreviewPresentation.ts`, focused test, and test registration only
+- no FIELD semantic shader/math change
+- no Production BODY / Graph / Support / Export implementation file change
+- visibility authority: centralized through `fieldPreviewPresentationVisibility()` / `applyLayerVisibility()`
+- camera interaction: vNext exact fullscreen preview hidden during active interaction when bead proxy exists; exact vNext restored on interaction end
+- backend preference remains session-only and is not rewritten to Legacy by the interaction proxy
+- worker-reported focused tests / typecheck / build / browser switching / Production parity: PASS
+- GitHub commit has no attached status checks; test execution result is worker-reported, while source/diff scope was reviewed directly by C SOL
+- merge/deploy: not performed by this review; accepted branch checkpoint is preserved remotely
+
+## Current blocker / follow-up
 - No Production geometry / support / export blocker for the proven near-vertical First Print regime.
-- FIELD vNext runtime interaction correctness is ACTIVE: stale fullscreen visibility across View Layer switching and poor camera-interaction responsiveness were observed by the author on the dense current state.
+- FIELD vNext interaction blocker is CLOSED at `dad764ce...`.
 - Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
 - Strong-overhang / cantilever generalization is UNVERIFIED; the First Physical Print must not be used as evidence that Usagi-like geometry will behave equivalently.
+- Existing Workflow Guide-derived console `NotFoundError` was observed during the FIELD task. It predates / lies outside the accepted FIELD interaction scope and is a non-blocking follow-up; do not fix it implicitly today.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 - SKIN-support-alone full printability remains UNVERIFIED; accepted First Physical Gate included limited manual supplemental support.
 - First Physical Print 3MF Google Drive cloud visibility remains UNVERIFIED; local synced-drive copy/hash verification is PASS.
 
 ## Next gate
-1. C LUNA implements `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md` from `c64cf091...` on a new bounded branch, preferring a verified clean J: worktree when one is already available.
-2. C SOL reviews visibility correctness, interaction proxy behavior, browser evidence, and exact Production parity.
-3. If PASS / CLOSED, C stops for 2026-09-07. Do not start another implementation task automatically.
-4. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it is not today's follow-on task.
-5. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
-6. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness must be treated as new validation dimensions rather than assuming the First Print result generalizes.
+1. STOP C work for 2026-09-07.
+2. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
+3. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
+4. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness are new validation dimensions rather than assuming the First Print result generalizes.
+5. Workflow Guide console `NotFoundError` may be scoped separately later if it materially affects author workflow.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -81,7 +91,7 @@ For 2026-09-07, C is authorized to run only the active FIELD vNext interaction t
 - current Stage8 Removable Support semantics and `current-stage8:sparseResult.graph`
 - source-to-mm / Output Scale contract
 - FIELD vNext display-only / session-only semantics
-- FIELD vNext semantic shader/math and sequential primitive semantics during the active interaction task
+- FIELD vNext semantic shader/math and sequential primitive semantics
 - legacy v088 compatibility semantics
 - External STL Host / triangle-mesh Host architecture
 - Co-evolution; Graph-conditioned default; D / F1 / F2 / F3 / C+D Hybrid
@@ -93,8 +103,9 @@ For 2026-09-07, C is authorized to run only the active FIELD vNext interaction t
 - UI IA v0A parity evidence: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - parity report: `docs/evidence/skin-production-ui-ia-v0-fix2/PARITY_REPORT.md`
 - FIELD vNext interaction task: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
+- FIELD vNext interaction accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
-- post-print durability evidence: author photo on 2026-09-06 showing one detached appendage/subgraph after casual handling; opposite-side analogue retained intact for comparison
+- shared post-print observation note: `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 - First Physical Print author-edited Bambu 3MF local archive: `J:\My Drive\ChatGPT\SKIN\_C\Physical Evidence\2026-09-06_First_Physical_Print\3MF\SKIN-C-production-v0-support-fixed.3mf`
 - archived 3MF size: `2,066,585 bytes`
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
@@ -104,8 +115,9 @@ For 2026-09-07, C is authorized to run only the active FIELD vNext interaction t
 - locked Production architecture and current Stage8 Support/export semantics remain authoritative.
 - First Physical Gate and UI IA v0A are closed.
 - FIELD vNext capability is retained and can render the current dense state.
-- current code directly forces vNext fullscreen visibility in backend/payload paths while top-level View Layer has a separate visibility authority; author evidence shows the resulting stale-view behavior in practice.
-- current semantic vNext shader scans the full primitive set for each field query; this exact path is expensive at the observed dense primitive count.
+- FIELD/BEADS/etc fullscreen visibility now has a single reviewed presentation policy at `dad764ce...`; backend/payload refresh no longer directly forces fullscreen visibility.
+- active camera interaction can temporarily show the existing bead proxy while exact vNext is hidden, and interaction end restores exact vNext.
+- the accepted FIELD interaction diff does not modify the semantic vNext shader or Production BODY/Graph/Support/Export implementation paths.
 - one physically printed terminal appendage/subgraph failed at its single attachment during casual handling while the larger artwork remained coherent.
 - the detached subgraph itself remained substantially intact, supporting a localized root-connection weakness rather than a global print-collapse interpretation.
 - the successful First Physical Print proves print/support-removal viability only for the observed predominantly vertical / linear shape regime with limited manual supplemental slicer support.
@@ -114,8 +126,6 @@ For 2026-09-07, C is authorized to run only the active FIELD vNext interaction t
 - whether every single-edge/bridge-only graph appendage is physically weak
 - whether the mirrored/opposite-side analogue will fail under the same handling
 - which exact Permanent Graph bridge/articulation candidate corresponds to the observed broken piece
-- acceptable FIELD vNext camera-interaction responsiveness after correction
-- correct repeated FIELD(vNext) <-> BEADS/MESH/etc switching after correction
 - SKIN-support-alone full printability without supplemental slicer support
 - strong-overhang / cantilever physical generalization of the locked Production parameters
 - Usagi + V6 parameter-locked validation in the overhang regime
