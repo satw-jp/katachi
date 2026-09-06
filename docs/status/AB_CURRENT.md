@@ -16,7 +16,14 @@ Last verified: 2026-09-06
 ## Current phase
 A2 archive regeneration is complete under the locked A2 conditions. The regenerated archive is retained, independently inspected, validates on validator-fix HEAD `1cf17eb...`, and has placement parity PASS. Team AB / SKIN SOL accepts the regenerated archive for the first physical A2 print.
 
-G/H/J remain intentionally paused until the author resumes the equal-condition comparison lane after an overnight break.
+Bambu Studio preview of the exact retained A2 artifact shows many floating regions / islands that are not fully covered by the authored sparse removable Support. The author therefore identified that supplementary Bambu slicer-generated Support must be enabled for the first physical feasibility print.
+
+This does **not** invalidate the authored Support result. It changes the physical-gate interpretation:
+- first A2 print may use supplementary Bambu slicer Support to make the artifact physically printable;
+- that print is evidence for A2 physical feasibility, not yet evidence that authored Support alone is sufficient;
+- if later A/G/H/J physical comparison uses slicer-generated Support, the same Bambu Support policy/profile must be frozen and applied to every candidate under equal conditions.
+
+G/H/J remain intentionally paused until the author resumes the equal-condition comparison lane.
 
 ## SOL review — validator parity closure
 Commit `1cf17eb7021a049269da76dc12f83524a52d2cf3` is ACCEPTED for the bounded validator parity task.
@@ -73,11 +80,13 @@ That task does not block the first A2 physical print, but should close before G/
 - validator: PASS on `1cf17eb...`
 - validator errors / warnings: `0 / 0`
 - placement parity: PASS
+- Bambu Studio import / slice preview: PASS
+- Bambu slicer preview observation: many floating regions remain; supplementary slicer Support required for first feasibility print
 - G/H/J: NOT RUN
 - merge / deploy: NO
 
 ## Active implementation instruction
-No implementation is required before the author opens the exact saved A2 archive in Bambu Studio for the first physical print.
+No implementation is required before the author proceeds with the A2 physical feasibility print using the exact retained artifact plus explicitly recorded supplementary Bambu slicer Support.
 
 Queued before G/H/J:
 1. `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
@@ -89,24 +98,32 @@ Queued before G/H/J:
 
 These may be implemented together if the implementation remains bounded and does not change geometry / Support semantics.
 
-## Next gate — author/manual physical A2 print
-Open and print the exact saved artifact identified by SHA-256 above.
+## Next gate — author/manual physical A2 feasibility print
+Open the exact saved artifact identified by SHA-256 above and enable supplementary Bambu Studio Support as required by the slicer preview.
 
-For the first physical gate:
-- do not rescale or reposition the model
-- do not regenerate or replace authored printable-support geometry
-- do not add candidate-specific hidden tuning
-- do not alter Candidate geometry, Rabbit policy or Support geometry
-- slicer / material / printer settings may be inspected; report any change that would alter comparison geometry/support conditions before treating it as comparison evidence
+For this first physical feasibility gate:
+- do not rescale or reposition the A2 artifact;
+- keep the authored printable-support geometry present and unchanged;
+- supplementary slicer-generated Support is allowed and must be explicitly recorded;
+- do not add candidate-specific hidden tuning;
+- do not alter Candidate geometry, Rabbit policy or authored Support geometry;
+- record the Bambu printer/profile, nozzle, layer profile and Support policy used before treating the result as reusable comparison evidence.
+
+Physical evidence classification:
+- `A2 + authored Support + Bambu supplementary Support` print success/failure = valid A2 physical-feasibility evidence;
+- it is **not** proof that authored Support alone is sufficient;
+- it is **not yet** A/G/H/J equal-condition comparison evidence unless the slicer Support policy is frozen and reused unchanged across all candidates.
 
 Record:
-- Bambu Studio import / preview success or exact failure
-- BODY and separate Support appearance
-- first-layer / adhesion behavior
-- print start / completion or exact failure point
-- visible Support/BODY collision or detachment
-- support removal behavior and BODY damage
-- obvious physical defects relevant to later A/G/H/J comparison
+- exact Bambu Support mode/settings used;
+- post-support slicer preview and whether floating-region warning clears;
+- BODY and authored Support appearance;
+- first-layer / adhesion behavior;
+- print start / completion or exact failure point;
+- visible Support/BODY collision or detachment;
+- slicer-Support removal behavior;
+- authored-Support removal behavior and BODY damage;
+- obvious physical defects relevant to later A/G/H/J comparison.
 
 ## HOLD / DO NOT CHANGE
 - G/H/J execution until author explicitly resumes
@@ -115,7 +132,7 @@ Record:
 - exact-zero canonicalization
 - deferred common placement
 - Outside-only Removable Support
-- Support physical settings: overhang `45 deg`, shaft `1.6 mm`, neck `0.6 mm`, removal gap `0.35 mm`, Rabbit clearance `0 mm`
+- authored Support physical settings: overhang `45 deg`, shaft `1.6 mm`, neck `0.6 mm`, removal gap `0.35 mm`, Rabbit clearance `0 mm`
 - Rabbit forbidden-volume policy
 - A/G/H/J equal-condition comparison contract
 - FKEI / authoring semantics
@@ -135,10 +152,14 @@ Record:
 - placement parity PASS
 - BODY indexing retention PASS (`0` removed)
 - exact archive Support indexing facts recorded
-- first A2 artifact is ready for slicer / physical print gate
+- Bambu Studio imports/slices the exact A2 artifact
+- slicer preview demonstrates authored Support alone is insufficient to cover all floating regions
+- first A2 artifact is ready for supplementary-support physical feasibility print
 
 ### NOT YET PROVEN / HOLD
-- first A2 physical print
+- A2 physical print completion
+- authored Support alone as sufficient physical support
+- frozen Bambu supplementary Support policy for equal-condition A/G/H/J comparison
 - artifact-retention checkpoint implementation before G/H/J
 - Support indexing reporting UI fix before G/H/J
 - G/H/J execution
