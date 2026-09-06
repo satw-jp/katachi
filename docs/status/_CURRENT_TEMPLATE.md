@@ -2,45 +2,45 @@
 
 Last verified: YYYY-MM-DD
 
-## Current authority
+## Authority
 - repo: `satw-jp/katachi`
 - branch: `<branch>`
 - HEAD: `<sha>`
 - working tree: `<clean / dirty / unknown>`
 - relevant artifact fingerprint / hash: `<if needed>`
 
-## Current phase
-<one short paragraph>
+## NOW / Current phase
+<one short paragraph describing the present state>
 
-## Active implementation instruction
-- owner: `<Team SOL -> LUNA / Implementation SOL>`
+## Active task
+- owner: `<Team SOL -> LUNA / Implementation SOL / NONE>`
 - task: `<one-line task name>`
 - purpose: `<why this is being done now>`
 - allowed scope: `<what may change; keep compact>`
-- protected scope: `<what must not change>`
 - done when: `<exact implementation / test / artifact gate>`
-- instruction source: `<CURRENT itself, task doc path, commit, or chat checkpoint if needed>`
 
-This section is required for any non-trivial implementation task. It exists so the author and reviewers can see what is currently being asked of the implementation worker without reading the implementation chat. For a complex task, put the full bounded spec in `docs/tasks/` and link it here instead of copying a long prompt.
-
-## PASS / CLOSED
-- <gate>
-
-## Current blocker
-- <blocker or NONE>
+## Blocker
+- `<blocker or NONE>`
 
 ## Next gate
-- <exact next gate>
+- `<exact next decision / execution / author gate>`
 
-## HOLD / DO NOT CHANGE
-- <protected semantics / architecture / physical parameters>
+## Protected
+- `<semantics / architecture / physical parameters that must not change>`
 
-## Relevant artifacts
-- <repo path / hash / Drive pointer only when needed>
+## Required pointers
+- task: `<docs/tasks/... or NONE>`
+- evidence: `<named evidence paths / hashes or NONE>`
+- dependencies: `<only concrete cross-lane or source pointers>`
 
-## Evidence boundary
+---
+
+## Retained context / evidence pointers
+
+Keep useful rationale, detailed PASS facts, evidence boundaries, historical context, and superseded references below the separator. Do not delete useful context merely to meet a line count; the front is a routing layer, not a truncation rule.
+
 ### Proven / supported
-- <claim>
+- `<claim and pointer>`
 
-### Not yet proven
-- <claim>
+### Not yet proven / HOLD
+- `<claim and pointer>`
