@@ -13,6 +13,15 @@ Last verified: 2026-09-06
 ## Current phase
 A2 candidate physical-comparison lane is past geometry, reachability, full Sparse Support, support mesh, large 3MF streaming serialization, compression, and ZIP assembly. The active bounded blocker is validator scalability for the large object-model XML.
 
+## Active implementation instruction
+- owner: Team AB / SKIN SOL -> Temporary AB Implementation SOL
+- task: `SKIN — Large 3MF Streaming Validator v0`
+- purpose: close the last known A2 infrastructure blocker so the A2 archive can be independently validated end-to-end.
+- allowed scope: validator scalability only; replace full inflate/string/DOM-style materialization with bounded streaming / incremental validation while preserving existing validation coverage.
+- protected scope: Candidate Geometry, Support semantics/parameters, Rabbit policy, FKEI/authoring semantics, A/G/H/J comparison contract, and exporter semantics must not change.
+- done when: small-fixture validation parity remains PASS and the actual A2 archive passes the locked validation semantics; then return evidence to Team AB / SKIN SOL for A2 end-to-end review.
+- instruction source: current AB checkpoint plus `docs/TEAM_REPORTING_RULES.md`; implementation must not expand beyond the validator task.
+
 ## Operating routing
 - Team AB / SKIN SOL owns architecture, scope, next gate, and the bounded instruction for Temporary AB Implementation SOL / LUNA.
 - The author does not need to rewrite or relay SOL implementation instructions.
