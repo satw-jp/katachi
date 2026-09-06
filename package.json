@@ -16,6 +16,7 @@
     "test:ring-union-policies": "tsx src/studies/interior-growth/ringUnionPolicies.test.ts",
     "test:studies": "tsx src/lib/studies.test.ts",
     "test:research-principles": "node --experimental-strip-types --no-warnings src/studies/skin/research-principles/researchPrinciples.test.ts",
+    "test:research-principles-r2": "node --experimental-strip-types --no-warnings src/studies/skin/research-principles-r2/researchPrinciplesR2.test.ts",
     "test:hikari-contracts": "tsx src/lib/hikari/contracts.test.ts",
     "test:flower-pack": "tsx src/studies/flower-packing-spike/packing.test.ts",
     "test:flower-core-network": "tsx src/studies/flower-core-network/flowerCoreNetwork.test.ts",
