@@ -1,0 +1,438 @@
+{
+  "schema": "katachi.skin-production-v0.geometry-fidelity-replay.v1",
+  "date": "2026-09-06",
+  "source": {
+    "repository": "J:/My Drive/codex/2026-09-06/skin-production-v0-geometry-fidelity-fix-v0-work",
+    "branch": "agent/skin-production-v0-geometry-fidelity-fix-v0",
+    "base": "19c539f86e87ae033a8f6317fac6836a217922be",
+    "commitCreated": false
+  },
+  "input": {
+    "path": "C:\\Users\\as\\Downloads\\skin-rebuild-complete-2026-09-06T01-16-12-040Z.fkei",
+    "fingerprint": "791e47f7b94cdd667516f44d0c2f731d6326fb7949a47cd785189e2eb3963276",
+    "hostCount": 12,
+    "motifCount": 38
+  },
+  "policy": {
+    "memberRadiusSource": 0.06,
+    "anchorDepthSource": 0.1,
+    "candidateMaximumSource": 1.5,
+    "routeSubdivisionSource": 0.15,
+    "routeInsetBaseSource": 0.12,
+    "routeInsetSpanSource": 0.1,
+    "cycleRank": 20,
+    "maximumMotifDegree": 5,
+    "quadMeshJoinWidthSource": 0.12,
+    "meshResolution": 128,
+    "sourceToMmScale": 17.653632343033113
+  },
+  "stages": [
+    {
+      "id": "P0",
+      "name": "Host + Motifs",
+      "inputIdentity": {
+        "host": "f0a68f9e1a1cbde3c9df3529f0da458d6fb35ecc0837327bb874d0d3400bb32f",
+        "motifs": "c161a1935ee8ca4e151d78f5cf2b325a7640b487d6fde2e06d2b73102948a35d",
+        "motifTransforms": "cce8313e1221e7ae67c4869c5b999c4911420c27ab5b52d89ccf6d3e2234a51e",
+        "support": "1eea2621b73a1ed59d9faa444f652565716de0f361e710c105ce39a636890ba9"
+      }
+    },
+    {
+      "id": "P1",
+      "name": "Local Relay Graph / BODY before repair",
+      "graph": {
+        "nodes": 249,
+        "edges": 268,
+        "components": 1,
+        "cycleRank": 20,
+        "totalLengthMm": 640.3209624271453,
+        "maxEdgeLengthMm": 2.747628356626832,
+        "meanDegree": 2.1526104417670684,
+        "maxDegree": 5,
+        "degreeHistogram": {
+          "2": 222,
+          "3": 17,
+          "4": 9,
+          "5": 1
+        },
+        "radiusMm": [
+          1.059217941
+        ],
+        "graphFingerprint": "5619f2dcb1209617a7ebdf1ba8bb363bfe2ccf831575511fef1b56844ad62f34"
+      },
+      "body": {
+        "faces": 142580,
+        "volumeMm3": 6844.290800866476,
+        "boundsMm": {
+          "x": 32.642395803030254,
+          "y": 32.356553277829576,
+          "z": 79.99999922767053
+        },
+        "connectedComponents": 1,
+        "topology": {
+          "closed": true,
+          "nonManifoldEdges": 0,
+          "windingConsistent": true,
+          "degenerateTriangleCount": 0,
+          "nonFiniteTriangleCount": 0
+        },
+        "scaleMmPerSource": 17.653632343033113,
+        "bodyFingerprint": "90746987e391ddbd36b5d2d18261fdca47b04b4974c153267f18b227594a68a1"
+      }
+    },
+    {
+      "id": "P2",
+      "name": "Graph after bounded repair",
+      "graph": {
+        "nodes": 253,
+        "edges": 272,
+        "components": 1,
+        "cycleRank": 20,
+        "totalLengthMm": 650.7032337597033,
+        "maxEdgeLengthMm": 2.747628356626832,
+        "meanDegree": 2.150197628458498,
+        "maxDegree": 5,
+        "degreeHistogram": {
+          "2": 226,
+          "3": 17,
+          "4": 9,
+          "5": 1
+        },
+        "radiusMm": [
+          1.059217941
+        ],
+        "graphFingerprint": "5cb659849d694beaae6443a4828031b5b6471b836bbe5e78aede5aece1c34435"
+      },
+      "repair": {
+        "policy": {
+          "maxPasses": 2,
+          "maxEdgeChangesPerPass": 2,
+          "maxCandidateRelaysPerEdge": 8,
+          "maximumSightlineDropFraction": 0.15,
+          "maximumLargestVoidShrinkFraction": 0.15,
+          "diagnosticGridResolution": 12,
+          "centralRegionFraction": 0.25,
+          "angleThresholdDeg": 45
+        },
+        "passes": [
+          {
+            "pass": 1,
+            "changedEdgeIds": [
+              229,
+              231
+            ],
+            "accepted": true,
+            "candidateDiagnostics": {
+              "body": {
+                "source": "actual-native-body",
+                "triangleCount": 143036,
+                "volumeMm3": 6866.13745333465,
+                "boundsMm": {
+                  "x": 32.642395803030254,
+                  "y": 32.356553277829576,
+                  "z": 79.99999922767053
+                },
+                "connectedComponents": 1,
+                "topology": {
+                  "closed": true,
+                  "nonManifoldEdges": 0,
+                  "windingConsistent": true,
+                  "degenerateTriangleCount": 0,
+                  "nonFiniteTriangleCount": 0
+                }
+              },
+              "spatial": {
+                "internalOccupancyFraction": 0.039473684210526314,
+                "shellOccupancyFraction": 0.042837078651685394,
+                "centralOccupancyFraction": 0.25,
+                "congestionFraction": 0.25,
+                "largestVoid": {
+                  "voxelCount": 292,
+                  "volumeMm3": 14278.197191957091,
+                  "continuityFraction": 1
+                },
+                "sightlines": {
+                  "front": 1,
+                  "side": 1,
+                  "oblique": 1,
+                  "axial": 1
+                }
+              },
+              "graph": {
+                "nodeCount": 251,
+                "edgeCount": 270,
+                "componentCount": 1,
+                "routeTotalSource": 36.56911599245848,
+                "routeTotalMm": 645.5777288405944,
+                "routeMaximumSource": 0.15564096403713568,
+                "routeMaximumMm": 2.747628356626832,
+                "bridgeCount": 16,
+                "maximumBetweenness": 22268.03333333333,
+                "maximumAngleDeg": 89.58539174035825,
+                "longRangeEdgeCount": 0,
+                "centralCrossingCount": 145,
+                "localContactCount": 270,
+                "nonLocalContactCount": 0,
+                "degreeDistribution": {
+                  "minimum": 2,
+                  "maximum": 5,
+                  "mean": 2.151394422310757,
+                  "histogram": {
+                    "2": 224,
+                    "3": 17,
+                    "4": 9,
+                    "5": 1
+                  }
+                }
+              },
+              "motif": {
+                "motifCount": 38,
+                "motifIds": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31,
+                  32,
+                  33,
+                  34,
+                  35,
+                  36,
+                  37,
+                  38
+                ],
+                "contactSpreadMeanSource": 0.02364769139731712,
+                "contactSpreadMaximumSource": 0.030000000001738122,
+                "clusterCount": 1,
+                "spacingCv": 0.13969472259049903,
+                "nodeDensityCv": {
+                  "x": 0.07997952151348499,
+                  "y": 0.10533310013069551,
+                  "z": 0.3510274438629815
+                },
+                "relocationCount": 0,
+                "geometryHash": "6804c0f2"
+              }
+            },
+            "rejectionReasons": []
+          },
+          {
+            "pass": 2,
+            "changedEdgeIds": [
+              230,
+              14
+            ],
+            "accepted": true,
+            "candidateDiagnostics": {
+              "body": {
+                "source": "actual-native-body",
+                "triangleCount": 143416,
+                "volumeMm3": 6885.716492148397,
+                "boundsMm": {
+                  "x": 32.642395803030254,
+                  "y": 32.356553277829576,
+                  "z": 79.99999922767053
+                },
+                "connectedComponents": 1,
+                "topology": {
+                  "closed": true,
+                  "nonManifoldEdges": 0,
+                  "windingConsistent": true,
+                  "degenerateTriangleCount": 0,
+                  "nonFiniteTriangleCount": 0
+                }
+              },
+              "spatial": {
+                "internalOccupancyFraction": 0.039473684210526314,
+                "shellOccupancyFraction": 0.042837078651685394,
+                "centralOccupancyFraction": 0.25,
+                "congestionFraction": 0.25,
+                "largestVoid": {
+                  "voxelCount": 292,
+                  "volumeMm3": 14278.197191957091,
+                  "continuityFraction": 1
+                },
+                "sightlines": {
+                  "front": 1,
+                  "side": 1,
+                  "oblique": 1,
+                  "axial": 1
+                }
+              },
+              "graph": {
+                "nodeCount": 253,
+                "edgeCount": 272,
+                "componentCount": 1,
+                "routeTotalSource": 36.859453120790675,
+                "routeTotalMm": 650.703233759703,
+                "routeMaximumSource": 0.15564096403713568,
+                "routeMaximumMm": 2.747628356626832,
+                "bridgeCount": 17,
+                "maximumBetweenness": 22724.199999999997,
+                "maximumAngleDeg": 89.53487996435331,
+                "longRangeEdgeCount": 0,
+                "centralCrossingCount": 145,
+                "localContactCount": 272,
+                "nonLocalContactCount": 0,
+                "degreeDistribution": {
+                  "minimum": 2,
+                  "maximum": 5,
+                  "mean": 2.150197628458498,
+                  "histogram": {
+                    "2": 226,
+                    "3": 17,
+                    "4": 9,
+                    "5": 1
+                  }
+                }
+              },
+              "motif": {
+                "motifCount": 38,
+                "motifIds": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31,
+                  32,
+                  33,
+                  34,
+                  35,
+                  36,
+                  37,
+                  38
+                ],
+                "contactSpreadMeanSource": 0.02364769139731712,
+                "contactSpreadMaximumSource": 0.030000000001738122,
+                "clusterCount": 1,
+                "spacingCv": 0.13969472259049903,
+                "nodeDensityCv": {
+                  "x": 0.08541574223310004,
+                  "y": 0.10975054052897092,
+                  "z": 0.3471742004804353
+                },
+                "relocationCount": 0,
+                "geometryHash": "6804c0f2"
+              }
+            },
+            "rejectionReasons": []
+          }
+        ],
+        "motifRelocationCount": 0
+      }
+    },
+    {
+      "id": "P3",
+      "name": "Final native BODY",
+      "graph": {
+        "nodes": 253,
+        "edges": 272,
+        "components": 1,
+        "cycleRank": 20,
+        "totalLengthMm": 650.7032337597033,
+        "maxEdgeLengthMm": 2.747628356626832,
+        "meanDegree": 2.150197628458498,
+        "maxDegree": 5,
+        "degreeHistogram": {
+          "2": 226,
+          "3": 17,
+          "4": 9,
+          "5": 1
+        },
+        "radiusMm": [
+          1.059217941
+        ],
+        "graphFingerprint": "5cb659849d694beaae6443a4828031b5b6471b836bbe5e78aede5aece1c34435"
+      },
+      "body": {
+        "faces": 143416,
+        "volumeMm3": 6885.716492148397,
+        "boundsMm": {
+          "x": 32.642395803030254,
+          "y": 32.356553277829576,
+          "z": 79.99999922767053
+        },
+        "connectedComponents": 1,
+        "topology": {
+          "closed": true,
+          "nonManifoldEdges": 0,
+          "windingConsistent": true,
+          "degenerateTriangleCount": 0,
+          "nonFiniteTriangleCount": 0
+        },
+        "scaleMmPerSource": 17.653632343033113,
+        "bodyFingerprint": "116c73c6e038520f79fe920fa16f3894e087955a5679a3b8f7ead4018b920bfe"
+      }
+    }
+  ],
+  "invariants": {
+    "hostIdentity": true,
+    "motifIdentity": true,
+    "motifTransforms": true,
+    "motifRelocation": 0,
+    "legacyRemovableSupportCleared": true
+  },
+  "deterministic": {
+    "runtimeFingerprintMatch": true,
+    "graphFingerprintMatch": true,
+    "bodyFingerprintMatch": true,
+    "diagnosticsMatch": true
+  },
+  "research": {
+    "M": "J:/My Drive/codex/2026-09-06/files-pasted-by-the-user-skin-2/outputs/astra-c-round2/geometry/M.stl",
+    "MR": "J:/My Drive/codex/2026-09-06/files-pasted-by-the-user-skin-2/outputs/astra-c-round4-mr-control/geometry/M-R.stl",
+    "comparisonMeaning": "same generative family and intended BODY contract; byte identity is not required"
+  }
+}

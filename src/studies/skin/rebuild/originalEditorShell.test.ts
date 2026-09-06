@@ -120,6 +120,20 @@ assert.match(main, /inspectorColumn\.append\(rightPaneUpperStack, rightPaneSplit
   "inspector must retain explicit upper, divider, and lower stacks");
 assert.match(main, /rightPaneBody\.append\(flowColumn, inspectorColumn\)/,
   "right pane must expose FLOW beside the Inspector");
+for (const flow of ["SHAPE", "COMPOSE", "STRUCTURE", "SUPPORT", "EXPORT"])
+  assert.match(main, new RegExp(`\"${flow}\"`), `FLOW phase ${flow} is missing`);
+assert.match(main, /inspectorPhaseViews = new Map/,
+  "FLOW must address phase-specific Inspector views");
+assert.match(main, /view\.hidden = phase !== flow/,
+  "FLOW must change Inspector visibility presentation");
+assert.match(main, /STRUCTURE · Permanent Structure/,
+  "STRUCTURE must identify Permanent Structure");
+assert.match(main, /SUPPORT · Removable Support/,
+  "SUPPORT must identify Removable Support");
+assert.match(main, /stage8Export\)/,
+  "EXPORT must retain the canonical Stage 8 export node");
+assert.doesNotMatch(main, /const flowTargets:/,
+  "FLOW must not be implemented as a historical Stage target map");
 assert.match(main, /RIGHT_PANE_RATIO_STORAGE_KEY/);
 assert.match(main, /pointerdown/);
 assert.match(main, /dblclick/);
@@ -144,6 +158,8 @@ assert.match(style, /\.skin-right-upper-stack[\s\S]*flex: 0 0 var\(--skin-right-
   "upper Guide + Print readiness stack must use the adjustable split");
 assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*grid-template-columns: 72px minmax\(0, 1fr\)/,
   "FLOW must remain a narrow column beside the Inspector");
+assert.match(style, /\.skin-inspector-phase\[hidden\]\s*\{ display: none; \}/,
+  "inactive Inspector phases must be hidden without duplicating controls");
 assert.match(style, /\.skin-right-pane-divider[\s\S]*cursor: row-resize/);
 assert.match(style, /\.skin-right-pane-lower[\s\S]*overflow-y: auto/);
 assert.match(style, /\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);

@@ -3564,28 +3564,78 @@ if (isSkinRebuildApp) {
   }
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
-const flowTargets: Record<string, string[]> = {
-  SHAPE: ["skin-stage-1"],
-  COMPOSE: ["skin-stage-2", "skin-stage-3"],
-  STRUCTURE: ["skin-stage-4", "skin-stage-5", "skin-stage-6"],
-  SUPPORT: ["skin-stage-7", "skin-stage-8"],
-  EXPORT: ["skin-stage-8", "skin-print-preparation"],
+
+const inspectorPhaseViews = new Map<string, HTMLElement>();
+const primaryInspector = document.createElement("section");
+primaryInspector.className = "skin-primary-inspector";
+primaryInspector.setAttribute("aria-label", "Primary Inspector");
+const primaryInspectorTitle = document.createElement("strong");
+primaryInspectorTitle.className = "skin-primary-inspector-title";
+primaryInspectorTitle.textContent = "PRIMARY INSPECTOR";
+primaryInspector.appendChild(primaryInspectorTitle);
+
+const createInspectorPhase = (flow: string, title: string, description: string): HTMLDivElement => {
+  const phase = document.createElement("section");
+  phase.className = "skin-inspector-phase";
+  phase.dataset.flowPhase = flow;
+  phase.setAttribute("aria-label", title);
+  const heading = document.createElement("header");
+  heading.className = "skin-inspector-phase-heading";
+  const label = document.createElement("strong");
+  label.textContent = title;
+  const hint = document.createElement("small");
+  hint.textContent = description;
+  heading.append(label, hint);
+  const body = document.createElement("div");
+  body.className = "skin-inspector-phase-body";
+  phase.append(heading, body);
+  primaryInspector.appendChild(phase);
+  inspectorPhaseViews.set(flow, phase);
+  return body;
 };
+
+const shapeInspectorBody = createInspectorPhase("SHAPE", "SHAPE · Host / Base", "Current Host and Base controls");
+const composeInspectorBody = createInspectorPhase("COMPOSE", "COMPOSE · Motifs / Surface", "Surface pattern authoring and edit");
+const structureInspectorBody = createInspectorPhase("STRUCTURE", "STRUCTURE · Permanent Structure", "Permanent Structure and bounded diagnostics");
+const supportInspectorBody = createInspectorPhase("SUPPORT", "SUPPORT · Removable Support", "Current Stage 8 support only");
+const exportInspectorBody = createInspectorPhase("EXPORT", "EXPORT · Stage8 Artifact Export", "Current canonical Production export");
+
+const historicalWorkflow = document.createElement("details");
+historicalWorkflow.className = "skin-historical-workflow";
+const historicalSummary = document.createElement("summary");
+historicalSummary.textContent = "Advanced · Historical Workflow / Stage 1–8";
+const historicalBody = document.createElement("div");
+historicalBody.className = "skin-historical-workflow-body";
+historicalWorkflow.append(historicalSummary, historicalBody);
+
+const moveStageToInspector = (stageId: string, target: HTMLElement): void => {
+  const stage = ui.root.querySelector<HTMLElement>(`#${stageId}`);
+  if (!stage) return;
+  target.appendChild(stage);
+  const summaryText = stage.querySelector<HTMLElement>(".skin-author-stage-copy strong")?.textContent ?? stageId;
+  const historicalEntry = document.createElement("div");
+  historicalEntry.className = "skin-historical-stage-entry";
+  historicalEntry.textContent = summaryText;
+  historicalBody.appendChild(historicalEntry);
+};
+
+const historicalStageNote = document.createElement("p");
+historicalStageNote.className = "skin-historical-workflow-note";
+historicalStageNote.textContent = "Historical Stage controls are retained inside the five primary phase views; this index preserves the original Stage 1–8 mental map without duplicating controls.";
+historicalBody.prepend(historicalStageNote);
+
 let activeFlow = "SHAPE";
 const setActiveFlow = (flow: string): void => {
+  if (!inspectorPhaseViews.has(flow)) return;
   activeFlow = flow;
+  for (const [phase, view] of inspectorPhaseViews) view.hidden = phase !== flow;
   for (const button of flowColumn.querySelectorAll<HTMLButtonElement>("button[data-flow]")) {
     const isActive = button.dataset.flow === flow;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-current", isActive ? "step" : "false");
   }
-  const firstTarget = flowTargets[flow]?.[0];
-  if (!firstTarget) return;
-  const target = ui.root.querySelector<HTMLElement>(`#${firstTarget}`);
-  if (target instanceof HTMLDetailsElement) target.open = true;
-  target?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
-for (const flow of Object.keys(flowTargets)) {
+for (const flow of ["SHAPE", "COMPOSE", "STRUCTURE", "SUPPORT", "EXPORT"]) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "skin-flow-button";
@@ -12123,6 +12173,20 @@ function installSkinRebuildPipelinePanel(): void {
   refreshSkinRebuildComputeStatus();
   refreshSkinRebuildFinalStageButtons();
   refreshSkinRebuildStage8ExportButton();
+
+  moveStageToInspector("skin-stage-1", shapeInspectorBody);
+  moveStageToInspector("skin-stage-2", composeInspectorBody);
+  moveStageToInspector("skin-stage-3", composeInspectorBody);
+  moveStageToInspector("skin-stage-4", structureInspectorBody);
+  moveStageToInspector("skin-stage-5", structureInspectorBody);
+  moveStageToInspector("skin-stage-6", structureInspectorBody);
+  moveStageToInspector("skin-stage-7", structureInspectorBody);
+  moveStageToInspector("skin-stage-8", supportInspectorBody);
+  exportInspectorBody.appendChild(stage8Export.section);
+  const authorWorkflow = ui.root.querySelector<HTMLElement>(".skin-author-workflow");
+  authorWorkflow?.remove();
+  ui.root.insertBefore(primaryInspector, ui.root.querySelector<HTMLElement>(".skin-auxiliary-frozen") ?? null);
+  ui.root.insertBefore(historicalWorkflow, ui.root.querySelector<HTMLElement>(".skin-auxiliary-frozen") ?? null);
 }
 
 function invalidateSkinRebuildPipeline(reason = "形状が変わったため、工程3から再実行してください"): void {

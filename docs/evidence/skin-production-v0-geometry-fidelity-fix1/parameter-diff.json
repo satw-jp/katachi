@@ -1,0 +1,43 @@
+{
+  "before": {
+    "sourceToMmScale": 17.66992511297614,
+    "graphRadiusMm": [
+      1.447166867
+    ],
+    "graph": {
+      "nodes": 251,
+      "edges": 335,
+      "cycleRank": 85
+    },
+    "quadMeshJoinWidthSource": null,
+    "meshResolution": 48
+  },
+  "after": {
+    "sourceToMmScale": 17.653632343033113,
+    "memberRadiusSource": 0.06,
+    "memberRadiusMm": 1.0592179405819868,
+    "graph": {
+      "nodes": 249,
+      "edges": 268,
+      "components": 1,
+      "cycleRank": 20,
+      "totalLengthMm": 640.3209624271453,
+      "maxEdgeLengthMm": 2.747628356626832,
+      "meanDegree": 2.1526104417670684,
+      "maxDegree": 5,
+      "degreeHistogram": {
+        "2": 222,
+        "3": 17,
+        "4": 9,
+        "5": 1
+      },
+      "radiusMm": [
+        1.059217941
+      ],
+      "graphFingerprint": "5619f2dcb1209617a7ebdf1ba8bb363bfe2ccf831575511fef1b56844ad62f34"
+    },
+    "quadMeshJoinWidthSource": 0.12,
+    "meshResolution": 128
+  },
+  "authority": "Research M / M-R contract and geometry-fidelity audit; no numeric target fitting"
+}
