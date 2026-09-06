@@ -7,7 +7,8 @@ Last verified: 2026-09-06
 - branch: `agent/hana-viewport-context-topbar-v0`
 - HEAD: `e2456befce1467c9892f0fc772096368dedce151`
 - working tree: clean at reported checkpoint
-- remote branch: not yet pushed at reported checkpoint
+- remote branch: preserved / pushed at exact HEAD `e2456befce1467c9892f0fc772096368dedce151`
+- parent Projection Redraw checkpoint `99e9b9ad90f478c875a805513d7603f75e8ff0a7` is remotely reachable through the preserved viewport branch
 
 ## Current phase
 Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Software / desktop gates are already passing. Research-derived growth / field ideas remain HOLD until the current UI phase closes.
@@ -33,6 +34,7 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 - TypeScript / test TypeScript / build / diff check PASS
 - browser HTTP / console gate PASS
 - desktop Top Pane / mouse context menu / menu close / state retention / gizmo / auto-rotate / Projection Redraw checks PASS
+- migration-preservation checkpoint: PASS — current viewport HEAD is remotely reconstructable; parent Projection Redraw checkpoint is also remotely reachable
 
 ## Current blocker
 - iPad / EasyCanvas Hardware Gate not yet closed.
@@ -60,6 +62,8 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 ### Proven / supported
 - desktop/software UI phase is near completion.
 - REMOTE/AUTO compute avoids the observed LOCAL derived Surface rebuild latency bottleneck.
+- current committed HANA checkpoint `e2456bef...` is preserved on the remote branch.
+- Projection Redraw checkpoint `99e9b9ad...` remains remotely reachable as the parent of the preserved viewport branch.
 
 ### Not yet proven
 - current iPad / EasyCanvas hardware behavior
