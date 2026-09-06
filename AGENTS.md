@@ -2,6 +2,8 @@
 
 This file is the thin, repository-wide constitution for every human and agent. Operational details live in [`docs/TEAM_PROTOCOL_CORE.md`](docs/TEAM_PROTOCOL_CORE.md) and its progressive references.
 
+If a higher-level `~/Projects/AGENTS.md` exists in the execution environment, it takes precedence; its presence is not assumed here.
+
 ## Authority and routing
 
 - GitHub is the technical authority for code, branches, commits, CURRENT files, bounded tasks, and checkpoint evidence.
@@ -27,3 +29,5 @@ This file is the thin, repository-wide constitution for every human and agent. O
 Normal work loads the relevant CURRENT front, bounded task, and named pointers only. `STATEMENT.md`, `RESEARCH.md`, unrelated lane CURRENTs, old tasks, and broad architecture/research documents are available by concrete need or named pointer, not mandatory preload.
 
 Hikari work must follow [`docs/protocol/HIKARI_REFERENCE.md`](docs/protocol/HIKARI_REFERENCE.md) before reading, editing, testing, or presenting Hikari runtime state.
+
+Study authoring, shared visual conventions, physical-safety wording, and document-versioning details are preserved in [`docs/protocol/PROJECT_AUTHORING_REFERENCE.md`](docs/protocol/PROJECT_AUTHORING_REFERENCE.md) and load only for Study/authoring work.

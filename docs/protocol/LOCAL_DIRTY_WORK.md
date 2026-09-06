@@ -10,3 +10,5 @@ GitHub cannot represent local changes that are not pushed. When work is dirty or
 6. use an explicit external handoff only when uncommitted evidence must cross chats.
 
 Do not switch, repair, prune, or recreate linked worktrees without explicit authorization. Preserve old paths until a verified replacement exists.
+
+Do not merge, rebase, or otherwise alter an old task branch merely to obtain reporting or governance documents. Read those documents from `main` / `origin/main` / GitHub and keep implementation work on its authorized lineage.
