@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.93.2",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-05",
+  "updatedAt": "2026-09-06",
   "params": [
     "count",
     "radiusBase",
@@ -1232,6 +1232,10 @@
     {
       "date": "2026-09-06",
       "note": "SKIN Large Candidate 3MF Streaming Export v0 replaces only the giant object-model string/Uint8Array path with exact-order 1 MiB UTF-8 chunks, streaming raw-deflate, incremental CRC32/size accounting and explicit ZIP32 guards while retaining indexTriangleSoup, package metadata, placement and fingerprint semantics. Small extracted XML entry bytes match the legacy serializer exactly. A 1,000,002-vertex/13,200,000-triangle synthetic gate wrote 538,792,408 XML bytes into a valid 5,049,335-byte ZIP without Invalid string length. Real A2 retained 5,934,044 BODY faces and unchanged COMPLETE Support (4,561 targets, 654 accepted, 3,907 unsupported, 2,150 nodes, 1,496 edges, BODY/Rabbit collision 0/0), passed the former XML assembly blocker and reached ZIP assembly. The next bounded blocker is validateSkin3mf complete large-entry parsing, which returned XML has no root element after at least 67,637,175 compressed model bytes; validator redesign, download/release and G/H/J were not run. Console errors/warnings were 0/0; geometry, Support, Rabbit, FKEI, authoring round-trip and production SKIN were unchanged; no deploy per explicit task instruction."
+    },
+    {
+      "date": "2026-09-06",
+      "note": "SKIN Large 3MF Streaming Validator v0 replaces only large model-entry validation with lazy ZIP descriptors, bounded raw-deflate input, fatal incremental UTF-8 decoding, an event parser, compact per-object summaries and incremental CRC32/size checks; no full model Uint8Array/string/XML tree or per-vertex object collection is created. Forced legacy/streaming reports matched deeply for valid and representative malformed fixtures across 7/31/64-byte input boundaries. A 1,000,002-vertex/13,200,000-triangle synthetic gate validated 538,792,408 XML bytes from 5,049,187 compressed bytes with a 1 MiB input maximum and 16,414-character parser buffer. Unchanged real A2 completed Support at 4,561 targets / 654 accepted / 3,907 unsupported / 2,150 nodes / 1,496 edges / BODY-Rabbit collisions 0/0, then validated and downloaded a 75,491,879-byte 3MF with 575,613,609 model XML bytes, 75,489,493 compressed model bytes, 2,964,210 BODY vertices, 5,934,044 BODY faces and 71,808 support faces. Placement parity, BODY indexing retention, validation, download and release passed; console errors/warnings were 0/0. Geometry, Support semantics/settings, Rabbit, schema, FKEI, authoring and production remained unchanged; G/H/J, winner selection, merge and deploy were not performed."
     }
   ]
 }

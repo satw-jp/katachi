@@ -42,24 +42,77 @@ interface XmlElement {
 }
 
 interface ZipArchive {
-  entries: Map<string, Uint8Array>;
+  bytes: Uint8Array;
+  entries: Map<string, ZipEntryDescriptor>;
+  validated: Set<string>;
+}
+
+interface ZipEntryDescriptor {
+  name: string;
+  method: number;
+  expectedCrc: number;
+  compressedSize: number;
+  uncompressedSize: number;
+  payloadStart: number;
 }
 
 interface MeshObject {
   path: string;
   id: number;
   type: string;
-  element: XmlElement;
+  element?: XmlElement;
+  inspection?: MeshInspection;
+}
+
+interface MeshInspection {
+  hasMesh: boolean;
+  hasVertices: boolean;
+  hasTriangles: boolean;
+  vertexCount: number;
+  triangleCount: number;
+  boundsMin: Skin3mfVector3;
+  boundsMax: Skin3mfVector3;
+  errors: string[];
+  warnings: string[];
 }
 
 interface ParsedModel {
   path: string;
   unit: string;
   objects: Map<number, MeshObject>;
+  parseErrors?: string[];
 }
 
 const DEFAULT_TOLERANCE_MM = 1e-4;
+const DEFAULT_STREAMING_THRESHOLD_BYTES = 8 * 1024 * 1024;
+const DEFAULT_STREAM_CHUNK_BYTES = 1024 * 1024;
 const MODEL_RELATIONSHIP_TYPE = "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel";
+
+export interface Skin3mfValidationProgress {
+  stage: "Reading model XML" | "Validating model XML";
+  entry: string;
+  completed: number;
+  total: number;
+}
+
+export interface Skin3mfValidationTelemetry {
+  mode: "legacy" | "streaming";
+  entry: string;
+  compressedBytes: number;
+  uncompressedBytes: number;
+  largestCompressedInputChunkBytes: number;
+  largestInflatedChunkBytes: number;
+  largestDecodedTextChunkCharacters: number;
+  largestParserBufferCharacters: number;
+}
+
+export interface Skin3mfValidationExecutionOptions {
+  modelMode?: "auto" | "legacy" | "streaming";
+  streamingThresholdBytes?: number;
+  compressedInputChunkBytes?: number;
+  onProgress?: (progress: Skin3mfValidationProgress) => void;
+  onTelemetry?: (telemetry: Skin3mfValidationTelemetry) => void;
+}
 
 function emptyVector(): Skin3mfVector3 {
   return { x: 0, y: 0, z: 0 };
@@ -338,6 +391,16 @@ async function inflateRaw(payload: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
+function crc32Update(crc: number, bytes: Uint8Array): number {
+  let next = crc;
+  for (const byte of bytes) {
+    let value = (next ^ byte) & 0xff;
+    for (let bit = 0; bit < 8; bit++) value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+    next = (next >>> 8) ^ value;
+  }
+  return next;
+}
+
 async function readZip(value: ArrayBuffer | Uint8Array): Promise<ZipArchive> {
   const bytes = asBytes(value);
   const eocd = findEndOfCentralDirectory(bytes);
@@ -354,7 +417,7 @@ async function readZip(value: ArrayBuffer | Uint8Array): Promise<ZipArchive> {
   if (eocd + 22 + commentLength > bytes.length) throw new Error("ZIP comment is truncated");
   if (centralOffset + centralSize > eocd) throw new Error("ZIP central directory is outside the archive");
 
-  const entries = new Map<string, Uint8Array>();
+  const entries = new Map<string, ZipEntryDescriptor>();
   let cursor = centralOffset;
   for (let index = 0; index < entryCount; index++) {
     if (readUint32(bytes, cursor) !== 0x02014b50) throw new Error("ZIP central directory entry is invalid");
@@ -393,30 +456,36 @@ async function readZip(value: ArrayBuffer | Uint8Array): Promise<ZipArchive> {
     const payloadStart = localNameStart + localNameLength + localExtraLength;
     const payloadEnd = payloadStart + compressedSize;
     if (payloadEnd > bytes.length || payloadEnd > centralOffset) throw new Error(`ZIP payload is truncated for ${name}`);
-    const payload = bytes.slice(payloadStart, payloadEnd);
-    let data: Uint8Array;
-    if (method === 0) data = payload;
-    else if (method === 8) data = await inflateRaw(payload);
-    else throw new Error(`unsupported ZIP compression method ${method} for ${name}`);
-    if (data.byteLength !== uncompressedSize) throw new Error(`ZIP size mismatch for ${name}`);
-    if (crc32(data) !== expectedCrc) throw new Error(`ZIP CRC mismatch for ${name}`);
-    entries.set(name, data);
+    if (method !== 0 && method !== 8) throw new Error(`unsupported ZIP compression method ${method} for ${name}`);
+    entries.set(name, { name, method, expectedCrc, compressedSize, uncompressedSize, payloadStart });
     cursor = centralNext;
   }
   if (cursor !== centralOffset + centralSize) throw new Error("ZIP central directory size does not match its entries");
-  return { entries };
+  return { bytes, entries, validated: new Set() };
 }
 
-function parseXmlEntry(archive: ZipArchive, name: string, errors: string[]): XmlElement | null {
-  const data = archive.entries.get(name);
-  if (!data) {
+async function materializeEntry(archive: ZipArchive, name: string): Promise<Uint8Array> {
+  const entry = archive.entries.get(name);
+  if (!entry) throw new Error(`missing required entry: ${name}`);
+  const payload = archive.bytes.subarray(entry.payloadStart, entry.payloadStart + entry.compressedSize);
+  const data = entry.method === 0 ? payload : await inflateRaw(payload);
+  if (data.byteLength !== entry.uncompressedSize) throw new Error(`ZIP size mismatch for ${name}`);
+  if (crc32(data) !== entry.expectedCrc) throw new Error(`ZIP CRC mismatch for ${name}`);
+  archive.validated.add(name);
+  return data;
+}
+
+async function parseXmlEntry(archive: ZipArchive, name: string, errors: string[]): Promise<XmlElement | null> {
+  if (!archive.entries.has(name)) {
     errors.push(`missing required entry: ${name}`);
     return null;
   }
   try {
+    const data = await materializeEntry(archive, name);
     return parseXml(textFromBytes(data, name));
   } catch (error) {
-    errors.push(`malformed XML in ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`${message.startsWith("ZIP ") ? "invalid 3MF ZIP container" : `malformed XML in ${name}`}: ${message}`);
     return null;
   }
 }
@@ -451,6 +520,320 @@ function relationshipTargets(
     targets.add(normalizeZipPath(target, base));
   }
   return targets;
+}
+
+interface XmlEventHandler {
+  start(name: string, attributes: Record<string, string>, ancestors: readonly string[]): void;
+  end(name: string, ancestors: readonly string[]): void;
+}
+
+class IncrementalXmlParser {
+  private buffer = "";
+  private rootName: string | null = null;
+  private readonly stack: string[] = [];
+  largestBufferCharacters = 0;
+
+  constructor(private readonly handler: XmlEventHandler) {}
+
+  write(text: string, final = false): void {
+    this.buffer += text;
+    this.largestBufferCharacters = Math.max(this.largestBufferCharacters, this.buffer.length);
+    let cursor = 0;
+    while (cursor < this.buffer.length) {
+      if (this.buffer[cursor] !== "<") {
+        const next = this.buffer.indexOf("<", cursor);
+        if (next < 0 && !final) {
+          const tail = this.buffer.slice(cursor);
+          const ampersand = tail.lastIndexOf("&");
+          const safeEnd = ampersand >= 0 && tail.indexOf(";", ampersand) < 0 ? cursor + ampersand : this.buffer.length;
+          const safeText = this.buffer.slice(cursor, safeEnd);
+          if (safeText) this.validateText(safeText);
+          this.buffer = this.buffer.slice(safeEnd);
+          this.largestBufferCharacters = Math.max(this.largestBufferCharacters, this.buffer.length);
+          return;
+        }
+        const end = next < 0 ? this.buffer.length : next;
+        this.validateText(this.buffer.slice(cursor, end));
+        cursor = end;
+        continue;
+      }
+      if (this.buffer.startsWith("<!--", cursor)) {
+        const end = this.buffer.indexOf("-->", cursor + 4);
+        if (end < 0) {
+          if (final) throw new Error("XML comment is unterminated");
+          break;
+        }
+        cursor = end + 3;
+        continue;
+      }
+      if (this.buffer.startsWith("<![CDATA[", cursor)) {
+        const end = this.buffer.indexOf("]]>", cursor + 9);
+        if (end < 0) {
+          if (final) throw new Error("XML CDATA is unterminated");
+          break;
+        }
+        if (this.stack.length === 0 && this.buffer.slice(cursor + 9, end).trim() !== "") throw new Error("XML has text outside the root element");
+        cursor = end + 3;
+        continue;
+      }
+      if (this.buffer.startsWith("<?", cursor)) {
+        const end = this.buffer.indexOf("?>", cursor + 2);
+        if (end < 0) {
+          if (final) throw new Error("XML processing instruction is unterminated");
+          break;
+        }
+        cursor = end + 2;
+        continue;
+      }
+      if (this.buffer.startsWith("<!", cursor)) throw new Error("unsupported XML declaration");
+
+      let tagEnd = cursor + 1;
+      let quote = "";
+      while (tagEnd < this.buffer.length) {
+        const character = this.buffer[tagEnd];
+        if (quote) {
+          if (character === quote) quote = "";
+        } else if (character === '"' || character === "'") quote = character;
+        else if (character === ">") break;
+        tagEnd++;
+      }
+      if (tagEnd >= this.buffer.length || quote) {
+        if (final) throw new Error("XML start/end tag is unterminated");
+        break;
+      }
+      const rawTag = this.buffer.slice(cursor + 1, tagEnd);
+      if (rawTag.startsWith("/")) {
+        const name = rawTag.slice(1).trim();
+        if (!name || /\s/.test(name)) throw new Error("invalid XML end tag");
+        const open = this.stack.pop();
+        if (!open || open !== name) throw new Error(`XML end tag does not match ${name}`);
+        this.handler.end(name, this.stack);
+      } else {
+        let body = rawTag.trim();
+        const selfClosing = body.endsWith("/");
+        if (selfClosing) body = body.slice(0, -1).trimEnd();
+        const parsed = parseXmlStartTag(body);
+        if (this.stack.length === 0) {
+          if (this.rootName) throw new Error("XML has multiple root elements");
+          this.rootName = parsed.name;
+        }
+        this.handler.start(parsed.name, parsed.attributes, this.stack);
+        if (selfClosing) this.handler.end(parsed.name, this.stack);
+        else this.stack.push(parsed.name);
+      }
+      cursor = tagEnd + 1;
+    }
+    this.buffer = this.buffer.slice(cursor);
+    this.largestBufferCharacters = Math.max(this.largestBufferCharacters, this.buffer.length);
+    if (final) {
+      if (this.buffer) throw new Error("XML start/end tag is unterminated");
+      if (this.stack.length > 0) throw new Error(`XML element ${this.stack[this.stack.length - 1]} is unclosed`);
+      if (!this.rootName) throw new Error("XML has no root element");
+    }
+  }
+
+  private validateText(text: string): void {
+    decodeXmlEntity(text);
+    if (this.stack.length === 0 && text.trim() !== "") throw new Error("XML has text outside the root element");
+  }
+}
+
+function parseXmlStartTag(body: string): { name: string; attributes: Record<string, string> } {
+  let offset = 0;
+  while (offset < body.length && /\s/.test(body[offset])) offset++;
+  if (offset >= body.length || !isXmlNameStart(body[offset])) throw new Error("invalid XML start tag name");
+  const nameStart = offset++;
+  while (offset < body.length && isXmlNamePart(body[offset])) offset++;
+  const name = body.slice(nameStart, offset);
+  const attributes: Record<string, string> = {};
+  while (offset < body.length) {
+    while (offset < body.length && /\s/.test(body[offset])) offset++;
+    if (offset >= body.length) break;
+    if (!isXmlNameStart(body[offset])) throw new Error(`invalid XML attribute in ${name}`);
+    const attributeStart = offset++;
+    while (offset < body.length && isXmlNamePart(body[offset])) offset++;
+    const attributeName = body.slice(attributeStart, offset);
+    if (attributes[attributeName] !== undefined) throw new Error(`duplicate XML attribute ${attributeName}`);
+    while (offset < body.length && /\s/.test(body[offset])) offset++;
+    if (body[offset] !== "=") throw new Error(`XML attribute ${attributeName} has no value`);
+    offset++;
+    while (offset < body.length && /\s/.test(body[offset])) offset++;
+    const delimiter = body[offset];
+    if (delimiter !== '"' && delimiter !== "'") throw new Error(`XML attribute ${attributeName} is not quoted`);
+    offset++;
+    const valueStart = offset;
+    while (offset < body.length && body[offset] !== delimiter) offset++;
+    if (offset >= body.length) throw new Error(`XML attribute ${attributeName} is unterminated`);
+    const value = body.slice(valueStart, offset);
+    if (value.includes("<")) throw new Error(`XML attribute ${attributeName} contains '<'`);
+    attributes[attributeName] = decodeXmlEntity(value);
+    offset++;
+  }
+  return { name, attributes };
+}
+
+function makeInspection(): MeshInspection {
+  return { hasMesh: false, hasVertices: false, hasTriangles: false, vertexCount: 0, triangleCount: 0, boundsMin: emptyVector(), boundsMax: emptyVector(), errors: [], warnings: [] };
+}
+
+function createModelEventHandler(path: string): { handler: XmlEventHandler; result: () => ParsedModel | null } {
+  let root = "";
+  let unit = "";
+  let hasResources = false;
+  const objects = new Map<number, MeshObject>();
+  const objectByDepth = new Map<number, MeshObject>();
+  const invalidObjectDepths = new Set<number>();
+  const parseErrors: string[] = [];
+  const handler: XmlEventHandler = {
+    start(name, attributes, ancestors) {
+      const local = localName(name);
+      const parent = ancestors.length ? localName(ancestors[ancestors.length - 1]) : "";
+      const depth = ancestors.length;
+      if (depth === 0) { root = local; unit = attributes.unit ?? ""; }
+      if (depth === 1 && parent === "model" && local === "resources") hasResources = true;
+      if (depth === 2 && localName(ancestors[0] ?? "") === "model" && parent === "resources" && local === "object") {
+        const id = parsePositiveInteger(attributes.id);
+        if (id === null) { parseErrors.push(`${path} contains an object with an invalid id`); invalidObjectDepths.add(depth); return; }
+        if (objects.has(id)) { parseErrors.push(`${path} contains duplicate object id ${id}`); invalidObjectDepths.add(depth); return; }
+        const object: MeshObject = { path, id, type: attributes.type ?? "", inspection: makeInspection() };
+        objects.set(id, object); objectByDepth.set(depth, object);
+        return;
+      }
+      let object: MeshObject | undefined;
+      for (let candidateDepth = depth - 1; candidateDepth >= 0; candidateDepth--) {
+        object = objectByDepth.get(candidateDepth);
+        if (object || invalidObjectDepths.has(candidateDepth)) break;
+      }
+      const inspection = object?.inspection;
+      if (!inspection) return;
+      const state = inspection as MeshInspection & { meshDepth?: number; verticesDepth?: number; trianglesDepth?: number };
+      if (local === "mesh" && parent === "object" && state.meshDepth === undefined) { state.hasMesh = true; state.meshDepth = depth; return; }
+      if (state.meshDepth !== undefined && local === "vertices" && parent === "mesh" && state.verticesDepth === undefined) { state.hasVertices = true; state.verticesDepth = depth; return; }
+      if (state.meshDepth !== undefined && local === "triangles" && parent === "mesh" && state.trianglesDepth === undefined) { state.hasTriangles = true; state.trianglesDepth = depth; return; }
+      if (state.verticesDepth !== undefined && depth === state.verticesDepth + 1 && local === "vertex" && parent === "vertices") {
+        const x = parseFiniteNumber(attributes.x), y = parseFiniteNumber(attributes.y), z = parseFiniteNumber(attributes.z);
+        if (x === null || y === null || z === null) { state.errors.push(`non-finite vertex coordinate in ${path}#${object!.id}`); return; }
+        const point = { x, y, z };
+        if (state.vertexCount === 0) { state.boundsMin = { ...point }; state.boundsMax = { ...point }; }
+        else {
+          state.boundsMin.x = Math.min(state.boundsMin.x, x); state.boundsMin.y = Math.min(state.boundsMin.y, y); state.boundsMin.z = Math.min(state.boundsMin.z, z);
+          state.boundsMax.x = Math.max(state.boundsMax.x, x); state.boundsMax.y = Math.max(state.boundsMax.y, y); state.boundsMax.z = Math.max(state.boundsMax.z, z);
+        }
+        state.vertexCount++;
+      }
+      if (state.trianglesDepth !== undefined && depth === state.trianglesDepth + 1 && local === "triangle" && parent === "triangles") {
+        state.triangleCount++;
+        const indices = [parsePositiveInteger(attributes.v1), parsePositiveInteger(attributes.v2), parsePositiveInteger(attributes.v3)];
+        if (indices.some((index) => index === null || index >= state.vertexCount)) state.errors.push(`triangle index out of range in ${path}#${object!.id}`);
+        else if (indices[0] === indices[1] || indices[1] === indices[2] || indices[2] === indices[0]) state.warnings.push(`degenerate triangle in ${path}#${object!.id}`);
+      }
+    },
+    end(name, ancestors) {
+      const depth = ancestors.length;
+      if (localName(name) === "object") { objectByDepth.delete(depth); invalidObjectDepths.delete(depth); }
+    },
+  };
+  return { handler, result: () => {
+    if (root !== "model") return null;
+    if (!hasResources) return { path, unit, objects: new Map(), parseErrors: [`${path} is missing resources`] } as ParsedModel & { parseErrors: string[] };
+    return Object.assign({ path, unit, objects }, { parseErrors });
+  } };
+}
+
+function compressedEntryStream(archive: ZipArchive, entry: ZipEntryDescriptor, chunkBytes: number): ReadableStream<Uint8Array> {
+  let offset = 0;
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= entry.compressedSize) { controller.close(); return; }
+      const length = Math.min(chunkBytes, entry.compressedSize - offset);
+      const start = entry.payloadStart + offset;
+      controller.enqueue(archive.bytes.subarray(start, start + length));
+      offset += length;
+    },
+  });
+}
+
+async function parseModelStreaming(
+  archive: ZipArchive,
+  entry: ZipEntryDescriptor,
+  path: string,
+  options: Skin3mfValidationExecutionOptions,
+): Promise<ParsedModel> {
+  const chunkBytes = Math.max(1, Math.floor(options.compressedInputChunkBytes ?? DEFAULT_STREAM_CHUNK_BYTES));
+  const source = compressedEntryStream(archive, entry, chunkBytes);
+  const inflated: ReadableStream<Uint8Array> = entry.method === 8
+    ? source.pipeThrough(new DecompressionStream("deflate-raw" as never) as unknown as ReadableWritablePair<Uint8Array, Uint8Array>)
+    : source;
+  const reader = inflated.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const model = createModelEventHandler(path);
+  const parser = new IncrementalXmlParser(model.handler);
+  let crc = 0xffffffff;
+  let uncompressedBytes = 0;
+  let largestInflatedChunkBytes = 0;
+  let largestDecodedTextChunkCharacters = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = value ?? new Uint8Array(0);
+      crc = crc32Update(crc, chunk);
+      uncompressedBytes += chunk.byteLength;
+      largestInflatedChunkBytes = Math.max(largestInflatedChunkBytes, chunk.byteLength);
+      let text: string;
+      try { text = decoder.decode(chunk, { stream: true }); }
+      catch { throw new Error(`invalid UTF-8 in ${path}`); }
+      largestDecodedTextChunkCharacters = Math.max(largestDecodedTextChunkCharacters, text.length);
+      parser.write(text);
+      options.onProgress?.({ stage: "Validating model XML", entry: path, completed: uncompressedBytes, total: entry.uncompressedSize });
+    }
+    let tail: string;
+    try { tail = decoder.decode(); }
+    catch { throw new Error(`invalid UTF-8 in ${path}`); }
+    parser.write(tail, true);
+  } finally {
+    reader.releaseLock();
+  }
+  if (uncompressedBytes !== entry.uncompressedSize) throw new Error(`ZIP size mismatch for ${entry.name}`);
+  if (((crc ^ 0xffffffff) >>> 0) !== entry.expectedCrc) throw new Error(`ZIP CRC mismatch for ${entry.name}`);
+  archive.validated.add(entry.name);
+  const result = model.result();
+  if (!result) throw new Error(`${path} does not have a model root element`);
+  options.onTelemetry?.({
+    mode: "streaming", entry: path, compressedBytes: entry.compressedSize, uncompressedBytes,
+    largestCompressedInputChunkBytes: Math.min(chunkBytes, entry.compressedSize), largestInflatedChunkBytes,
+    largestDecodedTextChunkCharacters, largestParserBufferCharacters: parser.largestBufferCharacters,
+  });
+  return result;
+}
+
+async function parseModelEntry(
+  archive: ZipArchive,
+  entryName: string,
+  path: string,
+  errors: string[],
+  options: Skin3mfValidationExecutionOptions,
+): Promise<ParsedModel | null> {
+  const entry = archive.entries.get(entryName);
+  if (!entry) return null;
+  const threshold = options.streamingThresholdBytes ?? DEFAULT_STREAMING_THRESHOLD_BYTES;
+  const mode = options.modelMode === "legacy" ? "legacy"
+    : options.modelMode === "streaming" || entry.uncompressedSize >= threshold ? "streaming" : "legacy";
+  try {
+    if (mode === "streaming") {
+      const model = await parseModelStreaming(archive, entry, path, options);
+      if (model.parseErrors) errors.push(...model.parseErrors);
+      return model;
+    }
+    const data = await materializeEntry(archive, entryName);
+    const model = parseModel(path, data, errors);
+    options.onTelemetry?.({ mode: "legacy", entry: path, compressedBytes: entry.compressedSize, uncompressedBytes: data.byteLength, largestCompressedInputChunkBytes: entry.compressedSize, largestInflatedChunkBytes: data.byteLength, largestDecodedTextChunkCharacters: data.byteLength, largestParserBufferCharacters: data.byteLength });
+    return model;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`${message.startsWith("ZIP ") ? "invalid 3MF ZIP container" : `malformed XML in ${path}`}: ${message}`);
+    return null;
+  }
 }
 
 function parseModel(path: string, data: Uint8Array, errors: string[]): ParsedModel | null {
@@ -503,7 +886,25 @@ function updateBounds(report: Skin3mfValidationReport, point: Skin3mfVector3, ha
 }
 
 function inspectMeshObject(object: MeshObject, report: Skin3mfValidationReport): boolean {
-  const mesh = child(object.element, "mesh");
+  if (object.inspection) {
+    const inspection = object.inspection;
+    if (!inspection.hasMesh) { report.errors.push(`object ${object.path}#${object.id} is missing mesh geometry`); return false; }
+    if (!inspection.hasVertices) report.errors.push(`object ${object.path}#${object.id} is missing vertices`);
+    if (!inspection.hasTriangles) report.errors.push(`object ${object.path}#${object.id} is missing triangles`);
+    if (inspection.vertexCount === 0) report.errors.push(`object ${object.path}#${object.id} has no vertices`);
+    if (inspection.triangleCount === 0) report.errors.push(`object ${object.path}#${object.id} has no triangles`);
+    const hadVertices = report.vertexCount > 0;
+    if (inspection.vertexCount > 0) {
+      updateBounds(report, inspection.boundsMin, hadVertices);
+      updateBounds(report, inspection.boundsMax, true);
+    }
+    report.vertexCount += inspection.vertexCount;
+    report.triangleCount += inspection.triangleCount;
+    report.errors.push(...inspection.errors);
+    report.warnings.push(...inspection.warnings);
+    return true;
+  }
+  const mesh = child(object.element as XmlElement, "mesh");
   if (!mesh) {
     report.errors.push(`object ${object.path}#${object.id} is missing mesh geometry`);
     return false;
@@ -586,21 +987,22 @@ function expectedBoundsMismatch(
   return errors;
 }
 
-function inspectSettings(
+async function inspectSettings(
   archive: ZipArchive,
   models: ParsedModel[],
   report: Skin3mfValidationReport,
-): void {
-  const settingsData = archive.entries.get("Metadata/model_settings.config");
-  if (!settingsData) {
+): Promise<void> {
+  if (!archive.entries.has("Metadata/model_settings.config")) {
     report.errors.push("missing required entry: Metadata/model_settings.config");
     return;
   }
   let settings: XmlElement;
   try {
+    const settingsData = await materializeEntry(archive, "Metadata/model_settings.config");
     settings = parseXml(textFromBytes(settingsData, "Metadata/model_settings.config"));
   } catch (error) {
-    report.errors.push(`malformed XML in Metadata/model_settings.config: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    report.errors.push(`${message.startsWith("ZIP ") ? "invalid 3MF ZIP container" : "malformed XML in Metadata/model_settings.config"}: ${message}`);
     return;
   }
   if (localName(settings.name) !== "config") report.errors.push("Metadata/model_settings.config does not have a config root element");
@@ -635,6 +1037,7 @@ function inspectSettings(
 export async function validateSkin3mf(
   bytes: ArrayBuffer | Uint8Array,
   expected: Skin3mfValidationExpected = {},
+  execution: Skin3mfValidationExecutionOptions = {},
 ): Promise<Skin3mfValidationReport> {
   const report = makeReport();
   let archive: ZipArchive;
@@ -648,14 +1051,16 @@ export async function validateSkin3mf(
   const requiredEntries = ["[Content_Types].xml", "_rels/.rels", "3D/3dmodel.model"];
   for (const name of requiredEntries) if (!archive.entries.has(name)) report.errors.push(`missing required entry: ${name}`);
 
-  const contentTypes = parseXmlEntry(archive, "[Content_Types].xml", report.errors);
+  const contentTypes = await parseXmlEntry(archive, "[Content_Types].xml", report.errors);
   if (contentTypes && localName(contentTypes.name) !== "Types") report.errors.push("[Content_Types].xml does not have a Types root element");
-  const rootRelationships = parseXmlEntry(archive, "_rels/.rels", report.errors);
+  const rootRelationships = await parseXmlEntry(archive, "_rels/.rels", report.errors);
   const rootRelationshipTargets = relationshipTargets(rootRelationships, "/", report.errors, "_rels/.rels", MODEL_RELATIONSHIP_TYPE);
   if (!rootRelationshipTargets.has("/3D/3dmodel.model")) report.errors.push("root relationships do not reference /3D/3dmodel.model");
 
-  const rootData = archive.entries.get("3D/3dmodel.model");
-  if (!rootData) return report;
+  if (!archive.entries.has("3D/3dmodel.model")) return report;
+  let rootData: Uint8Array;
+  try { rootData = await materializeEntry(archive, "3D/3dmodel.model"); }
+  catch (error) { report.errors.push(`invalid 3MF ZIP container: ${error instanceof Error ? error.message : String(error)}`); return report; }
   const rootModel = parseModel("/3D/3dmodel.model", rootData, report.errors);
   if (!rootModel) return report;
   report.unit = rootModel.unit;
@@ -664,7 +1069,7 @@ export async function validateSkin3mf(
   else if (rootModel.unit !== expectedUnit) report.errors.push(`unsupported unit: ${rootModel.unit} (expected ${expectedUnit})`);
 
   const modelRelationshipPath = relationshipFileFor("/3D/3dmodel.model").slice(1);
-  const modelRelationships = parseXmlEntry(archive, modelRelationshipPath, report.errors);
+  const modelRelationships = await parseXmlEntry(archive, modelRelationshipPath, report.errors);
   const modelRelationshipTargets = relationshipTargets(modelRelationships, "/3D", report.errors, "3D/3dmodel.model relationships", MODEL_RELATIONSHIP_TYPE);
 
   const rootResources = child(parseXml(textFromBytes(rootData, "3D/3dmodel.model")), "resources");
@@ -709,12 +1114,11 @@ export async function validateSkin3mf(
   for (const reference of componentReferences) {
     if (modelsByPath.has(reference.path)) continue;
     const entryName = reference.path.slice(1);
-    const data = archive.entries.get(entryName);
-    if (!data) {
+    if (!archive.entries.has(entryName)) {
       report.errors.push(`component references missing model XML: ${entryName}`);
       continue;
     }
-    const model = parseModel(reference.path, data, report.errors);
+    const model = await parseModelEntry(archive, entryName, reference.path, report.errors, execution);
     if (model) {
       modelsByPath.set(reference.path, model);
       if (!model.unit) report.errors.push(`${reference.path} is missing unit`);
@@ -749,7 +1153,12 @@ export async function validateSkin3mf(
   }
   if (referencedObjects.size !== report.objectCount) report.warnings.push("3MF contains an unreferenced mesh object");
 
-  inspectSettings(archive, [...modelsByPath.values()], report);
+  await inspectSettings(archive, [...modelsByPath.values()], report);
+  for (const name of archive.entries.keys()) {
+    if (archive.validated.has(name)) continue;
+    try { await materializeEntry(archive, name); }
+    catch (error) { report.errors.push(`invalid 3MF ZIP container: ${error instanceof Error ? error.message : String(error)}`); }
+  }
   const tolerance = expected.tolerance !== undefined && Number.isFinite(expected.tolerance) && expected.tolerance >= 0
     ? expected.tolerance
     : DEFAULT_TOLERANCE_MM;

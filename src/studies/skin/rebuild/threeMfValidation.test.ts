@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildBambu3mf, buildBambu3mfPackageEntries } from "../bambu3mf.ts";
-import { validateSkin3mf } from "./threeMfValidation.ts";
+import { buildBambu3mf, buildBambu3mfPackageEntries, buildIndexedObjectModelStreamingFixture } from "../bambu3mf.ts";
+import { validateSkin3mf, type Skin3mfValidationTelemetry } from "./threeMfValidation.ts";
 
 const BODY_TRIANGLE = new Float32Array([
   0, 0, 0,
@@ -121,6 +121,75 @@ async function assertInvalid(archive: ArrayBuffer, message: RegExp): Promise<voi
   assert.match(report.errors.join("\n"), message);
 }
 
+function readUint16(target: Uint8Array, offset: number): number {
+  return new DataView(target.buffer, target.byteOffset, target.byteLength).getUint16(offset, true);
+}
+
+function readUint32(target: Uint8Array, offset: number): number {
+  return new DataView(target.buffer, target.byteOffset, target.byteLength).getUint32(offset, true);
+}
+
+interface PreparedZipEntry { name: string; payload: Uint8Array; method: number; crc: number; uncompressedSize: number }
+
+function preparedZip(entries: PreparedZipEntry[]): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const encoded = entries.map((entry) => ({ ...entry, nameBytes: encoder.encode(entry.name) }));
+  const localBytes = encoded.reduce((sum, entry) => sum + 30 + entry.nameBytes.length + entry.payload.length, 0);
+  const centralBytes = encoded.reduce((sum, entry) => sum + 46 + entry.nameBytes.length, 0);
+  const output = new Uint8Array(localBytes + centralBytes + 22);
+  const central: Array<{ entry: typeof encoded[number]; offset: number }> = [];
+  let cursor = 0;
+  for (const entry of encoded) {
+    const offset = cursor; writeUint32(output, cursor, 0x04034b50); writeUint16(output, cursor + 4, 20); writeUint16(output, cursor + 8, entry.method);
+    writeUint32(output, cursor + 14, entry.crc); writeUint32(output, cursor + 18, entry.payload.length); writeUint32(output, cursor + 22, entry.uncompressedSize); writeUint16(output, cursor + 26, entry.nameBytes.length);
+    cursor += 30; output.set(entry.nameBytes, cursor); cursor += entry.nameBytes.length; output.set(entry.payload, cursor); cursor += entry.payload.length; central.push({ entry, offset });
+  }
+  const centralOffset = cursor;
+  for (const { entry, offset } of central) {
+    writeUint32(output, cursor, 0x02014b50); writeUint16(output, cursor + 4, 20); writeUint16(output, cursor + 6, 20); writeUint16(output, cursor + 10, entry.method);
+    writeUint32(output, cursor + 16, entry.crc); writeUint32(output, cursor + 20, entry.payload.length); writeUint32(output, cursor + 24, entry.uncompressedSize); writeUint16(output, cursor + 28, entry.nameBytes.length); writeUint32(output, cursor + 42, offset);
+    cursor += 46; output.set(entry.nameBytes, cursor); cursor += entry.nameBytes.length;
+  }
+  writeUint32(output, cursor, 0x06054b50); writeUint16(output, cursor + 8, encoded.length); writeUint16(output, cursor + 10, encoded.length); writeUint32(output, cursor + 12, cursor - centralOffset); writeUint32(output, cursor + 16, centralOffset);
+  return output.buffer;
+}
+
+function firstPreparedEntry(archive: ArrayBuffer, name: string): PreparedZipEntry {
+  const bytes = new Uint8Array(archive);
+  assert.equal(readUint32(bytes, 0), 0x04034b50);
+  const method = readUint16(bytes, 8), crc = readUint32(bytes, 14), compressedSize = readUint32(bytes, 18), uncompressedSize = readUint32(bytes, 22), nameLength = readUint16(bytes, 26), extraLength = readUint16(bytes, 28);
+  const payloadStart = 30 + nameLength + extraLength;
+  return { name, method, crc, uncompressedSize, payload: bytes.slice(payloadStart, payloadStart + compressedSize) };
+}
+
+async function reportsByMode(archive: ArrayBuffer, chunkBytes = 31) {
+  const legacy = await validateSkin3mf(archive, {}, { modelMode: "legacy" });
+  const streaming = await validateSkin3mf(archive, {}, { modelMode: "streaming", compressedInputChunkBytes: chunkBytes });
+  return { legacy, streaming };
+}
+
+function withInvalidUtf8(entries: Array<{ name: string; data: Uint8Array }>): Array<{ name: string; data: Uint8Array }> {
+  return entries.map((entry) => entry.name === "3D/Objects/object_1.model"
+    ? { name: entry.name, data: Uint8Array.from([...entry.data.subarray(0, 20), 0xff, ...entry.data.subarray(20)]) }
+    : { name: entry.name, data: entry.data.slice() });
+}
+
+function corruptStoredPayloadCrc(archive: ArrayBuffer, entryName: string): ArrayBuffer {
+  const bytes = new Uint8Array(archive.slice(0));
+  let cursor = 0;
+  while (readUint32(bytes, cursor) === 0x04034b50) {
+    const size = readUint32(bytes, cursor + 18);
+    const nameLength = new DataView(bytes.buffer).getUint16(cursor + 26, true);
+    const extraLength = new DataView(bytes.buffer).getUint16(cursor + 28, true);
+    const nameStart = cursor + 30;
+    const name = new TextDecoder().decode(bytes.subarray(nameStart, nameStart + nameLength));
+    const payloadStart = nameStart + nameLength + extraLength;
+    if (name === entryName) { bytes[payloadStart + size - 1] ^= 1; return bytes.buffer; }
+    cursor = payloadStart + size;
+  }
+  throw new Error(`entry not found: ${entryName}`);
+}
+
 test("valid BODY-only 3MF validates its compressed package, mesh, bounds and no-support contract", async () => {
   const result = await buildBambu3mf([
     { name: "BODY", role: "body", positions: BODY_TRIANGLE },
@@ -166,4 +235,64 @@ test("invalid 3MF fixtures fail closed for container, XML, mesh, reference, rela
   await assertInvalid(storedZip(replaceEntry(entries, "3D/3dmodel.model", (text) => text.replace('objectid="1"', 'objectid="99"'))), /missing object reference/);
   await assertInvalid(storedZip(replaceEntry(entries, "3D/3dmodel.model", (text) => text.replace('unit="millimeter"', 'unit="inch"'))), /unsupported unit/);
   await assertInvalid(storedZip(replaceEntry(entries, "3D/_rels/3dmodel.model.rels", () => "<Relationships/>")), /model relationships do not reference/);
+});
+
+test("forced streaming preserves the complete legacy report across arbitrary input boundaries", async () => {
+  const archives = [
+    storedZip(baseEntries(true)),
+    storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace('v3="2"', 'v3="3"'))),
+    storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.replace('x="0"', 'x="NaN"'))),
+    storedZip(replaceEntry(baseEntries(), "3D/Objects/object_1.model", (text) => text.slice(0, -9))),
+    storedZip(withInvalidUtf8(baseEntries())),
+    corruptStoredPayloadCrc(storedZip(baseEntries()), "3D/Objects/object_1.model"),
+  ];
+  for (const chunkBytes of [7, 31, 64]) {
+    for (const archive of archives) {
+      const { legacy, streaming } = await reportsByMode(archive, chunkBytes);
+      assert.deepEqual(streaming, legacy, `report mismatch at ${chunkBytes}-byte chunks`);
+    }
+  }
+});
+
+test("streaming telemetry proves bounded input, decode and parser buffers", async () => {
+  const telemetry: Array<{ largestCompressedInputChunkBytes: number; largestDecodedTextChunkCharacters: number; largestParserBufferCharacters: number }> = [];
+  const report = await validateSkin3mf(storedZip(baseEntries(true)), {}, {
+    modelMode: "streaming",
+    compressedInputChunkBytes: 7,
+    onTelemetry: (value) => telemetry.push(value),
+  });
+  assert.equal(report.valid, true, report.errors.join("\n"));
+  assert.ok(telemetry.length > 0);
+  assert.ok(telemetry.every((value) => value.largestCompressedInputChunkBytes <= 7));
+  assert.ok(telemetry.every((value) => value.largestDecodedTextChunkCharacters <= 7));
+  assert.ok(telemetry.every((value) => value.largestParserBufferCharacters < 1024));
+});
+
+test("large synthetic validator gate parses a >538 MB object model with bounded buffers", { skip: process.env.KATACHI_RUN_LARGE_3MF_VALIDATOR !== "1", timeout: 900_000 }, async () => {
+  const vertexCount = 1_000_002;
+  const triangleCount = 13_200_000;
+  const vertices = new Float32Array(vertexCount * 3);
+  for (let index = 0; index < vertexCount; index++) {
+    vertices[index * 3] = index % 1000; vertices[index * 3 + 1] = Math.floor(index / 1000) % 1000; vertices[index * 3 + 2] = index % 17;
+  }
+  const indices = new Uint32Array(triangleCount * 3);
+  for (let offset = 0; offset < indices.length; offset += 3) { indices[offset] = 0; indices[offset + 1] = 1; indices[offset + 2] = 2; }
+  const fixture = await buildIndexedObjectModelStreamingFixture([{ role: "body", mesh: { vertices, indices, removedDegenerateTriangles: 0 } }]);
+  assert.ok(fixture.xmlBytes > 538_000_000);
+  const largeModel = firstPreparedEntry(fixture.archive, "3D/Objects/object_1.model");
+  const archive = preparedZip(baseEntries().map((entry) => entry.name === largeModel.name
+    ? largeModel
+    : { name: entry.name, payload: entry.data, method: 0, crc: crc32(entry.data), uncompressedSize: entry.data.length }));
+  const telemetry: Skin3mfValidationTelemetry[] = [];
+  const report = await validateSkin3mf(archive, { expectedTriangleCount: triangleCount }, { modelMode: "streaming", onTelemetry: (value) => telemetry.push(value) });
+  assert.equal(report.valid, true, report.errors.join("\n"));
+  assert.ok(telemetry.some((value) => value.uncompressedBytes === fixture.xmlBytes));
+  assert.ok(telemetry.every((value) => value.largestCompressedInputChunkBytes <= 1024 * 1024));
+  console.log("large3mfValidatorSynthetic", JSON.stringify({
+    vertexCount, triangleCount, xmlBytes: fixture.xmlBytes, compressedBytes: fixture.compressedBytes,
+    largestCompressedInputChunkBytes: Math.max(...telemetry.map((value) => value.largestCompressedInputChunkBytes)),
+    largestInflatedChunkBytes: Math.max(...telemetry.map((value) => value.largestInflatedChunkBytes)),
+    largestDecodedTextChunkCharacters: Math.max(...telemetry.map((value) => value.largestDecodedTextChunkCharacters)),
+    largestParserBufferCharacters: Math.max(...telemetry.map((value) => value.largestParserBufferCharacters)),
+  }));
 });

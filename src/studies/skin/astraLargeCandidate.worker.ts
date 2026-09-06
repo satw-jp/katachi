@@ -371,7 +371,16 @@ async function export3mf(command: Extract<LargeCandidateCommand, { type: "EXPORT
   });
   const exportElapsedMs = now() - exportStarted;
   postProgress(command, "Validation", started, "Validating streamed 3MF package");
-  const validation = await validateSkin3mf(result.archive); candidate.timings["3MF"] = now() - started;
+  const validation = await validateSkin3mf(result.archive, {}, {
+    onProgress: (progress) => postProgress(
+      command,
+      "Validation",
+      started,
+      `${progress.stage} · ${progress.entry}`,
+      progress.completed,
+      progress.total,
+    ),
+  }); candidate.timings["3MF"] = now() - started;
   if (!validation.valid) throw new Error(validation.errors.join("; ") || "3MF validator failed");
   const actualPackageTranslationZ = result.stats.placementTranslationMm.z;
   const packagePlacementParity = Math.abs(actualPackageTranslationZ - expectedPackageTranslationZ) <= placementTolerance;
