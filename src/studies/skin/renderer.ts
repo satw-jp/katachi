@@ -10,6 +10,7 @@ import { TrackballControls } from "three/examples/jsm/controls/TrackballControls
 import { deriveSkinLayerVisibility, selectedBeadWireScale, type InternalObservationMode } from "./previewMeshBuffers.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_POINTS, fragmentShader, vertexShader } from "./shaders.ts";
 import { fieldVNextFragmentShader, fieldVNextVertexShader } from "./fieldVNextGpuShader.ts";
+import { fieldPreviewPresentationVisibility } from "./fieldPreviewPresentation.ts";
 import { buildFieldPrimitiveStore } from "./fieldPrimitiveStore.ts";
 import { packFieldGpuPayload, type FieldGpuPayload } from "./fieldGpuPayload.ts";
 import {
@@ -380,6 +381,7 @@ export class SkinRenderer {
     primitiveCount: 0,
   };
   private fieldPreviewBackendStatusCallback: ((status: FieldPreviewBackendStatus) => void) | null = null;
+  private fieldPreviewInteractionActive = false;
   private vNextMaterial: THREE.ShaderMaterial | null = null;
   private vNextQuad: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> | null = null;
   private vNextTextures: FieldGpuTextureResources | null = null;
@@ -808,7 +810,6 @@ export class SkinRenderer {
     };
     if (requested === "legacy") {
       this.fieldPreviewBackend = "legacy";
-      this.raymarchQuad.visible = true;
       this.disposeVNextResources();
       this.fieldPreviewBackendStatus = {
         requested,
@@ -817,6 +818,7 @@ export class SkinRenderer {
         reason: "Legacy FIELD",
         primitiveCount: this.fieldPreviewBackendStatus.primitiveCount,
       };
+      this.applyLayerVisibility();
       this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
       return this.getFieldPreviewBackendStatus();
     }
@@ -830,8 +832,6 @@ export class SkinRenderer {
     try {
       this.ensureVNextMaterial();
       this.fieldPreviewBackend = "vnext";
-      this.raymarchQuad.visible = false;
-      if (this.vNextQuad) this.vNextQuad.visible = true;
       this.fieldPreviewBackendStatus = {
         requested,
         active: "vnext",
@@ -845,6 +845,7 @@ export class SkinRenderer {
         this.fieldPreviewBackendStatus.primitiveCount,
       );
     }
+    this.applyLayerVisibility();
     this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
     return this.getFieldPreviewBackendStatus();
   }
@@ -863,7 +864,6 @@ export class SkinRenderer {
 
   private activateLegacyFallback(reason: string, primitiveCount: number): void {
     this.fieldPreviewBackend = "legacy";
-    this.raymarchQuad.visible = true;
     this.disposeVNextResources();
     this.fieldPreviewBackendStatus = {
       requested: "vnext",
@@ -872,7 +872,16 @@ export class SkinRenderer {
       reason: `vNext unavailable · Legacy fallback: ${reason}`,
       primitiveCount,
     };
+    this.applyLayerVisibility();
     this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
+  }
+
+  /** Presentation-only camera interaction state. It never changes backend preference. */
+  setFieldPreviewInteractionActive(active: boolean): void {
+    if (this.fieldPreviewInteractionActive === active) return;
+    this.fieldPreviewInteractionActive = active;
+    this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   private ensureVNextMaterial(): void {
@@ -1062,7 +1071,9 @@ export class SkinRenderer {
       controls.mouseButtons.RIGHT = null;
       controls.noRotate = direction !== "axome";
       controls.enabled = index === this.selectedViewport;
+      controls.addEventListener("start", () => this.setFieldPreviewInteractionActive(true));
       controls.addEventListener("change", () => this.renderRequestCallback?.());
+      controls.addEventListener("end", () => this.setFieldPreviewInteractionActive(false));
       controls.addEventListener("end", () => this.editorViewChangeCallback?.());
 
       const frame = document.createElement("div");
@@ -1271,6 +1282,7 @@ export class SkinRenderer {
       };
       canvas.setPointerCapture(event.pointerId);
       this.container.classList.add("rhino-camera-dragging");
+      this.setFieldPreviewInteractionActive(true);
       event.preventDefault();
       event.stopImmediatePropagation();
     }, { capture: true });
@@ -1290,6 +1302,7 @@ export class SkinRenderer {
         };
         this.axomeLeftRotateCandidate = null;
         this.container.classList.add("rhino-camera-dragging");
+        this.setFieldPreviewInteractionActive(true);
       }
       const drag = this.rhinoCameraDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
@@ -1329,6 +1342,7 @@ export class SkinRenderer {
       event.preventDefault();
       if (!drag.plainLeftAxome) event.stopImmediatePropagation();
       this.rhinoCameraDrag = null;
+      this.setFieldPreviewInteractionActive(false);
       this.suppressContextMenuUntil = performance.now() + 500;
       this.container.classList.remove("rhino-camera-dragging");
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
@@ -2583,12 +2597,19 @@ export class SkinRenderer {
       || this.activeViewLayer === "diagnostics"
       || this.activeViewLayer === "print-preview"
     );
-    this.raymarchQuad.visible = visibility.raymarch && !graphViewActive;
+    const fieldPresentation = fieldPreviewPresentationVisibility({
+      layer: this.activeViewLayer,
+      backend: this.fieldPreviewBackend,
+      interactionActive: this.fieldPreviewInteractionActive,
+      interactionProxyAvailable: this.patchBeadMesh !== null,
+    });
+    this.raymarchQuad.visible = fieldPresentation.legacy;
+    if (this.vNextQuad) this.vNextQuad.visible = fieldPresentation.vnext;
     if (this.overlayMesh) {
       this.overlayMesh.visible = visibility.overlay && !graphViewActive && this.skinRebuildTopologyDiagnosticGroup === null;
     }
     if (this.hostBeadMesh) this.hostBeadMesh.visible = visibility.hostBeads && !graphViewActive;
-    if (this.patchBeadMesh) this.patchBeadMesh.visible = visibility.patchBeads && !graphViewActive;
+    if (this.patchBeadMesh) this.patchBeadMesh.visible = (visibility.patchBeads || fieldPresentation.interactionProxy) && !graphViewActive;
     const diagnosticInternal = this.surfaceAngleGroup !== null && this.surfaceAngleShowInternal && this.activeViewLayer === "mesh";
     const phaseAInternal = this.phaseADryWebVisible && this.activeViewLayer === "mesh";
     const angleScreeningInternal = this.internalAngleScreening !== null && !this.denseSampleActive && !graphViewActive;
@@ -5232,8 +5253,6 @@ export class SkinRenderer {
         uniforms.uSelectedPatchOwner.value = selectedOwner;
         uniforms.uCoinBulge.value = coinBulge;
         uniforms.uCoinBulgeBalance.value = coinBulgeBalance;
-        this.raymarchQuad.visible = false;
-        this.vNextQuad.visible = true;
         this.fieldPreviewBackendStatus = {
           ...this.fieldPreviewBackendStatus,
           active: "vnext",
@@ -5243,8 +5262,6 @@ export class SkinRenderer {
         this.fieldPreviewBackendStatusCallback?.(this.getFieldPreviewBackendStatus());
       }
     } else {
-      this.raymarchQuad.visible = true;
-      if (this.vNextQuad) this.vNextQuad.visible = false;
       this.fieldPreviewBackendStatus = {
         ...this.fieldPreviewBackendStatus,
         active: "legacy",
