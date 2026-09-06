@@ -13,7 +13,7 @@ Last verified: 2026-09-06
 - support source: `current-stage8:sparseResult.graph`
 
 ## Current phase
-Production geometry / support / 3MF semantics remain locked. FIELD vNext is restored. UI IA v0A checkpoint `c5f817664dcc25cc0ced1b404504ed192a015ec0` is scope-safe but C SOL review found the v0A completion gate incomplete: FLOW still primarily opens/scrolls historical Stage1–8 rather than switching actual phase-specific Inspector content, and exact Production parity evidence required by the task was not recorded. Fix 1 is active. First Physical Print evidence remains pending and takes priority when available.
+First Physical Print has completed and author photo evidence was received on 2026-09-06. As-printed completion is PASS: the object reached full height, remained standing, and no catastrophic collapse / large spaghetti failure is visible in the supplied views. The outer support forest contains many continuous full-height trunks and the upper BODY/motif region remains present. Support removal, artwork damage after removal, physical strength/handling, and final Air / Void / sight-line quality remain unverified. Physical removal review now has priority. UI IA v0A Fix 1 remains active but does not supersede the Physical Gate.
 
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
@@ -38,19 +38,20 @@ Production geometry / support / 3MF semantics remain locked. FIELD vNext is rest
 - Output Scale semantics PRESENT under current C mm contract
 - current Stage8 Artifact Export authority confirmed: `exportCurrentSkinRebuildArtifact`
 - legacy v088 export reviewed: `COMPATIBILITY_ONLY`
+- First Physical Print as-printed completion: PASS from author photo evidence on 2026-09-06; removal/final-artwork gate remains open
 
 ## Current blocker
 - No Production geometry / support / export blocker.
+- First Physical Print support-removal / post-removal artwork gate is OPEN and has priority.
 - UI IA v0A is `FIX REQUIRED`, not CLOSED, at checkpoint `c5f817664dcc25cc0ced1b404504ed192a015ec0`.
 - Exact Production parity evidence for that UI checkpoint is incomplete in GitHub review evidence.
-- First Physical Print evidence pending.
 - External STL Host + FKEI persistence are `MISSING_CURRENT` but require a separate Host architecture; HOLD, not a UI IA blocker.
 
 ## Next gate
-1. C LUNA continues `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` and implements `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`.
-2. C SOL reviews the pushed Fix 1 checkpoint, actual five-step Inspector behavior, and exact Production parity evidence.
-3. P0-B authoring resources are verified only as needed; no large restore merely for inventory completeness.
-4. Physical evidence review takes priority if First Print result returns.
+1. Author performs controlled Removable Support removal and returns post-removal photo/handling evidence; C SOL reviews breakage, removal quality, BODY survival, strength/handling, and final Air / Void / sight-lines.
+2. C LUNA may continue `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` under `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`; C SOL review of that checkpoint follows the Physical Gate evidence when both are available.
+3. Do not claim SKIN-support-alone full printability from this print because current First Print provenance includes limited Bambu Studio manual supplemental support.
+4. P0-B authoring resources are verified only as needed; no large restore merely for inventory completeness.
 5. Usagi + V6 parameter-locked C validation remains HOLD until First Physical Gate closes.
 
 ## HOLD / DO NOT CHANGE
@@ -68,6 +69,7 @@ Production geometry / support / 3MF semantics remain locked. FIELD vNext is rest
 - bulk merge of historical feature branches
 
 ## Relevant artifacts
+- First Physical Print author photo evidence received 2026-09-06: three as-printed views before support removal; as-printed completion PASS, removal gate pending
 - UI IA v0A reviewed checkpoint: `c5f817664dcc25cc0ced1b404504ed192a015ec0` — `FIX REQUIRED`, not Production baseline
 - UI IA Fix 1 task: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`
 - Known Support Graph: 577 nodes / 395 edges
@@ -86,14 +88,19 @@ Production geometry / support / 3MF semantics remain locked. FIELD vNext is rest
 - current Stage8 Artifact Export uses `current-stage8:sparseResult.graph`.
 - legacy v088 export is reachable but intentionally compatibility-only because artifact/support semantics differ.
 - UI IA checkpoint `c5f817...` changes a bounded presentation shell and preserves the locked Production branch ancestry; no architecture expansion was found in the reviewed diff.
+- First Physical Print reached full height and remained standing without visible catastrophic collapse in the supplied as-printed author photos.
+- Many long outer support members survived through the print, and upper artwork geometry is visibly present before support removal.
 
 ### Not yet proven
+- support removal quality / accessibility
+- artwork survival and surface damage after support removal
+- physical strength / handling after removal
+- final printed Air / Void / sight-line quality
+- corrected Production physical printability without supplemental slicer support
+- SKIN-support-alone full printability
 - UI IA v0A completion at `c5f817...`
 - exact BODY / Graph / Support / 3MF parity for the reviewed UI checkpoint as recorded GitHub evidence
 - final artwork superiority
-- corrected Production physical printability without supplemental slicer support
-- physical strength / handling / support removal quality
-- final printed Air / Void / sight-line quality
 - cross-host / cross-motif generality
 - generic External STL Host on current C architecture
 - Usagi validation
