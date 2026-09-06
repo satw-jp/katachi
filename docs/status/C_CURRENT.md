@@ -13,16 +13,16 @@ Last verified: 2026-09-06
 - support source: `current-stage8:sparseResult.graph`
 
 ## Current phase
-Production geometry / support / 3MF semantics are locked. FIELD vNext is restored. P0-A retention review is closed enough to resume UI IA: External STL Host + persistence are missing but require a separate triangle-mesh Host architecture and remain HOLD; Output Scale semantics are already retained; legacy v088 export is compatibility-only. First Physical Print evidence remains pending and takes priority when available.
+Production geometry / support / 3MF semantics remain locked. FIELD vNext is restored. UI IA v0A checkpoint `c5f817664dcc25cc0ced1b404504ed192a015ec0` is scope-safe but C SOL review found the v0A completion gate incomplete: FLOW still primarily opens/scrolls historical Stage1–8 rather than switching actual phase-specific Inspector content, and exact Production parity evidence required by the task was not recorded. Fix 1 is active. First Physical Print evidence remains pending and takes priority when available.
 
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
-- task: `SKIN Production UI IA v0A`
-- purpose: establish the author-facing five-step shell and information hierarchy on the verified capability baseline without changing Production semantics.
-- allowed scope: UI structure/layout/navigation/labels/panel grouping/progressive disclosure and reuse/relocation of existing controls/callbacks only.
+- task: `SKIN Production UI IA v0A Fix 1`
+- purpose: finish the five-step author-facing Inspector IA and record exact Production parity evidence without changing Production semantics.
+- allowed scope: presentation-only FLOW/Inspector grouping/visibility/labels/progressive disclosure, focused UI tests, and parity evidence recording on the existing UI branch.
 - protected scope: BODY / Permanent Graph / Local Relay / Graph Repair / Stage8 Support / supportSource / source-to-mm and Output Scale / FKEI / FIELD vNext semantics / export semantics / state architecture / External STL Host / Usagi / D/F1/F2/F3 / Co-evolution.
-- done when: five-step shell + browser gate + tests/build + exact Production parity + pushed checkpoint are ready for C SOL review.
-- instruction source: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A.md`
+- done when: FLOW switches actual SHAPE/COMPOSE/STRUCTURE/SUPPORT/EXPORT Inspector presentation; Permanent Structure and Removable Support are distinct; browser/tests/build pass; deterministic Production replay x2 and exact BODY/Graph/Support/3MF parity are recorded; pushed checkpoint is ready for C SOL review.
+- instruction source: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -41,12 +41,14 @@ Production geometry / support / 3MF semantics are locked. FIELD vNext is restore
 
 ## Current blocker
 - No Production geometry / support / export blocker.
+- UI IA v0A is `FIX REQUIRED`, not CLOSED, at checkpoint `c5f817664dcc25cc0ced1b404504ed192a015ec0`.
+- Exact Production parity evidence for that UI checkpoint is incomplete in GitHub review evidence.
 - First Physical Print evidence pending.
 - External STL Host + FKEI persistence are `MISSING_CURRENT` but require a separate Host architecture; HOLD, not a UI IA blocker.
 
 ## Next gate
-1. C LUNA implements `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A.md` from exact baseline `349e1a85...`.
-2. C SOL reviews pushed UI checkpoint and exact Production parity.
+1. C LUNA continues `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` and implements `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`.
+2. C SOL reviews the pushed Fix 1 checkpoint, actual five-step Inspector behavior, and exact Production parity evidence.
 3. P0-B authoring resources are verified only as needed; no large restore merely for inventory completeness.
 4. Physical evidence review takes priority if First Print result returns.
 5. Usagi + V6 parameter-locked C validation remains HOLD until First Physical Gate closes.
@@ -66,6 +68,8 @@ Production geometry / support / 3MF semantics are locked. FIELD vNext is restore
 - bulk merge of historical feature branches
 
 ## Relevant artifacts
+- UI IA v0A reviewed checkpoint: `c5f817664dcc25cc0ced1b404504ed192a015ec0` — `FIX REQUIRED`, not Production baseline
+- UI IA Fix 1 task: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`
 - Known Support Graph: 577 nodes / 395 edges
 - FIELD vNext historical source: `8bf46150f0278794cac8061d26f01737c8fb1ff0`
 - FIELD vNext current checkpoint: `349e1a854d7e3699ac29afd167fc22e8131406d7`
@@ -81,8 +85,11 @@ Production geometry / support / 3MF semantics are locked. FIELD vNext is restore
 - current Output Scale semantics preserve the Geometry Fidelity mm contract.
 - current Stage8 Artifact Export uses `current-stage8:sparseResult.graph`.
 - legacy v088 export is reachable but intentionally compatibility-only because artifact/support semantics differ.
+- UI IA checkpoint `c5f817...` changes a bounded presentation shell and preserves the locked Production branch ancestry; no architecture expansion was found in the reviewed diff.
 
 ### Not yet proven
+- UI IA v0A completion at `c5f817...`
+- exact BODY / Graph / Support / 3MF parity for the reviewed UI checkpoint as recorded GitHub evidence
 - final artwork superiority
 - corrected Production physical printability without supplemental slicer support
 - physical strength / handling / support removal quality
