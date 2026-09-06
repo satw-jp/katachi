@@ -13,7 +13,7 @@ Last verified: 2026-09-06
 - support source: `current-stage8:sparseResult.graph`
 
 ## Current phase
-First Physical Print is PASS / CLOSED for the intended current print semantics: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support at author-identified fragile regions. The print reached full height without catastrophic collapse; author post-removal photo/video evidence shows the Removable Support was removed cleanly and the artwork network remained intact without observed collapse. Printed open voids are visibly retained after removal. This does NOT prove SKIN-support-alone full printability because supplemental slicer support was intentionally used. UI IA v0A Fix 1 remains the active implementation task.
+First Physical Print is PASS / CLOSED for the intended current print semantics: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support at author-identified fragile regions. The print reached full height without catastrophic collapse; author post-removal photo/video evidence shows the Removable Support was removed cleanly and the artwork network remained intact without observed collapse. Printed open voids are visibly retained after removal. The author-edited Bambu Studio 3MF used for this physical print has been archived locally under the SKIN C Physical Evidence hierarchy with verified byte identity and SHA-256; Google Drive cloud visibility is still UNVERIFIED. This does NOT prove SKIN-support-alone full printability because supplemental slicer support was intentionally used. UI IA v0A Fix 1 remains the active implementation task.
 
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
@@ -41,6 +41,7 @@ First Physical Print is PASS / CLOSED for the intended current print semantics: 
 - First Physical Print as-printed completion PASS
 - First Physical Print support-removal / BODY-survival gate PASS
 - First Physical Gate for current print semantics PASS / CLOSED on 2026-09-06
+- First Physical Print author-edited Bambu 3MF local archive verification PASS
 
 ## Current blocker
 - No Production geometry / support / export blocker.
@@ -48,6 +49,7 @@ First Physical Print is PASS / CLOSED for the intended current print semantics: 
 - Exact Production parity evidence for that UI checkpoint is incomplete in GitHub review evidence.
 - External STL Host + FKEI persistence are `MISSING_CURRENT` but require a separate Host architecture; HOLD, not a UI IA blocker.
 - SKIN-support-alone full printability remains UNVERIFIED; this is not a blocker for the closed First Physical Gate because the accepted First Print semantics included limited manual supplemental support.
+- First Physical Print 3MF Google Drive cloud sync/visibility is UNVERIFIED; local synced-drive copy and byte/hash verification are PASS.
 
 ## Next gate
 1. C LUNA continues `agent/skin-production-ui-ia-v0` from `c5f817664dcc25cc0ced1b404504ed192a015ec0` under `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`.
@@ -73,6 +75,11 @@ First Physical Print is PASS / CLOSED for the intended current print semantics: 
 ## Relevant artifacts
 - First Physical Print author evidence received 2026-09-06: three as-printed views before support removal plus post-removal photo/video evidence
 - First Physical Print provenance: corrected C Permanent BODY + SKIN-generated Removable Support + limited manual Bambu Studio supplemental support at fragile regions
+- First Physical Print author-edited Bambu 3MF local archive: `J:\My Drive\ChatGPT\SKIN\_C\Physical Evidence\2026-09-06_First_Physical_Print\3MF\SKIN-C-production-v0-support-fixed.3mf`
+- archived 3MF size: `2,066,585 bytes`
+- archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
+- archive manifest: `FIRST_PHYSICAL_PRINT_3MF_MANIFEST.md`
+- archive verification: local destination byte/hash verification PASS; source duplicate retained; Google Drive cloud visibility UNVERIFIED as of 2026-09-06
 - UI IA v0A reviewed checkpoint: `c5f817664dcc25cc0ced1b404504ed192a015ec0` — `FIX REQUIRED`, not Production baseline
 - UI IA Fix 1 task: `docs/tasks/C_SKIN_PRODUCTION_UI_IA_V0A_FIX1.md`
 - Known Support Graph: 577 nodes / 395 edges
@@ -94,8 +101,10 @@ First Physical Print is PASS / CLOSED for the intended current print semantics: 
 - Removable Support was reported by the author to remove cleanly; supplied post-removal views show the artwork network surviving removal without observed global collapse.
 - open Air / Void regions remain visibly present after support removal.
 - basic post-removal handling survival is supported by the object remaining coherent through removal and repositioning for multiple views.
+- the author-edited Bambu Studio 3MF used for the print has a verified local archive copy with fixed size and SHA-256 identity.
 
 ### Not yet proven
+- Google Drive cloud sync/visibility of the archived 3MF
 - SKIN-support-alone full printability without supplemental slicer support
 - strength margin / durability under deliberate load or repeated handling
 - final artwork superiority or final artistic judgment
