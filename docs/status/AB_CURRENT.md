@@ -13,6 +13,12 @@ Last verified: 2026-09-06
 ## Current phase
 A2 candidate physical-comparison lane is past geometry, reachability, full Sparse Support, support mesh, large 3MF streaming serialization, compression, and ZIP assembly. The active bounded blocker is validator scalability for the large object-model XML.
 
+## Operating routing
+- Team AB / SKIN SOL owns architecture, scope, next gate, and the bounded instruction for Temporary AB Implementation SOL / LUNA.
+- The author does not need to rewrite or relay SOL implementation instructions.
+- Implementation workers execute only the current bounded instruction and return evidence for SOL review; they do not self-approve global closure.
+- Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
+
 ## PASS / CLOSED
 - Candidate geometry / source-space execution
 - exact-zero canonicalization
