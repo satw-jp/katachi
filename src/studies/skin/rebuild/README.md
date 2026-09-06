@@ -16,6 +16,25 @@ Stage 1 Base ShapeとStage 2 Surface Patternは元アプリと同一のDOM、cal
 
 ## Observation
 
+### 2026-09-06 — SKIN C production v0 native network
+
+The default `/skin-rebuild.html` generation path now uses a separate production
+v0 runtime contract. The authored Host and Motif geometry remain authoritative;
+the permanent network is generated deterministically from Motif inside positions
+using the Local Relay core. The runtime builds the native BODY before diagnosis,
+applies only an explicit bounded Graph-only repair policy, rebuilds the native
+BODY, and records before/after diagnostics plus generation and repair provenance.
+
+The diagnostics retain actual-BODY topology, volume, sampled internal/shell/
+central/congestion occupancy, largest-void continuity, four sightline sensors,
+route totals and maxima, bridges, betweenness, long-range and central crossings,
+local/non-local contacts, degree distribution, Motif contact spread/clusters,
+spacing CV, and node-density CV. Motif relocation is an invariant of zero.
+Co-evolution, Motif relocation, Graph-conditioned defaults, automatic winner
+selection, removable-support redesign, and physical print approval are not
+implemented. Manual `.fkei` open/save remains available, existing FKEI shape
+schema is unchanged, and `printApproval=false` remains in force.
+
 ### 2026-09-02 — Stage 8 sparse support amount / coverage v0.2 (experimental)
 
 工程8 Sparse Removable Supportに、session-onlyの`SparseSupportAmount`（`low` / `medium` /

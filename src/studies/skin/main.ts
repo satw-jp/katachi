@@ -274,6 +274,10 @@ import {
   type SkinRebuildProject,
   type SkinRebuildSettings,
 } from "./rebuild/model.ts";
+import {
+  buildSkinProductionV0FromProject,
+  type SkinProductionV0RuntimeBuild,
+} from "./rebuild/productionV0.ts";
 import { buildInteriorClassificationDebugPresentation } from "./rebuild/interiorClassificationPresentation.ts";
 import {
   classifySkinRebuildOverhangFromStage3,
@@ -1188,6 +1192,9 @@ type SkinRebuildArtworkInteriorClassificationCheckpoint = {
   ambiguousRegionCount: number;
 };
 let skinRebuildPipeline: SkinRebuildPipelineRuntime | null = null;
+/** Session-only production v0 native-network provenance and before/after
+ * diagnostics. It is deliberately outside SkinRebuildProject/FKEI. */
+let skinProductionV0Runtime: SkinProductionV0RuntimeBuild | null = null;
 let skinRebuildFinalizedArtworkProject: SkinRebuildProject | null = null;
 let skinRebuildFinalArtworkDiagnosis: SkinRebuildFinalArtworkDiagnosis | null = null;
 let skinRebuildStage8CompletedProject: SkinRebuildProject | null = null;
@@ -12067,10 +12074,12 @@ function invalidateSkinRebuildPipeline(reason = "形状が変わったため、�
     resetSkinRebuildWorkflowHistory();
   }
   if (!skinRebuildPipeline) {
+    skinProductionV0Runtime = null;
     refreshSkinRebuildInteriorClassificationDebug();
     return;
   }
   skinRebuildPipeline = null;
+  skinProductionV0Runtime = null;
   skinRebuildSelectedTargetPatchId = null;
   skinRebuildSelectedOverhangRegionIds.clear();
   skinRebuildReinforcedOverhangRegionIds.clear();
@@ -16466,9 +16475,32 @@ function inspectMesh(options: MeshUiOptions): void {
   options = skinRebuildGateSafeMeshOptions(options);
   cancelMeshExport(false);
   const workflowBefore = isSkinRebuildApp ? captureSkinRebuildWorkflowSnapshot() : null;
-  const rebuildProjectAtStart = isSkinRebuildApp && skinRebuildPipelineIsCurrent()
+  let rebuildProjectAtStart = isSkinRebuildApp && skinRebuildPipelineIsCurrent()
     ? skinRebuildPipeline?.project ?? null
     : null;
+  if (rebuildProjectAtStart && skinRebuildPipeline?.project === rebuildProjectAtStart) {
+    try {
+      const production = buildSkinProductionV0FromProject(rebuildProjectAtStart);
+      skinProductionV0Runtime = production;
+      skinRebuildPipeline.settings = production.project.settings;
+      skinRebuildPipeline.dryWeb = production.project.dryWeb;
+      skinRebuildPipeline.lowestPoints = production.project.lowestPoints;
+      skinRebuildPipeline.project = production.project;
+      rebuildProjectAtStart = production.project;
+      internalStructureGraph = production.project.finalGraph;
+      internalStructureFingerprint = "";
+      stage6BodyMeshCache = null;
+      ui.setInternalStructureStatus(
+        `C production v0 · Motif-conditioned Local Relay · node ${production.project.finalGraph.nodes.length} / edge ${production.project.finalGraph.edges.length} · repair ${production.provenance.repair.passes.filter((pass) => pass.accepted).length}`,
+        production.diagnosticsAfter.body.connectedComponents === 1
+          && production.diagnosticsAfter.body.topology.closed,
+      );
+    } catch (error) {
+      skinProductionV0Runtime = null;
+      ui.setMeshStatus(`Production v0停止: ${error instanceof Error ? error.message : String(error)}`, false);
+      return;
+    }
+  }
   const internalGraph = getInternalStructureGraph();
   const reachabilityGraph = getInternalPrintReachabilityGraph(internalGraph);
   const readinessBlockReason = internalStructureOutputBlockReason(state.skinParams.internalStructure, internalGraph);
@@ -19842,6 +19874,14 @@ async function captureSkinRebuildGoldenSnapshot(): Promise<SkinRebuildGoldenSnap
       },
     };
   },
+  getSkinProductionV0Runtime: () => skinProductionV0Runtime
+    ? {
+      provenance: skinProductionV0Runtime.provenance,
+      diagnosticsBefore: skinProductionV0Runtime.diagnosticsBefore,
+      diagnosticsAfter: skinProductionV0Runtime.diagnosticsAfter,
+      project: skinProductionV0Runtime.project,
+    }
+    : null,
   getSurfacePersistentCacheDebug: () => ({
     meshKey: activeSurfacePersistentCacheKeys?.meshKey ?? null,
     diagnosisKey: activeSurfacePersistentCacheKeys?.diagnosisKey ?? null,
