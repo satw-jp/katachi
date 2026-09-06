@@ -18,6 +18,8 @@ Last verified: 2026-09-06
 ## Current phase
 First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closure author runtime evidence shows FIELD vNext is present and can render the dense current state, but its interaction behavior is not yet acceptable: exact vNext rendering is slow during camera interaction, and switching from FIELD(vNext) to BEADS can leave the vNext fullscreen result visible. This is classified as a display/interactivity correctness issue, not a Production or FIELD-semantic failure.
 
+Additional post-print handling evidence now identifies a localized Permanent Structure durability weakness: an appendage/subgraph that the author describes as supported by a single connection to the main artwork detached during casual play/handling. The detached subgraph remained substantially coherent while the root connection failed. A mirrored/opposite-side analogue is suspected to share the same weakness but has not been deliberately broken. This does not reopen the completed print/support-removal gate; it changes the durability evidence boundary and justifies a queued single-attachment graph audit.
+
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
 - task: `FIELD vNext Interaction Correctness v0`
@@ -51,6 +53,7 @@ First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closur
 ## Current blocker
 - No Production geometry / support / export blocker.
 - FIELD vNext runtime interaction correctness is ACTIVE: stale fullscreen visibility across View Layer switching and poor camera-interaction responsiveness were observed by the author on the dense current state.
+- Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 - SKIN-support-alone full printability remains UNVERIFIED; accepted First Physical Gate included limited manual supplemental support.
 - First Physical Print 3MF Google Drive cloud visibility remains UNVERIFIED; local synced-drive copy/hash verification is PASS.
@@ -58,18 +61,19 @@ First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closur
 ## Next gate
 1. C LUNA implements `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md` from `c64cf091...` on a new bounded branch.
 2. C SOL reviews visibility correctness, interaction proxy behavior, browser evidence, and exact Production parity.
-3. Usagi + V6 parameter-locked C validation remains eligible but waits until this active FIELD vNext interaction task closes unless C SOL explicitly reprioritizes.
-4. Any follow-up on manually added Bambu supplemental support requires a separate bounded support task.
+3. After FIELD vNext interaction closes, run queued `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` unless C SOL explicitly reprioritizes it earlier. The audit is diagnostic/evidence-only and must not change Permanent Structure.
+4. C SOL then decides whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
+5. Usagi + V6 parameter-locked C validation remains eligible but waits behind the active FIELD task and the newly identified physical durability question unless explicitly reprioritized.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
 - Local Relay Permanent Network
 - bounded Graph-only first repair
-- Permanent BODY / member sizing / BODY field
+- Permanent BODY / member sizing / BODY field unless a separate post-audit reinforcement task is explicitly approved
 - current Stage8 Removable Support semantics and `current-stage8:sparseResult.graph`
 - source-to-mm / Output Scale contract
 - FIELD vNext display-only / session-only semantics
-- FIELD vNext semantic shader/math and sequential primitive semantics during this task
+- FIELD vNext semantic shader/math and sequential primitive semantics during the active interaction task
 - legacy v088 compatibility semantics
 - External STL Host / triangle-mesh Host architecture
 - Co-evolution; Graph-conditioned default; D / F1 / F2 / F3 / C+D Hybrid
@@ -81,6 +85,8 @@ First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closur
 - UI IA v0A parity evidence: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - parity report: `docs/evidence/skin-production-ui-ia-v0-fix2/PARITY_REPORT.md`
 - FIELD vNext interaction task: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
+- queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
+- post-print durability evidence: author photo on 2026-09-06 showing one detached appendage/subgraph after casual handling; opposite-side analogue retained intact for comparison
 - First Physical Print author-edited Bambu 3MF local archive: `J:\My Drive\ChatGPT\SKIN\_C\Physical Evidence\2026-09-06_First_Physical_Print\3MF\SKIN-C-production-v0-support-fixed.3mf`
 - archived 3MF size: `2,066,585 bytes`
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
@@ -92,8 +98,13 @@ First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closur
 - FIELD vNext capability is retained and can render the current dense state.
 - current code directly forces vNext fullscreen visibility in backend/payload paths while top-level View Layer has a separate visibility authority; author evidence shows the resulting stale-view behavior in practice.
 - current semantic vNext shader scans the full primitive set for each field query; this exact path is expensive at the observed dense primitive count.
+- one physically printed terminal appendage/subgraph failed at its single attachment during casual handling while the larger artwork remained coherent.
+- the detached subgraph itself remained substantially intact, supporting a localized root-connection weakness rather than a global print-collapse interpretation.
 
 ### Not yet proven
+- whether every single-edge/bridge-only graph appendage is physically weak
+- whether the mirrored/opposite-side analogue will fail under the same handling
+- which exact Permanent Graph bridge/articulation candidate corresponds to the observed broken piece
 - acceptable FIELD vNext camera-interaction responsiveness after correction
 - correct repeated FIELD(vNext) <-> BEADS/MESH/etc switching after correction
 - SKIN-support-alone full printability without supplemental slicer support
