@@ -1,6 +1,6 @@
 # Team C Current Status
 
-Last verified: 2026-09-06
+Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
@@ -22,16 +22,20 @@ Additional post-print handling evidence now identifies a localized Permanent Str
 
 Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
 
+For 2026-09-07, C is authorized to run only the active FIELD vNext interaction task. If a clean/safe J: worktree exists for the exact task/base, prefer it after verifying branch/HEAD/clean status. After this task is reviewed PASS / CLOSED, C stops for the day; the queued durability audit does not auto-start.
+
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
 - task: `FIELD vNext Interaction Correctness v0`
 - purpose: make top-level view switching authoritative and keep vNext camera interaction responsive without changing FIELD or Production semantics.
 - start point: exact accepted UI/evidence checkpoint `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - preferred branch: `agent/skin-field-vnext-interaction-v0`
+- preferred execution environment: an already-existing clean/safe J: worktree for this exact task/base, if available; verify before use and do not guess from stale/ambiguous directories.
 - allowed scope: renderer/view visibility authority, session-only backend presentation state, camera-interaction lightweight proxy, focused tests and evidence.
 - protected scope: FIELD semantic shader/math and payload semantics; BODY / Permanent Graph / Local Relay / Graph Repair / Support / supportSource / Output Scale / FKEI / Export / External STL Host / Usagi / research algorithms.
 - done when: FIELD(vNext) <-> BEADS/MESH/etc switching is correct, active camera interaction does not continuously render the expensive exact vNext path, exact vNext restores after interaction, tests/browser gate pass, and Production parity remains exact.
 - instruction source: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
+- stop condition: after C SOL accepts this task, STOP C work for 2026-09-07 unless the author explicitly starts another task.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -62,11 +66,12 @@ Author observation also narrows the physical generalization claim: the successfu
 - First Physical Print 3MF Google Drive cloud visibility remains UNVERIFIED; local synced-drive copy/hash verification is PASS.
 
 ## Next gate
-1. C LUNA implements `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md` from `c64cf091...` on a new bounded branch.
+1. C LUNA implements `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md` from `c64cf091...` on a new bounded branch, preferring a verified clean J: worktree when one is already available.
 2. C SOL reviews visibility correctness, interaction proxy behavior, browser evidence, and exact Production parity.
-3. After FIELD vNext interaction closes, run queued `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` unless C SOL explicitly reprioritizes it earlier. The audit is diagnostic/evidence-only and must not change Permanent Structure.
-4. C SOL then decides whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
-5. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness must be treated as new validation dimensions rather than assuming the First Print result generalizes.
+3. If PASS / CLOSED, C stops for 2026-09-07. Do not start another implementation task automatically.
+4. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it is not today's follow-on task.
+5. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
+6. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness must be treated as new validation dimensions rather than assuming the First Print result generalizes.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
