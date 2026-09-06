@@ -160,6 +160,7 @@ function setStudy(key: StudyKey): void {
   params = Object.fromEntries(definition.controls.map((control) => [control.key, control.value]));
   studySelect.value = key;
   seedRow.hidden = !definition.requiresSeed;
+  seedRow.style.display = definition.requiresSeed ? "" : "none";
   seedInput.value = String(seed);
   updateUrl();
   renderStudyControls();
@@ -338,6 +339,7 @@ window.addEventListener("resize", resizeCanvas);
 
 studySelect.value = definition.key;
 seedRow.hidden = !definition.requiresSeed;
+seedRow.style.display = definition.requiresSeed ? "" : "none";
 seedInput.value = String(seed);
 renderStudyControls();
 updateUrl();
