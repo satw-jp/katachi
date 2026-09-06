@@ -20,6 +20,8 @@ First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. Post-closur
 
 Additional post-print handling evidence now identifies a localized Permanent Structure durability weakness: an appendage/subgraph that the author describes as supported by a single connection to the main artwork detached during casual play/handling. The detached subgraph remained substantially coherent while the root connection failed. A mirrored/opposite-side analogue is suspected to share the same weakness but has not been deliberately broken. This does not reopen the completed print/support-removal gate; it changes the durability evidence boundary and justifies a queued single-attachment graph audit.
 
+Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
+
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
 - task: `FIELD vNext Interaction Correctness v0`
@@ -51,9 +53,10 @@ Additional post-print handling evidence now identifies a localized Permanent Str
 - UI IA v0A PASS / CLOSED on 2026-09-06
 
 ## Current blocker
-- No Production geometry / support / export blocker.
+- No Production geometry / support / export blocker for the proven near-vertical First Print regime.
 - FIELD vNext runtime interaction correctness is ACTIVE: stale fullscreen visibility across View Layer switching and poor camera-interaction responsiveness were observed by the author on the dense current state.
 - Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
+- Strong-overhang / cantilever generalization is UNVERIFIED; the First Physical Print must not be used as evidence that Usagi-like geometry will behave equivalently.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 - SKIN-support-alone full printability remains UNVERIFIED; accepted First Physical Gate included limited manual supplemental support.
 - First Physical Print 3MF Google Drive cloud visibility remains UNVERIFIED; local synced-drive copy/hash verification is PASS.
@@ -63,7 +66,7 @@ Additional post-print handling evidence now identifies a localized Permanent Str
 2. C SOL reviews visibility correctness, interaction proxy behavior, browser evidence, and exact Production parity.
 3. After FIELD vNext interaction closes, run queued `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` unless C SOL explicitly reprioritizes it earlier. The audit is diagnostic/evidence-only and must not change Permanent Structure.
 4. C SOL then decides whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
-5. Usagi + V6 parameter-locked C validation remains eligible but waits behind the active FIELD task and the newly identified physical durability question unless explicitly reprioritized.
+5. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness must be treated as new validation dimensions rather than assuming the First Print result generalizes.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -100,6 +103,7 @@ Additional post-print handling evidence now identifies a localized Permanent Str
 - current semantic vNext shader scans the full primitive set for each field query; this exact path is expensive at the observed dense primitive count.
 - one physically printed terminal appendage/subgraph failed at its single attachment during casual handling while the larger artwork remained coherent.
 - the detached subgraph itself remained substantially intact, supporting a localized root-connection weakness rather than a global print-collapse interpretation.
+- the successful First Physical Print proves print/support-removal viability only for the observed predominantly vertical / linear shape regime with limited manual supplemental slicer support.
 
 ### Not yet proven
 - whether every single-edge/bridge-only graph appendage is physically weak
@@ -108,6 +112,7 @@ Additional post-print handling evidence now identifies a localized Permanent Str
 - acceptable FIELD vNext camera-interaction responsiveness after correction
 - correct repeated FIELD(vNext) <-> BEADS/MESH/etc switching after correction
 - SKIN-support-alone full printability without supplemental slicer support
+- strong-overhang / cantilever physical generalization of the locked Production parameters
+- Usagi + V6 parameter-locked validation in the overhang regime
 - generic External STL Host on current C architecture
-- Usagi + V6 parameter-locked validation
 - P0-B authoring-resource retention where not yet checked
