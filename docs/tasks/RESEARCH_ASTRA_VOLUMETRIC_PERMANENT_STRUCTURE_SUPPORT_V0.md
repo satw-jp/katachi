@@ -42,6 +42,25 @@ This does **not** authorize arbitrary internal filling. The target is a sparse t
 
 Likewise, do not treat motif placement as an unrelated downstream random scatter. Research should test whether the same Host-derived internal organization that creates the Permanent Structure can also condition where motifs emerge on the surface.
 
+### Shared meaning of "internal structure"
+
+For this research, **internal structure is not synonymous with printability, reinforcement, infill, or support density.**
+
+It must be evaluated as a coupled **Solid + Void** spatial condition. A successful proposal should preserve or actively shape:
+
+- meaningful internal air / porosity;
+- sight-line permeability from changing viewpoints;
+- Void continuity where artistically useful;
+- foreground / middle-depth / deep spatial legibility;
+- continued presence of the Host / outer form without merely tracing its shell;
+- coexistence of solid structure and empty space as equally important parts of the artwork.
+
+A proposal that improves printability by filling the center, blocking sight-lines, collapsing Void continuity, or becoming a generic dense engineering scaffold **fails the internal-structure criterion**, even if it prints reliably.
+
+Conversely, high porosity alone is not sufficient if the network remains surface-biased and does not materially occupy the volume.
+
+Use `AUTHOR_OBSERVATION_VOLUMETRIC_INTERNAL_STRUCTURE_2026-09-06.md` as the authoritative cross-lane meaning of the term.
+
 ## Research objectives
 
 Investigate principles / representations / algorithms that could produce a Permanent Structure with all of the following qualities:
@@ -77,7 +96,8 @@ Investigate principles / representations / algorithms that could produce a Perma
    - preserve continuous air / sight-lines;
    - avoid a congested central mass;
    - let Solid and Void both have spatial depth;
-   - consider whether Void continuity / bottlenecks / retained-air shape can guide graph growth.
+   - consider whether Void continuity / bottlenecks / retained-air shape can guide graph growth;
+   - preserve enough outer-shell / Host presence that the originating shape remains perceptible.
 
 7. **Structural redundancy / durability**
    - reduce single-attachment appendages and bridge/articulation fragility where possible;
@@ -107,6 +127,8 @@ For each family, discuss:
 
 - what representation it needs (Graph / Field / Volume / State / History / combination);
 - whether it naturally produces genuinely 3D internal structure;
+- whether it preserves Void continuity and sight-line permeability rather than only increasing material depth;
+- whether the Host / outer form remains legible;
 - whether it can preserve A-like computational specificity;
 - whether it can make motif placement causally Host-derived while still looking irregular;
 - whether it can be made print-causal;
@@ -158,7 +180,7 @@ Return a compact Research SOL review package containing:
 
 1. a one-page problem restatement;
 2. 4-7 distinct candidate principle families;
-3. a comparison table across volumetric depth / computational specificity / Host-derived motif causality / print-causality / Void preservation / durability / compute cost / translation fit;
+3. a comparison table across volumetric depth / Void continuity / sight-line permeability / Host legibility / computational specificity / Host-derived motif causality / print-causality / durability / compute cost / translation fit;
 4. 1-3 recommended experiments, each deliberately small and diagnostic rather than a production rewrite;
 5. explicit notes on what should be tested first after A2 physical observation;
 6. at least one USAGI-oriented causal-placement thought experiment;
