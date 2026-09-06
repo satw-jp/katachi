@@ -116,16 +116,18 @@ assert.match(renderer, /graphViewKind = name\.includes\("contact"\) \? "contact-
 assert.match(main, /skin-project-bar/);
 assert.match(main, /skin-left-pane/);
 assert.match(main, /skin-right-pane/);
-assert.match(main, /rightPaneBody\.append\(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower\)/,
-  "right pane must have explicit upper, divider, and lower stacks");
+assert.match(main, /inspectorColumn\.append\(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower\)/,
+  "inspector must retain explicit upper, divider, and lower stacks");
+assert.match(main, /rightPaneBody\.append\(flowColumn, inspectorColumn\)/,
+  "right pane must expose FLOW beside the Inspector");
 assert.match(main, /RIGHT_PANE_RATIO_STORAGE_KEY/);
 assert.match(main, /pointerdown/);
 assert.match(main, /dblclick/);
 assert.match(main, /window\.addEventListener\("resize", syncRightPaneLayout\)/);
 assert.match(main, /rightPaneUpperStack\.appendChild\(printPreparationPanel\)/,
   "Print readiness must remain in the upper stack");
-assert.match(main, /rightPaneUpperStack\.appendChild\(ui\.viewLayerRoot\)/,
-  "View Layers must be mounted in the upper stack");
+assert.match(main, /leftPaneBody\.appendChild\(ui\.viewLayerRoot\)/,
+  "View Layers must be mounted at the top of VIEW");
 assert.match(main, /rightPaneUpperStack\.insertBefore\(panel, ui\.viewLayerRoot\.nextSibling\)/,
   "Workflow Guide must remain in the upper stack");
 assert.match(main, /advancedSupportDetails\.append\(advancedSupportSummary, artworkInteriorClassification\.section, phaseASupportPanel\)/,
@@ -140,8 +142,8 @@ assert.match(main, /完成 Sample/);
 assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*overflow-y: hidden/);
 assert.match(style, /\.skin-right-upper-stack[\s\S]*flex: 0 0 var\(--skin-right-pane-upper-height, 42%\)[\s\S]*overflow-y: auto[\s\S]*min-height: 0/,
   "upper Guide + Print readiness stack must use the adjustable split");
-assert.match(style, /\.skin-right-upper-stack > \.viewport-view-dock[\s\S]*position: sticky[\s\S]*top: 0/,
-  "View Layers must remain visible at the top while the upper stack scrolls");
+assert.match(style, /\.skin-right-pane \.skin-pane-body[\s\S]*grid-template-columns: 72px minmax\(0, 1fr\)/,
+  "FLOW must remain a narrow column beside the Inspector");
 assert.match(style, /\.skin-right-pane-divider[\s\S]*cursor: row-resize/);
 assert.match(style, /\.skin-right-pane-lower[\s\S]*overflow-y: auto/);
 assert.match(style, /\.skin-right-pane-lower > \.panel[\s\S]*flex: 1 1 0/);

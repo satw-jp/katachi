@@ -680,21 +680,28 @@ projectBar.append(projectIdentity, projectActions, projectMeta);
 
 const leftPane = document.createElement("aside");
 leftPane.className = "skin-editor-pane skin-left-pane";
-leftPane.setAttribute("aria-label", "表示ツール");
+leftPane.setAttribute("aria-label", "VIEW");
 const leftPaneHeader = document.createElement("header");
 leftPaneHeader.className = "skin-pane-header";
-leftPaneHeader.innerHTML = "<strong>TOOLS</strong><span>表示操作</span>";
+leftPaneHeader.innerHTML = "<strong>VIEW</strong><span>layers / display</span>";
 const leftPaneBody = document.createElement("div");
 leftPaneBody.className = "skin-pane-body";
 leftPane.append(leftPaneHeader, leftPaneBody);
 const rightPane = document.createElement("aside");
 rightPane.className = "skin-editor-pane skin-right-pane";
-rightPane.setAttribute("aria-label", "Workflow and properties");
+rightPane.setAttribute("aria-label", "Flow and Inspector");
 const rightPaneHeader = document.createElement("header");
 rightPaneHeader.className = "skin-pane-header";
-rightPaneHeader.innerHTML = "<strong>WORKFLOW</strong><span>8 author stages · properties below</span>";
+rightPaneHeader.innerHTML = "<strong>INSPECTOR</strong><span>current production controls</span>";
 const rightPaneBody = document.createElement("div");
 rightPaneBody.className = "skin-pane-body";
+const flowColumn = document.createElement("nav");
+flowColumn.className = "skin-flow-column";
+flowColumn.setAttribute("aria-label", "FLOW");
+const flowTitle = document.createElement("strong");
+flowTitle.className = "skin-flow-title";
+flowTitle.textContent = "FLOW";
+flowColumn.appendChild(flowTitle);
 const rightPaneUpperStack = document.createElement("div");
 rightPaneUpperStack.className = "skin-right-upper-stack";
 const rightPaneSplitDivider = document.createElement("div");
@@ -707,7 +714,10 @@ rightPaneSplitDivider.setAttribute("aria-valuemin", String(RIGHT_PANE_MIN_RATIO)
 rightPaneSplitDivider.setAttribute("aria-valuemax", String(RIGHT_PANE_MAX_RATIO));
 const rightPaneLower = document.createElement("div");
 rightPaneLower.className = "skin-right-pane-lower";
-rightPaneBody.append(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower);
+const inspectorColumn = document.createElement("div");
+inspectorColumn.className = "skin-inspector-column";
+inspectorColumn.append(rightPaneUpperStack, rightPaneSplitDivider, rightPaneLower);
+rightPaneBody.append(flowColumn, inspectorColumn);
 rightPane.append(rightPaneHeader, rightPaneBody);
 
 const RIGHT_PANE_RATIO_STORAGE_KEY = "katachi.skin.rebuild.right-pane-ratio";
@@ -3181,10 +3191,9 @@ skinRenderer.setFieldPreviewBackendStatusCallback((status: FieldPreviewBackendSt
   ui.setFieldPreviewBackendStatus(status);
 });
 
-// View Layers are an always-on authoring control. Keep them in the right
-// upper pane so the presentation switch remains available while the lower
-// Stage / Properties pane scrolls independently.
-rightPaneUpperStack.appendChild(ui.viewLayerRoot);
+// View Layers are an always-on authoring control. Keep them at the top of the
+// left VIEW pane; the node is moved, never recreated.
+leftPaneBody.appendChild(ui.viewLayerRoot);
 
 syncArtworkGraphStatus();
 refreshSkinViewportControls();
@@ -3555,6 +3564,37 @@ if (isSkinRebuildApp) {
   }
 }
 leftPaneBody.appendChild(ui.displayToolsRoot);
+const flowTargets: Record<string, string[]> = {
+  SHAPE: ["skin-stage-1"],
+  COMPOSE: ["skin-stage-2", "skin-stage-3"],
+  STRUCTURE: ["skin-stage-4", "skin-stage-5", "skin-stage-6"],
+  SUPPORT: ["skin-stage-7", "skin-stage-8"],
+  EXPORT: ["skin-stage-8", "skin-print-preparation"],
+};
+let activeFlow = "SHAPE";
+const setActiveFlow = (flow: string): void => {
+  activeFlow = flow;
+  for (const button of flowColumn.querySelectorAll<HTMLButtonElement>("button[data-flow]")) {
+    const isActive = button.dataset.flow === flow;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-current", isActive ? "step" : "false");
+  }
+  const firstTarget = flowTargets[flow]?.[0];
+  if (!firstTarget) return;
+  const target = ui.root.querySelector<HTMLElement>(`#${firstTarget}`);
+  if (target instanceof HTMLDetailsElement) target.open = true;
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+for (const flow of Object.keys(flowTargets)) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "skin-flow-button";
+  button.dataset.flow = flow;
+  button.textContent = flow;
+  button.onclick = () => setActiveFlow(flow);
+  flowColumn.appendChild(button);
+}
+setActiveFlow(activeFlow);
 let refreshSkinRebuildAxomeRollControl = () => {};
 if (isSkinRebuildApp) {
   const printPlateControl = document.createElement("section");

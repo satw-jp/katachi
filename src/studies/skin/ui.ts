@@ -4782,7 +4782,7 @@ export function buildUi(
   auxiliaryStatus.append(auxiliaryStatusTitle, auxiliaryStatusHint, surfaceStartupStatus, surfaceDiagnosticsActions, surfaceDiagnosticsOutput, clearAllBtn, historyCount, fps, registry);
   const printJobAssemblyTitle = document.createElement("strong");
   printJobAssemblyTitle.className = "skin-auxiliary-subheading";
-  printJobAssemblyTitle.textContent = "Print Job Assembly / Profile・3MF evidence";
+  printJobAssemblyTitle.textContent = "Compatibility · Legacy v088 Export / Profile・3MF evidence";
   const printJobAssembly = document.createElement("section");
   printJobAssembly.className = "skin-auxiliary-print-job";
   printJobAssembly.dataset.owner = "print-job-assembly";
