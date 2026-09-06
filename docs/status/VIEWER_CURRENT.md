@@ -7,22 +7,20 @@ Last verified: 2026-09-06
 - implementation lane: FKEI Analysis Viewer v0
 - branch: `agent/fkei-analysis-viewer-v0`
 - base SHA: `2b64cebc09f8e11e5d9f78993d82f7239deb6823`
-- reviewed HEAD: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8e`
+- reviewed HEAD: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 - remote checkpoint: RESOLVED / FETCHABLE
 - merge: NO
 - deploy: NO
 
 ## Current phase
-Viewer v0 architecture and implementation boundary have passed SOL review with one bounded metric correction required before Author Review. Geometry / Graph / Surface / Void, read-only FKEI handling, canonical Production reuse, and Production isolation are accepted. The only active fix is the meaning of the Void `Boundary-connected` metric.
+Viewer v0 technical implementation is PASS / CLOSED at `1972cd34627b82aa6bd203ea5cb3c229732e109e`. The bounded `Boundary-connected` semantic fix has been reviewed from GitHub and accepted. The lane is now at Author Review. No implementation is active.
 
 ## Active implementation instruction
-- owner: V_LUNA / Viewer implementation worker
-- task: correct the Void boundary-connected component definition without expanding v0 scope
-- purpose: current code marks a Void component boundary-connected only when it touches the outer 64^3 sampling-box cells; the Viewer label/intent is connection to the Host / Base envelope boundary. These are not equivalent for an implicit Host inside its bounding box.
-- allowed scope: in Viewer-only Void analysis/tests/UI/README as needed, classify a component as Host/Base-boundary-connected when a Void cell is adjacent through the 6-neighbour grid to outside-Host space, including leaving the analysis grid; update the C0 reported value if it changes; add a deterministic analytic regression fixture where the Host boundary lies inside the sampling box so the old implementation would fail.
+- owner: NONE — waiting on Author Review
+- task: NONE
+- purpose: do not expand Viewer v0 before the author decides whether the four representations reveal genuinely new understanding.
 - protected scope: no FKEI schema change; no SKIN Production source/semantics change; no BODY/Graph/Support change; no new Void metrics; no clearance, visibility, portal, Field, State, History, Scenario, split view, candidate comparison, merge, or deploy.
-- done when: Viewer tests prove Host/Base-boundary connectivity semantics (including the interior-Host regression), existing Viewer/FKEI/Production tests and build remain PASS, Browser Gate remains clean, read-only identity and camera preservation remain PASS, and the branch is pushed for SOL review.
-- instruction source: this CURRENT file; shared routing authority is `docs/TEAM_REPORTING_RULES.md` on `main`.
+- next implementation instruction: only after Author Review and a separate SOL decision.
 
 ## PASS / CLOSED
 - Remote publication blocker: CLOSED.
@@ -30,22 +28,28 @@ Viewer v0 architecture and implementation boundary have passed SOL review with o
 - Read-only canonical FKEI parser / serialization reuse: PASS by code review.
 - Canonical Production v0 BODY path reuse: PASS by code review.
 - Permanent Graph / Removable Support separation: PASS by code review.
-- Production SKIN source diff: 0 in base→HEAD compare.
-- FKEI schema diff: 0 in base→HEAD compare.
+- Production SKIN source diff: 0 in reviewed Viewer implementation sequence.
+- FKEI schema diff: 0 in reviewed Viewer implementation sequence.
 - Representation scope limited to Geometry / Graph / Surface / Void: PASS.
 - Existing `SkinRenderer` reuse and shared camera across representations: PASS by code review; Browser Gate remains worker-reported.
 - Void domain definition `V = Host/Base interior \ Final Production BODY`: PASS by code review.
 - Final BODY out-of-domain warning: PASS by code review.
+- Host/Base boundary-connected semantics: PASS at `1972cd34627b82aa6bd203ea5cb3c229732e109e`.
+- Interior-Host regression fixture: PASS by code review; the fixture places the Host boundary inside the sampling box so the old envelope-edge implementation would fail.
+- Viewer v0 technical implementation: PASS / CLOSED.
 
 ## Current blocker
-- `Boundary-connected` is semantically inaccurate in reviewed HEAD `6a0e176...`: `voidAnalysis.ts` currently checks only whether a component reaches x/y/z index 0 or resolution-1. It does not detect adjacency to the implicit Host/Base boundary located inside the sampling bounding box.
+- No technical implementation blocker.
+- Author value gate is pending: usefulness of Geometry / Graph / Surface / Void as a research instrument is not yet proven.
 
 ## Next gate
-1. V_LUNA implements only the boundary-connectivity correction and regression test above.
-2. V_LUNA pushes the fix and returns the compact SOL-review handoff.
-3. Viewer SOL verifies the fix from GitHub.
-4. If PASS: Viewer v0 implementation closes and proceeds to Author Review.
-5. Author Review asks whether Geometry→Graph, Graph→Surface, and especially Graph→Void reveal genuinely new understanding. Do not expand v0 before that gate.
+Author Review only:
+1. Does Geometry → Graph reveal a new understanding of the artifact?
+2. Does Graph → Surface reveal something about materialization that Graph alone does not?
+3. Most importantly, does Graph → Void reveal something that Graph could not show?
+4. Does Void read as the form of the air retained by the artwork, rather than only as a numeric porosity-style metric?
+
+Do not expand v0 before this gate.
 
 ## HOLD / DO NOT CHANGE
 - no SKIN Production integration
@@ -54,41 +58,48 @@ Viewer v0 architecture and implementation boundary have passed SOL review with o
 - no State / Field / History / Scenario expansion
 - no Split View / candidate comparison expansion
 - no Void metric expansion beyond the existing v0 metrics before Author Review
+- no shared analysis/Diagnostics refactor before demonstrated value
 - no merge to Production
 - no deploy
 
 ## Relevant artifacts
-Reviewed implementation commit: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8e`
+Reviewed initial implementation commit: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8e`
 
-Reviewed scope:
-- Geometry / Graph / Surface / Void
-- canonical existing FKEI parser / Production v0 BODY builder / `runtime.project.finalGraph` / `runtime.project.base`
-- Viewer-specific read-only adapter, representation switching, graph metrics, 64^3 Void analysis, out-of-envelope notice
+Reviewed semantic-fix commit: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 
-Reported C0 checkpoint at reviewed HEAD:
+Reviewed semantic-fix scope:
+- `src/studies/fkei-analysis-viewer/voidAnalysis.ts`
+- `src/studies/fkei-analysis-viewer/analysis.test.ts`
+- `src/studies/fkei-analysis-viewer/main.ts`
+- `src/studies/fkei-analysis-viewer/README.md`
+
+Accepted C0 checkpoint at reviewed HEAD:
 - Graph: 253 nodes / 272 edges / 1 component / beta1 20
 - Surface: 143,448 triangles
 - Void: 1 component / largest 100.0%
-- reported `Boundary-connected: 0` is NOT ACCEPTED until corrected semantics are rerun
+- Host/Base-boundary-connected: 1
 
 ## Evidence boundary
 ### Proven / supported
-- Branch/commit are remotely fetchable and base→HEAD is one Viewer commit.
-- Compare shows no `src/studies/skin/*` Production modifications.
-- Adapter directly reuses canonical FKEI parse/project/serialize and `buildSkinProductionV0FromProject`.
-- Viewer BODY SDF parameters match Production v0 BODY/SDF contract (`plate`, current settings, coinBulge 0, Production quad join width, finalGraph).
-- Viewer writes no analysis result back into FKEI.
+- Remote branch `agent/fkei-analysis-viewer-v0` resolves to reviewed HEAD `1972cd34627b82aa6bd203ea5cb3c229732e109e`.
+- The semantic-fix commit is a direct child of the initial Viewer checkpoint and changes only Viewer README/test/UI-label/Void-analysis files.
+- `voidAnalysis.ts` now classifies a Void component as Host/Base-boundary-connected when a Void cell is 6-neighbour adjacent to outside-Host space, including an outside-grid neighbour evaluated through `insideHost`.
+- The deterministic interior-Host regression fixture would distinguish the corrected definition from the old sampling-box-edge definition.
+- UI wording now says `Host/Base-boundary-connected`.
+- README records the corrected C0 value and defines the metric explicitly.
+- Existing canonical parser / Production BODY / renderer reuse remains intact in the reviewed fix diff.
 
 ### Worker-reported / not independently rerun by SOL
 - `npm run build`: PASS
-- studies catalog: 19 PASS
 - Viewer analysis tests: PASS
 - existing FKEI / Production v0 tests: PASS
-- `git diff --check`: PASS
-- Browser Gate: PASS with real-coordinate interaction and console warning/error 0
+- Browser Gate: PASS
+- console warning/error: 0
+- read-only identity: PASS
+- camera preservation: PASS
+- no GitHub Actions / commit-status CI evidence is attached to the reviewed commit.
 
 ### Not yet proven
-- corrected Host/Base boundary-connected metric
-- final Viewer v0 SOL acceptance after the bounded fix
-- author value gate: whether Graph / Surface / Void actually reveal new understanding
+- author value gate: whether Geometry / Graph / Surface / Void actually reveal new understanding
 - any SKIN Diagnostics integration value
+- value of any future shared analysis boundary / refactor
