@@ -13,15 +13,23 @@ The first inventory did **not** account for the author's remembered `katachi-com
 
 This task is discovery only. Do not move, delete, prune, repair, checkout, reset, commit, push, install, or rewrite anything.
 
+Migration is **not urgent**. The purpose now is to understand the topology and preservation requirements so a later cutover can happen at a clean project checkpoint.
+
 ## Current safety note
 
-Per author, an AB Temporary SOL is currently active. Treat AB as ACTIVE regardless of stale/conflicting CURRENT wording until its active worker reaches a clean explicit checkpoint. Do not touch the primary repo or any path used by that worker.
+Per author, an AB Temporary SOL is currently active and AB has encountered an artifact-retention problem. Current `AB_CURRENT.md` requires an exact-condition A2 archive regeneration through the expensive full Sparse Support path before physical-print handoff.
+
+Treat AB as **ACTIVE / MIGRATION BLOCKER** until the Temporary SOL reaches an explicit clean checkpoint. Do not touch, repair, move, clean, hash large generated artifacts, or perform expensive recursive inspection inside a path actively used by AB if that could contend with the running task.
+
+Read-only metadata inspection is allowed when clearly safe. If a discovery step could interfere with the active AB run, **skip it and record `DEFER — AB ACTIVE`** rather than forcing completeness now.
 
 Known primary repo from prior inventory:
 
 - `C:\dev\katachi`
 - primary `.git`: `C:\dev\katachi\.git`
 - prior observed branch/HEAD: `agent/skin-astra-large-3mf-validator-v0` / `948c676fa966c9881d13971b4761636c5fe77d83`
+
+Note: GitHub `AB_CURRENT.md` has moved beyond that prior inventory snapshot. Do not infer current local AB state from the old inventory HEAD; record what is observed without modifying it.
 
 Known additional locations from prior project history/inventory include:
 
@@ -33,6 +41,8 @@ Known additional locations from prior project history/inventory include:
 - `katachi-support-coverage`
 - `hikari2`
 - author-remembered `katachi-compute` (exact path unknown; must be found or explicitly reported NOT FOUND)
+
+Also use the visible `C:\dev` top-level directory inventory supplied by the author as a discovery hint. It includes several CUDA / integration / support / recovery directories; do not assume names alone indicate repo role or preservation status.
 
 ## Read first
 
@@ -66,6 +76,8 @@ For each repo/worktree, record:
 - upstream configured or not
 - whether it appears related to Katachi / Hikari / SKIN / HANA / ART / Astra / compute / server infrastructure
 
+If a path is actively used by AB and deeper inspection could contend with the current run, record the path and defer the expensive part.
+
 ### 2. Find `katachi-compute`
 
 Search read-only for directories/files named or clearly corresponding to:
@@ -86,9 +98,11 @@ If found, record:
 - remote URL
 - branch / HEAD / dirty state
 - role (compute backend, server, build workspace, cache, etc.) based on evidence
-- size
+- size when cheaply obtainable
 - whether anything points to it by absolute path
 - whether migration/recreation is required
+
+Do not run heavyweight builds, hashes, dependency installs, or compute jobs merely to identify its role.
 
 ### 3. Non-Git project/workspace dependencies
 
@@ -104,6 +118,8 @@ Identify project-critical non-Git directories under the dev roots, especially:
 - package/model caches only if project-specific
 
 Distinguish PRESERVE vs RECONSTRUCTABLE vs CACHE/TEMP.
+
+Google Drive sync errors / red-X overlays are not Git errors. `C:\dev` has been included in Drive synchronization and `.tmp.driveupload` has been observed. Treat Drive-sync temporary data separately from Git/worktree integrity. Do not delete it in this task.
 
 ### 4. Relationship map
 
@@ -127,7 +143,7 @@ Without interrupting or modifying active work, identify which discovered paths a
 
 At minimum:
 
-- AB Temporary SOL: ACTIVE per author
+- AB Temporary SOL: **ACTIVE**; exact A2 regeneration / validation work in progress per current AB status
 - C LUNA / UI parity task: check CURRENT + local evidence
 - HANA hardware-gate worktree: preserve any local-only/unpushed state
 - any other visible active worker/process path
@@ -152,6 +168,7 @@ Git repos/worktrees discovered: <count + paths summary>
 additional project workspaces: <summary>
 previously missed items: <summary>
 active-worker paths: <summary>
+DEFER due to active work: <summary / NONE>
 PRESERVE before migration: <summary>
 RECONSTRUCTABLE/CACHE: <summary>
 migration inventory now complete?: YES/NO
@@ -169,6 +186,7 @@ Do not:
 - repair/prune worktrees
 - modify CURRENT or project code
 - interrupt AB Temporary SOL or any active worker
+- perform expensive scans on an active AB path when deferral is sufficient
 - expose secret values
 
 ## Done when
@@ -176,7 +194,10 @@ Do not:
 Overall SOL can answer with evidence:
 
 1. where `katachi-compute` is or that it is genuinely absent;
-2. every relevant Git repo/worktree under C:\dev/J:\dev;
+2. every relevant Git repo/worktree under `C:\dev` / `J:\dev` that can be safely inventoried now;
 3. important non-Git project workspaces that must survive;
 4. which paths are active and therefore block cutover;
-5. what must be preserved versus reconstructed on J:.
+5. what must be preserved versus reconstructed on J:;
+6. which remaining unknowns are intentionally deferred until AB/C/HANA reach clean checkpoints.
+
+This task does **not** authorize migration. Actual cutover remains HOLD until Overall SOL defines a later maintenance window.
