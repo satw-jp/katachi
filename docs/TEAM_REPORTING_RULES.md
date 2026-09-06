@@ -115,6 +115,15 @@ Last verified:
 ## Current phase
 - what the team is doing now
 
+## Active implementation instruction
+- owner
+- task
+- purpose
+- allowed scope
+- protected scope
+- done when
+- instruction source / task-spec pointer when needed
+
 ## PASS / CLOSED
 - only currently relevant completed gates
 
@@ -366,6 +375,8 @@ Rules:
 ```text
 SOL reads CURRENT and defines bounded task
 ↓
+SOL records the active bounded instruction in CURRENT (or links a detailed task spec)
+↓
 SOL sends the implementation instruction to LUNA / Implementation SOL
 ↓
 LUNA / Implementation SOL executes
@@ -384,3 +395,26 @@ next decision
 ```
 
 This is the default unless a task explicitly requires a different gate.
+
+---
+
+## 14. Active implementation visibility
+
+Implementation scope must not exist only inside a LUNA / temporary-worker chat.
+
+Before any non-trivial implementation task starts, Team SOL must make the active instruction visible in the lane CURRENT. The author should be able to answer, from GitHub alone:
+
+```text
+What is being implemented right now?
+Why?
+Who is doing it?
+What may change?
+What is protected?
+What exact gate ends the task?
+```
+
+For a complex task, keep CURRENT compact and put the full bounded specification under `docs/tasks/`, then link that path from `Active implementation instruction`.
+
+For trivial actions such as app launch, read-only inspection, or a one-line display check, a separate task specification is not required.
+
+If no implementation is active because the lane is waiting on a manual / physical / author gate, state that explicitly in the same section. Silence must not be interpreted as “something is probably being implemented.”
