@@ -12,6 +12,15 @@ Last verified: 2026-09-06
 ## Current phase
 Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Software / desktop gates are already passing. Research-derived growth / field ideas remain HOLD until the current UI phase closes.
 
+## Active implementation instruction
+- owner: HANA SOL; implementation worker: NONE while the Hardware Gate is pending.
+- task: `iPad / EasyCanvas Hardware Gate`
+- purpose: verify the already-implemented viewport/context/topbar behavior on the actual authoring hardware before any further HANA implementation begins.
+- allowed scope: hardware verification and evidence recording only; if a concrete gate failure is found, HANA SOL may define a separate bounded fix.
+- protected scope: no Projection Redraw rewrite, no LOCAL performance project, no compute redesign, no growth/branching/tropism expansion, and no Section Redraw implementation before this gate closes.
+- done when: touch/Pencil isolation, Projection Redraw Front→Right→Top, Cancel, Undo/Redo, Save/Load, latency, and Control/Gizmo regression are reviewed on iPad/EasyCanvas; PASS then commit/push/close and STOP.
+- instruction source: this CURRENT. No hidden LUNA implementation task is active at this checkpoint.
+
 ## Operating routing
 - HANA SOL owns architecture, scope, next gate, and the bounded instruction for HANA LUNA / implementation worker.
 - The author does not need to rewrite or relay SOL implementation instructions.
