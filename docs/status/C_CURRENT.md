@@ -16,7 +16,7 @@ Last verified: 2026-09-07
 - FIELD vNext Interaction Correctness accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 - Progressive FIELD implementation checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
 - Progressive FIELD dense-gate evidence checkpoint: `1d473146d6c9364f84d2435a64efb4175bc057f1`
-- Progressive FIELD Fix 2 review checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
+- Progressive FIELD Fix 2 structural review checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
 
 ## Local/runtime authority
 - C J workspace authority: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -28,74 +28,57 @@ Last verified: 2026-09-07
 - Compute indicator author check: PASS (`Compute ● CUDA` acceptable)
 
 ## Current phase
-First Physical Gate, UI IA v0A, FIELD vNext capability retention, and the earlier FIELD vNext interaction task remain PASS / CLOSED.
+Runtime Status + Progressive FIELD v0 is NOT closed.
 
-Runtime Status + Progressive FIELD v0 remains OPEN only for the author visual gate after Fix 2.
+Fix 2 at `3219f093...` passed C SOL source/scope review, but author visual testing exposed a more fundamental problem that invalidates FIELD-only interaction evaluation:
 
-### Fix 1 / dense gate
-`1d473146...` recorded the C-compatible dense gate using `skin-rebuild-pattern5-regression.fkei` (39 patches / 273 primitives): recognizable coarse immediately after interaction, medium about 0.37 s, fine about 0.75 s, no multi-second stall during ~5.9 s observation; camera interruption restarted coarse -> medium about 0.26 s -> fine about 0.66 s. Compute CUDA -> offline -> CUDA restore was also observed.
+- BEADS view itself cannot be reliably view-rotated;
+- zoom is extremely slow / appears to freeze even in BEADS;
+- 1 View -> 4 Views behavior is incorrect/unstable;
+- therefore basic viewport camera/navigation behavior is not currently a trusted baseline.
 
-### Fix 2 C SOL review
-C SOL directly reviewed `agent/skin-runtime-status-progressive-field-v0` at `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`.
+The current renderer intentionally disables normal Trackball LEFT/RIGHT drag mappings and relies on custom Rhino-style pointer routing. Camera input ownership, orbit enable/restore state, pointer capture, selected viewport synchronization, zoom render path, and 1/4-view control/projection setup must be diagnosed before any more FIELD-specific optimization is accepted.
 
-Review facts:
-- parent is exactly `1d473146d6c9364f84d2435a64efb4175bc057f1`; branch is one commit ahead and remote HEAD matches;
-- changed files are only `src/studies/skin/fieldPreviewPresentation.ts`, its focused test, and `src/studies/skin/renderer.ts`;
-- no Production BODY / Graph / Support / FKEI / Export implementation file is changed;
-- no FIELD shader/SDF math or primitive/payload semantic file is changed by Fix 2;
-- interactive FIELD uses a reusable offscreen `WebGLRenderTarget` at 25% viewport linear resolution, minimum 96x64, then upscales to the normal viewport;
-- the same active FIELD material/payload is rendered in the interactive target; no primitive subset/decimation is introduced;
-- interaction policy prefers coarse interactive FIELD over BEADS when the interactive target is available;
-- leaving FIELD hides legacy/vNext/interactive FIELD presentations, and layer switching now explicitly requests a render;
-- focused tests include interactive FIELD and repeated FIELD -> BEADS transition coverage;
-- worker-reported focused tests 7/7, typecheck, diff check, Vite build, Browser QA: PASS;
-- `npm run test:skin-rebuild` remains blocked by environment-level `uv_os_get_passwd ENOMEM`;
-- standard build output to J encountered environment/filesystem `EPERM`; do not misreport either environment failure as code PASS/FAIL;
-- GitHub commit has no attached CI status checks.
-
-C SOL verdict:
-- Fix 2 source/scope: STRUCTURAL PASS.
-- Production/FIELD semantic boundary: PASS.
-- Runtime Status + Progressive FIELD v0 overall: AUTHOR VISUAL HOLD.
+Progressive FIELD Fix 2 remains preserved at `3219f093...` with STRUCTURAL PASS, but its author visual gate is suspended until the BEADS/navigation baseline passes.
 
 ## Active implementation instruction
-- NONE.
-- Do not modify code before author visual gate.
-- Author must verify from settled FIELD vNext:
-  1. rotate/pan/zoom continuously while a coarse FIELD-like surface remains visible and follows the camera;
-  2. interaction starts without waiting for another fine frame;
-  3. releasing interaction restarts refinement at the final pose;
-  4. FIELD -> BEADS returns immediately in one click with no stale FIELD;
-  5. BEADS -> FIELD retains vNext preference;
-  6. repeat FIELD <-> BEADS several times with no stale fullscreen FIELD.
-- If author visual gate passes: C SOL may close Runtime Status + Progressive FIELD v0 without further implementation.
-- If author visual gate fails: scope only the observed remaining interaction/layer-return defect; do not auto-start another C lane.
+- owner: C SOL -> C LUNA
+- task: `Viewport Interaction Baseline Diagnostic v0`
+- spec: `docs/tasks/C_VIEWPORT_INTERACTION_BASELINE_DIAGNOSTIC_V0.md`
+- continue from: `agent/skin-runtime-status-progressive-field-v0` / `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
+- execution: J-side only
+- diagnostic-first: do not modify code until the BEADS-only failure is reproduced and the cause is named
+- mandatory baseline:
+  - BEADS only, FIELD fully inactive;
+  - verify intended/observed rotate, pan, zoom gestures;
+  - inspect `TrackballControls`, custom Rhino pointer routing, Axome gating, `setOrbitEnabled()` callers, pointer capture cleanup;
+  - verify zoom does not trigger unexpected heavy FIELD/geometry/Production work;
+  - verify 1 -> 4 -> 1 viewport rects, selected viewport, controls.enabled, camera projection/control screen bounds, splitters;
+  - compare against `dad764ce...` if needed to determine whether the defect predates Progressive FIELD work.
+- bounded viewport-core fix is allowed only after reproduction if cause is inside camera input/presentation infrastructure.
+- after BEADS baseline passes, return to C SOL; do not automatically close or continue Progressive FIELD.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
 - Production architecture PASS / LOCKED
 - Geometry Fidelity PASS / CLOSED
-- Research M/M-R -> SKIN-native replay PASS
-- Author Visual Gate for locked Production PASS
 - Removable Support wiring PASS / CLOSED
-- offset-bend support restored
 - 3MF PASS
-- FIELD vNext capability retention PASS at `349e1a...`
-- Output Scale contract present
-- legacy v088: `COMPATIBILITY_ONLY`
-- First Physical Gate PASS / CLOSED for the accepted near-vertical print regime
+- First Physical Gate PASS / CLOSED for accepted near-vertical print regime
 - UI IA v0A PASS / CLOSED at `c64cf091...`
-- FIELD vNext Interaction Correctness PASS / CLOSED at `dad764ce...`
+- FIELD vNext capability retention PASS
+- earlier FIELD vNext Interaction Correctness PASS / CLOSED at `dad764ce...`
 - C J workspace/runtime bootstrap PASS
 - compute/helper J cutover + connection PASS
-- Compute tiny indicator author visual check PASS
+- Compute tiny indicator author visual PASS
 - Progressive FIELD Fix 1 dense timing gate PASS for current C-compatible 273-primitive sample
-- Progressive FIELD Fix 2 structural/source review PASS at `3219f093...`
+- Progressive FIELD Fix 2 source/scope STRUCTURAL PASS at `3219f093...`
 
 ## Current blockers / follow-up
-- ACTIVE GATE ONLY: author visual confirmation of Fix 2 interactive FIELD + FIELD -> BEADS return.
-- Runtime Status + Progressive FIELD v0 remains HOLD until that author visual gate passes.
-- 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current C-compatible parser closure.
+- ACTIVE: BEADS/basic viewport interaction baseline: rotate, zoom, 1/4-view behavior.
+- Progressive FIELD author visual gate is SUSPENDED until viewport baseline passes.
+- `npm run test:skin-rebuild` previously hit environment-level `uv_os_get_passwd ENOMEM`; do not misreport as code PASS/FAIL.
+- 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current parser closure.
 - Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED, not active.
 - strong-overhang/cantilever generalization remains UNVERIFIED.
 - SKIN-support-alone full printability remains UNVERIFIED.
@@ -103,10 +86,7 @@ C SOL verdict:
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 
 ## HOLD / DO NOT CHANGE
-- motif-conditioned default seed
-- Local Relay Permanent Network
-- bounded Graph-only first repair
-- Permanent BODY / member sizing / BODY field unless separately approved after durability audit
+- Production BODY / Permanent Graph / Local Relay / Graph Repair
 - current Stage8 Removable Support semantics and `current-stage8:sparseResult.graph`
 - source-to-mm / Output Scale contract
 - FIELD SDF math, sequential smooth-min order, primitive grouping/filter/store/payload semantics
@@ -121,14 +101,15 @@ C SOL verdict:
 - user-managed `J:\dev\samples`: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
+- active viewport diagnostic: `docs/tasks/C_VIEWPORT_INTERACTION_BASELINE_DIAGNOSTIC_V0.md`
 - Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
 - Fix 1 dense gate: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
 - progressive FIELD task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
-- superseded visibility-only task: `docs/tasks/C_RUNTIME_STATUS_FIELD_VISIBILITY_V0.md`
-- prior interaction task: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
 
 ## Next gate
-1. Author visually tests `3219f093...` on J.
-2. C SOL closes Progressive FIELD v0 only if interactive FIELD and FIELD -> BEADS both pass in actual author use.
-3. Do not automatically continue to any other C task after this gate.
+1. C LUNA diagnoses BEADS/basic viewport interaction from `3219f093...` on J.
+2. Restore/verify rotate, pan, zoom, and 1/4-view baseline if a bounded viewport-core defect is confirmed.
+3. C SOL reviews the viewport diagnosis/fix.
+4. Only then re-run Progressive FIELD author visual gate.
+5. Do not automatically continue to any other C task.
