@@ -379,6 +379,46 @@ for (const fixture of spacingParityFixtures) {
   }
 }
 
+// Imported artwork uses the single-body contract: the terminal target field
+// is the same exact BODY field and the non-owner field is a fixed clear value.
+// Reusing those two results must preserve the route facts while removing the
+// duplicate terminal BODY evaluations.
+let implicitSingleBodyCalls = 0;
+const implicitSingleBody = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(37, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  contactPolicy: "single-body",
+  targetSdf: undefined,
+  otherBodySdf: undefined,
+  bodySdf: (_x: number, _y: number, z: number) => {
+    implicitSingleBodyCalls += 1;
+    return 2 - z;
+  },
+});
+let explicitSingleBodyCalls = 0;
+let explicitSingleBodyTargetCalls = 0;
+const explicitSingleBody = buildSparseRemovableSupport({
+  ...baseRequest,
+  projectedOutsideFaces: [face(37, 0, 0, 2, 0)],
+  outsideRegionCount: 1,
+  maxLeaningRoutes: 0,
+  contactPolicy: "single-body",
+  bodySdf: (_x: number, _y: number, z: number) => {
+    explicitSingleBodyCalls += 1;
+    return 2 - z;
+  },
+  targetSdf: (_target, _x: number, _y: number, z: number) => {
+    explicitSingleBodyTargetCalls += 1;
+    return 2 - z;
+  },
+  otherBodySdf: () => 1_000_000,
+});
+assert.deepEqual(sparseSemanticDigest(implicitSingleBody), sparseSemanticDigest(explicitSingleBody));
+assert.ok(implicitSingleBodyCalls < explicitSingleBodyCalls + explicitSingleBodyTargetCalls,
+  "single-body terminal audit must reuse its exact BODY result");
+
 // The explicit route-only revision preserves the already-reviewed owner neck
 // instead of re-proving its target attribution, but still screens the same
 // neck capsule against the independent non-owner BODY field.

@@ -307,12 +307,17 @@ export function buildPackedCandidateQuery(
     rayIntersectionP95TrianglesTested: percentileUpperBound(telemetry.rayIntersectionTriangleHistogram, telemetry.rayIntersectionCalls, 0.95),
   });
   const assertLive = (): void => { if (released) throw new Error("Packed Candidate query has been released"); };
+  // Both traversals are synchronous and never re-enter the query, so one
+  // fixed stack removes millions of short-lived Array allocations during
+  // Support audits without changing child visitation order.
+  const traversalStack = new Int32Array(nodeCount);
   const closestSurface = (point: HostVec3): { distance: number; triangleIndex: number } | null => {
     assertLive();
     let bestSquared = Infinity; let bestTriangle = -1; let nodesVisited = 0; let trianglesTested = 0;
-    const stack: number[] = [0];
-    while (stack.length > 0) {
-      const node = stack.pop()!;
+    let stackSize = 1;
+    traversalStack[0] = 0;
+    while (stackSize > 0) {
+      const node = traversalStack[--stackSize];
       nodesVisited += 1;
       if (pointAabbDistanceSquared(point, bounds, node * 6) > bestSquared + EPSILON) continue;
       if (count[node] > 0 && left[node] < 0) {
@@ -329,7 +334,13 @@ export function buildPackedCandidateQuery(
         if (a >= 0 && b >= 0) {
           const da = pointAabbDistanceSquared(point, bounds, a * 6);
           const db = pointAabbDistanceSquared(point, bounds, b * 6);
-          if (da < db) { stack.push(b, a); } else { stack.push(a, b); }
+          if (da < db) {
+            traversalStack[stackSize++] = b;
+            traversalStack[stackSize++] = a;
+          } else {
+            traversalStack[stackSize++] = a;
+            traversalStack[stackSize++] = b;
+          }
         }
       }
     }
@@ -346,9 +357,10 @@ export function buildPackedCandidateQuery(
   };
   const rayIntersections = (point: HostVec3): number => {
     let hits = 0; let nodesVisited = 0; let trianglesTested = 0;
-    const stack: number[] = [0];
-    while (stack.length > 0) {
-      const node = stack.pop()!;
+    let stackSize = 1;
+    traversalStack[0] = 0;
+    while (stackSize > 0) {
+      const node = traversalStack[--stackSize];
       nodesVisited += 1;
       const box = node * 6;
       if (point.y < bounds[box + 1] - EPSILON || point.y > bounds[box + 4] + EPSILON
@@ -360,8 +372,8 @@ export function buildPackedCandidateQuery(
           if (rayIntersectsTriangle(point, positions, triangleOrder[index])) hits += 1;
         }
       } else {
-        if (left[node] >= 0) stack.push(left[node]);
-        if (right[node] >= 0) stack.push(right[node]);
+        if (left[node] >= 0) traversalStack[stackSize++] = left[node];
+        if (right[node] >= 0) traversalStack[stackSize++] = right[node];
       }
     }
     if (telemetryEnabled) {

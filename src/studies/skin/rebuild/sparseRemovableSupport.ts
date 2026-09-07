@@ -1094,6 +1094,8 @@ function auditCapsuleAgainstBody(
   const otherBodySdf = request.otherBodySdf ?? (request.contactPolicy === "single-body"
     ? (_target: SparseRemovableSupportTarget, _x: number, _y: number, _z: number) => 1_000_000
     : undefined);
+  const targetUsesBodyField = request.contactPolicy === "single-body" && request.targetSdf === undefined;
+  const otherBodyUsesConstantField = request.contactPolicy === "single-body" && request.otherBodySdf === undefined;
   if (terminal && (!targetSdf || !otherBodySdf)) {
     return { accepted: false, reason: "body", detail: "terminal owner-target and non-owner BODY SDFs are unavailable", sampleCount: 0 };
   }
@@ -1127,8 +1129,12 @@ function auditCapsuleAgainstBody(
     try {
       bodyDistance = bodySdf(point.x, point.y, point.z);
       if (terminal) {
-        targetDistance = targetSdf!(target, point.x, point.y, point.z);
-        otherBodyDistance = otherBodySdf!(target, point.x, point.y, point.z);
+        targetDistance = targetUsesBodyField
+          ? bodyDistance
+          : targetSdf!(target, point.x, point.y, point.z);
+        otherBodyDistance = otherBodyUsesConstantField
+          ? 1_000_000
+          : otherBodySdf!(target, point.x, point.y, point.z);
       }
     } catch {
       return null;
