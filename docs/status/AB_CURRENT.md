@@ -16,6 +16,8 @@ Last verified: 2026-09-07
 - Astra research handoff: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
 - preferred local workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
 - J-side canonical clone: `J:\dev\katachi`
+- canonical user-managed samples path: `J:\dev\samples`
+- `C:\dev\samples` is non-authoritative for future AB work
 - J cutover status: PASS — exact accepted HEAD reconstructed cleanly on J with no C-linked Git metadata
 - C-side original remains retained as rollback/evidence storage; existing untracked `docs/infrastructure/` there is separate user work and was not touched by migration
 
@@ -23,6 +25,8 @@ Last verified: 2026-09-07
 Performance v1 is CLOSED / PASS. No performance implementation is active.
 
 AB development workspace migration to J is also PASS. Future AB implementation work must start from `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`; the retained C-side state is rollback/evidence only.
+
+User-managed common input `samples` has also moved to `J:\dev\samples`. The next AB task that touches launchers, scripts, local settings, or sample-file paths must use the J path and must not treat `C:\dev\samples` as authority.
 
 Two remaining AB concerns are independent:
 
@@ -105,6 +109,12 @@ This closes the evidence-loss problem that complicated v0 review.
 - existing C-side untracked `docs/infrastructure/` remained untouched
 - Performance v2, G/H/J, and new Support architecture were not started during migration
 
+## User-managed samples cutover — AUTHORITY
+- canonical input path: `J:\dev\samples`
+- `C:\dev\samples` must not be used as current authority
+- when AB next touches a task/launcher/script/local setting that refers to samples, update the local reference to the J path
+- samples contents are user-managed input data: do not commit, rename, reorganize, or delete them without explicit author instruction
+
 ## Prior v1 Rabbit stack experiment — NOT SEPARATELY PROMOTED
 Checkpoint `2964e660...` preserved semantics but produced a slower full wall time and was not accepted as a demonstrated performance improvement. The final accepted commit restores legacy full closest-surface traversal and isolates the capped query.
 
@@ -165,6 +175,8 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - no winner before physical comparison
 - no merge / deploy from this gate
 - do not resume AB implementation from the retained C-side workspace
+- do not use `C:\dev\samples` as current input authority
+- do not commit / rename / reorganize / delete user-managed `J:\dev\samples` contents without explicit author instruction
 - do not modify/delete the C-side untracked `docs/infrastructure/` as part of AB work
 
 ## Evidence boundary
@@ -174,6 +186,7 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - full A2 exact retained parity at `528,025.4 ms`
 - P0 evidence-retention capability on an actual COMPLETE run
 - AB J workspace cutover at exact accepted checkpoint with focused tests/build/diff-check PASS
+- user-managed samples authority is now `J:\dev\samples` for future AB work
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
