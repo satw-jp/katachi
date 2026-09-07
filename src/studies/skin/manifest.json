@@ -83,6 +83,10 @@
   "revisits": [
     {
       "date": "2026-09-07",
+      "note": "Progressive FIELD v0 Fix 1 dense real-state gateをJ側で実施した。現行C互換のskin-rebuild-pattern5-regression.fkei（39 patches / 273 primitives）を使い、vNextは操作直後にrecognizableなcoarse、約0.37秒でmedium、約0.75秒でfineへ到達し、約5.9秒の観測中にmulti-second stallなし。coarse / mediumは同一FIELDの認識可能なpreviewで、camera drag中は即時coarseへ戻り、約0.26秒でmedium、約0.66秒でfineへ再開した。helperはhealthy CUDA → offline → healthy CUDA restoreをブラウザ確認し、endpoint/configは変更していない。Production BODY / Graph / Support / supportSource / FKEI / export semantics、10,450 primitives級の性能主張は変更・追加していない。コード変更なし。"
+    },
+    {
+      "date": "2026-09-07",
       "note": "Runtime Status + Progressive FIELD v0をJ側のdad764ce起点へ追加した。既存helper capability probeを再利用したCompute状態表示と、全primitive payload / Legacy・vNext semanticsを変えないFIELDのproxy→coarse→medium→fine表示を実装した。完成Sample 152 primitivesの実ブラウザでCompute CUDA、vNext、実座標camera drag後のcoarse→fine復帰、FIELD離脱・再入場後のpreference保持を確認した。focused tests、SKIN REBUILD regression、typecheck、buildを通過し、Production BODY / Graph / Support / supportSource / FKEI / export semanticsは変更していない。helper OFFのoffline表示と10,450 primitives性能同等性は未再証明。"
     },
     {
