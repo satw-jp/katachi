@@ -16,8 +16,9 @@ Last verified: 2026-09-07
 - FIELD vNext Interaction Correctness accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 - Progressive FIELD implementation checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
 - Progressive FIELD dense-gate evidence checkpoint: `1d473146d6c9364f84d2435a64efb4175bc057f1`
-- Progressive FIELD Fix 2 structural review checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
-- Viewport baseline guard checkpoint: `f4baeca950204e0d80e5a5da01441b17764c489a`
+- Progressive FIELD Fix 2 structural checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
+- viewport FIELD-progression guard checkpoint: `f4baeca950204e0d80e5a5da01441b17764c489a`
+- viewport input/redraw baseline accepted checkpoint: `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`
 
 ## Local/runtime authority
 - C J workspace authority: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -29,38 +30,49 @@ Last verified: 2026-09-07
 - Compute indicator author check: PASS (`Compute ● CUDA` acceptable)
 
 ## Current phase
-Runtime Status + Progressive FIELD v0 remains OPEN.
+Viewport Input / Redraw Diagnostic v1 is PASS / CLOSED at `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`.
 
-Author visual testing after `f4baeca...` shows the BEADS/navigation baseline is still not correct:
+C SOL reviewed the pushed diff directly. The fix is bounded to `src/studies/skin/main.ts`: `installSkinWorkflowGuide()` previously called `rightPaneUpperStack.insertBefore(panel, ui.viewLayerRoot.nextSibling)` even though `ui.viewLayerRoot` lives under a different DOM parent. The resulting DOM exception interrupted startup before the later viewport render callback wiring was registered. The fix inserts the guide relative to `rightPaneUpperStack.firstChild`, preserving the intended parent and allowing startup to continue to `skinRenderer.setRenderRequestCallback(requestRenderFrame)`.
 
-- view rotate still does not work in actual author use;
-- zoom still does not work / appears frozen;
-- FIELD -> BEADS still does not visibly return to BEADS;
-- crucial new clue: after FIELD -> BEADS, toggling Display Style to Ghost makes the expected BEADS appear, and toggling back to Solid leaves the BEADS correctly visible.
+Observed diagnostic boundary:
+- input event arrival: PASS;
+- camera/control mutation: PASS;
+- render request: previously stopped because render callback registration was never reached;
+- render frame / pixels: previously not reached from viewport requests;
+- renderer visibility state: correct;
+- Ghost/Solid appeared to repair BEADS because that path forced a full `render()` after the otherwise missing viewport redraw wiring.
 
-This means the prior FIELD-progression guard was real but not the whole root cause. The remaining defect may be input routing, camera-state mutation, render-frame scheduling, or stale view-layer/visibility synchronization. The Ghost/Solid action likely forces a render/update/material/visibility path that the ordinary layer switch or camera gesture is failing to trigger or complete.
+Post-fix browser/author evidence:
+- rotate: PASS;
+- pan: PASS;
+- zoom: PASS;
+- FIELD -> BEADS: PASS without Ghost workaround;
+- 1 View <-> 4 Views: PASS for 5 cycles;
+- Ghost/Solid no longer determines whether BEADS is visible;
+- console errors attributable to this defect: none;
+- focused tests/typecheck/build: PASS as reported;
+- Production / FIELD semantic math / geometry / compute endpoint unchanged.
 
-Progressive FIELD author evaluation remains SUSPENDED. Do not continue FIELD optimization until the general viewport input/redraw baseline is trustworthy.
+Therefore:
+- Viewport Interaction Baseline Diagnostic v0: CLOSED by the v1 diagnosis/fix.
+- Viewport Input / Redraw Diagnostic v1: PASS / CLOSED.
+- prior Workflow Guide-derived DOM `NotFoundError` follow-up: RESOLVED by `7006e0d...`.
+
+Runtime Status + Progressive FIELD v0 remains OPEN only for the final author visual confirmation of Fix 2 now that the viewport baseline is trustworthy again.
 
 ## Active implementation instruction
-- owner: C SOL -> C LUNA
-- task: `Viewport Input / Redraw Diagnostic v1`
-- spec: `docs/tasks/C_VIEWPORT_INPUT_REDRAW_DIAGNOSTIC_V1.md`
-- continue from: `agent/skin-runtime-status-progressive-field-v0` / `f4baeca950204e0d80e5a5da01441b17764c489a`
-- execution: J-side only
-- diagnostic-first: do not patch behavior until the failing boundary is named
-
-Mandatory evidence must distinguish, for BEADS rotate/zoom and FIELD->BEADS:
-1. input event arrival;
-2. camera/control state mutation;
-3. render request;
-4. render-frame execution;
-5. renderer view-layer/object visibility state;
-6. actual pixels updating.
-
-The Ghost/Solid clue must be reproduced and explained. Determine whether Ghost fixes the screen because it forces full `render()` / `skinRenderer.update(...)`, reapplies visibility/material state, changes mode, or merely schedules the missing frame.
-
-If one shared stale-render/invalidation defect explains rotate/zoom/layer-return/1<->4 symptoms, prefer one bounded shared fix. Do not add separate feature-specific workarounds.
+- NONE.
+- Do not modify code before the final Progressive FIELD author visual gate.
+- Candidate runtime checkpoint for author verification: `agent/skin-runtime-status-progressive-field-v0` / `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`.
+- Verify FIELD vNext specifically:
+  1. enter FIELD and let it settle;
+  2. rotate/pan/zoom while a very coarse FIELD-like surface remains visible and follows the camera;
+  3. interaction starts without waiting for another fine frame;
+  4. releasing interaction restarts idle refinement at the final camera pose;
+  5. FIELD -> BEADS returns immediately;
+  6. BEADS -> FIELD retains vNext preference.
+- If this author gate passes, C SOL may close Runtime Status + Progressive FIELD v0 without further implementation.
+- If it fails, scope only the observed remaining FIELD interaction defect. Do not reopen general viewport baseline unless a non-FIELD failure reappears.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -77,17 +89,16 @@ If one shared stale-render/invalidation defect explains rotate/zoom/layer-return
 - Compute tiny indicator author visual PASS
 - Progressive FIELD Fix 1 dense timing gate PASS for current C-compatible 273-primitive sample
 - Progressive FIELD Fix 2 source/scope STRUCTURAL PASS at `3219f093...`
-- viewport FIELD-progression guard source/scope STRUCTURAL PASS at `f4baeca...`, but author baseline did not pass
+- viewport FIELD-progression guard source/scope PASS at `f4baeca...`
+- Viewport Input / Redraw Diagnostic v1 PASS / CLOSED at `7006e0d...`
+- Workflow Guide DOM startup exception RESOLVED at `7006e0d...`
 
 ## Current blockers / follow-up
-- ACTIVE: viewport input/redraw synchronization baseline — rotate, zoom, 1/4-view, FIELD->BEADS stale presentation.
-- Progressive FIELD author visual gate is SUSPENDED until this passes.
-- Build/tests remain partially constrained by environment-level J: generated-file `EPERM` and Node `ENOMEM`; do not misreport these environment failures as code PASS/FAIL.
+- ACTIVE GATE ONLY: final Progressive FIELD Fix 2 author visual confirmation on `7006e0d...`.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current parser closure.
 - Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED, not active.
 - strong-overhang/cantilever generalization remains UNVERIFIED.
 - SKIN-support-alone full printability remains UNVERIFIED.
-- Workflow Guide-derived console `NotFoundError` remains separate non-blocking follow-up.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 
 ## HOLD / DO NOT CHANGE
@@ -106,17 +117,14 @@ If one shared stale-render/invalidation defect explains rotate/zoom/layer-return
 - user-managed `J:\dev\samples`: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
-- active diagnostic: `docs/tasks/C_VIEWPORT_INPUT_REDRAW_DIAGNOSTIC_V1.md`
+- viewport redraw diagnostic: `docs/tasks/C_VIEWPORT_INPUT_REDRAW_DIAGNOSTIC_V1.md`
 - previous viewport diagnostic: `docs/tasks/C_VIEWPORT_INTERACTION_BASELINE_DIAGNOSTIC_V0.md`
-- Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
+- Progressive FIELD Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
 - Fix 1 dense gate: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
 - progressive FIELD task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
 
 ## Next gate
-1. C LUNA runs `docs/tasks/C_VIEWPORT_INPUT_REDRAW_DIAGNOSTIC_V1.md` from `f4baeca...` on J.
-2. Name the exact failed boundary before making a fix.
-3. If bounded, fix viewport input/redraw/view-layer synchronization only.
-4. Verify BEADS rotate/pan/zoom, 1->4->1, and FIELD->BEADS in the same browser session without relying on Ghost/Solid toggles.
-5. Return to C SOL and STOP.
-6. Only after this baseline passes may Progressive FIELD Fix 2 author visual testing resume.
+1. Author visually verifies Progressive FIELD Fix 2 behavior on `7006e0d...` now that general viewport redraw works.
+2. C SOL closes Runtime Status + Progressive FIELD v0 only if coarse interactive FIELD + idle refinement + FIELD/BEADS return all pass in actual author use.
+3. Do not automatically continue to another C task after this gate.
