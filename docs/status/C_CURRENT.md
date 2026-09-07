@@ -53,7 +53,9 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 ## Active implementation instruction
 - NONE.
 - Do not start another C implementation task automatically from this closure.
-- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED only and requires explicit start.
+- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED only.
+- Author priority: run that durability audit **after the currently active Astra work is finished**, not in parallel with or ahead of it.
+- UI adjustment work is observation-driven for now: do not proactively redesign the UI. The author will continue using the app and report concrete UI/interaction defects as they appear; scope those defects individually when reported.
 - Usagi / strong-overhang validation remains later explicit scope.
 
 ## PASS / CLOSED
@@ -78,7 +80,7 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 - Runtime Status + Progressive FIELD v0 PASS / CLOSED after final author visual confirmation on 2026-09-08
 
 ## Remaining follow-up / evidence boundaries
-- Permanent Structure durability remains `FAIL / LOCALIZED` for one observed single-attachment appendage; audit is QUEUED, not active.
+- Permanent Structure durability remains `FAIL / LOCALIZED` for one observed single-attachment appendage; audit is QUEUED, not active, and should start after current Astra work completes.
 - strong-overhang / cantilever generalization remains UNVERIFIED; the first physical print does not prove Usagi-like geometry.
 - SKIN-support-alone full printability remains UNVERIFIED because the accepted first print used limited manual supplemental slicer support.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current parser closure.
@@ -96,7 +98,7 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 - FKEI / Export / 3MF semantics
 - External STL Host / triangle-mesh Host architecture
 - Usagi
-- durability implementation until explicitly started
+- durability implementation until explicitly started after current Astra work
 - Outside->Outside Support
 - new C research unless separately scoped
 - retained C-side migration originals
@@ -113,5 +115,10 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 
 ## Next gate
 No C implementation gate is active.
+
+Priority order:
+1. Finish the currently active Astra work.
+2. Then, when the author explicitly starts it, run `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`.
+3. In the meantime, handle only concrete UI/interaction defects reported by the author; do not start a broad UI redesign lane.
 
 Wait for explicit author direction before starting durability audit, Usagi/strong-overhang work, Outside->Outside Support, External STL Host, or new research.
