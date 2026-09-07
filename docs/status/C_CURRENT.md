@@ -17,6 +17,8 @@ Last verified: 2026-09-07
 - FIELD vNext Interaction Correctness v0 accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 - preferred local workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
 - J-side canonical clone: `J:\dev\katachi`
+- user-managed shared samples authority: `J:\dev\samples`
+- `C:\dev\samples` is not an authority for future C work
 - J cutover status: PASS — accepted FIELD checkpoint reconstructed cleanly on J with no C-linked Git metadata
 - J runtime bootstrap status: PASS — `npm ci`, FIELD focused tests 8/8, build PASS, J-side Vite dev launch and browser C/FIELD smoke PASS
 - C-side original remains retained as rollback/evidence storage
@@ -33,6 +35,8 @@ Additional post-print handling evidence identifies a localized Permanent Structu
 Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
 
 C development workspace migration to J is PASS. Runtime bootstrap on J is also PASS: dependencies were rebuilt from the lockfile, FIELD focused tests and build passed, the C route launched from the J worktree, and FIELD vNext -> BEADS -> FIELD vNext browser switching was verified. Future C work must start from `J:\dev\worktrees\skin-field-vnext-interaction-v0`; the retained C-side worktree is rollback/evidence only.
+
+Shared user-managed input data `samples` has also moved to `J:\dev\samples`. On the next C activation, any C task, launcher, script, or local setting that still assumes `C:\dev\samples` must be switched to the J path as part of that lane touch. Do not interrupt the current STOP state only for this path migration. The samples contents are user-managed input data and must not be committed, renamed, reorganized, or deleted by Team C without explicit user instruction.
 
 Future C-specific runtime / local development environment maintenance is Team C ownership. Storage migration topology and deletion/cleanup of retained C-side originals remain Overall / Organization ownership.
 
@@ -97,10 +101,11 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 ## Next gate
 1. STOP C work for 2026-09-07.
 2. Wait for an explicit compute/helper cutover PASS before touching compute endpoint / connection settings; after PASS, Team C verifies J-side C connection, helper health, and C-specific runtime settings.
-3. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
-4. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
-5. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness are new validation dimensions rather than assuming the First Print result generalizes.
-6. Workflow Guide console `NotFoundError` may be scoped separately later if it materially affects author workflow.
+3. On the next explicit C activation, use `J:\dev\samples` for shared user-managed samples and correct any C-local `C:\dev\samples` assumptions encountered in the touched task/launcher/script/local settings.
+4. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
+5. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
+6. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness are new validation dimensions rather than assuming the First Print result generalizes.
+7. Workflow Guide console `NotFoundError` may be scoped separately later if it materially affects author workflow.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -120,6 +125,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - do not delete or clean retained C-side migration originals from Team C; that remains Overall / Organization scope
 - do not change current compute endpoint / connection settings before explicit compute/helper cutover PASS
 - `J:\dev\katachi-compute-helper-tray` is staged-only until cutover; do not treat it as the live helper runtime yet
+- do not treat `C:\dev\samples` as authority for future C work
+- do not commit, rename, reorganize, or delete user-managed `J:\dev\samples` contents without explicit user instruction
 
 ## Relevant artifacts
 - UI IA v0A implementation: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
@@ -134,6 +141,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
 - preferred J-side workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
 - retained C-side workspace: `C:\dev\worktrees\skin-field-vnext-interaction-v0`
+- shared user-managed samples: `J:\dev\samples`
 - staged future compute/helper location: `J:\dev\katachi-compute-helper-tray`
 
 ## Evidence boundary
@@ -150,6 +158,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - J-side C worktree is reconstructed from remote authority at the accepted FIELD checkpoint, clean, and independent of C-side Git metadata.
 - J-side FIELD focused smoke tests passed 8/8.
 - J-side dependency bootstrap, build, dev launch, HTTP route, and browser FIELD/BEADS/FIELD smoke all passed; normal C runtime did not require the old C-side path.
+- shared user-managed samples authority for future C work is `J:\dev\samples`.
 
 ### Not yet proven
 - compute/helper runtime cutover from the current live setup to `J:\dev\katachi-compute-helper-tray`
