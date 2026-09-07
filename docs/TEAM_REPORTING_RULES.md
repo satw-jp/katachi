@@ -11,7 +11,8 @@ For normal operation, load [`TEAM_PROTOCOL_CORE.md`](TEAM_PROTOCOL_CORE.md). Loa
 - [`protocol/CAPABILITY_RETENTION.md`](protocol/CAPABILITY_RETENTION.md)
 - [`protocol/READ_SETS.md`](protocol/READ_SETS.md)
 - [`protocol/HIKARI_REFERENCE.md`](protocol/HIKARI_REFERENCE.md)
+- [`protocol/OS_PICKER_USER_ACTION.md`](protocol/OS_PICKER_USER_ACTION.md)
 
-The compatibility path preserves the existing GitHub / Google Drive / Chat source-of-truth split, SOL/LUNA responsibility boundary, evidence honesty, dirty-work disclosure, physical-author gate, and compact handoff model. It is no longer a second full protocol copy.
+The compatibility path preserves the existing GitHub / Google Drive / Chat source-of-truth split, SOL/LUNA responsibility boundary, evidence honesty, dirty-work disclosure, physical-author gate, compact handoff model, and OS-native picker user-action boundary. It is no longer a second full protocol copy.
 
 Old task specs may continue to name `docs/TEAM_REPORTING_RULES.md`; those pointers remain valid during transition. Do not mass-edit historical tasks solely because they use this path.
