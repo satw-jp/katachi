@@ -9,6 +9,7 @@ Last verified: 2026-09-07
 - Performance v1 branch: `agent/skin-a2-sparse-support-performance-v1`
 - Performance v1 reviewed HEAD: `2964e66002a2b8faed5234769b5f03606fcd3f3b`
 - active task: `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md`
+- Astra escalation / research handoff: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
 - A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
 - Rabbit source SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 - Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
@@ -117,6 +118,8 @@ For clean attribution, retain P0 evidence retention and do not treat the first R
 5. Final Full A2 must beat accepted v0 `2,232,690.1 ms` and preserve complete fingerprints + canonical Support facts.
 
 Do **not** run a new Full A2 if the bounded Rabbit benchmark shows no material improvement.
+
+If this exact single-thread path becomes difficult to prove or fails to show material bounded improvement, stop and preserve evidence for Research Astra using `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`; do not broaden v1 into parallel/native/GPU architecture.
 
 ## Canonical A2 semantic gate
 Final accepted performance result must preserve:
