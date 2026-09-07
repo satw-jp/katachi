@@ -44,6 +44,7 @@ export const fieldVNextFragmentShader = /* glsl */ `
   uniform mat4 uCamInverseView;
   uniform float uCameraOrthographic;
   uniform vec2 uResolution;
+  uniform int uMarchSteps;
   uniform vec3 uLightDir;
   uniform vec3 uClipEnabled;
   uniform vec3 uClipPosition;
@@ -236,6 +237,7 @@ export const fieldVNextFragmentShader = /* glsl */ `
     bool hit = false;
     vec3 p = ro;
     for (int march = 0; march < 160; march++) {
+      if (march >= uMarchSteps) break;
       if (!clipIntervalValid || t > clipEnd) break;
       p = ro + rd * t;
       float d = mapField(p);

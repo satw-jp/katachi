@@ -66,6 +66,7 @@ import type {
   DenseSampleView,
   FieldPreviewBackend,
   FieldPreviewBackendStatus,
+  FieldPreviewProgressiveStatus,
   SkinDisplayStyle,
   SkinViewMode,
 } from "./renderer.ts";
@@ -323,7 +324,12 @@ import {
 } from "./rebuild/goldenOffsetBendRegression.ts";
 import {
   SkinRebuildShadowObserver,
+  WindowsLocalGeometryEngineClient,
 } from "./rebuild/geometryEngine/index.ts";
+import {
+  COMPUTE_STATUS_CHECKING,
+  computeRuntimeStatusFromProbe,
+} from "./computeRuntimeStatus.ts";
 import {
   sampleSkinRebuildOverhangRegionSurface,
   type SkinRebuildOverhangRegion,
@@ -1348,6 +1354,12 @@ let skinRebuildShadowObservationGeneration = 0;
 let skinRebuildShadowObservationRunning = false;
 let skinRebuildLastObservedProject: SkinRebuildProject | null = null;
 const skinRebuildShadowObserver = new SkinRebuildShadowObserver();
+const computeRuntimeClient = new WindowsLocalGeometryEngineClient({
+  probeTimeoutMs: 1_200,
+  transport: "binary",
+});
+let computeRuntimeProbeGeneration = 0;
+let computeRuntimeRefreshTimer: number | null = null;
 let skinRebuildThresholdInput: HTMLInputElement | null = null;
 let skinRebuildDiameterInput: HTMLInputElement | null = null;
 let skinRebuildSupportDiameterInput: HTMLInputElement | null = null;
@@ -3190,6 +3202,25 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
 skinRenderer.setFieldPreviewBackendStatusCallback((status: FieldPreviewBackendStatus) => {
   ui.setFieldPreviewBackendStatus(status);
 });
+skinRenderer.setFieldPreviewProgressiveStatusCallback((status: FieldPreviewProgressiveStatus) => {
+  ui.setFieldPreviewProgressiveStatus(status);
+});
+
+async function refreshComputeRuntimeStatus(): Promise<void> {
+  const generation = ++computeRuntimeProbeGeneration;
+  ui.setComputeRuntimeStatus(COMPUTE_STATUS_CHECKING);
+  const probe = await computeRuntimeClient.probeCapabilities();
+  if (generation !== computeRuntimeProbeGeneration) return;
+  ui.setComputeRuntimeStatus(computeRuntimeStatusFromProbe(
+    probe,
+    probe.available && computeRuntimeClient.supportsCudaContainment(probe.capabilities),
+  ));
+}
+
+void refreshComputeRuntimeStatus();
+computeRuntimeRefreshTimer = window.setInterval(() => {
+  void refreshComputeRuntimeStatus();
+}, 15_000);
 
 // View Layers are an always-on authoring control. Keep them at the top of the
 // left VIEW pane; the node is moved, never recreated.
@@ -20329,7 +20360,12 @@ skinRenderer.setEditorViewChangeCallback(() => {
   refreshBottomStatusPane();
   requestRenderFrame();
 });
-window.addEventListener("pagehide", () => skinRenderer.dispose(), { once: true });
+window.addEventListener("pagehide", () => {
+  computeRuntimeProbeGeneration += 1;
+  if (computeRuntimeRefreshTimer !== null) window.clearInterval(computeRuntimeRefreshTimer);
+  computeRuntimeRefreshTimer = null;
+  skinRenderer.dispose();
+}, { once: true });
 window.addEventListener("pointermove", () => { if (!supportPaintEnabled) requestRenderFrame(); }, { passive: true });
 window.addEventListener("pointerup", () => { if (!supportPaintEnabled) requestRenderFrame(); }, { passive: true });
 viewport.addEventListener("wheel", (event) => {

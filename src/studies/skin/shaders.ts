@@ -85,6 +85,7 @@ export const fragmentShader = /* glsl */ `
   uniform mat4 uCamInverseView;
   uniform float uCameraOrthographic;
   uniform vec2 uResolution;
+  uniform int uMarchSteps;
   uniform vec3 uLightDir;
   // Viewport-only object-coordinate clipping. These uniforms are session UI
   // state and are never part of recipe, Profile, validation, or export.
@@ -334,6 +335,7 @@ export const fragmentShader = /* glsl */ `
     bool hit = false;
     vec3 p = ro;
     for (int i = 0; i < 160; i++) {
+      if (i >= uMarchSteps) break;
       if (!clipIntervalValid || t > clipEnd) break;
       p = ro + rd * t;
       float d = map(p);

@@ -11,6 +11,17 @@ import { deriveSkinLayerVisibility, selectedBeadWireScale, type InternalObservat
 import { HOST_MAX_BALLS, PATCH_MAX_POINTS, fragmentShader, vertexShader } from "./shaders.ts";
 import { fieldVNextFragmentShader, fieldVNextVertexShader } from "./fieldVNextGpuShader.ts";
 import { fieldPreviewPresentationVisibility } from "./fieldPreviewPresentation.ts";
+import {
+  advanceFieldProgression,
+  beginFieldInteraction,
+  beginFieldProgression,
+  createFieldProgressiveState,
+  endFieldInteraction,
+  FIELD_PREVIEW_MARCH_STEPS,
+  fieldProgressivePhase,
+  leaveFieldProgression,
+  type FieldPreviewQuality,
+} from "./fieldProgressivePresentation.ts";
 import { buildFieldPrimitiveStore } from "./fieldPrimitiveStore.ts";
 import { packFieldGpuPayload, type FieldGpuPayload } from "./fieldGpuPayload.ts";
 import {
@@ -180,6 +191,11 @@ export type FieldPreviewBackendStatus = {
   available: boolean;
   reason: string;
   primitiveCount: number;
+};
+export type FieldPreviewProgressiveStatus = {
+  quality: FieldPreviewQuality;
+  phase: "proxy" | "coarse" | "refining" | "fine";
+  interactionActive: boolean;
 };
 
 interface OpeningLabelDatum {
@@ -382,6 +398,9 @@ export class SkinRenderer {
   };
   private fieldPreviewBackendStatusCallback: ((status: FieldPreviewBackendStatus) => void) | null = null;
   private fieldPreviewInteractionActive = false;
+  private fieldPreviewProgressiveState = createFieldProgressiveState();
+  private fieldPreviewProgressiveTimers: number[] = [];
+  private fieldPreviewProgressiveStatusCallback: ((status: FieldPreviewProgressiveStatus) => void) | null = null;
   private vNextMaterial: THREE.ShaderMaterial | null = null;
   private vNextQuad: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> | null = null;
   private vNextTextures: FieldGpuTextureResources | null = null;
@@ -799,6 +818,21 @@ export class SkinRenderer {
     callback?.(this.getFieldPreviewBackendStatus());
   }
 
+  setFieldPreviewProgressiveStatusCallback(
+    callback: ((status: FieldPreviewProgressiveStatus) => void) | null,
+  ): void {
+    this.fieldPreviewProgressiveStatusCallback = callback;
+    callback?.(this.getFieldPreviewProgressiveStatus());
+  }
+
+  getFieldPreviewProgressiveStatus(): FieldPreviewProgressiveStatus {
+    return {
+      quality: this.fieldPreviewProgressiveState.quality,
+      phase: fieldProgressivePhase(this.fieldPreviewProgressiveState),
+      interactionActive: this.fieldPreviewProgressiveState.interactionActive,
+    };
+  }
+
   getFieldPreviewBackendStatus(): FieldPreviewBackendStatus {
     return { ...this.fieldPreviewBackendStatus };
   }
@@ -878,10 +912,78 @@ export class SkinRenderer {
 
   /** Presentation-only camera interaction state. It never changes backend preference. */
   setFieldPreviewInteractionActive(active: boolean): void {
-    if (this.fieldPreviewInteractionActive === active) return;
-    this.fieldPreviewInteractionActive = active;
+    if (active) {
+      this.cancelFieldPreviewProgressionTimers();
+      this.fieldPreviewProgressiveState = beginFieldInteraction(this.fieldPreviewProgressiveState);
+      this.fieldPreviewInteractionActive = true;
+      this.publishFieldPreviewProgressiveStatus();
+      this.applyLayerVisibility();
+      this.requestViewportRender();
+      return;
+    }
+    if (!this.fieldPreviewInteractionActive) return;
+    this.cancelFieldPreviewProgressionTimers();
+    this.fieldPreviewProgressiveState = endFieldInteraction(this.fieldPreviewProgressiveState);
+    this.fieldPreviewInteractionActive = false;
+    this.publishFieldPreviewProgressiveStatus();
     this.applyLayerVisibility();
     this.requestViewportRender();
+    this.scheduleFieldPreviewRefinement(this.fieldPreviewProgressiveState.generation, "medium", 220);
+    this.scheduleFieldPreviewRefinement(this.fieldPreviewProgressiveState.generation, "fine", 620);
+  }
+
+  private publishFieldPreviewProgressiveStatus(): void {
+    this.fieldPreviewProgressiveStatusCallback?.(this.getFieldPreviewProgressiveStatus());
+  }
+
+  private cancelFieldPreviewProgressionTimers(): void {
+    for (const timer of this.fieldPreviewProgressiveTimers) window.clearTimeout(timer);
+    this.fieldPreviewProgressiveTimers = [];
+  }
+
+  private scheduleFieldPreviewRefinement(
+    generation: number,
+    quality: "medium" | "fine",
+    delayMilliseconds: number,
+  ): void {
+    const timer = window.setTimeout(() => {
+      this.fieldPreviewProgressiveTimers = this.fieldPreviewProgressiveTimers.filter((candidate) => candidate !== timer);
+      const next = advanceFieldProgression(this.fieldPreviewProgressiveState, generation, quality);
+      if (next === this.fieldPreviewProgressiveState) return;
+      this.fieldPreviewProgressiveState = next;
+      this.publishFieldPreviewProgressiveStatus();
+      this.requestViewportRender();
+    }, delayMilliseconds);
+    this.fieldPreviewProgressiveTimers.push(timer);
+  }
+
+  private beginFieldPreviewProgression(): void {
+    this.cancelFieldPreviewProgressionTimers();
+    this.fieldPreviewProgressiveState = beginFieldProgression(this.fieldPreviewProgressiveState);
+    this.fieldPreviewInteractionActive = true;
+    this.publishFieldPreviewProgressiveStatus();
+    this.applyLayerVisibility();
+    this.requestViewportRender();
+    const generation = this.fieldPreviewProgressiveState.generation;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (this.activeViewLayer !== "field" || this.fieldPreviewProgressiveState.generation !== generation) return;
+        this.fieldPreviewProgressiveState = endFieldInteraction(this.fieldPreviewProgressiveState);
+        this.fieldPreviewInteractionActive = false;
+        this.publishFieldPreviewProgressiveStatus();
+        this.applyLayerVisibility();
+        this.requestViewportRender();
+        this.scheduleFieldPreviewRefinement(this.fieldPreviewProgressiveState.generation, "medium", 220);
+        this.scheduleFieldPreviewRefinement(this.fieldPreviewProgressiveState.generation, "fine", 620);
+      });
+    });
+  }
+
+  private leaveFieldPreviewProgression(): void {
+    this.cancelFieldPreviewProgressionTimers();
+    this.fieldPreviewProgressiveState = leaveFieldProgression(this.fieldPreviewProgressiveState);
+    this.fieldPreviewInteractionActive = false;
+    this.publishFieldPreviewProgressiveStatus();
   }
 
   private ensureVNextMaterial(): void {
@@ -910,6 +1012,7 @@ export class SkinRenderer {
         uCamInverseView: { value: new THREE.Matrix4() },
         uCameraOrthographic: { value: 1 },
         uResolution: { value: new THREE.Vector2(1, 1) },
+        uMarchSteps: { value: FIELD_PREVIEW_MARCH_STEPS.fine },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
         uClipEnabled: { value: new THREE.Vector3() },
         uClipPosition: { value: new THREE.Vector3() },
@@ -1168,6 +1271,7 @@ export class SkinRenderer {
         uCamInverseView: { value: new THREE.Matrix4() },
         uCameraOrthographic: { value: 1 },
         uResolution: { value: new THREE.Vector2(1, 1) },
+        uMarchSteps: { value: FIELD_PREVIEW_MARCH_STEPS.fine },
         uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4) },
         uClipEnabled: { value: new THREE.Vector3() },
         uClipPosition: { value: new THREE.Vector3() },
@@ -1826,8 +1930,11 @@ export class SkinRenderer {
   /** Switch the established Field / Beads / Mesh presentation. Does not
    * supply new data or regenerate any geometry. */
   setViewMode(mode: SkinViewMode): void {
+    const wasField = this.activeViewLayer === "field";
     this.viewMode = mode;
     this.activeViewLayer = mode === "raymarch" ? "field" : mode;
+    if (this.activeViewLayer === "field" && !wasField) this.beginFieldPreviewProgression();
+    if (this.activeViewLayer !== "field" && wasField) this.leaveFieldPreviewProgression();
     this.applyLayerVisibility();
   }
 
@@ -1839,10 +1946,13 @@ export class SkinRenderer {
    * separate from the stored graph and mesh sources: a view change only
    * changes Object3D visibility and never runs a worker or mutates a graph. */
   setViewLayer(layer: SkinViewLayerId): void {
+    const wasField = this.activeViewLayer === "field";
     this.activeViewLayer = layer;
     if (layer === "beads") this.viewMode = "beads";
     else if (layer === "field") this.viewMode = "raymarch";
     else if (layer === "mesh" || layer === "diagnostics" || layer === "print-preview") this.viewMode = "mesh";
+    if (layer === "field" && !wasField) this.beginFieldPreviewProgression();
+    if (layer !== "field" && wasField) this.leaveFieldPreviewProgression();
     this.applyLayerVisibility();
     this.requestViewportRender();
   }
@@ -5323,6 +5433,7 @@ export class SkinRenderer {
       activeMaterial.uniforms.uCamInverseView.value.copy(slot.camera.matrixWorld);
       activeMaterial.uniforms.uCameraOrthographic.value = 1;
       activeMaterial.uniforms.uResolution.value.set(rect.width, rect.height);
+      activeMaterial.uniforms.uMarchSteps.value = FIELD_PREVIEW_MARCH_STEPS[this.fieldPreviewProgressiveState.quality];
       const glY = height - rect.y - rect.height;
       this.renderer.setViewport(rect.x, glY, rect.width, rect.height);
       this.renderer.setScissor(rect.x, glY, rect.width, rect.height);
@@ -5413,6 +5524,7 @@ export class SkinRenderer {
   }
 
   dispose(): void {
+    this.cancelFieldPreviewProgressionTimers();
     this.disposeVNextResources();
     this.material.dispose();
     this.renderer.dispose();

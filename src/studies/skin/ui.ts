@@ -33,9 +33,11 @@ import type { SkinLinkingReport, SkinOverlapWarning } from "./linking.ts";
 import type {
   FieldPreviewBackend,
   FieldPreviewBackendStatus,
+  FieldPreviewProgressiveStatus,
   SkinDisplayStyle,
   SkinViewMode,
 } from "./renderer.ts";
+import type { ComputeRuntimeStatus } from "./computeRuntimeStatus.ts";
 import {
   SKIN_VIEW_LAYERS,
   SKIN_VIEWPORT_OVERLAYS,
@@ -412,6 +414,8 @@ export interface UiHandles {
    * (approximation disclosure for beads, capacity note for Field/SDF). */
   setViewMode: (mode: SkinViewMode, totalPatchPoints: number, coinBulge: number) => void;
   setFieldPreviewBackendStatus: (status: FieldPreviewBackendStatus) => void;
+  setFieldPreviewProgressiveStatus: (status: FieldPreviewProgressiveStatus) => void;
+  setComputeRuntimeStatus: (status: ComputeRuntimeStatus) => void;
   setViewLayer: (layer: SkinViewLayerId) => void;
   setViewLayerAvailability: (availability: Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>>) => void;
   setGraphViewState: (layers: readonly GraphLayer[], options: GraphViewOptions) => void;
@@ -2033,6 +2037,11 @@ export function buildUi(
   let renderedFieldTotalPatchPoints = 0;
   let renderedFieldCoinBulge = 0;
   let fieldBackendCaptionReady = false;
+  let renderedFieldProgressiveStatus: FieldPreviewProgressiveStatus = {
+    quality: "fine",
+    phase: "fine",
+    interactionActive: false,
+  };
   let renderedInternalObservationMode: InternalObservationMode = "normal";
   let dryWebGraphViewAvailable = false;
 
@@ -2712,6 +2721,12 @@ export function buildUi(
   viewTitle.className = "viewport-view-title";
   viewTitle.textContent = "VIEW LAYERS";
   viewDock.appendChild(viewTitle);
+  const computeRuntimeStatus = document.createElement("small");
+  computeRuntimeStatus.className = "viewport-compute-runtime-status";
+  computeRuntimeStatus.setAttribute("aria-live", "polite");
+  computeRuntimeStatus.dataset.state = "checking";
+  computeRuntimeStatus.textContent = "Compute … checking";
+  viewDock.appendChild(computeRuntimeStatus);
 
   const viewToggle = document.createElement("div");
   viewToggle.className = "mode-toggle viewport-view-toggle viewport-view-layer-toggle";
@@ -2781,7 +2796,7 @@ export function buildUi(
       button.setAttribute("aria-pressed", String(active));
     }
     const count = status.primitiveCount > 0 ? ` · ${status.primitiveCount} primitives` : "";
-    fieldBackendStatus.textContent = `${status.active === "vnext" ? "vNext" : "Legacy"} active${count} · ${status.reason}`;
+    fieldBackendStatus.textContent = `${status.active === "vnext" ? "vNext" : "Legacy"} active${count} · ${status.reason} · ${renderedFieldProgressiveStatus.phase}`;
     fieldBackendStatus.classList.toggle("warn", !status.available);
     fieldBackendControl.dataset.activeBackend = status.active;
     fieldBackendControl.dataset.available = String(status.available);
@@ -2789,6 +2804,27 @@ export function buildUi(
       renderViewMode(renderedViewMode, renderedFieldTotalPatchPoints, renderedFieldCoinBulge);
     }
   }
+
+  function renderFieldPreviewProgressiveStatus(status: FieldPreviewProgressiveStatus): void {
+    renderedFieldProgressiveStatus = { ...status };
+    fieldBackendStatus.textContent = `${renderedFieldBackendStatus.active === "vnext" ? "vNext" : "Legacy"} active${renderedFieldBackendStatus.primitiveCount > 0 ? ` · ${renderedFieldBackendStatus.primitiveCount} primitives` : ""} · ${renderedFieldBackendStatus.reason} · ${status.phase}`;
+    fieldBackendControl.dataset.quality = status.quality;
+    fieldBackendControl.dataset.phase = status.phase;
+  }
+
+  function renderComputeRuntimeStatus(status: ComputeRuntimeStatus): void {
+    computeRuntimeStatus.dataset.state = status.state;
+    computeRuntimeStatus.dataset.backend = status.backend ?? "";
+    const label = status.state === "checking"
+      ? "Compute … checking"
+      : status.state === "healthy"
+        ? `Compute ● ${status.backend === "cuda" ? "CUDA" : "CPU"}`
+        : "Compute ○ offline";
+    computeRuntimeStatus.textContent = label;
+    computeRuntimeStatus.title = status.detail;
+  }
+
+  renderComputeRuntimeStatus({ state: "checking", backend: null, detail: "helper capabilityを確認しています" });
   renderFieldPreviewBackendStatus({
     requested: "legacy",
     active: "legacy",
@@ -5053,6 +5089,8 @@ export function buildUi(
     },
     setViewMode: (mode, totalPatchPoints, coinBulge) => renderViewMode(mode, totalPatchPoints, coinBulge),
     setFieldPreviewBackendStatus: (status) => renderFieldPreviewBackendStatus(status),
+    setFieldPreviewProgressiveStatus: (status) => renderFieldPreviewProgressiveStatus(status),
+    setComputeRuntimeStatus: (status) => renderComputeRuntimeStatus(status),
     setViewLayer: (layer) => renderViewLayer(layer),
     setViewLayerAvailability: (availability) => renderViewLayerAvailability(availability),
     setGraphViewState: (layers, options) => renderGraphViewState(layers, options),

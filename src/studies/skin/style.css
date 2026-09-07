@@ -507,6 +507,9 @@
 }
 
 .viewport-view-title { display: block; margin-bottom: 6px; font-size: 11px; }
+.viewport-compute-runtime-status { display: block; margin: -2px 0 6px; color: rgba(255,255,255,.72); font-size: 8px; line-height: 1.35; }
+.viewport-compute-runtime-status[data-state="healthy"] { color: #8ce7d8; }
+.viewport-compute-runtime-status[data-state="offline"] { color: #f4c66b; }
 .viewport-view-toggle { padding: 4px; gap: 4px; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
 .viewport-view-toggle button { min-width: 0; padding: 6px 5px; border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.84); background: rgba(0,0,0,0.18); font-size: 10px; }
 .viewport-view-layer-toggle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3994,6 +3997,9 @@ details.mesh-export:not([open]) > :not(summary) {
 .viewport-field-backend-status { color: var(--muted); }
 .viewport-field-backend-status.warn { color: #b06a00; }
 .viewport-field-backend-hint { color: var(--muted); }
+.viewport-compute-runtime-status { color: var(--muted); }
+.viewport-compute-runtime-status[data-state="healthy"] { color: #16796d; }
+.viewport-compute-runtime-status[data-state="offline"] { color: #b06a00; }
 
 .viewport-view-layer-toggle button {
   padding-inline: 2px;
