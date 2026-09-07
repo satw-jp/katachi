@@ -20,6 +20,8 @@ Last verified: 2026-09-07
 - J cutover status: PASS — accepted FIELD checkpoint reconstructed cleanly on J with no C-linked Git metadata
 - J runtime bootstrap status: PASS — `npm ci`, FIELD focused tests 8/8, build PASS, J-side Vite dev launch and browser C/FIELD smoke PASS
 - C-side original remains retained as rollback/evidence storage
+- compute/helper runtime cutover: PENDING — current compute endpoint / connection settings remain authoritative until a separate cutover PASS
+- staged future helper location: `J:\dev\katachi-compute-helper-tray` (staged only; not current runtime authority)
 
 ## Current phase
 First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. FIELD vNext Interaction Correctness v0 is also PASS / CLOSED after C SOL review at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`.
@@ -33,6 +35,8 @@ Author observation also narrows the physical generalization claim: the successfu
 C development workspace migration to J is PASS. Runtime bootstrap on J is also PASS: dependencies were rebuilt from the lockfile, FIELD focused tests and build passed, the C route launched from the J worktree, and FIELD vNext -> BEADS -> FIELD vNext browser switching was verified. Future C work must start from `J:\dev\worktrees\skin-field-vnext-interaction-v0`; the retained C-side worktree is rollback/evidence only.
 
 Future C-specific runtime / local development environment maintenance is Team C ownership. Storage migration topology and deletion/cleanup of retained C-side originals remain Overall / Organization ownership.
+
+The separate katachi compute/helper runtime has NOT yet cut over to J. `J:\dev\katachi-compute-helper-tray` is staged, but while AB performance work is active the live compute/helper runtime remains on the existing configuration. Team C must not change compute endpoint / connection settings before an explicit compute cutover PASS. After that PASS, Team C owns the J-side C connection check, helper health check, and any C-specific runtime settings verification.
 
 For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext interaction task. Do not auto-start the queued durability audit or any other C implementation task today unless the author explicitly reopens C work.
 
@@ -82,6 +86,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - No Production geometry / support / export blocker for the proven near-vertical First Print regime.
 - FIELD vNext interaction blocker is CLOSED at `dad764ce...`.
 - J-side C runtime bootstrap blocker is CLOSED; normal C runtime no longer requires the old C-side path.
+- compute/helper runtime cutover remains PENDING; existing compute endpoint / connection settings must not be changed before explicit cutover PASS.
 - Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
 - Strong-overhang / cantilever generalization is UNVERIFIED; the First Physical Print must not be used as evidence that Usagi-like geometry will behave equivalently.
 - Existing Workflow Guide-derived console `NotFoundError` was observed during the FIELD task. It predates / lies outside the accepted FIELD interaction scope and is a non-blocking follow-up; do not fix it implicitly today.
@@ -91,10 +96,11 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 
 ## Next gate
 1. STOP C work for 2026-09-07.
-2. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
-3. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
-4. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness are new validation dimensions rather than assuming the First Print result generalizes.
-5. Workflow Guide console `NotFoundError` may be scoped separately later if it materially affects author workflow.
+2. Wait for an explicit compute/helper cutover PASS before touching compute endpoint / connection settings; after PASS, Team C verifies J-side C connection, helper health, and C-specific runtime settings.
+3. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
+4. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
+5. Usagi + V6 parameter-locked validation remains eligible, but when scoped it must explicitly test a strong-overhang regime: support demand, cantilever/lateral load exposure, and single-attachment weakness are new validation dimensions rather than assuming the First Print result generalizes.
+6. Workflow Guide console `NotFoundError` may be scoped separately later if it materially affects author workflow.
 
 ## HOLD / DO NOT CHANGE
 - Motif-conditioned default seed
@@ -112,6 +118,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - bulk merge of historical feature branches
 - do not resume C work from the retained C-side worktree
 - do not delete or clean retained C-side migration originals from Team C; that remains Overall / Organization scope
+- do not change current compute endpoint / connection settings before explicit compute/helper cutover PASS
+- `J:\dev\katachi-compute-helper-tray` is staged-only until cutover; do not treat it as the live helper runtime yet
 
 ## Relevant artifacts
 - UI IA v0A implementation: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
@@ -126,6 +134,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
 - preferred J-side workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
 - retained C-side workspace: `C:\dev\worktrees\skin-field-vnext-interaction-v0`
+- staged future compute/helper location: `J:\dev\katachi-compute-helper-tray`
 
 ## Evidence boundary
 ### Proven / supported
@@ -143,6 +152,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - J-side dependency bootstrap, build, dev launch, HTTP route, and browser FIELD/BEADS/FIELD smoke all passed; normal C runtime did not require the old C-side path.
 
 ### Not yet proven
+- compute/helper runtime cutover from the current live setup to `J:\dev\katachi-compute-helper-tray`
+- J-side C connection / helper health / C-specific runtime settings after compute cutover
 - whether every single-edge/bridge-only graph appendage is physically weak
 - whether the mirrored/opposite-side analogue will fail under the same handling
 - which exact Permanent Graph bridge/articulation candidate corresponds to the observed broken piece
