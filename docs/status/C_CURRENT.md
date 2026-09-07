@@ -15,6 +15,10 @@ Last verified: 2026-09-07
 - UI IA v0A reviewed implementation checkpoint: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
 - UI IA v0A final evidence checkpoint: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - FIELD vNext Interaction Correctness v0 accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
+- preferred local workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
+- J-side canonical clone: `J:\dev\katachi`
+- J cutover status: PASS — accepted FIELD checkpoint reconstructed cleanly on J with no C-linked Git metadata
+- C-side original remains retained as rollback/evidence storage
 
 ## Current phase
 First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. FIELD vNext Interaction Correctness v0 is also PASS / CLOSED after C SOL review at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`.
@@ -24,6 +28,8 @@ The accepted FIELD interaction fix centralizes FIELD/BEADS/MESH visibility polic
 Additional post-print handling evidence identifies a localized Permanent Structure durability weakness: an appendage/subgraph supported by a single connection to the main artwork detached during casual handling. The detached subgraph remained substantially coherent while the root connection failed. A mirrored/opposite-side analogue is suspected to share the same weakness but remains intact for comparison.
 
 Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
+
+C development workspace migration to J is PASS. Future C work must start from `J:\dev\worktrees\skin-field-vnext-interaction-v0`; the retained C-side worktree is rollback/evidence only.
 
 For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext interaction task. Do not auto-start the queued durability audit or any other C implementation task today unless the author explicitly reopens C work.
 
@@ -50,6 +56,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - UI IA v0A exact Production parity PASS at `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - UI IA v0A PASS / CLOSED on 2026-09-06
 - FIELD vNext Interaction Correctness v0 PASS / CLOSED at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453` on 2026-09-07
+- C J workspace cutover PASS — `J:\dev\worktrees\skin-field-vnext-interaction-v0` at accepted HEAD, clean, with no C-linked Git metadata
+- J-side FIELD focused smoke test: 8/8 PASS
 
 ## FIELD vNext interaction review
 - reviewed branch: `agent/skin-field-vnext-interaction-v0`
@@ -97,6 +105,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - Co-evolution; Graph-conditioned default; D / F1 / F2 / F3 / C+D Hybrid
 - new C research unless separately scoped
 - bulk merge of historical feature branches
+- do not resume C work from the retained C-side worktree
 
 ## Relevant artifacts
 - UI IA v0A implementation: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
@@ -109,6 +118,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - First Physical Print author-edited Bambu 3MF local archive: `J:\My Drive\ChatGPT\SKIN\_C\Physical Evidence\2026-09-06_First_Physical_Print\3MF\SKIN-C-production-v0-support-fixed.3mf`
 - archived 3MF size: `2,066,585 bytes`
 - archived 3MF SHA-256: `a68f04638751c4cb91e905267d47eeb1593d7b776c287919a4d59ea69a41c41b`
+- preferred J-side workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
+- retained C-side workspace: `C:\dev\worktrees\skin-field-vnext-interaction-v0`
 
 ## Evidence boundary
 ### Proven / supported
@@ -121,6 +132,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - one physically printed terminal appendage/subgraph failed at its single attachment during casual handling while the larger artwork remained coherent.
 - the detached subgraph itself remained substantially intact, supporting a localized root-connection weakness rather than a global print-collapse interpretation.
 - the successful First Physical Print proves print/support-removal viability only for the observed predominantly vertical / linear shape regime with limited manual supplemental slicer support.
+- J-side C worktree is reconstructed from remote authority at the accepted FIELD checkpoint, clean, and independent of C-side Git metadata.
+- J-side FIELD focused smoke tests passed 8/8.
 
 ### Not yet proven
 - whether every single-edge/bridge-only graph appendage is physically weak
