@@ -1,6 +1,6 @@
 # Team C Current Status
 
-Last verified: 2026-09-07
+Last verified: 2026-09-08
 
 ## Current authority
 - repo: `satw-jp/katachi`
@@ -30,79 +30,65 @@ Last verified: 2026-09-07
 - Compute indicator author check: PASS (`Compute ● CUDA` acceptable)
 
 ## Current phase
-Viewport Input / Redraw Diagnostic v1 is PASS / CLOSED at `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`.
+Runtime Status + Progressive FIELD v0 is PASS / CLOSED.
 
-C SOL reviewed the pushed diff directly. The fix is bounded to `src/studies/skin/main.ts`: `installSkinWorkflowGuide()` previously called `rightPaneUpperStack.insertBefore(panel, ui.viewLayerRoot.nextSibling)` even though `ui.viewLayerRoot` lives under a different DOM parent. The resulting DOM exception interrupted startup before the later viewport render callback wiring was registered. The fix inserts the guide relative to `rightPaneUpperStack.firstChild`, preserving the intended parent and allowing startup to continue to `skinRenderer.setRenderRequestCallback(requestRenderFrame)`.
+The final author visual gate on the current J runtime passed after the viewport redraw baseline was repaired. The author confirmed the display behavior is acceptable. This closes the presentation/runtime scope that began with the FIELD first-meaningful-image latency issue.
 
-Observed diagnostic boundary:
-- input event arrival: PASS;
-- camera/control mutation: PASS;
-- render request: previously stopped because render callback registration was never reached;
-- render frame / pixels: previously not reached from viewport requests;
-- renderer visibility state: correct;
-- Ghost/Solid appeared to repair BEADS because that path forced a full `render()` after the otherwise missing viewport redraw wiring.
+Accepted behavior/evidence:
+- tiny Compute runtime indicator is acceptable and truthfully showed CUDA/offline/CUDA restore during prior gate work;
+- FIELD vNext appears progressively instead of requiring a long blank wait;
+- current C-compatible dense gate (`skin-rebuild-pattern5-regression.fkei`, 39 patches / 273 primitives) reached recognizable coarse immediately, medium about 0.37 s, fine about 0.75 s, with no multi-second automatic stall during the recorded observation;
+- interaction can switch to an aggressively coarse low-resolution FIELD presentation using the same FIELD payload/material semantics;
+- idle refinement resumes after interaction;
+- FIELD -> BEADS return works after the viewport redraw fix;
+- BEADS/viewport rotate, pan, zoom, 1<->4 layout, and Ghost/Solid presentation baseline are restored;
+- vNext backend preference remains session-only and preserved across layer switching;
+- Production BODY / Graph / Support / supportSource / FKEI / Export / 3MF semantics remain unchanged by this work;
+- FIELD SDF math, sequential smooth-min order, primitive grouping/filter/store/payload semantics remain unchanged.
 
-Post-fix browser/author evidence:
-- rotate: PASS;
-- pan: PASS;
-- zoom: PASS;
-- FIELD -> BEADS: PASS without Ghost workaround;
-- 1 View <-> 4 Views: PASS for 5 cycles;
-- Ghost/Solid no longer determines whether BEADS is visible;
-- console errors attributable to this defect: none;
-- focused tests/typecheck/build: PASS as reported;
-- Production / FIELD semantic math / geometry / compute endpoint unchanged.
+The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`: `installSkinWorkflowGuide()` previously raised a DOM exception before viewport render callback registration. The corrected DOM insertion allows startup to continue to `skinRenderer.setRenderRequestCallback(requestRenderFrame)`, restoring normal camera/layer redraw behavior.
 
-Therefore:
-- Viewport Interaction Baseline Diagnostic v0: CLOSED by the v1 diagnosis/fix.
-- Viewport Input / Redraw Diagnostic v1: PASS / CLOSED.
-- prior Workflow Guide-derived DOM `NotFoundError` follow-up: RESOLVED by `7006e0d...`.
-
-Runtime Status + Progressive FIELD v0 remains OPEN only for the final author visual confirmation of Fix 2 now that the viewport baseline is trustworthy again.
+10,450-primitive historical v2-FKEI scalability remains UNVERIFIED and is not claimed by this closure; it is outside the current C-compatible parser gate.
 
 ## Active implementation instruction
 - NONE.
-- Do not modify code before the final Progressive FIELD author visual gate.
-- Candidate runtime checkpoint for author verification: `agent/skin-runtime-status-progressive-field-v0` / `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`.
-- Verify FIELD vNext specifically:
-  1. enter FIELD and let it settle;
-  2. rotate/pan/zoom while a very coarse FIELD-like surface remains visible and follows the camera;
-  3. interaction starts without waiting for another fine frame;
-  4. releasing interaction restarts idle refinement at the final camera pose;
-  5. FIELD -> BEADS returns immediately;
-  6. BEADS -> FIELD retains vNext preference.
-- If this author gate passes, C SOL may close Runtime Status + Progressive FIELD v0 without further implementation.
-- If it fails, scope only the observed remaining FIELD interaction defect. Do not reopen general viewport baseline unless a non-FIELD failure reappears.
+- Do not start another C implementation task automatically from this closure.
+- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED only and requires explicit start.
+- Usagi / strong-overhang validation remains later explicit scope.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
 - Production architecture PASS / LOCKED
 - Geometry Fidelity PASS / CLOSED
 - Removable Support wiring PASS / CLOSED
+- offset-bend support restored
 - 3MF PASS
 - First Physical Gate PASS / CLOSED for accepted near-vertical print regime
 - UI IA v0A PASS / CLOSED at `c64cf091...`
 - FIELD vNext capability retention PASS
-- earlier FIELD vNext Interaction Correctness PASS / CLOSED at `dad764ce...`
+- FIELD vNext Interaction Correctness PASS / CLOSED at `dad764ce...`
 - C J workspace/runtime bootstrap PASS
 - compute/helper J cutover + connection PASS
 - Compute tiny indicator author visual PASS
 - Progressive FIELD Fix 1 dense timing gate PASS for current C-compatible 273-primitive sample
 - Progressive FIELD Fix 2 source/scope STRUCTURAL PASS at `3219f093...`
-- viewport FIELD-progression guard source/scope PASS at `f4baeca...`
+- viewport FIELD-progression guard PASS at `f4baeca...`
 - Viewport Input / Redraw Diagnostic v1 PASS / CLOSED at `7006e0d...`
 - Workflow Guide DOM startup exception RESOLVED at `7006e0d...`
+- Runtime Status + Progressive FIELD v0 PASS / CLOSED after final author visual confirmation on 2026-09-08
 
-## Current blockers / follow-up
-- ACTIVE GATE ONLY: final Progressive FIELD Fix 2 author visual confirmation on `7006e0d...`.
+## Remaining follow-up / evidence boundaries
+- Permanent Structure durability remains `FAIL / LOCALIZED` for one observed single-attachment appendage; audit is QUEUED, not active.
+- strong-overhang / cantilever generalization remains UNVERIFIED; the first physical print does not prove Usagi-like geometry.
+- SKIN-support-alone full printability remains UNVERIFIED because the accepted first print used limited manual supplemental slicer support.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current parser closure.
-- Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED, not active.
-- strong-overhang/cantilever generalization remains UNVERIFIED.
-- SKIN-support-alone full printability remains UNVERIFIED.
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 
 ## HOLD / DO NOT CHANGE
-- Production BODY / Permanent Graph / Local Relay / Graph Repair
+- motif-conditioned default seed
+- Local Relay Permanent Network
+- bounded Graph-only first repair
+- Permanent BODY / member sizing / BODY field unless separately approved after durability audit
 - current Stage8 Removable Support semantics and `current-stage8:sparseResult.graph`
 - source-to-mm / Output Scale contract
 - FIELD SDF math, sequential smooth-min order, primitive grouping/filter/store/payload semantics
@@ -110,21 +96,22 @@ Runtime Status + Progressive FIELD v0 remains OPEN only for the final author vis
 - FKEI / Export / 3MF semantics
 - External STL Host / triangle-mesh Host architecture
 - Usagi
-- durability implementation
+- durability implementation until explicitly started
 - Outside->Outside Support
 - new C research unless separately scoped
 - retained C-side migration originals
 - user-managed `J:\dev\samples`: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
+- Progressive FIELD task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
+- Fix 1 dense gate: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
+- Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
 - viewport redraw diagnostic: `docs/tasks/C_VIEWPORT_INPUT_REDRAW_DIAGNOSTIC_V1.md`
 - previous viewport diagnostic: `docs/tasks/C_VIEWPORT_INTERACTION_BASELINE_DIAGNOSTIC_V0.md`
-- Progressive FIELD Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
-- Fix 1 dense gate: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
-- progressive FIELD task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
+- shared physical observation note: `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 
 ## Next gate
-1. Author visually verifies Progressive FIELD Fix 2 behavior on `7006e0d...` now that general viewport redraw works.
-2. C SOL closes Runtime Status + Progressive FIELD v0 only if coarse interactive FIELD + idle refinement + FIELD/BEADS return all pass in actual author use.
-3. Do not automatically continue to another C task after this gate.
+No C implementation gate is active.
+
+Wait for explicit author direction before starting durability audit, Usagi/strong-overhang work, Outside->Outside Support, External STL Host, or new research.
