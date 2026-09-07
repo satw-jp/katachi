@@ -7,7 +7,7 @@ Last verified: 2026-09-07
 - accepted performance baseline branch: `agent/skin-a2-sparse-support-performance-v0`
 - accepted performance baseline commit: `4929cc8e402f59faa7af5b6dfe86282fdb09d244`
 - Performance v1 branch: `agent/skin-a2-sparse-support-performance-v1`
-- Performance v1 reviewed HEAD: `2964e66002a2b8faed5234769b5f03606fcd3f3b`
+- Performance v1 remote reviewed HEAD: `2964e66002a2b8faed5234769b5f03606fcd3f3b`
 - active task: `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md`
 - Astra escalation / research handoff: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
 - A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
@@ -19,16 +19,61 @@ Last verified: 2026-09-07
 Two activities remain independent:
 
 1. Author/manual A2 physical feasibility print using the retained artifact plus Bambu Studio automatic Tree Support at `45 deg`.
-2. Performance v1 continuation from measured COMPLETE evidence, now focused only on the Rabbit unsigned closed-surface distance hotspot.
+2. Performance v1 SOL review / checkpointing of the Rabbit capped-distance implementation.
 
 G/H/J remain HOLD. No new Support architecture is active.
 
-## Performance v1 status — HOLD / active Rabbit hotspot continuation
+## Performance v1 status — LOCAL PASS CANDIDATE / awaiting commit + push
 
-Reviewed remote checkpoint:
+The remote reviewed checkpoint remains:
 `2964e66002a2b8faed5234769b5f03606fcd3f3b`
 
-### P0 evidence retention — ACCEPT
+LUNA reports a later **local dirty / unpushed** Rabbit capped-distance implementation that completed a full A2 gate with exact retained parity and major wall-time reduction. GitHub does not yet contain that implementation, so Team AB must not mark the code ACCEPTED/CLOSED until the exact commit is pushed and reviewed.
+
+### Reported local full-A2 result
+- actual A2 source: SHA-256 matched canonical `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
+- requested path did not exist; implementation used the SHA-matching `.../outputs/round-2/A2_BODY.stl`
+- Full Support: `4,561 / 4,561`
+- accepted: `654`
+- supported / unsupported: `654 / 3,907`
+- accepted BODY / Rabbit collision: `0 / 0`
+- Support total: `528,025.4 ms`
+- reported improvement: `-76.35%` vs accepted v0 and `-78.29%` vs first v1 run
+- Rabbit audit: `40,846.3 ms`
+- capped Rabbit unsigned: `8,492.8 ms / 17,736,590 calls`
+- cap returns: `17,612,211`
+- Signed Volume: AVAILABLE
+- 3MF validator: PASS
+- release / placement parity: PASS
+- console errors / warnings: `0 / 0`
+
+### Reported parity / validation
+- geometry fingerprint: reported exact match; UI/evidence display `ae244f2c…520b9`
+- diagnostics fingerprint: reported exact match; `8db3d239…96ba0`
+- Support fingerprint: reported exact match; `83af4c78…7932`
+- export fingerprint: reported exact match; `850177f1…515fc`
+- bounded semantic digest: reported exact match; `f97ac5f3…05bf5`
+- focused tests: `37 / 37 PASS`
+- both TypeScript checks: PASS
+- build: PASS
+- `git diff --check`: PASS
+
+### Reported implementation design
+- exact Rabbit BVH query returns `min(fullDistance, cap)`; no approximation
+- cap is derived/proven from interval length + threshold for the existing fail-closed one-Lipschitz forbidden-volume certification
+- signed Rabbit SDF remains inside/outside authority
+- no Support semantics/settings, route order, sample positions, recursion limits, Rabbit policy, Candidate geometry, FKEI, exporter semantics, G/H/J, main or deploy changes reported
+
+### SOL checkpoint gate
+Before final ACCEPT / CLOSED:
+1. commit the local v1 changes on `agent/skin-a2-sparse-support-performance-v1`;
+2. normal push only; no force / rebase / merge;
+3. exclude unrelated `docs/infrastructure/`;
+4. return exact commit SHA and remote HEAD;
+5. SOL reviews exact GitHub diff against the authorized v1 lineage;
+6. no additional full A2 rerun is required unless exact review finds an unresolved parity/performance issue.
+
+## P0 evidence retention — ACCEPT
 Preserve:
 - copyable COMPLETE evidence before Worker release
 - full geometry / diagnostics / Support / export fingerprints
@@ -36,90 +81,36 @@ Preserve:
 - localStorage retention when available
 - COMPLETE evidence not overwritten by later incomplete profile
 
-### First Rabbit stack attempt — NOT PROMOTED
-Semantic/fingerprint parity: PASS.
+## First Rabbit stack attempt — NOT PROMOTED
+Remote checkpoint `2964e660...` preserved semantic/fingerprint parity but did not demonstrate a speed win.
 
 Wall time:
-- accepted v0: `2,232,690.1 ms` (~37m13s)
-- v1 first run: `2,431,968.6 ms` (~40m32s)
+- accepted v0: `2,232,690.1 ms`
+- first v1 run: `2,431,968.6 ms`
 - regression: `+199,278.5 ms` / about `+8.9%`
 
-The reusable Rabbit `Int32Array` stack is therefore not accepted as a demonstrated speed win. The slower run does not prove that change alone caused the regression.
+Do not claim the first reusable Rabbit stack alone as a performance improvement.
 
-## Measured full-run hotspot authority
-From retained COMPLETE v1 evidence:
-
-### Overall
-- total: `2,431,968.6 ms`
+## Measured pre-cap hotspot authority
+From retained COMPLETE first-v1 evidence:
 - route audit: `2,430,915.6 ms`
-- target extraction: `177.5 ms`
-- target coverage: `183 ms`
-- route generation: `72.4 ms`
-- spacing: `395.2 ms`
-- processed targets: `4,561 / 4,561`
-- route options: `102,193`
-- route audits: `90,921`
-
-### Audit split
-- vertical audit: `96,263.0 ms`
-- leaning audit: `2,334,652.6 ms`
 - BODY audit: `499,995.8 ms`
 - Rabbit audit: `1,906,507.6 ms`
 - Rabbit unsigned surface time: `1,872,601.8 ms`
+- Rabbit unsigned calls: `17,736,590`
 
-Rabbit unsigned surface work is therefore the selected v1 hotspot: roughly `77%` of route-audit time / about `78%` including Rabbit audit overhead.
+This is the measured basis for the capped-distance optimization.
 
-### Query telemetry
-Candidate:
-- closest/signed-distance calls: `13,392,861`
-- ray calls: `13,389,485`
-- closest nodes visited: `2,190,202,663`
-- closest triangles tested: `8,028,039,776`
-- ray nodes visited: `1,650,185,543`
-- ray triangles tested: `3,011,035,168`
+## Performance v0 — PASS / ACCEPTED BASELINE
+Accepted commit:
+`4929cc8e402f59faa7af5b6dfe86282fdb09d244`
 
-Rabbit:
-- signed calls: `140,301`
-- unsigned surface calls: `17,736,590`
-- unsigned surface time: `1,872,601.8 ms`
+Measured:
+- pre-v0 reference: ~`43m36s`
+- v0 Full Sparse Support: `2,232,690.1 ms`
+- improvement: ~`6m23s` / `14.7%`
 
-Tail windows / slowest target / slowest route were not retained in the COMPLETE v1 evidence and remain `UNAVAILABLE`; no rerun is required solely to recover them.
-
-Runtime evidence:
-- Chrome 152 / Windows 10
-- hardware concurrency: `20`
-- device memory: `32 GB`
-- crossOriginIsolated: `false`
-- secureContext: `true`
-- browser errors/warnings: `0 / 0`
-
-## Active implementation instruction
-Owner: Team AB / SKIN SOL -> LUNA
-
-Task spec:
-`docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md`
-
-Optimize **only** Rabbit closed-surface unsigned-distance execution.
-
-Preferred bounded design target:
-- optional capped exact unsigned-distance query returning exactly `min(trueDistance, cap)`;
-- BVH may prune against `cap` and stop when no triangle can improve the capped result;
-- `forbiddenSdf` remains signed inside/outside authority;
-- use capped values in forbidden-volume certification only if exact one-Lipschitz decision parity is mathematically/regression proven;
-- no approximate distance, threshold change, sample-position change, recursion-depth change, route-order change, or fail-closed relaxation.
-
-For clean attribution, retain P0 evidence retention and do not treat the first Rabbit reusable-stack change as an accepted speed improvement. Restore baseline traversal behavior if appropriate before the capped-query implementation, or otherwise prove by bounded benchmark that it does not confound the result.
-
-### Gate order
-1. Implement deterministic capped-distance vs full-distance parity tests.
-2. Implement forbidden-audit exact-decision parity tests including near-threshold/boundary cases.
-3. Run bounded/prefix performance comparison first.
-4. Only if prefix shows clear Rabbit/route-audit improvement with identical decisions/digest, run one final Full A2.
-5. Final Full A2 must beat accepted v0 `2,232,690.1 ms` and preserve complete fingerprints + canonical Support facts.
-
-Do **not** run a new Full A2 if the bounded Rabbit benchmark shows no material improvement.
-
-If this exact single-thread path becomes difficult to prove or fails to show material bounded improvement, stop and preserve evidence for Research Astra using `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`; do not broaden v1 into parallel/native/GPU architecture.
+This remains the accepted performance baseline until the capped-distance remote commit passes SOL exact review.
 
 ## Canonical A2 semantic gate
 Final accepted performance result must preserve:
@@ -133,16 +124,6 @@ Final accepted performance result must preserve:
 - accepted BODY / Rabbit collision: `0 / 0`
 - complete geometry / diagnostics / Support fingerprints / available graph identity
 - placement / validator continuity if exported
-
-## Performance v0 — PASS / ACCEPTED BASELINE
-Accepted commit: `4929cc8e402f59faa7af5b6dfe86282fdb09d244`
-
-Measured:
-- pre-v0 reference: ~`43m36s`
-- v0 Full Sparse Support: `2,232,690.1 ms` (~`37m13s`)
-- improvement: ~`6m23s` / `14.7%`
-
-This remains the accepted performance baseline until a later exact-parity full run proves a faster result.
 
 ## Physical A2 gate — manual / parallel
 Current print classification:
@@ -170,7 +151,6 @@ This is physical-feasibility evidence, not proof that authored SKIN Support alon
 - route generation / ordering / tie-breaking
 - sample positions / adaptive recursion / thresholds / fail-closed semantics
 - spacing / coverage semantics
-- Candidate BODY query optimization in this v1 continuation
 - FKEI / authoring semantics
 - no remesh / decimation
 - no hidden candidate-specific tuning
@@ -181,21 +161,19 @@ This is physical-feasibility evidence, not proof that authored SKIN Support alon
 
 ## Evidence boundary
 ### PASS / PROVEN
-- v1 first full-A2 semantic/fingerprint parity
-- v1 tests/build/validator evidence
+- first v1 full-A2 semantic/fingerprint parity
 - P0 evidence retention works on actual COMPLETE run
-- Rabbit unsigned surface work is the dominant measured v1 hotspot
+- Rabbit unsigned surface work was the dominant measured hotspot
+
+### LOCAL REPORTED PASS / NOT YET GITHUB-REVIEWED
+- capped exact Rabbit-distance full-A2 performance + parity result at `528,025.4 ms`
+- capped implementation code itself
 
 ### ACCEPTED BASELINE
 - v0 performance commit `4929cc8...` at `2,232,690.1 ms`
 
-### HOLD / NOT PROMOTED
-- `2964e660...` as a full performance improvement
-- first Rabbit reusable traversal stack as a speed win
-
-### ACTIVE / NOT YET PROVEN
-- capped exact Rabbit-distance prefix improvement
-- capped exact Rabbit-distance final full-A2 improvement
+### NOT YET PROVEN / HOLD
+- remote exact-diff acceptance of the capped implementation
 - A2 physical print completion
 - artifact-retention checkpoint before G/H/J
 - body-anchored removable Support hypothesis
