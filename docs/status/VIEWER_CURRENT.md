@@ -16,14 +16,16 @@ Last verified: 2026-09-07
 ## NOW / Current phase
 Viewer v0 technical implementation is PASS / CLOSED at `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`.
 
-The bounded Surface spatial-alignment fix is PASS. The Viewer now reverses the explicitly recorded Production `plateShiftSourceZ` on a Viewer-only Surface copy so Geometry / Graph / Surface / Void occupy the same canonical FKEI frame without mutating the Production runtime mesh or canonical FKEI serialization.
+The bounded Surface spatial-alignment fix is PASS. The Viewer reverses the explicitly recorded Production `plateShiftSourceZ` on a Viewer-only Surface copy so Geometry / Graph / Surface / Void occupy the same canonical FKEI frame without mutating the Production runtime mesh or canonical FKEI serialization.
 
-Author Review may resume with the same artifact and camera. No new Viewer implementation is active.
+**Author Review after the alignment fix is also PASS / CLOSED for the current phase.** The author visually rechecked the corrected representation switching and reported no remaining blocker requiring Viewer work at this time.
+
+No new Viewer implementation is active. STOP until a later Research question demonstrates a concrete need for Viewer expansion.
 
 ## Active task
 - NONE.
-- next owner: Author / Research SOL for Viewer Author Review.
-- do not start Viewer expansion before the Author Review gate is interpreted.
+- Viewer work is STOPPED after Author Review closure.
+- do not start Viewer expansion speculatively.
 
 ## Reviewed alignment fix
 - reviewed commit: `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`
@@ -50,19 +52,26 @@ Reason:
 
 Worker-reported gates: Viewer analysis tests, build, SKIN/FKEI/Production tests, Browser Gate, and console warning/error `0` all PASS. GitHub has no attached commit status checks for this checkpoint, so execution evidence remains worker-reported while source/diff scope is directly SOL-reviewed.
 
+## Author Review closure
+Using the corrected shared canonical frame, the author visually confirmed the Viewer is acceptable for now.
+
+Current Author Gate result:
+- corrected Geometry / Graph / Surface / Void switching: visually acceptable;
+- Surface alignment blocker: CLOSED;
+- no further Viewer fix requested;
+- no Viewer metric / representation expansion authorized from this gate.
+
+Retain the earlier useful observations as Research evidence rather than turning them into new Viewer implementation automatically:
+- Graph exposed a tube-like / insufficiently volumetric Permanent Structure reading;
+- Void read as a simple retained-air mass rather than an articulated internal spatial structure;
+- Surface with motifs appeared less structurally generic than Graph alone.
+
 ## Blocker
-- NONE for Viewer technical implementation.
-- Author interpretation of corrected Graph → Surface comparison remains pending.
+- NONE.
 
-## Next gate — Author Review
-Using the same artifact and shared camera, review:
-
-1. **Geometry → Graph**: does Graph reveal a useful structural abstraction?
-2. **Graph → Surface**: after alignment, does materialization add trustworthy insight rather than a presentation offset?
-3. **Graph → Void**: what new understanding comes from retained-air structure?
-4. **Void as artwork space**: does Void read as the shape of air retained by the artwork, and what is missing?
-
-Record author observations. Do not expand metrics or Viewer representations during this gate.
+## Next gate
+- NONE for Viewer.
+- A future Viewer task requires a new explicit Research question and demonstrated value.
 
 ## Protected
 - no SKIN Production integration or source/geometry semantics change
@@ -80,7 +89,6 @@ Record author observations. Do not expand metrics or Viewer representations duri
 - no deploy
 
 ## Required pointers
-- current alignment task authority: previous bounded instruction in this CURRENT
 - reviewed alignment commit: `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`
 - previous semantic-fix checkpoint: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 - routing: `docs/TEAM_PROTOCOL_CORE.md` and `docs/protocol/CURRENT_FORMAT.md`
@@ -105,12 +113,7 @@ Record author observations. Do not expand metrics or Viewer representations duri
 - Interior-Host regression fixture: PASS by code review.
 - Surface canonical-frame alignment: PASS at `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`.
 - Viewer v0 technical implementation: PASS / CLOSED.
-
-### Author observations retained from pre-alignment review
-These remain useful except where Surface spatial position could have affected interpretation:
-- Graph exposes that the current Permanent Structure reads as tube-like / insufficiently volumetric.
-- Void reads as one simple retained-air mass rather than an articulated internal spatial structure.
-- Surface with motifs appeared less structurally generic than Graph alone, but the final Graph → Surface interpretation must now be repeated after alignment.
+- corrected post-alignment Author Review: PASS / CLOSED for current phase.
 
 ### Relevant artifacts
 - Reviewed initial implementation commit: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8e`
@@ -130,10 +133,10 @@ These remain useful except where Surface spatial position could have affected in
 - previous Boundary-connected semantics and canonical parser / BODY / renderer reuse remain intact in reviewed scope.
 
 #### Author observation
-- Graph and Void pre-alignment observations remain retained.
-- corrected Graph → Surface interpretation is pending Author Review.
+- corrected Viewer is visually acceptable for the current phase.
+- retained Graph / Surface / Void observations remain Research inputs.
 
-#### Not yet proven
-- final author judgment of corrected Graph → Surface materialization value
+#### Not yet proven / not requested
 - any SKIN Diagnostics integration value
 - value of any future shared analysis boundary / refactor
+- value of future Viewer representation / metric expansion
