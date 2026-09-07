@@ -174,6 +174,13 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
   let rabbitAuditMs = 0;
   referenceHost.signedVolumeQuery.setTelemetryEnabled(true);
   referenceHost.signedVolumeQuery.resetTelemetry();
+  const cappedDistanceQuery = referenceHost.query.closestSurfaceDistanceCapped;
+  if (!cappedDistanceQuery || !referenceHost.query.setCappedDistanceTelemetryEnabled
+    || !referenceHost.query.resetCappedDistanceTelemetry || !referenceHost.query.readCappedDistanceTelemetry) {
+    throw new Error("Rabbit capped closed-surface distance query is unavailable");
+  }
+  referenceHost.query.setCappedDistanceTelemetryEnabled(true);
+  referenceHost.query.resetCappedDistanceTelemetry();
   const measureQueryTimings = candidate.query.readTelemetry().enabled;
   const tailWindowEnds = new Set([512, 1024, 1536, 2048, 2304, 2560, 3072, 3584, 4096, 4561]);
   const tailWindowSnapshots = new Map<number, {
@@ -223,10 +230,10 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     if (measureQueryTimings) rabbitAuditMs += now() - queryStarted;
     return result;
   };
-  const forbiddenClosedSurfaceDistance = (x: number, y: number, z: number): number => {
+  const forbiddenClosedSurfaceDistanceCapped = (x: number, y: number, z: number, cap: number): number => {
     rabbitUnsignedSurfaceDistanceCalls += 1;
     const queryStarted = measureQueryTimings ? now() : 0;
-    const result = referenceHost!.query.closestSurface({ x, y, z })?.distance ?? Number.NaN;
+    const result = cappedDistanceQuery.call(referenceHost!.query, { x, y, z }, cap) ?? Number.NaN;
     if (measureQueryTimings) {
       const elapsed = now() - queryStarted;
       rabbitUnsignedSurfaceDistanceMs += elapsed;
@@ -250,7 +257,7 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     },
     contactPolicy: "single-body" as const,
     forbiddenSdf: forbidden,
-    forbiddenClosedSurfaceDistance,
+    forbiddenClosedSurfaceDistanceCapped,
     forbiddenClearanceMm: command.settings.hostClearanceMm,
     removalGapMm: command.settings.removalGapMm,
     lowStartBand: command.settings.lowStartBandMm,
@@ -330,6 +337,7 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
     rabbitSignedQuery: referenceHost.signedVolumeQuery.readTelemetry(),
     rabbitUnsignedSurfaceDistanceCalls,
     rabbitUnsignedSurfaceDistanceMs,
+    rabbitCappedDistanceQuery: referenceHost.query.readCappedDistanceTelemetry(),
     ...(boundedSemanticDigest ? { boundedSemanticDigest } : {}),
     candidateBodyAuditMs,
     rabbitAuditMs,

@@ -55,6 +55,14 @@ export interface HostSurfaceHit {
   readonly distance: number;
 }
 
+export interface HostCappedDistanceTelemetry {
+  readonly enabled: boolean;
+  readonly calls: number;
+  readonly nodesVisited: number;
+  readonly trianglesTested: number;
+  readonly returnedCapCount: number;
+}
+
 export interface ParsedHostMesh {
   /** Triangle soup after source interpretation, before instance transform. */
   readonly positions: Float64Array;
@@ -75,6 +83,11 @@ export interface ParsedRawStlMesh {
 
 export interface HostSurfaceQuery {
   closestSurface(point: HostVec3): HostSurfaceHit | null;
+  /** Exact min(closest surface distance, cap) for a finite non-negative cap. */
+  closestSurfaceDistanceCapped?(point: HostVec3, cap: number): number | null;
+  setCappedDistanceTelemetryEnabled?(enabled: boolean): void;
+  resetCappedDistanceTelemetry?(): void;
+  readCappedDistanceTelemetry?(): HostCappedDistanceTelemetry;
   normal(point: HostVec3): HostVec3 | null;
   raycast(ray: HostRay): HostSurfaceHit | null;
   /** Counts the same strict interior ray crossings used by Signed Volume when available. */
@@ -459,12 +472,17 @@ function axisValue(positions: Float64Array, triangle: number, axis: number): num
 class HostTriangleQuery implements HostSurfaceQuery {
   private readonly triangleOrder: Uint32Array;
   private readonly nodes: BvhNode[] = [];
-  private readonly closestTraversalStack: Int32Array;
+  private readonly cappedTraversalStack: Int32Array;
+  private cappedDistanceTelemetryEnabled = false;
+  private cappedDistanceCalls = 0;
+  private cappedDistanceNodesVisited = 0;
+  private cappedDistanceTrianglesTested = 0;
+  private cappedDistanceReturnedCapCount = 0;
 
   constructor(private readonly mesh: ParsedHostMesh) {
     this.triangleOrder = new Uint32Array(mesh.validTriangleIndices);
     this.buildNode(0, this.triangleOrder.length);
-    this.closestTraversalStack = new Int32Array(this.nodes.length);
+    this.cappedTraversalStack = new Int32Array(this.nodes.length);
   }
 
   private compareTriangles(left: number, right: number, axis: number): number {
@@ -544,10 +562,9 @@ class HostTriangleQuery implements HostSurfaceQuery {
     const query = cloneVec3(point, "closestSurface point");
     let best: HostSurfaceHit | null = null;
     let bestDistanceSquared = Infinity;
-    let stackSize = 0;
-    this.closestTraversalStack[stackSize++] = 0;
-    while (stackSize > 0) {
-      const node = this.nodes[this.closestTraversalStack[--stackSize]];
+    const stack = [0];
+    while (stack.length > 0) {
+      const node = this.nodes[stack.pop()!];
       if (this.boundsDistanceSquared(node, query) > bestDistanceSquared + EPSILON) continue;
       if (node.count > 0) {
         for (let cursor = node.start; cursor < node.start + node.count; cursor += 1) {
@@ -572,11 +589,64 @@ class HostTriangleQuery implements HostSurfaceQuery {
           };
         }
       } else {
-        this.closestTraversalStack[stackSize++] = node.right;
-        this.closestTraversalStack[stackSize++] = node.left;
+        stack.push(node.right, node.left);
       }
     }
     return best;
+  }
+
+  closestSurfaceDistanceCapped(point: HostVec3, cap: number): number | null {
+    const query = cloneVec3(point, "capped closestSurface point");
+    if (!Number.isFinite(cap) || cap < 0) throw new Error("capped surface distance cap must be finite and non-negative");
+    if (this.mesh.validTriangleIndices.length === 0) return null;
+    let bestDistanceSquared = cap * cap;
+    let stackSize = 0;
+    let nodesVisited = 0;
+    let trianglesTested = 0;
+    this.cappedTraversalStack[stackSize++] = 0;
+    while (stackSize > 0) {
+      const node = this.nodes[this.cappedTraversalStack[--stackSize]];
+      nodesVisited += 1;
+      if (this.boundsDistanceSquared(node, query) >= bestDistanceSquared) continue;
+      if (node.count > 0) {
+        for (let cursor = node.start; cursor < node.start + node.count; cursor += 1) {
+          trianglesTested += 1;
+          const candidate = closestPointOnTriangle(query, this.mesh.positions, this.triangleOrder[cursor]);
+          if (candidate.distanceSquared < bestDistanceSquared) bestDistanceSquared = candidate.distanceSquared;
+        }
+      } else {
+        this.cappedTraversalStack[stackSize++] = node.right;
+        this.cappedTraversalStack[stackSize++] = node.left;
+      }
+    }
+    if (this.cappedDistanceTelemetryEnabled) {
+      this.cappedDistanceCalls += 1;
+      this.cappedDistanceNodesVisited += nodesVisited;
+      this.cappedDistanceTrianglesTested += trianglesTested;
+      if (bestDistanceSquared === cap * cap) this.cappedDistanceReturnedCapCount += 1;
+    }
+    return Math.sqrt(bestDistanceSquared);
+  }
+
+  setCappedDistanceTelemetryEnabled(enabled: boolean): void {
+    this.cappedDistanceTelemetryEnabled = enabled;
+  }
+
+  resetCappedDistanceTelemetry(): void {
+    this.cappedDistanceCalls = 0;
+    this.cappedDistanceNodesVisited = 0;
+    this.cappedDistanceTrianglesTested = 0;
+    this.cappedDistanceReturnedCapCount = 0;
+  }
+
+  readCappedDistanceTelemetry(): HostCappedDistanceTelemetry {
+    return Object.freeze({
+      enabled: this.cappedDistanceTelemetryEnabled,
+      calls: this.cappedDistanceCalls,
+      nodesVisited: this.cappedDistanceNodesVisited,
+      trianglesTested: this.cappedDistanceTrianglesTested,
+      returnedCapCount: this.cappedDistanceReturnedCapCount,
+    });
   }
 
   normal(point: HostVec3): HostVec3 | null {

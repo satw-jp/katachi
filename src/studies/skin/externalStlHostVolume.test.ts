@@ -102,6 +102,35 @@ test("signed distance reuses its closest-surface result for classification", asy
   assert.equal(closestSurfaceCalls - callsBefore, 1);
 });
 
+test("capped closest distance is exactly min(full distance, cap)", async () => {
+  const source = await createImportedHostSource(asciiStl("cube", cubeTriangles), {
+    filename: "cube.stl",
+    interpretation,
+  });
+  const query = createImportedHostInstance(source, identity).query;
+  assert.ok(query.closestSurfaceDistanceCapped);
+  const points: readonly HostVec3[] = [
+    { x: 0, y: 0, z: 0 },
+    { x: 1.25, y: 0.25, z: 0.5 },
+    { x: 3, y: 2, z: 0 },
+    { x: -4, y: 3, z: 2 },
+  ];
+  const caps = [0, 0.1, 0.75, 1, 2.5, 10];
+  for (const point of points) {
+    const full = query.closestSurface(point);
+    assert.ok(full);
+    for (const cap of caps) {
+      assert.equal(
+        query.closestSurfaceDistanceCapped(point, cap),
+        Math.min(full.distance, cap),
+        `cap ${cap} at ${JSON.stringify(point)}`,
+      );
+    }
+  }
+  assert.throws(() => query.closestSurfaceDistanceCapped!(points[0], -1), /finite and non-negative/);
+  assert.throws(() => query.closestSurfaceDistanceCapped!(points[0], Number.NaN), /finite and non-negative/);
+});
+
 test("signed volume telemetry is optional, resettable, and query-coarse", async () => {
   const source = await createImportedHostSource(asciiStl("cube", cubeTriangles), {
     filename: "cube.stl",

@@ -60,6 +60,7 @@ test("closed-volume continuity fixtures match the legacy signed oracle", async (
   assert.ok(host.signedVolumeQuery);
   const signed = (x: number, y: number, z: number): number => host.signedVolumeQuery!.signedDistance({ x, y, z });
   const unsigned = (x: number, y: number, z: number): number => host.query.closestSurface({ x, y, z })?.distance ?? Number.NaN;
+  const cappedUnsigned = (x: number, y: number, z: number, cap: number): number => host.query.closestSurfaceDistanceCapped!({ x, y, z }, cap) ?? Number.NaN;
   const threshold = 0.1 + 1e-7;
   const fixtures: ReadonlyArray<readonly [string, SparseSupportRouteSegment]> = [
     ["far exterior vertical", segment({ x: 3, y: 0, z: -3 }, { x: 3, y: 0, z: 3 })],
@@ -80,7 +81,11 @@ test("closed-volume continuity fixtures match the legacy signed oracle", async (
     const accelerated = auditSparseRemovableSupportForbiddenCapsule(fixture, {
       ...baseRequest(signed), forbiddenClosedSurfaceDistance: unsigned,
     });
+    const capped = auditSparseRemovableSupportForbiddenCapsule(fixture, {
+      ...baseRequest(signed), forbiddenClosedSurfaceDistanceCapped: cappedUnsigned,
+    });
     assert.deepEqual(resultKey(accelerated), resultKey(legacy), name);
+    assert.deepEqual(resultKey(capped), resultKey(legacy), `${name} capped`);
   }
 
   const multiSegment = [
@@ -94,6 +99,12 @@ test("closed-volume continuity fixtures match the legacy signed oracle", async (
     }),
   ));
   assert.deepEqual(auditRoute(true), auditRoute(false), "multi-segment route fixture");
+  const cappedRoute = multiSegment.map((fixture) => resultKey(
+    auditSparseRemovableSupportForbiddenCapsule(fixture, {
+      ...baseRequest(signed), forbiddenClosedSurfaceDistanceCapped: cappedUnsigned,
+    }),
+  ));
+  assert.deepEqual(cappedRoute, auditRoute(false), "multi-segment capped route fixture");
 });
 
 test("continuity accelerator is fail-closed for non-finite signed and unsigned queries", () => {
@@ -124,6 +135,7 @@ test("deterministic randomized closed-cube suite matches the legacy oracle", asy
   };
   const signed = (x: number, y: number, z: number): number => host.signedVolumeQuery!.signedDistance({ x, y, z });
   const unsigned = (x: number, y: number, z: number): number => host.query.closestSurface({ x, y, z })?.distance ?? Number.NaN;
+  const cappedUnsigned = (x: number, y: number, z: number, cap: number): number => host.query.closestSurfaceDistanceCapped!({ x, y, z }, cap) ?? Number.NaN;
   for (let index = 0; index < 512; index += 1) {
     const point = (): HostVec3 => ({ x: random() * 8 - 4, y: random() * 8 - 4, z: random() * 8 - 4 });
     const fixture = segment(point(), point(), 0.02 + random() * 0.28);
@@ -131,7 +143,11 @@ test("deterministic randomized closed-cube suite matches the legacy oracle", asy
     const accelerated = auditSparseRemovableSupportForbiddenCapsule(fixture, {
       ...baseRequest(signed), forbiddenClosedSurfaceDistance: unsigned,
     });
+    const capped = auditSparseRemovableSupportForbiddenCapsule(fixture, {
+      ...baseRequest(signed), forbiddenClosedSurfaceDistanceCapped: cappedUnsigned,
+    });
     assert.deepEqual(resultKey(accelerated), resultKey(legacy), `random segment ${index}`);
+    assert.deepEqual(resultKey(capped), resultKey(legacy), `random capped segment ${index}`);
   }
 });
 

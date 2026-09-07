@@ -321,6 +321,10 @@ export interface SparseRemovableSupportRequest {
    * the same proven-closed boundary as forbiddenSdf. forbiddenSdf remains the
    * sign authority; absence preserves the legacy signed audit exactly. */
   forbiddenClosedSurfaceDistance?: (x: number, y: number, z: number) => number;
+  /** Optional exact capped execution-only accelerator. The returned value must
+   * be min(exact unsigned distance, cap); forbiddenSdf remains the sign
+   * authority and certification stays fail-closed when this is absent. */
+  forbiddenClosedSurfaceDistanceCapped?: (x: number, y: number, z: number, cap: number) => number;
   /** Additional common clearance outside the forbidden volume, in mm/source
    * units after the caller's explicit transform. */
   forbiddenClearanceMm?: number;
@@ -645,6 +649,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   contactPolicy: "patch-owned" | "single-body";
   forbiddenSdf?: (x: number, y: number, z: number) => number;
   forbiddenClosedSurfaceDistance?: (x: number, y: number, z: number) => number;
+  forbiddenClosedSurfaceDistanceCapped?: (x: number, y: number, z: number, cap: number) => number;
   forbiddenClearanceMm: number;
   removalGap: number;
   neckLength: number;
@@ -708,6 +713,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     contactPolicy: input.contactPolicy === "single-body" ? "single-body" : "patch-owned",
     forbiddenSdf: input.forbiddenSdf,
     forbiddenClosedSurfaceDistance: input.forbiddenClosedSurfaceDistance,
+    forbiddenClosedSurfaceDistanceCapped: input.forbiddenClosedSurfaceDistanceCapped,
     forbiddenClearanceMm: input.forbiddenClearanceMm ?? 0,
     removalGap,
     neckLength,
@@ -1329,7 +1335,7 @@ function auditCapsuleAgainstForbiddenVolume(
   let sampleCount = 0;
   let adaptiveSampleCount = 0;
   const values = new Map<number, number>();
-  if (request.forbiddenClosedSurfaceDistance) {
+  if (request.forbiddenClosedSurfaceDistance || request.forbiddenClosedSurfaceDistanceCapped) {
     let signedStart: number;
     try { signedStart = request.forbiddenSdf(segment.start.x, segment.start.y, segment.start.z); } catch {
       return { accepted: false, reason: "forbidden", detail: "support capsule enters or cannot certify clearance from forbidden volume", sampleCount: 1 };
@@ -1339,6 +1345,15 @@ function auditCapsuleAgainstForbiddenVolume(
       return { accepted: false, reason: "forbidden", detail: "support capsule enters or cannot certify clearance from forbidden volume", sampleCount };
     }
   }
+  const intervalLength = routeLength / intervals;
+  const capGuard = Math.max(
+    1e-7,
+    Number.EPSILON * 64 * Math.max(1, Math.abs(threshold), Math.abs(intervalLength)),
+  );
+  const cappedDistanceCap = threshold + intervalLength + capGuard;
+  if (request.forbiddenClosedSurfaceDistanceCapped && !finite(cappedDistanceCap)) {
+    return { accepted: false, reason: "forbidden", detail: "forbidden capped-distance bound is not finite", sampleCount };
+  }
   const distanceQuery = request.forbiddenClosedSurfaceDistance ?? request.forbiddenSdf;
   const evaluateAt = (t: number): number | null => {
     const cached = values.get(t);
@@ -1346,10 +1361,16 @@ function auditCapsuleAgainstForbiddenVolume(
     if (!finite(t) || t < 0 || t > 1 || adaptiveSampleCount >= MAX_ADAPTIVE_SAMPLES) return null;
     const point = lerp(segment.start, segment.end, t);
     let value: number;
-    try { value = distanceQuery!(point.x, point.y, point.z); } catch { return null; }
+    try {
+      value = request.forbiddenClosedSurfaceDistanceCapped
+        ? request.forbiddenClosedSurfaceDistanceCapped(point.x, point.y, point.z, cappedDistanceCap)
+        : distanceQuery!(point.x, point.y, point.z);
+    } catch { return null; }
     sampleCount++;
     adaptiveSampleCount++;
     if (!finite(value)) return null;
+    if (request.forbiddenClosedSurfaceDistanceCapped
+      && (value < 0 || value > cappedDistanceCap)) return null;
     values.set(t, value);
     return value;
   };

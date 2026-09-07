@@ -1,5 +1,6 @@
 import type { CandidateDiagnosticSettings, CandidateSupportSettings } from "./astraCandidatePrintLane.ts";
 import type { PackedCandidateQueryTelemetry } from "./astraPackedCandidateQuery.ts";
+import type { HostCappedDistanceTelemetry } from "./externalStlHost.ts";
 import type { HostSignedVolumeQueryTelemetry } from "./externalStlHostVolume.ts";
 import type { DeferredPrintPlacement } from "./astraLargeCandidateSourceSpace.ts";
 import type { SparseSupportPerformance } from "./rebuild/sparseRemovableSupport.ts";
@@ -129,6 +130,7 @@ export interface LargeCandidateCompactSummary {
     readonly rabbitSignedQuery: HostSignedVolumeQueryTelemetry;
     readonly rabbitUnsignedSurfaceDistanceCalls: number;
     readonly rabbitUnsignedSurfaceDistanceMs: number;
+    readonly rabbitCappedDistanceQuery: HostCappedDistanceTelemetry;
     readonly boundedSemanticDigest?: string;
     readonly candidateBodyAuditMs: number;
     readonly rabbitAuditMs: number;
