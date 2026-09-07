@@ -26,7 +26,7 @@ Two AB activities remain independent:
 
 Performance v2, G/H/J, and new Support architecture are NOT active.
 
-## Active implementation instruction — USER ACTION BLOCKED
+## Active implementation instruction — A2 END-TO-END RETENTION GATE AUTHORIZED
 Owner: Team AB / SKIN SOL -> LUNA
 
 Task:
@@ -49,7 +49,6 @@ Reported local implementation / verification:
 - production build PASS;
 - `git diff --check` PASS;
 - page console errors / warnings: `0 / 0`;
-- no A2 Full Support rerun;
 - G/H/J, Performance v2, new Support architecture, FKEI change, merge, deploy: NOT RUN.
 
 Changed local files reported:
@@ -61,39 +60,43 @@ Changed local files reported:
 - `src/studies/skin/README.md`
 - `src/studies/skin/manifest.json`
 
-### Browser Persistence Gate — BLOCKED / awaiting author gesture
-The implementation gate is not yet complete because the required Chrome/Windows directory authorization has not occurred.
+### Browser output-directory authorization — PASS
+The author manually selected and authorized:
+`J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907`
 
-Observed:
-- `showDirectoryPicker` was unavailable from the worker/control context used by LUNA;
-- the OS folder-selection dialog could not be completed on the user's behalf;
-- no output directory was authorized;
-- the requested temporary directory remains empty;
-- `J:\dev\samples` was not used;
-- real-browser 3MF write/reopen/byte/SHA verification: UNVERIFIED;
-- real-browser `.evidence.json` persistence/reread: UNVERIFIED;
-- real-browser fail-closed pre-release behavior: UNVERIFIED.
+- `J:\dev\samples` was not used.
+- Future OS file/folder picker UX is a cross-project concern; this task does not broaden into a global UI-framework implementation.
 
-Required one-time author action:
-- in the Windows Chrome large-candidate lab, invoke the output-directory selection UI using an explicit user gesture;
-- select:
-  `J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907`
-- do not select `J:\dev\samples`.
+### Bounded fixture attempt — EXPECTED FAIL-CLOSED / insufficient for integrated proof
+Rabbit Host load: PASS.
 
-After the author selects the directory, LUNA should continue the same Browser Persistence Gate using the current uncommitted implementation. Do not broaden scope.
+A bounded STL fixture was selected, but Candidate A rejected it before export because the A lane correctly requires canonical Round-2 A2 content identity:
+- fixture actual SHA-256: `e740ca47f0ab8beba3613acd82b9b15f4022f29afe57db65ac8fb8c63521f658`
+- required A2 SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
 
-Required gate after selection:
-1. persist bounded test 3MF bytes to the authorized directory;
-2. close the writable handle;
-3. reacquire/reopen the persisted file;
-4. verify exact byte length and SHA-256;
-5. persist and reread `.evidence.json`;
-6. verify mismatch/error path remains fail-closed before `RELEASE_CANDIDATE`;
-7. if all PASS, return SOL handoff for commit/push authorization.
+Therefore the bounded fixture did not reach 3MF persistence. This is not a retention failure; it demonstrates the existing Candidate identity gate remained fail-closed.
 
-Do not run A2 Full Sparse Support merely to satisfy this browser plumbing gate. If the bounded fixture cannot prove the integrated pre-release path, stop and report why before any A2 rerun.
+The task explicitly allows an actual A2 run when a bounded fixture cannot prove the integrated pre-release path. That condition is now met.
 
-Do not commit/push the current local implementation until the real-browser persistence gate is PASS, unless SOL explicitly changes this gate.
+### Authorized next gate — one canonical A2 Full Support / retention run
+Run exactly one canonical A2 end-to-end gate using the current uncommitted Retention v0 implementation.
+
+Required:
+1. load A2 with exact canonical SHA-256 above;
+2. preserve all locked Performance v1 / Support / Rabbit / export semantics;
+3. run Full Support once;
+4. validate final 3MF as usual;
+5. persist final 3MF to the already-authorized output directory;
+6. close and reacquire/reopen the persisted file;
+7. verify exact persisted byte length and SHA-256 against generated archive identity;
+8. persist `.evidence.json` sidecar and reread/verify it;
+9. prove `RELEASE_CANDIDATE` occurs only after durable verification PASS;
+10. preserve complete geometry / diagnostics / Support / export fingerprint parity and canonical A2 Support facts;
+11. return compact SOL handoff.
+
+Do not add more code merely to avoid this one A2 gate unless a concrete retention defect appears.
+
+Do not commit/push until this real-browser end-to-end retention gate is PASS. If the A2 gate finds a defect, stop fail-closed with Candidate retained when practical and report before further changes.
 
 ## Performance v1 — PASS / CLOSED
 Accepted commit:
@@ -182,9 +185,11 @@ Artifact-retention closure does not itself authorize G/H/J. The author must expl
 - J workspace cutover at exact accepted checkpoint
 - samples authority cutover to `J:\dev\samples`
 - Retention v0 focused tests / TypeScript / build / diff-check for the current local implementation
+- output-directory authorization for the real-browser retention gate
+- bounded fixture remained correctly fail-closed on Candidate identity mismatch
 
-### ACTIVE / USER ACTION BLOCKED
-- Chrome/Windows browser persistence gate for Candidate Artifact Retention / Checkpoint v0
+### ACTIVE
+- one canonical A2 end-to-end browser persistence / pre-release gate
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
