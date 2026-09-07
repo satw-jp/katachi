@@ -83,11 +83,7 @@
   "revisits": [
     {
       "date": "2026-09-07",
-      "note": "SKIN Candidate Artifact Retention / Checkpoint v0: Candidate release now requires an explicitly authorized output directory, exact validated 3MF write/close/reopen byte and SHA-256 verification, and a read-back evidence sidecar before RELEASE_CANDIDATE. Focused fixture, both TypeScript checks, production build and diff check passed; real Chrome directory authorization remains UNVERIFIED because no output directory was selected in this session. A2 was not rerun; G/H/J, Performance v2, new Support, geometry, FKEI, merge and deploy were not started."
-    },
-    {
-      "date": "2026-09-07",
-      "note": "SKIN Candidate Artifact Retention / Checkpoint v0: Candidate release now requires an explicitly authorized output directory, exact validated 3MF write/close/reopen byte and SHA-256 verification, and a read-back evidence sidecar before RELEASE_CANDIDATE. Focused fixture, both TypeScript checks, production build and diff check passed; real Chrome directory authorization remains UNVERIFIED because no output directory was selected in this session. A2 was not rerun; G/H/J, Performance v2, new Support, geometry, FKEI, merge and deploy were not started."
+      "note": "SKIN Candidate Artifact Retention / Checkpoint v0: the actual Windows Chrome A2 gate used the explicitly selected temporary output directory J:/My Drive/codex/2026-09-05/files-pasted-by-the-user-katachi/browser-retention-gate-20260907. A2_BODY.stl was 296,702,384 bytes with source SHA-256 2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c; unchanged Full Sparse Support completed 4,561/4,561 targets with 654 supported, 3,907 unsupported, 2,150 nodes, 1,496 edges and accepted BODY/Rabbit collision 0/0. Existing validation and candidate release passed. ASTRA_A_candidate-print-lane.3mf was retained at 75,491,874 bytes with SHA-256 de304365a3247487f7ec18db1536d2234e9980a57576d6acffb0aa3c00460874, and ASTRA_A_candidate-print-lane.evidence.json at 7,971 bytes. Write, close, reopen and exact byte length/content/SHA-256 matched (durableVerification PASS); the sidecar was saved and read back. Focused retention fixture, both TypeScript checks, production build and diff check passed. This update records retained evidence only; A2 was not rerun here, and G/H/J, Performance v2, new Support, geometry, FKEI, merge and deploy were not started."
     },
     {
       "date": "2026-09-05",
