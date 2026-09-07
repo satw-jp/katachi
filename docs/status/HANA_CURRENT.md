@@ -1,6 +1,6 @@
 # HANA Current Status
 
-Last verified: 2026-09-06
+Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
@@ -9,9 +9,13 @@ Last verified: 2026-09-06
 - working tree: clean at reported checkpoint
 - remote branch: preserved / pushed at exact HEAD `e2456befce1467c9892f0fc772096368dedce151`
 - parent Projection Redraw checkpoint `99e9b9ad90f478c875a805513d7603f75e8ff0a7` is remotely reachable through the preserved viewport branch
+- preferred local workspace: `J:\dev\worktrees\hana-viewport-context-topbar-v0`
+- J-side canonical clone: `J:\dev\katachi`
+- J cutover status: PASS — J worktree is clean, exact-authority HEAD, and has no C-linked Git metadata
+- C-side original remains retained as rollback/evidence storage
 
 ## Current phase
-Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Software / desktop gates are already passing. Research-derived growth / field ideas remain HOLD until the current UI phase closes.
+Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Software / desktop gates are already passing. The HANA development workspace has now been migrated to the J-side preferred worktree. Research-derived growth / field ideas remain HOLD until the current UI phase closes.
 
 ## Active implementation instruction
 - owner: HANA SOL; implementation worker: NONE while the Hardware Gate is pending.
@@ -21,12 +25,13 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 - protected scope: no Projection Redraw rewrite, no LOCAL performance project, no compute redesign, no growth/branching/tropism expansion, and no Section Redraw implementation before this gate closes.
 - done when: touch/Pencil isolation, Projection Redraw Front→Right→Top, Cancel, Undo/Redo, Save/Load, latency, and Control/Gizmo regression are reviewed on iPad/EasyCanvas; PASS then commit/push/close and STOP.
 - instruction source: this CURRENT. No hidden LUNA implementation task is active at this checkpoint.
+- execution workspace: use `J:\dev\worktrees\hana-viewport-context-topbar-v0` for future HANA work; do not resume from the retained C-side worktree.
 
 ## Operating routing
 - HANA SOL owns architecture, scope, next gate, and the bounded instruction for HANA LUNA / implementation worker.
 - The author does not need to rewrite or relay SOL implementation instructions.
 - Implementation workers execute only the current bounded instruction and return evidence for SOL review; they do not self-approve global closure.
-- Shared routing/reporting authority: `docs/TEAM_REPORTING_RULES.md` on `main`.
+- Shared routing/reporting authority: `docs/TEAM_PROTOCOL_CORE.md` on `main`.
 
 ## PASS / CLOSED
 - HANA tests: 181/181 PASS
@@ -35,6 +40,8 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 - browser HTTP / console gate PASS
 - desktop Top Pane / mouse context menu / menu close / state retention / gizmo / auto-rotate / Projection Redraw checks PASS
 - migration-preservation checkpoint: PASS — current viewport HEAD is remotely reconstructable; parent Projection Redraw checkpoint is also remotely reachable
+- HANA J workspace cutover: PASS — `J:\dev\worktrees\hana-viewport-context-topbar-v0` at exact authority HEAD, clean, no C-linked Git metadata
+- J-side HANA focused smoke test: 181/181 PASS
 
 ## Current blocker
 - iPad / EasyCanvas Hardware Gate not yet closed.
@@ -53,10 +60,13 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 - no growth / branching / tropism features
 - no multi-section / advanced Volume solver
 - no HANA/SKIN production integration expansion
+- do not delete or clean the retained C-side HANA workspace yet
 
 ## Relevant artifacts
 - HANA definition: Apple Pencil authoring instrument for Wire (Curve/Gesture) and future Volume (Field/Boundary), preserving Gesture / Authoring Intent for SKIN.
 - Section Redraw v0 gate remains: whether drawing a section feels like directly touching the 3D volume.
+- preferred J-side workspace: `J:\dev\worktrees\hana-viewport-context-topbar-v0`
+- retained C-side workspace: `C:\dev\worktrees\hana-viewport-context-topbar-v0`
 
 ## Evidence boundary
 ### Proven / supported
@@ -64,6 +74,8 @@ Existing WIRE-oriented UI cleanup is at the iPad / EasyCanvas Hardware Gate. Sof
 - REMOTE/AUTO compute avoids the observed LOCAL derived Surface rebuild latency bottleneck.
 - current committed HANA checkpoint `e2456bef...` is preserved on the remote branch.
 - Projection Redraw checkpoint `99e9b9ad...` remains remotely reachable as the parent of the preserved viewport branch.
+- J-side HANA worktree is reconstructed from remote authority at exact HEAD, clean, and independent of C-side Git metadata.
+- HANA focused smoke tests on J passed 181/181.
 
 ### Not yet proven
 - current iPad / EasyCanvas hardware behavior
