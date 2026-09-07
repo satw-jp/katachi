@@ -14,44 +14,31 @@ Last verified: 2026-09-07
 - A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
 - Rabbit SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 - Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
-- retained A2 physical artifact SHA-256: `C6D46BF59CF06BF14520C91A1327DDC752A864AF78DA05C72AD0D0D7A086E491`
 
 ## Current phase
 Performance v1 and J workspace migration are CLOSED / PASS.
 
-Two AB activities remain independent:
+Candidate Artifact Retention / Checkpoint v0 has now passed its real-browser canonical A2 end-to-end gate locally, but the implementation remains uncommitted. The next gate is commit / normal push / exact GitHub diff review.
 
-1. **Author/manual physical gate:** A2 physical feasibility print using the retained A2 artifact plus Bambu Studio automatic Tree Support at `45 deg`.
-2. **Implementation gate:** Candidate Artifact Retention / Checkpoint v0 before any G/H/J execution.
+Performance v2, G/H/J, and new Support architecture remain NOT active.
 
-Performance v2, G/H/J, and new Support architecture are NOT active.
-
-## Active implementation instruction — A2 END-TO-END RETENTION GATE AUTHORIZED
-Owner: Team AB / SKIN SOL -> LUNA
-
+## Candidate Artifact Retention / Checkpoint v0 — LOCAL PASS CANDIDATE / awaiting commit + push
 Task:
 `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
 
-Authorized base/workspace:
-- `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
-- branch `agent/skin-a2-sparse-support-performance-v1`
-- accepted base `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+Authorized local implementation base:
+`a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
 
-LUNA has implemented the bounded Retention v0 path locally and intentionally stopped before commit.
-
-Reported local implementation / verification:
-- explicit-authorized-directory 3MF persistence path implemented;
-- close -> reopen -> exact byte length / SHA verification implemented;
-- `.evidence.json` sidecar persistence / reread implemented;
+Reported implementation:
+- explicit user-authorized output-directory persistence;
+- validated 3MF write -> close -> reopen;
+- persisted exact byte-length and SHA-256 verification against generated archive identity;
+- `.evidence.json` sidecar write and reread;
 - mismatch fails closed before sidecar/release;
-- focused tests PASS;
-- both TypeScript checks PASS;
-- production build PASS;
-- `git diff --check` PASS;
-- page console errors / warnings: `0 / 0`;
-- G/H/J, Performance v2, new Support architecture, FKEI change, merge, deploy: NOT RUN.
+- release hard-gated on durable verification;
+- no Support / Rabbit / Candidate / FKEI / export semantic change.
 
-Changed local files reported:
+Reported local changed files:
 - `src/studies/skin/candidateArtifactRetention.ts`
 - `src/studies/skin/candidateArtifactRetention.test.ts`
 - `src/studies/skin/astraCandidatePrintLaneLab.ts`
@@ -60,43 +47,57 @@ Changed local files reported:
 - `src/studies/skin/README.md`
 - `src/studies/skin/manifest.json`
 
+Local verification before browser gate:
+- focused tests: PASS
+- both TypeScript checks: PASS
+- production build: PASS
+- `git diff --check`: PASS
+
 ### Browser output-directory authorization — PASS
-The author manually selected and authorized:
+Author-selected directory:
 `J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907`
 
-- `J:\dev\samples` was not used.
-- Future OS file/folder picker UX is a cross-project concern; this task does not broaden into a global UI-framework implementation.
+`J:\dev\samples` was not used.
 
-### Bounded fixture attempt — EXPECTED FAIL-CLOSED / insufficient for integrated proof
-Rabbit Host load: PASS.
+### Bounded fixture — EXPECTED FAIL-CLOSED
+The bounded fixture correctly failed Candidate A identity before export:
+- actual fixture SHA-256: `e740ca47f0ab8beba3613acd82b9b15f4022f29afe57db65ac8fb8c63521f658`
+- required canonical A2 SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
 
-A bounded STL fixture was selected, but Candidate A rejected it before export because the A lane correctly requires canonical Round-2 A2 content identity:
-- fixture actual SHA-256: `e740ca47f0ab8beba3613acd82b9b15f4022f29afe57db65ac8fb8c63521f658`
-- required A2 SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
+This is expected fail-closed evidence, not a retention defect.
 
-Therefore the bounded fixture did not reach 3MF persistence. This is not a retention failure; it demonstrates the existing Candidate identity gate remained fail-closed.
+### Canonical A2 end-to-end retention gate — PASS
+Reported actual gate:
+- A2 Full Support: `4,561 / 4,561`
+- accepted BODY / Rabbit collision: `0 / 0`
+- 3MF validator: PASS
+- Signed Volume: AVAILABLE
+- Rabbit repair fingerprint: exact canonical match
+- output file: `ASTRA_A_candidate-print-lane.3mf`
+- persisted byte length: `75,491,874`
+- persisted SHA-256: `DE304365A3247487F7EC18DB1536D2234E9980A57576D6ACFFB0AA3C00460874`
+- generated vs persisted byte length: exact match
+- generated vs persisted SHA-256: exact match
+- `.evidence.json` persisted and reread: PASS
+- durable verification: PASS
+- `RELEASE_CANDIDATE`: PASS after durable verification
+- source SHA / geometry / diagnostics / Support / export fingerprints: exact parity with current authority
+- G/H/J: NOT RUN
+- Performance v2: NOT STARTED
+- additional code changes during final gate: NONE
 
-The task explicitly allows an actual A2 run when a bounded fixture cannot prove the integrated pre-release path. That condition is now met.
+The retained archive bytes/SHA differ from an earlier A2 archive. This does not fail Retention v0: this gate requires identity between the current generated validated archive and its persisted copy, not byte-for-byte identity across distinct export runs. Semantic/export identity is carried by the preserved source/fingerprint/Support evidence.
 
-### Authorized next gate — one canonical A2 Full Support / retention run
-Run exactly one canonical A2 end-to-end gate using the current uncommitted Retention v0 implementation.
+Chrome page counter reported `errors 1 / warnings 0`; the single error is attributed to the earlier intentional bounded-fixture SHA mismatch, not to the canonical A2 run. No rerun is required solely to reset that accumulated counter.
 
-Required:
-1. load A2 with exact canonical SHA-256 above;
-2. preserve all locked Performance v1 / Support / Rabbit / export semantics;
-3. run Full Support once;
-4. validate final 3MF as usual;
-5. persist final 3MF to the already-authorized output directory;
-6. close and reacquire/reopen the persisted file;
-7. verify exact persisted byte length and SHA-256 against generated archive identity;
-8. persist `.evidence.json` sidecar and reread/verify it;
-9. prove `RELEASE_CANDIDATE` occurs only after durable verification PASS;
-10. preserve complete geometry / diagnostics / Support / export fingerprint parity and canonical A2 Support facts;
-11. return compact SOL handoff.
+### Next gate
+1. commit only the current Retention v0 implementation on `agent/skin-a2-sparse-support-performance-v1`;
+2. normal push only; no force / rebase / merge;
+3. return commit SHA / remote HEAD / exact changed files;
+4. SOL reviews exact GitHub diff against `a3c3dbdb...`;
+5. no additional A2 Full Support rerun unless exact review finds a concrete defect.
 
-Do not add more code merely to avoid this one A2 gate unless a concrete retention defect appears.
-
-Do not commit/push until this real-browser end-to-end retention gate is PASS. If the A2 gate finds a defect, stop fail-closed with Candidate retained when practical and report before further changes.
+Do not start Performance v2, G/H/J, or new Support architecture before Retention v0 is formally ACCEPTED / CLOSED.
 
 ## Performance v1 — PASS / CLOSED
 Accepted commit:
@@ -109,15 +110,11 @@ Accepted execution-only optimization:
 - P0 copyable/localStorage COMPLETE evidence retention preserved.
 
 Full A2:
-- pre-performance: ~`43m36s`
 - v0: `2,232,690.1 ms` (~37m13s)
 - accepted v1: `528,025.4 ms` (~8m48s)
 - v0 -> v1 improvement: `76.35%`
-- Rabbit audit: `40,846.3 ms`
-- capped Rabbit unsigned: `8,492.8 ms / 17,736,590 calls`
-- cap returns: `17,612,211`
 
-Exact A2 semantic facts retained:
+Canonical facts remain:
 - targets: `4,561 / 4,561`
 - route candidates / audits: `102,193 / 90,921`
 - accepted / unsupported: `654 / 3,907`
@@ -127,8 +124,6 @@ Exact A2 semantic facts retained:
 - accepted BODY / Rabbit collision: `0 / 0`
 - geometry / diagnostics / Support / export fingerprints: exact parity
 - bounded semantic digest: exact parity
-- Signed Volume: AVAILABLE
-- validator / release / placement parity: PASS
 
 ## Physical A2 gate — author/manual
 Current print classification:
@@ -150,7 +145,7 @@ Astra performance handoff is preserved for future research:
 ## G/H/J status
 HOLD.
 
-Artifact-retention closure does not itself authorize G/H/J. The author must explicitly resume the equal-condition comparison lane after this infrastructure gate is accepted.
+Artifact-retention closure does not itself authorize G/H/J. The author must explicitly resume the equal-condition comparison lane afterward.
 
 ## HOLD / DO NOT CHANGE
 - G/H/J execution until author explicitly resumes
@@ -160,7 +155,7 @@ Artifact-retention closure does not itself authorize G/H/J. The author must expl
 - exact-zero canonicalization
 - deferred common placement
 - Outside-only removable Support baseline
-- Support settings: overhang `45 deg`, shaft `1.6 mm`, neck `0.6 mm`, removal gap `0.35 mm`, Rabbit clearance `0 mm`
+- locked Support settings
 - Rabbit forbidden-volume policy / signed-volume authority
 - route generation / ordering / tie-breaking
 - sample positions / adaptive recursion / thresholds / fail-closed semantics
@@ -180,16 +175,16 @@ Artifact-retention closure does not itself authorize G/H/J. The author must expl
 ## Evidence boundary
 ### PASS / PROVEN
 - A2 software geometry / diagnostics / Support / export / validation chain under locked semantics
-- Performance v1 at `a3c3dbdb...` with full exact parity at `528,025.4 ms`
-- P0 COMPLETE evidence-retention capability
-- J workspace cutover at exact accepted checkpoint
-- samples authority cutover to `J:\dev\samples`
-- Retention v0 focused tests / TypeScript / build / diff-check for the current local implementation
-- output-directory authorization for the real-browser retention gate
-- bounded fixture remained correctly fail-closed on Candidate identity mismatch
+- Performance v1 exact parity at `528,025.4 ms`
+- J workspace cutover
+- samples authority cutover
+- Retention v0 local tests/build/diff-check
+- browser directory authorization
+- bounded fixture expected fail-closed identity gate
+- canonical A2 durable 3MF persistence / reopen / byte / SHA / sidecar / pre-release gate
 
-### ACTIVE
-- one canonical A2 end-to-end browser persistence / pre-release gate
+### LOCAL PASS / NOT YET GITHUB-REVIEWED
+- Retention v0 implementation code itself
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
