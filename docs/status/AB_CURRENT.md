@@ -4,158 +4,132 @@ Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
-- accepted performance branch: `agent/skin-a2-sparse-support-performance-v1`
-- accepted performance HEAD: `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
-- parent v1 checkpoint: `2964e66002a2b8faed5234769b5f03606fcd3f3b`
-- prior accepted v0 baseline: `4929cc8e402f59faa7af5b6dfe86282fdb09d244`
+- canonical workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
+- accepted branch / HEAD: `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+- J worktree cutover: PASS / clean / focused tests + build + `git diff --check` PASS
+- C-side `C:\dev\katachi`: rollback/evidence only; do not use for future AB work
+- canonical user-managed samples: `J:\dev\samples`
+- `C:\dev\samples`: non-authoritative
+- do not commit / rename / reorganize / delete user-managed samples
 - A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
-- Rabbit source SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
+- Rabbit SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
 - Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
 - retained A2 physical artifact SHA-256: `C6D46BF59CF06BF14520C91A1327DDC752A864AF78DA05C72AD0D0D7A086E491`
-- performance task: `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md` — CLOSED / PASS
-- Astra research handoff: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
-- preferred local workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
-- J-side canonical clone: `J:\dev\katachi`
-- canonical user-managed samples path: `J:\dev\samples`
-- `C:\dev\samples` is non-authoritative for future AB work
-- J cutover status: PASS — exact accepted HEAD reconstructed cleanly on J with no C-linked Git metadata
-- C-side original remains retained as rollback/evidence storage; existing untracked `docs/infrastructure/` there is separate user work and was not touched by migration
 
 ## Current phase
-Performance v1 is CLOSED / PASS. No performance implementation is active.
+Performance v1 and J workspace migration are CLOSED / PASS.
 
-AB development workspace migration to J is also PASS. Future AB implementation work must start from `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`; the retained C-side state is rollback/evidence only.
+Two AB activities are now independent:
 
-User-managed common input `samples` has also moved to `J:\dev\samples`. The next AB task that touches launchers, scripts, local settings, or sample-file paths must use the J path and must not treat `C:\dev\samples` as authority.
+1. **Author/manual physical gate:** A2 physical feasibility print using the retained A2 artifact plus Bambu Studio automatic Tree Support at `45 deg`.
+2. **Implementation gate:** Candidate Artifact Retention / Checkpoint v0 before any G/H/J execution.
 
-Two remaining AB concerns are independent:
+Performance v2, G/H/J, and new Support architecture are NOT active.
 
-1. **Author/manual A2 physical feasibility print** using the retained A2 artifact plus Bambu Studio automatic Tree Support at `45 deg`.
-2. **Pre-G/H/J artifact-retention checkpoint** before the equal-condition comparison lane is resumed.
+## Active implementation instruction
+Owner: Team AB / SKIN SOL -> LUNA
 
-G/H/J remain HOLD until the author explicitly resumes them. No new Support architecture is active. Performance v2 has not started.
+Task:
+`docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
+
+Purpose:
+- eliminate browser-download persistence ambiguity before Candidate release;
+- require the validated 3MF to be durably written to a user-authorized output directory;
+- reopen the persisted file and verify exact bytes + SHA-256;
+- persist a compact evidence JSON beside the archive;
+- hard-gate `RELEASE_CANDIDATE` on durable verification.
+
+Authorized base/workspace:
+- `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
+- `agent/skin-a2-sparse-support-performance-v1`
+- `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+
+Preferred bounded browser implementation:
+- File System Access API directory handle on Windows/Chrome;
+- one explicit user authorization before sequential execution;
+- deterministic filenames for A/G/H/J;
+- no hard-coded new user filesystem path;
+- `J:\dev\samples` must never be used as an output directory;
+- browser `link.click()` alone cannot satisfy the retention gate.
+
+A new serialized Support-checkpoint format is not required for this v0 if the exact validated archive is durably persisted and re-read/verified before release. The persisted validated archive is the equivalent no-recompute recovery path.
+
+Done when:
+- write -> close -> reopen -> byte-length -> SHA verification PASS;
+- evidence sidecar persisted;
+- failure/mismatch fails closed before release;
+- relevant tests / TypeScript / build / `git diff --check` PASS;
+- A2 / Support / Rabbit / export semantics unchanged;
+- G/H/J NOT RUN;
+- Performance v2 NOT STARTED;
+- no new Support architecture / merge / deploy.
 
 ## Performance v1 — PASS / CLOSED
 Accepted commit:
 `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
 
-Accepted optimization:
-- exact Rabbit capped unsigned-distance query: `min(exactDistance, cap)`;
+Accepted execution-only optimization:
+- exact Rabbit capped unsigned-distance query `min(exactDistance, cap)`;
 - Rabbit signed SDF remains sign authority;
-- existing fail-closed one-Lipschitz forbidden-volume certification preserved;
-- legacy full-distance `closestSurface()` traversal restored so the winning result is cleanly attributed to the capped query;
-- P0 copyable/localStorage COMPLETE-evidence retention preserved.
+- fail-closed one-Lipschitz forbidden certification preserved;
+- P0 copyable/localStorage COMPLETE evidence retention preserved.
 
-Exact GitHub diff from `2964e660...` is one commit / seven files. Tests include exact capped-vs-full distance parity, legacy/uncapped/capped forbidden-audit continuity, and deterministic randomized continuity coverage.
-
-### Full A2 performance
-- pre-performance reference: ~`43m36s`
-- v0 accepted: `2,232,690.1 ms` (~`37m13s`)
-- first v1 run: `2,431,968.6 ms` (~`40m32s`)
-- accepted capped-distance v1: `528,025.4 ms` (~`8m48s`)
-- improvement vs v0: `76.35%`
-- improvement vs first v1 run: `78.29%`
+Full A2:
+- pre-performance: ~`43m36s`
+- v0: `2,232,690.1 ms` (~37m13s)
+- accepted v1: `528,025.4 ms` (~8m48s)
+- v0 -> v1 improvement: `76.35%`
 - Rabbit audit: `40,846.3 ms`
 - capped Rabbit unsigned: `8,492.8 ms / 17,736,590 calls`
 - cap returns: `17,612,211`
 
-The actual A2 path used for the accepted full run differed from the originally requested filesystem path, but the loaded `A2_BODY.stl` matched the canonical A2 SHA-256 exactly. Benchmark identity is preserved by content hash.
-
-### Full A2 parity / validation
-- Full Support: `4,561 / 4,561`
-- route candidates: `102,193`
-- route audits: `90,921`
+Exact A2 semantic facts retained:
+- targets: `4,561 / 4,561`
+- route candidates / audits: `102,193 / 90,921`
 - accepted / unsupported: `654 / 3,907`
-- vertical / leaning-offset-bend: `466 / 188`
+- vertical / offset-bend: `466 / 188`
 - BODY / Rabbit rejects: `3,257 / 1,502`
 - graph nodes / edges: `2,150 / 1,496`
 - accepted BODY / Rabbit collision: `0 / 0`
-- geometry / diagnostics / Support / export fingerprints: exact match to prior accepted gate
-- bounded semantic digest: exact match
+- geometry / diagnostics / Support / export fingerprints: exact parity
+- bounded semantic digest: exact parity
 - Signed Volume: AVAILABLE
-- 3MF validator: PASS
-- release / placement parity: PASS
-- console errors / warnings: `0 / 0`
-- focused tests: `37 / 37 PASS`
-- both TypeScript checks: PASS
-- production build: PASS
-- `git diff --check`: PASS
+- validator / release / placement parity: PASS
+- focused tests `37 / 37 PASS`; TypeScript / build / diff-check PASS
 
-Retained display forms:
-- geometry: `ae244f2c…520b9`
-- diagnostics: `8db3d239…96ba0`
-- Support: `83af4c78…7932`
-- export: `850177f1…515fc`
-- bounded semantic digest: `f97ac5f3…05bf5`
-
-## P0 evidence retention — ACCEPTED
-Preserve the v1 evidence-retention capability:
-- COMPLETE compact evidence before Worker release
-- full geometry / diagnostics / Support / export fingerprint capture
-- runtime/browser context
-- localStorage persistence when available
-- a later incomplete profile must not overwrite retained COMPLETE evidence.
-
-This closes the evidence-loss problem that complicated v0 review.
-
-## J workspace cutover — PASS / CLOSED
-- authority reconstructed on J at exact branch/HEAD `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
-- J worktree clean
-- no C-linked Git metadata in the J worktree
-- focused tests PASS
-- production build PASS
-- `git diff --check` PASS
-- no newer local-only AB work found on C
-- existing C-side untracked `docs/infrastructure/` remained untouched
-- Performance v2, G/H/J, and new Support architecture were not started during migration
-
-## User-managed samples cutover — AUTHORITY
-- canonical input path: `J:\dev\samples`
-- `C:\dev\samples` must not be used as current authority
-- when AB next touches a task/launcher/script/local setting that refers to samples, update the local reference to the J path
-- samples contents are user-managed input data: do not commit, rename, reorganize, or delete them without explicit author instruction
-
-## Prior v1 Rabbit stack experiment — NOT SEPARATELY PROMOTED
-Checkpoint `2964e660...` preserved semantics but produced a slower full wall time and was not accepted as a demonstrated performance improvement. The final accepted commit restores legacy full closest-surface traversal and isolates the capped query.
-
-## Physical A2 gate — manual / parallel
+## Physical A2 gate — author/manual
 Current print classification:
 `A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`.
 
-This is valid physical-feasibility evidence, but not proof that authored SKIN Support alone is sufficient.
+This is physical-feasibility evidence, not proof that authored SKIN Support alone is sufficient.
 
-For the current print:
-- no rescale / reposition
-- authored SKIN Support unchanged and present
-- supplementary Bambu automatic Tree Support at `45 deg`
-- no candidate-specific hidden tuning
+Record:
+- printer / nozzle / process / material profile
+- first layer / adhesion
+- completion or failure
+- Bambu Tree removal
+- authored SKIN Support removal / BODY damage
+- visible defects
 
-Record printer/nozzle/process/material profile, first layer, completion/failure, Bambu Tree removal, authored-Support removal, BODY damage and visible defects.
-
-If slicer-generated Support is later used for A/G/H/J comparison, freeze the same slicer policy/profile across every candidate.
-
-## Queued before G/H/J
-- `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
-  - durable archive identity / SHA before release
-  - preferred persisted Support checkpoint for exact re-export without repeating Full Sparse Support
-
-The now-faster Support runtime reduces regeneration cost, but does not remove the need for durable artifact/checkpoint retention.
+If slicer-generated Support is later used for A/G/H/J comparison, freeze the same slicer policy/profile across all candidates.
 
 ## Future Support architecture hypothesis — HOLD / not active
-`Outside-only body-anchored removable Support` remains a future research/design hypothesis only.
+`Outside-only body-anchored removable Support` remains research/design input only.
 
-Shared observation note:
+Shared note:
 `docs/notes/AB_A2_PHYSICAL_PREVIEW_AUTHOR_OBSERVATION_2026-09-06.md`
 
-It does not change the current A/G/H/J baseline.
+Astra performance handoff is preserved for future research:
+`docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
 
-## Astra escalation status
-The performance research handoff remains preserved for future reference, but the current Rabbit bottleneck did **not** require Astra escalation: the exact single-thread capped-distance path succeeded materially.
+## G/H/J status
+HOLD.
 
-Any future move to multi-core / CUDA / WebGPU / native acceleration must be a separate bounded task, not an extension of closed Performance v1.
+Artifact-retention closure does not itself authorize G/H/J. The author must explicitly resume the equal-condition comparison lane after this infrastructure gate is accepted.
 
 ## HOLD / DO NOT CHANGE
 - G/H/J execution until author explicitly resumes
+- Performance v2 until separately scoped
 - Candidate geometry authority
 - source-space Float32 execution
 - exact-zero canonicalization
@@ -173,28 +147,28 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - no body-anchored Support without a separate task
 - no multi-core / CUDA / WebGPU / native migration without a separate task
 - no winner before physical comparison
-- no merge / deploy from this gate
-- do not resume AB implementation from the retained C-side workspace
+- no deploy from this gate
+- do not resume AB implementation from C-side workspace
 - do not use `C:\dev\samples` as current input authority
-- do not commit / rename / reorganize / delete user-managed `J:\dev\samples` contents without explicit author instruction
-- do not modify/delete the C-side untracked `docs/infrastructure/` as part of AB work
+- do not modify/delete C-side untracked `docs/infrastructure/` as part of AB work
 
 ## Evidence boundary
 ### PASS / PROVEN
 - A2 software geometry / diagnostics / Support / export / validation chain under locked semantics
-- Performance v1 exact capped-distance implementation at `a3c3dbdb...`
-- full A2 exact retained parity at `528,025.4 ms`
-- P0 evidence-retention capability on an actual COMPLETE run
-- AB J workspace cutover at exact accepted checkpoint with focused tests/build/diff-check PASS
-- user-managed samples authority is now `J:\dev\samples` for future AB work
+- Performance v1 at `a3c3dbdb...` with full exact parity at `528,025.4 ms`
+- P0 COMPLETE evidence-retention capability
+- J workspace cutover at exact accepted checkpoint
+- samples authority cutover to `J:\dev\samples`
+
+### ACTIVE
+- Candidate Artifact Retention / Checkpoint v0
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
-- authored SKIN Support alone as sufficient physical support
+- authored SKIN Support alone as sufficient support
 - full physical profile frozen for A/G/H/J
 
 ### HOLD
-- artifact-retention checkpoint before G/H/J
 - body-anchored removable Support hypothesis
 - G/H/J execution / physical comparison / winner
-- Performance v2 until separately scoped
+- Performance v2
