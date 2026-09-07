@@ -18,6 +18,7 @@ Last verified: 2026-09-07
 - preferred local workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
 - J-side canonical clone: `J:\dev\katachi`
 - J cutover status: PASS — accepted FIELD checkpoint reconstructed cleanly on J with no C-linked Git metadata
+- J runtime bootstrap status: PASS — `npm ci`, FIELD focused tests 8/8, build PASS, J-side Vite dev launch and browser C/FIELD smoke PASS
 - C-side original remains retained as rollback/evidence storage
 
 ## Current phase
@@ -29,7 +30,9 @@ Additional post-print handling evidence identifies a localized Permanent Structu
 
 Author observation also narrows the physical generalization claim: the successful First Physical Print had a predominantly vertical / linear overall shape, which likely reduced sustained overhang demand and lateral cantilever loading. Treat the closed First Physical Gate as shape-conditioned evidence for this near-vertical regime, not as proof that the same locked Production parameters will succeed on strongly overhanging hosts. Usagi therefore represents a materially different overhang/load regime and must be validated as such.
 
-C development workspace migration to J is PASS. Future C work must start from `J:\dev\worktrees\skin-field-vnext-interaction-v0`; the retained C-side worktree is rollback/evidence only.
+C development workspace migration to J is PASS. Runtime bootstrap on J is also PASS: dependencies were rebuilt from the lockfile, FIELD focused tests and build passed, the C route launched from the J worktree, and FIELD vNext -> BEADS -> FIELD vNext browser switching was verified. Future C work must start from `J:\dev\worktrees\skin-field-vnext-interaction-v0`; the retained C-side worktree is rollback/evidence only.
+
+Future C-specific runtime / local development environment maintenance is Team C ownership. Storage migration topology and deletion/cleanup of retained C-side originals remain Overall / Organization ownership.
 
 For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext interaction task. Do not auto-start the queued durability audit or any other C implementation task today unless the author explicitly reopens C work.
 
@@ -58,6 +61,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - FIELD vNext Interaction Correctness v0 PASS / CLOSED at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453` on 2026-09-07
 - C J workspace cutover PASS — `J:\dev\worktrees\skin-field-vnext-interaction-v0` at accepted HEAD, clean, with no C-linked Git metadata
 - J-side FIELD focused smoke test: 8/8 PASS
+- C J runtime bootstrap PASS — Node `v24.15.0`, npm `11.12.1`, `npm ci` PASS, FIELD focused tests 8/8, build PASS, `http://127.0.0.1:5186/skin-rebuild.html` HTTP 200, browser C/FIELD switching smoke PASS
 
 ## FIELD vNext interaction review
 - reviewed branch: `agent/skin-field-vnext-interaction-v0`
@@ -77,6 +81,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 ## Current blocker / follow-up
 - No Production geometry / support / export blocker for the proven near-vertical First Print regime.
 - FIELD vNext interaction blocker is CLOSED at `dad764ce...`.
+- J-side C runtime bootstrap blocker is CLOSED; normal C runtime no longer requires the old C-side path.
 - Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
 - Strong-overhang / cantilever generalization is UNVERIFIED; the First Physical Print must not be used as evidence that Usagi-like geometry will behave equivalently.
 - Existing Workflow Guide-derived console `NotFoundError` was observed during the FIELD task. It predates / lies outside the accepted FIELD interaction scope and is a non-blocking follow-up; do not fix it implicitly today.
@@ -106,6 +111,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - new C research unless separately scoped
 - bulk merge of historical feature branches
 - do not resume C work from the retained C-side worktree
+- do not delete or clean retained C-side migration originals from Team C; that remains Overall / Organization scope
 
 ## Relevant artifacts
 - UI IA v0A implementation: `22ef22bcc327e048ed994c8fa8c3964ad20b324c`
@@ -134,6 +140,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - the successful First Physical Print proves print/support-removal viability only for the observed predominantly vertical / linear shape regime with limited manual supplemental slicer support.
 - J-side C worktree is reconstructed from remote authority at the accepted FIELD checkpoint, clean, and independent of C-side Git metadata.
 - J-side FIELD focused smoke tests passed 8/8.
+- J-side dependency bootstrap, build, dev launch, HTTP route, and browser FIELD/BEADS/FIELD smoke all passed; normal C runtime did not require the old C-side path.
 
 ### Not yet proven
 - whether every single-edge/bridge-only graph appendage is physically weak
