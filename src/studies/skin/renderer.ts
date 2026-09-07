@@ -928,6 +928,11 @@ export class SkinRenderer {
 
   /** Presentation-only camera interaction state. It never changes backend preference. */
   setFieldPreviewInteractionActive(active: boolean): void {
+    // Camera gestures are shared by every view layer. Keep BEADS/MESH/etc.
+    // from entering the FIELD progression state just because their camera
+    // was moved; that state owns FIELD-only quality changes and refinement
+    // timers.
+    if (this.activeViewLayer !== "field") return;
     if (active) {
       this.cancelFieldPreviewProgressionTimers();
       this.fieldPreviewProgressiveState = beginFieldInteraction(this.fieldPreviewProgressiveState);
