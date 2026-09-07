@@ -14,6 +14,7 @@ Last verified: 2026-09-07
 - production 3MF SHA-256: `bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c`
 - UI IA v0A final evidence checkpoint: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - FIELD vNext Interaction Correctness accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
+- Progressive FIELD review checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5` — STRUCTURAL PASS / DENSE GATE PENDING
 
 ## Local/runtime authority
 - canonical C workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -28,48 +29,48 @@ Last verified: 2026-09-07
 ## Current phase
 First Physical Gate, UI IA v0A, FIELD vNext capability retention, and FIELD vNext Interaction Correctness are PASS / CLOSED.
 
-Author re-test on the J runtime changed the FIELD follow-up diagnosis:
+C SOL reviewed `agent/skin-runtime-status-progressive-field-v0` at `a1596883e9772da144f54ec29aa8dd0339e4bbf5` directly on GitHub.
 
-- compute/helper is healthy but SKIN still has no tiny author-facing connection indicator;
-- FIELD does eventually render, so the prior `current + blank` diagnosis was incomplete;
-- the real usability failure is that FIELD can take an unacceptably long time to produce the first meaningful image;
-- an interaction-only beads proxy followed by one expensive full-quality FIELD redraw is still insufficient because the final redraw can stall for seconds.
+The implementation structure is acceptable:
 
-The new required behavior is interaction-first progressive presentation:
+- tiny runtime-only compute/helper status is implemented and healthy J helper was shown as `Compute ● CUDA`;
+- FIELD presentation now has proxy -> coarse -> medium -> fine states;
+- camera interaction invalidates/restarts progression;
+- backend preference remains session-only;
+- renderer visibility/scheduling changes remain presentation-side;
+- Production BODY / Graph / Support / FKEI / export implementation paths are unchanged;
+- FIELD SDF source/map semantics and primitive ordering/grouping remain unchanged. The shader change adds only a presentation march-step ceiling; fine remains the established 160-step endpoint.
 
-`immediate lightweight proxy -> coarse FIELD -> progressive refinement`
+However the task is NOT globally closed. The required dense real-state browser gate is missing. The worker validated the progressive path at only 152 primitives, while the motivating author failure occurred on a much denser current state. The branch README explicitly notes that large ~10,450 primitive performance was not re-proven.
 
-Camera interaction must immediately return to the lightweight proxy, invalidate stale refinement, and restart refinement after interaction ends. Automatic refinement must stop or chunk itself before it causes a visibly multi-second UI freeze.
+The current implementation schedules `medium` after 220 ms and `fine` after 620 ms. This is only acceptable if the dense real state remains responsive. The task contract forbids an automatic refinement tier that causes a visibly multi-second UI stall.
 
-The earlier `Runtime Status + FIELD Visibility Correctness v0` task was superseded before implementation. The author explicitly reopened C only for the bounded runtime status + progressive FIELD task below. Do not auto-start durability, Outside→Outside Support, Usagi, or new research work from this activation.
+Therefore C SOL verdict is:
+
+- Compute status implementation: STRUCTURAL PASS / runtime offline-state evidence still required.
+- Progressive FIELD implementation structure: PASS.
+- Progressive FIELD v0 overall: HOLD — Fix 1 dense real-state gate required.
+
+Do not auto-start durability, Outside->Outside Support, Usagi, or new research work from this activation.
 
 ## Active implementation instruction
 - owner: C SOL -> C LUNA
-- task: `Runtime Status + Progressive FIELD v0`
-- task spec: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
-- superseded task: `docs/tasks/C_RUNTIME_STATUS_FIELD_VISIBILITY_V0.md`
-- start authority: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
-- preferred branch: `agent/skin-runtime-status-progressive-field-v0`
-- execution: J-side only; create/use a clean J worktree from the accepted checkpoint
-- purpose:
-  - add a tiny truthful compute/helper status indicator;
-  - make FIELD immediately usable via lightweight proxy;
-  - render coarse FIELD first and progressively refine image quality without redefining FIELD geometry/semantics;
-  - preserve the accepted FIELD/BEADS switching and interaction behavior.
-- preferred presentation strategy: FIELD-only lower internal render resolution / render-target quality ladder with progressive idle refinement; keep CSS/display size stable, reuse current FIELD payload/textures, and do not rebuild primitive payload per quality tier.
-- responsiveness boundary: do not automatically launch a known multi-second monolithic full-resolution FIELD pass. If a higher tier is too expensive, keep the best responsive preview and use chunked/tiled/incremental refinement only if it remains within this bounded renderer scope; otherwise stop at the responsive tier and report to C SOL.
-- allowed scope: runtime/status presentation, existing compute probe presentation, FIELD renderer presentation quality state, FIELD-only framebuffer/render-target resolution/refinement scheduling, truthful FIELD empty/unavailable presentation, focused tests/evidence.
-- protected scope: FIELD SDF math / sequential primitive semantics / primitive grouping / payload semantics; Production BODY / Permanent Graph / Local Relay / Graph Repair / Removable Support / supportSource / Output Scale / FKEI / Export / compute endpoint configuration / External STL Host / Usagi / durability algorithm / new research algorithms.
-- done when:
-  - tiny compute state truthfully shows healthy/CUDA, unavailable, or checking state using the existing probe;
-  - selecting FIELD with known geometry gives immediate lightweight visual feedback;
-  - a coarse FIELD result appears before final quality and visibly refines while idle;
-  - camera movement remains responsive, invalidates stale refinement, and restarts progressive FIELD at the final pose;
-  - no automatic refinement tier causes the observed multi-second unusable stall;
-  - Legacy/vNext semantics and accepted backend preference behavior remain intact;
-  - tests/typecheck/build/diff check pass;
-  - Production parity remains exact;
-  - branch is pushed for C SOL review.
+- task: `Runtime Status + Progressive FIELD v0 Fix 1 · Dense Real-State Gate`
+- task spec: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
+- continue from branch/checkpoint: `agent/skin-runtime-status-progressive-field-v0` / `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
+- execution: J-side only
+- mode: evidence-first; do not redesign renderer unless the dense gate proves current progression remains unusable
+- mandatory first gate:
+  - use the same/current dense real sample/state representative of the author's long wait;
+  - record primitive count;
+  - record time to immediate proxy and first recognizable coarse FIELD;
+  - record medium/fine sequence and whether any automatic tier blocks interaction for seconds;
+  - interrupt refinement with camera movement and verify stale progression is cancelled/restarted;
+  - verify coarse/medium are recognizable previews rather than misleading missing geometry.
+- if current behavior is responsive: record evidence only and return to C SOL.
+- if medium/fine causes multi-second stall: make only a bounded adaptive stop/refine presentation correction; do not force a known-expensive fine pass automatically.
+- compute status evidence still required: helper healthy -> offline/unavailable -> healthy restore, with no endpoint/config rewrite.
+- protected scope: FIELD SDF/source/primitive semantics; Production BODY / Permanent Graph / Local Relay / Graph Repair / Removable Support / supportSource / Output Scale / FKEI / Export / compute endpoint configuration / External STL Host / Usagi / durability implementation / Outside->Outside Support / new research algorithms.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -90,9 +91,24 @@ The earlier `Runtime Status + FIELD Visibility Correctness v0` task was supersed
 - C J workspace/runtime bootstrap PASS
 - compute/helper J live cutover and J-side C connection PASS
 
+## Progressive FIELD review
+- reviewed branch: `agent/skin-runtime-status-progressive-field-v0`
+- reviewed checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
+- parent: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
+- remote branch HEAD matches reviewed checkpoint
+- branch is exactly one commit ahead of accepted FIELD interaction base
+- changed scope is presentation/runtime-oriented: compute status, progressive FIELD state/scheduling, renderer/UI presentation, focused tests/docs
+- `fieldVNextGpuShader.ts` and legacy `shaders.ts` each add `uMarchSteps`; SDF map functions and primitive semantics are not rewritten
+- quality ladder: proxy 48 / coarse 72 / medium 112 / fine 160 march-step ceiling
+- progression currently auto-schedules medium at 220 ms and fine at 620 ms after interaction settles
+- worker-reported tests/typecheck/build/diff check: PASS
+- GitHub commit has no attached CI status checks; source/diff scope was reviewed directly by C SOL
+- browser evidence at 152 primitives is insufficient for final task closure
+- branch README explicitly says ~10,450 primitive performance was not re-proven
+
 ## Current blocker / follow-up
-- ACTIVE: FIELD first-meaningful-image latency / progressive usability on the author-observed J runtime.
-- ACTIVE: author-facing compute/helper connection status is missing.
+- ACTIVE: dense real-state progressive FIELD usability gate.
+- ACTIVE evidence gap: compute helper offline/unavailable -> healthy restore presentation.
 - Permanent Structure durability remains `FAIL / LOCALIZED` for one observed single-attachment appendage, but its audit is QUEUED and not active.
 - Strong-overhang / cantilever generalization remains UNVERIFIED; First Physical Print does not prove Usagi-like geometry.
 - SKIN-support-alone full printability remains UNVERIFIED because the accepted print used limited manual supplemental slicer support.
@@ -100,11 +116,12 @@ The earlier `Runtime Status + FIELD Visibility Correctness v0` task was supersed
 - External STL Host + FKEI persistence remain separate-architecture HOLD.
 
 ## Next gate
-1. C LUNA executes `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md` from `dad764ce...` on J.
-2. C SOL reviews source scope, progressive browser evidence on the dense real sample, compute-status behavior, and exact Production parity.
-3. Do not automatically continue to another C task after this review.
-4. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for later explicit start.
-5. Usagi / strong-overhang validation remains later explicit scope.
+1. C LUNA runs `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md` from `a1596883...` on J.
+2. C SOL reviews dense timing/interaction evidence and any bounded adaptive correction if required.
+3. Close Progressive FIELD v0 only if no automatic tier causes the author's multi-second unusable stall.
+4. Do not automatically continue to another C task after this review.
+5. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for later explicit start.
+6. Usagi / strong-overhang validation remains later explicit scope.
 
 ## HOLD / DO NOT CHANGE
 - motif-conditioned default seed
@@ -119,15 +136,17 @@ The earlier `Runtime Status + FIELD Visibility Correctness v0` task was supersed
 - External STL Host / triangle-mesh Host architecture
 - Co-evolution; Graph-conditioned default; D / F1 / F2 / F3 / C+D Hybrid
 - new C research unless separately scoped
-- Outside→Outside Support unless separately scoped
+- Outside->Outside Support unless separately scoped
 - bulk merge of historical feature branches
 - retained C-side migration originals
 - user-managed `J:\dev\samples` contents: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
-- active task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
+- active Fix 1 task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
+- reviewed progressive task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
 - superseded visibility-only task: `docs/tasks/C_RUNTIME_STATUS_FIELD_VISIBILITY_V0.md`
 - previous FIELD interaction task: `docs/tasks/C_FIELD_VNEXT_INTERACTION_CORRECTNESS_V0.md`
+- reviewed progressive checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
 - accepted FIELD interaction checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
 - shared physical observation note: `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
@@ -135,15 +154,17 @@ The earlier `Runtime Status + FIELD Visibility Correctness v0` task was supersed
 ## Evidence boundary
 ### Proven / supported
 - locked Production identities remain authoritative.
-- FIELD vNext exists and its interaction proxy/switching behavior was previously accepted.
+- FIELD vNext exists and its layer/backend interaction behavior was previously accepted.
 - J-side compute/helper runtime is healthy and connected through the existing configuration.
-- author runtime evidence shows FIELD eventually renders, but current first-meaningful-image latency is too high for usable author interaction.
-- the current semantic FIELD renderer evaluates the full primitive set; progressive improvement must therefore reduce presentation/image cost rather than redefine the field source.
+- `a1596883...` introduces a bounded progressive presentation state machine and compute-status presentation without changing Production source paths.
+- fine FIELD remains the established 160-step raymarch endpoint; coarse/medium are preview-only tiers.
+- branch remote authority matches `a1596883...`.
 
 ### Not yet proven
-- immediate proxy -> coarse FIELD -> progressive refinement on the dense current sample
-- absence of multi-second blocking automatic refinement passes after the progressive fix
-- truthful author-facing compute/helper indicator behavior across healthy/offline/checking states
+- progressive FIELD usability on the dense real state that motivated this task
+- absence of multi-second blocking automatic medium/fine passes at dense primitive counts
+- coarse/medium visual recognizability on the dense real state
+- truthful compute helper offline -> healthy restore indicator behavior
 - single-attachment durability generalization
 - strong-overhang / cantilever physical generalization
 - Usagi + V6 overhang-regime validation
