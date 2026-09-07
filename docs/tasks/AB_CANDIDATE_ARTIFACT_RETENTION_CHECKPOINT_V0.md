@@ -1,104 +1,123 @@
 # Team AB — Candidate Artifact Retention / Checkpoint v0
 
-Date: 2026-09-06
-Owner: Team AB / SKIN SOL
-Status: QUEUED — required before unattended / sequential G/H/J execution
+Date: 2026-09-07
+Owner: Team AB / SKIN SOL -> LUNA
+Status: ACTIVE — required before G/H/J execution
 
-## Why this exists
+## Purpose
 
-A2 proved that the large-candidate pipeline can complete diagnostics, full Sparse Support, support mesh, large 3MF streaming export, validation, placement parity and release. However the generated `ASTRA_A_candidate-print-lane.3mf` is no longer available on disk.
+Close the comparison-lane artifact-loss risk without changing Candidate geometry, Sparse Support semantics, Rabbit policy, FKEI, export semantics, or A/G/H/J comparison conditions.
 
-The current browser path proves that download initiation occurred, but it does not prove that Windows persisted the file. After `RELEASE_CANDIDATE`, the in-memory Candidate / Support state is intentionally discarded. `SparseRemovableSupportResult` and `supportFingerprint` are not persisted anywhere.
+A valid 3MF must be durably written and verified on the filesystem **before** `RELEASE_CANDIDATE`.
 
-Therefore a missing downloaded archive currently forces the full A2 Support computation to be repeated. The prior A2 full Sparse Support runtime was about 43m36s.
+This task is workflow reliability only. It does not implement Performance v2 or any new Support architecture.
 
-This is an artifact-retention / workflow reliability issue, not a Candidate geometry or Support correctness failure.
+## Authorized authority / workspace
 
-## Shared A/G/H/J risk
+- repo: `satw-jp/katachi`
+- branch / base: `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+- canonical workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
+- canonical user-managed samples: `J:\dev\samples`
+- `C:\dev\katachi` and `C:\dev\samples` are not current AB work/input authority
 
-A, G, H and J use the same large-candidate execution pattern. Without a retention gate, any Candidate can reach a valid final archive and then lose the only printable artifact after release.
+Do not modify, rename, reorganize, delete, or commit user-managed samples.
 
-The problem must therefore be treated as a Team AB comparison-lane infrastructure issue, not as an A2-only exception.
+## Why this gate exists
 
-## Desired behavior
+The old browser path used download initiation (`link.click()`) and then released Candidate / Support state. Browser download initiation does not prove filesystem persistence. If the archive is missing after release, the pipeline has to regenerate Support.
 
-Before a Candidate is released, the pipeline should have a durable, identifiable checkpoint that allows the final 3MF to be recovered or regenerated without repeating full Sparse Support.
+Performance v1 reduced A2 Full Sparse Support to `528,025.4 ms` (~8m48s), but this does not remove the artifact-retention requirement. G/H/J must not run unattended under a download-initiation-only contract.
 
-At minimum, one of the following must be durably retained:
+## v0 bounded design
 
-1. the exact validated 3MF archive, or
-2. enough deterministic Candidate + Support checkpoint state to regenerate the exact archive without rebuilding Support.
+### 1. Explicit output-directory authority
 
-The preferred operational gate is to retain both the final archive identity and a lightweight Support checkpoint.
+The large-candidate lab must require an explicit user-selected output directory before unattended/sequential archive execution.
 
-## Minimum artifact-retention gate
+Preferred Windows/Chrome implementation: File System Access API directory handle (`showDirectoryPicker`) or an equivalent browser-native writable filesystem handle.
 
-For every A/G/H/J Candidate, before `RELEASE_CANDIDATE`:
+- one user gesture may select/authorize the directory before a sequential run;
+- A/G/H/J may then write deterministic filenames into that same authorized directory;
+- do not hard-code a new user filesystem location in code;
+- do not use `J:\dev\samples` as an output directory;
+- if durable direct-file writing is unavailable, unattended G/H/J must fail closed rather than silently falling back to browser-download initiation.
 
-- the final validated 3MF must be written to an explicit stable local path;
-- filesystem existence and exact byte length must be verified, not merely browser-download initiation;
-- archive SHA-256 must be recorded;
-- Candidate source SHA-256 must be recorded;
-- geometry fingerprint must be recorded;
-- diagnostics fingerprint must be recorded;
-- support fingerprint must be recorded;
-- export fingerprint must be recorded;
-- package translation / placement parity must be recorded;
-- validator PASS must be recorded;
-- BODY indexing retention must be recorded;
-- Support graph identity / counts must be recorded.
+Browser `link.click()` may remain only as an explicitly secondary/manual fallback if useful, but it cannot satisfy this gate.
 
-Only after those facts are durable may the in-memory Candidate be released.
+### 2. Durable validated archive write
 
-## Support checkpoint direction
+For each Candidate, after 3MF validation and before release:
 
-A future bounded implementation should persist a deterministic Support checkpoint sufficient for exact re-export.
+1. obtain the final validated archive bytes;
+2. write deterministic filename `ASTRA_<candidate>_candidate-print-lane.3mf` to the authorized output directory;
+3. close/flush the writable handle;
+4. reopen/reacquire the written file via the filesystem handle;
+5. verify exact byte length;
+6. compute SHA-256 from the persisted file bytes;
+7. compare persisted SHA/bytes to the generated archive identity;
+8. only then allow `RELEASE_CANDIDATE`.
 
-Candidate checkpoint candidates include:
+Any write / reopen / bytes / SHA mismatch must fail closed and retain the Candidate in memory when practical for retry/recovery.
 
-- Candidate source identity and locked placement facts;
-- geometry fingerprint;
-- diagnostics fingerprint;
-- support fingerprint;
-- accepted Support graph nodes / edges and route geometry;
-- locked Support settings;
-- Rabbit source / repair authority fingerprints;
-- package/export contract version.
+### 3. Durable evidence sidecar
 
-The checkpoint must not make Candidate Mesh a canonical authoring state and must not change FKEI semantics. It is execution / artifact-recovery infrastructure only.
+Write a deterministic sidecar such as:
 
-Reloading a checkpoint must fail closed if any protected identity or settings differ.
+`ASTRA_<candidate>_candidate-print-lane.evidence.json`
 
-## Performance consequence
+The sidecar must record at least:
 
-There are two separate performance goals:
+- schema/version
+- Candidate id / source filename
+- source SHA-256
+- geometry fingerprint
+- diagnostics fingerprint
+- Support fingerprint / available deterministic semantic digest
+- export fingerprint
+- canonical Support counts
+- BODY / Rabbit accepted collision counts
+- Rabbit source SHA / repair fingerprint / transform authority
+- locked Support settings
+- package translation / placement parity
+- BODY indexing retention facts
+- validator PASS
+- archive filename
+- persisted archive exact byte length
+- persisted archive SHA-256
+- runtime/browser context already available from v1 evidence retention
 
-### Recovery speed
+The sidecar must exclude the binary 3MF archive itself.
 
-Checkpoint retention should reduce a lost-archive recovery from the current ~43m36s full Support rerun to only Support-mesh / 3MF export / validation work. Target order of magnitude: seconds to a few minutes rather than tens of minutes.
+### 4. Recovery requirement for v0
 
-### Full Support generation speed
+A separate serialized Support-state format is **not required** for this v0 if the exact validated archive is durably persisted and re-read/verified before release.
 
-Independent future optimization may target the full Sparse Support builder itself. Current runtime should not be interpreted as an architectural requirement.
+The verified final archive itself is the equivalent recovery path: a lost browser download no longer requires rebuilding Support because the canonical validated 3MF already exists on disk with exact identity evidence.
 
-Planning targets, not promises:
+Do not invent a new checkpoint/container format unless durable archive retention proves insufficient.
 
-- short term CPU / algorithmic optimization: under ~10–20 min;
-- stronger multicore / batched query architecture: several minutes;
-- native / CUDA-style batched distance-query research: potentially around 1–3 min, subject to preserving deterministic equal-condition semantics.
+## A2 verification gate
 
-Performance work must not weaken collision, Rabbit, placement, or comparison correctness.
+Before G/H/J can be resumed, test the new retention path on A2 using the canonical content identity:
 
-## Protected architecture
+- A2 SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
+- Rabbit SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
+- Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
 
-DO NOT CHANGE as part of artifact retention:
+Do not rerun Full Sparse Support merely to test UI plumbing if a bounded synthetic/archive fixture can prove write/reopen/SHA behavior first.
+
+Final A2 gate may use an actual A2 run only when needed to prove end-to-end pre-release behavior. Preserve Performance v1 semantics and complete fingerprint parity.
+
+## Protected architecture — DO NOT CHANGE
 
 - Candidate geometry authority
 - source-space Float32 execution
 - exact-zero canonicalization
 - deferred common placement
 - Outside-only Removable Support
-- Rabbit forbidden volume / repair authority
+- Support target / route / order / tie-breaking / spacing / coverage semantics
+- Support settings: overhang `45 deg`, shaft `1.6 mm`, neck `0.6 mm`, removal gap `0.35 mm`, Rabbit clearance `0 mm`
+- Rabbit forbidden-volume policy / signed-volume authority
 - `contactPolicy = single-body`
 - no internal removable-support rescue
 - no remesh / decimation
@@ -106,27 +125,47 @@ DO NOT CHANGE as part of artifact retention:
 - A/G/H/J equal-condition physical comparison
 - FKEI / authoring semantics
 - Candidate Mesh must not become canonical authoring state
-- winner must not be selected before physical comparison
-- Astra production implementation must not be introduced
+- no body-anchored Support implementation
+- no Performance v2 / multi-core / CUDA / WebGPU / native work
+- no winner selection
+- no deploy
 
-## Sequencing
+## G/H/J HOLD
 
-Current priority remains:
+G/H/J remain HOLD throughout this task.
 
-1. regenerate and physically print A2;
-2. preserve the regenerated A2 archive with SHA-256;
-3. close A2 validator / artifact review;
-4. before G/H/J sequential execution, implement or explicitly satisfy this artifact-retention gate;
-5. only then run G → H → J under equal conditions.
+Closing this retention gate does not itself authorize G/H/J; the author must explicitly resume the equal-condition comparison lane afterward.
 
-G/H/J should not be run unattended under the current release-after-browser-download behavior.
+## Validation
 
-## Done when for a future implementation
+At minimum:
 
-- validated archive is durably persisted before Candidate release;
-- file existence / bytes / SHA-256 are explicitly verified;
-- Candidate / geometry / diagnostics / support / export fingerprints are recorded;
-- Support checkpoint or equivalent recovery path can regenerate the final archive without full Support recomputation;
-- mismatch is fail-closed;
-- A/G/H/J comparison semantics unchanged;
-- no production / FKEI / geometry scope expansion.
+- focused filesystem persistence fixture: write -> close -> reopen -> bytes -> SHA exact
+- mismatch/failure cases fail closed
+- evidence sidecar schema/identity regression
+- existing relevant large-candidate / 3MF tests
+- TypeScript checks
+- build
+- `git diff --check`
+- browser gate on Chrome/Windows for directory selection + durable write/verify
+- no `RELEASE_CANDIDATE` before durable archive verification
+
+## Done when
+
+Return to Team AB / SKIN SOL only when:
+
+- implementation starts from exact J authority `a3c3dbdb...`
+- output directory must be explicitly authorized
+- validated 3MF is directly persisted before release
+- persisted file is reopened and exact bytes/SHA verified
+- evidence JSON is durably persisted alongside it
+- release is hard-gated on durable verification
+- failure/mismatch is fail closed
+- existing A2 geometry / Support / Rabbit / export semantics remain exact
+- tests/build PASS
+- G/H/J not run
+- Performance v2 not started
+- new Support architecture not implemented
+- no merge/deploy
+
+Return the standard compact SOL-review handoff with branch, commit, tests, browser persistence evidence, and exact changed files.
