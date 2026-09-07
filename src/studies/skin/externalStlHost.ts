@@ -459,10 +459,12 @@ function axisValue(positions: Float64Array, triangle: number, axis: number): num
 class HostTriangleQuery implements HostSurfaceQuery {
   private readonly triangleOrder: Uint32Array;
   private readonly nodes: BvhNode[] = [];
+  private readonly closestTraversalStack: Int32Array;
 
   constructor(private readonly mesh: ParsedHostMesh) {
     this.triangleOrder = new Uint32Array(mesh.validTriangleIndices);
     this.buildNode(0, this.triangleOrder.length);
+    this.closestTraversalStack = new Int32Array(this.nodes.length);
   }
 
   private compareTriangles(left: number, right: number, axis: number): number {
@@ -542,9 +544,10 @@ class HostTriangleQuery implements HostSurfaceQuery {
     const query = cloneVec3(point, "closestSurface point");
     let best: HostSurfaceHit | null = null;
     let bestDistanceSquared = Infinity;
-    const stack = [0];
-    while (stack.length > 0) {
-      const node = this.nodes[stack.pop()!];
+    let stackSize = 0;
+    this.closestTraversalStack[stackSize++] = 0;
+    while (stackSize > 0) {
+      const node = this.nodes[this.closestTraversalStack[--stackSize]];
       if (this.boundsDistanceSquared(node, query) > bestDistanceSquared + EPSILON) continue;
       if (node.count > 0) {
         for (let cursor = node.start; cursor < node.start + node.count; cursor += 1) {
@@ -569,7 +572,8 @@ class HostTriangleQuery implements HostSurfaceQuery {
           };
         }
       } else {
-        stack.push(node.right, node.left);
+        this.closestTraversalStack[stackSize++] = node.right;
+        this.closestTraversalStack[stackSize++] = node.left;
       }
     }
     return best;
