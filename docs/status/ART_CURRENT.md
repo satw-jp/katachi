@@ -1,6 +1,6 @@
 # ART Current Status
 
-Last verified: 2026-09-06
+Last verified: 2026-09-07
 
 ## Current authority
 - repo: `satw-jp/katachi`
@@ -18,12 +18,17 @@ Last verified: 2026-09-06
     - route: `/skin-art/research-principles-r3/`
     - inventory: 1 integrative study: `REDUNDANT FREEFORM MORPHOGENESIS`
 - latest implemented checkpoint for ART review: Round 03 HEAD above
-- local working-tree state is not represented by this remote verification.
+- preferred local workspace: `J:\dev\worktrees\skin-art-research-principles-r3`
+- J-side canonical clone: `J:\dev\katachi`
+- J cutover status: PASS — exact R3 authority reconstructed cleanly on J with no C-linked Git metadata
+- no C-side ART worktree was found during cutover; no newer local-only ART work was found
 
 ## Current phase
 Research Principle Studies are implemented through Round 03. The previous bootstrap statement that ART is still implementing the "first 3 studies" is superseded by the verified checkpoint inventory above.
 
 ART is currently at an **AUTHOR REVIEW / ARTISTIC GATE**. No new implementation task is active. **Round 04 is not authorized.**
+
+ART development workspace migration to J is PASS. Future ART work must start from `J:\dev\worktrees\skin-art-research-principles-r3`.
 
 ART remains an independent generative / interactive / audiovisual artwork environment, not a SKIN presentation layer or scientific visualizer.
 
@@ -35,6 +40,7 @@ ART remains an independent generative / interactive / audiovisual artwork enviro
 - protected scope: no new morphology study, no SKIN/HANA integration, no production-wide ART rewrite, no naturalistic morphology imitation as objective, no optimization toward support / shortest path / minimum material
 - done when: author gives the next artistic judgment; ART SOL then records ACCEPT / REJECT / HOLD and only then may define a new bounded task
 - instruction source: this CURRENT; no separate implementation task is active
+- execution workspace: use `J:\dev\worktrees\skin-art-research-principles-r3` for future ART work
 
 ## PASS / CLOSED
 ### Round 01 — baseline principle studies
@@ -69,10 +75,16 @@ ART remains an independent generative / interactive / audiovisual artwork enviro
   - deterministic fixed-step replay is explicitly tested
 - no code evidence was found for shortest-path optimization, minimum-material optimization, automatic pruning, or global smoothing.
 
+### J workspace cutover
+- ART J workspace cutover: PASS — `J:\dev\worktrees\skin-art-research-principles-r3` at exact R3 authority HEAD, clean, no C-linked Git metadata
+- J-side R3 smoke test: 1/1 PASS
+- J-side build: PASS
+- R3 route: HTTP 200
+- browser console: no error/warn observed in migration smoke check
+
 ## Current blocker
 - no implementation blocker is recorded.
 - Round 03 **artistic acceptance is UNVERIFIED** until author review.
-- GitHub contains the R1/R2/R3 test source, but this review found no GitHub Actions / commit-status evidence proving the test suites or full TypeScript/Vite build were executed at these remote HEADs.
 - capture / manifest functionality is implemented, but generated review captures are not canonical repo evidence at this checkpoint.
 
 ## Next gate
@@ -107,21 +119,22 @@ After that judgment, ART SOL records `ACCEPT / REJECT / HOLD` and decides whethe
 - R1 tests: `src/studies/skin/research-principles/researchPrinciples.test.ts`
 - R2 tests: `src/studies/skin/research-principles-r2/researchPrinciplesR2.test.ts`
 - R3 tests: `src/studies/skin/research-principles-r3/researchPrinciplesR3.test.ts`
+- preferred J-side workspace: `J:\dev\worktrees\skin-art-research-principles-r3`
 
 ## Evidence boundary
-### PASS / PROVEN from remote GitHub
+### PASS / PROVEN from remote GitHub / migration smoke
 - R1 / R2 / R3 branches exist at the exact HEADs listed above.
 - checkpoint lineage is R1 -> R2 -> R3.
 - R1 contains five baseline studies; R2 contains exactly three focused studies; R3 contains one integrative redundant-freeform study.
 - all three routes are registered in the latest R3 Vite configuration.
 - model/test source supports the behavioral distinctions summarized above.
+- J-side ART worktree is reconstructed from remote authority at exact R3 HEAD, clean, and independent of C-side Git metadata.
+- J-side R3 test and build passed; R3 route returned HTTP 200 with no console error/warn in the migration smoke check.
 
-### SUPPORTED but not execution-proven in this review
-- the test suites are designed to verify the intended deterministic and topology / relaxation behavior.
+### SUPPORTED but not execution-proven beyond migration smoke
 - existing UI/capture code is sufficient in structure for an author-review instrument.
 
 ### UNVERIFIED / NOT YET ACCEPTED
-- actual current browser execution / capture on the author's machine in this review
-- test/build PASS at the remote HEADs via CI or recorded command output
+- full author browser review / capture judgment on the current machine
 - Round 03 artistic acceptance
 - whether any Research Principle should enter a final ART production language
