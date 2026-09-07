@@ -14,16 +14,22 @@ Last verified: 2026-09-07
 - retained A2 physical artifact SHA-256: `C6D46BF59CF06BF14520C91A1327DDC752A864AF78DA05C72AD0D0D7A086E491`
 - performance task: `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md` — CLOSED / PASS
 - Astra research handoff: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
+- preferred local workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
+- J-side canonical clone: `J:\dev\katachi`
+- J cutover status: PASS — exact accepted HEAD reconstructed cleanly on J with no C-linked Git metadata
+- C-side original remains retained as rollback/evidence storage; existing untracked `docs/infrastructure/` there is separate user work and was not touched by migration
 
 ## Current phase
 Performance v1 is CLOSED / PASS. No performance implementation is active.
+
+AB development workspace migration to J is also PASS. Future AB implementation work must start from `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`; the retained C-side state is rollback/evidence only.
 
 Two remaining AB concerns are independent:
 
 1. **Author/manual A2 physical feasibility print** using the retained A2 artifact plus Bambu Studio automatic Tree Support at `45 deg`.
 2. **Pre-G/H/J artifact-retention checkpoint** before the equal-condition comparison lane is resumed.
 
-G/H/J remain HOLD until the author explicitly resumes them. No new Support architecture is active.
+G/H/J remain HOLD until the author explicitly resumes them. No new Support architecture is active. Performance v2 has not started.
 
 ## Performance v1 — PASS / CLOSED
 Accepted commit:
@@ -88,6 +94,17 @@ Preserve the v1 evidence-retention capability:
 
 This closes the evidence-loss problem that complicated v0 review.
 
+## J workspace cutover — PASS / CLOSED
+- authority reconstructed on J at exact branch/HEAD `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+- J worktree clean
+- no C-linked Git metadata in the J worktree
+- focused tests PASS
+- production build PASS
+- `git diff --check` PASS
+- no newer local-only AB work found on C
+- existing C-side untracked `docs/infrastructure/` remained untouched
+- Performance v2, G/H/J, and new Support architecture were not started during migration
+
 ## Prior v1 Rabbit stack experiment — NOT SEPARATELY PROMOTED
 Checkpoint `2964e660...` preserved semantics but produced a slower full wall time and was not accepted as a demonstrated performance improvement. The final accepted commit restores legacy full closest-surface traversal and isolates the capped query.
 
@@ -147,6 +164,8 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - no multi-core / CUDA / WebGPU / native migration without a separate task
 - no winner before physical comparison
 - no merge / deploy from this gate
+- do not resume AB implementation from the retained C-side workspace
+- do not modify/delete the C-side untracked `docs/infrastructure/` as part of AB work
 
 ## Evidence boundary
 ### PASS / PROVEN
@@ -154,6 +173,7 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - Performance v1 exact capped-distance implementation at `a3c3dbdb...`
 - full A2 exact retained parity at `528,025.4 ms`
 - P0 evidence-retention capability on an actual COMPLETE run
+- AB J workspace cutover at exact accepted checkpoint with focused tests/build/diff-check PASS
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
@@ -164,3 +184,4 @@ Any future move to multi-core / CUDA / WebGPU / native acceleration must be a se
 - artifact-retention checkpoint before G/H/J
 - body-anchored removable Support hypothesis
 - G/H/J execution / physical comparison / winner
+- Performance v2 until separately scoped
