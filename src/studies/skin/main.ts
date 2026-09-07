@@ -9817,7 +9817,10 @@ function installSkinWorkflowGuide(): void {
     progress.appendChild(row);
   }
   panel.append(heading, phase, title, summary, context, blocker, actions, progress);
-  rightPaneUpperStack.insertBefore(panel, ui.viewLayerRoot.nextSibling);
+  // View Layers live in the left VIEW pane; they are no longer a child of
+  // this inspector stack. Insert the guide into its actual parent instead of
+  // passing a reference node owned by another DOM parent.
+  rightPaneUpperStack.insertBefore(panel, rightPaneUpperStack.firstChild);
   skinWorkflowGuideRefs = { panel, phase, title, summary, context, blocker, action, details, progress };
   refreshSkinWorkflowGuide();
 }
