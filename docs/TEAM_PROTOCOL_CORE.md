@@ -10,5 +10,6 @@ This is the normal always-loaded operational protocol. Detailed rules are progre
 6. **Visibility** — A lane CURRENT front must expose authority, present state, active task, blocker, next gate, protected scope, and required pointers.
 7. **Handoff** — Return a short SOL-review handoff with what changed, branch/commit, CURRENT/task status, tests/evidence, gate result, and blocker.
 8. **Physical gate** — Printing, hardware, destructive handling, and final author-value decisions remain human/author gates.
+9. **Native picker context** — Never open an OS-native file/folder picker without first exposing task context and requiring explicit user action. If user selection is required, stop as `USER ACTION REQUIRED`; cancellation is not implementation failure. See [`protocol/OS_PICKER_USER_ACTION.md`](protocol/OS_PICKER_USER_ACTION.md).
 
 Load only the relevant CURRENT front, task, and named references for normal work.
