@@ -10,6 +10,10 @@ Last verified: 2026-09-07
 - reviewed HEAD: `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`
 - parent reviewed HEAD: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 - remote checkpoint: RESOLVED / FETCHABLE
+- preferred local workspace: `J:\dev\worktrees\fkei-analysis-viewer-v0`
+- J-side canonical clone: `J:\dev\katachi`
+- J cutover status: PASS — exact reviewed HEAD reconstructed cleanly on J with no C-linked Git metadata
+- no C-side Viewer worktree was found during cutover; no newer local-only Viewer state was found
 - merge: NO
 - deploy: NO
 
@@ -19,6 +23,8 @@ Viewer v0 technical implementation is PASS / CLOSED at `55cb6f8440a551ea3695bd4a
 The bounded Surface spatial-alignment fix is PASS. The Viewer reverses the explicitly recorded Production `plateShiftSourceZ` on a Viewer-only Surface copy so Geometry / Graph / Surface / Void occupy the same canonical FKEI frame without mutating the Production runtime mesh or canonical FKEI serialization.
 
 **Author Review after the alignment fix is also PASS / CLOSED for the current phase.** The author visually rechecked the corrected representation switching and reported no remaining blocker requiring Viewer work at this time.
+
+Viewer development workspace migration to J is also PASS. Future Viewer work must start from `J:\dev\worktrees\fkei-analysis-viewer-v0`.
 
 No new Viewer implementation is active. STOP until a later Research question demonstrates a concrete need for Viewer expansion.
 
@@ -91,6 +97,7 @@ Retain the earlier useful observations as Research evidence rather than turning 
 ## Required pointers
 - reviewed alignment commit: `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`
 - previous semantic-fix checkpoint: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
+- preferred J-side workspace: `J:\dev\worktrees\fkei-analysis-viewer-v0`
 - routing: `docs/TEAM_PROTOCOL_CORE.md` and `docs/protocol/CURRENT_FORMAT.md`
 
 ---
@@ -114,11 +121,14 @@ Retain the earlier useful observations as Research evidence rather than turning 
 - Surface canonical-frame alignment: PASS at `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`.
 - Viewer v0 technical implementation: PASS / CLOSED.
 - corrected post-alignment Author Review: PASS / CLOSED for current phase.
+- Viewer J workspace cutover: PASS — `J:\dev\worktrees\fkei-analysis-viewer-v0` at exact reviewed HEAD, clean, with no C-linked Git metadata.
+- J-side smoke check: focused Viewer test PASS, build PASS, route HTTP 200.
 
 ### Relevant artifacts
 - Reviewed initial implementation commit: `6a0e176cdb0bf54b5670d42b5a93bbe51a2f7f8e`
 - Reviewed semantic-fix commit: `1972cd34627b82aa6bd203ea5cb3c229732e109e`
 - Reviewed Surface-alignment commit: `55cb6f8440a551ea3695bd4a9ba6a097a0558bac`
+- Preferred J-side workspace: `J:\dev\worktrees\fkei-analysis-viewer-v0`
 - Accepted C0 diagnostic checkpoint remains:
   - Graph: 253 nodes / 272 edges / 1 component / beta1 20
   - Surface: 143,448 triangles
@@ -131,6 +141,8 @@ Retain the earlier useful observations as Research evidence rather than turning 
 - alignment diff is limited to Viewer adapter + focused regression test.
 - the Viewer Surface reverses the recorded Production build-plate Z shift without changing canonical FKEI or Production runtime geometry.
 - previous Boundary-connected semantics and canonical parser / BODY / renderer reuse remain intact in reviewed scope.
+- J-side Viewer worktree reconstructs the exact reviewed remote authority and is independent of C-side Git metadata.
+- focused Viewer test, build, and route HTTP smoke checks passed on J.
 
 #### Author observation
 - corrected Viewer is visually acceptable for the current phase.
