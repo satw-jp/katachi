@@ -85,15 +85,17 @@ The Author specifically values that reference because:
 
 The result is a useful separation of scales: fine surface activity does not erase the larger body reading.
 
-## Candidate source recipe for the older reference
+## Confirmed source recipe for the older reference
 
 The Author supplied the Drive file:
 
 `skin-recipe-2026-08-27T03-58-27-431Z.json`
 
-as a **possible** source recipe for the older positive reference. Provenance is not yet confirmed, so do not silently treat it as exact authority until lineage is verified.
+and subsequently confirmed that it **does correspond to the retained positive-reference 3MF** `katachi-skin-v086-a1mini-pla-020-119p5mm-print-candidate.3mf`.
 
-Inspection of that candidate recipe shows a useful comparison direction:
+For future Research comparison, this JSON may therefore be treated as the source recipe authority for that older reference, subject to the usual distinction between recipe/source authority and later package/slicer metadata.
+
+Relevant recipe characteristics include:
 
 - surface preset: `dense-flower-v6-style`;
 - surface generation mode: `randomPack`;
@@ -105,7 +107,7 @@ Inspection of that candidate recipe shows a useful comparison direction:
 - substantial opening / hole character is encoded in the flower parameters;
 - fine motif packing is distributed across the surface rather than concentrated only at a small number of growth-emergence regions.
 
-Use these facts as comparative evidence only until source lineage is confirmed.
+These are no longer only provisional similarity evidence; they are part of the confirmed reference recipe for the older positive SKIN example.
 
 ## Research interpretation — three-scale hierarchy
 
