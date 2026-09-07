@@ -6,7 +6,7 @@ Last verified: 2026-09-07
 - repo: `satw-jp/katachi`
 - canonical workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
 - accepted branch / HEAD: `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
-- J worktree cutover: PASS / clean / focused tests + build + `git diff --check` PASS
+- J worktree cutover: PASS
 - C-side `C:\dev\katachi`: rollback/evidence only; do not use for future AB work
 - canonical user-managed samples: `J:\dev\samples`
 - `C:\dev\samples`: non-authoritative
@@ -19,50 +19,81 @@ Last verified: 2026-09-07
 ## Current phase
 Performance v1 and J workspace migration are CLOSED / PASS.
 
-Two AB activities are now independent:
+Two AB activities remain independent:
 
 1. **Author/manual physical gate:** A2 physical feasibility print using the retained A2 artifact plus Bambu Studio automatic Tree Support at `45 deg`.
 2. **Implementation gate:** Candidate Artifact Retention / Checkpoint v0 before any G/H/J execution.
 
 Performance v2, G/H/J, and new Support architecture are NOT active.
 
-## Active implementation instruction
+## Active implementation instruction — USER ACTION BLOCKED
 Owner: Team AB / SKIN SOL -> LUNA
 
 Task:
 `docs/tasks/AB_CANDIDATE_ARTIFACT_RETENTION_CHECKPOINT_V0.md`
 
-Purpose:
-- eliminate browser-download persistence ambiguity before Candidate release;
-- require the validated 3MF to be durably written to a user-authorized output directory;
-- reopen the persisted file and verify exact bytes + SHA-256;
-- persist a compact evidence JSON beside the archive;
-- hard-gate `RELEASE_CANDIDATE` on durable verification.
-
 Authorized base/workspace:
 - `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
-- `agent/skin-a2-sparse-support-performance-v1`
-- `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
+- branch `agent/skin-a2-sparse-support-performance-v1`
+- accepted base `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
 
-Preferred bounded browser implementation:
-- File System Access API directory handle on Windows/Chrome;
-- one explicit user authorization before sequential execution;
-- deterministic filenames for A/G/H/J;
-- no hard-coded new user filesystem path;
-- `J:\dev\samples` must never be used as an output directory;
-- browser `link.click()` alone cannot satisfy the retention gate.
+LUNA has implemented the bounded Retention v0 path locally and intentionally stopped before commit.
 
-A new serialized Support-checkpoint format is not required for this v0 if the exact validated archive is durably persisted and re-read/verified before release. The persisted validated archive is the equivalent no-recompute recovery path.
+Reported local implementation / verification:
+- explicit-authorized-directory 3MF persistence path implemented;
+- close -> reopen -> exact byte length / SHA verification implemented;
+- `.evidence.json` sidecar persistence / reread implemented;
+- mismatch fails closed before sidecar/release;
+- focused tests PASS;
+- both TypeScript checks PASS;
+- production build PASS;
+- `git diff --check` PASS;
+- page console errors / warnings: `0 / 0`;
+- no A2 Full Support rerun;
+- G/H/J, Performance v2, new Support architecture, FKEI change, merge, deploy: NOT RUN.
 
-Done when:
-- write -> close -> reopen -> byte-length -> SHA verification PASS;
-- evidence sidecar persisted;
-- failure/mismatch fails closed before release;
-- relevant tests / TypeScript / build / `git diff --check` PASS;
-- A2 / Support / Rabbit / export semantics unchanged;
-- G/H/J NOT RUN;
-- Performance v2 NOT STARTED;
-- no new Support architecture / merge / deploy.
+Changed local files reported:
+- `src/studies/skin/candidateArtifactRetention.ts`
+- `src/studies/skin/candidateArtifactRetention.test.ts`
+- `src/studies/skin/astraCandidatePrintLaneLab.ts`
+- `package.json`
+- `tsconfig.test.json`
+- `src/studies/skin/README.md`
+- `src/studies/skin/manifest.json`
+
+### Browser Persistence Gate — BLOCKED / awaiting author gesture
+The implementation gate is not yet complete because the required Chrome/Windows directory authorization has not occurred.
+
+Observed:
+- `showDirectoryPicker` was unavailable from the worker/control context used by LUNA;
+- the OS folder-selection dialog could not be completed on the user's behalf;
+- no output directory was authorized;
+- the requested temporary directory remains empty;
+- `J:\dev\samples` was not used;
+- real-browser 3MF write/reopen/byte/SHA verification: UNVERIFIED;
+- real-browser `.evidence.json` persistence/reread: UNVERIFIED;
+- real-browser fail-closed pre-release behavior: UNVERIFIED.
+
+Required one-time author action:
+- in the Windows Chrome large-candidate lab, invoke the output-directory selection UI using an explicit user gesture;
+- select:
+  `J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907`
+- do not select `J:\dev\samples`.
+
+After the author selects the directory, LUNA should continue the same Browser Persistence Gate using the current uncommitted implementation. Do not broaden scope.
+
+Required gate after selection:
+1. persist bounded test 3MF bytes to the authorized directory;
+2. close the writable handle;
+3. reacquire/reopen the persisted file;
+4. verify exact byte length and SHA-256;
+5. persist and reread `.evidence.json`;
+6. verify mismatch/error path remains fail-closed before `RELEASE_CANDIDATE`;
+7. if all PASS, return SOL handoff for commit/push authorization.
+
+Do not run A2 Full Sparse Support merely to satisfy this browser plumbing gate. If the bounded fixture cannot prove the integrated pre-release path, stop and report why before any A2 rerun.
+
+Do not commit/push the current local implementation until the real-browser persistence gate is PASS, unless SOL explicitly changes this gate.
 
 ## Performance v1 — PASS / CLOSED
 Accepted commit:
@@ -95,21 +126,12 @@ Exact A2 semantic facts retained:
 - bounded semantic digest: exact parity
 - Signed Volume: AVAILABLE
 - validator / release / placement parity: PASS
-- focused tests `37 / 37 PASS`; TypeScript / build / diff-check PASS
 
 ## Physical A2 gate — author/manual
 Current print classification:
 `A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`.
 
 This is physical-feasibility evidence, not proof that authored SKIN Support alone is sufficient.
-
-Record:
-- printer / nozzle / process / material profile
-- first layer / adhesion
-- completion or failure
-- Bambu Tree removal
-- authored SKIN Support removal / BODY damage
-- visible defects
 
 If slicer-generated Support is later used for A/G/H/J comparison, freeze the same slicer policy/profile across all candidates.
 
@@ -159,9 +181,10 @@ Artifact-retention closure does not itself authorize G/H/J. The author must expl
 - P0 COMPLETE evidence-retention capability
 - J workspace cutover at exact accepted checkpoint
 - samples authority cutover to `J:\dev\samples`
+- Retention v0 focused tests / TypeScript / build / diff-check for the current local implementation
 
-### ACTIVE
-- Candidate Artifact Retention / Checkpoint v0
+### ACTIVE / USER ACTION BLOCKED
+- Chrome/Windows browser persistence gate for Candidate Artifact Retention / Checkpoint v0
 
 ### AUTHOR / PHYSICAL NOT YET PROVEN
 - A2 physical print completion
