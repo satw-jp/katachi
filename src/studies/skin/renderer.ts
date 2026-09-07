@@ -10,7 +10,10 @@ import { TrackballControls } from "three/examples/jsm/controls/TrackballControls
 import { deriveSkinLayerVisibility, selectedBeadWireScale, type InternalObservationMode } from "./previewMeshBuffers.ts";
 import { HOST_MAX_BALLS, PATCH_MAX_POINTS, fragmentShader, vertexShader } from "./shaders.ts";
 import { fieldVNextFragmentShader, fieldVNextVertexShader } from "./fieldVNextGpuShader.ts";
-import { fieldPreviewPresentationVisibility } from "./fieldPreviewPresentation.ts";
+import {
+  fieldInteractiveTargetSize,
+  fieldPreviewPresentationVisibility,
+} from "./fieldPreviewPresentation.ts";
 import {
   advanceFieldProgression,
   beginFieldInteraction,
@@ -387,6 +390,19 @@ export class SkinRenderer {
   private material: THREE.ShaderMaterial;
   private container: HTMLElement;
   private raymarchQuad!: THREE.Mesh;
+  private readonly fieldInteractiveScene = new THREE.Scene();
+  private readonly fieldInteractiveCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  private fieldInteractiveQuad!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private readonly fieldInteractiveUpscaleScene = new THREE.Scene();
+  private readonly fieldInteractiveUpscaleCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  private readonly fieldInteractiveUpscaleMaterial = new THREE.MeshBasicMaterial({
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  private fieldInteractiveUpscaleQuad!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private fieldInteractiveRenderTarget: THREE.WebGLRenderTarget | null = null;
+  private fieldInteractiveAvailable = true;
   private readonly fieldVNextCapabilities: FieldGpuCapabilities;
   private fieldPreviewBackend: FieldPreviewBackend = "legacy";
   private fieldPreviewBackendStatus: FieldPreviewBackendStatus = {
@@ -1284,6 +1300,20 @@ export class SkinRenderer {
     this.scene.add(quad);
     this.raymarchQuad = quad;
 
+    // During camera interaction, keep the FIELD recognizable while rendering
+    // it into a small reusable target. This is presentation-only: the same
+    // active shader/material and payload are sampled, with no data reduction.
+    this.fieldInteractiveQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
+    this.fieldInteractiveQuad.frustumCulled = false;
+    this.fieldInteractiveQuad.visible = false;
+    this.fieldInteractiveScene.add(this.fieldInteractiveQuad);
+    this.fieldInteractiveUpscaleQuad = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      this.fieldInteractiveUpscaleMaterial,
+    );
+    this.fieldInteractiveUpscaleQuad.frustumCulled = false;
+    this.fieldInteractiveUpscaleScene.add(this.fieldInteractiveUpscaleQuad);
+
     // Full-mesh overlay: the raymarch view is capped by the shader's uniform
     // budget (first ~160 patches / 256 points) and silently under-draws dense
     // packings — the author read a fully packed skin as "隙間だらけ"
@@ -1936,6 +1966,7 @@ export class SkinRenderer {
     if (this.activeViewLayer === "field" && !wasField) this.beginFieldPreviewProgression();
     if (this.activeViewLayer !== "field" && wasField) this.leaveFieldPreviewProgression();
     this.applyLayerVisibility();
+    this.requestViewportRender();
   }
 
   getViewMode(): SkinViewMode {
@@ -2712,9 +2743,14 @@ export class SkinRenderer {
       backend: this.fieldPreviewBackend,
       interactionActive: this.fieldPreviewInteractionActive,
       interactionProxyAvailable: this.patchBeadMesh !== null,
+      interactiveFieldAvailable: this.fieldInteractiveAvailable,
     });
     this.raymarchQuad.visible = fieldPresentation.legacy;
     if (this.vNextQuad) this.vNextQuad.visible = fieldPresentation.vnext;
+    this.fieldInteractiveQuad.material = this.fieldPreviewBackend === "vnext" && this.vNextMaterial
+      ? this.vNextMaterial
+      : this.material;
+    this.fieldInteractiveQuad.visible = fieldPresentation.interactiveField;
     if (this.overlayMesh) {
       this.overlayMesh.visible = visibility.overlay && !graphViewActive && this.skinRebuildTopologyDiagnosticGroup === null;
     }
@@ -5288,6 +5324,70 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
+  private ensureFieldInteractiveRenderTarget(width: number, height: number): THREE.WebGLRenderTarget | null {
+    if (!this.fieldInteractiveAvailable) return null;
+    const size = fieldInteractiveTargetSize(width, height);
+    try {
+      if (!this.fieldInteractiveRenderTarget) {
+        this.fieldInteractiveRenderTarget = new THREE.WebGLRenderTarget(size.width, size.height, {
+          depthBuffer: false,
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+          stencilBuffer: false,
+        });
+      } else if (
+        this.fieldInteractiveRenderTarget.width !== size.width
+        || this.fieldInteractiveRenderTarget.height !== size.height
+      ) {
+        this.fieldInteractiveRenderTarget.setSize(size.width, size.height);
+      }
+      this.fieldInteractiveUpscaleMaterial.map = this.fieldInteractiveRenderTarget.texture;
+      this.fieldInteractiveUpscaleMaterial.needsUpdate = true;
+      return this.fieldInteractiveRenderTarget;
+    } catch {
+      this.fieldInteractiveAvailable = false;
+      this.fieldInteractiveRenderTarget?.dispose();
+      this.fieldInteractiveRenderTarget = null;
+      return null;
+    }
+  }
+
+  private renderInteractiveField(
+    activeMaterial: THREE.ShaderMaterial,
+    rect: { x: number; y: number; width: number; height: number },
+    canvasHeight: number,
+  ): boolean {
+    const target = this.ensureFieldInteractiveRenderTarget(rect.width, rect.height);
+    if (!target) {
+      this.applyLayerVisibility();
+      return false;
+    }
+    const glY = canvasHeight - rect.y - rect.height;
+    this.fieldInteractiveQuad.material = activeMaterial;
+    activeMaterial.uniforms.uResolution.value.set(target.width, target.height);
+    try {
+      this.renderer.setRenderTarget(target);
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, target.width, target.height);
+      this.renderer.clear(true, true, true);
+      this.renderer.render(this.fieldInteractiveScene, this.fieldInteractiveCamera);
+      this.renderer.setRenderTarget(null);
+      this.renderer.setScissorTest(true);
+      this.renderer.setViewport(rect.x, glY, rect.width, rect.height);
+      this.renderer.setScissor(rect.x, glY, rect.width, rect.height);
+      this.renderer.clear(true, true, true);
+      this.renderer.render(this.fieldInteractiveUpscaleScene, this.fieldInteractiveUpscaleCamera);
+      return true;
+    } catch {
+      this.fieldInteractiveAvailable = false;
+      this.applyLayerVisibility();
+      return false;
+    } finally {
+      this.renderer.setRenderTarget(null);
+      this.renderer.setScissorTest(true);
+    }
+  }
+
   update(
     host: Ball[],
     hostK: number,
@@ -5444,6 +5544,12 @@ export class SkinRenderer {
         const uniform = material?.uniforms?.uShowBrushEmphasis;
         if (uniform) uniform.value = showBrush ? 1 : 0;
       });
+      if (
+        this.activeViewLayer === "field"
+        && this.fieldPreviewInteractionActive
+        && this.fieldInteractiveAvailable
+        && this.renderInteractiveField(activeMaterial, rect, height)
+      ) continue;
       this.renderer.render(this.scene, slot.camera);
     }
     this.renderer.setScissorTest(false);
