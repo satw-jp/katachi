@@ -2,113 +2,115 @@
 
 Date: 2026-09-07
 Owner: Team AB / SKIN SOL -> LUNA
-Status: ACTIVE — required before G/H/J execution
+Status: **CLOSED / PASS**
 
 ## Purpose
 
 Close the comparison-lane artifact-loss risk without changing Candidate geometry, Sparse Support semantics, Rabbit policy, FKEI, export semantics, or A/G/H/J comparison conditions.
 
-A valid 3MF must be durably written and verified on the filesystem **before** `RELEASE_CANDIDATE`.
+A validated 3MF must be durably written and verified on the filesystem **before** `RELEASE_CANDIDATE`.
 
 This task is workflow reliability only. It does not implement Performance v2 or any new Support architecture.
 
-## Authorized authority / workspace
+## Accepted authority
 
 - repo: `satw-jp/katachi`
-- branch / base: `agent/skin-a2-sparse-support-performance-v1` / `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
 - canonical workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
+- branch: `agent/skin-a2-sparse-support-performance-v1`
+- implementation commit: `d071a583c19fd811a534db1c8cbd039dbfdd99e3`
+- docs/manifest closure commit: `2f0eb180fbe1ed0e9034ea2420628f4421f66d95`
+- implementation base: `a3c3dbdb76dc609cabded13e21ad9fbbd2c0bd29`
 - canonical user-managed samples: `J:\dev\samples`
-- `C:\dev\katachi` and `C:\dev\samples` are not current AB work/input authority
+- `C:\dev\katachi` / `C:\dev\samples`: non-authoritative for future AB work
 
 Do not modify, rename, reorganize, delete, or commit user-managed samples.
 
-## Why this gate exists
+## Accepted implementation
 
-The old browser path used download initiation (`link.click()`) and then released Candidate / Support state. Browser download initiation does not prove filesystem persistence. If the archive is missing after release, the pipeline has to regenerate Support.
+The large-candidate lab now requires an explicitly authorized writable output directory before Candidate processing.
 
-Performance v1 reduced A2 Full Sparse Support to `528,025.4 ms` (~8m48s), but this does not remove the artifact-retention requirement. G/H/J must not run unattended under a download-initiation-only contract.
+For each Candidate, after normal 3MF validation and before release:
 
-## v0 bounded design
+1. write deterministic `ASTRA_<candidate>_candidate-print-lane.3mf`;
+2. close the writable handle;
+3. reacquire/reopen the persisted file;
+4. verify exact byte length;
+5. verify exact byte content;
+6. verify SHA-256 against the generated archive;
+7. write `ASTRA_<candidate>_candidate-print-lane.evidence.json` only after archive verification;
+8. reopen/reread the sidecar and require exact content identity;
+9. only then send `RELEASE_CANDIDATE`.
 
-### 1. Explicit output-directory authority
+Any persistence mismatch fails closed before sidecar/release. The sidecar excludes the binary archive.
 
-The large-candidate lab must require an explicit user-selected output directory before unattended/sequential archive execution.
+A separate serialized Support-state checkpoint is not required for v0 because the exact validated archive itself is the no-recompute recovery path.
 
-Preferred Windows/Chrome implementation: File System Access API directory handle (`showDirectoryPicker`) or an equivalent browser-native writable filesystem handle.
+## Exact code review
 
-- one user gesture may select/authorize the directory before a sequential run;
-- A/G/H/J may then write deterministic filenames into that same authorized directory;
-- do not hard-code a new user filesystem location in code;
-- do not use `J:\dev\samples` as an output directory;
-- if durable direct-file writing is unavailable, unattended G/H/J must fail closed rather than silently falling back to browser-download initiation.
+Implementation commit `d071a583...` was reviewed as one commit / seven files from `a3c3dbdb...`.
 
-Browser `link.click()` may remain only as an explicitly secondary/manual fallback if useful, but it cannot satisfy this gate.
+PASS:
+- output-directory hard gate;
+- write -> close -> reopen;
+- exact bytes / SHA verification;
+- sidecar persistence + reread;
+- mismatch fail-closed before sidecar / release;
+- `RELEASE_CANDIDATE` only after durable verification;
+- no Candidate / Support / Rabbit / FKEI / export semantic expansion.
 
-### 2. Durable validated archive write
+Focused fixture covers:
+- durable write / close / reopen;
+- exact bytes / SHA;
+- evidence sidecar identity;
+- corrupt persisted archive fail-closed before sidecar.
 
-For each Candidate, after 3MF validation and before release:
+Validation reported PASS:
+- focused retention test;
+- both TypeScript checks;
+- production build;
+- `git diff --check`.
 
-1. obtain the final validated archive bytes;
-2. write deterministic filename `ASTRA_<candidate>_candidate-print-lane.3mf` to the authorized output directory;
-3. close/flush the writable handle;
-4. reopen/reacquire the written file via the filesystem handle;
-5. verify exact byte length;
-6. compute SHA-256 from the persisted file bytes;
-7. compare persisted SHA/bytes to the generated archive identity;
-8. only then allow `RELEASE_CANDIDATE`.
+## Real Windows Chrome canonical A2 gate — PASS
 
-Any write / reopen / bytes / SHA mismatch must fail closed and retain the Candidate in memory when practical for retry/recovery.
+Author-selected output directory:
 
-### 3. Durable evidence sidecar
+`J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907`
 
-Write a deterministic sidecar such as:
+`J:\dev\samples` was not used.
 
-`ASTRA_<candidate>_candidate-print-lane.evidence.json`
+Canonical A2 facts:
+- A2 source SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
+- Full Support: `4,561 / 4,561`
+- accepted BODY / Rabbit collision: `0 / 0`
+- 3MF validator: PASS
+- Signed Volume: AVAILABLE
+- Rabbit repair fingerprint: canonical match
+- source / geometry / diagnostics / Support / export fingerprints: exact parity
 
-The sidecar must record at least:
+Persisted artifact:
+- filename: `ASTRA_A_candidate-print-lane.3mf`
+- byte length: `75,491,874`
+- SHA-256: `DE304365A3247487F7EC18DB1536D2234E9980A57576D6ACFFB0AA3C00460874`
+- generated/persisted byte length: exact match
+- generated/persisted SHA-256: exact match
+- durable verification: PASS
+- `.evidence.json`: persisted + reread PASS
+- sidecar size observed: `7,971` bytes
+- `RELEASE_CANDIDATE`: PASS after durable verification
 
-- schema/version
-- Candidate id / source filename
-- source SHA-256
-- geometry fingerprint
-- diagnostics fingerprint
-- Support fingerprint / available deterministic semantic digest
-- export fingerprint
-- canonical Support counts
-- BODY / Rabbit accepted collision counts
-- Rabbit source SHA / repair fingerprint / transform authority
-- locked Support settings
-- package translation / placement parity
-- BODY indexing retention facts
-- validator PASS
-- archive filename
-- persisted archive exact byte length
-- persisted archive SHA-256
-- runtime/browser context already available from v1 evidence retention
+The retained archive byte/SHA differs from an earlier A2 export. This does not fail this task: the contract is exact identity between the current validated generated archive and its persisted copy. Semantic/export identity is protected separately by source/fingerprint/Support evidence.
 
-The sidecar must exclude the binary 3MF archive itself.
+The Chrome page accumulated one earlier console error from the intentional bounded-fixture A2 SHA mismatch. The canonical A2 run did not add an error; no rerun was required solely to reset that counter.
 
-### 4. Recovery requirement for v0
+## Docs/manifest closure — PASS
 
-A separate serialized Support-state format is **not required** for this v0 if the exact validated archive is durably persisted and re-read/verified before release.
+Commit `2f0eb180...` changed only:
+- `src/studies/skin/README.md`
+- `src/studies/skin/manifest.json`
 
-The verified final archive itself is the equivalent recovery path: a lost browser download no longer requires rebuilding Support because the canonical validated 3MF already exists on disk with exact identity evidence.
+It replaced stale UNVERIFIED metadata with the actual Browser A2 PASS evidence and reduced the duplicate Retention revisit to exactly one entry. JSON parse / `git diff --check` PASS.
 
-Do not invent a new checkpoint/container format unless durable archive retention proves insufficient.
-
-## A2 verification gate
-
-Before G/H/J can be resumed, test the new retention path on A2 using the canonical content identity:
-
-- A2 SHA-256: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
-- Rabbit SHA-256: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
-- Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
-
-Do not rerun Full Sparse Support merely to test UI plumbing if a bounded synthetic/archive fixture can prove write/reopen/SHA behavior first.
-
-Final A2 gate may use an actual A2 run only when needed to prove end-to-end pre-release behavior. Preserve Performance v1 semantics and complete fingerprint parity.
-
-## Protected architecture — DO NOT CHANGE
+## Protected architecture — unchanged
 
 - Candidate geometry authority
 - source-space Float32 execution
@@ -124,48 +126,16 @@ Final A2 gate may use an actual A2 run only when needed to prove end-to-end pre-
 - no hidden candidate-specific tuning
 - A/G/H/J equal-condition physical comparison
 - FKEI / authoring semantics
-- Candidate Mesh must not become canonical authoring state
+- Candidate Mesh is not canonical authoring state
 - no body-anchored Support implementation
-- no Performance v2 / multi-core / CUDA / WebGPU / native work
+- no Performance v2 / multi-core / CUDA / WebGPU / native work in this task
 - no winner selection
 - no deploy
 
-## G/H/J HOLD
+## Closure
 
-G/H/J remain HOLD throughout this task.
+**PASS / CLOSED.**
 
-Closing this retention gate does not itself authorize G/H/J; the author must explicitly resume the equal-condition comparison lane afterward.
+This closure removes the artifact-retention blocker that existed before G/H/J, but does **not** itself authorize G/H/J. The author must explicitly resume that comparison lane.
 
-## Validation
-
-At minimum:
-
-- focused filesystem persistence fixture: write -> close -> reopen -> bytes -> SHA exact
-- mismatch/failure cases fail closed
-- evidence sidecar schema/identity regression
-- existing relevant large-candidate / 3MF tests
-- TypeScript checks
-- build
-- `git diff --check`
-- browser gate on Chrome/Windows for directory selection + durable write/verify
-- no `RELEASE_CANDIDATE` before durable archive verification
-
-## Done when
-
-Return to Team AB / SKIN SOL only when:
-
-- implementation starts from exact J authority `a3c3dbdb...`
-- output directory must be explicitly authorized
-- validated 3MF is directly persisted before release
-- persisted file is reopened and exact bytes/SHA verified
-- evidence JSON is durably persisted alongside it
-- release is hard-gated on durable verification
-- failure/mismatch is fail closed
-- existing A2 geometry / Support / Rabbit / export semantics remain exact
-- tests/build PASS
-- G/H/J not run
-- Performance v2 not started
-- new Support architecture not implemented
-- no merge/deploy
-
-Return the standard compact SOL-review handoff with branch, commit, tests, browser persistence evidence, and exact changed files.
+Performance v2 remains a separate future task.
