@@ -4,7 +4,7 @@
   "status": "active",
   "version": "0.93.2",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-06",
+  "updatedAt": "2026-09-07",
   "params": [
     "count",
     "radiusBase",
@@ -81,6 +81,14 @@
     "pack"
   ],
   "revisits": [
+    {
+      "date": "2026-09-07",
+      "note": "SKIN Candidate Artifact Retention / Checkpoint v0: Candidate release now requires an explicitly authorized output directory, exact validated 3MF write/close/reopen byte and SHA-256 verification, and a read-back evidence sidecar before RELEASE_CANDIDATE. Focused fixture, both TypeScript checks, production build and diff check passed; real Chrome directory authorization remains UNVERIFIED because no output directory was selected in this session. A2 was not rerun; G/H/J, Performance v2, new Support, geometry, FKEI, merge and deploy were not started."
+    },
+    {
+      "date": "2026-09-07",
+      "note": "SKIN Candidate Artifact Retention / Checkpoint v0: Candidate release now requires an explicitly authorized output directory, exact validated 3MF write/close/reopen byte and SHA-256 verification, and a read-back evidence sidecar before RELEASE_CANDIDATE. Focused fixture, both TypeScript checks, production build and diff check passed; real Chrome directory authorization remains UNVERIFIED because no output directory was selected in this session. A2 was not rerun; G/H/J, Performance v2, new Support, geometry, FKEI, merge and deploy were not started."
+    },
     {
       "date": "2026-09-05",
       "note": "SKIN External Host v2 actual file export: retained the in-memory Save/Reopen gate and added Download .fkei / Open .fkei around the existing katachi.skin.fkei.v2 capture, serialization and atomic hydration path. Actual Chrome downloaded usagi-v6-512-varied.fkei at 18,357,594 bytes with the exact embedded rabbit bytes, source SHA c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8, repair fingerprint 90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6, 512 varied motifs, base 2.4 and variance 0.35. Opening that file passed source hash, repair fingerprint, Signed Volume AVAILABLE, exact motif geometry, Host visibility restoration and no external source path; Host OFF passed motif invariance and host-group-only, existing Save/Reopen passed, console errors/warnings 0/0. v1, v2 schema, golden-ratio placement and current Author Gate state remain unchanged. No Astra, Permanent, Support/FAB, G-code or deploy work was performed."

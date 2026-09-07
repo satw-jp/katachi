@@ -13,6 +13,12 @@ import type {
 } from "./astraLargeCandidateWorkerProtocol.ts";
 import { isLargeCandidateMessageCurrent } from "./astraLargeCandidateWorkerProtocol.ts";
 import { ASTRA_LARGE_CANDIDATE_CANONICALIZATION_VERSION, makeDeferredPrintPlacement, type DeferredPrintPlacement } from "./astraLargeCandidateSourceSpace.ts";
+import {
+  persistCandidateArtifact,
+  type CandidateArtifactDirectoryHandle,
+  type CandidateArtifactRetentionFacts,
+  type CandidateArtifactEvidenceBase,
+} from "./candidateArtifactRetention.ts";
 
 type Row = {
   id: LargeCandidateId;
@@ -27,7 +33,7 @@ type Row = {
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Astra candidate lane root is missing");
-app.innerHTML = `<aside><h1>SKIN · Astra Large Candidate execution</h1><p>Bounded-memory physical comparison lane. Main thread retains only File references and compact summaries. Exactly one Candidate is active in the Worker.</p><h2>Reference Host</h2><label>Rabbit STL <input id="rabbit" type="file" accept=".stl,model/stl"></label><button id="load-rabbit" type="button">Load Rabbit into Worker</button><pre id="reference" class="meta">Rabbit Reference Host not loaded.</pre><h2>Candidate files</h2><p>Choose the actual A2_BODY.stl / G2_BODY.stl / H2_BODY.stl / J2_BODY.stl files. Selecting a file does not read its bytes on the main thread.</p><div id="candidates"></div><div class="row"><button id="scan" type="button">Scan inventories</button><button id="process-all" type="button">Process All Sequentially</button></div><button id="cancel" type="button" disabled>Cancel active Candidate</button><h2>Common settings</h2><label>Overhang threshold (deg) <input id="threshold" type="number" value="45" min="30" max="65" step="1"></label><label>Rabbit Host clearance (mm) <input id="clearance" type="number" value="0" min="0" max="5" step="0.1"></label><div class="meta">source-space · all A/G/H/J share deferred package placement · plate at source Z · shaft 1.6 mm · neck 0.6 mm · gap 0.35 mm · Rabbit inside FORBIDDEN</div><h2>Bounded profiler</h2><label>Profile target prefix <input id="profile-targets" type="number" value="256" min="1" step="1"></label><label>Profile route-audit cap <input id="profile-route-audits" type="number" value="4000" min="1" step="1"></label><button id="profile-a2" type="button">Profile A2 prefix (incomplete by design)</button><p class="meta">Profiling only. A PROFILE_INCOMPLETE result is never a complete Support graph.</p><h2>Evidence retention</h2><p>Copyable compact evidence is retained before Worker release. It excludes only the binary 3MF archive itself.</p><div class="row"><button id="copy-evidence" type="button" disabled>Copy latest evidence</button><button id="clear-evidence" type="button" disabled>Clear retained evidence</button></div><textarea id="evidence" class="meta evidence" readonly aria-label="Latest compact A2 evidence"></textarea><p id="evidence-status" class="meta">No retained evidence.</p><p id="active" class="status">Active Candidate: none</p><p id="status" class="status">Load Rabbit and all four actual Round 2 candidates.</p><pre id="progress" class="meta">Worker idle.</pre><pre id="console" class="meta">console errors: 0\nconsole warnings: 0</pre><p>No winner badge · no ranking · no production SKIN integration · no main merge · no deploy.</p></aside><main><h2>Sequential comparison table</h2><div id="table"></div></main>`;
+app.innerHTML = `<aside><h1>SKIN · Astra Large Candidate execution</h1><p>Bounded-memory physical comparison lane. Main thread retains only File references and compact summaries. Exactly one Candidate is active in the Worker.</p><h2>Reference Host</h2><label>Rabbit STL <input id="rabbit" type="file" accept=".stl,model/stl"></label><button id="load-rabbit" type="button">Load Rabbit into Worker</button><pre id="reference" class="meta">Rabbit Reference Host not loaded.</pre><h2>Candidate files</h2><p>Choose the actual A2_BODY.stl / G2_BODY.stl / H2_BODY.stl / J2_BODY.stl files. Selecting a file does not read its bytes on the main thread.</p><div id="candidates"></div><div class="row"><button id="scan" type="button">Scan inventories</button><button id="process-all" type="button">Process All Sequentially</button></div><button id="cancel" type="button" disabled>Cancel active Candidate</button><h2>Common settings</h2><label>Overhang threshold (deg) <input id="threshold" type="number" value="45" min="30" max="65" step="1"></label><label>Rabbit Host clearance (mm) <input id="clearance" type="number" value="0" min="0" max="5" step="0.1"></label><div class="meta">source-space · all A/G/H/J share deferred package placement · plate at source Z · shaft 1.6 mm · neck 0.6 mm · gap 0.35 mm · Rabbit inside FORBIDDEN</div><h2>Bounded profiler</h2><label>Profile target prefix <input id="profile-targets" type="number" value="256" min="1" step="1"></label><label>Profile route-audit cap <input id="profile-route-audits" type="number" value="4000" min="1" step="1"></label><button id="profile-a2" type="button">Profile A2 prefix (incomplete by design)</button><p class="meta">Profiling only. A PROFILE_INCOMPLETE result is never a complete Support graph.</p><h2>Durable artifact retention</h2><p>Before Candidate release, explicitly authorize one output directory. The validated 3MF and evidence sidecar are written and read back from that directory.</p><div class="row"><button id="select-output-directory" type="button">Authorize output directory</button><span id="output-directory" class="meta">not selected</span></div><h2>Evidence retention</h2><p>Copyable compact evidence is retained before Worker release. It excludes only the binary 3MF archive itself.</p><div class="row"><button id="copy-evidence" type="button" disabled>Copy latest evidence</button><button id="clear-evidence" type="button" disabled>Clear retained evidence</button></div><textarea id="evidence" class="meta evidence" readonly aria-label="Latest compact A2 evidence"></textarea><p id="evidence-status" class="meta">No retained evidence.</p><p id="active" class="status">Active Candidate: none</p><p id="status" class="status">Load Rabbit and all four actual Round 2 candidates.</p><pre id="progress" class="meta">Worker idle.</pre><pre id="console" class="meta">console errors: 0\nconsole warnings: 0</pre><p>No winner badge · no ranking · no production SKIN integration · no main merge · no deploy.</p></aside><main><h2>Sequential comparison table</h2><div id="table"></div></main>`;
 
 const rabbitInput = document.querySelector<HTMLInputElement>("#rabbit")!;
 const reference = document.querySelector<HTMLElement>("#reference")!;
@@ -44,6 +50,8 @@ const evidence = document.querySelector<HTMLTextAreaElement>("#evidence")!;
 const evidenceStatus = document.querySelector<HTMLElement>("#evidence-status")!;
 const copyEvidenceButton = document.querySelector<HTMLButtonElement>("#copy-evidence")!;
 const clearEvidenceButton = document.querySelector<HTMLButtonElement>("#clear-evidence")!;
+const selectOutputDirectoryButton = document.querySelector<HTMLButtonElement>("#select-output-directory")!;
+const outputDirectoryLabel = document.querySelector<HTMLElement>("#output-directory")!;
 const rows = new Map<LargeCandidateId, Row>();
 const errors: string[] = [];
 const warnings: string[] = [];
@@ -58,6 +66,7 @@ const pending = new Map<number, { resolve: (message: LargeCandidateWorkerMessage
 const EVIDENCE_STORAGE_KEY = "skin.astra.a2.sparse-support.performance.v1.evidence";
 type RetainedEvidenceState = "COMPLETE" | "PROFILE_INCOMPLETE";
 let retainedEvidenceState: RetainedEvidenceState | null = null;
+let outputDirectory: CandidateArtifactDirectoryHandle | null = null;
 
 function runtimeContext(): Record<string, unknown> {
   const navigatorWithMemory = navigator as Navigator & { deviceMemory?: number };
@@ -74,7 +83,49 @@ function runtimeContext(): Record<string, unknown> {
   };
 }
 
-function retainEvidence(row: Row, phase: string): void {
+function makeCandidateArtifactEvidence(row: Row): CandidateArtifactEvidenceBase {
+  const summary = row.summary;
+  const inventory = row.inventory;
+  if (!summary || !inventory) throw new Error("Candidate summary is incomplete for retention evidence");
+  const exportFacts = summary.export ? (({ archive: _archive, ...facts }) => facts)(summary.export) : null;
+  return {
+    schema: "katachi.skin.astra.candidate-artifact-retention.v0",
+    version: 0,
+    candidate: {
+      id: row.id,
+      sourceFilename: inventory.filename,
+      sourceSha256: summary.sourceSha256,
+      geometryFingerprint: summary.geometryFingerprint,
+      diagnosticsFingerprint: summary.diagnosticsFingerprint ?? null,
+      supportFingerprint: summary.supportFingerprint ?? null,
+      inventory,
+      diagnostics: summary.diagnostics ?? null,
+      support: summary.support ?? null,
+      performance: summary.performance ?? null,
+      export: exportFacts,
+    },
+    rabbit: {
+      sourceSha256: ASTRA_RABBIT_SOURCE_SHA256,
+      repairFingerprint: ASTRA_RABBIT_REPAIR_FINGERPRINT,
+      signedVolume: rabbitReady ? "AVAILABLE" : "UNAVAILABLE",
+      interpretation: "1 mm/source-unit · +Y · right-handed",
+      uniformScale: 20,
+      role: "forbidden volume authority",
+    },
+    supportSettings: {
+      ...ASTRA_COMMON_SUPPORT_SETTINGS,
+      overhangThresholdDeg: Number(thresholdInput.value),
+      hostClearanceMm: Number(clearanceInput.value),
+      contactPolicy: "single-body",
+      responsibility: "Outside-only removable Support",
+    },
+    placement: deferredPlacement ? { ...deferredPlacement, translationMm: { ...deferredPlacement.translationMm } } : null,
+    canonicalization: ASTRA_LARGE_CANDIDATE_CANONICALIZATION_VERSION,
+    runtime: runtimeContext(),
+  };
+}
+
+function retainEvidence(row: Row, phase: string, retention?: CandidateArtifactRetentionFacts): void {
   const summary = row.summary;
   const inventory = row.inventory;
   if (!summary || !inventory) return;
@@ -117,6 +168,7 @@ function retainEvidence(row: Row, phase: string): void {
     placement: deferredPlacement,
     canonicalization: ASTRA_LARGE_CANDIDATE_CANONICALIZATION_VERSION,
     runtime: runtimeContext(),
+    ...(retention ? { retention } : {}),
   };
   const text = JSON.stringify(record, null, 2);
   evidence.value = text;
@@ -128,6 +180,28 @@ function retainEvidence(row: Row, phase: string): void {
     localStorage.setItem(EVIDENCE_STORAGE_KEY, text);
   } catch {
     evidenceStatus.textContent += " · session-only storage";
+  }
+}
+
+function requireOutputDirectory(): CandidateArtifactDirectoryHandle {
+  if (!outputDirectory) throw new Error("Authorize an output directory before Candidate processing");
+  return outputDirectory;
+}
+
+type DirectoryPickerWindow = Window & {
+  showDirectoryPicker?: (options: { mode: "readwrite" }) => Promise<CandidateArtifactDirectoryHandle>;
+};
+
+async function selectOutputDirectory(): Promise<void> {
+  const picker = (window as DirectoryPickerWindow).showDirectoryPicker;
+  if (!picker) throw new Error("Durable retention unavailable: Chrome File System Access API is required");
+  try {
+    outputDirectory = await picker({ mode: "readwrite" });
+    outputDirectoryLabel.textContent = `authorized: ${outputDirectory.name ?? "selected directory"}`;
+    status.textContent = "Output directory authorized. Candidate release will be gated on durable verification.";
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    throw error;
   }
 }
 
@@ -228,7 +302,7 @@ async function ensureInventories(requiredIds: readonly LargeCandidateId[] = ["A"
 async function processRow(row: Row): Promise<void> {
   if (!row.file) return;
   if (activeCandidate) throw new Error("Another Candidate is active");
-  const settings = readSettings(); await ensureInventories(row.id === "A" ? ["A"] : ["A", "G", "H", "J"]); if (!rabbitReady) throw new Error("Load Rabbit into Worker first"); if (commonTranslationZ === null || !deferredPlacement) throw new Error("Complete candidate placement inventory is not ready");
+  const settings = readSettings(); const retentionDirectory = requireOutputDirectory(); await ensureInventories(row.id === "A" ? ["A"] : ["A", "G", "H", "J"]); if (!rabbitReady) throw new Error("Load Rabbit into Worker first"); if (commonTranslationZ === null || !deferredPlacement) throw new Error("Complete candidate placement inventory is not ready");
   activeCandidate = row.id; setRowState(row, "ACTIVE"); refreshActive(); generation += 1;
   try {
     const activated = await send({ type: "ACTIVATE_CANDIDATE", ...nextRequest(), candidateId: row.id, filename: row.file.name, file: row.file, placement: deferredPlacement, telemetry: true }, "INVENTORY");
@@ -236,12 +310,14 @@ async function processRow(row: Row): Promise<void> {
     const diagnostics = await send({ type: "DIAGNOSE", ...nextRequest(), candidateId: row.id, sourceSha256: activated.sourceSha256, geometryFingerprint: activated.geometryFingerprint, settings: { overhangThresholdDeg: settings.threshold, plateFloorMm: deferredPlacement.sourcePlateZMm, plateBandMm: ASTRA_COMMON_SUPPORT_SETTINGS.plateBandMm } }, "DIAGNOSTICS");
     row.summary = diagnostics.summary; const support = await send({ type: "BUILD_SUPPORT", ...nextRequest(), candidateId: row.id, sourceSha256: diagnostics.summary.sourceSha256, geometryFingerprint: diagnostics.summary.geometryFingerprint, diagnosticsFingerprint: diagnostics.summary.diagnosticsFingerprint!, settings: { ...ASTRA_COMMON_SUPPORT_SETTINGS, overhangThresholdDeg: settings.threshold, hostClearanceMm: settings.clearance } }, "SUPPORT");
     row.summary = support.summary; retainEvidence(row, "support-complete"); const exported = await send({ type: "EXPORT_3MF", ...nextRequest(), candidateId: row.id, sourceSha256: support.summary.sourceSha256, geometryFingerprint: support.summary.geometryFingerprint, supportFingerprint: support.summary.supportFingerprint! }, "EXPORT");
-    const archive = exported.summary.export?.archive; if (!archive) throw new Error("Worker export did not return an archive"); progress.textContent = "Downloading validated A2 3MF";
-    const downloadUrl = URL.createObjectURL(new Blob([archive], { type: "model/3mf" })); const link = document.createElement("a"); link.href = downloadUrl; link.download = `ASTRA_${row.id}_candidate-print-lane.3mf`; link.click(); URL.revokeObjectURL(downloadUrl);
+    const archive = exported.summary.export?.archive; if (!archive) throw new Error("Worker export did not return an archive"); progress.textContent = "Persisting validated 3MF and evidence sidecar";
+    const archiveFilename = `ASTRA_${row.id}_candidate-print-lane.3mf`;
+    row.summary = exported.summary;
+    const persisted = await persistCandidateArtifact({ directory: retentionDirectory, archive, archiveFilename, evidence: makeCandidateArtifactEvidence(row) });
     const compactExport = exported.summary.export ? (() => { const { archive: _archive, ...facts } = exported.summary.export!; return facts; })() : undefined;
-    row.summary = { ...exported.summary, ...(compactExport ? { export: compactExport as never } : {}) }; retainEvidence(row, "export-complete"); setRowState(row, "DONE", "3MF downloaded and validated"); refreshTable();
+    row.summary = { ...exported.summary, ...(compactExport ? { export: compactExport as never } : {}) }; retainEvidence(row, "retention-complete", persisted.retention); setRowState(row, "DONE", "3MF persisted, reopened and verified"); refreshTable();
     const released = await send({ type: "RELEASE_CANDIDATE", ...nextRequest(), candidateId: row.id, sourceSha256: exported.summary.sourceSha256, geometryFingerprint: exported.summary.geometryFingerprint }, "RELEASED");
-    setRowState(row, "RELEASED", `${released.releasedTypedArrayBytes.toLocaleString()} typed-array bytes released`); activeCandidate = null; retainEvidence(row, "released"); refreshTable(); status.textContent = `${row.id} complete: download, validation and release PASS.`;
+    setRowState(row, "RELEASED", `${released.releasedTypedArrayBytes.toLocaleString()} typed-array bytes released`); activeCandidate = null; retainEvidence(row, "released", persisted.retention); refreshTable(); status.textContent = `${row.id} complete: durable archive retention, validation and release PASS.`;
   } catch (error) { setRowState(row, "BLOCKED", error instanceof Error ? error.message : String(error)); activeCandidate = null; refreshTable(); fail(`${row.id} blocked: ${error instanceof Error ? error.message : String(error)}`); }
 }
 async function profileA2(): Promise<void> {
@@ -272,7 +348,7 @@ async function profileA2(): Promise<void> {
     setRowState(row, "BLOCKED", error instanceof Error ? error.message : String(error)); activeCandidate = null; refreshTable(); fail(`A2 profile blocked: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
-async function processAll(): Promise<void> { try { for (const row of rows.values()) if (row.file) await processRow(row); } catch (error) { fail(error instanceof Error ? error.message : String(error)); } }
+async function processAll(): Promise<void> { try { requireOutputDirectory(); for (const row of rows.values()) if (row.file) await processRow(row); } catch (error) { fail(error instanceof Error ? error.message : String(error)); } }
 function cancelActive(): void { if (!activeCandidate) return; generation += 1; for (const waiter of pending.values()) waiter.reject(new Error("Cancelled by author")); pending.clear(); worker?.terminate(); worker = null; rabbitReady = false; const row = rows.get(activeCandidate); if (row) setRowState(row, "BLOCKED", "cancelled; reload Rabbit before retry"); activeCandidate = null; refreshTable(); fail("Worker cancelled and released by termination. Rabbit must be loaded again."); }
 
 document.querySelector<HTMLInputElement>("#rabbit")!.addEventListener("change", () => { const file = rabbitInput.files?.[0]; if (file) void loadRabbit(file, file.name).catch((error) => fail(`Rabbit load failed: ${error instanceof Error ? error.message : String(error)}`)); });
@@ -280,6 +356,7 @@ document.querySelector<HTMLButtonElement>("#load-rabbit")!.addEventListener("cli
 document.querySelector<HTMLButtonElement>("#scan")!.addEventListener("click", () => { void ensureInventories().then(() => { status.textContent = "Inventory scan complete. Candidate bytes remain Worker-owned only during processing."; }).catch((error) => fail(error instanceof Error ? error.message : String(error))); });
 document.querySelector<HTMLButtonElement>("#process-all")!.addEventListener("click", () => { void processAll(); });
 document.querySelector<HTMLButtonElement>("#profile-a2")!.addEventListener("click", () => { void profileA2().catch((error) => fail(error instanceof Error ? error.message : String(error))); });
+selectOutputDirectoryButton.addEventListener("click", () => { void selectOutputDirectory().catch((error) => fail(`Output directory authorization failed: ${error instanceof Error ? error.message : String(error)}`)); });
 document.querySelector<HTMLButtonElement>("#cancel")!.addEventListener("click", cancelActive);
 copyEvidenceButton.addEventListener("click", async () => {
   if (!evidence.value) return;
