@@ -22,8 +22,10 @@ Last verified: 2026-09-07
 - J cutover status: PASS — accepted FIELD checkpoint reconstructed cleanly on J with no C-linked Git metadata
 - J runtime bootstrap status: PASS — `npm ci`, FIELD focused tests 8/8, build PASS, J-side Vite dev launch and browser C/FIELD smoke PASS
 - C-side original remains retained as rollback/evidence storage
-- compute/helper runtime cutover: PENDING — current compute endpoint / connection settings remain authoritative until a separate cutover PASS
-- staged future helper location: `J:\dev\katachi-compute-helper-tray` (staged only; not current runtime authority)
+- compute/helper runtime cutover: PASS — live helper now runs from `J:\dev\katachi-compute-helper-tray`
+- compute endpoint/health: PASS — `127.0.0.1:47658/v1/capabilities` HTTP 200, CUDA available
+- J-side C -> compute connection: PASS — existing C client probe reports `available:true`; J C route HTTP 200
+- old `C:\dev\katachi-compute-helper-tray` path is not required by normal runtime
 
 ## Current phase
 First Physical Gate and SKIN Production UI IA v0A are PASS / CLOSED. FIELD vNext Interaction Correctness v0 is also PASS / CLOSED after C SOL review at `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`.
@@ -40,7 +42,7 @@ Shared user-managed input data `samples` has also moved to `J:\dev\samples`. On 
 
 Future C-specific runtime / local development environment maintenance is Team C ownership. Storage migration topology and deletion/cleanup of retained C-side originals remain Overall / Organization ownership.
 
-The separate katachi compute/helper runtime has NOT yet cut over to J. `J:\dev\katachi-compute-helper-tray` is staged, but while AB performance work is active the live compute/helper runtime remains on the existing configuration. Team C must not change compute endpoint / connection settings before an explicit compute cutover PASS. After that PASS, Team C owns the J-side C connection check, helper health check, and any C-specific runtime settings verification.
+The separate katachi compute/helper runtime has completed J cutover. The live helper runs from `J:\dev\katachi-compute-helper-tray`; the existing localhost capability endpoint responds HTTP 200 with CUDA available, and the J-side C client probe reports `available:true`. No C endpoint rewrite or source-semantic change was required. Future C work should preserve the existing working connection unless a separate bounded runtime task demonstrates a need to change it.
 
 For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext interaction task. Do not auto-start the queued durability audit or any other C implementation task today unless the author explicitly reopens C work.
 
@@ -70,6 +72,9 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - C J workspace cutover PASS — `J:\dev\worktrees\skin-field-vnext-interaction-v0` at accepted HEAD, clean, with no C-linked Git metadata
 - J-side FIELD focused smoke test: 8/8 PASS
 - C J runtime bootstrap PASS — Node `v24.15.0`, npm `11.12.1`, `npm ci` PASS, FIELD focused tests 8/8, build PASS, `http://127.0.0.1:5186/skin-rebuild.html` HTTP 200, browser C/FIELD switching smoke PASS
+- compute/helper J live cutover PASS — live runtime moved to `J:\dev\katachi-compute-helper-tray`
+- compute endpoint/health PASS — `127.0.0.1:47658/v1/capabilities` HTTP 200, CUDA available
+- J-side C -> compute connection PASS — existing C client probe `available:true`; J C route HTTP 200
 
 ## FIELD vNext interaction review
 - reviewed branch: `agent/skin-field-vnext-interaction-v0`
@@ -90,7 +95,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - No Production geometry / support / export blocker for the proven near-vertical First Print regime.
 - FIELD vNext interaction blocker is CLOSED at `dad764ce...`.
 - J-side C runtime bootstrap blocker is CLOSED; normal C runtime no longer requires the old C-side path.
-- compute/helper runtime cutover remains PENDING; existing compute endpoint / connection settings must not be changed before explicit cutover PASS.
+- compute/helper migration and J-side C connection blocker is CLOSED.
 - Permanent Structure durability: `FAIL / LOCALIZED` for at least one single-attachment appendage under casual handling. Global BODY collapse was not observed.
 - Strong-overhang / cantilever generalization is UNVERIFIED; the First Physical Print must not be used as evidence that Usagi-like geometry will behave equivalently.
 - Existing Workflow Guide-derived console `NotFoundError` was observed during the FIELD task. It predates / lies outside the accepted FIELD interaction scope and is a non-blocking follow-up; do not fix it implicitly today.
@@ -100,7 +105,7 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 
 ## Next gate
 1. STOP C work for 2026-09-07.
-2. Wait for an explicit compute/helper cutover PASS before touching compute endpoint / connection settings; after PASS, Team C verifies J-side C connection, helper health, and C-specific runtime settings.
+2. On the next explicit C activation, use the existing verified J-side compute/helper connection; change runtime settings only if a separate bounded C runtime task identifies a concrete need.
 3. On the next explicit C activation, use `J:\dev\samples` for shared user-managed samples and correct any C-local `C:\dev\samples` assumptions encountered in the touched task/launcher/script/local settings.
 4. `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED for a later explicit C SOL start; it does not auto-start today.
 5. A later durability audit may determine whether a separate bounded Permanent Structure reinforcement task is justified by bridge/articulation evidence.
@@ -123,8 +128,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - bulk merge of historical feature branches
 - do not resume C work from the retained C-side worktree
 - do not delete or clean retained C-side migration originals from Team C; that remains Overall / Organization scope
-- do not change current compute endpoint / connection settings before explicit compute/helper cutover PASS
-- `J:\dev\katachi-compute-helper-tray` is staged-only until cutover; do not treat it as the live helper runtime yet
+- do not change the verified working compute endpoint / connection settings without a separate bounded task
+- do not treat `C:\dev\katachi-compute-helper-tray` as runtime authority; it is retained rollback source only
 - do not treat `C:\dev\samples` as authority for future C work
 - do not commit, rename, reorganize, or delete user-managed `J:\dev\samples` contents without explicit user instruction
 
@@ -142,7 +147,8 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - preferred J-side workspace: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
 - retained C-side workspace: `C:\dev\worktrees\skin-field-vnext-interaction-v0`
 - shared user-managed samples: `J:\dev\samples`
-- staged future compute/helper location: `J:\dev\katachi-compute-helper-tray`
+- live compute/helper workspace: `J:\dev\katachi-compute-helper-tray`
+- retained C-side compute/helper source: `C:\dev\katachi-compute-helper-tray`
 
 ## Evidence boundary
 ### Proven / supported
@@ -159,10 +165,10 @@ For 2026-09-07, C work is STOPPED after closing the authorized FIELD vNext inter
 - J-side FIELD focused smoke tests passed 8/8.
 - J-side dependency bootstrap, build, dev launch, HTTP route, and browser FIELD/BEADS/FIELD smoke all passed; normal C runtime did not require the old C-side path.
 - shared user-managed samples authority for future C work is `J:\dev\samples`.
+- compute/helper live runtime runs from `J:\dev\katachi-compute-helper-tray`; capability endpoint is healthy with CUDA available.
+- J-side C client connection to compute/helper is verified available without requiring the old C compute path.
 
 ### Not yet proven
-- compute/helper runtime cutover from the current live setup to `J:\dev\katachi-compute-helper-tray`
-- J-side C connection / helper health / C-specific runtime settings after compute cutover
 - whether every single-edge/bridge-only graph appendage is physically weak
 - whether the mirrored/opposite-side analogue will fail under the same handling
 - which exact Permanent Graph bridge/articulation candidate corresponds to the observed broken piece
