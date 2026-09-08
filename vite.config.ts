@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => ({
         hitsuji: "hitsuji.html",
         hitsujiField: "hitsuji-field.html",
         tangle: "tangle.html",
+        astraReader: "astra-reader.html",
       },
     },
   },

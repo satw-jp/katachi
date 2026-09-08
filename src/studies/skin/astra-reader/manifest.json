@@ -1,0 +1,10 @@
+{
+  "id": "astra-reader",
+  "title": "Astra Research Reader v0 (Astra Research Reader v0)",
+  "status": "active",
+  "version": "0.1.0",
+  "createdAt": "2026-09-08",
+  "updatedAt": "2026-09-08",
+  "related": ["skin"],
+  "scope": "Research-only read view; no authoring or export"
+}
