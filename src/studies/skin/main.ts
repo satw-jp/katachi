@@ -145,7 +145,6 @@ import { reshapePatchMotif } from "./motifReshape.ts";
 import { RHINO_DRAG_THRESHOLD_PX } from "./rhinoViewportControls.ts";
 import {
   chooseProgressivePreviewResolutions,
-  observationModeKeepingInternalGraphVisible,
   type InternalObservationMode,
 } from "./previewMeshBuffers.ts";
 import type { PreviewMeshRequest, PreviewMeshWorkerMessage } from "./previewMeshWorkerProtocol.ts";
@@ -6514,7 +6513,6 @@ function requestDryWebPreviewUpdate(reason: string, options: DryWebPreviewUpdate
     skinRenderer.setInternalStructure(message.graph);
     refreshInternalAngleScreening(message.graph);
     syncPhaseASupportPreviewAvailability(message.graph);
-    keepInternalGraphVisibleInMesh(message.graph);
     heavy!.updateActual("Dry Web graph構築完了", 100);
     heavy!.finish();
     if (ownsHeavy && dryWebPreviewHeavyComputation?.id === heavy!.id) dryWebPreviewHeavyComputation = null;
@@ -10378,7 +10376,7 @@ function installSkinRebuildPipelinePanel(): void {
         preservedArtworkLattice,
         preservedArtworkConnections,
       );
-      installSkinRebuildPermanentLatticePreview(pipeline.project, false);
+      installSkinRebuildPermanentLatticePreview(pipeline.project);
       const preservedArtworkCurrent = preservedArtworkLattice.edges.length > 0;
       if (skinRebuildSaveButton) skinRebuildSaveButton.disabled = !preservedArtworkCurrent;
       if (skinRebuildSaveStatus) skinRebuildSaveStatus.textContent = preservedArtworkCurrent
@@ -10397,7 +10395,6 @@ function installSkinRebuildPipelinePanel(): void {
       recommendViewportOverlay("insideOutside");
       skinRenderer.setViewMode(viewMode);
       ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-      keepInternalGraphVisibleInMesh(getInternalStructureGraph());
       const elapsed = (message.elapsedMs / 1000).toFixed(1);
       const execution = message.parallel ? `${message.workerCount}コア` : "背景Worker 1本";
       lowest.status.textContent = `危険領域 ${message.overhangRegionCount} · 赤mesh ${message.overhangFaceCount.toLocaleString()}面 / ${message.overhangAreaMm2.toFixed(1)} mm² (${message.overhangAreaPercent.toFixed(1)}%) · Pattern最下端 ${message.lowestPoints.length}点 · 蜘蛛支持 ${spiderTargets.length}点 · ${execution} · ${elapsed}秒`;
@@ -10591,7 +10588,7 @@ function installSkinRebuildPipelinePanel(): void {
     stage6BodyMeshCache = null;
     invalidateSkinRebuildFinalStages("工程5Aの蜘蛛ラティスを編集したため、工程6〜8を再実行してください");
     setSkinRebuildReinforcementPreview(null, []);
-    installSkinRebuildPermanentLatticePreview(project, true);
+      installSkinRebuildPermanentLatticePreview(project);
     invalidateInternalPrintGate("蜘蛛の巣ラティスを編集しました。工程5B〜8を再実行してください");
     refreshSkinRebuildLatticeEdgeEditor();
     // Edge ids are compacted when the graph is rebuilt. Do not let the old
@@ -10668,7 +10665,7 @@ function installSkinRebuildPipelinePanel(): void {
       stage6BodyMeshCache = null;
       invalidateSkinRebuildFinalStages("工程5Aの蜘蛛ラティスを更新したため、工程6〜8を再実行してください");
       setSkinRebuildReinforcementPreview(null, []);
-      installSkinRebuildPermanentLatticePreview(project, true);
+      installSkinRebuildPermanentLatticePreview(project);
       invalidateInternalPrintGate("蜘蛛の巣ラティスを生成しました。次に工程5Bの赤面補強と工程6〜8を実行してください");
       refreshSkinRebuildLowestPointMarkers(project);
       ui.setInternalStructureStatus(
@@ -10896,7 +10893,7 @@ function installSkinRebuildPipelinePanel(): void {
         skinRebuildReinforcedOverhangRegionIds.add(regionId);
         skinRebuildSelectedOverhangRegionIds.delete(regionId);
       }
-      installSkinRebuildPermanentLatticePreview(project, true);
+    installSkinRebuildPermanentLatticePreview(project);
       setSkinRebuildReinforcementPreview(
         message.reinforcement,
         message.reinforcement.edges.map((edge) => edge.id),
@@ -19203,7 +19200,6 @@ function installPreviewMesh(cache: NonNullable<typeof previewMeshCache>): void {
   skinRenderer.setViewLayer("mesh");
   ui.setViewLayer("mesh");
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-  keepInternalGraphVisibleInMesh(getInternalStructureGraph());
   refreshSkinViewportControls();
 }
 
@@ -19446,34 +19442,15 @@ function setInternalObservationMode(mode: InternalObservationMode): void {
   render();
 }
 
-/** Mesh preview uses an opaque fused surface in normal mode. When a Dry Web
- * is present, retain it as the cyan inspection layer by selecting the
- * existing translucent-SKIN observation mode. The author can still choose
- * normal or internal-only afterwards. */
-function keepInternalGraphVisibleInMesh(graph: InternalStructureGraph | null): boolean {
-  const nextMode = observationModeKeepingInternalGraphVisible(
-    viewMode,
-    internalObservationMode,
-    graph?.edges.length ?? 0,
-  );
-  if (nextMode === internalObservationMode) return false;
-  setInternalObservationMode(nextMode);
-  return true;
-}
-
 /** Keep the permanent cyan REBUILD graph synchronized with the original
  * editor preview. Stage 5A deliberately clears the removable orange support:
  * authors must be able to inspect the lattice before running Stage 5B. */
-function installSkinRebuildPermanentLatticePreview(
-  project: SkinRebuildProject,
-  reveal: boolean,
-): void {
+function installSkinRebuildPermanentLatticePreview(project: SkinRebuildProject): void {
   internalStructureGraph = project.finalGraph;
   internalStructureFingerprint = "";
   skinRenderer.setInternalStructure(project.finalGraph);
   skinRenderer.setPrintSupport(null);
   refreshInternalAngleScreening(project.finalGraph);
-  if (reveal) keepInternalGraphVisibleInMesh(project.finalGraph);
 }
 
 function afterMutation(opts: { skipGauges?: boolean; patchOnlyId?: number } = {}): void {

@@ -66,20 +66,6 @@ export function deriveSkinLayerVisibility(
   };
 }
 
-/** A non-empty Dry Web inside an opaque mesh would appear to vanish even
- * though it is still part of the mesh request. Promote only that transition
- * to the existing ghost-SKIN observation mode; explicit ghost/internal-only
- * choices and empty graphs are left untouched. */
-export function observationModeKeepingInternalGraphVisible(
-  viewMode: PreviewSelectionView,
-  observationMode: InternalObservationMode,
-  internalEdgeCount: number,
-): InternalObservationMode {
-  return viewMode === "mesh" && observationMode === "normal" && internalEdgeCount > 0
-    ? "ghostSkin"
-    : observationMode;
-}
-
 /** Selected source-bead wire presentation by viewport mode. Bead view keeps
  * the established strong 1.2x selection outline; mesh view uses an almost
  * exact envelope with a small lift to prevent the wire from z-fighting with

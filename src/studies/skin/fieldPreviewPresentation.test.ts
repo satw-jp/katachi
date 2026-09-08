@@ -38,7 +38,10 @@ test("interaction keeps FIELD in a low-resolution target and restores exact prev
     layer: "field", backend: "vnext", interactionActive: true, interactionProxyAvailable: false, interactiveFieldAvailable: false,
   }), { legacy: false, vnext: true, interactionProxy: false, interactiveField: false });
   assert.equal(fieldInteractiveTargetSize(1600, 900).width, Math.ceil(1600 * FIELD_INTERACTION_RENDER_SCALE));
-  assert.deepEqual(fieldInteractiveTargetSize(320, 180), { width: 96, height: 64 });
+  assert.deepEqual(fieldInteractiveTargetSize(1600, 900, 1.5), { width: 600, height: 338 });
+  assert.deepEqual(fieldInteractiveTargetSize(320, 180), { width: 114, height: 64 });
+  const smallTarget = fieldInteractiveTargetSize(320, 180);
+  assert.ok(Math.abs(smallTarget.width / smallTarget.height - 320 / 180) < 0.01, "minimum target size keeps the viewport aspect");
 });
 
 test("five FIELD to BEADS transitions keep both FIELD presentations hidden", () => {

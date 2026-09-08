@@ -5329,9 +5329,13 @@ export class SkinRenderer {
     this.requestViewportRender();
   }
 
-  private ensureFieldInteractiveRenderTarget(width: number, height: number): THREE.WebGLRenderTarget | null {
+  private ensureFieldInteractiveRenderTarget(
+    width: number,
+    height: number,
+    pixelRatio: number,
+  ): THREE.WebGLRenderTarget | null {
     if (!this.fieldInteractiveAvailable) return null;
-    const size = fieldInteractiveTargetSize(width, height);
+    const size = fieldInteractiveTargetSize(width, height, pixelRatio);
     try {
       if (!this.fieldInteractiveRenderTarget) {
         this.fieldInteractiveRenderTarget = new THREE.WebGLRenderTarget(size.width, size.height, {
@@ -5362,7 +5366,11 @@ export class SkinRenderer {
     rect: { x: number; y: number; width: number; height: number },
     canvasHeight: number,
   ): boolean {
-    const target = this.ensureFieldInteractiveRenderTarget(rect.width, rect.height);
+    const target = this.ensureFieldInteractiveRenderTarget(
+      rect.width,
+      rect.height,
+      this.renderer.getPixelRatio(),
+    );
     if (!target) {
       this.applyLayerVisibility();
       return false;

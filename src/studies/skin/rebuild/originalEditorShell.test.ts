@@ -227,8 +227,7 @@ assert.match(main, /Generate \/ Update Support/);
 assert.match(main, /Details · Support diagnostics/);
 assert.match(main, /Stage 6\.5 \+ Stage 7 support evidence/);
 assert.match(main, /Support could not be generated/);
-assert.match(main, /keepInternalGraphVisibleInMesh\(message\.graph\)/, "Dry Web completion must preserve the graph in an already-active mesh view");
-assert.match(main, /keepInternalGraphVisibleInMesh\(getInternalStructureGraph\(\)\)/, "mesh installation must preserve an existing Dry Web");
+assert.doesNotMatch(main, /keepInternalGraphVisibleInMesh|observationModeKeepingInternalGraphVisible/, "primary MESH must not auto-promote normal/solid to Ghost for an internal graph");
 assert.match(
   main,
   /const rebuildGraphIsObservable = isSkinRebuildApp[\s\S]*?project\?\.finalGraph\.edges\.length/,
@@ -236,12 +235,12 @@ assert.match(
 );
 assert.match(
   main,
-  /function installSkinRebuildPermanentLatticePreview[\s\S]*?setInternalStructure\(project\.finalGraph\)[\s\S]*?setPrintSupport\(null\)[\s\S]*?keepInternalGraphVisibleInMesh\(project\.finalGraph\)/,
-  "Stage 5A must reveal the permanent cyan lattice before separate print support exists",
+  /function installSkinRebuildPermanentLatticePreview[\s\S]*?setInternalStructure\(project\.finalGraph\)[\s\S]*?setPrintSupport\(null\)/,
+  "Stage 5A must keep the permanent lattice data synchronized without changing the primary mesh style",
 );
 assert.match(
   main,
-  /skinRebuildPipeline\.project = project;[\s\S]{0,300}?installSkinRebuildPermanentLatticePreview\(project, true\)/,
+  /skinRebuildPipeline\.project = project;[\s\S]{0,300}?installSkinRebuildPermanentLatticePreview\(project\)/,
   "each Stage 5A build must reinstall its current lattice preview",
 );
 assert.match(main, /new Worker\(new URL\("\.\/rebuild\/lowestPoint\.worker\.ts"/);
