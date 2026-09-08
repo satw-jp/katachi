@@ -18,7 +18,7 @@ Last verified: 2026-09-08
 - View Representation Continuity implementation checkpoint: `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`
 - View Representation Continuity Fix 1 accepted checkpoint: `77f121cda5d60a2e443a994c00a05c7630417c15`
 - View Representation Continuity Fix 2 structural checkpoint: `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
-- View Representation Continuity Fix 3 structural checkpoint: `59ebb3cfb781442a1583509d5e8b5ea40120ff94`
+- View Representation Continuity Fix 3 accepted checkpoint: `59ebb3cfb781442a1583509d5e8b5ea40120ff94`
 
 ## Local/runtime authority
 - C J workspace authority: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -31,7 +31,9 @@ Last verified: 2026-09-08
 ## Current phase
 Runtime Status + Progressive FIELD v0 remains PASS / CLOSED.
 
-View Representation Continuity architecture remains accepted:
+View Representation Continuity v0 is PASS / CLOSED at `59ebb3cfb781442a1583509d5e8b5ea40120ff94` after final author visual confirmation.
+
+Accepted representation model:
 - primary continuum: `BEADS · Fast -> MESH · Surface -> FIELD · Exact`;
 - secondary group: `GRAPH / DIAGNOSTICS / PRINT PREVIEW`;
 - primary MESH is current authoring preview mesh, not Stage 6 / Opening Map / Export authority;
@@ -39,60 +41,38 @@ View Representation Continuity architecture remains accepted:
 - camera-only changes do not rebuild MESH;
 - authoring mutations invalidate MESH;
 - leaving MESH cancels only the active preview worker and preserves valid cache;
+- late preview completion cannot steal a newer secondary view selection;
+- primary MESH normal/solid remains opaque and does not auto-promote to `ghostSkin` merely because an internal graph exists;
+- explicit Ghost remains available;
+- FIELD interaction may drop to a coarse offscreen presentation, but framing stays stable and release resumes idle refinement;
 - Production / Support / FIELD semantic / FKEI / Export / 3MF / Stage 6 authority remain unchanged.
 
-### Fix 2 status
-MESH normal/Ghost correction is accepted structurally:
-- legacy auto-promotion from normal MESH to `ghostSkin` was removed;
-- primary MESH no longer becomes translucent merely because an internal graph exists;
-- explicit Ghost remains available;
-- broader internal-structure visibility remains DEFERRED.
-
-FIELD framing portion of Fix 2 failed author visual confirmation and is superseded by Fix 3.
-
-### Fix 3 direct SOL review
+### Fix 3 closure
 Candidate: `agent/skin-view-representation-continuity-v0` / `59ebb3cfb781442a1583509d5e8b5ea40120ff94`
 Parent: `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
-Remote branch HEAD confirmed at `59ebb3cf...`.
 
-Exact diff scope:
-- `src/studies/skin/renderer.ts`: one runtime deletion only;
-- `src/studies/skin/README.md`: observation record;
-- `src/studies/skin/manifest.json`: version / observation record.
-
-Diagnosis:
+Root cause:
 - direct coarse FIELD kept correct framing;
 - offscreen target was `407×230`;
 - with renderer pixel ratio about `1.5`, the explicit `setViewport(0,0,target.width,target.height)` after `setRenderTarget(target)` produced an actual GL viewport about `611×345` while the offscreen target/scissor remained `407×230`;
-- only a subregion of the target was therefore rendered and then enlarged during upscale;
+- only a subregion of the target was rendered and then enlarged during upscale;
 - camera projection and FIELD payload were unchanged.
 
-Fix 3 removes only the redundant explicit render-target viewport call and relies on Three.js `setRenderTarget(target)` to install the target-owned viewport. No camera/model scale, FIELD SDF/payload, Production, Support, Export, Stage 6, MESH architecture, or structure visibility semantics changed.
+Fix:
+- removed only the redundant explicit render-target viewport call;
+- Three.js `setRenderTarget(target)` now owns the target viewport;
+- no camera/model scale, FIELD SDF/payload, Production, Support, Export, Stage 6, MESH architecture, or structure visibility semantics changed.
 
-Reported worker evidence:
-- 5 rotate starts: PASS;
-- 4-view rotate: PASS;
-- FIELD -> BEADS -> FIELD: PASS;
-- no framing jump / magnification / crop;
-- tests / typecheck / build / diff check / console: PASS;
-- deploy intentionally not run.
-
-C SOL verdict:
-- Fix 3 source/scope: STRUCTURAL PASS;
-- root-cause evidence: PASS;
-- Production / Support / FIELD semantic / Export / Stage 6 boundary: PASS;
-- final FIELD framing status: AUTHOR VISUAL HOLD because the previous worker browser gate did not reproduce the actual author-browser failure.
+Evidence:
+- worker: 5 rotate starts PASS, 4-view rotate PASS, FIELD -> BEADS -> FIELD PASS, tests/typecheck/build/diff/console PASS;
+- author: final visual confirmation PASS on the actual author browser; rotate no longer magnifies/crops/jumps framing.
 
 ## Active implementation instruction
 - NONE.
-- Do not modify code before author visual confirmation.
-- Author verifies on `59ebb3cf...` only:
-  1. settled FIELD -> begin rotate: coarse FIELD may appear but framing must not magnify/crop/jump;
-  2. keep rotating and release: camera follows and idle refinement returns;
-  3. FIELD -> BEADS -> FIELD still behaves normally.
-- 4-view is optional for author confirmation because worker already exercised it.
-- If these pass, C SOL closes Fix 3 and View Representation Continuity v0 with no further implementation.
-- If they fail, scope only the exact remaining FIELD presentation defect.
+- Do not start another C implementation task automatically from this closure.
+- broader internal-structure visibility across BEADS / MESH / FIELD remains DEFERRED.
+- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED and should start after current Astra work when explicitly requested.
+- Usagi / strong-overhang validation remains later explicit scope.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -106,8 +86,9 @@ C SOL verdict:
 - Runtime Status + Progressive FIELD v0 PASS / CLOSED
 - Viewport Input / Redraw Diagnostic v1 PASS / CLOSED
 - View Representation Continuity architecture + Fix 1 PASS
-- MESH normal/Ghost portion of Fix 2: structural PASS
-- Fix 3 source/root-cause review: STRUCTURAL PASS
+- MESH normal/Ghost correction PASS
+- FIELD offscreen framing Fix 3 PASS
+- View Representation Continuity v0 PASS / CLOSED at `59ebb3cf...`
 
 ## Remaining follow-up / evidence boundaries
 - Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED and scheduled after current Astra work when explicitly started.
@@ -145,5 +126,11 @@ C SOL verdict:
 - `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 
 ## Next gate
-Author visual confirmation only on `59ebb3cf...`. No C implementation task is active.
+No C implementation gate is active.
+
+Priority order:
+1. Finish the currently active Astra work.
+2. Then, when explicitly started, run `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`.
+3. Keep UI work observation-driven; scope only concrete defects reported by the author.
+
 Do not auto-start durability, structure redesign, Usagi, Outside->Outside Support, External STL Host, or another UI task.
