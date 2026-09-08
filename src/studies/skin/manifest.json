@@ -2,9 +2,9 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.93.1",
+  "version": "0.93.2",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-07",
+  "updatedAt": "2026-09-08",
   "params": [
     "count",
     "radiusBase",
@@ -1220,6 +1220,10 @@
     {
       "date": "2026-09-04",
       "note": "SKIN Golden Support Physical Feedback v1 keeps current Stage 8 sparseResult.graph as the sole source and adds session-only unbraced-length measurement, minimal nearby mutual braces, and evidence-based point/crown/critical patch-candidate contact tiers. Default interface values are maxUnbracedLengthMm 18 (provisional observation), tip diameter 0.60 mm, neck length 0.60 mm and contact gap 0; critical patch candidates are non-exportable and no FKEI/schema or Permanent Reinforcement change is made. Browser fixture physical feedback measured 132 supported / 19 unresolved, 537 nodes / 370 edges, 35 braces and BODY/plate/invalid/zero/duplicate/extreme safety counts 0; the prior 166/156/10 and 546/390 result remains the frozen PRE-PHYSICAL-PRINT GOLDEN BASELINE. Comparison 3MF output uses the same current Stage 8 graph; manual Bambu/Prusa slicer inspection remains waiting and printApproval remains false."
+    },
+    {
+      "date": "2026-09-08",
+      "note": "View Representation Continuity v0 Fix 3 isolates and fixes FIELD interaction framing. Direct coarse FIELD was stable while the offscreen route used a 407×230 target but applied a 611×345 GL viewport at renderer pixel ratio 1.5, with scissor still 407×230; camera projection and FIELD payload were unchanged. The redundant target viewport call was removed so Three.js retains the render target's physical viewport. Five rotate starts, 4-view interaction and FIELD→BEADS→FIELD showed no magnification/crop/framing jump at the author-equivalent renderer scale. No FIELD SDF/payload, camera/model scale, Production, Support, Export or MESH structure changed; deploy is deferred until review."
     }
   ]
 }

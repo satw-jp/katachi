@@ -1,5 +1,11 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — View Representation Continuity v0 Fix 3 FIELD offscreen framing（2026-09-08）
+
+同一Stage 2 Sample・同一camera・同一coarse march stepで、通常viewportへ直接描画するA/Bと、低解像度WebGLRenderTargetからupscaleするA/Bを比較した。renderer pixel ratio 1.5相当では、offscreen targetが407×230のとき、修正前の明示`setViewport(target.width, target.height)`が実GL viewportを611×345へ拡大し、scissorだけ407×230に残っていた。direct coarseはdrawing buffer 1626×918を正しく使い、camera projectionも一致したため、原因はFIELD/cameraではなくrender-target viewportへのDPR二重適用と確定した。
+
+`setRenderTarget(target)`が設定するtarget固有viewportをそのまま使い、重複する明示viewport指定だけを除去した。DPR 1.5相当で5回のrotate、4ビューrotate、FIELD→BEADS→FIELDを実ブラウザ確認し、coarse化しても拡大・crop・quadrant化・framing jumpは再現しなかった。FIELD SDF、payload、camera/model scale、Production、Support、Export、MESH構造は変更していない。C SOL review前のためdeployは行っていない。
+
 ## Observation — Workflow Guide viewport sizing regression（2026-09-03）
 
 右WORKFLOWのGuideは既存の`max-height: 50vh` / `overflow-y: auto`契約を維持したまま、右ペインのDOMをGuideと下側領域へ分離した。親のflex / overflow競合で下側のStage / Propertiesが押し出されていたため、下側のPrint準備とPropertiesも独立スクロール領域として残り高さを共有する。小さいviewport、1920×1080、通常サイズ、resize後の実ブラウザ計測でGuide高さ、内部scroll、下側領域の可視性を数値確認した。geometry、Support、Stage 8、export、3MF / STL / report parity、f542f84d384fcdda30a815ddfb7b8162af1cf4f1の印刷基準は変更しない。

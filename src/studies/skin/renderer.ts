@@ -5381,7 +5381,6 @@ export class SkinRenderer {
     try {
       this.renderer.setRenderTarget(target);
       this.renderer.setScissorTest(false);
-      this.renderer.setViewport(0, 0, target.width, target.height);
       this.renderer.clear(true, true, true);
       this.renderer.render(this.fieldInteractiveScene, this.fieldInteractiveCamera);
       this.renderer.setRenderTarget(null);
