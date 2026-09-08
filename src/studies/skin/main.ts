@@ -2139,74 +2139,41 @@ function skinViewportOverlayAvailability(): SkinViewportOverlayAvailabilityMap {
   };
 }
 
-type SkinMeshViewCandidate = SkinViewLayerAvailability & {
-  kind: "buffers" | "opening-map";
-  positions?: Float32Array;
-  normals?: Float32Array;
-};
-
-function bestAvailableSkinMeshCandidate(): SkinMeshViewCandidate | null {
-  const currentGraph = getInternalStructureGraph();
-  const currentFingerprint = currentGraph?.edges.length
-    ? internalPrintGateFingerprint(ui.getMeshOptions(), currentGraph)
-    : "";
-  const stage6Current = stage6BodyMeshCache !== null && (
-    currentSkinRebuildTopologyCache() !== null
-    || (currentFingerprint.length > 0 && stage6BodyMeshCache.fingerprint === currentFingerprint)
-  );
-  if (stage6Current && stage6BodyMeshCache) {
+function authoringPreviewMeshAvailability(): SkinViewLayerAvailability {
+  if (activePreviewMeshWorker) {
     return {
-      kind: "buffers",
-      positions: stage6BodyMeshCache.positions,
-      normals: stage6BodyMeshCache.normals,
-      status: "current",
-      source: "Stage 6 · current",
-      reason: "Final BODY mesh is available",
-    };
-  }
-  if (stage6BodyMeshCache) {
-    return {
-      kind: "buffers",
-      positions: stage6BodyMeshCache.positions,
-      normals: stage6BodyMeshCache.normals,
-      status: "stale",
-      source: "Cached Stage 6 · stale",
-      reason: "Cached BODY mesh is available",
+      status: "partial",
+      source: "Authoring preview · building",
+      reason: previewMeshCache?.generation === previewMeshGeneration
+        ? "Current coarse MESH is visible while the preview refines"
+        : "Coarse MESH is being generated from the current Host / Patch",
     };
   }
   if (previewMeshCache?.generation === previewMeshGeneration) {
     return {
-      kind: "buffers",
-      positions: previewMeshCache.positions,
-      normals: previewMeshCache.normals,
-      status: "partial",
-      source: "Preview · current",
+      status: "current",
+      source: "Authoring preview · current",
       reason: `${previewMeshCache.faceCount.toLocaleString()} faces available`,
     };
   }
-  if (previewMeshCache) {
+  const hasAuthoringSource = state.host.length > 0 || state.patches.length > 0;
+  if (hasAuthoringSource) {
     return {
-      kind: "buffers",
-      positions: previewMeshCache.positions,
-      normals: previewMeshCache.normals,
-      status: "stale",
-      source: "Preview · stale",
-      reason: `${previewMeshCache.faceCount.toLocaleString()} faces from an earlier shape`,
-    };
-  }
-  if (openingMapResult?.meshTriangles.length) {
-    return {
-      kind: "opening-map",
       status: "partial",
-      source: "Opening preview · current",
-      reason: "Preview measurement mesh is available",
+      source: "Authoring preview · ready",
+      reason: "Selecting MESH starts a coarse preview, then refines it",
     };
   }
-  return null;
+  return {
+    status: "unavailable",
+    source: "No authoring preview",
+    reason: "Open or create a Host / Patch shape",
+    actionLabel: "Build Preview",
+  };
 }
 
 function skinViewLayerAvailability(): Readonly<Record<SkinViewLayerId, SkinViewLayerAvailability>> {
-  const mesh = bestAvailableSkinMeshCandidate();
+  const mesh = authoringPreviewMeshAvailability();
   const generatedGraphLayers = skinRenderer.getGraphViewLayers().filter((layer) => layer.graph !== null).length;
   const graphStatus = generatedGraphLayers === 0
     ? "unavailable" as const
@@ -2236,12 +2203,7 @@ function skinViewLayerAvailability(): Readonly<Record<SkinViewLayerId, SkinViewL
       source: generatedGraphLayers > 0 ? `Graph layers · ${generatedGraphLayers}/${skinRenderer.getGraphViewLayers().length}` : "No graph",
       reason: generatedGraphLayers > 0 ? "Generated layers can be inspected" : "Graph layers are not generated",
     },
-    mesh: mesh ?? {
-      status: "unavailable",
-      source: "No mesh",
-      reason: "No displayable mesh is available",
-      actionLabel: "Build Preview",
-    },
+    mesh,
     diagnostics: {
       status: finalDiagnosisCurrent ? "current" : hasDiagnosis ? "stale" : "unavailable",
       source: finalDiagnosisCurrent ? "Stage 7 · current" : hasDiagnosis ? "Stage 7 · stale" : "Diagnostics",
@@ -2664,7 +2626,7 @@ const ui = buildUi(app, state.hostParams, state.skinParams, state.mode, manifest
     }
     afterMutation({ skipGauges: true });
   },
-  onSetViewMode: (mode) => setViewMode(mode, "user"),
+  onSetViewMode: (mode) => mode === "mesh" ? setViewLayer("mesh") : setViewMode(mode, "user"),
   onSetFieldPreviewBackend: (backend: FieldPreviewBackend) => {
     const status = skinRenderer.setFieldPreviewBackend(backend);
     ui.setFieldPreviewBackendStatus(status);
@@ -19238,6 +19200,8 @@ function installPreviewMesh(cache: NonNullable<typeof previewMeshCache>): void {
   skinRenderer.setMeshOverlayBuffers(cache.positions, cache.normals);
   viewMode = "mesh";
   skinRenderer.setViewMode(viewMode);
+  skinRenderer.setViewLayer("mesh");
+  ui.setViewLayer("mesh");
   ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
   keepInternalGraphVisibleInMesh(getInternalStructureGraph());
   refreshSkinViewportControls();
@@ -19360,27 +19324,27 @@ function startPreviewMeshBuild(): void {
 
 type ViewportModeChangeSource = "user" | "recommended" | "system";
 
-function installBestAvailableSkinMeshForView(): SkinMeshViewCandidate | null {
-  const candidate = bestAvailableSkinMeshCandidate();
-  if (!candidate) return null;
-  if (candidate.kind === "buffers" && candidate.positions && candidate.normals) {
-    skinRenderer.setMeshOverlayBuffers(candidate.positions, candidate.normals);
-  } else if (candidate.kind === "opening-map" && openingMapResult) {
-    skinRenderer.setMeshOverlay(openingMapResult.meshTriangles);
+function selectAuthoringPreviewMesh(): void {
+  activeViewLayer = "mesh";
+  skinRenderer.setMeshOverlay(null);
+  skinRenderer.setViewLayer("mesh");
+  ui.setViewLayer("mesh");
+  refreshSkinViewportControls();
+  if (state.host.length === 0 && state.patches.length === 0) {
+    ui.setMeshPreviewStatus("Authoring preview unavailable · Host / Patchがありません");
+    render();
+    return;
   }
-  viewMode = "mesh";
-  skinRenderer.setViewMode(viewMode);
-  ui.setViewMode(viewMode, totalPatchPoints(), state.skinParams.coinBulge);
-  ui.setMeshPreviewStatus(`${candidate.source} · ${candidate.reason}`);
-  return candidate;
+  startPreviewMeshBuild();
+  render();
 }
 
 function setViewLayer(layer: SkinViewLayerId): void {
   activeViewLayer = layer;
   if (layer === "field") setViewMode("raymarch", "user");
   else if (layer === "beads") setViewMode("beads", "user");
+  else if (layer === "mesh") selectAuthoringPreviewMesh();
   else {
-    if (layer === "mesh") installBestAvailableSkinMeshForView();
     skinRenderer.setViewLayer(layer);
     ui.setViewLayer(layer);
     refreshSkinViewportControls();

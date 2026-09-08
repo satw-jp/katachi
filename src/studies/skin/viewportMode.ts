@@ -1,15 +1,14 @@
 export const SKIN_VIEWPORT_VIEWS = ["beads", "field", "mesh"] as const;
 export type SkinViewportView = (typeof SKIN_VIEWPORT_VIEWS)[number];
 
+export const SKIN_PRIMARY_VIEW_LAYERS = ["beads", "mesh", "field"] as const;
+export const SKIN_SECONDARY_VIEW_LAYERS = ["graph", "diagnostics", "print-preview"] as const;
+
 /** Presentation-only top-level layers. Selecting one must not run a worker,
  * advance a Stage, regenerate support, or write an FKEI. */
 export const SKIN_VIEW_LAYERS = [
-  "beads",
-  "field",
-  "graph",
-  "mesh",
-  "diagnostics",
-  "print-preview",
+  ...SKIN_PRIMARY_VIEW_LAYERS,
+  ...SKIN_SECONDARY_VIEW_LAYERS,
 ] as const;
 export type SkinViewLayerId = (typeof SKIN_VIEW_LAYERS)[number];
 

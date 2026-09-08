@@ -39,6 +39,7 @@ import type {
 } from "./renderer.ts";
 import type { ComputeRuntimeStatus } from "./computeRuntimeStatus.ts";
 import {
+  SKIN_PRIMARY_VIEW_LAYERS,
   SKIN_VIEW_LAYERS,
   SKIN_VIEWPORT_OVERLAYS,
   type SkinViewLayerId,
@@ -2730,6 +2731,23 @@ export function buildUi(
 
   const viewToggle = document.createElement("div");
   viewToggle.className = "mode-toggle viewport-view-toggle viewport-view-layer-toggle";
+  viewToggle.dataset.group = "primary-representation";
+  const secondaryViewToggle = document.createElement("div");
+  secondaryViewToggle.className = "mode-toggle viewport-view-toggle viewport-view-layer-toggle viewport-view-secondary-toggle";
+  secondaryViewToggle.dataset.group = "secondary-inspect-output";
+  const viewGroups = document.createElement("div");
+  viewGroups.className = "viewport-view-groups";
+  const primaryViewGroup = document.createElement("section");
+  primaryViewGroup.className = "viewport-view-group viewport-view-primary-group";
+  const primaryViewGroupTitle = document.createElement("strong");
+  primaryViewGroupTitle.textContent = "FORM / REPRESENTATION";
+  const secondaryViewGroup = document.createElement("section");
+  secondaryViewGroup.className = "viewport-view-group viewport-view-secondary-group";
+  const secondaryViewGroupTitle = document.createElement("strong");
+  secondaryViewGroupTitle.textContent = "INSPECT / OUTPUT";
+  primaryViewGroup.append(primaryViewGroupTitle, viewToggle);
+  secondaryViewGroup.append(secondaryViewGroupTitle, secondaryViewToggle);
+  viewGroups.append(primaryViewGroup, secondaryViewGroup);
   const viewLayerButtons: Record<SkinViewLayerId, HTMLButtonElement> = {} as Record<SkinViewLayerId, HTMLButtonElement>;
   const viewLayerStatuses: Record<SkinViewLayerId, HTMLElement> = {} as Record<SkinViewLayerId, HTMLElement>;
   const viewLayerAvailability: Record<SkinViewLayerId, SkinViewLayerAvailability> = {} as Record<SkinViewLayerId, SkinViewLayerAvailability>;
@@ -2741,13 +2759,19 @@ export function buildUi(
     diagnostics: "DIAGNOSTICS",
     "print-preview": "PRINT PREVIEW",
   };
+  const VIEW_LAYER_CUES: Partial<Record<SkinViewLayerId, string>> = {
+    beads: "Fast",
+    mesh: "Surface",
+    field: "Exact",
+  };
+  const primaryViewLayerSet = new Set<SkinViewLayerId>(SKIN_PRIMARY_VIEW_LAYERS);
   for (const layer of SKIN_VIEW_LAYERS) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.dataset.viewLayer = layer;
     btn.setAttribute("aria-pressed", "false");
     const label = document.createElement("span");
-    label.textContent = VIEW_LAYER_LABELS[layer];
+    label.textContent = `${VIEW_LAYER_LABELS[layer]}${VIEW_LAYER_CUES[layer] ? ` · ${VIEW_LAYER_CUES[layer]}` : ""}`;
     const status = document.createElement("small");
     status.className = "viewport-view-layer-status";
     status.textContent = "○ unavailable";
@@ -2760,7 +2784,7 @@ export function buildUi(
       source: "not prepared",
       reason: "Not prepared",
     };
-    viewToggle.appendChild(btn);
+    (primaryViewLayerSet.has(layer) ? viewToggle : secondaryViewToggle).appendChild(btn);
   }
 
   const fieldBackendControl = document.createElement("section");
@@ -3041,7 +3065,7 @@ export function buildUi(
     callbacks.onPreviewMeshResolutionChange(value);
   };
   quickResolutionRow.appendChild(quickResolutionInput);
-  viewDock.append(viewToggle, fieldBackendControl, graphViewPanel, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus, meshViewAction);
+  viewDock.append(viewGroups, fieldBackendControl, graphViewPanel, overlayRow, displayStyleToggle, quickResolutionRow, meshPreviewStatus, meshViewAction);
   const viewportElement = container.querySelector("#viewport") ?? container;
   renderViewLayerAvailability(viewLayerAvailability);
 
@@ -3573,7 +3597,7 @@ export function buildUi(
           ? " ⚠ Beadsは生のPatchPoint球をそのまま描くため、コインのふくらみ（shell clippingの差）を正しく表しません。ふくらみ比較には「Mesh」を使ってください。"
           : "");
     } else {
-      viewCaption.textContent = "Mesh: Stage 6で確定したtriangle meshを表示します。印刷・書き出しは別の検査経路です。";
+      viewCaption.textContent = "Mesh: current Host / Patchから作るauthoring preview surface。Stage 6 / Opening Map / exportとは別の表示です。";
     }
     renderDryWebGraphViewButtons();
   }
@@ -3583,7 +3607,7 @@ export function buildUi(
       ...viewLayerAvailability,
       mesh: {
         status: available ? "current" : "unavailable",
-        source: available ? "Stage 6 · current" : "No mesh",
+        source: available ? "Authoring preview · current" : "No authoring preview",
         reason,
         actionLabel: available ? undefined : "Build Preview",
       },
