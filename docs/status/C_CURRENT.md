@@ -14,13 +14,10 @@ Last verified: 2026-09-08
 - Production 3MF SHA-256: `bbc0af54bb6f038e61f211666a7a4378785cf2b6b106f9771acbbe5c96587e1c`
 - UI IA v0A evidence checkpoint: `c64cf091b1c66294ca885759e5a5a9069eb398af`
 - FIELD vNext Interaction Correctness accepted checkpoint: `dad764ce7e410b0c1751a5d8ed52c2dcd13ba453`
-- Progressive FIELD implementation checkpoint: `a1596883e9772da144f54ec29aa8dd0339e4bbf5`
-- Progressive FIELD dense-gate evidence checkpoint: `1d473146d6c9364f84d2435a64efb4175bc057f1`
-- Progressive FIELD Fix 2 structural checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
-- viewport FIELD-progression guard checkpoint: `f4baeca950204e0d80e5a5da01441b17764c489a`
 - viewport input/redraw baseline accepted checkpoint: `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`
 - View Representation Continuity v0 implementation checkpoint: `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`
-- View Representation Continuity v0 accepted checkpoint: `77f121cda5d60a2e443a994c00a05c7630417c15`
+- View Representation Continuity Fix 1 accepted checkpoint: `77f121cda5d60a2e443a994c00a05c7630417c15`
+- View Representation Continuity Fix 2 structural checkpoint: `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
 
 ## Local/runtime authority
 - C J workspace authority: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -33,62 +30,62 @@ Last verified: 2026-09-08
 ## Current phase
 Runtime Status + Progressive FIELD v0 remains PASS / CLOSED.
 
-View Representation Continuity v0 remains accepted at `77f121cda5d60a2e443a994c00a05c7630417c15`, but author use immediately exposed two bounded presentation defects. Fix 2 is ACTIVE and does not reopen the accepted representation architecture.
-
-Accepted representation model remains:
-- primary author-facing continuum: `BEADS · Fast -> MESH · Surface -> FIELD · Exact`;
+View Representation Continuity architecture remains accepted:
+- primary continuum: `BEADS · Fast -> MESH · Surface -> FIELD · Exact`;
 - secondary group: `GRAPH / DIAGNOSTICS / PRINT PREVIEW`;
-- primary MESH means current authoring preview mesh from the current Host / Patch state, not Stage 6 / Opening Map / Export authority;
-- existing progressive preview-mesh worker path is reused: coarse result first, then refined result;
-- current preview cache is reusable on re-entry;
-- camera-only interaction does not regenerate MESH;
-- authoring mutation invalidates preview generation;
-- MESH departure cancels only any active preview worker and preserves valid current cache;
-- late worker completion cannot steal a newer GRAPH / DIAGNOSTICS / PRINT PREVIEW selection;
+- primary MESH is current authoring preview mesh, not Stage 6 / Opening Map / Export authority;
+- coarse -> refined preview mesh path reuses the existing worker;
+- camera-only changes do not rebuild MESH;
+- authoring mutations invalidate MESH;
+- leaving MESH cancels only the active preview worker and preserves valid cache;
 - Production / Support / FIELD semantic / FKEI / Export / 3MF / Stage 6 authority remain unchanged.
 
-### New author evidence — 2026-09-08
+### Fix 2 direct SOL review
+Candidate: `agent/skin-view-representation-continuity-v0` / `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
+Parent: `77f121cda5d60a2e443a994c00a05c7630417c15`
+Remote/local reported MATCH; GitHub remote branch HEAD confirmed at `8884f12...`.
 
-1. FIELD interaction framing bug:
-   - settled FIELD looks correct;
-   - beginning view-rotate can show an enlarged / cropped / over-upscaled coarse FIELD frame;
-   - continuing the rotation returns to expected framing;
-   - coarse interaction may be low-resolution, but framing must never jump.
+Diff scope is one commit and presentation/runtime files/tests only:
+- `src/studies/skin/fieldPreviewPresentation.ts` + focused test
+- `src/studies/skin/renderer.ts`
+- `src/studies/skin/main.ts`
+- `src/studies/skin/previewMeshBuffers.ts`
+- authoring/original-shell tests
 
-2. MESH normal-style bug:
-   - selecting primary MESH while UI says normal/solid can show a translucent Ghost-like surface;
-   - toggling Ghost and then normal restores opaque MESH.
+FIELD framing fix:
+- interactive FIELD render target now accounts for renderer device pixel ratio;
+- target width/height are scaled by one common factor so viewport aspect ratio is preserved;
+- the low-resolution target remains presentation-only; camera projection/FIELD SDF/payload semantics are unchanged.
 
-3. Internal-structure observation:
-   - MESH currently exposes internal structure while BEADS/FIELD do not;
-   - broader structure visibility will change later and is DEFERRED.
+MESH style fix:
+- legacy `observationModeKeepingInternalGraphVisible()` auto-promotion was removed;
+- primary MESH no longer switches normal/solid to `ghostSkin` merely because an internal graph exists;
+- explicit Ghost / internal inspection modes remain available;
+- permanent/internal graph data synchronization remains intact; only automatic presentation promotion was removed.
 
-C SOL root-cause finding for MESH style:
-- `keepInternalGraphVisibleInMesh()` still uses the legacy inspection rule `observationModeKeepingInternalGraphVisible(...)`;
-- when `viewMode === "mesh"`, observation mode is normal, and internal edges exist, that rule automatically promotes to `ghostSkin`;
-- this explains both the unexpected translucent MESH and why internal structure appears specifically through MESH;
-- that automatic promotion conflicts with the new primary authoring-MESH role and should be removed from the primary MESH path while explicit Ghost/internal inspection facilities remain available.
+Reported worker evidence:
+- FIELD 1-view / 4-view interaction framing browser QA PASS;
+- MESH normal/Ghost switching PASS;
+- console errors 0;
+- focused tests / typecheck / build / diff check PASS;
+- an existing `originalEditorShell.test.ts` baseline mismatch is reported separately; Fix 2 does update assertions that intentionally encoded the removed auto-Ghost behavior, but unrelated remaining baseline drift is not part of this visual gate.
 
-FIELD framing root cause is not yet proven. The current interactive FIELD path renders the same shader/material into a reusable low-resolution `WebGLRenderTarget` (`FIELD_INTERACTION_RENDER_SCALE = 0.25`) and upscales it. The browser diagnosis must distinguish CSS viewport coordinates, renderer pixel ratio/drawing-buffer coordinates, target dimensions, scissor/viewport restoration, and first-frame camera/projection timing before making a fix.
+C SOL verdict:
+- source/scope: STRUCTURAL PASS;
+- Production / Support / FIELD semantic / Export / Stage 6 boundary: PASS;
+- final Fix 2 status: AUTHOR VISUAL HOLD.
 
 ## Active implementation instruction
-- owner: C SOL -> C LUNA
-- task: `View Representation Continuity v0 Fix 2 — FIELD interaction scale + MESH normal style`
-- spec: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX2_FIELD_SCALE_AND_MESH_STYLE.md`
-- continue from branch: `agent/skin-view-representation-continuity-v0`
-- continue from checkpoint: `77f121cda5d60a2e443a994c00a05c7630417c15`
-- execution: J-side only
-- diagnostic-first for FIELD framing; do not guess the scale/crop cause
-
-Fix 2 required outcomes:
-1. beginning FIELD rotate/pan/zoom may reduce resolution but must preserve exact settled framing;
-2. no first-frame magnification/crop jump in 1-view or 4-view;
-3. release still resumes accepted refinement;
-4. primary MESH in normal/solid remains opaque and does not auto-promote to Ghost merely because internal Graph exists;
-5. explicit Ghost remains functional;
-6. broader internal-structure visibility redesign remains DEFERRED;
-7. no Production / Support / FIELD semantic / Export / Stage 6 authority changes;
-8. push and STOP for C SOL review.
+- NONE.
+- Do not modify code before author visual confirmation.
+- Author verifies on `8884f12...`:
+  1. settled FIELD -> begin rotate/pan/zoom: image may become coarse but must NOT magnify, crop, stretch, or jump framing;
+  2. keep moving and release: camera follows correctly and idle refinement returns;
+  3. repeat in 4-view if practical: no first-frame framing jump;
+  4. select MESH while display style is normal/solid: MESH is opaque immediately;
+  5. explicit Ghost -> normal works normally and is no longer required as a recovery workaround.
+- If these pass, C SOL closes Fix 2 / View Representation Continuity v0 without further implementation.
+- If any fail, scope only the exact observed presentation defect.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -97,17 +94,15 @@ Fix 2 required outcomes:
 - Removable Support wiring PASS / CLOSED
 - 3MF PASS
 - First Physical Gate PASS / CLOSED for accepted near-vertical print regime
-- UI IA v0A PASS / CLOSED at `c64cf091...`
-- FIELD vNext Interaction Correctness PASS / CLOSED at `dad764ce...`
-- C J workspace/runtime bootstrap PASS
-- compute/helper J cutover + connection PASS
+- UI IA v0A PASS / CLOSED
+- FIELD vNext Interaction Correctness PASS / CLOSED
 - Runtime Status + Progressive FIELD v0 PASS / CLOSED
-- Viewport Input / Redraw Diagnostic v1 PASS / CLOSED at `7006e0d...`
-- View Representation Continuity v0 architecture / Fix 1 PASS at `77f121cd...`; Fix 2 presentation correction is active
+- Viewport Input / Redraw Diagnostic v1 PASS / CLOSED
+- View Representation Continuity architecture + Fix 1 PASS
 
 ## Remaining follow-up / evidence boundaries
-- Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED and still scheduled after current Astra work.
-- broader internal-structure visibility across BEADS / MESH / FIELD is DEFERRED; do not redesign it inside Fix 2.
+- Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED and scheduled after current Astra work when explicitly started.
+- broader internal-structure visibility across BEADS / MESH / FIELD is DEFERRED; structure representation will be revisited later.
 - strong-overhang / cantilever generalization remains UNVERIFIED.
 - SKIN-support-alone full printability remains UNVERIFIED.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED.
@@ -133,14 +128,12 @@ Fix 2 required outcomes:
 - user-managed `J:\dev\samples`: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
-- View Representation Continuity design: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`
-- View Representation Continuity Fix 1: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
-- active Fix 2: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX2_FIELD_SCALE_AND_MESH_STYLE.md`
-- queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
-- shared physical observation note: `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
+- `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`
+- `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
+- `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX2_FIELD_SCALE_AND_MESH_STYLE.md`
+- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
+- `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 
 ## Next gate
-1. C LUNA diagnoses and fixes only Fix 2 on `agent/skin-view-representation-continuity-v0` from `77f121cd...`.
-2. Verify FIELD coarse interaction framing and MESH normal/ghost truthfulness in the browser.
-3. Return commit / exact diff / browser evidence to C SOL and STOP.
-4. Do not start durability, structure redesign, Usagi, Outside->Outside Support, External STL Host, or another UI task.
+Author visual confirmation only. No C implementation task is active.
+Do not auto-start durability, structure redesign, Usagi, Outside->Outside Support, External STL Host, or another UI task.
