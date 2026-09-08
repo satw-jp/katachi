@@ -55,7 +55,7 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 - Do not start another C implementation task automatically from this closure.
 - `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED only.
 - Author priority: run that durability audit **after the currently active Astra work is finished**, not in parallel with or ahead of it.
-- UI adjustment work is observation-driven for now: do not proactively redesign the UI. The author will continue using the app and report concrete UI/interaction defects as they appear; scope those defects individually when reported.
+- UI adjustment work is observation-driven. A concrete representation-continuity issue has now been designed in `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`: restore the primary author-facing continuum `BEADS -> MESH -> FIELD` by reusing the existing progressive preview-mesh path. This design is QUEUED / DESIGN ONLY and must not auto-start.
 - Usagi / strong-overhang validation remains later explicit scope.
 
 ## PASS / CLOSED
@@ -81,6 +81,7 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 
 ## Remaining follow-up / evidence boundaries
 - Permanent Structure durability remains `FAIL / LOCALIZED` for one observed single-attachment appendage; audit is QUEUED, not active, and should start after current Astra work completes.
+- View Representation Continuity v0 is QUEUED / DESIGN ONLY: current code still contains the progressive preview-mesh worker path, but MESH is no longer clearly exposed as the middle authoring representation between BEADS and FIELD.
 - strong-overhang / cantilever generalization remains UNVERIFIED; the first physical print does not prove Usagi-like geometry.
 - SKIN-support-alone full printability remains UNVERIFIED because the accepted first print used limited manual supplemental slicer support.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED and is not required for current parser closure.
@@ -105,6 +106,7 @@ The viewport redraw blocker was separately diagnosed and closed at `7006e0d...`:
 - user-managed `J:\dev\samples`: do not commit, rename, reorganize, or delete without explicit instruction
 
 ## Relevant artifacts
+- queued representation continuity design: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`
 - Progressive FIELD task: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0.md`
 - Fix 1 dense gate: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX1_DENSE_GATE.md`
 - Fix 2: `docs/tasks/C_RUNTIME_STATUS_PROGRESSIVE_FIELD_V0_FIX2_INTERACTIVE_FIELD_AND_LAYER_RETURN.md`
@@ -119,6 +121,6 @@ No C implementation gate is active.
 Priority order:
 1. Finish the currently active Astra work.
 2. Then, when the author explicitly starts it, run `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`.
-3. In the meantime, handle only concrete UI/interaction defects reported by the author; do not start a broad UI redesign lane.
+3. UI work remains observation-driven. `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md` may be promoted explicitly when the author wants to restore `BEADS -> MESH -> FIELD`; do not auto-start it.
 
-Wait for explicit author direction before starting durability audit, Usagi/strong-overhang work, Outside->Outside Support, External STL Host, or new research.
+Wait for explicit author direction before starting durability audit, representation-continuity implementation, Usagi/strong-overhang work, Outside->Outside Support, External STL Host, or new research.
