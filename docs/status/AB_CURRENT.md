@@ -10,17 +10,52 @@ Last verified: 2026-09-08
 - accepted Retention v0 runtime commit: `d071a583c19fd811a534db1c8cbd039dbfdd99e3`
 - accepted Retention v0 docs closure: `2f0eb180fbe1ed0e9034ea2420628f4421f66d95`
 - canonical J-side accepted workspace: `J:\dev\worktrees\skin-a2-sparse-support-performance-v1`
-- suggested Performance v2 branch: `agent/skin-a2-sparse-support-performance-v2`
-- suggested Performance v2 worktree: `J:\dev\worktrees\skin-a2-sparse-support-performance-v2`
+- Performance v2 target branch: `agent/skin-a2-sparse-support-performance-v2`
+- Performance v2 worktree: `J:\dev\worktrees\skin-a2-sparse-support-performance-v2`
 - canonical user-managed samples: `J:\dev\samples`
 - C-side repo/samples are rollback/evidence or non-authoritative only
 
 ## NOW / Current phase
-**Performance v2 is ACTIVE.**
+**Performance v2 is ACTIVE — final Full A2 performance/parity gate is a PASS candidate; remote implementation checkpoint review remains.**
 
-Purpose: reduce accepted Full A2 Sparse Support runtime below Performance v1 `528,025.4 ms` (~8m48s) while preserving exact Candidate / Support / Rabbit / FKEI / export / retention semantics.
+Purpose remains: reduce accepted Full A2 Sparse Support runtime below Performance v1 `528,025.4 ms` (~8m48s) while preserving exact Candidate / Support / Rabbit / FKEI / export / retention semantics.
 
-Working hypothesis only: after Rabbit v1, Candidate BODY signed-distance work is the remaining dominant cost. This must be proven from retained evidence / bounded profiling before implementation.
+The bounded 256-target prefix gate passed before the final run:
+- prefix semantic digest unchanged: `bc6b941b...`
+- Support: `581.8 ms -> 472.3 ms`
+- BODY audit: `117.2 ms -> 57.1 ms`
+- console: `0 / 0`
+- focused tests / tsc / build / diff-check: PASS
+
+One final canonical Full A2 run was then executed and released:
+- A2 source SHA: `2030a945eb44fb3a263c667305f10ce8a773af5d8914cfca82d7c3f68680b04c`
+- Rabbit SHA: `c4d08af61802561ec2adb280d78a928baa00b0c04443a293237706b02cc5afe8`
+- Rabbit repair fingerprint: `90258ce379e3b11aef7e6710ff98ff9f17678a53ae1c7905c3c967bd1e9437d6`
+- Signed Volume: AVAILABLE
+- transform: `1 mm/source-unit · +Y · right-handed · uniformScale 20`
+- targets: `4,561 / 4,561`
+- route audits: `90,921`
+- Support total: `201,166.9 ms` (~3m21s)
+- BODY audit: `136,841.6 ms`
+- Rabbit audit: `45,544.9 ms`
+- Export: `24,891.1 ms`
+- Performance v1 -> v2 Support improvement: ~`61.9%` (`2.62x` faster)
+- Geometry fingerprint: `ae244f2c...6520b9`
+- Diagnostics fingerprint: `8db3d239...9696ba0`
+- Support fingerprint: `83af4c78...027932`
+- Export fingerprint: `850177f1...515fc`
+- Validator: PASS
+- package placement parity: PASS
+- expected / actual Z: `48.029293060302734`
+- archive: `ASTRA_A_candidate-print-lane.3mf`
+- archive bytes: `75,491,879`
+- generated / persisted SHA-256: `c72a8358...f3690a`
+- exact persisted byte length / SHA match: PASS
+- durable verification: PASS
+- browser console: errors `0`, warnings `0`
+- app telemetry retained one earlier fail-closed error caused by attempting before Rabbit was loaded; canonical Full A2 added no browser-console error.
+
+`boundedSemanticDigest` is intentionally generated only for bounded profile execution in the current implementation. Therefore its absence from COMPLETE Full-A2 evidence is not a new semantic gap; the already-passed bounded prefix digest parity is the v2 bounded semantic-digest evidence, while the Full run is gated by canonical counts and complete geometry/diagnostics/Support/export fingerprints.
 
 Independent author/manual A2 physical-feasibility gate remains open.
 
@@ -32,34 +67,30 @@ Owner: Team AB / SKIN SOL -> LUNA
 Task:
 `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V2.md`
 
-Required first actions:
-1. create v2 branch/worktree from exact accepted base `2f0eb180...` on J;
-2. read the retained canonical A2 evidence sidecar before any new Full A2 run;
-3. prove whether Candidate BODY is the dominant remaining hotspot;
-4. if BODY is dominant, split closest-surface vs ray-parity cost with retained/bounded evidence;
-5. choose one exact single-thread BODY sub-hotspot only.
+## Current blocker to formal ACCEPT / CLOSED
+The Full A2 gate itself is a PASS candidate, but the Performance v2 implementation has not yet been fixed as a reviewable GitHub remote checkpoint.
 
-Do not begin by rerunning Full A2.
+At last SOL check, remote ref:
+`agent/skin-a2-sparse-support-performance-v2`
+was absent.
 
-## Blocker
-None at task start.
+Do **not** rerun Full A2.
 
-Fail closed / STOP and return evidence if:
-- the retained sidecar cannot establish the current hotspot and bounded profiling cannot safely resolve it;
-- BODY is not the dominant remaining cost;
-- no clean exact single-thread optimization can be proved;
-- bounded/prefix performance is neutral or regressive.
+Required next action only:
+1. from the exact J-side v2 worktree used for the passing prefix and Full A2, inspect working tree and branch identity;
+2. commit the exact v2 implementation/evidence-supporting code already exercised; do not broaden or clean up unrelated code;
+3. normal-push `agent/skin-a2-sparse-support-performance-v2`;
+4. return new commit SHA / remote HEAD / exact changed files / clean-or-dirty working-tree state;
+5. do not run A2 again, do not run G/H/J, and do not begin another optimization.
+
+SOL will then review the exact remote diff from base `2f0eb180...` to the v2 head. Formal ACCEPT requires that the diff matches the measured bounded exact BODY optimization and contains no protected semantic changes.
 
 ## Next gate
-1. LUNA executes Performance v2 P0/P1 measurement from the exact J authority.
-2. If BODY dominance is proven, implement one exact BODY sub-hotspot optimization only.
-3. Run deterministic prefix parity/performance comparison.
-4. Only if prefix shows a clear material win, run at most one final canonical Full A2.
-5. Final candidate must beat `528,025.4 ms` with complete semantic/fingerprint parity, validator PASS, and Retention v0 durable persistence PASS.
-6. Return compact SOL-review handoff with exact branch/commit/performance/parity evidence.
-7. After SOL accepts and records the Performance v2 checkpoint, hand off accepted results and unresolved items to `SKIN_ABC_SOL` and STOP. Do not auto-start another AB task.
-
-If single-thread v2 does not produce a material safe win, stop. Parallel/native/GPU work belongs to a separate later task.
+1. LUNA commits and normal-pushes the exact already-tested v2 implementation only.
+2. SOL reviews the exact GitHub diff against base `2f0eb180...`.
+3. If code scope and exact-parity proof match the measured evidence, record Performance v2 PASS / ACCEPT / CLOSED and the accepted v2 checkpoint.
+4. Hand off the accepted results, reusable compute capability, and unresolved items to `SKIN_ABC_SOL`.
+5. STOP. Do not auto-start another AB task.
 
 ## Protected
 DO NOT CHANGE in Performance v2:
@@ -138,7 +169,7 @@ Canonical Support facts that v2 must preserve exactly:
 - graph nodes / edges: `2,150 / 1,496`
 - accepted BODY / Rabbit collision: `0 / 0`
 - geometry / diagnostics / Support / export fingerprints: exact parity
-- bounded semantic digest: exact parity
+- bounded semantic digest: exact parity on bounded prefix gate
 
 ### Performance v1 — PASS / CLOSED
 Accepted runtime commit:
@@ -154,8 +185,6 @@ Measured:
 
 Accepted v1 change: exact Rabbit capped unsigned-distance query `min(exactDistance, cap)` with signed Rabbit authority and fail-closed one-Lipschitz certification preserved.
 
-Earlier pre-cap evidence measured BODY audit at `499,995.8 ms`, but this is not by itself current v2 hotspot authority. v2 must read the retained accepted sidecar / bounded profile first.
-
 ### Candidate Artifact Retention / Checkpoint v0 — PASS / CLOSED
 Accepted implementation:
 `d071a583c19fd811a534db1c8cbd039dbfdd99e3`
@@ -165,22 +194,11 @@ Accepted docs closure:
 
 Before Candidate release, validated 3MF is written to an explicitly authorized directory, closed, reopened, checked for exact bytes and SHA-256, and accompanied by a reread-verified `.evidence.json` sidecar. Mismatch fails closed before release.
 
-Real Windows Chrome canonical A2 retention gate:
-- persisted archive: `75,491,874` bytes
-- persisted SHA-256: `DE304365A3247487F7EC18DB1536D2234E9980A57576D6ACFFB0AA3C00460874`
-- generated/persisted identity: PASS
-- sidecar: persisted/reread PASS
-- release after durable verification: PASS
-
-Archive ZIP bytes may differ across separate export runs; current generated-vs-persisted identity and semantic fingerprints are the retention authority.
-
 ### Physical A2 gate — author/manual
 Current print classification:
 `A2 BODY + authored SKIN removable Support + Bambu automatic Tree Support 45 deg`.
 
 This is physical-feasibility evidence, not proof authored SKIN Support alone is sufficient.
-
-If slicer-generated Support is later used for A/G/H/J comparison, freeze the same slicer policy/profile across all candidates.
 
 ### G/H/J
 HOLD until author explicitly resumes the equal-condition comparison lane.
