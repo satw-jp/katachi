@@ -19339,7 +19339,12 @@ function selectAuthoringPreviewMesh(): void {
   render();
 }
 
+function departFromAuthoringPreviewMesh(nextLayer: SkinViewLayerId): void {
+  if (activeViewLayer === "mesh" && nextLayer !== "mesh") cancelPreviewMeshBuild();
+}
+
 function setViewLayer(layer: SkinViewLayerId): void {
+  departFromAuthoringPreviewMesh(layer);
   activeViewLayer = layer;
   if (layer === "field") setViewMode("raymarch", "user");
   else if (layer === "beads") setViewMode("beads", "user");
