@@ -40,52 +40,41 @@ View Representation Continuity architecture remains accepted:
 - leaving MESH cancels only the active preview worker and preserves valid cache;
 - Production / Support / FIELD semantic / FKEI / Export / 3MF / Stage 6 authority remain unchanged.
 
-### Fix 2 direct SOL review
+### Fix 2 status
 Candidate: `agent/skin-view-representation-continuity-v0` / `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
-Parent: `77f121cda5d60a2e443a994c00a05c7630417c15`
-Remote/local reported MATCH; GitHub remote branch HEAD confirmed at `8884f12...`.
 
-Diff scope is one commit and presentation/runtime files/tests only:
-- `src/studies/skin/fieldPreviewPresentation.ts` + focused test
-- `src/studies/skin/renderer.ts`
-- `src/studies/skin/main.ts`
-- `src/studies/skin/previewMeshBuffers.ts`
-- authoring/original-shell tests
+C SOL source/scope review remains STRUCTURAL PASS, and the MESH normal/Ghost correction is accepted structurally:
+- legacy auto-promotion from normal MESH to `ghostSkin` was removed;
+- primary MESH no longer becomes translucent merely because an internal graph exists;
+- explicit Ghost remains available;
+- broader internal-structure visibility remains DEFERRED.
 
-FIELD framing fix:
-- interactive FIELD render target now accounts for renderer device pixel ratio;
-- target width/height are scaled by one common factor so viewport aspect ratio is preserved;
-- the low-resolution target remains presentation-only; camera projection/FIELD SDF/payload semantics are unchanged.
+However the FIELD author visual gate FAILED on the actual author browser after Fix 2:
+- settled FIELD framing is correct;
+- beginning view rotate still produces a dramatically enlarged / cropped coarse FIELD frame;
+- the author screenshot shows the interaction presentation occupying only a partial logical field and being enlarged to the viewport;
+- therefore adding DPR to low-resolution target sizing did not fix the underlying framing defect.
 
-MESH style fix:
-- legacy `observationModeKeepingInternalGraphVisible()` auto-promotion was removed;
-- primary MESH no longer switches normal/solid to `ghostSkin` merely because an internal graph exists;
-- explicit Ghost / internal inspection modes remain available;
-- permanent/internal graph data synchronization remains intact; only automatic presentation promotion was removed.
-
-Reported worker evidence:
-- FIELD 1-view / 4-view interaction framing browser QA PASS;
-- MESH normal/Ghost switching PASS;
-- console errors 0;
-- focused tests / typecheck / build / diff check PASS;
-- an existing `originalEditorShell.test.ts` baseline mismatch is reported separately; Fix 2 does update assertions that intentionally encoded the removed auto-Ghost behavior, but unrelated remaining baseline drift is not part of this visual gate.
-
-C SOL verdict:
-- source/scope: STRUCTURAL PASS;
-- Production / Support / FIELD semantic / Export / Stage 6 boundary: PASS;
-- final Fix 2 status: AUTHOR VISUAL HOLD.
+Fix 2 is NOT closed for FIELD framing.
 
 ## Active implementation instruction
-- NONE.
-- Do not modify code before author visual confirmation.
-- Author verifies on `8884f12...`:
-  1. settled FIELD -> begin rotate/pan/zoom: image may become coarse but must NOT magnify, crop, stretch, or jump framing;
-  2. keep moving and release: camera follows correctly and idle refinement returns;
-  3. repeat in 4-view if practical: no first-frame framing jump;
-  4. select MESH while display style is normal/solid: MESH is opaque immediately;
-  5. explicit Ghost -> normal works normally and is no longer required as a recovery workaround.
-- If these pass, C SOL closes Fix 2 / View Representation Continuity v0 without further implementation.
-- If any fail, scope only the exact observed presentation defect.
+- owner: C SOL -> C LUNA
+- task: `View Representation Continuity v0 Fix 3 — FIELD Offscreen Viewport Framing`
+- spec: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX3_FIELD_OFFSCREEN_VIEWPORT.md`
+- branch: `agent/skin-view-representation-continuity-v0`
+- start checkpoint: `8884f12a8c9cedde205d8eed8a86c67fa4bdbfd2`
+- execution: J-side only
+- diagnostic-first; do not guess another DPR factor
+
+Mandatory Fix 3 diagnosis:
+1. A/B current offscreen low-resolution FIELD vs same coarse FIELD rendered directly to the normal viewport;
+2. if direct coarse is stable and offscreen is not, isolate offscreen target / viewport / scissor / upscale coordinates;
+3. record actual GL `VIEWPORT` / `SCISSOR_BOX` after `setRenderTarget(target)` and after explicit `setViewport(...)`, plus renderer pixel ratio, drawing-buffer size, CSS viewport rect, target size, and first-frame camera projection;
+4. determine whether render-target coordinates are being DPR-scaled twice or otherwise cover only a subregion;
+5. make only the minimal FIELD presentation fix;
+6. preserve low-resolution interaction and accepted refinement behavior.
+
+Do not change camera/model scale, Output Scale, FIELD SDF/payload semantics, Production, Support, Export, Stage 6, MESH architecture, or structure visibility design.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -99,10 +88,11 @@ C SOL verdict:
 - Runtime Status + Progressive FIELD v0 PASS / CLOSED
 - Viewport Input / Redraw Diagnostic v1 PASS / CLOSED
 - View Representation Continuity architecture + Fix 1 PASS
+- MESH normal/Ghost portion of Fix 2: structural PASS
 
 ## Remaining follow-up / evidence boundaries
 - Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED and scheduled after current Astra work when explicitly started.
-- broader internal-structure visibility across BEADS / MESH / FIELD is DEFERRED; structure representation will be revisited later.
+- broader internal-structure visibility across BEADS / MESH / FIELD is DEFERRED.
 - strong-overhang / cantilever generalization remains UNVERIFIED.
 - SKIN-support-alone full printability remains UNVERIFIED.
 - 10,450 primitive historical v2-FKEI scalability remains UNVERIFIED.
@@ -131,9 +121,13 @@ C SOL verdict:
 - `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`
 - `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
 - `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX2_FIELD_SCALE_AND_MESH_STYLE.md`
+- `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX3_FIELD_OFFSCREEN_VIEWPORT.md`
 - `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
 - `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 
 ## Next gate
-Author visual confirmation only. No C implementation task is active.
-Do not auto-start durability, structure redesign, Usagi, Outside->Outside Support, External STL Host, or another UI task.
+1. C LUNA runs Fix 3 from `8884f12...`.
+2. Name the exact offscreen/direct-render boundary before patching.
+3. Verify on the actual browser scaling/DPR condition that interaction can become coarse without any magnification/crop/framing jump.
+4. Push and STOP for C SOL review.
+5. Do not auto-start durability, structure redesign, Usagi, Outside->Outside Support, External STL Host, or another UI task.
