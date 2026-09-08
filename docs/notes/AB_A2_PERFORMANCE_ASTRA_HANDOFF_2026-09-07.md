@@ -3,7 +3,7 @@
 Date: 2026-09-07
 Status: research/escalation note; not an implementation authority by itself
 
-Authoritative current state remains `docs/status/AB_CURRENT.md` and the active implementation task remains `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V1.md`.
+Authoritative current state remains `docs/status/AB_CURRENT.md`. As of 2026-09-08, the active implementation task is `docs/tasks/AB_A2_SPARSE_SUPPORT_PERFORMANCE_V2.md`.
 
 ## Why this note exists
 
@@ -109,7 +109,7 @@ Tail windows / slowest targets / slowest routes were not retained and are `UNAVA
 
 ## Current bounded implementation hypothesis
 
-The active v1 continuation is limited to Rabbit unsigned closed-surface distance execution.
+The v1 continuation was limited to Rabbit unsigned closed-surface distance execution.
 
 Preferred idea:
 
@@ -126,6 +126,8 @@ Required gate order:
 3. run bounded/prefix performance comparison;
 4. run a new Full A2 only if the bounded benchmark shows a clear material improvement;
 5. final accepted result must beat v0 `2,232,690.1 ms` with full fingerprint and canonical-count parity.
+
+This Rabbit optimization was later accepted in Performance v1 and reduced Full A2 Sparse Support to `528,025.4 ms` (~`8m48s`). Performance v2 is now separately scoped to measure and optimize the remaining exact BODY-query hotspot if measurements support it.
 
 ## Protected semantics
 
@@ -158,7 +160,7 @@ Escalate this note to Research Astra if any of the following occurs:
 - the next meaningful improvement likely requires algorithm restructuring, multi-core workers, native compute, WebGPU/CUDA, or a different exact geometric query formulation;
 - SOL wants an independent audit of whether the current one-Lipschitz / BVH formulation is doing avoidable exact work.
 
-Astra should treat `4929cc8...` as the accepted performance baseline and `2964e660...` as useful evidence-retention infrastructure plus a non-promoted Rabbit stack experiment, not as a faster baseline.
+Astra should treat `4929cc8...` as the accepted performance v0 baseline, `2964e660...` as useful evidence-retention infrastructure plus a non-promoted Rabbit stack experiment, and `a3c3dbdb...` as the accepted Performance v1 runtime with the exact capped Rabbit-distance improvement.
 
 ## Questions worth giving Astra
 
@@ -171,3 +173,32 @@ If escalated, useful research questions are:
 - What is the lowest-risk path from the current browser CPU implementation to multi-core/native/GPU execution while retaining bitwise or decision-level parity?
 
 Do not ask Astra to redesign Support semantics unless Team AB explicitly opens a separate architecture task.
+
+## 2026-09-08 — Future reuse intent for Astra-owned Support placement
+
+The author noted that Research Astra is already exploring / owning its own Support-placement ideas. Therefore the current AB performance work must **not** be interpreted as a commitment to keep the present Sparse Removable Support placement algorithm forever.
+
+The likely reusable asset is the lower geometry-query layer, not necessarily the present route planner.
+
+Potential reusable primitives from Performance v1 / v2 include:
+
+- packed BODY BVH traversal;
+- exact closest-surface distance queries;
+- exact signed BODY distance with authoritative inside/outside parity;
+- exact capped-distance / capped-signed-distance query patterns where formally valid;
+- Rabbit forbidden-volume distance and sign queries;
+- capsule / route collision certification and one-Lipschitz bounds;
+- deterministic query telemetry, bounded profiling, fingerprints, and parity gates;
+- later, if separately authorized, exact batch / multi-core / native / GPU query backends behind the same semantic boundary.
+
+The intended future architecture is conceptually:
+
+**Astra placement / structure strategy**
+
+uses
+
+**shared exact geometry-query and collision-certification layer**
+
+rather than Astra inheriting the current placement algorithm unchanged.
+
+After Performance v2 closes, Research Astra should review the accepted v1/v2 changes and classify which pieces should become reusable geometry-query infrastructure for future Support / Permanent Structure work. Any actual replacement of the current placement algorithm remains a **separate architecture task** and must not be folded into Performance v2.
