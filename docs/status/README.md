@@ -8,6 +8,7 @@ Read first:
 
 Recommended stable files:
 
+- `SKIN_ABC_CURRENT.md`
 - `AB_CURRENT.md`
 - `C_CURRENT.md`
 - `HANA_CURRENT.md`
