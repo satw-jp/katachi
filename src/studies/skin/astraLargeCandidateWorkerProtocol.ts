@@ -29,6 +29,7 @@ export type LargeCandidateCommand = {
   file: Blob;
   placement: DeferredPrintPlacement;
   telemetry?: boolean;
+  queryTimings?: boolean;
 } | {
   type: "DIAGNOSE";
   requestId: number;

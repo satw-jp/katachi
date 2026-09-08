@@ -565,6 +565,41 @@ const sparseLegitimateTerminal = auditSparseRemovableSupportCapsule(
 assert.equal(sparseLegitimateTerminal.accepted, true,
   "Sparse audit must retain a legitimate exact owner target contact");
 
+// The BODY capped execution path is an optimization only: the exact signed
+// field remains the semantic authority, and a deterministic cap must retain
+// the same route decision for both clear and witnessed-collision fixtures.
+const auditDecision = (result: ReturnType<typeof auditSparseRemovableSupportCapsule>) => ({
+  accepted: result.accepted,
+  reason: result.reason,
+  detail: result.detail,
+});
+const bodyFields: Array<(x: number, y: number, z: number) => number> = [
+  (_x, _y, _z) => 10,
+  (_x, _y, _z) => 0.01,
+  (x: number, y: number, z: number) => Math.hypot(x - 0.2, y, z - 1) - 0.08,
+];
+for (const body of bodyFields) {
+  const exact = auditSparseRemovableSupportCapsule(
+    auditSegment({ x: 0.5, y: 0, z: 0 }),
+    auditRequest(body, (_target, x, y, z) => ring3dTarget(x, y, z), () => 10),
+    auditTarget,
+    false,
+  );
+  const capped = auditSparseRemovableSupportCapsule(
+    auditSegment({ x: 0.5, y: 0, z: 0 }),
+    {
+      ...auditRequest(body, (_target, x, y, z) => ring3dTarget(x, y, z), () => 10),
+      bodySdfCapped: (x: number, y: number, z: number, cap: number) => {
+        const value = body(x, y, z);
+        return Math.sign(value) * Math.min(Math.abs(value), cap);
+      },
+    },
+    auditTarget,
+    false,
+  );
+  assert.deepEqual(auditDecision(capped), auditDecision(exact), "BODY capped audit decision parity");
+}
+
 assert.deepEqual(evaluateSparseExperimentalExportGate({
   stage4Current: false,
   stage8Current: true,

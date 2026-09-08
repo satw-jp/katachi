@@ -21,6 +21,15 @@ export interface PackedCandidateQueryTelemetry {
   readonly closestSurfaceTrianglesTested: number;
   readonly rayIntersectionNodesVisited: number;
   readonly rayIntersectionTrianglesTested: number;
+  readonly cappedSignedDistanceCalls: number;
+  readonly cappedClosestSurfaceNodesVisited: number;
+  readonly cappedClosestSurfaceTrianglesTested: number;
+  readonly cappedClosestSurfaceTotalMs: number;
+  readonly cappedSignedDistanceTotalMs: number;
+  readonly cappedDistanceReturnedCapCount: number;
+  readonly closestSurfaceTotalMs: number;
+  readonly rayIntersectionTotalMs: number;
+  readonly signedDistanceTotalMs: number;
   readonly closestSurfaceMaxNodesVisited: number;
   readonly closestSurfaceMaxTrianglesTested: number;
   readonly rayIntersectionMaxNodesVisited: number;
@@ -41,6 +50,8 @@ export interface PackedCandidateQuery {
   readonly positions: Float32Array;
   closestSurface(point: HostVec3): { distance: number; triangleIndex: number } | null;
   signedDistance(point: HostVec3): number;
+  /** Exact signed distance clamped to a finite unsigned cap for bounded audits. */
+  signedDistanceCapped(point: HostVec3, cap: number): number;
   resetTelemetry(): void;
   readTelemetry(): PackedCandidateQueryTelemetry;
   release(): void;
@@ -135,7 +146,7 @@ function rayIntersectsTriangle(point: HostVec3, positions: Float32Array, triangl
 export function buildPackedCandidateQuery(
   positions: Float32Array,
   onProgress?: (stage: string, completed: number, total: number) => void,
-  options: { telemetry?: boolean } = {},
+  options: { telemetry?: boolean; timing?: boolean } = {},
 ): PackedCandidateQuery {
   if (positions.length === 0 || positions.length % 9 !== 0) throw new Error("Packed candidate positions must contain triangles");
   const triangleCount = positions.length / 9;
@@ -239,6 +250,7 @@ export function buildPackedCandidateQuery(
   onProgress?.("Building Candidate query", leafCount, leafCount);
   let released = false;
   const telemetryEnabled = options.telemetry === true;
+  const timingEnabled = telemetryEnabled && options.timing === true;
   const telemetry = {
     closestSurfaceCalls: 0,
     signedDistanceCalls: 0,
@@ -247,6 +259,15 @@ export function buildPackedCandidateQuery(
     closestSurfaceTrianglesTested: 0,
     rayIntersectionNodesVisited: 0,
     rayIntersectionTrianglesTested: 0,
+    cappedSignedDistanceCalls: 0,
+    cappedClosestSurfaceNodesVisited: 0,
+    cappedClosestSurfaceTrianglesTested: 0,
+    cappedClosestSurfaceTotalMs: 0,
+    cappedSignedDistanceTotalMs: 0,
+    cappedDistanceReturnedCapCount: 0,
+    closestSurfaceTotalMs: 0,
+    rayIntersectionTotalMs: 0,
+    signedDistanceTotalMs: 0,
     closestSurfaceMaxNodesVisited: 0,
     closestSurfaceMaxTrianglesTested: 0,
     rayIntersectionMaxNodesVisited: 0,
@@ -264,6 +285,15 @@ export function buildPackedCandidateQuery(
     telemetry.closestSurfaceTrianglesTested = 0;
     telemetry.rayIntersectionNodesVisited = 0;
     telemetry.rayIntersectionTrianglesTested = 0;
+    telemetry.cappedSignedDistanceCalls = 0;
+    telemetry.cappedClosestSurfaceNodesVisited = 0;
+    telemetry.cappedClosestSurfaceTrianglesTested = 0;
+    telemetry.cappedClosestSurfaceTotalMs = 0;
+    telemetry.cappedSignedDistanceTotalMs = 0;
+    telemetry.cappedDistanceReturnedCapCount = 0;
+    telemetry.closestSurfaceTotalMs = 0;
+    telemetry.rayIntersectionTotalMs = 0;
+    telemetry.signedDistanceTotalMs = 0;
     telemetry.closestSurfaceMaxNodesVisited = 0;
     telemetry.closestSurfaceMaxTrianglesTested = 0;
     telemetry.rayIntersectionMaxNodesVisited = 0;
@@ -293,6 +323,15 @@ export function buildPackedCandidateQuery(
     closestSurfaceTrianglesTested: telemetry.closestSurfaceTrianglesTested,
     rayIntersectionNodesVisited: telemetry.rayIntersectionNodesVisited,
     rayIntersectionTrianglesTested: telemetry.rayIntersectionTrianglesTested,
+    cappedSignedDistanceCalls: telemetry.cappedSignedDistanceCalls,
+    cappedClosestSurfaceNodesVisited: telemetry.cappedClosestSurfaceNodesVisited,
+    cappedClosestSurfaceTrianglesTested: telemetry.cappedClosestSurfaceTrianglesTested,
+    cappedClosestSurfaceTotalMs: telemetry.cappedClosestSurfaceTotalMs,
+    cappedSignedDistanceTotalMs: telemetry.cappedSignedDistanceTotalMs,
+    cappedDistanceReturnedCapCount: telemetry.cappedDistanceReturnedCapCount,
+    closestSurfaceTotalMs: telemetry.closestSurfaceTotalMs,
+    rayIntersectionTotalMs: telemetry.rayIntersectionTotalMs,
+    signedDistanceTotalMs: telemetry.signedDistanceTotalMs,
     closestSurfaceMaxNodesVisited: telemetry.closestSurfaceMaxNodesVisited,
     closestSurfaceMaxTrianglesTested: telemetry.closestSurfaceMaxTrianglesTested,
     rayIntersectionMaxNodesVisited: telemetry.rayIntersectionMaxNodesVisited,
@@ -313,6 +352,7 @@ export function buildPackedCandidateQuery(
   const traversalStack = new Int32Array(nodeCount);
   const closestSurface = (point: HostVec3): { distance: number; triangleIndex: number } | null => {
     assertLive();
+    const queryStarted = timingEnabled ? performance.now() : 0;
     let bestSquared = Infinity; let bestTriangle = -1; let nodesVisited = 0; let trianglesTested = 0;
     let stackSize = 1;
     traversalStack[0] = 0;
@@ -352,10 +392,56 @@ export function buildPackedCandidateQuery(
       telemetry.closestSurfaceMaxTrianglesTested = Math.max(telemetry.closestSurfaceMaxTrianglesTested, trianglesTested);
       telemetry.closestSurfaceNodeHistogram[histogramBin(nodesVisited)] += 1;
       telemetry.closestSurfaceTriangleHistogram[histogramBin(trianglesTested)] += 1;
+      if (timingEnabled) telemetry.closestSurfaceTotalMs += performance.now() - queryStarted;
     }
     return bestTriangle < 0 ? null : { distance: Math.sqrt(bestSquared), triangleIndex: bestTriangle };
   };
+  const closestSurfaceDistanceCapped = (point: HostVec3, cap: number): number | null => {
+    assertLive();
+    if (!Number.isFinite(cap) || cap < 0) throw new Error("capped candidate surface distance cap must be finite and non-negative");
+    const queryStarted = timingEnabled ? performance.now() : 0;
+    const capSquared = cap * cap;
+    let bestSquared = capSquared;
+    let nodesVisited = 0;
+    let trianglesTested = 0;
+    let stackSize = 1;
+    traversalStack[0] = 0;
+    while (stackSize > 0) {
+      const node = traversalStack[--stackSize];
+      nodesVisited += 1;
+      if (pointAabbDistanceSquared(point, bounds, node * 6) >= bestSquared) continue;
+      if (count[node] > 0 && left[node] < 0) {
+        for (let index = start[node]; index < start[node] + count[node]; index += 1) {
+          trianglesTested += 1;
+          const triangle = triangleOrder[index];
+          const distanceSquared = pointTriangleDistanceSquared(point, positions, triangle);
+          if (distanceSquared < bestSquared) bestSquared = distanceSquared;
+        }
+      } else {
+        const a = left[node]; const b = right[node];
+        if (a >= 0 && b >= 0) {
+          const da = pointAabbDistanceSquared(point, bounds, a * 6);
+          const db = pointAabbDistanceSquared(point, bounds, b * 6);
+          if (da < db) {
+            traversalStack[stackSize++] = b;
+            traversalStack[stackSize++] = a;
+          } else {
+            traversalStack[stackSize++] = a;
+            traversalStack[stackSize++] = b;
+          }
+        }
+      }
+    }
+    if (telemetryEnabled) {
+      telemetry.cappedClosestSurfaceNodesVisited += nodesVisited;
+      telemetry.cappedClosestSurfaceTrianglesTested += trianglesTested;
+      if (bestSquared === capSquared) telemetry.cappedDistanceReturnedCapCount += 1;
+      if (timingEnabled) telemetry.cappedClosestSurfaceTotalMs += performance.now() - queryStarted;
+    }
+    return Math.sqrt(bestSquared);
+  };
   const rayIntersections = (point: HostVec3): number => {
+    const queryStarted = timingEnabled ? performance.now() : 0;
     let hits = 0; let nodesVisited = 0; let trianglesTested = 0;
     let stackSize = 1;
     traversalStack[0] = 0;
@@ -384,6 +470,7 @@ export function buildPackedCandidateQuery(
       telemetry.rayIntersectionMaxTrianglesTested = Math.max(telemetry.rayIntersectionMaxTrianglesTested, trianglesTested);
       telemetry.rayIntersectionNodeHistogram[histogramBin(nodesVisited)] += 1;
       telemetry.rayIntersectionTriangleHistogram[histogramBin(trianglesTested)] += 1;
+      if (timingEnabled) telemetry.rayIntersectionTotalMs += performance.now() - queryStarted;
     }
     return hits;
   };
@@ -401,11 +488,26 @@ export function buildPackedCandidateQuery(
       return closestSurface(point);
     },
     signedDistance(point) {
+      const queryStarted = timingEnabled ? performance.now() : 0;
       if (telemetryEnabled) telemetry.signedDistanceCalls += 1;
       const closest = closestSurface(point);
-      if (!closest || !Number.isFinite(closest.distance)) return Number.NaN;
-      if (closest.distance <= 1e-5) return 0;
-      return rayIntersections(point) % 2 === 1 ? -closest.distance : closest.distance;
+      let result: number;
+      if (!closest || !Number.isFinite(closest.distance)) result = Number.NaN;
+      else if (closest.distance <= 1e-5) result = 0;
+      else result = rayIntersections(point) % 2 === 1 ? -closest.distance : closest.distance;
+      if (timingEnabled) telemetry.signedDistanceTotalMs += performance.now() - queryStarted;
+      return result;
+    },
+    signedDistanceCapped(point, cap) {
+      const queryStarted = timingEnabled ? performance.now() : 0;
+      if (telemetryEnabled) telemetry.cappedSignedDistanceCalls += 1;
+      const distance = closestSurfaceDistanceCapped(point, cap);
+      let result: number;
+      if (distance === null || !Number.isFinite(distance)) result = Number.NaN;
+      else if (distance <= 1e-5) result = 0;
+      else result = rayIntersections(point) % 2 === 1 ? -distance : distance;
+      if (timingEnabled) telemetry.cappedSignedDistanceTotalMs += performance.now() - queryStarted;
+      return result;
     },
     resetTelemetry,
     readTelemetry,

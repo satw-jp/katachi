@@ -255,6 +255,13 @@ async function buildSupport(command: Extract<LargeCandidateCommand, { type: "BUI
       if (measureQueryTimings) candidateBodyAuditMs += now() - queryStarted;
       return result;
     },
+    bodySdfCapped: (x: number, y: number, z: number, cap: number) => {
+      candidateBodySignedDistanceCalls += 1;
+      const queryStarted = measureQueryTimings ? now() : 0;
+      const result = candidate.query.signedDistanceCapped({ x, y, z }, cap);
+      if (measureQueryTimings) candidateBodyAuditMs += now() - queryStarted;
+      return result;
+    },
     contactPolicy: "single-body" as const,
     forbiddenSdf: forbidden,
     forbiddenClosedSurfaceDistanceCapped,
@@ -447,7 +454,7 @@ async function handle(command: LargeCandidateCommand): Promise<void> {
         placement: command.placement,
         sourceInterpretationVersion: "astra-round-2-export-mm-20x-v0",
       });
-      const queryStarted = now(); const query = buildPackedCandidateQuery(result.positions, (stage, completed, total) => postProgress(command, "Building Candidate query", queryStarted, stage, completed, total), { telemetry: command.telemetry === true });
+      const queryStarted = now(); const query = buildPackedCandidateQuery(result.positions, (stage, completed, total) => postProgress(command, "Building Candidate query", queryStarted, stage, completed, total), { telemetry: command.telemetry === true, timing: command.queryTimings === true });
       const inventory = makeInventory(command.candidateId, command.filename, result);
       activeCandidate = { candidateId: command.candidateId, filename: command.filename, sourceSha256: result.sourceSha256, geometryFingerprint, placement: command.placement, inventory, positions: result.positions, executionSourceFaceIndices: result.executionSourceFaceIndices, query, timings: { ingest: now() - started, hash: 0, parse: now() - started, query: now() - queryStarted }, detection: null, outsideFaces: null, diagnosticsFingerprint: null, support: null, supportFingerprint: null, performance: null };
       post({ type: "INVENTORY", requestId: command.requestId, generation: command.generation, candidateId: command.candidateId, sourceSha256: result.sourceSha256, geometryFingerprint, inventory });

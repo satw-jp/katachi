@@ -302,6 +302,9 @@ export interface SparseRemovableSupportRequest {
   neckRadius: number;
   /** Authoritative finished BODY SDF. Missing proof fails closed. */
   bodySdf?: (x: number, y: number, z: number) => number;
+  /** Optional exact capped execution-only BODY distance. The signed result is
+   * clamped to the same finite cap; absence preserves the legacy audit. */
+  bodySdfCapped?: (x: number, y: number, z: number, cap: number) => number;
   /** Optional target field used only to attribute terminal contact.  It is
    * never subtracted from bodySdf and therefore is not treated as a BODY
    * partition.  It must be the field for target.ownerPatchId; a missing or
@@ -644,6 +647,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
   projectedOutsideFaces: readonly SparseRemovableSupportFace[];
   outsideRegionCount: number;
   bodySdf?: (x: number, y: number, z: number) => number;
+  bodySdfCapped?: (x: number, y: number, z: number, cap: number) => number;
   targetSdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   otherBodySdf?: (target: SparseRemovableSupportTarget, x: number, y: number, z: number) => number;
   contactPolicy: "patch-owned" | "single-body";
@@ -708,6 +712,7 @@ function normalizeRequest(input: SparseRemovableSupportRequest): Required<Pick<
     shaftRadius: input.shaftRadius,
     neckRadius: input.neckRadius,
     bodySdf: input.bodySdf,
+    bodySdfCapped: input.bodySdfCapped,
     targetSdf: input.targetSdf,
     otherBodySdf: input.otherBodySdf,
     contactPolicy: input.contactPolicy === "single-body" ? "single-body" : "patch-owned",
@@ -1087,6 +1092,7 @@ export interface SparseSupportRouteAudit {
 function auditCapsuleAgainstBody(
   segment: SparseSupportRouteSegment,
   bodySdf: ((x: number, y: number, z: number) => number) | undefined,
+  bodySdfCapped: ((x: number, y: number, z: number, cap: number) => number) | undefined,
   terminal: boolean,
   target: SparseRemovableSupportTarget,
   request: ReturnType<typeof normalizeRequest>,
@@ -1118,6 +1124,15 @@ function auditCapsuleAgainstBody(
   if (!finite(intervalLength) || !(intervalLength > 0)) {
     return { accepted: false, reason: "unsupported", detail: "keep-out interval is not finite", sampleCount: 0 };
   }
+  const threshold = segment.radius + 1e-7;
+  const capGuard = Math.max(
+    1e-7,
+    Number.EPSILON * 64 * Math.max(1, Math.abs(threshold), Math.abs(intervalLength)),
+  );
+  const bodyDistanceCap = threshold + intervalLength + capGuard;
+  if (bodySdfCapped && !finite(bodyDistanceCap)) {
+    return { accepted: false, reason: "body", detail: "BODY capped-distance bound is not finite", sampleCount: 0 };
+  }
   type KeepOutSample = { body: number; target: number; other: number };
   type ContactRegion = { start: number; end: number };
   const samples = new Map<number, KeepOutSample>();
@@ -1133,7 +1148,9 @@ function auditCapsuleAgainstBody(
     let otherBodyDistance = 1e5;
     sampleCount++;
     try {
-      bodyDistance = bodySdf(point.x, point.y, point.z);
+      bodyDistance = !terminal && bodySdfCapped
+        ? bodySdfCapped(point.x, point.y, point.z, bodyDistanceCap)
+        : bodySdf(point.x, point.y, point.z);
       if (terminal) {
         targetDistance = targetUsesBodyField
           ? bodyDistance
@@ -1160,7 +1177,6 @@ function auditCapsuleAgainstBody(
   if (!firstSample || !lastSample) {
     return { accepted: false, reason: "body", detail: "BODY/target SDF endpoint evaluation failed", sampleCount };
   }
-  const threshold = segment.radius + 1e-7;
   if (firstSample.body <= threshold) {
     return { accepted: false, reason: "body", detail: "plate root is born inside finished BODY", sampleCount };
   }
@@ -1408,7 +1424,7 @@ export function auditSparseRemovableSupportCapsule(
   terminal = true,
 ): SparseSupportRouteAudit {
   const normalized = normalizeRequest(request);
-  return auditCapsuleAgainstBody(segment, normalized.bodySdf, terminal, target, normalized);
+  return auditCapsuleAgainstBody(segment, normalized.bodySdf, normalized.bodySdfCapped, terminal, target, normalized);
 }
 
 function auditRoute(
@@ -1440,11 +1456,12 @@ function auditRoute(
         request.otherBodySdf
           ? (x, y, z) => request.otherBodySdf!(target, x, y, z)
           : undefined,
+        undefined,
         false,
         target,
         request,
       )
-      : auditCapsuleAgainstBody(segment, request.bodySdf, terminal, target, request);
+      : auditCapsuleAgainstBody(segment, request.bodySdf, request.bodySdfCapped, terminal, target, request);
     sampleCount += audited.sampleCount;
     if (!audited.accepted) return { ...audited, sampleCount };
   }
