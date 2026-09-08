@@ -57,6 +57,7 @@ Fail closed / STOP and return evidence if:
 4. Only if prefix shows a clear material win, run at most one final canonical Full A2.
 5. Final candidate must beat `528,025.4 ms` with complete semantic/fingerprint parity, validator PASS, and Retention v0 durable persistence PASS.
 6. Return compact SOL-review handoff with exact branch/commit/performance/parity evidence.
+7. After SOL accepts and records the Performance v2 checkpoint, hand off accepted results and unresolved items to `SKIN_ABC_SOL` and STOP. Do not auto-start another AB task.
 
 If single-thread v2 does not produce a material safe win, stop. Parallel/native/GPU work belongs to a separate later task.
 
@@ -95,6 +96,24 @@ DO NOT CHANGE in Performance v2:
 - retained canonical A2 sidecar:
   `J:\My Drive\codex\2026-09-05\files-pasted-by-the-user-katachi\browser-retention-gate-20260907\ASTRA_A_candidate-print-lane.evidence.json`
 - future escalation reference only: `docs/notes/AB_A2_PERFORMANCE_ASTRA_HANDOFF_2026-09-07.md`
+
+## Author transition notice — 2026-09-08
+
+Author-facing consultation is moving toward `SKIN_ABC_SOL`, but **Performance v2 implementation authority remains Team AB until this active task is closed**.
+
+During Performance v2:
+- keep the current AB branch / CURRENT / gate authority;
+- keep the current scope unchanged;
+- do not move code or branch authority to ABC;
+- do not create AB/C integration architecture or a common kernel;
+- do not change Support placement or A2-specific locked semantics.
+
+At Performance v2 closure:
+- record the accepted checkpoint, performance, parity, fingerprints, and blockers/unresolved items normally;
+- hand off the accepted result and unresolved items to `SKIN_ABC_SOL`;
+- STOP; do not automatically start another AB task.
+
+The earlier AB -> C compute-reuse investigation is provisional read-only evidence grounded only through accepted Performance v1. After Performance v2 is accepted, `SKIN_ABC_SOL` will reassess v2-added/changed compute capability, C/SKIN semantic correspondence, and actual reuse value. This transition does not pre-decide AB's current Support placement as the future SKIN standard.
 
 ---
 
