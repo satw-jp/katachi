@@ -19,7 +19,8 @@ Last verified: 2026-09-08
 - Progressive FIELD Fix 2 structural checkpoint: `3219f093a8c9ed9165b5c66dea0bd2f4e87d8fdf`
 - viewport FIELD-progression guard checkpoint: `f4baeca950204e0d80e5a5da01441b17764c489a`
 - viewport input/redraw baseline accepted checkpoint: `7006e0d359ad605ccaa84cc2be85fb29da3c27d9`
-- View Representation Continuity v0 implementation review checkpoint: `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`
+- View Representation Continuity v0 implementation checkpoint: `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`
+- View Representation Continuity v0 accepted checkpoint: `77f121cda5d60a2e443a994c00a05c7630417c15`
 
 ## Local/runtime authority
 - C J workspace authority: `J:\dev\worktrees\skin-field-vnext-interaction-v0`
@@ -32,33 +33,33 @@ Last verified: 2026-09-08
 ## Current phase
 Runtime Status + Progressive FIELD v0 remains PASS / CLOSED.
 
-View Representation Continuity v0 is in C SOL REVIEW HOLD after implementation `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`.
+View Representation Continuity v0 is PASS / CLOSED at `77f121cda5d60a2e443a994c00a05c7630417c15`.
 
-C SOL direct review:
-- branch is exactly one commit ahead of `7006e0d...`;
-- remote branch HEAD matches `a7b92822...`;
-- changed files are presentation/runtime only: `main.ts`, `style.css`, `ui.ts`, `viewportMode.ts`, `viewportMode.test.ts`;
-- primary IA is correctly split to `BEADS · Fast -> MESH · Surface -> FIELD · Exact` and secondary `GRAPH / DIAGNOSTICS / PRINT PREVIEW`;
-- primary MESH now uses the authoring preview path instead of Stage 6 / Opening Map as its conceptual source;
-- existing coarse -> refined preview worker/cache/generation path is reused;
-- authoring mutation invalidates preview generation; camera-only changes do not;
-- Production / Support / FIELD semantic / FKEI / Export / 3MF / Stage 6 authority boundaries remain unchanged in the reviewed diff.
+Accepted representation model:
+- primary author-facing continuum: `BEADS · Fast -> MESH · Surface -> FIELD · Exact`;
+- secondary group: `GRAPH / DIAGNOSTICS / PRINT PREVIEW`;
+- primary MESH means current authoring preview mesh from the current Host / Patch state, not Stage 6 / Opening Map / Export authority;
+- existing progressive preview-mesh worker path is reused: coarse result first, then refined result;
+- current preview cache is reusable on re-entry;
+- camera-only interaction does not regenerate MESH;
+- authoring mutation invalidates preview generation;
+- MESH departure cancels only any active preview worker and preserves valid current cache;
+- late worker completion cannot steal a newer GRAPH / DIAGNOSTICS / PRINT PREVIEW selection;
+- Production / Support / FIELD semantic / FKEI / Export / 3MF / Stage 6 authority remain unchanged.
 
-One bounded defect remains before closure:
-- if MESH preview generation is still running and the author switches to GRAPH / DIAGNOSTICS / PRINT PREVIEW, the secondary branch does not cancel the preview worker;
-- a late worker completion calls `installPreviewMesh(...)`, which sets the renderer/UI layer back to MESH;
-- therefore a late MESH result can steal a newer secondary-view selection.
+C SOL direct review of Fix 1:
+- `a7b92822... -> 77f121cd...` is one commit, one file (`src/studies/skin/main.ts`), +5 lines;
+- shared `departFromAuthoringPreviewMesh(nextLayer)` cancels the active preview worker only when leaving MESH;
+- `cancelPreviewMeshBuild()` terminates the worker / clears progress state without clearing `previewMeshCache`;
+- stale/late worker callbacks fail current-run checks after cancellation and cannot install MESH over a newer view selection;
+- remote branch HEAD matches `77f121cd...`.
 
 ## Active implementation instruction
-- owner: C SOL -> C LUNA
-- task: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
-- continue from branch `agent/skin-view-representation-continuity-v0` / `a7b92822a8690a93b6e4d6c7ed954a59a1d2b592`
-- J-side only
-- fix only the MESH-worker / secondary-view switch race
-- prefer one shared cancellation/departure rule
-- preserve any valid current preview cache
-- do not change Production / Support / FIELD semantics / Export / Stage 6 authority
-- push minimal fix and STOP for C SOL review
+- NONE.
+- Do not start another C implementation task automatically from this closure.
+- UI work remains observation-driven; handle only concrete defects reported by the author.
+- `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md` remains QUEUED and should start after the currently active Astra work, when explicitly requested.
+- Usagi / strong-overhang validation remains later explicit scope.
 
 ## PASS / CLOSED
 - C Research closed enough for v0
@@ -73,9 +74,9 @@ One bounded defect remains before closure:
 - compute/helper J cutover + connection PASS
 - Runtime Status + Progressive FIELD v0 PASS / CLOSED
 - Viewport Input / Redraw Diagnostic v1 PASS / CLOSED at `7006e0d...`
+- View Representation Continuity v0 PASS / CLOSED at `77f121cd...`
 
 ## Remaining follow-up / evidence boundaries
-- View Representation Continuity v0: STRUCTURAL PASS / FIX1 ACTIVE, not yet CLOSED.
 - Permanent Structure durability remains `FAIL / LOCALIZED`; audit is QUEUED and still scheduled after current Astra work.
 - strong-overhang / cantilever generalization remains UNVERIFIED.
 - SKIN-support-alone full printability remains UNVERIFIED.
@@ -102,13 +103,16 @@ One bounded defect remains before closure:
 
 ## Relevant artifacts
 - View Representation Continuity design: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0.md`
-- active Fix 1: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
+- View Representation Continuity Fix 1: `docs/tasks/C_VIEW_REPRESENTATION_CONTINUITY_V0_FIX1_SECONDARY_SWITCH.md`
 - queued durability audit: `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`
 - shared physical observation note: `docs/evidence/SKIN_FIRST_PHYSICAL_PRINT_AUTHOR_OBSERVATIONS_2026-09-06.md`
 
 ## Next gate
-1. C LUNA applies Fix 1 only.
-2. Verify MESH-building -> GRAPH / DIAGNOSTICS / PRINT PREVIEW cannot be stolen back by late worker completion.
-3. Return to C SOL and STOP.
-4. If clean, C SOL can close View Representation Continuity v0.
-5. Do not auto-start durability, Usagi, or another UI task afterward.
+No C implementation gate is active.
+
+Priority order:
+1. Finish the currently active Astra work.
+2. Then, when the author explicitly starts it, run `docs/tasks/C_SINGLE_ATTACHMENT_DURABILITY_AUDIT_V0.md`.
+3. In the meantime, keep UI work observation-driven and scope concrete issues individually.
+
+Do not auto-start durability, Usagi, Outside->Outside Support, External STL Host, or another UI task.
