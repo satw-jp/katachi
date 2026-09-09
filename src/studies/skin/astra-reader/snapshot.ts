@@ -31,6 +31,12 @@ export interface AstraResearchSnapshot {
   host: { vertices: number[][]; faces: number[][] };
   source: { package: string; candidate: CandidateId; sourceJunctionCount: Fact<number>; surfaceComponentCount: Fact<number>; };
 }
+export interface ConnectivityContext {
+  connectedJunctions: Fact<string[]>;
+  adjacentMembers: Fact<string[]>;
+  recordedParent: Fact<string | null>;
+  target: Fact<string | null>;
+}
 
 type GeometryRecord = { id: string; ancestry?: number[]; points_mm: number[][]; radius_mm?: number; kind?: string };
 type AttachmentRecord = { id: string; parent_member_id: string; surface_component_id: number; branch_start_mm: number[]; branch_end_mm: number[]; classification?: string };
@@ -134,5 +140,19 @@ export function buildAstraResearchSnapshot(candidate: CandidateId): AstraResearc
       sourceJunctionCount: fact(selected.geometry.parameters.source_junction_count, "RECORDED"),
       surfaceComponentCount: fact(selected.attachments.component_target_count, "RECORDED"),
     },
+  };
+}
+
+export function deriveConnectivityContext(snapshot: AstraResearchSnapshot, member: MemberRecord): ConnectivityContext {
+  const junctionIds = new Set(member.connectedJunctions.value);
+  const adjacentMembers = snapshot.members
+    .filter((other) => other.id !== member.id)
+    .filter((other) => other.connectedJunctions.value.some((junctionId) => junctionIds.has(junctionId)))
+    .map((other) => other.id);
+  return {
+    connectedJunctions: member.connectedJunctions,
+    adjacentMembers: fact(adjacentMembers, junctionIds.size ? "DERIVED" : "NOT RECORDED"),
+    recordedParent: member.parentBranch,
+    target: member.target,
   };
 }

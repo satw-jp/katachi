@@ -16,6 +16,7 @@ button { cursor: pointer; }
 .selection { padding: 10px; background: rgba(255,255,255,.5); border: 1px solid var(--hairline); min-height: 120px; }
 .selection h3 { margin: 0 0 7px; font-size: 12px; }
 .fact { display: grid; grid-template-columns: 130px 1fr; gap: 6px; }
+.context-legend { margin-top: 8px; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .badge { font-size: 9px; letter-spacing: .04em; padding: 1px 4px; border: 1px solid currentColor; }
 .recorded { color: #387a48; } .derived { color: #9a6a16; } .not-recorded { color: #9a3c3c; }
 
