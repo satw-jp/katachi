@@ -19,12 +19,16 @@ export interface MemberRecord {
   addedStage: Fact<string>;
   addedReason: Fact<string | null>;
 }
-export interface MotifRecord { id: string; points: Point3[]; radii: number[]; component: Fact<string | null>; }
+export interface MotifRecord { id: string; points: Point3[]; radii: number[]; component: Fact<string | null>; componentIds: Fact<number[]>; }
+export interface AttachmentCorrespondence { memberId: string; branchStart: Fact<Point3>; branchEnd: Fact<Point3>; surfaceComponentId: Fact<number>; }
+export interface SurfaceComponentRecord { id: number; motifIds: Fact<string[]>; attachmentCount: Fact<number>; }
 export interface AstraResearchSnapshot {
   candidate: CandidateId;
   junctions: JunctionRecord[];
   members: MemberRecord[];
   motifs: MotifRecord[];
+  attachmentCorrespondence: AttachmentCorrespondence[];
+  surfaceComponents: SurfaceComponentRecord[];
   attachments: MemberRecord[];
   fabricationAdditions: MemberRecord[];
   removableSupports: MemberRecord[];
@@ -119,9 +123,32 @@ function buildJunctions(geometry: CandidateData["geometry"]): JunctionRecord[] {
 function buildMotifs(geometry: CandidateData["geometry"]): MotifRecord[] {
   return geometry.surface.map((row) => {
     const mapping = data.surfaceComponents.patch_component_mapping.find((entry) => entry.patch_id === row.id);
-    const component = mapping?.component_ids_coarse[0];
-    return { id: `M${row.id}`, points: points(row.points_mm), radii: row.radii_mm, component: fact(component === undefined ? null : `surface component ${component}`, component === undefined ? "NOT RECORDED" : "RECORDED") };
+    const componentIds = mapping?.component_ids_coarse ?? [];
+    const component = componentIds[0];
+    return { id: `M${row.id}`, points: points(row.points_mm), radii: row.radii_mm, component: fact(component === undefined ? null : `surface component ${component}`, component === undefined ? "NOT RECORDED" : "RECORDED"), componentIds: fact(componentIds, mapping ? "RECORDED" : "NOT RECORDED") };
   });
+}
+
+function buildAttachmentCorrespondence(rows: AttachmentRecord[]): AttachmentCorrespondence[] {
+  return rows.map((row) => ({ memberId: row.id, branchStart: fact(point(row.branch_start_mm), "RECORDED"), branchEnd: fact(point(row.branch_end_mm), "RECORDED"), surfaceComponentId: fact(row.surface_component_id, "RECORDED") }));
+}
+
+function buildSurfaceComponents(geometry: CandidateData["geometry"], rows: AttachmentRecord[]): SurfaceComponentRecord[] {
+  const motifIdsByComponent = new Map<number, string[]>();
+  const mappedComponents = new Set<number>();
+  for (const row of geometry.surface) {
+    const mapping = data.surfaceComponents.patch_component_mapping.find((entry) => entry.patch_id === row.id);
+    for (const componentId of mapping?.component_ids_coarse ?? []) {
+      mappedComponents.add(componentId);
+      const motifIds = motifIdsByComponent.get(componentId) ?? [];
+      motifIds.push(`M${row.id}`);
+      motifIdsByComponent.set(componentId, motifIds);
+    }
+  }
+  const attachmentCounts = new Map<number, number>();
+  for (const row of rows) attachmentCounts.set(row.surface_component_id, (attachmentCounts.get(row.surface_component_id) ?? 0) + 1);
+  const componentIds = new Set([...mappedComponents, ...attachmentCounts.keys()]);
+  return [...componentIds].sort((a, b) => a - b).map((id) => ({ id, motifIds: fact(motifIdsByComponent.get(id) ?? [], mappedComponents.has(id) ? "RECORDED" : "NOT RECORDED"), attachmentCount: fact(attachmentCounts.get(id) ?? 0, "RECORDED") }));
 }
 
 export function buildAstraResearchSnapshot(candidate: CandidateId): AstraResearchSnapshot {
@@ -136,6 +163,8 @@ export function buildAstraResearchSnapshot(candidate: CandidateId): AstraResearc
     junctions: buildJunctions(selected.geometry),
     members,
     motifs: buildMotifs(selected.geometry),
+    attachmentCorrespondence: buildAttachmentCorrespondence(selected.attachments.attachments),
+    surfaceComponents: buildSurfaceComponents(selected.geometry, selected.attachments.attachments),
     attachments: members.filter((member) => member.layer === "attachments"),
     fabricationAdditions,
     removableSupports,
@@ -147,6 +176,20 @@ export function buildAstraResearchSnapshot(candidate: CandidateId): AstraResearc
       surfaceComponentCount: fact(selected.attachments.component_target_count, "RECORDED"),
     },
   };
+}
+
+function pointSegmentDistance(pointValue: Point3, start: Point3, end: Point3): number {
+  const dx = end.x - start.x; const dy = end.y - start.y; const dz = end.z - start.z;
+  const lengthSquared = dx * dx + dy * dy + dz * dz;
+  const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((pointValue.x - start.x) * dx + (pointValue.y - start.y) * dy + (pointValue.z - start.z) * dz) / lengthSquared));
+  const x = start.x + t * dx; const y = start.y + t * dy; const z = start.z + t * dz;
+  return Math.hypot(pointValue.x - x, pointValue.y - y, pointValue.z - z);
+}
+
+export function nearestMotifDistance(snapshot: AstraResearchSnapshot, componentId: number, pointValue: Point3): Fact<number | null> {
+  const motifs = snapshot.motifs.filter((motif) => motif.componentIds.value.includes(componentId));
+  const distances = motifs.flatMap((motif) => motif.points.slice(1).map((end, index) => pointSegmentDistance(pointValue, motif.points[index] ?? end, end)));
+  return fact(distances.length ? Math.min(...distances) : null, "DERIVED");
 }
 
 export function deriveConnectivityContext(snapshot: AstraResearchSnapshot, member: MemberRecord): ConnectivityContext {

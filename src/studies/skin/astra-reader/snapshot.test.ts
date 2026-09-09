@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { boundedJunctionDisplayRadius, boundedPermanentDisplayRadius, buildAstraResearchSnapshot, deriveConnectivityContext } from "./snapshot.ts";
+import { boundedJunctionDisplayRadius, boundedPermanentDisplayRadius, buildAstraResearchSnapshot, deriveConnectivityContext, nearestMotifDistance } from "./snapshot.ts";
 
 const open = buildAstraResearchSnapshot("B_OPEN");
 const participating = buildAstraResearchSnapshot("B_PARTICIPATING");
@@ -35,6 +35,19 @@ assert.ok(recordedAttachment);
 const attachmentContext = deriveConnectivityContext(open, recordedAttachment);
 assert.equal(attachmentContext.recordedParent.provenance, "RECORDED");
 assert.equal(attachmentContext.target.provenance, "RECORDED");
+const correspondence = open.attachmentCorrespondence.find((entry) => entry.memberId === recordedAttachment.id);
+assert.ok(correspondence);
+assert.equal(correspondence.branchStart.provenance, "RECORDED");
+assert.equal(correspondence.branchEnd.provenance, "RECORDED");
+assert.equal(correspondence.surfaceComponentId.provenance, "RECORDED");
+const surfaceComponent = open.surfaceComponents.find((component) => component.id === correspondence.surfaceComponentId.value);
+assert.ok(surfaceComponent);
+assert.equal(surfaceComponent.motifIds.provenance, "RECORDED");
+assert.ok(surfaceComponent.motifIds.value.length > 0);
+assert.equal(surfaceComponent.attachmentCount.value, open.attachments.filter((member) => member.target.value === `surface component ${surfaceComponent.id}`).length);
+const nearestDistance = nearestMotifDistance(open, surfaceComponent.id, correspondence.branchEnd.value);
+assert.equal(nearestDistance.provenance, "DERIVED");
+assert.equal(typeof nearestDistance.value, "number");
 const crossLink = participating.members.find((member) => member.layer === "crossLinks");
 assert.ok(crossLink);
 assert.equal(deriveConnectivityContext(participating, crossLink).recordedParent.provenance, "NOT RECORDED");

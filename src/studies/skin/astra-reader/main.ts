@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import manifest from "./manifest.json";
-import { boundedJunctionDisplayRadius, boundedPermanentDisplayRadius, buildAstraResearchSnapshot, deriveConnectivityContext, type CandidateId, type Fact, type JunctionRecord, type LayerId, type MemberRecord } from "./snapshot.ts";
+import { boundedJunctionDisplayRadius, boundedPermanentDisplayRadius, buildAstraResearchSnapshot, deriveConnectivityContext, nearestMotifDistance, type CandidateId, type Fact, type JunctionRecord, type LayerId, type MemberRecord, type MotifRecord, type Point3 } from "./snapshot.ts";
 import "./style.css";
 
 type Selection = { kind: "junction"; record: JunctionRecord } | { kind: "member"; record: MemberRecord } | null;
@@ -24,13 +24,14 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   if (text !== undefined) node.textContent = text;
   return node;
 }
+function factValue(value: unknown): string { if (Array.isArray(value)) return value.join(", "); if (value && typeof value === "object" && "x" in value && "y" in value && "z" in value) { const point = value as Point3; return `[${point.x}, ${point.y}, ${point.z}]`; } return String(value ?? "—"); }
 function badge(fact: Fact<unknown>): HTMLElement {
   const node = el("span", `badge ${fact.provenance.toLowerCase().split(" ").join("-")}`, fact.provenance);
   return node;
 }
 function factRow(label: string, fact: Fact<unknown>): HTMLElement {
   const row = el("div", "fact");
-  row.append(el("span", undefined, label), el("span", undefined, String(Array.isArray(fact.value) ? fact.value.join(", ") : fact.value ?? "—")), badge(fact));
+  row.append(el("span", undefined, label), el("span", undefined, factValue(fact.value)), badge(fact));
   return row;
 }
 function midpoint(points: { x: number; y: number; z: number }[]): THREE.Vector3 {
@@ -77,6 +78,8 @@ function connector(start: THREE.Vector3, end: THREE.Vector3, color: number, radi
 function nearestEndpoint(member: MemberRecord, target: THREE.Vector3): THREE.Vector3 { const endpoints = [member.points[0], member.points[member.points.length - 1]].filter((point): point is MemberRecord["points"][number] => Boolean(point)).map((point) => new THREE.Vector3(point.x, point.y, point.z)); const first = endpoints[0] ?? new THREE.Vector3(); return (endpoints.slice(1).reduce((nearest, point) => point.distanceToSquared(target) < nearest.distanceToSquared(target) ? point : nearest, first)).clone(); }
 function highlightRadius(member: MemberRecord): number { return Math.max(.95, Math.min(2, member.radius * .8)); }
 function junctionRadius(junction: JunctionRecord): number { const radii = junction.connectedMembers.value.map((id) => snapshot.members.find((member) => member.id === id)?.radius).filter((radius): radius is number => radius !== undefined); return boundedJunctionDisplayRadius(radii); }
+function diagnosticPoint(pointValue: Point3, color: number, radius: number): THREE.Mesh { const marker = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 6), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .95, depthTest: false, depthWrite: false })); marker.position.set(pointValue.x, pointValue.y, pointValue.z); marker.renderOrder = 12; return marker; }
+function diagnosticMotif(motif: MotifRecord): THREE.Line { const display = line(motif.points, highlightColors.junction, .98); const material = display.material as THREE.LineBasicMaterial; material.depthTest = false; material.depthWrite = false; display.renderOrder = 12; return display; }
 function addPick(point: THREE.Vector3, radius: number, record: JunctionRecord | MemberRecord, kind: "junction" | "member", group: THREE.Group): void { const mesh = new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius * 1.8, 1), 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, colorWrite: false, depthWrite: false })); mesh.position.copy(point); mesh.userData.selection = { kind, record }; mesh.userData.layer = kind === "junction" ? "junctions" : (record as MemberRecord).layer; group.add(mesh); pickables.push(mesh); }
 function renderSnapshot(): void {
   clearScene();
@@ -87,7 +90,7 @@ function renderSnapshot(): void {
   const addGraphConnectors = (member: MemberRecord, group: THREE.Group): void => { for (const junctionId of member.connectedJunctions.value) { const junction = snapshot.junctions.find((candidateJunction) => candidateJunction.id === junctionId); if (!junction) continue; const node = new THREE.Vector3(junction.position.value.x, junction.position.value.y, junction.position.value.z); const bridge = connector(nearestEndpoint(member, node), node, colors[member.layer], boundedPermanentDisplayRadius(member.radius) * .92, .95); if (bridge) group.add(bridge); const joint = new THREE.Mesh(new THREE.SphereGeometry(boundedPermanentDisplayRadius(member.radius) * 1.08, 8, 6), new THREE.MeshStandardMaterial({ color: colors[member.layer], roughness: .72, metalness: .05 })); joint.position.copy(node); group.add(joint); } };
   const addMembers = (members: MemberRecord[], connectGraph = false) => members.forEach((member) => { const group = groups[member.layer as Exclude<LayerId, "host">]; const display = tube(member, colors[member.layer], boundedPermanentDisplayRadius(member.radius), .95); group.add(display); if (connectGraph) addGraphConnectors(member, group); addPick(midpoint(member.points), member.radius, member, "member", group); });
   addMembers(snapshot.members, true); addMembers(snapshot.fabricationAdditions); addMembers(snapshot.removableSupports);
-  snapshot.motifs.forEach((motif) => { const display = line(motif.points, colors.motifs, motifMode === "transparent" ? .2 : 1); display.userData.motif = true; groups.motifs.add(display); });
+  snapshot.motifs.forEach((motif) => { const display = line(motif.points, colors.motifs, motifMode === "transparent" ? .2 : 1); display.userData.motif = true; display.userData.surfaceComponentIds = motif.componentIds.value; groups.motifs.add(display); });
   highlightGroup = new THREE.Group(); highlightGroup.name = "connectivity-highlight"; root.add(highlightGroup);
   applyVisibility(); refreshHighlight();
 }
@@ -96,6 +99,14 @@ function valueFact<T>(value: T, provenance: Fact<T>["provenance"]): Fact<T> { re
 function visibleLayer(id: LayerId): boolean { return visibility[id] && (id !== "motifs" || motifMode !== "hidden"); }
 function clearHighlights(): void { if (!highlightGroup) return; while (highlightGroup.children.length) { const child = highlightGroup.children.pop(); if (child) disposeObject(child); } }
 function highlightJunction(junction: JunctionRecord, color = highlightColors.junction, radius = junctionRadius(junction) * 1.35): void { if (!highlightGroup || !visibleLayer("junctions")) return; const marker = new THREE.Mesh(new THREE.SphereGeometry(Math.min(.95, Math.max(.4, radius)), 16, 10), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .84, depthTest: false, depthWrite: false })); marker.position.set(junction.position.value.x, junction.position.value.y, junction.position.value.z); marker.renderOrder = 11; highlightGroup.add(marker); }
+function highlightAttachmentCorrespondence(member: MemberRecord): void {
+  if (!highlightGroup) return;
+  const correspondence = snapshot.attachmentCorrespondence.find((candidate) => candidate.memberId === member.id);
+  if (!correspondence) return;
+  highlightGroup.add(diagnosticPoint(correspondence.branchStart.value, highlightColors.selected, .85), diagnosticPoint(correspondence.branchEnd.value, highlightColors.parent, .95));
+  if (!visibleLayer("motifs")) return;
+  for (const motif of snapshot.motifs) if (motif.componentIds.value.includes(correspondence.surfaceComponentId.value)) highlightGroup.add(diagnosticMotif(motif));
+}
 function refreshHighlight(): void {
   clearHighlights();
   if (!highlightGroup || !selection) return;
@@ -108,6 +119,7 @@ function refreshHighlight(): void {
   if (context.recordedParent.value) { const parent = byId.get(context.recordedParent.value); if (parent && visibleLayer(parent.layer)) highlightGroup?.add(tube(parent, highlightColors.parent, Math.max(.65, Math.min(1.1, parent.radius * .45)), .56, true)); }
   highlightGroup.add(tube(member, highlightColors.selected, highlightRadius(member), .78, true));
   if (visibleLayer("junctions")) { for (const junctionId of context.connectedJunctions.value) { const junction = snapshot.junctions.find((candidateJunction) => candidateJunction.id === junctionId); if (junction) highlightJunction(junction); } }
+  if (member.layer === "attachments") highlightAttachmentCorrespondence(member);
 }
 function refreshSelection(): void {
   selectionPanel.replaceChildren();
@@ -118,6 +130,12 @@ function refreshSelection(): void {
   } else {
     const record = selection.record; const context = deriveConnectivityContext(snapshot, record);
     selectionPanel.append(factRow("ID", valueFact(record.id, "RECORDED")), factRow("Role", record.role), factRow("RECORDED PARENT", context.recordedParent), factRow("CONNECTED JUNCTIONS", context.connectedJunctions), factRow("DERIVED ADJACENCY", context.adjacentMembers), factRow("Target surface component / motif", context.target), factRow("Added stage", record.addedStage), factRow("Added reason", record.addedReason), factRow("Diameter / radius", valueFact(record.radius, "RECORDED")));
+    if (record.layer === "attachments") {
+      const correspondence = snapshot.attachmentCorrespondence.find((candidate) => candidate.memberId === record.id);
+      const component = correspondence ? snapshot.surfaceComponents.find((candidate) => candidate.id === correspondence.surfaceComponentId.value) : undefined;
+      if (correspondence) selectionPanel.append(factRow("RECORDED BRANCH START (mm)", correspondence.branchStart), factRow("RECORDED BRANCH END (mm)", correspondence.branchEnd), factRow("TARGET SURFACE COMPONENT ID", correspondence.surfaceComponentId), factRow("TARGET MOTIF IDS", component?.motifIds ?? valueFact([], "NOT RECORDED")), factRow("COMPONENT ATTACHMENT COUNT", component?.attachmentCount ?? valueFact(0, "NOT RECORDED")), factRow("BRANCH END → NEAREST TARGET MOTIF", nearestMotifDistance(snapshot, correspondence.surfaceComponentId.value, correspondence.branchEnd.value)));
+      if (component?.attachmentCount.value === 0) selectionPanel.append(el("div", "muted", "診断: component attachment count = 0。geometryは変更していません。"));
+    }
     if (!visibleLayer(record.layer)) selectionPanel.append(el("div", "muted", "選択layerが非表示のため、highlightは抑制されています。"));
     selectionPanel.append(el("div", "context-legend", "表示: selected / junction / DERIVED adjacency / RECORDED parent"));
   }
