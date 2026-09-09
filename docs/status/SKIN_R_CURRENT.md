@@ -8,43 +8,46 @@ Last verified: 2026-09-09
 - canonical clone: `J:\dev\katachi`
 - worktree: `J:\dev\worktrees\skin-r-astra-reader-v0`
 - implementation branch: `agent/skin-r-astra-reader-v0`
-- accepted technical checkpoint: `81a5325c39ec27af9bb11bc91d120513f9729990`
+- accepted technical checkpoint before connectivity/readability iterations: `81a5325c39ec27af9bb11bc91d120513f9729990`
 - original implementation checkpoint: `4dafd6b9421492a1dc939b67835c94209a2d5fc4`
 - Fix 1 merge checkpoint: `de99aad746123d21ad21a375607db4eac4ac1c92`
 - shared samples authority: `J:\dev\samples`
 - `C:\dev\samples` is not authority
 
 ## Current phase
-**Astra Research Reader v0 technical implementation remains PASS / CLOSED at `81a5325c39ec27af9bb11bc91d120513f9729990`, but first Author use-value review is PARTIAL PASS / FIX REQUIRED for connectivity readability.**
+**Astra Research Reader v0 remains technically viable, but Author use-value review is still FIX REQUIRED for default network readability.**
 
-Author Review found:
-- layer distinction: PASS;
-- B_OPEN / B_PARTICIPATING switching: PASS;
-- physical-object ↔ branch-network route understanding: NOT YET SUFFICIENT;
-- selected branch needs stronger/thicker visual emphasis;
-- concrete branch-level spatial feedback remains blocked until route / adjacency is easier to follow.
+The earlier connectivity-highlight direction improved local understanding after interaction, but the Author now reports:
+- selected/connected context is useful but visually too heavy / dark;
+- the network should already read as connected before touching anything;
+- current unselected paths still appear floating / interrupted;
+- INTERNAL JUNCTIONS markers are too large and should visually match branch thickness rather than read as separate spheres.
 
-This is a bounded Viewer-readability issue. It does **not** reopen provenance, source authority, Production semantics, generator design, or Authoring.
+This remains a bounded Research Viewer-readability issue. It does **not** authorize Authoring, generator changes, geometry changes, or Production translation.
 
 ## Active task
-- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX2_CONNECTIVITY_HIGHLIGHT.md`
+- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX3_DEFAULT_CONTINUITY.md`
 
-Author observation authority:
+Current Author observation authority:
+- `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_DEFAULT_CONTINUITY_2026-09-09.md`
+
+Previous connectivity task / observation remain retained history:
+- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX2_CONNECTIVITY_HIGHLIGHT.md`
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_CONNECTIVITY_2026-09-09.md`
 
-SKIN_R_LUNA may implement Fix 2 on the existing branch after normally synchronizing latest main. STOP after Fix 2 for SOL / Author review.
+SKIN_R_LUNA may implement Fix 3 on the existing branch after normally synchronizing latest main. STOP after Fix 3 for SOL / Author review.
 
-## Accepted Fix 1 technical baseline
-Fix 1 remains accepted and protected:
-
+## Accepted Fix 1 technical baseline — protected
+The following remain accepted and must not regress:
 - normalized `reader-snapshot.json` runtime boundary;
 - deterministic extraction via `tools/extract_astra_reader_snapshot.py`;
 - original Astra packages remain external Research authority;
-- `RECORDED / DERIVED / NOT RECORDED` semantics corrected;
+- `RECORDED / DERIVED / NOT RECORDED` semantics;
 - narrow Browser layout keeps non-zero canvas;
 - candidate switch clears stale selection;
-- B_OPEN / B_PARTICIPATING same-camera switching works;
-- eight Reader layer classes remain available;
+- B_OPEN / B_PARTICIPATING same-camera switching;
+- eight Reader layer classes;
+- motif Visible / Transparent / Hidden;
 - Production / C / FKEI / existing Viewer / Export / 3MF semantic diff = 0.
 
 Source/provenance identities from Fix 1 remain:
@@ -58,45 +61,49 @@ Source-driven count checks remain:
 - B_PARTICIPATING: 325 members / 212 attachments / 96 source junction identities;
 - participating-only cross-link delta: 18.
 
-## First Author review — 2026-09-09
+## Author review sequence — retained
 
-### Physical object / route readability
-The Author reports that the overall branch route appears visually interrupted, making it difficult to understand which branch connects to which branch through the network.
+### Review 1
+- layer distinction: PASS;
+- B_OPEN / B_PARTICIPATING switching: PASS;
+- physical-object ↔ branch-network route understanding: insufficient;
+- branch-level concrete feedback blocked by route readability.
 
-This is now the primary Reader blocker.
+### Review 2 / current correction
+After local connectivity highlighting became easier to understand:
+- selection/context itself is now understandable but too visually strong;
+- default/unselected connectivity remains insufficient;
+- branches still read as floating/interrupted;
+- INTERNAL JUNCTIONS markers are oversized relative to branch structure;
+- the Author wants node/junction diameter visually comparable to the connected branch diameter;
+- clicking should clarify local context, not be required to create the first readable version of the network.
 
-### Layer distinction
-PASS. Existing layer classes can be distinguished sufficiently.
+## Interpretation of OPEN CORE / INTERNAL JUNCTIONS
 
-### Selection readability
-The Author wants a selected branch/member to become visibly thicker / stronger so it remains easy to track while inspecting the structure.
+`OPEN CORE` is retained as a Research classification:
+- the sparse internal backbone selected from the earlier graph;
+- 95 connected core edges spanning the 96 source-node identities before surface attachments are added;
+- intended to preserve a minimally connected internal structure while protecting openness / Void / depth;
+- not a claim that OPEN is superior to PARTICIPATING.
 
-This means **display emphasis only**. It does not authorize branch-radius editing.
+`INTERNAL JUNCTIONS` are graph/node aids used to understand branch connectivity:
+- they are not separate artwork spheres;
+- displayed node positions may be Reader-derived;
+- normal node size should visually blend into the connected branch network rather than dominate it.
 
-### Concrete feedback
-Still difficult because route continuity is not yet readable enough. Do not scope Authoring from this absence of feedback.
+## Fix 3 required direction
+The next bounded correction must prioritize **default continuity**.
 
-### Candidate comparison
-B_OPEN / B_PARTICIPATING switching works.
-
-Interpretation retained:
-- `B_OPEN` = openness-prioritized sparse structure using the 95-edge OPEN core plus B-track surface attachments;
-- `B_PARTICIPATING` = the same OPEN core with participating-only cross-links and greater surface participation / attachments;
-- neither is an automatic upgrade over the other.
-
-## Fix 2 required direction
-The next correction must prioritize **connectivity readability** rather than adding more metadata.
-
-Required behavior is defined in the active task, including:
-- strong selected-member overlay;
-- connected-junction emphasis;
-- directly adjacent member context derived from shared junction identity;
-- recorded attachment parent shown separately from derived adjacency;
-- no invented unique causal route through branching/cyclic graph structure;
-- bounded improvement to global Permanent-structure readability;
-- same candidate/layer/provenance semantics preserved.
-
-Do not use spatial-nearest guessing as a substitute for graph adjacency when recorded/derived junction identity is available.
+Required direction is fully specified in the active task. In summary:
+- without selection, the Permanent network must read as connected rather than floating independent paths;
+- continuity must be based on shared graph/node identity, not arbitrary nearest-neighbor guesses;
+- Viewer-only tube/capsule/end-cap/node-connector treatment is allowed without changing source geometry;
+- INTERNAL JUNCTIONS normal display diameter should be comparable to connected branch diameter;
+- branches must still read as connected when node markers are hidden;
+- selected-member emphasis must be lighter than the previous pass while still obvious;
+- adjacent/connected context remains subordinate to selection;
+- RECORDED parent/target remains distinct from DERIVED adjacency;
+- no unique historical generation route may be invented from graph connectivity.
 
 ## Relationship to future Authoring
 The roadmap remains:
@@ -110,10 +117,10 @@ Potential future operations remain DEFERRED:
 - attachment edit;
 - intent annotation.
 
-Fix 2 is **not** an Authoring task.
+Fix 3 is **not** an Authoring task.
 
 ## Physical Research state relevant to SKIN_R
-Continue current four-candidate physical evaluation in parallel with Reader improvement.
+Continue the current four-candidate physical evaluation in parallel with Reader improvement.
 
 Current direction remains:
 - distinguish print-time failure from Support-removal breakage;
@@ -122,7 +129,7 @@ Current direction remains:
 - use Reader to map physical observations back to geometry identity;
 - do not require all four candidates to be perfect before closing the current generation-quality phase.
 
-Mocomoco and Torus remain future shape candidates under separate Author direction; neither is activated by Fix 2.
+Mocomoco and Torus remain future shape candidates under separate Author direction; neither is activated by Fix 3.
 
 ## Protected / do not change
 - no Astra generator reimplementation
@@ -138,17 +145,19 @@ Mocomoco and Torus remain future shape candidates under separate Author directio
 - no existing FKEI Analysis Viewer modification
 - no Mocomoco / Torus implementation
 
-## Next gate — after Fix 2
-Use B_OPEN and ask:
+## Next gate — after Fix 3
+Use B_OPEN with no initial selection and ask:
 
-> Select one real member. Can the Author visually keep track of that member, see where it joins the network, and follow enough connected structure to understand what it connects to?
+> Without touching anything, can the Author follow enough of the internal network to understand which branches connect, and then use selection only to clarify a local region?
 
 Then check:
-- selected member remains obvious while orbiting;
-- connected junction(s) are legible;
-- adjacent-member context is understandable;
-- recorded parent is distinguishable from derived adjacency;
-- motifs can still be made Transparent/Hidden as needed;
+- default branch continuity is legible through multiple shared nodes;
+- INTERNAL JUNCTIONS are not visually oversized;
+- hiding INTERNAL JUNCTIONS does not make branches appear detached;
+- selected member remains obvious but not excessively heavy;
+- adjacent-member context is understandable and subordinate;
+- recorded parent remains distinguishable from derived adjacency;
+- motifs can still be Transparent/Hidden;
 - B_OPEN / B_PARTICIPATING same-camera comparison still works.
 
 Only after this gate should detailed branch-level spatial feedback be requested again.
@@ -157,8 +166,10 @@ Only after this gate should detailed branch-level spatial feedback be requested 
 - `docs/tasks/SKIN_R_ASTRA_READER_V0.md`
 - `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX1.md`
 - `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX2_CONNECTIVITY_HIGHLIGHT.md`
+- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX3_DEFAULT_CONTINUITY.md`
 - `docs/evidence/SKIN_R_ASTRA_READER_V0_FIX1.md` on accepted branch checkpoint
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_CONNECTIVITY_2026-09-09.md`
+- `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_DEFAULT_CONTINUITY_2026-09-09.md`
 - `docs/notes/ASTRA_SKIN_RESEARCH_ROADMAP_EVALUATION_2026-09-08.md`
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_RESEARCH_ROADMAP_2026-09-08.md`
 - `docs/notes/SKIN_FUWAFUWA_NEXT_SHAPE_CANDIDATES_2026-09-08.md`
