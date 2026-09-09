@@ -38,6 +38,12 @@ export interface ConnectivityContext {
   target: Fact<string | null>;
 }
 
+export function boundedPermanentDisplayRadius(radius: number): number { return Math.max(.28, Math.min(1.35, radius * .35)); }
+export function boundedJunctionDisplayRadius(memberRadii: number[]): number {
+  const average = memberRadii.length ? memberRadii.reduce((sum, radius) => sum + boundedPermanentDisplayRadius(radius), 0) / memberRadii.length : .28;
+  return Math.max(.28, Math.min(.8, average * 1.15));
+}
+
 type GeometryRecord = { id: string; ancestry?: number[]; points_mm: number[][]; radius_mm?: number; kind?: string };
 type AttachmentRecord = { id: string; parent_member_id: string; surface_component_id: number; branch_start_mm: number[]; branch_end_mm: number[]; classification?: string };
 type D1Record = { id: string; a: number[]; b: number[]; radius_mm: number; role?: string; purpose?: string };

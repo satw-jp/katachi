@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildAstraResearchSnapshot, deriveConnectivityContext } from "./snapshot.ts";
+import { boundedJunctionDisplayRadius, boundedPermanentDisplayRadius, buildAstraResearchSnapshot, deriveConnectivityContext } from "./snapshot.ts";
 
 const open = buildAstraResearchSnapshot("B_OPEN");
 const participating = buildAstraResearchSnapshot("B_PARTICIPATING");
@@ -38,4 +38,12 @@ assert.equal(attachmentContext.target.provenance, "RECORDED");
 const crossLink = participating.members.find((member) => member.layer === "crossLinks");
 assert.ok(crossLink);
 assert.equal(deriveConnectivityContext(participating, crossLink).recordedParent.provenance, "NOT RECORDED");
+const closeA = { ...connectedMember, id: "CLOSE_A", points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], connectedJunctions: { value: ["J001"], provenance: "RECORDED" as const } };
+const closeB = { ...connectedMember, id: "CLOSE_B", points: [{ x: 1.01, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }], connectedJunctions: { value: ["J002"], provenance: "RECORDED" as const } };
+const closeSnapshot = { ...open, members: [closeA, closeB] };
+assert.deepEqual(deriveConnectivityContext(closeSnapshot, closeA).adjacentMembers.value, []);
+assert.equal(deriveConnectivityContext(closeSnapshot, closeA).adjacentMembers.provenance, "DERIVED");
+assert.ok(boundedJunctionDisplayRadius([1.1]) < 1);
+assert.equal(boundedPermanentDisplayRadius(1.1), .385);
+assert.equal(connectedMember.radius, 1.1);
 console.log("ok - Astra Research Reader snapshot counts and provenance");
