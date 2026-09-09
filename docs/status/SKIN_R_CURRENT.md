@@ -1,6 +1,6 @@
 # SKIN_R Current Status
 
-Last verified: 2026-09-08
+Last verified: 2026-09-09
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -15,127 +15,120 @@ Last verified: 2026-09-08
 - `C:\dev\samples` is not authority
 
 ## Current phase
-**Astra Research Reader v0 technical implementation is PASS / CLOSED at `81a5325c39ec27af9bb11bc91d120513f9729990`.**
+**Astra Research Reader v0 technical implementation remains PASS / CLOSED at `81a5325c39ec27af9bb11bc91d120513f9729990`, but first Author use-value review is PARTIAL PASS / FIX REQUIRED for connectivity readability.**
 
-**Author visual/use-value review is still pending.**
+Author Review found:
+- layer distinction: PASS;
+- B_OPEN / B_PARTICIPATING switching: PASS;
+- physical-object ↔ branch-network route understanding: NOT YET SUFFICIENT;
+- selected branch needs stronger/thicker visual emphasis;
+- concrete branch-level spatial feedback remains blocked until route / adjacency is easier to follow.
 
-The Reader is now technically ready for the intended next gate: use the completed B_OPEN physical work together with the Reader and confirm that the Author can identify a real branch / junction / motif / attachment and receive a trustworthy provenance-qualified explanation.
+This is a bounded Viewer-readability issue. It does **not** reopen provenance, source authority, Production semantics, generator design, or Authoring.
 
-Do not expand into authoring or generator work from this technical PASS.
+## Active task
+- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX2_CONNECTIVITY_HIGHLIGHT.md`
 
-## Fix 1 review judgment
-`PASS — Fix 1 CLOSED / Author Review pending.`
+Author observation authority:
+- `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_CONNECTIVITY_2026-09-09.md`
 
-Reviewed remote branch / head:
-- branch: `agent/skin-r-astra-reader-v0`
-- HEAD: `81a5325c39ec27af9bb11bc91d120513f9729990`
-- working tree: worker-reported clean
-- remote push: worker-reported confirmed
+SKIN_R_LUNA may implement Fix 2 on the existing branch after normally synchronizing latest main. STOP after Fix 2 for SOL / Author review.
 
-Fix 1 closed the four SOL blockers:
+## Accepted Fix 1 technical baseline
+Fix 1 remains accepted and protected:
 
-1. **Main synchronization**
-   - the branch normally merged main checkpoint `886ec500c27552c30fbb027fdeb5cdb3a6cca571`;
-   - the reviewed implementation commit remains in history;
-   - no reset / rebase / force-push history rewrite was used.
+- normalized `reader-snapshot.json` runtime boundary;
+- deterministic extraction via `tools/extract_astra_reader_snapshot.py`;
+- original Astra packages remain external Research authority;
+- `RECORDED / DERIVED / NOT RECORDED` semantics corrected;
+- narrow Browser layout keeps non-zero canvas;
+- candidate switch clears stale selection;
+- B_OPEN / B_PARTICIPATING same-camera switching works;
+- eight Reader layer classes remain available;
+- Production / C / FKEI / existing Viewer / Export / 3MF semantic diff = 0.
 
-2. **Provenance semantics**
-   - OPEN core stage classification: `DERIVED`;
-   - participating-only cross-link stage classification: `DERIVED`;
-   - junction positions and connected-member lists: `DERIVED`;
-   - source parent / attachment target fields remain `RECORDED` when explicitly present;
-   - D1 stage classification is `DERIVED`, while recorded D1 purpose remains `RECORDED`;
-   - D2 role/stage classification is `DERIVED` and unrecorded reasons remain `NOT RECORDED`;
-   - unsupported historical explanations are no longer promoted to `RECORDED`.
-
-3. **Import boundary**
-   - source-shaped runtime dumps were removed;
-   - runtime imports a normalized `reader-snapshot.json` only;
-   - deterministic extraction is recorded in `tools/extract_astra_reader_snapshot.py`;
-   - original Astra packages remain external Research authority;
-   - package/input/snapshot hashes are retained in the source manifest and Fix 1 evidence.
-
-4. **Browser 3D gate**
-   - narrow layout keeps a non-zero canvas by overlaying the bounded panel;
-   - worker technical Browser evidence reports B_OPEN and B_PARTICIPATING rendering, same-camera candidate switching, participating cross-links, Transparent motifs, and real member-selection metadata.
-
-## Technical evidence boundary
-Direct SOL source/diff review confirms:
-- current v0/Fix1 diff remains isolated to the Astra Reader route/assets/docs, extraction tool, and one Vite multi-page entry;
-- no Production / C / FKEI / existing Viewer / Export / 3MF semantic files changed;
-- normalized adapter architecture is present;
-- focused provenance regression assertions are present.
-
-Worker-reported execution evidence:
-- snapshot test: PASS
-- study tests: 19 PASS
-- typecheck: PASS
-- production build: PASS
-- technical Browser gate: PASS
-- working tree: clean
-
-GitHub has no attached CI status checks for this checkpoint, so command execution remains worker-reported evidence.
-
-## Source / provenance evidence
-Fix 1 evidence records:
+Source/provenance identities from Fix 1 remain:
 - DUAL package SHA-256: `223B4FD486A57EA2FED6E481271DB2CE8A176EC5E3BD40D2AC2321E52801E58D`
 - FOUR package SHA-256: `8FDDBE037ABBBDE2D1CB26EFE9933F078F77F01BAD2BC26DA7426A1562A046A8`
 - external `B_host.npz` SHA-256: `83B8FA53BCB26676B7DB3D5E452B1E524FEEA45BB99D04DDE39E30DA640B8233`
 - normalized snapshot SHA-256: `D0DA5109E36146DEBD959F26385DE72F6D129EB7F9CDF132D7F4D712AFF61744`
-
-The Reader still exposes the eight intended classes:
-1. `HOST`
-2. `INTERNAL JUNCTIONS / CANDIDATES`
-3. `OPEN CORE`
-4. `CROSS-LINKS`
-5. `SURFACE ATTACHMENTS`
-6. `SURFACE MOTIFS`
-7. `FABRICATION D1`
-8. `REMOVABLE SUPPORT`
-
-`SURFACE MOTIFS` supports Visible / Transparent / Hidden.
 
 Source-driven count checks remain:
 - B_OPEN: 262 members / 167 attachments / 96 source junction identities;
 - B_PARTICIPATING: 325 members / 212 attachments / 96 source junction identities;
 - participating-only cross-link delta: 18.
 
-## Current main relationship
-After the worker merged `886ec500...`, main later received two Research-roadmap documentation commits and is currently ahead on that docs-only line.
+## First Author review — 2026-09-09
 
-At SOL review, branch and current main are therefore diverged only because those later roadmap notes were created after the worker's required merge. This does **not** block the bounded technical acceptance because the reviewed Reader implementation diff remains isolated and those later main changes do not alter the Reader task/code authority.
+### Physical object / route readability
+The Author reports that the overall branch route appears visually interrupted, making it difficult to understand which branch connects to which branch through the network.
 
-Any future implementation on this branch must first synchronize current main normally again. Do not reset / rebase / force-push the accepted checkpoint.
+This is now the primary Reader blocker.
 
-## Physical Research state relevant to SKIN_R
-B_OPEN has progressed through physical printing and careful Support removal. The current roadmap deliberately overlaps physical evaluation with Reader use rather than waiting for all four physical candidates to finish first.
+### Layer distinction
+PASS. Existing layer classes can be distinguished sufficiently.
 
-Current direction:
-- continue physical evaluation of B_OPEN / B_PARTICIPATING / A_OPEN / A_PARTICIPATING;
-- distinguish print-time failure from Support-removal breakage;
-- preserve broad sparse branch character;
-- allow only bounded hidden-area local thickening when justified;
-- use the Reader to map physical observations back to real geometry identity as soon as Author review begins;
-- record which editing operations are actually missing rather than pre-building an Authoring suite.
+### Selection readability
+The Author wants a selected branch/member to become visibly thicker / stronger so it remains easy to track while inspecting the structure.
+
+This means **display emphasis only**. It does not authorize branch-radius editing.
+
+### Concrete feedback
+Still difficult because route continuity is not yet readable enough. Do not scope Authoring from this absence of feedback.
+
+### Candidate comparison
+B_OPEN / B_PARTICIPATING switching works.
+
+Interpretation retained:
+- `B_OPEN` = openness-prioritized sparse structure using the 95-edge OPEN core plus B-track surface attachments;
+- `B_PARTICIPATING` = the same OPEN core with participating-only cross-links and greater surface participation / attachments;
+- neither is an automatic upgrade over the other.
+
+## Fix 2 required direction
+The next correction must prioritize **connectivity readability** rather than adding more metadata.
+
+Required behavior is defined in the active task, including:
+- strong selected-member overlay;
+- connected-junction emphasis;
+- directly adjacent member context derived from shared junction identity;
+- recorded attachment parent shown separately from derived adjacency;
+- no invented unique causal route through branching/cyclic graph structure;
+- bounded improvement to global Permanent-structure readability;
+- same candidate/layer/provenance semantics preserved.
+
+Do not use spatial-nearest guessing as a substitute for graph adjacency when recorded/derived junction identity is available.
 
 ## Relationship to future Authoring
-The adopted sequence remains:
+The roadmap remains:
 
 `physical observation + readable SKIN_R -> geometry identity / intent -> only then scope the minimum Authoring operations actually needed`
 
-Possible future operations such as branch add/delete, local radius edits, junction movement, attachment editing, or intent annotation remain **DEFERRED** until Reader use demonstrates concrete need.
+Potential future operations remain DEFERRED:
+- branch add/delete;
+- local radius edit;
+- junction movement;
+- attachment edit;
+- intent annotation.
 
-Mocomoco and Torus remain future shape candidates under their separate Author direction; neither is activated by this Reader PASS.
+Fix 2 is **not** an Authoring task.
 
-## Active implementation instruction
-**NONE.**
+## Physical Research state relevant to SKIN_R
+Continue current four-candidate physical evaluation in parallel with Reader improvement.
 
-Fix 1 is closed. Do not auto-start Authoring, generator work, Mocomoco, Torus, Production translation, or another Reader expansion.
+Current direction remains:
+- distinguish print-time failure from Support-removal breakage;
+- preserve broad sparse branch character;
+- allow only bounded hidden-area local thickening when physically justified;
+- use Reader to map physical observations back to geometry identity;
+- do not require all four candidates to be perfect before closing the current generation-quality phase.
+
+Mocomoco and Torus remain future shape candidates under separate Author direction; neither is activated by Fix 2.
 
 ## Protected / do not change
 - no Astra generator reimplementation
 - no branch generation/editing
-- no radius/attachment editing
+- no actual radius editing
+- no attachment editing
 - no junction movement
 - no Save/Export
 - no Production translation
@@ -143,26 +136,29 @@ Fix 1 is closed. Do not auto-start Authoring, generator work, Mocomoco, Torus, P
 - no C Production modification
 - no FKEI schema modification
 - no existing FKEI Analysis Viewer modification
+- no Mocomoco / Torus implementation
 
-## Next gate — Author Review
-Use the accepted Reader with the physical B_OPEN object and answer:
+## Next gate — after Fix 2
+Use B_OPEN and ask:
 
-> Can the Author identify a real branch / junction / motif / attachment, map it to a stable Reader identity, and understand its recorded / derived / not-recorded context well enough to return a concrete spatial judgment?
+> Select one real member. Can the Author visually keep track of that member, see where it joins the network, and follow enough connected structure to understand what it connects to?
 
-Useful Author-review checks:
-- real object region and Reader identity correspond;
-- B_OPEN / B_PARTICIPATING same-view comparison is understandable;
-- hiding / transparency of motifs exposes the intended attachments / internal structure;
-- provenance badges are understandable and trusted;
-- one or more real physical observations can be expressed as a specific target + intent without inventing history;
-- missing operations are recorded, but not implemented yet.
+Then check:
+- selected member remains obvious while orbiting;
+- connected junction(s) are legible;
+- adjacent-member context is understandable;
+- recorded parent is distinguishable from derived adjacency;
+- motifs can still be made Transparent/Hidden as needed;
+- B_OPEN / B_PARTICIPATING same-camera comparison still works.
 
-After Author Review, Research SOL decides whether Reader v0 is fully CLOSED for use and what, if any, minimum Authoring capability should be scoped later.
+Only after this gate should detailed branch-level spatial feedback be requested again.
 
 ## Required pointers
 - `docs/tasks/SKIN_R_ASTRA_READER_V0.md`
 - `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX1.md`
-- branch evidence at accepted checkpoint: `docs/evidence/SKIN_R_ASTRA_READER_V0_FIX1.md`
+- `docs/tasks/SKIN_R_ASTRA_READER_V0_FIX2_CONNECTIVITY_HIGHLIGHT.md`
+- `docs/evidence/SKIN_R_ASTRA_READER_V0_FIX1.md` on accepted branch checkpoint
+- `docs/observations/AUTHOR_OBSERVATION_SKIN_R_READER_CONNECTIVITY_2026-09-09.md`
 - `docs/notes/ASTRA_SKIN_RESEARCH_ROADMAP_EVALUATION_2026-09-08.md`
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_RESEARCH_ROADMAP_2026-09-08.md`
 - `docs/notes/SKIN_FUWAFUWA_NEXT_SHAPE_CANDIDATES_2026-09-08.md`
