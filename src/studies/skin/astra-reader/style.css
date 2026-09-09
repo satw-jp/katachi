@@ -13,6 +13,8 @@ button { cursor: pointer; }
 .section-title { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
 .layer-row label { display: grid; grid-template-columns: 18px 1fr; gap: 5px; align-items: center; font-size: 11px; }
 .motif-row select { flex: 1; }
+.legend-row { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.legend-swatch { width: 11px; height: 11px; flex: 0 0 11px; border: 1px solid rgba(0,0,0,.28); border-radius: 50%; box-sizing: border-box; }
 .selection { padding: 10px; background: rgba(255,255,255,.5); border: 1px solid var(--hairline); min-height: 120px; }
 .selection h3 { margin: 0 0 7px; font-size: 12px; }
 .fact { display: grid; grid-template-columns: 130px 1fr; gap: 6px; }

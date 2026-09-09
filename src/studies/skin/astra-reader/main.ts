@@ -15,7 +15,7 @@ const layerLabels: Record<LayerId, string> = {
   removableSupport: "REMOVABLE SUPPORT",
 };
 const colors: Record<LayerId, number> = { host: 0x8b96a8, junctions: 0xffc857, core: 0x52a7ff, crossLinks: 0xf08a5d, attachments: 0x58d68d, motifs: 0xe6d98a, fabricationD1: 0xdb6cf2, removableSupport: 0xb0b4c1 };
-const highlightColors = { selected: 0xfff19a, junction: 0xffc857, adjacent: 0x55d9ff, parent: 0xff63c7 };
+const highlightColors = { selected: 0xff4fa3, junction: 0xffc857, adjacent: 0x55d9ff, parent: 0xff63c7, correspondence: 0xc17cff };
 const defaultVisibility: Record<LayerId, boolean> = { host: true, junctions: true, core: true, crossLinks: false, attachments: true, motifs: true, fabricationD1: false, removableSupport: false };
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -34,12 +34,6 @@ function factRow(label: string, fact: Fact<unknown>): HTMLElement {
   row.append(el("span", undefined, label), el("span", undefined, factValue(fact.value)), badge(fact));
   return row;
 }
-function midpoint(points: { x: number; y: number; z: number }[]): THREE.Vector3 {
-  const first = points[0] ?? { x: 0, y: 0, z: 0 };
-  const last = points[points.length - 1] ?? first;
-  return new THREE.Vector3((first.x + last.x) / 2, (first.y + last.y) / 2, (first.z + last.z) / 2);
-}
-
 const app = document.getElementById("app");
 if (!app) throw new Error("#app missing");
 const viewport = el("div"); viewport.id = "viewport";
@@ -79,16 +73,25 @@ function nearestEndpoint(member: MemberRecord, target: THREE.Vector3): THREE.Vec
 function highlightRadius(member: MemberRecord): number { return Math.max(.95, Math.min(2, member.radius * .8)); }
 function junctionRadius(junction: JunctionRecord): number { const radii = junction.connectedMembers.value.map((id) => snapshot.members.find((member) => member.id === id)?.radius).filter((radius): radius is number => radius !== undefined); return boundedJunctionDisplayRadius(radii); }
 function diagnosticPoint(pointValue: Point3, color: number, radius: number): THREE.Mesh { const marker = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 6), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .95, depthTest: false, depthWrite: false })); marker.position.set(pointValue.x, pointValue.y, pointValue.z); marker.renderOrder = 12; return marker; }
-function diagnosticMotif(motif: MotifRecord): THREE.Line { const display = line(motif.points, highlightColors.junction, .98); const material = display.material as THREE.LineBasicMaterial; material.depthTest = false; material.depthWrite = false; display.renderOrder = 12; return display; }
-function addPick(point: THREE.Vector3, radius: number, record: JunctionRecord | MemberRecord, kind: "junction" | "member", group: THREE.Group): void { const mesh = new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius * 1.8, 1), 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, colorWrite: false, depthWrite: false })); mesh.position.copy(point); mesh.userData.selection = { kind, record }; mesh.userData.layer = kind === "junction" ? "junctions" : (record as MemberRecord).layer; group.add(mesh); pickables.push(mesh); }
+function diagnosticMotif(motif: MotifRecord): THREE.Line { const display = line(motif.points, highlightColors.correspondence, .98); const material = display.material as THREE.LineBasicMaterial; material.depthTest = false; material.depthWrite = false; display.renderOrder = 12; return display; }
+function pickRadius(member: MemberRecord): number { return Math.min(1.6, Math.max(.48, boundedPermanentDisplayRadius(member.radius) + .24)); }
+function addPick(record: JunctionRecord | MemberRecord, kind: "junction" | "member", group: THREE.Group): void {
+  const member = kind === "member" ? record as MemberRecord : undefined;
+  const geometry = member
+    ? new THREE.TubeGeometry(memberCurve(member), Math.max(4, Math.min(48, member.points.length * 6)), pickRadius(member), 6, false)
+    : new THREE.SphereGeometry(junctionRadius(record as JunctionRecord), 8, 6);
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, colorWrite: false, depthWrite: false }));
+  if (!member) mesh.position.set((record as JunctionRecord).position.value.x, (record as JunctionRecord).position.value.y, (record as JunctionRecord).position.value.z);
+  mesh.userData.selection = { kind, record }; mesh.userData.layer = kind === "junction" ? "junctions" : (record as MemberRecord).layer; group.add(mesh); pickables.push(mesh);
+}
 function renderSnapshot(): void {
   clearScene();
   const hostGroup = new THREE.Group(); const hostGeometry = new THREE.BufferGeometry(); hostGeometry.setAttribute("position", new THREE.Float32BufferAttribute(snapshot.host.vertices.flat(), 3)); hostGeometry.setIndex(snapshot.host.faces.flat()); hostGeometry.computeVertexNormals(); const hostMesh = new THREE.Mesh(hostGeometry, new THREE.MeshStandardMaterial({ color: colors.host, transparent: true, opacity: .14, depthWrite: false, side: THREE.DoubleSide })); hostGroup.add(hostMesh); root.add(hostGroup); layerGroups.set("host", hostGroup);
   const groups: Record<Exclude<LayerId, "host">, THREE.Group> = { junctions: new THREE.Group(), core: new THREE.Group(), crossLinks: new THREE.Group(), attachments: new THREE.Group(), motifs: new THREE.Group(), fabricationD1: new THREE.Group(), removableSupport: new THREE.Group() };
   Object.entries(groups).forEach(([id, group]) => { layerGroups.set(id as LayerId, group); root.add(group); });
-  snapshot.junctions.forEach((junction) => { const marker = new THREE.Mesh(new THREE.SphereGeometry(junctionRadius(junction), 10, 6), new THREE.MeshStandardMaterial({ color: colors.junctions, emissive: colors.junctions, emissiveIntensity: .18 })); marker.position.set(junction.position.value.x, junction.position.value.y, junction.position.value.z); groups.junctions.add(marker); addPick(marker.position, junctionRadius(junction), junction, "junction", groups.junctions); });
+  snapshot.junctions.forEach((junction) => { const marker = new THREE.Mesh(new THREE.SphereGeometry(junctionRadius(junction), 10, 6), new THREE.MeshStandardMaterial({ color: colors.junctions, emissive: colors.junctions, emissiveIntensity: .18 })); marker.position.set(junction.position.value.x, junction.position.value.y, junction.position.value.z); groups.junctions.add(marker); addPick(junction, "junction", groups.junctions); });
   const addGraphConnectors = (member: MemberRecord, group: THREE.Group): void => { for (const junctionId of member.connectedJunctions.value) { const junction = snapshot.junctions.find((candidateJunction) => candidateJunction.id === junctionId); if (!junction) continue; const node = new THREE.Vector3(junction.position.value.x, junction.position.value.y, junction.position.value.z); const bridge = connector(nearestEndpoint(member, node), node, colors[member.layer], boundedPermanentDisplayRadius(member.radius) * .92, .95); if (bridge) group.add(bridge); const joint = new THREE.Mesh(new THREE.SphereGeometry(boundedPermanentDisplayRadius(member.radius) * 1.08, 8, 6), new THREE.MeshStandardMaterial({ color: colors[member.layer], roughness: .72, metalness: .05 })); joint.position.copy(node); group.add(joint); } };
-  const addMembers = (members: MemberRecord[], connectGraph = false) => members.forEach((member) => { const group = groups[member.layer as Exclude<LayerId, "host">]; const display = tube(member, colors[member.layer], boundedPermanentDisplayRadius(member.radius), .95); group.add(display); if (connectGraph) addGraphConnectors(member, group); addPick(midpoint(member.points), member.radius, member, "member", group); });
+  const addMembers = (members: MemberRecord[], connectGraph = false) => members.forEach((member) => { const group = groups[member.layer as Exclude<LayerId, "host">]; const display = tube(member, colors[member.layer], boundedPermanentDisplayRadius(member.radius), .95); group.add(display); if (connectGraph) addGraphConnectors(member, group); addPick(member, "member", group); });
   addMembers(snapshot.members, true); addMembers(snapshot.fabricationAdditions); addMembers(snapshot.removableSupports);
   snapshot.motifs.forEach((motif) => { const display = line(motif.points, colors.motifs, motifMode === "transparent" ? .2 : 1); display.userData.motif = true; display.userData.surfaceComponentIds = motif.componentIds.value; groups.motifs.add(display); });
   highlightGroup = new THREE.Group(); highlightGroup.name = "connectivity-highlight"; root.add(highlightGroup);
@@ -145,6 +148,10 @@ function buildPanel(): void {
   const candidateSection = el("div", "section"); candidateSection.append(el("div", "section-title", "Candidate / same camera")); const candidateRow = el("div", "candidate-row"); for (const id of ["B_OPEN", "B_PARTICIPATING"] as const) { const button = el("button", id === candidate ? "active" : undefined, id); button.type = "button"; button.addEventListener("click", () => { candidate = id; selection = null; snapshot = buildAstraResearchSnapshot(candidate); renderSnapshot(); buildPanel(); }); candidateRow.append(button); } candidateSection.append(candidateRow, el("div", "source-line", `source junctions ${snapshot.source.sourceJunctionCount.value} · surface components ${snapshot.source.surfaceComponentCount.value}`)); panel.append(candidateSection);
   const layerSection = el("div", "section"); layerSection.append(el("div", "section-title", "Layers")); (Object.keys(layerLabels) as LayerId[]).forEach((id) => { const label = el("label"); const input = el("input") as HTMLInputElement; input.type = "checkbox"; input.checked = visibility[id]; input.addEventListener("change", () => { visibility[id] = input.checked; applyVisibility(); refreshSelection(); }); label.append(input, el("span", undefined, layerLabels[id])); const row = el("div", "layer-row"); row.append(label); layerSection.append(row); }); panel.append(layerSection);
   const motifSection = el("div", "section"); motifSection.append(el("div", "section-title", "Surface motifs")); const select = el("select") as HTMLSelectElement; for (const [value, label] of [["visible", "Visible"], ["transparent", "Transparent"], ["hidden", "Hidden"]] as const) { const option = el("option") as HTMLOptionElement; option.value = value; option.textContent = label; option.selected = motifMode === value; select.append(option); } select.addEventListener("change", () => { motifMode = select.value as typeof motifMode; renderSnapshot(); }); const motifRow = el("div", "motif-row"); motifRow.append(select, el("span", "muted", `${snapshot.motifs.length} recorded surface motifs`)); motifSection.append(motifRow); panel.append(motifSection);
+  const legendSection = el("div", "section"); legendSection.append(el("div", "section-title", "Color legend"));
+  const legendItems: [string, number][] = [["OPEN CORE normal", colors.core], ["SURFACE ATTACHMENT normal", colors.attachments], ["SURFACE MOTIF normal", colors.motifs], ["SELECTED", highlightColors.selected], ["DERIVED ADJACENCY", highlightColors.adjacent], ["RECORDED PARENT", highlightColors.parent], ["JUNCTION", highlightColors.junction], ["TARGET MOTIFS / attachment correspondence", highlightColors.correspondence]];
+  for (const [label, color] of legendItems) { const row = el("div", "legend-row"); const swatch = el("span", "legend-swatch"); swatch.style.backgroundColor = `#${color.toString(16).padStart(6, "0")}`; swatch.setAttribute("aria-hidden", "true"); row.append(swatch, el("span", undefined, label)); legendSection.append(row); }
+  panel.append(legendSection);
   const counts = el("div", "section"); counts.append(el("div", "section-title", "Loaded counts"), el("div", "source-line", `members ${snapshot.members.length} · attachments ${snapshot.attachments.length} · D1 ${snapshot.fabricationAdditions.length} · removable ${snapshot.removableSupports.length}`)); panel.append(counts);
   selectionPanel = el("div", "selection"); panel.append(selectionPanel); refreshSelection();
 }
