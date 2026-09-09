@@ -156,6 +156,11 @@ function buildPanel(): void {
   selectionPanel = el("div", "selection"); panel.append(selectionPanel); refreshSelection();
 }
 let selectionPanel = el("div", "selection");
-renderer.domElement.addEventListener("pointerdown", (event) => { const rect = renderer.domElement.getBoundingClientRect(); const pointer = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1); const raycaster = new THREE.Raycaster(); raycaster.setFromCamera(pointer, camera); const hit = raycaster.intersectObjects(pickables, false).find((intersection) => visibleLayer(intersection.object.userData.layer as LayerId)); selection = (hit?.object.userData.selection as Selection | undefined) ?? null; refreshSelection(); refreshHighlight(); });
+const clickMovementThreshold = 5;
+let pointerStart: { x: number; y: number } | null = null;
+function selectAt(clientX: number, clientY: number): void { const rect = renderer.domElement.getBoundingClientRect(); const pointer = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1); const raycaster = new THREE.Raycaster(); raycaster.setFromCamera(pointer, camera); const hit = raycaster.intersectObjects(pickables, false).find((intersection) => visibleLayer(intersection.object.userData.layer as LayerId)); selection = (hit?.object.userData.selection as Selection | undefined) ?? null; refreshSelection(); refreshHighlight(); }
+renderer.domElement.addEventListener("pointerdown", (event) => { pointerStart = { x: event.clientX, y: event.clientY }; });
+renderer.domElement.addEventListener("pointerup", (event) => { if (!pointerStart) return; const movement = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y); const isClick = movement < clickMovementThreshold; pointerStart = null; if (isClick) selectAt(event.clientX, event.clientY); });
+renderer.domElement.addEventListener("pointercancel", () => { pointerStart = null; });
 function frame(): void { controls?.update(); renderer.render(scene, camera); requestAnimationFrame(frame); }
 renderSnapshot(); buildPanel(); frame();
