@@ -1,0 +1,289 @@
+{
+  "schema": "hikari-mitsuba-spike-case",
+  "schemaVersion": 1,
+  "caseId": "P0-colored-shadow",
+  "purpose": "One existing Hikari fixed case transferred to an isolated Mitsuba physical reference.",
+  "repository": "satw-jp/katachi",
+  "sourceCommit": "586a20cedfca9e769f710cfd96a400b4737069d5",
+  "productionBaseline": "main@586a20cedfca9e769f710cfd96a400b4737069d5",
+  "sourceDocument": "docs/hikari/cases/hikari-blender-backlight-study.hkr",
+  "sourceDocumentCaseId": "blender-backlight-view-01",
+  "sourceDocumentCommit": "b8f7b50",
+  "sourceDocumentVersion": "0.29.2",
+  "shape": {
+    "recipeEntries": [
+      {
+        "t": 1785573374622,
+        "op": "grow",
+        "args": {
+          "params": {
+            "k": 0.6,
+            "count": 12,
+            "radiusBase": 0.7,
+            "radiusSpread": 0.5,
+            "seed": "yohaku"
+          }
+        }
+      }
+    ],
+    "recipe": {
+      "k": 0.6,
+      "count": 12,
+      "radiusBase": 0.7,
+      "radiusSpread": 0.5,
+      "seed": "yohaku"
+    },
+    "source": {
+      "kind": "balls-smooth-union",
+      "smoothness": 0.6,
+      "balls": [
+        {
+          "center": {
+            "x": -0.269878791018432,
+            "y": 0.05433873209373625,
+            "z": -0.19221987064867435
+          },
+          "radius": 0.5315774349030107
+        },
+        {
+          "center": {
+            "x": -0.5902613234327978,
+            "y": 0.25409363158028014,
+            "z": 0.11735392924641289
+          },
+          "radius": 0.8532935356139205
+        },
+        {
+          "center": {
+            "x": -1.0755470476953504,
+            "y": 0.5192206250147399,
+            "z": 0.28313097446312147
+          },
+          "radius": 0.7401694570085965
+        },
+        {
+          "center": {
+            "x": 0.09954366110054551,
+            "y": 0.0611239406014979,
+            "z": 0.34691631123396466
+          },
+          "radius": 0.8154171256697736
+        },
+        {
+          "center": {
+            "x": 0.2662731924662021,
+            "y": 0.7989480555028109,
+            "z": -0.4271062443287324
+          },
+          "radius": 0.8441750376834534
+        },
+        {
+          "center": {
+            "x": -1.1837542709546183,
+            "y": -0.4845048566377284,
+            "z": 0.23337716090673571
+          },
+          "radius": 0.8701753827626817
+        },
+        {
+          "center": {
+            "x": 0.18177369671589264,
+            "y": 0.20095047370326094,
+            "z": -0.08859160411550757
+          },
+          "radius": 0.8155643804697319
+        },
+        {
+          "center": {
+            "x": -0.6788088220474818,
+            "y": 0.546986597348986,
+            "z": -0.5151529404813813
+          },
+          "radius": 0.539589778217487
+        },
+        {
+          "center": {
+            "x": -1.1934036738257954,
+            "y": 0.2990764682432214,
+            "z": -0.8771273996649163
+          },
+          "radius": 0.7304373154998757
+        },
+        {
+          "center": {
+            "x": -0.9701075381508073,
+            "y": -0.0015734673434252703,
+            "z": 1.0197345843491605
+          },
+          "radius": 0.7574073235271498
+        },
+        {
+          "center": {
+            "x": -0.35084508669996245,
+            "y": 0.6870610865012092,
+            "z": 0.12955976201731975
+          },
+          "radius": 0.7863509186776354
+        },
+        {
+          "center": {
+            "x": -1.0823261636451325,
+            "y": -0.40803320669190674,
+            "z": -0.859932383836846
+          },
+          "radius": 0.6483369641355239
+        }
+      ]
+    },
+    "canonicalShapeSha256": "56be2b88adfcd3dcfb1e669c0abf9aeb21331e31c43acbf70e3c48a5bb6f8121",
+    "fieldBounds": {
+      "min": {
+        "x": -2.5039296537173,
+        "y": -1.80468023940041,
+        "z": -2.0575647151647916
+      },
+      "max": {
+        "x": 1.5604482301496554,
+        "y": 2.0931230931862643,
+        "z": 2.2271419078763106
+      },
+      "size": {
+        "x": 4.064377883866955,
+        "y": 3.8978033325866743,
+        "z": 4.284706623041102
+      },
+      "longest": 4.284706623041102
+    }
+  },
+  "mesh": {
+    "filename": "P0-colored-shadow.obj",
+    "sha256": "05f5f08afef2a5233a2b9b7c69ab2f609f97ea6ff5086c0b5246c82febb5e1dc",
+    "format": "obj",
+    "resolution": 64,
+    "triangleCount": 62012,
+    "dimensionsMm": {
+      "x": 64.4094549897832,
+      "y": 60.1248436241519,
+      "z": 68.34448043919245
+    },
+    "scaleMmPerShapeUnit": 20,
+    "topology": {
+      "ok": true,
+      "openEdges": 0,
+      "nonManifoldEdges": 0,
+      "windingInconsistentEdges": 0,
+      "degenerateTriangleCount": 0,
+      "connectedComponents": 1,
+      "totalEdges": 93018,
+      "closed": true,
+      "windingConsistent": true,
+      "degenerateFree": true
+    },
+    "signedVolumeMm3": 121483.8822815414
+  },
+  "physicalScale": {
+    "mmPerShapeUnit": 20,
+    "source": "assumed",
+    "statement": "Current Hikari adapter's explicit assumed scale; it is not a measured artwork dimension."
+  },
+  "camera": {
+    "positionShapeUnits": [
+      0.07259892644834198,
+      -6.560301560928699,
+      -2.0511393969096177
+    ],
+    "targetShapeUnits": [
+      0,
+      0,
+      0
+    ],
+    "positionMm": [
+      1.4519785289668397,
+      -131.20603121857397,
+      -41.02278793819235
+    ],
+    "targetMm": [
+      0,
+      0,
+      0
+    ],
+    "fovDeg": 45,
+    "aspect": 1.5716272600834493
+  },
+  "optical": {
+    "host": {
+      "id": "host-neutral",
+      "ior": 1.5,
+      "absorptionPerShapeUnit": {
+        "r": 0.15,
+        "g": 0.1,
+        "b": 0.0625
+      },
+      "absorptionPerMm": {
+        "r": 0.0075,
+        "g": 0.005,
+        "b": 0.003125
+      },
+      "transmissionColor": "neutral host preset; current scalar absorption is mapped to RGB coefficients",
+      "roughness": 0.08
+    },
+    "inclusions": [],
+    "light": {
+      "directionPropagation": {
+        "x": -0.27294305817398523,
+        "y": -0.9320221997469609,
+        "z": 0.23840450116025227
+      },
+      "radiance": {
+        "r": 1.25,
+        "g": 1.1749999999999998,
+        "b": 1.025
+      },
+      "angularDiameterDeg": 0.53
+    },
+    "receiver": {
+      "id": "legacy-floor",
+      "positionShapeUnits": {
+        "x": 0,
+        "y": -2.35,
+        "z": 0
+      },
+      "positionMm": {
+        "x": 0,
+        "y": -47,
+        "z": 0
+      },
+      "normal": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "extentMm": {
+        "x": 240,
+        "z": 240
+      },
+      "reflectance": 0.7
+    },
+    "environment": {
+      "radiance": {
+        "r": 0.85,
+        "g": 0.85,
+        "b": 0.85
+      },
+      "note": "Neutral constant environment for a bounded reference; not a calibrated sky model."
+    }
+  },
+  "mapping": {
+    "units": "millimetres in Mitsuba scene; Hikari shape units multiplied by 20 mm/shape-unit",
+    "coordinateSystem": "Hikari right-handed Y-up is retained; Mitsuba uses the same scene-axis convention here",
+    "host": "Hikari balls-smooth-union field -> current buildCloudMesh() -> shared-index OBJ -> Mitsuba mesh shape",
+    "material": "Hikari ior -> dielectric int_ior; Hikari absorption per shape unit / 20 -> homogeneous sigma_t per mm; sigma_s=0",
+    "receiver": "Hikari legacy-floor y=-2.35 -> Mitsuba horizontal diffuse rectangle at y=-47 mm",
+    "light": "Hikari propagationDirection/radiance -> Mitsuba finite area emitter aimed at the fixed receiver/body; source size is explicit 0.53 deg only as provenance, not a photometric calibration",
+    "camera": "Hikari fixed camera position/target/FOV -> Mitsuba perspective sensor after the same scale conversion"
+  },
+  "nonProduction": [
+    "This case is an offline research transfer; it is not a Hikari runtime contract.",
+    "No .hkr, manifest, version, Light Drawing, or Hikari source is modified by this spike."
+  ]
+}

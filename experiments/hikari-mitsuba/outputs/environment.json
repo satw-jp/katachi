@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "python": "3.12.13 (main, Aug  7 2026, 02:26:41) [MSC v.1944 64 bit (AMD64)]",
+  "pythonExecutable": "J:\\My Drive\\codex\\2026-09-02\\hikari-ssot-github-hikari-repository-satw\\work\\katachi\\experiments\\hikari-mitsuba\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "mitsubaVersion": "3.9.1",
+  "drjitVersion": "1.5.0",
+  "availableVariants": [
+    "scalar_rgb",
+    "scalar_spectral",
+    "scalar_spectral_polarized",
+    "llvm_ad_rgb",
+    "llvm_ad_mono",
+    "llvm_ad_mono_polarized",
+    "llvm_ad_spectral",
+    "llvm_ad_spectral_polarized",
+    "cuda_ad_rgb",
+    "cuda_ad_mono",
+    "cuda_ad_mono_polarized",
+    "cuda_ad_spectral",
+    "cuda_ad_spectral_polarized"
+  ],
+  "selectedVariant": "cuda_ad_rgb",
+  "cudaVariantAvailable": true,
+  "optixNamedVariants": [],
+  "renderSeconds": 0.24050159999751486,
+  "renderedTensorType": "drjit.cuda.ad.TensorXf",
+  "gpuSnapshotBefore": {
+    "gpu": "NVIDIA GeForce RTX 3080, 595.95, 10240 MiB, 8.6",
+    "compute_processes": "2328, [Insufficient Permissions], [N/A]\n16876, C:\\Windows\\explorer.exe, [N/A]\n14372, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe, [N/A]\n19028, C:\\Windows\\SystemApps\\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\\StartMenuExperienceHost.exe, [N/A]\n21172, [Insufficient Permissions], [N/A]\n22788, C:\\Windows\\SystemApps\\Microsoft.LockApp_cw5n1h2txyewy\\LockApp.exe, [N/A]\n21048, [Insufficient Permissions], [N/A]\n20324, C:\\Program Files\\PowerToys\\WinUI3Apps\\PowerToys.Peek.UI.exe, [N/A]\n24140, C:\\Program Files\\PowerToys\\WinUI3Apps\\PowerToys.AdvancedPaste.exe, [N/A]\n20592, [Insufficient Permissions], [N/A]\n15852, C:\\Program Files\\WindowsApps\\AcrobatNotificationClient_1.0.4.0_x86__e1rzdqpraam7r\\AcrobatNotificationClient.exe, [N/A]\n15212, [Insufficient Permissions], [N/A]\n14884, C:\\Program Files\\Google\\NearbyShare\\nearby_share.exe, [N/A]\n22312, [Insufficient Permissions], [N/A]\n8344, J:\\Program Files\\ShareX\\ShareX.exe, [N/A]\n33496, C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud UI Helper.exe, [N/A]\n35372, C:\\Program Files\\Common Files\\Adobe\\Adobe OS Extension\\AdobeNotificationClient.exe, [N/A]\n3504, [Insufficient Permissions], [N/A]\n31320, C:\\Windows\\SystemApps\\ShellExperienceHost_cw5n1h2txyewy\\ShellExperienceHost.exe, [N/A]\n19016, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\SearchHost.exe, [N/A]\n35488, [Insufficient Permissions], [N/A]\n39248, [Insufficient Permissions], [N/A]\n34724, [Insufficient Permissions], [N/A]\n44460, [Insufficient Permissions], [N/A]\n24480, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe, [N/A]\n48968, [Insufficient Permissions], [N/A]\n47744, C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.825.6671.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe, [N/A]\n6412, C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe, [N/A]\n45948, C:\\Program Files\\LogiOptionsPlus\\logioptionsplus_agent.exe, [N/A]\n26196, C:\\Windows\\System32\\ShellHost.exe, [N/A]\n20400, C:\\Program Files\\PowerToys\\PowerToys.PowerLauncher.exe, [N/A]\n8156, C:\\Program Files\\PowerToys\\PowerToys.ColorPickerUI.exe, [N/A]\n40176, C:\\Windows\\ImmersiveControlPanel\\SystemSettings.exe, [N/A]\n30404, C:\\Program Files\\WindowsApps\\Microsoft.PowerAutomateDesktop_11.2608.115.0_x64__8wekyb3d8bbwe\\dotnet\\PAD.Console.Host.exe, [N/A]\n10136, [Insufficient Permissions], [N/A]\n30384, C:\\Program Files\\WindowsApps\\Microsoft.ScreenSketch_11.2605.37.0_x64__8wekyb3d8bbwe\\SnippingTool\\SnippingTool.exe, [N/A]\n11008, C:\\Program Files\\PowerToys\\PowerToys.FancyZones.exe, [N/A]\n30960, [Insufficient Permissions], [N/A]\n11144, C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe, [N/A]\n2364, J:\\Program Files\\Bambu Studio\\bambu-studio.exe, [N/A]\n21068, [Insufficient Permissions], [N/A]\n58292, C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.825.6671.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe, [N/A]\n58864, C:\\Users\\as\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe, [N/A]"
+  },
+  "gpuSnapshotAfter": {
+    "gpu": "NVIDIA GeForce RTX 3080, 595.95, 10240 MiB, 8.6",
+    "compute_processes": "2328, [Insufficient Permissions], [N/A]\n16876, C:\\Windows\\explorer.exe, [N/A]\n14372, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe, [N/A]\n19028, C:\\Windows\\SystemApps\\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\\StartMenuExperienceHost.exe, [N/A]\n21172, [Insufficient Permissions], [N/A]\n22788, C:\\Windows\\SystemApps\\Microsoft.LockApp_cw5n1h2txyewy\\LockApp.exe, [N/A]\n21048, [Insufficient Permissions], [N/A]\n20324, C:\\Program Files\\PowerToys\\WinUI3Apps\\PowerToys.Peek.UI.exe, [N/A]\n24140, C:\\Program Files\\PowerToys\\WinUI3Apps\\PowerToys.AdvancedPaste.exe, [N/A]\n20592, [Insufficient Permissions], [N/A]\n15852, C:\\Program Files\\WindowsApps\\AcrobatNotificationClient_1.0.4.0_x86__e1rzdqpraam7r\\AcrobatNotificationClient.exe, [N/A]\n15212, [Insufficient Permissions], [N/A]\n14884, C:\\Program Files\\Google\\NearbyShare\\nearby_share.exe, [N/A]\n22312, [Insufficient Permissions], [N/A]\n8344, J:\\Program Files\\ShareX\\ShareX.exe, [N/A]\n33496, C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud UI Helper.exe, [N/A]\n35372, C:\\Program Files\\Common Files\\Adobe\\Adobe OS Extension\\AdobeNotificationClient.exe, [N/A]\n3504, [Insufficient Permissions], [N/A]\n31320, C:\\Windows\\SystemApps\\ShellExperienceHost_cw5n1h2txyewy\\ShellExperienceHost.exe, [N/A]\n19016, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\SearchHost.exe, [N/A]\n35488, [Insufficient Permissions], [N/A]\n39248, [Insufficient Permissions], [N/A]\n34724, [Insufficient Permissions], [N/A]\n44460, [Insufficient Permissions], [N/A]\n24480, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe, [N/A]\n48968, [Insufficient Permissions], [N/A]\n47744, C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.825.6671.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe, [N/A]\n6412, C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe, [N/A]\n45948, C:\\Program Files\\LogiOptionsPlus\\logioptionsplus_agent.exe, [N/A]\n26196, C:\\Windows\\System32\\ShellHost.exe, [N/A]\n20400, C:\\Program Files\\PowerToys\\PowerToys.PowerLauncher.exe, [N/A]\n8156, C:\\Program Files\\PowerToys\\PowerToys.ColorPickerUI.exe, [N/A]\n40176, C:\\Windows\\ImmersiveControlPanel\\SystemSettings.exe, [N/A]\n30404, C:\\Program Files\\WindowsApps\\Microsoft.PowerAutomateDesktop_11.2608.115.0_x64__8wekyb3d8bbwe\\dotnet\\PAD.Console.Host.exe, [N/A]\n10136, [Insufficient Permissions], [N/A]\n30384, C:\\Program Files\\WindowsApps\\Microsoft.ScreenSketch_11.2605.37.0_x64__8wekyb3d8bbwe\\SnippingTool\\SnippingTool.exe, [N/A]\n11008, C:\\Program Files\\PowerToys\\PowerToys.FancyZones.exe, [N/A]\n30960, [Insufficient Permissions], [N/A]\n11144, C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe, [N/A]\n2364, J:\\Program Files\\Bambu Studio\\bambu-studio.exe, [N/A]\n21068, [Insufficient Permissions], [N/A]\n58292, C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.825.6671.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe, [N/A]\n58864, C:\\Users\\as\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe, [N/A]"
+  },
+  "evidence": [
+    "Mitsuba selected cuda_ad_rgb, not scalar or llvm fallback.",
+    "Rendered image type is drjit.cuda.ad.TensorXf.",
+    "nvidia-smi identifies the host GPU as RTX 3080."
+  ],
+  "optixNote": "The installed Mitsuba 3.9.1 wheel exposes CUDA variants but no OptiX-named variant; this spike claims CUDA execution, not OptiX execution."
+}

@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "source": "caustic-64spp minus receiver-only, clipped to positive physical extra energy",
+  "mild": {
+    "name": "expressive-mild",
+    "source": "positive physical receiver difference only",
+    "gain": 1.5,
+    "contrast": 0.8,
+    "spreadRadiusPixels": 1,
+    "colorEmphasis": [
+      1.0,
+      0.8600000143051147,
+      0.6800000071525574
+    ],
+    "sourcePositiveEnergy": 36180.15625,
+    "outputMetrics": {
+      "meanRgb": [
+        1.090014100074768,
+        1.030724287033081,
+        0.9520869255065918
+      ],
+      "maxRgb": [
+        2.804117202758789,
+        2.530540943145752,
+        2.178799629211426
+      ],
+      "meanLuminance": 1.0376559495925903,
+      "p95Luminance": 1.6140812635421753,
+      "maxLuminance": 2.563307523727417,
+      "nonzeroFraction": 1.0
+    }
+  },
+  "strong": {
+    "name": "expressive-strong",
+    "source": "positive physical receiver difference only",
+    "gain": 4.0,
+    "contrast": 0.58,
+    "spreadRadiusPixels": 3,
+    "colorEmphasis": [
+      1.25,
+      0.6000000238418579,
+      0.3499999940395355
+    ],
+    "sourcePositiveEnergy": 36180.15625,
+    "outputMetrics": {
+      "meanRgb": [
+        2.7431552410125732,
+        1.6725140810012817,
+        1.2552353143692017
+      ],
+      "maxRgb": [
+        5.646033763885498,
+        3.1520962715148926,
+        2.192889451980591
+      ],
+      "meanLuminance": 1.869992971420288,
+      "p95Luminance": 2.7388193607330322,
+      "maxLuminance": 3.6130526065826416,
+      "nonzeroFraction": 1.0
+    }
+  },
+  "notProduction": true
+}
