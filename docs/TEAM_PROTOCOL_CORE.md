@@ -1,15 +1,12 @@
 # Team Protocol Core
 
-This is the normal always-loaded operational protocol. Detailed rules are progressive references under [`protocol/`](protocol/).
+Shared rules for all repository workers. Details are conditional references under [protocol/](protocol/).
 
-1. **Authority** — GitHub is technical authority for code, branches, CURRENT, bounded tasks, and evidence. Chat carries judgment, approvals, short pointers, and handoffs; Drive carries appropriate large research/artifact packages.
-2. **Responsibility** — SOL owns architecture, scope, acceptance, and next gate. LUNA owns the bounded implementation, tests, and artifacts. A worker does not self-approve global closure.
-3. **Scope** — Follow the task's protected scope and exact done criteria. Do not expand opportunistically or invent missing architecture. Fail closed on contradictions or missing required information.
-4. **Evidence** — Use honest states such as `PROVEN`, `SUPPORTED`, `UNVERIFIED`, `NOT STARTED`, `HOLD`, and `BLOCKED`. Tests are not physical or artistic acceptance.
-5. **Preservation** — Never hide or destroy dirty/unpushed work. State branch, HEAD, status, and blocker explicitly.
-6. **Visibility** — A lane CURRENT front must expose authority, present state, active task, blocker, next gate, protected scope, and required pointers.
-7. **Handoff** — Return a short SOL-review handoff with what changed, branch/commit, CURRENT/task status, tests/evidence, gate result, and blocker.
-8. **Physical gate** — Printing, hardware, destructive handling, and final author-value decisions remain human/author gates.
-9. **Native picker context** — Never open an OS-native file/folder picker without first exposing task context and requiring explicit user action. If user selection is required, stop as `USER ACTION REQUIRED`; cancellation is not implementation failure. See [`protocol/OS_PICKER_USER_ACTION.md`](protocol/OS_PICKER_USER_ACTION.md).
-
-Load only the relevant CURRENT front, task, and named references for normal work.
+1. **Authority** — GitHub holds technical state; Chat carries judgment/approvals; Drive holds appropriate large packages. Read published governance and lane routing from `main`, then use the task's exact accepted/working refs. A newer branch is not acceptance; unpushed state is not GitHub state.
+2. **Responsibility** — SOL owns architecture, scope, acceptance, and next gate. The explicitly assigned implementer (LUNA, Implementation SOL, or another named worker) owns bounded execution. Model choice grants no role, Production authority, or right to self-approve global closure.
+3. **Bounded completion** — Within authorization, continue implementation, inspection, and relevant repair/revalidation to the task's done criteria. Resolve discoverable details from targeted sources. Do not invent missing architecture or permissions. Stop the affected work for unresolved material contradictions, missing required evidence, or an explicit gate. Do not start a new task from `NONE`, `HOLD`, or closure.
+4. **Permissions** — Respect task-specific review stops, branch/commit/push permissions, runtime access, and resource budgets. Do not switch, reset, rebase, merge, or push outside authorization. Do not alter task lineage merely to obtain governance documents. Autonomous local checks require verified disposable fixtures and no unapproved shared/Production/hardware effects; do not assume all tests are safe.
+5. **Preservation** — Never hide, destroy, clean, stash, or overwrite dirty/unpushed work or mutate user-managed inputs without authorization. Use [LOCAL_DIRTY_WORK](protocol/LOCAL_DIRTY_WORK.md) for dirty work or worktree handling; report exact path, branch, HEAD, and observed/reported status.
+6. **Evidence** — Distinguish `PROVEN`, `SUPPORTED`, `UNVERIFIED`, `NOT STARTED`, `HOLD`, and `BLOCKED`. Keep code, geometry, export, physical, and artistic gates separate. Worker-reported tests are not independent execution evidence or author acceptance.
+7. **Human gates** — Printing, hardware operation, destructive handling, and final author-value decisions remain human/author gates. Respect artwork freezes and explicit review gates. Native pickers require context and explicit user action; use `USER ACTION REQUIRED`, not failure on cancellation. See [OS_PICKER_USER_ACTION](protocol/OS_PICKER_USER_ACTION.md).
+8. **Visibility / handoff** — CURRENT fronts expose authority, present state, active task, blocker, next gate, protected scope, and pointers. Return changed scope, branch/commit/push status, CURRENT/task status, checks/evidence, remaining gate, and blocker. Implementation-ready is not SOL/author acceptance.

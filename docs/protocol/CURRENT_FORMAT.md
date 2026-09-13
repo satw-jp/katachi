@@ -1,35 +1,23 @@
 # CURRENT Format Reference
 
-Use this fixed front order for active lane CURRENT files:
+Keep this front order: Authority → NOW / Current phase → Active task → Blocker → Next gate → Protected → Required pointers → separator → retained evidence/history.
 
-1. Authority
-2. NOW / Current phase
-3. Active task
-4. Blocker
-5. Next gate
-6. Protected
-7. Required pointers
-8. separator
-9. retained context / evidence pointers / historical details
+Aim for roughly 50–100 front lines where practical, never by omitting a binding boundary. Normal resume must expose the next action or intentional `NONE` before historical test logs. Keep useful rationale and accepted evidence below the separator or at stable linked locations; do not delete history to meet a line count.
 
-The first roughly 50–100 lines should answer normal resume/review questions where practical. This is a routing layer, not a hard truncation rule. Retain useful rationale below the separator and link external evidence rather than duplicating it.
+## Authority and freshness
 
-## Standard task header
+Separate published status, accepted checkpoint, working branch/HEAD, and local-state evidence. Branch existence or recency is not approval. Qualify local status with observer/date; without observation use `UNKNOWN` or `worker-reported`, not an inferred `clean`.
 
-```text
-## Required reading
-1. this task
-2. relevant CURRENT front section
-3. named code / evidence pointers
+`Last verified` dates the status/evidence check, not a formatting edit. Reading a historical record does not rerun its tests or reverify today's workstation.
 
-## Do not preload
-- STATEMENT.md
-- RESEARCH.md
-- other lane CURRENTs
-- old tasks
-- broad architecture / research docs
+## Task and gates
 
-If a concrete dependency arises, load only the needed source and report why.
-```
+Name the decision owner, assigned implementer, active task or `NONE`, purpose, allowed/protected scope, and implementation done criteria. Link details rather than copying the full prompt. Keep technical completion, SOL review, and author/physical acceptance separate. Intentional waiting without an implementation task is not automatically `BLOCKED`.
 
-Use `Do not preload`, not `Do not read`. Task-specific protected scope, exact done criteria, and named evidence pointers remain in the task.
+## Pointers
+
+Keep `Required pointers` compatible, but label purpose: execute now, review evidence, or revisit history. A generic reference inventory is not an instruction to preload every document. Explicit task-required evidence/contracts remain mandatory when executing that task.
+
+For new tasks use [TASK_BRIEF_TEMPLATE](TASK_BRIEF_TEMPLATE.md). Prefer outcome, authority, boundary, permissions, and evidence over repeated read/test/report recipes. Preserve existing task-specific gates unless their owner explicitly changes them.
+
+Apply this format to a lane at its next authorized reporting checkpoint; do not mass-edit historical tasks or reactivate closed lanes for formatting.
