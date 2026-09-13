@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-08
+Last verified: 2026-09-13
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -9,7 +9,8 @@ Last verified: 2026-09-08
 - author-facing SKIN consultation authority: `SKIN_ABC_SOL`
 - retained AB technical/evidence authority: `docs/status/AB_CURRENT.md` plus its accepted checkpoints
 - retained C technical/evidence authority: `docs/status/C_CURRENT.md` plus its accepted checkpoints
-- Research-facing current: `docs/status/SKIN_R_CURRENT.md`
+- active Astra Research current: `docs/status/ASTRA_CURRENT.md`
+- Astra Reader current: `docs/status/SKIN_R_CURRENT.md`
 
 `SKIN_ABC_SOL` is the single author-facing consultation front for current SKIN priorities and future Research -> Production handoff decisions. It does not replace the accepted AB/C evidence or make their code one architecture.
 
@@ -19,12 +20,15 @@ Last verified: 2026-09-08
 - Team AB has no active implementation task.
 - Team C has no active implementation task.
 - `SKIN_ABC_SOL` has no active implementation task.
+- Astra Research has an active bounded Artwork Geometry task under `ASTRA_CURRENT.md`: **R4 Large Mocomoco + Geometry Nodes**, ending at an Intermediate Author Artwork Geometry Gate.
 - New author-facing SKIN consultation should normally enter through `SKIN_ABC_SOL`.
 
 ## Current purpose
 Observe Research / Astra, SKIN_R, physical prints, and author review, then decide selectively what is worth preserving as reproducible SKIN capability.
 
 Do not treat completion of old AB/C methods as the goal. Preserve what was actually proven, under the conditions where it was proven, and translate only what remains useful after artwork and physical review.
+
+The current active Research direction does **not** authorize Production work. In particular, R4 Large Mocomoco + Geometry Nodes is currently Artwork Geometry only; Fabrication, Support, toolpath, print preparation, and SKIN Production translation remain behind the Author gate recorded in `ASTRA_CURRENT.md`.
 
 ## Retained AB capability
 Accepted AB evidence includes:
@@ -75,19 +79,22 @@ Technical evidence and Author evidence are separate gates.
 Physical works and final value judgments remain Author gates.
 
 ## Active implementation instruction
-**NONE.**
+**NONE for SKIN_ABC.**
 
-Do not create or start a SKIN_ABC implementation task merely because this CURRENT exists.
+Do not create or start a SKIN_ABC implementation task merely because Astra Research is active.
+
+Current Research implementation authority lives in `docs/status/ASTRA_CURRENT.md` and must STOP at its Author gate before any Production translation is considered.
 
 ## Blocker
-None. The lack of implementation is intentional: the current gate is evidence accumulation and Author review, not a blocked Production task.
+None for SKIN_ABC. The lack of Production implementation is intentional: the current gate is Research artwork evidence and Author review, not a blocked Production task.
 
 ## Next gate
-1. Continue current Research / Astra and relevant SKIN_R read-only understanding work under their own authority.
-2. Accumulate reproducible physical / fabrication evidence.
-3. Author reviews the candidate works.
-4. `SKIN_ABC_SOL` then selects the first candidate, if any, for a bounded `SKIN reproducible` translation study.
-5. Only after that review may a new implementation task or architecture decision be scoped.
+1. R4 Astra completes only the bounded `Large Mocomoco + Geometry Nodes` Artwork Geometry task under `ASTRA_CURRENT.md`.
+2. Author reviews the Intermediate Author Artwork Geometry Gate.
+3. Only explicit Author GO may open later Research Fabrication / Support / toolpath work.
+4. Accumulate reproducible physical / fabrication evidence after those later gates.
+5. `SKIN_ABC_SOL` then selects a bounded capability, if any, for `SKIN reproducible` translation.
+6. Only after that review may a new Production implementation task or architecture decision be scoped.
 
 ## HOLD / do not pre-decide
 - new final SKIN architecture;
@@ -99,14 +106,17 @@ None. The lack of implementation is intentional: the current gate is evidence ac
 - full-function UI expansion;
 - Production-wide rewrite;
 - automatic Research -> Production translation;
-- generalization before the first selected candidate is reproduced and reviewed.
+- generalization before the first selected candidate is reproduced and reviewed;
+- treating the current R4 GN study itself as Production architecture.
 
 ## Required pointers
 - `docs/TEAM_PROTOCOL_CORE.md`
+- `docs/status/ASTRA_CURRENT.md`
 - `docs/status/AB_CURRENT.md`
 - `docs/status/C_CURRENT.md`
 - `docs/status/SKIN_R_CURRENT.md`
 - `docs/notes/AB_PERFORMANCE_V2_SKIN_ABC_HANDOFF_2026-09-08.md`
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_ARTWORK_FABRICATION_TOOLPATH_ARCHITECTURE_2026-09-08.md`
+- `docs/observations/AUTHOR_OBSERVATION_R4_LARGE_MOCOMOCO_GN_2026-09-13.md`
 
 Old AB/C CURRENT files remain retained authority and must not be deleted or overwritten as part of the SKIN_ABC transition.
