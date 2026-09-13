@@ -1,12 +1,9 @@
 # Katachi
 
-**作業前に必ず [AGENTS.md](AGENTS.md) を読むこと。** 目的・構造・運用ルール・作業セッションの型は
-すべてそこに定義されている（モデル非依存の運用憲章）。
+共通ルールと参照先は [AGENTS.md](AGENTS.md) に一本化する。現在のタスク文脈に読み込まれていれば重ねて読み直さない。
 
-要点だけ:
-- これは「二つの余白」（実際の余白/見かけの余白）の研究プラットフォーム兼、場を母語とする造形の道具。CGツールではない
-- 正本は場＋操作の履歴。表面は導出物。操作履歴の save/load を常に保つ
-- Study（`src/studies/<name>/`）は自己完結。作業前に README.md と manifest.json を読む
-- 作業後は README の Observation 更新・manifest の revisits 追記・動作確認まで含めて完了
-- 実物の実験（印刷・破壊・人に触らせる）は人間のみ。道具は「安全」と断言せず、余白の推定と根拠のみ示す
-- 作者は視覚で判断する人。言語化・構造化・記録の維持は AI の責務
+Katachiは「二つの余白」（実際の余白／見かけの余白）の研究プラットフォーム兼、場を母語とする造形の道具であり、CGツールではない。
+
+Study／authoring作業では [PROJECT_AUTHORING_REFERENCE](docs/protocol/PROJECT_AUTHORING_REFERENCE.md) と対象StudyのREADME・manifestを参照する。場と操作履歴の保存、観察記録、再訪記録、実動作確認、作者による実物・価値判断はその契約に従う。無関係な文書修正にStudyの更新手順を適用しない。
+
+モデルの変更は、担当・権限・Gateの変更を意味しない。

@@ -1,33 +1,14 @@
 # Katachi — Project Constitution
 
-This file is the thin, repository-wide constitution for every human and agent. Operational details live in [`docs/TEAM_PROTOCOL_CORE.md`](docs/TEAM_PROTOCOL_CORE.md) and its progressive references.
+The repository-wide operating rules are in [TEAM_PROTOCOL_CORE](docs/TEAM_PROTOCOL_CORE.md); load them once in the current task context. Do not maintain a second rule set here.
 
 If a higher-level `~/Projects/AGENTS.md` exists in the execution environment, it takes precedence; its presence is not assumed here.
 
-## Authority and routing
+## Route by task
 
-- GitHub is the technical authority for code, branches, commits, CURRENT files, bounded tasks, and checkpoint evidence.
-- Implementation routing is: relevant CURRENT front → bounded task → named code/evidence → SOL review.
-- SOL owns architecture, scope, acceptance, and the next gate. LUNA owns only the bounded implementation, tests, and artifacts described by the task.
-- Task protected scope and exact done criteria are authoritative. If requirements conflict or necessary information is missing, stop and return the question to SOL.
+- Lane work: relevant CURRENT front → active bounded task → needed code/evidence. Use [the lane index](docs/status/README.md) only when the entry point is unknown.
+- A local documentation correction needs its relevant rules and file context, not every lane CURRENT or a full repository map.
+- Hikari: follow [HIKARI_REFERENCE](docs/protocol/HIKARI_REFERENCE.md) before reading, editing, testing, or presenting Hikari runtime state.
+- Study/authoring: use [PROJECT_AUTHORING_REFERENCE](docs/protocol/PROJECT_AUTHORING_REFERENCE.md) for Study contracts, visual conventions, physical-safety wording, and documentation versioning.
 
-## Scope and preservation
-
-- Do not expand scope opportunistically or invent architecture to fill a missing requirement.
-- Do not destroy, hide, clean, or overwrite dirty or unpushed work. Preserve exact branch, HEAD, status, and blocker in the handoff.
-- Respect explicit branch, commit, push, physical, and hardware boundaries. Do not switch, reset, rebase, merge, or push outside task authorization.
-- Physical, hardware, destructive, and author-value acceptance gates remain human/author gates; software evidence is not physical or artistic acceptance.
-
-## Evidence
-
-- Report what is proven, supported, unverified, held, or blocked. Keep code, geometry, export, physical, and artistic gates separate where relevant.
-- A branch or passing test does not by itself prove a capability, physical result, or artwork result.
-- End bounded work with a concise SOL handoff containing branch/commit, status, tests/evidence, gate result, and blocker.
-
-## Targeted loading
-
-Normal work loads the relevant CURRENT front, bounded task, and named pointers only. `STATEMENT.md`, `RESEARCH.md`, unrelated lane CURRENTs, old tasks, and broad architecture/research documents are available by concrete need or named pointer, not mandatory preload.
-
-Hikari work must follow [`docs/protocol/HIKARI_REFERENCE.md`](docs/protocol/HIKARI_REFERENCE.md) before reading, editing, testing, or presenting Hikari runtime state.
-
-Study authoring, shared visual conventions, physical-safety wording, and document-versioning details are preserved in [`docs/protocol/PROJECT_AUTHORING_REFERENCE.md`](docs/protocol/PROJECT_AUTHORING_REFERENCE.md) and load only for Study/authoring work.
+Broad research, history, and unrelated lane documents are available by concrete need, not default preload. Model choice does not change a task's authority or permissions.
