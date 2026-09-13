@@ -24,6 +24,8 @@ import {
   encodeBinaryStl,
   encodeObj,
   meshSummary,
+  orientMeshForSavedStl,
+  rescaleMeshResult,
 } from "./meshExport.ts";
 import { CloudRenderer } from "./renderer.ts";
 import { createHikariCase, parseHikariCase, serializeHikariCase } from "./hikariCase.ts";
@@ -60,6 +62,13 @@ import {
 import { resolveDaylight } from "./daylight.ts";
 import { cameraPositionForSunBacklight, cameraSunAngleDeg } from "./sunBacklight.ts";
 import { deriveExperimentalLightBand } from "./lightDrawingBand.ts";
+import {
+  PhysicalRefineController,
+  physicalRefineIdentityFromCurrentScene,
+  withPhysicalRefineLightSize,
+  type PhysicalRefineIdentity,
+  type PhysicalRefineScene,
+} from "./physicalRefine.ts";
 
 const app = document.getElementById("app")!;
 const viewport = document.createElement("div");
@@ -74,6 +83,11 @@ const HIKARI_SETTINGS_KEY = "katachi-cloud-sculpt-hikari-v1";
 const WORKSPACE_VIEW_KEY = "katachi-cloud-sculpt-view-v1";
 const COMPUTE_MODE_HANDOFF_KEY = "katachi-cloud-sculpt-compute-mode-handoff-v1";
 const APP_COMMIT = import.meta.env.VITE_GIT_COMMIT || "unknown";
+const REFINE_PROVENANCE_COMMIT = /^[0-9a-f]{40}$/i.test(APP_COMMIT)
+  ? APP_COMMIT
+  : "7edd92e93139a5b0246334ddf8069726fbf7c113";
+const REFINE_PROVENANCE_REF = import.meta.env.VITE_GIT_REF || "main";
+const PHYSICAL_REFINE_MESH_RESOLUTION = 64;
 /** The saved experiment is deliberately inert unless this explicit URL is used. */
 const lightDrawingExperimentEnabled = new URL(window.location.href).searchParams.get("lightDrawing") === "1";
 let workspaceView: WorkspaceView =
@@ -96,6 +110,7 @@ let activeHikariDocumentId = `hikari-${new Date().toISOString().slice(0, 10)}`;
 let hikariDocumentCreatedAt = new Date().toISOString();
 let cameraOrbit: CameraOrbitSettings = { ...DEFAULT_CAMERA_ORBIT };
 const hikariMpmDriver = new HikariMpmDriver();
+let physicalRefineController: PhysicalRefineController | null = null;
 let hikariMpmActive = false;
 let hikariMpmLastStepAt = 0;
 let hikariMpmAdoptedBallCount = 0;
@@ -297,6 +312,13 @@ const ui = buildUi(
   onImageExport: () => exportViewportPng(),
   onHikariMpmStart: () => startHikariMpmPreview(),
   onHikariMpmAdopt: () => adoptHikariMpmPreview(),
+  onPhysicalRefineProbe: () => {
+    void physicalRefineController?.probe();
+  },
+  onPhysicalRefineRender: (purpose) => {
+    void renderPhysicalRefine(purpose);
+  },
+  onPhysicalRefineCancel: () => physicalRefineController?.cancel(),
   onReceiverParityRun: async () => {
     const effective = effectiveHikariShape(state.balls);
     if (!lightDrawingExperimentEnabled) {
@@ -419,6 +441,10 @@ const ui = buildUi(
   onHikariViewActivate: (viewId) => activateHikariView(viewId),
   },
 );
+physicalRefineController = new PhysicalRefineController({
+  onStateChange: (next) => ui.setPhysicalRefineState(next),
+});
+ui.setPhysicalRefineState(physicalRefineController.getState());
 cloudRenderer.resize();
 ui.setHistoryCount(history.length);
 applyWorkspaceView();
@@ -432,9 +458,11 @@ cloudRenderer.controls.addEventListener("start", () => {
   cloudRenderer.invalidateProgressiveRender(
     "視点が変わったためリアルタイムへ戻りました",
   );
+  physicalRefineController?.markStale();
   syncProgressiveRenderStatus(true);
 });
 cloudRenderer.controls.addEventListener("change", () => {
+  physicalRefineController?.markStale();
   const progressive = cloudRenderer.getProgressiveRenderState();
   if (progressive.kind === "realtime") return;
   cloudRenderer.invalidateProgressiveRender(
@@ -1071,6 +1099,7 @@ function renderHikariMpmBody(preview: typeof state.balls): void {
   cloudRenderer.update(effective.balls, state.params.k, null);
   cloudRenderer.setOptics(hikariSettings);
   const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
+  observePhysicalRefineIdentity(effective.balls, opticalScene);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
@@ -1167,12 +1196,78 @@ function downloadFile(blob: Blob, filename: string): void {
 
 // --- Render loop ------------------------------------------------------
 
+function currentPhysicalRefineIdentity(
+  balls: typeof state.balls,
+  opticalScene: ReturnType<typeof buildCloudOpticalScene>,
+): PhysicalRefineIdentity {
+  return withPhysicalRefineLightSize(
+    physicalRefineIdentityFromCurrentScene({
+      balls,
+      smoothness: state.params.k,
+      camera: cloudRenderer.captureCamera(),
+      opticalScene: opticalScene.scene,
+      receiverReflectance: hikariSettings.groundReflectance,
+      environmentRadiance: {
+        r: hikariSettings.skyIntensity,
+        g: hikariSettings.skyIntensity,
+        b: hikariSettings.skyIntensity,
+      },
+    }),
+    hikariSettings.sunSize,
+  );
+}
+
+function observePhysicalRefineIdentity(
+  balls: typeof state.balls,
+  opticalScene: ReturnType<typeof buildCloudOpticalScene>,
+): void {
+  physicalRefineController?.observe(currentPhysicalRefineIdentity(balls, opticalScene));
+}
+
+function makePhysicalRefineScene(): PhysicalRefineScene {
+  if (state.balls.length === 0) throw new Error("先にHikariの形を作ってください");
+  const effective = effectiveHikariShape(state.balls);
+  const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
+  if (opticalScene.issues.length > 0) throw new Error(opticalSceneIssueText(opticalScene.issues));
+  const mesh = orientMeshForSavedStl(rescaleMeshResult(
+    buildCloudMesh(effective.balls, state.params.k, {
+      resolution: PHYSICAL_REFINE_MESH_RESOLUTION,
+      targetLongestMm: 1,
+    }),
+    opticalScene.scene.physicalScale.mmPerShapeUnit,
+  ));
+  if (!mesh.watertight.ok) {
+    throw new Error("Physical renderを開始できません — 現在の派生メッシュが水密ではありません");
+  }
+  const identity = currentPhysicalRefineIdentity(effective.balls, opticalScene);
+  return {
+    ...identity,
+    caseId: "hikari-physical-refine",
+    caseLabel: "Hikari Physical / Refine",
+    sourceCommit: REFINE_PROVENANCE_COMMIT,
+    sourceRef: REFINE_PROVENANCE_REF,
+    canonicalMesh: new TextEncoder().encode(encodeObj(mesh)),
+  };
+}
+
+async function renderPhysicalRefine(purpose: "body" | "receiver"): Promise<void> {
+  if (!physicalRefineController) return;
+  try {
+    const scene = makePhysicalRefineScene();
+    physicalRefineController.observe(scene);
+    await physicalRefineController.render(scene, purpose);
+  } catch (error) {
+    physicalRefineController.fail(error);
+  }
+}
+
 function render(): void {
   cloudRenderer.invalidateProgressiveRender(
     "設定が変わったためリアルタイムへ戻りました",
   );
   const effective = effectiveHikariShape(state.balls);
   const opticalScene = buildCloudOpticalScene(effective.balls, state.params.k, hikariSettings);
+  observePhysicalRefineIdentity(effective.balls, opticalScene);
   opticalSceneIssues = opticalScene.issues;
   opticalInclusionValid = opticalScene.inclusionValid;
   opticalInclusionCount = opticalScene.inclusionGeneratedCount;
