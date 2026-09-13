@@ -1,6 +1,6 @@
 # Katachi protocol optimization audit — 2026-09-13
 
-Status: **PROPOSED / NOT APPLIED TO GITHUB**
+Status: **APPLIED TO PR #13 / NOT MERGED**
 
 ## 1. 調査範囲と結論
 
@@ -10,7 +10,7 @@ GitHub connectorで確認した基準は `main@04cc8ccbb274437862b1813307e627683
 
 結論：既存のprotocol分離はすでに実施されている。全面再設計ではなく、**共通規則の重複解消、権限の明確化、役割とモデルの分離、タスクに応じた参照、技術完了と承認の分離**が今回の対象。
 
-GitHubへの文書ブランチ作成は安全チェックによりブロックされた。ブランチ・コミット・PRは作成しておらず、main／制作ブランチへの変更もない。本書と差分はレビュー・適用用の提案である。
+初回のGitHub connectorからのブランチ作成は安全チェックによりブロックされた。その後、LUNAがisolated worktreeで本書を含むdocs-only差分を適用し、`agent/astra-protocol-optimization-v1` にcommit `e34322865f6240ff860b3435de1268ea22fb4fa6` を作成・pushし、PR #13を作成した。main／制作ブランチへの変更はなく、本書はPR #13の監査記録である。
 
 ## 2. 記事との対応と、以前の見立ての訂正
 
