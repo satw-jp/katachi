@@ -85,6 +85,18 @@ Do not create or start a SKIN_ABC implementation task merely because Astra Resea
 
 Current Research implementation authority lives in `docs/status/ASTRA_CURRENT.md` and must STOP at its Author gate before any Production translation is considered.
 
+## Bounded Research helper pointer
+
+`SKIN_R4_PATH_ROUNDTRIP_V0` is a separate LUNAWORKER Research helper task for
+reading an explicit Blender path edit, deriving its impact scope, and writing a
+separate review artifact. It does not change the active R4 artwork task, select
+an A/F2 candidate, repair Support, or authorize Production.
+
+- task: `docs/tasks/SKIN_R4_PATH_ROUNDTRIP_V0.md`
+- evidence: `docs/evidence/SKIN_R4_PATH_ROUNDTRIP_V0.md`
+- branch: `agent/skin-r4-path-roundtrip-v0` (unmerged review branch)
+- state: `TECHNICAL COMPLETE — SOL REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+
 ## Blocker
 None for SKIN_ABC. The lack of Production implementation is intentional: the current gate is Research artwork evidence and Author review, not a blocked Production task.
 

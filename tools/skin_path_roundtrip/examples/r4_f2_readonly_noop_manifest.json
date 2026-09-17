@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "candidate_id": "R4_F2_READONLY_SMOKE",
+  "baseline_id": "R4_F2_PREPARATION_READONLY",
+  "source_revision": "9f6c607100c25cdfc780377002839726fde044b8",
+  "frame": {"name": "A1_MASTER_MM", "unit": "mm"},
+  "object_selection": {"name": "STRUCTURE_MEMBERS", "type": "MESH", "faces": 0},
+  "baseline_input": "f2_structure",
+  "edit_input": "f2_edit_copy",
+  "inputs": [
+    {"name": "f2_structure", "role": "BASELINE", "authority": "REVIEW_CANDIDATE", "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\F2\\data\\structure.json", "sha256": "610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d"},
+    {"name": "f2_edit_copy", "role": "AUTHOR_EDIT", "authority": "REVIEW_CANDIDATE", "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\F2\\data\\structure.json", "sha256": "610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d"},
+    {"name": "f2_support_readonly", "role": "REGRESSION_REFERENCE", "authority": "REVIEW_CANDIDATE", "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\F2\\data\\support_geometry.json", "sha256": "8103692d990d610a01c44f93e2d093319e466a4abfdc72250709ea9ff38a3127"},
+    {"name": "f2_blend_readonly", "role": "REGRESSION_REFERENCE", "authority": "REVIEW_CANDIDATE", "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\F2\\blend\\F2_A1_AUTHORING_SUPPORT.blend", "sha256": "a0316ab16a89ca9d3c4ec6fccf3c0ea103a4a861abe829352e7855d7309353c8"}
+  ]
+}
