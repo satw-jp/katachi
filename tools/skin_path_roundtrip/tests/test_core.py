@@ -83,21 +83,38 @@ class CoreRoundtripTests(unittest.TestCase):
         self.assertEqual(delta["counts"]["EDGE_ADDED"], 1)
         self.assertEqual(delta["counts"]["EDGE_DELETED"], 1)
 
-    def test_t06_duplicate_stable_id_is_ambiguous(self) -> None:
+    def test_t06_subdivision_duplicate_stable_id_is_resolved(self) -> None:
+        edited = copy.deepcopy(self.baseline)
+        obj = edited["objects"][0]
+        obj["vertices"].insert(1, {"id": "v:subdivided", "co": [5, 0, 0], "attributes": {"source_vertex_index": 1, "source_branch_index": 1}})
+        obj["edges"] = [
+            {"id": "e:0a", "vertices": [0, 1], "attributes": {"source_branch_id": "B1", "source_branch_index": 1}},
+            {"id": "e:0b", "vertices": [1, 2], "attributes": {"source_branch_id": "B1", "source_branch_index": 1}},
+            {"id": "e:1", "vertices": [3, 4], "attributes": {"source_branch_id": "B2", "source_branch_index": 2}},
+        ]
+        obj["members"][0]["points_mm"] = [[0, 0, 0], [5, 0, 0], [10, 0, 0]]
+        delta = analyze_diff(self.baseline, edited, object_name="PATHS")
+        self.assertEqual(delta["status"], "PASS")
+        self.assertEqual(delta["counts"]["PATH_SUBDIVIDED"], 1)
+        self.assertEqual(delta["counts"]["AMBIGUOUS_MAPPING"], 0)
+        self.assertEqual(len(delta["mapping"]["resolved_duplicates"]), 1)
+        self.assertEqual(delta["mapping"]["resolved_duplicates"][0]["classification"], "SUBDIVISION_INHERITED_ID")
+
+    def test_t07_genuinely_ambiguous_duplicate_is_fail_closed(self) -> None:
         edited = copy.deepcopy(self.baseline)
         edited["objects"][0]["vertices"][1]["attributes"]["source_vertex_index"] = 1
         delta = analyze_diff(self.baseline, edited, object_name="PATHS")
         self.assertEqual(delta["status"], "AMBIGUOUS")
         self.assertGreaterEqual(delta["counts"]["AMBIGUOUS_MAPPING"], 1)
 
-    def test_t07_face_bearing_input_is_unsupported(self) -> None:
+    def test_t08_face_bearing_input_is_unsupported(self) -> None:
         edited = copy.deepcopy(self.baseline)
         edited["objects"][0]["faces"] = [[0, 1, 2]]
         delta = analyze_diff(self.baseline, edited, object_name="PATHS")
         self.assertEqual(delta["status"], "UNSUPPORTED")
         self.assertEqual(delta["counts"]["UNSUPPORTED_INPUT"], 1)
 
-    def test_t08_support_impact_is_derived_and_non_mutating(self) -> None:
+    def test_t09_support_impact_is_derived_and_non_mutating(self) -> None:
         manifest = {"support_ledger": {"anchors": [{"id": "A1", "member_id": "B1"}]}}
         before = json.dumps(manifest, sort_keys=True)
         delta = analyze_diff(self.baseline, self.edited, object_name="PATHS")
@@ -106,7 +123,7 @@ class CoreRoundtripTests(unittest.TestCase):
         self.assertIn("SPATIAL_RECHECK", impact["items"][0]["reasons"])
         self.assertEqual(json.dumps(manifest, sort_keys=True), before)
 
-    def test_t09_rebuild_materializes_only_selected_member(self) -> None:
+    def test_t10_rebuild_materializes_only_selected_member(self) -> None:
         delta = analyze_diff(self.baseline, self.edited, object_name="PATHS")
         selected = [item["operation_id"] for item in delta["operations"] if item["scope"] == "B1"]
         rebuilt = rebuild_changed_extract(self.baseline, self.edited, delta, selected)
@@ -115,13 +132,13 @@ class CoreRoundtripTests(unittest.TestCase):
         self.assertEqual(rebuilt["roundtrip_review"]["changed_members"], ["B1"])
         self.assertEqual(rebuilt["roundtrip_review"]["preserved_members"], ["B2"])
 
-    def test_t10_resolution_rejects_stale_hash(self) -> None:
+    def test_t11_resolution_rejects_stale_hash(self) -> None:
         delta = analyze_diff(self.baseline, self.edited, object_name="PATHS")
         lock = {"lock_sha256": "lock"}
         resolution = {"schema_version": "1.0", "delta_sha256": "stale", "input_lock_sha256": "lock", "selected_operation_ids": []}
         self.assertTrue(validate_resolution(resolution, delta, lock))
 
-    def test_t11_input_lock_hashes_explicit_files(self) -> None:
+    def test_t12_input_lock_hashes_explicit_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             source = root / "source.txt"
@@ -131,7 +148,7 @@ class CoreRoundtripTests(unittest.TestCase):
             self.assertEqual(lock["status"], "PASS")
             self.assertEqual(lock["inputs"][0]["actual_sha256"], hashlib.sha256(b"source").hexdigest())
 
-    def test_t12_original_inputs_can_be_normalized_without_writing_them(self) -> None:
+    def test_t13_original_inputs_can_be_normalized_without_writing_them(self) -> None:
         source = fixture("baseline.json")
         normalized = normalize_extract(source, "PATHS")
         self.assertEqual(normalized["objects"][0]["name"], "PATHS")

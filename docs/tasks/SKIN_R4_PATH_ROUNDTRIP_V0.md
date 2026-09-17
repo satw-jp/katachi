@@ -6,7 +6,7 @@ Owner: SKIN_ABC_SOL / LUNAWORKER
 
 Branch: `agent/skin-r4-path-roundtrip-v0`
 
-State: `TECHNICAL COMPLETE — SOL REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+State: `TECHNICAL COMPLETE — SOL RE-REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
 
 ## Bounded objective
 
@@ -25,15 +25,22 @@ a separate review artifact.
   Blender adapter;
 - `inspect`, `build-review`, `verify`, and read-only `resume` commands;
 - explicit prefix mapping in `roots.json`; no date/name fallback;
-- stable attribute / unique-coordinate mapping with fail-closed ambiguity;
+- stable attribute / topology-aware mapping with fail-closed ambiguity;
+- Blender Subdivide duplicate IDs are classified from baseline edge endpoints,
+  branch lineage, degree/connectivity, and coordinate-on-segment evidence;
+  proven connector junctions with inherited IDs are recorded separately from
+  `PATH_SUBDIVIDED`, while unresolved duplicates remain `AMBIGUOUS`;
 - `UNCHANGED`, `POINT_MOVED`, `PATH_SUBDIVIDED`, `PATH_REROUTED`,
   `EDGE_ADDED`, `EDGE_DELETED`, `JUNCTION_CHANGED`, `LOOSE_VERTEX`,
   `AMBIGUOUS_MAPPING`, and `UNSUPPORTED_INPUT` classifications;
 - derived Support impact reasons without Support mutation;
-- fixture/unit coverage T01–T17 for no-op, movement, subdivision, reroute,
+- fixture/unit coverage for no-op, movement, subdivision, reroute,
   add/delete, ambiguous and unsupported input, stale hashes, impact, local
   rebuild, roundtrip, and resume;
-- historical A1 manifest/example with the supplied recorded source hashes.
+- historical A1 manifest/example with the supplied recorded source hashes,
+  explicitly pairing the baseline line blend object
+  `INTERNAL_PATHS_EDIT__A1_100PCT` with the edit object
+  `INTERNAL_PATHS_EDIT__A1_100PCT.001`.
 
 ## Protected boundary
 
@@ -58,7 +65,14 @@ printability or physical-strength PASS.
 
 Technical completion ends at:
 
-`TECHNICAL COMPLETE — SOL REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+`TECHNICAL COMPLETE — SOL RE-REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+
+The real A1 Blender gate was rerun on 2026-09-18. The saved review blend was
+reopened and re-extracted; selected scopes matched the edit, unselected scopes
+matched the baseline, required source attributes and the baseline world frame
+were preserved, and all locked source hashes remained unchanged. Evidence is
+recorded in the task evidence document and in the run's
+`BLENDER_ROUNDTRIP_VERIFY.json` / `REAL_A1_CORRESPONDENCE.json` artifacts.
 
 This branch is not merged to `main`, does not promote an artwork master, and
 does not send any data to a physical device. The small-region follow-up task is

@@ -24,7 +24,9 @@ from .core import (
     selected_object,
     sha256_file,
     stable_hash,
+    compare_line_geometry,
     validate_resolution,
+    verify_blender_roundtrip,
     verify_json_rebuild,
     write_json,
 )
@@ -102,6 +104,18 @@ def _input_name(manifest: dict[str, Any], role: str, fallback: str) -> str:
     return fallback
 
 
+def _object_name(manifest: dict[str, Any], side: str, fallback: str) -> str:
+    selection = manifest.get("object_selection", {})
+    if isinstance(selection, dict):
+        for key in (f"{side}_name", f"{side}_object_name"):
+            if selection.get(key):
+                return str(selection[key])
+    for key in (f"{side}_object_name", f"{side}_name"):
+        if manifest.get(key):
+            return str(manifest[key])
+    return str(selection.get("name", fallback)) if isinstance(selection, dict) else fallback
+
+
 def _load_edit_extract(path: Path, object_name: str, output: Path, blender: str | None) -> tuple[dict[str, Any], dict[str, Any]]:
     if path.suffix.lower() == ".json":
         return load_normalized_json(path, object_name), {"kind": "JSON", "path": str(path)}
@@ -134,28 +148,45 @@ def cmd_inspect(args: argparse.Namespace) -> int:
             _write_state(run_dir, state)
             return 2
 
-        object_name = str(manifest.get("object_selection", {}).get("name", manifest.get("object_name", "INTERNAL_PATHS_EDIT__A1_100PCT")))
+        object_name = _object_name(manifest, "baseline", "INTERNAL_PATHS_EDIT__A1_100PCT")
+        edit_object_name = _object_name(manifest, "edit", object_name)
         baseline_name = str(manifest.get("baseline_input", _input_name(manifest, "BASELINE", "baseline")))
         edit_name = str(manifest.get("edit_input", "edit_blend"))
         baseline_path = load_locked_input(lock, baseline_name)
         edit_path = load_locked_input(lock, edit_name)
         baseline_extract, baseline_adapter = _load_baseline_extract(baseline_path, object_name, run_dir / "baseline-extract.json", args.blender)
-        edit_extract, edit_adapter = _load_edit_extract(edit_path, object_name, run_dir / "edit-extract.json", args.blender)
+        edit_extract, edit_adapter = _load_edit_extract(edit_path, edit_object_name, run_dir / "edit-extract.json", args.blender)
+        baseline_blend_extract = None
+        baseline_blend_adapter = None
+        baseline_blend_name = manifest.get("baseline_blend_input")
+        baseline_geometry_check = None
+        if baseline_blend_name:
+            baseline_blend_path = load_locked_input(lock, str(baseline_blend_name))
+            if baseline_blend_path.suffix.lower() == ".blend":
+                baseline_blend_extract, baseline_blend_adapter = _load_edit_extract(baseline_blend_path, object_name, run_dir / "baseline-blend-extract.json", args.blender)
+                baseline_geometry_check = compare_line_geometry(baseline_extract, baseline_blend_extract, object_name, object_name, float(manifest.get("policies", {}).get("point_tolerance_mm", 1e-4)))
+                if baseline_geometry_check["status"] != "PASS":
+                    raise RoundtripError("baseline data does not match the explicit baseline line blend: " + "; ".join(baseline_geometry_check["failures"][:8]))
         extract_payload = {
             "schema_version": "1.0",
             "status": "PASS",
             "object_name": object_name,
+            "baseline_object_name": object_name,
+            "edit_object_name": edit_object_name,
             "baseline_input": baseline_name,
             "baseline_blend_input": manifest.get("baseline_blend_input", baseline_name),
             "edit_input": edit_name,
             "baseline": baseline_extract,
             "edit": edit_extract,
             "adapters": {"baseline": baseline_adapter, "edit": edit_adapter},
+            "baseline_blend": baseline_blend_extract,
+            "baseline_blend_adapter": baseline_blend_adapter,
+            "baseline_geometry_check": baseline_geometry_check,
             "provenance": "RECORDED input bytes + DERIVED normalized extraction",
         }
         write_json(run_dir / "EXTRACT.json", extract_payload)
         state["stages"]["extract"] = "PASS"
-        delta = analyze_diff(baseline_extract, edit_extract, manifest.get("policies"), object_name)
+        delta = analyze_diff(baseline_extract, edit_extract, manifest.get("policies"), object_name, edit_object_name)
         delta["input_lock_sha256"] = lock.get("lock_sha256")
         delta["extract_sha256"] = stable_hash(extract_payload)
         write_json(run_dir / "DELTA.json", delta)
@@ -215,10 +246,11 @@ def cmd_build_review(args: argparse.Namespace) -> int:
         baseline_blend_path = next(item for item in lock["inputs"] if item["name"] == baseline_blend_name)
         review_dir = run_dir / "review"
         review_dir.mkdir(parents=True, exist_ok=True)
+        rebuilt = rebuild_changed_extract(baseline, edit, delta, selected_ids)
+        write_json(review_dir / "rebuilt_extract.json", rebuilt)
+        json_check = verify_json_rebuild(baseline, edit, rebuilt, delta)
         if Path(str(baseline_path["resolved_path"])).suffix.lower() == ".json" and Path(str(edit_path["resolved_path"])).suffix.lower() == ".json":
-            rebuilt = rebuild_changed_extract(baseline, edit, delta, selected_ids)
-            write_json(review_dir / "rebuilt_extract.json", rebuilt)
-            verification = verify_json_rebuild(baseline, edit, rebuilt, delta)
+            verification = json_check
             artifact = str(review_dir / "rebuilt_extract.json")
         else:
             if Path(str(baseline_blend_path["resolved_path"])).suffix.lower() != ".blend" or Path(str(edit_path["resolved_path"])).suffix.lower() != ".blend":
@@ -228,10 +260,22 @@ def cmd_build_review(args: argparse.Namespace) -> int:
                 raise BlenderUnavailable("Blender executable not found; cannot save a review .blend")
             object_name = str(delta["object_name"])
             output = review_dir / "PATH_DELTA_REVIEW.blend"
-            branch_map = {str(member.get("branch_index")): str(member.get("id")) for member in baseline.get("objects", [])[0].get("members", []) if member.get("branch_index") is not None}
             scopes = [str(item.get("scope")) for item in delta["operations"] if item.get("operation_id") in selected_ids]
-            build_review_blend(executable, Path(str(baseline_blend_path["resolved_path"])), Path(str(edit_path["resolved_path"])), object_name, output, scopes, branch_map)
-            verification = verify_review_blend(executable, output, object_name, review_dir / "blender-verify.json")
+            build_review_blend(executable, Path(str(baseline_blend_path["resolved_path"])), Path(str(edit_path["resolved_path"])), object_name, output, scopes, rebuilt)
+            blender_report = verify_review_blend(executable, output, object_name, review_dir / "blender-verify.json")
+            verification = verify_blender_roundtrip(
+                blender_report,
+                extract_payload.get("baseline_blend") or baseline,
+                baseline,
+                edit,
+                rebuilt,
+                delta,
+                scopes,
+                not _verify_lock(lock),
+                Path(str(baseline_blend_path["resolved_path"])).resolve() != output.resolve() and Path(str(edit_path["resolved_path"])).resolve() != output.resolve(),
+                float(delta.get("policy", {}).get("point_tolerance_mm", 1e-4)),
+            )
+            write_json(review_dir / "BLENDER_ROUNDTRIP_VERIFY.json", verification)
             artifact = str(output)
         report = {
             "schema_version": "1.0",
@@ -283,10 +327,10 @@ def cmd_verify(args: argparse.Namespace) -> int:
             failures.extend(json_check.get("failures", []))
             geometry_status = json_check["status"]
         elif review and review.get("artifact"):
-            geometry_status = review.get("verification", {}).get("status", "UNVERIFIED_BLENDER_ARTIFACT")
+            geometry_status = review.get("verification", {}).get("status", "UNVERIFIED")
         state = {
             "schema_version": "1.0",
-            "status": "PASS" if not failures and review and geometry_status in {"PASS", "UNVERIFIED_BLENDER_ARTIFACT"} else "FAIL",
+            "status": "PASS" if not failures and review and geometry_status == "PASS" else "FAIL",
             "tool_execution": "PASS" if not failures else "FAIL",
             "mapping": delta.get("status"),
             "geometry_check": geometry_status,

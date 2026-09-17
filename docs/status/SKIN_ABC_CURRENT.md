@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-13
+Last verified: 2026-09-18
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -95,7 +95,11 @@ an A/F2 candidate, repair Support, or authorize Production.
 - task: `docs/tasks/SKIN_R4_PATH_ROUNDTRIP_V0.md`
 - evidence: `docs/evidence/SKIN_R4_PATH_ROUNDTRIP_V0.md`
 - branch: `agent/skin-r4-path-roundtrip-v0` (unmerged review branch)
-- state: `TECHNICAL COMPLETE — SOL REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+- state: `TECHNICAL COMPLETE — SOL RE-REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+- real A1 Blender roundtrip gate: PASS; review blend reopen verification,
+  selected/unselected topology-coordinate comparison, source attributes,
+  frame preservation, and input hash preservation are recorded in the task
+  evidence.
 
 ## Blocker
 None for SKIN_ABC. The lack of Production implementation is intentional: the current gate is Research artwork evidence and Author review, not a blocked Production task.

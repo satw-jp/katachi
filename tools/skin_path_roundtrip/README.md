@@ -25,17 +25,22 @@ python -m tools.skin_path_roundtrip resume --run run
 ## Explicit input contract
 
 The manifest must declare `schema_version: "1.0"`, candidate/baseline IDs,
-the frame (`A1_MASTER_MM`, millimetres), one unique object name, and every
-input file with its role and expected hash where known. `roots.json` contains
-prefix-to-local-root mappings; there is no filename/date fallback. A stale
-hash, unmapped absolute path, non-unique object, non-uniform/sheared/reflected
-transform, curve, or face-bearing mesh fails closed.
+the frame (`A1_MASTER_MM`, millimetres), explicit unique baseline/edit object
+names, and every input file with its role and expected hash where known.
+`roots.json` contains prefix-to-local-root mappings; there is no filename/date
+fallback. A stale hash, unmapped absolute path, non-unique object, singular
+transform, curve, or face-bearing mesh fails closed. Invertible non-uniform or
+sheared transforms are supported by explicit world extraction and
+world-to-baseline-local review conversion; frame diagnostics record the
+determinant and column orthogonality.
 
 The Blender adapter extracts world coordinates and supported mesh attributes
 only. The pure-Python mapper uses explicit stable vertex attributes first and
-unique coordinate matches only as a bounded fallback. It never uses `.001`
-names or array order as identity, auto-welds crossing lines, or forces a graph
-back into a tree.
+unique coordinate matches only as a bounded fallback. Blender Subdivide-copied
+IDs are accepted only when branch lineage, baseline edge endpoints,
+degree/connectivity, and coordinate relation prove the derived point; other
+duplicates remain `AMBIGUOUS`. It never uses `.001` names or array order as
+identity, auto-welds crossing lines, or forces a graph back into a tree.
 
 ## Artifacts
 
@@ -49,6 +54,9 @@ back into a tree.
   `EVIDENCE_STALE`, `UNKNOWN_SCOPE`) without Support mutation.
 - `review/` — JSON forensic review for fixture/data inputs, or a separate
   `PATH_DELTA_REVIEW.blend` when headless Blender is available.
+- `review/BLENDER_ROUNDTRIP_VERIFY.json` — reopened extraction comparison for
+  selected edit scopes, preserved baseline scopes, source attributes, frame,
+  and locked inputs.
 - `VERIFY.json` / `RESUME.json` — lock, local review, and continuation state.
 
 The output states are intentionally separate: `tool_execution`, `mapping`,
@@ -59,6 +67,7 @@ this helper.
 ## Examples
 
 - `examples/r4_a1_manifest.json` locks the historical A1 path-editor inputs
-  from the supplied R4 authority root.
+  from the supplied R4 authority root and pairs the baseline line blend with
+  its explicit `.001` author-edit object.
 - `examples/roots.example.json` maps that historical absolute prefix to a
   local Drive root without changing the declared relative paths.

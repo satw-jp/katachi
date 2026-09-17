@@ -291,7 +291,18 @@ def normalize_extract(document: Any, object_name: str | None = None) -> dict[str
         members = []
         for branch in document["branches"]:
             source_record = branch.get("source_record") if isinstance(branch, dict) else None
-            members.append(_member_record(source_record or branch, branch.get("index") if isinstance(branch, dict) else None))
+            # PATH_BASELINE stores the author-facing member record separately
+            # from the extraction lineage arrays. Preserve both so the
+            # canonical baseline retains its stable vertex/edge identity.
+            if isinstance(branch, dict) and isinstance(source_record, dict):
+                merged = copy.deepcopy(source_record)
+                for key in ("source_vertex_indices", "source_edge_indices", "index", "branch_id"):
+                    if key in branch and key not in merged:
+                        merged[key] = copy.deepcopy(branch[key])
+                member = merged
+            else:
+                member = source_record or branch
+            members.append(_member_record(member, branch.get("index") if isinstance(branch, dict) else None))
         result = _object_from_members(object_name or "INTERNAL_PATHS_EDIT__A1_100PCT", members, document)
         return {"schema_version": "1.0", "frame": {"name": "A1_MASTER_MM", "unit": "mm"}, "objects": [result]}
     if "members" in document and isinstance(document["members"], list) and "objects" not in document:
@@ -411,7 +422,212 @@ def decorate_with_baseline_ids(obj: dict[str, Any], baseline: dict[str, Any]) ->
     return result
 
 
-def _map_vertices(base_obj: dict[str, Any], edit_obj: dict[str, Any], tolerance: float) -> dict[str, Any]:
+def _incident_edges(obj: dict[str, Any], vertex_index: int) -> list[dict[str, Any]]:
+    return [
+        edge
+        for edge in obj.get("edges", [])
+        if len(edge.get("vertices", [])) == 2 and vertex_index in {int(edge["vertices"][0]), int(edge["vertices"][1])}
+    ]
+
+
+def _vertex_branch_ids(obj: dict[str, Any], vertex_index: int, branch_by_index: dict[str, str] | None = None) -> set[str]:
+    result: set[str] = set()
+    for edge in _incident_edges(obj, vertex_index):
+        branch_id = _edge_branch_id(edge, branch_by_index)
+        if branch_id is not None:
+            result.add(branch_id)
+    return result
+
+
+def _vertex_branch_identities(vertex: dict[str, Any], branch_by_index: dict[str, str] | None = None) -> set[str]:
+    """Return branch identities recorded on a vertex or point attribute."""
+
+    result: set[str] = set()
+    for name in ("source_branch_id", "branch_id", "member_id"):
+        value = _attribute(vertex, name)
+        if value not in (None, ""):
+            result.add(str(value))
+    if branch_by_index:
+        for name in ("source_branch_index", "source_branch_index_point", "branch_index"):
+            value = _attribute(vertex, name)
+            if value is not None and str(value) in branch_by_index:
+                result.add(branch_by_index[str(value)])
+    return result
+
+
+def _vertex_neighbors(obj: dict[str, Any], vertex_index: int) -> list[int]:
+    result = []
+    for edge in _incident_edges(obj, vertex_index):
+        endpoints = [int(edge["vertices"][0]), int(edge["vertices"][1])]
+        neighbor = endpoints[1] if endpoints[0] == vertex_index else endpoints[0]
+        if neighbor not in result:
+            result.append(neighbor)
+    return result
+
+
+def _point_segment_distance(point: list[float], start: list[float], end: list[float]) -> float:
+    direction = [b - a for a, b in zip(start, end)]
+    length_sq = sum(value * value for value in direction)
+    if length_sq == 0:
+        return _dist(point, start)
+    parameter = max(0.0, min(1.0, sum((p - a) * d for p, a, d in zip(point, start, direction)) / length_sq))
+    projected = [a + parameter * d for a, d in zip(start, direction)]
+    return _dist(point, projected)
+
+
+def _is_subdivision_inherited_vertex(
+    base_obj: dict[str, Any],
+    edit_obj: dict[str, Any],
+    base_index: int,
+    original_edit_index: int,
+    edit_index: int,
+    branch_by_index: dict[str, str] | None,
+    tolerance: float,
+) -> bool:
+    """Recognize an extra point on an existing baseline edge.
+
+    Blender Subdivide can copy the source vertex attribute to a new point.
+    The point is only accepted as a derived subdivision when its incident
+    connectivity identifies the two original endpoints and its coordinate is
+    on that baseline segment.  A copied attribute alone is never enough.
+    """
+
+    base_vertex = base_obj["vertices"][base_index]
+    edit_vertex = edit_obj["vertices"][edit_index]
+    base_branches = _vertex_branch_ids(base_obj, base_index, branch_by_index)
+    base_branches.update(_vertex_branch_identities(base_vertex, branch_by_index))
+    edit_branches = _vertex_branch_ids(edit_obj, edit_index, branch_by_index)
+    edit_branches.update(_vertex_branch_identities(edit_vertex, branch_by_index))
+    if base_branches and edit_branches and not base_branches.intersection(edit_branches):
+        return False
+    edit_neighbors = _vertex_neighbors(edit_obj, edit_index)
+    if len(edit_neighbors) < 2:
+        return False
+    if original_edit_index not in edit_neighbors:
+        return False
+
+    # The authoring-side Subdivide result keeps the old edge and adds a new
+    # point on that edge (in Blender this may be represented by replacing the
+    # original edge with two segments). Blender also copies the old source
+    # vertex attribute to the new point, then the author may connect that point
+    # elsewhere. The edge from the copied point to the original endpoint must
+    # retain the baseline branch identity; any additional edge is allowed to be
+    # a recorded connector (including a not-yet-mapped source branch index).
+    same_branch_edge = False
+    for edge in _incident_edges(edit_obj, edit_index):
+        if set(map(int, edge.get("vertices", []))) != {original_edit_index, edit_index}:
+            continue
+        edge_branch = _edge_branch_id(edge, branch_by_index)
+        if edge_branch in base_branches:
+            same_branch_edge = True
+            break
+    if not same_branch_edge:
+        return False
+
+    point = _point(edit_vertex["co"])
+    if _dist(point, _point(base_vertex["co"])) <= tolerance:
+        return False
+    baseline_branch_edges = []
+    for edge in base_obj.get("edges", []):
+        endpoints = [int(value) for value in edge.get("vertices", [])]
+        if len(endpoints) != 2 or base_index not in endpoints:
+            continue
+        edge_branch = _edge_branch_id(edge, branch_by_index)
+        if edge_branch in base_branches:
+            baseline_branch_edges.append(endpoints)
+    if not baseline_branch_edges:
+        return False
+    for endpoints in baseline_branch_edges:
+        other_baseline_index = endpoints[0] if endpoints[1] == base_index else endpoints[1]
+        other_key = _vertex_key(base_obj["vertices"][other_baseline_index])
+        if other_key is None:
+            continue
+        other_edit_matches = [index for index, vertex in enumerate(edit_obj.get("vertices", [])) if _vertex_key(vertex) == other_key]
+        if len(other_edit_matches) != 1 or other_edit_matches[0] not in edit_neighbors:
+            continue
+        start = _point(base_obj["vertices"][base_index]["co"])
+        end = _point(base_obj["vertices"][other_baseline_index]["co"])
+        if _point_segment_distance(point, start, end) <= tolerance:
+            return True
+    return False
+
+
+def _is_connector_junction_inherited_vertex(
+    base_obj: dict[str, Any],
+    edit_obj: dict[str, Any],
+    base_index: int,
+    original_edit_index: int,
+    edit_index: int,
+    branch_by_index: dict[str, str] | None,
+    tolerance: float,
+) -> bool:
+    """Recognize a new junction whose copied ID is carried by connectors.
+
+    The historical Blender edit contains one such vertex: it is not on its
+    baseline branch segment, but has degree three and all of its neighbours
+    are already proven baseline endpoints (or resolvable subdivision points).
+    Unassigned connector edges and the recorded point-branch lineage make this
+    different from a free duplicate; low-degree or otherwise underdetermined
+    duplicates remain ambiguous.
+    """
+
+    base_vertex = base_obj["vertices"][base_index]
+    edit_vertex = edit_obj["vertices"][edit_index]
+    base_branches = _vertex_branch_ids(base_obj, base_index, branch_by_index)
+    base_branches.update(_vertex_branch_identities(base_vertex, branch_by_index))
+    edit_branches = _vertex_branch_identities(edit_vertex, branch_by_index)
+    if not base_branches or not edit_branches.intersection(base_branches):
+        return False
+    neighbors = _vertex_neighbors(edit_obj, edit_index)
+    if len(neighbors) < 3 or original_edit_index in neighbors:
+        return False
+    for edge in _incident_edges(edit_obj, edit_index):
+        if _edge_branch_id(edge, branch_by_index) is not None:
+            return False
+    if _dist(_point(edit_vertex["co"]), _point(base_vertex["co"])) <= tolerance:
+        return False
+
+    proven_neighbors = 0
+    for neighbor in neighbors:
+        key = _vertex_key(edit_obj["vertices"][neighbor])
+        if key is None:
+            return False
+        baseline_matches = [index for index, vertex in enumerate(base_obj.get("vertices", [])) if _vertex_key(vertex) == key]
+        if len(baseline_matches) != 1:
+            return False
+        edit_matches = [index for index, vertex in enumerate(edit_obj.get("vertices", [])) if _vertex_key(vertex) == key]
+        if len(edit_matches) == 1:
+            proven_neighbors += 1
+            continue
+        neighbor_originals = [index for index in edit_matches if _dist(_point(edit_obj["vertices"][index]["co"]), _point(base_obj["vertices"][baseline_matches[0]]["co"])) <= tolerance]
+        if len(neighbor_originals) != 1:
+            return False
+        derived = [
+            index
+            for index in edit_matches
+            if index != neighbor_originals[0]
+            and _is_subdivision_inherited_vertex(
+                base_obj,
+                edit_obj,
+                baseline_matches[0],
+                neighbor_originals[0],
+                index,
+                branch_by_index,
+                tolerance,
+            )
+        ]
+        if len(derived) != len(edit_matches) - 1:
+            return False
+        proven_neighbors += 1
+    return proven_neighbors >= 3
+
+
+def _map_vertices(
+    base_obj: dict[str, Any],
+    edit_obj: dict[str, Any],
+    tolerance: float,
+    branch_by_index: dict[str, str] | None = None,
+) -> dict[str, Any]:
     base_keys = _vertex_keys(base_obj)
     edit_keys = _vertex_keys(edit_obj)
     base_by_key: dict[str, list[int]] = {}
@@ -422,18 +638,67 @@ def _map_vertices(base_obj: dict[str, Any], edit_obj: dict[str, Any], tolerance:
         edit_by_key.setdefault(key, []).append(index)
     pairs: list[dict[str, Any]] = []
     ambiguous: list[dict[str, Any]] = []
+    resolved_duplicates: list[dict[str, Any]] = []
     used_base: set[int] = set()
     used_edit: set[int] = set()
     for key in sorted(set(base_by_key) | set(edit_by_key)):
         left = base_by_key.get(key, [])
         right = edit_by_key.get(key, [])
-        if len(left) > 1 or len(right) > 1:
-            ambiguous.append({"key": key, "baseline_indices": left, "edit_indices": right, "reason": "stable key is not one-to-one"})
+        if len(left) > 1:
+            ambiguous.append({"key": key, "baseline_indices": left, "edit_indices": right, "reason": "baseline stable key is not one-to-one"})
+            continue
+        if len(right) > 1 and len(left) == 1:
+            base_index = left[0]
+            exact = [index for index in right if _dist(_point(base_obj["vertices"][base_index]["co"]), _point(edit_obj["vertices"][index]["co"])) <= tolerance]
+            if len(exact) != 1:
+                ambiguous.append({"key": key, "baseline_indices": left, "edit_indices": right, "reason": "duplicate stable key has no unique original coordinate"})
+                continue
+            original = exact[0]
+            derived_subdivisions = [
+                index
+                for index in right
+                if index != original and _is_subdivision_inherited_vertex(base_obj, edit_obj, base_index, original, index, branch_by_index, tolerance)
+            ]
+            derived_junctions = [
+                index
+                for index in right
+                if index != original
+                and index not in derived_subdivisions
+                and _is_connector_junction_inherited_vertex(base_obj, edit_obj, base_index, original, index, branch_by_index, tolerance)
+            ]
+            resolved = derived_subdivisions + derived_junctions
+            if len(resolved) != len(right) - 1:
+                ambiguous.append({"key": key, "baseline_indices": left, "edit_indices": right, "reason": "duplicate stable key is not explained by connected subdivision or proven connector junction", "subdivision_candidates": derived_subdivisions, "junction_candidates": derived_junctions})
+                continue
+            pairs.append({"baseline_index": base_index, "edit_index": original, "key": key, "method": "STABLE_ATTRIBUTE_COORDINATE_CONNECTIVITY"})
+            used_base.add(base_index)
+            used_edit.add(original)
+            resolved_duplicates.extend(
+                {
+                    "key": key,
+                    "baseline_index": base_index,
+                    "edit_index": index,
+                    "classification": "SUBDIVISION_INHERITED_ID",
+                    "method": "branch connectivity + baseline edge endpoints + degree/topology + coordinate-on-segment",
+                }
+                for index in derived_subdivisions
+            )
+            resolved_duplicates.extend(
+                {
+                    "key": key,
+                    "baseline_index": base_index,
+                    "edit_index": index,
+                    "classification": "CONNECTOR_JUNCTION_INHERITED_ID",
+                    "method": "recorded point-branch lineage + degree/topology + proven endpoint connectivity",
+                }
+                for index in derived_junctions
+            )
             continue
         if left and right:
             pairs.append({"baseline_index": left[0], "edit_index": right[0], "key": key, "method": "STABLE_ATTRIBUTE"})
             used_base.add(left[0])
             used_edit.add(right[0])
+            continue
     remaining_base = [i for i in range(len(base_obj.get("vertices", []))) if i not in used_base]
     remaining_edit = [i for i in range(len(edit_obj.get("vertices", []))) if i not in used_edit]
     for edit_index in remaining_edit:
@@ -453,6 +718,7 @@ def _map_vertices(base_obj: dict[str, Any], edit_obj: dict[str, Any], tolerance:
     return {
         "pairs": pairs,
         "ambiguous": ambiguous,
+        "resolved_duplicates": resolved_duplicates,
         "unmatched_baseline": [i for i in range(len(base_obj.get("vertices", []))) if i not in used_base],
         "unmatched_edit": [i for i in range(len(edit_obj.get("vertices", []))) if i not in used_edit],
     }
@@ -512,27 +778,36 @@ def _unsupported_reasons(base_obj: dict[str, Any], edit_obj: dict[str, Any], bas
         if frame and frame.get("unit") not in (None, "mm", "MILLIMETERS"):
             reasons.append(f"{label} frame unit is not millimetres")
         transform = frame.get("transform") if isinstance(frame, dict) else None
-        if isinstance(transform, dict) and transform.get("supported") is False:
-            reasons.append(f"{label} transform is marked unsupported")
+        if isinstance(transform, dict) and transform.get("invertible") is False:
+            reasons.append(f"{label} transform is not invertible")
     return reasons
 
 
-def analyze_diff(baseline_extract: dict[str, Any], edit_extract: dict[str, Any], policy: dict[str, Any] | None = None, object_name: str | None = None) -> dict[str, Any]:
+def analyze_diff(
+    baseline_extract: dict[str, Any],
+    edit_extract: dict[str, Any],
+    policy: dict[str, Any] | None = None,
+    object_name: str | None = None,
+    edit_object_name: str | None = None,
+) -> dict[str, Any]:
     policy = policy or {}
     tolerance = float(policy.get("point_tolerance_mm", 1e-4))
     base_obj = selected_object(baseline_extract, object_name)
-    edit_obj = selected_object(edit_extract, object_name or base_obj.get("name"))
+    resolved_edit_name = edit_object_name or object_name or base_obj.get("name")
+    edit_obj = selected_object(edit_extract, resolved_edit_name)
     edit_obj = decorate_with_baseline_ids(edit_obj, base_obj)
     unsupported = _unsupported_reasons(base_obj, edit_obj, baseline_extract, edit_extract)
     base_members = _member_table(base_obj)
     edit_members = _member_table(edit_obj, base_obj)
     branch_by_index = {str(member.get("branch_index")): branch_id for branch_id, member in base_members.items() if member.get("branch_index") is not None}
-    mapping = _map_vertices(base_obj, edit_obj, tolerance)
+    mapping = _map_vertices(base_obj, edit_obj, tolerance, branch_by_index)
     reverse_edit: dict[int, str] = {}
     base_token_for_index = _vertex_keys(base_obj)
     for pair in mapping["pairs"]:
         token = base_token_for_index.get(pair["baseline_index"]) or f"index:{pair['baseline_index']}"
         reverse_edit[pair["edit_index"]] = token
+    for index in mapping["unmatched_edit"]:
+        reverse_edit[index] = f"edit-unmatched:{index}"
     base_edges = _edge_signatures(base_obj, branch_by_index)
     edit_edges = _edge_signatures(edit_obj, branch_by_index, reverse_edit)
     operations: list[dict[str, Any]] = []
@@ -614,10 +889,14 @@ def analyze_diff(baseline_extract: dict[str, Any], edit_extract: dict[str, Any],
             "status": "AMBIGUOUS" if mapping["ambiguous"] else "PASS",
             "pairs": mapping["pairs"],
             "ambiguous": mapping["ambiguous"],
+            "resolved_duplicates": mapping["resolved_duplicates"],
             "unmatched_baseline": mapping["unmatched_baseline"],
             "unmatched_edit": mapping["unmatched_edit"],
-            "provenance": "DERIVED from explicit attributes and unique coordinates only",
+            "provenance": "DERIVED from stable attributes plus branch connectivity, topology, and coordinate relation",
         },
+        "edit_object_name": resolved_edit_name,
+        "coordinate_space": "WORLD_MM",
+        "transform_policy": "explicit world extraction; review build converts world coordinates to baseline local space",
         "operations": operations,
         "counts": counts,
         "affected_scopes": sorted({item["scope"] for item in operations if item["class"] != "UNCHANGED"}),
@@ -632,7 +911,7 @@ def member_table_for_extract(extract: dict[str, Any], object_name: str | None = 
 
 def compute_impact(delta: dict[str, Any], baseline_extract: dict[str, Any], edit_extract: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
     baseline = member_table_for_extract(baseline_extract, delta.get("object_name"))
-    edited = member_table_for_extract(edit_extract, delta.get("object_name"))
+    edited = member_table_for_extract(edit_extract, delta.get("edit_object_name", delta.get("object_name")))
     support = manifest.get("support_ledger", manifest.get("support", {}))
     anchors = support.get("anchors", []) if isinstance(support, dict) else []
     anchor_by_member: dict[str, list[str]] = {}
@@ -682,6 +961,75 @@ def _member_digest(member: dict[str, Any]) -> str:
     return stable_hash(member)
 
 
+def _edge_scope(edge: dict[str, Any], branch_by_index: dict[str, str] | None = None) -> str:
+    branch_id = _edge_branch_id(edge, branch_by_index)
+    if branch_id is not None:
+        return branch_id
+    return f"edge:{edge.get('id')}"
+
+
+def _merge_selected_object(
+    baseline_object: dict[str, Any],
+    edit_object: dict[str, Any],
+    delta: dict[str, Any],
+    scopes: set[str],
+) -> dict[str, Any]:
+    """Merge selected edit edges into the raw baseline line mesh.
+
+    Vertex correspondence comes from the already audited delta mapping.  This
+    keeps unselected baseline topology byte-for-byte in the review plan while
+    allowing a subdivided branch to contribute its new vertices and edges.
+    """
+
+    result = copy.deepcopy(baseline_object)
+    edit_object = decorate_with_baseline_ids(edit_object, baseline_object)
+    base_members = _member_table(baseline_object)
+    edit_members = _member_table(edit_object, baseline_object)
+    branch_by_index = {str(member.get("branch_index")): branch_id for branch_id, member in base_members.items() if member.get("branch_index") is not None}
+
+    edit_to_result: dict[int, int] = {
+        int(pair["edit_index"]): int(pair["baseline_index"])
+        for pair in delta.get("mapping", {}).get("pairs", [])
+    }
+    vertices = result.get("vertices", [])
+    for edge in edit_object.get("edges", []):
+        if _edge_scope(edge, branch_by_index) not in scopes:
+            continue
+        for raw_index in edge.get("vertices", []):
+            edit_index = int(raw_index)
+            if edit_index in edit_to_result:
+                continue
+            edit_vertex = copy.deepcopy(edit_object["vertices"][edit_index])
+            edit_vertex["id"] = f"v:edit:{edit_index}"
+            edit_to_result[edit_index] = len(vertices)
+            vertices.append(edit_vertex)
+
+    edges = [
+        copy.deepcopy(edge)
+        for edge in baseline_object.get("edges", [])
+        if _edge_scope(edge, branch_by_index) not in scopes
+    ]
+    for edge in edit_object.get("edges", []):
+        if _edge_scope(edge, branch_by_index) not in scopes:
+            continue
+        endpoints = [edit_to_result[int(index)] for index in edge.get("vertices", [])]
+        copied = copy.deepcopy(edge)
+        copied["vertices"] = endpoints
+        edges.append(copied)
+    result["vertices"] = vertices
+    result["edges"] = edges
+
+    if isinstance(baseline_object.get("members"), list):
+        members = []
+        for member_id, base_member in base_members.items():
+            if member_id in scopes and member_id in edit_members:
+                members.append(copy.deepcopy(edit_members[member_id]))
+            else:
+                members.append(copy.deepcopy(base_member))
+        result["members"] = members
+    return result
+
+
 def rebuild_changed_extract(baseline_extract: dict[str, Any], edit_extract: dict[str, Any], delta: dict[str, Any], selected_operation_ids: Iterable[str]) -> dict[str, Any]:
     selected_ids = set(selected_operation_ids)
     operations = [item for item in delta.get("operations", []) if item.get("operation_id") in selected_ids]
@@ -692,7 +1040,7 @@ def rebuild_changed_extract(baseline_extract: dict[str, Any], edit_extract: dict
     scopes = {str(item.get("scope")) for item in operations}
     result = copy.deepcopy(baseline_extract)
     base_obj = selected_object(result, delta.get("object_name"))
-    edit_obj = selected_object(edit_extract, delta.get("object_name"))
+    edit_obj = selected_object(edit_extract, delta.get("edit_object_name", delta.get("object_name")))
     edit_obj = decorate_with_baseline_ids(edit_obj, base_obj)
     base_members = _member_table(base_obj)
     edit_members = _member_table(edit_obj, base_obj)
@@ -715,6 +1063,7 @@ def rebuild_changed_extract(baseline_extract: dict[str, Any], edit_extract: dict
     # Raw line data remains a forensic baseline snapshot.  The explicit
     # material plan tells the Blender adapter which object is replaced; this
     # avoids silently rebuilding unrelated branches in a JSON-only review.
+    result["objects"][0] = _merge_selected_object(base_obj, edit_obj, delta, scopes)
     result["roundtrip_review"] = {
         "changed_scopes": sorted(scopes),
         "changed_members": sorted(changed_members),
@@ -726,7 +1075,7 @@ def rebuild_changed_extract(baseline_extract: dict[str, Any], edit_extract: dict
 
 def verify_json_rebuild(baseline_extract: dict[str, Any], edit_extract: dict[str, Any], rebuilt: dict[str, Any], delta: dict[str, Any]) -> dict[str, Any]:
     base = member_table_for_extract(baseline_extract, delta.get("object_name"))
-    edit = member_table_for_extract(edit_extract, delta.get("object_name"))
+    edit = member_table_for_extract(edit_extract, delta.get("edit_object_name", delta.get("object_name")))
     rebuilt_table = member_table_for_extract(rebuilt, delta.get("object_name"))
     changed = set(rebuilt.get("roundtrip_review", {}).get("changed_members", []))
     failures = []
@@ -737,6 +1086,175 @@ def verify_json_rebuild(baseline_extract: dict[str, Any], edit_extract: dict[str
         elif member_id not in rebuilt_table or _member_digest(member) != _member_digest(rebuilt_table[member_id]):
             failures.append(f"unmodified member changed: {member_id}")
     return {"status": "PASS" if not failures else "FAIL", "failures": failures, "changed_members": sorted(changed), "provenance": "DERIVED verification"}
+
+
+def _matrix_values(extract: dict[str, Any]) -> list[list[float]] | None:
+    frame = extract.get("frame", {})
+    transform = frame.get("transform") if isinstance(frame, dict) else None
+    matrix = transform.get("matrix_world") if isinstance(transform, dict) else None
+    if not isinstance(matrix, list) or len(matrix) != 4 or any(not isinstance(row, list) or len(row) != 4 for row in matrix):
+        return None
+    return [[float(value) for value in row] for row in matrix]
+
+
+def _matrix_close(first: list[list[float]] | None, second: list[list[float]] | None, tolerance: float) -> bool:
+    if first is None or second is None:
+        return first == second
+    return all(abs(a - b) <= tolerance for left, right in zip(first, second) for a, b in zip(left, right))
+
+
+def _object_payload_matches(expected: dict[str, Any], actual: dict[str, Any], tolerance: float) -> tuple[bool, list[str]]:
+    failures: list[str] = []
+    expected_vertices = expected.get("vertices", [])
+    actual_vertices = actual.get("vertices", [])
+    expected_edges = expected.get("edges", [])
+    actual_edges = actual.get("edges", [])
+    if len(expected_vertices) != len(actual_vertices):
+        failures.append(f"vertex count differs: expected {len(expected_vertices)}, actual {len(actual_vertices)}")
+    if len(expected_edges) != len(actual_edges):
+        failures.append(f"edge count differs: expected {len(expected_edges)}, actual {len(actual_edges)}")
+    for index, (left, right) in enumerate(zip(expected_vertices, actual_vertices)):
+        if _dist(_point(left.get("co")), _point(right.get("co"))) > tolerance:
+            failures.append(f"vertex coordinate differs at index {index}")
+        for name in ("source_vertex_index", "source_branch_index", "source_branch_id", "source_vertex_id", "source_branch_index_point"):
+            expected_value = _attribute(left, name)
+            actual_value = _attribute(right, name)
+            if expected_value is not None and expected_value != actual_value:
+                failures.append(f"vertex attribute {name} differs at index {index}")
+    for index, (left, right) in enumerate(zip(expected_edges, actual_edges)):
+        if [int(value) for value in left.get("vertices", [])] != [int(value) for value in right.get("vertices", [])]:
+            failures.append(f"edge topology differs at index {index}")
+        for name in ("source_branch_index", "source_branch_id", "source_edge_index"):
+            expected_value = _attribute(left, name)
+            actual_value = _attribute(right, name)
+            if expected_value is not None and expected_value != actual_value:
+                failures.append(f"edge attribute {name} differs at index {index}")
+    return not failures, failures
+
+
+def compare_line_geometry(expected_extract: dict[str, Any], actual_extract: dict[str, Any], expected_name: str | None = None, actual_name: str | None = None, tolerance: float = 1e-4) -> dict[str, Any]:
+    expected = selected_object(expected_extract, expected_name)
+    actual = selected_object(actual_extract, actual_name or expected.get("name"))
+    failures: list[str] = []
+    if len(expected.get("vertices", [])) != len(actual.get("vertices", [])):
+        failures.append("vertex count differs")
+    if len(expected.get("edges", [])) != len(actual.get("edges", [])):
+        failures.append("edge count differs")
+    for index, (left, right) in enumerate(zip(expected.get("vertices", []), actual.get("vertices", []))):
+        if _dist(_point(left.get("co")), _point(right.get("co"))) > tolerance:
+            failures.append(f"vertex coordinate differs at index {index}")
+    for index, (left, right) in enumerate(zip(expected.get("edges", []), actual.get("edges", []))):
+        if [int(value) for value in left.get("vertices", [])] != [int(value) for value in right.get("vertices", [])]:
+            failures.append(f"edge topology differs at index {index}")
+    return {"status": "PASS" if not failures else "FAIL", "failures": failures, "expected_vertices": len(expected.get("vertices", [])), "actual_vertices": len(actual.get("vertices", [])), "expected_edges": len(expected.get("edges", [])), "actual_edges": len(actual.get("edges", [])), "provenance": "DERIVED baseline data versus baseline line-blend world geometry"}
+
+
+def _scoped_edge_records(obj: dict[str, Any], scope: str, branch_by_index: dict[str, str]) -> list[dict[str, Any]]:
+    vertices = obj.get("vertices", [])
+    records = []
+    for edge in obj.get("edges", []):
+        if _edge_scope(edge, branch_by_index) != scope:
+            continue
+        endpoints = [_point(vertices[int(index)].get("co")) for index in edge.get("vertices", [])]
+        attributes = {}
+        for name in ("source_branch_index", "source_branch_id", "source_edge_index"):
+            value = _attribute(edge, name)
+            if value is not None and not (name in {"source_branch_id", "source_edge_index"} and value in ("", 0)):
+                attributes[name] = value
+        records.append({"endpoints": endpoints, "attributes": attributes})
+    return records
+
+
+def _scoped_edges_match(expected: dict[str, Any], actual: dict[str, Any], scope: str, branch_by_index: dict[str, str], tolerance: float) -> bool:
+    expected_edges = _scoped_edge_records(expected, scope, branch_by_index)
+    actual_edges = _scoped_edge_records(actual, scope, branch_by_index)
+    if len(expected_edges) != len(actual_edges):
+        return False
+    unused = set(range(len(actual_edges)))
+    for expected_edge in expected_edges:
+        match = None
+        for index in unused:
+            actual_edge = actual_edges[index]
+            if expected_edge["attributes"] != actual_edge["attributes"]:
+                continue
+            left = expected_edge["endpoints"]
+            right = actual_edge["endpoints"]
+            same_direction = len(left) == len(right) and all(_dist(a, b) <= tolerance for a, b in zip(left, right))
+            reverse_direction = len(left) == len(right) and all(_dist(a, b) <= tolerance for a, b in zip(left, reversed(right)))
+            if same_direction or reverse_direction:
+                match = index
+                break
+        if match is None:
+            return False
+        unused.remove(match)
+    return True
+
+
+def verify_blender_roundtrip(
+    blender_report: dict[str, Any],
+    baseline_blend_extract: dict[str, Any],
+    baseline_extract: dict[str, Any],
+    edit_extract: dict[str, Any],
+    rebuilt_extract: dict[str, Any],
+    delta: dict[str, Any],
+    selected_scopes: Iterable[str],
+    source_hashes_unchanged: bool,
+    original_blend_not_overwritten: bool,
+    tolerance: float = 1e-4,
+) -> dict[str, Any]:
+    """Verify the saved review blend by comparing its reopened extraction."""
+
+    checks: dict[str, bool] = {
+        "blender_reopen": blender_report.get("status") == "PASS",
+        "source_hashes_unchanged": bool(source_hashes_unchanged),
+        "original_blend_not_overwritten": bool(original_blend_not_overwritten),
+    }
+    failures: list[str] = []
+    reopened = blender_report.get("extract")
+    expected_object = selected_object(rebuilt_extract, delta.get("object_name"))
+    if not isinstance(reopened, dict):
+        checks["reopened_extract_matches_rebuilt"] = False
+        failures.append("reopen did not produce an extraction")
+    else:
+        actual_object = selected_object(reopened, reopened.get("object_selection", {}).get("name"))
+        matches, object_failures = _object_payload_matches(expected_object, actual_object, tolerance)
+        checks["reopened_extract_matches_rebuilt"] = matches
+        failures.extend(object_failures)
+
+        baseline_object = selected_object(baseline_extract, delta.get("object_name"))
+        edit_object = selected_object(edit_extract, delta.get("edit_object_name", delta.get("object_name")))
+        base_members = _member_table(baseline_object)
+        branch_by_index = {str(member.get("branch_index")): branch_id for branch_id, member in base_members.items() if member.get("branch_index") is not None}
+        selected = {str(scope) for scope in selected_scopes}
+        selected_ok = all(_scoped_edges_match(edit_object, actual_object, scope, branch_by_index, tolerance) for scope in selected if scope in {str(item.get("scope")) for item in delta.get("operations", [])})
+        unselected_scopes = set(base_members) - selected
+        unselected_ok = all(_scoped_edges_match(baseline_object, actual_object, scope, branch_by_index, tolerance) for scope in unselected_scopes)
+        checks["selected_scopes_match_edit"] = selected_ok
+        checks["unselected_scopes_match_baseline"] = unselected_ok
+        if not selected_ok:
+            failures.append("selected scope topology/coordinates differ from edit extraction")
+        if not unselected_ok:
+            failures.append("unselected scope topology/coordinates differ from baseline extraction")
+
+        expected_frame = _matrix_values(baseline_blend_extract)
+        actual_frame = _matrix_values(reopened)
+        checks["frame_preserved"] = _matrix_close(expected_frame, actual_frame, tolerance)
+        if not checks["frame_preserved"]:
+            failures.append("review object world transform differs from baseline frame")
+    checks.setdefault("selected_scopes_match_edit", False)
+    checks.setdefault("unselected_scopes_match_baseline", False)
+    checks.setdefault("frame_preserved", False)
+    checks["attributes_preserved"] = checks.get("reopened_extract_matches_rebuilt", False)
+    checks["topology_and_coordinates_preserved"] = checks.get("reopened_extract_matches_rebuilt", False)
+    status = "PASS" if blender_report.get("status") == "PASS" and all(checks.values()) and not failures else "FAIL"
+    return {
+        "schema_version": "1.0",
+        "status": status,
+        "checks": checks,
+        "failures": failures,
+        "selected_scopes": sorted({str(scope) for scope in selected_scopes}),
+        "provenance": "DERIVED separate Blender reopen and world-coordinate comparison; source hashes RECORDED from INPUT_LOCK",
+    }
 
 
 def validate_resolution(resolution: dict[str, Any], delta: dict[str, Any], input_lock: dict[str, Any]) -> list[str]:

@@ -7,16 +7,18 @@
     "name": "A1_MASTER_MM",
     "unit": "mm",
     "world_units": "1 Blender unit = 1 mm",
-    "transform_policy": "world coordinates; uniform positive scale only"
+    "transform_policy": "world extraction; explicit world-to-baseline-local conversion; invertible transforms only"
   },
   "object_selection": {
     "name": "INTERNAL_PATHS_EDIT__A1_100PCT",
+    "baseline_name": "INTERNAL_PATHS_EDIT__A1_100PCT",
+    "edit_name": "INTERNAL_PATHS_EDIT__A1_100PCT.001",
     "type": "MESH",
     "faces": 0,
     "selection": "explicit unique object name"
   },
   "baseline_input": "baseline_extract",
-  "baseline_blend_input": "historical_master_blend",
+  "baseline_blend_input": "baseline_blend",
   "edit_input": "edit_blend",
   "policies": {
     "point_tolerance_mm": 0.0001
@@ -42,11 +44,11 @@
       "sha256": "a3ee4ac59380c93b02d588d9e29427aafa6ea63ae3d9c583c8a4acf42bef04dc"
     },
     {
-      "name": "historical_master_blend",
-      "role": "REGRESSION_REFERENCE",
+      "name": "baseline_blend",
+      "role": "BASELINE_BLEND",
       "authority": "HISTORICAL_REGRESSION",
-      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_MINI_RELEASE_CANDIDATE\\blend\\R4_A1_MASTER_AUTHORING.blend",
-      "sha256": "3b841bd2e6aec98b75983ab32a581c7e1a5e4dd9e9000f59a52c273ba4cd0780"
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_INTERNAL_PATH_EDITOR\\blend\\R4_A1_INTERNAL_PATHS_EDIT.blend",
+      "sha256": "86ce3ed8e3e2576f5de2f04410d2076155f37b3fee3c1feff50ff48b0dbe9a5c"
     },
     {
       "name": "historical_structure",

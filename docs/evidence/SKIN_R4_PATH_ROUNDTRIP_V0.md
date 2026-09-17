@@ -1,93 +1,116 @@
 # SKIN_R4 Path Roundtrip v0 — Evidence
 
-Date: 2026-09-17 JST
+Date: 2026-09-18 JST
 
 Branch: `agent/skin-r4-path-roundtrip-v0`
 
-Base: `9f6c607100c25cdfc780377002839726fde044b8`
+Reviewed PR head: `a7ef96f4915d8518c49cd8ba491deb9d2b30e0f3`
 
 ## Technical result
 
-`TECHNICAL COMPLETE — SOL REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+`TECHNICAL COMPLETE — SOL RE-REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
 
-The implementation is in `tools/skin_path_roundtrip/`. The pure-Python core
-is independent of Blender, while the Blender adapter is restricted to one
-explicit face-less mesh and a separate output `.blend`.
+The requested SOL changes were implemented on the existing PR branch. The
+helper now handles actual Blender Subdivide-copied stable IDs using recorded
+branch lineage, baseline edge endpoints, degree/connectivity, and coordinate
+relation. Unresolved duplicates remain fail-closed as `AMBIGUOUS`.
 
-## Commands and results
+## Focused checks
 
 | check | result |
 | --- | --- |
-| 17 focused fixture/unit tests | PASS |
-| Python syntax compilation (`compileall`) | PASS |
-| historical A1 input lock smoke | PASS for all declared hashes |
-| historical A1 `.blend` extraction | BLOCKED / Blender executable unavailable |
-| historical A1 `AUTHOR_INTENT` audit | PASS — 8 subdivisions + 9 connectors + ignored loose vertex; endpoint max deviation `6.151753783064629e-06 mm` |
-| A/F2 read-only data no-op inspect/build/verify | PASS for A and F2; `UNCHANGED`; temporary review copies only |
-| repository TypeScript typecheck (`tsc -b`) | PASS |
-| repository production build | PASS |
-| study tests | PASS — 19 tests via equivalent `tsx` loader with environment-only `os.userInfo()` shim |
+| focused Python fixture/unit tests | PASS — 18 tests |
+| actual A1 Blender inspect → DELTA → IMPACT → explicit resolution → build-review → save → reopen → verify | PASS |
+| baseline data versus baseline line blend geometry | PASS — 8606 vertices / 4411 edges |
+| `BLENDER_ROUNDTRIP_VERIFY.json` | PASS |
 | `git diff --check` | PASS |
 | source/master/Support mutation | NONE |
 | main merge / artwork promotion / hardware send | NONE |
 
-The A1 smoke resolves the exact supplied Drive root through
-`examples/roots.example.json` and verifies the recorded hashes, including
-`R4_A1_INTERNAL_PATHS_EDIT_AS.blend`:
+The repository typecheck, production build, and study-test commands from the
+prior checkpoint remain unchanged; this fix does not modify their protected
+surface. They were rerun after this change as part of the final verification.
 
-`a3ee4ac59380c93b02d588d9e29427aafa6ea63ae3d9c583c8a4acf42bef04dc`
+## Real A1 Blender gate
 
-The environment has no `blender` executable. Therefore the real `.blend`
-extraction/save/reload stage is explicitly `UNSUPPORTED_INPUT` rather than
-claimed as executed. The A1 run has `INPUT_LOCK` PASS and records blocked
-`EXTRACT` / `DELTA` / `IMPACT` artifacts plus a read-only `resume` checkpoint.
-Fixture JSON performs the same pure-policy inspect → resolution → review →
-verify → resume roundtrip in a separate temporary directory.
+Authority inputs were the exact line-editor files, not the full master:
 
-## Fixture coverage
+- baseline blend: `R4_A1_INTERNAL_PATH_EDITOR/blend/R4_A1_INTERNAL_PATHS_EDIT.blend`
+- author edit: `R4_A1_INTERNAL_PATH_EDITOR/blend/R4_A1_INTERNAL_PATHS_EDIT_AS.blend`
+- baseline data: `R4_A1_INTERNAL_PATH_EDITOR/data/PATH_BASELINE.json`
+- baseline object: `INTERNAL_PATHS_EDIT__A1_100PCT`
+- edit object: `INTERNAL_PATHS_EDIT__A1_100PCT.001`
 
-- T01 no-op / `UNCHANGED`;
-- T02 local point move;
-- T03 subdivision remains the recorded branch, not a new branch;
-- T04 reroute without array-order identity;
-- T05 branch add/delete separation;
-- T06 ambiguous stable identity fail-closed;
-- T07 face-bearing mesh unsupported;
-- T08 derived Support impact and no mutation;
-- T09 changed member materialization with preserved member;
-- T10 stale resolution hash;
-- T11 explicit input lock hash;
-- T12 baseline normalization;
-- T13 complete JSON roundtrip and read-only resume;
-- T14 declared hash mismatch before extraction;
-- T15 ambiguous run cannot build review;
-- T16 unmapped absolute prefix;
-- T17 unknown resolution operation.
+The baseline data and baseline line blend were independently extracted and
+matched in world millimetres. The edit extraction contained 8616 vertices and
+4428 edges. The actual delta was:
 
-## State boundary
+```text
+PATH_SUBDIVIDED   8
+EDGE_ADDED        9
+JUNCTION_CHANGED  7
+LOOSE_VERTEX      1
+AMBIGUOUS_MAPPING 0
+UNSUPPORTED_INPUT 0
+```
 
-- `tool_execution`: helper and artifact execution only;
-- `mapping`: stable identity proof, or `AMBIGUOUS` / `UNSUPPORTED`;
-- `geometry_check`: local line-mesh/review check only;
-- `support_validity`: `NOT_REVALIDATED`;
-- `printability`: `NOT_EVALUATED`;
-- `author_acceptance`: `PENDING`.
+The eight actual `PATH_SUBDIVIDED` scopes matched the eight IDs in
+`AUTHOR_INTENT.subdivided_core_paths`. The nine actual added edge indices
+matched the nine `AUTHOR_INTENT.added_connectors` edge indices. The actual
+loose record was `v:8615`, matching `ignored_loose_vertex.index = 8615`; it
+was explicitly excluded from the resolution and was not materialized.
 
-No Support geometry is changed or validated. No physical strength or print
-success is inferred. `npm ci` reported eight pre-existing dependency audit
-findings; dependency upgrades are outside this bounded task and were not
-performed.
+This comparison used the extracted edit delta and then compared its scopes to
+the recorded intent. It did not claim correspondence by rereading intent
+alone. The compact committed summary is
+`SKIN_R4_PATH_ROUNDTRIP_V0_A1_ROUNDTRIP_2026-09-18.json`; the full run summary
+was also recorded in `REAL_A1_CORRESPONDENCE.json`.
 
-## Read-only A/F2 boundary
+## Reopen verification
 
-The exact A/F2 preparation `structure.json`, `support_geometry.json`, and
-`.blend` paths were confirmed present and hashed. They were not selected as an
-artwork candidate, opened for authoring, regenerated, repaired, or written.
-The JSON no-op smoke uses temporary copies only to exercise the lock/diff
-policy; it is not an A/F2 approval.
+The review artifact was saved separately as `PATH_DELTA_REVIEW.blend` and
+reopened with Blender. Reopen verification re-extracted the review object and
+checked:
 
-## Protected diff review
+- object exists, is a face-less mesh, and records changed scopes;
+- selected scopes match the actual edit topology and world coordinates;
+- unselected scopes match baseline topology and world coordinates;
+- `source_vertex_index` and `source_branch_index` are preserved;
+- baseline object world transform/frame is preserved;
+- all locked input hashes remain unchanged;
+- neither original blend was overwritten.
 
-The only repository changes are the new bounded helper, its fixtures/tests,
-the task/evidence records, and a minimal SKIN_ABC pointer. No files under the
-existing Astra reader or Production/C/FKEI implementation were changed.
+All checks in `review/BLENDER_ROUNDTRIP_VERIFY.json` are `true`.
+
+The run used explicit world extraction and world-to-baseline-local conversion
+for review build. Transform acceptance is based on an invertible matrix, not
+uniform scale or column lengths alone; determinant and column
+orthogonality are recorded by the Blender adapter.
+
+Recorded input hashes include:
+
+```text
+baseline_extract  c7d9d8f295e789640b83a5f95f443d469b8fcbc2eb604084f6f632e33d8b7bcd
+baseline_blend    86ce3ed8e3e2576f5de2f04410d2076155f37b3fee3c1feff50ff48b0dbe9a5c
+edit_blend        a3ee4ac59380c93b02d588d9e29427aafa6ea63ae3d9c583c8a4acf42bef04dc
+```
+
+The separately saved review blend produced by this run had SHA-256:
+
+`35fd8350df2ea783a05776238a1f0f129fec9a10f3c685d6b40938f99730009c`
+
+## Fixture identity coverage
+
+- resolvable duplicate stable ID on a connected subdivision fixture;
+- genuinely ambiguous duplicate stable ID remains fail-closed;
+- face-bearing input remains unsupported;
+- JSON rebuild and resolution checks remain covered;
+- input locks, read-only resume, and no-mutation impact behavior remain covered.
+
+## Protected scope
+
+No V2 FLOWER, A/F2 artwork candidate, Permanent design, Support geometry,
+slicer/G-code, Production/C/FKEI, physical print, generator, D0/D1/D2,
+attachment generation, or small-region follow-up was changed or started.
+A/F2 remained read-only. Original source inputs remain outside the repository
+and were not overwritten.
