@@ -10,6 +10,7 @@ Recommended stable files:
 
 - `SKIN_ABC_CURRENT.md`
 - `ASTRA_CURRENT.md`
+- [R4_A1_FAB_CURRENT.md](R4_A1_FAB_CURRENT.md) — existing R4 -> bounded A1 fabrication; separate baseline, successful slice and working candidate
 - `AB_CURRENT.md`
 - `C_CURRENT.md`
 - `HANA_CURRENT.md`
@@ -37,3 +38,11 @@ The purpose is transparency: the author should be able to ask “what is this te
 For a complex task, keep CURRENT compact and link to a dedicated `docs/tasks/...` specification. Do not paste a large implementation prompt into CURRENT.
 
 When work is still local / dirty / unpushed, report that briefly in chat and do not claim the GitHub CURRENT reflects it.
+
+## Fabrication knowledge routing
+
+CURRENT records where the lane is now. The bounded task defines the permitted next work. Durable procedures and constraints live in [A1_BAMBU_CLI_RUNBOOK](../fabrication/A1_BAMBU_CLI_RUNBOOK.md), [TOOLPATH_AUDIT_RULES](../fabrication/TOOLPATH_AUDIT_RULES.md) and [FABRICATION_PRINCIPLES](../fabrication/FABRICATION_PRINCIPLES.md).
+
+Normal fabrication restart is CURRENT -> task -> relevant Playbook sections -> exact Drive locks/evidence. Do not duplicate whole procedures in multiple CURRENT files. Record completed steps and the next entry action so another agent does not repeat geometry repair or launch duplicate work.
+
+Playbook publication does not mean the procedure is implemented or physically proven. A later SKIN executor may implement only separately selected and validated procedures; printing and artistic/physical acceptance remain explicit Author gates.
