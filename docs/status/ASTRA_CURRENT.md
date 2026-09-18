@@ -1,8 +1,49 @@
 # Astra Research Current Status
 
-Last verified: 2026-09-13
+Last verified: 2026-09-19
 
 ## Authority
+
+- repo: `satw-jp/katachi`; canonical branch: `main`.
+- source main inspected for this documentation checkpoint: `9f6c607100c25cdfc780377002839726fde044b8`.
+- stable Research/current routing: this file. Research keeps artwork geometry, generating principles and source evidence authority.
+- active bounded A1 fabrication lane: [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md).
+- author-facing coordination: [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md).
+- [SKIN_R_CURRENT](SKIN_R_CURRENT.md) remains Reader-only; it is not R4 artwork or A1 fabrication authority.
+
+## NOW / Current phase
+
+**The active execution focus is bounded R4 A1 fabrication of existing frozen artwork, not a restart of the September13 GN study.** The retained [September18 Author direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md) opens this lane without opening new Artwork Research or Production.
+
+D22 is the frozen baseline; D22 Native Recovery has one-run technical PASS; D22.1 is a working candidate with four contacts already repaired. Its final native completion and all-layer audit are not verified. **Do not redo the four-contact repair or duplicate an existing slice.** Exact candidate/attempt state, hashes, conditions and blockers are owned only by the fabrication CURRENT.
+
+## Active implementation instruction
+
+Research expansion: **NONE under this continuation**. R4 A1 Fabrication Astra follows [the bounded final-slice/audit task](../tasks/R4_A1_D221_FINAL_SLICE_AUDIT_GATE.md) via its CURRENT, then the named `docs/fabrication/` Playbooks and Drive locks. This documentation update starts no implementation or engine operation.
+
+Do not regenerate R4 from old GN/B1 assumptions, modify frozen flower/shape/composition, begin an independent R3 round, or translate into Production merely because fabrication work exists.
+
+## Next gate / protected scope
+
+Active A1 STOP: **AUTHOR A1 PRINT PACKAGE GATE — print HOLD**. Native output, integrity, chronological audit, physical outcome, artistic acceptance and Production/generalization remain separate.
+
+The September13 Artwork-only restrictions below are superseded **only for the later explicitly authorized bounded A1 fabrication lane**. Its frozen source references and retained research evidence remain valid where verified. This transition does not retrospectively assert that every prior Artwork Geometry DoD or artistic gate passed.
+
+## Required pointers
+
+- [TEAM_PROTOCOL_CORE](../TEAM_PROTOCOL_CORE.md)
+- [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md), its task and named Playbook read set
+- [Retained Author fabrication direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md)
+- [Fabrication checkpoint evidence](../evidence/R4_A1_FAB_CHECKPOINT_2026-09-19.md)
+- [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md)
+
+---
+
+## Retained September13 research checkpoint — historical instructions, not the active task
+
+The following preserves the prior CURRENT's source/reference evidence and scope. Its old "current", "active" and "next gate" wording applies to that checkpoint only; it must not override the active routing above or launch old geometry work.
+
+### Historical authority
 
 - repo: `satw-jp/katachi`
 - branch: `main`
@@ -13,7 +54,7 @@ Last verified: 2026-09-13
 
 `docs/status/SKIN_R_CURRENT.md` remains the Astra Reader lane and must not be used as the current authority for R4 Large Mocomoco artwork research.
 
-## Current phase
+### Historical phase
 
 **ACTIVE FOCUS: R4 Large Mocomoco + Geometry Nodes — Artwork Geometry only.**
 
@@ -23,7 +64,7 @@ The current stop is:
 
 No Fabrication D1, removable Support, toolpath, print package, printing, or Production / SKIN translation is authorized before Author GO.
 
-## Current Author direction
+### Historical Author direction
 
 - BaseShape reference: **R4 Mocomoco**;
 - FLOWER reference: **R3 D BACKARC flower is the first candidate**;
@@ -35,7 +76,7 @@ No Fabrication D1, removable Support, toolpath, print package, printing, or Prod
 
 Old R4 / Large Mocomoco handoff assumptions that use B1 flower geometry as active flower authority are superseded for this restart.
 
-## R3 D reference — frozen for R4 restart
+### R3 D reference — frozen for R4 restart
 
 Current first flower authority:
 
@@ -57,7 +98,7 @@ The reusable authority is the D BACKARC flower geometry / shape language, **not*
 
 R4 must convert the reference into a documented local flower frame and place it on Mocomoco by rigid transform while preserving physical scale and front/back relief.
 
-## Meaning of D character to preserve
+### Meaning of D character to preserve
 
 The current D reference is not a flat petal outline.
 
@@ -71,7 +112,7 @@ It retains:
 
 The 6-petal GN result is the reference case. 3 / 4 / 5 are `DERIVED` variants for Author comparison.
 
-## Active implementation instruction
+### Historical implementation instruction — do not execute as current
 
 Owner: **R4 Astra**
 
@@ -107,9 +148,9 @@ Protected scope:
 
 Done when the Intermediate Author Artwork Geometry Gate package is ready and R4 stops for Author review.
 
-## Relevant retained evidence
+### Relevant retained evidence
 
-### R2 physical evidence
+#### R2 physical evidence
 
 B_PARTICIPATING was physically printed and provided evidence that a less conservative configuration can still retain much of the artwork. Author review identified visible surface-horizontal connection material as undesirable and established the stronger cross-shape principle:
 
@@ -117,17 +158,17 @@ B_PARTICIPATING was physically printed and provided evidence that a less conserv
 
 This principle is relevant to future R4 structure work, but structure / fabrication is **not** part of the current Artwork Geometry task.
 
-### R3 Flower evidence
+#### R3 Flower evidence
 
 R3 produced actual geometry comparisons and later D revisions. `D_BACK_ARC_REVISION` is now explicitly promoted by the Author as R4's first flower reference.
 
 R3 must not expand independently during the R4 phase unless explicitly re-opened by the Author.
 
-### R4 prior evidence
+#### R4 prior evidence
 
 R4 BaseShape source / transform evidence remains valid input where re-hash confirms it. Old R4 flower / branch / Support / placement-count outputs are historical Research evidence, not current authority for the new GN composition.
 
-## Next gate
+### Historical next gate
 
 R4 presents:
 
@@ -146,7 +187,7 @@ Then STOP for:
 
 Only explicit Author GO may open the later Fabrication / Support / toolpath sequence.
 
-## Required pointers
+### Historical required pointers
 
 - `docs/TEAM_PROTOCOL_CORE.md`
 - `docs/status/SKIN_ABC_CURRENT.md`

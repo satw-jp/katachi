@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-13
+Last verified: 2026-09-19 (Astra/Fabrication routing; retained AB/C evidence unchanged)
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -10,6 +10,7 @@ Last verified: 2026-09-13
 - retained AB technical/evidence authority: `docs/status/AB_CURRENT.md` plus its accepted checkpoints
 - retained C technical/evidence authority: `docs/status/C_CURRENT.md` plus its accepted checkpoints
 - active Astra Research current: `docs/status/ASTRA_CURRENT.md`
+- active bounded A1 fabrication current: [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md)
 - Astra Reader current: `docs/status/SKIN_R_CURRENT.md`
 
 `SKIN_ABC_SOL` is the single author-facing consultation front for current SKIN priorities and future Research -> Production handoff decisions. It does not replace the accepted AB/C evidence or make their code one architecture.
@@ -20,7 +21,7 @@ Last verified: 2026-09-13
 - Team AB has no active implementation task.
 - Team C has no active implementation task.
 - `SKIN_ABC_SOL` has no active implementation task.
-- Astra Research has an active bounded Artwork Geometry task under `ASTRA_CURRENT.md`: **R4 Large Mocomoco + Geometry Nodes**, ending at an Intermediate Author Artwork Geometry Gate.
+- The active Astra execution focus is existing R4 -> bounded A1 Fabrication under `R4_A1_FAB_CURRENT.md`, not a restart of the September13 Artwork Geometry study. D22 Native Recovery is one-run technical PASS; D22.1 has four contact repairs already applied; final D22.1 slice success/all-layer audit are not verified; print remains HOLD. The Fabrication CURRENT alone owns detailed candidate/attempt state and restart pointers.
 - New author-facing SKIN consultation should normally enter through `SKIN_ABC_SOL`.
 
 ## Current purpose
@@ -28,7 +29,9 @@ Observe Research / Astra, SKIN_R, physical prints, and author review, then decid
 
 Do not treat completion of old AB/C methods as the goal. Preserve what was actually proven, under the conditions where it was proven, and translate only what remains useful after artwork and physical review.
 
-The current active Research direction does **not** authorize Production work. In particular, R4 Large Mocomoco + Geometry Nodes is currently Artwork Geometry only; Fabrication, Support, toolpath, print preparation, and SKIN Production translation remain behind the Author gate recorded in `ASTRA_CURRENT.md`.
+The retained [2026-09-18 Author direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md) supersedes the old Artwork-only phase description only for the bounded A1 fabrication lane. It does **not** authorize Production, generalization, new Artwork Research or machine-send/printing. The active fabrication STOP is **AUTHOR A1 PRINT PACKAGE GATE**.
+
+Reusable procedures and constraints now have a separate Playbook home: [A1 CLI Runbook](../fabrication/A1_BAMBU_CLI_RUNBOOK.md), [Toolpath Audit Rules](../fabrication/TOOLPATH_AUDIT_RULES.md), [Fabrication Principles](../fabrication/FABRICATION_PRINCIPLES.md). Documentation of a required check is not proof that it is implemented or validated. A future `skin fab slice` executor is proposed, not implemented by this update.
 
 ## Retained AB capability
 Accepted AB evidence includes:
@@ -81,20 +84,19 @@ Physical works and final value judgments remain Author gates.
 ## Active implementation instruction
 **NONE for SKIN_ABC.**
 
-Do not create or start a SKIN_ABC implementation task merely because Astra Research is active.
+Do not create or start a SKIN_ABC implementation task merely because Astra Research or A1 fabrication is active.
 
-Current Research implementation authority lives in `docs/status/ASTRA_CURRENT.md` and must STOP at its Author gate before any Production translation is considered.
+Current bounded fabrication execution authority lives in `docs/status/R4_A1_FAB_CURRENT.md`, reached through `ASTRA_CURRENT.md`. It must STOP at its Author gate. Do not redo completed contact repairs, duplicate a recorded active slice, or automatically translate the Playbook into SKIN code.
 
 ## Blocker
-None for SKIN_ABC. The lack of Production implementation is intentional: the current gate is Research artwork evidence and Author review, not a blocked Production task.
+None for SKIN_ABC. The lack of Production implementation is intentional. Fabrication blockers and uncertain external worker execution state belong to `R4_A1_FAB_CURRENT.md`, not a newly opened Production task.
 
 ## Next gate
-1. R4 Astra completes only the bounded `Large Mocomoco + Geometry Nodes` Artwork Geometry task under `ASTRA_CURRENT.md`.
-2. Author reviews the Intermediate Author Artwork Geometry Gate.
-3. Only explicit Author GO may open later Research Fabrication / Support / toolpath work.
-4. Accumulate reproducible physical / fabrication evidence after those later gates.
-5. `SKIN_ABC_SOL` then selects a bounded capability, if any, for `SKIN reproducible` translation.
-6. Only after that review may a new Production implementation task or architecture decision be scoped.
+1. Keep GitHub CURRENT and reusable Playbooks aligned with actual artifact evidence; use the working D22.1 instead of reapplying its four repairs.
+2. R4 A1 Fabrication Astra resolves existing execution, completes final native output/integrity and all-layer audit, and returns at **AUTHOR A1 PRINT PACKAGE GATE**.
+3. Only explicit Author GO may authorize the physical print. Continue retaining physical/fabrication evidence and limitations.
+4. `SKIN_ABC_SOL` then selects a bounded proven procedure/capability, if any, for `SKIN reproducible` translation, with a separate task and acceptance evidence.
+5. Generalization and architecture integration are later decisions; a documented Playbook or a technical slice PASS does not pre-approve them.
 
 ## HOLD / do not pre-decide
 - new final SKIN architecture;
@@ -107,16 +109,19 @@ None for SKIN_ABC. The lack of Production implementation is intentional: the cur
 - Production-wide rewrite;
 - automatic Research -> Production translation;
 - generalization before the first selected candidate is reproduced and reviewed;
-- treating the current R4 GN study itself as Production architecture.
+- treating the current R4 GN study or fabrication Playbook itself as Production architecture.
 
 ## Required pointers
 - `docs/TEAM_PROTOCOL_CORE.md`
 - `docs/status/ASTRA_CURRENT.md`
+- `docs/status/R4_A1_FAB_CURRENT.md`
 - `docs/status/AB_CURRENT.md`
 - `docs/status/C_CURRENT.md`
 - `docs/status/SKIN_R_CURRENT.md`
 - `docs/notes/AB_PERFORMANCE_V2_SKIN_ABC_HANDOFF_2026-09-08.md`
 - `docs/observations/AUTHOR_OBSERVATION_SKIN_ARTWORK_FABRICATION_TOOLPATH_ARCHITECTURE_2026-09-08.md`
 - `docs/observations/AUTHOR_OBSERVATION_R4_LARGE_MOCOMOCO_GN_2026-09-13.md`
+- `docs/observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md`
+- `docs/fabrication/FABRICATION_PRINCIPLES.md`
 
 Old AB/C CURRENT files remain retained authority and must not be deleted or overwritten as part of the SKIN_ABC transition.
