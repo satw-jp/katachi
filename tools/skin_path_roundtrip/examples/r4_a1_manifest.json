@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "candidate_id": "R4_A1_INTERNAL_PATH_EDITOR_EDIT_AS",
+  "baseline_id": "R4_A1_INTERNAL_PATH_EDITOR_PATH_BASELINE",
+  "source_revision": "9f6c607100c25cdfc780377002839726fde044b8",
+  "frame": {
+    "name": "A1_MASTER_MM",
+    "unit": "mm",
+    "world_units": "1 Blender unit = 1 mm",
+    "transform_policy": "world extraction; explicit world-to-baseline-local conversion; invertible transforms only"
+  },
+  "object_selection": {
+    "name": "INTERNAL_PATHS_EDIT__A1_100PCT",
+    "baseline_name": "INTERNAL_PATHS_EDIT__A1_100PCT",
+    "edit_name": "INTERNAL_PATHS_EDIT__A1_100PCT.001",
+    "type": "MESH",
+    "faces": 0,
+    "selection": "explicit unique object name"
+  },
+  "baseline_input": "baseline_extract",
+  "baseline_blend_input": "baseline_blend",
+  "edit_input": "edit_blend",
+  "policies": {
+    "point_tolerance_mm": 0.0001
+  },
+  "support_ledger": {
+    "status": "UNKNOWN_SCOPE",
+    "anchors": [],
+    "note": "Support is external to the face-less path editor input; the helper only emits derived recheck scope."
+  },
+  "inputs": [
+    {
+      "name": "baseline_extract",
+      "role": "BASELINE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_INTERNAL_PATH_EDITOR\\data\\PATH_BASELINE.json",
+      "sha256": "c7d9d8f295e789640b83a5f95f443d469b8fcbc2eb604084f6f632e33d8b7bcd"
+    },
+    {
+      "name": "edit_blend",
+      "role": "AUTHOR_EDIT",
+      "authority": "REVIEW_CANDIDATE",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_INTERNAL_PATH_EDITOR\\blend\\R4_A1_INTERNAL_PATHS_EDIT_AS.blend",
+      "sha256": "a3ee4ac59380c93b02d588d9e29427aafa6ea63ae3d9c583c8a4acf42bef04dc"
+    },
+    {
+      "name": "baseline_blend",
+      "role": "BASELINE_BLEND",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_INTERNAL_PATH_EDITOR\\blend\\R4_A1_INTERNAL_PATHS_EDIT.blend",
+      "sha256": "86ce3ed8e3e2576f5de2f04410d2076155f37b3fee3c1feff50ff48b0dbe9a5c"
+    },
+    {
+      "name": "historical_structure",
+      "role": "REGRESSION_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_MINI_RELEASE_CANDIDATE\\data\\structure.json",
+      "sha256": "045ef2f208e42493778f51a56ce74f388c436b4a5af6ca46e53eddf43ea3faa2"
+    },
+    {
+      "name": "surface_reference",
+      "role": "REGRESSION_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_D6_SIZE_RHYTHM_V2\\data\\surface.json",
+      "sha256": "1bd5efb438fa4423826f912342a43d716a2f506c288daf8696c03903b82e2b05"
+    },
+    {
+      "name": "d6_template",
+      "role": "REGRESSION_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_D6_SIZE_RHYTHM_V2\\data\\D6_local.npz",
+      "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+    },
+    {
+      "name": "source_locks",
+      "role": "PROVENANCE_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_AUTHOR_INTERNAL_SPATIAL_PROPOSALS\\data\\SOURCE_LOCKS.json",
+      "sha256": "e6486b5dc302f1cc6676608d5139042caf83667cc36cd21125142cf65108cfb9"
+    },
+    {
+      "name": "author_intent",
+      "role": "AUTHOR_INTENT_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_AUTHOR_INTERNAL_SPATIAL_PROPOSALS\\data\\AUTHOR_INTENT.json",
+      "sha256": "829a28400c7fb575512592ab44ec60a07da227403310afd523be6a9790b63bee"
+    },
+    {
+      "name": "common_structure_changes",
+      "role": "AUTHOR_INTENT_REFERENCE",
+      "authority": "HISTORICAL_REGRESSION",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_AUTHOR_INTERNAL_SPATIAL_PROPOSALS\\data\\common_structure_changes.json",
+      "sha256": "1c4cf375cedce2e5b48955f146e4fedbb4fa7bd8fa52615b89f685812b4b704b"
+    }
+  ]
+}

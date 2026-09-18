@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-09-18",
+  "baseline_object": "INTERNAL_PATHS_EDIT__A1_100PCT",
+  "edit_object": "INTERNAL_PATHS_EDIT__A1_100PCT.001",
+  "baseline_metrics": {
+    "vertices": 8606,
+    "edges": 4411,
+    "faces": 0
+  },
+  "edit_metrics": {
+    "vertices": 8616,
+    "edges": 4428,
+    "faces": 0
+  },
+  "actual_delta_counts": {
+    "PATH_SUBDIVIDED": 8,
+    "EDGE_ADDED": 9,
+    "JUNCTION_CHANGED": 7,
+    "LOOSE_VERTEX": 1,
+    "AMBIGUOUS_MAPPING": 0,
+    "UNSUPPORTED_INPUT": 0
+  },
+  "resolved_duplicate_identity": {
+    "subdivision_inherited_ids": 8,
+    "connector_junction_inherited_ids": 1,
+    "genuinely_ambiguous_duplicates": 0
+  },
+  "historical_correspondence": {
+    "subdivided_core_paths": {
+      "actual_scopes": [
+        "C0006",
+        "C0012",
+        "C0025",
+        "C0045",
+        "C0061",
+        "C0072",
+        "C0080",
+        "C0087"
+      ],
+      "author_intent_count": 8,
+      "match": true
+    },
+    "added_connectors": {
+      "actual_author_edge_indices": [
+        4412,
+        4413,
+        4415,
+        4418,
+        4421,
+        4422,
+        4424,
+        4425,
+        4427
+      ],
+      "author_intent_count": 9,
+      "match": true
+    },
+    "ignored_loose_vertex": {
+      "actual_scope": "v:8615",
+      "author_intent_index": 8615,
+      "materialized": false,
+      "match": true
+    }
+  },
+  "reopen_verification": {
+    "status": "PASS",
+    "blender_reopen": true,
+    "reopened_extract_matches_rebuilt": true,
+    "selected_scopes_match_edit": true,
+    "unselected_scopes_match_baseline": true,
+    "attributes_preserved": true,
+    "frame_preserved": true,
+    "source_hashes_unchanged": true,
+    "original_blend_not_overwritten": true
+  },
+  "source_hashes": {
+    "baseline_extract": "c7d9d8f295e789640b83a5f95f443d469b8fcbc2eb604084f6f632e33d8b7bcd",
+    "baseline_blend": "86ce3ed8e3e2576f5de2f04410d2076155f37b3fee3c1feff50ff48b0dbe9a5c",
+    "edit_blend": "a3ee4ac59380c93b02d588d9e29427aafa6ea63ae3d9c583c8a4acf42bef04dc"
+  },
+  "review_blend_sha256": "35fd8350df2ea783a05776238a1f0f129fec9a10f3c685d6b40938f99730009c",
+  "provenance": "RECORDED actual Blender extraction/reopen results; intent correspondence is DERIVED from DELTA versus AUTHOR_INTENT"
+}

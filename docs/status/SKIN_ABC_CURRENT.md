@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-13
+Last verified: 2026-09-18
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -84,6 +84,22 @@ Physical works and final value judgments remain Author gates.
 Do not create or start a SKIN_ABC implementation task merely because Astra Research is active.
 
 Current Research implementation authority lives in `docs/status/ASTRA_CURRENT.md` and must STOP at its Author gate before any Production translation is considered.
+
+## Bounded Research helper pointer
+
+`SKIN_R4_PATH_ROUNDTRIP_V0` is a separate LUNAWORKER Research helper task for
+reading an explicit Blender path edit, deriving its impact scope, and writing a
+separate review artifact. It does not change the active R4 artwork task, select
+an A/F2 candidate, repair Support, or authorize Production.
+
+- task: `docs/tasks/SKIN_R4_PATH_ROUNDTRIP_V0.md`
+- evidence: `docs/evidence/SKIN_R4_PATH_ROUNDTRIP_V0.md`
+- branch: `agent/skin-r4-path-roundtrip-v0` (unmerged review branch)
+- state: `TECHNICAL COMPLETE — SOL RE-REVIEW / AUTHOR WORKFLOW REVIEW PENDING`
+- real A1 Blender roundtrip gate: PASS; review blend reopen verification,
+  selected/unselected topology-coordinate comparison, source attributes,
+  frame preservation, and input hash preservation are recorded in the task
+  evidence.
 
 ## Blocker
 None for SKIN_ABC. The lack of Production implementation is intentional: the current gate is Research artwork evidence and Author review, not a blocked Production task.
