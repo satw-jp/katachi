@@ -4,7 +4,7 @@ Date: 2026-09-18 JST
 
 Branch: `agent/skin-r4-path-roundtrip-v0`
 
-Reviewed PR head: `a7ef96f4915d8518c49cd8ba491deb9d2b30e0f3`
+Reviewed PR head: `6235bec967f6bffc2c7867fc9ed1f89fdc348edb`
 
 ## Technical result
 
