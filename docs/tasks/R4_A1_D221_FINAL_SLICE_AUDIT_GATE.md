@@ -1,7 +1,7 @@
 # R4 A1 D22.1 — Final Slice and Audit Gate
 
 Recorded: 2026-09-19. Scope owner: SOL / Author. Execution owner: R4 A1 Fabrication Astra.
-Status: CONTINUATION FROM EXISTING D22.1; inspect the latest attempt before execution. This documentation change does not launch a job.
+Status: CHECKPOINT STOP — 2026-09-20 01:30 JST. D22.1 native generation, saved integrity and all 1,058-layer audit coverage COMPLETE; supportability / AUTHOR A1 PRINT PACKAGE GATE HOLD. Latest Author instruction permits preservation only and supersedes the execution permissions below.
 
 ## Goal and restart boundary
 
@@ -9,7 +9,7 @@ Complete the native-output and review evidence for the existing D22.1 working ca
 
 **Do not start from the historical four-contact repair proposal. Do not run those repairs again.** The next entry point is current `source/INPUT_LOCKS.json` + preservation/intersection records + the current slice manifest. Read [R4_A1_FAB_CURRENT](../status/R4_A1_FAB_CURRENT.md) for exact pointers and up-to-date stage state.
 
-The latest inspected manifest records a run starting 2026-09-19 07:06:07 JST as RUNNING. Verify actual process/output state on the worker. Do not duplicate, terminate or replace a live run because a new agent is resuming the task. A manifest alone does not establish liveness or success.
+The saved `d221_final_manifest.json` now records EXITED / exit_code 0 for the run starting 2026-09-19 07:06:07 JST. Full output verification and all-layer audit are saved. Read CURRENT -> `audit/AUTHOR_GATE.json` first; do not rerun completed work. Four contacts and the three-facet investigation are closed. A2821/Z40.6, A2479/Z41.2 and other D22 branch receiver losses, existing FLOWER floating including F0463, and corrupted recovered GUI G-code comparison limits remain recorded. Additional geometry work is unapproved.
 
 ## Required read set
 
@@ -18,7 +18,11 @@ The latest inspected manifest records a run starting 2026-09-19 07:06:07 JST as 
 - [A1 Bambu CLI Runbook](../fabrication/A1_BAMBU_CLI_RUNBOOK.md), [Toolpath Audit Rules](../fabrication/TOOLPATH_AUDIT_RULES.md), [Fabrication Principles](../fabrication/FABRICATION_PRINCIPLES.md).
 - Working package locks, preservation/contact audit, existing execution/result/output records; D22 successful native route as comparison, not a substitute final output.
 
-## Allowed work
+## Current authorization: preservation only
+
+No geometry modification, slice launch, all-layer audit rerun, new Research, image collection, SKIN implementation or other-lane takeover. Preserve successful packages unchanged. A new bounded Author instruction is required before further execution. Printing remains HOLD.
+
+## Historical allowed work (superseded by checkpoint STOP)
 
 Read-only verification of existing D22.1 identity and localized differences; inspection of existing worker execution; bounded native execution recovery only if the prior run is resolved and a new attempt is needed; archive/integrity verification; all-layer toolpath audit and localized review; risk report/package/CURRENT updates.
 
@@ -32,7 +36,7 @@ The latest saved D22.1 includes local coplanar subdivision to keep deformation i
 
 No Artwork Research, densification, whole-object thickening, generic truss, global Support, automatic reorientation, blanket speed reduction, custom slicer, Reader changes, Production/generalization, printer send or printing.
 
-## Work sequence / completion evidence
+## Historical work sequence / saved completion evidence — do not re-execute
 
 1. **Resolve and verify existing work.** Confirm the candidate against current locks and saved preservation/intersection evidence. Record what is independently checked vs source-reported. Preserve current branch/HEAD/dirty state and existing attempts. Resolve the current run before any retry; retain non-success evidence.
 2. **Complete final native output.** Use the pinned route and exact profiles from the runbook/current task. Preserve command, cwd, engine/resources, timestamps, outputs, exit code and result. If a retry is necessary, give it a distinct attempt record; do not overwrite the earlier failure or claim the D22 run proves D22.1 success.
