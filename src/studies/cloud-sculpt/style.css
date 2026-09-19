@@ -462,6 +462,31 @@
   color: var(--danger);
 }
 
+.physical-refine-status[data-status="CURRENT"],
+.physical-refine-status[data-status="READY"] {
+  border-color: #78b9c7;
+  color: #174f5a;
+}
+
+.physical-refine-status[data-status="RENDERING"] {
+  border-color: #c8aa65;
+  color: #71591e;
+}
+
+.physical-refine-status[data-status="STALE"],
+.physical-refine-status[data-status="ERROR"] {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.physical-refine-result {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--hairline);
+  background: #05080c;
+}
+
 .receiver-energy-summary {
   padding: 9px;
   border: 1px solid var(--hairline);
