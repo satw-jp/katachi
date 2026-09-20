@@ -36,7 +36,7 @@ Own flags at A3695/L226 and A2720/L328 are resolved by actual earlier finite-wid
 
 Ten-site [study folder](https://drive.google.com/drive/folders/1JDKcvoTZ55fhHTyh8EYUMG3eR-HV4Afh): `selected_v6/REGISTRY.json` / `CLEARANCE.json`, `validation_v6/SUMMARY.json` and parent/void/connection reports. Contact removal evidence combines exact unchanged-head reuse, v5 coupled cuts, v6 F1394 contact and fine-angle tool access. F1394_0 long shaft: access atZ124,127.5,137.149 confirmed, but whole13.15/9.65mm fragment straight withdrawal unresolved. Smaller fragments need an accessible intermediate cut; bounded cut-band/waypoint studies are not adopted geometry. Do not call contact-head PASS whole-Support removability PASS.
 
-Plus4 outputs exist in local Drive workspace and verified ZIP. Cloud output folder listing returned empty at this check; **cloud output save is not confirmed**. Preserve local outputs pending upload/metadata confirmation. Existing plus4 input cloud receipt remains valid. Other active study files are not covered by the historical root PACKAGE_MANIFEST.
+Plus4 G-code and ZIP cloud save confirmed by direct Drive folder listing: [G-code](https://drive.google.com/file/d/1RVB2g31QBEh6ZjWPMAb_T8A50kmsUmqL/view), [ZIP](https://drive.google.com/file/d/1QCdTELjpCYZruFnxLylYw8WiKX1NQWnK/view), sizes match the local verification record. Earlier search returned empty; direct listing supersedes that incomplete search result. No new cloud content hash computed. Existing plus4 input cloud receipt remains valid. Other active study files are not covered by the historical root PACKAGE_MANIFEST.
 
 ## Saved first-attempt evidence and limits
 
