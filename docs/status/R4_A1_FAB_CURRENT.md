@@ -1,6 +1,6 @@
 # R4 A1 Fabrication — Current
 
-Verified 2026-09-20 JST after first D222 full audit completion at 16:37:35. **PRINT HOLD. Four-site derivative native RUNNING since17:14:13 JST (PID20936); latest Author additionally authorized ten named FLOWER IDs.**
+Verified 2026-09-20 20:52 JST. **PRINT HOLD. Plus4 native/integrity PASS and own1058-layer audit COMPLETE (19:18:23 JST); supportability HOLD. Additional10 remain study-only pending F1394 shaft removal closure. A4081/Z71.4 inherited unsupported extrusion is newly localized; Author disposition requested.**
 
 ## Scope and authorization
 
@@ -20,15 +20,25 @@ Active task: [D222 closure](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). Evide
 | First D222 native | PASS, engine02.08.02.61, exit0, elapsed2920.385 s; completed15:49:53 JST |
 | First D222 archive / command integrity | PASS; raw G-code and separately packed ZIP have full hash/size equality and CRC PASS |
 | First D222 own full audit | COMPLETE, all1058 layers, finished16:37:35 JST, exit0; completion is not unconditional supportability PASS |
-| Original11 own local rooting screen | PASS under recorded finite-width/raster limits; see exact local dispositions below |
-| Additional4 derivative |13 adopted additions,46 total relative to D221; input regression PASS; native RUNNING PID20936; own full audit NOT_STARTED |
-| Additional10 working scope | Authorized; local interval extraction / parent identification active; no geometry adopted |
+| Original11 prior local rooting screen | Historical bounded screen PASS; extended own review now localizes unresolved A4081/Z71.4 above its prior local extraction band; do not interpret historical PASS as full-interval closure |
+| Additional4 derivative |13 adopted additions,46 total relative to D221; native/integrity/profile PASS, own1058 audit COMPLETE exit0; own13 additions rooting screen PASS, overall supportability HOLD |
+| Additional10 working scope | Authorized; selected_v6 has38 study parts, all10 conditional chronology and parent/clearance/Void checks PASS. All34 contact-head removal checks have conditional routes; long F1394_0 shaft removal remains unresolved. No ten-site adoption/native |
 | Floating warning | Retained and not closed; native identifies Assembly, independently localized IDs are not exhaustive native IDs |
 | Print-ready / physical print | HOLD / not authorized; actual plate identity unconfirmed |
 
 First D222: `geometry/final`, `gcode`, `audit/final_full` must remain intact. New four-site derivative must use separate input/output/audit locations. Do not overwrite a completed first attempt with an unfinished candidate.
 
-## Saved evidence and limits
+## Latest derivative evidence and open boundaries
+
+`attempts/additional_four_20260920/`: native exit0; full audit completed2026-09-20T10:18:23.919561Z. `audit/FINAL_OUTPUT_VERIFICATION.json` verifies G-code1,227,347,428bytes /53,582,313lines /1058layers and ZIP321,609,295bytes, payload equality/CRC. Recorded G-code SHA256 `778b02bf50766d3de1d586592cc3ef6db3400f5c7fe767ddc54d3b2060ec6305`; ZIP `1ed72f86d0af75080ecba8fe206de86dceb431f2e9ccbfd35e9a6927eb456e28`. Referenced hashes, not recomputed here. Extra21 locked parameters PASS. New native facet reduction33,436 plus retainedold3 explained with zero unresolved source faces; diagnostic export never an input.
+
+Own flags at A3695/L226 and A2720/L328 are resolved by actual earlier finite-width bead contact. A4081/L357/Z71.4 is not:0.345931mm path, nominal previous-bead gap0.379829mm, no same-layer receiver. `audit/own_local/A4081_L357_REVIEW.json` proves its sampled coordinates/width match firstD222 exactly, with a global start flag in both. FirstD222 local extraction did not cover this higher band. This inherited status does not clear the risk. Further local repair of this newly localized witness was presented to Author; no A4081 geometry edit made.
+
+Ten-site [study folder](https://drive.google.com/drive/folders/1JDKcvoTZ55fhHTyh8EYUMG3eR-HV4Afh): `selected_v6/REGISTRY.json` / `CLEARANCE.json`, `validation_v6/SUMMARY.json` and parent/void/connection reports. Contact removal evidence combines exact unchanged-head reuse, v5 coupled cuts, v6 F1394 contact and fine-angle tool access. F1394_0 long shaft: access atZ124,127.5,137.149 confirmed, but whole13.15/9.65mm fragment straight withdrawal unresolved. Smaller fragments need an accessible intermediate cut; bounded cut-band/waypoint studies are not adopted geometry. Do not call contact-head PASS whole-Support removability PASS.
+
+Plus4 outputs exist in local Drive workspace and verified ZIP. Cloud output folder listing returned empty at this check; **cloud output save is not confirmed**. Preserve local outputs pending upload/metadata confirmation. Existing plus4 input cloud receipt remains valid. Other active study files are not covered by the historical root PACKAGE_MANIFEST.
+
+## Saved first-attempt evidence and limits
 
 [Active D222 Drive package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw):
 - `source/INPUT_LOCKS.json`, `audit/INPUT_REGRESSION.json`: Artwork40,684,829 triangles, old Support9,305,124 triangles unchanged; new33 add1,000,338 triangles.
@@ -64,6 +74,6 @@ Clean [D221 baseline](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4
 
 ## Next action and stopping boundary
 
-Resume from this CURRENT, then both additional authorization records. The additional4 input is frozen at `attempts/additional_four_20260920`: Support10,570,804 triangles /528,540,284 bytes, SHA256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`; source first-D222 Support prefix verified during new copy. Native manifest `slice/d222_plus4_manifest.json` in that attempt, with exact actual argv. Do not restart it. Complete its output/audit independently while closing newly authorized10 locally. Preserve each attempt. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group the additional10 closures before another native attempt; final own-output full audit and package fixation follow. The four-site attempt must not be relabelled as the ten-site candidate. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
+Resume from this CURRENT, then both additional authorization records. The additional4 input is frozen at `attempts/additional_four_20260920`: Support10,570,804 triangles /528,540,284 bytes, SHA256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`; source first-D222 Support prefix verified during new copy. Native manifest `slice/d222_plus4_manifest.json` in that attempt records the completed run and exact actual argv. Do not restart native or full audit. First resolve the F1394 shaft-removal gate within authorized local scope and the pending A4081 witness disposition, then close the own-output findings and freeze any next candidate separately. Preserve each attempt. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group the additional10 closures before another native attempt; final own-output full audit and package fixation follow. The four-site attempt must not be relabelled as the ten-site candidate. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
 
 Do not rerun completed D22/D221 repairs, first D222 native/full audit, old facet investigation or large-file hashing merely to resume. Failed/study meshes must not enter adopted input. Preserve known uncertainty and other-site FOLLOW-UP; no automatic scope expansion.
