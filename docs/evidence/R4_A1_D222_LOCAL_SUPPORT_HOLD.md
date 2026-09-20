@@ -1,5 +1,18 @@
 # D22.2 local Support evidence — print HOLD
 
+## Verified native and archive — 2026-09-20 15:55 JST
+
+D222 native **technical PASS**, exit0, elapsed2920.385s; completed15:49:53 JST. Own full chronological audit RUNNING, PID24020,50/1058 layers recorded so far. Do not rerun native or audit. Print HOLD; plate unconfirmed.
+
+G-code1,226,447,550 bytes /53,542,745 lines /1058 layers /Z0.2–211.6; SHA256 `72fb30c1fc4c205ae8abf6dfbb118672ea1a0d459fb9a12cb6971f46c822e43e`. ZIP321,390,113 bytes; SHA256 `dab88b959e75279b0c58e84e54f55d6e9d5587cf975d20efa4ab0dd6b5f5959d`. Full payload hash/size equality, CRC, motion Z consistency and locked profile checks PASS: `audit/FINAL_OUTPUT_VERIFICATION.json`. ZIP is separate packaging after raw native G-code generation; no second slice.
+
+Facet difference explained separately from original3: input50,990,291 -> native50,959,732. New Support import-only export accounts for30,556, plus retained original3. Every native new facet matches an input face within5.335e-6mm; source faces without unique assignment are zero-area or geometrically coincident retained faces. Old Support prefix matches within5.722e-6mm, with no larger change. See `audit/added_native_import/ADDED_FACETS_RESOLUTION.json`; diagnostic export is not the locked input.
+
+Native floating warning still names Assembly on plate1. It is **not cleared**; own full audit and local output review must decide it. Complete technical/integrity checks do not constitute supportability or physical PASS.
+
+Drive cloud metadata confirms both final input STLs, including unchanged2,034,241,534-byte Artwork copy: `audit/INPUT_DRIVE_SAVE_RECEIPT.json`. Output/audit Drive confirmation still pending final inventory. Exact active process states: `slice/d222_final_manifest.json`, `slice/PIPELINE_EXECUTION.json`.
+
+
 ## Active continuation — 2026-09-20 15:02 JST
 
 All11 known sites locally repaired;33 adopted Support parts (21 FLOWER,12 branch). Exact evidence: `audit/FLOWER_LOCAL_ADOPTION_V5.json`, `audit/BRANCH_LOCAL_ADOPTION_V5.json`, `audit/LOCAL_CLOSURE_GATE.json`. The local PASS is conditional saved-path validation, not native/physical PASS.
