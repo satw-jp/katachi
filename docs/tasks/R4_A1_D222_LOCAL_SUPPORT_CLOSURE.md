@@ -1,5 +1,20 @@
 # R4 A1 D22.2 — Local Support closure
 
+## Active continuation — 2026-09-20 15:02 JST
+
+All11 known sites locally repaired;33 adopted Support parts (21 FLOWER,12 branch). Exact evidence: `audit/FLOWER_LOCAL_ADOPTION_V5.json`, `audit/BRANCH_LOCAL_ADOPTION_V5.json`, `audit/LOCAL_CLOSURE_GATE.json`. The local PASS is conditional saved-path validation, not native/physical PASS.
+
+Input freeze PASS: `audit/INPUT_REGRESSION.json` / `source/INPUT_LOCKS.json`. D221 Artwork40,684,829 triangles and existing Support9,305,124 triangles preserved byte-for-byte while making a separate D222 input. New Support adds1,000,338 triangles; final input Support10,305,462 triangles. Source hashes were verified while streaming the new copies, not by re-auditing old G-code. All33 new parts belowVoid lowerZ67.766.
+
+Native02.08.02.61 started15:01:12 JST, PID24948; RUNNING observed15:02. Exact argv/profile/engine identities: `slice/d222_final_manifest.json`. Full audit NOT_STARTED; `slice/PIPELINE_EXECUTION.json` will record its separate launch/exit after native succeeds. One final native attempt only; do not duplicate/restart this pipeline. No G-code/ZIP PASS yet.
+
+Local details retained: A3695 includesL221/Z44.2; multi-site includesA3181 L314/Z62.8. A3503 far-end receiver now uses retained.6mm neck for removal. A3503 saved first ellipse retains two anchored3.682/3.563mm spans; multi-site max1.876mm. No generic safe span asserted; own native features/speeds/chronology must be reviewed. Exact terminal3mm withdrawal and upper-shaft tool approaches are conditional on staged contact fracture; full jaws/forces unproven. Narrow gaps and sub-nozzle microsections remain final-native checks. AdjacentF2387 incidental-path issue stays explicit FOLLOW-UP, not silently repaired.
+
+D221 immutable. Print HOLD, plate identity UNCONFIRMED; no printer send/print/main merge. Old failed studies and old manifest are historical, not current adopted inputs.
+
+## Retained preceding record
+
+
 Status: IN PROGRESS; print HOLD. Owner: R4 A1 Fabrication Astra / Author.
 
 Latest Author continuation supersedes the F0463 two-cycle STOP, permitting bounded single/curved/forked/dual bed-root receivers and local Support braces. D22.1, Artwork, centerlines, branch diameters/topology, Void, four repaired contacts, existing Support and locked profiles remain protected. No printer send/print or main merge.
