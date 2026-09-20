@@ -72,7 +72,7 @@ Read [TEAM_PROTOCOL_CORE](../TEAM_PROTOCOL_CORE.md), this front, the active task
 |---|---|---|
 | `baseline_package` | [R4_A1_PRINT_CANDIDATE_20260919_D22](https://drive.google.com/drive/folders/18OFPljQSyPZCROmhuZB99M1IzTl_ggP1) | `source/AUTHOR_TASK_20260918.txt`, `source/SOURCE_LOCKS.json`, `NATIVE_RECOVERY_UPDATE.md` |
 | `historical_successful_slice_package` | [R4_A1_NATIVE_SLICE_RECOVERY_20260919](https://drive.google.com/drive/folders/1Auh3vlDGU5uhyt7WPWBDAPHJPhkEH4C8) | `README.md`, `PACKAGE_MANIFEST.json`, `audit/RECOVERY_GATE.json`, `audit/RECOVERY_VERIFICATION.json`, `slice/d22_mapping_manifest.json` |
-| `working_candidate_and_latest_successful_slice_package` | [R4_A1_D221_CLOSURE_20260919](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4hw7CnVmAv795RT) | `audit/AUTHOR_GATE.json`, `README.md`, `PACKAGE_MANIFEST.json`, `PACKAGE_REVIEW.md`, `slice/d221_final_manifest.json`, `audit/FINAL_OUTPUT_VERIFICATION.json`, `audit/TOOLPATH_AUDIT.md`, `audit/final_full/summary.json` |
+| `working_candidate_and_latest_successful_slice_package` | [R4_A1_D221_CLOSURE_20260919](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4hw7CnVmAv795RT) | `audit/AUTHOR_GATE.json`, `README.md`, `PACKAGE_MANIFEST.json`, `PACKAGE_REVIEW.md`, `slice/d221_final_manifest.json`, `audit/FINAL_OUTPUT_VERIFICATION.json`, `audit/TOOLPATH_AUDIT.json`, `audit/final_full/summary.json` |
 
 `CLOSURE` in a folder name is not a gate result. Never collapse these three roles into a single unqualified `latest_package`.
 
