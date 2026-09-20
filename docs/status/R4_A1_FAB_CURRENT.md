@@ -1,6 +1,6 @@
 # R4 A1 Fabrication — Current
 
-Last verified: 2026-09-20 12:35 JST. D22.2 Support attempt: HOLD; zero adopted additions, no native slice or full audit.
+Last verified: 2026-09-20 13:20 JST. D22.2 continuation IN PROGRESS. F0463 local receiver validation PASS; four Support parts adopted pending native verification. Print HOLD.
 
 ## Authority
 
@@ -10,7 +10,7 @@ Last verified: 2026-09-20 12:35 JST. D22.2 Support attempt: HOLD; zero adopted a
 - This lane owns only **existing R4 candidate -> A1 fabrication package**. It does not reopen Artwork Research, the Reader, Production, or generalization.
 - Author direction: [retained 2026-09-18 instruction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md).
 - Geometry, profiles, slice execution and physical evidence: the explicit Drive pointers below, resolved by file identity and hash, not by folder name or chat recollection.
-- Latest Author instruction permits localized fabrication-only D22.2 Support closure, with D22.1 frozen. Artwork, printer-send and physical-print remain prohibited. This attempt stops at the two-cycle review limit with F0463 unresolved.
+- Latest Author instruction permits localized fabrication-only D22.2 Support closure, with D22.1 frozen. Artwork, printer-send and physical-print remain prohibited. The latest Author continuation explicitly lifts the F0463 review-cycle limit; continue local closure, then remaining blockers, one native slice and own full audit. No printer send/print or main merge.
 - Process snapshot: no Bambu/Orca process or historical slice PID 34088 / auditor PID 11728 observed. Other Python processes were not attributed or touched; detailed process-command inspection was unavailable. Saved status and live process state are distinct.
 
 ## NOW / Current phase
@@ -20,7 +20,7 @@ Last verified: 2026-09-20 12:35 JST. D22.2 Support attempt: HOLD; zero adopted a
 | Baseline geometry | **D22**, frozen reference; internal branch authority diameter 2.2 mm with the root exceptions below. |
 | Latest successful full native slice | **D22.1: technical PASS**, native generation and saved full-file/ZIP integrity complete. Prior D22 recovery remains a separate historical success. No general reliability or physical PASS implied. |
 | Frozen successful input | D22.1, including its four completed contacts and 22,369 other Support blocks. No source geometry changes. |
-| Working derivative | D22.2 attempt: HOLD, zero adopted additions. Study mesh only; official geometry NOT_ASSEMBLED. |
+| Working derivative | D22.2: four locally validated F0463 Support parts adopted; whole assembly NOT_ASSEMBLED. Other blockers in progress. Native/full audit NOT_RUN. |
 | Latest inspected D22.1 slice record | `slice/d221_final_manifest.json`: **EXITED, exit_code 0**, started `2026-09-18T22:06:07Z`, historical PID 34088, elapsed 2970.950628 s. Supersedes the stale RUNNING description. |
 | D22.1 final audit | **Coverage COMPLETE: all 1,058 layers, including Z39–43 mm**. Audit completion is not supportability PASS; chronological receiver loss and FLOWER floating remain blockers. |
 | Print / approved printable release | **HOLD / NONE**. No machine-send or printing authorization is granted here. |
@@ -43,7 +43,7 @@ Owner: **R4 A1 Fabrication Astra**, bounded under SOL/Author review.
 
 Task: [R4_A1_D222_LOCAL_SUPPORT_CLOSURE](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). D22.1 task is retained as history.
 
-**STOP at the saved Author gate.** First read `audit/AUTHOR_GATE.json` and the existing branch/FLOWER witnesses through the package pointers below. A new bounded Author instruction is required before further fabrication changes; checkpoint completion is not implementation or print GO.
+**Latest Author continuation is active.** Read `audit/F0463_LOCAL_ADOPTION.json` and `study/continuation_20260920/AUTHOR_CONTINUATION.txt` in the D22.2 package. The earlier AUTHOR_GATE/two-cycle STOP is historical and superseded for F0463. Continue the remaining local blockers before native slicing. Printing remains HOLD.
 
 Do not repeat D22/D22.1 generation, the four contact repairs/intersection confirmation, the resolved three-facet investigation, native slicing, full-file hashing or the completed 1,058-layer audit merely to resume. This checkpoint starts no execution and changes no frozen package.
 
@@ -100,7 +100,7 @@ Unreflected case note against existing runbook **RUN06 / RUN07** (no new rule ID
 
 Checkpoint DoD: preserve existing artifacts; correct this lane's CURRENT/task to recorded completion and HOLD; save only lane documentation to GitHub; STOP. No new fabrication work is authorized by completion of these items.
 
-## D22.2 latest supersession — authoritative next entry
+## D22.2 earlier HOLD — historical record, superseded below
 
 The earlier checkpoint-only execution description is superseded by the latest Author D22.2 Support-only task, then this bounded attempt's HOLD result. Read [D22.2 task](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md), [evidence](../evidence/R4_A1_D222_LOCAL_SUPPORT_HOLD.md) and [Drive HOLD package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw), starting at audit/AUTHOR_GATE.json. This is not a printable/native package.
 
@@ -109,3 +109,11 @@ F4016 was not approved as an origin: its Z35.8 line17641069 is a saved unsupport
 Two head-envelope review iterations are exhausted under the user AGENTS limit. All six named FLOWER IDs and five branch sites remain unresolved; other repairs were not started behind F0463 closure. Native slice/full audit NOT_RUN. Do not inherit D22.1 PASS or rerun its completed repairs/audit. Next Author decision is bounded disposition of Z39.4 and any further design/review cycle; no implementation or print follows automatically.
 
 D22.1 source: 290 files unchanged by size/mtime; G-code mtime changed with identical size. A targeted SHA256 check matched its previously recorded content hash. Timestamp cause unknown; no source write was performed. No other large-file hash was rerun. Keep all Artwork, existing Support and profile locks. Print HOLD; plate identity unverified.
+
+## D22.2 active continuation — authoritative next entry
+
+Latest Author lifts only the F0463 cycle limit. F0463 reviewed through layers194–238: 1,046 intersecting paths,409 saved start flags; four independent births at Z39.2/39.4/41.6/42.2. Saved flags cease from Z42.8 through the top. Four new parts (two independent bed roots, one fork each) are locally adopted in `geometry/local_validated/`; exact identities and contacts: `audit/F0463_LOCAL_ADOPTION.json`. Original failed studies preserved.
+
+Continuous 3D boolean checks find no other Artwork contact. All additional Support layer sections remain connected to earlier sections; all selected F0463 path starts overlap earlier nominal receiving material in the conditional replay. This is a **local conditional validation**, not D22.2 native/audit/physical PASS. Closest F0785 gap0.163975mm remains an explicit final native bead/motion review item. Continuous removal-probe approaches exist under the recorded staged removal sequence; full jaws/force remain unverified.
+
+D22.1 frozen. Remaining five FLOWER and five branch sites not yet closed; bounded extraction of their saved intervals is running. Do not launch full native slice until every known blocker is repaired/evidence-cleared. D22.2 G-code/ZIP do not yet exist. Plate identity unconfirmed. No main merge or print authorization.
