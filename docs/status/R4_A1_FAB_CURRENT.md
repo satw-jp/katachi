@@ -1,6 +1,6 @@
 # R4 A1 Fabrication — Current
 
-Last verified: 2026-09-20 01:30 JST (2026-09-19 16:30 UTC). Checkpoint-only STOP; saved records and Drive metadata inspected, no geometry/slice/audit execution or large-file rehash.
+Last verified: 2026-09-20 12:35 JST. D22.2 Support attempt: HOLD; zero adopted additions, no native slice or full audit.
 
 ## Authority
 
@@ -10,7 +10,7 @@ Last verified: 2026-09-20 01:30 JST (2026-09-19 16:30 UTC). Checkpoint-only STOP
 - This lane owns only **existing R4 candidate -> A1 fabrication package**. It does not reopen Artwork Research, the Reader, Production, or generalization.
 - Author direction: [retained 2026-09-18 instruction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md).
 - Geometry, profiles, slice execution and physical evidence: the explicit Drive pointers below, resolved by file identity and hash, not by folder name or chat recollection.
-- Latest Author instruction permits checkpoint preservation only; no new geometry, slice, full audit, Research, images, SKIN implementation or another lane's work. Additional geometry changes remain unapproved.
+- Latest Author instruction permits localized fabrication-only D22.2 Support closure, with D22.1 frozen. Artwork, printer-send and physical-print remain prohibited. This attempt stops at the two-cycle review limit with F0463 unresolved.
 - Process snapshot: no Bambu/Orca process or historical slice PID 34088 / auditor PID 11728 observed. Other Python processes were not attributed or touched; detailed process-command inspection was unavailable. Saved status and live process state are distinct.
 
 ## NOW / Current phase
@@ -19,7 +19,8 @@ Last verified: 2026-09-20 01:30 JST (2026-09-19 16:30 UTC). Checkpoint-only STOP
 |---|---|
 | Baseline geometry | **D22**, frozen reference; internal branch authority diameter 2.2 mm with the root exceptions below. |
 | Latest successful full native slice | **D22.1: technical PASS**, native generation and saved full-file/ZIP integrity complete. Prior D22 recovery remains a separate historical success. No general reliability or physical PASS implied. |
-| Working candidate | **D22.1: four contact repairs already applied**. Other 22,369 Support blocks unchanged; four intersections recovered in saved software evidence. **Do not apply the repairs again.** |
+| Frozen successful input | D22.1, including its four completed contacts and 22,369 other Support blocks. No source geometry changes. |
+| Working derivative | D22.2 attempt: HOLD, zero adopted additions. Study mesh only; official geometry NOT_ASSEMBLED. |
 | Latest inspected D22.1 slice record | `slice/d221_final_manifest.json`: **EXITED, exit_code 0**, started `2026-09-18T22:06:07Z`, historical PID 34088, elapsed 2970.950628 s. Supersedes the stale RUNNING description. |
 | D22.1 final audit | **Coverage COMPLETE: all 1,058 layers, including Z39–43 mm**. Audit completion is not supportability PASS; chronological receiver loss and FLOWER floating remain blockers. |
 | Print / approved printable release | **HOLD / NONE**. No machine-send or printing authorization is granted here. |
@@ -40,7 +41,7 @@ The inspected D22.1 input lock was updated at `2026-09-18T22:05:34.373Z`. Its cu
 
 Owner: **R4 A1 Fabrication Astra**, bounded under SOL/Author review.
 
-Task: [R4_A1_D221_FINAL_SLICE_AUDIT_GATE](../tasks/R4_A1_D221_FINAL_SLICE_AUDIT_GATE.md).
+Task: [R4_A1_D222_LOCAL_SUPPORT_CLOSURE](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). D22.1 task is retained as history.
 
 **STOP at the saved Author gate.** First read `audit/AUTHOR_GATE.json` and the existing branch/FLOWER witnesses through the package pointers below. A new bounded Author instruction is required before further fabrication changes; checkpoint completion is not implementation or print GO.
 
@@ -98,3 +99,13 @@ Reproduction entry: saved `slice/d221_final_manifest.json` contains engine 02.08
 Unreflected case note against existing runbook **RUN06 / RUN07** (no new rule IDs): applicability = this D22.1 output and recovered GUI comparator; evidence = saved output verification, full audit and AUTHOR_GATE; proven = native/ZIP integrity and complete audit coverage, plus localized chronology witnesses; unproven = physical support success and general engine stability. ZIP/payload equality does not establish valid motion in the recovered old G-code. Static contact, chronological support and physical printing success remain separate. Candidate 240 C / 2.2 mm are not general rules.
 
 Checkpoint DoD: preserve existing artifacts; correct this lane's CURRENT/task to recorded completion and HOLD; save only lane documentation to GitHub; STOP. No new fabrication work is authorized by completion of these items.
+
+## D22.2 latest supersession — authoritative next entry
+
+The earlier checkpoint-only execution description is superseded by the latest Author D22.2 Support-only task, then this bounded attempt's HOLD result. Read [D22.2 task](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md), [evidence](../evidence/R4_A1_D222_LOCAL_SUPPORT_HOLD.md) and [Drive HOLD package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw), starting at audit/AUTHOR_GATE.json. This is not a printable/native package.
+
+F4016 was not approved as an origin: its Z35.8 line17641069 is a saved unsupported start, distinct from a later path with prior-bead overlap. One independent bed-rooted F0463 design was studied using measured existing foot/lower reinforcement/shaft dimensions. The first-path mesh is not adopted: additional F0463 Z39.4 is blocked near F0785 at Z38.8 under both tested head envelopes; Z42.2 has only a section route. This is not proof that all local Support solutions are impossible or Artwork must change.
+
+Two head-envelope review iterations are exhausted under the user AGENTS limit. All six named FLOWER IDs and five branch sites remain unresolved; other repairs were not started behind F0463 closure. Native slice/full audit NOT_RUN. Do not inherit D22.1 PASS or rerun its completed repairs/audit. Next Author decision is bounded disposition of Z39.4 and any further design/review cycle; no implementation or print follows automatically.
+
+D22.1 source: 290 files unchanged by size/mtime; G-code mtime changed with identical size. A targeted SHA256 check matched its previously recorded content hash. Timestamp cause unknown; no source write was performed. No other large-file hash was rerun. Keep all Artwork, existing Support and profile locks. Print HOLD; plate identity unverified.
