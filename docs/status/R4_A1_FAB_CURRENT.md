@@ -1,6 +1,6 @@
 # R4 A1 Fabrication — Current
 
-Last verified: 2026-09-20 14:29 JST. D22.2 continuation IN PROGRESS. Six FLOWER families locally conditionally validated;21 Support parts adopted pending native verification. Print HOLD.
+Last verified:2026-09-20 15:02 JST. All11 local sites repaired;33 new Support parts adopted. D22.2 native RUNNING; own audit NOT_STARTED. Print HOLD.
 
 ## Authority
 
@@ -11,7 +11,7 @@ Last verified: 2026-09-20 14:29 JST. D22.2 continuation IN PROGRESS. Six FLOWER 
 - Author direction: [retained 2026-09-18 instruction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md).
 - Geometry, profiles, slice execution and physical evidence: the explicit Drive pointers below, resolved by file identity and hash, not by folder name or chat recollection.
 - Latest Author instruction permits localized fabrication-only D22.2 Support closure, with D22.1 frozen. Artwork, printer-send and physical-print remain prohibited. The latest Author continuation explicitly lifts the F0463 review-cycle limit; continue local closure, then remaining blockers, one native slice and own full audit. No printer send/print or main merge.
-- Process snapshot 14:29 JST: Bambu Studio PID17748, start13:25:40, observed but not launched/attributed by this worker; left untouched. Saved manifests are distinct from live process state. No D22.2 native slice launched by this worker.
+- Process snapshot15:02 JST: worker-owned native PID24948 RUNNING, started15:01:12. Earlier unattributed Bambu PID17748 no longer observed; no unknown process terminated. Follow live PID and saved manifest separately.
 
 ## NOW / Current phase
 
@@ -20,7 +20,7 @@ Last verified: 2026-09-20 14:29 JST. D22.2 continuation IN PROGRESS. Six FLOWER 
 | Baseline geometry | **D22**, frozen reference; internal branch authority diameter 2.2 mm with the root exceptions below. |
 | Latest successful full native slice | **D22.1: technical PASS**, native generation and saved full-file/ZIP integrity complete. Prior D22 recovery remains a separate historical success. No general reliability or physical PASS implied. |
 | Frozen successful input | D22.1, including its four completed contacts and 22,369 other Support blocks. No source geometry changes. |
-| Working derivative | D22.2:21 new Support parts across six FLOWER families locally conditionally validated/adopted; branch-site closure in progress; whole assembly NOT_ASSEMBLED. Native/full audit NOT_RUN. |
+| Working derivative | D22.2:33 new Support parts across all11 sites locally conditionally validated/adopted. Input freeze PASS; native RUNNING; own full audit NOT_STARTED. |
 | Latest inspected D22.1 slice record | `slice/d221_final_manifest.json`: **EXITED, exit_code 0**, started `2026-09-18T22:06:07Z`, historical PID 34088, elapsed 2970.950628 s. Supersedes the stale RUNNING description. |
 | D22.1 final audit | **Coverage COMPLETE: all 1,058 layers, including Z39–43 mm**. Audit completion is not supportability PASS; chronological receiver loss and FLOWER floating remain blockers. |
 | Print / approved printable release | **HOLD / NONE**. No machine-send or printing authorization is granted here. |
@@ -110,14 +110,14 @@ Two head-envelope review iterations are exhausted under the user AGENTS limit. A
 
 D22.1 source: 290 files unchanged by size/mtime; G-code mtime changed with identical size. A targeted SHA256 check matched its previously recorded content hash. Timestamp cause unknown; no source write was performed. No other large-file hash was rerun. Keep all Artwork, existing Support and profile locks. Print HOLD; plate identity unverified.
 
-## D22.2 active continuation — authoritative next entry
+## Active continuation — 2026-09-20 15:02 JST
 
-Author continuation remains active. Read `audit/FLOWER_LOCAL_ADOPTION_V5.json` and `study/flower_family_validation_v5/REGISTRY.json` in the D22.2 package. Exact21 adopted meshes are in `geometry/official_additions_v5/`. Earlier `geometry/local_validated/` and `audit/F0463_LOCAL_ADOPTION.json` are superseded loft-section studies; never assemble them.
+All11 known sites locally repaired;33 adopted Support parts (21 FLOWER,12 branch). Exact evidence: `audit/FLOWER_LOCAL_ADOPTION_V5.json`, `audit/BRANCH_LOCAL_ADOPTION_V5.json`, `audit/LOCAL_CLOSURE_GATE.json`. The local PASS is conditional saved-path validation, not native/physical PASS.
 
-F0463:1,046 intersecting paths,409 saved start flags, birthsZ39.2/39.4/41.6/42.2; saved flags ceaseZ42.8 through top. All six named FLOWER families pass conditional replay using saved D22.1 paths plus exact new Support sections. All meaningful new Support sections connect to previous material; sub-nozzle microsections explicitly await native omission verification. F0028 line18819064 is an incidental F2387 path (entire1.0162mm in F2387; only.01968mm intersectsF0028, start.44047mm outsideF0028); excluded from F0028 start ownership and retained as adjacent FOLLOW-UP/native comparison. No blanket global floating PASS.
+Input freeze PASS: `audit/INPUT_REGRESSION.json` / `source/INPUT_LOCKS.json`. D221 Artwork40,684,829 triangles and existing Support9,305,124 triangles preserved byte-for-byte while making a separate D222 input. New Support adds1,000,338 triangles; final input Support10,305,462 triangles. Source hashes were verified while streaming the new copies, not by re-auditing old G-code. All33 new parts belowVoid lowerZ67.766.
 
-Current geometry uses true-axis1.6mm shafts, retained .6mm narrow contacts and measured existing feet/reinforcement. F0463 WEST uses two necks and a small cradle; F0028 root0 uses two tips without a flat cap. Three redundant fork tails were trimmed, then birth chronology revalidated. Bed-reaching roots can share lower material; they are not mutually disjoint independent shafts.
+Native02.08.02.61 started15:01:12 JST, PID24948; RUNNING observed15:02. Exact argv/profile/engine identities: `slice/d222_final_manifest.json`. Full audit NOT_STARTED; `slice/PIPELINE_EXECUTION.json` will record its separate launch/exit after native succeeds. One final native attempt only; do not duplicate/restart this pipeline. No G-code/ZIP PASS yet.
 
-Continuous 3D checks find no unintended Artwork intersection or above-bed old Support brace. Minimum gaps include F0785 .091892mm and other nearby FLOWER down to .033822mm: native bead/motion and physical tolerance remain unproven. All21 terminal fragments have recorded3mm withdrawal routes after contact fracture and staged temporary Support removal; all sampled shaft/neck cuts have continuous1.2mm probe approaches. Full jaws/forces/contact scars remain physical uncertainty.
+Local details retained: A3695 includesL221/Z44.2; multi-site includesA3181 L314/Z62.8. A3503 far-end receiver now uses retained.6mm neck for removal. A3503 saved first ellipse retains two anchored3.682/3.563mm spans; multi-site max1.876mm. No generic safe span asserted; own native features/speeds/chronology must be reviewed. Exact terminal3mm withdrawal and upper-shaft tool approaches are conditional on staged contact fracture; full jaws/forces unproven. Narrow gaps and sub-nozzle microsections remain final-native checks. AdjacentF2387 incidental-path issue stays explicit FOLLOW-UP, not silently repaired.
 
-Remaining5 branch sites are in progress using `study/remaining_intervals/BRANCH_RECEIVER_PLAN.json`. Do not slice until all11 sites are repaired/evidence-cleared. D22.2 native/full audit NOT_RUN; G-code/ZIP do not yet exist. Source D22.1 immutable; no repeat of its completed four contacts/three-facet resolution/full audit. No main merge, printer send or print. Plate identity unconfirmed.
+D221 immutable. Print HOLD, plate identity UNCONFIRMED; no printer send/print/main merge. Old failed studies and old manifest are historical, not current adopted inputs.
