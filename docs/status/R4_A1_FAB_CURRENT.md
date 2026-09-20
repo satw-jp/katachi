@@ -1,12 +1,12 @@
 # R4 A1 Fabrication — Current
 
-Verified 2026-09-20 JST after first D222 full audit completion at 16:37:35. **PRINT HOLD. Work active on Author-authorized additional four local Support sites.**
+Verified 2026-09-20 JST after first D222 full audit completion at 16:37:35. **PRINT HOLD. Four-site derivative native RUNNING since17:14:13 JST (PID20936); latest Author additionally authorized ten named FLOWER IDs.**
 
 ## Scope and authorization
 
 This lane owns existing R4 candidate → A1 fabrication closure only. D221 is immutable. Preserve SHAPE, all FLOWER, Void, internal branches, Artwork placement/scale, authored bottom Support and the four completed D221 contacts. Keep 4,238 branches at 2.2 mm and two ROOT_ADDITION exceptions at 3.0 mm. No Research, SKIN implementation, printer send, actual print or main merge.
 
-Author authorized original11 fabrication sites and subsequently explicitly replied: 「4件の局所Support修正と必要な再slice・再監査も許可する」 for F3070/Z36.0, F0592/Z58.4, F4081/Z71.0 and F0965/Z76.4. Exact authorization and attempt boundary: `study/additional_four_20260920/AUTHOR_EXTENSION.json` and `ATTEMPT_BOUNDARY.json`. This permits a necessary separate grouped native attempt and own full audit after those four local closures. Other discovered sites are not automatically authorized.
+Author authorized original11 fabrication sites and subsequently explicitly replied: 「4件の局所Support修正と必要な再slice・再監査も許可する」 for F3070/Z36.0, F0592/Z58.4, F4081/Z71.0 and F0965/Z76.4. Exact authorization and attempt boundary: `study/additional_four_20260920/AUTHOR_EXTENSION.json` and `ATTEMPT_BOUNDARY.json`. This permits a necessary separate grouped native attempt and own full audit after those four local closures. Author then explicitly authorized local Support verification/necessary repairs and re-slice/re-audit for F1924, F2773, F0839, F0610, F3808, F0479, F1394, F3452, F1075 and F3535. Exact reply: `study/additional_ten_20260920/AUTHOR_EXTENSION.json`. Further unlisted sites are not automatically authorized.
 
 Active task: [D222 closure](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). Evidence: [D222 record](../evidence/R4_A1_D222_LOCAL_SUPPORT_HOLD.md). Canonical scope remains main; this work is on branch `agent/r4-a1-d222-local-support`, draft [PR17](https://github.com/satw-jp/katachi/pull/17), not merged. Research authority stays [ASTRA_CURRENT](ASTRA_CURRENT.md).
 
@@ -21,7 +21,8 @@ Active task: [D222 closure](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). Evide
 | First D222 archive / command integrity | PASS; raw G-code and separately packed ZIP have full hash/size equality and CRC PASS |
 | First D222 own full audit | COMPLETE, all1058 layers, finished16:37:35 JST, exit0; completion is not unconditional supportability PASS |
 | Original11 own local rooting screen | PASS under recorded finite-width/raster limits; see exact local dispositions below |
-| Additional4 derivative | Local route/mesh study active; not adopted, no new native launched |
+| Additional4 derivative |13 adopted additions,46 total relative to D221; input regression PASS; native RUNNING PID20936; own full audit NOT_STARTED |
+| Additional10 working scope | Authorized; local interval extraction / parent identification active; no geometry adopted |
 | Floating warning | Retained and not closed; native identifies Assembly, independently localized IDs are not exhaustive native IDs |
 | Print-ready / physical print | HOLD / not authorized; actual plate identity unconfirmed |
 
@@ -44,7 +45,7 @@ First D222: `geometry/final`, `gcode`, `audit/final_full` must remain intact. Ne
 
 Full comparison: long unsupported paths6197→6192, both-ends-unrooted2110→2102; these are screen counts, not physical failure counts. Z39–43: long94→84, both-ends34→23; maximum screened run28.107536 mm unchanged. Full max screened run56.525414 mm unchanged. Counts do not establish universal physical supportability.
 
-All15 unmatched/grown comparison events were locally compared to clean D221; nominal paths are identical/nearly identical, hence not evidence of newly introduced floating. Genuine inherited islands still require disposition; legacy status alone does not make them safe. `audit/ALL_UNMATCHED_BIRTH_LOCAL_REVIEW.json`, `INHERITED_FLOATING_WITNESSES.json`. Only the named additional4 have new geometry authorization.
+All15 unmatched/grown comparison events were locally compared to clean D221; nominal paths are identical/nearly identical, hence not evidence of newly introduced floating. Genuine inherited islands still require disposition; legacy status alone does not make them safe. `audit/own_local/ALL_UNMATCHED_BIRTH_LOCAL_REVIEW.json`, `audit/own_local/INHERITED_FLOATING_WITNESSES.json`. The named additional4 and subsequent10 IDs have local repair authorization. Full ID attribution: `audit/own_local/ALL_UNMATCHED_ID_ATTRIBUTION.json`.
 
 First D222 recorded hashes (referenced, not recomputed for this update):
 - G-code1,226,447,550 bytes /53,542,745 lines /1058 layers /Z0.2–211.6: `72fb30c1fc4c205ae8abf6dfbb118672ea1a0d459fb9a12cb6971f46c822e43e`.
@@ -63,6 +64,6 @@ Clean [D221 baseline](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4
 
 ## Next action and stopping boundary
 
-Resume from this CURRENT, then additional4 authorization/intervals and latest study results. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group all four closures before the next native attempt; own-output full audit and package fixation follow. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
+Resume from this CURRENT, then both additional authorization records. The additional4 input is frozen at `attempts/additional_four_20260920`: Support10,570,804 triangles /528,540,284 bytes, SHA256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`; source first-D222 Support prefix verified during new copy. Native manifest `slice/d222_plus4_manifest.json` in that attempt, with exact actual argv. Do not restart it. Complete its output/audit independently while closing newly authorized10 locally. Preserve each attempt. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group the additional10 closures before another native attempt; final own-output full audit and package fixation follow. The four-site attempt must not be relabelled as the ten-site candidate. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
 
 Do not rerun completed D22/D221 repairs, first D222 native/full audit, old facet investigation or large-file hashing merely to resume. Failed/study meshes must not enter adopted input. Preserve known uncertainty and other-site FOLLOW-UP; no automatic scope expansion.
