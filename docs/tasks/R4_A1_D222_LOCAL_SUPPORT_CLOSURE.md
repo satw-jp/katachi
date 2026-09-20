@@ -1,11 +1,15 @@
 # R4 A1 D22.2 — Local Support closure
 
-Status: HOLD, zero adopted Support additions. Owner: R4 A1 Fabrication Astra / Author.
+Status: IN PROGRESS; print HOLD. Owner: R4 A1 Fabrication Astra / Author.
 
-Author permits D22.1 -> D22.2 Support-only closure through a print-ready package. D22.1 is frozen; Artwork, centerlines, branch diameters/topology, Void, all four repaired contacts and locked profiles remain protected. No printer send/print. Full native slice and audit may run once only after every known blocker is repaired/evidence-cleared.
+Latest Author continuation supersedes the F0463 two-cycle STOP, permitting bounded single/curved/forked/dual bed-root receivers and local Support braces. D22.1, Artwork, centerlines, branch diameters/topology, Void, four repaired contacts, existing Support and locked profiles remain protected. No printer send/print or main merge.
 
-F4016 origin was not proven and was excluded without repair. One independent bed-rooted F0463 design was studied. Its first-path mesh does not close F0463 Z39.4: both full1.6 mm head and retained .6 mm contact/1.6 mm shaft/1.65 mm neck searches are obstructed at Z38.8 by F0785. Z42.2 has a section route only. Two head-envelope review iterations ended without closure; stop under user AGENTS review-cycle limit. This is not proof that Artwork changes are required or all Support-only designs are impossible.
+DoD: establish the complete F0463 unsupported interval; validate/adopt local receivers with chronology, continuous3D clearance and plausible removal; close all other named FLOWER/branch blockers; then perform one native slice and an own-output full audit; preserve exact package identity and report the Author gate. Trial counts are not a F0463 stopping condition.
 
-Official D22.2 geometry NOT_ASSEMBLED; native/full audit NOT_RUN. All named blockers unresolved; other repairs not started behind the F0463 prerequisite. Study meshes must remain outside official geometry and must never be mistaken for a print release.
+F0463 local validation PASS, pending final native verification: four parts, two bed roots each with one fork, receive births at Z39.2/39.4/41.6/42.2. All1,046 intersecting paths reviewed across layers194–238. Read `audit/F0463_LOCAL_ADOPTION.json` and its exact mesh/hash/contact/validation pointers in the [D22.2 package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw). F0785 minimum gap0.163975mm remains a native bead/motion review item. Local conditional replay is not final native or physical PASS.
 
-Resume through [CURRENT](../status/R4_A1_FAB_CURRENT.md), [evidence](../evidence/R4_A1_D222_LOCAL_SUPPORT_HOLD.md), then the [Drive package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw) AUTHOR_GATE and F0463_Z394_ROUTE_OBSTRUCTION. Next Author decision: disposition of Z39.4 and any further bounded design/review cycle. Do not automatically repair F4016, change Artwork, introduce thinner Support or run native slice.
+Remaining: F0028/F1722/F3052/F3355/F3796, then A2821/A2479/A3695/A3503/Z60.2 multi-branch. Classify each repaired/evidence-cleared/unresolved; no full slice while any unresolved. Current saved interval extraction is in progress. Retain previous failed studies; do not merge them into official geometry.
+
+Native/full audit NOT_RUN; no D22.2 G-code/ZIP. Plate/profile identity unconfirmed. Frozen D22.1 completed work must not be rerun merely for resumption. Reuse exact saved native command/profile/mapping only after local closure. Final gate can be PRINT-READY CANDIDATE only after own-output validation and plate identity, otherwise HOLD with precise evidence boundary.
+
+Entry: [CURRENT](../status/R4_A1_FAB_CURRENT.md) -> active Author continuation (`study/continuation_20260920/AUTHOR_CONTINUATION.txt`) -> local adoption record -> remaining interval evidence. The older HOLD evidence is historical, not current execution authorization.
