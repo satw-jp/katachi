@@ -1,6 +1,6 @@
 # R4 A1 D222 local Support closure
 
-IN PROGRESS / PRINT HOLD. Owner R4 A1 Fabrication Astra. Entry: [CURRENT](../status/R4_A1_FAB_CURRENT.md), [Drive](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw). Branch agent/r4-a1-d222-local-support / PR17, not main.
+WAITING AUTHOR SCOPE / PRINT HOLD. Owner R4 A1 Fabrication Astra. Entry: [CURRENT](../status/R4_A1_FAB_CURRENT.md), [Drive](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw). Branch agent/r4-a1-d222-local-support / PR17, not main.
 
 ## Current DoD
 
@@ -22,13 +22,13 @@ No implicit authorization for further IDs, profile tuning or Artwork editing.
 
 D221 remains immutable technical/integrity success with complete1058 audit but supportability HOLD. Its completed four contacts and original3-facet explanation are not reopened.
 
-First D222 adopted33 parts/original11 sites. Native and archive PASS, all1058 own audit COMPLETE at2026-09-20 16:37:35 JST. Original11 own local rooting screen PASS with recorded finite-width/raster and physical limits. geometry/final, gcode, audit/final_full stay frozen. Additional facet reduction explained; native floating warning not globally closed.
+First D222 adopted33 parts/original11 sites. Native and archive PASS, all1058 own audit COMPLETE at2026-09-20 16:37:35 JST. Original11 prior bounded local rooting screen PASS with recorded limits; later A4081/Z71.4 is now localized above its former local band and remains unresolved. Do not interpret that historical screen as complete supportability. geometry/final, gcode, audit/final_full stay frozen. Additional facet reduction explained; native floating warning not globally closed.
 
 Four-site derivative:13 further adopted parts (46 total relative D221), audit/ADDITIONAL_FOUR_LOCAL_ADOPTION.json. All4 local intervals and proposed Support transitions pass conditionally; F3070/F4081 actual parent G-code evidence checked. Protected Void/continuous Artwork clearance and plausible staged removal checked. F3070_0's small P10_LOW_0837 connection is an explicit local Support brace. F4081 uses retained.6mm/1.65mm contact necks into existing Y01285; no permanent-body origin added.
 
-Separate attempt: attempts/additional_four_20260920. Frozen Support528,540,284 bytes/10,570,804 triangles, SHA256 db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78. Artwork is the same frozen first-input file; old Support prefix copied byte-for-byte and verified. Native started17:14:13 JST, PID20936; exact manifest slice/d222_plus4_manifest.json and pipeline state in that attempt. No new output PASS yet. Audit starts only after successful native exit; do not duplicate it.
+Separate attempt: attempts/additional_four_20260920. Frozen Support528,540,284 bytes/10,570,804 triangles, SHA256 db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78. Artwork is the same frozen first-input file; old Support prefix copied byte-for-byte and verified. Native exit0 after4549.873s, integrity/profile/ZIP PASS. Own1058 audit completed19:18:23 JST, exit0. Its13 new parts pass own rooting screen, but whole supportability remains HOLD. Exact argv/exits: slice/d222_plus4_manifest.json and PIPELINE_EXECUTION.json. Cloud G-code/ZIP IDs/sizes confirmed. Do not duplicate completed native or audit.
 
-Ten-site extension: study/additional_ten_20260920. Full target-local native intervals and existing Support parent candidates are being established. No ten-site geometry adopted, no ten-site slice started. Complete current plus4 attempt independently; a subsequent grouped input is a different artifact.
+Ten-site extension locally closed:38 parts adopted from selected_v8, including4 local temporary braces. audit/ADDITIONAL_TEN_LOCAL_ADOPTION.json and validation_v8/FINAL_REMOVAL_GATE.json bind conditional chronology, actual existing-parent witnesses, clearance, Void, contact-head/tool/fragment removal and staged F1394 shaft proof. geometry/official_additional_ten holds verified copies, with all38 cloud file sizes confirmed. Former v7 F1394 root rejected for A3265 intersection and excluded. No combined ten-site slice started; a subsequent grouped input remains a distinct artifact.
 
 ## Verification limits and follow-up
 
@@ -38,4 +38,6 @@ All15 comparison-selected unmatched/grown events in first D222 were compared to 
 
 Recovered old GUI G-code/ZIP is corrupt atL337 andL392; use clean D221 for full-layer comparison. Do not rerun completed baseline work, first D222 native/audit or old facet work for resumption. Failed study meshes never enter adopted input. Root historical PACKAGE_MANIFEST is not a current inventory.
 
-Next: finish ten-site interval evidence and bounded Support validation while current authorized attempt runs; then own-output checks, final grouped candidate and package gate within authorized scope. Printing remains HOLD.
+Scope boundary: newly localized A4081/Z71.4 and F3891/Z5.8, F0542/Z58.2, F1261/Z61.2, F2297/F0069/Z83.4, F4207/Z106.6 are unmodified. Their seven-site repair/re-slice/re-audit question awaits Author reply; the bundled question supersedes A4081-only. Evidence: attempts/additional_four_20260920/audit/ADDITIONAL_SEVEN_SCOPE_PENDING.json. These inherited nominal gaps are not cleared by their age.
+
+Next: read Author disposition, preserve the completed plus4 output and frozen38 additions, then proceed only within approved scope. No new native while known scope-dependent repairs are undecided. Actual plate question remains after software closure. Printing remains HOLD.
