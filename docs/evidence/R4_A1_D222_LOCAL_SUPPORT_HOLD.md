@@ -1,42 +1,24 @@
 # D22.2 local Support evidence — print HOLD
 
-## Verified native and archive — 2026-09-20 15:55 JST
+Checked 2026-09-20 18:09 JST. [CURRENT](../status/R4_A1_FAB_CURRENT.md) is the entry. [Drive package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw). This branch/PR17 is unmerged; no print, printer send or main merge.
 
-D222 native **technical PASS**, exit0, elapsed2920.385s; completed15:49:53 JST. Own full chronological audit RUNNING, PID24020,50/1058 layers recorded so far. Do not rerun native or audit. Print HOLD; plate unconfirmed.
+## Completed first D222 (original11 sites)
+Native technical PASS, exit0 at15:49:53 JST; own1058-layer chronological audit COMPLETE at16:37:35 JST. Archive integrity PASS. Original11 own local rooting screen PASS with finite-width/tangency/removal limits; audit completion is not global supportability or physical PASS.
+Pointers: audit/FINAL_OUTPUT_VERIFICATION.json, ALL_LAYER_COMPARISON.json, own_local/OWN_LOCAL_ROOTING_GATE.json, own_local/FINITE_WIDTH_START_RESOLUTIONS.json, own_local/F3052_BIRTH_TANGENCY_REVIEW.json.
+G-code1,226,447,550 bytes,53,542,745 lines,1058 layers Z0.2–211.6; recorded SHA256 72fb30c1fc4c205ae8abf6dfbb118672ea1a0d459fb9a12cb6971f46c822e43e. ZIP321,390,113 bytes; recorded SHA256 dab88b959e75279b0c58e84e54f55d6e9d5587cf975d20efa4ab0dd6b5f5959d. These hashes are referenced, not recomputed for this document.
+New facet delta30,556 plus retainedold3 is explained by native import face repair/sub-resolution coincidences; see audit/added_native_import/ADDED_FACETS_RESOLUTION.json. Diagnostic export is never an input. Do not reopen resolved old4contacts/old3faces.
+Native Assembly floating warning remains unresolved. Own comparison identified inherited FLOWER events in14 IDs now separately authorized (four then ten); this does not clear all global flags. Recovered old GUI G-code is corrupt, so later-layer comparison is limited; cleanD221 comparator remains distinct.
 
-G-code1,226,447,550 bytes /53,542,745 lines /1058 layers /Z0.2–211.6; SHA256 `72fb30c1fc4c205ae8abf6dfbb118672ea1a0d459fb9a12cb6971f46c822e43e`. ZIP321,390,113 bytes; SHA256 `dab88b959e75279b0c58e84e54f55d6e9d5587cf975d20efa4ab0dd6b5f5959d`. Full payload hash/size equality, CRC, motion Z consistency and locked profile checks PASS: `audit/FINAL_OUTPUT_VERIFICATION.json`. ZIP is separate packaging after raw native G-code generation; no second slice.
+## Frozen plus4 attempt, separate from first success
+F3070/F0592/F4081/F0965:13 local Support parts adopted after conditional chronology, parent paths, clearance, Void and staged removal screens. No Artwork change. audit/ADDITIONAL_FOUR_LOCAL_ADOPTION.json; study/additional_four_20260920/combined_validation/.
+[Attempt folder](https://drive.google.com/drive/folders/197rtarKCiHz02bTwgBUXwJnYs67tplor).
+attempts/additional_four_20260920/source/INPUT_LOCKS.json and audit/INPUT_REGRESSION.json freeze unchangedArtwork and Support10,570,804 triangles/528,540,284bytes, recordedSHA256 db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78. Cloud input size/ID confirmed, not a fresh cloud content hash.
+Native PID20936 started17:14:13 JST; observed alive18:09. Manifest RUNNING matches observed process. Own audit NOT_STARTED. Exact engine02.08.02.61/argv/profile/mapping: slice/d222_plus4_manifest.json. Pipeline and postprocessing have separate execution records and will run its own audit/output checks. Do not duplicate either. No plus4 output PASS yet.
 
-Facet difference explained separately from original3: input50,990,291 -> native50,959,732. New Support import-only export accounts for30,556, plus retained original3. Every native new facet matches an input face within5.335e-6mm; source faces without unique assignment are zero-area or geometrically coincident retained faces. Old Support prefix matches within5.722e-6mm, with no larger change. See `audit/added_native_import/ADDED_FACETS_RESOLUTION.json`; diagnostic export is not the locked input.
+## Additional10 authorized, study only
+Author explicitly allows local Support validation/necessary changes/re-slice/re-audit for F1924,F2773,F0839,F0610,F3808,F0479,F1394,F3452,F1075,F3535. Authority: study/additional_ten_20260920/AUTHOR_EXTENSION.json.
+Current selected_v3 has38 study parts, including4 local temporary Support braces. All10 conditional chronology/actual prior-parent path screens PASS;38 Void screens PASS. Brace old-parent actual bead intersections recorded. New-new intersections are same-target connections plus one shared bed-foot connection. These are prospective geometry checks, not final native or physical PASS.
+Pointers under study/additional_ten_20260920/validation_v3/: SUMMARY.json, PARENT_TOOLPATH_ROOTING.json, BRACE_PARENT_BEAD_WITNESSES.json, VOID_GUARD.json, NEW_NEW_CONNECTIONS.json. Native microsection behavior remains pending.
+Removal still under review: current search has unresolved F3452_2,F1075_0,F1075_1; wider direction/access searches ongoing. No ten-site adoption/final input/native launch yet. Full jaws/fracture forces, long temporary post behavior and surface scars remain physically unproven.
 
-Native floating warning still names Assembly on plate1. It is **not cleared**; own full audit and local output review must decide it. Complete technical/integrity checks do not constitute supportability or physical PASS.
-
-Drive cloud metadata confirms both final input STLs, including unchanged2,034,241,534-byte Artwork copy: `audit/INPUT_DRIVE_SAVE_RECEIPT.json`. Output/audit Drive confirmation still pending final inventory. Exact active process states: `slice/d222_final_manifest.json`, `slice/PIPELINE_EXECUTION.json`.
-
-
-## Active continuation — 2026-09-20 15:02 JST
-
-All11 known sites locally repaired;33 adopted Support parts (21 FLOWER,12 branch). Exact evidence: `audit/FLOWER_LOCAL_ADOPTION_V5.json`, `audit/BRANCH_LOCAL_ADOPTION_V5.json`, `audit/LOCAL_CLOSURE_GATE.json`. The local PASS is conditional saved-path validation, not native/physical PASS.
-
-Input freeze PASS: `audit/INPUT_REGRESSION.json` / `source/INPUT_LOCKS.json`. D221 Artwork40,684,829 triangles and existing Support9,305,124 triangles preserved byte-for-byte while making a separate D222 input. New Support adds1,000,338 triangles; final input Support10,305,462 triangles. Source hashes were verified while streaming the new copies, not by re-auditing old G-code. All33 new parts belowVoid lowerZ67.766.
-
-Native02.08.02.61 started15:01:12 JST, PID24948; RUNNING observed15:02. Exact argv/profile/engine identities: `slice/d222_final_manifest.json`. Full audit NOT_STARTED; `slice/PIPELINE_EXECUTION.json` will record its separate launch/exit after native succeeds. One final native attempt only; do not duplicate/restart this pipeline. No G-code/ZIP PASS yet.
-
-Local details retained: A3695 includesL221/Z44.2; multi-site includesA3181 L314/Z62.8. A3503 far-end receiver now uses retained.6mm neck for removal. A3503 saved first ellipse retains two anchored3.682/3.563mm spans; multi-site max1.876mm. No generic safe span asserted; own native features/speeds/chronology must be reviewed. Exact terminal3mm withdrawal and upper-shaft tool approaches are conditional on staged contact fracture; full jaws/forces unproven. Narrow gaps and sub-nozzle microsections remain final-native checks. AdjacentF2387 incidental-path issue stays explicit FOLLOW-UP, not silently repaired.
-
-D221 immutable. Print HOLD, plate identity UNCONFIRMED; no printer send/print/main merge. Old failed studies and old manifest are historical, not current adopted inputs.
-
-## Retained preceding record
-
-
-[Drive evidence package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw), derived from frozen D22.1. Branch agent/r4-a1-d222-local-support starts from checkpoint branch; no main merge.
-
-- F4016 Z35.6: no extracted local extrusion. Z35.8 line17641069: saved unsupported start, length1.235186 mm, no later contact; local previous-bead overlap0. Separate line17641092 has previous-bead overlap. Requested rooted origin chain unproven; F4016 not used/repaired.
-- Independent first-path study: measured7 mm foot, lower reinforcement up to2.6 mm,1.6 mm shaft; revised volume115.21256 mm3. Manifold mesh and continuous sections; receiving top precedes F0463 Z39.2. Intended contact volume .037817 mm3; bottom Support contacts enumerated. Geometry screen only, not adopted or sliced.
-- Additional F0463 Z39.4 and42.2 witnesses match saved start flags. Z39.4 starts line18911457 at XY67.978/99.482. At Z38.8, tested two-layer reachable centers have maximum F0785 raw clearance .2150 mm versus retained neck radius plus guard .6812 mm. Full1.6 mm head and .6 mm contact/1.6 mm shaft/1.65 mm neck iterations did not establish the same-root route. Bounded grid failure is not global impossibility. Z42.2 section route is not a completed head.
-- Two bounded head-envelope iterations exhausted. No alternate origin, thinner/steeper hypothesis or Artwork edit adopted. All named FLOWER and branch blockers remain unresolved; native/full audit NOT_RUN, no D22.2 G-code/ZIP. D22.1 success remains separate.
-- Earlier removal screens refer to revision1 and cannot clear revised geometry. Physical force, removability and surface outcomes remain unproven.
-- Source stat check detected G-code mtime variation only. Targeted SHA256 matched recorded dcbba3bd608ca7fea91c19bd0b1f3b24c200a19ab643deb8fac6ba01b9a1e447. Other290 files unchanged by stat, not rehashed. Timestamp cause unproven.
-
-Pointers: source/PROVENANCE.json, D221_INPUT_LOCKS_RECORDED.json, SUPPORT_PROVENANCE.json; audit/F4016_LOCAL_GCODE_CHAIN.json, F4016_ORIGIN_GATE.json, FLOWER_LOCAL_TARGET_PATHS.json, F0463_BED_RECEIVER_VALIDATION.json, F0463_ADDITIONAL_HEADS.json, F0463_Z394_ROUTE_OBSTRUCTION.json, BLOCKER_DISPOSITION.json, AUTHOR_GATE.json; reproduce/. Read README limitations before reuse.
-
-Gate HOLD. Next: Author disposition of Z39.4 and any further bounded review cycle. Printer send/print prohibited.
+Retain Artwork/FLOWER/SHAPE/4,238 2.2mm branches/old bottomSupport, locked240°C profiles and explained CLI6000 limit. Candidate settings are not universal rules. Do not rerun completed D221 or firstD222 native/full audits. Next: finish bounded ten-site removal/connection closure while reviewing plus4 own output; then freeze a separate authorized derivative and run its own native/full audit. Actual plate remains unconfirmed until software closure.
