@@ -1,6 +1,19 @@
 # R4 A1 Fabrication — Current
 
-Last verified:2026-09-20 15:02 JST. All11 local sites repaired;33 new Support parts adopted. D22.2 native RUNNING; own audit NOT_STARTED. Print HOLD.
+## Verified native and archive — 2026-09-20 15:55 JST
+
+D222 native **technical PASS**, exit0, elapsed2920.385s; completed15:49:53 JST. Own full chronological audit RUNNING, PID24020,50/1058 layers recorded so far. Do not rerun native or audit. Print HOLD; plate unconfirmed.
+
+G-code1,226,447,550 bytes /53,542,745 lines /1058 layers /Z0.2–211.6; SHA256 `72fb30c1fc4c205ae8abf6dfbb118672ea1a0d459fb9a12cb6971f46c822e43e`. ZIP321,390,113 bytes; SHA256 `dab88b959e75279b0c58e84e54f55d6e9d5587cf975d20efa4ab0dd6b5f5959d`. Full payload hash/size equality, CRC, motion Z consistency and locked profile checks PASS: `audit/FINAL_OUTPUT_VERIFICATION.json`. ZIP is separate packaging after raw native G-code generation; no second slice.
+
+Facet difference explained separately from original3: input50,990,291 -> native50,959,732. New Support import-only export accounts for30,556, plus retained original3. Every native new facet matches an input face within5.335e-6mm; source faces without unique assignment are zero-area or geometrically coincident retained faces. Old Support prefix matches within5.722e-6mm, with no larger change. See `audit/added_native_import/ADDED_FACETS_RESOLUTION.json`; diagnostic export is not the locked input.
+
+Native floating warning still names Assembly on plate1. It is **not cleared**; own full audit and local output review must decide it. Complete technical/integrity checks do not constitute supportability or physical PASS.
+
+Drive cloud metadata confirms both final input STLs, including unchanged2,034,241,534-byte Artwork copy: `audit/INPUT_DRIVE_SAVE_RECEIPT.json`. Output/audit Drive confirmation still pending final inventory. Exact active process states: `slice/d222_final_manifest.json`, `slice/PIPELINE_EXECUTION.json`.
+
+
+Last verified:2026-09-20 15:55 JST. D222 native/integrity PASS; own full audit RUNNING (50/1058 recorded). Print HOLD.
 
 ## Authority
 
@@ -11,7 +24,7 @@ Last verified:2026-09-20 15:02 JST. All11 local sites repaired;33 new Support pa
 - Author direction: [retained 2026-09-18 instruction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md).
 - Geometry, profiles, slice execution and physical evidence: the explicit Drive pointers below, resolved by file identity and hash, not by folder name or chat recollection.
 - Latest Author instruction permits localized fabrication-only D22.2 Support closure, with D22.1 frozen. Artwork, printer-send and physical-print remain prohibited. The latest Author continuation explicitly lifts the F0463 review-cycle limit; continue local closure, then remaining blockers, one native slice and own full audit. No printer send/print or main merge.
-- Process snapshot15:02 JST: worker-owned native PID24948 RUNNING, started15:01:12. Earlier unattributed Bambu PID17748 no longer observed; no unknown process terminated. Follow live PID and saved manifest separately.
+- Process snapshot: native PID24948 exited0; own full auditor PID24020 started15:49:53 JST. Import-only diagnosis finished; no second slice. Use separate execution manifests and live observations.
 
 ## NOW / Current phase
 
@@ -20,7 +33,7 @@ Last verified:2026-09-20 15:02 JST. All11 local sites repaired;33 new Support pa
 | Baseline geometry | **D22**, frozen reference; internal branch authority diameter 2.2 mm with the root exceptions below. |
 | Latest successful full native slice | **D22.1: technical PASS**, native generation and saved full-file/ZIP integrity complete. Prior D22 recovery remains a separate historical success. No general reliability or physical PASS implied. |
 | Frozen successful input | D22.1, including its four completed contacts and 22,369 other Support blocks. No source geometry changes. |
-| Working derivative | D22.2:33 new Support parts across all11 sites locally conditionally validated/adopted. Input freeze PASS; native RUNNING; own full audit NOT_STARTED. |
+| Working derivative | D22.2:33 new Support parts across all11 sites locally conditionally validated/adopted. Input freeze PASS; native PASS; own full audit RUNNING. |
 | Latest inspected D22.1 slice record | `slice/d221_final_manifest.json`: **EXITED, exit_code 0**, started `2026-09-18T22:06:07Z`, historical PID 34088, elapsed 2970.950628 s. Supersedes the stale RUNNING description. |
 | D22.1 final audit | **Coverage COMPLETE: all 1,058 layers, including Z39–43 mm**. Audit completion is not supportability PASS; chronological receiver loss and FLOWER floating remain blockers. |
 | Print / approved printable release | **HOLD / NONE**. No machine-send or printing authorization is granted here. |
