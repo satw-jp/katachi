@@ -1,6 +1,6 @@
 # R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0
 
-Status: **PHASE A FAIL CONFIRMED / PHASE B PACKAGING PROOF ACTIVE**
+Status: **PHASE B PROOF PASS / MINIMAL RUNNER INTEGRATION AUTHORIZED / PHASE C DEFERRED**
 
 Owner: R5 Slice Runner LUNA under SOL review.
 
@@ -148,15 +148,44 @@ Proof artifact SHA-256:
 Its embedded `Metadata/plate_1.gcode` remains byte-identical to the Runner output:
 `dbb4e4987f085898b5a414b28922554a8a2bca1d1dcc15f8b67488933f771406`
 
-### Phase B author check
+### Phase B author check — PASS
 
-Open the proof `.gcode.3mf` in Bambu Studio. Do not send.
+Author opened the proof `.gcode.3mf` in Bambu Studio.
 
-PASS only if Preview opens without generating new G-code and the normal review surfaces remain available.
+Observed:
+- the file opened directly into an already-sliced Preview;
+- no G-code regeneration was shown;
+- PETG / PLA toolpath colors were visible;
+- layer slider was available;
+- estimated time/material and material-change information were visible;
+- warning state remained visible;
+- the send dialog showed physical material mapping:
+  - PETG -> AMS A1
+  - PLA -> AMS A3
+- send was disabled only because the printer was busy with another print; no send was attempted.
 
-If PASS, then authorize the smallest Runner implementation: package the existing successful slice result into this sliced-only review artifact and add identity fields to `RESULT_MANIFEST`/GUI. Do not modify slicer semantics.
+Therefore the sliced-only `.gcode.3mf` packaging pattern satisfies the required Author review surface for this bounded proof.
 
-If FAIL, STOP and inspect the exact format gap before Runner integration.
+**PHASE B PASS.**
+
+Evidence screenshots were supplied by the Author in chat. No physical print or send was performed for this proof.
+
+### Minimal Runner implementation now authorized
+
+Implement only:
+
+1. after a successful native slice, package a sliced-only `.gcode.3mf` from the successful result;
+2. preserve `Metadata/plate_1.gcode` bytes exactly;
+3. compute/store:
+   - reviewable `.gcode.3mf` SHA-256;
+   - embedded G-code SHA-256;
+   - standalone G-code SHA-256;
+   - `embedded_equals_standalone`;
+4. expose the review artifact clearly in `RESULT_MANIFEST.json`;
+5. add a user-triggered **Bambu Studioで確認** / **Open in Bambu Studio** action if practical;
+6. never auto-send and never silently reslice.
+
+Do not change slicer CLI semantics, geometry, Support, profiles, AMS mapping policy, or printer operation.
 
 ### Later Runner implementation scope, only after packaging proof PASS
 
@@ -183,7 +212,7 @@ Protected:
 
 Tests must prove identity and fail closed on missing/corrupt 3MF or missing embedded G-code.
 
-## 5. Phase C — sent-payload identity validation
+## 5. Phase C — sent-payload identity validation — DEFERRED / STILL REQUIRED
 
 This is a separate Author-gated validation after Phase A/B.
 
@@ -223,9 +252,7 @@ V0 is accepted only when:
 
 ## 7. STOP
 
-For the current task, Phase A is closed FAIL. Execute the **Phase B proof-open check only** next.
-
-Do not modify Runner until the proof `.gcode.3mf` has been tested in Bambu Studio. The actual Phase A gap is already observed; the remaining question is whether sliced-only packaging resolves it without changing G-code.
+For the current task, Phase A is closed FAIL and Phase B proof is closed PASS. The smallest Runner packaging/identity integration above is now authorized. After implementation, STOP for SOL review before any Phase C send/recovery validation.
 
 Return to SOL with:
 
