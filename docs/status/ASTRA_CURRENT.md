@@ -5,7 +5,7 @@ Last verified: 2026-09-21
 ## Authority
 
 - repo: `satw-jp/katachi`; canonical branch: `main`.
-- source main inspected for this documentation checkpoint: `9f6c607100c25cdfc780377002839726fde044b8`.
+- source main checkpoint before this overall update: `7294f995b83883f5d14f1517b8b8f6c8192a0cb8`.
 - stable Research/current routing: this file. Research keeps artwork geometry, generating principles and source evidence authority.
 - retained Large R4 / D22.1 A1 fabrication lane: [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md).
 - current A1 mini PETG+PLA physical lane: [A1MINI_AMSLITE_PHYSICAL_CURRENT](A1MINI_AMSLITE_PHYSICAL_CURRENT.md).
