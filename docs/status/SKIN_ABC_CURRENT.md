@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-19 (Astra/Fabrication routing; retained AB/C evidence unchanged)
+Last verified: 2026-09-21 (execution routing refreshed; retained AB/C evidence unchanged)
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -10,7 +10,9 @@ Last verified: 2026-09-19 (Astra/Fabrication routing; retained AB/C evidence unc
 - retained AB technical/evidence authority: `docs/status/AB_CURRENT.md` plus its accepted checkpoints
 - retained C technical/evidence authority: `docs/status/C_CURRENT.md` plus its accepted checkpoints
 - active Astra Research current: `docs/status/ASTRA_CURRENT.md`
+- cross-lane execution entry: [SKIN_FUKEI_EXECUTION_CURRENT](SKIN_FUKEI_EXECUTION_CURRENT.md)
 - active bounded A1 fabrication current: [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md)
+- R5 Slice Runner current: [R5_SLICE_RUNNER_CURRENT](R5_SLICE_RUNNER_CURRENT.md)
 - Astra Reader current: `docs/status/SKIN_R_CURRENT.md`
 
 `SKIN_ABC_SOL` is the single author-facing consultation front for current SKIN priorities and future Research -> Production handoff decisions. It does not replace the accepted AB/C evidence or make their code one architecture.
@@ -21,7 +23,7 @@ Last verified: 2026-09-19 (Astra/Fabrication routing; retained AB/C evidence unc
 - Team AB has no active implementation task.
 - Team C has no active implementation task.
 - `SKIN_ABC_SOL` has no active implementation task.
-- The active Astra execution focus is existing R4 -> bounded A1 Fabrication under `R4_A1_FAB_CURRENT.md`, not a restart of the September13 Artwork Geometry study. D22 Native Recovery is one-run technical PASS; D22.1 has four contact repairs already applied; final D22.1 slice success/all-layer audit are not verified; print remains HOLD. The Fabrication CURRENT alone owns detailed candidate/attempt state and restart pointers.
+- Current execution routing is summarized in [SKIN_FUKEI_EXECUTION_CURRENT](SKIN_FUKEI_EXECUTION_CURRENT.md). R4 has progressed through D22.2 Plus4 native/integrity/full-audit completion and the Author has reported a bounded Plus4 physical experiment started; physical result remains pending. Additional10 has 38 locally adopted parts but no combined native. R5 Slice Runner REPRO_AUDIT_01 is complete at classification C and remains stopped. Lane CURRENT files own detailed identities, limits and restart pointers.
 - New author-facing SKIN consultation should normally enter through `SKIN_ABC_SOL`.
 
 ## Current purpose
