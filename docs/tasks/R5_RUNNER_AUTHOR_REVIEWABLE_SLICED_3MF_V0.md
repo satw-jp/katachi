@@ -1,6 +1,6 @@
 # R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0
 
-Status: **PHASE B PROOF PASS / MINIMAL RUNNER INTEGRATION AUTHORIZED / PHASE C DEFERRED**
+Status: **PHASE B IMPLEMENTATION PASS / CLOSED — PHASE C DEFERRED / NOT ACTIVE**
 
 Owner: R5 Slice Runner LUNA under SOL review.
 
@@ -170,22 +170,35 @@ Therefore the sliced-only `.gcode.3mf` packaging pattern satisfies the required 
 
 Evidence screenshots were supplied by the Author in chat. No physical print or send was performed for this proof.
 
-### Minimal Runner implementation now authorized
+### Minimal Runner implementation — COMPLETE / PASS
 
-Implement only:
+Implemented in the Drive-staged Runner:
 
-1. after a successful native slice, package a sliced-only `.gcode.3mf` from the successful result;
-2. preserve `Metadata/plate_1.gcode` bytes exactly;
-3. compute/store:
-   - reviewable `.gcode.3mf` SHA-256;
-   - embedded G-code SHA-256;
-   - standalone G-code SHA-256;
-   - `embedded_equals_standalone`;
-4. expose the review artifact clearly in `RESULT_MANIFEST.json`;
-5. add a user-triggered **Bambu Studioで確認** / **Open in Bambu Studio** action if practical;
-6. never auto-send and never silently reslice.
+1. successful native slice -> sliced-only `.gcode.3mf` packaging;
+2. `Metadata/plate_1.gcode` byte preservation;
+3. review artifact / embedded G-code / standalone G-code SHA-256 recording plus `embedded_equals_standalone`;
+4. `review_ready` and review-artifact identity in `RESULT_MANIFEST.json`;
+5. user-triggered **Bambu Studioで確認** action only;
+6. no auto-send / no silent reslice.
 
-Do not change slicer CLI semantics, geometry, Support, profiles, AMS mapping policy, or printer operation.
+Fix 1 also separates CLI execution success from review packaging success. If packaging fails after CLI exit0, `status=SUCCESS` and `execution_success=true` are preserved while `review_artifact.status=FAILED` and `review_ready=false` are recorded.
+
+Fail-closed review packaging now requires:
+- standalone G-code;
+- native sliced 3MF;
+- ZIP CRC PASS;
+- parseable `Metadata/model_settings.config`;
+- native embedded `Metadata/plate_1.gcode`;
+- exact native embedded == standalone G-code bytes.
+
+Missing/corrupt/mismatched evidence produces no review artifact and does not rewrite the CLI result.
+
+Validation:
+- Author/LUNA report: **24 tests PASS**;
+- SOL independent re-run from the current Drive-staged source: **24 tests OK / 3 SKIP** (the three skips are platform-specific Windows tests on the non-Windows verification host);
+- syntax/test-only validation; Bambu CLI, printer send and physical print were not run for this closure.
+
+No slicer CLI semantics, geometry, Support, profiles, AMS mapping policy or printer operation were changed.
 
 ### Later Runner implementation scope, only after packaging proof PASS
 
@@ -252,14 +265,13 @@ V0 is accepted only when:
 
 ## 7. STOP
 
-For the current task, Phase A is closed FAIL and Phase B proof is closed PASS. The smallest Runner packaging/identity integration above is now authorized. After implementation, STOP for SOL review before any Phase C send/recovery validation.
+For the current task, Phase A is closed FAIL and Phase B implementation is **PASS / CLOSED**. STOP. Phase C remains deferred and requires a new explicit Author gate before any send/recovery validation.
 
 Return to SOL with:
 
-- Phase A PASS/FAIL;
-- screenshots/evidence;
-- whether reslice was required;
-- exact missing capability, if any;
-- proposed smallest next change.
+- Phase A FAIL / Phase B PASS history is retained above;
+- Phase B implementation is now closed;
+- no next Runner implementation task is active;
+- Phase C remains deferred.
 
 STOP.
