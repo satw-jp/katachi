@@ -1,6 +1,6 @@
 # SKIN_ABC Current Status
 
-Last verified: 2026-09-21 (Author-authorized overall audit corrections; physical-first routing, no new physical result or implementation)
+Last verified: 2026-09-21 (physical-first routing + Author-authorized R5 reviewable-sliced-3MF Phase A validation; no Runner code change)
 
 ## Authority
 - repo: `satw-jp/katachi`
@@ -25,7 +25,7 @@ Last verified: 2026-09-21 (Author-authorized overall audit corrections; physical
 - **Large R4:** Plus4 native/integrity/profile PASS and own1,058-layer audit COMPLETE are retained; Author reported experiment start2026-09-20 23:35 JST. Physical result pending / live printer state UNVERIFIED. Additional10/38 parts are locally frozen but unsliced; Additional7 remains unmodified. See the R4 router for the exact branch CURRENT/task.
 - **A1 mini PETG+PLA:** separate bounded physical lane. PHYSICAL_01 actual-sent payload binding COMPLETE, intentional early stop, quality LOW, no physical PASS. PHYSICAL_02 is READY FOR AUTHOR EXECUTION / result pending, using the same locked V1-derived payload with PETG drying as the only planned changed factor.
 - **PLA mini / F2 comparison:** separate physical observations; exact recent F2 job machine/scale/payload/overrides are not canonically bound by this update. Do not label the A1-100% F2 package as the direct latest revision of the old mini candidate.
-- **R5 Slice Runner:** A1 single and A1 mini two-material execution routes PASS. `REPRO_AUDIT_01` classification C — minor toolpath nondeterminism / fabrication semantics equivalent for compared runs. Code freeze; no Runner implementation task.
+- **R5 Slice Runner:** A1 single and A1 mini two-material execution routes PASS. `REPRO_AUDIT_01` classification C — minor toolpath nondeterminism / fabrication semantics equivalent for compared runs. The Author has now authorized `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` Phase A: validate the existing Runner-produced native sliced 3MF as the final Bambu Studio review surface. Runner code remains frozen unless an actual reviewability gap is observed.
 
 ## Physical-first operating direction
 
@@ -121,7 +121,8 @@ No Production implementation blocker is opened. Current missing decision evidenc
 1. **Large R4 Plus4 physical review:** receive the result, record actual conditions and assess removal/finishing/artwork usability or an observed bounded repair need. Do not automatically consume Additional10 or reopen Additional7.
 2. **PHYSICAL_02 DRY-ONLY AUTHOR PHYSICAL REVIEW:** preserve the locked V1 payload, drying-only change, actual stop/deviation and defined photos. No new slice or tuning. This remains an independent mini AMS lane.
 3. **PLA mini/F2 observation:** bind the actual jobs and compare lower shafts, bed-side FLOWER, early braces, sag/stringing/surface/removal. Without matched conditions, report observed differences rather than single-factor causality.
-4. Keep Runner code frozen. After physical review, decide selectively whether a bounded result merits finishing or later SKIN reproducibility. Generalization remains later.
+4. **R5 reviewable sliced-3MF Phase A:** open the existing Runner-produced native sliced 3MF in Bambu Studio and verify Preview/material/layer/warning/AMS-mapping review without intentional reslice. Do not send in Phase A. Runner code stays frozen unless an observed gap justifies a separately reviewed implementation.
+5. After physical review and the bounded R5 check, decide selectively whether a proven procedure merits finishing or later SKIN reproducibility. Generalization remains later.
 
 ## HOLD / do not pre-decide
 - new final SKIN architecture;
@@ -135,7 +136,7 @@ No Production implementation blocker is opened. Current missing decision evidenc
 - automatic Research -> Production translation;
 - generalization before the first selected candidate is reproduced and reviewed;
 - treating the current R4 GN study or fabrication Playbook itself as Production architecture;
-- Additional10 combined slice, Additional7 repair, Runner expansion or automated A1-to-mini conversion before the relevant physical review and explicit next scope.
+- Additional10 combined slice, Additional7 repair, automated A1-to-mini conversion, or Runner code expansion without an observed Phase A gap and explicit next scope. The review-only R5 Phase A validation is authorized.
 
 ## Required pointers
 - `docs/TEAM_PROTOCOL_CORE.md`
