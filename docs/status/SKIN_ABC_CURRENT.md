@@ -5,7 +5,7 @@ Last verified: 2026-09-21 (overall routing; retained AB/C and D22.1 evidence pre
 ## Authority
 - repo: `satw-jp/katachi`
 - branch: `main`
-- main base at CURRENT creation: `caf1350725fccfee7e06d9d21787bcfe302031fd`
+- main checkpoint before this overall update: `7294f995b83883f5d14f1517b8b8f6c8192a0cb8`
 - author-facing SKIN consultation authority: `SKIN_ABC_SOL`
 - retained AB technical/evidence authority: `docs/status/AB_CURRENT.md` plus its accepted checkpoints
 - retained C technical/evidence authority: `docs/status/C_CURRENT.md` plus its accepted checkpoints
@@ -33,7 +33,7 @@ Observe Research / Astra, SKIN_R, physical prints, and author review, then decid
 
 Do not treat completion of old AB/C methods as the goal. Preserve what was actually proven, under the conditions where it was proven, and translate only what remains useful after artwork and physical review.
 
-The retained [2026-09-18 Author direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md) supersedes the old Artwork-only phase description only for the bounded A1 fabrication lane. It does **not** authorize Production, generalization, new Artwork Research or machine-send/printing. The active fabrication STOP is **AUTHOR A1 PRINT PACKAGE GATE**.
+The retained [2026-09-18 Author direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md) remains authority for the separate Large R4 / D22.1 fabrication lane. Its **AUTHOR A1 PRINT PACKAGE GATE** is retained only for that lane. The current A1 mini dry-only physical test has its own gate in `A1MINI_AMSLITE_PHYSICAL_CURRENT.md`. Neither lane authorizes Production or generalization.
 
 Reusable procedures and constraints now have a separate Playbook home: [A1 CLI Runbook](../fabrication/A1_BAMBU_CLI_RUNBOOK.md), [Toolpath Audit Rules](../fabrication/TOOLPATH_AUDIT_RULES.md), [Fabrication Principles](../fabrication/FABRICATION_PRINCIPLES.md). Documentation of a required check is not proof that it is implemented or validated. A future `skin fab slice` executor is proposed, not implemented by this update.
 
