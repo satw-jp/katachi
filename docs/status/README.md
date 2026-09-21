@@ -10,7 +10,9 @@ Recommended stable files:
 
 - `SKIN_ABC_CURRENT.md`
 - `ASTRA_CURRENT.md`
-- [R4_A1_FAB_CURRENT.md](R4_A1_FAB_CURRENT.md) — existing R4 -> bounded A1 fabrication; separate baseline, successful slice and working candidate
+- [R4_A1_FAB_CURRENT.md](R4_A1_FAB_CURRENT.md) — retained Large R4 / D22.1 bounded A1 fabrication lane
+- [R5_SLICE_RUNNER_CURRENT.md](R5_SLICE_RUNNER_CURRENT.md) — FUKEI Slice Runner execution infrastructure and reproducibility boundary
+- [A1MINI_AMSLITE_PHYSICAL_CURRENT.md](A1MINI_AMSLITE_PHYSICAL_CURRENT.md) — current A1 mini PETG+PLA physical evidence and dry-only test
 - `AB_CURRENT.md`
 - `C_CURRENT.md`
 - `HANA_CURRENT.md`
