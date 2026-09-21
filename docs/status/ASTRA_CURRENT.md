@@ -21,7 +21,7 @@ Large R4: Plus4 native/integrity/profile PASS and own1,058-layer audit COMPLETE 
 
 Mini AMS is a separate lane. PHYSICAL_01 actual-sent payload identity is COMPLETE from SD-card recovery and matches the V1-derived cached candidate. The Author intentionally stopped the upper region; quality is LOW, with visible stringing and surface roughness. PHYSICAL_01 is not a Runner smoke V0 physical result.
 
-Mini AMS physical work moved beyond the old dry-only direct-G-code plan. In the Author-visible 3MF V2 lane, Attempt A was stopped after the Author observed that the running print had no raft; it is invalid for the intended V2 comparison. The Author then restarted the V2 print as a distinct Attempt B. Its exact restarted raft/payload/override binding and physical result remain pending.
+Mini AMS physical work moved beyond the old dry-only direct-G-code plan. In the Author-visible 3MF V2 lane, Attempt A remains invalid because the running print had no raft. Restarted Attempt B completed. LAB review supports improved shape preservation versus PHYSICAL_01: the compact 3D mass survives with larger readable voids and more discrete protrusions, though stringing / blobs / surface roughness remain substantial. The Author also judges it improved versus the first PLA print, but that comparison is not matched-condition evidence. Mid-print color change cause and exact raft/printer-side binding remain unresolved.
 
 The non-AMS PLA mini/F2 physical comparison is also separate. Preserve the Author-reported old-mini240°C manual override despite220°C in its saved3MF. F2 is an A1-100% package, not automatically the direct latest mini candidate. Do not invent exact recent F2 payload/machine/scale/override bindings.
 
@@ -41,7 +41,7 @@ A1-100% remains the master. Historical73.33333333333333% uniform scale is a deri
 
 **Large R4: PLUS4 AUTHOR PHYSICAL REVIEW.** Receive the result and record its exact payload, actual machine/plate/scale/material/overrides and observed problem locations. Unknowns remain UNKNOWN. Consider removal/finishing/artwork assessment if usable; otherwise return a bounded repair proposal. Do not defer actual plate recording behind software closure.
 
-**Mini AMS: AUTHOR_VISIBLE_3MF_V2 ATTEMPT B AUTHOR PHYSICAL REVIEW.** Bind the restarted job's actual raft condition / payload / printer-side deviations and return bed-on / before-removal / after-removal photos. Attempt A stays invalid because raft was absent. Do not change another factor before reviewing Attempt B.
+**Mini AMS: NEXT BOUNDED FABRICATION DECISION.** Attempt B is reviewed and overall shape survival is no longer the main blocker. Bind raft/printer-side deviations if available, then choose one next concern from Support removal / local surface quality / stringing. Do not change multiple factors at once. Attempt A remains invalid.
 
 **PLA mini/F2: physical comparison with run binding.** Do not call unmatched conditions a single-factor Support experiment.
 
