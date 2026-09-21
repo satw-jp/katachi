@@ -11,6 +11,8 @@ Last verified: 2026-09-21 (JST) — Author-visible 3MF V2 raft discrepancy / res
 - actual-sent payload binding: https://drive.google.com/drive/folders/11SzwOSHfntHBRI5EKLVohcEy5zNCsA5H
 - PHYSICAL_02 dry-only execution package: https://drive.google.com/drive/folders/1hB66PbSCCad-wkUYUX0SVN9X_QpuWzlF
 - Author-visible V2 raft/restart observation: [AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_RAFT_RESTART_2026-09-21](../observations/AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_RAFT_RESTART_2026-09-21.md)
+- V2 Attempt B physical result: [AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_ATTEMPT_B_RESULT_2026-09-21](../observations/AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_ATTEMPT_B_RESULT_2026-09-21.md)
+- V2 Attempt B LAB: https://drive.google.com/drive/folders/1MsFw2jzfoc3qkEpV6ZfwW8jniktfvyw3
 
 This lane is separate from the Large R4 / D22.1 A1 fabrication lane and separate from R5 Slice Runner infrastructure.
 
@@ -128,15 +130,35 @@ Do not use Attempt A to judge PETG/PLA interface quality, Support removability o
 
 This is an observed discrepancy between the intended V2 package condition and the actual first running job. Cause is **UNRESOLVED**. Do not assign it to Runner, Bambu Studio, editable-3MF persistence or send-time settings without evidence.
 
-### V2 Attempt B — RESTARTED
+### V2 Attempt B — COMPLETED / PHYSICAL REVIEWED
 
-The Author restarted the print after stopping Attempt A.
+The restarted print completed.
 
-Current state:
+LAB evidence:
+- `IMG_1776.HEIC`
+- `IMG_1777.HEIC`
+- `IMG_1778.HEIC`
 
-**RESTARTED / PHYSICAL RESULT PENDING.**
+Author report:
+- filament color changed during the print;
+- geometry appears improved compared with the first PLA print.
 
-Treat Attempt B as a distinct execution. Exact restarted payload identity, actual raft count and any printer-side overrides are not yet independently bound in this CURRENT and must be recorded before using the result as matched-condition evidence.
+SOL visual review:
+- overall compact 3D mass survived coherently;
+- larger voids remain readable;
+- more individual branch/lobe/flower-like protrusions remain legible;
+- compared with PHYSICAL_01 after Support removal, the result is less fused/fuzzy and preserves the intended 3D structure more clearly;
+- stringing, surface roughness and blobs remain substantial;
+- mixed tan/gray/white regions complicate material/color reading.
+
+Classification:
+- shape preservation improvement vs PHYSICAL_01: **SUPPORTED**;
+- Author judgment vs first PLA: **SUPPORTED AS AUTHOR OBSERVATION**, not a controlled single-factor result;
+- surface quality: **still LOW / unresolved**;
+- exact raft condition and printer-side deviations for Attempt B: **not independently bound from the uploaded off-bed photos**;
+- overall Physical PASS: **HOLD**.
+
+The mid-print color change remains a separate unresolved process anomaly. Do not assign a cause without printer/spool evidence.
 
 ## Active implementation instruction
 
@@ -144,14 +166,13 @@ Owner: **Fabrication Astra / Author physical gate**.
 
 No geometry or software implementation is active.
 
-Current priority is the restarted Author-visible V2 execution, not another dry-only direct-G-code run.
+Current priority is to use Attempt B as physical evidence and avoid reopening overall geometry prematurely.
 
-For the restarted V2 attempt:
-1. let the current print continue unless a new concrete blocker appears;
-2. record the actual raft condition and any send/printer-side deviations;
-3. at completion, photograph bed-on / removed-before-support-removal / after-support-removal;
-4. record PETG stringing/surface quality, PLA interface presence, Support removal behavior and damage;
-5. STOP for physical review before changing another factor.
+Next bounded review:
+1. bind actual Attempt B raft condition / printer-side deviations if available;
+2. treat the color change as a separate anomaly unless it affects the next decision;
+3. focus the next fabrication concern on Support removal / local surface quality / stringing rather than overall shape survival;
+4. do not change multiple factors at once.
 
 ## HOLD / do not change
 
@@ -165,9 +186,9 @@ For the restarted V2 attempt:
 
 ## Next gate
 
-**AUTHOR_VISIBLE_3MF_V2 ATTEMPT B — AUTHOR PHYSICAL REVIEW.**
+**AUTHOR_VISIBLE_3MF_V2 ATTEMPT B — NEXT BOUNDED FABRICATION DECISION.**
 
-Return the restarted job's actual raft condition, deviations and defined photos. Attempt A remains an invalid stopped execution because raft was absent. Do not merge the two attempts into one result.
+Attempt B is physically reviewed. Shape preservation improvement is supported, but surface quality remains unresolved and exact raft/printer-side binding is incomplete. Decide the next single concern before another print. Attempt A remains invalid and must not be merged into Attempt B.
 
 ## Required pointers
 
