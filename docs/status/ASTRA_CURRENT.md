@@ -21,7 +21,7 @@ Large R4: Plus4 native/integrity/profile PASS and own1,058-layer audit COMPLETE 
 
 Mini AMS is a separate lane. PHYSICAL_01 actual-sent payload identity is COMPLETE from SD-card recovery and matches the V1-derived cached candidate. The Author intentionally stopped the upper region; quality is LOW, with visible stringing and surface roughness. PHYSICAL_01 is not a Runner smoke V0 physical result.
 
-PHYSICAL_02 is a dry-only comparison using the exact locked PHYSICAL_01 payload. The only planned changed factor is PETG drying treatment. The Author reports Generic PETG dried at70°C for12h; product/moisture/telemetry unknowns stay explicit. The manual stop target is after layer50 atZ9.9mm and before layer51 atZ10.1mm, not an automatic stop. No PHYSICAL_02 result has been reported in the retained checkpoint.
+Mini AMS physical work moved beyond the old dry-only direct-G-code plan. In the Author-visible 3MF V2 lane, Attempt A was stopped after the Author observed that the running print had no raft; it is invalid for the intended V2 comparison. The Author then restarted the V2 print as a distinct Attempt B. Its exact restarted raft/payload/override binding and physical result remain pending.
 
 The non-AMS PLA mini/F2 physical comparison is also separate. Preserve the Author-reported old-mini240°C manual override despite220°C in its saved3MF. F2 is an A1-100% package, not automatically the direct latest mini candidate. Do not invent exact recent F2 payload/machine/scale/override bindings.
 
@@ -41,7 +41,7 @@ A1-100% remains the master. Historical73.33333333333333% uniform scale is a deri
 
 **Large R4: PLUS4 AUTHOR PHYSICAL REVIEW.** Receive the result and record its exact payload, actual machine/plate/scale/material/overrides and observed problem locations. Unknowns remain UNKNOWN. Consider removal/finishing/artwork assessment if usable; otherwise return a bounded repair proposal. Do not defer actual plate recording behind software closure.
 
-**Mini AMS: PHYSICAL_02 DRY-ONLY AUTHOR PHYSICAL REVIEW.** Before changing another factor, return actual drying record, printer-side observations/deviations, actual stop layer/Z, and bed-on/before-removal/after-removal photos. Compare only the common lower region. No new slice, G-code edit, profile change, temperature tuning or Runner change. Prepared `print_go=false` records are non-execution artifacts, not proof that a physical run has occurred.
+**Mini AMS: AUTHOR_VISIBLE_3MF_V2 ATTEMPT B AUTHOR PHYSICAL REVIEW.** Bind the restarted job's actual raft condition / payload / printer-side deviations and return bed-on / before-removal / after-removal photos. Attempt A stays invalid because raft was absent. Do not change another factor before reviewing Attempt B.
 
 **PLA mini/F2: physical comparison with run binding.** Do not call unmatched conditions a single-factor Support experiment.
 
