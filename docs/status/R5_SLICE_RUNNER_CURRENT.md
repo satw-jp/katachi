@@ -25,7 +25,7 @@ Runner does not choose geometry, Support, printer/process/filament conditions, s
 
 ## NOW / Current phase
 
-**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase A FAIL confirmed; Phase B sliced-only `.gcode.3mf` proof-open check active.**
+**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase B sliced-only `.gcode.3mf` proof PASS; minimal packaging/identity integration authorized.**
 
 Verified real execution retained from existing evidence:
 - A1 single-filament real execution: **PASS**.
@@ -136,15 +136,15 @@ Active bounded task:
 Author direction:
 [AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21](../observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md)
 
-**Phase A FAIL confirmed. Runner code remains frozen while Phase B packaging proof is checked.**
+**Phase A FAIL / Phase B PASS. Runner code freeze is lifted only for the bounded packaging + manifest/UI integration described below.**
 
-The Author opened the existing Runner-produced `MINI_AMS_LOWER_TEST_NATIVE.3mf`; switching to Preview caused Bambu Studio to generate G-code again. Therefore the generic `.3mf` reopen path fails the no-reslice review contract.
+The Author opened the existing Runner-produced generic `.3mf`; Preview caused Bambu Studio to generate G-code again, so Phase A failed. A sliced-only `.gcode.3mf` proof was then packaged without re-slicing and with embedded G-code bytes unchanged.
 
-A project-history sliced-only `.gcode.3mf` pattern was found and a proof artifact was packaged from the existing Runner output without re-slicing. Embedded G-code bytes remain exactly unchanged. The Author should now open `MINI_AMS_LOWER_TEST_NATIVE.gcode.3mf` and verify that Preview opens without generating new G-code. Do not send.
+Author review of that proof passed: Bambu Studio opened it directly as sliced Preview without G-code regeneration; PETG/PLA toolpaths and layer slider were visible; warnings/estimates remained available; and the send dialog exposed PETG -> A1 / PLA -> A3 mapping. Send was disabled because the printer was busy, and no send was attempted.
 
-Only if this proof passes may the smallest Runner packaging/manifest surfacing change be implemented. No slicer semantic change, geometry change, profile change, automatic AMS mapping, printer send or Large R4 test is authorized.
+Therefore implement only the bounded sliced-only packaging and identity surfacing. Do not change slicer semantics, geometry, profile, Support, automatic AMS mapping or printer operation.
 
-The later sent-payload identity check is a separate Author-gated phase using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient.
+The later sent-payload identity check remains a separate Author-gated Phase C using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient. Phase C is not authorized by this implementation task.
 
 ## Required pointers
 
