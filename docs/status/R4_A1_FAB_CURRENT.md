@@ -1,100 +1,78 @@
 # R4 A1 Fabrication — Current
 
-Last verified: 2026-09-20 01:30 JST (2026-09-19 16:30 UTC). Checkpoint-only STOP; saved records and Drive metadata inspected, no geometry/slice/audit execution or large-file rehash.
+Operating direction updated: 2026-09-21 JST. Documentation-only correction authorized by the Author after the overall audit. No new physical outcome, geometry change, slice, full audit, hardware action or release is asserted.
 
-## Authority
+## Authority and entry
 
-- Repository: `satw-jp/katachi`; canonical scope/task authority: `main`.
-- Source main inspected: `9f6c607100c25cdfc780377002839726fde044b8` (not the HEAD of this documentation change).
-- Research/artwork authority remains [ASTRA_CURRENT](ASTRA_CURRENT.md); author-facing coordination remains [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md).
-- This lane owns only **existing R4 candidate -> A1 fabrication package**. It does not reopen Artwork Research, the Reader, Production, or generalization.
-- Author direction: [retained 2026-09-18 instruction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md).
-- Geometry, profiles, slice execution and physical evidence: the explicit Drive pointers below, resolved by file identity and hash, not by folder name or chat recollection.
-- Latest Author instruction permits checkpoint preservation only; no new geometry, slice, full audit, Research, images, SKIN implementation or another lane's work. Additional geometry changes remain unapproved.
-- Process snapshot: no Bambu/Orca process or historical slice PID 34088 / auditor PID 11728 observed. Other Python processes were not attributed or touched; detailed process-command inspection was unavailable. Saved status and live process state are distinct.
+- Repository: `satw-jp/katachi`.
+- Lane: **Large R4 / A1 fabrication only**.
+- Active lane branch: `agent/r4-a1-d222-local-support`, draft [PR #17](https://github.com/satw-jp/katachi/pull/17), not merged.
+- PR #17 is stacked on `agent/r4-a1-fab-checkpoint-20260920` / [PR #16](https://github.com/satw-jp/katachi/pull/16), not directly on main. This documentation correction does not merge or retarget either PR.
+- Main remains overall scope/routing authority: [SKIN_ABC_CURRENT on main](https://github.com/satw-jp/katachi/blob/main/docs/status/SKIN_ABC_CURRENT.md). Research, R5 and mini AMS authorities must be read on main, not from this older branch's relative copies.
+- Resume task: [D222 local Support closure](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md), now **WAITING PLUS4 PHYSICAL RESULT / NO ACTIVE REPAIR OR SLICE**.
+- Physical record: [Plus4 experiment](../evidence/R4_A1_D222_PLUS4_PHYSICAL_EXPERIMENT_2026-09-20.md).
+- Detailed pre-correction software checkpoint, provenance, numeric witness reviews and all original package pointers are retained [at 3cb215b3](https://github.com/satw-jp/katachi/blob/3cb215b3c19d21f6d7cab5a2e5466ba9c96d651f/docs/status/R4_A1_FAB_CURRENT.md). Its software-first NEXT wording is superseded by this front and the current task; its evidence is not discarded or promoted.
 
-## NOW / Current phase
+## NOW / physical-first
 
-| State | Current evidence boundary |
+**Plus4 physical experiment was started by the Author at 2026-09-20 23:35 JST. Physical result is pending in the available evidence. Live printer state is UNVERIFIED.**
+
+The Author's current operating direction is:
+
+`concern -> bounded physical check -> repair only an observed problem within separately confirmed scope`.
+
+R4 MOCOMOCO artwork completion is the goal, not exhaustion of every software warning. Existing native/integrity/profile PASS and full-audit completion remain evidence for their exact outputs. Mini survival is not proof that Large R4 is safe, and software flags are not counts of certain physical failures.
+
+| Artifact / gate | Retained state |
 |---|---|
-| Baseline geometry | **D22**, frozen reference; internal branch authority diameter 2.2 mm with the root exceptions below. |
-| Latest successful full native slice | **D22.1: technical PASS**, native generation and saved full-file/ZIP integrity complete. Prior D22 recovery remains a separate historical success. No general reliability or physical PASS implied. |
-| Working candidate | **D22.1: four contact repairs already applied**. Other 22,369 Support blocks unchanged; four intersections recovered in saved software evidence. **Do not apply the repairs again.** |
-| Latest inspected D22.1 slice record | `slice/d221_final_manifest.json`: **EXITED, exit_code 0**, started `2026-09-18T22:06:07Z`, historical PID 34088, elapsed 2970.950628 s. Supersedes the stale RUNNING description. |
-| D22.1 final audit | **Coverage COMPLETE: all 1,058 layers, including Z39–43 mm**. Audit completion is not supportability PASS; chronological receiver loss and FLOWER floating remain blockers. |
-| Print / approved printable release | **HOLD / NONE**. No machine-send or printing authorization is granted here. |
+| D22 | Frozen 2.2 mm reference; historical native recovery success |
+| D221 | Immutable successful native/integrity output; own 1,058-layer audit complete; supportability HOLD |
+| First D222 | D221 Artwork/old Support plus 33 adopted parts for original11; native/integrity PASS; own 1,058-layer audit COMPLETE |
+| D22.2 Plus4 | 13 further parts, 46 total relative to D221; native/integrity/profile PASS; own 1,058-layer audit COMPLETE; overall supportability HOLD |
+| Additional10 | 38 locally adopted parts from selected_v8, frozen separately; conditional local validation complete; **not included in Plus4; no combined native/G-code** |
+| Additional7 | Unmodified witnesses; no repair scope opened by this update |
+| Author bounded experiment | Plus4 STARTED by Author report, not live telemetry |
+| Physical PASS / final Artwork ACCEPT / print-ready release / Production | Not established; no promotion |
 
-The inspected D22.1 input lock was updated at `2026-09-18T22:05:34.373Z`. Its current Support SHA-256 is `043caf7876cee047fc0fa8d37182c883e51fe23b5def502c7b3443e8759a2158`, not the earlier `31fa2c1e...` snapshot. Local coplanar face subdivision confines endpoint deformation to the 1.2 mm taper; outside the four tips, the record now claims **surface preservation within float32 rounding**, not blanket triangle-byte identity. See [checkpoint evidence](../evidence/R4_A1_FAB_CHECKPOINT_2026-09-19.md).
+## Exact Plus4 artifact and locks
 
-## Protected geometry and fabrication conditions
+Attempt: `attempts/additional_four_20260920` / `d222_plus4`, [Drive attempt](https://drive.google.com/drive/folders/197rtarKCiHz02bTwgBUXwJnYs67tplor).
 
-- Freeze SHAPE / BaseShape / FLOWER geometry, position, physical scale and orientation / Void / composition / flower-back and root relationships / internal centerlines.
-- Keep 4,238 modified internal members at the D22 2.2 mm diameter authority: SHARED_CORE 95; SHARED_TWIG 703; FLOWER_BACK_ATTACHMENT 3,395; INTERNAL_SPATIAL_LINK 9; ASCENDING_BYPASS 36. Preserve existing finer tapered ends. **Two bed-contact ROOT_ADDITION members remain 3.0 mm**; do not normalize them to 2.2 mm.
-- Retain authored bottom Support. D22.1 has exactly four changed Support IDs: N00192, N01130, N03091, Y01214; the other 22,369 remain unchanged. No blanket Support addition, global densification/thickening, generic truss, or Artwork redesign.
-- A1 / 0.4 mm nozzle / 0.2 mm layer / PLA 240 C / Bambu automatic Support OFF. Authored Support remains geometry in the assembly; OFF does not mean no Support exists.
-- Candidate initial layer and normal layers are both 240 C. The earlier recovered GUI print used an initial 220 C; do not claim full equality to that print. Temperature is bounded to this case, not a universal PLA recommendation.
-- Retain locked 15% grid, raft 0, auto brim, infill-wall overlap 100%, retraction 0. Do not restore original-3MF 100% infill / raft 2 merely because an older project contains them.
-- Bambu Studio 02.08.02.61 and its recorded single-filament native route. CLI X/Y/travel 6000 is an **explained, version-pinned safe-limit difference**, not unresolved profile corruption. GUI X/Y 12000 / travel 9000 remain comparison evidence, not a target to force back.
+- G-code: [plate_1.gcode](https://drive.google.com/file/d/1RVB2g31QBEh6ZjWPMAb_T8A50kmsUmqL/view), **1,227,347,428 bytes**, 53,582,313 lines, 1,058 layers, deposition Z0.2–211.6 mm.
+- Recorded G-code SHA-256: `778b02bf50766d3de1d586592cc3ef6db3400f5c7fe767ddc54d3b2060ec6305`.
+- ZIP: [plate_1.gcode.zip](https://drive.google.com/file/d/1QCdTELjpCYZruFnxLylYw8WiKX1NQWnK/view), 321,609,295 bytes; recorded SHA-256 `1ed72f86d0af75080ecba8fe206de86dceb431f2e9ccbfd35e9a6927eb456e28`.
+- Plus4 Support input: 10,570,804 triangles / 528,540,284 bytes; SHA-256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`.
+- Exact execution: `slice/d222_plus4_manifest.json` and `slice/PIPELINE_EXECUTION.json` within this attempt. Native exit0, elapsed4549.873s; own full audit completed 2026-09-20T10:18:23.919561Z, exit0.
+- Integrity/profile evidence: `audit/FINAL_OUTPUT_VERIFICATION.json` and `audit/EXTRA_LOCKED_PARAMETER_CHECKS.json`. Recorded hashes are referenced, not freshly recomputed here; Drive ID/size checks are not full cloud-content hash verification.
 
-## Active implementation instruction
+Protected conditions: A1 / 0.4 mm nozzle / 0.2 mm layers / PLA240°C initial and normal / Textured PEI profile65°C / **15% grid / raft0 / auto brim** / infill-wall overlap100% / retraction0 / automatic Support OFF / authored Support geometry retained. Mapping1/0/0, Auto For Flush. CLI6000 X/Y/travel is retained explained engine-specific behavior; do not silently restore historical GUI12000/9000 or initial220°C.
 
-Owner: **R4 A1 Fabrication Astra**, bounded under SOL/Author review.
+Protect SHAPE, all FLOWER, Void, composition, placement, scale, orientation, internal centerlines and authored bottom Support. Keep all4,238 branches at2.2mm and the two ROOT_ADDITION exceptions at3.0mm. D221 and its four completed contacts are immutable. Do not import F2's100% infill/raft2 settings or mini AMS material conditions into this lane.
 
-Task: [R4_A1_D221_FINAL_SLICE_AUDIT_GATE](../tasks/R4_A1_D221_FINAL_SLICE_AUDIT_GATE.md).
+## Additional10 and seven observation witnesses
 
-**STOP at the saved Author gate.** First read `audit/AUTHOR_GATE.json` and the existing branch/FLOWER witnesses through the package pointers below. A new bounded Author instruction is required before further fabrication changes; checkpoint completion is not implementation or print GO.
+[Additional10 study](https://drive.google.com/drive/folders/1JDKcvoTZ55fhHTyh8EYUMG3eR-HV4Afh), [official38 parts](https://drive.google.com/drive/folders/1ZA2qhEEisin12XlAA_Jr8Ptdck9hsV9c).
 
-Do not repeat D22/D22.1 generation, the four contact repairs/intersection confirmation, the resolved three-facet investigation, native slicing, full-file hashing or the completed 1,058-layer audit merely to resume. This checkpoint starts no execution and changes no frozen package.
+`audit/ADDITIONAL_TEN_LOCAL_ADOPTION.json`, `audit/ADDITIONAL_TEN_DRIVE_SAVE_RECEIPT.json` and `validation_v8/FINAL_REMOVAL_GATE.json` retain exact selected_v8 identities, conditional chronology/parent/clearance/Void/removal evidence. Rejected v7 and failed long-fragment studies remain excluded. Strength, full tool jaws, fracture forces and scars are not physically proven. Local adoption does not require automatic inclusion in the next print.
 
-## Blockers / unresolved evidence
+Seven unmodified witnesses: **F3891/Z5.8; F0542/Z58.2; F1261/Z61.2; A4081/Z71.4; F2297/Z83.4; F0069/Z83.4; F4207/Z106.6**. Also retain the prior investigation band Z39–43. These are physical observation targets, not automatic repair orders or predictions of certain failure. Their pending authorization is not a prerequisite for receiving/reviewing the already-started Plus4 experiment.
 
-- **D22-derived 2.2 mm branch receiver loss:** A2821/Z40.6, A2479/Z41.2, A3695/Z44.0, A3503/Z60.0 and a multi-branch component/Z60.2 lose lower-layer receiving surface relative to saved 3 mm geometry. These sites were unchanged by the four D22.1 edits. Static intersections do not establish support during printing.
-- **Existing FLOWER floating:** F0463/Z39.2 has a toolpath without earlier bed-rooted support; F0028/F1722/F3052/F3355/F3796 also have saved witnesses. Native warning identifies Assembly; internal IDs are independently localized evidence, not a claimed exhaustive native warning-ID list. Physical clearance is unproven; warning-retained closure is not justified.
-- **Recovered old G-code comparison limit:** non-text corruption at layer 337/Z67.4 and wrong-Z/out-of-range motion at layer 392/Z78.4 also occur in its ZIP payload. Later ancestry is not a clean comparator; Z39–43 precedes these corruptions. Preserve originals. D22.1 has no corresponding recorded command-integrity flags.
-- **Resolved, do not reopen:** four contacts restored; three native-import facets localized to A0419/A3405/A3802 at Z158–172, native repair of micro-edge faces, unrelated to the repaired contacts/Z39–43. Final input/native counts 49,989,953 / 49,989,950; local contact subdivision is a separate difference.
-- Actual physical failure cause, physical success, plate identity versus Textured PEI/65 C, and engine-wide reliability remain unproven. Z39–43 is an investigation band, not an exact failure layer; do not infer it from elapsed time or M73.
+The native floating warning is retained. Mapped internal IDs are not an exhaustive list of native warning IDs. Historical original11 local PASS did not cover the higher A4081/Z71.4 witness. F3052 nominal tangency and removal-force uncertainty remain explicit.
 
-## Next gate / STOP
+## Next action and STOP
 
-**AUTHOR A1 PRINT PACKAGE GATE — HOLD until explicit Author review.**
+1. Read the exact Plus4 physical record. Do not duplicate or replace the experiment merely to resume.
+2. On Author result, bind the observation to candidate/payload, actual machine, scale, plate, material, overrides and observed height/layer. Unknowns remain UNKNOWN. Capture bed-on, before Support removal, and after removal evidence when available. Do not postpone actual plate/override recording until software closure.
+3. Review observed problems and artwork usability. If acceptable, return the next Author decision on removal/finishing/artwork assessment; no automatic physical PASS or release. If a problem is observed, identify its bounded location and propose only the necessary repair with explicit scope before execution.
+4. Keep Additional10 frozen and unsliced, Additional7 unmodified, and all prior successful artifacts intact while the physical result is pending. No new Artwork, blanket reinforcement, full-audit rerun or next native launch is authorized here.
+5. Any later authorized changed-input slice follows [R5's main operation contract](https://github.com/satw-jp/katachi/blob/main/docs/status/R5_SLICE_RUNNER_CURRENT.md): Fabrication Astra freezes input/profiles, creates `SLICE_JOB.json`, records handoff and STOPs; Author starts Runner; Runner executes/records; Author supplies job_id/run folder; Astra reviews the completed `RESULT_MANIFEST`. No result guessing or duplicate slice while state is unknown.
 
-Technical slice/integrity/audit results must be reported independently. The worker cannot convert them into artistic ACCEPT, physical PASS, printing permission, Production translation or SKIN generalization.
+Stop-worthy physical observations remain detachment, unsupported extrusion collapse, growing filament blob, nozzle collision or repeated striking; hardware response remains the Author's decision. General print-ready release HOLD is separate from the specific Author experiment already reported.
 
-## Required pointers / normal read set
+## Retained source evidence
 
-Read [TEAM_PROTOCOL_CORE](../TEAM_PROTOCOL_CORE.md), this front, the active task, and the applicable named sections of:
+[Root D222 package](https://drive.google.com/drive/folders/1Uw2EODVoUTeUW_GSFuDWbwT8H3gRfQJw), [clean D221 comparator](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4hw7CnVmAv795RT), [D222 software record](../evidence/R4_A1_D222_LOCAL_SUPPORT_HOLD.md).
 
-- [A1_BAMBU_CLI_RUNBOOK](../fabrication/A1_BAMBU_CLI_RUNBOOK.md): versioned execution and archive route.
-- [TOOLPATH_AUDIT_RULES](../fabrication/TOOLPATH_AUDIT_RULES.md): audit scope, coverage and limits.
-- [FABRICATION_PRINCIPLES](../fabrication/FABRICATION_PRINCIPLES.md): constraints, evidence separation and promotion policy.
+Preserve first-D222 `geometry/final`, `gcode`, `audit/final_full`, all per-attempt inputs/outputs and actual argv. The historical root PACKAGE_MANIFEST does not inventory all subsequent studies. Recovered old GUI G-code/ZIP corruption atL337/Z67.4 andL392/Z78.4 remains a comparator limitation. Do not reopen completed D221 four-contact repairs, old native-facet diagnosis, native execution, full audit or bulk hashes merely to resume.
 
-| Role | Exact Drive package | Read first inside it |
-|---|---|---|
-| `baseline_package` | [R4_A1_PRINT_CANDIDATE_20260919_D22](https://drive.google.com/drive/folders/18OFPljQSyPZCROmhuZB99M1IzTl_ggP1) | `source/AUTHOR_TASK_20260918.txt`, `source/SOURCE_LOCKS.json`, `NATIVE_RECOVERY_UPDATE.md` |
-| `historical_successful_slice_package` | [R4_A1_NATIVE_SLICE_RECOVERY_20260919](https://drive.google.com/drive/folders/1Auh3vlDGU5uhyt7WPWBDAPHJPhkEH4C8) | `README.md`, `PACKAGE_MANIFEST.json`, `audit/RECOVERY_GATE.json`, `audit/RECOVERY_VERIFICATION.json`, `slice/d22_mapping_manifest.json` |
-| `working_candidate_and_latest_successful_slice_package` | [R4_A1_D221_CLOSURE_20260919](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4hw7CnVmAv795RT) | `audit/AUTHOR_GATE.json`, `README.md`, `PACKAGE_MANIFEST.json`, `PACKAGE_REVIEW.md`, `slice/d221_final_manifest.json`, `audit/FINAL_OUTPUT_VERIFICATION.json`, `audit/TOOLPATH_AUDIT.json`, `audit/final_full/summary.json` |
-
-`CLOSURE` in a folder name is not a gate result. Never collapse these three roles into a single unqualified `latest_package`.
-
----
-
-## Retained evidence / supersession
-
-D22 Recovery saved 1,222,030,422-byte G-code, 53,354,176 lines and 1,058 layers, with ZIP 320,235,122 bytes and matching expanded payload SHA-256. These are **D22 integrity facts**, not final D22.1 printability facts. Exact hashes and source dates are retained in the checkpoint evidence, avoiding duplication across top-level CURRENT files.
-
-- 2026-09-13 Artwork-only restrictions are superseded **only for the separately authorized bounded A1 fabrication lane**. They do not reopen research or imply all previous artwork gates passed.
-- D22's old `no complete G-code` and `6000 unexplained` statements were superseded by its `NATIVE_RECOVERY_UPDATE.md`. Keep failed attempts as history.
-- D22's unapplied four-contact proposal is historical input; D22.1 applied evidence supersedes it as the working-candidate state.
-- Earlier D22.1 Support hash `31fa2c1e...` is not the current input lock. Never overwrite or relabel the older attempt as successful; retain the distinction between the earlier non-success exit and the later completed `d221_final` record (EXITED / 0).
-
-At every safe checkpoint, update this stable front with exact candidate/input identity, attempt outcome, separate gate states, remaining blockers and next entry action. Update a Playbook only when a reusable procedure/rule or its evidence boundary changes. A new agent must verify current artifacts before acting; the timestamp is not a promise that the worker stopped changing files.
-
-## Checkpoint preservation / procedure boundary
-
-The Drive cloud listing confirms the existing D22.1 geometry, G-code/ZIP, profiles, manifests, audit, preview and reproduction folders. G-code 1,221,881,234 bytes and ZIP 320,224,286 bytes match recorded sizes. Existing `PACKAGE_MANIFEST.sha256` records manifest hash `34f5cbe8c0089eef91a75a8572204f6e5864e67f49f4dfaffa81a91c22053b22`; the package records 289 files. These are **previously recorded hashes**, not recalculated at this checkpoint; cloud metadata is not a fresh content-integrity audit. The frozen successful package was not overwritten.
-
-Reproduction entry: saved `slice/d221_final_manifest.json` contains engine 02.08.02.61, actual argv, profile identities and filament mapping 1/0/0 with Auto For Flush. Follow `reproduce/` and `source/INPUT_LOCKS.json` / engine locks, then `audit/FINAL_OUTPUT_VERIFICATION.json`; do not reconstruct commands from chat. This is evidence for this completed candidate/run only.
-
-Unreflected case note against existing runbook **RUN06 / RUN07** (no new rule IDs): applicability = this D22.1 output and recovered GUI comparator; evidence = saved output verification, full audit and AUTHOR_GATE; proven = native/ZIP integrity and complete audit coverage, plus localized chronology witnesses; unproven = physical support success and general engine stability. ZIP/payload equality does not establish valid motion in the recovered old G-code. Static contact, chronological support and physical printing success remain separate. Candidate 240 C / 2.2 mm are not general rules.
-
-Checkpoint DoD: preserve existing artifacts; correct this lane's CURRENT/task to recorded completion and HOLD; save only lane documentation to GitHub; STOP. No new fabrication work is authorized by completion of these items.
+No software implementation, hardware execution, branch merge, Production or generalization is authorized by this documentation correction.
