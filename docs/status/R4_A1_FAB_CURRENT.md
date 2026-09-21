@@ -1,10 +1,10 @@
 # R4 A1 Fabrication — Current
 
-Verified 2026-09-20 21:11 JST. **PRINT HOLD / awaiting Author scope decision. Plus4 native/integrity PASS and own1058 audit COMPLETE. Additional10 are locally closed:38 adopted parts, no ten-site native yet. Seven further inherited witnesses remain unmodified pending authorization.**
+Verified 2026-09-21 12:25 JST. **PHYSICAL EXPERIMENT STARTED by Author using the completed D22.2 Plus4 G-code; live printer state/result are not independently verified here. Print-ready/final/Production remain HOLD. Plus4 native/integrity PASS and own1058 audit COMPLETE. Additional10 are locally closed:38 adopted parts, no ten-site native yet. Seven further inherited witnesses remain unmodified pending authorization.**
 
 ## Scope and authorization
 
-This lane owns existing R4 candidate → A1 fabrication closure only. D221 is immutable. Preserve SHAPE, all FLOWER, Void, internal branches, Artwork placement/scale, authored bottom Support and the four completed D221 contacts. Keep 4,238 branches at 2.2 mm and two ROOT_ADDITION exceptions at 3.0 mm. No Research, SKIN implementation, printer send, actual print or main merge.
+This lane owns existing R4 candidate → A1 fabrication closure only. D221 is immutable. Preserve SHAPE, all FLOWER, Void, internal branches, Artwork placement/scale, authored bottom Support and the four completed D221 contacts. Keep 4,238 branches at 2.2 mm and two ROOT_ADDITION exceptions at 3.0 mm. No Research, SKIN implementation or main merge. Worker-side printer send/print authority remains absent; however the Author has exercised the human physical gate for one bounded Plus4 physical experiment, recorded below.
 
 Author authorized original11 fabrication sites and subsequently explicitly replied: 「4件の局所Support修正と必要な再slice・再監査も許可する」 for F3070/Z36.0, F0592/Z58.4, F4081/Z71.0 and F0965/Z76.4. Exact authorization and attempt boundary: `study/additional_four_20260920/AUTHOR_EXTENSION.json` and `ATTEMPT_BOUNDARY.json`. This permits a necessary separate grouped native attempt and own full audit after those four local closures. Author then explicitly authorized local Support verification/necessary repairs and re-slice/re-audit for F1924, F2773, F0839, F0610, F3808, F0479, F1394, F3452, F1075 and F3535. Exact reply: `study/additional_ten_20260920/AUTHOR_EXTENSION.json`. Further unlisted sites are not automatically authorized.
 
@@ -24,7 +24,7 @@ Active task: [D222 closure](../tasks/R4_A1_D222_LOCAL_SUPPORT_CLOSURE.md). Evide
 | Additional4 derivative |13 adopted additions,46 total relative to D221; native/integrity/profile PASS, own1058 audit COMPLETE exit0; own13 additions rooting screen PASS, overall supportability HOLD |
 | Additional10 working scope |38 parts adopted from selected_v8; all10 conditional chronology, parent, clearance, Void and staged removal PASS. Cloud files/sizes confirmed. No combined ten-site native/G-code yet |
 | Floating warning | Retained and not closed; native identifies Assembly, independently localized IDs are not exhaustive native IDs |
-| Print-ready / physical print | HOLD / not authorized; actual plate identity unconfirmed |
+| Print-ready / physical print | **Final/print-ready release HOLD.** Author-reported Plus4 physical experiment **STARTED 2026-09-20 23:35 JST**; live state/outcome unverified in this checkpoint. |
 
 First D222: `geometry/final`, `gcode`, `audit/final_full` must remain intact. New four-site derivative must use separate input/output/audit locations. Do not overwrite a completed first attempt with an unfinished candidate.
 
@@ -39,6 +39,24 @@ Ten-site [study folder](https://drive.google.com/drive/folders/1JDKcvoTZ55fhHTyh
 The completed plus4 full-audit comparison also localizes six unapproved inherited FLOWER witnesses: F3891/Z5.8, F0542/Z58.2, F1261/Z61.2, F2297 and F0069/Z83.4, F4207/Z106.6. Each has a saved start with no prior/earlier nominal receiving footprint, not merely a count difference. Geometry correspondence and D221 comparison: `attempts/additional_four_20260920/audit/own_local/ALL_UNMATCHED_ID_ATTRIBUTION.json` and `ADDITIONAL_SIX_CHRONOLOGY_WITNESSES.json`. Together with A4081/Z71.4, these form the seven-site Author question, superseding the earlier A4081-only question. `audit/ADDITIONAL_SEVEN_SCOPE_PENDING.json` in that attempt records the boundary. No edits to these seven and no next native launch while the scope decision is pending.
 
 Plus4 G-code and ZIP cloud save confirmed by direct Drive folder listing: [G-code](https://drive.google.com/file/d/1RVB2g31QBEh6ZjWPMAb_T8A50kmsUmqL/view), [ZIP](https://drive.google.com/file/d/1QCdTELjpCYZruFnxLylYw8WiKX1NQWnK/view), sizes match the local verification record. Earlier search returned empty; direct listing supersedes that incomplete search result. No new cloud content hash computed. Existing plus4 input cloud receipt remains valid. Other active study files are not covered by the historical root PACKAGE_MANIFEST.
+
+## Physical experiment — Author gate exercised
+
+Author reported starting a bounded physical experiment at **2026-09-20 23:35 JST** using the already completed **D22.2 Plus4** artifact only. This is an Author action, not worker self-approval, and not live printer telemetry.
+
+Exact artifact:
+- attempt: `additional_four_20260920` / `d222_plus4`;
+- [`plate_1.gcode`](https://drive.google.com/file/d/1RVB2g31QBEh6ZjWPMAb_T8A50kmsUmqL/view), Drive ID `1RVB2g31QBEh6ZjWPMAb_T8A50kmsUmqL`;
+- size: **1,227,347,428 bytes**;
+- recorded SHA-256: `778b02bf50766d3de1d586592cc3ef6db3400f5c7fe767ddc54d3b2060ec6305`;
+- 1,058 layers; Plus4 native/integrity/profile PASS and own full audit COMPLETE before the Author experiment;
+- **Additional10 / official38 parts are not included** in this G-code.
+
+Intended locked print conditions remain A1 / 0.4 mm / 0.2 mm / PLA 240 C / automatic Support OFF / authored Support geometry retained / Textured PEI profile 65 C. GitHub does not independently prove the actual machine, plate, filament condition or live printer state at launch; capture physical evidence separately.
+
+Observation bands from unresolved inherited witnesses: F3891 Z5.8; prior problem band Z39–43; F0542 Z58.2; F1261 Z61.2; A4081 Z71.4; F2297/F0069 Z83.4; F4207 Z106.6. These are **physical observation targets**, not predictions of certain failure. Stop-worthy physical evidence includes bed/support detachment, unsupported extrusion collapse, growing blob, or nozzle collision.
+
+Evidence record: [R4_A1_D222_PLUS4_PHYSICAL_EXPERIMENT_2026-09-20](../evidence/R4_A1_D222_PLUS4_PHYSICAL_EXPERIMENT_2026-09-20.md). Physical PASS/FAIL is still pending. Do not promote experiment start to final artwork ACCEPT, print-ready release, Production or generalization.
 
 ## Saved first-attempt evidence and limits
 
@@ -76,6 +94,6 @@ Clean [D221 baseline](https://drive.google.com/drive/folders/1ATc_bEjepNdq_t8ut4
 
 ## Next action and stopping boundary
 
-Resume from this CURRENT, then both additional authorization records. The additional4 input is frozen at `attempts/additional_four_20260920`: Support10,570,804 triangles /528,540,284 bytes, SHA256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`; source first-D222 Support prefix verified during new copy. Native manifest `slice/d222_plus4_manifest.json` in that attempt records the completed run and exact actual argv. Do not restart native or full audit. The ten-site local closure is complete and its38 parts are frozen separately. First read the seven-site Author scope decision; if authorized, address only those witnesses and then freeze one grouped next input. If declined, retain HOLD and these successful artifacts. Preserve each attempt. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group the additional10 closures before another native attempt; final own-output full audit and package fixation follow. The four-site attempt must not be relabelled as the ten-site candidate. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
+Resume from this CURRENT and the physical-experiment evidence record before taking fabrication action. The Author has already started the bounded Plus4 physical experiment; do not duplicate or replace it from software merely to resume. Capture physical outcome/evidence when available. Seven-site repair authority remains pending and Additional10 remains locally frozen but unsliced. No new geometry or native slice is opened by the experiment-start record. The additional4 input is frozen at `attempts/additional_four_20260920`: Support10,570,804 triangles /528,540,284 bytes, SHA256 `db41c871fe24f0b48cd433934f0f9cdd9aa8de5bf06a3c2cc00de6e7fa3aeb78`; source first-D222 Support prefix verified during new copy. Native manifest `slice/d222_plus4_manifest.json` in that attempt records the completed run and exact actual argv. Do not restart native or full audit. The ten-site local closure is complete and its38 parts are frozen separately. First read the seven-site Author scope decision; if authorized, address only those witnesses and then freeze one grouped next input. If declined, retain HOLD and these successful artifacts. Preserve each attempt. Validate actual Support-parent rooted chronology, all target starts and later paths, continuous3D contacts/clearance, protected interior Void and removal access. No adoption based on route search alone. Group the additional10 closures before another native attempt; final own-output full audit and package fixation follow. The four-site attempt must not be relabelled as the ten-site candidate. Ask actual plate identity only after software closure. Print remains HOLD until Author gate, with no physical printing permission implied.
 
 Do not rerun completed D22/D221 repairs, first D222 native/full audit, old facet investigation or large-file hashing merely to resume. Failed/study meshes must not enter adopted input. Preserve known uncertainty and other-site FOLLOW-UP; no automatic scope expansion.
