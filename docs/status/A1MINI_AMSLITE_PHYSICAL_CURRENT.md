@@ -1,6 +1,6 @@
 # A1 mini + AMS lite Physical Current Status
 
-Last verified: 2026-09-21 (JST)
+Last verified: 2026-09-21 (JST) — Author-visible 3MF V2 raft discrepancy / restart recorded
 
 ## Authority
 
@@ -10,6 +10,7 @@ Last verified: 2026-09-21 (JST)
 - PHYSICAL_01 review: https://drive.google.com/drive/folders/1qllBgDW_Ndn6X206zBnLinkM6h1HCHva
 - actual-sent payload binding: https://drive.google.com/drive/folders/11SzwOSHfntHBRI5EKLVohcEy5zNCsA5H
 - PHYSICAL_02 dry-only execution package: https://drive.google.com/drive/folders/1hB66PbSCCad-wkUYUX0SVN9X_QpuWzlF
+- Author-visible V2 raft/restart observation: [AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_RAFT_RESTART_2026-09-21](../observations/AUTHOR_OBSERVATION_A1MINI_AMSLITE_V2_RAFT_RESTART_2026-09-21.md)
 
 This lane is separate from the Large R4 / D22.1 A1 fabrication lane and separate from R5 Slice Runner infrastructure.
 
@@ -102,20 +103,55 @@ Current operational state:
 
 This is a bounded test readiness state, not Production Print GO and not Physical PASS.
 
+
+## AUTHOR_VISIBLE_3MF_V2 — current physical execution
+
+The Author later moved to an Author-visible editable 3MF workflow so material placement and AMS mapping could be visually reviewed in Bambu Studio before send.
+
+Author-visible V2 review retained:
+- PETG / PLA material placement visible in Prepare / Preview;
+- PLA model extrusion present in sliced Preview;
+- physical send mapping previously observed as PETG -> A1 / PLA -> A3;
+- this workflow is separate from the old direct-G-code dry-only test.
+
+### V2 Attempt A — STOPPED / INVALID
+
+The Author started printing `A1MINI_AMSLITE_AUTHOR_VISIBLE_3MFV2`, then noticed during the physical run that **no raft was present** and stopped the print.
+
+Interpretation:
+- source family: Author-visible 3MF V2;
+- observed actual condition: raft absent;
+- stop reason: actual job did not match intended raft condition;
+- physical verdict: **INVALID for the intended V2 comparison / no Physical PASS**.
+
+Do not use Attempt A to judge PETG/PLA interface quality, Support removability or process acceptance.
+
+This is an observed discrepancy between the intended V2 package condition and the actual first running job. Cause is **UNRESOLVED**. Do not assign it to Runner, Bambu Studio, editable-3MF persistence or send-time settings without evidence.
+
+### V2 Attempt B — RESTARTED
+
+The Author restarted the print after stopping Attempt A.
+
+Current state:
+
+**RESTARTED / PHYSICAL RESULT PENDING.**
+
+Treat Attempt B as a distinct execution. Exact restarted payload identity, actual raft count and any printer-side overrides are not yet independently bound in this CURRENT and must be recorded before using the result as matched-condition evidence.
+
 ## Active implementation instruction
 
 Owner: **Fabrication Astra / Author physical gate**.
 
 No geometry or software implementation is active.
 
-Next action when the Author executes:
-1. use only the locked authority payload;
-2. do not intentionally add printer-side overrides;
-3. record observed printer-side settings;
-4. manually stop near layer 50 / Z9.9 target and record the actual stop/deviation;
-5. photograph in the defined sequence: bed-on / removed-before-support-removal / after-support-removal;
-6. compare only the common lower region;
-7. STOP for physical review.
+Current priority is the restarted Author-visible V2 execution, not another dry-only direct-G-code run.
+
+For the restarted V2 attempt:
+1. let the current print continue unless a new concrete blocker appears;
+2. record the actual raft condition and any send/printer-side deviations;
+3. at completion, photograph bed-on / removed-before-support-removal / after-support-removal;
+4. record PETG stringing/surface quality, PLA interface presence, Support removal behavior and damage;
+5. STOP for physical review before changing another factor.
 
 ## HOLD / do not change
 
@@ -129,9 +165,9 @@ Next action when the Author executes:
 
 ## Next gate
 
-**PHYSICAL_02 DRY-ONLY AUTHOR PHYSICAL REVIEW.**
+**AUTHOR_VISIBLE_3MF_V2 ATTEMPT B — AUTHOR PHYSICAL REVIEW.**
 
-A completed print must return with drying record, actual stop record, deviations, and photos before any further variable is changed.
+Return the restarted job's actual raft condition, deviations and defined photos. Attempt A remains an invalid stopped execution because raft was absent. Do not merge the two attempts into one result.
 
 ## Required pointers
 
