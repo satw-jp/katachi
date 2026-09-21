@@ -1,61 +1,62 @@
 # Astra Research Current Status
 
-Last verified: 2026-09-21
+Last verified: 2026-09-21 (Author-authorized overall audit correction; no new physical result)
 
 ## Authority
 
 - repo: `satw-jp/katachi`; canonical branch: `main`.
-- source main checkpoint before this overall update: `7294f995b83883f5d14f1517b8b8f6c8192a0cb8`.
+- source main checkpoint before this correction: `33e39167f8331fc55459e2e95a686b250d5d0291`.
 - stable Research/current routing: this file. Research keeps artwork geometry, generating principles and source evidence authority.
-- retained Large R4 / D22.1 A1 fabrication lane: [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md).
-- current A1 mini PETG+PLA physical lane: [A1MINI_AMSLITE_PHYSICAL_CURRENT](A1MINI_AMSLITE_PHYSICAL_CURRENT.md).
-- R5 Slice Runner execution infrastructure: [R5_SLICE_RUNNER_CURRENT](R5_SLICE_RUNNER_CURRENT.md).
-- author-facing coordination: [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md).
+- **Large R4 fabrication exception:** [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md) routes to the exact PR #17 branch CURRENT/task. Do not resume from the superseded main D22.1 RUNNING checkpoint, and do not promote the whole R4 branch to authority for other lanes.
+- A1 mini PETG+PLA physical lane: [A1MINI_AMSLITE_PHYSICAL_CURRENT](A1MINI_AMSLITE_PHYSICAL_CURRENT.md) on main.
+- R5 Slice Runner execution infrastructure: [R5_SLICE_RUNNER_CURRENT](R5_SLICE_RUNNER_CURRENT.md) on main.
+- author-facing coordination: [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md) on main.
 - [SKIN_R_CURRENT](SKIN_R_CURRENT.md) remains Reader-only; it is not R4 artwork or A1 fabrication authority.
 
 ## NOW / Current phase
 
-**Current author-directed execution focus is the bounded A1 mini PETG+PLA physical lane, not new Artwork Research.**
+**Purpose: R4 MOCOMOCO artwork completion. Current work is physical evidence/review, not new Artwork Research or software expansion.**
 
-PHYSICAL_01 actual-sent payload identity is COMPLETE from SD-card recovery and matches the V1-derived cached candidate. The Author intentionally stopped the upper region; quality is LOW, with visible stringing and surface roughness. PHYSICAL_01 is not a Runner smoke V0 physical result.
+Large R4: Plus4 native/integrity/profile PASS and own1,058-layer audit COMPLETE are retained. The Author reported experiment start2026-09-20 23:35 JST; no physical result or live telemetry is asserted here. Additional10/38 parts remain locally frozen but unsliced; Additional7 remains unmodified. Its next gate is **PLUS4 AUTHOR PHYSICAL REVIEW**, via the R4 router.
 
-PHYSICAL_02 is a dry-only comparison using the exact locked PHYSICAL_01 payload. The only planned changed factor is PETG drying treatment. The Author reports Generic PETG dried at 70 C for 12 h. The prepared manual stop target is after layer 50 at Z9.9 mm and before layer 51 at Z10.1 mm. No PHYSICAL_02 result has been reported at this checkpoint.
+Mini AMS is a separate lane. PHYSICAL_01 actual-sent payload identity is COMPLETE from SD-card recovery and matches the V1-derived cached candidate. The Author intentionally stopped the upper region; quality is LOW, with visible stringing and surface roughness. PHYSICAL_01 is not a Runner smoke V0 physical result.
 
-R5 Slice Runner infrastructure is PASS/stopped: A1 single and A1 mini two-material real execution PASS; REPRO_AUDIT_01 final classification C — minor toolpath nondeterminism / fabrication semantics equivalent for the two compared runs.
+PHYSICAL_02 is a dry-only comparison using the exact locked PHYSICAL_01 payload. The only planned changed factor is PETG drying treatment. The Author reports Generic PETG dried at70°C for12h; product/moisture/telemetry unknowns stay explicit. The manual stop target is after layer50 atZ9.9mm and before layer51 atZ10.1mm, not an automatic stop. No PHYSICAL_02 result has been reported in the retained checkpoint.
 
-The Large R4 / D22.1 lane remains separately retained under R4_A1_FAB_CURRENT. This update does not claim new D22.1 completion, rerun its slicer, or change its exact HOLD/blockers.
+The non-AMS PLA mini/F2 physical comparison is also separate. Preserve the Author-reported old-mini240°C manual override despite220°C in its saved3MF. F2 is an A1-100% package, not automatically the direct latest mini candidate. Do not invent exact recent F2 payload/machine/scale/override bindings.
+
+R5 Slice Runner integration is PASS, code frozen: A1 single and A1 mini two-material real execution PASS; REPRO_AUDIT_01 classification C for the compared runs. Staged source identity and manual handoff/resume limits are recorded in its own CURRENT.
 
 ## Active implementation instruction
 
-Research expansion: **NONE**.
+Research expansion: **NONE**. No new geometry, Support implementation, Runner modification or slice is opened by this update.
 
-Current physical task is owned by [A1MINI_AMSLITE_PHYSICAL_CURRENT](A1MINI_AMSLITE_PHYSICAL_CURRENT.md): execute/review the bounded PHYSICAL_02 dry-only test without changing geometry, Support, profile, G-code, slicer, or Runner. No software implementation is active.
+Apply the Author's current order: `concern -> bounded physical check -> repair only an observed problem within explicit scope`. Preserve software risk evidence without making warning exhaustion the goal. Do not promote mini survival to Large R4 safety or a physical observation to Production.
 
-Large R4 / D22.1 work remains owned by its separate CURRENT and must not be resumed from stale handoff text. Do not regenerate R4 from old GN/B1 assumptions, modify frozen flower/shape/composition, begin an independent R3 round, or translate into Production merely because a physical test exists.
+Do not regenerate R4 from old GN/B1 assumptions, modify frozen flower/shape/composition, begin an independent R3 round, launch Additional10 combined slicing, repair Additional7, or implement MINI PREP before the relevant physical review and next explicit scope.
 
-## Next gate / protected scope
+A1-100% remains the master. Historical73.33333333333333% uniform scale is a derivation, not a universal F2 Support-thickness policy. Any future `MINI PREP` is upstream of Runner, not silently part of execution.
 
-Active current gate: **PHYSICAL_02 DRY-ONLY AUTHOR PHYSICAL REVIEW**.
+## Next gates / protected scope
 
-Before any next variable is changed, return:
-- actual drying record;
-- actual printer-side observations / deviations;
-- actual stop layer/Z or UNKNOWN where not known;
-- bed-on, removed-before-support-removal, and after-support-removal photos;
-- comparison limited to the common lower region.
+**Large R4: PLUS4 AUTHOR PHYSICAL REVIEW.** Receive the result and record its exact payload, actual machine/plate/scale/material/overrides and observed problem locations. Unknowns remain UNKNOWN. Consider removal/finishing/artwork assessment if usable; otherwise return a bounded repair proposal. Do not defer actual plate recording behind software closure.
 
-This bounded physical test does not reopen Artwork Research, Production, or generalization.
+**Mini AMS: PHYSICAL_02 DRY-ONLY AUTHOR PHYSICAL REVIEW.** Before changing another factor, return actual drying record, printer-side observations/deviations, actual stop layer/Z, and bed-on/before-removal/after-removal photos. Compare only the common lower region. No new slice, G-code edit, profile change, temperature tuning or Runner change. Prepared `print_go=false` records are non-execution artifacts, not proof that a physical run has occurred.
 
-The retained Large R4 / D22.1 lane keeps its own Author gate and blockers under R4_A1_FAB_CURRENT. Do not merge its state with the A1 mini experiment.
+**PLA mini/F2: physical comparison with run binding.** Do not call unmatched conditions a single-factor Support experiment.
+
+For a later separately authorized changed-input slice, follow [R5's operation contract](R5_SLICE_RUNNER_CURRENT.md): Astra freezes geometry/profiles, records `SLICE_JOB.json` and expected output/handoff, then STOPs. Author selects the exact job and starts Runner once. Author reports job_id/run folder on completion; Astra resumes from the actual terminal `RESULT_MANIFEST`. No result guessing, long CLI wait, blind retry or duplicate slicing.
+
+No physical test reopens Artwork Research, Production or generalization. Technical PASS, fabrication PASS, physical PASS, Author ACCEPT, Print GO and Production remain distinct.
 
 ## Required pointers
 
 - [TEAM_PROTOCOL_CORE](../TEAM_PROTOCOL_CORE.md)
+- [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md) — main router to current branch record/task
 - [A1MINI_AMSLITE_PHYSICAL_CURRENT](A1MINI_AMSLITE_PHYSICAL_CURRENT.md)
 - [R5_SLICE_RUNNER_CURRENT](R5_SLICE_RUNNER_CURRENT.md)
-- [R4_A1_FAB_CURRENT](R4_A1_FAB_CURRENT.md), retained D22.1 task and named Playbook read set
 - [Retained Author fabrication direction](../observations/AUTHOR_OBSERVATION_R4_A1_FABRICATION_2026-09-18.md)
-- [Fabrication checkpoint evidence](../evidence/R4_A1_FAB_CHECKPOINT_2026-09-19.md)
+- [Fabrication checkpoint evidence](../evidence/R4_A1_FAB_CHECKPOINT_2026-09-19.md) — historical evidence, not the active resume state
 - [SKIN_ABC_CURRENT](SKIN_ABC_CURRENT.md)
 
 ---
@@ -83,7 +84,7 @@ The current stop is:
 
 **Intermediate Author Artwork Geometry Gate**
 
-No Fabrication D1, removable Support, toolpath, print package, printing, or Production / SKIN translation is authorized before Author GO.
+No Fabrication D1, removable Support / D2, toolpath, print package, printing, or Production / SKIN translation is authorized before Author GO.
 
 ### Historical Author direction
 
