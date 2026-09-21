@@ -1,6 +1,6 @@
 # R5 Slice Runner Current Status
 
-Last verified: 2026-09-21 JST. Author authorized the reviewable-sliced-3MF workflow contract. Existing Runner evidence was inspected; no new slice, printer send, physical print or Runner code change was performed.
+Last verified: 2026-09-21 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 are SOL-verified and closed. No Bambu CLI run, printer send, physical print or Phase C validation was performed for closure.
 
 ## Authority
 
@@ -25,7 +25,7 @@ Runner does not choose geometry, Support, printer/process/filament conditions, s
 
 ## NOW / Current phase
 
-**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase B sliced-only `.gcode.3mf` proof PASS; minimal packaging/identity integration authorized.**
+**Runner integration: PASS. Reviewable `.gcode.3mf` Phase B: PASS / CLOSED. Runner code freeze restored. Phase C: DEFERRED / NOT ACTIVE.**
 
 Verified real execution retained from existing evidence:
 - A1 single-filament real execution: **PASS**.
@@ -51,7 +51,7 @@ For this stored artifact, **embedded G-code and standalone G-code are byte-ident
 
 This means the next concern is not "can Runner create a sliced 3MF?" but "can the Author review that existing native sliced 3MF in Bambu Studio and then send it without losing or silently replacing the Runner toolpath?" Follow the bounded task before changing code.
 
-The retrieved `runner.py` also declares version`0.1.0`. Version correspondence is confirmed; exact historical executed source-tree identity is not, because that run did not archive a Runner source hash.
+The current retrieved `runner.py` still declares version `0.1.0`, but its source bytes are now different from the historical smoke-era `0.1.0` source. Therefore **version string alone is not source identity**; use the current source SHA checkpoint above for this Phase B implementation. The historical smoke remains identified by its own recorded artifacts and should not be retroactively attributed to the new source.
 
 ## Source identity checkpoint — retrieved bytes, not a new build
 
@@ -59,8 +59,8 @@ The following six top-level Python source files were retrieved from the operatio
 
 | File / exact Drive identity | Bytes | SHA-256 |
 |---|---:|---|
-| [app.py](https://drive.google.com/file/d/1YDSrW2v6I0AhuAmFXoftXxN_oKkp03Sy/view) |15236|`050de5de5a7fe62f8817d92b8adaf02971405d68bb1e8ffd0edafe55bf270665`|
-| [runner.py](https://drive.google.com/file/d/1o00swl8H_jAoTyXWPkfk1RgrtvZxrv1H/view) |14194|`803c9af7240072fe96bf65ac6deb7b6d9c475e0b51f008f8e9755f8527eaaa2f`|
+| [app.py](https://drive.google.com/file/d/1YDSrW2v6I0AhuAmFXoftXxN_oKkp03Sy/view) |17099|`5d681268d260b29fed4901449c73abd6719d831b340ceac355d04133d96b1aff`|
+| [runner.py](https://drive.google.com/file/d/1o00swl8H_jAoTyXWPkfk1RgrtvZxrv1H/view) |24646|`2316c807feae00296c2e2a13722fab5c0ce078fa52a39a5e5da520fc5a97f2ff`|
 | [job.py](https://drive.google.com/file/d/1zrcyN6btExZ6Omc0MMCH8ZFLbfRi3H18/view) |12989|`6696d4284a799c2e66c7cbc07d57613e807e85b4f0aadd3a7f51fb486a0d3f95`|
 | [progress.py](https://drive.google.com/file/d/1hwltKqLIEHL0hWcdAWxAhzxIpB8ivYdK/view) |3856|`0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622`|
 | [startup.py](https://drive.google.com/file/d/1uwzH4UUg9iJRCiitVXwDWEcMXDX8VUxr/view) |4863|`aafece1c6c2327b44458bf24f619bd93073c6ea0efd1d9972891f4330bea6c78`|
@@ -136,15 +136,15 @@ Active bounded task:
 Author direction:
 [AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21](../observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md)
 
-**Phase A FAIL / Phase B PASS. Runner code freeze is lifted only for the bounded packaging + manifest/UI integration described below.**
+**Phase A FAIL / Phase B implementation PASS / CLOSED. Runner code freeze restored.**
 
 The Author opened the existing Runner-produced generic `.3mf`; Preview caused Bambu Studio to generate G-code again, so Phase A failed. A sliced-only `.gcode.3mf` proof was then packaged without re-slicing and with embedded G-code bytes unchanged.
 
 Author review of that proof passed: Bambu Studio opened it directly as sliced Preview without G-code regeneration; PETG/PLA toolpaths and layer slider were visible; warnings/estimates remained available; and the send dialog exposed PETG -> A1 / PLA -> A3 mapping. Send was disabled because the printer was busy, and no send was attempted.
 
-Therefore implement only the bounded sliced-only packaging and identity surfacing. Do not change slicer semantics, geometry, profile, Support, automatic AMS mapping or printer operation.
+The bounded sliced-only packaging and identity surfacing are implemented and SOL-verified. Review packaging failure is separated from CLI execution status; fail-closed checks cover missing/corrupt native artifacts, malformed settings, missing embedded G-code and native/standalone mismatch. Current independent verification: **24 tests OK / 3 platform-specific skips**. No further Runner implementation is active.
 
-The later sent-payload identity check remains a separate Author-gated Phase C using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient. Phase C is not authorized by this implementation task.
+The later sent-payload identity check remains a separate Author-gated Phase C using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient. **Phase C is deferred and not active.**
 
 ## Required pointers
 
