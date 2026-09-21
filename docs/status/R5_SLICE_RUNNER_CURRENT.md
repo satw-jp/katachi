@@ -1,6 +1,6 @@
 # R5 Slice Runner Current Status
 
-Last verified: 2026-09-21 JST. Author-authorized documentation/identity correction; Runner code and existing execution evidence are unchanged. No new runtime test or slice was performed.
+Last verified: 2026-09-21 JST. Author authorized the reviewable-sliced-3MF workflow contract. Existing Runner evidence was inspected; no new slice, printer send, physical print or Runner code change was performed.
 
 ## Authority
 
@@ -25,7 +25,7 @@ Runner does not choose geometry, Support, printer/process/filament conditions, s
 
 ## NOW / Current phase
 
-**Runner integration: PASS. Runner code: FREEZE. Active Runner implementation task: NONE.**
+**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase A reviewability validation only.**
 
 Verified real execution retained from existing evidence:
 - A1 single-filament real execution: **PASS**.
@@ -33,6 +33,23 @@ Verified real execution retained from existing evidence:
 - mini run `A1MINI.AMSLITE.SMOKE.01`: `SUCCESS`, `execution_success=true`, exit0, input locks verified, exact input/profile identities and argv/cwd/datadir recorded, isolated outputs.
 
 [Actual mini smoke RESULT_MANIFEST](https://drive.google.com/file/d/1IcMvZScJWq69a72qosIp7ylF_17v3h17/view): started2026-09-20T17:46:48.990514+09:00, finished17:47:35.628449+09:00, runner_version`0.1.0`, job/result schema`0.1`. [Run folder](https://drive.google.com/drive/folders/1ZE0u8j-kn3R_qyur3-d1tEsUpYG98L_i).
+
+
+### Existing native sliced-3MF identity checkpoint
+
+The existing A1 mini smoke already produced both a native sliced 3MF and a standalone G-code.
+
+- native sliced 3MF: `MINI_AMS_LOWER_TEST_NATIVE.3mf`
+- sliced 3MF SHA-256: `07e00f3839615f9e5d5ed4d782f6a7932784017bbe5358fff4d02044410dd64f`
+- embedded G-code entry: `Metadata/plate_1.gcode`
+- embedded G-code bytes: `13,184,604`
+- embedded G-code SHA-256: `dbb4e4987f085898b5a414b28922554a8a2bca1d1dcc15f8b67488933f771406`
+- standalone `plate_1.gcode` bytes: `13,184,604`
+- standalone G-code SHA-256: `dbb4e4987f085898b5a414b28922554a8a2bca1d1dcc15f8b67488933f771406`
+
+For this stored artifact, **embedded G-code and standalone G-code are byte-identical**.
+
+This means the next concern is not "can Runner create a sliced 3MF?" but "can the Author review that existing native sliced 3MF in Bambu Studio and then send it without losing or silently replacing the Runner toolpath?" Follow the bounded task before changing code.
 
 The retrieved `runner.py` also declares version`0.1.0`. Version correspondence is confirmed; exact historical executed source-tree identity is not, because that run did not archive a Runner source hash.
 
@@ -113,15 +130,29 @@ Therefore PHYSICAL_01 low quality is **not evidence of a Slice Runner failure**.
 
 ## Active implementation instruction / next gate
 
-**NONE. Code freeze. No new Runner validation gate is active.**
+Active bounded task:
+[R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0](../tasks/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0.md)
 
-Do not modify Runner, rerun reproducibility tests, or change slicer semantics merely because a physical experiment is active. Resume Runner development only for an observed execution-infrastructure defect, separately authorized provenance improvement, or a new printer/material route requiring bounded validation. The standard operation above describes use of the existing implementation for separately authorized future jobs; it does not start one now.
+Author direction:
+[AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21](../observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md)
+
+**Phase A only. Runner code remains frozen.**
+
+Use the existing Runner-produced native sliced 3MF first. The Author should open it in Bambu Studio and verify that Preview/material/layer/warning/send-mapping review is possible without an intentional reslice. Do not send during Phase A.
+
+If Phase A passes, do not invent a packaging rewrite. Only separately scope missing manifest/UI surfacing if needed.
+
+If Phase A exposes an actual gap, return that exact gap before implementation. No slicer semantic change, geometry change, profile change, automatic AMS mapping, printer send or Large R4 test is authorized by this task.
+
+The later sent-payload identity check is a separate Author-gated phase using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient.
 
 ## Required pointers
 
 - `docs/TEAM_PROTOCOL_CORE.md`
 - `docs/status/SKIN_ABC_CURRENT.md`
 - `docs/status/A1MINI_AMSLITE_PHYSICAL_CURRENT.md`
+- `docs/tasks/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0.md`
+- `docs/observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md`
 - operational Drive source directory and exact files listed above
 - Drive integration evidence / actual mini smoke RESULT_MANIFEST
 - Drive `REPRO_AUDIT_01`
