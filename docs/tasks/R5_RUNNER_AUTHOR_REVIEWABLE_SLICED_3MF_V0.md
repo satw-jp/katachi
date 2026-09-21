@@ -1,6 +1,6 @@
 # R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0
 
-Status: **ACTIVE BOUNDED VALIDATION — PHASE A FIRST / NO RUNNER CODE CHANGE YET**
+Status: **PHASE A FAIL CONFIRMED / PHASE B PACKAGING PROOF ACTIVE**
 
 Owner: R5 Slice Runner LUNA under SOL review.
 
@@ -92,6 +92,14 @@ Runner must not auto-send.
 
 ## 3. Phase A — current output reviewability check
 
+### Result — FAIL
+
+Author opened `MINI_AMS_LOWER_TEST_NATIVE.3mf`, switched to Preview without pressing Slice, and Bambu Studio began `G-codeを生成...` (observed at 80%). Therefore the generic Runner-exported `.3mf` is not a valid no-reslice Author review surface.
+
+Evidence: [R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_PHASE_A_2026-09-21](../evidence/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_PHASE_A_2026-09-21.md)
+
+The exact gap is now observed. Runner code may remain frozen while a packaging-only proof is checked.
+
 **No Runner code change. No new slice if the existing smoke artifact is sufficient for the check.**
 
 Use the existing A1 mini smoke sliced 3MF first.
@@ -126,7 +134,31 @@ If Studio cannot review the artifact without reslicing, or material/toolpath ide
 
 Do not guess the fix.
 
-## 4. Phase B — Runner surfacing / integrity implementation, only if needed
+## 4. Phase B — sliced-only `.gcode.3mf` packaging proof
+
+Project history already contains a prior sliced-only `.gcode.3mf` packaging path (`R4_A1_MINI_READY.gcode.3mf`, plus `package_sliced_only.py.log`). Use that retained pattern rather than inventing a new format.
+
+A proof artifact has been created from the existing Runner smoke output without re-slicing:
+
+`MINI_AMS_LOWER_TEST_NATIVE.gcode.3mf`
+
+Proof artifact SHA-256:
+`23a8c5ce1f7070adca1785767a0752abc897835644fdd2fe08db585d4f31763e`
+
+Its embedded `Metadata/plate_1.gcode` remains byte-identical to the Runner output:
+`dbb4e4987f085898b5a414b28922554a8a2bca1d1dcc15f8b67488933f771406`
+
+### Phase B author check
+
+Open the proof `.gcode.3mf` in Bambu Studio. Do not send.
+
+PASS only if Preview opens without generating new G-code and the normal review surfaces remain available.
+
+If PASS, then authorize the smallest Runner implementation: package the existing successful slice result into this sliced-only review artifact and add identity fields to `RESULT_MANIFEST`/GUI. Do not modify slicer semantics.
+
+If FAIL, STOP and inspect the exact format gap before Runner integration.
+
+### Later Runner implementation scope, only after packaging proof PASS
 
 Start only after SOL confirms an observed Phase A gap or confirms that identity fields are missing from the operational handoff.
 
@@ -191,9 +223,9 @@ V0 is accepted only when:
 
 ## 7. STOP
 
-For the current task, execute **Phase A only** first.
+For the current task, Phase A is closed FAIL. Execute the **Phase B proof-open check only** next.
 
-Do not modify Runner until the current native sliced 3MF has been tested in Bambu Studio and an actual gap is observed.
+Do not modify Runner until the proof `.gcode.3mf` has been tested in Bambu Studio. The actual Phase A gap is already observed; the remaining question is whether sliced-only packaging resolves it without changing G-code.
 
 Return to SOL with:
 
