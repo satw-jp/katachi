@@ -25,7 +25,7 @@ Runner does not choose geometry, Support, printer/process/filament conditions, s
 
 ## NOW / Current phase
 
-**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase A reviewability validation only.**
+**Runner integration: PASS. Runner code remains FREEZE. Active bounded task: `R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0` — Phase A FAIL confirmed; Phase B sliced-only `.gcode.3mf` proof-open check active.**
 
 Verified real execution retained from existing evidence:
 - A1 single-filament real execution: **PASS**.
@@ -136,13 +136,13 @@ Active bounded task:
 Author direction:
 [AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21](../observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md)
 
-**Phase A only. Runner code remains frozen.**
+**Phase A FAIL confirmed. Runner code remains frozen while Phase B packaging proof is checked.**
 
-Use the existing Runner-produced native sliced 3MF first. The Author should open it in Bambu Studio and verify that Preview/material/layer/warning/send-mapping review is possible without an intentional reslice. Do not send during Phase A.
+The Author opened the existing Runner-produced `MINI_AMS_LOWER_TEST_NATIVE.3mf`; switching to Preview caused Bambu Studio to generate G-code again. Therefore the generic `.3mf` reopen path fails the no-reslice review contract.
 
-If Phase A passes, do not invent a packaging rewrite. Only separately scope missing manifest/UI surfacing if needed.
+A project-history sliced-only `.gcode.3mf` pattern was found and a proof artifact was packaged from the existing Runner output without re-slicing. Embedded G-code bytes remain exactly unchanged. The Author should now open `MINI_AMS_LOWER_TEST_NATIVE.gcode.3mf` and verify that Preview opens without generating new G-code. Do not send.
 
-If Phase A exposes an actual gap, return that exact gap before implementation. No slicer semantic change, geometry change, profile change, automatic AMS mapping, printer send or Large R4 test is authorized by this task.
+Only if this proof passes may the smallest Runner packaging/manifest surfacing change be implemented. No slicer semantic change, geometry change, profile change, automatic AMS mapping, printer send or Large R4 test is authorized.
 
 The later sent-payload identity check is a separate Author-gated phase using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient.
 
