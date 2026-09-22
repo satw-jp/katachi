@@ -162,6 +162,24 @@ function closeEnough(left: number, right: number, tolerance = NUMERIC_TOLERANCE)
   return Math.abs(left - right) <= tolerance * Math.max(1, Math.abs(left), Math.abs(right));
 }
 
+function stableJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(",")}}`;
+}
+
+function validateNormalizedDiameterState(state: ResearchDiameterState, label: string): void {
+  if (!Number.isFinite(state.radiusMm) || state.radiusMm <= 0) throw new Error(`${label}.radiusMm must be finite and positive`);
+  if (!Number.isFinite(state.diameterMm) || state.diameterMm <= 0) throw new Error(`${label}.diameterMm must be finite and positive`);
+  if (state.tipDiameterMm === null || !Number.isFinite(state.tipDiameterMm) || state.tipDiameterMm <= 0) {
+    throw new Error(`${label}.tipDiameterMm must be finite and positive`);
+  }
+  if (!closeEnough(state.diameterMm, state.radiusMm * 2)) throw new Error(`${label} requires diameterMm = 2 * radiusMm`);
+  if (!closeEnough(state.tipDiameterMm, state.diameterMm)) throw new Error(`${label} requires tipDiameterMm = diameterMm`);
+  if (!closeEnough(state.localTaperLengthMm, 0)) throw new Error(`${label} requires localTaperLengthMm = 0`);
+}
+
 function emptyBounds(): ResearchBounds {
   return {
     min: [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -444,6 +462,52 @@ export function createF2CompactFixture(): ResearchSourceSnapshot {
   };
 }
 
+function validateKnownCompactFixture(source: ResearchSourceSnapshot): void {
+  const expected = createF2CompactFixture();
+  const actualIdentity = source.identity;
+  const expectedIdentity = expected.identity;
+  const identityFields: Array<keyof ResearchSourceIdentity> = [
+    "sourceId",
+    "filename",
+    "units",
+    "byteLength",
+    "sha256",
+    "sourceMemberCount",
+    "sourceUniqueMemberCount",
+    "loadedMemberCount",
+    "loadedUniqueMemberCount",
+    "omittedMemberCount",
+    "snapshotMode",
+    "sourceFileUnchanged",
+  ];
+  for (const field of identityFields) {
+    if (actualIdentity[field] !== expectedIdentity[field]) throw new Error(`compact fixture identity mismatch at ${field}`);
+  }
+  if (!sameBounds(actualIdentity.bounds, expectedIdentity.bounds)) throw new Error("compact fixture bounds mismatch");
+  if (stableJson(source.topLevel) !== stableJson(expected.topLevel)) throw new Error("compact fixture top-level data mismatch");
+  if (source.members.length !== expected.members.length) throw new Error("compact fixture member count mismatch");
+  for (const expectedMember of expected.members) {
+    const actualMember = source.members.find((member) => member.id === expectedMember.id);
+    if (!actualMember) throw new Error(`compact fixture is missing known member ${expectedMember.id}`);
+    if (actualMember.kind !== expectedMember.kind
+      || actualMember.parentId !== expectedMember.parentId
+      || actualMember.targetId !== expectedMember.targetId
+      || !closeEnough(actualMember.radiusMm, expectedMember.radiusMm)
+      || !closeEnough(actualMember.diameterMm, expectedMember.diameterMm)
+      || actualMember.tipDiameterMm === null
+      || expectedMember.tipDiameterMm === null
+      || !closeEnough(actualMember.tipDiameterMm, expectedMember.tipDiameterMm)
+      || !closeEnough(actualMember.localTaperLengthMm, expectedMember.localTaperLengthMm)
+      || actualMember.pointsMm.length !== expectedMember.pointsMm.length
+      || actualMember.pointsMm.some((point, index) => point.some((value, axis) => !closeEnough(value, expectedMember.pointsMm[index][axis])))) {
+      throw new Error(`compact fixture member data mismatch at ${expectedMember.id}`);
+    }
+    if (stableJson(actualMember.raw) !== stableJson(expectedMember.raw)) {
+      throw new Error(`compact fixture original raw data mismatch at ${expectedMember.id}`);
+    }
+  }
+}
+
 function sourceIdentityFromUnknown(value: unknown): ResearchSourceIdentity {
   const record = asRecord(value, "source.identity");
   const boundsRecord = asRecord(record.bounds, "source.identity.bounds");
@@ -490,12 +554,14 @@ function sourceSnapshotFromUnknown(value: unknown): ResearchSourceSnapshot {
     throw new Error("compact fixture must not embed an unverified source file");
   }
   const topLevelRecord = asRecord(record.topLevel, "source.topLevel");
-  return {
+  const source: ResearchSourceSnapshot = {
     identity,
     topLevel: { parameters: cloneJson(topLevelRecord.parameters ?? null), summary: cloneJson(topLevelRecord.summary ?? null) },
     members,
     ...(sourceBytesBase64 === undefined ? {} : { sourceBytesBase64 }),
   };
+  if (identity.snapshotMode === "compact-fixture") validateKnownCompactFixture(source);
+  return source;
 }
 
 function deltaFromUnknown(value: unknown, index: number): ResearchDiameterDelta {
@@ -517,11 +583,15 @@ function deltaFromUnknown(value: unknown, index: number): ResearchDiameterDelta 
   const bbox = sourceMeasurements.bboxMm === null || sourceMeasurements.bboxMm === undefined
     ? null
     : asPoints(sourceMeasurements.bboxMm, `edits[${index}].sourceMeasurements.bboxMm`);
+  const before = stateFromUnknown(record.before, `edits[${index}].before`);
+  const after = stateFromUnknown(record.after, `edits[${index}].after`);
+  validateNormalizedDiameterState(before, `edits[${index}].before`);
+  validateNormalizedDiameterState(after, `edits[${index}].after`);
   return {
     id: asText(record.id, `edits[${index}].id`),
     memberId: asText(record.memberId, `edits[${index}].memberId`),
-    before: stateFromUnknown(record.before, `edits[${index}].before`),
-    after: stateFromUnknown(record.after, `edits[${index}].after`),
+    before,
+    after,
     sourceMeasurements: {
       meshVolumeMm3: asNullableFinite(sourceMeasurements.meshVolumeMm3, `edits[${index}].sourceMeasurements.meshVolumeMm3`),
       bboxMm: bbox,
@@ -553,13 +623,19 @@ export function parseResearchProjectDocument(text: string): ResearchProjectDocum
   if (!Array.isArray(record.edits)) throw new Error("research project edits must be an array");
   const historyCursor = asFinite(record.historyCursor, "research project historyCursor");
   if (!Number.isSafeInteger(historyCursor) || historyCursor < 0 || historyCursor > record.edits.length) throw new Error("research project historyCursor is invalid");
+  const edits = record.edits.map((edit, index) => deltaFromUnknown(edit, index));
+  const editIds = new Set<string>();
+  for (const edit of edits) {
+    if (editIds.has(edit.id)) throw new Error(`duplicate research edit id ${edit.id}`);
+    editIds.add(edit.id);
+  }
   return {
     schema: RESEARCH_PROJECT_SCHEMA,
     version: RESEARCH_PROJECT_VERSION,
     projectId: RESEARCH_PROJECT_ID,
     savedAt: asText(record.savedAt, "research project savedAt"),
     source: sourceSnapshotFromUnknown(record.source),
-    edits: record.edits.map((edit, index) => deltaFromUnknown(edit, index)),
+    edits,
     historyCursor,
   };
 }
@@ -599,6 +675,8 @@ export function researchEditEligibility(member: ResearchMember | undefined): Res
 }
 
 function applyDeltaToMembers(members: ResearchMember[], delta: ResearchDiameterDelta, expected: "before" | "after"): ResearchMember[] {
+  validateNormalizedDiameterState(delta.before, `edit ${delta.id}.before`);
+  validateNormalizedDiameterState(delta.after, `edit ${delta.id}.after`);
   const index = members.findIndex((member) => member.id === delta.memberId);
   if (index < 0) throw new Error(`edit ${delta.id} references unknown member ${delta.memberId}`);
   const current = members[index];

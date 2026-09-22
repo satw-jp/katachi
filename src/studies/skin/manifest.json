@@ -1228,6 +1228,10 @@
     {
       "date": "2026-09-22",
       "note": "SKIN Authoring v0 Research project on C accepted base 59ebb3cf: actual F2 structure.json loaded at 4,351/4,351 unique IDs with SHA-256 610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d; C0002 uniform diameter edit, Undo/Redo, .skinproj save and fresh restore preserved source identity. Compact fixture explicitly shows 5/4,351 loaded/omitted references. Source-vs-derived preview is labeled; mesh, Support, fabrication, export, STL/3MF/G-code, slice and print remain out of scope."
+    },
+    {
+      "date": "2026-09-22",
+      "note": "SKIN Authoring v0 Fix 1 closes only the save/restore boundary. Both sides of every diameter delta are required to be finite and positive with diameter=2*radius, tipDiameter=diameter and localTaperLength=0; the complete history including an un-applied redo tail is replayed for continuity. Compact F2 fixture restore verifies known IDs, coordinates, radii, references, top-level data and original raw members instead of trusting only declared identity hash/count. Focused tests 5/5, typecheck, build and diff check passed; browser evidence covered actual F2 edit/Undo/Redo/save/fresh reopen and failed-restore current-state protection. Other authoring/output/Support/Runner/LOEWE/R4/slice/print paths remain out of scope."
     }
   ]
 }

@@ -4594,3 +4594,7 @@ J側の`agent/skin-runtime-status-progressive-field-v0`を`dad764ce7e410b0c1751a
 Issue #26のC受入commit `59ebb3cfb781442a1583509d5e8b5ea40120ff94`をbaseに、既存SKIN REBUILD内へResearch v0入口を追加した。F2 `structure.json`の実ファイルは14,268,298 bytes、SHA-256 `610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d`、4,351 / 4,351 unique member IDs、mm bounds `[-101.5459594,-109.2425097,-0.2660574]`–`[101.7644806,109.2673228,208.1852747]`として読み込めた。compact fixtureはC0002/C0003/R0000/SP001/A4139の5件だけを含み、4,346件の省略を表示するため、実F2全体と混同しない。
 
 ブラウザではF2全体をsource-derived endpoint/radius previewとして表示し、C0002（SHARED_CORE）の径3.0→2.8 mmを適用、Undoで3.0 mm、Redoで2.8 mmへ戻ることを確認した。`.skinproj`はembedded source identityとexplicit diameter deltaを保存し、新しいrestore経路で同じ4,351件・C0002=2.8 mmを再読込できた。mesh volume / bbox / Support / fabrication / exportはstaleまたは未生成として保持し、STL/3MF/G-code、slice、printer send、印刷は行っていない。表示はsource-NPZ surface、fused BODY、collision、slicer、printabilityの証拠ではない。実ブラウザの既存WebGL warningは `f_map` の既知shader warning 1件で、Authoring機能の操作エラーは確認しなかった。
+
+## Observation — SKIN Authoring v0 Fix 1 restore boundary (2026-09-22)
+
+Issue #26の保存復元境界だけを補強した。保存されたdiameter deltaのbefore/afterを有限・正数、`diameter = 2 * radius`、`tipDiameter = diameter`、`localTaperLength = 0`として検証し、Undo後に残る未適用Redo履歴も連続再適用で検証する。compact fixtureは宣言hash/件数だけに依存せず、既知F2 memberのID、座標、径、参照、top-level、元rawを照合する。回帰テストは5/5、typecheck、build、diff checkを通過した。実F2の保存・fresh reopenと、不正restore時の現在プロジェクト保護をブラウザ確認した。SOL指定版と報告HEAD内ローカル版はSHA-256が異なり、重複修正は行っていない。Support、Runner、LOEWE/R4、生成、slice、印刷は未変更・未実行で、review stopは `SKIN AUTHORING V0 AUTHOR USE-VALUE REVIEW`。

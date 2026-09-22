@@ -72,5 +72,69 @@ test("research project save/reopen verifies provenance and rejects wrong restore
 
   const corruptedSource = JSON.parse(serialized) as { source: { identity: { sha256: string } } };
   corruptedSource.source.identity.sha256 = "0".repeat(64);
-  await assert.rejects(() => restoreResearchProject(JSON.stringify(corruptedSource)), /compact fixture source identity/);
+  await assert.rejects(() => restoreResearchProject(JSON.stringify(corruptedSource)), /compact fixture identity mismatch/);
+
+  const stateBeforeFailedRestore = reopened;
+  await assert.rejects(() => restoreResearchProject(wrongSchema));
+  assert.equal(getResearchMember(stateBeforeFailedRestore, "C0002")?.diameterMm, 2.4);
+});
+
+test("restore rejects malformed diameter states, including an un-applied redo entry", async () => {
+  const state = applyResearchDiameterEdit(
+    createResearchProjectState(createF2CompactFixture()),
+    "C0002",
+    2.4,
+  );
+  const serialized = serializeResearchProject(state, "2026-09-22T00:00:00.000Z");
+  const malformed = (after: { radiusMm: number; diameterMm: number; tipDiameterMm: number; localTaperLengthMm: number }, historyCursor = 1): string => {
+    const document = JSON.parse(serialized) as {
+      edits: Array<{ after: typeof after }>;
+      historyCursor: number;
+    };
+    document.edits[0].after = after;
+    document.historyCursor = historyCursor;
+    return JSON.stringify(document);
+  };
+
+  await assert.rejects(
+    () => restoreResearchProject(malformed({ radiusMm: -1, diameterMm: -2, tipDiameterMm: -2, localTaperLengthMm: 0 })),
+    /must be finite and positive/,
+  );
+  await assert.rejects(
+    () => restoreResearchProject(malformed({ radiusMm: 99, diameterMm: 2.8, tipDiameterMm: 2.8, localTaperLengthMm: 0 })),
+    /diameterMm = 2/,
+  );
+  await assert.rejects(
+    () => restoreResearchProject(malformed({ radiusMm: 1.2, diameterMm: 2.4, tipDiameterMm: 1.8, localTaperLengthMm: 0 })),
+    /tipDiameterMm = diameterMm/,
+  );
+  await assert.rejects(
+    () => restoreResearchProject(malformed({ radiusMm: 1.2, diameterMm: 2.4, tipDiameterMm: 2.4, localTaperLengthMm: 2 })),
+    /localTaperLengthMm = 0/,
+  );
+  await assert.rejects(
+    () => restoreResearchProject(malformed({ radiusMm: 1.2, diameterMm: 2.4, tipDiameterMm: 1.8, localTaperLengthMm: 0 }, 0)),
+    /tipDiameterMm = diameterMm/,
+  );
+});
+
+test("compact fixture restore matches known F2 members instead of trusting only hash and count", async () => {
+  const serialized = serializeResearchProject(createResearchProjectState(createF2CompactFixture()), "2026-09-22T00:00:00.000Z");
+  const changedCoordinates = JSON.parse(serialized) as {
+    source: { members: Array<{ id: string; pointsMm: number[][] }> };
+  };
+  changedCoordinates.source.members.find((member) => member.id === "C0002")!.pointsMm[0][0] += 1;
+  await assert.rejects(() => restoreResearchProject(JSON.stringify(changedCoordinates)), /compact fixture member data mismatch at C0002/);
+
+  const changedId = JSON.parse(serialized) as {
+    source: { members: Array<{ id: string }> };
+  };
+  changedId.source.members.find((member) => member.id === "C0002")!.id = "UNKNOWN-MEMBER";
+  await assert.rejects(() => restoreResearchProject(JSON.stringify(changedId)), /compact fixture is missing known member C0002/);
+
+  const changedRadius = JSON.parse(serialized) as {
+    source: { members: Array<{ id: string; radiusMm: number }> };
+  };
+  changedRadius.source.members.find((member) => member.id === "C0002")!.radiusMm = 99;
+  await assert.rejects(() => restoreResearchProject(JSON.stringify(changedRadius)), /compact fixture member data mismatch at C0002/);
 });
