@@ -4695,3 +4695,110 @@ details.mesh-export:not([open]) > :not(summary) {
   border-color: rgba(255, 107, 94, .5);
   color: #ffb1aa;
 }
+/* SKIN Authoring v0 Research project -------------------------------------- */
+.skin-research-launch[data-active="true"] {
+  border-color: #9ad7c2;
+  color: #d8fff0;
+}
+
+.skin-research-authoring-panel {
+  display: grid;
+  gap: 8px;
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgba(142, 205, 183, 0.42);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(16, 35, 35, 0.98), rgba(19, 24, 31, 0.98));
+  color: #e6f5ef;
+  font-size: 12px;
+}
+
+.skin-research-authoring-panel[hidden] {
+  display: none;
+}
+
+.skin-research-authoring-heading,
+.skin-research-source-actions,
+.skin-research-member-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skin-research-authoring-heading {
+  justify-content: space-between;
+  color: #c9f7e5;
+}
+
+.skin-research-authoring-panel button {
+  min-height: 26px;
+  padding: 3px 7px;
+  border: 1px solid rgba(178, 230, 211, 0.35);
+  border-radius: 4px;
+  background: rgba(29, 59, 56, 0.8);
+  color: inherit;
+  cursor: pointer;
+}
+
+.skin-research-authoring-panel button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.skin-research-authoring-panel input {
+  min-width: 0;
+  padding: 3px 5px;
+  border: 1px solid rgba(178, 230, 211, 0.3);
+  border-radius: 3px;
+  background: rgba(6, 16, 19, 0.82);
+  color: #f0fff9;
+}
+
+.skin-research-member-id {
+  width: 78px;
+  margin-left: 4px;
+  text-transform: uppercase;
+}
+
+.skin-research-member-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.skin-research-member-controls input[type="number"] {
+  width: 64px;
+}
+
+.skin-research-note,
+.skin-research-limitation {
+  margin: 0;
+  color: rgba(230, 245, 239, 0.72);
+  line-height: 1.4;
+}
+
+.skin-research-source-status,
+.skin-research-member-status,
+.skin-research-derived-status {
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: rgba(5, 16, 19, 0.55);
+  line-height: 1.35;
+}
+
+.skin-research-source-status[data-error="true"] {
+  color: #ffb0a9;
+}
+
+.skin-research-member-status[data-eligible="true"] {
+  color: #b9f5cf;
+}
+
+.skin-research-member-status[data-eligible="false"] {
+  color: #ffd5a1;
+}
+
+.skin-research-authoring-panel a {
+  color: #9fd8ff;
+}

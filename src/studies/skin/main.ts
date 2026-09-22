@@ -160,6 +160,7 @@ import {
   evaluateSkinRebuildPrintPreparation,
   type SkinRebuildPrintPreparationReadiness,
 } from "./rebuild/printPreparationReadiness.ts";
+import { installResearchProjectAuthoring } from "./rebuild/researchProjectAuthoring.ts";
 import {
   A1_MINI_PLA_04_02,
   evaluateThinStrutExperimentalExportGate,
@@ -20309,6 +20310,22 @@ skinRenderer.setEditorViewChangeCallback(() => {
   refreshBottomStatusPane();
   requestRenderFrame();
 });
+if (isSkinRebuildApp) {
+  installResearchProjectAuthoring({
+    actionHost: projectActions,
+    panelHost: rightPaneUpperStack,
+    renderer: skinRenderer,
+    openPanel: () => {
+      if (!editorLayoutState.rightCollapsed) return;
+      editorLayoutState = { ...editorLayoutState, rightCollapsed: false };
+      applyEditorLayoutDom();
+      skinRenderer.resize();
+      commitEditorLayout();
+    },
+    restoreMainInternalStructure: refreshInternalStructure,
+    render,
+  });
+}
 window.addEventListener("pagehide", () => {
   computeRuntimeProbeGeneration += 1;
   if (computeRuntimeRefreshTimer !== null) window.clearInterval(computeRuntimeRefreshTimer);
