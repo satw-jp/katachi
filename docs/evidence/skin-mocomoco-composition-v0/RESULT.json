@@ -1,0 +1,101 @@
+{
+  "task": "satw-jp/katachi#27",
+  "status": "PARTIAL_EVIDENCE",
+  "branch": "agent/skin-mocomoco-composition-v0",
+  "base": "1b33b256b2fa82e517bfeb8f251c72f900171f4f",
+  "testedHead": "record in final task report after implementation commit",
+  "application": "http://127.0.0.1:5187/skin-rebuild.html?mode=composition",
+  "environment": {
+    "node": "v24.15.0",
+    "npm": "11.12.1",
+    "browser": "Chrome via Codex computer-use",
+    "devServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 5187",
+      "pid": 48036,
+      "cwd": "J:/My Drive/codex/2026-09-22/skin-repo-satw-jp-katachi-task/work/skin-mocomoco-composition-v0"
+    }
+  },
+  "inputs": {
+    "host": {
+      "fileName": "mocomoco_221104.stl",
+      "sha256": "c848ea33eebf4b65ad4386fede4c82a7f1185e921098a5c018135cda1fad6c4e",
+      "byteLength": 13318784,
+      "triangleCount": 266374
+    },
+    "motif": {
+      "fileName": "motif_63_D_BACKARC.npz",
+      "sha256": "ddb793d271fda8bd649676381b2deed48580f6192d84169a5032f99a81ca8c8f",
+      "byteLength": 617600,
+      "vertexCount": 32574,
+      "faceCount": 65144
+    },
+    "frame": {
+      "fileName": "patch_identity.json",
+      "sha256": "73d046104e38bc95c53805607a9b3ed04ad8634db97cfb049456377647ca4884",
+      "byteLength": 38916,
+      "motifId": 63
+    }
+  },
+  "recipe": {
+    "flowerCount": 64,
+    "flowerScale": 1,
+    "seed": 20260923,
+    "minAnchorSpacingMm": 12,
+    "branchRecipe": "inset-relay-mst-v0",
+    "branchDiameterMm": 3,
+    "insetMm": 8,
+    "role": "permanent-structure-draft",
+    "containment": "UNVERIFIED",
+    "fabrication": "UNVERIFIED",
+    "authorAccept": false
+  },
+  "observedFinalState": {
+    "hostTriangles": 266374,
+    "flowers": 64,
+    "branchNodes": 128,
+    "branchEdges": 127,
+    "hostVisible": false,
+    "restoreStatus": "fresh restore · 64 flowers · 127 edges · package hash valid"
+  },
+  "savedProject": {
+    "path": "docs/evidence/skin-mocomoco-composition-v0/skin-composition-mocomoco-64.skincomp",
+    "byteLength": 20274549,
+    "sha256": "e6f80c0dfb6265cbf7ae06c4cd73d224187585e0e7cf7758f145a2249584472f",
+    "freshBrowserTabRestore": "pass",
+    "invalidSchemaPreservesCurrentProject": "pass"
+  },
+  "acceptance": {
+    "T1_host": "pass",
+    "T2_flowers_64_and_32": "pass",
+    "T3_connected_branch_graph": "pass",
+    "T4_replacement_and_diameter_only_regeneration": "pass",
+    "T5_save_restore_and_failure_preservation": "pass",
+    "T6_actual_browser": "pass; browser console errors: 0",
+    "T6_screenshot_files": "partial; screenshots were captured inline but no repository PNG paths are available",
+    "T7_focused_tests_and_build": "pass; see checks",
+    "T7_research_v0_smoke": "pass; default route showed Research v0 and test:skin-authoring passed 5/5"
+  },
+  "checks": [
+    {"command": "npm run test:skin-authoring", "exitCode": 0, "result": "5/5 passed"},
+    {"command": "npm run test:skin-composition", "exitCode": 0, "result": "8/8 passed"},
+    {"command": "npx tsc -p tsconfig.test.json --noEmit", "exitCode": 0},
+    {"command": "npm run build", "exitCode": 0, "result": "Vite build completed"},
+    {"command": "node --experimental-strip-types --input-type=module <restore saved .skincomp>", "exitCode": 0, "result": "64 flowers / 127 edges / 266374 host triangles"}
+  ],
+  "screenshots": [
+    {"state": "Host-only", "delivery": "inline in task conversation", "repositoryPath": null},
+    {"state": "Flowers", "delivery": "inline in task conversation", "repositoryPath": null},
+    {"state": "Host OFF + flowers + branches", "delivery": "inline in task conversation", "repositoryPath": null},
+    {"state": "Fresh restore", "delivery": "inline in task conversation", "repositoryPath": null}
+  ],
+  "knownWarnings": [
+    "Production build reports main JS 1333.03 kB and Three.js 548.81 kB chunks above 500 kB; no chunking optimization was added in this scoped task.",
+    "The ordinary SKIN page showed Compute offline / Failed to fetch in its existing status panel; the composition page had no browser console errors."
+  ],
+  "limits": [
+    "No containment, collision, strength, weld, removability, fabrication, slicer, or physical-print proof.",
+    "No STL, 3MF, G-code, slice job, printer send, or print output.",
+    "Task branch is isolated; no main merge, force push, or deployment.",
+    "Screenshot files are not committed; only the direct browser screenshot outputs are available inline."
+  ]
+}

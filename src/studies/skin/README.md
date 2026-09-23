@@ -1,5 +1,11 @@
 # S-skin — 表面に詰める (Surface Patch Packing, T10 / T11 v0.2 リングの皮)
 
+## Observation — SKIN Composition Flow v0 MOCOMOCO authoring lane（2026-09-23）
+
+`/skin-rebuild.html?mode=composition`に隔離した簡略UIで、固定MOCOMOCO STLとD BACKARC motif/frameを検証して読み込み、実表面から決定的に64/32花を配置し、`inset-relay-mst-v0`の共有枝を生成、自己完結`.skincomp`を新規ブラウザータブへ復元する工程を確認した。64花では128 nodes / 127 edges。通常SKINとResearch v0の入口、`.fkei`および`.skinproj`の意味は変更していない。
+
+これはsoftware authoring flowの確認であり、Host内包、衝突、強度、溶着、取り外し、fabrication、印刷適合を保証しない。STL/3MF/G-code、slice、printer送信は出力しない。結果と保存復元境界は[Issue #27 evidence](../../../docs/evidence/skin-mocomoco-composition-v0/README.md)に記録する。
+
 ## Observation — View Representation Continuity v0 Fix 3 FIELD offscreen framing（2026-09-08）
 
 同一Stage 2 Sample・同一camera・同一coarse march stepで、通常viewportへ直接描画するA/Bと、低解像度WebGLRenderTargetからupscaleするA/Bを比較した。renderer pixel ratio 1.5相当では、offscreen targetが407×230のとき、修正前の明示`setViewport(target.width, target.height)`が実GL viewportを611×345へ拡大し、scissorだけ407×230に残っていた。direct coarseはdrawing buffer 1626×918を正しく使い、camera projectionも一致したため、原因はFIELD/cameraではなくrender-target viewportへのDPR二重適用と確定した。

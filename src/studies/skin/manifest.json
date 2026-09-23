@@ -2,9 +2,9 @@
   "id": "skin",
   "title": "表面に詰める / 印刷準備 (Surface Patch Packing)",
   "status": "active",
-  "version": "0.93.2",
+  "version": "0.93.3",
   "createdAt": "2026-07-13",
-  "updatedAt": "2026-09-08",
+  "updatedAt": "2026-09-23",
   "params": [
     "count",
     "radiusBase",
