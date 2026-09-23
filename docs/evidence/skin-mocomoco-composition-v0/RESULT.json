@@ -3,8 +3,30 @@
   "status": "PARTIAL_EVIDENCE",
   "branch": "agent/skin-mocomoco-composition-v0",
   "base": "1b33b256b2fa82e517bfeb8f251c72f900171f4f",
-  "testedHead": "e91468cc2d0a8e25aa14422a2ad8b35a98e695b7",
+  "testedHead": "e91468c4eb2541f085215dd7f6e33dc8dd8630b1",
+  "testedImplementationHead": "e91468c4eb2541f085215dd7f6e33dc8dd8630b1",
+  "finalRuntimeHead": "4cb7fe3ae45d4df13f1f654c425f488e09b4ab78",
   "evidenceHeadBeforePublicationNote": "115293f2bf77a70ab39a2f1dda8a1fc59e028c30",
+  "checkpointBinding": {
+    "mode": "CHECKPOINT_BINDING_ONLY",
+    "reportedButInvalidTestedHead": "e91468cc2d0a8e25aa14422a2ad8b35a98e695b7",
+    "reportedButInvalidTestedHeadObject": "not found",
+    "testedToFinalRuntimeNameStatus": [
+      "M docs/evidence/skin-mocomoco-composition-v0/README.md",
+      "M docs/evidence/skin-mocomoco-composition-v0/RESULT.json",
+      "M docs/evidence/skin-mocomoco-composition-v0/RESUME.md",
+      "M docs/tasks/ISSUE-27-skin-composition-flow-v0.md"
+    ],
+    "testedToFinalRuntimeScope": "documentation only; runtime code, dependencies, and configuration unchanged",
+    "compositionSourceRawSha256": {
+      "src/studies/skin/composition/compositionProject.ts": "487a2dec9ce66c991664465eee860f6f61ae8871c9a9e798ebeabd1387433cb4",
+      "src/studies/skin/composition/compositionModel.ts": "2444e0706d39e044d62b357554ac8a68abeb033bfadabc77d0e12bce2fb298b2",
+      "src/studies/skin/composition/main.ts": "7414a88a7b15e4301d5b4118d1cffdc96027cd6a9f4d40af0f60d985e170dfd5"
+    },
+    "compositionSourceHashComparison": "all three raw Git-blob SHA-256 values match the SOL snapshot and are identical at testedImplementationHead and finalRuntimeHead; no CRLF/LF-only difference",
+    "savedTestRecord": "RESULT.json checks and acceptance record committed at testedImplementationHead; tests/browser were not rerun for this binding-only checkpoint",
+    "evidenceHead": "the containing docs-only commit is reported in the task response to avoid a self-referential commit SHA"
+  },
   "publication": {
     "normalPushAttempted": true,
     "command": "git push --set-upstream origin agent/skin-mocomoco-composition-v0",

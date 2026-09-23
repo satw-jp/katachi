@@ -3,7 +3,10 @@
 - State: local implementation and evidence commits are complete; final review stop reached with two delivery limitations noted below.
 - Repository/worktree: `J:/My Drive/codex/2026-09-22/skin-repo-satw-jp-katachi-task/work/skin-mocomoco-composition-v0`.
 - Branch/base: `agent/skin-mocomoco-composition-v0` from `1b33b256b2fa82e517bfeb8f251c72f900171f4f`.
-- Tested implementation commit: `e91468cc2d0a8e25aa14422a2ad8b35a98e695b7`.
+- Tested implementation commit: `e91468c4eb2541f085215dd7f6e33dc8dd8630b1`. The previously saved `e91468cc2d0a8e25aa14422a2ad8b35a98e695b7` does not resolve to a Git object.
+- Final runtime head reviewed for `CHECKPOINT_BINDING_ONLY`: `4cb7fe3ae45d4df13f1f654c425f488e09b4ab78`. The tested-to-final `git diff --name-status` contains only four documentation files (the three evidence notes and `docs/tasks/ISSUE-27-skin-composition-flow-v0.md`); runtime code, dependencies, and configuration are unchanged.
+- At both commits, the raw Git-blob SHA-256 values for `compositionProject.ts`, `compositionModel.ts`, and `main.ts` match the SOL snapshot exactly (`487a2dec…`, `2444e070…`, `7414a88…`). Raw hashes equal the LF-normalized hashes; no line-ending-only difference was found.
+- The saved `RESULT.json` test/check and browser acceptance record is attached to the tested implementation checkpoint. No tests or browser actions were rerun for this binding-only review. A follow-up docs-only evidence commit records this binding; its exact SHA is reported in the task response rather than self-embedded.
 - Evidence commit before publication note: `115293f2bf77a70ab39a2f1dda8a1fc59e028c30`.
 - Dev server: `npm run dev -- --host 127.0.0.1 --port 5187`, PID `48036`, cwd above. It is intentionally left running for review.
 - Completed: locked Host/motif/frame validation; actual 64- and 32-flower placement; connected 127-/63-edge branches; replacement and diameter-only regeneration; self-contained `.skincomp` download, new-tab restore and invalid-schema state preservation.
