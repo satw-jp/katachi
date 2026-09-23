@@ -13,7 +13,7 @@ Last verified: YYYY-MM-DD
 <one short paragraph describing the present state>
 
 ## Active task
-- owner: `<Team SOL -> LUNA / Implementation SOL / NONE>`
+- owner: `<Author / decision owner -> LUNA / bounded worker / NONE>`
 - task: `<one-line task name>`
 - purpose: `<why this is being done now>`
 - allowed scope: `<what may change; keep compact>`

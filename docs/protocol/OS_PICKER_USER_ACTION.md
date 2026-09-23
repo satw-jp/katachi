@@ -1,6 +1,6 @@
 # OS Picker / User Action Protocol
 
-Applies to all SOL / LUNA / worker lanes on Windows, macOS, and equivalent OS-native file/folder selection UI.
+Applies to all agent / LUNA / worker lanes on Windows, macOS, and equivalent OS-native file/folder selection UI.
 
 ## Rule
 
@@ -19,7 +19,7 @@ The picker should open only after the user explicitly invokes an action such as 
 
 ## Worker behavior
 
-A SOL / LUNA / browser worker must not attempt to fully automate an OS picker when user interaction is required.
+An agent / LUNA / browser worker must not attempt to fully automate an OS picker when user interaction is required.
 
 Instead:
 

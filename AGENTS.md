@@ -7,9 +7,9 @@ If a higher-level `~/Projects/AGENTS.md` exists in the execution environment, it
 ## Authority and routing
 
 - GitHub is the technical authority for code, branches, commits, CURRENT files, bounded tasks, and checkpoint evidence.
-- Implementation routing is: relevant CURRENT front → bounded task → named code/evidence → SOL review.
-- SOL owns architecture, scope, acceptance, and the next gate. LUNA owns only the bounded implementation, tests, and artifacts described by the task.
-- Task protected scope and exact done criteria are authoritative. If requirements conflict or necessary information is missing, stop and return the question to SOL.
+- Implementation routing is: relevant CURRENT front → bounded task → named code/evidence → review / next gate.
+- Architecture, scope, acceptance, and the next gate belong to the task's declared decision owner (normally the Author/current task owner or an explicitly named reviewer). LUNA owns only the bounded implementation, tests, and artifacts described by the task.
+- Task protected scope and exact done criteria are authoritative. If requirements conflict or necessary information is missing, stop and return the question to the declared decision owner / Author.
 
 ## Scope and preservation
 
@@ -22,7 +22,7 @@ If a higher-level `~/Projects/AGENTS.md` exists in the execution environment, it
 
 - Report what is proven, supported, unverified, held, or blocked. Keep code, geometry, export, physical, and artistic gates separate where relevant.
 - A branch or passing test does not by itself prove a capability, physical result, or artwork result.
-- End bounded work with a concise SOL handoff containing branch/commit, status, tests/evidence, gate result, and blocker.
+- End bounded work with a concise review handoff containing branch/commit, status, tests/evidence, gate result, and blocker.
 
 ## Targeted loading
 
