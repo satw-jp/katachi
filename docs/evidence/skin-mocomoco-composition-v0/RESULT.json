@@ -3,7 +3,7 @@
   "status": "PARTIAL_EVIDENCE",
   "branch": "agent/skin-mocomoco-composition-v0",
   "base": "1b33b256b2fa82e517bfeb8f251c72f900171f4f",
-  "testedHead": "record in final task report after implementation commit",
+  "testedHead": "e91468cc2d0a8e25aa14422a2ad8b35a98e695b7",
   "application": "http://127.0.0.1:5187/skin-rebuild.html?mode=composition",
   "environment": {
     "node": "v24.15.0",
