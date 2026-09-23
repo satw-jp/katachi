@@ -1,0 +1,83 @@
+{
+  "schema": "skin.composition-design-inputs.v0",
+  "recorded_date_jst": "2026-09-23",
+  "purpose": "SOL design fixture identity and calculations; not SKIN execution, R4 release or Artwork acceptance",
+  "host": {
+    "drive_id": "1J-72M2eY8nrujwlrpIJNtU0lb47WKrPR",
+    "url": "https://drive.google.com/file/d/1J-72M2eY8nrujwlrpIJNtU0lb47WKrPR/view",
+    "filename": "mocomoco_221104.stl",
+    "sha256": "c848ea33eebf4b65ad4386fede4c82a7f1185e921098a5c018135cda1fad6c4e",
+    "bytes": 13318784,
+    "triangle_count": 266374,
+    "bounds_source": {
+      "min": [-97.3743896484375, -97.6064224243164, -196.83554077148438],
+      "max": [91.1894302368164, 105.12374114990234, -4.680995941162109]
+    },
+    "interpretation_policy": {
+      "units": "mm",
+      "mm_per_source_unit": 1.0,
+      "source_up": "z",
+      "source_handedness": "right",
+      "basis": "SOL-declared development interpretation; not unit metadata embedded in STL or an R4 print transform"
+    },
+    "source_to_scene": {
+      "uniform_scale": 1.0,
+      "rotation_xyzw": [0, 0, 0, 1],
+      "translation_mm": [3.092479705810547, -3.7586593627929688, 196.83554077148438]
+    },
+    "dimensions_mm": [188.5638198852539, 202.73016357421875, 192.15454483032227]
+  },
+  "motif": {
+    "drive_id": "1PFsI4DFFbHq4d3UUVGpjEidCv9pspJV4",
+    "url": "https://drive.google.com/file/d/1PFsI4DFFbHq4d3UUVGpjEidCv9pspJV4/view",
+    "filename": "motif_63_D_BACKARC.npz",
+    "sha256": "ddb793d271fda8bd649676381b2deed48580f6192d84169a5032f99a81ca8c8f",
+    "bytes": 617600,
+    "vertices": 32574,
+    "faces": 65144,
+    "frame_source_drive_id": "1DKbym-AAB0QhHBptYc3Mvpuvt9e35WPz",
+    "frame_source_url": "https://drive.google.com/file/d/1DKbym-AAB0QhHBptYc3Mvpuvt9e35WPz/view",
+    "frame_source_filename": "patch_identity.json",
+    "frame_source_sha256": "73d046104e38bc95c53805607a9b3ed04ad8634db97cfb049456377647ca4884",
+    "frame_source_bytes": 38916,
+    "source_record": "motifs[id=63]",
+    "origin_mm": [-16.28129638331396, -18.325485257684107, 41.984232773182214],
+    "frame_matrix_row_arrays": [
+      [0.7105091272164754, 0.5550013433045643, -0.43260870203015067],
+      [-0.23339633903282564, -0.394108295159017, -0.8889346436116254],
+      [-0.6638545993424739, 0.7325654650725643, -0.15048225913662047]
+    ],
+    "convention": "row vectors: v_local=(v_source-origin)@F; v_source=v_local@F.T+origin; local +Z is front as in original build.py",
+    "frame_formula_source_url": "https://drive.google.com/file/d/1YiEExiZIdbx4zsew2Bj-gMx-tSEh-C1x/view",
+    "orthogonality_max_error": 2.220446049250313e-16,
+    "determinant": 1.0000000000000002,
+    "roundtrip_max_error_mm": 1.7763568394002505e-15,
+    "local_bounds": {
+      "min": [-5.433579554741701, -5.036082413537697, -1.407531449181486],
+      "max": [5.433580143345844, 5.036082396921641, 1.7318658129416904]
+    },
+    "back_anchor_local_mm": [0.0, 0.0, -1.4075314471755909],
+    "back_anchor_source_face_index": 37194,
+    "back_anchor_barycentric": [0.9999961628927884, 0.0000037821915138674943, 0.00000005491569781317983],
+    "back_anchor_policy": "first intersection from below on local z axis; derived authoring connection anchor, not bonded-contact or fabrication evidence"
+  },
+  "new_demo_recipe": {
+    "units": "mm",
+    "up_axis": "z",
+    "host_is_reference_only": true,
+    "flower_count": 64,
+    "flower_scale": 1.0,
+    "seed": 20260923,
+    "min_anchor_spacing_mm": 12,
+    "max_sampling_attempts": 8192,
+    "flower_orientation_twist_rad": 0,
+    "branch_diameter_mm": 3.0,
+    "inset_mm": 8.0,
+    "branch_recipe": "inset-relay-mst-v0",
+    "branch_role": "permanent-structure-draft",
+    "containment_pass": false,
+    "fabrication_pass": false,
+    "author_accept": false,
+    "role": "new independent development composition; not F2/Plus4 replay and not a future canonical SKIN structure algorithm"
+  }
+}
