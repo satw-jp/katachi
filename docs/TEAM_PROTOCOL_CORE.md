@@ -3,7 +3,7 @@
 This is the normal always-loaded operational protocol. Detailed rules are progressive references under [`protocol/`](protocol/).
 
 1. **Authority** — GitHub is technical authority for code, branches, CURRENT, bounded tasks, and evidence. Chat carries judgment, approvals, short pointers, and handoffs; Drive carries appropriate large research/artifact packages.
-2. **Responsibility** — The task's declared decision owner (normally the Author/current task owner or an explicitly named reviewer) owns architecture, scope, acceptance, and next gate. LUNA owns the bounded implementation, tests, and artifacts. A worker does not self-approve global closure.
+2. **Responsibility** — The task's declared decision owner (normally the Author/current task owner or an explicitly named reviewer) owns architecture, scope, acceptance, and next gate. LUNA owns the bounded implementation, tests, and artifacts. A worker does not self-approve global closure. Review is role-based and model-independent; the retired advisor workflow and Sol / High prerequisite are not required. Follow the current review-routing policy in [`../AGENTS.md`](../AGENTS.md), not historical plugin-routing instructions.
 3. **Scope** — Follow the task's protected scope and exact done criteria. Do not expand opportunistically or invent missing architecture. Fail closed on contradictions or missing required information.
 4. **Evidence** — Use honest states such as `PROVEN`, `SUPPORTED`, `UNVERIFIED`, `NOT STARTED`, `HOLD`, and `BLOCKED`. Tests are not physical or artistic acceptance.
 5. **Preservation** — Never hide or destroy dirty/unpushed work. State branch, HEAD, status, and blocker explicitly.
