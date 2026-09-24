@@ -1,8 +1,9 @@
 # SKIN Thread Handoff — CURRENT
 
-Last verified: 2026-09-24 JST  
+Scoped audit/routing update: 2026-09-25 JST — Issue #35 only; not a fresh verification of every lane.  
+Retained lane observations last verified: 2026-09-24 JST  
 Repo: `satw-jp/katachi`  
-Main checkpoint at publication: `6b81945c1041827469e5ac9631072e87c248c62c`
+Original main checkpoint at publication: `6b81945c1041827469e5ac9631072e87c248c62c`
 
 ## New-chat one line
 
@@ -14,6 +15,40 @@ Main checkpoint at publication: `6b81945c1041827469e5ac9631072e87c248c62c`
 - Global mandatory SOL-advisor routing was removed at `70a4a7fbc9cdd5cdcaf5f8c9b05439a13f8e640b`. Use Author / declared decision owner / bounded worker.
 - Keep technical PASS, fabrication review, Print GO, Physical PASS and Author ACCEPT separate.
 - Do not infer printer/send/physical completion from package or GUI readiness.
+
+## 0. Current Large / reusable-tool routing — 2026-09-25 audit
+
+**Issue #35 is the authorized continuation, not a new approval request.**
+
+- [#34 Author decision](https://github.com/satw-jp/katachi/issues/34#issuecomment-5816871930) resolved the 3.0/2.2 mm choice: Large requires 2.2 mm. Do not ask again or fall back to printing 3.0 mm first.
+- [#35](https://github.com/satw-jp/katachi/issues/35) retains the Large A-derived candidate, 4,241 target members, preservation/contact requirements and geometry-stage-only boundary.
+- [SKIN Structure Resize v0 addendum](https://github.com/satw-jp/katachi/issues/35#issuecomment-5817299145) takes precedence for implementation method, deliverables and acceptance: fixed original source + saved recipe + one core, called by Author UI and LUNA CLI, produces real resized mesh, contact differences, comparison and replay. A one-off 2.2 mm file is insufficient.
+- [Overall audit alignment](https://github.com/satw-jp/katachi/issues/35#issuecomment-5818833654) records cross-task boundaries and acceptance-evidence coverage. It adds no worker, approval gate or implementation task.
+
+Existing Large LUNA continues from its preserved branch/HEAD/output/checkpoint. The same Fabrication Astra reviews the tool's reusability and Large geometry/contact, then controls any later route/slice handoff. Author retains Preview, Print GO and Send. Do not stop active work, rerun candidate discovery, or require another SOL/advisor/model session.
+
+### Scope and dependencies
+
+- #35 operates on **branch diameter in mm with fixed centerlines and flower placement**. Its Large preset range 2.2–3.0 mm is a software applicability range, not a physical safety range. The 3.0 mm restoration test does not reopen the rejected 3.0 mm print choice.
+- #33 changes Host/flower scale and recomputes surface placement. It is separate; its completion/merge is not a #35 prerequisite. No automatic connection of #33 anchors to #35 branches is asserted.
+- #26/#27 contain earlier authoring/composition work; reuse compatible parts without requiring full integration or replacing the actual Large structure with a demo graph.
+- #29/#32 remain optional cross-cutting identity/condition tools, not mandatory new dependencies or duplicate implementation work.
+- #30/Runner remain input-validation and EXECUTE/RECORD infrastructure. #34 records #31 completed with resolution **0.02 ACCEPT**; do not repeat the three-flower comparison. New candidate geometry/contact and later toolpath gates are not implied by that acceptance.
+- Keep the rejected reduced-project 3MF route rejected. Any #34 full-source serialization reuse must preserve truthful provenance and cannot bypass Runner validation. No new slice or Runner change is authorized by #35's current stage.
+
+### Acceptance evidence and current observation
+
+Apply the addendum's existing tests, not a new reauthorization: actual Large 4,241-member 2.2 mm output through the same core; representative real-source 2.2/2.4 and non-cumulative 2.2→2.4→2.2→original restoration; UI/CLI normalized recipe and geometry identity; save/fresh-process replay with cold-vs-cache evidence; actual GUI evidence distinguished from controller tests; contact/patch/stale-state handling; bounded errors/cancel and measured rerun interventions.
+
+A synced `tools/skin_structure_resize` folder with core, adapter, CLI, controller, UI, launcher and project entries was observed during this audit. File presence is not a completion or acceptance claim. This audit did not execute that code or verify a complete #35 run/replay/UI/contact evidence package; unobserved local work is not declared absent.
+
+Report separately: `tool_core`, `recipe_replay`, `author_ui`, `large_2p2_geometry`, `contact_review`, `input_preparation`. These have no new acceptance verdict from this audit. Current-stage contract remains `slice=NOT_RUN`, `print_go=false`; no other-Host support, physical result, remote publication or main code integration is inferred.
+
+Unresolved contacts may keep fabrication handoff HOLD while generated geometry/differences remain saveable and inspectable. Do not turn that into a new approval wait for every permitted diameter operation. The 2.2-only four-contact patch set is guarded by source/ID/diameter/local-geometry applicability and is not copied automatically to 2.4 mm.
+
+**Existing STOP: `LARGE_A1_2P2_GEOMETRY_READY_FOR_ASTRA_REVIEW`.** It is not all-contact PASS, tool completion, Author ACCEPT or Print GO.
+
+This section supersedes conflicting Large start/wait instructions in the retained historical sections below. Historical Issue-body NOT STARTED labels and old one-line handoffs are not permission to restart completed tasks. Physical-lane observations below retain their own dates and are not reverified by this scoped update.
 
 ## 1. MINIB R2 — current print state
 
@@ -70,14 +105,16 @@ Observed boundary:
 
 Do not continue Bambu project-3MF component/XML/plate-binding surgery for this diagnostic fixture.
 
-### Required order
+### Historical setup order — superseded as an execution instruction by section 0
+
+The following preserves the original #30→#31 setup record. #34 now records resolution 0.02 ACCEPT; these old handoffs do not restart either task.
 
 **First:** Issue #30  
 https://github.com/satw-jp/katachi/issues/30
 
 `[LUNA] FUKEI Slice Runner — Clean-Mesh Input Route v1`
 
-One-line worker handoff:
+Original one-line worker handoff (historical):
 
 `satw-jp/katachi Issue #30 をtask authorityとして読み、記載scope内で実装・テストし、STOP条件まで実行してください。`
 
@@ -90,11 +127,11 @@ https://github.com/satw-jp/katachi/issues/31
 
 `[LUNA] Large A1 — 3-Flower Clean-Mesh Resolution Comparison`
 
-One-line Large worker handoff:
+Original one-line Large worker handoff (historical):
 
 `satw-jp/katachi Issue #31 をtask authorityとして読み、Issue #30のPASSを確認後、記載scope内で実行し、STOP条件まで進めてください。`
 
-Comparison remains:
+Original comparison scope:
 
 - F1886 inclined
 - F3147 up
@@ -104,7 +141,7 @@ Comparison remains:
 - only resolution may differ
 - no full Large slice until Author selects a resolution
 
-Expected stop:
+Expected stop in that original task:
 
 `LARGE RESOLUTION COMPARISON READY FOR AUTHOR REVIEW`
 
@@ -113,6 +150,8 @@ Router:
 `docs/tasks/FUKEI_RUNNER_CLEAN_MESH_LARGE_RESOLUTION_ROUTER.md`
 
 ## 3. FUKEI automation / repetition-reduction lanes
+
+These are separate cross-cutting tools. Read each Issue's latest review/closure record before use; the historical start text below does not authorize reimplementation and neither tool is a #35 prerequisite.
 
 ### Issue #29 — Repro Packager v0
 
@@ -125,7 +164,7 @@ No Runner change, no geometry change, no slice, no Print GO judgment.
 
 https://github.com/satw-jp/katachi/issues/32
 
-**Status in Issue: READY FOR LUNA / IMPLEMENTATION NOT STARTED.**
+**Historical Issue-body status at the original handoff: READY FOR LUNA / IMPLEMENTATION NOT STARTED. Not the current acceptance state; consult the Issue's later review records.**
 
 Purpose: bind process evidence without collapsing meanings:
 
@@ -149,7 +188,7 @@ Scope excludes:
 - current-authority selection
 - Print GO / Physical PASS judgment
 
-One-line worker handoff:
+Original one-line worker handoff (historical, not a restart order):
 
 `satw-jp/katachi Issue #32 をtask authorityとして読み、記載scope内で実装・実ケース3件の受入試験まで行い、STOP条件で止めてください。`
 
@@ -178,9 +217,9 @@ Recent folders were renamed to expose candidate/run identity; shortcuts/source p
 
 ## 5. Immediate resume choices
 
-- To print MINIB: use the corrected package above; verify current AMS mapping + Auto Refill, then Author controls Send/Print/Start.
-- To continue Large: run Issue #30 first; #31 is blocked until #30 PASS.
-- To reduce repeated AI condition auditing: run Issue #32 independently.
-- To reduce repeated artifact identity/handoff work: run Issue #29 independently.
+- For MINIB: retain the dated package observations above, check the lane's latest report and current AMS mapping/Auto Refill; Author alone controls Send/Print/Start. This scoped audit does not report a new physical result or give a new send order.
+- To continue Large: existing Large LUNA follows Issue #35 plus its Structure Resize addendum from the current preserved checkpoint. The 2.2 mm decision is already fixed; do not restart #34's choice gate, #30 setup or #31 comparison. No slice in the current geometry stage.
+- For surface-size Replay: keep Issue #33 in its own scope; it neither blocks nor supplies a proven new structure to #35.
+- For repeated condition or identity work: use #32/#29 according to their latest accepted scope and actual available implementation. Do not reimplement or make them compulsory for #35.
 
 Do not merge these lanes merely because they are all FUKEI/SKIN-related.
