@@ -1,12 +1,13 @@
 # R5 Slice Runner Current Status
 
-Last verified: 2026-09-21 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 are SOL-verified and closed. No Bambu CLI run, printer send, physical print or Phase C validation was performed for closure.
+Last verified: 2026-09-24 JST. Issue #30 clean-mesh input route implementation and tests PASS on a dedicated, unmerged branch. STOP at Author / decision-owner review; no merge, printer send, physical print, or full Large slice was performed.
 
 ## Authority
 
 - repo: `satw-jp/katachi`
 - lane: **R5 Astra / FUKEI Slice Runner execution infrastructure**
-- this CURRENT records status, operational handoff and evidence pointers; implementation remains in Drive staging and is not promoted into repo source by this update.
+- Issue #30 source is promoted to `tools/fukei_slice_runner/` on dedicated branch `codex/issue-30-clean-mesh-input-route`; the operational Drive source below was updated to the same snapshot. The branch is unmerged and awaits Author / decision-owner review.
+- The six-file source inventory below is a historical checkpoint from 2026-09-21; it does not identify the 2026-09-24 Issue #30 snapshot.
 - operational source directory: [fukei_slice_runner](https://drive.google.com/drive/folders/1jDZUQy3YH_V59fih7xnU_0UN8LVv0u2u)
 - recorded Windows directory: `J:/My Drive/codex/2026-09-20/files-pasted-by-the-user-fukei/outputs/fukei_slice_runner`
 - entry: `app.py` in that directory; do not use the separately archived review ZIP as an interchangeable deployment.
@@ -25,7 +26,7 @@ Runner does not choose geometry, Support, printer/process/filament conditions, s
 
 ## NOW / Current phase
 
-**Runner integration: PASS. Reviewable `.gcode.3mf` Phase B: PASS / CLOSED. Runner code freeze restored. Phase C: DEFERRED / NOT ACTIVE.**
+**Issue #30 clean-mesh input route: IMPLEMENTATION PASS / AUTHOR REVIEW REQUIRED.** The earlier reviewable `.gcode.3mf` Phase B remains PASS / CLOSED. This task changed only the input contract, static mesh validation, input/provenance manifest fields, validation display, tests and sample; Phase C remains deferred.
 
 Verified real execution retained from existing evidence:
 - A1 single-filament real execution: **PASS**.
@@ -130,29 +131,30 @@ Therefore PHYSICAL_01 low quality is **not evidence of a Slice Runner failure**.
 
 ## Active implementation instruction / next gate
 
-Active bounded task:
-[R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0](../tasks/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0.md)
+**Issue #30 — FUKEI Runner Clean-Mesh Input Route v1: PASS. STOP: AUTHOR / DECISION-OWNER REVIEW.**
 
-Author direction:
-[AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21](../observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md)
+- Authority: [Issue #30](https://github.com/satw-jp/katachi/issues/30)
+- Dedicated, unmerged branch: [codex/issue-30-clean-mesh-input-route](https://github.com/satw-jp/katachi/tree/codex/issue-30-clean-mesh-input-route)
+- Versioned source: [tools/fukei_slice_runner](../../tools/fukei_slice_runner/)
+- Test and execution evidence: [FUKEI Runner Clean-Mesh Input Route, 2026-09-24](../evidence/FUKEI_RUNNER_CLEAN_MESH_INPUT_ROUTE_2026-09-24.md)
 
-**Phase A FAIL / Phase B implementation PASS / CLOSED. Runner code freeze restored.**
+The route keeps legacy jobs without `input_mode` executable. New `mesh_import` jobs require one SHA-256-locked ASCII/binary STL, mm units, expected bounds and a declared transform. New `native_bambu_project` jobs require the three explicit provenance values. The Runner does not parse Bambu project structure or apply declared mesh transforms.
 
-The Author opened the existing Runner-produced generic `.3mf`; Preview caused Bambu Studio to generate G-code again, so Phase A failed. A sliced-only `.gcode.3mf` proof was then packaged without re-slicing and with embedded G-code bytes unchanged.
+The next bounded task is Issue #31 only after this review handoff: `satw-jp/katachi Issue #31 をtask authorityとして読み、Issue #30のPASSを確認後、記載scope内で実行し、STOP条件まで進めてください。` Do not choose the final resolution automatically or full-slice Large. No printer send/print was performed.
 
-Author review of that proof passed: Bambu Studio opened it directly as sliced Preview without G-code regeneration; PETG/PLA toolpaths and layer slider were visible; warnings/estimates remained available; and the send dialog exposed PETG -> A1 / PLA -> A3 mapping. Send was disabled because the printer was busy, and no send was attempted.
+### Earlier sliced-only package lane
 
-The bounded sliced-only packaging and identity surfacing are implemented and SOL-verified. Review packaging failure is separated from CLI execution status; fail-closed checks cover missing/corrupt native artifacts, malformed settings, missing embedded G-code and native/standalone mismatch. Current independent verification: **24 tests OK / 3 platform-specific skips**. No further Runner implementation is active.
+The earlier Phase A `.gcode.3mf` attempt failed when Preview regenerated G-code. The bounded sliced-only package proof then passed Author Preview review without regeneration and retained embedded G-code bytes unchanged. That package route was not changed by Issue #30.
 
-The later sent-payload identity check remains a separate Author-gated Phase C using a tiny bounded fixture. It must establish whether the G-code recovered from the actual sent payload matches the Runner embedded G-code hash; filename/timestamp similarity is insufficient. **Phase C is deferred and not active.**
+Phase C sent-payload identity validation remains deferred / not active. No current Issue #30 result changes that gate or authorizes a printer operation.
 
 ## Required pointers
 
 - `docs/TEAM_PROTOCOL_CORE.md`
-- `docs/status/SKIN_ABC_CURRENT.md`
-- `docs/status/A1MINI_AMSLITE_PHYSICAL_CURRENT.md`
-- `docs/tasks/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0.md`
-- `docs/observations/AUTHOR_OBSERVATION_R5_RUNNER_REVIEWABLE_SLICED_3MF_2026-09-21.md`
-- operational Drive source directory and exact files listed above
+- [Issue #30](https://github.com/satw-jp/katachi/issues/30)
+- [FUKEI Runner Clean-Mesh Input Route evidence](../evidence/FUKEI_RUNNER_CLEAN_MESH_INPUT_ROUTE_2026-09-24.md)
+- [Issue #31 / Large 3-flower router](../tasks/FUKEI_RUNNER_CLEAN_MESH_LARGE_RESOLUTION_ROUTER.md)
+- [tools/fukei_slice_runner](../../tools/fukei_slice_runner/)
+- Operational source directory and exact files listed above
 - Drive integration evidence / actual mini smoke RESULT_MANIFEST
 - Drive `REPRO_AUDIT_01`
