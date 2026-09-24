@@ -11,6 +11,17 @@ If a higher-level `~/Projects/AGENTS.md` exists in the execution environment, it
 - Architecture, scope, acceptance, and the next gate belong to the task's declared decision owner (normally the Author/current task owner or an explicitly named reviewer). LUNA owns only the bounded implementation, tests, and artifacts described by the task.
 - Task protected scope and exact done criteria are authoritative. If requirements conflict or necessary information is missing, stop and return the question to the declared decision owner / Author.
 
+## Review routing — retired advisor dependency
+
+Author decision, 2026-09-24: this project no longer uses the `sol-advisor` plugin / `sol-advisor:orchestration` workflow. It is not a required dependency for implementation, testing, handoff, or review.
+
+- Do not automatically load or invoke that workflow, spawn its companion reviewers, install it, or require its routing checks on the project's behalf.
+- `SOL`, `SKIN SOL`, `ALL_SOL`, and historical `SOL REVIEW` / `SOL EVIDENCE REVIEW` gate names identify a project review responsibility or checkpoint, not a plugin invocation or a required model/provider.
+- Remove the project's former `Sol / High` session prerequisite: implementation and evidence handoff must not stop solely because the current model is not Sol / High or the retired advisor is unavailable. Do not switch model/provider just to satisfy that old prerequisite.
+- Preserve the named decision owner's review, independent evidence where required, scope limits, human physical/Print GO gates, and the prohibition on a worker self-approving global closure.
+- Historical task/evidence text records the previous workflow; it does not re-enable this dependency. New tasks should use `AUTHOR REVIEW` or `DECISION-OWNER REVIEW` for terminal review labels.
+- A repository instruction is not proof that a machine-local plugin/configuration has been disabled. If an active local setting or ancestor instruction still enables the retired workflow, identify that setting and apply the Author-authorized, backed-up configuration cleanup through the environment's supported controls; do not patch installed vendor skills, bypass permissions, or claim the local configuration was changed without verification.
+
 ## Scope and preservation
 
 - Do not expand scope opportunistically or invent architecture to fill a missing requirement.
