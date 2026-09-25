@@ -1,6 +1,6 @@
 # R5 Slice Runner Current Status
 
-Last verified: 2026-09-21 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 are SOL-verified and closed. No Bambu CLI run, printer send, physical print or Phase C validation was performed for closure.
+Last verified: 2026-09-26 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 remain closed. A later Large A1 delivery run added bounded evidence that a Bambu-compatible sliced-only `.gcode.3mf` may carry its embedded G-code member with ZIP method 8 / DEFLATE while preserving the exact expanded G-code bytes; this is a transport/package finding, not a Runner re-slice or Physical PASS.
 
 ## Authority
 
@@ -52,6 +52,26 @@ For this stored artifact, **embedded G-code and standalone G-code are byte-ident
 This means the next concern is not "can Runner create a sliced 3MF?" but "can the Author review that existing native sliced 3MF in Bambu Studio and then send it without losing or silently replacing the Runner toolpath?" Follow the bounded task before changing code.
 
 The current retrieved `runner.py` still declares version `0.1.0`, but its source bytes are now different from the historical smoke-era `0.1.0` source. Therefore **version string alone is not source identity**; use the current source SHA checkpoint above for this Phase B implementation. The historical smoke remains identified by its own recorded artifacts and should not be retroactively attributed to the new source.
+
+### 2026-09-26 Large delivery transport evidence
+
+A final Large A1 2.2 mm / resolution 0.02 job exposed a delivery-only size problem after software slice/toolpath PASS: the standalone G-code was `1,098,992,698` bytes and an effectively uncompressed sliced-only send package exceeded Bambu Studio's observed 1 GB upload limit. The package was repacked without changing G-code, geometry, profiles or Runner.
+
+The final transport package stored `Metadata/plate_1.gcode` with ZIP method 8 / DEFLATE:
+
+- package bytes: `294,636,058`
+- package SHA-256: `d8574b8a6df5d09194062268775ab7d5935b610f4b84943bbd834b58d1834150`
+- compressed G-code member bytes: `294,620,961`
+- expanded G-code bytes: `1,098,992,698`
+- expanded G-code SHA-256: `97d846b62308af20f9c9e9c473280490989a191c1ce208b59dd81b070546c256`
+- ZIP CRC: PASS
+- Bambu Studio 02.08.02.61 recognized A1 / 0.4 mm, PLA mapping and ~801.96 g material use, and the cloud upload path began successfully.
+
+This confirms a useful **container-level transport optimization**: large sliced-only `.gcode.3mf` delivery packages can preserve exact G-code identity while substantially reducing upload size via DEFLATE. It does not mean arbitrary `.zip` / `.gz` G-code is accepted, and it is not a universal Bambu-version/printer/material guarantee.
+
+Promoted evidence and operating rule:
+- [BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26](../evidence/BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26.md)
+- [A1_BAMBU_CLI_RUNBOOK RUN-06B](../fabrication/A1_BAMBU_CLI_RUNBOOK.md#run-06b--large-sliced-only-gcode3mf-transport-compression)
 
 ## Source identity checkpoint — retrieved bytes, not a new build
 
