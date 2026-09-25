@@ -1,7 +1,7 @@
 # A1 Bambu CLI Runbook
 
-Version: 0.1 — retained execution evidence plus explicit operating requirements.
-Recorded: 2026-09-19. Owner: Fabrication SOL. This document is not a print authorization.
+Version: 0.2 — retained execution evidence plus explicit operating requirements.
+Recorded: 2026-09-19; updated 2026-09-26 with sliced-only `.gcode.3mf` DEFLATE transport evidence. Owner: Fabrication SOL. This document is not a print authorization.
 
 ## Scope and evidence level
 
@@ -89,6 +89,22 @@ For the actual completed output, use bounded-memory/stream processing and retain
 5. Input geometry/profile hashes after execution, to verify preservation rather than trusting declarations.
 
 The D22 reference package contains these integrity results for a 1.22 GB G-code. Its [archive script](https://drive.google.com/file/d/1ataRDn1h1-4vVblvULKWWoR-RkHK_4MX/view) and manifest remain retained implementation references; review scope and assumptions before reuse. Documentation review of those results is not a new independent full-file verification.
+
+## RUN-06B — Large sliced-only `.gcode.3mf` transport compression
+
+A demonstrated Large A1 route established that the embedded `Metadata/plate_1.gcode` member of a Bambu-compatible sliced-only `.gcode.3mf` can use ZIP compression method 8 (DEFLATE) while preserving the exact expanded G-code bytes. See [BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26](../evidence/BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26.md).
+
+In the recorded case, a `1,098,992,698` byte standalone G-code produced an effectively uncompressed send package above the observed Bambu Studio upload limit. Repacking only the G-code member with DEFLATE reduced the package to `294,636,058` bytes. The expanded member remained byte-identical to the standalone G-code by byte count and SHA-256, ZIP CRC passed, and Bambu Studio's send UI accepted the package and began cloud upload.
+
+Operational requirements:
+
+1. **Do not re-slice or rewrite G-code merely to reduce send-package size.** Treat the verified standalone G-code as the authoritative payload.
+2. **Compression is container-level.** This is not evidence that Bambu accepts arbitrary raw compressed G-code such as `.gz`; the demonstrated pattern is a Bambu-compatible sliced-only `.gcode.3mf` ZIP container with a DEFLATE-compressed G-code member.
+3. After repack, decompress/stream `Metadata/plate_1.gcode` and require exact byte count and SHA-256 equality to the authoritative standalone G-code. Require ZIP CRC PASS.
+4. Keep package SHA, expanded embedded-G-code SHA and standalone-G-code SHA as separate identities.
+5. Preserve all non-target members byte-for-byte unless an explicit metadata repair is authorized. Filament/printer/send metadata changes remain separate from compression.
+6. A smaller package is not enough. Confirm Bambu Studio recognizes the expected printer/material mapping and that the send path accepts the package before declaring delivery-package PASS.
+7. Scope this evidence to the demonstrated format/version route until another engine/printer/material schema is explicitly checked. Do not silently generalize it to all Bambu/Orca versions or multi-material package layouts.
 
 ## RUN-07 — Audit, package and stop
 
