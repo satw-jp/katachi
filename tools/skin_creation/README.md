@@ -3,7 +3,7 @@
 Launch from this checkout using `powershell -File tools/skin_creation/launch.ps1`.
 Open http://127.0.0.1:5188/skin-rebuild.html?mode=creation . The launcher refuses occupied ports 5188/5189 rather than stopping another environment. Close its console to stop only its child service. Node dependencies must already be installed (`npm ci` in a new checkout).
 
-Python dependencies: numpy, scipy, trimesh, manifold3d. This machine's existing Python/vendor are launcher defaults, not source-data dependencies. On another machine pass `-Python <python executable> -Vendor <package directory>` or set SKIN_CREATION_PYTHON / ASTRA_RESEARCH_VENDOR. Standard installed packages need no vendor path. No Blender runtime is required.
+Verified Python dependencies: numpy 2.5.2, scipy 1.18.1, trimesh 5.1.0, manifold3d 3.5.2. This machine's existing Python/vendor are launcher defaults, not source-data dependencies. On another machine pass `-Python <python executable> -Vendor <package directory>` or set SKIN_CREATION_PYTHON / ASTRA_RESEARCH_VENDOR. Standard installed packages need no vendor path. No Blender runtime is required. Save records exact dependency versions; restore rejects a different dependency set rather than silently claiming equivalent regeneration.
 
 ## Provenance and scope
 

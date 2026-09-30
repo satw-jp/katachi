@@ -13,6 +13,7 @@ import sys
 import threading
 import uuid
 import zipfile
+from importlib.metadata import version
 import numpy as np
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
@@ -23,6 +24,9 @@ from internal.geometry import canonical_mesh_digest
 MAX_ZIP = 512 * 1024**2
 MAX_EXPANDED = 2 * 1024**3
 SCHEMA = 'katachi.skin.creation.v0'
+
+def dependency_versions():
+    return {name: version(name) for name in ('numpy', 'scipy', 'trimesh', 'manifold3d')}
 
 def code_files():
     return sorted(p for p in ROOT.rglob('*.py') if '__pycache__' not in p.parts)
@@ -107,9 +111,7 @@ def pack(project, state):
             if p.is_file(): files[p.relative_to(project).as_posix()] = p.read_bytes()
     for p in code_files(): files['code/' + p.relative_to(ROOT).as_posix()] = p.read_bytes()
     files['project.json'] = json.dumps(saved, ensure_ascii=False).encode()
-    files['runtime.json'] = json.dumps({'python': sys.version, 'packages': {
-        n: __import__(n).__version__ if hasattr(__import__(n), '__version__') else 'installed'
-        for n in ('numpy', 'scipy', 'trimesh', 'manifold3d')},
+    files['runtime.json'] = json.dumps({'python': sys.version, 'packages': dependency_versions(),
         'reopen': 'Open this archive in SKIN Creation UI v0 with matching code. Never execute untrusted embedded code.',
         'sources': 'All original inputs embedded; no original J-drive outputs required.'}).encode()
     manifest = {'schema': SCHEMA, 'code': code_identity(),
@@ -156,6 +158,8 @@ def unpack(data, target):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(z.read('blobs/' + lock['sha256']))
     validate_assets(target / 'assets')
+    if read(target / 'runtime.json')['packages'] != dependency_versions():
+        raise ValueError('Saved generator dependencies differ; use the saved runtime versions')
     state = read(target / 'project.json')
     validate_state(state, target)
     return state

@@ -16,6 +16,7 @@ const state=async()=> (await page.request.get(base+'/creation-api/state')).json(
 const binding=s=>JSON.stringify([s.history,s.cursor,s.results,s.compare,s.selected]);
 try {
   await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
   await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
   const initial=await state();
   const combos=new Set(Object.values(initial.results).map(r=>`${r.recipe.flowerScale}/${r.recipe.diameter}`));
@@ -40,6 +41,7 @@ try {
   context=await browser.newContext({viewport:{width:1600,height:1100},acceptDownloads:true});
   page=await context.newPage();events();
   await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
   await page.locator('#open-project').setInputFiles(moved);
   await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
   const restored=await state();
