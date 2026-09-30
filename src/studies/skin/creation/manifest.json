@@ -1,0 +1,6 @@
+{
+  "id": "skin-creation-ui-v0",
+  "version": "0.1.0",
+  "updatedAt": "2026-09-30",
+  "revisits": [{ "date": "2026-09-30", "note": "Task-local creation frontend, real backend results, bounded full-mesh comparison and project-history controls; browser acceptance recorded separately." }]
+}

@@ -1,6 +1,8 @@
 node_modules
 dist
 dist-ssr
+/outputs/skin-creation-sessions/
+__pycache__/
 *.local
 .DS_Store
 .vscode/*

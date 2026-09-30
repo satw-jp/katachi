@@ -1,0 +1,26 @@
+{
+  "surface_authority": "R4_D6_SIZE_RHYTHM_V2",
+  "Large": {
+    "host_max_mm": 220,
+    "branch_mm": 3.0,
+    "surface_scale": 1.0
+  },
+  "mini": {
+    "uniform_scale": 0.7333333333333334,
+    "host_max_mm": 161.33333333333334,
+    "branch_mm": 2.2
+  },
+  "core_spacing_mm": 30,
+  "core_depth_mm": 14,
+  "core_edge_max_mm": 58,
+  "twig_group_max_components": 8,
+  "twig_group_radius_mm": 11,
+  "flower_count": 4283,
+  "natural_components": 3395,
+  "members": 4195,
+  "layer_step_mm": 0.2,
+  "section_xy_mm": 0.3,
+  "chronological_start": "no slicer; only geometry-derived parent effective height and earliest contact; extrusion order remains unverified",
+  "internal_GO": false,
+  "stop": "Internal Structure Author Review"
+}

@@ -1,0 +1,17 @@
+{
+  "candidate": "R4_D6_SIZE_RHYTHM_V2",
+  "host_max_mm": 220,
+  "flower_count": 4283,
+  "seed": 913418,
+  "count_rule": "round(Host area *418 / B1 reference Host area); empirical physical area-density transfer",
+  "B_reference_host_area_mm2": 13407.34252034187,
+  "Host_area_mm2": 137383.53414289543,
+  "scale_rule": "R3 local planar motif radius / motif63 radius; same D BACKARC family",
+  "scale_sampling": "complete copies of418 empirical values + balanced empirical quantiles remainder; no fitted/random size distribution",
+  "placement": "new Mocomoco area candidates, descending size clearance-farthest placement; source coordinates not copied",
+  "candidate_points": 100000,
+  "template_radius63_mm": 5.433692796075556,
+  "internal_work": "NOT PERFORMED; V1 internal unchanged and not displayed as connected toV2",
+  "new_petals": "NOT PERFORMED",
+  "surface_author_GO": false
+}

@@ -1,0 +1,35 @@
+{
+  "corridors": [
+    {
+      "id": "FRONT_LOW",
+      "axis": 1,
+      "center_mm": [
+        0,
+        0,
+        75
+      ],
+      "radius_mm": 9
+    },
+    {
+      "id": "FRONT_HIGH",
+      "axis": 1,
+      "center_mm": [
+        -12,
+        0,
+        142
+      ],
+      "radius_mm": 10
+    },
+    {
+      "id": "SIDE",
+      "axis": 0,
+      "center_mm": [
+        0,
+        10,
+        110
+      ],
+      "radius_mm": 9
+    }
+  ],
+  "rule": "predeclared interior sight cylinders; target-facing terminal mouth below7mmHost depth excluded, unchanged surface at mouth"
+}
