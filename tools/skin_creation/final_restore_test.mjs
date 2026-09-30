@@ -21,8 +21,13 @@ try {
   const initial=await state();
   const combos=new Set(Object.values(initial.results).map(r=>`${r.recipe.flowerScale}/${r.recipe.diameter}`));
   if(combos.size!==4) throw new Error('Missing four real conditions');
-  await page.locator('#undo').click();
-  await page.waitForTimeout(1500);
+  // Reopen at the default large-flower baseline, preserving the complete redo tail.
+  // The matrix runner already regenerates the small-flower case after fresh reopen.
+  while((await state()).cursor>0){
+    await page.locator('#undo').click();
+    await page.locator('#generate').click({trial:true});
+    await page.waitForTimeout(500);
+  }
   const before=await state();
   if(before.cursor===before.history.length-1) throw new Error('No redo tail');
   const event=page.waitForEvent('download',{timeout:180000});
@@ -58,7 +63,7 @@ try {
   await page.waitForTimeout(1500);
   const redone=await state();
   const expected=redone.results[redone.history[redone.cursor]];
-  if(expected.id!==initial.history[initial.cursor]) throw new Error('Restored redo result mismatch');
+  if(expected.id!==before.history[before.cursor+1]) throw new Error('Restored redo result mismatch');
   await page.locator('#show-flowers').uncheck();
   await page.locator('#show-host').uncheck();
   await page.waitForTimeout(1500);
@@ -82,8 +87,29 @@ try {
   for(const key of ['surfaceHash','centerlineHash','meshHash'])if(regenerated[key]!==expected[key])throw new Error('Regeneration mismatch '+key);
   await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
   await page.screenshot({path:path.join(root,'10-final-fresh-regenerated.png'),fullPage:true});
+  const other=Object.values((await state()).results).find(r=>r.recipe.flowerScale!==regenerated.recipe.flowerScale&&r.recipe.diameter===2.4);
+  await page.locator(`[data-result-id="${other.id}"] button`).click();
+  await page.locator('#view-labels.split').waitFor();
+  await page.locator('#generate').click({trial:true});
+  const deliveryState=await state();
+  const finalDownloadEvent=page.waitForEvent('download',{timeout:180000});
+  await page.locator('#save-project').click();
+  await (await finalDownloadEvent).saveAs(saved);
+  const deliveredBytes=(await readFile(saved)).length;
+  await page.locator('#new-project').click();
+  await page.locator('#generate').click({trial:true});
+  await context.close();
+  context=await browser.newContext({viewport:{width:1600,height:1100},acceptDownloads:true});
+  page=await context.newPage();events();
+  await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
+  await page.locator('#open-project').setInputFiles(saved);
+  await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
+  const deliveredReopened=await state();
+  if(binding(deliveryState)!==binding(deliveredReopened))throw new Error('Delivered archive mismatch');
+  await page.screenshot({path:path.join(root,'11-author-comparison-ready.png'),fullPage:true});
   if(errors.length)throw new Error(errors.join('\n'));
-  await writeFile(path.join(root,'final-restore-result.json'),JSON.stringify({status:'PASS',bytes:bytes.length,before,restored,redone,regenerated,failedRestorePreserved:true,rotated:true,errors},null,2));
+  await writeFile(path.join(root,'final-restore-result.json'),JSON.stringify({status:'PASS',bytes:deliveredBytes,redoTailArchiveBytes:bytes.length,before,restored,redone,regenerated,deliveryState,deliveredReopened,failedRestorePreserved:true,rotated:true,errors},null,2));
   console.log('FINAL RESTORE REGEN PASS');
 }catch(error){console.error(error);await writeFile(path.join(root,'final-restore-failure.json'),JSON.stringify({error:String(error),errors},null,2));process.exitCode=1;}
 finally{await browser.close();}

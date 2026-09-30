@@ -18,3 +18,7 @@ Keep existing SKIN REBUILD and composition v0 behavior. New creation mode reuses
 ## Protected / STOP
 
 Do not alter accepted works, other worktrees or running jobs. No Support generation, slicing, STL/3MF/G-code output, printer send, Print GO, R4 originals, force push, main merge or deployment. Selection means artistic choice only. No universal generator/audit infrastructure prerequisite. Stop at SKIN CREATION UI V0 — AUTHOR OPERATION REVIEW READY only after DoD evidence passes; otherwise report incomplete honestly.
+
+## Acceptance 2026-09-30
+
+All six DoD items PASS. Four actual UI-generated conditions, comparison, Undo/Redo, portable save including redo tail, failed restore preservation, fresh reopening and full regeneration for both flower multipliers were exercised. Final delivered archive was itself freshly reopened. See `docs/evidence/skin-creation-ui-v0/REPORT.md` and `final-restore-result.json`. Runtime implementation: 7a9ee03e220976aa3fc473ad51a7bcb15020960b. STOP at AUTHOR OPERATION REVIEW READY; no fabrication authority granted.

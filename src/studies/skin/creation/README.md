@@ -22,4 +22,4 @@ Generation speed depends on the local service. Full meshes can make camera inter
 
 ## Next
 
-Run the four-condition real-browser acceptance sequence with the connected backend. Do not promote UI completion to physical safety or print approval.
+2026-09-30: Four actual conditions passed in isolated Chrome: 2303 flowers / 2885 members and 4283 flowers / 4107 members, each at 2.2 and 2.4 mm. Comparison, Undo/Redo, saving an unapplied redo tail, fresh reopen, failed-restore preservation and full regenerated hashes for both flower multipliers passed. Final delivered archive (114117140 bytes) was itself reopened. See `docs/evidence/skin-creation-ui-v0/REPORT.md`. Stop for Author operation review; no physical safety or print approval.

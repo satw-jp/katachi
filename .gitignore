@@ -2,6 +2,10 @@ node_modules
 dist
 dist-ssr
 /outputs/skin-creation-sessions/
+/outputs/creation-portability-moved/
+/outputs/creation-portability-final/
+/outputs/creation-pre-final-save/
+/docs/evidence/skin-creation-ui-v0/*.skincreation
 __pycache__/
 *.local
 .DS_Store

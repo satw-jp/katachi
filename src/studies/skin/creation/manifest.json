@@ -2,5 +2,5 @@
   "id": "skin-creation-ui-v0",
   "version": "0.1.0",
   "updatedAt": "2026-09-30",
-  "revisits": [{ "date": "2026-09-30", "note": "Task-local creation frontend, real backend results, bounded full-mesh comparison and project-history controls; browser acceptance recorded separately." }]
+  "revisits": [{ "date": "2026-09-30", "note": "Task-local creation frontend, real backend results, bounded full-mesh comparison and project-history controls; browser acceptance recorded separately." }, { "date": "2026-09-30", "note": "Four actual Chrome-generated conditions, comparison, Undo/Redo, portable save and fresh reopen passed. Both flower-scale cases fully regenerated with identical geometry hashes; final delivered archive itself reopened, browser errors 0. Support not generated, Print GO false. AUTHOR OPERATION REVIEW READY." }]
 }

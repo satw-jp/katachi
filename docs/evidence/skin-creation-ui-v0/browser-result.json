@@ -1,0 +1,314 @@
+{
+  "status": "PASS",
+  "reports": [
+    {
+      "label": "01-g1-d2p2",
+      "result": {
+        "id": "f1e5777460304c258742977e9586c856",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.2
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "ed07e2e20226accbaf920e41e568ab74d9d3159c9ae32a53a5bde368c44014a4",
+        "layout": "layouts/large-flower",
+        "mesh": "layouts/large-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/large-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 339.0520717999989,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "elapsedMs": 350696
+    },
+    {
+      "label": "02-g1-d2p4",
+      "result": {
+        "id": "15330d879e78420f97c705bc96f7df49",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.4
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "7b55c5cdb3a7aa09b2be3a0970126030f126fc1171071a79489dbdb3f39b9c74",
+        "layout": "layouts/large-flower",
+        "mesh": "results/15330d879e78420f97c705bc96f7df49/MEMBER_MESHES.npz",
+        "structure": "results/15330d879e78420f97c705bc96f7df49/STRUCTURE.json",
+        "runtimeSeconds": 167.5733294999991,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "elapsedMs": 175330
+    },
+    {
+      "label": "04-g11over15-d2p2",
+      "result": {
+        "id": "85b317379b62460db0ee1e9fbf3ea426",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.2
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "f0c2ddaaa455de11435319287fa73b49e6675d2541052c8f2eed48d7f1b9fea4",
+        "layout": "layouts/small-flower",
+        "mesh": "layouts/small-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/small-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 533.6081238999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "elapsedMs": 546443
+    },
+    {
+      "label": "05-g11over15-d2p4",
+      "result": {
+        "id": "1548a6b9862b4ba2bf752a89367c8646",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.4
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "220668937fa2b5ce717364720ee60a20e9a5421a04e59025efde90ac663485b9",
+        "layout": "layouts/small-flower",
+        "mesh": "results/1548a6b9862b4ba2bf752a89367c8646/MEMBER_MESHES.npz",
+        "structure": "results/1548a6b9862b4ba2bf752a89367c8646/STRUCTURE.json",
+        "runtimeSeconds": 253.96879179999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "elapsedMs": 270549
+    }
+  ],
+  "beforeSave": {
+    "schema": "katachi.skin.creation.v0",
+    "history": [
+      "f1e5777460304c258742977e9586c856",
+      "15330d879e78420f97c705bc96f7df49",
+      "85b317379b62460db0ee1e9fbf3ea426",
+      "1548a6b9862b4ba2bf752a89367c8646"
+    ],
+    "cursor": 2,
+    "compare": "15330d879e78420f97c705bc96f7df49",
+    "selected": "1548a6b9862b4ba2bf752a89367c8646",
+    "results": {
+      "f1e5777460304c258742977e9586c856": {
+        "id": "f1e5777460304c258742977e9586c856",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.2
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "ed07e2e20226accbaf920e41e568ab74d9d3159c9ae32a53a5bde368c44014a4",
+        "layout": "layouts/large-flower",
+        "mesh": "layouts/large-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/large-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 339.0520717999989,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "15330d879e78420f97c705bc96f7df49": {
+        "id": "15330d879e78420f97c705bc96f7df49",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.4
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "7b55c5cdb3a7aa09b2be3a0970126030f126fc1171071a79489dbdb3f39b9c74",
+        "layout": "layouts/large-flower",
+        "mesh": "results/15330d879e78420f97c705bc96f7df49/MEMBER_MESHES.npz",
+        "structure": "results/15330d879e78420f97c705bc96f7df49/STRUCTURE.json",
+        "runtimeSeconds": 167.5733294999991,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "85b317379b62460db0ee1e9fbf3ea426": {
+        "id": "85b317379b62460db0ee1e9fbf3ea426",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.2
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "f0c2ddaaa455de11435319287fa73b49e6675d2541052c8f2eed48d7f1b9fea4",
+        "layout": "layouts/small-flower",
+        "mesh": "layouts/small-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/small-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 533.6081238999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "1548a6b9862b4ba2bf752a89367c8646": {
+        "id": "1548a6b9862b4ba2bf752a89367c8646",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.4
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "220668937fa2b5ce717364720ee60a20e9a5421a04e59025efde90ac663485b9",
+        "layout": "layouts/small-flower",
+        "mesh": "results/1548a6b9862b4ba2bf752a89367c8646/MEMBER_MESHES.npz",
+        "structure": "results/1548a6b9862b4ba2bf752a89367c8646/STRUCTURE.json",
+        "runtimeSeconds": 253.96879179999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      }
+    },
+    "revision": 11,
+    "job": null
+  },
+  "restored": {
+    "schema": "katachi.skin.creation.v0",
+    "history": [
+      "f1e5777460304c258742977e9586c856",
+      "15330d879e78420f97c705bc96f7df49",
+      "85b317379b62460db0ee1e9fbf3ea426",
+      "1548a6b9862b4ba2bf752a89367c8646"
+    ],
+    "cursor": 2,
+    "compare": "15330d879e78420f97c705bc96f7df49",
+    "selected": "1548a6b9862b4ba2bf752a89367c8646",
+    "results": {
+      "f1e5777460304c258742977e9586c856": {
+        "id": "f1e5777460304c258742977e9586c856",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.2
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "ed07e2e20226accbaf920e41e568ab74d9d3159c9ae32a53a5bde368c44014a4",
+        "layout": "layouts/large-flower",
+        "mesh": "layouts/large-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/large-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 339.0520717999989,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "15330d879e78420f97c705bc96f7df49": {
+        "id": "15330d879e78420f97c705bc96f7df49",
+        "recipe": {
+          "flowerScale": 1,
+          "diameter": 2.4
+        },
+        "flowerCount": 2303,
+        "memberCount": 2885,
+        "surfaceHash": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+        "centerlineHash": "b90e2afbf2e35b45074c9e82cced4deb58408f474cae739612f11ef6794032b7",
+        "meshHash": "7b55c5cdb3a7aa09b2be3a0970126030f126fc1171071a79489dbdb3f39b9c74",
+        "layout": "layouts/large-flower",
+        "mesh": "results/15330d879e78420f97c705bc96f7df49/MEMBER_MESHES.npz",
+        "structure": "results/15330d879e78420f97c705bc96f7df49/STRUCTURE.json",
+        "runtimeSeconds": 167.5733294999991,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "85b317379b62460db0ee1e9fbf3ea426": {
+        "id": "85b317379b62460db0ee1e9fbf3ea426",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.2
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "f0c2ddaaa455de11435319287fa73b49e6675d2541052c8f2eed48d7f1b9fea4",
+        "layout": "layouts/small-flower",
+        "mesh": "layouts/small-flower/baseline/MEMBER_MESHES.npz",
+        "structure": "layouts/small-flower/baseline/STRUCTURE.json",
+        "runtimeSeconds": 533.6081238999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      },
+      "1548a6b9862b4ba2bf752a89367c8646": {
+        "id": "1548a6b9862b4ba2bf752a89367c8646",
+        "recipe": {
+          "flowerScale": 0.7333333333333333,
+          "diameter": 2.4
+        },
+        "flowerCount": 4283,
+        "memberCount": 4107,
+        "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+        "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+        "meshHash": "220668937fa2b5ce717364720ee60a20e9a5421a04e59025efde90ac663485b9",
+        "layout": "layouts/small-flower",
+        "mesh": "results/1548a6b9862b4ba2bf752a89367c8646/MEMBER_MESHES.npz",
+        "structure": "results/1548a6b9862b4ba2bf752a89367c8646/STRUCTURE.json",
+        "runtimeSeconds": 253.96879179999996,
+        "support": "NOT_GENERATED",
+        "printGo": false,
+        "fabrication": "NOT_TESTED",
+        "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+      }
+    },
+    "revision": 1,
+    "job": null
+  },
+  "regenerated": {
+    "id": "17c3b33e2d524db6935bfe02720ab1c2",
+    "recipe": {
+      "flowerScale": 0.7333333333333333,
+      "diameter": 2.4
+    },
+    "flowerCount": 4283,
+    "memberCount": 4107,
+    "surfaceHash": "9740af3ddb8b5e5a7ea27f9cf3ecec17b23803ec321b6d55a922329e2d8bc2b8",
+    "centerlineHash": "f408f8604d39c23bf1879599df8079bc358868e1ab70e12efb9a36048ebf9386",
+    "meshHash": "220668937fa2b5ce717364720ee60a20e9a5421a04e59025efde90ac663485b9",
+    "layout": "layouts/small-flower-17c3b33e2d524db6935bfe02720ab1c2",
+    "mesh": "results/17c3b33e2d524db6935bfe02720ab1c2/MEMBER_MESHES.npz",
+    "structure": "results/17c3b33e2d524db6935bfe02720ab1c2/STRUCTURE.json",
+    "runtimeSeconds": 784.3163275000006,
+    "support": "NOT_GENERATED",
+    "printGo": false,
+    "fabrication": "NOT_TESTED",
+    "diameterPolicy": "immutable-2.2-baseline-rematerialization-v0"
+  },
+  "errors": []
+}
