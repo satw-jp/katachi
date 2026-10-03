@@ -1,0 +1,399 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:katachi:identity-lock-result:0.1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "operation": {
+      "enum": [
+        "BUILD",
+        "VERIFY"
+      ]
+    },
+    "status": {
+      "enum": [
+        "LOCK_CREATED",
+        "VERIFIED",
+        "HOLD"
+      ]
+    },
+    "FILES_STATUS": {
+      "enum": [
+        "HASHED",
+        "VERIFIED",
+        "INCOMPLETE"
+      ]
+    },
+    "CLOSURE_STATUS": {
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE"
+      ]
+    },
+    "verified": {
+      "type": "boolean"
+    },
+    "plan_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "binding_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "identity_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "logical_identity": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "diagnostic_identity": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "const": "partial / non-reusable"
+            },
+            "value": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "logical_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resolved_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "expected_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "HASHED",
+              "VERIFIED",
+              "MISMATCH",
+              "MISSING",
+              "CHANGED_DURING_READ",
+              "READ_ERROR",
+              "NOT_REGULAR_FILE",
+              "LINK_OR_REPARSE_POINT",
+              "UNEXPECTED_PATH_RESOLUTION"
+            ]
+          },
+          "observed_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "integer"
+                  },
+                  "mtime_ns": {
+                    "type": "integer"
+                  },
+                  "ctime_ns": {
+                    "type": "integer"
+                  },
+                  "device": {
+                    "type": "integer"
+                  },
+                  "inode": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "size",
+                  "mtime_ns",
+                  "ctime_ns",
+                  "device",
+                  "inode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "integer"
+                  },
+                  "mtime_ns": {
+                    "type": "integer"
+                  },
+                  "ctime_ns": {
+                    "type": "integer"
+                  },
+                  "device": {
+                    "type": "integer"
+                  },
+                  "inode": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "size",
+                  "mtime_ns",
+                  "ctime_ns",
+                  "device",
+                  "inode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity_kind": {
+            "enum": [
+              "engine",
+              "resources",
+              "backend"
+            ]
+          },
+          "handle_before": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "integer"
+                  },
+                  "mtime_ns": {
+                    "type": "integer"
+                  },
+                  "ctime_ns": {
+                    "type": "integer"
+                  },
+                  "device": {
+                    "type": "integer"
+                  },
+                  "inode": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "size",
+                  "mtime_ns",
+                  "ctime_ns",
+                  "device",
+                  "inode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "handle_after": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "integer"
+                  },
+                  "mtime_ns": {
+                    "type": "integer"
+                  },
+                  "ctime_ns": {
+                    "type": "integer"
+                  },
+                  "device": {
+                    "type": "integer"
+                  },
+                  "inode": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "size",
+                  "mtime_ns",
+                  "ctime_ns",
+                  "device",
+                  "inode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "logical_name",
+          "source_path",
+          "resolved_path",
+          "role",
+          "required",
+          "expected_sha256",
+          "status",
+          "observed_bytes",
+          "sha256",
+          "before",
+          "after",
+          "identity_kind",
+          "handle_before",
+          "handle_after"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string"
+          },
+          "logical_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "kind",
+          "logical_name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "operation",
+    "status",
+    "FILES_STATUS",
+    "CLOSURE_STATUS",
+    "verified",
+    "plan_sha256",
+    "binding_sha256",
+    "identity_sha256",
+    "logical_identity",
+    "diagnostic_identity",
+    "files",
+    "started_at",
+    "finished_at",
+    "blockers"
+  ],
+  "additionalProperties": false
+}

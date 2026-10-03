@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:katachi:identity-lock-plan:0.1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "allowed_roots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "identity_kind": {
+            "enum": [
+              "engine",
+              "resources",
+              "backend"
+            ]
+          },
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "declared_version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "platform_abi": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "declared_version",
+                  "platform_abi"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "closure_policy": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "const": "0.1"
+              },
+              "policy_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "status": {
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE"
+                ]
+              },
+              "path_semantics": {
+                "enum": [
+                  "INSENSITIVE",
+                  "UNRESOLVED"
+                ]
+              },
+              "unresolved": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "version",
+              "policy_id",
+              "sha256",
+              "status",
+              "path_semantics",
+              "unresolved"
+            ],
+            "additionalProperties": false
+          },
+          "entries": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "logical_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "expected_sha256": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "logical_name",
+                "source_path",
+                "role",
+                "required",
+                "expected_sha256"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "identity_kind",
+          "metadata",
+          "closure_policy",
+          "entries"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "allowed_roots",
+    "groups"
+  ],
+  "additionalProperties": false
+}

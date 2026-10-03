@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:katachi:identity-lock-receipt:0.1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "binding_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "build_result": {
+      "$ref": "urn:katachi:identity-lock-result:0.1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_sha256",
+    "binding_sha256",
+    "created_at",
+    "build_result"
+  ],
+  "additionalProperties": false
+}
