@@ -1,0 +1,250 @@
+{
+  "observed_at_utc": "2026-10-03T07:40:16.6794909Z",
+  "source_root": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner",
+  "drive_folder_id": "1jDZUQy3YH_V59fih7xnU_0UN8LVv0u2u",
+  "runner_version": "0.2.0",
+  "job_schema_version": "0.2",
+  "result_schema_version": "0.2",
+  "identity_scope": "Exact copied source/tests/sample; excludes caches, screenshots, results and historical evidence folders",
+  "files": [
+    {
+      "relative_path": "app.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\app.py",
+      "bytes": 22859,
+      "sha256": "cad09c2d29370e7c34cf224543a306925cc010fae13df23df9985ccf196d3d5f",
+      "modified_time_utc": "2026-09-24T02:28:41.1716142Z",
+      "repository_path": "tools/slice-console/app.py"
+    },
+    {
+      "relative_path": "CURRENT.md",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\CURRENT.md",
+      "bytes": 1061,
+      "sha256": "d36b58fc2085c623631132a37eaaf2a720f86184b094848e5682d27309d70ced",
+      "modified_time_utc": "2026-09-23T01:37:18.0611559Z",
+      "repository_path": "tools/slice-console/CURRENT.md"
+    },
+    {
+      "relative_path": "job.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\job.py",
+      "bytes": 25419,
+      "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+      "modified_time_utc": "2026-09-24T02:26:45.3944229Z",
+      "repository_path": "tools/slice-console/job.py"
+    },
+    {
+      "relative_path": "package_gcode.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\package_gcode.py",
+      "bytes": 10710,
+      "sha256": "2aa5e57766b6f1b8921fae709f090834c1be4a1d3c549c6f41fd7fd74367a206",
+      "modified_time_utc": "2026-09-23T01:31:04.6581986Z",
+      "repository_path": "tools/slice-console/package_gcode.py"
+    },
+    {
+      "relative_path": "phase_b_proof.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\phase_b_proof.py",
+      "bytes": 5442,
+      "sha256": "069277b4b622b4ba10f75213989ab56218c9442a3e04f314eb59d19c7b0dec90",
+      "modified_time_utc": "2026-09-21T06:44:48.7222097Z",
+      "repository_path": "tools/slice-console/phase_b_proof.py"
+    },
+    {
+      "relative_path": "progress.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\progress.py",
+      "bytes": 3856,
+      "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+      "modified_time_utc": "2026-09-20T07:54:03.2906952Z",
+      "repository_path": "tools/slice-console/progress.py"
+    },
+    {
+      "relative_path": "README.md",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\README.md",
+      "bytes": 8389,
+      "sha256": "815f40e8f08543b4f8a1f97733e630825b83eadccc1652dbcbf29e2c165cfe97",
+      "modified_time_utc": "2026-09-24T02:54:34.3496169Z",
+      "repository_path": "tools/slice-console/README.md"
+    },
+    {
+      "relative_path": "runner.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\runner.py",
+      "bytes": 26496,
+      "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+      "modified_time_utc": "2026-09-24T02:47:51.5982089Z",
+      "repository_path": "tools/slice-console/runner.py"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/data/.gitkeep",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data\\.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "modified_time_utc": "2026-09-24T02:40:23.3582634Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/data/.gitkeep"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/geometry/diagnostic_cube.stl",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl",
+      "bytes": 684,
+      "sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+      "modified_time_utc": "2026-09-18T16:02:56.9709362Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/geometry/diagnostic_cube.stl"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/locks/INPUT_LOCKS.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\locks\\INPUT_LOCKS.json",
+      "bytes": 443,
+      "sha256": "b09b23162b1f4c6e9b1e98242eda8070761c397f9357a162b018521b6e479318",
+      "modified_time_utc": "2026-09-24T02:33:32.4262146Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/locks/INPUT_LOCKS.json"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/profiles/filament.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "bytes": 7724,
+      "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+      "modified_time_utc": "2026-09-18T20:26:36.4811945Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/profiles/filament.json"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/profiles/printer.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+      "bytes": 29021,
+      "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+      "modified_time_utc": "2026-09-18T20:26:36.4656507Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/profiles/printer.json"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/profiles/process.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "bytes": 7598,
+      "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+      "modified_time_utc": "2026-09-18T20:26:36.4726799Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/profiles/process.json"
+    },
+    {
+      "relative_path": "sample/clean_mesh_box/SLICE_JOB.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\SLICE_JOB.json",
+      "bytes": 2115,
+      "sha256": "faf51e41d5485dbadbebf937fcf713807caf3b34acd5cf612fee98523b890383",
+      "modified_time_utc": "2026-09-24T02:40:23.3562931Z",
+      "repository_path": "tools/slice-console/sample/clean_mesh_box/SLICE_JOB.json"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/data/README.txt",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\data\\README.txt",
+      "bytes": 95,
+      "sha256": "20697ac236fe7d689072a157489a94dbb70e6a48e9248afff8457415af28362d",
+      "modified_time_utc": "2026-09-20T06:55:03.2210535Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/data/README.txt"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/geometry/authored_support.stl",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\geometry\\authored_support.stl",
+      "bytes": 49,
+      "sha256": "3145f09c8bf6cc050977ec8481a65403495d0180fc693eabae45d162d8168074",
+      "modified_time_utc": "2026-09-20T06:54:50.4611000Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/geometry/authored_support.stl"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/geometry/permanent.stl",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\geometry\\permanent.stl",
+      "bytes": 35,
+      "sha256": "6ae55bbffbc41fa05b6f42adba60d5b3da12292bf136e999ba4e05382bf0c7c8",
+      "modified_time_utc": "2026-09-20T06:54:48.1128881Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/geometry/permanent.stl"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/locks/INPUT_LOCKS.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\locks\\INPUT_LOCKS.json",
+      "bytes": 515,
+      "sha256": "d5cd5e8f034d7ba32415714dac19d58fb6861cf57da2bb4b2876c94f2a91d357",
+      "modified_time_utc": "2026-09-20T06:59:52.5594085Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/locks/INPUT_LOCKS.json"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/profiles/filament.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\profiles\\filament.json",
+      "bytes": 59,
+      "sha256": "541f0e7a31592f19327f619b6a35050ddd9de8520bca4ff0e93e81ca9bf86b45",
+      "modified_time_utc": "2026-09-20T06:54:59.2093653Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/profiles/filament.json"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/profiles/printer.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\profiles\\printer.json",
+      "bytes": 58,
+      "sha256": "0a988f745708ba489383584635f8f4a258fc66a877a60a8e71008b83dc4c55eb",
+      "modified_time_utc": "2026-09-20T06:54:54.3403548Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/profiles/printer.json"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/profiles/process.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\profiles\\process.json",
+      "bytes": 58,
+      "sha256": "795060bf9ec30a535566a93a91cdd457760d514c634f9536895a2ca69d176d0e",
+      "modified_time_utc": "2026-09-20T06:54:56.7401621Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/profiles/process.json"
+    },
+    {
+      "relative_path": "sample/D22_2_SLICE_JOB/SLICE_JOB.json",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\D22_2_SLICE_JOB\\SLICE_JOB.json",
+      "bytes": 976,
+      "sha256": "23e37b0c49147473bbed1e5fd2866bc4976880091849ad9f758078a16fda5faa",
+      "modified_time_utc": "2026-09-20T07:55:41.5765734Z",
+      "repository_path": "tools/slice-console/sample/D22_2_SLICE_JOB/SLICE_JOB.json"
+    },
+    {
+      "relative_path": "setup_windows.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\setup_windows.py",
+      "bytes": 6952,
+      "sha256": "ba0cde12e02d253ca6e9b2224b19be452277bf38e2e225f891a12ff720bd154f",
+      "modified_time_utc": "2026-09-20T07:21:45.1399112Z",
+      "repository_path": "tools/slice-console/setup_windows.py"
+    },
+    {
+      "relative_path": "startup.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\startup.py",
+      "bytes": 4863,
+      "sha256": "aafece1c6c2327b44458bf24f619bd93073c6ea0efd1d9972891f4330bea6c78",
+      "modified_time_utc": "2026-09-20T07:21:42.8003435Z",
+      "repository_path": "tools/slice-console/startup.py"
+    },
+    {
+      "relative_path": "tests/test_app.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\tests\\test_app.py",
+      "bytes": 8849,
+      "sha256": "c2c8b4e704574763c91eba3530981821f0ec188572ccddea7e97fc14fd1a9dd9",
+      "modified_time_utc": "2026-09-21T07:22:30.6862713Z",
+      "repository_path": "tools/slice-console/tests/test_app.py"
+    },
+    {
+      "relative_path": "tests/test_package_gcode.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\tests\\test_package_gcode.py",
+      "bytes": 2033,
+      "sha256": "1f83fa03d1cb90d86f19b06dfbaec0f47dfe5f07a4e1515c4b346ab8d8577233",
+      "modified_time_utc": "2026-09-23T01:32:20.7397603Z",
+      "repository_path": "tools/slice-console/tests/test_package_gcode.py"
+    },
+    {
+      "relative_path": "tests/test_runner.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\tests\\test_runner.py",
+      "bytes": 30538,
+      "sha256": "b2570f3c5a92db597f26a639f1cd3433ac4ea2f7a94101c2928e7116e33db9e9",
+      "modified_time_utc": "2026-09-24T02:48:06.5050520Z",
+      "repository_path": "tools/slice-console/tests/test_runner.py"
+    },
+    {
+      "relative_path": "tests/test_startup.py",
+      "exact_source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\tests\\test_startup.py",
+      "bytes": 3110,
+      "sha256": "e20a11c2ec7b715c889414ab04578b5f41f3310897adcbfe2121d88789f2dd7b",
+      "modified_time_utc": "2026-09-20T07:22:35.2951428Z",
+      "repository_path": "tools/slice-console/tests/test_startup.py"
+    }
+  ],
+  "version_constants_verified_by_ast": {
+    "RUNNER_VERSION": "0.2.0",
+    "JOB_SCHEMA_VERSION": "0.2",
+    "RESULT_SCHEMA_VERSION": "0.2"
+  },
+  "source_set_sha256": "514cfc9ce41b56f3b062aa9d858d8b78b85f21cd8c5483de212d166ea41ada7d",
+  "source_set_digest_definition": "SHA-256 of UTF-8 concatenated relative_path<TAB>bytes<TAB>sha256<LF> in manifest order"
+}
