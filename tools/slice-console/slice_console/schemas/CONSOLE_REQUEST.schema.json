@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CONSOLE_REQUEST 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "mode",
+    "inputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "mode": {
+      "enum": [
+        "PREFLIGHT",
+        "FULL_SLICE",
+        "PACKAGE_ONLY",
+        "AUDIT_ONLY",
+        "REUSE"
+      ]
+    },
+    "inputs": {
+      "type": "object"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "mode": {
+          "const": "PREFLIGHT"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "job_path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "job_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "mode": {
+          "const": "FULL_SLICE"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "job_path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "job_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "mode": {
+          "const": "PACKAGE_ONLY"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "context_3mf_path",
+            "gcode_path",
+            "output_dir"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "context_3mf_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            },
+            "gcode_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            },
+            "output_dir": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            },
+            "expected_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "expected_layers": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "expected_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "mode": {
+          "const": "AUDIT_ONLY"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "artifact_path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "artifact_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "mode": {
+          "const": "REUSE"
+        },
+        "inputs": {
+          "type": "object",
+          "required": [
+            "artifact_path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "artifact_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)",
+              "description": "Exact absolute path on the execution host; do not select by timestamp/latest."
+            }
+          }
+        }
+      }
+    }
+  ]
+}

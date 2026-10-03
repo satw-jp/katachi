@@ -1,6 +1,16 @@
 # R5 Slice Runner Current Status
 
-## 2026-10-03 — Slice Console R0.1 baseline / active Author review
+## 2026-10-03 — Slice Console R0.1 mode router / Author review
+
+Author accepted baseline freeze. PR #39 merged normally at `abb045990e9384f1eb6bc51a5049d6efb685c08d`, preserving baseline head `5e0f8d6ad0c5177ab240654cb45f78ef4958d8c8`. This fetched main is the new base authority.
+
+**SLICE CONSOLE R0.1 MODE ROUTER — AUTHOR REVIEW.** Dedicated isolated branch: `agent/slice-console-r0.1-mode-router`. Active [bounded task](../tasks/SLICE_CONSOLE_R01_MODE_ROUTER.md), [contract](../../tools/slice-console/CONSOLE_CONTRACT.md) and [evidence](../evidence/SLICE_CONSOLE_R01_MODE_ROUTER_2026-10-03.md). No blocking test failure; Author acceptance pending.
+
+Five-mode versioned Console wrapper / thin CLI is implemented above unchanged Runner 0.2.0: static PREFLIGHT, delegated FULL_SLICE, independent PACKAGE_ONLY, AUDIT_ONLY HOLD/AUDITOR_NOT_CONNECTED and REUSE HOLD/CACHE_NOT_IMPLEMENTED. No fallback. Windows fake/synthetic tests: 51 PASS / 0 SKIP / 0 FAIL, including unchanged 35 Runner regressions. Frozen 29 source/tests/sample identities preserved. Original operational Drive deployment remains unchanged.
+
+SLICE_KEY/cache/resource/stage logging/history/known-slow/Job Builder/auditor/real Bambu/benchmark are NOT IMPLEMENTED in this task. No geometry/MINIL/printer send/print/Print GO changes. The baseline checkpoint below is historical and ACCEPTED; no next task starts automatically.
+
+## 2026-10-03 — Historical baseline freeze / accepted and merged
 
 **SLICE CONSOLE R0.1 BASELINE FREEZE — AUTHOR REVIEW.** Operational source is now frozen as an exact-copy backend baseline at `tools/slice-console/` on `agent/slice-console-r0.1-baseline`; this is review-branch promotion, not a deployment replacement or main merge. Decision owner: Author. No SLICE_KEY/cache/PREFLIGHT implementation is active.
 
