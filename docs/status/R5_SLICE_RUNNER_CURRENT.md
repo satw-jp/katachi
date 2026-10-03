@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-03 — SLICE_KEY generator / Author review
+
+Author accepted contract PR #41; normal merge `ab09232526b2190ad3dda970d9e8d4fb04e6d103` preserves accepted head `5d24467e99413bf0a74e98f2280c526f327ee544`. Fetched main is generator base authority. The contract pending-review checkpoint below is historical and accepted.
+
+**SLICE CONSOLE R0.1 SLICE_KEY GENERATOR — AUTHOR REVIEW.** Isolated branch `agent/slice-console-r0.1-slice-key-generator`. [Task](../tasks/SLICE_CONSOLE_R01_SLICE_KEY_GENERATOR.md), [API](../../tools/slice-console/SLICE_KEY_GENERATOR.md), [evidence](../evidence/SLICE_CONSOLE_R01_SLICE_KEY_GENERATOR_2026-10-03.md). Pure preverified-descriptor generator with lossless decimal/fail-closed canonicalization and two golden triples; new37 + existing51 tests = 88 PASS / 0 SKIP / 0 FAIL. No unresolved implementation blocker before Author review.
+
+Generator engine launches0; real Bambu0. Existing synthetic regression uses fake CLI, recorded separately. Caller must supply complete verified immutable identities; production lock/discovery/policy closure remains unimplemented. No Console integration/cache/REUSE/discovery, deployment/backend/schema change, geometry/MINIL/send/print/Print GO change. Next candidate is ENGINE / RESOURCE IDENTITY LOCK CONTRACT + FIXTURE TOOLING, not started.
+
 ## 2026-10-03 — SLICE_KEY contract design / Author review
 
 Author accepted mode router PR #40. Normal merge at `2341bc8a952115a826956b970e6de2f98eeb57dd` preserves head `7914942383d8cc5ce8e4a48aa0b0d7a6cafb7b93`; fetched main is this design's authority. Prior mode-router acceptance is closed; its pending-review checkpoint below is historical.
