@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-03 — SLICE_KEY contract design / Author review
+
+Author accepted mode router PR #40. Normal merge at `2341bc8a952115a826956b970e6de2f98eeb57dd` preserves head `7914942383d8cc5ce8e4a48aa0b0d7a6cafb7b93`; fetched main is this design's authority. Prior mode-router acceptance is closed; its pending-review checkpoint below is historical.
+
+**SLICE CONSOLE R0.1 SLICE_KEY CONTRACT — AUTHOR REVIEW.** Isolated branch `agent/slice-console-r0.1-slice-key-contract`. Active [task](../tasks/SLICE_CONSOLE_R01_SLICE_KEY_CONTRACT.md), [design](../fabrication/SLICE_KEY_CONTRACT_V0_1.md), [evidence](../evidence/SLICE_CONSOLE_R01_SLICE_KEY_CONTRACT_2026-10-03.md). Design only: requested execution identity is separate from byte/toolpath/fabrication/physical/Author/Print gates. Incomplete engine/resource/environment identity prevents key generation and cache lookup. Complete closure policies remain unresolved; no design-document blocker remains before Author review.
+
+No key generator, resource lock tooling, cache or REUSE implementation. Backend, schemas, tests, deployment, geometry/MINIL and Print GO unchanged. Real slice/send/print0. Proposed implementation scope is documented but not active; no next task starts automatically.
+
 ## 2026-10-03 — Slice Console R0.1 mode router / Author review
 
 Author accepted baseline freeze. PR #39 merged normally at `abb045990e9384f1eb6bc51a5049d6efb685c08d`, preserving baseline head `5e0f8d6ad0c5177ab240654cb45f78ef4958d8c8`. This fetched main is the new base authority.
