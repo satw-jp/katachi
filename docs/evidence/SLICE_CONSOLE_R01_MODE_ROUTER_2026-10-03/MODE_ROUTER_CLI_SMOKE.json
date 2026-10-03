@@ -1,0 +1,42 @@
+[
+  {
+    "mode": "PREFLIGHT",
+    "status": "PASS",
+    "engine_started": false,
+    "exit_code": 0,
+    "reason": null,
+    "scope": "synthetic / fake CLI only"
+  },
+  {
+    "mode": "FULL_SLICE",
+    "status": "SUCCESS",
+    "engine_started": true,
+    "exit_code": 0,
+    "reason": null,
+    "scope": "synthetic / fake CLI only"
+  },
+  {
+    "mode": "PACKAGE_ONLY",
+    "status": "PACKAGE_COMPLETE",
+    "engine_started": false,
+    "exit_code": 0,
+    "reason": null,
+    "scope": "synthetic / fake CLI only"
+  },
+  {
+    "mode": "AUDIT_ONLY",
+    "status": "HOLD",
+    "engine_started": false,
+    "exit_code": 2,
+    "reason": "AUDITOR_NOT_CONNECTED",
+    "scope": "synthetic / fake CLI only"
+  },
+  {
+    "mode": "REUSE",
+    "status": "HOLD",
+    "engine_started": false,
+    "exit_code": 2,
+    "reason": "CACHE_NOT_IMPLEMENTED",
+    "scope": "synthetic / fake CLI only"
+  }
+]

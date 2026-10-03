@@ -1,0 +1,103 @@
+{
+  "base_main": "abb045990e9384f1eb6bc51a5049d6efb685c08d",
+  "baseline_head": "5e0f8d6ad0c5177ab240654cb45f78ef4958d8c8",
+  "baseline_pr": 39,
+  "merge_method": "merge",
+  "merge_verified": true,
+  "baseline_is_main_ancestor": true,
+  "preserved_frozen_files": 29,
+  "runner_version": "0.2.0",
+  "job_schema": "0.2",
+  "result_schema": "0.2",
+  "tests": {
+    "pass": 51,
+    "skip": 0,
+    "fail": 0,
+    "existing_regression": 35,
+    "new_console_tests": 16
+  },
+  "console_test_engine_launches": [
+    {
+      "test": "test_console.ConsoleTests.test_audit_hold_no_engine_or_artifact_selection",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_cli_backend_result_name_refuses_dispatch",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_cli_existing_result_refuses_dispatch",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_cli_invalid_json_writes_hold_without_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_cli_preflight_and_request_json_share_router_and_write_result",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_full_slice_backend_failure_remains_failed",
+      "engine_launches": 1,
+      "engine_type": "Python fake CLI"
+    },
+    {
+      "test": "test_console.ConsoleTests.test_full_slice_cancel_and_busy_preserve_backend_events",
+      "engine_launches": 1,
+      "engine_type": "Python fake CLI"
+    },
+    {
+      "test": "test_console.ConsoleTests.test_full_slice_delegates_one_fake_engine_preserves_manifest",
+      "engine_launches": 1,
+      "engine_type": "Python fake CLI"
+    },
+    {
+      "test": "test_console.ConsoleTests.test_full_slice_invalid_job_no_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_invalid_contract_fail_closed",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_package_missing_context_or_wrong_hash_fails_no_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_package_only_identity_no_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_preflight_invalid_lock_profile_mesh_hold_no_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_preflight_pass_no_engine",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_reuse_hold_no_engine_or_artifact_selection",
+      "engine_launches": 0,
+      "engine_type": null
+    },
+    {
+      "test": "test_console.ConsoleTests.test_unknown_mode_fail_closed",
+      "engine_launches": 0,
+      "engine_type": null
+    }
+  ],
+  "real_bambu_launches": 0,
+  "schema_check": "JSON parsed / runtime contract tested; independent JSON Schema meta-validator NOT RUN (not installed)"
+}
