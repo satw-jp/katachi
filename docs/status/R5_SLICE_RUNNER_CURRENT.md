@@ -1,19 +1,27 @@
 # R5 Slice Runner Current Status
 
-Last verified: 2026-09-26 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 remain closed. A later Large A1 delivery run added bounded evidence that a Bambu-compatible sliced-only `.gcode.3mf` may carry its embedded G-code member with ZIP method 8 / DEFLATE while preserving the exact expanded G-code bytes; this is a transport/package finding, not a Runner re-slice or Physical PASS.
+## 2026-10-03 — Slice Console R0.1 baseline / active Author review
+
+**SLICE CONSOLE R0.1 BASELINE FREEZE — AUTHOR REVIEW.** Operational source is now frozen as an exact-copy backend baseline at `tools/slice-console/` on `agent/slice-console-r0.1-baseline`; this is review-branch promotion, not a deployment replacement or main merge. Decision owner: Author. No SLICE_KEY/cache/PREFLIGHT implementation is active.
+
+Current actual source: Runner `0.2.0`, job/result schema `0.2`; 35 focused tests PASS / 0 SKIP / 0 FAIL on Windows. Source identity, capability audit, exact Windows shortcut observations and ordered next tasks: [SLICE_CONSOLE_R01_BASELINE_2026-10-03](../evidence/SLICE_CONSOLE_R01_BASELINE_2026-10-03.md). The operational Drive directory and existing shortcuts remain unchanged. Shortcut configuration verified; loaded source bytes unverified. Issue #30's IMPLEMENTATION NOT STARTED body is stale relative to code, but its historical real-slice gate is not independently closed by these fake/synthetic tests.
+
+The 2026-09-21 inventory/version statements and earlier test counts below are **historical checkpoints, superseded for current source identity**. Historical smoke manifests keep their own `0.1.0` / `0.1` identity. Successful review packaging now records G-code SHA/equality; missing/failed packaging still does not certify all expected outputs or printability. Phase B remains historical; Phase C remains deferred. New active gate is baseline Author review, with no automatic implementation or printer action.
+
+Historical checkpoint: 2026-09-26 JST. Reviewable sliced-only `.gcode.3mf` Phase B implementation and Fix 1 remain closed. A later Large A1 delivery run added bounded evidence that a Bambu-compatible sliced-only `.gcode.3mf` may carry its embedded G-code member with ZIP method 8 / DEFLATE while preserving the exact expanded G-code bytes; this is a transport/package finding, not a Runner re-slice or Physical PASS.
 
 ## Authority
 
 - repo: `satw-jp/katachi`
 - lane: **R5 Astra / FUKEI Slice Runner execution infrastructure**
-- this CURRENT records status, operational handoff and evidence pointers; implementation remains in Drive staging and is not promoted into repo source by this update.
+- this CURRENT records status, operational handoff and evidence pointers; deployed implementation remains in Drive, while the 2026-10-03 review branch imports an exact source copy (see active checkpoint above).
 - operational source directory: [fukei_slice_runner](https://drive.google.com/drive/folders/1jDZUQy3YH_V59fih7xnU_0UN8LVv0u2u)
 - recorded Windows directory: `J:/My Drive/codex/2026-09-20/files-pasted-by-the-user-fukei/outputs/fukei_slice_runner`
 - entry: `app.py` in that directory; do not use the separately archived review ZIP as an interchangeable deployment.
 - integration evidence folder: [R5_SLICE_RUNNER_INTEGRATION_V0](https://drive.google.com/drive/folders/1cLxuVDeCmgTkxO0m3rzYE2FMicYQAtzW)
 - reproducibility audit: [REPRO_AUDIT_01](https://drive.google.com/drive/folders/1S8kNkIUebY0ss0YnqBOciG39ryUvGl3v)
 
-Actual Windows shortcut target, currently running process and loaded source bytes were not inspected in this chat. The source inventory below identifies retrieved Drive files, not live deployment telemetry.
+Historical checkpoint limitation: Windows deployment was not inspected in that earlier audit. The 2026-10-03 checkpoint above verifies shortcut configuration separately from loaded source bytes; the older inventory below remains historical.
 
 ## Responsibility boundary
 
@@ -51,7 +59,7 @@ For this stored artifact, **embedded G-code and standalone G-code are byte-ident
 
 This means the next concern is not "can Runner create a sliced 3MF?" but "can the Author review that existing native sliced 3MF in Bambu Studio and then send it without losing or silently replacing the Runner toolpath?" Follow the bounded task before changing code.
 
-The current retrieved `runner.py` still declares version `0.1.0`, but its source bytes are now different from the historical smoke-era `0.1.0` source. Therefore **version string alone is not source identity**; use the current source SHA checkpoint above for this Phase B implementation. The historical smoke remains identified by its own recorded artifacts and should not be retroactively attributed to the new source.
+The historical 2026-09-21 retrieved `runner.py` declared version `0.1.0`, but its source bytes are now different from the historical smoke-era `0.1.0` source. Therefore **version string alone is not source identity**; use the current source SHA checkpoint above for this Phase B implementation. The historical smoke remains identified by its own recorded artifacts and should not be retroactively attributed to the new source.
 
 ### 2026-09-26 Large delivery transport evidence
 
@@ -73,7 +81,7 @@ Promoted evidence and operating rule:
 - [BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26](../evidence/BAMBU_GCODE_3MF_DEFLATE_TRANSPORT_2026-09-26.md)
 - [A1_BAMBU_CLI_RUNBOOK RUN-06B](../fabrication/A1_BAMBU_CLI_RUNBOOK.md#run-06b--large-sliced-only-gcode3mf-transport-compression)
 
-## Source identity checkpoint — retrieved bytes, not a new build
+## Historical source identity checkpoint — 2026-09-21 retrieved bytes
 
 The following six top-level Python source files were retrieved from the operational Drive directory and SHA-256 computed over their actual bytes on2026-09-21. No code was edited or executed. Tests, screenshots, caches, Python runtime and the Bambu executable are outside this source-file inventory; it is not a complete execution-environment lock.
 
@@ -105,7 +113,7 @@ This is **Author-triggered operation, not an automatic watched-folder queue**. P
 
 Manifest existence is not success: FAILED/CANCELLED runs may also write one. SUCCESS/exit0 means CLI execution success, not printable output or physical/artistic approval. Require a readable complete terminal manifest and available expected outputs; Drive-sync delay or a missing manifest is UNKNOWN, not proof of failure or permission to re-run.
 
-The current manifest inventories output paths/bytes; it does not compute full output G-code SHA-256 or prove all expected outputs exist merely from exit0. Binding/release-specific output integrity belongs to Astra's required review of that actual artifact, not an invented Runner guarantee. Preserve a needed hash once rather than repeating bulk hashing at every resume.
+The historical manifest checkpoint inventories output paths/bytes; the current 2026-10-03 source additionally records G-code SHA-256 when review packaging succeeds. Neither version proves all expected outputs exist merely from exit0. Binding/release-specific output integrity belongs to Astra's required review of that actual artifact, not an invented Runner guarantee. Preserve a needed hash once rather than repeating bulk hashing at every resume.
 
 ## Duplicate prevention — operational rule, not an implemented guarantee
 
@@ -148,7 +156,7 @@ Therefore PHYSICAL_01 low quality is **not evidence of a Slice Runner failure**.
 - Optional future provenance improvement may record engine/environment/datadir identities, but no code implementation is authorized now.
 - No production/generalization claim.
 
-## Active implementation instruction / next gate
+## Historical Phase B instruction / Phase C deferred
 
 Active bounded task:
 [R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0](../tasks/R5_RUNNER_AUTHOR_REVIEWABLE_SLICED_3MF_V0.md)

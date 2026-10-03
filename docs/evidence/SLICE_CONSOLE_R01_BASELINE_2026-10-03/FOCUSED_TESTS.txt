@@ -1,0 +1,40 @@
+test_failed_and_cancelled_final_states_are_not_100_percent (test_app.AppFinalStateTests.test_failed_and_cancelled_final_states_are_not_100_percent) ... ok
+test_review_button_opens_artifact_only_when_user_triggers_it (test_app.AppFinalStateTests.test_review_button_opens_artifact_only_when_user_triggers_it) ... ok
+test_review_packaging_failure_keeps_slice_completed_and_disables_review_button (test_app.AppFinalStateTests.test_review_packaging_failure_keeps_slice_completed_and_disables_review_button) ... ok
+test_subsecond_fake_cli_completion_finalizes_gui_before_first_tick (test_app.AppFinalStateTests.test_subsecond_fake_cli_completion_finalizes_gui_before_first_tick) ... ok
+test_missing_context_fails_closed (test_package_gcode.PackageGcodeTests.test_missing_context_fails_closed) ... ok
+test_raw_bytes_and_validation (test_package_gcode.PackageGcodeTests.test_raw_bytes_and_validation) ... ok
+test_binary_stl_static_validation (test_runner.RunnerTests.test_binary_stl_static_validation) ... ok
+test_cancel_manifest (test_runner.RunnerTests.test_cancel_manifest) ... ok
+test_cli_resolved_settings_is_recorded_as_output (test_runner.RunnerTests.test_cli_resolved_settings_is_recorded_as_output) ... ok
+test_corrupt_native_3mf_fails_closed_after_cli_success (test_runner.RunnerTests.test_corrupt_native_3mf_fails_closed_after_cli_success) ... ok
+test_failure_manifest (test_runner.RunnerTests.test_failure_manifest) ... ok
+test_info_success_is_package_parse_only_and_slice_empty_plate_is_distinct (test_runner.RunnerTests.test_info_success_is_package_parse_only_and_slice_empty_plate_is_distinct) ... ok
+test_inherit_console_is_recorded_in_manifest (test_runner.RunnerTests.test_inherit_console_is_recorded_in_manifest) ... ok
+test_malformed_model_settings_fails_closed_after_cli_success (test_runner.RunnerTests.test_malformed_model_settings_fails_closed_after_cli_success) ... ok
+test_mesh_import_manifest_records_geometry_hash_and_engine_terminal_result (test_runner.RunnerTests.test_mesh_import_manifest_records_geometry_hash_and_engine_terminal_result) ... ok
+test_mesh_import_rechecks_lock_immediately_before_engine_launch (test_runner.RunnerTests.test_mesh_import_rechecks_lock_immediately_before_engine_launch) ... ok
+test_mesh_import_rejects_empty_zero_face_corrupt_and_nonfinite_before_engine_launch (test_runner.RunnerTests.test_mesh_import_rejects_empty_zero_face_corrupt_and_nonfinite_before_engine_launch) ... ok
+test_mesh_import_rejects_hash_mismatch_before_engine_launch (test_runner.RunnerTests.test_mesh_import_rejects_hash_mismatch_before_engine_launch) ... ok
+test_mesh_import_requires_units_bounds_and_transform (test_runner.RunnerTests.test_mesh_import_requires_units_bounds_and_transform) ... ok
+test_missing_native_3mf_fails_closed_after_cli_success (test_runner.RunnerTests.test_missing_native_3mf_fails_closed_after_cli_success) ... ok
+test_missing_native_embedded_gcode_fails_closed_after_cli_success (test_runner.RunnerTests.test_missing_native_embedded_gcode_fails_closed_after_cli_success) ... ok
+test_native_embedded_gcode_mismatch_fails_closed_after_cli_success (test_runner.RunnerTests.test_native_embedded_gcode_mismatch_fails_closed_after_cli_success) ... ok
+test_native_project_provenance_rejects_reduced_and_unknown_inputs (test_runner.RunnerTests.test_native_project_provenance_rejects_reduced_and_unknown_inputs) ... ok
+test_packaging_exception_keeps_cli_success_result (test_runner.RunnerTests.test_packaging_exception_keeps_cli_success_result) ... ok
+test_profile_placeholder_resolves (test_runner.RunnerTests.test_profile_placeholder_resolves) ... ok
+test_progress_distinguishes_actual_and_estimated (test_runner.RunnerTests.test_progress_distinguishes_actual_and_estimated) ... ok
+test_schema_0_1_job_remains_readable_and_executable (test_runner.RunnerTests.test_schema_0_1_job_remains_readable_and_executable) ... ok
+test_success_generates_sliced_only_review_artifact_with_matching_gcode_hashes (test_runner.RunnerTests.test_success_generates_sliced_only_review_artifact_with_matching_gcode_hashes) ... ok
+test_validation_and_success_manifest (test_runner.RunnerTests.test_validation_and_success_manifest) ... ok
+test_windows_execution_creation_flags (test_runner.RunnerTests.test_windows_execution_creation_flags) ... ok
+test_desktop_and_startup_shortcut_specs_differ_only_by_startup_flag (test_startup.StartupTests.test_desktop_and_startup_shortcut_specs_differ_only_by_startup_flag) ... ok
+test_duplicate_instance_is_detected_without_pid_file (test_startup.StartupTests.test_duplicate_instance_is_detected_without_pid_file) ... ok
+test_pythonw_sibling_is_preferred (test_startup.StartupTests.test_pythonw_sibling_is_preferred) ... ok
+test_shortcut_create_and_remove (test_startup.StartupTests.test_shortcut_create_and_remove) ... ok
+test_startup_argument_is_separate_from_optional_job (test_startup.StartupTests.test_startup_argument_is_separate_from_optional_job) ... ok
+
+----------------------------------------------------------------------
+Ran 35 tests in 5.574s
+
+OK

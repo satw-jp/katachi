@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1",
+  "job_id": "D22.2",
+  "candidate": "D22.2",
+  "engine_path": "C:/Program Files/Bambu Studio/bambu-studio.exe",
+  "data_dir": "./data",
+  "inputs": [
+    "./geometry/permanent.stl",
+    "./geometry/authored_support.stl"
+  ],
+  "profiles": {
+    "printer": "./profiles/printer.json",
+    "process": "./profiles/process.json",
+    "filament": "./profiles/filament.json"
+  },
+  "output_dir": "./runs-output",
+  "input_locks": "./locks/INPUT_LOCKS.json",
+  "display": {
+    "printer": "Bambu Lab A1 / 0.4 mm",
+    "layer_height": "0.20 mm",
+    "material": "PLA",
+    "temperature": "240 C",
+    "support": "Authored Support / Auto OFF",
+    "engine": "Bambu Studio 02.08.02.61"
+  },
+  "history": {
+    "reference_duration_seconds": 2971
+  },
+  "cli": {
+    "version": "02.08.02.61",
+    "windows_execution": "no_window",
+    "cwd": ".",
+    "argv": [
+      "{engine_path}",
+      "<validated native-slice argv from A1_BAMBU_CLI_RUNBOOK>"
+    ]
+  }
+}
