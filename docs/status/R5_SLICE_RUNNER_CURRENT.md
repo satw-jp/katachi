@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — Windows closure policy / Author review
+
+Author accepted Identity Lock PR #43; normal merge `6997bd185b20839f2e63721c1ed3f45bb1a2343a` preserves head `d41302be7e73a35f39f32515eb16585e80f37d6f`. Fetched main is new base. Prior Identity Lock pending-review checkpoint below is historical and accepted.
+
+**SLICE CONSOLE R0.1 CLOSURE POLICY — AUTHOR REVIEW.** Isolated branch `agent/slice-console-r0.1-closure-policy`. [Task](../tasks/SLICE_CONSOLE_R01_CLOSURE_POLICY.md), [policy interpretation](../fabrication/WINDOWS_BAMBU_CLOSURE_POLICY_V0_1.md), [actual policy/plan](../../tools/slice-console/policies/ENGINE_RESOURCE_CLOSURE_POLICY_V0_1.json), [evidence](../evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04.md). Installed Windows Bambu02.08.02.61 executable and10 explicit files hashed/reverified; FILES_STATUS VERIFIED, CLOSURE_STATUS INCOMPLETE, overall HOLD/verified false. Policy SHA is computed from actual artifact bytes. Normal bounded completion B; no incomplete closure promoted to COMPLETE.
+
+Remaining closure: CRT/dynamic DLL binding, defaults/datadir fallback, actual WindowsApps Python runtime, effective env/secret and path semantics; current executed-job binding not independently proven. Existing110 tests PASS. Backend/lock/generator/Console code and deployment unchanged. Real engine/slice0, descriptor/cache/REUSE0, geometry/MINIL/send/print/Print GO0. Next candidate WINDOWS BAMBU MSVC / UCRT BINDING CLOSURE, not started.
+
 ## 2026-10-04 — Identity Lock v0 / Author review
 
 Author accepted generator PR #42; normal merge `1b353056043f7ac2b8244d945d1eb1f7f314ae26` preserves head `0cc468c3e1b0d73326adf5ddf2bf5e69704572d2`. Fetched main is new authority; prior generator pending-review checkpoint below is historical and accepted.

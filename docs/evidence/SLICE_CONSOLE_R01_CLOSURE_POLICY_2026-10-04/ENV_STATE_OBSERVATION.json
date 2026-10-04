@@ -1,0 +1,90 @@
+{
+  "scope": "analysis helper process only, NOT effective Runner/Bambu environment",
+  "values_saved": false,
+  "variables": [
+    {
+      "name": "PATH",
+      "state": "PRESENT"
+    },
+    {
+      "name": "TEMP",
+      "state": "PRESENT"
+    },
+    {
+      "name": "TMP",
+      "state": "PRESENT"
+    },
+    {
+      "name": "LANG",
+      "state": "PRESENT"
+    },
+    {
+      "name": "LC_ALL",
+      "state": "PRESENT"
+    },
+    {
+      "name": "LC_CTYPE",
+      "state": "PRESENT"
+    },
+    {
+      "name": "HOME",
+      "state": "UNSET"
+    },
+    {
+      "name": "USERPROFILE",
+      "state": "PRESENT"
+    },
+    {
+      "name": "APPDATA",
+      "state": "PRESENT"
+    },
+    {
+      "name": "LOCALAPPDATA",
+      "state": "PRESENT"
+    },
+    {
+      "name": "OMP_NUM_THREADS",
+      "state": "UNSET"
+    },
+    {
+      "name": "OMP_DYNAMIC",
+      "state": "UNSET"
+    },
+    {
+      "name": "TBB_NUM_THREADS",
+      "state": "UNSET"
+    },
+    {
+      "name": "MKL_NUM_THREADS",
+      "state": "UNSET"
+    },
+    {
+      "name": "OPENBLAS_NUM_THREADS",
+      "state": "UNSET"
+    },
+    {
+      "name": "PYTHONHOME",
+      "state": "UNSET"
+    },
+    {
+      "name": "PYTHONPATH",
+      "state": "UNSET"
+    },
+    {
+      "name": "PYTHONHASHSEED",
+      "state": "UNSET"
+    },
+    {
+      "name": "PYTHONUTF8",
+      "state": "UNSET"
+    },
+    {
+      "name": "PYTHONIOENCODING",
+      "state": "UNSET"
+    },
+    {
+      "name": "BAMBU_STUDIO_CONFIG",
+      "state": "UNSET"
+    }
+  ]
+}

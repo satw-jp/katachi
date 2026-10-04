@@ -1,0 +1,8 @@
+{
+  "policy_path": "tools\\slice-console\\policies\\ENGINE_RESOURCE_CLOSURE_POLICY_V0_1.json",
+  "policy_sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+  "policy_bytes": 15970,
+  "plan_sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1",
+  "receipt_sha256": "f94e09a235cdc204670ff0b9f8e2ae661a520995a4a6316ff1f66ac146e63665",
+  "plan_identity_note": "plan file SHA is raw bytes; Identity Lock plan_sha256 is normalized JSON digest"
+}

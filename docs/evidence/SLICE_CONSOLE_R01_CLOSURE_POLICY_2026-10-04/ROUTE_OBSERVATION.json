@@ -1,0 +1,104 @@
+{
+  "job_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\SLICE_JOB.json",
+  "job_sha256": "faf51e41d5485dbadbebf937fcf713807caf3b34acd5cf612fee98523b890383",
+  "engine_path": "J:/Program Files/Bambu Studio/bambu-studio.exe",
+  "job_schema": "0.2",
+  "cli": {
+    "argv": [
+      "{engine_path}",
+      "--debug",
+      "2",
+      "--datadir",
+      "{data_dir}",
+      "--load-settings",
+      "{profile_printer};{profile_process}",
+      "--load-filaments",
+      "{profile_filament}",
+      "--filament-map",
+      "1",
+      "--filament-volume-map",
+      "0",
+      "--filament-nozzle-map",
+      "0",
+      "--filament-map-mode",
+      "Auto For Flush",
+      "--assemble",
+      "--ensure-on-bed",
+      "--arrange",
+      "0",
+      "--orient",
+      "0",
+      "--slice",
+      "0",
+      "--export-settings",
+      "{output_dir}/resolved_settings.json",
+      "--outputdir",
+      "{output_dir}",
+      "{input_0}"
+    ],
+    "cwd": "J:/Program Files/Bambu Studio",
+    "version": "02.08.02.61",
+    "windows_execution": "no_window"
+  },
+  "input_mode": "mesh_import",
+  "profiles": [
+    {
+      "slot": "printer",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+      "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+      "name": "Bambu Lab A1 0.4 nozzle",
+      "inherits": null,
+      "default_print_profile": "0.20mm Standard @BBL A1",
+      "default_filament_profile": [
+        "Bambu PLA Basic @BBL A1"
+      ]
+    },
+    {
+      "slot": "process",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+      "name": "0.20mm Standard @BBL A1",
+      "inherits": null,
+      "default_print_profile": null,
+      "default_filament_profile": null
+    },
+    {
+      "slot": "filament",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+      "name": "Generic PLA @BBL A1",
+      "inherits": null,
+      "default_print_profile": null,
+      "default_filament_profile": null
+    }
+  ],
+  "datadir_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+  "datadir_observation": "Only .gitkeep seen in bounded immediate listing; no effective discovery proof",
+  "status": "Configured schema0.2 sample only; no new slice/current execution claim",
+  "legacy_D22": "schema0.1 and placeholder argv; not converted, not current executable route evidence",
+  "bundled_A1": {
+    "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine\\Bambu Lab A1 0.4 nozzle.json",
+    "inherits": "fdm_bbl_3dp_001_common"
+  },
+  "cli_config": {
+    "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\cli_config.json",
+    "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+    "A1_machine_limits": {
+      "cli_safe_acceleration_e": "0,0",
+      "cli_safe_acceleration_extruding": "0,0",
+      "cli_safe_acceleration_retracting": "0,0",
+      "cli_safe_acceleration_travel": "6000,6000",
+      "cli_safe_acceleration_x": "6000,6000",
+      "cli_safe_acceleration_y": "6000,6000",
+      "cli_safe_acceleration_z": "0,0",
+      "cli_safe_jerk_e": "0,0",
+      "cli_safe_jerk_x": "0,0",
+      "cli_safe_jerk_y": "0,0",
+      "cli_safe_jerk_z": "0,0",
+      "cli_safe_speed_e": "0,0",
+      "cli_safe_speed_x": "0,0",
+      "cli_safe_speed_y": "0,0",
+      "cli_safe_speed_z": "0,0"
+    }
+  }
+}
