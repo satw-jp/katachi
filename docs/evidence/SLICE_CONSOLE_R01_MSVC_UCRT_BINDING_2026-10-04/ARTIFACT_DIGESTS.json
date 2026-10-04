@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "digest_algorithm": "SHA256 exact artifact bytes",
+  "files": {
+    "API_SET_SCHEMA_OBSERVATION.json": "1368c1dfe064400525c2fe544cb8b46afef5285fc42f8012e7160e1cdcf27f6c",
+    "BINDING_RESULT.json": "bed1a3bec35aed07d76499845e047302dde5292ef75b3a10c449951faa36814c",
+    "CANDIDATE_IDENTITIES.json": "9a7a921a9d42da11b261da138afc69057276a6822fef1b505f9ba257bece0bf1",
+    "CHECK_RESULTS.json": "f3f07b2ac9d05914cce3c9a37be724c5748c14f25a15f0de5dfb36754dd7c546",
+    "CLOSURE_POLICY_DELTA_V0_1.json": "53e25184c1cd5891920f3c2288d6eb0cfade39fa02b05b379d062222481e679a",
+    "OBSERVATION_HELPER.py": "bcfe4e2e1feeec3aadf9c1d72c1bb45aa454acc94b8ae7dfa7cfc125320b4d27",
+    "PLATFORM_METADATA.json": "19e57b7f575abedab7d06c034e9f4a9f94e0e88cd8dd27cd0ee7cb935be7b695",
+    "SCOPE_MANIFEST.json": "9f41cea885156c911d7a0d9c7bbfc5ca43751282d1974a4073e18e7f5d176ba0",
+    "VERIFICATION_HELPER.py": "8566fe0565c2056e005613be50d20b410c1a97586b3647cfc4eaae5c61482bc6"
+  },
+  "accepted_policy_sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+  "accepted_plan_sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1"
+}

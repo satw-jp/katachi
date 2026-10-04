@@ -1,0 +1,838 @@
+{
+  "schema_version": "0.1",
+  "status": "HOLD",
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "STATIC_BINDING_RESOLVED": false,
+  "API_SET_BINDING": "UNRESOLVED",
+  "LOADED_MODULE_VERIFIED": false,
+  "imports": [
+    {
+      "IMPORT_NAME": "CONCRT140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\CONCRT140.dll",
+          "role": "APPLICATION_DIRECTORY_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\CONCRT140.dll",
+          "role": "SYSTEM32_INSTALLED_VC_RUNTIME_CANDIDATE",
+          "exists": true,
+          "bytes": 321696,
+          "sha256": "b2faf3b85b23c840b654e57d5497a0ad31acd02fb01856cad4725a1715d5f78e",
+          "version": "14.50.35719.0",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": null,
+      "LOGICAL_HOST_EVIDENCE": null,
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "MSVCP140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\MSVCP140.dll",
+          "role": "APPLICATION_DIRECTORY_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\MSVCP140.dll",
+          "role": "SYSTEM32_INSTALLED_VC_RUNTIME_CANDIDATE",
+          "exists": true,
+          "bytes": 553552,
+          "sha256": "def46aa6a8f72f27bafac0c43334419486a4d1dcdb6c479a8ef7034b3e1fa4cb",
+          "version": "14.50.35719.0",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": null,
+      "LOGICAL_HOST_EVIDENCE": null,
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "MSVCP140_CODECVT_IDS.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\MSVCP140_CODECVT_IDS.dll",
+          "role": "APPLICATION_DIRECTORY_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\MSVCP140_CODECVT_IDS.dll",
+          "role": "SYSTEM32_INSTALLED_VC_RUNTIME_CANDIDATE",
+          "exists": true,
+          "bytes": 31392,
+          "sha256": "ae8d922b00cdd93e3ebecc37beb46c800f383ebdeb9f9e5b84e04a72428b6fb3",
+          "version": "14.50.35719.0",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": null,
+      "LOGICAL_HOST_EVIDENCE": null,
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140.dll",
+          "role": "APPLICATION_DIRECTORY_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\VCRUNTIME140.dll",
+          "role": "SYSTEM32_INSTALLED_VC_RUNTIME_CANDIDATE",
+          "exists": true,
+          "bytes": 123472,
+          "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+          "version": "14.50.35719.0",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": null,
+      "LOGICAL_HOST_EVIDENCE": null,
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140_1.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140_1.dll",
+          "role": "APPLICATION_DIRECTORY_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\VCRUNTIME140_1.dll",
+          "role": "SYSTEM32_INSTALLED_VC_RUNTIME_CANDIDATE",
+          "exists": true,
+          "bytes": 47264,
+          "sha256": "e6bfb3662ab4b1969a73441dbe35c96d51441b6bff8cf1fe7430bd5b246ca605",
+          "version": "14.50.35719.0",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": null,
+      "LOGICAL_HOST_EVIDENCE": null,
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-convert-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-environment-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-heap-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-locale-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-math-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-multibyte-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-runtime-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-stdio-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-string-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-time-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-utility-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ],
+      "CANDIDATES": [
+        {
+          "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+          "role": "API_SET_HOST_APPLICATION_CANDIDATE",
+          "exists": false
+        },
+        {
+          "path": "C:\\Windows\\System32\\ucrtbase.dll",
+          "role": "API_SET_HOST_SYSTEM32_CANDIDATE",
+          "exists": true,
+          "bytes": 1377512,
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+          "version": "10.0.26100.9444 (WinBuild.160101.0800)",
+          "pe": {
+            "machine": "0x8664",
+            "pe_magic": "0x20b",
+            "architecture": "AMD64"
+          },
+          "stable_read": true
+        }
+      ],
+      "RESOLUTION_STATUS": "UNRESOLVED",
+      "RESOLVED_LOGICAL_HOST": "ucrtbase.dll",
+      "LOGICAL_HOST_EVIDENCE": "STATIC_ON_DISK_SCHEMA",
+      "RESOLVED_PATH": null,
+      "SHA256": null,
+      "VERSION": null,
+      "ARCH": null,
+      "EVIDENCE": [
+        "SCOPE_MANIFEST.json",
+        "CANDIDATE_IDENTITIES.json",
+        "PLATFORM_METADATA.json",
+        "API_SET_SCHEMA_OBSERVATION.json"
+      ],
+      "BLOCKER": "EXACT_LOADER_CONTEXT_NOT_ESTABLISHED: redirection/activation context, effective search flags and dynamic BambuStudio.dll load context unproven; on-disk schema not independently bound to effective process namespace",
+      "LOADED_MODULE_VERIFIED": false
+    }
+  ],
+  "actions": {
+    "bambu_process_launch": 0,
+    "real_slice": 0,
+    "descriptor_integration": 0,
+    "cache": 0,
+    "REUSE": 0,
+    "geometry_MINIL_change": 0,
+    "printer_send": 0,
+    "print": 0,
+    "Print_GO_change": 0
+  }
+}
