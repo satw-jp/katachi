@@ -1,0 +1,447 @@
+{
+  "scope": "Actual repository backend source only; engine/resources are synthetic placeholders",
+  "actual_bambu_installation_read": false,
+  "plan": {
+    "schema_version": "0.1",
+    "allowed_roots": [
+      "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6",
+      "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console"
+    ],
+    "groups": [
+      {
+        "identity_kind": "engine",
+        "metadata": {
+          "declared_version": "fixture-1",
+          "platform_abi": "fixture-abi"
+        },
+        "closure_policy": {
+          "version": "0.1",
+          "policy_id": "bounded-repo-source-observation",
+          "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+          "status": "INCOMPLETE",
+          "path_semantics": "UNRESOLVED",
+          "unresolved": [
+            "Installed runtime/resource/path closure not established"
+          ]
+        },
+        "entries": [
+          {
+            "logical_name": "bambu-studio.exe",
+            "source_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\bambu-studio.exe",
+            "role": "executable",
+            "required": true,
+            "expected_sha256": "887aaa9003eba93b5fa139be17fe211ced53ae8c9250b6e7673ce927cfa1aa70"
+          }
+        ]
+      },
+      {
+        "identity_kind": "resources",
+        "metadata": {},
+        "closure_policy": {
+          "version": "0.1",
+          "policy_id": "bounded-repo-source-observation",
+          "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+          "status": "INCOMPLETE",
+          "path_semantics": "UNRESOLVED",
+          "unresolved": [
+            "Installed runtime/resource/path closure not established"
+          ]
+        },
+        "entries": [
+          {
+            "logical_name": "resources/default.json",
+            "source_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\resources\\default.json",
+            "role": "config",
+            "required": true,
+            "expected_sha256": "1c9373389ee469e2b6df90bd39ee4d3e8e0323a1806ec6afed315d419e379769"
+          }
+        ]
+      },
+      {
+        "identity_kind": "backend",
+        "metadata": {},
+        "closure_policy": {
+          "version": "0.1",
+          "policy_id": "bounded-repo-source-observation",
+          "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+          "status": "INCOMPLETE",
+          "path_semantics": "UNRESOLVED",
+          "unresolved": [
+            "Installed runtime/resource/path closure not established"
+          ]
+        },
+        "entries": [
+          {
+            "logical_name": "job.py",
+            "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\job.py",
+            "role": "source",
+            "required": true,
+            "expected_sha256": null
+          },
+          {
+            "logical_name": "runner.py",
+            "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\runner.py",
+            "role": "source",
+            "required": true,
+            "expected_sha256": null
+          },
+          {
+            "logical_name": "progress.py",
+            "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\progress.py",
+            "role": "source",
+            "required": true,
+            "expected_sha256": null
+          }
+        ]
+      }
+    ]
+  },
+  "result": {
+    "schema_version": "0.1",
+    "operation": "VERIFY",
+    "status": "HOLD",
+    "FILES_STATUS": "VERIFIED",
+    "CLOSURE_STATUS": "INCOMPLETE",
+    "verified": false,
+    "plan_sha256": "7c90a9321c524b626f470ed8093af062c6ee9723a4a69af7f0b8aaa5b75180b6",
+    "binding_sha256": "5db0d9145f26a6fd391f6b77c47c1cdaf2a8c2360ddc2e5b02eda2f9d944f276",
+    "identity_sha256": null,
+    "logical_identity": null,
+    "diagnostic_identity": {
+      "label": "partial / non-reusable",
+      "value": {
+        "domain": "IDENTITY_LOCK/v0",
+        "schema_version": "0.1",
+        "groups": [
+          {
+            "identity_kind": "backend",
+            "metadata": {},
+            "closure_policy": {
+              "version": "0.1",
+              "policy_id": "bounded-repo-source-observation",
+              "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+              "status": "INCOMPLETE",
+              "path_semantics": "UNRESOLVED",
+              "unresolved": [
+                "Installed runtime/resource/path closure not established"
+              ]
+            },
+            "manifest": {
+              "schema_version": "0.1",
+              "entries": [
+                {
+                  "logical_name": "job.py",
+                  "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+                  "size": "25419",
+                  "role": "source"
+                },
+                {
+                  "logical_name": "progress.py",
+                  "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+                  "size": "3856",
+                  "role": "source"
+                },
+                {
+                  "logical_name": "runner.py",
+                  "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+                  "size": "26496",
+                  "role": "source"
+                }
+              ]
+            }
+          },
+          {
+            "identity_kind": "engine",
+            "metadata": {
+              "declared_version": "fixture-1",
+              "platform_abi": "fixture-abi"
+            },
+            "closure_policy": {
+              "version": "0.1",
+              "policy_id": "bounded-repo-source-observation",
+              "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+              "status": "INCOMPLETE",
+              "path_semantics": "UNRESOLVED",
+              "unresolved": [
+                "Installed runtime/resource/path closure not established"
+              ]
+            },
+            "manifest": {
+              "schema_version": "0.1",
+              "entries": [
+                {
+                  "logical_name": "bambu-studio.exe",
+                  "sha256": "887aaa9003eba93b5fa139be17fe211ced53ae8c9250b6e7673ce927cfa1aa70",
+                  "size": "26",
+                  "role": "executable"
+                }
+              ]
+            }
+          },
+          {
+            "identity_kind": "resources",
+            "metadata": {},
+            "closure_policy": {
+              "version": "0.1",
+              "policy_id": "bounded-repo-source-observation",
+              "sha256": "f07d4913e59fb813e4c6ac0e70a9c024b9926c27a10be44e13b1de6b5e780e18",
+              "status": "INCOMPLETE",
+              "path_semantics": "UNRESOLVED",
+              "unresolved": [
+                "Installed runtime/resource/path closure not established"
+              ]
+            },
+            "manifest": {
+              "schema_version": "0.1",
+              "entries": [
+                {
+                  "logical_name": "resources/default.json",
+                  "sha256": "1c9373389ee469e2b6df90bd39ee4d3e8e0323a1806ec6afed315d419e379769",
+                  "size": "32",
+                  "role": "config"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "files": [
+      {
+        "logical_name": "bambu-studio.exe",
+        "source_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\bambu-studio.exe",
+        "resolved_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\bambu-studio.exe",
+        "role": "executable",
+        "required": true,
+        "expected_sha256": "887aaa9003eba93b5fa139be17fe211ced53ae8c9250b6e7673ce927cfa1aa70",
+        "status": "VERIFIED",
+        "observed_bytes": 26,
+        "sha256": "887aaa9003eba93b5fa139be17fe211ced53ae8c9250b6e7673ce927cfa1aa70",
+        "before": {
+          "size": 26,
+          "mtime_ns": 1791042318015095500,
+          "ctime_ns": 1791042318015095500,
+          "device": 15289387592274992916,
+          "inode": 16044073672690637
+        },
+        "after": {
+          "size": 26,
+          "mtime_ns": 1791042318015095500,
+          "ctime_ns": 1791042318015095500,
+          "device": 15289387592274992916,
+          "inode": 16044073672690637
+        },
+        "handle_before": {
+          "size": 26,
+          "mtime_ns": 1791042318015095500,
+          "ctime_ns": 1791042318015095500,
+          "device": 15289387592274992916,
+          "inode": 16044073672690637
+        },
+        "handle_after": {
+          "size": 26,
+          "mtime_ns": 1791042318015095500,
+          "ctime_ns": 1791042318015095500,
+          "device": 15289387592274992916,
+          "inode": 16044073672690637
+        },
+        "identity_kind": "engine"
+      },
+      {
+        "logical_name": "resources/default.json",
+        "source_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\resources\\default.json",
+        "resolved_path": "C:\\Users\\as\\AppData\\Local\\Temp\\tmpj7no_j_6\\resources\\default.json",
+        "role": "config",
+        "required": true,
+        "expected_sha256": "1c9373389ee469e2b6df90bd39ee4d3e8e0323a1806ec6afed315d419e379769",
+        "status": "VERIFIED",
+        "observed_bytes": 32,
+        "sha256": "1c9373389ee469e2b6df90bd39ee4d3e8e0323a1806ec6afed315d419e379769",
+        "before": {
+          "size": 32,
+          "mtime_ns": 1791042318016094900,
+          "ctime_ns": 1791042318016094900,
+          "device": 15289387592274992916,
+          "inode": 263460578201398303
+        },
+        "after": {
+          "size": 32,
+          "mtime_ns": 1791042318016094900,
+          "ctime_ns": 1791042318016094900,
+          "device": 15289387592274992916,
+          "inode": 263460578201398303
+        },
+        "handle_before": {
+          "size": 32,
+          "mtime_ns": 1791042318016094900,
+          "ctime_ns": 1791042318016094900,
+          "device": 15289387592274992916,
+          "inode": 263460578201398303
+        },
+        "handle_after": {
+          "size": 32,
+          "mtime_ns": 1791042318016094900,
+          "ctime_ns": 1791042318016094900,
+          "device": 15289387592274992916,
+          "inode": 263460578201398303
+        },
+        "identity_kind": "resources"
+      },
+      {
+        "logical_name": "job.py",
+        "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\job.py",
+        "resolved_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\job.py",
+        "role": "source",
+        "required": true,
+        "expected_sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+        "status": "VERIFIED",
+        "observed_bytes": 25419,
+        "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+        "before": {
+          "size": 25419,
+          "mtime_ns": 1791041657807285100,
+          "ctime_ns": 1791041657807285100,
+          "device": 133144642137240000,
+          "inode": 844424931948957
+        },
+        "after": {
+          "size": 25419,
+          "mtime_ns": 1791041657807285100,
+          "ctime_ns": 1791041657807285100,
+          "device": 133144642137240000,
+          "inode": 844424931948957
+        },
+        "handle_before": {
+          "size": 25419,
+          "mtime_ns": 1791041657807285100,
+          "ctime_ns": 1791042079527282300,
+          "device": 133144642137240000,
+          "inode": 844424931948957
+        },
+        "handle_after": {
+          "size": 25419,
+          "mtime_ns": 1791041657807285100,
+          "ctime_ns": 1791042079527282300,
+          "device": 133144642137240000,
+          "inode": 844424931948957
+        },
+        "identity_kind": "backend"
+      },
+      {
+        "logical_name": "runner.py",
+        "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\runner.py",
+        "resolved_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\runner.py",
+        "role": "source",
+        "required": true,
+        "expected_sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+        "status": "VERIFIED",
+        "observed_bytes": 26496,
+        "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+        "before": {
+          "size": 26496,
+          "mtime_ns": 1791041657811284300,
+          "ctime_ns": 1791041657811284300,
+          "device": 133144642137240000,
+          "inode": 844424931948961
+        },
+        "after": {
+          "size": 26496,
+          "mtime_ns": 1791041657811284300,
+          "ctime_ns": 1791041657811284300,
+          "device": 133144642137240000,
+          "inode": 844424931948961
+        },
+        "handle_before": {
+          "size": 26496,
+          "mtime_ns": 1791041657811284300,
+          "ctime_ns": 1791042088644243400,
+          "device": 133144642137240000,
+          "inode": 844424931948961
+        },
+        "handle_after": {
+          "size": 26496,
+          "mtime_ns": 1791041657811284300,
+          "ctime_ns": 1791042088644243400,
+          "device": 133144642137240000,
+          "inode": 844424931948961
+        },
+        "identity_kind": "backend"
+      },
+      {
+        "logical_name": "progress.py",
+        "source_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\progress.py",
+        "resolved_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-identity-lock\\tools\\slice-console\\progress.py",
+        "role": "source",
+        "required": true,
+        "expected_sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+        "status": "VERIFIED",
+        "observed_bytes": 3856,
+        "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+        "before": {
+          "size": 3856,
+          "mtime_ns": 1791041657810283800,
+          "ctime_ns": 1791041657810283800,
+          "device": 133144642137240000,
+          "inode": 844424931948960
+        },
+        "after": {
+          "size": 3856,
+          "mtime_ns": 1791041657810283800,
+          "ctime_ns": 1791041657810283800,
+          "device": 133144642137240000,
+          "inode": 844424931948960
+        },
+        "handle_before": {
+          "size": 3856,
+          "mtime_ns": 1791041657810283800,
+          "ctime_ns": 1791042088647753400,
+          "device": 133144642137240000,
+          "inode": 844424931948960
+        },
+        "handle_after": {
+          "size": 3856,
+          "mtime_ns": 1791041657810283800,
+          "ctime_ns": 1791042088647753400,
+          "device": 133144642137240000,
+          "inode": 844424931948960
+        },
+        "identity_kind": "backend"
+      }
+    ],
+    "started_at": "2026-10-03T15:45:18.036831+00:00",
+    "finished_at": "2026-10-03T15:45:18.050832+00:00",
+    "blockers": [
+      {
+        "code": "CLOSURE_INCOMPLETE",
+        "kind": "backend",
+        "logical_name": ""
+      },
+      {
+        "code": "CLOSURE_INCOMPLETE",
+        "kind": "engine",
+        "logical_name": ""
+      },
+      {
+        "code": "CLOSURE_INCOMPLETE",
+        "kind": "resources",
+        "logical_name": ""
+      },
+      {
+        "code": "PATH_SEMANTICS_UNRESOLVED",
+        "kind": "backend",
+        "logical_name": ""
+      },
+      {
+        "code": "PATH_SEMANTICS_UNRESOLVED",
+        "kind": "engine",
+        "logical_name": ""
+      },
+      {
+        "code": "PATH_SEMANTICS_UNRESOLVED",
+        "kind": "resources",
+        "logical_name": ""
+      }
+    ]
+  },
+  "receipt_sha256": "e0786a7350f8ff1289a47b110182153e0ef47f0631283b963380ab47de08d7af"
+}

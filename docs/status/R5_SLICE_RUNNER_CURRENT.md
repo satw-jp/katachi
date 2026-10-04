@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — Identity Lock v0 / Author review
+
+Author accepted generator PR #42; normal merge `1b353056043f7ac2b8244d945d1eb1f7f314ae26` preserves head `0cc468c3e1b0d73326adf5ddf2bf5e69704572d2`. Fetched main is new authority; prior generator pending-review checkpoint below is historical and accepted.
+
+**SLICE CONSOLE R0.1 IDENTITY LOCK — AUTHOR REVIEW.** Isolated branch `agent/slice-console-r0.1-identity-lock`. [Task](../tasks/SLICE_CONSOLE_R01_IDENTITY_LOCK.md), [API/schemas](../../tools/slice-console/IDENTITY_LOCK.md), [evidence](../evidence/SLICE_CONSOLE_R01_IDENTITY_LOCK_2026-10-04.md). Explicit manifest-only hash/rehash receipts; new22 + existing88 =110 PASS / 0 FAIL / 0 SKIP. No implementation blocker before Author review.
+
+Actual repo source observation includes job.py/runner.py/progress.py; full Python/Bambu resource/runtime/path closure remains INCOMPLETE, verified false. Actual Bambu installation not hashed. No discovery, descriptor/generator integration, Console/cache/REUSE/deployment/backend change. Real engine0; geometry/MINIL/send/print/Print GO change0. Next candidate ENGINE / RESOURCE CLOSURE POLICY + EXPLICIT LOCK PLAN is not started.
+
 ## 2026-10-03 — SLICE_KEY generator / Author review
 
 Author accepted contract PR #41; normal merge `ab09232526b2190ad3dda970d9e8d4fb04e6d103` preserves accepted head `5d24467e99413bf0a74e98f2280c526f327ee544`. Fetched main is generator base authority. The contract pending-review checkpoint below is historical and accepted.
