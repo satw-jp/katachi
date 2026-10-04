@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — SLICE_KEY v0.2 request generator / Author review
+
+Author accepted Option B / PR48; specified Draft/OPEN/head/base/mergeable/behind0 verified, Ready/expected-head normal merge `029d0fa492fbb559ee5921b05f5a1d22a4f194f9` preserves `420edff8023263b5f5af1733f656404785db23c9`. Fetched main is new base; prior design review checkpoint is accepted/historical.
+
+**SLICE CONSOLE R0.1 SLICE_KEY v0.2 REQUEST GENERATOR — AUTHOR REVIEW.** New isolated `agent/slice-console-r0.1-request-key-v02`. [Task](../tasks/SLICE_CONSOLE_R01_REQUEST_KEY_V02.md), [explicit API/schema](../../tools/slice-console/SLICE_KEY_V02_GENERATOR.md), [evidence](../evidence/SLICE_CONSOLE_R01_REQUEST_KEY_V02_2026-10-04.md). A-only pure `generate_request_key_v0_2`; independent base/Unicode goldens, exact opaque bindings, policy-bound synthetic resource/output rules; missing/unknown A HOLD/no key. Key means same requested FULL_SLICE only, not env compatibility/G-code bytes/Success/audit/package/Author/Print GO.
+
+201 tests PASS = existing110 + new91, 0 FAIL/ERROR/SKIP. Six v0.1 golden bytes and existing generator/Identity Lock/backend/Console unchanged. New generator process/discovery/engine0; existing fake CLI18 and shortcut helper1 separately recorded. No production adapter/coverage certification, default dispatch/migration, Console integration, B/C collector/evaluator, cache/REUSE. Bambu/additional loader forensic/real slice/send/print/geometry/MINIL/Print GO changes0. Loader lane remains checkpoint/HOLD. No blocker before Author review. Next one candidate WINDOWS A1/0.4 REQUEST_IDENTITY COVERAGE POLICY + ACTUAL DESCRIPTOR ADAPTER; not started.
+
 ## 2026-10-04 — Practical execution identity boundary / Author review
 
 Author accepted PR47 call-site evidence; Ready/expected-head normal merge `f55a0b8180af5fa7809bc1649c3a5ad5524f7f2b` preserves `dffa8e52c5995234f992ea37c5ded382d7827d88`. Fetched main is new base. Author **does not authorize Bambu process evidence** and places further startup/CRT/UCRT/native loader investigation on HOLD. PR44–47 retained as forensic CHECKPOINT; previous next-loader-task recommendations are historical/superseded, not active.
