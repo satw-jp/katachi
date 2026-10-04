@@ -1,0 +1,141 @@
+{
+  "decision_version": "0.1",
+  "observed_at": "2026-10-04T11:21:15.308670+00:00",
+  "base_main": "63df462ab119c09f94d49b8c7a924b47af7e34ca",
+  "status": "HOLD",
+  "reason": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED",
+  "policy_identity": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-a1-resource-coverage\\tools\\slice-console\\policies\\WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json",
+    "size": 6614,
+    "sha256": "15a49d183e1702cec0eccccdec114555828f32ea69cf7865688d8ab03f941f59"
+  },
+  "policy_delta": false,
+  "coverage_status": "INCOMPLETE",
+  "candidates": [
+    {
+      "logical_resource": "resources/profiles/BBL/cli_config.json",
+      "classification": "REQUEST_RESOURCE_REQUIRED",
+      "selected_by_route": true,
+      "content_identity_required": true,
+      "basis": "Accepted policy selection from RUN-04 CLI6000 semantics; unchanged.",
+      "evidence": [
+        "tools/slice-console/policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json"
+      ],
+      "confidence": "accepted policy and fresh byte identity",
+      "blocker": null
+    },
+    {
+      "logical_resource": "default_print_profile named bundled process",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Name is not metadata proof; supporting source has conditional process_full read, not an unconditional name-based parent load.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2356",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L3471"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "default_filament_profile named bundled filament",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Explicit Generic PLA differs from named Bambu PLA default; supporting auto-fill branch is estimate_mode with empty load_filaments. Installed-route exclusion unproven.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2403"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "printer_model bundled machine/default-template",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Supporting source reads model_id from machine_full/<printer_model>.json if present. Whether any read contributes request semantics must be bound before selecting bytes.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2340"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "flat profile parent/includes and origin/instantiation semantics",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No inherits in explicit three profiles. Parser treats from/instantiation as key_values; origin also controls conditional filament parent behavior. End-to-end metadata-only proof absent.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2262",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2518"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "custom datadir configuration bytes",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Only .gitkeep observed directly; absence now does not establish no config read or no default fallback.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "user/AppData configuration fallback",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Custom data_dir setter is supporting evidence only; downstream user/config fallback selection has not been closed.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "bundled/system template fallback for missing configuration",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No finite selected default/template set established for the installed route; directory existence is not selection evidence.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    }
+  ],
+  "confirmed_selected_resources": [
+    {
+      "logical_name": "resources/profiles/BBL/cli_config.json",
+      "path": "J:/Program Files/Bambu Studio/resources/profiles/BBL/cli_config.json",
+      "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+      "role": "toolpath_request_configuration",
+      "basis": "A1_BAMBU_CLI_RUNBOOK RUN-04 retains current CLI6000 cap; explicit policy selection, not promotion of all PR44 candidates"
+    }
+  ],
+  "complete_finite_selected_set_known": false,
+  "remaining_evidence_gap": {
+    "id": "EXACT_ROUTE_RESOURCE_SELECTION_BINDING",
+    "description": "Identity-bound evidence of request-relevant resource reads/exclusions for the installed exact engine/profile/input/argv route, covering profile defaults and datadir fallback. Same-version public source is not bound to installed binary; no matching historical execution resolves this gap."
+  },
+  "descriptor": null,
+  "slice_key": null,
+  "next_one_task": "WINDOWS A1/0.4 EXACT-ROUTE REQUEST-RESOURCE SELECTION EVIDENCE DECISION",
+  "next_task_started": false,
+  "counts": {
+    "bambu_process_launch": 0,
+    "loader_forensic_additional_investigation": 0,
+    "real_slice": 0,
+    "cache": 0,
+    "reuse": 0,
+    "printer_send": 0,
+    "print": 0
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "tag": "v02.08.02.61",
+  "annotated_tag_sha": "5b343460213bc727baa66b34008751083d38da7b",
+  "commit": "926a7192574bcb9b3a732e1ec59a46d79cb45466",
+  "installed_binary_correspondence": "UNVERIFIED",
+  "supporting_only": true,
+  "files": [
+    {
+      "path": "work\\a1-resource-source\\src__BambuStudio.cpp",
+      "size": 519940,
+      "sha256": "f59b0258556b6a1cb0532317dfcdd6ba619f1b90ad84e2a73196c3e595f9e93c"
+    },
+    {
+      "path": "work\\a1-resource-source\\src__libslic3r__Config.cpp",
+      "size": 86461,
+      "sha256": "1a1825b841feae37c691b433923ad94f993c691e56bd6be81f1859b3b3066b28"
+    },
+    {
+      "path": "work\\a1-resource-source\\src__libslic3r__Preset.cpp",
+      "size": 191393,
+      "sha256": "b51cb6988a56106c212c0ea051d8f98d2f0542eb44a08d0b9ff25b1b1886a5b7"
+    },
+    {
+      "path": "work\\a1-resource-source\\src__libslic3r__PresetBundle.cpp",
+      "size": 336489,
+      "sha256": "f9af775f17c0d463fc140e7dad10c78e3ddcce8fd7cd505c4abe4c5594a8096d"
+    }
+  ],
+  "reviewed_ranges": {
+    "src/BambuStudio.cpp": [
+      [
+        2243,
+        2290
+      ],
+      [
+        2340,
+        2445
+      ],
+      [
+        2500,
+        2550
+      ],
+      [
+        3435,
+        3505
+      ],
+      [
+        8355,
+        8388
+      ]
+    ],
+    "src/libslic3r/Config.cpp": [
+      [
+        921,
+        972
+      ]
+    ]
+  },
+  "observations": [
+    "Explicit JSON loaded through config.load_from_json; from checked for accepted origin labels.",
+    "default_print_profile copied into new_default_process_name; a process_full load exists under machine_switch, empty new_process_name and extruder/variant mismatch. Explicit process is supplied by this route.",
+    "default_filament_profile auto-fill observed under estimate_mode && load_filaments.empty(); this route explicitly supplies a filament and does not request estimate mode.",
+    "User filament inherits parent load is conditional on User/user origin and nonempty inherits; observed filament is system and has no inherits.",
+    "printer_model can select machine_full/<printer_model>.json to read model_id when that file exists; no candidate file read or selected-byte identity inferred here.",
+    "from and instantiation copied to parser key_values; that alone does not prove end-to-end metadata-only behavior.",
+    "--datadir sets custom absolute data_dir. This setter does not prove downstream config absence, fallback exclusion or source-to-installed behavior."
+  ],
+  "not_reviewed": "No whole-source audit, GUI initialization audit, directory crawl, native loader analysis or binary execution."
+}
