@@ -1,0 +1,92 @@
+{
+  "schema_version": "0.1",
+  "observed_at_utc": "2026-10-04T01:30:09.9002477Z",
+  "helper_64_bit": true,
+  "os_64_bit": true,
+  "known_dlls_key": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs",
+  "known_dlls_requested_names": [
+    "MSVCP140.dll",
+    "MSVCP140_CODECVT_IDS.dll",
+    "VCRUNTIME140.dll",
+    "VCRUNTIME140_1.dll",
+    "CONCRT140.dll",
+    "ucrtbase.dll"
+  ],
+  "known_dlls_matches": [],
+  "vc_runtime_registry": {
+    "key": "HKLM\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64",
+    "Installed": 1,
+    "Version": "v14.50.35719.00",
+    "Major": 14,
+    "Minor": 50,
+    "Bld": 35719,
+    "Rbld": 0
+  },
+  "files": [
+    {
+      "path": "C:\\Windows\\System32\\MSVCP140.dll",
+      "file_version": "14.50.35719.0",
+      "product_version": "14.50.35719.0",
+      "bytes": 553552
+    },
+    {
+      "path": "C:\\Windows\\System32\\MSVCP140_CODECVT_IDS.dll",
+      "file_version": "14.50.35719.0",
+      "product_version": "14.50.35719.0",
+      "bytes": 31392
+    },
+    {
+      "path": "C:\\Windows\\System32\\VCRUNTIME140.dll",
+      "file_version": "14.50.35719.0",
+      "product_version": "14.50.35719.0",
+      "bytes": 123472
+    },
+    {
+      "path": "C:\\Windows\\System32\\VCRUNTIME140_1.dll",
+      "file_version": "14.50.35719.0",
+      "product_version": "14.50.35719.0",
+      "bytes": 47264
+    },
+    {
+      "path": "C:\\Windows\\System32\\CONCRT140.dll",
+      "file_version": "14.50.35719.0",
+      "product_version": "14.50.35719.0",
+      "bytes": 321696
+    },
+    {
+      "path": "C:\\Windows\\System32\\ucrtbase.dll",
+      "file_version": "10.0.26100.9444 (WinBuild.160101.0800)",
+      "product_version": "10.0.26100.9444",
+      "bytes": 1377512
+    },
+    {
+      "path": "C:\\Windows\\System32\\apisetschema.dll",
+      "file_version": "10.0.26100.9278 (WinBuild.160101.0800)",
+      "product_version": "10.0.26100.9278",
+      "bytes": 194016
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "file_version": "02.08.02.61",
+      "product_version": "",
+      "bytes": 159776
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+      "file_version": null,
+      "product_version": null,
+      "bytes": 108991008
+    }
+  ],
+  "external_manifests": [
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.manifest",
+      "exists": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll.manifest",
+      "exists": false
+    }
+  ],
+  "context": "helper registry/file metadata only; no Bambu process or effective loader context"
+}

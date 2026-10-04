@@ -1,0 +1,157 @@
+{
+  "schema_version": "0.1",
+  "source_identity": {
+    "path": "C:\\Windows\\System32\\apisetschema.dll",
+    "role": "STATIC_API_SET_SCHEMA_FILE",
+    "exists": true,
+    "bytes": 194016,
+    "sha256": "391a2818fdef14f4a9b6e6ce2a7e7f01d04f943de9ef543ec683927cfe480889",
+    "version": "10.0.26100.9278 (WinBuild.160101.0800)",
+    "pe": {
+      "machine": "0x8664",
+      "pe_magic": "0x20b",
+      "architecture": "AMD64"
+    },
+    "stable_read": true
+  },
+  "scope": "on-disk .apiset version6 only; not effective process namespace",
+  "format_reference": "https://github.com/winsiderss/phnt/blob/master/ntpebteb.h",
+  "version": 6,
+  "size": 171104,
+  "flags": 0,
+  "entry_count": 984,
+  "mappings": {
+    "api-ms-win-crt-convert-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 4952
+    },
+    "api-ms-win-crt-environment-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 4976
+    },
+    "api-ms-win-crt-filesystem-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5000
+    },
+    "api-ms-win-crt-heap-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5024
+    },
+    "api-ms-win-crt-locale-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5048
+    },
+    "api-ms-win-crt-math-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5072
+    },
+    "api-ms-win-crt-multibyte-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5096
+    },
+    "api-ms-win-crt-runtime-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5168
+    },
+    "api-ms-win-crt-stdio-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5192
+    },
+    "api-ms-win-crt-string-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5216
+    },
+    "api-ms-win-crt-time-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5240
+    },
+    "api-ms-win-crt-utility-l1-1-0.dll": {
+      "entry_flags": 1,
+      "values": [
+        {
+          "flags": 0,
+          "importer_alias": "",
+          "host": "ucrtbase.dll"
+        }
+      ],
+      "namespace_entry_offset": 5264
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "new_checks": [
+    {
+      "name": "exact_scope_5_MSVC_12_API_set",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted_PE_observation_digest",
+      "status": "PASS"
+    },
+    {
+      "name": "all_9_existing_candidate_hashes_rechecked",
+      "status": "PASS"
+    },
+    {
+      "name": "AMD64_consistency",
+      "status": "PASS"
+    },
+    {
+      "name": "12_unique_default_schema_mappings",
+      "status": "PASS"
+    },
+    {
+      "name": "binding_remains_HOLD_loaded_false_actions_zero",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted_policy_digest_preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_v6_default_mapping",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_scope_filter",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_unsupported_version_rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_out_of_bounds_rejected",
+      "status": "PASS"
+    }
+  ],
+  "pass": 11,
+  "fail": 0,
+  "runtime_source_changed": false,
+  "existing110_tests": "NOT RERUN: production runtime unchanged; historical PR44 result 110 PASS separately",
+  "Bambu_process_launch": 0
+}

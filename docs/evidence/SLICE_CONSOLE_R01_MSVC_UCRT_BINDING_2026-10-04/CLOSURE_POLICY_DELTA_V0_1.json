@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "windows-bambu-02080261-msvc-ucrt-observation-delta-v0.1",
+  "accepted_policy": {
+    "path": "tools\\slice-console\\policies\\ENGINE_RESOURCE_CLOSURE_POLICY_V0_1.json",
+    "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+    "preserved": true
+  },
+  "accepted_lock_plan": {
+    "path": "tools\\slice-console\\policies\\WINDOWS_BAMBU_02080261_LOCK_PLAN.json",
+    "sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1",
+    "preserved": true
+  },
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "verified": false,
+  "STATIC_BINDING_RESOLVED": false,
+  "LOADED_MODULE_VERIFIED": false,
+  "delta": "Static on-disk API-set mapping and candidate file identity evidence added; no unresolved closure item removed or promoted. Existing lock plan/receipt remain unchanged.",
+  "new_lock_entries": [],
+  "usable_identity": null,
+  "remaining": [
+    "Exact effective MSVC/UCRT loader context and physical binding",
+    "Other transitive/dynamic native DLLs",
+    "Resource inheritance",
+    "Datadir discovery and executed-job binding",
+    "Python runtime",
+    "Effective environment",
+    "Path semantics"
+  ],
+  "next_one_task": "WINDOWS BAMBU MSVC/UCRT LOADER CONTEXT — STATIC ACTIVATION/SEARCH CONFIGURATION ONLY; no process launch"
+}
