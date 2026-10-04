@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — Windows MSVC/UCRT loader context / Author review
+
+Author accepted PR45 binding evidence. Ready then expected-head normal merge `02d1f9a4da55bc05cf72431ccaeabe703289bb1d` preserves accepted head `97e0634aa4ee2a737b8b0f33cece44eb3bdc98ef`; fetched main is new base. Prior binding review checkpoint is historical and accepted.
+
+**SLICE CONSOLE R0.1 WINDOWS MSVC/UCRT LOADER CONTEXT — AUTHOR REVIEW.** New isolated `agent/slice-console-r0.1-loader-context`. [Task](../tasks/SLICE_CONSOLE_R01_LOADER_CONTEXT.md), [evidence](../evidence/SLICE_CONSOLE_R01_LOADER_CONTEXT_2026-10-04.md), [per-import result](../evidence/SLICE_CONSOLE_R01_LOADER_CONTEXT_2026-10-04/LOADER_CONTEXT_RESULT.json). Fixed17 imports preserved. Two embedded manifests parsed; no scoped CRT/VC redirect declaration.26 exact adjacent/external/.local pointers absent. Effective dynamic/parent loader context and LoadLibraryExW path/flags/order remain unproven; all17 UNRESOLVED, STATIC_BINDING_RESOLVED=false, LOADED_MODULE_VERIFIED=false, overall INCOMPLETE/HOLD.
+
+New12 evidence checks PASS. Accepted policy/plan/PR45 evidence and runtime/tests/deployment unchanged; existing110 not rerun. Bambu launch/trace/slice0; descriptor/cache/REUSE0; geometry/MINIL/send/print/Print GO0. Next one proposal: BAMBU LAUNCHER LoadLibraryExW CALL-SITE — EXACT BINARY STATIC ANALYSIS ONLY; not started. Process evidence requires a subsequent Author gate; native graph/descriptor/cache not advanced.
+
 ## 2026-10-04 — Windows MSVC/UCRT binding / Author review
 
 Author accepted closure-policy PR #44. Ready then expected-head normal merge `6b5df19b0a2adc10f032a1ff0f6f58caad972bcf` preserves accepted head `32c0411714de254e499371566ed1b423aa645156`; fetched main is new base. Previous closure-policy review checkpoint is historical and accepted.

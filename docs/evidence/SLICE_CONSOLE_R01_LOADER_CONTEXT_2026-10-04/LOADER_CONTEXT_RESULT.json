@@ -1,0 +1,583 @@
+{
+  "schema_version": "0.1",
+  "status": "HOLD",
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "STATIC_BINDING_RESOLVED": false,
+  "LOADED_MODULE_VERIFIED": false,
+  "remaining_single_blocker": "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence.",
+  "imports": [
+    {
+      "IMPORT_NAME": "CONCRT140.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\CONCRT140.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": null,
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "NOT_APPLICABLE_FILENAME_IMPORT",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "MSVCP140.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\MSVCP140.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": null,
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "NOT_APPLICABLE_FILENAME_IMPORT",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "MSVCP140_CODECVT_IDS.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\MSVCP140_CODECVT_IDS.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": null,
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "NOT_APPLICABLE_FILENAME_IMPORT",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\VCRUNTIME140.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": null,
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "NOT_APPLICABLE_FILENAME_IMPORT",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140_1.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\VCRUNTIME140_1.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": null,
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "NOT_APPLICABLE_FILENAME_IMPORT",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-convert-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-environment-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-heap-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-locale-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-math-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-multibyte-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-runtime-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-stdio-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-string-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-time-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-utility-l1-1-0.dll",
+      "ACTIVATION_CONTEXT_STATUS": "STATIC_MANIFESTS_PARSED_EFFECTIVE_CONTEXT_UNRESOLVED",
+      "REDIRECTION_STATUS": "NO_SCOPED_STATIC_ARTIFACT_OBSERVED_EFFECTIVE_REDIRECTION_UNRESOLVED",
+      "SEARCH_POLICY_STATUS": "UNRESOLVED",
+      "HIGHER_PRIORITY_CANDIDATE": {
+        "observed_static_scoped_candidates": [],
+        "effective_higher_priority_candidates": "UNRESOLVED"
+      },
+      "STATIC_SELECTION_STATUS": "UNRESOLVED",
+      "CANDIDATE_PATH": "C:\\Windows\\System32\\ucrtbase.dll",
+      "CANDIDATE_IDENTITY_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/CANDIDATE_IDENTITIES.json",
+      "LOGICAL_HOST_MAPPING_AUTHORITY": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/API_SET_SCHEMA_OBSERVATION.json",
+      "RESOLVED_PATH": null,
+      "BLOCKERS": [
+        "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence."
+      ],
+      "EVIDENCE": [
+        "ACTIVATION_OBSERVATION.json",
+        "REDIRECTION_OBSERVATION.json",
+        "SEARCH_REGISTRY_OBSERVATION.json",
+        "SEARCH_POLICY_OBSERVATION.json",
+        "ACCEPTED_AUTHORITY.json"
+      ],
+      "LOADED_MODULE_VERIFIED": false,
+      "selection_conditions": {
+        "logical_mapping": "ON_DISK_SCHEMA_OBSERVED_EFFECTIVE_MAPPING_UNPROVEN",
+        "architecture": "ACCEPTED_AMD64_CONSISTENT",
+        "higher_priority_absence": "PARTIAL_STATIC_ONLY",
+        "unique_static_search_policy": false,
+        "dynamic_override_inertness_proven": false
+      }
+    }
+  ],
+  "actions": {
+    "Bambu_process_launch": 0,
+    "real_slice": 0,
+    "descriptor_integration": 0,
+    "cache": 0,
+    "REUSE": 0,
+    "geometry_MINIL_change": 0,
+    "printer_send": 0,
+    "print": 0,
+    "Print_GO_change": 0,
+    "process_trace": 0
+  }
+}

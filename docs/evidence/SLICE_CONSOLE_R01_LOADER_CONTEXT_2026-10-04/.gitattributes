@@ -1,0 +1,2 @@
+# Preserve exact embedded RT_MANIFEST payload bytes, including original CRLF.
+*.RT_MANIFEST.*.xml -text whitespace=cr-at-eol

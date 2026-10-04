@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "windows-bambu-02080261-loader-context-observation-delta-v0.1",
+  "accepted_policy": {
+    "path": "tools/slice-console/policies/ENGINE_RESOURCE_CLOSURE_POLICY_V0_1.json",
+    "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+    "preserved": true
+  },
+  "accepted_plan": {
+    "path": "tools/slice-console/policies/WINDOWS_BAMBU_02080261_LOCK_PLAN.json",
+    "sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1",
+    "preserved": true
+  },
+  "new_static_evidence": [
+    "Two embedded manifests parsed: no scoped CRT/VC dependent assembly/file/bindingRedirect declaration",
+    "26 exact adjacent/external/.local/package-redirection pointers absent",
+    "Four limited registry search/redirection values absent; no KnownDLL scoped matches",
+    "Loader API name imports observed without call-site/flags proof"
+  ],
+  "MSVC_UCRT_unresolved_narrowing": "No evidence of scoped static manifest/local redirection in observed installation pointers; effective dynamic/parent loader context remains unproven, no closure item removed.",
+  "remaining_single_blocker": "EFFECTIVE_DYNAMIC_LOADER_CONTEXT_UNPROVEN: exact LoadLibraryExW path/flags/order and BambuStudio.dll loading, parent/child search state are not determined by static manifest/import evidence.",
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "verified": false,
+  "STATIC_BINDING_RESOLVED": false,
+  "LOADED_MODULE_VERIFIED": false,
+  "Identity_Lock_delta": null,
+  "other_unresolved_items": "Preserved unchanged: native transitive/dynamic graph, resource inheritance, datadir, Python runtime, env, general path semantics",
+  "next_one_recommendation": "BAMBU LAUNCHER LoadLibraryExW CALL-SITE — EXACT BINARY STATIC ANALYSIS ONLY. Not started. If code evidence cannot close effective context, return a bounded process-evidence proposal to Author before any launch."
+}
