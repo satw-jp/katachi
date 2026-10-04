@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — BambuStudio.dll load call-site / Author review
+
+Author accepted PR46 loader context. Ready then expected-head normal merge `d4d240f855540b045b733dcbea0f277a8b71abc4` preserves head `5e8c35999cde995c2dbb4a83e520889f4653f135`; fetched main is new base. Prior review checkpoint is historical and accepted.
+
+**SLICE CONSOLE R0.1 BAMBUSTUDIO DLL LOAD CALL-SITE — AUTHOR REVIEW.** New isolated `agent/slice-console-r0.1-dll-load-callsite`. [Task](../tasks/SLICE_CONSOLE_R01_DLL_LOAD_CALLSITE.md), [evidence](../evidence/SLICE_CONSOLE_R01_DLL_LOAD_CALLSITE_2026-10-04.md), [call-site result](../evidence/SLICE_CONSOLE_R01_DLL_LOAD_CALLSITE_2026-10-04/CALLSITE_RESULT.json). Exact exe static analysis with Capstone5.0.6: RVA0x5660 calls LoadLibraryExW using constructed current-exe-directory+BambuStudio.dll UTF16 buffer, NULL hFile/flags0. BAMBUSTUDIO_DLL_STATIC_LOAD_INTENT=RESOLVED is local request intent only; CALLSITE_STATUS=INCOMPLETE. Runtime path/helper outcomes and full parent/child search state unproven; physical binding unresolved, STATIC_BINDING_RESOLVED=false, LOADED_MODULE_VERIFIED=false. Exe startup static imports retain independent parent/startup blocker; all17 accepted results unchanged.
+
+New10 evidence checks PASS. Accepted policy/plan/evidence and runtime/tests/deployment unchanged; existing110 not rerun. Bambu process/trace/slice0; descriptor/cache/REUSE0; geometry/MINIL/send/print/Print GO0. Next one recommendation AUTHOR STARTUP LOADER EVIDENCE DECISION; proposal only, no process or native graph task starts automatically.
+
 ## 2026-10-04 — Windows MSVC/UCRT loader context / Author review
 
 Author accepted PR45 binding evidence. Ready then expected-head normal merge `02d1f9a4da55bc05cf72431ccaeabe703289bb1d` preserves accepted head `97e0634aa4ee2a737b8b0f33cece44eb3bdc98ef`; fetched main is new base. Prior binding review checkpoint is historical and accepted.

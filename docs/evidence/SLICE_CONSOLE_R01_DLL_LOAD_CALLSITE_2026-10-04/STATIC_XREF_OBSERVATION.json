@@ -1,0 +1,1459 @@
+{
+  "schema_version": "0.1",
+  "target": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+  "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+  "bytes": 159776,
+  "image_base": "0x140000000",
+  "tool": {
+    "python": "3.12.14",
+    "capstone": "5.0.6",
+    "binding_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\static-analysis-deps\\capstone\\__init__.py",
+    "binding_sha256": "6bc741ee656f346900fe808c272e10efd98f974e6767f560a2ed1d449aa63973",
+    "disassembler_library_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\static-analysis-deps\\capstone\\lib\\capstone.dll",
+    "disassembler_library_sha256": "651096794b3c3c2a1df24345e22844a0311fca56a4f74ea1cfa29107983760e1",
+    "method": "PE import/INT/IAT parser; AMD64 Capstone linear and .pdata anchored instruction decode; RIP-relative xrefs; manual bounded register/path reasoning. No decompiler or execution."
+  },
+  "watch_imports": {
+    "GetProcAddress": [
+      {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      }
+    ],
+    "LoadLibraryA": [],
+    "LoadLibraryExW": [
+      {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      }
+    ],
+    "LoadLibraryW": []
+  },
+  "mutation_imports": {
+    "AddDllDirectory": [],
+    "SetCurrentDirectoryA": [],
+    "SetCurrentDirectoryW": [],
+    "SetDefaultDllDirectories": [],
+    "SetDllDirectoryA": [],
+    "SetDllDirectoryW": []
+  },
+  "loader_IAT_xrefs": [
+    {
+      "RVA": "0x45fc",
+      "file_offset": "0x39fc",
+      "bytes": "ff152e3a0000",
+      "instruction": "call qword ptr [rip + 0x3a2e]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x45d0",
+        "0x461f",
+        "0x980c"
+      ]
+    },
+    {
+      "RVA": "0x4640",
+      "file_offset": "0x3a40",
+      "bytes": "ff15e2390000",
+      "instruction": "call qword ptr [rip + 0x39e2]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x461f",
+        "0x46b4",
+        "0x9820"
+      ]
+    },
+    {
+      "RVA": "0x4657",
+      "file_offset": "0x3a57",
+      "bytes": "ff15cb390000",
+      "instruction": "call qword ptr [rip + 0x39cb]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x461f",
+        "0x46b4",
+        "0x9820"
+      ]
+    },
+    {
+      "RVA": "0x466e",
+      "file_offset": "0x3a6e",
+      "bytes": "ff15b4390000",
+      "instruction": "call qword ptr [rip + 0x39b4]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x461f",
+        "0x46b4",
+        "0x9820"
+      ]
+    },
+    {
+      "RVA": "0x4685",
+      "file_offset": "0x3a85",
+      "bytes": "ff159d390000",
+      "instruction": "call qword ptr [rip + 0x399d]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x461f",
+        "0x46b4",
+        "0x9820"
+      ]
+    },
+    {
+      "RVA": "0x55db",
+      "file_offset": "0x49db",
+      "bytes": "ff154f2a0000",
+      "instruction": "call qword ptr [rip + 0x2a4f]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x5660",
+      "file_offset": "0x4a60",
+      "bytes": "ff15ca290000",
+      "instruction": "call qword ptr [rip + 0x29ca]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x56bb",
+      "file_offset": "0x4abb",
+      "bytes": "ff1567290000",
+      "instruction": "call qword ptr [rip + 0x2967]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x5783",
+      "file_offset": "0x4b83",
+      "bytes": "ff259f280000",
+      "instruction": "jmp qword ptr [rip + 0x289f]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": null
+    },
+    {
+      "RVA": "0x5789",
+      "file_offset": "0x4b89",
+      "bytes": "ff25a1280000",
+      "instruction": "jmp qword ptr [rip + 0x28a1]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": null
+    }
+  ],
+  "loader_thunk_direct_callers": [],
+  "direct_path_region_branch_edges": [
+    {
+      "RVA": "0x5479",
+      "file_offset": "0x4879",
+      "bytes": "eb03",
+      "instruction": "jmp 0x547e",
+      "target_RVA": "0x547e"
+    },
+    {
+      "RVA": "0x5508",
+      "file_offset": "0x4908",
+      "bytes": "0f84eb000000",
+      "instruction": "je 0x55f9",
+      "target_RVA": "0x55f9"
+    },
+    {
+      "RVA": "0x5518",
+      "file_offset": "0x4918",
+      "bytes": "7437",
+      "instruction": "je 0x5551",
+      "target_RVA": "0x5551"
+    },
+    {
+      "RVA": "0x5587",
+      "file_offset": "0x4987",
+      "bytes": "75e7",
+      "instruction": "jne 0x5570",
+      "target_RVA": "0x5570"
+    },
+    {
+      "RVA": "0x559c",
+      "file_offset": "0x499c",
+      "bytes": "75f6",
+      "instruction": "jne 0x5594",
+      "target_RVA": "0x5594"
+    },
+    {
+      "RVA": "0x55eb",
+      "file_offset": "0x49eb",
+      "bytes": "7407",
+      "instruction": "je 0x55f4",
+      "target_RVA": "0x55f4"
+    },
+    {
+      "RVA": "0x5627",
+      "file_offset": "0x4a27",
+      "bytes": "75e7",
+      "instruction": "jne 0x5610",
+      "target_RVA": "0x5610"
+    },
+    {
+      "RVA": "0x563d",
+      "file_offset": "0x4a3d",
+      "bytes": "75f5",
+      "instruction": "jne 0x5634",
+      "target_RVA": "0x5634"
+    }
+  ],
+  "BambuStudio_dll_literals": [
+    {
+      "encoding": "ascii",
+      "value": "BambuStudio.dll",
+      "file_offset": "0x7088",
+      "RVA": "0x8888",
+      "bytes_hex": "42616d627553747564696f2e646c6c"
+    },
+    {
+      "encoding": "ascii",
+      "value": "BambuStudio.dll",
+      "file_offset": "0x70ff",
+      "RVA": "0x88ff",
+      "bytes_hex": "42616d627553747564696f2e646c6c"
+    },
+    {
+      "encoding": "utf-16-le",
+      "value": "BambuStudio.dll",
+      "file_offset": "0x7068",
+      "RVA": "0x8868",
+      "bytes_hex": "420061006d0062007500530074007500640069006f002e0064006c006c00"
+    }
+  ],
+  "literal_xrefs": [
+    {
+      "RVA": "0x563f",
+      "file_offset": "0x4a3f",
+      "bytes": "0f100522320000",
+      "instruction": "movups xmm0, xmmword ptr [rip + 0x3222]",
+      "RIP_targets": [
+        "0x8868"
+      ],
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x5673",
+      "file_offset": "0x4a73",
+      "bytes": "488d0d0e320000",
+      "instruction": "lea rcx, [rip + 0x320e]",
+      "RIP_targets": [
+        "0x8888"
+      ],
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    }
+  ],
+  "same_function_relevant_sites": [
+    {
+      "RVA": "0x55db",
+      "file_offset": "0x49db",
+      "bytes": "ff154f2a0000",
+      "instruction": "call qword ptr [rip + 0x2a4f]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x5660",
+      "file_offset": "0x4a60",
+      "bytes": "ff15ca290000",
+      "instruction": "call qword ptr [rip + 0x29ca]",
+      "RIP_targets": [
+        "0x8030"
+      ],
+      "import_target": "LoadLibraryExW",
+      "target": {
+        "name": "LoadLibraryExW",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8030",
+        "INT_RVA": "0xa728",
+        "hint_name_RVA": "0xaac4",
+        "IAT_FILE_OFFSET": "0x6830"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    },
+    {
+      "RVA": "0x56bb",
+      "file_offset": "0x4abb",
+      "bytes": "ff1567290000",
+      "instruction": "call qword ptr [rip + 0x2967]",
+      "RIP_targets": [
+        "0x8028"
+      ],
+      "import_target": "GetProcAddress",
+      "target": {
+        "name": "GetProcAddress",
+        "module": "KERNEL32.dll",
+        "IAT_RVA": "0x8028",
+        "INT_RVA": "0xa720",
+        "hint_name_RVA": "0xaab2",
+        "IAT_FILE_OFFSET": "0x6828"
+      },
+      "reference_kind": "DIRECT_IAT_CALL_OR_JUMP",
+      "function_range": [
+        "0x550e",
+        "0x570b",
+        "0x9614"
+      ]
+    }
+  ],
+  "relevant_function_snippets": [
+    {
+      "function_begin_RVA": "0x550e",
+      "function_end_RVA": "0x570b",
+      "unwind_RVA": "0x9614",
+      "instructions": [
+        {
+          "RVA": "0x550e",
+          "file_offset": "0x490e",
+          "bytes": "488b8d90000000",
+          "instruction": "mov rcx, qword ptr [rbp + 0x90]"
+        },
+        {
+          "RVA": "0x5515",
+          "file_offset": "0x4915",
+          "bytes": "4885c9",
+          "instruction": "test rcx, rcx"
+        },
+        {
+          "RVA": "0x5518",
+          "file_offset": "0x4918",
+          "bytes": "7437",
+          "instruction": "je 0x5551"
+        },
+        {
+          "RVA": "0x551a",
+          "file_offset": "0x491a",
+          "bytes": "ff15302b0000",
+          "instruction": "call qword ptr [rip + 0x2b30]",
+          "RIP_targets": [
+            "0x8050"
+          ],
+          "import_target": "FreeLibrary"
+        },
+        {
+          "RVA": "0x5520",
+          "file_offset": "0x4920",
+          "bytes": "85c0",
+          "instruction": "test eax, eax"
+        },
+        {
+          "RVA": "0x5522",
+          "file_offset": "0x4922",
+          "bytes": "0f8462010000",
+          "instruction": "je 0x568a"
+        },
+        {
+          "RVA": "0x5528",
+          "file_offset": "0x4928",
+          "bytes": "488d0d09300000",
+          "instruction": "lea rcx, [rip + 0x3009]",
+          "RIP_targets": [
+            "0x8538"
+          ]
+        },
+        {
+          "RVA": "0x552f",
+          "file_offset": "0x492f",
+          "bytes": "ff15eb2a0000",
+          "instruction": "call qword ptr [rip + 0x2aeb]",
+          "RIP_targets": [
+            "0x8020"
+          ],
+          "import_target": "GetModuleHandleW"
+        },
+        {
+          "RVA": "0x5535",
+          "file_offset": "0x4935",
+          "bytes": "4885c0",
+          "instruction": "test rax, rax"
+        },
+        {
+          "RVA": "0x5538",
+          "file_offset": "0x4938",
+          "bytes": "0f8543010000",
+          "instruction": "jne 0x5681"
+        },
+        {
+          "RVA": "0x553e",
+          "file_offset": "0x493e",
+          "bytes": "488d0d13300000",
+          "instruction": "lea rcx, [rip + 0x3013]",
+          "RIP_targets": [
+            "0x8558"
+          ]
+        },
+        {
+          "RVA": "0x5545",
+          "file_offset": "0x4945",
+          "bytes": "e876fbffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x554a",
+          "file_offset": "0x494a",
+          "bytes": "48899d90000000",
+          "instruction": "mov qword ptr [rbp + 0x90], rbx"
+        },
+        {
+          "RVA": "0x5551",
+          "file_offset": "0x4951",
+          "bytes": "33d2",
+          "instruction": "xor edx, edx"
+        },
+        {
+          "RVA": "0x5553",
+          "file_offset": "0x4953",
+          "bytes": "488d8dc0020000",
+          "instruction": "lea rcx, [rbp + 0x2c0]"
+        },
+        {
+          "RVA": "0x555a",
+          "file_offset": "0x495a",
+          "bytes": "41b80a020000",
+          "instruction": "mov r8d, 0x20a"
+        },
+        {
+          "RVA": "0x5560",
+          "file_offset": "0x4960",
+          "bytes": "e827180000",
+          "instruction": "call 0x6d8c"
+        },
+        {
+          "RVA": "0x5565",
+          "file_offset": "0x4965",
+          "bytes": "488bcb",
+          "instruction": "mov rcx, rbx"
+        },
+        {
+          "RVA": "0x5568",
+          "file_offset": "0x4968",
+          "bytes": "0f1f840000000000",
+          "instruction": "nop dword ptr [rax + rax]"
+        },
+        {
+          "RVA": "0x5570",
+          "file_offset": "0x4970",
+          "bytes": "0fb7840db0000000",
+          "instruction": "movzx eax, word ptr [rbp + rcx + 0xb0]"
+        },
+        {
+          "RVA": "0x5578",
+          "file_offset": "0x4978",
+          "bytes": "6689840dc0020000",
+          "instruction": "mov word ptr [rbp + rcx + 0x2c0], ax"
+        },
+        {
+          "RVA": "0x5580",
+          "file_offset": "0x4980",
+          "bytes": "488d4902",
+          "instruction": "lea rcx, [rcx + 2]"
+        },
+        {
+          "RVA": "0x5584",
+          "file_offset": "0x4984",
+          "bytes": "6685c0",
+          "instruction": "test ax, ax"
+        },
+        {
+          "RVA": "0x5587",
+          "file_offset": "0x4987",
+          "bytes": "75e7",
+          "instruction": "jne 0x5570"
+        },
+        {
+          "RVA": "0x5589",
+          "file_offset": "0x4989",
+          "bytes": "488d8dc0020000",
+          "instruction": "lea rcx, [rbp + 0x2c0]"
+        },
+        {
+          "RVA": "0x5590",
+          "file_offset": "0x4990",
+          "bytes": "4883e902",
+          "instruction": "sub rcx, 2"
+        },
+        {
+          "RVA": "0x5594",
+          "file_offset": "0x4994",
+          "bytes": "66395902",
+          "instruction": "cmp word ptr [rcx + 2], bx"
+        },
+        {
+          "RVA": "0x5598",
+          "file_offset": "0x4998",
+          "bytes": "488d4902",
+          "instruction": "lea rcx, [rcx + 2]"
+        },
+        {
+          "RVA": "0x559c",
+          "file_offset": "0x499c",
+          "bytes": "75f6",
+          "instruction": "jne 0x5594"
+        },
+        {
+          "RVA": "0x559e",
+          "file_offset": "0x499e",
+          "bytes": "0f10051b320000",
+          "instruction": "movups xmm0, xmmword ptr [rip + 0x321b]",
+          "RIP_targets": [
+            "0x87c0"
+          ]
+        },
+        {
+          "RVA": "0x55a5",
+          "file_offset": "0x49a5",
+          "bytes": "8b0535320000",
+          "instruction": "mov eax, dword ptr [rip + 0x3235]",
+          "RIP_targets": [
+            "0x87e0"
+          ]
+        },
+        {
+          "RVA": "0x55ab",
+          "file_offset": "0x49ab",
+          "bytes": "488d95c0020000",
+          "instruction": "lea rdx, [rbp + 0x2c0]"
+        },
+        {
+          "RVA": "0x55b2",
+          "file_offset": "0x49b2",
+          "bytes": "0f100d17320000",
+          "instruction": "movups xmm1, xmmword ptr [rip + 0x3217]",
+          "RIP_targets": [
+            "0x87d0"
+          ]
+        },
+        {
+          "RVA": "0x55b9",
+          "file_offset": "0x49b9",
+          "bytes": "0f1101",
+          "instruction": "movups xmmword ptr [rcx], xmm0"
+        },
+        {
+          "RVA": "0x55bc",
+          "file_offset": "0x49bc",
+          "bytes": "0f114910",
+          "instruction": "movups xmmword ptr [rcx + 0x10], xmm1"
+        },
+        {
+          "RVA": "0x55c0",
+          "file_offset": "0x49c0",
+          "bytes": "894120",
+          "instruction": "mov dword ptr [rcx + 0x20], eax"
+        },
+        {
+          "RVA": "0x55c3",
+          "file_offset": "0x49c3",
+          "bytes": "488d0d1e320000",
+          "instruction": "lea rcx, [rip + 0x321e]",
+          "RIP_targets": [
+            "0x87e8"
+          ]
+        },
+        {
+          "RVA": "0x55ca",
+          "file_offset": "0x49ca",
+          "bytes": "e8f1faffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x55cf",
+          "file_offset": "0x49cf",
+          "bytes": "4533c0",
+          "instruction": "xor r8d, r8d"
+        },
+        {
+          "RVA": "0x55d2",
+          "file_offset": "0x49d2",
+          "bytes": "488d8dc0020000",
+          "instruction": "lea rcx, [rbp + 0x2c0]"
+        },
+        {
+          "RVA": "0x55d9",
+          "file_offset": "0x49d9",
+          "bytes": "33d2",
+          "instruction": "xor edx, edx"
+        },
+        {
+          "RVA": "0x55db",
+          "file_offset": "0x49db",
+          "bytes": "ff154f2a0000",
+          "instruction": "call qword ptr [rip + 0x2a4f]",
+          "RIP_targets": [
+            "0x8030"
+          ],
+          "import_target": "LoadLibraryExW"
+        },
+        {
+          "RVA": "0x55e1",
+          "file_offset": "0x49e1",
+          "bytes": "488d0d28320000",
+          "instruction": "lea rcx, [rip + 0x3228]",
+          "RIP_targets": [
+            "0x8810"
+          ]
+        },
+        {
+          "RVA": "0x55e8",
+          "file_offset": "0x49e8",
+          "bytes": "4885c0",
+          "instruction": "test rax, rax"
+        },
+        {
+          "RVA": "0x55eb",
+          "file_offset": "0x49eb",
+          "bytes": "7407",
+          "instruction": "je 0x55f4"
+        },
+        {
+          "RVA": "0x55ed",
+          "file_offset": "0x49ed",
+          "bytes": "488d0d44320000",
+          "instruction": "lea rcx, [rip + 0x3244]",
+          "RIP_targets": [
+            "0x8838"
+          ]
+        },
+        {
+          "RVA": "0x55f4",
+          "file_offset": "0x49f4",
+          "bytes": "e8c7faffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x55f9",
+          "file_offset": "0x49f9",
+          "bytes": "33d2",
+          "instruction": "xor edx, edx"
+        },
+        {
+          "RVA": "0x55fb",
+          "file_offset": "0x49fb",
+          "bytes": "488d8dd0040000",
+          "instruction": "lea rcx, [rbp + 0x4d0]"
+        },
+        {
+          "RVA": "0x5602",
+          "file_offset": "0x4a02",
+          "bytes": "41b80a020000",
+          "instruction": "mov r8d, 0x20a"
+        },
+        {
+          "RVA": "0x5608",
+          "file_offset": "0x4a08",
+          "bytes": "e87f170000",
+          "instruction": "call 0x6d8c"
+        },
+        {
+          "RVA": "0x560d",
+          "file_offset": "0x4a0d",
+          "bytes": "0f1f00",
+          "instruction": "nop dword ptr [rax]"
+        },
+        {
+          "RVA": "0x5610",
+          "file_offset": "0x4a10",
+          "bytes": "0fb7841db0000000",
+          "instruction": "movzx eax, word ptr [rbp + rbx + 0xb0]"
+        },
+        {
+          "RVA": "0x5618",
+          "file_offset": "0x4a18",
+          "bytes": "6689841dd0040000",
+          "instruction": "mov word ptr [rbp + rbx + 0x4d0], ax"
+        },
+        {
+          "RVA": "0x5620",
+          "file_offset": "0x4a20",
+          "bytes": "488d5b02",
+          "instruction": "lea rbx, [rbx + 2]"
+        },
+        {
+          "RVA": "0x5624",
+          "file_offset": "0x4a24",
+          "bytes": "6685c0",
+          "instruction": "test ax, ax"
+        },
+        {
+          "RVA": "0x5627",
+          "file_offset": "0x4a27",
+          "bytes": "75e7",
+          "instruction": "jne 0x5610"
+        },
+        {
+          "RVA": "0x5629",
+          "file_offset": "0x4a29",
+          "bytes": "488d85d0040000",
+          "instruction": "lea rax, [rbp + 0x4d0]"
+        },
+        {
+          "RVA": "0x5630",
+          "file_offset": "0x4a30",
+          "bytes": "4883e802",
+          "instruction": "sub rax, 2"
+        },
+        {
+          "RVA": "0x5634",
+          "file_offset": "0x4a34",
+          "bytes": "6683780200",
+          "instruction": "cmp word ptr [rax + 2], 0"
+        },
+        {
+          "RVA": "0x5639",
+          "file_offset": "0x4a39",
+          "bytes": "488d4002",
+          "instruction": "lea rax, [rax + 2]"
+        },
+        {
+          "RVA": "0x563d",
+          "file_offset": "0x4a3d",
+          "bytes": "75f5",
+          "instruction": "jne 0x5634"
+        },
+        {
+          "RVA": "0x563f",
+          "file_offset": "0x4a3f",
+          "bytes": "0f100522320000",
+          "instruction": "movups xmm0, xmmword ptr [rip + 0x3222]",
+          "RIP_targets": [
+            "0x8868"
+          ]
+        },
+        {
+          "RVA": "0x5646",
+          "file_offset": "0x4a46",
+          "bytes": "4533c0",
+          "instruction": "xor r8d, r8d"
+        },
+        {
+          "RVA": "0x5649",
+          "file_offset": "0x4a49",
+          "bytes": "33d2",
+          "instruction": "xor edx, edx"
+        },
+        {
+          "RVA": "0x564b",
+          "file_offset": "0x4a4b",
+          "bytes": "0f100d26320000",
+          "instruction": "movups xmm1, xmmword ptr [rip + 0x3226]",
+          "RIP_targets": [
+            "0x8878"
+          ]
+        },
+        {
+          "RVA": "0x5652",
+          "file_offset": "0x4a52",
+          "bytes": "488d8dd0040000",
+          "instruction": "lea rcx, [rbp + 0x4d0]"
+        },
+        {
+          "RVA": "0x5659",
+          "file_offset": "0x4a59",
+          "bytes": "0f1100",
+          "instruction": "movups xmmword ptr [rax], xmm0"
+        },
+        {
+          "RVA": "0x565c",
+          "file_offset": "0x4a5c",
+          "bytes": "0f114810",
+          "instruction": "movups xmmword ptr [rax + 0x10], xmm1"
+        },
+        {
+          "RVA": "0x5660",
+          "file_offset": "0x4a60",
+          "bytes": "ff15ca290000",
+          "instruction": "call qword ptr [rip + 0x29ca]",
+          "RIP_targets": [
+            "0x8030"
+          ],
+          "import_target": "LoadLibraryExW"
+        },
+        {
+          "RVA": "0x5666",
+          "file_offset": "0x4a66",
+          "bytes": "4885c0",
+          "instruction": "test rax, rax"
+        },
+        {
+          "RVA": "0x5669",
+          "file_offset": "0x4a69",
+          "bytes": "7546",
+          "instruction": "jne 0x56b1"
+        },
+        {
+          "RVA": "0x566b",
+          "file_offset": "0x4a6b",
+          "bytes": "ff15272a0000",
+          "instruction": "call qword ptr [rip + 0x2a27]",
+          "RIP_targets": [
+            "0x8098"
+          ],
+          "import_target": "GetLastError"
+        },
+        {
+          "RVA": "0x5671",
+          "file_offset": "0x4a71",
+          "bytes": "8bd0",
+          "instruction": "mov edx, eax"
+        },
+        {
+          "RVA": "0x5673",
+          "file_offset": "0x4a73",
+          "bytes": "488d0d0e320000",
+          "instruction": "lea rcx, [rip + 0x320e]",
+          "RIP_targets": [
+            "0x8888"
+          ]
+        },
+        {
+          "RVA": "0x567a",
+          "file_offset": "0x4a7a",
+          "bytes": "e841faffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x567f",
+          "file_offset": "0x4a7f",
+          "bytes": "eb6c",
+          "instruction": "jmp 0x56ed"
+        },
+        {
+          "RVA": "0x5681",
+          "file_offset": "0x4a81",
+          "bytes": "488d0d002f0000",
+          "instruction": "lea rcx, [rip + 0x2f00]",
+          "RIP_targets": [
+            "0x8588"
+          ]
+        },
+        {
+          "RVA": "0x5688",
+          "file_offset": "0x4a88",
+          "bytes": "eb07",
+          "instruction": "jmp 0x5691"
+        },
+        {
+          "RVA": "0x568a",
+          "file_offset": "0x4a8a",
+          "bytes": "488d0d272f0000",
+          "instruction": "lea rcx, [rip + 0x2f27]",
+          "RIP_targets": [
+            "0x85b8"
+          ]
+        },
+        {
+          "RVA": "0x5691",
+          "file_offset": "0x4a91",
+          "bytes": "e82afaffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x5696",
+          "file_offset": "0x4a96",
+          "bytes": "4533c9",
+          "instruction": "xor r9d, r9d"
+        },
+        {
+          "RVA": "0x5699",
+          "file_offset": "0x4a99",
+          "bytes": "4c8d0558300000",
+          "instruction": "lea r8, [rip + 0x3058]",
+          "RIP_targets": [
+            "0x86f8"
+          ]
+        },
+        {
+          "RVA": "0x56a0",
+          "file_offset": "0x4aa0",
+          "bytes": "488d1579300000",
+          "instruction": "lea rdx, [rip + 0x3079]",
+          "RIP_targets": [
+            "0x8720"
+          ]
+        },
+        {
+          "RVA": "0x56a7",
+          "file_offset": "0x4aa7",
+          "bytes": "33c9",
+          "instruction": "xor ecx, ecx"
+        },
+        {
+          "RVA": "0x56a9",
+          "file_offset": "0x4aa9",
+          "bytes": "ff15b12a0000",
+          "instruction": "call qword ptr [rip + 0x2ab1]",
+          "RIP_targets": [
+            "0x8160"
+          ],
+          "import_target": "MessageBoxW"
+        },
+        {
+          "RVA": "0x56af",
+          "file_offset": "0x4aaf",
+          "bytes": "eb3c",
+          "instruction": "jmp 0x56ed"
+        },
+        {
+          "RVA": "0x56b1",
+          "file_offset": "0x4ab1",
+          "bytes": "488d1500320000",
+          "instruction": "lea rdx, [rip + 0x3200]",
+          "RIP_targets": [
+            "0x88b8"
+          ]
+        },
+        {
+          "RVA": "0x56b8",
+          "file_offset": "0x4ab8",
+          "bytes": "488bc8",
+          "instruction": "mov rcx, rax"
+        },
+        {
+          "RVA": "0x56bb",
+          "file_offset": "0x4abb",
+          "bytes": "ff1567290000",
+          "instruction": "call qword ptr [rip + 0x2967]",
+          "RIP_targets": [
+            "0x8028"
+          ],
+          "import_target": "GetProcAddress"
+        },
+        {
+          "RVA": "0x56c1",
+          "file_offset": "0x4ac1",
+          "bytes": "488905a86b0000",
+          "instruction": "mov qword ptr [rip + 0x6ba8], rax",
+          "RIP_targets": [
+            "0xc270"
+          ]
+        },
+        {
+          "RVA": "0x56c8",
+          "file_offset": "0x4ac8",
+          "bytes": "4885c0",
+          "instruction": "test rax, rax"
+        },
+        {
+          "RVA": "0x56cb",
+          "file_offset": "0x4acb",
+          "bytes": "750e",
+          "instruction": "jne 0x56db"
+        },
+        {
+          "RVA": "0x56cd",
+          "file_offset": "0x4acd",
+          "bytes": "488d0dfc310000",
+          "instruction": "lea rcx, [rip + 0x31fc]",
+          "RIP_targets": [
+            "0x88d0"
+          ]
+        },
+        {
+          "RVA": "0x56d4",
+          "file_offset": "0x4ad4",
+          "bytes": "e8e7f9ffff",
+          "instruction": "call 0x50c0"
+        },
+        {
+          "RVA": "0x56d9",
+          "file_offset": "0x4ad9",
+          "bytes": "eb12",
+          "instruction": "jmp 0x56ed"
+        },
+        {
+          "RVA": "0x56db",
+          "file_offset": "0x4adb",
+          "bytes": "482bfe",
+          "instruction": "sub rdi, rsi"
+        },
+        {
+          "RVA": "0x56de",
+          "file_offset": "0x4ade",
+          "bytes": "488bd6",
+          "instruction": "mov rdx, rsi"
+        },
+        {
+          "RVA": "0x56e1",
+          "file_offset": "0x4ae1",
+          "bytes": "48c1ff03",
+          "instruction": "sar rdi, 3"
+        },
+        {
+          "RVA": "0x56e5",
+          "file_offset": "0x4ae5",
+          "bytes": "8d4fff",
+          "instruction": "lea ecx, [rdi - 1]"
+        },
+        {
+          "RVA": "0x56e8",
+          "file_offset": "0x4ae8",
+          "bytes": "ffd0",
+          "instruction": "call rax"
+        },
+        {
+          "RVA": "0x56ea",
+          "file_offset": "0x4aea",
+          "bytes": "448be0",
+          "instruction": "mov r12d, eax"
+        },
+        {
+          "RVA": "0x56ed",
+          "file_offset": "0x4aed",
+          "bytes": "488d4d10",
+          "instruction": "lea rcx, [rbp + 0x10]"
+        },
+        {
+          "RVA": "0x56f1",
+          "file_offset": "0x4af1",
+          "bytes": "e88ae6ffff",
+          "instruction": "call 0x3d80"
+        },
+        {
+          "RVA": "0x56f6",
+          "file_offset": "0x4af6",
+          "bytes": "488bbc24280e0000",
+          "instruction": "mov rdi, qword ptr [rsp + 0xe28]"
+        },
+        {
+          "RVA": "0x56fe",
+          "file_offset": "0x4afe",
+          "bytes": "488b9c24200e0000",
+          "instruction": "mov rbx, qword ptr [rsp + 0xe20]"
+        },
+        {
+          "RVA": "0x5706",
+          "file_offset": "0x4b06",
+          "bytes": "4885f6",
+          "instruction": "test rsi, rsi"
+        },
+        {
+          "RVA": "0x5709",
+          "file_offset": "0x4b09",
+          "bytes": "743c",
+          "instruction": "je 0x5747"
+        }
+      ]
+    }
+  ],
+  "path_construction_prefix": [
+    {
+      "RVA": "0x547e",
+      "file_offset": "0x487e",
+      "bytes": "33d2",
+      "instruction": "xor edx, edx"
+    },
+    {
+      "RVA": "0x5480",
+      "file_offset": "0x4880",
+      "bytes": "488d8db0000000",
+      "instruction": "lea rcx, [rbp + 0xb0]"
+    },
+    {
+      "RVA": "0x5487",
+      "file_offset": "0x4887",
+      "bytes": "41b80a020000",
+      "instruction": "mov r8d, 0x20a"
+    },
+    {
+      "RVA": "0x548d",
+      "file_offset": "0x488d",
+      "bytes": "e8fa180000",
+      "instruction": "call 0x6d8c"
+    },
+    {
+      "RVA": "0x5492",
+      "file_offset": "0x4892",
+      "bytes": "41b804010000",
+      "instruction": "mov r8d, 0x104"
+    },
+    {
+      "RVA": "0x5498",
+      "file_offset": "0x4898",
+      "bytes": "488d95b0000000",
+      "instruction": "lea rdx, [rbp + 0xb0]"
+    },
+    {
+      "RVA": "0x549f",
+      "file_offset": "0x489f",
+      "bytes": "33c9",
+      "instruction": "xor ecx, ecx"
+    },
+    {
+      "RVA": "0x54a1",
+      "file_offset": "0x48a1",
+      "bytes": "ff15712b0000",
+      "instruction": "call qword ptr [rip + 0x2b71]",
+      "RIP_targets": [
+        "0x8018"
+      ],
+      "import_target": "GetModuleFileNameW"
+    },
+    {
+      "RVA": "0x54a7",
+      "file_offset": "0x48a7",
+      "bytes": "488d85e0080000",
+      "instruction": "lea rax, [rbp + 0x8e0]"
+    },
+    {
+      "RVA": "0x54ae",
+      "file_offset": "0x48ae",
+      "bytes": "4c8d8de00a0000",
+      "instruction": "lea r9, [rbp + 0xae0]"
+    },
+    {
+      "RVA": "0x54b5",
+      "file_offset": "0x48b5",
+      "bytes": "4889442420",
+      "instruction": "mov qword ptr [rsp + 0x20], rax"
+    },
+    {
+      "RVA": "0x54ba",
+      "file_offset": "0x48ba",
+      "bytes": "4c8d85e0060000",
+      "instruction": "lea r8, [rbp + 0x6e0]"
+    },
+    {
+      "RVA": "0x54c1",
+      "file_offset": "0x48c1",
+      "bytes": "488d95a0000000",
+      "instruction": "lea rdx, [rbp + 0xa0]"
+    },
+    {
+      "RVA": "0x54c8",
+      "file_offset": "0x48c8",
+      "bytes": "488d8db0000000",
+      "instruction": "lea rcx, [rbp + 0xb0]"
+    },
+    {
+      "RVA": "0x54cf",
+      "file_offset": "0x48cf",
+      "bytes": "ff15332d0000",
+      "instruction": "call qword ptr [rip + 0x2d33]",
+      "RIP_targets": [
+        "0x8208"
+      ],
+      "import_target": "_wsplitpath"
+    },
+    {
+      "RVA": "0x54d5",
+      "file_offset": "0x48d5",
+      "bytes": "4533c9",
+      "instruction": "xor r9d, r9d"
+    },
+    {
+      "RVA": "0x54d8",
+      "file_offset": "0x48d8",
+      "bytes": "48895c2420",
+      "instruction": "mov qword ptr [rsp + 0x20], rbx"
+    },
+    {
+      "RVA": "0x54dd",
+      "file_offset": "0x48dd",
+      "bytes": "4c8d85e0060000",
+      "instruction": "lea r8, [rbp + 0x6e0]"
+    },
+    {
+      "RVA": "0x54e4",
+      "file_offset": "0x48e4",
+      "bytes": "488d95a0000000",
+      "instruction": "lea rdx, [rbp + 0xa0]"
+    },
+    {
+      "RVA": "0x54eb",
+      "file_offset": "0x48eb",
+      "bytes": "488d8db0000000",
+      "instruction": "lea rcx, [rbp + 0xb0]"
+    },
+    {
+      "RVA": "0x54f2",
+      "file_offset": "0x48f2",
+      "bytes": "ff15182d0000",
+      "instruction": "call qword ptr [rip + 0x2d18]",
+      "RIP_targets": [
+        "0x8210"
+      ],
+      "import_target": "_wmakepath"
+    },
+    {
+      "RVA": "0x54f8",
+      "file_offset": "0x48f8",
+      "bytes": "488b742468",
+      "instruction": "mov rsi, qword ptr [rsp + 0x68]"
+    },
+    {
+      "RVA": "0x54fd",
+      "file_offset": "0x48fd",
+      "bytes": "4584f6",
+      "instruction": "test r14b, r14b"
+    },
+    {
+      "RVA": "0x5500",
+      "file_offset": "0x4900",
+      "bytes": "4c8bb424f80d0000",
+      "instruction": "mov r14, qword ptr [rsp + 0xdf8]"
+    },
+    {
+      "RVA": "0x5508",
+      "file_offset": "0x4908",
+      "bytes": "0f84eb000000",
+      "instruction": "je 0x55f9"
+    }
+  ],
+  "path_context_imports": [
+    {
+      "name": "GetModuleFileNameW",
+      "module": "KERNEL32.dll",
+      "IAT_RVA": "0x8018",
+      "INT_RVA": "0xa710",
+      "hint_name_RVA": "0xaa88",
+      "IAT_FILE_OFFSET": "0x6818"
+    },
+    {
+      "name": "memset",
+      "module": "VCRUNTIME140.dll",
+      "IAT_RVA": "0x8198",
+      "INT_RVA": "0xa890",
+      "hint_name_RVA": "0xad64",
+      "IAT_FILE_OFFSET": "0x6998"
+    },
+    {
+      "name": "_wsplitpath",
+      "module": "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "IAT_RVA": "0x8208",
+      "INT_RVA": "0xa900",
+      "hint_name_RVA": "0xae46",
+      "IAT_FILE_OFFSET": "0x6a08"
+    },
+    {
+      "name": "_wmakepath",
+      "module": "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "IAT_RVA": "0x8210",
+      "INT_RVA": "0xa908",
+      "hint_name_RVA": "0xae38",
+      "IAT_FILE_OFFSET": "0x6a10"
+    }
+  ],
+  "relevant_unwind_chain": [
+    {
+      "unwind_RVA": "0x9614",
+      "version": 1,
+      "flags": 4,
+      "code_count": 0,
+      "chained_function": [
+        "0x5146",
+        "0x5153",
+        "0x95a0"
+      ]
+    },
+    {
+      "unwind_RVA": "0x95a0",
+      "version": 1,
+      "flags": 4,
+      "code_count": 4,
+      "chained_function": [
+        "0x5120",
+        "0x5146",
+        "0x9588"
+      ]
+    },
+    {
+      "unwind_RVA": "0x9588",
+      "version": 1,
+      "flags": 3,
+      "code_count": 5
+    }
+  ],
+  "RBX_zero_source": {
+    "RVA": "0x51d3",
+    "file_offset": "0x45d3",
+    "bytes": "33db",
+    "instruction": "xor ebx, ebx"
+  },
+  "DLL_utf16_copy_bytes": "420061006d0062007500530074007500640069006f002e0064006c006c000000",
+  "export_name_after_load": "bambustu_main",
+  "coverage": [
+    {
+      "section": ".text",
+      "RVA": "0x1000",
+      "bytes": 25442,
+      "decoded_instruction_count": 7716,
+      "skipdata_bytes": 0,
+      "method": "linear section decode; supplemented at .pdata function anchors"
+    }
+  ],
+  "limitations": [
+    "Direct RIP IAT references enumerated in decoded bytes; pointer references not inferred to be calls",
+    "No guarantee arbitrary runtime-computed/register/dynamically-resolved targets are exhaustively identified",
+    "Same-function membership is candidate relevance; dataflow must be reviewed before asserting argument binding"
+  ],
+  "LOADED_MODULE_VERIFIED": false
+}

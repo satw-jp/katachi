@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "name": "exact_binary_SHA_stable_read",
+      "status": "PASS"
+    },
+    {
+      "name": "IAT_INT_identity_loader_imports",
+      "status": "PASS"
+    },
+    {
+      "name": "all_enumerated_xref_bytes_map_to_binary",
+      "status": "PASS"
+    },
+    {
+      "name": "Bambu_literal_copy_and_string_xref",
+      "status": "PASS"
+    },
+    {
+      "name": "exact_direct_call_target_displacement",
+      "status": "PASS"
+    },
+    {
+      "name": "path_API_IAT_and_buffer_register_flow",
+      "status": "PASS"
+    },
+    {
+      "name": "flags0_hFile_NULL_local_no_intervening_call",
+      "status": "PASS"
+    },
+    {
+      "name": "fail_closed_no_physical_or_initial_binding_promotion",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted_PR46_policy_plan_and_result_bytes_unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "loaded_false_and_all_actions_zero",
+      "status": "PASS"
+    }
+  ],
+  "pass": 10,
+  "fail": 0,
+  "existing110_tests": "NOT RERUN: runtime code unchanged; historical PR44 result separate",
+  "analysis_tool": "Python3.12.14 / Capstone5.0.6; static bytes only"
+}
