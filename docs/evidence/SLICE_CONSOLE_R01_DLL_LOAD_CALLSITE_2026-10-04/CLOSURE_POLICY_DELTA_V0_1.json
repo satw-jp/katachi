@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "windows-bambu-02080261-dll-load-intent-observation-delta-v0.1",
+  "accepted_policy": {
+    "path": "tools/slice-console/policies/ENGINE_RESOURCE_CLOSURE_POLICY_V0_1.json",
+    "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+    "preserved": true
+  },
+  "accepted_plan": {
+    "path": "tools/slice-console/policies/WINDOWS_BAMBU_02080261_LOCK_PLAN.json",
+    "sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1",
+    "preserved": true
+  },
+  "accepted_PR46_result": {
+    "path": "docs/evidence/SLICE_CONSOLE_R01_LOADER_CONTEXT_2026-10-04/LOADER_CONTEXT_RESULT.json",
+    "sha256": "68a50550922e87a655fccb3edccade7f9dae7a95c215a708604a2c038320c25c"
+  },
+  "new_fact": "RVA0x5660 LoadLibraryExW receives constructed current-exe-directory+BambuStudio.dll buffer with NULL hFile and flags0; flags0 has no explicit LOAD_LIBRARY_SEARCH or altered-path flags",
+  "BAMBUSTUDIO_DLL_STATIC_LOAD_INTENT": "RESOLVED",
+  "CALLSITE_STATUS": "INCOMPLETE",
+  "PHYSICAL_MODULE_BINDING": "UNRESOLVED",
+  "STATIC_BINDING_RESOLVED": false,
+  "LOADED_MODULE_VERIFIED": false,
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "verified": false,
+  "remaining_runtime_state": [
+    "GetModuleFileNameW actual output/failure/truncation and CRT path helper results are not observed",
+    "Preceding helper/earlier DLL initialization and parent/child dynamic search state not closed",
+    "Physical selected module/exports/dependency identities not observed; no process launched",
+    "exe startup-time static imports retain independent parent/startup-loader blocker"
+  ],
+  "initial_startup_static_import_blocker": "Preserved: parent/startup loader context remains unresolved, not addressed by later DLL call-site",
+  "Identity_Lock_delta": null,
+  "next_one_recommendation": "AUTHOR STARTUP LOADER EVIDENCE DECISION: review whether static load intent is sufficient and whether a separate bounded startup-context/process-evidence task merits authorization; no launch/trace or native graph starts automatically"
+}

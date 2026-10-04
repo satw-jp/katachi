@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "algorithm": "SHA256 exact bytes",
+  "files": {
+    "ACCEPTED_AUTHORITY.json": "c21cb5b85e97bc04ae4140877a2331610211f4bfb6502a369e1f94f8f9b7f6e1",
+    "ANALYSIS_HELPER.py": "3a19ad8cea82a3ff5d3f988e4640462efa2c51dadd25f98674419c5d312a6d06",
+    "CALLSITE_RESULT.json": "81e64444e3424c86175c7b18aa20744e5e339d050bfae09226c8e424b3bc0750",
+    "CHECK_RESULTS.json": "1cc8e669784152113f682cdcf8ce4afc84cfdd17cf983f961a4cc1fac8487f38",
+    "CLOSURE_POLICY_DELTA_V0_1.json": "b762ea76c1720704af9d520ddf6ec384fa6f9ea9408860a5975bcbd4ca618d60",
+    "STATIC_XREF_OBSERVATION.json": "ed516fb7ad40df0e4bdcc0616ab2e9d4bff460a579c08b9166eca75910436843",
+    "VERIFICATION_HELPER.py": "420630c1bbf8ff565826ca59bbff5a72fd90f37c5f0a598e14451b51360d2ccd"
+  },
+  "accepted_policy_sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+  "accepted_plan_sha256": "731d8742fc927cf701c646499daac607b3975b553b8a9b1fe8320eca521ab4b1"
+}

@@ -1,0 +1,13 @@
+{
+  "accepted_commit": "5e8c35999cde995c2dbb4a83e520889f4653f135",
+  "accepted_loader_context": {
+    "path": "docs/evidence/SLICE_CONSOLE_R01_LOADER_CONTEXT_2026-10-04/LOADER_CONTEXT_RESULT.json",
+    "sha256": "68a50550922e87a655fccb3edccade7f9dae7a95c215a708604a2c038320c25c"
+  },
+  "accepted_scope": {
+    "path": "docs/evidence/SLICE_CONSOLE_R01_LOADER_CONTEXT_2026-10-04/ACCEPTED_AUTHORITY.json",
+    "sha256": "97bc47b58fedf53807203e6947fdadf154690893973810db2e77b9699ef6af66"
+  },
+  "initial_static_import_binding": "Preserved UNRESOLVED independently of later DLL-loading call-site",
+  "accepted_result_preserved": true
+}
