@@ -1,0 +1,378 @@
+{
+  "policy_version": "0.1",
+  "policy_id": "windows-bambu-02080261-runner020-bounded-v0.1",
+  "target": {
+    "platform": "Windows",
+    "engine_version": "02.08.02.61",
+    "engine_path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+    "engine_sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+    "engine_size": 159776,
+    "abi": "PE32+-AMD64 (runtime closure unresolved)",
+    "runner_version": "0.2.0",
+    "route": "A1 0.4 single-filament mesh argv configuration + bounded runbook evidence; sample not executed"
+  },
+  "scope": {
+    "included": "Only named Windows installation/source/route files; no Mac/M4/Orca/other engine/printer generalization",
+    "excluded_actions": [
+      "engine launch",
+      "recursive directory hash",
+      "dependency crawler",
+      "process inspection",
+      "descriptor/generator/Console/cache/REUSE integration"
+    ],
+    "closure_complete_requirements": [
+      "Exact engine bytes",
+      "Evidence-backed loaded native/runtime dependency closure",
+      "bounded resource/inheritance/datadir closure",
+      "Python executable/runtime/backend closure",
+      "resolved env/secret policy",
+      "resolved physical path semantics",
+      "stable Identity Lock reverify of approved immutable inputs"
+    ]
+  },
+  "CLOSURE_STATUS": "INCOMPLETE",
+  "dependencies": [
+    {
+      "id": "engine-exe",
+      "classification": "REQUIRED",
+      "items": [
+        "bambu-studio.exe"
+      ],
+      "basis": "Exact path in schema0.2 sample, actual file version/PE/bytes measured",
+      "evidence": [
+        "engine_observation",
+        "route"
+      ]
+    },
+    {
+      "id": "central-native-module",
+      "classification": "REQUIRED",
+      "items": [
+        "BambuStudio.dll"
+      ],
+      "basis": "Conservative required lock: executable contains literal BambuStudio.dll; large adjacent module has native import table. Actual dynamic loading/call use not proven.",
+      "evidence": [
+        "imports",
+        "engine_observation"
+      ]
+    },
+    {
+      "id": "native-math",
+      "classification": "REQUIRED",
+      "items": [
+        "libgmp-10.dll",
+        "libmpfr-4.dll"
+      ],
+      "basis": "Direct names in BambuStudio.dll static imports; conservatively lock exact adjacent candidates, not proof of resolved loaded images or per-toolpath use.",
+      "evidence": [
+        "imports"
+      ]
+    },
+    {
+      "id": "cli-machine-limits",
+      "classification": "REQUIRED",
+      "items": [
+        "resources/profiles/BBL/cli_config.json"
+      ],
+      "basis": "Runbook records A1 CLI6000 cap; actual selected file has6000 values. Does not prove every current effective read.",
+      "evidence": [
+        "runbook",
+        "route"
+      ]
+    },
+    {
+      "id": "backend-source",
+      "classification": "REQUIRED",
+      "items": [
+        "job.py",
+        "runner.py",
+        "progress.py"
+      ],
+      "basis": "Actual Runner imports/calls job and progress; includes internal packaging helpers in runner.py.",
+      "evidence": [
+        "source"
+      ]
+    },
+    {
+      "id": "explicit-job-profiles",
+      "classification": "REQUIRED",
+      "items": [
+        "ordered printer/process/filament profile bytes"
+      ],
+      "identity_domain": "SLICE_KEY profiles, NOT duplicated in resource plan",
+      "basis": "--load-settings and --load-filaments use explicit profile pointers; sample profiles flat/no inherits key but default names remain.",
+      "evidence": [
+        "route"
+      ]
+    },
+    {
+      "id": "other-native-runtime",
+      "classification": "UNRESOLVED",
+      "items": [
+        "Other DLL/API-set/CRT/system imports named in PE_IMPORT_OBSERVATION",
+        "transitive and dynamic/plugin imports"
+      ],
+      "basis": "Static names do not determine exact loaded bindings/transitive set; no loader trace or graph crawl.",
+      "evidence": [
+        "imports",
+        "dll_search"
+      ]
+    },
+    {
+      "id": "bundle-defaults",
+      "classification": "UNRESOLVED",
+      "items": [
+        "BBL machine A1 0.4",
+        "fdm_bbl_3dp_001_common",
+        "default printer/process/filament and template fallback closure"
+      ],
+      "basis": "Installed A1 inherits named parent; explicit flat profiles do not prove all defaults/fallback resolution. Selected two files hashed as candidates only.",
+      "evidence": [
+        "route"
+      ]
+    },
+    {
+      "id": "datadir-discovery",
+      "classification": "UNRESOLVED",
+      "items": [
+        "effective datadir config/defaults/user-profile discovery"
+      ],
+      "basis": "Configured sample datadir has only .gitkeep; historic native_recovery path absent. No inference that empty data directory disables discovery.",
+      "evidence": [
+        "route"
+      ]
+    },
+    {
+      "id": "python-runtime",
+      "classification": "UNRESOLVED",
+      "items": [
+        "WindowsApps pythonw alias target package",
+        "Python DLL/stdlib/native extensions",
+        "startup/import lookup/launcher cwd/environment"
+      ],
+      "basis": "Alias metadata is reparse and0 bytes; actual loaded runtime unverified. Stdlib used for subprocess/JSON/path/math/hash/struct/threading/zip/xml/temp/env, not assumed inert.",
+      "evidence": [
+        "launcher",
+        "source"
+      ]
+    },
+    {
+      "id": "display-format-functions",
+      "classification": "EVIDENCE_BACKED_INERT",
+      "items": [
+        "progress.py format_duration/format_remaining when not called by direct SliceRunner"
+      ],
+      "scope": "Only these display functions in direct Runner call graph; progress.py file still REQUIRED as it contains parser/estimator used by Runner",
+      "basis": "Runner calls ProgressParser/ProgressEstimator, never these formatting functions; no file-wide or GUI-runtime exemption.",
+      "evidence": [
+        "source"
+      ]
+    },
+    {
+      "id": "other-installed-assets",
+      "classification": "UNRESOLVED",
+      "items": [
+        "locale/font/shader/media/web/plugin/config folders observed shallowly"
+      ],
+      "basis": "No matching-version source or runtime read evidence proving inertness; not hashed wholesale.",
+      "evidence": [
+        "imports"
+      ]
+    }
+  ],
+  "environment": [
+    {
+      "name": "PATH",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "TEMP",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "TMP",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "LANG",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "LC_ALL",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "LC_CTYPE",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "HOME",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "USERPROFILE",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "APPDATA",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "LOCALAPPDATA",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "OMP_NUM_THREADS",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "OMP_DYNAMIC",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "TBB_NUM_THREADS",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "MKL_NUM_THREADS",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "OPENBLAS_NUM_THREADS",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Conservative requested-env identity; relevance/resolution still unproven and path policy HOLD",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "PYTHONHOME",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "PYTHONPATH",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "PYTHONHASHSEED",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "PYTHONUTF8",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "PYTHONIOENCODING",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "BAMBU_STUDIO_CONFIG",
+      "classification": "UNRESOLVED",
+      "basis": "Inherited/config/locale/import behavior not bounded for exact runtime",
+      "capture_rule": "No actual values in evidence. Future safe identity capture required; potentially semantic secret -> HOLD."
+    },
+    {
+      "name": "cli.env[*]",
+      "classification": "INCLUDE_VALUE",
+      "basis": "Runner overlays explicitly supplied strings onto inherited environment after placeholder resolution",
+      "capture_rule": "Values/state needed only under approved safe policy; secrets or unclassified keys HOLD. Sample has no explicit cli.env."
+    },
+    {
+      "name": "all other inherited variables",
+      "classification": "UNRESOLVED",
+      "basis": "No closed env allowlist/inert proof; do not dump entire env"
+    }
+  ],
+  "paths": [
+    {
+      "name": "engine path relocation",
+      "classification": "UNRESOLVED",
+      "basis": "Adjacent/dynamic DLL loading and resource discovery unresolved; no relocation run"
+    },
+    {
+      "name": "datadir path relocation",
+      "classification": "UNRESOLVED",
+      "basis": "User/default/config discovery and inherited relative references unresolved"
+    },
+    {
+      "name": "cwd",
+      "classification": "UNRESOLVED",
+      "basis": "Runner uses cli.cwd or job_dir; engine relative lookup not bounded"
+    },
+    {
+      "name": "TEMP/TMP",
+      "classification": "UNRESOLVED",
+      "basis": "Actual process inherits these; temp resource effects unproven"
+    },
+    {
+      "name": "profile physical path",
+      "classification": "UNRESOLVED",
+      "basis": "Content identity required; basename/include resolution unproven despite flat explicit profiles"
+    },
+    {
+      "name": "input physical path",
+      "classification": "UNRESOLVED",
+      "basis": "Content/format required; basename/scene-name path semantics unproven"
+    },
+    {
+      "name": "output path",
+      "classification": "UNRESOLVED",
+      "basis": "Canonical candidate is output destination binding; engine options/write/alias behavior not demonstrated inert by this task"
+    }
+  ],
+  "unresolved": [
+    "Exact loaded Windows CRT/API-set/system DLL identities and search configuration",
+    "Transitive/dynamic BambuStudio.dll dependency set including remaining static import candidates",
+    "Exact resource/default/template inheritance and fallback selection with explicit flat profiles",
+    "Effective datadir/user config discovery for configured route; current run/job binding not independently established",
+    "Actual WindowsApps Python runtime/stdlib/native-extension/import closure",
+    "Closed effective inherited environment and safe semantic-secret policy",
+    "Path/basename/cwd/TEMP/output relocation semantics for exact installed engine"
+  ],
+  "evidence": {
+    "pe_format": "https://learn.microsoft.com/en-us/windows/win32/debug/pe-format",
+    "dll_search": "https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order",
+    "runbook": "docs/fabrication/A1_BAMBU_CLI_RUNBOOK.md",
+    "source": "tools/slice-console/runner.py; job.py; progress.py; startup.py",
+    "engine_observation": "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/ENGINE_OBSERVATION.json",
+    "imports": "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/PE_IMPORT_OBSERVATION.json",
+    "route": "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/ROUTE_OBSERVATION.json",
+    "launcher": "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/LAUNCHER_OBSERVATION.json"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "logical_name": "bambu-studio.exe",
+  "source_path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+  "resolved_path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+  "role": "executable",
+  "required": true,
+  "expected_sha256": null,
+  "status": "HASHED",
+  "observed_bytes": 159776,
+  "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+  "before": {
+    "size": 159776,
+    "mtime_ns": 1787238836000000000,
+    "ctime_ns": 1787238836000000000,
+    "device": 133144642137240000,
+    "inode": 2251799813687966
+  },
+  "after": {
+    "size": 159776,
+    "mtime_ns": 1787238836000000000,
+    "ctime_ns": 1787238836000000000,
+    "device": 133144642137240000,
+    "inode": 2251799813687966
+  },
+  "handle_before": {
+    "size": 159776,
+    "mtime_ns": 1787238836000000000,
+    "ctime_ns": 1788056265341944200,
+    "device": 133144642137240000,
+    "inode": 2251799813687966
+  },
+  "handle_after": {
+    "size": 159776,
+    "mtime_ns": 1787238836000000000,
+    "ctime_ns": 1788056265341944200,
+    "device": 133144642137240000,
+    "inode": 2251799813687966
+  },
+  "file_version_evidence": "02.08.02.61",
+  "version_evidence_kind": "Windows FileVersionInfo metadata, executable not launched",
+  "abi_evidence": {
+    "machine": "0x8664",
+    "pe_magic": "0x20b",
+    "label": "Windows-PE32+-AMD64; full runtime ABI closure unresolved"
+  }
+}
