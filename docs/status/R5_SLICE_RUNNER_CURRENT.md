@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — Practical execution identity boundary / Author review
+
+Author accepted PR47 call-site evidence; Ready/expected-head normal merge `f55a0b8180af5fa7809bc1649c3a5ad5524f7f2b` preserves `dffa8e52c5995234f992ea37c5ded382d7827d88`. Fetched main is new base. Author **does not authorize Bambu process evidence** and places further startup/CRT/UCRT/native loader investigation on HOLD. PR44–47 retained as forensic CHECKPOINT; previous next-loader-task recommendations are historical/superseded, not active.
+
+**SLICE CONSOLE R0.1 PRACTICAL EXECUTION IDENTITY BOUNDARY — AUTHOR REVIEW.** DESIGN ONLY, isolated `agent/slice-console-r0.1-practical-identity`. [Task](../tasks/SLICE_CONSOLE_R01_PRACTICAL_IDENTITY_BOUNDARY.md), [design proposal](../fabrication/PRACTICAL_EXECUTION_IDENTITY_BOUNDARY_V0_2.md), [evidence](../evidence/SLICE_CONSOLE_R01_PRACTICAL_IDENTITY_BOUNDARY_2026-10-04.md). Option B SLICE_KEY/v0.2 recommended: A request key, B finite environment compatibility, C diagnostic forensic provenance. Unknown critical A HOLD; UNVERIFIED_ENV no auto-REUSE; full loaded-module closure not proposed as mandatory R0.1 request gate. Artifact verification/audit/package/explicit REUSE policy remain separate mandatory gates; key equality does not guarantee G-code bytes or Print GO.
+
+Proposal not implemented/enabled; strict v0.1 generator/Identity Lock/policy/fixtures/results unchanged. No production key/compatibility/REUSE claim. Next one proposed implementation after Author acceptance: SLICE_KEY v0.2 REQUEST_IDENTITY PURE GENERATOR + SYNTHETIC GOLDENS; not started. Design/docs checks only; no tests rerun. Bambu process/loader forensic additional investigation/code/cache/REUSE/slice/GUI/send/print/geometry/MINIL/Print GO changes0.
+
 ## 2026-10-04 — BambuStudio.dll load call-site / Author review
 
 Author accepted PR46 loader context. Ready then expected-head normal merge `d4d240f855540b045b733dcbea0f277a8b71abc4` preserves head `5e8c35999cde995c2dbb4a83e520889f4653f135`; fetched main is new base. Prior review checkpoint is historical and accepted.
