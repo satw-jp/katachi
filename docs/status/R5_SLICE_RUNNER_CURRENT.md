@@ -1,5 +1,13 @@
 # R5 Slice Runner Current Status
 
+## 2026-10-04 — Windows A1/0.4 request identity adapter / Author review
+
+Author accepted PR49; specified Draft/OPEN/head/base/mergeable/behind0 checked. Ready/expected-head normal merge `f2dd047354dfacbda03be432f4dd2d2cba49f5d2` preserves `b063777836ef64acaecc354b4428472beef7890e`; fetched main new base. New isolated `agent/slice-console-r0.1-windows-a1-request-adapter`; old review checkpoint accepted/historical.
+
+**SLICE CONSOLE R0.1 WINDOWS A1/0.4 REQUEST IDENTITY ADAPTER — AUTHOR REVIEW.** [Task](../tasks/SLICE_CONSOLE_R01_WINDOWS_A1_REQUEST_ADAPTER.md), [API/policy](../../tools/slice-console/REQUEST_IDENTITY_A1.md), [evidence](../evidence/SLICE_CONSOLE_R01_WINDOWS_A1_REQUEST_ADAPTER_2026-10-04.md). Policy-first read-only actual small clean_mesh_box adapter: fresh stable input/profile/accepted exe/merged-main source/selected CLI limit identities verified. Exact known argv1:1 classification, opaque cwd/data/profile/input/output paths, individual check-grounded flags. Actual HOLD / REQUEST_RESOURCE_COVERAGE_UNRESOLVED: flat profiles/default-parent/template/datadir request coverage remains unknown; selected-resource flagfalse, other6 supported. No production descriptor/key/digests; actual generator/engine0. Normal completion outcome B, not inferred COMPLETE.
+
+225 tests PASS = existing201 + new24, 0 FAIL/ERROR/SKIP. New adapter process0; existing fake CLI18 + shortcut helper1 separate. Protected tests/generators/goldens/Lock/Runner/Console/deployment/forensic bytes unchanged. No B compatibility/Console/cache/REUSE/GUI/loader forensic/real slice/send/print/geometry/MINIL/Print GO changes. Next one candidate WINDOWS A1/0.4 PROFILE DEFAULT / DATADIR REQUEST-RESOURCE COVERAGE DECISION; not started. Loader forensic lane remains checkpoint/HOLD.
+
 ## 2026-10-04 — SLICE_KEY v0.2 request generator / Author review
 
 Author accepted Option B / PR48; specified Draft/OPEN/head/base/mergeable/behind0 verified, Ready/expected-head normal merge `029d0fa492fbb559ee5921b05f5a1d22a4f194f9` preserves `420edff8023263b5f5af1733f656404785db23c9`. Fetched main is new base; prior design review checkpoint is accepted/historical.
