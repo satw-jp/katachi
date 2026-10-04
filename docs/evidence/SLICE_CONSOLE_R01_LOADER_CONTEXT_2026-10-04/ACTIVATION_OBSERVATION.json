@@ -1,0 +1,202 @@
+{
+  "schema_version": "0.1",
+  "observed_at_utc": "2026-10-04T02:09:59.171011+00:00",
+  "modules": [
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "bytes": 159776,
+      "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+      "accepted_identity_matches": true,
+      "metadata": {
+        "machine": "0x8664",
+        "pe_magic": "0x20b",
+        "subsystem": 2,
+        "dll_characteristics": "0x8160",
+        "NO_ISOLATION": false,
+        "load_config_directory": {
+          "rva": 35424,
+          "size": 312
+        },
+        "scope": "Header metadata only; no load-config code execution, packaged identity or startup-call proof"
+      },
+      "embedded_RT_MANIFEST": [
+        {
+          "resource_path": [
+            24,
+            1,
+            1033
+          ],
+          "codepage": 0,
+          "data_rva": 156424,
+          "bytes": 2030,
+          "sha256": "a53b3e04a710e95a07f7b949101bd45c6a1f0d1b26ad8f78dc21d6f8bb51b6e6",
+          "artifact": "bambu-studio.exe.RT_MANIFEST.0.xml",
+          "parsed": {
+            "root": "assembly",
+            "assembly_identities": [
+              {
+                "version": "02.08.02.61",
+                "name": "Slic3r",
+                "type": "Win32"
+              },
+              {
+                "type": "Win32",
+                "name": "Microsoft.Windows.Common-Controls",
+                "version": "6.0.0.0",
+                "processorArchitecture": "*",
+                "publicKeyToken": "6595b64144ccf1df",
+                "language": "*"
+              }
+            ],
+            "dependent_assemblies": [
+              {
+                "identities": [
+                  {
+                    "type": "Win32",
+                    "name": "Microsoft.Windows.Common-Controls",
+                    "version": "6.0.0.0",
+                    "processorArchitecture": "*",
+                    "publicKeyToken": "6595b64144ccf1df",
+                    "language": "*"
+                  }
+                ],
+                "binding_redirects": []
+              }
+            ],
+            "file_declarations": [],
+            "requested_execution_levels": [
+              {
+                "level": "asInvoker",
+                "uiAccess": "false"
+              }
+            ],
+            "no_inherit": false,
+            "assembly_attributes": {
+              "manifestVersion": "1.0"
+            }
+          }
+        }
+      ],
+      "loader_function_imports": {
+        "watched_functions": [
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "GetProcAddress",
+            "table": "normal"
+          },
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "LoadLibraryExW",
+            "table": "normal"
+          }
+        ],
+        "delay_directory": {
+          "rva": 0,
+          "size": 0
+        },
+        "interpretation": "Import name presence is not call execution/argument/flags proof; absence cannot exclude GetProcAddress or other modules."
+      }
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+      "bytes": 108991008,
+      "sha256": "b480fae45d6e6337bb531f74b8e90b4f4470bef623e1a33e81c03c43f621e768",
+      "accepted_identity_matches": true,
+      "metadata": {
+        "machine": "0x8664",
+        "pe_magic": "0x20b",
+        "subsystem": 3,
+        "dll_characteristics": "0x160",
+        "NO_ISOLATION": false,
+        "load_config_directory": {
+          "rva": 94018416,
+          "size": 312
+        },
+        "scope": "Header metadata only; no load-config code execution, packaged identity or startup-call proof"
+      },
+      "embedded_RT_MANIFEST": [
+        {
+          "resource_path": [
+            24,
+            2,
+            1033
+          ],
+          "codepage": 0,
+          "data_rva": 109236320,
+          "bytes": 722,
+          "sha256": "9c4bc3716ac1feffeeff0347ea3396c4c7eabd03f9e855a19c4390ec80e3d356",
+          "artifact": "BambuStudio.dll.RT_MANIFEST.0.xml",
+          "parsed": {
+            "root": "assembly",
+            "assembly_identities": [
+              {
+                "type": "win32",
+                "name": "Microsoft.Windows.Common-Controls",
+                "version": "6.0.0.0",
+                "processorArchitecture": "amd64",
+                "publicKeyToken": "6595b64144ccf1df",
+                "language": "*"
+              }
+            ],
+            "dependent_assemblies": [
+              {
+                "identities": [
+                  {
+                    "type": "win32",
+                    "name": "Microsoft.Windows.Common-Controls",
+                    "version": "6.0.0.0",
+                    "processorArchitecture": "amd64",
+                    "publicKeyToken": "6595b64144ccf1df",
+                    "language": "*"
+                  }
+                ],
+                "binding_redirects": []
+              }
+            ],
+            "file_declarations": [],
+            "requested_execution_levels": [
+              {
+                "level": "asInvoker",
+                "uiAccess": "false"
+              }
+            ],
+            "no_inherit": false,
+            "assembly_attributes": {
+              "manifestVersion": "1.0"
+            }
+          }
+        }
+      ],
+      "loader_function_imports": {
+        "watched_functions": [
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "GetProcAddress",
+            "table": "normal"
+          },
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "LoadLibraryW",
+            "table": "normal"
+          },
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "LoadLibraryA",
+            "table": "normal"
+          },
+          {
+            "import_module": "KERNEL32.dll",
+            "function": "LoadLibraryExW",
+            "table": "normal"
+          }
+        ],
+        "delay_directory": {
+          "rva": 0,
+          "size": 0
+        },
+        "interpretation": "Import name presence is not call execution/argument/flags proof; absence cannot exclude GetProcAddress or other modules."
+      }
+    }
+  ],
+  "loaded_or_executed": false
+}

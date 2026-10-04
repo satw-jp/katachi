@@ -1,0 +1,163 @@
+{
+  "schema_version": "0.1",
+  "candidates": [
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.manifest",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll.manifest",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.2.manifest",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll.2.manifest",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll.local",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\AppxManifest.xml",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\CONCRT140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSVCP140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSVCP140_CODECVT_IDS.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140_1.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\ucrtbase.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\CONCRT140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\MSVCP140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\MSVCP140_CODECVT_IDS.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\VCRUNTIME140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\VCRUNTIME140_1.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe.local\\ucrtbase.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\CONCRT140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\MSVCP140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\MSVCP140_CODECVT_IDS.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\VCRUNTIME140.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\VCRUNTIME140_1.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\microsoft.system.package.metadata\\application.local\\ucrtbase.dll",
+      "exists": false,
+      "is_file": false,
+      "is_directory": false
+    }
+  ],
+  "scope": "Exact pointers only; no directory inventory, SxS store or PATH scan; .local file contents never interpreted as search config",
+  "effective_redirection": "UNRESOLVED"
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1",
+  "observed_at_utc": "2026-10-04T02:10:35.3193816Z",
+  "helper_64_bit": true,
+  "registry_values": [
+    {
+      "key": "Registry::HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager",
+      "name": "SafeDllSearchMode",
+      "key_exists": true,
+      "value_present": false,
+      "value": null
+    },
+    {
+      "key": "Registry::HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager",
+      "name": "CWDIllegalInDllSearch",
+      "key_exists": true,
+      "value_present": false,
+      "value": null
+    },
+    {
+      "key": "Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+      "name": "DevOverrideEnable",
+      "key_exists": true,
+      "value_present": false,
+      "value": null
+    },
+    {
+      "key": "Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SideBySide",
+      "name": "PreferExternalManifest",
+      "key_exists": true,
+      "value_present": false,
+      "value": null
+    }
+  ],
+  "known_dlls_key": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs",
+  "known_dlls_requested_names": [
+    "MSVCP140.dll",
+    "MSVCP140_CODECVT_IDS.dll",
+    "VCRUNTIME140.dll",
+    "VCRUNTIME140_1.dll",
+    "CONCRT140.dll",
+    "ucrtbase.dll"
+  ],
+  "known_dlls_matches": [],
+  "scope": "read-only selected registry values; not effective parent/Bambu context"
+}

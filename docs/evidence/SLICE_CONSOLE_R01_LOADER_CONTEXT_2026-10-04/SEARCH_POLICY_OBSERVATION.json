@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1",
+  "application_directory": "J:\\Program Files\\Bambu Studio",
+  "System32_candidate": "C:/Windows/System32; accepted AMD64 candidate evidence only",
+  "package_execution_model": "UNRESOLVED: GUI subsystem/Win32 manifests/absent adjacent AppxManifest do not prove effective package identity/dependency graph",
+  "SafeDllSearchMode": "Registry value absent; documented default enabled, conditional on no parent/child search override",
+  "KnownDLLs": "No registry matches for scoped five MSVC and schema-derived host; boot-time object namespace not enumerated",
+  "cwd": "Runner resolves explicit cli.cwd relative to job_dir or defaults to job_dir; no new job/process executed. Under standard safe order cwd follows System32; disabled safe order moves cwd before System32.",
+  "PATH": "Runner inherits os.environ and overlays resolve_env; actual inherited PATH/parent process DLL directory state not established. No environment values dumped or PATH directory scan.",
+  "static_search_order_assumption": "CONDITIONAL_ONLY: redirection/API-set/SxS/loaded modules/KnownDLL/package graph before application directory/System32; dynamic flags can alter order",
+  "runtime_search_overrides": "UNRESOLVED: imported LoadLibraryExW/GetProcAddress are not call-site/flag/order proof; dynamically resolved APIs and startup/parent effects remain possible",
+  "runner_source_evidence": {
+    "job.py": {
+      "git_path": "tools/slice-console/job.py",
+      "accepted_commit": "97e0634aa4ee2a737b8b0f33cece44eb3bdc98ef",
+      "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+      "relevant_lines": [
+        {
+          "line": 594,
+          "text": "def resolve_cwd(spec: JobSpec) -> Path:"
+        },
+        {
+          "line": 595,
+          "text": "    raw_cwd = spec.cli.get(\"cwd\")"
+        },
+        {
+          "line": 596,
+          "text": "    return _resolve_path(raw_cwd, spec.job_dir) if raw_cwd else spec.job_dir"
+        },
+        {
+          "line": 599,
+          "text": "def resolve_env(spec: JobSpec, run_dir: Path) -> dict[str, str]:"
+        },
+        {
+          "line": 600,
+          "text": "    raw_env = spec.cli.get(\"env\")"
+        },
+        {
+          "line": 601,
+          "text": "    if not isinstance(raw_env, dict):"
+        },
+        {
+          "line": 609,
+          "text": "    return {str(key): _format_token(str(value), mapping) for key, value in raw_env.items()}"
+        }
+      ]
+    },
+    "runner.py": {
+      "git_path": "tools/slice-console/runner.py",
+      "accepted_commit": "97e0634aa4ee2a737b8b0f33cece44eb3bdc98ef",
+      "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+      "relevant_lines": [
+        {
+          "line": 115,
+          "text": "        cwd = resolve_cwd(self.spec)"
+        },
+        {
+          "line": 139,
+          "text": "            env = os.environ.copy()"
+        },
+        {
+          "line": 140,
+          "text": "            env.update(resolve_env(self.spec, run_dir))"
+        },
+        {
+          "line": 179,
+          "text": "                    cwd=str(cwd),"
+        },
+        {
+          "line": 180,
+          "text": "                    env=env,"
+        },
+        {
+          "line": 188,
+          "text": "                    shell=False,"
+        }
+      ]
+    }
+  },
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order",
+    "https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-redirection",
+    "https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests"
+  ]
+}

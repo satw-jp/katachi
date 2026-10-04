@@ -1,0 +1,219 @@
+{
+  "accepted_commit": "97e0634aa4ee2a737b8b0f33cece44eb3bdc98ef",
+  "scope_path": "docs/evidence/SLICE_CONSOLE_R01_MSVC_UCRT_BINDING_2026-10-04/SCOPE_MANIFEST.json",
+  "scope_git_blob_sha256": "9f41cea885156c911d7a0d9c7bbfc5ca43751282d1974a4073e18e7f5d176ba0",
+  "api_set_git_blob_sha256": "1368c1dfe064400525c2fe544cb8b46afef5285fc42f8012e7160e1cdcf27f6c",
+  "imports": [
+    {
+      "IMPORT_NAME": "CONCRT140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "MSVCP140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "MSVCP140_CODECVT_IDS.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "VCRUNTIME140_1.dll",
+      "IMPORT_KIND": "MSVC_FILENAME",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-convert-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-environment-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-heap-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-locale-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-math-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-multibyte-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-runtime-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-stdio-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "table": "normal_imports"
+        },
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-string-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-time-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    },
+    {
+      "IMPORT_NAME": "api-ms-win-crt-utility-l1-1-0.dll",
+      "IMPORT_KIND": "API_SET_CONTRACT",
+      "imported_by": [
+        {
+          "module": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "table": "normal_imports"
+        }
+      ]
+    }
+  ],
+  "note": "Digests are exact accepted Git blob bytes; checkout CRLF is not authority."
+}

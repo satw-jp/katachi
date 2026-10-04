@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "name": "accepted_PR45_scope_digest_17_names",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted_two_target_identities_and_raw_manifest_hashes",
+      "status": "PASS"
+    },
+    {
+      "name": "two_manifest_resources_parse_no_scoped_runtime_declarations",
+      "status": "PASS"
+    },
+    {
+      "name": "26_exact_redirection_candidates_checked_absent",
+      "status": "PASS"
+    },
+    {
+      "name": "search_registry_and_source_evidence_explicit",
+      "status": "PASS"
+    },
+    {
+      "name": "blocker_prevents_all17_candidate_promotions",
+      "status": "PASS"
+    },
+    {
+      "name": "loaded_false_and_all_action_counts_zero",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted_policy_plan_exact_Git_bytes_unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_RT_MANIFEST_resource_extract",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_resource_out_of_bounds_rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_dependent_assembly_redirect_detected",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic_UTF16_DTD_rejected",
+      "status": "PASS"
+    }
+  ],
+  "pass": 12,
+  "fail": 0,
+  "existing110_tests": "NOT RERUN: production runtime unchanged; PR44 historical110 PASS",
+  "production_runtime_changes": 0
+}
