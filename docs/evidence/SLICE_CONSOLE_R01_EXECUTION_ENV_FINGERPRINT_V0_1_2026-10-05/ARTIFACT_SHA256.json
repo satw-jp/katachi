@@ -1,0 +1,45 @@
+{
+  "files": [
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "size": 8
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/FULL_REGRESSION.txt",
+      "sha256": "aeaa8de6c8c98b4b7a13e0bb49ef4a515e06490d7cdc9e8ebd52a03c27414c35",
+      "size": 33760
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/MERGE_IDENTITY.json",
+      "sha256": "a236977009d414d07c63c1094990555cb69bbe33d1d33856e7d311553ae59761",
+      "size": 578
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/POLICY_IDENTITY.json",
+      "sha256": "b02543ab72e52866815e0f48f91d15be5c51e1639d5ee12f01a245ae554e463a",
+      "size": 399
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/SYNTHETIC_VECTORS.json",
+      "sha256": "383bd1c9fc8c039ed0fc5d4c672cff3cfa703473e6fd20a6695afae40bcf224e",
+      "size": 192669
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/TEST_RESULTS.json",
+      "sha256": "daed30092e800cf2d0f6f518ecefbf58cb0f63f0773fb0c25bab167e00af5eb7",
+      "size": 6335
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05/VALIDATION.json",
+      "sha256": "39f9169eea2d0006e98fc611ed6b109ae9ac0d14ab80e498b0891e8ab92dd658",
+      "size": 50068
+    },
+    {
+      "path": "tools/slice-console/policies/EXECUTION_ENV_COMPATIBILITY_POLICY_V0_1.json",
+      "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+      "size": 1014
+    }
+  ],
+  "schema_version": "0.1"
+}

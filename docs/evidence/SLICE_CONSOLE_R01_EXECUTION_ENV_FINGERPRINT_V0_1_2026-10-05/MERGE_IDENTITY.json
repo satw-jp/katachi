@@ -1,0 +1,18 @@
+{
+  "base_before": "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
+  "behind": 0,
+  "checked_draft_open": true,
+  "checked_mergeable": true,
+  "expected_head_sha": "0b1ae1d0bdf57d2183aa7062eed2238727d1bcbf",
+  "merge_commit": "f30fac5f44efdf0d0ddacfc9e227b50c0da6285a",
+  "merge_parents": [
+    "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
+    "0b1ae1d0bdf57d2183aa7062eed2238727d1bcbf"
+  ],
+  "method": "merge",
+  "new_branch": "agent/slice-console-r0.1-execution-env-v0.1",
+  "pr": 53,
+  "pr_merged_confirmed": true,
+  "ready_before_merge": true,
+  "remote_main_refetched": true
+}

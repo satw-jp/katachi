@@ -1,0 +1,9 @@
+{
+  "default_directional_rules": 0,
+  "domain": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+  "exact_sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+  "human_provenance_is_semantic": false,
+  "policy_id": "WINDOWS_A1_FINITE_B_DEFAULT/v0.1",
+  "synthetic_directional_policy_sha256": "1e0952dab986ce6a8e9b247d505aed10b353be30cfb400fea801d6a5f326b85d",
+  "version": "0.1"
+}
