@@ -1,6 +1,6 @@
 """Read-only Windows A1/0.4 request adapter. No engine/Console/cache import.
 
-Production policy is immutable/pinned and currently holds resource coverage.
+Production policy is immutable/pinned to the observed exact resource route.
 An internal core accepts fixture policy only for focused synthetic tests.
 """
 from decimal import Decimal
@@ -13,8 +13,8 @@ import stat
 from job import load_job, resolve_argv, resolve_cwd, _input_contract_errors
 from slice_key_v02 import generate_request_key_v0_2, canonical_decimal, _pairs, _constant, ATTESTATIONS
 
-POLICY_PATH = Path(__file__).parent / 'policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json'
-POLICY_SHA256 = '15a49d183e1702cec0eccccdec114555828f32ea69cf7865688d8ab03f941f59'
+POLICY_PATH = Path(__file__).parent / 'policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json'
+POLICY_SHA256 = '60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664'
 
 class AdapterHold(ValueError):
     def __init__(self, code, pointer):
@@ -58,6 +58,21 @@ def stable_read(path):
 def parse(data):
     return json.loads(data.decode('utf-8'), parse_int=Decimal, parse_float=Decimal,
                       parse_constant=_constant, object_pairs_hook=_pairs)
+
+def check_required_absences(entries):
+    """Observe exact missing paths twice; never invent absent-file content hashes."""
+    require(type(entries) is list, 'INVALID_ABSENCE_RULE', '/required_absence_checks')
+    checks = []
+    for entry in entries:
+        require(entry.get('required_state') == 'ABSENT', 'INVALID_ABSENCE_RULE', '/required_absence_checks')
+        path = Path(entry['path']).absolute()
+        require(not os.path.lexists(path), 'REQUIRED_ABSENCE_VIOLATION', str(path))
+        for parent in path.parents:
+            if os.path.lexists(parent):
+                info = parent.lstat()
+                require(not stat.S_ISLNK(info.st_mode) and not (getattr(info, 'st_file_attributes', 0) & 0x400), 'REPARSE_PATH', str(parent))
+        checks.append({'logical_name':entry['logical_name'], 'path':str(path), 'state':'ABSENT', 'check':'lexists=false; existing ancestors not reparse'})
+    return checks
 
 def _adapt(job_path, backend_dir, run_dir, policy, policy_sha, platform):
     result = {'ADAPTER_STATUS':'HOLD', 'COVERAGE_POLICY_VERSION':policy['policy_version'],
@@ -138,6 +153,7 @@ def _adapt(job_path, backend_dir, run_dir, policy, policy_sha, platform):
         for item in policy['request_resources']['selected']:
             _, observed = read(item['path'], item['sha256'])
             resources.append({'logical_name':item['logical_name'],'sha256':observed['sha256'],'size':observed['size'],'role':item['role']})
+        absence_checks = check_required_absences(policy.get('required_absence_checks', []))
         # Keep physical bindings for inputs/profiles/data/output and cwd. Typed
         # content role identities live in the bound inputs/profiles sections. Each
         # resolved argv element maps to exactly one token; no added pseudo-argv.
@@ -158,8 +174,14 @@ def _adapt(job_path, backend_dir, run_dir, policy, policy_sha, platform):
             _, item = stable_read(p)
             require(item['sha256'] == original['sha256'] and item['before'] == original['before'], 'CHANGED_FILE', str(p))
         attest('request_bytes_bound', ['input/profile/engine/backend/resource fresh stable reads','all file bytes reverified after loader/parser/argv binding'])
-        require(policy['request_resources']['coverage_status'] == 'COMPLETE', policy['request_resources']['blocker'], '/request_resources')
-        attest('selected_request_resource_coverage_complete', ['reviewed finite selected set complete','each selected role policy bound and fresh hash matched'])
+        require(policy['request_resources']['coverage_status'] == 'COMPLETE', 'REQUEST_RESOURCE_COVERAGE_UNRESOLVED', '/request_resources')
+        for role in ('printer','process','filament'):
+            require(identities[str(spec.profiles[role])]['sha256'] == policy['observed_profile_sha256'][role], 'TRACED_PROFILE_IDENTITY_MISMATCH', '/profiles/' + role)
+        require(str(resolve_cwd(spec)) == policy['observed_route_context']['cwd'] and str(spec.data_dir) == policy['observed_route_context']['datadir'], 'TRACE_ROUTE_CONTEXT_MISMATCH', '/execution')
+        final_absences = check_required_absences(policy.get('required_absence_checks', []))
+        require(final_absences == absence_checks, 'CHANGED_ABSENCE_STATE', '/required_absence_checks')
+        result['REQUIRED_ABSENCE_CHECKS'] = final_absences
+        attest('selected_request_resource_coverage_complete', ['accepted semantic coverage policy COMPLETE','current request within exact argv/input/profile/engine/backend route','exact accepted profile/cwd/datadir scope matched','each selected role policy bound and fresh hash matched','required ABSENT rules checked before/after file reverify'])
         transform = {'state':'present','value':{k:[canonical_decimal(x) for x in v] for k,v in raw['mesh']['intended_transform'].items()}}
         input_item = identities[str(spec.inputs[0])]
         profiles = {k:{'sha256':identities[str(spec.profiles[k])]['sha256'],'format':'json'} for k in ('printer','process')}
@@ -191,15 +213,15 @@ def _adapt(job_path, backend_dir, run_dir, policy, policy_sha, platform):
 def build_windows_a1_request(job_path, *, backend_dir, run_dir):
     """Pinned production policy only; caller must name exact execution source and destination.
 
-    Reads files but never launches engine. Current policy returns precise resource
-    coverage HOLD; only adapter COMPLETE calls the v0.2 generator.
+    Reads files but never launches engine. Exact observed selection and required
+    absences are checked; only adapter COMPLETE calls the v0.2 generator.
     """
     try:
         data, _ = stable_read(POLICY_PATH)
         require(hashlib.sha256(data).hexdigest() == POLICY_SHA256, 'POLICY_IDENTITY_MISMATCH', '/policy')
         policy = json.loads(data)
     except (OSError, ValueError) as exc:
-        return {'ADAPTER_STATUS':'HOLD','COVERAGE_POLICY_VERSION':'0.1','COVERAGE_POLICY_SHA256':POLICY_SHA256,
+        return {'ADAPTER_STATUS':'HOLD','COVERAGE_POLICY_VERSION':'0.2','COVERAGE_POLICY_SHA256':POLICY_SHA256,
                 'DESCRIPTOR':None,'ATTESTATION_EVIDENCE':{k:{'value':False,'checks':[]} for k in sorted(ATTESTATIONS)},
                 'blockers':[{'code':'POLICY_IDENTITY_MISMATCH','pointer':'/policy','detail':str(exc)}],
                 'FRESH_IDENTITIES':[],'RESOLVED_ARGV':None,'GENERATOR_RESULT':None,'SLICE_KEY':None,'CANONICAL_REQUEST_SHA256':None,'CANONICAL_REQUEST_DIGESTS':None,'ENGINE_STARTED':False}

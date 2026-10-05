@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "before_processes": [],
+  "after_processes": [],
+  "before_drivers": [],
+  "after_drivers": [],
+  "before_services": [],
+  "after_services": [],
+  "eula_delta": {
+    "before_key_exists": false,
+    "before_accepted": null,
+    "after_key_exists": true,
+    "after_accepted": 1,
+    "authorized": true
+  },
+  "raw_pml_exclusive_read": "PASS after transient sharing contention",
+  "raw_pml_stable_during_hash": true,
+  "no_procmon_driver_service_remaining": true,
+  "scope": "ProcMon-related state only; no whole-system inventory; no persistent startup/service change requested or observed in this scope"
+}

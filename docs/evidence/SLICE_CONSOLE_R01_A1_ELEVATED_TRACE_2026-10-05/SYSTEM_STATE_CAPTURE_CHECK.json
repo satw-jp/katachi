@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-05T17:30:33.1112379+09:00",
+  "current_token_administrator": false,
+  "processes": [
+    {
+      "ProcessId": 52276,
+      "ParentProcessId": 43716,
+      "Name": "Procmon64.exe",
+      "ExecutablePath": null,
+      "CommandLine": null
+    }
+  ],
+  "drivers": [],
+  "services": [],
+  "eula_key_exists": true,
+  "eula_accepted": 1,
+  "backing_pml_exists": true,
+  "slice_output_exists": false
+}

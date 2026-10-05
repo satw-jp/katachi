@@ -1,0 +1,10 @@
+{
+  "pid": 52276,
+  "alive": true,
+  "pml_exists": true,
+  "pml_bytes": 268435456,
+  "process_main_window_title": "Process Monitor - J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml",
+  "observed_at": "2026-10-05T17:30:35.1619005+09:00",
+  "readiness": "PENDING_INDEPENDENT_TOKEN_CHECK",
+  "engine_launch_count": 0
+}

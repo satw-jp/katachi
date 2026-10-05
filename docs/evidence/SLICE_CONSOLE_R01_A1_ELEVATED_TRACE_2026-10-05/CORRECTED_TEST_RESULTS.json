@@ -1,0 +1,295 @@
+{
+  "status": "PASS",
+  "tests_run": 238,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "baseline_tests": 234,
+  "added_boundary_tests": 4,
+  "adapter_tests": 37,
+  "obsolete_historical_gate_tests_replaced": 2,
+  "new_boundary_test_processes": 0,
+  "real_bambu_launches": 0,
+  "procmon_launches": 0,
+  "legacy_fake_helper_launches": 19,
+  "legacy_fake_helper_calls": [
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "APP.TEST_20261005_183557"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183557",
+        "--mode",
+        "failure",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183558",
+        "--mode",
+        "long",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183558",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183601",
+        "--mode",
+        "long",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183601",
+        "--mode",
+        "success",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid",
+        "--write-resolved-settings"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183602",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "corrupt"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183602",
+        "--mode",
+        "failure",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183603",
+        "--mode",
+        "success",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183603",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "malformed"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183603",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183604",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "missing"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183604",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "missing_gcode"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183604",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "mismatch"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183605",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183605",
+        "--mode",
+        "success",
+        "--duration",
+        "0.01",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183605",
+        "--mode",
+        "success",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "python.exe",
+      "argument_basenames": [
+        "-u",
+        "fake_cli.py",
+        "--output-dir",
+        "TEST_20261005_183605",
+        "--mode",
+        "success",
+        "--duration",
+        "0.25",
+        "--native-mode",
+        "valid"
+      ]
+    },
+    {
+      "executable_basename": "powershell.exe",
+      "argument_basenames": [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "pythonw.exe,0'; $s.Description = 'FUKEI Slice Runner'; $s.Save()"
+      ]
+    }
+  ],
+  "completed_at": "2026-10-05T09:36:07.571938+00:00"
+}

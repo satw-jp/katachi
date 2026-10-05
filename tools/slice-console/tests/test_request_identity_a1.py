@@ -32,10 +32,13 @@ class A1RequestAdapterTests(unittest.TestCase):
         self.policy['route']['engine_path'] = str(self.engine)
         self.policy['route']['engine_sha256'] = hashlib.sha256(self.engine.read_bytes()).hexdigest()
         self.policy['request_resources']['coverage_status'] = 'COMPLETE'
-        self.policy['request_resources']['unresolved'] = []
         self.policy['request_resources']['selected'][0]['path'] = str(self.resource)
         self.policy['request_resources']['selected'][0]['sha256'] = hashlib.sha256(self.resource.read_bytes()).hexdigest()
         self.policy['policy_id'] = 'synthetic-focused-A1-policy-only'
+        self.absent = self.root/'missing-machine.json'
+        self.policy['required_absence_checks'][0]['path'] = str(self.absent)
+        self.policy['observed_profile_sha256'] = {role:hashlib.sha256((self.root/'sample'/('profiles/'+role+'.json')).read_bytes()).hexdigest() for role in ('printer','process','filament')}
+        self.policy['observed_route_context'] = {'cwd':str(self.root), 'datadir':str(self.root/'sample/data')}
         self.raw['engine_path'] = str(self.engine)
         self.raw['cli']['cwd'] = str(self.root)
         self.run_dir = self.root/'review-output'
@@ -172,5 +175,97 @@ class A1RequestAdapterTests(unittest.TestCase):
         p=self.root/'sample/locks/INPUT_LOCKS.json'; obj=json.loads(p.read_bytes()); obj['files'].pop('profiles/process.json')
         p.write_text(json.dumps(obj),encoding='utf-8')
         self.hold('INVALID_LOCK_COVERAGE')
+
+    def test_traced_selected_resource_is_in_descriptor(self):
+        result=self.complete()
+        entries=result['DESCRIPTOR']['request_identity']['selected_request_resources']['entries']
+        self.assertEqual(entries[0]['sha256'],self.policy['request_resources']['selected'][0]['sha256'])
+        self.assertEqual(result['REQUIRED_ABSENCE_CHECKS'][0]['state'],'ABSENT')
+
+    def test_revised_selected_resource_bytes_change_key(self):
+        first=self.complete()['SLICE_KEY']; self.generator.reset_mock()
+        self.resource.write_bytes(b'new synthetic reviewed limits')
+        self.policy['request_resources']['selected'][0]['sha256']=hashlib.sha256(self.resource.read_bytes()).hexdigest()
+        self.assertNotEqual(first,self.complete()['SLICE_KEY'])
+
+    def test_required_absence_becomes_present_hold(self):
+        self.absent.write_bytes(b'synthetic machine config')
+        self.hold('REQUIRED_ABSENCE_VIOLATION')
+
+    def test_unknown_historical_config_is_not_live_authorization(self):
+        self.assert_provenance_invariant({'unknown_request_config_reads':['historical unknown']})
+
+    def test_incomplete_historical_trace_is_not_live_authorization(self):
+        self.assert_provenance_invariant({'trace_complete':False,'cleanup_status':'UNKNOWN'})
+
+    def assert_provenance_invariant(self, changes):
+        # Exercise the public pinned-policy entry with two serialized evidence
+        # documents on disk. Reject any attempted adapter read of that document.
+        policy_path=self.root/'semantic-policy.json'
+        policy_path.write_bytes(json.dumps(self.policy,sort_keys=True).encode())
+        policy_sha=hashlib.sha256(policy_path.read_bytes()).hexdigest()
+        provenance_path=self.root/'REQUEST_IDENTITY_POLICY_V0_2_PROVENANCE.json'
+        provenance={'classification':'NON-KEY PROVENANCE','semantic_policy_sha256':policy_sha,
+                    'engine_pid':43216,'raw_pml_sha256':'1'*64,'filtered_export_sha256':'2'*64,
+                    'execution_timestamp':'2026-10-05T08:32:34Z','execution_success':True,
+                    'evidence_description':'accepted historical capture'}
+        original=adapter.stable_read
+        def read(path):
+            self.assertNotEqual(Path(path),provenance_path,'NON-KEY provenance consumed by adapter')
+            return original(path)
+        keys=[]; canonical=[]; documents=[]
+        with patch.object(adapter,'POLICY_PATH',policy_path), patch.object(adapter,'POLICY_SHA256',policy_sha), patch.object(adapter,'stable_read',side_effect=read):
+            for update in ({},changes):
+                document=dict(provenance,**update)
+                provenance_path.write_bytes(json.dumps(document,sort_keys=True).encode())
+                documents.append(json.loads(provenance_path.read_bytes()))
+                self.assertEqual(documents[-1]['semantic_policy_sha256'],policy_sha)
+                result=adapter.build_windows_a1_request(self.job,backend_dir=self.backend,run_dir=self.run_dir)
+                self.assertEqual(result['ADAPTER_STATUS'],'COMPLETE',result['blockers'])
+                keys.append(result['SLICE_KEY'])
+                canonical.append(result['GENERATOR_RESULT']['CANONICAL_REQUEST_BYTES'])
+        self.assertNotEqual(documents[0],documents[1])
+        self.assertEqual(keys[0],keys[1])
+        self.assertEqual(canonical[0],canonical[1])
+        self.assertEqual(self.generator.call_count,2)
+
+    def test_two_provenance_documents_same_production_entry_key(self):
+        self.assert_provenance_invariant({'engine_pid':99999,'raw_pml_sha256':'3'*64,
+            'filtered_export_sha256':'4'*64,'execution_timestamp':'2030-01-01T00:00:00Z',
+            'execution_success':False,'evidence_description':'different diagnostic metadata'})
+
+    def test_changed_datadir_scope_hold(self):
+        self.raw['data_dir']='./different-data'
+        (self.root/'sample/different-data').mkdir()
+        self.hold('TRACE_ROUTE_CONTEXT_MISMATCH')
+
+    def test_unknown_required_absence_state_hold(self):
+        self.policy['required_absence_checks'][0]['required_state']='UNKNOWN'
+        self.hold('INVALID_ABSENCE_RULE')
+
+    def test_prefixed_v02_policy_evidence_preserved(self):
+        evidence=ROOT.parents[1]/'docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05'
+        preserved=evidence/'PRE_FIX_WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json'
+        self.assertEqual(hashlib.sha256(preserved.read_bytes()).hexdigest(),
+                         'f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b')
+
+    def test_nonselected_runtime_change_same_request_key(self):
+        runtime=self.root/'synthetic-runtime.dll'; runtime.write_bytes(b'host-runtime-A')
+        first=self.complete()['SLICE_KEY']; self.generator.reset_mock()
+        runtime.write_bytes(b'host-runtime-B')
+        self.assertEqual(first,self.complete()['SLICE_KEY'])
+
+    def test_actual_policy_pin_and_v01_preserved(self):
+        self.assertEqual(hashlib.sha256(adapter.POLICY_PATH.read_bytes()).hexdigest(),adapter.POLICY_SHA256)
+        old=ROOT/'policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json'
+        self.assertEqual(hashlib.sha256(old.read_bytes()).hexdigest(),'15a49d183e1702cec0eccccdec114555828f32ea69cf7865688d8ab03f941f59')
+
+    def test_changed_traced_profile_binding_hold(self):
+        self.policy['observed_profile_sha256']['printer']='0'*64
+        self.hold('TRACED_PROFILE_IDENTITY_MISMATCH')
+
+    def test_changed_traced_route_context_hold(self):
+        self.policy['observed_route_context']['cwd']='different synthetic route'
+        self.hold('TRACE_ROUTE_CONTEXT_MISMATCH')
 
 if __name__=='__main__': unittest.main()

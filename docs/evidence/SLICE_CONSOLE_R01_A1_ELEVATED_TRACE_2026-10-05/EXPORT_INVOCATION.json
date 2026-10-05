@@ -1,0 +1,10 @@
+{
+  "executable": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "arguments": "/Quiet /Minimized /OpenLog \"J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml\" /SaveAs \"J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\all_events.csv\"",
+  "launch_verb": "normal token",
+  "exporter_pid": 46720,
+  "started_at": "2026-10-05T17:36:10.9433348+09:00",
+  "all_system_csv_local_only": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\all_events.csv",
+  "github_full_system_csv_allowed": false,
+  "bambu_relaunch": false
+}

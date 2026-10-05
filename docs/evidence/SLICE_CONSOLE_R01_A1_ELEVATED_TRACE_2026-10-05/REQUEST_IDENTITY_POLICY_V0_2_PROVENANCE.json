@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.1",
+  "classification": "NON-KEY PROVENANCE",
+  "included_in_request_key": false,
+  "semantic_policy_sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+  "source_pr": 53,
+  "source_head": "423b5eaf74ce43e3024b1aa11c6c234f9705a8d2",
+  "base_main": "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
+  "evidence": [
+    "docs/fabrication/A1_BAMBU_CLI_RUNBOOK.md#run-04--cli-6000-and-effective-settings",
+    "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/ROUTE_OBSERVATION.json",
+    "docs/fabrication/PRACTICAL_EXECUTION_IDENTITY_BOUNDARY_V0_2.md",
+    "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/COVERAGE_DECISION.json"
+  ],
+  "resource_trace_evidence": {
+    "status": "COMPLETE",
+    "trace_complete": true,
+    "cleanup_status": "PASS",
+    "unknown_request_config_reads": [],
+    "unresolved_fallbacks": [],
+    "engine_pid": 43216,
+    "normal_engine_token_verified": true,
+    "execution_success": true,
+    "raw_pml_sha256": "7c5b3e47260c1e665760721184952ae5819da3e816599175c6911388e26c7983",
+    "filtered_export_sha256": "cd8da63f5f096d24ce052fe804ca21fa2037464745f9492f1c158ba6b586338d",
+    "pointer": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/COVERAGE_DECISION.json",
+    "loss_drop": "NOT_EXPOSED_BY_USED_CLI_EXPORT; no zero-loss claim",
+    "boundary": "Finite exact observed configuration selection, not full runtime provenance or future environment compatibility."
+  },
+  "execution_timestamps": {
+    "requested_at": "2026-10-05T08:32:34.369878+00:00",
+    "engine_start_observed_at": "2026-10-05T08:32:34.446606+00:00",
+    "completed_at": "2026-10-05T08:32:35.657855+00:00"
+  },
+  "procmon_identity": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+    "sha256": "fc3af5317c707e0555ad6e7590ad65ceb5c5085b053b41221944ac3ca3492d9c",
+    "file_version": "4.11",
+    "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signature_status": "Valid",
+    "archive_sha256": "80a6442b46af762ed1432f6fec3f7e20366bed62a2522b3486503398a40a1128",
+    "source_url": "https://download.sysinternals.com/files/ProcessMonitor.zip",
+    "redownloaded": false
+  },
+  "raw_pml_identity": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml",
+    "size": 2439860808,
+    "sha256": "7c5b3e47260c1e665760721184952ae5819da3e816599175c6911388e26c7983",
+    "before_mtime_ns": 1791189200158841000,
+    "after_mtime_ns": 1791189200158841000,
+    "stable_during_hash": true,
+    "full_system_raw_github_allowed": false
+  },
+  "coverage_decision_pointer": "COVERAGE_DECISION.json",
+  "cleanup_pointer": "CLEANUP_COMPARISON.json",
+  "rationale": {
+    "output_rule": "export/output destinations retained conservatively; no relocation neutrality proof",
+    "selected_resources": [
+      {
+        "logical_name": "resources/profiles/BBL/cli_config.json",
+        "basis": "Successful exact-PID read; accepted CLI6000 request limit resource."
+      }
+    ],
+    "required_absences": [
+      {
+        "logical_name": "resources/profiles/BBL/machine_full/Bambu Lab A1.json",
+        "basis": "Exact model-id JSON probe failed; no successful open/read. Future appearance requires HOLD.",
+        "observed_result": "PATH NOT FOUND"
+      }
+    ]
+  }
+}

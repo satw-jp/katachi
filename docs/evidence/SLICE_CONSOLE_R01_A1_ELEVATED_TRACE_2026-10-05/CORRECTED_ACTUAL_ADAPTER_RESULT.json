@@ -1,0 +1,1246 @@
+{
+  "ADAPTER_STATUS": "COMPLETE",
+  "COVERAGE_POLICY_VERSION": "0.2",
+  "COVERAGE_POLICY_SHA256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+  "DESCRIPTOR": {
+    "descriptor_schema_version": "0.2",
+    "request_attestations": {
+      "backend_coverage_complete": true,
+      "engine_declaration_bound": true,
+      "execution_classification_complete": true,
+      "input_semantics_complete": true,
+      "profile_mapping_complete": true,
+      "request_bytes_bound": true,
+      "selected_request_resource_coverage_complete": true
+    },
+    "request_identity": {
+      "domain": "SLICE_KEY/v0.2",
+      "key_schema_version": "0.2",
+      "operation": "FULL_SLICE",
+      "contracts": {
+        "console_schema": "0.1",
+        "runner_version": "0.2.0",
+        "job_schema": "0.2",
+        "policies": {
+          "extraction": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "argv": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "semantic_env": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "request_resource": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "paths": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "backend": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          }
+        }
+      },
+      "backend_bundle": {
+        "schema_version": "0.2",
+        "entries": [
+          {
+            "logical_name": "job.py",
+            "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+            "size": 25419,
+            "role": "backend_core"
+          },
+          {
+            "logical_name": "runner.py",
+            "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+            "size": 26496,
+            "role": "backend_core"
+          },
+          {
+            "logical_name": "progress.py",
+            "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+            "size": 3856,
+            "role": "backend_core"
+          }
+        ],
+        "custom_execution_dependencies": []
+      },
+      "inputs": [
+        {
+          "slot": "0",
+          "format": "stl",
+          "input_mode": "mesh_import",
+          "sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+          "role": "diagnostic_fixture",
+          "placement": {
+            "state": "embedded"
+          },
+          "intended_transform": {
+            "state": "present",
+            "value": {
+              "translation_mm": [
+                "0",
+                "0",
+                "0"
+              ],
+              "scale": [
+                "1",
+                "1",
+                "1"
+              ],
+              "rotation_deg": [
+                "0",
+                "0",
+                "0"
+              ]
+            }
+          },
+          "semantics": {
+            "assembly": {
+              "state": "present",
+              "value": {
+                "identity_sha256": "799e4014f2c71a1b7437d6e1b38fac9f0e6835234459dfb8593aab39a5394cbd",
+                "description": "explicit --assemble request intent"
+              }
+            },
+            "modifier": {
+              "state": "not_applicable"
+            },
+            "enforcer": {
+              "state": "not_applicable"
+            },
+            "authored_support": {
+              "state": "not_applicable"
+            },
+            "process_fixture": {
+              "state": "present",
+              "value": {
+                "identity_sha256": "79c7aabd56c7b196219c632efadcb290cfb3974314824970dc027b14b1724451",
+                "description": "clean single STL diagnostic fixture"
+              }
+            },
+            "other": {
+              "state": "not_applicable"
+            },
+            "provenance": {
+              "state": "not_applicable"
+            }
+          }
+        }
+      ],
+      "profiles": {
+        "printer": {
+          "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+          "format": "json"
+        },
+        "process": {
+          "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+          "format": "json"
+        },
+        "filaments": [
+          {
+            "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+            "format": "json"
+          }
+        ],
+        "auxiliary": [],
+        "nozzle": "0.4",
+        "filament_mapping": [
+          "1"
+        ],
+        "volume_mapping": [
+          "0"
+        ],
+        "nozzle_mapping": [
+          "0"
+        ],
+        "material_mapping": [
+          "PLA"
+        ],
+        "map_mode": "Auto For Flush"
+      },
+      "engine": {
+        "version": "02.08.02.61",
+        "executable_sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268"
+      },
+      "selected_request_resources": {
+        "schema_version": "0.2",
+        "entries": [
+          {
+            "logical_name": "resources/profiles/BBL/cli_config.json",
+            "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+            "size": 38685,
+            "role": "toolpath_request_configuration"
+          }
+        ],
+        "selection": {
+          "policy_sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+          "role": "selected_toolpath_request_configuration",
+          "evidence_pointer": "WINDOWS_A1_04_REQUEST_IDENTITY/v0.2"
+        }
+      },
+      "execution": {
+        "argv": [
+          {
+            "kind": "engine"
+          },
+          {
+            "kind": "option",
+            "value": "--debug"
+          },
+          {
+            "kind": "decimal",
+            "value": "2"
+          },
+          {
+            "kind": "option",
+            "value": "--datadir"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data"
+          },
+          {
+            "kind": "option",
+            "value": "--load-settings"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json"
+          },
+          {
+            "kind": "option",
+            "value": "--load-filaments"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "1"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-volume-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-nozzle-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-map-mode"
+          },
+          {
+            "kind": "literal",
+            "value": "Auto For Flush"
+          },
+          {
+            "kind": "option",
+            "value": "--assemble"
+          },
+          {
+            "kind": "option",
+            "value": "--ensure-on-bed"
+          },
+          {
+            "kind": "option",
+            "value": "--arrange"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--orient"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--slice"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--export-settings"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json"
+          },
+          {
+            "kind": "option",
+            "value": "--outputdir"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+          }
+        ],
+        "cwd": {
+          "kind": "opaque_path",
+          "value": "J:\\Program Files\\Bambu Studio"
+        },
+        "semantic_env_overrides": [],
+        "transport": {
+          "state": "present",
+          "value": {
+            "identity_sha256": "95c35f8cac6ecb4972fee777e86daed9e6d9b80185d0cba4804eceaf0530b09d",
+            "description": "Windows no_window redirected stdout/stderr; stdin DEVNULL"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "request_id": "FUKEI.CLEAN_MESH.EXAMPLE",
+      "gui_display_name": "synthetic_diagnostic_cube"
+    }
+  },
+  "ATTESTATION_EVIDENCE": {
+    "backend_coverage_complete": {
+      "value": true,
+      "checks": [
+        {
+          "check": "three merged-main source pins fresh matched",
+          "passed": true
+        },
+        {
+          "check": "policy-reviewed imports/calls; no custom execution dependency",
+          "passed": true
+        }
+      ]
+    },
+    "engine_declaration_bound": {
+      "value": true,
+      "checks": [
+        {
+          "check": "accepted executable SHA matched",
+          "passed": true
+        },
+        {
+          "check": "exact declared version 02.08.02.61",
+          "passed": true
+        }
+      ]
+    },
+    "execution_classification_complete": {
+      "value": true,
+      "checks": [
+        {
+          "check": "exact template/resolved argv matched",
+          "passed": true
+        },
+        {
+          "check": "all semantic values/order retained",
+          "passed": true
+        },
+        {
+          "check": "all opaque paths/cwd retained",
+          "passed": true
+        },
+        {
+          "check": "empty explicit env whitelist",
+          "passed": true
+        },
+        {
+          "check": "no output neutrality asserted",
+          "passed": true
+        }
+      ]
+    },
+    "input_semantics_complete": {
+      "value": true,
+      "checks": [
+        {
+          "check": "one locked STL",
+          "passed": true
+        },
+        {
+          "check": "mm/bounds/identity intended transform checked",
+          "passed": true
+        },
+        {
+          "check": "policy diagnostic role and assembly/fixture tags; no extra object channel",
+          "passed": true
+        }
+      ]
+    },
+    "profile_mapping_complete": {
+      "value": true,
+      "checks": [
+        {
+          "check": "three fresh locked profiles",
+          "passed": true
+        },
+        {
+          "check": "A1/0.4 PLA single slot",
+          "passed": true
+        },
+        {
+          "check": "fixed 1/0/0 Auto For Flush template",
+          "passed": true
+        },
+        {
+          "check": "auxiliary empty by policy",
+          "passed": true
+        }
+      ]
+    },
+    "request_bytes_bound": {
+      "value": true,
+      "checks": [
+        {
+          "check": "input/profile/engine/backend/resource fresh stable reads",
+          "passed": true
+        },
+        {
+          "check": "all file bytes reverified after loader/parser/argv binding",
+          "passed": true
+        }
+      ]
+    },
+    "selected_request_resource_coverage_complete": {
+      "value": true,
+      "checks": [
+        {
+          "check": "accepted semantic coverage policy COMPLETE",
+          "passed": true
+        },
+        {
+          "check": "current request within exact argv/input/profile/engine/backend route",
+          "passed": true
+        },
+        {
+          "check": "exact accepted profile/cwd/datadir scope matched",
+          "passed": true
+        },
+        {
+          "check": "each selected role policy bound and fresh hash matched",
+          "passed": true
+        },
+        {
+          "check": "required ABSENT rules checked before/after file reverify",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "blockers": [],
+  "FRESH_IDENTITIES": [
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\SLICE_JOB.json",
+      "size": 2115,
+      "sha256": "faf51e41d5485dbadbebf937fcf713807caf3b34acd5cf612fee98523b890383",
+      "before": [
+        133144642137240000,
+        1125899908286026,
+        2115,
+        1790217623356293100,
+        1790217623356293100
+      ],
+      "after": [
+        133144642137240000,
+        1125899908286026,
+        2115,
+        1790217623356293100,
+        1790217623356293100
+      ],
+      "handle_before": [
+        133144642137240000,
+        1125899908286026,
+        2115,
+        1790217623356293100,
+        1790217633748297600
+      ],
+      "handle_after": [
+        133144642137240000,
+        1125899908286026,
+        2115,
+        1790217623356293100,
+        1790217633748297600
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\locks\\INPUT_LOCKS.json",
+      "size": 443,
+      "sha256": "b09b23162b1f4c6e9b1e98242eda8070761c397f9357a162b018521b6e479318",
+      "before": [
+        133144642137240000,
+        1125899908286025,
+        443,
+        1790217212426214600,
+        1790217623307215900
+      ],
+      "after": [
+        133144642137240000,
+        1125899908286025,
+        443,
+        1790217212426214600,
+        1790217623307215900
+      ],
+      "handle_before": [
+        133144642137240000,
+        1125899908286025,
+        443,
+        1790217212426214600,
+        1790217636305713400
+      ],
+      "handle_after": [
+        133144642137240000,
+        1125899908286025,
+        443,
+        1790217212426214600,
+        1790217636305713400
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl",
+      "size": 684,
+      "sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+      "before": [
+        133144642137240000,
+        1125899908286024,
+        684,
+        1789747376970936200,
+        1790217623196310700
+      ],
+      "after": [
+        133144642137240000,
+        1125899908286024,
+        684,
+        1789747376970936200,
+        1790217623196310700
+      ],
+      "handle_before": [
+        133144642137240000,
+        1125899908286024,
+        684,
+        1789747376970936200,
+        1790217636300632400
+      ],
+      "handle_after": [
+        133144642137240000,
+        1125899908286024,
+        684,
+        1789747376970936200,
+        1790217636300632400
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+      "size": 29021,
+      "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+      "before": [
+        133144642137240000,
+        1125899908286029,
+        29021,
+        1789763196465650700,
+        1790217638990554300
+      ],
+      "after": [
+        133144642137240000,
+        1125899908286029,
+        29021,
+        1789763196465650700,
+        1790217638990554300
+      ],
+      "handle_before": [
+        133144642137240000,
+        1125899908286029,
+        29021,
+        1789763196465650700,
+        1790217646135240500
+      ],
+      "handle_after": [
+        133144642137240000,
+        1125899908286029,
+        29021,
+        1789763196465650700,
+        1790217646135240500
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "size": 7598,
+      "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+      "before": [
+        133144642137240000,
+        1125899908286030,
+        7598,
+        1789763196472679900,
+        1790217638992522100
+      ],
+      "after": [
+        133144642137240000,
+        1125899908286030,
+        7598,
+        1789763196472679900,
+        1790217638992522100
+      ],
+      "handle_before": [
+        133144642137240000,
+        1125899908286030,
+        7598,
+        1789763196472679900,
+        1790217648251505600
+      ],
+      "handle_after": [
+        133144642137240000,
+        1125899908286030,
+        7598,
+        1789763196472679900,
+        1790217648251505600
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "size": 7724,
+      "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+      "before": [
+        133144642137240000,
+        9007199256184396,
+        7724,
+        1789763196481194500,
+        1790217638987554400
+      ],
+      "after": [
+        133144642137240000,
+        9007199256184396,
+        7724,
+        1789763196481194500,
+        1790217638987554400
+      ],
+      "handle_before": [
+        133144642137240000,
+        9007199256184396,
+        7724,
+        1789763196481194500,
+        1790217648248994500
+      ],
+      "handle_after": [
+        133144642137240000,
+        9007199256184396,
+        7724,
+        1789763196481194500,
+        1790217648248994500
+      ]
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "size": 159776,
+      "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+      "before": [
+        133144642137240000,
+        2251799813687966,
+        159776,
+        1787238836000000000,
+        1787238836000000000
+      ],
+      "after": [
+        133144642137240000,
+        2251799813687966,
+        159776,
+        1787238836000000000,
+        1787238836000000000
+      ],
+      "handle_before": [
+        133144642137240000,
+        2251799813687966,
+        159776,
+        1787238836000000000,
+        1788056265341944200
+      ],
+      "handle_after": [
+        133144642137240000,
+        2251799813687966,
+        159776,
+        1787238836000000000,
+        1788056265341944200
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\job.py",
+      "size": 25419,
+      "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+      "before": [
+        133144642137240000,
+        844424931079734,
+        25419,
+        1790216805394422900,
+        1789887251228871000
+      ],
+      "after": [
+        133144642137240000,
+        844424931079734,
+        25419,
+        1790216805394422900,
+        1789887251228871000
+      ],
+      "handle_before": [
+        133144642137240000,
+        844424931079734,
+        25419,
+        1790216805394422900,
+        1790217631650705000
+      ],
+      "handle_after": [
+        133144642137240000,
+        844424931079734,
+        25419,
+        1790216805394422900,
+        1790217631650705000
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\runner.py",
+      "size": 26496,
+      "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+      "before": [
+        133144642137240000,
+        844424931079736,
+        26496,
+        1790218071598208900,
+        1789887256027699600
+      ],
+      "after": [
+        133144642137240000,
+        844424931079736,
+        26496,
+        1790218071598208900,
+        1789887256027699600
+      ],
+      "handle_before": [
+        133144642137240000,
+        844424931079736,
+        26496,
+        1790218071598208900,
+        1790218113027808500
+      ],
+      "handle_after": [
+        133144642137240000,
+        844424931079736,
+        26496,
+        1790218071598208900,
+        1790218113027808500
+      ]
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\progress.py",
+      "size": 3856,
+      "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+      "before": [
+        133144642137240000,
+        844424931079735,
+        3856,
+        1789890843290695200,
+        1789887253572288400
+      ],
+      "after": [
+        133144642137240000,
+        844424931079735,
+        3856,
+        1789890843290695200,
+        1789887253572288400
+      ],
+      "handle_before": [
+        133144642137240000,
+        844424931079735,
+        3856,
+        1789890843290695200,
+        1789890854229893400
+      ],
+      "handle_after": [
+        133144642137240000,
+        844424931079735,
+        3856,
+        1789890843290695200,
+        1789890854229893400
+      ]
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\cli_config.json",
+      "size": 38685,
+      "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+      "before": [
+        133144642137240000,
+        1688849860268039,
+        38685,
+        1787237884000000000,
+        1787237884000000000
+      ],
+      "after": [
+        133144642137240000,
+        1688849860268039,
+        38685,
+        1787237884000000000,
+        1787237884000000000
+      ],
+      "handle_before": [
+        133144642137240000,
+        1688849860268039,
+        38685,
+        1787237884000000000,
+        1788056290270582200
+      ],
+      "handle_after": [
+        133144642137240000,
+        1688849860268039,
+        38685,
+        1787237884000000000,
+        1788056290270582200
+      ]
+    }
+  ],
+  "RESOLVED_ARGV": [
+    "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+    "--debug",
+    "2",
+    "--datadir",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+    "--load-settings",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+    "--load-filaments",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+    "--filament-map",
+    "1",
+    "--filament-volume-map",
+    "0",
+    "--filament-nozzle-map",
+    "0",
+    "--filament-map-mode",
+    "Auto For Flush",
+    "--assemble",
+    "--ensure-on-bed",
+    "--arrange",
+    "0",
+    "--orient",
+    "0",
+    "--slice",
+    "0",
+    "--export-settings",
+    "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json",
+    "--outputdir",
+    "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+  ],
+  "GENERATOR_RESULT": {
+    "REQUEST_KEY_SCHEMA_VERSION": "0.2",
+    "REQUEST_STATUS": "COMPLETE",
+    "SLICE_KEY": "SLICE_KEY/v0.2:sha256:2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+    "CANONICAL_REQUEST_DIGESTS": [
+      {
+        "pointer": "/backend_bundle",
+        "sha256": "357ff0d746ebc2e63c3326f2ad8a6623702cdc4d2454bb3ec7a5adb40c9c01b5"
+      },
+      {
+        "pointer": "/contracts",
+        "sha256": "b00361d907d2b638ccf4baf01e8e4e573c0b4cadf1ed569039407dd46d20436e"
+      },
+      {
+        "pointer": "/engine",
+        "sha256": "479b5604155038d26c480599dc30a211cda067cf2e3b3678b4677130ed4e10a0"
+      },
+      {
+        "pointer": "/execution",
+        "sha256": "efb1293b65af01f13dfa2aecfc3ce80e2a8aa44ff9524b030b1e8503f78beecd"
+      },
+      {
+        "pointer": "/inputs",
+        "sha256": "c145e45fc0ba0cd8301d07aaef0dec15af2266b5d4f0262ef4ea9606ac1d5e0d"
+      },
+      {
+        "pointer": "/profiles",
+        "sha256": "66e9f47b7a387929933a19441c7577bd07b2456b262002a4d8ea64773838515b"
+      },
+      {
+        "pointer": "/selected_request_resources",
+        "sha256": "9f2b38a68d613bcd536ee4f62bdce86acb69ef4b5a20219582f96e2c23b8bc2e"
+      }
+    ],
+    "blockers": [],
+    "status": "COMPLETE",
+    "CANONICAL_REQUEST_TREE": {
+      "domain": "SLICE_KEY/v0.2",
+      "key_schema_version": "0.2",
+      "operation": "FULL_SLICE",
+      "contracts": {
+        "console_schema": "0.1",
+        "runner_version": "0.2.0",
+        "job_schema": "0.2",
+        "policies": {
+          "extraction": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "argv": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "semantic_env": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "request_resource": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "paths": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          },
+          "backend": {
+            "version": "0.2",
+            "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+          }
+        }
+      },
+      "backend_bundle": {
+        "schema_version": "0.2",
+        "entries": [
+          {
+            "logical_name": "job.py",
+            "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+            "size": "25419",
+            "role": "backend_core"
+          },
+          {
+            "logical_name": "progress.py",
+            "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+            "size": "3856",
+            "role": "backend_core"
+          },
+          {
+            "logical_name": "runner.py",
+            "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+            "size": "26496",
+            "role": "backend_core"
+          }
+        ],
+        "custom_execution_dependencies": []
+      },
+      "inputs": [
+        {
+          "slot": "0",
+          "format": "stl",
+          "input_mode": "mesh_import",
+          "sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+          "role": "diagnostic_fixture",
+          "placement": {
+            "state": "embedded"
+          },
+          "intended_transform": {
+            "state": "present",
+            "value": {
+              "translation_mm": [
+                "0",
+                "0",
+                "0"
+              ],
+              "rotation_deg": [
+                "0",
+                "0",
+                "0"
+              ],
+              "scale": [
+                "1",
+                "1",
+                "1"
+              ]
+            }
+          },
+          "semantics": {
+            "assembly": {
+              "state": "present",
+              "value": {
+                "identity_sha256": "799e4014f2c71a1b7437d6e1b38fac9f0e6835234459dfb8593aab39a5394cbd",
+                "description": "explicit --assemble request intent"
+              }
+            },
+            "modifier": {
+              "state": "not_applicable"
+            },
+            "enforcer": {
+              "state": "not_applicable"
+            },
+            "authored_support": {
+              "state": "not_applicable"
+            },
+            "process_fixture": {
+              "state": "present",
+              "value": {
+                "identity_sha256": "79c7aabd56c7b196219c632efadcb290cfb3974314824970dc027b14b1724451",
+                "description": "clean single STL diagnostic fixture"
+              }
+            },
+            "other": {
+              "state": "not_applicable"
+            },
+            "provenance": {
+              "state": "not_applicable"
+            }
+          }
+        }
+      ],
+      "profiles": {
+        "printer": {
+          "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+          "format": "json"
+        },
+        "process": {
+          "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+          "format": "json"
+        },
+        "filaments": [
+          {
+            "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+            "format": "json"
+          }
+        ],
+        "auxiliary": [],
+        "nozzle": "0.4",
+        "filament_mapping": [
+          "1"
+        ],
+        "volume_mapping": [
+          "0"
+        ],
+        "nozzle_mapping": [
+          "0"
+        ],
+        "material_mapping": [
+          "PLA"
+        ],
+        "map_mode": "Auto For Flush"
+      },
+      "engine": {
+        "version": "02.08.02.61",
+        "executable_sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268"
+      },
+      "selected_request_resources": {
+        "schema_version": "0.2",
+        "entries": [
+          {
+            "logical_name": "resources/profiles/BBL/cli_config.json",
+            "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+            "size": "38685",
+            "role": "toolpath_request_configuration"
+          }
+        ],
+        "selection": {
+          "policy_sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+          "role": "selected_toolpath_request_configuration"
+        }
+      },
+      "execution": {
+        "argv": [
+          {
+            "kind": "engine"
+          },
+          {
+            "kind": "option",
+            "value": "--debug"
+          },
+          {
+            "kind": "decimal",
+            "value": "2"
+          },
+          {
+            "kind": "option",
+            "value": "--datadir"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data"
+          },
+          {
+            "kind": "option",
+            "value": "--load-settings"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json"
+          },
+          {
+            "kind": "option",
+            "value": "--load-filaments"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "1"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-volume-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-nozzle-map"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--filament-map-mode"
+          },
+          {
+            "kind": "literal",
+            "value": "Auto For Flush"
+          },
+          {
+            "kind": "option",
+            "value": "--assemble"
+          },
+          {
+            "kind": "option",
+            "value": "--ensure-on-bed"
+          },
+          {
+            "kind": "option",
+            "value": "--arrange"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--orient"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--slice"
+          },
+          {
+            "kind": "decimal",
+            "value": "0"
+          },
+          {
+            "kind": "option",
+            "value": "--export-settings"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json"
+          },
+          {
+            "kind": "option",
+            "value": "--outputdir"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234"
+          },
+          {
+            "kind": "opaque_path",
+            "value": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+          }
+        ],
+        "cwd": {
+          "kind": "opaque_path",
+          "value": "J:\\Program Files\\Bambu Studio"
+        },
+        "semantic_env_overrides": [],
+        "transport": {
+          "state": "present",
+          "value": {
+            "identity_sha256": "95c35f8cac6ecb4972fee777e86daed9e6d9b80185d0cba4804eceaf0530b09d",
+            "description": "Windows no_window redirected stdout/stderr; stdin DEVNULL"
+          }
+        }
+      }
+    },
+    "CANONICAL_REQUEST_BYTES": "eyJiYWNrZW5kX2J1bmRsZSI6eyJjdXN0b21fZXhlY3V0aW9uX2RlcGVuZGVuY2llcyI6W10sImVudHJpZXMiOlt7ImxvZ2ljYWxfbmFtZSI6ImpvYi5weSIsInJvbGUiOiJiYWNrZW5kX2NvcmUiLCJzaGEyNTYiOiI1NTI2MDI2ZjJiYjdhYjI4YjEwOWU5ZGFkNmIxY2Q3NTNkNTFlMDdiNWI3OGZiZjc2YTNkODM2YTljMmM2NmNiIiwic2l6ZSI6IjI1NDE5In0seyJsb2dpY2FsX25hbWUiOiJwcm9ncmVzcy5weSIsInJvbGUiOiJiYWNrZW5kX2NvcmUiLCJzaGEyNTYiOiIwY2JiODQyNDVlNmIzMjUyYjE0ODM4YmRhMWNkMWY4OWY5M2M5OGI0YjM5MDE2ZTA4Y2RkNzhmOGMzMzYyNjIyIiwic2l6ZSI6IjM4NTYifSx7ImxvZ2ljYWxfbmFtZSI6InJ1bm5lci5weSIsInJvbGUiOiJiYWNrZW5kX2NvcmUiLCJzaGEyNTYiOiI0MDVkZjAxMTczM2RlNGNmNDY5MzA1YTI5Yzg2MDllMWFhNDY4MjAyNzE2YzA1ZDNjZGI5MDU0MzVkM2ZkZTI4Iiwic2l6ZSI6IjI2NDk2In1dLCJzY2hlbWFfdmVyc2lvbiI6IjAuMiJ9LCJjb250cmFjdHMiOnsiY29uc29sZV9zY2hlbWEiOiIwLjEiLCJqb2Jfc2NoZW1hIjoiMC4yIiwicG9saWNpZXMiOnsiYXJndiI6eyJzaGEyNTYiOiI2MDcwMWQyZGNlNDM1MmYwYzc2YzEwYTI3ZDdiN2ExZjYzNjc3N2IzNGI4Y2QyMzM1ZjRiMjYxYzM3ZjgxNjY0IiwidmVyc2lvbiI6IjAuMiJ9LCJiYWNrZW5kIjp7InNoYTI1NiI6IjYwNzAxZDJkY2U0MzUyZjBjNzZjMTBhMjdkN2I3YTFmNjM2Nzc3YjM0YjhjZDIzMzVmNGIyNjFjMzdmODE2NjQiLCJ2ZXJzaW9uIjoiMC4yIn0sImV4dHJhY3Rpb24iOnsic2hhMjU2IjoiNjA3MDFkMmRjZTQzNTJmMGM3NmMxMGEyN2Q3YjdhMWY2MzY3NzdiMzRiOGNkMjMzNWY0YjI2MWMzN2Y4MTY2NCIsInZlcnNpb24iOiIwLjIifSwicGF0aHMiOnsic2hhMjU2IjoiNjA3MDFkMmRjZTQzNTJmMGM3NmMxMGEyN2Q3YjdhMWY2MzY3NzdiMzRiOGNkMjMzNWY0YjI2MWMzN2Y4MTY2NCIsInZlcnNpb24iOiIwLjIifSwicmVxdWVzdF9yZXNvdXJjZSI6eyJzaGEyNTYiOiI2MDcwMWQyZGNlNDM1MmYwYzc2YzEwYTI3ZDdiN2ExZjYzNjc3N2IzNGI4Y2QyMzM1ZjRiMjYxYzM3ZjgxNjY0IiwidmVyc2lvbiI6IjAuMiJ9LCJzZW1hbnRpY19lbnYiOnsic2hhMjU2IjoiNjA3MDFkMmRjZTQzNTJmMGM3NmMxMGEyN2Q3YjdhMWY2MzY3NzdiMzRiOGNkMjMzNWY0YjI2MWMzN2Y4MTY2NCIsInZlcnNpb24iOiIwLjIifX0sInJ1bm5lcl92ZXJzaW9uIjoiMC4yLjAifSwiZG9tYWluIjoiU0xJQ0VfS0VZL3YwLjIiLCJlbmdpbmUiOnsiZXhlY3V0YWJsZV9zaGEyNTYiOiI3NjgwZGFjNGE5NTNjYjRmOGE5NmNjMmI0YWQ0ZWEwYjhiZmM2MmY5MzdkMzQ5MTI1NjkyMmZmMjRkYmI4MjY4IiwidmVyc2lvbiI6IjAyLjA4LjAyLjYxIn0sImV4ZWN1dGlvbiI6eyJhcmd2IjpbeyJraW5kIjoiZW5naW5lIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLWRlYnVnIn0seyJraW5kIjoiZGVjaW1hbCIsInZhbHVlIjoiMiJ9LHsia2luZCI6Im9wdGlvbiIsInZhbHVlIjoiLS1kYXRhZGlyIn0seyJraW5kIjoib3BhcXVlX3BhdGgiLCJ2YWx1ZSI6Iko6XFxNeSBEcml2ZVxcY29kZXhcXDIwMjYtMDktMjBcXGZpbGVzLXBhc3RlZC1ieS10aGUtdXNlci1mdWtlaVxcb3V0cHV0c1xcZnVrZWlfc2xpY2VfcnVubmVyXFxzYW1wbGVcXGNsZWFuX21lc2hfYm94XFxkYXRhIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLWxvYWQtc2V0dGluZ3MifSx7ImtpbmQiOiJvcGFxdWVfcGF0aCIsInZhbHVlIjoiSjpcXE15IERyaXZlXFxjb2RleFxcMjAyNi0wOS0yMFxcZmlsZXMtcGFzdGVkLWJ5LXRoZS11c2VyLWZ1a2VpXFxvdXRwdXRzXFxmdWtlaV9zbGljZV9ydW5uZXJcXHNhbXBsZVxcY2xlYW5fbWVzaF9ib3hcXHByb2ZpbGVzXFxwcmludGVyLmpzb247SjpcXE15IERyaXZlXFxjb2RleFxcMjAyNi0wOS0yMFxcZmlsZXMtcGFzdGVkLWJ5LXRoZS11c2VyLWZ1a2VpXFxvdXRwdXRzXFxmdWtlaV9zbGljZV9ydW5uZXJcXHNhbXBsZVxcY2xlYW5fbWVzaF9ib3hcXHByb2ZpbGVzXFxwcm9jZXNzLmpzb24ifSx7ImtpbmQiOiJvcHRpb24iLCJ2YWx1ZSI6Ii0tbG9hZC1maWxhbWVudHMifSx7ImtpbmQiOiJvcGFxdWVfcGF0aCIsInZhbHVlIjoiSjpcXE15IERyaXZlXFxjb2RleFxcMjAyNi0wOS0yMFxcZmlsZXMtcGFzdGVkLWJ5LXRoZS11c2VyLWZ1a2VpXFxvdXRwdXRzXFxmdWtlaV9zbGljZV9ydW5uZXJcXHNhbXBsZVxcY2xlYW5fbWVzaF9ib3hcXHByb2ZpbGVzXFxmaWxhbWVudC5qc29uIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLWZpbGFtZW50LW1hcCJ9LHsia2luZCI6ImRlY2ltYWwiLCJ2YWx1ZSI6IjEifSx7ImtpbmQiOiJvcHRpb24iLCJ2YWx1ZSI6Ii0tZmlsYW1lbnQtdm9sdW1lLW1hcCJ9LHsia2luZCI6ImRlY2ltYWwiLCJ2YWx1ZSI6IjAifSx7ImtpbmQiOiJvcHRpb24iLCJ2YWx1ZSI6Ii0tZmlsYW1lbnQtbm96emxlLW1hcCJ9LHsia2luZCI6ImRlY2ltYWwiLCJ2YWx1ZSI6IjAifSx7ImtpbmQiOiJvcHRpb24iLCJ2YWx1ZSI6Ii0tZmlsYW1lbnQtbWFwLW1vZGUifSx7ImtpbmQiOiJsaXRlcmFsIiwidmFsdWUiOiJBdXRvIEZvciBGbHVzaCJ9LHsia2luZCI6Im9wdGlvbiIsInZhbHVlIjoiLS1hc3NlbWJsZSJ9LHsia2luZCI6Im9wdGlvbiIsInZhbHVlIjoiLS1lbnN1cmUtb24tYmVkIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLWFycmFuZ2UifSx7ImtpbmQiOiJkZWNpbWFsIiwidmFsdWUiOiIwIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLW9yaWVudCJ9LHsia2luZCI6ImRlY2ltYWwiLCJ2YWx1ZSI6IjAifSx7ImtpbmQiOiJvcHRpb24iLCJ2YWx1ZSI6Ii0tc2xpY2UifSx7ImtpbmQiOiJkZWNpbWFsIiwidmFsdWUiOiIwIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLWV4cG9ydC1zZXR0aW5ncyJ9LHsia2luZCI6Im9wYXF1ZV9wYXRoIiwidmFsdWUiOiJKOlxcTXkgRHJpdmVcXGNvZGV4XFwyMDI2LTEwLTAzXFxmaWxlcy1wYXN0ZWQtYnktdGhlLXVzZXItZnVrZWlcXG91dHB1dHNcXFJFU09VUkNFX1RSQUNFX0VMRVZBVEVEXzIwMjYxMDA1VDA4MjkwM1pfZTE2YmFlYThcXHNsaWNlXFxydW5zXFxzeW50aGV0aWNfZGlhZ25vc3RpY19jdWJlXzIwMjYxMDA1XzE3MzIzNC9yZXNvbHZlZF9zZXR0aW5ncy5qc29uIn0seyJraW5kIjoib3B0aW9uIiwidmFsdWUiOiItLW91dHB1dGRpciJ9LHsia2luZCI6Im9wYXF1ZV9wYXRoIiwidmFsdWUiOiJKOlxcTXkgRHJpdmVcXGNvZGV4XFwyMDI2LTEwLTAzXFxmaWxlcy1wYXN0ZWQtYnktdGhlLXVzZXItZnVrZWlcXG91dHB1dHNcXFJFU09VUkNFX1RSQUNFX0VMRVZBVEVEXzIwMjYxMDA1VDA4MjkwM1pfZTE2YmFlYThcXHNsaWNlXFxydW5zXFxzeW50aGV0aWNfZGlhZ25vc3RpY19jdWJlXzIwMjYxMDA1XzE3MzIzNCJ9LHsia2luZCI6Im9wYXF1ZV9wYXRoIiwidmFsdWUiOiJKOlxcTXkgRHJpdmVcXGNvZGV4XFwyMDI2LTA5LTIwXFxmaWxlcy1wYXN0ZWQtYnktdGhlLXVzZXItZnVrZWlcXG91dHB1dHNcXGZ1a2VpX3NsaWNlX3J1bm5lclxcc2FtcGxlXFxjbGVhbl9tZXNoX2JveFxcZ2VvbWV0cnlcXGRpYWdub3N0aWNfY3ViZS5zdGwifV0sImN3ZCI6eyJraW5kIjoib3BhcXVlX3BhdGgiLCJ2YWx1ZSI6Iko6XFxQcm9ncmFtIEZpbGVzXFxCYW1idSBTdHVkaW8ifSwic2VtYW50aWNfZW52X292ZXJyaWRlcyI6W10sInRyYW5zcG9ydCI6eyJzdGF0ZSI6InByZXNlbnQiLCJ2YWx1ZSI6eyJkZXNjcmlwdGlvbiI6IldpbmRvd3Mgbm9fd2luZG93IHJlZGlyZWN0ZWQgc3Rkb3V0L3N0ZGVycjsgc3RkaW4gREVWTlVMTCIsImlkZW50aXR5X3NoYTI1NiI6Ijk1YzM1ZjhjYWM2ZWNiNDk3MmZlZTc3N2U4NmRhZWQ5ZTZkOWI4MDE4NWQwY2JhNDgwNGVjZWFmMDUzMGIwOWQifX19LCJpbnB1dHMiOlt7ImZvcm1hdCI6InN0bCIsImlucHV0X21vZGUiOiJtZXNoX2ltcG9ydCIsImludGVuZGVkX3RyYW5zZm9ybSI6eyJzdGF0ZSI6InByZXNlbnQiLCJ2YWx1ZSI6eyJyb3RhdGlvbl9kZWciOlsiMCIsIjAiLCIwIl0sInNjYWxlIjpbIjEiLCIxIiwiMSJdLCJ0cmFuc2xhdGlvbl9tbSI6WyIwIiwiMCIsIjAiXX19LCJwbGFjZW1lbnQiOnsic3RhdGUiOiJlbWJlZGRlZCJ9LCJyb2xlIjoiZGlhZ25vc3RpY19maXh0dXJlIiwic2VtYW50aWNzIjp7ImFzc2VtYmx5Ijp7InN0YXRlIjoicHJlc2VudCIsInZhbHVlIjp7ImRlc2NyaXB0aW9uIjoiZXhwbGljaXQgLS1hc3NlbWJsZSByZXF1ZXN0IGludGVudCIsImlkZW50aXR5X3NoYTI1NiI6Ijc5OWU0MDE0ZjJjNzFhMWI3NDM3ZDZlMWIzOGZhYzlmMGU2ODM1MjM0NDU5ZGZiODU5M2FhYjM5YTUzOTRjYmQifX0sImF1dGhvcmVkX3N1cHBvcnQiOnsic3RhdGUiOiJub3RfYXBwbGljYWJsZSJ9LCJlbmZvcmNlciI6eyJzdGF0ZSI6Im5vdF9hcHBsaWNhYmxlIn0sIm1vZGlmaWVyIjp7InN0YXRlIjoibm90X2FwcGxpY2FibGUifSwib3RoZXIiOnsic3RhdGUiOiJub3RfYXBwbGljYWJsZSJ9LCJwcm9jZXNzX2ZpeHR1cmUiOnsic3RhdGUiOiJwcmVzZW50IiwidmFsdWUiOnsiZGVzY3JpcHRpb24iOiJjbGVhbiBzaW5nbGUgU1RMIGRpYWdub3N0aWMgZml4dHVyZSIsImlkZW50aXR5X3NoYTI1NiI6Ijc5YzdhYWJkNTZjN2IxOTYyMTljNjMyZWZhZGNiMjkwY2ZiMzk3NDMxNDgyNDk3MGRjMDI3YjE0YjE3MjQ0NTEifX0sInByb3ZlbmFuY2UiOnsic3RhdGUiOiJub3RfYXBwbGljYWJsZSJ9fSwic2hhMjU2IjoiYjhmMmE1ODI2NTVjZTQ4MTJmNDRkMzUyYTkwODA3MGI0NWY2NmMyMDMzMTY1MDQ4MjlkOWJjZDY0ZTdlYTdlZCIsInNsb3QiOiIwIn1dLCJrZXlfc2NoZW1hX3ZlcnNpb24iOiIwLjIiLCJvcGVyYXRpb24iOiJGVUxMX1NMSUNFIiwicHJvZmlsZXMiOnsiYXV4aWxpYXJ5IjpbXSwiZmlsYW1lbnRfbWFwcGluZyI6WyIxIl0sImZpbGFtZW50cyI6W3siZm9ybWF0IjoianNvbiIsInNoYTI1NiI6ImUxYzRkMGU2MDhiNjJiMzRhMTYwN2RlODNjODU1MjBjZTAyMDc3MDY4MTAxNGFkZTIyZWEyZjljODIyODY5ODQifV0sIm1hcF9tb2RlIjoiQXV0byBGb3IgRmx1c2giLCJtYXRlcmlhbF9tYXBwaW5nIjpbIlBMQSJdLCJub3p6bGUiOiIwLjQiLCJub3p6bGVfbWFwcGluZyI6WyIwIl0sInByaW50ZXIiOnsiZm9ybWF0IjoianNvbiIsInNoYTI1NiI6ImE5M2VhYWU4N2Q3NTQwODJjZTY4YTMzN2QzMDIxZWU3NDMyNTgwY2JkY2ZmZGM2NzRjNjUyZTU1ZGQ2N2IzMWYifSwicHJvY2VzcyI6eyJmb3JtYXQiOiJqc29uIiwic2hhMjU2IjoiOTg2YWY1ODA2YmEyNzZiZTJhMDkzMmJkNWJiYzUxOTJjMzIzMDE1ZDUzNWQzZGRjN2ZmZGU2YzE5MmMwZWFmMCJ9LCJ2b2x1bWVfbWFwcGluZyI6WyIwIl19LCJzZWxlY3RlZF9yZXF1ZXN0X3Jlc291cmNlcyI6eyJlbnRyaWVzIjpbeyJsb2dpY2FsX25hbWUiOiJyZXNvdXJjZXMvcHJvZmlsZXMvQkJML2NsaV9jb25maWcuanNvbiIsInJvbGUiOiJ0b29scGF0aF9yZXF1ZXN0X2NvbmZpZ3VyYXRpb24iLCJzaGEyNTYiOiI4OTE3MWFlZmQzY2UyMThiOGYyY2EyZTgxM2E5YjI5OTFkMWM3MTU2NThmNTY0YTRlNDdhN2I1NzlmOTI1NWIxIiwic2l6ZSI6IjM4Njg1In1dLCJzY2hlbWFfdmVyc2lvbiI6IjAuMiIsInNlbGVjdGlvbiI6eyJwb2xpY3lfc2hhMjU2IjoiNjA3MDFkMmRjZTQzNTJmMGM3NmMxMGEyN2Q3YjdhMWY2MzY3NzdiMzRiOGNkMjMzNWY0YjI2MWMzN2Y4MTY2NCIsInJvbGUiOiJzZWxlY3RlZF90b29scGF0aF9yZXF1ZXN0X2NvbmZpZ3VyYXRpb24ifX19",
+    "CANONICAL_REQUEST_BYTES_ENCODING": "base64"
+  },
+  "SLICE_KEY": "SLICE_KEY/v0.2:sha256:2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+  "CANONICAL_REQUEST_SHA256": "2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+  "CANONICAL_REQUEST_DIGESTS": [
+    {
+      "pointer": "/backend_bundle",
+      "sha256": "357ff0d746ebc2e63c3326f2ad8a6623702cdc4d2454bb3ec7a5adb40c9c01b5"
+    },
+    {
+      "pointer": "/contracts",
+      "sha256": "b00361d907d2b638ccf4baf01e8e4e573c0b4cadf1ed569039407dd46d20436e"
+    },
+    {
+      "pointer": "/engine",
+      "sha256": "479b5604155038d26c480599dc30a211cda067cf2e3b3678b4677130ed4e10a0"
+    },
+    {
+      "pointer": "/execution",
+      "sha256": "efb1293b65af01f13dfa2aecfc3ce80e2a8aa44ff9524b030b1e8503f78beecd"
+    },
+    {
+      "pointer": "/inputs",
+      "sha256": "c145e45fc0ba0cd8301d07aaef0dec15af2266b5d4f0262ef4ea9606ac1d5e0d"
+    },
+    {
+      "pointer": "/profiles",
+      "sha256": "66e9f47b7a387929933a19441c7577bd07b2456b262002a4d8ea64773838515b"
+    },
+    {
+      "pointer": "/selected_request_resources",
+      "sha256": "9f2b38a68d613bcd536ee4f62bdce86acb69ef4b5a20219582f96e2c23b8bc2e"
+    }
+  ],
+  "ENGINE_STARTED": false,
+  "REQUIRED_ABSENCE_CHECKS": [
+    {
+      "logical_name": "resources/profiles/BBL/machine_full/Bambu Lab A1.json",
+      "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine_full\\Bambu Lab A1.json",
+      "state": "ABSENT",
+      "check": "lexists=false; existing ancestors not reparse"
+    }
+  ],
+  "ACTUAL_GENERATOR_CALL_COUNT": 1
+}

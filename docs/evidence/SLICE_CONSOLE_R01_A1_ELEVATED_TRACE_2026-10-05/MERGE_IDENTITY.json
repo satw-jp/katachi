@@ -1,0 +1,21 @@
+{
+  "pr": 52,
+  "expected_head": "0055d88716dd632443f47425ce18959322143e5d",
+  "expected_base": "67364edc0cdbbdcf0e3b6a6f34a4d41168de8737",
+  "premerge_actual": {
+    "draft": true,
+    "open": true,
+    "mergeable": true,
+    "behind": 0,
+    "head_match": true,
+    "base_match": true,
+    "commits": 2
+  },
+  "ready_for_review": true,
+  "expected_head_fixed": true,
+  "method": "merge",
+  "merged": true,
+  "merge_commit": "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
+  "remote_main_fetched": true,
+  "branch": "agent/slice-console-r0.1-a1-elevated-resource-trace"
+}

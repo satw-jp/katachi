@@ -1,0 +1,24 @@
+{
+  "old_key": "SLICE_KEY/v0.2:sha256:62a5049a40a59351c5bf56494d2dee4addd7bbd45ce897094fd4b7ea5f278615",
+  "old_status": "SUPERSEDED",
+  "reason": "TRACE PROVENANCE LEAKED INDIRECTLY THROUGH POLICY SHA",
+  "old_policy_sha256": "f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b",
+  "old_key_evidence": "PRODUCTION_REQUEST_KEY.json",
+  "old_policy_evidence": "PRE_FIX_WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json",
+  "corrected_key": "SLICE_KEY/v0.2:sha256:2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+  "corrected_policy_sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+  "corrected_key_evidence": "CORRECTED_PRODUCTION_REQUEST_KEY.json",
+  "changed_components": [
+    "/contracts",
+    "/selected_request_resources"
+  ],
+  "unchanged_components": [
+    "/backend_bundle",
+    "/engine",
+    "/execution",
+    "/inputs",
+    "/profiles"
+  ],
+  "same_actual_route_argv": true,
+  "provenance_is_key_material": false
+}

@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "base_main": "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
+  "job": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\SLICE_JOB.json",
+  "backend_dir": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner",
+  "evidence_dir": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-a1-elevated-resource-trace\\docs\\evidence\\SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05",
+  "capture_root": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8",
+  "raw_pml": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml",
+  "all_system_csv_local_only": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\all_events.csv",
+  "isolated_slice_root": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice",
+  "procmon": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "procmon_argv": [
+    "/AcceptEula",
+    "/Quiet",
+    "/Minimized",
+    "/BackingFile",
+    "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml"
+  ],
+  "procmon_elevation_only": true,
+  "engine_launch_limit": 1,
+  "retry": 0,
+  "diagnostic_timeout_seconds": 300,
+  "raw_pml_github_allowed": false,
+  "prior_expectation_sha256": "87f5585cd8c4f90df6581c7b8f3bec29176a8bd8f8fae0b7bc036d7c680f6ee5",
+  "created_at": "2026-10-05T08:29:03.457421+00:00"
+}

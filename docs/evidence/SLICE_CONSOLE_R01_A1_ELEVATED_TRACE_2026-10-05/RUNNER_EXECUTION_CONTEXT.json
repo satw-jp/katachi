@@ -1,0 +1,87 @@
+{
+  "job_id": "FUKEI.CLEAN_MESH.EXAMPLE",
+  "candidate": "synthetic_diagnostic_cube",
+  "runner_version": "0.2.0",
+  "job_schema_version": "0.2",
+  "engine_path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+  "engine_version": "02.08.02.61",
+  "data_dir": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+  "cwd": "J:\\Program Files\\Bambu Studio",
+  "argv": [
+    "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+    "--debug",
+    "2",
+    "--datadir",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+    "--load-settings",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+    "--load-filaments",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+    "--filament-map",
+    "1",
+    "--filament-volume-map",
+    "0",
+    "--filament-nozzle-map",
+    "0",
+    "--filament-map-mode",
+    "Auto For Flush",
+    "--assemble",
+    "--ensure-on-bed",
+    "--arrange",
+    "0",
+    "--orient",
+    "0",
+    "--slice",
+    "0",
+    "--export-settings",
+    "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json",
+    "--outputdir",
+    "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+  ],
+  "windows_execution": "no_window",
+  "inputs": [
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+  ],
+  "resolved_input_identities": [
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl",
+      "size_bytes": 684,
+      "sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed"
+    }
+  ],
+  "profiles": {
+    "filament": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+    "process": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+    "printer": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json"
+  },
+  "resolved_profile_identities": [
+    {
+      "key": "filament",
+      "name": "filament",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "size_bytes": 7724,
+      "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984"
+    },
+    {
+      "key": "process",
+      "name": "process",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "size_bytes": 7598,
+      "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0"
+    },
+    {
+      "key": "printer",
+      "name": "printer",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+      "size_bytes": 29021,
+      "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f"
+    }
+  ],
+  "input_locks": {
+    "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\locks\\INPUT_LOCKS.json",
+    "verified": true,
+    "errors": []
+  },
+  "output_dir": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234"
+}

@@ -1,0 +1,140 @@
+{
+  "status": "PARSE_PASS",
+  "identity": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\resolved_settings.json",
+    "size": 52040,
+    "sha256": "e2047c31d3daa5fc0604941bdde0d9620319b9dd9adfdd28f2a837af8462a74f",
+    "before": [
+      133144642137240000,
+      2814749767779967,
+      52040,
+      1791189155463931800,
+      1791189155262246800
+    ],
+    "after": [
+      133144642137240000,
+      2814749767779967,
+      52040,
+      1791189155463931800,
+      1791189155262246800
+    ],
+    "handle_before": [
+      133144642137240000,
+      2814749767779967,
+      52040,
+      1791189155463931800,
+      1791189254207653200
+    ],
+    "handle_after": [
+      133144642137240000,
+      2814749767779967,
+      52040,
+      1791189155463931800,
+      1791189254207653200
+    ]
+  },
+  "binding": {
+    "engine_pid": 43216,
+    "engine_job_input_profile_post_identity_evidence": "POST_EXECUTION_IDENTITIES.json",
+    "executed_argv": [
+      "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "--debug",
+      "2",
+      "--datadir",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+      "--load-settings",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "--load-filaments",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "--filament-map",
+      "1",
+      "--filament-volume-map",
+      "0",
+      "--filament-nozzle-map",
+      "0",
+      "--filament-map-mode",
+      "Auto For Flush",
+      "--assemble",
+      "--ensure-on-bed",
+      "--arrange",
+      "0",
+      "--orient",
+      "0",
+      "--slice",
+      "0",
+      "--export-settings",
+      "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json",
+      "--outputdir",
+      "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+    ],
+    "filtered_trace_sha256": "cd8da63f5f096d24ce052fe804ca21fa2037464745f9492f1c158ba6b586338d"
+  },
+  "explicit_value_comparisons": [
+    {
+      "key": "nozzle_diameter",
+      "explicit_profile": "printer",
+      "explicit_value": [
+        "0.4"
+      ],
+      "effective_value": [
+        "0.4"
+      ],
+      "equality": true,
+      "attribution": "Value agreement only; not sole-source proof."
+    },
+    {
+      "key": "layer_height",
+      "explicit_profile": "process",
+      "explicit_value": "0.2",
+      "effective_value": "0.2",
+      "equality": true,
+      "attribution": "Value agreement only; not sole-source proof."
+    },
+    {
+      "key": "sparse_infill_density",
+      "explicit_profile": "process",
+      "explicit_value": "15%",
+      "effective_value": "15%",
+      "equality": true,
+      "attribution": "Value agreement only; not sole-source proof."
+    },
+    {
+      "key": "filament_type",
+      "explicit_profile": "filament",
+      "explicit_value": [
+        "PLA"
+      ],
+      "effective_value": [
+        "PLA"
+      ],
+      "equality": true,
+      "attribution": "Value agreement only; not sole-source proof."
+    },
+    {
+      "key": "filament_max_volumetric_speed",
+      "explicit_profile": "filament",
+      "explicit_value": [
+        "12"
+      ],
+      "effective_value": [
+        "12"
+      ],
+      "equality": true,
+      "attribution": "Value agreement only; not sole-source proof."
+    }
+  ],
+  "known_cli_limit": {
+    "machine_max_acceleration_x": [
+      "6000",
+      "6000"
+    ],
+    "machine_max_acceleration_y": [
+      "6000",
+      "6000"
+    ],
+    "known_limit": 6000,
+    "basis": "Accepted RUN-04 CLI6000 selection and exact successful cli_config read; effective6000 retained. No full effective-source attribution."
+  },
+  "key_count": 578
+}

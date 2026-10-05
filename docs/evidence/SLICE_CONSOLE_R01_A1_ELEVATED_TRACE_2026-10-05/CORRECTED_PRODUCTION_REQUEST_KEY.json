@@ -1,0 +1,51 @@
+{
+  "status": "REQUEST_IDENTITY_COMPLETE",
+  "SLICE_KEY": "SLICE_KEY/v0.2:sha256:2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+  "canonical_request_sha256": "2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c",
+  "component_digests": [
+    {
+      "pointer": "/backend_bundle",
+      "sha256": "357ff0d746ebc2e63c3326f2ad8a6623702cdc4d2454bb3ec7a5adb40c9c01b5"
+    },
+    {
+      "pointer": "/contracts",
+      "sha256": "b00361d907d2b638ccf4baf01e8e4e573c0b4cadf1ed569039407dd46d20436e"
+    },
+    {
+      "pointer": "/engine",
+      "sha256": "479b5604155038d26c480599dc30a211cda067cf2e3b3678b4677130ed4e10a0"
+    },
+    {
+      "pointer": "/execution",
+      "sha256": "efb1293b65af01f13dfa2aecfc3ce80e2a8aa44ff9524b030b1e8503f78beecd"
+    },
+    {
+      "pointer": "/inputs",
+      "sha256": "c145e45fc0ba0cd8301d07aaef0dec15af2266b5d4f0262ef4ea9606ac1d5e0d"
+    },
+    {
+      "pointer": "/profiles",
+      "sha256": "66e9f47b7a387929933a19441c7577bd07b2456b262002a4d8ea64773838515b"
+    },
+    {
+      "pointer": "/selected_request_resources",
+      "sha256": "9f2b38a68d613bcd536ee4f62bdce86acb69ef4b5a20219582f96e2c23b8bc2e"
+    }
+  ],
+  "semantic_policy_sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664",
+  "generator_calls": 1,
+  "Bambu_launches": 0,
+  "ProcMon_launches": 0,
+  "real_slice": 0,
+  "retry": 0,
+  "send": 0,
+  "print": 0,
+  "Print_GO_change": 0,
+  "cache": 0,
+  "REUSE": 0,
+  "B_compatibility": null,
+  "technical_audit_pass": null,
+  "package_pass": null,
+  "reuse_authorized": false,
+  "print_go": false
+}

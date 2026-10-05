@@ -1,0 +1,12 @@
+{
+  "engine_pid": 43216,
+  "required_absence_checks": [
+    {
+      "logical_name": "resources/profiles/BBL/machine_full/Bambu Lab A1.json",
+      "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine_full\\Bambu Lab A1.json",
+      "basis": "Exact model-id JSON probe failed; no successful open/read. Future appearance requires HOLD.",
+      "observed_result": "PATH NOT FOUND"
+    }
+  ],
+  "not_selected_generalization": false
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": "0.1",
+  "files": [
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_ACTUAL_ADAPTER_RESULT.json",
+      "size": 44805,
+      "sha256": "9a0db2be10ed1021b09af41bf6351652ff04381f80d1fa420a61af7c46ecd0e0"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_CANONICAL_REQUEST.json",
+      "size": 5751,
+      "sha256": "2a930b89ef411450fa625275a8db40fef3b796a5961b704d1100232a2b9d988c"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_DESCRIPTOR.json",
+      "size": 9464,
+      "sha256": "ec7c51de96a904621706de2d79d45ed55941a3a34ab7ef8688425ab4b1b8ff54"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_FULL_REGRESSION.txt",
+      "size": 27412,
+      "sha256": "ed09bc9b86efacaf129bc2405d9ddfed96ef4beb88a4568b3941dc3b286d7843"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_PRODUCTION_REQUEST_KEY.json",
+      "size": 1593,
+      "sha256": "4b7980f1632a09f451b42663f1c21a1c16532beee4448427c7bb8283aaecd0c5"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTED_TEST_RESULTS.json",
+      "size": 6130,
+      "sha256": "3f2ea5bac5e648aa00aed2b943774fbb656146c45278539d1d96df6bdd3d1891"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/CORRECTION_VALIDATION.json",
+      "size": 8765,
+      "sha256": "4d397ed0499d2a840c8751c0657c783122a244ab2a821c38217e2a49e8e5d5c8"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/PRE_FIX_WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json",
+      "size": 8136,
+      "sha256": "f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/REQUEST_IDENTITY_POLICY_V0_2_PROVENANCE.json",
+      "size": 3452,
+      "sha256": "7c38fdad72943824852d404d377c31ff2b5ef8eb7962eb258b09c49e3ee68b3f"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/REQUEST_KEY_SUPERSESSION.json",
+      "size": 984,
+      "sha256": "ebff0d32a9b971e7bce19dde5277ae7add45317c90c861d2ca9683459179fc24"
+    },
+    {
+      "path": "tools/slice-console/policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json",
+      "size": 6556,
+      "sha256": "60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664"
+    }
+  ]
+}
