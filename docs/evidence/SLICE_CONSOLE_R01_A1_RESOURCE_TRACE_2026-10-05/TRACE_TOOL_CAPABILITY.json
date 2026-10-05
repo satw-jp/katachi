@@ -1,0 +1,14 @@
+{
+  "procmon_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "file_version": "4.11",
+  "product_version": "4.11",
+  "signature_status": "Valid",
+  "signer_subject": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+  "token_is_administrator": false,
+  "existing_procmon_drivers": [],
+  "eula_registry_key_exists": false,
+  "procmon_launched": false,
+  "manifest_requested_execution_level": "<requestedExecutionLevel level=\"asInvoker\" uiAccess=\"false\">",
+  "official_admin_requirement": "https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/troubleshoot-apps-start-failure-use-process-monitor",
+  "constraint": "No -AcceptEula, UAC relaunch, service/driver install, registry writes or system configuration changes performed."
+}

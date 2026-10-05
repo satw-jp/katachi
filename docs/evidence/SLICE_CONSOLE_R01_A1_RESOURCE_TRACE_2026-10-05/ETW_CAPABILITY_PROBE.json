@@ -1,0 +1,32 @@
+{
+  "session": "A1ResourceCapability_20261005",
+  "command": "logman start unique-session -ets -o isolated.etl -p Microsoft-Windows-Kernel-File 0x1F0 4",
+  "started_at": "2026-10-05T16:54:36.2677888+09:00",
+  "ended_at": "2026-10-05T16:54:36.4976035+09:00",
+  "start_exit_code": -2147024891,
+  "start_output": [
+    "",
+    "Error:",
+    "Access is denied.",
+    "Try running this command as an administrator."
+  ],
+  "stop_output": [
+    ""
+  ],
+  "engine_launch_count": 0,
+  "trace_scope": "Capability check only; no Bambu and no analysis of other processes",
+  "persistent_data_collector_created": false,
+  "controller_session_partially_created": true,
+  "required_provider_enable_failed": true,
+  "provider_enable_error": "Access is denied",
+  "session_stopped": true,
+  "post_stop_not_found": true,
+  "cleanup_evidence": "ETW_SESSION_CLEANUP.json",
+  "raw_capability_etl": {
+    "artifact": "ETW_CAPABILITY_ONLY.etl",
+    "size": 8192,
+    "sha256": "22e2bca1bdf36ffedfbfb786c9d67dd92b444205d5ffdba7f3d347485da87de3",
+    "scope": "Failed tool capability session only, no Bambu launch, not a request-resource trace",
+    "not_analyzed_for_other_process_events": true
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "path": "C:\\Windows\\System32\\logman.exe",
+  "file_version": "10.0.26100.8875 (WinBuild.160101.0800)",
+  "size": 118784,
+  "sha256": "a6325762ed7725748df62d9bf3478596da03aa8ce0a9eb8e07087eebfa52cdac",
+  "used_for": "Transient Microsoft-Windows-Kernel-File capability probe",
+  "provider_guid": "EDD08927-9CC4-4E65-B970-C2560FB5C289",
+  "keyword_mask": "0x1F0",
+  "level": 4,
+  "no_system_path_change": true,
+  "no_registry_configuration_change": true
+}

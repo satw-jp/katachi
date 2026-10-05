@@ -1,0 +1,21 @@
+{
+  "source_url": "https://download.sysinternals.com/files/ProcessMonitor.zip",
+  "official_page": "https://learn.microsoft.com/en-us/sysinternals/downloads/procmon",
+  "retrieved_at": "2026-10-05T07:54:10.328908+00:00",
+  "archive": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\ProcessMonitor.zip",
+    "size": 3199668,
+    "sha256": "80a6442b46af762ed1432f6fec3f7e20366bed62a2522b3486503398a40a1128"
+  },
+  "executables": [
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+      "size": 2237208,
+      "sha256": "fc3af5317c707e0555ad6e7590ad65ceb5c5085b053b41221944ac3ca3492d9c"
+    }
+  ],
+  "procmon_launched": false,
+  "system_install": false,
+  "path_changed": false,
+  "registry_configuration_changed": false
+}
