@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "checks": [
+    "13 expected identities stable and unchanged",
+    "11 expectation classes and8 prior candidate decisions",
+    "ETW failed before engine; output root not created",
+    "all existing protected source/policy/test/golden files unchanged",
+    "historical CURRENT byte suffix preserved",
+    "JSON parse/local Markdown links/diff-check",
+    "partial ETW controller session stopped; final query not found; capability-only ETL separately hashed"
+  ],
+  "protected_tracked_files": 70,
+  "full_regression_run": false,
+  "reason": "Docs/evidence only; no adapter/policy/executable helper changes",
+  "historical_regression_225_PASS": {
+    "source": "accepted PR50",
+    "newly_run": false
+  },
+  "engine_launch_count": 0,
+  "test_process_launch_count": 0
+}

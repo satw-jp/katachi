@@ -1,0 +1,135 @@
+{
+  "version": "0.1",
+  "frozen_before_engine_launch": true,
+  "created_at": "2026-10-05T07:54:07.967328+00:00",
+  "authority": "PR51 exact commit6874ef509e6f807b5130b6c051e7b29e4aebc431",
+  "prior_candidate_classifications": [
+    {
+      "logical_resource": "resources/profiles/BBL/cli_config.json",
+      "classification": "REQUEST_RESOURCE_REQUIRED",
+      "selected_by_route": true,
+      "content_identity_required": true,
+      "basis": "Accepted policy selection from RUN-04 CLI6000 semantics; unchanged.",
+      "evidence": [
+        "tools/slice-console/policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json"
+      ],
+      "confidence": "accepted policy and fresh byte identity",
+      "blocker": null
+    },
+    {
+      "logical_resource": "default_print_profile named bundled process",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Name is not metadata proof; supporting source has conditional process_full read, not an unconditional name-based parent load.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2356",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L3471"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "default_filament_profile named bundled filament",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Explicit Generic PLA differs from named Bambu PLA default; supporting auto-fill branch is estimate_mode with empty load_filaments. Installed-route exclusion unproven.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2403"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "printer_model bundled machine/default-template",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Supporting source reads model_id from machine_full/<printer_model>.json if present. Whether any read contributes request semantics must be bound before selecting bytes.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2340"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "flat profile parent/includes and origin/instantiation semantics",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No inherits in explicit three profiles. Parser treats from/instantiation as key_values; origin also controls conditional filament parent behavior. End-to-end metadata-only proof absent.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2262",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2518"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "custom datadir configuration bytes",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Only .gitkeep observed directly; absence now does not establish no config read or no default fallback.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "user/AppData configuration fallback",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Custom data_dir setter is supporting evidence only; downstream user/config fallback selection has not been closed.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "bundled/system template fallback for missing configuration",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No finite selected default/template set established for the installed route; directory existence is not selection evidence.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    }
+  ],
+  "candidate_classes": [
+    "explicit printer profile",
+    "explicit process profile",
+    "explicit filament profile",
+    "cli_config",
+    "default_print_profile candidate",
+    "default_filament_profile candidate",
+    "printer_model / machine_full candidate",
+    "bundled machine parent/default/template",
+    "supplied datadir",
+    "user/AppData config",
+    "bundled/system fallback config"
+  ],
+  "capture_required": [
+    "process name",
+    "PID",
+    "operation",
+    "path",
+    "result",
+    "timestamp/order",
+    "successful open/read",
+    "not-found and other relevant probes",
+    "loss/drop state if available"
+  ],
+  "analysis_scope": "Exact Bambu PID only; no native loader forensic analysis",
+  "unresolved_read_rule": "HOLD",
+  "incomplete_trace_rule": "HOLD",
+  "launch_limit": 1,
+  "retry_allowed": false
+}

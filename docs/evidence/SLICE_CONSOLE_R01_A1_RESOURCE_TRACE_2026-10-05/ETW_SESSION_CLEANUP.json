@@ -1,0 +1,37 @@
+{
+  "queried_before_stop": [
+    "",
+    "Name:                 A1ResourceCapability_20261005",
+    "Status:               Running",
+    "Root Path:            J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools",
+    "Segment:              Off",
+    "Schedules:            On",
+    "",
+    "Name:                 A1ResourceCapability_20261005\\A1ResourceCapability_20261005",
+    "Type:                 Trace",
+    "Output Location:      J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\capability.etl",
+    "Append:               Off",
+    "Circular:             Off",
+    "Overwrite:            Off",
+    "Buffer Size:          8",
+    "Buffers Lost:         0",
+    "Buffers Written:      1",
+    "Buffer Flush Timer:   0",
+    "Clock Type:           Performance",
+    "File Mode:            File",
+    "",
+    "The command completed successfully."
+  ],
+  "query_exit": 0,
+  "stop_output": [
+    "The command completed successfully."
+  ],
+  "stop_exit": 0,
+  "queried_after_stop": [
+    "",
+    "Error:",
+    "Data Collector Set was not found."
+  ],
+  "final_query_exit": -2144337918,
+  "observed_at": "2026-10-05T16:57:47.3654193+09:00"
+}

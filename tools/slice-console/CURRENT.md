@@ -1,3 +1,9 @@
+# Exact-route trace gate checkpoint
+
+HOLD / TRACE_TOOL_UNAVAILABLE before launch; engine0, slice0.13 preflight identities PASS; frozen expectation saved. Policy/adapter unchanged; key null. [Evidence](../../docs/evidence/SLICE_CONSOLE_R01_A1_RESOURCE_TRACE_2026-10-05.md).
+
+STOP: SLICE CONSOLE R0.1 EXACT-ROUTE RESOURCE TRACE — AUTHOR REVIEW.
+
 # A1 request resource coverage checkpoint
 
 HOLD / REQUEST_RESOURCE_COVERAGE_UNRESOLVED. Policy/adapter unchanged; actual key null. [Decision](../../docs/evidence/SLICE_CONSOLE_R01_A1_RESOURCE_COVERAGE_2026-10-04.md).

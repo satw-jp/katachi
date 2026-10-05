@@ -1,0 +1,222 @@
+{
+  "version": "0.1",
+  "observed_at": "2026-10-05T07:56:39.552033+00:00",
+  "status": "HOLD",
+  "reason": "TRACE_TOOL_UNAVAILABLE",
+  "blocker_detail": "Current token is not Administrator. ProcMon official documentation requires elevated capture; no existing ProcMon driver/EULA key. ProcMon not launched. Built-in ETW controller session was partially created but required Microsoft-Windows-Kernel-File provider activation returned Access is denied. Partial session stopped and post-stop query reports not found. Equivalent path/operation/result capture unavailable; no Bambu launch.",
+  "underlying_A_blocker": "EXACT_ROUTE_RESOURCE_SELECTION_BINDING",
+  "coverage_status": "INCOMPLETE",
+  "trace_started": false,
+  "raw_bambu_trace": null,
+  "raw_bambu_trace_sha256": null,
+  "exported_bambu_trace": null,
+  "exported_bambu_trace_sha256": null,
+  "lost_event_state": "NOT_APPLICABLE_NO_TRACE_STARTED",
+  "process": {
+    "launched": false,
+    "pid": null,
+    "start_time": null,
+    "end_time": null,
+    "exit_code": null,
+    "argv_executed": null,
+    "argv_proposed": [
+      "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "--debug",
+      "2",
+      "--datadir",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+      "--load-settings",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "--load-filaments",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "--filament-map",
+      "1",
+      "--filament-volume-map",
+      "0",
+      "--filament-nozzle-map",
+      "0",
+      "--filament-map-mode",
+      "Auto For Flush",
+      "--assemble",
+      "--ensure-on-bed",
+      "--arrange",
+      "0",
+      "--orient",
+      "0",
+      "--slice",
+      "0",
+      "--export-settings",
+      "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_20261005T075407Z_f20be6bc/resolved_settings.json",
+      "--outputdir",
+      "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_20261005T075407Z_f20be6bc",
+      "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl"
+    ],
+    "cwd": "J:\\Program Files\\Bambu Studio",
+    "datadir": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data",
+    "proposed_output": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_20261005T075407Z_f20be6bc",
+    "output_created": false
+  },
+  "resource_reads": {
+    "observed": false,
+    "successful_reads": null,
+    "missing_probes": null,
+    "reason": "No Bambu trace; absence of observations must not be interpreted as no access."
+  },
+  "resolved_settings": {
+    "generated": false,
+    "path": null,
+    "sha256": null,
+    "parse_status": "NOT_AVAILABLE"
+  },
+  "candidate_classifications": [
+    {
+      "logical_resource": "resources/profiles/BBL/cli_config.json",
+      "classification": "REQUEST_RESOURCE_REQUIRED",
+      "selected_by_route": true,
+      "content_identity_required": true,
+      "basis": "Accepted policy selection from RUN-04 CLI6000 semantics; unchanged.",
+      "evidence": [
+        "tools/slice-console/policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json"
+      ],
+      "confidence": "accepted policy and fresh byte identity",
+      "blocker": null
+    },
+    {
+      "logical_resource": "default_print_profile named bundled process",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Name is not metadata proof; supporting source has conditional process_full read, not an unconditional name-based parent load.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2356",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L3471"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "default_filament_profile named bundled filament",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Explicit Generic PLA differs from named Bambu PLA default; supporting auto-fill branch is estimate_mode with empty load_filaments. Installed-route exclusion unproven.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2403"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "printer_model bundled machine/default-template",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Supporting source reads model_id from machine_full/<printer_model>.json if present. Whether any read contributes request semantics must be bound before selecting bytes.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2340"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "flat profile parent/includes and origin/instantiation semantics",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No inherits in explicit three profiles. Parser treats from/instantiation as key_values; origin also controls conditional filament parent behavior. End-to-end metadata-only proof absent.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2262",
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L2518"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "custom datadir configuration bytes",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Only .gitkeep observed directly; absence now does not establish no config read or no default fallback.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "user/AppData configuration fallback",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "Custom data_dir setter is supporting evidence only; downstream user/config fallback selection has not been closed.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    },
+    {
+      "logical_resource": "bundled/system template fallback for missing configuration",
+      "classification": "UNRESOLVED",
+      "selected_by_route": null,
+      "content_identity_required": null,
+      "basis": "No finite selected default/template set established for the installed route; directory existence is not selection evidence.",
+      "evidence": [
+        "https://github.com/bambulab/BambuStudio/blob/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/BambuStudio.cpp#L8363"
+      ],
+      "confidence": "supporting_source_only; installed selection unknown",
+      "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED"
+    }
+  ],
+  "confirmed_selected_resources": [
+    {
+      "logical_name": "resources/profiles/BBL/cli_config.json",
+      "path": "J:/Program Files/Bambu Studio/resources/profiles/BBL/cli_config.json",
+      "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+      "role": "toolpath_request_configuration",
+      "basis": "A1_BAMBU_CLI_RUNBOOK RUN-04 retains current CLI6000 cap; explicit policy selection, not promotion of all PR44 candidates"
+    }
+  ],
+  "complete_finite_A_set_known": false,
+  "required_absence_checks": null,
+  "required_absence_set_known": false,
+  "policy_revision": null,
+  "policy_v0_1_preserved": true,
+  "adapter_result": {
+    "status": "NOT_EVALUATED",
+    "reason": "Coverage COMPLETE prerequisite not met; no actual adapter re-evaluation authorized in this branch."
+  },
+  "DESCRIPTOR": null,
+  "GENERATOR_RESULT": null,
+  "SLICE_KEY": null,
+  "CANONICAL_REQUEST_SHA256": null,
+  "COMPONENT_DIGESTS": null,
+  "frozen_expectation": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-a1-resource-trace\\docs\\evidence\\SLICE_CONSOLE_R01_A1_RESOURCE_TRACE_2026-10-05\\RESOURCE_TRACE_EXPECTATION.json",
+    "size": 6445,
+    "sha256": "87f5585cd8c4f90df6581c7b8f3bec29176a8bd8f8fae0b7bc036d7c680f6ee5"
+  },
+  "counts": {
+    "bambu_launch": 0,
+    "diagnostic_real_slice": 0,
+    "retry_slice": 0,
+    "test_process_launch": 0,
+    "loader_forensic": 0,
+    "cache": 0,
+    "reuse": 0,
+    "printer_send": 0,
+    "print": 0,
+    "print_go_change": 0
+  },
+  "next_one_candidate": "WINDOWS A1/0.4 TRACE CAPTURE CAPABILITY / ADMINISTRATOR EXECUTION GATE",
+  "next_task_started": false,
+  "trace_started_scope": "No Bambu resource trace started; partial tool capability controller session separately recorded.",
+  "raw_capability_etl": {
+    "artifact": "ETW_CAPABILITY_ONLY.etl",
+    "size": 8192,
+    "sha256": "22e2bca1bdf36ffedfbfb786c9d67dd92b444205d5ffdba7f3d347485da87de3",
+    "scope": "Failed tool capability session only, no Bambu launch, not a request-resource trace",
+    "not_analyzed_for_other_process_events": true
+  },
+  "capability_session_cleanup_complete": true
+}
