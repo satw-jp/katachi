@@ -1,0 +1,45 @@
+{
+  "status": "REQUEST_IDENTITY_COMPLETE",
+  "SLICE_KEY": "SLICE_KEY/v0.2:sha256:62a5049a40a59351c5bf56494d2dee4addd7bbd45ce897094fd4b7ea5f278615",
+  "canonical_request_sha256": "62a5049a40a59351c5bf56494d2dee4addd7bbd45ce897094fd4b7ea5f278615",
+  "component_digests": [
+    {
+      "pointer": "/backend_bundle",
+      "sha256": "357ff0d746ebc2e63c3326f2ad8a6623702cdc4d2454bb3ec7a5adb40c9c01b5"
+    },
+    {
+      "pointer": "/contracts",
+      "sha256": "a619242126c1ee59a574753cb6912ffa9eb1f22fef555d957383e05125d7a5cf"
+    },
+    {
+      "pointer": "/engine",
+      "sha256": "479b5604155038d26c480599dc30a211cda067cf2e3b3678b4677130ed4e10a0"
+    },
+    {
+      "pointer": "/execution",
+      "sha256": "efb1293b65af01f13dfa2aecfc3ce80e2a8aa44ff9524b030b1e8503f78beecd"
+    },
+    {
+      "pointer": "/inputs",
+      "sha256": "c145e45fc0ba0cd8301d07aaef0dec15af2266b5d4f0262ef4ea9606ac1d5e0d"
+    },
+    {
+      "pointer": "/profiles",
+      "sha256": "66e9f47b7a387929933a19441c7577bd07b2456b262002a4d8ea64773838515b"
+    },
+    {
+      "pointer": "/selected_request_resources",
+      "sha256": "17f584e3586e2737c3219d68710b8fae0c496bee2f70374eb75619661fe37129"
+    }
+  ],
+  "coverage_policy_sha256": "f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b",
+  "trace_evidence": "COVERAGE_DECISION.json",
+  "generator_calls": 1,
+  "adapter_engine_launches": 0,
+  "execution_bambu_launches": 1,
+  "B_compatibility": null,
+  "technical_audit_pass": null,
+  "package_pass": null,
+  "reuse_authorized": false,
+  "print_go": false
+}

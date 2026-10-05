@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "protected_existing_files": 67,
+  "changed_existing_files": [
+    "tools/slice-console/CURRENT.md",
+    "tools/slice-console/REQUEST_IDENTITY_A1.md",
+    "tools/slice-console/request_identity_a1.py",
+    "tools/slice-console/tests/test_request_identity_a1.py"
+  ],
+  "checks": [
+    "frozen11 candidate classes retained; nonrequest paths have null candidate_class",
+    "234 regression PASS; 33 adapter tests; actual generator exactly1",
+    "key/canonical bytes/policy SHA consistent",
+    "all7 individual attestation check records PASS",
+    "old policy/generators/goldens/IdentityLock/Runner/Console preserved",
+    "CURRENT and adapter docs historical suffix byte-preserved",
+    "JSON/local links PASS",
+    "raw full-system PML/CSV not inside Git evidence folder"
+  ],
+  "module_test_counts": {
+    "test_app": 4,
+    "test_console": 16,
+    "test_identity_lock": 22,
+    "test_package_gcode": 2,
+    "test_request_identity_a1": 33,
+    "test_runner": 24,
+    "test_slice_key": 37,
+    "test_slice_key_v02": 91,
+    "test_startup": 5
+  },
+  "raw_privacy_boundary": "Only raw size/hash/pointer; exact PID filtered CSV permitted",
+  "test_harness_failure": "Initial recorder import order error retained, corrected; not product regression",
+  "actual_engine_launch_count": 1,
+  "engine_elevation": false,
+  "retry": 0,
+  "print_go": false,
+  "existing_backend_group_tests": 35,
+  "active_adapter_source_sha256": "361c93351c23af8587a25293689ce8b547d1051de5936391e3513ef347a9247b"
+}

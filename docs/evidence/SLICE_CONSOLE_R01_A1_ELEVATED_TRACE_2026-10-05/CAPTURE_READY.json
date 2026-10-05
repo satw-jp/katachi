@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-05T08:32:34.130841+00:00",
+  "procmon_token": {
+    "pid": 52276,
+    "known": true,
+    "elevated": true
+  },
+  "launcher_token": {
+    "pid": 51576,
+    "known": true,
+    "elevated": false
+  },
+  "pml_exists": true,
+  "pml_bytes": 1879048192,
+  "no_start_exception": true,
+  "marker_read": true,
+  "engine_launch_count": 0,
+  "status": "PASS",
+  "marker_path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\capture_ready_marker.txt",
+  "marker_at": "2026-10-05T08:32:34.140843+00:00"
+}

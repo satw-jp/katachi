@@ -1,3 +1,9 @@
+# Elevated exact-route request identity checkpoint
+
+REQUEST_IDENTITY COMPLETE; observed resource coverage COMPLETE, pinned policy0.2, actual adapter COMPLETE/key generated once. [Evidence](../../docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05.md). Bambu1 normal-token diagnostic slice; retry/send/print/cache/REUSE0.234 tests PASS. Raw full-system PML local-only; exact-PID export only in Git.
+
+STOP: SLICE CONSOLE R0.1 ELEVATED EXACT-ROUTE RESOURCE TRACE — AUTHOR REVIEW.
+
 # Exact-route trace gate checkpoint
 
 HOLD / TRACE_TOOL_UNAVAILABLE before launch; engine0, slice0.13 preflight identities PASS; frozen expectation saved. Policy/adapter unchanged; key null. [Evidence](../../docs/evidence/SLICE_CONSOLE_R01_A1_RESOURCE_TRACE_2026-10-05.md).

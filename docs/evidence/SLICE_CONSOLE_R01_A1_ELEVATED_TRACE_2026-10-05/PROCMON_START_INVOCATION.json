@@ -1,0 +1,9 @@
+{
+  "executable": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "arguments": "/AcceptEula /Quiet /Minimized /BackingFile \"J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\capture.pml\"",
+  "verb": "RunAs",
+  "window_style": "Hidden",
+  "requested_at": "2026-10-05T17:30:29.5415230+09:00",
+  "only_procmon_elevated": true,
+  "engine_launch_count": 0
+}

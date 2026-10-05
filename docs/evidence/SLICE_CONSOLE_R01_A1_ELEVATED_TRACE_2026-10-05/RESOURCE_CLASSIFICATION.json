@@ -1,0 +1,3861 @@
+{
+  "engine_pid": 43216,
+  "classification_scope": "All187 exact-PID file paths; candidate_class only from frozen11 classes or null for already-bound input/outputs/B/C; no other PID or native-loader forensic analysis",
+  "rows": [
+    {
+      "path": "C:\\Windows\\Prefetch\\BAMBU-STUDIO.EXE-945AE05A.pf",
+      "first_seen": "17:32:34.4501835",
+      "first_order": 4689041,
+      "operations": {
+        "CreateFile": 1,
+        "QueryStandardInformationFile": 1,
+        "ReadFile": 1
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio",
+      "first_seen": "17:32:34.4686417",
+      "first_order": 4691161,
+      "operations": {
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\System32\\apphelp.dll",
+      "first_seen": "17:32:34.4707172",
+      "first_order": 4691330,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "first_seen": "17:32:34.4722594",
+      "first_order": 4691507,
+      "operations": {
+        "CreateFile": 5,
+        "QueryBasicInformationFile": 2,
+        "QueryNameInformationFile": 4
+      },
+      "results": {
+        "SUCCESS": 11
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ntdll.dll",
+      "first_seen": "17:32:34.4726240",
+      "first_order": 4691554,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\kernel32.dll",
+      "first_seen": "17:32:34.4729639",
+      "first_order": 4691602,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\KernelBase.dll",
+      "first_seen": "17:32:34.4732357",
+      "first_order": 4691636,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\apppatch\\01DD4050A5BAA271.sysmain.sdb",
+      "first_seen": "17:32:34.4739338",
+      "first_order": 4691723,
+      "operations": {
+        "CreateFile": 4,
+        "QueryStandardInformationFile": 3
+      },
+      "results": {
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\apppatch\\sysmain.sdb",
+      "first_seen": "17:32:34.4741445",
+      "first_order": 4691747,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\apppatch\\MergeSdbFilesSource\\sysMerge.sdb",
+      "first_seen": "17:32:34.4750259",
+      "first_order": 4691858,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140_1.dll",
+      "first_seen": "17:32:34.4837775",
+      "first_order": 4693295,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\VCRUNTIME140.dll",
+      "first_seen": "17:32:34.4837898",
+      "first_order": 4693297,
+      "operations": {
+        "QueryOpen": 2
+      },
+      "results": {
+        "NAME NOT FOUND": 2
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSVCP140.dll",
+      "first_seen": "17:32:34.4837939",
+      "first_order": 4693298,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\vcruntime140_1.dll",
+      "first_seen": "17:32:34.4844830",
+      "first_order": 4693362,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\vcruntime140.dll",
+      "first_seen": "17:32:34.4845148",
+      "first_order": 4693365,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 4,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 6
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msvcp140.dll",
+      "first_seen": "17:32:34.4845227",
+      "first_order": 4693366,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\win32u.dll",
+      "first_seen": "17:32:34.4872420",
+      "first_order": 4693600,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ucrtbase.dll",
+      "first_seen": "17:32:34.4875556",
+      "first_order": 4693630,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msvcp_win.dll",
+      "first_seen": "17:32:34.4877994",
+      "first_order": 4693657,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\gdi32full.dll",
+      "first_seen": "17:32:34.4881130",
+      "first_order": 4693695,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\gdi32.dll",
+      "first_seen": "17:32:34.4884148",
+      "first_order": 4693729,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\user32.dll",
+      "first_seen": "17:32:34.4886934",
+      "first_order": 4693766,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\shell32.dll",
+      "first_seen": "17:32:34.4890368",
+      "first_order": 4693799,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\imm32.dll",
+      "first_seen": "17:32:34.4914535",
+      "first_order": 4694050,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\SHCore.dll",
+      "first_seen": "17:32:34.4973258",
+      "first_order": 4694734,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\uxtheme.dll",
+      "first_seen": "17:32:34.4979485",
+      "first_order": 4694787,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\rpcrt4.dll",
+      "first_seen": "17:32:34.4997516",
+      "first_order": 4694916,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\combase.dll",
+      "first_seen": "17:32:34.5001557",
+      "first_order": 4694961,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msvcrt.dll",
+      "first_seen": "17:32:34.5130210",
+      "first_order": 4696223,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msctf.dll",
+      "first_seen": "17:32:34.5134218",
+      "first_order": 4696261,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\opengl32.dll",
+      "first_seen": "17:32:34.5271558",
+      "first_order": 4697375,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\opengl32.dll",
+      "first_seen": "17:32:34.5273062",
+      "first_order": 4697393,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "ReadFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 6
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\GLU32.dll",
+      "first_seen": "17:32:34.5286897",
+      "first_order": 4697544,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\glu32.dll",
+      "first_seen": "17:32:34.5290153",
+      "first_order": 4697579,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DXCore.dll",
+      "first_seen": "17:32:34.5303265",
+      "first_order": 4697748,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\sechost.dll",
+      "first_seen": "17:32:34.5317013",
+      "first_order": 4697951,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\advapi32.dll",
+      "first_seen": "17:32:34.5321488",
+      "first_order": 4698005,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\Windows.StateRepositoryCore.dll",
+      "first_seen": "17:32:34.5359950",
+      "first_order": 4698801,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvlesi.inf_amd64_e289956fe3b55251\\nvoglv64.dll",
+      "first_seen": "17:32:34.5379027",
+      "first_order": 4699085,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "ReadFile": 63,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 69
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvlesi.inf_amd64_e289956fe3b55251\\VERSION.dll",
+      "first_seen": "17:32:34.5392511",
+      "first_order": 4699258,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvlesi.inf_amd64_e289956fe3b55251\\WTSAPI32.dll",
+      "first_seen": "17:32:34.5392583",
+      "first_order": 4699259,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\version.dll",
+      "first_seen": "17:32:34.5396982",
+      "first_order": 4699312,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\wtsapi32.dll",
+      "first_seen": "17:32:34.5397184",
+      "first_order": 4699315,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvlesi.inf_amd64_e289956fe3b55251\\SspiCli.dll",
+      "first_seen": "17:32:34.5407616",
+      "first_order": 4699445,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\sspicli.dll",
+      "first_seen": "17:32:34.5412629",
+      "first_order": 4699511,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\setupapi.dll",
+      "first_seen": "17:32:34.5423232",
+      "first_order": 4699654,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ole32.dll",
+      "first_seen": "17:32:34.5426234",
+      "first_order": 4699683,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\crypt32.dll",
+      "first_seen": "17:32:34.5432844",
+      "first_order": 4699741,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\oleaut32.dll",
+      "first_seen": "17:32:34.5440463",
+      "first_order": 4699835,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\Drs",
+      "first_seen": "17:32:34.5524772",
+      "first_order": 4700743,
+      "operations": {
+        "QueryOpen": 11,
+        "CreateFile": 11,
+        "QueryBasicInformationFile": 11
+      },
+      "results": {
+        "FAST IO DISALLOWED": 11,
+        "SUCCESS": 22
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\Drs\\nvdrssel.bin",
+      "first_seen": "17:32:34.5532388",
+      "first_order": 4700836,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 9,
+        "QueryBasicInformationFile": 3,
+        "ReadFile": 3
+      },
+      "results": {
+        "FAST IO DISALLOWED": 3,
+        "SUCCESS": 15
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\Drs\\nvdrsdb0.bin",
+      "first_seen": "17:32:34.5544210",
+      "first_order": 4700988,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 9,
+        "QueryBasicInformationFile": 3,
+        "QueryStandardInformationFile": 6
+      },
+      "results": {
+        "FAST IO DISALLOWED": 3,
+        "SUCCESS": 18
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\oculusmedium.exe",
+      "first_seen": "17:32:34.5555710",
+      "first_order": 4701132,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\petromod_nvidia_profile_identifier.ogl",
+      "first_seen": "17:32:34.5557342",
+      "first_order": 4701150,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\rendspt.dll",
+      "first_seen": "17:32:34.5559489",
+      "first_order": 4701165,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\jengine.dll",
+      "first_seen": "17:32:34.5561241",
+      "first_order": 4701179,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\jengined.dll",
+      "first_seen": "17:32:34.5562564",
+      "first_order": 4701192,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\aurora.dll",
+      "first_seen": "17:32:34.5563679",
+      "first_order": 4701204,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "NAME NOT FOUND": 3
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msasn1.dll",
+      "first_seen": "17:32:34.7777188",
+      "first_order": 4719837,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\cryptnet.dll",
+      "first_seen": "17:32:34.7788933",
+      "first_order": 4719905,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\cryptbase.dll",
+      "first_seen": "17:32:34.7812309",
+      "first_order": 4720034,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\wldp.dll",
+      "first_seen": "17:32:34.7839765",
+      "first_order": 4720153,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryNameInformationFile": 3
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\drvstore.dll",
+      "first_seen": "17:32:34.7867101",
+      "first_order": 4720290,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "ReadFile": 6
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 10
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\devobj.dll",
+      "first_seen": "17:32:34.7882110",
+      "first_order": 4720387,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\cfgmgr32.dll",
+      "first_seen": "17:32:34.7900475",
+      "first_order": 4720464,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 7,
+        "QueryBasicInformationFile": 3
+      },
+      "results": {
+        "FAST IO DISALLOWED": 3,
+        "SUCCESS": 10
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ntmarta.dll",
+      "first_seen": "17:32:34.7964526",
+      "first_order": 4720817,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\wintrust.dll",
+      "first_seen": "17:32:34.8153411",
+      "first_order": 4722248,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvlesi.inf_amd64_e289956fe3b55251\\nvgpucomp64.dll",
+      "first_seen": "17:32:34.8241271",
+      "first_order": 4722892,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 9,
+        "QueryBasicInformationFile": 3,
+        "QueryStandardInformationFile": 7,
+        "ReadFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 3,
+        "SUCCESS": 20
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\Drs\\nvAppTimestamps",
+      "first_seen": "17:32:34.8244311",
+      "first_order": 4722910,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryStandardInformationFile": 1,
+        "ReadFile": 162
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 167
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\System32\\C_1252.NLS",
+      "first_seen": "17:32:34.8256996",
+      "first_order": 4723062,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\Globalization\\Sorting\\SortDefault.nls",
+      "first_seen": "17:32:34.8260774",
+      "first_order": 4723114,
+      "operations": {
+        "CreateFile": 1,
+        "QueryStandardInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\$Extend\\$UsnJrnl:$J:$DATA",
+      "first_seen": "17:32:34.8268852",
+      "first_order": 4723239,
+      "operations": {
+        "ReadFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": true,
+      "open_success": false,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\System32\\imagehlp.dll",
+      "first_seen": "17:32:34.8357370",
+      "first_order": 4723789,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\cryptsp.dll",
+      "first_seen": "17:32:34.9109392",
+      "first_order": 4726851,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\rsaenh.dll",
+      "first_seen": "17:32:34.9124185",
+      "first_order": 4726935,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\bcryptprimitives.dll",
+      "first_seen": "17:32:34.9161949",
+      "first_order": 4727109,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ci.dll",
+      "first_seen": "17:32:34.9181320",
+      "first_order": 4727259,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 4,
+        "QueryBasicInformationFile": 4
+      },
+      "results": {
+        "FAST IO DISALLOWED": 4,
+        "SUCCESS": 8
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\dnsapi.dll",
+      "first_seen": "17:32:34.9219385",
+      "first_order": 4727520,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\fveui.dll",
+      "first_seen": "17:32:34.9238863",
+      "first_order": 4727618,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 4,
+        "QueryBasicInformationFile": 4
+      },
+      "results": {
+        "FAST IO DISALLOWED": 4,
+        "SUCCESS": 8
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\wuaueng.dll",
+      "first_seen": "17:32:34.9270683",
+      "first_order": 4727824,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "first_seen": "17:32:34.9284883",
+      "first_order": 4727913,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ngcrecovery.dll",
+      "first_seen": "17:32:34.9301763",
+      "first_order": 4728007,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Program Files\\WindowsApps\\Microsoft.LanguageExperiencePackja-JP_26100.174.273.0_neutral__8wekyb3d8bbwe\\Windows\\System32\\ja-JP\\7c9b310eb9c44bacc0217dcb0fc18542\\crypt32.dll.mui",
+      "first_seen": "17:32:34.9324760",
+      "first_order": 4728129,
+      "operations": {
+        "CreateFile": 1,
+        "QueryStandardInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\bcrypt.dll",
+      "first_seen": "17:32:34.9330564",
+      "first_order": 4728146,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 5
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\windows.storage.dll",
+      "first_seen": "17:32:34.9517687",
+      "first_order": 4729235,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 5
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\shlwapi.dll",
+      "first_seen": "17:32:34.9556052",
+      "first_order": 4729423,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Users\\as\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Local",
+      "first_seen": "17:32:34.9568509",
+      "first_order": 4729503,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Windows\\System32\\nvspcap64.dll",
+      "first_seen": "17:32:34.9607677",
+      "first_order": 4729720,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 5,
+        "QueryBasicInformationFile": 2,
+        "ReadFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 9
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows",
+      "first_seen": "17:32:34.9622670",
+      "first_order": 4729817,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\profapi.dll",
+      "first_seen": "17:32:34.9652652",
+      "first_order": 4730000,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\profapi.dll",
+      "first_seen": "17:32:34.9655303",
+      "first_order": 4730008,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\ProgramData",
+      "first_seen": "17:32:34.9670963",
+      "first_order": 4730104,
+      "operations": {
+        "CreateFile": 3,
+        "QueryOpen": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "NAME COLLISION": 1,
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation",
+      "first_seen": "17:32:34.9676575",
+      "first_order": 4730140,
+      "operations": {
+        "CreateFile": 2,
+        "QueryOpen": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "NAME COLLISION": 1,
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\ShadowPlay",
+      "first_seen": "17:32:34.9678216",
+      "first_order": 4730145,
+      "operations": {
+        "CreateFile": 2,
+        "QueryOpen": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "NAME COLLISION": 1,
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\ProgramData\\NVIDIA Corporation\\ShadowPlay\\CaptureCore.log",
+      "first_seen": "17:32:34.9680446",
+      "first_order": 4730150,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryStandardInformationFile": 1,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\",
+      "first_seen": "17:32:34.9693329",
+      "first_order": 4730220,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "C:\\Program Files\\WindowsApps\\Microsoft.LanguageExperiencePackja-JP_26100.174.273.0_neutral__8wekyb3d8bbwe\\Windows\\System32\\ja-JP\\ccb1708dfa8d9179424f7e6cfe018457\\KERNEL32.DLL.mui",
+      "first_seen": "17:32:34.9717430",
+      "first_order": 4730350,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "PATH NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ja-jp\\kernel32.dll.mui",
+      "first_seen": "17:32:34.9718999",
+      "first_order": 4730357,
+      "operations": {
+        "CreateFile": 1,
+        "QueryStandardInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\psapi.dll",
+      "first_seen": "17:32:34.9908046",
+      "first_order": 4731269,
+      "operations": {
+        "CreateFile": 4
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\dbghelp.dll",
+      "first_seen": "17:32:34.9911046",
+      "first_order": 4731286,
+      "operations": {
+        "QueryOpen": 5,
+        "CreateFile": 15,
+        "QueryBasicInformationFile": 5
+      },
+      "results": {
+        "FAST IO DISALLOWED": 5,
+        "SUCCESS": 20
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\dwmapi.dll",
+      "first_seen": "17:32:34.9935101",
+      "first_order": 4731452,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 5
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\powrprof.dll",
+      "first_seen": "17:32:35.0988508",
+      "first_order": 4735913,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\UMPDC.dll",
+      "first_seen": "17:32:35.1005556",
+      "first_order": 4736032,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\umpdc.dll",
+      "first_seen": "17:32:35.1006903",
+      "first_order": 4736044,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\winsta.dll",
+      "first_seen": "17:32:35.1020302",
+      "first_order": 4736130,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+      "first_seen": "17:32:35.1129310",
+      "first_order": 4736611,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 6
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSWSOCK.dll",
+      "first_seen": "17:32:35.1142721",
+      "first_order": 4736697,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\mswsock.dll",
+      "first_seen": "17:32:35.1146193",
+      "first_order": 4736708,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\WinSxS\\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9278_none_3e0d1ba8e3303201",
+      "first_seen": "17:32:35.1148378",
+      "first_order": 4736711,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKXDESTEP.dll",
+      "first_seen": "17:32:35.1150632",
+      "first_order": 4736725,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKXCAF.dll",
+      "first_seen": "17:32:35.1150726",
+      "first_order": 4736726,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKLCAF.dll",
+      "first_seen": "17:32:35.1157023",
+      "first_order": 4736778,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKMesh.dll",
+      "first_seen": "17:32:35.1160505",
+      "first_order": 4736827,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKTopAlgo.dll",
+      "first_seen": "17:32:35.1185130",
+      "first_order": 4737028,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKBRep.dll",
+      "first_seen": "17:32:35.1186864",
+      "first_order": 4737044,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKMath.dll",
+      "first_seen": "17:32:35.1188269",
+      "first_order": 4737051,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKernel.dll",
+      "first_seen": "17:32:35.1190575",
+      "first_order": 4737071,
+      "operations": {
+        "QueryOpen": 5,
+        "CreateFile": 3,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 10
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\libmpfr-4.dll",
+      "first_seen": "17:32:35.1218112",
+      "first_order": 4737258,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\libgmp-10.dll",
+      "first_seen": "17:32:35.1218790",
+      "first_order": 4737269,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\WinSxS\\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9278_none_3e0d1ba8e3303201\\comctl32.dll",
+      "first_seen": "17:32:35.1220907",
+      "first_order": 4737292,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 2,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 6
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\OLEACC.dll",
+      "first_seen": "17:32:35.1225106",
+      "first_order": 4737325,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\oleacc.dll",
+      "first_seen": "17:32:35.1226734",
+      "first_order": 4737352,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\avcodec-61.dll",
+      "first_seen": "17:32:35.1232637",
+      "first_order": 4737387,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\swscale-8.dll",
+      "first_seen": "17:32:35.1234644",
+      "first_order": 4737405,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\avutil-59.dll",
+      "first_seen": "17:32:35.1234843",
+      "first_order": 4737407,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 2
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\WINSPOOL.DRV",
+      "first_seen": "17:32:35.1241114",
+      "first_order": 4737429,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\winspool.drv",
+      "first_seen": "17:32:35.1243318",
+      "first_order": 4737445,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1,
+        "ReadFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 5
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSVCP140_CODECVT_IDS.dll",
+      "first_seen": "17:32:35.1250035",
+      "first_order": 4737541,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msvcp140_codecvt_ids.dll",
+      "first_seen": "17:32:35.1251938",
+      "first_order": 4737554,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\dbgeng.dll",
+      "first_seen": "17:32:35.1252243",
+      "first_order": 4737557,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\CONCRT140.dll",
+      "first_seen": "17:32:35.1253405",
+      "first_order": 4737569,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\MSIMG32.dll",
+      "first_seen": "17:32:35.1255245",
+      "first_order": 4737596,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\dbgeng.dll",
+      "first_seen": "17:32:35.1255538",
+      "first_order": 4737603,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\concrt140.dll",
+      "first_seen": "17:32:35.1256709",
+      "first_order": 4737616,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\msimg32.dll",
+      "first_seen": "17:32:35.1260371",
+      "first_order": 4737665,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKV3d.dll",
+      "first_seen": "17:32:35.1263931",
+      "first_order": 4737723,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 5
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKService.dll",
+      "first_seen": "17:32:35.1275627",
+      "first_order": 4737868,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 3,
+        "QueryNameInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 8
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKPrim.dll",
+      "first_seen": "17:32:35.1277032",
+      "first_order": 4737884,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKGeomBase.dll",
+      "first_seen": "17:32:35.1278218",
+      "first_order": 4737896,
+      "operations": {
+        "QueryOpen": 5,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 8
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKG3d.dll",
+      "first_seen": "17:32:35.1287892",
+      "first_order": 4738049,
+      "operations": {
+        "QueryOpen": 7,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 10
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKSTEP.dll",
+      "first_seen": "17:32:35.1305473",
+      "first_order": 4738180,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKSTEPAttr.dll",
+      "first_seen": "17:32:35.1310382",
+      "first_order": 4738211,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKSTEPBase.dll",
+      "first_seen": "17:32:35.1314167",
+      "first_order": 4738237,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKXSBase.dll",
+      "first_seen": "17:32:35.1322426",
+      "first_order": 4738318,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKShHealing.dll",
+      "first_seen": "17:32:35.1342952",
+      "first_order": 4738455,
+      "operations": {
+        "QueryOpen": 4,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 7
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKCDF.dll",
+      "first_seen": "17:32:35.1353170",
+      "first_order": 4738538,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 5
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKVCAF.dll",
+      "first_seen": "17:32:35.1360109",
+      "first_order": 4738568,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKCAF.dll",
+      "first_seen": "17:32:35.1375924",
+      "first_order": 4738687,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKGeomAlgo.dll",
+      "first_seen": "17:32:35.1404394",
+      "first_order": 4738901,
+      "operations": {
+        "QueryOpen": 3,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 6
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKG2d.dll",
+      "first_seen": "17:32:35.1411154",
+      "first_order": 4738942,
+      "operations": {
+        "QueryOpen": 9,
+        "CreateFile": 4
+      },
+      "results": {
+        "SUCCESS": 13
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\WSOCK32.dll",
+      "first_seen": "17:32:35.1422822",
+      "first_order": 4739046,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\wsock32.dll",
+      "first_seen": "17:32:35.1424681",
+      "first_order": 4739061,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\dbgmodel.dll",
+      "first_seen": "17:32:35.1436616",
+      "first_order": 4739174,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\dbghelp.dll",
+      "first_seen": "17:32:35.1437753",
+      "first_order": 4739183,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\XmlLite.dll",
+      "first_seen": "17:32:35.1438066",
+      "first_order": 4739186,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\DbgModel.dll",
+      "first_seen": "17:32:35.1438435",
+      "first_order": 4739190,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKHLR.dll",
+      "first_seen": "17:32:35.1440086",
+      "first_order": 4739208,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\xmllite.dll",
+      "first_seen": "17:32:35.1442121",
+      "first_order": 4739225,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\freetype.dll",
+      "first_seen": "17:32:35.1458761",
+      "first_order": 4739421,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\WINMM.dll",
+      "first_seen": "17:32:35.1458843",
+      "first_order": 4739422,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\winmm.dll",
+      "first_seen": "17:32:35.1460725",
+      "first_order": 4739435,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKSTEP209.dll",
+      "first_seen": "17:32:35.1464737",
+      "first_order": 4739492,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\TKBO.dll",
+      "first_seen": "17:32:35.1487177",
+      "first_order": 4739694,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\ws2_32.dll",
+      "first_seen": "17:32:35.1504552",
+      "first_order": 4739867,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\comdlg32.dll",
+      "first_seen": "17:32:35.1606407",
+      "first_order": 4740881,
+      "operations": {
+        "CreateFile": 1,
+        "QueryNameInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 2
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\WindowsShell.Manifest",
+      "first_seen": "17:32:35.1649508",
+      "first_order": 4741281,
+      "operations": {
+        "CreateFile": 1,
+        "QueryStandardInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\OLEACCRC.DLL",
+      "first_seen": "17:32:35.1662534",
+      "first_order": 4741397,
+      "operations": {
+        "QueryOpen": 1
+      },
+      "results": {
+        "NAME NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": null,
+      "request_relevance": "Only failed/probe operations; runtime/host probes not added to A absence set.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Only failed/probe operations; runtime/host probes not added to A absence set."
+    },
+    {
+      "path": "C:\\Windows\\System32\\oleaccrc.dll",
+      "first_seen": "17:32:35.1664019",
+      "first_order": 4741407,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 1,
+        "QueryStandardInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Windows\\System32\\tzres.dll",
+      "first_seen": "17:32:35.1777708",
+      "first_order": 4742629,
+      "operations": {
+        "QueryOpen": 2,
+        "CreateFile": 4,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "FAST IO DISALLOWED": 2,
+        "SUCCESS": 6
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Program Files\\WindowsApps\\Microsoft.LanguageExperiencePackja-JP_26100.174.273.0_neutral__8wekyb3d8bbwe\\Windows\\System32\\ja-JP\\9f1c0a25a501c6c69c8ba8e7491286a4\\tzres.dll.mui",
+      "first_seen": "17:32:35.1787623",
+      "first_order": 4742757,
+      "operations": {
+        "CreateFile": 2,
+        "QueryStandardInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "C:\\Users\\as\\AppData\\Local\\Temp",
+      "first_seen": "17:32:35.1881524",
+      "first_order": 4743561,
+      "operations": {
+        "CreateFile": 3,
+        "QueryOpen": 1,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "SUCCESS": 4,
+        "FAST IO DISALLOWED": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\Program Files",
+      "first_seen": "17:32:35.1942138",
+      "first_order": 4743989,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl",
+      "first_seen": "17:32:35.1963272",
+      "first_order": 4744114,
+      "operations": {
+        "CreateFile": 2,
+        "QueryStandardInformationFile": 1,
+        "ReadFile": 2
+      },
+      "results": {
+        "SUCCESS": 5
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "REQUEST_RESOURCE_REQUIRED",
+      "candidate_class": null,
+      "request_relevance": "already bound request bytes",
+      "size": 684,
+      "fresh_sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+      "basis": "Exact ordered STL already bound under inputs, not an additional selected resource."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+      "first_seen": "17:32:35.1977183",
+      "first_order": 4744181,
+      "operations": {
+        "CreateFile": 3,
+        "ReadFile": 9
+      },
+      "results": {
+        "SUCCESS": 11,
+        "END OF FILE": 1
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "EXPLICIT_PROFILE_ALREADY_BOUND",
+      "candidate_class": "explicit printer profile",
+      "request_relevance": "already bound request bytes",
+      "size": 29021,
+      "fresh_sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+      "basis": "Fresh exact profile lock identity verified before/after run."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine_full\\Bambu Lab A1.json",
+      "first_seen": "17:32:35.2003014",
+      "first_order": 4744311,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "PATH NOT FOUND": 1
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "PROBED_NOT_SELECTED",
+      "candidate_class": "printer_model / machine_full candidate",
+      "request_relevance": "Exact model-id JSON probe failed; no successful open/read. Future appearance requires HOLD.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact model-id JSON probe failed; no successful open/read. Future appearance requires HOLD."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+      "first_seen": "17:32:35.2004501",
+      "first_order": 4744326,
+      "operations": {
+        "CreateFile": 3,
+        "ReadFile": 2
+      },
+      "results": {
+        "SUCCESS": 5
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "EXPLICIT_PROFILE_ALREADY_BOUND",
+      "candidate_class": "explicit process profile",
+      "request_relevance": "already bound request bytes",
+      "size": 7598,
+      "fresh_sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+      "basis": "Fresh exact profile lock identity verified before/after run."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+      "first_seen": "17:32:35.2024103",
+      "first_order": 4744413,
+      "operations": {
+        "CreateFile": 3,
+        "ReadFile": 3
+      },
+      "results": {
+        "SUCCESS": 5,
+        "END OF FILE": 1
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "EXPLICIT_PROFILE_ALREADY_BOUND",
+      "candidate_class": "explicit filament profile",
+      "request_relevance": "already bound request bytes",
+      "size": 7724,
+      "fresh_sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984",
+      "basis": "Fresh exact profile lock identity verified before/after run."
+    },
+    {
+      "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\cli_config.json",
+      "first_seen": "17:32:35.2043603",
+      "first_order": 4744519,
+      "operations": {
+        "CreateFile": 2,
+        "ReadFile": 11
+      },
+      "results": {
+        "SUCCESS": 12,
+        "END OF FILE": 1
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "REQUEST_RESOURCE_REQUIRED",
+      "candidate_class": "cli_config",
+      "request_relevance": "already bound request bytes",
+      "size": 38685,
+      "fresh_sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+      "basis": "Successful exact-PID read; accepted CLI6000 request limit resource."
+    },
+    {
+      "path": "C:\\Windows\\System32\\kernel.appcore.dll",
+      "first_seen": "17:32:35.2102773",
+      "first_order": 4744740,
+      "operations": {
+        "QueryOpen": 1,
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 1
+      },
+      "results": {
+        "FAST IO DISALLOWED": 1,
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "C_RUNTIME_PROVENANCE",
+      "candidate_class": null,
+      "request_relevance": "Native image/runtime file class, no A promotion, no binding/graph/module analysis.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Native image/runtime file class, no A promotion, no binding/graph/module analysis."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\plate_1.gcode",
+      "first_seen": "17:32:35.2219473",
+      "first_order": 4745209,
+      "operations": {
+        "CreateFile": 2
+      },
+      "results": {
+        "NAME NOT FOUND": 2
+      },
+      "read_success": false,
+      "open_success": false,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234",
+      "first_seen": "17:32:35.2226480",
+      "first_order": 4745265,
+      "operations": {
+        "CreateFile": 3
+      },
+      "results": {
+        "SUCCESS": 3
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\plate_1.gcode.tmp",
+      "first_seen": "17:32:35.2229049",
+      "first_order": 4745282,
+      "operations": {
+        "CreateFile": 3,
+        "QueryBasicInformationFile": 2,
+        "ReadFile": 3
+      },
+      "results": {
+        "SUCCESS": 6,
+        "END OF FILE": 2
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\plate_1.gcode.tmp.postprocess",
+      "first_seen": "17:32:35.2523427",
+      "first_order": 4746287,
+      "operations": {
+        "CreateFile": 2,
+        "ReadFile": 3
+      },
+      "results": {
+        "SUCCESS": 3,
+        "END OF FILE": 2
+      },
+      "read_success": true,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\plate_1.gcode.tmp.postprocessed",
+      "first_seen": "17:32:35.2540546",
+      "first_order": 4746368,
+      "operations": {
+        "CreateFile": 2,
+        "QueryBasicInformationFile": 2
+      },
+      "results": {
+        "SUCCESS": 4
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\$Extend\\$UsnJrnl:$J:$DATA",
+      "first_seen": "17:32:35.2630326",
+      "first_order": 4746766,
+      "operations": {
+        "ReadFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": true,
+      "open_success": false,
+      "classification": "B_ENVIRONMENT_RESOURCE",
+      "candidate_class": null,
+      "request_relevance": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Host filesystem/GPU cache/OS prefetch/temp or directory operation; no request-config file success. No B compatibility claim."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\resolved_settings.json",
+      "first_seen": "17:32:35.2661601",
+      "first_order": 4746891,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\\result.json",
+      "first_seen": "17:32:35.4684402",
+      "first_order": 4764571,
+      "operations": {
+        "CreateFile": 1
+      },
+      "results": {
+        "SUCCESS": 1
+      },
+      "read_success": false,
+      "open_success": true,
+      "classification": "OUTPUT_OR_LOG",
+      "candidate_class": null,
+      "request_relevance": "Exact isolated execution output path; not extra request config.",
+      "size": null,
+      "fresh_sha256": null,
+      "basis": "Exact isolated execution output path; not extra request config."
+    }
+  ],
+  "unknown_request_config_reads": []
+}

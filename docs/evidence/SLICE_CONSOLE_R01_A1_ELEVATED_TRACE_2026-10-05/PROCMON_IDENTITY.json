@@ -1,0 +1,10 @@
+{
+  "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "sha256": "fc3af5317c707e0555ad6e7590ad65ceb5c5085b053b41221944ac3ca3492d9c",
+  "file_version": "4.11",
+  "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+  "signature_status": "Valid",
+  "archive_sha256": "80a6442b46af762ed1432f6fec3f7e20366bed62a2522b3486503398a40a1128",
+  "source_url": "https://download.sysinternals.com/files/ProcessMonitor.zip",
+  "redownloaded": false
+}

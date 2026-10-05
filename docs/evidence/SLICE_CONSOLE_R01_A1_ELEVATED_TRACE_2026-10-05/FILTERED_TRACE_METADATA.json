@@ -1,0 +1,158 @@
+{
+  "status": "PARSE_PASS",
+  "engine_pid": 43216,
+  "image_name": "bambu-studio.exe",
+  "all_system_rows_scanned": 5961426,
+  "filtered_rows": 26069,
+  "operations": {
+    "Process Start": 1,
+    "Thread Create": 32,
+    "Load Image": 119,
+    "CreateFile": 438,
+    "QueryStandardInformationFile": 28,
+    "ReadFile": 276,
+    "CloseFile": 412,
+    "RegOpenKey": 4479,
+    "RegQueryValue": 2448,
+    "RegCloseKey": 2317,
+    "QueryOpen": 203,
+    "QueryBasicInformationFile": 110,
+    "IRP_MJ_CLOSE": 407,
+    "CreateFileMapping": 208,
+    "FASTIO_RELEASE_FOR_SECTION_SYNCHRONIZATION": 208,
+    "QueryNameInformationFile": 34,
+    "QuerySecurityFile": 230,
+    "QueryStatInformation": 10,
+    "RegEnumValue": 119,
+    "RegQueryKey": 341,
+    "RegSetInfoKey": 11,
+    "QueryInformationVolume": 7,
+    "QueryAllInformationFile": 7,
+    "RegEnumKey": 101,
+    "RegCreateKey": 9,
+    "WriteFile": 13452,
+    "Thread Exit": 32,
+    "QueryAttributeTagFile": 16,
+    "FileSystemControl": 4,
+    "QueryAttributeInformationVolume": 2,
+    "SetDispositionInformationEx": 1,
+    "SetRenameInformationFile": 2,
+    "FASTIO_MDL_READ_COMPLETE": 2,
+    "Process Profiling": 1,
+    "Process Exit": 1,
+    "RegSetValue": 1
+  },
+  "process_start_rows": [
+    {
+      "Time of Day": "17:32:34.4333637",
+      "Process Name": "bambu-studio.exe",
+      "PID": "43216",
+      "Operation": "Process Start",
+      "Path": "",
+      "Result": "SUCCESS",
+      "Detail": "Parent PID: 51576, Command line: \"J:\\Program Files\\Bambu Studio\\bambu-studio.exe\" --debug 2 --datadir \"J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data\" --load-settings \"J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json;J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json\" --load-filaments \"J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json\" --filament-map 1 --filament-volume-map 0 --filament-nozzle-map 0 --filament-map-mode \"Auto For Flush\" --assemble --ensure-on-bed --arrange 0 --orient 0 --slice 0 --export-settings \"J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234/resolved_settings.json\" --outputdir \"J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234\" \"J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\geometry\\diagnostic_cube.stl\", Current directory: J:\\Program Files\\Bambu Studio\\,",
+      "Trace export order": "4687520"
+    }
+  ],
+  "process_exit_rows": [
+    {
+      "Time of Day": "17:32:35.5630315",
+      "Process Name": "bambu-studio.exe",
+      "PID": "43216",
+      "Operation": "Process Exit",
+      "Path": "",
+      "Result": "SUCCESS",
+      "Detail": "Exit Status: 0, User Time: 0.3750000 seconds, Kernel Time: 0.6406250 seconds, Private Bytes: 73,682,944, Peak Private Bytes: 92,049,408, Working Set: 83,275,776, Peak Working Set: 87,920,640",
+      "Trace export order": "4766696"
+    }
+  ],
+  "child_process_create_rows": [],
+  "bambu_specific_registry_rows": [
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4681069"
+    },
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4933140"
+    },
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4934641"
+    },
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4937972"
+    },
+    {
+      "operation": "RegQueryValue",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Compatibility32\\bambu-studio",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4941372"
+    },
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:34.4946068"
+    },
+    {
+      "operation": "RegQueryValue",
+      "path": "HKLM\\System\\CurrentControlSet\\Services\\nvlddmkm\\_program files/bambu studio/bambu-studio.exe:Emulator",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:35.0100182"
+    },
+    {
+      "operation": "RegQueryValue",
+      "path": "HKLM\\System\\CurrentControlSet\\Services\\nvlddmkm\\_bambu studio/bambu-studio.exe:Emulator",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:35.0100426"
+    },
+    {
+      "operation": "RegQueryValue",
+      "path": "HKLM\\System\\CurrentControlSet\\Services\\nvlddmkm\\_bambu-studio.exe:Emulator",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:35.0100607"
+    },
+    {
+      "operation": "RegOpenKey",
+      "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bambu-studio.exe",
+      "result": "NAME NOT FOUND",
+      "time": "17:32:35.1038058"
+    },
+    {
+      "operation": "RegQueryValue",
+      "path": "HKLM\\System\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\S-1-5-21-1048671523-1552014033-3890207769-1001\\\\Device\\HarddiskVolume3\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "result": "SUCCESS",
+      "time": "17:32:35.5631172"
+    },
+    {
+      "operation": "RegSetValue",
+      "path": "HKLM\\System\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\S-1-5-21-1048671523-1552014033-3890207769-1001\\\\Device\\HarddiskVolume3\\Program Files\\Bambu Studio\\bambu-studio.exe",
+      "result": "SUCCESS",
+      "time": "17:32:35.5631554"
+    }
+  ],
+  "filtered_export": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-a1-elevated-resource-trace\\docs\\evidence\\SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05\\BAMBU_PID_FILTERED.csv",
+    "size": 5856785,
+    "sha256": "cd8da63f5f096d24ce052fe804ca21fa2037464745f9492f1c158ba6b586338d"
+  },
+  "full_system_csv_local_only": {
+    "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\raw\\all_events.csv",
+    "size": 1042650389,
+    "sha256": "fe96887a15b62a2a7cd4789b320d66c0c01c61bb73146929269efc224cef3df5"
+  },
+  "non_bambu_rows_retained": 0,
+  "environment_detail_redacted": true,
+  "loss_drop": "NOT_EXPOSED_BY_USED_CLI_EXPORT; no zero-loss claim",
+  "parse_completed_at": "2026-10-05T08:38:56.010205+00:00"
+}

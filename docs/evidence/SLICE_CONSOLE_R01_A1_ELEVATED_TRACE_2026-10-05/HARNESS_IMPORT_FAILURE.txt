@@ -1,0 +1,162 @@
+test_app (unittest.loader._FailedTest.test_app) ... ERROR
+test_console (unittest.loader._FailedTest.test_console) ... ERROR
+test_identity_lock (unittest.loader._FailedTest.test_identity_lock) ... ERROR
+test_missing_context_fails_closed (test_package_gcode.PackageGcodeTests.test_missing_context_fails_closed) ... ok
+test_raw_bytes_and_validation (test_package_gcode.PackageGcodeTests.test_raw_bytes_and_validation) ... ok
+test_request_identity_a1 (unittest.loader._FailedTest.test_request_identity_a1) ... ERROR
+test_runner (unittest.loader._FailedTest.test_runner) ... ERROR
+test_slice_key (unittest.loader._FailedTest.test_slice_key) ... ERROR
+test_slice_key_v02 (unittest.loader._FailedTest.test_slice_key_v02) ... ERROR
+test_desktop_and_startup_shortcut_specs_differ_only_by_startup_flag (test_startup.StartupTests.test_desktop_and_startup_shortcut_specs_differ_only_by_startup_flag) ... ok
+test_duplicate_instance_is_detected_without_pid_file (test_startup.StartupTests.test_duplicate_instance_is_detected_without_pid_file) ... ok
+test_pythonw_sibling_is_preferred (test_startup.StartupTests.test_pythonw_sibling_is_preferred) ... ok
+test_shortcut_create_and_remove (test_startup.StartupTests.test_shortcut_create_and_remove) ... ok
+test_startup_argument_is_separate_from_optional_job (test_startup.StartupTests.test_startup_argument_is_separate_from_optional_job) ... ok
+
+======================================================================
+ERROR: test_app (unittest.loader._FailedTest.test_app)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_app
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_app.py", line 13, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 43, in <module>
+    from .windows_events import *
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\windows_events.py", line 26, in <module>
+    from . import windows_utils
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\windows_utils.py", line 125, in <module>
+    class Popen(subprocess.Popen):
+TypeError: function() argument 'code' must be code, not str
+
+
+======================================================================
+ERROR: test_console (unittest.loader._FailedTest.test_console)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_console
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_console.py", line 14, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+======================================================================
+ERROR: test_identity_lock (unittest.loader._FailedTest.test_identity_lock)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_identity_lock
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_identity_lock.py", line 10, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+======================================================================
+ERROR: test_request_identity_a1 (unittest.loader._FailedTest.test_request_identity_a1)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_request_identity_a1
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_request_identity_a1.py", line 10, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+======================================================================
+ERROR: test_runner (unittest.loader._FailedTest.test_runner)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_runner
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_runner.py", line 14, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+======================================================================
+ERROR: test_slice_key (unittest.loader._FailedTest.test_slice_key)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_slice_key
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_slice_key.py", line 9, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+======================================================================
+ERROR: test_slice_key_v02 (unittest.loader._FailedTest.test_slice_key_v02)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_slice_key_v02
+Traceback (most recent call last):
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "J:\My Drive\codex\2026-10-03\files-pasted-by-the-user-fukei\work\katachi-a1-elevated-resource-trace\tools\slice-console\tests\test_slice_key_v02.py", line 9, in <module>
+    from unittest.mock import patch
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py", line 26, in <module>
+    import asyncio
+  File "C:\Users\as\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\__init__.py", line 25, in <module>
+    __all__ = (base_events.__all__ +
+               ^^^^^^^^^^^
+NameError: name 'base_events' is not defined
+
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.465s
+
+FAILED (errors=7)

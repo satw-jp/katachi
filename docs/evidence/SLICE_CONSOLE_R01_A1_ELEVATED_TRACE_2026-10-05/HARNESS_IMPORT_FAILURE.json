@@ -1,0 +1,29 @@
+{
+  "status": "FAIL",
+  "tests_run": 14,
+  "failures": 0,
+  "errors": 7,
+  "skipped": 0,
+  "existing_tests": 225,
+  "new_tests": 9,
+  "new_adapter_suite": 33,
+  "real_bambu_test_launches": 0,
+  "new_adapter_test_processes": 0,
+  "legacy_fake_helper_launches": 1,
+  "legacy_fake_helper_calls": [
+    {
+      "executable_basename": "powershell.exe",
+      "argument_basenames": [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "pythonw.exe,0'; $s.Description = 'FUKEI Slice Runner'; $s.Save()"
+      ],
+      "shell": false
+    }
+  ],
+  "completed_at": "2026-10-05T08:50:26.048644+00:00"
+}

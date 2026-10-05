@@ -1,0 +1,53 @@
+{
+  "run_dir": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\outputs\\RESOURCE_TRACE_ELEVATED_20261005T082903Z_e16baea8\\slice\\runs\\synthetic_diagnostic_cube_20261005_173234",
+  "outputs": [
+    {
+      "name": "INPUT_LOCKS.json",
+      "size": 443,
+      "sha256": "b09b23162b1f4c6e9b1e98242eda8070761c397f9357a162b018521b6e479318"
+    },
+    {
+      "name": "plate_1.gcode",
+      "size": 81099,
+      "sha256": "43ff00fd4457896aa5956b0a5c43d1c4a2f3067a2895cbb439df90a6fdc115e3"
+    },
+    {
+      "name": "resolved_settings.json",
+      "size": 52040,
+      "sha256": "e2047c31d3daa5fc0604941bdde0d9620319b9dd9adfdd28f2a837af8462a74f"
+    },
+    {
+      "name": "result.json",
+      "size": 1654,
+      "sha256": "5bb80e7bb7f3e7425affea47bac69667ebeef9991e673bcee404d9b2085659cd"
+    },
+    {
+      "name": "RESULT_MANIFEST.json",
+      "size": 6967,
+      "sha256": "97336675641f95ab92cf0d8dfdcdd58f0f90af40e932551ebf8e0e08e8a1e564"
+    },
+    {
+      "name": "RUNNER_EXECUTION_CONTEXT.json",
+      "size": 4598,
+      "sha256": "edf356efac1f20ea8d8b3055ff88814187ae50473ba32173d14d13ca75af8fe2"
+    },
+    {
+      "name": "SLICE_JOB.json",
+      "size": 2115,
+      "sha256": "faf51e41d5485dbadbebf937fcf713807caf3b34acd5cf612fee98523b890383"
+    },
+    {
+      "name": "stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stdout.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "execution_success": true,
+  "technical_pass": null,
+  "print_go": false
+}

@@ -1,3 +1,9 @@
+# Active observed policy v0.2
+
+Public API unchanged. Production policy now [v0.2](policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json), raw SHA `f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b`. Exact normal-token route trace completed once: extra selected cli_config, one missing machine JSON absence guard; observed profile SHA/cwd/datadir required. Future appearance or changed traced scope HOLD; fresh resource bytes and trace completeness/unknown checks gate the seventh attestation. Old v0.1 policy remains byte-identical history.
+
+[Actual trace/key evidence](../../docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05.md). Actual adapter COMPLETE and generator1; no adapter engine launch. No B compatibility, cache/REUSE, package/audit/Print GO claim. Historical v0.1 notes below describe the accepted pre-trace HOLD checkpoint.
+
 # Windows A1/0.4 request identity adapter
 
 Public API: `request_identity_a1.build_windows_a1_request(job_path, *, backend_dir, run_dir)`.

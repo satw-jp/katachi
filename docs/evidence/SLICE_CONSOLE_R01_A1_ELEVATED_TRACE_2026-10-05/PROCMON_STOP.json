@@ -1,0 +1,14 @@
+{
+  "executable": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\a1-trace-tools\\Procmon64.exe",
+  "arguments": "/Terminate /Quiet",
+  "verb": "RunAs",
+  "requested_at": "2026-10-05T17:33:19.0772877+09:00",
+  "completed_at": "2026-10-05T17:33:23.7470879+09:00",
+  "termination_helper_pid": 30340,
+  "helper_exited": true,
+  "helper_exit_code": 0,
+  "processes_remaining": [],
+  "raw_pml_closed": false,
+  "engine_launch_count": 1,
+  "purpose": "Authorized ProcMon capture termination only"
+}

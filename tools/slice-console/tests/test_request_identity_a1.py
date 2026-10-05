@@ -36,6 +36,10 @@ class A1RequestAdapterTests(unittest.TestCase):
         self.policy['request_resources']['selected'][0]['path'] = str(self.resource)
         self.policy['request_resources']['selected'][0]['sha256'] = hashlib.sha256(self.resource.read_bytes()).hexdigest()
         self.policy['policy_id'] = 'synthetic-focused-A1-policy-only'
+        self.absent = self.root/'missing-machine.json'
+        self.policy['required_absence_checks'][0]['path'] = str(self.absent)
+        self.policy['observed_profile_sha256'] = {role:hashlib.sha256((self.root/'sample'/('profiles/'+role+'.json')).read_bytes()).hexdigest() for role in ('printer','process','filament')}
+        self.policy['observed_route_context'] = {'cwd':str(self.root), 'datadir':str(self.root/'sample/data')}
         self.raw['engine_path'] = str(self.engine)
         self.raw['cli']['cwd'] = str(self.root)
         self.run_dir = self.root/'review-output'
@@ -172,5 +176,48 @@ class A1RequestAdapterTests(unittest.TestCase):
         p=self.root/'sample/locks/INPUT_LOCKS.json'; obj=json.loads(p.read_bytes()); obj['files'].pop('profiles/process.json')
         p.write_text(json.dumps(obj),encoding='utf-8')
         self.hold('INVALID_LOCK_COVERAGE')
+
+    def test_traced_selected_resource_is_in_descriptor(self):
+        result=self.complete()
+        entries=result['DESCRIPTOR']['request_identity']['selected_request_resources']['entries']
+        self.assertEqual(entries[0]['sha256'],self.policy['request_resources']['selected'][0]['sha256'])
+        self.assertEqual(result['REQUIRED_ABSENCE_CHECKS'][0]['state'],'ABSENT')
+
+    def test_revised_selected_resource_bytes_change_key(self):
+        first=self.complete()['SLICE_KEY']; self.generator.reset_mock()
+        self.resource.write_bytes(b'new synthetic reviewed limits')
+        self.policy['request_resources']['selected'][0]['sha256']=hashlib.sha256(self.resource.read_bytes()).hexdigest()
+        self.assertNotEqual(first,self.complete()['SLICE_KEY'])
+
+    def test_required_absence_becomes_present_hold(self):
+        self.absent.write_bytes(b'synthetic machine config')
+        self.hold('REQUIRED_ABSENCE_VIOLATION')
+
+    def test_unknown_traced_config_hold(self):
+        self.policy['resource_trace_evidence']['unknown_request_config_reads']=['synthetic unknown config']
+        self.hold('UNKNOWN_TRACED_CONFIG')
+
+    def test_incomplete_trace_hold(self):
+        self.policy['resource_trace_evidence']['trace_complete']=False
+        self.hold('TRACE_INCOMPLETE')
+
+    def test_nonselected_runtime_change_same_request_key(self):
+        runtime=self.root/'synthetic-runtime.dll'; runtime.write_bytes(b'host-runtime-A')
+        first=self.complete()['SLICE_KEY']; self.generator.reset_mock()
+        runtime.write_bytes(b'host-runtime-B')
+        self.assertEqual(first,self.complete()['SLICE_KEY'])
+
+    def test_actual_policy_pin_and_v01_preserved(self):
+        self.assertEqual(hashlib.sha256(adapter.POLICY_PATH.read_bytes()).hexdigest(),adapter.POLICY_SHA256)
+        old=ROOT/'policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_1.json'
+        self.assertEqual(hashlib.sha256(old.read_bytes()).hexdigest(),'15a49d183e1702cec0eccccdec114555828f32ea69cf7865688d8ab03f941f59')
+
+    def test_changed_traced_profile_binding_hold(self):
+        self.policy['observed_profile_sha256']['printer']='0'*64
+        self.hold('TRACED_PROFILE_IDENTITY_MISMATCH')
+
+    def test_changed_traced_route_context_hold(self):
+        self.policy['observed_route_context']['cwd']='different synthetic route'
+        self.hold('TRACE_ROUTE_CONTEXT_MISMATCH')
 
 if __name__=='__main__': unittest.main()
