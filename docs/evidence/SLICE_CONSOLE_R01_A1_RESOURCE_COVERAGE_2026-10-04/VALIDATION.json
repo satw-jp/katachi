@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "checks": [
+    "machine decision required fields and fail-closed null unknowns",
+    "fresh actual adapter HOLD; descriptor/generator/key null; engine false",
+    "all existing tracked tools/slice-console files except additive CURRENT equal base Git blobs",
+    "historical CURRENT suffix byte-preserved",
+    "all evidence JSON parse",
+    "local Markdown pointers exist",
+    "git diff --check"
+  ],
+  "protected_files": 70,
+  "regression_rerun": false,
+  "reason": "No executable helper/policy/adapter/backend/tests/golden changes; authorized docs/evidence-only task.",
+  "historical_PR50_regression": {
+    "passed": 225,
+    "newly_run": false
+  },
+  "engine_launch_count": 0
+}

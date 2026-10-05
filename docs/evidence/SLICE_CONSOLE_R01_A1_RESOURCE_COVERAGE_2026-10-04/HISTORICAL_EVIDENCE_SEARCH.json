@@ -1,0 +1,148 @@
+{
+  "observed_at": "2026-10-04T11:21:15.308670+00:00",
+  "job": {
+    "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\SLICE_JOB.json",
+    "size": 2115,
+    "sha256": "faf51e41d5485dbadbebf937fcf713807caf3b34acd5cf612fee98523b890383"
+  },
+  "engine": {
+    "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+    "size": 159776,
+    "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268"
+  },
+  "declared_engine_version": "02.08.02.61",
+  "profiles": {
+    "filament": {
+      "identity": {
+        "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\filament.json",
+        "size": 7724,
+        "sha256": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984"
+      },
+      "fields": {
+        "name": "Generic PLA @BBL A1",
+        "type": "filament",
+        "from": "system",
+        "instantiation": "true",
+        "inherits": null,
+        "printer_model": null,
+        "default_print_profile": null,
+        "default_filament_profile": null
+      }
+    },
+    "process": {
+      "identity": {
+        "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\process.json",
+        "size": 7598,
+        "sha256": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0"
+      },
+      "fields": {
+        "name": "0.20mm Standard @BBL A1",
+        "type": "process",
+        "from": "system",
+        "instantiation": "true",
+        "inherits": null,
+        "printer_model": null,
+        "default_print_profile": null,
+        "default_filament_profile": null
+      }
+    },
+    "printer": {
+      "identity": {
+        "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\profiles\\printer.json",
+        "size": 29021,
+        "sha256": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f"
+      },
+      "fields": {
+        "name": "Bambu Lab A1 0.4 nozzle",
+        "type": "machine",
+        "from": "system",
+        "instantiation": "true",
+        "inherits": null,
+        "printer_model": "Bambu Lab A1",
+        "default_print_profile": "0.20mm Standard @BBL A1",
+        "default_filament_profile": [
+          "Bambu PLA Basic @BBL A1"
+        ]
+      }
+    }
+  },
+  "argv_template": [
+    "{engine_path}",
+    "--debug",
+    "2",
+    "--datadir",
+    "{data_dir}",
+    "--load-settings",
+    "{profile_printer};{profile_process}",
+    "--load-filaments",
+    "{profile_filament}",
+    "--filament-map",
+    "1",
+    "--filament-volume-map",
+    "0",
+    "--filament-nozzle-map",
+    "0",
+    "--filament-map-mode",
+    "Auto For Flush",
+    "--assemble",
+    "--ensure-on-bed",
+    "--arrange",
+    "0",
+    "--orient",
+    "0",
+    "--slice",
+    "0",
+    "--export-settings",
+    "{output_dir}/resolved_settings.json",
+    "--outputdir",
+    "{output_dir}",
+    "{input_0}"
+  ],
+  "cwd": "J:/Program Files/Bambu Studio",
+  "local_scope": {
+    "sample_direct_children": [
+      "SLICE_JOB.json",
+      "data",
+      "geometry",
+      "locks",
+      "profiles"
+    ],
+    "declared_output_root_exists": false,
+    "data_direct_children": [
+      ".gitkeep"
+    ],
+    "operational_CURRENT": "Describes other package/real-G-code fixtures; not an identity-bound clean_mesh_box execution.",
+    "operational_result_json": "Unbound success summary only; no engine/profile/input/argv manifest identity, excluded."
+  },
+  "drive_scope": {
+    "searches": [
+      "clean_mesh_box",
+      "resolved_settings",
+      "exact name resolved_settings.json",
+      "exact name RESULT_MANIFEST.json"
+    ],
+    "exact_name_search_results": 0,
+    "limitation": "Search results may omit JSON; not evidence of global nonexistence. Direct list_folder additionally used for the selected older clean_mesh_box folder.",
+    "direct_folder_id": "1E7HaT0RVDq7B6TO71drd-1nyIOK01npG",
+    "direct_children": [
+      "data",
+      "SLICE_JOB.json",
+      "locks",
+      "geometry",
+      "profiles"
+    ],
+    "folder_identity_match": "NOT_PROVEN: metadata folder is not substituted for exact local identity"
+  },
+  "matching_historical_run": "NOT_FOUND_WITHIN_DOCUMENTED_SCOPE",
+  "matching_resolved_settings": "NOT_FOUND_WITHIN_DOCUMENTED_SCOPE",
+  "effective_value_comparison": "NOT_PERFORMED_NO_IDENTITY_BOUND_RUN",
+  "value_origin_classes": [
+    "EXPLICITLY_SUPPLIED",
+    "CLI_CONFIG_DERIVED",
+    "ENGINE_BUILTIN",
+    "UNEXPLAINED_EXTERNAL",
+    "METADATA_ONLY",
+    "UNKNOWN"
+  ],
+  "global_absence_claim": false
+}

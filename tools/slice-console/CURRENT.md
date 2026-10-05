@@ -1,3 +1,9 @@
+# A1 request resource coverage checkpoint
+
+HOLD / REQUEST_RESOURCE_COVERAGE_UNRESOLVED. Policy/adapter unchanged; actual key null. [Decision](../../docs/evidence/SLICE_CONSOLE_R01_A1_RESOURCE_COVERAGE_2026-10-04.md).
+
+STOP: SLICE CONSOLE R0.1 A1 REQUEST RESOURCE COVERAGE — AUTHOR REVIEW.
+
 # CURRENT — Package G-code
 
 - Slice経路は変更していない。独立したGUIタブと `package_gcode.py` を追加。
