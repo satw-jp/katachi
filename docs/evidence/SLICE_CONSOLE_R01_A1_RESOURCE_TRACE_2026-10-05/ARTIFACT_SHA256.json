@@ -1,6 +1,11 @@
 {
-  "scope": "Saved normalized JSON checkpoint bytes; capability-only raw ETL is not Bambu trace",
+  "scope": "Exact saved checkpoint bytes; per-folder attributes preserve Windows CRLF JSON raw identities and recognize CR-at-EOL; capability ETL is not Bambu trace",
   "files": [
+    {
+      "artifact": ".gitattributes",
+      "size": 72,
+      "sha256": "308a40fa1d89ae5ea4390b4c9b46a0108b09f171f07898f25d451fa0c69c4e9f"
+    },
     {
       "artifact": "BUILTIN_TRACE_TOOL_IDENTITY.json",
       "size": 471,
@@ -53,8 +58,8 @@
     },
     {
       "artifact": "VALIDATION.json",
-      "size": 812,
-      "sha256": "d9282f5732db09303fa0dcddc3fb637dc8361b52f4eb050477a3e2b10dc2f8f6"
+      "size": 918,
+      "sha256": "ba67a70a0fbb8cda72ff41eea08958f6d597f8e7eb3510fa00e79c714666888c"
     }
   ],
   "raw_bambu_trace_sha256": null,

@@ -7,7 +7,8 @@
     "all existing protected source/policy/test/golden files unchanged",
     "historical CURRENT byte suffix preserved",
     "JSON parse/local Markdown links/diff-check",
-    "partial ETW controller session stopped; final query not found; capability-only ETL separately hashed"
+    "partial ETW controller session stopped; final query not found; capability-only ETL separately hashed",
+    "evidence raw-byte .gitattributes preserves JSON/ETL SHA in Git; staged blob hashes match manifest"
   ],
   "protected_tracked_files": 70,
   "full_regression_run": false,
