@@ -1,3 +1,9 @@
+# Request key provenance boundary correction
+
+PR #53 corrected semantic policy/NON-KEY provenance separation; accepted trace preserved. Actual read-only adapter COMPLETE, production generator1, Bambu/ProcMon0.238 tests PASS (new boundary processes0; unchanged legacy fake/helpers19). Old trace-derived key SUPERSEDED. [Current correction/key authority](../../docs/evidence/SLICE_CONSOLE_R01_REQUEST_KEY_PROVENANCE_BOUNDARY_FIX_2026-10-05.md). Checkpoints below are historical.
+
+STOP: SLICE CONSOLE R0.1 REQUEST KEY PROVENANCE BOUNDARY FIX — AUTHOR REVIEW.
+
 # Elevated exact-route request identity checkpoint
 
 REQUEST_IDENTITY COMPLETE; observed resource coverage COMPLETE, pinned policy0.2, actual adapter COMPLETE/key generated once. [Evidence](../../docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05.md). Bambu1 normal-token diagnostic slice; retry/send/print/cache/REUSE0.234 tests PASS. Raw full-system PML local-only; exact-PID export only in Git.

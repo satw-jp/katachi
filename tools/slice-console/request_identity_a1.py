@@ -14,7 +14,7 @@ from job import load_job, resolve_argv, resolve_cwd, _input_contract_errors
 from slice_key_v02 import generate_request_key_v0_2, canonical_decimal, _pairs, _constant, ATTESTATIONS
 
 POLICY_PATH = Path(__file__).parent / 'policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json'
-POLICY_SHA256 = 'f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b'
+POLICY_SHA256 = '60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664'
 
 class AdapterHold(ValueError):
     def __init__(self, code, pointer):
@@ -64,6 +64,7 @@ def check_required_absences(entries):
     require(type(entries) is list, 'INVALID_ABSENCE_RULE', '/required_absence_checks')
     checks = []
     for entry in entries:
+        require(entry.get('required_state') == 'ABSENT', 'INVALID_ABSENCE_RULE', '/required_absence_checks')
         path = Path(entry['path']).absolute()
         require(not os.path.lexists(path), 'REQUIRED_ABSENCE_VIOLATION', str(path))
         for parent in path.parents:
@@ -173,19 +174,14 @@ def _adapt(job_path, backend_dir, run_dir, policy, policy_sha, platform):
             _, item = stable_read(p)
             require(item['sha256'] == original['sha256'] and item['before'] == original['before'], 'CHANGED_FILE', str(p))
         attest('request_bytes_bound', ['input/profile/engine/backend/resource fresh stable reads','all file bytes reverified after loader/parser/argv binding'])
-        require(policy['request_resources']['coverage_status'] == 'COMPLETE', policy['request_resources']['blocker'], '/request_resources')
-        trace = policy.get('resource_trace_evidence', {})
-        require(trace.get('status') == 'COMPLETE' and trace.get('trace_complete') is True, 'TRACE_INCOMPLETE', '/policy/resource_trace_evidence')
-        require(trace.get('cleanup_status') == 'PASS', 'TRACE_CLEANUP_INCOMPLETE', '/policy/resource_trace_evidence')
-        require(trace.get('unknown_request_config_reads') == [], 'UNKNOWN_TRACED_CONFIG', '/policy/resource_trace_evidence')
-        require(trace.get('unresolved_fallbacks') == [], 'UNRESOLVED_TRACED_FALLBACK', '/policy/resource_trace_evidence')
+        require(policy['request_resources']['coverage_status'] == 'COMPLETE', 'REQUEST_RESOURCE_COVERAGE_UNRESOLVED', '/request_resources')
         for role in ('printer','process','filament'):
             require(identities[str(spec.profiles[role])]['sha256'] == policy['observed_profile_sha256'][role], 'TRACED_PROFILE_IDENTITY_MISMATCH', '/profiles/' + role)
         require(str(resolve_cwd(spec)) == policy['observed_route_context']['cwd'] and str(spec.data_dir) == policy['observed_route_context']['datadir'], 'TRACE_ROUTE_CONTEXT_MISMATCH', '/execution')
         final_absences = check_required_absences(policy.get('required_absence_checks', []))
         require(final_absences == absence_checks, 'CHANGED_ABSENCE_STATE', '/required_absence_checks')
         result['REQUIRED_ABSENCE_CHECKS'] = final_absences
-        attest('selected_request_resource_coverage_complete', ['pinned complete exact-PID trace selection and cleanup','no unknown config read or unresolved fallback','exact observed profile/cwd/datadir scope matched','each selected role policy bound and fresh hash matched','required missing paths checked before/after file reverify'])
+        attest('selected_request_resource_coverage_complete', ['accepted semantic coverage policy COMPLETE','current request within exact argv/input/profile/engine/backend route','exact accepted profile/cwd/datadir scope matched','each selected role policy bound and fresh hash matched','required ABSENT rules checked before/after file reverify'])
         transform = {'state':'present','value':{k:[canonical_decimal(x) for x in v] for k,v in raw['mesh']['intended_transform'].items()}}
         input_item = identities[str(spec.inputs[0])]
         profiles = {k:{'sha256':identities[str(spec.profiles[k])]['sha256'],'format':'json'} for k in ('printer','process')}

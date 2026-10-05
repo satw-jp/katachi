@@ -1,6 +1,7 @@
 {
   "policy_version": "0.2",
   "policy_id": "WINDOWS_A1_04_REQUEST_IDENTITY/v0.2",
+  "base_main": "e9c033ccaac1d3190e6b929fb121ddf2582f35b5",
   "route": {
     "platform": "Windows",
     "engine_version": "02.08.02.61",
@@ -158,7 +159,8 @@
   },
   "output_rule": {
     "classification": "opaque_path",
-    "output_only_destination": false
+    "output_only_destination": false,
+    "basis": "export/output destinations retained conservatively; no relocation neutrality proof"
   },
   "cwd_rule": "opaque_path exact resolve_cwd representation; no neutrality claim",
   "semantic_env": {
@@ -182,20 +184,30 @@
   },
   "request_resources": {
     "coverage_status": "COMPLETE",
+    "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED",
+    "unresolved": [],
     "selected": [
       {
         "logical_name": "resources/profiles/BBL/cli_config.json",
         "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\cli_config.json",
         "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
-        "role": "toolpath_request_configuration"
+        "role": "toolpath_request_configuration",
+        "basis": "Successful exact-PID read; accepted CLI6000 request limit resource."
       }
     ]
   },
+  "evidence": [
+    "docs/fabrication/A1_BAMBU_CLI_RUNBOOK.md#run-04--cli-6000-and-effective-settings",
+    "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/ROUTE_OBSERVATION.json",
+    "docs/fabrication/PRACTICAL_EXECUTION_IDENTITY_BOUNDARY_V0_2.md",
+    "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/COVERAGE_DECISION.json"
+  ],
   "required_absence_checks": [
     {
       "logical_name": "resources/profiles/BBL/machine_full/Bambu Lab A1.json",
       "path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine_full\\Bambu Lab A1.json",
-      "required_state": "ABSENT"
+      "basis": "Exact model-id JSON probe failed; no successful open/read. Future appearance requires HOLD.",
+      "observed_result": "PATH NOT FOUND"
     }
   ],
   "observed_profile_sha256": {
@@ -206,5 +218,20 @@
   "observed_route_context": {
     "cwd": "J:\\Program Files\\Bambu Studio",
     "datadir": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\sample\\clean_mesh_box\\data"
+  },
+  "resource_trace_evidence": {
+    "status": "COMPLETE",
+    "trace_complete": true,
+    "cleanup_status": "PASS",
+    "unknown_request_config_reads": [],
+    "unresolved_fallbacks": [],
+    "engine_pid": 43216,
+    "normal_engine_token_verified": true,
+    "execution_success": true,
+    "raw_pml_sha256": "7c5b3e47260c1e665760721184952ae5819da3e816599175c6911388e26c7983",
+    "filtered_export_sha256": "cd8da63f5f096d24ce052fe804ca21fa2037464745f9492f1c158ba6b586338d",
+    "pointer": "docs/evidence/SLICE_CONSOLE_R01_A1_ELEVATED_TRACE_2026-10-05/COVERAGE_DECISION.json",
+    "loss_drop": "NOT_EXPOSED_BY_USED_CLI_EXPORT; no zero-loss claim",
+    "boundary": "Finite exact observed configuration selection, not full runtime provenance or future environment compatibility."
   }
 }

@@ -1,3 +1,7 @@
+# Active semantic policy v0.2 — provenance boundary corrected
+
+Public API unchanged. Semantic policy pin `60701d2dce4352f0c76c10a27d7b7a1f636777b34b8cd2335f4b261c37f81664`; trace PID/success/tool/hashes/cleanup/basis are separate NON-KEY provenance and never loaded by adapter. Seventh attestation now checks accepted semantic coverage, fresh selected bytes, required ABSENT paths and current profile/cwd/datadir/argv scope. Historical trace flags are not live authorization. Old key/policy evidence preserved and SUPERSEDED. [Correction and exact key](../../docs/evidence/SLICE_CONSOLE_R01_REQUEST_KEY_PROVENANCE_BOUNDARY_FIX_2026-10-05.md). Output path policy unchanged. Sections below are historical pre-correction checkpoints.
+
 # Active observed policy v0.2
 
 Public API unchanged. Production policy now [v0.2](policies/WINDOWS_A1_04_REQUEST_IDENTITY_POLICY_V0_2.json), raw SHA `f89bf8db07b279d4990672c2f7617e98c9d594ee6e960fb784a7dbee1e1a023b`. Exact normal-token route trace completed once: extra selected cli_config, one missing machine JSON absence guard; observed profile SHA/cwd/datadir required. Future appearance or changed traced scope HOLD; fresh resource bytes and trace completeness/unknown checks gate the seventh attestation. Old v0.1 policy remains byte-identical history.
