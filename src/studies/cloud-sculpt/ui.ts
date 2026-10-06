@@ -39,6 +39,7 @@ import {
   type ExperimentalLightBandPosition,
   type ExperimentalLightBandResult,
 } from "./lightDrawingBand.ts";
+import type { PhysicalRefineState } from "./physicalRefine.ts";
 
 export interface UiCallbacks {
   onParamChange: (key: keyof FieldParams, value: number | string) => void;
@@ -77,6 +78,9 @@ export interface UiCallbacks {
   onImageExport: () => Promise<{ filename: string; width: number; height: number }>;
   onHikariMpmStart: () => void;
   onHikariMpmAdopt: () => void;
+  onPhysicalRefineProbe: () => void;
+  onPhysicalRefineRender: (purpose: "body" | "receiver") => void;
+  onPhysicalRefineCancel: () => void;
   onBackgroundMediaFile: (file: File) => Promise<BackgroundMediaInfo>;
   onBackgroundMediaModeChange: (mode: BackgroundMediaMode) => void;
   onBackgroundMediaClear: () => void;
@@ -120,6 +124,7 @@ export interface UiHandles {
   ) => void;
   setCameraOrbitState: (settings: CameraOrbitSettings) => void;
   setHikariMpmState: (state: { running: boolean; status: string }) => void;
+  setPhysicalRefineState: (state: PhysicalRefineState) => void;
 }
 
 export interface HikariViewSummary {
@@ -530,6 +535,93 @@ export function buildUi(
   const hikariMpmStatus = document.createElement("div");
   hikariMpmStatus.className = "hint hikari-mpm-status";
   hikariMpmStatus.textContent = "MPMは低頻度の球プロキシとしてHikariへ渡します。近似形状です。";
+
+  const physicalRefineStatus = document.createElement("div");
+  physicalRefineStatus.className = "optics-compute-status physical-refine-status";
+  physicalRefineStatus.dataset.status = "OFFLINE";
+  const physicalRefineCapability = document.createElement("div");
+  physicalRefineCapability.className = "hint physical-refine-capability";
+  const physicalRefineProbeButton = document.createElement("button");
+  physicalRefineProbeButton.type = "button";
+  physicalRefineProbeButton.textContent = "Mitsuba Bridgeを再確認";
+  physicalRefineProbeButton.onclick = () => callbacks.onPhysicalRefineProbe();
+  const physicalRefineBodyButton = document.createElement("button");
+  physicalRefineBodyButton.type = "button";
+  physicalRefineBodyButton.textContent = "PHYSICAL BODYをrender";
+  physicalRefineBodyButton.onclick = () => callbacks.onPhysicalRefineRender("body");
+  const physicalRefineReceiverButton = document.createElement("button");
+  physicalRefineReceiverButton.type = "button";
+  physicalRefineReceiverButton.textContent = "PHYSICAL RECEIVERをrender";
+  physicalRefineReceiverButton.onclick = () => callbacks.onPhysicalRefineRender("receiver");
+  const physicalRefineCancelButton = document.createElement("button");
+  physicalRefineCancelButton.type = "button";
+  physicalRefineCancelButton.textContent = "Mitsuba renderを停止";
+  physicalRefineCancelButton.onclick = () => callbacks.onPhysicalRefineCancel();
+  const physicalRefineResultImage = document.createElement("img");
+  physicalRefineResultImage.className = "physical-refine-result";
+  physicalRefineResultImage.alt = "Mitsuba Physical refine result";
+  physicalRefineResultImage.hidden = true;
+  const physicalRefineResultCaption = document.createElement("div");
+  physicalRefineResultCaption.className = "hint physical-refine-result-caption";
+  physicalRefineResultCaption.textContent = "まだPhysical結果はありません。LIVE表示は左のviewportが正本です。";
+  const physicalRefineNote = document.createElement("div");
+  physicalRefineNote.className = "hint";
+  physicalRefineNote.textContent = "明示操作のときだけ固定contractでMitsubaを実行します。20 mm/shape-unitは assumed。結果がSTALEになったら再renderしてください。";
+  const physicalRefineGroup = createPropertyGroup("PHYSICAL / REFINE", [
+    physicalRefineStatus,
+    physicalRefineCapability,
+    physicalRefineProbeButton,
+    physicalRefineBodyButton,
+    physicalRefineReceiverButton,
+    physicalRefineCancelButton,
+    physicalRefineResultImage,
+    physicalRefineResultCaption,
+    physicalRefineNote,
+  ], false);
+  physicalRefineGroup.addEventListener("toggle", () => {
+    if (physicalRefineGroup.open) callbacks.onPhysicalRefineProbe();
+  });
+  let physicalRefineObjectUrl: string | null = null;
+  let physicalRefineShownRequestId: string | null = null;
+
+  const physicalRefineStatusText: Record<PhysicalRefineState["status"], string> = {
+    OFFLINE: "OFFLINE — ローカルMitsuba Bridgeに接続できません",
+    READY: "READY — 明示renderを待機中",
+    RENDERING: "RENDERING — Mitsuba実行中",
+    CURRENT: "CURRENT — 現在のLIVE状態と一致",
+    STALE: "STALE — LIVE状態が変わったため再renderが必要",
+    ERROR: "ERROR — 最後の有効結果は保持しています",
+    CANCELLED: "CANCELLED — 最後の有効結果は保持しています",
+  };
+  const setPhysicalRefineState = (next: PhysicalRefineState): void => {
+    physicalRefineStatus.dataset.status = next.status;
+    physicalRefineStatus.textContent = next.error
+      ? `${physicalRefineStatusText[next.status]} · ${next.error}`
+      : physicalRefineStatusText[next.status];
+    const capability = next.capabilities;
+    physicalRefineCapability.textContent = capability
+      ? `${capability.selectedVariant ?? "variant不明"} · ${capability.gpu?.name ?? "CPU"} · ${capability.mitsuba.version ?? "Mitsuba不明"}`
+      : "Bridge capability未確認 — オフライン時もconsoleへエラーを出しません";
+    const rendering = next.status === "RENDERING";
+    const unavailable = next.status === "OFFLINE";
+    physicalRefineBodyButton.disabled = rendering || unavailable;
+    physicalRefineReceiverButton.disabled = rendering || unavailable;
+    physicalRefineCancelButton.disabled = !rendering;
+    if (next.lastResult && next.lastResult.metadata.requestId !== physicalRefineShownRequestId) {
+      if (physicalRefineObjectUrl) URL.revokeObjectURL(physicalRefineObjectUrl);
+      physicalRefineObjectUrl = URL.createObjectURL(
+        new Blob([next.lastResult.artifact as Uint8Array<ArrayBuffer>], { type: "image/png" }),
+      );
+      physicalRefineResultImage.src = physicalRefineObjectUrl;
+      physicalRefineResultImage.hidden = false;
+      physicalRefineShownRequestId = next.lastResult.metadata.requestId;
+    }
+    if (next.lastResult) {
+      const result = next.lastResult;
+      physicalRefineResultCaption.textContent =
+        `${result.purpose.toUpperCase()} · ${result.metadata.resolution.width}×${result.metadata.resolution.height} · ${result.metadata.renderMs.toFixed(0)} ms · ${next.status === "CURRENT" ? "現在のLIVE状態に対応" : "過去のLIVE状態 — 比較用に保持"}`;
+    }
+  };
 
   const cameraOrbitButton = document.createElement("button");
   cameraOrbitButton.type = "button";
@@ -1765,6 +1857,7 @@ export function buildUi(
       hikariMpmStatus.textContent = status;
       hikariMpmStatus.dataset.running = String(running);
     },
+    setPhysicalRefineState,
   };
 
   function updateHikari(patch: Partial<HikariSettings>): void {
@@ -1940,6 +2033,7 @@ export function buildUi(
       flowControls,
       opticsControls,
       mpmGroup,
+      physicalRefineGroup,
       recordGroup,
       blenderGroup,
     );

@@ -1,9 +1,10 @@
 # Hikari Mitsuba RTX Local Bridge (HIKARI-MITSUBA-0)
 
-This directory is an isolated research bridge. It is not imported by the
-production Hikari application, does not replace the WebGL/WebGPU LIVE/PLAY
-renderer, and does not change the Hikari manifest or version. A missing or
-failed Mitsuba bridge must leave Hikari usable.
+This directory contains the isolated research bridge service and its browser
+client. Hikari may invoke the client from the explicit PHYSICAL / REFINE
+section, but the bridge does not replace the WebGL/WebGPU LIVE/PLAY renderer
+and does not change the Hikari manifest or version. A missing or failed
+Mitsuba bridge must leave Hikari usable.
 
 ## Fixed boundary
 
@@ -12,7 +13,7 @@ existing SKIN helper. LAN binding, `0.0.0.0`, arbitrary local endpoints, and
 browser-supplied Python, executable, plugin, scene, URL, or filesystem path
 are not accepted.
 
-The browser flow is:
+The explicit Hikari REFINE flow is:
 
 `Hikari browser client → fixed JSON contract → loopback bridge → fixed scene builder → Mitsuba → metadata → bounded PNG artifact`
 
@@ -80,8 +81,9 @@ gate.
 
 ## Explicit non-goals
 
-This checkpoint does not implement a production renderer adapter, UI, `.hkr`
-schema, Expressive/reference output, Light → Shape, optimization, OptiX
-support, or a fix for the known Light Drawing 5° parity difference. It also
-does not alter the current Optical Event Contract, ShapeSource, BODY/CPU/GPU
-parity, debug, Blender export, or any production code path.
+This checkpoint does not implement `.hkr` persistence for Physical results,
+Expressive/reference output, Light → Shape, optimization, OptiX support, or a
+fix for the known Light Drawing 5° parity difference. The PHYSICAL / REFINE
+request is a fixed host/receiver reference path; it does not alter the current
+Optical Event Contract, ShapeSource, BODY/CPU/GPU parity, debug, or Blender
+export implementation, and it never mutates LIVE Hikari state.

@@ -163,8 +163,8 @@ export function parseCapabilities(value: unknown): HikariMitsubaCapabilities {
 
 export function validateRenderRequest(request: HikariMitsubaRequest): void {
   if (!isRecord(request)) throw new HikariMitsubaBridgeError("invalid_request", "render request must be an object");
-  rejectForbiddenKeys(request);
-  requireExactKeys(request, [
+  rejectForbiddenKeys(request as unknown as Record<string, unknown>);
+  requireExactKeys(request as unknown as Record<string, unknown>, [
     "requestId", "operation", "case", "provenance", "canonicalMesh", "physicalScale", "camera",
     "hostMaterial", "light", "receiver", "environment", "renderPurpose", "compute", "spp", "resolution",
   ], "request");
@@ -349,7 +349,8 @@ function parseRenderMetadata(value: unknown, request: HikariMitsubaRequest): Hik
   const gpu = object.gpu === null ? null : parseGpu(object.gpu);
   const warnings = asStringArray(object.warnings, "warnings");
   const artifactHash = asString(object.artifactHash, "artifactHash");
-  if (!SHA256.test(artifactHash) || !Number.isInteger(object.artifactByteLength) || object.artifactByteLength < 1 || object.artifactByteLength > MAX_ARTIFACT_BYTES) {
+  const artifactByteLength = integer(object.artifactByteLength, "artifactByteLength");
+  if (!SHA256.test(artifactHash) || artifactByteLength < 1 || artifactByteLength > MAX_ARTIFACT_BYTES) {
     throw new HikariMitsubaBridgeError("invalid_response", "artifact metadata is invalid");
   }
   const artifactUrl = asString(object.artifactUrl, "artifactUrl");
@@ -373,7 +374,7 @@ function parseRenderMetadata(value: unknown, request: HikariMitsubaRequest): Hik
     spp: integer(object.spp, "spp"),
     renderMs: number(object.renderMs, "renderMs"),
     artifactHash,
-    artifactByteLength: object.artifactByteLength,
+    artifactByteLength,
     artifactUrl,
     provenanceHash: asString(object.provenanceHash, "provenanceHash"),
     provenanceFingerprint: request.provenance.fingerprint,
@@ -427,7 +428,7 @@ function asStringArray(value: unknown, name: string): string[] {
 
 function integer(value: unknown, name: string): number {
   if (!Number.isInteger(value)) throw new HikariMitsubaBridgeError("invalid_response", `${name} must be an integer`);
-  return value;
+  return value as number;
 }
 
 function number(value: unknown, name: string): number {
@@ -468,6 +469,6 @@ function abortError(): HikariMitsubaBridgeError {
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   if (!globalThis.crypto?.subtle) throw new HikariMitsubaBridgeError("crypto_unavailable", "Web Crypto SHA-256 is unavailable");
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
