@@ -1,3 +1,13 @@
+# Execution environment fingerprint v0.1 checkpoint
+
+Authority: Author's PR53 ACCEPT and bounded B contract/comparator directive. PR53 normally merged at `f30fac5f44efdf0d0ddacfc9e227b50c0da6285a`; fresh isolated branch `agent/slice-console-r0.1-execution-env-v0.1`.
+
+Present state: pure B implementation and287 synthetic/legacy tests PASS; no actual environment collected. A policy/key/generators/goldens/adapter/Runner/Console/IdentityLock and C preserved. B comparator process/file I/O/discovery0; real Bambu/ProcMon0; cache/REUSE/send/print0. Implementation blocker: none; policy acceptance and actual B evidence remain Author/future gates.
+
+[Active bounded task](../../docs/tasks/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1.md), [B contract/API](EXECUTION_ENV_V0_1.md), [evidence](../../docs/evidence/SLICE_CONSOLE_R01_EXECUTION_ENV_FINGERPRINT_V0_1_2026-10-05.md). Next gate: AUTHOR REVIEW. Next one candidate: WINDOWS EXECUTION_ENV_FINGERPRINT COLLECTOR + ACTUAL A1 B-FINGERPRINT; not started. Checkpoints below are historical.
+
+STOP: SLICE CONSOLE R0.1 EXECUTION ENV FINGERPRINT v0.1 — AUTHOR REVIEW.
+
 # Request key provenance boundary correction
 
 PR #53 corrected semantic policy/NON-KEY provenance separation; accepted trace preserved. Actual read-only adapter COMPLETE, production generator1, Bambu/ProcMon0.238 tests PASS (new boundary processes0; unchanged legacy fake/helpers19). Old trace-derived key SUPERSEDED. [Current correction/key authority](../../docs/evidence/SLICE_CONSOLE_R01_REQUEST_KEY_PROVENANCE_BOUNDARY_FIX_2026-10-05.md). Checkpoints below are historical.

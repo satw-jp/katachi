@@ -1,0 +1,45 @@
+{
+  "coverage": {
+    "inherited_env_names": [
+      "LANG",
+      "LC_ALL",
+      "PATH",
+      "TEMP",
+      "TMP",
+      "TZ"
+    ],
+    "native_runtime_names": [
+      "ucrtbase.dll",
+      "vcruntime140.dll"
+    ],
+    "required_observations": [
+      "api_set_schema",
+      "architecture",
+      "engine_companion",
+      "inherited_environment",
+      "native_runtime_manifest",
+      "os_build",
+      "os_family",
+      "python",
+      "ucrt_candidate",
+      "vc_runtime_candidate"
+    ],
+    "scope_id": "WINDOWS_A1_FINITE_B/v0.1",
+    "verification_mode": "CALLER_PREVERIFIED_OBSERVED_CANDIDATES"
+  },
+  "directional_rules": [],
+  "domain": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+  "environment_policy": {
+    "classification": "HASHED_NONSECRET",
+    "version": "0.1"
+  },
+  "hard_deny_observations": [
+    "architecture",
+    "engine_companion",
+    "os_family"
+  ],
+  "policy_id": "WINDOWS_A1_FINITE_B_DEFAULT/v0.1",
+  "policy_version": "0.1",
+  "schema_version": "0.1",
+  "status": "ACTIVE"
+}
