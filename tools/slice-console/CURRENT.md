@@ -1,3 +1,13 @@
+# Windows actual B fingerprint checkpoint
+
+Authority: Author PR54 ACCEPT; expected-head normal merge `3437d964792ff717c2181cebfb84f8574c95eded`; fresh isolated `agent/slice-console-r0.1-windows-env-collector`.
+
+Present state: finite read-only collector COMPLETE; actual baseline COMPLETE_BUT_UNVERIFIED / self UNVERIFIED_ENV. OS/build/arch/companion/native/API-set KNOWN; exact operational Python target is a WindowsApps reparse alias and Runner inherited-env binding unproven, both UNTRUSTED.317 tests PASS. A key/policy/protected code and B comparator preserved. Bambu/ProcMon/real slice/cache/REUSE/send/print0. No historical backfill.
+
+[Bounded task](../../docs/tasks/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV.md), [collector API](WINDOWS_EXECUTION_ENV_COLLECTION_V0_1.md), [actual evidence](../../docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06.md). Next gate AUTHOR REVIEW. Next one candidate WINDOWSAPPS PYTHON ALIAS — EXACT OPERATIONAL RUNTIME BINDING; not started. Checkpoints below historical.
+
+STOP: SLICE CONSOLE R0.1 WINDOWS ACTUAL EXECUTION ENV FINGERPRINT — AUTHOR REVIEW.
+
 # Execution environment fingerprint v0.1 checkpoint
 
 Authority: Author's PR53 ACCEPT and bounded B contract/comparator directive. PR53 normally merged at `f30fac5f44efdf0d0ddacfc9e227b50c0da6285a`; fresh isolated branch `agent/slice-console-r0.1-execution-env-v0.1`.

@@ -1,0 +1,22 @@
+{
+  "PR": 54,
+  "pre_merge": {
+    "Draft": true,
+    "OPEN": true,
+    "mergeable": true,
+    "head": "d432f0413402f870eb5c4d4ea5dc5ad392b1c870",
+    "base": "f30fac5f44efdf0d0ddacfc9e227b50c0da6285a",
+    "behind": 0
+  },
+  "ready": true,
+  "expected_head_sha": "d432f0413402f870eb5c4d4ea5dc5ad392b1c870",
+  "merge_method": "merge",
+  "merge_commit": "3437d964792ff717c2181cebfb84f8574c95eded",
+  "parents": [
+    "f30fac5f44efdf0d0ddacfc9e227b50c0da6285a",
+    "d432f0413402f870eb5c4d4ea5dc5ad392b1c870"
+  ],
+  "post_merge_status": "MERGED",
+  "refetched_main": "3437d964792ff717c2181cebfb84f8574c95eded",
+  "new_branch": "agent/slice-console-r0.1-windows-env-collector"
+}

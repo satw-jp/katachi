@@ -1,0 +1,91 @@
+{
+  "status": "PASS",
+  "tests_run": 317,
+  "baseline_tests": 287,
+  "new_collector_tests": 30,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "new_collector_test_processes": 0,
+  "Bambu_launches": 0,
+  "ProcMon_launches": 0,
+  "legacy_fake_helper_launches": 19,
+  "legacy_helper_calls": [
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "python.exe",
+      "helper_type": "fake_cli"
+    },
+    {
+      "executable_basename": "powershell.exe",
+      "helper_type": "legacy shortcut helper"
+    }
+  ]
+}
