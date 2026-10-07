@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from surface import replay as surface
 from internal import core, geometry
+from metadata import structure_digest, validate_mesh
 
 ROOT = Path(__file__).resolve().parent
 H = 11 / 15
@@ -126,10 +127,13 @@ def generate(project, recipe, result_id, force=False):
             checks.append({'a': a, 'b': b, 'volume': volume})
         mesh_path, structure_path = out / 'MEMBER_MESHES.npz', out / 'STRUCTURE.json'
         np.savez_compressed(mesh_path, **geometry._mesh_archive(members, arrays))
-        mesh_hash = core.digest_json([m['mesh_geometry_sha256'] for m in members])
+        mesh_hash = structure_digest(members)
+        counts = validate_mesh(dict(baseline, members=members), mesh_path, metadata=False)
         write(structure_path, dict(baseline, members=members, diameter_main_mm=recipe['diameter'],
                                    structure_semantic_sha256=mesh_hash, diameter_contact_checks=checks,
+                                   mesh_archive=dict(baseline['mesh_archive'], **counts),
                                    fabrication='NOT_TESTED', support='NOT_GENERATED', print_go=False))
+    validate_mesh(read(structure_path), mesh_path)
     surf = read(layout / 'surface/surface.json')
     result = dict(id=result_id, recipe=recipe, flowerCount=surf['count'], memberCount=baseline['member_count'],
                   surfaceHash=surf['semantic_geometry_sha256'], centerlineHash=baseline['centerline_semantic_sha256'],

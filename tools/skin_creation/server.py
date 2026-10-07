@@ -20,6 +20,7 @@ from pathlib import Path, PurePosixPath
 from engine import ROOT, LOCK, read, write, sha, validate_assets, validate_recipe, scene
 from surface.replay import canonical_array_digest
 from internal.geometry import canonical_mesh_digest
+from metadata import validate_mesh
 
 MAX_ZIP = 512 * 1024**2
 MAX_EXPANDED = 2 * 1024**3
@@ -69,6 +70,7 @@ def validate_state(state, project):
             mesh_ids = archive['member_ids'].tolist()
         surface = read(project / result['layout'] / 'surface/surface.json')
         structure = read(project / result['structure'])
+        validate_mesh(structure, project / result['mesh'])
         if mesh_ids != [m['id'] for m in structure['members']] or len(mesh_ids) != result['memberCount']:
             raise ValueError('Mesh/structure member identity mismatch')
         for member in structure['members']:
@@ -237,7 +239,7 @@ def serve(port, storage, resume=None):
         def guard(self):
             # No wildcard CORS. Only our Vite UI or direct loopback requests.
             origin = self.headers.get('Origin')
-            if origin and origin not in ('http://127.0.0.1:5188', 'http://localhost:5188'):
+            if origin and origin not in (f'http://127.0.0.1:{os.environ.get("SKIN_CREATION_UI_PORT", "5188")}', f'http://localhost:{os.environ.get("SKIN_CREATION_UI_PORT", "5188")}'):
                 raise ValueError('Untrusted origin')
 
         def do_GET(self):

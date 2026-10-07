@@ -1,0 +1,102 @@
+import {createRequire} from 'node:module';
+import {mkdir,writeFile,copyFile,readFile} from 'node:fs/promises';
+import path from 'node:path';
+const require=createRequire(process.env.SKIN_PLAYWRIGHT_ROOT+'/package.json');
+const {chromium}=require('playwright');
+const root=path.resolve('../../outputs/fix1-browser');
+const base='http://127.0.0.1:5196';
+await mkdir(root,{recursive:true});
+const browser=await chromium.launch({channel:'chrome',headless:true});
+let context=await browser.newContext({viewport:{width:1600,height:1100},acceptDownloads:true});
+let page=await context.newPage();
+const errors=[];
+function events(){page.on('dialog',d=>d.accept());page.on('pageerror',e=>errors.push(String(e)));}
+events();
+const state=async()=> (await page.request.get(base+'/creation-api/state')).json();
+const binding=s=>JSON.stringify([s.history,s.cursor,s.results,s.compare,s.selected]);
+try {
+  await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
+  await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
+  const initial=await state();
+  const combos=new Set(Object.values(initial.results).map(r=>`${r.recipe.flowerScale}/${r.recipe.diameter}`));
+  if(combos.size!==4) throw new Error('Missing four real conditions');
+  // Reopen at the default large-flower baseline, preserving the complete redo tail.
+  // The matrix runner already regenerates the small-flower case after fresh reopen.
+  while((await state()).cursor>0){
+    await page.locator('#undo').click();
+    await page.locator('#generate').click({trial:true});
+    await page.waitForTimeout(500);
+  }
+  const before=await state();
+  if(before.cursor===before.history.length-1) throw new Error('No redo tail');
+  const event=page.waitForEvent('download',{timeout:180000});
+  await page.locator('#save-project').click();
+  const download=await event;
+  const saved=path.join(root,'author-project.skincreation');
+  await download.saveAs(saved);
+  const bytes=await readFile(saved);
+  console.log('FINAL SAVED BYTES',bytes.length);
+  const moved=path.resolve('../moved-fix1/renamed-portable.skincreation');
+  await mkdir(path.dirname(moved),{recursive:true});
+  await copyFile(saved,moved);
+  await page.locator('#new-project').click();
+  await page.waitForTimeout(1500);
+  await context.close();
+  context=await browser.newContext({viewport:{width:1600,height:1100},acceptDownloads:true});
+  page=await context.newPage();events();
+  await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
+  await page.locator('#open-project').setInputFiles(moved);
+  await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
+  const restored=await state();
+  if(binding(before)!==binding(restored)) throw new Error('Restore changed history/results/selection');
+  console.log('FINAL FRESH RESTORE PASS');
+  // Invalid restore via the actual UI must not replace the valid current project.
+  const corrupt=path.resolve('../moved-fix1/corrupt.skincreation');
+  await writeFile(corrupt,bytes.subarray(0,Math.floor(bytes.length/2)));
+  await page.locator('#open-project').setInputFiles(corrupt);
+  await page.locator('#error').waitFor({state:'visible',timeout:180000});
+  if(binding(await state())!==binding(restored)) throw new Error('Failed restore changed current project');
+  await page.screenshot({path:path.join(root,'08-rejected-restore-current-preserved.png'),fullPage:true});
+  await page.locator('#redo').click();
+  await page.waitForTimeout(1500);
+  const redone=await state();
+  const expected=redone.results[redone.history[redone.cursor]];
+  if(expected.id!==before.history[before.cursor+1]) throw new Error('Restored redo result mismatch');
+  await page.locator('#show-flowers').uncheck();
+  await page.locator('#show-host').uncheck();
+  await page.waitForTimeout(1500);
+  await page.screenshot({path:path.join(root,'09-internal-branches.png'),fullPage:true});
+  const box=await page.locator('#viewport').boundingBox();
+  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);
+  await page.mouse.down();await page.mouse.move(box.x+box.width*.62,box.y+box.height*.53,{steps:12});await page.mouse.up();
+  await page.locator('#show-flowers').check();
+  await page.locator('#fit-view').click();
+  const regenerated=expected; // P0 metadata-only: no full regeneration
+  const other=Object.values((await state()).results).find(r=>r.recipe.flowerScale!==regenerated.recipe.flowerScale&&r.recipe.diameter===2.4);
+  await page.locator(`[data-result-id="${other.id}"] button`).click();
+  await page.locator('#view-labels.split').waitFor();
+  await page.locator('#generate').click({trial:true});
+  const deliveryState=await state();
+  const finalDownloadEvent=page.waitForEvent('download',{timeout:180000});
+  await page.locator('#save-project').click();
+  await (await finalDownloadEvent).saveAs(saved);
+  const deliveredBytes=(await readFile(saved)).length;
+  await page.locator('#new-project').click();
+  await page.locator('#generate').click({trial:true});
+  await context.close();
+  context=await browser.newContext({viewport:{width:1600,height:1100},acceptDownloads:true});
+  page=await context.newPage();events();
+  await page.goto(base+'/skin-rebuild.html?mode=creation');
+  await page.locator('#generate').click({trial:true});
+  await page.locator('#open-project').setInputFiles(saved);
+  await page.locator('#empty-view').waitFor({state:'hidden',timeout:180000});
+  const deliveredReopened=await state();
+  if(binding(deliveryState)!==binding(deliveredReopened))throw new Error('Delivered archive mismatch');
+  await page.screenshot({path:path.join(root,'11-author-comparison-ready.png'),fullPage:true});
+  if(errors.length)throw new Error(errors.join('\n'));
+  await writeFile(path.join(root,'final-restore-result.json'),JSON.stringify({status:'PASS',bytes:deliveredBytes,redoTailArchiveBytes:bytes.length,before,restored,redone,regenerated,deliveryState,deliveredReopened,failedRestorePreserved:true,rotated:true,errors},null,2));
+  console.log('FIX1 BROWSER SAVE REOPEN PASS');
+}catch(error){console.error(error);await writeFile(path.join(root,'final-restore-failure.json'),JSON.stringify({error:String(error),errors},null,2));process.exitCode=1;}
+finally{await browser.close();}

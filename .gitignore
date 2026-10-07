@@ -29,3 +29,5 @@ vite.config.d.ts
 
 # Study data exported from the app lives here and IS meant to be committed.
 # Keep it out of the ignore list on purpose - see README.
+
+/.vite-creation-cache/
