@@ -1,0 +1,162 @@
+{
+  "coverage": {
+    "inherited_env_names": [
+      "LANG",
+      "LC_ALL",
+      "PATH",
+      "TEMP",
+      "TMP",
+      "TZ"
+    ],
+    "native_runtime_names": [
+      "ucrtbase.dll",
+      "vcruntime140.dll"
+    ],
+    "required_observations": [
+      "api_set_schema",
+      "architecture",
+      "engine_companion",
+      "inherited_environment",
+      "native_runtime_manifest",
+      "os_build",
+      "os_family",
+      "python",
+      "ucrt_candidate",
+      "vc_runtime_candidate"
+    ],
+    "scope_id": "WINDOWS_A1_FINITE_B/v0.1",
+    "verification_mode": "CALLER_PREVERIFIED_OBSERVED_CANDIDATES"
+  },
+  "domain": "EXECUTION_ENV_FINGERPRINT/v0.1",
+  "observations": {
+    "api_set_schema": {
+      "state": "KNOWN",
+      "value": {
+        "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    },
+    "architecture": {
+      "state": "KNOWN",
+      "value": "x86_64"
+    },
+    "engine_companion": {
+      "state": "KNOWN",
+      "value": {
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    "inherited_environment": {
+      "state": "KNOWN",
+      "value": {
+        "entries": [
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "LANG",
+            "state": "unset",
+            "value_identity": null
+          },
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "LC_ALL",
+            "state": "unset",
+            "value_identity": null
+          },
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "PATH",
+            "state": "present",
+            "value_identity": "9999999999999999999999999999999999999999999999999999999999999999"
+          },
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "TEMP",
+            "state": "unset",
+            "value_identity": null
+          },
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "TMP",
+            "state": "unset",
+            "value_identity": null
+          },
+          {
+            "classification": "HASHED_NONSECRET",
+            "name": "TZ",
+            "state": "unset",
+            "value_identity": null
+          }
+        ],
+        "policy_version": "0.1"
+      }
+    },
+    "native_runtime_manifest": {
+      "state": "KNOWN",
+      "value": {
+        "entries": [
+          {
+            "logical_name": "ucrtbase.dll",
+            "role": "runtime_candidate",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "size": 1234
+          },
+          {
+            "logical_name": "vcruntime140.dll",
+            "role": "runtime_candidate",
+            "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "size": 1235
+          }
+        ],
+        "identity_kind": "OBSERVED_CANDIDATES_NOT_LOADED"
+      }
+    },
+    "os_build": {
+      "state": "KNOWN",
+      "value": "synthetic-build-A"
+    },
+    "os_family": {
+      "state": "KNOWN",
+      "value": "Windows"
+    },
+    "python": {
+      "state": "KNOWN",
+      "value": {
+        "distribution": {
+          "fingerprint_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "policy_id": "SYNTHETIC_PYTHON_DISTRIBUTION/v0.1",
+          "policy_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_version": "0.1"
+        },
+        "executable_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "implementation": "CPython",
+        "version": "synthetic-3.12"
+      }
+    },
+    "ucrt_candidate": {
+      "state": "KNOWN",
+      "value": {
+        "identity_kind": "OBSERVED_CANDIDATE_FINGERPRINT",
+        "sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    },
+    "vc_runtime_candidate": {
+      "state": "KNOWN",
+      "value": {
+        "identity_kind": "OBSERVED_CANDIDATE_FINGERPRINT",
+        "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      }
+    }
+  },
+  "policy": {
+    "domain": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+    "policy_id": "WINDOWS_A1_FINITE_B_DEFAULT/v0.1",
+    "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+    "version": "0.1"
+  },
+  "provenance": {
+    "collected_at": "2000-01-01T00:00:00Z",
+    "evidence_pointer": "synthetic-only",
+    "human_note": "No actual host observation",
+    "pid": 100
+  },
+  "schema_version": "0.1"
+}

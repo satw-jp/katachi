@@ -21,6 +21,7 @@ from engine import ROOT, LOCK, read, write, sha, validate_assets, validate_recip
 from surface.replay import canonical_array_digest
 from internal.geometry import canonical_mesh_digest
 from metadata import validate_mesh
+from print_workflow import PrintWorkflow, validate_saved
 
 MAX_ZIP = 512 * 1024**2
 MAX_EXPANDED = 2 * 1024**3
@@ -48,6 +49,7 @@ def validate_state(state, project):
     if state.get('schema') != SCHEMA or state.get('job') is not None:
         raise ValueError('Wrong project version or unfinished job')
     history, results, cursor = state['history'], state['results'], state['cursor']
+    if 'printing' in state: validate_saved(state['printing'], results)
     if not isinstance(history, list) or not isinstance(cursor, int) or not (-1 <= cursor < len(history)) or (history and cursor < 0):
         raise ValueError('Invalid history cursor')
     if any(key not in results for key in history) or any(state[k] is not None and state[k] not in results for k in ('compare', 'selected')):
@@ -141,7 +143,7 @@ def unpack(data, target):
         if sum(i.file_size for i in entries) > MAX_EXPANDED: raise ValueError('Expanded archive too large')
         for name in names: safe_relative(name)
         manifest = json.loads(z.read('manifest.json'))
-        if manifest['schema'] != SCHEMA or manifest['code'] != code_identity():
+        if manifest['schema'] != SCHEMA or manifest['code'] not in (code_identity(), read(ROOT / 'archive_compatibility.json')['metadataFix1']):
             raise ValueError('Generator version mismatch; saved code is never executed')
         locks = manifest['files']
         for name in locks: safe_relative(name)
@@ -225,6 +227,7 @@ def serve(port, storage, resume=None):
         validate_assets(resume / 'assets')
         validate_state(restored, resume)
         session.project, session.state = resume, restored
+    workflow = PrintWorkflow(session, Path(os.environ.get('SKIN_PRINT_OUTPUT', str(storage.parent / 'print-artifacts'))))
     class Handler(BaseHTTPRequestHandler):
         def send(self, value, kind='application/json', status=200):
             data = value if isinstance(value, bytes) else json.dumps(value, ensure_ascii=False).encode()
@@ -235,6 +238,14 @@ def serve(port, storage, resume=None):
             if kind == 'application/zip': self.send_header('Content-Disposition', 'attachment; filename="SKIN-creation.skincreation"')
             self.end_headers()
             self.wfile.write(data)
+
+        def send_file(self, path):
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/octet-stream')
+            self.send_header('Content-Length', str(path.stat().st_size))
+            self.send_header('Content-Disposition', 'attachment; filename="' + path.name + '"')
+            self.end_headers()
+            with path.open('rb') as source: shutil.copyfileobj(source, self.wfile)
 
         def guard(self):
             # No wildcard CORS. Only our Vite UI or direct loopback requests.
@@ -247,9 +258,14 @@ def serve(port, storage, resume=None):
                 self.guard()
                 route = self.path.removeprefix('/creation-api')
                 with session.lock:
+                    if route == '/print/state': return self.send(workflow.state())
+                    match = re.fullmatch('/print/artifact/([a-f0-9]{32})/([a-zA-Z0-9_.]+)', route)
+                    if match: return self.send_file(workflow.artifact(*match.groups()))
+                    match = re.fullmatch('/print/bundle/([a-f0-9]{32})', route)
+                    if match: return self.send(workflow.bundle(match[1]), 'application/zip')
                     if route == '/state': return self.send(session.snapshot())
                     if route == '/save':
-                        if session.busy(): raise ValueError('Wait for generation before saving')
+                        if session.busy() or workflow.busy(): raise ValueError('Wait for generation/slice before saving')
                         return self.send(pack(session.project, session.state), 'application/zip')
                     match = re.fullmatch('/result/([a-f0-9]{32})/scene.json', route)
                     if match:
@@ -267,6 +283,13 @@ def serve(port, storage, resume=None):
                 route = self.path.removeprefix('/creation-api')
                 with session.lock:
                     if session.busy(): raise ValueError('Wait for generation; current result is protected')
+                    if route.startswith('/print/'):
+                        if route == '/print/rebind': return self.send(workflow.rebind(data))
+                        body = json.loads(data or b'{}')
+                        actions = {'/print/prepare': lambda: workflow.prepare(body), '/print/place': workflow.place, '/print/preset': lambda: workflow.preset(body), '/print/run': lambda: workflow.start(body), '/print/cancel': workflow.cancel}
+                        if route not in actions: raise ValueError('Unknown print operation')
+                        return self.send(actions[route]())
+                    if workflow.busy() and route in ('/open', '/new', '/generate'): raise ValueError('Cancel or finish active slice first')
                     if route == '/open':
                         target = storage / uuid.uuid4().hex
                         state = unpack(data, target)

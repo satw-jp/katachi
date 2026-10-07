@@ -1,0 +1,868 @@
+{
+  "$id": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "inherited_env_names": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "native_runtime_names": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_observations": {
+          "items": {
+            "enum": [
+              "api_set_schema",
+              "architecture",
+              "engine_companion",
+              "inherited_environment",
+              "native_runtime_manifest",
+              "os_build",
+              "os_family",
+              "python",
+              "ucrt_candidate",
+              "vc_runtime_candidate"
+            ]
+          },
+          "maxItems": 10,
+          "minItems": 10,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "verification_mode": {
+          "const": "CALLER_PREVERIFIED_OBSERVED_CANDIDATES"
+        }
+      },
+      "required": [
+        "scope_id",
+        "required_observations",
+        "native_runtime_names",
+        "inherited_env_names",
+        "verification_mode"
+      ],
+      "type": "object"
+    },
+    "directional_rules": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "os_family"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "to": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "os_build"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "to": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "architecture"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "to": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "engine_companion"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "api_set_schema"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "vc_runtime_candidate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATE_FINGERPRINT"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATE_FINGERPRINT"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "ucrt_candidate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATE_FINGERPRINT"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATE_FINGERPRINT"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "native_runtime_manifest"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "entries": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "logical_name": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "role": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "sha256": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "size": {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "logical_name",
+                          "sha256",
+                          "size",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATES_NOT_LOADED"
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "entries"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "entries": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "logical_name": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "role": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "sha256": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "size": {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "logical_name",
+                          "sha256",
+                          "size",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "identity_kind": {
+                      "const": "OBSERVED_CANDIDATES_NOT_LOADED"
+                    }
+                  },
+                  "required": [
+                    "identity_kind",
+                    "entries"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "python"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "distribution": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "fingerprint_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_id": {
+                          "minLength": 1,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_version": {
+                          "minLength": 1,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "fingerprint_sha256",
+                        "policy_id",
+                        "policy_version",
+                        "policy_sha256"
+                      ],
+                      "type": "object"
+                    },
+                    "executable_sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "implementation": {
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "executable_sha256",
+                    "version",
+                    "implementation",
+                    "distribution"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "distribution": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "fingerprint_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_id": {
+                          "minLength": 1,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_sha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "policy_version": {
+                          "minLength": 1,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "fingerprint_sha256",
+                        "policy_id",
+                        "policy_version",
+                        "policy_sha256"
+                      ],
+                      "type": "object"
+                    },
+                    "executable_sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "implementation": {
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "executable_sha256",
+                    "version",
+                    "implementation",
+                    "distribution"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "observation": {
+                  "const": "inherited_environment"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "from": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "entries": {
+                      "items": {
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "state": {
+                                  "enum": [
+                                    "unset",
+                                    "empty"
+                                  ]
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "value_identity": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "properties": {
+                          "classification": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "name": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "unset",
+                              "empty",
+                              "present"
+                            ]
+                          },
+                          "value_identity": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "state",
+                          "value_identity",
+                          "classification"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "policy_version": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "policy_version",
+                    "entries"
+                  ],
+                  "type": "object"
+                },
+                "to": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "entries": {
+                      "items": {
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "state": {
+                                  "enum": [
+                                    "unset",
+                                    "empty"
+                                  ]
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "value_identity": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "properties": {
+                          "classification": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "name": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "unset",
+                              "empty",
+                              "present"
+                            ]
+                          },
+                          "value_identity": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "state",
+                          "value_identity",
+                          "classification"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "policy_version": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "policy_version",
+                    "entries"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "from": {},
+          "observation": {
+            "enum": [
+              "api_set_schema",
+              "architecture",
+              "engine_companion",
+              "inherited_environment",
+              "native_runtime_manifest",
+              "os_build",
+              "os_family",
+              "python",
+              "ucrt_candidate",
+              "vc_runtime_candidate"
+            ]
+          },
+          "rule_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "to": {}
+        },
+        "required": [
+          "rule_id",
+          "observation",
+          "from",
+          "to",
+          "allowed"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "domain": {
+      "const": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1"
+    },
+    "environment_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "classification": {
+          "const": "HASHED_NONSECRET"
+        },
+        "version": {
+          "const": "0.1"
+        }
+      },
+      "required": [
+        "version",
+        "classification"
+      ],
+      "type": "object"
+    },
+    "hard_deny_observations": {
+      "allOf": [
+        {
+          "contains": {
+            "const": "os_family"
+          }
+        },
+        {
+          "contains": {
+            "const": "architecture"
+          }
+        },
+        {
+          "contains": {
+            "const": "engine_companion"
+          }
+        }
+      ],
+      "items": {
+        "enum": [
+          "api_set_schema",
+          "architecture",
+          "engine_companion",
+          "inherited_environment",
+          "native_runtime_manifest",
+          "os_build",
+          "os_family",
+          "python",
+          "ucrt_candidate",
+          "vc_runtime_candidate"
+        ]
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "policy_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "0.1"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "status": {
+      "enum": [
+        "ACTIVE",
+        "REVOKED"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "domain",
+    "policy_id",
+    "policy_version",
+    "status",
+    "coverage",
+    "hard_deny_observations",
+    "environment_policy",
+    "directional_rules"
+  ],
+  "type": "object"
+}

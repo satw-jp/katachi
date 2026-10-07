@@ -1,3 +1,4 @@
+import { createPrintUI } from './print.ts';
 import { currentResult, mutate, recipeLabel, request, type ProjectState, type Recipe, type ResultInfo } from "./api.ts";
 import { CreationView } from "./view.ts";
 import "./style.css";
@@ -41,7 +42,7 @@ root.innerHTML = `
         <button id="clear-compare" disabled>左右比較を閉じる</button>
         <div id="candidates" aria-label="不変の生成候補"></div>
       </section>
-      <section class="safety"><strong>Support: NOT_GENERATED</strong><br />Print GO: false<p>造形調整のみ。Support生成・slice・印刷・製造用出力は行いません。</p></section>
+      <section class="safety"><strong>Support: NOT_GENERATED</strong><br />Print GO: false<p>造形調整のみ。印刷準備は下のR1欄から明示操作。実機への送信は行いません。</p></section>
     </aside>
   </div>
   <footer><span id="build-info"></span><span id="save-status">保存には元形状・設定・生成結果・Undo/Redo履歴を含みます。</span></footer>
@@ -56,7 +57,8 @@ const flowerScale = el<HTMLSelectElement>("flower-scale");
 const diameter = el<HTMLSelectElement>("branch-diameter");
 const openInput = el<HTMLInputElement>("open-project");
 const version = import.meta.env.VITE_GIT_COMMIT || "unknown";
-el("build-info").textContent = `Creation v0 · Updated 2026-09-30 · build ${version}`;
+el("build-info").textContent = `Author Workflow R1 · Updated 2026-10-07 · build ${version}`;
+const printUI = createPrintUI();
 let view: CreationView | null = null;
 try { view = new CreationView(el("viewport")); } catch (error) { showError(error); }
 let state: ProjectState | null = null;
@@ -128,7 +130,13 @@ function updateCards(): void {
     hashes.className = "hashes";
     hashes.textContent = `ID: ${result.id}\nSurface: ${result.surfaceHash}\nCenterlines: ${result.centerlineHash}\nMesh: ${result.meshHash}`;
     details.append(summary, hashes);
-    card.append(title, info, compare, details);
+    const select = document.createElement("button");
+    select.textContent = "この候補を印刷対象に選択";
+    select.addEventListener("click", () => void act(() => mutate("/select", { id: result.id })).then(() => {
+      const index = (JSON.parse(shownKey || "[]") as string[]).indexOf(result.id);
+      if (index >= 0) printUI.capture(result.id, index);
+    }));
+    card.append(title, info, compare, select, details);
     container.append(card);
   });
 }
@@ -165,6 +173,7 @@ async function display(): Promise<void> {
 function applyState(next: ProjectState): void {
   const old = state;
   state = next;
+  printUI.update(next);
   connected = true;
   const current = currentResult(state);
   if (current?.id !== lastCurrent) { syncDraft(current); lastCurrent = current?.id; }
@@ -192,7 +201,7 @@ el("regenerate").addEventListener("click", () => void act(() => mutate("/generat
 el("undo").addEventListener("click", () => void act(() => mutate("/undo")));
 el("redo").addEventListener("click", () => void act(() => mutate("/redo")));
 el("clear-compare").addEventListener("click", () => void act(() => mutate("/compare", { id: null })));
-el("select-design").addEventListener("click", () => { const result = currentResult(state); if (result) void act(() => mutate("/select", { id: result.id })); });
+el("select-design").addEventListener("click", () => { const result = currentResult(state); if (result) void act(() => mutate("/select", { id: result.id })).then(() => { if (JSON.parse(shownKey || "[]")[0] === result.id) printUI.capture(result.id); }); });
 el("new-project").addEventListener("click", () => {
   if (state?.history.length && !confirm("新しいプロジェクトを開始します。必要な作業は先に .skincreation に保存してください。続けますか？")) return;
   void act(() => mutate("/new"), true);

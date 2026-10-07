@@ -1,0 +1,230 @@
+{
+  "$id": "EXECUTION_ENV_COMPARISON/v0.1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "comparison_class": {
+            "enum": [
+              "EXACT_WITHIN_POLICY",
+              "COMPATIBLE_WITHIN_POLICY",
+              "UNVERIFIED_ENV",
+              "INCOMPATIBLE_ENV"
+            ]
+          },
+          "policy_identity": {
+            "additionalProperties": false,
+            "properties": {
+              "domain": {
+                "const": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1"
+              },
+              "policy_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "version": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "domain",
+              "policy_id",
+              "version",
+              "sha256"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "HOLD"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "comparison_class": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "blockers": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "pointer": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "pointer"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "comparison_class": {
+      "enum": [
+        null,
+        "EXACT_WITHIN_POLICY",
+        "COMPATIBLE_WITHIN_POLICY",
+        "UNVERIFIED_ENV",
+        "INCOMPATIBLE_ENV"
+      ]
+    },
+    "current_fingerprint_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "differences": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "observation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "prior": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "observation",
+          "prior",
+          "current"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "domain": {
+      "const": "EXECUTION_ENV_COMPARISON/v0.1"
+    },
+    "policy_identity": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "domain": {
+              "const": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1"
+            },
+            "policy_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "version": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "domain",
+            "policy_id",
+            "version",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "prior_fingerprint_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reuse_authorized": {
+      "const": false
+    },
+    "rule_applications": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "direction": {
+            "const": "prior_to_current"
+          },
+          "observation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "rule_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "observation",
+          "direction",
+          "allowed"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "status": {
+      "enum": [
+        "HOLD",
+        "COMPLETE"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "domain",
+    "status",
+    "comparison_class",
+    "policy_identity",
+    "prior_fingerprint_digest",
+    "current_fingerprint_digest",
+    "differences",
+    "blockers",
+    "rule_applications",
+    "reuse_authorized"
+  ],
+  "type": "object"
+}

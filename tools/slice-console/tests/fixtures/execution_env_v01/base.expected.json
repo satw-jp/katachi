@@ -1,0 +1,6 @@
+{
+  "comparison_class": "EXACT_WITHIN_POLICY",
+  "fingerprint_semantic_sha256": "f60bdcae74a50deceab61a7f217a5251c53fa1f6bad50f3618ab58c1751d3949",
+  "policy_sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+  "reuse_authorized": false
+}

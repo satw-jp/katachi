@@ -1,0 +1,148 @@
+{
+  "schema_version": "0.1",
+  "allowed_roots": [
+    "J:\\Program Files\\Bambu Studio",
+    "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner"
+  ],
+  "groups": [
+    {
+      "identity_kind": "engine",
+      "metadata": {
+        "declared_version": "02.08.02.61",
+        "platform_abi": "Windows-PE32+-AMD64"
+      },
+      "closure_policy": {
+        "version": "0.1",
+        "policy_id": "windows-bambu-02080261-runner020-bounded-v0.1",
+        "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+        "status": "INCOMPLETE",
+        "path_semantics": "UNRESOLVED",
+        "unresolved": [
+          "Exact loaded Windows CRT/API-set/system DLL identities and search configuration",
+          "Transitive/dynamic BambuStudio.dll dependency set including remaining static import candidates",
+          "Exact resource/default/template inheritance and fallback selection with explicit flat profiles",
+          "Effective datadir/user config discovery for configured route; current run/job binding not independently established",
+          "Actual WindowsApps Python runtime/stdlib/native-extension/import closure",
+          "Closed effective inherited environment and safe semantic-secret policy",
+          "Path/basename/cwd/TEMP/output relocation semantics for exact installed engine"
+        ]
+      },
+      "entries": [
+        {
+          "logical_name": "bambu-studio.exe",
+          "source_path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+          "role": "executable",
+          "required": true,
+          "expected_sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268"
+        }
+      ]
+    },
+    {
+      "identity_kind": "resources",
+      "metadata": {},
+      "closure_policy": {
+        "version": "0.1",
+        "policy_id": "windows-bambu-02080261-runner020-bounded-v0.1",
+        "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+        "status": "INCOMPLETE",
+        "path_semantics": "UNRESOLVED",
+        "unresolved": [
+          "Exact loaded Windows CRT/API-set/system DLL identities and search configuration",
+          "Transitive/dynamic BambuStudio.dll dependency set including remaining static import candidates",
+          "Exact resource/default/template inheritance and fallback selection with explicit flat profiles",
+          "Effective datadir/user config discovery for configured route; current run/job binding not independently established",
+          "Actual WindowsApps Python runtime/stdlib/native-extension/import closure",
+          "Closed effective inherited environment and safe semantic-secret policy",
+          "Path/basename/cwd/TEMP/output relocation semantics for exact installed engine"
+        ]
+      },
+      "entries": [
+        {
+          "logical_name": "runtime/BambuStudio.dll",
+          "source_path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+          "role": "bundled_runtime",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "runtime/libgmp-10.dll",
+          "source_path": "J:\\Program Files\\Bambu Studio\\libgmp-10.dll",
+          "role": "static_math_runtime_candidate",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "runtime/libmpfr-4.dll",
+          "source_path": "J:\\Program Files\\Bambu Studio\\libmpfr-4.dll",
+          "role": "static_math_runtime_candidate",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "resources/profiles/BBL/cli_config.json",
+          "source_path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\cli_config.json",
+          "role": "cli_machine_limits",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "resources/profiles/BBL/machine/Bambu Lab A1 0.4 nozzle.json",
+          "source_path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine\\Bambu Lab A1 0.4 nozzle.json",
+          "role": "default_candidate",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "resources/profiles/BBL/machine/fdm_bbl_3dp_001_common.json",
+          "source_path": "J:\\Program Files\\Bambu Studio\\resources\\profiles\\BBL\\machine\\fdm_bbl_3dp_001_common.json",
+          "role": "inheritance_candidate",
+          "required": true,
+          "expected_sha256": null
+        }
+      ]
+    },
+    {
+      "identity_kind": "backend",
+      "metadata": {},
+      "closure_policy": {
+        "version": "0.1",
+        "policy_id": "windows-bambu-02080261-runner020-bounded-v0.1",
+        "sha256": "0e723c91813e0c126f43852bf8bf25faf358d66e42e032fa10c4792b520e8af3",
+        "status": "INCOMPLETE",
+        "path_semantics": "UNRESOLVED",
+        "unresolved": [
+          "Exact loaded Windows CRT/API-set/system DLL identities and search configuration",
+          "Transitive/dynamic BambuStudio.dll dependency set including remaining static import candidates",
+          "Exact resource/default/template inheritance and fallback selection with explicit flat profiles",
+          "Effective datadir/user config discovery for configured route; current run/job binding not independently established",
+          "Actual WindowsApps Python runtime/stdlib/native-extension/import closure",
+          "Closed effective inherited environment and safe semantic-secret policy",
+          "Path/basename/cwd/TEMP/output relocation semantics for exact installed engine"
+        ]
+      },
+      "entries": [
+        {
+          "logical_name": "job.py",
+          "source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\job.py",
+          "role": "execution_source",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "runner.py",
+          "source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\runner.py",
+          "role": "execution_source",
+          "required": true,
+          "expected_sha256": null
+        },
+        {
+          "logical_name": "progress.py",
+          "source_path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner\\progress.py",
+          "role": "execution_source",
+          "required": true,
+          "expected_sha256": null
+        }
+      ]
+    }
+  ]
+}

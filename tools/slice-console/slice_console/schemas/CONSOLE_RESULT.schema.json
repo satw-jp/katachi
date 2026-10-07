@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CONSOLE_RESULT 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "requested_mode",
+    "backend_invoked",
+    "run_dir",
+    "result_manifest_path",
+    "package_result_path",
+    "package_path",
+    "reason",
+    "blocker",
+    "schema_version",
+    "status",
+    "engine_started",
+    "started_at",
+    "finished_at",
+    "validation"
+  ],
+  "properties": {
+    "request_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requested_mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "backend_invoked": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "run_dir": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result_manifest_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "package_result_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "package_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocker": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "HOLD",
+        "SUCCESS",
+        "FAILED",
+        "CANCELLED",
+        "PACKAGE_COMPLETE",
+        "PACKAGE_FAILED"
+      ]
+    },
+    "engine_started": {
+      "type": "boolean"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "label",
+          "ok",
+          "detail"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

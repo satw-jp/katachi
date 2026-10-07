@@ -9,3 +9,6 @@ P1/P2 small fixture: existing clean_mesh_box single-STL contract. One attempt pe
 P3: only after successful fixture and context binding. Read-only small-flower g=11/15, branches2.2 tooling snapshot from delivered archive, not MINIL. One representative attempt, 45 minute ceiling and max 1 concurrent engine; exact geometry bounds/transform, resource locks and expected output will be recorded before execution. No automatic scale, clip, repair, native_saved claim or copying unrelated source context. If no matching native context is achievable, package/Preview is bounded HOLD; record remaining UI functions separately.
 
 No Send, Print GO, physical test, main merge, push or deployment.
+
+Fixture attempt correction: all initial native runs completed slicing but terminal export failed with -13. Exact upstream v02.08.02.61 src/BambuStudio.cpp lines6924-6925 prepends outputdir to export_3mf_file. Supplying an absolute filename duplicated the root. One corrected attempt per matrix condition uses basename native.3mf; source/settings unchanged. Initial failed attempts retained; no partial promoted.
+Source: https://raw.githubusercontent.com/bambulab/BambuStudio/v02.08.02.61/src/BambuStudio.cpp

@@ -1,0 +1,97 @@
+{
+  "engine_path": "J:/Program Files/Bambu Studio/bambu-studio.exe",
+  "candidate": "synthetic_diagnostic_cube",
+  "schema_version": "0.2",
+  "input_locks": "./locks/INPUT_LOCKS.json",
+  "data_dir": "./data",
+  "output_dir": "./runs-output",
+  "job_id": "FUKEI.CLEAN_MESH.EXAMPLE",
+  "inputs": [
+    "./geometry/diagnostic_cube.stl"
+  ],
+  "display": {
+    "purpose": "Issue #30 clean mesh example; no printer send or print",
+    "material": "PLA",
+    "engine": "Bambu Studio 02.08.02.61",
+    "input": "diagnostic_cube.stl",
+    "printer": "Bambu Lab A1 / 0.4 mm"
+  },
+  "history": {
+    "reference_duration_seconds": 60
+  },
+  "cli": {
+    "argv": [
+      "{engine_path}",
+      "--debug",
+      "2",
+      "--datadir",
+      "{data_dir}",
+      "--load-settings",
+      "{profile_printer};{profile_process}",
+      "--load-filaments",
+      "{profile_filament}",
+      "--filament-map",
+      "1",
+      "--filament-volume-map",
+      "0",
+      "--filament-nozzle-map",
+      "0",
+      "--filament-map-mode",
+      "Auto For Flush",
+      "--assemble",
+      "--ensure-on-bed",
+      "--arrange",
+      "0",
+      "--orient",
+      "0",
+      "--slice",
+      "0",
+      "--export-settings",
+      "{output_dir}/resolved_settings.json",
+      "--outputdir",
+      "{output_dir}",
+      "{input_0}"
+    ],
+    "cwd": "J:/Program Files/Bambu Studio",
+    "version": "02.08.02.61",
+    "windows_execution": "no_window"
+  },
+  "profiles": {
+    "filament": "./profiles/filament.json",
+    "process": "./profiles/process.json",
+    "printer": "./profiles/printer.json"
+  },
+  "input_mode": "mesh_import",
+  "mesh": {
+    "expected_bounds_mm": {
+      "max": [
+        125,
+        125,
+        2
+      ],
+      "min": [
+        120,
+        120,
+        0
+      ]
+    },
+    "units": "mm",
+    "intended_transform": {
+      "translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

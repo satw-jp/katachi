@@ -1,0 +1,207 @@
+{
+  "policy_version": "0.1",
+  "policy_id": "WINDOWS_A1_04_REQUEST_IDENTITY/v0.1",
+  "base_main": "f2dd047354dfacbda03be432f4dd2d2cba49f5d2",
+  "route": {
+    "platform": "Windows",
+    "engine_version": "02.08.02.61",
+    "engine_path": "J:/Program Files/Bambu Studio/bambu-studio.exe",
+    "engine_sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+    "printer": "Bambu Lab A1 0.4 nozzle",
+    "nozzle": "0.4",
+    "filament_count": 1,
+    "input_mode": "mesh_import",
+    "runner_version": "0.2.0",
+    "job_schema": "0.2",
+    "material": "PLA"
+  },
+  "classification": {
+    "REQUIRED_KEY_MATERIAL": [
+      "exact ordered locked STL/profile bytes",
+      "embedded placement/bounds and intended transform",
+      "explicit route semantic roles",
+      "1/0/0 mappings and Auto For Flush",
+      "exe bytes/version",
+      "finite execution bundle",
+      "policy-selected cli limits",
+      "typed argv including all opaque input/profile/data/output/cwd paths",
+      "classified explicit env overrides"
+    ],
+    "EXCLUDED_NONKEY_METADATA": [
+      "job_id",
+      "candidate",
+      "display",
+      "history",
+      "input lock metadata",
+      "B/C provenance",
+      "inherited host env"
+    ],
+    "UNSUPPORTED": [
+      "mini",
+      "AMS/multi-filament",
+      "native 3MF",
+      "Mac/M4",
+      "other engine version",
+      "other nozzle/printer",
+      "auxiliary profiles",
+      "explicit env override (empty whitelist)",
+      "other CLI options/values"
+    ],
+    "HOLD_IF_UNKNOWN": [
+      "profile-parent/default/datadir configuration coverage",
+      "unclassified argv/env",
+      "input semantic declarations",
+      "stable file bytes",
+      "source identity"
+    ]
+  },
+  "backend": {
+    "custom_execution_dependencies": [],
+    "import_boundary": "job.py stdlib only; runner.py local imports job/progress; progress.py stdlib only; packaging helpers inside runner.py; no subprocess helper other than engine in this route",
+    "entries": [
+      {
+        "logical_name": "job.py",
+        "sha256": "5526026f2bb7ab28b109e9dad6b1cd753d51e07b5b78fbf76a3d836a9c2c66cb",
+        "size": 25419,
+        "role": "backend_core"
+      },
+      {
+        "logical_name": "runner.py",
+        "sha256": "405df011733de4cf469305a29c8609e1aa468202716c05d3cdb905435d3fde28",
+        "size": 26496,
+        "role": "backend_core"
+      },
+      {
+        "logical_name": "progress.py",
+        "sha256": "0cbb84245e6b3252b14838bda1cd1f89f93c98b4b39016e08cdd78f8c3362622",
+        "size": 3856,
+        "role": "backend_core"
+      }
+    ]
+  },
+  "job_fields": [
+    "engine_path",
+    "candidate",
+    "schema_version",
+    "input_locks",
+    "data_dir",
+    "output_dir",
+    "job_id",
+    "inputs",
+    "display",
+    "history",
+    "cli",
+    "profiles",
+    "input_mode",
+    "mesh"
+  ],
+  "cli_fields": [
+    "argv",
+    "cwd",
+    "version",
+    "windows_execution",
+    "env"
+  ],
+  "mesh_fields": [
+    "expected_bounds_mm",
+    "units",
+    "intended_transform"
+  ],
+  "argv_template": [
+    "{engine_path}",
+    "--debug",
+    "2",
+    "--datadir",
+    "{data_dir}",
+    "--load-settings",
+    "{profile_printer};{profile_process}",
+    "--load-filaments",
+    "{profile_filament}",
+    "--filament-map",
+    "1",
+    "--filament-volume-map",
+    "0",
+    "--filament-nozzle-map",
+    "0",
+    "--filament-map-mode",
+    "Auto For Flush",
+    "--assemble",
+    "--ensure-on-bed",
+    "--arrange",
+    "0",
+    "--orient",
+    "0",
+    "--slice",
+    "0",
+    "--export-settings",
+    "{output_dir}/resolved_settings.json",
+    "--outputdir",
+    "{output_dir}",
+    "{input_0}"
+  ],
+  "argv_classification": {
+    "--debug": "fixed literal 2",
+    "--datadir": "opaque_path",
+    "--load-settings": "opaque_path: exact semicolon-bound printer/process paths; content identities bound separately in profiles",
+    "--load-filaments": "opaque_path: exact selected filament path; content identity bound separately in profiles",
+    "--filament-map": "decimal 1",
+    "--filament-volume-map": "decimal 0",
+    "--filament-nozzle-map": "decimal 0",
+    "--filament-map-mode": "fixed literal Auto For Flush",
+    "--assemble": "flag",
+    "--ensure-on-bed": "flag",
+    "--arrange": "decimal 0",
+    "--orient": "decimal 0",
+    "--slice": "decimal 0",
+    "--export-settings": "opaque_path (neutrality not proven)",
+    "--outputdir": "opaque_path (neutrality not proven)",
+    "input": "opaque_path: exact input path; ordered content identity bound separately in inputs"
+  },
+  "output_rule": {
+    "classification": "opaque_path",
+    "output_only_destination": false,
+    "basis": "export/output destinations retained conservatively; no relocation neutrality proof"
+  },
+  "cwd_rule": "opaque_path exact resolve_cwd representation; no neutrality claim",
+  "semantic_env": {
+    "allowed_keys": [],
+    "absent_or_empty": "semantic_env_overrides=[]",
+    "unknown_or_secret": "HOLD; never stringify values"
+  },
+  "input_semantics": {
+    "scope": "one exact small clean_mesh_box diagnostic STL; no semantic roles inferred for another mesh",
+    "role": "diagnostic_fixture",
+    "states": {
+      "assembly": "present:--assemble intent",
+      "modifier": "not_applicable",
+      "enforcer": "not_applicable",
+      "authored_support": "not_applicable",
+      "process_fixture": "present:diagnostic cube",
+      "other": "not_applicable",
+      "provenance": "not_applicable"
+    },
+    "accepted_geometry_sha256": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed"
+  },
+  "request_resources": {
+    "coverage_status": "INCOMPLETE",
+    "blocker": "REQUEST_RESOURCE_COVERAGE_UNRESOLVED",
+    "unresolved": [
+      "Flat explicit profiles do not prove bundled parent/default/template fallback unnecessary",
+      "--datadir path alone does not bind potential config bytes or prove defaults unused"
+    ],
+    "selected": [
+      {
+        "logical_name": "resources/profiles/BBL/cli_config.json",
+        "path": "J:/Program Files/Bambu Studio/resources/profiles/BBL/cli_config.json",
+        "sha256": "89171aefd3ce218b8f2ca2e813a9b2991d1c715658f564a4e47a7b579f9255b1",
+        "role": "toolpath_request_configuration",
+        "basis": "A1_BAMBU_CLI_RUNBOOK RUN-04 retains current CLI6000 cap; explicit policy selection, not promotion of all PR44 candidates"
+      }
+    ]
+  },
+  "evidence": [
+    "docs/fabrication/A1_BAMBU_CLI_RUNBOOK.md#run-04--cli-6000-and-effective-settings",
+    "docs/evidence/SLICE_CONSOLE_R01_CLOSURE_POLICY_2026-10-04/ROUTE_OBSERVATION.json",
+    "docs/fabrication/PRACTICAL_EXECUTION_IDENTITY_BOUNDARY_V0_2.md"
+  ]
+}

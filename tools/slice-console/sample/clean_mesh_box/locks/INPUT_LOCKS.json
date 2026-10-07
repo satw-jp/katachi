@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "files": {
+    "profiles/printer.json": "a93eaae87d754082ce68a337d3021ee7432580cbdcffdc674c652e55dd67b31f",
+    "geometry/diagnostic_cube.stl": "b8f2a582655ce4812f44d352a908070b45f66c203316504829d9bcd64e7ea7ed",
+    "profiles/process.json": "986af5806ba276be2a0932bd5bbc5192c323015d535d3ddc7ffde6c192c0eaf0",
+    "profiles/filament.json": "e1c4d0e608b62b34a1607de83c85520ce020770681014ade22ea2f9c82286984"
+  }
+}
