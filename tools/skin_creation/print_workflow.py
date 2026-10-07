@@ -7,7 +7,8 @@ from print_profiles import resolve,DEFAULT,ENGINE,CONSOLE_COMMIT,digest
 from print_geometry import bounds,export
 sys.path.insert(0,str(ROOT.parent/'slice-console'))
 from job import load_job,validate_job
-from runner import SliceRunner
+from slice_console import ConsoleRouter
+from queue import Empty
 from package_gcode import inspect_gcode
 
 PROVEN={('A1','0.4','PLA'),('A1 mini','0.4','PLA'),('A1','0.4','PETG'),('A1','0.6','PLA')}
@@ -101,10 +102,18 @@ class PrintWorkflow:
                     if kind in ('complete','error'):terminal.update(kind=kind,**data);done.set()
                     if kind in ('started','complete','error'):events.append(dict(kind=kind,data=data))
                     if self.active and self.active['id']==key:self.active['stage']=data.get('phase',kind);self.active['progress']=data if kind=='progress' else self.active.get('progress')
-                self.runner=SliceRunner(load_job(target/'SLICE_JOB.json'));record['status']='RUNNING';self.runner.start(callback)
+                request=dict(schema_version='0.1',request_id=key,mode='FULL_SLICE',inputs=dict(job_path=str((target/'SLICE_JOB.json').resolve())))
+                write(target/'CONSOLE_REQUEST.json',request)
+                self.runner=ConsoleRouter();record['status']='RUNNING';console_result={}
+                def dispatch():console_result.update(self.runner.run(request))
+                dispatch_thread=threading.Thread(target=dispatch,daemon=True);dispatch_thread.start()
                 deadline=time.monotonic()+2700
-                while not done.wait(.5):
-                    if self.cancel_event.is_set() or time.monotonic()>deadline:self.runner.cancel()
+                while dispatch_thread.is_alive() or not self.runner.events.empty():
+                    try:kind,data=self.runner.events.get(timeout=.5);callback(kind,data)
+                    except Empty:pass
+                    if self.cancel_event.is_set() or time.monotonic()>deadline:
+                        self.cancel_event.set();self.runner.cancel()
+                dispatch_thread.join();write(target/'CONSOLE_RESULT.json',console_result)
                 write(target/'EVENTS.json',events)
                 if terminal.get('status')!='SUCCESS':raise ValueError('Native execution '+str(terminal.get('status',terminal.get('message')))+'; exit='+str(terminal.get('exit_code')))
                 run_dir=Path(terminal['run_dir']);native=run_dir/'native.3mf';gcode=run_dir/'plate_1.gcode';package=run_dir/'plate_1.gcode.3mf'
@@ -131,7 +140,7 @@ class PrintWorkflow:
         self.thread=threading.Thread(target=run,daemon=True);self.thread.start();return self.state()
     def cancel(self):
         self.cancel_event.set()
-        if self.runner and self.runner.running:self.runner.cancel()
+        if self.runner:self.runner.cancel()
         return self.state()
     def artifact(self,key,name):
         a=next((a for a in self.value()['attempts'] if a['id']==key),None)
