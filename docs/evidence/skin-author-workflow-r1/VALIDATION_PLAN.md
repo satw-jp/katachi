@@ -12,3 +12,5 @@ No Send, Print GO, physical test, main merge, push or deployment.
 
 Fixture attempt correction: all initial native runs completed slicing but terminal export failed with -13. Exact upstream v02.08.02.61 src/BambuStudio.cpp lines6924-6925 prepends outputdir to export_3mf_file. Supplying an absolute filename duplicated the root. One corrected attempt per matrix condition uses basename native.3mf; source/settings unchanged. Initial failed attempts retained; no partial promoted.
 Source: https://raw.githubusercontent.com/bambulab/BambuStudio/v02.08.02.61/src/BambuStudio.cpp
+
+Artwork runtime: 74b750d; fixed selected result85b317379b62460db0ee1e9fbf3ea426 (surface9740af3d..., structuref0c2ddaa...), A1/0.4/PLA, native normal(auto) support, same material interface, no brim. UI must explicitly accept whole-assembly translation, without scale/repair. 45min, 1 engine, monitor24GiB process working-set ceiling and minimum8GiB system free RAM; cancel own attempt if exceeded. Source/recipe/bounds/engine/locks recorded in PRELAUNCH and per-attempt files before native launch.

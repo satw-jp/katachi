@@ -1,0 +1,142 @@
+[
+  {
+    "attempt": "R1.independent-fixture.a1-04-petg_20261007_142105",
+    "manifest": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\katachi-r1\\..\\..\\outputs\\fixtures-export-path-fix\\a1-04-petg\\runs-output\\runs\\R1.independent-fixture.a1-04-petg_20261007_142105\\RESULT_MANIFEST.json",
+    "status": "SUCCESS",
+    "settings": {
+      "printer_model": "Bambu Lab A1",
+      "nozzle_diameter": [
+        "0.4"
+      ],
+      "filament_type": [
+        "PETG"
+      ],
+      "layer_height": "0.2",
+      "enable_support": "1",
+      "support_type": "normal(auto)",
+      "support_filament": "0",
+      "support_interface_filament": "0"
+    },
+    "package": {
+      "status": "READY",
+      "review_ready": true,
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-petg\\runs-output\\runs\\R1.independent-fixture.a1-04-petg_20261007_142105\\plate_1.gcode.3mf",
+      "relative_path": "plate_1.gcode.3mf",
+      "sha256": "73625632a590ff099f23c57845e6dcf40167bc20e44a7515b517b7b2406d4092",
+      "native_3mf_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-petg\\runs-output\\runs\\R1.independent-fixture.a1-04-petg_20261007_142105\\native.3mf",
+      "native_3mf_sha256": "a6a6eaab49d67e43d751c3d3ab5430aa8b919c9d77cc59b4355245de502ff750",
+      "native_zip_crc": "PASS",
+      "native_embedded_gcode_sha256": "1b000efcfad454d31387ae9172344d7c2dcbf9b78e96d03f0c7fbda1b2f1ce06",
+      "standalone_gcode_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-petg\\runs-output\\runs\\R1.independent-fixture.a1-04-petg_20261007_142105\\plate_1.gcode",
+      "standalone_gcode_sha256": "1b000efcfad454d31387ae9172344d7c2dcbf9b78e96d03f0c7fbda1b2f1ce06",
+      "embedded_gcode_path": "Metadata/plate_1.gcode",
+      "embedded_gcode_sha256": "1b000efcfad454d31387ae9172344d7c2dcbf9b78e96d03f0c7fbda1b2f1ce06",
+      "embedded_equals_standalone": true
+    }
+  },
+  {
+    "attempt": "R1.independent-fixture.a1-04-pla_20261007_142103",
+    "manifest": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\katachi-r1\\..\\..\\outputs\\fixtures-export-path-fix\\a1-04-pla\\runs-output\\runs\\R1.independent-fixture.a1-04-pla_20261007_142103\\RESULT_MANIFEST.json",
+    "status": "SUCCESS",
+    "settings": {
+      "printer_model": "Bambu Lab A1",
+      "nozzle_diameter": [
+        "0.4"
+      ],
+      "filament_type": [
+        "PLA"
+      ],
+      "layer_height": "0.2",
+      "enable_support": "1",
+      "support_type": "normal(auto)",
+      "support_filament": "0",
+      "support_interface_filament": "0"
+    },
+    "package": {
+      "status": "READY",
+      "review_ready": true,
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-pla\\runs-output\\runs\\R1.independent-fixture.a1-04-pla_20261007_142103\\plate_1.gcode.3mf",
+      "relative_path": "plate_1.gcode.3mf",
+      "sha256": "fe9d686f3f06fec8c08b769e852a34f9a20d00cd6461061c078ebf98b7a27a08",
+      "native_3mf_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-pla\\runs-output\\runs\\R1.independent-fixture.a1-04-pla_20261007_142103\\native.3mf",
+      "native_3mf_sha256": "dade5d2ea2ca65a452129fe2bc01d6e64758e14d59d67aba4ef51b5fe756345a",
+      "native_zip_crc": "PASS",
+      "native_embedded_gcode_sha256": "5c98a8d50d2922fd7eb6eda5a8b29e85cf7cdf2811c2e7ef30a9aaba3565cb99",
+      "standalone_gcode_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-04-pla\\runs-output\\runs\\R1.independent-fixture.a1-04-pla_20261007_142103\\plate_1.gcode",
+      "standalone_gcode_sha256": "5c98a8d50d2922fd7eb6eda5a8b29e85cf7cdf2811c2e7ef30a9aaba3565cb99",
+      "embedded_gcode_path": "Metadata/plate_1.gcode",
+      "embedded_gcode_sha256": "5c98a8d50d2922fd7eb6eda5a8b29e85cf7cdf2811c2e7ef30a9aaba3565cb99",
+      "embedded_equals_standalone": true
+    }
+  },
+  {
+    "attempt": "R1.independent-fixture.a1-06-pla_20261007_142106",
+    "manifest": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\katachi-r1\\..\\..\\outputs\\fixtures-export-path-fix\\a1-06-pla\\runs-output\\runs\\R1.independent-fixture.a1-06-pla_20261007_142106\\RESULT_MANIFEST.json",
+    "status": "SUCCESS",
+    "settings": {
+      "printer_model": "Bambu Lab A1",
+      "nozzle_diameter": [
+        "0.6"
+      ],
+      "filament_type": [
+        "PLA"
+      ],
+      "layer_height": "0.3",
+      "enable_support": "1",
+      "support_type": "normal(auto)",
+      "support_filament": "0",
+      "support_interface_filament": "0"
+    },
+    "package": {
+      "status": "READY",
+      "review_ready": true,
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-06-pla\\runs-output\\runs\\R1.independent-fixture.a1-06-pla_20261007_142106\\plate_1.gcode.3mf",
+      "relative_path": "plate_1.gcode.3mf",
+      "sha256": "7075052e52e3718f7a32837f7d0ea857d539b4e567e7ad72749ada13161c2d58",
+      "native_3mf_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-06-pla\\runs-output\\runs\\R1.independent-fixture.a1-06-pla_20261007_142106\\native.3mf",
+      "native_3mf_sha256": "1674b75981a0b9bd25d65fd0099fa77e7bd40dc02f419b852650be42909608db",
+      "native_zip_crc": "PASS",
+      "native_embedded_gcode_sha256": "1835548d2404dcf8fcec419883450230d097f4a1bda9daa0ac1fb4845e080e33",
+      "standalone_gcode_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1-06-pla\\runs-output\\runs\\R1.independent-fixture.a1-06-pla_20261007_142106\\plate_1.gcode",
+      "standalone_gcode_sha256": "1835548d2404dcf8fcec419883450230d097f4a1bda9daa0ac1fb4845e080e33",
+      "embedded_gcode_path": "Metadata/plate_1.gcode",
+      "embedded_gcode_sha256": "1835548d2404dcf8fcec419883450230d097f4a1bda9daa0ac1fb4845e080e33",
+      "embedded_equals_standalone": true
+    }
+  },
+  {
+    "attempt": "R1.independent-fixture.a1mini-04-pla_20261007_142104",
+    "manifest": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\katachi-r1\\..\\..\\outputs\\fixtures-export-path-fix\\a1mini-04-pla\\runs-output\\runs\\R1.independent-fixture.a1mini-04-pla_20261007_142104\\RESULT_MANIFEST.json",
+    "status": "SUCCESS",
+    "settings": {
+      "printer_model": "Bambu Lab A1 mini",
+      "nozzle_diameter": [
+        "0.4"
+      ],
+      "filament_type": [
+        "PLA"
+      ],
+      "layer_height": "0.2",
+      "enable_support": "1",
+      "support_type": "normal(auto)",
+      "support_filament": "0",
+      "support_interface_filament": "0"
+    },
+    "package": {
+      "status": "READY",
+      "review_ready": true,
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1mini-04-pla\\runs-output\\runs\\R1.independent-fixture.a1mini-04-pla_20261007_142104\\plate_1.gcode.3mf",
+      "relative_path": "plate_1.gcode.3mf",
+      "sha256": "ac394d70a95be716d9a6242e51cb74fc0612b90483cd2933faf20f1b6de286d7",
+      "native_3mf_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1mini-04-pla\\runs-output\\runs\\R1.independent-fixture.a1mini-04-pla_20261007_142104\\native.3mf",
+      "native_3mf_sha256": "0d7790a65a25b6a5f3c13a076575e1090afae105d119ff033353309a83e498ad",
+      "native_zip_crc": "PASS",
+      "native_embedded_gcode_sha256": "4b1f1fadf93bd22b33d6f26efe16a3168cb3961da3598cc9b7ff4c67c81715ca",
+      "standalone_gcode_path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs\\fixtures-export-path-fix\\a1mini-04-pla\\runs-output\\runs\\R1.independent-fixture.a1mini-04-pla_20261007_142104\\plate_1.gcode",
+      "standalone_gcode_sha256": "4b1f1fadf93bd22b33d6f26efe16a3168cb3961da3598cc9b7ff4c67c81715ca",
+      "embedded_gcode_path": "Metadata/plate_1.gcode",
+      "embedded_gcode_sha256": "4b1f1fadf93bd22b33d6f26efe16a3168cb3961da3598cc9b7ff4c67c81715ca",
+      "embedded_equals_standalone": true
+    }
+  }
+]
