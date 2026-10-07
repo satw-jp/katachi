@@ -11,6 +11,7 @@ from slice_console import ConsoleRouter
 from queue import Empty
 from package_gcode import inspect_gcode
 
+MAX_STL_BYTES=512*1024**2  # bounded R1 input expansion budget; no implicit decimation
 PROVEN={('A1','0.4','PLA'),('A1 mini','0.4','PLA'),('A1','0.4','PETG'),('A1','0.6','PLA')}
 
 def identity(value):
@@ -30,17 +31,21 @@ class PrintWorkflow:
     def __init__(self,session,output):
         self.session=session;self.output=output.resolve();self.output.mkdir(parents=True,exist_ok=True)
         self.thread=None;self.runner=None;self.cancel_event=threading.Event();self.active=None
-    def value(self):return self.session.state.setdefault('printing',new_state())
+    def value(self):
+        value=self.session.state.setdefault('printing',new_state())
+        for a in value['attempts']:
+            if 'recipe' not in a and (value.get('prepared') or {}).get('key')==a['recipeKey']:a['recipe']=copy.deepcopy(value['prepared'])
+        return value
     def busy(self):return self.thread is not None and self.thread.is_alive()
     def current_key(self):
         p=self.value().get('prepared');return p['key'] if p else None
     def state(self):
-        v=copy.deepcopy(self.value());v['active']=copy.deepcopy(self.active)
+        v=copy.deepcopy(self.value());v['active']=copy.deepcopy(self.active) if self.active and any(a['id']==self.active['id'] for a in v['attempts']) else None
         v['provenCombinations']=[list(x) for x in sorted(PROVEN)]
         v['limitations']=['別材料Support/interface未検証・無効','Physical/chronology/strength未検査','Support meshなし（native toolpathのみ）']
         for a in v['attempts']:
             a['stale']=a['recipeKey']!=self.current_key() or a['snapshotId']!=self.session.state['selected']
-            a['available']=all((self.output/a['id']/n).is_file() for n in a.get('artifacts',{}))
+            a['available']=bool(a.get('artifacts')) and all((self.output/a['id']/n).is_file() for n in a['artifacts'])
         return v
     def prepare(self,body):
         if self.busy():raise ValueError('Wait for active print preparation')
@@ -58,6 +63,8 @@ class PrintWorkflow:
             raise ValueError('作品boundsがplateと10mm周囲確認領域を超えます。自動縮小しません')
         t=[plate/2-(b['min'][0]+b['max'][0])/2,plate/2-(b['min'][1]+b['max'][1])/2,-b['min'][2]]
         p=dict(preparationId=uuid.uuid4().hex,snapshotId=result['id'],snapshotHash=result['meshHash'],surfaceHash=result['surfaceHash'],resolved=r,sourceBounds=b,proposedTranslation=t,translation=None,placementAccepted=False,plateSize=plate)
+        p['estimatedStlBytes']=84+50*b['triangles']
+        p['sliceBlocker']=('STL展開 '+str(p['estimatedStlBytes'])+' bytes がR1の512MiB上限を超えます。共有meshを保つnative入力adapterが未対応です。簡略化・自動修復はしません。' if p['estimatedStlBytes']>MAX_STL_BYTES else None)
         p['key']=identity(p);self.value().update(choice=choice,prepared=p)
         return self.state()
     def place(self):
@@ -79,12 +86,13 @@ class PrintWorkflow:
         if self.busy():raise ValueError('同じ実行を重複起動しません')
         p=copy.deepcopy(self.value().get('prepared'))
         if not p or not p['placementAccepted'] or p['snapshotId']!=self.session.state['selected'] or body.get('key')!=p['key']:raise ValueError('選択・配置・条件を再確認してください')
+        if p.get('sliceBlocker') or 84+50*p['sourceBounds']['triangles']>MAX_STL_BYTES:raise ValueError(p.get('sliceBlocker') or 'Input expansion exceeds512MiB budget')
         if identity(resolve(p['resolved']['choice']))!=identity(p['resolved']):raise ValueError('Profile/engine identity changed; re-prepare required')
         # No implicit reuse, nor accidental double-click repetition of this prepared recipe.
         if any(a['recipeKey']==p['key'] for a in self.value()['attempts']):raise ValueError('この確定条件は実行記録があります。記録を確認し再準備してください')
         project=self.session.project;result=copy.deepcopy(self.session.state['results'][p['snapshotId']]);state=self.value()
         key=uuid.uuid4().hex;target=self.output/key;target.mkdir();self.cancel_event.clear()
-        record=dict(id=key,snapshotId=result['id'],snapshotHash=result['meshHash'],recipeKey=p['key'],status='PREPARING',artifacts={},printGo=False)
+        record=dict(recipe=p,id=key,snapshotId=result['id'],snapshotHash=result['meshHash'],recipeKey=p['key'],status='PREPARING',artifacts={},printGo=False)
         state['attempts'].append(record);self.active=dict(id=key,stage='実meshを固定中',status='running')
         def run():
             try:
@@ -125,6 +133,10 @@ class PrintWorkflow:
                 with gcode.open('rb') as f:
                     f.seek(max(0,gcode.stat().st_size-65536));tail=f.read()
                 if b'EXECUTABLE_BLOCK_END' not in tail:raise ValueError('G-code terminal marker missing')
+                package_request=dict(schema_version='0.1',request_id=key+'.PACKAGE',mode='PACKAGE_ONLY',inputs=dict(gcode_path=str(gcode),context_3mf_path=str(native),output_dir=str(target/'package'),expected_sha256=info['sha256'],expected_bytes=info['bytes'],expected_layers=info['layers']))
+                package_result=ConsoleRouter().run(package_request);write(target/'PACKAGE_CONSOLE_RESULT.json',package_result)
+                if package_result['status']!='PACKAGE_COMPLETE':raise ValueError('Matching native context package failed: '+str(package_result.get('blocker')))
+                package=Path(package_result['package_path']);review=read(Path(package_result['package_result_path']))
                 write(target/'OUTPUT_CHECK.json',dict(gcode=info,package=review,resolvedMachine=settings['printer_model'],support=settings.get('support_type'),knownRisks='chronology/physical not tested',printGo=False))
                 # Stable relative artifact names; never duplicate huge bytes into history archives.
                 import shutil

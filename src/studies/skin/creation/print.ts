@@ -1,7 +1,7 @@
 import { request, type ProjectState } from './api.ts';
 
 type Choice = Record<string,string>;
-interface Prepared { key:string; snapshotId:string; snapshotHash:string; sourceBounds:{min:number[];max:number[]}; proposedTranslation:number[]; translation:number[]|null; placementAccepted:boolean; plateSize:number; resolved:{layerHeight:string;profiles:{process:{name:string};printer:{name:string};filament:{name:string}}} }
+interface Prepared { sliceBlocker?:string; key:string; snapshotId:string; snapshotHash:string; sourceBounds:{min:number[];max:number[]}; proposedTranslation:number[]; translation:number[]|null; placementAccepted:boolean; plateSize:number; resolved:{layerHeight:string;profiles:{process:{name:string};printer:{name:string};filament:{name:string}}} }
 interface Attempt { id:string;snapshotId:string;status:string;error?:string;stale:boolean;available:boolean;artifacts:Record<string,{sha256:string;bytes:number}>;summary?:{layers:number;bytes:number} }
 interface PrintState {choice:Choice;prepared:Prepared|null;presets:Record<string,Choice>;attempts:Attempt[];active?:{status:string;stage:string;progress?:{percent:number;actual:boolean}};limitations:string[]}
 export function createPrintUI() {
@@ -28,16 +28,19 @@ export function createPrintUI() {
  function fill(c:Choice){for(const k of keys)el<HTMLSelectElement>('print-'+k).value=c[k];dirty=false;}
  function error(e:unknown){el('print-error').textContent=String(e);el('print-error').hidden=false;}
  function paint(){
+  const presets=el<HTMLSelectElement>('print-presets');const names=Object.keys(value?.presets||{});
+  if(JSON.stringify(Array.from(presets.options,o=>o.value))!==JSON.stringify(names)){const selected=presets.value;presets.replaceChildren(...names.map(n=>new Option(n,n)));if(names.includes(selected))presets.value=selected;}
   const selected=project?.selected?project.results[project.selected]:null;
   el('print-target').textContent=selected?`対象 ${selected.id} · 花 ${selected.flowerCount} · 枝 ${selected.recipe.diameter} mm · ${selected.meshHash.slice(0,12)}`:'先に「この造形で進める」で対象を選択してください';
   el<HTMLImageElement>('print-thumbnail').hidden=imageId!==selected?.id;
   const p=value?.prepared;const active=value?.active?.status==='running';
+  for(const id of ['print-preset-save','print-preset-load','print-default','print-presets',...keys.map(k=>'print-'+k)])el<HTMLButtonElement>(id).disabled=busy||active;
   el<HTMLButtonElement>('print-prepare').disabled=busy||active||!selected;
   el<HTMLButtonElement>('print-place').disabled=busy||active||!p||dirty||p.snapshotId!==selected?.id;
-  el<HTMLButtonElement>('print-run').disabled=busy||active||!p?.placementAccepted||dirty||p.snapshotId!==selected?.id;
+  el<HTMLButtonElement>('print-run').disabled=busy||active||!p?.placementAccepted||Boolean(p?.sliceBlocker)||dirty||p.snapshotId!==selected?.id;
   el<HTMLButtonElement>('print-cancel').disabled=!active;
   el('print-diff').textContent=Object.entries(choice()).filter(([k,v])=>value?.choice[k]!==v).map(([k,v])=>`${k}: ${value?.choice[k]} → ${v}`).join(' / ');
-  el('print-recipe').textContent=p?`${p.resolved.profiles.printer.name} / ${p.resolved.profiles.filament.name} / ${p.resolved.profiles.process.name} / 層高 ${p.resolved.layerHeight}mm。移動量 XYZ: ${p.proposedTranslation.map(x=>x.toFixed(3)).join(', ')} mm。${p.placementAccepted?'配置適用済み':'配置未適用'}。拡縮・根元延長・Host出力なし。`:'';
+  el('print-recipe').textContent=p?`${p.resolved.profiles.printer.name} / ${p.resolved.profiles.filament.name} / ${p.resolved.profiles.process.name} / 層高 ${p.resolved.layerHeight}mm。移動量 XYZ: ${p.proposedTranslation.map(x=>x.toFixed(3)).join(', ')} mm。${p.placementAccepted?'配置適用済み':'配置未適用'}。${p.sliceBlocker||''}拡縮・根元延長・Host出力なし。`:'';
   if(p){const lo=p.sourceBounds.min;const hi=p.sourceBounds.max;const t=p.translation||[0,0,0];const scale=220/p.plateSize;el('print-bed').innerHTML=`<svg viewBox="-12 -12 244 244" width="220" aria-label="適用後XY boundsとplate"><rect width="220" height="220" fill="#edf3ef" stroke="#888"/><rect x="${(lo[0]+t[0])*scale}" y="${220-(hi[1]+t[1])*scale}" width="${(hi[0]-lo[0])*scale}" height="${(hi[1]-lo[1])*scale}" fill="#65c9be88" stroke="#28634f"/></svg><p class="note">${p.placementAccepted?'適用後':'制作座標'}boundsの上面図。全partの相対位置を保持。Support/brimの最終範囲はnative結果で再確認。</p>`;}else el('print-bed').replaceChildren();
   el('print-progress').textContent=value?.active?`${value.active.status} · ${value.active.stage}${value.active.progress?` · ${value.active.progress.actual?'実測':'推定'} ${value.active.progress.percent.toFixed(1)}%`:''}`:'';
   const container=el('print-attempts');container.replaceChildren();
@@ -47,7 +50,7 @@ export function createPrintUI() {
    container.append(article);
   }
  }
- async function action(path:string,body:unknown={},sync=false){if(busy)return;busy=true;el('print-error').hidden=true;paint();try{value=await request<PrintState>(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(sync)fill(value.choice);const names=Object.keys(value.presets);el<HTMLSelectElement>('print-presets').replaceChildren(...names.map(n=>new Option(n,n)));}catch(e){error(e);}finally{busy=false;paint();}}
+ async function action(path:string,body:unknown={},sync=false){if(busy)return;busy=true;el('print-error').hidden=true;paint();try{value=await request<PrintState>(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(sync)fill(value.choice);}catch(e){error(e);}finally{busy=false;paint();}}
  keys.forEach(k=>el('print-'+k).addEventListener('change',()=>{dirty=true;paint();}));
  el('print-prepare').onclick=()=>void action('/print/prepare',{choice:choice()},true);
  el('print-place').onclick=()=>void action('/print/place');

@@ -31,7 +31,7 @@ def dependency_versions():
     return {name: version(name) for name in ('numpy', 'scipy', 'trimesh', 'manifold3d')}
 
 def code_files():
-    return sorted(p for p in ROOT.rglob('*.py') if '__pycache__' not in p.parts)
+    return sorted(p for p in ROOT.rglob('*') if p.is_file() and '__pycache__' not in p.parts and (p.suffix == '.py' or p.name in ('archive_compatibility.json','validated_profiles.json')))
 
 def code_identity():
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in code_files()}
