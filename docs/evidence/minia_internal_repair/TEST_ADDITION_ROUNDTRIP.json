@@ -1,0 +1,78 @@
+{
+  "status": "PASS_EDIT_DELTA",
+  "editor_blend_path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_editor\\MINIA_EDITOR_TEST_ADD.blend",
+  "editor_blend_sha256": "ee521d898e98f75917738f72751ad496ec77454c4b186e0f899b63010f3c77d1",
+  "baseline_editable_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+  "ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "source_record_count": 9421,
+  "anchor_checks": [
+    {
+      "object": "AUTHOR_EDIT_ALL \u2022 protected point baseline",
+      "expected_anchors": 18842,
+      "actual_vertices": 18842,
+      "edges": []
+    },
+    {
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "expected_anchors": 24,
+      "actual_vertices": 24,
+      "edges": [
+        {
+          "branch_id": "AUT-15674E1688A8",
+          "endpoint_anchor_ids": [
+            "A3457:END",
+            "G0181:START"
+          ],
+          "endpoint_source_record_ids": [
+            "A3457",
+            "G0181"
+          ],
+          "points_plate_mm": [
+            [
+              29.40310287475586,
+              105.62398529052734,
+              43.50392150878906
+            ],
+            [
+              44.55009460449219,
+              86.16104888916016,
+              41.66598892211914
+            ]
+          ],
+          "status": "AUTHOR_CENTERLINE_ONLY_NOT_MATERIALIZED"
+        }
+      ]
+    }
+  ],
+  "source_reference_count": 7,
+  "new_edge_count": 1,
+  "new_branches": [
+    {
+      "branch_id": "AUT-15674E1688A8",
+      "endpoint_anchor_ids": [
+        "A3457:END",
+        "G0181:START"
+      ],
+      "endpoint_source_record_ids": [
+        "A3457",
+        "G0181"
+      ],
+      "points_plate_mm": [
+        [
+          29.40310287475586,
+          105.62398529052734,
+          43.50392150878906
+        ],
+        [
+          44.55009460449219,
+          86.16104888916016,
+          41.66598892211914
+        ]
+      ],
+      "status": "AUTHOR_CENTERLINE_ONLY_NOT_MATERIALIZED"
+    }
+  ],
+  "weak_point_markers": [],
+  "issues": [],
+  "slice_send_print_count": 0
+}

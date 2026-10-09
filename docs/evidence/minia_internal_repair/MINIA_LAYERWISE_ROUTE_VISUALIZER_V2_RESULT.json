@@ -1,0 +1,42 @@
+{
+  "state": "READY_FOR_AUTHOR_REVIEW",
+  "entry_blend": "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend",
+  "bootstrap": "MINIA_ROUTE_BOOTSTRAP.py",
+  "runtime": "route_runtime",
+  "guide": "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_AUTHOR_GUIDE.md",
+  "preview": "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_PREVIEW.png",
+  "source_v1_sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24",
+  "author_blend_added_edges": 0,
+  "checks": {
+    "height_and_mode_mark_stale": true,
+    "missing_height_status": "SELECTED_FAILURE_NOT_PRESENT_AT_HEIGHT",
+    "joint_failure": "G0181|A3457",
+    "missing_height_selection_stable": true,
+    "object_and_editmode_poll": true,
+    "peak_working_set_mb": 763.1,
+    "fresh_reopen_current": true,
+    "working_set_mb": 624.6,
+    "height_event_backend_elapsed_s": 19.4909,
+    "test_only_before_after": [
+      0,
+      1
+    ],
+    "test_wall_elapsed_s": 92.23,
+    "bootstrap_current": true
+  },
+  "hashes": {
+    "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend": "8fca3c927be92b4eabd47051810df036ee718c246b491782032263c380178d6f",
+    "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_AUTHOR_GUIDE.md": "8d4a9310145890de367e4e81cc643c59dc6247ed60e3235c5666af92087113d8",
+    "route_runtime/route_overlay.py": "62f44c9cac7f5b7f054019ccc22fd522ea4c7a7a1e25e20db730240262e067ac",
+    "MINIA_ROUTE_BOOTSTRAP.py": "53d2b8127e797f7d2c1f4d3c1259fb67c6688071843a9c34e6d42513d5c6738a",
+    "route_runtime/route_v2_panel.py": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312",
+    "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_PREVIEW.png": "a882c776bd70a05238c6269c69e6fafdcf2a525c3ecf5704ed87ce1a41e33511"
+  },
+  "limitations": [
+    "Physical holding and strength are unverified",
+    "All contact/toolpath coverage is incomplete",
+    "Event onset/interval values are conditional graph estimates; isolated wall time not measured",
+    "GUI/Author acceptance unverified"
+  ],
+  "guide_editorial_update": "Astra added explicit Edit Mode/Save As/reopen steps and clarified conditional event-search scope; no runtime or blend change."
+}

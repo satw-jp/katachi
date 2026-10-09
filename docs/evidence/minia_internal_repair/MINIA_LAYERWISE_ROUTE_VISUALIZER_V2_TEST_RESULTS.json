@@ -1,0 +1,86 @@
+{
+  "bootstrap": {
+    "blend": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend",
+    "output_root": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs",
+    "runtime": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\route_runtime",
+    "panel": "registered",
+    "state": "CURRENT"
+  },
+  "initial_state": "CURRENT",
+  "initial_edit_count": 0,
+  "height_marks_stale": true,
+  "height_reset_current": true,
+  "mode_marks_stale": true,
+  "43_2_perm_graph_count": 0,
+  "joint_failure_kind": "joint",
+  "joint_failure_id": "G0181|A3457",
+  "joint_impact": {
+    "failure_kind": "joint",
+    "failure_id": "G0181|A3457",
+    "failure_present_in_graph": true,
+    "failure_status": "EVALUATED_IN_SUPPLIED_GRAPH",
+    "lost_fragment_ids": [
+      "A3457#1"
+    ],
+    "removed_fragment_ids": [],
+    "lost_branch_ids": [
+      "A3457"
+    ],
+    "lost_branch_count": 1,
+    "partially_disconnected_branch_ids": [
+      "A3457"
+    ],
+    "affected_flower_ids": [],
+    "partially_disconnected_flower_ids": [],
+    "lost_flower_ids": [],
+    "lost_flower_count": 0,
+    "bbox": [
+      [
+        33.086362219002964,
+        104.87590793304288,
+        40.96012878417969
+      ],
+      [
+        38.721397399902344,
+        107.39646911621094,
+        43.2
+      ]
+    ]
+  },
+  "A3457_selected_token_stable_at30": true,
+  "A3457_height30_present": false,
+  "A3457_height30_status": "SELECTED_FAILURE_NOT_PRESENT_AT_HEIGHT",
+  "A3457_display_label": "A3457（対象高さでは未出現）",
+  "A3457_selected_token_stable_at43_2": true,
+  "A3457_height43_2_present": true,
+  "test_edit_id": "AUT-550837EB7808",
+  "test_edge_count": 1,
+  "test_edit_issues": [],
+  "edit_marks_stale": true,
+  "edit_overlay_hidden": true,
+  "test_edit_graph_before": 0,
+  "test_edit_graph_after": 1,
+  "edit_overlay": {
+    "component_bbox_count": 12,
+    "centerline_clip_count": 1,
+    "author_intent_clip_count": 1,
+    "witness_segment_count": 5,
+    "failure_overlay_count": 0,
+    "target_fragment_ids": [
+      "F3457#0"
+    ],
+    "radius_mm": 36.0,
+    "plane_z_plate_mm": 43.2
+  },
+  "height_event_evidence": "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_HEIGHT_EVENT_EVIDENCE.json; not rerun in this pass",
+  "edit_mode_poll_stale": true,
+  "edit_mode_overlay_hidden": true,
+  "edit_mode_hold": true,
+  "test_fixture": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_visualizer\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_TEST_ONLY.blend",
+  "author_v2_edit_count": 0,
+  "full_validation_wall_s": 92.23,
+  "memory": {
+    "working_set_mb": 624.6,
+    "peak_working_set_mb": 763.1
+  }
+}

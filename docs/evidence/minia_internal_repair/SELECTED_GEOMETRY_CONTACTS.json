@@ -1,0 +1,3586 @@
+{
+  "state": "SCOPED_SOURCE_GEOMETRY_CONTACTS_MEASURED",
+  "region": "F3457 / G0181 DEMO; not identified physical damage",
+  "members": {
+    "G0165": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 37964909,
+        "triangles": 256,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 30.86419972210052,
+      "bbox_plate_mm": [
+        41.49073028564453,
+        84.55030059814453,
+        33.724727630615234,
+        49.55669403076172,
+        90.3289566040039,
+        36.2969970703125
+      ]
+    },
+    "C0016": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 37027600,
+        "triangles": 256,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 95.21235245388121,
+      "bbox_plate_mm": [
+        46.250545501708984,
+        84.13986206054688,
+        14.276726722717285,
+        58.126441955566406,
+        89.83663940429688,
+        38.473487854003906
+      ]
+    },
+    "G0181": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 38068447,
+        "triangles": 256,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 84.10862811156423,
+      "bbox_plate_mm": [
+        36.5439567565918,
+        85.0633316040039,
+        40.566162109375,
+        45.64794158935547,
+        107.39786529541016,
+        43.14318084716797
+      ]
+    },
+    "C0031": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 37031846,
+        "triangles": 256,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 96.21062970317058,
+      "bbox_plate_mm": [
+        33.06526184082031,
+        84.15443420410156,
+        36.29350280761719,
+        48.431724548339844,
+        90.70207214355469,
+        58.69671630859375
+      ]
+    },
+    "A3457": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 38075549,
+        "triangles": 1672,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 38.68109787912806,
+      "bbox_plate_mm": [
+        28.979129791259766,
+        104.29236602783203,
+        40.96012878417969,
+        38.721397399902344,
+        107.39646911621094,
+        47.069244384765625
+      ]
+    },
+    "F3457": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+        "first_triangle": 29914400,
+        "triangles": 8192,
+        "native_correspondence": "NATIVE_FACE_REMAP.json accepted; selected members not at swapped indices"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 3.1700758883543125,
+      "bbox_plate_mm": [
+        27.75727081298828,
+        104.09564971923828,
+        42.01566696166992,
+        30.440635681152344,
+        107.24276733398438,
+        43.93283462524414
+      ]
+    },
+    "LR002": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_MINI_LOCAL_LOBE_R1\\data\\members\\LR002.npz",
+        "sha256": "dad1cbac7e362a4d964262b13e5b54290e3c3942c5e30411c9757ec5f1c94bbd",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 32.96549426348106,
+      "bbox_plate_mm": [
+        41.74241638183594,
+        87.06512451171875,
+        33.9893684387207,
+        45.42524719238281,
+        92.29154968261719,
+        42.8569221496582
+      ]
+    },
+    "R5_F3457_P1": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P1.npz",
+        "sha256": "adc00d4a2110d8684c611fabe6999cfe1fc59d32ad6dada54e1a91588fb0c6a2",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.3364112483881818,
+      "bbox_plate_mm": [
+        29.454885482788086,
+        104.98538970947266,
+        42.78126907348633,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ]
+    },
+    "R5_F3457_P2": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P2.npz",
+        "sha256": "d02594c8430f3f08853c127ea6692b5f13111c5b2cbac1b61783e8518cfe3fc3",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.3358833047849608,
+      "bbox_plate_mm": [
+        28.978687286376953,
+        104.72803497314453,
+        43.05120849609375,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ]
+    },
+    "R5_F3457_P3": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P3.npz",
+        "sha256": "fd37592281b69bf730d27053542375ac958c27e51fff4b75cc47aae9c652ba1b",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.335898290376483,
+      "bbox_plate_mm": [
+        28.54085922241211,
+        104.98538970947266,
+        43.35902404785156,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ]
+    },
+    "R5_F3457_P4": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P4.npz",
+        "sha256": "a4245d4c820456c9c8bcc66dd260f4a689a3435756fb8456716e1b166e0dedb9",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.336418254281367,
+      "bbox_plate_mm": [
+        28.605005264282227,
+        104.98538970947266,
+        43.378841400146484,
+        31.114307403564453,
+        106.275634765625,
+        45.98820495605469
+      ]
+    },
+    "R5_F3457_P5": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P5.npz",
+        "sha256": "9f1b45ba0dd8aa63762558564adfc1a39df120e6ba3b94335b35ed042c510f5c",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.335884655155101,
+      "bbox_plate_mm": [
+        29.081090927124023,
+        104.98538970947266,
+        43.10872268676758,
+        31.114307403564453,
+        106.54595947265625,
+        45.98820495605469
+      ]
+    },
+    "R5_F3457_P6": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\members\\R5_F3457_P6.npz",
+        "sha256": "a376ce4b2503b416f1f8fec876d3243d1ed576c9d9f95d4feb88807d6773c510",
+        "native_correspondence": "ADDITIONS_3MF_ID_MAP; accepted SOURCE_BINDING.json"
+      },
+      "role": "PERMANENT",
+      "volume_plate_mm3": 1.335900455713585,
+      "bbox_plate_mm": [
+        29.51888084411621,
+        104.98538970947266,
+        42.800838470458984,
+        31.114307403564453,
+        106.18844604492188,
+        45.98820495605469
+      ]
+    },
+    "S002463": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\REMOVABLE_SUPPORT.stl",
+        "first_triangle": 56160,
+        "triangles": 208,
+        "native_correspondence": "SOURCE_BINDING.json source provenance; Support native part CRC preserved"
+      },
+      "role": "SUPPORT",
+      "volume_plate_mm3": 39.03223815069189,
+      "bbox_plate_mm": [
+        22.093332290649414,
+        105.25333404541016,
+        2.8346446967475458e-08,
+        23.266664505004883,
+        106.4266586303711,
+        38.26031494140625
+      ]
+    },
+    "T00661": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\REMOVABLE_SUPPORT.stl",
+        "first_triangle": 1754100,
+        "triangles": 480,
+        "native_correspondence": "SOURCE_BINDING.json source provenance; Support native part CRC preserved"
+      },
+      "role": "SUPPORT",
+      "volume_plate_mm3": 13.379767450754386,
+      "bbox_plate_mm": [
+        22.093332290649414,
+        104.49176025390625,
+        30.582674026489258,
+        30.446054458618164,
+        106.4266586303711,
+        42.345890045166016
+      ]
+    },
+    "T00673": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\REMOVABLE_SUPPORT.stl",
+        "first_triangle": 1760244,
+        "triangles": 508,
+        "native_correspondence": "SOURCE_BINDING.json source provenance; Support native part CRC preserved"
+      },
+      "role": "SUPPORT",
+      "volume_plate_mm3": 11.870328408331114,
+      "bbox_plate_mm": [
+        22.093332290649414,
+        105.25333404541016,
+        32.3928108215332,
+        29.543222427368164,
+        107.3863296508789,
+        42.98129653930664
+      ]
+    },
+    "X03430": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\REMOVABLE_SUPPORT.stl",
+        "first_triangle": 1268506,
+        "triangles": 388,
+        "native_correspondence": "SOURCE_BINDING.json source provenance; Support native part CRC preserved"
+      },
+      "role": "SUPPORT",
+      "volume_plate_mm3": 7.160192175721382,
+      "bbox_plate_mm": [
+        22.093332290649414,
+        102.61333465576172,
+        29.484302520751953,
+        26.13842010498047,
+        106.12203216552734,
+        35.65462875366211
+      ]
+    },
+    "S002400": {
+      "source": {
+        "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\REMOVABLE_SUPPORT.stl",
+        "first_triangle": 58448,
+        "triangles": 208,
+        "native_correspondence": "SOURCE_BINDING.json source provenance; Support native part CRC preserved"
+      },
+      "role": "SUPPORT",
+      "volume_plate_mm3": 37.63890107782549,
+      "bbox_plate_mm": [
+        22.093332290649414,
+        102.61333465576172,
+        2.8346446967475458e-08,
+        23.266664505004883,
+        103.78666687011719,
+        36.91087341308594
+      ]
+    }
+  },
+  "contacts": [
+    {
+      "a": "G0165",
+      "b": "C0016",
+      "volume_plate_mm3": 6.206310824870499,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        46.93905279572845,
+        84.55054069504752,
+        33.724727630615234,
+        49.55669403076172,
+        86.78972267706882,
+        35.99754739191605
+      ],
+      "positive_overlap_onset_plate_z_mm": 33.7253444283231,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3547061451082327e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.2759488281902788
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 3.5145528733834626
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 6.206310824870494
+        }
+      ]
+    },
+    {
+      "a": "G0165",
+      "b": "C0031",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified"
+    },
+    {
+      "a": "G0165",
+      "b": "LR002",
+      "volume_plate_mm3": 6.399191678191273,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        42.965077455414686,
+        87.06512451171875,
+        33.9893684387207,
+        45.42524719238281,
+        89.60178342049693,
+        36.27454727274166
+      ],
+      "positive_overlap_onset_plate_z_mm": 33.9899740162549,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3620727265006028e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 4.6767135349799586e-05
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 2.32859697776583
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 6.399191678191275
+        }
+      ]
+    },
+    {
+      "a": "C0016",
+      "b": "C0031",
+      "volume_plate_mm3": 5.235762456011751,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        46.250545501708984,
+        84.16084521745687,
+        36.29350280761719,
+        48.431724548339844,
+        86.33425081948421,
+        38.473487854003906
+      ],
+      "positive_overlap_onset_plate_z_mm": 36.29385376808705,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.2993723430554383e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 5.235762456011753
+        }
+      ]
+    },
+    {
+      "a": "G0181",
+      "b": "C0031",
+      "volume_plate_mm3": 6.2689352845591095,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        43.19054549933972,
+        85.06597634349663,
+        40.566162109375,
+        45.64794158935547,
+        87.51606552702445,
+        42.79047504082487
+      ],
+      "positive_overlap_onset_plate_z_mm": 40.56662056887846,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3257938214837748e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.6029809369241448
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 4.170725149221755
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 6.268935284559107
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 6.268935284559107
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 6.268935284559107
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 6.268935284559107
+        }
+      ]
+    },
+    {
+      "a": "G0181",
+      "b": "A3457",
+      "volume_plate_mm3": 5.439768086903778,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        36.5439567565918,
+        105.13654612082816,
+        40.96224233144523,
+        38.721397399902344,
+        107.38682065691928,
+        43.14318084716797
+      ],
+      "positive_overlap_onset_plate_z_mm": 40.96271537984961,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.299940655066214e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0026024995693007627
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 2.5329628438321734
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 5.38778284441905
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 5.439768086903779
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 5.439768086903779
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 5.439768086903779
+        }
+      ]
+    },
+    {
+      "a": "G0181",
+      "b": "LR002",
+      "volume_plate_mm3": 6.4685979032721725,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        41.74241638183594,
+        89.49315903991983,
+        40.62874402731112,
+        44.037279860462306,
+        92.29154968261719,
+        42.8569221496582
+      ],
+      "positive_overlap_onset_plate_z_mm": 40.62921975189107,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3280976547879467e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.8289112741246832
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 4.700522702034811
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 6.468597903272174
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 6.468597903272174
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 6.468597903272174
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 6.468597903272174
+        }
+      ]
+    },
+    {
+      "a": "C0031",
+      "b": "LR002",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified"
+    },
+    {
+      "a": "A3457",
+      "b": "F3457",
+      "volume_plate_mm3": 0.06418854971892012,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.981475762721356,
+        105.27123010799787,
+        43.07470703125,
+        29.596213741533298,
+        106.01096872425926,
+        43.51082011113708
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.07513549637173,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.5994365208570893e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.06418854971892006
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.06418854971892006
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.06418854971892006
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P1",
+      "volume_plate_mm3": 1.1313397777039866,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.482648812320647,
+        104.98538970947266,
+        43.124474443258414,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.12573619586091,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.706916399476691e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.1608793024812351
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.6338121670689031
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.1313397777039689
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P2",
+      "volume_plate_mm3": 1.1331758305205244,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.155055068741675,
+        104.83470172727334,
+        43.25032237674886,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.25167065681334,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.6319051857625398e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.10315688042471234
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.6009953215795455
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.1331758305205422
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P3",
+      "volume_plate_mm3": 1.1331686070216958,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.979801298822586,
+        104.98538970947266,
+        43.443710417491,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.44451226343643,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.5166369310401022e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.05286322330330958
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.550726548281589
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.1331686070216822
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P4",
+      "volume_plate_mm3": 1.1313418513179545,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.98757341882885,
+        104.98538970947266,
+        43.46239218430808,
+        31.114307403564453,
+        106.13110523846407,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.46307884364726,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.5055017302910138e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.04906925909796662
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.544870828067901
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.1313418513179683
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 1.1331766421909488,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.21344426197355,
+        104.98538970947266,
+        43.286767349651505,
+        31.114307403564453,
+        106.25439312767423,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.28810718233429,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.610182289125432e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.09254018817429714
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.5925732209044731
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.133176642190925
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 1.133170515369262,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.533668981628242,
+        104.98538970947266,
+        43.126501102442255,
+        31.114307403564453,
+        106.0863511250368,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.127838718982446,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.705708416469355e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.1581804395329896
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.6334620370458188
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.1331705153692477
+        }
+      ]
+    },
+    {
+      "a": "A3457",
+      "b": "T00661",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified"
+    },
+    {
+      "a": "A3457",
+      "b": "T00673",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified"
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P1",
+      "volume_plate_mm3": 0.024993202743872962,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.454885482788086,
+        105.03575822001517,
+        42.78126907348633,
+        29.92497221119319,
+        105.54642507983681,
+        43.18040858574967
+      ],
+      "positive_overlap_onset_plate_z_mm": 42.7817975096015,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.3790568844279004e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.019284921821603192
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.024993202743873
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.024993202743873
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.024993202743873
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P2",
+      "volume_plate_mm3": 0.024947180416232922,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.978687286376953,
+        104.75031062672386,
+        43.05120849609375,
+        29.381679535364235,
+        105.31588105038429,
+        43.358398715982254
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.05173684841306,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.8309963934928426e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.02494718041623294
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.02494718041623294
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.02494718041623294
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P3",
+      "volume_plate_mm3": 0.024953529586596968,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.54085922241211,
+        105.12602670260107,
+        43.35902404785156,
+        29.04793985250267,
+        105.6188487190855,
+        43.71421997200997
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.35955259002725,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.1171326885128535e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.02495352958659701
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.02495352958659701
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.02495352958659701
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P4",
+      "volume_plate_mm3": 0.0249754026833503,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.605005264282227,
+        105.749192475155,
+        43.378841400146484,
+        29.094114337786753,
+        106.25716357571632,
+        43.73831911876654
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.37936973581229,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.142654172301626e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.024975402683350304
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.024975402683350304
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.024975402683350304
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 0.024954129910615696,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.085367307241466,
+        105.96515938487887,
+        43.10872268676758,
+        29.515065624866534,
+        106.53891958653308,
+        43.415156466934086
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.10925112617778,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.8264876614004825e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.02495412991061566
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.02495412991061566
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.02495412991061566
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.024943905066402303,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.51888084411621,
+        105.68240856334718,
+        42.800838470458984,
+        29.99296171075171,
+        106.16750170982105,
+        43.1960675093905
+      ],
+      "positive_overlap_onset_plate_z_mm": 42.801366699978104,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.3557486470432166e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.01716606903586575
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0249439050664023
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.0249439050664023
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.0249439050664023
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "T00661",
+      "volume_plate_mm3": 0.031981364691860914,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified",
+      "overlap_bbox_plate_mm": [
+        29.63938331604004,
+        104.85842895507812,
+        42.01566696166992,
+        30.079387664794922,
+        105.29841613769531,
+        42.345890045166016
+      ],
+      "positive_overlap_onset_plate_z_mm": 42.015974761759026,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.9682829588418826e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.031981364691860935
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.031981364691860935
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.031981364691860935
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.031981364691860935
+        }
+      ]
+    },
+    {
+      "a": "F3457",
+      "b": "T00673",
+      "volume_plate_mm3": 0.030002830285930985,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified",
+      "overlap_bbox_plate_mm": [
+        28.77242326555204,
+        106.57967376708984,
+        42.58027483468217,
+        29.176557540893555,
+        107.01966094970703,
+        42.98129653930664
+      ],
+      "positive_overlap_onset_plate_z_mm": 42.580844532974666,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 2.3902756251363103e-08,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.030002830285930867
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.030002830285930867
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.030002830285930867
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.030002830285930867
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "R5_F3457_P2",
+      "volume_plate_mm3": 0.7948117712344174,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.522795733821162,
+        104.98538970947266,
+        43.26614348282068,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.26893770938915,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.6224750716888945e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.036833374294988244
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.31560224969903183
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.7948117712344226
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "R5_F3457_P3",
+      "volume_plate_mm3": 0.5984323585057338,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.769761659531582,
+        104.98538970947266,
+        44.126934532705135,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.12760150616397,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.1094036241469098e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.1325320109023861
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.5984323585057415
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "R5_F3457_P4",
+      "volume_plate_mm3": 0.5576502241273209,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.850867127420443,
+        104.98538970947266,
+        44.2638003115038,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.265899747385745,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0278252628748936e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.10117564583513963
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.557650224127315
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 0.5984304495458858,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.87635962869036,
+        104.98538970947266,
+        44.035547361915086,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.037430045504706,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.1638746226665985e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.14238702913470605
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.598430449545891
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.7948186532744475,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.73240196371691,
+        104.98538970947266,
+        43.14240603279375,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.14510710680115,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.6962283392315724e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.047518922667116506
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.3269735614378939
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.7948186532744762
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P1",
+      "b": "T00673",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified"
+    },
+    {
+      "a": "R5_F3457_P2",
+      "b": "R5_F3457_P3",
+      "volume_plate_mm3": 0.7748323116621045,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.143977694849138,
+        104.98538970947266,
+        43.600321476855214,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.603405887455736,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.4232894654270848e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.011154392302763464
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.26742262474343576
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.774832311662091
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P2",
+      "b": "R5_F3457_P4",
+      "volume_plate_mm3": 0.5984312264430518,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.60558315752994,
+        104.98538970947266,
+        44.2007931579426,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.20196912488656,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0653804529381328e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.12110153333547787
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.5984312264430461
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P2",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 0.5599000547305651,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.808322067468044,
+        104.98538970947266,
+        44.2485849578273,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.25007196797216,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0368943203850924e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.10333301081550085
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.559900054730563
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P2",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.6053972906868392,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.867863804749827,
+        104.98538970947266,
+        43.99855584466396,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.99993388752128,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.1859232851211583e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 1.1509978647267216e-08
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.14950582859960615
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.6053972906868448
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P3",
+      "b": "R5_F3457_P4",
+      "volume_plate_mm3": 0.794818620207735,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        28.887224278340025,
+        104.98538970947266,
+        43.68807172058882,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.69031259760523,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3709862443601277e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.007187060011587188
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.2646610908772599
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.7948186202077352
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P3",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 0.6053959972998371,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.60110569202271,
+        104.98538970947266,
+        44.18892261909967,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.19036560843972,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0724558454483846e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.12478279052240543
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.6053959972998434
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P3",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.5599050165497979,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.8676578252119,
+        104.98538970947266,
+        44.25686096833332,
+        31.114307403564453,
+        105.86034393310547,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.25896131943938,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0319614337214033e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.10285316680760484
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.5599050165497991
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P4",
+      "b": "R5_F3457_P5",
+      "volume_plate_mm3": 0.7948154491430761,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.17039297201923,
+        104.98538970947266,
+        43.57639152291481,
+        31.114307403564453,
+        106.17509760221438,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.57895827349182,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.4375528294681766e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.013424860985892843
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.2803486151987696
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.7948154491430804
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P4",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.5984351606136953,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.80895394495831,
+        104.98538970947266,
+        44.13893919426763,
+        31.114307403564453,
+        105.9408740448173,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 44.13965995442331,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.102248288266098e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.1309533883316833
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.5984351606136997
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P5",
+      "b": "R5_F3457_P6",
+      "volume_plate_mm3": 0.7748340105367396,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        29.625170353607846,
+        104.98538970947266,
+        43.37078309472555,
+        31.114307403564453,
+        106.10749913388405,
+        45.98820495605469
+      ],
+      "positive_overlap_onset_plate_z_mm": 43.37429223890817,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.560105002718648e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.0
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.026675646928306825
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.2938382585955123
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.77483401053673
+        }
+      ]
+    },
+    {
+      "a": "R5_F3457_P6",
+      "b": "T00673",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "BEARING_CONTACT",
+      "mechanical_interpretation": "Support/Permanent contact included only as bearing assumption; tensile/bending holding unverified"
+    },
+    {
+      "a": "S002463",
+      "b": "T00661",
+      "volume_plate_mm3": 1.2131622003499296,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        22.093332290649414,
+        105.25333404541016,
+        30.582674026489258,
+        23.266664505004883,
+        106.4266586303711,
+        32.92135124018421
+      ],
+      "positive_overlap_onset_plate_z_mm": 30.583711132912036,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.3939602456658782e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.2131622003499267
+        }
+      ]
+    },
+    {
+      "a": "S002463",
+      "b": "T00673",
+      "volume_plate_mm3": 1.2130867510495507,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        22.093332290649414,
+        105.25333404541016,
+        32.3928108215332,
+        23.266664505004883,
+        106.4266586303711,
+        34.72518500018058
+      ],
+      "positive_overlap_onset_plate_z_mm": 32.39384791322784,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.390203344015704e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 1.112316568473543
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.213086751049552
+        }
+      ]
+    },
+    {
+      "a": "S002463",
+      "b": "X03430",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified"
+    },
+    {
+      "a": "T00661",
+      "b": "T00673",
+      "volume_plate_mm3": 0.019644087844040942,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        22.920644793957916,
+        105.59702182685216,
+        32.48472856961688,
+        24.225132602159928,
+        105.98991244203206,
+        34.20786508392782
+      ],
+      "positive_overlap_onset_plate_z_mm": 32.48613339513993,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.0270693983500864e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.019553411315672092
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 0.019644087844042996
+        }
+      ]
+    },
+    {
+      "a": "T00661",
+      "b": "X03430",
+      "volume_plate_mm3": 1.4975657277248864,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        24.116219675730033,
+        104.9447349255547,
+        32.97148353306574,
+        26.13842010498047,
+        106.1200201969677,
+        35.65462875366211
+      ],
+      "positive_overlap_onset_plate_z_mm": 32.972886420760275,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.5992791775443392e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 0.20555296268003112
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 1.043086270613566
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.4975657277249004
+        }
+      ]
+    },
+    {
+      "a": "T00673",
+      "b": "X03430",
+      "volume_plate_mm3": 0.0,
+      "evidence": "NO_POSITIVE_OVERLAP_IN_SELECTED_GEOMETRY",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified"
+    },
+    {
+      "a": "X03430",
+      "b": "S002400",
+      "volume_plate_mm3": 1.2135035290454397,
+      "evidence": "GEOMETRY_CONTACT_VERIFIED",
+      "contact_kind": "FUSED_CONTACT",
+      "mechanical_interpretation": "Positive geometric material overlap; physical bonding/strength unverified",
+      "overlap_bbox_plate_mm": [
+        22.093332290649414,
+        102.61333465576172,
+        29.484302520751953,
+        23.266664505004883,
+        103.78666687011719,
+        31.823541605256963
+      ],
+      "positive_overlap_onset_plate_z_mm": 29.48533959748212,
+      "onset_threshold_volume_mm3": 1e-08,
+      "onset_resolution_mm": 1.394295146766311e-07,
+      "layer_end_samples": [
+        {
+          "model_z_mm": 34.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 35.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 40.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 41.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 42.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 43.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 44.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 45.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        },
+        {
+          "model_z_mm": 46.0,
+          "overlap_below_height_mm3": 1.2135035290454408
+        }
+      ]
+    }
+  ],
+  "height_clipped_components": [
+    {
+      "member_id": "G0181",
+      "model_z_mm": 40.0,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 40.6,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 0.004023586057443934,
+          "bbox_plate_mm": [
+            43.92430203867409,
+            86.00221386382297,
+            40.566162109375,
+            44.70490074321105,
+            87.98535698087143,
+            40.599999999999994
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 40.7,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 0.2384343304935026,
+          "bbox_plate_mm": [
+            42.09362059957484,
+            85.6850703094386,
+            40.566162109375,
+            45.01894471021883,
+            93.32217854916237,
+            40.7
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 41.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 5.088982591037363,
+          "bbox_plate_mm": [
+            37.36719195019044,
+            85.30285971106683,
+            40.566162109375,
+            45.4005065948428,
+            106.56431412778632,
+            41.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 41.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 24.8312330430173,
+          "bbox_plate_mm": [
+            36.7163456619459,
+            85.07536680791057,
+            40.566162109375,
+            45.61719691474351,
+            107.2293013334751,
+            41.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 42.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 49.23305921808251,
+          "bbox_plate_mm": [
+            36.55322643726638,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39493843636245,
+            42.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 42.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 71.8465918792013,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            42.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 43.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 83.82127277776668,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 43.2,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 84.10862811156429,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.14318084716797
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 44.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 84.10862811156429,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.14318084716797
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 45.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 84.10862811156429,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.14318084716797
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 46.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 84.10862811156429,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.14318084716797
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "G0181",
+      "model_z_mm": 47.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 84.10862811156429,
+          "bbox_plate_mm": [
+            36.5439567565918,
+            85.0633316040039,
+            40.566162109375,
+            45.64794158935547,
+            107.39786529541016,
+            43.14318084716797
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 40.0,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 40.6,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 40.7,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 41.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 0.00346187682030185,
+          "bbox_plate_mm": [
+            37.22615356381548,
+            106.08219795200579,
+            40.96012878417969,
+            37.94822791638036,
+            106.48794175835636,
+            41.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 41.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 1.2372063087933576,
+          "bbox_plate_mm": [
+            35.57852215361233,
+            105.36654926395828,
+            40.96012878417969,
+            38.59104901390253,
+            107.21805387752254,
+            41.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 42.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 4.150683618550722,
+          "bbox_plate_mm": [
+            34.845533937550755,
+            105.1397559121274,
+            40.96012878417969,
+            38.721397399902344,
+            107.3871158695794,
+            42.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 42.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 7.976472891434379,
+          "bbox_plate_mm": [
+            34.11254572148918,
+            105.02981925417551,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            42.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 43.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 12.007804791380483,
+          "bbox_plate_mm": [
+            33.3795575054276,
+            104.91988259622363,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            43.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 43.2,
+      "positive_volume_component_count": 2,
+      "components": [
+        {
+          "volume_mm3": 0.018539400664945388,
+          "bbox_plate_mm": [
+            29.102802784066448,
+            105.33086617904758,
+            43.07470703125,
+            29.699855513743554,
+            105.92854996932563,
+            43.2
+          ]
+        },
+        {
+          "volume_mm3": 13.463698094394628,
+          "bbox_plate_mm": [
+            33.086362219002964,
+            104.87590793304288,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            43.2
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 44.0,
+      "positive_volume_component_count": 2,
+      "components": [
+        {
+          "volume_mm3": 0.7030686999902864,
+          "bbox_plate_mm": [
+            28.979129791259766,
+            104.92562212359901,
+            43.07470703125,
+            30.59590465965033,
+            106.18039684647145,
+            44.0
+          ]
+        },
+        {
+          "volume_mm3": 18.77130596439064,
+          "bbox_plate_mm": [
+            31.91358107330445,
+            104.70000928031988,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            44.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 45.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 28.267839944408653,
+          "bbox_plate_mm": [
+            28.979129791259766,
+            104.42966065721099,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            45.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 46.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 35.604413548001105,
+          "bbox_plate_mm": [
+            28.979129791259766,
+            104.29236602783203,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            46.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "A3457",
+      "model_z_mm": 47.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 38.6652782058692,
+          "bbox_plate_mm": [
+            28.979129791259766,
+            104.29236602783203,
+            40.96012878417969,
+            38.721397399902344,
+            107.39646911621094,
+            47.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 40.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 23.036276129343605,
+          "bbox_plate_mm": [
+            42.100900529424926,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            91.6037541490638,
+            40.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 40.6,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 25.529924523625066,
+          "bbox_plate_mm": [
+            41.964112131327944,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            91.87658732379353,
+            40.599999999999994
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 40.7,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 25.94553269930797,
+          "bbox_plate_mm": [
+            41.94131406497845,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            91.92205951958182,
+            40.7
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 41.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 27.192357272107056,
+          "bbox_plate_mm": [
+            41.87291986592996,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.05847610694669,
+            41.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 41.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 29.263509995081755,
+          "bbox_plate_mm": [
+            41.75892953418247,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.24207143765284,
+            41.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 42.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 31.196747202270448,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 42.5,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.61276026663951,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 43.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 43.2,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 44.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 45.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 46.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "LR002",
+      "model_z_mm": 47.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 32.96549426348108,
+          "bbox_plate_mm": [
+            41.74241638183594,
+            87.06512451171875,
+            33.9893684387207,
+            45.42524719238281,
+            92.29154968261719,
+            42.8569221496582
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 40.0,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 40.6,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 40.7,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 41.0,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 41.5,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 42.0,
+      "positive_volume_component_count": 0,
+      "components": []
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 42.5,
+      "positive_volume_component_count": 2,
+      "components": [
+        {
+          "volume_mm3": 0.24634738123289396,
+          "bbox_plate_mm": [
+            29.349736096902742,
+            104.5265433077557,
+            42.01566696166992,
+            30.344318389892578,
+            105.53411468831669,
+            42.5
+          ]
+        },
+        {
+          "volume_mm3": 0.21806983701576116,
+          "bbox_plate_mm": [
+            29.45287919173049,
+            105.69396006475752,
+            42.05303955078125,
+            30.440635681152344,
+            106.67974912919394,
+            42.5
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 43.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 1.5031123584000512,
+          "bbox_plate_mm": [
+            28.50250497275688,
+            104.09662380407352,
+            42.01566696166992,
+            30.440635681152344,
+            107.23569214590839,
+            43.0
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 43.2,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 2.0316836068768205,
+          "bbox_plate_mm": [
+            27.879570714484597,
+            104.09564971923828,
+            42.01566696166992,
+            30.440635681152344,
+            107.24276733398438,
+            43.2
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 44.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 3.1700758883543116,
+          "bbox_plate_mm": [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992,
+            30.440635681152344,
+            107.24276733398438,
+            43.93283462524414
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 45.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 3.1700758883543116,
+          "bbox_plate_mm": [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992,
+            30.440635681152344,
+            107.24276733398438,
+            43.93283462524414
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 46.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 3.1700758883543116,
+          "bbox_plate_mm": [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992,
+            30.440635681152344,
+            107.24276733398438,
+            43.93283462524414
+          ]
+        }
+      ]
+    },
+    {
+      "member_id": "F3457",
+      "model_z_mm": 47.0,
+      "positive_volume_component_count": 1,
+      "components": [
+        {
+          "volume_mm3": 3.1700758883543116,
+          "bbox_plate_mm": [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992,
+            30.440635681152344,
+            107.24276733398438,
+            43.93283462524414
+          ]
+        }
+      ]
+    }
+  ],
+  "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE; model plate coordinates, no raft offset added",
+  "elapsed_s": 62.42302790000031,
+  "limitations": [
+    "All AABB-possible pair contacts among 18 explicitly listed selected members tested; no completeness outside this set.",
+    "Five actual source Support meshes included; Support/Permanent bearing classification is a force-direction assumption, not a physical bond measurement.",
+    "Source correspondence accepted under SOURCE_BINDING.json tolerance and provenance caveats.",
+    "Positive overlap threshold is a numerical test, not a printable bond-area requirement.",
+    "No original or manufacturing geometry modified."
+  ]
+}

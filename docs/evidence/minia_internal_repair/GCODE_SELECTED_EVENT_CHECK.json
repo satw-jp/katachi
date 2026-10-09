@@ -1,0 +1,197 @@
+{
+  "state": "SELECTED_COMMANDS_READ_ONLY_CHECKED",
+  "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\routes\\MINIA_PLA\\runs-output\\runs\\MINIA_PLA_20260922_172405\\plate_1.gcode",
+  "source_sha256_previously_measured": "b90c9037bf38a63ac852d77e7326c5cc99b605f0091cca19b1b68ba7dd561ad9",
+  "region": "F3457 DEMO; physical broken region unknown",
+  "events": {
+    "first_flower_section_deposition": {
+      "legacy_event": {
+        "layer": 213,
+        "z": 42.8,
+        "line": 14257769,
+        "width": 0.45
+      },
+      "commands": [
+        {
+          "line": 14257766,
+          "text": "M106 S255"
+        },
+        {
+          "line": 14257767,
+          "text": "G1 F600"
+        },
+        {
+          "line": 14257768,
+          "text": "M204 S5000"
+        },
+        {
+          "line": 14257769,
+          "text": "G1 X29.977 Y106.149 E.00088"
+        },
+        {
+          "line": 14257770,
+          "text": "G1 X29.955 Y106.16 E.0008"
+        },
+        {
+          "line": 14257771,
+          "text": "G1 X29.954 Y106.157 E.0001"
+        },
+        {
+          "line": 14257772,
+          "text": "M106 S158.1"
+        }
+      ],
+      "measured_state": {
+        "layer": 213,
+        "machine_layer_z_mm": 42.8,
+        "feature": "Overhang wall",
+        "line_width_mm": 0.45,
+        "extrusion_mode": "M83"
+      },
+      "layer_z_matches_legacy": true
+    },
+    "first_root_section_deposition": {
+      "legacy_event": {
+        "layer": 217,
+        "z": 43.6,
+        "line": 14463379,
+        "width": 0.42,
+        "feature": "Outer wall",
+        "petals": [
+          1
+        ],
+        "root_section_deposited_overlap_mm2": 0.15,
+        "root_footprint_hits_previous_layer": true,
+        "root_footprint_hits_previous_layer_0_1mm_tolerance": true,
+        "root_footprint_hits_earlier_same_layer": false,
+        "whole_path_hits_previous_layer": true,
+        "whole_path_hits_earlier_same_layer": false,
+        "same_path_flower_section_overlap": true,
+        "positive_E": true,
+        "actual_path_start_contact": {
+          "xyz": [
+            29.637,
+            105.191,
+            43.6
+          ],
+          "previous_layer_finite_width": true,
+          "previous_flower_section_finite_width": true,
+          "earlier_same_layer_finite_width": false,
+          "previous_layer_with_0_1mm_tolerance": true
+        },
+        "first_root_entry_finite_bead_contact": {
+          "xyz": [
+            29.637,
+            105.191,
+            43.6
+          ],
+          "previous_layer_finite_width": true,
+          "previous_flower_section_finite_width": true,
+          "earlier_same_layer_finite_width": false,
+          "previous_layer_with_0_1mm_tolerance": true
+        },
+        "root_hits_previous_flower_section_deposition": true,
+        "petals_deposition_outside_original_flower_and_attachment": [
+          1
+        ]
+      },
+      "commands": [
+        {
+          "line": 14463376,
+          "text": "; LINE_WIDTH: 0.42"
+        },
+        {
+          "line": 14463377,
+          "text": "G1 F9547.055"
+        },
+        {
+          "line": 14463378,
+          "text": "M204 S5000"
+        },
+        {
+          "line": 14463379,
+          "text": "G1 X29.666 Y105.247 E.00193"
+        },
+        {
+          "line": 14463380,
+          "text": "G3 X29.765 Y105.282 I.021 J.097 E.0034"
+        },
+        {
+          "line": 14463381,
+          "text": "G1 X29.758 Y105.307 E.00081"
+        },
+        {
+          "line": 14463382,
+          "text": "G2 X29.568 Y105.37 I.005 J.334 E.00624"
+        }
+      ],
+      "measured_state": {
+        "layer": 217,
+        "machine_layer_z_mm": 43.6,
+        "feature": "Outer wall",
+        "line_width_mm": 0.42,
+        "extrusion_mode": "M83"
+      },
+      "layer_z_matches_legacy": true
+    },
+    "first_anchor_zone_deposition": {
+      "legacy_event": {
+        "layer": 229,
+        "z": 46.0,
+        "line": 15105139,
+        "width": 0.45
+      },
+      "commands": [
+        {
+          "line": 15105136,
+          "text": "; LINE_WIDTH: 0.45"
+        },
+        {
+          "line": 15105137,
+          "text": "G1 F8843.478"
+        },
+        {
+          "line": 15105138,
+          "text": "M204 S6000"
+        },
+        {
+          "line": 15105139,
+          "text": "G1 X32.564 Y106.046 E.0064"
+        },
+        {
+          "line": 15105140,
+          "text": "G1 X31.88 Y106.02 E.02273"
+        },
+        {
+          "line": 15105141,
+          "text": "G1 X31.018 Y105.791 E.02958"
+        },
+        {
+          "line": 15105142,
+          "text": "G1 X30.661 Y105.91 E.01247"
+        }
+      ],
+      "measured_state": {
+        "layer": 229,
+        "machine_layer_z_mm": 46.0,
+        "feature": "Inner wall",
+        "line_width_mm": 0.45,
+        "extrusion_mode": "M83"
+      },
+      "layer_z_matches_legacy": true
+    }
+  },
+  "elapsed_s": 27.888674300000275,
+  "model_z_mapping": {
+    "status": "ASSUMED_NOT_VERIFIED",
+    "machine_z_minus_model_z_mm": 0.6
+  },
+  "legacy_geometry_scope": "Finite-width local 0.1mm grid screen, exact frozen root meshes and V8 flower template sections at Z-0.1; assumes +0.6mm raft offset. Prior deposition is actual local material, not proof of bed-rooted ancestry or Support/member identity. Mesh/path union cannot attribute overlapping extrusion exclusively to newly added roots. No strength proof.",
+  "route_toolpath_status": "UNRESOLVED",
+  "limitations": [
+    "Selected command identity and recorded layer state only; no bed-rooted ancestry proof.",
+    "Legacy local finite-width overlap results are retained as scoped prior evidence, not newly recomputed.",
+    "No exclusive member attribution; no full independent-route prefix check.",
+    "No new slicing; additions remain TOOLPATH_UNVERIFIED."
+  ]
+}

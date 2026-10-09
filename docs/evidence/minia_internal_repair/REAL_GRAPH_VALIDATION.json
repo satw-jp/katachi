@@ -1,0 +1,4205 @@
+{
+  "scope": "Real mixed declared/selected-geometry graph; no physical, toolpath or Blender UI acceptance.",
+  "load_seconds": 1.5432054000011703,
+  "rows": [
+    {
+      "cache_key": "09a8487ebe5a3e330651bdf9c62e3ed8ee32da5dedeb46ba1a9a0dfe1b0eb5b5",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 43.2,
+      "mode": "PRINTING_WITH_SUPPORT",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00673#0",
+                "S002463#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002463",
+                "T00673"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00673#0",
+                  "joint_id": "F3457|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00673#0",
+                  "b": "S002463#0",
+                  "joint_id": "S002463|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002463#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002463",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002463",
+                "F3457|T00673",
+                "S002463|T00673"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00661#0",
+                "X03430#0",
+                "S002400#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002400",
+                "T00661",
+                "X03430"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00661#0",
+                  "joint_id": "F3457|T00661",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00661#0",
+                  "b": "X03430#0",
+                  "joint_id": "T00661|X03430",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "X03430#0",
+                  "b": "S002400#0",
+                  "joint_id": "X03430|S002400",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002400#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002400",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002400",
+                "F3457|T00661",
+                "T00661|X03430",
+                "X03430|S002400"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            }
+          ],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 2,
+          "lower": 2,
+          "upper": 2,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 2,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [],
+      "node_count": 18602,
+      "edge_count": 29811,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 18464,
+      "base_connected_flower_count": 1117,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0",
+          "A3457#1"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 3.007308700001886
+    },
+    {
+      "cache_key": "df123c733019b424063a2a293729c85e33dd765b3113d71f2ed9a84d46a319a2",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 43.2,
+      "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 0,
+          "lower": 0,
+          "upper": 0,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 0,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7745613185708309,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9064084604118631,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8038085989509184,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8734279941476947,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7742281004422444,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6716282389812998,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9901133324423136,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8912466568654497,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6441522826904895,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.657448026524481,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7231105183800466,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7057292564467945,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7203851302851675,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8424022598893951,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "T00661",
+          "parameter": 0.7499999999999999,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9889136743054198,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9047778804739811,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6326382110155503,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6880003136650429,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7525028768056574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9290857261006511,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9897400138539054,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608739,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608824,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.22982368967251626,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.22146135329217512,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11468534366916193,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.35196536505363524,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381086,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.1146853436691628,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.3519653650536361,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381094,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.34010136398441176,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.35294352342565,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        }
+      ],
+      "node_count": 2761,
+      "edge_count": 2680,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 2619,
+      "base_connected_flower_count": 898,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0",
+          "A3457#1"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 0.14009840000289842
+    },
+    {
+      "cache_key": "61c4760a028d2a0182934f094f445abf9dd2e14b3adfe98b51dfa28d5cdbf4ae",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 44.0,
+      "mode": "PRINTING_WITH_SUPPORT",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00673#0",
+                "S002463#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002463",
+                "T00673"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00673#0",
+                  "joint_id": "F3457|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00673#0",
+                  "b": "S002463#0",
+                  "joint_id": "S002463|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002463#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002463",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002463",
+                "F3457|T00673",
+                "S002463|T00673"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00661#0",
+                "X03430#0",
+                "S002400#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002400",
+                "T00661",
+                "X03430"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00661#0",
+                  "joint_id": "F3457|T00661",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00661#0",
+                  "b": "X03430#0",
+                  "joint_id": "T00661|X03430",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "X03430#0",
+                  "b": "S002400#0",
+                  "joint_id": "X03430|S002400",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002400#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002400",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002400",
+                "F3457|T00661",
+                "T00661|X03430",
+                "X03430|S002400"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            }
+          ],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 2,
+          "lower": 2,
+          "upper": 2,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 2,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [],
+      "node_count": 18706,
+      "edge_count": 30033,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 18601,
+      "base_connected_flower_count": 1147,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0",
+          "A3457#1"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 3.3510056999984954
+    },
+    {
+      "cache_key": "c08a9054d0f1402dcb9ea09bd21edacca48b503bcd5986c5ffa9e7bb70d2b5f5",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 44.0,
+      "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 0,
+          "lower": 0,
+          "upper": 0,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 0,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7745613185708309,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9064084604118631,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8038085989509184,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8734279941476947,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7742281004422444,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6716282389812998,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9901133324423136,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8912466568654497,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6441522826904895,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.657448026524481,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7231105183800466,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7057292564467945,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7203851302851675,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8424022598893951,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "T00661",
+          "parameter": 0.7499999999999999,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9889136743054198,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9047778804739811,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6326382110155503,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6880003136650429,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7525028768056574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9290857261006511,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9897400138539054,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608739,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608824,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.22982368967251626,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.22146135329217512,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11468534366916193,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.35196536505363524,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381086,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.1146853436691628,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.3519653650536361,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381094,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.34010136398441176,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.35294352342565,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        }
+      ],
+      "node_count": 2801,
+      "edge_count": 2763,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 2690,
+      "base_connected_flower_count": 923,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0",
+          "A3457#1"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 0.13571129999763798
+    },
+    {
+      "cache_key": "4f5cc4607ea2878f9284c47a345d6b6861da57a22df99bd4b45e20eef22f42b8",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 45.0,
+      "mode": "PRINTING_WITH_SUPPORT",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00673#0",
+                "S002463#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002463",
+                "T00673"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00673#0",
+                  "joint_id": "F3457|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00673#0",
+                  "b": "S002463#0",
+                  "joint_id": "S002463|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002463#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002463",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002463",
+                "F3457|T00673",
+                "S002463|T00673"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00661#0",
+                "X03430#0",
+                "S002400#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002400",
+                "T00661",
+                "X03430"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00661#0",
+                  "joint_id": "F3457|T00661",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00661#0",
+                  "b": "X03430#0",
+                  "joint_id": "T00661|X03430",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "X03430#0",
+                  "b": "S002400#0",
+                  "joint_id": "X03430|S002400",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002400#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002400",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002400",
+                "F3457|T00661",
+                "T00661|X03430",
+                "X03430|S002400"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "A3457#0",
+                "G0181#0",
+                "C0031#0",
+                "C0016#0",
+                "R0001@0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "A3457",
+                "C0016",
+                "C0031",
+                "G0181",
+                "R0001"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "A3457#0",
+                  "joint_id": "A3457|F3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "A3457#0",
+                  "b": "G0181#0",
+                  "joint_id": "G0181|A3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "G0181#0",
+                  "b": "C0031#0",
+                  "joint_id": "G0181|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0031#0",
+                  "b": "C0016#0",
+                  "joint_id": "C0016|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0016#0",
+                  "b": "R0001@0",
+                  "joint_id": "DECLARED:C0016|R0001|PARENT",
+                  "evidence": "DECLARED_CONNECTION",
+                  "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "R0001@0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:R0001",
+                  "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                  "contact_kind": "MODEL_BASE",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": false,
+              "joint_ids": [
+                "A3457|F3457",
+                "BASE:R0001",
+                "C0016|C0031",
+                "DECLARED:C0016|R0001|PARENT",
+                "G0181|A3457",
+                "G0181|C0031"
+              ],
+              "evidence_levels": [
+                "DECLARED_CONNECTION",
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_GEOMETRY_CHECKED"
+              ]
+            }
+          ],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 3,
+          "lower": 3,
+          "upper": 3,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 2,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [],
+      "node_count": 19081,
+      "edge_count": 30500,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 18975,
+      "base_connected_flower_count": 1176,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 3.149387800000113
+    },
+    {
+      "cache_key": "ca55a91d5738e0e5fe5b331dc21a931062f2f4042c8e77664201bff3d926b458",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 45.0,
+      "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "A3457#0",
+                "G0181#0",
+                "C0031#0",
+                "C0016#0",
+                "R0001@0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "A3457",
+                "C0016",
+                "C0031",
+                "G0181",
+                "R0001"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "A3457#0",
+                  "joint_id": "A3457|F3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "A3457#0",
+                  "b": "G0181#0",
+                  "joint_id": "G0181|A3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "G0181#0",
+                  "b": "C0031#0",
+                  "joint_id": "G0181|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0031#0",
+                  "b": "C0016#0",
+                  "joint_id": "C0016|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0016#0",
+                  "b": "R0001@0",
+                  "joint_id": "DECLARED:C0016|R0001|PARENT",
+                  "evidence": "DECLARED_CONNECTION",
+                  "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "R0001@0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:R0001",
+                  "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                  "contact_kind": "MODEL_BASE",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": false,
+              "joint_ids": [
+                "A3457|F3457",
+                "BASE:R0001",
+                "C0016|C0031",
+                "DECLARED:C0016|R0001|PARENT",
+                "G0181|A3457",
+                "G0181|C0031"
+              ],
+              "evidence_levels": [
+                "DECLARED_CONNECTION",
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_GEOMETRY_CHECKED"
+              ]
+            }
+          ],
+          "common_branch_failures": [
+            "A3457",
+            "C0016",
+            "G0181",
+            "R0001"
+          ],
+          "common_joint_failures": [
+            "BASE:R0001",
+            "DECLARED:C0016|R0001|PARENT",
+            "G0181|A3457"
+          ],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 1,
+          "lower": 1,
+          "upper": 1,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 0,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7745613185708309,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9064084604118631,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8038085989509184,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8734279941476947,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7742281004422444,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6716282389812998,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9901133324423136,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8912466568654497,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6441522826904895,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.657448026524481,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7231105183800466,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7057292564467945,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7203851302851675,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8424022598893951,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "T00661",
+          "parameter": 0.7499999999999999,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9889136743054198,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9047778804739811,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6326382110155503,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6880003136650429,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7525028768056574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9290857261006511,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9897400138539054,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608739,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608824,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.22982368967251626,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.22146135329217512,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11468534366916193,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.35196536505363524,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381086,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.1146853436691628,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.3519653650536361,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381094,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.34010136398441176,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.35294352342565,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        }
+      ],
+      "node_count": 2876,
+      "edge_count": 2849,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 2770,
+      "base_connected_flower_count": 945,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [
+          "F3457#0",
+          "R5_F3457_P1#0",
+          "R5_F3457_P2#0",
+          "R5_F3457_P3#0",
+          "R5_F3457_P4#0",
+          "R5_F3457_P5#0",
+          "R5_F3457_P6#0"
+        ],
+        "removed_fragment_ids": [
+          "A3457#0"
+        ],
+        "lost_branch_ids": [
+          "R5_F3457_P1",
+          "R5_F3457_P2",
+          "R5_F3457_P3",
+          "R5_F3457_P4",
+          "R5_F3457_P5",
+          "R5_F3457_P6"
+        ],
+        "lost_branch_count": 6,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [
+          "F3457"
+        ],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [
+          "F3457"
+        ],
+        "lost_flower_count": 1,
+        "bbox": [
+          [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992
+          ],
+          [
+            30.92105261313605,
+            107.24276733398438,
+            45.0
+          ]
+        ]
+      },
+      "elapsed_s": 0.8061461999968742
+    },
+    {
+      "cache_key": "c7e9398ed56b815e7db8eeba5f00ddd9a5d7258365880e7621f56ae1e6f49e19",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 48.0,
+      "mode": "PRINTING_WITH_SUPPORT",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00673#0",
+                "S002463#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002463",
+                "T00673"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00673#0",
+                  "joint_id": "F3457|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00673#0",
+                  "b": "S002463#0",
+                  "joint_id": "S002463|T00673",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002463#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002463",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002463",
+                "F3457|T00673",
+                "S002463|T00673"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "T00661#0",
+                "X03430#0",
+                "S002400#0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "S002400",
+                "T00661",
+                "X03430"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "T00661#0",
+                  "joint_id": "F3457|T00661",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "T00661#0",
+                  "b": "X03430#0",
+                  "joint_id": "T00661|X03430",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "X03430#0",
+                  "b": "S002400#0",
+                  "joint_id": "X03430|S002400",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "S002400#0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:S002400",
+                  "evidence": "MODEL_BASE_PLANE_CONTACT",
+                  "contact_kind": "BEARING_CONTACT",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": true,
+              "joint_ids": [
+                "BASE:S002400",
+                "F3457|T00661",
+                "T00661|X03430",
+                "X03430|S002400"
+              ],
+              "evidence_levels": [
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_PLANE_CONTACT"
+              ]
+            },
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "A3457#0",
+                "G0181#0",
+                "C0031#0",
+                "C0016#0",
+                "R0001@0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "A3457",
+                "C0016",
+                "C0031",
+                "G0181",
+                "R0001"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "A3457#0",
+                  "joint_id": "A3457|F3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "A3457#0",
+                  "b": "G0181#0",
+                  "joint_id": "G0181|A3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "G0181#0",
+                  "b": "C0031#0",
+                  "joint_id": "G0181|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0031#0",
+                  "b": "C0016#0",
+                  "joint_id": "C0016|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0016#0",
+                  "b": "R0001@0",
+                  "joint_id": "DECLARED:C0016|R0001|PARENT",
+                  "evidence": "DECLARED_CONNECTION",
+                  "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "R0001@0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:R0001",
+                  "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                  "contact_kind": "MODEL_BASE",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": false,
+              "joint_ids": [
+                "A3457|F3457",
+                "BASE:R0001",
+                "C0016|C0031",
+                "DECLARED:C0016|R0001|PARENT",
+                "G0181|A3457",
+                "G0181|C0031"
+              ],
+              "evidence_levels": [
+                "DECLARED_CONNECTION",
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_GEOMETRY_CHECKED"
+              ]
+            }
+          ],
+          "common_branch_failures": [],
+          "common_joint_failures": [],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 3,
+          "lower": 3,
+          "upper": 3,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 2,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [],
+      "node_count": 19777,
+      "edge_count": 31320,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 19657,
+      "base_connected_flower_count": 1269,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [],
+        "removed_fragment_ids": [
+          "A3457#0"
+        ],
+        "lost_branch_ids": [],
+        "lost_branch_count": 0,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [],
+        "lost_flower_count": 0,
+        "bbox": null
+      },
+      "elapsed_s": 3.6998305000015534
+    },
+    {
+      "cache_key": "f78042ae26cc8672c0185ddf2aee6fbd09eae2d86e3ad9dd07479927f59ac04b",
+      "analysis_version": "MINIA_ROUTE_V1",
+      "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "base_ids": [
+        "MODEL_BASE"
+      ],
+      "permanent_base_member_ids": [
+        "R0000",
+        "R0001"
+      ],
+      "model_z_mm": 48.0,
+      "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+      "region": "F3457 DEMO, physical damage location unknown",
+      "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+      "targets": [
+        {
+          "version": "MINIA_ROUTE_V1",
+          "target": "F3457#0",
+          "bases": [
+            "MODEL_BASE"
+          ],
+          "physical_strength": "UNVERIFIED",
+          "contact_graph_complete": false,
+          "witnesses": [
+            {
+              "fragment_ids": [
+                "F3457#0",
+                "A3457#0",
+                "G0181#0",
+                "C0031#0",
+                "C0016#0",
+                "R0001@0",
+                "MODEL_BASE"
+              ],
+              "branch_ids": [
+                "A3457",
+                "C0016",
+                "C0031",
+                "G0181",
+                "R0001"
+              ],
+              "contacts": [
+                {
+                  "a": "F3457#0",
+                  "b": "A3457#0",
+                  "joint_id": "A3457|F3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "A3457#0",
+                  "b": "G0181#0",
+                  "joint_id": "G0181|A3457",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "G0181#0",
+                  "b": "C0031#0",
+                  "joint_id": "G0181|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0031#0",
+                  "b": "C0016#0",
+                  "joint_id": "C0016|C0031",
+                  "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                  "contact_kind": "FUSED_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "C0016#0",
+                  "b": "R0001@0",
+                  "joint_id": "DECLARED:C0016|R0001|PARENT",
+                  "evidence": "DECLARED_CONNECTION",
+                  "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                  "command_line": null
+                },
+                {
+                  "a": "R0001@0",
+                  "b": "MODEL_BASE",
+                  "joint_id": "BASE:R0001",
+                  "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                  "contact_kind": "MODEL_BASE",
+                  "command_line": null
+                }
+              ],
+              "bearing_assumption": false,
+              "joint_ids": [
+                "A3457|F3457",
+                "BASE:R0001",
+                "C0016|C0031",
+                "DECLARED:C0016|R0001|PARENT",
+                "G0181|A3457",
+                "G0181|C0031"
+              ],
+              "evidence_levels": [
+                "DECLARED_CONNECTION",
+                "GEOMETRY_CONTACT_VERIFIED",
+                "MODEL_BASE_GEOMETRY_CHECKED"
+              ]
+            }
+          ],
+          "common_branch_failures": [
+            "A3457",
+            "C0016",
+            "G0181",
+            "R0001"
+          ],
+          "common_joint_failures": [
+            "BASE:R0001",
+            "DECLARED:C0016|R0001|PARENT",
+            "G0181|A3457"
+          ],
+          "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+          "graph_count": 1,
+          "lower": 1,
+          "upper": 1,
+          "color": "GRAY",
+          "verified_model_geometry_route_lower_bound": 0,
+          "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+        }
+      ],
+      "unresolved_selected_attachments": [
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7745613185708309,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9064084604118631,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8038085989509184,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8734279941476947,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11080785037782036,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875587,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.4391274070528435,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.3365275455918988,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7674469637278669,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6648471022669221,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7742281004422444,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6716282389812998,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.10677600962301302,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.007909334046149118,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.4231493714689774,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.32428269589211356,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7395227333149419,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.640656057738078,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9901133324423136,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.8912466568654497,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6441522826904895,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.657448026524481,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7231105183800466,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7057292564467945,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.7203851302851675,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.8424022598893951,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "T00661",
+          "parameter": 0.7499999999999999,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9889136743054198,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.9047778804739811,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.6326382110155503,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6880003136650429,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.7525028768056574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9290857261006511,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.9897400138539054,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608739,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.004103994458437791,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11491184483625796,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11073067664608824,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.0039546670230745555,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.22982368967251626,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.22146135329217512,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.008207988916875578,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.11468534366916193,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.11901583929469574,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.25444765642314293,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.35196536505363524,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.36525550680096314,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.5006873239294105,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381086,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.6114951743072305,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.00790933404614911,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.1146853436691628,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.24518935543062237,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.3519653650536361,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.48246937681509583,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.5892453864381094,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002463",
+          "parameter": 0.34010136398441176,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        },
+        {
+          "member": "S002400",
+          "parameter": 0.35294352342565,
+          "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+        }
+      ],
+      "node_count": 3125,
+      "edge_count": 3063,
+      "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+      "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+      "toolpath_status": "TOOLPATH_UNVERIFIED",
+      "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+      "base_connected_branch_count": 3005,
+      "base_connected_flower_count": 1014,
+      "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+      "physical_strength": "UNVERIFIED",
+      "new_branch_count": 0,
+      "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+      "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+      "global_flower_to_flower_connections": "NOT_INFERRED",
+      "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+      "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+      "failure_impact": {
+        "failure_kind": "branch",
+        "failure_id": "A3457",
+        "lost_fragment_ids": [
+          "F3457#0",
+          "R5_F3457_P1#0",
+          "R5_F3457_P2#0",
+          "R5_F3457_P3#0",
+          "R5_F3457_P4#0",
+          "R5_F3457_P5#0",
+          "R5_F3457_P6#0"
+        ],
+        "removed_fragment_ids": [
+          "A3457#0"
+        ],
+        "lost_branch_ids": [
+          "R5_F3457_P1",
+          "R5_F3457_P2",
+          "R5_F3457_P3",
+          "R5_F3457_P4",
+          "R5_F3457_P5",
+          "R5_F3457_P6"
+        ],
+        "lost_branch_count": 6,
+        "partially_disconnected_branch_ids": [],
+        "affected_flower_ids": [
+          "F3457"
+        ],
+        "partially_disconnected_flower_ids": [],
+        "lost_flower_ids": [
+          "F3457"
+        ],
+        "lost_flower_count": 1,
+        "bbox": [
+          [
+            27.75727081298828,
+            104.09564971923828,
+            42.01566696166992
+          ],
+          [
+            31.114307403564453,
+            107.24276733398438,
+            45.98820495605469
+          ]
+        ]
+      },
+      "elapsed_s": 0.8412840999990294
+    }
+  ],
+  "test_only_edit": {
+    "id": "TEST_ONLY_001",
+    "a_member": "R5_F3457_P1",
+    "a_parameter": 1,
+    "a_position": [
+      29.745620272463597,
+      105.28998862805989,
+      43.07281889195815
+    ],
+    "b_member": "G0165",
+    "b_parameter": 1,
+    "b_position": [
+      42.57604566609997,
+      89.24268586447427,
+      35.19861587014003
+    ]
+  },
+  "test_before": {
+    "cache_key": "ca55a91d5738e0e5fe5b331dc21a931062f2f4042c8e77664201bff3d926b458",
+    "analysis_version": "MINIA_ROUTE_V1",
+    "edit_delta_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "base_ids": [
+      "MODEL_BASE"
+    ],
+    "permanent_base_member_ids": [
+      "R0000",
+      "R0001"
+    ],
+    "model_z_mm": 45.0,
+    "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+    "region": "F3457 DEMO, physical damage location unknown",
+    "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+    "targets": [
+      {
+        "version": "MINIA_ROUTE_V1",
+        "target": "F3457#0",
+        "bases": [
+          "MODEL_BASE"
+        ],
+        "physical_strength": "UNVERIFIED",
+        "contact_graph_complete": false,
+        "witnesses": [
+          {
+            "fragment_ids": [
+              "F3457#0",
+              "A3457#0",
+              "G0181#0",
+              "C0031#0",
+              "C0016#0",
+              "R0001@0",
+              "MODEL_BASE"
+            ],
+            "branch_ids": [
+              "A3457",
+              "C0016",
+              "C0031",
+              "G0181",
+              "R0001"
+            ],
+            "contacts": [
+              {
+                "a": "F3457#0",
+                "b": "A3457#0",
+                "joint_id": "A3457|F3457",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "A3457#0",
+                "b": "G0181#0",
+                "joint_id": "G0181|A3457",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "G0181#0",
+                "b": "C0031#0",
+                "joint_id": "G0181|C0031",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "C0031#0",
+                "b": "C0016#0",
+                "joint_id": "C0016|C0031",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "C0016#0",
+                "b": "R0001@0",
+                "joint_id": "DECLARED:C0016|R0001|PARENT",
+                "evidence": "DECLARED_CONNECTION",
+                "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "R0001@0",
+                "b": "MODEL_BASE",
+                "joint_id": "BASE:R0001",
+                "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                "contact_kind": "MODEL_BASE",
+                "command_line": null
+              }
+            ],
+            "bearing_assumption": false,
+            "joint_ids": [
+              "A3457|F3457",
+              "BASE:R0001",
+              "C0016|C0031",
+              "DECLARED:C0016|R0001|PARENT",
+              "G0181|A3457",
+              "G0181|C0031"
+            ],
+            "evidence_levels": [
+              "DECLARED_CONNECTION",
+              "GEOMETRY_CONTACT_VERIFIED",
+              "MODEL_BASE_GEOMETRY_CHECKED"
+            ]
+          }
+        ],
+        "common_branch_failures": [
+          "A3457",
+          "C0016",
+          "G0181",
+          "R0001"
+        ],
+        "common_joint_failures": [
+          "BASE:R0001",
+          "DECLARED:C0016|R0001|PARENT",
+          "G0181|A3457"
+        ],
+        "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+        "graph_count": 1,
+        "lower": 1,
+        "upper": 1,
+        "color": "GRAY",
+        "verified_model_geometry_route_lower_bound": 0,
+        "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+      }
+    ],
+    "unresolved_selected_attachments": [
+      {
+        "member": "S002463",
+        "parameter": 0.007909334046149118,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11080785037782036,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875587,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.10677600962301302,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.32428269589211356,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.4391274070528435,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.3365275455918988,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.4231493714689774,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.640656057738078,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7674469637278669,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6648471022669221,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7395227333149419,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7745613185708309,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9064084604118631,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.8038085989509184,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.8734279941476947,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11080785037782036,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875587,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.4391274070528435,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.3365275455918988,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7674469637278669,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6648471022669221,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7742281004422444,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6716282389812998,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.10677600962301302,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.007909334046149118,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.4231493714689774,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.32428269589211356,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7395227333149419,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.640656057738078,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.9901133324423136,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.8912466568654497,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.6441522826904895,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.657448026524481,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7231105183800466,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7057292564467945,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7203851302851675,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.8424022598893951,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "T00661",
+        "parameter": 0.7499999999999999,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9889136743054198,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.9047778804739811,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.6326382110155503,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6880003136650429,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7525028768056574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9290857261006511,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9897400138539054,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.0039546670230745555,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11491184483625796,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.004103994458437791,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11073067664608739,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.004103994458437791,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11491184483625796,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11073067664608824,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.0039546670230745555,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.22982368967251626,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.22146135329217512,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11901583929469574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875578,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.36525550680096314,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.25444765642314293,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6114951743072305,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.5006873239294105,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875578,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11468534366916193,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.00790933404614911,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11901583929469574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.25444765642314293,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.35196536505363524,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.24518935543062237,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.36525550680096314,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.5006873239294105,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.5892453864381086,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.48246937681509583,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6114951743072305,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.00790933404614911,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.1146853436691628,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.24518935543062237,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.3519653650536361,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.48246937681509583,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.5892453864381094,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.34010136398441176,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.35294352342565,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      }
+    ],
+    "node_count": 2876,
+    "edge_count": 2849,
+    "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+    "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+    "toolpath_status": "TOOLPATH_UNVERIFIED",
+    "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+    "base_connected_branch_count": 2770,
+    "base_connected_flower_count": 945,
+    "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+    "physical_strength": "UNVERIFIED",
+    "new_branch_count": 0,
+    "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+    "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+    "global_flower_to_flower_connections": "NOT_INFERRED",
+    "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+    "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+    "elapsed_s": 3.9599999581696466e-05
+  },
+  "test_after": {
+    "cache_key": "3e2f30618eec330d32fcbf0454a1ebef8b1bab0012cfe7aa472d8e4e46874f87",
+    "analysis_version": "MINIA_ROUTE_V1",
+    "edit_delta_sha256": "c59e7f04e10c61a80992547c7f64cd1db1f45a5fa395ef635643451c47da4ca3",
+    "base_ids": [
+      "MODEL_BASE"
+    ],
+    "permanent_base_member_ids": [
+      "R0000",
+      "R0001"
+    ],
+    "model_z_mm": 45.0,
+    "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+    "region": "F3457 DEMO, physical damage location unknown",
+    "scope": "Full declared source graph, centerline-clipped outside 18 measured meshes. Physical route counts remain unresolved.",
+    "targets": [
+      {
+        "version": "MINIA_ROUTE_V1",
+        "target": "F3457#0",
+        "bases": [
+          "MODEL_BASE"
+        ],
+        "physical_strength": "UNVERIFIED",
+        "contact_graph_complete": false,
+        "witnesses": [
+          {
+            "fragment_ids": [
+              "F3457#0",
+              "A3457#0",
+              "G0181#0",
+              "C0031#0",
+              "C0016#0",
+              "R0001@0",
+              "MODEL_BASE"
+            ],
+            "branch_ids": [
+              "A3457",
+              "C0016",
+              "C0031",
+              "G0181",
+              "R0001"
+            ],
+            "contacts": [
+              {
+                "a": "F3457#0",
+                "b": "A3457#0",
+                "joint_id": "A3457|F3457",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "A3457#0",
+                "b": "G0181#0",
+                "joint_id": "G0181|A3457",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "G0181#0",
+                "b": "C0031#0",
+                "joint_id": "G0181|C0031",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "C0031#0",
+                "b": "C0016#0",
+                "joint_id": "C0016|C0031",
+                "evidence": "GEOMETRY_CONTACT_VERIFIED",
+                "contact_kind": "FUSED_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "C0016#0",
+                "b": "R0001@0",
+                "joint_id": "DECLARED:C0016|R0001|PARENT",
+                "evidence": "DECLARED_CONNECTION",
+                "contact_kind": "DECLARED_MATERIAL_CONTACT",
+                "command_line": null
+              },
+              {
+                "a": "R0001@0",
+                "b": "MODEL_BASE",
+                "joint_id": "BASE:R0001",
+                "evidence": "MODEL_BASE_GEOMETRY_CHECKED",
+                "contact_kind": "MODEL_BASE",
+                "command_line": null
+              }
+            ],
+            "bearing_assumption": false,
+            "joint_ids": [
+              "A3457|F3457",
+              "BASE:R0001",
+              "C0016|C0031",
+              "DECLARED:C0016|R0001|PARENT",
+              "G0181|A3457",
+              "G0181|C0031"
+            ],
+            "evidence_levels": [
+              "DECLARED_CONNECTION",
+              "GEOMETRY_CONTACT_VERIFIED",
+              "MODEL_BASE_GEOMETRY_CHECKED"
+            ]
+          }
+        ],
+        "common_branch_failures": [
+          "C0016",
+          "R0001"
+        ],
+        "common_joint_failures": [
+          "BASE:R0001",
+          "DECLARED:C0016|R0001|PARENT"
+        ],
+        "status": "RESOLVED_IN_SUPPLIED_GRAPH",
+        "graph_count": 1,
+        "lower": 1,
+        "upper": 1,
+        "color": "GRAY",
+        "verified_model_geometry_route_lower_bound": 0,
+        "verified_lower_bound_scope": "Geometric connection to model base, including stated bearing assumptions; not actual raft/toolpath/strength verification"
+      }
+    ],
+    "unresolved_selected_attachments": [
+      {
+        "member": "S002463",
+        "parameter": 0.007909334046149118,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11080785037782036,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875587,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.10677600962301302,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.32428269589211356,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.4391274070528435,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.3365275455918988,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.4231493714689774,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.640656057738078,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7674469637278669,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6648471022669221,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7395227333149419,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7745613185708309,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9064084604118631,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.8038085989509184,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.8734279941476947,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11080785037782036,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875587,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.4391274070528435,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.3365275455918988,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7674469637278669,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6648471022669221,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7742281004422444,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6716282389812998,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.10677600962301302,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.007909334046149118,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.4231493714689774,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.32428269589211356,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7395227333149419,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.640656057738078,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.9901133324423136,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.8912466568654497,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.6441522826904895,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.657448026524481,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7231105183800466,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7057292564467945,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.7203851302851675,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.8424022598893951,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "T00661",
+        "parameter": 0.7499999999999999,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9889136743054198,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.9047778804739811,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.6326382110155503,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6880003136650429,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.7525028768056574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9290857261006511,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.9897400138539054,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.0039546670230745555,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11491184483625796,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.004103994458437791,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11073067664608739,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.004103994458437791,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11491184483625796,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11073067664608824,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.0039546670230745555,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.22982368967251626,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.22146135329217512,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11901583929469574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875578,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.36525550680096314,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.25444765642314293,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6114951743072305,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.5006873239294105,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.008207988916875578,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.11468534366916193,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.00790933404614911,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.11901583929469574,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.25444765642314293,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.35196536505363524,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.24518935543062237,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.36525550680096314,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.5006873239294105,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.5892453864381086,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.48246937681509583,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.6114951743072305,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.00790933404614911,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.1146853436691628,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.24518935543062237,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.3519653650536361,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.48246937681509583,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.5892453864381094,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002463",
+        "parameter": 0.34010136398441176,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      },
+      {
+        "member": "S002400",
+        "parameter": 0.35294352342565,
+        "reason": "Selected actual component attachment ambiguous or absent; no connection inferred"
+      }
+    ],
+    "node_count": 2877,
+    "edge_count": 2851,
+    "evidence_level": "MIXED_DECLARED_AND_SELECTED_GEOMETRY",
+    "height_semantics": "GEOMETRY_LAYER_END_ESTIMATE",
+    "toolpath_status": "TOOLPATH_UNVERIFIED",
+    "raft_mapping": "ASSUMED_0.6_MM_NOT_USED_IN_MODEL_HEIGHT",
+    "base_connected_branch_count": 2771,
+    "base_connected_flower_count": 945,
+    "connected_count_scope": "Unique IDs in supplied global graph, including declared terminal flower associations; not verified physical holding or complete flower geometry",
+    "physical_strength": "UNVERIFIED",
+    "new_branch_count": 1,
+    "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4",
+    "global_incidental_contacts": "NOT_EXHAUSTIVELY_VERIFIED",
+    "global_flower_to_flower_connections": "NOT_INFERRED",
+    "selected_boundary_attachments": "DECLARED_NAMED_PARENT_PROJECTION_TO_UNIQUE_COMPONENT_BBOX; NOT_VERIFIED_CONTACT",
+    "base_semantics": "Model base plane and declared bed anchors; actual raft/bed toolpath connection unresolved",
+    "elapsed_s": 0.3967282999983581
+  },
+  "cached_seconds": 4.450000051292591e-05,
+  "test_edit_in_author_candidate": false,
+  "elapsed_total_s": 17.09367999999813
+}

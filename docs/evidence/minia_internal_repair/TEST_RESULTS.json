@@ -1,0 +1,84 @@
+{
+  "state": "MINIA_LAYERWISE_ROUTE_VISUALIZER_READY_FOR_AUTHOR_REVIEW",
+  "decision": "pass_for_author_review",
+  "source_binding": {
+    "status": "PASS",
+    "evidence": "SOURCE_BINDING.json"
+  },
+  "basic_editor": {
+    "status": "PASS",
+    "evidence": "EDITOR_REVIEW.json"
+  },
+  "synthetic_graph": {
+    "scope": "Synthetic graph fixtures only; not real graph assembly, STALE UI, geometry, Blender or physical acceptance.",
+    "tests_run": 15,
+    "failures": 0,
+    "errors": 0,
+    "pass": true,
+    "elapsed_s": 0.02546470000015688
+  },
+  "real_region": {
+    "status": "PASS_WITH_EXPLICIT_MIXED_GRAPH_SCOPE",
+    "cases": 8,
+    "evidence": "REAL_GRAPH_VALIDATION.json"
+  },
+  "source_contact_invalidation": {
+    "pass": true,
+    "checks": [
+      "source SHA checked on load",
+      "contact file mutation marks STALE",
+      "stale evaluation rejected",
+      "reload obtains new contact hash/cache key",
+      "mismatching source hash rejected"
+    ],
+    "scope": "Isolated copies of configuration/contact inputs; originals never modified"
+  },
+  "height_comparison": {
+    "status": "PASS_CONDITIONAL_EVENT_ESTIMATE",
+    "evidence": [
+      "HEIGHT_EVENT_COMPARISON_TEST.json",
+      "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_HEIGHT_EVENT_EVIDENCE.json"
+    ]
+  },
+  "blender_v2": {
+    "status": "PASS_HEADLESS_DATA_OPERATOR_CHECKS",
+    "evidence": [
+      "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_TEST_RESULTS.json",
+      "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_FRESH_REOPEN.json",
+      "LAUNCHER_CHECK.json",
+      "V2_REFERENCE_GUARD_CHECK.json"
+    ]
+  },
+  "geometry": {
+    "status": "VERIFIED_SELECTED_SCOPE_ONLY",
+    "measured_meshes": 18,
+    "height_snapshots": 781,
+    "range_mm": [
+      0,
+      156
+    ],
+    "not_claimed": "Complete incidental contacts, real raft/bed toolpath ancestry or strength"
+  },
+  "old_gcode": {
+    "status": "THREE_LOCAL_EVENT_COMMANDS_CHECKED_ONLY",
+    "evidence": "GCODE_SELECTED_EVENT_CHECK.json",
+    "new_branches": "TOOLPATH_UNVERIFIED"
+  },
+  "performance": {
+    "v2_test_wall_s": 92.23,
+    "peak_working_set_mb": 763.1,
+    "initial_evaluation_s": 9.47454419999849,
+    "poll_s": 0.1781888000004983,
+    "height_event_backend_sum_s": 19.490931600001204,
+    "isolated_height_button_wall_s": "NOT_MEASURED"
+  },
+  "preserved_inputs": "PRESERVED_INPUTS_FINAL_CHECK.json",
+  "author_gui": "UNVERIFIED",
+  "author_usability_acceptance": "UNVERIFIED",
+  "physical_strength": "UNVERIFIED",
+  "new_slice_count": 0,
+  "send_count": 0,
+  "print_count": 0,
+  "manufacturing_geometry_changed": false,
+  "review": "DECISION_OWNER_REVIEW.json"
+}

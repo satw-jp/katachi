@@ -1,0 +1,29 @@
+{
+  "artifact_root": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs",
+  "artifacts": {
+    "MINIA_INTERNAL_REPAIR_EDITOR_PREVIEW.png": {
+      "bytes": 973173,
+      "sha256": "1cd945495d94a7cbbab24b6145926c333a8641a685a0728828a83eda955f2884"
+    },
+    "MINIA_INTERNAL_REPAIR_EDITOR_V1.blend": {
+      "bytes": 10905361,
+      "sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24"
+    },
+    "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend": {
+      "bytes": 10912996,
+      "sha256": "8fca3c927be92b4eabd47051810df036ee718c246b491782032263c380178d6f"
+    },
+    "MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_PREVIEW.png": {
+      "bytes": 857579,
+      "sha256": "a882c776bd70a05238c6269c69e6fafdcf2a525c3ecf5704ed87ce1a41e33511"
+    },
+    "MINIA_ROUTE_EDITOR_START.lnk": {
+      "bytes": 2619,
+      "sha256": "10c99867c866a9e853799de649c7fe384a2c3aa9d15ef7fbc8abd5a7a21f5b77"
+    },
+    "SELECTED_GEOMETRY_HEIGHT_CACHE.json": {
+      "bytes": 6613222,
+      "sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4"
+    }
+  }
+}
