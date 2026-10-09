@@ -1,0 +1,20 @@
+{
+  "policies": [
+    {
+      "path": "tools/slice-console/policies/EXECUTION_ENV_COMPATIBILITY_POLICY_V0_1.json",
+      "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+      "size": 1014
+    },
+    {
+      "path": "tools/slice-console/policies/WINDOWS_A1_EXECUTION_ENV_COLLECTION_POLICY_V0_1.json",
+      "sha256": "0bf5d306b79666dca379706fd329b1fc4e9e982c0246c10b3b43c785e611430b",
+      "size": 2685
+    },
+    {
+      "path": "tools/slice-console/policies/PYTHON_EXECUTION_DISTRIBUTION_POLICY_V0_1.json",
+      "sha256": "9707b2ed4ba1e4cac3919b7ecb752f5702cb289105c1c7c8373799616734c0c4",
+      "size": 306
+    }
+  ],
+  "directional_rules": []
+}

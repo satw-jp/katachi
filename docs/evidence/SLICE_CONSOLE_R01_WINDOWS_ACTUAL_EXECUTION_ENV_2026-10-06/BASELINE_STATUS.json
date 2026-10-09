@@ -1,0 +1,38 @@
+{
+  "BASELINE_STATUS": "COMPLETE_BUT_UNVERIFIED",
+  "semantic_fingerprint_sha256": "0afc2dde1558d5f06f19fc646785db406caf2d201cdc15c7acd3643f71f66c73",
+  "comparison_class": "UNVERIFIED_ENV",
+  "collected_at": "2026-10-06T07:25:08.161408+00:00",
+  "observation_states": {
+    "os_family": "KNOWN",
+    "os_build": "KNOWN",
+    "architecture": "KNOWN",
+    "engine_companion": "KNOWN",
+    "api_set_schema": "KNOWN",
+    "native_runtime_manifest": "KNOWN",
+    "vc_runtime_candidate": "KNOWN",
+    "ucrt_candidate": "KNOWN",
+    "python": "UNTRUSTED",
+    "inherited_environment": "UNTRUSTED"
+  },
+  "gaps": [
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/observations/python"
+    },
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/observations/inherited_environment"
+    }
+  ],
+  "historical_PR53_environment_backfill": false,
+  "prior_execution_compatibility": "UNKNOWN",
+  "reuse_authorized": false,
+  "Bambu_launches": 0,
+  "ProcMon_launches": 0,
+  "real_slice": 0,
+  "cache": 0,
+  "REUSE": 0,
+  "send": 0,
+  "print": 0
+}

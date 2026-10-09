@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1",
+  "files": [
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/.gitattributes",
+      "size": 8,
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/ACTUAL_COLLECTOR_RESULT.json",
+      "size": 22398,
+      "sha256": "96d84b564eb60269be1fa492f04e6d362331f8b6d0394abbdf5d29bfbd74ae1b"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/ACTUAL_SELF_COMPARISON.json",
+      "size": 1053,
+      "sha256": "4813ef9189f3f32a8a8b5e58ae00d560d6cbded8484d6c6b118e570668e21c1f"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/ACTUAL_WINDOWS_A1_EXECUTION_ENV_FINGERPRINT.json",
+      "size": 4816,
+      "sha256": "f37f2aa6f8175d4259e96fd2d285b5f446597145384d926d0fd0809fdc5d7d1b"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/BASELINE_STATUS.json",
+      "size": 1034,
+      "sha256": "b0834ea7ed1fcb5671da4593112c09400b4bf1dc0223ec9bbc4abbaaec660a72"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/DELIVERY_SUMMARY.json",
+      "size": 4450,
+      "sha256": "34b04bcff7bf2c80e67dd39d873cc829caceb95d83bf3b38dc8ee1e1d75ab78b"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/FULL_REGRESSION.txt",
+      "size": 37948,
+      "sha256": "ce7f8b2c2a3b324b7d0e0353e4f124db47cba27397e397d08aa2135edcf0bda9"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/MERGE_IDENTITY.json",
+      "size": 676,
+      "sha256": "9ef3b546add49993f3182001bb73c9140043d6061cad6a1f1d65e3973b13bc2b"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/OBSERVATION_EVIDENCE.json",
+      "size": 15312,
+      "sha256": "9b04d73d0b044018aff3e1bf7eb2214f168bd04006335bb9c3d36d5d30c300c9"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/POLICY_IDENTITIES.json",
+      "size": 680,
+      "sha256": "0c137003522d2e4cb7128c60d382baba2eb88731d06467cb6d08661596e7a45d"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/PROCESS_IO_ACCOUNTING.json",
+      "size": 1254,
+      "sha256": "03b679302c4867d770a1509d6938c8e7ce0e4e6f22bcfdcc683ebb946eb6fc31"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/TEST_RESULTS.json",
+      "size": 1988,
+      "sha256": "ca2b717465c0ffb36ccd027128d0fbee66c74e61551bc16763335d16e37ca004"
+    },
+    {
+      "path": "docs/evidence/SLICE_CONSOLE_R01_WINDOWS_ACTUAL_EXECUTION_ENV_2026-10-06/VALIDATION.json",
+      "size": 5714,
+      "sha256": "0c8a49cb56f1bc9e5dc29fb9a8765a3b4382a886f91108dc3bb019cf3f293a35"
+    }
+  ]
+}

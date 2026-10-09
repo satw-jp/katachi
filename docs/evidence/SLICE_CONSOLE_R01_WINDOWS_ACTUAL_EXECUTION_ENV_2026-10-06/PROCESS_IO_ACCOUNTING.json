@@ -1,0 +1,44 @@
+{
+  "collector": {
+    "file_read_count": 16,
+    "stream_bytes_read": 110885868,
+    "process_launch_count": 0
+  },
+  "collector_guard_counts": {
+    "subprocess.Popen": 0,
+    "subprocess.run": 0,
+    "os.walk": 0,
+    "os.scandir": 0,
+    "os.listdir": 0
+  },
+  "comparator_guard_counts": {
+    "subprocess.Popen": 0,
+    "subprocess.run": 0,
+    "builtins.open": 0,
+    "io.open": 0,
+    "os.walk": 0,
+    "os.scandir": 0,
+    "os.listdir": 0,
+    "os.stat": 0,
+    "os.lstat": 0
+  },
+  "collector_native_shortcut_loads": 2,
+  "native_version_metadata_reads": 0,
+  "system_methods": {
+    "methods": [
+      "os.name",
+      "sys.getwindowsversion",
+      "GetNativeSystemInfo"
+    ],
+    "architecture_code": 9
+  },
+  "preparation_shell_calls": {
+    "purpose": "read-only metadata of exactly2 operational shortcuts; no Save/launch",
+    "PowerShell_invocations": 1,
+    "version_info_attempts": 2
+  },
+  "legacy_test_helper_launches": 19,
+  "new_collector_test_processes": 0,
+  "collector_file_read_count_definition": "successful explicit Python file opens, including policy parse reads and source hash; COM Load/version metadata counted separately; stat/fstat metadata probes not file content opens",
+  "evidence_writes_outside_collector": true
+}

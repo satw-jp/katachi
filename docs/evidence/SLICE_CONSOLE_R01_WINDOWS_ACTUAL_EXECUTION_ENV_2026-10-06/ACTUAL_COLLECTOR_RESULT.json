@@ -1,0 +1,751 @@
+{
+  "COLLECTOR_STATUS": "COMPLETE",
+  "FINGERPRINT": {
+    "schema_version": "0.1",
+    "domain": "EXECUTION_ENV_FINGERPRINT/v0.1",
+    "policy": {
+      "domain": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+      "policy_id": "WINDOWS_A1_FINITE_B_DEFAULT/v0.1",
+      "version": "0.1",
+      "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4"
+    },
+    "coverage": {
+      "inherited_env_names": [
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "TEMP",
+        "TMP",
+        "TZ"
+      ],
+      "native_runtime_names": [
+        "ucrtbase.dll",
+        "vcruntime140.dll"
+      ],
+      "required_observations": [
+        "api_set_schema",
+        "architecture",
+        "engine_companion",
+        "inherited_environment",
+        "native_runtime_manifest",
+        "os_build",
+        "os_family",
+        "python",
+        "ucrt_candidate",
+        "vc_runtime_candidate"
+      ],
+      "scope_id": "WINDOWS_A1_FINITE_B/v0.1",
+      "verification_mode": "CALLER_PREVERIFIED_OBSERVED_CANDIDATES"
+    },
+    "observations": {
+      "os_family": {
+        "state": "KNOWN",
+        "value": "Windows"
+      },
+      "os_build": {
+        "state": "KNOWN",
+        "value": "10.0.26200"
+      },
+      "architecture": {
+        "state": "KNOWN",
+        "value": "AMD64"
+      },
+      "engine_companion": {
+        "state": "KNOWN",
+        "value": {
+          "sha256": "b480fae45d6e6337bb531f74b8e90b4f4470bef623e1a33e81c03c43f621e768"
+        }
+      },
+      "api_set_schema": {
+        "state": "KNOWN",
+        "value": {
+          "sha256": "391a2818fdef14f4a9b6e6ce2a7e7f01d04f943de9ef543ec683927cfe480889"
+        }
+      },
+      "native_runtime_manifest": {
+        "state": "KNOWN",
+        "value": {
+          "identity_kind": "OBSERVED_CANDIDATES_NOT_LOADED",
+          "entries": [
+            {
+              "logical_name": "ucrtbase.dll",
+              "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+              "size": 1377512,
+              "role": "runtime_candidate"
+            },
+            {
+              "logical_name": "vcruntime140.dll",
+              "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+              "size": 123472,
+              "role": "runtime_candidate"
+            }
+          ]
+        }
+      },
+      "vc_runtime_candidate": {
+        "state": "KNOWN",
+        "value": {
+          "identity_kind": "OBSERVED_CANDIDATE_FINGERPRINT",
+          "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2"
+        }
+      },
+      "ucrt_candidate": {
+        "state": "KNOWN",
+        "value": {
+          "identity_kind": "OBSERVED_CANDIDATE_FINGERPRINT",
+          "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192"
+        }
+      },
+      "python": {
+        "state": "UNTRUSTED",
+        "value": {
+          "executable_sha256": null,
+          "version": null,
+          "implementation": null,
+          "distribution": {
+            "fingerprint_sha256": "0462d84099529c18f09c467f90272a9772227cd14d6d5dddbcb61e0a388de43d",
+            "policy_id": "WINDOWS_A1_STDLIB_ONLY/v0.1",
+            "policy_version": "0.1",
+            "policy_sha256": "9707b2ed4ba1e4cac3919b7ecb752f5702cb289105c1c7c8373799616734c0c4"
+          }
+        }
+      },
+      "inherited_environment": {
+        "state": "UNTRUSTED",
+        "value": {
+          "policy_version": "0.1",
+          "entries": [
+            {
+              "name": "LANG",
+              "state": "present",
+              "value_identity": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+              "classification": "HASHED_NONSECRET"
+            },
+            {
+              "name": "LC_ALL",
+              "state": "present",
+              "value_identity": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+              "classification": "HASHED_NONSECRET"
+            },
+            {
+              "name": "PATH",
+              "state": "present",
+              "value_identity": "535a85342618004cbd5c33ed00c74b740d594dbd340acff151fa25a2483a27b7",
+              "classification": "HASHED_NONSECRET"
+            },
+            {
+              "name": "TEMP",
+              "state": "present",
+              "value_identity": "1999365223dc2e5a6fb019157a1a1260cca8a3d94f721df68fde7bda58fe4836",
+              "classification": "HASHED_NONSECRET"
+            },
+            {
+              "name": "TMP",
+              "state": "present",
+              "value_identity": "1999365223dc2e5a6fb019157a1a1260cca8a3d94f721df68fde7bda58fe4836",
+              "classification": "HASHED_NONSECRET"
+            },
+            {
+              "name": "TZ",
+              "state": "unset",
+              "value_identity": null,
+              "classification": "HASHED_NONSECRET"
+            }
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "collected_at": "2026-10-06T07:25:08.161408+00:00",
+      "collector_run_id": "0b4e1f57-7b16-4e7a-8d8d-e087350257c6",
+      "human_note": "Collection-time B baseline only; no historical execution backfill or loaded-module claim"
+    }
+  },
+  "FINGERPRINT_SEMANTIC_SHA256": "0afc2dde1558d5f06f19fc646785db406caf2d201cdc15c7acd3643f71f66c73",
+  "blockers": [
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/observations/python"
+    },
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/observations/inherited_environment"
+    }
+  ],
+  "OBSERVATION_EVIDENCE": {
+    "file_reads": [
+      {
+        "path": "J:\\Program Files\\Bambu Studio\\bambu-studio.exe",
+        "state": "KNOWN",
+        "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268",
+        "size": 159776,
+        "stat_before": [
+          133144642137240000,
+          2251799813687966,
+          159776,
+          1787238836000000000,
+          1787238836000000000
+        ],
+        "stat_after": [
+          133144642137240000,
+          2251799813687966,
+          159776,
+          1787238836000000000,
+          1787238836000000000
+        ],
+        "handle_before": [
+          133144642137240000,
+          2251799813687966,
+          159776,
+          1787238836000000000,
+          1788056265341944200
+        ],
+        "handle_after": [
+          133144642137240000,
+          2251799813687966,
+          159776,
+          1787238836000000000,
+          1788056265341944200
+        ]
+      },
+      {
+        "path": "J:\\Program Files\\Bambu Studio\\BambuStudio.dll",
+        "state": "KNOWN",
+        "sha256": "b480fae45d6e6337bb531f74b8e90b4f4470bef623e1a33e81c03c43f621e768",
+        "size": 108991008,
+        "stat_before": [
+          133144642137240000,
+          1970324836977280,
+          108991008,
+          1787238830000000000,
+          1787238830000000000
+        ],
+        "stat_after": [
+          133144642137240000,
+          1970324836977280,
+          108991008,
+          1787238830000000000,
+          1787238830000000000
+        ],
+        "handle_before": [
+          133144642137240000,
+          1970324836977280,
+          108991008,
+          1787238830000000000,
+          1788056263727336700
+        ],
+        "handle_after": [
+          133144642137240000,
+          1970324836977280,
+          108991008,
+          1787238830000000000,
+          1788056263727336700
+        ]
+      },
+      {
+        "path": "C:\\Windows\\System32\\apisetschema.dll",
+        "state": "KNOWN",
+        "sha256": "391a2818fdef14f4a9b6e6ce2a7e7f01d04f943de9ef543ec683927cfe480889",
+        "size": 194016,
+        "stat_before": [
+          15289387592274992916,
+          281474978837711,
+          194016,
+          1788914908149145300,
+          1788914908122622200
+        ],
+        "stat_after": [
+          15289387592274992916,
+          281474978837711,
+          194016,
+          1788914908149145300,
+          1788914908122622200
+        ],
+        "handle_before": [
+          15289387592274992916,
+          281474978837711,
+          194016,
+          1788914908149145300,
+          1789523351195413800
+        ],
+        "handle_after": [
+          15289387592274992916,
+          281474978837711,
+          194016,
+          1788914908149145300,
+          1789523351195413800
+        ]
+      },
+      {
+        "path": "C:\\Windows\\System32\\ucrtbase.dll",
+        "state": "KNOWN",
+        "sha256": "5c52e3a303baaac0e0af8bd9b96134993da34bc9d834a31ef37e1d2cdc7fe192",
+        "size": 1377512,
+        "stat_before": [
+          15289387592274992916,
+          281474978846633,
+          1377512,
+          1788914931390353100,
+          1788914931321801100
+        ],
+        "stat_after": [
+          15289387592274992916,
+          281474978846633,
+          1377512,
+          1788914931390353100,
+          1788914931321801100
+        ],
+        "handle_before": [
+          15289387592274992916,
+          281474978846633,
+          1377512,
+          1788914931390353100,
+          1789523353515619800
+        ],
+        "handle_after": [
+          15289387592274992916,
+          281474978846633,
+          1377512,
+          1788914931390353100,
+          1789523353515619800
+        ]
+      },
+      {
+        "path": "C:\\Windows\\System32\\vcruntime140.dll",
+        "state": "KNOWN",
+        "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+        "size": 123472,
+        "stat_before": [
+          15289387592274992916,
+          78531518503163559,
+          123472,
+          1763733392000000000,
+          1763733392000000000
+        ],
+        "stat_after": [
+          15289387592274992916,
+          78531518503163559,
+          123472,
+          1763733392000000000,
+          1763733392000000000
+        ],
+        "handle_before": [
+          15289387592274992916,
+          78531518503163559,
+          123472,
+          1763733392000000000,
+          1777622752698121200
+        ],
+        "handle_after": [
+          15289387592274992916,
+          78531518503163559,
+          123472,
+          1763733392000000000,
+          1777622752698121200
+        ]
+      },
+      {
+        "path": "C:\\Users\\as\\Desktop\\FUKEI Slice Runner.lnk",
+        "state": "KNOWN",
+        "sha256": "7c79444487cd5fbf488ad1302196ad36bfbe283ecbb331dfe92bc47daae3c679",
+        "size": 2988,
+        "stat_before": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890591727350900
+        ],
+        "stat_after": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890591727350900
+        ],
+        "handle_before": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890621199985400
+        ],
+        "handle_after": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890621199985400
+        ]
+      },
+      {
+        "path": "C:\\Users\\as\\Desktop\\FUKEI Slice Runner.lnk",
+        "state": "KNOWN",
+        "sha256": "7c79444487cd5fbf488ad1302196ad36bfbe283ecbb331dfe92bc47daae3c679",
+        "size": 2988,
+        "stat_before": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890591727350900
+        ],
+        "stat_after": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890591727350900
+        ],
+        "handle_before": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890621199985400
+        ],
+        "handle_after": [
+          15289387592274992916,
+          49258120924609696,
+          2988,
+          1789890621199985400,
+          1789890621199985400
+        ]
+      },
+      {
+        "path": "C:\\Users\\as\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\FUKEI Slice Runner.lnk",
+        "state": "KNOWN",
+        "sha256": "bcdbbde53328f6b0827b50a8a08c4e13d2268c9c6654a093be883b85ff360727",
+        "size": 3022,
+        "stat_before": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592151631000
+        ],
+        "stat_after": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592151631000
+        ],
+        "handle_before": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592155628900
+        ],
+        "handle_after": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592155628900
+        ]
+      },
+      {
+        "path": "C:\\Users\\as\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\FUKEI Slice Runner.lnk",
+        "state": "KNOWN",
+        "sha256": "bcdbbde53328f6b0827b50a8a08c4e13d2268c9c6654a093be883b85ff360727",
+        "size": 3022,
+        "stat_before": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592151631000
+        ],
+        "stat_after": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592151631000
+        ],
+        "handle_before": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592155628900
+        ],
+        "handle_after": [
+          15289387592274992916,
+          25895697858514593,
+          3022,
+          1789890592155628900,
+          1789890592155628900
+        ]
+      },
+      {
+        "path": "C:\\Users\\as\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\pythonw.exe",
+        "state": "UNTRUSTED",
+        "sha256": null,
+        "size": null,
+        "code": "REPARSE_OR_SYMLINK"
+      }
+    ],
+    "system": {
+      "methods": [
+        "os.name",
+        "sys.getwindowsversion",
+        "GetNativeSystemInfo"
+      ],
+      "architecture_code": 9
+    },
+    "python_binding": {
+      "shortcuts": [
+        {
+          "path": "C:/Users/as/Desktop/FUKEI Slice Runner.lnk",
+          "identity": {
+            "path": "C:\\Users\\as\\Desktop\\FUKEI Slice Runner.lnk",
+            "state": "KNOWN",
+            "sha256": "7c79444487cd5fbf488ad1302196ad36bfbe283ecbb331dfe92bc47daae3c679",
+            "size": 2988,
+            "stat_before": [
+              15289387592274992916,
+              49258120924609696,
+              2988,
+              1789890621199985400,
+              1789890591727350900
+            ],
+            "stat_after": [
+              15289387592274992916,
+              49258120924609696,
+              2988,
+              1789890621199985400,
+              1789890591727350900
+            ],
+            "handle_before": [
+              15289387592274992916,
+              49258120924609696,
+              2988,
+              1789890621199985400,
+              1789890621199985400
+            ],
+            "handle_after": [
+              15289387592274992916,
+              49258120924609696,
+              2988,
+              1789890621199985400,
+              1789890621199985400
+            ]
+          },
+          "target": "C:\\Users\\as\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\pythonw.exe",
+          "route_binding_matched": true
+        },
+        {
+          "path": "C:/Users/as/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/FUKEI Slice Runner.lnk",
+          "identity": {
+            "path": "C:\\Users\\as\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\FUKEI Slice Runner.lnk",
+            "state": "KNOWN",
+            "sha256": "bcdbbde53328f6b0827b50a8a08c4e13d2268c9c6654a093be883b85ff360727",
+            "size": 3022,
+            "stat_before": [
+              15289387592274992916,
+              25895697858514593,
+              3022,
+              1789890592155628900,
+              1789890592151631000
+            ],
+            "stat_after": [
+              15289387592274992916,
+              25895697858514593,
+              3022,
+              1789890592155628900,
+              1789890592151631000
+            ],
+            "handle_before": [
+              15289387592274992916,
+              25895697858514593,
+              3022,
+              1789890592155628900,
+              1789890592155628900
+            ],
+            "handle_after": [
+              15289387592274992916,
+              25895697858514593,
+              3022,
+              1789890592155628900,
+              1789890592155628900
+            ]
+          },
+          "target": "C:\\Users\\as\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\pythonw.exe",
+          "route_binding_matched": true
+        }
+      ],
+      "collector_runtime_assumed_production": false,
+      "target_identity": {
+        "path": "C:\\Users\\as\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\pythonw.exe",
+        "state": "UNTRUSTED",
+        "sha256": null,
+        "size": null,
+        "code": "REPARSE_OR_SYMLINK"
+      },
+      "code": "PYTHON_TARGET_NOT_STABLE_REGULAR_FILE"
+    },
+    "environment_binding": {
+      "source": "collector process candidate values; not production Runner env",
+      "code": "RUNNER_INHERITED_ENV_BINDING_UNPROVEN",
+      "names_read": [
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "TEMP",
+        "TMP",
+        "TZ"
+      ]
+    },
+    "policy_reads": [
+      {
+        "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-windows-env-collector\\tools\\slice-console\\policies\\WINDOWS_A1_EXECUTION_ENV_COLLECTION_POLICY_V0_1.json",
+        "state": "KNOWN",
+        "sha256": "0bf5d306b79666dca379706fd329b1fc4e9e982c0246c10b3b43c785e611430b",
+        "size": 2685,
+        "stat_before": [
+          133144642137240000,
+          3096224743819265,
+          2685,
+          1791271225500454600,
+          1791271225500454600
+        ],
+        "stat_after": [
+          133144642137240000,
+          3096224743819265,
+          2685,
+          1791271225500454600,
+          1791271225500454600
+        ],
+        "handle_before": [
+          133144642137240000,
+          3096224743819265,
+          2685,
+          1791271225500454600,
+          1791271296644606000
+        ],
+        "handle_after": [
+          133144642137240000,
+          3096224743819265,
+          2685,
+          1791271225500454600,
+          1791271296644606000
+        ]
+      },
+      {
+        "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-windows-env-collector\\tools\\slice-console\\policies\\EXECUTION_ENV_COMPATIBILITY_POLICY_V0_1.json",
+        "state": "KNOWN",
+        "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+        "size": 1014,
+        "stat_before": [
+          133144642137240000,
+          2251799813687058,
+          1014,
+          1791271094165543600,
+          1791271094153529500
+        ],
+        "stat_after": [
+          133144642137240000,
+          2251799813687058,
+          1014,
+          1791271094165543600,
+          1791271094153529500
+        ],
+        "handle_before": [
+          133144642137240000,
+          2251799813687058,
+          1014,
+          1791271094165543600,
+          1791271295544146900
+        ],
+        "handle_after": [
+          133144642137240000,
+          2251799813687058,
+          1014,
+          1791271094165543600,
+          1791271295544146900
+        ]
+      },
+      {
+        "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-windows-env-collector\\tools\\slice-console\\policies\\PYTHON_EXECUTION_DISTRIBUTION_POLICY_V0_1.json",
+        "state": "KNOWN",
+        "sha256": "9707b2ed4ba1e4cac3919b7ecb752f5702cb289105c1c7c8373799616734c0c4",
+        "size": 306,
+        "stat_before": [
+          133144642137240000,
+          3096224743819264,
+          306,
+          1791271225488937200,
+          1791271225488937200
+        ],
+        "stat_after": [
+          133144642137240000,
+          3096224743819264,
+          306,
+          1791271225488937200,
+          1791271225488937200
+        ],
+        "handle_before": [
+          133144642137240000,
+          3096224743819264,
+          306,
+          1791271225488937200,
+          1791271296641605300
+        ],
+        "handle_after": [
+          133144642137240000,
+          3096224743819264,
+          306,
+          1791271225488937200,
+          1791271296641605300
+        ]
+      }
+    ],
+    "collector_source": {
+      "path": "J:\\My Drive\\codex\\2026-10-03\\files-pasted-by-the-user-fukei\\work\\katachi-windows-env-collector\\tools\\slice-console\\execution_env_windows_a1.py",
+      "state": "KNOWN",
+      "sha256": "c8115b1f73e44ddfa7073d707ac130a57fd94e7b42d9259c4b2550d832887ce0",
+      "size": 20054,
+      "stat_before": [
+        133144642137240000,
+        11821949021849387,
+        20054,
+        1791271410401579200,
+        1791271308680968100
+      ],
+      "stat_after": [
+        133144642137240000,
+        11821949021849387,
+        20054,
+        1791271410401579200,
+        1791271308680968100
+      ],
+      "handle_before": [
+        133144642137240000,
+        11821949021849387,
+        20054,
+        1791271410401579200,
+        1791271423899504600
+      ],
+      "handle_after": [
+        133144642137240000,
+        11821949021849387,
+        20054,
+        1791271410401579200,
+        1791271423899504600
+      ]
+    }
+  },
+  "provenance": {
+    "collection_policy_sha256": "0bf5d306b79666dca379706fd329b1fc4e9e982c0246c10b3b43c785e611430b",
+    "collector_source_sha256": "c8115b1f73e44ddfa7073d707ac130a57fd94e7b42d9259c4b2550d832887ce0",
+    "distribution_policy_sha256": "9707b2ed4ba1e4cac3919b7ecb752f5702cb289105c1c7c8373799616734c0c4"
+  },
+  "IO_ACCOUNTING": {
+    "file_read_count": 16,
+    "stream_bytes_read": 110885868,
+    "process_launch_count": 0
+  }
+}

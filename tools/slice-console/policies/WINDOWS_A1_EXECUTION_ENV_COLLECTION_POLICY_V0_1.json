@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.1",
+  "domain": "WINDOWS_A1_EXECUTION_ENV_COLLECTION_POLICY/v0.1",
+  "policy_id": "WINDOWS_A1_FINITE_COLLECTION/v0.1",
+  "policy_version": "0.1",
+  "compatibility_policy_sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4",
+  "route": {
+    "engine_version": "02.08.02.61",
+    "engine_executable": {
+      "path": "J:/Program Files/Bambu Studio/bambu-studio.exe",
+      "sha256": "7680dac4a953cb4f8a96cc2b4ad4ea0b8bfc62f937d3491256922ff24dbb8268"
+    }
+  },
+  "files": {
+    "engine_companion": "J:/Program Files/Bambu Studio/BambuStudio.dll",
+    "api_set_schema": "C:/Windows/System32/apisetschema.dll",
+    "native_runtime_manifest": {
+      "ucrtbase.dll": "C:/Windows/System32/ucrtbase.dll",
+      "vcruntime140.dll": "C:/Windows/System32/vcruntime140.dll"
+    }
+  },
+  "stable_read": {
+    "max_bytes": 536870912,
+    "chunk_bytes": 1048576,
+    "symlink_or_reparse": "UNTRUSTED",
+    "changed_during_read": "UNTRUSTED",
+    "missing": "MISSING",
+    "directory_fallback": false,
+    "system32_requires_native_pointer_width": true
+  },
+  "os": {
+    "family_method": "os.name==nt AND sys.getwindowsversion",
+    "build_method": "sys.getwindowsversion",
+    "build_format": "major.minor.build",
+    "architecture_method": "GetNativeSystemInfo",
+    "architecture_codes": {
+      "0": "x86",
+      "9": "AMD64",
+      "12": "ARM64"
+    }
+  },
+  "python_binding": {
+    "method": "IShellLinkW.GetPath/GetArguments/GetWorkingDirectory; IPersistFile.Load(STGM_READ); no Resolve",
+    "shortcut_paths": [
+      "C:/Users/as/Desktop/FUKEI Slice Runner.lnk",
+      "C:/Users/as/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/FUKEI Slice Runner.lnk"
+    ],
+    "expected_app_path": "J:/My Drive/codex/2026-09-20/files-pasted-by-the-user-fukei/outputs/fukei_slice_runner/app.py",
+    "expected_working_directory": "J:/My Drive/codex/2026-09-20/files-pasted-by-the-user-fukei/outputs/fukei_slice_runner",
+    "allowed_executable_names": [
+      "python.exe",
+      "pythonw.exe"
+    ],
+    "version_method": "stable bound executable file VERSIONINFO; ProductName=Python, CompanyName=Python Software Foundation",
+    "alias_or_reparse": "UNTRUSTED",
+    "collector_runtime_is_not_production_by_default": true
+  },
+  "inherited_environment": {
+    "names": [
+      "LANG",
+      "LC_ALL",
+      "PATH",
+      "TEMP",
+      "TMP",
+      "TZ"
+    ],
+    "encoding": "UTF-8 exact text bytes; no normalization",
+    "classification": "HASHED_NONSECRET",
+    "source": "collector current process candidate only",
+    "runner_context_binding": "UNTRUSTED; no in-process Runner capture exists",
+    "raw_values_persisted": false
+  }
+}

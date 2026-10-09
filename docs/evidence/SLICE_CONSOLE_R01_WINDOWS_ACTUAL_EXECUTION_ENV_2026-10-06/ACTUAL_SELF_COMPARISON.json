@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "domain": "EXECUTION_ENV_COMPARISON/v0.1",
+  "status": "COMPLETE",
+  "comparison_class": "UNVERIFIED_ENV",
+  "policy_identity": {
+    "domain": "EXECUTION_ENV_COMPATIBILITY_POLICY/v0.1",
+    "policy_id": "WINDOWS_A1_FINITE_B_DEFAULT/v0.1",
+    "version": "0.1",
+    "sha256": "f1b1e98e4d74582921da2c8bc1981ec9b46c784fd82cb08d96ea30395b6660e4"
+  },
+  "prior_fingerprint_digest": "0afc2dde1558d5f06f19fc646785db406caf2d201cdc15c7acd3643f71f66c73",
+  "current_fingerprint_digest": "0afc2dde1558d5f06f19fc646785db406caf2d201cdc15c7acd3643f71f66c73",
+  "differences": [],
+  "blockers": [
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/prior/observations/inherited_environment"
+    },
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/prior/observations/python"
+    },
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/current/observations/inherited_environment"
+    },
+    {
+      "code": "UNTRUSTED",
+      "pointer": "/current/observations/python"
+    }
+  ],
+  "rule_applications": [],
+  "reuse_authorized": false
+}
