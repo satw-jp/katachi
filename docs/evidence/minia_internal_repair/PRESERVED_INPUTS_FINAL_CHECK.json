@@ -1,0 +1,31 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "name": "successful_package",
+      "path": "J:\\My Drive\\codex\\2026-09-23\\files-pasted-by-the-user-fukei\\outputs\\R4_MINIA_TERMINAL_REVIEW_20260922\\package_only\\plate_1.gcode.3mf",
+      "bytes": 178806997,
+      "sha256": "1533927c778c49fc5f84ccc0388de8ee09bca5d9a1b826cb475d32ea9826040d",
+      "unchanged": true
+    },
+    {
+      "name": "editable_manufacturing_baseline",
+      "path": "J:\\My Drive\\codex\\2026-09-22\\skin-fukei-slice-runner-execution-3\\outputs\\MINIA_PLA_EDITABLE_REPACKED.3mf",
+      "bytes": 946468919,
+      "sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "unchanged": true
+    },
+    {
+      "name": "frozen_basic_editor",
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_INTERNAL_REPAIR_EDITOR_V1.blend",
+      "bytes": 10905361,
+      "sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24",
+      "unchanged": true
+    }
+  ],
+  "elapsed_s": 3.191338699998596,
+  "new_slice_count": 0,
+  "send_count": 0,
+  "print_count": 0,
+  "manufacturing_geometry_changed": false
+}

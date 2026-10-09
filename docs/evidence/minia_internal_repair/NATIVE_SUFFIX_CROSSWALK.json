@@ -1,0 +1,127 @@
+{
+  "status": "HOLD",
+  "native_path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\cli\\import_validated\\A_A1_EDITABLE.3mf",
+  "native_identity_basis": "SHA-256 alias lock recorded in SOURCE_BINDING_EVIDENCE.json: source lock, import_validated alias and delivery alias all 04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded",
+  "native_file_bytes": 919626858,
+  "native_zip_hash_measured_this_run": false,
+  "native_sha256": null,
+  "object_entry": "3D/Objects/object_1.model",
+  "source_stl": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+  "native_vertices": 20362205,
+  "native_triangles": 40690246,
+  "source_triangles": 40690249,
+  "mismatch_index": 37815935,
+  "local_tail_mapping_evidence": "MISMATCH_AND_TAIL_PROBE_DETAILED.json: native face K matches source face M-1 under vertex permutation within tolerance; local native K+1..K+4 and tail 12 match same-index STL",
+  "suffix_native_start": 37815936,
+  "suffix_native_end_exclusive": 40690246,
+  "suffix_faces_compared": 2874310,
+  "expected_suffix_faces": 2874310,
+  "coordinate_tolerance_mm": 1e-05,
+  "tolerance_basis": "STL_EXPORT.json max float32 export-rounding 7.62939453125e-6 mm; ordered prefix maximum 6.813990239606937e-6 mm",
+  "suffix_max_abs_vertex_error_mm": 131.07797113689062,
+  "suffix_mismatches": [
+    {
+      "native_face": 40363433,
+      "source_face": 40363433,
+      "max_vertex_error_mm": 127.16156258454689,
+      "native_vertex_ids": [
+        18918536,
+        18918535,
+        20197963
+      ],
+      "native_xyz_world_mm": [
+        [
+          166.126894031,
+          176.413999595,
+          45.284940101
+        ],
+        [
+          165.763490631,
+          176.493314695,
+          45.466367100999996
+        ],
+        [
+          165.960313831,
+          176.07604789500002,
+          45.82648600099999
+        ]
+      ],
+      "source_xyz_mm": [
+        [
+          141.07382202148438,
+          85.57012176513672,
+          172.44650268554688
+        ],
+        [
+          141.0756072998047,
+          85.56729888916016,
+          172.4449920654297
+        ],
+        [
+          141.0756072998047,
+          85.56730651855469,
+          172.4449920654297
+        ]
+      ],
+      "candidate_tail_matches": [
+        {
+          "source_face": 40690247,
+          "max_vertex_error_mm": 2.5279062541017083e-06
+        }
+      ]
+    },
+    {
+      "native_face": 40429090,
+      "source_face": 40429090,
+      "max_vertex_error_mm": 131.07797113689062,
+      "native_vertex_ids": [
+        20231012,
+        18918534,
+        18918536
+      ],
+      "native_xyz_world_mm": [
+        [
+          166.40130803099999,
+          176.323026695,
+          44.59015020099999
+        ],
+        [
+          165.979875531,
+          176.61813159500002,
+          44.756497700999994
+        ],
+        [
+          166.126894031,
+          176.413999595,
+          45.284940101
+        ]
+      ],
+      "source_xyz_mm": [
+        [
+          176.4442901611328,
+          101.91290283203125,
+          175.66812133789062
+        ],
+        [
+          176.4442901611328,
+          101.91289520263672,
+          175.66812133789062
+        ],
+        [
+          176.4442901611328,
+          101.91289520263672,
+          175.66810607910156
+        ]
+      ],
+      "candidate_tail_matches": [
+        {
+          "source_face": 40690246,
+          "max_vertex_error_mm": 2.543140631416918e-06
+        }
+      ]
+    }
+  ],
+  "elapsed_seconds": 117.23,
+  "method": "Single raw ZIP XML stream. Disk memmap for all native vertices. Triangle prefix counted without coordinate comparisons; suffix triangles vector-compared against same-index binary STL records in 100k chunks.",
+  "native_identity_evidence": "SOURCE_ALIAS_AND_REPACK_EVIDENCE.json: explicit source lock delivery path and inspection alias share hash 04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded (919626858 bytes); route authority snapshot also matches."
+}

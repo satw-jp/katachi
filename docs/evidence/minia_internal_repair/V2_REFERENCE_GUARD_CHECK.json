@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "fixture": "In-memory protected reference transform changed by 0.01 mm; no .blend saved",
+  "object": "A_ORIGINAL \u2022 source centerlines",
+  "observed": {
+    "status": "HOLD",
+    "issues": [
+      "Source references changed: missing=[], changed=['A_ORIGINAL \u2022 source centerlines'], added=[]"
+    ]
+  },
+  "author_blend_modified": false
+}

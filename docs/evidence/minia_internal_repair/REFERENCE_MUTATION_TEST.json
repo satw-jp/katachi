@@ -1,0 +1,37 @@
+{
+  "status": "HOLD",
+  "editor_blend_path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_editor\\MINIA_EDITOR_TEST_REFERENCE_MUTATION.blend",
+  "editor_blend_sha256": "76aff60d76a2cdd6e40df3957705b4a541de0c1873ed31bf12cd65a2746762c7",
+  "baseline_editable_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+  "ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "source_record_count": 9421,
+  "anchor_checks": [
+    {
+      "object": "AUTHOR_EDIT_ALL \u2022 protected point baseline",
+      "expected_anchors": 18842,
+      "actual_vertices": 18842,
+      "edges": []
+    },
+    {
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "expected_anchors": 24,
+      "actual_vertices": 24,
+      "edges": []
+    }
+  ],
+  "source_reference_count": 7,
+  "new_edge_count": 0,
+  "new_branches": [],
+  "weak_point_markers": [],
+  "issues": [
+    {
+      "kind": "SOURCE_REFERENCE_FINGERPRINT_CHANGED",
+      "missing": [],
+      "changed": [
+        "A_ORIGINAL \u2022 source centerlines"
+      ],
+      "added": []
+    }
+  ],
+  "slice_send_print_count": 0
+}

@@ -1,0 +1,74 @@
+{
+  "bootstrap": {
+    "blend": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend",
+    "output_root": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs",
+    "runtime": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\route_runtime",
+    "panel": "registered",
+    "state": "CURRENT"
+  },
+  "initial_state": "CURRENT",
+  "initial_edit_count": 0,
+  "height_marks_stale": true,
+  "height_43_4_print": 2,
+  "mode_marks_stale": true,
+  "43_4_perm_graph_count": 0,
+  "joint_failure_kind": "joint",
+  "joint_failure_id": "G0181|A3457",
+  "joint_impact": {
+    "failure_kind": "joint",
+    "failure_id": "G0181|A3457",
+    "lost_fragment_ids": [],
+    "removed_fragment_ids": [],
+    "lost_branch_ids": [],
+    "lost_branch_count": 0,
+    "partially_disconnected_branch_ids": [],
+    "affected_flower_ids": [],
+    "partially_disconnected_flower_ids": [],
+    "lost_flower_ids": [],
+    "lost_flower_count": 0,
+    "bbox": null
+  },
+  "test_edit_id": "AUT-550837EB7808",
+  "test_edge_count": 1,
+  "test_edit_issues": [],
+  "edit_marks_stale": true,
+  "edit_overlay_hidden": true,
+  "test_edit_graph_before": 0,
+  "test_edit_graph_after": 1,
+  "edit_overlay": {
+    "component_bbox_count": 12,
+    "centerline_clip_count": 1,
+    "author_intent_clip_count": 1,
+    "witness_segment_count": 5,
+    "failure_overlay_count": 1,
+    "target_fragment_ids": [
+      "F3457#0"
+    ],
+    "radius_mm": 36.0,
+    "plane_z_plate_mm": 43.2
+  },
+  "event_comparison_status": "CURRENT",
+  "baseline_interval": [
+    44.6,
+    156.0
+  ],
+  "edited_interval": [
+    43.2,
+    156.0
+  ],
+  "edited_onsets": {
+    "1": {
+      "status": "DECLARED_GRAPH_EVENT_ESTIMATE",
+      "first_grid_height_mm": 43.2,
+      "previous_grid_height_mm": 43.0
+    },
+    "2": {
+      "status": "NOT_FOUND_THROUGH_RANGE",
+      "through_model_z_mm": 156.0
+    }
+  },
+  "event_elapsed_s": 19.490931600001204,
+  "edit_mode_hold": true,
+  "test_fixture": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_visualizer\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_TEST_ONLY.blend",
+  "author_v2_edit_count": 0
+}
