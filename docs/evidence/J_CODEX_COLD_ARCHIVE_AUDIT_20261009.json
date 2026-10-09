@@ -1,0 +1,544 @@
+{
+  "schema": "katachi.codex.cold_archive.readonly_audit.v1",
+  "audit_date": "2026-10-09",
+  "mode": "READ_ONLY",
+  "source_root": "J:\\My Drive\\codex",
+  "proposed_destination_root": "D:\\_COLD_ARCHIVE_CODEX",
+  "protected_date": "2026-10-09",
+  "conclusion": "NO_BLANKET_RETIREMENT_OF_ALL_PREVIOUS_DATES",
+  "copy_move_delete_performed": false,
+  "user_git_or_cloud_mutated": false,
+  "audit_outputs_created_in_assistant_sandbox_only": true,
+  "source_inventory_complete": false,
+  "local_windows_observed": false,
+  "local_git_status_observed": false,
+  "local_process_state_observed": false,
+  "drive_desktop_sync_mode": "UNKNOWN",
+  "drive_sync_pending_state": "UNKNOWN",
+  "destination_outside_sync": "UNKNOWN",
+  "verified_copy_to_D": false,
+  "approved_retirement_paths": [],
+  "default_classification": "HOLD / UNKNOWN",
+  "copy_semantics": "Future source-preserving verified copy of stable files; not performed or authorized for execution by this audit. Live/mutating files need a separate stable checkpoint.",
+  "classification_rules": {
+    "SAFE_TO_COLD_ARCHIVE_AND_RETIRE_FROM_J": "Only after exact copy verification, dependency/worktree/cloud/backup gates all resolved. No path granted this status in this audit.",
+    "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J": "Non-destructive copy candidate; retain J namespace/cloud source pending reference and durability decisions.",
+    "KEEP_ON_J_ACTIVE": "Current runtime, active authority or resume target. ACTIVE does not assert an OS process is currently running.",
+    "HOLD / UNKNOWN": "Insufficient local inventory/process/Git/sync evidence. Preserve until bounded automatic local check resolves it."
+  },
+  "match_policy": "No delete executor. Any matching KEEP or HOLD defeats a retire candidate. A parent with mixed child statuses cannot be retired as a unit. Never infer safe from no match.",
+  "user_reported_capacity": {
+    "J_free_GiB": "58.77",
+    "D_free_GiB": "889.79",
+    "example_date_GiB": {
+      "2026-09-28": "107.56",
+      "2026-10-07": "81.96",
+      "2026-09-10": "57.26",
+      "2026-08-31": "37.60",
+      "2026-09-06": "37.49",
+      "2026-09-18": "21.75"
+    },
+    "example_six_total_GiB": "343.62",
+    "total_codex_GiB": null,
+    "verified_reclaimable_GiB": null,
+    "logical_equals_allocated": false
+  },
+  "minia_checkpoint": {
+    "pr": 56,
+    "draft": true,
+    "merged": false,
+    "head": "90319254754bc54e76eb6d5b1c986782c9b62be4",
+    "source": "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/status/MINIA_INTERNAL_REPAIR_CURRENT.md"
+  },
+  "minil_checkpoint": {
+    "current": "https://github.com/satw-jp/katachi/blob/main/docs/status/SKIN_MINI_CURRENT.md",
+    "current_blob": "8d185ddff2aa535c2ebec59dc3253813d8dfefa1",
+    "state": "HOLD__NO_ACTIVE_IMPLEMENTATION__4_PART_NOT_STARTED",
+    "evidence_zip_self_contained": false,
+    "publication_commit": "f87aeedb71725782b2db7a24ba6f8a84956ca2fc",
+    "latest_verified_issue_comment": "https://github.com/satw-jp/katachi/issues/36#issuecomment-6077471500"
+  },
+  "rows": [
+    {
+      "id": "K00",
+      "path": "J:\\My Drive\\codex\\2026-10-09",
+      "path_kind": "subtree",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "USER_SCOPE_AND_CURRENT",
+      "reason": "Authorが残す対象。MINI_A V2の現行配布物・runtime・cache・新編集の保存先。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/status/MINIA_INTERNAL_REPAIR_CURRENT.md"
+      ]
+    },
+    {
+      "id": "K01",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_MINI_LOCAL_LOBE_R1\\data\\structure.json",
+      "path_kind": "file",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "REMOTE_SOURCE_CODE_AND_LOCK",
+      "reason": "real_graph.Contextが開始時にこの原pathから読んでSHA照合し、その後の入力変更検出にも使う。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "recorded_bytes": 6291231,
+      "recorded_sha256": "d1e724f13749b8a4b1b1d49f949aa3379c5b1670db687bc7673ed9f22418842a",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/real_graph.py",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "K02",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\FROZEN_ADDITIONS.json",
+      "path_kind": "file",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "REMOTE_SOURCE_CODE_AND_LOCK",
+      "reason": "real_graph.Contextが開始時にこの原pathから読んでSHA照合し、その後の入力変更検出にも使う。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "recorded_bytes": 7041518,
+      "recorded_sha256": "2b563bb0f69104501200f3511880d6c7843cef73b56e67a4d1ac65cda014f795",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/real_graph.py",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "K03",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\data\\support_geometry.json",
+      "path_kind": "file",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "REMOTE_SOURCE_CODE_AND_LOCK",
+      "reason": "real_graph.Contextが開始時にこの原pathから読んでSHA照合し、その後の入力変更検出にも使う。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "recorded_bytes": 24948859,
+      "recorded_sha256": "ba38bb5f52212c214d42bec859ac83d58be7793b693f27c8aae4160bc08ba758",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/real_graph.py",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "K04",
+      "path": "J:\\My Drive\\codex\\2026-09-22\\skin-fukei-slice-runner-execution-3",
+      "path_kind": "subtree",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "CURRENT_BASELINE_BINDING",
+      "reason": "MINI_Aの現行編集基準MINIA_PLA_EDITABLE_REPACKED.3mfとrepacking evidence。最低限この原本・根拠・解決済み入力参照を保持。job全体は暫定保護粒度。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "essential_files": [
+        "outputs\\MINIA_PLA_EDITABLE_REPACKED.3mf"
+      ],
+      "recorded_container_bytes": 946468919,
+      "recorded_container_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json"
+      ]
+    },
+    {
+      "id": "K05",
+      "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0",
+      "path_kind": "subtree",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "CURRENT_MINIL_SOURCE_INPUT_LOCK",
+      "reason": "最新A++のINPUT_LOCKがこのworktree内の凍結再生成bundleを直接参照する。worktree/Git共通管理情報の実機所在は未確認。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "essential_subtree": "outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/main/docs/status/SKIN_MINI_CURRENT.md",
+        "https://drive.google.com/file/d/17B1Q_P5YSvq2JtWKF0AQyYvG9L-Im9nK/view"
+      ]
+    },
+    {
+      "id": "K06",
+      "path": "J:\\My Drive\\codex\\2026-09-28\\files-pasted-by-the-user-minil",
+      "path_kind": "subtree",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "CURRENT_MINIL_CHECKPOINT_AND_SOURCE_INPUT_LOCK",
+      "reason": "最新の修正済みCAD・interlock・A++ L2/L3証拠の再開元。停止中であってもactive authority。job全体は暫定保護粒度で、過去attempt全部のhot保持を永久指定するものではない。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "essential_subtrees": [
+        "outputs\\MANUFACTURING_DECOMPOSITION_A_PREFLIGHT_20261007T\\A_SELECTED_CAD_NOT_RELEASED",
+        "outputs\\A_PLUS_LARGER_3PART_20261007T"
+      ],
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/main/docs/status/SKIN_MINI_CURRENT.md",
+        "https://drive.google.com/file/d/12LVDoKjJY53FmLF5TzJw4CMAf3m8W97K/view"
+      ]
+    },
+    {
+      "id": "K07",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\katachi-r1",
+      "path_kind": "subtree",
+      "classification": "KEEP_ON_J_ACTIVE",
+      "basis": "CURRENT_RESUME_REPORT_NOT_LIVE_TELEMETRY",
+      "reason": "R1のlaunch.ps1が参照する未完P3再開repository。reportでは独立clone・未push。現時点のdirty/プロセスは未確認。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://drive.google.com/file/d/118Hkl5hEvOzAKRRQsPSpCf58gE92_kCZ/view"
+      ]
+    },
+    {
+      "id": "P01",
+      "path": "J:\\My Drive\\codex\\2026-09-23\\files-pasted-by-the-user-fukei\\outputs\\R4_MINIA_TERMINAL_REVIEW_20260922",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_PHYSICAL_BASELINE_EVIDENCE",
+      "reason": "MINI_Aの印刷実績版packageと証拠。D照合後もクラウド参照・再開解決を変えるまではJ退役不可。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "essential_file": "package_only\\plate_1.gcode.3mf",
+      "recorded_container_bytes": 178806997,
+      "recorded_container_sha256": "1533927c778c49fc5f84ccc0388de8ee09bca5d9a1b826cb475d32ea9826040d",
+      "recorded_embedded_gcode_bytes": 674530071,
+      "recorded_embedded_gcode_sha256": "b90c9037bf38a63ac852d77e7326c5cc99b605f0091cca19b1b68ba7dd561ad9",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json"
+      ]
+    },
+    {
+      "id": "P02",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_MINI_RELEASE_CANDIDATE",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_LINEAGE_REFERENCE",
+      "reason": "MINI_Aのsource binding/transform/再現用原本。親subtreeは保守的分類。K01–K03に一致する実行依存はKEEPを優先。移設後の参照解決と証拠保存が確認できれば縮小可能。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "P03",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_D6_SIZE_RHYTHM_V2",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_LINEAGE_REFERENCE",
+      "reason": "MINI_Aのsource binding/transform/再現用原本。親subtreeは保守的分類。K01–K03に一致する実行依存はKEEPを優先。移設後の参照解決と証拠保存が確認できれば縮小可能。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "P04",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_LINEAGE_REFERENCE",
+      "reason": "MINI_Aのsource binding/transform/再現用原本。親subtreeは保守的分類。K01–K03に一致する実行依存はKEEPを優先。移設後の参照解決と証拠保存が確認できれば縮小可能。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "P05",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_MINI_LOCAL_LOBE_R1",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_LINEAGE_REFERENCE",
+      "reason": "MINI_Aのsource binding/transform/再現用原本。親subtreeは保守的分類。K01–K03に一致する実行依存はKEEPを優先。移設後の参照解決と証拠保存が確認できれば縮小可能。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "P06",
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CURRENT_LINEAGE_REFERENCE",
+      "reason": "MINI_Aのsource binding/transform/再現用原本。親subtreeは保守的分類。K01–K03に一致する実行依存はKEEPを優先。移設後の参照解決と証拠保存が確認できれば縮小可能。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json"
+      ]
+    },
+    {
+      "id": "P07",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\outputs",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "R1_DELIVERY_AND_LAUNCH_WRAPPER",
+      "reason": "納品skincreation・検証証拠・起動wrapper・差分Git bundle。差分bundleは6fd5bedd baseを必要とし単体で全履歴復元不可。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "required_git_base": "6fd5beddf844b3647b88eaffae65ea326e4d6337",
+      "sources": [
+        "https://drive.google.com/file/d/118Hkl5hEvOzAKRRQsPSpCf58gE92_kCZ/view"
+      ]
+    },
+    {
+      "id": "P08",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\skin-author-workflow-r1-astra-handoff\\work\\cancelled-artwork-stl",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "CLOSED_DIAGNOSTIC_PAYLOAD_CANDIDATE",
+      "reason": "assembly.stlはnative前Cancel時の診断保全物。hot pathから外す有力候補だが、最新P3の参照・D一致・cloud取扱い未確認のため現時点の退役承認ではない。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "recorded_bytes": 14115790384,
+      "recorded_sha256": "d275b39d2fe20672ed3f409a0880d8a22434b3d3fd1a30b31a6975ab50f59117",
+      "priority_cold_candidate": true,
+      "sources": [
+        "https://drive.google.com/file/d/118Hkl5hEvOzAKRRQsPSpCf58gE92_kCZ/view"
+      ]
+    },
+    {
+      "id": "P09",
+      "path": "J:\\My Drive\\codex\\2026-09-23\\minib-bounded-repack-prepare-only-minib",
+      "path_kind": "subtree",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "basis": "HISTORICAL_CURRENT_REFERENCED_PHYSICAL_EVIDENCE",
+      "reason": "MINIB R2のexact送信用package・mapping証拠。失敗/旧日付だけで削除せず、同一成果とcloud参照を保全する。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "essential_file": "outputs\\MINIB_R2_GCODE_PACKAGE_SEND_MAPPING_R1\\plate_1.gcode.3mf",
+      "recorded_container_sha256": "003ac25fcb9f8206f153c8eef55a51e7fc9adb0e5bf89f0cb5bfe583d7d8074a",
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/main/docs/status/SKIN_THREAD_HANDOFF_CURRENT.md"
+      ]
+    },
+    {
+      "id": "U01",
+      "path": "J:\\My Drive\\codex\\2026-09-22\\skin-repo-satw-jp-katachi-task\\work\\skin-creation-ui-v0",
+      "path_kind": "subtree",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "KNOWN_ORIGINAL_BASE_WITH_UNKNOWN_LOCAL_GIT_STATE",
+      "reason": "R1差分bundleのbase repository候補。元base object、common dir、dirty/unpushed、他worktree参照を実機で読むまで退役保留。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://drive.google.com/file/d/118Hkl5hEvOzAKRRQsPSpCf58gE92_kCZ/view"
+      ]
+    },
+    {
+      "id": "U02",
+      "path": "J:\\My Drive\\codex\\2026-09-05\\files-mentioned-by-the-user-samples\\work\\r2\\vendor",
+      "path_kind": "subtree",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "CODE_FALLBACK_REFERENCE",
+      "reason": "real_graph.pyのNetworkX fallback。今日の配布runtime内ZIPで解決すれば実行時依存ではない。現機の解決元・他利用元は未確認。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/real_graph.py"
+      ]
+    },
+    {
+      "id": "U03",
+      "path": "J:\\My Drive\\codex\\2026-09-20\\files-pasted-by-the-user-fukei\\outputs\\fukei_slice_runner",
+      "path_kind": "subtree",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "HISTORICAL_OPERATIONAL_ENTRY_NOT_CURRENT_PROCESS",
+      "reason": "旧Runner運用入口。最新版コードの存在だけでは既存shortcut/起動設定の切替は証明できない。現機の.lnk/task/process参照を確認する。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "sources": [
+        "https://github.com/satw-jp/katachi/blob/main/docs/status/R5_SLICE_RUNNER_CURRENT.md"
+      ]
+    },
+    {
+      "id": "U04",
+      "path": "J:\\My Drive\\codex\\2026-09-06",
+      "path_kind": "subtree",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "USER_SIZE_ONLY",
+      "reason": "37.49 GiBはAuthor報告。date内jobの全量inventory・依存・Git状態未確認。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false
+    },
+    {
+      "id": "U05",
+      "path": "J:\\My Drive\\codex\\2026-09-18",
+      "path_kind": "subtree",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "USER_SIZE_ONLY",
+      "reason": "21.75 GiBはAuthor報告。date内jobの全量inventory・依存・Git状態未確認。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false
+    },
+    {
+      "id": "U06",
+      "path": null,
+      "path_kind": "selector",
+      "classification": "HOLD / UNKNOWN",
+      "basis": "NO_COMPLETE_LOCAL_INVENTORY",
+      "reason": "上記以外の日付/未列挙jobは未監査。検索非ヒットを退役承認にしない。",
+      "local_existence_observed": false,
+      "live_process_observed": false,
+      "retirement_approved": false,
+      "selector": "all dated folders earlier than 2026-10-09 not covered by verified entries"
+    }
+  ],
+  "identity_only_protected_artifacts": [
+    {
+      "filename": "LARGE_A1_A_INTERNAL_2P2_R3_V1_D221_4CONTACT_PATCH_Y01214_RECEIVER_CANDIDATE_V1.3mf",
+      "sha256": "0229c2ad64c69748cd4f4294b7518e8d80f1d7f068fd57adac1c86d818635e15",
+      "role": "Large final geometry",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "path": null,
+      "path_resolution": "UNKNOWN__LOCATE_FROM_EXISTING_LEDGER_NOT_FILENAME_GUESS",
+      "retirement_approved": false,
+      "source": "https://github.com/satw-jp/katachi/issues/35#issuecomment-5838882919"
+    },
+    {
+      "filename": null,
+      "bytes": 1098992698,
+      "sha256": "97d846b62308af20f9c9e9c473280490989a191c1ce208b59dd81b070546c256",
+      "role": "Large authoritative G-code",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "path": null,
+      "path_resolution": "UNKNOWN__LOCATE_FROM_EXISTING_LEDGER_NOT_FILENAME_GUESS",
+      "retirement_approved": false,
+      "source": "https://github.com/satw-jp/katachi/issues/35#issuecomment-5838882919"
+    },
+    {
+      "filename": null,
+      "bytes": 294636058,
+      "sha256": "d8574b8a6df5d09194062268775ab7d5935b610f4b84943bbd834b58d1834150",
+      "role": "Large exact DEFLATE delivery package",
+      "classification": "SAFE_TO_COPY_TO_D_BUT_KEEP_ON_J",
+      "path": null,
+      "path_resolution": "UNKNOWN__LOCATE_FROM_EXISTING_LEDGER_NOT_FILENAME_GUESS",
+      "retirement_approved": false,
+      "source": "https://github.com/satw-jp/katachi/issues/35#issuecomment-5838882919"
+    }
+  ],
+  "minil_inspected_zip": {
+    "file_name": "SKIN_MINI_TARGET_A_TO_APLUSPLUS_EVIDENCE_20261007.zip",
+    "bytes": 4187559,
+    "sha256": "16f538ce3ac56170cdad0485ce9c9b1e13c0355022fecc89fce3c74c84ad5de2",
+    "inspected_member": "evidence/A_PLUS_LARGER_3PART_20261007T/INPUT_LOCK.json",
+    "member_sha256": "eb6c99b9dd59efb131f02c357110a37655fad172ea60fbd77069d3859365e01c",
+    "input_lock": {
+      "source_hashes": [
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\INPUT_LOCK.json",
+          "sha256": "65df5a48f5e1adaed8c6fde680dc92bed8ff591af9767f2a2e5aacb5923f54dd"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\RECIPE.json",
+          "sha256": "6fcbdbe64844012af253cfdc3920df2df7f4ae14f943e10bcbc126cd37c21118"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\STRUCTURE.json",
+          "sha256": "8f1a7e33abd770c882100a2fd516040776aa1df8c0d46d4cd7608cc5b859f1a8"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\RESULT.json",
+          "sha256": "6fd87e255a2c75934bb6e044d1d5b3e0aff40b085b963c90231151d1112e224c"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\MEMBER_MESHES.npz",
+          "sha256": "90580c34566cdcc3e2e27f0dd95a9b7fdee25ce435a0b89232329b6fd42fe8e9"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\inputs\\target\\placements.npz",
+          "sha256": "d118edbf8cee917242e7a8fd6745870e5fc7f3c8e8f7f3f35b804beb0291a9eb"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\inputs\\target\\D6_local.npz",
+          "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\inputs\\target\\flower_back_anchors.json",
+          "sha256": "cf1cef082cbb5a8a33410c6dfafabd1657da3aea0faaa904f8e0abec04ada437"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\work\\katachi-skin-mini-target-internal-replay-v0\\outputs\\SKIN_MINI_TARGET_INTERNAL_REPLAY_V0_BED_FIX_FINAL_FRESH_20260926T\\inputs\\target\\host.npz",
+          "sha256": "c44ea6883c20d1dafcde094c108f06ac2380e0f4d946356279b21a1442eb62ae"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-09-28\\files-pasted-by-the-user-minil\\outputs\\MANUFACTURING_DECOMPOSITION_A_PREFLIGHT_20261007T\\A_SELECTED_CAD_NOT_RELEASED\\R36A000858.npz",
+          "sha256": "b7bd822e80fe60ffcc5db8440ca0f083d142bcef64fd1bfd0ea3904afc624f6f"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-09-28\\files-pasted-by-the-user-minil\\outputs\\MANUFACTURING_DECOMPOSITION_A_PREFLIGHT_20261007T\\A_SELECTED_CAD_NOT_RELEASED\\SP002.npz",
+          "sha256": "40194717c7c76e8e4a2e562544988ee46802e35da8c1bcb5d6b055d02cbdbca9"
+        },
+        {
+          "path": "J:\\My Drive\\codex\\2026-09-28\\files-pasted-by-the-user-minil\\outputs\\MANUFACTURING_DECOMPOSITION_A_PREFLIGHT_20261007T\\A_SELECTED_CAD_NOT_RELEASED\\SP004_A_CORRECTED_HALVES.npz",
+          "sha256": "97f551067350c09bb4493f49fa688c8f376c6482a9ca557df8df175acb06078e"
+        }
+      ],
+      "postcheck": "PASS",
+      "source_geometry_changes": 0,
+      "slice_count": 0,
+      "print_go": false,
+      "send": "NO",
+      "start": "NO"
+    },
+    "source_files_on_J_independently_hashed": false,
+    "embedded_postcheck_is_source_report_not_current_local_verification": true
+  },
+  "additional_non_J_dependency_observed": "C:\\Users\\as\\.codex\\visualizations\\2026\\09\\28\\01a0e58a-9e33-7211-a618-87c102712ae0\\NATIVE_SUPPORT_ROUTING_FINAL_20261006T\\SKIN_MINI_TARGET_NATIVE_ROUTING_FINAL.3mf",
+  "minimum_MINIA_runtime_older_source_bytes": 38281608,
+  "local_audit_required": [
+    "full job-level metadata inventory including hidden/system/reparse/online-only markers",
+    "linked worktrees, common Git data and alternates, dirty/untracked/ignored/unpushed and delta bundle prerequisites",
+    "process/cwd/command path, shortcut targets and working dirs, scheduled tasks/startup, env/vendor/config paths",
+    "current input locks and transitive runtime references; classify historical citations separately",
+    "Blender external library/image/cache dependencies using retained manifests or permitted read-only inspection",
+    "Drive desktop mode, physical/cached location, sync state, cloud IDs and destination sync exclusion",
+    "actual allocated bytes vs logical sizes and destination required/reserve space"
+  ],
+  "evidence_sources": [
+    "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+    "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json",
+    "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/real_graph.py",
+    "https://github.com/satw-jp/katachi/blob/90319254754bc54e76eb6d5b1c986782c9b62be4/tools/minia_internal_repair/README.md",
+    "https://github.com/satw-jp/katachi/pull/56#issuecomment-6077496245",
+    "https://github.com/satw-jp/katachi/blob/main/docs/evidence/SKIN_MINI_MANUFACTURING_AUDIT_2026-10-09.md",
+    "https://drive.google.com/file/d/12LVDoKjJY53FmLF5TzJw4CMAf3m8W97K/view",
+    "https://drive.google.com/file/d/17B1Q_P5YSvq2JtWKF0AQyYvG9L-Im9nK/view",
+    "https://drive.google.com/file/d/118Hkl5hEvOzAKRRQsPSpCf58gE92_kCZ/view",
+    "https://support.google.com/drive/answer/13401938?hl=en-Link",
+    "https://support.google.com/drive/answer/16631477?hl=eN",
+    "https://git-scm.com/docs/git-worktree.html",
+    "https://github.com/satw-jp/katachi/issues/36#issuecomment-6077471500"
+  ]
+}
