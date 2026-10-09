@@ -8,6 +8,7 @@ Read first:
 
 Recommended stable files:
 
+- [SKIN_MINI_CURRENT.md](SKIN_MINI_CURRENT.md) — MINIL / accepted 2,303-flower TARGET manufacturing and assembly lane
 - `SKIN_ABC_CURRENT.md`
 - `ASTRA_CURRENT.md`
 - [R4_A1_FAB_CURRENT.md](R4_A1_FAB_CURRENT.md) — retained Large R4 / D22.1 bounded A1 fabrication lane

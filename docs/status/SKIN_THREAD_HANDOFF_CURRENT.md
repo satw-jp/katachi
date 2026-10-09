@@ -1,5 +1,17 @@
 # SKIN Thread Handoff — CURRENT
 
+## 2026-10-09 MINIL routing update
+
+For **MINIL / SKIN Mini TARGET manufacturing**, the current routing authority is now:
+
+- [SKIN_MINI_CURRENT](SKIN_MINI_CURRENT.md)
+- [SKIN Mini manufacturing audit 2026-10-09](../evidence/SKIN_MINI_MANUFACTURING_AUDIT_2026-10-09.md)
+- [Issue #36](https://github.com/satw-jp/katachi/issues/36) for historical task/checkpoint discussion
+
+Current MINIL state is **HOLD / NOT PRINT CANDIDATE**. The one-piece process-only route is exhausted; Candidate A / A+ / bounded A++ assembly routes failed protected Flower interlock gates. The next recommended candidate is **4-PART MODULAR ASSEMBLY**, but it is **NOT STARTED** and requires Author selection before implementation.
+
+This MINIL routing update does not reverify or supersede the Large / MINIB / Runner lane details retained below, and does not modify Issue #35.
+
 Scoped audit/routing update: 2026-09-25 JST — Issue #35 only; not a fresh verification of every lane.  
 Retained lane observations last verified: 2026-09-24 JST  
 Repo: `satw-jp/katachi`  
