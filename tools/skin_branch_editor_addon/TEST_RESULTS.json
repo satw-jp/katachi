@@ -1,0 +1,811 @@
+{
+  "authority": "https://github.com/satw-jp/katachi/issues/58",
+  "status": "PASS_FOR_AUTHOR_GUI_REVIEW",
+  "stop": "MINIA_BLENDER_ADDON_INSTALLABLE_FOR_AUTHOR_GUI_REVIEW",
+  "target": {
+    "os": "Windows",
+    "blender": "5.2.2 LTS",
+    "build": "d13f752e3b9c"
+  },
+  "zip_sha256": "48d8aa43115ccfa8fa5d17d85a1fad75c8491afd131b88c7ed5ddeb604c6009d",
+  "archive_commit": "c75d4b0adcf04b0ad8bde7810dc906e72c36e948",
+  "preservation": {
+    "archive_source_files": 352,
+    "archive_hash_mismatches": 0,
+    "vendored_files": 62,
+    "vendored_hash_mismatches": 0,
+    "original_drive_files_before_after": 55,
+    "original_changes": 0,
+    "RUN_007": "READ_ONLY / SHA UNCHANGED",
+    "checkpoint": "SHA UNCHANGED / NOT RESUMED"
+  },
+  "syntax_python_files": 74,
+  "syntax_failures": [],
+  "headless_suites": {
+    "lifecycle": {
+      "cases": [
+        {
+          "name": "isolated_CONFIG",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\config-test"
+        },
+        {
+          "name": "isolated_SCRIPTS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\scripts-test"
+        },
+        {
+          "name": "isolated_EXTENSIONS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\extensions-test"
+        },
+        {
+          "name": "installable_zip",
+          "pass": true
+        },
+        {
+          "name": "enable",
+          "pass": true
+        },
+        {
+          "name": "enable_does_not_touch_unrelated_scene",
+          "pass": true
+        },
+        {
+          "name": "enable_no_legacy_imports",
+          "pass": true
+        },
+        {
+          "name": "enable_keymaps_no_change",
+          "pass": true
+        },
+        {
+          "name": "register_idempotent",
+          "pass": true
+        },
+        {
+          "name": "disable_handlers_0",
+          "pass": true
+        },
+        {
+          "name": "disable_classes_0",
+          "pass": true
+        },
+        {
+          "name": "disable_handlers_1",
+          "pass": true
+        },
+        {
+          "name": "disable_classes_1",
+          "pass": true
+        },
+        {
+          "name": "disable_handlers_2",
+          "pass": true
+        },
+        {
+          "name": "disable_classes_2",
+          "pass": true
+        },
+        {
+          "name": "module_reload_no_duplicate",
+          "pass": true
+        },
+        {
+          "name": "save_isolated_preferences",
+          "pass": true
+        },
+        {
+          "name": "final_foreign_handler_retained",
+          "pass": true
+        },
+        {
+          "name": "final_handlers_no_remnants",
+          "pass": true,
+          "handlers": {
+            "load_pre": [
+              "pose_library.gui._on_blendfile_load_pre"
+            ],
+            "load_post": [
+              "bl_operators.copy_global_transform._on_blendfile_load_post",
+              "pose_library.gui._on_blendfile_load_post"
+            ],
+            "depsgraph_update_post": []
+          }
+        }
+      ],
+      "performance_seconds": {
+        "install_enable": 0.09795709999889368
+      },
+      "status": "PASS",
+      "peak_working_set_bytes": 198643712
+    },
+    "synthetic": {
+      "cases": [
+        {
+          "name": "isolated_CONFIG",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\config-test"
+        },
+        {
+          "name": "isolated_SCRIPTS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\scripts-test"
+        },
+        {
+          "name": "isolated_EXTENSIONS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\extensions-test"
+        },
+        {
+          "name": "installable_zip",
+          "pass": true
+        },
+        {
+          "name": "enable",
+          "pass": true
+        },
+        {
+          "name": "enable_does_not_touch_unrelated_scene",
+          "pass": true
+        },
+        {
+          "name": "enable_no_legacy_imports",
+          "pass": true
+        },
+        {
+          "name": "enable_keymaps_no_change",
+          "pass": true
+        },
+        {
+          "name": "register_idempotent",
+          "pass": true
+        },
+        {
+          "name": "synthetic_two_point_F",
+          "pass": true
+        },
+        {
+          "name": "synthetic_three_point_F_refused",
+          "pass": true
+        },
+        {
+          "name": "synthetic_clip_interval",
+          "pass": true
+        },
+        {
+          "name": "synthetic_clip_outside",
+          "pass": true
+        },
+        {
+          "name": "final_foreign_handler_retained",
+          "pass": true
+        },
+        {
+          "name": "final_handlers_no_remnants",
+          "pass": true,
+          "handlers": {
+            "load_pre": [
+              "pose_library.gui._on_blendfile_load_pre"
+            ],
+            "load_post": [
+              "bl_operators.copy_global_transform._on_blendfile_load_post",
+              "pose_library.gui._on_blendfile_load_post"
+            ],
+            "depsgraph_update_post": []
+          }
+        }
+      ],
+      "performance_seconds": {
+        "install_enable": 0.08567149999726098
+      },
+      "status": "PASS",
+      "peak_working_set_bytes": 220086272
+    },
+    "copy": {
+      "cases": [
+        {
+          "name": "isolated_CONFIG",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\config-test"
+        },
+        {
+          "name": "isolated_SCRIPTS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\scripts-test"
+        },
+        {
+          "name": "isolated_EXTENSIONS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\extensions-test"
+        },
+        {
+          "name": "installable_zip",
+          "pass": true
+        },
+        {
+          "name": "enable",
+          "pass": true
+        },
+        {
+          "name": "enable_does_not_touch_unrelated_scene",
+          "pass": true
+        },
+        {
+          "name": "enable_no_legacy_imports",
+          "pass": true
+        },
+        {
+          "name": "enable_keymaps_no_change",
+          "pass": true
+        },
+        {
+          "name": "register_idempotent",
+          "pass": true
+        },
+        {
+          "name": "protected_baseline_scan",
+          "pass": true
+        },
+        {
+          "name": "deterministic_legacy_origins",
+          "pass": true
+        },
+        {
+          "name": "keymap_duplicate_zero",
+          "pass": true,
+          "keys": [
+            [
+              "3D View",
+              "mini_a.ortho_pan",
+              "MIDDLEMOUSE",
+              0,
+              0,
+              0
+            ],
+            [
+              "Mesh",
+              "mini_a.connect_two_points",
+              "F",
+              0,
+              0,
+              0
+            ],
+            [
+              "Mesh",
+              "mini_a.quick_point",
+              "A",
+              1,
+              1,
+              1
+            ],
+            [
+              "Mesh",
+              "mini_a.quick_color",
+              "R",
+              1,
+              1,
+              0
+            ]
+          ]
+        },
+        {
+          "name": "point_shortcut",
+          "pass": true
+        },
+        {
+          "name": "color_shortcut",
+          "pass": true
+        },
+        {
+          "name": "F_shortcut",
+          "pass": true
+        },
+        {
+          "name": "unbind_classes_0",
+          "pass": true
+        },
+        {
+          "name": "unbind_timers_0",
+          "pass": true
+        },
+        {
+          "name": "unbind_draw_0",
+          "pass": true
+        },
+        {
+          "name": "unbind_properties_0",
+          "pass": true
+        },
+        {
+          "name": "unbind_keymaps_0",
+          "pass": true
+        },
+        {
+          "name": "foreign_handler_retained_0",
+          "pass": true
+        },
+        {
+          "name": "unbind_classes_1",
+          "pass": true
+        },
+        {
+          "name": "unbind_timers_1",
+          "pass": true
+        },
+        {
+          "name": "unbind_draw_1",
+          "pass": true
+        },
+        {
+          "name": "unbind_properties_1",
+          "pass": true
+        },
+        {
+          "name": "unbind_keymaps_1",
+          "pass": true
+        },
+        {
+          "name": "foreign_handler_retained_1",
+          "pass": true
+        },
+        {
+          "name": "bind_preserves_mesh",
+          "pass": true
+        },
+        {
+          "name": "flower_interval_delete_protected",
+          "pass": true
+        },
+        {
+          "name": "moved_anchor_HOLD",
+          "pass": true
+        },
+        {
+          "name": "unknown_vertex_HOLD",
+          "pass": true
+        },
+        {
+          "name": "face_HOLD",
+          "pass": true
+        },
+        {
+          "name": "guard_tests_restore_mesh",
+          "pass": true
+        },
+        {
+          "name": "unchanged_save_logical_noop",
+          "pass": true
+        },
+        {
+          "name": "unrelated_file_bind_HOLD",
+          "pass": true
+        },
+        {
+          "name": "final_foreign_handler_retained",
+          "pass": true
+        },
+        {
+          "name": "final_handlers_no_remnants",
+          "pass": true,
+          "handlers": {
+            "load_pre": [
+              "pose_library.gui._on_blendfile_load_pre",
+              "pose_library.gui._on_blendfile_load_pre"
+            ],
+            "load_post": [
+              "bl_operators.copy_global_transform._on_blendfile_load_post",
+              "pose_library.gui._on_blendfile_load_post",
+              "pose_library.gui._on_blendfile_load_post"
+            ],
+            "depsgraph_update_post": []
+          }
+        }
+      ],
+      "performance_seconds": {
+        "install_enable": 0.08406040000045323,
+        "bind": 15.344755000001896,
+        "scan": 6.632370300001639,
+        "save_work_copy": 0.15299589999995078
+      },
+      "status": "PASS",
+      "peak_working_set_bytes": 1319682048
+    },
+    "reopen": {
+      "cases": [
+        {
+          "name": "isolated_CONFIG",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\config-test"
+        },
+        {
+          "name": "isolated_SCRIPTS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\scripts-test"
+        },
+        {
+          "name": "isolated_EXTENSIONS",
+          "pass": true,
+          "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\extensions-test"
+        },
+        {
+          "name": "installable_zip",
+          "pass": true
+        },
+        {
+          "name": "enable",
+          "pass": true
+        },
+        {
+          "name": "enable_does_not_touch_unrelated_scene",
+          "pass": true
+        },
+        {
+          "name": "enable_no_legacy_imports",
+          "pass": true
+        },
+        {
+          "name": "enable_keymaps_no_change",
+          "pass": true
+        },
+        {
+          "name": "register_idempotent",
+          "pass": true
+        },
+        {
+          "name": "fresh_reopen_auto_bind",
+          "pass": true,
+          "reason": "GUI acceptance UNVERIFIED; legacy operations on work copy only."
+        },
+        {
+          "name": "protected_baseline_scan",
+          "pass": true
+        },
+        {
+          "name": "deterministic_legacy_origins",
+          "pass": true
+        },
+        {
+          "name": "keymap_duplicate_zero",
+          "pass": true,
+          "keys": [
+            [
+              "3D View",
+              "mini_a.ortho_pan",
+              "MIDDLEMOUSE",
+              0,
+              0,
+              0
+            ],
+            [
+              "Mesh",
+              "mini_a.connect_two_points",
+              "F",
+              0,
+              0,
+              0
+            ],
+            [
+              "Mesh",
+              "mini_a.quick_point",
+              "A",
+              1,
+              1,
+              1
+            ],
+            [
+              "Mesh",
+              "mini_a.quick_color",
+              "R",
+              1,
+              1,
+              0
+            ]
+          ]
+        },
+        {
+          "name": "point_shortcut",
+          "pass": true
+        },
+        {
+          "name": "color_shortcut",
+          "pass": true
+        },
+        {
+          "name": "F_shortcut",
+          "pass": true
+        },
+        {
+          "name": "fresh_reopen_mesh_parity",
+          "pass": true
+        },
+        {
+          "name": "fresh_reopen_registry_parity",
+          "pass": true
+        },
+        {
+          "name": "fresh_reopen_masks_parity",
+          "pass": true
+        },
+        {
+          "name": "final_foreign_handler_retained",
+          "pass": true
+        },
+        {
+          "name": "final_handlers_no_remnants",
+          "pass": true,
+          "handlers": {
+            "load_pre": [
+              "pose_library.gui._on_blendfile_load_pre"
+            ],
+            "load_post": [
+              "bl_operators.copy_global_transform._on_blendfile_load_post",
+              "pose_library.gui._on_blendfile_load_post"
+            ],
+            "depsgraph_update_post": []
+          }
+        }
+      ],
+      "performance_seconds": {
+        "install_enable": 0.1050336000007519,
+        "scan": 6.593763400000171
+      },
+      "status": "PASS",
+      "peak_working_set_bytes": 1003110400
+    }
+  },
+  "operation_kernels": {
+    "addon_cases": [
+      {
+        "name": "source_midpoint_provenance",
+        "pass": true
+      },
+      {
+        "name": "copy_F_creates_edge_no_autopoint",
+        "pass": true
+      },
+      {
+        "name": "F_state_STALE",
+        "pass": true
+      },
+      {
+        "name": "author_midpoint_provenance",
+        "pass": true
+      },
+      {
+        "name": "color_update_CURRENT",
+        "pass": true,
+        "issues": null
+      },
+      {
+        "name": "10mm_threshold_unchanged",
+        "pass": true
+      },
+      {
+        "name": "repeat_update_no_subdivision",
+        "pass": true
+      },
+      {
+        "name": "invalid_edit_visible_HOLD",
+        "pass": true
+      },
+      {
+        "name": "multiple_internal_interval_delete",
+        "pass": true
+      },
+      {
+        "name": "delete_keeps_CURRENT",
+        "pass": true
+      },
+      {
+        "name": "references_preserved",
+        "pass": true
+      },
+      {
+        "name": "clip_input_only_PENDING",
+        "pass": true
+      },
+      {
+        "name": "tilted_clip_direction",
+        "pass": true
+      },
+      {
+        "name": "clip_bounds_finite",
+        "pass": true
+      },
+      {
+        "name": "operation_copy_reopen_BOUND",
+        "pass": true,
+        "reason": "GUI acceptance UNVERIFIED; legacy operations on work copy only."
+      },
+      {
+        "name": "operation_copy_reopen_parity",
+        "pass": true
+      }
+    ],
+    "archived_cases": [
+      {
+        "name": "source_midpoint_provenance",
+        "pass": true
+      },
+      {
+        "name": "copy_F_creates_edge_no_autopoint",
+        "pass": true
+      },
+      {
+        "name": "F_state_STALE",
+        "pass": true
+      },
+      {
+        "name": "author_midpoint_provenance",
+        "pass": true
+      },
+      {
+        "name": "color_update_CURRENT",
+        "pass": true,
+        "issues": null
+      },
+      {
+        "name": "10mm_threshold_unchanged",
+        "pass": true
+      },
+      {
+        "name": "repeat_update_no_subdivision",
+        "pass": true
+      },
+      {
+        "name": "invalid_edit_visible_HOLD",
+        "pass": true
+      },
+      {
+        "name": "multiple_internal_interval_delete",
+        "pass": true
+      },
+      {
+        "name": "delete_keeps_CURRENT",
+        "pass": true
+      },
+      {
+        "name": "references_preserved",
+        "pass": true
+      },
+      {
+        "name": "clip_input_only_PENDING",
+        "pass": true
+      },
+      {
+        "name": "tilted_clip_direction",
+        "pass": true
+      },
+      {
+        "name": "clip_bounds_finite",
+        "pass": true
+      },
+      {
+        "name": "operation_copy_reopen_BOUND",
+        "pass": true,
+        "reason": "GUI acceptance UNVERIFIED; legacy operations on work copy only."
+      },
+      {
+        "name": "operation_copy_reopen_parity",
+        "pass": true
+      }
+    ],
+    "exact_semantic_comparison": {
+      "state_signature": true,
+      "autopoint_report": true,
+      "color_report": true,
+      "clip_interval": true,
+      "clip_tilt_interval": true,
+      "mask_semantics": true
+    },
+    "mask_serialization": {
+      "status": "PASS",
+      "values": {
+        "ADDON": {
+          "count": 406,
+          "raw_sha256": "46cbbf6c445030a633d5d6025436fe0abafd4a36d82111cd3b1fd1a63a986c87",
+          "canonical_sha256": "6882d0e906f55faf49aa1ff496dd3c8109d889809e409e441dca4627fd6ce06e"
+        },
+        "LEGACY": {
+          "count": 406,
+          "raw_sha256": "f7bb6c2fc5f3ee5b0b47de41c1611350beeb4e98e9b04bcb8264a66e0f6b95ae",
+          "canonical_sha256": "6882d0e906f55faf49aa1ff496dd3c8109d889809e409e441dca4627fd6ce06e"
+        }
+      },
+      "note": "Original delete_intervals iterates a set. Semantic mask rows match; serialized row order can differ across processes."
+    },
+    "comparison_limit": "Same portability lifecycle adapter, archived vs packaged kernels. Original GUI bootstrap and viewport not executed."
+  },
+  "performance": {
+    "addon": {
+      "bind": 15.337623899999016,
+      "initial_scan": 6.482598000002326,
+      "color_update": 23.780324700001074,
+      "color_update_repeat": 23.954483900000923,
+      "invalid_edit_update": 5.695376700001361,
+      "delete_two_intervals": 31.230404000001727,
+      "save_copy": 0.15993739999976242
+    },
+    "archived_kernels": {
+      "bind": 15.550435299999663,
+      "initial_scan": 6.614006100000552,
+      "color_update": 24.408144600001833,
+      "color_update_repeat": 24.63440289999926,
+      "invalid_edit_update": 5.870705499997712,
+      "delete_two_intervals": 31.15162760000021,
+      "save_copy": 0.16488780000145198
+    },
+    "addon_peak_working_set_bytes": 1498984448,
+    "archived_peak_working_set_bytes": 1509634048,
+    "scope": "Same Windows host, same external ZIP and independent LOWER70 copies; process peaks include Blender/data/display allocations; not another-PC benchmark."
+  },
+  "fresh_startup": {
+    "status": "PASS",
+    "factory_startup": false,
+    "install_or_enable_in_script": false,
+    "saved_preferences_loaded": true,
+    "bound_copy_reopened": true,
+    "gui_acceptance": "UNVERIFIED",
+    "zip_sha256": "48d8aa43115ccfa8fa5d17d85a1fad75c8491afd131b88c7ed5ddeb604c6009d"
+  },
+  "second_relocation": {
+    "status": "PASS",
+    "same_windows": true,
+    "stale_absolute_pointer": "HOLD",
+    "explicit_new_manifest": "BOUND",
+    "manifest_identity_retained": true,
+    "protected_anchors": 18842,
+    "gui_acceptance": "UNVERIFIED",
+    "other_pc": "UNVERIFIED",
+    "zip_sha256": "48d8aa43115ccfa8fa5d17d85a1fad75c8491afd131b88c7ed5ddeb604c6009d"
+  },
+  "manifest_fail_closed": {
+    "status": "PASS",
+    "cases": [
+      {
+        "name": "bad_hash",
+        "pass": true,
+        "reason": "Missing or mismatched dependency: COLOR_PATH_GRAPH.json.gz"
+      },
+      {
+        "name": "escape_path",
+        "pass": true,
+        "reason": "Project path escapes the selected data root"
+      },
+      {
+        "name": "missing_file",
+        "pass": true,
+        "reason": "[Errno 2] No such file or directory: 'J:\\\\My Drive\\\\codex\\\\2026-08-31\\\\skin-rebuild\\\\outputs\\\\minia-blender-addon-v0-evidence\\\\relocated data\\\\outputs\\\\does_not_exist.json.gz'"
+      }
+    ]
+  },
+  "companion": {
+    "powershell_syntax": "PASS (3 scripts)",
+    "exclusive_lock_exit": 2,
+    "STOP_request": "PASS",
+    "start_executions": 0,
+    "GUI": "UNVERIFIED",
+    "checkpoint_resume": "NOT_EXECUTED"
+  },
+  "gui_acceptance": "UNVERIFIED",
+  "other_pc": "UNVERIFIED",
+  "limitations": [
+    "Headless scripts manually drain the scheduled one-shot restoration callback after open_mainfile; real GUI event-loop timing remains Author acceptance.",
+    "Native clip, quad projection/pan, mouse picking, overlay readability, shortcut competition and Windows Forms GUI not exercised.",
+    "Blender emitted a 315-block / 0.023346 MB native unfreed-memory warning on some headless copy exits; owned registrations/timers/draw/keymaps were checked separately and removed.",
+    "Initial isolation directory fallback and thumbnail write attempts were denied by sandbox; later tests precreate/assert profile paths and disable blend previews.",
+    "Local Drive-backed distribution pointer and SHA are verified; cloud synchronization/sharing is not certified."
+  ],
+  "boundaries": {
+    "geometry_fabrication_changes": 0,
+    "optimizer_search_runs": 0,
+    "RUN_008": 0,
+    "slice": 0,
+    "Send": 0,
+    "Print": 0,
+    "production_addon_installs": 0,
+    "OS_GUI_automation": 0,
+    "main_merges": 0
+  }
+}

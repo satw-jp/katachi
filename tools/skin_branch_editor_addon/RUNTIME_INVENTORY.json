@@ -1,0 +1,942 @@
+[
+  {
+    "path": "color_author_runtime/author_scoring_runtime.py",
+    "imports": [
+      "import bpy, math",
+      "from pathlib import Path",
+      "import depth_runtime as depth"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "color_author_runtime/color_path_runtime.py",
+    "imports": [
+      "import bpy, sys, json, gzip, hashlib, math, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.props import StringProperty",
+      "import networkx as nx",
+      "import route_v2_panel",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME = Path(__file__).resolve().parent",
+      "if str(NETWORKX_ZIP) not in sys.path: sys.path.insert(0, str(NETWORKX_ZIP))",
+      "if str(ROUTE_RUNTIME) not in sys.path: sys.path.insert(0, str(ROUTE_RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_color_update); bpy.utils.register_class(MINI_A_OT_color_save); bpy.utils.register_class(MINI_A_PT_color_editor)",
+      "if not bpy.app.timers.is_registered(poll_state): bpy.app.timers.register(poll_state, first_interval=.5, persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state): bpy.app.timers.unregister(poll_state)",
+      "try: bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_author_runtime/depth_runtime.py",
+    "imports": [
+      "import bpy, math, json, sys",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "import midpoint_runtime as midpoint"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent.parent",
+      "RUNTIME=Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:sys.path.insert(0,str(RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_toggle_depth);bpy.utils.register_class(MINI_A_PT_depth)",
+      "if not bpy.app.timers.is_registered(_timer):bpy.app.timers.register(_timer,first_interval=.3,persistent=True)",
+      "if bpy.app.timers.is_registered(_timer):bpy.app.timers.unregister(_timer)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_author_runtime/midpoint_runtime.py",
+    "imports": [
+      "import bpy, bmesh, sys, json, math, hashlib, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import route_v2_panel",
+      "import color_path_runtime as colorbase"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME=Path(__file__).resolve().parent; OUT=RUNTIME.parent",
+      "if str(OUT/'color_path_midpoint_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_midpoint_runtime'))",
+      "if str(OUT/'route_runtime') not in sys.path: sys.path.insert(0,str(OUT/'route_runtime'))",
+      "if str(OUT/'color_path_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_runtime'))",
+      "for c in (MINI_A_OT_add_midpoint,MINI_A_OT_update_midpoint_colors,MINI_A_OT_save_midpoint,MINI_A_PT_midpoint):bpy.utils.register_class(c)",
+      "if not bpy.app.timers.is_registered(poll_state):bpy.app.timers.register(poll_state,first_interval=.5,persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state):bpy.app.timers.unregister(poll_state)",
+      "try:bpy.utils.unregister_class(c)"
+    ]
+  },
+  {
+    "path": "color_author_runtime/route_v2_panel.py",
+    "imports": [
+      "import bpy, sys, json, hashlib, base64, zlib, struct, time, math",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.app.handlers import persistent",
+      "from bpy.props import FloatProperty, EnumProperty",
+      "import route_overlay",
+      "from real_graph import Context",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "if not stored:stored=str(Path(bpy.data.filepath).resolve().parent)",
+      "root=Path(stored).resolve()",
+      "dev=Path(runtime_path).resolve() if runtime_path else None",
+      "runtime=dev or Path(__file__).resolve().parents[1]/'route_visualizer'",
+      "if str(runtime) not in sys.path:sys.path.insert(0,str(runtime))",
+      "def _load_post(_dummy):",
+      "for cls in (MINI_A_OT_route_reevaluate,MINI_A_OT_route_height_events,MINI_A_PT_route_panel):bpy.utils.register_class(cls)",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "if not bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.register(poll_ui_state,first_interval=0.75,persistent=True)",
+      "if not scene.get('route_output_root'):scene['route_output_root']=str(Path(bpy.data.filepath).resolve().parent.parent)",
+      "for handler,coll in ((_load_post,bpy.app.handlers.load_post),(_depsgraph_post,bpy.app.handlers.depsgraph_update_post)):",
+      "if bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.unregister(poll_ui_state)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_depth_runtime/color_path_runtime.py",
+    "imports": [
+      "import bpy, sys, json, gzip, hashlib, math, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.props import StringProperty",
+      "import networkx as nx",
+      "import route_v2_panel",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME = Path(__file__).resolve().parent",
+      "if str(NETWORKX_ZIP) not in sys.path: sys.path.insert(0, str(NETWORKX_ZIP))",
+      "if str(ROUTE_RUNTIME) not in sys.path: sys.path.insert(0, str(ROUTE_RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_color_update); bpy.utils.register_class(MINI_A_OT_color_save); bpy.utils.register_class(MINI_A_PT_color_editor)",
+      "if not bpy.app.timers.is_registered(poll_state): bpy.app.timers.register(poll_state, first_interval=.5, persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state): bpy.app.timers.unregister(poll_state)",
+      "try: bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_depth_runtime/depth_runtime.py",
+    "imports": [
+      "import bpy, math, json, sys",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "import midpoint_runtime as midpoint"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent.parent",
+      "RUNTIME=Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:sys.path.insert(0,str(RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_toggle_depth);bpy.utils.register_class(MINI_A_PT_depth)",
+      "if not bpy.app.timers.is_registered(_timer):bpy.app.timers.register(_timer,first_interval=.3,persistent=True)",
+      "if bpy.app.timers.is_registered(_timer):bpy.app.timers.unregister(_timer)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_depth_runtime/midpoint_runtime.py",
+    "imports": [
+      "import bpy, bmesh, sys, json, math, hashlib, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import route_v2_panel",
+      "import color_path_runtime as colorbase"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME=Path(__file__).resolve().parent; OUT=RUNTIME.parent",
+      "if str(OUT/'color_path_midpoint_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_midpoint_runtime'))",
+      "if str(OUT/'route_runtime') not in sys.path: sys.path.insert(0,str(OUT/'route_runtime'))",
+      "if str(OUT/'color_path_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_runtime'))",
+      "for c in (MINI_A_OT_add_midpoint,MINI_A_OT_update_midpoint_colors,MINI_A_OT_save_midpoint,MINI_A_PT_midpoint):bpy.utils.register_class(c)",
+      "if not bpy.app.timers.is_registered(poll_state):bpy.app.timers.register(poll_state,first_interval=.5,persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state):bpy.app.timers.unregister(poll_state)",
+      "try:bpy.utils.unregister_class(c)"
+    ]
+  },
+  {
+    "path": "color_depth_runtime/route_v2_panel.py",
+    "imports": [
+      "import bpy, sys, json, hashlib, base64, zlib, struct, time, math",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.app.handlers import persistent",
+      "from bpy.props import FloatProperty, EnumProperty",
+      "import route_overlay",
+      "from real_graph import Context",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "if not stored:stored=str(Path(bpy.data.filepath).resolve().parent)",
+      "root=Path(stored).resolve()",
+      "dev=Path(runtime_path).resolve() if runtime_path else None",
+      "runtime=dev or Path(__file__).resolve().parents[1]/'route_visualizer'",
+      "if str(runtime) not in sys.path:sys.path.insert(0,str(runtime))",
+      "def _load_post(_dummy):",
+      "for cls in (MINI_A_OT_route_reevaluate,MINI_A_OT_route_height_events,MINI_A_PT_route_panel):bpy.utils.register_class(cls)",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "if not bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.register(poll_ui_state,first_interval=0.75,persistent=True)",
+      "if not scene.get('route_output_root'):scene['route_output_root']=str(Path(bpy.data.filepath).resolve().parent.parent)",
+      "for handler,coll in ((_load_post,bpy.app.handlers.load_post),(_depsgraph_post,bpy.app.handlers.depsgraph_update_post)):",
+      "if bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.unregister(poll_ui_state)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_path_midpoint_runtime/color_path_runtime.py",
+    "imports": [
+      "import bpy, sys, json, gzip, hashlib, math, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.props import StringProperty",
+      "import networkx as nx",
+      "import route_v2_panel",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME = Path(__file__).resolve().parent",
+      "if str(NETWORKX_ZIP) not in sys.path: sys.path.insert(0, str(NETWORKX_ZIP))",
+      "if str(ROUTE_RUNTIME) not in sys.path: sys.path.insert(0, str(ROUTE_RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_color_update); bpy.utils.register_class(MINI_A_OT_color_save); bpy.utils.register_class(MINI_A_PT_color_editor)",
+      "if not bpy.app.timers.is_registered(poll_state): bpy.app.timers.register(poll_state, first_interval=.5, persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state): bpy.app.timers.unregister(poll_state)",
+      "try: bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_path_midpoint_runtime/midpoint_runtime.py",
+    "imports": [
+      "import bpy, bmesh, sys, json, math, hashlib, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import route_v2_panel",
+      "import color_path_runtime as colorbase"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME=Path(__file__).resolve().parent; OUT=RUNTIME.parent",
+      "if str(OUT/'color_path_midpoint_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_midpoint_runtime'))",
+      "if str(OUT/'route_runtime') not in sys.path: sys.path.insert(0,str(OUT/'route_runtime'))",
+      "if str(OUT/'color_path_runtime') not in sys.path: sys.path.insert(0,str(OUT/'color_path_runtime'))",
+      "for c in (MINI_A_OT_add_midpoint,MINI_A_OT_update_midpoint_colors,MINI_A_OT_save_midpoint,MINI_A_PT_midpoint):bpy.utils.register_class(c)",
+      "if not bpy.app.timers.is_registered(poll_state):bpy.app.timers.register(poll_state,first_interval=.5,persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state):bpy.app.timers.unregister(poll_state)",
+      "try:bpy.utils.unregister_class(c)"
+    ]
+  },
+  {
+    "path": "color_path_midpoint_runtime/route_v2_panel.py",
+    "imports": [
+      "import bpy, sys, json, hashlib, base64, zlib, struct, time, math",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.app.handlers import persistent",
+      "from bpy.props import FloatProperty, EnumProperty",
+      "import route_overlay",
+      "from real_graph import Context",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "if not stored:stored=str(Path(bpy.data.filepath).resolve().parent)",
+      "root=Path(stored).resolve()",
+      "dev=Path(runtime_path).resolve() if runtime_path else None",
+      "runtime=dev or Path(__file__).resolve().parents[1]/'route_visualizer'",
+      "if str(runtime) not in sys.path:sys.path.insert(0,str(runtime))",
+      "def _load_post(_dummy):",
+      "for cls in (MINI_A_OT_route_reevaluate,MINI_A_OT_route_height_events,MINI_A_PT_route_panel):bpy.utils.register_class(cls)",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "if not bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.register(poll_ui_state,first_interval=0.75,persistent=True)",
+      "if not scene.get('route_output_root'):scene['route_output_root']=str(Path(bpy.data.filepath).resolve().parent.parent)",
+      "for handler,coll in ((_load_post,bpy.app.handlers.load_post),(_depsgraph_post,bpy.app.handlers.depsgraph_update_post)):",
+      "if bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.unregister(poll_ui_state)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "color_path_runtime/color_path_runtime.py",
+    "imports": [
+      "import bpy, sys, json, gzip, hashlib, math, time",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.props import StringProperty",
+      "import networkx as nx",
+      "import route_v2_panel",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "RUNTIME = Path(__file__).resolve().parent",
+      "if str(NETWORKX_ZIP) not in sys.path: sys.path.insert(0, str(NETWORKX_ZIP))",
+      "if str(ROUTE_RUNTIME) not in sys.path: sys.path.insert(0, str(ROUTE_RUNTIME))",
+      "bpy.utils.register_class(MINI_A_OT_color_update); bpy.utils.register_class(MINI_A_OT_color_save); bpy.utils.register_class(MINI_A_PT_color_editor)",
+      "if not bpy.app.timers.is_registered(poll_state): bpy.app.timers.register(poll_state, first_interval=.5, persistent=True)",
+      "if bpy.app.timers.is_registered(poll_state): bpy.app.timers.unregister(poll_state)",
+      "try: bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "interval_delete_runtime/flower_reroute.py",
+    "imports": [
+      "import bpy, json, math",
+      "from mathutils import Vector",
+      "import interval_delete as d"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "interval_delete_runtime/graph_hook.py",
+    "imports": [],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "interval_delete_runtime/interval_delete.py",
+    "imports": [
+      "import bpy, bmesh, json, math, sys",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from mathutils.kdtree import KDTree",
+      "from bpy_extras import view3d_utils",
+      "import guarded_points_runtime as auto",
+      "import author_scoring_runtime as author",
+      "import single_view_clip_adapter as clip",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader"
+    ],
+    "registrations_and_paths": [
+      "HERE=Path(__file__).resolve().parent",
+      "if _handler is not None:bpy.types.SpaceView3D.draw_handler_remove(_handler,'WINDOW');_handler=None",
+      "_handler=bpy.types.SpaceView3D.draw_handler_add(draw,(),'WINDOW','POST_PIXEL')",
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)"
+    ]
+  },
+  {
+    "path": "interval_delete_runtime/pick_hook.py",
+    "imports": [],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "interval_delete_runtime/preview_hook.py",
+    "imports": [],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "interval_delete_runtime/scan_hook.py",
+    "imports": [],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "MINIA_ALL_LINES_BOOTSTRAP.py",
+    "imports": [
+      "from pathlib import Path",
+      "import sys, bpy",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:sys.path.insert(0,str(RUNTIME))",
+      "if _after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_AUTO_POINTS_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, runpy, sys",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import auto_points_runtime as auto"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if _auto_points_load not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_auto_points_load)"
+    ]
+  },
+  {
+    "path": "MINIA_COLOR_PATH_BOOTSTRAP.py",
+    "imports": [
+      "from pathlib import Path",
+      "import sys, bpy",
+      "from bpy.app.handlers import persistent",
+      "import color_path_runtime"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS = Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:",
+      "sys.path.insert(0, str(RUNTIME))",
+      "if _register_after_load not in bpy.app.handlers.load_post:",
+      "bpy.app.handlers.load_post.append(_register_after_load)"
+    ]
+  },
+  {
+    "path": "MINIA_COLOR_PATH_MIDPOINT_BOOTSTRAP.py",
+    "imports": [
+      "from pathlib import Path",
+      "import sys, bpy",
+      "from bpy.app.handlers import persistent",
+      "import midpoint_runtime"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:sys.path.insert(0,str(RUNTIME))",
+      "if _after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_COLOR_UPDATE_FIXED_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, runpy, sys",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import guarded_points_runtime as auto"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if _auto_points_load not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_auto_points_load)"
+    ]
+  },
+  {
+    "path": "MINIA_DEFERRED_POINTS_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, runpy, sys",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import deferred_points_runtime as auto"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if _auto_points_load not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_auto_points_load)"
+    ]
+  },
+  {
+    "path": "MINIA_DEPTH_PATH_BOOTSTRAP.py",
+    "imports": [
+      "from pathlib import Path",
+      "import sys, bpy",
+      "from bpy.app.handlers import persistent",
+      "import depth_runtime"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "if str(RUNTIME) not in sys.path:sys.path.insert(0,str(RUNTIME))",
+      "if _after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_DISPLAY_FIXED_BOOTSTRAP.py",
+    "imports": [
+      "import sys, bpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _activate_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_activate_after_open)",
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "_km=_kc.keymaps.get('Mesh') or _kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "exists=any(i.idname==op and i.type==key and i.ctrl and i.shift and i.alt==alt for i in _km.keymap_items)",
+      "if not exists:_km.keymap_items.new(op,key,'PRESS',ctrl=True,shift=True,alt=alt)"
+    ]
+  },
+  {
+    "path": "MINIA_EXTRACT_EDIT_DELTA.py",
+    "imports": [
+      "import bpy, json, hashlib, base64, zlib, sys, struct",
+      "from pathlib import Path",
+      "from mathutils import Vector"
+    ],
+    "registrations_and_paths": [
+      "out=Path(args[0]) if args else Path(r'J:\\\\My Drive\\\\codex\\\\2026-10-09\\\\files-pasted-by-the-user-astra\\\\outputs\\\\DELTA.json')"
+    ]
+  },
+  {
+    "path": "MINIA_INTERVAL_DELETE_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, runpy, sys",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import interval_delete"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(OUT/'interval_delete_runtime') not in sys.path:sys.path.insert(0,str(OUT/'interval_delete_runtime'))",
+      "if _interval_delete_load not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_interval_delete_load)"
+    ]
+  },
+  {
+    "path": "MINIA_LOWER50_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, runpy, sys",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import flower_reroute"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if _flower_route_load not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_flower_route_load)"
+    ]
+  },
+  {
+    "path": "MINIA_OPTIMIZER/flower_support.py",
+    "imports": [
+      "import heapq, math, collections",
+      "from mathutils import Vector"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "MINIA_OPTIMIZER/optimizer.py",
+    "imports": [
+      "import bpy, bmesh, sys, json, math, hashlib, runpy, time, collections, traceback",
+      "from pathlib import Path",
+      "import numpy as np",
+      "from mathutils import Vector",
+      "from mathutils.kdtree import KDTree",
+      "from mathutils.bvhtree import BVHTree",
+      "from straight_audit import audit",
+      "import flower_support",
+      "import interval_delete as deletion",
+      "import flower_reroute"
+    ],
+    "registrations_and_paths": [
+      "HERE=Path(__file__).resolve().parent",
+      "sys.path.insert(0,str(HERE))",
+      "def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()",
+      "path=Path(path);tmp=path.with_suffix(path.suffix+'.tmp')",
+      "def read_json(path):return json.loads(Path(path).read_text(encoding='utf-8-sig'))",
+      "host_path=Path(cfg['host_npz']);h=np.load(host_path)",
+      "cfg=c['cfg'];source=(HERE/cfg['source_blend']).resolve();assert Path(bpy.data.filepath).resolve()==source",
+      "assert Path(bpy.data.filepath).resolve()==Path(report['output']).resolve()"
+    ]
+  },
+  {
+    "path": "MINIA_OPTIMIZER/straight_audit.py",
+    "imports": [
+      "import math",
+      "from mathutils import Vector"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "MINIA_OPTIMIZER/test_rules.py",
+    "imports": [
+      "import sys, math, types",
+      "from pathlib import Path",
+      "import networkx as nx",
+      "import optimizer as opt",
+      "import flower_support as fs",
+      "from straight_audit import audit"
+    ],
+    "registrations_and_paths": [
+      "HERE=Path(__file__).resolve().parent;sys.path.insert(0,str(HERE));sys.path.insert(0,str(HERE.parent/'color_path_runtime/networkx-3.6.1.zip'))"
+    ]
+  },
+  {
+    "path": "MINIA_QUAD_EDITOR_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, bmesh, math",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "def _load_post(_unused):",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "_km=_kc.keymaps.get('Mesh') or _kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "if not any(i.idname==op and i.type==key and i.ctrl and i.shift and i.alt==alt for i in _km.keymap_items):_km.keymap_items.new(op,key,'PRESS',ctrl=True,shift=True,alt=alt)"
+    ]
+  },
+  {
+    "path": "MINIA_QUICK_EDIT_BOOTSTRAP.py",
+    "imports": [
+      "import sys",
+      "from pathlib import Path",
+      "import bpy",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime",
+      "import selected_point_overlay",
+      "import math",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _activate_after_open not in bpy.app.handlers.load_post:",
+      "bpy.app.handlers.load_post.append(_activate_after_open)",
+      "# Task-local keymap and stronger depth cue; no preferences or geometry are saved.",
+      "bpy.utils.register_class(_cls)",
+      "_km=_kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "_kmi=_km.keymap_items.new(_id,_key,'PRESS',ctrl=True,shift=True,alt=(_key=='A'))"
+    ]
+  },
+  {
+    "path": "MINIA_ROUTE_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys",
+      "from pathlib import Path",
+      "import route_v2_panel"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "blend=Path(bpy.data.filepath).resolve()",
+      "if p in sys.path:sys.path.remove(p)",
+      "sys.path.insert(0,p)"
+    ]
+  },
+  {
+    "path": "MINIA_SELECTED_POINT_BOOTSTRAP.py",
+    "imports": [
+      "import sys",
+      "from pathlib import Path",
+      "import bpy",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime",
+      "import selected_point_overlay",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "OUTPUTS=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _activate_after_open not in bpy.app.handlers.load_post:",
+      "bpy.app.handlers.load_post.append(_activate_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_SHARED_CLIP_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, runpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import shared_view_clip_adapter as viewclip"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _clip_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_clip_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_SINGLE_VIEW_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, runpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import quad_view_adapter as quad",
+      "import author_scoring_runtime as author",
+      "import single_view_clip_adapter as viewclip"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _clip_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_clip_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_VIEW_CLIP_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, runpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import view_clip_adapter as viewclip"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _clip_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_clip_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_VIEW_CLIP_CONTROLS_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, runpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import stable_view_clip_adapter as viewclip"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _clip_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_clip_after_open)"
+    ]
+  },
+  {
+    "path": "MINIA_VIEW_CLIP_FIXED_BOOTSTRAP.py",
+    "imports": [
+      "import bpy, sys, runpy",
+      "from pathlib import Path",
+      "from bpy.app.handlers import persistent",
+      "import author_scoring_runtime as author",
+      "import safe_view_clip_adapter as viewclip"
+    ],
+    "registrations_and_paths": [
+      "OUT=Path(__file__).resolve().parent",
+      "if str(p) not in sys.path:sys.path.insert(0,str(p))",
+      "if _clip_after_open not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_clip_after_open)"
+    ]
+  },
+  {
+    "path": "quad_view_runtime/quad_view_adapter.py",
+    "imports": [
+      "import bpy, math",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Euler, Quaternion",
+      "import json"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "route_runtime/real_graph.py",
+    "imports": [
+      "import json, math, hashlib, time, pathlib, sys",
+      "import networkx as nx",
+      "from route_analysis import analyze, impact, reachable, VERSION"
+    ],
+    "registrations_and_paths": [
+      "_local_dependency=pathlib.Path(__file__).with_name('networkx-3.6.1.zip')",
+      "sys.path.insert(0,str(_local_dependency)) if _local_dependency.exists() else sys.path.append(r'J:\\My Drive\\codex\\2026-09-05\\files-mentioned-by-the-user-samples\\work\\r2\\vendor')",
+      "self.out=pathlib.Path(output_root)",
+      "path=pathlib.Path(record['path']);raw=path.read_bytes()"
+    ]
+  },
+  {
+    "path": "route_runtime/route_analysis.py",
+    "imports": [
+      "import itertools",
+      "import networkx as nx"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "route_runtime/route_overlay.py",
+    "imports": [
+      "import bpy, math",
+      "from mathutils import Vector"
+    ],
+    "registrations_and_paths": []
+  },
+  {
+    "path": "route_runtime/route_v2_panel.py",
+    "imports": [
+      "import bpy, sys, json, hashlib, base64, zlib, struct, time, math",
+      "from pathlib import Path",
+      "from mathutils import Vector",
+      "from bpy.app.handlers import persistent",
+      "from bpy.props import FloatProperty, EnumProperty",
+      "import route_overlay",
+      "from real_graph import Context",
+      "import bmesh",
+      "import bmesh"
+    ],
+    "registrations_and_paths": [
+      "if not stored:stored=str(Path(bpy.data.filepath).resolve().parent)",
+      "root=Path(stored).resolve()",
+      "dev=Path(runtime_path).resolve() if runtime_path else None",
+      "runtime=dev or Path(__file__).resolve().parents[1]/'route_visualizer'",
+      "if str(runtime) not in sys.path:sys.path.insert(0,str(runtime))",
+      "def _load_post(_dummy):",
+      "for cls in (MINI_A_OT_route_reevaluate,MINI_A_OT_route_height_events,MINI_A_PT_route_panel):bpy.utils.register_class(cls)",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "if not bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.register(poll_ui_state,first_interval=0.75,persistent=True)",
+      "if not scene.get('route_output_root'):scene['route_output_root']=str(Path(bpy.data.filepath).resolve().parent.parent)",
+      "for handler,coll in ((_load_post,bpy.app.handlers.load_post),(_depsgraph_post,bpy.app.handlers.depsgraph_update_post)):",
+      "if bpy.app.timers.is_registered(poll_ui_state):bpy.app.timers.unregister(poll_ui_state)",
+      "try:bpy.utils.unregister_class(cls)"
+    ]
+  },
+  {
+    "path": "selected_point_runtime/selected_point_overlay.py",
+    "imports": [
+      "import bpy, bmesh, gpu",
+      "from bpy.app.handlers import persistent",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils"
+    ],
+    "registrations_and_paths": [
+      "def _load_post(_unused):",
+      "try:bpy.types.SpaceView3D.draw_handler_remove(_HANDLER,'WINDOW')",
+      "_HANDLER=bpy.types.SpaceView3D.draw_handler_add(_draw,(), 'WINDOW','POST_PIXEL')",
+      "bpy.utils.register_class(VIEW3D_PT_minia_selected_point_overlay)",
+      "if _load_post not in bpy.app.handlers.load_post:bpy.app.handlers.load_post.append(_load_post)",
+      "try:bpy.types.SpaceView3D.draw_handler_remove(_HANDLER,'WINDOW')",
+      "if _load_post in bpy.app.handlers.load_post:bpy.app.handlers.load_post.remove(_load_post)",
+      "bpy.utils.unregister_class(VIEW3D_PT_minia_selected_point_overlay);_REGISTERED=False"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/auto_points_runtime.py",
+    "imports": [
+      "import bpy, bmesh, math, json, bisect",
+      "from mathutils import Vector",
+      "import author_scoring_runtime as author"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('Mesh') or kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "if not any(k.idname=='mini_a.connect_auto_points' for k in km.keymap_items):km.keymap_items.new('mini_a.connect_auto_points','F','PRESS',head=True)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/deferred_points_runtime.py",
+    "imports": [
+      "import bpy, bmesh, math, json, bisect",
+      "from mathutils import Vector",
+      "import author_scoring_runtime as author"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('Mesh') or kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "for k in list(km.keymap_items):",
+      "if k.idname=='mini_a.connect_auto_points':km.keymap_items.remove(k)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/guarded_points_runtime.py",
+    "imports": [
+      "import bpy, bmesh, math, json, bisect",
+      "from mathutils import Vector",
+      "import author_scoring_runtime as author"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('Mesh') or kc.keymaps.new(name='Mesh',space_type='EMPTY')",
+      "for k in list(km.keymap_items):",
+      "if k.idname=='mini_a.connect_auto_points':km.keymap_items.remove(k)",
+      "if not any(k.idname=='mini_a.connect_two_points' for k in km.keymap_items):km.keymap_items.new('mini_a.connect_two_points','F','PRESS',head=True)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/safe_view_clip_adapter.py",
+    "imports": [
+      "import bpy, math, json",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad",
+      "import bmesh",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Euler, Quaternion"
+    ],
+    "registrations_and_paths": [
+      "bpy.utils.register_class(MINI_A_PT_axis_clip)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/shared_view_clip_adapter.py",
+    "imports": [
+      "import bpy, math, json",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad",
+      "import bmesh",
+      "from mathutils import Quaternion, Euler",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Euler, Quaternion"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('3D View') or kc.keymaps.new(name='3D View',space_type='VIEW_3D')",
+      "if not any(k.idname=='mini_a.ortho_pan' for k in km.keymap_items):km.keymap_items.new('mini_a.ortho_pan','MIDDLEMOUSE','PRESS',head=True)",
+      "bpy.utils.register_class(MINI_A_PT_axis_clip)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/single_view_clip_adapter.py",
+    "imports": [
+      "import bpy, math, json",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector, Euler, Matrix",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad",
+      "import bmesh",
+      "from mathutils import Quaternion, Euler",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Euler, Quaternion"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('3D View') or kc.keymaps.new(name='3D View',space_type='VIEW_3D')",
+      "if not any(k.idname=='mini_a.ortho_pan' for k in km.keymap_items):km.keymap_items.new('mini_a.ortho_pan','MIDDLEMOUSE','PRESS',head=True)",
+      "bpy.utils.register_class(MINI_A_PT_axis_clip)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/stable_view_clip_adapter.py",
+    "imports": [
+      "import bpy, math, json",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad",
+      "import bmesh",
+      "from mathutils import Quaternion, Euler",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader",
+      "from mathutils import Euler, Quaternion"
+    ],
+    "registrations_and_paths": [
+      "if not hasattr(bpy.types,cls.__name__):bpy.utils.register_class(cls)",
+      "km=kc.keymaps.get('3D View') or kc.keymaps.new(name='3D View',space_type='VIEW_3D')",
+      "if not any(k.idname=='mini_a.ortho_pan' for k in km.keymap_items):km.keymap_items.new('mini_a.ortho_pan','MIDDLEMOUSE','PRESS',head=True)",
+      "bpy.utils.register_class(MINI_A_PT_axis_clip)"
+    ]
+  },
+  {
+    "path": "view_clip_runtime/view_clip_adapter.py",
+    "imports": [
+      "import bpy, math, json",
+      "from types import SimpleNamespace",
+      "from mathutils import Vector",
+      "from bpy_extras import view3d_utils",
+      "import author_scoring_runtime as author",
+      "import selected_point_overlay as marker",
+      "import quad_view_adapter as quad",
+      "import bmesh",
+      "import gpu",
+      "from gpu_extras.batch import batch_for_shader"
+    ],
+    "registrations_and_paths": [
+      "bpy.utils.register_class(MINI_A_PT_axis_clip)"
+    ]
+  }
+]

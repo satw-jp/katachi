@@ -1,0 +1,50 @@
+{
+  "authority": "https://github.com/satw-jp/katachi/issues/58",
+  "archive_commit": "c75d4b0adcf04b0ad8bde7810dc906e72c36e948",
+  "target": "Windows / Blender 5.2.2 LTS d13f752e3b9c",
+  "blender_bundled": [
+    "Python",
+    "NumPy",
+    "mathutils",
+    "bmesh",
+    "gpu"
+  ],
+  "networkx": {
+    "version": "3.6.1",
+    "license": "BSD-3-Clause",
+    "redistribution": "permitted with copyright/license/disclaimer; this ZIP remains external",
+    "license_evidence": "NETWORKX_LICENSE_EXTERNAL.txt",
+    "included_in_addon": false
+  },
+  "files": {
+    "COLOR_PATH_GRAPH.json.gz": {
+      "path": "COLOR_PATH_GRAPH.json.gz",
+      "sha256": "43432ba7933ec2fcf0a99bc188b0b0bbfbea95094ac9b95e9d37d26f495aae4e"
+    },
+    "SUPPORT_DISTANCE_COLORS.json": {
+      "path": "SUPPORT_DISTANCE_COLORS.json",
+      "sha256": "bbce0fcefb78e7608fa9aa71fd7daf2fed25e7c7e5bc82ab2df7d469f2b7ad7f"
+    },
+    "networkx-3.6.1.zip": {
+      "path": "color_path_runtime/networkx-3.6.1.zip",
+      "sha256": "c6f93441024fe41f7605bf80eea5aa53ed15e2c9834d913c2e2e001a40dabb52"
+    },
+    "host.npz": {
+      "path": "host.npz",
+      "sha256": "c44ea6883c20d1dafcde094c108f06ac2380e0f4d946356279b21a1442eb62ae"
+    },
+    "MINIA_LOWER70_BRANCHING_REVIEW.blend": {
+      "path": "MINIA_LOWER70_BRANCHING_REVIEW.blend",
+      "sha256": "0375cb81d6f371840eecb4a7634428efb171883036c4f2a179f9d10216f2ae3d"
+    },
+    "MINIA_AUTO_100_RUN_007.blend": {
+      "path": "MINIA_AUTO_100_RUN_007.blend",
+      "sha256": "b0f4180d4c1dcfe5dcd70de85a990da23fc64ce4e1b59d869977759ba3e4a616"
+    }
+  },
+  "companion": "byte-preserved external Windows Forms dashboard; not executed by addon",
+  "originals": "../minia_author_workspace/RESTORE.md",
+  "checkpoint": "external original SHA ledger; never automatically resumed",
+  "source": "embedded MINIA_SOURCE_LEDGER.zlib.base64 checked against scene and project manifest",
+  "extra_layerwise_dependencies": "SOURCE_BINDING / locks / height cache / source records needed only by historical layerwise UI, which is not registered here"
+}

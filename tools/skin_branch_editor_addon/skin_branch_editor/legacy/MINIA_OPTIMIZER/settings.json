@@ -1,0 +1,21 @@
+{
+  "source_blend": "../MINIA_LOWER70_BRANCHING_REVIEW.blend",
+  "bootstrap": "../MINIA_LOWER50_BOOTSTRAP.py",
+  "host_npz": "J:/My Drive/codex/2026-09-10/r4-astra-mocomoco-j-my-drive/outputs/R4_D6_SIZE_RHYTHM_V2/data/host.npz",
+  "scope_percent": [0, 100],
+  "maximum_straight_mm": 50,
+  "maximum_internal_link_mm": 8,
+  "maximum_flower_link_mm": 9.5,
+  "internal_depth_mm": 4,
+  "flower_target_depth_mm": 5,
+  "flower_depth_gain_mm": 4,
+  "flower_inward_cosine": 0.7,
+  "certified_clearance_mm": 0.145,
+  "red_threshold_mm": 25.65,
+  "minimum_red_improvement_mm": 0.25,
+  "maximum_added_degree": 3,
+  "maximum_new_links_total": 200,
+  "evaluations_per_run": 120,
+  "nearest_candidates_per_point": 8,
+  "maximum_rounds": 8
+}
