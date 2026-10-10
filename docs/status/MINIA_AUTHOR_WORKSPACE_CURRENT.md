@@ -4,6 +4,7 @@ Updated: 2026-10-10 JST
 
 - Authority / decision owner: Author。GitHubはコードと記録、Driveは作品・大容量成果物。
 - Present state: Blender操作runtime、自動改善program/GUI、履歴の保存。新機能改修なし。
+- Archive delivery: GitHub専用branchへ保存済み。基準commit `fb995eb898bd555479dc57cdee5b3b53d805df85` のremote一致確認済み。[保存review](../evidence/minia_author_workspace/ARCHIVE_REVIEW.md)は5項目pass。
 - Task: [記録タスク](../tasks/MINIA_AUTHOR_WORKSPACE_ARCHIVE.md)
 - Branch: `archive/minia-editor-optimizer-20261010`
 - Base: main `f87aeedb71725782b2db7a24ba6f8a84956ca2fc`
