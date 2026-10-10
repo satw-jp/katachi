@@ -1,4 +1,9 @@
-# MINI_A Blender Add-on / Portable Workspace — CURRENT
+"""Refresh only Issue #58's existing status front from the bounded handoff."""
+from pathlib import Path
+
+here = Path(__file__).resolve().parent
+target = here.parents[1] / 'docs/status/MINIA_BLENDER_ADDON_CURRENT.md'
+target.write_text('''# MINI_A Blender Add-on / Portable Workspace — CURRENT
 
 Updated: 2026-10-10 JST. Blender editor portability only.
 
@@ -15,3 +20,4 @@ Updated: 2026-10-10 JST. Blender editor portability only.
 - Red remains the old graph-distance/confluence heuristic, not strength/layerwise holding. Outer flower survival is the Author priority; internal red/roughness alone is not an automatic defect.
 - Protected: no Astra changes, fabrication geometry/profile/package edits, STL/3MF/G-code, search/RUN_008 or production addon install. **slice=0 / Send=0 / Print=0**; OS GUI automation=0; main merge=0.
 - Next Author operation: isolated GUI ZIP install → independent work copy → explicit PROJECT.json bind → [parity review](../../tools/skin_branch_editor_addon/LEGACY_BEHAVIOR_MATRIX.md). Stop before Author acceptance.
+''', encoding='utf-8')

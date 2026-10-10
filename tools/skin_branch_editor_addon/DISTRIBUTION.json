@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "zip": {
+    "path": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence\\SKIN_BRANCH_EDITOR_0.1.0.zip",
+    "sha256": "48d8aa43115ccfa8fa5d17d85a1fad75c8491afd131b88c7ed5ddeb604c6009d",
+    "bytes": 227577,
+    "storage": "Drive-backed local path, binary not committed"
+  },
+  "private_evidence_root": "J:\\My Drive\\codex\\2026-08-31\\skin-rebuild\\outputs\\minia-blender-addon-v0-evidence",
+  "cloud_share_url": null,
+  "cloud_sync": "UNVERIFIED",
+  "original_artifacts": "../../docs/evidence/minia_author_workspace/DRIVE_ARTIFACTS.json"
+}
