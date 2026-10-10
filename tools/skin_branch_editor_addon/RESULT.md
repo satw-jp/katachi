@@ -14,7 +14,7 @@ Deliverable: **SKIN_BRANCH_EDITOR_0.1.0.zip**, 227,577 bytes, SHA-256 `48d8aa431
 | runtime inventory and installable package | pass: explicit module order, byte-preserved legacy source, 74 Python syntax checks, install/enable/disable/reload |
 | manifest/hash/scale/transform binding and relocation | pass: exact work-copy path, ledger/reference verification, bad-hash/escaped-path/missing-file HOLD, explicit second relocation |
 | isolated operation parity and fresh reopen | pass: synthetic/copy operations, archived-vs-packaged kernel comparison, fresh process and unchanged-save logical no-op |
-| docs/results/distribution and unmerged Draft PR | code/docs/evidence complete; publication metadata in CURRENT |
+| docs/results/distribution and unmerged Draft PR | pass: [Draft PR #59](https://github.com/satw-jp/katachi/pull/59); publication metadata in CURRENT |
 | protected scope and bounded STOP | pass: software handoff only; Author GUI acceptance remains open |
 
 This is one software self-review against the locked DoD, not independent Author or physical acceptance. Archived algorithms and manufacturing geometry were not changed. Tests are in [TEST_RESULTS.json](TEST_RESULTS.json).
