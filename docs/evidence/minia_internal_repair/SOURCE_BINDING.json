@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "lane": "MINIA_INTERNAL_REPAIR",
+  "state": "MINIA_SUCCESSFUL_PRINT_SOURCE_BOUND",
+  "gate": "MINIA_SUCCESSFUL_PRINT_SOURCE_BOUND",
+  "gate_pass": true,
+  "successful_print_artifact": {
+    "path": "J:\\My Drive\\codex\\2026-09-23\\files-pasted-by-the-user-fukei\\outputs\\R4_MINIA_TERMINAL_REVIEW_20260922\\package_only\\plate_1.gcode.3mf",
+    "container_bytes": 178806997,
+    "container_sha256": "1533927c778c49fc5f84ccc0388de8ee09bca5d9a1b826cb475d32ea9826040d",
+    "embedded_entry": "Metadata/plate_1.gcode",
+    "embedded_gcode_bytes": 674530071,
+    "embedded_gcode_sha256": "b90c9037bf38a63ac852d77e7326c5cc99b605f0091cca19b1b68ba7dd561ad9",
+    "standalone_gcode_sha256": "b90c9037bf38a63ac852d77e7326c5cc99b605f0091cca19b1b68ba7dd561ad9",
+    "embedded_equals_standalone": true,
+    "package_result_reported": {
+      "layers": 778,
+      "final_z_mm": 155.8,
+      "printer": "Bambu Lab A1 mini",
+      "material": "PLA",
+      "zip_crc": "PASS",
+      "delivery_status": "DELIVERY_READY",
+      "print_started": false
+    },
+    "evidence": "package_only/PACKAGE_RESULT.json; package container and embedded G-code independently hashed during this task"
+  },
+  "editable_candidate": {
+    "path": "J:\\My Drive\\codex\\2026-09-22\\skin-fukei-slice-runner-execution-3\\outputs\\MINIA_PLA_EDITABLE_REPACKED.3mf",
+    "container_bytes": 946468919,
+    "container_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "evidence": "MINIA_PLA_EDITABLE_REPACKING_AUDIT.json; run INPUT_LOCKS.json and RUNNER_EXECUTION_CONTEXT.json"
+  },
+  "provenance_chain": [
+    {
+      "step": "Editable repack",
+      "evidence": "MINIA_PLA_EDITABLE_REPACKING_AUDIT.json",
+      "finding": "Input MINIA_PLA_EDITABLE.3mf; authority A_A1_EDITABLE.3mf; repack merged object_7 into object_1, retaining 2-part component structure and build transform; slice_executed=false"
+    },
+    {
+      "step": "Runner input",
+      "evidence": "MINIA_PLA_20260922_172405/INPUT_LOCKS.json, RUNNER_EXECUTION_CONTEXT.json",
+      "finding": "Exact editable candidate path and SHA-256 recorded and lock verified; command used Bambu Studio 02.08.02.61 with --slice 0 and --export-3mf"
+    },
+    {
+      "step": "G-code and final package",
+      "evidence": "MINIA_PLA_20260922_172405/RESULT_MANIFEST.json; package_only/PACKAGE_RESULT.json",
+      "finding": "Run folder contains standalone G-code with expected bytes; package record ties it to this run input and records byte-identical embedded payload in final 3MF"
+    }
+  ],
+  "source_records": {
+    "old_editor_baseline": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A1_MINI_RELEASE_CANDIDATE\\data\\structure.json",
+      "bytes": 5516193,
+      "sha256": "045ef2f208e42493778f51a56ce74f388c436b4a5af6ca46e53eddf43ea3faa2",
+      "members": 4195
+    },
+    "a_source": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\data\\structure.json",
+      "bytes": 6286722,
+      "sha256": "e3505511dfa793d14ef6da183016a0b40bdad564c6a15241116b9d7cca81b0b2",
+      "members": 4240
+    },
+    "local_lobe": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_MINI_LOCAL_LOBE_R1\\data\\structure.json",
+      "bytes": 6291231,
+      "sha256": "d1e724f13749b8a4b1b1d49f949aa3379c5b1670db687bc7673ed9f22418842a",
+      "members": 4243
+    },
+    "roots": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\FROZEN_ADDITIONS.json",
+      "bytes": 7041518,
+      "sha256": "2b563bb0f69104501200f3511880d6c7843cef73b56e67a4d1ac65cda014f795",
+      "members": 5178
+    }
+  },
+  "source_record_comparison": "SOURCE_CANDIDATE_COMPARISON.json",
+  "transform_evidence": "TRANSFORM_AND_REFERENCE_LOCKS.json",
+  "transform_status": "TRANSFORM_CHAIN_VERIFIED_FROM_ACTUAL_EDITABLE_METADATA_AND_SOURCE_ASSEMBLY",
+  "pending": null,
+  "caveats": [
+    "RESULT_MANIFEST.json status is FAILED / execution_success=false, exit_code 4294967295, with review_artifact null; do not call the runner execution itself a clean PASS. Subsequent package-only record marks the complete G-code/package delivery ready and verifies its payload hash.",
+    "Native correspondence is tolerance-based, not bitwise geometry identity. Three near-zero-area source faces in A2071/A3802/A0044 are absent; GJ036 tail faces are remapped explicitly. Do not use source face ranges as native ranges without this map.",
+    "Original object_1 preservation through repack is supported by the recorded repack operation and matching locks, not a new bytewise native-versus-repacked prefix comparison. Future materialization must append to the actual locked repacked baseline, never rebuild it from source STL.",
+    "This gate permits lightweight source-linked editing, not physical strength, complete contact verification or new manufacturing approval."
+  ],
+  "geometry_changed": false,
+  "editor_created": true,
+  "slice_count": 0,
+  "send_count": 0,
+  "print_count": 0,
+  "decision_owner": "Astra",
+  "decision_scope": "Identity/provenance and editable centerline/ID binding accepted for non-manufacturing Author Editor. Native reference remains immutable.",
+  "bound_permanent_record_count": 9421,
+  "member_groups": {
+    "A_original": 4240,
+    "local_lobe_additions": 3,
+    "frozen_flower_roots": 5178
+  },
+  "native_face_crosswalk": "NATIVE_FACE_REMAP.json",
+  "alias_and_repack_evidence": "SOURCE_ALIAS_AND_REPACK_EVIDENCE.json",
+  "binding_basis": [
+    "Successful embedded and historical G-code hash identity; exact Runner input editable hash lock.",
+    "A source records unchanged in Local Lobe baseline plus 3 LR records; authoritative 5178 FROZEN additions.",
+    "Complete source STL/native import face crosswalk within 1e-5 mm, with explicit 3-face swap mapping and three omitted near-zero-area faces.",
+    "Recorded repack provenance, independently measured archive identity, transforms and Support ZIP metadata; addition ID map covers 5181 LR/root members.",
+    "Source coordinates, ancestry, radii and flower/root records retained; author plate transform applied once."
+  ],
+  "basic_editor_artifact": "MINIA_INTERNAL_REPAIR_EDITOR_V1.blend",
+  "basic_editor_gate": "MINIA_AUTHOR_INTERNAL_REPAIR_EDITOR_READY"
+}

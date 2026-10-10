@@ -1,0 +1,18 @@
+[
+  {
+    "File": "tools/minia_author_workspace/historical_work/luna_binding/inspect_artifacts.ps1",
+    "Errors": []
+  },
+  {
+    "File": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/dashboard.ps1",
+    "Errors": []
+  },
+  {
+    "File": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/run.ps1",
+    "Errors": []
+  },
+  {
+    "File": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/stop.ps1",
+    "Errors": []
+  }
+]

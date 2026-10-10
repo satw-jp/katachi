@@ -1,0 +1,44 @@
+{
+  "status": "HOLD",
+  "editor_blend_path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_editor\\MINIA_EDITOR_TEST_DELETE.blend",
+  "editor_blend_sha256": "7b7777588e23c224db6c7344f15035ccdb6ceb8b11b029808f7e536fa248d0f0",
+  "baseline_editable_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+  "ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "source_record_count": 9421,
+  "anchor_checks": [
+    {
+      "object": "AUTHOR_EDIT_ALL \u2022 protected point baseline",
+      "expected_anchors": 18842,
+      "actual_vertices": 18842,
+      "edges": []
+    },
+    {
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "expected_anchors": 24,
+      "actual_vertices": 23,
+      "edges": []
+    }
+  ],
+  "source_reference_count": 7,
+  "new_edge_count": 0,
+  "new_branches": [],
+  "weak_point_markers": [],
+  "issues": [
+    {
+      "kind": "ANCHOR_COUNT_OR_ID_CHANGED",
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "expected": 24,
+      "vertices": 23,
+      "attribute_values": 23,
+      "unique_ids": 23
+    },
+    {
+      "kind": "ANCHOR_DELETED_OR_REINDEXED",
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "missing_anchor_indices": [
+        23
+      ]
+    }
+  ],
+  "slice_send_print_count": 0
+}

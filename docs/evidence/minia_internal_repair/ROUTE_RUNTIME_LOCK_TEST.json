@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "checks": [
+    "source SHA checked on load",
+    "contact file mutation marks STALE",
+    "stale evaluation rejected",
+    "reload obtains new contact hash/cache key",
+    "mismatching source hash rejected"
+  ],
+  "scope": "Isolated copies of configuration/contact inputs; originals never modified"
+}

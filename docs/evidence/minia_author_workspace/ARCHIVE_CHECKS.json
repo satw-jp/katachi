@@ -1,0 +1,39 @@
+{
+  "python_ast_files": 274,
+  "python_ast_failures": [
+    {
+      "file": "tools\\minia_author_workspace\\historical_work\\luna_binding\\full_face_crosswalk.py",
+      "error": "closing parenthesis ')' does not match opening parenthesis '[' (full_face_crosswalk.py, line 72)"
+    },
+    {
+      "file": "tools\\minia_author_workspace\\historical_work\\luna_binding\\full_face_crosswalk_v2.py",
+      "error": "closing parenthesis ')' does not match opening parenthesis '[' (full_face_crosswalk_v2.py, line 72)"
+    }
+  ],
+  "byte_identical_copies": 352,
+  "snapshot_copy_hashes_pass": true,
+  "note": "Syntax/hash checks only; does not execute historical builders or certify print strength.",
+  "checked_utc": "2026-10-10T01:13:51.919017+00:00",
+  "copy_hash_mismatches": [],
+  "markdown_missing_targets": [],
+  "powershell_files": 4,
+  "powershell_errors": 0,
+  "secret_pattern_hit_files": [],
+  "archive_file_count": 363,
+  "archive_bytes": 2073553,
+  "rule_test": {
+    "result": "PASS",
+    "cases": 8,
+    "runtime": "Blender 5.2.2 LTS d13f752e3b9c",
+    "code": "archived outputs/MINIA_OPTIMIZER/test_rules.py",
+    "networkx": "external original 3.6.1 ZIP",
+    "scope": "synthetic graph and geometry rules; no model mutation; no GUI launched"
+  },
+  "live_runtime_python_syntax_failures": [],
+  "limitations": [
+    "Two historical full_face_crosswalk trial scripts retain original syntax errors; not current entrypoints.",
+    "No end-to-end rebuild or fresh GUI interaction tested during archive task.",
+    "Previously recorded RUN reopen verification is source evidence, not rerun here.",
+    "Pattern scan is not proof of absence of all confidential content."
+  ]
+}

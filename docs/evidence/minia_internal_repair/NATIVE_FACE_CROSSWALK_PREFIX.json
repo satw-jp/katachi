@@ -1,0 +1,25 @@
+{
+  "status": "HOLD",
+  "source_stl": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\export\\ARTWORK_PERMANENT.stl",
+  "source_face_count": 40690249,
+  "native_3mf": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\cli\\import_validated\\A_A1_EDITABLE.3mf",
+  "native_face_count": 37900000,
+  "native_vertex_count": 20362205,
+  "component_translation_mm": [
+    127.541795731,
+    129.905210495,
+    105.851430301
+  ],
+  "comparison_tolerance_mm": 1e-05,
+  "tolerance_basis": "STL_EXPORT.json float32 max rounding 7.62939453125e-6 mm; first eight face ordered errors 2.506e-6 to 2.531e-6 mm",
+  "matched_face_count": 37815935,
+  "max_matched_vertex_abs_error_mm": 6.813990239606937e-06,
+  "skipped_source_faces": [],
+  "mismatch": {
+    "source_face": 37815935,
+    "same_index_error_mm": 79.35576434646487,
+    "reason": "no following ordered match within three-face budget"
+  },
+  "elapsed_seconds": 874.22,
+  "method": "XML stream; native vertex coordinates stored in float64 disk memmap; source STL memory-mapped; ordered triangle vertex coordinates compared in vectorized chunks with bounded lookahead (max three drops). This is tolerance correspondence, not bitwise identity."
+}

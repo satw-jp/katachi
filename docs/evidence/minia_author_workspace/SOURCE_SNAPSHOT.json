@@ -1,0 +1,2469 @@
+{
+  "source_workspace": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra",
+  "files": [
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\AUTHOR_GUIDE.md",
+      "archive": "docs/evidence/minia_internal_repair/AUTHOR_GUIDE.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6173,
+      "sha256": "8d4a9310145890de367e4e81cc643c59dc6247ed60e3235c5666af92087113d8"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\DECISION_OWNER_REVIEW.json",
+      "archive": "docs/evidence/minia_internal_repair/DECISION_OWNER_REVIEW.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1331,
+      "sha256": "91909b759d19511c0adf3b563d916ab7186d6ce5a32a70a6511aa92245bd7559"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\DELETE_DETECTION_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/DELETE_DETECTION_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1436,
+      "sha256": "84d99e70bd6c6584783d9c0d8fae0bc8a74030e314edb83b41eeb1d0eb86d4be"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\DRIVE_ARTIFACT_HASHES.json",
+      "archive": "docs/evidence/minia_internal_repair/DRIVE_ARTIFACT_HASHES.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1115,
+      "sha256": "bd87c5b487cd0d5a96afd61bb87462c7b4b1255fdf7f70544259c187fee9cb13"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\DUAL_LAYER_DEDUP_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/DUAL_LAYER_DEDUP_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2866,
+      "sha256": "dad2bb488b39950c50abf78b6784007332f64f3d5cca9057eacdeeb48bcbf688"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\EDITOR_BUILD_MANIFEST.json",
+      "archive": "docs/evidence/minia_internal_repair/EDITOR_BUILD_MANIFEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3857,
+      "sha256": "2ab708b004812fc3976c8d949352c91af8089e5b54225840ef865df3b5e579fc"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\EDITOR_FRESH_OPEN_QA.json",
+      "archive": "docs/evidence/minia_internal_repair/EDITOR_FRESH_OPEN_QA.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 648,
+      "sha256": "1079f839593f1ff5ef01f76fb6ca1a6c8c6efec51a66c01049abceb90b7feea5"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\EDITOR_REVIEW.json",
+      "archive": "docs/evidence/minia_internal_repair/EDITOR_REVIEW.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1057,
+      "sha256": "5c72f20aba2ada01ed4e9fcdc8951582abdc3ee8b8a567fc1fe9b986a3ead771"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\EDIT_TO_PRINT_PIPELINE.md",
+      "archive": "docs/evidence/minia_internal_repair/EDIT_TO_PRINT_PIPELINE.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6077,
+      "sha256": "4554921f42932981f66a614302f073731b5037f6269cd96cb858ff8244698fc1"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\GCODE_SELECTED_EVENT_CHECK.json",
+      "archive": "docs/evidence/minia_internal_repair/GCODE_SELECTED_EVENT_CHECK.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6056,
+      "sha256": "9b00f0b93310d53f6ea95e96205d29b76fa97b51ae6ab1241f669b81b809cbc2"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\GLOBAL_ADDITION_ROUNDTRIP.json",
+      "archive": "docs/evidence/minia_internal_repair/GLOBAL_ADDITION_ROUNDTRIP.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2214,
+      "sha256": "0f366e7ad3222201148b54b30ae5dbee6476214179ebb58fc726bc58de0c8e4c"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\HEIGHT_EVENT_COMPARISON_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/HEIGHT_EVENT_COMPARISON_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3536,
+      "sha256": "db446aad5303b85c967ce754b9edbb2688f09beb2d557703ab3914873a0fa739"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\LAUNCHER_CHECK.json",
+      "archive": "docs/evidence/minia_internal_repair/LAUNCHER_CHECK.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 845,
+      "sha256": "bb149a38c69bf3e8c4897fb76afa985ee5b2a7025d3b06a452f314ce7684fd42"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_FRESH_REOPEN.json",
+      "archive": "docs/evidence/minia_internal_repair/MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_FRESH_REOPEN.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 723,
+      "sha256": "654f33cc0b8db7a7a7ef070c185797c86179308fd36877713ea4e66571aaa392"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_HEIGHT_EVENT_EVIDENCE.json",
+      "archive": "docs/evidence/minia_internal_repair/MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_HEIGHT_EVENT_EVIDENCE.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2273,
+      "sha256": "b96f5e9524cba8ca2a1d524ecac789d184ba6d045f5a738b4977e403afb04adf"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_RESULT.json",
+      "archive": "docs/evidence/minia_internal_repair/MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_RESULT.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2103,
+      "sha256": "ce615c8790d21f085c59881b3727b04fb59ee3126cbaaab96b3ab2b36e56135f"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_TEST_RESULTS.json",
+      "archive": "docs/evidence/minia_internal_repair/MINIA_LAYERWISE_ROUTE_VISUALIZER_V2_TEST_RESULTS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2786,
+      "sha256": "67ed7de233f141169c969e417deb4c7240f89a9a95712fe687674269fea7e314"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\MOVE_DETECTION_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/MOVE_DETECTION_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1278,
+      "sha256": "89bb890a3e8b9ee807abad2c9b6202ca839ffc6040cfa2bc1bc8ef4b795185ff"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\NATIVE_FACE_CROSSWALK_PREFIX.json",
+      "archive": "docs/evidence/minia_internal_repair/NATIVE_FACE_CROSSWALK_PREFIX.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1318,
+      "sha256": "0d5f69dc379f614664726a2004d3cda9210546d938227bb39259442b7c3aac73"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\NATIVE_FACE_REMAP.json",
+      "archive": "docs/evidence/minia_internal_repair/NATIVE_FACE_REMAP.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 4107,
+      "sha256": "4f2e0bd26ce9cfe6939368f3fb0e73deaad850e2768f38d70ca5b41e06f8b7e9"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\NATIVE_SUFFIX_CROSSWALK.json",
+      "archive": "docs/evidence/minia_internal_repair/NATIVE_SUFFIX_CROSSWALK.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 4215,
+      "sha256": "b569273e2d57ad01d6817cb3cb512bd8eb7fb0e3339dc72ae4d1288d6e0ef145"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\NOOP_ROUNDTRIP.json",
+      "archive": "docs/evidence/minia_internal_repair/NOOP_ROUNDTRIP.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1006,
+      "sha256": "3cbb6f744105816ca0637b11d8efffd2fa3a9ca4125ab4b3e00dd1bc9c9f6ab2"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\PERMANENT_BASE_EVIDENCE.json",
+      "archive": "docs/evidence/minia_internal_repair/PERMANENT_BASE_EVIDENCE.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 5655,
+      "sha256": "8ecaccd49c1c1d19b35263789ca4ceba3d143c3352553e06f82683cac6f4221f"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\PRESERVED_INPUTS_FINAL_CHECK.json",
+      "archive": "docs/evidence/minia_internal_repair/PRESERVED_INPUTS_FINAL_CHECK.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1183,
+      "sha256": "1304e5ea53d69ca2eb1635fcff2efc515cd2f99e5cad8eb59b1f9bc81badb6ed"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\REAL_GRAPH_VALIDATION.json",
+      "archive": "docs/evidence/minia_internal_repair/REAL_GRAPH_VALIDATION.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 163490,
+      "sha256": "039355009d7332cd6c440cebfdb12c871af4c86839520e59daf053193ce03682"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\REFERENCE_MUTATION_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/REFERENCE_MUTATION_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1207,
+      "sha256": "431378306ce0dbfdd3c22af60a67ca11bc0df81855c0acb788cb6ec99632e31b"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\RESULT.md",
+      "archive": "docs/evidence/minia_internal_repair/RESULT.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3171,
+      "sha256": "680a2a72d76150fdd1f10cad0d8e2c688bc6307e2e9ed52f934acddeef66eeb3"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\ROUTE_ANALYSIS.json",
+      "archive": "docs/evidence/minia_internal_repair/ROUTE_ANALYSIS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 65035,
+      "sha256": "c5dffa8aa06c0700a93c25a4108d6de4f9c442757bdf4664043f790201f0ee13"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\ROUTE_ENGINE_TEST_RESULTS.json",
+      "archive": "docs/evidence/minia_internal_repair/ROUTE_ENGINE_TEST_RESULTS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 234,
+      "sha256": "997ff937e7963d3a66554e7b07b90e1a6de94e2f1899ec0785148795bc22c828"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\ROUTE_MODEL_AND_LIMITATIONS.md",
+      "archive": "docs/evidence/minia_internal_repair/ROUTE_MODEL_AND_LIMITATIONS.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 10057,
+      "sha256": "ae73fe7e4d6b496f63dc1d932509cf21ecb23663199946d77276a115703723ef"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\ROUTE_RUNTIME_LOCK_TEST.json",
+      "archive": "docs/evidence/minia_internal_repair/ROUTE_RUNTIME_LOCK_TEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 331,
+      "sha256": "135f4c5cd1f7e103e3c9ca36aba1c1f48b0153c019e5440fbc1355f4bd8f8ae3"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\ROUTE_RUNTIME_MANIFEST.json",
+      "archive": "docs/evidence/minia_internal_repair/ROUTE_RUNTIME_MANIFEST.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 985,
+      "sha256": "08d864bcdd9724befd0c93c8baf1ee56bde3f1a0a582a95d4c0462cabc97a01f"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\SELECTED_GEOMETRY_CONTACTS.json",
+      "archive": "docs/evidence/minia_internal_repair/SELECTED_GEOMETRY_CONTACTS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 104245,
+      "sha256": "1114c0eef98742dd8feb1ae12f2d31d546455a8a176acc64d7bc5d945a9a2204"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\SOURCE_ALIAS_AND_REPACK_EVIDENCE.json",
+      "archive": "docs/evidence/minia_internal_repair/SOURCE_ALIAS_AND_REPACK_EVIDENCE.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3125,
+      "sha256": "b29108694bbc973b32735d9bb7e1e96aac1b25976189506e2ca7466364e62b64"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\SOURCE_BINDING.json",
+      "archive": "docs/evidence/minia_internal_repair/SOURCE_BINDING.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6491,
+      "sha256": "efd12234c1934bcea70cdc5f6dcf39cf4de5a2694c73166c5b8a6034a6064fe0"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\TEST_ADDITION_ROUNDTRIP.json",
+      "archive": "docs/evidence/minia_internal_repair/TEST_ADDITION_ROUNDTRIP.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2211,
+      "sha256": "58d7d82ac389b8c6f46e7dfc74da3df6298c039feef1df87554e02cde15e2412"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\TEST_RESULTS.json",
+      "archive": "docs/evidence/minia_internal_repair/TEST_RESULTS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2683,
+      "sha256": "13c0d29a7b6a53d514176eae63405bca842ea052b72625622bd40c035506a643"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\TRANSFORM_AND_REFERENCE_LOCKS.json",
+      "archive": "docs/evidence/minia_internal_repair/TRANSFORM_AND_REFERENCE_LOCKS.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 4263,
+      "sha256": "5a1947cc0a663ed20f4632c1cc238f326b02a0d61b8db0f6a4982f7562f20fae"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\V2_REFERENCE_GUARD_CHECK.json",
+      "archive": "docs/evidence/minia_internal_repair/V2_REFERENCE_GUARD_CHECK.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 378,
+      "sha256": "8ef19872c768082eaab44e9e584025614c82be52c20b8701a02a517adf8d08c3"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\evidence\\minia_internal_repair\\V2_REVIEW_ROUND_1.json",
+      "archive": "docs/evidence/minia_internal_repair/V2_REVIEW_ROUND_1.json",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1657,
+      "sha256": "c035c28a113bfcc7c41c1ed3597ce326544be989fafc53886f8038ff51f85fae"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\status\\MINIA_INTERNAL_REPAIR_CURRENT.md",
+      "archive": "docs/status/MINIA_INTERNAL_REPAIR_CURRENT.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 4891,
+      "sha256": "25c0f4835f811fae141fe8a0bd628c4a015d6bd16895ebdc49aa42c3256e672b"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\docs\\tasks\\MINIA_INTERNAL_REPAIR_EDITOR_V1.md",
+      "archive": "docs/tasks/MINIA_INTERNAL_REPAIR_EDITOR_V1.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2836,
+      "sha256": "42c5b197ce6db7643f4422ced58f25caee826caa22f4b13213dabac80b0bf53e"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\MINIA_EXTRACT_EDIT_DELTA.py",
+      "archive": "tools/minia_internal_repair/MINIA_EXTRACT_EDIT_DELTA.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 7037,
+      "sha256": "91bce7a75ee78373274809b5ec5ae801f75d60d17ee0b9476e2412910e26c6e2"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\MINIA_ROUTE_BOOTSTRAP.py",
+      "archive": "tools/minia_internal_repair/MINIA_ROUTE_BOOTSTRAP.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 920,
+      "sha256": "f9432214b41e796fe172b0f2c1cd98580c9ebda950e06f87b07e516add9baff2"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\README.md",
+      "archive": "tools/minia_internal_repair/README.md",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3192,
+      "sha256": "42c8268e0a0b659b6e0561ac6a9944272235c35ce9233e14fcf5614057bbe16d"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\bake_v2.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/bake_v2.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2017,
+      "sha256": "6e83de6f2f8bcd538a13b024c710860c21540040512809ec4443d52c4e136502"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\benchmark_backend.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/benchmark_backend.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1927,
+      "sha256": "609c526af386b0ac542b219889b759fdf009dad61cf18d2c4dab9af79aafd6da"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\build_editor_v3.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/build_editor_v3.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 17835,
+      "sha256": "0cf0a56af06281d615baa4004af8fc52814680980279398d74e262d0fd158628"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\fresh_reopen_test.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/fresh_reopen_test.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 847,
+      "sha256": "4ea8f4efab28eacbef1f2a4f3ccc4121576b341a0e4ad557c0a32dcf1b734c33"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\measure_permanent_base.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/measure_permanent_base.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2195,
+      "sha256": "23ce93a74f56cbe3c0069c68d2f24d40118b73f042203e418774044e116fb3a8"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\mismatch_tail_probe_detailed.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/mismatch_tail_probe_detailed.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3734,
+      "sha256": "b3d7833d0597034408694f2b726ffc346ec6cc8aae3c968a80c0f19f0d770d80"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\refine_preview.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/refine_preview.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1681,
+      "sha256": "f13b91e8e42612d19ba0ad70a6e2fcee7a5f30ff94a27fa33f9d98278880ad99"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\render_v2_preview.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/render_v2_preview.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1814,
+      "sha256": "eae23776bca3f945a6e5f03b9296b910256d39d5ceeb6d5d91b140d8294f2e75"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\selected_contact_geometry.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/selected_contact_geometry.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6977,
+      "sha256": "7d03e9e6db50ce8138c77fe4520811ff59b31d04496b9079f6795403b0161d9e"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\suffix_crosswalk_v6.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/suffix_crosswalk_v6.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 5439,
+      "sha256": "6f9a8862a3837b771e451e8b203b3afe61f8ab1957170a7833d0dcdc119dc530"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\test_runtime_locks.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/test_runtime_locks.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1444,
+      "sha256": "b5f06a703379d4c096c346cb4d2d2058ca6024b85b53db4ef6507e80a8b68c2b"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\validate_height_events.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/validate_height_events.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1499,
+      "sha256": "9fd9e9d734db598156ba8dd9fd3b804e8db8f6fbcdf73294050d7b4716fb1cc7"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\validate_real_graph.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/validate_real_graph.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1808,
+      "sha256": "381d84ba4ad9025bc18941609ccf51f4cdaef0669517439bbc1aecfec9b61595"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\validate_v2.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/validate_v2.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6232,
+      "sha256": "f4d2c82d6266af659f7ac1a726076c5bb03caaddaef1617fb291e2cfc4793d7e"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\verify_delivered_launcher.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/verify_delivered_launcher.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 1767,
+      "sha256": "2c08ddc750de5459331fb46fddc30808bbf824d6e050ff295f449fd4109a3854"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\verify_selected_gcode.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/verify_selected_gcode.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 2478,
+      "sha256": "65c1facc318ddedb40646e9a7a3edb01fae7bee223774a996cf8108b240184a0"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\verify_v2_guard.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/verify_v2_guard.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 734,
+      "sha256": "7427b816f8ba0624abf881e051e5c0d7590661ce9ced6c191568613bbe8a02de"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\provenance_scripts\\write_alias_repack_evidence.py",
+      "archive": "tools/minia_internal_repair/provenance_scripts/write_alias_repack_evidence.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 3411,
+      "sha256": "500789be7dcab9eeb2119a56fc285cd951cbb5fc498ccd01379dd12f1cfda8e5"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\real_graph.py",
+      "archive": "tools/minia_internal_repair/real_graph.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 16975,
+      "sha256": "e1ba7adc00a07c4ca8ee81e959f1e569526a2b64fcfda0eaa5583062871b6929"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\requirements.txt",
+      "archive": "tools/minia_internal_repair/requirements.txt",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 17,
+      "sha256": "59e1bb6f8f555bca0aeafd8380cb2e9771847bb1ffc720914d89896ca0af3c7f"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\route_analysis.py",
+      "archive": "tools/minia_internal_repair/route_analysis.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 9430,
+      "sha256": "37f522a5b1b4ac25a0c2344d345126dc375436f9345cc42a26e5942779a5bf89"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\route_overlay.py",
+      "archive": "tools/minia_internal_repair/route_overlay.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 7915,
+      "sha256": "2ed3120cf787efe43848fdb3f896f9b6ac541680c815ae67ce70235b649ed2cd"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\route_v2_panel.py",
+      "archive": "tools/minia_internal_repair/route_v2_panel.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 31876,
+      "sha256": "f01c1e11da78395cd562c107205ff995dacfe62e717501be16a54d90ba0d8905"
+    },
+    {
+      "source": "work\\katachi-minia-repair\\tools\\minia_internal_repair\\test_route_analysis.py",
+      "archive": "tools/minia_internal_repair/test_route_analysis.py",
+      "role": "historical published V1/V2; commit 9031925",
+      "bytes": 6549,
+      "sha256": "b83beeb2251089b5905f33fb3c10e908471196de3b6f0b48546e10370911ce7b"
+    },
+    {
+      "source": "outputs\\MINIA_ALL_LINES_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_ALL_LINES_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 794,
+      "sha256": "dc2a069b0028f8d6807c7d8d450ffd43876563f1fa8f82a9b5c14a7c0f96dc33"
+    },
+    {
+      "source": "outputs\\MINIA_AUTO_POINTS_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_AUTO_POINTS_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 435,
+      "sha256": "1f0d32bc353ac8ba898bc8c29911825ca9e039b7f149a64da5e1a5832047fae8"
+    },
+    {
+      "source": "outputs\\MINIA_COLOR_PATH_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_COLOR_PATH_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 957,
+      "sha256": "dcfa77e5630a064b701a2ea43ad312ce4aa9ea17ce25102b851299522f741c3f"
+    },
+    {
+      "source": "outputs\\MINIA_COLOR_PATH_MIDPOINT_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_COLOR_PATH_MIDPOINT_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 761,
+      "sha256": "ab79f22d5aaffd3b6168821cf63bca53a789a5ebe4e36f4572bbdc4543f8ec98"
+    },
+    {
+      "source": "outputs\\MINIA_COLOR_UPDATE_FIXED_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_COLOR_UPDATE_FIXED_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 414,
+      "sha256": "04ea9acbdaa2cd74d1e20c43f96fb5945372ff47cb86eb7808f38cfea9214bcf"
+    },
+    {
+      "source": "outputs\\MINIA_DEFERRED_POINTS_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_DEFERRED_POINTS_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 415,
+      "sha256": "c210f90898e12db27db98e446b222fa6723ed617d085cb4d7d488fa2925d57ee"
+    },
+    {
+      "source": "outputs\\MINIA_DEPTH_PATH_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_DEPTH_PATH_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 767,
+      "sha256": "97b3ebdce3979d4dfbde92771a01ab61539f1415a396038aa282b8c478cdf9c9"
+    },
+    {
+      "source": "outputs\\MINIA_DISPLAY_FIXED_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_DISPLAY_FIXED_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 4644,
+      "sha256": "1c1ae2bf654985880835685d1297816661cc2df6a74f1391150b778664cf3d36"
+    },
+    {
+      "source": "outputs\\MINIA_EXTRACT_EDIT_DELTA.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_EXTRACT_EDIT_DELTA.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 6952,
+      "sha256": "c3d7878115f3666ecebf1548dbb1ff732175bed754af7cac453b697ffde991db"
+    },
+    {
+      "source": "outputs\\MINIA_INTERVAL_DELETE_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_INTERVAL_DELETE_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 540,
+      "sha256": "a5188a07764df6491e408237d010bb0b47e9c8c5c794c4b8f531b4fff4625680"
+    },
+    {
+      "source": "outputs\\MINIA_LOWER50_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_LOWER50_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 412,
+      "sha256": "53e20aca597d0052003efcefe041ea17684efe2a98ea39fd7757915f2983db32"
+    },
+    {
+      "source": "outputs\\MINIA_QUAD_EDITOR_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_QUAD_EDITOR_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 4920,
+      "sha256": "74e536ee5c654f255b7ff8d438d40c580eb0dcb0d59011eae03024961f2c96e1"
+    },
+    {
+      "source": "outputs\\MINIA_QUICK_EDIT_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_QUICK_EDIT_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 4855,
+      "sha256": "576a832b407b4e5e1da450afffebf7dc763ba428eb2634fae1fb4a28c4e1a88d"
+    },
+    {
+      "source": "outputs\\MINIA_ROUTE_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_ROUTE_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 902,
+      "sha256": "53d2b8127e797f7d2c1f4d3c1259fb67c6688071843a9c34e6d42513d5c6738a"
+    },
+    {
+      "source": "outputs\\MINIA_SELECTED_POINT_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_SELECTED_POINT_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 2491,
+      "sha256": "a4c5cdc630d0f0db75834c35e0ec5306d920ad6746793d8dfe4267f717fc87a8"
+    },
+    {
+      "source": "outputs\\MINIA_SHARED_CLIP_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_SHARED_CLIP_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 1586,
+      "sha256": "501fd5b5cf0619fbfa4906ebdd42041871bd7d7a718a70bcaf4c10d731020fb4"
+    },
+    {
+      "source": "outputs\\MINIA_SINGLE_VIEW_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_SINGLE_VIEW_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 2174,
+      "sha256": "2e72817042af6f975c6c9e0bdcc3539b51e75967784d012583af171d7509ecc1"
+    },
+    {
+      "source": "outputs\\MINIA_VIEW_CLIP_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_VIEW_CLIP_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 1395,
+      "sha256": "1c180d7bfe50b8cff773726151f5d898f7a602a88f4555e76014ae483becd5ff"
+    },
+    {
+      "source": "outputs\\MINIA_VIEW_CLIP_CONTROLS_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_VIEW_CLIP_CONTROLS_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 1586,
+      "sha256": "8eeff1d1df5797ada1aa32a8790d7a0a2527fd9089833ce4455e7d53dfdfd721"
+    },
+    {
+      "source": "outputs\\MINIA_VIEW_CLIP_FIXED_BOOTSTRAP.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_VIEW_CLIP_FIXED_BOOTSTRAP.py",
+      "role": "bootstrap/extractor snapshot",
+      "bytes": 1584,
+      "sha256": "ed0e82a1abebabc5fe6434589be9acc0a76a98aaf604ad64c7fdb281042aa8e2"
+    },
+    {
+      "source": "outputs\\color_author_runtime\\author_scoring_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_author_runtime/author_scoring_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 5261,
+      "sha256": "25931e9104dd30ee20cc42aa8666becb7dde9159e3b9eb2b03c5024459a731a9"
+    },
+    {
+      "source": "outputs\\color_author_runtime\\color_path_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_author_runtime/color_path_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 16008,
+      "sha256": "bf9a9e2ce23288e5a3e61f8404ae41bdeef6e8867a7882f76f37b00df86f5601"
+    },
+    {
+      "source": "outputs\\color_author_runtime\\depth_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_author_runtime/depth_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 8058,
+      "sha256": "c211d369a3ef6880c670e688df8327b76b84f41179e02c1f6a931984c3d34ca5"
+    },
+    {
+      "source": "outputs\\color_author_runtime\\midpoint_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_author_runtime/midpoint_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 31911,
+      "sha256": "73dc9d5dea658bd975088b4970d3849ec7c1c30ecd65f2102bdc3aaa0c90d15f"
+    },
+    {
+      "source": "outputs\\color_author_runtime\\route_v2_panel.py",
+      "archive": "tools/minia_author_workspace/outputs/color_author_runtime/route_v2_panel.py",
+      "role": "runtime snapshot",
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    },
+    {
+      "source": "outputs\\color_depth_runtime\\color_path_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_depth_runtime/color_path_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 16008,
+      "sha256": "bf9a9e2ce23288e5a3e61f8404ae41bdeef6e8867a7882f76f37b00df86f5601"
+    },
+    {
+      "source": "outputs\\color_depth_runtime\\depth_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_depth_runtime/depth_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 8049,
+      "sha256": "5e0a2114919464cbf744a68c322c677a79e168c870014d0a7688d20b4d0cf126"
+    },
+    {
+      "source": "outputs\\color_depth_runtime\\midpoint_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_depth_runtime/midpoint_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 31911,
+      "sha256": "73dc9d5dea658bd975088b4970d3849ec7c1c30ecd65f2102bdc3aaa0c90d15f"
+    },
+    {
+      "source": "outputs\\color_depth_runtime\\route_v2_panel.py",
+      "archive": "tools/minia_author_workspace/outputs/color_depth_runtime/route_v2_panel.py",
+      "role": "runtime snapshot",
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    },
+    {
+      "source": "outputs\\color_path_midpoint_runtime\\color_path_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_path_midpoint_runtime/color_path_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 16008,
+      "sha256": "bf9a9e2ce23288e5a3e61f8404ae41bdeef6e8867a7882f76f37b00df86f5601"
+    },
+    {
+      "source": "outputs\\color_path_midpoint_runtime\\midpoint_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_path_midpoint_runtime/midpoint_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 31911,
+      "sha256": "73dc9d5dea658bd975088b4970d3849ec7c1c30ecd65f2102bdc3aaa0c90d15f"
+    },
+    {
+      "source": "outputs\\color_path_midpoint_runtime\\route_v2_panel.py",
+      "archive": "tools/minia_author_workspace/outputs/color_path_midpoint_runtime/route_v2_panel.py",
+      "role": "runtime snapshot",
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    },
+    {
+      "source": "outputs\\color_path_runtime\\color_path_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/color_path_runtime/color_path_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 16008,
+      "sha256": "bf9a9e2ce23288e5a3e61f8404ae41bdeef6e8867a7882f76f37b00df86f5601"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\flower_reroute.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/flower_reroute.py",
+      "role": "runtime snapshot",
+      "bytes": 4669,
+      "sha256": "7aa3832528b12e5c4a346593a47921f3ed7c3b04196f00f413a94f02a8c29edf"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\graph_hook.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/graph_hook.py",
+      "role": "runtime snapshot",
+      "bytes": 2435,
+      "sha256": "8153363c166dd6e73f45816597b0df48f7554b45bd12069492ca311e5856acc1"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\interval_delete.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/interval_delete.py",
+      "role": "runtime snapshot",
+      "bytes": 14116,
+      "sha256": "db2f745395e7d87371b8aaaba1058e34ac40298b027bfdeaed0bb430dfdac5bb"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\pick_hook.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/pick_hook.py",
+      "role": "runtime snapshot",
+      "bytes": 2797,
+      "sha256": "41001fac91900612d10d73dc4ffd8fbc2e870f56c6967a56e96c17512a71d852"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\preview_hook.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/preview_hook.py",
+      "role": "runtime snapshot",
+      "bytes": 4327,
+      "sha256": "3287dd8fe6753dbbea1fda5e1cf20fe47bcb4e858d276862de617ad11761349c"
+    },
+    {
+      "source": "outputs\\interval_delete_runtime\\scan_hook.py",
+      "archive": "tools/minia_author_workspace/outputs/interval_delete_runtime/scan_hook.py",
+      "role": "runtime snapshot",
+      "bytes": 7574,
+      "sha256": "e2d23422b1774fb2ddeecffa0c2d0182951f97ca9cd980791bbd12c8f62ef9f1"
+    },
+    {
+      "source": "outputs\\quad_view_runtime\\quad_view_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/quad_view_runtime/quad_view_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 5382,
+      "sha256": "b360f7438346295beda2c358c1f742f92e8b6e4fde708138eb2615ac32710682"
+    },
+    {
+      "source": "outputs\\route_runtime\\real_graph.py",
+      "archive": "tools/minia_author_workspace/outputs/route_runtime/real_graph.py",
+      "role": "runtime snapshot",
+      "bytes": 16888,
+      "sha256": "0e813283c9b729e856e479d267bbb525315430f1a607ddb9b17ab623c1fc7ec3"
+    },
+    {
+      "source": "outputs\\route_runtime\\route_analysis.py",
+      "archive": "tools/minia_author_workspace/outputs/route_runtime/route_analysis.py",
+      "role": "runtime snapshot",
+      "bytes": 9268,
+      "sha256": "9c8b781cbc4bb4853af221242bd3ccd6de9ecea24c04dbc45bb5b4374dd89cfd"
+    },
+    {
+      "source": "outputs\\route_runtime\\route_overlay.py",
+      "archive": "tools/minia_author_workspace/outputs/route_runtime/route_overlay.py",
+      "role": "runtime snapshot",
+      "bytes": 7783,
+      "sha256": "62f44c9cac7f5b7f054019ccc22fd522ea4c7a7a1e25e20db730240262e067ac"
+    },
+    {
+      "source": "outputs\\route_runtime\\route_v2_panel.py",
+      "archive": "tools/minia_author_workspace/outputs/route_runtime/route_v2_panel.py",
+      "role": "runtime snapshot",
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    },
+    {
+      "source": "outputs\\selected_point_runtime\\selected_point_overlay.py",
+      "archive": "tools/minia_author_workspace/outputs/selected_point_runtime/selected_point_overlay.py",
+      "role": "runtime snapshot",
+      "bytes": 4801,
+      "sha256": "56cc2623e2070ae6725238b4318afea1914a998df92b2281d4ff09d70722009b"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\auto_points_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/auto_points_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 6492,
+      "sha256": "580bb604fbdca4be525ff529b3fc1ddca1dbc0e33d023daa6795a4e6f0b992ad"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\deferred_points_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/deferred_points_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 5714,
+      "sha256": "009faa5b2a5d486a04cf8a7264920409387917db7362746197c1bdeed50753fe"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\guarded_points_runtime.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/guarded_points_runtime.py",
+      "role": "runtime snapshot",
+      "bytes": 7111,
+      "sha256": "3f57bdc1c7220c413ec3d3725135a78c5da9c3c7f913f6c4565a7a52841f93f4"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\safe_view_clip_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/safe_view_clip_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 14930,
+      "sha256": "706bd0733d014c69a367be671429979c2fbcf75d948996f30bc53be33cc30630"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\shared_view_clip_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/shared_view_clip_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 17700,
+      "sha256": "1fd14f40eb6753f8c5ab4276c8c40341c04daf2eebcd0bfbb97bba4865c54d3b"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\single_view_clip_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/single_view_clip_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 22175,
+      "sha256": "2c6035f5ef0a4ba5aca548cb5abf97413f11a8828fa730a9879a7b3551fea48c"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\stable_view_clip_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/stable_view_clip_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 16616,
+      "sha256": "4aa431c1d9b17d506459cea02e010ccd6721f456f013d507273cb178345de345"
+    },
+    {
+      "source": "outputs\\view_clip_runtime\\view_clip_adapter.py",
+      "archive": "tools/minia_author_workspace/outputs/view_clip_runtime/view_clip_adapter.py",
+      "role": "runtime snapshot",
+      "bytes": 11487,
+      "sha256": "b55fe079d61bf7f56bc01313228382a2822dc25ec3f91113ef99e396a2f3ea8d"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\optimizer.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/optimizer.py",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 19941,
+      "sha256": "b1ff7fe35309274593f62b4f5001a6848aa29f5ffda66269ab7183f3d6a542ab"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\flower_support.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/flower_support.py",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 3592,
+      "sha256": "11451bce82de1c9c1dd3a188f8bb48b4118b3b8722e3a6ff170999e591cc0fb4"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\straight_audit.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/straight_audit.py",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 1500,
+      "sha256": "b0f005eafb03c0b9c3346d6748432bd3059a0f03074b4455d0089e58e1b34024"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\test_rules.py",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/test_rules.py",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 2307,
+      "sha256": "42c53cdfe5a5b4adf7805beafda37d5e44f053bd5aeb506eddc12716cd3fa125"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\settings.json",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/settings.json",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 726,
+      "sha256": "2f091913d77354d30724bbe6d65bf03297afd13437788acb92c66d90f33e4f1b"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\run.ps1",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/run.ps1",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 4079,
+      "sha256": "0ef34db990cc2a67dc6e58b0d807633f36f5bf40a5db8fc724667d3e3271c2c4"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\stop.ps1",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/stop.ps1",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 143,
+      "sha256": "dfe5eb440042ec2c3ec48709f78bd97069be22c5f35f14321a57123d2cdb4e0b"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\dashboard.ps1",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/dashboard.ps1",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 14880,
+      "sha256": "90ed450fa48f5d79949e759e6df874d2ffe05f39dae47e5135e67e67d9c021cc"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\README.txt",
+      "archive": "tools/minia_author_workspace/outputs/MINIA_OPTIMIZER/README.txt",
+      "role": "current optimizer/GUI snapshot",
+      "bytes": 5176,
+      "sha256": "73ff10dc4037f0175b8d15e5eda79d679c21a0ada0cf0f6ea229ea9664126d7e"
+    },
+    {
+      "source": "work\\accept_source_binding.py",
+      "archive": "tools/minia_author_workspace/historical_work/accept_source_binding.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2858,
+      "sha256": "cf3ad076d25178f1d30a2ac8d9c20db31b14775b4552482f89f04b00d7f29968"
+    },
+    {
+      "source": "work\\auto_points\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/auto_points/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2317,
+      "sha256": "0473d7ee2dfa751c950d0d5a2d8e7b28d40c497f090dcc77cd77368d4d4ef5d4"
+    },
+    {
+      "source": "work\\auto_points\\test_new.py",
+      "archive": "tools/minia_author_workspace/historical_work/auto_points/test_new.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1660,
+      "sha256": "285f9ecfe40a647aa353d74c49092d72913159e59577b233e75e074cf7719855"
+    },
+    {
+      "source": "work\\auto_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/auto_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 284,
+      "sha256": "6e770173ad5196f8c21107033b378fa9a3e018cb718027e4493a5cf2e0649322"
+    },
+    {
+      "source": "work\\bend_over50.py",
+      "archive": "tools/minia_author_workspace/historical_work/bend_over50.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3516,
+      "sha256": "eb7edb772f13e5afdd81a723a11472885d1993d4cf4937c6eab9e91f1becfa5d"
+    },
+    {
+      "source": "work\\clip_controls\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_controls/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2501,
+      "sha256": "66ec61ba232f9c538e666ce7756b84698de0fbc8b83dc10dab395cfd0e6dc966"
+    },
+    {
+      "source": "work\\clip_controls\\probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_controls/probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 281,
+      "sha256": "1fcabe1750c1954947e765be6ecb6f7e032593dec151d2a33814be73a14d834d"
+    },
+    {
+      "source": "work\\clip_controls\\write.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_controls/write.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4154,
+      "sha256": "d8df05103bdcfed3638fcc63eb0433bcdd03d078ac7a3901aa196a899db9d172"
+    },
+    {
+      "source": "work\\clip_crash_fix\\adjust.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/adjust.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1011,
+      "sha256": "3c60fc42c2860d6e06fa2a4bf97240bd23eecdd63ba8d1aab0051fbb20a7bb6b"
+    },
+    {
+      "source": "work\\clip_crash_fix\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2692,
+      "sha256": "62bd944a5cffe9c22490b83cb33e2fb3513a1508796d9dee8a4ae2e27650efdc"
+    },
+    {
+      "source": "work\\clip_crash_fix\\probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 817,
+      "sha256": "30961b03473fa6ade2d8167c2c730257a8efbcf5b5bf1fee2bf0e720990014de"
+    },
+    {
+      "source": "work\\clip_crash_fix\\probe2.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/probe2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 703,
+      "sha256": "0b9c02e1e30f4efe3cb9bfeecf4e8844bdd0ea041b396c64c6f8d15dd788d405"
+    },
+    {
+      "source": "work\\clip_crash_fix\\probe3.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/probe3.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 858,
+      "sha256": "9d1b22b1bb92d48f16d7d03a83bd841e46016be4117c3007ea29da88db3203ea"
+    },
+    {
+      "source": "work\\clip_crash_fix\\probe4.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/probe4.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 952,
+      "sha256": "2ff99ed6bc5381a63e819c6de9bafb5cc8900eff79c502a6bd1f0cb87a850c7a"
+    },
+    {
+      "source": "work\\clip_crash_fix\\reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 988,
+      "sha256": "ccf97f022708d4e7cc63cb12a88564ecea72084f3e216f9bb2b094265b04ed6a"
+    },
+    {
+      "source": "work\\clip_crash_fix\\toggle_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/toggle_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 549,
+      "sha256": "1010861b44ee0c5b5b814f7c3b8eebd568ea1142940bf169285b4b9f615a7df9"
+    },
+    {
+      "source": "work\\clip_crash_fix\\write_fix.py",
+      "archive": "tools/minia_author_workspace/historical_work/clip_crash_fix/write_fix.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5024,
+      "sha256": "46cdb71c2356a1c4c8409d66ec26965ece296bac9f615dee80f8ec257577a719"
+    },
+    {
+      "source": "work\\color_author_scoring\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_author_scoring/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2843,
+      "sha256": "c3ab49756b7ab9c08509d3553e07caa9846584ac7d29f2f005b2cd81ad4935c6"
+    },
+    {
+      "source": "work\\color_author_scoring\\verify_delivery.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_author_scoring/verify_delivery.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1727,
+      "sha256": "587ee24182880a73b819f265b0d3f1cde719450d7ea30857f15dde1159162ef9"
+    },
+    {
+      "source": "work\\color_author_scoring\\verify_saved_author_lines.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_author_scoring/verify_saved_author_lines.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2106,
+      "sha256": "b70fae9c89e16fd63d4e9aa8f5b474b94c19f3ddfb80e8985765075071d9fdc8"
+    },
+    {
+      "source": "work\\color_depth_view\\build_depth.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/build_depth.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3460,
+      "sha256": "c984b27a9e911bd5842fa5c86ecda6cfd98f0e4a983435b3539a963322accfa6"
+    },
+    {
+      "source": "work\\color_depth_view\\depth_runtime.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/depth_runtime.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 8049,
+      "sha256": "5e0a2114919464cbf744a68c322c677a79e168c870014d0a7688d20b4d0cf126"
+    },
+    {
+      "source": "work\\color_depth_view\\probe_nodes.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/probe_nodes.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 455,
+      "sha256": "1c8d3f2423d399411d8cd36c9067b2713c0dcf5d72fe2041fb04e491c297d42b"
+    },
+    {
+      "source": "work\\color_depth_view\\probe_scene.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/probe_scene.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 243,
+      "sha256": "83dc8b5c18c716eba626c796426ddb133fbf13d20beeb6d339301a0cd0988ad7"
+    },
+    {
+      "source": "work\\color_depth_view\\verify_delivery.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/verify_delivery.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1822,
+      "sha256": "25cfe71a09340be221f7a80c8498c151eae7ad6e9412fde70e619df57351e0e1"
+    },
+    {
+      "source": "work\\color_depth_view\\verify_midpoint_compat.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_depth_view/verify_midpoint_compat.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2328,
+      "sha256": "e12132af81ea04607d63d2a47514383a4ab2503a7dbf490efd8d87330b5decb4"
+    },
+    {
+      "source": "work\\color_path_cache\\build_cache.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_cache/build_cache.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 831,
+      "sha256": "72c86fd07aaafa78cdd50868e2dde5febe1a882526277165c1225116a33f313b"
+    },
+    {
+      "source": "work\\color_path_cache\\find_color_pair.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_cache/find_color_pair.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 996,
+      "sha256": "877e83401c93554c5e0d5e383aa247c33d055f05f74da5bf651dad0409326ab6"
+    },
+    {
+      "source": "work\\color_path_cache\\verify_cache.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_cache/verify_cache.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1948,
+      "sha256": "e2ac8349fc0ee142bb9fd5c3e3a6a226219e3998c11948bf920e8c61632342fe"
+    },
+    {
+      "source": "work\\color_path_editor\\build_final.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/build_final.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 7441,
+      "sha256": "e5861de7268b6205f0e4934514c055939a392f4e2612d91255f30befa562fe69"
+    },
+    {
+      "source": "work\\color_path_editor\\checkattrs.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/checkattrs.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 379,
+      "sha256": "626594b12125cfb2ab84f86171cda30b18015a9fe974c7a7f41a26f5cf359883"
+    },
+    {
+      "source": "work\\color_path_editor\\checklegend.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/checklegend.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 161,
+      "sha256": "f034596a68be180a84f8ff27453ceb1f412899878f98d45afbd542ef0e8f68cb"
+    },
+    {
+      "source": "work\\color_path_editor\\color_path_runtime.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/color_path_runtime.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 16008,
+      "sha256": "bf9a9e2ce23288e5a3e61f8404ae41bdeef6e8867a7882f76f37b00df86f5601"
+    },
+    {
+      "source": "work\\color_path_editor\\inspect.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/inspect.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 504,
+      "sha256": "4275403074af543b72a8e7c0ddbd837ec660a7a5aac6d980ce5337d6f72c3636"
+    },
+    {
+      "source": "work\\color_path_editor\\inspect_collections.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/inspect_collections.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 120,
+      "sha256": "d7fbfe53f7a18d497b0100a40d46477a547be8c73e5c9fe011740d65368eb50e"
+    },
+    {
+      "source": "work\\color_path_editor\\inspect_color.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/inspect_color.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 275,
+      "sha256": "1d96877ea9ccde7f32511a22ca661e0c0a421dcfe46f8971bb7125b5b15f849e"
+    },
+    {
+      "source": "work\\color_path_editor\\probe_undo.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/probe_undo.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1681,
+      "sha256": "057600262c3529db452d9edb327fc13e4e05aed8b2d829698f21af44b141c6d6"
+    },
+    {
+      "source": "work\\color_path_editor\\test_fixture.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/test_fixture.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6521,
+      "sha256": "548ef493bd250b09db855bad0ab7646e4deec3435caecc960bbaa8d30a29953e"
+    },
+    {
+      "source": "work\\color_path_editor\\verify_delivery.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/verify_delivery.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2061,
+      "sha256": "6e67c1d640a8819edca55333fb4185926cb8fbc5a89791c07399ae3a26bb1da0"
+    },
+    {
+      "source": "work\\color_path_editor\\verify_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_editor/verify_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1722,
+      "sha256": "4ac39f1162c1da4a17f4dd18b4882576bd22192322bd2ae9f227d44204d612e8"
+    },
+    {
+      "source": "work\\color_path_midpoint\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1813,
+      "sha256": "6886ac13cc95d3734472193b93896b58143315ce728f9221cc2f0fe9534a93a0"
+    },
+    {
+      "source": "work\\color_path_midpoint\\check_color_delta.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/check_color_delta.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1155,
+      "sha256": "0ccd0fb8eaf75cf75da0671031aeaf21327ca607c98492c2e3dc07b761aa79d5"
+    },
+    {
+      "source": "work\\color_path_midpoint\\debug.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/debug.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 468,
+      "sha256": "4c50a950a119cbdc5378a5febd89ff55d17453c07e070b1c6577b39ff1661e29"
+    },
+    {
+      "source": "work\\color_path_midpoint\\inspect_view.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/inspect_view.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 119,
+      "sha256": "795b83c7e0d4d6420dccfb029361ed0917984c5d1f0e6aaaa793123f20f758bc"
+    },
+    {
+      "source": "work\\color_path_midpoint\\midpoint_runtime.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/midpoint_runtime.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 31911,
+      "sha256": "73dc9d5dea658bd975088b4970d3849ec7c1c30ecd65f2102bdc3aaa0c90d15f"
+    },
+    {
+      "source": "work\\color_path_midpoint\\test_interactions.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/test_interactions.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6771,
+      "sha256": "2dc23013a2b1d0cd8c31332a1eef0b4711b833f11d36f963cd9c98cf50545f68"
+    },
+    {
+      "source": "work\\color_path_midpoint\\test_projection_pick.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/test_projection_pick.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2085,
+      "sha256": "15547a7f8127d58e851232730a5b5c864d01207da9da3105c85d6997639d08dd"
+    },
+    {
+      "source": "work\\color_path_midpoint\\verify_delivery.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/verify_delivery.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1506,
+      "sha256": "92fa5cb415c95e1de21e0e18a12132a217be8823d92bb15c2628c4313f6c764d"
+    },
+    {
+      "source": "work\\color_path_midpoint\\verify_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/color_path_midpoint/verify_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1836,
+      "sha256": "0da5fd4bb669b4679e30eed704158a4566beb272d78ec02da50a7bea6b8f6309"
+    },
+    {
+      "source": "work\\compare_sources.py",
+      "archive": "tools/minia_author_workspace/historical_work/compare_sources.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1914,
+      "sha256": "903de23d0388879746a16da6849e7d103c2192a1dce5bdf379507a6455b980e8"
+    },
+    {
+      "source": "work\\deep_reinforce_build.py",
+      "archive": "tools/minia_author_workspace/historical_work/deep_reinforce_build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4820,
+      "sha256": "58b8ea7cf3b7881691ee5fc8d1f6c909ad5f0064d4134323b87f3b2bf7e23305"
+    },
+    {
+      "source": "work\\deep_reinforce_plan.py",
+      "archive": "tools/minia_author_workspace/historical_work/deep_reinforce_plan.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 11825,
+      "sha256": "1537dd68e5fd9a4cff8797a9a35ca3080f080ddc2482220f6ea94757a6ba2c13"
+    },
+    {
+      "source": "work\\deep_reinforce_verify.py",
+      "archive": "tools/minia_author_workspace/historical_work/deep_reinforce_verify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4404,
+      "sha256": "f6107e4d92a85e7192049f56a7891c9041b58012d7442b0148dadcc517ec963d"
+    },
+    {
+      "source": "work\\deferred_points\\build_test.py",
+      "archive": "tools/minia_author_workspace/historical_work/deferred_points/build_test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2582,
+      "sha256": "82316cc108a396542a149b87a2b90f30d7e88e1498c4eedf8694bd339663079c"
+    },
+    {
+      "source": "work\\deferred_points\\write.py",
+      "archive": "tools/minia_author_workspace/historical_work/deferred_points/write.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1322,
+      "sha256": "82ed481871a194beefe32436418ac3c4d86c693c17beaae5b06a484d95e631dc"
+    },
+    {
+      "source": "work\\delete_mode\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1977,
+      "sha256": "d80a2f909c7398c0fc7fc1df6aba1ac75278635afe1a8ca5234aa7731a9b9242"
+    },
+    {
+      "source": "work\\delete_mode\\cache_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/cache_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 192,
+      "sha256": "cf464d08a38c7dd334d11596f9cf6fee1a68daa0de00630479af29353127492f"
+    },
+    {
+      "source": "work\\delete_mode\\classify.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/classify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 585,
+      "sha256": "d1ca8c00ff9f52a155b17fcd9039226191dadb5f4f4a5eaefaf7eb5eefbb1c0a"
+    },
+    {
+      "source": "work\\delete_mode\\inspect.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/inspect.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 430,
+      "sha256": "d9c1c36dbd7b57e628ec6509bd65ce55c8890da1e25956435a2f7d751700919d"
+    },
+    {
+      "source": "work\\delete_mode\\ledger.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/ledger.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 529,
+      "sha256": "ed7b47e6efd7d779947525e87c03c8c2f21d447e0ccbc94aa23152abe5eeff5c"
+    },
+    {
+      "source": "work\\delete_mode\\make_hooks.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/make_hooks.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2355,
+      "sha256": "37d9ff98da3f9b8d3275ab42d44a85ceda4f7d593912fdeabd6e36ad979940fc"
+    },
+    {
+      "source": "work\\delete_mode\\reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2627,
+      "sha256": "aafdfe87b57557794c1e13870b58bd63aaafbd9ed60619e618698747b332142a"
+    },
+    {
+      "source": "work\\delete_mode\\test.py",
+      "archive": "tools/minia_author_workspace/historical_work/delete_mode/test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2184,
+      "sha256": "d771316cb21323e9e0f2ca3b3ac4c7f37aededfbd8b38269e54652a96b6b7c6b"
+    },
+    {
+      "source": "work\\finalize_handoff.py",
+      "archive": "tools/minia_author_workspace/historical_work/finalize_handoff.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 14197,
+      "sha256": "57d47e4fdb7a9070ef5ddfda3efc96322b8565d6f1a7d1fb002a6a1ccd43dcfb"
+    },
+    {
+      "source": "work\\inspect_long.py",
+      "archive": "tools/minia_author_workspace/historical_work/inspect_long.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 403,
+      "sha256": "ed7615ead51fb7052193eb66f78b4c387be912aaa561d2dd104aa47bff4bf495"
+    },
+    {
+      "source": "work\\inspect_old_editor.py",
+      "archive": "tools/minia_author_workspace/historical_work/inspect_old_editor.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1007,
+      "sha256": "3b80dff334e1d73848523a9923849449281e0b1b64ed2cf487754885a950e21e"
+    },
+    {
+      "source": "work\\inspect_support_color_inputs.py",
+      "archive": "tools/minia_author_workspace/historical_work/inspect_support_color_inputs.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1229,
+      "sha256": "387826505ae7f5179630b707d437258279780292da7332d6fc3c84b154d30640"
+    },
+    {
+      "source": "work\\inspect_transform.py",
+      "archive": "tools/minia_author_workspace/historical_work/inspect_transform.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2755,
+      "sha256": "186a55949c1b96ed590c120c5267b07ee5d6101f69e03602d12e658a8f8dcab2"
+    },
+    {
+      "source": "work\\lower50_build.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower50_build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5295,
+      "sha256": "9268cf032e1c37671a0e641072fb3dc7f74bb648019697ac72b634355bfd14d3"
+    },
+    {
+      "source": "work\\lower50_compare.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower50_compare.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 766,
+      "sha256": "d9621acad644fb17102a9b2f172d98d3afa952f65dc538afadd39be12cda6792"
+    },
+    {
+      "source": "work\\lower50_plan.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower50_plan.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 15504,
+      "sha256": "6f21f66dc7d8080cc420d03b84ee09ed63db79698fbbbf586bc1f27849a8bf68"
+    },
+    {
+      "source": "work\\lower50_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower50_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 319,
+      "sha256": "eda07a5a6d2597cd20e92fb6156ace76f74bc10886b42bf8656f7c127d1223e6"
+    },
+    {
+      "source": "work\\lower50_verify.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower50_verify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4653,
+      "sha256": "30841603a9b6cf5214468aafacd31b59b7b361f834cab54ff6f2d7faa5abd463"
+    },
+    {
+      "source": "work\\lower70_build.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower70_build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5817,
+      "sha256": "45af49974c495246f513d12d7bc5952fc0b39960220eae412d7865ffd38f4eb1"
+    },
+    {
+      "source": "work\\lower70_improve.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower70_improve.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4108,
+      "sha256": "c8828120fd4ece973e85a82dc42afa67f4aaa11834896040bfd07ba48b51271f"
+    },
+    {
+      "source": "work\\lower70_plan.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower70_plan.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 16514,
+      "sha256": "af354b008ab3cc4478990b8bc51b337000770c3b87ac48e3cf7a89189a46af37"
+    },
+    {
+      "source": "work\\lower70_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower70_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 456,
+      "sha256": "6510d7c1c821a8b2ab1e57a1f249345901e4ed7f99a5df3608f1bef140bd698d"
+    },
+    {
+      "source": "work\\lower70_verify.py",
+      "archive": "tools/minia_author_workspace/historical_work/lower70_verify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5778,
+      "sha256": "b5977780c1b0dd56d8fca65fe0db922a9a108f2bea9ecd2cbefc31ff5ba9467e"
+    },
+    {
+      "source": "work\\luna_binding\\added_ids_compact.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/added_ids_compact.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 510,
+      "sha256": "a786546dd35219b4373eb27cce2885470595f9e9424611953e83954bace05c12"
+    },
+    {
+      "source": "work\\luna_binding\\added_ledger_delta.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/added_ledger_delta.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 701,
+      "sha256": "0096fee4b44e454aef725ba0f3ec69e0b009fcab96f950c49491e1914735782a"
+    },
+    {
+      "source": "work\\luna_binding\\added_ledger_ids.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/added_ledger_ids.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 630,
+      "sha256": "39afff8f60a83cf5c1b31c64f382794e9abbf45df5751f984bc74eb9bbcb08f6"
+    },
+    {
+      "source": "work\\luna_binding\\addition_map_audit.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/addition_map_audit.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1613,
+      "sha256": "040a389fde4c7e6fcb698aaea5cb5ce077f967ca638221cf269956d10cd4691e"
+    },
+    {
+      "source": "work\\luna_binding\\addition_map_audit_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/addition_map_audit_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1624,
+      "sha256": "4502db4dbec88b7b31c2aa325914bbc17d3b6da700162cddaf39f550e302e3eb"
+    },
+    {
+      "source": "work\\luna_binding\\build_face_remap.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/build_face_remap.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 950,
+      "sha256": "c73c0c80209c76d0c507c28212fee9d8da8d4864367961801e8ca104e3ef83e2"
+    },
+    {
+      "source": "work\\luna_binding\\build_face_remap_report.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/build_face_remap_report.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4005,
+      "sha256": "3404c3e5bbcc63e5e3fc798bc839299bd511305a279eef013b7147cd96130d16"
+    },
+    {
+      "source": "work\\luna_binding\\chunk_parser_test.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/chunk_parser_test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1395,
+      "sha256": "a7df39378e9598077f80e5f20c431fb6a7648b8661c7f837e2220b9e23a441cb"
+    },
+    {
+      "source": "work\\luna_binding\\compare_saved_mismatches_to_tail.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/compare_saved_mismatches_to_tail.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 938,
+      "sha256": "5eda14d516d380051ba8a015baa50033a86fff3d2b5a264c9a6bb86783c5408a"
+    },
+    {
+      "source": "work\\luna_binding\\final_check.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/final_check.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1097,
+      "sha256": "dd99bc4d452c5ba30858501950b0e663e5212fd8d58503d1d2f81b4df6a59e25"
+    },
+    {
+      "source": "work\\luna_binding\\full_face_crosswalk.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/full_face_crosswalk.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4878,
+      "sha256": "1b30e871f395708b3c42fd0de5b75e3859916fa4037765e933ec9ea88e896729"
+    },
+    {
+      "source": "work\\luna_binding\\full_face_crosswalk_final.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/full_face_crosswalk_final.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5328,
+      "sha256": "8be3060f0c8b17617baf6572c6d684858f4e0569ab06341ba19e57e34530eedf"
+    },
+    {
+      "source": "work\\luna_binding\\full_face_crosswalk_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/full_face_crosswalk_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4880,
+      "sha256": "86f810e2ca8996dc348d8dd7d51b66353cd3ef29dbb8e820f1ef0f6721cb956a"
+    },
+    {
+      "source": "work\\luna_binding\\full_face_crosswalk_v3.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/full_face_crosswalk_v3.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4961,
+      "sha256": "753de822595b0220144ed5c62f5998e2aa9ed40f6e185b1176eae73ff4f5c05a"
+    },
+    {
+      "source": "work\\luna_binding\\full_face_crosswalk_v4.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/full_face_crosswalk_v4.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5159,
+      "sha256": "c8d459eefa651f925120782fb6fcc874769267a5d1a001eed5e9f24ac33d9f95"
+    },
+    {
+      "source": "work\\luna_binding\\inspect_artifacts.ps1",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/inspect_artifacts.ps1",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1479,
+      "sha256": "1da11c4cc50645be8a493b00afcfdb9a29a5bbcff8b09eb87c053b1ed85a3090"
+    },
+    {
+      "source": "work\\luna_binding\\inspect_artifacts.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/inspect_artifacts.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1823,
+      "sha256": "d7af2264f04558e1585293cc7b62e2db8b15d68bf58557abf67d0ccdeb2ceb54"
+    },
+    {
+      "source": "work\\luna_binding\\map_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/map_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 260,
+      "sha256": "e4a71e79c1a6b3acb7ee868f453f6deec4c9f57e44d2b37ee32435e86e5161e7"
+    },
+    {
+      "source": "work\\luna_binding\\map_probe2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/map_probe2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 302,
+      "sha256": "3959b33e5e2a2ec6ad3811df169f948e095e037f315a2ffa2dc3862c9cd7e162"
+    },
+    {
+      "source": "work\\luna_binding\\mismatch_tail_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/mismatch_tail_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4101,
+      "sha256": "05c6e3098035b58fac31451c2c3c6298134e2a2ec59eee981be53148d9b45b5b"
+    },
+    {
+      "source": "work\\luna_binding\\mismatch_tail_probe_detailed.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/mismatch_tail_probe_detailed.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3682,
+      "sha256": "a121ce345bcdaed0b3f50e6b26c8d0e6524bbf17eb95cf233ed1e50623518320"
+    },
+    {
+      "source": "work\\luna_binding\\model_count_by_object.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/model_count_by_object.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 643,
+      "sha256": "e690b02735203db44bf5f8fe909b5fa046153cf345bfbdcaad2cec84c1788b14"
+    },
+    {
+      "source": "work\\luna_binding\\module_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/module_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 106,
+      "sha256": "5e60be1f1c303d7605e07743cbbc1ecd41e8dd74ad25c9b4b3bd1f1e3ea1a0d2"
+    },
+    {
+      "source": "work\\luna_binding\\probe_zip.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/probe_zip.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 472,
+      "sha256": "5b00ea87a813cfd31174e8370d2b1a987bf741a3f88c5178d1d83703fe446cea"
+    },
+    {
+      "source": "work\\luna_binding\\sample_faces.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/sample_faces.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1868,
+      "sha256": "18f4fda86087f7a5c1a9b38c070f5c210d1d00997456055a12871a6d1a293489"
+    },
+    {
+      "source": "work\\luna_binding\\sample_faces_corrected.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/sample_faces_corrected.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1594,
+      "sha256": "d9c22319efcf8126396865532e2ce2e30c0ab019a1e0f69075b8621fbe9d1c9b"
+    },
+    {
+      "source": "work\\luna_binding\\sample_faces_corrected2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/sample_faces_corrected2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1565,
+      "sha256": "19e6fcde52f14cb2ade2b7196d792d14dc1f4c0d47ce8ae259d87bae64e9f3f6"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4750,
+      "sha256": "cf326306714a6b305576f481684141f18d35c5ac5394a7efc752b4695fecf16b"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk_final.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk_final.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4998,
+      "sha256": "8ae7a3a962be98589580df5f19b9e452566c4954f2a5148b6a1e49e332180a70"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4656,
+      "sha256": "a7a1a38e5a608be38a579b2544531fe8139f9fd2508c02bf360a6cd34cce313c"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk_v3.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk_v3.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4658,
+      "sha256": "e00eaf33b939eb2f5f5416cd9e165aebb0925d1fca7266461ce43576ea8db52c"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk_v4.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk_v4.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4866,
+      "sha256": "f074dc6187e9e528fc39a0bb56bb69ead37fe6de33c501defb19b2c55fed6496"
+    },
+    {
+      "source": "work\\luna_binding\\suffix_crosswalk_v6.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/suffix_crosswalk_v6.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5363,
+      "sha256": "828d23e48e708dfb15915e0493982b48982b2da332cbfa9dbf30f3ac98b0676c"
+    },
+    {
+      "source": "work\\luna_binding\\summarize_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/summarize_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 433,
+      "sha256": "99d828f5b52a582323230fd905cda0a2e367c6fae7198605ffaaf035de90f1ef"
+    },
+    {
+      "source": "work\\luna_binding\\vertex_tag_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/vertex_tag_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 332,
+      "sha256": "4992f4432d073e2cee4cdb61fc4c13c777521fdf8c1ed7ae83a837af0a4645c9"
+    },
+    {
+      "source": "work\\luna_binding\\write_alias_repack_evidence.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/write_alias_repack_evidence.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3390,
+      "sha256": "0c3835b50c1b26e0fccbddbbbb63916e2e776c6e19014de8ff7d9471cb559504"
+    },
+    {
+      "source": "work\\luna_binding\\zip_detail.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_binding/zip_detail.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 303,
+      "sha256": "b68ceab03d548aa2ef4e0f490e2c1eae3e52df1843ed6b1bc7d39f5c9e283508"
+    },
+    {
+      "source": "work\\luna_editor\\bounds.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/bounds.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 363,
+      "sha256": "21a9840672e8ad55b742f0e324c1bc55e49ba195ada5b89f322c6fd6eeab2fb3"
+    },
+    {
+      "source": "work\\luna_editor\\brighten_and_render.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/brighten_and_render.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1587,
+      "sha256": "385ba1b158eab60d9806a2f8972a3fa5bc591dbc7886d8d54755144b52d1e197"
+    },
+    {
+      "source": "work\\luna_editor\\build_editor.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/build_editor.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 11090,
+      "sha256": "085c5aeb4a501a6949b306b52fa7c5e9ee22c6448268ed2733d59de8200e99ff"
+    },
+    {
+      "source": "work\\luna_editor\\build_editor_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/build_editor_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 14593,
+      "sha256": "fe9342062acdb228390ece03aee4f2405e4db82365a89e11e891ba5154b568e7"
+    },
+    {
+      "source": "work\\luna_editor\\build_editor_v3.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/build_editor_v3.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 17802,
+      "sha256": "c5787e94ee65a0ee0f0a15e5e7b88689c842cbaa586277e85e44f457d152521c"
+    },
+    {
+      "source": "work\\luna_editor\\camera_adjust.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/camera_adjust.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1089,
+      "sha256": "520fa3af04df23639437acce0b23bcb37e8a8635a222328a14caf42049286412"
+    },
+    {
+      "source": "work\\luna_editor\\check_sidecar.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/check_sidecar.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 261,
+      "sha256": "2c8405e62d33f4586cb346113a131113f81148e5e4604c1c7ad3386c2848b32d"
+    },
+    {
+      "source": "work\\luna_editor\\extract_edit_delta.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/extract_edit_delta.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6952,
+      "sha256": "c3d7878115f3666ecebf1548dbb1ff732175bed754af7cac453b697ffde991db"
+    },
+    {
+      "source": "work\\luna_editor\\fix_ledger_wrap.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/fix_ledger_wrap.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 687,
+      "sha256": "f565ff71cdc596a85a85743a70448cbfad2764fcad2627a24bf462a0970ab435"
+    },
+    {
+      "source": "work\\luna_editor\\fresh_inspect.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/fresh_inspect.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1912,
+      "sha256": "56252599dc29a888116d567299f40bd3ac45ceaef465f04950a812cbd10e8ca9"
+    },
+    {
+      "source": "work\\luna_editor\\inject_dual_test_edge.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inject_dual_test_edge.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 931,
+      "sha256": "04c9ac4eaf43a4d05dc363bcd2c75a4c6c1efeddaf58c3bd53181f693a359c9c"
+    },
+    {
+      "source": "work\\luna_editor\\inject_global_test_edge.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inject_global_test_edge.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 754,
+      "sha256": "ca582a0d3eede6a2eb2f738f8e4b248b6d7c80ac82ef34e4d4447fcfa04eb6e5"
+    },
+    {
+      "source": "work\\luna_editor\\inject_test_edge.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inject_test_edge.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1113,
+      "sha256": "11233ee1353debec70e6ba1f45baf8961f342e01dad8633983b809c8fa8b377c"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_contact.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_contact.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 227,
+      "sha256": "dba13b1c60127aee0bdf2513083330552ecb7afaf79ba651ba09205204edca22"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_d6_blend.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_d6_blend.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 466,
+      "sha256": "d41f9b81b9a0c0fb010ffc4cec04ab322a3a53178002fd68902c4801f41aa52a"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_d6_nodes.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_d6_nodes.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 871,
+      "sha256": "8fcb6c5d1ac6066d6e99071bf369f279c3d51d16c2758afb87206e7a0641f460"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_d6_nodes_detail.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_d6_nodes_detail.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1093,
+      "sha256": "b6579feff4e574aa896cd53b56c80c4a2fd7b4f50c06f9031720b163978f6be0"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_embedded.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_embedded.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 565,
+      "sha256": "1db0fd85a7d5a12ce0d40c430a964a1753e871bec3515f8d6a3685daa89c0f1a"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_flower.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_flower.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 245,
+      "sha256": "7163eac86a11d1dc364556b722081384c3b5d67791a452eefeb2c5945d234172"
+    },
+    {
+      "source": "work\\luna_editor\\inspect_sources.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/inspect_sources.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 888,
+      "sha256": "edd0ef51d3b0f4ece9307bbe4479a5fcb06fd37a731771232df47693a4d946ca"
+    },
+    {
+      "source": "work\\luna_editor\\make_delete_fixture.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/make_delete_fixture.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 397,
+      "sha256": "d1a55f9030faff6254af7c0c54935f3b465b2b0f8818fcb43ed0b58312d878ad"
+    },
+    {
+      "source": "work\\luna_editor\\make_move_fixture.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/make_move_fixture.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 284,
+      "sha256": "4bfc4f9a214a08850487e34f8a90e9083d7cee5594c0f33026d85311cbb64b31"
+    },
+    {
+      "source": "work\\luna_editor\\make_reference_fixture.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/make_reference_fixture.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 284,
+      "sha256": "90248e6c75541a18dabebc5bdcbc903507bf232deaad80e709df1866b8a20e9c"
+    },
+    {
+      "source": "work\\luna_editor\\make_text_fixtures.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/make_text_fixtures.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 294,
+      "sha256": "8cb937e3e44ea2fcc9c93706bc50cd18a191b4facf3e56a416e1e54f93d9a2ad"
+    },
+    {
+      "source": "work\\luna_editor\\refine_preview.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/refine_preview.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1661,
+      "sha256": "85366de41c90eff7f93f9d291c742026a108273893a7ab6e96a3ba74cd1ad4b1"
+    },
+    {
+      "source": "work\\luna_editor\\render_preview.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/render_preview.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 560,
+      "sha256": "d622df9b384e2ede060223e42c27e93a2c91da03a3ebbc0a5a3151cff1a4458f"
+    },
+    {
+      "source": "work\\luna_editor\\save_copy.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/save_copy.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 195,
+      "sha256": "4cbe7f36613d69a6862782e202255bd369194c1c57f9f8a8298c4f9edc7150ec"
+    },
+    {
+      "source": "work\\luna_editor\\text_load_microtest.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/text_load_microtest.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 357,
+      "sha256": "5b31894b3360e7f6a6465cd0067a18edada171ec621c6aa53392cfda1b8e2c7a"
+    },
+    {
+      "source": "work\\luna_editor\\text_load_microtest2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_editor/text_load_microtest2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 433,
+      "sha256": "1da090122dac55da3d9107a3235cd1e744caf65a9097f0f6b7d0a943b9ad7b07"
+    },
+    {
+      "source": "work\\luna_visualizer\\bake_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/bake_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1991,
+      "sha256": "fa1769e1f99e21c11adae654d5f06e729aa985fe25139a29c5f5fbb5b13376fa"
+    },
+    {
+      "source": "work\\luna_visualizer\\benchmark_backend.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/benchmark_backend.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1911,
+      "sha256": "567a24f6d3e3b803f39c5f2fe1416f547a1ef4120651e7e42d8a7795c409abac"
+    },
+    {
+      "source": "work\\luna_visualizer\\bootstrap.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/bootstrap.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 925,
+      "sha256": "f3729d1d05d142debef8cc8b7803c9ddb3d4ecb75509dd5deed0447fef94c603"
+    },
+    {
+      "source": "work\\luna_visualizer\\fresh_reopen_test.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/fresh_reopen_test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 837,
+      "sha256": "24cd9e305a423857a8c4bddf22ea95b66cea18965a3cd68dda2f273ee082b0bf"
+    },
+    {
+      "source": "work\\luna_visualizer\\import_test.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/import_test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 313,
+      "sha256": "615c5daa3719037f595a7218ddbad92f4f6782c26567561598304d39d0dd9159"
+    },
+    {
+      "source": "work\\luna_visualizer\\inspect_camera.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/inspect_camera.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 53,
+      "sha256": "5a032bf25a2e86eeb14b3e31cb8efe67221fa616935351ca146198a35cb19be0"
+    },
+    {
+      "source": "work\\luna_visualizer\\inspect_state.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/inspect_state.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 424,
+      "sha256": "490121ea3e2a647a9a8564f568998dbd4e22b41a6ffccda73fff30ce43c2269a"
+    },
+    {
+      "source": "work\\luna_visualizer\\render_v2_preview.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/render_v2_preview.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1801,
+      "sha256": "e10827cdfc40f31068785e7937b3042452f80583f734c907979c7ef5d8185bac"
+    },
+    {
+      "source": "work\\luna_visualizer\\route_overlay.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/route_overlay.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 7783,
+      "sha256": "62f44c9cac7f5b7f054019ccc22fd522ea4c7a7a1e25e20db730240262e067ac"
+    },
+    {
+      "source": "work\\luna_visualizer\\route_v2_panel.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/route_v2_panel.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    },
+    {
+      "source": "work\\luna_visualizer\\validate_v2.py",
+      "archive": "tools/minia_author_workspace/historical_work/luna_visualizer/validate_v2.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6186,
+      "sha256": "734a31a9824e9310188c17a66439ba8cf3aa341359470d44e55df41f4baa721d"
+    },
+    {
+      "source": "work\\make_all_branches_view.py",
+      "archive": "tools/minia_author_workspace/historical_work/make_all_branches_view.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2658,
+      "sha256": "78b85bc42849bc998adf8458f6807459f76bfa578d06b17b38553b7a1ebc5622"
+    },
+    {
+      "source": "work\\make_deep_variant.py",
+      "archive": "tools/minia_author_workspace/historical_work/make_deep_variant.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2954,
+      "sha256": "cc2ae61882ea49a296fae0c06f76558b961d097c34074a6315970d074219db87"
+    },
+    {
+      "source": "work\\measure_permanent_base.py",
+      "archive": "tools/minia_author_workspace/historical_work/measure_permanent_base.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2180,
+      "sha256": "6d208a9db0e72a225e154c85a8aad370ca7f77afbc5496c734572f1e0a3d8f72"
+    },
+    {
+      "source": "work\\prepare_lower70.py",
+      "archive": "tools/minia_author_workspace/historical_work/prepare_lower70.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1955,
+      "sha256": "a8b80fecb4e8b7b28ff4349158a62be1c0b09eff0edc1c9377bf49604e34a485"
+    },
+    {
+      "source": "work\\prepare_route_delivery.py",
+      "archive": "tools/minia_author_workspace/historical_work/prepare_route_delivery.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1478,
+      "sha256": "703c6ceaaa63a24a0ae5f8638fbc5cccc85f4535c1366fbda01d599df4df8d31"
+    },
+    {
+      "source": "work\\quad_editor\\build_quad.py",
+      "archive": "tools/minia_author_workspace/historical_work/quad_editor/build_quad.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5372,
+      "sha256": "0b931deab40f16837923b1b4382ddf268fd81ce55c11c2fe7323da152b26e137"
+    },
+    {
+      "source": "work\\quad_editor\\fresh_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/quad_editor/fresh_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2988,
+      "sha256": "ed5d7237f84c1374a8ec433084f9567d9cb193ac71882682cf18b4e202ac6228"
+    },
+    {
+      "source": "work\\quad_editor\\inspect.py",
+      "archive": "tools/minia_author_workspace/historical_work/quad_editor/inspect.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1080,
+      "sha256": "05f22902bb85a46a959511f136d2a1e44550584d697e2760e231747b4bd51938"
+    },
+    {
+      "source": "work\\quad_editor\\inspect_latest.py",
+      "archive": "tools/minia_author_workspace/historical_work/quad_editor/inspect_latest.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1040,
+      "sha256": "1a59ae011c5dce38d4f4a71686c4f3b0447478c92e0a98920ce0a47ec9660fed"
+    },
+    {
+      "source": "work\\reinforce_bound.py",
+      "archive": "tools/minia_author_workspace/historical_work/reinforce_bound.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2013,
+      "sha256": "5ecedca175f955bf02fb0e0fa654b5bddb082d9dc3eca29011867b0d4b7d2845"
+    },
+    {
+      "source": "work\\reinforce_build.py",
+      "archive": "tools/minia_author_workspace/historical_work/reinforce_build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 4583,
+      "sha256": "6cc4c403caa61ade79d3d42c5e631fc3d6d5ea0e85840a9be488797f91e8c71f"
+    },
+    {
+      "source": "work\\reinforce_plan.py",
+      "archive": "tools/minia_author_workspace/historical_work/reinforce_plan.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 10586,
+      "sha256": "02bebcd2ec852144467423ead99e34e760f9a6e285f355363b349cfb72b4050f"
+    },
+    {
+      "source": "work\\reinforce_probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/reinforce_probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1584,
+      "sha256": "5ddc4eded79a2b03d7f3b22fb793430c6cbe53c155146360b4078f3d0b636887"
+    },
+    {
+      "source": "work\\reinforce_verify.py",
+      "archive": "tools/minia_author_workspace/historical_work/reinforce_verify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3244,
+      "sha256": "d7d987fafcd5eb60763e8449f5e93c6a3eb75ef3259cc0a99f31508f5bf668c9"
+    },
+    {
+      "source": "work\\repair_author_faces\\fresh_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/repair_author_faces/fresh_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1930,
+      "sha256": "da2e11024d6dd3139fc2b78b1327b2731dabf240419802373f707070e980abde"
+    },
+    {
+      "source": "work\\repair_author_faces\\repair_face.py",
+      "archive": "tools/minia_author_workspace/historical_work/repair_author_faces/repair_face.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3140,
+      "sha256": "e1d5e12b83b757ec86b5df9f80cd6fe295925cb7493d16b1575057e59dc22631"
+    },
+    {
+      "source": "work\\repair_display261009\\build_fixed.py",
+      "archive": "tools/minia_author_workspace/historical_work/repair_display261009/build_fixed.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 5504,
+      "sha256": "73b7972066ddb8d85f7a8e98ef3527d4da61ac2056f0eac12763f7bf241d14e2"
+    },
+    {
+      "source": "work\\repair_display261009\\fresh_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/repair_display261009/fresh_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1812,
+      "sha256": "21bc43b4b23873072a559ec72c032a6adb69d8d2b679f9e62676005c15e90574"
+    },
+    {
+      "source": "work\\repair_display261009\\inspect.py",
+      "archive": "tools/minia_author_workspace/historical_work/repair_display261009/inspect.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2472,
+      "sha256": "e9e7f12afe1ebddba1ab392f656cebf5ab18456451e39f8f6cdcb5bf42ae0b25"
+    },
+    {
+      "source": "work\\route_visualizer\\check_geometry_demo.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/check_geometry_demo.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2013,
+      "sha256": "98b37edb93a74a68c544a7af7aaa83ad72115b4c9e63024d07c18977cb79c929"
+    },
+    {
+      "source": "work\\route_visualizer\\find_test_endpoint.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/find_test_endpoint.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 689,
+      "sha256": "95019420322769ba16e8995266ab46fa86d1f36b47c3411434975e105396c632"
+    },
+    {
+      "source": "work\\route_visualizer\\make_route_report.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/make_route_report.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3042,
+      "sha256": "462f83778dac3df54872fb320e75ccb8c3accfab22dc17773d511692dc341ed7"
+    },
+    {
+      "source": "work\\route_visualizer\\real_graph.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/real_graph.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 16888,
+      "sha256": "0e813283c9b729e856e479d267bbb525315430f1a607ddb9b17ab623c1fc7ec3"
+    },
+    {
+      "source": "work\\route_visualizer\\route_analysis.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/route_analysis.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 9268,
+      "sha256": "9c8b781cbc4bb4853af221242bd3ccd6de9ecea24c04dbc45bb5b4374dd89cfd"
+    },
+    {
+      "source": "work\\route_visualizer\\test_route_analysis.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/test_route_analysis.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6459,
+      "sha256": "abecb4acbc29213a457be4a858591ce4eff89a42d53234fba84904a20957b6b6"
+    },
+    {
+      "source": "work\\route_visualizer\\test_runtime_locks.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/test_runtime_locks.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1426,
+      "sha256": "5ab5aa9031fef84acfa816a1af0f2bf2140df09bdb851c65818fec385e3d3d76"
+    },
+    {
+      "source": "work\\route_visualizer\\validate_height_events.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/validate_height_events.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1480,
+      "sha256": "cf6d7233d88e98a577af840b71a50ad0b581fbf1a0d5598937b9e93b96b742c8"
+    },
+    {
+      "source": "work\\route_visualizer\\validate_real_graph.py",
+      "archive": "tools/minia_author_workspace/historical_work/route_visualizer/validate_real_graph.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1789,
+      "sha256": "c03d5d7092e0e64b0ac218e4b4e063cfa35aa675fac513da870d575d101967ac"
+    },
+    {
+      "source": "work\\selected_contact_geometry.py",
+      "archive": "tools/minia_author_workspace/historical_work/selected_contact_geometry.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6977,
+      "sha256": "7d03e9e6db50ce8138c77fe4520811ff59b31d04496b9079f6795403b0161d9e"
+    },
+    {
+      "source": "work\\selected_point_view\\fresh_bootstrap_qa.py",
+      "archive": "tools/minia_author_workspace/historical_work/selected_point_view/fresh_bootstrap_qa.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1362,
+      "sha256": "47f4bff77cda193a53e18a2ba439f539a32fbc763b10dd74c7258b51e66a892d"
+    },
+    {
+      "source": "work\\selected_point_view\\inspect_author.py",
+      "archive": "tools/minia_author_workspace/historical_work/selected_point_view/inspect_author.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1154,
+      "sha256": "60166f10574655edae5f2364e94e666db3c1a3b249ff692dfd6c3aa5c0c35557"
+    },
+    {
+      "source": "work\\selected_point_view\\inspect_latest.py",
+      "archive": "tools/minia_author_workspace/historical_work/selected_point_view/inspect_latest.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 481,
+      "sha256": "7cbea47077221ba9c9a9d215cc2df5ec45e4fb29f8f57f2f30c447483a6fc866"
+    },
+    {
+      "source": "work\\selected_point_view\\qa_selected_point.py",
+      "archive": "tools/minia_author_workspace/historical_work/selected_point_view/qa_selected_point.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1806,
+      "sha256": "50170f49d75ee4a5b17fe7d8379f7f09cee7b13bc305fd4ed949730ad6534cb5"
+    },
+    {
+      "source": "work\\shared_clip\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/shared_clip/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3266,
+      "sha256": "161e83aaaffd885d61aa774f16dc471d0c3c606562ef21ccec41b2cc53bb6430"
+    },
+    {
+      "source": "work\\shared_clip\\write.py",
+      "archive": "tools/minia_author_workspace/historical_work/shared_clip/write.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3716,
+      "sha256": "c0ea55439650b7991596404b55235af28f4ae34b20dc4576669e6fadc21fb282"
+    },
+    {
+      "source": "work\\shortcut_editor\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/shortcut_editor/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2458,
+      "sha256": "93cb85c35a661dcfb040e9b9abb7a2a60925281e37998441f6358df5c14c5c78"
+    },
+    {
+      "source": "work\\shortcut_editor\\check_keys.py",
+      "archive": "tools/minia_author_workspace/historical_work/shortcut_editor/check_keys.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 280,
+      "sha256": "8a0858c1e8e3555330b7ec1ebbc02ef58e6f1bd0c5688b258a8491c2d0c0adf6"
+    },
+    {
+      "source": "work\\shortcut_editor\\verify.py",
+      "archive": "tools/minia_author_workspace/historical_work/shortcut_editor/verify.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1338,
+      "sha256": "331e44ad3801465af746851c3704100fc54537beed0e8361cbd9dfa74881ce50"
+    },
+    {
+      "source": "work\\single_view\\build.py",
+      "archive": "tools/minia_author_workspace/historical_work/single_view/build.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3174,
+      "sha256": "2804a5cc533233825a4b97986c8141d5ff0e3ba3c4a4a283df14d0d965f3b130"
+    },
+    {
+      "source": "work\\single_view\\fix_restore.py",
+      "archive": "tools/minia_author_workspace/historical_work/single_view/fix_restore.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 640,
+      "sha256": "60b59d1595c42bdf322d717af148305ab0f8e47af76ae961da77e75d06822345"
+    },
+    {
+      "source": "work\\single_view\\reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/single_view/reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1319,
+      "sha256": "dd8028c2548a39274bf7985f09d2b6635a3a8d13d8ce9fcf852c45550ec1d69a"
+    },
+    {
+      "source": "work\\single_view\\tilt.py",
+      "archive": "tools/minia_author_workspace/historical_work/single_view/tilt.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3934,
+      "sha256": "5bfb13b2ec3cd6760ba4851eef944f741132260a01acecf45ca918c42f848eab"
+    },
+    {
+      "source": "work\\single_view\\write.py",
+      "archive": "tools/minia_author_workspace/historical_work/single_view/write.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3916,
+      "sha256": "75804f870b92bed2866553b78faffe3800f0409206b0bbd09eadf367b299ab61"
+    },
+    {
+      "source": "work\\stage_small_repository.py",
+      "archive": "tools/minia_author_workspace/historical_work/stage_small_repository.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6162,
+      "sha256": "57184656799d3a6a6062ddc0639501978399c4b249bdaa4fcd599b628cd1b4a4"
+    },
+    {
+      "source": "work\\straight_audit.py",
+      "archive": "tools/minia_author_workspace/historical_work/straight_audit.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1500,
+      "sha256": "b0f005eafb03c0b9c3346d6748432bd3059a0f03074b4455d0089e58e1b34024"
+    },
+    {
+      "source": "work\\support_color_display\\build_display.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/build_display.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 16202,
+      "sha256": "8baaf2448edd0805366ddc65c401890cbb93a9f3c5672ba431ba2370d279ee0f"
+    },
+    {
+      "source": "work\\support_color_display\\finalize_display.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/finalize_display.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2523,
+      "sha256": "26a2ad88364c9c04b342601718bbd7521a5fa0f333d649ef60b26686834d66e5"
+    },
+    {
+      "source": "work\\support_color_display\\inspect_attr_types.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/inspect_attr_types.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 161,
+      "sha256": "6fc1559e0447a49ae2dcb03386cc9ed529a35b9dddcd036ffa52ca3012597760"
+    },
+    {
+      "source": "work\\support_color_display\\inspect_blend.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/inspect_blend.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 604,
+      "sha256": "aecb4e3a637271a9ad233ed7d3c8d8651d6217a5ab88d1b6c2c369defa5e11d4"
+    },
+    {
+      "source": "work\\support_color_display\\inspect_ledger.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/inspect_ledger.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 380,
+      "sha256": "449b78dc42ad3f98a0db70ba6b50e8e3fe98933652750fc87fd3e4f5cd4da925"
+    },
+    {
+      "source": "work\\support_color_display\\inspect_legend.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/inspect_legend.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 482,
+      "sha256": "586972d2e1cf5dc5f1e8a0ecd74646c026ab511028e87ea8a0d1ba04bfc8a3e4"
+    },
+    {
+      "source": "work\\support_color_display\\inspect_records.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/inspect_records.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 335,
+      "sha256": "7854e623253f1ce833ebc6cb1030c83ffa4e31fd260e1c8499d3556e8ade4c59"
+    },
+    {
+      "source": "work\\support_color_display\\verify_fresh.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_color_display/verify_fresh.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3032,
+      "sha256": "478068365691b7b8da13aed86e92bc193797cde20583fe8daa7487005b51a751"
+    },
+    {
+      "source": "work\\support_distance_colors.py",
+      "archive": "tools/minia_author_workspace/historical_work/support_distance_colors.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 11022,
+      "sha256": "74560657c7f29bf322d0220efe8f680e13220edeb1216c060b579eec7ab6bf64"
+    },
+    {
+      "source": "work\\update_fix\\build_test.py",
+      "archive": "tools/minia_author_workspace/historical_work/update_fix/build_test.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 3067,
+      "sha256": "aaf53ab59a34148df8bb70e0da92e1987b2283a5c1b7f614985c9d72cbe5c9f3"
+    },
+    {
+      "source": "work\\update_fix\\probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/update_fix/probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 517,
+      "sha256": "15a3745649e087cd2ccc087facf7bebe16059c0177a11ba913e118003910e216"
+    },
+    {
+      "source": "work\\update_fix\\write.py",
+      "archive": "tools/minia_author_workspace/historical_work/update_fix/write.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2326,
+      "sha256": "fc08972edb5c32b95e4371a863e2b58bc3606096758b765fd6f3bced8d35e278"
+    },
+    {
+      "source": "work\\update_route_checkpoint.py",
+      "archive": "tools/minia_author_workspace/historical_work/update_route_checkpoint.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 6000,
+      "sha256": "5b1506cbbbb4f1077e70a3bb83db7609f7645f5d5f67fcd9c32ef3bfa4c98297"
+    },
+    {
+      "source": "work\\verify_delivered_launcher.py",
+      "archive": "tools/minia_author_workspace/historical_work/verify_delivered_launcher.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1745,
+      "sha256": "74fbebdb691cf3e878083d8096a7fbd5002840f90d524a6b30c653d2a631d464"
+    },
+    {
+      "source": "work\\verify_preserved_inputs.py",
+      "archive": "tools/minia_author_workspace/historical_work/verify_preserved_inputs.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 1142,
+      "sha256": "9de0ee284a19fb2929bb47d3aa18e71ad2097c7eb2d9e05eb8e62dcaf686bc2f"
+    },
+    {
+      "source": "work\\verify_selected_gcode.py",
+      "archive": "tools/minia_author_workspace/historical_work/verify_selected_gcode.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2452,
+      "sha256": "f2b79fa16aa6e049f14771d6712c84e786cf42bb0d3aec5e66683e5f906ead2b"
+    },
+    {
+      "source": "work\\verify_v2_guard.py",
+      "archive": "tools/minia_author_workspace/historical_work/verify_v2_guard.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 720,
+      "sha256": "5b78c5508acb94353ebc2ec594d0f205774d49300d7f6e19caf30bac743f84ce"
+    },
+    {
+      "source": "work\\view_clip\\build_clip.py",
+      "archive": "tools/minia_author_workspace/historical_work/view_clip/build_clip.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 7308,
+      "sha256": "a3e09f0455560380b7bb622dce36c823e9d2459e3abd3d3c8d65a7ade393fcda"
+    },
+    {
+      "source": "work\\view_clip\\fresh_reopen.py",
+      "archive": "tools/minia_author_workspace/historical_work/view_clip/fresh_reopen.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 2707,
+      "sha256": "4359c9be53fc831b58c484741945b9992007698bdb22704244db5c51e70e4bfd"
+    },
+    {
+      "source": "work\\view_clip\\probe.py",
+      "archive": "tools/minia_author_workspace/historical_work/view_clip/probe.py",
+      "role": "historical builder/probe; inspect before running",
+      "bytes": 241,
+      "sha256": "ed4b2ee63ff275da4d88dd2be679132d2f95359d6b174d07dc9d051f90371e1f"
+    },
+    {
+      "source": "outputs\\MINIA_OPTIMIZER\\GUI_PREVIEW.png",
+      "archive": "docs/evidence/minia_author_workspace/GUI_PREVIEW.png",
+      "role": "previous GUI self-test screenshot, not current metrics",
+      "bytes": 50593,
+      "sha256": "ec40222bc54933dc3163b0135472e29d528c0f50bf7180734aec489fd81cf55a"
+    }
+  ]
+}

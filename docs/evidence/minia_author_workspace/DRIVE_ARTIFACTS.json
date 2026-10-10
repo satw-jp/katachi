@@ -1,0 +1,336 @@
+{
+  "captured_utc": "2026-10-10T01:10:04.191589+00:00",
+  "note": "Hashes identify local artifacts at capture; no source artwork/binaries uploaded. Working files can subsequently change.",
+  "artifacts": [
+    {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_D6_SIZE_RHYTHM_V2\\data\\host.npz",
+      "bytes": 2493369,
+      "sha256": "c44ea6883c20d1dafcde094c108f06ac2380e0f4d946356279b21a1442eb62ae",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\COLOR_PATH_GRAPH.json.gz",
+      "bytes": 3467897,
+      "sha256": "43432ba7933ec2fcf0a99bc188b0b0bbfbea95094ac9b95e9d37d26f495aae4e",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\color_path_runtime\\networkx-3.6.1.zip",
+      "bytes": 1072863,
+      "sha256": "c6f93441024fe41f7605bf80eea5aa53ed15e2c9834d913c2e2e001a40dabb52",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\DECISION_OWNER_REVIEW.json",
+      "bytes": 1331,
+      "sha256": "91909b759d19511c0adf3b563d916ab7186d6ce5a32a70a6511aa92245bd7559",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\EDITOR_REVIEW.json",
+      "bytes": 1057,
+      "sha256": "5c72f20aba2ada01ed4e9fcdc8951582abdc3ee8b8a567fc1fe9b986a3ead771",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_BRANCHES_VIEW.blend",
+      "bytes": 10911729,
+      "sha256": "d482699c81ae4dd08f0a26edf8e718e1f3882ccbcec669bb9b0fbb55064b3ce0",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR.blend",
+      "bytes": 11779970,
+      "sha256": "ac1577b0ad126bf698f600ce80d53e457f3dd943a691eaac778514db8c6d8d2e",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author.blend",
+      "bytes": 11850882,
+      "sha256": "3e57e50acc61832e59ff2a5d0caf87e6240e212c8fe9b3e79566810d37b26ce1",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author2.blend",
+      "bytes": 11859228,
+      "sha256": "94a69e136df6ec5430a48d03dfbe5ce4c63bc24986030e6beedfff4b1d7d78bd",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered.blend",
+      "bytes": 11895272,
+      "sha256": "88f332236bfd1ea748028dfae074ca8e9e3bdcda1435eb8155bb759976019375",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered_261009.blend",
+      "bytes": 11904121,
+      "sha256": "34f2eee08e4f2b0e4575350f74bea481c39fdb15d3b3a14bd4e3811ed8cb757b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered_261009_display_fixed.blend",
+      "bytes": 11876168,
+      "sha256": "e16e1d24fb13c0e707d937dc6a62e73600b44287464bbefc97260ee270313fe6",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered_2610100_035_display_fixed.blend",
+      "bytes": 11936784,
+      "sha256": "ce0c83ea36c3c726cc52737f11c1fd31150337f0f1ffe3a5833fca08ba09fb46",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered_2610100_035_display_fixed_quad.blend",
+      "bytes": 11926286,
+      "sha256": "f5854892b0fcbfcd99adbe2feffbe1884cc30e2ec1ac2482f030162ad7569f2c",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_ALL_LINES_RISK_EDITOR_author_recovered_2610100_035_display_fixed_quad_clip.blend",
+      "bytes": 11927968,
+      "sha256": "94174a7b5fea288cb7b4396549a54757fa4bdad46bbc82235b29afd8e09bc468",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_AUTO_POINTS_10MM.blend",
+      "bytes": 12040640,
+      "sha256": "726d56458a3e4fb0df7e5034263731ab52cecf36e071aa1f6474439ff7cf3d8c",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_COLOR_PATH_EDITOR.blend",
+      "bytes": 11738842,
+      "sha256": "d95ba28f40ba89c5c259b4b572d000df4ad3a7ca6f65a843ccb9602155046b0b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_COLOR_PATH_MIDPOINT_EDITOR.blend",
+      "bytes": 11773986,
+      "sha256": "333371557fc6277c1a05d1fd7762d8a20b11f68c6dc9f6d0e47327fae9021137",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_COLOR_UPDATE_FIXED.blend",
+      "bytes": 12112916,
+      "sha256": "b04503a8165f3a196ade18480fbd2f935243c40d1b768fa97a2d97a559f131ea",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_DEEP_BRANCH_REVIEW.blend",
+      "bytes": 12608268,
+      "sha256": "8a3df551e2bbec7416a087bded21637270a27a37e49113204fcf3b15ecdfc3a8",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_DEEP_BRANCH_REVIEW.json",
+      "bytes": 3749,
+      "sha256": "1340c14e81c3910e06e49d92ac5a534dfa574ffffeb4a1f5b4132b7f11d00168",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_DEPTH_PATH_EDITOR.blend",
+      "bytes": 11780154,
+      "sha256": "adcc93b55c3d212f9329ca0d7c743dece2cd4881430e269dc3615fcdc307bc47",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_INTERNAL_REPAIR_EDITOR_V1.blend",
+      "bytes": 10905361,
+      "sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_INTERVAL_DELETE.blend",
+      "bytes": 12145409,
+      "sha256": "d7c16e7071d21a5ab6532ace2e78ad5c813c6dbb878f3c9d0c89feb1cbe4f23d",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend",
+      "bytes": 10912996,
+      "sha256": "8fca3c927be92b4eabd47051810df036ee718c246b491782032263c380178d6f",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOCAL_REINFORCED_REVIEW.blend",
+      "bytes": 12737951,
+      "sha256": "860ea87dadf6717d14124439827895e40a524ea16e826ca7979820ffea2ea838",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOCAL_REINFORCED_REVIEW.json",
+      "bytes": 3164,
+      "sha256": "0d67b2e57449926d40022b707f4d9e5b270849d79356cd6bbd8ab53ff56d5f83",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOWER50_BRANCHING_REVIEW.blend",
+      "bytes": 12891002,
+      "sha256": "eb18aefbd7f3629e376a18721f8f45942cc5ab03d5ef40767f8b55f6466727c8",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOWER50_BRANCHING_REVIEW.json",
+      "bytes": 3671,
+      "sha256": "e3ba188306549fe18fba2a1dfcc45ad4bdc5e0296951c3b2075f64106aea45d0",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOWER70_BRANCHING_REVIEW.blend",
+      "bytes": 13024240,
+      "sha256": "0375cb81d6f371840eecb4a7634428efb171883036c4f2a179f9d10216f2ae3d",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LOWER70_BRANCHING_REVIEW.json",
+      "bytes": 26592,
+      "sha256": "23103d797feac592217b38e81ab9e7a30a718b37e3c18c9b9dac1594e3af7ddb",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\checkpoint.json",
+      "bytes": 1559349,
+      "sha256": "269e29c6384622d0896efc2273d7456e42c87ff5d09c8cb1e879db89f2e1ee73",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\execution.json",
+      "bytes": 176,
+      "sha256": "8d3e22dd9b4053aa5fe6be3943b9ab8f13f5361e6150b7224caa96c69545694c",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\latest_verified.json",
+      "bytes": 475,
+      "sha256": "f83d7b355fcfd64e4aa3ff65088f78a6e1298b5d7f7133abbe99f5149b8de260",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_001.blend",
+      "bytes": 13023216,
+      "sha256": "082e56e8c8bfe87738bfe32e706d6244a38a0dc4aa7121a37e192dfbf8cf03d7",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_003.blend",
+      "bytes": 13028578,
+      "sha256": "87c34d87266096e011ee2c8e99fcc80b5979d00481af1febb57537cfec2e57a0",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_004.blend",
+      "bytes": 13034393,
+      "sha256": "ec2b7c5ec406628906e4c06da5ddc380f1bb81fc1d5caa116e5e204cde668847",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_005.blend",
+      "bytes": 13046161,
+      "sha256": "9ad48a037d53e5481b59a212ab2f24971d2596f24351de737ffbed38a579eddd",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_006.blend",
+      "bytes": 13078756,
+      "sha256": "960e8e815f220be0160f2e95c74eb2aaf2fb631d0cf520679f779ea43788b9f1",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\MINIA_AUTO_100_RUN_007.blend",
+      "bytes": 13078716,
+      "sha256": "b0f4180d4c1dcfe5dcd70de85a990da23fc64ce4e1b59d869977759ba3e4a616",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_001.json",
+      "bytes": 2803315,
+      "sha256": "0bc1734a956fd7d0fd68ca98e823c48f77dc441c56203101fabaea3f5187df17",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_003.json",
+      "bytes": 2817352,
+      "sha256": "a30e21e34c454545b81a0f0417df7690e2a56fd9c4c3d0d2798170cee6da9a91",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_004.json",
+      "bytes": 2845827,
+      "sha256": "958fd5ab36504624a095d446ddca8bc89dc2b944d4ee790e4b5fc9413412129b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_005.json",
+      "bytes": 2915045,
+      "sha256": "6eacd340dba31feff3956795e7ec2abea9e1303e7ab05606604323a2c6e6f99e",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_006.json",
+      "bytes": 3012620,
+      "sha256": "f000ab9bee4409bbba44185531379363bd2c70cd376d4a60b594c8c5e4734b3b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\RUN_007.json",
+      "bytes": 3012620,
+      "sha256": "424f6c6807d1fdaf2a315eb2abca321070fb921971cc314025b239f2ca8e323b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_OPTIMIZER\\status.json",
+      "bytes": 216,
+      "sha256": "038d6849064dcd1d844242c48a5a95d2a23a7f4fc2816e1e38a96db45dac263f",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_POINTS_ON_COLOR_UPDATE.blend",
+      "bytes": 12101934,
+      "sha256": "eed40b7bf4b39899c71933857c61cccdbc2883e88044071fa675442aa997a12f",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_QUAD_CLIP_CONTROLS_FIXED.blend",
+      "bytes": 11924523,
+      "sha256": "b9e621b55213e0f7ddbcb34a3e762b8f452ff4caae5deeef9b43b620e1c1d1a3",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_QUAD_CLIP_FIXED.blend",
+      "bytes": 11926858,
+      "sha256": "c5085eb0771f08ad78cab93ba56461c65557b0fc1810429c9952edd2d9dea216",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_QUAD_SHARED_CLIP.blend",
+      "bytes": 11994638,
+      "sha256": "e9d78cb441dd16eb025adb3b856d802a7506c2ae9e2b83b8eb907c5448ff51ce",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_SINGLE_TILTED_CLIP.blend",
+      "bytes": 12015399,
+      "sha256": "dd063ec1a62b29d16363d203da8f8f320cf35b7986c8e1abad93fd2ccb21e70b",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_SUPPORT_DISTANCE_COLORS.blend",
+      "bytes": 11846868,
+      "sha256": "11dfa1dedd1a63def2b81ff1cd39f10a55dc9463a9b29d1f0961bb80b65542ad",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\SUPPORT_DISTANCE_COLORS.json",
+      "bytes": 8999459,
+      "sha256": "bbce0fcefb78e7608fa9aa71fd7daf2fed25e7c7e5bc82ab2df7d469f2b7ad7f",
+      "storage": "external Drive; not uploaded"
+    },
+    {
+      "path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\V2_REVIEW_ROUND_1.json",
+      "bytes": 1657,
+      "sha256": "c035c28a113bfcc7c41c1ed3597ce326544be989fafc53886f8038ff51f85fae",
+      "storage": "external Drive; not uploaded"
+    }
+  ]
+}

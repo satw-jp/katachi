@@ -1,0 +1,78 @@
+{
+  "status": "PASS_EDIT_DELTA",
+  "editor_blend_path": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\work\\luna_editor\\MINIA_EDITOR_TEST_GLOBAL_ADD.blend",
+  "editor_blend_sha256": "b23a8e74e69dbd4f86979217cb7533c7b0b649877ef3658525423380dcb08293",
+  "baseline_editable_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+  "ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "source_record_count": 9421,
+  "anchor_checks": [
+    {
+      "object": "AUTHOR_EDIT_ALL \u2022 protected point baseline",
+      "expected_anchors": 18842,
+      "actual_vertices": 18842,
+      "edges": [
+        {
+          "branch_id": "AUT-0518CBA8DF52",
+          "endpoint_anchor_ids": [
+            "A0001:START",
+            "A0002:END"
+          ],
+          "endpoint_source_record_ids": [
+            "A0001",
+            "A0002"
+          ],
+          "points_plate_mm": [
+            [
+              78.89027404785156,
+              40.0579948425293,
+              65.216064453125
+            ],
+            [
+              16.390819549560547,
+              105.59921264648438,
+              64.33087158203125
+            ]
+          ],
+          "status": "AUTHOR_CENTERLINE_ONLY_NOT_MATERIALIZED"
+        }
+      ]
+    },
+    {
+      "object": "AUTHOR_EDIT_DEMO \u2022 24 endpoints, select two then F",
+      "expected_anchors": 24,
+      "actual_vertices": 24,
+      "edges": []
+    }
+  ],
+  "source_reference_count": 7,
+  "new_edge_count": 1,
+  "new_branches": [
+    {
+      "branch_id": "AUT-0518CBA8DF52",
+      "endpoint_anchor_ids": [
+        "A0001:START",
+        "A0002:END"
+      ],
+      "endpoint_source_record_ids": [
+        "A0001",
+        "A0002"
+      ],
+      "points_plate_mm": [
+        [
+          78.89027404785156,
+          40.0579948425293,
+          65.216064453125
+        ],
+        [
+          16.390819549560547,
+          105.59921264648438,
+          64.33087158203125
+        ]
+      ],
+      "status": "AUTHOR_CENTERLINE_ONLY_NOT_MATERIALIZED"
+    }
+  ],
+  "weak_point_markers": [],
+  "issues": [],
+  "slice_send_print_count": 0
+}

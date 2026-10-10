@@ -1,0 +1,27 @@
+{
+  "purpose": "Local Blender route runtime; original source JSON paths remain hash-locked in SOURCE_BINDING/TRANSFORM_AND_REFERENCE_LOCKS.",
+  "networkx_version": "3.6.1",
+  "networkx_license": "BSD-3-Clause, license included inside dependency ZIP",
+  "files": {
+    "networkx-3.6.1.zip": {
+      "bytes": 1072863,
+      "sha256": "c6f93441024fe41f7605bf80eea5aa53ed15e2c9834d913c2e2e001a40dabb52"
+    },
+    "real_graph.py": {
+      "bytes": 16888,
+      "sha256": "0e813283c9b729e856e479d267bbb525315430f1a607ddb9b17ab623c1fc7ec3"
+    },
+    "route_analysis.py": {
+      "bytes": 9268,
+      "sha256": "9c8b781cbc4bb4853af221242bd3ccd6de9ecea24c04dbc45bb5b4374dd89cfd"
+    },
+    "route_overlay.py": {
+      "bytes": 7783,
+      "sha256": "62f44c9cac7f5b7f054019ccc22fd522ea4c7a7a1e25e20db730240262e067ac"
+    },
+    "route_v2_panel.py": {
+      "bytes": 31418,
+      "sha256": "838020d4d82ecb618290acc8654d5dee1c8b68dc394512132bd75d8d85bef312"
+    }
+  }
+}

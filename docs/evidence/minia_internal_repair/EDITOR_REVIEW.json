@@ -1,0 +1,26 @@
+{
+  "decision": "PASS",
+  "gate": "MINIA_AUTHOR_INTERNAL_REPAIR_EDITOR_READY",
+  "reviewer": "Astra",
+  "review_round": 2,
+  "fix_cycles_used": 1,
+  "editor_sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24",
+  "evidence": [
+    "EDITOR_BUILD_MANIFEST.json",
+    "EDITOR_FRESH_OPEN_QA.json",
+    "NOOP_ROUNDTRIP.json",
+    "TEST_ADDITION_ROUNDTRIP.json",
+    "GLOBAL_ADDITION_ROUNDTRIP.json",
+    "MOVE_DETECTION_TEST.json",
+    "DELETE_DETECTION_TEST.json",
+    "REFERENCE_MUTATION_TEST.json",
+    "MINIA_INTERNAL_REPAIR_EDITOR_PREVIEW.png"
+  ],
+  "scope": "Basic non-manufacturing editor only. Fresh-process data/operator checks and rendered P1/P2 preview reviewed.",
+  "author_gui_acceptance": "UNVERIFIED",
+  "physical_strength": "UNVERIFIED",
+  "route_visualizer_status": "CONTINUING_SEPARATELY",
+  "follow_up_recommendations": [
+    "Display-only Curve bevel/radius parameters are not currently included in the geometry fingerprint; underlying source radius records remain locked in the ledger."
+  ]
+}

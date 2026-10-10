@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "method": "Fresh Blender --factory-startup --background, actual delivered .blend and --python bootstrap followed by read-only verification. No GUI launched.",
+  "blend": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_LAYERWISE_ROUTE_VISUALIZER_V2.blend",
+  "blend_sha256": "8fca3c927be92b4eabd47051810df036ee718c246b491782032263c380178d6f",
+  "bootstrap": "MINIA_ROUTE_BOOTSTRAP.py",
+  "panel_registered": true,
+  "timer_registered": true,
+  "state": "CURRENT",
+  "edit_count": 0,
+  "initial_height_mm": 43.20000076293945,
+  "initial_mode": "PRINTING_WITH_SUPPORT",
+  "graph_count": 2,
+  "geometry_witness_lower_bound": 2,
+  "poll_seconds": 0.1781888000004983,
+  "evaluation_seconds": 9.47454419999849,
+  "physical_route_count": "UNVERIFIED",
+  "author_gui": "UNVERIFIED"
+}

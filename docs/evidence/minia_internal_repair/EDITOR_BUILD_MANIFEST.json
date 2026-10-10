@@ -1,0 +1,106 @@
+{
+  "status": "MINIA_INTERNAL_REPAIR_EDITOR_V1_READY_FOR_REVIEW",
+  "editor_blend": {
+    "file": "MINIA_INTERNAL_REPAIR_EDITOR_V1.blend",
+    "bytes": 10905361,
+    "sha256": "11be470c5194f17349eeb1ac4ba473af21275ffb2667f62dc7e8383396652c24"
+  },
+  "embedded_ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "baseline_editable_3mf_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+  "native_source_lock_sha256": "04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded",
+  "blender": "5.2.2 LTS",
+  "source_records": 9421,
+  "source_groups": {
+    "A_ORIGINAL": 4240,
+    "LOCAL_LOBE": 3,
+    "FROZEN_ROOT": 5178
+  },
+  "source_reference_fingerprint_objects": 7,
+  "demo_member_ids": [
+    "G0165",
+    "C0016",
+    "G0181",
+    "C0031",
+    "A3457",
+    "LR002",
+    "R5_F3457_P1..P6"
+  ],
+  "demo_example_points": [
+    "P1 = G0181 START",
+    "P2 = A3457 END"
+  ],
+  "tests": {
+    "TEST_ADDITION_ROUNDTRIP.json": {
+      "status": "PASS_EDIT_DELTA",
+      "editor_blend_sha256": "ee521d898e98f75917738f72751ad496ec77454c4b186e0f899b63010f3c77d1",
+      "new_edge_count": 1,
+      "issues": []
+    },
+    "MOVE_DETECTION_TEST.json": {
+      "status": "HOLD",
+      "editor_blend_sha256": "1d0c24dd0329912299f86c89164b94df97f95bb91b7b2a2f3d576d2b2cf61cca",
+      "new_edge_count": 0,
+      "issues": [
+        "PROTECTED_ANCHOR_MOVED"
+      ]
+    },
+    "GLOBAL_ADDITION_ROUNDTRIP.json": {
+      "status": "PASS_EDIT_DELTA",
+      "editor_blend_sha256": "b23a8e74e69dbd4f86979217cb7533c7b0b649877ef3658525423380dcb08293",
+      "new_edge_count": 1,
+      "issues": []
+    },
+    "DUAL_LAYER_DEDUP_TEST.json": {
+      "status": "PASS_EDIT_DELTA",
+      "editor_blend_sha256": "142b9816880ab5a8427d825097699a0c52f2f60dcb017e7f2284bc9f070afbf7",
+      "new_edge_count": 1,
+      "dedup_observed": true,
+      "issues": []
+    },
+    "NOOP_ROUNDTRIP.json": {
+      "status": "PASS_NOOP",
+      "editor_blend_sha256": "4e5828eca141cbdebf4c7844db03625dd6c7fd76474111eec09dc6dddb7263ab",
+      "new_edge_count": 0,
+      "issues": []
+    },
+    "DELETE_DETECTION_TEST.json": {
+      "status": "HOLD",
+      "editor_blend_sha256": "7b7777588e23c224db6c7344f15035ccdb6ceb8b11b029808f7e536fa248d0f0",
+      "new_edge_count": 0,
+      "issues": [
+        "ANCHOR_COUNT_OR_ID_CHANGED",
+        "ANCHOR_DELETED_OR_REINDEXED"
+      ]
+    },
+    "REFERENCE_MUTATION_TEST.json": {
+      "status": "HOLD",
+      "editor_blend_sha256": "76aff60d76a2cdd6e40df3957705b4a541de0c1873ed31bf12cd65a2746762c7",
+      "new_edge_count": 0,
+      "issues": [
+        "SOURCE_REFERENCE_FINGERPRINT_CHANGED"
+      ]
+    }
+  },
+  "preview": {
+    "file": "MINIA_INTERNAL_REPAIR_EDITOR_PREVIEW.png",
+    "sha256": "1cd945495d94a7cbbab24b6145926c333a8641a685a0728828a83eda955f2884"
+  },
+  "guide": "AUTHOR_EDIT_GUIDE.md",
+  "extractor": "MINIA_EXTRACT_EDIT_DELTA.py",
+  "scope": {
+    "manufacturing_geometry_changed": false,
+    "centerline_solid_created": false,
+    "sliced": 0,
+    "sent": 0,
+    "printed": 0
+  },
+  "limitations": [
+    "New edges are author centerline records only and are not materialized.",
+    "F3457 flower is a D6 template proxy; assignment-specific variant is not reconstructed.",
+    "DEMO region and selected contact records do not establish damage location or global strength.",
+    "Reference mesh geometry, IDs, transforms and presence are fingerprinted; object visibility, material and selection are not.",
+    "No bytewise editable-3MF repack prefix comparison is claimed by source-binding evidence."
+  ],
+  "guide_sha256": "9f465f93882a6c5d849e57f07671ae813384a1d52ba5942ec9aeceebed9cf72f",
+  "extractor_sha256": "c3d7878115f3666ecebf1548dbb1ff732175bed754af7cac453b697ffde991db"
+}

@@ -1,0 +1,102 @@
+{
+  "status": "TRANSFORM_CHAIN_VERIFIED_FROM_ACTUAL_EDITABLE_METADATA_AND_SOURCE_ASSEMBLY",
+  "editable_path": "J:\\My Drive\\codex\\2026-09-22\\skin-fukei-slice-runner-execution-3\\outputs\\MINIA_PLA_EDITABLE_REPACKED.3mf",
+  "model_metadata_sha256": "ddd617719ed1366e06df7d8dd0ff5663ad98234924a544f5d5c669c7da6ee5c2",
+  "components": [
+    {
+      "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}path": "/3D/Objects/object_1.model",
+      "objectid": "1",
+      "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}UUID": "00010000-b206-40ff-9872-83e8017abed1",
+      "transform": "1 0 0 0 1 0 0 0 1 127.541795731 129.905210495 105.851430301"
+    },
+    {
+      "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}path": "/3D/Objects/object_2.model",
+      "objectid": "3",
+      "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}UUID": "00020000-b206-40ff-9872-83e8017abed1",
+      "transform": "1 0 0 0 1 0 0 0 1 128.000001907 127.999998093 104.233085652"
+    }
+  ],
+  "build": {
+    "objectid": "5",
+    "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}UUID": "1bfd5aab-4a0d-42ab-9f0a-2036f44cca48",
+    "transform": "0.733333333333333 0 0 0 0.733333333333333 0 0 0 0.733333333333333 -3.86666666666666 -3.86666666666666 0",
+    "printable": "1"
+  },
+  "source_stl_translation_mm": [
+    127.4388542175293,
+    129.89307022094727,
+    1.7660574107474478
+  ],
+  "source_world_to_plate_scale": 0.733333333333333,
+  "source_world_to_plate_translation_mm": [
+    89.58849309285478,
+    91.38825149536129,
+    1.295108767881461
+  ],
+  "route_translation_error_mm": 4.263256414560601e-14,
+  "apply_to_centerline_source_once": true,
+  "do_not_apply_scale_again_to_editor_plate_coordinates": true,
+  "locks": {
+    "flower_source": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_D6_SIZE_RHYTHM_V2\\data\\surface.json",
+      "sha256": "1bd5efb438fa4423826f912342a43d716a2f506c288daf8696c03903b82e2b05",
+      "bytes": 5429220
+    },
+    "flower_print_assignment": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\data\\FLOWER_PRINT_ASSIGNMENT.json",
+      "sha256": "69a89c91fb644c5d99e9179cc39171087d2e62eca2a30d886a7b1a742592c9eb",
+      "bytes": 248176
+    },
+    "support_source": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\data\\support_geometry.json",
+      "sha256": "ba38bb5f52212c214d42bec859ac83d58be7793b693f27c8aae4160bc08ba758",
+      "bytes": 24948859
+    },
+    "addition_id_map": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\data\\ADDITIONS_3MF_ID_MAP.json",
+      "sha256": "d9c852314e24d59fcf61db3da430ba700e9aca91b42dbcb4a2432c280bfb63b9",
+      "bytes": 731838
+    },
+    "assembly": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\data\\ASSEMBLY.json",
+      "sha256": "92831e32f59e58985249cfa5466a97b04b86d223280b9c9d2796c1ba654fe9c1",
+      "bytes": 1225
+    },
+    "route_geometry": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_ROOT_LAUNCH_R5\\routes\\MINIA_PLA\\data\\ROUTE_GEOMETRY.json",
+      "sha256": "87da1d70ee3a0dc1566a0100639745059e592c8d4d26a224fd274715f25ac7e9",
+      "bytes": 882
+    }
+  },
+  "saved_settings": {
+    "printer_model": "Bambu Lab A1 mini",
+    "nozzle_diameter": [
+      "0.4"
+    ],
+    "filament_type": [
+      "PLA"
+    ],
+    "layer_height": "0.2",
+    "initial_layer_print_height": "0.2",
+    "nozzle_temperature": [
+      "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+      "240"
+    ],
+    "textured_plate_temp": [
+      "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+      "65"
+    ],
+    "sparse_infill_density": "100%",
+    "sparse_infill_pattern": "alignedrectilinear",
+    "raft_layers": "2",
+    "enable_support": "0",
+    "filament_retraction_length": [
+      "0"
+    ]
+  },
+  "settings_are_not_actual_toolpath_or_telemetry": true
+}

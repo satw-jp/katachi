@@ -1,0 +1,31 @@
+{
+  "reviewer": "Astra",
+  "decision": "fix-required",
+  "scope": "Required V2 N-panel runtime and automatic invalidation; no GUI operation was performed.",
+  "review_round": 1,
+  "fix_cycle": 1,
+  "findings": [
+    {
+      "requirement": "The N-panel must remain operable while editing and after external input changes.",
+      "finding": "Panel.draw invokes stale setters that mutate Scene ID properties; move mutation to a safe handler/timer and keep draw read-only.",
+      "acceptance": "Read-only draw path plus explicit safe polling/handler tests for Edit Mode and source/contact changes."
+    },
+    {
+      "requirement": "An Author edit automatically invalidates old results and hides their overlay.",
+      "finding": "Initial test manually called the stale setter after an edge addition and therefore did not verify automatic invalidation.",
+      "acceptance": "Live mesh/BMesh mutation triggers the production poll/handler; assert stale state, cleared results and hidden overlay without calling the stale setter in the test."
+    },
+    {
+      "requirement": "Virtual failure applies to the selected physical branch or joint ID.",
+      "finding": "Failure enum item order depends on the graph available at the current height; implicit numeric indices can change the selected identity after reevaluation.",
+      "acceptance": "Stable item numbers and retained enum strings; selection remains the same identity across height/mode changes, or explicitly resets and becomes stale."
+    }
+  ],
+  "unchanged_limits": {
+    "author_gui": "UNVERIFIED",
+    "physical_strength": "UNVERIFIED",
+    "new_slice": 0,
+    "send": 0,
+    "print": 0
+  }
+}

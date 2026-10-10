@@ -1,0 +1,20 @@
+{
+  "status": "PASS_FRESH_OPEN",
+  "blend": "J:\\My Drive\\codex\\2026-10-09\\files-pasted-by-the-user-astra\\outputs\\MINIA_INTERNAL_REPAIR_EDITOR_V1.blend",
+  "source_records": 9421,
+  "groups": {
+    "A_ORIGINAL": 4240,
+    "LOCAL_LOBE": 3,
+    "FROZEN_ROOT": 5178
+  },
+  "flowers": 4283,
+  "support_objects": 22373,
+  "support_points": 49819,
+  "support_record_index_attribute": 49819,
+  "demo_anchors": 24,
+  "demo_edges": 0,
+  "flower_template_vertices": 32574,
+  "ledger_sha256": "ca3206e2f8cf4fda8685bb33fc036ffcc6e7877bf9084a7bbe8036a70d578b64",
+  "manufacturing_geometry_changed": false,
+  "slice_send_print_count": 0
+}

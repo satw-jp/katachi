@@ -1,0 +1,59 @@
+{
+  "source_native_aliases": {
+    "source_lock": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\delivery\\A_A1_EDITABLE.3mf",
+      "bytes": 919626858,
+      "sha256": "04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded",
+      "evidence": "A/data/NATIVE_IMPORT_VERIFICATION.json and data/DELIVERY_HASHES.json"
+    },
+    "inspection_alias": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\A\\cli\\import_validated\\A_A1_EDITABLE.3mf",
+      "bytes": 919626858,
+      "sha256": "04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded",
+      "evidence": "Same byte hash measured against delivery/source lock alias during this task; native face scan used this path."
+    },
+    "route_authority_snapshot": {
+      "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_MINI_LOCAL_LOBE_R1\\source\\A_A1_EDITABLE.3mf",
+      "bytes": 919626858,
+      "sha256": "04f2e6797957b3d6ac8096ba0468fae906d540cdaa9d71e7cac7a3cef34d8ded",
+      "evidence": "data/A_AUTHORITY_SOURCE_LOCKS.json; snapshot SHA/size equals locked delivery."
+    }
+  },
+  "repacked_editable": {
+    "path": "J:\\My Drive\\codex\\2026-09-22\\skin-fukei-slice-runner-execution-3\\outputs\\MINIA_PLA_EDITABLE_REPACKED.3mf",
+    "bytes": 946468919,
+    "sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "sha_evidence": "Measured during this task; ARTIFACT_INSPECTION.json",
+    "measured_zip_members": {
+      "3D/3dmodel.model": {
+        "uncompressed_bytes": 1602,
+        "crc32": "ca5c435a"
+      },
+      "3D/Objects/object_1.model": {
+        "uncompressed_bytes": 3757075837,
+        "crc32": "fc6fe9e3"
+      },
+      "3D/Objects/object_2.model": {
+        "uncompressed_bytes": 802716303,
+        "crc32": "62c56332"
+      }
+    },
+    "audit_assertions": {
+      "source_object_1_base_vertices": 20362205,
+      "source_object_1_base_triangles": 40690246,
+      "part_1_after_triangles": 42489170,
+      "added_vertices": 909824,
+      "added_triangles": 1798924,
+      "added_member_count": 5178,
+      "object_2_crc_expected": "62c56332",
+      "object_2_crc_measured": "62c56332",
+      "object_2_size_expected": 802716303,
+      "object_2_size_measured": 802716303,
+      "object_1_transform": "1 0 0 0 1 0 0 0 1 127.541795731 129.905210495 105.851430301",
+      "object_2_transform": "1 0 0 0 1 0 0 0 1 128.000001907 127.999998093 104.233085652",
+      "build_transform": "0.733333333333333 0 0 0 0.733333333333333 0 0 0 0.733333333333333 -3.86666666666666 -3.86666666666666 0",
+      "slice_executed": false
+    },
+    "evidence_boundary": "ZIP member sizes/CRCs and archive SHA were independently measured. Object_2 CRC and size match the repack audit. Preservation of the original object_1 triangle prefix is supported by repack audit counts and by the native face correspondence report, not by an independent native-vs-repacked bytewise geometry diff."
+  }
+}

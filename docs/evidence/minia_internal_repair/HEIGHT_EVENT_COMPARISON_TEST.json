@@ -1,0 +1,107 @@
+{
+  "pass": true,
+  "test_only_edit": {
+    "id": "TEST_ONLY_001",
+    "a_member": "R5_F3457_P1",
+    "a_parameter": 1,
+    "a_position": [
+      29.745620272463597,
+      105.28998862805989,
+      43.07281889195815
+    ],
+    "b_member": "G0165",
+    "b_parameter": 1,
+    "b_position": [
+      42.57604566609997,
+      89.24268586447427,
+      35.19861587014003
+    ]
+  },
+  "before": {
+    "cache_key": "f148c9f3a6a60fa5dbb8070bd45fe78e01514650b51515d07f07356ff98ebe24",
+    "analysis_version": "MINIA_ROUTE_V1",
+    "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+    "new_branch_count": 0,
+    "stable_single_target_from_model_z_mm": 43.0,
+    "through_model_z_mm": 156.0,
+    "route_onset_estimates": {
+      "1": {
+        "status": "DECLARED_GRAPH_EVENT_ESTIMATE",
+        "first_grid_height_mm": 44.6,
+        "previous_grid_height_mm": 44.4
+      },
+      "2": {
+        "status": "NOT_FOUND_THROUGH_RANGE",
+        "through_model_z_mm": 156.0
+      }
+    },
+    "single_route_interval_estimate_mm": [
+      44.6,
+      156.0
+    ],
+    "elapsed_s": 6.028944599998795,
+    "assumption": "Monotonic supplied-graph connectivity after stable single F3457 component; named-parent projection and unmeasured contacts remain unresolved. No physical or toolpath timing claim.",
+    "sampled_heights": {
+      "43.0": 0,
+      "156.0": 1,
+      "99.4": 1,
+      "71.2": 1,
+      "57.0": 1,
+      "50.0": 1,
+      "46.4": 1,
+      "44.6": 1,
+      "43.8": 0,
+      "44.2": 0,
+      "44.4": 0
+    },
+    "earlier_fragmented_target_interval": "NOT_SUMMARIZED_AS_A_SINGLE_COUNT",
+    "physical_strength": "UNVERIFIED",
+    "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4"
+  },
+  "after": {
+    "cache_key": "e18c4d25694e6b782ad19230b48f7c686fca03f3cf3bc7e9076de86e08889227",
+    "analysis_version": "MINIA_ROUTE_V1",
+    "mode": "PERMANENT_ONLY_AFTER_REMOVAL",
+    "new_branch_count": 1,
+    "stable_single_target_from_model_z_mm": 43.0,
+    "through_model_z_mm": 156.0,
+    "route_onset_estimates": {
+      "1": {
+        "status": "DECLARED_GRAPH_EVENT_ESTIMATE",
+        "first_grid_height_mm": 43.2,
+        "previous_grid_height_mm": 43.0
+      },
+      "2": {
+        "status": "NOT_FOUND_THROUGH_RANGE",
+        "through_model_z_mm": 156.0
+      }
+    },
+    "single_route_interval_estimate_mm": [
+      43.2,
+      156.0
+    ],
+    "elapsed_s": 7.017012899999827,
+    "assumption": "Monotonic supplied-graph connectivity after stable single F3457 component; named-parent projection and unmeasured contacts remain unresolved. No physical or toolpath timing claim.",
+    "sampled_heights": {
+      "43.0": 0,
+      "156.0": 1,
+      "99.4": 1,
+      "71.2": 1,
+      "57.0": 1,
+      "50.0": 1,
+      "46.4": 1,
+      "44.6": 1,
+      "43.8": 1,
+      "43.4": 1,
+      "43.2": 1
+    },
+    "earlier_fragmented_target_interval": "NOT_SUMMARIZED_AS_A_SINGLE_COUNT",
+    "physical_strength": "UNVERIFIED",
+    "baseline_sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "contact_ledger_sha256": "2e20eef46437badb8a7092883676e607391e49ec462558b3d61b57dea05f62a4"
+  },
+  "cached_seconds": 0.001432999997632578,
+  "test_edit_in_author_candidate": false,
+  "scope": "Conditional supplied-graph height event estimates only; explicit monotonic assumption, not physical timing."
+}

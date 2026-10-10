@@ -69,6 +69,12 @@ Cloudflare Workersへは手動で公開する。最新版ゲートとテスト�
 interior-growth / hitsuji / tangle の11 Study。各StudyのQuestion・Setup・Observationは
 `src/studies/<name>/README.md`、versionと更新記録は各`manifest.json`を正本とする。
 
+## MINI_A Blender操作系・自動改善GUI
+
+2026-10-10の保存記録は [MINI_A Author Workspace](tools/minia_author_workspace/README.md) を参照。
+Blenderの操作方法、実装コード、Windows GUI、探索条件、復元手順、修正履歴、各回の検証結果とDrive成果物のhashをまとめています。
+現在の状態と未実装事項は [CURRENT](docs/status/MINIA_AUTHOR_WORKSPACE_CURRENT.md) が入口です。
+
 ## 経緯
 
 2026-07-03、作者と Fable 5 の3日間の対話で起草。過程のアーカイブ:
