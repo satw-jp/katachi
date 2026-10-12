@@ -30,6 +30,13 @@ def unresolved_generation_stages(source_map: dict[str, Any]) -> list[Hold]:
                     subject=str(stage.get("stage_id", "unknown")),
                 )
             )
+    if not callable(source_map.get("generator_callable")):
+        holds.append(
+            Hold(
+                code="GENERATOR_CALLABLE_MISSING",
+                message="No complete fixed-case plan-generation callable is registered.",
+            )
+        )
     return holds
 
 

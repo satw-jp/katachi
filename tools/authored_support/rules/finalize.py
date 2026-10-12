@@ -73,11 +73,22 @@ def validate_support_references(
 def finalize_a_support(
     support_document: dict[str, Any],
     *,
+    case_id: str,
     flower_ids: set[str],
     permanent_ids: set[str],
-    x03795_override: dict[str, Any],
+    override_document: dict[str, Any],
 ) -> dict[str, Any]:
     """Pure migration of the MINI_A portion of final_support_data.py."""
+    if case_id != override_document.get("case_id"):
+        raise ContractError("override document is bound to a different case")
+    matching = [
+        operation
+        for operation in override_document.get("operations", [])
+        if operation.get("id") == "X03795"
+    ]
+    if len(matching) != 1:
+        raise ContractError(f"X03795 override count is {len(matching)}, expected exactly one")
+    x03795_override = matching[0]
     output, applied = _remove_expected_record(support_document, x03795_override)
     for record in output["objects"]:
         if record.get("kind") != "BODY_TO_BODY_TEMPORARY":

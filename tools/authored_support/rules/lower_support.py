@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 from typing import Any, Callable
 
+from ..contracts import ContractError
 
 BED_Z_MM = -1.7660574107474478
 COLLISION_VOLUME_THRESHOLD_MM3 = 1e-5
@@ -28,8 +29,9 @@ def generate_lower_support(
     intentionally follow source SHA 174ad470… and its original script.
     """
     np = kernel.np
-    md = kernel.md
-    output_mesh_root.mkdir(parents=True, exist_ok=True)
+    if output_mesh_root.exists():
+        raise ContractError(f"refusing to reuse lower-support mesh output directory: {output_mesh_root}")
+    output_mesh_root.mkdir(parents=True)
     unit = flower_template
     unit_manifold = kernel.man(unit["vertices"], unit["faces"])
 

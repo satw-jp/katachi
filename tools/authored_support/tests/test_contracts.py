@@ -78,10 +78,11 @@ class BuildIsolationTests(unittest.TestCase):
         )
         source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
         holds = unresolved_generation_stages(source_map)
-        self.assertEqual(len(holds), 9)
+        self.assertEqual(len(holds), 10)
         self.assertEqual(holds[0].subject, "V4_D2_SUPPORT_GENERATION")
         lower_hold = next(hold for hold in holds if hold.subject == "AF2_LOWER_SUPPORT")
         self.assertEqual(lower_hold.code, "GENERATION_STAGE_NOT_INTEGRATED")
+        self.assertEqual(holds[-1].code, "GENERATOR_CALLABLE_MISSING")
 
     def test_finalizer_applies_x03795_only_when_expected_before_matches(self) -> None:
         support = {
@@ -99,16 +100,22 @@ class BuildIsolationTests(unittest.TestCase):
             "custom_metadata": {"preserve": True},
         }
         override = {
-            "operation": "remove_support_record",
-            "id": "X03795",
-            "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
-            "reason": "fixture-specific obsolete leaf",
+            "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+            "operations": [
+                {
+                    "operation": "remove_support_record",
+                    "id": "X03795",
+                    "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+                    "reason": "fixture-specific obsolete leaf",
+                }
+            ],
         }
         result = finalize_a_support(
             support,
+            case_id="MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
             flower_ids={"FLOWER_1"},
             permanent_ids={"PERM_1"},
-            x03795_override=override,
+            override_document=override,
         )
         final = result["support_geometry"]
         self.assertEqual([item["id"] for item in final["objects"]], ["N00001"])
@@ -121,19 +128,48 @@ class BuildIsolationTests(unittest.TestCase):
     def test_finalizer_holds_on_wrong_expected_before(self) -> None:
         support = {"objects": [{"id": "X03795", "kind": "UPPER_BRANCH_BRACE", "target": "OTHER", "anchor": "S002579"}]}
         override = {
-            "operation": "remove_support_record",
-            "id": "X03795",
-            "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
-            "reason": "fixture-specific obsolete leaf",
+            "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+            "operations": [
+                {
+                    "operation": "remove_support_record",
+                    "id": "X03795",
+                    "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+                    "reason": "fixture-specific obsolete leaf",
+                }
+            ],
         }
         with self.assertRaises(ContractError):
             finalize_a_support(
                 support,
+                case_id="MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
                 flower_ids=set(),
                 permanent_ids=set(),
-                x03795_override=override,
+                override_document=override,
             )
         self.assertEqual(support["objects"][0]["target"], "OTHER")
+
+    def test_finalizer_rejects_override_bound_to_another_case(self) -> None:
+        support = {"objects": [{"id": "X03795", "kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"}]}
+        override = {
+            "case_id": "ANOTHER_CASE",
+            "operations": [
+                {
+                    "operation": "remove_support_record",
+                    "id": "X03795",
+                    "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+                    "reason": "fixture-specific obsolete leaf",
+                }
+            ],
+        }
+        with self.assertRaises(ContractError):
+            finalize_a_support(
+                support,
+                case_id="MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+                flower_ids=set(),
+                permanent_ids=set(),
+                override_document=override,
+            )
+        self.assertEqual(support["objects"][0]["id"], "X03795")
 
     def test_build_does_not_need_or_read_golden_and_refuses_ready(self) -> None:
         with temporary_directory() as tmp:
@@ -184,20 +220,23 @@ class LowerSupportFixtureTests(unittest.TestCase):
             "position_mm": [0.0, 0.0, 10.0],
         }
         with temporary_directory() as tmp:
-            result = generate_lower_support(
-                flower_surface=[flower],
-                flower_template={"vertices": box.vertices, "faces": faces},
-                permanent_groups=[],
-                upstream_support=[],
-                mesh_loader=lambda _path: {},
-                kernel=kernel,
-                output_mesh_root=Path(tmp) / "support_mesh",
-            )
+            arguments = {
+                "flower_surface": [flower],
+                "flower_template": {"vertices": box.vertices, "faces": faces},
+                "permanent_groups": [],
+                "upstream_support": [],
+                "mesh_loader": lambda _path: {},
+                "kernel": kernel,
+                "output_mesh_root": Path(tmp) / "support_mesh",
+            }
+            result = generate_lower_support(**arguments)
             self.assertEqual(result["new_contact_count"], 1)
             self.assertEqual(result["added"][0]["target"], "FLOWER_FIXTURE")
             mesh_path = Path(tmp) / "support_mesh" / "P10_LOW_0000.npz"
             self.assertTrue(mesh_path.is_file())
             self.assertEqual(len(result["mesh_array_identities"]["P10_LOW_0000"]["vertices_sha256"]), 64)
+            with self.assertRaises(ContractError):
+                generate_lower_support(**arguments)
 
 
 if __name__ == "__main__":

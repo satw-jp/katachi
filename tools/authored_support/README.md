@@ -12,7 +12,8 @@ data/override pass have been migrated and fixture-tested, but are not integrated
 into a complete fixed-case pipeline. The 151-candidate V4 D2 stage, 14,536-object
 V7 stage, 4,855-object A1 revision, and final A/F2 additions and patches are not
 regenerated here. `build` records the exact missing stages and
-does not read `GOLDEN.json`; it does not create `support_geometry.json` or
+the missing pipeline callable (nine stage gates plus the planner registration).
+It does not read `GOLDEN.json`; it does not create `support_geometry.json` or
 Support meshes. `replay` skips comparison when this build is held.
 
 The old scripts are identified by path and SHA in
