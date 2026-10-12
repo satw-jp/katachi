@@ -1,0 +1,123 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "golden_counts": {
+    "object_count": 22373,
+    "kind_counts": {
+      "EXTERNAL_VERTICAL_SHAFT": 749,
+      "EARLY_AND_INTERMEDIATE_SHAFT_BRACE": 3085,
+      "UPPER_BRANCH_BRACE": 2190,
+      "EXTERNAL_SHAFT_BRANCH": 2830,
+      "BODY_TO_BODY_TEMPORARY": 1354,
+      "RETAINED_LOW_D2": 115,
+      "EARLY_SHAFT_BRACE": 2576,
+      "R3_STYLE_BASAL_BRACE": 748,
+      "UPPER_BRANCH_BRACE_REPAIR": 23,
+      "R3_STYLE_FLAT_FOOT": 864,
+      "LOWER_LOCAL_SLEEVE": 635,
+      "LOWER_RISING_SCAFFOLD_BRACE": 4220,
+      "ENLARGED_BASAL_FOOT_COLLAR": 864,
+      "LOWER_DISTRIBUTED_BED_CONTACT": 1148,
+      "EARLY_LOWER_CONTACT_BRACE": 972
+    }
+  },
+  "observed_lineage": [
+    {
+      "stage_id": "V5_BASELINE_SUPPORT",
+      "source_code": [
+        {"path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/prepare.py", "sha256": "1b2c33bcdc3f589f5272a86a16357da50a6aeda9551f88a4b26f10af14343768"},
+        {"path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/route.py", "sha256": "3d558aa0643d4d10a8e11ea6dd9d2f72610e45b4acf68960bc813745841bdebf"},
+        {"path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/geometry.py", "sha256": "e9f4b9f359b9dd2ba56b5d91ab142c9f8d6ba71a2e502a7bb527b36a05b3bfa5"}
+      ],
+      "output_count": 6093,
+      "output_kinds": ["EXTERNAL_VERTICAL_SHAFT", "EARLY_AND_INTERMEDIATE_SHAFT_BRACE", "UPPER_BRANCH_BRACE", "EXTERNAL_SHAFT_BRANCH", "BODY_TO_BODY_TEMPORARY", "RETAINED_LOW_D2"],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "V7_SUPPORT_GENERATION",
+      "source_code": [
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/prepare.py", "sha256": "42c553ba0670380202c87426867cc125998c393177100f50ac4ac8128633086b"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/demands_anchors.py", "sha256": "ec2ad76677e553ff7fd13f678fb9c0e614dc6c8aa17dc5ca1e3397fce966ef36"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_external.py", "sha256": "16aa970d7a4567a49ae425ad80686feb56e58419a46cedde105e77e0867c5b1f"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_body.py", "sha256": "e986613472049ef3bbac0c09664a2d0553928a5a4bc83a899ca258cf8a232e15"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_outer_body.py", "sha256": "2860691110a7c73a26c7f7aa187b8b40070f2eaefcd4e2d638eab682b9a425bc"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/feet.py", "sha256": "cb214115dd2b51af95a60c67d889e47c01e1859c70884063c6a6965a4e13f4c3"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/scaffold.py", "sha256": "8cf3665d2a1c387c204e72f3b53217ce91820a8102b1fffa686ae1ce876c0192"},
+        {"path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/assemble.py", "sha256": "755c1a413c124a7b6e42f5d0bc3b49cb2a854df8c7fee999163cf821c863cc02"}
+      ],
+      "output_count": 14536,
+      "output_kinds": ["EXTERNAL_VERTICAL_SHAFT", "EARLY_AND_INTERMEDIATE_SHAFT_BRACE", "UPPER_BRANCH_BRACE", "EXTERNAL_SHAFT_BRANCH", "BODY_TO_BODY_TEMPORARY", "RETAINED_LOW_D2", "EARLY_SHAFT_BRACE", "R3_STYLE_BASAL_BRACE", "UPPER_BRANCH_BRACE_REPAIR", "R3_STYLE_FLAT_FOOT"],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "A1_MASTER_LOWER_REVISION",
+      "source_code": [
+        {"path": "R4_A1_MASTER_SUPPORT_PHYSICAL_REVISION/reproduce/revise_lower.py", "sha256": "104b45428decbc2340161db18ea49adf79ecb3a317f9137182d95f6e55a03416"}
+      ],
+      "input_count": 14536,
+      "added_count": 4855,
+      "added_kinds": {"LOWER_LOCAL_SLEEVE": 635, "LOWER_RISING_SCAFFOLD_BRACE": 4220},
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_LOWER_SUPPORT",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py", "sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356"}
+      ],
+      "input_count": 19391,
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_LOWER_BRACES",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_braces.py", "sha256": "11abba88e8df8afe520bb68efbc818671398d0664bcc5c4599ca7b5e54c169a4"}
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_CONTACT_REPAIR",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_contacts.py", "sha256": "e839a8e0ab05a7957ddb2c14fb4de8a022c8d8dcbdfbf80e6ba9b42499c72988"}
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_MAIN_END_REPAIR",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_main_ends.py", "sha256": "f6899df773b8542de13bbb5de2f0c813788532f6bac48391dbfc2700d8e92c56"}
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_FINAL_SUPPORT_DATA",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py", "sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44"}
+      ],
+      "removed_ids": ["N00224", "X03795"],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "NATIVE_SUPPORT_PART_BINDING",
+      "source_code": [
+        {"path": "R4_A_F2_PRINT_PREPARATION/reproduce/pack_parts.py", "sha256": "8555050b684f005feded928a132e15d895f722e65f8638d3b86a836be1e8effd"}
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    }
+  ],
+  "observed_count_chain": [6093, 14536, 19391, 22373],
+  "source_uncertainty": [
+    "The actual historical stage order and all stage outputs have not yet been regenerated by package callables.",
+    "Generated intermediate occupancy grids and legacy support artifacts must not be accepted as hidden final generation inputs.",
+    "The successful native 3MF Support part has not been decoded and compared to newly generated mesh arrays."
+  ],
+  "generator_callable": null
+}

@@ -1,0 +1,58 @@
+{
+  "recipe_id": "MINIA_AUTHORED_SUPPORT_V1",
+  "version": 1,
+  "status": "SOURCE_RULES_MAPPED_GENERATORS_NOT_EXTRACTED",
+  "units": "source-world millimetres",
+  "stage_order": [
+    "V5_BASELINE_SUPPORT",
+    "V7_SUPPORT_GENERATION",
+    "A1_MASTER_LOWER_REVISION",
+    "AF2_LOWER_SUPPORT",
+    "AF2_LOWER_BRACES",
+    "AF2_CONTACT_REPAIR",
+    "AF2_MAIN_END_REPAIR",
+    "AF2_FINAL_SUPPORT_DATA",
+    "NATIVE_SUPPORT_PART_BINDING"
+  ],
+  "extracted_rules": {
+    "AF2_LOWER_SUPPORT": {
+      "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
+      "source_file_sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356",
+      "source_locator": "module top level, geometry setup and candidate loops",
+      "status": "READ_AND_LOCKED_NOT_MIGRATED",
+      "bed_z_mm": -1.7660574107474478,
+      "obstacle_roles": ["flower", "A_permanent", "F2_permanent"],
+      "permanent_dedup_key": "mesh_source",
+      "solid_collision_volume_threshold_mm3": 0.00001,
+      "cylinder_divisions": 24,
+      "flat_foot_radius_candidates_mm": [3.5, 3.0],
+      "flat_foot_height_mm": 0.8,
+      "sampled_template_face_stride": 24,
+      "downward_normal_z_strictly_below": -0.55,
+      "candidate_height_open_interval_mm_from_bed": [2.2, 35.0],
+      "existing_contact_exclusion_distance_mm": 2.5,
+      "max_new_contacts_per_flower": 2,
+      "max_tested_candidates_per_flower": 22,
+      "shaft_radius_mm": 0.8,
+      "neck_radius_mm": 0.3,
+      "distributed_contact_foot_radius_candidates_mm": [3.5, 2.5, 1.8],
+      "distributed_contact_foot_height_mm": 0.65
+    },
+    "AF2_FINAL_SUPPORT_DATA": {
+      "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
+      "source_file_sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44",
+      "status": "READ_AND_LOCKED_NOT_MIGRATED",
+      "note": "Original script writes source JSON at import/top-level and must not be run as-is."
+    }
+  },
+  "runtime_lock": {
+    "python": "3.12.x",
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "manifold3d": "3.5.2",
+    "trimesh": "5.1.0",
+    "status": "observed_local_versions; no package lock or isolated runtime has been produced"
+  },
+  "native_transform": "CASE.json#transform_chain",
+  "golden_is_generation_input": false
+}

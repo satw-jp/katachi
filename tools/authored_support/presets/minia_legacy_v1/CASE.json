@@ -1,0 +1,65 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "description": "Fixed source-world replay of the authored removable Support used by MINI_A.",
+  "source_frame": "SOURCE_WORLD_MM_LEGACY_REPLAY",
+  "inputs": [
+    {
+      "logical_name": "flower_surface",
+      "role": "frozen flower placement and surface geometry",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/surface.json",
+      "sha256": "1bd5efb438fa4423826f912342a43d716a2f506c288daf8696c03903b82e2b05"
+    },
+    {
+      "logical_name": "flower_template_mesh",
+      "role": "frozen D6 flower template mesh",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/D6_local.npz",
+      "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+    },
+    {
+      "logical_name": "permanent_structure",
+      "role": "frozen Permanent structure geometry and IDs",
+      "root": "outputs",
+      "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/data/structure.json",
+      "sha256": "53afd0eaecd51af497e902089c1d1a84e64330083a7479e110c84daaa15e84eb"
+    },
+    {
+      "logical_name": "upstream_structure",
+      "role": "frozen source structure used by the authored-support ancestry",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/structure.json",
+      "sha256": "80974e597058a96fca0e7ddd7830a71fae6b425f392427de7c2ef9b3f2b28b8d"
+    },
+    {
+      "logical_name": "upstream_birth_records",
+      "role": "source birth-state records consumed by the V7 demand rules",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_object_births.json",
+      "sha256": "a65455b10fe3591f68c4b7fbdc64f62bd61b874c6f6031b047d0dd93c49705da"
+    },
+    {
+      "logical_name": "upstream_load_records",
+      "role": "source load records consumed by the V7 demand rules",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/load_cantilever_review.json",
+      "sha256": "c666394a42b10a4f4be5d87c9328c440a82b99b34df0c396d81b79a3f863f4fc"
+    }
+  ],
+  "recipe": "RECIPE.json",
+  "overrides": "OVERRIDES.json",
+  "golden": "GOLDEN.json",
+  "transform_chain": {
+    "source_to_plate_scale": 0.7333333333333333,
+    "source_to_plate_translation_mm": [
+      89.58849309285478,
+      91.38825149536129,
+      1.295108767881461
+    ],
+    "application_count": 1,
+    "evidence_commit": "b63538933969e570b50e8ea46a7e3b70f624744f",
+    "note": "Generate and plan in source-world coordinates; apply this transform once for native comparison."
+  },
+  "no_runtime_ai_or_network": true
+}

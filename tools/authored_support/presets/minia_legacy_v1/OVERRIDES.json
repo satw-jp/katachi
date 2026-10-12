@@ -1,0 +1,32 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "status": "SOURCE_BOUND_NOT_APPLIED",
+  "operations": [
+    {
+      "operation": "remove_support_record",
+      "id": "N00224",
+      "expected_before": {
+        "kind": "BODY_TO_BODY_TEMPORARY",
+        "target": "F3179",
+        "anchor": "A3416"
+      },
+      "reason": "Obsolete temporary path newly intersects changed Permanent; remove rather than preserve an unintended rigid fusion.",
+      "source_stage": "R4_A_F2_PRINT_PREPARATION/data/support_geometry.json deleted ledger",
+      "scope": "this fixed MINI_A source identity only"
+    },
+    {
+      "operation": "remove_support_record",
+      "id": "X03795",
+      "expected_before": {
+        "kind": "UPPER_BRANCH_BRACE",
+        "target": "T01268",
+        "anchor": "S002579"
+      },
+      "reason": "Inherited free brace points to absent T01268; leaf removed while shaft and useful contacts are retained.",
+      "source_stage": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
+      "source_file_sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44",
+      "scope": "this fixed MINI_A source identity only"
+    }
+  ]
+}
