@@ -26,6 +26,20 @@
       "sha256": "53afd0eaecd51af497e902089c1d1a84e64330083a7479e110c84daaa15e84eb"
     },
     {
+      "logical_name": "permanent_a_collision_structure",
+      "role": "A Permanent mesh members used by the lower-support solid-collision checks",
+      "root": "outputs",
+      "path": "R4_A_SHORT_JOIN_G/data/structure.json",
+      "sha256": "e3505511dfa793d14ef6da183016a0b40bdad564c6a15241116b9d7cca81b0b2"
+    },
+    {
+      "logical_name": "permanent_f2_collision_structure",
+      "role": "F2 Permanent mesh members used by the lower-support solid-collision checks",
+      "root": "outputs",
+      "path": "R4_F2_DEEP_JOIN_G/data/structure.json",
+      "sha256": "610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d"
+    },
+    {
       "logical_name": "upstream_structure",
       "role": "frozen source structure used by the authored-support ancestry",
       "root": "outputs",
@@ -45,6 +59,27 @@
       "root": "outputs",
       "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/load_cantilever_review.json",
       "sha256": "c666394a42b10a4f4be5d87c9328c440a82b99b34df0c396d81b79a3f863f4fc"
+    },
+    {
+      "logical_name": "upstream_true_birth_records",
+      "role": "source layer-birth events used by V4 D2 generation",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_true_births.json",
+      "sha256": "bb6e913bf8f6dce7222e74564721fa075561b6bcfdd140626ec62d6e5fb08704"
+    },
+    {
+      "logical_name": "upstream_layer_summary",
+      "role": "source layer and bounds summary used by V4 D2 generation",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_layer_summary.json",
+      "sha256": "d13e727979d321a2045afc55986f9fcc2858ca92c15ea4bd5434f96de2333a2b"
+    },
+    {
+      "logical_name": "upstream_host_domain",
+      "role": "frozen Permanent host-domain field used by V7 route clearance",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/host_domain.npz",
+      "sha256": "d7a4c25c6987ed7afba0e76a073108853579b5a0141ca16906c6264fb261f30c"
     }
   ],
   "recipe": "RECIPE.json",

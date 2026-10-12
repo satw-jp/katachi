@@ -7,10 +7,11 @@ process. Importing it does not read or write files.
 ## Current result
 
 The input identities and the complete golden kind/count ledger are pinned.
-The generator is **HOLD**: the source scripts have not yet been migrated into
-side-effect-free package callables. In particular, the 6,093-object V5 stage,
-14,536-object V7 stage, 4,855-object A1 revision, and final A/F2 additions and
-patches are not regenerated here. `build` records the exact missing stages and
+The generator is **HOLD**: the lower-support geometry rule and final A-side
+data/override pass have been migrated and fixture-tested, but are not integrated
+into a complete fixed-case pipeline. The 151-candidate V4 D2 stage, 14,536-object
+V7 stage, 4,855-object A1 revision, and final A/F2 additions and patches are not
+regenerated here. `build` records the exact missing stages and
 does not read `GOLDEN.json`; it does not create `support_geometry.json` or
 Support meshes. `replay` skips comparison when this build is held.
 
@@ -28,12 +29,13 @@ It therefore cannot report `MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_READY`.
 Copy `ROOTS.local.example.json` to `work/ROOTS.local.json` and fill in the two
 directory roots. `outputs` is the directory containing `R4_D6_SIZE_RHYTHM_V2`,
 `R4_V2_INTERNAL_PROPOSAL_V3`, and the other named source folders. `success_package`
-contains `MINIA_PLA_EDITABLE_REPACKED.3mf`. The local roots file is not an
+contains `MINIA_PLA_EDITABLE_REPACKED.3mf`. `geometry_runtime` is the pinned
+NumPy/SciPy/manifold3d/trimesh runtime directory. The local roots file is not an
 input identity and is not committed.
 
 ## Commands
 
-Run from the repository root with Python 3.10 or newer:
+Run from the repository root with Python 3.12.x:
 
 ```powershell
 python -m tools.authored_support inspect `
@@ -68,10 +70,13 @@ python -m unittest discover -s tools/authored_support/tests -v
 ```
 
 The pinned geometry runtime observed in the source environment is Python 3.12,
-NumPy 2.5.2, SciPy 1.18.1, manifold3d 3.5.2, and trimesh 5.1.0. This package
-does not currently use those geometry libraries because no geometry stage has
-been migrated. The version record is evidence, not a dependency installation
-instruction.
+NumPy 2.5.2, SciPy 1.18.1, manifold3d 3.5.2, and trimesh 5.1.0. The migrated
+lower-support callable uses this runtime and checks its versions; other stages
+remain unavailable.
+
+To run the optional exact-kernel fixture test, set
+`AUTHORED_SUPPORT_GEOMETRY_RUNTIME` to the same directory before running the
+test command. Without it, that one test is skipped.
 
 ## Scope boundary
 

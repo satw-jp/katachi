@@ -4,7 +4,7 @@
   "status": "SOURCE_RULES_MAPPED_GENERATORS_NOT_EXTRACTED",
   "units": "source-world millimetres",
   "stage_order": [
-    "V5_BASELINE_SUPPORT",
+    "V4_D2_SUPPORT_GENERATION",
     "V7_SUPPORT_GENERATION",
     "A1_MASTER_LOWER_REVISION",
     "AF2_LOWER_SUPPORT",
@@ -19,7 +19,7 @@
       "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
       "source_file_sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356",
       "source_locator": "module top level, geometry setup and candidate loops",
-      "status": "READ_AND_LOCKED_NOT_MIGRATED",
+      "status": "MIGRATED_CALLABLE_NOT_INTEGRATED_IN_FIXED_CASE",
       "bed_z_mm": -1.7660574107474478,
       "obstacle_roles": ["flower", "A_permanent", "F2_permanent"],
       "permanent_dedup_key": "mesh_source",
@@ -41,7 +41,7 @@
     "AF2_FINAL_SUPPORT_DATA": {
       "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
       "source_file_sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44",
-      "status": "READ_AND_LOCKED_NOT_MIGRATED",
+      "status": "MIGRATED_CALLABLE_NOT_INTEGRATED_IN_FIXED_CASE",
       "note": "Original script writes source JSON at import/top-level and must not be run as-is."
     }
   },
@@ -52,6 +52,11 @@
     "manifold3d": "3.5.2",
     "trimesh": "5.1.0",
     "status": "observed_local_versions; no package lock or isolated runtime has been produced"
+  },
+  "geometry_kernel_source": {
+    "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/geometry.py",
+    "sha256": "e9f4b9f359b9dd2ba56b5d91ab142c9f8d6ba71a2e502a7bb527b36a05b3bfa5",
+    "role": "legacy mesh kernel used by lower-support construction, not a support-generation stage"
   },
   "native_transform": "CASE.json#transform_chain",
   "golden_is_generation_input": false

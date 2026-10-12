@@ -10,6 +10,7 @@ from . import __version__
 from .compare import compare_support
 from .contracts import ContractError, EXIT_ERROR, EXIT_HOLD, EXIT_OK, Hold
 from .planner import unresolved_generation_stages
+from .mesh_backend import inspect_geometry_runtime
 from .run_metrics import finish_metrics, start_timer
 from .source_io import check_asset, read_json, resolve_asset
 
@@ -44,8 +45,9 @@ def _inspect(case_path: Path, roots_path: Path, out: Path) -> int:
     roots = read_json(roots_path)
     checks = [check_asset(asset, roots) for asset in case.get("inputs", [])]
     missing = [item for item in checks if item["status"] != "PASS"]
+    runtime = inspect_geometry_runtime(roots.get("roots", {}).get("geometry_runtime"))
     holds = unresolved_generation_stages_for_report(source_map)
-    status = "READY_FOR_GENERATION" if not missing and not holds else "HOLD"
+    status = "READY_FOR_GENERATION" if not missing and not holds and runtime["status"] == "PASS" else "HOLD"
     output = _new_output(out)
     report = {
         "schema_version": "authored-support-v1",
@@ -54,6 +56,7 @@ def _inspect(case_path: Path, roots_path: Path, out: Path) -> int:
         "case_id": case.get("case_id"),
         "status": status,
         "source_checks": checks,
+        "geometry_runtime": runtime,
         "unresolved_generation_stages": holds,
         "recipe_id": recipe.get("recipe_id"),
         "override_count": len(overrides.get("operations", [])),
@@ -86,8 +89,20 @@ def _build(case_path: Path, roots_path: Path, out: Path) -> int:
         for item in source_checks
         if item["status"] != "PASS"
     )
+    runtime = inspect_geometry_runtime(roots.get("roots", {}).get("geometry_runtime"))
+    if runtime["status"] != "PASS":
+        holds.append(
+            {
+                "code": runtime["reason"],
+                "message": runtime.get("detail", "Pinned geometry runtime is unavailable."),
+                "subject": "geometry_runtime",
+            }
+        )
     output = _new_output(out)
-    _write_json(output / "SOURCE_LOCK.json", {"case_id": case.get("case_id"), "inputs": source_checks})
+    _write_json(
+        output / "SOURCE_LOCK.json",
+        {"case_id": case.get("case_id"), "inputs": source_checks, "geometry_runtime": runtime},
+    )
     _write_json(output / "RECIPE_RESOLVED.json", recipe)
     _write_json(output / "OVERRIDES_APPLIED.json", {"case_id": case.get("case_id"), "applied": [], "status": "NOT_RUN"})
     metrics = finish_metrics(started)

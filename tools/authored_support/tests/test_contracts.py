@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +10,9 @@ from tools.authored_support.cli import _build
 from tools.authored_support.compare import compare_support
 from tools.authored_support.contracts import ContractError
 from tools.authored_support.planner import unresolved_generation_stages
+from tools.authored_support.mesh_backend import ManifoldKernel
+from tools.authored_support.rules.finalize import finalize_a_support
+from tools.authored_support.rules.lower_support import generate_lower_support
 from tools.authored_support.source_io import check_asset, resolve_asset
 
 
@@ -75,7 +79,61 @@ class BuildIsolationTests(unittest.TestCase):
         source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
         holds = unresolved_generation_stages(source_map)
         self.assertEqual(len(holds), 9)
-        self.assertEqual(holds[0].subject, "V5_BASELINE_SUPPORT")
+        self.assertEqual(holds[0].subject, "V4_D2_SUPPORT_GENERATION")
+        lower_hold = next(hold for hold in holds if hold.subject == "AF2_LOWER_SUPPORT")
+        self.assertEqual(lower_hold.code, "GENERATION_STAGE_NOT_INTEGRATED")
+
+    def test_finalizer_applies_x03795_only_when_expected_before_matches(self) -> None:
+        support = {
+            "objects": [
+                {"id": "X03795", "kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+                {
+                    "id": "N00001",
+                    "kind": "BODY_TO_BODY_TEMPORARY",
+                    "target": "FLOWER_1",
+                    "anchor": "PERM_1",
+                    "anchor_status": "old-rooted",
+                },
+            ],
+            "deleted": [],
+            "custom_metadata": {"preserve": True},
+        }
+        override = {
+            "operation": "remove_support_record",
+            "id": "X03795",
+            "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+            "reason": "fixture-specific obsolete leaf",
+        }
+        result = finalize_a_support(
+            support,
+            flower_ids={"FLOWER_1"},
+            permanent_ids={"PERM_1"},
+            x03795_override=override,
+        )
+        final = result["support_geometry"]
+        self.assertEqual([item["id"] for item in final["objects"]], ["N00001"])
+        self.assertEqual(final["objects"][0]["historical_anchor_status"], "old-rooted")
+        self.assertIn("current_chronology", final["objects"][0])
+        self.assertTrue(final["custom_metadata"]["preserve"])
+        self.assertTrue(result["reference_validation"]["valid"])
+        self.assertEqual(support["objects"][0]["id"], "X03795")
+
+    def test_finalizer_holds_on_wrong_expected_before(self) -> None:
+        support = {"objects": [{"id": "X03795", "kind": "UPPER_BRANCH_BRACE", "target": "OTHER", "anchor": "S002579"}]}
+        override = {
+            "operation": "remove_support_record",
+            "id": "X03795",
+            "expected_before": {"kind": "UPPER_BRANCH_BRACE", "target": "T01268", "anchor": "S002579"},
+            "reason": "fixture-specific obsolete leaf",
+        }
+        with self.assertRaises(ContractError):
+            finalize_a_support(
+                support,
+                flower_ids=set(),
+                permanent_ids=set(),
+                x03795_override=override,
+            )
+        self.assertEqual(support["objects"][0]["target"], "OTHER")
 
     def test_build_does_not_need_or_read_golden_and_refuses_ready(self) -> None:
         with temporary_directory() as tmp:
@@ -104,6 +162,42 @@ class BuildIsolationTests(unittest.TestCase):
             self.assertFalse(record["golden_read"])
             self.assertFalse(record["generated_support_objects"])
             self.assertFalse((out / "support_geometry.json").exists())
+
+
+class LowerSupportFixtureTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get("AUTHORED_SUPPORT_GEOMETRY_RUNTIME"), "optional pinned geometry runtime is not configured")
+    def test_one_lower_contact_is_generated_and_materialized(self) -> None:
+        runtime = Path(os.environ["AUTHORED_SUPPORT_GEOMETRY_RUNTIME"])
+        kernel = ManifoldKernel.from_runtime_root(runtime)
+        np = kernel.np
+        box = kernel.trimesh.creation.box(extents=(2, 2, 2))
+        face_index = int(np.argmin(box.triangles_center[:, 2]))
+        bottom_face = box.faces[face_index].copy()
+        if box.face_normals[face_index, 2] > 0:
+            bottom_face[[1, 2]] = bottom_face[[2, 1]]
+        faces = np.vstack([bottom_face, np.delete(box.faces, face_index, axis=0)])
+        flower = {
+            "id": "FLOWER_FIXTURE",
+            "bbox_mm": [[-1, -1, 9], [1, 1, 11]],
+            "orientation_matrix": np.eye(3),
+            "physical_scale": 1.0,
+            "position_mm": [0.0, 0.0, 10.0],
+        }
+        with temporary_directory() as tmp:
+            result = generate_lower_support(
+                flower_surface=[flower],
+                flower_template={"vertices": box.vertices, "faces": faces},
+                permanent_groups=[],
+                upstream_support=[],
+                mesh_loader=lambda _path: {},
+                kernel=kernel,
+                output_mesh_root=Path(tmp) / "support_mesh",
+            )
+            self.assertEqual(result["new_contact_count"], 1)
+            self.assertEqual(result["added"][0]["target"], "FLOWER_FIXTURE")
+            mesh_path = Path(tmp) / "support_mesh" / "P10_LOW_0000.npz"
+            self.assertTrue(mesh_path.is_file())
+            self.assertEqual(len(result["mesh_array_identities"]["P10_LOW_0000"]["vertices_sha256"]), 64)
 
 
 if __name__ == "__main__":

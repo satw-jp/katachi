@@ -11,13 +11,21 @@ def unresolved_generation_stages(source_map: dict[str, Any]) -> list[Hold]:
     if stages is None:
         stages = source_map.get("observed_lineage", [])
     for stage in stages:
-        if stage.get("implementation_status") != "implemented":
+        implementation_status = stage.get("implementation_status")
+        integration_status = stage.get("integration_status", "integrated")
+        if implementation_status != "implemented":
+            code = "GENERATION_STAGE_NOT_IMPLEMENTED"
+        elif integration_status != "integrated":
+            code = "GENERATION_STAGE_NOT_INTEGRATED"
+        else:
+            continue
+        if code:
             holds.append(
                 Hold(
-                    code="GENERATION_STAGE_NOT_IMPLEMENTED",
+                    code=code,
                     message=(
-                        "The source rule is mapped, but its side-effect-free callable "
-                        "has not been extracted into this package."
+                        "The source rule is mapped, but it is not yet part of a complete "
+                        "fixed-case generation pipeline."
                     ),
                     subject=str(stage.get("stage_id", "unknown")),
                 )

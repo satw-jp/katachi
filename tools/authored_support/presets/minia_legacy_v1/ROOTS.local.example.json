@@ -1,6 +1,7 @@
 {
   "roots": {
     "outputs": "<local path to r4-astra-mocomoco-j-my-drive/outputs>",
-    "success_package": "<local path to skin-fukei-slice-runner-execution-3/outputs>"
+    "success_package": "<local path to skin-fukei-slice-runner-execution-3/outputs>",
+    "geometry_runtime": "<local path to the pinned geometry runtime directory>"
   }
 }
