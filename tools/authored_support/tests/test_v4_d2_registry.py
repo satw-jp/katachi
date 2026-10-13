@@ -55,6 +55,32 @@ class V4D2RegistryTests(unittest.TestCase):
         self.assertIsNone(callable_stage)
         self.assertEqual(holds[0].code, "GENERATION_STAGE_SOURCE_BINDING_MISMATCH")
 
+    def test_source_map_case_mismatch_holds_stage_dispatch(self) -> None:
+        case, recipe, source_map = contracts()
+        source_map["case_id"] = "ANOTHER_CASE"
+        callable_stage, holds = resolve_stage(
+            "V4_D2_SUPPORT_GENERATION", case=case, recipe=recipe, source_map=source_map
+        )
+        self.assertIsNone(callable_stage)
+        self.assertEqual(holds[0].code, "GENERATION_STAGE_SOURCE_MAP_CASE_MISMATCH")
+
+    def test_registered_callable_refuses_output_inside_frozen_inputs(self) -> None:
+        case, recipe, source_map = contracts()
+        stage = registered_stages()["V4_D2_SUPPORT_GENERATION"].callable
+        with tempfile.TemporaryDirectory(dir=PACKAGE_ROOT / "work") as tmp:
+            frozen_root = Path(tmp) / "frozen"
+            requested_output = frozen_root / "must-not-be-created"
+            with self.assertRaises(ContractError):
+                stage(
+                    case=case,
+                    recipe=recipe,
+                    source_map=source_map,
+                    roots={"roots": {"outputs": str(frozen_root)}},
+                    output_dir=requested_output,
+                    preset_dir=PRESET,
+                )
+            self.assertFalse(requested_output.exists())
+
     def test_cli_refuses_an_output_path_inside_frozen_inputs(self) -> None:
         case_path = PRESET / "CASE.json"
         with tempfile.TemporaryDirectory(dir=PACKAGE_ROOT / "work") as tmp:

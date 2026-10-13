@@ -48,6 +48,8 @@ def resolve_stage(
         return None, [Hold("GENERATION_STAGE_NOT_REGISTERED", "No Python stage callable is registered.", stage_id)]
     if case.get("case_id") != registration.case_id or recipe.get("case_id") != registration.case_id:
         return None, [Hold("GENERATION_STAGE_CASE_MISMATCH", "The registered stage is bound to a different fixed case.", stage_id)]
+    if source_map.get("case_id") != registration.case_id:
+        return None, [Hold("GENERATION_STAGE_SOURCE_MAP_CASE_MISMATCH", "The fixed source map is bound to a different case.", stage_id)]
     if stage_id not in recipe.get("stage_order", []):
         return None, [Hold("GENERATION_STAGE_RECIPE_MISMATCH", "The fixed recipe does not include this stage.", stage_id)]
     binding = recipe.get("stage_bindings", {}).get(stage_id)

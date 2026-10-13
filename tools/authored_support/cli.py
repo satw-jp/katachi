@@ -191,6 +191,10 @@ def _run_v4_d2(case_path: Path, roots_path: Path, out: Path) -> int:
     started = start_timer()
     case, recipe, _overrides, source_map = _load_contracts(case_path)
     roots = read_json(roots_path)
+    outputs_root = Path(roots.get("roots", {}).get("outputs", "")).expanduser().resolve(strict=False)
+    output_resolved = out.resolve(strict=False)
+    if output_resolved == outputs_root or outputs_root in output_resolved.parents:
+        raise ContractError("V4 D2 output must be outside the frozen source outputs root")
     stage, holds = resolve_stage(
         "V4_D2_SUPPORT_GENERATION", case=case, recipe=recipe, source_map=source_map
     )
@@ -204,11 +208,7 @@ def _run_v4_d2(case_path: Path, roots_path: Path, out: Path) -> int:
         })
         return EXIT_HOLD
 
-    outputs_root = Path(roots.get("roots", {}).get("outputs", "")).expanduser().resolve(strict=False)
     checkpoint_root = outputs_root / "R4_V2_V3_A1_EXPERIMENTAL_V4"
-    output_resolved = out.resolve(strict=False)
-    if output_resolved == outputs_root or outputs_root in output_resolved.parents:
-        raise ContractError("V4 D2 output must be outside the frozen source outputs root")
     output = _new_output(out)
     preset_dir = case_path.resolve().parent
     checkpoint_before = checkpoint_snapshot(checkpoint_root, preset_dir)

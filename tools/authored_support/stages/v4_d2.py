@@ -427,11 +427,14 @@ def generate_v4_d2(
         raise ContractError("V4 D2 generation is bound to the fixed MINI_A case")
     if recipe.get("stage_order", [None])[0] != "V4_D2_SUPPORT_GENERATION":
         raise ContractError("V4 D2 must be the first stage in the fixed MINI_A recipe")
+    output_roots = roots.get("roots", {})
+    outputs_root = Path(output_roots.get("outputs", "")).expanduser().resolve(strict=False)
+    output_resolved = output_dir.resolve(strict=False)
+    if output_resolved == outputs_root or outputs_root in output_resolved.parents:
+        raise ContractError("V4 D2 output must be outside the frozen source outputs root")
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ContractError(f"V4 D2 stage output must be a new empty directory: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_roots = roots.get("roots", {})
-    outputs_root = Path(output_roots.get("outputs", "")).expanduser().resolve(strict=False)
     runtime_root = Path(output_roots.get("geometry_runtime", "")).expanduser().resolve(strict=False)
     v3_root = outputs_root / "R4_V2_INTERNAL_PROPOSAL_V3"
 
