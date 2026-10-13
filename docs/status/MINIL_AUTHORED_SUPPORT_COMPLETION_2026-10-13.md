@@ -35,3 +35,13 @@ This is not independent review. Final counts, STOP, evidence identity and unreso
 Self-check cycle 2 restores the source fragmentation order: primary cut access, whole-main extraction, then two/three pieces only when needed. Sacrificial residues remain explicit obstacles. Initial positive overlap proves every rigid swept hull blocked; the model records that witness without redundant directional trials. Stale V1 inspection labels are reconciled only after actual generation. The saved Support candidate is byte-copied and revalidated for this model audit; Support geometry is not regenerated.
 
 Local evidence: `outputs/MINIL_AUTHORED_SUPPORT_COMPLETION_20261013` in the execution workspace.
+
+## Final STOP — implementation HOLD
+
+`MINIL_AUTHORED_SUPPORT_IMPLEMENTATION_HOLD`. One fixed candidate generated 9,697 removable Support meshes: lower direct 967, temporary BODY routes 816, exterior columns 205, exterior branches 1,971, rising braces 5,738. All saved meshes passed byte/identity/solid readback; 1,172 feet passed CAD Z=0 planar-area verification. All 3,843 demands were processed; 2,762 remain unhandled (including insufficient contacts); 1,676 flowers have generated contacts. Brace risks: 148 shafts and 1,046 long branches.
+
+Removal audit completed only 1/9,697 objects, without all-fragment CLEAR. `MINIL_RS_09653` contains a finite valid cut child of 3.68401615637e-11 mm³, below the configured 3.9437037037e-6 mm³ volume threshold. Parent filtering does not classify decomposed children before normal fragment processing. The remaining 9,696 removal evaluations are incomplete; the tiny component is not proven to be the sole runtime cause. Two review/fix cycles were used; no third implementation fix was made.
+
+57 unit/regression tests pass (existing 44 retained). Actual-case removal remains fix-required. All 22 locked source files retain their SHA-256. Original flowers/Permanent/115 branches changed 0; new Support generated. Slice/Send/Print = 0; print_go=false. This is implementer verification, not independent review or physical PASS.
+
+Evidence: execution workspace `outputs/MINIL_AUTHORED_SUPPORT_COMPLETION_20261013/review_candidate/RESULT.md`, full meshes, contact/removal states, source identities, exact unhandled IDs, diagnostic fragment, and seven figures. Final archive/cloud receipt is saved alongside the evidence root. Next bounded task: classify sub-tolerance cut components with material accounting and complete removal evaluation against this same saved candidate.
