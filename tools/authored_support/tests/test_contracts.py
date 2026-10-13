@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import tempfile
 import unittest
@@ -30,7 +31,7 @@ class SourceInputTests(unittest.TestCase):
             item.write_text("fixed", encoding="utf-8")
             roots = {"roots": {"source": str(root)}}
             good = check_asset(
-                {"logical_name": "asset", "root": "source", "path": "asset.txt", "sha256": ""},
+                {"logical_name": "asset", "root": "source", "path": "asset.txt", "sha256": hashlib.sha256(b"fixed").hexdigest()},
                 roots,
             )
             bad = check_asset(
@@ -69,7 +70,7 @@ class CompareTests(unittest.TestCase):
 
 
 class BuildIsolationTests(unittest.TestCase):
-    def test_all_observed_minia_generation_stages_are_holds(self) -> None:
+    def test_unregistered_full_pipeline_remains_hold(self) -> None:
         source_map_path = (
             Path(__file__).resolve().parents[1]
             / "presets"
@@ -77,12 +78,10 @@ class BuildIsolationTests(unittest.TestCase):
             / "SOURCE_RULE_MAP.json"
         )
         source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
-        holds = unresolved_generation_stages(source_map)
-        self.assertEqual(len(holds), 10)
-        self.assertEqual(holds[0].subject, "V4_D2_SUPPORT_GENERATION")
-        self.assertEqual(holds[0].code, "GENERATION_STAGE_NOT_INTEGRATED")
-        lower_hold = next(hold for hold in holds if hold.subject == "AF2_LOWER_SUPPORT")
-        self.assertEqual(lower_hold.code, "GENERATION_STAGE_NOT_INTEGRATED")
+        from unittest.mock import patch
+        with patch('tools.authored_support.planner.registered_pipeline', return_value=None):
+            holds = unresolved_generation_stages(source_map)
+        self.assertEqual(len(holds), 1)
         self.assertEqual(holds[-1].code, "GENERATOR_CALLABLE_MISSING")
 
     def test_finalizer_applies_x03795_only_when_expected_before_matches(self) -> None:

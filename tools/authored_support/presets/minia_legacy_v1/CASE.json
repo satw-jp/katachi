@@ -87,6 +87,48 @@
       "root": "outputs",
       "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/host_domain.npz",
       "sha256": "d7a4c25c6987ed7afba0e76a073108853579b5a0141ca16906c6264fb261f30c"
+    },
+    {
+      "logical_name": "contact_comparison_threshold",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/contact_comparison_threshold.json",
+      "sha256": "b931975613a62fcab074510fe5f4954869d9287ea742169582b0a36c41ba2374"
+    },
+    {
+      "logical_name": "protected_corridors",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/protected_corridors.json",
+      "sha256": "171174d80a72ae748058ef259dac3db37be71d822bcff10c4e32bcad9b15afdc"
+    },
+    {
+      "logical_name": "v6_fixed_permanent_revision",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/data/changes.json",
+      "sha256": "b947ea92b9af25f133a805b24963ffedfef319c84f3263e504dffb74ed8bed76"
+    },
+    {
+      "logical_name": "rc_fixed_permanent",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_A1_MINI_RELEASE_CANDIDATE/data/structure.json",
+      "sha256": "045ef2f208e42493778f51a56ce74f388c436b4a5af6ca46e53eddf43ea3faa2"
+    },
+    {
+      "logical_name": "v8_permanent_a3864",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V8_FABRICATION_EXPORT_GATE/data/topology_normalized/A3864.npz",
+      "sha256": "262adf0728ce088a51288dd0a71ff911e8400090f5dda72d72cf58a3b2a3a2bd"
+    },
+    {
+      "logical_name": "v8_permanent_a2063",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V8_FABRICATION_EXPORT_GATE/data/topology_normalized/A2063.npz",
+      "sha256": "6884fb6016ac8e4b2d09e46c3124f3a4087d1eddce16d663bbcddf536f48b773"
     }
   ],
   "recipe": "RECIPE.json",
@@ -103,6 +145,7 @@
     "evidence_commit": "b63538933969e570b50e8ea46a7e3b70f624744f",
     "note": "Generate and plan in source-world coordinates; apply this transform once for native comparison."
   },
-  "no_runtime_ai_or_network": true
+  "no_runtime_ai_or_network": true,
+  "permanent_mesh_lock_sha256": "8997064c59bfa78d723909f2ec9df6f649a688d8889d94b3ad6e09af3657af24",
+  "downstream_source_lock_sha256": "442545b853605f4de2c88d26086f13d8323ef87c83f6b5cf39552e16e3ea77f0"
 }
-

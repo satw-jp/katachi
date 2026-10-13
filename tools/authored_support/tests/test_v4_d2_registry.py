@@ -33,7 +33,7 @@ class V4D2RegistryTests(unittest.TestCase):
         )
         self.assertFalse(holds)
         self.assertTrue(callable(callable_stage))
-        self.assertEqual(list(registered_stages()), ["V4_D2_SUPPORT_GENERATION"])
+        self.assertEqual(list(registered_stages()), ["V4_D2_SUPPORT_GENERATION", "V4_D2_REMOVAL", "MINIA_DOWNSTREAM"])
 
     def test_json_generator_callable_is_never_evaluated(self) -> None:
         case, recipe, source_map = contracts()
@@ -43,7 +43,8 @@ class V4D2RegistryTests(unittest.TestCase):
         )
         self.assertFalse(holds)
         self.assertTrue(callable(callable_stage))
-        self.assertTrue(any(item.code == "GENERATOR_CALLABLE_MISSING" for item in unresolved_generation_stages(source_map)))
+        from tools.authored_support.stage_registry import registered_pipeline
+        self.assertEqual(registered_pipeline(case['case_id']).__module__, 'tools.authored_support.pipeline')
 
     def test_source_hash_mismatch_holds_stage_dispatch(self) -> None:
         case, recipe, source_map = contracts()
@@ -96,7 +97,7 @@ class V4D2RegistryTests(unittest.TestCase):
         code = (
             "from tools.authored_support.stage_registry import registered_stages; "
             "r=registered_stages(); "
-            "assert list(r)==['V4_D2_SUPPORT_GENERATION']; "
+            "assert list(r)==['V4_D2_SUPPORT_GENERATION','V4_D2_REMOVAL','MINIA_DOWNSTREAM']; "
             "print(r['V4_D2_SUPPORT_GENERATION'].implementation_module)"
         )
         env = os.environ.copy()

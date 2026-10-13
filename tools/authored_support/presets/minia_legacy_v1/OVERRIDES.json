@@ -12,8 +12,14 @@
         "anchor": "A3416"
       },
       "reason": "Obsolete temporary path newly intersects changed Permanent; remove rather than preserve an unintended rigid fusion.",
-      "source_stage": "R4_A_F2_PRINT_PREPARATION/data/support_geometry.json deleted ledger",
-      "scope": "this fixed MINI_A source identity only"
+      "source_stage": "AF2_ASSEMBLY",
+      "scope": "this fixed MINI_A source identity only",
+      "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/assemble.py",
+      "source_file_sha256": "133923c975f4edcd9eb38d4b971231e0d8aa16230a11b9e8c91b0c2ce509d7af",
+      "trigger": "Membership in recomputed A SUPPORT_MAIN_END_REPAIR unresolved, BODY_TO_BODY_TEMPORARY and no dependent anchor",
+      "upstream_reference": "R4_A_F2_PRINT_PREPARATION/A/data/support_stage2.json",
+      "upstream_reference_sha256": "7d9f384318e2021a706ae784d41e5bdda22eed4fb03ba2147a3f2c05db8968b9",
+      "integration_status": "SOURCE_TRACED_NOT_YET_REPLAYED"
     },
     {
       "operation": "remove_support_record",

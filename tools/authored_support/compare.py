@@ -48,6 +48,7 @@ def compare_support(actual: dict[str, Any], expected: dict[str, Any]) -> dict[st
     actual_metadata = {key: value for key, value in actual_view.items() if key != "objects"}
     expected_metadata = {key: value for key, value in expected_view.items() if key != "objects"}
     metadata_equal = actual_metadata == expected_metadata
+    order_equal = [r.get("id") for r in a_objects] == [r.get("id") for r in e_objects]
     equal = (
         not duplicate_a
         and not duplicate_e
@@ -55,6 +56,7 @@ def compare_support(actual: dict[str, Any], expected: dict[str, Any]) -> dict[st
         and not removed
         and not mismatches
         and metadata_equal
+        and order_equal
     )
     return {
         "status": "PASS" if equal else "HOLD",
@@ -67,4 +69,5 @@ def compare_support(actual: dict[str, Any], expected: dict[str, Any]) -> dict[st
         "removed_ids": removed,
         "mismatched_ids": mismatches,
         "metadata_equal": metadata_equal,
+        "order_equal": order_equal,
     }

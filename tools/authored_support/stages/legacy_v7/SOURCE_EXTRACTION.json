@@ -1,0 +1,54 @@
+[
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\demands_anchors.py",
+    "sha256": "ec2ad76677e553ff7fd13f678fb9c0e614dc6c8aa17dc5ca1e3397fce966ef36"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\route_external.py",
+    "sha256": "16aa970d7a4567a49ae425ad80686feb56e58419a46cedde105e77e0867c5b1f"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\route_body.py",
+    "sha256": "e986613472049ef3bbac0c09664a2d0553928a5a4bc83a899ca258cf8a232e15"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\route_outer_body.py",
+    "sha256": "2860691110a7c73a26c7f7aa187b8b40070f2eaefcd4e2d638eab682b9a425bc"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\replace_t00841.py",
+    "sha256": "d8c091f97abbc47f6b56266396421415f4213b52b93d78fca82dcc2436fd84ad"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\audit_new_routes.py",
+    "sha256": "13ddab4ab7849df4f428ae8dbed8294baddd6f9b8349f9a5e49b6eb3cf980f75"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\anchor_birth.py",
+    "sha256": "8a62b1e853a9b824d838f3886f610433d6a0f3248dff12cf684d1d4ab8d4b4c7"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\scaffold.py",
+    "sha256": "8cf3665d2a1c387c204e72f3b53217ce91820a8102b1fffa686ae1ce876c0192"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\repair_brace_gaps.py",
+    "sha256": "ad9a2b530a49860109007426abda5ca84c3e96d0ab6b2c86ef82666cd182db76"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\feet.py",
+    "sha256": "cb214115dd2b51af95a60c67d889e47c01e1859c70884063c6a6965a4e13f4c3"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\assemble.py",
+    "sha256": "755c1a413c124a7b6e42f5d0bc3b49cb2a854df8c7fee999163cf821c863cc02"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\exact_main_clearance.py",
+    "sha256": "09fe3bd9d3b98d1ab71065aaca2c6c814633639b7e3f55165cf77694d1a29202"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V7_STRONG_SUPPORT_GATE\\reproduce\\clearance_patch.py",
+    "sha256": "42c2fe4aba18c56b7e810e6f7d67740d8bd61a7d02fec3b3ed8cd17cae0df3c6"
+  }
+]

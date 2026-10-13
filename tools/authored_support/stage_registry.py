@@ -33,7 +33,17 @@ def _v4_d2_registration() -> StageRegistration:
 def registered_stages() -> dict[str, StageRegistration]:
     """Return executable stages registered in Python; source-map JSON is data only."""
     registration = _v4_d2_registration()
-    return {registration.stage_id: registration}
+    from .stages.v4_removal import LEGACY_SOURCE_CODE_SHA256, generate_v4_removal
+    removal=StageRegistration('V4_D2_REMOVAL',registration.case_id,
+        'tools.authored_support.stages.v4_removal.generate_v4_removal',
+        tuple(sorted(LEGACY_SOURCE_CODE_SHA256.items())),generate_v4_removal)
+    from .lineage_constants import DOWNSTREAM_SOURCE_SHA256
+    from .stages.downstream import generate
+    downstream = StageRegistration('MINIA_DOWNSTREAM', registration.case_id,
+        'tools.authored_support.stages.downstream.generate',
+        tuple(sorted(DOWNSTREAM_SOURCE_SHA256.items())), generate)
+    return {registration.stage_id: registration, removal.stage_id: removal,
+            downstream.stage_id: downstream}
 
 
 def resolve_stage(
@@ -79,7 +89,10 @@ def resolve_stage(
     return registration.callable, []
 
 
-def registered_pipeline(_case_id: str) -> StageCallable | None:
-    """No complete MINI_A pipeline is registered yet."""
-    return None
+def registered_pipeline(case_id: str) -> StageCallable | None:
+    """Register generation only; READY still requires independent verification."""
+    if case_id != 'MINI_A_AUTHORED_SUPPORT_LEGACY_V1':
+        return None
+    from .pipeline import generate
+    return generate
 

@@ -1,0 +1,47 @@
+[
+  {
+    "stage": "route",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\route.py",
+    "sha256": "3d558aa0643d4d10a8e11ea6dd9d2f72610e45b4acf68960bc813745841bdebf"
+  },
+  {
+    "stage": "body_braces",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\body_braces.py",
+    "sha256": "b8a1ddb3a86bdce7adb2c85b8b95f979c9cdcda090ca5b046b02ddc350398cd2"
+  },
+  {
+    "stage": "body_surface_links",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\body_surface_links.py",
+    "sha256": "b2364694fa5f757fb19b391686151e43e170d58fe546eeafe8c6f7776b59c405"
+  },
+  {
+    "stage": "brace_network",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\brace_network.py",
+    "sha256": "dcba62ab71b4cb3553b061ae62c54bd5e5add17ad963c9fb73131db9312a5d5c"
+  },
+  {
+    "stage": "build_meshes",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\build_meshes.py",
+    "sha256": "12807fc4c128d681255c965f772331e55204de7e89f0b01291fcd671bd7b9405"
+  },
+  {
+    "stage": "audit_support",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\audit_support.py",
+    "sha256": "19f6a21c52bdb3b686e9197c546511df519bacee58c3420de0ed9838dbb176d9"
+  },
+  {
+    "stage": "recheck_access",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\recheck_access.py",
+    "sha256": "8102ab4d1a22f36585efc290de88b33ab137201c197c159529f82b390e8969d4"
+  },
+  {
+    "stage": "repair_free_intervals",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\repair_free_intervals.py",
+    "sha256": "cdbb2d96d95f34c68ec7d6042bc50df63ac14befd131463dea2e3b6cdd09d947"
+  },
+  {
+    "stage": "coverage",
+    "source": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_V5_AUTHORED_SUPPORT_REVIEW\\reproduce\\coverage.py",
+    "sha256": "02cf75dba3162bb011350c249f4177c6fe7d5cd0e6824325da7dcc74d90c4043"
+  }
+]

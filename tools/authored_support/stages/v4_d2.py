@@ -66,7 +66,20 @@ def _load_source_snapshot(
     manifest = read_json(manifest_path)
     if len(manifest) != manifest_info["entry_count"]:
         raise ContractError("the frozen upstream source hash index entry count changed")
-    manifest_hashes = {_path_key(Path(row["path"])): str(row["sha256"]).lower() for row in manifest}
+    # The locked historical manifest contains absolute paths. Resolve its root
+    # from a pinned input suffix so moving the source tree does not change data.
+    anchor = Path(input_lock['inputs'][0]['path']).as_posix()
+    anchors = [str(row['path']).replace('\\', '/') for row in manifest
+               if str(row['path']).replace('\\', '/').endswith('/' + anchor)]
+    if len(anchors) != 1:
+        raise ContractError('frozen source manifest root is ambiguous')
+    historical_root = anchors[0][:-len(anchor)]
+    def relocated_manifest_path(row):
+        recorded = str(row['path']).replace('\\', '/')
+        if not recorded.startswith(historical_root):
+            raise ContractError('frozen source manifest contains a different root')
+        return outputs_root / recorded[len(historical_root):]
+    manifest_hashes = {_path_key(relocated_manifest_path(row)): str(row["sha256"]).lower() for row in manifest}
 
     paths: dict[str, Path] = {}
     expected: dict[str, str] = {}
@@ -86,7 +99,7 @@ def _load_source_snapshot(
     prefix_path = member_root.resolve()
     member_expected: dict[str, str] = {}
     for row in manifest:
-        row_path = Path(row["path"]).resolve(strict=False)
+        row_path = relocated_manifest_path(row).resolve(strict=False)
         try:
             relative = row_path.relative_to(prefix_path).as_posix()
         except ValueError:

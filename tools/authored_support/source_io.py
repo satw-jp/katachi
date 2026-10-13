@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,15 @@ def sha256_file(path: Path) -> str:
     except OSError as exc:
         raise ContractError(f"cannot hash {path}: {exc}") from exc
     return digest.hexdigest()
+
+
+def read_locked_json(path: Path, expected_sha256: str) -> Any:
+    """Check the descriptor itself before parsing or following any references."""
+    if not isinstance(expected_sha256, str) or re.fullmatch(r"[0-9a-fA-F]{64}", expected_sha256) is None:
+        raise ContractError("expected JSON SHA256 must be 64 hexadecimal characters")
+    if sha256_file(path) != expected_sha256.lower():
+        raise ContractError(f"JSON SHA256 mismatch: {path}")
+    return read_json(path)
 
 
 def resolve_asset(asset: dict[str, Any], roots: dict[str, Any]) -> Path:
@@ -55,15 +65,48 @@ def check_asset(asset: dict[str, Any], roots: dict[str, Any]) -> dict[str, Any]:
         "exists": path.is_file(),
         "expected_sha256": expected,
     }
+    if not isinstance(expected, str) or re.fullmatch(r"[0-9a-fA-F]{64}", expected) is None:
+        result["status"] = "HOLD"
+        result["reason"] = "EXPECTED_SHA256_INVALID"
+        return result
     if not path.is_file():
         result["status"] = "HOLD"
         result["reason"] = "SOURCE_FILE_MISSING"
         return result
     actual = sha256_file(path)
     result["actual_sha256"] = actual
-    if expected and actual.lower() != expected.lower():
+    if actual.lower() != expected.lower():
         result["status"] = "HOLD"
         result["reason"] = "SOURCE_SHA256_MISMATCH"
     else:
         result["status"] = "PASS"
     return result
+
+
+def check_permanent_closure(case: dict, preset_dir: Path, roots: dict) -> dict:
+    if case.get('case_id')!='MINI_A_AUTHORED_SUPPORT_LEGACY_V1':
+        return {'status':'NOT_APPLICABLE','checked_files':0}
+    lock=read_locked_json(preset_dir/'PERMANENT_MESH_LOCK.json',case.get('permanent_mesh_lock_sha256'))
+    if lock.get('case_id')!=case['case_id']:
+        raise ContractError('Permanent mesh closure case mismatch')
+    rows=lock.get('files',[])
+    if not rows:raise ContractError('empty Permanent mesh closure')
+    keys=[(r.get('root'),r.get('path')) for r in rows]
+    if len(keys)!=len(set(keys)):raise ContractError('duplicate Permanent mesh closure entry')
+    checks=[check_asset(r,roots) for r in rows]
+    failed=[r for r in checks if r['status']!='PASS']
+    return dict(status='HOLD' if failed else 'PASS',checked_files=len(checks),failed=failed,
+                lock_sha256=case['permanent_mesh_lock_sha256'])
+
+
+def check_downstream_sources(case, preset_dir, roots):
+    if case.get('case_id') != 'MINI_A_AUTHORED_SUPPORT_LEGACY_V1':
+        return dict(status='NOT_APPLICABLE', checked_files=0)
+    from .lineage_constants import DOWNSTREAM_SOURCE_SHA256
+    lock = read_locked_json(preset_dir/'DOWNSTREAM_SOURCE_LOCK.json', case.get('downstream_source_lock_sha256'))
+    actual = {r['path']:r['sha256'] for r in lock['files']}
+    if len(actual) != len(lock['files']) or actual != DOWNSTREAM_SOURCE_SHA256:
+        raise ContractError('downstream source lock differs from Python registration')
+    checks = [check_asset(dict(row, root='outputs'), roots) for row in lock['files']]
+    failed = [r for r in checks if r['status'] != 'PASS']
+    return dict(status='HOLD' if failed else 'PASS', checked_files=len(checks), failed=failed)
