@@ -90,5 +90,7 @@ class CompletionTests(unittest.TestCase):
             self.assertFalse(row['all_fragments_removed_in_model'])
             self.assertTrue(result['remaining_obstacle_ids'])
             self.assertAlmostEqual(sum(f['volume_mm3'] for f in row['fragments']),c['generated']['objects'][0]['volume_mm3'],places=5)
+            self.assertEqual(row['fragment_option_attempts'][0]['main_piece_option'],1)
+            self.assertTrue(any(f.get('proof')=='INITIAL_INTERSECTION_CONTAINED_IN_EVERY_SWEEP' for f in row['fragments']))
 
 if __name__=='__main__': unittest.main()

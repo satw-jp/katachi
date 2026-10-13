@@ -19,6 +19,24 @@ def ready(generated, stages, readback, removal):
                 and stages and all(s.get('status')=='PASS' for s in stages)
                 and readback and len(removal.get('objects',[]))==generated['mesh_count'])
 
+def reconcile_output_metadata(out,plan):
+    """Replace V1 inspection-only labels after actual generation and binding."""
+    out=Path(out);identity=read(out/'INPUT_IDENTITY.json');ownership=read(out/'OWNERSHIP_BINDING.json')
+    identity['repair_binding']=ownership['decision'] if ownership['status']=='PASS' else 'HOLD'
+    write(out/'INPUT_IDENTITY.json',identity)
+    counts={}
+    for row in plan['objects']:
+        if row.get('target'):counts[row['target']]=counts.get(row['target'],0)+1
+    flowers=read(out/'FLOWER_GEOMETRY.json')
+    for row in flowers:
+        row['contact_selected']=bool(counts.get(row['id'],0));row['authored_support_contact_count']=counts.get(row['id'],0)
+        row['reason']='ACTUAL_GENERATED_CONTACTS' if row['contact_selected'] else 'NO_GENERATED_CONTACT_SEE_UNHANDLED'
+    write(out/'FLOWER_GEOMETRY.json',flowers)
+    inventory=read(out/'B0_B115_COMPARISON.json')
+    inventory['reason']='Only B115 Support generated. B0/B115 geometry inventory is not a comparative support-certification study.'
+    inventory['b115_new_support_mesh_count']=plan['mesh_count'];inventory['actual_contacted_flower_count']=sum(row['contact_selected'] for row in flowers)
+    write(out/'B0_B115_COMPARISON.json',inventory)
+
 def run_completion(case_path,roots_path,out):
     case_path=Path(case_path); preset=case_path.parent; roots=read(roots_path)['roots']; lock=read(preset/'SOURCE_LOCK.json')
     paths={r['name']:Path(roots[r['root']])/r['path'] for r in lock['files']}
@@ -47,6 +65,7 @@ def run_completion(case_path,roots_path,out):
                 Stage('GENERATION',build_support,('GEOMETRY','RECIPE'))]
         records=dispatch(CASE_ID,CASE_ID,stages,c)
         require(all(row['status']=='PASS' for row in records),'DISPATCH_INCOMPLETE')
+        reconcile_output_metadata(out,c['generated'])
         removal=evaluate(c,c['body'])
         for row in c['generated']['objects']:
             path=out/row['mesh']; require(k.mesh_array_identity(path)==row['mesh_identity'],'READBACK_IDENTITY:'+row['id'])

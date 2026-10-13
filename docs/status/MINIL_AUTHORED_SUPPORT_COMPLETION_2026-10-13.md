@@ -32,4 +32,6 @@ No main merge, slice, manufacturing STL/3MF/G-code, Send or Print. `print_go=fal
 Self-check cycle 1 found incomplete removal bounds and own-Support probe exclusion. Both were corrected before completion. Partial first-run meshes are retained as an interrupted non-candidate; the same recipe and hashed MINIL-derived sections are reused for the repaired run.
 This is not independent review. Final counts, STOP, evidence identity and unresolved findings are appended after execution.
 
+Self-check cycle 2 restores the source fragmentation order: primary cut access, whole-main extraction, then two/three pieces only when needed. Sacrificial residues remain explicit obstacles. Initial positive overlap proves every rigid swept hull blocked; the model records that witness without redundant directional trials. Stale V1 inspection labels are reconciled only after actual generation. The saved Support candidate is byte-copied and revalidated for this model audit; Support geometry is not regenerated.
+
 Local evidence: `outputs/MINIL_AUTHORED_SUPPORT_COMPLETION_20261013` in the execution workspace.
