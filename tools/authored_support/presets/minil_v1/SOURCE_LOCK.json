@@ -1,0 +1,159 @@
+{
+  "generator_commit": "15a1487bf8f2704af2b62ff4cd9342770cd3f864",
+  "files": [
+    {
+      "name": "placements",
+      "root": "minil",
+      "path": "inputs/target/placements.npz",
+      "bytes": 605030,
+      "sha256": "d118edbf8cee917242e7a8fd6745870e5fc7f3c8e8f7f3f35b804beb0291a9eb"
+    },
+    {
+      "name": "d6",
+      "root": "minil",
+      "path": "inputs/target/D6_local.npz",
+      "bytes": 543038,
+      "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+    },
+    {
+      "name": "anchors",
+      "root": "minil",
+      "path": "inputs/target/flower_back_anchors.json",
+      "bytes": 502251,
+      "sha256": "cf1cef082cbb5a8a33410c6dfafabd1657da3aea0faaa904f8e0abec04ada437"
+    },
+    {
+      "name": "input_lock",
+      "root": "minil",
+      "path": "INPUT_LOCK.json",
+      "bytes": 5691,
+      "sha256": "65df5a48f5e1adaed8c6fde680dc92bed8ff591af9767f2a2e5aacb5923f54dd"
+    },
+    {
+      "name": "structure",
+      "root": "minil",
+      "path": "STRUCTURE.json",
+      "bytes": 6247057,
+      "sha256": "8f1a7e33abd770c882100a2fd516040776aa1df8c0d46d4cd7608cc5b859f1a8"
+    },
+    {
+      "name": "members",
+      "root": "minil",
+      "path": "MEMBER_MESHES.npz",
+      "bytes": 18446326,
+      "sha256": "90580c34566cdcc3e2e27f0dd95a9b7fdee25ce435a0b89232329b6fd42fe8e9"
+    },
+    {
+      "name": "original_recipe",
+      "root": "minil",
+      "path": "RECIPE.json",
+      "bytes": 9225,
+      "sha256": "6fcbdbe64844012af253cfdc3920df2df7f4ae14f943e10bcbc126cd37c21118"
+    },
+    {
+      "name": "overlay_design",
+      "root": "cycle2",
+      "path": "DESIGN_REVIEW.json",
+      "bytes": 194176,
+      "sha256": "694e85060ece450e20512469c66ad94019ca84161a0287aa0913963c9f144bf4"
+    },
+    {
+      "name": "overlay_mesh",
+      "root": "cycle2",
+      "path": "BRANCH_ADDITIONS.npz",
+      "bytes": 112127,
+      "sha256": "502ca176c80a0abee816465f61f7944796b3839614eea6d6f02ff4775491d536"
+    },
+    {
+      "name": "overlay_project_manifest",
+      "root": "cycle2",
+      "path": "PROJECT_MANIFEST.json",
+      "bytes": 212230,
+      "sha256": "64ceee6d6e5ec870e3b68dc252101d08605db07ea29546a0f9469ac31fd1051b"
+    },
+    {
+      "name": "preservation",
+      "root": "cycle2",
+      "path": "SOURCE_PRESERVATION.json",
+      "bytes": 5842,
+      "sha256": "4e09a2b98d70b9e0496d9b4b382b9ccfc953ea79eb68dfaefc6a0064fd544a2c"
+    },
+    {
+      "name": "review",
+      "root": "cycle2",
+      "path": "REVIEW_CYCLE2.json",
+      "bytes": 2060,
+      "sha256": "f49553975c0139d0ec356fba48d6cbbbfa3cc1c50bb0103c6f9c3d5e5d77d455"
+    },
+    {
+      "name": "settings_only",
+      "root": "cycle2",
+      "path": "supertack_not_released/MANIFEST.json",
+      "bytes": 1520,
+      "sha256": "13e8ac58e4d6d13bb78be1b8b8099aa08fb158497b4205cb2797d200a7396797"
+    },
+    {
+      "name": "cycle2_project",
+      "root": "cycle2",
+      "path": "MINIL_BRANCH_RESTART_PLA_RAFT2_NOT_RELEASED.3mf",
+      "bytes": 2836065679,
+      "sha256": "3c7228514dc351b66d0775b3d5c35269e6d0eb0be620aa2287fce8cff8b5823d"
+    },
+    {
+      "name": "frame",
+      "root": "restart",
+      "path": "outputs/ONE_PIECE_PREFLIGHT/grounded_normal/PROJECT_MANIFEST.json",
+      "bytes": 1653,
+      "sha256": "1fd16fdf9fd0e80f7d3b8b09f131a4230b42163e2634ca80b063800c1201da5a"
+    },
+    {
+      "name": "overlay_generator",
+      "root": "restart",
+      "path": "work/minil_branch_restart_cycle2.py",
+      "bytes": 4670,
+      "sha256": "47b81ba8bd5565048c0aad48633484848450b275becdf8882239e19217a0a7b9"
+    },
+    {
+      "name": "overlay_builder",
+      "root": "restart",
+      "path": "work/cycle2_build_minil_restart_candidate.py",
+      "bytes": 6652,
+      "sha256": "0ba5711c43adb114092db0aba34ca1b6c416bba4d9c7a043454b9d035b27aeb3"
+    },
+    {
+      "name": "legacy_recipe",
+      "root": "generator",
+      "path": "tools/authored_support/presets/minia_legacy_v1/RECIPE.json",
+      "bytes": 9929,
+      "sha256": "45690690b8465cd04f486174a5d0ef9e59075add8a164a8f0262ba656591dfac"
+    },
+    {
+      "name": "legacy_lower",
+      "root": "generator",
+      "path": "tools/authored_support/rules/lower_support.py",
+      "bytes": 10939,
+      "sha256": "2c03ecc67d977f445c56229902aec47906e0bc7ccade7a93d8187f9da79f22cf"
+    },
+    {
+      "name": "legacy_downstream",
+      "root": "generator",
+      "path": "tools/authored_support/stages/downstream.py",
+      "bytes": 11733,
+      "sha256": "1b81f8d86a76dc9f735a56b60ef9894a3bd9e69e1be7b8e793fa7dd8b3a2138b"
+    },
+    {
+      "name": "legacy_v4",
+      "root": "generator",
+      "path": "tools/authored_support/stages/v4_d2.py",
+      "bytes": 30583,
+      "sha256": "0f11b1e79fe14fa68d88c402b9ca55dc5df49db4f674623290876c66f113b92e"
+    },
+    {
+      "name": "legacy_registry",
+      "root": "generator",
+      "path": "tools/authored_support/stage_registry.py",
+      "bytes": 4787,
+      "sha256": "ae157b290dc1bf5a289fd5a1f8af6e2b5e589abd074bbb04b9c1515008ff8dd6"
+    }
+  ]
+}

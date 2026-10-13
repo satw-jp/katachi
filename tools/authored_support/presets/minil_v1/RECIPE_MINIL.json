@@ -1,0 +1,105 @@
+{
+  "case_id": "MINIL_B115_PROVISIONAL",
+  "version": 1,
+  "status": "HOLD_UNBOUND_MINIL_RECIPE",
+  "inherited_algorithm_only": [
+    "identity before generation",
+    "ordered IDs from NPZ/anchors",
+    "actual mesh transforms",
+    "normal sign for inventory only",
+    "actual solid validity",
+    "explicit dependency stages",
+    "HOLD on unmapped input"
+  ],
+  "MINIA_constants_reference_only": {
+    "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
+    "source_file_sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356",
+    "source_locator": "module top level, geometry setup and candidate loops",
+    "status": "INTEGRATED_FIXED_CASE_SOURCE_RULE_REPLAY",
+    "bed_z_mm": -1.7660574107474478,
+    "obstacle_roles": [
+      "flower",
+      "A_permanent",
+      "F2_permanent"
+    ],
+    "permanent_dedup_key": "mesh_source",
+    "solid_collision_volume_threshold_mm3": 1e-05,
+    "cylinder_divisions": 24,
+    "flat_foot_radius_candidates_mm": [
+      3.5,
+      3.0
+    ],
+    "flat_foot_height_mm": 0.8,
+    "sampled_template_face_stride": 24,
+    "downward_normal_z_strictly_below": -0.55,
+    "candidate_height_open_interval_mm_from_bed": [
+      2.2,
+      35.0
+    ],
+    "existing_contact_exclusion_distance_mm": 2.5,
+    "max_new_contacts_per_flower": 2,
+    "max_tested_candidates_per_flower": 22,
+    "shaft_radius_mm": 0.8,
+    "neck_radius_mm": 0.3,
+    "distributed_contact_foot_radius_candidates_mm": [
+      3.5,
+      2.5,
+      1.8
+    ],
+    "distributed_contact_foot_height_mm": 0.65
+  },
+  "MINIL_parameters": {
+    "shaft_radius_mm": null,
+    "neck_radius_mm": null,
+    "neck_penetration_mm": null,
+    "foot_radii_mm": null,
+    "raft_root_plane_mm": null,
+    "tool_envelope": null,
+    "fragment_escape_policy": null,
+    "birth_grid_policy": null
+  },
+  "unresolved": [
+    {
+      "id": "H01_CONTACT_AND_MEMBER_DIMENSIONS",
+      "class": "UNKNOWN",
+      "stage": "MINIL_SUPPORT_GENERATION",
+      "source": "rules/lower_support.py; legacy RECIPE.extracted_rules.AF2_LOWER_SUPPORT",
+      "detail": "MINI_A shaft radius 0.8, neck radius 0.3, feet radii 3.5/2.5/1.8 mm, exclusion 2.5 mm, lower-height window 2.2..35 mm have no deterministic MINIL/PLA conversion or approved same-size policy.",
+      "needed": "Source-bound MINIL neck/foot/brace dimensions, penetration, collision tolerance. No automatic 11/15 scale."
+    },
+    {
+      "id": "H02_RAFT_INTERFACE_FRAME",
+      "class": "UNKNOWN",
+      "stage": "MINIL_SUPPORT_GENERATION",
+      "source": "frame + branch_raft2_pla PROJECT_MANIFEST raft_lift=native slicer generated",
+      "detail": "Cycle2 CAD is grounded before slicer raft lift. Raft2/0.10 mm does not bind Support foot plane/artwork elevation. MINI_A bed=-1.7660574107474478 is not transferable.",
+      "needed": "Explicit CAD Support root plane and raft interface convention without artwork changes or slice."
+    },
+    {
+      "id": "H03_LEGACY_DERIVED_STAGE_BINDING",
+      "class": "UNKNOWN",
+      "stage": "V4/V5/V6/V7/A1",
+      "source": "stages/downstream.py: V3 birth/load/domain/corridors, retained D2, changes.json, T00841/A3864/A2063, N00224/X03795",
+      "detail": "Historical selections and multi-variant Permanent records are not MINIL inputs. Bounds/normal/minimum inventory cannot substitute birth/load grids or removal sequences.",
+      "needed": "MINIL demand/load/grid and route/brace mapping from documented algorithms; no phantom V5/V6 records."
+    },
+    {
+      "id": "H04_ONE_PIECE_OWNERSHIP_BINDING",
+      "class": "UNKNOWN",
+      "stage": "MINIL_SOURCE_BINDING_EXTENDED",
+      "source": "Issue #64 ROOT/SP004 + R36A000858/SP002 vs cycle2 one-piece provenance",
+      "detail": "Original 2885-member archive is hash-verified. Source-solid ownership mapping for later accepted repairs into this one-piece adapter is not bound. No split union or guessed reassignment applied.",
+      "needed": "Exact one-piece ID/solid mapping preserving accepted repairs and original union. B0 untouched."
+    },
+    {
+      "id": "H05_REMOVAL_PHYSICAL_RECIPE",
+      "class": "UNKNOWN",
+      "stage": "MINIL_REMOVAL",
+      "source": "Issue #64 fragment escape requirement; MINI_A historical removal rules",
+      "detail": "Cutter envelope, clearance, fragment segmentation/escape and cut-order policy have no MINIL-bound recipe.",
+      "needed": "Bound tool/fragment geometry and deterministic removal/collision policy; no physical PASS inferred."
+    }
+  ],
+  "uniform_scaling_applied": false,
+  "process_context_is_support_recipe": false
+}

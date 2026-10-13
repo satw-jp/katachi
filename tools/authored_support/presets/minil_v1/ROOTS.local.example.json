@@ -1,0 +1,9 @@
+{
+  "roots": {
+    "minil": "ABSOLUTE_PATH_TO_MINIL",
+    "cycle2": "ABSOLUTE_PATH_TO_CYCLE2",
+    "restart": "ABSOLUTE_PATH_TO_RESTART",
+    "generator": "ABSOLUTE_PATH_TO_GENERATOR",
+    "geometry_runtime": "ABSOLUTE_PATH_TO_GEOMETRY_RUNTIME"
+  }
+}

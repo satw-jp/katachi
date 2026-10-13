@@ -1,0 +1,14 @@
+{
+  "case_id": "MINIL_B115_PROVISIONAL",
+  "operations": [],
+  "inactive_legacy_exceptions": [
+    "D2_112",
+    "D2_115",
+    "T00841",
+    "N00224",
+    "X03795",
+    "A3864",
+    "A2063"
+  ],
+  "reason": "No historical MINI_A ID has MINIL authority; no nearest-ID port."
+}
