@@ -13,6 +13,8 @@ from .planner import unresolved_generation_stages
 from .mesh_backend import inspect_geometry_runtime
 from .run_metrics import finish_metrics, start_timer
 from .source_io import check_asset, read_json, resolve_asset
+from .stage_registry import resolve_stage
+from .stages.v4_d2 import checkpoint_snapshot, compare_v4_d2_checkpoint
 
 
 PRESET = Path(__file__).parent / "presets" / "minia_legacy_v1"
@@ -185,6 +187,85 @@ def _replay(case_path: Path, roots_path: Path, out: Path) -> int:
     return EXIT_HOLD
 
 
+def _run_v4_d2(case_path: Path, roots_path: Path, out: Path) -> int:
+    started = start_timer()
+    case, recipe, _overrides, source_map = _load_contracts(case_path)
+    roots = read_json(roots_path)
+    stage, holds = resolve_stage(
+        "V4_D2_SUPPORT_GENERATION", case=case, recipe=recipe, source_map=source_map
+    )
+    if holds or stage is None:
+        output = _new_output(out)
+        _write_json(output / "V4_D2_STAGE.json", {
+            "stage_id": "V4_D2_SUPPORT_GENERATION",
+            "status": "MINIA_AUTHORED_SUPPORT_V4_D2_HOLD",
+            "holds": [hold.as_dict() for hold in holds],
+            "checkpoint_read_during_generation": False,
+        })
+        return EXIT_HOLD
+
+    outputs_root = Path(roots.get("roots", {}).get("outputs", "")).expanduser().resolve(strict=False)
+    checkpoint_root = outputs_root / "R4_V2_V3_A1_EXPERIMENTAL_V4"
+    output_resolved = out.resolve(strict=False)
+    if output_resolved == outputs_root or outputs_root in output_resolved.parents:
+        raise ContractError("V4 D2 output must be outside the frozen source outputs root")
+    output = _new_output(out)
+    preset_dir = case_path.resolve().parent
+    checkpoint_before = checkpoint_snapshot(checkpoint_root, preset_dir)
+    stage_result = stage(
+        case=case,
+        recipe=recipe,
+        source_map=source_map,
+        roots=roots,
+        output_dir=output,
+        preset_dir=preset_dir,
+    )
+    runtime_root = Path(roots.get("roots", {}).get("geometry_runtime", ""))
+    from .mesh_backend import ManifoldKernel
+
+    kernel = ManifoldKernel.from_runtime_root(runtime_root)
+    comparison = compare_v4_d2_checkpoint(
+        output_dir=output,
+        checkpoint_root=checkpoint_root,
+        preset_dir=preset_dir,
+        kernel=kernel,
+    )
+    checkpoint_after = checkpoint_snapshot(checkpoint_root, preset_dir)
+    originals_unchanged = checkpoint_before == checkpoint_after
+    comparison["checks"]["saved_checkpoint_files_unchanged"] = originals_unchanged
+    comparison["saved_checkpoint_files_before"] = checkpoint_before
+    comparison["saved_checkpoint_files_after"] = checkpoint_after
+    if not originals_unchanged or not all(comparison["checks"].values()):
+        comparison["status"] = "MINIA_AUTHORED_SUPPORT_V4_D2_HOLD"
+    stage_result["status"] = comparison["status"]
+    stage_result["checkpoint_read_during_generation"] = False
+    stage_result["checkpoint_comparison"] = "completed_after_generation"
+    stage_result["saved_checkpoint_files_unchanged"] = originals_unchanged
+    stage_result["run_metrics"] = finish_metrics(started)
+    _write_json(output / "V4_D2_STAGE.json", stage_result)
+    _write_json(output / "CHECKPOINT_COMPARISON.json", comparison)
+    _write_json(output / "STOP.json", {
+        "status": comparison["status"],
+        "scope": "V4 D2 limited replay review only",
+        "full_mini_a_replay_ready": False,
+        "v7_or_later_stage_executed": False,
+        "minil_applied": False,
+        "slice_count": 0,
+        "send_count": 0,
+        "print_count": 0,
+    })
+    (output / "RESULT.md").write_text(
+        "# V4 D2 limited replay\n\n"
+        f"STOP: `{comparison['status']}`.\n\n"
+        f"Candidates: {comparison['candidate_count']}; exact mesh matches: "
+        f"{comparison['mesh_arrays']['matching_count']}/{comparison['mesh_arrays']['candidate_count']}.\n\n"
+        "This limited result does not establish full MINI_A Support replay readiness. "
+        "V7+, MINIL, slice, Send, and Print were not run.\n",
+        encoding="utf-8",
+    )
+    return EXIT_OK if comparison["status"] == "MINIA_AUTHORED_SUPPORT_V4_D2_REPLAY_READY_FOR_REVIEW" else EXIT_HOLD
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m tools.authored_support")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -206,6 +287,10 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--golden", type=Path, default=PRESET / "GOLDEN.json")
     replay.add_argument("--roots", type=Path, required=True)
     replay.add_argument("--out", type=Path, required=True)
+    v4_d2 = sub.add_parser("v4-d2", help="regenerate and compare only the source-bound V4 D2 stage")
+    v4_d2.add_argument("--case", type=Path, default=PRESET / "CASE.json")
+    v4_d2.add_argument("--roots", type=Path, required=True)
+    v4_d2.add_argument("--out", type=Path, required=True)
     return parser
 
 
@@ -221,8 +306,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "replay":
             # golden is intentionally deferred until a build completes.
             return _replay(args.case, args.roots, args.out)
+        if args.command == "v4-d2":
+            return _run_v4_d2(args.case, args.roots, args.out)
     except (ContractError, OSError, KeyError, TypeError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return EXIT_ERROR
     return EXIT_ERROR
+
 

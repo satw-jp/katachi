@@ -47,6 +47,13 @@
       "sha256": "80974e597058a96fca0e7ddd7830a71fae6b425f392427de7c2ef9b3f2b28b8d"
     },
     {
+      "logical_name": "upstream_section_surface",
+      "role": "frozen V3 surface geometry used to rebuild the V4 D2 bed-visibility mask",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/surface.json",
+      "sha256": "3e47947db158691cf1cd4d244d34b513d19a8fa6b2ffe3d94883d314dcb15fce"
+    },
+    {
       "logical_name": "upstream_birth_records",
       "role": "source birth-state records consumed by the V7 demand rules",
       "root": "outputs",
@@ -98,3 +105,4 @@
   },
   "no_runtime_ai_or_network": true
 }
+

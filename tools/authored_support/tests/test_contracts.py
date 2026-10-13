@@ -80,6 +80,7 @@ class BuildIsolationTests(unittest.TestCase):
         holds = unresolved_generation_stages(source_map)
         self.assertEqual(len(holds), 10)
         self.assertEqual(holds[0].subject, "V4_D2_SUPPORT_GENERATION")
+        self.assertEqual(holds[0].code, "GENERATION_STAGE_NOT_INTEGRATED")
         lower_hold = next(hold for hold in holds if hold.subject == "AF2_LOWER_SUPPORT")
         self.assertEqual(lower_hold.code, "GENERATION_STAGE_NOT_INTEGRATED")
         self.assertEqual(holds[-1].code, "GENERATOR_CALLABLE_MISSING")
@@ -241,3 +242,4 @@ class LowerSupportFixtureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

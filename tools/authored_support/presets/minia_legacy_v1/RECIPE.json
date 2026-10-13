@@ -1,7 +1,8 @@
 {
   "recipe_id": "MINIA_AUTHORED_SUPPORT_V1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
   "version": 1,
-  "status": "SOURCE_RULES_MAPPED_GENERATORS_NOT_EXTRACTED",
+  "status": "V4_D2_STAGE_IMPLEMENTED_REMAINDER_HOLD",
   "units": "source-world millimetres",
   "stage_order": [
     "V4_D2_SUPPORT_GENERATION",
@@ -14,6 +15,16 @@
     "AF2_FINAL_SUPPORT_DATA",
     "NATIVE_SUPPORT_PART_BINDING"
   ],
+  "stage_bindings": {
+    "V4_D2_SUPPORT_GENERATION": {
+      "implementation_module": "tools.authored_support.stages.v4_d2.generate_v4_d2",
+      "source_code_sha256": {
+        "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/prepare.py": "41b3a945420131936d65c4edc4b055baded80c2d51a2c527f3bf553687e5ee84",
+        "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/additions.py": "17125efa3a19175e437243c5494e3c50769e9fbe330f1ddd374b3e469bac9b31",
+        "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/removal_below.py": "ca8fc76181c44d22415a8c9f3b8cdc623e7a332954bf43a1bf3a6c5e2e893149"
+      }
+    }
+  },
   "extracted_rules": {
     "AF2_LOWER_SUPPORT": {
       "source_file": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
@@ -61,3 +72,4 @@
   "native_transform": "CASE.json#transform_chain",
   "golden_is_generation_input": false
 }
+

@@ -1,0 +1,54 @@
+{
+  "schema_version": "authored-support-v1",
+  "stage_id": "V4_D2_SUPPORT_GENERATION",
+  "source_manifest": {
+    "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/data/frozen_source_hashes.json",
+    "sha256": "59acccc8b5cbc8bd655161c3c7d7d0affee0ed35facb6cb50e07cdf5e18ea38f",
+    "entry_count": 4384,
+    "role": "read-only source hash index; never used as generation data"
+  },
+  "inputs": [
+    {
+      "logical_name": "flower_surface",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/surface.json",
+      "sha256": "1bd5efb438fa4423826f912342a43d716a2f506c288daf8696c03903b82e2b05"
+    },
+    {
+      "logical_name": "flower_template_mesh",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/D6_local.npz",
+      "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+    },
+    {
+      "logical_name": "upstream_section_surface",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/surface.json",
+      "sha256": "3e47947db158691cf1cd4d244d34b513d19a8fa6b2ffe3d94883d314dcb15fce"
+    },
+    {
+      "logical_name": "upstream_structure",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/structure.json",
+      "sha256": "80974e597058a96fca0e7ddd7830a71fae6b425f392427de7c2ef9b3f2b28b8d"
+    },
+    {
+      "logical_name": "upstream_object_births",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_object_births.json",
+      "sha256": "a65455b10fe3591f68c4b7fbdc64f62bd61b874c6f6031b047d0dd93c49705da"
+    },
+    {
+      "logical_name": "upstream_true_birth_records",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_true_births.json",
+      "sha256": "bb6e913bf8f6dce7222e74564721fa075561b6bcfdd140626ec62d6e5fb08704"
+    },
+    {
+      "logical_name": "upstream_layer_summary",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_layer_summary.json",
+      "sha256": "d13e727979d321a2045afc55986f9fcc2858ca92c15ea4bd5434f96de2333a2b"
+    }
+  ],
+  "member_mesh_tree": {
+    "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/members",
+    "file_count": 4195,
+    "manifest_prefix": "R4_V2_INTERNAL_PROPOSAL_V3/data/members/",
+    "role": "raw upstream member geometry; each file is checked against the pinned source hash index"
+  }
+}
+

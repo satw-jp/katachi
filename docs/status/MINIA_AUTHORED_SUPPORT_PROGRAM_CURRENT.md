@@ -1,46 +1,31 @@
 # MINI_A Authored Support Program — CURRENT
 
-Updated: 2026-10-12 JST
+Updated: 2026-10-13 JST
 
-## Authority
+## Authority and branch
 
-- [Issue #62](https://github.com/satw-jp/katachi/issues/62): single execution entry.
-- **[Direct LUNA execution design V1](../tasks/MINIA_AUTHORED_SUPPORT_LUNA_EXECUTION_V1.md)**: latest design/API/tests/routing. Read this first.
-- [Original task / source inventory](../tasks/MINIA_AUTHORED_SUPPORT_PROGRAM_V0.md): retained source identities and protected scope; V1 takes precedence for overlapping implementation instructions.
-- Branch: `agent/minia-authored-support-program-v0`, based on main `f87aeedb71725782b2db7a24ba6f8a84956ca2fc`.
-- **Author owns scope/adoption/next gate. ChatGPT in the current chat owns design and technical review. LUNA implements the bounded task, tests and artifacts directly.** Author explicitly asked for design and executable instructions in this chat. Do not require Astra to redesign, delegate again or approve implementation startup. Astra's documents are read-only manufacturing provenance; later MINIL use remains a separate task.
-- This is not the #58/#59 UI-only Sol task.
+- [Issue #62](https://github.com/satw-jp/katachi/issues/62) is the execution authority.
+- [Direct LUNA execution design V1](../tasks/MINIA_AUTHORED_SUPPORT_LUNA_EXECUTION_V1.md) remains the implementation design.
+- Branch: `agent/minia-authored-support-program-v0`; Draft PR #63 remains open and unmerged.
+- The current bounded task follows the latest Issue #62 technical review. It does not require Astra redesign, delegation, or approval.
 
 ## Present state
 
-**DIRECT_LUNA_DESIGN_READY / PROGRAM_EXTRACTION_NOT_STARTED.** Source pointers, exact module/input/output/CLI contracts, legacy rules and acceptance tests are documented. Publication has not launched LUNA or delivered a working extracted generator.
+**`PARTIAL_IMPLEMENTATION_HOLD` — limited V4 D2 stage passed for review; full MINI_A replay remains HOLD.**
 
-Before the V1 document addition, this branch was observed at `64ff54c1a5b505b034bf17730f46c1281c608dad`. V1 was added in `a1128dfad18a963a7223142dd59083fd44291462`. Implementation must inspect the current branch/HEAD and preserve any local dirty/unpushed work, rather than resetting to an old document commit.
+The Python stage registry now binds `V4_D2_SUPPORT_GENERATION` to the fixed case, recipe, and pinned legacy source hashes. A fresh Python process rebuilt the V4 first-material mask from V2/V3 source geometry and generated 151 D2 candidates in an isolated output directory.
 
-The supplied `lower_support.py` and `final_support_data.py` establish lower-contact/foot/collar rules, actual-solid collision checks, and case-bound ID exceptions. They depend on older Support/kernel data. Complete upstream regeneration and equality with the successful MINI_A native Support part remain **NOT YET VERIFIED**. V1 explicitly separates verified source facts from the new program architecture.
+Checkpoint comparison passed for the ordered candidate IDs and full plan records, 157 D2 rejection records and reasons, rebuilt mask arrays, and exact vertex/face arrays for all 151 meshes. The saved 150-item removal sequence plus blocked ID `D2_112` was read only as a checkpoint; no removal builder or V7 stage ran. The 4,202 locked source-input files and saved V4 checkpoint files had identical before/after hashes.
 
-## Active bounded task
+The saved D2 records have no explicit `selection_reason` field. The comparison therefore checked each generated selection trace against the saved candidate order and its exact target, contact, height, approach, stability, and removal records; rejection reasons were compared directly.
 
-Implement `tools/authored_support/` as an offline Python kernel and inspect/build/verify/replay CLI. Use explicit case/recipe/override/root records; golden data is comparison-only. Extract the original upstream builders and patches without changing calculations, sampling/order, transforms or case-specific collision contexts. Runtime LLM/API/network=0. Do not replace the method with automatic tree/normal Support.
+Focused package tests: 15 passed, 1 optional geometry fixture skipped (16 total). The fresh-process V4 D2 command exited 0 with `MINIA_AUTHORED_SUPPORT_V4_D2_REPLAY_READY_FOR_REVIEW`.
 
-Finish executable code plus synthetic tests and fixed-MINI_A replay, not an additional design memo. Missing sources must produce precise HOLD and preserve independent implementation progress; do not invent geometry or add an Astra approval dependency. Intermediate-stage tests are not overall generation completion.
+## Remaining before full READY
 
-## Next gate
+The limited V4 D2 result does not establish `MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_READY`. V7 generation, A1 revision, A/F2 stage integration, native Support-part binding, and full MINI_A plan/mesh/native comparison remain unresolved. The general `build`, `verify`, and `replay` commands remain fail-closed.
 
-**MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_READY** requires fixed-MINI_A regeneration from upstream inputs, complete Support-kind coverage, plan/mesh/native-part comparison and focused tests ready for review.
+## Protected scope
 
-**MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_HOLD** if sources are missing, replay-only/unknown kinds remain, bindings are unresolved or comparisons fail. Copying final meshes or embedding the whole output in overrides does not qualify as generation.
+No MINIL application, later stage, slice, Send, or Print was run. No source input or saved V4 checkpoint was modified. The Draft PR remains unmerged. Physical behavior, toolpath chronology, removal success, Author acceptance, and Print GO are not claimed.
 
-Return Draft PR, CLI, populated recipe/source map, replay evidence, runtime/memory observations and restoration/run instructions to **this ChatGPT/Author thread**. No main merge.
-
-After review, a separate bounded task may apply the recipe to MINIL's actual flower/Permanent arrangement. Same method does not mean copying old contact positions or transferring physical success.
-
-## Protected
-
-Success MINI_A originals, archive c75d4b0, PR59/addon branch, MINIL cycle2 and its 115 branches/settings-only SuperTack candidate, Astra fabrication work, existing jobs, dirty/unpushed work, Large/MINI_D/MINIA other lanes and #37/#38.
-
-This task permits fixed-MINI_A Support replay and synthetic generation only into isolated outputs. Flower/Permanent edits, new MINIL Support implementation, printer/profile changes, STL/3MF/G-code/print-package generation, slicer execution, Computer Use, printer connection, Send and Print are prohibited.
-
-Source binding / program tests / plan replay / mesh replay / geometry checks / toolpath / physical / Author ACCEPT / Print GO remain separate. Known legacy geometry/chronology/removal limits remain visible; their reproduction is not a physical certification.
-
-**This publication changed only task documentation and routing. geometry=0, slice=0, Send=0, Print=0.**

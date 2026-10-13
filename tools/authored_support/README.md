@@ -1,87 +1,77 @@
 # MINI_A authored Support replay
 
-This package records the fixed MINI_A case and the source rules found in the
-original builders. It does not use an LLM, network access, or an external
-process. Importing it does not read or write files.
+This offline Python package records the fixed MINI_A case and extracts its
+legacy Support rules. It does not call an LLM, use network access, or execute a
+legacy builder during import.
 
 ## Current result
 
-The input identities and the complete golden kind/count ledger are pinned.
-The generator is **HOLD**: the lower-support geometry rule and final A-side
-data/override pass have been migrated and fixture-tested, but are not integrated
-into a complete fixed-case pipeline. The 151-candidate V4 D2 stage, 14,536-object
-V7 stage, 4,855-object A1 revision, and final A/F2 additions and patches are not
-regenerated here. `build` records the exact missing stages and
-the missing pipeline callable (nine stage gates plus the planner registration).
-It does not read `GOLDEN.json`; it does not create `support_geometry.json` or
-Support meshes. `replay` skips comparison when this build is held.
+**Limited V4 D2 result: `MINIA_AUTHORED_SUPPORT_V4_D2_REPLAY_READY_FOR_REVIEW`.**
+The registered Python stage rebuilt the V4 vertical first-material mask from
+frozen V2/V3 geometry inputs, generated 151 D2 candidates, and matched the
+saved candidate records and exact mesh vertex/face arrays. All 157 saved D2
+rejection records and reasons matched. The saved 150-item removal sequence
+plus its one blocked ID was checked as a read-only checkpoint; its builder was
+not run. The source inputs and saved checkpoints remained unchanged.
 
-The old scripts are identified by path and SHA in
+This is not complete MINI_A Support replay readiness. V7, A1, A/F2 integration,
+native Support-part binding, and full plan/mesh/native comparison remain held.
+The registered stage is bounded and does not open the full pipeline gate.
+
+The V4 source scripts are identified and hash-locked in
 `presets/minia_legacy_v1/SOURCE_RULE_MAP.json`. They are not imported or run as
-scripts because several perform top-level writes. The source input counts and
-golden counts are evidence for identity and planning only, not regeneration.
-
-The native 3MF reference and transform are locked for later comparison. This
-version has not matched generated mesh arrays or native Support-part geometry.
-It therefore cannot report `MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_READY`.
+scripts because they perform top-level writes. The D2 stage rebuilds the
+vertical mask from the pinned V2/V3 mesh and birth inputs into its isolated
+output directory. `V4_D2_CHECKPOINT_LOCK.json` and all files it identifies are
+used only after generation for comparison.
 
 ## Local roots
 
-Copy `ROOTS.local.example.json` to `work/ROOTS.local.json` and fill in the two
-directory roots. `outputs` is the directory containing `R4_D6_SIZE_RHYTHM_V2`,
-`R4_V2_INTERNAL_PROPOSAL_V3`, and the other named source folders. `success_package`
-contains `MINIA_PLA_EDITABLE_REPACKED.3mf`. `geometry_runtime` is the pinned
-NumPy/SciPy/manifold3d/trimesh runtime directory. The local roots file is not an
-input identity and is not committed.
+Copy `ROOTS.local.example.json` to `work/ROOTS.local.json` and set the
+`outputs`, `success_package`, and `geometry_runtime` paths. `outputs` contains
+the named V2/V3/V4 source folders. The local roots file is not committed.
 
-## Commands
+## Limited V4 D2 command
 
-Run from the repository root with Python 3.12.x:
+Run from the repository root with Python 3.12.x and the pinned geometry
+runtime configured:
 
 ```powershell
-python -m tools.authored_support inspect `
+python -m tools.authored_support v4-d2 `
   --case tools/authored_support/presets/minia_legacy_v1/CASE.json `
   --roots work/ROOTS.local.json `
-  --out work/authored_support_inspect
-
-python -m tools.authored_support build `
-  --case tools/authored_support/presets/minia_legacy_v1/CASE.json `
-  --roots work/ROOTS.local.json `
-  --out work/authored_support_build
-
-python -m tools.authored_support verify `
-  --run work/authored_support_build `
-  --golden tools/authored_support/presets/minia_legacy_v1/GOLDEN.json `
-  --roots work/ROOTS.local.json `
-  --out work/authored_support_verify
-
-python -m tools.authored_support replay `
-  --case tools/authored_support/presets/minia_legacy_v1/CASE.json `
-  --golden tools/authored_support/presets/minia_legacy_v1/GOLDEN.json `
-  --roots work/ROOTS.local.json `
-  --out work/authored_support_replay
+  --out work/v4_d2_replay_YYYYMMDD
 ```
 
-Each output directory must be new. Exit codes are 0 for a completed command, 2
-for a known HOLD, and 1 for a command error. The current expected result of
-`build` and `replay` is exit code 2. Tests use only the Python standard library:
+The output directory must be new and outside the frozen source `outputs`
+directory. Generation does not read saved V4 D2 records, meshes, the saved
+vertical mask, or the removal sequence. It records generated candidates,
+selection traces, meshes, source hashes, checkpoint comparisons, and the
+limited STOP in the output directory. Exact mesh comparison covers array dtype,
+shape, and bytes; it does not require matching ZIP archive bytes.
+
+## Other commands
+
+The broader `inspect`, `build`, `verify`, and `replay` commands remain
+fail-closed while the complete MINI_A generator is unavailable. They do not
+claim full replay readiness.
+
+Each output directory must be new. Exit codes are 0 for a passed limited
+stage, 2 for a known HOLD, and 1 for a command error. Run the standard-library
+tests with:
 
 ```powershell
 python -m unittest discover -s tools/authored_support/tests -v
 ```
 
-The pinned geometry runtime observed in the source environment is Python 3.12,
-NumPy 2.5.2, SciPy 1.18.1, manifold3d 3.5.2, and trimesh 5.1.0. The migrated
-lower-support callable uses this runtime and checks its versions; other stages
-remain unavailable.
-
-To run the optional exact-kernel fixture test, set
-`AUTHORED_SUPPORT_GEOMETRY_RUNTIME` to the same directory before running the
-test command. Without it, that one test is skipped.
+The optional exact-kernel lower-support fixture test is skipped unless
+`AUTHORED_SUPPORT_GEOMETRY_RUNTIME` points to the pinned runtime directory.
 
 ## Scope boundary
 
 This is a fixed MINI_A software-replay task. It does not alter Flower,
-Permanent, any existing package, or a print profile. It does not apply to
-MINIL, slice, send, or print. The old `BODY_TO_BODY_TEMPORARY` records remain
-historical evidence and are not promoted to a physical pass.
+Permanent, any existing package, or a print profile. V7 and later stages,
+MINIL application, slice, Send, and Print are not part of the V4 D2 command.
+Historical Support records and removal notes are not promoted to a physical
+pass.
+

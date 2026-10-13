@@ -47,16 +47,24 @@ class ManifoldKernel:
         np = self.np
         return self.md.Manifold(self.md.Mesh(np.asarray(vertices, np.float32), np.asarray(faces, np.uint32)))
 
-    def capsule(self, a: Any, b: Any, radius: float) -> Any:
+    def capsule(
+        self,
+        a: Any,
+        b: Any,
+        radius: float,
+        *,
+        sections: int = 12,
+        subdivisions: int = 1,
+    ) -> Any:
         np = self.np
         a = np.array(a)
         b = np.array(b)
         parts = []
         if np.linalg.norm(a - b) > 1e-6:
-            mesh = self.trimesh.creation.cylinder(radius=radius, segment=[a, b], sections=12)
+            mesh = self.trimesh.creation.cylinder(radius=radius, segment=[a, b], sections=sections)
             parts.append(self.man(mesh.vertices, mesh.faces))
         for point in (a, b):
-            mesh = self.trimesh.creation.icosphere(subdivisions=1, radius=radius)
+            mesh = self.trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
             parts.append(self.man(mesh.vertices + point, mesh.faces))
         return self.md.Manifold.batch_boolean(parts, self.md.OpType.Add)
 
@@ -113,3 +121,4 @@ def inspect_geometry_runtime(runtime_root: str | Path | None) -> dict[str, Any]:
         }
     except (ContractError, ImportError, OSError) as exc:
         return {"status": "HOLD", "reason": "GEOMETRY_RUNTIME_INVALID", "detail": str(exc)}
+
