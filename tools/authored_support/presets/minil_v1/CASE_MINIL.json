@@ -1,0 +1,33 @@
+{
+  "case_id": "MINIL_B115_PROVISIONAL",
+  "issue": "https://github.com/satw-jp/katachi/issues/64",
+  "generator_commit": "15a1487bf8f2704af2b62ff4cd9342770cd3f864",
+  "baseline": "MINIL_B0_FROZEN",
+  "overlay_authority": "PROVISIONAL_ONLY_EXACT_CYCLE2_115",
+  "target_semantic_sha256": "e48b2a1ca56d30e6d91a1f3bc14807e279b72be53b3501c6b1806926061df723",
+  "structure_semantic_sha256": "ed07e2e20226accbaf920e41e568ab74d9d3159c9ae32a53a5bde368c44014a4",
+  "source_to_original_native_translation_mm": [
+    89.92986649238411,
+    90.08140122508667,
+    1.9616254325137783
+  ],
+  "coordinate_authority": [
+    "overlay_generator",
+    "frame"
+  ],
+  "second_minia_scale": false,
+  "process_context_only": {
+    "printer": "A1 mini",
+    "nozzle_mm": 0.4,
+    "material": "PLA",
+    "layer_mm": 0.1,
+    "raft_layers": 2,
+    "plate": "Cool Plate SuperTack",
+    "plate_c": 45,
+    "settings_only_unsliced": true
+  },
+  "print_go": false,
+  "slice": 0,
+  "send": "NO",
+  "print": "NO"
+}
