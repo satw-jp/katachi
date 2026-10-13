@@ -1,0 +1,151 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "description": "Fixed source-world replay of the authored removable Support used by MINI_A.",
+  "source_frame": "SOURCE_WORLD_MM_LEGACY_REPLAY",
+  "inputs": [
+    {
+      "logical_name": "flower_surface",
+      "role": "frozen flower placement and surface geometry",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/surface.json",
+      "sha256": "1bd5efb438fa4423826f912342a43d716a2f506c288daf8696c03903b82e2b05"
+    },
+    {
+      "logical_name": "flower_template_mesh",
+      "role": "frozen D6 flower template mesh",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/D6_local.npz",
+      "sha256": "854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d"
+    },
+    {
+      "logical_name": "permanent_structure",
+      "role": "frozen Permanent structure geometry and IDs",
+      "root": "outputs",
+      "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/data/structure.json",
+      "sha256": "53afd0eaecd51af497e902089c1d1a84e64330083a7479e110c84daaa15e84eb"
+    },
+    {
+      "logical_name": "permanent_a_collision_structure",
+      "role": "A Permanent mesh members used by the lower-support solid-collision checks",
+      "root": "outputs",
+      "path": "R4_A_SHORT_JOIN_G/data/structure.json",
+      "sha256": "e3505511dfa793d14ef6da183016a0b40bdad564c6a15241116b9d7cca81b0b2"
+    },
+    {
+      "logical_name": "permanent_f2_collision_structure",
+      "role": "F2 Permanent mesh members used by the lower-support solid-collision checks",
+      "root": "outputs",
+      "path": "R4_F2_DEEP_JOIN_G/data/structure.json",
+      "sha256": "610daf5181f0b98f2821c4944f3952f3e5053ffbb564d353822c57764d17e02d"
+    },
+    {
+      "logical_name": "upstream_structure",
+      "role": "frozen source structure used by the authored-support ancestry",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/structure.json",
+      "sha256": "80974e597058a96fca0e7ddd7830a71fae6b425f392427de7c2ef9b3f2b28b8d"
+    },
+    {
+      "logical_name": "upstream_section_surface",
+      "role": "frozen V3 surface geometry used to rebuild the V4 D2 bed-visibility mask",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/surface.json",
+      "sha256": "3e47947db158691cf1cd4d244d34b513d19a8fa6b2ffe3d94883d314dcb15fce"
+    },
+    {
+      "logical_name": "upstream_birth_records",
+      "role": "source birth-state records consumed by the V7 demand rules",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_object_births.json",
+      "sha256": "a65455b10fe3591f68c4b7fbdc64f62bd61b874c6f6031b047d0dd93c49705da"
+    },
+    {
+      "logical_name": "upstream_load_records",
+      "role": "source load records consumed by the V7 demand rules",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/load_cantilever_review.json",
+      "sha256": "c666394a42b10a4f4be5d87c9328c440a82b99b34df0c396d81b79a3f863f4fc"
+    },
+    {
+      "logical_name": "upstream_true_birth_records",
+      "role": "source layer-birth events used by V4 D2 generation",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_true_births.json",
+      "sha256": "bb6e913bf8f6dce7222e74564721fa075561b6bcfdd140626ec62d6e5fb08704"
+    },
+    {
+      "logical_name": "upstream_layer_summary",
+      "role": "source layer and bounds summary used by V4 D2 generation",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/large_layer_summary.json",
+      "sha256": "d13e727979d321a2045afc55986f9fcc2858ca92c15ea4bd5434f96de2333a2b"
+    },
+    {
+      "logical_name": "upstream_host_domain",
+      "role": "frozen Permanent host-domain field used by V7 route clearance",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/host_domain.npz",
+      "sha256": "d7a4c25c6987ed7afba0e76a073108853579b5a0141ca16906c6264fb261f30c"
+    },
+    {
+      "logical_name": "contact_comparison_threshold",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_D6_SIZE_RHYTHM_V2/data/contact_comparison_threshold.json",
+      "sha256": "b931975613a62fcab074510fe5f4954869d9287ea742169582b0a36c41ba2374"
+    },
+    {
+      "logical_name": "protected_corridors",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V2_INTERNAL_PROPOSAL_V3/data/protected_corridors.json",
+      "sha256": "171174d80a72ae748058ef259dac3db37be71d822bcff10c4e32bcad9b15afdc"
+    },
+    {
+      "logical_name": "v6_fixed_permanent_revision",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/data/changes.json",
+      "sha256": "b947ea92b9af25f133a805b24963ffedfef319c84f3263e504dffb74ed8bed76"
+    },
+    {
+      "logical_name": "rc_fixed_permanent",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_A1_MINI_RELEASE_CANDIDATE/data/structure.json",
+      "sha256": "045ef2f208e42493778f51a56ce74f388c436b4a5af6ca46e53eddf43ea3faa2"
+    },
+    {
+      "logical_name": "v8_permanent_a3864",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V8_FABRICATION_EXPORT_GATE/data/topology_normalized/A3864.npz",
+      "sha256": "262adf0728ce088a51288dd0a71ff911e8400090f5dda72d72cf58a3b2a3a2bd"
+    },
+    {
+      "logical_name": "v8_permanent_a2063",
+      "role": "Frozen upstream input; not completed Support",
+      "root": "outputs",
+      "path": "R4_V8_FABRICATION_EXPORT_GATE/data/topology_normalized/A2063.npz",
+      "sha256": "6884fb6016ac8e4b2d09e46c3124f3a4087d1eddce16d663bbcddf536f48b773"
+    }
+  ],
+  "recipe": "RECIPE.json",
+  "overrides": "OVERRIDES.json",
+  "golden": "GOLDEN.json",
+  "transform_chain": {
+    "source_to_plate_scale": 0.7333333333333333,
+    "source_to_plate_translation_mm": [
+      89.58849309285478,
+      91.38825149536129,
+      1.295108767881461
+    ],
+    "application_count": 1,
+    "evidence_commit": "b63538933969e570b50e8ea46a7e3b70f624744f",
+    "note": "Generate and plan in source-world coordinates; apply this transform once for native comparison."
+  },
+  "no_runtime_ai_or_network": true,
+  "permanent_mesh_lock_sha256": "8997064c59bfa78d723909f2ec9df6f649a688d8889d94b3ad6e09af3657af24",
+  "downstream_source_lock_sha256": "442545b853605f4de2c88d26086f13d8323ef87c83f6b5cf39552e16e3ea77f0"
+}

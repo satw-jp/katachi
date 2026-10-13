@@ -1,0 +1,22 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "read_only": true,
+  "support_geometry": {
+    "logical_name": "golden_support_geometry",
+    "root": "outputs",
+    "path": "R4_A_F2_PRINT_PREPARATION/A/data/support_geometry.json",
+    "sha256": "ba38bb5f52212c214d42bec859ac83d58be7793b693f27c8aae4160bc08ba758"
+  },
+  "native_package": {
+    "logical_name": "successful_editable_3mf",
+    "root": "success_package",
+    "path": "MINIA_PLA_EDITABLE_REPACKED.3mf",
+    "sha256": "2fd6d48034e46c2e9e0200fd3ed145159d825035df3892bc1f61ac4e2d4f9736",
+    "support_part_role": "separate authored removable Support part",
+    "automatic_support": "OFF"
+  },
+  "reference_gcode_sha256": "b90c9037bf38a63ac852d77e7326c5cc99b605f0091cca19b1b68ba7dd561ad9",
+  "transform_evidence_commit": "b63538933969e570b50e8ea46a7e3b70f624744f",
+  "generation_must_not_read_this_file": true
+}

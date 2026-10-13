@@ -1,0 +1,630 @@
+{
+  "schema_version": "authored-support-v1",
+  "case_id": "MINI_A_AUTHORED_SUPPORT_LEGACY_V1",
+  "golden_counts": {
+    "object_count": 22373,
+    "kind_counts": {
+      "EXTERNAL_VERTICAL_SHAFT": 749,
+      "EARLY_AND_INTERMEDIATE_SHAFT_BRACE": 3085,
+      "UPPER_BRANCH_BRACE": 2190,
+      "EXTERNAL_SHAFT_BRANCH": 2830,
+      "BODY_TO_BODY_TEMPORARY": 1354,
+      "RETAINED_LOW_D2": 115,
+      "EARLY_SHAFT_BRACE": 2576,
+      "R3_STYLE_BASAL_BRACE": 748,
+      "UPPER_BRANCH_BRACE_REPAIR": 23,
+      "R3_STYLE_FLAT_FOOT": 864,
+      "LOWER_LOCAL_SLEEVE": 635,
+      "LOWER_RISING_SCAFFOLD_BRACE": 4220,
+      "ENLARGED_BASAL_FOOT_COLLAR": 864,
+      "LOWER_DISTRIBUTED_BED_CONTACT": 1148,
+      "EARLY_LOWER_CONTACT_BRACE": 972
+    }
+  },
+  "observed_lineage": [
+    {
+      "stage_id": "V4_D2_SUPPORT_GENERATION",
+      "source_code": [
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/prepare.py",
+          "sha256": "41b3a945420131936d65c4edc4b055baded80c2d51a2c527f3bf553687e5ee84"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/additions.py",
+          "sha256": "17125efa3a19175e437243c5494e3c50769e9fbe330f1ddd374b3e469bac9b31"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/removal_below.py",
+          "sha256": "ca8fc76181c44d22415a8c9f3b8cdc623e7a332954bf43a1bf3a6c5e2e893149"
+        }
+      ],
+      "output_count": 151,
+      "output_kind": "D2",
+      "retained_by_v7_removal_sequence": 150,
+      "implementation_module": "tools.authored_support.stages.v4_d2.generate_v4_d2",
+      "implementation_status": "implemented",
+      "integration_status": "bounded_stage_registry",
+      "generation_inputs": "V4_D2_INPUT_LOCK.json; source data and section mask are rebuilt in a new isolated run",
+      "comparison_checkpoint": "V4_D2_CHECKPOINT_LOCK.json; read only after generation",
+      "required": true
+    },
+    {
+      "stage_id": "V4_D2_REMOVAL",
+      "source_code": [
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/check_geometry.py",
+          "sha256": "d3a2db4481d12f8abcf26f2b02f3f965e71dcc0aa72565dacb59e573d4d1647b"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/removal_below.py",
+          "sha256": "ca8fc76181c44d22415a8c9f3b8cdc623e7a332954bf43a1bf3a6c5e2e893149"
+        }
+      ],
+      "implementation_module": "tools.authored_support.stages.v4_removal.generate_v4_removal",
+      "implementation_status": "implemented",
+      "integration_status": "bounded_stage_registry",
+      "required": true
+    },
+    {
+      "stage_id": "V7_SUPPORT_GENERATION",
+      "source_code": [
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/prepare.py",
+          "sha256": "42c553ba0670380202c87426867cc125998c393177100f50ac4ac8128633086b"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/demands_anchors.py",
+          "sha256": "ec2ad76677e553ff7fd13f678fb9c0e614dc6c8aa17dc5ca1e3397fce966ef36"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_external.py",
+          "sha256": "16aa970d7a4567a49ae425ad80686feb56e58419a46cedde105e77e0867c5b1f"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_body.py",
+          "sha256": "e986613472049ef3bbac0c09664a2d0553928a5a4bc83a899ca258cf8a232e15"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_outer_body.py",
+          "sha256": "2860691110a7c73a26c7f7aa187b8b40070f2eaefcd4e2d638eab682b9a425bc"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/feet.py",
+          "sha256": "cb214115dd2b51af95a60c67d889e47c01e1859c70884063c6a6965a4e13f4c3"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/scaffold.py",
+          "sha256": "8cf3665d2a1c387c204e72f3b53217ce91820a8102b1fffa686ae1ce876c0192"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/assemble.py",
+          "sha256": "755c1a413c124a7b6e42f5d0bc3b49cb2a854df8c7fee999163cf821c863cc02"
+        }
+      ],
+      "output_count": 14536,
+      "output_kinds": [
+        "EXTERNAL_VERTICAL_SHAFT",
+        "EARLY_AND_INTERMEDIATE_SHAFT_BRACE",
+        "UPPER_BRANCH_BRACE",
+        "EXTERNAL_SHAFT_BRANCH",
+        "BODY_TO_BODY_TEMPORARY",
+        "RETAINED_LOW_D2",
+        "EARLY_SHAFT_BRACE",
+        "R3_STYLE_BASAL_BRACE",
+        "UPPER_BRANCH_BRACE_REPAIR",
+        "R3_STYLE_FLAT_FOOT"
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "A1_MASTER_LOWER_REVISION",
+      "source_code": [
+        {
+          "path": "R4_A1_MASTER_SUPPORT_PHYSICAL_REVISION/reproduce/revise_lower.py",
+          "sha256": "104b45428decbc2340161db18ea49adf79ecb3a317f9137182d95f6e55a03416"
+        }
+      ],
+      "input_count": 14536,
+      "added_count": 4855,
+      "added_kinds": {
+        "LOWER_LOCAL_SLEEVE": 635,
+        "LOWER_RISING_SCAFFOLD_BRACE": 4220
+      },
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_LOWER_SUPPORT",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
+          "sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356"
+        }
+      ],
+      "input_count": 19391,
+      "implementation_module": "tools.authored_support.rules.lower_support.generate_lower_support",
+      "implementation_status": "implemented",
+      "integration_status": "not_integrated_into_fixed_MINI_A_pipeline",
+      "fixture_smoke_test": "passed",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_LOWER_BRACES",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_braces.py",
+          "sha256": "11abba88e8df8afe520bb68efbc818671398d0664bcc5c4599ca7b5e54c169a4"
+        }
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_CONTACT_REPAIR",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_contacts.py",
+          "sha256": "e839a8e0ab05a7957ddb2c14fb4de8a022c8d8dcbdfbf80e6ba9b42499c72988"
+        }
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_MAIN_END_REPAIR",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_main_ends.py",
+          "sha256": "f6899df773b8542de13bbb5de2f0c813788532f6bac48391dbfc2700d8e92c56"
+        }
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "AF2_FINAL_SUPPORT_DATA",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
+          "sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44"
+        }
+      ],
+      "removed_ids": [
+        "N00224",
+        "X03795"
+      ],
+      "implementation_module": "tools.authored_support.rules.finalize.finalize_a_support",
+      "implementation_status": "implemented",
+      "integration_status": "not_integrated_into_fixed_MINI_A_pipeline",
+      "fixture_smoke_test": "passed",
+      "required": true
+    },
+    {
+      "stage_id": "NATIVE_SUPPORT_PART_BINDING",
+      "source_code": [
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/pack_parts.py",
+          "sha256": "8555050b684f005feded928a132e15d895f722e65f8638d3b86a836be1e8effd"
+        }
+      ],
+      "implementation_status": "not_implemented",
+      "required": true
+    },
+    {
+      "stage_id": "MINIA_DOWNSTREAM",
+      "implementation_module": "tools.authored_support.stages.downstream.generate",
+      "source_code": [
+        {
+          "path": "R4_A1_MASTER_SUPPORT_PHYSICAL_REVISION/reproduce/revise_lower.py",
+          "sha256": "104b45428decbc2340161db18ea49adf79ecb3a317f9137182d95f6e55a03416"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/assemble.py",
+          "sha256": "133923c975f4edcd9eb38d4b971231e0d8aa16230a11b9e8c91b0c2ce509d7af"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/audit_support.py",
+          "sha256": "f2f369b103ec56392c7d718eec9b852ba16b3280fe51961db8a518bab3ab8c78"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
+          "sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_braces.py",
+          "sha256": "11abba88e8df8afe520bb68efbc818671398d0664bcc5c4599ca7b5e54c169a4"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
+          "sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/package_review.py",
+          "sha256": "04adf3d7a29a2c142daf71cbacae313d4f30b17914144b91037d382e2e84b096"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_contacts.py",
+          "sha256": "e839a8e0ab05a7957ddb2c14fb4de8a022c8d8dcbdfbf80e6ba9b42499c72988"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_main_ends.py",
+          "sha256": "f6899df773b8542de13bbb5de2f0c813788532f6bac48391dbfc2700d8e92c56"
+        },
+        {
+          "path": "R4_V2_INTERNAL_PROPOSAL_V3/reproduce/audit.py",
+          "sha256": "a15bbb802b06f2c2b5b3af6c725ff7cd9cf9c7c4e06bd9af5c5dac582d0dae16"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/audit_support.py",
+          "sha256": "19f6a21c52bdb3b686e9197c546511df519bacee58c3420de0ed9838dbb176d9"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/body_braces.py",
+          "sha256": "b8a1ddb3a86bdce7adb2c85b8b95f979c9cdcda090ca5b046b02ddc350398cd2"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/body_surface_links.py",
+          "sha256": "b2364694fa5f757fb19b391686151e43e170d58fe546eeafe8c6f7776b59c405"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/brace_network.py",
+          "sha256": "dcba62ab71b4cb3553b061ae62c54bd5e5add17ad963c9fb73131db9312a5d5c"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/build_meshes.py",
+          "sha256": "12807fc4c128d681255c965f772331e55204de7e89f0b01291fcd671bd7b9405"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/coverage.py",
+          "sha256": "02cf75dba3162bb011350c249f4177c6fe7d5cd0e6824325da7dcc74d90c4043"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/geometry.py",
+          "sha256": "e9f4b9f359b9dd2ba56b5d91ab142c9f8d6ba71a2e502a7bb527b36a05b3bfa5"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/prepare.py",
+          "sha256": "1b2c33bcdc3f589f5272a86a16357da50a6aeda9551f88a4b26f10af14343768"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/recheck_access.py",
+          "sha256": "8102ab4d1a22f36585efc290de88b33ab137201c197c159529f82b390e8969d4"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/repair_free_intervals.py",
+          "sha256": "cdbb2d96d95f34c68ec7d6042bc50df63ac14befd131463dea2e3b6cdd09d947"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/route.py",
+          "sha256": "3d558aa0643d4d10a8e11ea6dd9d2f72610e45b4acf68960bc813745841bdebf"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/repair_contact.py",
+          "sha256": "de580eeca0399a2602d808049103944cef243bcf0c5d53e25e95bc2f8a836807"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/sections.py",
+          "sha256": "9467c81949332105928eff27293644d489a0f9adeb80beb8a7e7a862214ecfeb"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/support_check.py",
+          "sha256": "7f8f5091eebd9156ca23968a0a77fa0974a5cd56d542417a83070f4da5c9dd6d"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/anchor_birth.py",
+          "sha256": "8a62b1e853a9b824d838f3886f610433d6a0f3248dff12cf684d1d4ab8d4b4c7"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/assemble.py",
+          "sha256": "755c1a413c124a7b6e42f5d0bc3b49cb2a854df8c7fee999163cf821c863cc02"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/audit_new_routes.py",
+          "sha256": "13ddab4ab7849df4f428ae8dbed8294baddd6f9b8349f9a5e49b6eb3cf980f75"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/clearance_patch.py",
+          "sha256": "42c2fe4aba18c56b7e810e6f7d67740d8bd61a7d02fec3b3ed8cd17cae0df3c6"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/common.py",
+          "sha256": "ed386c09fbb9d6461f08d0a2372565cc29d49e497e762052e6f438c4d7cf6728"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/demands_anchors.py",
+          "sha256": "ec2ad76677e553ff7fd13f678fb9c0e614dc6c8aa17dc5ca1e3397fce966ef36"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/exact_main_clearance.py",
+          "sha256": "09fe3bd9d3b98d1ab71065aaca2c6c814633639b7e3f55165cf77694d1a29202"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/feet.py",
+          "sha256": "cb214115dd2b51af95a60c67d889e47c01e1859c70884063c6a6965a4e13f4c3"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/prepare.py",
+          "sha256": "42c553ba0670380202c87426867cc125998c393177100f50ac4ac8128633086b"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/repair_brace_gaps.py",
+          "sha256": "ad9a2b530a49860109007426abda5ca84c3e96d0ab6b2c86ef82666cd182db76"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/replace_t00841.py",
+          "sha256": "d8c091f97abbc47f6b56266396421415f4213b52b93d78fca82dcc2436fd84ad"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_body.py",
+          "sha256": "e986613472049ef3bbac0c09664a2d0553928a5a4bc83a899ca258cf8a232e15"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_external.py",
+          "sha256": "16aa970d7a4567a49ae425ad80686feb56e58419a46cedde105e77e0867c5b1f"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_outer_body.py",
+          "sha256": "2860691110a7c73a26c7f7aa187b8b40070f2eaefcd4e2d638eab682b9a425bc"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/scaffold.py",
+          "sha256": "8cf3665d2a1c387c204e72f3b53217ce91820a8102b1fffa686ae1ce876c0192"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/diagnose_stl_topology.py",
+          "sha256": "6ea9a740f15c3d8e2d13f21579c37026bb0b882ec126fd2ce10f2be0a1dd3d5c"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/export_stl.py",
+          "sha256": "2b214356111911a707bdb107df3b7894d92d0f64699b51eab12af5b1c4fa79ac"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/normalize_export_topology.py",
+          "sha256": "1fb2dbafaa88d7eaad93ae09dc6f3500a5d4cd1b737f6a1e26c8840488e1b8e2"
+        }
+      ],
+      "implementation_status": "implemented",
+      "integration_status": "bounded_stage_registry",
+      "certification": "V5/V6/V7 PASS; V8/A1/AF2/native and full CLI pending"
+    }
+  ],
+  "observed_checkpoint_counts": {
+    "V4_D2_candidates": 151,
+    "V4_D2_retained_by_removal_sequence": 150,
+    "V7_support_objects": 14536,
+    "A1_master_support_objects": 19391,
+    "A_F2_final_support_objects": 22373
+  },
+  "source_uncertainty": [
+    "The builder dependency order is mapped, but all fixed-case stage outputs after V4 D2 have not yet been regenerated by package callables.",
+    "V4 D2 rebuilds its vertical first-material mask from frozen V2/V3 geometry inputs; V7's generated masks and prior support candidates remain unresolved and are outside the bounded V4 D2 stage.",
+    "Mesh source files referenced by Permanent structure records have not yet been individually content-locked in this package.",
+    "The successful native 3MF Support part has not been decoded and compared to newly generated mesh arrays."
+  ],
+  "generator_callable": null,
+  "generator_callable_note": "Informational JSON field only. Executable stage callables live in Python stage_registry.py; this field is never evaluated.",
+  "generation_stages": [
+    {
+      "stage_id": "V4_D2_SUPPORT_GENERATION",
+      "source_code": [
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/prepare.py",
+          "sha256": "41b3a945420131936d65c4edc4b055baded80c2d51a2c527f3bf553687e5ee84"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/additions.py",
+          "sha256": "17125efa3a19175e437243c5494e3c50769e9fbe330f1ddd374b3e469bac9b31"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/removal_below.py",
+          "sha256": "ca8fc76181c44d22415a8c9f3b8cdc623e7a332954bf43a1bf3a6c5e2e893149"
+        }
+      ],
+      "output_count": 151,
+      "output_kind": "D2",
+      "retained_by_v7_removal_sequence": 150,
+      "implementation_module": "tools.authored_support.stages.v4_d2.generate_v4_d2",
+      "implementation_status": "implemented",
+      "integration_status": "integrated",
+      "generation_inputs": "V4_D2_INPUT_LOCK.json; source data and section mask are rebuilt in a new isolated run",
+      "comparison_checkpoint": "V4_D2_CHECKPOINT_LOCK.json; read only after generation",
+      "required": true
+    },
+    {
+      "stage_id": "V4_D2_REMOVAL",
+      "source_code": [
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/check_geometry.py",
+          "sha256": "d3a2db4481d12f8abcf26f2b02f3f965e71dcc0aa72565dacb59e573d4d1647b"
+        },
+        {
+          "path": "R4_V2_V3_A1_EXPERIMENTAL_V4/reproduce/removal_below.py",
+          "sha256": "ca8fc76181c44d22415a8c9f3b8cdc623e7a332954bf43a1bf3a6c5e2e893149"
+        }
+      ],
+      "implementation_module": "tools.authored_support.stages.v4_removal.generate_v4_removal",
+      "implementation_status": "implemented",
+      "integration_status": "integrated",
+      "required": true
+    },
+    {
+      "stage_id": "MINIA_DOWNSTREAM",
+      "implementation_module": "tools.authored_support.stages.downstream.generate",
+      "source_code": [
+        {
+          "path": "R4_A1_MASTER_SUPPORT_PHYSICAL_REVISION/reproduce/revise_lower.py",
+          "sha256": "104b45428decbc2340161db18ea49adf79ecb3a317f9137182d95f6e55a03416"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/assemble.py",
+          "sha256": "133923c975f4edcd9eb38d4b971231e0d8aa16230a11b9e8c91b0c2ce509d7af"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/audit_support.py",
+          "sha256": "f2f369b103ec56392c7d718eec9b852ba16b3280fe51961db8a518bab3ab8c78"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/final_support_data.py",
+          "sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_braces.py",
+          "sha256": "11abba88e8df8afe520bb68efbc818671398d0664bcc5c4599ca7b5e54c169a4"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/lower_support.py",
+          "sha256": "174ad470791bc3e1dc58574bb0f670dd5abbfc73e263d6dde09ac05f30da1356"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/package_review.py",
+          "sha256": "04adf3d7a29a2c142daf71cbacae313d4f30b17914144b91037d382e2e84b096"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_contacts.py",
+          "sha256": "e839a8e0ab05a7957ddb2c14fb4de8a022c8d8dcbdfbf80e6ba9b42499c72988"
+        },
+        {
+          "path": "R4_A_F2_PRINT_PREPARATION/reproduce/repair_main_ends.py",
+          "sha256": "f6899df773b8542de13bbb5de2f0c813788532f6bac48391dbfc2700d8e92c56"
+        },
+        {
+          "path": "R4_V2_INTERNAL_PROPOSAL_V3/reproduce/audit.py",
+          "sha256": "a15bbb802b06f2c2b5b3af6c725ff7cd9cf9c7c4e06bd9af5c5dac582d0dae16"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/audit_support.py",
+          "sha256": "19f6a21c52bdb3b686e9197c546511df519bacee58c3420de0ed9838dbb176d9"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/body_braces.py",
+          "sha256": "b8a1ddb3a86bdce7adb2c85b8b95f979c9cdcda090ca5b046b02ddc350398cd2"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/body_surface_links.py",
+          "sha256": "b2364694fa5f757fb19b391686151e43e170d58fe546eeafe8c6f7776b59c405"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/brace_network.py",
+          "sha256": "dcba62ab71b4cb3553b061ae62c54bd5e5add17ad963c9fb73131db9312a5d5c"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/build_meshes.py",
+          "sha256": "12807fc4c128d681255c965f772331e55204de7e89f0b01291fcd671bd7b9405"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/coverage.py",
+          "sha256": "02cf75dba3162bb011350c249f4177c6fe7d5cd0e6824325da7dcc74d90c4043"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/geometry.py",
+          "sha256": "e9f4b9f359b9dd2ba56b5d91ab142c9f8d6ba71a2e502a7bb527b36a05b3bfa5"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/prepare.py",
+          "sha256": "1b2c33bcdc3f589f5272a86a16357da50a6aeda9551f88a4b26f10af14343768"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/recheck_access.py",
+          "sha256": "8102ab4d1a22f36585efc290de88b33ab137201c197c159529f82b390e8969d4"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/repair_free_intervals.py",
+          "sha256": "cdbb2d96d95f34c68ec7d6042bc50df63ac14befd131463dea2e3b6cdd09d947"
+        },
+        {
+          "path": "R4_V5_AUTHORED_SUPPORT_REVIEW/reproduce/route.py",
+          "sha256": "3d558aa0643d4d10a8e11ea6dd9d2f72610e45b4acf68960bc813745841bdebf"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/repair_contact.py",
+          "sha256": "de580eeca0399a2602d808049103944cef243bcf0c5d53e25e95bc2f8a836807"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/sections.py",
+          "sha256": "9467c81949332105928eff27293644d489a0f9adeb80beb8a7e7a862214ecfeb"
+        },
+        {
+          "path": "R4_V6_INTERNAL_ENVELOPE_REVIEW/reproduce/support_check.py",
+          "sha256": "7f8f5091eebd9156ca23968a0a77fa0974a5cd56d542417a83070f4da5c9dd6d"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/anchor_birth.py",
+          "sha256": "8a62b1e853a9b824d838f3886f610433d6a0f3248dff12cf684d1d4ab8d4b4c7"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/assemble.py",
+          "sha256": "755c1a413c124a7b6e42f5d0bc3b49cb2a854df8c7fee999163cf821c863cc02"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/audit_new_routes.py",
+          "sha256": "13ddab4ab7849df4f428ae8dbed8294baddd6f9b8349f9a5e49b6eb3cf980f75"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/clearance_patch.py",
+          "sha256": "42c2fe4aba18c56b7e810e6f7d67740d8bd61a7d02fec3b3ed8cd17cae0df3c6"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/common.py",
+          "sha256": "ed386c09fbb9d6461f08d0a2372565cc29d49e497e762052e6f438c4d7cf6728"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/demands_anchors.py",
+          "sha256": "ec2ad76677e553ff7fd13f678fb9c0e614dc6c8aa17dc5ca1e3397fce966ef36"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/exact_main_clearance.py",
+          "sha256": "09fe3bd9d3b98d1ab71065aaca2c6c814633639b7e3f55165cf77694d1a29202"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/feet.py",
+          "sha256": "cb214115dd2b51af95a60c67d889e47c01e1859c70884063c6a6965a4e13f4c3"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/prepare.py",
+          "sha256": "42c553ba0670380202c87426867cc125998c393177100f50ac4ac8128633086b"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/repair_brace_gaps.py",
+          "sha256": "ad9a2b530a49860109007426abda5ca84c3e96d0ab6b2c86ef82666cd182db76"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/replace_t00841.py",
+          "sha256": "d8c091f97abbc47f6b56266396421415f4213b52b93d78fca82dcc2436fd84ad"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_body.py",
+          "sha256": "e986613472049ef3bbac0c09664a2d0553928a5a4bc83a899ca258cf8a232e15"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_external.py",
+          "sha256": "16aa970d7a4567a49ae425ad80686feb56e58419a46cedde105e77e0867c5b1f"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/route_outer_body.py",
+          "sha256": "2860691110a7c73a26c7f7aa187b8b40070f2eaefcd4e2d638eab682b9a425bc"
+        },
+        {
+          "path": "R4_V7_STRONG_SUPPORT_GATE/reproduce/scaffold.py",
+          "sha256": "8cf3665d2a1c387c204e72f3b53217ce91820a8102b1fffa686ae1ce876c0192"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/diagnose_stl_topology.py",
+          "sha256": "6ea9a740f15c3d8e2d13f21579c37026bb0b882ec126fd2ce10f2be0a1dd3d5c"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/export_stl.py",
+          "sha256": "2b214356111911a707bdb107df3b7894d92d0f64699b51eab12af5b1c4fa79ac"
+        },
+        {
+          "path": "R4_V8_FABRICATION_EXPORT_GATE/reproduce/normalize_export_topology.py",
+          "sha256": "1fb2dbafaa88d7eaad93ae09dc6f3500a5d4cd1b737f6a1e26c8840488e1b8e2"
+        }
+      ],
+      "implementation_status": "implemented",
+      "integration_status": "integrated",
+      "certification": "Full relocated CLI plan/mesh/native comparison PASS; see docs/status/MINIA_AUTHORED_SUPPORT_V2_REPLAY_2026-10-13.md. Software replay only."
+    }
+  ],
+  "full_replay_certification": "MINIA_AUTHORED_SUPPORT_PROGRAM_REPLAY_READY; software reproduction only; see dated execution report"
+}

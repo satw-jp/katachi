@@ -1,0 +1,26 @@
+[
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\lower_braces.py",
+    "sha256": "11abba88e8df8afe520bb68efbc818671398d0664bcc5c4599ca7b5e54c169a4"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\audit_support.py",
+    "sha256": "f2f369b103ec56392c7d718eec9b852ba16b3280fe51961db8a518bab3ab8c78"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\repair_contacts.py",
+    "sha256": "e839a8e0ab05a7957ddb2c14fb4de8a022c8d8dcbdfbf80e6ba9b42499c72988"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\repair_main_ends.py",
+    "sha256": "f6899df773b8542de13bbb5de2f0c813788532f6bac48391dbfc2700d8e92c56"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\assemble.py",
+    "sha256": "133923c975f4edcd9eb38d4b971231e0d8aa16230a11b9e8c91b0c2ce509d7af"
+  },
+  {
+    "path": "J:\\My Drive\\codex\\2026-09-10\\r4-astra-mocomoco-j-my-drive\\outputs\\R4_A_F2_PRINT_PREPARATION\\reproduce\\final_support_data.py",
+    "sha256": "80d54c9c6b25d3db9fce0059f10ea096ddd1c821d6ec2120a7dfe112f6b7fc44"
+  }
+]
