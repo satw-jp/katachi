@@ -207,13 +207,32 @@ def derive(c):
         "provisional_solids_checked":115,"support_contacts_selected":0,"chronology":"NOT_COMPUTED"}
 
 def recipe_gate(c):
+    if c.get('recipe',{}).get('version')==2:
+        from .recipe import validate_recipe
+        return validate_recipe(c['recipe'],c.get('ownership',{}))
     blockers=c["recipe"]["unresolved"]
     write(c["out"]/"RISK_LEDGER.json",{"status":"HOLD","blockers":blockers,
         "physical_risk_classification":"UNKNOWN_NO_SUPPORT_CANDIDATE"})
     return {"status":"HOLD","code":"MINIL_RECIPE_AND_SOURCE_MAPPING_UNBOUND","blocker_ids":[r["id"] for r in blockers]}
 
 def build_support(c):
-    # Deliberately cannot call fixed-case lower_support/downstream on a different case.
+    if c.get('recipe',{}).get('version')==2:
+        from .recipe import validate_recipe
+        from .body import Body,derive_sections,demands_anchors
+        from .generate import generate
+        validate_recipe(c['recipe'],c.get('ownership',{}))
+        body=Body(c); c['body']=body
+        if c.get('derived_checkpoint'):
+            checkpoint=Path(c['derived_checkpoint']); np=c['np']
+            occ=np.load(checkpoint/'BODY_OCCUPANCY.npy',mmap_mode='r')
+            rooted=np.load(checkpoint/'BODY_ROOTED.npy',mmap_mode='r')
+            meta=read(checkpoint/'GRID.json'); demands=read(checkpoint/'DEMANDS.json'); anchors=read(checkpoint/'BODY_ANCHORS.json')
+        else:
+            occ,rooted,meta=derive_sections(c,body,c['recipe'])
+            demands,anchors=demands_anchors(c,body,rooted,meta,c['recipe'])
+        result=generate(c,body,occ,rooted,meta,demands,anchors)
+        require(result['candidate_generated'] and result['mesh_count']>0,'EMPTY_SUPPORT_CANDIDATE')
+        return {'status':'PASS','mesh_count':result['mesh_count'],'demands_processed':result['demands_processed']}
     return {"status":"HOLD","code":"MINIL_GEOMETRY_GENERATION_NOT_IMPLEMENTED_FOR_UNBOUND_RECIPE"}
 
 def validate_output_destination(output, inputs):
@@ -225,6 +244,10 @@ def validate_output_destination(output, inputs):
     return output
 
 def run(case_path, roots_path, out):
+    from .completion import run_completion
+    return run_completion(case_path,roots_path,out)
+
+def run_unbound_v1(case_path, roots_path, out):
     case_path=Path(case_path).resolve()
     preset=case_path.parent
     case=read(case_path); recipe=read(preset/"RECIPE_MINIL.json")

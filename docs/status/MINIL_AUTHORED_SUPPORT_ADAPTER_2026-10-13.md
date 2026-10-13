@@ -1,5 +1,7 @@
 # MINIL authored Support adapter — Issue #64 / 2026-10-13
 
+> Historical Sol HOLD snapshot. The Author subsequently authorized Astra design/implementation for this task. See [completion record](MINIL_AUTHORED_SUPPORT_COMPLETION_2026-10-13.md) for the active work and final handoff.
+
 ## STOP
 
 **MINIL_SOL_AUTHORED_SUPPORT_ADAPTER_HOLD**

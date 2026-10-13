@@ -1,4 +1,19 @@
-# MINIL inspection adapter (Issue #64)
+# MINIL authored Support adapter (Issue #64)
+
+The Author's `MINIL_AUTHORED_SUPPORT_ADAPTER_COMPLETION` instruction expands the
+original inspection scope to candidate design, generation and technical validation.
+The default entry point now runs the MINIL V2 recipe, source/ownership gates,
+MINIL-derived sections and demands, geometry generation, removal model and readback.
+It does not invoke a slicer, generate manufacturing formats, Send or Print.
+
+Use a fresh output directory. `RECIPE_MINIL_V2.json` is a candidate recipe, not
+physical approval. READY requires nonempty generation, completed demand processing,
+removal records for every generated object, readback and unchanged input hashes.
+Known unhandled demands, brace needs, conservative escape blocks and real-tool
+unknowns remain explicit. The completion is implementation validation, not an
+independent review.
+
+Historical V1 handoff below is retained for provenance and is superseded for this task.
 
 This lane performs source binding and derives geometry inventories before a recipe gate.
 It currently stops at `MINIL_SOL_AUTHORED_SUPPORT_ADAPTER_HOLD`.
