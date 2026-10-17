@@ -1,0 +1,26 @@
+{
+  "body": {
+    "name": "body",
+    "spp": 32,
+    "seconds": 0.24744710000231862,
+    "image_type": "drjit.cuda.ad.TensorXf"
+  },
+  "receiverOnly": {
+    "name": "receiver-only",
+    "spp": 16,
+    "seconds": 0.01074009999865666,
+    "image_type": "drjit.cuda.ad.TensorXf"
+  },
+  "causticLow": {
+    "name": "caustic-16spp",
+    "spp": 16,
+    "seconds": 0.045571900001959875,
+    "image_type": "drjit.cuda.ad.TensorXf"
+  },
+  "causticHigh": {
+    "name": "caustic-64spp",
+    "spp": 64,
+    "seconds": 0.07422550000774208,
+    "image_type": "drjit.cuda.ad.TensorXf"
+  }
+}
