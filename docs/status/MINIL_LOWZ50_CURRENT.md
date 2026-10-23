@@ -1,13 +1,31 @@
 # MINIL LOWZ50 current — 2026-10-23
 
-**HOLD: GENERATOR_COPLANAR_SECTION / LOCAL_CERTIFICATE_INCOMPLETE / PRINT_BINDING_PARTIAL.**
+**LIGHT_GCODE_SUPPORT_DIAGNOSTIC_READY_FOR_REVIEW. Generator / print remain HOLD.**
 
-Near-plane neck section replay PASS in two processes; 73 regressions PASS. Exact nonzero segments retained. Full generator replay still stops at a later COPLANAR_FACE. No real candidate or support-improvement claim.
+Active task: MINIL_LOWZ50_SAVED_LIGHT_GCODE_DIAGNOSTIC. Authority: Issue #66,
+PR #67 review 5627245806 and Author's saved-LIGHT diagnostic instruction.
 
-Three-state local UNKNOWN exclusion implemented and screened on sealed v3 LIGHT evidence. Target-window clearance is not full donor/route certification; generator remains closed. All 21,905 source UNKNOWN sections retained. Old eight rods/improvement values quarantined.
+Saved G-code SHA verified; machine Z0–50mm plus four successor layers scanned.
+2,017 unsupported chronological path events; these are not flower/failure counts.
+28 new tests, 67 existing tests, four historical B cases pass. 6 real LIGHT
+representatives pass independent polygon absence checks; 4/6 agree at all three grid resolutions.
+95 unit tests total; historical cache cases are separate from LIGHT input.
 
-Saved LIGHT-named G-code found and hashed; archive and standalone bytes match. Saved settings use Textured PEI65°C. Current job and geometry-to-G-code binding remain partial; no source/print settings changed.
+Strict raft-gap/root propagation leaves 11,022,768 analytical spans UNKNOWN.
+Do not interpret UNKNOWN as failed prints. Source/current-job identity and CAD Z
+phase remain distinct gates: saved input verified, current printer job UNBOUND,
+authored Flower/Support IDs not assigned. V2-authorized demands: zero.
 
-See [local certificate evidence](../evidence/MINIL_LOWZ50_LOCAL_CERTIFICATE_20261023.md) and [Drive](https://drive.google.com/drive/folders/1fGWueDD4m-uFUCkTtcVokGO2E9yKEv19).
+Next gate: Author review of detector, evidence and demand interface; certify
+CAD phase and local donor/route/clearance before any separately authorized geometry.
+COPLANAR_FACE and all 21,905 CAD UNKNOWN records remain unresolved. Old eight
+trial rods and improvement values remain quarantined; V2 rules unchanged.
 
-Current print AUTHOR_CONTINUES_OBSERVATION. New slice/Send/Print=0; print_go=false. PR65 unchanged, PR67 Draft/unmerged. Local dirty work and original inputs preserved.
+See [diagnostic evidence](../evidence/MINIL_LOWZ50_SAVED_LIGHT_GCODE_DIAGNOSTIC_20261023.md),
+[interface](../../tools/authored_support/minil/lowz/GCODE_DEMAND_INTERFACE.md),
+[previous CAD evidence](../evidence/MINIL_LOWZ50_LOCAL_CERTIFICATE_20261023.md),
+and [Drive](https://drive.google.com/drive/folders/1dlEdHSax41MAaLawKaUh7aFZNBHhwwhX).
+
+Current print untouched. Source geometry unchanged. New MINIL Support geometry,
+native slice, Send, Print, merge = 0. PR65 unchanged; PR67 Draft/unmerged.
+`print_go=false`. Existing local dirty work preserved.
