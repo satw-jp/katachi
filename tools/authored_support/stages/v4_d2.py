@@ -143,7 +143,7 @@ def _verify_legacy_source_code(outputs_root: Path, source_map: dict[str, Any]) -
     return rows
 
 
-def _section_pixels(tri: Any, zmin: Any, zmax: Any, z: float, origin: Any, pitch: float, shape: Any, np: Any) -> Any:
+def _section_pixels(tri: Any, zmin: Any, zmax: Any, z: float, origin: Any, pitch: float, shape: Any, np: Any, *, compact: bool = False, require_closed: bool = False) -> Any:
     selected = (zmin < z) & (zmax > z)
     triangles = tri[selected]
     if not len(triangles):
@@ -162,14 +162,22 @@ def _section_pixels(tri: Any, zmin: Any, zmax: Any, z: float, origin: Any, pitch
     hit = (a[:, 1, None] <= ys) != (b[:, 1, None] <= ys)
     xx = a[:, 0, None] + (ys - a[:, 1, None]) * (b[:, 0] - a[:, 0])[:, None] / ((b[:, 1] - a[:, 1])[:, None] + 1e-30)
     rows, columns = np.nonzero(hit)
+    odd = bool(np.any(np.bincount(columns, minlength=len(ys)) % 2))
+    if require_closed and odd:
+        raise ValueError(f'OPEN_SECTION_CONTOUR at Z={z}: odd scanline crossing count')
     xx = xx[rows, columns]
     crossings = np.ceil((xx - origin[0]) / pitch - 0.5).astype(int)
     crossings = np.clip(crossings, 0, shape[0])
-    counts = np.zeros((len(ys), shape[0] + 1), np.uint16)
-    np.add.at(counts, (columns, crossings), 1)
+    # Optional allocation reduction only: keep original global crossing math.
+    # Odd crossing counts retain the full right tail for legacy equivalence.
+    # The LOWZ adapter rejects those contours instead of treating them as fill.
+    left = int(crossings.min()) if compact and len(crossings) else 0
+    right = int(crossings.max()) if compact and len(crossings) and not odd else int(shape[0])
+    counts = np.zeros((len(ys), right - left + 1), np.uint16)
+    np.add.at(counts, (columns, crossings - left), 1)
     mask = (np.cumsum(counts[:, :-1], axis=1) % 2).astype(bool)
     row_ids, column_ids = np.nonzero(mask)
-    return ((row_ids + y0) * shape[0] + column_ids).astype(np.int32)
+    return ((row_ids + y0) * shape[0] + column_ids + left).astype(np.int32)
 
 
 def _rebuild_vertical_first_material(
