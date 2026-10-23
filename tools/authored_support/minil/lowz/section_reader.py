@@ -14,11 +14,11 @@ from shapely.geometry import Polygon, LineString
 from shapely import contains_xy, intersects_xy
 import shapely
 
-VERSION='lowz-closed-rings-3'
+VERSION='lowz-closed-rings-4-exact-small'
 WELD_MM=1e-8
 
 def identity():
-    return dict(version=VERSION,sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),weld_mm=WELD_MM,shapely=shapely.__version__,geos=shapely.geos_version_string)
+    return dict(version=VERSION,sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),exact_sha256=hashlib.sha256(Path(__file__).with_name('exact_section.py').read_bytes()).hexdigest(),weld_mm=WELD_MM,shapely=shapely.__version__,geos=shapely.geos_version_string)
 
 def unknown(reason,**detail):
     return dict(status='UNKNOWN_SECTION',reason=reason,cells=None,**detail)
@@ -39,7 +39,8 @@ def read_section(tri,z,origin,pitch,shape,z_bounds=None):
     segments=points[hit].reshape(-1,2,3)[:,:,:2]
     length=np.linalg.norm(segments[:,1]-segments[:,0],axis=1)
     if np.any((length>0)&(length<=WELD_MM)):
-        return unknown('SUB_TOLERANCE_SEGMENT',segment_count=int(np.sum((length>0)&(length<=WELD_MM))))
+        from .exact_section import exact_section
+        return exact_section(tri[selected],z,origin,pitch,shape)
     segments=segments[length>WELD_MM]
     if not len(segments):return dict(status='VALID_SECTION',cells=np.empty(0,np.int32),rings=0,reference_equal=True,tangency=True)
     result=from_segments(segments,origin,pitch,shape)
@@ -47,9 +48,9 @@ def read_section(tri,z,origin,pitch,shape,z_bounds=None):
     result['source_segment_count']=len(segments)
     return result
 
-def from_segments(segments,origin,pitch,shape):
+def from_segments(segments,origin,pitch,shape,*,weld=True):
     endpoints=segments.reshape(-1,2);pts,inv=np.unique(endpoints,axis=0,return_inverse=True)
-    pairs=cKDTree(pts).query_pairs(WELD_MM,output_type='ndarray')
+    pairs=cKDTree(pts).query_pairs(WELD_MM,output_type='ndarray') if weld else []
     if len(pairs):
         adjacency=sparse.coo_matrix((np.ones(len(pairs)),(pairs[:,0],pairs[:,1])),shape=(len(pts),len(pts)))
         _,labels=connected_components(adjacency,directed=False)

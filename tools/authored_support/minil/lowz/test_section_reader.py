@@ -33,7 +33,15 @@ class SectionTests(unittest.TestCase):
         r=self.read(ring([[1,1],[1.000001,1],[1.000001,4],[1,4]]));self.assertEqual(r['status'],'VALID_SECTION');self.assertGreater(r['area_mm2'],0);self.assertEqual(len(r['cells']),0)
     def test_sub_tolerance_shape_is_not_empty(self):
         m=trimesh.creation.box(extents=[1e-10,1e-10,2]);m.apply_translation([3,3,0])
-        r=read_section(m.vertices[m.faces],.1,np.zeros(2),.25,(60,60));self.assertEqual(r['status'],'UNKNOWN_SECTION');self.assertIsNone(r['cells'])
+        r=read_section(m.vertices[m.faces],.1,np.zeros(2),.25,(60,60));self.assertEqual(r['status'],'VALID_SECTION');self.assertGreater(r['area_mm2'],0);self.assertTrue(r['exact_grid_equal']);self.assertEqual(len(r['cells']),0)
+    def test_exact_tiny_open_is_unknown(self):
+        m=trimesh.creation.box(extents=[1e-10,1e-10,2]);m.apply_translation([3,3,0]);tri=m.vertices[m.faces]
+        hit=np.flatnonzero((tri[:,:,2].min(1)<.1)&(tri[:,:,2].max(1)>.1))[0]
+        r=read_section(np.delete(tri,hit,axis=0),.1,np.zeros(2),.25,(60,60));self.assertEqual(r['status'],'UNKNOWN_SECTION');self.assertIsNone(r['cells'])
+    def test_exact_subgrid_material_at_grid_centre(self):
+        m=trimesh.creation.box(extents=[1e-10,1e-10,2]);m.apply_translation([3.125,3.125,0]);tri=m.vertices[m.faces]
+        a=read_section(tri,.1,np.zeros(2),.25,(60,60));b=read_section(tri[::-1,::-1],.1,np.zeros(2),.25,(60,60))
+        self.assertEqual(a['status'],'VALID_SECTION');self.assertEqual(a['cells'].tolist(),[12*60+12]);np.testing.assert_array_equal(a['cells'],b['cells'])
     def test_self_crossing(self):
         self.assertEqual(self.read(ring([[1,1],[4,4],[1,4],[4,1]]))['reason'],'INVALID_RING')
     def test_roundoff_weld(self):

@@ -50,3 +50,31 @@ Set a writable `TMPDIR` for tests if the Windows sandbox's default temporary dir
 `LOWZ_DEMANDS_BEFORE/AFTER.json`, `DEMAND_FOOTPRINTS.npz`, `ROUTE_LEDGER.json`, `CANDIDATE.json`, `COMPARISON.json`, `ROOT_BRACE_AUDIT.json`, `EXISTING_ROOT_BRACE_AUDIT.json`, `EXISTING_BRACE_ROUTE_LEDGER.json`, geometry NPZ files and review PNGs.
 
 The work area also contains earlier unadopted experiments. They are excluded from this change's adopted file list and CLI. They do not establish lightweight evidence or replace this implementation.
+
+## Local uncertainty review (2026-10-23, global HOLD)
+
+`section_reader` v4 retains small nonzero segments using exact rational
+intersections of the saved binary-float mesh. Exact grid-centre parity must
+agree with the floating scanline/GEOS result; no tolerance increase or mesh
+repair. Old v3 cache identities are not silently upgraded.
+
+`local_certificate.Domain` exposes KNOWN_MATERIAL / PROVEN_EMPTY / UNKNOWN.
+These are sampled grid-centre states, not solid voxel classifications. UNKNOWN
+overrides known material. Continuous query rectangles include between-centre
+uncertainty and an explicit halo. Target previous/current/four successor
+sections, plate-rooted donor, entire route and clearance are required scopes.
+An uncertainty-free query does NOT authorize generation: exact geometric
+contacts/collisions and unsampled geometry remain separate gates.
+
+Read-only audit of a sealed v3 cache:
+
+```sh
+python -m tools.authored_support.minil.lowz.local_audit --cache SEALED_V3_CACHE --out NEW_AUDIT_DIRECTORY
+```
+
+This audits all input seals and original execution snapshots, then screens
+known component-section windows against conservative full-component UNKNOWN
+envelopes. Counts are windows, not unique flowers or unsupported events. The
+existing generator's global UNKNOWN rejection remains in force while full
+local certificate integration and the later COPLANAR_FACE replay blocker are
+unresolved. No real MINIL candidate is certified by this command.

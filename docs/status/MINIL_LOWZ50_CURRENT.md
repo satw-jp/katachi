@@ -1,17 +1,13 @@
 # MINIL LOWZ50 current — 2026-10-23
 
-Authority: Issue #66, PR #67 review, Author task MINIL_LOWZ50_SECTION_READER_REPAIR.
+**HOLD: GENERATOR_COPLANAR_SECTION / LOCAL_CERTIFICATE_INCOMPLETE / PRINT_BINDING_PARTIAL.**
 
-**HOLD — UNKNOWN_SOURCE_SECTIONS / GENERATOR_NECK_SECTION_UNVERIFIED.** LOWZ now reconstructs closed rings and checks every accepted raster against GEOS. The shared V2 default and construction/selection rules are unchanged. The old cache, eight branches and improvement counts remain quarantined.
+Near-plane neck section replay PASS in two processes; 73 regressions PASS. Exact nonzero segments retained. Full generator replay still stops at a later COPLANAR_FACE. No real candidate or support-improvement claim.
 
-Fresh LIGHT audit: 53 parts, 444,891 scheduled component-sections, 422,986 known and 21,905 UNKNOWN. Zero out-of-section known cells; all known masks agree with the independent reference. Original SHA unchanged. UNKNOWN is not empty or supported; no new real MINIL candidate/comparison was generated.
+Three-state local UNKNOWN exclusion implemented and screened on sealed v3 LIGHT evidence. Target-window clearance is not full donor/route certification; generator remains closed. All 21,905 source UNKNOWN sections retained. Old eight rods/improvement values quarantined.
 
-59 regression tests PASS, including the original 16. The separate synthetic generation replay is HOLD at sub-tolerance neck sections, not PASS. Two bounded correction cycles complete; no threshold relaxation or source repair.
+Saved LIGHT-named G-code found and hashed; archive and standalone bytes match. Saved settings use Textured PEI65°C. Current job and geometry-to-G-code binding remain partial; no source/print settings changed.
 
-First traced ghost-fill cause: FLOWERS_00 component 189, Z0.66/Y120.67, source open/nonmanifold edges producing three crossings. Other UNKNOWN causes remain individually recorded. This is not a diagnosis of physical print failure.
+See [local certificate evidence](../evidence/MINIL_LOWZ50_LOCAL_CERTIFICATE_20261023.md) and [Drive](https://drive.google.com/drive/folders/1fGWueDD4m-uFUCkTtcVokGO2E9yKEv19).
 
-Evidence: [section-reader report](../evidence/MINIL_LOWZ50_SECTION_READER_20261023.md). Full data: [Drive review folder](https://drive.google.com/drive/folders/1otmjyn6N61IPNoyMxKyy9Qap91IKOzHx).
-
-Next decision: a verified evidence source for LIGHT's unclosed sections, plus bounded near-plane classification validation. No silent substitution of precise C or mesh repair.
-
-Current print remains AUTHOR_CONTINUES_OBSERVATION; new candidate print_go=false. Native slice / Send / Print = 0. PR65 unchanged; PR67 Draft, no merge.
+Current print AUTHOR_CONTINUES_OBSERVATION. New slice/Send/Print=0; print_go=false. PR65 unchanged, PR67 Draft/unmerged. Local dirty work and original inputs preserved.
