@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 from .light import sha,write
 from ..recipe import candidate_recipe
+from .section_reader import identity as reader_identity
 
 def run(out,runtime):
     out=Path(out);out.mkdir(parents=True,exist_ok=False);cache=out/'fixture';cache.mkdir()
@@ -14,9 +15,12 @@ def run(out,runtime):
     data=np.array([[0,i,32*64+32] for i in range(35,40)],np.int32)
     np.savez_compressed(cache/'part.npz',data=data)
     occ=np.zeros((45,64,64),bool);occ[35:40,32,32]=True;np.save(cache/'occupancy.npy',occ)
+    write(cache/'SECTION_VALIDATION.json',dict(evidence='SYNTHETIC_FIXTURE_NOT_SOURCE_SECTION_AUDIT'))
+    write(cache/'UNKNOWN_SECTIONS.json',dict(sections=[]))
     r=candidate_recipe();write(cache/'SOURCE.json',dict(path=str(source),sha256=sha(source),recipe=r,
         evidence='SYNTHETIC_FIXTURE',parts=[dict(id='fixture',name='fixture',file='part.npz',sha256=sha(cache/'part.npz'))],
-        shape=[64,64],nz=45,origin_mm=[0,0],pitch_mm=r['geometry']['grid_xy'],dz_mm=r['geometry']['grid_z'],zmax_mm=6.,bounded_sections_verified=True))
+        shape=[64,64],nz=45,origin_mm=[0,0],pitch_mm=r['geometry']['grid_xy'],dz_mm=r['geometry']['grid_z'],zmax_mm=6.,bounded_sections_verified=True,
+        section_reader=reader_identity(),unknown_sections=0,validation_sha256=sha(cache/'SECTION_VALIDATION.json'),unknown_sha256=sha(cache/'UNKNOWN_SECTIONS.json'),occupancy_sha256=sha(cache/'occupancy.npy')))
     results=[]
     for index in (1,2):
         dest=out/f'run_{index}'

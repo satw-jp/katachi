@@ -1,7 +1,7 @@
-"""Read-only lightweight 3MF adapter; sections reuse the existing V4 routine.
+"""Read-only lightweight 3MF adapter with LOWZ closed-ring section validation.
 
 This is CAD screening, never a native slice. Source connected meshes are
-sectioned separately to avoid parity cancellation between overlapping parts.
+sectioned separately; UNKNOWN sections block all downstream support decisions.
 """
 import array
 import argparse
@@ -17,6 +17,7 @@ from scipy.sparse.csgraph import connected_components
 from lxml import etree
 from ...stages.v4_d2 import _section_pixels
 from ..recipe import candidate_recipe
+from .section_reader import read_section, identity as reader_identity
 
 CORE='http://schemas.microsoft.com/3dmanufacturing/core/2015/02'
 PROD='http://schemas.microsoft.com/3dmanufacturing/production/2015/06'
@@ -46,16 +47,14 @@ def mesh(z,entry):
     return np.frombuffer(v,dtype=np.float64).reshape(-1,3),np.frombuffer(f,dtype=np.uint32).reshape(-1,3)
 
 def section(tri,z,origin,pitch,shape,z_bounds=None):
-    lo,hi=z_bounds if z_bounds is not None else (tri[:,:,2].min(1),tri[:,:,2].max(1))
-    cells=_section_pixels(tri,lo,hi,z,origin,pitch,np.asarray(shape[::-1]),np,compact=True,require_closed=True)
-    if len(cells):
-        yy,xx=np.divmod(cells,shape[1]);points=origin+(np.c_[xx,yy]+.5)*pitch
-        lower=tri[:,:,:2].min((0,1));upper=tri[:,:,:2].max((0,1))
-        if np.any(points<lower-pitch) or np.any(points>upper+pitch):
-            raise ValueError(f'UNBOUNDED_SECTION_FILL at CAD Z={z}: open/invalid parity contour; source must not be repaired silently')
-    return cells
+    result=read_section(tri,z,origin,pitch,shape,z_bounds)
+    if result['status']!='VALID_SECTION':
+        raise ValueError('UNKNOWN_SECTION / OPEN_SECTION_CONTOUR: '+result['reason'])
+    return result['cells']
 
 def extract(source,expected,out,zmax,reuse_completed=None):
+    if reuse_completed:raise ValueError('OLD_SECTION_CACHE_REUSE_FORBIDDEN')
+    reader_lock=reader_identity();adapter_lock=sha(__file__)
     out=Path(out);out.mkdir(parents=True,exist_ok=False)
     actual=sha(source)
     if actual!=expected:raise ValueError('SOURCE_SHA_MISMATCH')
@@ -83,7 +82,7 @@ def extract(source,expected,out,zmax,reuse_completed=None):
         settings=ET.fromstring(z.read('Metadata/model_settings.config'))
         for p in settings.findall('.//part'):
             names[p.get('id')]=next((x.get('value') for x in p.findall('metadata') if x.get('key')=='name'),'UNKNOWN')
-        parts=[]
+        parts=[];unknowns=[];valid_count=0;validation=[];transforms=[]
         for ordinal,c in enumerate(root.findall('.//{'+CORE+'}component')):
             sid=c.get('objectid');entry=c.get('{'+PROD+'}path').lstrip('/')
             old=Path(reuse_completed)/('part_'+sid+'.npz') if reuse_completed else None
@@ -102,6 +101,7 @@ def extract(source,expected,out,zmax,reuse_completed=None):
                 write(out/'PROGRESS.json',dict(parts_done=ordinal+1,parts_total=53))
                 print('REUSED',ordinal+1,sid,len(data),flush=True);continue
             a,b=transform(c.get('transform'));v,f=mesh(z,entry);v=(v@a.T+b)@m.T+t
+            transforms.append(dict(part=sid,component=c.get('transform'),build=builds[0].get('transform')))
             if (v[:,:2]<0).any() or (v[:,:2]>=256).any():raise ValueError('SOURCE_OUTSIDE_FRAME')
             edges=np.concatenate([f[:,[0,1]],f[:,[1,2]]]);adj=sparse.coo_matrix((np.ones(len(edges),np.uint8),(edges[:,0],edges[:,1])),shape=(len(v),len(v))).tocsr()
             _,labels=connected_components(adj,directed=False);flabel=labels[f[:,0]]
@@ -115,7 +115,13 @@ def extract(source,expected,out,zmax,reuse_completed=None):
                 bounds=(tri[:,:,2].min(1),tri[:,:,2].max(1))
                 n=0
                 for iz in range(start,end):
-                    cells=section(tri,(iz+.5)*dz,origin,pitch,shape,bounds)
+                    result=read_section(tri,(iz+.5)*dz,origin,pitch,shape,bounds)
+                    row=dict(part=sid,component=gid,section=iz,z_mm=(iz+.5)*dz,**{k:v for k,v in result.items() if k!='cells'})
+                    if result['status']=='UNKNOWN_SECTION':
+                        # No implicit zero: retain unknown separately; all downstream
+                        # support decisions are blocked until uncertainty is resolved.
+                        unknowns.append(row);continue
+                    valid_count+=1;validation.append(row);cells=result['cells']
                     if len(cells):
                         occ[iz].ravel()[cells]=True
                         chunks.append(np.c_[np.full(len(cells),gid),np.full(len(cells),iz),cells].astype(np.int32));n+=len(cells)
@@ -128,7 +134,10 @@ def extract(source,expected,out,zmax,reuse_completed=None):
         occ.flush()
     after=sha(source)
     if after!=actual:raise ValueError('SOURCE_CHANGED')
-    write(out/'SOURCE.json',dict(path=str(source),sha256=actual,after_sha256=after,parts=parts,origin_mm=origin,shape=shape,nz=nz,pitch_mm=pitch,dz_mm=dz,zmax_mm=zmax,recipe=recipe,frame='saved A1 world XY; CAD Z before raft',machine_z='UNBOUND',evidence='CAD_RASTER_PROXY_NOT_NATIVE',bounded_sections_verified=True))
+    if reader_identity()!=reader_lock or sha(__file__)!=adapter_lock:raise ValueError('SECTION_IMPLEMENTATION_CHANGED_DURING_RUN')
+    write(out/'UNKNOWN_SECTIONS.json',dict(status='UNKNOWN_SECTION' if unknowns else 'NONE',sections=unknowns,policy='NOT_EMPTY_NOT_SUPPORTED; generator blocked if any unknown'))
+    write(out/'SECTION_VALIDATION.json',dict(valid_sections=valid_count,unknown_sections=len(unknowns),reference='GEOS polygon containment vs ring scanline, each valid section',sections=validation))
+    write(out/'SOURCE.json',dict(path=str(source),sha256=actual,after_sha256=after,parts=parts,origin_mm=origin,shape=shape,nz=nz,pitch_mm=pitch,dz_mm=dz,zmax_mm=zmax,recipe=recipe,frame='saved A1 world XY; CAD Z before raft',machine_z='UNBOUND',evidence='CAD_RASTER_PROXY_NOT_NATIVE',bounded_sections_verified=not unknowns,section_reader=reader_lock,adapter_sha256=adapter_lock,placement_transforms=transforms,unknown_sections=len(unknowns),validation_sha256=sha(out/'SECTION_VALIDATION.json'),unknown_sha256=sha(out/'UNKNOWN_SECTIONS.json'),occupancy_sha256=sha(out/'occupancy.npy'),occupancy_semantics='KNOWN_OCCUPANCY_ONLY; UNKNOWN retained separately, no downstream decisions allowed with UNKNOWN'))
 
 def rooted_volume(occ):
     """Existing V2 connected-section propagation; order within a layer UNKNOWN.
@@ -145,6 +154,7 @@ def rooted_volume(occ):
 
 def demands(cache,rooted):
     cache=Path(cache);s=json.loads((cache/'SOURCE.json').read_text());shape=tuple(s['shape']);dz=s['dz_mm'];events=[];footprints=[]
+    if s.get('unknown_sections',0):raise ValueError('UNKNOWN_SECTION: demand classification forbidden, not empty space')
     for part in s['parts']:
         with np.load(cache/part['file']) as a:data=a['data']
         if not len(data):continue

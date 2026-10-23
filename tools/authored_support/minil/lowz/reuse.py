@@ -43,6 +43,12 @@ def run(cache,out,runtime,attempt_limit=200,candidate_limit=24,structural_source
     s=json.loads((cache/'SOURCE.json').read_text());source_hash=sha(s['path'])
     if source_hash!=s['sha256']:raise ValueError('SOURCE_SHA_MISMATCH')
     if s.get('bounded_sections_verified') is not True:raise ValueError('UNCERTIFIED_SECTION_CACHE: generation forbidden until bounded-section validation passes')
+    from .section_reader import identity as reader_identity
+    if s.get('section_reader')!=reader_identity():raise ValueError('STALE_SECTION_READER')
+    if s.get('unknown_sections',0):raise ValueError('UNKNOWN_SECTION: generation forbidden')
+    if s.get('occupancy_sha256')!=sha(cache/'occupancy.npy'):raise ValueError('OCCUPANCY_IDENTITY')
+    for key,name in [('validation_sha256','SECTION_VALIDATION.json'),('unknown_sha256','UNKNOWN_SECTIONS.json')]:
+        if s.get(key)!=sha(cache/name):raise ValueError('SECTION_VALIDATION_IDENTITY')
     for part in s['parts']:
         if sha(cache/part['file'])!=part['sha256']:raise ValueError('SECTION_CACHE_CHANGED')
     print('SOURCE_AND_CACHE_SHA_PASS',flush=True)

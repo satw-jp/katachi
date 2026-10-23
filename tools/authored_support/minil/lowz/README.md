@@ -2,21 +2,31 @@
 
 Issue #66. Scope: isolated CAD candidates using the existing V2 support construction. No native engine, printer connection or source write is present in the adopted entry points.
 
-**Current result: MINIL_LOWZ50_SUPPORT_PROGRAM_HOLD.** The full LIGHT diagnostic produced out-of-bounds parity fill. Its eight trial additions and before/after numbers are quarantined, not validated support improvements. Final code rejects odd scanline crossing counts and caches lacking bounded-section validation. Do not mark the old cache valid or silently close/repair source meshes to bypass this gate.
+**Current task: MINIL_LOWZ50_SECTION_READER_REPAIR.** The old LIGHT cache, eight trial additions and improvement counts remain quarantined. A LOWZ-only closed-ring reader now replaces parity-only source sectioning. See `docs/evidence/MINIL_LOWZ50_SECTION_READER_20261023.md` for the completed real-data audit and remaining HOLD; synthetic tests alone do not establish LIGHT support validity.
 
 The initial compact allocation optimization was equivalent for closed contours but not odd-crossing contours. Its legacy-equivalence path now retains the full right tail for odd counts; the LOWZ entry point rejects them. Regression covers both closed and open contours. Cached diagnostics from before this correction are invalid for acceptance.
 
-`construction.py` shares the original capsule shaft, capsule neck and planar foot with `minil/generate.py`. V2 dimensions, mesh tessellation and its original route decisions are unchanged. The new adapter scans every connected section, instead of stopping after a flower contact quota. The section routine is the existing `_section_pixels` implementation.
+`construction.py` shares the original capsule shaft, capsule neck and planar foot with `minil/generate.py`. V2 dimensions, mesh tessellation and its original route decisions are unchanged. The new adapter scans every connected section, instead of stopping after a flower contact quota. The common `_section_pixels` default is unchanged by this repair; only LOWZ uses `section_reader.py`.
+
+## Section contract
+
+- Exact on-plane vertices use their original coordinates. Nonzero segments at or below 1e-8 mm are UNKNOWN, not discarded as empty. Exact point tangencies have no area. Coplanar faces are conservatively UNKNOWN.
+- Endpoints weld at 1e-8 mm; duplicate edges, degrees other than two, invalid/self-crossing rings and touching rings are UNKNOWN. No unmatched ends are paired, no source is repaired, and out-of-frame geometry is rejected rather than clipped.
+- Closed rings, including nested holes, are filled with even/odd scanlines. Every valid mask is separately checked against GEOS polygon containment; exact-boundary grid centres are explicitly included. Sub-grid polygons may have zero occupied centres, but their positive area remains in the section record.
+- UNKNOWN applies to the connected mesh section, not necessarily the entire named flower container. It has `cells=None` in the reader and a separate spatial record in `UNKNOWN_SECTIONS.json`; it is neither supported nor empty. The generator and demand classifier refuse caches with any UNKNOWN. Known-only occupancy must never be interpreted as a complete material mask in that case.
+- Fresh manifests bind input SHA before/after, all part hashes, saved placement transforms, raster/phase settings, reader version and file SHA, Shapely/GEOS versions, adapter SHA, validation and UNKNOWN hashes and occupancy SHA. `--reuse-completed` is rejected. Downstream detection identity includes the reader identity.
+- The first traced FLOWERS_00 defect (component 189, Z0.66, Y120.67) has ten intersected source edges of incidence 1 or 3, creating three scanline crossings. Coordinate welding does not remove them; no vertex is on the plane. This identifies a source topology cause for that example, not the cause of the running print's physical failure.
 
 ## Reproducible entry points
 
-Run from the repository root with the pinned Python 3.12 geometry environment (NumPy 2.5.2, scipy 1.18.1, manifold3d 3.5.2, trimesh 5.1.0; lxml and Pillow for import/report).
+Run from the repository root with the pinned Python 3.12 geometry environment (NumPy 2.5.2, scipy 1.18.1, manifold3d 3.5.2, trimesh 5.1.0; lxml and Pillow for import/report). LOWZ section reading additionally requires Shapely 2.1.2 (`requirements-section-reader.txt`); it is not required by the unchanged V2 generator.
 
 ```text
 python -m tools.authored_support.minil.lowz.light --source SOURCE.3mf --sha SOURCE_SHA256 --out NEW_CACHE --zmax 50
 python -m tools.authored_support.minil.lowz.reuse --cache NEW_CACHE --out NEW_CANDIDATE --runtime RUNTIME --structural-source STRUCTURAL_SOURCE.json
 python -m tools.authored_support.minil.lowz.report --cache NEW_CACHE --out NEW_CANDIDATE
 python -m unittest tools.authored_support.minil.lowz.test_reuse -v
+python -m unittest tools.authored_support.minil.lowz.test_section_reader -v
 python -m tools.authored_support.minil.lowz.replay_check --out NEW_REPLAY_DIRECTORY --runtime RUNTIME
 ```
 

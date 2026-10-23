@@ -1,13 +1,17 @@
 # MINIL LOWZ50 current — 2026-10-23
 
-Authority: Issue #66 and Author's lightweight/current-print clarification.
+Authority: Issue #66, PR #67 review, Author task MINIL_LOWZ50_SECTION_READER_REPAIR.
 
-**MINIL_LOWZ50_SUPPORT_PROGRAM_HOLD.** Shared V2 construction, component demand detection, existing-shaft routes, regression tests and trial generation were implemented. Final visual QA found source-section fill extending outside geometry bounds. 1,087,542 occupied voxels lie outside the source box even with one cell allowance. Eight generated trial branches and their improvement counts are quarantined, not accepted.
+**HOLD — UNKNOWN_SOURCE_SECTIONS / GENERATOR_NECK_SECTION_UNVERIFIED.** LOWZ now reconstructs closed rings and checks every accepted raster against GEOS. The shared V2 default and construction/selection rules are unchanged. The old cache, eight branches and improvement counts remain quarantined.
 
-Final code rejects odd scanline crossing counts and unvalidated caches. Sixteen regression tests pass. Two-process synthetic generation is reproducible; the actual invalid LIGHT cache is refused before any new mesh is generated. V2 defaults and source geometry remain unchanged.
+Fresh LIGHT audit: 53 parts, 444,891 scheduled component-sections, 422,986 known and 21,905 UNKNOWN. Zero out-of-section known cells; all known masks agree with the independent reference. Original SHA unchanged. UNKNOWN is not empty or supported; no new real MINIL candidate/comparison was generated.
 
-Next gate: repair/validate the lightweight section reader, treating unclosed regions as UNKNOWN without silently repairing source meshes. Keep the existing support construction rules. No new native slice, Send or Print is authorized by this lane.
+59 regression tests PASS, including the original 16. The separate synthetic generation replay is HOLD at sub-tolerance neck sections, not PASS. Two bounded correction cycles complete; no threshold relaxation or source repair.
 
-Current print: `AUTHOR_CONTINUES_OBSERVATION`, lightweight confirmed by Author; exact submitted job binding remains incomplete. New candidate: `print_go=false`. PR #65 remains Draft/unmerged and unchanged.
+First traced ghost-fill cause: FLOWERS_00 component 189, Z0.66/Y120.67, source open/nonmanifold edges producing three crossings. Other UNKNOWN causes remain individually recorded. This is not a diagnosis of physical print failure.
 
-Local review artifacts: `outputs/MINIL_LOWZ50_SUPPORT_PROGRAM_20261023/RESULT.md` in the shared task workspace. Remote publication references are recorded in the Draft PR body.
+Evidence: [section-reader report](../evidence/MINIL_LOWZ50_SECTION_READER_20261023.md). Full data: [Drive review folder](https://drive.google.com/drive/folders/1otmjyn6N61IPNoyMxKyy9Qap91IKOzHx).
+
+Next decision: a verified evidence source for LIGHT's unclosed sections, plus bounded near-plane classification validation. No silent substitution of precise C or mesh repair.
+
+Current print remains AUTHOR_CONTINUES_OBSERVATION; new candidate print_go=false. Native slice / Send / Print = 0. PR65 unchanged; PR67 Draft, no merge.

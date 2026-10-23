@@ -3,9 +3,10 @@ import hashlib,inspect,json
 from pathlib import Path
 import numpy as np
 from .light import sha,write,demands,rooted_volume
+from .section_reader import identity as reader_identity
 
 def detector_identity():
-    return hashlib.sha256((inspect.getsource(demands)+inspect.getsource(rooted_volume)).encode()).hexdigest()
+    return hashlib.sha256((inspect.getsource(demands)+inspect.getsource(rooted_volume)+json.dumps(reader_identity(),sort_keys=True)).encode()).hexdigest()
 
 def seal(cache,run):
     cache=Path(cache);run=Path(run);s=json.loads((cache/'SOURCE.json').read_text())
