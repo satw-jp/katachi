@@ -1,3 +1,23 @@
+# MINIL LOWZ50 current — 2026-10-24
+
+**LIGHT_COORDINATE_RAFT_DEMAND_REVIEW_READY; generation and print HOLD.**
+
+Saved LIGHT coordinate/raft review: 87 XY anchors; native layer model CAD
+slice Z = machine Z -0.65 corroborated by16 clean foot transitions. Per-event
+surface/normal/IDs remain unverified. Raft gap0.10mm: 87 footprint windows have
+projected receivers, but physical transfer UNKNOWN; rooted labels promoted=0.
+
+2,017 paths ->172 compact persistent vertical-neck review candidates, not
+certified generation demands. All intersect conservative UNKNOWN component
+envelopes. Exact target, donor/route and COPLANAR fixture remain blockers.
+
+39 tests PASS. Current print and source untouched; new geometry/assembly/
+slice/Send/Print=0. print_go=false. PR67 Draft/unmerged; PR65 unchanged.
+
+Next gate: Author review of coordinate/raft evidence and V2 connection proposal.
+See [2026-10-24 evidence](../evidence/MINIL_LIGHT_COORDINATE_RAFT_DEMAND_REVIEW_20261024.md).
+
+## Previous checkpoint (preserved)
 # MINIL LOWZ50 current — 2026-10-23
 
 **LIGHT_GCODE_SUPPORT_DIAGNOSTIC_READY_FOR_REVIEW. Generator / print remain HOLD.**
