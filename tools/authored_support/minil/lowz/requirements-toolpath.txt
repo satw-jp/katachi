@@ -1,0 +1,7 @@
+# Isolated diagnostic runtime; do not replace the V2 geometry environment.
+numpy==2.2.6
+numba==0.68.0
+llvmlite==0.50.0
+scipy==1.18.1
+# Independent footprint-bound regression only:
+shapely==2.1.2

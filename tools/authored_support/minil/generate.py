@@ -1,6 +1,7 @@
 """MINIL-only ports of direct, external and earlier-BODY authored support routes."""
 from .adapter import write, require, digest
 from .body import query
+from .construction import planar_foot, contact_parts
 
 def validate_derived_inputs(body,demands,anchors,context):
     ids=set(body.ids)
@@ -22,9 +23,7 @@ def generate(c,body,occ,rooted,meta,demands,anchors):
         rows.append(row); solids[sid]=solid
         return sid
     def foot(xy):
-        # Original planar cylinder foot, flat CAD Z=0 (not a capsule).
-        tm=k.trimesh.creation.cylinder(radius=g['foot_radius'],height=g['foot_height'],sections=24)
-        return k.man(tm.vertices+np.r_[xy,g['foot_height']/2],tm.faces)
+        return planar_foot(k,np,xy,g)
     def clear(solid): return not body.hits(solid,tol,first=True)
     dirs=np.array([[x,y,z] for x in [-1,0,1] for y in [-1,0,1] for z in [-1,0,1] if x or y or z],float)
     dirs=np.vstack([np.zeros(3),dirs/np.linalg.norm(dirs,axis=1)[:,None]])
@@ -46,9 +45,9 @@ def generate(c,body,occ,rooted,meta,demands,anchors):
     def contact_route(d,p,n,start,anchor=None,anchor_normal=None):
         end=p+n*g['neck_offset']; tip=p-n*g['neck_overlap']
         if not raster_clear(start,end,g['shaft_radius']): return None
-        main=k.capsule(start,end,g['shaft_radius'])
+        main,neck,end,tip=contact_parts(k,np,p,n,start,g)
         if body.hits(main,tol,first=True,capsule=(start,end,g['shaft_radius'])): return None
-        neck=k.capsule(end,tip,g['neck_radius']); hits=body.hits(neck,tol)
+        hits=body.hits(neck,tol)
         if {h['id'] for h in hits}!={d['target']}: return None
         parts=[main,neck]; anchor_hits=[]; cuts=[(p+n*g['neck_cut']).tolist()]
         if anchor is not None:
