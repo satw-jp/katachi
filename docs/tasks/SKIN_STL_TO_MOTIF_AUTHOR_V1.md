@@ -12,3 +12,5 @@ Implementation: reuse parseRawStlMesh, sample_candidates, balanced_size_assignme
 Status: implementation in progress; no acceptance claim.
 
 Final checkpoint: software DoD1–5 PASS at 7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def. DoD6 publication BLOCKED by inherited unrelated 20,274,549-byte composition artifact; no history rewrite/push. See CURRENT and evidence REPORT. Review/fix/recheck performed once; final browser and 14 tests pass. Legacy archive regression passed without geometry generation.
+
+Publication completion, 2026-10-29: Author explicitly approved the inherited 20.3 MB composition artifact. Branch-only normal push completed and remote HEAD matched 9dba62a. DoD6 is satisfied; final documentation update is pushed and checked separately. Software scope ready for Author operation review; no merge, deploy, slice, or hardware action.

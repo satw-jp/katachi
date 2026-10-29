@@ -1,12 +1,12 @@
 # SKIN STL → D6 Author v1 — 2026-10-29
 
-Status: software operation checks PASS; publication BLOCKED. Overall FIX-REQUIRED until the requested branch publication is resolved. No Author acceptance, internal core/branches/Support completion, fabrication/removal validation, Print GO or Physical PASS is implied.
+Status: software operation checks PASS; publication authorized and verified. READY FOR AUTHOR OPERATION REVIEW. No Author acceptance, internal core/branches/Support completion, fabrication/removal validation, Print GO or Physical PASS is implied.
 
 ## Operation and startup
 
 Independent complete checkout: `J:/skin-stl-20261029`. Base `9416ef9b2962e0353708d2733f92fe4dd50a3339`; tree `7905864a625df8c971eccf889a65e603d4222f5c`. All 1039 tracked files present, including Unicode images; no alternates; bundle verify and Git connectivity checks passed. Native Git `J:/Program Files/Git/cmd/git.exe` 2.54.0.windows.1; Windows 10.0.26200; PowerShell 7.6.5.
 
-Branch: `agent/skin-external-stl-d6-author-v1`. Tested implementation HEAD `7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def`; clean at browser acceptance. Later commits contain documentation/evidence/test-runner copies only; final HEAD is in DELIVERY.json. Remote branch absent; push NOT ATTEMPTED. Independent origin is `https://github.com/satw-jp/katachi.git`.
+Branch: `agent/skin-external-stl-d6-author-v1`. Tested implementation HEAD `7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def`; clean at browser acceptance. Later commits contain documentation/evidence/test-runner copies only; final HEAD is in DELIVERY.json. Remote branch created by normal push after explicit Author exception for the inherited 20.3 MB artifact; readback matched 9dba62aa57882cf4559e4ae9e49679a3594213a9. The final documentation HEAD is recorded in the publication receipt. Independent origin is `https://github.com/satw-jp/katachi.git`.
 
 Open http://127.0.0.1:5216/skin-rebuild.html?mode=creation . Fresh-session verification used 5226/5227, primary uses 5216/5217. Services belong to this task. From the independent checkout, when its ports are free:
 
@@ -30,7 +30,7 @@ Select external STL, choose a file, explicitly confirm mm, set Host scale/up-axi
 | Existing R1 regression | PASS — original 114154791-byte archive, all 6 immutable result identities; normal UI open, Undo/Redo, comparison/adoption preservation, save and reopen. Flowers/branches explicitly hidden during this large legacy display check; real meshes still loaded. No regeneration/slice. |
 | Fixed #33/#36/#58/#63 contracts | PASS for scoped regression — fixed surface replay, internal geometry and metadata code unchanged; existing 9 tests retained plus 5 external tests. No other lane HOLD/UNKNOWN promoted. |
 | Build | PASS — tsc + vite build. Existing >500kB chunk advisory recorded, no scope expansion. |
-| Branch publication | BLOCKED — unpublished ancestor `e91468c` contains `docs/evidence/skin-mocomoco-composition-v0/skin-composition-mocomoco-64.skincomp` (20,274,549 bytes), unnecessary for this bounded runtime. User excludes unrelated large artifacts from push. History not rewritten and no push performed. |
+| Branch publication | PASS after explicit Author approval on 2026-10-29; normal branch-only push and remote readback verified. Original blocker (resolved): unpublished ancestor `e91468c` contains `docs/evidence/skin-mocomoco-composition-v0/skin-composition-mocomoco-64.skincomp` (20,274,549 bytes), unnecessary for this bounded runtime. User excludes unrelated large artifacts from push. History not rewritten; only the requested branch pushed. |
 
 ## Measurements — 8-face fixture only
 
@@ -54,6 +54,10 @@ Files: measurements.json; acceptance-verified/browser-acceptance.json, browser-m
 
 Review cycle 1 found an external-result null mesh hash in the old print panel, and a late scene response hazard; bounded fixes were committed as fb5e847. Final real-browser recheck passed. One intervening test precondition failure was a retained draft flower scale; the runner now explicitly initializes every fixture parameter. No second runtime repair cycle was required.
 
-Next bounded task (one): decide how to publish the existing R1 ancestry containing the unrelated 20.3 MB composition artifact. Author may explicitly permit that ancestor artifact, or authorize a separate publication strategy; do not silently rewrite the requested R1 base.
+Next bounded task (one): define the external-Host domain/core connection contract for the existing D6 back anchors on one fixture, based on the surface-only adapter; no implementation is included here.
 
 FOLLOW-UP: legacy large-scene load/save latency and bundle-size advisory are recorded only; no unrelated optimization performed. Internal Host core/domain/branches/Support remain unsupported with explicit reasons. Protected original assets, processes, jobs, printers, G-code, main and existing archives were untouched.
+
+Publication addendum: Author reply explicitly allowed the inherited old 20.3 MB artifact. Earlier Drive evidence packages remain immutable historical checkpoints; this addendum supersedes their publication BLOCKED status. No runtime changes since tested HEAD 7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def.
+
+STOP: SKIN STL-TO-MOTIF AUTHOR LOOP — READY FOR AUTHOR OPERATION REVIEW
