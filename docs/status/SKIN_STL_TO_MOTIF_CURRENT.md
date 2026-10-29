@@ -1,10 +1,14 @@
 # SKIN STL → D6 CURRENT — 2026-10-29
-Authority: user pasted request; Author decision owner. Independent branch agent/skin-external-stl-d6-author-v1, base 9416ef9b2962e0353708d2733f92fe4dd50a3339.
-State: implementation checkpoint, acceptance in progress; NOT READY.
+
+Authority: user pasted request; Author decision owner. Branch `agent/skin-external-stl-d6-author-v1`.
+Base: `9416ef9b2962e0353708d2733f92fe4dd50a3339`; tested runtime `7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def`, clean. Later HEAD is docs/test evidence only.
+Status: **software operation checks PASS / publication BLOCKED / overall FIX-REQUIRED**.
+Available: external STL→explicit mm/Host transform→D6 scale/density/seed→actual scatter→viewer→compare/adopt→Undo/Redo→save→moved-folder fresh-service restore→forced regeneration. No LLM/API key/manual JSON needed.
 Active task: [AUTHOR_V1](../tasks/SKIN_STL_TO_MOTIF_AUTHOR_V1.md).
-Available: external STL import, explicit mm/up-axis/Host scale, D6 scale/density/seed, actual surface-only scatter and instanced viewer. Existing history/save connected; final browser loop pending.
-Runtime HEAD: this implementation commit; exact tested SHA will be recorded by evidence.
-Blocker: none established; acceptance outstanding. Next gate: real browser full loop and preservation tests, then publication audit.
-Protected: original P3 repo/servers; MINIL/MINI_A/LOWZ50; #33/#36/#58/#63; no slice, Print, deploy or main merge.
-Evidence: task-local outputs/recovery.json, fixture-manifest.json, first-scatter.json/png; final Drive pointers pending.
-Launch: J:/skin-stl-20261029; own vendor work/vendor; UI5216/API5217. Use tools/skin_creation/launch.ps1 with -UiPort 5216 -ApiPort 5217 -Vendor J:/skin-stl-20261029/work/vendor.
+Blocker: inherited unpublished 20,274,549-byte composition archive conflicts with user's exclusion of unrelated large artifacts. No push/history rewrite. Remote branch absent.
+Next gate: Author decision on publication of that ancestor artifact; all software acceptance evidence retained.
+Protected: original P3 HEAD 4a1ac9abec2ec197d610f24cd3086cbdf4c97e0d clean at start/end; MINIL/MINI_A/LOWZ50, #33/#36/#58/#63, existing services. No main merge/deploy/slice/Send/Print.
+Evidence: [Drive task folder](https://drive.google.com/drive/folders/16X7Z_lQIl0BC1P91mCIDww2ve_rGnVa3); exact package ID/hash recorded by evidence index once uploaded. [Report](../evidence/skin-stl-to-motif-author-v1/REPORT.md).
+Tests: 14 unit tests, full real-browser loop and legacy 6-result archive regression, tsc/vite build PASS. Small-fixture worker peak 114700288 bytes; browser 50ms sampled aggregate maximum 643002368 bytes (exact peak UNKNOWN); saved archive11916200 bytes.
+Launch: independent `J:/skin-stl-20261029`, `tools/skin_creation/launch.ps1 -Vendor J:/skin-stl-20261029/work/vendor -UiPort 5216 -ApiPort 5217`; UI http://127.0.0.1:5216/skin-rebuild.html?mode=creation .
+Unsupported: external Host core/branches/Support; fabrication/removal/physical acceptance; Print GO false. No other lane promoted.

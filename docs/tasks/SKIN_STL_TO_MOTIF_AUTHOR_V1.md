@@ -10,3 +10,5 @@ Protected: source P3 checkout, all existing services, MINIL/MINI_A/LOWZ50, #33/#
 Implementation: reuse parseRawStlMesh, sample_candidates, balanced_size_assignment, choose_farthest, rotation/quaternion and D6 anchor; external surface-only adapter. Shared template/transforms retained; host reference only. Existing content-addressed .skincreation and history reused. Read source AGENTS, STATEMENT, RESEARCH, R1 CURRENT/task, P3 CURRENT; TEAM_PROTOCOL_CORE absent in R1, read main through GitHub connector.
 
 Status: implementation in progress; no acceptance claim.
+
+Final checkpoint: software DoD1–5 PASS at 7a2bbf0e8f4972c5c75db1bf8b1b399a11c65def. DoD6 publication BLOCKED by inherited unrelated 20,274,549-byte composition artifact; no history rewrite/push. See CURRENT and evidence REPORT. Review/fix/recheck performed once; final browser and 14 tests pass. Legacy archive regression passed without geometry generation.

@@ -1,0 +1,24 @@
+{
+  "sha256": "75c431cda17fa8dfe467427a29557eea84101e133a8e2d2bd707dc9039577726",
+  "bytes": 987,
+  "triangles": 8,
+  "bounds": [
+    [
+      -10.0,
+      -10.0,
+      -10.0
+    ],
+    [
+      10.0,
+      10.0,
+      10.0
+    ]
+  ],
+  "dimensions": [
+    20.0,
+    20.0,
+    20.0
+  ],
+  "source": "Mathematical octahedron authored for this task; vertices \u00b110 on axes, 8 outward faces. Not derived from artworks.",
+  "license": "CC0-1.0"
+}
