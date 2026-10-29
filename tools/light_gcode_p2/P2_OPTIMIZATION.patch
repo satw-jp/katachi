@@ -1,0 +1,232 @@
+--- p1/continuous_area.py
++++ p2/continuous_area.py
+@@ -117,6 +117,42 @@
+     return lo,hi,area,nodes,exhausted
+ 
+ 
++@njit(cache=False,fastmath=False)
++def _orient_compiled(ax,ay,bx,by,cx,cy):
++    return (bx-ax)*(cy-ay)-(by-ay)*(cx-ax)
++
++
++@njit(cache=False,fastmath=False)
++def _segments_intersect_compiled(a,b,c,d):
++    o1=_orient_compiled(*a,*b,*c);o2=_orient_compiled(*a,*b,*d)
++    o3=_orient_compiled(*c,*d,*a);o4=_orient_compiled(*c,*d,*b)
++    eps=1e-12
++    if (o1>eps and o2< -eps or o1< -eps and o2>eps) and (o3>eps and o4< -eps or o3< -eps and o4>eps):return True
++    return (abs(o1)<=eps and min(a[0],b[0])-eps<=c[0]<=max(a[0],b[0])+eps and min(a[1],b[1])-eps<=c[1]<=max(a[1],b[1])+eps or
++            abs(o2)<=eps and min(a[0],b[0])-eps<=d[0]<=max(a[0],b[0])+eps and min(a[1],b[1])-eps<=d[1]<=max(a[1],b[1])+eps or
++            abs(o3)<=eps and min(c[0],d[0])-eps<=a[0]<=max(c[0],d[0])+eps and min(c[1],d[1])-eps<=a[1]<=max(c[1],d[1])+eps or
++            abs(o4)<=eps and min(c[0],d[0])-eps<=b[0]<=max(c[0],d[0])+eps and min(c[1],d[1])-eps<=b[1]<=max(c[1],d[1])+eps)
++
++
++@njit(cache=False,fastmath=False)
++def _segment_distance_compiled(a,b,c,d):
++    if _segments_intersect_compiled(a,b,c,d):return 0.
++    return min(_point_segment_numeric(*a,*c,*d),_point_segment_numeric(*b,*c,*d),
++               _point_segment_numeric(*c,*a,*b),_point_segment_numeric(*d,*a,*b))
++
++
++@njit(cache=False,fastmath=False)
++def _overlap_indices(x0,y0,x1,y1,r,epsilon,packed):
++    out=[];target_r=r+epsilon
++    for i in range(len(packed)):
++        ax,ay,bx,by,dr,de=packed[i]
++        reach=target_r+dr+epsilon+de
++        gap_x=max(0.,min(ax,bx)-max(x0,x1),min(x0,x1)-max(ax,bx))
++        gap_y=max(0.,min(ay,by)-max(y0,y1),min(y0,y1)-max(ay,by))
++        if gap_x*gap_x+gap_y*gap_y>(reach+1e-12)**2:continue
++        if _segment_distance_compiled((x0,y0),(x1,y1),(ax,ay),(bx,by))<=reach:out.append(i)
++    return out
++
+ class RootSetPool:
+     """Interned, lossless root sets with a hard, visible memory budget."""
+     def __init__(self,max_distinct_sets=500_000,max_root_references=4_000_000):
+@@ -143,7 +179,8 @@
+     converts that geometric approximation into conservative coverage bounds.
+     """
+     def __init__(self,root_layers=1,threshold=.65,tile=8.,max_nodes_per_footprint=12000,
+-                 area_error_fraction=.002,arc_sagitta_mm=.005,provenance_pool=None):
++                 area_error_fraction=.002,arc_sagitta_mm=.005,provenance_pool=None,independent_refinement=False):
++        self.independent_refinement=independent_refinement
+         self.root_layers=root_layers;self.threshold=threshold;self.tile=tile
+         self.max_nodes=max_nodes_per_footprint;self.area_error_fraction=area_error_fraction
+         self.arc_sagitta_mm=arc_sagitta_mm;self.pool=provenance_pool or RootSetPool()
+@@ -184,7 +221,17 @@
+         packed=np.empty((len(donors),6),dtype=np.float64)
+         for i,d in enumerate(donors):
+             packed[i]=(d['x0'],d['y0'],d['x1'],d['y1'],max(0.,d['r']-d.get('epsilon',0.)-target_epsilon),d['r']+d.get('epsilon',0.)+target_epsilon)
+-        return _coverage_numeric(x0,y0,x1,y1,r,packed,target_epsilon,self.max_nodes,self.area_error_fraction)
++        result=_coverage_numeric(x0,y0,x1,y1,r,packed,target_epsilon,self.max_nodes,self.area_error_fraction)
++        self.last_area_proof=None
++        lo,hi,area,nodes,exhausted=result
++        if self.independent_refinement and donors and not exhausted and lo<self.threshold<=hi:
++            from polygon_bounds import coverage_bounds
++            refined=coverage_bounds(x0,y0,x1,y1,r,donors,target_epsilon)
++            low=max(lo,refined[0]);high=min(hi,refined[1])
++            if low>high:raise ValueError('INDEPENDENT_AREA_BOUND_DISAGREEMENT')
++            self.last_area_proof=dict(adaptive=result,polygon=refined,intersection=[low,high],target=[x0,y0,x1,y1,r,target_epsilon],donors=len(donors))
++            return low,high,area,nodes,False
++        return result
+ 
+     def _overlapping_unknowns(self,x0,y0,x1,y1,r,epsilon,records,bins):
+         candidates=self._candidates(bins,records,x0,y0,x1,y1,r+epsilon)
+@@ -192,17 +239,10 @@
+ 
+     @staticmethod
+     def _overlapping_candidates(x0,y0,x1,y1,r,epsilon,candidates):
+-        target_r=r+epsilon;out=[]
+-        for d in candidates:
+-            if d['kind']=='CERTIFIED':continue
+-            reach=target_r+d['r']+epsilon+d.get('epsilon',0.)
+-            gap_x=max(0.,min(d['x0'],d['x1'])-max(x0,x1),min(x0,x1)-max(d['x0'],d['x1']))
+-            gap_y=max(0.,min(d['y0'],d['y1'])-max(y0,y1),min(y0,y1)-max(d['y0'],d['y1']))
+-            # AABB distance is a lower bound on segment distance. Keep equality
+-            # and a small roundoff margin; only a proven separated pair is cut.
+-            if gap_x*gap_x+gap_y*gap_y>(reach+1e-12)**2:continue
+-            if _segment_distance((x0,y0),(x1,y1),(d['x0'],d['y0']),(d['x1'],d['y1']))<=reach:out.append(d)
+-        return out
++        uncertain=[d for d in candidates if d['kind']!='CERTIFIED']
++        packed=np.empty((len(uncertain),6),dtype=np.float64)
++        for i,d in enumerate(uncertain):packed[i]=(d['x0'],d['y0'],d['x1'],d['y1'],d['r'],d.get('epsilon',0.))
++        return [uncertain[i] for i in _overlap_indices(x0,y0,x1,y1,r,epsilon,packed)]
+ 
+     def _register(self,x0,y0,x1,y1,r,epsilon,line,kind,roots):
+         if r is None or not math.isfinite(r) or r<=0:
+@@ -291,3 +331,4 @@
+             raise ProvenanceBudgetExceeded('ROOT_SOURCE_RECORD_BUDGET_EXCEEDED')
+         self.global_uncertain_roots.add(int(line_no))
+         self.root_source_kinds[int(line_no)]=source_kind
++
+--- p1/light_gcode_diagnostic.py
++++ p2/light_gcode_diagnostic.py
+@@ -156,6 +156,7 @@
+         self.x=None;self.y=None;self.z=None;self.e=0.
+         self.abs_xyz=True;self.abs_e=True;self.mm=True;self.xy_plane=True;self.arc_absolute_ij=False
+         self.layer=0;self.layer_count=None;self.role='UNSET';self.width=None
++        self.width_semantics='feature_scoped_unverified';self.width_source_line=None
+         self.z_comment=None;self.layer_height=None;self.object_id=None
+         self.errors=Counter();self.rejected_extrusions=[];self.rejected_extrusion_omitted=0;self.unlocated_positive_extrusion_count=0
+         self.position_invalidations=[];self.position_invalidations_omitted=0;self.position_invalidation_count=0
+@@ -179,11 +180,20 @@
+             if m:self.z_comment=float(m.group(1));return None
+             m=LHEIGHT_RE.match(s)
+             if m:self.layer_height=float(m.group(1));return None
++            # Version-scoped contract verified against both Bambu generator and
++            # native preview reader; unknown producers keep conservative reset.
++            if lineno<=16 and s.strip()=='; BambuStudio 02.08.02.61':
++                self.width_semantics='bambu_02_08_02_61_modal';return None
+             m=FEATURE_RE.match(s)
+-            if m:self.role=m.group(1).strip();self.width=None;return None
++            if m:
++                self.role=m.group(1).strip()
++                if self.width_semantics!='bambu_02_08_02_61_modal':
++                    self.width=None;self.width_source_line=None
++                return None
+             m=WIDTH_RE.match(s)
+             if m:
+                 w=float(m.group(1));self.width=w if math.isfinite(w) and w>0 else None
++                self.width_source_line=lineno if self.width is not None else None
+                 return None
+             m=OBJECT_RE.match(s)
+             if m:self.object_id=m.group(1)
+@@ -595,9 +605,9 @@
+     if 0<=iy<heat.shape[0] and 0<=ix<heat.shape[1]:heat[iy,ix]+=length
+ 
+ 
+-def analyze_stream(stream, source_sha, gcode_sha, zmax:float=50.,screen_step=.2,limit_lines:int|None=None,max_examples=120, event_sink=None, path_step_mm:float|None=None, geometry_mode='raster_v1'):
++def analyze_stream(stream, source_sha, gcode_sha, zmax:float=50.,screen_step=.2,limit_lines:int|None=None,max_examples=120, event_sink=None, path_step_mm:float|None=None, geometry_mode='raster_v1',independent_refinement=False):
+     reader=Reader()
+-    if geometry_mode=='area_bounds_v2':mask=AreaBoundsScreen()
++    if geometry_mode=='area_bounds_v2':mask=AreaBoundsScreen(independent_refinement=independent_refinement)
+     elif geometry_mode=='raster_v1':mask=Screen(step=screen_step)
+     else:raise ValueError('UNSUPPORTED_GEOMETRY_MODE')
+     t0=time.monotonic();stats=Counter();summary=defaultdict(Counter);roles=defaultdict(Counter)
+--- p1/polygon_bounds.py
++++ p2/polygon_bounds.py
+@@ -0,0 +1,40 @@
++"""Independent inner/outer polygon bounds of union-of-capsule coverage.
++
++Inscribed circle polygons are subsets. Increasing the radius by sec(pi/N)
++makes every regular polygon side tangent to or outside the original circle.
++Minkowski-summing either polygon with a segment preserves containment.
++GEOS is double precision, not exact arithmetic: retain an explicit area guard
++and return UNKNOWN to the caller when bounds do not prove a threshold side.
++No line IDs, locations, or support thresholds are hardcoded here.
++"""
++import math
++from shapely.geometry import LineString,Point
++from shapely.ops import unary_union
++
++def capsule(x0,y0,x1,y1,r,q,outer=False):
++ if r<=0:return Point().buffer(0)
++ if outer:r/=math.cos(math.pi/(4*q))
++ shape=Point(x0,y0) if x0==x1 and y0==y1 else LineString([(x0,y0),(x1,y1)])
++ return shape.buffer(r,quad_segs=q)
++
++def coverage_bounds(x0,y0,x1,y1,r,donors,epsilon=0.,q=64):
++ area=2*r*math.hypot(x1-x0,y1-y0)+math.pi*r*r
++ if not donors or area<=1e-18:return (0.,0.,area,0,False)
++ tin=capsule(x0,y0,x1,y1,max(0.,r-epsilon),q)
++ tout=capsule(x0,y0,x1,y1,r+epsilon,q,True)
++ lows=[];highs=[]
++ for d in donors:
++  args=(d['x0'],d['y0'],d['x1'],d['y1'])
++  # Restrict the union to the target's conservative outer footprint first.
++  # A ∩ union(B) == A ∩ union(B ∩ A_outer), since A ⊆ A_outer.
++  lows.append(capsule(*args,max(0.,d['r']-d.get('epsilon',0.)-epsilon),q).intersection(tout))
++  highs.append(capsule(*args,d['r']+d.get('epsilon',0.)+epsilon,q,True).intersection(tout))
++ low=tin.intersection(unary_union(lows)).area
++ high=tout.intersection(unary_union(highs)).area
++ # Documented roundoff allowance, never used to expand a certain decision.
++ guard=1e-7*max(1.,area)
++ denlo=2*max(0.,r-epsilon)*math.hypot(x1-x0,y1-y0)+math.pi*max(0.,r-epsilon)**2
++ denhi=2*(r+epsilon)*math.hypot(x1-x0,y1-y0)+math.pi*(r+epsilon)**2
++ lo=max(0.,min(1.,(low-guard)/(denhi+guard)))
++ hi=min(1.,(high+guard)/max(denlo-guard,1e-18))
++ return lo,max(lo,hi),area,len(donors),False
+--- p1/test_p2.py
++++ p2/test_p2.py
+@@ -0,0 +1,41 @@
++import unittest,math,random,importlib.util,json
++from pathlib import Path
++import continuous_area as ca
++import light_gcode_diagnostic as d
++from polygon_bounds import coverage_bounds
++
++class P2Tests(unittest.TestCase):
++ def test_modal_width_only_verified_producer(self):
++  for header,expected in [('; BambuStudio 02.08.02.61',.42),('; BambuStudio 99.99',None),('; other',None)]:
++   r=d.Reader()
++   for n,s in enumerate([header,'; FEATURE: Outer wall','; LINE_WIDTH: 0.42','; FEATURE: Internal solid infill'],1):r.line(s,n)
++   self.assertEqual(r.width,expected)
++ def test_modal_width_requires_previous_valid_value_and_updates(self):
++  r=d.Reader();r.line('; BambuStudio 02.08.02.61',2);r.line('; FEATURE: X',3);self.assertIsNone(r.width)
++  r.line('; LINE_WIDTH: .42',4);r.line('; FEATURE: Y',5);self.assertEqual(r.width_source_line,4)
++  r.line('; LINE_WIDTH: .51',6);self.assertEqual(r.width,.51)
++  r.line('; LINE_WIDTH: 0',7);r.line('; FEATURE: Z',8);self.assertIsNone(r.width)
++ def test_late_header_cannot_enable_modal_policy(self):
++  r=d.Reader();r.line('; BambuStudio 02.08.02.61',100);r.line('; LINE_WIDTH: .42',101);r.line('; FEATURE: X',102);self.assertIsNone(r.width)
++ def test_polygon_bounds_contain_analytic_capsule(self):
++  for length in (.4,.6,.8):
++   exact=(.2*length+math.pi*.1**2)/(.2+math.pi*.1**2)
++   result=coverage_bounds(0,0,1,0,.1,[dict(x0=0,y0=0,x1=length,y1=0,r=.1)],q=64)
++   self.assertLessEqual(result[0],exact);self.assertGreaterEqual(result[1],exact)
++ def test_independent_refinement_is_opt_in_and_preserves_budget_hold(self):
++  donor=[dict(x0=0,y0=0,x1=.6,y1=0,r=.1)]
++  old=ca.AreaBoundsScreen();new=ca.AreaBoundsScreen(independent_refinement=True)
++  self.assertLess(old._coverage_bounds(0,0,1,0,.1,donor)[0],.65)
++  self.assertGreater(new._coverage_bounds(0,0,1,0,.1,donor)[0],.65)
++  limited=ca.AreaBoundsScreen(independent_refinement=True,max_nodes_per_footprint=1)
++  self.assertTrue(limited._coverage_bounds(0,0,1,0,.1,donor)[-1])
++ def test_compiled_intersections_equal_reference_order_and_ids(self):
++  path=Path(__file__).parents[1]/'p1/continuous_area.py';spec=importlib.util.spec_from_file_location('reference_ca',path);ref=importlib.util.module_from_spec(spec);spec.loader.exec_module(ref)
++  rng=random.Random(6602)
++  for _ in range(100):
++   target=[rng.uniform(-2,2) for _ in range(4)]+[.2,.005]
++   donors=[dict(zip(('x0','y0','x1','y1'),[rng.uniform(-3,3) for _ in range(4)]),r=.2,epsilon=.005,kind='UNKNOWN_DIRECT',root_id=i) for i in range(25)]
++   a=ref.AreaBoundsScreen._overlapping_candidates(*target,donors);b=ca.AreaBoundsScreen._overlapping_candidates(*target,donors)
++   self.assertEqual([x['root_id'] for x in a],[x['root_id'] for x in b])
++
++if __name__=='__main__':unittest.main()

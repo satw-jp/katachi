@@ -1,0 +1,163 @@
+{
+  "5000": {
+    "performance_only": {
+      "EVENTS.jsonl": {
+        "exact_equal": true,
+        "rows": 576
+      },
+      "CAUSES.jsonl": {
+        "exact_equal": true,
+        "rows": 17248
+      }
+    },
+    "intentional_semantics": {
+      "transitions": {
+        "SUPPORTED_TOOLPATH -> SUPPORTED_TOOLPATH": 2660,
+        "UNKNOWN -> SUPPORTED_TOOLPATH": 576
+      },
+      "changed_examples": [
+        {
+          "line": 4212,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4213,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4214,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4215,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4216,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4217,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4218,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4219,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4220,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4221,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4222,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4223,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4224,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4225,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4226,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4227,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4228,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4229,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4230,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        },
+        {
+          "line": 4231,
+          "before": "UNKNOWN",
+          "after": "SUPPORTED_TOOLPATH"
+        }
+      ],
+      "event_id_mismatches": [],
+      "length_mismatch_lines": [],
+      "reason": "independent area proof opt-in plus verified producer modal width; chronological re-evaluation, not blanket relabeling",
+      "4212": {
+        "codes": [
+          0
+        ],
+        "event": null
+      },
+      "45071": {
+        "codes": [],
+        "event": null
+      },
+      "45396": {
+        "codes": [],
+        "event": null
+      }
+    }
+  },
+  "10000": {
+    "performance_only": {
+      "EVENTS.jsonl": {
+        "exact_equal": true,
+        "rows": 4655
+      },
+      "CAUSES.jsonl": {
+        "exact_equal": true,
+        "rows": 24477
+      }
+    }
+  },
+  "50000": {
+    "performance_only": {
+      "EVENTS.jsonl": {
+        "exact_equal": true,
+        "rows": 35105
+      },
+      "CAUSES.jsonl": {
+        "exact_equal": true,
+        "rows": 72525
+      }
+    }
+  }
+}

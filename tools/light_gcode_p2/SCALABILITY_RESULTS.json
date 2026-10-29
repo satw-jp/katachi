@@ -1,0 +1,1120 @@
+[
+  {
+    "run": "p1_10000",
+    "execution": {
+      "line_started": 10000,
+      "line_completed": 10000,
+      "stage": "result_write",
+      "raw": "G1 X106.41 Y191.427 E.01062",
+      "last_candidate_count": 11,
+      "area_donor_count": 0,
+      "area_calls_started": 16862,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 80.34502109999994,
+      "peak_rss": 146169856,
+      "cpu_seconds": 78.859375,
+      "phase_seconds": {
+        "parser": 0.4839794000038182,
+        "arc_expansion": 0.0857330000019374,
+        "commit": 0.47689589999458804,
+        "spatial_candidates": 0.8845841000011205,
+        "support_area": 64.76440860000093,
+        "unknown_tracking": 7.081288899986248,
+        "overlap_profile": 7.1861549000127525,
+        "evidence_write": 0.20072329999584326,
+        "segment_distance": 3.571329800031208
+      },
+      "limit": 10000,
+      "variant": "p1"
+    },
+    "code_sha256": {
+      "continuous_area.py": "589dcfd1ec8ea65478ef75318c93d54aad900e7e8e67641e6ae671f045bab3cb",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 10000,
+    "max_layer_scanned": 3,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2814,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 4655
+    },
+    "unknown_direct_move_count": 32,
+    "unknown_propagated_move_count": 4734,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 32,
+      "UNKNOWN_PROPAGATED": 7833
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 32,
+      "UNKNOWN_DIRECT_LENGTH_MM": 920.2874550740286,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 7833,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 41385.11482077518
+    },
+    "reached_extrusion_machine_z": 0.7,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2894,
+      "root_set_budget": 500000,
+      "root_references_used": 3102,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 24477,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 32,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 3261,
+      "affected_length_mm_nonexclusive": 10870.134661264548,
+      "affected_move_count": 2403,
+      "first_affected_line": 4212,
+      "last_affected_line": 10000,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 24477,
+      "root_references_seen": 56161,
+      "overlap_calls": 16862,
+      "overlap_candidates": 1902476,
+      "overlap_hits": 24335,
+      "distance_calls": 311292
+    }
+  },
+  {
+    "run": "p1_5000",
+    "execution": {
+      "line_started": 5000,
+      "line_completed": 5000,
+      "stage": "result_write",
+      "raw": "G1 X162.625 Y148.89 E.55001",
+      "last_candidate_count": 76,
+      "area_donor_count": 0,
+      "area_calls_started": 2404,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 17.837346800000205,
+      "peak_rss": 143204352,
+      "cpu_seconds": 14.265625,
+      "phase_seconds": {
+        "parser": 0.16909209999835184,
+        "arc_expansion": 0.04650830000332462,
+        "commit": 0.1825021000090601,
+        "spatial_candidates": 0.12323869999158887,
+        "support_area": 13.34798319999004,
+        "unknown_tracking": 0.5508011999995688,
+        "overlap_profile": 0.5677643999954398,
+        "evidence_write": 0.025192999993350895,
+        "segment_distance": 0.25242509999793583
+      },
+      "limit": 5000,
+      "variant": "p1"
+    },
+    "code_sha256": {
+      "continuous_area.py": "589dcfd1ec8ea65478ef75318c93d54aad900e7e8e67641e6ae671f045bab3cb",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 5000,
+    "max_layer_scanned": 2,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2660,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 576
+    },
+    "unknown_direct_move_count": 10,
+    "unknown_propagated_move_count": 585,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 10,
+      "UNKNOWN_PROPAGATED": 1069
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 10,
+      "UNKNOWN_DIRECT_LENGTH_MM": 252.80410943486706,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 1069,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 7025.87868903765
+    },
+    "reached_extrusion_machine_z": 0.5,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2677,
+      "root_set_budget": 500000,
+      "root_references_used": 2687,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 17248,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 10,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 764,
+      "affected_length_mm_nonexclusive": 4571.35029892445,
+      "affected_move_count": 424,
+      "first_affected_line": 4212,
+      "last_affected_line": 4721,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 17248,
+      "root_references_seen": 1916,
+      "overlap_calls": 2404,
+      "overlap_candidates": 216112,
+      "overlap_hits": 2332,
+      "distance_calls": 19455
+    }
+  },
+  {
+    "run": "p1_50000",
+    "execution": {
+      "line_started": 50000,
+      "line_completed": 50000,
+      "stage": "result_write",
+      "raw": "G1 X103.47 Y135.003 E.00883",
+      "last_candidate_count": 31,
+      "area_donor_count": 0,
+      "area_calls_started": 112428,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 178.8891744,
+      "peak_rss": 162373632,
+      "cpu_seconds": 177.078125,
+      "phase_seconds": {
+        "parser": 1.979921600006037,
+        "arc_expansion": 0.1615443999942272,
+        "commit": 1.6670911000082924,
+        "spatial_candidates": 5.175629499972956,
+        "support_area": 56.62542689998622,
+        "unknown_tracking": 87.6549926999378,
+        "overlap_profile": 88.18059939999375,
+        "evidence_write": 1.378083300003027,
+        "segment_distance": 36.605552899797885
+      },
+      "limit": 50000,
+      "variant": "p1"
+    },
+    "code_sha256": {
+      "continuous_area.py": "589dcfd1ec8ea65478ef75318c93d54aad900e7e8e67641e6ae671f045bab3cb",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 50000,
+    "max_layer_scanned": 4,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2823,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 35105
+    },
+    "unknown_direct_move_count": 144,
+    "unknown_propagated_move_count": 35072,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 32,
+      "UNKNOWN_PROPAGATED": 55605,
+      "MISSING_OR_INVALID_LINE_WIDTH_OR_XYZ": 265
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 297,
+      "UNKNOWN_DIRECT_LENGTH_MM": 973.9164979620069,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 55605,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 74998.45862972536
+    },
+    "reached_extrusion_machine_z": 0.8,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2943,
+      "root_set_budget": 500000,
+      "root_references_used": 5755,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 72260,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [
+        45071,
+        45072,
+        45073,
+        45074,
+        45075,
+        45076,
+        45077,
+        45078,
+        45079,
+        45080,
+        45081,
+        45082,
+        45083,
+        45084,
+        45085,
+        45086,
+        45087,
+        45088,
+        45089,
+        45090,
+        45091,
+        45092,
+        45093,
+        45094,
+        45099,
+        45100,
+        45105,
+        45106,
+        45107,
+        45108,
+        45109,
+        45110,
+        45111,
+        45112,
+        45113,
+        45114,
+        45115,
+        45116,
+        45117,
+        45118,
+        45119,
+        45120,
+        45125,
+        45126,
+        45127,
+        45128,
+        45129,
+        45130,
+        45131,
+        45132,
+        45133,
+        45134,
+        45135,
+        45136,
+        45523,
+        45527,
+        45530,
+        45533,
+        45786,
+        45787,
+        45788,
+        45789,
+        45790,
+        45791,
+        45792,
+        45793,
+        45794,
+        45795,
+        45796,
+        45797,
+        45798,
+        45799,
+        45800,
+        45801,
+        45802,
+        45803,
+        45804,
+        45805,
+        45806,
+        45807,
+        45808,
+        45809,
+        45814,
+        45815,
+        45820,
+        45821,
+        45822,
+        45823,
+        45824,
+        45825,
+        45826,
+        45827,
+        45828,
+        45829,
+        45830,
+        45831,
+        45832,
+        45833,
+        45834,
+        45835,
+        45840,
+        45841,
+        45842,
+        45843,
+        45844,
+        45845,
+        45846,
+        45847,
+        45848,
+        45849,
+        45850,
+        45851
+      ],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 144,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 32153,
+      "affected_length_mm_nonexclusive": 35949.98831880807,
+      "affected_move_count": 20396,
+      "first_affected_line": 4212,
+      "last_affected_line": 50000,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 72525,
+      "root_references_seen": 1116952,
+      "overlap_calls": 112428,
+      "overlap_candidates": 14087257,
+      "overlap_hits": 464178,
+      "distance_calls": 3642188
+    }
+  },
+  {
+    "run": "p2_10000",
+    "execution": {
+      "line_started": 6563,
+      "line_completed": 6562,
+      "stage": "support_area",
+      "raw": "G1 X163.981 Y76.52 E6.06027",
+      "last_candidate_count": 1012,
+      "area_donor_count": 2937,
+      "area_calls_started": 7489,
+      "last_split_nodes": 303,
+      "seconds": 300.00651500000004,
+      "rss": 157741056,
+      "peak_rss": 157741056,
+      "cpu_seconds": 298.4375,
+      "phase_seconds": {
+        "parser": 0.17451310000797093,
+        "arc_expansion": 0.040413499999431224,
+        "commit": 0.17594940000026327,
+        "spatial_candidates": 0.2785108000107357,
+        "support_area": 295.13448050002853,
+        "unknown_tracking": 1.5826482999996188,
+        "overlap_profile": 1.6199063000344722
+      },
+      "active_line_metrics": {
+        "parser": 5.400000009103678e-05,
+        "candidate_count": 3949.0,
+        "spatial_candidates": 0.0013879999996788683
+      },
+      "status": "BUDGET_STOP",
+      "reason": "WALL_300S"
+    },
+    "code_sha256": {
+      "continuous_area.py": "7b32d9a2520acc806b0db8878ee4f955713e77c510d6e3fe04ce1136446a3df0",
+      "light_gcode_diagnostic.py": "62fb07142eac2dca1fdff469e29f5ed1b82962a60b4c770c9e3fd637db674d0a"
+    },
+    "reached_extrusion_machine_z": 0.5,
+    "partial_status": "PARTIAL_LOG_ONLY_NOT_COMPLETE_LINEAGE"
+  },
+  {
+    "run": "p2_5000",
+    "execution": {
+      "line_started": 5000,
+      "line_completed": 5000,
+      "stage": "result_write",
+      "raw": "G1 X162.625 Y148.89 E.55001",
+      "last_candidate_count": 76,
+      "area_donor_count": 76,
+      "area_calls_started": 2404,
+      "last_split_nodes": 1161,
+      "status": "COMPLETED",
+      "seconds": 73.57576760000029,
+      "peak_rss": 155336704,
+      "cpu_seconds": 72.515625,
+      "phase_seconds": {
+        "parser": 0.15237849999175523,
+        "arc_expansion": 0.04414889999634397,
+        "commit": 0.17518280000513187,
+        "spatial_candidates": 0.07821279999734543,
+        "support_area": 68.98493439998492,
+        "unknown_tracking": 1.4872115000084705,
+        "overlap_profile": 1.4999653999971088
+      },
+      "limit": 5000,
+      "variant": "p2"
+    },
+    "code_sha256": {
+      "continuous_area.py": "7b32d9a2520acc806b0db8878ee4f955713e77c510d6e3fe04ce1136446a3df0",
+      "light_gcode_diagnostic.py": "62fb07142eac2dca1fdff469e29f5ed1b82962a60b4c770c9e3fd637db674d0a"
+    },
+    "read_lines": 5000,
+    "max_layer_scanned": 2,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 3236,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 0
+    },
+    "unknown_direct_move_count": 0,
+    "unknown_propagated_move_count": 0,
+    "unknown_reasons": {},
+    "unknown_segment_counts_and_lengths": {},
+    "reached_extrusion_machine_z": 0.5,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 3237,
+      "root_set_budget": 500000,
+      "root_references_used": 3236,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 17248,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 0,
+    "root_4212_impact": null,
+    "tracking_counts": {
+      "segments": 17248,
+      "root_references_seen": 0,
+      "overlap_calls": 2404,
+      "overlap_candidates": 216112,
+      "overlap_hits": 0
+    }
+  },
+  {
+    "run": "p2_perf_10000",
+    "execution": {
+      "line_started": 10000,
+      "line_completed": 10000,
+      "stage": "result_write",
+      "raw": "G1 X106.41 Y191.427 E.01062",
+      "last_candidate_count": 11,
+      "area_donor_count": 0,
+      "area_calls_started": 16862,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 55.6600633999999,
+      "peak_rss": 154451968,
+      "cpu_seconds": 55.0625,
+      "phase_seconds": {
+        "parser": 0.325611999992816,
+        "arc_expansion": 0.0534635000030903,
+        "commit": 0.28255209999269937,
+        "spatial_candidates": 0.6298434999753226,
+        "support_area": 46.966293499989206,
+        "unknown_tracking": 2.7425163999832876,
+        "overlap_profile": 2.8298589000098673,
+        "evidence_write": 0.2518210000066574
+      },
+      "limit": 10000,
+      "variant": "p2_perf"
+    },
+    "code_sha256": {
+      "continuous_area.py": "4ea328b3d4bff6c17880639118839f1105eb9c0a3fd8bd258f73d2d23122bd2d",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 10000,
+    "max_layer_scanned": 3,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2814,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 4655
+    },
+    "unknown_direct_move_count": 32,
+    "unknown_propagated_move_count": 4734,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 32,
+      "UNKNOWN_PROPAGATED": 7833
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 32,
+      "UNKNOWN_DIRECT_LENGTH_MM": 920.2874550740286,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 7833,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 41385.11482077518
+    },
+    "reached_extrusion_machine_z": 0.7,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2894,
+      "root_set_budget": 500000,
+      "root_references_used": 3102,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 24477,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 32,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 3261,
+      "affected_length_mm_nonexclusive": 10870.134661264548,
+      "affected_move_count": 2403,
+      "first_affected_line": 4212,
+      "last_affected_line": 10000,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 24477,
+      "root_references_seen": 56161,
+      "overlap_calls": 16862,
+      "overlap_candidates": 1902476,
+      "overlap_hits": 24335
+    }
+  },
+  {
+    "run": "p2_perf_5000",
+    "execution": {
+      "line_started": 5000,
+      "line_completed": 5000,
+      "stage": "result_write",
+      "raw": "G1 X162.625 Y148.89 E.55001",
+      "last_candidate_count": 76,
+      "area_donor_count": 0,
+      "area_calls_started": 2404,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 12.559269800000038,
+      "peak_rss": 150560768,
+      "cpu_seconds": 12.03125,
+      "phase_seconds": {
+        "parser": 0.1346075999945242,
+        "arc_expansion": 0.04065660000424032,
+        "commit": 0.1574780000073588,
+        "spatial_candidates": 0.07372610001016255,
+        "support_area": 7.662843500008421,
+        "unknown_tracking": 1.7664478000058352,
+        "overlap_profile": 1.7780082999947808,
+        "evidence_write": 0.02159280000250874
+      },
+      "limit": 5000,
+      "variant": "p2_perf"
+    },
+    "code_sha256": {
+      "continuous_area.py": "4ea328b3d4bff6c17880639118839f1105eb9c0a3fd8bd258f73d2d23122bd2d",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 5000,
+    "max_layer_scanned": 2,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2660,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 576
+    },
+    "unknown_direct_move_count": 10,
+    "unknown_propagated_move_count": 585,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 10,
+      "UNKNOWN_PROPAGATED": 1069
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 10,
+      "UNKNOWN_DIRECT_LENGTH_MM": 252.80410943486706,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 1069,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 7025.87868903765
+    },
+    "reached_extrusion_machine_z": 0.5,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2677,
+      "root_set_budget": 500000,
+      "root_references_used": 2687,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 17248,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 10,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 764,
+      "affected_length_mm_nonexclusive": 4571.35029892445,
+      "affected_move_count": 424,
+      "first_affected_line": 4212,
+      "last_affected_line": 4721,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 17248,
+      "root_references_seen": 1916,
+      "overlap_calls": 2404,
+      "overlap_candidates": 216112,
+      "overlap_hits": 2332
+    }
+  },
+  {
+    "run": "p2_perf_50000",
+    "execution": {
+      "line_started": 50000,
+      "line_completed": 50000,
+      "stage": "result_write",
+      "raw": "G1 X103.47 Y135.003 E.00883",
+      "last_candidate_count": 31,
+      "area_donor_count": 0,
+      "area_calls_started": 112428,
+      "last_split_nodes": 0,
+      "status": "COMPLETED",
+      "seconds": 108.57388209999999,
+      "peak_rss": 169521152,
+      "cpu_seconds": 107.609375,
+      "phase_seconds": {
+        "parser": 1.7744974999836813,
+        "arc_expansion": 0.14756300000226474,
+        "commit": 1.4624314999482522,
+        "spatial_candidates": 4.3506860001225505,
+        "support_area": 59.33552670003428,
+        "unknown_tracking": 19.618071900021732,
+        "overlap_profile": 20.219769000011183,
+        "evidence_write": 1.0070561000557063
+      },
+      "limit": 50000,
+      "variant": "p2_perf"
+    },
+    "code_sha256": {
+      "continuous_area.py": "4ea328b3d4bff6c17880639118839f1105eb9c0a3fd8bd258f73d2d23122bd2d",
+      "light_gcode_diagnostic.py": "fc391fa7a23d811b2fac72d82134161535c3edd7571c4277ac5a126067a915e7"
+    },
+    "read_lines": 50000,
+    "max_layer_scanned": 4,
+    "z_range_machine_mm": [
+      0.0,
+      50.0
+    ],
+    "screen_move_counts": {
+      "SCREEN_SUPPORTED": 2823,
+      "SCREEN_UNSUPPORTED": 0,
+      "MARGINAL": 0,
+      "UNCERTAIN": 35105
+    },
+    "unknown_direct_move_count": 144,
+    "unknown_propagated_move_count": 35072,
+    "unknown_reasons": {
+      "AREA_COVERAGE_BOUND_STRADDLES_THRESHOLD": 32,
+      "UNKNOWN_PROPAGATED": 55605,
+      "MISSING_OR_INVALID_LINE_WIDTH_OR_XYZ": 265
+    },
+    "unknown_segment_counts_and_lengths": {
+      "UNKNOWN_DIRECT_SEGMENTS": 297,
+      "UNKNOWN_DIRECT_LENGTH_MM": 973.9164979620069,
+      "UNKNOWN_PROPAGATED_SEGMENTS": 55605,
+      "UNKNOWN_PROPAGATED_LENGTH_MM": 74998.45862972536
+    },
+    "reached_extrusion_machine_z": 0.8,
+    "provenance": {
+      "mode": "lossless_interned_root_unions",
+      "root_sets_used": 2943,
+      "root_set_budget": 500000,
+      "root_references_used": 5755,
+      "root_reference_budget": 4000000,
+      "donor_records_used": 72260,
+      "donor_record_budget": 2000000,
+      "global_unbounded_source_lines": [
+        45071,
+        45072,
+        45073,
+        45074,
+        45075,
+        45076,
+        45077,
+        45078,
+        45079,
+        45080,
+        45081,
+        45082,
+        45083,
+        45084,
+        45085,
+        45086,
+        45087,
+        45088,
+        45089,
+        45090,
+        45091,
+        45092,
+        45093,
+        45094,
+        45099,
+        45100,
+        45105,
+        45106,
+        45107,
+        45108,
+        45109,
+        45110,
+        45111,
+        45112,
+        45113,
+        45114,
+        45115,
+        45116,
+        45117,
+        45118,
+        45119,
+        45120,
+        45125,
+        45126,
+        45127,
+        45128,
+        45129,
+        45130,
+        45131,
+        45132,
+        45133,
+        45134,
+        45135,
+        45136,
+        45523,
+        45527,
+        45530,
+        45533,
+        45786,
+        45787,
+        45788,
+        45789,
+        45790,
+        45791,
+        45792,
+        45793,
+        45794,
+        45795,
+        45796,
+        45797,
+        45798,
+        45799,
+        45800,
+        45801,
+        45802,
+        45803,
+        45804,
+        45805,
+        45806,
+        45807,
+        45808,
+        45809,
+        45814,
+        45815,
+        45820,
+        45821,
+        45822,
+        45823,
+        45824,
+        45825,
+        45826,
+        45827,
+        45828,
+        45829,
+        45830,
+        45831,
+        45832,
+        45833,
+        45834,
+        45835,
+        45840,
+        45841,
+        45842,
+        45843,
+        45844,
+        45845,
+        45846,
+        45847,
+        45848,
+        45849,
+        45850,
+        45851
+      ],
+      "root_impact_lengths_are_nonexclusive": true,
+      "unresolved_referenced_roots": [],
+      "complete": true
+    },
+    "direct_unknown_root_count": 144,
+    "root_4212_impact": {
+      "source_line": 4212,
+      "affected_segment_count": 32153,
+      "affected_length_mm_nonexclusive": 35949.98831880807,
+      "affected_move_count": 20396,
+      "first_affected_line": 4212,
+      "last_affected_line": 50000,
+      "sample_positions": [
+        {
+          "line": 4212,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 129.201,
+          "y0": 217.821,
+          "x1": 144.991,
+          "y1": 202.032,
+          "direct_source_line": true
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 0,
+          "x0": 144.991,
+          "y0": 202.032,
+          "x1": 144.9015434093064,
+          "y1": 201.99386103497352,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 1,
+          "x0": 144.9015434093064,
+          "y0": 201.99386103497352,
+          "x1": 144.80858536646693,
+          "y1": 201.96529769232487,
+          "direct_source_line": false
+        },
+        {
+          "line": 4213,
+          "layer": 2,
+          "segment_index": 2,
+          "x0": 144.80858536646693,
+          "y0": 201.96529769232487,
+          "x1": 144.71314767299762,
+          "y1": 201.94662394237804,
+          "direct_source_line": false
+        }
+      ]
+    },
+    "tracking_counts": {
+      "segments": 72525,
+      "root_references_seen": 1116952,
+      "overlap_calls": 112428,
+      "overlap_candidates": 14087257,
+      "overlap_hits": 464178
+    }
+  }
+]
