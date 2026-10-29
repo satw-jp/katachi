@@ -12,3 +12,5 @@ Evidence: [Drive task folder](https://drive.google.com/drive/folders/16X7Z_lQIl0
 Tests: 14 unit tests, full real-browser loop and legacy 6-result archive regression, tsc/vite build PASS. Small-fixture worker peak 114700288 bytes; browser 50ms sampled aggregate maximum 643002368 bytes (exact peak UNKNOWN); saved archive11916200 bytes.
 Launch: independent `J:/skin-stl-20261029`, `tools/skin_creation/launch.ps1 -Vendor J:/skin-stl-20261029/work/vendor -UiPort 5216 -ApiPort 5217`; UI http://127.0.0.1:5216/skin-rebuild.html?mode=creation .
 Unsupported: external Host core/branches/Support; fabrication/removal/physical acceptance; Print GO false. No other lane promoted.
+
+Verified evidence package: [Drive file](https://drive.google.com/file/d/1R39mOgZalXeKHJWOuxsdnCtkdbRbuRiy/view), file ID `1R39mOgZalXeKHJWOuxsdnCtkdbRbuRiy`, SHA256 `e222c95a8793f003e7d6e27f71afff935a6cb591a4387583b7a123813ae2b5ea`, 13,693,923 bytes. Index: [DRIVE_EVIDENCE.json](../evidence/skin-stl-to-motif-author-v1/DRIVE_EVIDENCE.json). Package contains runtime/tests through bda9867; this later commit only records the returned Drive pointer.
