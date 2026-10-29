@@ -1,6 +1,9 @@
-export interface Recipe { flowerScale: 1 | 0.7333333333333333; diameter: 2.2 | 2.4 }
+export interface Recipe { flowerScale: number; diameter?: number; kind?: 'external-surface-v1'; algorithm?: string; host?: string; hostScale?: number; upAxis?: string; units?: 'mm'; template?: string; density?: number; seed?: number }
+export interface HostInfo { sha256: string; bytes: number; triangles: number; dimensions: number[]; bounds: number[][] }
 export interface ResultInfo {
   id: string;
+  kind?: string;
+  metrics?: { originalHost: HostInfo };
   recipe: Recipe;
   flowerCount: number;
   memberCount: number;
@@ -45,5 +48,6 @@ export function currentResult(state: ProjectState | null): ResultInfo | undefine
 }
 
 export function recipeLabel(recipe: Recipe): string {
-  return `花 ×${recipe.flowerScale === 1 ? "1" : "11/15"} · 枝径 ${recipe.diameter.toFixed(1)} mm`;
+  if (recipe.kind) return `外部STL · 花 ×${recipe.flowerScale} · 散布 ×${recipe.density} · seed ${recipe.seed}`;
+  return `花 ×${recipe.flowerScale === 1 ? "1" : "11/15"} · 枝径 ${recipe.diameter!.toFixed(1)} mm`;
 }

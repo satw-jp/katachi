@@ -23,3 +23,7 @@ Generation speed depends on the local service. Full meshes can make camera inter
 ## Next
 
 2026-09-30: Four actual conditions passed in isolated Chrome: 2303 flowers / 2885 members and 4283 flowers / 4107 members, each at 2.2 and 2.4 mm. Comparison, Undo/Redo, saving an unapplied redo tail, fresh reopen, failed-restore preservation and full regenerated hashes for both flower multipliers passed. Final delivered archive (114117140 bytes) was itself reopened. See `docs/evidence/skin-creation-ui-v0/REPORT.md`. Stop for Author operation review; no physical safety or print approval.
+
+## External STL surface-only v1 — 2026-10-29
+
+Observation: independent 8-face octahedron imports through the existing STL parser; 22 actual D6 instances display in the existing viewer. Host transform and D6 physical scale are independent. Internal core/branches/Support are explicitly unsupported; print preparation rejects this result kind. Final acceptance and measured code identity: docs/status/SKIN_STL_TO_MOTIF_CURRENT.md.

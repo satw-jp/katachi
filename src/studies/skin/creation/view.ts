@@ -9,7 +9,7 @@ function geometry(data: TriangleMesh): THREE.BufferGeometry {
   result.setAttribute("position", new THREE.Float32BufferAttribute(data.vertices, 3));
   result.setIndex(data.faces);
   result.computeVertexNormals();
-  result.computeBoundingSphere();
+  if (data.vertices.length) result.computeBoundingSphere();
   return result;
 }
 

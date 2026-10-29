@@ -1,5 +1,6 @@
+import { parseRawStlMesh } from '../externalStlHost.ts';
 import { createPrintUI } from './print.ts';
-import { currentResult, mutate, recipeLabel, request, type ProjectState, type Recipe, type ResultInfo } from "./api.ts";
+import { currentResult, mutate, recipeLabel, request, type HostInfo, type ProjectState, type Recipe, type ResultInfo } from "./api.ts";
 import { CreationView } from "./view.ts";
 import "./style.css";
 
@@ -23,16 +24,28 @@ root.innerHTML = `
     </section>
     <aside>
       <section><p class="eyebrow">01 / SOURCE</p><h2>ベースと花</h2>
-        <p><strong>mini MOCOMOCO</strong><br />150.06 × 161.33 × 152.92 mm（固定）</p>
+        <label>Host入口<select id="source-mode"><option value="fixed">既存mini MOCOMOCO</option><option value="external">外部STL（surface-only）</option></select></label>
+        <div id="external-controls" hidden>
+          <label class="file-label">外部STLを開く<input id="host-file" type="file" accept=".stl" /></label>
+          <label><input id="confirm-mm" type="checkbox" />STLの座標単位をmmと確認しました</label>
+          <div class="fields"><label>Host倍率<input id="host-scale" type="number" value="1" min="0.01" max="100" step="0.1" /></label>
+          <label>原本の上向き軸<select id="host-axis"><option value="z">Z → Z</option><option value="y">Y → Z</option><option value="x">X → Z</option></select></label>
+          <label>D6実寸倍率 g<input id="external-flower-scale" type="number" min="0.01" max="100" step="0.1" value="1" /></label>
+          <label>散布量係数<input id="density" type="number" min="0.01" max="100" step="0.1" value="1" /></label>
+          <label>seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261029" /></label></div>
+          <p id="host-info" class="note">STL未読込</p>
+          <p class="note">Hostは参照面のみ。core・内部枝・Supportは未生成／未対応。原本修復・自動縮小なし。上限：20,000面、300輪、60秒、生成RAM 1 GiB。</p>
+        </div>
+        <p id="fixed-host-info"><strong>mini MOCOMOCO</strong><br />150.06 × 161.33 × 152.92 mm（固定）</p>
         <p><strong>D6 / デフォルト花</strong><br />10.87 × 10.07 × 3.14 mm × q × g<br /><small>q：元の個体差、g：下の花倍率。ベースの縮尺とは独立。</small></p>
-        <p class="note">このv0は検証済みの組合せ専用です。カスタムHost・花の読込には未対応。</p>
+        <p class="note">外部STLは単一の閉じた外向き三角形shellに対応。花は共有D6のみ。</p>
       </section>
       <section><p class="eyebrow">02 / COMPOSE</p><h2>全体バランス</h2>
         <div class="fields"><label>花倍率 g<select id="flower-scale"><option value="1">1 — 大きい花</option><option value="0.7333333333333333">11/15 — 小さい花</option></select></label>
         <label>枝径 mm<select id="branch-diameter"><option value="2.2">2.2</option><option value="2.4">2.4</option></select></label></div>
         <p id="draft-status" class="note"></p>
         <button id="generate" class="primary" disabled>花・内部枝を生成</button>
-        <button id="regenerate" disabled>同じ設定で再生成</button>
+        <button id="regenerate" disabled>同じ設定で強制再生成</button><button id="cancel-generation" disabled>生成を取消</button>
         <p class="note">枝径だけの変更は花配置を維持。花倍率の変更は花配置と内部枝を更新します。生成には数分かかる場合があります。</p>
         <output id="progress" aria-live="polite">ローカル生成サービスに接続中…</output>
         <p id="error" role="alert" hidden></p>
@@ -57,7 +70,7 @@ const flowerScale = el<HTMLSelectElement>("flower-scale");
 const diameter = el<HTMLSelectElement>("branch-diameter");
 const openInput = el<HTMLInputElement>("open-project");
 const version = import.meta.env.VITE_GIT_COMMIT || "unknown";
-el("build-info").textContent = `Author Workflow R1 · Updated 2026-10-07 · build ${version}`;
+el("build-info").textContent = `STL → D6 v1 · Updated 2026-10-29 · build ${version}`;
 const printUI = createPrintUI();
 let view: CreationView | null = null;
 try { view = new CreationView(el("viewport")); } catch (error) { showError(error); }
@@ -69,15 +82,31 @@ let shownKey = "";
 let renderingKey = "";
 let pollBusy = false;
 let lastCurrent: string | undefined;
+let hostInfo: HostInfo | null = null;
+const mode = el<HTMLSelectElement>('source-mode');
+const inputIds = ['source-mode','host-file','confirm-mm','host-scale','host-axis','external-flower-scale','density','seed'];
+const numberValue = (id: string) => Number(el<HTMLInputElement>(id).value);
 
 function showError(error: unknown): void {
   el("error").textContent = error instanceof Error ? error.message : String(error);
   el("error").hidden = false;
 }
-function draft(): Recipe { return { flowerScale: Number(flowerScale.value) as Recipe["flowerScale"], diameter: Number(diameter.value) as Recipe["diameter"] }; }
-function syncDraft(result?: ResultInfo): void {
-  if (result) { flowerScale.value = String(result.recipe.flowerScale); diameter.value = String(result.recipe.diameter); }
+function draft(): Recipe {
+  if (mode.value === 'external') return { kind:'external-surface-v1', algorithm:'external-d6-balanced-farthest-v1', host:hostInfo?.sha256 ?? '', units:'mm', hostScale:numberValue('host-scale'), upAxis:el<HTMLSelectElement>('host-axis').value, template:TEMPLATE, flowerScale:numberValue('external-flower-scale'), density:numberValue('density'), seed:numberValue('seed') };
+  return { flowerScale: Number(flowerScale.value), diameter: Number(diameter.value) };
 }
+const TEMPLATE = '854ac6f30cbdfa674c284702240dc060bd68e16080dd4c22f5a1abd294ed2f2d';
+function syncDraft(result?: ResultInfo): void {
+  if (!result) return;
+  const r=result.recipe;
+  mode.value=r.kind ? 'external' : 'fixed';
+  if (r.kind) {
+    hostInfo=result.metrics!.originalHost;
+    for (const [id,value] of [['host-scale',r.hostScale],['host-axis',r.upAxis],['external-flower-scale',r.flowerScale],['density',r.density],['seed',r.seed]]) el<HTMLInputElement>(String(id)).value=String(value);
+    el<HTMLInputElement>('confirm-mm').checked=true;
+  } else { flowerScale.value=String(r.flowerScale); diameter.value=String(r.diameter); }
+}
+function equalRecipe(a:Recipe,b:Recipe):boolean { return JSON.stringify(Object.entries(a).sort())===JSON.stringify(Object.entries(b).sort()); }
 function isBusy(): boolean { return pending || state?.job?.status === "running"; }
 
 function updateControls(): void {
@@ -94,11 +123,25 @@ function updateControls(): void {
   openInput.disabled = locked;
   flowerScale.disabled = locked;
   diameter.disabled = locked;
-  const changed = current && (current.recipe.flowerScale !== draft().flowerScale || current.recipe.diameter !== draft().diameter);
+  const external=mode.value==='external';
+  el('external-controls').hidden=!external;
+  el('fixed-host-info').hidden=external;
+  for (const id of inputIds) el<HTMLInputElement>(id).disabled=locked;
+  flowerScale.disabled ||= external; diameter.disabled ||= external;
+  el<HTMLButtonElement>('cancel-generation').disabled=pending || state?.job?.status!=='running';
+  el<HTMLButtonElement>('generate').disabled ||= external && (!hostInfo || !el<HTMLInputElement>('confirm-mm').checked);
+  el('generate').textContent=external ? '外部HostにD6を実生成' : '花・内部枝を生成';
+  el('print-preparation').hidden=Boolean(current?.kind || (state?.selected && state.results[state.selected]?.kind));
+  if (hostInfo) {
+    const d=hostInfo.dimensions; const axis=el<HTMLSelectElement>('host-axis').value;
+    const rotated=axis==='x' ? [d[2],d[1],d[0]] : axis==='y' ? [d[0],d[2],d[1]] : d;
+    el('host-info').textContent=`原本 ${d.map(v=>v.toFixed(3)).join(' × ')} 座標単位 → ${rotated.map(v=>(v*numberValue('host-scale')).toFixed(3)).join(' × ')} mm / 上向き ${axis.toUpperCase()} → Z / ${hostInfo.triangles}面 / SHA256 ${hostInfo.sha256} / D6基準実寸 ${(10.867159366607666*numberValue('external-flower-scale')).toFixed(3)} × ${(10.072164535522461*numberValue('external-flower-scale')).toFixed(3)} × ${(3.1393972635269165*numberValue('external-flower-scale')).toFixed(3)} mm × 元の個体差q`;
+  }
+  const changed = current && !equalRecipe(current.recipe,draft());
   el("draft-status").textContent = `${changed ? "未生成の設定" : current ? "表示中と同じ設定" : "これから生成する設定"}：${recipeLabel(draft())}${changed ? "。画面の形はまだ変更していません。" : ""}`;
   el<HTMLButtonElement>("regenerate").disabled ||= Boolean(changed);
   el("history-position").textContent = state?.history.length ? `履歴 ${state.cursor + 1} / ${state.history.length}` : "履歴なし";
-  el("generated-status").textContent = current ? `${recipeLabel(current.recipe)} · 花 ${current.flowerCount.toLocaleString()} / 枝 ${current.memberCount.toLocaleString()} · ID ${current.id}` : "未生成";
+  el("generated-status").textContent = current ? `${recipeLabel(current.recipe)} · 花 ${current.flowerCount.toLocaleString()} / ${current.kind ? "内部枝・Support未対応" : `枝 ${current.memberCount.toLocaleString()}`} · ID ${current.id}` : "未生成";
   const selected = state?.selected && state.results[state.selected];
   el("selection-status").textContent = selected ? `選択済み：${recipeLabel(selected.recipe)} / ${selected.id}。造形の選択のみ。Print GO: false` : "造形の選択のみ。印刷承認ではありません。";
   el("progress").textContent = !connected ? "生成サービスに接続できません。ローカル起動を確認してください。" : pending ? "処理中…" : state?.job?.status === "running" ? `生成中：${state.job.stage}（完了後に形と履歴を一緒に更新）` : state?.job?.status === "failed" ? `生成失敗：${state.job.error ?? state.job.stage}。前の生成結果は保持しています。` : current ? "生成済み・操作できます" : "準備完了：デフォルト形状から生成できます";
@@ -118,7 +161,7 @@ function updateCards(): void {
     const title = document.createElement("h3");
     title.textContent = `${String(index + 1).padStart(2, "0")} · ${recipeLabel(result.recipe)}`;
     const info = document.createElement("p");
-    info.textContent = `${result.flowerCount.toLocaleString()} 花 / ${result.memberCount.toLocaleString()} 枝${result.id === current?.id ? " · 表示中" : ""}${result.id === state?.selected ? " · 選択済み" : ""}`;
+    info.textContent = `${result.flowerCount.toLocaleString()} 花 / ${result.kind ? "内部枝・Support未対応" : `${result.memberCount.toLocaleString()} 枝`}${result.id === current?.id ? " · 表示中" : ""}${result.id === state?.selected ? " · 選択済み" : ""}`;
     const compare = document.createElement("button");
     compare.textContent = result.id === state?.compare ? "右側で比較中" : "この候補と左右比較";
     compare.disabled = isBusy() || !connected;
@@ -131,10 +174,10 @@ function updateCards(): void {
     hashes.textContent = `ID: ${result.id}\nSurface: ${result.surfaceHash}\nCenterlines: ${result.centerlineHash}\nMesh: ${result.meshHash}`;
     details.append(summary, hashes);
     const select = document.createElement("button");
-    select.textContent = "この候補を印刷対象に選択";
+    select.textContent = result.kind ? "この候補を採用（形状のみ）" : "この候補を印刷対象に選択";
     select.addEventListener("click", () => void act(() => mutate("/select", { id: result.id })).then(() => {
       const index = (JSON.parse(shownKey || "[]") as string[]).indexOf(result.id);
-      if (index >= 0) printUI.capture(result.id, index);
+      if (!result.kind && index >= 0) printUI.capture(result.id, index);
     }));
     card.append(title, info, compare, select, details);
     container.append(card);
@@ -201,10 +244,27 @@ el("regenerate").addEventListener("click", () => void act(() => mutate("/generat
 el("undo").addEventListener("click", () => void act(() => mutate("/undo")));
 el("redo").addEventListener("click", () => void act(() => mutate("/redo")));
 el("clear-compare").addEventListener("click", () => void act(() => mutate("/compare", { id: null })));
-el("select-design").addEventListener("click", () => { const result = currentResult(state); if (result) void act(() => mutate("/select", { id: result.id })).then(() => { if (JSON.parse(shownKey || "[]")[0] === result.id) printUI.capture(result.id); }); });
+el("select-design").addEventListener("click", () => { const result = currentResult(state); if (result) void act(() => mutate("/select", { id: result.id })).then(() => { if (!result.kind && JSON.parse(shownKey || "[]")[0] === result.id) printUI.capture(result.id); }); });
 el("new-project").addEventListener("click", () => {
   if (state?.history.length && !confirm("新しいプロジェクトを開始します。必要な作業は先に .skincreation に保存してください。続けますか？")) return;
   void act(() => mutate("/new"), true);
+});
+for (const id of inputIds.filter(id=>id!=='host-file')) el(id).addEventListener('change',updateControls);
+el('cancel-generation').addEventListener('click',()=>{
+  if (pending) return;
+  ++generation; pending=true;updateControls();
+  void mutate('/cancel').then(applyState).catch(showError).finally(()=>{pending=false;updateControls();});
+});
+el('host-file').addEventListener('change',()=>{
+  const file=el<HTMLInputElement>('host-file').files?.[0]; if (!file) return;
+  void act(async()=>{
+    if (file.size>8*1024**2) throw new Error('STL上限は8 MiBです');
+    const bytes=await file.arrayBuffer(); const parsed=parseRawStlMesh(bytes);
+    if (parsed.triangleCount>20000) throw new Error('STL上限は20,000面です');
+    const info=await request<HostInfo>('/host',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:bytes});
+    hostInfo=info;el<HTMLInputElement>('confirm-mm').checked=false;
+    return state!;
+  }).finally(()=>{el<HTMLInputElement>('host-file').value='';});
 });
 flowerScale.addEventListener("change", updateControls);
 diameter.addEventListener("change", updateControls);

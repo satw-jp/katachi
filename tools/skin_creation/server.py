@@ -13,6 +13,8 @@ import sys
 import threading
 import uuid
 import zipfile
+import time
+from external import KIND, MAX_SECONDS, MAX_RAM, MAX_SAVE, import_host, validate_result
 from importlib.metadata import version
 import numpy as np
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -31,7 +33,7 @@ def dependency_versions():
     return {name: version(name) for name in ('numpy', 'scipy', 'trimesh', 'manifold3d')}
 
 def code_files():
-    return sorted(p for p in ROOT.rglob('*') if p.is_file() and '__pycache__' not in p.parts and (p.suffix == '.py' or p.name in ('archive_compatibility.json','validated_profiles.json')))
+    return sorted(p for p in ROOT.rglob('*') if p.is_file() and '__pycache__' not in p.parts and (p.suffix == '.py' or p.name in ('archive_compatibility.json','validated_profiles.json', 'external_compatibility.json')))
 
 def code_identity():
     return {p.relative_to(ROOT).as_posix(): sha(p) for p in code_files()}
@@ -60,6 +62,9 @@ def validate_state(state, project):
         validate_recipe(result['recipe'])
         if result != read(project / 'results' / key / 'result.json'):
             raise ValueError('Result/history mismatch')
+        if result.get('kind') == KIND:
+            validate_result(project, result)
+            continue
         for name in ('layout', 'mesh', 'structure'):
             safe_relative(result[name])
         # Validate renderable payloads before atomically replacing the live project.
@@ -132,6 +137,7 @@ def pack(project, state):
         for digest, b in sorted(blobs.items()): z.writestr('blobs/' + digest, b)
     data = buffer.getvalue()
     if len(data) > MAX_ZIP: raise ValueError('Save exceeds 512 MiB limit; history was not discarded')
+    if any(r.get('kind') == KIND for r in saved['results'].values()) and len(data) > MAX_SAVE: raise ValueError('External project save budget: 128 MiB; history retained')
     return data
 
 def unpack(data, target):
@@ -143,7 +149,7 @@ def unpack(data, target):
         if sum(i.file_size for i in entries) > MAX_EXPANDED: raise ValueError('Expanded archive too large')
         for name in names: safe_relative(name)
         manifest = json.loads(z.read('manifest.json'))
-        if manifest['schema'] != SCHEMA or manifest['code'] not in (code_identity(), read(ROOT / 'archive_compatibility.json')['metadataFix1']):
+        if manifest['schema'] != SCHEMA or manifest['code'] not in (code_identity(), read(ROOT / 'archive_compatibility.json')['metadataFix1'], read(ROOT / 'external_compatibility.json')):
             raise ValueError('Generator version mismatch; saved code is never executed')
         locks = manifest['files']
         for name in locks: safe_relative(name)
@@ -177,6 +183,7 @@ class Session:
         shutil.copytree(ROOT / 'assets', self.project / 'assets')
         validate_assets(self.project / 'assets')
         self.state = fresh_state()
+        self.cancel_events = {}
 
     def snapshot(self):
         return copy.deepcopy(self.state)
@@ -185,10 +192,13 @@ class Session:
         return self.state['job'] and self.state['job']['status'] == 'running'
 
     def generate(self, body):
-        recipe = validate_recipe({k: body[k] for k in ('flowerScale', 'diameter')})
+        recipe = validate_recipe({k: v for k,v in body.items() if k != 'force'} if body.get('kind') == KIND else {k: body[k] for k in ('flowerScale', 'diameter')})
+        recipe = copy.deepcopy(recipe)
         if self.busy(): raise ValueError('Generation already running')
         key, revision, project = uuid.uuid4().hex, self.state['revision'], self.project
-        self.state['job'] = dict(id=key, status='running', stage='生成を準備', error=None)
+        cancel = threading.Event()
+        self.cancel_events[key] = cancel
+        self.state['job'] = dict(id=key, status='running', stage='生成を準備', error=None, recipe=recipe)
         def run():
             try:
                 args = [sys.executable, str(ROOT / 'engine.py'), str(project), json.dumps(recipe), key]
@@ -196,6 +206,25 @@ class Session:
                 log_path = project / (key + '.log')
                 with log_path.open('w', encoding='utf-8') as log:
                     process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', env=dict(os.environ, PYTHONIOENCODING='utf-8'))
+                    metrics = dict(peakRamBytes=0, wallSeconds=0, budgetError=None)
+                    def monitor():
+                        import ctypes
+                        from ctypes import wintypes
+                        class Counters(ctypes.Structure):
+                            _fields_ = [('cb',wintypes.DWORD),('PageFaultCount',wintypes.DWORD)] + [(n,ctypes.c_size_t) for n in ('PeakWorkingSetSize','WorkingSetSize','QuotaPeakPagedPoolUsage','QuotaPagedPoolUsage','QuotaPeakNonPagedPoolUsage','QuotaNonPagedPoolUsage','PagefileUsage','PeakPagefileUsage')]
+                        started=time.perf_counter()
+                        while process.poll() is None:
+                            metrics['wallSeconds']=time.perf_counter()-started
+                            if os.name=='nt':
+                                counters=Counters();counters.cb=ctypes.sizeof(counters)
+                                if ctypes.windll.psapi.GetProcessMemoryInfo(wintypes.HANDLE(int(process._handle)),ctypes.byref(counters),counters.cb):
+                                    metrics['peakRamBytes']=max(metrics['peakRamBytes'],counters.PeakWorkingSetSize)
+                            if recipe.get('kind')==KIND and (metrics['wallSeconds']>MAX_SECONDS or metrics['peakRamBytes']>MAX_RAM):
+                                metrics['budgetError']='Generation resource budget exceeded; unchanged settings'
+                            if cancel.is_set() or metrics['budgetError']:
+                                process.terminate();return
+                            time.sleep(.05)
+                    watcher=threading.Thread(target=monitor,daemon=True);watcher.start()
                     for line in process.stdout:
                         log.write(line); log.flush()
                         try:
@@ -203,11 +232,15 @@ class Session:
                             with self.lock:
                                 if self.state['job'] and self.state['job']['id'] == key: self.state['job']['stage'] = stage
                         except (ValueError, KeyError): pass
-                    if process.wait() != 0:
-                        raise ValueError(log_path.read_text(encoding='utf-8')[-2000:])
+                    rc=process.wait();watcher.join()
+                    write(project / (key + '.metrics.json'), metrics)
+                    if cancel.is_set(): return
+                    if metrics['budgetError']: raise ValueError(metrics['budgetError'])
+                    if rc != 0: raise ValueError(log_path.read_text(encoding='utf-8')[-2000:])
                 result = read(project / 'results' / key / 'result.json')
                 with self.lock:
-                    if self.project != project or self.state['revision'] != revision: return
+                    if self.project != project or self.state['revision'] != revision or not self.state['job'] or self.state['job']['id'] != key or cancel.is_set(): return
+                    if result.get('kind')==KIND: validate_result(project, result)
                     self.state['results'][key] = result
                     self.state['history'] = self.state['history'][:self.state['cursor'] + 1] + [key]
                     self.state['cursor'] = len(self.state['history']) - 1
@@ -219,6 +252,13 @@ class Session:
                     if self.project == project and self.state['job'] and self.state['job']['id'] == key:
                         self.state['job'] = dict(id=key, status='failed', stage='生成失敗：直前の造形を保持', error=str(exc))
         threading.Thread(target=run, daemon=True).start()
+
+    def cancel(self):
+        job=self.state['job']
+        if job and job['status']=='running':
+            self.cancel_events[job['id']].set()
+            self.state['revision']+=1
+            self.state['job']=None
 
 def serve(port, storage, resume=None):
     session = Session(storage)
@@ -282,6 +322,9 @@ def serve(port, storage, resume=None):
                 data = self.rfile.read(count)
                 route = self.path.removeprefix('/creation-api')
                 with session.lock:
+                    if route == '/cancel':
+                        session.cancel()
+                        return self.send(session.snapshot())
                     if session.busy(): raise ValueError('Wait for generation; current result is protected')
                     if route.startswith('/print/'):
                         if route == '/print/rebind': return self.send(workflow.rebind(data))
@@ -290,6 +333,8 @@ def serve(port, storage, resume=None):
                         if route not in actions: raise ValueError('Unknown print operation')
                         return self.send(actions[route]())
                     if workflow.busy() and route in ('/open', '/new', '/generate'): raise ValueError('Cancel or finish active slice first')
+                    if route == '/host':
+                        return self.send(import_host(session.project, data))
                     if route == '/open':
                         target = storage / uuid.uuid4().hex
                         state = unpack(data, target)

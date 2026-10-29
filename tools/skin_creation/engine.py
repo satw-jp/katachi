@@ -29,6 +29,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def validate_recipe(recipe):
+    if recipe.get("kind") == "external-surface-v1":
+        from external import validate_recipe as validate_external
+        return validate_external(recipe)
     if set(recipe) != {'flowerScale', 'diameter'} or recipe['flowerScale'] not in (1, H) or recipe['diameter'] not in (2.2, 2.4):
         raise ValueError('v0 supports only mini MOCOMOCO/D6, flower 1 or 11/15, diameter 2.2 or 2.4')
     return recipe
@@ -75,6 +78,9 @@ def generate(project, recipe, result_id, force=False):
     validate_recipe(recipe)
     assets = project / 'assets'
     validate_assets(assets)
+    if recipe.get("kind") == "external-surface-v1":
+        from external import generate as generate_external
+        return generate_external(project, recipe, result_id)
     def progress(stage, *_):
         print(json.dumps({'stage': stage}), flush=True)
     start = time.perf_counter()
@@ -146,6 +152,9 @@ def generate(project, recipe, result_id, force=False):
     return result
 
 def scene(project, result):
+    if result.get("kind") == "external-surface-v1":
+        from external import scene as external_scene
+        return external_scene(project, result)
     def mesh(path, scale=1):
         with np.load(path, allow_pickle=False) as data:
             return dict(vertices=(data['vertices'] * scale).ravel().tolist(), faces=data['faces'].ravel().tolist())

@@ -51,6 +51,7 @@ class PrintWorkflow:
         if self.busy():raise ValueError('Wait for active print preparation')
         result=self.session.state['results'].get(self.session.state['selected'])
         if not result:raise ValueError('この造形で進める、で対象を明示選択してください')
+        if result.get('kind')=='external-surface-v1':raise ValueError('External Host: core/branches/Support are not generated; print preparation unsupported')
         choice=body.get('choice',self.value()['choice']); r=resolve(choice)
         sig=identity(dict(profiles=r['profiles'],engine=r['engine']))
         if read(ROOT/'validated_profiles.json').get('|'.join(choice[k] for k in ('machine','nozzle','material'))) != sig:raise ValueError('Profile/engine differs from the tested fixture; unresolved configuration')
